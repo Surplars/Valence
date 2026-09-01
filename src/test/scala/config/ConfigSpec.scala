@@ -1,7 +1,7 @@
 package config
 
 import org.scalatest.funsuite.AnyFunSuite
-import soc.config.{Config, DeviceTree, ISAProfiles, InterruptControllerKind, MemoryBases, MemorySizes, SoCFeatures, SoCProfiles}
+import soc.config.{Config, DeviceTree, ISAProfiles, InitrdRange, InterruptControllerKind, MemoryBases, MemorySizes, SoCFeatures, SoCProfiles}
 
 class ConfigSpec extends AnyFunSuite {
     test("default MMIO region order matches IonSoC slave connection order") {
@@ -77,6 +77,14 @@ class ConfigSpec extends AnyFunSuite {
         val dts = DeviceTree.linuxBootDts("mem=32M")
 
         assert(dts.contains("""bootargs = "console=ttyS0,115200 earlycon=uart8250,mmio,0x10010000 mem=32M";"""))
+    }
+
+    test("Linux boot device tree describes an external initramfs") {
+        val dts = DeviceTree.linuxBootDts("", Some(InitrdRange(BigInt("47000000", 16), BigInt("47012000", 16))))
+
+        assert(dts.contains("rdinit=/init"))
+        assert(dts.contains("linux,initrd-start = <0x00000000 0x47000000>;"))
+        assert(dts.contains("linux,initrd-end = <0x00000000 0x47012000>;"))
     }
 
     test("ISA profiles keep the MCU baseline at RV64IMAC plus privileged support") {

@@ -480,7 +480,8 @@ class LSU(XLEN: Int = 64, features: SoCFeatures = Config.features) extends Modul
     val raw_cache_load = is_load && !is_device && !translationNotReady && !translationBusy &&
         !raw_load_hit_sb && !load_conflicts_sb && !mem_addr_exception && !access_fault && !sameConsumedInput
     val raw_mmio_req   = memAccess.valid && !translationBusy && !mem_addr_exception && !access_fault && is_device && (is_load || is_store) && !sameConsumedInput
-    val raw_atomic_req = memAccess.valid && !translationBusy && !mem_addr_exception && !atomic_device_fault && !access_fault && !is_device && is_atomic && !sameConsumedInput
+    val raw_atomic_req = memAccess.valid && !translationNotReady && !translationBusy && !mem_addr_exception &&
+        !atomic_device_fault && !access_fault && !is_device && is_atomic && !sameConsumedInput
     val raw_fence_req = memAccess.valid && !translationBusy && !mem_addr_exception && !access_fault && is_fence && !sameConsumedInput
 
     val new_fence_req = raw_fence_req && !sb_has_data && !storeDrainPending && !cacheLoadPending && !mmioPending && !atomicPending && !pending_mem_trap

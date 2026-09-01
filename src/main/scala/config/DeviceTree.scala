@@ -9,8 +9,14 @@ case class DeviceTreeOptions(
     uartClockFrequency: Int = 50000000,
     uartBaud: Int = 115200,
     bootargs: Option[String] = None,
+    initrd: Option[InitrdRange] = None,
     uartNs16550Fallback: Boolean = false
 )
+
+case class InitrdRange(start: BigInt, endExclusive: BigInt) {
+    require(start >= 0, "initrd start must be non-negative")
+    require(endExclusive > start, "initrd end must be greater than its start")
+}
 
 object DeviceTree {
     def linuxCapableDts(): String =
@@ -20,14 +26,16 @@ object DeviceTree {
             DeviceTreeOptions(uartNs16550Fallback = true)
         )
 
-    def linuxBootDts(extraBootargs: String = ""): String = {
+    def linuxBootDts(extraBootargs: String = "", initrd: Option[InitrdRange] = None): String = {
         val defaultBootargs = "console=ttyS0,115200 earlycon=uart8250,mmio,0x10010000"
-        val bootargs = Seq(defaultBootargs, extraBootargs.trim).filter(_.nonEmpty).mkString(" ")
+        val initrdBootargs = if (initrd.nonEmpty) "rdinit=/init" else ""
+        val bootargs = Seq(defaultBootargs, initrdBootargs, extraBootargs.trim).filter(_.nonEmpty).mkString(" ")
         dts(
             SoCProfiles.LinuxBootPLIC,
             ISAProfiles.RV64IMACB,
             DeviceTreeOptions(
                 bootargs = Some(bootargs),
+                initrd = initrd,
                 uartNs16550Fallback = true
             )
         )
@@ -44,6 +52,12 @@ object DeviceTree {
         val clint = if (features.clint) clintNode() else ""
         val plic = if (features.interruptController == InterruptControllerKind.PLIC) plicNode() else ""
         val bootargs = options.bootargs.map(args => s"""        bootargs = "$args";""").getOrElse("")
+        val initrd = options.initrd
+            .map(range =>
+                s"""        linux,initrd-start = <${addressCells(range.start)}>;
+                   |        linux,initrd-end = <${addressCells(range.endExclusive)}>;""".stripMargin
+            )
+            .getOrElse("")
 
         s"""/dts-v1/;
            |
@@ -56,6 +70,7 @@ object DeviceTree {
            |    chosen {
            |        stdout-path = "serial0:${options.uartBaud}n8";
            |$bootargs
+           |$initrd
            |    };
            |
            |    cpus {
@@ -177,6 +192,9 @@ object DeviceTree {
 
     private def regCells(base: BigInt, size: BigInt): String =
         s"${cell(base >> 32)} ${cell(base)} ${cell(size >> 32)} ${cell(size)}"
+
+    private def addressCells(address: BigInt): String =
+        s"${cell(address >> 32)} ${cell(address)}"
 
     private def cell(value: BigInt): String =
         "0x" + (value & BigInt("ffffffff", 16)).toString(16).reverse.padTo(8, '0').reverse

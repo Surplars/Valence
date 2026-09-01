@@ -1088,6 +1088,68 @@ class LSUSpec extends AnyFunSuite with ChiselSim {
         }
     }
 
+    test("LSU executes consecutive translated supervisor AMOADD operations on adjacent cache beats") {
+        simulate(new LSU(64)) { dut =>
+            init(dut)
+            val root = BigInt("40000000", 16)
+            val l1 = BigInt("40001000", 16)
+            val l0 = BigInt("40002000", 16)
+            val leafPa = BigInt("411bb000", 16)
+            val virtualAddresses = Seq(
+                BigInt("ffffffff8115faf8", 16),
+                BigInt("ffffffff811bbe88", 16),
+                BigInt("ffffffff8115faf0", 16),
+                BigInt("ffffffff811bbe80", 16)
+            )
+
+            dut.io.mem_cfg.priv.poke(PrivilegeLevel.Supervisor)
+            dut.io.mem_cfg.data_priv.poke(PrivilegeLevel.Supervisor)
+            dut.io.mem_cfg.mmu_en.poke(true.B)
+            dut.io.mem_cfg.satp.poke(satp(root).U)
+            dut.io.mem_cfg.pmpcfg0.poke(pmpNapotRwx.U)
+            dut.io.mem_cfg.pmpaddr(0).poke(BigInt("10ffffff", 16).U)
+
+            for ((va, index) <- virtualAddresses.zipWithIndex) {
+                val mappedPage =
+                    if ((va >> 12) == (BigInt("ffffffff811bb000", 16) >> 12)) leafPa else BigInt("4115f000", 16)
+                val expectedPa = mappedPage | (va & 0xfff)
+                val vpn0 = (va >> 12) & 0x1ff
+                val vpn1 = (va >> 21) & 0x1ff
+                val vpn2 = (va >> 30) & 0x1ff
+                val oldValue = BigInt(100 + index)
+                val delta = BigInt(-1) & ((BigInt(1) << 64) - 1)
+
+                dut.io.pc_in.poke((BigInt("ffffffff8015cf40", 16) + index * 8).U)
+                dut.io.alu_out.rd.poke(0.U)
+                driveAtomic(dut, MemOpType.AMO, AtomicOpType.Add, va, delta)
+
+                expectDCacheRead(dut, root + vpn2 * 8)
+                acceptDCacheRead(dut, pte(ppn(l1), V))
+                expectDCacheRead(dut, l1 + vpn1 * 8)
+                acceptDCacheRead(dut, pte(ppn(l0), V))
+                expectDCacheRead(dut, l0 + vpn0 * 8)
+                acceptDCacheRead(dut, pte(ppn(mappedPage), V | R | W | A | D))
+
+                expectDCacheRead(dut, expectedPa)
+                acceptDCacheRead(dut, oldValue)
+                expectDCacheWrite(dut, expectedPa, oldValue - 1)
+                dut.clock.step()
+                dut.io.dcache.resp.valid.poke(true.B)
+                dut.clock.step()
+                dut.io.dcache.resp.valid.poke(false.B)
+                dut.io.trap_info_out.valid.expect(false.B)
+
+                // Present the next translated AMO without an idle bubble. The
+                // prior translation result remains live for one cleanup cycle;
+                // the next request must not issue its untranslated high VA.
+                if (index == virtualAddresses.size - 1) {
+                    driveNoMem(dut)
+                    dut.clock.step(2)
+                }
+            }
+        }
+    }
+
     test("LSU reports Sv39 load page faults without issuing the data cache request") {
         simulate(new LSU(64)) { dut =>
             init(dut)

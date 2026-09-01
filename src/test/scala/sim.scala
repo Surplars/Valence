@@ -9,6 +9,7 @@ import difftest.DifftestModule
 import soc._
 import soc.config.DeviceTree
 import soc.config.ISAProfiles
+import soc.config.InitrdRange
 import soc.config.SoCFeatures
 import soc.config.SoCProfiles
 
@@ -63,9 +64,16 @@ object DeviceTreeMain extends App {
     val output = Path.of(args.headOption.getOrElse("simulator/build/ionsoc.dts"))
     val profile = args.lift(1).getOrElse("firmware")
     val extraBootargs = args.lift(2).getOrElse("")
+    def parseAddress(value: String): BigInt =
+        if (value.startsWith("0x") || value.startsWith("0X")) BigInt(value.drop(2), 16) else BigInt(value)
+    val initrd = (args.lift(3).filter(_.nonEmpty), args.lift(4).filter(_.nonEmpty)) match {
+        case (None, None)             => None
+        case (Some(start), Some(end)) => Some(InitrdRange(parseAddress(start), parseAddress(end)))
+        case _                        => throw new IllegalArgumentException("initrd start and end must be provided together")
+    }
     val dts = profile match {
         case "firmware" => DeviceTree.linuxCapableDts()
-        case "linux"    => DeviceTree.linuxBootDts(extraBootargs)
+        case "linux"    => DeviceTree.linuxBootDts(extraBootargs, initrd)
         case other      => throw new IllegalArgumentException(s"unknown device-tree profile: $other")
     }
     Option(output.getParent).foreach(Files.createDirectories(_))

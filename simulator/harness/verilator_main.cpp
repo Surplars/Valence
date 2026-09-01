@@ -453,6 +453,7 @@ struct SimOptions
 	std::string second_elf_path;
 	std::string third_elf_path;
 	std::string dtb_path;
+	std::string initrd_path;
 	std::string test_name = "payload";
 	std::string expected_uart;
 	std::string flash_image;
@@ -474,6 +475,7 @@ struct SimOptions
 	uint64_t boot_a1 = 0;
 	uint64_t boot_a2 = 0;
 	uint64_t dtb_addr = SRAM_BASE + 0x00f00000;
+	uint64_t initrd_addr = 0;
 	uint64_t sram_base = SRAM_BASE;
 	size_t sram_size = DEFAULT_SRAM_SIZE;
 	uint64_t max_cycles = MAX_SIM_CYCLES;
@@ -996,6 +998,8 @@ int main(int argc, char **argv, char **env)
 		opts.sram_base = env_u64("ION_SRAM_BASE", FIRMWARE_SRAM_BASE);
 		opts.sram_size = (size_t)env_u64("ION_SRAM_SIZE", DEFAULT_FIRMWARE_SRAM_SIZE);
 		opts.dtb_addr = env_u64("ION_DTB_ADDR", opts.sram_base + 0x00f00000);
+		opts.initrd_path = env_string("ION_INITRD_PATH", "");
+		opts.initrd_addr = env_u64("ION_INITRD_ADDR", 0);
 		opts.require_sram_entry = true;
 		opts.require_payload_entry = std::getenv("ION_REQUIRE_PAYLOAD_ENTRY") == nullptr ||
 		                             env_enabled("ION_REQUIRE_PAYLOAD_ENTRY");
@@ -1459,6 +1463,8 @@ bool run_sim(const SimOptions &opts)
 			load_elf_to_regions(dut, opts.second_elf_path.c_str(), opts.sram_base, opts.sram_size);
 		if (!opts.third_elf_path.empty())
 			load_elf_to_regions(dut, opts.third_elf_path.c_str(), opts.sram_base, opts.sram_size);
+		if (!opts.initrd_path.empty())
+			load_blob_to_sram(dut, opts.initrd_path.c_str(), opts.initrd_addr, opts.sram_base, opts.sram_size);
 		if (!opts.dtb_path.empty())
 			load_blob_to_sram(dut, opts.dtb_path.c_str(), opts.dtb_addr, opts.sram_base, opts.sram_size);
 	}
