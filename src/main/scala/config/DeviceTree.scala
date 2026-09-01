@@ -14,7 +14,11 @@ case class DeviceTreeOptions(
 
 object DeviceTree {
     def linuxCapableDts(): String =
-        dts(SoCProfiles.LinuxCapablePLIC, ISAProfiles.RV64IMACB)
+        dts(
+            SoCProfiles.LinuxCapablePLIC,
+            ISAProfiles.RV64IMACB,
+            DeviceTreeOptions(uartNs16550Fallback = true)
+        )
 
     def linuxBootDts(extraBootargs: String = ""): String = {
         val defaultBootargs = "console=ttyS0,115200 earlycon=uart8250,mmio,0x10010000"

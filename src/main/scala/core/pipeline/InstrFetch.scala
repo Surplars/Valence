@@ -369,7 +369,8 @@ class InstrFetch(XLEN: Int, useCache: Boolean = false, useCompressed: Boolean = 
 
         val responseAdvancesPc = acceptResp && !io.stall
         io.fetch_stall :=
-            canIssue || ((state =/= sIdle) && !responseAdvancesPc) || startTranslation || xlatePending || fetchTrap.valid
+            canIssue || ((state =/= sIdle) && !responseAdvancesPc) || startTranslation || xlatePending ||
+                xlateDrainPending || fetchTrap.valid
         io.cache_busy := state =/= sIdle || canIssue || xlatePending
         // The PC consumes the step length in the same cycle that a cache
         // response is accepted. Use the just-decoded length instead of the

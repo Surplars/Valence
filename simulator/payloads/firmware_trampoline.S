@@ -4,6 +4,11 @@
 .equ UART_BASE, 0x10010000
 
 _start:
+#ifdef ION_DEFAULT_BOOT_ARGS
+    li   a0, 0
+    li   a1, ION_DEFAULT_DTB_ADDR
+    li   a2, ION_DEFAULT_PAYLOAD_ADDR
+#endif
     mv   s3, a0
     mv   s4, a1
     mv   s5, a2

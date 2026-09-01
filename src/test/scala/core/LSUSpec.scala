@@ -1002,8 +1002,8 @@ class LSUSpec extends AnyFunSuite with ChiselSim {
             val root = BigInt("40000000", 16)
             val l1 = BigInt("40001000", 16)
             val l0 = BigInt("40002000", 16)
-            val leafPa = BigInt("40003000", 16)
-            val va = BigInt("0000000012345678", 16)
+            val leafPa = BigInt("41188000", 16)
+            val va = BigInt("ffffffff81188110", 16)
             val vpn0 = (va >> 12) & 0x1ff
             val vpn1 = (va >> 21) & 0x1ff
             val vpn2 = (va >> 30) & 0x1ff
@@ -1015,7 +1015,9 @@ class LSUSpec extends AnyFunSuite with ChiselSim {
             dut.io.mem_cfg.mmu_en.poke(true.B)
             dut.io.mem_cfg.satp.poke(satp(root).U)
             dut.io.mem_cfg.pmpcfg0.poke(pmpNapotRwx.U)
-            dut.io.mem_cfg.pmpaddr(0).poke(BigInt("ffffffffffffffff", 16).U)
+            // 128 MiB NAPOT window at physical 0x40000000. It permits the
+            // translated PA but intentionally does not match the high VA.
+            dut.io.mem_cfg.pmpaddr(0).poke(BigInt("10ffffff", 16).U)
             dut.io.pc_in.poke("h80000380".U)
             driveStore(dut, va, data)
 

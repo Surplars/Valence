@@ -16,8 +16,22 @@
 #include <vector>
 #include <algorithm>
 #include <verilated.h>
-#if VM_TRACE
+#if VM_TRACE_FST
+#include <verilated_fst_c.h>
+using IonWaveTrace = VerilatedFstC;
+#define ION_HAS_WAVE_TRACE 1
+static constexpr const char *kWaveFormat = "FST";
+static constexpr const char *kDefaultWavePath = "simulator/build/wave.fst";
+#elif VM_TRACE_VCD
 #include <verilated_vcd_c.h>
+using IonWaveTrace = VerilatedVcdC;
+#define ION_HAS_WAVE_TRACE 1
+static constexpr const char *kWaveFormat = "VCD";
+static constexpr const char *kDefaultWavePath = "simulator/build/wave.vcd";
+#else
+#define ION_HAS_WAVE_TRACE 0
+static constexpr const char *kWaveFormat = "none";
+static constexpr const char *kDefaultWavePath = "simulator/build/wave.fst";
 #endif
 #include "VSoc.h"
 #include "VSoc___024root.h"
@@ -37,7 +51,6 @@
 
 #define MAX_SIM_CYCLES 10000
 static const char *kPayloadElfPath = "simulator/build/payload/payload.elf";
-static const char *kWavePath = "simulator/build/wave.vcd";
 vluint64_t sim_time = 0;
 
 struct SimOptions;
@@ -65,6 +78,363 @@ static uint64_t env_u64(const char *name, uint64_t fallback)
 	uint64_t parsed = std::strtoull(value, &end, 0);
 	return end != value ? parsed : fallback;
 }
+
+static std::string env_string(const char *name, const char *fallback)
+{
+	const char *value = std::getenv(name);
+	return value != nullptr && value[0] != '\0' ? value : fallback;
+}
+
+class WaveTraceWindow
+{
+  public:
+	WaveTraceWindow(VSoc *dut, bool requested)
+	    : requested_(requested),
+	      path_(env_string("ION_TRACE_WAVE_PATH", kDefaultWavePath)),
+	      scope_(env_string("ION_TRACE_WAVE_SCOPE", "")),
+	      depth_((int)std::max<uint64_t>(1, std::min<uint64_t>(env_u64("ION_TRACE_WAVE_DEPTH", 99), 1024))),
+	      start_tick_(env_u64("ION_TRACE_WAVE_START", 0)),
+	      stop_tick_(env_u64("ION_TRACE_WAVE_STOP", UINT64_MAX)),
+	      trigger_pc_(env_u64("ION_TRACE_WAVE_PC", UINT64_MAX)),
+	      length_(env_u64("ION_TRACE_WAVE_LEN", 0)),
+	      triggered_(trigger_pc_ == UINT64_MAX),
+	      trigger_tick_(start_tick_)
+	{
+#if ION_HAS_WAVE_TRACE
+		if (!requested_)
+			return;
+		if (start_tick_ > stop_tick_)
+		{
+			done_ = true;
+			printf("[trace]: invalid empty window: start_tick=%" PRIu64 " is after stop_tick=%" PRIu64 "\n",
+			       start_tick_,
+			       stop_tick_);
+			return;
+		}
+		const std::filesystem::path wave_path(path_);
+		const std::filesystem::path parent = wave_path.parent_path();
+		if (!parent.empty() && !std::filesystem::exists(parent))
+		{
+			done_ = true;
+			printf("[trace]: output directory does not exist: %s\n", parent.c_str());
+			return;
+		}
+		trace_ = new IonWaveTrace;
+		// Verilator requires tracing to be enabled before the first eval().
+		Verilated::traceEverOn(true);
+		dut->trace(trace_, depth_);
+		printf("[trace]: armed format=%s path=%s start_tick=%" PRIu64 " stop_tick=%" PRIu64
+		       "%s",
+		       kWaveFormat,
+		       path_.c_str(),
+		       start_tick_,
+		       stop_tick_,
+		       scope_.empty() ? "" : " scoped");
+		if (trigger_pc_ != UINT64_MAX)
+			printf(" trigger_pc=0x%016" PRIx64, trigger_pc_);
+		if (length_ != 0)
+			printf(" len=%" PRIu64, length_);
+		if (!scope_.empty())
+			printf(" scope=%s scope_depth=%d", scope_.c_str(), depth_);
+		printf("\n");
+#else
+		(void)dut;
+		if (requested_)
+			printf("[trace]: ION_TRACE_WAVE requested, but this binary was built without TRACE=1; wave disabled.\n");
+#endif
+	}
+
+	~WaveTraceWindow()
+	{
+		close(0, false);
+#if ION_HAS_WAVE_TRACE
+		delete trace_;
+#endif
+	}
+
+	void sample(VSoc *dut, uint64_t tick)
+	{
+#if ION_HAS_WAVE_TRACE
+		if (!requested_ || done_)
+			return;
+
+		if (!triggered_)
+		{
+			if (tick > stop_tick_)
+			{
+				done_ = true;
+				printf("[trace]: PC trigger expired at stop_tick=%" PRIu64
+				       " without matching pc=0x%016" PRIx64 "\n",
+				       stop_tick_,
+				       trigger_pc_);
+				return;
+			}
+			if (tick < start_tick_)
+				return;
+			const bool commit_hit = dut->clock && dut->io_debug_retire &&
+			                        (uint64_t)dut->io_debug_commitPc == trigger_pc_;
+			const bool trap_hit = dut->clock && dut->io_debug_arch_event_valid &&
+			                      (uint64_t)dut->io_debug_arch_event_pc == trigger_pc_;
+			if (!commit_hit && !trap_hit)
+				return;
+			triggered_ = true;
+			trigger_tick_ = tick;
+			printf("[trace]: PC trigger matched at tick=%" PRIu64 " pc=0x%016" PRIx64 "\n",
+			       tick,
+			       trigger_pc_);
+		}
+
+		if (tick < start_tick_)
+			return;
+
+		uint64_t last_tick = stop_tick_;
+		if (length_ != 0)
+		{
+			const uint64_t length_delta = length_ - 1;
+			const uint64_t length_last = trigger_tick_ > UINT64_MAX - length_delta
+			                                 ? UINT64_MAX
+			                                 : trigger_tick_ + length_delta;
+			last_tick = std::min(last_tick, length_last);
+		}
+		if (tick > last_tick)
+		{
+			close(tick, true);
+			return;
+		}
+
+		if (!open_)
+		{
+			if (!scope_.empty())
+				trace_->dumpvars(depth_, scope_);
+			trace_->open(path_.c_str());
+			open_ = true;
+			printf("[trace]: recording started at tick=%" PRIu64 "\n", tick);
+		}
+		trace_->dump(tick);
+		last_dump_tick_ = tick;
+		if (tick == last_tick)
+			close(tick, true);
+#else
+		(void)dut;
+		(void)tick;
+#endif
+	}
+
+	void close(uint64_t tick, bool announce = true)
+	{
+#if ION_HAS_WAVE_TRACE
+		if (open_)
+		{
+			trace_->close();
+			open_ = false;
+			if (announce)
+				printf("[trace]: recording stopped at tick=%" PRIu64 " path=%s\n",
+				       last_dump_tick_,
+				       path_.c_str());
+		}
+		else if (announce && requested_ && trigger_pc_ != UINT64_MAX && !triggered_ && !done_)
+		{
+			printf("[trace]: simulation ended at tick=%" PRIu64
+			       " without matching pc=0x%016" PRIx64 "; no wave file was written\n",
+			       tick,
+			       trigger_pc_);
+		}
+		done_ = true;
+#else
+		(void)tick;
+		(void)announce;
+#endif
+	}
+
+  private:
+	bool requested_ = false;
+	std::string path_;
+	std::string scope_;
+	int depth_ = 99;
+	uint64_t start_tick_ = 0;
+	uint64_t stop_tick_ = UINT64_MAX;
+	uint64_t trigger_pc_ = UINT64_MAX;
+	uint64_t length_ = 0;
+	bool triggered_ = true;
+	uint64_t trigger_tick_ = 0;
+	bool open_ = false;
+	bool done_ = false;
+	uint64_t last_dump_tick_ = 0;
+#if ION_HAS_WAVE_TRACE
+	IonWaveTrace *trace_ = nullptr;
+#endif
+};
+
+enum class ArchTraceKind : uint8_t
+{
+	Commit,
+	Trap
+};
+
+struct ArchTraceEntry
+{
+	ArchTraceKind kind = ArchTraceKind::Commit;
+	uint64_t sequence = 0;
+	uint64_t retire_index = 0;
+	uint64_t cycle = 0;
+	uint64_t tick = 0;
+	uint64_t pc = 0;
+	uint64_t data = 0;
+	uint64_t cause = 0;
+	uint64_t tval = 0;
+	uint64_t satp = 0;
+	uint64_t mepc = 0;
+	uint64_t sepc = 0;
+	uint64_t mcause = 0;
+	uint64_t scause = 0;
+	uint32_t instr = 0;
+	uint8_t instr_len = 0;
+	uint8_t rd = 0;
+	uint8_t privilege = 0;
+	bool wen = false;
+	bool skip = false;
+	bool interrupt = false;
+};
+
+class ArchitecturalHistory
+{
+  public:
+	ArchitecturalHistory(size_t capacity, bool stream)
+	    : ring_(capacity), stream_(stream)
+	{
+	}
+
+	void sample(VSoc *dut, uint64_t cycle, uint64_t tick)
+	{
+		if (dut->io_debug_retire)
+		{
+			ArchTraceEntry entry;
+			entry.kind = ArchTraceKind::Commit;
+			entry.sequence = ++event_count_;
+			entry.retire_index = ++retired_count_;
+			entry.cycle = cycle;
+			entry.tick = tick;
+			entry.pc = dut->io_debug_commitPc;
+			entry.instr = dut->io_debug_commitInstr;
+			entry.instr_len = dut->io_debug_commitInstrLen == 2 ? 2 : 4;
+			entry.wen = dut->io_debug_commitWen;
+			entry.rd = dut->io_debug_commitWdest;
+			entry.data = dut->io_debug_commitWdata;
+			entry.skip = dut->io_debug_commitSkip;
+			entry.privilege = dut->io_debug_csr_snapshot_privilegeMode;
+			entry.satp = dut->io_debug_csr_snapshot_satp;
+			push(entry);
+		}
+
+		if (dut->io_debug_arch_event_valid)
+		{
+			ArchTraceEntry entry;
+			entry.kind = ArchTraceKind::Trap;
+			entry.sequence = ++event_count_;
+			entry.retire_index = retired_count_;
+			entry.cycle = cycle;
+			entry.tick = tick;
+			entry.pc = dut->io_debug_arch_event_pc;
+			entry.instr = dut->io_debug_arch_event_instr;
+			entry.interrupt = dut->io_debug_arch_event_interrupt;
+			entry.cause = dut->io_debug_arch_event_cause;
+			entry.tval = dut->io_debug_arch_event_tval;
+			entry.privilege = dut->io_debug_csr_snapshot_privilegeMode;
+			entry.satp = dut->io_debug_csr_snapshot_satp;
+			entry.mepc = dut->io_debug_csr_snapshot_mepc;
+			entry.sepc = dut->io_debug_csr_snapshot_sepc;
+			entry.mcause = dut->io_debug_csr_snapshot_mcause;
+			entry.scause = dut->io_debug_csr_snapshot_scause;
+			push(entry);
+		}
+	}
+
+	void dump(const char *reason) const
+	{
+		printf("[arch-history]: reason=%s kept=%zu total=%" PRIu64 " retired=%" PRIu64
+		       " traps=%" PRIu64 "\n",
+		       reason,
+		       count_,
+		       event_count_,
+		       retired_count_,
+		       trap_count_);
+		if (count_ == 0)
+			return;
+		const size_t oldest = (next_ + ring_.size() - count_) % ring_.size();
+		for (size_t i = 0; i < count_; ++i)
+			print(ring_[(oldest + i) % ring_.size()]);
+	}
+
+	uint64_t retired_count() const { return retired_count_; }
+
+  private:
+	void push(const ArchTraceEntry &entry)
+	{
+		if (entry.kind == ArchTraceKind::Trap)
+			++trap_count_;
+		if (!ring_.empty())
+		{
+			ring_[next_] = entry;
+			next_ = (next_ + 1) % ring_.size();
+			count_ = std::min(count_ + 1, ring_.size());
+		}
+		if (stream_)
+			print(entry);
+	}
+
+	static void print(const ArchTraceEntry &entry)
+	{
+		if (entry.kind == ArchTraceKind::Commit)
+		{
+			printf("[arch-commit]: seq=%" PRIu64 " retire=%" PRIu64 " cycle=%" PRIu64
+			       " tick=%" PRIu64 " pc=0x%016" PRIx64 " instr=0x%08x len=%u"
+			       " priv_after=%u satp=0x%016" PRIx64 " skip=%u wen=%u rd=%u wdata=0x%016" PRIx64 "\n",
+			       entry.sequence,
+			       entry.retire_index,
+			       entry.cycle,
+			       entry.tick,
+			       entry.pc,
+			       entry.instr,
+			       (unsigned)entry.instr_len,
+			       (unsigned)entry.privilege,
+			       entry.satp,
+			       entry.skip ? 1U : 0U,
+			       entry.wen ? 1U : 0U,
+			       (unsigned)entry.rd,
+			       entry.data);
+			return;
+		}
+
+		printf("[arch-trap]: seq=%" PRIu64 " retire=%" PRIu64 " cycle=%" PRIu64
+		       " tick=%" PRIu64 " type=%s cause=0x%016" PRIx64 " pc=0x%016" PRIx64
+		       " instr=0x%08x tval=0x%016" PRIx64 " priv_after=%u satp=0x%016" PRIx64
+		       " mepc=0x%016" PRIx64 " sepc=0x%016" PRIx64
+		       " mcause=0x%016" PRIx64 " scause=0x%016" PRIx64 "\n",
+		       entry.sequence,
+		       entry.retire_index,
+		       entry.cycle,
+		       entry.tick,
+		       entry.interrupt ? "interrupt" : "exception",
+		       entry.cause,
+		       entry.pc,
+		       entry.instr,
+		       entry.tval,
+		       (unsigned)entry.privilege,
+		       entry.satp,
+		       entry.mepc,
+		       entry.sepc,
+		       entry.mcause,
+		       entry.scause);
+	}
+
+	std::vector<ArchTraceEntry> ring_;
+	bool stream_ = false;
+	size_t next_ = 0;
+	size_t count_ = 0;
+	uint64_t event_count_ = 0;
+	uint64_t retired_count_ = 0;
+	uint64_t trap_count_ = 0;
+};
 
 static bool would_block_errno(int err)
 {
@@ -701,12 +1071,12 @@ int main(int argc, char **argv, char **env)
 
 static uint8_t *sram_bytes(VSoc *dut)
 {
-	return (uint8_t *)&(dut->rootp->SimTop__DOT__sram__DOT__mem_ext__DOT__Memory[0]);
+	return (uint8_t *)&(dut->rootp->SimTop__DOT__sram__DOT__mem_rdata_mem_ext__DOT__Memory[0]);
 }
 
 static size_t rtl_sram_capacity_bytes(VSoc *dut)
 {
-	return sizeof(dut->rootp->SimTop__DOT__sram__DOT__mem_ext__DOT__Memory);
+	return sizeof(dut->rootp->SimTop__DOT__sram__DOT__mem_rdata_mem_ext__DOT__Memory);
 }
 
 static void write_sram_bytes(VSoc *dut, uint64_t sram_base, size_t sram_size, uint64_t paddr, const uint8_t *src, size_t len)
@@ -1023,7 +1393,7 @@ void ram_init(VSoc *dut, size_t sram_size = DEFAULT_SRAM_SIZE)
 	const size_t WORDS = sram_size / 8; // Memory is 64-bit wide
 	for (size_t i = 0; i < WORDS; ++i)
 	{
-		dut->rootp->SimTop__DOT__sram__DOT__mem_ext__DOT__Memory[i] = 0x0;
+		dut->rootp->SimTop__DOT__sram__DOT__mem_rdata_mem_ext__DOT__Memory[i] = 0x0;
 	}
 }
 
@@ -1055,14 +1425,10 @@ bool run_one_test(const std::string &bin_path,
 
 bool run_sim(const SimOptions &opts)
 {
+	Verilated::gotFinish(false);
+	Verilated::gotError(false);
 	VSoc *dut = new VSoc;
-#if VM_TRACE
-	VerilatedVcdC *tfp = new VerilatedVcdC;
-#else
-	void *tfp = nullptr;
-	if (opts.trace_wave)
-		printf("[trace]: ION_TRACE_WAVE requested, but this binary was built without TRACE=1; VCD disabled.\n");
-#endif
+	WaveTraceWindow wave(dut, opts.trace_wave);
 
 	sim_time = 0;
 
@@ -1084,9 +1450,6 @@ bool run_sim(const SimOptions &opts)
 	if (!flash.load(opts.flash_image))
 	{
 		delete dut;
-#if VM_TRACE
-		delete tfp;
-#endif
 		return false;
 	}
 	if (opts.direct_elf_load)
@@ -1112,17 +1475,6 @@ bool run_sim(const SimOptions &opts)
 	dut->io_jtag_tck = 0;
 	dut->io_jtag_tdi = 0;
 
-	if (opts.trace_wave)
-	{
-#if VM_TRACE
-		Verilated::traceEverOn(true);
-		dut->trace(tfp, 99);
-		tfp->open(kWavePath);
-#endif
-	}
-	else
-		Verilated::traceEverOn(false);
-
 	dut->clock = 0;
 	dut->reset = 1;
 
@@ -1132,9 +1484,6 @@ bool run_sim(const SimOptions &opts)
 	if (!jtag.init())
 	{
 		delete dut;
-#if VM_TRACE
-		delete tfp;
-#endif
 		return false;
 	}
 
@@ -1145,12 +1494,7 @@ bool run_sim(const SimOptions &opts)
 		jtag.drive(dut);
 		dut->clock ^= 1;
 		dut->eval();
-		if (opts.trace_wave)
-#if VM_TRACE
-			tfp->dump(sim_time);
-#else
-			(void)tfp;
-#endif
+		wave.sample(dut, sim_time);
 		sim_time++;
 	}
 
@@ -1170,7 +1514,7 @@ bool run_sim(const SimOptions &opts)
 	bool saw_exit = false;
 	bool stopped_on_payload_entry = false;
 	bool stopped_on_uart_match = false;
-	bool trace_cpu = std::getenv("ION_TRACE_CPU") != nullptr;
+	bool trace_cpu = env_enabled("ION_TRACE_CPU");
 	bool trace_cpu_every = env_enabled("ION_TRACE_CPU_EVERY");
 	bool trace_pc_escape = env_enabled("ION_TRACE_PC_ESCAPE");
 	bool trace_map_u32 = env_enabled("ION_TRACE_MAP_U32");
@@ -1225,8 +1569,21 @@ bool run_sim(const SimOptions &opts)
 	uint64_t perf_branch_redirect = 0;
 	uint64_t perf_branch_pred_taken = 0;
 	uint64_t perf_branch_pred_correct = 0;
+	const size_t history_capacity = (size_t)std::min<uint64_t>(env_u64("ION_DEBUG_HISTORY", 256), 1U << 16);
+	const bool stream_arch_trace = env_enabled("ION_TRACE_COMMIT");
+	const bool dump_history_always = env_enabled("ION_DEBUG_HISTORY_ALWAYS");
+	const uint64_t no_retire_timeout = env_u64("ION_NO_RETIRE_TIMEOUT", 0);
+	const uint64_t stop_pc = env_u64("ION_STOP_PC", UINT64_MAX);
+	ArchitecturalHistory arch_history(history_capacity, stream_arch_trace);
+	uint64_t core_cycle = 0;
+	uint64_t last_retire_cycle = 0;
+	bool no_retire_timeout_hit = false;
+	bool stop_pc_hit = false;
+	const char *stop_reason = "max-ticks";
+	uint64_t last_eval_tick = sim_time == 0 ? 0 : sim_time - 1;
 
-	while (opts.max_cycles == 0 || sim_time < opts.max_cycles)
+	while (!Verilated::gotFinish() && !Verilated::gotError() &&
+	       (opts.max_cycles == 0 || sim_time < opts.max_cycles))
 	{
 		irq.drive(dut, opts.test_name, sim_time);
 		uart.drive_rx(dut, sim_time);
@@ -1234,12 +1591,8 @@ bool run_sim(const SimOptions &opts)
 
 		dut->clock ^= 1;
 		dut->eval();
-		if (opts.trace_wave)
-#if VM_TRACE
-			tfp->dump(sim_time);
-#else
-			(void)tfp;
-#endif
+		last_eval_tick = sim_time;
+		wave.sample(dut, sim_time);
 
 		uint64_t cur_mtimecmp = last_mtimecmp;
 		uint8_t cur_mtip = last_mtip;
@@ -1252,6 +1605,24 @@ bool run_sim(const SimOptions &opts)
 			trace_state_change = cur_mtip != last_mtip || cur_mtimecmp != last_mtimecmp;
 		}
 		uint64_t pc_now = dut->io_debug_pc;
+		const bool commit_valid = dut->clock && dut->io_debug_retire;
+		const uint64_t commit_pc = dut->io_debug_commitPc;
+		if (dut->clock)
+		{
+			++core_cycle;
+			arch_history.sample(dut, core_cycle, sim_time);
+			if (dut->io_debug_retire)
+				last_retire_cycle = core_cycle;
+			if (!opts.jtag_only && no_retire_timeout != 0 &&
+			    core_cycle - last_retire_cycle >= no_retire_timeout)
+				no_retire_timeout_hit = true;
+			if (!opts.jtag_only && commit_valid && commit_pc == stop_pc)
+			{
+				stop_pc_hit = true;
+				stop_reason = "stop-pc";
+				break;
+			}
+		}
 		if (opts.perf_report && dut->clock)
 		{
 			perf_cycles++;
@@ -1415,27 +1786,28 @@ bool run_sim(const SimOptions &opts)
 			prev_pc = pc_now;
 			prev_pc_valid = true;
 
-			if (!saw_rom_pc && pc_now >= BROM_BASE && pc_now < BROM_BASE + ROM_SIZE)
+			if (!saw_rom_pc && commit_valid && commit_pc >= BROM_BASE && commit_pc < BROM_BASE + ROM_SIZE)
 			{
 				saw_rom_pc = true;
 				if (trace_boot)
-					printf("[boot-trace %6" PRIu64 "] entered ROM pc=0x%016" PRIx64 "\n", sim_time, pc_now);
+					printf("[boot-trace %6" PRIu64 "] retired in ROM pc=0x%016" PRIx64 "\n", sim_time, commit_pc);
 			}
-			if (!saw_sram_pc && pc_now >= opts.sram_base && pc_now < opts.sram_base + opts.sram_size)
+			if (!saw_sram_pc && commit_valid && commit_pc >= opts.sram_base && commit_pc < opts.sram_base + opts.sram_size)
 			{
 				saw_sram_pc = true;
 				if (trace_boot)
-					printf("[boot-trace %6" PRIu64 "] entered SRAM pc=0x%016" PRIx64 "\n", sim_time, pc_now);
+					printf("[boot-trace %6" PRIu64 "] retired in SRAM pc=0x%016" PRIx64 "\n", sim_time, commit_pc);
 			}
-			if (!saw_payload_pc && pc_now >= opts.boot_a2 && pc_now < opts.boot_a2 + 0x10000)
+			if (!saw_payload_pc && commit_valid && commit_pc >= opts.boot_a2 && commit_pc < opts.boot_a2 + 0x10000)
 			{
 				saw_payload_pc = true;
 				if (trace_boot)
-					printf("[boot-trace %6" PRIu64 "] entered payload pc=0x%016" PRIx64 "\n", sim_time, pc_now);
+					printf("[boot-trace %6" PRIu64 "] retired in payload pc=0x%016" PRIx64 "\n", sim_time, commit_pc);
 				if (stop_on_payload_entry)
 				{
 					stopped_on_payload_entry = true;
 					saw_exit = true;
+					stop_reason = "payload-entry";
 					sim_time++;
 					break;
 				}
@@ -1853,26 +2225,44 @@ bool run_sim(const SimOptions &opts)
 		{
 			stopped_on_uart_match = true;
 			saw_exit = true;
+			stop_reason = "uart-match";
 			sim_time++;
 			break;
 		}
 
 		if (!opts.jtag_only && !disable_exit_check && dut->clock &&
-		    dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[17] == 93)
+		    dut->io_debug_gpr_snapshot_17 == 93)
 		{
 			saw_exit = true;
+			stop_reason = "exit-sentinel";
+			sim_time++;
+			break;
+		}
+
+		if (no_retire_timeout_hit)
+		{
+			stop_reason = "no-retire-timeout";
+			printf("[watchdog]: no retired instruction for %" PRIu64
+			       " cycles (cycle=%" PRIu64 ", tick=%" PRIu64 ")\n",
+			       no_retire_timeout,
+			       core_cycle,
+			       sim_time);
 			sim_time++;
 			break;
 		}
 
 		sim_time++;
 	}
+	if (Verilated::gotError())
+		stop_reason = "verilator-error";
+	else if (Verilated::gotFinish() && std::strcmp(stop_reason, "max-ticks") == 0)
+		stop_reason = "verilator-finish";
 
 	printf("\n--- UART output end ---\n");
 
-	int gp = dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[3];
-	int a0 = dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[10];
-	int a7 = dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[17];
+	uint64_t gp = dut->io_debug_gpr_snapshot_3;
+	uint64_t a0 = dut->io_debug_gpr_snapshot_10;
+	uint64_t a7 = dut->io_debug_gpr_snapshot_17;
 	if (trace_boot)
 	{
 		printf("[boot-trace end] cycles=%" PRIu64 " pc=0x%016" PRIx64 " instr=0x%08x mtvec=0x%016" PRIx64
@@ -1882,13 +2272,13 @@ bool run_sim(const SimOptions &opts)
 		       sim_time,
 		       (uint64_t)dut->io_debug_pc,
 		       (uint32_t)dut->io_debug_instr,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mtvec,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mepc,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mcause,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[10],
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[11],
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[12],
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__register__DOT__regFile_ext__DOT__Memory[17],
+		       (uint64_t)dut->io_debug_csr_snapshot_mtvec,
+		       (uint64_t)dut->io_debug_csr_snapshot_mepc,
+		       (uint64_t)dut->io_debug_csr_snapshot_mcause,
+		       (uint64_t)dut->io_debug_gpr_snapshot_10,
+		       (uint64_t)dut->io_debug_gpr_snapshot_11,
+		       (uint64_t)dut->io_debug_gpr_snapshot_12,
+		       (uint64_t)dut->io_debug_gpr_snapshot_17,
 		       (uint32_t)dut->rootp->SimTop__DOT__core__DOT__fenceIStart,
 		       (uint32_t)dut->rootp->SimTop__DOT__core__DOT__fenceIPending,
 		       (uint32_t)dut->rootp->SimTop__DOT__core__DOT__fenceIFlushIssued,
@@ -2032,10 +2422,11 @@ bool run_sim(const SimOptions &opts)
 	bool uart_pass = opts.expected_uart.empty() || (uart.output().find(opts.expected_uart) != std::string::npos);
 	bool boot_flow_pass = (!opts.require_sram_entry || saw_sram_pc) &&
 	                      (!opts.require_payload_entry || saw_payload_pc);
-	bool pass = opts.jtag_only ? true :
-	                          (stopped_on_payload_entry && boot_flow_pass) ||
-	                              (opts.accept_uart_match && uart_pass && boot_flow_pass) ||
-	                              (saw_exit && a7 == 93 && a0 == 0 && uart_pass && boot_flow_pass);
+	bool pass = !Verilated::gotError() && !no_retire_timeout_hit && !stop_pc_hit &&
+	            (opts.jtag_only ? true :
+	                              (stopped_on_payload_entry && boot_flow_pass) ||
+	                                  (opts.accept_uart_match && uart_pass && boot_flow_pass) ||
+	                                  (saw_exit && a7 == 93 && a0 == 0 && uart_pass && boot_flow_pass));
 	if (opts.perf_report)
 	{
 		double ipc = perf_cycles == 0 ? 0.0 : (double)perf_retired / (double)perf_cycles;
@@ -2091,44 +2482,49 @@ bool run_sim(const SimOptions &opts)
 	if (opts.jtag_only)
 		printf("[%s]: JTAG server active on port %d%s\n", opts.test_name.c_str(), opts.jtag_rbb_port, CEND);
 	else if (pass)
-		printf("[%s]: gp=%d, a7=%d, a0=%d, test %spassed%s\n", opts.test_name.c_str(), gp, a7, a0, GREEN, CEND);
+		printf("[%s]: gp=%" PRIu64 ", a7=%" PRIu64 ", a0=%" PRIu64 ", test %spassed%s\n",
+		       opts.test_name.c_str(), gp, a7, a0, GREEN, CEND);
 	else if (stopped_on_uart_match)
-		printf("[%s]: gp=%d, a7=%d, a0=%d, uart milestone reached, test %sfailed%s\n", opts.test_name.c_str(), gp, a7, a0, RED, CEND);
+		printf("[%s]: gp=%" PRIu64 ", a7=%" PRIu64 ", a0=%" PRIu64
+		       ", uart milestone reached, test %sfailed%s\n",
+		       opts.test_name.c_str(), gp, a7, a0, RED, CEND);
 	else if (a7 == 93)
-		printf("[%s]: gp=%d, a7=%d, a0=%d, uart=\"%s\", test %sfailed%s\n", opts.test_name.c_str(), gp, a7, a0, uart.output().c_str(), RED, CEND);
+		printf("[%s]: gp=%" PRIu64 ", a7=%" PRIu64 ", a0=%" PRIu64
+		       ", uart=\"%s\", test %sfailed%s\n",
+		       opts.test_name.c_str(), gp, a7, a0, uart.output().c_str(), RED, CEND);
 	else
-		printf("[%s]: gp=%d, a7=%d, a0=%d, test %sunknown%s\n", opts.test_name.c_str(), gp, a7, a0, YELLOW, CEND);
+		printf("[%s]: gp=%" PRIu64 ", a7=%" PRIu64 ", a0=%" PRIu64 ", test %sunknown%s\n",
+		       opts.test_name.c_str(), gp, a7, a0, YELLOW, CEND);
 
 	if (!opts.jtag_only && !pass)
 	{
-		printf("[sim-fail]: saw_exit=%u uart_pass=%u boot_flow_pass=%u entered_sram=%u entered_payload=%u expected_uart=\"%s\"\n",
+		printf("[sim-fail]: reason=%s saw_exit=%u uart_pass=%u boot_flow_pass=%u entered_sram=%u"
+		       " entered_payload=%u expected_uart=\"%s\"\n",
+		       stop_reason,
 		       saw_exit ? 1 : 0,
 		       uart_pass ? 1 : 0,
 		       boot_flow_pass ? 1 : 0,
 		       saw_sram_pc ? 1 : 0,
 		       saw_payload_pc ? 1 : 0,
 		       opts.expected_uart.c_str());
-		printf("[sim-fail]: cycles=%" PRIu64 " pc=0x%016" PRIx64 " instr=0x%08x mtvec=0x%016" PRIx64
+		printf("[sim-fail]: tick=%" PRIu64 " cycle=%" PRIu64 " retired=%" PRIu64
+		       " fetch_pc=0x%016" PRIx64 " fetch_instr=0x%08x mtvec=0x%016" PRIx64
 		       " mepc=0x%016" PRIx64 " mcause=0x%016" PRIx64 " mtval=0x%016" PRIx64 "\n",
-		       sim_time,
+		       last_eval_tick,
+		       core_cycle,
+		       arch_history.retired_count(),
 		       (uint64_t)dut->io_debug_pc,
 		       (uint32_t)dut->io_debug_instr,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mtvec,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mepc,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mcause,
-		       (uint64_t)dut->rootp->SimTop__DOT__core__DOT__csr__DOT__mtval);
+		       (uint64_t)dut->io_debug_csr_snapshot_mtvec,
+		       (uint64_t)dut->io_debug_csr_snapshot_mepc,
+		       (uint64_t)dut->io_debug_csr_snapshot_mcause,
+		       (uint64_t)dut->io_debug_csr_snapshot_mtval);
 	}
+	if ((!opts.jtag_only && !pass) || dump_history_always)
+		arch_history.dump(pass ? "requested" : stop_reason);
 
-	if (opts.trace_wave)
-#if VM_TRACE
-		tfp->close();
-#else
-		(void)tfp;
-#endif
+	wave.close(last_eval_tick);
 	dut->final();
 	delete dut;
-#if VM_TRACE
-	delete tfp;
-#endif
 	return pass;
 }

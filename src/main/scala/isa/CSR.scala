@@ -47,8 +47,10 @@ object CSR {
     val MIP      = 0x344.U(12.W)
     // Machine Memory Protection
     val PMPcfg0  = 0x3a0.U(12.W)
+    val PMPcfg2  = 0x3a2.U(12.W)
     val PMPaddr0 = 0x3b0.U(12.W)
     val PMPaddr7 = 0x3b7.U(12.W)
+    val PMPaddr15 = 0x3bf.U(12.W)
     // Supervisor Counter Setup
     val SCOUNTEREN = 0x106.U(12.W)
     // Machine Non-Maskable Interrupt Handling

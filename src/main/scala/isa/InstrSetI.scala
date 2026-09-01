@@ -199,6 +199,11 @@ object InstrSetI extends InstrProvider {
 			ALU(ALUOps.NOP, OpSel.ZERO, OpSel.ZERO, brType = BranchType.ECALL),
 			Extension.RV64I
 		),
+		InstrEntry( // EBREAK
+			BitPat("b0000000_00001_00000_000_00000_1110011"),
+			ALU(ALUOps.NOP, OpSel.ZERO, OpSel.ZERO, brType = BranchType.EBREAK),
+			Extension.RV64I
+		),
         // RV64I
         InstrEntry( // LWU
             genPat(Funct3.I.LWU, Opcode.LOAD),

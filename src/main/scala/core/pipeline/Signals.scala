@@ -87,7 +87,7 @@ object BranchType extends ChiselEnum {
     val JAL                            = Value // 无条件直接分支
     val JALR                           = Value // 无条件间接分支
     val BEQ, BNE, BLT, BGE, BLTU, BGEU = Value // 条件分支
-    val MRET, SRET, MNRET, ECALL       = Value // 机器/超级/用户模式下的返回指令
+    val MRET, SRET, MNRET, ECALL, EBREAK = Value // 特权返回与同步异常指令
     val WFI                            = Value // 等待中断指令
 }
 

@@ -198,6 +198,11 @@ class InstrFetchSpec extends AnyFunSuite with ChiselSim {
             dut.clock.step()
 
             dut.io.trap_valid.poke(false.B)
+            // The cancelled request still owns the shared PTW response path.
+            // Keep PC stalled until that stale response has been consumed;
+            // otherwise sequential PCs can be skipped without ever fetching.
+            dut.io.pc.poke(newVa.U)
+            dut.io.fetch_stall.expect(true.B)
             dut.io.ptw.resp.valid.poke(true.B)
             dut.io.ptw.resp.bits.rdata.poke(pte(ppn(leafPa), V | R | X | A).U)
             dut.io.ptw.resp.bits.err.poke(false.B)
@@ -205,7 +210,6 @@ class InstrFetchSpec extends AnyFunSuite with ChiselSim {
             dut.clock.step()
 
             dut.io.ptw.resp.valid.poke(false.B)
-            dut.io.pc.poke(newVa.U)
             expectPtwRead(dut, root + newVpn2 * 8)
         }
     }

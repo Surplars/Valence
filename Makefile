@@ -7,23 +7,28 @@ LD = $(COMPILER)ld
 OBJCOPY = $(COMPILER)objcopy
 VERILATOR = verilator
 OPENOCD ?= /opt/openocd/bin/openocd
-NPROC ?= $(shell nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
-VERILATOR_OPT_FAST ?= -O3
+# Generated Verilator translation units are large; blindly using every logical
+# CPU (168 on the bring-up host) can make the kernel OOM-kill the compiler.
+# Keep interactive/debug builds bounded and cache unchanged units. Release/perf
+# runs may override both knobs explicitly.
+VERILATOR_BUILD_JOBS ?= 2
+VERILATOR_OBJCACHE ?= $(shell command -v ccache 2>/dev/null)
+VERILATOR_OPT_FAST ?= -O1
 VERILATOR_OPT_SLOW ?=
 LINUX_VERILATOR_CFLAGS ?= -DION_LINUX_PROFILE=1
 # Verilator trace instrumentation materially slows compile and bloats generated
 # C++, so normal smoke/perf runs build without it. Use `TRACE=1` together with
-# `ION_TRACE_WAVE=1` when a VCD is actually needed.
+# `ION_TRACE_WAVE=1` when an FST waveform is actually needed.
 TRACE ?= 0
 ifeq ($(TRACE),1)
-VERILATOR_TRACE_FLAGS = --trace
+VERILATOR_TRACE_FLAGS = --trace-fst --trace-threads 1
 VERILATOR_OBJ_SUFFIX = -trace
 else
 VERILATOR_TRACE_FLAGS =
 VERILATOR_OBJ_SUFFIX =
 endif
 # The simulator harness still reads selected rootp internals for ROM loading
-# and bring-up diagnostics. Keep those symbols public independently of VCD
+# and bring-up diagnostics. Keep those symbols public independently of wave
 # tracing, so default builds avoid trace code but retain harness visibility.
 VERILATOR_PUBLIC_FLAGS = --public-flat-rw
 PAYLOAD_MARCH ?= rv$(WORD_LEN)imac_zicsr
@@ -37,6 +42,7 @@ ICACHE_SYSTEM_VERILOG_DIR = $(BUILD_DIR)/../../build/rtl-icache
 FIRMWARE_SYSTEM_VERILOG_DIR = $(BUILD_DIR)/../../build/rtl-firmware
 LINUX_SYSTEM_VERILOG_DIR = $(BUILD_DIR)/../../build/rtl-linux
 DIFFTEST_SYSTEM_VERILOG_DIR = $(BUILD_DIR)/../../build/rtl-difftest
+LINUX_DIFFTEST_SYSTEM_VERILOG_DIR = $(BUILD_DIR)/../../build/rtl-difftest-linux
 PAYLOAD_BUILD_DIR = $(BUILD_DIR)/payload
 VERILATOR_OBJ_DIR = $(BUILD_DIR)/obj$(VERILATOR_OBJ_SUFFIX)
 MCU_VERILATOR_OBJ_DIR = $(BUILD_DIR)/obj-mcu$(VERILATOR_OBJ_SUFFIX)
@@ -55,12 +61,14 @@ ICACHE_FILE_LIST = $(ICACHE_SYSTEM_VERILOG_DIR)/filelist.f
 FIRMWARE_FILE_LIST = $(FIRMWARE_SYSTEM_VERILOG_DIR)/filelist.f
 LINUX_FILE_LIST = $(LINUX_SYSTEM_VERILOG_DIR)/filelist.f
 DIFFTEST_FILE_LIST = $(DIFFTEST_SYSTEM_VERILOG_DIR)/filelist.f
+LINUX_DIFFTEST_FILE_LIST = $(LINUX_DIFFTEST_SYSTEM_VERILOG_DIR)/filelist.f
 RTL_STAMP = $(SYSTEM_VERILOG_DIR)/.generated.stamp
 MCU_RTL_STAMP = $(MCU_SYSTEM_VERILOG_DIR)/.generated.stamp
 ICACHE_RTL_STAMP = $(ICACHE_SYSTEM_VERILOG_DIR)/.generated.stamp
 FIRMWARE_RTL_STAMP = $(FIRMWARE_SYSTEM_VERILOG_DIR)/.generated.stamp
 LINUX_RTL_STAMP = $(LINUX_SYSTEM_VERILOG_DIR)/.generated.stamp
 DIFFTEST_RTL_STAMP = $(DIFFTEST_SYSTEM_VERILOG_DIR)/.generated.stamp
+LINUX_DIFFTEST_RTL_STAMP = $(LINUX_DIFFTEST_SYSTEM_VERILOG_DIR)/.generated.stamp
 TB = $(SIM_HARNESS_DIR)/verilator_main.cpp
 PAYLOAD_SRC ?= $(PAYLOAD_SRC_DIR)/timer.S
 PAYLOAD_LDS = $(PAYLOAD_SRC_DIR)/payload.ld
@@ -74,6 +82,14 @@ PAYLOAD_ROM_HI_HEX = $(PAYLOAD_BUILD_DIR)/payload_rom_hi.hex
 PAYLOAD_SRAM_BIN = $(PAYLOAD_BUILD_DIR)/payload_sram.bin
 PAYLOAD_SRAM_HEX = $(PAYLOAD_BUILD_DIR)/payload_sram.hex
 FIRMWARE_TRAMPOLINE_ELF = $(PAYLOAD_BUILD_DIR)/firmware_trampoline.elf
+FIRMWARE_TRAMPOLINE_ROM_LO_HEX = $(PAYLOAD_BUILD_DIR)/firmware_trampoline_rom_lo.hex
+FIRMWARE_TRAMPOLINE_ROM_HI_HEX = $(PAYLOAD_BUILD_DIR)/firmware_trampoline_rom_hi.hex
+DIFFTEST_LINUX_TRAMPOLINE_ELF = $(PAYLOAD_BUILD_DIR)/difftest_linux_trampoline.elf
+DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX = $(PAYLOAD_BUILD_DIR)/difftest_linux_trampoline_rom_lo.hex
+DIFFTEST_LINUX_TRAMPOLINE_ROM_HI_HEX = $(PAYLOAD_BUILD_DIR)/difftest_linux_trampoline_rom_hi.hex
+DIFFTEST_OPENSBI_TRAMPOLINE_ELF = $(PAYLOAD_BUILD_DIR)/difftest_opensbi_trampoline.elf
+DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX = $(PAYLOAD_BUILD_DIR)/difftest_opensbi_trampoline_rom_lo.hex
+DIFFTEST_OPENSBI_TRAMPOLINE_ROM_HI_HEX = $(PAYLOAD_BUILD_DIR)/difftest_opensbi_trampoline_rom_hi.hex
 TIMER_ELF = $(PAYLOAD_BUILD_DIR)/timer.elf
 BASIC_ELF = $(PAYLOAD_BUILD_DIR)/basic.elf
 CLINT32_ELF = $(PAYLOAD_BUILD_DIR)/clint32.elf
@@ -120,10 +136,13 @@ RUSTSBI_FW_ELF ?= $(DEFAULT_RUSTSBI_FW_ELF)
 RUSTSBI_CONFIG ?= prototyper/prototyper/config/ionsoc.toml
 OPENSBI_FW_JUMP_ELF ?= $(OPENSBI_DIR)/build/platform/generic/firmware/fw_jump.elf
 OPENSBI_FW_JUMP_ADDR ?= 0x40100000
+OPENSBI_FW_JUMP_FDT_ADDR ?= 0x40f00000
 LINUX_OPENSBI_BUILD_DIR ?= $(OPENSBI_DIR)/build-ionsoc-linux
 LINUX_OPENSBI_FW_JUMP_ELF ?= $(LINUX_OPENSBI_BUILD_DIR)/platform/generic/firmware/fw_jump.elf
 OPENSBI_PLATFORM ?= generic
-OPENSBI_CROSS_COMPILE ?= $(COMPILER)
+# OpenSBI links its firmware as a static PIE. Prefer the Linux-targeting GNU
+# toolchain when available because some bare-metal linker builds omit PIE.
+OPENSBI_CROSS_COMPILE ?= $(shell if command -v riscv64-linux-gnu-gcc >/dev/null 2>&1; then echo riscv64-linux-gnu-; else echo $(COMPILER); fi)
 # Keep OpenSBI within the hardware ISA profile. Generic OpenSBI defaults to
 # rv64gc on many toolchains, which pulls in F/D instructions that this MCU
 # profile does not implement.
@@ -135,23 +154,57 @@ RUN_ARGS := $(filter-out verilator verilator-jtag,$(MAKECMDGOALS))
 NEMU_HOME ?= $(CURDIR)/NEMU
 NOOP_HOME ?= $(CURDIR)
 DIFFTEST_EMU ?= $(NOOP_HOME)/build/emu
-NEMU_SO ?= $(NEMU_HOME)/build/riscv64-nemu-interpreter-so
+LINUX_DIFFTEST_WORK_DIR ?= $(NOOP_HOME)/build/difftest-linux-work
+LINUX_DIFFTEST_WORK_EMU = $(LINUX_DIFFTEST_WORK_DIR)/build/emu
+LINUX_DIFFTEST_EMU ?= $(NOOP_HOME)/build/emu-linux
+DIFFTEST_CONFIG_OVERRIDE = $(SIMULATOR_DIR)/difftest/ionsoc_config_override.cpp
+DIFFTEST_MERGE_ELF = $(SIMULATOR_DIR)/difftest/merge_elf.py
+NEMU_BUILD_SO = $(NEMU_HOME)/build/riscv64-nemu-interpreter-so
+NEMU_SO ?= $(BUILD_DIR)/difftest/riscv64-ionsoc-ref.so
+LINUX_NEMU_SO ?= $(BUILD_DIR)/difftest/riscv64-ionsoc-linux-ref.so
 NEMU_DEFCONFIG ?= riscv64-ionsoc-ref_defconfig
 NEMU_LOCAL_DEFCONFIG ?= $(SIMULATOR_DIR)/difftest/$(NEMU_DEFCONFIG)
+LINUX_NEMU_DEFCONFIG ?= riscv64-ionsoc-linux-ref_defconfig
+LINUX_NEMU_LOCAL_DEFCONFIG = $(BUILD_DIR)/difftest/$(LINUX_NEMU_DEFCONFIG)
 NEMU_LDFLAGS ?= -rdynamic -shared -fPIC -Wl,--no-undefined -lz -Wl,--gc-sections -Wl,--exclude-libs,ALL
 DIFFTEST_PMEM_BASE ?= 0x10000000UL
 DIFFTEST_FIRST_INST_ADDRESS ?= 0x80000000UL
 DIFFTEST_MAX_CYCLES ?= 1000000
 DIFFTEST_MAX_INSTR ?= 100000
-DIFFTEST_BUILD_JOBS ?= $(NPROC)
+DIFFTEST_BUILD_JOBS ?= 2
+# Optimize for the edit/compile/debug loop. Verilator's generated C++ is much
+# cheaper to compile at -O1 than -O3, while short DiffTest probes remain fast.
+# ccache recovers unchanged generated translation units after RTL regeneration.
+# Release/performance runs can override with DIFFTEST_CXX_OPT=-O3.
+DIFFTEST_CXX_OPT ?= -O1
+DIFFTEST_OBJCACHE ?= $(shell command -v ccache 2>/dev/null)
 DIFFTEST_REGRESS_PAYLOADS ?= basic timer clint32 tlerror amo muldiv loadstore_widths compressed_mix hazard pipeline_reissue load_stall_bypass bswap ldaddr misalign_ld perf bitmanip plic plic_s uart_irq sv39
 DIFFTEST_REGRESS_LOG_DIR ?= $(BUILD_DIR)/difftest-matrix
-DIFFTEST_SIM_VFLAGS ?= +define+DIFFTEST +define+ENABLE_INITIAL_MEM_
+DIFFTEST_SIM_VFLAGS ?= +define+DIFFTEST
 DIFFTEST_PGO_CFLAGS ?= -Wno-error -DDIFFTEST_PMEM_BASE=$(DIFFTEST_PMEM_BASE) -DDIFFTEST_FIRST_INST_ADDRESS=$(DIFFTEST_FIRST_INST_ADDRESS)
 DIFFTEST_MAKE_ARGS = WITH_CHISELDB=0 WITH_CONSTANTIN=0 NO_ZSTD_COMPRESSION=1 \
 	NEMU_HOME=$(NEMU_HOME) NOOP_HOME=$(NOOP_HOME) RTL_DIR=$(abspath $(DIFFTEST_SYSTEM_VERILOG_DIR)) \
 	VERILATOR_BUILD_JOBS=$(DIFFTEST_BUILD_JOBS) SIM_VFLAGS="$(DIFFTEST_SIM_VFLAGS) $(SIM_VFLAGS)" \
+	OPT_FAST="$(DIFFTEST_CXX_OPT)" OBJCACHE="$(DIFFTEST_OBJCACHE)" \
 	PGO_CFLAGS="$(DIFFTEST_PGO_CFLAGS)" LLVM_BOLT=
+LINUX_DIFFTEST_PMEM_BASE ?= 0x40000000UL
+LINUX_DIFFTEST_FIRST_INST_ADDRESS ?= 0x80000000UL
+LINUX_DIFFTEST_ENTRY ?= 0x80000000
+# The REF memory must cover SRAM at 0x4000_0000 and the reset ROM at
+# 0x8000_0000. mmap/MAP_NORESERVE keeps the untouched gap virtual-only.
+LINUX_DIFFTEST_RAM_SIZE ?= 1073807360
+LINUX_DIFFTEST_MAX_CYCLES ?= $(LINUX_MAX_CYCLES)
+LINUX_DIFFTEST_MAX_INSTR ?= 10000000
+LINUX_DIFFTEST_IMAGE ?= $(BUILD_DIR)/difftest/ionsoc-linux.elf
+DIFFTEST_OPENSBI_SMOKE_IMAGE ?= $(BUILD_DIR)/difftest/ionsoc-opensbi-smoke.elf
+DIFFTEST_OPENSBI_SMOKE_MAX_INSTR ?= 4500000
+DIFFTEST_OPENSBI_SMOKE_MAX_CYCLES ?= 9000000
+LINUX_DIFFTEST_PGO_CFLAGS ?= -Wno-error -DDIFFTEST_PMEM_BASE=$(LINUX_DIFFTEST_PMEM_BASE) -DDIFFTEST_FIRST_INST_ADDRESS=$(LINUX_DIFFTEST_FIRST_INST_ADDRESS)
+LINUX_DIFFTEST_MAKE_ARGS = WITH_CHISELDB=0 WITH_CONSTANTIN=0 NO_ZSTD_COMPRESSION=1 \
+	NEMU_HOME=$(NEMU_HOME) NOOP_HOME=$(NOOP_HOME) DESIGN_DIR=$(LINUX_DIFFTEST_WORK_DIR) \
+	RTL_DIR=$(abspath $(LINUX_DIFFTEST_SYSTEM_VERILOG_DIR)) VERILATOR_BUILD_JOBS=$(DIFFTEST_BUILD_JOBS) \
+	SIM_VFLAGS="$(DIFFTEST_SIM_VFLAGS) $(SIM_VFLAGS)" OPT_FAST="$(DIFFTEST_CXX_OPT)" \
+	OBJCACHE="$(DIFFTEST_OBJCACHE)" PGO_CFLAGS="$(LINUX_DIFFTEST_PGO_CFLAGS)" LLVM_BOLT=
 RISCV_TESTS_ISA_DIR ?= riscv-tests/isa
 RISCV_TEST ?= rv64ui-p-simple
 RISCV_TESTS ?= rv64ui-p-simple rv64ui-p-add rv64ui-p-addi rv64ui-p-lw rv64ui-p-ld rv64ui-p-sd rv64um-p-mul rv64um-p-div rv64ua-p-amoadd_w rv64ua-p-lrsc rv64uc-p-rvc
@@ -188,14 +241,14 @@ SCALA_SLOW_TESTS = system.IonSoCSpec debug.JtagTapSpec
 all: clean emu
 
 emu: payload-rom-hex payload-sram-hex sim-verilog-difftest
-	@$(MAKE) -C difftest emu $(DIFFTEST_MAKE_ARGS)
+	@$(MAKE) -C difftest -j$(DIFFTEST_BUILD_JOBS) emu $(DIFFTEST_MAKE_ARGS)
 
 difftest-emu: sim-verilog-difftest
-	@$(MAKE) -C difftest emu $(DIFFTEST_MAKE_ARGS)
+	@$(MAKE) -C difftest -j$(DIFFTEST_BUILD_JOBS) emu $(DIFFTEST_MAKE_ARGS)
 	@touch $(DIFFTEST_EMU)
 
 $(DIFFTEST_EMU): $(DIFFTEST_RTL_STAMP) Makefile
-	@$(MAKE) -C difftest emu $(DIFFTEST_MAKE_ARGS)
+	@$(MAKE) -C difftest -j$(DIFFTEST_BUILD_JOBS) emu $(DIFFTEST_MAKE_ARGS)
 	@touch $(DIFFTEST_EMU)
 
 # Build the NEMU shared-object reference used by OpenXiangShan DiffTest. The
@@ -203,12 +256,54 @@ $(DIFFTEST_EMU): $(DIFFTEST_RTL_STAMP) Makefile
 nemu-so: $(NEMU_SO)
 
 $(NEMU_SO): $(NEMU_LOCAL_DEFCONFIG)
+	@mkdir -p $(dir $@)
 	cp $(NEMU_LOCAL_DEFCONFIG) $(NEMU_HOME)/configs/$(NEMU_DEFCONFIG)
 	NEMU_HOME=$(NEMU_HOME) $(MAKE) -C $(NEMU_HOME) $(NEMU_DEFCONFIG)
-	NEMU_HOME=$(NEMU_HOME) $(MAKE) -C $(NEMU_HOME) -j$(NPROC) LDFLAGS="$(NEMU_LDFLAGS)"
+	NEMU_HOME=$(NEMU_HOME) $(MAKE) -C $(NEMU_HOME) -j$(DIFFTEST_BUILD_JOBS) LDFLAGS="$(NEMU_LDFLAGS)"
+	cp $(NEMU_BUILD_SO) $@
+
+$(LINUX_NEMU_LOCAL_DEFCONFIG): $(NEMU_LOCAL_DEFCONFIG) Makefile
+	@mkdir -p $(dir $@)
+	sed -e 's/^CONFIG_MBASE=.*/CONFIG_MBASE=0x40000000/' \
+		-e 's/^CONFIG_MSIZE=.*/CONFIG_MSIZE=0x40010000/' \
+		-e 's/^CONFIG_RV_PMA_CHECK=y/# CONFIG_RV_PMA_CHECK is not set/' $< > $@
+
+$(LINUX_NEMU_SO): $(LINUX_NEMU_LOCAL_DEFCONFIG)
+	@mkdir -p $(dir $@)
+	cp $(LINUX_NEMU_LOCAL_DEFCONFIG) $(NEMU_HOME)/configs/$(LINUX_NEMU_DEFCONFIG)
+	NEMU_HOME=$(NEMU_HOME) $(MAKE) -C $(NEMU_HOME) $(LINUX_NEMU_DEFCONFIG)
+	NEMU_HOME=$(NEMU_HOME) $(MAKE) -C $(NEMU_HOME) -j$(DIFFTEST_BUILD_JOBS) LDFLAGS="$(NEMU_LDFLAGS)"
+	cp $(NEMU_BUILD_SO) $@
+
+nemu-so-linux: $(LINUX_NEMU_SO)
 
 difftest-run-payload: payload-rom-hex payload-sram-hex $(DIFFTEST_EMU) nemu-so
 	$(DIFFTEST_EMU) --diff=$(NEMU_SO) --image=$(PAYLOAD_ELF) --max-instr=$(DIFFTEST_MAX_INSTR) --max-cycles=$(DIFFTEST_MAX_CYCLES) -- +ion_rom_lo=$(PAYLOAD_ROM_LO_HEX) +ion_rom_hi=$(PAYLOAD_ROM_HI_HEX)
+
+$(LINUX_DIFFTEST_IMAGE): $(DIFFTEST_LINUX_TRAMPOLINE_ELF) $(LINUX_OPENSBI_FW_JUMP_ELF) $(LINUX_KERNEL_ELF) $(LINUX_DTB) $(DIFFTEST_MERGE_ELF)
+	python3 $(DIFFTEST_MERGE_ELF) --output $@ --entry $(LINUX_DIFFTEST_ENTRY) \
+		--elf $(LINUX_OPENSBI_FW_JUMP_ELF) --elf $(LINUX_KERNEL_ELF) \
+		--blob $(LINUX_DTB_ADDR):$(LINUX_DTB) --elf $(DIFFTEST_LINUX_TRAMPOLINE_ELF)
+
+difftest-run-linux: $(LINUX_DIFFTEST_IMAGE) $(DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_LINUX_TRAMPOLINE_ROM_HI_HEX) $(LINUX_DIFFTEST_EMU) nemu-so-linux
+	$(LINUX_DIFFTEST_EMU) --diff=$(LINUX_NEMU_SO) --image=$(LINUX_DIFFTEST_IMAGE) \
+		--ram-size=$(LINUX_DIFFTEST_RAM_SIZE) --max-instr=$(LINUX_DIFFTEST_MAX_INSTR) \
+		--max-cycles=$(LINUX_DIFFTEST_MAX_CYCLES) -- \
+		+ion_rom_lo=$(DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX) +ion_rom_hi=$(DIFFTEST_LINUX_TRAMPOLINE_ROM_HI_HEX)
+
+$(DIFFTEST_OPENSBI_SMOKE_IMAGE): $(DIFFTEST_OPENSBI_TRAMPOLINE_ELF) $(OPENSBI_FW_JUMP_ELF) $(SBI_SMOKE_ELF) $(IONSOC_DTB) $(DIFFTEST_MERGE_ELF)
+	@mkdir -p $(dir $@)
+	python3 $(DIFFTEST_MERGE_ELF) --output $@ --entry $(LINUX_DIFFTEST_ENTRY) \
+		--elf $(OPENSBI_FW_JUMP_ELF) --elf $(SBI_SMOKE_ELF) \
+		--blob $(OPENSBI_FW_JUMP_FDT_ADDR):$(IONSOC_DTB) --elf $(DIFFTEST_OPENSBI_TRAMPOLINE_ELF)
+
+# Reproducible architectural checkpoint before a real Linux image: ROM ->
+# OpenSBI -> MRET -> S-mode SBI console -> stable self-loop.
+difftest-run-opensbi-smoke: $(DIFFTEST_OPENSBI_SMOKE_IMAGE) $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_HI_HEX) $(LINUX_DIFFTEST_EMU) nemu-so-linux
+	$(LINUX_DIFFTEST_EMU) --diff=$(LINUX_NEMU_SO) --image=$(DIFFTEST_OPENSBI_SMOKE_IMAGE) \
+		--ram-size=$(LINUX_DIFFTEST_RAM_SIZE) --max-instr=$(DIFFTEST_OPENSBI_SMOKE_MAX_INSTR) \
+		--max-cycles=$(DIFFTEST_OPENSBI_SMOKE_MAX_CYCLES) -- \
+		+ion_rom_lo=$(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX) +ion_rom_hi=$(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_HI_HEX)
 
 difftest-regress: $(DIFFTEST_EMU) nemu-so
 	@mkdir -p $(DIFFTEST_REGRESS_LOG_DIR)
@@ -346,11 +441,30 @@ sim-verilog-linux: $(LINUX_RTL_STAMP)
 # DiffTest RTL generation emits the official OpenXiangShan probe wrappers and
 # generated C++ state headers under build/generated-src. Keep it separate from
 # normal Verilator flows so ordinary bring-up does not require NEMU/libdifftest.
-$(DIFFTEST_RTL_STAMP) $(DIFFTEST_FILE_LIST) &: $(RTL_SCALA_SOURCES) build.mill
+$(DIFFTEST_RTL_STAMP) $(DIFFTEST_FILE_LIST) &: $(RTL_SCALA_SOURCES) build.mill $(DIFFTEST_CONFIG_OVERRIDE)
 	NOOP_HOME=$(NOOP_HOME) mill -i IonSoC.test.runMain sim.DifftestTopMain
+	@cp $(DIFFTEST_CONFIG_OVERRIDE) $(NOOP_HOME)/build/generated-src/ionsoc-config-override.cpp
 	@touch $(DIFFTEST_RTL_STAMP)
 
 sim-verilog-difftest: $(DIFFTEST_RTL_STAMP)
+
+$(LINUX_DIFFTEST_RTL_STAMP) $(LINUX_DIFFTEST_FILE_LIST) &: $(RTL_SCALA_SOURCES) build.mill $(DIFFTEST_CONFIG_OVERRIDE)
+	NOOP_HOME=$(NOOP_HOME) mill -i IonSoC.test.runMain sim.LinuxDifftestTopMain
+	@cp $(DIFFTEST_CONFIG_OVERRIDE) $(NOOP_HOME)/build/generated-src/ionsoc-config-override.cpp
+	@touch $(LINUX_DIFFTEST_RTL_STAMP)
+
+sim-verilog-difftest-linux: $(LINUX_DIFFTEST_RTL_STAMP)
+
+$(LINUX_DIFFTEST_WORK_DIR)/build/.generated-src.stamp: $(LINUX_DIFFTEST_RTL_STAMP) $(DIFFTEST_CONFIG_OVERRIDE)
+	@mkdir -p $(LINUX_DIFFTEST_WORK_DIR)/build/generated-src
+	@cp -a $(NOOP_HOME)/build/generated-src/. $(LINUX_DIFFTEST_WORK_DIR)/build/generated-src/
+	@touch $@
+
+$(LINUX_DIFFTEST_EMU): $(LINUX_DIFFTEST_WORK_DIR)/build/.generated-src.stamp Makefile
+	@$(MAKE) -C difftest -j$(DIFFTEST_BUILD_JOBS) emu $(LINUX_DIFFTEST_MAKE_ARGS)
+	@cp $(LINUX_DIFFTEST_WORK_EMU) $@
+
+difftest-emu-linux: $(LINUX_DIFFTEST_EMU)
 
 test-fast:
 	mill -i IonSoC.test.testOnly $(SCALA_FAST_TESTS)
@@ -501,6 +615,36 @@ $(FIRMWARE_TRAMPOLINE_ELF): $(PAYLOAD_SRC_DIR)/firmware_trampoline.S
 	@mkdir -p $(PAYLOAD_BUILD_DIR)
 	$(CC) -march=$(PAYLOAD_MARCH) -mabi=$(PAYLOAD_MABI) -nostdlib -nostartfiles -T$(PAYLOAD_LDS) -o $@ $<
 
+$(FIRMWARE_TRAMPOLINE_ROM_LO_HEX) $(FIRMWARE_TRAMPOLINE_ROM_HI_HEX) &: $(FIRMWARE_TRAMPOLINE_ELF)
+	@mkdir -p $(PAYLOAD_BUILD_DIR)
+	$(OBJCOPY) -O binary --only-section=.text $< $(PAYLOAD_BUILD_DIR)/firmware_trampoline.bin
+	@od -An -v -tx4 -w4 $(PAYLOAD_BUILD_DIR)/firmware_trampoline.bin | awk '{ print $$1 }' > $(FIRMWARE_TRAMPOLINE_ROM_LO_HEX)
+	@cp $(FIRMWARE_TRAMPOLINE_ROM_LO_HEX) $(FIRMWARE_TRAMPOLINE_ROM_HI_HEX)
+
+$(DIFFTEST_LINUX_TRAMPOLINE_ELF): $(PAYLOAD_SRC_DIR)/firmware_trampoline.S
+	@mkdir -p $(PAYLOAD_BUILD_DIR)
+	$(CC) -march=$(PAYLOAD_MARCH) -mabi=$(PAYLOAD_MABI) -nostdlib -nostartfiles \
+		-DION_DEFAULT_BOOT_ARGS -DION_DEFAULT_DTB_ADDR=$(LINUX_DTB_ADDR) \
+		-DION_DEFAULT_PAYLOAD_ADDR=$(LINUX_KERNEL_ADDR) -T$(PAYLOAD_LDS) -o $@ $<
+
+$(DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_LINUX_TRAMPOLINE_ROM_HI_HEX) &: $(DIFFTEST_LINUX_TRAMPOLINE_ELF)
+	@mkdir -p $(PAYLOAD_BUILD_DIR)
+	$(OBJCOPY) -O binary --only-section=.text $< $(PAYLOAD_BUILD_DIR)/difftest_linux_trampoline.bin
+	@od -An -v -tx4 -w4 $(PAYLOAD_BUILD_DIR)/difftest_linux_trampoline.bin | awk '{ print $$1 }' > $(DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX)
+	@cp $(DIFFTEST_LINUX_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_LINUX_TRAMPOLINE_ROM_HI_HEX)
+
+$(DIFFTEST_OPENSBI_TRAMPOLINE_ELF): $(PAYLOAD_SRC_DIR)/firmware_trampoline.S
+	@mkdir -p $(PAYLOAD_BUILD_DIR)
+	$(CC) -march=$(PAYLOAD_MARCH) -mabi=$(PAYLOAD_MABI) -nostdlib -nostartfiles \
+		-DION_DEFAULT_BOOT_ARGS -DION_DEFAULT_DTB_ADDR=$(OPENSBI_FW_JUMP_FDT_ADDR) \
+		-DION_DEFAULT_PAYLOAD_ADDR=$(OPENSBI_FW_JUMP_ADDR) -T$(PAYLOAD_LDS) -o $@ $<
+
+$(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_HI_HEX) &: $(DIFFTEST_OPENSBI_TRAMPOLINE_ELF)
+	@mkdir -p $(PAYLOAD_BUILD_DIR)
+	$(OBJCOPY) -O binary --only-section=.text $< $(PAYLOAD_BUILD_DIR)/difftest_opensbi_trampoline.bin
+	@od -An -v -tx4 -w4 $(PAYLOAD_BUILD_DIR)/difftest_opensbi_trampoline.bin | awk '{ print $$1 }' > $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX)
+	@cp $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_LO_HEX) $(DIFFTEST_OPENSBI_TRAMPOLINE_ROM_HI_HEX)
+
 $(IONSOC_DTS): $(RTL_SCALA_SOURCES) build.mill
 	@mkdir -p $(dir $@)
 	mill -i IonSoC.test.runMain sim.DeviceTreeMain $@ firmware
@@ -565,7 +709,7 @@ $(OPENSBI_FW_JUMP_ELF):
 		echo "Clone or copy OpenSBI there, or run with OPENSBI_FW_JUMP_ELF=/path/to/fw_jump.elf."; \
 		exit 1; \
 	fi
-	$(MAKE) -C $(OPENSBI_DIR) PLATFORM=$(OPENSBI_PLATFORM) CROSS_COMPILE=$(OPENSBI_CROSS_COMPILE) PLATFORM_RISCV_ISA=$(OPENSBI_PLATFORM_RISCV_ISA) FW_TEXT_START=0x40000000 FW_JUMP_ADDR=$(OPENSBI_FW_JUMP_ADDR) FW_OPTIONS=0
+	$(MAKE) -C $(OPENSBI_DIR) PLATFORM=$(OPENSBI_PLATFORM) CROSS_COMPILE=$(OPENSBI_CROSS_COMPILE) PLATFORM_RISCV_ISA=$(OPENSBI_PLATFORM_RISCV_ISA) FW_TEXT_START=0x40000000 FW_JUMP_ADDR=$(OPENSBI_FW_JUMP_ADDR) FW_JUMP_FDT_ADDR=$(OPENSBI_FW_JUMP_FDT_ADDR) FW_OPTIONS=0
 
 $(LINUX_OPENSBI_FW_JUMP_ELF):
 	@if [ ! -d "$(OPENSBI_DIR)" ]; then \
@@ -573,27 +717,27 @@ $(LINUX_OPENSBI_FW_JUMP_ELF):
 		echo "Clone or copy OpenSBI there, or run with LINUX_OPENSBI_FW_JUMP_ELF=/path/to/fw_jump.elf."; \
 		exit 1; \
 	fi
-	$(MAKE) -C $(OPENSBI_DIR) O=$(abspath $(LINUX_OPENSBI_BUILD_DIR)) PLATFORM=$(OPENSBI_PLATFORM) CROSS_COMPILE=$(OPENSBI_CROSS_COMPILE) PLATFORM_RISCV_ISA=$(OPENSBI_PLATFORM_RISCV_ISA) FW_TEXT_START=0x40000000 FW_JUMP_ADDR=$(LINUX_KERNEL_ADDR) FW_OPTIONS=0
+	$(MAKE) -C $(OPENSBI_DIR) O=$(abspath $(LINUX_OPENSBI_BUILD_DIR)) PLATFORM=$(OPENSBI_PLATFORM) CROSS_COMPILE=$(OPENSBI_CROSS_COMPILE) PLATFORM_RISCV_ISA=$(OPENSBI_PLATFORM_RISCV_ISA) FW_TEXT_START=0x40000000 FW_JUMP_ADDR=$(LINUX_KERNEL_ADDR) FW_JUMP_FDT_ADDR=$(LINUX_DTB_ADDR) FW_OPTIONS=0
 
 $(VSOC_BIN): $(RTL_STAMP) $(TB) $(FILE_LIST) $(SIM_RTL_DIR)/filelist.f Makefile
 	$(VERILATOR) --cc -I$(SIM_RTL_DIR) -I$(SYSTEM_VERILOG_DIR) -f $(FILE_LIST) -f $(SIM_RTL_DIR)/filelist.f --exe $(TB) $(VERILATOR_PUBLIC_FLAGS) $(VERILATOR_TRACE_FLAGS) --Mdir $(VERILATOR_OBJ_DIR) --top-module SimTop --prefix VSoc
-	@$(MAKE) -C $(VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(NPROC) OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
+	@$(MAKE) -C $(VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(VERILATOR_BUILD_JOBS) OBJCACHE="$(VERILATOR_OBJCACHE)" OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
 
 $(MCU_VSOC_BIN): $(MCU_RTL_STAMP) $(TB) $(MCU_FILE_LIST) $(SIM_RTL_DIR)/filelist.f Makefile
 	$(VERILATOR) --cc -I$(SIM_RTL_DIR) -I$(MCU_SYSTEM_VERILOG_DIR) -f $(MCU_FILE_LIST) -f $(SIM_RTL_DIR)/filelist.f --exe $(TB) $(VERILATOR_PUBLIC_FLAGS) $(VERILATOR_TRACE_FLAGS) --Mdir $(MCU_VERILATOR_OBJ_DIR) --top-module SimTop --prefix VSoc
-	@$(MAKE) -C $(MCU_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(NPROC) OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
+	@$(MAKE) -C $(MCU_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(VERILATOR_BUILD_JOBS) OBJCACHE="$(VERILATOR_OBJCACHE)" OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
 
 $(ICACHE_VSOC_BIN): $(ICACHE_RTL_STAMP) $(TB) $(ICACHE_FILE_LIST) $(SIM_RTL_DIR)/filelist.f Makefile
 	$(VERILATOR) --cc -I$(SIM_RTL_DIR) -I$(ICACHE_SYSTEM_VERILOG_DIR) -f $(ICACHE_FILE_LIST) -f $(SIM_RTL_DIR)/filelist.f --exe $(TB) $(VERILATOR_PUBLIC_FLAGS) $(VERILATOR_TRACE_FLAGS) --Mdir $(ICACHE_VERILATOR_OBJ_DIR) --top-module SimTop --prefix VSoc
-	@$(MAKE) -C $(ICACHE_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(NPROC) OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
+	@$(MAKE) -C $(ICACHE_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(VERILATOR_BUILD_JOBS) OBJCACHE="$(VERILATOR_OBJCACHE)" OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
 
 $(FIRMWARE_VSOC_BIN): $(FIRMWARE_RTL_STAMP) $(TB) $(FIRMWARE_FILE_LIST) $(SIM_RTL_DIR)/filelist.f Makefile
 	$(VERILATOR) --cc -I$(SIM_RTL_DIR) -I$(FIRMWARE_SYSTEM_VERILOG_DIR) -f $(FIRMWARE_FILE_LIST) -f $(SIM_RTL_DIR)/filelist.f --exe $(TB) $(VERILATOR_PUBLIC_FLAGS) $(VERILATOR_TRACE_FLAGS) --Mdir $(FIRMWARE_VERILATOR_OBJ_DIR) --top-module SimTop --prefix VSoc
-	@$(MAKE) -C $(FIRMWARE_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(NPROC) OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
+	@$(MAKE) -C $(FIRMWARE_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(VERILATOR_BUILD_JOBS) OBJCACHE="$(VERILATOR_OBJCACHE)" OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
 
 $(LINUX_VSOC_BIN): $(LINUX_RTL_STAMP) $(TB) $(LINUX_FILE_LIST) $(SIM_RTL_DIR)/filelist.f Makefile
 	$(VERILATOR) --cc -I$(SIM_RTL_DIR) -I$(LINUX_SYSTEM_VERILOG_DIR) -f $(LINUX_FILE_LIST) -f $(SIM_RTL_DIR)/filelist.f --exe $(TB) $(VERILATOR_PUBLIC_FLAGS) $(VERILATOR_TRACE_FLAGS) -CFLAGS "$(LINUX_VERILATOR_CFLAGS)" --Mdir $(LINUX_VERILATOR_OBJ_DIR) --top-module SimTop --prefix VSoc
-	@$(MAKE) -C $(LINUX_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(NPROC) OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
+	@$(MAKE) -C $(LINUX_VERILATOR_OBJ_DIR) -f VSoc.mk VSoc -j $(VERILATOR_BUILD_JOBS) OBJCACHE="$(VERILATOR_OBJCACHE)" OPT_FAST="$(VERILATOR_OPT_FAST)" OPT_SLOW="$(VERILATOR_OPT_SLOW)"
 
 verilator-build: $(VSOC_BIN)
 
@@ -688,7 +832,7 @@ verilator-run-rustsbi: $(RUSTSBI_FW_ELF) $(SBI_SMOKE_ELF) $(FIRMWARE_TRAMPOLINE_
 rustsbi-smoke: verilator-run-rustsbi
 
 verilator-run-opensbi: $(OPENSBI_FW_JUMP_ELF) $(SBI_SMOKE_ELF) $(FIRMWARE_TRAMPOLINE_ELF) $(IONSOC_DTB) $(FIRMWARE_VSOC_BIN)
-	ION_SRAM_BASE=0x40000000 ION_SRAM_SIZE=0x01000000 ION_DTB_ADDR=0x40f00000 ION_BOOT_A1=0x40f00000 ION_BOOT_A2=0x40100000 ION_MAX_CYCLES=12000000 ION_EXPECT_UART="IonSoC SBI smoke" ./$(FIRMWARE_VSOC_BIN) --sbi-firmware $(FIRMWARE_TRAMPOLINE_ELF) $(OPENSBI_FW_JUMP_ELF) $(SBI_SMOKE_ELF) $(IONSOC_DTB)
+	ION_SRAM_BASE=0x40000000 ION_SRAM_SIZE=0x01000000 ION_DTB_ADDR=0x40f00000 ION_BOOT_A1=0x40f00000 ION_BOOT_A2=0x40100000 ION_MAX_CYCLES=20000000 ION_EXPECT_UART="IonSoC SBI smoke" ION_ACCEPT_UART_MATCH=1 ION_STOP_ON_UART_MATCH=1 ./$(FIRMWARE_VSOC_BIN) --sbi-firmware $(FIRMWARE_TRAMPOLINE_ELF) $(OPENSBI_FW_JUMP_ELF) $(SBI_SMOKE_ELF) $(IONSOC_DTB)
 
 opensbi-smoke: verilator-run-opensbi
 
@@ -754,7 +898,7 @@ regress-icache-hazard: $(ICACHE_VSOC_BIN) $(HAZARD_ELF)
 	./$(ICACHE_VSOC_BIN) --payload hazard HP $(HAZARD_ELF)
 
 gtkwave:
-	gtkwave $(BUILD_DIR)/wave.vcd
+	gtkwave $(BUILD_DIR)/wave.fst
 
 clean:
 	@$(MAKE) -C difftest clean NEMU_HOME=$(NEMU_HOME) NOOP_HOME=$(NOOP_HOME)

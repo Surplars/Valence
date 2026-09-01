@@ -17,6 +17,7 @@ class DebugIO extends Bundle {
     val lsuMmioStall = Output(Bool())
     val lsuAtomicStall = Output(Bool())
     val lsuFenceStall = Output(Bool())
+    val fenceIActive = Output(Bool())
     val branchValid = Output(Bool())
     val branchTaken = Output(Bool())
     val branchRedirect = Output(Bool())

@@ -116,7 +116,8 @@ class InstrDecode(XLEN: Int = 64, enabledExt: Set[Extension.Value] = Config.enab
     val mem_write   = ctrlSignals(6).asTypeOf(Bool())
     val csr_op      = CSROps.safe(ctrlSignals(7).asUInt)._1
     val branch_type = BranchType.safe(ctrlSignals(8).asUInt)._1
-    val illegal     = io.valid_in && (ctrlSignals(0) === false.B || branch_type === BranchType.ECALL)
+    val illegal     = io.valid_in &&
+        (ctrlSignals(0) === false.B || branch_type === BranchType.ECALL || branch_type === BranchType.EBREAK)
     val isSfenceVma = opcode === Opcode.SYSTEM && funct3 === 0.U && funct7 === "b0001001".U && rd === 0.U
 
     ctrl.alu_op      := alu_op
@@ -225,12 +226,17 @@ class InstrDecode(XLEN: Int = 64, enabledExt: Set[Extension.Value] = Config.enab
                         PrivilegeLevel.Supervisor -> MCause.EcallFromSMode,
                         PrivilegeLevel.Machine    -> MCause.EcallFromMMode
                     )
-                )
+                ),
+                BranchType.EBREAK -> MCause.Breakpoint
             )
         ),
         0.U
     )
-    trap_info.value := io.instr_in
+    trap_info.value := Mux(
+        valid && branch_type === BranchType.EBREAK,
+        io.pc_in,
+        Mux(valid && illegal && branch_type =/= BranchType.ECALL, io.instr_in, 0.U)
+    )
     trap_info.is_ret := valid && (branch_type === BranchType.MRET || branch_type === BranchType.SRET || branch_type === BranchType.MNRET)
     trap_info.ret_type := MuxLookup(branch_type, TrapReturnType.None)(
         Seq(

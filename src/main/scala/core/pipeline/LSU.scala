@@ -424,6 +424,14 @@ class LSU(XLEN: Int = 64, features: SoCFeatures = Config.features) extends Modul
         Sv39AccessType.Load,
         Sv39AccessType.Store
     )
+    val translatedPmp = Module(new PmpAccessChecker(XLEN))
+    translatedPmp.io.valid := xlatePending && ptw.io.resp.fire && !ptw.io.resp.bits.fault.valid
+    translatedPmp.io.addr := ptw.io.resp.bits.paddr
+    translatedPmp.io.size := xlateAccess.size
+    translatedPmp.io.isStore := translatedAccessType === Sv39AccessType.Store
+    translatedPmp.io.priv := io.mem_cfg.data_priv
+    translatedPmp.io.pmpcfg0 := io.mem_cfg.pmpcfg0
+    translatedPmp.io.pmpaddr := io.mem_cfg.pmpaddr
 
     ptw.io.req.valid := xlatePending
     ptw.io.req.bits.vaddr := xlateAccess.vaddr
@@ -455,6 +463,15 @@ class LSU(XLEN: Int = 64, features: SoCFeatures = Config.features) extends Modul
         xlateAccess.attrs.translate := false.B
         xlateAccess.attrs.executable := paddrInRom(translatedPaddr)
         xlateFault := ptw.io.resp.bits.fault
+        when(!ptw.io.resp.bits.fault.valid && translatedPmp.io.fault) {
+            xlateFault.valid := true.B
+            xlateFault.cause := Mux(
+                translatedAccessType === Sv39AccessType.Store,
+                MCause.StoreAccessFault,
+                MCause.LoadAccessFault
+            )
+            xlateFault.value := xlateAccess.vaddr
+        }
     }.elsewhen(xlateDone && !sameTranslatedInput) {
         xlateDone := false.B
         xlateFault := 0.U.asTypeOf(xlateFault)

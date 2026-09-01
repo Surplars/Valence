@@ -79,7 +79,10 @@ class ALU(XLEN: Int = 64) extends Module {
     trap_info.valid  := valid && Mux(io.csr_illegal, true.B, io.trap_info_in.valid)
     trap_info.pc     := Mux(io.csr_illegal, io.pc_in, io.trap_info_in.pc)
     trap_info.cause  := Mux(io.csr_illegal, MCause.IllegalInstr, io.trap_info_in.cause)
-    trap_info.value  := io.trap_info_in.value
+    // CSR legality is checked in EX, after the decode-stage trap metadata was
+    // formed.  An illegal CSR access must still report the faulting instruction
+    // in mtval/stval, just like any other illegal-instruction exception.
+    trap_info.value  := Mux(io.csr_illegal, io.decoded_in.instr, io.trap_info_in.value)
     trap_info.is_ret := valid && io.trap_info_in.is_ret
     trap_info.ret_type := Mux(valid && io.trap_info_in.is_ret, io.trap_info_in.ret_type, TrapReturnType.None)
 

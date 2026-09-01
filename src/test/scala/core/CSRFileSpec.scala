@@ -221,6 +221,46 @@ class CSRFileSpec extends AnyFunSuite with ChiselSim {
         }
     }
 
+    test("CSRFile exposes return-updated MRET state in the same-cycle snapshot") {
+        simulate(new CSRFile(xlen, hartID = 0)) { dut =>
+            init(dut)
+
+            val before = (BigInt(1) << 1) | (BigInt(1) << 5) | (BigInt(1) << 7) |
+                (BigInt(1) << 11) | (BigInt(1) << 18)
+            val after = (BigInt(1) << 1) | (BigInt(1) << 3) | (BigInt(1) << 5) |
+                (BigInt(1) << 7) | (BigInt(1) << 18)
+            val sstatusAfter = (BigInt(1) << 1) | (BigInt(1) << 5) | (BigInt(1) << 18)
+            writeCsr(dut, CSR.MSTATUS, before)
+
+            dut.io.ret_type.poke(TrapReturnType.MRET)
+            dut.io.is_ret.poke(true.B)
+
+            dut.io.state_snapshot.privilegeMode.expect(PrivilegeLevel.Supervisor)
+            dut.io.state_snapshot.mstatus.expect(after.U)
+            dut.io.state_snapshot.sstatus.expect(sstatusAfter.U)
+        }
+    }
+
+    test("CSRFile derives same-cycle SRET sstatus snapshot from return-updated mstatus") {
+        simulate(new CSRFile(xlen, hartID = 0)) { dut =>
+            init(dut)
+            enterSupervisor(dut)
+
+            val before = (BigInt(1) << 5) | (BigInt(1) << 8) | (BigInt(1) << 18)
+            val after = (BigInt(1) << 1) | (BigInt(1) << 5) | (BigInt(1) << 7) |
+                (BigInt(1) << 18)
+            val sstatusAfter = (BigInt(1) << 1) | (BigInt(1) << 5) | (BigInt(1) << 18)
+            writeCsr(dut, CSR.SSTATUS, before)
+
+            dut.io.ret_type.poke(TrapReturnType.SRET)
+            dut.io.is_ret.poke(true.B)
+
+            dut.io.state_snapshot.privilegeMode.expect(PrivilegeLevel.Supervisor)
+            dut.io.state_snapshot.mstatus.expect(after.U)
+            dut.io.state_snapshot.sstatus.expect(sstatusAfter.U)
+        }
+    }
+
     test("CSRFile vectors delegated supervisor external interrupts to stvec") {
         simulate(new CSRFile(xlen, hartID = 0)) { dut =>
             init(dut)
@@ -270,7 +310,16 @@ class CSRFileSpec extends AnyFunSuite with ChiselSim {
             init(dut)
 
             dut.io.addr.poke(CSR.MISA)
-            dut.io.rdata.expect((BigInt(2) << 62) | (1L << ('i' - 'a')) | (1L << ('m' - 'a')) | (1L << ('a' - 'a')) | (1L << ('c' - 'a')) | (1L << ('s' - 'a')))
+            dut.io.rdata.expect(
+                (BigInt(2) << 62) |
+                    (1L << ('i' - 'a')) |
+                    (1L << ('m' - 'a')) |
+                    (1L << ('a' - 'a')) |
+                    (1L << ('b' - 'a')) |
+                    (1L << ('c' - 'a')) |
+                    (1L << ('s' - 'a')) |
+                    (1L << ('u' - 'a'))
+            )
 
             writeCsr(dut, CSR.MEDELEG, 1 << 2)
             writeCsr(dut, CSR.STVEC, BigInt("80000200", 16))
@@ -305,7 +354,7 @@ class CSRFileSpec extends AnyFunSuite with ChiselSim {
 
             for (i <- 0 until 8) {
                 val addr = (0x3b0 + i).U(12.W)
-                val value = BigInt("40000000", 16) + i
+                val value = BigInt("10000000", 16) + i
                 writeCsr(dut, addr, value)
                 dut.io.valid.poke(true.B)
                 dut.io.write.poke(false.B)
@@ -313,6 +362,21 @@ class CSRFileSpec extends AnyFunSuite with ChiselSim {
                 dut.io.illegal.expect(false.B)
                 dut.io.rdata.expect(value.U)
                 dut.io.mem_cfg_out.pmpaddr(i).expect(value.U)
+                dut.io.valid.poke(false.B)
+            }
+
+            writeCsr(dut, CSR.PMPaddr0, BigInt("ffffffffffffffff", 16))
+            dut.io.addr.poke(CSR.PMPaddr0)
+            dut.io.rdata.expect(BigInt("3fffffff", 16).U)
+            dut.io.mem_cfg_out.pmpaddr(0).expect(BigInt("3fffffff", 16).U)
+
+            Seq(CSR.PMPcfg2, CSR.PMPaddr15).foreach { addr =>
+                writeCsr(dut, addr, BigInt("ffffffffffffffff", 16))
+                dut.io.valid.poke(true.B)
+                dut.io.write.poke(false.B)
+                dut.io.addr.poke(addr)
+                dut.io.illegal.expect(false.B)
+                dut.io.rdata.expect(0.U)
                 dut.io.valid.poke(false.B)
             }
         }

@@ -24,6 +24,7 @@ class ALUSpec extends AnyFunSuite with ChiselSim {
 
         dut.io.decoded_in.rs1.poke(0.U)
         dut.io.decoded_in.rs2.poke(0.U)
+        dut.io.decoded_in.instr.poke(0.U)
         dut.io.decoded_in.op1.poke(0.U)
         dut.io.decoded_in.op2.poke(0.U)
         dut.io.decoded_in.rd.poke(1.U)
@@ -111,6 +112,27 @@ class ALUSpec extends AnyFunSuite with ChiselSim {
             dut.clock.step()
             dut.io.csr_valid.expect(true.B)
             dut.io.csr_write.expect(false.B)
+        }
+    }
+
+    test("ALU reports the faulting instruction for an illegal CSR access") {
+        simulate(new ALU(64)) { dut =>
+            init(dut)
+
+            val instruction = BigInt("da002573", 16) // csrr a0, scountovf
+            dut.io.pc_in.poke("h40005268".U)
+            dut.io.decoded_in.instr.poke(instruction.U)
+            dut.io.decoded_in.ctrl.csr_op.poke(CSROps.RS)
+            dut.io.decoded_in.op1.poke("hda0".U)
+            dut.io.decoded_in.rs2.poke(0.U)
+            dut.io.csr_illegal.poke(true.B)
+
+            dut.clock.step()
+
+            dut.io.trap_info_out.valid.expect(true.B)
+            dut.io.trap_info_out.pc.expect("h40005268".U)
+            dut.io.trap_info_out.cause.expect(soc.isa.MCause.IllegalInstr)
+            dut.io.trap_info_out.value.expect(instruction.U)
         }
     }
 

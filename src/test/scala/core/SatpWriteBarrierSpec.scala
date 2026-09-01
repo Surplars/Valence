@@ -38,7 +38,7 @@ class SatpWriteBarrierSpec extends AnyFunSuite with ChiselSim {
         }
     }
 
-    test("does not redirect the frontend when satp commits") {
+    test("flushes and redirects the frontend to the fall-through PC when satp commits") {
         simulate(new SatpWriteBarrier(64)) { dut =>
             init(dut)
 
@@ -47,8 +47,21 @@ class SatpWriteBarrierSpec extends AnyFunSuite with ChiselSim {
             dut.io.commitCsrAddr.poke(CSR.SATP)
             dut.io.commitPc.poke("hffffffff80001000".U)
             dut.io.commitInstrLen.poke(0.U)
+            dut.io.frontendFlush.expect(true.B)
+            dut.io.redirect.valid.expect(true.B)
+            dut.io.redirect.pc.expect("hffffffff80001000".U)
+            dut.io.redirect.is_branch.expect(false.B)
+            dut.io.redirect.taken.expect(true.B)
+            dut.io.redirect.target.expect("hffffffff80001004".U)
+            dut.io.redirect.redirect.expect(true.B)
+
+            dut.io.commitInstrLen.poke(2.U)
+            dut.io.redirect.target.expect("hffffffff80001002".U)
+
+            dut.io.commitCsrWrite.poke(false.B)
             dut.io.frontendFlush.expect(false.B)
             dut.io.redirect.valid.expect(false.B)
+            dut.io.redirect.redirect.expect(false.B)
         }
     }
 }

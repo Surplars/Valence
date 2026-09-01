@@ -27,7 +27,8 @@ class IonSoC(
     features: SoCFeatures = Config.features,
     enabledExt: Set[Extension.Value] = Config.enabledExt,
     sramInitFile: String = "",
-    difftestHarness: Boolean = false
+    difftestStimulus: Boolean = false,
+    useDifftestMemory: Boolean = false
 ) extends Module {
     private val tlParams = TLParams()
     private val dbusParams = tlParams.copy(sourceBits = tlParams.sourceBits + 2)
@@ -52,13 +53,16 @@ class IonSoC(
         val debug_arch_event_cause = Output(UInt(Config.XLEN.W))
         val debug_arch_event_pc = Output(UInt(Config.XLEN.W))
         val debug_arch_event_instr = Output(UInt(32.W))
+        val debug_arch_event_tval = Output(UInt(Config.XLEN.W))
         val debug_gpr_snapshot = Output(Vec(32, UInt(Config.XLEN.W)))
         val debug_csr_snapshot = Output(new CsrStateSnapshot(Config.XLEN))
     })
 
     val core  = Module(new Core(Config.XLEN, hartID = 0, features, enabledExt))
     val brom  = Module(new BROM(Config.XLEN, Config.romDepth, Config.romInit))
-    val sram  = Module(new TLRAM(deviceParams, features.sramSizeBytes, features.sramBase, sramInitFile))
+    val sram  = Module(
+        new TLRAM(deviceParams, features.sramSizeBytes, features.sramBase, sramInitFile, useDifftestMemory)
+    )
     val debugModule = Module(new DebugModule(deviceParams, dbusParams))
     val tlrom = Module(new TLROM(deviceParams))
     val uart  = if (features.uart) Some(Module(new UartTx(deviceParams))) else None
@@ -113,7 +117,7 @@ class IonSoC(
     effectiveExtIrqSources := io.ext_irq_sources
     val effectiveUartRxValid = WireDefault(io.uart_rx_valid)
     val effectiveUartRxByte = WireDefault(io.uart_rx_byte)
-    if (difftestHarness) {
+    if (difftestStimulus) {
         if (Config.plicSources >= 2) {
             effectiveExtIrqSources(2) := true.B
         }
@@ -176,6 +180,7 @@ class IonSoC(
     io.debug.lsuMmioStall := core.io.debug_lsu_mmio_stall
     io.debug.lsuAtomicStall := core.io.debug_lsu_atomic_stall
     io.debug.lsuFenceStall := core.io.debug_lsu_fence_stall
+    io.debug.fenceIActive := core.io.debug_fence_i_active
     io.debug.branchValid := core.io.debug_branch_valid
     io.debug.branchTaken := core.io.debug_branch_taken
     io.debug.branchRedirect := core.io.debug_branch_redirect
@@ -193,6 +198,7 @@ class IonSoC(
     io.debug_arch_event_cause := core.io.debug_arch_event_cause
     io.debug_arch_event_pc := core.io.debug_arch_event_pc
     io.debug_arch_event_instr := core.io.debug_arch_event_instr
+    io.debug_arch_event_tval := core.io.debug_arch_event_tval
     io.debug_gpr_snapshot := core.io.debug_gpr_snapshot
     io.debug_csr_snapshot := core.io.debug_csr_snapshot
 
@@ -204,8 +210,15 @@ class IonSoC(
 class IonSoCDifftest(
     features: SoCFeatures = Config.features,
     enabledExt: Set[Extension.Value] = Config.enabledExt,
-    sramInitFile: String = ""
-) extends IonSoC(features, enabledExt, sramInitFile, difftestHarness = true) with HasDiffTestInterfaces {
+    injectTestStimulus: Boolean = true,
+    exitOnBareMetalSentinel: Boolean = true
+) extends IonSoC(
+      features,
+      enabledExt,
+      difftestStimulus = injectTestStimulus,
+      useDifftestMemory = true
+    )
+    with HasDiffTestInterfaces {
     override def cpuName: Option[String] = Some("IonSoC")
 
     private val archEvent = DifftestModule(new DiffArchEvent, dontCare = true)
@@ -221,10 +234,20 @@ class IonSoCDifftest(
     archEvent.irToVS := false.B
 
     private val commit = DifftestModule(new DiffInstrCommit(32), dontCare = true)
+    private val committedCsrAddr = io.debug.commitInstr(31, 20)
+    private val committedCsrOp = io.debug.commitInstr(6, 0) === "b1110011".U && io.debug.commitInstr(14, 12) =/= 0.U
+    // NEMU intentionally models HPM/event counters as read-only zero, while
+    // IonSoC implements writable counters. Counter values are also timing
+    // dependent, so synchronize these CSR instructions just like MMIO reads.
+    private val implementationDefinedCounterCsr =
+        (committedCsrAddr >= "hB00".U && committedCsrAddr <= "hB1F".U) ||
+            (committedCsrAddr >= "hC00".U && committedCsrAddr <= "hC1F".U) ||
+            committedCsrAddr === "h320".U ||
+            (committedCsrAddr >= "h323".U && committedCsrAddr <= "h33F".U)
     commit.coreid := 0.U
     commit.index := 0.U
     commit.valid := io.debug.retire
-    commit.skip := io.debug.commitSkip
+    commit.skip := io.debug.commitSkip || (committedCsrOp && implementationDefinedCounterCsr)
     commit.isRVC := io.debug.commitInstrLen === 2.U
     commit.rfwen := io.debug.commitWen
     commit.fpwen := false.B
@@ -254,18 +277,25 @@ class IonSoCDifftest(
     }
 
     private val trap = DifftestModule(new DiffTrapEvent, dontCare = true)
-    private val difftestExitArmed = RegInit(false.B)
-    private val difftestExit = RegInit(false.B)
-    when(io.debug.retire && io.debug.commitWen && io.debug.commitWdest === 17.U && io.debug.commitWdata === 93.U) {
-        difftestExitArmed := true.B
-    }.elsewhen(difftestExitArmed && io.debug.retire) {
-        difftestExit := true.B
+    private val difftestExit = if (exitOnBareMetalSentinel) {
+        val armed = RegInit(false.B)
+        val exit = RegInit(false.B)
+        when(io.debug.retire && io.debug.commitWen && io.debug.commitWdest === 17.U && io.debug.commitWdata === 93.U) {
+            armed := true.B
+        }.elsewhen(armed && io.debug.retire) {
+            exit := true.B
+        }
+        exit
+    } else {
+        false.B
     }
     trap.coreid := 0.U
     trap.hasTrap := difftestExit
     trap.cycleCnt := difftestCycleCnt
     trap.instrCnt := difftestInstrCnt
-    trap.hasWFI := false.B
+    // DiffTest uses hasWFI as a generic "legal no-retire window" marker. A
+    // dirty-cache fence.i can exceed its fixed 1000-cycle stuck threshold.
+    trap.hasWFI := io.debug.fenceIActive
     trap.code := io.debug_gpr_snapshot(10)
     trap.pc := io.debug.commitPc
 

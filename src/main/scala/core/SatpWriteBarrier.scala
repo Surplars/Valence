@@ -23,13 +23,20 @@ class SatpWriteBarrier(XLEN: Int) extends Module {
     })
 
     private val decodeSatpWrite = io.decodeValid && io.decodeCsrWrite && io.decodeCsrAddr === CSR.SATP
+    private val commitSatpWrite = io.commitValid && io.commitCsrWrite && io.commitCsrAddr === CSR.SATP
+    private val commitStep = Mux(io.commitInstrLen === 2.U, 2.U(XLEN.W), 4.U(XLEN.W))
 
     io.holdDecode := decodeSatpWrite && !io.lsuMemoryIdle
-    io.frontendFlush := false.B
-    io.redirect.pc := 0.U
-    io.redirect.valid := false.B
+    // Instructions fetched before satp commits were translated with the old
+    // address space. Discard them and re-fetch the fall-through PC after the
+    // CSR update becomes architectural. This is also required by Linux's
+    // relocate_enable_mmu trampoline: its first satp write deliberately makes
+    // the physical fall-through PC fault and redirects through stvec.
+    io.frontendFlush := commitSatpWrite
+    io.redirect.pc := Mux(commitSatpWrite, io.commitPc, 0.U)
+    io.redirect.valid := commitSatpWrite
     io.redirect.is_branch := false.B
-    io.redirect.taken := false.B
-    io.redirect.target := 0.U
-    io.redirect.redirect := false.B
+    io.redirect.taken := commitSatpWrite
+    io.redirect.target := Mux(commitSatpWrite, io.commitPc + commitStep, 0.U)
+    io.redirect.redirect := commitSatpWrite
 }

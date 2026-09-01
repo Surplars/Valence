@@ -49,16 +49,34 @@ class InstrDecodeSpec extends AnyFunSuite with ChiselSim {
             dut.clock.step()
             dut.io.trap_info.valid.expect(true.B)
             dut.io.trap_info.cause.expect(MCause.EcallFromMMode)
+            dut.io.trap_info.value.expect(0.U)
 
             dut.io.priv.poke(PrivilegeLevel.Supervisor)
             dut.clock.step()
             dut.io.trap_info.valid.expect(true.B)
             dut.io.trap_info.cause.expect(MCause.EcallFromSMode)
+            dut.io.trap_info.value.expect(0.U)
 
             dut.io.priv.poke(PrivilegeLevel.User)
             dut.clock.step()
             dut.io.trap_info.valid.expect(true.B)
             dut.io.trap_info.cause.expect(MCause.EcallFromUMode)
+            dut.io.trap_info.value.expect(0.U)
+        }
+    }
+
+    test("InstrDecode reports EBREAK as a breakpoint at the faulting PC") {
+        simulate(new InstrDecode(64)) { dut =>
+            init(dut)
+            dut.io.pc_in.poke("h40019494".U)
+            dut.io.instr_in.poke("h00100073".U) // ebreak
+
+            dut.clock.step()
+
+            dut.io.trap_info.valid.expect(true.B)
+            dut.io.trap_info.pc.expect("h40019494".U)
+            dut.io.trap_info.cause.expect(MCause.Breakpoint)
+            dut.io.trap_info.value.expect("h40019494".U)
         }
     }
 
@@ -68,6 +86,8 @@ class InstrDecodeSpec extends AnyFunSuite with ChiselSim {
             dut.io.instr_in.poke("h022081b3".U) // mul x3, x1, x2
             dut.clock.step()
             dut.io.trap_info.valid.expect(true.B)
+            dut.io.trap_info.cause.expect(MCause.IllegalInstr)
+            dut.io.trap_info.value.expect("h022081b3".U)
 
             init(dut)
             dut.io.instr_in.poke("h0000100f".U) // fence.i

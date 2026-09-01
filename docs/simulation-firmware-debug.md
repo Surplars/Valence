@@ -129,13 +129,13 @@ Linker scripts：
 - CLINT/PLIC/外部中断仿真入口。
 - JTAG remote-bitbang server。
 - boot trace / CPU trace / IRQ trace / DMI trace。
-- 可选 VCD trace，默认不生成波形文件。
+- 可选 FST trace，默认不生成波形文件。
 
 常用环境变量：
 
 | 变量 | 用途 |
 | --- | --- |
-| `ION_MAX_CYCLES` | 最大仿真 cycle |
+| `ION_MAX_CYCLES` | 最大 simulator tick；当前一个完整时钟周期约为 2 tick（变量名为历史命名） |
 | `ION_TRACE_BOOT=1` | 打印 ROM/SRAM/payload/trap/cache boot trace |
 | `ION_TRACE_CPU=1` | 打印 CPU trace |
 | `ION_TRACE_PC_START/END` | 限制 CPU trace PC 范围 |
@@ -147,7 +147,18 @@ Linker scripts：
 | `ION_TRACE_IRQ=1` | 打印中断状态 |
 | `ION_TRACE_DMI=1` | 打印 DMI/JTAG debug 状态 |
 | `ION_PERF=1` | 打印 cycles、retired、IPC 和 stall 分解 |
-| `ION_TRACE_WAVE=1` | 生成 `simulator/build/wave.vcd`；默认关闭，长仿真不要打开 |
+| `ION_TRACE_COMMIT=1` | 实时打印架构顺序的 retire/trap 事件；长仿真建议只在缩小范围后打开 |
+| `ION_DEBUG_HISTORY` | 内存中保留的最近 retire/trap 事件数，默认 256；失败时自动打印，设为 0 可关闭 |
+| `ION_DEBUG_HISTORY_ALWAYS=1` | 通过时也打印最近架构事件 |
+| `ION_NO_RETIRE_TIMEOUT` | 连续多少个上升沿 cycle 无退休即停止并打印历史；默认 0，WFI 场景应保持关闭 |
+| `ION_STOP_PC` | 指定 PC 一退休就停止并打印提交历史，用于快速截断到首个可疑点 |
+| `ION_TRACE_WAVE=1` | 生成 `simulator/build/wave.fst`；需要同时以 `TRACE=1` 构建 |
+| `ION_TRACE_WAVE_START/STOP` | 按 simulator tick 限制波形窗口；一个 tick 是半个时钟周期 |
+| `ION_TRACE_WAVE_PC` | 等到指定 PC 退休或产生 arch event 后才打开波形 |
+| `ION_TRACE_WAVE_LEN` | PC 命中后记录的 tick 数；0 表示持续到 STOP/仿真结束 |
+| `ION_TRACE_WAVE_PATH` | 覆盖 FST 输出路径 |
+| `ION_TRACE_WAVE_DEPTH` | 配合 `ION_TRACE_WAVE_SCOPE` 使用的 scope 深度，默认 99，最小 1 |
+| `ION_TRACE_WAVE_SCOPE` | 可选层次过滤，例如 `TOP.SimTop.core.lsu`；不设置时 DEPTH 不限制全局层次 |
 | `ION_EXPECT_UART` | UART 预期字符串 |
 | `ION_ACCEPT_UART_MATCH=1` | UART 命中 `ION_EXPECT_UART` 即可作为仿真通过条件，适合不会写 `a7=93/a0=0` 退出哨兵的 OS |
 | `ION_STOP_ON_UART_MATCH=1` | UART 命中 `ION_EXPECT_UART` 后立即停止仿真 |
@@ -158,13 +169,80 @@ Linker scripts：
 | `ION_JTAG_RBB_PORT` | remote-bitbang 端口 |
 | `ION_JTAG_ONLY=1` | JTAG-only 运行模式 |
 
-默认 Verilator binary 不编译 VCD trace 支持，以减少 C++ 生成和编译时间。需要波形时使用：
+默认 Verilator binary 不编译波形 trace 支持，以减少生成代码、编译时间和运行开销。普通失败无需波形：harness 始终维护一个定长的架构事件环，测试失败或 watchdog 触发时，会按时间顺序打印最近的 commit 与 trap。commit 使用退休 PC/指令，而不是可能处于预测或 stall 状态的取指 PC；压缩指令的 `len=2`，但 `instr` 是解压后的 32-bit 指令。异步 cache/MMIO fault 的 trap `instr` 目前是 best-effort，可能为 0；定位异常时应以 `pc/cause/tval` 为准。
+
+普通 Verilator C++ 构建默认限制为 2 个并发任务、使用 `-O1` 并自动接入 ccache，避免高核心数主机并发编译大型生成文件时被 OOM killer 终止。需要最终仿真性能时再显式覆盖：
+
+```bash
+make verilator-build VERILATOR_BUILD_JOBS=8 VERILATOR_OPT_FAST=-O3
+```
+
+若内存仍紧张，保持 `VERILATOR_BUILD_JOBS=1`；热重建会继续受益于 ccache。
+
+需要波形时，`TRACE=1` 使用单独的 FST binary：
 
 ```bash
 TRACE=1 ION_TRACE_WAVE=1 make verilator-run-perf
 ```
 
-`TRACE=1` 会使用独立的 `simulator/build/obj-trace*` 目录，不会覆盖普通 smoke/perf binary。
+`TRACE=1` 会使用独立的 `simulator/build/obj-trace*` 目录，不会覆盖普通 smoke/perf binary。FST 通常比 VCD 更小，GTKWave 可以直接打开 `simulator/build/wave.fst`。
+
+Linux 长启动建议分两次重放。第一次使用普通 fast binary，从 `[sim-fail]` 或 watchdog 得到失败 tick；第二次只记录附近窗口：
+
+```bash
+TRACE=1 ION_TRACE_WAVE=1 \
+  ION_TRACE_WAVE_START=1990000 ION_TRACE_WAVE_STOP=2010000 \
+  make verilator-run-linux
+```
+
+如果已知可疑退休 PC，也可以直接触发：
+
+```bash
+TRACE=1 ION_TRACE_WAVE=1 \
+  ION_TRACE_WAVE_PC=0xffffffff80001234 ION_TRACE_WAVE_LEN=20000 \
+  make verilator-run-linux
+```
+
+Verilator/FST 没有失败前滚动波形缓存，因此 PC trigger 只能记录命中时刻及之后；要观察失败前状态，需要先用 fast run 定位 tick，再按 `START/STOP` 重放。`ION_NO_RETIRE_TIMEOUT` 的单位是完整上升沿 cycle，和波形窗口的半周期 tick 不同；Linux idle/WFI 可能合法地长期无退休，不应默认开启 watchdog。
+
+## DiffTest 快速路径
+
+DiffTest 使用运行时共享内存，DUT 与 NEMU 从同一个 ELF 镜像初始化。payload 内容不再固化进 Chisel 生成的 SRAM，因此第一次构建模拟器后，切换裸机 payload 不会重新生成 RTL 或重编 Verilator：
+
+```bash
+make difftest-run-payload PAYLOAD_SRC=simulator/payloads/basic.S
+make difftest-regress
+```
+
+本机热运行 `basic.S` 的参考值约为 0.6 秒、20 MiB 峰值内存；DiffTest 编译默认限制为 2 个并发任务，可用 `DIFFTEST_BUILD_JOBS=` 显式覆盖。开发构建默认使用 `-O1` 并通过 ccache 缓存 Verilator 生成的 C++；需要测最终仿真性能时可传入 `DIFFTEST_CXX_OPT=-O3`。第一次使用新优化等级仍是冷构建，后续 RTL 重生成可复用内容未变化的编译单元。
+
+本机 Linux DiffTest C++ 冷编译从单线程 `-O3` 的约 98--115 秒降到两线程 `-O1` 的约 25 秒；包含 Mill elaboration 和 Verilator 重新生成、且生成内容可命中 ccache 时，整条强制重建约 11 秒，其中 C++ 阶段约 1.4 秒。真实小改动耗时取决于生成 C++ 的变化范围，通常位于这两个端点之间。
+
+Linux 使用独立的 RTL、Verilator 和 NEMU profile，不会覆盖裸机模拟器。它会把 ROM trampoline、OpenSBI、kernel 和 DTB 合并为一个带多个 `PT_LOAD` 的 ELF，并由专用 trampoline 提供 `a0/a1/a2` 启动参数：
+
+```bash
+make difftest-emu-linux
+make difftest-run-linux LINUX_KERNEL_ELF=/path/to/Image.elf
+```
+
+快速缩小首个分歧时，先限制退休指令数；达到上限是正常停止，真正的差异会自动打印最近 commit、REF/DUT GPR 和 CSR：
+
+```bash
+make difftest-run-linux \
+  LINUX_KERNEL_ELF=/path/to/Image.elf \
+  LINUX_DIFFTEST_MAX_INSTR=500000 \
+  LINUX_DIFFTEST_MAX_CYCLES=5000000
+```
+
+Linux profile 不注入 PLIC source 2 或 UART 字节，也不使用裸机的 `a7=93` 退出哨兵，避免把 Linux syscall 误判为整机退出。NEMU 的 Linux profile 使用 `0x40000000` 内存基址，并按 IonSoC 的物理地址宽度/PMP 粒度配置；PMA 检查关闭，因为上游 NEMU 的硬编码 PMA 表仍针对另一套 SoC 地址图。
+
+NEMU 将 HPM/event counter 固定为只读零，而 IonSoC 实现了可写计数器；DiffTest 因此只对 counter/event CSR 指令使用 `skip` 同步。MMIO 和这些实现相关计数器之外的 GPR、CSR、异常与访存仍逐条比较。
+
+当前 OpenSBI/S-mode 集成 smoke 已在严格 DiffTest 下连续通过 4,500,000 条退休指令：OpenSBI 完成平台初始化、以 `a1=0x40f00000` 传递 DTB、切入 `0x40100000` 的 S-mode payload 并打印 `IonSoC SBI smoke`，随后在 `0x40100028` 的 `j .` 自环持续退休到指令上限。该里程碑覆盖了精确异常、EBREAK、PMP/委托、UART/DTB、MRET 到 S-mode 和 SBI console 路径；它不替代真实 RV64 Linux kernel 启动测试。
+
+```bash
+make difftest-run-opensbi-smoke
+```
 
 ## 性能 Smoke
 
@@ -236,6 +314,13 @@ Linux profile 使用独立 RTL/Verilator 输出目录：
 - OpenSBI `fw_jump`: `0x40000000`
 - Linux `Image` ELF wrapper: `0x40200000`
 - DTB: `0x47f00000`
+
+OpenSBI `fw_jump` 会在构建时固化下一阶段和 DTB 地址。Makefile 分别为 smoke 固化
+`0x40100000` / `0x40f00000`，为 Linux 固化 `0x40200000` / `0x47f00000`；修改布局后需重建
+对应的 `fw_jump.elf`，否则 OpenSBI 可能因读取空 DTB 进入 `sbi_hart_hang`。
+
+需要截取某个可疑 PC 之前的精确提交历史时，可设置 `ION_STOP_PC=0x...`；仿真器会在该
+PC 首次退役时立即停止，并按 `ION_DEBUG_HISTORY` 输出进入点之前的环形历史，无需等待全局超时。
 
 常用目标：
 

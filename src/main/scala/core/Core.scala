@@ -49,6 +49,7 @@ class Core(
         val debug_lsu_mmio_stall = Output(Bool())
         val debug_lsu_atomic_stall = Output(Bool())
         val debug_lsu_fence_stall = Output(Bool())
+        val debug_fence_i_active = Output(Bool())
         val debug_branch_valid = Output(Bool())
         val debug_branch_taken = Output(Bool())
         val debug_branch_redirect = Output(Bool())
@@ -66,6 +67,7 @@ class Core(
         val debug_arch_event_cause = Output(UInt(XLEN.W))
         val debug_arch_event_pc = Output(UInt(XLEN.W))
         val debug_arch_event_instr = Output(UInt(32.W))
+        val debug_arch_event_tval = Output(UInt(XLEN.W))
         val debug_gpr_snapshot = Output(Vec(32, UInt(XLEN.W)))
         val debug_csr_snapshot = Output(new soc.core.csr.CsrStateSnapshot(XLEN))
 
@@ -344,12 +346,13 @@ class Core(
     val decodeCsrWrite = decodeCsrOp =/= CSROps.None &&
         !((decodeCsrOp === CSROps.RS || decodeCsrOp === CSROps.RC) && idecode.io.decoded_out.rs2 === 0.U) &&
         !((decodeCsrOp === CSROps.RSI || decodeCsrOp === CSROps.RCI) && idecode.io.decoded_out.rs2 === 0.U)
+    val architecturalCsrCommit = Wire(Bool())
 
     satpBarrier.io.decodeValid := idecode.io.valid_out
     satpBarrier.io.decodeCsrWrite := decodeCsrWrite
     satpBarrier.io.decodeCsrAddr := idecode.io.decoded_out.instr(31, 20)
     satpBarrier.io.lsuMemoryIdle := lsu.io.memory_idle
-    satpBarrier.io.commitValid := alu.io.csr_commit_valid
+    satpBarrier.io.commitValid := architecturalCsrCommit
     satpBarrier.io.commitCsrWrite := alu.io.csr_commit_write
     satpBarrier.io.commitCsrAddr := alu.io.csr_commit_addr
     satpBarrier.io.commitPc := alu.io.pc_out
@@ -417,6 +420,12 @@ class Core(
         }
 	    val combined_trap     = has_pipeline_trap || has_fetch_trap || interrupt_fire
 	    val redirect_flush    = combined_trap || ret_redirect
+        // The registered ALU slot is one instruction younger than the LSU slot.
+        // Once that older slot traps or returns, the younger CSR must not update
+        // architectural state (or trigger the satp barrier) on the redirect edge.
+        // A fetch-side trap is younger than the ALU slot, so it deliberately does
+        // not suppress this commit.
+        architecturalCsrCommit := alu.io.csr_commit_valid && !has_pipeline_trap && !ret_redirect
         frontend_flush         := redirect_flush || fenceIActive || satpBarrier.io.frontendFlush || debugIcachePending
         val pipeline_flush    = frontend_flush
         dontTouch(pipeline_flush)
@@ -517,16 +526,22 @@ class Core(
         lsu.io.trap_info_out.pc,
         Mux(has_fetch_trap, ifetch.io.trap_info.pc, interruptPc)
     )
+    val archEventTval = Mux(
+        has_pipeline_trap,
+        lsu.io.trap_info_out.value,
+        Mux(has_fetch_trap, ifetch.io.trap_info.value, 0.U)
+    )
     val archEventInstr = Mux(
         has_pipeline_trap && lsu.io.trap_info_out.cause === MCause.IllegalInstr,
         lsu.io.trap_info_out.value(31, 0),
-        lsu.io.mem_out.instr
+        Mux(has_pipeline_trap, lsu.io.mem_out.instr, 0.U)
     )
     io.debug_arch_event_valid := RegNext(combined_trap, false.B)
     io.debug_arch_event_interrupt := RegNext(interrupt_fire, false.B)
     io.debug_arch_event_cause := RegNext(archEventCause, 0.U)
     io.debug_arch_event_pc := RegNext(archEventPc, 0.U)
     io.debug_arch_event_instr := RegNext(archEventInstr, 0.U)
+    io.debug_arch_event_tval := RegNext(archEventTval, 0.U)
     io.debug_gpr_snapshot := register.io.debug_snapshot
     io.debug_stall := global_stall
     io.debug_ifetch_stall := ifetch.io.fetch_stall
@@ -539,6 +554,7 @@ class Core(
     io.debug_lsu_mmio_stall := lsu.io.stall_mmio
     io.debug_lsu_atomic_stall := lsu.io.stall_atomic
     io.debug_lsu_fence_stall := lsu.io.stall_fence
+    io.debug_fence_i_active := fenceIActive
     io.debug_branch_valid := alu.io.br_info.valid
     io.debug_branch_taken := alu.io.br_info.taken
     io.debug_branch_redirect := alu.io.br_info.redirect
@@ -553,7 +569,7 @@ class Core(
     csr.io.addr       := alu.io.csr_addr
     csr.io.write      := alu.io.csr_write
     csr.io.wdata      := alu.io.csr_wdata
-    csr.io.wvalid     := alu.io.csr_commit_valid
+    csr.io.wvalid     := architecturalCsrCommit
     csr.io.wcmd       := alu.io.csr_commit_cmd
     csr.io.waddr      := alu.io.csr_commit_addr
     csr.io.wwrite     := alu.io.csr_commit_write
@@ -577,11 +593,7 @@ class Core(
         lsu.io.trap_info_out.cause,
         Mux(has_fetch_trap, ifetch.io.trap_info.cause, interruptCause)
     )
-    csr.io.trap_value := Mux(
-        has_pipeline_trap,
-        lsu.io.trap_info_out.value,
-        Mux(has_fetch_trap, ifetch.io.trap_info.value, 0.U)
-    )
+    csr.io.trap_value := archEventTval
     csr.io.is_ret     := ret_redirect
     csr.io.ret_type   := lsu.io.trap_info_out.ret_type
     csr.io.ie_out     := DontCare
@@ -690,12 +702,21 @@ class Core(
     val exIssueReady = !pipe_stall && !debugHalted
     val idIssueReady = !decodeUsesPending && !satpBarrier.io.holdDecode && exIssueReady
     val issueIdToAlu = idecode.io.valid_out && idIssueReady && !idAlreadyIssued
+    // The PC-only one-shot protects against a held or briefly repeated frontend
+    // slot. A correctly predicted `j .`, however, is a genuinely new dynamic
+    // instruction at the same PC. Release the one-shot after EX resolves that
+    // exact self-loop so it can keep retiring (with one conservative bubble).
+    val resolvedSelfLoop = alu.io.br_info.valid && alu.io.br_info.taken &&
+        alu.io.br_info.target === alu.io.br_info.pc
     when(frontendQueueFlush || redirect_flush || !idecode.io.valid_out) {
         idIssuedValid := false.B
         idIssuedPc := 0.U
     }.elsewhen(issueIdToAlu) {
         idIssuedValid := true.B
         idIssuedPc := idecode.io.pc_out
+    }.elsewhen(resolvedSelfLoop) {
+        idIssuedValid := false.B
+        idIssuedPc := 0.U
     }
     alu.io.valid_in       := issueIdToAlu && exIssueReady
     alu.io.stall          := pipe_stall || debugHalted

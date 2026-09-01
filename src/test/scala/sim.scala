@@ -78,9 +78,24 @@ object DifftestTopMain extends App {
                 new IonSoCDifftest(
                 SoCProfiles.BareMetalMCU.copy(mmu = true),
                 ISAProfiles.RV64IMACB,
-                "simulator/build/payload/payload_sram.hex"
+                injectTestStimulus = true,
+                exitOnBareMetalSentinel = true
             )
         ),
         "build/rtl-difftest"
+    )
+}
+
+object LinuxDifftestTopMain extends App {
+    EmitHelper.emit(
+        DifftestModule.top(
+            new IonSoCDifftest(
+                SoCProfiles.LinuxBootPLIC,
+                ISAProfiles.RV64IMACB,
+                injectTestStimulus = false,
+                exitOnBareMetalSentinel = false
+            )
+        ),
+        "build/rtl-difftest-linux"
     )
 }

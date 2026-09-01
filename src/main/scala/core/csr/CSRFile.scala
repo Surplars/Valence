@@ -172,6 +172,9 @@ class CSRFile(
             (if (enabled.contains(Extension.RV32M) || enabled.contains(Extension.RV64M)) bit('m') else BigInt(0)) |
             (if (enabled.contains(Extension.RV32A) || enabled.contains(Extension.RV64A)) bit('a') else BigInt(0)) |
             (if (enabled.contains(Extension.C)) bit('c') else BigInt(0)) |
+            (if (enabled.contains(Extension.Zba) || enabled.contains(Extension.Zbb) || enabled.contains(Extension.Zbs))
+                 bit('b')
+             else BigInt(0)) |
             (if (enabled.contains(Extension.RV32F) || enabled.contains(Extension.RV64F)) bit('f') else BigInt(0)) |
             (if (enabled.contains(Extension.RV32D) || enabled.contains(Extension.RV64D)) bit('d') else BigInt(0)) |
             (if (enabled.contains(Extension.RV32Q) || enabled.contains(Extension.RV64Q)) bit('q') else BigInt(0))
@@ -297,12 +300,15 @@ class CSRFile(
             Mux(io.meip, bitMask(InterruptCauseCode.MachineExt), 0.U)
 
     val supervisorEnabled = enabledExt.contains(Extension.S).B
-    val misa_val_with_s = Mux(supervisorEnabled, misa_val | (BigInt(1) << 18).U(XLEN.W), misa_val)
+    val supervisorAndUserMask = ((BigInt(1) << ('s' - 'a')) | (BigInt(1) << ('u' - 'a'))).U(XLEN.W)
+    val misa_val_with_s = Mux(supervisorEnabled, misa_val | supervisorAndUserMask, misa_val)
 
-    val sstatus =
-        (mstatus & (bitMask(SStatus.SIE) | bitMask(SStatus.SPIE) | bitMask(SStatus.SPP))) |
-            (mstatus & (bitMask(13) | bitMask(14) | bitMask(15) | bitMask(18) | bitMask(19))) |
-            (mstatus & (bitMask(63)))
+    private def sstatusView(status: UInt): UInt =
+        (status & (bitMask(SStatus.SIE) | bitMask(SStatus.SPIE) | bitMask(SStatus.SPP))) |
+            (status & (bitMask(13) | bitMask(14) | bitMask(15) | bitMask(18) | bitMask(19))) |
+            (status & bitMask(63))
+
+    val sstatus = sstatusView(mstatus)
     val sie = mie & mideleg & supervisorInterruptMask
     val sip = mip & mideleg & supervisorInterruptMask
 
@@ -335,6 +341,7 @@ class CSRFile(
         CSR.MTVAL      -> mtval,
         CSR.MIP        -> mip,
         CSR.PMPcfg0    -> pmpcfg0,
+        CSR.PMPcfg2    -> 0.U(XLEN.W),
         CSR.MCYCLE     -> mcycle,
         CSR.MINSTRET   -> minstret,
         CSR.CYCLE      -> mcycle,
@@ -347,8 +354,12 @@ class CSRFile(
         CSR.SATP       -> satp
     )
 
-    private def isPmpAddr(addr: UInt): Bool = addr >= CSR.PMPaddr0 && addr <= CSR.PMPaddr7
+    private def isPmpAddr(addr: UInt): Bool = addr >= CSR.PMPaddr0 && addr <= CSR.PMPaddr15
+    private def isActivePmpAddr(addr: UInt): Bool = addr >= CSR.PMPaddr0 && addr <= CSR.PMPaddr7
     private def pmpAddrIndex(addr: UInt): UInt = (addr - CSR.PMPaddr0)(2, 0)
+    private def pmpAddrRead(addr: UInt): UInt =
+        Mux(isActivePmpAddr(addr), pmpaddr(pmpAddrIndex(addr)), 0.U(XLEN.W))
+    private val pmpAddrMask = ((BigInt(1) << (32 - 2)) - 1).U(XLEN.W)
     private def isMhpmCounter(addr: UInt): Bool = addr >= CSR.MHPMCOUNTER3 && addr <= CSR.MHPMCOUNTER31
     private def mhpmCounterIndex(addr: UInt): UInt = (addr - CSR.MHPMCOUNTER3)(4, 0)
     private def isMhpmEvent(addr: UInt): Bool = addr >= CSR.MHPMEVENT3 && addr <= CSR.MHPMEVENT31
@@ -376,7 +387,7 @@ class CSRFile(
 
     val rdata_pre = Mux(
         isPmpAddr(io.addr),
-        pmpaddr(pmpAddrIndex(io.addr)),
+        pmpAddrRead(io.addr),
         Mux(
             isMhpmCounter(io.addr),
             mhpmcounter(mhpmCounterIndex(io.addr)),
@@ -385,7 +396,7 @@ class CSRFile(
     )
     val wdata_read_pre = Mux(
         isPmpAddr(io.waddr),
-        pmpaddr(pmpAddrIndex(io.waddr)),
+        pmpAddrRead(io.waddr),
         Mux(
             isMhpmCounter(io.waddr),
             mhpmcounter(mhpmCounterIndex(io.waddr)),
@@ -394,7 +405,7 @@ class CSRFile(
     )
     val debug_rdata_pre = Mux(
         isPmpAddr(io.debug_addr),
-        pmpaddr(pmpAddrIndex(io.debug_addr)),
+        pmpAddrRead(io.debug_addr),
         Mux(
             isMhpmCounter(io.debug_addr),
             mhpmcounter(mhpmCounterIndex(io.debug_addr)),
@@ -544,8 +555,10 @@ class CSRFile(
                 satp := satpWriteData
             }
         }
-        when(isPmpAddr(writeAddr)) {
-            pmpaddr(pmpAddrIndex(writeAddr)) := writeData
+        when(isActivePmpAddr(writeAddr)) {
+            // TileLink carries 32-bit physical addresses. pmpaddr stores
+            // address bits [PADDR-1:2], so higher bits are WARL-zero.
+            pmpaddr(pmpAddrIndex(writeAddr)) := writeData & pmpAddrMask
         }
         when(isMhpmCounter(writeAddr)) {
             mhpmcounter(mhpmCounterIndex(writeAddr)) := writeData
@@ -668,7 +681,7 @@ class CSRFile(
 
     io.state_snapshot.privilegeMode := snapshotPriv
     io.state_snapshot.mstatus := snapshotMstatus
-    io.state_snapshot.sstatus := sstatus
+    io.state_snapshot.sstatus := sstatusView(snapshotMstatus)
     io.state_snapshot.mepc := mepc
     io.state_snapshot.sepc := sepc
     io.state_snapshot.mtval := mtval
