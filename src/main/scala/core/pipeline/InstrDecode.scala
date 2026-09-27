@@ -6,7 +6,7 @@ import chisel3.util._
 import soc.config.Config
 import soc.isa.Opcode
 import soc.isa.Extension
-import soc.isa.InstrTable
+import soc.core.pipeline.decode.InstrTable
 import soc.isa.MCause
 import soc.isa.PrivilegeLevel
 

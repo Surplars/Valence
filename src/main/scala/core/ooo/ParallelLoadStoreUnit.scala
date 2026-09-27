@@ -1,0 +1,112 @@
+package soc.core.ooo
+
+import chisel3._
+import chisel3.util._
+
+/** Bounded RAM read concurrency over a strictly ordered-response data port. See docs/bare-core-ipc.md for throughput,
+  * cancellation and platform contracts.
+  */
+class ParallelLoadStoreUnit(p: OooParams) extends Module {
+    private val indexBits = math.max(1, log2Ceil(p.memoryEntries))
+    val io                = IO(new Bundle {
+        val start          = Flipped(Decoupled(new MemoryOperation(p)))
+        val parallel       = Input(Bool())
+        val issueAvailable = Output(Bool())
+        val memory         = new DataPort
+        val complete       = Decoupled(new BackendCompletion(p))
+        val cancel         = Input(Vec(p.memoryEntries, Bool()))
+        val fastStoreRetire = Input(Bool())
+        val fastLoadRetire = Input(Bool())
+        val fastLoadPreview = Output(Valid(new BackendCompletion(p)))
+        val owner          = Output(Vec(p.memoryEntries, new RobToken(p)))
+        val requestOwner   = Output(Valid(new RobToken(p)))
+        val live           = Output(Vec(p.memoryEntries, Bool()))
+        val phase          = Output(Vec(p.memoryEntries, UInt(2.W)))
+        val busy           = Output(Bool())
+        val discarded      = Output(Bool())
+        val forwarded      = Output(Bool())
+        val forwardStore   = Output(Valid(new StoreForward(p)))
+    })
+    val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p)))
+    val parallel   = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
+    val completion = Module(new RRArbiter(new BackendCompletion(p), p.memoryEntries))
+    for ((slot, i) <- slots.zipWithIndex) {
+        completion.io.in(i) <> slot.io.complete
+        slot.io.cancel := io.cancel(i)
+        slot.io.fastStoreRetire := io.fastStoreRetire && slot.io.start.fire
+        io.owner(i)    := slot.io.owner
+        io.live(i)     := slot.io.busy
+        io.phase(i)    := slot.io.phase
+    }
+    io.complete <> completion.io.out
+    io.busy         := slots.map(_.io.busy).reduce(_ || _)
+    io.discarded    := slots.map(_.io.discarded).reduce(_ || _)
+    io.forwarded    := slots.map(_.io.forwarded).reduce(_ || _)
+    io.forwardStore := Mux1H(
+        (0 until p.memoryEntries).map(i =>
+            (completion.io.out.valid && completion.io.chosen === i.U) -> slots(i).io.forwardStore
+        )
+    )
+
+    // Prefer replacing the completing owner to preserve completion/start overlap and store forwarding.
+    // Selection uses only registered slot state, not ready or same-cycle cancellation.
+    val empty         = VecInit(slots.map(s => !s.io.busy))
+    val chosen        = Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty))
+    val available     = completion.io.out.valid || empty.asUInt.orR
+    val othersIdle    = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
+    val noOtherSerial = (0 until p.memoryEntries)
+        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U))
+        .reduce(_ && _)
+    io.issueAvailable := available && noOtherSerial && (io.parallel || othersIdle)
+    io.start.ready    := io.issueAvailable && Mux1H(
+        (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
+    )
+    for ((slot, i) <- slots.zipWithIndex) {
+        slot.io.start.valid := io.start.valid && io.issueAvailable && chosen === i.U
+        slot.io.start.bits  := io.start.bits
+        when(slot.io.start.fire) { parallel(i) := io.parallel }
+    }
+
+    // Hold arbitration under request backpressure, even if a new slot becomes eligible meanwhile.
+    val requests    = Module(new RRArbiter(new DataRequest, p.memoryEntries))
+    val locked      = RegInit(false.B)
+    val lockedIndex = Reg(UInt(indexBits.W))
+    for ((slot, i) <- slots.zipWithIndex) {
+        requests.io.in(i).valid      := slot.io.memory.request.valid && (!locked || lockedIndex === i.U)
+        requests.io.in(i).bits       := slot.io.memory.request.bits
+        slot.io.memory.request.ready := requests.io.in(i).ready && (!locked || lockedIndex === i.U)
+    }
+    io.requestOwner.valid := requests.io.out.valid
+    io.requestOwner.bits := Mux1H((0 until p.memoryEntries).map(i =>
+        (requests.io.chosen === i.U) -> Mux(slots(i).io.start.fire,
+            slots(i).io.start.bits.token, slots(i).io.owner)))
+    // A slot is never reused until its response and completion have both been consumed.
+    val owners = Module(new Queue(UInt(indexBits.W), p.memoryEntries, pipe = false, flow = true))
+    io.fastLoadPreview.valid := owners.io.deq.valid && Mux1H(
+        (0 until p.memoryEntries).map(i =>
+            (owners.io.deq.bits === i.U) -> slots(i).io.fastLoadPreview.valid))
+    io.fastLoadPreview.bits := Mux1H(
+        (0 until p.memoryEntries).map(i =>
+            (owners.io.deq.bits === i.U) -> slots(i).io.fastLoadPreview.bits))
+    for ((slot, i) <- slots.zipWithIndex) {
+        slot.io.fastLoadRetire := io.fastLoadRetire && owners.io.deq.valid && owners.io.deq.bits === i.U
+    }
+    io.memory.request.valid := requests.io.out.valid && owners.io.enq.ready
+    io.memory.request.bits  := requests.io.out.bits
+    requests.io.out.ready   := io.memory.request.ready && owners.io.enq.ready
+    owners.io.enq.valid     := io.memory.request.fire
+    owners.io.enq.bits      := requests.io.chosen
+    when(io.memory.request.valid && !io.memory.request.ready) {
+        locked      := true.B
+        lockedIndex := requests.io.chosen
+    }
+    when(io.memory.request.fire) { locked := false.B }
+    io.memory.response.ready := owners.io.deq.valid && Mux1H(
+        (0 until p.memoryEntries).map(i => (owners.io.deq.bits === i.U) -> slots(i).io.memory.response.ready)
+    )
+    owners.io.deq.ready := io.memory.response.fire
+    for ((slot, i) <- slots.zipWithIndex) {
+        slot.io.memory.response.valid := io.memory.response.valid && owners.io.deq.valid && owners.io.deq.bits === i.U
+        slot.io.memory.response.bits  := io.memory.response.bits
+    }
+}

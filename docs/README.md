@@ -1,47 +1,39 @@
-# IonSoC Documentation
+# 开发文档
 
-本目录记录 IonSoC 当前实现状态、模块边界、流水线设计、总线/缓存/外设、仿真启动链路，以及 bring-up 过程中已经定位并修复的关键问题。
+当前工作是独立新乱序核，GSIM 是唯一受支持的仿真后端。
 
-文档基于当前仓库代码编写，重点覆盖以下路径：
+- [目录与依赖边界](layout.md)：源码、验证、历史资料和生成文件的位置。
+- [OoO Core 设计与验收规划](ooo-core-plan.md)：产品线、接口、不变量和实现阶段。
+- [机器核 CSR 与同步陷阱](machine-core.md)：队首授权、异常处理程序、MRET 和 IMSIC CSR 桥接。
+- [OpenSBI v1.9 启动验证](opensbi-bringup.md)：GSIM 中的固件、设备树、S 态交接与当前边界。
+- [Linux 启动实验](linux-bringup.md)：本地内核源码、64 MiB GSIM 平台、启动验证与用户态里程碑。
+- [PMP 物理内存保护](pmp.md)：机器平台的16条目权限检查、CSR、MPRV与GSIM验证边界。
+- [模块化 SoC / AIA IP](modular-soc.md)：IMSIC、可替换 PLIC 路线、CSR 提交边界和独立总线接口。
+- [TileLink 内存桥](tilelink-memory-bridge.md)：新核数据口的并发读、source 重排和集成限制。
+- [TileLink 双 RAM 路由](tilelink-router.md)：两窗口分流、source 归属、乱序 D 仲裁与片上验证。
+- [双主 TileLink 仲裁](tilelink-arbiter.md)：两主 source 隔离、轮转仲裁与乱序 D 返回。
+- [TileLink 取指路径](tilelink-fetch.md)：双主 ROM/RAM 互联、取指拼包及整机性能对照。
+- [AXI4 外部内存桥](axi4-memory-bridge.md)：独立边界实验及 Zynq-7000 AXI3 的转换要求。
+- [TileLink→AXI4 内存边界](tilelink-axi4-bridge.md)：独立 TL-UL/AXI4 适配与验证范围。
+- [RVA23 架构目标与差距](rva23.md)：必选能力、实现顺序及合规边界。
+- [RV64B 执行合同](rv64b.md)：Zba/Zbb/Zbs、组合路径、依赖与差分验证。
+- [RV64C 与 CoreMark](rv64c-coremark.md)：混合长度取指、GSIM 工作负载与性能口径。
+- [RV64M 执行合同](rv64m.md)：多周期乘除、完成仲裁、取消和吞吐基线。
+- [裸核接口与 IPC](bare-core-ipc.md)：LSU 基线、验证范围、测量口径及结果。
+- [公共 ISA 与复用边界](isa-reuse.md)：共享标准编码、新旧核心控制适配和验证范围。
+- [GSIM 验证说明](../simulator/gsim/README.md)：依赖、运行命令、支持范围与回归结果。
+- [历史资料索引](../legacy/README.md)：旧 SoC、流水线、固件和故障记录；其中旧仿真命令已退役。
 
-- `src/main/scala/core`: RV64 核心、PC、寄存器堆、CSR、流水线。
-- `src/main/scala/isa`: 指令集表、扩展选择、压缩指令展开。
-- `src/main/scala/bus/tilelink`: TileLink Bundle、crossbar、事务 tracker、TLRAM。
-- `src/main/scala/memory`: cache 请求/响应、L1 cache、uncached bridge。
-- `src/main/scala/device`: ROM/SRAM、UART、CLINT、PLIC、错误设备。
-- `src/main/scala/debug`: JTAG TAP、Debug Module、OpenOCD 接入基础。
-- `src/main/scala/system`: `IonSoC` 顶层集成。
-- `simulator`: Verilator harness、payload、RustSBI 接入、DTS、OpenOCD 配置。
+- [APLIC MSI IP](aplic.md)：外设中断线、发送队列与机器核组合边界。
 
-## 文档索引
+- [CPU 数据口到 APLIC 映射](core-mmio.md)：并发路由、响应保序及程序初始化中断验收。
 
-- [SoC Architecture](architecture.md): 顶层结构、可配置 profile、地址空间、模块连接关系。
-- [Core Pipeline](core-pipeline.md): PC/IF/ID/EX/LSU/WB、旁路、stall、trap、fence.i、debug halt。
-- [ISA, CSR, and Interrupts](isa-csr-interrupts.md): 指令集扩展、CSR/S-mode、CLINT、PLIC、中断仲裁。
-- [Memory, Cache, and TileLink](memory-cache-tilelink.md): TileLink-UH 子集、crossbar、L1 cache、store buffer、PMP/MMU 现状。
-- [Simulation, Firmware, and Debug](simulation-firmware-debug.md): Mill/Make/Verilator、RustSBI 启动流、JTAG/OpenOCD、常用环境变量。
-- [Bring-up Bug Record](bringup-bug-record.md): 已解决 bug 的症状、根因、修复方式、验证命令。
+- [FENCE、共享 RAM 与 DMA](dma.md)：四项在途拷贝 IP、CPU/DMA 公平仲裁、source4 完成中断及 SMT 边界。
 
-## 当前总体状态
+- [机器定时器](machine-timer.md)：独立mtime/mtimecmp、同步时基、MTIP及精确中断优先级。
+- [S 定时中断与 Sstc](sstc.md)：`stimecmp`、时间源、STCE/TM 门控及 STI 精确入口。
 
-IonSoC 当前已经能够运行无 MMU 的 RustSBI jump flow：ROM trampoline 跳入 SRAM 中的 RustSBI，RustSBI 初始化 M-mode 平台后跳转到 S-mode smoke payload，并通过 legacy SBI console 输出 `IonSoC SBI smoke`。对应验证命令：
+- [原子共享内存IP](atomic-memory.md)：W/D LR/SC、AMO、队首授权与DMA排他；机器平台已接入。
+- [当前性能与证据边界](performance-status.md)：裸核IPC、同步平台及FPGA频率的测量范围。
 
-```bash
-make verilator-run-rustsbi
-```
-
-Linux bring-up 已能通过 ROM trampoline -> OpenSBI -> S-mode Linux `Image`，并跑到 early kernel memory init。默认 `verilator-run-linux` 目标以 UART 输出 `Initmem setup node 0` 作为 early boot 里程碑：
-
-```bash
-make verilator-run-linux
-```
-
-更深的 Linux 检查仍未通过：
-
-```bash
-env LINUX_EXPECT_UART='Memory:' LINUX_MAX_CYCLES=120000000 make verilator-run-linux
-```
-
-当前会在 `patch_insn_write` / `FIX_TEXT_POKE0` 路径访问 `0xfffffffffebfa030` 时触发 store page fault；`swapper_pg_dir[511]` 读出 0，说明完整 Linux/userspace boot 还没有跑通。
-
-当前默认 MCU 配置为 `SoCProfiles.BareMetalMCU`：RV64IMAC(+小部分 B 扩展)、M/S mode、无 MMU、I/D cache、UART、CLINT、PLIC 和默认 64 KiB SRAM。Linux profile 使用更大的 SRAM、MMU、I/D cache、CLINT、PLIC、UART 和 OpenSBI flow。Sv39 页表 walk 已接入 IF/LSU，`sv39` 和 `sv39_fixmap` 定向 payload 已证明基础 Sv39 和高半区 fixmap load/store 路径可工作；TLB、ASID、A/D bit 自动更新、完整 Linux 压力和最终 userspace 仍在 bring-up 中。AIA 作为配置枚举预留；JTAG/OpenOCD 已能通过 remote bitbang 连接 TAP/DM 的基础链路，但距离完整 RISC-V Debug Spec 仍有工作量。
+- [可选共享读缓存](shared-read-cache.md)：扇区填充、DMA写失效及开关对照；阻塞基线默认关闭。

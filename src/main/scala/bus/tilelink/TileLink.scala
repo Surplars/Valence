@@ -56,6 +56,27 @@ object TLOpcode {
         ReleaseAck
 }
 
+/** Number of data beats in a TileLink message. Control-only messages always use one beat. */
+object TLBurst {
+    def beats(size: UInt, params: TLParams): UInt = {
+        require(params.dataWidth >= 8 && isPow2(params.dataWidth / 8))
+        val beatLog = log2Ceil(params.dataWidth / 8)
+        val maxSize = (1 << params.sizeBits) - 1
+        require(maxSize >= beatLog && maxSize - beatLog <= 8)
+        val width = maxSize - beatLog + 2
+        MuxLookup(size, 1.U(width.W))(
+            (beatLog + 1 to maxSize).map(n => n.U -> (1 << (n - beatLog)).U(width.W))
+        )
+    }
+
+    def hasDataOnA(opcode: UInt): Bool =
+        opcode === TLOpcode.PutFullData || opcode === TLOpcode.PutPartialData ||
+            opcode === TLOpcode.ArithmeticData || opcode === TLOpcode.LogicalData
+
+    def hasDataOnD(opcode: UInt): Bool =
+        opcode === TLOpcode.AccessAckData || opcode === TLOpcode.GrantData
+}
+
 object TLPermissions {
     val toT = 0.U(3.W)
     val toB = 1.U(3.W)

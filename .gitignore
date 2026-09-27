@@ -289,6 +289,8 @@ Temporary Items
 
 ## Build generated
 build/
+__pycache__/
+*.pyc
 DerivedData
 
 ## Various settings
@@ -342,5 +344,5 @@ hs_err_pid*
 .bloop/
 .metals/
 .claude/
-simulator/firmware/*
-!simulator/firmware/ionsoc.dts
+legacy/simulator/firmware/*
+!legacy/simulator/firmware/ionsoc.dts

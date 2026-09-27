@@ -100,18 +100,18 @@ object Compressed {
                 switch(funct3) {
                     is("b000".U) { expanded := addi; legal := true.B }
                     is("b001".U) { expanded := addiw; legal := rv64.B && rd =/= 0.U }
-                    is("b010".U) { expanded := li; legal := rd =/= 0.U }
+                    is("b010".U) { expanded := li; legal := true.B } // rd=x0 is a HINT.
                     is("b011".U) {
                         expanded := Mux(rd === 2.U, addi16sp, lui)
-                        legal := rd =/= 0.U && Mux(rd === 2.U, addi16spImm =/= 0.U, luiImm =/= 0.U)
+                        legal := Mux(rd === 2.U, addi16spImm =/= 0.U, luiImm =/= 0.U)
                     }
                     is("b101".U) { expanded := jal; legal := true.B }
                     is("b110".U) { expanded := beqz; legal := true.B }
                     is("b111".U) { expanded := bnez; legal := true.B }
                     is("b100".U) {
                         switch(instr(11, 10)) {
-                            is("b00".U) { expanded := srli; legal := shamt =/= 0.U }
-                            is("b01".U) { expanded := srai; legal := shamt =/= 0.U }
+                            is("b00".U) { expanded := srli; legal := true.B }
+                            is("b01".U) { expanded := srai; legal := true.B }
                             is("b10".U) { expanded := andi; legal := true.B }
                             is("b11".U) {
                                 switch(Cat(instr(12), instr(6, 5))) {
@@ -129,7 +129,7 @@ object Compressed {
             }
             is("b10".U) {
                 switch(funct3) {
-                    is("b000".U) { expanded := slli; legal := rd =/= 0.U && shamt =/= 0.U }
+                    is("b000".U) { expanded := slli; legal := true.B }
                     is("b010".U) { expanded := lwsp; legal := rd =/= 0.U }
                     is("b011".U) { expanded := ldsp; legal := rv64.B && rd =/= 0.U }
                     is("b100".U) {
@@ -141,10 +141,10 @@ object Compressed {
                             legal := true.B
                         }.elsewhen(instr(12) === 0.U && rs2 =/= 0.U) {
                             expanded := mv
-                            legal := rd =/= 0.U
+                            legal := true.B
                         }.elsewhen(instr(12) === 1.U && rs2 =/= 0.U) {
                             expanded := add
-                            legal := rd =/= 0.U
+                            legal := true.B
                         }
                     }
                     is("b110".U) { expanded := swsp; legal := true.B }

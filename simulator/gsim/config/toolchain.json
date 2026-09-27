@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/OpenXiangShan/gsim.git",
+  "revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+  "minimum_clang_major": 19
+}

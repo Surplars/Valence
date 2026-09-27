@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/riscv-software-src/opensbi.git",
+  "tag": "v1.9",
+  "revision": "cbf9f6734dd85a982c63e3cb5db7ffe09da839ca",
+  "march": "rv64imac_zicsr_zifencei",
+  "abi": "lp64"
+}

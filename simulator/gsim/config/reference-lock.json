@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/OpenXiangShan/NEMU.git",
+  "revision": "c00b6dd17fd6f9d196750af0babba167d271d1fe",
+  "resources": {
+    "gcpt_restore/src/restore_rom_addr.h": "658d326ff5d80ee0039966b7db09c98b472f580beb3b9da80658b760e0465474",
+    "LibCheckpoint/src/checkpoint.proto": "fbc4ee3977bc060c5b3dffc8a37d532c85c0b388f1d6e0c2a8cdda8631b556d7"
+  }
+}
