@@ -6,7 +6,8 @@ PAYLOAD_DIR := simulator/build/payload
 
 .PHONY: help compile test test-scala regress sim-verilog payload clean
 help:
-	@echo "GSIM-only: make compile | test-scala | gsim-smoke | gsim-backend-test | gsim-integer-test | gsim-core-test | test"
+	@echo "Active GSIM: make compile | test-scala | gsim-smoke | gsim-backend-test | gsim-integer-test | gsim-core-test | test"
+	@echo "Arcilator Windows pilot: make arcilator-windows-smoke-package"
 	@echo "make test (or regress): Scala parameter/elaboration checks, then the full GSIM suite with NEMU differential checks"
 
 compile:
@@ -61,3 +62,7 @@ fpga-current-soc-rtl:
 .PHONY: fpga-current-soc-package
 fpga-current-soc-package: fpga-current-soc-rtl
 	python3 -m zipfile -c "$(FPGA_CURRENT_SOC_ARCHIVE)" "$(FPGA_CURRENT_SOC_OUT)"
+
+.PHONY: arcilator-windows-smoke-package
+arcilator-windows-smoke-package:
+	python3 simulator/arcilator/package_windows_smoke.py
