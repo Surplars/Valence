@@ -19,8 +19,7 @@ Valence/
 ├── docs/                    当前设计与开发文档
 ├── legacy/
 │   ├── tests/scala/         退役 ChiselSim 用例，退出默认测试发现
-│   ├── simulator/           旧驱动、payload、RTL、固件、rootfs、DiffTest 配置
-│   ├── openocd/             旧调试配置
+│   ├── simulator/           历史 payload 与 DiffTest 配置
 │   └── docs/                旧 SoC 架构、仿真与问题记录
 ├── NEMU/                    固定版本的参考模型子模块
 ├── difftest/                现有 Scala 构建依赖的上游子模块
@@ -41,8 +40,8 @@ Valence/
 - `make payload` 仍可组装历史程序；这不表示当前新核能执行它。`make sim-verilog` 仅导出历史 SoC RTL。
 - 顶层 `NEMU`、`difftest`、`riscv-tests` 是 Git 子模块，不是项目自产源码。保留路径以维护子模块元数据和现有构建依赖。
 - 旧硬件仍有相互依赖，继续位于标准源码树。目录整理不等于已经完成旧平台与新核的构建模块解耦。
-- `legacy/simulator/firmware` 的本地固件检出仍被忽略，仅平台 DTS 纳入版本管理。
-- 本次不清空或搬运构建缓存。GSIM 源码缓存仍为 `simulator/build/gsim-src`，运行产物为 `build/gsim`；无需重新下载工具链。
+- 退役的本地 firmware 检出、Verilator harness、辅助 RTL、rootfs 工具和 OpenOCD 配置已移除；历史文档提到的旧路径不再是可执行入口。
+- GSIM 源码缓存位于 `simulator/build/gsim-src`，运行产物位于 `build/gsim`；它们是当前验证流程的生成文件。
 
 ## 验证入口
 

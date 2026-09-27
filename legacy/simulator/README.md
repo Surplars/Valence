@@ -1,8 +1,7 @@
-# 退役的仿真驱动
+# 历史仿真资产
 
-原 `simulator/harness` 的两个 Verilator C++ 驱动原样保留在 `harness/`，仅供历史问题和接口迁移参考。
-活动 Makefile 不再提供 Verilator、旧 emu、旧固件/Linux 仿真或其回归入口。
-当前唯一仿真入口是 `simulator/gsim`；NEMU 差分由该目录直接调用参考库，不依赖旧 emu。
+这里仅保留可能用于独立审查的旧汇编程序（`payloads/`）和 DiffTest 参考配置（`difftest/`）。
+`make payload` 可组装旧程序，但不表示它通过当前新核的 GSIM 验证。
 
-`payloads/`、`rtl/`、`firmware/`、`rootfs/`、`difftest/` 分别保留旧程序、辅助 RTL、固件、根文件系统工具和参考平台配置。
-本地固件检出被忽略，内容原样保留；旧文档中的原路径只作为历史记录。
+退役的 Verilator 驱动、辅助 RTL、固件检出、rootfs 工具及调试配置已删除；
+需要查阅原内容时使用 Git 历史。当前唯一受支持的硬件仿真入口是 `simulator/gsim`。

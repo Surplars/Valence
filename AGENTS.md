@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-IonSoC is a Scala 2.13 Chisel SoC project built primarily with Mill. Hardware sources live in `src/main/scala`; the independent new OoO core is in `core/ooo`. Active Scala parameter/elaboration tests and GSIM emitters live in `src/test/scala`. `simulator/gsim` contains the only supported hardware simulator flow and direct NEMU differential tests. Old ChiselSim suites and C++ harnesses are archived in `legacy/tests` and `legacy/simulator`, outside active test discovery. Historical simulation assets and documents are consolidated under `legacy/`; see `docs/layout.md`. GSIM C++ drivers, assembly images and pinned configurations live in `simulator/gsim/harness`, `payloads` and `config` respectively.
+IonSoC is a Scala 2.13 Chisel SoC project built primarily with Mill. Hardware sources live in `src/main/scala`; the independent new OoO core is in `core/ooo`. Active Scala parameter/elaboration tests and GSIM emitters live in `src/test/scala`. `simulator/gsim` contains the only supported hardware simulator flow and direct NEMU differential tests. Old ChiselSim suites remain archived in `legacy/tests`, outside active test discovery; retired C++ harnesses and firmware checkouts have been removed. Historical documents and reusable payloads remain under `legacy/`; see `docs/layout.md`. GSIM C++ drivers, assembly images and pinned configurations live in `simulator/gsim/harness`, `payloads` and `config` respectively.
 
 ## Build, Test, and Development Commands
 

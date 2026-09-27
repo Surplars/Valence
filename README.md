@@ -8,7 +8,7 @@ IonSoC 使用 Scala 2.13 / Chisel 和 Mill，当前独立重写双发射乱序�
 
 SoC 按可复用 IP 组织，应用中断架构选择 AIA。独立 APLIC/IMSIC 位于 `src/main/scala/ip`；`MappedMachineCore` 已支持程序通过数据总线配置 M 根域与 S 子域 APLIC，并处理 M/S 外部中断。新增 [同步机器核启动平台](docs/machine-platform.md)，接入 Chisel ROM/RAM、汇编/C 固件、[8N1 UART控制台](docs/uart.md)、[FENCE / DMA共享内存路径](docs/dma.md)和[机器定时器](docs/machine-timer.md)。单 hart S 态已在 64 MiB GSIM RAM 上经 OpenSBI 启动本地 Linux 并运行最小 `/init`，见 [Linux 启动实验](docs/linux-bringup.md)；S 态 UART 中断已由独立 GSIM 固件验证，Linux AIA 设备树/驱动与 VS 路径仍待完成。PLIC 留作兼容替换路线，见 [模块化 SoC 合同](docs/modular-soc.md)。
 
-旧顺序核源码保留，但不作为新核正确性的依据。旧 Verilator 仿真入口已撤下；依赖它的 ChiselSim 测试和 harness 移至历史参考目录，尚未迁移到 GSIM，不能算作当前验证覆盖率。
+旧顺序核源码保留，但不作为新核正确性的依据。旧 Verilator 仿真入口及 harness 已删除；退役 ChiselSim 测试留在历史参考目录，尚未迁移到 GSIM，不能算作当前验证覆盖率。
 
 ## 快速命令
 
@@ -34,7 +34,7 @@ make test            # Scala 检查 + 完整 GSIM 回归（make regress 等价�
 - `src/main/scala/isa`：新旧核心共享的标准编码与架构常量；[复用边界](docs/isa-reuse.md)。
 - `src/test/scala`：当前配置/展开检查与 GSIM 模型生成入口。
 - `simulator/gsim`：GSIM 驱动、工具链锁定和 NEMU 差分。
-- `legacy/`：统一存放旧测试、仿真资产、调试配置与历史文档，见 [历史索引](legacy/README.md)。
+- `legacy/`：保留旧测试、可复用的汇编程序、参考配置与历史文档；旧 firmware 和退役驱动已清理，见 [历史索引](legacy/README.md)。
 - [文档索引](docs/README.md)：区分新核当前状态与旧 SoC 历史记录。
 
 完整目录与放置规则见 [目录说明](docs/layout.md)。

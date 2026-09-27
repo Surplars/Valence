@@ -8,7 +8,7 @@
 
 `harness/` 存放 C++ 驱动与独立模型，`payloads/` 存放当前指令子集的汇编测试与链接脚本，
 `config/` 存放工具链/参考版本锁和 NEMU 配置；`run.py` 与 `reference.py` 为统一入口。
-旧仿真资产集中于 `../../legacy/simulator`，完整结构见 [目录说明](../../docs/layout.md)。
+可复用的旧汇编程序与参考配置位于 `legacy/simulator`；退役驱动和 firmware 已清理，见 [目录说明](layout.md)。
 
 ## 使用
 
@@ -22,7 +22,7 @@
 
 2026-09-18 GSIM-only 入口验证：活动 Scala 配置/展开检查 13 项全部通过（此次 Mill 命令耗时 13 秒），
 GSIM smoke 通过。两项均在 PATH 前置禁用 Verilator 的拦截脚本下运行；活动目录不含 ChiselSim 调用。
-旧仿真 Make 目标已撤下，历史测试/驱动原样归档，尚未迁移的覆盖率不作通过声明。
+旧仿真 Make 目标已撤下，历史测试仍在归档目录，退役驱动已删除；尚未迁移的覆盖率不作通过声明。
 日志为 `build/gsim/gsim-only-scala.log` 和 `build/gsim/gsim-only-smoke.log`。
 
 依赖：现有 Mill/Java 环境、Python 3、Git、Make、GMP 开发库、Flex、Bison、Clang 19 或更新版本。
