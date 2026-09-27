@@ -1,13 +1,13 @@
 # 在 Windows Vivado 检查当前 SoC 的内部时序
 
-Linux 虚拟机中运行 `make fpga-current-soc-package`。命令导出
-`build/fpga-current-soc-windows.zip`，内含 `fpga-current-soc/` 目录：所有生成的
-SystemVerilog、`vivado-ooc.tcl` 和 Windows 批处理入口。把 ZIP 复制到 Windows
-后解压即可；RTL 约数 MiB，不需要在虚拟机安装 Vivado。
+Linux 虚拟机中运行 `make fpga-current-soc-rtl`。命令导出
+`build/fpga-current-soc/` 目录，其中包含生成的 SystemVerilog、
+`vivado-ooc.tcl` 和 Windows 批处理入口。通过共享文件夹或直接复制整个目录到
+Windows；RTL 约数 MiB，不需要在虚拟机安装 Vivado。
 
 在 Vivado GUI 的 Tcl Console 中先用 `get_parts *xczu15eg*` 查出本机安装的
 完整器件名（包括封装和速度等级）。另开 Windows 命令提示符，先运行 Vivado
-安装目录中的 `settings64.bat` 设置命令行环境，再进入解压得到的目录运行：
+安装目录中的 `settings64.bat` 设置命令行环境，再进入复制得到的目录运行：
 
 ```bat
 run-current-soc-timing.bat FULL_PART 10

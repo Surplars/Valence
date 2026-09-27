@@ -7,7 +7,7 @@ PAYLOAD_DIR := simulator/build/payload
 .PHONY: help compile test test-scala regress sim-verilog payload clean
 help:
 	@echo "Active GSIM: make compile | test-scala | gsim-smoke | gsim-backend-test | gsim-integer-test | gsim-core-test | test"
-	@echo "Arcilator Windows pilot: make arcilator-windows-smoke-package"
+	@echo "Arcilator Windows pilot: make arcilator-smoke-export"
 	@echo "make test (or regress): Scala parameter/elaboration checks, then the full GSIM suite with NEMU differential checks"
 
 compile:
@@ -34,7 +34,7 @@ payload:
 
 clean:
 	$(MILL) -i clean
-	rm -rf build/gsim simulator/build/payload
+	rm -rf build/gsim build/arcilator simulator/build/payload
 
 include simulator/gsim/targets.mk
 
@@ -53,16 +53,11 @@ fpga-platform-rtl:
 	$(MILL) -i IonSoC.test.runMain ooo.FpgaRomMain "$(FPGA_PLATFORM_OUT)" "$(FPGA_IMAGE)" "$(FPGA_ROM_WORDS)" platform
 
 FPGA_CURRENT_SOC_OUT ?= build/fpga-current-soc
-FPGA_CURRENT_SOC_ARCHIVE ?= build/fpga-current-soc-windows.zip
 .PHONY: fpga-current-soc-rtl
 fpga-current-soc-rtl:
 	$(MILL) -i IonSoC.test.runMain ooo.CurrentSocTimingMain "$(FPGA_CURRENT_SOC_OUT)"
 	cp fpga/vivado-ooc.tcl fpga/run-current-soc-timing.bat "$(FPGA_CURRENT_SOC_OUT)/"
 
-.PHONY: fpga-current-soc-package
-fpga-current-soc-package: fpga-current-soc-rtl
-	python3 -m zipfile -c "$(FPGA_CURRENT_SOC_ARCHIVE)" "$(FPGA_CURRENT_SOC_OUT)"
-
-.PHONY: arcilator-windows-smoke-package
-arcilator-windows-smoke-package:
-	python3 simulator/arcilator/package_windows_smoke.py
+.PHONY: arcilator-smoke-export
+arcilator-smoke-export:
+	python3 simulator/arcilator/export_smoke.py
