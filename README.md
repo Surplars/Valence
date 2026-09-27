@@ -1,12 +1,14 @@
-# IonSoC
+# Valence
 
-IonSoC 使用 Scala 2.13 / Chisel 和 Mill，当前独立重写双发射乱序核。**GSIM 是唯一受支持的硬件仿真后端**，NEMU 通过 DiffTest API 检查有序提交。
+Valence 是基于 Scala 2.13、Chisel 和 Mill 的 RISC-V 处理器与模块化 SoC 项目。产品线规划覆盖 MCU 到高性能 SoC；当前开发聚焦可配置的 2/4 发射 RV64 乱序核，以及以 TileLink 为内部互联的应用 SoC。6 发射和多核属于后续目标。RVA23S64/RVA23U64 是架构目标，XCZU15EG 是计划使用的 FPGA 器件；两者都不代表当前设计已经完成合规或板级时序验证。
+
+GSIM 是目前完整硬件验证的受支持后端，NEMU 通过 DiffTest API 独立检查指令提交。Windows Arcilator 目前只有[原生 smoke 试验](simulator/arcilator/README.md)，尚未接入 CPU/SoC 回归。
 
 ## 当前状态
 
-新核已实现重命名、ROB、整数执行、最小取指/译码、条件分支预测、JAL/相邻 AUIPC-JALR 目标预测及恢复，已接四槽 LSU、ROB 索引投机 store 准备/地址消歧和可选四项 store buffer（普通 RAM load 可并行，缓冲写要求平台保证成功，响应须按序），支持 49 种 RV64I 运算/控制流/访存编码、两条 Zicond 条件置零指令、13 条 RV64M 乘除指令及 40 条 B（Zba/Zbb/Zbs）位操作指令。可选 RV64C 整数路径已运行混合长度固件和 CoreMark，见 [验证与性能口径](docs/rv64c-coremark.md)。当前仍不是完整 RVA23 CPU 或 SoC。
+乱序核已有重命名、ROB、整数执行、分支预测、并行访存和可选写回 L1；2/4 发射配置已有定向验证，RV64IMAC、Zba/Zbb/Zbs 和 Zicond 的相关路径也经 GSIM 检查。4 发射前端已扩至 16 字节物理取指，并完成 CoreMark 与定向 IPC 测量；结果和瓶颈见[当前性能与证据边界](docs/performance-status.md)。这仍不是完整的 RVA23 CPU，也没有可据以宣称 FPGA 工作频率的时序结果。
 
-SoC 按可复用 IP 组织，应用中断架构选择 AIA。独立 APLIC/IMSIC 位于 `src/main/scala/ip`；`MappedMachineCore` 已支持程序通过数据总线配置 M 根域与 S 子域 APLIC，并处理 M/S 外部中断。新增 [同步机器核启动平台](docs/machine-platform.md)，接入 Chisel ROM/RAM、汇编/C 固件、[8N1 UART控制台](docs/uart.md)、[FENCE / DMA共享内存路径](docs/dma.md)和[机器定时器](docs/machine-timer.md)。单 hart S 态已在 64 MiB GSIM RAM 上经 OpenSBI 启动本地 Linux 并运行最小 `/init`，见 [Linux 启动实验](docs/linux-bringup.md)；S 态 UART 中断已由独立 GSIM 固件验证，Linux AIA 设备树/驱动与 VS 路径仍待完成。PLIC 留作兼容替换路线，见 [模块化 SoC 合同](docs/modular-soc.md)。
+SoC 已接 AIA 的 APLIC/IMSIC、UART、定时器、DMA、同步 ROM/RAM 和 TileLink 内存路径，另有独立验证的 AXI4 外存桥。单 hart 在 64 MiB GSIM RAM 上已由 OpenSBI 启动 Linux 并运行最小 `/init`；外部 DDR 接入、多 hart 整机与 Linux AIA 验收仍待完成。见[模块化 SoC 合同](docs/modular-soc.md)与[Linux 启动实验](docs/linux-bringup.md)。
 
 旧顺序核源码保留，但不作为新核正确性的依据。旧 Verilator 仿真入口及 harness 已删除；退役 ChiselSim 测试留在历史参考目录，尚未迁移到 GSIM，不能算作当前验证覆盖率。
 
@@ -26,7 +28,8 @@ make test            # Scala 检查 + 完整 GSIM 回归（make regress 等价�
 ```
 
 开发时按修改范围选择 `gsim-smoke`、`gsim-backend-test`、`gsim-integer-test`、`gsim-predictor-test` 或 `gsim-core-test`。
-依赖、支持范围和结果见 [GSIM 说明](simulator/gsim/README.md)。不需要 Verilator，也不回退到其他仿真器。
+依赖、支持范围和结果见 [GSIM 说明](simulator/gsim/README.md)。现有 CPU/SoC 回归不依赖 Verilator。
+Mill 构建模块名暂沿用 `IonSoC`，因此现有 `make` 命令和脚本不需要随项目名称改变。
 
 ## 目录与文档
 
