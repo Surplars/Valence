@@ -35,6 +35,18 @@ DEBIAN_CONFIG = ('SOC_BUS', 'SYSVIPC', 'SIGNALFD', 'TIMERFD', 'EVENTFD',
                  'INOTIFY_USER', 'AIO', 'FILE_LOCKING', 'ADVISE_SYSCALLS',
                  'KALLSYMS', 'UNIX_DIAG', 'INET_UDP_DIAG', 'INET_RAW_DIAG', 'SHMEM', 'TMPFS',
                  'COMMON_CLK', 'DMADEVICES', 'DMA_OF', 'DMA_ENGINE', 'DMA_VIRTUAL_CHANNELS', 'VALENCE_CMU', 'VALENCE_DMA')
+SYSTEMD_CONFIG = ('CGROUPS', 'CGROUP_PIDS', 'MEMCG', 'CGROUP_SCHED',
+                  'CGROUP_CPUACCT', 'NAMESPACES', 'UTS_NS', 'IPC_NS', 'PID_NS',
+                  'NET_NS', 'USER_NS', 'FHANDLE', 'SECCOMP',
+                  'SECCOMP_FILTER', 'TMPFS_XATTR', 'TMPFS_POSIX_ACL', 'AUTOFS_FS')
+# Show the exact populate_rootfs elapsed time at the UART, not only in dmesg.
+SYSTEMD_BOOTARGS = net.BOOTARGS.replace('loglevel=7', 'loglevel=8') + ' systemd.show_status=1'
+DINIT_BOOTARGS = net.BOOTARGS.replace('loglevel=7', 'loglevel=8')
+
+
+def profile_bootargs(init_system):
+    return {'busybox': net.BOOTARGS, 'systemd': SYSTEMD_BOOTARGS,
+            'dinit': DINIT_BOOTARGS}[init_system]
 
 
 def sha(path):
@@ -49,15 +61,20 @@ def output_path(path):
     return path
 
 
-def validate_kernel_config(text):
-    net.validate_config(text)
-    for name in DEBIAN_CONFIG:
+def validate_kernel_config(text, init_system='busybox'):
+    bootargs = profile_bootargs(init_system)
+    net.validate_config(text, bootargs=bootargs)
+    for name in DEBIAN_CONFIG + (SYSTEMD_CONFIG if init_system == 'systemd' else ()):
         if 'CONFIG_' + name + '=y' not in text.splitlines():
             raise RuntimeError('Missing Debian userland kernel feature: ' + name)
+    if init_system in ('systemd', 'dinit') and 'CONFIG_LOG_BUF_SHIFT=20' not in text.splitlines():
+        raise RuntimeError('Diagnostic image needs a 1 MiB boot log buffer')
 
 
 def prepare(args):
     out = output_path(args.out)
+    if args.reuse_kernel is not None and args.resume_kernel:
+        raise RuntimeError('Reuse is only for a fresh independent output, not resume')
     if args.resume_kernel:
         if not (out / 'linux/.config').is_file() or (out / 'kernel-build.json').exists() or (out / 'manifest.json').exists():
             raise RuntimeError('Resume only an incomplete independent kernel stage, never a completed delivery')
@@ -75,7 +92,18 @@ def prepare(args):
     if sha(config) != baseline_manifest['files']['linux.config']['sha256']:
         raise RuntimeError('Baseline kernel configuration changed')
     kernel = out / 'linux'
-    kernel.mkdir(exist_ok=args.resume_kernel)
+    if args.reuse_kernel is not None:
+        reuse = output_path(args.reuse_kernel)
+        reuse_record = json.loads((reuse / 'kernel-build.json').read_text())
+        if (reuse_record.get('linux_revision') != revision or
+                baseline_manifest.get('kernel_cache') != str(reuse) or
+                sha(reuse / 'linux/.config') != baseline_manifest['files']['linux.config']['sha256']):
+            raise RuntimeError('Only a matching, completed baseline kernel can seed the new cache')
+        for name, digest in reuse_record['modules'].items():
+            if sha(reuse / 'module' / name) != digest:
+                raise RuntimeError('Reuse module drift: ' + name)
+        run(['cp', '-a', '--reflink=auto', reuse / 'linux', kernel], log=out / 'reuse-cache.log')
+    kernel.mkdir(exist_ok=args.resume_kernel or args.reuse_kernel is not None)
     # mainmenu must remain the first top-level Kconfig statement. Generate an
     # overlay in build output instead of sourcing/patching upstream Kconfig.
     (out / 'Kconfig').write_text((source / 'Kconfig').read_text() + '\n' +
@@ -83,11 +111,18 @@ def prepare(args):
     shutil.copyfile(config, kernel / '.config')
     make = ['make', 'O=' + str(kernel), 'ARCH=riscv', 'CROSS_COMPILE=riscv64-linux-gnu-',
             'KBUILD_KCONFIG=' + str(out / 'Kconfig')]
-    run([source / 'scripts/config', '--file', kernel / '.config',
-         *[v for name in DEBIAN_CONFIG for v in ('--enable', name)],
-         '--set-str', 'INITRAMFS_SOURCE', ''], log=out / 'config-edit.log')
+    features = DEBIAN_CONFIG + (SYSTEMD_CONFIG if args.init_system == 'systemd' else ())
+    edit = [source / 'scripts/config', '--file', kernel / '.config',
+            *[v for name in features for v in ('--enable', name)],
+            '--set-str', 'INITRAMFS_SOURCE', '']
+    edit += ['--set-str', 'CMDLINE', profile_bootargs(args.init_system)]
+    if args.init_system in ('systemd', 'dinit'):
+        edit += ['--set-val', 'LOG_BUF_SHIFT', '20']
+    compression = args.initramfs_compression or ('lz4' if args.init_system == 'dinit' else 'gzip')
+    edit += ['--enable', 'RD_' + compression.upper()]
+    run(edit, log=out / 'config-edit.log')
     run([*make, 'olddefconfig'], cwd=source, log=out / 'config-final.log')
-    validate_kernel_config((kernel / '.config').read_text())
+    validate_kernel_config((kernel / '.config').read_text(), args.init_system)
     # Build software once, then only embed/relink the completed rootfs later.
     run([*make, '-j' + str(args.jobs), 'Image', 'modules'], cwd=source,
         log=out / 'kernel-build.log', timeout=2400)
@@ -113,7 +148,11 @@ def prepare(args):
         generated_kconfig_sha256=sha(out / 'Kconfig'),
         module_sources={name: sha(module / name) for name in MODULE_SOURCES},
         modules={name: sha(module / name) for name in MODULES}, board_verified=False,
-        rootfs_embedded=False, kernel_fpu=True, rtl_or_bit_generated=False)
+        rootfs_embedded=False, kernel_fpu=True, rtl_or_bit_generated=False,
+        init_system=args.init_system,
+        initramfs_compression=compression,
+        reused_kernel_cache=str(args.reuse_kernel.resolve()) if args.reuse_kernel else None,
+        bootargs=profile_bootargs(args.init_system))
     (out / 'kernel-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('VL100_DEBIAN_KERNEL_MODULES_READY ' + str(out), flush=True)
 
@@ -132,6 +171,13 @@ def image(args):
     root_record = json.loads((root / args.rootfs_record).read_text())
     if root_record.get('stage') != 'packed' or root_record.get('kernel_build') != str(out):
         raise RuntimeError('Rootfs must contain these exact kernel modules')
+    init_system = record.get('init_system', 'busybox')
+    if root_record.get('init_system', 'busybox') != init_system:
+        raise RuntimeError('Kernel and rootfs init profiles differ')
+    bootargs = record.get('bootargs', net.BOOTARGS)
+    compression = record.get('initramfs_compression', 'gzip')
+    if compression not in ('gzip', 'lz4'):
+        raise RuntimeError('Unsupported initramfs compression profile')
     cpio = root / root_record['archive']['path']
     if sha(cpio) != root_record['archive']['sha256']:
         raise RuntimeError('Rootfs archive changed after packing')
@@ -143,7 +189,7 @@ def image(args):
         for symbol in ('ROOT_UID', 'ROOT_GID'):
             if 'CONFIG_INITRAMFS_' + symbol + '=0' not in current.splitlines():
                 raise RuntimeError('Unexpected initramfs ownership')
-        validate_kernel_config(current)
+        validate_kernel_config(current, init_system)
         normalized = re.sub(r'(?m)^CONFIG_INITRAMFS_SOURCE=.*$', 'CONFIG_INITRAMFS_SOURCE=""',
                             current)
         normalized = re.sub(r'(?m)^(?:# )?CONFIG_INITRAMFS_(?:ROOT_UID|ROOT_GID|COMPRESSION_[A-Z0-9]+).*\n',
@@ -162,10 +208,15 @@ def image(args):
         raise RuntimeError('Generated Kconfig drift')
     make = ['make', 'O=' + str(kernel), 'ARCH=riscv', 'CROSS_COMPILE=riscv64-linux-gnu-',
             'KBUILD_KCONFIG=' + str(out / 'Kconfig')]
+    compression_flags = [v for algorithm in ('GZIP', 'BZIP2', 'LZMA', 'XZ', 'LZO', 'LZ4', 'ZSTD', 'NONE')
+        for v in ('--enable' if algorithm.lower() == compression else '--disable',
+                  'INITRAMFS_COMPRESSION_' + algorithm)]
     run([source / 'scripts/config', '--file', kernel / '.config', '--set-str',
-         'INITRAMFS_SOURCE', str(cpio)])
+         'INITRAMFS_SOURCE', str(cpio), *compression_flags])
     run([*make, 'olddefconfig'], cwd=source, log=out / 'config-rootfs.log')
-    validate_kernel_config((kernel / '.config').read_text())
+    validate_kernel_config((kernel / '.config').read_text(), init_system)
+    if 'CONFIG_INITRAMFS_COMPRESSION_' + compression.upper() + '=y' not in (kernel / '.config').read_text().splitlines():
+        raise RuntimeError('Initramfs compression choice was not selected')
     run([*make, '-j' + str(args.jobs), 'Image'], cwd=source,
         log=out / 'kernel-rootfs.log', timeout=600)
     linux_image = kernel / 'arch/riscv/boot/Image'
@@ -174,15 +225,18 @@ def image(args):
     if runtime + root_record['rootfs_file_bytes'] + 64*1024*1024 > layout.ram_bytes:
         raise RuntimeError('Insufficient conservative RAM budget for image + rootfs + 64 MiB reserve')
     embedded = (kernel / 'usr/initramfs_inc_data').read_bytes()
-    if not embedded.startswith(b'\x1f\x8b') or linux_image.read_bytes().count(embedded) != 1:
+    magic = b'\x1f\x8b' if compression == 'gzip' else b'\x02\x21\x4c\x18'
+    if not embedded.startswith(magic) or linux_image.read_bytes().count(embedded) != 1:
         raise RuntimeError('Exact compressed rootfs not embedded once in Image')
-    if gzip.decompress(embedded) != cpio.read_bytes():
+    unpacked = (gzip.decompress(embedded) if compression == 'gzip' else
+        subprocess.check_output(['lz4', '-d', '-c'], input=embedded))
+    if unpacked != cpio.read_bytes():
         raise RuntimeError('Embedded rootfs differs from signed/packed rootfs')
     dts, dtb = delivery / 'valence-vl100.dts', delivery / 'valence-vl100.dtb'
-    dts.write_text(net.network_dts(layout.ram_bytes, platform_drivers=True))
+    dts.write_text(net.network_dts(layout.ram_bytes, platform_drivers=True, bootargs=bootargs))
     dtc = kernel / 'scripts/dtc/dtc'
     run([dtc, '-q', '-I', 'dts', '-O', 'dtb', '-o', dtb, dts])
-    net.validate_dtb(dtc, dtb)
+    net.validate_dtb(dtc, dtb, bootargs=bootargs)
     if dtb.stat().st_size + 8192 > 0x10000:
         raise RuntimeError('DTB exceeds reserved slot')
     opensbi = opensbi_setup(False)
@@ -202,7 +256,8 @@ def image(args):
         if len(line.split()) == 3}
     if symbols.get('_fw_start') != LOAD or symbols.get('payload_bin') != KERNEL or not LOAD < symbols.get('_fw_end', MONITOR) <= DTB:
         raise RuntimeError('Unexpected OpenSBI/kernel/DTB memory layout')
-    result = delivery / 'opensbi_debian13_riscv64_vl100_cpu100_u460800.bin'
+    suffix = '_systemd' if init_system == 'systemd' else ('_dinit_' + compression if init_system == 'dinit' else '')
+    result = delivery / ('opensbi_debian13_riscv64_vl100_cpu100_u460800' + suffix + '.bin')
     shutil.copyfile(firmware, result)
     # Match the configured BootROM RRQ; the server intentionally checks basename.
     vld = delivery / 'valence.vld'
@@ -217,9 +272,11 @@ def image(args):
     manifest.update(stage='firmware_ready_not_board_verified', rootfs=root_record,
         rootfs_embedded=True, kernel_prepare_config_sha256=record['config_sha256'],
         config_sha256=sha(kernel / '.config'),
-        kernel_runtime_bytes=runtime, bootargs=net.BOOTARGS, opensbi_revision=OPENSBI_LOCK['revision'],
+        kernel_runtime_bytes=runtime, bootargs=bootargs, opensbi_revision=OPENSBI_LOCK['revision'],
         entry=hex(LOAD), kernel_entry=hex(KERNEL), payload_zero_padding_bytes=padding,
-        network_auto_enable=root_record['network_auto_enable'], persistent_storage=False, systemd=False,
+        network_auto_enable=root_record['network_auto_enable'], persistent_storage=False,
+        systemd=init_system == 'systemd',
+        dinit=init_system == 'dinit', initramfs_compression=compression,
         kernel_cache=str(out), rootfs_record=args.rootfs_record,
         bit_included=False, required_rtl_fix='CoherentLineHome stalled direct read offer retention',
         memory_profile=profile, full_address_translation_required=layout.ram_bytes == 0x80000000,
@@ -245,6 +302,11 @@ if __name__ == '__main__':
     parser.add_argument('--memory-bytes', type=lambda s: int(s, 0), default=0x80000000,
                         choices=(0x20000000, 0x40000000, 0x80000000))
     parser.add_argument('--resume-kernel', action='store_true', help='retry an incomplete software build; retain failed logs')
+    parser.add_argument('--reuse-kernel', type=Path, help='seed a fresh independent output with a matching completed kernel cache')
+    parser.add_argument('--initramfs-compression', choices=('gzip', 'lz4'),
+                        help='dinit defaults to LZ4; legacy profiles default to gzip')
+    parser.add_argument('--init-system', choices=('dinit', 'systemd', 'busybox'), default='dinit',
+                        help='new builds use dinit; other profiles remain explicit alternatives')
     args = parser.parse_args()
     if args.jobs < 1 or (args.stage == 'image' and args.rootfs_out is None):
         parser.error('positive --jobs required; --stage image requires --rootfs-out')

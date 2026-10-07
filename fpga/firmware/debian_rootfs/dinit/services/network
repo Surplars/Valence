@@ -1,0 +1,9 @@
+type = scripted
+command = /usr/local/libexec/valence-network-control up
+stop-command = /usr/local/libexec/valence-network-control down
+depends-on: platform
+restart = false
+start-timeout = 30
+stop-timeout = 10
+log-type = buffer
+log-buffer-size = 32768

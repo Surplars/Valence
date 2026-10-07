@@ -173,6 +173,32 @@ struct Test {
 };
 int main(int argc,char**) { try {
 #ifdef COHERENT_DMA
+#ifdef DCACHE_CAPACITY
+    // Real cache + home directory + DMA. Three lines share one set. The second
+    // owner remains in the upper way while the dirty first owner is evicted.
+    for(unsigned seed:{17U,31U,919U}) {
+        Test conflict(seed);
+        constexpr uint64_t stride=64ULL*DCACHE_CAPACITY/2;
+        const uint64_t a=ram,b=ram+stride,c=ram+2*stride;
+        const uint64_t av=0x13579bdf02468aceULL,bv=0xfedcba9876543210ULL;
+        conflict.cpuAccess(a,true,av);conflict.cpuAccess(b,true,bv);
+        check(conflict.cpuAccess(b)==bv,"directory MRU touch mismatch");
+        conflict.cpuAccess(c);
+        uint64_t backing=0;for(unsigned i=0;i<8;++i)backing|=uint64_t(conflict.memory[i])<<(8*i);
+        check(backing==av,"directory dirty victim did not reach independent backing memory");
+        auto reads=conflict.reads;
+        check(conflict.cpuAccess(b)==bv&&conflict.reads==reads,"remaining upper-way owner should hit");
+        check(conflict.cpuAccess(a)==av&&conflict.reads==reads+8,"actual evicted owner must reload eight beats");
+        conflict.startTx(b,8);conflict.finish(false,false,true,false);
+        std::vector<uint8_t> expected;for(unsigned i=0;i<8;++i)expected.push_back(bv>>(8*i));
+        if(argc>1)expected[0]^=1;
+        check(conflict.dataOut==expected,"TX independent byte oracle mismatch");
+        reads=conflict.reads;
+        check(conflict.cpuAccess(b)==bv&&conflict.reads==reads+8,"DMA probe must invalidate remaining upper-way owner");
+        std::cout<<"ETHERNET_DMA_DIRECTORY_PASS lines="<<DCACHE_CAPACITY<<" stride="<<stride
+                 <<" seed="<<seed<<" cycles="<<conflict.cycle<<" dirty_eviction=1 upper_way_probe=1 victim_reload=1\n";
+    }
+#endif
     for(unsigned seed:{17U,31U,919U}) {
         Test t(seed);
         std::array<uint8_t,8> stale{}; std::copy_n(t.memory.begin()+4096,8,stale.begin());

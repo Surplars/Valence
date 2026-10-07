@@ -71,6 +71,8 @@ case class OooParams(
     parallelHomeQualification: Boolean = false,
     registeredFabricBoundary: Boolean = false,
     registeredTranslationHeads: Boolean = false,
+    fetchReplyTurnover: Boolean = false,
+    fetchIdentityTranslation: Boolean = false,
     registeredPredictionTraining: Boolean = false,
     parallelMemoryPayload: Boolean = false,
     parallelPacketPmp: Boolean = false,
@@ -99,6 +101,7 @@ case class OooParams(
     fastBufferedStoreRetire: Boolean = false,
     fastHeadLoadRetire: Boolean = false,
     loadCompletionBypass: Boolean = false,
+    registeredLoadIssueForwarding: Boolean = false,
     mulWordPreviewBypass: Boolean = false,
     moveAlias: Boolean = false,
     flowTileLinkResponse: Boolean = false,
@@ -213,6 +216,8 @@ case class OooParams(
         "registered fabric boundary builds on the request-capture profile")
     require(!registeredTranslationHeads || (registeredFabricBoundary && registeredTranslatedResponses),
         "translation heads require the registered request and response boundaries")
+    require(!(fetchReplyTurnover || fetchIdentityTranslation) || registeredTranslationHeads,
+        "fetch turnover and identity capture require registered translation heads")
     require(!parallelMemoryPayload || (parallelMemoryPreparation && completionWidth == 2),
         "parallel memory payload requires the two-candidate memory planner")
     require(!parallelPacketPmp || compressedInstructions,
@@ -221,6 +226,8 @@ case class OooParams(
         precompleteMispredictedBranch && registeredRobRetirement && !fastBufferedStoreRetire &&
         !fastHeadLoadRetire && !moveAlias),
         "operand execution stages require the two-slot non-aliased registered redirect/retirement contract")
+    require(!registeredLoadIssueForwarding || (registeredIssueExecute && !loadCompletionBypass),
+        "load issue forwarding requires registered operand capture and excludes broad load bypass")
     require(!registeredFetchPacket || renameWidth <= 4,
         "registered fetch reservoir supports one to four admission lanes")
     require(!fastHeadTrapRecovery || parallelRecoveryAdmission,

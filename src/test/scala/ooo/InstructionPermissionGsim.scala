@@ -8,7 +8,8 @@ import soc.core.ooo._
 /** Standalone instruction owner boundary; translation and physical-memory
   * responses come from the independent software fixture, not a DUT TLB.
   */
-class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean) extends Module {
+class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
+    turnover: Boolean = false, identity: Boolean = false) extends Module {
     require(Set(2, 4).contains(words))
     val io = IO(new Bundle {
         val virtualValid = Input(Bool())
@@ -62,7 +63,8 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean) 
         bufferedFetchRequests = retimed, flowThroughFetchRequests = retimed,
         independentFetchCapture = retimed, parallelHomeQualification = retimed,
         registeredFabricBoundary = retimed, registeredTranslatedResponses = retimed,
-        registeredTranslationHeads = retimed)
+        registeredTranslationHeads = retimed, fetchReplyTurnover = turnover,
+        fetchIdentityTranslation = identity)
     val adapter = Module(new InstructionTranslationAdapter(p))
     adapter.io.virtual.request.valid := io.virtualValid
     adapter.io.virtual.request.bits := io.virtualPc
@@ -118,5 +120,6 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean) 
 
 object InstructionPermissionGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new InstructionPermissionGsim(args(1).toInt,
-        args.drop(2).contains("retimed"), args.drop(2).contains("aligned")), Array("--target-dir", args.head))
+        args.drop(2).contains("retimed"), args.drop(2).contains("aligned"),
+        args.drop(2).contains("turnover"), args.drop(2).contains("identity")), Array("--target-dir", args.head))
 }

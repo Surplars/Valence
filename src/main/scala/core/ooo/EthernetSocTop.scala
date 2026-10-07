@@ -79,7 +79,8 @@ class VivadoAxiEthernet extends BlackBox {
   * MDIO is split i/o/t for the final board wrapper's IOBUF.
   */
 class EthernetSocTop(isa: String = BoardSocConfig.isaProfile,
-    timingProfile: String = "staged-ethernet", packetDma: Boolean = false) extends Module {
+    timingProfile: String = "staged-ethernet", packetDma: Boolean = false,
+    instructionLineCacheLines: Int = 8, dataCacheLines: Int = 32) extends Module {
     val io = IO(new Bundle {
         val ethernetClock = Input(Clock())
         val ethernetRefClock = Input(Clock())
@@ -106,7 +107,7 @@ class EthernetSocTop(isa: String = BoardSocConfig.isaProfile,
     val soc = Module(new BoardSocTop(socClockHz = 100000000, externalDdr = true,
         timingProfile = timingProfile, uartBaud = 460800, dataCacheWays = 2,
         issueWidth = 2, isaProfile = isa, peripheralClockHz = 125000000, ethernetControl = true,
-        ethernetDma = packetDma))
+        ethernetDma = packetDma, instructionLineCacheLines = instructionLineCacheLines, dataCacheLines = dataCacheLines))
     soc.io.peripheralClock.get := io.ethernetClock
     soc.io.ddrReady.get := io.ddrReady
     io.ddrAxi <> soc.io.ddrAxi.get

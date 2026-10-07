@@ -10,13 +10,15 @@ import chisel3.util._
   * Config is snapshotted at frame start and must already be in this RX domain.
   * No VLAN tag removal, pause negotiation, multicast table, PHY or CDC here.
   */
-class GmiiFrameRx(maxFrameBytes: Int = 2048) extends Module {
+class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) extends Module {
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
     val io = IO(new Bundle {
         val gmiiData = Input(UInt(8.W))
         val gmiiValid = Input(Bool())
         val gmiiError = Input(Bool())
         val enable = Input(Bool())
+        val stopNewFrames = if (admissionStop) Some(Input(Bool())) else None
+        val ownedBusy = if (admissionStop) Some(Output(Bool())) else None
         val promiscuous = Input(Bool())
         val broadcastEnable = Input(Bool())
         val macAddress = Input(UInt(48.W))
@@ -73,6 +75,9 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048) extends Module {
             .otherwise { outputIndex := outputIndex + 1.U; outputState := load }
     }
     io.busy := state =/= search || outputState =/= idle
+    // Discarding an unadmitted physical frame owns no payload. Its endless
+    // arrival must not prevent a requested shutdown from becoming quiescent.
+    io.ownedBusy.foreach(_ := state === preamble || state === body || outputState =/= idle)
     io.accepted := false.B
     io.dropped := false.B
     io.badFcs := false.B
@@ -84,7 +89,7 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048) extends Module {
         promiscuous := io.promiscuous
         broadcastEnable := io.broadcastEnable
         errored := io.gmiiError
-        when(io.enable && outputState === idle && io.gmiiData === "h55".U) {
+        when(io.enable && !io.stopNewFrames.getOrElse(false.B) && outputState === idle && io.gmiiData === "h55".U) {
             preambleCount := 1.U
             state := preamble
         }.otherwise { state := drain }

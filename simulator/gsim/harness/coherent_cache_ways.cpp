@@ -7,6 +7,11 @@
 #ifndef CACHE_WAYS
 #define CACHE_WAYS 2
 #endif
+#ifndef CACHE_LINES
+#define CACHE_LINES 4
+#endif
+static bool injectCorruption = false;
+static constexpr uint64_t conflictStride = 64ULL * CACHE_LINES / CACHE_WAYS;
 static void check(bool ok, const char *message) {
     if (!ok) throw std::runtime_error(message);
 }
@@ -17,7 +22,8 @@ struct Test {
     std::unordered_map<uint64_t, uint64_t> backing, architectural;
     std::deque<Reply> replies;
     std::deque<uint64_t> expected;
-    std::deque<bool> expectedMiss;
+    std::deque<bool> expectedMiss, expectedError;
+    bool denyRefill = false;
     uint64_t cycles = 0, misses = 0, hits = 0, releases = 0, probes = 0;
     unsigned cBeat = 0, cOpcode = 0;
     uint64_t cAddress = 0, probeAddress = 0;
@@ -48,7 +54,8 @@ struct Test {
         if (!replies.empty()) {
             auto &r = replies.front();
             dut.set_io$$tl$$d$$bits$$opcode(r.opcode);
-            dut.set_io$$tl$$d$$bits$$data(r.opcode == 5 ? word(r.address + 8*r.beat) : 0);
+            dut.set_io$$tl$$d$$bits$$data(r.opcode == 5 ? word(r.address + 8*r.beat) ^ uint64_t(injectCorruption) : 0);
+            dut.set_io$$tl$$d$$bits$$denied(denyRefill && r.opcode == 5 && r.beat == 7);
         }
         dut.step(); ++cycles;
         if (requestValid && dut.get_io$$upstream$$request$$ready()) {
@@ -57,6 +64,7 @@ struct Test {
             if (!expected.empty() && expectedMiss.front() && dut.get_io$$hit()) ++underMissHits;
             word(a); expected.push_back(write ? 0 : architectural.at(a));
             expectedMiss.push_back(dut.get_io$$miss());
+            expectedError.push_back(denyRefill && dut.get_io$$miss());
             if (write) {
                 uint64_t value = architectural.at(a), data = requestData;
                 const unsigned mask = requestMask;
@@ -72,8 +80,9 @@ struct Test {
         }
         if (dut.get_io$$upstream$$response$$valid() && responseReady) {
             check(!expected.empty(), "unsolicited CPU response");
-            check(!dut.get_io$$upstream$$response$$bits$$error(), "CPU error");
-            check(dut.get_io$$upstream$$response$$bits$$data() == expected.front(), "CPU data mismatch");
+            check(bool(dut.get_io$$upstream$$response$$bits$$error()) == expectedError.front(), "CPU error response mismatch");
+            if (!expectedError.front()) check(dut.get_io$$upstream$$response$$bits$$data() == expected.front(), "CPU data mismatch");
+            expectedError.pop_front();
             expected.pop_front();
             expectedMiss.pop_front();
         }
@@ -223,26 +232,45 @@ struct Test {
         access(base); // must be able to start a fresh request, with dirty data preserved
     }
 };
-int main() {
+int main(int argc, char **argv) {
+    injectCorruption = argc == 2 && std::string(argv[1]) == "--inject-corruption";
     try {
         Test t;
-        for (unsigned i = 0; i < 10; ++i) t.access(base + (i & 1)*256);
+        for (unsigned i = 0; i < 10; ++i) t.access(base + (i & 1)*conflictStride);
         check(t.misses == (CACHE_WAYS == 2 ? 2 : 10), "alias residency/miss contract");
         t.access(base + 64, false, 0, 255, false);
-        t.access(base + 256);
+        t.access(base + conflictStride);
         check(t.underMissHits > 0, "independent hit did not pass outstanding miss");
         for (unsigned i = 0; i < 96; ++i) {
-            const uint64_t a = base + ((i*13) % 64)*8;
+            const uint64_t a = base + ((i*13) % (CACHE_LINES * 3 / CACHE_WAYS))*64 + (i%8)*8;
             t.access(a, true, 0xfedcba9876543210ULL ^ i, i % 2 ? 0x55 : 0xff); t.access(a);
             if (i % 11 == 0) { t.probe(a & ~63ULL); t.access(a); }
         }
         t.flush();
+        if (CACHE_WAYS == 2) {
+            Test lru;
+            const uint64_t a=base, b=base+conflictStride, c=base+2*conflictStride;
+            lru.access(a); lru.access(b, true, 0xabcdeffedcba1234ULL, 0x55);
+            lru.access(a); auto m=lru.misses;
+            lru.access(c); check(lru.misses==m+1, "third conflict must miss");
+            check(lru.backing.at(b)==lru.architectural.at(b), "dirty LRU victim not written back");
+            lru.access(a); check(lru.misses==m+1, "MRU line wrongly evicted");
+            lru.access(b); check(lru.misses==m+2, "actual LRU victim reload must miss");
+            lru.probe(a); m=lru.misses; lru.access(a);
+            check(lru.misses==m+1, "probe failed to invalidate resident line");
+            lru.flush();
+        }
+        Test error;
+        error.denyRefill=true; error.access(base);
+        error.denyRefill=false; auto errorMisses=error.misses; error.access(base);
+        check(error.misses==errorMisses+1, "failed refill installed a valid line");
+        error.access(base); check(error.misses==errorMisses+1, "successful retry failed to install line");
         unsigned bypassCases = 0;
         for (bool atomic : {true, false}) for (unsigned phase = 0; phase < 4; ++phase) {
             Test overlap; overlap.probeWithBypass(atomic, phase); ++bypassCases;
         }
         std::cout << "GSIM coherent cache ways: PASS ways=" << CACHE_WAYS
-                  << " hits=" << t.hits << " misses=" << t.misses
+                  << " lines=" << CACHE_LINES << " stride=" << conflictStride << " hits=" << t.hits << " misses=" << t.misses
                   << " releases=" << t.releases << " probes=" << t.probes
                   << " underMissHits=" << t.underMissHits << " bypassProbeCases=" << bypassCases
                   << " cycles=" << t.cycles << "\n";

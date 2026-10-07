@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "crc32.h"
 #ifdef BOARD_NETBOOT
 #include "netboot.h"
 #endif
@@ -22,14 +23,32 @@ static unsigned image_valid;
 static unsigned image_network;
 extern void run_image(uintptr_t entry);
 
+#ifdef BOOTROM_TEST
+extern uint64_t boot_test_now(void);
+extern int boot_test_getc(uint64_t);
+extern void boot_test_putc(uint8_t);
+extern uint8_t *boot_test_ram(void);
+#endif
+static uint8_t *image_memory(unsigned offset) {
+#ifdef BOOTROM_TEST
+    return boot_test_ram()+offset;
+#else
+    return (uint8_t *)(RAM_BASE+offset);
+#endif
+}
 static uint64_t cycles(void) {
+#ifdef BOOTROM_TEST
+    return boot_test_now();
+#else
     uint64_t n;
     /* Board timerTick is one per clock; this core exposes time, not cycle CSR. */
-    __asm__ volatile ("rdtime %0" : "=r"(n));
+    __asm__ volatile ("rdtime %0" : "=r"(n) :: "memory");
     return n;
+#endif
 }
 
 static void uart_init(void) {
+#ifndef BOOTROM_TEST
     while (!(UART[5] & 0x40)) {}
     UART[3] = 0x83;
     UART[0] = UART_DIVISOR & 255;
@@ -38,11 +57,21 @@ static void uart_init(void) {
     UART[1] = 0;
     /* Enable both 16-byte FIFOs and clear them; keep RX trigger at one byte. */
     UART[2] = 7;
+#endif
 }
 
 static void putc_uart(uint8_t c) {
+#ifdef BOOTROM_TEST
+    boot_test_putc(c);
+#else
     while (!(UART[5] & 0x20)) {}
     UART[0] = c;
+#endif
+}
+static void flush_uart(void) {
+#ifndef BOOTROM_TEST
+    while (!(UART[5] & 0x40)) {}
+#endif
 }
 
 static void puts_uart(const char *s) {
@@ -56,8 +85,22 @@ static void hex64(uint64_t n) {
     }
 }
 
+static void uart_stage(const char *stage,uint64_t ticks,uint32_t length) {
+    puts_uart("UART stage="); puts_uart(stage); puts_uart(" ticks=0x"); hex64(ticks);
+    puts_uart(" length=0x"); hex64(length); puts_uart(" timebase_hz=0x"); hex64(CPU_HZ);
+    puts_uart("\r\n");
+}
+static void uart_crc_failure(const char *stage,uint32_t length,uint32_t expected,uint32_t actual) {
+    puts_uart("UART fail stage="); puts_uart(stage); puts_uart(" length=0x"); hex64(length);
+    puts_uart(" expected_crc=0x"); hex64(expected); puts_uart(" actual_crc=0x"); hex64(actual);
+    puts_uart("\r\n");
+}
+
 /* Drain RX FIFO promptly; CRC/copy work remains outside the receive loop. */
 static int getc_timeout(uint64_t budget) {
+#ifdef BOOTROM_TEST
+    return boot_test_getc(budget);
+#else
     uint64_t start = cycles();
     do {
         unsigned status = UART[5];
@@ -68,6 +111,7 @@ static int getc_timeout(uint64_t budget) {
         if (status & 1) return UART[0];
     } while (cycles() - start < budget);
     return -1;
+#endif
 }
 
 static int receive(uint8_t *p, unsigned n) {
@@ -93,12 +137,7 @@ static void put32(uint32_t n) {
 }
 
 static uint32_t crc_update(uint32_t crc, const uint8_t *p, unsigned n) {
-    while (n--) {
-        crc ^= *p++;
-        for (unsigned bit = 0; bit < 8; ++bit)
-            crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1)));
-    }
-    return crc;
+    return firmware_crc_update(crc, p, n);
 }
 
 static uint32_t crc32(const uint8_t *p, unsigned n) {
@@ -122,6 +161,7 @@ static void download(void) {
     uint8_t header[36], frame[16];
     uint32_t offset = 0, expected = 0, running = 0xffffffffU;
     uint32_t previous_size = 0, previous_crc = 0;
+    uint64_t upload_start=cycles(), stream_ticks=0;
     image_valid = 0;
     image_network = 0;
     puts_uart("VLOAD1\r\n");
@@ -176,25 +216,37 @@ static void download(void) {
             reply(seq, BAD_RANGE);
             continue;
         }
-        volatile uint8_t *dst = (volatile uint8_t *)(RAM_BASE + offset);
+        volatile uint8_t *dst = image_memory(offset);
         for (unsigned i = 0; i < size; ++i) dst[i] = packet[i];
+        uint64_t crc_start=cycles();
         running = crc_update(running, packet, size);
+        stream_ticks+=cycles()-crc_start;
         offset += size;
         ++expected;
         previous_size = size;
         previous_crc = sum;
         reply(seq, OK);
     }
+    uart_stage("rx_done",cycles()-upload_start,length);
+    uart_stage("stream_crc",stream_ticks,length);
     if ((running ^ 0xffffffffU) != wanted_crc) {
         reply(HEADER_SEQ, BAD_CRC);
         puts_uart("\r\nIMAGE CRC FAIL\r\n");
+        uart_crc_failure("stream_crc",length,wanted_crc,running^0xffffffffU);
         return;
     }
     /* Verify RAM, not only the serial stream. */
+#ifndef BOOTROM_TEST
     __asm__ volatile ("fence rw, rw" ::: "memory");
-    if (crc32((const uint8_t *)RAM_BASE, length) != wanted_crc) {
+#endif
+    puts_uart("UART stage=ram_crc begin\r\n");
+    uint64_t verify_start=cycles();
+    uint32_t actual_crc=crc32(image_memory(0), length);
+    uart_stage("ram_crc",cycles()-verify_start,length);
+    if (actual_crc != wanted_crc) {
         reply(HEADER_SEQ, BAD_CRC);
         puts_uart("\r\nRAM CRC FAIL\r\n");
+        uart_crc_failure("ram_crc",length,wanted_crc,actual_crc);
         return;
     }
     image_entry = entry;
@@ -255,7 +307,10 @@ static void boot_loop(void) {
 #endif
             hex64(image_entry);
             puts_uart("\r\n");
-            while (!(UART[5] & 0x40)) {}
+#ifdef BOARD_NETBOOT
+            board_netboot_jump(image_entry,image_length);
+#endif
+            flush_uart();
             run_image(image_entry);
             uart_init();
             puts_uart("\r\nAPP RETURN\r\n");
@@ -270,7 +325,8 @@ void boot_main(void) {
     if (network_download()) {
         puts_uart("boot from Ethernet (DDR) @ 0x");
         hex64(image_entry); puts_uart("\r\n");
-        while (!(UART[5] & 0x40)) {}
+        board_netboot_jump(image_entry,image_length);
+        flush_uart();
         run_image(image_entry);
         uart_init(); puts_uart("\r\nAPP RETURN\r\n");
     }

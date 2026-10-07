@@ -124,7 +124,7 @@ TL-UL 64-bit beat：Get/PutFull/PutPartial，size=0..3，自然对齐；Get/Full
 | 偏移 | 名称 | 访问 | 字段 / 复位 |
 | --- | --- | --- | --- |
 | `0x00` | ID_VERSION | RO | `0x56474d4100010001` |
-| `0x08` | CAPABILITY | RO | [63:32] maxFrameBytes，[23:16] mediaBits，bit0 RGMII/bit1 XGMII 设计合同 |
+| `0x08` | CAPABILITY | RO | [63:32] maxFrameBytes，[23:16] mediaBits，bit0 RGMII/bit1 XGMII 设计合同；bit8 表示可选 RX_STOP 屏障 |
 | `0x10` | CONTROL | RW | bit0 TX enable、1 RX enable、2 promiscuous、3 broadcast；复位8 |
 | `0x18` | MAC_ADDRESS | RW | 低48位；线上第一 octet 为[47:40]，复位0 |
 | `0x20` | MAX_FRAME_BYTES | RO | 默认2048，不计 preamble/SFD/FCS |
@@ -141,6 +141,14 @@ TL-UL 64-bit beat：Get/PutFull/PutPartial，size=0..3，自然对齐；Get/Full
 | `0x78` | MDIO_COMMAND | WO/read0 | [15:0] data、16 write、17 START、[22:18] PHY、[27:23] register |
 | `0x80` | MDIO_STATUS | RO | bit0 busy、1 done；复位0，START 清 done，完成置 done |
 | `0x88` | MDIO_RESULT | RO | [15:0] data、16 noAck；复位0，保留最近一次完成结果 |
+| `0x90` | RX_STOP（仅 CAP bit8=1） | RW | 仅完整64位写0/1，忙时可写；读bit0 requested、bit1 drained；复位0 |
+
+2026-10-07 RX_STOP 扩展默认只在 `ManagedGmac` 开启；没有 CAP bit8 时该地址仍为
+未知地址并拒绝访问。写1先关闭新帧准入，已接受的完整帧、CDC FIFO／预取／输出以及
+适配器 data/status 尾部必须经实际握手排空后才读到drained=1。保持 DMA scratch RX 消费者
+运行直到此屏障，再用 DMA RX_STOP／BUSY 检查排空 DDR。写0解除准入限制；STATUS busy
+包含尚未完成的命令跨域，初始化须等其清零。停收后丢弃的新物理流量不阻塞安全 CONTROL=0；
+旧 CONTROL 忙时拒绝语义不变。此扩展不取消事务、不清FIFO、不强制复位或停钟。
 
 CAPABILITY 表示端口目标接口，**不是 MAC/PCS 已完成或链路可用的声明**；`Xgmii10G`
 目前仅可配置接口宽度，用户指定未来 SFP1，实际 10G RTL 不在本批。

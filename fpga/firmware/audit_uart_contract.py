@@ -44,6 +44,10 @@ def audit(binary, elf, reference_hz, baud, prefix="riscv64-unknown-elf-"):
         elif opcode == 0x13 and funct3 in (0, 7):
             registers[rd] = ((registers[rs1] + immediate) if funct3 == 0 else
                              (registers[rs1] & (immediate & MASK))) & MASK
+        elif opcode == 0x33 and funct3 == 0 and instruction >> 25 == 0:
+            # RV64 ADD, emitted by GCC14 for a shared UART base+offset.
+            # Reject SUB/MUL/other OP encodings rather than guessing semantics.
+            registers[rd] = (registers[rs1] + registers[rs2]) & MASK
         elif opcode == 0x03 and funct3 == 4:
             if (registers[rs1] + immediate) & MASK != UART + 5:
                 raise ValueError("Unexpected uart_init MMIO read")

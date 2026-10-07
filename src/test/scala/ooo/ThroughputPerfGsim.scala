@@ -12,7 +12,8 @@ import soc.core.ooo._
 object ThroughputPerfConfig {
     def params(profile: String): OooParams = {
         require(Set("staged-control-heads", "staged-throughput", "staged-gmac-ready", "staged-ethernet",
-            "staged-fetch-feedback").contains(profile))
+            "staged-fetch-feedback", "staged-load-issue", "staged-fetch-turnover",
+            BoardSocConfig.memoryCapacityProfile).contains(profile))
         BoardSocConfig.timingParams(profile).copy(
             speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 4096,
             compressedInstructions = false, parallelFetchAlignment = false, parallelFetchTagLookup = false,

@@ -1,0 +1,7 @@
+type = scripted
+command = /usr/local/libexec/valence-platform-init
+restart = false
+start-timeout = 60
+stop-timeout = 10
+log-type = buffer
+log-buffer-size = 32768

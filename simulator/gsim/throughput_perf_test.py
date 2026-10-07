@@ -34,6 +34,19 @@ class ThroughputReportTest(unittest.TestCase):
             parse_measurements(text)
         self.assertEqual(len(parse_measurements(output(sample()))), 12)
 
+    def test_four_slots_require_explicit_geometry(self):
+        rows = sample()
+        for row in rows:
+            row["memory_entries"] = 4
+        with self.assertRaises(RuntimeError):
+            parse_measurements(output(rows))
+        geometry = {"rob": 16, "physical": 48, "memory_entries": 4}
+        self.assertEqual(len(parse_measurements(output(rows), expected_geometry=geometry)), 12)
+        with self.assertRaises(RuntimeError):
+            parse_measurements(output(sample()), expected_geometry=geometry)
+        with self.assertRaises(ValueError):
+            parse_measurements(output(rows), expected_geometry={"memory_entries": 4})
+
     def test_complete_accounting(self):
         measured = parse_measurements(output(sample()))
         self.assertEqual(len(measured), 12)

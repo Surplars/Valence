@@ -207,6 +207,8 @@ class MachinePlatform(
         requests.io.upstream <> translatedFetch
         requests.io.downstream
     } else translatedFetch
+    // Module reference used only by test wrappers for passive cache telemetry.
+    var instructionLineCache: Option[InstructionLineCache] = None
     val lineFetchIdle = WireDefault(true.B)
     val rom = Module(new InstructionRom(romWords, romBase, romFiles, programmable,
         vivadoNative = vivadoMemories))
@@ -542,6 +544,7 @@ class MachinePlatform(
                     romBytes = romWords * 4, lines = instructionLineCacheLines,
                     packetWords = fetchWords, prefetchEnabled = fetchWords == 4 && instructionLineCachePrefetch,
                     parallelFallbackAddresses = p.parallelFetchAddresses))
+                instructionLineCache = Some(fetchCache)
                 fetchCache.reset := reset.asBool || hold
                 physicalFetch <> fetchCache.io.fetch
                 crossbar.io.masters(1) <> fabricMaster(fetchCache.io.tl)

@@ -118,7 +118,7 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rxFifo.commonReset := commonReset
     adapter.io.rxFrame <> rxFifo.destination
     val tx = withClockAndReset(txManaged, txRelease.resetOut) { Module(new GmiiFrameTx) }
-    val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx) }
+    val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx(admissionStop = true)) }
     tx.io.frame <> txFifo.destination
     rxFifo.source <> rx.io.frame
     val txConfig = Module(new EthernetConfigClockBridge)
@@ -147,7 +147,7 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     txStats.delta.ready := true.B
     rxStats.delta.ready := true.B
     val tlParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4)
-    val config = GmacParams(controlClockHz = cpuHz, aggregateStats = true)
+    val config = GmacParams(controlClockHz = cpuHz, aggregateStats = true, rxAdmissionStop = true)
     val frontend = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         Module(new RegisterGmacControl(config.base, tlParams))
     }
@@ -157,6 +157,16 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     frontend.io.registers <> registers
     csr.io.tl <> frontend.io.tl
     val port = csr.io.ports.head
+    val rxStop = Module(new EthernetRxAdmissionStop)
+    rxStop.sourceClock := sourceClock
+    rxStop.destinationClock := rxManaged
+    rxStop.commonReset := commonReset
+    rxStop.requested := port.rxStopRequest.get
+    rxStop.sourceDrained := adapter.io.rxIdle && rxFifo.destinationIdle
+    rxStop.destinationFrameIdle := !rx.io.ownedBusy.get
+    rxStop.destinationFifoIdle := rxFifo.sourceIdle
+    rx.io.stopNewFrames.get := rxStop.stopNewFrames
+    port.rxStopDrained.get := rxStop.drained
     val currentConfig = Wire(new EthernetConfigSnapshot)
     currentConfig.macAddress := port.macAddress
     currentConfig.txEnable := port.txEnable
@@ -173,7 +183,10 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         when(txConfig.source.fire && rxConfig.source.fire) { sentConfig := currentConfig.asUInt }
     }
     txConfig.destination.ready := !tx.io.busy
-    rxConfig.destination.ready := !rx.io.busy
+    // With producer admission closed, unrelated physical traffic is discarded
+    // and owns no payload/configuration. It cannot postpone shutdown forever.
+    val rxConfigurationIdle = !rx.io.busy || (rxStop.stopNewFrames && !rx.io.ownedBusy.get)
+    rxConfig.destination.ready := rxConfigurationIdle
     val txImage = withClockAndReset(txManaged, txRelease.resetOut) {
         val image = RegInit(0.U.asTypeOf(new EthernetConfigSnapshot))
         when(txConfig.destination.fire) { image := txConfig.destination.bits }
@@ -207,7 +220,7 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     withClockAndReset(sourceClock, cpuRelease.resetOut) {
         control(0).wake := RegNext(dirty || ((txQ || txIso) &&
             (streams.txData.valid || streams.txControl.valid)), false.B)
-        control(1).wake := RegNext(dirty || receiverWake, false.B)
+        control(1).wake := RegNext(dirty || receiverWake || !rxStop.settled, false.B)
     }
     val txDrainCpu = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         RegNext(txQ && adapter.io.txIdle && txFifo.sourceIdle && txConfig.sourceIdle &&
@@ -215,7 +228,7 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     }
     val rxDrainCpu = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         RegNext(rxQ && adapter.io.rxIdle && rxFifo.destinationIdle && rxConfig.sourceIdle &&
-            !dirty && rxStats.destinationIdle, false.B)
+            !dirty && rxStats.destinationIdle && rxStop.settled, false.B)
     }
     val txDrain = ManagedPeripheralSupport.level(txDrainCpu, txManaged, txRelease.resetOut)
     val rxDrain = ManagedPeripheralSupport.level(rxDrainCpu, rxManaged, rxRelease.resetOut)
@@ -235,10 +248,11 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     val previousLink = withClockAndReset(sourceClock, cpuRelease.resetOut) { RegNext(port.linkUp, false.B) }
     val configPending = dirty || !txConfig.sourceIdle || !rxConfig.sourceIdle
     val txBusyLevel = withClockAndReset(txManaged, txRelease.resetOut) { RegNext(tx.io.busy, false.B) }
-    val rxBusyLevel = withClockAndReset(rxManaged, rxRelease.resetOut) { RegNext(rx.io.busy, false.B) }
+    val rxBusyLevel = withClockAndReset(rxManaged, rxRelease.resetOut) { RegNext(!rxConfigurationIdle, false.B) }
     port.txBusy := ManagedPeripheralSupport.level(txBusyLevel, sourceClock, cpuRelease.resetOut) ||
         !adapter.io.txIdle || !txFifo.sourceIdle || configPending
-    port.rxBusy := ManagedPeripheralSupport.level(rxBusyLevel, sourceClock, cpuRelease.resetOut) || configPending
+    port.rxBusy := ManagedPeripheralSupport.level(rxBusyLevel, sourceClock, cpuRelease.resetOut) || configPending ||
+        !rxStop.settled || (port.rxStopRequest.get && !rxStop.drained)
     val txDelta = Mux(txStats.delta.valid, txStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(3, UInt(32.W)))
     val rxDelta = Mux(rxStats.delta.valid, rxStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(4, UInt(32.W)))
     port.deltas.get := VecInit(Seq(txDelta(0), rxDelta(0), rxDelta(1), rxDelta(2), txDelta(2), rxDelta(3)))

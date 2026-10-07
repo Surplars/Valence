@@ -39,7 +39,7 @@ DISABLED = ['EFI', 'SMP', 'VT', 'VT_CONSOLE', 'CONSOLE_TRANSLATIONS', 'DUMMY_CON
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def network_dts(memory_bytes=0x20000000, platform_drivers=False):
+def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTARGS):
     base = board_dts('rv64gc', 100000000, 460800, memory_bytes)
     legacy_isa = 'riscv,isa = "rv64imafdc_zicsr_zifencei";'
     old_bootargs = 'bootargs = "earlycon=sbi console=hvc0 rdinit=/init loglevel=7";'
@@ -50,7 +50,7 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False):
     base = base.replace(legacy_isa, legacy_isa + '\n'
         '            riscv,isa-base = "rv64i";\n'
         '            riscv,isa-extensions = ' + extension_list + ';')
-    base = base.replace(old_bootargs, 'bootargs = "' + BOOTARGS + '";')
+    base = base.replace(old_bootargs, 'bootargs = "' + bootargs + '";')
     needle = '        uart0: serial@10000000 {'
     if base.count(needle) != 1:
         raise RuntimeError('Unexpected base device tree')
@@ -124,10 +124,10 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False):
         status = "okay";
     };
     soc {''')
-    validate_dts(text)
+    validate_dts(text, bootargs=bootargs)
     return text
 
-def validate_dts(text):
+def validate_dts(text, bootargs=BOOTARGS):
     """Fail closed on missing modern ISA discovery, not merely CONFIG_FPU=y."""
     def strings(name):
         matches = re.findall(r'(?m)^\s*' + re.escape(name) + r'\s*=\s*(.*?);', text)
@@ -143,14 +143,14 @@ def validate_dts(text):
         raise RuntimeError('DT must explicitly advertise exactly the qualified RV64GC extensions')
     if strings('riscv,isa') != ['rv64imafdc_zicsr_zifencei']:
         raise RuntimeError('Legacy ISA does not match the RV64GC profile')
-    if strings('bootargs') != [BOOTARGS]:
+    if strings('bootargs') != [bootargs]:
         raise RuntimeError('DT timestamp bootargs mismatch')
     if '"openion,valence-aia-csr-v1"' not in text or '"riscv,imsics"' in text:
         raise RuntimeError('Describe the qualified CSR-only adapter, not a standard MSI aperture')
 
-def validate_dtb(dtc, path):
+def validate_dtb(dtc, path, bootargs=BOOTARGS):
     text = subprocess.check_output([dtc, '-q', '-I', 'dtb', '-O', 'dts', path], text=True)
-    validate_dts(text)
+    validate_dts(text, bootargs=bootargs)
     def node(pattern):
         found = re.search(pattern, text, re.S)
         if not found:
@@ -177,7 +177,7 @@ def validate_embedded_dtb(firmware, dtb):
     if not dtb.startswith(b'\xd0\x0d\xfe\xed') or firmware.count(dtb) != 1:
         raise RuntimeError('Exact validated DTB not embedded once in OpenSBI firmware')
 
-def validate_config(text):
+def validate_config(text, bootargs=BOOTARGS):
     lines = set(text.splitlines())
     for name in ('64BIT', 'MMU', 'RISCV_SBI', 'HVC_RISCV_SBI', 'FPU', 'NET', 'INET',
                  'PACKET', 'NETDEVICES', 'PHYLIB', 'OF_MDIO', 'REALTEK_PHY', 'MODULES', 'HZ_250',
@@ -188,7 +188,7 @@ def validate_config(text):
     for name in ('SMP', 'MODULE_UNLOAD', 'HZ_PERIODIC', 'HZ_1000', 'IPV6'):
         if f'CONFIG_{name}=y' in lines:
             raise RuntimeError('Unsupported configuration in single-hart IRQ profile: ' + name)
-    if 'CONFIG_CMDLINE="' + BOOTARGS + '"' not in lines:
+    if 'CONFIG_CMDLINE="' + bootargs + '"' not in lines:
         raise RuntimeError('Effective kernel command line must enable timestamps')
 
 def build_apps(output):

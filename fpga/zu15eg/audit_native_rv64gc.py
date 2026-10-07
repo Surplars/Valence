@@ -192,7 +192,8 @@ def main():
     if inputs.get("ddr_bytes") == 0x80000000:
         result.update(ddr_bytes=0x80000000, ram_base=inputs["ram_base"],
                       end_exclusive=inputs["end_exclusive"],
-                      functional_scope="Affected DDR2G bridge/window/DMA and network-pressure checks, not complete CPU/Linux runtime")
+                      functional_scope=inputs.get("functional_scope",
+                          "Affected DDR2G bridge/window/DMA and network-pressure checks, not complete CPU/Linux runtime"))
     (a.out / "completion.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(status, "CPU", cpu_result, "BOARD", board, "IO", result["io"])
 

@@ -10,6 +10,11 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     private val indexBits = math.max(1, log2Ceil(p.memoryEntries))
     val io                = IO(new Bundle {
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
+        // Sideband belongs to the accepted start owner, never a ROB lookup at completion.
+        val issueDestination = if (p.registeredLoadIssueForwarding)
+            Some(Input(Valid(UInt(p.physBits.W)))) else None
+        val completedIssueDestination = if (p.registeredLoadIssueForwarding)
+            Some(Output(Valid(UInt(p.physBits.W)))) else None
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
         val memory         = new DataPort
@@ -37,6 +42,26 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         io.owner(i)    := slot.io.owner
         io.live(i)     := slot.io.busy
         io.phase(i)    := slot.io.phase
+    }
+    io.completedIssueDestination.foreach { destination =>
+        val owners = Reg(Vec(p.memoryEntries, Valid(UInt(p.physBits.W))))
+        for ((slot, i) <- slots.zipWithIndex) {
+            when(slot.io.complete.valid) {
+                assert(slot.io.complete.bits.token.asUInt === slot.io.owner.asUInt,
+                    "load forwarding sideband and completion retain the same slot owner")
+            }
+            when(slot.io.start.fire) {
+                owners(i).valid := io.issueDestination.get.valid && io.issueDestination.get.bits =/= 0.U &&
+                    !io.start.bits.store && !io.start.bits.atomic
+                owners(i).bits := io.issueDestination.get.bits
+            }
+        }
+        // Both completion and sideband use the same existing arbiter selection.
+        // Reads see the old registers when completion and replacement coincide.
+        val selected = Mux1H((0 until p.memoryEntries).map(i =>
+            (completion.io.chosen === i.U) -> owners(i)))
+        destination.valid := completion.io.out.valid && !completion.io.out.bits.exception && selected.valid
+        destination.bits := selected.bits
     }
     io.complete <> completion.io.out
     io.busy         := slots.map(_.io.busy).reduce(_ || _)

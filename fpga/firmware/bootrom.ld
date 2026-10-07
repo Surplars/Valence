@@ -12,10 +12,16 @@ SECTIONS {
     .data : ALIGN(8) {
         __data_start = .;
         __global_pointer$ = . + 0x800;
+        . = ALIGN(64);
+        __crc32_table_start = .;
+        KEEP(*(.data.crc32_table))
+        __crc32_table_end = .;
         *(.sdata .sdata.* .data .data.*)
         __data_end = .;
     } > BOOT AT > ROM
     __data_load = LOADADDR(.data);
+    ASSERT((__crc32_table_start & 63) == 0, "CRC table must be cache-line aligned")
+    ASSERT(__crc32_table_end - __crc32_table_start == 64, "expected one 64-byte CRC table")
     .bss (NOLOAD) : ALIGN(8) {
         __bss_start = .;
         *(.sbss .sbss.* .bss .bss.* COMMON)

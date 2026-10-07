@@ -1,0 +1,23 @@
+#!/bin/sh
+# Read-only startup diagnostics. Never benchmark or reconfigure eth0 automatically.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+echo '=== PID 1 / time / kernel command line ==='
+cat /proc/1/comm /proc/uptime /proc/cmdline
+date -u
+echo '=== RAM and cgroup2 ==='
+free -m
+findmnt /sys/fs/cgroup
+echo '=== initramfs unpack and slow initcalls ==='
+boot-time
+echo '=== systemd boot duration ==='
+systemd-analyze time
+systemd-analyze critical-chain
+systemd-analyze blame --no-pager | head -n 20
+echo '=== failed units / serial service ==='
+systemctl --no-pager --failed
+systemctl --no-pager status serial-getty@hvc0.service valence-platform.service networking.service
+echo '=== recent monotonic journal ==='
+journalctl -b -o short-monotonic --no-pager -n 50
+echo 'Manual CPU bandwidth: mem-bench 32 3 (working set > cache; not MIG peak)'
+echo 'Manual independent DMA path: dma-bench 8388608 4 (PASS + MiB/s required)'
+echo 'No clocks, DMA, network state or memory outside this process were changed.'

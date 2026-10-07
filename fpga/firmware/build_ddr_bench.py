@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--cpu-hz", type=int, default=50_000_000)
     parser.add_argument("--baud", type=int, default=115200,
                         help="Inherited BootROM baud, banner only; does not reconfigure UART")
+    parser.add_argument("--locality", action="store_true", help="Bounded 1/2/4/8 KiB cache locality variant")
     args = parser.parse_args()
     if not 6_000_000 <= args.cpu_hz <= 200_000_000:
         parser.error("CPU clock must be in 6..200 MHz")
@@ -34,6 +35,7 @@ def main():
         "-ffunction-sections", "-fdata-sections", "-nostdlib", "-nostartfiles",
         "-Wall", "-Wextra", "-Werror", "-Wl,--gc-sections", "-Wl,--no-relax",
         f"-DCPU_HZ={args.cpu_hz}ULL", f"-DUART_BAUD={args.baud}U",
+        *(["-DDDR_BENCH_LOCALITY=1"] if args.locality else []),
         "-Wl,--defsym=BOARD_RAM_BYTES=536870912",
         "-Wl,--defsym=DDR_TEST_PROGRAM_LIMIT=0x80400000",
         f"-T{source / 'sample_app.ld'}", f"-Wl,-Map,{output / 'ddr_bench.map'}",

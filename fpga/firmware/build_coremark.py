@@ -41,6 +41,9 @@ def main():
     parser.add_argument("--prefix", default="riscv64-unknown-elf-")
     parser.add_argument("--clock-hz", type=int, default=40000000)
     parser.add_argument("--memory", choices=("ram", "ddr"), default="ram")
+    parser.add_argument("--march", choices=("rv64im_zicsr_zifencei", "rv64imc_zicsr_zifencei"),
+                        default="rv64im_zicsr_zifencei",
+                        help="Integer ISA only; ABI remains lp64 and default image is unchanged")
     args = parser.parse_args()
     if not 0 <= args.iterations <= 0x7fffffff:
         parser.error("iterations must be in 0..2147483647")
@@ -63,7 +66,8 @@ def main():
     memory = "1 MiB on-chip UltraRAM" if args.memory == "ram" else "PL DDR via write-back L1"
     location = f"code and data in {memory} at {args.clock_hz} Hz"
     flags = [
-        "-O2", "-march=rv64im_zicsr_zifencei", "-mabi=lp64",
+        "-O2", f"-march={args.march}", "-mabi=lp64",
+        f'-DCOREMARK_COMPILER_FLAGS="-O2 -march={args.march} -mabi=lp64"',
         "-mcmodel=medany", "-mno-relax", "-msmall-data-limit=0",
         "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
         "-ffunction-sections", "-fdata-sections", "-nostdlib", "-nostartfiles",
@@ -85,7 +89,8 @@ def main():
         raise RuntimeError(f"RAM application size {length} exceeds {MAX_IMAGE_BYTES}")
     print(f"CoreMark revision: {REVISION}")
     print(f"RAM application: {image} ({length} bytes)")
-    print(f"Target: RV64IM, 0x80200000, {args.clock_hz} Hz, {args.memory}; ROM bitstream is unchanged")
+    isa = "RV64IMC" if args.march == "rv64imc_zicsr_zifencei" else "RV64IM"
+    print(f"Target: {isa}, 0x80200000, {args.clock_hz} Hz, {args.memory}; ROM bitstream is unchanged")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ No firewall/network configuration or board reset is performed by this tool.
 Serve the packed image on a trusted, directly connected Ethernet segment only.
 """
 import argparse
+from dataclasses import dataclass
 import ipaddress
 from pathlib import Path
 import socket
@@ -122,38 +123,102 @@ class TransferProgress:
         self.closed = True
 
 
-def transfer(sock, peer, source, retry_seconds=1, retries=10, progress=None):
-    """Each transfer uses its own TID; only matching peer/ACK can advance."""
+@dataclass
+class TransferStats:
+    """Host observations only. An EOF ACK does not prove board RAM verification."""
+    bytes_acked: int = 0
+    data_packets: int = 0
+    acked_blocks: int = 0
+    retransmits: int = 0
+    timeouts: int = 0
+    reply_packets: int = 0
+    ignored_packets: int = 0
+    read_seconds: float = 0.0
+    send_seconds: float = 0.0
+    ack_wait_seconds: float = 0.0
+    elapsed_seconds: float = 0.0
+    eof_acked: bool = False
+
+    def summary(self):
+        other = max(0.0, self.elapsed_seconds - self.read_seconds -
+                    self.send_seconds - self.ack_wait_seconds)
+        return (f"TFTP STATS bytes_acked={self.bytes_acked} data_packets={self.data_packets} "
+                f"acked_blocks={self.acked_blocks} retransmits={self.retransmits} "
+                f"timeouts={self.timeouts} rx_packets={self.reply_packets} "
+                f"ignored_packets={self.ignored_packets} read={self.read_seconds:.6f}s "
+                f"send={self.send_seconds:.6f}s ack_wait={self.ack_wait_seconds:.6f}s "
+                f"other={other:.6f}s elapsed={self.elapsed_seconds:.6f}s "
+                f"eof_acked={'yes' if self.eof_acked else 'no'}")
+
+
+def transfer(sock, peer, source, retry_seconds=1, retries=10, progress=None, stats=None, clock=None):
+    """Window 1, 512-byte DATA, including rollover and the short/zero EOF ACK.
+
+    Pass a fresh TransferStats to retain counters on success or failure. Timings
+    are wall time in source.read, sendto and the ACK wait loop, not CPU timings.
+    """
+    stats = TransferStats() if stats is None else stats
+    clock = time.monotonic if clock is None else clock
+    started = clock()
+    try:
+        return _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock)
+    finally:
+        stats.elapsed_seconds = max(0.0, clock() - started)
+
+
+def _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock):
     block, total = 1, 0
     while True:
-        data = source.read(512)
+        started = clock()
+        try:
+            data = source.read(512)
+        finally:
+            stats.read_seconds += clock() - started
         wire_block = block & 0xffff
         packet = struct.pack("!HH", 3, wire_block) + data
+        expected_ack = struct.pack("!HH", 4, wire_block)
         acked = False
-        for _ in range(retries):
-            sock.sendto(packet, peer)
-            deadline = time.monotonic() + retry_seconds
-            while time.monotonic() < deadline:
-                sock.settimeout(max(0.001, deadline - time.monotonic()))
-                try:
-                    reply, who = sock.recvfrom(2048)
-                except socket.timeout:
-                    break
-                if who != peer:
-                    continue
-                if reply.startswith(b"\x00\x05"):
-                    raise RuntimeError("board rejected image: " + repr(reply[4:]))
-                if reply == struct.pack("!HH", 4, wire_block):
-                    acked = True
-                    break
+        for attempt in range(retries):
+            started = clock()
+            try:
+                sock.sendto(packet, peer)
+            finally:
+                stats.send_seconds += clock() - started
+            stats.data_packets += 1
+            stats.retransmits += int(attempt != 0)
+            started = clock()
+            deadline = started + retry_seconds
+            try:
+                while clock() < deadline:
+                    sock.settimeout(max(0.001, deadline - clock()))
+                    try:
+                        reply, who = sock.recvfrom(2048)
+                    except socket.timeout:
+                        break
+                    stats.reply_packets += 1
+                    if who != peer:
+                        stats.ignored_packets += 1
+                        continue
+                    if reply.startswith(b"\x00\x05"):
+                        raise RuntimeError("board rejected image: " + repr(reply[4:]))
+                    if reply == expected_ack:
+                        acked = True
+                        break
+                    stats.ignored_packets += 1
+            finally:
+                stats.ack_wait_seconds += clock() - started
             if acked:
                 break
+            stats.timeouts += 1
         if not acked:
             raise TimeoutError(f"no board ACK for block {wire_block}, completed={total}")
         total += len(data)
+        stats.bytes_acked = total
+        stats.acked_blocks += 1
+        stats.eof_acked = len(data) < 512
         if progress is not None:
-            progress(total, len(data) < 512)
-        if len(data) < 512:
+            progress(total, stats.eof_acked)
+        if stats.eof_acked:
             return total
         block += 1
 
@@ -176,19 +241,24 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
                 continue
             started = time.monotonic()
             display = TransferProgress(image.stat().st_size) if show_progress else None
+            stats = TransferStats()
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as session, image.open("rb") as source:
                     session.bind((bind, 0))
-                    sent = transfer(session, peer, source, progress=display.update if display else None)
+                    sent = transfer(session, peer, source, progress=display.update if display else None,
+                                    stats=stats)
                 elapsed = max(time.monotonic() - started, 1e-9)
                 print(f"TFTP SENT {sent} bytes to {peer} in {elapsed:.2f}s ({sent / elapsed / 1048576:.3f} MiB/s); "
-                      "check UART for RAM verification/boot", flush=True)
+                      "final EOF ACK received; RAM verification and RUN/boot are not confirmed. "
+                      "Check board UART status.", flush=True)
+                print(stats.summary(), flush=True)
                 if once:
                     return
             except (TimeoutError, RuntimeError, OSError) as error:
                 if display:
                     display.close()
                 print(f"TFTP FAILED {peer}: {error}; waiting for a new RRQ", flush=True)
+                print(stats.summary(), flush=True)
             finally:
                 if display:
                     display.close()

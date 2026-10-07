@@ -1,0 +1,3 @@
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+TERM=vt100
+LC_ALL=C

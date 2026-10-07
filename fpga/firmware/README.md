@@ -18,6 +18,17 @@ The auditor executes the compiled `uart_init` instructions against an independen
 16550 model, checking DLAB, DLL/DLM, final 8N1 and FCR=7. Release also cross-checks
 the actual emitted UART reference and BSP DTS. Source edits alone do not update
 an already programmed ROM; the matching new bit must still be qualified.
+The current network candidate additionally requires MAC CAP bit8 and the
+busy-safe RX admission-stop/drain CSR at 0x90, plus DMA RX_STOP. It keeps RX
+consuming through admitted frames and CDC/status tails before stopping DMA.
+This needs matching new RTL; a ROM-only update cannot repair old hardware.
+If the capability is absent, this ROM skips network initialization and leaves
+UART recovery available. Complete failure-stage/timing diagnostics and the
+pending physical acceptance checklist are in [NETBOOT-BOARD-TEST.txt](NETBOOT-BOARD-TEST.txt).
+TFTP final ACK confirms transport only; UART VDON confirms RAM CRC only.
+Neither host message proves the image ran. Host upload and final verification
+wait are reported separately without changing wire protocol.
+
 The clock/memory instructions below describe historical board profiles.
 
 The board has 128 KiB BRAM ROM at `0x80000000`. The legacy Board40 profile

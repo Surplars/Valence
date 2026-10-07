@@ -1,5 +1,9 @@
 # OoO Core 架构草案
 
+Opt-in load-to-registered-issue experiment (2026-10-07): `staged-load-issue`
+keeps existing profiles unchanged. [Contract and validation status](registered-load-issue-forwarding.md).
+Focused GSIM A/B passed: one-iteration board CoreMark ticks 834653 → 831768 (0.346% fewer); DDR essentially unchanged, including a 5-tick COPY regression. Physical timing remains unverified; this opt-in experiment is not a default bitstream replacement.
+
 > 文档角色（2026-09-30）：本页是按阶段追加的架构建议/实施日志，不是当前配置规格表。
 > 早期“未实现 MMU/缓存/间接预测”“尚无综合”等描述只适用于所在阶段，
 > 撤回的时序实验和旧测试数据仍保留供追溯。当前板级参数、MMIO、CSR 与已知限制

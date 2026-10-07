@@ -49,7 +49,10 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
         val crosses = if (packetWords == 2) virtualPc(11, 0) === 4092.U && requested(1) else false.B
         val alignedPacket = p.alignedFetchPmp && p.compressedInstructions
 
-        io.virtual.request.ready := state === idle
+        // Only a committed reply handshake may replace the single owner. The
+        // old response remains registered and unchanged until that edge.
+        io.virtual.request.ready := state === idle ||
+            (if (p.fetchReplyTurnover) state === reply && io.virtual.response.ready else false.B)
         when(io.virtual.request.fire) {
             if (packetWords == 4 || alignedPacket) {
                 assert(io.virtual.request.bits(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
@@ -71,7 +74,18 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
             errors := (if (packetWords == 4) ~io.virtual.requestMask else 0.U)
             pageFaults := 0.U
             data := 0.U
-            state := translateFirst
+            if (p.fetchIdentityTranslation) {
+                // Capture the architectural identity case with the request's
+                // context. PMP still runs in the existing registered send stage;
+                // live CSR changes cannot change the captured address or mode.
+                val identity = io.privilege === 3.U || io.vmState.satp(63, 60) === 0.U
+                firstPhysical := io.virtual.request.bits
+                secondPhysical := io.virtual.request.bits + 4.U
+                state := Mux(identity, Mux(io.virtual.requestMask.orR, sendFirst, reply), translateFirst)
+            } else {
+                state := translateFirst
+            }
+            issued := false.B
         }
 
         val translating = state === translateFirst || state === translateSecond
@@ -193,7 +207,8 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
         io.virtual.response.bits := data
         io.virtual.responseError := errors
         io.virtual.responsePageFault := pageFaults
-        when(io.virtual.response.fire) { state := idle }
+        // New-owner initialization wins over retiring the prior reply.
+        when(io.virtual.response.fire && !io.virtual.request.fire) { state := idle }
         io.idle := state === idle
     } else if (packetWords == 4) {
         val Seq(idle, translate, send, waitData, reply) = Enum(5)

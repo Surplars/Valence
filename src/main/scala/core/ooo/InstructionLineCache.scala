@@ -286,6 +286,20 @@ class InstructionLineCache(
             state := lineReply
         }
     }
+    // Passive test accessors: no production ports, counters, or control-path changes.
+    val perfAcceptedHit: Bool = io.fetch.request.fire && lineAllowed && hit
+    val perfAcceptedMiss: Bool = io.fetch.request.fire && lineAllowed && !hit
+    val perfAcceptedFallback: Bool = io.fetch.request.fire && !lineAllowed
+    val perfDemandRefillRequest: Bool = fill.io.request.fire && demandFill
+    val perfDemandRefillComplete: Bool = fill.io.response.fire && fill.io.response.bits.tag === 0.U
+    val perfDemandRefillError: Bool = perfDemandRefillComplete && fill.io.response.bits.error
+    val perfDemandRefillInstall: Bool = demandWrite
+    val perfWaitingRefill: Bool = state === waitFill
+    val perfWaitingPrefetch: Bool = state === waitPrefetch
+    val perfFallbackActive: Bool = state === fallbackActive
+    val perfRetryFallback: Bool = state === retryFallback
+    def perfState: UInt = state
+
     when(state === retryFallback && fallbackFetch.request.fire) { state := fallbackActive }
 
     val useFallbackA = state === fallbackActive || state === retryFallback ||

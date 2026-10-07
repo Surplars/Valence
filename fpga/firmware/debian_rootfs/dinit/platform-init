@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+log() {
+    read -r uptime unused < /proc/uptime
+    printf '[%s] valence-platform: %s\n' "$uptime" "$*"
+}
+trap 'log "Initialization failed; serial recovery remains available"' 0
+log 'OpenIon VL100 / Orbital-A1: minimal Dinit platform startup'
+if [ -r /etc/valence/build-time ]; then
+    date -u -s "$(cat /etc/valence/build-time)" >/dev/null
+    log 'Wall clock seeded from image build time; no RTC'
+fi
+modprobe valence_soc
+modprobe valence_aia
+ready=0
+for status in /sys/bus/platform/devices/*/irqchip_status; do
+    if [ -r "$status" ] && grep -q 'ready=1 faulted=0' "$status"; then ready=1; fi
+done
+if [ "$ready" != 1 ]; then
+    log 'IRQ selftest failed; refusing to start either DMA consumer'
+    exit 1
+fi
+modprobe valence_cmu
+modprobe valence_dma
+modprobe valence_gmac
+log 'Matched SoC/AIA/CMU/DMA/GMAC drivers ready'
+trap - 0

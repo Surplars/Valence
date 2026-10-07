@@ -24,6 +24,16 @@
 #define VGMAC_MDIO_COMMAND 0x78
 #define VGMAC_MDIO_STATUS 0x80
 #define VGMAC_MDIO_RESULT 0x88
+/* Additive stop barrier. Only access RX_STOP when CAP bit8 is set.
+ * Full-width write1 closes RX admission without cancelling an admitted frame;
+ * write0 reopens it. Read bit0=requested, bit1=drained (acknowledged producer
+ * barrier over admitted frames, CDC/FIFO/prefetch and adapter data/status).
+ * DMA DDR writes are separate: drain/stop the DMA only AFTER this barrier.
+ * Keep a scratch RX descriptor consuming while awaiting drained. */
+#define VGMAC_CAP_RX_STOP (UINT64_C(1) << 8)
+#define VGMAC_RX_STOP 0x90
+#define VGMAC_RX_STOP_REQUEST UINT64_C(1)
+#define VGMAC_RX_STOP_DRAINED UINT64_C(2)
 #define VGMAC_TX_ENABLE UINT64_C(1)
 #define VGMAC_RX_ENABLE UINT64_C(2)
 #define VGMAC_PROMISCUOUS UINT64_C(4)

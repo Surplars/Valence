@@ -1,11 +1,14 @@
-Valence r4 network BootROM / Linux board checks
+Valence admission-stop candidate / Linux board checks
 ==============================================
 
 Hardware profile: dual issue, RV64GC F/D ON, CPU 100 MHz, AON/UART 50 MHz,
-UART 460800 8N1, native GMAC, 512 MiB DDR.
-Do not use this network BootROM with the old r3 bit: it needs the new DMA RX_STOP.
+UART 460800 8N1, native GMAC, 2 GiB DDR.
+Network boot now requires both DMA RX_STOP and MAC CAP bit8 with RX_STOP(0x90).
+This is a new RTL + ROM candidate, not a ROM-only repair for an existing bit.
+On older MAC capability sets the new ROM skips networking before touching DMA;
+UART recovery remains available. A ROM INIT edit cannot add the missing hardware.
 
-Status: portable BootROM protocol/build tests and short cache/DMA/CPU tests pass.
+Status: see the candidate acceptance receipts for exactly which checks passed.
 This document does not assert routed signoff or successful physical board boot.
 Use a bit only when its own static-signoff.txt and release receipt say PASS.
 Actual Linux TCP stall fix and TFTP boot must still be checked on the board.
@@ -15,7 +18,7 @@ Network boot:
 2. Set the PC Ethernet adapter to 192.168.137.1/24. Board BootROM uses
    192.168.137.30/24, MAC 02:56:41:4c:00:01. No DHCP/router is required.
 3. In the delivered firmware directory run:
-   python .\netboot_host.py serve .\valence.vld --bind 192.168.137.1 --once
+   python .\netboot_host.py serve .\valence.vld --bind 192.168.137.1 --memory ddr2g --once
 4. Allow this Python server through Windows Firewall for the direct Ethernet
    network only. TFTP RRQ uses UDP 69; the server transfers from an ephemeral
    UDP port. Do not disable the firewall globally.
@@ -25,7 +28,7 @@ Network boot:
    Send n to retry network boot; send d to abort/fall back to UART downloading.
 
 UART recovery:
-   python .\uart_load.py COM4 .\opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin --memory ddr --baud 460800 --run --console
+   python .\uart_load.py COM4 .\opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin --memory ddr2g --baud 460800 --run --console
    Close other COM4 terminals first. The loader uses d to enter UART recovery.
 
 Linux:
@@ -53,3 +56,86 @@ claim to solve every possible network/IRQ/software defect before board tests.
 
 Security: trusted direct-link development boot only. CRC detects corruption,
 not malicious images; there is no signed-image authentication or secure boot.
+
+Admission-stop handoff and diagnostic acceptance (2026-10-07)
+------------------------------------------------------------
+The software sequence is: stop new RX admission, keep/re-arm a reserved scratch
+RX descriptor while all admitted frames/CDC/prefetch/data/status tails drain,
+then request DMA RX_STOP, wait RX/TX DMA and MAC idle, disable MAC, and only then
+publish network success or permit RUN. No busy bit, FIFO, reset, cache barrier or
+accepted memory request is bypassed. A failed bounded drain retains ownership
+and blocks RUN; retry may recover, but permanently stalled hardware still needs
+investigation/reset. A normal receive timeout keeps its RX descriptor armed.
+
+Capture complete UART plus the host summary for the SAME image and physical
+setup as r4. Record image SHA256, payload length and packed wire length. The
+reported incident used 66,348,776 wire bytes in 549.39 seconds (~0.115 MiB/s).
+That host duration does not establish where the time was spent or whether the
+board completed RAM verification. Do not compare different payloads or builds.
+
+NB stage lines cover init, ARP, RX, stream CRC, actual RAM CRC, RX/TX drain,
+MAC stop and jump. A d request is also checked every 4 KiB during network RAM
+readback and once more before handoff, so a long CRC pass remains cancellable.
+NB totals provides transfer_ticks, rx_wait_ticks, copy_ticks,
+stream_crc_ticks, tx_ack_ticks, ram_crc_ticks, retries, duplicates and frame
+counts. Times are raw rdtime ticks; divide by the printed timebase_hz (100000000
+for this board). BoardSocTop drives timerTick=true each core clock;
+MachinePlatform connects MachineTimer.timeValue to the core TIME CSR (0xc01).
+This is a source-verified timebase; no physical oscillator measurement is claimed.
+
+RX wait includes DMA receive completion and any idle wait. Copy measures the
+actual payload stores. TX/ACK time includes all frame sends (also ARP/RRQ), not
+just TFTP ACKs. Transfer time includes ARP/protocol/checksum/diagnostic overhead
+and actual RAM CRC. Init includes initial quiet; drain_ticks includes initial
+and final drain. Counters/logs are aggregate, never per-packet or per-poll.
+Failure lines snapshot stage, DMA/MAC/stop status and lengths before printing;
+CRC failures also include expected/actual values. UART RX, stream CRC and actual
+RAM CRC have separate stage lines. A jump line proves only that control is about
+to transfer; OpenSBI/Linux output is still required to claim successful boot.
+
+Host TFTP TRANSPORT COMPLETE means the last block/zero-length EOF was ACKed.
+It does not mean board-verified or booted. UART RAM VERIFIED means VDON matched
+length/CRC; its upload and post-final-ACK verification-wait times are separate.
+If that final ACK is lost, the valid VDON is accepted but the timing split is
+unknown. Successful RUN still requires firmware quiet and later boot output.
+
+Minimum physical checks (pending, not replaced by host tests):
+1. Full image TFTP success with final RAM CRC, quiet and OpenSBI/Linux output.
+2. Missing server/loss retry, then UART upload and RUN without resetting.
+3. Send d during active TFTP (including a frame/status tail), then UART and RUN.
+4. Repeat n/failure/d/upload/g and repeated quiet without stale ownership.
+5. Corrupt stream/header and actual RAM negative cases must never jump.
+6. Busy backlog/half-frame/status-tail must drain; continuously arriving dropped
+   traffic must not prevent the admission barrier. Forced real stalls must time
+   out safely with register evidence, never report verified/boot success.
+
+Short software acceptance:
+  python3 fpga/firmware/check_netboot.py --out build/netboot-handoff-<unique>
+This tests independent protocol CRC/length/rollover/loss, scripted MMIO ordering,
+real monitor UART recovery/negative CRC, Python host tools and DDR2G ROM builds.
+Scripted MMIO and monitor tests explicitly are NOT hardware drain proof. Read
+the separate short real-MAC/DMA GSIM receipt, and retain physical board and
+routed-timing verification as pending until they are actually performed.
+
+Linux handoff compatibility (local integration, 2026-10-07)
+----------------------------------------------------------
+Successful quiet deliberately leaves GMAC RX_STOP.REQUEST=1, including after
+UART recovery. Linux must install/arm its own RX DMA consumer, then release
+MAC RX admission with one full-width write of zero to MAC+0x90, before enabling
+MAC CONTROL. Test CAP bit 8 first: legacy hardware has no RX admission-stop
+register. MAC+0x90 and packet-DMA+0x90 are NOT interchangeable.
+
+fpga/firmware/linux_net/valence_gmac.c now performs this ordering once during
+initial configuration, not on every NAPI poll. It does not overwrite a BUSY
+descriptor or replay initialization on an already-configured ifup. Rebuild the
+Linux BSP/rootfs to include this driver before testing eth0 after new-ROM boot:
+the existing 20261006 Debian image does not contain this integration fix.
+
+Short driver regression:
+  python3 fpga/firmware/linux_net/test_rx_stop_handoff.py --cc clang-19
+This executes the real C configuration/arm function bodies with scripted MMIO
+and kernel API stubs. Nine cases and two intentionally broken orderings are
+checked; it is not kernel, RTL, or board runtime proof. A W=1 RISC-V Kbuild
+object compile additionally checks API compatibility, not a rebuilt image.
+Do not source the cloud environment script for normal local WSL operation;
+use the installed tools in PATH. Cloud paths are not local build prerequisites.

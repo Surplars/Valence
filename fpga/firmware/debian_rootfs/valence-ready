@@ -1,0 +1,6 @@
+#!/bin/sh
+read -r uptime unused < /proc/uptime
+printf '[%s] valence-platform: Debian 13 / systemd / CPU100MHz / UART460800\n' "$uptime"
+echo 'VALENCE_DEBIAN_USERLAND_READY'
+echo 'Commands: boot-diagnose; boot-time; valence-info; net-status; mem-bench 32 3; dma-bench 8388608 4'
+echo 'RAM-only root; volatile journal; serial root autologin; no SSH daemon.'

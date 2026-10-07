@@ -15,7 +15,10 @@
 #define MAIN_HAS_NORETURN 0
 #define MULTITHREAD 1
 #define COMPILER_VERSION COREMARK_COMPILER_VERSION
-#define COMPILER_FLAGS "-O2 -march=rv64im_zicsr_zifencei -mabi=lp64"
+#ifndef COREMARK_COMPILER_FLAGS
+#define COREMARK_COMPILER_FLAGS "-O2 -march=rv64im_zicsr_zifencei -mabi=lp64"
+#endif
+#define COMPILER_FLAGS COREMARK_COMPILER_FLAGS
 #ifndef MEM_LOCATION
 #define MEM_LOCATION "code and data in 1 MiB on-chip UltraRAM at 40 MHz"
 #endif

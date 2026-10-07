@@ -1,0 +1,21 @@
+#!/bin/sh
+# Read-only, no automatic benchmark or service restart.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+echo '=== PID 1 / uptime / effective kernel command line ==='
+cat /proc/1/comm /proc/uptime /proc/cmdline
+date -u
+echo '=== initramfs and slow initcalls ==='
+boot-time
+echo '=== Dinit service graph ==='
+dinitctl list
+echo '=== bounded driver/network startup logs ==='
+dinitctl catlog platform
+dinitctl catlog network
+echo '=== main startup log (RAM-only) ==='
+tail -n 50 /run/valence/dinit.log
+echo '=== RAM and network ==='
+free -m
+ip address show dev eth0
+cat /proc/net/dev
+echo 'Manual tests: mem-bench 32 3; dma-bench 8388608 4; fpu-test'
+echo 'These tests are not run during boot. CPU/DMA bandwidth is not MIG peak bandwidth.'

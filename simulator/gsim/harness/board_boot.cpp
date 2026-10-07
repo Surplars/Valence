@@ -121,10 +121,13 @@ struct DdrModel {
         d.set_io$$ddrAxi$$b$$bits$$id(wId);
         d.set_io$$ddrAxi$$b$$bits$$resp(0);
     }
+#ifndef BOARD_DDR_BYTES
+#define BOARD_DDR_BYTES 0x20000000ULL
+#endif
     static void address(uint32_t addr, unsigned count, unsigned size, unsigned burst) {
         check(size <= 3 && count <= 16 && burst == 1, "DDR AXI burst format");
-        check(addr < 0x20000000U && uint64_t(addr) + (uint64_t(count) << size) <= 0x20000000ULL,
-              "DDR address was not rebased into the 512 MiB aperture");
+        check(uint64_t(addr) < BOARD_DDR_BYTES && uint64_t(addr) + (uint64_t(count) << size) <= BOARD_DDR_BYTES,
+              "DDR address was not rebased into the configured aperture");
         check((addr & ((1U << size) - 1)) == 0 &&
               (addr & 4095U) + (count << size) <= 4096, "DDR alignment / 4 KiB boundary");
     }
@@ -220,7 +223,10 @@ struct Test {
         }
     }
     void idle(unsigned count) { while (count--) tick(); }
-    explicit Test(const Bytes &rom) {
+    explicit Test(const Bytes &rom, void (*initialObserver)(SBoardSocGsim &, void *) = nullptr,
+                  void *initialContext = nullptr) {
+        observer = initialObserver;
+        observerContext = initialContext;
         check(!rom.empty() && rom.size() <= 128 * 1024, "boot ROM image size");
         dut->set_io$$uartRx(1);
         dut->set_io$$program$$hold(1);

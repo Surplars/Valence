@@ -113,6 +113,9 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
         val memoryDiscarded             = Output(Bool())
         val memoryForwarded             = Output(Bool())
+        // Per lane, bit 0/1 witnesses actual operand capture from a not-yet-ready load result.
+        val loadIssueForwarded = if (p.registeredLoadIssueForwarding)
+            Some(Output(Vec(p.completionWidth, UInt(2.W)))) else None
         val mulDivCancelled             = Output(Bool())
         val mulDivOverlap               = Output(Bool())
         val mulDivBlocked               = Output(Bool())
@@ -170,12 +173,17 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val fastStoreReady = WireDefault(false.B)
     val fastStoreRequest = WireDefault(0.U.asTypeOf(new DataRequest))
     val fastStoreValid = WireDefault(false.B)
+    // Elaboration-only references for passive test-wrapper observation; no hardware or ports.
+    var observationRequests: Option[Queue[DataRequest]] = None
+    var observationStores: Option[StoreBuffer] = None
     if (p.bufferedRamStores) {
         val stores = Module(new StoreBuffer(p))
+        observationStores = Some(stores)
         if (p.registeredMemoryRequests) {
             // The LSU owns the response as soon as its request enters this ordered,
             // non-flow queue. A cancelled speculative read still drains normally.
             val requests = Module(new Queue(new DataRequest, p.memoryEntries, pipe = false, flow = false))
+            observationRequests = Some(requests)
             requests.io.enq <> lsu.io.memory.request
             stores.io.upstream.request <> requests.io.deq
             // Queue storage is undefined while empty. Keep only the size/shift
@@ -362,11 +370,36 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         lsu.io.complete.bits.data,
         Mux(wordPreviewBypass && index === wordPreviewDestination,
             multiplier.io.wordPreview.bits.data, values(index)))
-    def issueOperandReady(index: UInt): Bool = operandReady(index) ||
+    val loadIssueWake = lsu.io.completedIssueDestination.getOrElse(0.U.asTypeOf(Valid(UInt(p.physBits.W))))
+    // Only registered LSU completion state/metadata feeds this promise. Current
+    // recovery, completion acceptance and ROB tag comparisons are authorization
+    // checks below, not feedback into speculative wake/ranking.
+    def loadIssueHit(index: UInt): Bool = loadIssueWake.valid && loadIssueWake.bits === index
+    def issueOperandReady(index: UInt): Bool = operandReady(index) || loadIssueHit(index) ||
         executionWake.map(wake => wake.valid && wake.bits === index).reduce(_ || _)
     def issueOperandValue(index: UInt, stored: UInt): UInt = {
         val hits = executionWake.map(wake => wake.valid && wake.bits === index)
-        Mux(hits.reduce(_ || _), Mux1H(hits.zip(executionData)), stored)
+        Mux(loadIssueHit(index), lsu.io.complete.bits.data,
+            Mux(hits.reduce(_ || _), Mux1H(hits.zip(executionData)), stored))
+    }
+    if (p.registeredLoadIssueForwarding) {
+        // Invalid completion payload is unspecified (including its index). A when
+        // does not prevent combinational assertion expressions being evaluated.
+        val promisedIndex = Mux(loadIssueWake.valid, lsu.io.complete.bits.token.index, 0.U)
+        val promisedEntry = queue(promisedIndex)
+        when(loadIssueWake.valid) {
+            // Assertions intentionally inspect full ownership outside the wake cone.
+            assert(memoryLive(promisedIndex) &&
+                promisedEntry.renamed.token.asUInt === lsu.io.complete.bits.token.asUInt &&
+                promisedEntry.renamed.destination === loadIssueWake.bits &&
+                promisedEntry.renamed.writesRd && promisedEntry.request.memory &&
+                !promisedEntry.request.store && !promisedEntry.request.atomic,
+                "registered load forwarding metadata must match the live full-token owner")
+            for (wake <- executionWake) {
+                assert(!(wake.valid && wake.bits === loadIssueWake.bits),
+                    "ALU and load promises cannot own the same physical destination")
+            }
+        }
     }
     io.headProfile.queued := ledger.io.headValid && pending(head)
     io.headProfile.operandsReady := ledger.io.headValid &&
@@ -707,6 +740,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     lsu.io.parallel                 := speculative
     lsu.io.start.bits.forward.valid := forwarding
     lsu.io.start.bits.forward.bits  := sourceStore.bits.data
+    lsu.io.issueDestination.foreach { destination =>
+        destination.valid := memoryEntry.renamed.writesRd
+        destination.bits := memoryEntry.renamed.destination
+    }
     lsu.io.start.bits.token         := memoryEntry.renamed.token
     lsu.io.start.bits.pc            := memoryEntry.request.rename.pc
     lsu.io.start.bits.address       := address
@@ -1388,6 +1425,18 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             stage.io.enq.valid := issueOpportunity && !dispatchStore &&
                 !killed(dispatchChoice.index) && !ledger.io.pendingException.valid
             stage.io.enq.bits := incoming.asUInt
+            io.loadIssueForwarded.foreach { witness =>
+                val needsLeft = !dispatchEntry.request.usePc && loadIssueHit(source1)
+                val needsRight = !dispatchEntry.request.useImmediate && loadIssueHit(source2)
+                witness(lane) := Cat(stage.io.enq.fire && needsRight && !ready(source2),
+                    stage.io.enq.fire && needsLeft && !ready(source1))
+                when(stage.io.enq.fire && (needsLeft || needsRight)) {
+                    assert(ledger.io.completionAccepted(0),
+                        "captured load data requires accepted producer completion")
+                    assert(!killed(Mux(loadIssueWake.valid, lsu.io.complete.bits.token.index, 0.U)),
+                        "a surviving captured consumer cannot depend on a cancelled load producer")
+                }
+            }
             executionEnqueued(lane) := stage.io.enq.fire
             when(stage.io.enq.fire) { pending(dispatchChoice.index) := false.B }
             entry := executingOperands(lane).entry
@@ -1654,9 +1703,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 pending(captureIndex) := false.B
             }
         }
+        // The inactive redirect payload is unspecified. Guard the index itself,
+        // not only the enclosing Boolean, for safe combinational evaluation.
         when(branchRedirectValid &&
             (branchRedirectMatches ||
-                killed(branchRedirect.token.index))) {
+                killed(Mux(branchRedirectValid, branchRedirect.token.index, 0.U)))) {
             branchRedirectValid := false.B
         }
     }

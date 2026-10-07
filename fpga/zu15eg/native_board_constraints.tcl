@@ -173,7 +173,8 @@ proc valence_native_board_constraints {} {
         set_property USER_CLOCK_ROOT $region $output
     }
     foreach hier {cmu/bridge uart/bridge} {valence_register_cdc_constraints $bank/$hier 8.0}
-    foreach hier {gmac/txConfig/mailbox gmac/rxConfig/mailbox gmac/txStats/mailbox gmac/rxStats/mailbox} {
+    foreach hier {gmac/txConfig/mailbox gmac/rxConfig/mailbox gmac/txStats/mailbox gmac/rxStats/mailbox
+                  gmac/rxStop/command} {
         valence_mailbox_cdc_constraints $bank/$hier 8.0
     }
     foreach hier {gmac/txFifo/fifo gmac/rxFifo/fifo} {

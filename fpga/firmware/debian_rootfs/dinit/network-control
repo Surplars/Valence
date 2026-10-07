@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+log() {
+    read -r uptime unused < /proc/uptime
+    printf '[%s] valence-network: %s\n' "$uptime" "$*"
+}
+case "${1:-}" in
+    up)
+        /sbin/ifup lo
+        /sbin/ifup eth0
+        log 'eth0 configured from /etc/network/interfaces; PHY link is asynchronous'
+        ;;
+    down)
+        /sbin/ifdown eth0
+        log 'eth0 stopped'
+        ;;
+    *) echo 'Usage: valence-network-control up|down' >&2; exit 2 ;;
+esac

@@ -1,5 +1,16 @@
 # 新乱序核的 GSIM 仿真入口
 
+Opt-in memory-capacity experiment (2026-10-07): `staged-fetch-turnover-mlp4`
+changes only `memoryEntries` from 2 to 4 and preserves all existing profiles/defaults.
+Run `python3 simulator/gsim/memory_capacity.py --tag UNIQUE_TAG` with the configured GSIM toolchain.
+[Bounded checks and exact matched-RVC results](../../docs/memory-capacity-experiment.md):
+486605 → 472290 ticks (2.94% fewer), byte-identical 360528-PC ROI and matching CRCs.
+Physical timing/resources remain unverified; the candidate is not a default replacement.
+
+Opt-in load-to-registered-issue experiment (2026-10-07): `staged-load-issue`
+keeps existing profiles unchanged. [Contract and validation status](../../docs/registered-load-issue-forwarding.md).
+Focused GSIM A/B passed: one-iteration board CoreMark ticks 834653 → 831768 (0.346% fewer); DDR essentially unchanged, including a 5-tick COPY regression. Physical timing remains unverified; this opt-in experiment is not a default bitstream replacement.
+
 VL100 2GiB必要短验证（2026-10-06）：运行
 GSIM_CXX=clang++-19 python3 simulator/gsim/ddr2g.py --tag <fresh-tag>，
 核对完整物理地址翻译、稀疏高地址DMA、精确译码、旧配置和独立负向oracle，并导出生产RTL。

@@ -41,7 +41,7 @@ def reusable_model(path, current, profile="staged-throughput"):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag", required=True)
-    parser.add_argument("--profile", choices=("staged-throughput", "staged-gmac-ready", "staged-ethernet", "staged-fetch-feedback"), default="staged-throughput")
+    parser.add_argument("--profile", choices=("staged-throughput", "staged-gmac-ready", "staged-ethernet", "staged-fetch-feedback", "staged-fetch-turnover"), default="staged-throughput")
     parser.add_argument("--reuse-model", type=Path,
                         help="previous passed receipt; refuses any DUT/harness/model drift")
     args = parser.parse_args()

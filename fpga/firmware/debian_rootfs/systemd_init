@@ -1,0 +1,5 @@
+#!/bin/sh
+# The kernel invokes /init as PID 1 on the RAM root. No BusyBox init/respawn.
+# Do not create /etc/initrd-release: this is the final OS root, not a transit initrd.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+exec /usr/lib/systemd/systemd

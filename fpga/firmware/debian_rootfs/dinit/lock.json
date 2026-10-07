@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/davmac314/dinit.git",
+  "tag": "v0.19.4",
+  "revision": "029f54d007386c815aee6b6d458d691c3bf95e15",
+  "license": "Apache-2.0",
+  "source_scope": "upstream source build, not a Debian binary package",
+  "target_isa": "rv64gc_zicsr_zifencei",
+  "target_abi": "lp64d"
+}
