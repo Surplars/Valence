@@ -17,7 +17,7 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
     require(params.sourceBits >= 1)
     val io = IO(new Bundle {
         val tl = Flipped(new TLBundle(params))
-        val ports = Vec(config.ports.size, new GmacPortControl(config.aggregateStats))
+        val ports = Vec(config.ports.size, new GmacPortControl(config.aggregateStats, config.rxAdmissionStop))
         val irq = Output(UInt(config.ports.size.W))
     })
     io.tl.b.valid := false.B
@@ -43,14 +43,17 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
     val mask = Cat((0 until 8).reverse.map(n => Fill(8, a.mask(n))))
     val maskedData = a.data & mask
     val knownOffsets = Seq(0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38,
-        0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x78, 0x80, 0x88)
+        0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x78, 0x80, 0x88) ++
+        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty)
     val known = knownOffsets.map(n => offset === n.U).reduce(_ || _)
-    val writeOffsets = Seq(0x10, 0x18, 0x30, 0x38, 0x70, 0x78)
+    val writeOffsets = Seq(0x10, 0x18, 0x30, 0x38, 0x70, 0x78) ++
+        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty)
     val writable = writeOffsets.map(n => offset === n.U).reduce(_ || _)
     val allowedBits = MuxLookup(offset, 0.U(64.W))(Seq(
         0x10.U -> 15.U(64.W), 0x18.U -> ((BigInt(1) << 48) - 1).U(64.W),
         0x30.U -> 127.U(64.W), 0x38.U -> 127.U(64.W),
-        0x70.U -> 1.U(64.W), 0x78.U -> ((BigInt(1) << 28) - 1).U(64.W)))
+        0x70.U -> 1.U(64.W), 0x78.U -> ((BigInt(1) << 28) - 1).U(64.W),
+        0x90.U -> 1.U(64.W)))
     val reservedLegal = (maskedData & ~allowedBits) === 0.U
     val selected = Wire(Vec(config.ports.size, Bool()))
     val portLegal = Wire(Vec(config.ports.size, Bool()))
@@ -68,10 +71,12 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         val mdioResult = RegInit(0.U(17.W))
         val mdioDone = RegInit(false.B)
         val mdio = Module(new MdioClause22(config.controlClockHz, config.mdcHz))
+        val rxStopRequest = if (config.rxAdmissionStop) Some(RegInit(false.B)) else None
         val configuration = offset === 0x10.U || offset === 0x18.U
         val mdioStart = put && offset === 0x78.U && maskedData(17)
         // MDIO launch is a complete command, not a partial descriptor rewrite.
-        val commandLegal = !mdioStart || (a.size === 3.U && a.mask === 255.U)
+        val rxStopWrite = config.rxAdmissionStop.B && put && offset === 0x90.U
+        val commandLegal = (!mdioStart && !rxStopWrite) || (a.size === 3.U && a.mask === 255.U)
         portLegal(n) := selected(n) && protocolLegal && known &&
             (!put || (writable && reservedLegal && commandLegal &&
                 !(configuration && a.mask.orR && (port.txBusy || port.rxBusy))))
@@ -101,10 +106,14 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         port.promiscuous := control(2)
         port.broadcastEnable := control(3)
         port.macAddress := macAddress(47, 0)
+        port.rxStopRequest.foreach(_ := rxStopRequest.get)
         when(accepted) {
             when(offset === 0x10.U) { control := (control & ~mask) | maskedData }
             when(offset === 0x18.U) { macAddress := (macAddress & ~mask) | maskedData }
             when(offset === 0x38.U) { irqEnable := (irqEnable & ~mask) | maskedData }
+            rxStopRequest.foreach { requested =>
+                when(offset === 0x90.U) { requested := maskedData(0) }
+            }
         }
         val clear = accepted && offset === 0x70.U && maskedData(0)
         val txFrames = RegInit(0.U(64.W))
@@ -123,7 +132,8 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         val kind = config.ports(n)
         // CAP records intended media interface, NOT a link-up or implemented-PCS claim.
         val capability = (BigInt(config.maxFrameBytes) << 32) |
-            (BigInt(kind.mediaBits) << 16) | (BigInt(1) << kind.capabilityBit)
+            (BigInt(kind.mediaBits) << 16) | (BigInt(1) << kind.capabilityBit) |
+            (if (config.rxAdmissionStop) BigInt(1) << 8 else BigInt(0))
         readValues(n) := MuxLookup(offset, 0.U(64.W))(Seq(
             0x00.U -> "h56474d4100010001".U(64.W), 0x08.U -> capability.U(64.W),
             0x10.U -> control, 0x18.U -> macAddress, 0x20.U -> config.maxFrameBytes.U(64.W),
@@ -131,7 +141,9 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
             0x30.U -> pending, 0x38.U -> irqEnable,
             0x40.U -> txFrames, 0x48.U -> rxFrames, 0x50.U -> rxDrops, 0x58.U -> rxBadFcs,
             0x60.U -> txBytes, 0x68.U -> rxBytes,
-            0x80.U -> Cat(mdioDone, mdio.io.busy), 0x88.U -> mdioResult))
+            0x80.U -> Cat(mdioDone, mdio.io.busy), 0x88.U -> mdioResult) ++
+            (if (config.rxAdmissionStop) Seq(0x90.U ->
+                Cat(rxStopRequest.get && port.rxStopDrained.get, rxStopRequest.get)) else Seq.empty))
     }
     val legal = portLegal.asUInt.orR
     io.tl.a.ready := replies.io.enq.ready && (!legal || Mux1H(selected, portReady))

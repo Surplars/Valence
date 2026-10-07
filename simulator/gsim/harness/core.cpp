@@ -271,6 +271,15 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
     ref.load(program);
     Memory architecturalMemory{};
     for (size_t i = 0; i < architecturalMemory.size(); ++i) architecturalMemory[i] = uint8_t(i * 37 + 0x80);
+    // Independent linked-ring fixture: every load yields next-address minus 8.
+    // The following ADDI must execute before the next load can form its address.
+    if (benchmark == "throughput_serial_load_alu_address") {
+        for (unsigned node = 0; node < 64; ++node) {
+            const uint64_t value = dataBase + ((node + 1) % 64) * 8 - 8;
+            for (unsigned byte = 0; byte < 8; ++byte)
+                architecturalMemory[node * 8 + byte] = uint8_t(value >> (byte * 8));
+        }
+    }
     ref.initializeMemory(architecturalMemory);
     std::array<uint64_t, 32> architectural{};
     std::mt19937_64 rng(seed);
@@ -878,11 +887,24 @@ static void throughputBenchmarks(Reference &ref, Stats &stats, const std::vector
             mixed.push_back(addiCode(3, 2, 1));
             mixed.push_back(storeCode(3, 1, 3, 1024 + i * 8));
         }
+#if SERIAL_LOAD_ALU_BENCH
+        std::vector<uint32_t> serialLoadAlu{0x00010097U};
+        for (unsigned i = 0; i < 128; ++i) {
+            serialLoadAlu.push_back(loadCode(2, 1, 3, 0));
+            serialLoadAlu.push_back(addiCode(1, 2, 8));
+        }
+        programTest(ref, serialLoadAlu, 0, false, false, false, stats, latency,
+                    "throughput_serial_load_alu_address");
+#endif
         programTest(ref, loadUse, 0, false, false, false, stats, latency, "throughput_load_use");
         programTest(ref, mixed, 0, false, false, false, stats, latency, "throughput_memory_alu_mix");
         programTest(ref, compiled, 0, false, false, false, stats, latency, "throughput_compiled_sum");
     }
-    constexpr unsigned expectedPrograms = 12 + (FETCH_HINT_ALIAS_BENCH ? 1 : 0);
+    constexpr unsigned expectedPrograms = 12 + (FETCH_HINT_ALIAS_BENCH ? 1 : 0)
+#if SERIAL_LOAD_ALU_BENCH
+        + 2
+#endif
+        ;
     check(stats.programs == expectedPrograms && stats.commits > 4000 && stats.dualCommits > 0,
           "short throughput coverage incomplete");
     std::cout << "GSIM short two-issue throughput + NEMU: PASS programs=" << stats.programs
@@ -1011,6 +1033,34 @@ static void ipcBenchmarks(Reference &ref, Stats &stats, const std::vector<uint32
     programTest(ref, {0x00010097U, addiCode(2, 0, 1), mulDivCode(5, false, 5, 1, 2),
                      loadCode(4, 5, 2, 4), loadCode(6, 1, 3, 0)},
                 0, false, false, false, stats, 12, "overlap_dma_replay");
+}
+
+// Bounded capacity proof: reuse the independent architectural/request oracles and
+// the exact existing IPC memory stimuli, without the unrelated ALU/M/B suite.
+static void memoryCapacityTests(Reference &ref, Stats &stats) {
+    for (unsigned latency : {1U, 12U}) {
+        std::vector<uint32_t> loads{0x00010097U};
+        for (unsigned i = 0; i < 256; ++i) loads.push_back(loadCode(2 + i % 16, 1, 3, (i % 128) * 8));
+        programTest(ref, loads, 0, false, false, false, stats, latency, "independent_loads");
+    }
+    // DIVU delays the older load address; independent younger loads can hide RAM latency.
+    programTest(ref, {0x00010097U, addiCode(2, 0, 1), mulDivCode(5, false, 5, 1, 2),
+                     loadCode(4, 5, 3, 0), loadCode(6, 1, 3, 8), loadCode(7, 1, 3, 16),
+                     loadCode(8, 1, 3, 24), loadCode(9, 1, 3, 32)},
+                0, false, false, false, stats, 40, "ready_load_bypass");
+    // The younger same-address load sees the old value, then DMA writes a new value before DIVU
+    // resolves the older load address. In-order retirement must return the new value twice.
+    programTest(ref, {0x00010097U, addiCode(2, 0, 1), mulDivCode(5, false, 5, 1, 2),
+                     loadCode(4, 5, 3, 0), loadCode(6, 1, 3, 0)},
+                0, false, false, false, stats, 12, "same_address_dma_replay");
+    programTest(ref, {0x00010097U, addiCode(2, 0, 1), mulDivCode(5, false, 5, 1, 2),
+                     loadCode(4, 5, 3, 0), loadCode(6, 1, 3, 0)},
+                0, false, false, false, stats, 0, "same_address_dma_replay_zero");
+    programTest(ref, {0x00010097U, addiCode(2, 0, 1), mulDivCode(5, false, 5, 1, 2),
+                     loadCode(4, 5, 2, 4), loadCode(6, 1, 3, 0)},
+                0, false, false, false, stats, 12, "overlap_dma_replay");
+    std::cout << "GSIM memory capacity + NEMU: PASS slots=" << MEMORY_ENTRIES
+              << " programs=" << stats.programs << " commits=" << stats.commits << '\n';
 }
 
 static uint32_t czeroCode(bool nez, unsigned rd, unsigned rs1, unsigned rs2) {
@@ -1168,17 +1218,19 @@ static void mulDivTests(Reference &ref, Stats &stats) {
 }
 int main(int argc, char **argv) {
     try {
-        check(argc == 5 || argc == 6, "usage: run NEMU.so integer.bin branch.bin bare.bin [--inject-mismatch|--ipc|--timing-smoke|--throughput-short|--pipeline-recovery]");
+        check(argc == 5 || argc == 6, "usage: run NEMU.so integer.bin branch.bin bare.bin [--inject-mismatch|--ipc|--timing-smoke|--throughput-short|--pipeline-recovery|--memory-capacity]");
         const bool inject = argc == 6 && std::string(argv[5]) == "--inject-mismatch";
         const bool ipcOnly = argc == 6 && std::string(argv[5]) == "--ipc";
         const bool timingSmoke = argc == 6 && std::string(argv[5]) == "--timing-smoke";
         const bool throughputOnly = argc == 6 && std::string(argv[5]) == "--throughput-short";
+        const bool memoryCapacity = argc == 6 && std::string(argv[5]) == "--memory-capacity";
         const bool pipelineRecovery = argc == 6 && std::string(argv[5]) == "--pipeline-recovery";
-        check(argc == 5 || inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery, "unknown mode");
-        const auto decodeCount = (inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery) ? 0 : decoderTests();
+        check(argc == 5 || inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery || memoryCapacity, "unknown mode");
+        const auto decodeCount = (inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery || memoryCapacity) ? 0 : decoderTests();
         Reference ref(argv[1]);
         Stats stats;
         const auto compiled = loadBinary(argv[4]);
+        if (memoryCapacity) { memoryCapacityTests(ref, stats); return 0; }
         if (ipcOnly) { ipcBenchmarks(ref, stats, compiled); return 0; }
         if (throughputOnly) { throughputBenchmarks(ref, stats, compiled); return 0; }
         if (pipelineRecovery) { pipelineRecoveryTests(ref, stats); return 0; }

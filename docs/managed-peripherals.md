@@ -1,5 +1,11 @@
 # CMU 管理的 UART 与原生 GMAC（2026-10-04）
 
+2026-10-07 停收候选新增忙时可写的 GMAC RX_STOP 屏障（CAP bit8、偏移0x90）。
+`ManagedGmac` 接通真实帧准入／帧 FIFO／适配器状态尾部，保持 packet DMA 消费直到
+drained，再执行 DMA 停止和配置关闭。该协议与 CMU 停钟不同，不强制清 FIFO、复位或关钟；
+待处理命令会请求唤醒 RX 域。新 mailbox 仍需已有8ns作用域数据／toggle约束及独立 CDC
+验证，旧r6检查点不能签核此改动。合同与限制见 [DMA](dma.md)。
+
 2026-10-06：r4已上板TFTP/Linux/小ping，长帧活性失败；当前Home修复短回归通过。
 新增Linux valence-cmu CCF固定频率provider、GMAC TX/RX clock consumer、
 UART critical；没有动态调频/GMAC runtime-PM。Debian/2GiB/自动驱动见

@@ -1,0 +1,29 @@
+#!/bin/sh
+set -eu
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+log() {
+    read -r uptime unused < /proc/uptime
+    printf '[%s] valence-platform: %s\n' "$uptime" "$*"
+}
+trap 'log "Platform initialization failed; serial login remains available"' 0
+log 'OpenIon VL100 / Orbital-A1: standard systemd RAM-root startup'
+if [ -r /etc/valence/build-time ]; then
+    date -u -s "$(cat /etc/valence/build-time)" >/dev/null
+    log 'Wall clock seeded from image build time; no RTC'
+fi
+# Keep the interrupt domain live before registering either DMA consumer.
+modprobe valence_soc
+modprobe valence_aia
+ready=0
+for status in /sys/bus/platform/devices/*/irqchip_status; do
+    if [ -r "$status" ] && grep -q 'ready=1 faulted=0' "$status"; then ready=1; fi
+done
+if [ "$ready" != 1 ]; then
+    log 'IRQ selftest not ready; refusing to enable DMA or GMAC'
+    exit 1
+fi
+modprobe valence_cmu
+modprobe valence_dma
+modprobe valence_gmac
+log 'Drivers ready; networking.service owns static IP configuration'
+trap - 0

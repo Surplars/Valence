@@ -2,7 +2,8 @@
 source [file join [file dirname [info script]] native-gmac-cdc-constraints.tcl]
 proc valence_managed_peripheral_constraints {} {
     foreach hier {cmu/bridge uart/bridge} { valence_register_cdc_constraints $hier 8.0 }
-    foreach hier {gmac/txConfig/mailbox gmac/rxConfig/mailbox gmac/txStats/mailbox gmac/rxStats/mailbox} {
+    foreach hier {gmac/txConfig/mailbox gmac/rxConfig/mailbox gmac/txStats/mailbox gmac/rxStats/mailbox
+                  gmac/rxStop/command} {
         valence_mailbox_cdc_constraints $hier 8.0
     }
     foreach hier {gmac/txFifo/fifo gmac/rxFifo/fifo} {

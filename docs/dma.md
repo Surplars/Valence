@@ -1,5 +1,37 @@
 # FENCE、共享RAM和DMA合同
 
+## 2026-10-07：网络生产者停收／排空候选
+
+旧 `board_netboot_quiet` 先停止 RX DMA，再等待 MAC 空闲，可能把 MAC 帧缓冲／CDC
+里后来到达的数据留在无消费者状态。DMA 的 RX_STOP 仅排空当时已接入的 data/status，
+不是阻止下一帧产生的屏障；即使 DMA BUSY=0，MAC 也可能永久忙。
+
+新受管 GMAC 的 CAP(`0x10040008`) bit8 表示可用 RX_STOP(`0x10040090`)。
+仅完整 64-bit 写 0/1：1 请求关闭新帧准入，0 解除；读取 bit0=requested、bit1=drained。
+请求允许在忙时写，不复位、不门控、不取消已经接受的帧或内存事务。接收域在实际
+准入关闭后，等待已准入帧输出与源 FIFO 排空才确认命令；CPU 端还须确认 FIFO 的
+预取／输出寄存器及适配器 data/status 尾部为空。新到达但未准入的物理流量直接丢弃，
+不无限延长这个屏障。**drained 不包括 DMA 已接受的 DDR 写响应。**
+
+软件顺序为：停止新增 TX、屏蔽 IRQ；请求 GMAC 停收，同时持续用保留的 scratch RX
+描述符消费旧帧；等 GMAC drained 后再 DMA RX_STOP／BUSY=0；等待 TX DMA 和 MAC 尾部；
+最后 CONTROL=0、确认配置跨域完成并 ACK。缺失 CAP bit8 的旧 bit 不可访问新寄存器，
+新固件跳过网络且保留 UART 恢复。旧寄存器语义不变；通用独立 GMAC 默认不启用此扩展。
+
+这是需要新 RTL／bit 的候选，不能仅更新旧 bit 的 ROM INIT 宣称具备屏障。
+必要短验证、双时钟验证与物理签核分别记录；单时钟 GSIM 不能代替 CDC-only xsim。
+
+云端必要短验证已通过：9项Scala配置／展开检查，真实 ManagedGmac+EthernetPacketDma
+5组退出／重启场景，以及4个独立错误注入反例。真实模块重现了先停DMA后的忙锁，
+验证 scratch 重 ARM、已准入前导／帧体保留、末数据／状态尾背压、4项DDR信用排空、
+持续背景流量关闭和 release→stop 不能复用旧确认。另有未启用扩展的 CSR 3045请求、
+4次MDIO帧及246个GMII帧例、3个独立反例通过；ASan/UBSan开启。
+回执为 `build/gsim/gmac-shutdown-20261007-r1/receipt.json` 和
+`build/gsim/gmac-stop-boundaries-20261007-r1/receipt.json`。
+CDC-only 原始异步复位 RTL 已导出并打包，但本云环境没有xsim：
+`build/gsim/gmac-stop-20261007-r1/cdc-input-packet/receipt.json` 是
+`PREPARED_NOT_RUN`，不表示独立时钟、实体门控、物理CDC、整板或新bit通过。
+
 ## 2026-10-06：VL100 DMAengine / 2 GiB候选
 
 MemoryCopyDma常驻，0x10001000/APLIC4；GMAC packet DMA独立，0x10002000/APLIC6。

@@ -1,4 +1,5 @@
 #include "netboot.h"
+#include "crc32.h"
 
 static uint16_t be16(const uint8_t *p) { return (uint16_t)p[0] << 8 | p[1]; }
 static uint32_t be32(const uint8_t *p) {
@@ -23,18 +24,33 @@ static uint16_t checksum(uint32_t sum) {
     while(sum>>16) sum=(sum&65535)+(sum>>16);
     return (uint16_t)~sum;
 }
-/* Nibble table: no 1 KiB RAM table and much less CPU work than bit-at-a-time. */
 uint32_t nb_crc_update(uint32_t crc,const uint8_t *p,unsigned n) {
-    static const uint32_t table[16] = {
-        0,0x1db71064,0x3b6e20c8,0x26d930ac,0x76dc4190,0x6b6b51f4,0x4db26158,0x5005713c,
-        0xedb88320,0xf00f9344,0xd6d6a3e8,0xcb61b38c,0x9b64c2b0,0x86d3d2d4,0xa00ae278,0xbdbdf21c
-    };
-    while(n--) {
-        crc^=*p++;
-        crc=(crc>>4)^table[crc&15];
-        crc=(crc>>4)^table[crc&15];
+    return firmware_crc_update(crc,p,n);
+}
+static void stage(struct nb_ops *o,enum nb_stage value) {
+    if(o->stats) o->stats->stage=value;
+    if(o->stage) o->stage(o->context,value);
+}
+static int fail(struct nb_ops *o,enum nb_failure value) {
+    if(o->stats) o->stats->failure=value;
+    return 0;
+}
+static int receive_frame(struct nb_ops *o) {
+    uint64_t start=o->stats?o->now(o->context):0;
+    int n=o->recv(o->context,o->hz/10);
+    if(o->stats) {
+        o->stats->rx_ticks+=o->now(o->context)-start;
+        ++o->stats->rx_calls;
+        if(n>0) ++o->stats->rx_frames;
+        if(!n) ++o->stats->rx_timeouts;
     }
-    return crc;
+    return n;
+}
+static uint32_t stream_crc(struct nb_ops *o,uint32_t crc,const uint8_t *p,unsigned n) {
+    uint64_t start=o->stats?o->now(o->context):0;
+    uint32_t result=nb_crc_update(crc,p,n);
+    if(o->stats) o->stats->crc_ticks+=o->now(o->context)-start;
+    return result;
 }
 static void ethernet(struct nb_ops *o,const uint8_t *to,unsigned type) {
     copy(o->tx,to,6); copy(o->tx+6,o->mac,6); w16(o->tx+12,type);
@@ -42,7 +58,10 @@ static void ethernet(struct nb_ops *o,const uint8_t *to,unsigned type) {
 static int send_frame(struct nb_ops *o,unsigned size) {
     /* Ethernet padding is outside IP/UDP/TFTP lengths. */
     while(size<60) o->tx[size++]=0;
-    return o->send(o->context,size);
+    uint64_t start=o->stats?o->now(o->context):0;
+    int result=o->send(o->context,size);
+    if(o->stats) { o->stats->tx_ticks+=o->now(o->context)-start; ++o->stats->tx_frames; }
+    return result;
 }
 static int arp_send(struct nb_ops *o,const uint8_t *to,uint32_t target,unsigned op) {
     static const uint8_t broadcast[6]={255,255,255,255,255,255};
@@ -118,15 +137,17 @@ int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) 
     uint8_t peer[6]={0};
     unsigned retries=0, received=0;
     uint64_t sent=o->now(o->context);
-    if(arp_send(o,peer,o->server_ip,1)<0) return 0;
+    stage(o,NB_ARP);
+    if(arp_send(o,peer,o->server_ip,1)<0) return fail(o,NB_SEND_FAILED);
     int found=0;
     while(!found) {
-        int n=o->recv(o->context,o->hz/10);
-        if(n<0) return 0;
+        int n=receive_frame(o);
+        if(n<0) return fail(o,NB_RX_ABORTED);
         if(n>0) found=arp_receive(o,(unsigned)n,peer);
         if(!found && o->now(o->context)-sent>=o->hz) {
-            if(++retries==5) return 0;
-            if(arp_send(o,peer,o->server_ip,1)<0) return 0;
+            if(++retries==5) return fail(o,NB_RETRY_LIMIT);
+            if(o->stats) ++o->stats->retries;
+            if(arp_send(o,peer,o->server_ip,1)<0) return fail(o,NB_SEND_FAILED);
             sent=o->now(o->context);
         }
     }
@@ -134,10 +155,11 @@ int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) 
     uint32_t size=0, target=0, wanted=0, running=0xffffffffU;
     int has_header=0;
     retries=0; sent=o->now(o->context);
-    if(tftp_send(o,peer,port,file,1,0)<0) return 0;
+    stage(o,NB_RX);
+    if(tftp_send(o,peer,port,file,1,0)<0) return fail(o,NB_SEND_FAILED);
     for(;;) {
-        int n=o->recv(o->context,o->hz/10);
-        if(n<0) return 0;
+        int n=receive_frame(o);
+        if(n<0) return fail(o,NB_RX_ABORTED);
         unsigned bytes=0; uint16_t from=0;
         const uint8_t *p=0;
         if(n>0) {
@@ -146,41 +168,66 @@ int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) 
         }
         if(p && bytes>=4 && (!has_header || from==port)) {
             unsigned op=be16(p), block=be16(p+2);
-            if(op==5) return 0;
+            if(op==5) return fail(o,NB_SERVER_ERROR);
             if(op==3 && bytes<=516) {
                 if(has_header && block==previous) {
-                    if(tftp_send(o,peer,port,file,0,previous)<0) return 0;
+                    if(o->stats) ++o->stats->duplicates;
+                    if(tftp_send(o,peer,port,file,0,previous)<0) return fail(o,NB_SEND_FAILED);
                 } else if(block==next) {
                     unsigned data=bytes-4, offset=0;
                     if(!has_header) {
+                        if(o->stats) { o->stats->stage=NB_HEADER; o->stats->failure=NB_BAD_HEADER; }
+                        if(data>=36 && o->stats) {
+                            o->stats->header_crc_expected=le32(p+36);
+                            o->stats->header_crc_actual=nb_crc_update(0xffffffffU,p+4,32)^0xffffffffU;
+                        }
                         if(data<36 || le32(p+4)!=0x31444c56U || le32(p+8)!=1 ||
                            le32(p+28)!=256 || le32(p+32)!=0 ||
                            le32(p+36)!=(nb_crc_update(0xffffffffU,p+4,32)^0xffffffffU))
                             goto bad;
                         uint32_t base=le32(p+12);
                         target=le32(p+16); size=le32(p+20); wanted=le32(p+24);
+                        if(o->stats) {
+                            o->stats->expected_length=size; o->stats->expected_crc=wanted;
+                            o->stats->failure=NB_BAD_RANGE;
+                        }
                         if(base!=o->base || !size || size>o->limit || (target&3) ||
                            target<base || (uint64_t)target>=(uint64_t)base+size) goto bad;
                         port=from; offset=36; has_header=1;
+                        if(o->stats) { o->stats->stage=NB_RX; o->stats->failure=NB_NONE; }
                     }
                     unsigned payload=data-offset;
-                    if(payload>size-received) goto bad;
-                    if(payload && o->store(o->context,received,p+4+offset,payload)<0) goto bad;
-                    running=nb_crc_update(running,p+4+offset,payload); received+=payload;
-                    if(data<512 && (received!=size || (running^0xffffffffU)!=wanted)) goto bad;
+                    if(payload>size-received) { fail(o,NB_LENGTH_MISMATCH); goto bad; }
+                    uint64_t copy_start=o->stats?o->now(o->context):0;
+                    int stored=payload?o->store(o->context,received,p+4+offset,payload):0;
+                    if(o->stats) o->stats->copy_ticks+=o->now(o->context)-copy_start;
+                    if(stored<0) { fail(o,NB_STORE_FAILED); goto bad; }
+                    running=stream_crc(o,running,p+4+offset,payload); received+=payload;
+                    if(o->stats) { o->stats->received=received; o->stats->stream_crc=running^0xffffffffU; }
+                    if(data<512) {
+                        stage(o,NB_STREAM_CRC);
+                        if(received!=size) { fail(o,NB_LENGTH_MISMATCH); goto bad; }
+                        if((running^0xffffffffU)!=wanted) { fail(o,NB_STREAM_MISMATCH); goto bad; }
+                    }
                     previous=next++; // defined 16-bit rollover; bytes determine completeness
-                    if(tftp_send(o,peer,port,file,0,previous)<0) return 0;
+                    if(tftp_send(o,peer,port,file,0,previous)<0) return fail(o,NB_SEND_FAILED);
                     sent=o->now(o->context); retries=0;
                     if(data<512) {
-                        if(o->verify(o->context,size,wanted)<0) goto bad;
+                        stage(o,NB_RAM_CRC);
+                        uint64_t verify_start=o->stats?o->now(o->context):0;
+                        int verified=o->verify(o->context,size,wanted);
+                        if(o->stats) o->stats->verify_ticks+=o->now(o->context)-verify_start;
+                        if(verified==-2) return fail(o,NB_RX_ABORTED);
+                        if(verified<0) { fail(o,NB_RAM_MISMATCH); goto bad; }
                         *entry=target; *length=size; return 1;
                     }
                 }
             }
         }
         if(o->now(o->context)-sent>=o->hz) {
-            if(++retries==5) return 0;
-            if(tftp_send(o,peer,port,file,!has_header,previous)<0) return 0;
+            if(++retries==5) return fail(o,NB_RETRY_LIMIT);
+            if(o->stats) ++o->stats->retries;
+            if(tftp_send(o,peer,port,file,!has_header,previous)<0) return fail(o,NB_SEND_FAILED);
             sent=o->now(o->context);
         }
         continue;

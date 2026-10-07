@@ -1,0 +1,6 @@
+type = scripted
+command = /usr/local/libexec/valence-dinit-ready
+waits-for: platform
+restart = false
+options = starts-on-console
+start-timeout = 10

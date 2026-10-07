@@ -45,14 +45,21 @@ object BoardSocConfig {
     }
     // Keep L1 response data flow-through; register physical owner metadata separately.
     val timingProfile = "early-issue"
-    val timingProfiles = Set("staged-fetch-feedback", "staged-ethernet", "baseline", "early-issue", "queued-memory", "registered-response", "registered-replay",
+    val memoryCapacityProfile = "staged-fetch-turnover-mlp4"
+    val timingProfiles = Set(memoryCapacityProfile, "staged-fetch-turnover", "staged-load-issue", "staged-fetch-feedback", "staged-ethernet", "baseline", "early-issue", "queued-memory", "registered-response", "registered-replay",
         "staged-fabric", "staged-control", "staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect",
         "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control",
         "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture", "staged-rom-boundary", "staged-control-heads", "staged-throughput", "staged-gmac-ready")
     def timingParams(profile: String, width: Int = issueWidth): OooParams = {
         require(timingProfiles.contains(profile), s"Unknown board timing profile: $profile")
         require(Set(2, 4).contains(width), s"Unsupported board issue width: $width")
-        val fetchFeedbackStage = profile == "staged-fetch-feedback"
+        if (profile == memoryCapacityProfile) {
+            require(width == 2, "memory capacity experiment retains two-issue baseline")
+            return timingParams("staged-fetch-turnover", width).copy(memoryEntries = 4)
+        }
+        val loadIssueStage = profile == "staged-load-issue"
+        val fetchTurnoverStage = profile == "staged-fetch-turnover"
+        val fetchFeedbackStage = fetchTurnoverStage || loadIssueStage || profile == "staged-fetch-feedback"
         val ethernetStage = fetchFeedbackStage || profile == "staged-ethernet"
         val gmacReadyStage = ethernetStage || profile == "staged-gmac-ready"
         val throughputStage = gmacReadyStage || profile == "staged-throughput"
@@ -117,9 +124,11 @@ object BoardSocConfig {
             independentFetchCapture = requestCaptureStage, parallelHomeQualification = requestCaptureStage,
             registeredFabricBoundary = romBoundaryStage,
             registeredTranslationHeads = controlHeadsStage,
+            fetchReplyTurnover = fetchTurnoverStage, fetchIdentityTranslation = fetchTurnoverStage,
             registeredPredictionTraining = controlHeadsStage,
             parallelMemoryPayload = controlHeadsStage, parallelPacketPmp = controlHeadsStage,
             registeredIssueExecute = throughputStage, registeredFetchPacket = throughputStage,
+            registeredLoadIssueForwarding = loadIssueStage,
             wordSpanPacketPmp = gmacReadyStage, parallelFetchValidation = gmacReadyStage,
             fetchHintEntries = if (gmacReadyStage) 32 else 8,
             balancedPacketPmp = ethernetStage, compactMemoryOperandSelect = ethernetStage,
@@ -158,7 +167,12 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     ethernetControl: Boolean = false, ethernetDma: Boolean = false,
     clockManagementHz: Int = 0, managedClockResources: Seq[ClockResource] = Seq.empty,
     ddrUiClockHz: Int = 250000000, managedPeripherals: Boolean = false,
-    ddrMemoryBytes: BigInt = BoardSocConfig.ddrBytes) extends Module {
+    ddrMemoryBytes: BigInt = BoardSocConfig.ddrBytes, instructionLineCacheLines: Int = 8,
+    dataCacheLines: Int = 32) extends Module {
+    require(dataCacheLines >= 4 && dataCacheLines <= 256 && isPow2(dataCacheLines),
+        "board data cache lines must be a power of two in 4..256")
+    require(instructionLineCacheLines >= 4 && instructionLineCacheLines <= 256 && isPow2(instructionLineCacheLines),
+        "board instruction cache lines must be a power of two in 4..256")
     require(socClockHz >= 6000000)
     require(uartBaud > 0 && uartBaud.toLong * 16 <= socClockHz)
     require(!simulation || !vivadoMemories)
@@ -232,9 +246,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     val platform = Module(new MachinePlatform(p, romWords = BoardSocConfig.romWords,
         romFiles = romFiles, programmable = simulation,
         tileLinkMemory = true, tileLinkFetch = true, ramBytes = memoryBytes,
-        instructionLineCacheLines = 8, translationService = true, translationLevels = 3,
+        instructionLineCacheLines = instructionLineCacheLines, translationService = true, translationLevels = 3,
         coreDataTranslation = true, coreInstructionTranslation = true,
-        coherentLineCache = true, coherentLineCacheLines = 32, pteCacheEntries = 4,
+        coherentLineCache = true, coherentLineCacheLines = dataCacheLines, pteCacheEntries = 4,
         bufferCoherentResponses = true, vivadoMemories = vivadoMemories,
         ramReadLatency = BoardSocConfig.ramReadLatency,
         uartClockHz = socClockHz, uartFastDivisorOne = true, externalDdr = externalDdr,

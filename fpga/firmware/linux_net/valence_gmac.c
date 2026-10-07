@@ -28,6 +28,8 @@
 #define GMAC_ID 0x56474d4100010001ULL
 #define DMA_ID  0x56444d4100010001ULL
 #define FRAME_BYTES 2048
+#define G_CAP 0x08
+#define G_CAP_RX_STOP BIT_ULL(8)
 #define G_CONTROL 0x10
 #define G_ADDRESS 0x18
 #define G_STATUS 0x28
@@ -35,6 +37,7 @@
 #define G_MDIO_COMMAND 0x78
 #define G_MDIO_STATUS 0x80
 #define G_MDIO_RESULT 0x88
+#define G_RX_STOP 0x90
 #define D_IRQ_ENABLE 0x08
 #define D_TX_ADDRESS 0x10
 #define D_TX_LENGTH 0x18
@@ -172,6 +175,16 @@ static void vg_configure(struct work_struct *work)
 			retry = true;
 			goto unlock; /* wait for both config CDC acknowledgements */
 		}
+		/* BootROM ABI v2 leaves RX admission stopped at handoff. Install a
+		 * live consumer before releasing it, then enable the MAC. Legacy
+		 * hardware has no such register: never write its reserved offset. */
+		if (vg_read(p->dma, D_RX_STATUS) & D_BUSY) {
+			retry = true;
+			goto unlock;
+		}
+		vg_arm_rx(p);
+		if (vg_read(p->mac, G_CAP) & G_CAP_RX_STOP)
+			vg_write(p->mac, G_RX_STOP, 0);
 		vg_write(p->mac, G_CONTROL, 15);
 		p->configured = true;
 		if (!p->tx_pending && !p->faulted)

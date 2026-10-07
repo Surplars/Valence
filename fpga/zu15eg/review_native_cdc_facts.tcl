@@ -106,8 +106,9 @@ foreach module [get_cells -quiet -hier -filter {REF_NAME =~ CdcLevel*}] {
 if {$level_count<20} {error "Incomplete native level boundary review"}
 puts $facts "LEVEL_MODULES=$level_count"
 
-foreach name {txConfig rxConfig txStats rxStats} {
-    set hier u_soc/nativeBank/gmac/$name/mailbox
+foreach {name path} {txConfig txConfig/mailbox rxConfig rxConfig/mailbox
+                     txStats txStats/mailbox rxStats rxStats/mailbox rxStop rxStop/command} {
+    set hier u_soc/nativeBank/gmac/$path
     set captures [get_pins -of_objects [get_cells -quiet "$hier/captured_reg*"] -filter {REF_PIN_NAME == D}]
     set held [get_cells -quiet "$hier/held_reg*"]
     if {[llength $captures]==0 || [llength $held]==0} {error "Missing native atomic payload $hier"}

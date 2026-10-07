@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenIon Valence VL100 platform drivers
+DefaultDependencies=no
+After=systemd-remount-fs.service systemd-modules-load.service systemd-journald.socket
+Before=sysinit.target network-pre.target networking.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/valence-platform-init
+RemainAfterExit=yes
+TimeoutStartSec=120
+StandardOutput=journal+console
+StandardError=inherit
+
+[Install]
+WantedBy=sysinit.target

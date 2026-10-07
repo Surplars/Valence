@@ -3,6 +3,9 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+import struct
+import tempfile
+from unittest.mock import patch
 
 from audit_uart_contract import audit
 
@@ -35,6 +38,26 @@ class CompiledUartContractTest(unittest.TestCase):
     def test_wrong_expected_baud_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Compiled UART baud mismatch"):
             audit(self.rom / "bootrom.bin", self.rom / "bootrom.elf", 7372800, 115200)
+
+    def test_independent_register_add_uart_address_model(self):
+        # Fixed RV64I instructions: t0=UART, t1=3, ADD t2,t0,t1; LCR uses t2.
+        # Subsequent SB writes independently establish DLAB/DLL/DLM/IER/FCR.
+        words = [0x100002b7, 0x00300313, 0x006283b3,
+                 0x08300e13, 0x01c38023, 0x00100e13, 0x01c28023,
+                 0x000280a3, 0x00300e13, 0x01c38023, 0x000280a3,
+                 0x00700e13, 0x01c28123, 0x00008067]
+        symbols = "80000000 T _start\n80000000 t uart_init\n"
+        with tempfile.TemporaryDirectory() as directory:
+            binary, elf = Path(directory) / "rom.bin", Path(directory) / "rom.elf"
+            elf.write_bytes(b"independent instruction fixture")
+            binary.write_bytes(struct.pack("<" + "I" * len(words), *words))
+            with patch("audit_uart_contract.subprocess.check_output", return_value=symbols):
+                proof = audit(binary, elf, 7372800, 460800)
+                self.assertEqual((proof["divisor"], proof["fcr"]), (1, 7))
+                words[2] |= 0x40000000  # SUB must not silently execute as ADD.
+                binary.write_bytes(struct.pack("<" + "I" * len(words), *words))
+                with self.assertRaisesRegex(ValueError, "Unsupported compiled"):
+                    audit(binary, elf, 7372800, 460800)
 
     def test_build_contract_rejects_divisor_seven_before_compilation(self):
         result = subprocess.run([sys.executable, str(self.repo / "fpga/firmware/build.py"),

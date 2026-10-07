@@ -248,14 +248,84 @@ static void run_bench(char command) {
     text("DDR BENCH "); text(ok && !errors ? "PASS" : "FAIL");
     text(" errors="); decimal(errors); text("\r\n");
 }
+#ifdef DDR_BENCH_LOCALITY
+/* Same kernels and addresses as the DDR smoke. Eight bounded regions per size;
+ * copy has TWO buffers, so its footprint is twice the reported per-buffer size.
+ * Keep marker PCs unique for passive retirement-delimited hardware counters. */
+__attribute__((noinline, noclone)) static uint64_t locality_start(void) {
+    uint64_t v;
+    __asm__ volatile ("fence rw,rw\nrdtime %0" : "=r"(v) :: "memory");
+    return v;
+}
+__attribute__((noinline, noclone)) static uint64_t locality_stop(void) {
+    uint64_t v;
+    __asm__ volatile ("fence rw,rw\nrdtime %0\nnop" : "=r"(v) :: "memory");
+    return v;
+}
+static void locality_result(size_t bytes, const char *phase, uint64_t ticks, int ok) {
+    if (!ok || !ticks) ++errors;
+    text("LOCALITY size="); decimal(bytes); text(" phase="); text(phase);
+    text(" ticks="); decimal(ticks); text(ok && ticks ? " PASS\r\n" : " FAIL\r\n");
+}
+static void locality(void) {
+    volatile uint64_t *src=(volatile uint64_t *)SRC_BASE;
+    volatile uint64_t *dst=(volatile uint64_t *)DST_BASE;
+    errors=0;
+    for (size_t bytes=1024; bytes<=8192; bytes*=2) {
+        const size_t words=bytes/8;
+        uint64_t start, elapsed, sum;
+        stream_write(src,words,1); sync_ddr();
+        start=locality_start(); sum=stream_read(src,words,1); elapsed=locality_stop()-start;
+        observed=sum; locality_result(bytes,"read_cold_1",elapsed,sum==expected_sum(words,1));
+        observed=stream_read(src,words,1);
+        start=locality_start(); sum=stream_read(src,words,3); elapsed=locality_stop()-start;
+        observed=sum; locality_result(bytes,"read_warm_3",elapsed,sum==expected_sum(words,3));
+        for(size_t i=0;i<words;++i) src[i]=~(SEED+i);
+        sync_ddr(); observed=stream_read(src,words,1);
+        start=locality_start(); stream_write(src,words,3); elapsed=locality_stop()-start;
+        const uint64_t write_elapsed=elapsed, write_start=start;
+        start=locality_start(); sync_ddr(); elapsed=locality_stop()-start;
+        const uint64_t write_complete=start+elapsed-write_start;
+        const int write_ok=verify(src,words);
+        locality_result(bytes,"write_warm_3",write_elapsed,write_ok);
+        locality_result(bytes,"write_flush",elapsed,write_ok);
+        text("COMPLETE size="); decimal(bytes); text(" phase=write ticks="); decimal(write_complete); text("\r\n");
+        for(size_t i=0;i<words;++i) dst[i]=~(SEED+i);
+        sync_ddr(); observed=stream_read(src,words,1); observed=stream_read(dst,words,1);
+        start=locality_start(); stream_copy(dst,src,words,3); elapsed=locality_stop()-start;
+        const uint64_t copy_elapsed=elapsed, copy_start=start;
+        start=locality_start(); sync_ddr(); elapsed=locality_stop()-start;
+        const uint64_t copy_complete=start+elapsed-copy_start;
+        const int copy_ok=verify(dst,words);
+        locality_result(bytes,"copy_warm_3",copy_elapsed,copy_ok);
+        locality_result(bytes,"copy_flush",elapsed,copy_ok);
+        text("COMPLETE size="); decimal(bytes); text(" phase=copy ticks="); decimal(copy_complete); text("\r\n");
+        build_chain(CHAIN_BASE,bytes); sync_ddr();
+        start=locality_start(); uintptr_t last=walk_chain(CHAIN_BASE,bytes/64); elapsed=locality_stop()-start;
+        observed=last; locality_result(bytes,"chase_cold_1",elapsed,last==CHAIN_BASE);
+        observed=walk_chain(CHAIN_BASE,bytes/64);
+        start=locality_start(); last=walk_chain(CHAIN_BASE,3*bytes/64); elapsed=locality_stop()-start;
+        observed=last; locality_result(bytes,"chase_warm_3",elapsed,last==CHAIN_BASE);
+    }
+    sync_ddr(); text(errors ? "LOCALITY FAIL\r\n" : "LOCALITY PASS\r\n");
+}
+#endif
+
 int main(void) {
     text("\r\nValence DDR benchmark V0.1 - CPU "); decimal(CPU_HZ / 1000000);
     text(" MHz, UART "); decimal(UART_BAUD); text(" 8N1\r\n");
+#ifdef DDR_BENCH_LOCALITY
+    text("CPU-visible coherent write-back L1, capacity under test, 64B lines.\r\n");
+#else
     text("CPU-visible path, 2KiB write-back L1, 64B lines; NOT MIG peak bandwidth.\r\n");
+#endif
     text("rdtime clock="); decimal(CPU_HZ); text(" Hz; no UART in timed regions.\r\n");
     text("Destructive buffers: 0x80400000/0x81400040/0x83000000, up to 8MiB each.\r\n");
     text("COPY reports payload and logical R+W, not actual AXI bytes.\r\n");
     text("Auto 4KiB smoke only; use q/b for representative streaming results.\r\n");
+#ifdef DDR_BENCH_LOCALITY
+    locality(); return 0;
+#endif
     run_bench('s');
     for (;;) {
         text("[s] 4KiB smoke [q] 64KiB/1MiB+cache [b] 8MiB [x] return to Bootrom\r\n");

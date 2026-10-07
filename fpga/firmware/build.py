@@ -36,7 +36,7 @@ def main():
     parser.add_argument("--ddr", action="store_true", help="512 MiB AXI DDR; reserve the final 16 KiB for the ROM monitor")
     parser.add_argument("--ddr-bytes", type=lambda s: int(s, 0), default=0x20000000,
                         choices=(0x20000000, 0x40000000, 0x80000000))
-    parser.add_argument("--netboot", action="store_true", help="native GMAC TFTP boot; requires DDR and RX_STOP-capable new RTL")
+    parser.add_argument("--netboot", action="store_true", help="native GMAC TFTP boot; requires DDR, DMA RX_STOP and MAC admission-stop/drain-capable new RTL")
     parser.add_argument("--netboot-ip", default="192.168.137.30")
     parser.add_argument("--netboot-server", default="192.168.137.1")
     parser.add_argument("--netboot-file", default="valence.vld")
@@ -79,7 +79,7 @@ def main():
     layout = MemoryLayout(args.ddr_bytes if args.ddr else 1024 * 1024)
     ram_bytes = layout.ram_bytes
     for name, inputs, linker in (
-        ("bootrom", ("start.S", "bootrom.c"), "bootrom.ld"),
+        ("bootrom", ("start.S", "bootrom.c", "crc32.c"), "bootrom.ld"),
         ("sample_app", ("sample_start.S", "sample_app.c"), "sample_app.ld"),
     ):
         elf = output / f"{name}.elf"
@@ -103,7 +103,9 @@ def main():
     data = (output / "bootrom.bin").read_bytes()
     memory_images(data, output)
     (output / "bootrom-contract.json").write_text(json.dumps(dict(
-        schema=1, cpu_hz=args.cpu_hz, uart_divisor=args.uart_divisor,
+        schema=1, cpu_hz=args.cpu_hz, timebase_hz=args.cpu_hz,
+        timebase_source="BoardSocTop.timerTick=true; MachineTimer.timeValue -> TIME CSR",
+        netboot_rx_stop_abi=2 if args.netboot else None, uart_divisor=args.uart_divisor,
         uart_reference_hz=args.uart_reference_hz, uart_baud=args.uart_baud,
         uart_contract_checked=args.uart_baud is not None,
         ddr_bytes=ram_bytes if args.ddr else None, netboot=args.netboot,

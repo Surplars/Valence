@@ -1,5 +1,6 @@
 import struct
 import unittest
+from unittest.mock import patch
 import zlib
 import uart_load as protocol
 from build import memory_images
@@ -73,6 +74,50 @@ class FakePort:
         self.length, self.crc = length, crc
 
 
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now += seconds
+
+
+class TimedPort(FakePort):
+    """One second per send; seven-second final RAM verification delay."""
+    def __init__(self, clock, *, missing_done=False, duplicate_final_ack=False, **kwargs):
+        super().__init__(**kwargs)
+        self.clock = clock
+        self.missing_done = missing_done
+        self.duplicate_final_ack = duplicate_final_ack
+        self.deferred = []
+
+    def write(self, data):
+        self.clock.advance(1.0)
+        result = super().write(data)
+        index = self.pending.find(b"VDON")
+        if index >= 0:
+            done = bytes(self.pending[index:])
+            del self.pending[index:]
+            if self.duplicate_final_ack:
+                self.deferred.append((3.0, struct.pack("<4sII", b"VACK", self.expected - 1, 0)))
+            if not self.missing_done:
+                self.deferred.append((7.0, done))
+        return result
+
+    def read(self, count):
+        if not self.pending:
+            if self.deferred:
+                delay, data = self.deferred.pop(0)
+                self.clock.advance(delay)
+                self.pending += data
+            else:
+                self.clock.advance(0.05)
+        return super().read(count)
+
+
 class ProtocolTests(unittest.TestCase):
     def test_ready_without_prompt_and_legacy_compatibility(self):
         for status in (b"\r\nDOWNLOAD OK\r\nready to boot\r\n",
@@ -135,6 +180,87 @@ class ProtocolTests(unittest.TestCase):
         port = FakePort(drop_ack_once=0)
         protocol.upload(port, image, timeout=0.005)
         self.assertEqual(port.image, image)
+
+    def test_timing_separates_upload_from_final_ram_verification(self):
+        clock = FakeClock()
+        port = TimedPort(clock)
+        progress = []
+        with patch.object(protocol.time, "monotonic", clock):
+            stats = protocol.upload(port, bytes(516), verify_timeout=30,
+                                    progress=lambda done, total: progress.append((done, clock())))
+        self.assertEqual((stats.payload_bytes, stats.chunk_frames, stats.retransmits), (516, 3, 0))
+        self.assertEqual((stats.final_frame_seconds, stats.upload_seconds,
+                          stats.verify_seconds, stats.elapsed_seconds), (5.0, 5.0, 7.0, 12.0))
+        self.assertTrue(stats.ram_verified)
+        self.assertEqual(progress, [(256, 3.0), (512, 4.0), (516, 5.0)])
+        self.assertIn("upload=5.00s final_verification_wait=7.00s total=12.00s", stats.summary())
+        self.assertIn("RUN/boot not confirmed", stats.summary())
+
+    def test_timing_lost_final_ack_does_not_invent_a_phase_boundary(self):
+        clock = FakeClock()
+        port = TimedPort(clock, drop_ack_once=2)
+        with patch.object(protocol.time, "monotonic", clock):
+            stats = protocol.upload(port, bytes(516), verify_timeout=30)
+        self.assertEqual((stats.final_frame_seconds, stats.elapsed_seconds), (5.0, 12.0))
+        self.assertIsNone(stats.upload_seconds)
+        self.assertIsNone(stats.verify_seconds)
+        self.assertTrue(stats.ram_verified)
+        self.assertEqual(port.frame_count[2], 1)
+        self.assertIn("split unavailable (final ACK not observed", stats.summary())
+        self.assertNotIn("final_verification_wait=", stats.summary())
+        self.assertIn("RUN/boot not confirmed", stats.summary())
+
+    def test_duplicate_final_ack_does_not_restart_upload_timing(self):
+        clock = FakeClock()
+        with patch.object(protocol.time, "monotonic", clock):
+            stats = protocol.upload(TimedPort(clock, duplicate_final_ack=True), bytes(8), verify_timeout=30)
+        self.assertEqual((stats.upload_seconds, stats.verify_seconds, stats.elapsed_seconds),
+                         (3.0, 10.0, 13.0))
+
+    def test_final_silence_is_not_verified_or_retransmitted(self):
+        for lost_final_ack in (False, True):
+            with self.subTest(lost_final_ack=lost_final_ack):
+                clock = FakeClock()
+                port = TimedPort(clock, missing_done=True,
+                                 drop_ack_once=0 if lost_final_ack else None)
+                stats = protocol.UploadStats()
+                with patch.object(protocol.time, "monotonic", clock), self.assertRaises(TimeoutError):
+                    protocol.upload(port, bytes(8), verify_timeout=0.2, stats=stats)
+                self.assertEqual(port.frame_count[0], 1)
+                self.assertEqual(stats.retransmits, 0)
+                self.assertFalse(stats.ram_verified)
+                self.assertIsNone(stats.verify_seconds)
+                self.assertEqual(stats.upload_seconds, None if lost_final_ack else 3.0)
+                self.assertGreaterEqual(stats.elapsed_seconds, 3.2)
+                self.assertIn("verification not confirmed", stats.summary())
+                if not lost_final_ack:
+                    self.assertIn("upload=3.00s final_verification_wait=", stats.summary())
+
+    def test_timing_crc_retry_counts_only_acknowledged_upload_boundary(self):
+        clock = FakeClock()
+        port = TimedPort(clock, reject_once=0)
+        with patch.object(protocol.time, "monotonic", clock):
+            stats = protocol.upload(port, bytes(8), verify_timeout=30)
+        self.assertEqual((stats.chunk_frames, stats.retransmits), (2, 1))
+        self.assertEqual((stats.final_frame_seconds, stats.upload_seconds,
+                          stats.verify_seconds, stats.elapsed_seconds), (4.0, 4.0, 7.0, 11.0))
+
+    def test_invalid_final_reply_never_reports_ram_verified(self):
+        class CorruptDone(TimedPort):
+            def write(self, data):
+                result = super().write(data)
+                if self.deferred:
+                    delay, reply = self.deferred[-1]
+                    self.deferred[-1] = (delay, reply[:-1] + bytes([reply[-1] ^ 1]))
+                return result
+
+        clock, stats = FakeClock(), protocol.UploadStats()
+        with patch.object(protocol.time, "monotonic", clock), \
+                self.assertRaisesRegex(protocol.ProtocolError, "invalid final length/CRC"):
+            protocol.upload(CorruptDone(clock), bytes(8), verify_timeout=30, stats=stats)
+        self.assertFalse(stats.ram_verified)
+        self.assertIsNone(stats.verify_seconds)
+        self.assertIn("verification not confirmed", stats.summary())
 
     def test_ddr_upload_larger_than_one_mib(self):
         image = bytes(range(256)) * 4097 + b"tail"

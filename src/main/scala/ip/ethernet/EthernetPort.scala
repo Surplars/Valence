@@ -26,7 +26,8 @@ case class GmacParams(
     maxFrameBytes: Int = 2048,
     controlClockHz: Int = 100000000,
     mdcHz: Int = 2500000,
-    aggregateStats: Boolean = false
+    aggregateStats: Boolean = false,
+    rxAdmissionStop: Boolean = false
 ) {
     require(base >= 0 && base % 4096 == 0 && ports.nonEmpty && ports.size <= 4)
     require(base + ports.size * 4096 <= (BigInt(1) << 64))
@@ -52,7 +53,7 @@ class EthernetFrameBeat(bytes: Int = 8) extends Bundle {
   * MAC events/status explicitly and preserve pulses/counters. Never wire raw
   * RGMII/XGMII levels here. No CPU implementation types are used by this IP.
   */
-class GmacPortControl(aggregateStats: Boolean = false) extends Bundle {
+class GmacPortControl(aggregateStats: Boolean = false, rxAdmissionStop: Boolean = false) extends Bundle {
     val txEnable = Output(Bool())
     val rxEnable = Output(Bool())
     val promiscuous = Output(Bool())
@@ -61,6 +62,9 @@ class GmacPortControl(aggregateStats: Boolean = false) extends Bundle {
     val linkUp = Input(Bool())
     val txBusy = Input(Bool())
     val rxBusy = Input(Bool())
+    // Optional additive shutdown barrier; admission only, never a frame reset.
+    val rxStopRequest = if (rxAdmissionStop) Some(Output(Bool())) else None
+    val rxStopDrained = if (rxAdmissionStop) Some(Input(Bool())) else None
     // tx-complete, rx-complete, rx-drop, rx-bad-fcs, tx-underflow, link-change.
     val events = Input(UInt(6.W))
     val txBytes = Input(UInt(16.W))

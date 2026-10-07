@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenIon Valence console readiness banner
+After=valence-platform.service networking.service systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/valence-ready
+StandardOutput=journal+console
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Final RAM-root: prepare API filesystems, then replace PID 1 with Dinit.
+set -eu
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export TERM=vt100 LC_ALL=C
+mount -t proc -o nosuid,nodev,noexec proc /proc
+mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+mount -t devtmpfs -o nosuid devtmpfs /dev
+mkdir -p /dev/pts /dev/shm /run /tmp
+mount -t devpts -o nosuid,noexec devpts /dev/pts
+mount -t tmpfs -o mode=1777,size=64M,nosuid,nodev tmpfs /dev/shm
+mount -t tmpfs -o mode=0755,size=16M,nosuid,nodev tmpfs /run
+chmod 1777 /tmp
+mkdir -p /run/lock /run/valence
+hostname valence
+read -r uptime unused < /proc/uptime
+printf '[%s] valence-init: Debian 13 / Dinit / LZ4 / CPU100MHz / UART460800\n' "$uptime"
+exec /usr/sbin/dinit --system --services-dir /etc/dinit.d --socket-path /run/dinitctl --log-file /run/valence/dinit.log --service boot

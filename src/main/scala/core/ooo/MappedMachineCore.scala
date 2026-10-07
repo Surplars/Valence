@@ -80,13 +80,18 @@ class MappedMachineCore(
         (aplicParams.base, BigInt(16384)), (supervisorParams.base, BigInt(16384))
     ), bypassMemoryShift = p.directMemoryResponse))) else None
     val mappedUpstream = parallelRouter.map(_.io.upstream).getOrElse(router.get.io.upstream)
+    // Elaboration-only references for passive board-wrapper lineage observation.
+    var observationTranslation: Option[DataTranslationAdapter] = None
+    var observationResponses: Option[DataResponseBuffer] = None
     if (dataTranslation) {
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric))
+        observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,
             // ahead of APLIC/fault returns as well as external memory returns.
             val responses = Module(new DataResponseBuffer(registerPayload = p.registeredTranslatedResponses,
                 registerHead = p.registeredTranslationHeads))
+            observationResponses = Some(responses)
             responses.io.upstream <> core.io.memory
             adapter.io.virtual <> responses.io.downstream
         } else adapter.io.virtual <> core.io.memory

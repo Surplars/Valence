@@ -25,6 +25,8 @@ static uint16_t checksum(const uint8_t *p,unsigned n,uint32_t sum=0) {
 }
 struct Server {
     nb_ops ops{};
+    nb_stats stats{};
+    std::vector<nb_stage> phases;
     std::array<uint8_t,2048> tx{},rx{};
     std::array<uint8_t,6> mac{2,0xaa,0xbb,0xcc,0xdd,1};
     std::vector<uint8_t> file,ram;
@@ -34,7 +36,8 @@ struct Server {
     int fault;
     bool injected=false, duplicate=false, stop=false;
     Server(unsigned length,int f=0):file(length+36),ram(length,0xa5),fault(f) {
-        ops.context=this; ops.tx=tx.data(); ops.rx=rx.data();
+        ops.context=this; ops.tx=tx.data(); ops.rx=rx.data(); ops.stats=&stats;
+        ops.stage=[](void *p,nb_stage phase) { static_cast<Server*>(p)->phases.push_back(phase); };
         std::copy_n(std::array<uint8_t,6>{2,0x56,0x41,0x4c,0,1}.begin(),6,ops.mac);
         ops.ip=0xc0a8891e; ops.server_ip=0xc0a88901; ops.base=0x80200000;
         ops.limit=512*1024*1024-16384; ops.hz=1000;
@@ -48,6 +51,7 @@ struct Server {
         };
         ops.verify=[](void* p,uint32_t n,uint32_t wanted) {
             auto &s=*static_cast<Server*>(p);
+            if(s.fault==31) return -2;
             if(s.fault==30) s.ram.at(0)^=1;
             return n==s.ram.size() && crc(s.ram.data(),n)==wanted?0:-1;
         };
@@ -153,23 +157,35 @@ struct Server {
         if(success) {
             check(entry==ops.base && length==ram.size(),"entry/length mismatch");
             check(std::equal(ram.begin(),ram.end(),file.begin()+36),"actual RAM differs from image");
+            check(stats.failure==NB_NONE && stats.received==ram.size() &&
+                  stats.expected_length==ram.size() && stats.stream_crc==crc(ram.data(),ram.size()),
+                  "aggregate stats changed payload/completion");
+            check(phases==std::vector<nb_stage>{NB_ARP,NB_RX,NB_STREAM_CRC,NB_RAM_CRC},"phase ordering");
         } else check(entry==0xdeadbeef && length==0xfeedbeef,"failed image published an entry");
+        check(stats.tx_frames==sends,"TX counter");
+        if(fault==1) check(stats.retries==1 && stats.rx_timeouts>0,"retry counter");
+        if(fault==2) check(stats.retries==4 && stats.failure==NB_RETRY_LIMIT,"bounded retry counter");
+        if(fault==3) check(stats.duplicates==1,"duplicate counter");
+        if(fault==25) check(stats.failure==NB_STREAM_MISMATCH,"stream mismatch diagnosis");
+        if(fault==28) check(stats.header_crc_expected!=stats.header_crc_actual,"header CRC evidence");
+        if(fault==30) check(stats.failure==NB_RAM_MISMATCH,"RAM mismatch diagnosis");
+        if(fault==31) check(stats.failure==NB_RX_ABORTED && errors==0,"RAM verify cancel diagnosis");
         if((fault>=20 && fault<=24) || fault==28 || fault==29) check(stores==0,"invalid header wrote RAM");
     }
 };
 int main() { try {
     unsigned cases=0;
-    for(unsigned bytes:{4U,440U,476U,477U,988U,989U,4096U,65536U,33553920U}) {
+    for(unsigned bytes:{4U,440U,476U,477U,988U,989U,4096U,65536U,33553920U,66348740U}) {
         Server s(bytes); s.run(true); ++cases;
     }
     for(int fault=1;fault<=11;++fault) {
         Server s(4096,fault); s.run(fault!=2); ++cases;
     }
-    for(int fault=20;fault<=30;++fault) {
+    for(int fault=20;fault<=31;++fault) {
         Server s(4096,fault); s.run(false); ++cases;
     }
     Server stopped(4096); stopped.stop=true; stopped.run(false); ++cases;
     std::cout<<"BOOTROM_TFTP_HOST_PASS cases="<<cases
-             <<" block_rollover=1 stream_crc=1 actual_ram_crc=1 duplicate=1 timeouts=1 malformed=1\n";
+             <<" full_wire_length=66348776 block_rollover=1 stream_crc=1 actual_ram_crc=1 duplicate=1 timeouts=1 malformed=1\n";
     return 0;
 } catch(const std::exception& e) { std::cerr<<"BOOTROM_TFTP_HOST_FAIL "<<e.what()<<"\n"; return 1; } }

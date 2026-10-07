@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Upload a flat RV64 RAM binary to Valence Bootrom V0.1 / legacy ROM monitor (Windows or Linux)."""
 import argparse
+from dataclasses import dataclass
 import os
 import struct
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 import zlib
 
 RAM_BASE = 0x80200000
@@ -115,10 +117,60 @@ def verification_timeout(image_size):
     return max(30.0, image_size / 16384.0)
 
 
+@dataclass
+class UploadStats:
+    """VACK bounds upload; VDON proves RAM length/CRC, not a successful RUN."""
+    payload_bytes: int = 0
+    chunk_frames: int = 0
+    retransmits: int = 0
+    final_frame_seconds: Optional[float] = None
+    upload_seconds: Optional[float] = None
+    verify_seconds: Optional[float] = None
+    elapsed_seconds: float = 0.0
+    ram_verified: bool = False
+
+    def summary(self):
+        if not self.ram_verified:
+            timing = f"total={self.elapsed_seconds:.2f}s"
+            if self.upload_seconds is not None:
+                timing = (f"upload={self.upload_seconds:.2f}s "
+                          f"final_verification_wait={max(0.0, self.elapsed_seconds - self.upload_seconds):.2f}s "
+                          + timing)
+            return f"RAM verification not confirmed: {timing}. RUN/boot not confirmed."
+        if self.upload_seconds is not None:
+            timing = (f"upload={self.upload_seconds:.2f}s "
+                      f"final_verification_wait={self.verify_seconds:.2f}s "
+                      f"total={self.elapsed_seconds:.2f}s")
+        else:
+            # VDON remains valid if the final VACK was lost. Do not pretend the
+            # send timestamp is the board's upload/verification boundary.
+            timing = (f"total={self.elapsed_seconds:.2f}s; upload/final-verification split unavailable "
+                      f"(final ACK not observed; final frame sent at {self.final_frame_seconds:.2f}s)")
+        return (f"RAM VERIFIED: {timing}; payload={self.payload_bytes} "
+                f"chunk_frames={self.chunk_frames} retransmits={self.retransmits}. "
+                "Downloaded RAM length/CRC verified; RUN/boot not confirmed.")
+
+
 def upload(port, image, entry=RAM_BASE, timeout=1.0, retries=2, progress=None,
-           image_limit=IMAGE_LIMIT, verify_timeout=None):
-    """Acknowledge each <=256-byte block; never stream the next block blindly."""
+           image_limit=IMAGE_LIMIT, verify_timeout=None, stats=None):
+    """Acknowledge each <=256-byte block and return host-observed RAM-check timings.
+
+    Upload time includes the download handshake and ends at the final VACK;
+    final verification wait ends at VDON. If VACK was lost, only total is known.
+    Pass a fresh UploadStats to retain observations if the operation fails.
+    """
+    stats = UploadStats() if stats is None else stats
+    started = time.monotonic()
+    try:
+        return _upload(port, image, entry, timeout, retries, progress, image_limit,
+                       verify_timeout, stats, started)
+    finally:
+        stats.elapsed_seconds = max(0.0, time.monotonic() - started)
+
+
+def _upload(port, image, entry, timeout, retries, progress, image_limit, verify_timeout, stats, started):
     header = image_header(image, entry, image_limit)
+    stats.payload_bytes = len(image)
     verify_timeout = verification_timeout(len(image)) if verify_timeout is None else verify_timeout
     if not 0 < verify_timeout < float("inf"):
         raise ValueError("verification timeout must be finite and positive")
@@ -136,6 +188,10 @@ def upload(port, image, entry=RAM_BASE, timeout=1.0, retries=2, progress=None,
         final = offset + len(block) == len(image)
         for attempt in range(retries + 1):
             send(port, frame)
+            stats.chunk_frames += 1
+            stats.retransmits += int(attempt != 0)
+            if final:
+                stats.final_frame_seconds = time.monotonic() - started
             try:
                 while True:
                     # Full RAM CRC verification happens after the final ACK.
@@ -143,13 +199,20 @@ def upload(port, image, entry=RAM_BASE, timeout=1.0, retries=2, progress=None,
                     if magic == b"VDON":
                         if not final or (number, status) != (len(image), crc):
                             raise ProtocolError("invalid final length/CRC reply")
-                        if progress:
+                        stats.ram_verified = True
+                        if stats.upload_seconds is not None:
+                            stats.verify_seconds = time.monotonic() - started - stats.upload_seconds
+                        if progress and stats.upload_seconds is None:
                             progress(len(image), len(image))
-                        return
+                        return stats
                     if number < sequence:
                         continue  # a delayed duplicate ACK
                     if number == sequence and status == 0:
                         if final:
+                            if stats.upload_seconds is None:
+                                stats.upload_seconds = time.monotonic() - started
+                                if progress:
+                                    progress(len(image), len(image))
                             continue
                         break
                     if number == sequence and status == 3:
@@ -233,37 +296,45 @@ def main():
                         help="must match ROM firmware; ddr allows 512 MiB minus 16 KiB")
     parser.add_argument("--verify-timeout", type=float,
                         help="seconds for final RAM CRC (default scales with image size)")
-    parser.add_argument("--run", action="store_true", help="send g after verified download")
+    parser.add_argument("--run", action="store_true",
+                        help="send g after RAM verification; this does not confirm successful boot")
     parser.add_argument("--console", action="store_true",
                         help="interactive UART terminal until Ctrl-C (TTY keyboard required)")
     args = parser.parse_args()
+    stats = None
     try:
         image = args.image.read_bytes()
         image_limit = IMAGE_LIMITS[args.memory]
         validate_image(image, args.entry, image_limit)
         import serial
         with serial.Serial(args.port, args.baud, timeout=0.05, write_timeout=5) as port:
-            started = time.monotonic()
             last_percent = [-1]
+            stats = UploadStats()
 
             def progress(done, total):
                 percent = done * 100 // total
                 if percent != last_percent[0]:
                     print(f"\rUpload {done}/{total} bytes ({percent}%)", end="", flush=True)
                     last_percent[0] = percent
+                    if done == total and stats.upload_seconds is not None:
+                        print(f"\nUpload ACKed in {stats.upload_seconds:.2f}s; waiting for final RAM verification.",
+                              flush=True)
 
             upload(port, image, args.entry, progress=progress, image_limit=image_limit,
-                   verify_timeout=args.verify_timeout)
-            print(f"\nVerified in {time.monotonic() - started:.2f}s")
+                   verify_timeout=args.verify_timeout, stats=stats)
+            print("\n" + stats.summary())
             # Wait for the complete readiness line before sending the boot command.
             wait_ready(port)
             if args.run:
                 send(port, b"g")
+                print("RUN command sent; successful RUN/boot must be confirmed from board UART output.")
             if args.console:
                 console(port)
     except ImportError:
         parser.exit(1, "Install pyserial: python -m pip install pyserial\n")
     except (OSError, ValueError, RuntimeError, TimeoutError) as error:
+        if stats is not None and not stats.ram_verified:
+            print("\n" + stats.summary(), flush=True)
         parser.exit(1, f"{error}\nRetry after download mode returns; reset if the app hangs.\n")
     except KeyboardInterrupt:
         print()

@@ -5,6 +5,20 @@ import org.scalatest.funsuite.AnyFunSuite
 import soc.core.ooo._
 
 class OooParamsSpec extends AnyFunSuite {
+    test("load issue forwarding is opt-in and preserves the registered two-issue board profile") {
+        val baseline = BoardSocConfig.timingParams("staged-fetch-feedback")
+        val candidate = BoardSocConfig.timingParams("staged-load-issue")
+        assert(!baseline.registeredLoadIssueForwarding && !OooParams().registeredLoadIssueForwarding)
+        assert(candidate.registeredLoadIssueForwarding && candidate.registeredIssueExecute)
+        assert(!candidate.loadCompletionBypass && candidate.issueWidth == 2)
+        assert(candidate.copy(registeredLoadIssueForwarding = false) == baseline)
+        intercept[IllegalArgumentException] { OooParams(registeredLoadIssueForwarding = true) }
+        intercept[IllegalArgumentException] { candidate.copy(loadCompletionBypass = true) }
+        val board = BoardSocConfig.boardParams("staged-load-issue", externalDdr = true,
+            isa = "rv64gc", ddrMemoryBytes = BigInt(1) << 31)
+        assert(board.fpConfig.complete && board.speculativeRamBytes == (BigInt(1) << 31))
+    }
+
     test("F/D configuration: RV64GC board profile matches discovery and rejects pruned extensions") {
         val off = BoardSocConfig.boardParams("staged-throughput", externalDdr = true)
         val f = BoardSocConfig.boardParams("staged-throughput", isa = "rv64imafc")

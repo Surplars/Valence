@@ -4,16 +4,23 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
 #ifndef PACKET_WORDS
 #define PACKET_WORDS 2
 #endif
+#ifndef CACHE_LINES
+#define CACHE_LINES 16
+#endif
+static_assert(CACHE_LINES >= 4 && CACHE_LINES <= 256 && !(CACHE_LINES & (CACHE_LINES - 1)));
+static constexpr uint64_t setStride = 64ULL * (CACHE_LINES / 2);
 
+static bool injectMismatch = false;
 static constexpr uint64_t ram = 0x80010000;
 static void check(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
 }
 static uint32_t instruction(uint64_t address, unsigned generation) {
-    return 0x00000013U | (uint32_t(((address >> 2) + generation * 37) & 0xfff) << 20);
+    return 0x00000013U | (uint32_t(((address >> 2) ^ (address >> 14) ^ (generation * 37)) & 0xfff) << 20);
 }
 static uint64_t beat(uint64_t address, unsigned generation) {
     return uint64_t(instruction(address, generation)) |
@@ -58,14 +65,19 @@ static void drive(SInstructionLineCacheGsim &dut, bool request, uint64_t pc,
 static unsigned fetch(SInstructionLineCacheGsim &dut, uint64_t pc, unsigned generation,
                       unsigned expectedSize, unsigned privilege = 3,
                       unsigned pmpCfg = 0, uint64_t pmpAddr = 0,
-                      bool injectLineError = false) {
+                      bool injectLineError = false, unsigned holdReplyCycles = 0,
+                      bool invalidateDuringFill = false, int deniedFallback = -1) {
     std::deque<Reply> replies;
     bool accepted = false;
-    unsigned gets = 0;
+    unsigned gets = 0, heldCycles = 0;
+    bool sawHeld = false, invalidated = false;
     for (unsigned cycle = 0; cycle < 120; ++cycle) {
         std::optional<Reply> offered;
         if (!replies.empty()) offered = replies.front();
-        drive(dut, !accepted, pc, offered, privilege, pmpCfg, pmpAddr);
+        const bool responseReady = heldCycles >= holdReplyCycles;
+        const bool invalidate = invalidateDuringFill && !invalidated && offered && offered->size == 6;
+        drive(dut, !accepted, pc, offered, privilege, pmpCfg, pmpAddr, invalidate, responseReady);
+        invalidated |= invalidate;
         dut.step();
         if (offered && dut.get_io$$tl$$d$$ready()) replies.pop_front();
         if (!accepted && dut.get_io$$fetch$$request$$ready()) accepted = true;
@@ -79,18 +91,30 @@ static unsigned fetch(SInstructionLineCacheGsim &dut, uint64_t pc, unsigned gene
                 (pc + 8ULL * fallbackIndex) & ~7ULL;
             check(size == expectedGetSize && address == expectedAddress,
                   "instruction Get used the wrong size or address");
+            check(source < 8 && ((source & 4U) != 0) == (expectedGetSize == 3),
+                  "instruction Get used the wrong refill/fallback source namespace");
             const unsigned count = (1U << size) / 8;
             for (unsigned i = 0; i < count; ++i)
-                replies.push_back({source, size, beat(address + 8 * i, generation),
-                    injectLineError && gets == 0 && i == count - 1});
+                replies.push_back({source, size, beat(address + 8 * i, generation) ^ uint64_t(injectMismatch),
+                    (injectLineError && gets == 0 && i == count - 1) ||
+                    (expectedGetSize == 3 && int(fallbackIndex) == deniedFallback)});
             ++gets;
         }
         if (dut.get_io$$fetch$$response$$valid()) {
             check(accepted && replies.empty(), "instruction reply preceded complete TileLink data");
-            check(!dut.get_io$$fetch$$responseError() &&
-                  packetMatches(dut, pc, generation),
+            const unsigned expectedErrors = deniedFallback < 0 ? 0 : (3U << (2 * deniedFallback));
+            check(dut.get_io$$fetch$$responseError() == expectedErrors &&
+                  !dut.get_io$$fetch$$responsePageFault() &&
+                  dut.get_io$$responseLow() == (deniedFallback == 0 ? 0 : beat(pc, generation)) &&
+                  (PACKET_WORDS == 2 || dut.get_io$$responseHigh() ==
+                      (deniedFallback == 1 ? 0 : beat(pc + 8, generation))),
                   "instruction cache returned incorrect code");
+            if (!responseReady) { ++heldCycles; sawHeld = true; continue; }
+            check(!holdReplyCycles || sawHeld, "response backpressure was not exercised");
+            check(!invalidateDuringFill || invalidated, "inflight invalidation was not exercised");
             return gets;
+        } else {
+            check(!sawHeld, "held response disappeared under backpressure");
         }
     }
     throw std::runtime_error("instruction cache request timed out");
@@ -136,8 +160,9 @@ static void streamHits(SInstructionLineCacheGsim &dut) {
           packetMatches(dut, ram + 72, 0),
           "next hit was lost after response backpressure");
 }
-int main() {
+int main(int argc, char **argv) {
     try {
+        injectMismatch = argc > 1 && std::string_view(argv[1]) == "--inject-mismatch";
         SInstructionLineCacheGsim dut;
         drive(dut, false, 0, std::nullopt);
         dut.set_reset(1);
@@ -150,22 +175,44 @@ int main() {
         if (PACKET_WORDS == 4)
             check(fetch(dut, ram + 56, 0, 3) == 2, "cross-line wide packet did not use precise fallback");
         check(fetch(dut, ram, 0, 6) == 0, "resident line was evicted unexpectedly");
-        check(fetch(dut, ram + 512, 0, 6) == 1, "second way did not fill");
-        check(fetch(dut, ram, 0, 6) == 0 && fetch(dut, ram + 512, 0, 6) == 0,
+        // Reset the residency independently of the earlier sequential-line checks.
+        // At the four-line geometry +128 already conflicts with ram.
+        drive(dut, false, 0, std::nullopt, 3, 0, 0, true);
+        dut.step();
+        check(fetch(dut, ram, 0, 6) == 1, "LRU setup first way did not fill");
+        check(fetch(dut, ram + setStride, 0, 6) == 1, "second way did not fill");
+        check(fetch(dut, ram, 0, 6) == 0 && fetch(dut, ram + setStride, 0, 6) == 0,
               "two lines in the same set did not coexist");
-        check(fetch(dut, ram + 1024, 0, 6) == 1, "third same-set line did not replace a way");
-        check(fetch(dut, ram + 512, 0, 6) == 0, "replacement evicted the recently used way");
-        check(fetch(dut, ram + 1536, 0, 6, 3, 0, 0, true) == 1 + PACKET_WORDS / 2,
+        check(fetch(dut, ram + 2 * setStride, 0, 6) == 1, "third same-set line did not replace a way");
+        check(fetch(dut, ram + setStride, 0, 6) == 0, "replacement evicted the recently used way");
+        check(fetch(dut, ram, 0, 6) == 1, "third conflict did not evict the actual LRU victim");
+        check(fetch(dut, ram + setStride, 0, 6) == 0, "LRU victim reload evicted the most recently used line");
+        check(fetch(dut, ram + 3 * setStride, 0, 6, 3, 0, 0, true) == 1 + PACKET_WORDS / 2,
               "failed line fill did not retry the precise requested packet");
+        check(fetch(dut, ram + 3 * setStride, 0, 6) == 1,
+              "late-error line was incorrectly retained as a valid cache line");
         drive(dut, false, 0, std::nullopt, 3, 0, 0, true);
         dut.step();
         check(fetch(dut, ram, 1, 6) == 1, "invalidate retained old RAM code");
+        // Hold a completed refill response, then invalidate during another refill.
+        check(fetch(dut, ram + 3 * setStride, 2, 6, 3, 0, 0, false, 3) == 1,
+              "held refill response failed");
+        drive(dut, false, 0, std::nullopt, 3, 0, 0, true);
+        dut.step();
+        check(fetch(dut, ram, 2, 6, 3, 0, 0, false, 0, true) == 1,
+              "inflight invalidation lost an accepted request");
+        check(fetch(dut, ram, 3, 6) == 1, "invalidation allowed a stale inflight fill to become resident");
+        drive(dut, false, 0, std::nullopt, 3, 0, 0, true);
+        dut.step();
+        check(fetch(dut, ram, 3, 6, 3, 0, 0, true, 0, false, PACKET_WORDS / 2 - 1) == 1 + PACKET_WORDS / 2,
+              "late fill error failed to preserve precise fallback error lanes");
         // A TOR region ending after the requested packet must not authorize a 64-byte fill.
-        check(fetch(dut, ram, 1, 3, 1, 0x0c, (ram + PACKET_WORDS * 4) >> 2) == PACKET_WORDS / 2,
+        check(fetch(dut, ram, 3, 3, 1, 0x0c, (ram + PACKET_WORDS * 4) >> 2) == PACKET_WORDS / 2,
               "PMP boundary did not fall back to a precise packet Get");
         std::cout << "GSIM instruction line cache: PASS packetWords=" << PACKET_WORDS
-                  << " hits=1packet/cycle lines=6 twoWay=1 "
-                     "burstBeats=8 invalidate=1 pmpFallback=1\n";
+                  << " hits=1packet/cycle cacheLines=" << CACHE_LINES
+                  << " sets=" << CACHE_LINES / 2 << " setStride=" << setStride << " twoWay=1 lruVictim=1 "
+                     "burstBeats=8 invalidate=1 inflightInvalidate=1 heldRefill=1 lateError=1 pmpFallback=1\n";
     } catch (const std::exception &error) {
         std::cerr << "GSIM instruction line cache: FAIL " << error.what() << '\n';
         return 1;

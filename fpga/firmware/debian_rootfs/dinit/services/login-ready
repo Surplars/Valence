@@ -1,0 +1,5 @@
+# Hold the console so Dinit status output cannot overwrite the login prompt.
+type = internal
+depends-on: ready
+options = runs-on-console
+restart = false

@@ -11,7 +11,7 @@ import soc.bus.tilelink.TLParams
 /** Uses the same atomic/coherence home as production; external byte oracle is C++.
   * No CPU instruction simulator or DUT RAM is used as the correctness oracle.
   */
-class EthernetDmaCoherenceGsim extends Module {
+class EthernetDmaCoherenceGsim(cacheLines: Int = 4) extends Module {
     private val base = BigInt("80200000", 16)
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
@@ -32,9 +32,9 @@ class EthernetDmaCoherenceGsim extends Module {
     dma.io.rxStatus <> io.rxStatus
     io.irq := dma.io.irq
     io.active := dma.io.active
-    val cache = Module(new CoherentLineCache(base = base, bytes = 8192, lines = 4, ways = 2))
+    val cache = Module(new CoherentLineCache(base = base, bytes = 8192, lines = cacheLines, ways = 2))
     val shared = Module(new AtomicDataMemory(base = base, bytes = 8192, registerResponseOwners = true))
-    val home = Module(new CoherentLineHome(base = base, bytes = 8192, trackedLines = 4, trackedWays = 2))
+    val home = Module(new CoherentLineHome(base = base, bytes = 8192, trackedLines = cacheLines, trackedWays = 2))
     val bridge = Module(new OrderedTileLinkBridge(allowWriteErrors = true, allowPartialWrites = true))
     val arbiter = Module(new soc.ip.tilelink.TwoMasterTileLinkArbiter(
         TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)))
@@ -72,7 +72,7 @@ class EthernetDmaCoherenceGsim extends Module {
 }
 
 object EthernetDmaCoherenceGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new EthernetDmaCoherenceGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new EthernetDmaCoherenceGsim(args.lift(1).map(_.toInt).getOrElse(4)), Array("--target-dir", args.head))
 }
 
 object EthernetPacketDmaGsimMain extends App {

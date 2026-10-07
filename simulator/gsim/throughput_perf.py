@@ -42,7 +42,13 @@ def hardware_sources():
             for path in sorted((ROOT / "src/main/scala").rglob("*.scala"))}
 
 
-def parse_measurements(text, expected_programs=12, expected_keys=None):
+EXPECTED_GEOMETRY = {"rob": 16, "physical": 48, "memory_entries": 2}
+
+
+def parse_measurements(text, expected_programs=12, expected_keys=None, expected_geometry=None):
+    expected_geometry = EXPECTED_GEOMETRY if expected_geometry is None else expected_geometry
+    if set(expected_geometry) != set(EXPECTED_GEOMETRY):
+        raise ValueError("explicit geometry must specify ROB, PRF and memory slots")
     expected_keys = EXPECTED_KEYS if expected_keys is None else expected_keys
     rows = [json.loads(line[4:]) for line in text.splitlines() if line.startswith("IPC ")]
     if f"GSIM short two-issue throughput + NEMU: PASS programs={expected_programs} " not in text:
@@ -53,8 +59,8 @@ def parse_measurements(text, expected_programs=12, expected_keys=None):
         cycles, retired = row["cycles"], row["retired"]
         if not isinstance(cycles, int) or cycles <= 0 or not isinstance(retired, int) or retired <= 0:
             raise RuntimeError("invalid cycle/retirement counts")
-        if row["rob"] != 16 or row["physical"] != 48 or row["memory_entries"] != 2:
-            raise RuntimeError("performance geometry differs from two-issue board baseline")
+        if any(row[key] != value for key, value in expected_geometry.items()):
+            raise RuntimeError("performance geometry differs from explicit expected geometry")
         for stage in ("commit", "issue", "rename"):
             if sum(row[f"{width}_{stage}_cycles"] for width in ("zero", "single", "dual")) != cycles:
                 raise RuntimeError(f"{stage} histogram accounting mismatch")

@@ -1,18 +1,26 @@
 # ZU15EG 板级配置（VL100 100 MHz 与历史 Board40/DDR50 基线）
 
-现用 Vivado 工程：`D:\TOOLS\projects\vivadoProjects\ZU15EG\ZU15EG.xpr`。
-历史 Board40 RTL 在 `E:\VM\Share\Valence-rtl\board-40m`。
+用户保留的历史 Vivado GUI 工程：`D:\TOOLS\projects\vivadoProjects\ZU15EG\ZU15EG.xpr`。
+该 GUI 的旧 Board40 源引用不代表当前独立 RV64GC 发布；历史共享快照已清理。
 历史板级 top、ROM 初始化镜像、下载工具在工程的 `src\board40` 目录。
 源代码维护在 WSL `/home/openion/Valence`；不是已删除的 Windows Valence 目录。
 
 当前发布为 OpenIon Valence VL100 / Orbital-A1：RV64GC（F/D 开）、双发射、
 CPU 100 MHz、UART 460800、完整 2 GiB DDR、原生 GMAC、CMU 和通用 DMA。
-2026-10-06 r5 完成新 RTL 整板综合、布线及最终物理优化，已生成 bit。
-整板 setup +0.003 ns / hold +0.003 ns / pulse +0.081 ns，MAC TX/RX setup
-分别 +0.066/+0.161 ns；裕量薄，静态签核不代表真实板卡稳定性已验证。
-发布目录 `E:\VM\Share\Valence-rtl\native-rv64gc-ddr2g-20261006-r5`，
-方便烧录的副本和配套 Debian 固件在
-`E:\VM\Share\Valence-rtl\firmware-debian13-vl100-2g-20261006-r1`。
+2026-10-07 netboot-drain-r1 已完成 fresh 整板综合/布线及发布复查并生成 bit；
+旧 donor 导入失败后从本轮自己的 `optimized.dcp` 继续，不再引用旧 CPU 检查点。
+整板 setup +0.001 ns / hold +0.009 ns / pulse +0.081 ns，MAC TX setup/hold
++0.066/+0.138 ns，RX +0.176/+0.596 ns；最薄裕量仅 1 ps，未达到工程裕量目标，
+静态签核不代表真实板卡稳定性已验证。
+发布目录 `E:\VM\Share\Valence-rtl\native-rv64gc-netboot-drain-20261007-r1`，
+`board-test` 提供 bit、配套 Debian 镜像、`valence.vld` 和下载脚本。
+本轮新增 MAC `RX_STOP`（GMAC+0x90、CAP bit8）：ROM 保持接收消费者直到旧帧和
+CDC 尾部排空，再停止 DMA；Linux 首次配置先 arm RX DMA 再解除接收停机。
+不要把旧 Debian 镜像当作这一版的网络测试固件，它不包含上述解除停机步骤。
+仅运行受影响的短 GSIM、独立双时钟 xsim 和软件/MMIO验证，没有全量 GSIM/Linux 仿真；
+大包、TFTP 速度恢复及 ROM→OpenSBI→Linux 交接仍待真实板卡验证。
+上一版 r6 为回退/证据基线（整板 setup +0.000 ns / hold +0.005 ns），旧固件在
+`E:\VM\Share\Valence-rtl\firmware-debian13-vl100-2g-20261006-r1`，50 MHz 回退也保留。
 详细内存、驱动、下载命令和板测步骤见 [VL100 Debian BSP](../../docs/vl100-debian-bsp.md)。
 本页以下为历史配置，不要沿用其旧菜单、40/50 MHz 或 1.5 Mbaud 参数。
 
