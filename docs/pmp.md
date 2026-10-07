@@ -1,5 +1,8 @@
 # 物理内存保护合同
 
+状态核对：2026-09-30。当前板启用 16 项 PMP 与 Sv39 I/D 译址；软件入口见
+[OS/软件移植合同](os-software-porting.md)。下文定向测试数值保留各历史配置含义。
+
 `MachinePlatform` 在 `MappedMachineCore` 中启用16条目PMP；`OooParams` 也允许显式选择8条目，
 独立裸核/机器核默认不启用PMP。实现按56位物理地址、4字节最小粒度处理，支持OFF、TOR、NA4、NAPOT。
 M态提供 `pmpcfg0`、`pmpcfg2` 和 `pmpaddr0` 至 `pmpaddr15`；保留配置位读零，
@@ -28,9 +31,10 @@ U态APLIC读写被拒、单个ROM指令禁止执行、M/S/U陷阱、串口输出
 没有Get覆盖禁执行字，且跨界允许字使用32位Get。独立取指测试另覆盖0/1/2许可掩码、
 ROM部分读、桥响应背压和正常双字吞吐。Sstc及原双主负载回归覆盖既有路径。
 
-当前平台没有Sv39页表转换或页级权限，也未覆盖通用I-cache、多hart或外部MMIO取指。
-PMP比较器为并行组合逻辑，未增加正常双字取指或LSU请求的流水级；这一结构的FPGA
-LUT/布线开销和Fmax仍需Vivado测量，GSIM周期数不能替代时序结论。
+当前平台已接可选 Sv39/Sv48/Sv57 服务，BoardSocTop 选择 Sv39；页表权限先检查，随后执行物理 PMP，
+页表隐式读取本身也受 S 态 PMP 限制，见[虚拟内存合同](virtual-memory.md)。当前不宣称多 hart 或完整 PMA 合规。
+PMP 状态范围已共享预译码，匹配采用并行比较与优先选择；walker 的 PMP 批准请求后增加一项寄存队列，
+避免重复宽译码及长组合路径。GSIM 周期和历史 LUT 数据均不能替代当前参数下的 Vivado 时序结论。
 
 双主TileLink整机原RAM/DMA/原子固件的seed0周期由3611/5559/6694变为3614/5560/6695；
 三类固件及三个背压种子均通过。正常取指保持64位Get，新增的PMP更新/特权返回排空使这三条

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-04",
+  "scope": "schematic and vendor pin cross-check only; not an applied XDC or hardware validation",
+  "device": "xczu15eg-ffvb1156-2-i",
+  "selected_first_port": "PL RTL8211F / RJ2 / 1G RGMII",
+  "future_10g_port": "SFP1",
+  "10g_deferred": true,
+  "sources": [
+    {"path": "D:/surplars/Downloads/XCZU15EG_CORE+V1.0原理图.pdf", "sha256": "153af78b9d9b2a186576c6b3a6a6f4c7bb7ba723e0bb6754ed6fd25ca8dbb2db", "visually_checked_pages": [6, 7]},
+    {"path": "D:/surplars/Downloads/XCZU15EG-F+V1.0原理图.pdf", "sha256": "da04ec394dcf56ac45deed4203e983395a59834b433dfba4833bf70aa411b628", "visually_checked_pages": [2, 3, 4, 7, 8, 14]}
+  ],
+  "pl_phy": {
+    "component": "U3 RTL8211F-CG",
+    "connector": "RJ2",
+    "phy_address_schematic": 1,
+    "io_standard": "LVCMOS18",
+    "mdio": {"ball": "Y12", "carrier_j5_pin": 87, "core_net": "B66_L5_P", "carrier_pullup_ohms": 1500},
+    "mdc": {"ball": "Y1", "carrier_j5_pin": 85, "core_net": "B66_L22_N", "max_hz": 2500000},
+    "reset_gate": {"ball": "Y2", "carrier_j5_pin": 83, "core_net": "B66_L22_P", "assert_level": 1, "release_level": 0, "inverter": "Q10 AO3400A; not direct PHYRSTB"},
+    "rgmii": {
+      "rx_clock": "AA7", "rx_control": "AB9", "rx_data_lsb_first": ["AC4", "AB4", "AB10", "AB11"],
+      "tx_clock": "AC8", "tx_control": "AB8", "tx_data_lsb_first": ["AC11", "AC12", "AA6", "AA12"]
+    },
+    "rx_delay_strap_schematic": "pull-up; verify actual MDIO configuration before applying I/O constraints",
+    "tx_delay_strap_schematic": "pull-up; verify actual MDIO configuration before applying I/O constraints",
+    "reference_clock": {"schematic_hz": 25000000, "source": "AD9523 OUT11 / PLL_PHY2_CLK; carrier p8 auto table", "local_y2_crystal_nc": true, "on_board_verified": false},
+    "pins_applied": false,
+    "on_board_verified": false
+  },
+  "sfp1": {
+    "deferred": true,
+    "module_selected": false,
+    "gth_bank": 129,
+    "channel": 0,
+    "tx_p": "K29", "tx_n": "K30", "rx_p": "L31", "rx_n": "L32",
+    "refclk0_p": "L27", "refclk0_n": "L28",
+    "refclk0_schematic_hz": 156250000,
+    "refclk0_source": "carrier Y5 SiT9120AI independent oscillator, not AD9523 SFP output marked NC",
+    "tx_disable_vendor_candidate": "A12; auxiliary signals must be checked before enabling",
+    "pcs_or_mac_implemented": false,
+    "pins_applied": false
+  }
+}

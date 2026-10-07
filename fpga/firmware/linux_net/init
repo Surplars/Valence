@@ -1,0 +1,46 @@
+#!/bin/sh
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export HOME=/root TERM=vt100 LC_ALL=C
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mkdir -p /dev/pts /var/run
+mount -t devpts devpts /dev/pts
+log() {
+    uptime=unknown
+    read -r uptime unused < /proc/uptime || uptime=unknown
+    printf '[%s] init: %s\n' "$uptime" "$*"
+}
+hostname valence
+log 'Valence Linux RV64GC / hard-float lp64d / CPU100MHz / UART460800'
+log 'Loading CSR-only IRQ adapter; internal MSI selftest required'
+irq_ready() {
+    for irq_status in /sys/bus/platform/devices/*/irqchip_status; do
+        if [ -r "$irq_status" ] && grep -q 'ready=1 faulted=0' "$irq_status"; then
+            return 0
+        fi
+    done
+    return 1
+}
+if insmod /lib/modules/valence_aia.ko && irq_ready; then
+    log 'IRQ adapter ready'
+    log 'Loading native GMAC driver (DMA IRQ + NAPI)'
+    if insmod /lib/modules/valence_gmac.ko; then
+        log 'GMAC module loaded; configuring network'
+        ifup -a || log 'Network not up; inspect dmesg and /etc/network/interfaces'
+        log 'Network configuration finished (carrier negotiation may continue)'
+    else
+        log 'GMAC probe failed; inspect dmesg (board reset / MDIO / PHY delay)'
+    fi
+else
+    log 'IRQ selftest/probe failed; GMAC not enabled, inspect dmesg; no polling fallback'
+fi
+log 'VALENCE_LINUX_INIT_OK'
+echo 'Commands: fpu-test [--bench], coremark 0 0 0 2000, net-test, net-bench tx|rx PC_IP, ip -s link'
+echo 'Diagnostics: net-status (IRQ/NAPI counters), boot-time (slowest initcalls)'
+echo 'Network config: /etc/network/interfaces; RAM-only, reset restores packaged defaults.'
+while true; do
+    log 'Starting interactive shell'
+    setsid cttyhack /bin/sh -l
+    log 'Shell exited; restarting.'
+done

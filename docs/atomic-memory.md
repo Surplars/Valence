@@ -3,7 +3,12 @@
 独立AtomicMemory IP现已通过AtomicDataMemory适配器接入CPU译码、LSU及机器平台共享RAM。
 MachinePlatform默认开启atomicMemory；独立裸核默认关闭，开启者必须连接原子执行端，不能把原子请求当普通读写。
 目前验证单hart RAM中的W/D LR/SC与九种AMO，所有aq/rl组合采取保守串行排序；不宣称完整RVA23、多hart一致性或全套A合规。
-机器CSR的misa仍返回0（未提供完整能力位图），本轮不改变软件能力枚举或操作系统支持声明。
+2026-09-30 核对：机器 CSR 的 `misa` 已不是零；当前 Board40 返回 `0x8000000000141105`
+（RV64 I/M/A/C/S/U），但这仍不是完整 A/RVA23 一致性认证。
+当前原子 RAM 范围由平台传入，Board40 为 `0x80200000` 起 1 MiB；
+本文 DMA/共享访存测试属于各自的测试配置，不代表 Board40 DMA 可用——
+板级 DMA 自身仍检查旧 RAM 地址，限制见 [datasheet 勘误](soc-datasheet.md)。
+当前软件发现和特权合同见 [OS 适配指南](os-software-porting.md)。
 依据A 2.1：https://docs.riscv.org/reference/isa/v20240411/unpriv/a-st-ext.html 。
 
 ## 实现前合同
@@ -129,6 +134,25 @@ NEMU从不因差异重同步。独立CPU模型在原子请求发生时检查它�
 硬件新增原子标识、年龄阻挡和LSU结果选择路径；普通流每拍一笔的共享边界不增加流水级，
 但组合延迟需Vivado评估，GSIM周期不代表Fmax。后续缓存若绕过此边界，必须补保留失效及一致性协议。
 日志：`build/gsim/atomic-core-dev.log`、`build/gsim/atomic-platform-dev.log`。
+
+## 2026-10-01：板级普通响应 owner 切分
+
+`AtomicMemory` 和 `AtomicDataMemory` 新增 `registerResponseOwners`，通用 IP 默认
+`false`，保留原有空队列同拍直通。板级 `MachinePlatform.registerPhysicalResponseOwners`
+同时配置原子/DMA普通响应队列与物理系统仲裁队列；要求 translation service +
+ordered TileLink memory，`BoardSocTop` 启用。不得只切其中一处：实际 SoC 报告证实
+另一处空 owner 直通会保留 request grant→response valid→LSU 的长反馈路径。
+
+仅普通 CPU/DMA 请求的 owner metadata 改为非 flow；仍为8项、每拍最多一笔，
+数据通路、LR/SC/AMO状态机、保留失效和原子排空规则不变。
+至少一拍返回的下游不增加响应拍数；零拍下游必须保持响应直到 ready，普通响应
+最早下一拍接受。两级 owner 同时登记请求，不是串联两个数据流水级。
+
+定向命令：`make gsim-atomic-registered-owners-test`。同源码原始/注册模式均通过
+独立字节内存、随机背压、CPU/DMA公平性、零拍返回和负向错误注入（ASan/UBSan）。
+1拍/12拍模型的事务数和总周期逐项相同；LR/SC成功/SC失败/AMO仍为
+4/4/2/6和15/15/2/28拍。零拍普通响应有预期新增等待，因此该模式随机轨迹不相同，
+不宣称对任意下游均零周期成本。无全量 GSIM 或板卡频率资格声明。
 
 
 第二阶段最终`make test`通过32项Scala、完整GSIM/NEMU与17项负向注入。

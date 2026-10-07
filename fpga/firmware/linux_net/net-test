@@ -1,0 +1,24 @@
+#!/bin/sh
+# Explicitly invoked by the user. No automatic boot-time ping or throughput traffic.
+set -eu
+peer=${1:-192.168.137.1}
+waited=0
+while [ "$(cat /sys/class/net/eth0/carrier 2>/dev/null || echo 0)" != 1 ]; do
+    waited=$((waited + 1))
+    [ "$waited" -le 20 ] || { echo 'No carrier: require 1Gbps/full duplex; inspect dmesg/cable/PHY'; exit 1; }
+    sleep 1
+done
+sleep 1
+echo '=== native GMAC / RTL8211F link ==='
+ip addr show dev eth0
+ip route
+cat /sys/class/net/eth0/carrier
+cat /sys/class/net/eth0/speed
+cat /sys/class/net/eth0/duplex
+echo '=== small and full-MTU packets ==='
+ping -c 5 "$peer"
+ping -c 5 -s 1472 "$peer"
+echo '=== counters ==='
+ip -s link show dev eth0
+cat /proc/net/dev
+echo 'For throughput use net-bench tx/rx; net-status shows DMA IRQ/NAPI counts. NOT a 1Gbps peak claim.'

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Explicit destructive test on private DMA allocations, never fixed RAM addresses.
+set -eu
+bytes=${1:-1048576}
+iterations=${2:-4}
+test "$(id -u)" = 0 || { echo 'dma-bench requires root' >&2; exit 1; }
+node=
+for entry in /sys/bus/platform/drivers/valence-dma-bench/*/benchmark; do
+    if [ -w "$entry" ]; then node=$entry; break; fi
+done
+test -n "$node" || { echo 'valence-dma-bench unavailable; check dmesg/DT/modules' >&2; exit 1; }
+printf '%s %s\n' "$bytes" "$iterations" > "$node"
+cat "$node"
+awk '{ for (i=1;i<=NF;i++) if ($i ~ /^payload_bytes_per_sec=/) {
+    split($i, x, "="); printf "Payload %.3f MiB/s; logical R+W %.3f MiB/s (not MIG peak)\n", x[2]/1048576, x[2]*2/1048576
+} }' "$node"

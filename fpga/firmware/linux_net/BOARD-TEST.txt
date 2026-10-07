@@ -1,0 +1,124 @@
+Valence Linux GC + native GMAC bring-up, 2026-10-06
+
+r3: DMA completion IRQ + bounded NAPI, without modifying the existing bit.
+CPU remains 100MHz/RV64GC; Linux tick is 250Hz with NO_HZ_IDLE.
+IPv4 static networking is retained; IPv6 is disabled in this test profile.
+DMA source 6 -> S APLIC -> CSR-only IMSIC -> SEIP -> Linux IRQ -> NAPI.
+valence_aia.ko is a single-hart IRQ adapter, NOT a standard IMSIC/MSI driver.
+The DT never claims a CPU-writable MSI aperture or a full Ssaia implementation.
+No IPI, SMP/hotplug, PCI/MSI allocation or full AIA compliance is claimed.
+Internal GENMSI EIID31 and APLIC SETIPNUM31 source-path selftests must both PASS
+before the MAC module is loaded. Source/target/delegation readback is checked.
+If it fails, the shell still starts but Ethernet stays disabled; no polling fallback.
+The data plane has no periodic timer/work item while idle. PHY status remains
+low-frequency polled; a 100ms once-only MAC config worker stops after setup.
+NAPI weight=8 and a 2ms loop budget yield to other work; never busy-wait for DMA.
+RX and TX descriptor buffer addresses are programmed once at probe.
+Packet buffers still persist across ifdown; no unsafe DMA cancel/unload was added.
+
+r2 ISA/timestamp fix is retained:
+The DT now includes riscv,isa-base and riscv,isa-extensions with explicit F/D,
+while retaining riscv,isa for OpenSBI. Kernel ISA fallback is also enabled.
+Kernel printk messages have [seconds] timestamps; init logs driver/network/shell
+milestones from /proc/uptime. initcall_debug is now recorded at DEBUG level in
+dmesg, not flooded to UART at loglevel7. initramfs_async=0 makes its unpacking
+part of the measured synchronous populate_rootfs initcall. Run boot-time to
+show the 15 slowest initcalls. The unaligned-access probe remains enabled.
+Early boot must show nonempty ISA extensions/capabilities including f and d.
+Do not accept the old blank "riscv: base ISA extensions" / "ELF capabilities".
+
+Use the existing RV64GC two-issue CPU100MHz/UART460800 native-GMAC bit.
+No Vivado resynthesis is needed. Reset the board to BootROM before upload.
+python uart_load.py COM4 opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin --memory ddr --baud 460800 --run --console
+
+Connect the PL RJ2 (RTL8211F) to a 1Gbps/full-duplex PC port.
+Board: 192.168.137.30/24. PC/gateway: 192.168.137.1/24.
+The driver does not contain any IP address. Boot uses /etc/network/interfaces.
+No automatic DHCP/ping/throughput test runs at boot. MAC is locally administered:
+02:56:41:4c:00:01. In a multi-board network assign unique DT MAC addresses.
+
+Expected driver messages:
+  MSI/SEIP selftest PASS; APLIC source test PASS; CSR-only domain, DMA source 6
+  eth0: native GMAC + coherent DMA, IRQ ... / NAPI weight 8
+  RTL8211F ... attached PHY driver
+  RTL8211F delay verified: TXDLY=0 RXDLY=1 (FPGA TX +2ns)
+  Link is Up - 1Gbps/Full
+Then run in the board's Linux shell:
+  ip addr show eth0
+  ip route
+  net-test
+  ip -s link show eth0
+  net-status
+  sleep 5
+  net-status
+Expect a Valence APLIC/CSR / valence-gmac-dma row in /proc/interrupts.
+The IRQ adapter status should show ready=1 faulted=0 selftest_irqs=2.
+With no incoming traffic, DMA IRQ/NAPI counts should stop increasing (network
+broadcasts/PC packets can legitimately increase them). Timer IRQ count need
+not be exactly 250/sec: tickless idle suppresses periodic ticks.
+Repeat ifdown/ifup and bidirectional ping, then net-bench tx/rx before comparing
+CPU usage. top itself and UART output are expensive; do not call top's own cost
+unexplained background load. IRQ_TIME_ACCOUNTING is enabled for clearer stats.
+Windows may require allowing inbound ICMP in the firewall for ping replies.
+No PC firewall/network settings are changed by the firmware or build scripts.
+
+Runtime changes (no recompile; RAM-only rootfs resets to packaged defaults):
+  vi /etc/network/interfaces
+  ifdown eth0
+  ifup eth0
+Or use ip addr/ip route directly. DHCP is optional: change the stanza to
+  iface eth0 inet dhcp
+The udhcpc event script is included. DNS is only obtained when DHCP is used;
+static direct PC tests do not need DNS. Internet routing needs PC ICS/router setup.
+
+FPU arithmetic, process context, and workload:
+  fpu-test
+  ifdown eth0
+  fpu-test --bench
+  coremark 0 0 0 2000
+  ifup eth0
+Expected: AT_HWCAP with F=1 D=1, F/D ARITHMETIC PASS,
+LINUX FP CONTEXT PASS, FPU TEST PASS errors=0.
+Both BusyBox and test/CoreMark binaries are static musl RV64GC/lp64d.
+The existing fastfetch utility is reused as a separate static soft-float ELF.
+CoreMark's algorithms remain integer. Only its compilation/accurate reporting
+uses hard-float; do not reinterpret CoreMark as an FPU benchmark.
+New CoreMark ticks are CLOCK_MONOTONIC nanoseconds, not CPU cycles or milliseconds.
+The FP dot-product is scalar and load/dependency-limited, not peak MFLOP/s.
+Disable network polling for like-for-like compute comparisons.
+
+First throughput test (after bidirectional ping succeeds):
+Recommended dedicated tool (no third-party PC package):
+  PC: python net_bench_peer.py --bind 192.168.137.1 --port 5001
+  Board TX: net-bench tx 192.168.137.1 5001 1
+  Board RX: net-bench rx 192.168.137.1 5001 1
+The last argument is MiB (1..256); use 8 for longer measurements.
+Both directions validate payload/byte counts and report receiver-timed MiB/s
+and Mbit/s; sender-only socket buffering is not mislabeled as wire throughput.
+This is our lightweight protocol, NOT compatible with iperf/iperf3.
+Allow inbound TCP 5001 on the PC if required; scripts do not change the firewall.
+
+Alternative using netcat:
+Start a receiver on the PC, for example ncat -l 5001 > NUL in cmd.exe.
+Then on the board (8MiB, explicit traffic to this PC only):
+  time sh -c 'dd if=/dev/zero bs=1024 count=8192 2>/dev/null | nc -n -w 2 192.168.137.1 5001'
+This nc is BusyBox 1.10-compatible: it has -w, NOT OpenBSD -N or -q.
+The final-read timeout can add up to about two seconds to shell elapsed time;
+for a bandwidth figure time receipt of the known 8388608 bytes on the PC.
+Capture packets on the PC and compare /proc/net/dev before/after if debugging.
+Reverse direction: board listens with nc -l -p 5001 > /dev/null, PC sends data.
+
+Scope and limitations:
+  Driver is 1Gbps/full-duplex only; no 10/100 or pause support.
+  One descriptor per direction; IRQ + NAPI is not a 1Gbps throughput claim.
+  Packet DMA IRQ6 only. MAC IRQ5/UART IRQ3 remain unused by this Linux profile.
+  TX stats reflect DMA handoff; MAC counters/PC capture verify actual wire TX.
+  MTU <=1500; no SG, checksum, VLAN or timestamp offload.
+  DMA buffers use the hardware's probed coherent CPU/DMA boundary.
+  Hardware has no DMA abort/reset CSR. Buffers stay allocated across ifdown;
+  module unloading and sysfs unbinding are disabled. Reset to unload/recover timeout.
+  PHY delay setup belongs to the upstream RTL8211F driver, not new MAC RTL.
+  Static build, opcode and host tests are not physical board qualification.
+  This r3 IRQ firmware has not yet been booted/tested on the physical board.
+  r2 board feedback already confirmed link-up and PC-to-SoC ping, with heavy
+  polling overhead; that evidence does NOT qualify the new r3 IRQ implementation.

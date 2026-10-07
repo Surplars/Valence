@@ -8,7 +8,8 @@ import soc.bus.tilelink.{TLBundle, TLParams}
   * separates reads from writes. Callers must wait for a write acknowledgement before relying
   * on a later read of the same address; this module does not impose cross-direction ordering.
   */
-class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8)
+class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
+    rawResponseMetadata: Boolean = false)
     extends Module {
     require(params.sourceBits <= 6)
     val io = IO(new Bundle {
@@ -20,7 +21,7 @@ class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagB
     })
     val reader = Module(new TileLinkLineFillEngine(params, entries, tagBits))
     val writer = Module(new TileLinkLineWriteEngine(params, entries, tagBits))
-    val arbiter = Module(new TwoMasterTileLinkArbiter(params))
+    val arbiter = Module(new TwoMasterTileLinkArbiter(params, rawResponseMetadata))
     reader.io.request <> io.readRequest
     io.readResponse <> reader.io.response
     writer.io.request <> io.writeRequest

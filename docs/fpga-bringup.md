@@ -1,15 +1,50 @@
-# FPGA 同步 ROM / RAM 执行平台
+# FPGA 启动：当前板级配置与早期实验
 
-当前 4-issue SoC 的 Windows Vivado OOC 时序移交入口见
-[Windows 时序验证](fpga-timing-windows.md)；下文的 `FpgaRomTop`/`FpgaPlatformTop`
-是更早的独立启动实验，不能代表当前 Linux SoC。
+## DDR50 candidate (2026-09-30)
 
-目标器件：XCZU15EG。完整封装/速度等级和板级时钟/引脚尚未确定，
-当前没有 Vivado 环境，不声明可达频率、资源利用率或 BRAM 推断已成功。
-器件资源以 [AMD Zynq UltraScale+ MPSoC 产品表](https://www.amd.com/en/products/adaptive-socs-and-fpgas/soc/zynq-ultrascale-plus-mpsoc.html)为准；
-PS Cortex-A53 的标称频率不代表 PL 中本项目 RISC-V 核的可达频率。
-当前同步前端已支持两个带 PC 的 packet 缓存、顺序预取与响应旁路，一周期 ROM 下可稳定双路供指。
-已新增同步字节写 RAM，形成可运行受限 C 程序的核＋ROM＋RAM 平台，入口与实测见本文末尾。
+An independent `soc_top_ddr` / `BoardSocTop(externalDdr=true)` profile now
+uses a 512 MiB AXI DDR window at `0x80200000..0xA01FFFFF`, a 50 MHz CPU
+and 1.5 Mbaud UART. The existing UltraRAM bitstream is the board-validated
+baseline. DDR electrical calibration remains unverified. The retained repaired/
+post-route optimized checkpoint meets 50 MHz (WNS +0.001 ns, WHS +0.008 ns),
+but only has 1 ps setup margin; no DDR bitstream/on-board test was performed.
+The original candidate impl_1 still records the first failed route; use the
+separate optimized_routed.dcp documented below. DDR firmware reserves
+`0xA01FC000..0xA01FFFFF`; host
+`--memory ddr` allows 512 MiB minus 16 KiB per download. The new ROM COE
+must be included in the bitstream; the default URAM limit stays 1008 KiB.
+Details and build commands:
+[PL DDR4 integration](../fpga/zu15eg/pl-ddr4-integration.md).
+
+## 当前入口：ZU15EG Board40（2026-09-30）
+
+当前上板顶层为 `soc_top` → `BoardSocTop`，不是下面的早期 `FpgaRomTop/FpgaPlatformTop`，
+也不是用于旧 OOC 筛选的 `CurrentSocTimingTop/CompactSocTimingTop`。
+完整器件已确定为 `xczu15eg-ffvb1156-2-i`，Windows Vivado 2025.1 环境已经可用。
+板级 XDC 和 200 MHz 差分时钟输入已接好；`clk_wiz_0` 配置输出 40 MHz。
+这是 PL RISC-V SoC，不使用 PS Cortex-A53/DDR，也不以 PS 标称频率推断本核 Fmax。
+
+- ROM：`0x80000000` 起 128 KiB，BMG 双读端口、1 周期读，用 `bootrom.coe` 初始化。
+- RAM：`0x80200000` 起 1 MiB，XPM UltraRAM、3 周期读；顶部 16 KiB 由 ROM monitor 使用。
+- 启动：ROM monitor 保留 RAM/ALU/TMR/ECHO，增加 UART 下载/运行；应用下载到 RAM，CRC 通过后跳转。
+- 入口：`make fpga-board-firmware`、`make fpga-board-rtl`、`make gsim-board-boot-test`。
+- 当前工程：`D:\TOOLS\projects\vivadoProjects\ZU15EG\ZU15EG.xpr`；唯一活动板级 RTL 目录为
+  `E:\VM\Share\Valence-rtl\board-40m`，板级 top/镜像/下载器在工程 `src\board40`。
+
+操作说明、串口命令、链接脚本与 ROM 协议见 [板级工程说明](../fpga/zu15eg/README.md) 和
+[固件说明](../fpga/firmware/README.md)。软件必须按 [Board40 datasheet](soc-datasheet.md)
+使用新地址；其中 DMA 仍有旧地址校验的板级勘误，不应作为当前可用复制设备。
+
+已通过端到端 GSIM 下载/执行/重复下载、ROM/RAM 定向检查；Vivado 确认 1 MiB RAM 使用
+32 个 URAM，并通过两个小 IP 构建和整板 RTL elaboration。**新板级 40 MHz 尚未完成
+post-route 签核或本版上板回归**。首次切换这版硬件/ROM 需重新生成 bitstream，
+之后仅改 RAM 应用可只编译并串口下载。报告口径见 [Windows 时序验证](fpga-timing-windows.md)。
+
+## 历史范围：独立同步 ROM/RAM 启动实验
+
+下文保留 `FpgaRomTop/FpgaPlatformTop` 的实现合同、旧命令与测量记录；其中“当前”“尚无”
+描述该实验阶段，不覆盖上面的 Board40 或 Linux GSIM。小容量、旧 RAM 地址和测试结果
+不得直接用作当前板级软件合同。历史数据不删除，也不把未测量项目补写为已通过。
 
 ## 初始实施合同（后续顺序预取扩展见下文）
 

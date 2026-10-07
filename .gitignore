@@ -1,3 +1,26 @@
+# Valence: generated outputs, local archives and editor/patch backups.
+/build/
+/simulator/build/
+/out/
+*.orig
+*.dcp
+*.bin
+*.vcd
+*.fst
+*.fir
+*.anno.json
+*.jou
+.Xil/
+# Never commit private tool licenses or credentials.
+*.lic
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+
 ### Project Specific stuff
 test_run_dir/*
 ### XilinxISE template

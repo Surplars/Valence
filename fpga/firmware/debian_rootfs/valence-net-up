@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+if ! [ -d /sys/class/net/eth0 ]; then
+    /sbin/modprobe valence_aia
+    ready=0
+    for status in /sys/bus/platform/devices/*/irqchip_status; do
+        if [ -r "$status" ] && grep -q 'ready=1 faulted=0' "$status"; then ready=1; fi
+    done
+    if [ "$ready" != 1 ]; then
+        echo 'valence-aia failed; valence-gmac will not be loaded' >&2
+        exit 1
+    fi
+    /sbin/modprobe valence_gmac
+fi
+/sbin/ifup eth0
+ip address show dev eth0
+cat /proc/net/dev

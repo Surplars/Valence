@@ -7,8 +7,8 @@ import soc.core.ooo._
 
 class IntegerCoreGsim(p: OooParams) extends Module {
     require(p.renameWidth == 2 && p.commitWidth == 2)
-    require(Set(4, 8).contains(p.memoryEntries), "GSIM harness checks four or eight memory slots")
-    require(p.branchPredictorEntries == 64, "GSIM predictor model uses 64 entries")
+    require(Set(2, 4, 8).contains(p.memoryEntries), "GSIM harness checks two, four or eight memory slots")
+    require(Set(32, 64).contains(p.branchPredictorEntries), "GSIM predictor model supports 32 or 64 entries")
     val io = IO(new Bundle {
         val instruction0      = Input(Valid(UInt(32.W)))
         val instruction1      = Input(Valid(UInt(32.W)))
@@ -55,6 +55,7 @@ class IntegerCoreGsim(p: OooParams) extends Module {
     core.io.instructions(1) := io.instruction1
     core.io.instructionFaults := VecInit(Seq.fill(p.renameWidth)(false.B))
     core.io.instructionPageFaults := VecInit(Seq.fill(p.renameWidth)(false.B))
+    core.io.instructionFaultAddresses.foreach(_ := VecInit(Seq.fill(p.renameWidth)(0.U(64.W))))
     core.io.commitEnable    := io.commitEnable
     core.io.inspectRegister := io.inspectRegister
     io.fetchPc              := core.io.fetchPc
@@ -67,7 +68,7 @@ class IntegerCoreGsim(p: OooParams) extends Module {
     io.committedValue       := core.io.committedValue
     io.redirect             := core.io.redirect
     io.recovering           := core.io.recovering
-    val decode = Module(new IntegerDecode)
+    val decode = Module(new IntegerDecode(parallelLegality = p.parallelDecodeLegality, parallelBitLegality = p.parallelBitLegality))
     decode.io.instruction := io.decodeInstruction
     decode.io.pc          := io.decodePc
     io.decoded            := decode.io.decoded
@@ -88,7 +89,45 @@ object IntegerCoreGsimMain extends App {
         loadCompletionBypass = args.lift(7).contains("load-bypass"),
         moveAlias = args.lift(8).contains("move-alias"),
         mulWordPreviewBypass = args.lift(9).contains("word-bypass"),
-        indirectTargetEntries = args.lift(10).map(_.toInt).getOrElse(0)
+        indirectTargetEntries = args.lift(10).map(_.toInt).getOrElse(0),
+        registeredBranchRedirect = args.lift(11).contains("registered-branch"),
+        recoveryWidth = args.lift(12).map(_.toInt).getOrElse(1),
+        registeredStoreResponseOwners = args.drop(13).contains("registered-owners"),
+        registeredLocalStoreResponses = args.drop(13).contains("registered-local-response"),
+        registeredMemoryRequests = args.drop(13).contains("registered-memory-requests"),
+        registeredMemoryAddress = args.drop(13).contains("registered-memory-address"),
+        registeredRobRetirement = args.drop(13).contains("registered-retirement"),
+        registeredLoadReplay = args.drop(13).contains("registered-load-replay"),
+        earlyRecoveryIssueBlock = args.drop(13).contains("early-recovery-issue-block"),
+        precompleteMispredictedBranch = args.drop(13).contains("precomplete-mispredicted-branch"),
+        parallelRenameAdmission = args.drop(13).contains("parallel-rename-admission"),
+        earlyRankedOperands = args.drop(13).contains("early-ranked-operands"),
+        earlyRenameDestinations = args.drop(13).contains("early-rename-destinations"),
+        parallelPrfReadyUpdates = args.drop(13).contains("parallel-prf-ready"),
+        stablePredictionMetadata = args.drop(13).contains("stable-prediction-metadata"),
+        balancedBranchCompare = args.drop(13).contains("balanced-branch-compare"),
+        separateBranchRetireFault = args.drop(13).contains("separate-branch-retire-fault"),
+        earlyRedirectCapture = args.drop(13).contains("early-redirect-capture"),
+        parallelMemoryPreparation = args.drop(13).contains("parallel-memory-preparation"),
+        parallelIssuePayload = args.drop(13).contains("parallel-issue-payload"),
+        oneHotPhysicalOperands = args.drop(13).contains("one-hot-physical-operands"),
+        parallelPredictionQualification = args.drop(13).contains("parallel-prediction-qualification"),
+        parallelRecoveryAdmission = args.drop(13).contains("parallel-recovery-admission"),
+        parallelRedirectTokens = args.drop(13).contains("parallel-redirect-tokens"),
+        parallelIssueRanks = args.drop(13).contains("parallel-issue-ranks"),
+        parallelAluResults = args.drop(13).contains("parallel-alu-results"),
+        parallelCompletionPayload = args.drop(13).contains("parallel-completion-payload"),
+        parallelFrontendControl = args.drop(13).contains("parallel-frontend-control"),
+        parallelAuipcQualification = args.drop(13).contains("parallel-auipc-qualification"),
+        parallelPredictionSources = args.drop(13).contains("parallel-prediction-sources"),
+        parallelAddressSums = args.drop(13).contains("parallel-address-sums"),
+        parallelDecodeLegality = args.drop(13).contains("parallel-decode-legality"),
+        parallelMinMaxResults = args.drop(13).contains("parallel-minmax-results"),
+        parallelBitLegality = args.drop(13).contains("parallel-bit-legality"),
+        parallelRenameRanks = args.drop(13).contains("parallel-rename-ranks"),
+        parallelMinMaxWordResults = args.drop(13).contains("parallel-minmax-word-results"),
+        parallelArchitecturalDestinations = args.drop(13).contains("early-architectural-destinations"),
+        parallelAluWordResults = args.drop(13).contains("early-alu-word-results")
     )
     ChiselStage.emitCHIRRTLFile(new IntegerCoreGsim(p), Array("--target-dir", target))
 }

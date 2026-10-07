@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Appended to a generated copy of the clean upstream top-level Kconfig.
+
+config VALENCE_SOC
+	tristate "OpenIon Valence VL100 board identity"
+	depends on OF
+	select SOC_BUS
+	default m
+	help
+	  Register DT configuration identity on the standard SoC bus.
+	  The driver remains an external module, loaded by the Valence rootfs.
+	  This is not a silicon revision or serial-number probe.
+
+config VALENCE_CMU
+	bool "OpenIon Valence fixed-rate clock framework support"
+	depends on OF
+	select COMMON_CLK
+	default y
+
+config VALENCE_DMA
+	bool "OpenIon Valence memcpy DMAengine framework support"
+	depends on OF && HAS_DMA
+	select DMADEVICES
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	default y
+	help
+	  Link DMAengine helpers into the kernel. The Valence provider itself is
+	  supplied as an external module; no implicit upstream source modification.

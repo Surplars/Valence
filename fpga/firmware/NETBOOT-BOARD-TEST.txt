@@ -1,0 +1,55 @@
+Valence r4 network BootROM / Linux board checks
+==============================================
+
+Hardware profile: dual issue, RV64GC F/D ON, CPU 100 MHz, AON/UART 50 MHz,
+UART 460800 8N1, native GMAC, 512 MiB DDR.
+Do not use this network BootROM with the old r3 bit: it needs the new DMA RX_STOP.
+
+Status: portable BootROM protocol/build tests and short cache/DMA/CPU tests pass.
+This document does not assert routed signoff or successful physical board boot.
+Use a bit only when its own static-signoff.txt and release receipt say PASS.
+Actual Linux TCP stall fix and TFTP boot must still be checked on the board.
+
+Network boot:
+1. Connect the PL RTL8211F RJ2 port directly to the PC.
+2. Set the PC Ethernet adapter to 192.168.137.1/24. Board BootROM uses
+   192.168.137.30/24, MAC 02:56:41:4c:00:01. No DHCP/router is required.
+3. In the delivered firmware directory run:
+   python .\netboot_host.py serve .\valence.vld --bind 192.168.137.1 --once
+4. Allow this Python server through Windows Firewall for the direct Ethernet
+   network only. TFTP RRQ uses UDP 69; the server transfers from an ephemeral
+   UDP port. Do not disable the firewall globally.
+5. Open the UART console at 460800, then reset the board.
+   The SoC requests valence.vld. No host "start download" packet is required.
+   ROM checks header, length, entry and complete data CRC before execution.
+   Send n to retry network boot; send d to abort/fall back to UART downloading.
+
+UART recovery:
+   python .\uart_load.py COM4 .\opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin --memory ddr --baud 460800 --run --console
+   Close other COM4 terminals first. The loader uses d to enter UART recovery.
+
+Linux:
+   boot-time
+   net-status
+   ifup eth0
+   ping -c 3 192.168.137.1
+   fpu-test
+
+Start the host peer in another PC terminal:
+   python .\net_bench_peer.py --bind 192.168.137.1 --port 5001
+Then on the board:
+   net-bench tx 192.168.137.1 5001 1
+   net-status
+   dmesg | tail -n 50
+
+Check that transfer completes, shell remains responsive, and IRQ/NAPI counters
+advance. Test 1 MiB before larger transfers. Save complete serial output if
+it still hangs. This image retains IRQ/NAPI, tickless idle and timestamp logs.
+Linux runtime IP settings live in /etc/network/interfaces, not in the driver.
+
+The hardware fix permits coherence probes while a CPU uncached request/reply
+is pending; it breaks a reproducible CPU/DMA/Home circular wait. It does not
+claim to solve every possible network/IRQ/software defect before board tests.
+
+Security: trusted direct-link development boot only. CRC detects corruption,
+not malicious images; there is no signed-image authentication or secure boot.

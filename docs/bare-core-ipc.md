@@ -1,6 +1,13 @@
-# 新乱序核的 GSIM 仿真入口
+# 裸核 IPC 与早期 GSIM 验收记录
 
-此目录运行独立于旧顺序核的 Chisel 模型。唯一受支持的仿真后端是 GSIM；Verilator 及旧 emu 入口已退役。
+2026-09-30 文档整理：本文保留早期 `simulator/gsim` 说明与历次 IPC/验收记录。
+最新运行入口和依赖见 [GSIM README](../simulator/gsim/README.md)，板级软件合同见
+[Board40 datasheet](soc-datasheet.md)。下面的“当前/默认/最新”属于相应实验阶段，
+不能视为 Board40 参数、整机性能或本次重新执行的测试结果。
+
+## 早期入口与能力范围
+
+早期裸核模型独立于旧顺序核。唯一受支持的仿真后端是 GSIM；Verilator 及旧 emu 入口已退役。
 目前可运行固定 32 位编码的整数、条件分支、调用/返回及 load/store 程序，包含编译的 C 栈/数组程序，并按提交顺序与 NEMU 比较。
 **LSU 默认四槽，普通 RAM load 可并行；显式普通 RAM 可提前 load，store 与其他地址读取只在队首执行，GSIM RAM 写已接四项不可撤销缓冲。独立 MachineCore 配置已支持基础 CSR、同步陷阱/MRET 和 M 文件 IMSIC 桥接；已接 M 外部中断，尚无缓存或完整 RV64I，也不是完整 SoC。**
 
@@ -14,11 +21,11 @@
 
 最新验收已包含 MachinePlatform 串行UART及接收中断：Scala 28 项及 GSIM 全量通过；原整数裸核每组配置 278 个程序、380,406 条提交，
 访存与寄存器均经过独立模型/NEMU 检查。新增确定性 IPC 基准和可编译 C 程序，
-接口、限制、测量结果见 [裸核 IPC](../../docs/bare-core-ipc.md)，日志为 `build/gsim/uart-final.log`；包含同步 ROM/RAM 执行平台、顺序预取与投机 store 地址消歧检查。
-机器核两组配置各 31 个程序、37 次同步异常、39 次外部中断，CSR/中断负向注入通过；原整数配置 44 条 IPC 记录完全不变，启用系统指令的配置尚未测量 IPC。详见 [机器核合同](../../docs/machine-core.md)。
+接口、限制、测量结果见本文后续裸核 IPC 记录，日志为 `build/gsim/uart-final.log`；包含同步 ROM/RAM 执行平台、顺序预取与投机 store 地址消歧检查。
+机器核两组配置各 31 个程序、37 次同步异常、39 次外部中断，CSR/中断负向注入通过；原整数配置 44 条 IPC 记录完全不变，启用系统指令的配置尚未测量 IPC。详见 [机器核合同](machine-core.md)。
 
 2026-09-18 公共 ISA 拆分后 `make test` 全部通过：Scala 14 项、完整 GSIM 回归及 NEMU 故障注入。
-译码/提交覆盖与双宽吞吐保持原结果，记录见 [ISA 复用验收](../../docs/isa-reuse.md)。
+译码/提交覆盖与双宽吞吐保持原结果，记录见 [ISA 复用验收](isa-reuse.md)。
 
 2026-09-18 GSIM-only 入口验证：活动 Scala 配置/展开检查 13 项全部通过（此次 Mill 命令耗时 13 秒），
 GSIM smoke 通过。两项均在 PATH 前置禁用 Verilator 的拦截脚本下运行；活动目录不含 ChiselSim 调用。
@@ -79,7 +86,7 @@ make gsim-ipc           # 只跑默认配置 IPC，输出 build/gsim/ipc.json �
 
 新核译码共享 `soc.isa` 的 opcode/funct 定义，异常结果共享 MCause 常量；
 旧流水线控制表已移至 `core/pipeline/decode`，不参与新核译码。
-GSIM C++ 独立指令表与 NEMU 不由 Scala 常量生成。复用范围见 [公共 ISA 说明](../../docs/isa-reuse.md)。
+GSIM C++ 独立指令表与 NEMU 不由 Scala 常量生成。复用范围见 [公共 ISA 说明](isa-reuse.md)。
 
 默认配置为双宽、32 项 ROB、64 个整数物理寄存器身份、64 位分配标识。
 重命名、提交、完成端口分别由 `renameWidth`、`commitWidth`、`completionWidth` 配置，互不绑定。
@@ -318,7 +325,7 @@ mill -i IonSoC.test.testOnly ooo.OooParamsSpec
 ## 下一阶段
 
 以已测 IPC 为基线，推进 LQ/SQ、地址生成与提交解耦、store-to-load forwarding 和分支预测，
-再接缓存/平台与精确 trap 状态；当前基线与瓶颈见 [裸核 IPC](../../docs/bare-core-ipc.md)。
+再接缓存/平台与精确 trap 状态；该阶段基线与瓶颈见本文前述裸核 IPC 记录。
 ISA 设计参考固定到 RISC-V 文档版本 `20250508`；当前仅声明上述经过测试的整数/控制流/访存子集。
 [规范版本入口](https://docs.riscv.org/reference/isa/v20250508/unpriv/colophon.html)。
 
@@ -331,7 +338,7 @@ NEMU 子模块工作树链接仍指向旧的 `/home/openion/IonSoC` 路径，本
 响应背压与范围边界；随机改变 PC 检查旧响应和请求背压稳定性；小 ROB 核直接连接同步 ROM，
 运行循环、JAL/AUIPC-JALR 及错误路径非法字程序，正常提交经独立软件模型和 NEMU 比较。
 该入口纳入全量回归，但与理想供指 `ipc.json` 分开，不能用后者代表 FPGA 前端性能。
-导出与限制见 [FPGA 基线](../../docs/fpga-bringup.md)。
+导出与限制见 [FPGA 基线](fpga-bringup.md)。
 
 同步前端现已增加两组 packet 缓存、顺序预取和响应到供指旁路；独立检查连续 128 周期双供指、
 停顿时有界预取及部分消费。240 条不写寄存器的 ADDI 吞吐用例经 NEMU 校验，不能代表一般程序 IPC。
@@ -348,7 +355,7 @@ NEMU 子模块工作树链接仍指向旧的 `/home/openion/IonSoC` 路径，本
 无背压周期不变，不能声称普遍提速。
 `build/gsim/platform-ipc.json` 记录独立平台口径、工具版本及镜像哈希，不覆盖理想供指 `ipc.json`。
 `make fpga-platform-rtl FPGA_IMAGE=build/gsim/bare-program.bin` 导出集成 ROM/RAM 顶层；
-命令、测量限制和 Vivado 移交见 [FPGA 执行平台](../../docs/fpga-bringup.md)。
+命令、测量限制和 Vivado 移交见 [FPGA 执行平台](fpga-bringup.md)。
 
 同步前端现支持跨 packet 双路拼接，独立验证缓存及当拍响应两种来源、后继未到时的单路供指和停用状态。
 完整限制及前后测量见 FPGA 执行平台说明。
@@ -356,7 +363,7 @@ NEMU 子模块工作树链接仍指向旧的 `/home/openion/IonSoC` 路径，本
 
 ## RVA23 目标与 Zicond
 
-应用 SoC 已以 RVA23S64（含 RVA23U64 必选能力）为目标，完整差距见 [架构目标](../../docs/rva23.md)。
+应用 SoC 已以 RVA23S64（含 RVA23U64 必选能力）为目标，完整差距见 [架构目标](rva23.md)。
 当前只新增 Zicond 1.0.0 的 `czero.eqz` / `czero.nez`，不是完整 RVA23 实现。
 两源参与现有重命名和就绪选择，共享双 ALU 与 issue 预算，拒绝 W 变体及相邻保留编码。
 参考侧仅修改本仓库独立 defconfig 开启 `CONFIG_RV_ZICOND`，固定 NEMU 源码及 GPR/PC ABI 不变。
@@ -376,7 +383,7 @@ Zicond 最终验收：Scala 19 项与完整 GSIM/NEMU 通过；每组裸核 79 �
 裸核通过全部 13 条 M 指令的译码、算术及 NEMU 比较，包含 832 组边界操作数、1,000 条随机 M、
 源/目的别名、x0、分支撤销、较老 M 跨恢复保留和 LSU 完成仲裁。
 新增 `rv64m_*` IPC 项（每配置四项），原有基准输入与 C 编译选项保持不变。
-详细延迟、启动间隔和微基准见 [RV64M 合同](../../docs/rv64m.md)。
+详细延迟、启动间隔和微基准见 [RV64M 合同](rv64m.md)。
 当前仍无完整 RV64I、B、CSR/MMU、浮点或向量，不能声明 RVA23 合规。
 
 RV64M 最终验收：`make test` 的 Scala 19 项及完整 GSIM/NEMU（含负向注入）通过；
@@ -394,7 +401,7 @@ RV64M 最终验收：`make test` 的 Scala 19 项及完整 GSIM/NEMU（含负向
 
 同一独立乘法微基准：ROB32/PRF64 从 899 降至 137 周期（IPC 0.948905109），
 ROB8/PRF36 为 292 周期；依赖乘法链和除法周期不变，其余原有 IPC 记录不变。
-这不构成 FPGA 频率/资源或通用程序加速声明。详情见 [RV64M](../../docs/rv64m.md)。
+这不构成 FPGA 频率/资源或通用程序加速声明。详情见 [RV64M](rv64m.md)。
 
 流水乘法最终验收：Scala 19 项、完整 GSIM/NEMU 和负向注入通过，两组裸核各 113 个程序、97,170 条提交。
 日志：`build/gsim/pipelined-mul-final.log`。
@@ -409,11 +416,11 @@ Zba/Zbb/Zbs 的 40 条 RV64 编码已接入，当前共支持 104 种编码（49
 默认双发射配置的独立 RORI/CLZ 基准为 2,049 条 / 1,027 周期（IPC 1.995131），
 依赖链为 2,049 条 / 2,051 周期（IPC 0.999025）；原 36 条 IPC 记录完全不变。
 同步 C 程序仍为 1,310 条 / 1,529 周期（IPC 0.856769），没有 FPGA 时序/面积实测结论。
-合同、实现路径与详细验证见 [RV64B](../../docs/rv64b.md)，全量日志 `build/gsim/rv64b-final.log`。
+合同、实现路径与详细验证见 [RV64B](rv64b.md)，全量日志 `build/gsim/rv64b-final.log`。
 
 ## 模块化 AIA 中断 IP
 
-独立 `soc.ip.interrupt.Imsic` 的合同、接线和状态见 [模块化 SoC](../../docs/modular-soc.md)。
+独立 `soc.ip.interrupt.Imsic` 的合同、接线和状态见 [模块化 SoC](modular-soc.md)。
 `make gsim-imsic-test` 使用独立逐身份 C++ 状态模型验证三组配置、双口背压及原子操作，
 包含故意破坏响应期望的负向测试。`make imsic-rtl` 可单独导出默认 IP，输出在 `build/ip/imsic`。
 该独立 IP 验收本身不代表完整 AIA 实现；后续机器核/APLIC 组合进展见下文，PLIC 兼容适配和 NEMU AIA 差分尚待实现。
@@ -429,7 +436,7 @@ ECALL/EBREAK/MRET、最小 M CSR 集与 IMSIC M 文件 CSR 访问，处理程序
 覆盖 MIE/MEIE 屏蔽、Direct/Vectored、空 ROB、U 标签抢占、load/store 排空、同步异常优先和重入。
 定向日志 `build/gsim/irq-focused.log`；CSR 数据与中断原因负向注入均通过。
 标准机器级程序与独立模型/NEMU 核对，AIA/低权限裸地址空间/指定访存故障使用独立模型；
-执行过程中不重同步 NEMU。覆盖范围和限制见 [机器核合同](../../docs/machine-core.md)。
+执行过程中不重同步 NEMU。覆盖范围和限制见 [机器核合同](machine-core.md)。
 
 `make machine-core-rtl` 单独导出 `build/ip/machine-core`；已通过 RTL 导出，尚无 Vivado 综合/时序结果。
 `FpgaPlatformTop` 和原整数 IPC 流仍使用原异常停止配置。此处记录的是当时的机器核里程碑；
@@ -442,7 +449,7 @@ ECALL/EBREAK/MRET、最小 M CSR 集与 IMSIC M 文件 CSR 访问，处理程序
 `WiredMachineCore` 用现有机器核/IMSIC 连接新 IP，中断线组合跑相同31个机器核程序。
 寄存器端口支持一拍响应、持续 II=1；MSI 有序队列最多4项已发送未响应事务。
 WiredMachineCore 保留独立控制口；MappedMachineCore 已映射到 CPU 数据总线。S/VS 域、委托、多 hart、IDC 和 PLIC 兼容仍待实现。
-命令、精确状态语义、模型覆盖和限制见 [APLIC 合同](../../docs/aplic.md)。
+命令、精确状态语义、模型覆盖和限制见 [APLIC 合同](aplic.md)。
 
 APLIC 加入后的完整验收通过：Scala25项、全部GSIM/NEMU及负向注入，原整数配置44条IPC记录不变。日志 `build/gsim/aplic-final.log`。
 
@@ -451,7 +458,7 @@ APLIC 加入后的完整验收通过：Scala25项、全部GSIM/NEMU及负向注�
 `MappedMachineCore` 用8项有序标签路由器连接 CPU 数据口与 APLIC，保留外部普通存储器接口。
 独立路由定向检查15,234项事务、最大8项在途和连续282拍收单通过；两种核心配置各3个程序，
 验证 SW 配置、LW/LWU 读回、访问错误、错误路径写取消及中断处理返回。
-命令、覆盖和性能边界见 [数据口映射合同](../../docs/core-mmio.md)。
+命令、覆盖和性能边界见 [数据口映射合同](core-mmio.md)。
 
 数据口映射加入后的完整验收通过：Scala26项、全部GSIM/NEMU及负向注入，原整数配置44条IPC记录不变。日志 `build/gsim/mapped-final.log`。
 
@@ -464,7 +471,7 @@ CPU 配置 APLIC、IMSIC 领取中断、RAM 计数更新及 MRET，使用真实�
 结果376、计数1，MMIO 负向注入通过。新设备路径采用独立提交模型，原 NEMU 回归保留。
 `make machine-platform-rtl` 导出带同一固件 ROM 初始化文件的生产 RTL。
 本轮 `make test` 全部通过，27项Scala检查、全量GSIM/NEMU及负向注入通过，44条原整数IPC记录完全不变。
-详细周期、构建入口与未验证的 FPGA 时序边界见 [平台合同](../../docs/machine-platform.md)。
+详细周期、构建入口与未验证的 FPGA 时序边界见 [平台合同](machine-platform.md)。
 
 
 ### 串行UART与性能回归
@@ -477,7 +484,7 @@ UART路径ROB8/32分别提交5,938/6,029条指令，每组9次同步异常、3�
 
 本轮 `make test` 通过28项Scala及全量GSIM/NEMU验收，日志 `build/gsim/uart-final.log`。
 与 `build/gsim/ipc-before-uart.json` 对照，44条整数裸核IPC测量逐项一致；原RAM固件六组启动周期完全不变。
-生产RTL含uartRx/uartTx引脚，已导出但未经Vivado验证。见 [UART审计、能力与测试边界](../../docs/uart.md)。
+生产RTL含uartRx/uartTx引脚，该阶段已导出但未经Vivado验证。见 [UART审计、能力与测试边界](uart.md)。
 
 
 ## 写缓冲多项在途排空

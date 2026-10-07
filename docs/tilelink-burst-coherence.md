@@ -18,15 +18,17 @@
 两个窗口同时返回 64 字节 Get、A/D 背压以及未映射 64 字节 Get 的独立用例。
 `make gsim-tilelink-arbiter-test gsim-tilelink-router-test` 保留单拍乱序返回和负向注入；
 双主单 RAM/双 RAM 固件已重跑，RAM、DMA、原子及 FENCE.I 后 RAM 执行周期保持不变。
-单 RAM `TileLinkDataRamAdapter` 现另有独立的 16/32/64 字节 Get/PutFullData
+单 RAM `TileLinkDataRamAdapter` 现另有独立的 16/32/64 字节 Get/PutFullData/PutPartialData
 burst 路径：先排空原单拍元数据队列，再将每个 64 位 beat 送入同步 RAM；
 当前读 burst 返回期间可预接收一笔后续整行 Get，并在最后一个 D beat 后
 直接启动排队读取；写 burst 和单拍请求仍按原顺序等待。
 正常单拍请求仍走原 8 项元数据快路径。整笔写在所有 RAM 响应完成后才回一个
 AccessAck；读返回对应数量的 AccessAckData。越界/未对齐请求预先拒绝，
 读返回完整 denied/corrupt burst，写不产生部分副作用。
-配置内 RAM 必须保证请求成功；若实际 RAM 在预先检查通过后仍报错，
-manager 会触发断言，以免部分写入后给出不精确的失败响应。
+合法部分写逐 beat 转发真实 mask（允许零 mask），不再强制写满 8 字节。
+访问未通过范围/对齐预检查时仍不产生写副作用；实际写响应报错则排空所有已发请求，
+最终 AccessAck 标记 denied，已成功写入的字节不回滚。当前读 burst 依赖配置内 RAM
+预检查通过后必成功；意外读错误仍触发断言，不能把它宣称成任意错误 slave 的通用 manager。
 `make gsim-tilelink-burst-ram-test` 验证单 RAM 和双 RAM 窗口的 64 字节写后读、
 单拍回退、越界写/读和数据保持。两个机器平台拓扑均已启用该 manager 配置，
 原 RAM/DMA/原子固件的单拍完成周期逐项不变。
@@ -151,6 +153,12 @@ DMA 写后 CPU 读、CPU 写后 DMA 读及原子排序。指令侧取指主端�
 再失效本 hart 的取指缓存并重取。它不是多 hart 的广播同步；远端 hart 的代码更新
 仍需要软件协调和远端执行 `FENCE.I`。定向验证入口为
 `make gsim-tilelink-coherent-fencei-test`。
+
+2026-10-04 新增可选网络 DMA，`DmaRegisterDataAdapter` 将右对齐 RegisterPort
+字节转成 DataPort beat lane，经既有 atomic/coherent home→TL→RAM/AXI 路径访问内存。
+短验收 `simulator/gsim/ethernet_dma.py` 使用独立字节内存 oracle，三个随机种子均检查
+CPU 脏 TX 数据被探测后送出，以及 RX 写入失效 CPU 旧缓存且保留尾字外的字节；
+不借此宣称多 hart、完整 TL-C 或标准 Linux DMAengine 驱动已实现。
 
 性能验收要同时记录命中率、未命中并行度、总线有效字节/拍、CPU/DMA 完成周期，
 以及 Vivado 可用后目标器件的资源与布线后 Fmax。当前 GSIM CoreMark IPC

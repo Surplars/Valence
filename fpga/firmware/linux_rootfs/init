@@ -1,0 +1,20 @@
+#!/bin/sh
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export HOME=/root TERM=vt100 LC_ALL=C
+mount -t proc proc /proc || echo "WARNING: proc mount failed"
+mount -t sysfs sysfs /sys || echo "WARNING: sysfs mount failed"
+mount -t devtmpfs devtmpfs /dev || echo "WARNING: devtmpfs mount failed"
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts || echo "WARNING: devpts mount failed"
+hostname valence
+echo
+echo "Valence Linux - BusyBox rootfs / RV64IMAC soft-float / DDR50"
+fastfetch --version
+fastfetch --pipe true --logo none --structure OS:Host:Kernel:Uptime:CPU:Memory:Shell
+echo "VALENCE_LINUX_INIT_OK"
+echo "Commands: fastfetch, uname -a, free -m, cat /proc/cpuinfo, coremark 0 0 0 1"
+echo "RAM-only rootfs; files do not survive reset. No network/block device configured."
+while true; do
+    setsid cttyhack /bin/sh -l
+    echo "Shell exited; restarting. Use board reset to return to BootROM."
+done

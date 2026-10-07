@@ -57,7 +57,8 @@ void _start(void) {
             if (iterations) run_coremark(iterations);
             else linux_puts("usage: coremark [iterations]\n");
         } else if (line[0] == 'h' && line[1] == 'e' && line[2] == 'l' && line[3] == 'p' && !line[4]) {
-            linux_puts("coremark [iterations]: run Linux user-space CoreMark\nexit: stop GSIM\n");
+            linux_puts("coremark [iterations]: run Linux user-space CoreMark\n"
+                       "exit: park init (reset board to restart)\n");
         } else if (line[0] == 'e' && line[1] == 'x' && line[2] == 'i' && line[3] == 't' && !line[4]) {
             linux_puts("VALENCE_LINUX_EXIT\n");
             for (;;) linux_syscall1(101, 0); /* park PID 1 until GSIM exits */

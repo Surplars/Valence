@@ -12,6 +12,9 @@
 #ifndef BUFFER_ENTRIES
 #define BUFFER_ENTRIES 4
 #endif
+#ifndef REGISTER_LOCAL_RESPONSE
+#define REGISTER_LOCAL_RESPONSE 0
+#endif
 static void check(bool ok, const char *message) { if (!ok) throw std::runtime_error(message); }
 struct Request {
     uint64_t address, data;
@@ -99,7 +102,13 @@ static void dualIngress() {
           "overlapping younger read passed the independent store");
     fastStore(dut, false, write);
     dut.step();
-    check(dut.get_io$$upstream$$request$$ready() && dut.get_io$$upstream$$response$$valid() &&
+    check(dut.get_io$$upstream$$request$$ready(), "overlapping read was not accepted");
+#if REGISTER_LOCAL_RESPONSE
+    check(!dut.get_io$$upstream$$response$$valid(), "registered forwarded read replied early");
+    dut.set_io$$upstream$$request$$valid(0);
+    dut.step();
+#endif
+    check(dut.get_io$$upstream$$response$$valid() &&
           dut.get_io$$upstream$$response$$bits$$data() == write.data,
           "overlapping read did not forward the newly buffered store");
 
@@ -149,11 +158,19 @@ static void sameCycleWrite() {
     dut.set_io$$upstream$$request$$bits$$atomic(0);
     dut.set_io$$upstream$$request$$bits$$atomicOp(0);
     dut.step();
-    check(dut.get_io$$upstream$$request$$ready() && dut.get_io$$upstream$$response$$valid() &&
+    check(dut.get_io$$upstream$$request$$ready() &&
           dut.get_io$$memory$$request$$valid() && dut.get_io$$memory$$request$$bits$$write() &&
           dut.get_io$$memory$$request$$bits$$address() == r.address &&
           dut.get_io$$memory$$request$$bits$$data() == r.data,
-          "buffered store was not issued and acknowledged in its acceptance cycle");
+          "buffered store was not issued in its acceptance cycle");
+#if REGISTER_LOCAL_RESPONSE
+    check(!dut.get_io$$upstream$$response$$valid(), "registered buffered store replied early");
+    dut.set_io$$upstream$$request$$valid(0);
+    dut.step();
+#endif
+    check(dut.get_io$$upstream$$response$$valid() &&
+          dut.get_io$$upstream$$response$$bits$$data() == 0,
+          "buffered store acknowledgement missing or incorrect");
 }
 static void run(unsigned seed, bool zeroLatency, bool injectWriteError = false, bool injectReadMismatch = false) {
     SStoreBufferGsim dut;
@@ -223,11 +240,19 @@ static void run(unsigned seed, bool zeroLatency, bool injectWriteError = false, 
         dut.step();
         const bool upstreamAccepted = valid && dut.get_io$$upstream$$request$$ready();
         if (upstreamAccepted && r.write && r.address >= 4096 && r.address < 4352) {
+#if REGISTER_LOCAL_RESPONSE
+            check(!dut.get_io$$upstream$$response$$valid(), "registered buffered store replied early");
+#else
             check(dut.get_io$$upstream$$response$$valid(), "buffered RAM write did not acknowledge in request cycle");
+#endif
             ++immediateWrites;
         }
         if (dut.get_io$$forwarded()) {
+#if REGISTER_LOCAL_RESPONSE
+            check(!dut.get_io$$upstream$$response$$valid(), "registered forwarded read replied early");
+#else
             check(dut.get_io$$upstream$$response$$valid(), "forwarded RAM read did not reply in request cycle");
+#endif
             ++immediateForwards;
         }
         if (upstreamAccepted) {
@@ -297,8 +322,16 @@ static void run(unsigned seed, bool zeroLatency, bool injectWriteError = false, 
             check(zeroLatency || (earlyReads>0 && earlySameBeat>0), "disjoint early read coverage");
             check(zeroLatency || maxWriteRun>=std::min(unsigned(BUFFER_ENTRIES),5U), "consecutive write throughput coverage");
             check(pendingWrites==0 && (zeroLatency || maxWrites==std::min(unsigned(BUFFER_ENTRIES),5U)), ("multiple writes outstanding coverage pending="+std::to_string(pendingWrites)+" max="+std::to_string(maxWrites)+" zero="+std::to_string(zeroLatency)).c_str());
-            check(forwards > 0 && immediateWrites > 1500 && immediateForwards > 0 &&
-                  (BUFFER_ENTRIES>4 || fullStalls > 100) && writeCount > 1500, "store buffer coverage");
+            // With immediate downstream replies the registered local path may leave no store
+            // resident long enough to forward; the delayed-response runs cover forwarding.
+            check(((zeroLatency && REGISTER_LOCAL_RESPONSE) ||
+                   (forwards > 0 && immediateForwards > 0)) && immediateWrites > 1500 &&
+                  (BUFFER_ENTRIES>4 || fullStalls > 100) && writeCount > 1500,
+                  ("store buffer coverage forwards=" + std::to_string(forwards) +
+                   " writes=" + std::to_string(immediateWrites) +
+                   " forwardReplies=" + std::to_string(immediateForwards) +
+                   " fullStalls=" + std::to_string(fullStalls) +
+                   " writeCount=" + std::to_string(writeCount)).c_str());
             std::cout << "GSIM StoreBuffer: PASS capacity=" << BUFFER_ENTRIES << " seed=" << seed << " zeroLatency=" << zeroLatency
                       << " requests=" << cursor << " stores=" << writeCount << " forwarded=" << forwards
                       << " earlyReads=" << earlyReads << " sameBeat=" << earlySameBeat

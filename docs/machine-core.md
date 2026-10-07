@@ -1,8 +1,13 @@
 # 系统指令、CSR 与陷阱合同
 
-本轮建立显式启用 `OooParams(machineSystem=true)` 的机器级开发核心。原整数裸核配置保留
-异常停止行为和原微基准接口；启用配置执行六条 Zicsr、ECALL、EBREAK、MRET、SRET 和 FENCE，支持同步陷阱、M 外部中断及M定时中断。
-已接同步异常的 M→S 委托、SRET、S 文件外部中断、SSI 和 Sstc 定时中断；MachinePlatform另启用16条目PMP，独立MachineCore默认不启用。仍未实现VS中断、分页、完整计数器与CSR集，不构成完整特权架构或RVA23合规声明。
+当前状态（2026-09-30）：`OooParams(machineSystem=true)` 启用六条 Zicsr、ECALL、EBREAK、
+MRET/SRET、FENCE/FENCE.I、WFI hint、M/S/U 陷阱与中断路径。MachinePlatform 启用 16 项 PMP；
+可选 I/D 分页已接通，当前 BoardSocTop 选择 Sv39。`time` 可读，`cycle/instret` 等计数 CSR 未实现；
+VS/H、完整特权 CSR 和 RVA23 合规仍未完成。原整数裸核配置的异常停止行为不代表板级机器核。
+
+板级可用 CSR、复位/下载 ABI 和已知限制以 [OS/软件移植合同](os-software-porting.md) 为入口，
+MMIO 见 [寄存器手册](soc-registers.md)。下文包含按里程碑保留的历史验收记录；
+历史“本轮”数字不能作为当前板级配置的性能或功能总表。
 
 依据 Zicsr 2.0 和特权规范机器级 CSR/陷阱语义，独立于旧 CSRFile：
 https://docs.riscv.org/reference/isa/v20240411/unpriv/zicsr.html
@@ -27,10 +32,11 @@ MRET 在 M 模式执行：跳到 mepc，MIE←MPIE，MPIE←1，权限←MPP，M
 当前可记录 M/S/U 权限标签、检查 CSR 最低权限及 ECALL cause，支持有限的 S/U 裸地址空间程序，但还未实现完整 S/U 执行环境。
 
 本地 CSR：mstatus 的 MIE/MPIE/MPP（SXL/UXL 固定 RV64）、mtvec（Direct/Vectored 模式，同步陷阱使用 BASE、M外部中断使用BASE+44，M定时中断使用BASE+28）、mscratch、
-mepc（IALIGN32）、mcause、mtval，及只读 ID（均0）。`misa` 返回固定 RV64 MXL、I/M/S/U，
+mepc（C 开启时 IALIGN16，否则 IALIGN32）、mcause、mtval，及只读 ID（均0）。`misa` 返回固定 RV64 MXL、I/M/S/U，
 并按实例参数声明 A 与 C；不把未实现的扩展写入位图。
-mie 实现 MEIE，mip 的 MEIP 来源于 IMSIC 电平且软件不可写；其余位读零。计数器等未接通的 CSR 访问产生非法指令。
-AIA 早期桥接仅 M 文件：miselect、mireg、mtopei；下文记录随后接入的 S 文件，VS 仍待实现。
+当前 mie/mip 已包含 MEI、MTI、SEI、SSI、STI；其中 SSIP 可写，STIP 的写权限取决于 STCE。
+`time` CSR（0xC01）已接通；`cycle/instret` 等不存在的 CSR 访问产生非法指令。
+AIA 已接 M/S 文件的间接 CSR；完整 AIA/VS 仍待实现，不能据此声明标准 AIA 操作系统无需适配。
 外部 IMSIC 的 CSR 请求必须由上述队首授权产生，不能从组合译码直接驱动。
 
 ## 时序边界
@@ -44,7 +50,8 @@ CSR 完成、MRET 重定向和年轻分支仲裁不能相互构成 ready/valid �
 `MachineCore` 组装启用系统指令的 `IntegerCore` 和独立 `Imsic`，仍暴露指令供给、数据存储器、
 MSI 寄存器事务和提交/陷阱观察接口。IMSIC 可继续独立导出；核心侧 `MachineCsrPort` 不依赖
 IMSIC 内部实现。`externalPending` 输出各文件中断电平，M/S 文件已连接 CPU 异步陷阱入口；VS 暂未接入。
-`FpgaPlatformTop` 仍使用异常停止的整数基准配置，尚未迁移为机器核平台。
+`FpgaPlatformTop` 是旧整数基准入口；当前上板入口为 `BoardSocTop`，使用上述机器核、
+128 KiB ROM 和 1 MiB RAM。它不提供预置 SBI/DTB，见 [板级软件合同](os-software-porting.md)。
 
 - `make gsim-machine-test`：ROB8/PRF36、ROB32/PRF64 两组机器核。
 - `make machine-core-rtl`：单独导出默认机器核组装到 `build/ip/machine-core`。
@@ -85,7 +92,8 @@ store buffer 排空后接收。中断与退休不在同周期；使用现有逐�
 中断电平属于核心时钟域；独立 IntegerCore 接入其他控制器时，集成方负责跨时钟域同步。
 当前组合路径包含 IMSIC 待处理归约、使能判断、ROB 恢复仲裁和退休门控；未增加中断状态镜像，
 CSR 退休后下一边界重新判断使能。系统指令退休的同周期不再退休年轻指令，避免跨过使能更新边界。
-更宽提交不需要新增中断端口，但回滚仍每周期移除一项，响应恢复开销随 ROB 占用增加。
+更宽提交不需要新增中断端口；恢复宽度由 `recoveryWidth` 配置，当前 BoardSocTop 为 4，
+早期默认配置为 1，响应恢复开销仍随 ROB 占用及访存排空变化。
 
 新增独立模型测试涵盖 Direct/Vectored、MEIE/MIE 分别屏蔽、MEIP 写忽略、U 权限下 MIE=0 的抢占、
 MRET 后多个待处理 ID 逐次重入、停止供指且空 ROB 的 MSI、延迟 load、已提交 store buffer 排空、
@@ -129,13 +137,15 @@ M 模式可写 `medeleg`（支持同步异常 cause 0–9、12、13、15；机�
 仅非 M 权限、非中断且 cause 小于 64 的异常按 `medeleg` 对应位进入 S；其余仍按原 M 陷阱路径处理。
 委托陷阱保存 `sepc/scause/stval`，`SPIE←SIE`、`SIE←0`、`SPP←原权限`，从 `stvec.BASE` 取指。
 `SRET` 在 S 或 M 权限执行，跳至 `sepc`，权限←`SPP`，`SIE←SPIE`、`SPIE←1`、`SPP←U`。
-`sstatus` 仅实现 SIE/SPIE/SPP 和固定 RV64 UXL；`stvec` 支持 Direct/Vectored WARL 编码，
-同步异常均使用 BASE；另有 `sscratch`，`sepc` 按 IALIGN=32 对齐。U 态访问 S CSR 产生非法指令异常。
+`sstatus` 实现 SIE/SPIE/SPP、固定 RV64 UXL，VM 配置另接 SUM/MXR；`stvec` 支持
+Direct/Vectored WARL 编码，同步异常均使用 BASE；另有 `sscratch`，`sepc` 按实例 IALIGN 对齐
+（当前板 C 开启，低 1 位清零）。U 态访问 S CSR 产生非法指令异常。
 
 这些 CSR 仍使用单项、ROB 队首不可撤销系统事务，本地访问下一拍完成；同时最多一个事务在途。
 异常回滚沿用逐项清空，不新增并行恢复端口。`medeleg` 到目标向量的动态选择会增加陷阱入口组合路径；
-FPGA 频率、面积和 S 态连续 CSR 吞吐尚未实测。`satp`、Sv39、
-`SUM/MXR`、`TSR/TVM/TW` 和完整 `sstatus` 等仍未实现，不能运行通用 S 态操作系统。
+此早期里程碑未测量 S 态连续 CSR 的 FPGA 吞吐。后续已加入 `satp`、Sv39 与 SUM/MXR，
+见 [虚拟内存合同](virtual-memory.md)；TSR/TVM/TW 和完整特权控制仍未实现。
+当前板级 OS 支持范围见 [软件移植合同](os-software-porting.md)，不能以单项 CSR 测试推导通用 OS 上板可用。
 
 GSIM 两组机器核配置各运行三种调度种子，覆盖 MRET→SRET→U 态 ECALL→S 态处理→SRET，
 以及 U 态非法读取 `sstatus`、非法 SRET 被委托到 S；`medeleg` 全位写入后的 WARL 掩码也经读回检查。
@@ -169,7 +179,9 @@ VS 文件和完整 AIA 优先级 CSR 留待后续。
 已委托 SEI 在 M 态即使 MIE=1 也不触发，SIE=0 的 S 态也继续等待，返回 U 态后进入 S。
 Direct/Vectored 向量、`sie/sip` 读回、`mtopei/stopei` 领取、提交背压和 SRET/MRET 返回均与独立模型核对。
 该 S 中断程序尚未与 NEMU 差分，原有 M 态及裸核 NEMU 对照继续保留。
-当前平台 APLIC 仅有 M 域；S 文件通过独立 MSI 输入可接入，S 域 APLIC 和设备路由未完成。
+此 S IMSIC 里程碑之后，MappedMachineCore 已加入 APLIC M 根域与 S 子域及设备委托。
+IMSIC doorbell 仍是内部 MSI 通道，未映射到 CPU MMIO；当前软件集成缺口见
+[寄存器手册](soc-registers.md)。独立 WiredMachineCore 与板级 MappedMachineCore 的组合边界不同。
 
 2026-09-23 全量验收：`make test` 通过 33 项 Scala、完整 GSIM/NEMU 与故障注入；
 日志 `build/gsim/supervisor-imsic-final.log`。`make machine-core-rtl wired-machine-rtl` 导出通过，

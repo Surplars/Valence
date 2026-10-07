@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 static void check(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
@@ -43,7 +44,8 @@ static void drive(STileLinkLineWriteGsim &dut, bool request, uint64_t address, u
     dut.set_io$$tl$$e$$ready(1);
 }
 
-int main() {
+int main(int argc, char **argv) { try {
+    const bool inject = argc == 2 && std::string_view(argv[1]) == "--inject-mismatch";
     STileLinkLineWriteGsim dut;
     constexpr uint64_t base = 0x80010000ULL;
     drive(dut, false, 0, 0, false, false);
@@ -70,8 +72,9 @@ int main() {
                   dut.get_io$$tl$$a$$bits$$size() == 6 &&
                   dut.get_io$$tl$$a$$bits$$mask() == 255 &&
                   dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
-                  dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 64 * index, beat),
-                  "line write A burst changed source, address, beat order or data");
+                  dut.get_io$$tl$$a$$bits$$data() == (lineWord(base + 64 * index, beat) ^
+                      uint64_t(inject && aBeats == 0)),
+                  "line write oracle mismatch: A source, address, beat order or data");
             if (beat == 0 && ready) {
                 check(!seenSource[source], "line write reused a live source");
                 seenSource[source] = true;
@@ -130,5 +133,34 @@ int main() {
     dut.step();
     check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x34 &&
           !dut.get_io$$response$$bits$$error(), "reused line write result mismatch");
-    std::cout << "GSIM TileLink line write: PASS fourInflight burstLock outOfOrderAck denied reuse" << '\n';
+    // Independent II=1 contract: with A ready and queued owners, no bubble
+    // between any of the 32 beats. Return each ack with its final accepted A,
+    // including when the next active burst takes ownership on the same edge.
+    drive(dut, false, 0, 0, true, false);
+    dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    requests = 0; aBeats = 0; bool streaming = false;
+    for (unsigned cycle = 0; cycle < 50 && aBeats < 32; ++cycle) {
+        const unsigned index = aBeats / 8, beat = aBeats % 8;
+        const bool ack = streaming && beat == 7;
+        drive(dut, requests < 4, base + 64 * requests, 0x50 + requests, true, false,
+              ack, sourceForRequest[index]);
+        dut.step();
+        if (requests < 4 && dut.get_io$$request$$ready()) ++requests;
+        if (streaming) check(dut.get_io$$tl$$a$$valid(), "line write II=1 contract inserted a bubble");
+        if (dut.get_io$$tl$$a$$valid()) {
+            streaming = true;
+            const unsigned source = dut.get_io$$tl$$a$$bits$$source();
+            if (beat == 0) sourceForRequest[index] = source;
+            check(source == sourceForRequest[index] &&
+                  dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
+                  dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 64 * index, beat),
+                  "line write streaming owner/data mismatch");
+            if (ack) check(dut.get_io$$tl$$d$$ready(), "line write adjacent burst final ack stalled");
+            ++aBeats;
+        }
+    }
+    check(requests == 4 && aBeats == 32, "line write streaming did not drain four bursts");
+    std::cout << "GSIM TileLink line write: PASS fourInflight burstLock outOfOrderAck denied reuse II1 adjacentFinalAck" << '\n';
+    return 0;
+} catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

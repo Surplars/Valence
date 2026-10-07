@@ -6,13 +6,33 @@ import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 import java.nio.file.{Files, Path}
 
-/** Current four-issue machine datapath with a small on-chip RAM for out-of-context FPGA timing.
+/** Machine datapath with a small on-chip RAM for out-of-context FPGA timing.
+  * The compact profile preserves the peripherals, PMP and Sv39, but reduces microarchitectural capacity.
   * The Linux simulation's 64 MiB RAM is a functional model, not an FPGA storage implementation.
   */
-class CurrentSocTimingTop extends Module {
+class CurrentSocTimingTop(compact: Boolean = false,
+    registeredLocalResponse: Boolean = false,
+    registeredMemoryRequests: Boolean = false,
+    registeredRetirement: Boolean = false,
+    registeredLoadReplay: Boolean = false,
+    earlyRecoveryIssueBlock: Boolean = false,
+    precompleteMispredictedBranch: Boolean = false) extends Module {
     private val ramBytes = 16384
     private val romWords = 2048
-    private val p = OooParams(renameWidth = 4, commitWidth = 4, completionWidth = 4,
+    private val p = if (compact) OooParams(renameWidth = 2, commitWidth = 2, completionWidth = 2,
+        robEntries = 16, physicalRegs = 48, memoryEntries = 2, branchPredictorEntries = 32,
+        instructionCacheSets = 16, returnStackEntries = 8, storeBufferEntries = 2,
+        speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = ramBytes,
+        bufferedRamStores = true,
+        registeredLocalStoreResponses = registeredLocalResponse,
+        registeredMemoryRequests = registeredMemoryRequests,
+        registeredBranchRedirect = true, registeredMemoryAddress = true,
+        registeredStoreResponseOwners = true, registeredRobRetirement = registeredRetirement, recoveryWidth = 4,
+        registeredLoadReplay = registeredLoadReplay,
+        earlyRecoveryIssueBlock = earlyRecoveryIssueBlock,
+        precompleteMispredictedBranch = precompleteMispredictedBranch,
+        compressedInstructions = true)
+    else OooParams(renameWidth = 4, commitWidth = 4, completionWidth = 4,
         speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = ramBytes,
         bufferedRamStores = true, compressedInstructions = true)
     val io = IO(new Bundle {
@@ -39,9 +59,12 @@ class CurrentSocTimingTop extends Module {
     })
     val platform = Module(new MachinePlatform(p, romWords = romWords, programmable = true,
         tileLinkMemory = true, tileLinkFetch = true, ramBytes = ramBytes,
-        instructionLineCacheLines = 16, translationService = true, translationLevels = 3,
+        instructionLineCacheLines = if (compact) 8 else 16,
+        translationService = true, translationLevels = 3,
         coreDataTranslation = true, coreInstructionTranslation = true,
-        coherentLineCache = true, coherentLineCacheLines = 128))
+        coherentLineCache = true, coherentLineCacheLines = if (compact) 32 else 128,
+        pteCacheEntries = if (compact) 4 else 8,
+        bufferCoherentResponses = compact))
     platform.io.timerTick := io.timerTick
     platform.io.sources := io.sources
     platform.io.uartRx := io.uartRx
@@ -64,11 +87,35 @@ class CurrentSocTimingTop extends Module {
     io.committedValue := platform.io.committedValue
 }
 
+class CompactSocTimingTop(registeredLocalResponse: Boolean = false,
+    registeredMemoryRequests: Boolean = false,
+    registeredRetirement: Boolean = false,
+    registeredLoadReplay: Boolean = false,
+    earlyRecoveryIssueBlock: Boolean = false,
+    precompleteMispredictedBranch: Boolean = false)
+    extends CurrentSocTimingTop(compact = true, registeredLocalResponse = registeredLocalResponse,
+        registeredMemoryRequests = registeredMemoryRequests,
+        registeredRetirement = registeredRetirement, registeredLoadReplay = registeredLoadReplay,
+        earlyRecoveryIssueBlock = earlyRecoveryIssueBlock,
+        precompleteMispredictedBranch = precompleteMispredictedBranch)
+
 object CurrentSocTimingMain extends App {
-    require(args.length == 1, "usage: CurrentSocTimingMain output-directory")
+    val compactOptions = Set("registered-local-response", "registered-memory-requests", "registered-retirement",
+        "registered-load-replay", "early-recovery-issue-block", "precomplete-mispredicted-branch")
+    require(args.length == 1 || (args.length >= 2 && args(1) == "compact" &&
+        args.drop(2).forall(compactOptions.contains) && args.drop(2).distinct.length == args.length - 2),
+        "usage: CurrentSocTimingMain output-directory [compact [registered-local-response] [registered-memory-requests] [registered-retirement] [registered-load-replay] [early-recovery-issue-block] [precomplete-mispredicted-branch]]")
     val output = Path.of(args(0)).toAbsolutePath
     Files.createDirectories(output)
-    ChiselStage.emitSystemVerilogFile(new CurrentSocTimingTop,
+    ChiselStage.emitSystemVerilogFile(
+        if (args.length >= 2) new CompactSocTimingTop(
+            registeredLocalResponse = args.drop(2).contains("registered-local-response"),
+            registeredMemoryRequests = args.drop(2).contains("registered-memory-requests"),
+            registeredRetirement = args.drop(2).contains("registered-retirement"),
+            registeredLoadReplay = args.drop(2).contains("registered-load-replay"),
+            earlyRecoveryIssueBlock = args.drop(2).contains("early-recovery-issue-block"),
+            precompleteMispredictedBranch = args.drop(2).contains("precomplete-mispredicted-branch"))
+        else new CurrentSocTimingTop,
         Array("--target-dir", output.toString),
         Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=disable"))
 }

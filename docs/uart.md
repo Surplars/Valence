@@ -1,61 +1,100 @@
-# UART 控制台合同与旧实现复用审计
+# UART 控制台合同与验证
 
-旧 `soc.device.UartTx` 只有 TileLink 到仿真字节脉冲的转换；DLL/DLM 不驱动波特率，THRE/TEMT 常高，
-FCR 报告 FIFO 模式却没有 FIFO，接收单寄存器会覆盖未读数据，未检查访问宽度和 byte mask。
-保留该历史模块，不把旧测试作为正确性依据；复用其 0..7 寄存器地址布局与 DLAB 软件约定。
+当前源码（2026-10-01）使用升级后的 soc.ip.uart.UartConsole：
+16550A 风格的 8 个逐字节寄存器、16 字节 RX/TX FIFO、16x 接收多数采样、
+接收超时、逐字符 PE/FE/BI 错误记录及可编程字符格式。
+不是完整芯片级 ns16550a 合规认证：板外没有 RTS/CTS/DTR/DSR/RI/DCD 引脚，
+没有自动硬件流控；OUT2 不门控 SoC IRQ，外部 modem 状态恒零，内部 loopback 可测试状态。
 
-参考 TI PC16550D SNLS378C（2015-05）寄存器图：
-https://www.mouser.com/datasheet/2/405/pc16550d-443503.pdf 。
-新 `soc.ip.uart.UartConsole` 是**非 FIFO、固定8N1的16550寄存器子集**，不是完整16550实现。
-提供 RBR/THR、IER(接收/发送/线路错误)、IIR、LCR、LSR、SCR、DLL/DLM；MCR只保存低4位，
-MSR返回0，不支持modem/loopback。FIFO不使能，IIR高两位为0；FCR可清接收/发送holding寄存器。
-LCR允许0x03、0x80、0x83；0x80用于8250软件先开启DLAB再设置8N1，其余格式返回总线错误；复位LCR=3、divisor=1。
+MMIO 为 0x10000000–0x10000007，reg-shift=0、io-width=1，
+仅接受 size=0 / byteEnable=1；IRQ 为 APLIC source 3，高电平模式。
+非法地址/宽度/掩码返回总线错误且无副作用；完整位表见 [寄存器附录](soc-registers.md#uart0x10000000)。
 
-## 端口与时序目标（实现前合同）
+## 时钟、波特率和两个板级配置
 
-- CPU无关 RegisterPort，8个逐字节寄存器，平台地址0x10000000；只接受size0、byteEnable1，错误访问无副作用。
-- 两项寄存响应缓冲（ready来自寄存的队列容量，不组合依赖response.ready），正常寄存访问一拍响应、可连续每拍接受一项；响应阻塞时稳定保存数据，无重复读清/发送。
-- 发送holding寄存器1字节，另有10位移位器；THRE反映holding空，TEMT反映两者均空。
-  holding满时THR写背压，软件可轮询THRE。发送中不允许改DLL/DLM，避免截断当前字符。
-- 串行8N1，LSB先行，每bit为16*divisor个核心周期；不生成派生时钟，计数器使能移位器。
-- RX双寄存器同步、起始位中点确认和数据位中点采样；一字节holding，溢出保留旧字节并置OE。
-  RBR读取与新字节同拍时保留新字节；LSR读清错误，新错误优先。支持帧错误，未实现break/parity检测。
-- 中断优先级：线路错误 > 接收有效 > THRE；读IIR仅清当前被识别的THRE中断。
-- UART接APLIC source3（高电平模式）；平台sources位2与UART中断做OR，板级必须把该外部输入置0。原无UART启动测试可在该位注入外部源。
-- 顺序标签路由器复用现有8项容量；RAM请求组合直通，不新增串行等待状态。验证RAM路径性能回归。
+当前 VL100 管理时钟配置：CPU 为 100 MHz，UART 在独立的 50 MHz raw 域，
+16550 虚拟参考为 **7,372,800 Hz**，DLL/DLM=1/0 才是 **460800 baud**。
+CPU 频率、UART raw 时钟、baud-generator 参考不能混用。
+r5 ROM 的 DLL=7 勘误实际约 65828.57 baud；r6 修复与机器码校验记录见
+[时序台账](fpga-timing-windows.md#当前批次2026-10-06-r6uart-修复取指发射访存裕量)。
+本节下方 DDR45/DDR50 表格是历史单域配置，不是当前 VL100 的物理时钟结构。
 
-本阶段是FPGA启动控制台基线，单字节缓冲限制软件服务延迟；后续吞吐优化需FIFO/接收超时及更广格式支持。
-双寄存器只能建立CDC结构，实际亚稳态约束、ASYNCH_REG标记、引脚、电气与Vivado时序仍待板级集成验证。
+只有一个物理核心时钟。referenceClockHz 通过相位累加器生成时钟使能，不创建额外时钟域：
+baud = referenceClockHz / (16 * max(DLL_DLM, 1))。
+所有 divisor 使用同一公式，不再只有 DLL=1 特殊而其他 divisor 使用核心频率。
 
-## 验证与使用
+| 配置 | 物理 CPU 时钟 / timebase | UART 参考频率 | DLL/DLM | 主机 |
+| --- | ---: | ---: | --- | --- |
+| DDR45 / UART1500000 | 45000000 Hz | 24000000 Hz | 1 / 0 | 1500000、8N1、无流控 |
+| DDR50 / UART115200 | 50000000 Hz | 1843200 Hz | 1 / 0 | 115200、8N1、无流控 |
 
-`make gsim-uart-test`：独立串行驱动按8N1线协议发送/解码，不使用DUT寄存器定义。
-覆盖非法地址/宽度/掩码无副作用、响应保持、随机SCR、发送满背压、DLAB、THRE/TEMT、
-IIR优先级及清除、接收溢出保留旧字节、帧错误、短毛刺起始位、多分频及divisor=0按1处理。
-连续384拍RBR读与串行接收重叠，验证每拍接受一项以及读清与字节到达同拍不丢数据。
-当前结果：1,090次普通事务、384次连续读、43个发送字符，25,036周期；串行负向注入通过。
+两个频率为精确的平均速率，不依赖四舍五入的整数分频。
+板级 UART 软件或设备树 clock-frequency 应填写上表 UART 参考频率，
+而 timebase-frequency 应填写 CPU 频率；二者不能混用。
+BoardSocMain 和 BoardSocGsimMain 最后一个可选参数是 uart-baud，默认 1500000。
+通用 UartConsole 默认参考核心时钟；保留 fastDivisorOne=true 的旧构造参数，
+但现在它选择统一的 24 MHz 虚拟参考频率，不再表示 DLL=1 特例。
 
-`make gsim-machine-platform-test`：每种核心容量分别执行UART固件和原RAM固件。
-UART固件软件设置divisor=1、LCR=3、IER=1，串行TX发出 `OK\n`；测试从外部RX线发送 `Z`，
-APLIC source3配置为高电平，M处理程序读IIR/RBR后把字符写到RAM偏移16。必须得到字符0x5a、
-计算结果376、中断计数1；独立指令提交模型核对软件状态，独立线解码器核对TX，增加TX负向注入。
-这不是完整Linux串口驱动兼容认证；只验证明确支持的初始化与8N1控制台用法。
+旧 bit 不会因更新 Scala 或 GUI 时钟而改变。已有 DDR50 1.5 Mbaud / 无 FIFO bit
+与本次新 DDR50 115200 / FIFO 候选不同，必须明确选对 bit 和主机参数。
+时序/bit 发布状态见 [Windows 时序记录](fpga-timing-windows.md)，未签核候选不能用于交付。
 
-原RAM固件同时保留作性能对照：ROB8/PRF36三组周期3,564/4,141/4,115，
-ROB32/PRF64为3,606/4,205/4,217，与未接UART之前逐项相同。
-UART寄存器请求链通过两项队列的寄存容量隔离，普通访问验证II=1；串行发送本身依照波特率运行。
-新平台增加地址比较和响应选择，不以周期不变推导Fmax不变；实际路径和面积尚须Vivado测量。
+## 容量、延迟、背压与寄存器语义
 
-UART固件定向结果（包含RAM初始化、串行等待及中断处理，不等价于计算IPC）：
+- RX/TX 各 16 字节 FIFO；硬件复位禁用 FIFO，禁用时容量为一字节。
+  BootROM 使用 FCR=0x07：bit0 使能、bit1/2 清 RX/TX；0x06 会禁用 FIFO。
+  FIFO 模式切换清空两个队列；清 TX 不截断正在移位发送的字符。
+- RX 触发阈值为 1/4/8/14（FCR[7:6]）。FIFO 未空且四个字符时间没有
+  接收或 RBR 读取时产生接收超时中断；收到字符或读 RBR 会重新计时。
+- IIR 原因：线路错误 0x6 > 接收阈值 0x4 > 超时 0xc > THRE 0x2 > modem 0x0；
+  无中断为 0x1。FIFO 启用时 IIR[7:6]=11，所以实际可读到 0xc6/0xc4/0xcc/0xc2 等。
+  读 IIR 仅确认当前 THRE 中断，不确认 RX/线路错误/modem。
+- LSR DR 表示 RX 非空，THRE 表示 TX FIFO 空（不是“尚有空间”），TEMT 表示
+  FIFO 与移位器都空。THR 满时写背压；接受写清 THRE pending。
+  FIFO 最后一字节进入移位器、清 TX 或打开空 FIFO 的 THRE 使能时置 pending。
+- RX 满且同拍不读 RBR 时置 OE、保留已排队字节、丢弃新字节。
+  同拍 RBR pop / RX push 不丢新字节。PE/FE/BI 与每个接收字节关联；
+  LSR 读清 OE 与当前队头错误，后续字节错误不会被提前清除。
+  FIFO-error bit7 汇总队列内尚未确认的字符错误，不包含单独 OE。
+- LCR 支持 5/6/7/8 位、无/奇/偶/mark/space parity、1/2 stop（5 位时 1.5 stop）、
+  break 和 DLAB。RX 检查第一停止位，多数采样在每 bit 的中间三个 16x 采样点。
+  持续 break 只发布一个错误字符，待线路回高再重新接收。
+- MCR 低 5 位保存，loopback 将内部 TX 接到 RX，外部 TX 保持空闲高；
+  loopback modem 映射和 MSR delta/read-clear 可用。无板外 modem/自动流控。
+- MMIO 两项非直通响应缓冲，正常访问一拍响应、连续 II=1；
+  响应阻塞时稳定保持数据，不重复读清或发送。
+  写 DLL/DLM 忙时背压；更改波特率/格式前应等 TEMT 并确保 RX 空闲。
 
-| 配置 | 三组提交合计 | seed0 / seed17 / seed8191 周期 | 同步异常 / 外部中断 |
-| --- | ---: | --- | ---: |
-| ROB8 / PRF36 | 5,938 | 3,973 / 4,560 / 4,539 | 9 / 3 |
-| ROB32 / PRF64 | 6,029 | 4,005 / 4,624 / 4,602 | 9 / 3 |
+16 字节在 1.5 Mbaud / 8N1 下提供约 106.7 µs 的短时接收容量，
+在 115200 下约 1.389 ms；FIFO 不保证持续处理吞吐，也不能修复物理位错误。
+两级 rxMeta/rxSync 标记 ASYNC_REG；不能将级间路径剪掉。
 
-生产RTL仍由 `make machine-platform-rtl` 生成，清单 `build/ip/machine-platform/filelist.f`，
-默认ROM初始化文件为含UART的固件。UART闲置时RX应保持高电平；核心时钟频率决定实际波特率，
-baud=fclk/(16*divisor)，不是仿真周期的墙钟时间。
+## 必要功能验证（不是实体板验收）
 
-最终验收：28项Scala检查、全量GSIM/NEMU及负向注入全部通过；44条原整数IPC记录逐项不变。
-日志 `build/gsim/uart-final.log`，IPC对照 `build/gsim/ipc-before-uart.json`。
+make gsim-uart-test / python3 simulator/gsim/run.py uart 运行两组独立线协议测试，
+不引用 DUT 寄存器或格式表来生成预期结果：
+
+- 基础 MMIO、响应保持、连续每拍读 RBR、随机 SCR、TX 背压、所有 divisor/零值策略；
+  FIFO 阈值、满溢保序、四字符超时、LSR 错误关联与读清、break、RX 字长/校验位。
+  PASS：1339 事务、83 发送字符、73885 周期。
+- 40 组独立 TX 线格式（5–8 位、五种 parity、两种 stop 配置）；
+  modem 状态、MSR delta/read-clear、内部 loopback 和 break。
+  PASS。两组刻意错误预期注入均被拒绝，ASan/UBSan 开启。
+- mill -i IonSoC.test.testOnly ip.UartParamsSpec：2 项通过，包括参考频率范围和两个目标配置。
+- 45 MHz / 1.5 Mbaud 和 50 MHz / 115200 连续 8N1 BootROM 下载均通过：
+  头/分块/整镜像 CRC、重传、范围和未校验跳转拒绝、DDR 执行/返回、重写指令 fence.i。
+  分别 5677739 / 18387432 cycles，936 UART bytes；
+  同为 1098 read bursts / 554 write bursts。周期包含串口等待，不是计算 IPC。
+- 12 项主机协议测试及 uart_probe.py --self-test 通过，没有打开串口。
+
+上述 GSIM 不模拟真实 MIG PHY、USB-UART、电气或亚稳态。
+用户此前在 50 MHz 无 FIFO版仍遇到 invalid header，故障原因尚未单独证明；
+新 FIFO 与多数采样是容错改进，不宣称已经解决实体板故障。
+不运行全量 GSIM，保留旧 CPU 和 bit，板上须重复下载 CRC/DDR 压力验证。
+
+## 参考与历史边界
+
+参考 [TI TL16C550D 数据手册](https://www.ti.com/lit/ds/symlink/tl16c550d.pdf) 的寄存器/FIFO语义。
+旧 soc.device.UartTx 只是仿真字节脉冲设备，不能作为当前硬件正确性模型。
+此前非 FIFO 8N1 子集、旧 4 KiB 平台/默认核心频率的记录是历史验证，
+不代表当前 DDR45/DDR50 的软件时钟合同或实体板稳定性证明。

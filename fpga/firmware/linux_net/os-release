@@ -1,0 +1,6 @@
+NAME="Valence Linux"
+ID=valence
+PRETTY_NAME="Valence Linux RV64GC (BusyBox/musl hard-float)"
+VERSION="2026.10-gmac-fpu-r1"
+VERSION_ID=2026.10
+VARIANT="CPU100MHz DDR4 Native GMAC"

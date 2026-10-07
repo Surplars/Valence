@@ -53,7 +53,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
   * contract.
   */
-class LoadStoreUnit(p: OooParams) extends Module {
+class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module {
     val io = IO(new Bundle {
         // State-only reservation hint; start.ready additionally authorizes replacement of the old result.
         val issueAvailable = Output(Bool())
@@ -85,10 +85,8 @@ class LoadStoreUnit(p: OooParams) extends Module {
     }
     val byteMask    = MuxLookup(io.start.bits.size, 7.U(3.W))(Seq(0.U -> 0.U, 1.U -> 1.U, 2.U -> 3.U))
     val atomicWrite = io.start.bits.atomic && io.start.bits.atomicOp =/= 2.U
-    val accessEnd   = io.start.bits.address +& (1.U(64.W) << io.start.bits.size)
     val atomicFault = io.start.bits.atomic && !io.start.bits.virtualized &&
-        (io.start.bits.address < p.speculativeRamBase.U(65.W) ||
-            accessEnd > (p.speculativeRamBase + p.speculativeRamBytes).U(65.W))
+        !SpeculativeRamRange.contains(p, io.start.bits.address, io.start.bits.size)
     val misaligned = (io.start.bits.address(2, 0) & byteMask) =/= 0.U
     io.forwardStore.valid        := state === done && operation.store && !result.exception
     io.forwardStore.bits.token   := operation.token
@@ -100,14 +98,20 @@ class LoadStoreUnit(p: OooParams) extends Module {
     io.busy                      := state =/= idle
     io.phase                     := state
     io.issueAvailable            := state === idle || (state === done && !cancelled)
-    io.start.ready               := state === idle || (state === done && io.complete.ready && !discard)
+    // A same-cycle cancel refers to the old owner. New ownership can replace a completed
+    // slot; the backend suppresses new starts on recovery, so cancel need not feed start.ready.
+    io.start.ready               := state === idle || (state === done && io.complete.ready && !cancelled)
     // Same-cycle cancellation is rejected by ROB token authorization. Do not feed cancel back into
     // completion arbitration: that arbitration also selects the branch producing cancel.
     io.complete.valid := state === done && !cancelled
     io.complete.bits  := result
     // Start and memory request can handshake together. Only registered slot state controls
     // start readiness; a stalled memory port leaves the accepted operation in request state.
-    val startRequest = io.start.fire && !misaligned && !atomicFault &&
+    // A registered client captures permissions and the complete operation on
+    // start.fire. Neither the new payload nor its fault decision can bypass
+    // that boundary into request.bits/response.ready. Legacy integer clients
+    // retain their measured same-cycle buffered-store contract.
+    val startRequest = if (registerStart) false.B else io.start.fire && !misaligned && !atomicFault &&
         !io.start.bits.accessDenied && !io.start.bits.forward.valid
     val sending = Mux(startRequest, io.start.bits, operation)
     val shift = Cat(sending.address(2, 0), 0.U(3.W))
@@ -178,7 +182,7 @@ class LoadStoreUnit(p: OooParams) extends Module {
             0.U
         )
         state := Mux(misaligned || atomicFault || io.start.bits.accessDenied || io.start.bits.forward.valid,
-            done, Mux(io.memory.response.fire,
+            done, if (registerStart) request else Mux(io.memory.response.fire,
                 Mux(io.fastStoreRetire, idle, done),
                 Mux(io.memory.request.fire, response, request)))
         when(io.memory.response.fire) {
@@ -193,6 +197,7 @@ class LoadStoreUnit(p: OooParams) extends Module {
                 Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
         }
         when(io.fastStoreRetire) {
+            assert(!registerStart.B, "registered LSU cannot retire a new store in its capture cycle")
             assert(io.start.bits.store && !io.start.bits.atomic && io.memory.request.fire &&
                 io.memory.response.fire && !io.memory.response.bits.error &&
                 !io.memory.response.bits.pageFault && !misaligned && !atomicFault &&

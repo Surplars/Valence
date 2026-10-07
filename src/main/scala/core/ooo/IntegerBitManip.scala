@@ -6,7 +6,12 @@ import chisel3.util._
 /** Stateless B datapath: one combinational result per lane/cycle, no queue or private completion port. Scheduling,
   * backpressure and recovery are inherited from IntegerAlu. See docs/rv64b.md for the contract.
   */
-class IntegerBitManip extends Module {
+class IntegerBitManip(parallelResult: Boolean = false, parallelAddressSums: Boolean = false,
+    parallelMinMax: Boolean = false, externalMinMax: Boolean = false, earlyWordResults: Boolean = false) extends Module {
+    require(!parallelAddressSums || parallelResult)
+    require(!parallelMinMax || parallelResult)
+    require(!externalMinMax || (parallelMinMax && parallelResult))
+    require(!earlyWordResults || (parallelAddressSums && externalMinMax))
     val io = IO(new Bundle {
         val operation = Input(UInt(6.W))
         val word      = Input(Bool())
@@ -14,7 +19,14 @@ class IntegerBitManip extends Module {
         val right     = Input(UInt(64.W))
         val result    = Output(UInt(64.W))
         val legal     = Output(Bool())
+        val addressResult = if (earlyWordResults) Some(Output(UInt(64.W))) else None
     })
+    // Prepare W payload per independent class before late one-hot qualification.
+    def wordResult(data: UInt): UInt = {
+        val xlen = Wire(UInt(64.W))
+        xlen := data
+        Mux(io.word, Cat(Fill(32, xlen(31)), xlen(31, 0)), xlen)
+    }
     val op    = io.operation
     val a     = io.left
     val b     = io.right
@@ -60,8 +72,7 @@ class IntegerBitManip extends Module {
     val signedLess   = a.asSInt < b.asSInt
     val unsignedLess = a < b
     val bitMask      = (1.U(64.W) << b(5, 0))(63, 0)
-    io.result := MuxLookup(op, 0.U(64.W))(
-        Seq(
+    val results = Seq(
             IntegerOp.sh1add   -> address,
             IntegerOp.sh2add   -> address,
             IntegerOp.sh3add   -> address,
@@ -92,7 +103,60 @@ class IntegerBitManip extends Module {
             IntegerOp.binv     -> (a ^ bitMask),
             IntegerOp.bext     -> a(b(5, 0)).asUInt
         )
-    )
+    if (parallelResult) {
+        // Address and rotate aliases share data; operation qualification is
+        // independent of the late operand result and illegal controls yield 0.
+        val addressOps = Seq(IntegerOp.sh1add, IntegerOp.sh2add, IntegerOp.sh3add,
+            IntegerOp.addUw, IntegerOp.sh1addUw, IntegerOp.sh2addUw, IntegerOp.sh3addUw)
+        val rotateOps = Seq(IntegerOp.rol, IntegerOp.ror)
+        // Run fixed-shift additions independently of opcode/unsigned-word
+        // selection. Only the final one-hot result waits for those controls.
+        // Full XLEN carry/wrap semantics and the original illegal-W payload stay
+        // unchanged; this trades combinational adders for no extra execute cycle.
+        val addressResults = if (parallelAddressSums) {
+            val unsignedWord = Cat(0.U(32.W), a(31, 0))
+            Seq(IntegerOp.addUw -> (unsignedWord + b)) ++
+                Seq((IntegerOp.sh1add, IntegerOp.sh1addUw, 1),
+                    (IntegerOp.sh2add, IntegerOp.sh2addUw, 2),
+                    (IntegerOp.sh3add, IntegerOp.sh3addUw, 3)).flatMap { case (full, word, shift) =>
+                    Seq(full -> (((a << shift)(63, 0)) + b),
+                        word -> (((unsignedWord << shift)(63, 0)) + b))
+                }
+        } else Seq.empty
+        val addressSelect = if (parallelAddressSums)
+            addressResults.map { case (code, value) => (op === code) -> value }
+        else Seq(addressOps.map(op === _).reduce(_ || _) -> address)
+        val minMaxOps = Seq(IntegerOp.min, IntegerOp.max, IntegerOp.minU, IntegerOp.maxU)
+        // Select two raw operands directly, not four comparator-selected64 payloads.
+        val minMaxSelect = if (parallelMinMax && !externalMinMax) Seq(
+            ((op === IntegerOp.min && signedLess) || (op === IntegerOp.max && !signedLess) ||
+                (op === IntegerOp.minU && unsignedLess) || (op === IntegerOp.maxU && !unsignedLess)) -> a,
+            ((op === IntegerOp.min && !signedLess) || (op === IntegerOp.max && signedLess) ||
+                (op === IntegerOp.minU && !unsignedLess) || (op === IntegerOp.maxU && unsignedLess)) -> b
+        ) else Seq.empty
+        io.addressResult.foreach { output =>
+            output := Mux1H(addressSelect.map { case (grant, data) => grant -> wordResult(data) })
+        }
+        // Address sums bypass the unrelated count/rotate/logical result tree.
+        val shared = (if (earlyWordResults) Seq.empty else addressSelect) ++ minMaxSelect ++ Seq(
+            rotateOps.map(op === _).reduce(_ || _) -> rotated)
+        val remaining = results.filterNot { case (code, _) =>
+            val value = code.litValue
+            addressOps.exists(_.litValue == value) || rotateOps.exists(_.litValue == value) ||
+                (parallelMinMax && minMaxOps.exists(_.litValue == value))
+        }.map { case (code, data) =>
+            // Some count expressions have an inferred width at construction.
+            // Normalize at the XLEN boundary exactly as the legacy output does.
+            val xlenResult = Wire(UInt(64.W))
+            xlenResult := data
+            (op === code) -> xlenResult
+        }
+        val classes = shared ++ remaining
+        io.result := Mux1H(if (earlyWordResults)
+            classes.map { case (grant, data) => grant -> wordResult(data) } else classes)
+    } else {
+        io.result := MuxLookup(op, 0.U(64.W))(results)
+    }
     io.legal := op >= IntegerOp.sh1add && op <= IntegerOp.bext && (!io.word ||
         op === IntegerOp.clz || op === IntegerOp.ctz || op === IntegerOp.cpop ||
         op === IntegerOp.rol || op === IntegerOp.ror)

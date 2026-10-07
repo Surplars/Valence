@@ -15,6 +15,12 @@
 #ifndef RECOVERY_WIDTH
 #define RECOVERY_WIDTH 1
 #endif
+#ifndef FAST_HEAD_TRAP
+#define FAST_HEAD_TRAP 0
+#endif
+#ifndef FAST_HEAD_SYSTEM
+#define FAST_HEAD_SYSTEM 0
+#endif
 
 struct Token {
     unsigned index = 0;
@@ -36,6 +42,7 @@ struct Input {
     std::array<Request, 2> allocate{};
     std::array<Completion, 2> complete{};
     bool dispatch = true, commit = false, recover = false, inclusive = false;
+    bool headTrap = false, headSystem = false;
     Token boundary;
     unsigned inspect = 0;
 };
@@ -85,6 +92,12 @@ static void drive(SRenameRobGsim &dut, const Input &in) {
     dut.set_io$$recover$$bits$$token$$index(in.boundary.index);
     dut.set_io$$recover$$bits$$token$$tag(in.boundary.tag);
     dut.set_io$$inspectRegister(in.inspect);
+#if FAST_HEAD_TRAP
+    dut.set_io$$headTrap(in.headTrap);
+#endif
+#if FAST_HEAD_SYSTEM
+    dut.set_io$$headSystem(in.headSystem);
+#endif
 }
 
 static Output sample(SRenameRobGsim &dut) {
@@ -129,6 +142,7 @@ class Scoreboard {
     bool exhausted = false, recovering = false;
     size_t keep = 0;
     unsigned cycle = 0;
+    bool injectHeadTrapMismatch = false, injectHeadSystemMismatch = false, injectSourceMismatch = false;
 
     std::array<unsigned, 32> speculative() const {
         auto result = committed;
@@ -177,8 +191,14 @@ public:
     std::deque<Entry> queue;
     std::vector<Token> history;
     unsigned allocations = 0, aliasedAllocations = 0, commits = 0, recoveries = 0, rejected = 0, dualCommits = 0;
+    unsigned headTraps = 0, headTrapShrinks = 0, emptyHeadTrapRequests = 0, duplicateHeadTrapRequests = 0;
+    unsigned headSystems = 0, headSystemShrinks = 0, duplicateHeadSystemRequests = 0;
+    unsigned headSystemExternalTies = 0, headSystemTrapPriority = 0, headOwnerChecks = 0;
 
-    Scoreboard() { reset(); }
+    explicit Scoreboard(bool inject = false, bool injectSystem = false, bool injectSource = false)
+        : injectHeadTrapMismatch(inject), injectHeadSystemMismatch(injectSystem), injectSourceMismatch(injectSource) {
+        reset();
+    }
     void reset() {
         drive(dut, Input{});
         dut.set_reset(1);
@@ -193,12 +213,17 @@ public:
     }
     bool busy() const { return recovering; }
     bool fullTag() const { return exhausted; }
+    unsigned availableRegisters() const { return unsigned(free.size()); }
 
     Output tick(Input in = {}) {
         in.inspect %= 32;
         drive(dut, in);
         dut.step();
         Output out = sample(dut);
+        if (injectSourceMismatch && out.allocated[1].valid) {
+            out.allocated[1].source1 ^= 1;
+            injectSourceMismatch = false;
+        }
         check(dut.get_io$$occupancy() == queue.size(), "ROB occupancy");
         check(dut.get_io$$freeCount() == free.size(), "physical register conservation");
         check(bool(dut.get_io$$recovering()) == recovering, "recovery state");
@@ -209,9 +234,49 @@ public:
 
         const int boundary = position(in.boundary);
         const size_t requestedKeep = boundary < 0 ? 0 : size_t(boundary) + !in.inclusive;
-        const bool acceptRecovery = in.recover && boundary >= 0 && (!recovering || requestedKeep < keep);
+        const bool ordinaryRecovery = in.recover && boundary >= 0 && (!recovering || requestedKeep < keep);
+        // Independent transaction-deque rule: a trusted head trap discards the
+        // entire speculative suffix. It beats any ordinary token boundary;
+        // repeating an already-all-discarding rollback does not accept twice.
+        const bool headRecovery = FAST_HEAD_TRAP && in.headTrap && !queue.empty() && (!recovering || keep > 0);
+        if (FAST_HEAD_TRAP && in.headTrap && queue.empty()) ++emptyHeadTrapRequests;
+        if (headRecovery && recovering) ++headTrapShrinks;
+        if (FAST_HEAD_TRAP && in.headTrap && recovering && keep == 0) ++duplicateHeadTrapRequests;
+#if FAST_HEAD_TRAP
+        bool expectedHead = headRecovery;
+        if (injectHeadTrapMismatch && in.headTrap) { expectedHead = !expectedHead; injectHeadTrapMismatch = false; }
+        check(bool(dut.get_io$$headTrapAccepted()) == expectedHead, "head trap acceptance oracle mismatch");
+#endif
+        // The software deque owns the current head identity. Neither the DUT's
+        // head index nor its new headToken output determines the expected owner,
+        // boundary or acknowledgement. External same-head ties retain priority.
+        const bool externalHeadTie = ordinaryRecovery && boundary == 0;
+        const bool systemRecovery = FAST_HEAD_SYSTEM && in.headSystem && !queue.empty() &&
+            !headRecovery && !externalHeadTie && (!recovering || keep > 1);
+#if FAST_HEAD_SYSTEM
+        if (in.headSystem) {
+            check(!queue.empty(), "test sent trusted system request without an owner");
+            check(dut.get_io$$headSystemToken$$index() == queue.front().token.index &&
+                dut.get_io$$headSystemToken$$tag() == queue.front().token.tag,
+                "trusted head system owner oracle mismatch");
+            ++headOwnerChecks;
+            headSystemExternalTies += externalHeadTie && !headRecovery;
+            headSystemTrapPriority += headRecovery;
+            duplicateHeadSystemRequests += recovering && keep == 1 && !headRecovery && !externalHeadTie;
+        }
+        headSystemShrinks += systemRecovery && recovering;
+        bool expectedSystem = systemRecovery;
+        if (injectHeadSystemMismatch && in.headSystem) {
+            expectedSystem = !expectedSystem; injectHeadSystemMismatch = false;
+        }
+        check(bool(dut.get_io$$headSystemAccepted()) == expectedSystem,
+            "head system acceptance oracle mismatch");
+#endif
+        headSystems += systemRecovery;
+        const bool acceptRecovery = headRecovery || systemRecovery || ordinaryRecovery;
         const bool recoveryCycle = recovering || acceptRecovery;
-        if (acceptRecovery) { keep = requestedKeep; ++recoveries; }
+        if (acceptRecovery) { keep = headRecovery ? 0 : systemRecovery ? 1 : requestedKeep; ++recoveries; }
+        headTraps += headRecovery;
         check(bool(dut.get_io$$recoveryAccepted()) == acceptRecovery, "recovery acceptance/age");
         const bool headFault = !queue.empty() && queue.front().done && queue.front().exception && !recoveryCycle;
         check(bool(dut.get_io$$headException$$valid()) == headFault, "precise head exception");
@@ -349,7 +414,250 @@ static Request moveRequest(unsigned rd, unsigned source) {
             uint32_t((4u << 13) | (rd << 7) | (source << 2) | 2u)};
 }
 
-int main() {
+static void headTrapTests(bool inject) {
+#if FAST_HEAD_TRAP
+    Scoreboard model(inject);
+    Input in;
+    // Empty ROB: no invented owner or recovery event; ordinary allocation is
+    // still allowed in this ledger-only fixture. The CPU's empty trap itself
+    // independently blocks dispatch and uses its architectural emptyPc.
+    in.headTrap = true;
+    in.allocate = {request(1), request(2)};
+    auto first = model.tick(in);
+    in = {}; in.headTrap = true; in.commit = true;
+    in.allocate = {request(3), request(4)};
+    in.complete = {Completion{true, false, first.allocated[0].token, 11},
+                   Completion{true, false, first.allocated[1].token, 22}};
+    model.tick(in);
+    model.drain();
+
+    // Simultaneous live/stale general requests cannot outrank a current-head
+    // trap. Force the circular head through every index, including wraparound.
+    for (unsigned round = 0; round < ROB_ENTRIES + 3; ++round) {
+        in = {}; in.allocate[0] = request(5); auto advance = model.tick(in);
+        in = {}; in.commit = true;
+        in.complete[0] = {true, false, advance.allocated[0].token, round};
+        model.tick(in);
+        in = {}; in.allocate = {request(6, 5), request(7, 6)}; auto pair = model.tick(in);
+        in = {}; in.headTrap = true; in.recover = true; in.commit = true;
+        in.boundary = pair.allocated[1].token; in.inclusive = round & 1;
+        if (round & 2) ++in.boundary.tag;
+        in.complete = {Completion{true, false, pair.allocated[0].token, 33},
+                       Completion{true, true, pair.allocated[1].token, 44, 2, 0xbad}};
+        model.tick(in); model.drain();
+        in = {}; in.allocate = {request(8), request(9)}; model.tick(in);
+        in = {}; in.complete[0] = {true, false, pair.allocated[0].token, 99};
+        model.tick(in); model.drain();
+    }
+
+    // Start a nonzero rollback and shrink it to the head before it finishes.
+    // This is a ledger contract test; the CPU retains safeTrap's no-rollback
+    // guard and never takes an unsafe automatic interrupt during restoration.
+    for (unsigned i = 0; i < ROB_ENTRIES / 2; ++i) {
+        in = {}; in.allocate = {request(0), request(0)}; model.tick(in);
+    }
+    in = {}; in.recover = true; in.boundary = model.queue[1].token;
+    model.tick(in);
+    in = {}; in.headTrap = true; in.commit = true;
+    in.complete[0] = {true, false, model.queue.front().token, 0x55};
+    model.tick(in);
+    // Repeated requests while keep==0 are idempotent, even with completions.
+    while (model.busy()) {
+        in = {}; in.headTrap = true; in.commit = true;
+        if (!model.queue.empty()) in.complete[0] = {true, false, model.queue.front().token, 0x66};
+        model.tick(in);
+    }
+    model.drain();
+
+    // Precise synchronous fault metadata remains unchanged until the trap
+    // consumes that head. No younger architectural update is permitted.
+    in = {}; in.allocate = {request(10), request(11)}; auto fault = model.tick(in);
+    in = {}; in.complete[0] = {true, true, fault.allocated[0].token, 0, 2, 0xf00d};
+    in.complete[1] = {true, false, fault.allocated[1].token, 77}; model.tick(in);
+    in = {}; in.commit = true; model.tick(in);
+    in.headTrap = true; model.tick(in); model.drain();
+
+    // Bounded concurrent traffic: preserve the original independent mapping,
+    // ownership, stale-token, same-packet and ordered-retirement checks.
+    for (uint64_t seed : {UINT64_C(0x64103), UINT64_C(0x81003)}) {
+        model.reset();
+        std::mt19937_64 random(seed);
+        for (unsigned cycle = 0; cycle < 1500; ++cycle) {
+            in = {}; in.inspect = cycle % 32; in.commit = random() % 4 != 0;
+            for (unsigned lane = 0; lane < 2; ++lane) {
+                if (random() % 4) in.allocate[lane] = request(random() % 32, random() % 32, random() % 32);
+                if (!model.queue.empty() && random() % 4) {
+                    const auto &entry = model.queue[random() % model.queue.size()];
+                    in.complete[lane] = {true, random() % 31 == 0, entry.token, random(), 2, random()};
+                } else if (!model.history.empty()) {
+                    in.complete[lane] = {true, false, model.history[random() % model.history.size()], random()};
+                }
+            }
+            if (!model.queue.empty() && random() % 11 == 0) {
+                in.recover = true; in.inclusive = random() & 1;
+                in.boundary = model.queue[random() % model.queue.size()].token;
+            }
+            in.headTrap = random() % 17 == 0 ||
+                (!model.queue.empty() && model.queue.front().done && model.queue.front().exception);
+            model.tick(in);
+        }
+        model.drain();
+    }
+    if (!model.headTraps || !model.headTrapShrinks || !model.emptyHeadTrapRequests ||
+        !model.duplicateHeadTrapRequests || !model.dualCommits || !model.rejected)
+        throw std::runtime_error("head trap directed/random coverage incomplete");
+    std::cout << "GSIM trusted head-trap ledger: PASS headTraps=" << model.headTraps
+              << " activeRollbackShrinks=" << model.headTrapShrinks
+              << " emptyRequests=" << model.emptyHeadTrapRequests
+              << " duplicateZeroBoundary=" << model.duplicateHeadTrapRequests
+              << " dualCommits=" << model.dualCommits << " rejectedCompletions=" << model.rejected
+              << " seeds=2 randomCycles=3000\n";
+#else
+    throw std::runtime_error("head-trap short mode requires FAST_HEAD_TRAP=1");
+#endif
+}
+
+static void authorizationTests(bool injectSystem, bool injectSource) {
+#if FAST_HEAD_SYSTEM && FAST_HEAD_TRAP
+    static_assert(TAG_BITS == 64 && ROB_ENTRIES >= 12 && RECOVERY_WIDTH >= 1 && RECOVERY_WIDTH <= 4,
+        "authorization short uses a multi-cycle rollback fixture");
+    Scoreboard model(false, injectSystem, injectSource);
+    Input in;
+    unsigned rawWaw = 0, x0 = 0, holes = 0, capacity = 0, aliasCases = 0;
+
+    in.allocate = {request(5, 5), request(5, 5, 5)};
+    model.tick(in); ++rawWaw; model.drain();
+    in = {}; in.allocate = {request(0, 5, 5), request(6, 0, 0)};
+    model.tick(in); ++x0; model.drain();
+    in = {}; in.allocate = {request(7, 6), request(8, 7)};
+    in.allocate[0].valid = false; model.tick(in); ++holes;
+    in.allocate[0].valid = true; in.allocate[1].valid = false;
+    model.tick(in); ++holes; model.drain();
+#ifdef MOVE_ALIAS
+    in = {}; in.allocate = {moveRequest(8, 9), moveRequest(10, 8)};
+    model.tick(in); ++aliasCases;
+    in = {}; in.allocate = {request(9, 8), moveRequest(8, 9)};
+    model.tick(in); ++aliasCases; model.drain();
+#endif
+
+    model.reset();
+    while (model.availableRegisters() && model.queue.size() < ROB_ENTRIES) {
+        in = {}; in.allocate[0] = request(11, 11);
+        if (model.availableRegisters() > 1 && model.queue.size() + 1 < ROB_ENTRIES)
+            in.allocate[1] = request(12, 11);
+        model.tick(in);
+    }
+    in = {}; in.allocate = {request(13), request(14)}; model.tick(in); ++capacity;
+#ifdef MOVE_ALIAS
+    if (model.queue.size() + 1 < ROB_ENTRIES) {
+        in = {}; in.allocate = {moveRequest(13, 11), moveRequest(14, 13)};
+        model.tick(in); ++aliasCases;
+    }
+#endif
+    while (model.queue.size() < ROB_ENTRIES) {
+        in = {}; in.allocate[0] = request(0);
+        if (model.queue.size() + 1 < ROB_ENTRIES) in.allocate[1] = request(0);
+        model.tick(in);
+    }
+    in = {}; in.commit = true; in.allocate = {request(15), request(16)};
+    in.complete = {Completion{true, false, model.queue[0].token, 1},
+        Completion{true, false, model.queue[1].token, 2}};
+    model.tick(in); ++capacity; model.drain();
+
+    auto fill = [&]() {
+        while (model.queue.size() < ROB_ENTRIES) {
+            Input next; next.allocate[0] = request(0);
+            if (model.queue.size() + 1 < ROB_ENTRIES) next.allocate[1] = request(0);
+            model.tick(next);
+        }
+    };
+    // Walk every circular head using independently recorded allocation events.
+    for (unsigned round = 0; round < ROB_ENTRIES + 1; ++round) {
+        model.reset(); // Advance by round entries without trusting a hardware head.
+        for (unsigned i = 0; i < round; ++i) {
+            in = {}; in.allocate[0] = request(0); auto one = model.tick(in);
+            in = {}; in.commit = true;
+            in.complete[0] = {true, false, one.allocated[0].token, i}; model.tick(in);
+        }
+        fill();
+        const Token current = model.queue.front().token;
+        Token stale = current; ++stale.tag;
+        in = {}; in.headSystem = true; in.commit = true;
+        in.allocate = {request(17), request(18)};
+        in.complete = {Completion{true, false, current, 0x1234},
+            Completion{true, false, model.queue.back().token, 0xbad}};
+        model.tick(in);
+        while (model.busy()) {
+            in = {}; in.headSystem = true; in.commit = true;
+            in.complete[0] = {true, false, stale, 0xbad};
+            model.tick(in);
+        }
+        in = {}; in.commit = true; model.tick(in); model.drain();
+    }
+    // A nonzero generic boundary is strictly shrunk to one retained owner.
+    model.reset(); fill();
+    in = {}; in.recover = true; in.boundary = model.queue[6].token; model.tick(in);
+    in = {}; in.headSystem = true; model.tick(in);
+    while (model.busy()) { in = {}; in.headSystem = true; model.tick(in); }
+    model.drain();
+
+    // Both exclusive and inclusive external same-head ties remain external.
+    // A stale full-tag tie does not win; a younger valid token loses to head.
+    for (unsigned kind = 0; kind < 4; ++kind) {
+        model.reset(); fill();
+        in = {}; in.headSystem = true; in.recover = true;
+        in.boundary = model.queue[kind == 3 ? 2 : 0].token;
+        in.inclusive = kind == 1;
+        if (kind == 2) ++in.boundary.tag;
+        in.complete[0] = {true, false, model.queue.front().token, 0x77};
+        model.tick(in); model.drain();
+    }
+    // Automatic inclusive trap wins over both a system retain-one request and
+    // a valid external head tie; it rejects every same-edge completion.
+    model.reset(); fill();
+    in = {}; in.headSystem = true; in.headTrap = true; in.recover = true;
+    in.boundary = model.queue.front().token;
+    in.complete[0] = {true, false, model.queue.front().token, 0x99};
+    model.tick(in); model.drain();
+
+    if (!model.headSystems || !model.headSystemShrinks || !model.duplicateHeadSystemRequests ||
+        model.headSystemExternalTies != 2 || model.headSystemTrapPriority != 1 || !model.headOwnerChecks ||
+        !rawWaw || !x0 || holes != 2 || capacity != 2 || !model.rejected)
+        throw std::runtime_error("authorization short coverage incomplete");
+#ifdef MOVE_ALIAS
+    if (aliasCases < 2) throw std::runtime_error("authorization alias coverage incomplete");
+#endif
+    std::cout << "GSIM authorization ledger: PASS headSystems=" << model.headSystems
+        << " activeShrinks=" << model.headSystemShrinks << " duplicateRetainOne=" << model.duplicateHeadSystemRequests
+        << " externalHeadTies=" << model.headSystemExternalTies << " trapPriority=" << model.headSystemTrapPriority
+        << " ownerChecks=" << model.headOwnerChecks << " rawWaw=" << rawWaw << " x0=" << x0
+        << " validHoles=" << holes << " capacity=" << capacity << " aliases=" << aliasCases << "\n";
+#else
+    throw std::runtime_error("authorization short requires FAST_HEAD_SYSTEM=1 and FAST_HEAD_TRAP=1");
+#endif
+}
+
+int main(int argc, char **argv) {
+    if (argc == 2 && (std::string(argv[1]) == "--authorization-short" ||
+            std::string(argv[1]) == "--inject-head-system-mismatch" ||
+            std::string(argv[1]) == "--inject-tentative-source-mismatch")) {
+        try {
+            authorizationTests(std::string(argv[1]) == "--inject-head-system-mismatch",
+                std::string(argv[1]) == "--inject-tentative-source-mismatch");
+            return 0;
+        } catch (const std::exception &error) {
+            std::cerr << "GSIM authorization ledger: FAIL " << error.what() << '\n';
+            return 1;
+        }
+    }
+    if (argc == 2 && (std::string(argv[1]) == "--head-trap-short" ||
+                     std::string(argv[1]) == "--inject-head-trap-mismatch")) {
+        try { headTrapTests(std::string(argv[1]) == "--inject-head-trap-mismatch"); return 0; }
+        catch (const std::exception &error) {
+            std::cerr << "GSIM trusted head-trap ledger: FAIL " << error.what() << '\n';
+            return 1;
+        }
+    }
     Scoreboard model;
     Input in;
     // Same-packet RAW/WAW; a younger completion cannot retire past an unfinished head.

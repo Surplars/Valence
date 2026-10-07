@@ -1,0 +1,4 @@
+NAME="Valence Linux"
+ID=valence
+PRETTY_NAME="Valence Linux (BusyBox initramfs)"
+VERSION_ID="0.1"

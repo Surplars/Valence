@@ -18,7 +18,184 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
-    if (packetWords == 4) {
+    if (p.registeredTranslationHeads) {
+        // Retiming, not another successful-fetch cycle: translation captures PA
+        // first, and PMP occupies the already-existing physical send cycle.
+        // A zero permitted mask returns its fault one cycle later. The first
+        // permission offer is captured even under request backpressure, so a
+        // held physical address/mask never re-evaluates live CSR permissions.
+        // The existing PMP/SFENCE fetch-drain barrier keeps CSR state stable
+        // while !io.idle; this profile samples PMP at first offer, not TLB reply.
+        val Seq(idle, translateFirst, translateSecond, sendFirst, waitFirst,
+            sendSecond, waitSecond, reply) = Enum(8)
+        val state = RegInit(idle)
+        val issued = RegInit(false.B)
+        val virtualPc = Reg(UInt(64.W))
+        val secondVirtualPc = Reg(UInt(64.W))
+        val requested = Reg(UInt(packetWords.W))
+        val satp = Reg(UInt(64.W))
+        val sum = Reg(Bool())
+        val mxr = Reg(Bool())
+        val privilege = Reg(UInt(2.W))
+        val firstPhysical = Reg(UInt(64.W))
+        val secondPhysical = Reg(UInt(64.W))
+        val secondPageFault = RegInit(false.B)
+        val secondAccessFault = RegInit(false.B)
+        val permissionCaptured = RegInit(false.B)
+        val allowed = Reg(UInt(packetWords.W))
+        val errors = Reg(UInt(packetWords.W))
+        val pageFaults = Reg(UInt(packetWords.W))
+        val data = Reg(UInt((32 * packetWords).W))
+        val crosses = if (packetWords == 2) virtualPc(11, 0) === 4092.U && requested(1) else false.B
+        val alignedPacket = p.alignedFetchPmp && p.compressedInstructions
+
+        io.virtual.request.ready := state === idle
+        when(io.virtual.request.fire) {
+            if (packetWords == 4 || alignedPacket) {
+                assert(io.virtual.request.bits(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
+                    "aligned instruction packet must preserve its packet offset through translation")
+            }
+            virtualPc := io.virtual.request.bits
+            // The generic cross-page path still needs modulo64 +4, but this
+            // carry completes at request capture, before the TLB lookup.
+            secondVirtualPc := io.virtual.request.bits + 4.U
+            requested := io.virtual.requestMask
+            satp := io.vmState.satp
+            sum := io.vmState.sum
+            mxr := io.vmState.mxr
+            privilege := io.privilege
+            secondPageFault := false.B
+            secondAccessFault := false.B
+            permissionCaptured := false.B
+            allowed := 0.U
+            errors := (if (packetWords == 4) ~io.virtual.requestMask else 0.U)
+            pageFaults := 0.U
+            data := 0.U
+            state := translateFirst
+        }
+
+        val translating = state === translateFirst || state === translateSecond
+        val second = state === translateSecond
+        io.translation.request.valid := translating && !issued
+        io.translation.request.bits.virtualAddress := Mux(second, secondVirtualPc, virtualPc)
+        io.translation.request.bits.rootPpn := satp(43, 0)
+        io.translation.request.bits.asid := satp(59, 44)
+        io.translation.request.bits.mode := satp(63, 60)
+        io.translation.request.bits.privilege := privilege
+        io.translation.request.bits.access := PmpAccess.execute
+        io.translation.request.bits.sum := sum
+        io.translation.request.bits.mxr := mxr
+        io.translation.response.ready := translating
+        when(io.translation.request.fire) { issued := true.B }
+        val response = io.translation.response.bits
+        when(io.translation.response.fire) {
+            issued := false.B
+            // Failed translations have no meaningful physical address. Never
+            // assert alignment on their payload or on an inactive response.
+            if (alignedPacket) {
+                when(!response.pageFault && !response.accessFault) {
+                    assert(response.physicalAddress(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
+                        "successful aligned translation must preserve the packet offset")
+                }
+            }
+            when(second) {
+                secondPhysical := response.physicalAddress
+                secondPageFault := response.pageFault
+                secondAccessFault := response.accessFault
+                // Even when page two faults, permission for page one's saved
+                // PA still decides whether its requested word may be sent.
+                state := sendFirst
+            }.otherwise {
+                firstPhysical := response.physicalAddress
+                when(response.pageFault) {
+                    pageFaults := requested
+                    state := reply
+                }.elsewhen(response.accessFault) {
+                    errors := (if (packetWords == 4) ((1 << packetWords) - 1).U else requested)
+                    state := reply
+                }.elsewhen(!requested.orR) {
+                    state := reply
+                }.otherwise {
+                    state := Mux(crosses, translateSecond, sendFirst)
+                }
+            }
+        }
+
+        val denied = Wire(Vec(packetWords, Bool()))
+        for (word <- 0 until packetWords) {
+            val samePageAddress = if (alignedPacket)
+                Cat(firstPhysical(63, log2Ceil(4 * packetWords)), word.U(log2Ceil(packetWords).W), 0.U(2.W))
+            else firstPhysical + (4 * word).U
+            val wordAddress = if (packetWords == 2 && word == 1)
+                Mux(crosses, secondPhysical, samePageAddress) else samePageAddress
+            val checker = Module(new PmpChecker(p.pmpEntries, alignedWordAccess = alignedPacket))
+            checker.io.state := io.pmpState
+            // Low bits are defined even when these PA registers are inactive;
+            // the live translation capture above proves the exact transform.
+            checker.io.address := (if (alignedPacket) Cat(wordAddress(63, 2), 0.U(2.W)) else wordAddress)
+            checker.io.size := 2.U
+            checker.io.privilege := privilege
+            checker.io.access := PmpAccess.execute
+            denied(word) := checker.io.denied
+        }
+        val checkedAllowed = Wire(UInt(packetWords.W))
+        val checkedErrors = Wire(UInt(packetWords.W))
+        val checkedPages = Wire(UInt(packetWords.W))
+        if (packetWords == 2) {
+            val firstAllowed = requested(0) && !denied(0)
+            val secondFault = crosses && (secondPageFault || secondAccessFault)
+            val secondAllowed = requested(1) && !secondFault && !denied(1)
+            checkedAllowed := Cat(secondAllowed, firstAllowed)
+            checkedErrors := Cat(requested(1) && !(crosses && secondPageFault) &&
+                ((crosses && secondAccessFault) || denied(1)), requested(0) && denied(0))
+            checkedPages := Cat(crosses && secondPageFault, false.B)
+        } else {
+            checkedAllowed := requested & ~denied.asUInt
+            checkedErrors := ~checkedAllowed
+            checkedPages := 0.U
+        }
+        val activeAllowed = Mux(permissionCaptured, allowed, checkedAllowed)
+        val secondOnly = crosses && !activeAllowed(0)
+        val sendingSecond = state === sendSecond || (state === sendFirst && secondOnly)
+        val firstMask = if (packetWords == 2) Mux(crosses, Cat(false.B, activeAllowed(0)), activeAllowed)
+            else activeAllowed
+        val offerMask = Mux(sendingSecond, 1.U(packetWords.W), firstMask)
+        io.physical.request.valid := (state === sendFirst || state === sendSecond) && activeAllowed.orR
+        io.physical.request.bits := Mux(sendingSecond, secondPhysical, firstPhysical)
+        io.physical.requestMask := offerMask
+        when(state === sendFirst && !permissionCaptured) {
+            permissionCaptured := true.B
+            allowed := checkedAllowed
+            errors := checkedErrors
+            pageFaults := checkedPages
+            when(!checkedAllowed.orR) { state := reply }
+        }
+        when(io.physical.request.fire) {
+            state := Mux(sendingSecond, waitSecond, waitFirst)
+        }
+        io.physical.response.ready := state === waitFirst || state === waitSecond
+        when(io.physical.response.fire) {
+            when(state === waitSecond) {
+                data := Cat(io.physical.response.bits(31, 0), data(31, 0))
+                errors := errors | (io.physical.responseError(0) << 1)
+                pageFaults := pageFaults | (io.physical.responsePageFault(0) << 1)
+                state := reply
+            }.otherwise {
+                data := io.physical.response.bits
+                errors := errors | (if (packetWords == 4) io.physical.responseError
+                    else io.physical.responseError & firstMask)
+                pageFaults := pageFaults | (if (packetWords == 4) io.physical.responsePageFault
+                    else io.physical.responsePageFault & firstMask)
+                state := Mux(crosses && allowed(1), sendSecond, reply)
+            }
+        }
+        io.virtual.response.valid := state === reply
+        io.virtual.response.bits := data
+        io.virtual.responseError := errors
+        io.virtual.responsePageFault := pageFaults
+        when(io.virtual.response.fire) { state := idle }
+        io.idle := state === idle
+    } else if (packetWords == 4) {
         val Seq(idle, translate, send, waitData, reply) = Enum(5)
         val state = RegInit(idle)
         val issued = RegInit(false.B)

@@ -12,6 +12,7 @@ using BurstRamDut = STileLinkBurstRamGsim;
 #include <string>
 
 static constexpr uint64_t base = 0x80010000ULL;
+static constexpr std::array<unsigned,8> fullMasks{255,255,255,255,255,255,255,255};
 static void check(bool condition, const char *message) { if (!condition) throw std::runtime_error(message); }
 
 struct Request {
@@ -37,10 +38,11 @@ static void drive(BurstRamDut &dut, const Request &a, bool dReady) {
 }
 
 static void putLine(BurstRamDut &dut, uint64_t address,
-                    const std::array<uint64_t, 8> &data, unsigned source, bool denied) {
+                    const std::array<uint64_t, 8> &data, unsigned source, bool denied,
+                    const std::array<unsigned,8> &masks=fullMasks, bool partial=false) {
     unsigned sent = 0, acknowledgements = 0;
     for (unsigned cycle = 0; cycle < 300 && acknowledgements == 0; ++cycle) {
-        Request a{sent < 8, 0, 6, source, 255, address, data[sent < 8 ? sent : 0]};
+        Request a{sent < 8, partial?1U:0U, 6, source, masks[sent<8?sent:0], address, data[sent < 8 ? sent : 0]};
         const bool ready = cycle % 5 != 2;
         drive(dut, a, ready);
         dut.step();
@@ -141,6 +143,28 @@ int main(int argc, char **argv) {
     BurstRamDut dut;
     drive(dut, {}, false);
     dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    if(argc==2 && (std::string(argv[1])=="--partial-only" || std::string(argv[1])=="--partial-inject")) {
+        std::array<uint64_t,8> expected{};
+        expected.fill(0x0123456789abcdefULL);
+        putLine(dut,base+64,expected,0,false);
+        for(unsigned mask=0;mask<256;++mask) {
+            std::array<uint64_t,8> data{}; std::array<unsigned,8> masks{};
+            for(unsigned beat=0;beat<8;++beat) {
+                masks[beat]=(mask+37*beat)&255;
+                data[beat]=0xfedcba9876543210ULL ^ (0x0101010101010101ULL*(mask+beat));
+                for(unsigned byte=0;byte<8;++byte) if(masks[beat]&(1U<<byte))
+                    expected[beat]=(expected[beat]&~(0xffULL<<(byte*8))) | (data[beat]&(0xffULL<<(byte*8)));
+            }
+            putLine(dut,base+64,data,1,false,masks,true);
+            if(std::string(argv[1])=="--partial-inject") expected[0]^=1;
+            get(dut,base+64,6,2,expected,false);
+        }
+        std::array<unsigned,8> masks{0,1,3,7,15,85,170,255};
+        putLine(dut,base+4096,expected,3,true,masks,true);
+        get(dut,base+64,6,4,expected,false);
+        std::cout<<"TL_RAM_PARTIAL_PASS masks=256 beats=2048 zero_sparse_preserved=1 denied_partial=1\n";
+        return 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "--inject-control") {
         const Request first{true, 0, 6, 0, 255, base + 64, 0x1122334455667788ULL};
         drive(dut, first, true);

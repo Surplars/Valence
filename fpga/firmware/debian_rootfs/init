@@ -1,0 +1,40 @@
+#!/usr/lib/valence/busybox sh
+# Bring-up init, not systemd. BusyBox init reaps orphan children as PID 1.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export TERM=vt100 LC_ALL=C
+bb=/usr/lib/valence/busybox
+$bb mount -t proc proc /proc
+$bb mount -t sysfs sysfs /sys
+$bb mount -t devtmpfs devtmpfs /dev
+$bb mkdir -p /dev/pts /run /tmp
+$bb mount -t devpts devpts /dev/pts
+$bb mkdir -p /dev/shm
+$bb mount -t tmpfs -o mode=1777 tmpfs /dev/shm
+$bb chmod 1777 /tmp
+$bb hostname valence
+log() {
+    read -r uptime unused < /proc/uptime
+    printf '[%s] valence-init: %s\n' "$uptime" "$*"
+}
+log 'OpenIon Valence VL100 / Orbital-A1 / Debian 13 riscv64 / CPU100MHz / UART460800'
+if [ -r /etc/valence/build-time ]; then
+    $bb date -u -s "$(cat /etc/valence/build-time)"
+    log 'Wall clock seeded from image build time; set date after boot (no RTC)'
+fi
+/sbin/modprobe valence_soc || log 'valence-soc unavailable; check dmesg'
+/sbin/modprobe valence_aia || log 'valence-aia unavailable; GMAC must remain disabled'
+/sbin/modprobe valence_cmu || log 'valence-cmu unavailable; check dmesg'
+/sbin/modprobe valence_dma || log 'valence-dma unavailable; check dmesg'
+/sbin/ifup lo || log 'Loopback configuration failed'
+log 'Loading valence-gmac and enabling eth0; this image requires the repaired FPGA bit'
+if /usr/local/sbin/valence-net-up; then
+    log 'eth0 configured; PHY link status follows asynchronously'
+else
+    log 'Network startup failed; keeping serial shell for recovery'
+fi
+echo 'VALENCE_DEBIAN_USERLAND_READY'
+echo 'Commands: valence-info; net-status; boot-time; dma-bench 1048576 4; iperf3; fpu-test'
+echo 'Network is enabled automatically; config: /etc/network/interfaces and /etc/resolv.conf'
+echo 'Serial-only automatic root login; no SSH daemon, no persistent filesystem.'
+log 'Starting serial login; Debian /bin/bash, serial-only root autologin'
+exec $bb init

@@ -8,8 +8,11 @@ import soc.bus.tilelink._
 class TwoMasterTwoBankTileLinkCrossbar(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     base: BigInt = BigInt("80000000", 16),
-    bankBytes: Int = 65536,
-    secondBankBytes: Int = 0
+    bankBytes: BigInt = 65536,
+    secondBankBytes: BigInt = 0,
+    prefixAddressDecode: Boolean = false,
+    rawResponseMetadata: Boolean = false,
+    rawRequestMetadata: Boolean = false
 ) extends Module {
     require(params.sourceBits >= 1 && params.sourceBits <= 6)
     val managerParams = params.copy(sourceBits = params.sourceBits + 1)
@@ -17,8 +20,9 @@ class TwoMasterTwoBankTileLinkCrossbar(
         val masters = Vec(2, Flipped(new TLBundle(params)))
         val banks = Vec(2, new TLBundle(managerParams))
     })
-    val routers = Seq.fill(2)(Module(new TwoBankTileLinkRouter(params, base, bankBytes, secondBankBytes)))
-    val arbiters = Seq.fill(2)(Module(new TwoMasterTileLinkArbiter(params)))
+    val routers = Seq.fill(2)(Module(new TwoBankTileLinkRouter(params, base, bankBytes, secondBankBytes,
+        prefixAddressDecode, rawResponseMetadata)))
+    val arbiters = Seq.fill(2)(Module(new TwoMasterTileLinkArbiter(params, rawResponseMetadata, rawRequestMetadata)))
     for (master <- 0 until 2) {
         io.masters(master) <> routers(master).io.host
     }

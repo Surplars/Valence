@@ -11,7 +11,8 @@ class OrderedAxi4Bridge(
     maxReads: Int = 8,
     maxWrites: Int = 4,
     addressWidth: Int = 64,
-    idWidth: Int = 1
+    idWidth: Int = 1,
+    allowPartialWrites: Boolean = false
 ) extends Module {
     require(maxReads >= 1 && maxReads <= 16 && maxWrites >= 1 && maxWrites <= 16)
     val io = IO(new Bundle {
@@ -45,8 +46,10 @@ class OrderedAxi4Bridge(
         assert(!incoming.atomic, "AXI memory bridge accepts ordinary requests only")
         val bytes = 1.U(4.W) << incoming.size
         val lanes = ((255.U(8.W) >> (8.U - bytes)) << incoming.address(2, 0))(7, 0)
-        assert((incoming.address(2, 0) & (bytes - 1.U)) === 0.U && incoming.mask === lanes,
-            "AXI memory request must be aligned and have exact byte strobes")
+        val legalMask = Mux(incoming.write && allowPartialWrites.B,
+            (incoming.mask & ~lanes) === 0.U, incoming.mask === lanes)
+        assert((incoming.address(2, 0) & (bytes - 1.U)) === 0.U && legalMask,
+            "AXI memory request must be aligned and have legal byte strobes")
         if (addressWidth < 64) {
             assert(incoming.address(63, addressWidth) === 0.U, "AXI address truncation")
         }

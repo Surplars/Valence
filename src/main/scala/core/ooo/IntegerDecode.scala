@@ -9,7 +9,10 @@ import soc.isa.{Funct3, Funct6, Funct7, Opcode}
   * illegal-instruction event. System instructions are enabled only for the machine development configuration.
   * IntegerCore expands optional C instructions before they reach this 32-bit decoder.
   */
-class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false) extends Module {
+class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false,
+    parallelLegality: Boolean = false, parallelBitLegality: Boolean = false,
+    experimentalFloatingPoint: Boolean = false,
+    floatingPointConfig: FloatingPointConfig = FloatingPointConfig.fullFD) extends Module {
     val io = IO(new Bundle {
         val instruction = Input(UInt(32.W))
         val pc          = Input(UInt(64.W))
@@ -111,7 +114,7 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
             }
         }
     }
-    val bits = Module(new IntegerBitDecode)
+    val bits = Module(new IntegerBitDecode(parallelBitLegality))
     bits.io.instruction := inst
     when(bits.io.legal) {
         legal     := true.B
@@ -119,11 +122,19 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
     }
     val fence  = enableSystem.B && opcode === "h0f".U && (funct3 === 0.U || funct3 === 1.U)
     val sfenceVma = inst(31, 25) === "b0001001".U && inst(14, 7) === 0.U
-    val system = fence || (enableSystem.B && opcode === "h73".U &&
+    val floatingPoint = experimentalFloatingPoint.B && enableSystem.B &&
+        FloatingPointDecode.supported(inst, floatingPointConfig)
+    val system = floatingPoint || fence || (enableSystem.B && opcode === "h73".U &&
         (Seq(1, 2, 3, 5, 6, 7).map(f => funct3 === f.U).reduce(_ || _) ||
             inst === "h00000073".U || inst === "h00100073".U || inst === "h30200073".U ||
             inst === "h10200073".U || inst === "h10500073".U || sfenceVma))
     when(system) { legal := true.B; operation := IntegerOp.add }
+    if (parallelLegality) {
+        val qualification = Module(new ParallelIntegerLegality(enableSystem, enableAtomic))
+        qualification.io.instruction := inst
+        qualification.io.bitLegal := bits.io.legal
+        legal := qualification.io.legal || floatingPoint
+    }
     io.legal                      := legal
     io.decoded                    := 0.U.asTypeOf(new IntegerRequest)
     io.decoded.rename.pc          := io.pc
@@ -162,6 +173,15 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
         io.decoded.rename.rd       := Mux(fence || funct3 === 0.U, 0.U, inst(11, 7))
         io.decoded.rename.writesRd := !fence && funct3 =/= 0.U
         io.decoded.useImmediate    := true.B
+    }
+    when(floatingPoint) {
+        // FP register numbers must never become integer PRF dependencies/destinations.
+        val fromInteger = FloatingPointDecode.readsInteger(inst)
+        val toInteger = FloatingPointDecode.writesInteger(inst)
+        io.decoded.rename.rs1 := Mux(fromInteger, inst(19, 15), 0.U)
+        io.decoded.rename.rs2 := 0.U
+        io.decoded.rename.rd := Mux(toInteger, inst(11, 7), 0.U)
+        io.decoded.rename.writesRd := toInteger
     }
     when(atomic) {
         io.decoded.immediate := 0.U

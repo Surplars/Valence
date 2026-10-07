@@ -1,6 +1,11 @@
 # 公共 ISA 定义与核心适配
 
 ISA 仍采用 RISC-V。此轮复用标准编码和异常编号，不扩大新核支持范围，也不改变微架构吞吐目标。
+
+2026-10-07 目录整理补记：下文保留早期 ISA 拆分阶段的能力/验收口径，不代表当前完整能力。
+公共编码仍在根 `src/main/scala/isa`；旧核控制适配的实际路径现为
+`legacy/hardware/src/main/scala/core/pipeline/decode`，由显式 `LegacySoC` 模块编译。
+当前核不依赖旧控制表，见 [目录边界](layout.md)。
 新核仍为 38 种整数/控制流编码，组合译码每路每周期接受一条，延迟与执行端口不变；综合时序未验证。
 
 ## 依赖方向
@@ -17,7 +22,7 @@ core.pipeline.decode            core.ooo.IntegerDecode / IntegerBackend
 
 - `src/main/scala/isa/Instruction.scala` 保留 Common、Extension、Opcode、Funct3/5/6/7。
 - `src/main/scala/isa/CSR.scala` 保留 CSR、特权级、异常和中断编号，不包含提交控制。
-- `InstrProvider`、`InstrEntry`、`InstrTable` 与 `InstrSet*` 移至 `core/pipeline/decode`，明确属于旧控制适配。
+- `InstrProvider`、`InstrEntry`、`InstrTable` 与 `InstrSet*` 属于旧控制适配，现位于 `legacy/hardware/src/main/scala/core/pipeline/decode`。
 - 新核消费公共 opcode、相关 funct 字段和原因 0/2 常量，仍自行生成 IntegerRequest；ALU/分支内部操作编号不是 ISA 编码，继续由新核维护。
 - `Compressed` 已由新核的可选 RV64C 取指路径调用，并经过混合长度固件与 CoreMark 工作负载检查；
   CSRFile、LSU、Cache 和外设没有因本次拆分自动获得复用验收。

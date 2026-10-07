@@ -26,7 +26,11 @@ class AtomicMemoryPort extends Bundle {
 }
 
 /** Single-hart atomic memory boundary with DMA exclusion. CPU instruction integration is separate. */
-class AtomicMemory(base: BigInt = BigInt("80010000", 16), bytes: Int = 4096) extends Module {
+class AtomicMemory(
+    base: BigInt = BigInt("80010000", 16),
+    bytes: BigInt = 4096,
+    registerResponseOwners: Boolean = false
+) extends Module {
     require(base >= 0 && base % 64 == 0 && bytes >= 64 && bytes % 64 == 0 && base + bytes <= (BigInt(1) << 64))
     val io = IO(new Bundle {
         val cpu              = Flipped(new AtomicMemoryPort)
@@ -44,7 +48,10 @@ class AtomicMemory(base: BigInt = BigInt("80010000", 16), bytes: Int = 4096) ext
     val reservationCleared = RegInit(false.B)
     val reservedAddress    = Reg(UInt(64.W))
     val reservedSize       = Reg(UInt(2.W))
-    val owners             = Module(new Queue(Bool(), 8, pipe = false, flow = true))
+    // Register only ordinary CPU/DMA response ownership, not the data or atomic FSM.
+    // With this opt-in, a zero-cycle manager must hold its response until ready;
+    // a manager already taking at least one cycle has unchanged response latency.
+    val owners             = Module(new Queue(Bool(), 8, pipe = false, flow = !registerResponseOwners))
     val turn               = RegInit(false.B)
     val locked             = RegInit(false.B)
     val lockedOwner        = Reg(Bool())

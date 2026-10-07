@@ -3,6 +3,11 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
+
+#ifndef PACKET_WORDS
+#define PACKET_WORDS 2
+#endif
 
 static constexpr uint64_t ram = 0x80010000;
 static constexpr uint64_t rom = 0x80000000;
@@ -25,7 +30,8 @@ struct Reply {
 struct Result {
     bool requestReady;
     bool responseValid;
-    uint64_t response;
+    uint64_t responseLow;
+    uint64_t responseHigh;
     bool aValid;
     uint64_t aAddress;
     unsigned aSource;
@@ -36,7 +42,7 @@ static Result step(SInstructionLineCacheGsim &dut, bool request = false, uint64_
                    bool aReady = true) {
     dut.set_io$$fetch$$request$$valid(request);
     dut.set_io$$fetch$$request$$bits(pc);
-    dut.set_io$$fetch$$requestMask(3);
+    dut.set_io$$fetch$$requestMask((1U << PACKET_WORDS) - 1);
     dut.set_io$$fetch$$response$$ready(1);
     dut.set_io$$invalidate(invalidate);
     dut.set_io$$privilege(3);
@@ -58,9 +64,18 @@ static Result step(SInstructionLineCacheGsim &dut, bool request = false, uint64_
     dut.set_io$$tl$$e$$ready(0);
     dut.step();
     return {bool(dut.get_io$$fetch$$request$$ready()), bool(dut.get_io$$fetch$$response$$valid()),
-        dut.get_io$$fetch$$response$$bits(), bool(dut.get_io$$tl$$a$$valid()),
+        uint64_t(dut.get_io$$responseLow()), uint64_t(dut.get_io$$responseHigh()), bool(dut.get_io$$tl$$a$$valid()),
         dut.get_io$$tl$$a$$bits$$address(), unsigned(dut.get_io$$tl$$a$$bits$$source()),
         bool(dut.get_io$$tl$$d$$ready())};
+}
+static bool packetMatches(const Result &result, uint64_t pc, unsigned generation, bool inject = false) {
+    uint64_t low = beat(pc, generation);
+    uint64_t high = PACKET_WORDS == 4 ? beat(pc + 8, generation) : 0;
+    if (inject) {
+        if (PACKET_WORDS == 4) high ^= 1;
+        else low ^= 1;
+    }
+    return result.responseLow == low && result.responseHigh == high;
 }
 static void sendLine(SInstructionLineCacheGsim &dut, uint64_t line, unsigned source,
                      unsigned generation = 0, bool aReady = true) {
@@ -69,8 +84,9 @@ static void sendLine(SInstructionLineCacheGsim &dut, uint64_t line, unsigned sou
         check(result.dReady, "line response was not accepted");
     }
 }
-int main() {
+int main(int argc, char **argv) {
     try {
+        const bool inject = argc == 2 && std::string_view(argv[1]) == "--inject-mismatch";
         SInstructionLineCacheGsim dut;
         step(dut);
         dut.set_reset(1);
@@ -103,7 +119,7 @@ int main() {
             const auto result = step(dut, !lineAccepted, ram + 64);
             if (!lineAccepted && result.requestReady) lineAccepted = true;
             if (result.responseValid) {
-                check(lineAccepted && result.response == beat(ram + 64, 0),
+                check(lineAccepted && packetMatches(result, ram + 64, 0, inject),
                       "prefetched instruction line returned wrong code");
                 lineHit = true;
             }
@@ -129,7 +145,7 @@ int main() {
         for (unsigned cycle = 0; cycle < 6 && !refetchDone; ++cycle) {
             const auto result = step(dut);
             if (result.responseValid) {
-                check(result.response == beat(ram + 128, 1),
+                check(packetMatches(result, ram + 128, 1),
                       "stale prefetched code survived invalidation");
                 refetchDone = true;
             }
@@ -166,20 +182,24 @@ int main() {
             check(result.dReady && result.aValid && result.aAddress == ram + 64 &&
                   result.aSource == stalledSource, "stalled prefetch A changed during demand reply");
         }
+        bool romAccepted = false, romIssued = false;
         for (unsigned cycle = 0; cycle < 8; ++cycle) {
-            const auto result = step(stalled, true, rom, std::nullopt, false, false);
+            // A wide adapter can accept the ROM packet while its first narrow
+            // Get waits behind the locked prefetch A. Never reissue that packet.
+            const auto result = step(stalled, !romAccepted, rom, std::nullopt, false, false);
+            if (!romAccepted && result.requestReady) romAccepted = true;
             check(result.aValid && result.aAddress == ram + 64 &&
                   result.aSource == stalledSource, "stalled prefetch A changed at ROM transition");
         }
-        bool romAccepted = false, romIssued = false;
-        for (unsigned cycle = 0; cycle < 8 && !romAccepted; ++cycle) {
-            const auto result = step(stalled, true, rom);
+        for (unsigned cycle = 0; cycle < 8 && (!romAccepted || !romIssued); ++cycle) {
+            const auto result = step(stalled, !romAccepted, rom);
             if (result.aValid && result.aAddress == rom) romIssued = true;
-            if (result.requestReady) romAccepted = true;
+            if (!romAccepted && result.requestReady) romAccepted = true;
         }
         check(romAccepted, "ROM fetch was not accepted after line reply");
         check(romIssued, "ROM Get was not issued after stalled prefetch A");
-        std::cout << "GSIM instruction prefetch: PASS three concurrent fills, line hit, "
+        std::cout << "GSIM instruction prefetch: PASS packetWords=" << PACKET_WORDS
+                  << " three concurrent fills, full packet line hit, "
                      "invalidate, refetch and stalled ROM transition\n";
     } catch (const std::exception &error) {
         std::cerr << "GSIM instruction prefetch: FAIL " << error.what() << '\n';

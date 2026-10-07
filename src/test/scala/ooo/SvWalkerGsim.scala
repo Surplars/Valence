@@ -61,6 +61,7 @@ class SvWalkerGsim(maxLevels: Int) extends Module {
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg
     pmp.addr(0) := io.pmpAddr
+    PmpState.decodeRegions(pmp)
     walker.io.pmpState := pmp
 }
 

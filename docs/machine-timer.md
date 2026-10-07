@@ -1,7 +1,13 @@
 # 机器定时器合同
 
-在单线程双发射路线继续补齐机器级中断与系统软件基础，不增加SMT。
-本轮为独立单hart定时器与MTIP集成，不宣称完整ACLINT/CLINT、Sstc、Zicntr或RVA23合规。
+当前板级口径（2026-09-30）：BoardSocTop 的 timerTick 恒为1，核心时钟目标40 MHz，
+因此软件 timebase 为40,000,000 Hz。仅 `mtimecmp=0x02004000` 与 `mtime=0x0200bff8`
+及其 +4 的32位高半别名有效；整个64 KiB译码窗口不代表完整CLINT/ACLINT，尤其无MSIP寄存器。
+访问掩码、复位值、别名与Sstc CSR见 [MMIO 寄存器表](soc-registers.md#machine-timer0x02000000-窗口)，
+平台配置见 [SoC datasheet](soc-datasheet.md)。
+
+独立单hart定时器与MTIP集成最初按以下合同实现；随后已加入 `time` CSR 与
+[Sstc 基线](sstc.md)。本页保留2026-09-22初版验收，不宣称完整ACLINT/CLINT、Zicntr或RVA23合规。
 依据项目已引用的特权ISA 1.13：
 https://docs.riscv.org/reference/isa/v20250508/priv/machine.html
 
@@ -16,8 +22,8 @@ mtime复位0，mtimecmp复位全1；每个同步tick使mtime加1，溢出回绕�
 比较器不直接贯穿CPU的陷阱组合路径；64位加法/比较、MMIO译码的实际Fmax和资源仍待Vivado测量。
 
 tick必须来自核心时钟域内的固定频率脉冲，独立于提交使能、CPU暂停及访存背压。
-MachinePlatform增加timerTick输入；板级需提供稳定时基及软件可发现的timebase频率，异步RTC不能直接连接。
-当前未接板级RTC/CDC，也未实现time CSR、软件中断或多hart compare阵列。
+通用MachinePlatform暴露timerTick输入；BoardSocTop已按上述40 MHz时基固定连接，异步RTC不能直接连接。
+当前未接板级RTC/CDC，已实现time CSR与CSR形式的SSIP，但没有MSIP MMIO或多hart compare阵列。
 
 ## 核心与平台集成
 
@@ -58,4 +64,5 @@ mtimecmp写在MMIO队首授权后发出；新MMIO窗口不能成为投机RAM或�
 `make timer-rtl machine-platform-rtl`成功；清单为 `build/ip/timer/filelist.f` 和 `build/ip/machine-platform/filelist.f`，
 导出日志 `build/gsim/timer-rtl-export.log`。生产平台有timerTick输入，不含仿真ROM编程口。
 
-后续仍按既定单线程路线补齐原子访存/特权态，再推进缓存、MMU及系统软件；不以本轮M定时器替代Sstc或完整计数器扩展。
+上述记录只覆盖初版M定时器；后续原子访存、特权态、缓存和MMU的当前集成状态以
+[SoC datasheet](soc-datasheet.md)为准，S定时器另见[Sstc](sstc.md)。

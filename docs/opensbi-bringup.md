@@ -1,5 +1,12 @@
 # OpenSBI v1.9 启动验证
 
+本文是 **OpenSBI GSIM 专用配置**的固件验收记录，边界核对日期：2026-09-30。
+本页的 1 MiB RAM 起点为 `0x80010000`；当前 ZU15EG 的 1 MiB RAM 起点为 `0x80200000`，
+两者不是同一布局，固件和设备树不能直接复用。板级 UART 下载/执行已做定向 GSIM 验证，
+板级 OpenSBI/Linux 启动仍未验收。软件迁移要求见 [OS 指南](os-software-porting.md)，
+地址与 MMIO 见 [datasheet](soc-datasheet.md) 和 [寄存器手册](soc-registers.md)。
+下文周期和提交数保留既有运行记录，本次文档整理不表示重跑了 OpenSBI。
+
 `make gsim-opensbi-test` 使用新乱序核的 `MachinePlatform` 在 GSIM 中执行未修改的上游
 OpenSBI v1.9 `generic` 平台 `fw_jump` 固件。源码按
 [`simulator/gsim/config/opensbi.json`](../simulator/gsim/config/opensbi.json) 中的 tag 和提交
@@ -28,7 +35,8 @@ mtime/mtimecmp。此专用验证平台以每个运行周期一个 `timerTick` �
 交互命令会重建并校验当前 GSIM 模型和 OpenSBI 固件，初次出现串口输出前需要完成编译和固件启动。
 它不是 shell，也尚未启动操作系统。
 
-本轮验证证明真实 OpenSBI 可以完成初始化和 S 态交接；S 态程序目前只做一次 SBI
-调用。尚未启动 Linux、验证页表下的通用 S 态负载、AIA 中断委托、更多 SBI 扩展或
-多 hart。下一阶段应先扩大 S 态探针覆盖计时器、页表和串口，再准备可装入当前
-内存模型的内核与根文件系统；OS 启动还需要更大的 RAM/外部内存模型。
+本探针证明真实 OpenSBI 完成初始化和 S 态交接；非交互 S 态程序只检查一次 SBI BASE
+调用，交互程序另覆盖 UART 回显，不构成所有 SBI 扩展的验收。
+后续已在另一份 64 MiB GSIM 配置运行 Linux 与 `/init`，见 [Linux 启动实验](linux-bringup.md)；
+该结果不能倒推为本页 1 MiB 配置或当前板级已能启动 Linux。
+Linux AIA 设备树/中断驱动、多 hart 与板级固件交接仍需单独验收。

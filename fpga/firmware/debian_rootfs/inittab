@@ -1,0 +1,4 @@
+# PID 1 handles SIGCHLD, reboot and serial shell respawn; no network services.
+::respawn:/usr/lib/valence/busybox setsid /usr/lib/valence/busybox cttyhack /usr/bin/login -f root
+::ctrlaltdel:/usr/lib/valence/busybox reboot
+::shutdown:/usr/lib/valence/busybox umount -a -r

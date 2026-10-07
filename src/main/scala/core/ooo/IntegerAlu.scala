@@ -50,7 +50,17 @@ object IntegerOp {
 /** Combinational RV64 integer datapath; decoding and reserved encodings belong to the frontend. One result per cycle
   * per instance. W operations include base add/sub/shifts and B counts/rotates.
   */
-class IntegerAlu extends Module {
+class IntegerAlu(parallelResult: Boolean = false, parallelAddressSums: Boolean = false,
+    parallelMinMax: Boolean = false, parallelMinMaxWord: Boolean = false,
+    earlyWordResults: Boolean = false) extends Module {
+    require(!parallelMinMaxWord || (parallelResult && parallelMinMax))
+    require(!earlyWordResults || (parallelMinMaxWord && parallelAddressSums))
+    // Stateless, II 1; independent base/B/address W payloads join only once.
+    def wordResult(data: UInt): UInt = {
+        val xlen = Wire(UInt(64.W))
+        xlen := data
+        Mux(io.word, Cat(Fill(32, xlen(31)), xlen(31, 0)), xlen)
+    }
     val io = IO(new Bundle {
         val operation = Input(UInt(6.W))
         val word      = Input(Bool())
@@ -63,13 +73,13 @@ class IntegerAlu extends Module {
     val subtract   = io.operation === IntegerOp.sub
     val sum        = io.left + Mux(subtract, ~io.right, io.right) + subtract
     val shiftInput = Mux(io.word, Cat(Fill(32, io.operation === IntegerOp.sra && io.left(31)), io.left(31, 0)), io.left)
-    val bitManip   = Module(new IntegerBitManip)
+    val bitManip = Module(new IntegerBitManip(parallelResult, parallelAddressSums, parallelMinMax,
+        parallelMinMaxWord, earlyWordResults))
     bitManip.io.operation := io.operation
     bitManip.io.word      := io.word
     bitManip.io.left      := io.left
     bitManip.io.right     := io.right
-    val result = MuxLookup(io.operation, bitManip.io.result)(
-        Seq(
+    val baseResults = Seq(
             IntegerOp.add      -> sum,
             IntegerOp.sub      -> sum,
             IntegerOp.xor      -> (io.left ^ io.right),
@@ -83,9 +93,32 @@ class IntegerAlu extends Module {
             IntegerOp.czeroEqz -> Mux(io.right === 0.U, 0.U, io.left),
             IntegerOp.czeroNez -> Mux(io.right =/= 0.U, 0.U, io.left)
         )
-    )
+    val result = if (parallelResult) {
+        // Base and B codes are disjoint; do not put the selected B result through
+        // a second base-op priority chain. Unknown controls still produce zero.
+        val sumSelected = io.operation === IntegerOp.add || io.operation === IntegerOp.sub
+        val base = Seq(sumSelected -> sum) ++ baseResults.drop(2).map { case (code, data) =>
+            val xlenResult = Wire(UInt(64.W))
+            xlenResult := data
+            (io.operation === code) -> xlenResult
+        }
+        val qualifiedBase = if (earlyWordResults)
+            base.map { case (grant, data) => grant -> wordResult(data) } else base
+        Mux1H(qualifiedBase) | bitManip.io.result | bitManip.io.addressResult.getOrElse(0.U(64.W))
+    } else MuxLookup(io.operation, bitManip.io.result)(baseResults)
     io.legal := (io.operation <= IntegerOp.czeroNez && (!io.word ||
         io.operation === IntegerOp.add || io.operation === IntegerOp.sub ||
-        io.operation === IntegerOp.sll || io.operation === IntegerOp.srl || io.operation === IntegerOp.sra)) || bitManip.io.legal
-    io.result := Mux(io.word, Cat(Fill(32, result(31)), result(31, 0)), result)
+        io.operation === IntegerOp.sll || io.operation === IntegerOp.srl || io.operation === IntegerOp.sra)) ||
+        bitManip.io.legal
+    val normal = if (earlyWordResults) result else wordResult(result)
+    if (parallelMinMaxWord) {
+        val minMax = Module(new ParallelMinMaxResult)
+        minMax.io.operation := io.operation
+        minMax.io.word := io.word
+        minMax.io.left := io.left
+        minMax.io.right := io.right
+        // The normal bit datapath structurally omits MIN/MAX, not a late mask
+        // or timing exception; disjoint operation classes combine by OR.
+        io.result := normal | minMax.io.result
+    } else io.result := normal
 }

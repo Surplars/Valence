@@ -42,6 +42,11 @@ object DifftestLib extends CommonNS {
     )
 }
 
+object HardFloatLib extends CommonNS {
+    override def moduleDir = pwd / "third_party" / "berkeley-hardfloat"
+    override def scalacOptions = Seq("-language:reflectiveCalls", "-deprecation", "-feature")
+}
+
 object `IonSoC` extends CommonNS {
     override def moduleDir = pwd
 
@@ -53,10 +58,21 @@ object `IonSoC` extends CommonNS {
         "-Ymacro-annotations"
     )
 
-    override def moduleDeps = super.moduleDeps ++ Seq(DifftestLib)
+    override def moduleDeps = super.moduleDeps ++ Seq(HardFloatLib)
 
     object test extends SbtTests with TestModule.ScalaTest {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 
+}
+
+// Explicit compatibility module. This does not re-enable retired ChiselSim
+// suites in legacy/tests or make the historical core a correctness oracle.
+object LegacySoC extends CommonNS {
+    override def moduleDir = pwd / "legacy" / "hardware"
+    override def moduleDeps = super.moduleDeps ++ Seq(IonSoC, DifftestLib)
+    override def scalacOptions = IonSoC.scalacOptions()
+    object test extends SbtTests with TestModule.ScalaTest {
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
 }

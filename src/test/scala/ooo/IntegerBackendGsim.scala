@@ -41,6 +41,11 @@ class IntegerBackendGsim(p: OooParams) extends Module {
     io.memoryForwarded         := backend.io.memoryForwarded
     backend.io.allocate(0)     := io.allocate0
     backend.io.allocate(1)     := io.allocate1
+    backend.io.rawRequests.foreach { raw =>
+        raw(0) := io.allocate0.bits.rename
+        raw(1) := io.allocate1.bits.rename
+    }
+    backend.io.fetchFaultMask.foreach(_ := 0.U)
     io.renamed0                := backend.io.renamed(0)
     io.renamed1                := backend.io.renamed(1)
     io.commit0                 := backend.io.commit(0)

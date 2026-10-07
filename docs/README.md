@@ -1,39 +1,85 @@
-# 开发文档
+# Valence 文档导航
 
-当前工作是独立新乱序核，GSIM 是唯一受支持的仿真后端。
+本目录同时保存当前软件合同、模块设计和阶段验收记录。网络入口局部核对：2026-10-04；
+下方早期 Board40 配置表保留历史口径，当前 DDR/100 MHz 状态查 datasheet 与对应验收。
+当前开发对象是 `core/ooo` 乱序核；GSIM 是唯一受支持的硬件仿真后端。
+日期化数据和“初始 / 实现前 / 本轮”章节保留当时的配置与结论，不自动代表当前板级状态。
 
-- [目录与依赖边界](layout.md)：源码、验证、历史资料和生成文件的位置。
-- [OoO Core 设计与验收规划](ooo-core-plan.md)：产品线、接口、不变量和实现阶段。
-- [机器核 CSR 与同步陷阱](machine-core.md)：队首授权、异常处理程序、MRET 和 IMSIC CSR 桥接。
-- [OpenSBI v1.9 启动验证](opensbi-bringup.md)：GSIM 中的固件、设备树、S 态交接与当前边界。
-- [Linux 启动实验](linux-bringup.md)：本地内核源码、64 MiB GSIM 平台、启动验证与用户态里程碑。
-- [PMP 物理内存保护](pmp.md)：机器平台的16条目权限检查、CSR、MPRV与GSIM验证边界。
-- [模块化 SoC / AIA IP](modular-soc.md)：IMSIC、可替换 PLIC 路线、CSR 提交边界和独立总线接口。
-- [TileLink 内存桥](tilelink-memory-bridge.md)：新核数据口的并发读、source 重排和集成限制。
-- [TileLink 双 RAM 路由](tilelink-router.md)：两窗口分流、source 归属、乱序 D 仲裁与片上验证。
-- [双主 TileLink 仲裁](tilelink-arbiter.md)：两主 source 隔离、轮转仲裁与乱序 D 返回。
-- [TileLink 取指路径](tilelink-fetch.md)：双主 ROM/RAM 互联、取指拼包及整机性能对照。
-- [AXI4 外部内存桥](axi4-memory-bridge.md)：独立边界实验及 Zynq-7000 AXI3 的转换要求。
-- [TileLink→AXI4 内存边界](tilelink-axi4-bridge.md)：独立 TL-UL/AXI4 适配与验证范围。
-- [RVA23 架构目标与差距](rva23.md)：必选能力、实现顺序及合规边界。
-- [RV64B 执行合同](rv64b.md)：Zba/Zbb/Zbs、组合路径、依赖与差分验证。
-- [RV64C 与 CoreMark](rv64c-coremark.md)：混合长度取指、GSIM 工作负载与性能口径。
-- [RV64M 执行合同](rv64m.md)：多周期乘除、完成仲裁、取消和吞吐基线。
-- [裸核接口与 IPC](bare-core-ipc.md)：LSU 基线、验证范围、测量口径及结果。
-- [公共 ISA 与复用边界](isa-reuse.md)：共享标准编码、新旧核心控制适配和验证范围。
-- [GSIM 验证说明](../simulator/gsim/README.md)：依赖、运行命令、支持范围与回归结果。
-- [历史资料索引](../legacy/README.md)：旧 SoC、流水线、固件和故障记录；其中旧仿真命令已退役。
+2026-10-07 已完成当前/历史源码的物理分离，目录与构建入口见 [layout](layout.md)，
+build 历史证据归档、恢复方法与提交检查见 [工程整理清单](repository-maintenance.md)。
+下面的 Board40 表仅描述早期实验；最新 r6 为 RV64GC、双发射、100 MHz、460800 baud、完整 2 GiB DDR，
+已生成静态时序通过的 bit，但工程裕量不足且该 bit 的板级复测待完成。
 
-- [APLIC MSI IP](aplic.md)：外设中断线、发送队列与机器核组合边界。
+## 软件适配入口
 
-- [CPU 数据口到 APLIC 映射](core-mmio.md)：并发路由、响应保序及程序初始化中断验收。
+建议按“选配置 → 查地址与寄存器 → 配置启动与 OS”阅读：
 
-- [FENCE、共享 RAM 与 DMA](dma.md)：四项在途拷贝 IP、CPU/DMA 公平仲裁、source4 完成中断及 SMT 边界。
+| 文档 | 用途 |
+| --- | --- |
+| [VL100 Debian BSP](vl100-debian-bsp.md) | OpenIon/Orbital-A1身份、完整2GiB、自动驱动、CMU/DMA测速及新bit前提 |
+| [SoC datasheet](soc-datasheet.md) | 配置、CPU 能力、内存图、时钟和已验证边界 |
+| [MMIO 寄存器手册](soc-registers.md) | UART、定时器、DMA、APLIC/IMSIC 的访问合同和中断路由 |
+| [受管 UART / GMAC](managed-peripherals.md) | 可选生产连接、CMU叶子钟、排空/唤醒、模块时序与上板边界 |
+| [OS 与软件移植指南](os-software-porting.md) | 启动 ABI、链接布局、设备树、权限、缓存与 OS 适配限制 |
+| [机器平台](machine-platform.md) | 通用 `MachinePlatform` 组装及早期验收记录 |
+| [OpenSBI 启动验证](opensbi-bringup.md) | GSIM 的真实 OpenSBI 初始化、S 态交接和串口探针 |
+| [Linux 启动实验](linux-bringup.md) | 64 MiB GSIM 平台、用户态 `/init` 与交互运行记录 |
 
-- [机器定时器](machine-timer.md)：独立mtime/mtimecmp、同步时基、MTIP及精确中断优先级。
-- [S 定时中断与 Sstc](sstc.md)：`stimecmp`、时间源、STCE/TM 门控及 STI 精确入口。
+先确认目标配置，不能跨列复用链接脚本、设备树或固件地址：
 
-- [原子共享内存IP](atomic-memory.md)：W/D LR/SC、AMO、队首授权与DMA排他；机器平台已接入。
-- [当前性能与证据边界](performance-status.md)：裸核IPC、同步平台及FPGA频率的测量范围。
+| 配置 | ROM | RAM | 结论范围 |
+| --- | --- | --- | --- |
+| 通用 `MachinePlatform` 默认 | 8 KiB @ `0x80000000` | 4 KiB @ `0x80010000` | 定向模块与固件回归 |
+| OpenSBI GSIM | 8 KiB @ `0x80000000` | 1 MiB @ `0x80010000` | OpenSBI + S 态探针 |
+| Linux GSIM | 8 KiB @ `0x80000000` | 64 MiB @ `0x80010000` | Linux 启动及最小用户态 |
+| ZU15EG `BoardSocTop` | 128 KiB @ `0x80000000` | 1 MiB @ `0x80200000` | UART 下载/执行已通过 GSIM；40 MHz 是目标配置 |
 
-- [可选共享读缓存](shared-read-cache.md)：扇区填充、DMA写失效及开关对照；阻塞基线默认关闭。
+Linux GSIM 的 `0x80200000` 是内核装载地址；在板级它是 RAM 基址。
+GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能启动 Linux。
+该阶段仅有 RAM 单模块综合和整板 RTL 展开等证据；后续 DDR、Linux、RV64GC 与 100 MHz
+实现/上板结果须分别查 [datasheet](soc-datasheet.md)、[Debian BSP](vl100-debian-bsp.md) 和
+[时序记录](fpga-timing-windows.md)，不要以这张早期表覆盖后续状态。
+
+## FPGA 与启动固件
+
+- [Ethernet 接入台账](../fpga/zu15eg/ethernet-integration.md)：自研千兆优先、TL/CRC/MDIO 公共 IP、PHY 管脚/复位证据、SFP1 延后；保留旧 AXI Ethernet 许可/综合记录。
+- [时钟域与 GMAC 准备](../fpga/zu15eg/clock-domain-plan.md)：独立CMU、可选MMIO/APLIC7、保护资源清单、实际BUFGCE模型短验证及UART/GMAC排空边界；不是整板门控签核或已发布网口bit。
+- [ZU15EG 40 MHz 配置](../fpga/zu15eg/README.md)：当前板级地址、ROM/RAM、Vivado 配置与验证范围。
+- [BootROM 与 UART 下载](../fpga/firmware/README.md)：监控程序、下载协议、平坦二进制布局和应用限制。
+- [Windows Vivado 时序检查](fpga-timing-windows.md)：当前 SoC 的导出入口、约束和各配置时序记录。
+- [FPGA 启动与历史实验](fpga-bringup.md)：当前 Board40 入口及早期 `FpgaPlatformTop` 的取指、同步存储和预取记录。
+
+## 验证与性能
+
+- [GSIM 验证说明](../simulator/gsim/README.md)：依赖、Make 入口、独立参考模型和回归范围。
+- [当前性能与证据边界](performance-status.md)：各工作负载和配置的周期结果及不能外推的指标。
+- [裸核接口与 IPC](bare-core-ipc.md)：理想供指/内存的裸核基线与历次功能验收。
+- [RV64C 与 CoreMark](rv64c-coremark.md)：压缩指令与 CoreMark 测量口径。
+
+## 架构与模块合同
+
+- [目录与依赖边界](layout.md)：源码、工具、生成产物和文档维护规则。
+- [OoO Core 设计与验收规划](ooo-core-plan.md)：架构目标、不变量和阶段实施记录。
+- [模块化 SoC / AIA IP](modular-soc.md)：CPU/IP/平台依赖、AIA 组合及互联边界。
+- [公共 ISA 与复用边界](isa-reuse.md)、[RVA23 目标与差距](rva23.md)：共享编码与合规边界。
+- [RV64M](rv64m.md)、[RV64B](rv64b.md)：乘除、位操作执行与验证合同。
+- [机器核 CSR 与陷阱](machine-core.md)、[PMP](pmp.md)、[虚拟内存](virtual-memory.md)：特权、物理保护和可选 I/D 译址。
+- [APLIC](aplic.md)、[CPU MMIO 路由](core-mmio.md)：线中断、MSI 与设备访问的硬件接口。
+- [UART](uart.md)、[机器定时器](machine-timer.md)、[Sstc](sstc.md)：串口、时间源和定时中断。
+- [DMA 与 FENCE](dma.md)、[原子访存](atomic-memory.md)：共享内存访问及不可撤销副作用。
+
+互联与缓存：
+
+- [TileLink 内存桥](tilelink-memory-bridge.md)、[双 RAM 路由](tilelink-router.md)、[双主仲裁](tilelink-arbiter.md)：并发事务、source 归属与响应重排。
+- [TileLink 取指](tilelink-fetch.md)、[burst 与一致性](tilelink-burst-coherence.md)：ROM/RAM 共享访问、整行事务与一致性范围。
+- [AXI4 内存桥](axi4-memory-bridge.md)、[TileLink→AXI4](tilelink-axi4-bridge.md)：外部内存合同与阶段记录；当前 PL DDR 接入查 datasheet/板级验收。
+- [共享读缓存](shared-read-cache.md)：可选读缓存实现、配置对照与历史优化记录。
+- [写缓冲排空](store-drain.md)、[load/store 重叠](load-overlap.md)、[load 旁路与回放](load-ready-replay.md)：访存微架构与定向性能记录。
+
+## 历史资料与维护规则
+
+- [历史资料索引](../legacy/README.md)：旧 SoC、退役 ChiselSim、旧固件和故障记录；旧仿真命令不能作为活动入口。
+- 本次以导航分类组织文档，不移动或删除现有研究日志。已有路径继续有效。
+- 软件适配优先查前三份软件合同，再核对目标顶层参数和对应验证记录；模块文档中的早期阶段边界不能覆盖后来的实现。
+- 更新软件可见接口时同步修改 datasheet、寄存器或 OS 指南，并保留变更前后配置、日期与证据。
+- 仿真通过、RTL 展开、独立模块综合、整机实现和上板验证分别陈述；不得互相替代。

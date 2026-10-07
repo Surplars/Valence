@@ -3,7 +3,10 @@ package soc.core.ooo
 import chisel3._
 import chisel3.util._
 
-/** One-start-per-cycle multiplier: two-cycle MULW and six-cycle full-width results. Contract: docs/rv64m.md. */
+/** II=1 multiplier. Optional operand capture adds one cycle to the 2/6-cycle arithmetic.
+  * Slots are reserved on acceptance, including the input stage; cancellation and
+  * token checks still apply to every reservation. Contract: docs/rv64m.md.
+  */
 class PipelinedMultiply(p: OooParams) extends Module {
     val capacity = 8
     val io       = IO(new Bundle {
@@ -48,22 +51,29 @@ class PipelinedMultiply(p: OooParams) extends Module {
         tail                 := tail + 1.U
     }
     // Pipeline never stalls: every input owns a result slot before arithmetic starts.
+    // Do not put PRF owner selection and a DSP multiply in the same cycle.
+    // Capture AFTER the original handshake: pending clears and slot accounting
+    // are unchanged. A cancelled reservation may traverse the arithmetic, but
+    // cannot write a reused result slot without the original token tag match.
+    val arithmeticFire = if (p.registeredMulDivOperands) RegNext(io.start.fire, false.B) else io.start.fire
+    val operands = if (p.registeredMulDivOperands) RegEnable(io.start.bits, io.start.fire) else io.start.bits
+    val arithmeticSlot = if (p.registeredMulDivOperands) RegEnable(tail, io.start.fire) else tail
     val valid      = RegInit(VecInit(Seq.fill(5)(false.B)))
     val slots      = Reg(Vec(5, UInt(3.W)))
     val tags       = Reg(Vec(5, UInt(p.tagBits.W)))
     val correction = Reg(Vec(5, UInt(64.W)))
     val high       = Reg(Vec(5, Bool()))
     val word       = Reg(Vec(5, Bool()))
-    valid(0) := io.start.fire
-    when(io.start.fire) {
-        slots(0) := tail
-        tags(0)  := io.start.bits.token.tag
-        val signedA = io.start.bits.operation === 1.U || io.start.bits.operation === 2.U
-        val signedB = io.start.bits.operation === 1.U
-        correction(0) := Mux(signedA && io.start.bits.left(63), io.start.bits.right, 0.U) +
-            Mux(signedB && io.start.bits.right(63), io.start.bits.left, 0.U)
-        high(0) := io.start.bits.operation =/= 0.U
-        word(0) := io.start.bits.word
+    valid(0) := arithmeticFire
+    when(arithmeticFire) {
+        slots(0) := arithmeticSlot
+        tags(0)  := operands.token.tag
+        val signedA = operands.operation === 1.U || operands.operation === 2.U
+        val signedB = operands.operation === 1.U
+        correction(0) := Mux(signedA && operands.left(63), operands.right, 0.U) +
+            Mux(signedB && operands.right(63), operands.left, 0.U)
+        high(0) := operands.operation =/= 0.U
+        word(0) := operands.word
     }
     for (i <- 1 until 5) {
         valid(i) := valid(i - 1)
@@ -82,8 +92,8 @@ class PipelinedMultiply(p: OooParams) extends Module {
     val product = Reg(UInt(128.W))
     for (i <- 0 until 4; j <- 0 until 4) {
         val wordTerm = (i == 0 && j <= 1) || (i == 1 && j == 0)
-        when(io.start.fire && (!io.start.bits.word || wordTerm.B)) {
-            partial(i * 4 + j) := io.start.bits.left(16 * j + 15, 16 * j) * io.start.bits.right(16 * i + 15, 16 * i)
+        when(arithmeticFire && (!operands.word || wordTerm.B)) {
+            partial(i * 4 + j) := operands.left(16 * j + 15, 16 * j) * operands.right(16 * i + 15, 16 * i)
         }
     }
     for (i <- 0 until 8) {

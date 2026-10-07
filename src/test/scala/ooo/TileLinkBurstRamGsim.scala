@@ -11,7 +11,7 @@ class TileLinkBurstRamGsim extends Module {
         val tl = Flipped(new TLBundle(params))
     })
     val adapter = Module(new TileLinkDataRamAdapter(params = params, burstEnabled = true))
-    val ram = Module(new SynchronousDataRam())
+    val ram = Module(new SynchronousDataRam(allowPartialWrites = true))
     io.tl <> adapter.io.tl
     adapter.io.memory <> ram.io.port
 }

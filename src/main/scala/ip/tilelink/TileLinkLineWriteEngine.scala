@@ -17,6 +17,8 @@ class LineWriteResponse(tagBits: Int) extends Bundle {
 
 /** Four independent 64-byte TL-UH PutFullData transactions by default. Each A burst holds the
   * channel until all eight beats are accepted, while D acknowledgements may return out of order.
+  * A registered active-line owner and beat payload separate queue selection from the fabric.
+  * Initial launch adds one cycle; accepted beats remain II=1, including adjacent queued bursts.
   * This writes backing memory; a TL-C cache eviction requires ReleaseData and a coherent home.
   */
 class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8) extends Module {
@@ -39,6 +41,11 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     private val errors = RegInit(VecInit(Seq.fill(entries)(false.B)))
     private val beat = RegInit(0.U(3.W))
     private val sendQueue = Module(new Queue(UInt(slotBits.W), entries, pipe = false, flow = false))
+    private val active = RegInit(false.B)
+    private val activeSlot = Reg(UInt(slotBits.W))
+    private val activeAddress = Reg(UInt(params.addrWidth.W))
+    private val activeWords = Reg(Vec(8, UInt(64.W)))
+    private val activeData = Reg(UInt(64.W))
 
     val freeMask = VecInit((0 until entries).map(i => phase(i) === free))
     val freeSlot = PriorityEncoder(freeMask)
@@ -56,22 +63,42 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
         }
     }
 
-    val sendSlot = Mux(sendQueue.io.deq.valid, sendQueue.io.deq.bits, 0.U)
-    io.tl.a.valid := sendQueue.io.deq.valid
+    val sendSlot = activeSlot
+    io.tl.a.valid := active
     io.tl.a.bits := 0.U.asTypeOf(io.tl.a.bits)
     io.tl.a.bits.opcode := TLOpcode.PutFullData
     io.tl.a.bits.size := 6.U
     io.tl.a.bits.source := sendSlot
-    io.tl.a.bits.address := address(sendSlot)
+    io.tl.a.bits.address := activeAddress
     io.tl.a.bits.mask := "hff".U
-    io.tl.a.bits.data := words(sendSlot)(beat)
-    sendQueue.io.deq.ready := io.tl.a.ready && beat === 7.U
+    io.tl.a.bits.data := activeData
+    // Occupancy-only queue validity is independent of its ready. The next
+    // immutable owner may be loaded on the old burst's final accepted beat;
+    // data/metadata never bypass these registers onto A.
+    sendQueue.io.deq.ready := !active || (io.tl.a.fire && beat === 7.U)
     when(sendQueue.io.deq.valid) {
-        assert(phase(sendSlot) === send, "line write send queue contains a non-pending slot")
+        assert(phase(sendQueue.io.deq.bits) === send, "line write send queue contains a non-pending slot")
     }
     when(io.tl.a.fire) {
         beat := beat + 1.U
-        when(beat === 7.U) { phase(sendSlot) := receive }
+        when(beat === 7.U) {
+            active := false.B
+            phase(sendSlot) := receive
+        }.otherwise {
+            activeData := activeWords((beat + 1.U)(2, 0))
+        }
+    }
+    // New activation has last priority when the old burst finishes. The slot
+    // remains send/receive-owned until its D ack and user response complete;
+    // removing its scheduling ID from this queue must not free the slot.
+    when(sendQueue.io.deq.fire) {
+        val nextSlot = sendQueue.io.deq.bits
+        active := true.B
+        activeSlot := nextSlot
+        activeAddress := address(nextSlot)
+        activeWords := words(nextSlot)
+        activeData := words(nextSlot)(0)
+        beat := 0.U
     }
 
     val source = io.tl.d.bits.source(slotBits - 1, 0)

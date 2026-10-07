@@ -1,5 +1,9 @@
 .PHONY: gsim-setup gsim-smoke gsim-backend-test gsim-backend-recovery4-test gsim-backend-recovery8-test gsim-backend-recovery16-test gsim-integer-test gsim-core-test gsim-test
 
+.PHONY: gsim-board-boot-test
+gsim-board-boot-test:
+	python3 simulator/gsim/board_boot.py
+
 # Downloads only the pinned toolchain source, never the upstream CPU/example submodules.
 gsim-setup:
 	python3 simulator/gsim/run.py setup
@@ -104,6 +108,18 @@ gsim-coremark-coherent-delay12:
 gsim-tilelink-coherent-platform-test:
 	python3 simulator/gsim/run.py tilelink-coherent-platform
 
+.PHONY: gsim-vm-data-compact-coherent-platform-test
+gsim-vm-data-compact-coherent-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-platform
+
+.PHONY: gsim-vm-data-compact-coherent-buffered-platform-test
+gsim-vm-data-compact-coherent-buffered-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform
+
+.PHONY: gsim-vm-data-compact-coherent-registered-platform-test
+gsim-vm-data-compact-coherent-registered-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-registered-platform
+
 .PHONY: gsim-tilelink-dual-split-coherent-test
 gsim-tilelink-dual-split-coherent-test:
 	python3 simulator/gsim/run.py tilelink-dual-split-coherent
@@ -133,6 +149,66 @@ gsim-coremark-cache-delay12:
 .PHONY: gsim-core-memory8-test
 gsim-core-memory8-test:
 	python3 simulator/gsim/run.py core-memory8
+
+.PHONY: gsim-core-branch-pipeline-test
+gsim-core-branch-pipeline-test:
+	python3 simulator/gsim/run.py core-branch-pipeline
+
+.PHONY: gsim-core-registered-owners-test
+gsim-core-registered-owners-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-owners
+
+.PHONY: gsim-core-registered-memory-address-test
+gsim-core-registered-memory-address-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address
+
+.PHONY: gsim-core-registered-memory-address-owners-test
+gsim-core-registered-memory-address-owners-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners
+
+.PHONY: gsim-core-registered-memory-address-owners-early-recovery-test
+gsim-core-registered-memory-address-owners-early-recovery-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --early-recovery-issue-block
+
+.PHONY: gsim-core-registered-memory-address-owners-early-recovery-retirement-test
+gsim-core-registered-memory-address-owners-early-recovery-retirement-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --registered-retirement --early-recovery-issue-block
+
+.PHONY: gsim-core-registered-memory-address-owners-precomplete-branch-test
+gsim-core-registered-memory-address-owners-precomplete-branch-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --registered-retirement --early-recovery-issue-block --precomplete-mispredicted-branch
+
+.PHONY: gsim-core-registered-load-replay-test
+gsim-core-registered-load-replay-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --registered-retirement --early-recovery-issue-block --precomplete-mispredicted-branch --registered-load-replay --registered-local-response
+
+.PHONY: gsim-core-registered-memory-requests-replay-test
+gsim-core-registered-memory-requests-replay-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --registered-retirement --early-recovery-issue-block --precomplete-mispredicted-branch --registered-load-replay --registered-local-response --registered-memory-requests
+
+.PHONY: gsim-vm-data-compact-coherent-early-recovery-platform-test
+gsim-vm-data-compact-coherent-early-recovery-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform --early-recovery-issue-block
+
+.PHONY: gsim-vm-data-compact-coherent-early-recovery-retirement-platform-test
+gsim-vm-data-compact-coherent-early-recovery-retirement-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform --early-recovery-issue-block --registered-retirement
+
+.PHONY: gsim-vm-data-compact-coherent-precomplete-branch-platform-test
+gsim-vm-data-compact-coherent-precomplete-branch-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform --early-recovery-issue-block --registered-retirement --precomplete-mispredicted-branch
+
+.PHONY: gsim-vm-data-compact-coherent-registered-load-replay-platform-test
+gsim-vm-data-compact-coherent-registered-load-replay-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform --early-recovery-issue-block --registered-retirement --precomplete-mispredicted-branch --registered-load-replay --registered-local-response
+
+.PHONY: gsim-vm-data-compact-coherent-registered-memory-requests-replay-platform-test
+gsim-vm-data-compact-coherent-registered-memory-requests-replay-platform-test:
+	python3 simulator/gsim/run.py vm-data-compact-coherent-buffered-platform --early-recovery-issue-block --registered-retirement --precomplete-mispredicted-branch --registered-load-replay --registered-local-response --registered-memory-requests
+
+.PHONY: gsim-core-registered-memory-address-owners-retirement-test
+gsim-core-registered-memory-address-owners-retirement-test:
+	python3 simulator/gsim/run.py core-branch-pipeline --registered-memory-address --registered-owners --registered-retirement
 
 .PHONY: gsim-core-fast-store-test
 gsim-core-fast-store-test:
@@ -202,6 +278,18 @@ gsim-axi-bridge-test:
 .PHONY: gsim-tilelink-axi4-bridge-test
 gsim-tilelink-axi4-bridge-test:
 	python3 simulator/gsim/run.py tilelink-axi4-bridge
+
+.PHONY: gsim-tilelink-axi4-burst-test
+gsim-tilelink-axi4-burst-test:
+	python3 simulator/gsim/run.py tilelink-axi4-bridge --burst
+
+.PHONY: gsim-tilelink-axi4-burst256-test
+gsim-tilelink-axi4-burst256-test:
+	python3 simulator/gsim/run.py tilelink-axi4-bridge --burst --burst-beats 256
+
+.PHONY: gsim-tilelink-axi4-burst32-test
+gsim-tilelink-axi4-burst32-test:
+	python3 simulator/gsim/run.py tilelink-axi4-bridge --burst --axi-address-width 32
 
 .PHONY: gsim-tilelink-bridge-test
 gsim-tilelink-bridge-test:
@@ -302,6 +390,14 @@ gsim-predictor-test:
 .PHONY: gsim-store-buffer-test
 gsim-store-buffer-test:
 	python3 simulator/gsim/run.py store-buffer
+
+.PHONY: gsim-store-buffer-registered-test
+gsim-store-buffer-registered-test:
+	python3 simulator/gsim/run.py store-buffer-registered
+
+.PHONY: gsim-store-buffer-owners-test
+gsim-store-buffer-owners-test:
+	python3 simulator/gsim/run.py store-buffer --registered-owners
 
 .PHONY: gsim-fpga-fetch-test
 gsim-fpga-fetch-test:
@@ -445,6 +541,14 @@ gsim-dma-test:
 gsim-shared-data-test:
 	python3 simulator/gsim/run.py shared-data
 
+.PHONY: gsim-shared-data-registered-owners-test
+.PHONY: gsim-shared-data-registered-owners-test gsim-atomic-registered-owners-test
+gsim-shared-data-registered-owners-test:
+	python3 simulator/gsim/run.py shared-data --registered-physical-owners
+
+gsim-atomic-registered-owners-test:
+	python3 simulator/gsim/run.py atomic --registered-physical-owners
+
 .PHONY: dma-rtl
 dma-rtl:
 	$(MILL) -i IonSoC.test.runMain ip.DmaRtlMain build/ip/dma
@@ -511,3 +615,133 @@ gsim-linux-console:
 
 gsim-linux-profile:
 	python3 simulator/gsim/linux_boot.py profile --issue-width $(ISSUE_WIDTH) --cache-mode $(LINUX_CACHE_MODE) --cache-lines $(LINUX_CACHE_LINES) --profile-cycles $(LINUX_PROFILE_CYCLES)
+
+.PHONY: gsim-board-ddr-test
+gsim-board-ddr-test:
+	python3 simulator/gsim/board_ddr.py
+
+.PHONY: gsim-ddr-test-app
+gsim-ddr-test-app:
+	python3 simulator/gsim/ddr_test_app.py
+
+.PHONY: gsim-ram-range-test
+gsim-ram-range-test:
+	python3 simulator/gsim/run.py ram-range
+
+.PHONY: gsim-ddr-bench-app ddr-bench-host-test gsim-cache-ways-test gsim-fetch-offsets-test
+.PHONY: gsim-board-coremark-widths gsim-instruction-packet-test gsim-load-replay-test
+gsim-board-coremark-widths:
+	python3 simulator/gsim/board_coremark.py
+
+gsim-instruction-packet-test:
+	python3 simulator/gsim/instruction_packet.py
+
+gsim-load-replay-test:
+	python3 simulator/gsim/load_replay.py
+
+.PHONY: gsim-staged-fabric-test
+gsim-staged-fabric-test:
+	python3 simulator/gsim/staged_fabric.py
+
+.PHONY: gsim-control-stage-test
+gsim-control-stage-test:
+	python3 simulator/gsim/control_stage.py
+
+.PHONY: gsim-data-stage-test
+gsim-data-stage-test:
+	python3 simulator/gsim/data_stage.py
+
+.PHONY: gsim-execute-stage-test
+gsim-execute-stage-test:
+	python3 simulator/gsim/execute_stage.py
+
+.PHONY: gsim-rename-stage-test
+gsim-rename-stage-test:
+	python3 simulator/gsim/rename_stage.py
+
+.PHONY: gsim-retire-stage-test
+gsim-retire-stage-test:
+	python3 simulator/gsim/retire_stage.py
+
+.PHONY: gsim-redirect-stage-test
+gsim-redirect-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-redirect
+
+.PHONY: gsim-preparation-stage-test
+gsim-preparation-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-preparation
+
+.PHONY: gsim-payload-stage-test
+gsim-payload-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-payload
+
+.PHONY: gsim-return-stage-test
+gsim-return-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-return
+
+.PHONY: gsim-fetch-address-stage-test
+gsim-fetch-address-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-fetch-address
+
+.PHONY: gsim-fetch-control-stage-test
+gsim-fetch-control-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-fetch-control
+
+.PHONY: gsim-recovery-control-stage-test
+gsim-recovery-control-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-recovery-control
+
+.PHONY: gsim-execute-select-stage-test
+gsim-execute-select-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-execute-select
+
+.PHONY: gsim-frontend-select-stage-test
+gsim-frontend-select-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-frontend-select
+
+.PHONY: gsim-sensitive-paths-stage-test
+gsim-sensitive-paths-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-sensitive-paths
+
+gsim-cache-ways-test:
+	python3 simulator/gsim/cache_ways.py
+
+gsim-fetch-offsets-test:
+	python3 simulator/gsim/fetch_offsets.py
+
+gsim-ddr-bench-app:
+	python3 simulator/gsim/ddr_bench_app.py
+
+ddr-bench-host-test:
+	mkdir -p build/fpga/ddr-bench-host
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=all fpga/firmware/tests/ddr_bench_host.c -o build/fpga/ddr-bench-host/run
+	ASAN_OPTIONS=detect_leaks=0 build/fpga/ddr-bench-host/run
+.PHONY: gsim-decode-align-stage-test
+gsim-decode-align-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-decode-align --tag 20261002
+
+.PHONY: gsim-rank-legality-stage-test
+gsim-rank-legality-stage-test:
+	python3 simulator/gsim/retire_stage.py --profile staged-rank-legality --tag 20261002
+
+.PHONY: gsim-fp-state-test
+gsim-fp-state-test:
+	python3 simulator/gsim/floating_point_state.py
+
+.PHONY: gsim-fp-add-test
+gsim-fp-add-test:
+	python3 simulator/gsim/floating_point_add.py
+
+.PHONY: gsim-fp-cpu-test
+gsim-fp-cpu-test:
+	python3 simulator/gsim/floating_point_cpu.py
+
+.PHONY: gsim-fp-memory-test
+
+gsim-fp-memory-test:
+	python3 simulator/gsim/floating_point_memory.py
+
+.PHONY: gsim-gmac-ready-test
+GSIM_GMAC_READY_TAG ?= 20261004
+gsim-gmac-ready-test:
+	python3 simulator/gsim/gmac_ready.py --tag $(GSIM_GMAC_READY_TAG)

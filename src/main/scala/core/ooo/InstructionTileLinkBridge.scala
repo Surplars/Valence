@@ -8,7 +8,8 @@ import soc.bus.tilelink._
 class InstructionTileLinkBridge(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     immutableBase: BigInt = BigInt("80000000", 16),
-    immutableBytes: Int = 8192
+    immutableBytes: Int = 8192,
+    parallelAddresses: Boolean = false
 ) extends Module {
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 2 && params.sizeBits >= 2)
     require(immutableBase >= 0 && immutableBase % 8 == 0 && immutableBytes >= 8 && immutableBytes % 8 == 0)
@@ -46,8 +47,12 @@ class InstructionTileLinkBridge(
     val startOdd = io.fetch.request.bits(2)
     val startMask = io.fetch.requestMask
     val startFull = startMask === 3.U
-    val startInRom = startAligned >= immutableBase.U &&
-        (startAligned +& 7.U) < (immutableBase + immutableBytes).U(65.W)
+    def alignedInRom(address: UInt): Bool = {
+        val lastByte = if (parallelAddresses) Cat(0.U(1.W), address(63, 3), 7.U(3.W))
+            else address +& 7.U
+        address >= immutableBase.U && lastByte < (immutableBase + immutableBytes).U(65.W)
+    }
+    val startInRom = alignedInRom(startAligned)
     val startCacheHit = Wire(Bool())
     val startCacheData = Wire(UInt(64.W))
 
@@ -58,9 +63,20 @@ class InstructionTileLinkBridge(
     io.tl.a.bits.size := Mux(issueOld || startFull, 3.U, 2.U)
     io.tl.a.bits.source := Cat(Mux(issueOld, packetGroup, nextGroup),
         Mux(issueOld, issueSecond, Mux(startFull, startCacheHit, startMask(1))))
-    io.tl.a.bits.address := Mux(issueOld, alignedPc + Mux(issueSecond, 8.U, 0.U),
-        Mux(startFull, startAligned + Mux(startCacheHit, 8.U, 0.U),
-            io.fetch.request.bits + Mux(startMask(1), 4.U, 0.U)))
+    if (parallelAddresses) {
+        // Return/cache-hit qualification selects an already computed address;
+        // it must not launch a new XLEN carry after the last D beat arrives.
+        val oldNextAddress = alignedPc + 8.U
+        val startNextAddress = startAligned + 8.U
+        val partialNextAddress = io.fetch.request.bits + 4.U
+        io.tl.a.bits.address := Mux(issueOld, Mux(issueSecond, oldNextAddress, alignedPc),
+            Mux(startFull, Mux(startCacheHit, startNextAddress, startAligned),
+                Mux(startMask(1), partialNextAddress, io.fetch.request.bits)))
+    } else {
+        io.tl.a.bits.address := Mux(issueOld, alignedPc + Mux(issueSecond, 8.U, 0.U),
+            Mux(startFull, startAligned + Mux(startCacheHit, 8.U, 0.U),
+                io.fetch.request.bits + Mux(startMask(1), 4.U, 0.U)))
+    }
     io.tl.a.bits.mask := Mux(io.tl.a.bits.size === 3.U, 255.U,
         Mux(io.tl.a.bits.address(2), "hf0".U, "h0f".U))
     io.tl.a.bits.data := 0.U
@@ -92,11 +108,11 @@ class InstructionTileLinkBridge(
     val secondError = Mux(d1Fire, dError, !beatGood(1))
     val assembledErrors = Mux(fullPacket, Cat(Mux(odd, secondError, firstError), firstError),
         Cat(!packetMask(1) || secondError, !packetMask(0) || firstError))
-    val completedAddress = alignedPc + Mux(odd, 8.U, 0.U)
+    val completedAddress = if (parallelAddresses) Mux(odd, alignedPc + 8.U, alignedPc)
+        else alignedPc + Mux(odd, 8.U, 0.U)
     val completedData = Mux(odd, next1, next0)
     val completedGood = Mux(odd, Mux(d1Fire, !dError, beatGood(1)), Mux(d0Fire, !dError, beatGood(0)))
-    val completedInRom = completedAddress >= immutableBase.U &&
-        (completedAddress +& 7.U) < (immutableBase + immutableBytes).U(65.W)
+    val completedInRom = alignedInRom(completedAddress)
     val bypassHit = lastD && completedGood && completedInRom && completedAddress === startAligned
     val rawCacheHit = startFull && startOdd && startInRom &&
         (bypassHit || (cacheValid && cacheAddress === startAligned))
@@ -166,7 +182,8 @@ class InstructionTileLinkBridge(
 class TileLinkInstructionRomAdapter(
     words: Int,
     base: BigInt = BigInt("80000000", 16),
-    params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4)
+    params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4),
+    bufferedReplies: Boolean = false
 ) extends Module {
     require(words >= 4 && isPow2(words) && base >= 0 && base % 8 == 0)
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 1 && params.sizeBits >= 2)
@@ -196,28 +213,43 @@ class TileLinkInstructionRomAdapter(
     metadata.io.enq.bits.source := a.source
     metadata.io.enq.bits.size := a.size
     metadata.io.enq.bits.highWord := a.address(2)
+    val lastByteOffset = ((1.U(4.W) << a.size(1, 0)) - 1.U)(2, 0)
     metadata.io.enq.bits.denied := a.address < base.U ||
-        (a.address +& Mux(a.size === 3.U, 7.U, 3.U)) >= (base + BigInt(words) * 4).U(65.W)
+        (a.address +& lastByteOffset) >= (base + BigInt(words) * 4).U(65.W)
     when(io.tl.a.fire) {
-        val bytes = (1.U(4.W) << a.size)(3, 0)
-        val expectedMask = ((1.U(9.W) << bytes) - 1.U)(7, 0) << a.address(2, 0)
+        // Idle FIFO payload need not be normalized, even though GSIM evaluates
+        // assertion expressions outside their enable. Use fixed legal-size
+        // decodes instead of native dynamic shifts of an undefined size byte.
+        val bytes = MuxLookup(a.size, 0.U(4.W))(Seq(0.U -> 1.U, 1.U -> 2.U, 2.U -> 4.U, 3.U -> 8.U))
+        val lowMask = MuxLookup(a.size, 0.U(8.W))(
+            Seq(0.U -> 1.U, 1.U -> 3.U, 2.U -> 15.U, 3.U -> 255.U))
+        val expectedMask = lowMask << a.address(2, 0)
         assert(a.opcode === TLOpcode.Get && a.param === 0.U && a.size <= 3.U &&
             (a.address & (bytes - 1.U)) === 0.U && a.mask === expectedMask && !a.corrupt,
             "instruction ROM manager accepts aligned 1/2/4/8-byte Get only")
     }
 
-    io.tl.d.valid := metadata.io.deq.valid && io.rom.response.valid
-    io.tl.d.bits.opcode := TLOpcode.AccessAckData
-    io.tl.d.bits.param := 0.U
-    io.tl.d.bits.size := metadata.io.deq.bits.size
-    io.tl.d.bits.source := metadata.io.deq.bits.source
-    io.tl.d.bits.sink := 0.U
+    // Empty bypass preserves the native one-cycle ROM latency/II=1. Occupancy-
+    // only enqueue ready (pipe=false) cuts external D.ready from ROM request
+    // credits. Capture data and its metadata together; source is released by
+    // upstream routing only on the final externally consumed D, never here.
+    val produced = if (bufferedReplies) {
+        val replies = Module(new Queue(new TLBundleD(params), 2, pipe = false, flow = true)).suggestName("replies")
+        io.tl.d <> replies.io.deq
+        replies.io.enq
+    } else io.tl.d
+    produced.valid := metadata.io.deq.valid && io.rom.response.valid
+    produced.bits.opcode := TLOpcode.AccessAckData
+    produced.bits.param := 0.U
+    produced.bits.size := metadata.io.deq.bits.size
+    produced.bits.source := metadata.io.deq.bits.source
+    produced.bits.sink := 0.U
     val responseError = Mux(metadata.io.deq.bits.size === 3.U, io.rom.responseError.orR,
         Mux(metadata.io.deq.bits.highWord, io.rom.responseError(1), io.rom.responseError(0)))
-    io.tl.d.bits.denied := metadata.io.deq.bits.denied || responseError
-    io.tl.d.bits.data := Mux(metadata.io.deq.bits.denied, 0.U, io.rom.response.bits)
-    io.tl.d.bits.corrupt := false.B
-    io.rom.response.ready := metadata.io.deq.valid && io.tl.d.ready
-    metadata.io.deq.ready := io.tl.d.fire
+    produced.bits.denied := metadata.io.deq.bits.denied || responseError
+    produced.bits.data := Mux(metadata.io.deq.bits.denied, 0.U, io.rom.response.bits)
+    produced.bits.corrupt := false.B
+    io.rom.response.ready := metadata.io.deq.valid && produced.ready
+    metadata.io.deq.ready := produced.fire
     when(io.rom.response.valid) { assert(metadata.io.deq.valid, "ROM reply has no TileLink metadata") }
 }

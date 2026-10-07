@@ -5,12 +5,18 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 #include "muldiv_model.h"
 static void check(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
-int main() {
+#ifndef REGISTERED_MULTIPLY_OPERANDS
+#define REGISTERED_MULTIPLY_OPERANDS 0
+#endif
+static constexpr unsigned inputLatency=REGISTERED_MULTIPLY_OPERANDS;
+int main(int argc,char** argv) {
     try {
         SPipelinedMultiplyGsim d;
+        const bool inject=argc==2 && std::string_view(argv[1])=="--inject-mismatch";
         d.set_io$$start$$valid(0); d.set_io$$start$$bits$$token$$index(0); d.set_io$$start$$bits$$token$$tag(0);
         d.set_io$$start$$bits$$pc(0); d.set_io$$start$$bits$$operation(0); d.set_io$$start$$bits$$word(0);
         d.set_io$$start$$bits$$left(0); d.set_io$$start$$bits$$right(0);
@@ -48,7 +54,7 @@ int main() {
             const bool pop=!pending.empty()&&(pending.front().cancelled||(response&&ready));
             if(response) {
                 auto e=pending.front();
-                check(d.get_io$$complete$$bits$$data()==e.result,"pipelined arithmetic mismatch");
+                check((d.get_io$$complete$$bits$$data() ^ uint64_t(inject))==e.result,"pipelined arithmetic mismatch");
                 check(d.get_io$$complete$$bits$$token$$tag()==e.tag && d.get_io$$complete$$bits$$token$$index()==e.tag%32,
                       "stale or changed response token");
                 check(d.get_io$$complete$$bits$$nextPc()==UINT64_C(0x80000000)+4*(e.tag+1)&&!d.get_io$$complete$$bits$$exception(),"completion metadata");
@@ -56,14 +62,14 @@ int main() {
                 if(!ready) ++held;
             }
             if(cycle<256) check(valid&&d.get_io$$start$$ready(),"one-start-per-cycle throughput bubble");
-            if(cycle>=6&&cycle<262) {check(response&&ready,"one-result-per-cycle throughput bubble");++steady;}
+            if(cycle>=6+inputLatency&&cycle<262+inputLatency) {check(response&&ready,"one-result-per-cycle throughput bubble");++steady;}
             const bool fire=valid&&d.get_io$$start$$ready();
             if(valid&&!d.get_io$$start$$ready()) ++full;
             for(auto &e:pending) if(!e.cancelled&&(cancel&(1U<<e.slot))) {e.cancelled=true;++cancelled;}
             if(pop) pending.pop_front();
             if(fire) {
                 pending.push_back({accepted+1,multiplyDivide(input.op,input.word,input.a,input.b),tail,
-                    cycle+(input.word?2U:6U),false});
+                    cycle+(input.word?2U:6U)+inputLatency,false});
                 tail=(tail+1)%8;++accepted;
             }
             if(accepted==inputs.size()&&pending.empty()) {if(++drain==10)break;} else drain=0;
@@ -72,6 +78,6 @@ int main() {
         check(steady==256&&multiCancel>20&&cancelled>100&&full>100&&held>1000,"pipeline coverage");
         std::cout<<"GSIM PipelinedMultiply: PASS accepted="<<accepted<<" completed="<<completed<<" cancelled="<<cancelled
                  <<" held="<<held<<" full="<<full<<" multiCancel="<<multiCancel<<" steady="<<steady
-                 <<" latency_word=2 latency_full=6 II=1\n";
+                 <<" latency_word="<<2+inputLatency<<" latency_full="<<6+inputLatency<<" II=1\n";
     } catch(const std::exception &e) {std::cerr<<"GSIM PipelinedMultiply: FAIL "<<e.what()<<'\n';return 1;}
 }

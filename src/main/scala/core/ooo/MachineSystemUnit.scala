@@ -27,7 +27,10 @@ class VmCsrState extends Bundle {
     val dataPrivilege = UInt(2.W)
 }
 
-/** One irrevocable, ROB-head-authorized system transaction. No speculative CSR state or rollback copy. */
+/** One irrevocable, ROB-head-authorized system transaction. Capacity one.
+  * Capture the complete command before CSR/FP decoding; minimum completion
+  * latency is two cycles, with no speculative CSR state or rollback copy.
+  */
 class MachineSystemUnit(p: OooParams) extends Module {
     private def alignedEpc(value: UInt): UInt =
         if (p.compressedInstructions) Cat(value(63, 1), 0.U(1.W)) else Cat(value(63, 2), 0.U(2.W))
@@ -36,6 +39,10 @@ class MachineSystemUnit(p: OooParams) extends Module {
         val complete                    = Decoupled(new SystemResult(p))
         val imsic                       = new MachineCsrPort
         val trap                        = Input(Valid(new HeadException(p)))
+        val trapReady                   = Output(Bool())
+        val fpRetire = if (p.fpEnabled) Some(Input(Valid(new RobToken(p)))) else None
+        val fpMemory = if (p.fpEnabled) Some(new DataPort) else None
+        val fpMemoryBusy = if (p.fpEnabled) Some(Output(Bool())) else None
         val trapTarget                  = Output(UInt(64.W))
         val externalInterrupt           = Input(Bool())
         val supervisorExternalInterrupt = Input(Bool())
@@ -52,8 +59,13 @@ class MachineSystemUnit(p: OooParams) extends Module {
         val fenceIFlush                 = Output(Bool())
         val fenceIFlushReady            = Input(Bool())
     })
-    val idle :: send :: waitResponse :: waitVmFlush :: waitFenceI :: finish :: Nil = Enum(6)
+    val idle :: execute :: send :: waitResponse :: waitVmFlush :: waitFenceI :: waitFp :: finish :: Nil = Enum(8)
+    val floatingPoint = if (p.fpEnabled) Some(Module(new FloatingPointSystem(p))) else None
+    val fpFs = floatingPoint.map(_.io.fs).getOrElse(0.U(2.W))
+    val fpFcsr = floatingPoint.map(_.io.fcsr).getOrElse(0.U(8.W))
+    val fpStatus = (fpFs << 13) | ((fpFs === 3.U).asUInt << 63)
     val state                                         = RegInit(idle)
+    val request                                       = Reg(new SystemRequest(p))
     val result                                        = RegInit(0.U.asTypeOf(new SystemResult(p)))
     val external                                      = RegInit(0.U.asTypeOf(new ImsicCsrRequest))
     val privilege                                     = RegInit(3.U(2.W))
@@ -96,15 +108,12 @@ class MachineSystemUnit(p: OooParams) extends Module {
     val mscratch                                      = RegInit(0.U(64.W))
     val miselect                                      = RegInit(0.U(12.W))
     val siselect                                      = RegInit(0.U(12.W))
-    val mstatus                                       = "h0000000a00000000".U(64.W) | (mprv.asUInt << 17) |
+    val mstatus                                       = "h0000000a00000000".U(64.W) | fpStatus | (mprv.asUInt << 17) |
         (sum.asUInt << 18) | (mxr.asUInt << 19) |
         (mpp << 11) | (spp.asUInt << 8) |
         (mpie.asUInt << 7) | (spie.asUInt << 5) | (mie.asUInt << 3) | (sie.asUInt << 1)
-    val misa = ((BigInt(2) << 62) | (BigInt(1) << 8) | (BigInt(1) << 12) |
-        (BigInt(1) << 18) | (BigInt(1) << 20) |
-        (if (p.atomicMemory) BigInt(1) else BigInt(0)) |
-        (if (p.compressedInstructions) BigInt(1) << 2 else BigInt(0))).U(64.W)
-    val sstatus              = "h0000000200000000".U(64.W) | (sum.asUInt << 18) | (mxr.asUInt << 19) |
+    val misa = p.misaValue.U(64.W)
+    val sstatus              = "h0000000200000000".U(64.W) | fpStatus | (sum.asUInt << 18) | (mxr.asUInt << 19) |
         (spp.asUInt << 8) | (spie.asUInt << 5) | (sie.asUInt << 1)
     io.vmState.foreach { state =>
         state.satp := satp
@@ -120,6 +129,7 @@ class MachineSystemUnit(p: OooParams) extends Module {
         io.pmpState.cfg(i)  := pmpCfg(i)
         io.pmpState.addr(i) := pmpAddr(i)
     }
+    PmpState.decodeRegions(io.pmpState)
     val machineGlobalEnable  = privilege =/= 3.U || mie
     val machineExternalReady = io.externalInterrupt && meie && machineGlobalEnable
     val machineTimerReady    = io.timerInterrupt && mtie && machineGlobalEnable
@@ -159,7 +169,15 @@ class MachineSystemUnit(p: OooParams) extends Module {
         io.trap.bits.cause(3, 0) << 2,
         0.U
     )
-    io.start.ready          := state === idle
+    io.start.ready          := state === idle && !floatingPoint.map(_.io.busy).getOrElse(false.B)
+    when(io.start.fire) {
+        assert(!io.trap.valid, "trap cannot also authorize a new system command")
+        request := io.start.bits
+        state := execute
+    }
+    // A faulted FP command stays busy until its precise trap. Trap admission must
+    // not depend on new-command credit, or that exception would deadlock.
+    io.trapReady := state === idle
     io.complete.valid       := state === finish
     io.complete.bits        := result
     io.imsic.request.valid  := state === send
@@ -176,11 +194,11 @@ class MachineSystemUnit(p: OooParams) extends Module {
         when(state === waitVmFlush && io.vmFlushReady.get) { state := finish }
     }
     when(state === waitFenceI && io.fenceIFlushReady) { state := finish }
-    val inst            = io.start.bits.instruction
+    val inst            = request.instruction
     val address         = inst(31, 20)
-    val csr             = inst(14, 12) =/= 0.U
+    val csr             = inst(6, 0) === "h73".U && inst(14, 12) =/= 0.U
     val operation       = inst(13, 12)
-    val source          = Mux(inst(14), Cat(0.U(59.W), inst(19, 15)), io.start.bits.operand)
+    val source          = Mux(inst(14), Cat(0.U(59.W), inst(19, 15)), request.operand)
     val write           = operation === 1.U || inst(19, 15) =/= 0.U
     val read            = operation =/= 1.U || inst(11, 7) =/= 0.U
     val imsic           = address === "h351".U || address === "h35c".U || address === "h151".U || address === "h15c".U
@@ -219,6 +237,9 @@ class MachineSystemUnit(p: OooParams) extends Module {
             "h343".U -> mtval,
             "h350".U -> miselect
         ) ++
+        (if (p.fpEnabled) Seq(
+            1.U -> fpFcsr(4, 0).pad(64), 2.U -> fpFcsr(7, 5).pad(64), 3.U -> fpFcsr.pad(64)
+        ) else Seq.empty) ++
         (if (p.virtualMemoryLevels > 0) Seq("h180".U -> satp) else Seq.empty) ++
         (if (p.pmpEntries > 0) Seq(
             "h3a0".U -> Cat((0 until 8).reverse.map(pmpCfg(_))),
@@ -228,13 +249,15 @@ class MachineSystemUnit(p: OooParams) extends Module {
     val exists = (Seq(0x100, 0x104, 0x105, 0x106, 0x140, 0x141, 0x142, 0x143, 0x144, 0x14d, 0x150, 0x151, 0x15c,
         0x300, 0x301, 0x302, 0x303, 0x304, 0x305, 0x306, 0x30a, 0x340, 0x341, 0x342, 0x343, 0x344, 0x350,
         0x351, 0x35c, 0xc01, 0xf11, 0xf12, 0xf13, 0xf14) ++
+        (if (p.fpEnabled) Seq(1, 2, 3) else Seq.empty) ++
         (if (p.virtualMemoryLevels > 0) Seq(0x180) else Seq.empty) ++
         (if (p.pmpEntries > 0) Seq(0x3a0, 0x3a2) ++ (0 until p.pmpEntries).map(0x3b0 + _) else Seq.empty))
         .map(a => address === a.U)
         .reduce(_ || _)
     val timeAccessAllowed = privilege === 3.U || (mcounterenTm && (privilege === 1.U || scounterenTm))
     val stimecmpAccessAllowed = privilege === 3.U || (stce && mcounterenTm)
-    val legalCsr = exists && privilege >= address(9, 8) && !(write && address(11, 10) === 3.U) &&
+    val fpCsr = address === 1.U || address === 2.U || address === 3.U
+    val legalCsr = (!fpCsr || fpFs =/= 0.U) && exists && privilege >= address(9, 8) && !(write && address(11, 10) === 3.U) &&
         (address =/= "hc01".U || timeAccessAllowed) && (address =/= "h14d".U || stimecmpAccessAllowed)
     val newValue = MuxLookup(operation, source)(Seq(2.U -> (readValue | source), 3.U -> (readValue & ~source)))
     val sfenceVma = inst(31, 25) === "b0001001".U && inst(14, 7) === 0.U && inst(6, 0) === "h73".U
@@ -251,14 +274,44 @@ class MachineSystemUnit(p: OooParams) extends Module {
         }
         VecInit(changed).asUInt.orR
     } else false.B
-    when(io.start.fire) {
+    floatingPoint.foreach { fp =>
+        io.fpMemory.get <> fp.io.memory
+        io.fpMemoryBusy.get := fp.io.memoryBusy
+        fp.io.pmpState := io.pmpState
+        fp.io.dataPrivilege := io.dataPrivilege
+        fp.io.virtualized := (if (p.virtualMemoryLevels > 0)
+            io.dataPrivilege =/= 3.U && satp(63, 60) =/= 0.U else false.B)
+        fp.io.start.valid := state === execute && FloatingPointDecode.supported(inst, p.fpConfig)
+        fp.io.start.bits := request
+        fp.io.retire := io.fpRetire.get
+        fp.io.trap := io.trap.valid
+        fp.io.complete.ready := state === waitFp
+        fp.io.csr.valid := state === execute && csr && legalCsr && fpCsr
+        fp.io.csr.bits.address := address
+        fp.io.csr.bits.operation := operation - 1.U
+        fp.io.csr.bits.write := write
+        fp.io.csr.bits.value := source
+        fp.io.setFs.valid := state === execute && csr && legalCsr && write &&
+            (address === "h300".U || address === "h100".U)
+        fp.io.setFs.bits := newValue(14, 13)
+        when(fp.io.start.valid) { assert(fp.io.start.ready, "FP head command credit") }
+        when(fp.io.csr.valid) { assert(fp.io.csr.ready, "FP CSR serialization") }
+        when(fp.io.setFs.valid) { assert(fp.io.setFs.ready, "FP context serialization") }
+        when(fp.io.complete.fire) {
+            result.completion := fp.io.complete.bits
+            state := finish
+        }
+    }
+    when(state === execute) {
         state                    := finish
         result                   := 0.U.asTypeOf(new SystemResult(p))
-        result.completion.token  := io.start.bits.token
-        result.completion.nextPc := io.start.bits.pc + 4.U
+        result.completion.token  := request.token
+        result.completion.nextPc := request.pc + 4.U
         result.completion.cause  := 2.U
         result.completion.tval   := inst
-        when(inst(6, 0) === "h0f".U && (inst(14, 12) === 0.U || inst(14, 12) === 1.U)) {
+        when(p.fpEnabled.B && FloatingPointDecode.supported(inst, p.fpConfig)) {
+            state := waitFp
+        }.elsewhen(inst(6, 0) === "h0f".U && (inst(14, 12) === 0.U || inst(14, 12) === 1.U)) {
             // The backend authorizes this full barrier only after older memory has drained.
             result.completion.data := 0.U
             result.redirect := inst(14, 12) === 1.U
@@ -411,7 +464,7 @@ class MachineSystemUnit(p: OooParams) extends Module {
                 result.completion.tval  := 0.U
             }.elsewhen(inst === "h00100073".U) {
                 result.completion.cause := 3.U
-                result.completion.tval  := io.start.bits.pc
+                result.completion.tval  := request.pc
             }
         }
     }

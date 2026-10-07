@@ -18,7 +18,8 @@ class OrderedTileLinkBridge(
     orderedWriteBankBase: BigInt = BigInt("80010000", 16),
     orderedWriteBankBytes: Int = 0,
     allowWriteErrors: Boolean = false,
-    flowHeadResponse: Boolean = false
+    flowHeadResponse: Boolean = false,
+    allowPartialWrites: Boolean = false
 ) extends Module {
     require(entries >= 2 && entries <= 16 && isPow2(entries))
     require(params.dataWidth == 64 && params.addrWidth >= 32 && params.addrWidth <= 64)
@@ -98,8 +99,10 @@ class OrderedTileLinkBridge(
         assert(!request.atomic, "TileLink memory bridge accepts ordinary requests only")
         val bytes = 1.U(4.W) << request.size
         val lanes = ((255.U(8.W) >> (8.U - bytes)) << request.address(2, 0))(7, 0)
-        assert((request.address(2, 0) & (bytes - 1.U)) === 0.U && request.mask === lanes,
-            "TileLink memory request must be aligned and have exact byte strobes")
+        val legalMask = Mux(request.write && allowPartialWrites.B,
+            (request.mask & ~lanes) === 0.U, request.mask === lanes)
+        assert((request.address(2, 0) & (bytes - 1.U)) === 0.U && legalMask,
+            "TileLink memory request must be aligned and have legal byte strobes")
         if (params.addrWidth < 64) {
             assert(request.address(63, params.addrWidth) === 0.U, "TileLink address truncation")
         }
@@ -109,7 +112,10 @@ class OrderedTileLinkBridge(
         sizes(chosen)    := request.size
     }
 
-    val dSource = Mux(io.tl.d.valid, io.tl.d.bits.source, 0.U)
+    // Invalid D payload is not architectural state. Keep its source/data mux
+    // independent of valid; acceptance and every ownership check remain gated
+    // by D.valid/fire. A late response credit must not select all 64 data bits.
+    val dSource = io.tl.d.bits.source
     val dInRange = dSource < entries.U
     val dIndex = dSource(log2Ceil(entries) - 1, 0)
     val justIssued = io.data.request.fire && chosen === dIndex
@@ -134,7 +140,10 @@ class OrderedTileLinkBridge(
         done(dIndex) := true.B
     }
 
-    val head = Mux(order.io.deq.valid, order.io.deq.bits, 0.U)
+    // Queue bits already identify the stable head while valid. While empty the
+    // payload is unspecified and cannot fire; masking this index with valid
+    // made the enqueue-pointer comparator drive the entire return-data mux.
+    val head = order.io.deq.bits
     val incomingHead = flowHeadResponse.B && io.tl.d.fire && order.io.deq.valid &&
         dSource === head && !done(head)
     val incomingResult = Wire(new DataResponse)

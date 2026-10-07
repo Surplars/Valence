@@ -1,4 +1,11 @@
-# APLIC M 域 MSI IP 合同
+# APLIC M/S 域 MSI IP 合同
+
+当前板级口径（2026-09-30）：BoardSocTop 已通过 MachinePlatform / MappedMachineCore
+接入 M 根域和 S 子域，分别位于 `0x0c000000` / `0x0c004000`，每域16 KiB、31个源。
+UART=source3，DMA=source4，其余外部源在板级绑0。DMA在当前板级有地址参数限制。
+精确寄存器表、源号/身份号区别与中断链见 [MMIO 寄存器表](soc-registers.md)，
+整体配置见 [SoC datasheet](soc-datasheet.md)。IMSIC的M/S页仅接内部MSI端口，
+没有CPU直接读写路由；软件使用间接CSR。下文历史测试覆盖各自明确的IP/平台配置。
 
 依据 RISC-V AIA 1.0（修订 20250312）第 4 章：
 https://docs.riscv.org/reference/aia/_attachments/riscv-interrupts.pdf 。
@@ -12,7 +19,8 @@ domaincfg.DM=1、BE=0；IE 可写。sourcecfg 支持 Inactive/Detached/Edge1/Edg
 保留模式和叶域 D=1 写入转换为 Inactive。Inactive 清 pending/enable/target，激活后 target 从0开始。
 支持 setip/in_clrip/setie/clrie、全部 num 别名、setipnum_le/be、target 和 genmsi。
 Hart/Guest Index 固定0；EIID 位宽与 IMSIC 身份容量匹配。mmsiaddrcfg[h] 固定暴露参数给定的
-IMSIC M 页地址（L=1、Hart 位宽0）。M 根域的 smsiaddrcfg[h] 暴露 IMSIC S 页地址；
+本域的MSI目的页地址（M域为IMSIC M页，S域实际为IMSIC S页；L=1、Hart 位宽0）。
+M 根域的 smsiaddrcfg[h] 暴露 IMSIC S 页地址；
 独立叶域读零写忽略。
 
 `MappedMachineCore` 将 M 根域映射到 0x0c000000，S 子域映射到 0x0c004000。
@@ -49,7 +57,8 @@ genmsi 独立于 IE，Busy 期间写忽略，发送握手后清 Busy；其 FIFO 
 
 `WiredMachineCore` 将独立 APLIC 的 MSI 端口接到原 MachineCore 的 IMSIC，保留 APLIC 控制总线、
 指令和数据接口。该独立组合的配置由测试台从外部控制口写入；新增 MappedMachineCore 已接 CPU 数据总线，
-尚未迁入 FpgaPlatformTop；这不等于完成完整 SoC 地址图、设备树或 Linux 中断驱动适配。
+BoardSocTop 已通过 MachinePlatform 集成 MappedMachineCore；旧 FpgaPlatformTop 并非当前板级入口。
+CPU访问布局现记录于 [寄存器表](soc-registers.md)，但设备树及Linux中断驱动仍需针对上述限制适配和验证。
 输入仍须由平台确保时钟域和脉宽。单源与1023源的 Scala 展开检查不等于最大参数功能/频率验收。
 
 独立测试覆盖4000轮随机配置/软件置位/输入变化，以及32位访问限制、保留字段、叶域委托拒绝、

@@ -1,5 +1,9 @@
 # 参数化页表遍历合同
 
+状态核对：2026-10-01。当前 DDR 板级为 Sv39、512 MiB DDR aperture；片上配置仍支持 1 MiB UltraRAM。
+Sv48/Sv57 是其他参数配置的能力。
+板级软件使用方法见 [OS/软件移植合同](os-software-porting.md)，以下历史性能数据不代表当前大 RAM 配置。
+
 `SvPageTableWalker(maxLevels)` 是独立的 RV64 地址转换 miss 引擎。`maxLevels=3/4/5`
 分别允许最高 Sv39/Sv48/Sv57；运行时 `mode=8/9/10` 选择实际层数，`mode=0`
 走 Bare。硬件使用相同的 9 位 VPN 层级、8 字节 PTE 和 44 位 PPN，不为 Sv48
@@ -12,8 +16,9 @@ access fault；PTE 格式、规范地址、权限、超页对齐及 Svade A/D �
 支持 Svpbmt 编码 0/1/2 和 Svnapot 标准化的 64 KiB 编码；保留编码报 page fault。
 输出保留叶层级、Global 和 PBMT，以供后续 TLB、PMA 与缓存策略使用。
 
-`MachinePlatform(translationService=true)` 现可配置 `translationLevels=3/4/5`
-和最多 64 KiB 的同步 RAM。它包含两个独立的 8 项全并行查找 TLB、页表遍历器
+`MachinePlatform(translationService=true)` 可配置 `translationLevels=3/4/5`；通用 RAM 参数检查
+允许 4 KiB 至 64 MiB 的二次幂容量，但不表示 FPGA 能容纳任意上限配置。
+当前 BoardSocTop 明确选择 `translationLevels=3`，按配置接 PL DDR 或 1 MiB UltraRAM。它包含两个独立的 8 项全并行查找 TLB、页表遍历器
 和可配置 4/8/16 项非叶 PTE 缓存，两端现可分别接 CPU I/D 侧；未接入的端口仍可供
 独立服务测试。两个 PTE 读取端按轮转仲裁，
 再与 CPU/DMA 数据通路仲裁，
@@ -39,6 +44,13 @@ ROB 队首的 `SFENCE.VMA` 等待旧数据请求及前端取指排空，再等�
 单路 miss 会阻塞新的译址，但已译址的请求仍可继续向物理端发出并等待响应。
 StoreBuffer 不按未翻译的地址提前确认写入，原子访问的物理 RAM 范围在译址后检查。
 
+可选 `staged-fabric` 在 `DataTranslationAdapter` 的 PMP/原子范围检查之后增加 2 项
+非直通 checked-request FIFO，捕获完整物理请求、fault 和 pageFault 决策，隔离后续
+MMIO/L1/仲裁的 ready 反馈。正常请求增加一拍，可连续每拍出入；故障占位也经过同一
+FIFO 和原有 8 项响应 owner，绝不发出物理访问，不能被后面的正常响应越过。
+适配器 `idle` 包括新增 FIFO；LSU/StoreBuffer 仍等待实际回复，PMP 更新、FENCE 和
+SFENCE 的既有排空边界不以“请求已进缓冲”当作访问已完成。默认配置不增加此级。
+
 可选 `coreInstructionTranslation=true` 把前端双指令包接到 I-TLB。包中两个 32 位指令
 同页时只译址一次；跨 4 KiB 页时分别译址、分别做物理 PMP 检查，并在物理页不连续时
 分别取指。取指 page fault 与 access fault 各有独立侧带位，随包进入 ROB 的精确异常路径。
@@ -61,6 +73,8 @@ PBMT=NC 物理别名和 128 次热 load/store 回环。
 保守的性能基线，不能据此宣称高性能虚拟内存或 FPGA 频率。
 
 性能边界：每路 TLB 命中吞吐目标为每拍一笔；每路最多一个 miss，两路可并发。
+当前 walker 在 PMP 检查后增加一项非直通寄存队列，每次 PTE 读取增加一拍，TLB 命中路径不变。
+下列 15–16/27/10/12 拍是该队列和板级三拍 UltraRAM 接入之前的历史服务测量：
 实际 miss 延迟由 3/4/5 次 PTE 读取的内存延迟及仲裁决定。GSIM 平台中
 一笔 Sv39 和一笔 Sv48 miss 并发完成约 15–16 拍（受核取指阶段影响），
 串行完成合计 27 拍，
@@ -68,8 +82,8 @@ PBMT=NC 物理别名和 128 次热 load/store 回环。
 复用两条非叶 PTE，仅访问一次页表 RAM，用 10 拍完成；失效后重新访问三次，
 同深度遍历用 12 拍完成。
 此数据仅证明服务并发与页表缓存能力，不是 CPU IPC 或 FPGA Fmax。
-TLB/PTE 缓存 CAM、两层仲裁及 64 KiB BRAM 的面积、
-布线和频率尚未在 Vivado 验证，小器件可选择 `translationLevels=3` 和较小 RAM。
+TLB/PTE 缓存、仲裁和 RAM 的面积/布线/频率随配置改变；此前小 RAM 的服务周期不能预测
+当前 1 MiB UltraRAM 板级性能。Vivado 结果只适用于报告对应的 RTL 和约束。
 
 验证：`make gsim-sv-walker-test` 以独立 C++ 页表映像检查 Sv39/Sv48/Sv57
 的各级叶子、超页地址拼接、规范地址、64 KiB NAPOT、PBMT、Svade、

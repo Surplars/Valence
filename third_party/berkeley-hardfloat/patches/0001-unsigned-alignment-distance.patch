@@ -1,0 +1,15 @@
+--- a/hardfloat/src/main/scala/AddRecFN.scala
++++ b/hardfloat/src/main/scala/AddRecFN.scala
+@@ -61,7 +61,11 @@
+     val eqSigns = io.a.sign === effSignB
+     val notEqSigns_signZero = io.roundingMode === round_min
+     val sDiffExps = io.a.sExp - io.b.sExp
+-    val modNatAlignDist = Mux(sDiffExps < 0.S, io.b.sExp - io.a.sExp, sDiffExps)(alignDistWidth - 1, 0)
++    // Unsigned modular subtraction preserves the sliced magnitude bits and avoids
++    // a pinned GSIM signed-Mux slice lowering bug (e.g. distance 22 became 246).
++    val modNatAlignDist = Mux(sDiffExps < 0.S,
++        io.b.sExp.asUInt - io.a.sExp.asUInt,
++        io.a.sExp.asUInt - io.b.sExp.asUInt)(alignDistWidth - 1, 0)
+     val isMaxAlign =
+         (sDiffExps>>alignDistWidth) =/= 0.S &&
+             ((sDiffExps>>alignDistWidth) =/= -1.S || sDiffExps(alignDistWidth - 1, 0) === 0.U)

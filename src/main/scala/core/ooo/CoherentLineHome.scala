@@ -12,15 +12,20 @@ import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 class CoherentLineHome(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     base: BigInt = BigInt("80010000", 16),
-    bytes: Int = 4096,
+    bytes: BigInt = 4096,
     nClients: Int = 1,
-    trackedLines: Int = 0
+    trackedLines: Int = 0,
+    trackedWays: Int = 1,
+    rawResponseMetadata: Boolean = false,
+    parallelQualification: Boolean = false
 ) extends Module {
     require(bytes >= 64 && bytes % 64 == 0 && isPow2(bytes) && base % 64 == 0)
     require(nClients >= 1 && nClients <= 8)
     require(trackedLines == 0 || (nClients == 1 && trackedLines >= 2 &&
         trackedLines <= bytes / 64 && isPow2(trackedLines)))
     require(trackedLines != 0 || base % bytes == 0)
+    require(Set(1, 2).contains(trackedWays) &&
+        (trackedWays == 1 || (trackedLines != 0 && trackedLines / trackedWays >= 2)))
     require(params.sourceBits >= 3, "line transfer needs separate read and write source IDs")
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -51,15 +56,18 @@ class CoherentLineHome(
     private val releaseClient = Reg(UInt(clientBits.W))
     private val releaseParam = Reg(UInt(3.W))
     private val releaseOrigin = Reg(Bool())
-    private val ownerEntries = if (trackedLines == 0) bytes / 64 else trackedLines
+    private val ownerEntries = if (trackedLines == 0) (bytes / 64).toInt else trackedLines
     private val owned = RegInit(VecInit(Seq.fill(ownerEntries)(false.B)))
     private val owner = Reg(Vec(ownerEntries, UInt(clientBits.W)))
-    // A single direct-mapped L1 can own at most one physical line per cache index.
-    // Tagging those slots bounds directory state by L1 capacity instead of RAM size.
+    // A single L1 owns at most trackedWays physical lines per cache set.
+    // Directory slots need not use the client's physical way number: tag lookup
+    // finds owners, and a completed GrantAck reserves an empty slot in that set.
+    // Capacity stays bounded by L1 capacity rather than external RAM size.
     private val ownedTags = if (trackedLines == 0) None else
         Some(Reg(Vec(ownerEntries, UInt((params.addrWidth - 6).W))))
     private val lineTransfer = Module(new TileLinkLineTransfer(
-        params.copy(sourceBits = params.sourceBits - 1), entries = 4))
+        params.copy(sourceBits = params.sourceBits - 1), entries = 4,
+        rawResponseMetadata = rawResponseMetadata))
     private val probeEngine = Module(new TileLinkLineProbeEngine(params, entries = 4))
     io.line <> lineTransfer.io.tl
     for (i <- 0 until nClients) {
@@ -83,29 +91,69 @@ class CoherentLineHome(
         Mux(releaseAny, releaseSelect, probeClient))
     private val clientC = client(cSelect).c
 
-    private def lineIndex(address: UInt): UInt = address(5 + log2Ceil(ownerEntries), 6)
-    private def lineOwned(address: UInt): Bool = owned(lineIndex(address)) &&
-        ownedTags.map(_(lineIndex(address)) === address(params.addrWidth - 1, 6)).getOrElse(true.B)
+    private val ownerSetBits = log2Ceil(ownerEntries / trackedWays)
+    private def lineIndex(address: UInt): UInt = {
+        val set = address(5 + ownerSetBits, 6)
+        if (trackedWays == 1) set
+        else {
+            val first = Cat(0.U(1.W), set)
+            val second = Cat(1.U(1.W), set)
+            val tag = address(params.addrWidth - 1, 6)
+            Mux(owned(first) && ownedTags.get(first) === tag, first,
+                Mux(owned(second) && ownedTags.get(second) === tag, second,
+                    Mux(!owned(first), first, second)))
+        }
+    }
+    private def lineOwned(address: UInt): Bool = {
+        if (parallelQualification && trackedLines != 0) {
+            // Compare each way before owner selection. The old form selected a
+            // matching slot and then compared its selected tag a second time.
+            val set = address(5 + ownerSetBits, 6)
+            val first = if (trackedWays == 1) set else Cat(0.U(1.W), set)
+            val second = if (trackedWays == 1) first else Cat(1.U(1.W), set)
+            val matches = Module(new ParallelHomeLineMatch(params.addrWidth))
+            matches.io.address := address
+            matches.io.firstOwned := owned(first)
+            matches.io.firstTag := ownedTags.get(first)
+            matches.io.secondOwned := (if (trackedWays == 2) owned(second) else false.B)
+            matches.io.secondTag := ownedTags.get(second)
+            matches.io.owned
+        } else owned(lineIndex(address)) &&
+            ownedTags.map(_(lineIndex(address)) === address(params.addrWidth - 1, 6)).getOrElse(true.B)
+    }
     private def inRam(address: UInt): Bool =
-        address >= base.U(65.W) && address < (base + bytes).U(65.W)
+        if (parallelQualification) HomeRamRange.contains(address, params.addrWidth, base, bytes)
+        else address >= base.U(65.W) && address < (base + bytes).U(65.W)
     private val request = io.upstream.request.bits
-    private val releaseAllowed = reads === 0.U &&
+    // An ordinary read is offered combinationally to the downstream TL bridge.
+    // Once stalled, it cannot be preempted by a later Acquire or voluntary C
+    // release: the shared TL arbiter may already have locked this A producer.
+    // Withdrawing that offer and waiting for a line fill deadlocks both paths.
+    // The upstream request FIFO retains its head/payload until the same fire.
+    private val directReadHeld = RegInit(false.B)
+    private val releaseAllowed = reads === 0.U && !directReadHeld &&
         (state === idle || state === probeSend || state === probeWait)
     private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) &&
         lineOwned(request.address)
     private val upperWrite = io.upstream.request.valid && request.write
     private val directRead = state === idle && io.upstream.request.valid && !upperWrite &&
-        !needsProbe && !aAny && !releaseAny
+        !needsProbe && (directReadHeld || (!aAny && !releaseAny))
 
     io.downstream.request.valid := directRead || state === accessSend
     io.downstream.request.bits := Mux(state === accessSend, access, request)
-    io.upstream.request.ready := state === idle && !aAny && !releaseAny &&
+    io.upstream.request.ready := state === idle && (directReadHeld || (!aAny && !releaseAny)) &&
         Mux(upperWrite || needsProbe, reads === 0.U, io.downstream.request.ready)
     io.upstream.response.valid := Mux(state === accessWait, io.downstream.response.valid,
         state === idle && reads =/= 0.U && io.downstream.response.valid)
     io.upstream.response.bits := io.downstream.response.bits
     io.downstream.response.ready := io.upstream.response.ready &&
         (state === accessWait || (state === idle && reads =/= 0.U))
+    when(directRead && !io.downstream.request.ready) { directReadHeld := true.B }
+    when(directRead && io.downstream.request.fire) { directReadHeld := false.B }
+    when(directReadHeld) {
+        assert(state === idle && io.upstream.request.valid && !upperWrite && !needsProbe,
+            "a stalled home direct read must retain its request until acceptance")
+    }
     when((io.upstream.request.fire && !upperWrite && !needsProbe) =/=
         (state === idle && io.upstream.response.fire)) {
         reads := Mux(io.upstream.request.fire && !upperWrite && !needsProbe, reads + 1.U, reads - 1.U)
@@ -123,7 +171,7 @@ class CoherentLineHome(
     when(state === accessWait && io.upstream.response.fire) { state := idle }
 
     for (i <- 0 until nClients) {
-        io.clients(i).a.ready := state === idle && reads === 0.U && !releaseAny &&
+        io.clients(i).a.ready := state === idle && reads === 0.U && !releaseAny && !directReadHeld &&
             aSelect === i.U
     }
     val selectedAcquire = client(aSelect).a.bits
@@ -188,7 +236,7 @@ class CoherentLineHome(
         when(!lineError) {
             if (trackedLines != 0) {
                 assert(!owned(lineIndex(acquireAddress)) || lineOwned(acquireAddress),
-                    "single-hart L1 must release an indexed line before acquiring another")
+                    "single-hart L1 must release a set slot before acquiring another")
                 ownedTags.get(lineIndex(acquireAddress)) := acquireAddress(params.addrWidth - 1, 6)
             }
             owned(lineIndex(acquireAddress)) := true.B

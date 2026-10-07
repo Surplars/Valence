@@ -13,6 +13,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+#ifndef REGISTERED_FETCH_PACKET
+#define REGISTERED_FETCH_PACKET 0
+#endif
+#ifndef BRANCH_ENTRIES
+#define BRANCH_ENTRIES 64
+#endif
 static constexpr uint64_t base=0x80000000, dataBase=0x80010000;
 #ifdef SYNCHRONOUS_MACHINE
 static constexpr uint64_t vectorPc=base+0x1000;
@@ -379,7 +385,18 @@ static std::vector<uint32_t> setup() {
     std::vector<uint32_t> p;constant(p,1,vectorPc);p.push_back(csr(0x305,1,0,1));return p;
 }
 static bool injectMismatch=false,injectInterruptMismatch=false,injectMmioMismatch=false;
-struct Counts {unsigned programs=0,commits=0,traps=0,mret=0,sret=0,csrOps=0,held=0,redirects=0,interrupts=0,emptyInterrupts=0,memoryInterrupts=0,storeInterrupts=0,priorityTraps=0;};
+static bool headTrapShortMode=false,headTrapNegativeAttempted=false;
+static bool authorizationShortMode=false,authorizationNegative=false;
+static unsigned authorizationFenceDelay=0;
+static uint64_t authorizationFencePc=0;
+struct Counts {
+    unsigned programs=0,commits=0,traps=0,mret=0,sret=0,csrOps=0,held=0,redirects=0;
+    unsigned interrupts=0,emptyInterrupts=0,memoryInterrupts=0,storeInterrupts=0,priorityTraps=0;
+    unsigned fastHeadTraps=0,emptyTrapEvents=0;
+    unsigned systemOffers=0,systemBlocked=0,systemLsuCollisions=0,systemMCollisions=0;
+    unsigned systemAcks=0,systemRepeatedRollback=0,systemProtectedCommitHolds=0,systemProtectedReleases=0;
+    uint64_t cycles=0;
+};
 #ifdef SYNCHRONOUS_MACHINE
 struct CacheStallCounts {
     unsigned full=0,exclusive=0,serialized=0,sameBeat=0,fill=0,lowerCapacity=0,lowerReady=0,ramRequest=0,ramResponse=0;
@@ -415,6 +432,11 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
     unsigned cpuDuringDma=0,dmaRequests=0,dmaCycles=0,releaseDataBeats=0,probeAckDataBeats=0;
     unsigned lineFillsLow=0,lineFillsHigh=0;
     unsigned irqCount=0,emptyWait=0,holdFault=0,busWrites=0,committedStores=0;bool injected=false,sawMemory=false;
+#ifdef SYSTEM_AUTHORIZATION_FIXTURE
+    bool expectedSystemProtected=false,systemOfferHeld=false,systemBoundaryAcknowledged=false;
+    unsigned expectedSystemIndex=0,heldSystemIndex=0,authorizationFenceCycles=0;
+    uint64_t expectedSystemTag=0,heldSystemTag=0;
+#endif
 #ifdef SYNCHRONOUS_MACHINE
     uint64_t stop=firmwareStop;
 #else
@@ -426,6 +448,9 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
     code.insert(code.end(),handler.begin(),handler.end());
 #endif
     SMachineCoreGsim d;
+#ifdef SYSTEM_AUTHORIZATION_FIXTURE
+    d.set_systemFenceHold(0);
+#endif
     d.set_io$$programHold(0);d.set_io$$programWrite(0);d.set_io$$programIndex(0);d.set_io$$programData(0);
     d.set_io$$timerInterrupt(0);d.set_io$$timerTick(0);d.set_io$$timeValue(0);
     d.set_io$$sources(0);d.set_io$$uartRx(1);
@@ -480,7 +505,7 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
     uint64_t fetch=base;
     uint64_t lastTrapPc=0,lastTrapCause=0,lastTrapValue=0;
     unsigned protectedFetchGets=0,protectedNarrowGets=0;
-    std::array<unsigned,64> direction;direction.fill(1);
+    std::array<unsigned,BRANCH_ENTRIES> direction;direction.fill(1);
     bool finished=false;
 #ifdef SYNCHRONOUS_MACHINE
     int serialStart=-1,timerStart=-1;
@@ -492,6 +517,17 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
 #endif
     for(unsigned cycle=0;cycle<200000;++cycle) {
         bool supply=seed==0||rng()%5!=0,allow=seed==0||rng()%4!=0;
+#ifdef SYSTEM_AUTHORIZATION_FIXTURE
+        bool fenceHold=false;
+        if(authorizationShortMode && m.pc==authorizationFencePc) {
+            const unsigned phase=authorizationFenceCycles++;
+            fenceHold=phase<authorizationFenceDelay;
+            // Start remains authorized under the original commitEnable/drain
+            // rules. A later, bounded commit stall tests protection release.
+            if(phase>=authorizationFenceDelay+2 && phase<authorizationFenceDelay+7)allow=false;
+        }
+        d.set_systemFenceHold(fenceHold);
+#endif
         bool pause=irqScenario==4 && fetch>=triggerPc && fetch<vectorPc && irqCount==0;
         if(pause)supply=false;
         if(pause && m.pc==triggerPc)++emptyWait;
@@ -554,6 +590,69 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
         d.set_io$$memory$$response$$bits$$data(response?replies.front().data:0);
         d.set_io$$memory$$response$$bits$$error(response&&replies.front().error);
         d.step();
+#if REGISTERED_FETCH_PACKET
+        const bool headAccepted=d.get_headTrapAccepted(),emptyAccepted=d.get_emptyTrapAccepted();
+        check(!(headAccepted&&emptyAccepted),"nonempty/empty trap boundaries must be exclusive");
+        check(!(headAccepted||emptyAccepted)||d.get_io$$trap$$valid(),"trap recovery witness without architectural trap");
+        counts.fastHeadTraps+=headAccepted;
+        counts.emptyTrapEvents+=emptyAccepted;
+#endif
+#ifdef SYSTEM_AUTHORIZATION_FIXTURE
+        const bool systemValid=d.get_systemOfferValid(),systemReady=d.get_systemOfferReady();
+        const bool systemRedirect=systemValid&&d.get_systemOfferRedirect();
+        const bool systemAck=systemRedirect&&d.get_systemRecoveryAck();
+        const bool systemMatch=d.get_systemRedirectMatch();
+        check(bool(d.get_systemProtectedSeen())==expectedSystemProtected,"system protection lifetime oracle");
+        if(expectedSystemProtected)
+            check(d.get_systemOwnerIndex()==expectedSystemIndex && d.get_systemOwnerTag()==expectedSystemTag,
+                "protected system owner changed before precise release");
+        if(systemOfferHeld)
+            check(systemValid && d.get_systemOfferIndex()==heldSystemIndex &&
+                d.get_systemOfferTag()==heldSystemTag,"system completion token changed under backpressure");
+        if(systemValid) {
+            check(expectedSystemProtected && d.get_systemOfferIndex()==expectedSystemIndex &&
+                d.get_systemOfferTag()==expectedSystemTag,"completion does not own protected system transaction");
+            ++counts.systemOffers;
+            if(!systemReady) {
+                ++counts.systemBlocked;
+                counts.systemLsuCollisions+=d.get_systemLsuComplete();
+                counts.systemMCollisions+=d.get_systemMComplete();
+            }
+        }
+        check(bool(d.get_systemInvalidated())==
+            (bool(d.get_systemInvalidateRequested())&&systemMatch),"system invalidate bypassed redirect token match");
+        if(systemRedirect && !systemMatch)
+            check(!systemReady,"unmatched system redirect consumed completion");
+        if(systemBoundaryAcknowledged && d.get_io$$recovering() && systemRedirect) {
+            check(!systemAck && !systemReady,"duplicate retain-one recovery acknowledged or consumed completion");
+            ++counts.systemRepeatedRollback;
+        }
+        if(systemAck) {
+            auto expected=m;auto expectedMemory=mem;
+            const auto result=expected.step(code[(m.pc-base)/4],expectedMemory);
+            uint64_t target=result.next;
+            if(authorizationNegative){target^=4;authorizationNegative=false;}
+            check(!result.fault && d.get_io$$redirect$$valid() && systemMatch &&
+                d.get_io$$redirect$$bits$$pc()==m.pc && d.get_io$$redirect$$bits$$target()==target,
+                "system redirect architectural oracle mismatch");
+            check(!d.get_io$$commit0$$valid()&&!d.get_io$$commit1$$valid(),
+                "system redirect retired through recovery");
+            ++counts.systemAcks;systemBoundaryAcknowledged=true;
+        }
+        counts.systemProtectedCommitHolds+=expectedSystemProtected&&!allow;
+        systemOfferHeld=systemValid&&!systemReady;
+        heldSystemIndex=d.get_systemOfferIndex();heldSystemTag=d.get_systemOfferTag();
+        if(systemValid&&systemReady&&d.get_systemOfferException()) {
+            expectedSystemProtected=false;++counts.systemProtectedReleases;
+        }
+        if(systemValid&&systemReady)systemBoundaryAcknowledged=false;
+        if(d.get_systemStartSeen()) {
+            check(!expectedSystemProtected && d.get_systemStartPc()==m.pc,
+                "system start must be at the independent architectural head");
+            expectedSystemProtected=true;
+            expectedSystemIndex=d.get_systemStartIndex();expectedSystemTag=d.get_systemStartTag();
+        }
+#endif
 #ifdef SYNCHRONOUS_MACHINE
         if(privilegeBoot && d.get_io$$fetchGetFire()) {
             ++protectedFetchGets;
@@ -620,10 +719,11 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
             if(fenceScenario&&!write)for(const auto& prior:replies)check(!prior.write,"load crossed FENCE before store response");
             sawMemory=true;
             if(!error)for(unsigned i=0;i<8;++i)data|=uint64_t(busMem[((addr-dataBase)&~7U)+i])<<(8*i);
-            replies.push_back({data,error,cycle+((irqScenario==5 || irqScenario==6 || fenceScenario)?80:3)+unsigned(rng()%5),write});
+            replies.push_back({data,error,cycle+((irqScenario==5 || irqScenario==6 ||
+                (fenceScenario&&!authorizationShortMode))?80:3)+unsigned(rng()%5),write});
         }
         uint64_t predictedFetch=fetch+4*(d.get_io$$accepted0()+d.get_io$$accepted1());
-#ifndef SYNCHRONOUS_MACHINE
+#if !defined(SYNCHRONOUS_MACHINE) && !REGISTERED_FETCH_PACKET
         for(unsigned lane=0;lane<2;++lane)if(lane==0?d.get_io$$accepted0():d.get_io$$accepted1()) {
             uint64_t pc=fetch+4*lane;auto inst=code[(pc-base)/4];
             if((inst&127)==0x63 && direction[(pc/4)%direction.size()]>=2) {
@@ -670,6 +770,17 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
 #define COMMIT(N) commit(d.get_io$$commit##N##$$valid(),d.get_io$$commit##N##$$bits$$pc(),d.get_io$$commit##N##$$bits$$instruction(),d.get_io$$commit##N##$$bits$$rd(),d.get_io$$commit##N##$$bits$$data(),d.get_io$$commit##N##$$bits$$nextPc())
         COMMIT(0);COMMIT(1);
 #undef COMMIT
+#ifdef SYSTEM_AUTHORIZATION_FIXTURE
+        auto systemRetired=[&](bool valid,unsigned index,uint64_t tag) {
+            if(valid&&expectedSystemProtected&&index==expectedSystemIndex&&tag==expectedSystemTag) {
+                expectedSystemProtected=false;++counts.systemProtectedReleases;
+            }
+        };
+        systemRetired(d.get_io$$commit0$$valid(),d.get_io$$commit0$$bits$$token$$index(),
+            d.get_io$$commit0$$bits$$token$$tag());
+        systemRetired(d.get_io$$commit1$$valid(),d.get_io$$commit1$$bits$$token$$index(),
+            d.get_io$$commit1$$bits$$token$$tag());
+#endif
         if(d.get_io$$trap$$valid()) {
             check(!d.get_io$$commit0$$valid()&&!d.get_io$$commit1$$valid()&&allow,"trap/retirement ordering");
             SystemModel::Result fault;
@@ -677,7 +788,10 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
                 check(irqScenario && m.irq(),"masked or unsolicited interrupt");
                 check(replies.empty(),"interrupt before memory drain");
                 fault.cause=UINT64_C(0x8000000000000000)|m.irqCause();fault.fault=true;
-                if(injectInterruptMismatch){fault.cause^=1;injectInterruptMismatch=false;}
+                if(injectInterruptMismatch){
+                    fault.cause^=1;injectInterruptMismatch=false;
+                    headTrapNegativeAttempted=headTrapShortMode;
+                }
                 ++irqCount;++counts.interrupts;
                 if(irqScenario==10)check(d.get_io$$externalPending()&2,"S IMSIC signal missing at trap");
                 if(irqScenario==11)check((fault.cause&63)==(irqCount==1?11U:9U),"M/S interrupt priority");
@@ -700,11 +814,18 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
             check(d.get_io$$redirect$$valid()&&d.get_io$$redirect$$bits$$target()==m.pc,"trap redirect");
             if(ref)ref->compare(m.regs,m.pc);
         }
-#ifndef SYNCHRONOUS_MACHINE
+#if !defined(SYNCHRONOUS_MACHINE) && !REGISTERED_FETCH_PACKET
         check(d.get_io$$fetchPc()==fetch,"fetch prediction model mismatch scenario="+std::to_string(irqScenario)+" seed="+std::to_string(seed)+" cycle="+std::to_string(cycle)+" expected="+std::to_string(fetch)+" actual="+std::to_string(d.get_io$$fetchPc()));
 #endif
         // Outputs are pre-edge; compute next fetch PC using acceptance and the authoritative redirect.
         fetch=d.get_io$$redirect$$valid()?d.get_io$$redirect$$bits$$target():predictedFetch;
+#if REGISTERED_FETCH_PACKET
+        // The FIFO's raw supply cursor is NOT the architectural admission PC.
+        // Only drive the external instruction device from the next cursor;
+        // retirement/trap PCs still come exclusively from SystemModel above.
+        fetch=d.get_nextFetchPc();
+        check((fetch&3)==0,"unaligned raw instruction fetch cursor");
+#endif
 #if defined(WIRED_APLIC) || defined(MAPPED_APLIC)
         if(sendMsi){
 #ifdef MAPPED_APLIC
@@ -776,6 +897,7 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
 #endif
             check(d.get_io$$externalPending()==(unsigned(m.delivery&&m.top()!=0)|
                 (unsigned(m.deliveryS&&m.topS()!=0)<<1)),"IMSIC external pending routing");
+            counts.cycles+=cycle+1;
             finished=true;break;
         }
     }
@@ -801,6 +923,150 @@ static void program(const char*library,std::vector<uint32_t> code,unsigned seed,
 #endif
     ++counts.programs;
 }
+// One shared construction for the existing full IRQ route and the focused
+// head-trap route. Keep the instructions, handler and independent oracle intact.
+static void machineInterruptProgram(const char*library,unsigned scenario,unsigned seed,
+    bool timerScenario,Counts&counts) {
+    auto p=setup();
+    if(scenario==2 || (timerScenario && scenario==4)){constant(p,1,vectorPc|1);p.push_back(csr(0x305,1,0,1));}
+    p.push_back(addi(1,0,0xc0));p.push_back(csr(0x350,1,0,1));
+    p.push_back(addi(2,0,-1));p.push_back(csr(0x351,1,0,2));
+    p.push_back(addi(1,0,0x70));p.push_back(csr(0x350,1,0,1));p.push_back(csr(0x351,5,0,1));
+    p.push_back(csr(0x344,1,4,0)); // MEIP is read-only even under CSR write.
+    p.push_back(csr(0x344,2,5,0));
+    p.push_back(csr(0x304,1,6,2)); // Unsupported enable bits must read zero.
+    p.push_back(csr(0x304,2,7,0));
+    p.push_back(csr(0x304,1,0,0));
+    p.push_back(csr(0x300,6,0,8)); // Global enable alone must not deliver.
+    for(unsigned i=0;i<8;++i)p.push_back(addi(8,8,1));
+    p.push_back(csr(0x300,7,0,8));
+    p.push_back(csr(0x304,1,0,2)); // Individual enable alone must not deliver in M.
+    for(unsigned i=0;i<8;++i)p.push_back(addi(8,8,1));
+    if(scenario==3) {
+        // Return to U with MIE=0; M interrupts must still preempt it.
+        p.push_back(csr(0x300,1,0,0));
+        p.push_back(0x00000097);p.push_back(addi(1,1,16));p.push_back(csr(0x341,1,0,1));p.push_back(0x30200073);
+    } else p.push_back(csr(0x300,6,0,8));
+    uint64_t trigger=base+4*p.size();
+    if(scenario==5 || scenario==6) {
+        constant(p,1,dataBase);
+        if(scenario==6) {
+            p.push_back(addi(11,0,42));
+            for(unsigned i=0;i<8;++i){p.push_back(0x00b0b023|((i*8U)&31)<<7|((i*8U)>>5)<<25);p.push_back(addi(11,11,1));}
+        }
+        for(unsigned i=0;i<12;++i)p.push_back(0x0000b183); // LD, delayed responses overlap MSI.
+        p.push_back(0x0200c133);p.push_back(branch(2,8));p.push_back(csr(0x340,5,0,31));
+    }
+    if(scenario==7)p.push_back(0xffffffff);
+    for(unsigned i=0;i<64;++i)p.push_back(addi(10,10,1));
+    std::vector<uint32_t> h;
+    if(timerScenario && scenario==4)h.resize(7,0xffffffff);
+    if(scenario==2)h.resize(11,0xffffffff); // Only BASE+44 is a legal handler entry.
+    const std::vector<uint32_t> body{csr(0x342,2,26,0),csr(0x343,2,27,0),csr(0x341,2,28,0),
+        csr(0x300,2,29,0),csr(0x35c,1,30,0),addi(31,31,1),0x30200073};
+    h.insert(h.end(),body.begin(),body.end());
+    if(scenario==7)h={csr(0x342,2,26,0),0x000d4a63, // blt x26,x0,+20
+        csr(0x341,2,28,0),addi(28,28,4),csr(0x341,1,0,28),branch(0,8),csr(0x35c,1,30,0),0x30200073};
+    if(timerScenario)for(auto& inst:h)if(inst==csr(0x35c,1,30,0))inst=csr(0x304,1,0,0);
+    program(library,p,seed,false,counts,h,scenario,trigger,false,timerScenario);
+}
+#ifndef SYNCHRONOUS_MACHINE
+static void headTrapShort(const char*library) {
+#if defined(WIRED_APLIC) || defined(MAPPED_APLIC)
+    check(false,"--head-trap-short supports only the DIRECT-IRQ instruction/data/MSI fixture");
+#endif
+    check(REGISTERED_FETCH_PACKET==1 && BRANCH_ENTRIES==32,
+        "--head-trap-short requires the throughput raw-fetch fixture and BRANCH_ENTRIES=32");
+    Counts externalCounts,timerCounts;
+    for(unsigned timerMode=0;timerMode<2;++timerMode) {
+        auto& counts=timerMode?timerCounts:externalCounts;
+        for(unsigned scenario=4;scenario<=7;++scenario) {
+            const Counts before=counts;
+            machineInterruptProgram(library,scenario,0,timerMode,counts);
+            check(counts.programs==before.programs+1 && counts.interrupts==before.interrupts+1 &&
+                counts.traps==before.traps+(scenario==7?2U:1U) &&
+                counts.mret==before.mret+(scenario==7?2U:1U),"head-trap case interrupt/return witnesses");
+            check(counts.commits>before.commits && counts.csrOps>before.csrOps &&
+                counts.cycles>before.cycles,"head-trap case execution/CSR witnesses");
+            check(counts.emptyInterrupts==before.emptyInterrupts+(scenario==4) &&
+                counts.memoryInterrupts==before.memoryInterrupts+(scenario==5) &&
+                counts.storeInterrupts==before.storeInterrupts+(scenario==6) &&
+                counts.priorityTraps==before.priorityTraps+(scenario==7),"head-trap case boundary witnesses");
+            if(scenario==4)check(counts.emptyTrapEvents>before.emptyTrapEvents,"empty-head trap fast boundary not observed");
+            if(scenario==7)check(counts.fastHeadTraps>before.fastHeadTraps && counts.held>=before.held+40,
+                "nonempty synchronous head-trap fast boundary/backpressure not observed");
+            std::cout<<"HEAD_TRAP_CASE irq="<<(timerMode?"timer":"external")<<" scenario="<<scenario
+                <<" seed=0 cycles="<<counts.cycles-before.cycles<<" commits="<<counts.commits-before.commits
+                <<" traps="<<counts.traps-before.traps<<" interrupts="<<counts.interrupts-before.interrupts
+                <<" empty="<<counts.emptyInterrupts-before.emptyInterrupts
+                <<" memoryIrq="<<counts.memoryInterrupts-before.memoryInterrupts
+                <<" storeIrq="<<counts.storeInterrupts-before.storeInterrupts
+                <<" priority="<<counts.priorityTraps-before.priorityTraps<<" mret="<<counts.mret-before.mret
+                <<" csr="<<counts.csrOps-before.csrOps<<" held="<<counts.held-before.held
+                <<" fastHeadTraps="<<counts.fastHeadTraps-before.fastHeadTraps
+                <<" emptyTrapEvents="<<counts.emptyTrapEvents-before.emptyTrapEvents<<"\n";
+        }
+        check(counts.programs==4 && counts.interrupts==4 && counts.traps==5 && counts.mret==5 &&
+            counts.emptyInterrupts==1 && counts.memoryInterrupts==1 && counts.storeInterrupts==1 &&
+            counts.priorityTraps==1 && counts.fastHeadTraps>0 && counts.emptyTrapEvents>0 &&
+            counts.csrOps>0 && counts.held>=40,"head-trap short coverage");
+    }
+    check(!headTrapNegativeAttempted && !injectInterruptMismatch,"head-trap negative control was not rejected");
+    std::cout<<"GSIM head trap short: PASS programs=8 interrupts=8 traps=10 empty=2 memoryIrq=2 storeIrq=2 priority=2 mret=10"
+        <<" csr="<<externalCounts.csrOps+timerCounts.csrOps<<" held="<<externalCounts.held+timerCounts.held
+        <<" fastHeadTraps="<<externalCounts.fastHeadTraps+timerCounts.fastHeadTraps
+        <<" emptyTrapEvents="<<externalCounts.emptyTrapEvents+timerCounts.emptyTrapEvents
+        <<" cycles="<<externalCounts.cycles+timerCounts.cycles
+        <<" irqBoundary=DIRECT-IRQ oracle=SystemModel registeredFetchPacket="<<REGISTERED_FETCH_PACKET<<"\n";
+}
+#endif
+#ifndef SYNCHRONOUS_MACHINE
+static void authorizationShort(const char*library) {
+#ifndef SYSTEM_AUTHORIZATION_FIXTURE
+    check(false,"authorization short requires its observational direct-machine fixture");
+#else
+    check(REGISTERED_FETCH_PACKET==1 && BRANCH_ENTRIES==32,"authorization fixture geometry");
+    Counts counts;
+    // Legal external FENCE.I flush response phases, not an internal forced
+    // completion or an oracle derived from the DUT head. Younger RAM/M traffic
+    // can run after the irrevocable head's pending bit has been consumed.
+    for(unsigned memory=0;memory<2;++memory)for(unsigned delay=1;delay<=12;++delay) {
+        auto code=setup();
+        constant(code,1,dataBase);
+        code.push_back(addi(2,0,7));code.push_back(addi(3,0,13));
+        authorizationFencePc=base+4*code.size();
+        code.push_back(0x0000100fU);
+        for(unsigned n=0;n<10;++n) {
+            const unsigned rd=4+n;
+            if(memory && n%2==0)code.push_back((8*n)<<20|1U<<15|3U<<12|rd<<7|0x03U);
+            else code.push_back(1U<<25|3U<<20|2U<<15|rd<<7|0x33U);
+        }
+        code.push_back(csr(0x340,1,20,2));code.push_back(csr(0x340,2,21,0));
+        code.push_back(addi(22,21,1));
+        authorizationFenceDelay=delay;
+        const Counts before=counts;
+        program(library,code,0,false,counts,{},0,0,true);
+        check(counts.systemAcks>before.systemAcks && counts.systemProtectedReleases>before.systemProtectedReleases,
+            "authorization case did not execute system recovery and precise release");
+        std::cout<<"AUTHORIZATION_CASE memory="<<memory<<" delay="<<delay
+            <<" cycles="<<counts.cycles-before.cycles<<" blocked="<<counts.systemBlocked-before.systemBlocked
+            <<" lsu="<<counts.systemLsuCollisions-before.systemLsuCollisions
+            <<" mul="<<counts.systemMCollisions-before.systemMCollisions
+            <<" rollback="<<counts.systemRepeatedRollback-before.systemRepeatedRollback<<"\n";
+    }
+    check(counts.programs==24 && counts.systemBlocked>0 && counts.systemLsuCollisions>0 &&
+        counts.systemMCollisions>0 && counts.systemRepeatedRollback>0 &&
+        counts.systemProtectedCommitHolds>0 && !authorizationNegative,
+        "authorization machine coverage incomplete; stimulus is not a collision witness");
+    std::cout<<"GSIM authorization machine: PASS programs="<<counts.programs
+        <<" offers="<<counts.systemOffers<<" blocked="<<counts.systemBlocked
+        <<" lsuCollision="<<counts.systemLsuCollisions<<" mulCollision="<<counts.systemMCollisions
+        <<" repeatRollback="<<counts.systemRepeatedRollback<<" commitHolds="<<counts.systemProtectedCommitHolds
+        <<" protectedReleases="<<counts.systemProtectedReleases<<" acks="<<counts.systemAcks
+        <<" cycles="<<counts.cycles<<" oracle=SystemModel irqBoundary=DIRECT-IRQ\n";
+#endif
+}
+#endif
 #ifdef SYNCHRONOUS_MACHINE
 static void prepareInstructionProgram(SMachineCoreGsim& d,const std::vector<uint32_t>& code) {
     check(code.size()<=2048,"instruction test ROM overflow");
@@ -1018,6 +1284,8 @@ static void instructionIpcProgram(unsigned issueWidth,unsigned cacheLines,unsign
 int main(int argc,char**argv) {
     try {
 #ifdef SYNCHRONOUS_MACHINE
+        check(!(argc>=3 && std::string(argv[2])=="--authorization-short"),
+            "authorization short requires the DIRECT-IRQ fixture, not a synchronous machine");
         if((argc==5 || argc==6) && std::string(argv[1])=="--instruction-ipc"){
             check(argc==5 || std::string(argv[5])=="packed" || std::string(argv[5])=="long",
                 "instruction IPC body mode");
@@ -1050,9 +1318,25 @@ int main(int argc,char**argv) {
         injectSerialMismatch=(argc==6 && std::string(argv[5])=="--inject-serial") ||
             (argc==7 && std::string(argv[6])=="--inject-serial");Counts counts;
 #else
-        check(argc==2 || (argc==3 && (std::string(argv[2])=="--inject-mismatch" || std::string(argv[2])=="--inject-interrupt" || std::string(argv[2])=="--inject-mmio")),"usage: machine NEMU.so [--inject-mismatch|--inject-interrupt|--inject-mmio]");
+#ifndef SYNCHRONOUS_MACHINE
+        authorizationShortMode=argc>=3 && std::string(argv[2])=="--authorization-short";
+        if(authorizationShortMode) {
+            check(argc==3 || (argc==4&&std::string(argv[3])=="--inject-system-redirect"),
+                "usage: machine NEMU.so --authorization-short [--inject-system-redirect]");
+            authorizationNegative=argc==4;
+            authorizationShort(argv[1]);return 0;
+        }
+#endif
+        headTrapShortMode=argc>=3 && std::string(argv[2])=="--head-trap-short";
+        const bool shortInterruptNegative=headTrapShortMode && argc==4 && std::string(argv[3])=="--inject-interrupt";
+        check(argc==2 || (argc==3 && (std::string(argv[2])=="--inject-mismatch" ||
+            std::string(argv[2])=="--inject-interrupt" || std::string(argv[2])=="--inject-mmio")) ||
+            (headTrapShortMode && (argc==3 || shortInterruptNegative)),
+            "usage: machine NEMU.so [--inject-mismatch|--inject-interrupt|--inject-mmio|--head-trap-short [--inject-interrupt]]");
         injectMismatch=argc==3 && std::string(argv[2])=="--inject-mismatch";
-        injectInterruptMismatch=argc==3 && std::string(argv[2])=="--inject-interrupt";Counts counts;
+        injectInterruptMismatch=(argc==3 && std::string(argv[2])=="--inject-interrupt") || shortInterruptNegative;
+        if(headTrapShortMode){headTrapShort(argv[1]);return 0;}
+        Counts counts;
 
 #endif
 #ifdef MAPPED_APLIC
@@ -1444,49 +1728,7 @@ int main(int argc,char**argv) {
         Counts timerCounts;
         for(unsigned timerMode=0;timerMode<2;++timerMode)
         for(unsigned scenario=timerMode?3:1;scenario<=7;++scenario)for(unsigned seed:{0U,17U,8191U}) {
-            auto p=setup();
-            if(scenario==2 || (timerMode && scenario==4)){constant(p,1,vectorPc|1);p.push_back(csr(0x305,1,0,1));}
-            p.push_back(addi(1,0,0xc0));p.push_back(csr(0x350,1,0,1));
-            p.push_back(addi(2,0,-1));p.push_back(csr(0x351,1,0,2));
-            p.push_back(addi(1,0,0x70));p.push_back(csr(0x350,1,0,1));p.push_back(csr(0x351,5,0,1));
-            p.push_back(csr(0x344,1,4,0)); // MEIP is read-only even under CSR write.
-            p.push_back(csr(0x344,2,5,0));
-            p.push_back(csr(0x304,1,6,2)); // Unsupported enable bits must read zero.
-            p.push_back(csr(0x304,2,7,0));
-            p.push_back(csr(0x304,1,0,0));
-            p.push_back(csr(0x300,6,0,8)); // Global enable alone must not deliver.
-            for(unsigned i=0;i<8;++i)p.push_back(addi(8,8,1));
-            p.push_back(csr(0x300,7,0,8));
-            p.push_back(csr(0x304,1,0,2)); // Individual enable alone must not deliver in M.
-            for(unsigned i=0;i<8;++i)p.push_back(addi(8,8,1));
-            if(scenario==3) {
-                // Return to U with MIE=0; M interrupts must still preempt it.
-                p.push_back(csr(0x300,1,0,0));
-                p.push_back(0x00000097);p.push_back(addi(1,1,16));p.push_back(csr(0x341,1,0,1));p.push_back(0x30200073);
-            } else p.push_back(csr(0x300,6,0,8));
-            uint64_t trigger=base+4*p.size();
-            if(scenario==5 || scenario==6) {
-                constant(p,1,dataBase);
-                if(scenario==6) {
-                    p.push_back(addi(11,0,42));
-                    for(unsigned i=0;i<8;++i){p.push_back(0x00b0b023|((i*8U)&31)<<7|((i*8U)>>5)<<25);p.push_back(addi(11,11,1));}
-                }
-                for(unsigned i=0;i<12;++i)p.push_back(0x0000b183); // LD, delayed responses overlap MSI.
-                p.push_back(0x0200c133);p.push_back(branch(2,8));p.push_back(csr(0x340,5,0,31));
-            }
-            if(scenario==7)p.push_back(0xffffffff);
-            for(unsigned i=0;i<64;++i)p.push_back(addi(10,10,1));
-            std::vector<uint32_t> h;
-            if(timerMode && scenario==4)h.resize(7,0xffffffff);
-            if(scenario==2)h.resize(11,0xffffffff); // Only BASE+44 is a legal handler entry.
-            const std::vector<uint32_t> body{csr(0x342,2,26,0),csr(0x343,2,27,0),csr(0x341,2,28,0),
-                csr(0x300,2,29,0),csr(0x35c,1,30,0),addi(31,31,1),0x30200073};
-            h.insert(h.end(),body.begin(),body.end());
-            if(scenario==7)h={csr(0x342,2,26,0),0x000d4a63, // blt x26,x0,+20
-                csr(0x341,2,28,0),addi(28,28,4),csr(0x341,1,0,28),branch(0,8),csr(0x35c,1,30,0),0x30200073};
-            if(timerMode)for(auto& inst:h)if(inst==csr(0x35c,1,30,0))inst=csr(0x304,1,0,0);
-            program(argv[1],p,seed,false,timerMode?timerCounts:counts,h,scenario,trigger,false,timerMode);
-
+            machineInterruptProgram(argv[1],scenario,seed,timerMode,timerMode?timerCounts:counts);
         }
         for(unsigned seed:{0U,17U,8191U}) {
             auto p=setup();
@@ -1510,5 +1752,9 @@ int main(int argc,char**argv) {
         std::cout<<"GSIM MachineCore: PASS programs="<<counts.programs<<" commits="<<counts.commits<<" traps="<<counts.traps
             <<" interrupts="<<counts.interrupts<<" empty="<<counts.emptyInterrupts<<" memoryIrq="<<counts.memoryInterrupts<<" storeIrq="<<counts.storeInterrupts<<" priority="<<counts.priorityTraps
             <<" mret="<<counts.mret<<" csr="<<counts.csrOps<<" held="<<counts.held<<" redirects="<<counts.redirects<<"\n";
-    }catch(const std::exception&e){std::cerr<<"GSIM MachineCore: FAIL "<<e.what()<<'\n';return 1;}
+    }catch(const std::exception&e){
+        if(headTrapNegativeAttempted && std::string(e.what())=="trap metadata")
+            std::cerr<<"GSIM head trap short negative: oracle rejected injected interrupt cause\n";
+        std::cerr<<"GSIM MachineCore: FAIL "<<e.what()<<'\n';return 1;
+    }
 }

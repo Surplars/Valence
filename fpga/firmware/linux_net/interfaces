@@ -1,0 +1,9 @@
+# Change this file in Linux; nothing below is compiled into the MAC driver.
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 192.168.137.30
+    netmask 255.255.255.0
+    gateway 192.168.137.1

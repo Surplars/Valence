@@ -34,21 +34,29 @@ class StoreBuffer(p: OooParams) extends Module {
     val directHeld              = RegInit(false.B)
     def next(index: UInt): UInt = if (n == 1) 0.U else (index + 1.U)(indexBits - 1, 0)
     val request                 = io.upstream.request
-    val size                    = Mux(request.valid, request.bits.size, 0.U)
+    // Decode payload independently of late issue/recovery valid. Acceptance and
+    // side effects remain qualified by request.valid/fire below; invalid payload
+    // need not be normalized before address-range/overlap checks.
+    val size                    = request.bits.size
     val end                     = request.bits.address +& (1.U(64.W) << size)
     val ram                     = !request.bits.virtualized &&
-        request.bits.address >= p.speculativeRamBase.U(65.W) &&
-        end <= (p.speculativeRamBase + p.speculativeRamBytes).U(65.W)
+        SpeculativeRamRange.contains(p, request.bits.address, size)
     val buffered = ram && request.bits.write && !request.bits.atomic
     val covered  = Wire(Vec(8, Bool()))
     val bytes    = Wire(Vec(8, UInt(8.W)))
+    // Compare physical slots in parallel, before the age/head mux. A rotating head should
+    // select one-bit match results, not a 61-bit address followed by a wide equality tree.
+    val addressMatch = Wire(Vec(n, Bool()))
+    for (slot <- 0 until n) {
+        addressMatch(slot) := entries(slot).address(63, 3) === request.bits.address(63, 3)
+    }
     for (lane <- 0 until 8) {
         var found: Bool = false.B
         var value: UInt = 0.U(8.W)
         for (age <- 0 until n) {
             val index = if (n == 1) 0.U else (head + age.U)(indexBits - 1, 0)
             val entry = entries(index)
-            val hit   = age.U < count && entry.address(63, 3) === request.bits.address(63, 3) && entry.mask(lane)
+            val hit   = age.U < count && addressMatch(index) && entry.mask(lane)
             value = Mux(hit, entry.data(8 * lane + 7, 8 * lane), value)
             found = found || hit
         }
@@ -61,7 +69,11 @@ class StoreBuffer(p: OooParams) extends Module {
     val forward = ram && !request.bits.write && !request.bits.atomic && count =/= 0.U &&
         (covered.asUInt & request.bits.mask) === request.bits.mask
     // Track external response ownership without reducing the existing parallel read capacity.
-    val owners = Module(new Queue(Bool(), p.memoryEntries + 1, pipe = false, flow = true))
+    // With flow disabled, a new request cannot own a response until its owner bit
+    // has crossed the queue register. This breaks the request-valid -> response-ready
+    // feedback path; a zero-latency memory must hold its response until then.
+    val owners = Module(new Queue(Bool(), p.memoryEntries + 1, pipe = false,
+        flow = !p.registeredStoreResponseOwners))
     val reads  = RegInit(0.U(log2Ceil(p.memoryEntries + 2).W))
     val local  = (buffered || forward) && reads === 0.U && !ackValid && !overlapsFastStore &&
         !(io.fastStore.valid && buffered)
@@ -98,13 +110,15 @@ class StoreBuffer(p: OooParams) extends Module {
     owners.io.enq.valid := io.memory.request.fire
     owners.io.enq.bits  := drainRequest || flowBufferedWrite || flowFastWrite
     val bufferResponse = owners.io.deq.valid && owners.io.deq.bits
-    // Local RAM writes and fully covered forwarded reads can reply in their request cycle. The
-    // accepted write remains buffered until its ordered external response confirms visibility.
-    val immediateAck = request.fire && (buffered || forward)
+    // Optional registered local replies can break the request/response feedback path.
+    // Default profiles keep the same-cycle reply. External write ordering is unchanged.
+    val immediateAck = !p.registeredLocalStoreResponses.B && request.fire && (buffered || forward)
     io.upstream.response.valid := ackValid || immediateAck ||
         (io.memory.response.valid && owners.io.deq.valid && !bufferResponse)
+    // Data is observed only with response.valid. Select the local payload without
+    // routing the request.fire handshake through the 64-bit response mux.
     io.upstream.response.bits.data := Mux(ackValid, ackData,
-        Mux(immediateAck, Mux(forward, bytes.asUInt, 0.U), io.memory.response.bits.data))
+        Mux(local, Mux(forward, bytes.asUInt, 0.U), io.memory.response.bits.data))
     io.upstream.response.bits.error := !ackValid && !immediateAck && io.memory.response.bits.error
     io.upstream.response.bits.pageFault := !ackValid && !immediateAck && io.memory.response.bits.pageFault
     io.memory.response.ready := owners.io.deq.valid && (bufferResponse || (!ackValid && io.upstream.response.ready))
@@ -135,8 +149,7 @@ class StoreBuffer(p: OooParams) extends Module {
         tail := next(tail)
         assert(io.fastStore.bits.write && !io.fastStore.bits.atomic && !io.fastStore.bits.virtualized)
         assert(!io.fastStore.bits.uncached &&
-            io.fastStore.bits.address >= p.speculativeRamBase.U(65.W) &&
-            fastEnd <= (p.speculativeRamBase + p.speculativeRamBytes).U(65.W))
+            SpeculativeRamRange.contains(p, io.fastStore.bits.address, io.fastStore.bits.size))
         assert((io.fastStore.bits.address(2, 0) & ((1.U << io.fastStore.bits.size) - 1.U)) === 0.U)
         assert(!enqueue, "only one store may enter the buffer per cycle")
     }
@@ -144,7 +157,7 @@ class StoreBuffer(p: OooParams) extends Module {
     when(anyEnqueue =/= dequeue) { count := Mux(anyEnqueue, count + 1.U, count - 1.U) }
     when(io.upstream.response.fire && ackValid) { ackValid := false.B }
     when(request.fire && (buffered || forward)) {
-        ackValid := !io.upstream.response.ready
+        ackValid := p.registeredLocalStoreResponses.B || !io.upstream.response.ready
         ackData  := Mux(forward, bytes.asUInt, 0.U)
         assert((request.bits.address(2, 0) & ((1.U << size) - 1.U)) === 0.U)
     }

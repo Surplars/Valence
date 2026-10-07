@@ -25,13 +25,23 @@ static Request request(unsigned n) {
     if (n == 105) return {base + 4096, 0xdeadbeef, 3, 255, true};
 #endif
     if (n < 8) {
+#ifdef ALLOW_PARTIAL_WRITES
+        static constexpr unsigned masks[8]{0,1,3,7,15,85,170,255};
+        return {base+8*n,0x1234000000000000ULL+n,3,masks[n],true};
+#endif
 #ifdef BANKED_WRITES
         return {base + 8 * n + (n >= 4 ? 2048 : 0), 0x1234000000000000ULL + n, 3, 255, true};
 #else
         return {base + 8 * n, 0x1234000000000000ULL + n, 3, 255, true};
 #endif
     }
-    if (n == 88) return {base + 16, 0x0000000011223344ULL, 2, 15, true};
+    if (n == 88) return {base + 16, 0x0000000011223344ULL, 2,
+#ifdef ALLOW_PARTIAL_WRITES
+        5,
+#else
+        15,
+#endif
+        true};
     if (n % 19 == 0) return {base + 4096, 0, 3, 255, false};
     unsigned size = n % 4, bytes = 1U << size;
     unsigned lane = (n / 8) % (8 / bytes) * bytes;
@@ -63,13 +73,17 @@ static void drive(SOrderedTileLinkBridge &dut, const Request &r, bool valid, boo
     dut.set_io$$data$$response$$ready(responseReady);
     dut.set_io$$tl$$a$$ready(aReady);
     dut.set_io$$tl$$d$$valid(bool(offered));
-    dut.set_io$$tl$$d$$bits$$source(offered ? offered->source : 0);
+    // Invalid payload must not authorize completion/state changes, even when
+    // it names an occupied source. Do not silently assume idle metadata is 0.
+    static uint64_t idlePoison = 0;
+    ++idlePoison;
+    dut.set_io$$tl$$d$$bits$$source(offered ? offered->source : idlePoison & 7);
     dut.set_io$$tl$$d$$bits$$opcode(offered ? offered->opcode : 0);
     dut.set_io$$tl$$d$$bits$$param(0);
     dut.set_io$$tl$$d$$bits$$size(offered ? offered->size : 0);
     dut.set_io$$tl$$d$$bits$$sink(0);
     dut.set_io$$tl$$d$$bits$$denied(offered && offered->denied);
-    dut.set_io$$tl$$d$$bits$$data(offered ? offered->data : 0);
+    dut.set_io$$tl$$d$$bits$$data(offered ? offered->data : 0xdeadbeef00000000ULL ^ idlePoison);
     dut.set_io$$tl$$d$$bits$$corrupt(offered && offered->corrupt);
     dut.set_io$$tl$$b$$valid(0);
     dut.set_io$$tl$$b$$bits$$opcode(0);

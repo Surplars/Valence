@@ -4,7 +4,8 @@ import chisel3._
 import soc.ip.memory.{CacheStallEvents, SharedReadCache}
 
 /** Optional shared cache below AtomicDataMemory, never a private CPU cache. */
-class CachedDataMemory(lines: Int = 16, bytes: BigInt = 4096) extends Module {
+class CachedDataMemory(lines: Int = 16, bytes: BigInt = 4096,
+    base: BigInt = BigInt("80010000", 16)) extends Module {
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
         val memory   = new DataPort
@@ -12,7 +13,7 @@ class CachedDataMemory(lines: Int = 16, bytes: BigInt = 4096) extends Module {
         val hit      = Output(Bool())
         val miss     = Output(Bool())
     })
-    val cache = Module(new SharedReadCache(bytes = bytes, lines = lines))
+    val cache = Module(new SharedReadCache(base = base, bytes = bytes, lines = lines))
     io.stalls                              := cache.io.stalls
     io.hit                                 := cache.io.hit
     io.miss                                := cache.io.miss

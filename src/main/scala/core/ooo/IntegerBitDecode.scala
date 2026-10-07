@@ -5,7 +5,7 @@ import chisel3._
 /** B 1.0.0 (Zba/Zbb/Zbs), RV64 only. Full fixed fields are checked, including unary rs2 selectors. Private core
   * controls; architectural/software reference tables are independent.
   */
-class IntegerBitDecode extends Module {
+class IntegerBitDecode(parallelLegality: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val instruction  = Input(UInt(32.W))
         val legal        = Output(Bool())
@@ -296,5 +296,10 @@ class IntegerBitDecode extends Module {
         io.operation    := IntegerOp.bext
         io.word         := false.B
         io.singleSource := true.B
+    }
+    if (parallelLegality) {
+        val qualification = Module(new ParallelBitLegality)
+        qualification.io.instruction := io.instruction
+        io.legal := qualification.io.legal
     }
 }

@@ -3,9 +3,13 @@ package ooo
 import _root_.circt.stage.ChiselStage
 import chisel3._
 import java.nio.file.{Files, Paths}
-import soc.core.ooo.{MachinePlatform, OooParams}
+import soc.core.ooo.{BoardSocConfig, MachinePlatform, OooParams}
 
-class VmInstructionPlatformGsim(coherent: Boolean = false, wide: Boolean = false) extends Module {
+class VmInstructionPlatformGsim(coherent: Boolean = false, wide: Boolean = false,
+    fetchAddresses: Boolean = false, fetchControl: Boolean = false, frontendSelect: Boolean = false,
+    sensitivePaths: Boolean = false, decodeAlign: Boolean = false, rankLegality: Boolean = false,
+    requestCapture: Boolean = false, romBoundary: Boolean = false, controlHeads: Boolean = false,
+    throughput: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val hold = Input(Bool())
         val romWrite = Input(Bool())
@@ -25,14 +29,32 @@ class VmInstructionPlatformGsim(coherent: Boolean = false, wide: Boolean = false
         val dWalk = Output(Bool())
     })
     private val issueWidth = if (wide) 4 else 2
-    val p = OooParams(renameWidth = issueWidth, commitWidth = issueWidth,
+    private val directParams = OooParams(renameWidth = issueWidth, commitWidth = issueWidth,
         completionWidth = issueWidth,
         speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 65536,
-        bufferedRamStores = true, compressedInstructions = true)
+        bufferedRamStores = true, compressedInstructions = true,
+        parallelFetchAddresses = fetchAddresses, prefixTileLinkDecode = fetchAddresses,
+        rawTileLinkResponseMetadata = fetchControl, bufferedRomReplies = fetchControl,
+        parallelPredictionQualification = fetchControl || frontendSelect,
+        parallelFetchTagLookup = frontendSelect, parallelFrontendControl = frontendSelect,
+        parallelAuipcQualification = frontendSelect,
+        parallelPredictionSources = sensitivePaths, bufferedFetchRequests = sensitivePaths,
+        parallelFetchAlignment = decodeAlign, parallelDecodeLegality = decodeAlign,
+        flowThroughFetchRequests = decodeAlign, parallelBitLegality = rankLegality,
+        independentFetchCapture = requestCapture, parallelHomeQualification = requestCapture,
+        registeredFabricBoundary = romBoundary, registeredTranslatedResponses = controlHeads,
+        registeredTranslationHeads = controlHeads, registeredPredictionTraining = controlHeads,
+        parallelPacketPmp = controlHeads)
+    val p = if (throughput) BoardSocConfig.timingParams("staged-throughput").copy(
+        speculativeRamBase = directParams.speculativeRamBase,
+        speculativeRamBytes = directParams.speculativeRamBytes,
+        instructionCacheSets = directParams.instructionCacheSets) else directParams
     val platform = Module(new MachinePlatform(p, programmable = true, tileLinkMemory = true,
         tileLinkFetch = true, ramBytes = 65536, translationService = true,
         translationLevels = 4, coreDataTranslation = true, coreInstructionTranslation = true,
-        coherentLineCache = coherent))
+        coherentLineCache = coherent || controlHeads, bufferCoherentResponses = controlHeads,
+        registerPhysicalResponseOwners = romBoundary,
+        stagedMemoryFabric = romBoundary, bufferTranslatedResponses = controlHeads))
     platform.io.timerTick := false.B
     platform.io.sources := 0.U
     platform.io.uartRx := true.B
@@ -60,6 +82,11 @@ object VmInstructionPlatformGsimMain extends App {
     val output = Paths.get(args.head)
     Files.createDirectories(output)
     ChiselStage.emitCHIRRTLFile(new VmInstructionPlatformGsim(
-        args.lift(1).contains("coherent"), args.lift(1).contains("wide")),
+        args.lift(1).contains("coherent"), args.lift(1).contains("wide"),
+        args.drop(1).contains("fetch-addresses"), args.drop(1).contains("fetch-control"),
+        args.drop(1).contains("frontend-select"), args.drop(1).contains("sensitive-paths"),
+        args.drop(1).contains("decode-align"), args.drop(1).contains("rank-legality"), args.drop(1).contains("request-capture"),
+        args.drop(1).contains("rom-boundary"), args.drop(1).contains("control-heads"),
+        args.drop(1).contains("throughput")),
         Array("--target-dir", output.toString))
 }

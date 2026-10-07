@@ -25,6 +25,21 @@
 #ifndef INDIRECT_ENTRIES
 #define INDIRECT_ENTRIES 0
 #endif
+#ifndef REGISTERED_BRANCH_REDIRECT
+#define REGISTERED_BRANCH_REDIRECT 0
+#endif
+#ifndef BRANCH_ENTRIES
+#define BRANCH_ENTRIES 64
+#endif
+#ifndef DELAYED_PREDICTION_TRAINING
+#define DELAYED_PREDICTION_TRAINING 0
+#endif
+#ifndef REGISTERED_FETCH_PACKET
+#define REGISTERED_FETCH_PACKET 0
+#endif
+#ifndef STORE_BUFFER_ENTRIES
+#define STORE_BUFFER_ENTRIES 4
+#endif
 
 constexpr uint64_t base = 0x80000000;
 constexpr uint64_t dataBase = base + 0x10000;
@@ -124,6 +139,7 @@ struct Stats {
     uint64_t commits = 0, dualCommits = 0, partialAccepts = 0, supplyStalls = 0, backendStalls = 0;
     uint64_t programs = 0, traps = 0, performanceCycles = 0, redirects = 0, recoveryCycles = 0;
     uint64_t branches = 0, takenBranches = 0, jumps = 0, olderRedirects = 0, misaligned = 0, olderDuringRollback = 0;
+    uint64_t slot0HoldAndLane1Progress = 0, olderLane0BranchResolution = 0, aluForwardingHits = 0;
 };
 // Independent byte RAM. Serial requests must match the architectural head;
 // buffered RAM writes are matched in order against the retired architectural store stream.
@@ -172,7 +188,7 @@ public:
     uint64_t loads = 0, stores = 0, errors = 0, backpressure = 0, readWriteOverlap = 0;
     DataMemory(const Memory &initial, unsigned delay) : latency(delay), memory(initial) {}
     void drive(SIntegerCoreGsim &dut, uint64_t cycle, bool stalled, std::mt19937_64 &rng) {
-        requestReady = latency == 0 ? bool(held) : (!stalled || rng() % 4 != 0);
+        requestReady = latency == 0 ? bool(held) && pending.empty() : (!stalled || rng() % 4 != 0);
         responseValid = false;
         if (!pending.empty() && cycle >= pending.front().due) { responseValid = true; response = pending.front(); }
         if (latency == 0 && held && requestReady) { responseValid = true; response = read(*held, cycle); }
@@ -184,8 +200,11 @@ public:
     void observe(SIntegerCoreGsim &dut, uint64_t cycle, uint64_t architecturalPc,
                  const std::vector<uint32_t> &program, const std::array<uint64_t, 32> &registers) {
         if (responseValid) {
-            check(dut.get_io$$memory$$response$$ready(), "LSU dropped outstanding response");
-            if (latency != 0) pending.pop_front();
+            const bool accepted = dut.get_io$$memory$$response$$ready();
+#if !REGISTERED_RESPONSE_OWNERS
+            check(accepted, "LSU dropped outstanding response");
+#endif
+            if (accepted && !pending.empty()) pending.pop_front();
         }
         const bool valid = dut.get_io$$memory$$request$$valid();
         check(!held || valid, "LSU withdrew a stalled request");
@@ -219,7 +238,7 @@ public:
         const auto reads = pending.size() - writes;
         if(!r.write && writes)++readWriteOverlap;
         check(pending.size() < MEMORY_ENTRIES + 1, "exceeded response-owner credits");
-        check(r.write ? writes < 4 : reads < MEMORY_ENTRIES, "exceeded read/write capacity");
+        check(r.write ? writes < STORE_BUFFER_ENTRIES : reads < MEMORY_ENTRIES, "exceeded read/write capacity");
         const auto reply = read(r, cycle + latency);
         errors += reply.error;
         if (r.write) {
@@ -233,8 +252,10 @@ public:
             ++loads;
             readAddresses.push_back(r.address);
         }
-        if (latency == 0) check(responseValid, "same-cycle memory response missing");
-        else pending.push_back(reply);
+        if (latency == 0) {
+            check(responseValid, "same-cycle memory response missing");
+            if (!dut.get_io$$memory$$response$$ready()) pending.push_back(reply);
+        } else pending.push_back(reply);
         maxOutstanding = std::max(maxOutstanding, pending.size());
         held.reset();
     }
@@ -264,12 +285,31 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
         ram.beforeStorePc = base + unsigned(watchStoreIndex) * 4;
     }
     uint64_t cycles = 0, zero = 0, single = 0, dual = 0, recovery = 0, blocked = 0, memBusy = 0;
-    std::array<unsigned, 64> direction{};
+    std::array<uint64_t, 3> issueCycles{}, renameCycles{};
+    uint64_t occupancySum = 0, robFull = 0;
+    std::array<unsigned, BRANCH_ENTRIES> direction{};
     direction.fill(1);
 #if INDIRECT_ENTRIES > 0
     std::array<bool, INDIRECT_ENTRIES> indirectValid{};
     std::array<uint64_t, INDIRECT_ENTRIES> indirectTag{}, indirectTarget{};
 #endif
+    struct Training { uint64_t pc, nextPc; unsigned kind; };
+    std::vector<Training> pendingTraining;
+    auto train = [&](const Training& event) {
+        if (event.kind >= 1 && event.kind <= 6) {
+            auto& counter = direction[(event.pc >> 2) % direction.size()];
+            if (event.nextPc != event.pc + 4) counter = std::min(3U, counter + 1);
+            else if (counter) --counter;
+        }
+#if INDIRECT_ENTRIES > 0
+        if (event.kind == 8) {
+            const auto index = (event.pc >> 2) % INDIRECT_ENTRIES;
+            indirectValid[index] = true;
+            indirectTag[index] = event.pc;
+            indirectTarget[index] = event.nextPc;
+        }
+#endif
+    };
     uint64_t predictedTaken = 0, branchMisses = 0, directMisses = 0, knownJalrPredictions = 0;
     bool previousAuipc = false;
     uint64_t previousAuipcNext = 0, previousAuipcValue = 0;
@@ -324,14 +364,36 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             check(retired == single + 2 * dual, "IPC retirement accounting");
             std::cout << "IPC {\"name\":\"" << benchmark << "\",\"rob\":" << ROB_ENTRIES
                       << ",\"physical\":" << PHYSICAL_REGS << ",\"memory_latency\":" << memoryLatency
+#if REGISTERED_FETCH_PACKET
+                      << ",\"predicted_taken\":null"
+#else
                       << ",\"predicted_taken\":" << predictedTaken << ",\"branch_mispredictions\":" << branchMisses
-                      << ",\"direct_mispredictions\":" << directMisses << ",\"known_jalr_predictions\":" << knownJalrPredictions
+#endif
+#if REGISTERED_FETCH_PACKET
+                      << ",\"branch_mispredictions\":" << branchMisses
+                      << ",\"known_jalr_predictions\":null"
+#else
+                      << ",\"known_jalr_predictions\":" << knownJalrPredictions
+#endif
+                      << ",\"direct_mispredictions\":" << directMisses
                       << ",\"cycles\":" << cycles << ",\"retired\":" << retired
                       << ",\"post_retirement_memory_drain_cycles\":" << drainCycles
                       << ",\"ipc\":" << std::setprecision(9) << double(retired) / cycles
                       << ",\"zero_commit_cycles\":" << zero << ",\"single_commit_cycles\":" << single
                       << ",\"dual_commit_cycles\":" << dual << ",\"recovery_cycles\":" << recovery
-                      << ",\"allocation_blocked_cycles\":" << blocked << ",\"memory_busy_cycles\":" << memBusy
+#if REGISTERED_FETCH_PACKET
+                      << ",\"allocation_blocked_cycles\":null"
+#else
+                      << ",\"allocation_blocked_cycles\":" << blocked
+#endif
+                      << ",\"raw_input_present_no_rename_cycles\":" << blocked
+                      << ",\"memory_busy_cycles\":" << memBusy
+                      << ",\"zero_issue_cycles\":" << issueCycles[0] << ",\"single_issue_cycles\":" << issueCycles[1]
+                      << ",\"dual_issue_cycles\":" << issueCycles[2]
+                      << ",\"issued\":" << issueCycles[1] + 2 * issueCycles[2]
+                      << ",\"zero_rename_cycles\":" << renameCycles[0] << ",\"single_rename_cycles\":" << renameCycles[1]
+                      << ",\"dual_rename_cycles\":" << renameCycles[2]
+                      << ",\"rob_occupancy_sum\":" << occupancySum << ",\"rob_full_cycles\":" << robFull
                       << ",\"memory_entries\":" << MEMORY_ENTRIES << ",\"max_outstanding\":" << ram.maxOutstanding << ",\"forwarded_loads\":" << forwarded << ",\"loads\":" << ram.loads << ",\"stores\":" << ram.stores << "}\n";
         }
     };
@@ -352,6 +414,7 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
         const bool valid1 = valid0 && inImage(fetchPc + 4) && (!stalled || rng() % 4 != 0);
         std::array<uint64_t, 2> prediction{fetchPc + 4, fetchPc + 8};
         std::array<bool, 2> predictTaken{}, knownIndirect{};
+#if !REGISTERED_FETCH_PACKET
         for (unsigned lane = 0; lane < 2; ++lane) {
             const uint64_t pc = fetchPc + lane * 4;
             if (!(lane == 0 ? valid0 : valid1)) continue;
@@ -388,6 +451,7 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
 #endif
             }
         }
+#endif
         dut.set_io$$instruction0$$valid(valid0);
         dut.set_io$$instruction1$$valid(valid1);
         dut.set_io$$instruction0$$bits(valid0 ? program[(fetchPc - base) / 4] : 0);
@@ -396,24 +460,33 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
         dut.set_io$$inspectRegister(inspect);
         ram.drive(dut, cycle, stalled, rng);
         dut.step();
+#if REGISTERED_FETCH_PACKET
+        stats.slot0HoldAndLane1Progress += bool(dut.get_slot0HoldAndLane1Progress());
+        stats.olderLane0BranchResolution += bool(dut.get_olderLane0BranchResolution());
+        stats.aluForwardingHits += bool(dut.get_aluForwardingHit());
+#endif
         if (finished && dut.get_io$$memoryBusy()) ++drainCycles;
         check(dut.get_io$$issueCount() <= 2, "global two-issue budget exceeded");
         discarded += dut.get_io$$memoryDiscarded();
         forwarded += dut.get_io$$memoryForwarded();
-        check(dut.get_io$$fetchPc() == fetchPc, "fetch PC must follow accepted prefix or redirect");
+        check(dut.get_io$$fetchPc() == fetchPc, "instruction device supplied the wrong fetch cursor");
         check(dut.get_io$$occupancy() <= ROB_ENTRIES, "program ROB capacity");
         if (!hadRedirect) check(dut.get_io$$occupancy() == fetched - retired, "program ROB occupancy before recovery");
         check(dut.get_io$$committedValue() == architectural[inspect], "program committed PRF value");
         const bool accept0 = dut.get_io$$accepted0(), accept1 = dut.get_io$$accepted1();
         const bool redirect = dut.get_io$$redirect$$valid();
         const bool recovering = dut.get_io$$recovering();
+        check(!accept1 || accept0, "accepted non-prefix instruction");
+#if !REGISTERED_FETCH_PACKET
         check(!accept0 || valid0, "accepted absent first instruction");
-        check(!accept1 || (valid1 && accept0), "accepted non-prefix instruction");
+        check(!accept1 || valid1, "accepted absent second instruction");
         check(!accept1 || !predictTaken[0], "accepted instruction after predicted-taken lane zero");
+#endif
         uint64_t predictedFetchPc = fetchPc;
         if (accept0) predictedFetchPc = prediction[0];
         if (accept1) predictedFetchPc = prediction[1];
         if (!finished) predictedTaken += (accept0 && predictTaken[0]) + (accept1 && predictTaken[1]);
+#if !REGISTERED_FETCH_PACKET
         for (unsigned lane = 0; lane < 2; ++lane) if (lane == 0 ? accept0 : accept1) {
             const uint64_t pc = fetchPc + lane * 4;
             const uint32_t inst = program[(pc - base) / 4];
@@ -423,6 +496,7 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             if (previousAuipc) previousAuipcValue = pc + immediate(*decode(inst), inst);
             if (!finished && knownIndirect[lane] && predictTaken[lane]) ++knownJalrPredictions;
         }
+#endif
         if (!supply) ++stats.supplyStalls;
         if (valid0 && !accept0) ++stats.backendStalls;
         if (valid1 && accept0 && !accept1) ++stats.partialAccepts;
@@ -440,6 +514,10 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             recovery += redirect || recovering;
             blocked += valid0 && !accept0;
             memBusy += bool(dut.get_io$$memoryBusy());
+            ++issueCycles[dut.get_io$$issueCount()];
+            ++renameCycles[unsigned(accept0) + unsigned(accept1)];
+            occupancySum += dut.get_io$$occupancy();
+            robFull += dut.get_io$$occupancy() == ROB_ENTRIES;
         }
         check(!output[1].valid || output[0].valid, "commit lane hole");
         check(enable || (!output[0].valid && !output[1].valid), "commit backpressure ignored");
@@ -447,11 +525,23 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             check(!accept0 && !accept1 && !output[0].valid, "recovery must block allocation and retirement");
             ++stats.recoveryCycles;
         }
-        if (performance && PHYSICAL_REGS >= 40 && cycle >= 4 && fetchPc + 8 < end) {
-            check(accept1 && output[1].valid && !redirect, "machine-code stream lost two-wide throughput");
+        // Keep the exact steady-state two-wide assertion, allowing only bounded
+        // fill time for the explicit fetch and issue/execute register boundaries.
+        constexpr unsigned throughputFill = REGISTERED_FETCH_PACKET ? 8 : 4;
+        if (performance && PHYSICAL_REGS >= 40 && cycle >= throughputFill && fetchPc + 8 < end) {
+            check(accept1 && output[1].valid && !redirect,
+                  "machine-code stream lost two-wide throughput cycle=" + std::to_string(cycle) +
+                  " pc=" + std::to_string(fetchPc) + " accept1=" + std::to_string(accept1) +
+                  " commit1=" + std::to_string(output[1].valid) + " redirect=" + std::to_string(redirect));
             ++stats.performanceCycles;
         }
         if (output[1].valid) ++stats.dualCommits;
+        // Queries above see pre-edge training state. Apply the prior retirement
+        // packet now; derive events from the independent architectural model.
+        if (DELAYED_PREDICTION_TRAINING) {
+            for (const auto& event : pendingTraining) train(event);
+            pendingTraining.clear();
+        }
         for (const auto &c : output) {
             if (!c.valid) continue;
             check(inImage(architecturalPc), "committed outside expected program path");
@@ -476,19 +566,9 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             }
             ref.compare(architectural, expected.nextPc);
             if (e.memory) ref.compareMemory(architecturalMemory);
-            if (e.control >= 1 && e.control <= 6) {
-                auto &counter = direction[(architecturalPc >> 2) % direction.size()];
-                if (expected.nextPc != architecturalPc + 4) counter = std::min(3U, counter + 1);
-                else if (counter) --counter;
-            }
-#if INDIRECT_ENTRIES > 0
-            if (e.control == 8) {
-                const auto index = (architecturalPc >> 2) % INDIRECT_ENTRIES;
-                indirectValid[index] = true;
-                indirectTag[index] = architecturalPc;
-                indirectTarget[index] = expected.nextPc;
-            }
-#endif
+            const Training event{architecturalPc, expected.nextPc, e.control};
+            if (DELAYED_PREDICTION_TRAINING) pendingTraining.push_back(event);
+            else train(event);
             architecturalPc = expected.nextPc;
             if (e.control >= 1 && e.control <= 6) { ++stats.branches; stats.takenBranches += expected.taken; }
             if (e.control >= 7) ++stats.jumps;
@@ -514,6 +594,15 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
             check((fetchPc & 3) == 0, "redirect to misaligned address");
             ++stats.redirects;
         } else fetchPc = predictedFetchPc;
+#if REGISTERED_FETCH_PACKET
+        // The raw supply cursor is no longer the rename PC. Model the instruction
+        // device at the requested address; do not use this DUT signal as an ISA
+        // oracle. The independent packet FIFO test verifies capture/flush cursor
+        // arithmetic, and every committed instruction/PC/value remains checked
+        // against the software ISA model and NEMU above.
+        fetchPc = dut.get_nextFetchPc();
+        check((fetchPc & 3) == 0, "unaligned raw instruction fetch cursor");
+#endif
         const bool exception = dut.get_io$$exception$$valid();
         if (exception) {
             check(inImage(architecturalPc), "unexpected exception outside image");
@@ -738,6 +827,129 @@ static void memoryTests(Reference &ref, Stats &stats) {
     }
 }
 static uint32_t mulDivCode(unsigned op, bool word, unsigned rd, unsigned rs1, unsigned rs2);
+// Bounded machine-code microbenchmarks, using exactly the same independent ISA,
+// memory and per-retirement NEMU checks as the functional suite. These are not a
+// claim about FPGA frequency, cache bandwidth or a formal CoreMark score.
+#ifndef FETCH_HINT_ALIAS_BENCH
+#define FETCH_HINT_ALIAS_BENCH 0
+#endif
+static void throughputBenchmarks(Reference &ref, Stats &stats, const std::vector<uint32_t> &compiled) {
+    std::vector<uint32_t> independent, chain, dualChain, notTaken, directJumps;
+    for (unsigned i = 0; i < 1024; ++i) {
+        independent.push_back(addiCode(1 + i % 16, 0, i));
+        chain.push_back(addiCode(1, 1, 1));
+        dualChain.push_back(addiCode(1 + i % 2, 1 + i % 2, 1));
+    }
+    for (unsigned i = 0; i < 128; ++i) {
+        notTaken.push_back(branchCode(1, 0, 0, 8));
+        notTaken.push_back(addiCode(1 + i % 16, 0, i));
+        directJumps.push_back(jumpCode(1, 8));
+        directJumps.push_back(0);
+    }
+    programTest(ref, independent, 0, false, false, false, stats, 1, "throughput_independent_alu");
+    programTest(ref, chain, 0, false, false, false, stats, 1, "throughput_dependent_alu");
+    programTest(ref, dualChain, 0, false, false, false, stats, 1, "throughput_dual_dependency");
+    programTest(ref, notTaken, 0, false, false, false, stats, 1, "throughput_not_taken_mixed");
+    programTest(ref, directJumps, 0, false, false, false, stats, 1, "throughput_direct_jumps");
+    programTest(ref, {addiCode(1, 0, 0), addiCode(2, 0, 128), addiCode(1, 1, 1),
+                     branchCode(4, 1, 2, -4)},
+                0, false, false, false, stats, 1, "throughput_taken_loop");
+#if FETCH_HINT_ALIAS_BENCH
+    // 17 taken conditional sites, 64 bytes apart: an explicit capacity/conflict
+    // workload, not a general CoreMark speed claim. Same binary in both profiles.
+    std::vector<uint32_t> aliasLoop{addiCode(1, 0, 1), addiCode(2, 0, 32)};
+    for (unsigned site = 0; site < 17; ++site) {
+        aliasLoop.push_back(addiCode(3 + site % 8, 3 + site % 8, 1));
+        aliasLoop.push_back(addiCode(12 + site % 8, 12 + site % 8, 1));
+        aliasLoop.push_back(branchCode(1, 1, 0, 56));
+        for (unsigned padding = 0; padding < 13; ++padding) aliasLoop.push_back(0);
+    }
+    aliasLoop.push_back(addiCode(2, 2, -1));
+    aliasLoop.push_back(branchCode(1, 2, 0, -int(17 * 64 + 4)));
+    programTest(ref, aliasLoop, 0, false, false, false, stats, 1, "throughput_hint_alias_loop");
+#endif
+    for (unsigned latency : {1U, 12U}) {
+        std::vector<uint32_t> loadUse{0x00010097U}, mixed{0x00010097U};
+        for (unsigned i = 0; i < 64; ++i) {
+            loadUse.push_back(loadCode(2, 1, 3, i * 8));
+            loadUse.push_back(addiCode(3, 2, 1));
+            mixed.push_back(loadCode(2, 1, 3, i * 8));
+            mixed.push_back(addiCode(4 + i % 8, 0, i));
+            mixed.push_back(addiCode(3, 2, 1));
+            mixed.push_back(storeCode(3, 1, 3, 1024 + i * 8));
+        }
+        programTest(ref, loadUse, 0, false, false, false, stats, latency, "throughput_load_use");
+        programTest(ref, mixed, 0, false, false, false, stats, latency, "throughput_memory_alu_mix");
+        programTest(ref, compiled, 0, false, false, false, stats, latency, "throughput_compiled_sum");
+    }
+    constexpr unsigned expectedPrograms = 12 + (FETCH_HINT_ALIAS_BENCH ? 1 : 0);
+    check(stats.programs == expectedPrograms && stats.commits > 4000 && stats.dualCommits > 0,
+          "short throughput coverage incomplete");
+    std::cout << "GSIM short two-issue throughput + NEMU: PASS programs=" << stats.programs
+              << " commits=" << stats.commits << " dualCommitCycles=" << stats.dualCommits << '\n';
+}
+
+// Exercise the ownership corner introduced by independent elastic slots:
+// completion arbitration can retain an older lane-0 branch while lane 1 drains
+// and admits a younger branch. Every instruction, data value, precise exception
+// and RAM effect still uses programTest's independent ISA + NEMU oracles.
+static void pipelineRecoveryTests(Reference &ref, Stats &stats) {
+#if REGISTERED_FETCH_PACKET
+    std::vector<uint32_t> forwarding;
+    for (unsigned i = 0; i < 128; ++i) {
+        forwarding.push_back(addiCode(3, 3, 1));
+        forwarding.push_back(addiCode(4, 4, 1));
+    }
+    programTest(ref, forwarding, 0x681, false, true, false, stats);
+    check(stats.aluForwardingHits > 0, "ordinary ALU promise never entered a dependent execution slot");
+
+    unsigned contentionPrograms = 0;
+    // Sweep the returning-load phase, not internal DUT state, so both owners
+    // must arise from ordinary decoded machine instructions and actual grants.
+    // Stop only after the hard coverage witnesses have all occurred.
+    for (unsigned latency = 1; latency <= 24; ++latency) {
+        for (unsigned padding = 0; padding < 16; ++padding) {
+            std::vector<uint32_t> code{0x00010097U, loadCode(2, 1, 3, 128)};
+            for (unsigned i = 0; i < padding; ++i) code.push_back(addiCode(8 + i % 8, 0, i));
+            code.push_back(addiCode(6, 0, 1));
+            code.push_back(branchCode(0, 0, 0, 16));
+            code.push_back(branchCode(0, 0, 0, 8));
+            code.push_back(addiCode(6, 0, 99));
+            code.push_back(addiCode(7, 0, 77));
+            code.push_back(addiCode(5, 0, 42));
+            programTest(ref, code, 0x682 + padding, false, false, false, stats, latency);
+            ++contentionPrograms;
+            if (stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
+        }
+        if (stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
+    }
+    check(stats.slot0HoldAndLane1Progress > 0,
+          "LSU writeback never held slot 0 while independent lane 1 made progress");
+    check(stats.olderLane0BranchResolution > 0,
+          "simultaneous branch resolutions never selected an actual older lane-0 owner");
+
+    // Preserve load/branch cancellation, completion contention and retirement
+    // backpressure in a bounded program that can revisit fresh ROB owners.
+    for (uint64_t seed : {UINT64_C(0x683), UINT64_C(0x684)}) {
+        programTest(ref, {0x00010097U, loadCode(2, 1, 3, 128), branchCode(0, 2, 2, 16),
+                         addiCode(3, 2, 1), loadCode(4, 1, 3, 256), addiCode(5, 4, 1),
+                         addiCode(6, 2, 42), storeCode(6, 1, 3, 512), loadCode(7, 1, 3, 512)},
+                    seed, true, false, false, stats, 12);
+    }
+    check(stats.programs >= 4 && stats.commits > 256 && stats.redirects > 0 &&
+          stats.loads > 0 && stats.stores > 0 && stats.supplyStalls > 0,
+          "pipeline recovery architectural coverage incomplete");
+    std::cout << "GSIM pipeline recovery + NEMU: PASS programs=" << stats.programs
+              << " contentionPrograms=" << contentionPrograms << " commits=" << stats.commits
+              << " slot0HeldLane1Progress=" << stats.slot0HoldAndLane1Progress
+              << " olderLane0BranchResolution=" << stats.olderLane0BranchResolution
+              << " aluForwardingHits=" << stats.aluForwardingHits
+              << " redirects=" << stats.redirects << '\n';
+#else
+    throw std::runtime_error("pipeline recovery mode requires the registered execution/fetch candidate");
+#endif
+}
+
 static void ipcBenchmarks(Reference &ref, Stats &stats, const std::vector<uint32_t> &compiled) {
     for (unsigned kind=0;kind<4;++kind) {
         std::vector<uint32_t> code{addiCode(1,0,127),addiCode(2,0,1)};
@@ -939,7 +1151,11 @@ static void mulDivTests(Reference &ref, Stats &stats) {
     for(unsigned i=0;i<6;++i) pipelineKill.push_back(mulDivCode(i%4,false,0,0,0));
     for(unsigned i=0;i<24;++i) pipelineKill.push_back(mulDivCode(i%4,false,3+i%8,2,2));
     programTest(ref,pipelineKill,0,false,false,false,stats,4);
-    check(stats.mulDivMultiCancel>multiCancel,"redirect did not cancel multiple active multiplies");
+    // The registered redirect gives wrong-path multiplies an extra cycle to complete.
+    // NEMU still checks the architectural stream; simultaneous live cancellations are
+    // a microarchitectural coverage requirement only for the unregistered schedule.
+    if (!REGISTERED_BRANCH_REDIRECT)
+        check(stats.mulDivMultiCancel>multiCancel,"redirect did not cancel multiple active multiplies");
     // Older multiply must survive a younger branch; no global flush of the result queue.
     programTest(ref,{addiCode(1,0,-7),addiCode(2,0,3),mulDivCode(0,false,3,1,2),
         branchCode(0,0,0,8),addiCode(3,0,99),addiCode(4,3,1)},0,false,false,false,stats);
@@ -952,21 +1168,39 @@ static void mulDivTests(Reference &ref, Stats &stats) {
 }
 int main(int argc, char **argv) {
     try {
-        check(argc == 5 || argc == 6, "usage: run NEMU.so integer.bin branch.bin bare.bin [--inject-mismatch|--ipc]");
+        check(argc == 5 || argc == 6, "usage: run NEMU.so integer.bin branch.bin bare.bin [--inject-mismatch|--ipc|--timing-smoke|--throughput-short|--pipeline-recovery]");
         const bool inject = argc == 6 && std::string(argv[5]) == "--inject-mismatch";
         const bool ipcOnly = argc == 6 && std::string(argv[5]) == "--ipc";
-        check(argc == 5 || inject || ipcOnly, "unknown mode");
-        const auto decodeCount = (inject || ipcOnly) ? 0 : decoderTests();
+        const bool timingSmoke = argc == 6 && std::string(argv[5]) == "--timing-smoke";
+        const bool throughputOnly = argc == 6 && std::string(argv[5]) == "--throughput-short";
+        const bool pipelineRecovery = argc == 6 && std::string(argv[5]) == "--pipeline-recovery";
+        check(argc == 5 || inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery, "unknown mode");
+        const auto decodeCount = (inject || ipcOnly || timingSmoke || throughputOnly || pipelineRecovery) ? 0 : decoderTests();
         Reference ref(argv[1]);
         Stats stats;
         const auto compiled = loadBinary(argv[4]);
         if (ipcOnly) { ipcBenchmarks(ref, stats, compiled); return 0; }
+        if (throughputOnly) { throughputBenchmarks(ref, stats, compiled); return 0; }
+        if (pipelineRecovery) { pipelineRecoveryTests(ref, stats); return 0; }
         programTest(ref, loadBinary(argv[2]), 0x459, true, false, inject, stats);
         check(!inject, "injected mismatch was not detected");
         programTest(ref, loadBinary(argv[3]), 0x987, false, false, false, stats);
         programTest(ref, loadBinary(argv[3]), 0x988, true, false, false, stats);
         controlTests(ref, stats);
         memoryTests(ref, stats);
+        if (timingSmoke) {
+            programTest(ref, compiled, 0x419, true, false, false, stats, 5);
+            check(stats.loads > 2000 && stats.stores > 2000 && stats.memoryErrors == 2 &&
+                stats.memoryBackpressure > 100 && stats.branches > 100 && stats.redirects > 100 &&
+                stats.dualCommits > 100, "timing smoke coverage incomplete");
+            std::cout << "GSIM control/memory timing + NEMU: PASS rob=" << ROB_ENTRIES
+                << " physical=" << PHYSICAL_REGS << " slots=" << MEMORY_ENTRIES
+                << " predictor=" << BRANCH_ENTRIES << " trainingDelay=" << DELAYED_PREDICTION_TRAINING
+                << " programs=" << stats.programs << " commits=" << stats.commits
+                << " loads=" << stats.loads << " stores=" << stats.stores
+                << " redirects=" << stats.redirects << " branches=" << stats.branches << '\n';
+            return 0;
+        }
         zicondTests(ref, stats);
         mulDivTests(ref, stats);
         bitTests(ref, stats);

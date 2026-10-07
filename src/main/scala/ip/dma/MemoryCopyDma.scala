@@ -8,7 +8,7 @@ import soc.ip.bus.{RegisterPort, RegisterResponse}
 class MemoryCopyDma(
     base: BigInt = BigInt("10001000", 16),
     ramBase: BigInt = BigInt("80010000", 16),
-    ramBytes: Int = 4096
+    ramBytes: BigInt = 4096
 ) extends Module {
     require(base >= 0 && base % 8 == 0 && base + 40 <= (BigInt(1) << 64))
     require(

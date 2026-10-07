@@ -4,7 +4,8 @@ import _root_.circt.stage.ChiselStage
 import soc.core.ooo.InstructionTileLinkBridge
 
 object InstructionTileLinkBridgeGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new InstructionTileLinkBridge, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new InstructionTileLinkBridge(
+        parallelAddresses = args.drop(1).contains("parallel-addresses")), Array("--target-dir", args.head))
 }
 
 object InstructionTileLinkBridgeRtlMain extends App {

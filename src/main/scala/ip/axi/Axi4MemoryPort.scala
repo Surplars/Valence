@@ -3,7 +3,7 @@ package soc.ip.axi
 import chisel3._
 import chisel3.util._
 
-/** AXI4 single-beat memory channels. Optional USER/REGION fields are left to the platform wrapper. */
+/** AXI4 64-bit memory channels, including INCR bursts. Optional USER/REGION stay in the platform wrapper. */
 class Axi4Address(addressWidth: Int, idWidth: Int) extends Bundle {
     val id    = UInt(idWidth.W)
     val addr  = UInt(addressWidth.W)

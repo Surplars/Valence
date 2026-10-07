@@ -12,11 +12,12 @@ import soc.ip.tilelink.TileLinkLineFillEngine
 class InstructionLineCache(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     ramBase: BigInt = BigInt("80010000", 16),
-    ramBytes: Int = 4096,
+    ramBytes: BigInt = 4096,
     romBytes: Int = 8192,
     lines: Int = 16,
     packetWords: Int = 2,
-    prefetchEnabled: Boolean = false
+    prefetchEnabled: Boolean = false,
+    parallelFallbackAddresses: Boolean = false
 ) extends Module {
     require(lines >= 4 && lines <= 256 && isPow2(lines))
     require(ramBase >= 0 && ramBase % 64 == 0 && ramBytes >= 64 && ramBytes % 64 == 0)
@@ -36,7 +37,8 @@ class InstructionLineCache(
         val idle = Output(Bool())
     })
 
-    private val fallback = Module(new InstructionTileLinkBridge(params, immutableBytes = romBytes))
+    private val fallback = Module(new InstructionTileLinkBridge(params, immutableBytes = romBytes,
+        parallelAddresses = parallelFallbackAddresses))
     private val wideFallback = if (packetWords == 4) Some(Module(new WideInstructionAdapter)) else None
     wideFallback.foreach(_.io.narrow <> fallback.io.fetch)
     private val fallbackFetch = wideFallback.map(_.io.wide).getOrElse(fallback.io.fetch)
@@ -76,8 +78,11 @@ class InstructionLineCache(
     pmp.io.size := 6.U
     pmp.io.privilege := io.privilege
     pmp.io.access := PmpAccess.execute
-    private val lineAllowed = inRam &&
-        (if (packetWords == 4) requestPc(3, 0) === 0.U else requestPc(2, 0) === 0.U) &&
+    // This physical cache can serve sixteen-byte packets at eight-byte granularity.
+    // Every offset 0..48 fits in one 64-byte line; only offset 56 needs precise fallback.
+    // savedOffset already selects either hit SRAM data or the filled line at eight-byte granularity.
+    private val packetFitsLine = if (packetWords == 4) requestPc(5, 3) =/= 7.U else true.B
+    private val lineAllowed = inRam && requestPc(2, 0) === 0.U && packetFitsLine &&
         io.fetch.requestMask === ((1 << packetWords) - 1).U && !pmp.io.denied
     private val hits = VecInit((0 until 2).map { way =>
         valid(requestSet)(way) && tags(requestSet)(way) === requestTag && !io.invalidate

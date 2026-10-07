@@ -23,7 +23,7 @@ object Compressed {
     private def j(opcode: UInt, rd: UInt, imm: UInt): UInt =
         Cat(imm(20), imm(10, 1), imm(11), imm(19, 12), low(rd, 5), low(opcode, 7))
 
-    def expand(instr: UInt, rv64: Boolean = true): (UInt, Bool) = {
+    def expand(instr: UInt, rv64: Boolean = true, floatingDouble: Boolean = false): (UInt, Bool) = {
         val q = instr(1, 0)
         val funct3 = instr(15, 13)
         val rd = instr(11, 7)
@@ -63,6 +63,10 @@ object Compressed {
         val ldsp = i(Opcode.LOAD, rd, Funct3.I.LD, 2.U, ldspImm)
         val swsp = s(Opcode.STORE, Funct3.I.SW, 2.U, rs2, swspImm)
         val sdsp = s(Opcode.STORE, Funct3.I.SD, 2.U, rs2, sdspImm)
+        val fld = i("h07".U, rdPrime, 3.U, rs1Prime, ldImm)
+        val fsd = s("h27".U, 3.U, rs1Prime, rs2Prime, sdImm)
+        val fldsp = i("h07".U, rd, 3.U, 2.U, ldspImm)
+        val fsdsp = s("h27".U, 3.U, 2.U, rs2, sdspImm)
         val jal = j(Opcode.JAL, 0.U, jImm)
         val beqz = b(Opcode.BRANCH, Funct3.I.BEQ, rs1Prime, 0.U, bImm)
         val bnez = b(Opcode.BRANCH, Funct3.I.BNE, rs1Prime, 0.U, bImm)
@@ -71,9 +75,10 @@ object Compressed {
         val srai = i(Opcode.OP_IMM, rs1Prime, Funct3.I.SRLI_SRAI, rs1Prime, Cat("b010000".U(6.W), shamt)(11, 0))
         val andi = i(Opcode.OP_IMM, rs1Prime, Funct3.I.ANDI, rs1Prime, addiImm)
         val sub = r(Opcode.OP, rs1Prime, Funct3.I.ADDSUB, rs1Prime, rs2Prime, "b0100000".U)
-        val xor = r(Opcode.OP, rs1Prime, Funct3.I.XOR, rs1Prime, rs2Prime, "b0000000".U)
-        val or = r(Opcode.OP, rs1Prime, Funct3.I.OR, rs1Prime, rs2Prime, "b0000000".U)
-        val and = r(Opcode.OP, rs1Prime, Funct3.I.AND, rs1Prime, rs2Prime, "b0000000".U)
+        // Avoid C++ alternative-token keywords in standalone GSIM models.
+        val xorInstruction = r(Opcode.OP, rs1Prime, Funct3.I.XOR, rs1Prime, rs2Prime, "b0000000".U)
+        val orInstruction = r(Opcode.OP, rs1Prime, Funct3.I.OR, rs1Prime, rs2Prime, "b0000000".U)
+        val andInstruction = r(Opcode.OP, rs1Prime, Funct3.I.AND, rs1Prime, rs2Prime, "b0000000".U)
         val subw = r(Opcode.OP_32, rs1Prime, Funct3.I.ADDW, rs1Prime, rs2Prime, "b0100000".U)
         val addw = r(Opcode.OP_32, rs1Prime, Funct3.I.ADDW, rs1Prime, rs2Prime, "b0000000".U)
         val jr = i(Opcode.JALR, 0.U, 0.U, rs1, 0.U)
@@ -90,6 +95,8 @@ object Compressed {
             is("b00".U) {
                 switch(funct3) {
                     is("b000".U) { expanded := addi4spn; legal := instr(12, 5) =/= 0.U }
+                    is("b001".U) { expanded := fld; legal := floatingDouble.B }
+                    is("b101".U) { expanded := fsd; legal := floatingDouble.B }
                     is("b010".U) { expanded := lw; legal := true.B }
                     is("b011".U) { expanded := ld; legal := rv64.B }
                     is("b110".U) { expanded := sw; legal := true.B }
@@ -116,9 +123,9 @@ object Compressed {
                             is("b11".U) {
                                 switch(Cat(instr(12), instr(6, 5))) {
                                     is("b000".U) { expanded := sub; legal := true.B }
-                                    is("b001".U) { expanded := xor; legal := true.B }
-                                    is("b010".U) { expanded := or; legal := true.B }
-                                    is("b011".U) { expanded := and; legal := true.B }
+                                    is("b001".U) { expanded := xorInstruction; legal := true.B }
+                                    is("b010".U) { expanded := orInstruction; legal := true.B }
+                                    is("b011".U) { expanded := andInstruction; legal := true.B }
                                     is("b100".U) { expanded := subw; legal := rv64.B }
                                     is("b101".U) { expanded := addw; legal := rv64.B }
                                 }
@@ -130,6 +137,9 @@ object Compressed {
             is("b10".U) {
                 switch(funct3) {
                     is("b000".U) { expanded := slli; legal := true.B }
+                    // Unlike integer LDSP, floating f0 is a writable destination.
+                    is("b001".U) { expanded := fldsp; legal := floatingDouble.B }
+                    is("b101".U) { expanded := fsdsp; legal := floatingDouble.B }
                     is("b010".U) { expanded := lwsp; legal := rd =/= 0.U }
                     is("b011".U) { expanded := ldsp; legal := rv64.B && rd =/= 0.U }
                     is("b100".U) {

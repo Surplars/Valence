@@ -5,7 +5,9 @@ import chisel3.util._
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
-class FpgaFetchGsim(compressedCache: Boolean = false) extends Module {
+class FpgaFetchGsim(compressedCache: Boolean = false, stableFaultMetadata: Boolean = false,
+    alignedFetchPmp: Boolean = false, rawFetchPresence: Boolean = false,
+    parallelFetchTagLookup: Boolean = false, parallelAlignment: Boolean = false) extends Module {
     val p  = OooParams(robEntries = 8, physicalRegs = 36)
     val io = IO(new Bundle {
         val write        = Input(Bool())
@@ -34,7 +36,9 @@ class FpgaFetchGsim(compressedCache: Boolean = false) extends Module {
     val rom = Module(new InstructionRom(256, BigInt("80000000", 16), programmable = true))
     rom.io.fetch <> io.rom
     val frontend = Module(new SynchronousFetch(16, compressed = compressedCache,
-        cacheSets = if (compressedCache) 8 else 64))
+        cacheSets = if (compressedCache) 8 else 64, stableFaultMetadata = stableFaultMetadata,
+        alignedFetchPmp = alignedFetchPmp, rawFetchPresence = rawFetchPresence,
+        parallelFetchTagLookup = parallelFetchTagLookup, parallelAlignment = parallelAlignment))
     frontend.io.pc     := io.pc
     frontend.io.enable := io.enable
     frontend.io.invalidate := io.invalidate
@@ -42,6 +46,7 @@ class FpgaFetchGsim(compressedCache: Boolean = false) extends Module {
     val pmpState = WireDefault(0.U.asTypeOf(new PmpState))
     pmpState.cfg(0) := io.pmpCfg0
     pmpState.addr(0) := io.pmpAddr0
+    PmpState.decodeRegions(pmpState)
     frontend.io.pmpState := pmpState
     frontend.io.privilege := io.privilege
     frontend.io.virtualized := false.B
@@ -69,6 +74,8 @@ class FpgaFetchGsim(compressedCache: Boolean = false) extends Module {
     io.exception                  := core.io.exception
 }
 object FpgaFetchGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new FpgaFetchGsim(args.lift(1).contains("compressed-cache")),
+    ChiselStage.emitCHIRRTLFile(new FpgaFetchGsim(args.lift(1).contains("compressed-cache"),
+        args.drop(1).contains("stable-fault-metadata"), args.drop(1).contains("aligned-fetch-pmp"),
+        args.drop(1).contains("raw-fetch-presence"), args.drop(1).contains("parallel-fetch-tags"), args.drop(1).contains("parallel-alignment")),
         Array("--target-dir", args.head))
 }

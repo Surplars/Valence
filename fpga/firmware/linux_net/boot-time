@@ -1,0 +1,8 @@
+#!/bin/sh
+# initcall_debug is buffered at DEBUG level, not flooded onto UART at loglevel 7.
+echo '=== 15 slowest synchronous initcalls (microseconds) ==='
+dmesg | awk '/initcall .* returned .* after .* usecs/ {
+    for (i=1;i<NF;i++) if ($i=="after") { print $(i+1), $0; break }
+}' | sort -nr | head -n 15
+echo '=== boot milestones ==='
+dmesg | grep -E 'unaligned word|workingset:|random: crng|console .*enabled|Serial:|MSI/SEIP|NAPI weight|Link is'

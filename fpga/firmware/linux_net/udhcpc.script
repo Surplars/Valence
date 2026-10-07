@@ -1,0 +1,13 @@
+#!/bin/sh
+# Optional: use 'iface eth0 inet dhcp' in /etc/network/interfaces, then ifup.
+case "$1" in
+    deconfig) ip addr flush dev "$interface" ;;
+    bound|renew)
+        ip addr flush dev "$interface"
+        ifconfig "$interface" "$ip" netmask "${subnet:-255.255.255.0}" up
+        ip route del default dev "$interface" 2>/dev/null || true
+        for gateway in $router; do ip route add default via "$gateway" dev "$interface"; break; done
+        : > /etc/resolv.conf
+        for server in $dns; do echo "nameserver $server" >> /etc/resolv.conf; done
+        ;;
+esac

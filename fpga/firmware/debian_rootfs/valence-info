@@ -1,0 +1,26 @@
+#!/bin/sh
+# Read-only board/software diagnostics: never MMIO poke, traffic or clock gate.
+cat /etc/valence-release
+echo '=== Debian ==='
+cat /etc/os-release
+uname -a
+dpkg --print-architecture
+echo '=== DT model ==='
+if [ -r /sys/firmware/devicetree/base/model ]; then
+    tr -d '\000' < /sys/firmware/devicetree/base/model
+    echo
+fi
+echo '=== SoC configuration identity ==='
+for entry in /sys/devices/soc*/family /sys/devices/soc*/soc_id /sys/devices/soc*/machine; do
+    if [ -r "$entry" ]; then printf '%s: ' "$entry"; cat "$entry"; fi
+done
+echo '=== Memory ==='
+free -m
+echo '=== Custom modules ==='
+for module in valence_soc valence_aia valence_cmu valence_dma valence_gmac; do
+    modinfo "$module" | grep -E 'filename:|version:|author:|vermagic:'
+done
+echo '=== Clock and DMA ==='
+for entry in /sys/bus/platform/drivers/valence-cmu/*/clock_status /sys/bus/platform/drivers/valence-dma/*/dma_status; do
+    if [ -r "$entry" ]; then cat "$entry"; fi
+done

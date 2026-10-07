@@ -1,0 +1,4 @@
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export HOME=/root TERM=vt100 LC_ALL=C
+export PS1='valence# '
+cd /root

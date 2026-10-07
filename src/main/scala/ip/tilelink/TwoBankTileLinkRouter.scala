@@ -8,8 +8,10 @@ import soc.bus.tilelink._
 class TwoBankTileLinkRouter(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     base: BigInt = BigInt("80010000", 16),
-    bankBytes: Int = 2048,
-    secondBankBytes: Int = 0
+    bankBytes: BigInt = 2048,
+    secondBankBytes: BigInt = 0,
+    prefixAddressDecode: Boolean = false,
+    rawResponseMetadata: Boolean = false
 ) extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 32 && params.addrWidth <= 64)
     require(params.sourceBits >= 1 && params.sourceBits <= 6)
@@ -23,7 +25,11 @@ class TwoBankTileLinkRouter(
     })
 
     val address = io.host.a.bits.address
-    val hit = VecInit((0 until 2).map { i =>
+    val hit = if (prefixAddressDecode) {
+        val decoder = Module(new TwoBankAddressDecoder(params.addrWidth, base, bankBytes, secondBytes))
+        decoder.io.address := address
+        VecInit((0 until 2).map(i => decoder.io.hitMask(i)))
+    } else VecInit((0 until 2).map { i =>
         val start = (base + (if (i == 0) 0 else bankBytes)).U(params.addrWidth.W)
         val end   = (base + bankBytes + (if (i == 0) 0 else secondBytes)).U(params.addrWidth.W)
         address >= start && address < end
@@ -31,7 +37,9 @@ class TwoBankTileLinkRouter(
     val unmapped = !hit.asUInt.orR
     val sourceCount = 1 << params.sourceBits
     val occupied = RegInit(VecInit(Seq.fill(sourceCount)(false.B)))
-    val owner = Reg(Vec(sourceCount, UInt(2.W)))
+    // One-hot owner facts let each bank check its own row in parallel with the
+    // source decode, instead of reading a binary owner then comparing it.
+    val owner = Reg(Vec(sourceCount, UInt(3.W)))
     val aBurst = RegInit(false.B)
     val aTarget = Reg(UInt(2.W))
     val aSource = Reg(UInt(params.sourceBits.W))
@@ -87,7 +95,7 @@ class TwoBankTileLinkRouter(
         }.otherwise {
             assert(!occupied(newSource), "Two-bank TileLink source reused before response")
             occupied(newSource) := true.B
-            owner(newSource) := target
+            owner(newSource) := UIntToOH(target, 3)
             when(unmapped) {
                 errorValid  := true.B
                 errorSource := newSource
@@ -112,8 +120,10 @@ class TwoBankTileLinkRouter(
 
     val replies = Module(new RRArbiter(new TLBundleD(params), 3))
     for (i <- 0 until 2) {
-        val source = Mux(io.banks(i).d.valid, io.banks(i).d.bits.source, 0.U)
-        val belongs = occupied(source) && owner(source) === i.U
+        val source = if (rawResponseMetadata) io.banks(i).d.bits.source
+            else Mux(io.banks(i).d.valid, io.banks(i).d.bits.source, 0.U)
+        val owners = VecInit((0 until sourceCount).map(s => occupied(s) && owner(s)(i))).asUInt
+        val belongs = (owners & UIntToOH(source, sourceCount)).orR
         val justAccepted = io.host.a.fire && hit(i) && newSource === source
         replies.io.in(i).valid := io.banks(i).d.valid && belongs && (!dBurst || dSelected === i.U)
         replies.io.in(i).bits  := io.banks(i).d.bits
@@ -135,7 +145,7 @@ class TwoBankTileLinkRouter(
     replies.io.out.ready := io.host.d.ready
     when(replies.io.out.fire) {
         val source = Mux(replies.io.out.valid, replies.io.out.bits.source, 0.U)
-        assert(occupied(source) && owner(source) === replies.io.chosen,
+        assert(occupied(source) && owner(source) === UIntToOH(replies.io.chosen, 3),
             "TileLink response routed from wrong bank")
         when(dBurst) {
             assert(replies.io.chosen === dSelected && source === dSource &&

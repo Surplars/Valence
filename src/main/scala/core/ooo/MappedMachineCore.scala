@@ -10,10 +10,16 @@ class MappedMachineCore(
     p: OooParams = OooParams(),
     imsicParams: ImsicParams = ImsicParams(),
     aplicParams: AplicParams = AplicParams(),
-    dataTranslation: Boolean = false
+    dataTranslation: Boolean = false,
+    stagedMemoryFabric: Boolean = false,
+    bufferTranslatedResponses: Boolean = false
 ) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
+    require(!stagedMemoryFabric || dataTranslation)
+    require(!bufferTranslatedResponses || (dataTranslation && stagedMemoryFabric))
+    require(!p.registeredTranslatedResponses || bufferTranslatedResponses)
+    require(!p.directMemoryResponse || stagedMemoryFabric)
     val io = IO(new Bundle {
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
@@ -67,22 +73,41 @@ class MappedMachineCore(
     msiArbiter.io.masters(0) <> aplic.io.msi
     msiArbiter.io.masters(1) <> supervisorAplic.io.msi
     core.io.msi <> msiArbiter.io.downstream
-    val router = Module(new CoreRegisterRouter(aplicParams.base))
-    val supervisorRouter = Module(new CoreRegisterRouter(supervisorParams.base))
+    val router = if (!stagedMemoryFabric) Some(Module(new CoreRegisterRouter(aplicParams.base))) else None
+    val supervisorRouter = if (!stagedMemoryFabric)
+        Some(Module(new CoreRegisterRouter(supervisorParams.base))) else None
+    val parallelRouter = if (stagedMemoryFabric) Some(Module(new ParallelRegisterRouter(Seq(
+        (aplicParams.base, BigInt(16384)), (supervisorParams.base, BigInt(16384))
+    ), bypassMemoryShift = p.directMemoryResponse))) else None
+    val mappedUpstream = parallelRouter.map(_.io.upstream).getOrElse(router.get.io.upstream)
     if (dataTranslation) {
-        val adapter = Module(new DataTranslationAdapter(p))
-        adapter.io.virtual <> core.io.memory
-        adapter.io.physical <> router.io.upstream
+        val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric))
+        if (bufferTranslatedResponses) {
+            // The platform's existing two response credits are relocated here,
+            // ahead of APLIC/fault returns as well as external memory returns.
+            val responses = Module(new DataResponseBuffer(registerPayload = p.registeredTranslatedResponses,
+                registerHead = p.registeredTranslationHeads))
+            responses.io.upstream <> core.io.memory
+            adapter.io.virtual <> responses.io.downstream
+        } else adapter.io.virtual <> core.io.memory
+        adapter.io.physical <> mappedUpstream
         adapter.io.translation <> io.translation.get
         adapter.io.vmState := core.io.vmState.get
         adapter.io.pmpState := core.io.pmpState.get
     } else {
-        router.io.upstream <> core.io.memory
+        mappedUpstream <> core.io.memory
     }
-    router.io.registers <> aplic.io.mmio
-    supervisorRouter.io.upstream <> router.io.memory
-    supervisorRouter.io.registers <> supervisorAplic.io.mmio
-    io.memory <> supervisorRouter.io.memory
+    parallelRouter match {
+        case Some(fabric) =>
+            fabric.io.registers(0) <> aplic.io.mmio
+            fabric.io.registers(1) <> supervisorAplic.io.mmio
+            io.memory <> fabric.io.memory
+        case None =>
+            router.get.io.registers <> aplic.io.mmio
+            supervisorRouter.get.io.upstream <> router.get.io.memory
+            supervisorRouter.get.io.registers <> supervisorAplic.io.mmio
+            io.memory <> supervisorRouter.get.io.memory
+    }
     aplic.io.sources        := io.sources
     supervisorAplic.io.sources := aplic.io.childSources
     supervisorAplic.io.parentEnabled.get := aplic.io.childEnabled

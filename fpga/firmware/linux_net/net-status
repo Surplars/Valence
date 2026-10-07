@@ -1,0 +1,18 @@
+#!/bin/sh
+# Read-only diagnostics; no ping/traffic or polling loops.
+echo '=== valence-aia ==='
+for path in /sys/bus/platform/devices/*/irqchip_status; do
+    [ -r "$path" ] && cat "$path"
+done
+echo '=== valence-gmac / NAPI ==='
+for path in /sys/bus/platform/devices/*/napi_status; do
+    [ -r "$path" ] && cat "$path"
+done
+echo '=== IRQ counts ==='
+cat /proc/interrupts
+echo '=== eth0 ==='
+if ! ip -s link show dev eth0 2>/dev/null; then
+    ip link show dev eth0
+fi
+echo '=== packet counters ==='
+cat /proc/net/dev

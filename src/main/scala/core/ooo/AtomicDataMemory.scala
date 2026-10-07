@@ -4,7 +4,11 @@ import chisel3._
 import soc.ip.memory.AtomicMemory
 
 /** DataPort adapter for the independent single-hart atomic/DMA memory boundary. */
-class AtomicDataMemory(base: BigInt = BigInt("80010000", 16), bytes: Int = 4096) extends Module {
+class AtomicDataMemory(
+    base: BigInt = BigInt("80010000", 16),
+    bytes: BigInt = 4096,
+    registerResponseOwners: Boolean = false
+) extends Module {
     val io = IO(new Bundle {
         val cpu              = Flipped(new DataPort)
         val dma              = Flipped(new DataPort)
@@ -12,7 +16,7 @@ class AtomicDataMemory(base: BigInt = BigInt("80010000", 16), bytes: Int = 4096)
         val memoryRequestCpu = Output(Bool())
         val clearReservation = Input(Bool())
     })
-    val unit = Module(new AtomicMemory(base, bytes))
+    val unit = Module(new AtomicMemory(base, bytes, registerResponseOwners))
     io.memoryRequestCpu := unit.io.memoryRequestCpu
     unit.io.clearReservation           := io.clearReservation
     unit.io.cpu.request.valid          := io.cpu.request.valid

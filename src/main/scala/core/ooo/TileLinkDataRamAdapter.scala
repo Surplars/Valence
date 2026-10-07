@@ -12,7 +12,7 @@ class TileLinkDataRamAdapter(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
     burstEnabled: Boolean = false,
     burstBase: BigInt = BigInt("80010000", 16),
-    burstBytes: Int = 4096
+    burstBytes: BigInt = 4096
 ) extends Module {
     require(entries >= 2 && entries <= 16 && isPow2(entries))
     require(params.dataWidth == 64 && params.addrWidth >= 32 && params.addrWidth <= 64)
@@ -48,6 +48,7 @@ class TileLinkDataRamAdapter(
     val returned = RegInit(0.U(5.W))
     val burstInvalid = RegInit(false.B)
     val writeError = RegInit(false.B)
+    val burstOpcode = Reg(UInt(3.W))
     val queuedRead = RegInit(false.B)
     val queuedSource = Reg(UInt(params.sourceBits.W))
     val queuedSize = Reg(UInt(params.sizeBits.W))
@@ -57,17 +58,24 @@ class TileLinkDataRamAdapter(
     val large = burstEnabled.B && a.size > 3.U
     val small = state === sSingles && !large
     val canStartBurst = state === sSingles && large && !pending.io.deq.valid
-    val end = Cat(0.U(1.W), a.address) + (1.U(65.W) << a.size)
+    // All accepted sizes are 0..6. Decode fixed lengths instead of shifting a
+    // native literal by an idle/uninitialized FIFO payload in the GSIM model.
+    // Size 7 retains its 128-byte value; any larger illegal size is rejected
+    // by burstLegal/assertions before memory side effects.
+    val transferBytes = MuxLookup(a.size, 128.U(65.W))(
+        (0 to 6).map(s => s.U -> (BigInt(1) << s).U(65.W)))
+    val end = Cat(0.U(1.W), a.address) + transferBytes
     val burstLegal = a.size <= 6.U &&
-        (a.address & ((1.U(params.addrWidth.W) << a.size) - 1.U)) === 0.U &&
+        (a.address & (transferBytes - 1.U)) === 0.U &&
         a.address >= burstBase.U && end <= (burstBase + burstBytes).U(65.W)
-    val startWrite = canStartBurst && a.opcode === TLOpcode.PutFullData
+    val put = a.opcode === TLOpcode.PutFullData || a.opcode === TLOpcode.PutPartialData
+    val startWrite = canStartBurst && put
     val activeWrite = state === sWrite && sent < burstTotal
     val activeRead = state === sRead || state === sDeniedRead
     val queueRead = activeRead && !queuedRead && large && a.opcode === TLOpcode.Get
 
     io.tl.a.ready := Mux(state === sSingles,
-        Mux(large, canStartBurst && Mux(a.opcode === TLOpcode.PutFullData && burstLegal,
+        Mux(large, canStartBurst && Mux(put && burstLegal,
             io.memory.request.ready, true.B), pending.io.enq.ready && io.memory.request.ready),
         Mux(activeRead, queueRead,
             Mux(state === sWrite && sent < burstTotal,
@@ -90,7 +98,7 @@ class TileLinkDataRamAdapter(
         io.memory.request.bits.write := true.B
         io.memory.request.bits.size := 3.U
         io.memory.request.bits.data := a.data
-        io.memory.request.bits.mask := 255.U
+        io.memory.request.bits.mask := a.mask
     }.elsewhen(state === sRead) {
         io.memory.request.bits.address := burstAddress + (sent << 3)
         io.memory.request.bits.size := 3.U
@@ -100,7 +108,7 @@ class TileLinkDataRamAdapter(
         io.memory.request.bits.write := true.B
         io.memory.request.bits.size := 3.U
         io.memory.request.bits.data := a.data
-        io.memory.request.bits.mask := 255.U
+        io.memory.request.bits.mask := a.mask
     }
 
     pending.io.enq.valid := small && io.tl.a.fire
@@ -110,10 +118,10 @@ class TileLinkDataRamAdapter(
     when(io.tl.a.fire && state === sSingles) {
         assert(a.param === 0.U && !a.corrupt, "TileLink RAM request param or corruption invalid")
         when(large) {
-            assert(a.opcode === TLOpcode.Get || a.opcode === TLOpcode.PutFullData,
-                "burst RAM accepts Get and PutFullData only")
-            assert(a.size <= 6.U && a.mask === 255.U,
-                "burst RAM accepts only 16/32/64-byte full-mask messages")
+            assert(a.opcode === TLOpcode.Get || put, "burst RAM accepts Get and Put only")
+            assert(a.size <= 6.U && (a.opcode === TLOpcode.PutPartialData || a.mask === 255.U),
+                "burst RAM full requests require a full mask")
+            burstOpcode := a.opcode
             burstSource := a.source
             burstSize := a.size
             burstAddress := a.address
@@ -128,6 +136,13 @@ class TileLinkDataRamAdapter(
             assert(a.opcode === TLOpcode.Get || a.opcode === TLOpcode.PutPartialData ||
                 a.opcode === TLOpcode.PutFullData, "single-beat RAM accepts Get and Put only")
             assert(a.size <= 3.U, "single-beat TileLink RAM request too large")
+            val accessBytes = 1.U(4.W) << a.size
+            val fullMask = ((255.U(8.W) >> (8.U - accessBytes)) << a.address(2, 0))(7, 0)
+            assert((a.address(2, 0) & (accessBytes - 1.U)) === 0.U,
+                "single-beat TileLink RAM address must be aligned")
+            assert(Mux(a.opcode === TLOpcode.PutPartialData,
+                (a.mask & ~fullMask) === 0.U, a.mask === fullMask),
+                "single-beat TileLink RAM mask outside access")
         }
     }
     when(io.tl.a.fire && activeRead) {
@@ -145,13 +160,13 @@ class TileLinkDataRamAdapter(
     }
     when(state === sWrite) {
         when(io.tl.a.fire) {
-            assert(a.opcode === TLOpcode.PutFullData && a.param === 0.U && a.size === burstSize &&
-                a.source === burstSource && a.address === burstAddress && a.mask === 255.U && !a.corrupt,
-                "PutFullData burst changed control, source or mask")
+            assert(a.opcode === burstOpcode && a.param === 0.U && a.size === burstSize &&
+                a.source === burstSource && a.address === burstAddress &&
+                (burstOpcode === TLOpcode.PutPartialData || a.mask === 255.U) && !a.corrupt,
+                "Put burst changed control, source or mask")
             sent := sent + 1.U
         }
         when(io.memory.response.fire && !burstInvalid) {
-            assert(!io.memory.response.bits.error, "prevalidated RAM burst write must succeed")
             returned := returned + 1.U
             when(io.memory.response.bits.error) { writeError := true.B }
         }

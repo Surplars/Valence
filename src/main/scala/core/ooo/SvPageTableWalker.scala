@@ -67,8 +67,15 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
     io.start.ready          := state === idle
     io.complete.valid       := state === finish
     io.complete.bits        := result
-    io.memory.request.valid := state === issue && !pmp.io.denied
-    io.memory.request.bits  := pteAddress
+    // A one-entry, non-flow-through queue registers the PMP-approved PTE read.
+    // It breaks the walker-to-shared-memory combinational path and adds one cycle
+    // per PTE read, without changing the common TLB-hit path.
+    val pendingRead = Module(new Queue(UInt(64.W), 1, pipe = false, flow = false))
+    pendingRead.io.enq.valid := state === issue && !pmp.io.denied
+    pendingRead.io.enq.bits  := pteAddress
+    io.memory.request.valid := pendingRead.io.deq.valid
+    io.memory.request.bits  := pendingRead.io.deq.bits
+    pendingRead.io.deq.ready := io.memory.request.ready
     io.memory.response.ready := state === awaitPte
 
     when(io.start.fire) {
@@ -104,7 +111,7 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
         result.accessFault := true.B
         state := finish
     }
-    when(io.memory.request.fire) { state := awaitPte }
+    when(pendingRead.io.enq.fire) { state := awaitPte }
     when(io.memory.response.fire) {
         val pte     = io.memory.response.bits.data
         val leaf    = pte(1) || pte(3)

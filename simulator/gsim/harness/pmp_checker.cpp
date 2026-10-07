@@ -45,6 +45,7 @@ static bool denied(const Entries &entries, uint64_t address, unsigned size, unsi
     return privilege != 3;
 }
 
+static unsigned alignedWordChecks = 0;
 static void one(SPmpCheckerGsim &dut, const Entries &entries, uint64_t address,
                 unsigned size, unsigned access, unsigned privilege, bool inject = false) {
     dut.set_io$$cfg0(entries[0].cfg); dut.set_io$$cfg1(entries[1].cfg);
@@ -66,7 +67,9 @@ static void one(SPmpCheckerGsim &dut, const Entries &entries, uint64_t address,
     dut.set_io$$address(address); dut.set_io$$size(size);
     dut.set_io$$access(access); dut.set_io$$privilege(privilege);
     dut.step();
+    check(dut.get_io$$checkedAddress() == address, "PMP raw instruction address mismatch");
     bool expected = denied(entries, address, size, access, privilege);
+    alignedWordChecks += size == 2 && (address & 3) == 0;
     if (inject) expected = !expected;
     check(bool(dut.get_io$$denied()) == expected, "PMP oracle mismatch");
 }
@@ -106,6 +109,45 @@ int main(int argc, char **argv) {
         one(dut, entries, 0x80000000, 2, 2, 1);
         entries[14] = {0x1b, 0x200003ff}; // Earlier matching entry denies execute.
         one(dut, entries, 0x80000000, 2, 2, 1);
+        // All supported lengths, every low-bit alignment, region and XLEN edges.
+        unsigned boundaryChecks = 0;
+        for (unsigned kind = 1; kind <= 3; ++kind) {
+            entries = {};
+            if (kind == 1) {
+                entries[0] = {0, 0x400};
+                entries[1] = {0x8b, 0x800};
+            } else {
+                entries[0] = {unsigned((kind << 3) | 0x83), kind == 2 ? 0x400U : 0x403U};
+            }
+            const std::array<uint64_t, 5> centers = {
+                0, 0x1000, 0x2000, uint64_t(1) << 56, UINT64_MAX
+            };
+            for (uint64_t center : centers)
+                for (int delta = -128; delta <= 128; ++delta)
+                    for (unsigned size = 0; size < 8; ++size) {
+                        one(dut, entries, center + uint64_t(delta), size,
+                            size & 3, (size & 1) ? 3 : 1);
+                        ++boundaryChecks;
+                    }
+        }
+        // Execute exactly four bytes at EVERY low-bit alignment, including
+        // partial overlaps, overlapping priority and XLEN wrap. The oracle is
+        // still the original 128-bit byte interval model, not word projection.
+        unsigned executeChecks = 0;
+        for (unsigned first = 0; first < 16; ++first) {
+            entries = {};
+            entries[first] = {0x90, 0x400}; // Locked NA4: deny even in M.
+            if (first + 1 < 16) entries[first + 1] = {0x1d, 0x403}; // Larger executable NAPOT.
+            const std::array<uint64_t, 5> centers = {
+                0, 0x1000, 0x2000, uint64_t(1) << 56, UINT64_MAX
+            };
+            for (uint64_t center : centers)
+                for (int delta = -64; delta <= 64; ++delta)
+                    for (unsigned privilege : {0U, 1U, 3U}) {
+                        one(dut, entries, center + uint64_t(delta), 2, 2, privilege);
+                        ++executeChecks;
+                    }
+        }
         std::mt19937_64 rng(0x504d50434845434bULL);
         const unsigned permissions[] = {0, 1, 3, 4, 5, 7};
         for (unsigned i = 0; i < 6000; ++i) {
@@ -121,9 +163,18 @@ int main(int argc, char **argv) {
             }
             uint64_t address = (rng() & 3) ? ((rng() & 0x7ff) + (rng() & 7)) :
                                (uint64_t(1) << 56) - (rng() & 15);
-            one(dut, random, address, rng() % 4, rng() % 4, (rng() % 3) == 0 ? 3 : rng() % 2);
+            one(dut, random, address, rng() % 8, rng() % 4, (rng() % 3) == 0 ? 3 : rng() % 2);
+            one(dut, random, address, 2, 2, i % 3 == 0 ? 3 : i % 2);
+            ++executeChecks;
+#ifdef ALIGNED_WORD_PMP
+            // Reuse the unchanged 128-bit interval oracle with an additional
+            // aligned-word vector per table, including execute and locked M.
+            one(dut, random, address & ~uint64_t(3), 2, i % 4, i % 3 == 0 ? 3 : i % 2);
+#endif
         }
-        std::cout << "GSIM PMP checker: PASS directed=16 randomized=6000 entries=16\n";
+        std::cout << "GSIM PMP checker: PASS directed=16 randomized=6000 entries=16"
+                  << " boundary=" << boundaryChecks << " execute4=" << executeChecks
+                  << " sizes=0..7 aligned_words=" << alignedWordChecks << '\n';
         return 0;
     } catch (const std::exception &e) {
         std::cerr << "GSIM PMP checker: FAIL " << e.what() << '\n';

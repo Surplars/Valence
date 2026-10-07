@@ -5,7 +5,8 @@ import chisel3.util._
 import soc.bus.tilelink._
 
 /** Two independent TL-UL masters sharing one manager. The added high source bit identifies the master on D. */
-class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3))
+class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
+    rawResponseMetadata: Boolean = false, rawRequestMetadata: Boolean = false)
     extends Module {
     require(params.sourceBits >= 1 && params.sourceBits <= 6)
     val managerParams = params.copy(sourceBits = params.sourceBits + 1)
@@ -31,10 +32,12 @@ class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataW
     val dSize = Reg(UInt(params.sizeBits.W))
     val dOpcode = Reg(UInt(3.W))
     val dRemaining = Reg(UInt(aRemaining.getWidth.W))
-    val eligible = VecInit((0 until 2).map { i =>
-        val source = Mux(io.masters(i).a.valid, io.masters(i).a.bits.source, 0.U)
-        io.masters(i).a.valid && !occupied(i)(source)
+    val requestBusy = VecInit((0 until 2).map { i =>
+        val source = if (rawRequestMetadata) io.masters(i).a.bits.source
+            else Mux(io.masters(i).a.valid, io.masters(i).a.bits.source, 0.U)
+        (occupied(i).asUInt & UIntToOH(source, 1 << params.sourceBits)).orR
     })
+    val eligible = VecInit((0 until 2).map(i => io.masters(i).a.valid && !requestBusy(i)))
     val selected = Mux(aBurst, aOwner, Mux(locked, lockedOwner,
         Mux(eligible(0) && eligible(1), turn, eligible(1))))
     val source = io.masters(selected).a.bits.source
@@ -48,8 +51,7 @@ class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataW
     io.manager.a.bits.data    := io.masters(selected).a.bits.data
     io.manager.a.bits.corrupt := io.masters(selected).a.bits.corrupt
     for (i <- 0 until 2) {
-        io.masters(i).a.ready := selected === i.U && (aBurst || !occupied(i)(Mux(io.masters(i).a.valid,
-            io.masters(i).a.bits.source, 0.U))) &&
+        io.masters(i).a.ready := selected === i.U && (aBurst || !requestBusy(i)) &&
             io.manager.a.ready
         io.masters(i).b.valid := false.B
         io.masters(i).b.bits := 0.U.asTypeOf(io.masters(i).b.bits)
@@ -94,16 +96,26 @@ class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataW
         turn := !selected
     }
 
-    val responseOwner = Mux(io.manager.d.valid, io.manager.d.bits.source(params.sourceBits), 0.U)
-    val responseSource = Mux(io.manager.d.valid, io.manager.d.bits.source(params.sourceBits - 1, 0), 0.U)
-    val responseKnown = occupied(responseOwner)(responseSource)
+    // Ownership payload lookup can run before valid. Only valid/fire authorizes
+    // a reply/state mutation; idle metadata need not denote master/source zero.
+    val responseOwner = if (rawResponseMetadata) io.manager.d.bits.source(params.sourceBits)
+        else Mux(io.manager.d.valid, io.manager.d.bits.source(params.sourceBits), 0.U)
+    val responseSource = if (rawResponseMetadata) io.manager.d.bits.source(params.sourceBits - 1, 0)
+        else Mux(io.manager.d.valid, io.manager.d.bits.source(params.sourceBits - 1, 0), 0.U)
+    // Match each owner independently. No indexed owner-row mux may precede
+    // source validity, master D.valid and the downstream ready round trip.
+    val responseSelect = UIntToOH(responseSource, 1 << params.sourceBits)
+    val responseMatches = VecInit((0 until 2).map { i =>
+        responseOwner === i.U && (occupied(i).asUInt & responseSelect).orR
+    })
+    val responseKnown = responseMatches.asUInt.orR
     when(io.manager.d.valid && dBurst) {
         assert(io.manager.d.bits.source === dSource && io.manager.d.bits.size === dSize &&
             io.manager.d.bits.opcode === dOpcode,
             "TileLink D burst interleaved or changed control between beats")
     }
     for (i <- 0 until 2) {
-        io.masters(i).d.valid := io.manager.d.valid && responseKnown && responseOwner === i.U
+        io.masters(i).d.valid := io.manager.d.valid && responseMatches(i)
         io.masters(i).d.bits.opcode := io.manager.d.bits.opcode
         io.masters(i).d.bits.param := io.manager.d.bits.param
         io.masters(i).d.bits.size := io.manager.d.bits.size
@@ -113,7 +125,7 @@ class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataW
         io.masters(i).d.bits.data := io.manager.d.bits.data
         io.masters(i).d.bits.corrupt := io.manager.d.bits.corrupt
     }
-    io.manager.d.ready := responseKnown && io.masters(responseOwner).d.ready
+    io.manager.d.ready := (0 until 2).map(i => responseMatches(i) && io.masters(i).d.ready).reduce(_ || _)
     when(io.manager.d.valid) {
         assert(responseKnown || (io.manager.a.fire && io.manager.a.bits.source === io.manager.d.bits.source),
             "Two-master TileLink response has no matching source")

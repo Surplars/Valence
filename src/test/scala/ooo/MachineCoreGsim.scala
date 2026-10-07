@@ -2,6 +2,7 @@ package ooo
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 import soc.ip.bus.RegisterPort
@@ -19,8 +20,44 @@ class MachineCoreGsim(
     tileLinkFetch: Boolean = false,
     coherentLineCache: Boolean = false,
     coherentLineCacheLines: Int = 0,
-    instructionLineCacheLines: Int = 0
+    instructionLineCacheLines: Int = 0,
+    systemRecoveryFixture: Boolean = false
 ) extends Module {
+    require(!p.registeredFetchPacket || (!synchronous && !mapped && !wired),
+        "registered raw-fetch machine fixture supports only the direct instruction/MSI boundary")
+    // GSIM applies registers at the start of step(). This is a test-device
+    // cursor for the next raw instruction offer, never an architectural oracle.
+    val nextFetchPc = IO(Output(UInt(64.W)))
+    val headTrapAccepted = IO(Output(Bool()))
+    val emptyTrapAccepted = IO(Output(Bool()))
+    require(!systemRecoveryFixture || (!synchronous && !mapped && !wired && p.pmpEntries == 0),
+        "authorization fixture observes the direct MachineCore boundary; VM/PMP remain separate tests")
+    // Only this opt-in fixture has a delayed *external* FENCE.I flush reply.
+    // Bores below are observational; no internal completion/grant is driven.
+    val systemFenceHold = if (systemRecoveryFixture) IO(Input(Bool())) else WireDefault(false.B)
+    def systemBool(name: String): Bool =
+        if (systemRecoveryFixture) IO(Output(Bool())).suggestName(name) else WireDefault(false.B)
+    def systemUInt(name: String, width: Int): UInt =
+        if (systemRecoveryFixture) IO(Output(UInt(width.W))).suggestName(name) else WireDefault(0.U(width.W))
+    val systemStartSeen = systemBool("systemStartSeen")
+    val systemStartPc = systemUInt("systemStartPc", 64)
+    val systemStartIndex = systemUInt("systemStartIndex", p.robBits)
+    val systemStartTag = systemUInt("systemStartTag", p.tagBits)
+    val systemOfferValid = systemBool("systemOfferValid")
+    val systemOfferReady = systemBool("systemOfferReady")
+    val systemOfferRedirect = systemBool("systemOfferRedirect")
+    val systemOfferException = systemBool("systemOfferException")
+    val systemOfferIndex = systemUInt("systemOfferIndex", p.robBits)
+    val systemOfferTag = systemUInt("systemOfferTag", p.tagBits)
+    val systemRecoveryAck = systemBool("systemRecoveryAck")
+    val systemRedirectMatch = systemBool("systemRedirectMatch")
+    val systemInvalidateRequested = systemBool("systemInvalidateRequested")
+    val systemInvalidated = systemBool("systemInvalidated")
+    val systemProtectedSeen = systemBool("systemProtectedSeen")
+    val systemOwnerIndex = systemUInt("systemOwnerIndex", p.robBits)
+    val systemOwnerTag = systemUInt("systemOwnerTag", p.tagBits)
+    val systemLsuComplete = systemBool("systemLsuComplete")
+    val systemMComplete = systemBool("systemMComplete")
     val io = IO(new Bundle {
         val timerInterrupt   = Input(Bool())
         val timeValue        = Input(UInt(64.W))
@@ -83,6 +120,9 @@ class MachineCoreGsim(
     io.commit3 := 0.U.asTypeOf(io.commit3)
     io.fetchWait        := false.B
     io.uartTx           := true.B
+    nextFetchPc         := io.fetchPc
+    headTrapAccepted    := false.B
+    emptyTrapAccepted   := false.B
     if (synchronous) {
         val core = Module(new MachinePlatform(p, programmable = true, sharedReadCache = cached,
             ramResponseDelay = ramResponseDelay, tileLinkMemory = tileLinkMemory,
@@ -187,7 +227,41 @@ class MachineCoreGsim(
         io.committedValue  := core.io.committedValue
     } else {
         val core = Module(new MachineCore(p))
-        core.io.fenceIFlushReady := true.B
+        if (p.registeredFetchPacket) {
+            // MachineCore deliberately does not expose this production port;
+            // bore only into this test wrapper, without changing its interface.
+            nextFetchPc := BoringUtils.bore(core.core.io.nextFetchPc.get)
+        }
+        if (p.fastHeadTrapRecovery) {
+            headTrapAccepted := BoringUtils.bore(core.core.backend.headTrapAccepted)
+            emptyTrapAccepted := BoringUtils.bore(core.core.backend.emptyTrap)
+        }
+        if (systemRecoveryFixture) {
+            val backend = core.core.backend
+            val unit = backend.systemUnit.get
+            systemStartSeen := BoringUtils.bore(backend.systemStart)
+            systemStartPc := BoringUtils.bore(unit.io.start.bits.pc)
+            systemStartIndex := BoringUtils.bore(unit.io.start.bits.token.index)
+            systemStartTag := BoringUtils.bore(unit.io.start.bits.token.tag)
+            systemOfferValid := BoringUtils.bore(unit.io.complete.valid)
+            systemOfferReady := BoringUtils.bore(unit.io.complete.ready)
+            systemOfferRedirect := BoringUtils.bore(unit.io.complete.bits.redirect)
+            systemOfferException := BoringUtils.bore(unit.io.complete.bits.completion.exception)
+            systemOfferIndex := BoringUtils.bore(unit.io.complete.bits.completion.token.index)
+            systemOfferTag := BoringUtils.bore(unit.io.complete.bits.completion.token.tag)
+            // Match is the actual downstream authorization, not an OR bypass
+            // with headSystem.accepted. This also supports the old generic A/B.
+            systemRecoveryAck := BoringUtils.bore(backend.localRedirectAccepted)
+            systemRedirectMatch := BoringUtils.bore(backend.systemRedirectMatches)
+            systemInvalidateRequested := BoringUtils.bore(backend.systemInvalidate)
+            systemInvalidated := BoringUtils.bore(backend.io.invalidateFetch)
+            systemProtectedSeen := BoringUtils.bore(backend.systemProtected)
+            systemOwnerIndex := BoringUtils.bore(backend.systemOwner.index)
+            systemOwnerTag := BoringUtils.bore(backend.systemOwner.tag)
+            systemLsuComplete := BoringUtils.bore(backend.lsu.io.complete.valid)
+            systemMComplete := BoringUtils.bore(backend.mCompleteValid)
+        }
+        core.io.fenceIFlushReady := !systemFenceHold
         core.io.timerInterrupt  := io.timerInterrupt
         core.io.timeValue       := io.timeValue
         io.msiError             := false.B
@@ -211,6 +285,45 @@ class MachineCoreGsim(
         io.committedValue  := core.io.committedValue
     }
 }
+/** Exact two-issue backend and both new pipeline cuts at the DIRECT-IRQ
+  * instruction/data/MSI test boundary. The existing SystemModel IRQ oracle
+  * assumes direct IMSIC levels. Production registered IMSIC integration must
+  * be verified separately and is not claimed by this emitter.
+  */
+object ThroughputMachineCoreGsimMain extends App {
+    val profile = args.lift(1).getOrElse("staged-throughput")
+    val p = ThroughputPerfConfig.params(profile).copy(registeredImsicInterrupts = false)
+    require(p.renameWidth == 2 && p.commitWidth == 2 && p.completionWidth == 2 &&
+        p.robEntries == 16 && p.physicalRegs == 48 && p.tagBits == 64 &&
+        p.memoryEntries == 2 && p.branchPredictorEntries == 32)
+    require(profile != "staged-throughput" ||
+        (p.registeredIssueExecute && p.registeredFetchPacket && p.fastHeadTrapRecovery &&
+            p.fastHeadSystemRecovery && p.tentativeRenameSources && p.sharedPhysicalSourceDecode),
+        "throughput head-trap fixture must retain both pipeline cuts and fast head-trap recovery")
+    println(s"MACHINE_HEAD_TRAP_FIXTURE profile=$profile irqBoundary=DIRECT-IRQ " +
+        s"registeredImsicInterrupts=${p.registeredImsicInterrupts} rob=${p.robEntries} " +
+        s"prf=${p.physicalRegs} tagBits=${p.tagBits} memoryEntries=${p.memoryEntries} " +
+        s"branchEntries=${p.branchPredictorEntries} registeredIssueExecute=${p.registeredIssueExecute} " +
+        s"registeredFetchPacket=${p.registeredFetchPacket} fastHeadTrapRecovery=${p.fastHeadTrapRecovery}")
+    ChiselStage.emitCHIRRTLFile(new MachineCoreGsim(p), Array("--target-dir", args.head))
+}
+/** Same hardware geometry/profile; the second argument can retain generic
+  * system recovery for a same-stimulus cycle/handshake A/B. The other two new
+  * candidate flags stay enabled in both models. No production port changes.
+  */
+object AuthorizationMachineCoreGsimMain extends App {
+    val p = ThroughputPerfConfig.params("staged-throughput").copy(
+        registeredImsicInterrupts = false, fastHeadSystemRecovery = !args.drop(1).contains("generic-system"))
+    require(p.robEntries == 16 && p.physicalRegs == 48 && p.memoryEntries == 2 &&
+        p.registeredIssueExecute && p.registeredFetchPacket && p.fastHeadTrapRecovery &&
+        p.tentativeRenameSources && p.sharedPhysicalSourceDecode)
+    println(s"AUTHORIZATION_MACHINE_FIXTURE headSystem=${p.fastHeadSystemRecovery} " +
+        s"tentativeSources=${p.tentativeRenameSources} sharedDecode=${p.sharedPhysicalSourceDecode} " +
+        "irqBoundary=DIRECT-IRQ oracle=SystemModel fixture=legal-fence-flush-backpressure")
+    ChiselStage.emitCHIRRTLFile(new MachineCoreGsim(p, systemRecoveryFixture = true),
+        Array("--target-dir", args.head))
+}
+
 object MachineCoreGsimMain extends App {
     val p = OooParams(
         renameWidth = args.lift(8).map(_.toInt).getOrElse(2),

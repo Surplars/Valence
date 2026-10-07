@@ -5,8 +5,8 @@ import chisel3.util._
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
-class PipelinedMultiplyGsim extends Module {
-    val p  = OooParams()
+class PipelinedMultiplyGsim(registered: Boolean = false) extends Module {
+    val p  = OooParams(registeredMulDivOperands = registered)
     val io = IO(new Bundle {
         val start      = Flipped(Decoupled(new MultiplyDivideRequest(p)))
         val complete   = Decoupled(new BackendCompletion(p))
@@ -22,5 +22,5 @@ class PipelinedMultiplyGsim extends Module {
     io.busy        := unit.io.busy
 }
 object PipelinedMultiplyGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new PipelinedMultiplyGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new PipelinedMultiplyGsim(args.lift(1).contains("registered")), Array("--target-dir", args.head))
 }

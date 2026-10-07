@@ -49,8 +49,12 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse
     imsic.io.mmio <> io.msi
-    core.io.externalInterrupt.get           := imsic.io.interrupts(0)
-    core.io.supervisorExternalInterrupt.get := imsic.io.interrupts(1)
+    // The board profile cuts the routed IMSIC -> recovery-ledger critical path.
+    // A pending level is delayed by one cycle, while CSR reads remain direct.
+    val irqLevels = if (p.registeredImsicInterrupts)
+        RegNext(imsic.io.interrupts, 0.U(imsicParams.files.W)) else imsic.io.interrupts
+    core.io.externalInterrupt.get           := irqLevels(0)
+    core.io.supervisorExternalInterrupt.get := irqLevels(1)
     io.externalPending                      := imsic.io.interrupts
     core.io.timerInterrupt.get              := io.timerInterrupt
     core.io.timeValue.get                   := io.timeValue

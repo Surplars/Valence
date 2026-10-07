@@ -90,7 +90,9 @@ EBREAK/JALR/ADD/SWSP/SDSP 及标准 HINT 的无副作用展开。浮点压缩指
 RV64IMAC 的范围。`make gsim-vm-instruction-platform-test` 在 S-mode/Sv39 映射代码中
 执行这些指令与混合长度跳转，并验证页边界取指和页故障；另一个镜像让 32 位指令
 从页末半字地址开始，确认 `mepc=0x40000ffe`、`mtval=0x40001000`。该测试不是对全部 65,536
-个 16 位编码的穷尽认证；`misa` 目前仍未提供可信的能力位图。
+个 16 位编码的穷尽认证。2026-09-30 核对：Board40 的 `misa` 已提供固定的
+RV64 I/M/A/C/S/U 位图 `0x8000000000141105`，但不是穷尽一致性认证，
+也不枚举全部 Z 扩展；当前软件合同见 [OS 适配指南](os-software-porting.md)。
 
 `make coremark-setup` 获取固定版本的 EEMBC CoreMark 源码，`make gsim-coremark`
 以 `-O2 -march=rv64imac_zba_zbb_zbs_zicsr` 构建 2 KiB performance 工作负载，

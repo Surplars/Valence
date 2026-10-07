@@ -1,49 +1,68 @@
 # Valence
 
-Valence 是基于 Scala 2.13、Chisel 和 Mill 的 RISC-V 处理器与模块化 SoC 项目。产品线规划覆盖 MCU 到高性能 SoC；当前开发聚焦可配置的 2/4 发射 RV64 乱序核，以及以 TileLink 为内部互联的应用 SoC。6 发射和多核属于后续目标。RVA23S64/RVA23U64 是架构目标，XCZU15EG 是计划使用的 FPGA 器件；两者都不代表当前设计已经完成合规或板级时序验证。
+Valence 是 OpenIon 的可配置 RISC-V SoC 工程，使用 Scala、Chisel 和 Mill。
+当前 SoC 名为 **VL100**，乱序 CPU 核名为 **Orbital-A1**；板级基线为双发射，
+4 发射属于独立实验配置。ISA、微架构和外设配置分别控制，不能由某个板级配置推断所有配置的能力。
+RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
-GSIM 是目前完整硬件验证的受支持后端，NEMU 通过 DiffTest API 独立检查指令提交。Windows Arcilator 目前只有[原生 smoke 试验](simulator/arcilator/README.md)，尚未接入 CPU/SoC 回归。
+## 当前状态（2026-10-07）
 
-## 当前状态
+当前实现包含重命名、ROB、整数/分支执行、RV64C、原子访存、Sv39、可配置缓存及 F/D 路径。
+F/D 使用 Berkeley HardFloat 算术模块并接入本项目的译码、浮点状态、访存和提交控制；
+通用配置的浮点开关默认关闭，RV64GC 板级配置开启。支持范围与验收边界查
+[datasheet](docs/soc-datasheet.md) 和 [当前性能记录](docs/performance-status.md)，不是完整 ISA 合规声明。
 
-乱序核已有重命名、ROB、整数执行、分支预测、并行访存和可选写回 L1；2/4 发射配置已有定向验证，RV64IMAC、Zba/Zbb/Zbs 和 Zicond 的相关路径也经 GSIM 检查。4 发射前端已扩至 16 字节物理取指，并完成 CoreMark 与定向 IPC 测量；结果和瓶颈见[当前性能与证据边界](docs/performance-status.md)。这仍不是完整的 RVA23 CPU，也没有可据以宣称 FPGA 工作频率的时序结果。
+当前板级平台已接 PL DDR4、UART、通用 DMA、自研千兆 GMAC 及其专属 DMA、
+CMU 和多时钟域。较早板级版本已运行 OpenSBI/Linux，用户上板报告了 CoreMark 和网络启动结果。
+最新 r6 发布配置为 RV64GC、双发射、CPU 100 MHz、UART 460800 baud、完整 2 GiB DDR；
+整板布局布线后 setup/hold/pulse、接口时序及 bus-skew 检查通过并已生成 bit。
+但 setup 仅 +0.000 ns（报表舍入）、hold +0.005 ns，工程裕量仍不足，
+**最新 r6 bit 的板级复测尚待用户完成**。静态签核不等同于稳健性或性能验收。
+详见 [Vivado 时序记录](docs/fpga-timing-windows.md) 和 [Debian BSP](docs/vl100-debian-bsp.md)。
 
-SoC 已接 AIA 的 APLIC/IMSIC、UART、定时器、DMA、同步 ROM/RAM 和 TileLink 内存路径，另有独立验证的 AXI4 外存桥。单 hart 在 64 MiB GSIM RAM 上已由 OpenSBI 启动 Linux 并运行最小 `/init`；外部 DDR 接入、多 hart 整机与 Linux AIA 验收仍待完成。见[模块化 SoC 合同](docs/modular-soc.md)与[Linux 启动实验](docs/linux-bringup.md)。
+GSIM 是当前 CPU/SoC 的硬件验证后端，NEMU 提供独立提交参考。
+CDC 的短双时钟 RTL 检查另使用 Vivado xsim；不恢复旧 Verilator/ChiselSim 回归。
+Windows Arcilator 仅有 [smoke 试验](simulator/arcilator/README.md)。
 
-旧顺序核源码保留，但不作为新核正确性的依据。旧 Verilator 仿真入口及 harness 已删除；退役 ChiselSim 测试留在历史参考目录，尚未迁移到 GSIM，不能算作当前验证覆盖率。
-
-## 快速命令
+## 构建与验证
 
 ```bash
 make compile
-make test-scala       # 仅配置和 Chisel 展开检查，不启动硬件仿真器
-make gsim-setup       # 首次准备锁定版本的 GSIM
-make gsim-core-test   # 新核程序执行、访存和 NEMU 差分
-make gsim-ipc         # 默认裸核配置的确定性 IPC 基准
-make coremark-setup   # 首次准备锁定版本的 CoreMark 源码
-make gsim-coremark    # GSIM 裸机 CoreMark 工作负载与 guest 周期/IPC
-make gsim-linux-setup # 从 ~/board/linux 构建独立内核镜像
-make gsim-linux-test  # OpenSBI + Linux + 最小 /init 启动验收
-make test            # Scala 检查 + 完整 GSIM 回归（make regress 等价）
+make test-scala       # 当前模块的配置/展开检查
+make gsim-smoke       # 最短基础仿真链路检查
+make gsim-core-test   # 按需选择 CPU 执行/访存/NEMU 差分
+make gsim-ipc         # 裸核确定性 IPC 基准，不是 Linux IPC
+make gsim-coremark
+# make test / make regress 是完整回归；不要为小范围修改默认执行
 ```
 
-开发时按修改范围选择 `gsim-smoke`、`gsim-backend-test`、`gsim-integer-test`、`gsim-predictor-test` 或 `gsim-core-test`。
-依赖、支持范围和结果见 [GSIM 说明](simulator/gsim/README.md)。现有 CPU/SoC 回归不依赖 Verilator。
-Mill 构建模块名暂沿用 `IonSoC`，因此现有 `make` 命令和脚本不需要随项目名称改变。
+本机 GSIM 的 C++ 编译器可显式指定：`GSIM_CXX=clang++-19 make gsim-smoke`。
+首次部署、锁定版本和定向入口见 [GSIM 说明](simulator/gsim/README.md)。
+当前 Mill 模块名保留 `IonSoC` 以兼容已有脚本；它与历史硬件类 `soc.IonSoC` 不同。
 
-## 目录与文档
+## 源码边界
 
-- `src/main/scala/core/ooo`：独立新核；[设计与验收规划](docs/ooo-core-plan.md)。
-- `src/main/scala/isa`：新旧核心共享的标准编码与架构常量；[复用边界](docs/isa-reuse.md)。
-- `src/test/scala`：当前配置/展开检查与 GSIM 模型生成入口。
-- `simulator/gsim`：GSIM 驱动、工具链锁定和 NEMU 差分。
-- `legacy/`：保留旧测试、可复用的汇编程序、参考配置与历史文档；旧 firmware 和退役驱动已清理，见 [历史索引](legacy/README.md)。
-- [文档索引](docs/README.md)：区分新核当前状态与旧 SoC 历史记录。
+| 位置 | 内容 | Mill 模块 |
+| --- | --- | --- |
+| `src/main/scala/core/ooo` | Orbital-A1、当前 VL100 平台和核心侧适配 | `IonSoC` |
+| `src/main/scala/ip` | 可复用 UART、CMU、DMA、GMAC、互联等 IP | `IonSoC` |
+| `src/main/scala/isa`、`bus/tilelink/TileLink.scala` | 公共 ISA 编码与 TileLink 类型 | `IonSoC`，历史模块通过依赖复用 |
+| `src/test/scala` | 当前配置/展开检查和 GSIM 模型入口 | `IonSoC.test` |
+| `legacy/hardware/src` | 旧顺序核、旧 SoC 和旧控制适配 | 显式 `LegacySoC` / `LegacySoC.test` |
+| `legacy/tests` | 退役 ChiselSim 用例，仅供审查 | 不参与任何模块测试发现 |
 
-完整目录与放置规则见 [目录说明](docs/layout.md)。
+当前模块不依赖 `LegacySoC` 或旧 Scala `DifftestLib`；历史模块反向依赖公共定义和旧 DiffTest 库。
+`make legacy-compile`、`make legacy-elaboration`、`make legacy-rtl` 仅用于历史构建；
+`make sim-verilog` 是历史 RTL 导出别名，不是当前 VL100 板级导出。
+旧核有已知问题，不能作为新核正确性的参考。
 
-裸核接口、IPC 口径与结果见 [裸核 IPC](docs/bare-core-ipc.md)。
+## 文档与产物
 
-FPGA 同步 ROM＋双发射核＋同步 RAM 已运行 C 程序并通过 NEMU 差分；集成 RTL 导出与 Vivado 移交入口见 [FPGA 基线](docs/fpga-bringup.md)。当前没有 Vivado 实测频率或资源结果。
+- [文档索引](docs/README.md)、[目录说明](docs/layout.md)、[本次整理与提交清单](docs/repository-maintenance.md)。
+- 软件适配：[datasheet](docs/soc-datasheet.md)、[寄存器](docs/soc-registers.md)、[OS 移植](docs/os-software-porting.md)。
+- 板级源码：`fpga/firmware` 与 `fpga/zu15eg`；历史资料见 [legacy 索引](legacy/README.md)。
+- `build/` 是可再生输出，`out/` 是 Mill 缓存，`simulator/build/` 是工具/软件源码缓存，均不提交。
 
-新应用 SoC 以 [RVA23S64 / RVA23U64](docs/rva23.md) 为架构目标；当前开发核尚未符合完整 profile。
+2026-10-07 整理前的源码、全部 build 产物和最新 r6 发布报告已校验归档到
+`/home/openion/Valence-archive/20261007-precommit`，不放入 Git。
+历史文档中的旧 `build/...` 回执路径保留原始口径，恢复方法见整理清单。

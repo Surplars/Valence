@@ -20,12 +20,17 @@ class CoherentCacheProfile extends Bundle {
 
 /** Single-client, write-back 64-byte L1. Resident lines own T permission; dirty data reaches
   * the home through ReleaseData on eviction or ProbeAckData on an external access.
+  * One or two ways share the same total line capacity and synchronous data banks.
+  * Hits retain one-cycle SRAM latency and ordered, backpressured responses; a miss
+  * still owns one slot until refill completes. Two-way LRU only changes placement.
   */
 class CoherentLineCache(
-    base: BigInt = BigInt("80010000", 16), bytes: Int = 8192, lines: Int = 128,
-    params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
+    base: BigInt = BigInt("80010000", 16), bytes: BigInt = 8192, lines: Int = 128,
+    params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
+    ways: Int = 1
 ) extends Module {
     require(lines >= 2 && lines <= 256 && isPow2(lines))
+    require(Set(1, 2).contains(ways) && lines / ways >= 2)
     require(bytes >= 64 && bytes % 64 == 0 && base % 64 == 0)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -38,14 +43,18 @@ class CoherentLineCache(
         val profile = Output(new CoherentCacheProfile)
     })
     private val indexBits = log2Ceil(lines)
+    private val setBits = log2Ceil(lines / ways)
     private val Seq(idle, evictCapture, evictSend, evictAck, acquire, fill, missResponse,
         bypassSend, bypassResponse, probeCapture, probeSend, flushScan) = Enum(12)
     private val state = RegInit(idle)
     private val valid = RegInit(VecInit(Seq.fill(lines)(false.B)))
     private val dirty = RegInit(VecInit(Seq.fill(lines)(false.B)))
-    private val tags = Reg(Vec(lines, UInt((64 - 6 - indexBits).W)))
+    private val tags = Reg(Vec(lines, UInt((64 - 6 - setBits).W)))
+    private val replacement = if (ways == 2)
+        Some(RegInit(VecInit(Seq.fill(lines / ways)(false.B)))) else None
     private val data = Seq.fill(8)(SyncReadMem(lines, Vec(8, UInt(8.W))))
     private val pending = Reg(new DataRequest)
+    private val pendingIndex = Reg(UInt(indexBits.W))
     private val pendingBypass = Reg(Bool())
     private val missResult = Reg(new DataResponse)
     private val victimAddress = Reg(UInt(64.W))
@@ -59,6 +68,7 @@ class CoherentLineCache(
     private val probeWords = Reg(Vec(8, UInt(64.W)))
     private val probeBeat = RegInit(0.U(3.W))
     private val probeResume = Reg(UInt(state.getWidth.W))
+    private val refillResultPending = WireDefault(false.B)
     private val flushActive = RegInit(false.B)
     private val flushFinished = RegInit(false.B)
     private val flushIndex = RegInit(0.U(indexBits.W))
@@ -67,13 +77,39 @@ class CoherentLineCache(
     private val storePending = RegInit(false.B)
     private val readResponses = Module(new Queue(new DataResponse, 2, pipe = false, flow = true))
 
-    private def lineIndex(address: UInt): UInt = address(5 + indexBits, 6)
-    private def lineTag(address: UInt): UInt = address(63, 6 + indexBits)
+    private def lineSet(address: UInt): UInt = address(5 + setBits, 6)
+    private def lineTag(address: UInt): UInt = address(63, 6 + setBits)
+    private def slot(address: UInt, way: Int): UInt =
+        if (ways == 1) lineSet(address) else Cat(way.U(1.W), lineSet(address))
+    private def matches(address: UInt, way: Int): Bool =
+        valid(slot(address, way)) && tags(slot(address, way)) === lineTag(address)
+    private def residentSlot(address: UInt): UInt =
+        if (ways == 1) lineSet(address) else Mux(matches(address, 0), slot(address, 0), slot(address, 1))
+    private def slotAddress(index: UInt): UInt = Cat(tags(index), index(setBits - 1, 0), 0.U(6.W))
+    private def touch(index: UInt): Unit = replacement.foreach { lru =>
+        lru(index(setBits - 1, 0)) := !index(indexBits - 1)
+    }
     private val request = io.upstream.request.bits
-    private val index = lineIndex(request.address)
-    private val found = valid(index) && tags(index) === lineTag(request.address)
-    private val cacheable = request.address >= base.U(65.W) &&
-        (request.address +& (1.U(64.W) << request.size)) <= (base + bytes).U(65.W)
+    private val found = (0 until ways).map(matches(request.address, _)).reduce(_ || _)
+    private val victim = if (ways == 1) lineSet(request.address) else {
+        val first = slot(request.address, 0)
+        val second = slot(request.address, 1)
+        Mux(!valid(first), first, Mux(!valid(second), second,
+            Cat(replacement.get(lineSet(request.address)), lineSet(request.address))))
+    }
+    private val index = Mux(found, residentSlot(request.address), victim)
+    private val cacheable = if (isPow2(bytes) && base % bytes == 0) {
+        // An aligned power-of-two window needs neither a 65-bit end addition
+        // nor wide magnitude comparisons on the request-to-SRAM-enable path.
+        val offsetBits = log2Ceil(bytes)
+        val maximumStart = MuxLookup(request.size, 0.U(offsetBits.W))(
+            (0 to 3).map(s => s.U -> (bytes - (1 << s)).U(offsetBits.W)))
+        request.address(63, offsetBits) === (base >> offsetBits).U((64 - offsetBits).W) &&
+            request.address(offsetBits - 1, 0) <= maximumStart
+    } else {
+        request.address >= base.U(65.W) &&
+            (request.address +& (1.U(64.W) << request.size)) <= (base + bytes).U(65.W)
+    }
     private val ordinary = cacheable && !request.atomic && !request.virtualized && !request.uncached
     private val bypass = !ordinary
     private val needsEviction = cacheable && valid(index) && (!found || bypass)
@@ -88,7 +124,7 @@ class CoherentLineCache(
     private val flushRead = state === flushScan && !io.tl.b.valid && valid(flushIndex) && dirty(flushIndex)
     private val readWords = VecInit((0 until 8).map { i =>
         val enabled = probeRead || evictRead || flushRead || (cpuRead && request.address(5, 3) === i.U)
-        data(i).read(Mux(probeRead, lineIndex(io.tl.b.bits.address),
+        data(i).read(Mux(probeRead, residentSlot(io.tl.b.bits.address),
             Mux(flushRead, flushIndex, index)), enabled).asUInt
     })
     private def merge(oldWord: UInt, write: DataRequest): UInt = Cat((7 to 0 by -1).map { i =>
@@ -100,10 +136,18 @@ class CoherentLineCache(
     // the same ordered response queue. Independent read hits may be captured while one
     // line is being acquired, but their responses remain behind the older miss.
     io.flushDone := flushFinished
-    io.tl.b.ready := state === idle || state === acquire || state === fill ||
-        state === bypassSend || state === flushScan
+    // A queued uncached/atomic CPU request may be behind a probing DMA at the
+    // home. Never make B depend on that CPU reply. A completed refill is first
+    // installed, then probed from missResponse, so its new tag/data are visible.
+    io.tl.b.ready := state === idle || state === acquire ||
+        (state === fill && !refillResultPending) || state === missResponse ||
+        state === bypassSend || state === bypassResponse || state === flushScan
+    private val probing = state === probeCapture || state === probeSend
+    private val bypassReply = state === bypassResponse || (probing && probeResume === bypassResponse)
+    private val missReply = state === missResponse || (probing && probeResume === missResponse)
+    private val queuedReply = state === idle || (probing && probeResume === idle)
     val hitUnderMiss = (state === acquire || state === fill) && readHit &&
-        index =/= lineIndex(pending.address) && readCapacity
+        index =/= pendingIndex && readCapacity
     io.upstream.request.ready := !io.tl.b.valid && !io.flushRequest &&
         Mux(state === idle, Mux(readHit || writeHit, readCapacity,
             noReadOutstanding && Mux(bypass && !needsEviction, io.downstream.request.ready, true.B)),
@@ -112,18 +156,20 @@ class CoherentLineCache(
         (state === idle && noReadOutstanding && io.upstream.request.valid && bypass && !io.flushRequest &&
             !needsEviction && !io.tl.b.valid)
     io.downstream.request.bits := Mux(state === bypassSend, pending, request)
-    io.downstream.response.ready := state === bypassResponse && io.upstream.response.ready
+    io.downstream.response.ready := bypassReply && io.upstream.response.ready
     readResponses.io.enq.valid := readPending
     readResponses.io.enq.bits.data := Mux(storePending, 0.U,
         Mux1H(UIntToOH(hitBank, 8), readWords))
     readResponses.io.enq.bits.error := false.B
     readResponses.io.enq.bits.pageFault := false.B
-    readResponses.io.deq.ready := io.upstream.response.ready && state === idle
+    readResponses.io.deq.ready := io.upstream.response.ready && queuedReply
     assert(!readPending || readResponses.io.enq.ready, "cache hit response queue overflow")
-    io.upstream.response.valid := (state === idle && readResponses.io.deq.valid) || state === missResponse ||
-        (state === bypassResponse && io.downstream.response.valid)
-    io.upstream.response.bits := Mux(state === missResponse, missResult,
-        Mux(state === bypassResponse, io.downstream.response.bits, readResponses.io.deq.bits))
+    // Probes must not withdraw an already offered CPU response. Keep the older
+    // reply live under B/C backpressure; queued hit replies stay behind a miss.
+    io.upstream.response.valid := (queuedReply && readResponses.io.deq.valid) || missReply ||
+        (bypassReply && io.downstream.response.valid)
+    io.upstream.response.bits := Mux(missReply, missResult,
+        Mux(bypassReply, io.downstream.response.bits, readResponses.io.deq.bits))
     io.hit := cpuFire && ordinary && found
     io.miss := cpuFire && ordinary && !found
     io.profile.emptySlotMiss := io.miss && !valid(index)
@@ -150,7 +196,7 @@ class CoherentLineCache(
     }
     when(state === flushScan && !io.tl.b.valid) {
         when(valid(flushIndex) && dirty(flushIndex)) {
-            victimAddress := Cat(tags(flushIndex), flushIndex, 0.U(6.W))
+            victimAddress := slotAddress(flushIndex)
             victimDirty := dirty(flushIndex)
             valid(flushIndex) := false.B
             dirty(flushIndex) := false.B
@@ -166,12 +212,13 @@ class CoherentLineCache(
     when(cpuFire) {
         when(state === idle) {
             pending := request
+            pendingIndex := index
             pendingBypass := bypass
         }.otherwise {
             assert(hitUnderMiss, "only independent read hits may pass an outstanding cache miss")
         }
         when(needsEviction) {
-            victimAddress := Cat(tags(index), index, 0.U(6.W))
+            victimAddress := slotAddress(index)
             victimDirty := dirty(index)
             valid(index) := false.B
             dirty(index) := false.B
@@ -179,10 +226,12 @@ class CoherentLineCache(
         }.elsewhen(bypass) {
             state := bypassResponse
         }.elsewhen(writeHit) {
+            touch(index)
             dirty(index) := true.B
             readPending := true.B
             storePending := true.B
         }.elsewhen(readHit) {
+            touch(index)
             hitBank := request.address(5, 3)
             readPending := true.B
         }.otherwise { state := acquire }
@@ -225,6 +274,7 @@ class CoherentLineCache(
     when(state === bypassResponse && io.upstream.response.fire) { state := idle }
 
     private val engine = Module(new TileLinkLineAcquireEngine(params, entries = 4))
+    refillResultPending := engine.io.response.valid
     engine.io.request.valid := state === acquire && !io.tl.b.valid
     engine.io.request.bits.address := Cat(pending.address(63, 6), 0.U(6.W))
     engine.io.request.bits.tag := 0.U
@@ -232,7 +282,7 @@ class CoherentLineCache(
     engine.io.request.bits.permissionOnly := false.B
     when(engine.io.request.fire) { state := fill }
     engine.io.response.ready := state === fill
-    val fillIndex = lineIndex(pending.address)
+    val fillIndex = pendingIndex
     val selected = pending.address(5, 3)
     val writeHitFire = cpuFire && state === idle && !needsEviction && !bypass && writeHit
     for (i <- 0 until 8) {
@@ -254,6 +304,7 @@ class CoherentLineCache(
             tags(fillIndex) := lineTag(pending.address)
             valid(fillIndex) := true.B
             dirty(fillIndex) := pending.write
+            touch(fillIndex)
         }
         missResult.data := Mux(pending.write, 0.U, word)
         missResult.error := engine.io.response.bits.error
@@ -270,10 +321,13 @@ class CoherentLineCache(
     when(io.tl.b.fire) {
         assert(io.tl.b.bits.opcode === TLOpcode.ProbeBlock && io.tl.b.bits.size === 6.U &&
             io.tl.b.bits.param === TLPermissions.toN, "private cache expects an invalidation probe")
-        val probeIndex = lineIndex(io.tl.b.bits.address)
+        val probeIndex = residentSlot(io.tl.b.bits.address)
         probeAddress := io.tl.b.bits.address
         probeSource := io.tl.b.bits.source
-        probeResume := state
+        // B and the pending CPU reply may both handshake in this cycle. Resume
+        // idle in that case, not a response state whose credit was consumed.
+        probeResume := Mux((state === bypassResponse || state === missResponse) &&
+            io.upstream.response.fire, idle, state)
         probeHit := valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address)
         probeDirty := valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address) &&
             dirty(probeIndex)
@@ -288,8 +342,12 @@ class CoherentLineCache(
         probeBeat := 0.U
         state := probeSend
     }
+    private val probeReplyConsumed = probing && (bypassReply || missReply) && io.upstream.response.fire
+    when(probeReplyConsumed) { probeResume := idle }
     when(io.tl.c.fire && state === probeSend) {
-        when(!probeDirty || probeBeat === 7.U) { state := probeResume }
+        when(!probeDirty || probeBeat === 7.U) {
+            state := Mux(probeReplyConsumed, idle, probeResume)
+        }
             .otherwise { probeBeat := probeBeat + 1.U }
     }
 }

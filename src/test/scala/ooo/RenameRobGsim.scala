@@ -22,6 +22,11 @@ class RenameRobGsim(p: OooParams) extends Module {
         val dispatchReady       = Input(Bool())
         val commitEnable        = Input(Bool())
         val recover             = Input(Valid(new RecoveryRequest(p)))
+        val headTrap = if (p.fastHeadTrapRecovery) Some(Input(Bool())) else None
+        val headTrapAccepted = if (p.fastHeadTrapRecovery) Some(Output(Bool())) else None
+        val headSystem = if (p.fastHeadSystemRecovery) Some(Input(Bool())) else None
+        val headSystemAccepted = if (p.fastHeadSystemRecovery) Some(Output(Bool())) else None
+        val headSystemToken = if (p.fastHeadSystemRecovery) Some(Output(new RobToken(p))) else None
         val recoveryAccepted    = Output(Bool())
         val recovering          = Output(Bool())
         val occupancy           = Output(UInt(p.countBits.W))
@@ -36,8 +41,24 @@ class RenameRobGsim(p: OooParams) extends Module {
     backend.io.fastHeadRetire := 0.U.asTypeOf(Valid(new BackendCompletion(p)))
     backend.io.allocate(0)     := io.allocate0
     backend.io.allocate(1)     := io.allocate1
+    backend.io.rawRequests.foreach { raw =>
+        raw(0) := io.allocate0.bits
+        raw(1) := io.allocate1.bits
+    }
+    backend.io.fetchFaultMask.foreach(_ := 0.U)
+    backend.io.rawDestinations.foreach { indices =>
+        // Non-writers deliberately carry unrelated raw indices; they must never
+        // allocate or mutate the RAT. The independent ledger oracle is unchanged.
+        indices(0) := Mux(io.allocate0.bits.writesRd, io.allocate0.bits.rd, (io.allocate0.bits.rd + 17.U)(4, 0))
+        indices(1) := Mux(io.allocate1.bits.writesRd, io.allocate1.bits.rd, (io.allocate1.bits.rd + 9.U)(4, 0))
+    }
     backend.io.complete(0)     := io.complete0
     backend.io.complete(1)     := io.complete1
+    backend.io.sameCycleRetire.foreach(_ := true.B)
+    backend.io.sameCycleFault.foreach { faults =>
+        faults(0) := io.complete0.bits.exception
+        faults(1) := io.complete1.bits.exception
+    }
     io.renamed0                := backend.io.renamed(0)
     io.renamed1                := backend.io.renamed(1)
     io.commit0                 := backend.io.commit(0)
@@ -48,6 +69,16 @@ class RenameRobGsim(p: OooParams) extends Module {
     backend.io.commitEnable    := io.commitEnable
     backend.io.recover         := io.recover
     backend.io.recoveryProbe   := io.recover
+    backend.io.headTrap.foreach { port =>
+        port.valid := io.headTrap.get
+        io.headTrapAccepted.get := port.accepted
+    }
+    backend.io.headSystem.foreach { port =>
+        port.valid := io.headSystem.get
+        io.headSystemAccepted.get := port.accepted
+        io.headSystemToken.get := port.headToken
+    }
+    backend.io.parallelRecovery.foreach(_.local := 0.U.asTypeOf(Valid(new RecoveryRequest(p))))
     backend.io.inspectRegister := io.inspectRegister
     io.recoveryAccepted        := backend.io.recoveryAccepted
     io.recovering              := backend.io.recovering
@@ -67,7 +98,19 @@ object RenameRobGsimMain extends App {
         tagBits = args.lift(3).map(_.toInt).getOrElse(64),
         recoveryWidth = args.lift(4).map(_.toInt).getOrElse(1),
         compressedInstructions = args.lift(5).contains("move-alias"),
-        moveAlias = args.lift(5).contains("move-alias")
+        moveAlias = args.lift(5).contains("move-alias"),
+        parallelRenameAdmission = args.drop(5).contains("early-destinations"),
+        earlyRenameDestinations = args.drop(5).contains("early-destinations"),
+        parallelRenameRanks = args.drop(5).contains("parallel-ranks"),
+        parallelArchitecturalDestinations = args.drop(5).contains("early-architectural-destinations"),
+        registeredBranchRedirect = args.drop(5).contains("separate-retire-fault"),
+        registeredRobRetirement = args.drop(5).contains("separate-retire-fault"),
+        separateBranchRetireFault = args.drop(5).contains("separate-retire-fault"),
+        parallelRecoveryAdmission = args.drop(5).contains("parallel-recovery-admission") ||
+            args.drop(5).contains("fast-head-trap") || args.drop(5).contains("fast-head-system"),
+        fastHeadTrapRecovery = args.drop(5).contains("fast-head-trap"),
+        fastHeadSystemRecovery = args.drop(5).contains("fast-head-system"),
+        tentativeRenameSources = args.drop(5).contains("tentative-sources")
     )
     ChiselStage.emitCHIRRTLFile(new RenameRobGsim(p), Array("--target-dir", target))
 }

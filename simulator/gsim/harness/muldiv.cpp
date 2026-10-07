@@ -7,9 +7,14 @@
 #include <string>
 #include "muldiv_model.h"
 static void check(bool ok, const char *message) { if (!ok) throw std::runtime_error(message); }
-int main() {
+#ifndef REGISTERED_MULDIV_OPERANDS
+#define REGISTERED_MULDIV_OPERANDS 0
+#endif
+static constexpr unsigned inputLatency=REGISTERED_MULDIV_OPERANDS;
+int main(int argc,char** argv) {
     try {
         SMultiplyDivide d;
+        const bool inject=argc==2 && std::string(argv[1])=="--inject-mismatch";
         d.set_io$$start$$valid(0); d.set_io$$start$$bits$$token$$index(0); d.set_io$$start$$bits$$token$$tag(0);
         d.set_io$$start$$bits$$pc(0); d.set_io$$start$$bits$$operation(0); d.set_io$$start$$bits$$word(0);
         d.set_io$$start$$bits$$left(0); d.set_io$$start$$bits$$right(0);
@@ -18,7 +23,7 @@ int main() {
         std::mt19937_64 rng(231064);
         uint64_t accepted = 0, completed = 0, cancelled = 0, held = 0;
         auto test = [&](unsigned op, bool word, uint64_t a, uint64_t b, unsigned kill = 0) {
-            const unsigned latency = op < 4 ? 6 : (word ? 34 : 66), stalls = 1 + rng() % 7;
+            const unsigned latency = (op < 4 ? 6 : (word ? 34 : 66))+inputLatency, stalls = 1 + rng() % 7;
             const uint64_t tag = ++accepted, pc = 0x80000000 + 4 * tag;
             d.set_io$$start$$valid(1); d.set_io$$start$$bits$$operation(op); d.set_io$$start$$bits$$word(word);
             d.set_io$$start$$bits$$left(a); d.set_io$$start$$bits$$right(b);
@@ -35,7 +40,7 @@ int main() {
                 check(d.get_io$$owner$$tag() == tag, "owner changed while busy");
                 check(bool(d.get_io$$complete$$valid()) == (cycle >= latency), "arithmetic response latency");
                 if (d.get_io$$complete$$valid()) {
-                    check(d.get_io$$complete$$bits$$data() == expected, "arithmetic mismatch");
+                    check((d.get_io$$complete$$bits$$data() ^ uint64_t(inject)) == expected, "arithmetic mismatch");
                     check(d.get_io$$complete$$bits$$token$$tag() == tag && d.get_io$$complete$$bits$$token$$index() == tag % 32,
                           "completion token mismatch");
                     check(d.get_io$$complete$$bits$$nextPc() == pc + 4 && !d.get_io$$complete$$bits$$exception(), "completion metadata");
@@ -53,11 +58,12 @@ int main() {
             if (word && op > 0 && op < 4) continue;
             for (auto a : values) for (auto b : values) test(op,word,a,b);
             for (unsigned i=0; i<200; ++i) test(op,word,rng(),rng());
-            const unsigned latency = op < 4 ? 6 : (word ? 34 : 66);
+            const unsigned latency = (op < 4 ? 6 : (word ? 34 : 66))+inputLatency;
             for (unsigned kill : {1U, latency / 2, latency}) test(op,word,rng(),rng(),kill);
         }
         check(completed == 3900 && cancelled == 39 && held > 10000, "unit coverage");
         std::cout << "GSIM MultiplyDivide: PASS completed=" << completed << " cancelled=" << cancelled << " held=" << held
-                  << " latencyMul=6 latencyDiv64=66 latencyDiv32=34\n";
+                  << " latencyMul="<<6+inputLatency<<" latencyDiv64="<<66+inputLatency
+                  <<" latencyDiv32="<<34+inputLatency<<"\n";
     } catch (const std::exception &e) { std::cerr << "GSIM MultiplyDivide: FAIL " << e.what() << '\n'; return 1; }
 }

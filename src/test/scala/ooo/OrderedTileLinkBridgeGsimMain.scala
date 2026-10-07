@@ -10,7 +10,8 @@ object OrderedTileLinkBridgeGsimMain extends App {
             orderedMixedAccesses = args.lift(1).contains("mixed"),
             orderedWriteBankBytes = if (args.lift(1).contains("banked")) 2048 else 0,
             allowWriteErrors = args.lift(1).contains("ordered") || args.lift(1).contains("mixed"),
-            flowHeadResponse = args.lift(2).contains("flow")
+            flowHeadResponse = args.lift(2).contains("flow"),
+            allowPartialWrites = args.contains("partial")
         ),
         Array("--target-dir", args.head)
     )

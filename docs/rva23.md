@@ -1,5 +1,8 @@
 # RVA23 SoC 架构目标
 
+当前板级合同核对日期：2026-09-30。软件可用范围以[OS/软件移植合同](os-software-porting.md)为准；
+本页保留目标 profile、缺口与历史功能验收，不是芯片合规 datasheet。
+
 用户指定新应用 SoC 按 RVA23 实现；目标为 RVA23S64，并覆盖其继承的 RVA23U64 必选能力。
 依据 [RVA23 v1.0 正式规范](https://docs.riscv.org/reference/rva23/v1.0/rva23-profiles.html)，
 核对日期 2026-09-24。这是目标，不是当前合规声明；当前为 RV64I 子集加 Zicond / M / B、
@@ -17,11 +20,11 @@ MCU 产品的 ISA 另行定义，不把应用级 profile 强加给 MCU。
 | 基础 | RV64I，小端 | 整数基准 49 种编码；机器核另接 ECALL/EBREAK、同步陷阱与完整排空式 FENCE；仍非完整 RV64I 合规验收 |
 | 标量计算 | M、B、Zicond | Zicond / M / B（Zba/Zbb/Zbs）已通过 GSIM/NEMU；不代表整个 profile 已合规 |
 | 原子 | A、Za64rs、Ziccrse、Ziccamoa、Zawrs | 机器平台已接W/D LR/SC及AMO，aq/rl采用强串行排序；多hart一致性、完整进展/合规及Zawrs等仍待验证 |
-| 浮点 | F、D、Zfhmin、Zfa | 待实现；须精确 fflags/frm、舍入、NaN 和恢复 |
+| 浮点 | F、D、Zfhmin、Zfa | 基础 F/D 可配置功能候选已接入（2026-10-03，默认关闭），完整状态见 OoO 阶段记录；Linux FP/新 FPGA 签核、Zfhmin/Zfa 待完成，不代表 profile 合规 |
 | 压缩 / MOP | C、Zcb、Zimop、Zcmop | 可选 RV64C 整数路径已支持混合 16/32 位取指、跨包/跨页指令及主要整数压缩编码，并运行 CoreMark；仍缺完整编码穷尽与合规验收，Zcb/Zimop/Zcmop 待实现 |
 | 向量 | V、Zvfhmin、Zvbb、Zvkt | 必须实现；不是可选性能增强，需向量状态及精确恢复设计 |
-| CSR / 计数 | Zicsr、Zicntr、Zihpm | 机器核已接六种 Zicsr 编码和最小 M CSR 集；计数器、其余 CSR 与权限机制仍待补 |
-| 内存 / 缓存 | Ziccif、Zicclsm、Zic64b、Zicbom、Zicbop、Zicboz | 已有可选64字节行共享读缓存；CMO/非对齐等条件仍待实现，当前只读ROM不是最终平台语义 |
+| CSR / 计数 | Zicsr、Zicntr、Zihpm | 机器核已接六种 Zicsr、有限 M/S CSR 和 time；cycle/instret/HPM 不存在，不能声明 Zicntr/Zihpm |
+| 内存 / 缓存 | Ziccif、Zicclsm、Zic64b、Zicbom、Zicbop、Zicboz | 已有 64 字节行写回 D-cache 与 RAM I-cache；CMO/非对齐及完整 PMA 仍待实现，板级为 ROM+可执行 RAM |
 | 提示 / 时序 | Zihintpause、Zihintntl、Zkt | 未验收；不得用忽略所有保留指令替代精确识别 |
 | 用户指针掩码 | Supm | 待实现及执行环境支持 |
 | 取指同步 | Zifencei | 机器核已实现队首排空、前端及整行 I-cache 失效与重取；定向 GSIM 已验证脏 D-cache 写回后执行 RAM 代码，尚未完成多 hart 软件同步与合规验收 |
@@ -44,7 +47,9 @@ MCU 产品的 ISA 另行定义，不把应用级 profile 强加给 MCU。
 
 上述是开发依赖次序，非删减标准。FPGA 执行单元可按面积预算复用、分周期实现，
 但不能通过省略 V/H/F/D 等能力宣称符合 RVA23。目标器件已定为 XCZU15EG，
-其具体封装、速度等级、资源占用和可达频率仍待 Vivado 实测；当前 4 KiB RAM 裸核平台仅用于开发。
+当前 BoardSocTop 配置 128 KiB BRAM ROM、1 MiB UltraRAM 和 40 MHz 单时钟目标；
+4 KiB RAM 裸核只是保留的开发配置。资源与频率结论必须对应具体 RTL 和 Vivado 报告，
+见 [SoC datasheet](soc-datasheet.md)。
 
 ## 本轮 Zicond 实现合同
 
@@ -80,7 +85,8 @@ RV64M 的实现、恢复合同与性能记录见 [乘除执行单元](rv64m.md)�
 
 40 条 RV64 Zba/Zbb/Zbs 编码已接入每路整数 ALU，默认仍为双发射。
 译码、执行、NEMU 配置、边界/随机/恢复覆盖与 IPC 记录见 [RV64B](rv64b.md)。
-下一阶段补完整 RV64I 的系统语义与 CSR/精确陷阱处理；当前异常仍为有序停止。
+此 B 扩展里程碑后的机器配置已接 CSR、精确陷阱及 I/D 分页；裸核仍可保留有序停止模式。
+它们的行为边界应分别读取 [机器核](machine-core.md) 与[软件移植合同](os-software-porting.md)。
 
 ## 中断平台选择
 

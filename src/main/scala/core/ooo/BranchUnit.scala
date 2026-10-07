@@ -18,7 +18,7 @@ object ControlFlow {
 /** One combinational branch/jump result per lane per cycle. A not-taken
   * conditional branch never faults on its unused target; JALR clears bit zero before checking alignment.
   */
-class BranchUnit(ialign16: Boolean = false) extends Module {
+class BranchUnit(ialign16: Boolean = false, balancedCompare: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val kind       = Input(UInt(4.W))
         val pc         = Input(UInt(64.W))
@@ -32,15 +32,20 @@ class BranchUnit(ialign16: Boolean = false) extends Module {
         val misaligned = Output(Bool())
         val legal      = Output(Bool())
     })
+    val compare = if (balancedCompare) Some(Module(new BalancedBranchCompare)) else None
+    compare.foreach { c => c.io.left := io.left; c.io.right := io.right }
+    val equal = compare.map(_.io.equal).getOrElse(io.left === io.right)
+    val signedLess = compare.map(_.io.signedLess).getOrElse(io.left.asSInt < io.right.asSInt)
+    val unsignedLess = compare.map(_.io.unsignedLess).getOrElse(io.left < io.right)
     val jump  = io.kind === ControlFlow.jal || io.kind === ControlFlow.jalr
     val taken = jump || MuxLookup(io.kind, false.B)(
         Seq(
-            ControlFlow.beq  -> (io.left === io.right),
-            ControlFlow.bne  -> (io.left =/= io.right),
-            ControlFlow.blt  -> (io.left.asSInt < io.right.asSInt),
-            ControlFlow.bge  -> (io.left.asSInt >= io.right.asSInt),
-            ControlFlow.bltu -> (io.left < io.right),
-            ControlFlow.bgeu -> (io.left >= io.right)
+            ControlFlow.beq  -> equal,
+            ControlFlow.bne  -> !equal,
+            ControlFlow.blt  -> signedLess,
+            ControlFlow.bge  -> !signedLess,
+            ControlFlow.bltu -> unsignedLess,
+            ControlFlow.bgeu -> !unsignedLess
         )
     )
     val sum = Mux(io.kind === ControlFlow.jalr, io.left, io.pc) + io.immediate

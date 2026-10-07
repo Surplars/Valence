@@ -1,13 +1,42 @@
 # 同步机器核启动平台合同
 
-MachinePlatform 组合 MappedMachineCore、SynchronousFetch、双32位 bank 的同步 InstructionRom
-及4KiB SynchronousDataRam。ROM 位于0x80000000，默认8KiB；RAM 位于0x80010000；APLIC 位于
-0x0c000000。APLIC/IMSIC 参数保持原单M域单hart配置，中断输入属于核心时钟域。
+## 当前配置与适用范围（2026-09-30）
 
-板级目标是把片上 ROM 限定为 BootROM：初始化存储/内存控制器，从 eMMC 等块设备
-读取下一阶段镜像到可执行 RAM（通常是外部 DDR），然后跳转。eMMC 不是 CPU 的
-直接取指存储器。本仿真平台的 RAM 仍是片上 `SyncReadMem` 模型，用于验证
-ROM→RAM 取指与一致性；eMMC 控制器、DDR 控制器和板级加载链尚未接入。
+`MachinePlatform` 是可参数化组装模块，不是固定的板级地址表。
+软件应以 [SoC datasheet](soc-datasheet.md)、[寄存器手册](soc-registers.md) 和
+[OS 移植指南](os-software-porting.md) 为入口，并选定实际顶层配置。
+
+| 配置 | ROM | RAM | 存储/译址配置 |
+| --- | --- | --- | --- |
+| 默认 `MachinePlatform` | 8 KiB @ `0x80000000` | 4 KiB @ `0x80010000` | 通用同步存储；默认关闭 TileLink、缓存及译址服务 |
+| OpenSBI GSIM | 8 KiB @ `0x80000000` | 1 MiB @ `0x80010000` | TileLink 取指/数据、Sv39 I/D 译址 |
+| Linux GSIM | 8 KiB @ `0x80000000` | 64 MiB @ `0x80010000` | Sv39 I/D 译址；写回 L1 显式可选 |
+| ZU15EG `BoardSocTop` | 128 KiB @ `0x80000000` | 1 MiB @ `0x80200000` | BMG ROM、3 周期 XPM UltraRAM、TileLink、Sv39 I/D 译址及 32×64 B 写回 L1 |
+
+通用配置的 RAM 基址来自 `p.speculativeRamBase`，容量来自 `ramBytes`；两者须与
+CPU 参数一致。板级 RAM 迁移是为了避开扩大的 ROM，旧 `0x80010000` 已落入板级 ROM。
+这不改变通用 GSIM 默认地址。当前平台包含单 hart 的 M/S IMSIC、M 根域及 S 子域 APLIC、
+UART、DMA、机器定时器、16 项 PMP 和原子访存边界；IMSIC 的 MSI 页未接到 CPU MMIO 路由，
+CPU 通过 CSR 访问，APLIC 通过内部 MSI 通路送中断。
+
+板级 BootROM 已实现 UART 下载、CRC 校验、RAM 程序执行与返回监控程序，定向 GSIM
+覆盖重传及同地址新代码的 `fence.i` 可见性。**DMA 是当前配置例外**：实例仍使用
+默认 `0x80010000` / 4 KiB 地址检查范围，未随板级 RAM 基址迁移，因此板级 DMA 寄存器
+虽然可访问，不能据此宣称能复制 `0x80200000` 的 RAM；旧范围在板级落入 ROM。
+详见寄存器手册的 DMA 限制。eMMC、外部 DDR 和板级 Linux 启动仍未接通。
+
+板级目标时钟为 40 MHz。2026-09-29 的证据为 RAM 单模块综合（32 个 URAM）、整板 RTL
+展开及定向功能检查；没有据此证明整颗 CPU 40 MHz 时序通过，也没有新的整机实现、
+bitstream 或上板验收结论。当前步骤见 [ZU15EG 说明](../fpga/zu15eg/README.md)。
+[OpenSBI](opensbi-bringup.md) 和 [Linux](linux-bringup.md) 已有独立 GSIM 验证，
+其镜像布局、RAM 容量和设备树不能直接用于当前 1 MiB 板级配置。
+
+## 通用默认配置与初始启动验证
+
+以下保留通用平台演进的固件、周期和回归记录；除非明确写出新配置，
+其中“默认生产 ROM / 平台”指通用 `MachinePlatform` 导出，不是 `BoardSocTop`。
+初始平台组合 `MappedMachineCore`、`SynchronousFetch`、双 32 位 bank 的 `InstructionRom`
+和 4 KiB `SynchronousDataRam`。外设中断输入属于核心时钟域。
 
 复用已验证的同步存储模块：ROM/RAM 目标一拍返回、下游允许时每拍一项请求，前端最多一项在途
 并用两个指令包缓冲。同步取指填充/重定向可以产生气泡，不声明裸核每拍双发射能始终维持。
@@ -16,7 +45,8 @@ ROM→RAM 取指与一致性；eMMC 控制器、DDR 控制器和板级加载链�
 
 输入中断在不同取指/退休时刻到达，测试须按实际提交顺序核对指令、GPR、内存和同步/异步陷阱。
 ROM中已请求的旧路径响应不能被误用为陷阱向量/返回指令。无外部理想指令供给或软件模拟RAM响应。
-ROM与RAM均仍为Chisel SyncReadMem；现已接入 [UART控制台IP](uart.md)；新增 [DMA 与双主设备仲裁](dma.md)；没有板级时钟、引脚、DDR或Vivado时序验证。
+此通用配置的 ROM/RAM 使用 Chisel `SyncReadMem`；已接入 [UART](uart.md) 和
+[DMA 与双主仲裁](dma.md)。这些初始 GSIM 结果本身不提供板级时序或 DDR 验证。
 
 ## 构建与验证入口
 
@@ -34,9 +64,9 @@ ROM与RAM均仍为Chisel SyncReadMem；现已接入 [UART控制台IP](uart.md)�
 设备模型，原整数/机器核已有的 NEMU 回归继续保留。负向测试篡改 MMIO 读的预期值，必须被核对器拒绝。
 周期计数不含 ROM 装载和复位，包含 RAM 清零、C 工作负载、配置及陷阱开销，不作为纯计算 IPC 基准。
 
-生产 ROM 的初始化 hex 路径记录在导出的 RTL 中；移动产物时需要保留或更新路径。还没有 Vivado 综合、
-布局布线和上板验证，因此块 RAM 推断、资源占用和最高频率均未验证。当前只是单 M 域启动平台，
-尚非 RVA23 完整 SoC。
+通用 ROM 的初始化 hex 路径记录在导出的 RTL 中；移动产物时需要保留或更新路径。
+这组初始验收不含 Vivado 综合、布局布线和上板验证，也不能证明块 RAM 推断、资源或最高频率。
+后续 M/S 中断、虚拟内存与板级配置见本文开头；整个平台仍不声明 RVA23 完整合规。
 
 原RAM/外部中断固件的定向 GSIM 验证结果（UART接入后仍作为对照执行）：
 
@@ -48,7 +78,7 @@ ROM与RAM均仍为Chisel SyncReadMem；现已接入 [UART控制台IP](uart.md)�
 两种配置每次启动均读回结果376及计数1；不同微架构时序导致等待循环提交数不同。
 默认配置在此短启动程序上并不比小配置更快，不能据此推导通用工作负载性能。
 
-全量 `make test` 已通过：27项Scala检查及全部GSIM/NEMU回归，原整数44条IPC记录完全不变。
+上述阶段的全量 `make test` 通过：27项Scala检查及全部GSIM/NEMU回归，原整数44条IPC记录完全不变。
 验收日志：`build/gsim/machine-platform-final.log`；生产RTL清单：`build/ip/machine-platform/filelist.f`。
 
 UART接入后默认生产固件输出 `OK\n` 并等候RX字符 `Z`，由source3中断处理程序将字符保存到RAM偏移16。
@@ -62,8 +92,9 @@ MPRV以U权限访问APLIC得到M态访存异常。MRET进入S态，SRET进入U�
 串行线应完整输出`SU!\n`，RAM记录6次S态异常、MPRV检查及结果42。
 GSIM在三个提交背压种子下逐条核对PC、寄存器、CSR、陷阱原因与目标，并独立解码串行TX；
 串行预期值负向注入必须被拒绝。`make gsim-pmp-fetch-platform-test` 用同一镜像验证
-双主TileLink取指不会读取禁执行字；详细范围见[PMP合同](pmp.md)。仍不提供Sv39分页
-或通用S/U运行环境；默认生产ROM仍使用原UART演示镜像。
+双主TileLink取指不会读取禁执行字；详细范围见[PMP合同](pmp.md)。这份特权级定向镜像
+使用裸地址空间，不覆盖 Sv39；后续可选分页与 Linux 用户态验证见
+[虚拟内存](virtual-memory.md) 和 [Linux](linux-bringup.md)。通用默认 ROM 仍是 UART 演示。
 
 ## DMA 接入
 
@@ -88,7 +119,10 @@ CPU同时在不相交区域做64次store/load，处理source4中断、清DMA状�
 
 平台增加同步输入timerTick和0x02000000起64KiB的寄存器路由窗口，mtimecmp位于0x02004000、mtime位于0x0200bff8。
 只有这两个寄存器及其32位高半有效，其他地址报错。时基须由板级固定频率逻辑产生，独立于commitEnable；
-引脚不接受未经同步的异步时钟。当前尚无time CSR、软件可发现的板级timebase频率或RTC/CDC验收。
+引脚不接受未经同步的异步时钟。当前 `mtime` 已接机器核的 `time` CSR 和 Sstc 时间源；
+S/U 的 `time` 读取受对应计数器使能 CSR 门控，M 态可直接读取。通用平台的 tick 频率由外层决定，
+OpenSBI/Linux GSIM 设备树使用 10 MHz；`BoardSocTop` 每个运行时钟 tick 一次，
+40 MHz 是其配置值，不能将 GSIM 设备树频率直接搬到板级。这里不提供 RTC/CDC 验收。
 GSIM新增 `machine-boot-timer.bin`：CPU清零RAM、运行C负载、配置mtime/mtimecmp，连续接收两次MTI并重装比较值，
 最后读回中断计数2和C结果376。测试时基每四个核心周期一个tick，启动阶段固定，不读取DUT内部计数生成期望值。
 mtime动态读的握手快照由独立timer测试逐拍覆盖；平台固件仅在tick开始前读取mtime，避免用退休时值冒充请求时快照。

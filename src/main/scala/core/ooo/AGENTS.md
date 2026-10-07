@@ -1,5 +1,8 @@
 # New OoO core
 
+- IMPORTANT user preference (2026-10-01): optimize in coherent multi-change batches, then run necessary short GSIM checks once, then one combined synthesis/timing comparison. No GSIM/synthesis after every small edit; no full GSIM or long Linux run by default. Keep issue width 2, archive results, and reuse checkpoints. This takes precedence over generic full-acceptance guidance during ongoing optimization.
+- Latest user refinement (2026-10-05): batch ten or more related structural changes when justified by the measured paths, with one combined short acceptance and implementation. The earlier 2–3-path target is not a limit. Do not add unrelated changes merely to meet a count.
+
 - This is a fresh implementation. The legacy in-order core is known to have bugs and is not a correctness oracle or a control-logic template.
 - Derive instruction/exception behavior from the pinned RISC-V specification; derive microarchitecture from explicit invariants. Audit any candidate reused module and its test expectations independently.
 - GSIM is the only supported simulator. Use focused `make gsim-*-test` targets during development and `make gsim-test` for full hardware acceptance. Never run Verilator, legacy ChiselSim suites, or legacy emu flows, including as supplementary checks. Historical tests are archived outside the active test source root.

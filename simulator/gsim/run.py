@@ -349,8 +349,11 @@ def build_machine_aia_s_uart():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["cache-core", "cache-platform", "cache", "atomic-core", "atomic", "atomic-memory8", "atomic8-platform", "timer", "dma", "shared-data", "uart", "aia-supervisor-uart", "machine-aia-s-uart", "machine-boot", "machine-platform", "machine-platform-memory8", "machine-platform-latency", "tilelink-dual-latency", "tilelink-platform", "tilelink-platform-flow", "tilelink-split-platform", "tilelink-dual-platform", "tilelink-dual-split-platform", "tilelink-dual-split-coherent", "tilelink-coherent-platform", "tilelink-coherent-evict", "tilelink-coherent-fencei", "tilelink-two-hart-coherent", "tilelink-burst-ram", "tilelink-line-fill", "tilelink-line-write", "tilelink-line-probe", "tilelink-line-acquire", "tilelink-fetch", "tilelink-crossbar", "tilelink-router", "tilelink-arbiter", "delayed-ram", "axi-bridge", "tilelink-bridge", "tilelink-bridge-flow", "tilelink-axi4-bridge", "sstc-platform", "privilege-uart-platform", "pmp-fetch-platform", "pmp", "sv-walker", "soc-translation", "vm-data-platform", "vm-data-coherent-platform", "vm-instruction-platform", "vm-instruction-coherent-platform", "vm-instruction-wide", "opensbi-setup", "opensbi-platform", "opensbi-console", "coremark-setup", "coremark", "coremark-tune", "issue-peak-4", "coremark-cache", "coremark-coherent", "coremark-delay12", "coremark-cache-delay12", "coremark-coherent-delay12", "setup", "smoke", "muldiv", "pipelined-mul", "imsic", "aplic", "wired-machine", "mapped-machine", "router", "machine", "backend", "backend-recovery4", "backend-recovery8", "backend-recovery16", "backend-move-alias", "integer", "predictor", "store-buffer", "fpga-fetch", "instruction-cache", "instruction-line-cache", "instruction-ipc", "platform", "core", "core-memory8", "core-fast-store", "core-fast-memory", "core-move-alias", "core-word-bypass", "core-indirect", "ipc", "test"])
+    parser.add_argument("action", choices=["ram-range", "cache-core", "cache-platform", "cache", "atomic-core", "atomic", "atomic-memory8", "atomic8-platform", "timer", "dma", "shared-data", "uart", "aia-supervisor-uart", "machine-aia-s-uart", "machine-boot", "machine-platform", "machine-platform-memory8", "machine-platform-latency", "tilelink-dual-latency", "tilelink-platform", "tilelink-platform-flow", "tilelink-split-platform", "tilelink-dual-platform", "tilelink-dual-split-platform", "tilelink-dual-split-coherent", "tilelink-coherent-platform", "tilelink-coherent-evict", "tilelink-coherent-fencei", "tilelink-two-hart-coherent", "tilelink-burst-ram", "tilelink-line-fill", "tilelink-line-write", "tilelink-line-probe", "tilelink-line-acquire", "tilelink-fetch", "tilelink-crossbar", "tilelink-router", "tilelink-arbiter", "delayed-ram", "axi-bridge", "tilelink-bridge", "tilelink-bridge-flow", "tilelink-axi4-bridge", "sstc-platform", "privilege-uart-platform", "pmp-fetch-platform", "pmp", "sv-walker", "soc-translation", "vm-data-platform", "vm-data-coherent-platform", "vm-data-compact-coherent-platform", "vm-data-compact-coherent-buffered-platform", "vm-data-compact-coherent-registered-platform", "vm-instruction-platform", "vm-instruction-coherent-platform", "vm-instruction-wide", "opensbi-setup", "opensbi-platform", "opensbi-console", "coremark-setup", "coremark", "coremark-tune", "issue-peak-4", "coremark-cache", "coremark-coherent", "coremark-delay12", "coremark-cache-delay12", "coremark-coherent-delay12", "setup", "smoke", "muldiv", "pipelined-mul", "imsic", "aplic", "wired-machine", "mapped-machine", "router", "machine", "backend", "backend-recovery4", "backend-recovery8", "backend-recovery16", "backend-move-alias", "integer", "predictor", "store-buffer", "store-buffer-registered", "fpga-fetch", "instruction-cache", "instruction-line-cache", "instruction-ipc", "platform", "core", "core-memory8", "core-branch-pipeline", "core-fast-store", "core-fast-memory", "core-move-alias", "core-word-bypass", "core-indirect", "ipc", "test"])
     parser.add_argument("--rob", type=int, default=32)
+    parser.add_argument("--burst", action="store_true", help="test the direct TL-to-AXI4 INCR burst path")
+    parser.add_argument("--burst-beats", type=int, choices=(16, 256), default=16)
+    parser.add_argument("--axi-address-width", type=int, choices=(32, 64), default=64)
     parser.add_argument("--issue-width", type=int, choices=(2, 4), default=2)
     parser.add_argument("--instruction-cache-lines", type=int, choices=(0, 16, 32, 64), default=32)
     parser.add_argument("--frontend-cache-sets", type=int, choices=(64, 128, 256))
@@ -373,7 +376,41 @@ def main():
     parser.add_argument("--indirect-entries", type=int, choices=(0, 16, 32, 64), default=0)
     parser.add_argument("--branch-entries", type=int, choices=(64, 128, 256), default=256)
     parser.add_argument("--recovery-width", type=int, choices=(1, 2, 4, 8, 16), default=4)
+    parser.add_argument("--registered-owners", action="store_true")
+    parser.add_argument("--registered-physical-owners", action="store_true",
+                        help="cut physical arbiter/atomic empty-owner response flow (focused IP/VM tests)")
+    parser.add_argument("--registered-local-response", action="store_true")
+    parser.add_argument("--registered-memory-requests", action="store_true")
+    parser.add_argument("--registered-memory-address", action="store_true")
+    parser.add_argument("--registered-retirement", action="store_true")
+    parser.add_argument("--registered-load-replay", action="store_true")
+    parser.add_argument("--early-recovery-issue-block", action="store_true")
+    parser.add_argument("--precomplete-mispredicted-branch", action="store_true")
     args = parser.parse_args()
+    if args.registered_physical_owners and args.action not in (
+            "atomic", "atomic-memory8", "shared-data", "vm-data-compact-coherent-buffered-platform"):
+        parser.error("--registered-physical-owners supports atomic/shared-data or compact buffered VM data only")
+    if args.registered_retirement and args.action != "vm-data-compact-coherent-buffered-platform" and not (
+            args.registered_memory_address and args.registered_owners):
+        parser.error("registered retirement comparison requires the combined memory boundaries")
+    if args.early_recovery_issue_block and args.action not in (
+            "core-branch-pipeline", "vm-data-compact-coherent-buffered-platform"):
+        parser.error("early recovery issue blocking requires a registered-branch comparison target")
+    if args.precomplete_mispredicted_branch and (args.action not in (
+            "core-branch-pipeline", "vm-data-compact-coherent-buffered-platform") or
+            not args.registered_retirement):
+        parser.error("precompleted branches require a registered-retirement comparison target")
+    if args.registered_load_replay and (args.action not in (
+            "core-branch-pipeline", "vm-data-compact-coherent-buffered-platform") or
+            not args.registered_retirement or not args.early_recovery_issue_block or
+            (args.action == "core-branch-pipeline" and not args.registered_memory_address)):
+        parser.error("registered load replay requires staged memory, retirement and early recovery blocking")
+    if args.registered_local_response and args.action not in (
+            "core-branch-pipeline", "vm-data-compact-coherent-buffered-platform"):
+        parser.error("registered local responses require a buffered comparison target")
+    if args.registered_memory_requests and args.action not in (
+            "core-branch-pipeline", "vm-data-compact-coherent-buffered-platform"):
+        parser.error("registered memory requests require a buffered comparison target")
     frontend_cache_sets = (args.frontend_cache_sets if args.frontend_cache_sets is not None else
                            (128 if (args.rename_width or args.issue_width) >= 4 else 64))
     if args.action == "aia-supervisor-uart":
@@ -604,8 +641,20 @@ def main():
              "TranslationPlatformGsim", "translation_platform.cpp")
         if args.action == "soc-translation":
             return
-    if args.action in ("vm-data-platform", "vm-data-coherent-platform", "test"):
-        coherent = args.action == "vm-data-coherent-platform"
+    if args.action in ("vm-data-platform", "vm-data-coherent-platform",
+                       "vm-data-compact-coherent-platform",
+                       "vm-data-compact-coherent-buffered-platform",
+                       "vm-data-compact-coherent-registered-platform", "test"):
+        coherent = args.action in ("vm-data-coherent-platform",
+                                   "vm-data-compact-coherent-platform",
+                                   "vm-data-compact-coherent-buffered-platform",
+                                   "vm-data-compact-coherent-registered-platform")
+        compact = args.action in ("vm-data-compact-coherent-platform",
+                                  "vm-data-compact-coherent-buffered-platform",
+                                  "vm-data-compact-coherent-registered-platform")
+        buffered = args.action in ("vm-data-compact-coherent-buffered-platform",
+                                   "vm-data-compact-coherent-registered-platform")
+        registered = args.action == "vm-data-compact-coherent-registered-platform" or args.registered_local_response
         payload = BUILD / "vm-data"
         run(["riscv64-unknown-elf-gcc", "-march=rv64ia_zicsr", "-mabi=lp64", "-mno-relax",
              "-nostdlib", "-nostartfiles", "-Wl,--no-relax", "-T", HERE / "payloads/machine-boot.ld",
@@ -613,11 +662,38 @@ def main():
             log=BUILD / "vm-data-build.log")
         run(["riscv64-unknown-elf-objcopy", "-O", "binary", "--only-section=.text",
              payload.with_suffix(".elf"), payload.with_suffix(".bin")])
-        test(gsim, cxx, args.action if coherent else "vm-data-platform", "ooo.VmDataPlatformGsimMain",
-             "VmDataPlatformGsim", "vm_data_platform.cpp", parameters=("coherent",) if coherent else (),
+        vm_name = args.action if coherent else "vm-data-platform"
+        if args.early_recovery_issue_block:
+            vm_name += "-early-recovery"
+        if args.registered_retirement:
+            vm_name += "-retirement"
+        if args.precomplete_mispredicted_branch:
+            vm_name += "-precomplete-branch"
+        if args.registered_load_replay:
+            vm_name += "-registered-load-replay"
+        if args.registered_local_response:
+            vm_name += "-registered-local-response"
+        if args.registered_memory_requests:
+            vm_name += "-registered-memory-requests"
+        if args.registered_physical_owners:
+            vm_name += "-registered-physical-owners"
+        test(gsim, cxx, vm_name, "ooo.VmDataPlatformGsimMain",
+             "VmDataPlatformGsim", "vm_data_platform.cpp",
+             parameters=tuple(name for name, enabled in (("coherent", coherent), ("compact", compact),
+                                                          ("buffered-response", buffered),
+                                                          ("registered-local-response", registered),
+                                                          ("registered-memory-requests", args.registered_memory_requests),
+                                                          ("registered-physical-owners", args.registered_physical_owners),
+                                                          ("early-recovery-issue-block", args.early_recovery_issue_block),
+                                                          ("registered-retirement", args.registered_retirement),
+                                                          ("registered-load-replay", args.registered_load_replay),
+                                                          ("precomplete-mispredicted-branch", args.precomplete_mispredicted_branch)) if enabled),
              runtime_args=(payload.with_suffix(".bin"), "--coherent") if coherent else
                 (payload.with_suffix(".bin"),), defines={})
-        if args.action in ("vm-data-platform", "vm-data-coherent-platform"):
+        if args.action in ("vm-data-platform", "vm-data-coherent-platform",
+                           "vm-data-compact-coherent-platform",
+                           "vm-data-compact-coherent-buffered-platform",
+                           "vm-data-compact-coherent-registered-platform"):
             return
     if args.action in ("vm-instruction-platform", "vm-instruction-coherent-platform", "vm-instruction-wide", "test"):
         coherent = args.action == "vm-instruction-coherent-platform"
@@ -641,6 +717,16 @@ def main():
              runtime_args=images, defines={})
         if args.action in ("vm-instruction-platform", "vm-instruction-coherent-platform", "vm-instruction-wide"):
             return
+    if args.action in ("ram-range", "test"):
+        output = test(gsim, cxx, "ram-range", "soc.core.ooo.SpeculativeRamRangeGsimMain",
+                      "SpeculativeRamRangeGsim", "speculative_ram_range.cpp")
+        result = subprocess.run([output / "run", "--inject-mismatch"], capture_output=True, text=True,
+                                timeout=120, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
+        if result.returncode != 1 or "range oracle mismatch" not in result.stderr:
+            raise RuntimeError("range oracle negative test failed")
+        print("GSIM range oracle mismatch injection: PASS", flush=True)
+        if args.action == "ram-range":
+            return
     if args.action in ("pmp", "test"):
         output = test(gsim, cxx, "pmp", "ooo.PmpCheckerGsimMain", "PmpCheckerGsim", "pmp_checker.cpp")
         with (output / "negative-test.log").open("w") as stream:
@@ -654,6 +740,8 @@ def main():
             return
     if args.action == "delayed-ram":
         test(gsim, cxx, "delayed-ram", "ooo.DelayedRamGsimMain", "SynchronousDataRam", "delayed_ram.cpp")
+        test(gsim, cxx, "delayed-ram-pipeline3", "ooo.DelayedRamGsimMain", "SynchronousDataRam",
+             "delayed_ram.cpp", parameters=(3,), defines={})
         return
     if args.action == "axi-bridge":
         output = test(gsim, cxx, "axi-bridge", "ooo.OrderedAxi4BridgeGsimMain", "OrderedAxi4Bridge",
@@ -676,6 +764,36 @@ def main():
         print("GSIM AXI bridge write-error assertion: PASS", flush=True)
         return
     if args.action == "tilelink-axi4-bridge":
+        if args.burst:
+            long_burst = args.burst_beats == 256
+            name = "tilelink-axi4-burst256" if long_burst else (
+                "tilelink-axi4-burst32" if args.axi_address_width == 32 else "tilelink-axi4-burst")
+            output = test(gsim, cxx, name,
+                          "ooo.TileLinkAxi4BridgeGsimMain",
+                          "TileLinkAxi4Bridge", "tilelink_axi4_burst.cpp",
+                          parameters=(str(args.axi_address_width), "4", "burst", str(args.burst_beats)),
+                          runtime_args=("--long-burst",) if long_burst else (),
+                          defines={}, timeout=240 if long_burst else 120)
+            if long_burst:
+                return
+            if args.axi_address_width == 32:
+                with (output / "high-address.log").open("w") as stream:
+                    result = subprocess.run([output / "run", "--high-address"], stdout=stream,
+                                            stderr=subprocess.STDOUT, timeout=120,
+                                            env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
+                if result.returncode == 0 or "AXI address truncation" not in (
+                        output / "high-address.log").read_text():
+                    raise RuntimeError("32-bit burst bridge accepted a truncated TL address")
+                print("GSIM TL-AXI4 burst 32-bit address rejection: PASS", flush=True)
+            with (output / "bad-rlast.log").open("w") as stream:
+                result = subprocess.run([output / "run", "--bad-rlast"], stdout=stream,
+                                        stderr=subprocess.STDOUT, timeout=120,
+                                        env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
+            if result.returncode == 0 or "AXI read ID or RLAST mismatch" not in (
+                    output / "bad-rlast.log").read_text():
+                raise RuntimeError("AXI RLAST protocol assertion was not detected")
+            print("GSIM TL-AXI4 malformed RLAST rejection: PASS", flush=True)
+            return
         output = test(gsim, cxx, "tilelink-axi4-bridge", "ooo.TileLinkAxi4BridgeGsimMain",
                       "TileLinkAxi4Bridge", "tilelink_axi4_bridge.cpp")
         with (output / "negative-test.log").open("w") as stream:
@@ -951,8 +1069,14 @@ def main():
     if args.action in ("atomic", "atomic-memory8", "test"):
         sizes = (4096, 8192) if args.action == "test" else (8192,) if args.action == "atomic-memory8" else (4096,)
         for size in sizes:
-            output = test(gsim, cxx, "atomic" if size == 4096 else "atomic-memory8", "ip.AtomicGsimMain",
-                          "AtomicMemory", "atomic.cpp", parameters=(size,), defines={"RAM_BYTES": size})
+            atomic_name = "atomic" if size == 4096 else "atomic-memory8"
+            if args.registered_physical_owners:
+                atomic_name += "-registered-physical-owners"
+            output = test(gsim, cxx, atomic_name, "ip.AtomicGsimMain",
+                          "AtomicMemory", "atomic.cpp",
+                          parameters=(size, "registered-owners") if args.registered_physical_owners else (size,),
+                          defines={"RAM_BYTES": size,
+                                   "REGISTERED_PHYSICAL_OWNERS": int(args.registered_physical_owners)})
             with (output / "negative-test.log").open("w") as stream:
                 result = subprocess.run([output / "run", "--inject-mismatch"], stdout=stream,
                                         stderr=subprocess.STDOUT, timeout=120,
@@ -979,7 +1103,10 @@ def main():
             raise RuntimeError("DMA oracle negative test failed")
         print("GSIM DMA mismatch injection: PASS", flush=True)
     if args.action in ("shared-data", "test"):
-        output = test(gsim, cxx, "shared-data", "ooo.SharedDataGsimMain", "SharedDataGsim", "shared_data.cpp")
+        shared_name = "shared-data-registered-physical-owners" if args.registered_physical_owners else "shared-data"
+        output = test(gsim, cxx, shared_name, "ooo.SharedDataGsimMain", "SharedDataGsim", "shared_data.cpp",
+                      parameters=("registered-owners",) if args.registered_physical_owners else (),
+                      defines={"REGISTERED_PHYSICAL_OWNERS": int(args.registered_physical_owners)})
         with (output / "negative-test.log").open("w") as stream:
             result = subprocess.run([output / "run", "--inject-mismatch"], stdout=stream,
                                     stderr=subprocess.STDOUT, timeout=120,
@@ -996,6 +1123,14 @@ def main():
         if result.returncode != 1 or "serial byte mismatch" not in (output / "negative-test.log").read_text():
             raise RuntimeError("UART oracle negative test failed")
         print("GSIM UART mismatch injection: PASS", flush=True)
+        formats = test(gsim, cxx, "uart-formats", "ip.UartGsimMain", "UartConsole", "uart_formats.cpp")
+        with (formats / "negative-test.log").open("w") as stream:
+            result = subprocess.run([formats / "run", "--inject-mismatch"], stdout=stream,
+                                    stderr=subprocess.STDOUT, timeout=120,
+                                    env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
+        if result.returncode != 1 or "TX wire format mismatch" not in (formats / "negative-test.log").read_text():
+            raise RuntimeError("UART format oracle negative test failed")
+        print("GSIM UART format mismatch injection: PASS", flush=True)
     if args.action == "machine-platform-memory8":
         ram_runtime = (*build_machine_boot(uart=False), "--external-irq")
         dma_runtime = (*build_machine_boot(uart=False, dma=True), "--dma")
@@ -1250,11 +1385,18 @@ def main():
         test(gsim, cxx, "smoke", "ooo.GsimSmokeMain", "GsimSmoke", "smoke.cpp")
     if args.action in ("predictor", "core", "test"):
         test(gsim, cxx, "predictor", "ooo.BranchPredictorGsimMain", "BranchPredictorGsim", "predictor.cpp")
-    if args.action in ("store-buffer", "test"):
-        for entries in (1, 2, 8, 4):
-            name = "store-buffer" if entries == 4 else f"store-buffer-{entries}"
+    if args.action in ("store-buffer", "store-buffer-registered", "test"):
+        registered = args.action == "store-buffer-registered"
+        owners = args.registered_owners
+        for entries in ((2,) if registered or owners else (1, 2, 8, 4)):
+            name = "store-buffer-owners-2" if owners else "store-buffer-registered-2" if registered else (
+                "store-buffer" if entries == 4 else f"store-buffer-{entries}")
             output = test(gsim, cxx, name, "ooo.StoreBufferGsimMain", "StoreBufferGsim", "store_buffer.cpp",
-                          parameters=(entries,), defines={"BUFFER_ENTRIES": entries})
+                          parameters=(entries, "registered-owners") if owners else
+                                     (entries, "registered-local-response") if registered else (entries,),
+                          defines={"BUFFER_ENTRIES": entries, "REGISTER_LOCAL_RESPONSE": int(registered)})
+        if registered or owners:
+            return
         with (output / "negative-test.log").open("w") as stream:
             result = subprocess.run([output / "run", "--inject-write-error"], stdout=stream,
                                     stderr=subprocess.STDOUT, timeout=120,
@@ -1293,7 +1435,7 @@ def main():
     if args.action in ("integer", "test"):
         for name, parameters in [("integer-small", (8, 36, 64)), ("integer", (32, 64, 64))]:
             test(gsim, cxx, name, "ooo.IntegerBackendGsimMain", "IntegerBackendGsim", "integer.cpp", parameters)
-    if args.action in ("core", "core-memory8", "core-fast-store", "core-fast-memory", "core-move-alias",
+    if args.action in ("core", "core-memory8", "core-branch-pipeline", "core-fast-store", "core-fast-memory", "core-move-alias",
                        "core-word-bypass", "core-indirect", "ipc", "test"):
         from reference import build_reference
         reference = build_reference()
@@ -1310,6 +1452,25 @@ def main():
         configurations = [("core-small", (8, 36, 64)), ("core", (32, 64, 64))]
         if args.action == "ipc": configurations = configurations[1:]
         if args.action == "core-memory8": configurations = [("core-memory8", (32, 64, 64, 8))]
+        if args.action == "core-branch-pipeline": configurations = [((
+            "core-registered-memory-address-owners-retirement" if args.registered_retirement else
+            "core-registered-memory-address-owners" if args.registered_memory_address and args.registered_owners else
+            "core-registered-memory-address" if args.registered_memory_address else
+            "core-registered-owners" if args.registered_owners else "core-branch-pipeline") +
+            ("-early-recovery" if args.early_recovery_issue_block else "") +
+            ("-precomplete-branch" if args.precomplete_mispredicted_branch else "") +
+            ("-registered-load-replay" if args.registered_load_replay else "") +
+            ("-registered-local-response" if args.registered_local_response else "") +
+            ("-registered-memory-requests" if args.registered_memory_requests else ""),
+            (32, 64, 64, 8, "plain", "plain", "plain", "plain", "plain", "0", "registered-branch", "4",
+             *(("registered-owners",) if args.registered_owners else ()),
+             *(("registered-local-response",) if args.registered_local_response else ()),
+             *(("registered-memory-requests",) if args.registered_memory_requests else ()),
+             *(("registered-memory-address",) if args.registered_memory_address else ()),
+             *(("registered-retirement",) if args.registered_retirement else ()),
+             *(("registered-load-replay",) if args.registered_load_replay else ()),
+             *(("early-recovery-issue-block",) if args.early_recovery_issue_block else ()),
+             *(("precomplete-mispredicted-branch",) if args.precomplete_mispredicted_branch else ())))]
         if args.action == "core-fast-store": configurations = [("core-fast-store", (32, 64, 64, 4, "fast-store"))]
         if args.action == "core-fast-memory": configurations = [("core-fast-memory", (32, 64, 64, 4, "fast-store", "fast-load", "load-bypass"))]
         if args.action == "core-move-alias": configurations = [("core-move-alias", (32, 64, 64, 4,
@@ -1322,8 +1483,11 @@ def main():
         if args.action == "test": configurations.append(("core-fast-memory", (32, 64, 64, 4, "fast-store", "fast-load", "load-bypass")))
         measurements = []
         for name, parameters in configurations:
-            definitions = ({"ROB_ENTRIES": 32, "PHYSICAL_REGS": 64, "TAG_BITS": 64, "MEMORY_ENTRIES": 8}
-                           if args.action == "core-memory8" else
+            definitions = ({"ROB_ENTRIES": 32, "PHYSICAL_REGS": 64, "TAG_BITS": 64, "MEMORY_ENTRIES": 8,
+                            **({"REGISTERED_BRANCH_REDIRECT": 1} if args.action == "core-branch-pipeline" else {}),
+                            **({"REGISTERED_RESPONSE_OWNERS": 1} if args.registered_owners else {}),
+                            **({"REGISTERED_MEMORY_ADDRESS": 1} if args.registered_memory_address else {})}
+                           if args.action in ("core-memory8", "core-branch-pipeline") else
                            {"ROB_ENTRIES": 32, "PHYSICAL_REGS": 64, "TAG_BITS": 64,
                             **({"FAST_HEAD_LOAD": 1} if name in ("core-fast-memory", "core-move-alias",
                                                                 "core-word-bypass", "core-indirect") else {}),
@@ -1333,8 +1497,17 @@ def main():
             output = test(gsim, cxx, name, "ooo.IntegerCoreGsimMain", "IntegerCoreGsim", "core.cpp", parameters,
                           (reference, *payloads, *(("--ipc",) if args.action == "ipc" else ())), defines=definitions)
             measurements.extend(json.loads(line[4:]) for line in (output / "test.log").read_text().splitlines() if line.startswith("IPC "))
-        memory_slots = 8 if args.action == "core-memory8" else 4
+        memory_slots = 8 if args.action in ("core-memory8", "core-branch-pipeline") else 4
         report = {"scope": f"bare core, ideal two-wide instruction supply, 64-entry commit-trained bimodal conditional predictor, direct JAL and adjacent AUIPC/JALR target prediction, no caches/MMU/CSR, {memory_slots}-slot LSU, oldest-ready load selection with overlap replay, ROB-indexed speculative store preparation and known-address disambiguation, four-entry irrevocable store buffer for guaranteed-success RAM writes, disjoint reads overlap pending write responses through {memory_slots + 1} shared owner credits, ordered responses and stores, early RAM loads and byte-wise store forwarding, shared two-issue budget",
+                  "recovery_width": 4 if args.action == "core-branch-pipeline" else 1,
+                  "registered_response_owners": args.action == "core-branch-pipeline" and args.registered_owners,
+                  "registered_memory_address": args.action == "core-branch-pipeline" and args.registered_memory_address,
+                  "registered_rob_retirement": args.action == "core-branch-pipeline" and args.registered_retirement,
+                  "early_recovery_issue_block": args.action == "core-branch-pipeline" and args.early_recovery_issue_block,
+                  "registered_load_replay": args.action == "core-branch-pipeline" and args.registered_load_replay,
+                  "registered_local_response": args.action == "core-branch-pipeline" and args.registered_local_response,
+                  "registered_memory_requests": args.action == "core-branch-pipeline" and args.registered_memory_requests,
+                  "precomplete_mispredicted_branch": args.action == "core-branch-pipeline" and args.precomplete_mispredicted_branch,
                   "window": "first supply cycle through last retirement inclusive; reset and post-run checking excluded",
                   "toolchain": json.loads((BUILD / "toolchain-used.json").read_text()),
                   "reference": json.loads((BUILD / "reference-used.json").read_text()),
@@ -1344,11 +1517,26 @@ def main():
                   "payload_compiler": subprocess.check_output(["riscv64-unknown-elf-gcc", "--version"], text=True).splitlines()[0],
                   "measurements": measurements}
         report_stem = ("ipc-memory8" if args.action == "core-memory8" else
+                       ("ipc-registered-memory-address-owners-retirement" if args.registered_retirement else
+                        "ipc-registered-memory-address-owners" if args.registered_memory_address and args.registered_owners else
+                        "ipc-registered-memory-address" if args.registered_memory_address else
+                        "ipc-registered-owners" if args.registered_owners else "ipc-branch-pipeline")
+                       if args.action == "core-branch-pipeline" else
                        "ipc-fast-store" if args.action == "core-fast-store" else
                        "ipc-fast-memory" if args.action == "core-fast-memory" else
                        "ipc-move-alias" if args.action == "core-move-alias" else
                        "ipc-word-bypass" if args.action == "core-word-bypass" else
                        "ipc-indirect" if args.action == "core-indirect" else "ipc")
+        if args.early_recovery_issue_block:
+            report_stem += "-early-recovery"
+        if args.precomplete_mispredicted_branch:
+            report_stem += "-precomplete-branch"
+        if args.registered_load_replay:
+            report_stem += "-registered-load-replay"
+        if args.registered_local_response:
+            report_stem += "-registered-local-response"
+        if args.registered_memory_requests:
+            report_stem += "-registered-memory-requests"
         (BUILD / f"{report_stem}.json").write_text(json.dumps(report, indent=2) + "\n")
         with (BUILD / f"{report_stem}.csv").open("w") as stream:
             writer = csv.DictWriter(stream, fieldnames=list(measurements[0]))
