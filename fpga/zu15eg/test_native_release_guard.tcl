@@ -57,6 +57,9 @@ set mocked {
         }
     }
     proc exec args {
+        set expected [expr {$::releaseTag eq "current-candidate" ? "verify_current_candidate_release.py" :
+                            ($::releaseTag in {r5 r6} ? "verify_ddr2g_release.py" : "verify_native_release_contract.py")}]
+        if {[real_file tail [lindex $args 3]] ne $expected} {error "Wrong release checker"}
         if {[lsearch -exact $args --cdc-report]>=0} {
             lappend ::events final_contract
             if {!$::mockFinalGate} {error "current CDC contract rejected"}
@@ -173,9 +176,14 @@ set mocked {
     proc write_bitstream args {lappend ::events bit_generated}
 }
 set count 0
+foreach tag {r3 r6 current-candidate} {
 foreach {name setup expected} $fixtures {
     set child [interp create]
     $child eval $mocked
+    if {$tag ne "r3"} {
+        $child eval [list set argc 6]
+        $child eval [list set argv [list C:/candidate C:/candidate/implementation/routed.dcp C:/proof/contract.json C:/python.exe C:/candidate/release-rv64gc100-u460800-$tag $tag]]
+    }
     $child eval $setup
     set failed [catch {$child eval $script} detail]
     set events [$child eval {set events}]
@@ -188,6 +196,7 @@ foreach {name setup expected} $fixtures {
     }
     interp delete $child
     incr count
+}
 }
 puts "PASS_NATIVE_RV64GC_BIT_RELEASE_GUARD_UNIT cases=$count MOCKED_NO_DCP_NO_REAL_BIT_NO_BOARD_PROOF"
 

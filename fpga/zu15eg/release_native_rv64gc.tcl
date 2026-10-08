@@ -1,11 +1,11 @@
 # Current full RV64GC/native quarter-TX bit release, NOT the legacy CPU partition.
 # Never changes timing exceptions, clock budgets, placement or logic.
-if {$argc ni {5 6}} {error "Expected CANDIDATE_ROOT OWN_ROUTED_DCP QUALIFIED_CONTRACT PYTHON_EXE FRESH_OUTPUT_DIRECTORY ?r3|r4|r5?"}
+if {$argc ni {5 6}} {error "Expected CANDIDATE_ROOT OWN_ROUTED_DCP QUALIFIED_CONTRACT PYTHON_EXE FRESH_OUTPUT_DIRECTORY ?r3|r4|r5|r6|current-candidate?"}
 lassign $argv root checkpoint contract python output releaseTag
 if {$argc == 5} {set releaseTag r3}
-if {$releaseTag ni {r3 r4 r5 r6}} {error "Unknown release tag"}
+if {$releaseTag ni {r3 r4 r5 r6 current-candidate}} {error "Unknown release tag"}
 foreach name {root checkpoint contract python output} {set $name [file normalize [set $name]]}
-set implementation [expr {$releaseTag in {r5 r6} ? "implementation" : "implementation-report-recovery-r1"}]
+set implementation [expr {$releaseTag in {r5 r6 current-candidate} ? "implementation" : "implementation-report-recovery-r1"}]
 if {$checkpoint ne [file normalize [file join $root $implementation routed.dcp]]} {
     error "Only this candidate's own source-integrated recovered route is allowed"
 }
@@ -14,6 +14,7 @@ if {$output ne [file normalize [file join $root release-rv64gc100-u460800-$relea
 }
 set checker [file join [file dirname [info script]] verify_native_release_contract.py]
 if {$releaseTag in {r5 r6}} {set checker [file join [file dirname [info script]] verify_ddr2g_release.py]}
+if {$releaseTag eq "current-candidate"} {set checker [file join [file dirname [info script]] verify_current_candidate_release.py]}
 # Isolated Python ignores Vivado's bundled PYTHONHOME/PYTHONPATH. -B avoids
 # writing pycache into the user's repository. No subprocess writes or COM I/O.
 puts [exec $python -B -I $checker --contract $contract --dcp $checkpoint]
@@ -123,6 +124,11 @@ puts $signoff "ACTUAL_BOOTROM_INIT_MATCH=4176 ROM_WORD_IDENTITY=32768 PHY_TXDLY=
 puts $signoff "Setup/hold/pulse/IO/coverage/routing/bus-skew/bitstream DRC and current documented CDC review: PASS"
 puts $signoff "No constraint budgets, false paths, clock frequencies or logic changed for release."
 puts $signoff "Static qualification is not physical UART/DDR/GMAC/Linux floating-point-context proof."
+if {$releaseTag eq "current-candidate"} {
+    puts $signoff "EXPERIMENTAL_CURRENT_CANDIDATE_BIT_NOT_PRODUCTION_PLATFORM_OR_BSP_RELEASE"
+    puts $signoff "CDC evidence is current structural/held-payload/Gray/reset review, not full independent CDC protocol signoff."
+    puts $signoff "Common cold reset and stable ownership assumptions remain required. Board/software/runtime remain unverified."
+}
 close $signoff
 write_checkpoint [file join $output qualified_routed.dcp]
 set bit [file join $output valence_native_rv64gc_2issue_cpu100_u460800_${releaseTag}.bit]

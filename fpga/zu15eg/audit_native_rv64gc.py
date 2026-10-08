@@ -12,6 +12,7 @@ import re
 import shutil
 
 from audit_native_io_qualification import io_slack
+from release_inputs import FRESH_STATUS, load_release_inputs
 
 
 def sha(path):
@@ -28,6 +29,9 @@ def checked_source_map(inputs):
     # The Chisel receipt alone cannot detect a later edit to the physical
     # clock/top/XDC/Tcl sources. Compare them with the frozen staged bytes too.
     result = dict(inputs["checked_source_sha256"])
+    if inputs.get("status") == FRESH_STATUS:
+        assert inputs.get("release_input_schema") == "fresh-bmg-v1", "Fresh inputs were not validated"
+        return result  # Adapter already checked staged and live source identities.
     for name, digest in inputs["candidate_sha256"].items():
         parts = name.replace("\\", "/").split("/")
         if len(parts) == 2 and parts[0] in ("board", "scripts"):
@@ -106,9 +110,9 @@ def main():
     a = ap.parse_args()
     assert not (a.out / "completion.json").exists(), "Preserve existing result"
     assert not (a.out / "windows-run").exists(), "Preserve existing report archive"
-    inputs = json.loads((a.candidate / a.inputs).read_text())
+    inputs = load_release_inputs(a.candidate, a.repo, a.inputs)
     assert inputs["status"] in {"STAGED_RV64GC_SOURCE_NOT_TIMING_QUALIFIED",
-                                "STAGED_DDR2G_RV64GC_CHECKED_EXPORT_NOT_ROUTED"}
+                                "STAGED_DDR2G_RV64GC_CHECKED_EXPORT_NOT_ROUTED", FRESH_STATUS}
     assert inputs["isa"] == "rv64gc" and inputs["f_d_enabled"]
     drift = {name: sha(a.candidate / name) if (a.candidate / name).exists() else "MISSING" for name, expected in inputs["candidate_sha256"].items()
              if not (a.candidate / name).exists() or sha(a.candidate / name) != expected}
@@ -194,6 +198,10 @@ def main():
                       end_exclusive=inputs["end_exclusive"],
                       functional_scope=inputs.get("functional_scope",
                           "Affected DDR2G bridge/window/DMA and network-pressure checks, not complete CPU/Linux runtime"))
+    if inputs.get("status") == FRESH_STATUS:
+        result.update(hardware_source_commit=inputs["hardware_source_commit"],
+                      input_schema=inputs["release_input_schema"],
+                      candidate_manifest_sha256=sha(a.candidate / a.inputs))
     (a.out / "completion.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(status, "CPU", cpu_result, "BOARD", board, "IO", result["io"])
 
