@@ -1,0 +1,78 @@
+{
+  "baseline -> resource": {
+    "added": [
+      "payload_16x72.sv",
+      "tagBanks_0_256x19.sv",
+      "tagBanks_1_256x19.sv"
+    ],
+    "removed": [],
+    "changed": [
+      "MixedCoherentLineHome.sv",
+      "Queue2_Axi4Address.sv",
+      "TileLinkAxi4BurstBridge.sv",
+      "TileLinkAxi4OutstandingBridge.sv"
+    ]
+  },
+  "resource -> integrated-off": {
+    "added": [
+      "Queue2_UInt2.sv",
+      "ram_2x181.sv",
+      "ram_2x2.sv",
+      "ram_8x153.sv"
+    ],
+    "removed": [
+      "ram_2x148.sv",
+      "ram_8x152.sv"
+    ],
+    "changed": [
+      "DataResponseBuffer.sv",
+      "DataTranslationAdapter.sv",
+      "FloatingPointMemoryPipeline.sv",
+      "FloatingPointSystem.sv",
+      "IntegerBackend.sv",
+      "IntegerCore.sv",
+      "MachineCore.sv",
+      "MachineSystemUnit.sv",
+      "MappedMachineCore.sv",
+      "Queue2_Axi4Address.sv",
+      "Queue2_DataRequest.sv",
+      "Queue8_TranslatedDataRequest.sv",
+      "Queue8_TranslationResponseOwner.sv",
+      "StoreBuffer.sv",
+      "SvTranslationService.sv",
+      "TileLinkAxi4OutstandingBridge.sv",
+      "TwoEntryRegisterQueue_2.sv",
+      "TwoEntryRegisterQueue_3.sv"
+    ]
+  },
+  "integrated-off -> integrated-on": {
+    "added": [
+      "PmpChecker_6.sv",
+      "SvTranslationService_1.sv",
+      "VirtualRamLoadPreparation.sv",
+      "ram_8x185.sv"
+    ],
+    "removed": [
+      "PmpChecker_5.sv",
+      "ram_8x153.sv"
+    ],
+    "changed": [
+      "DataTranslationAdapter.sv",
+      "InstructionTranslationAdapter.sv",
+      "IntegerBackend.sv",
+      "IntegerCore.sv",
+      "LoadStoreUnit.sv",
+      "MachineCore.sv",
+      "MachinePlatform.sv",
+      "MachineSystemUnit.sv",
+      "MappedMachineCore.sv",
+      "ParallelLoadStoreUnit.sv",
+      "Queue2_DataRequest.sv",
+      "Queue8_TranslatedDataRequest.sv",
+      "RRArbiter2_DataRequest.sv",
+      "SvTranslationService.sv",
+      "SynchronousFetch.sv",
+      "TwoEntryRegisterQueue_3.sv"
+    ]
+  }
+}
