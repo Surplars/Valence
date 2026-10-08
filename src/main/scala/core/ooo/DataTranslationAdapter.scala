@@ -20,6 +20,7 @@ private[ooo] class TranslatedDataRequest extends Bundle {
 private[ooo] class TranslationResponseOwner extends Bundle {
     val fault = Bool()
     val pageFault = Bool()
+    val precheckedLoad = Bool()
 }
 
 private[ooo] class CheckedDataRequest extends Bundle {
@@ -34,6 +35,8 @@ private[ooo] class CheckedDataRequest extends Bundle {
   */
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false) extends Module {
     require(p.virtualMemoryLevels > 0 && Set(4, 8, 16).contains(entries))
+    require(!p.virtualRamLoadPrecheck || registerCheckedRequests,
+        "virtual load precheck requires a registered physical authorization boundary")
     require(!p.registeredTranslationHeads || registerCheckedRequests,
         "registered translation heads require checked request capture")
     require(!p.identityDataRequestFlow || (p.registeredTranslationHeads && registerCheckedRequests),
@@ -42,12 +45,57 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val virtual = Flipped(new DataPort)
         val physical = new DataPort
         val translation = new SvTranslationPort
+        val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(Flipped(new VirtualLoadPrecheckPort)) else None
+        val translationPeek = if (p.virtualRamLoadPrecheck) Some(new SvTranslationPeekPort) else None
+        val precheckFlush = if (p.virtualRamLoadPrecheck) Some(Input(Bool())) else None
         val vmState = Input(new VmCsrState)
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
         val physicalRequest = Output(Bool())
         val pageFault = Output(Bool())
     })
+
+    // A registered epoch/stability boundary keeps wide CSR/PMP comparisons local, off the issue path.
+    // Architectural context changes already drain accepted LSU owners and protect the CSR through retirement.
+    // A hit captured during a transition cannot survive the next epoch check in preparation.
+    val authorizationEpoch = if (p.virtualRamLoadPrecheck) Some(RegInit(0.U(32.W))) else None
+    val authorizationChanged = if (p.virtualRamLoadPrecheck) {
+        val previousVm = RegInit(0.U.asTypeOf(new VmCsrState))
+        // Derived 65-bit PMP region bounds are not additional architectural state. Snapshot only
+        // the implemented cfg/address CSRs, avoiding a second register bank for decoded ranges.
+        val pmpContext = Cat(io.pmpState.cfg.take(p.pmpEntries).reverse.map(_.asUInt) ++
+            io.pmpState.addr.take(p.pmpEntries).reverse.map(_.asUInt))
+        val previousPmp = RegInit(0.U(pmpContext.getWidth.W))
+        val changed = previousVm.asUInt =/= io.vmState.asUInt || previousPmp =/= pmpContext
+        previousVm := io.vmState
+        previousPmp := pmpContext
+        val stable = RegNext(!changed && !io.precheckFlush.get, false.B)
+        when(changed || io.precheckFlush.get) { authorizationEpoch.get := authorizationEpoch.get + 1.U }
+        val peek = io.translationPeek.get
+        val precheck = io.loadPrecheck.get
+        precheck.epoch := authorizationEpoch.get
+        precheck.stable := stable && !io.precheckFlush.get
+        peek.request.valid := precheck.request.valid && stable && !io.precheckFlush.get &&
+            io.vmState.dataPrivilege =/= 3.U && io.vmState.satp(63, 60) =/= 0.U
+        peek.request.bits.virtualAddress := precheck.request.bits.address
+        peek.request.bits.rootPpn := io.vmState.satp(43, 0)
+        peek.request.bits.asid := io.vmState.satp(59, 44)
+        peek.request.bits.mode := io.vmState.satp(63, 60)
+        peek.request.bits.privilege := io.vmState.dataPrivilege
+        peek.request.bits.access := PmpAccess.read
+        peek.request.bits.sum := io.vmState.sum
+        peek.request.bits.mxr := io.vmState.mxr
+        precheck.response.valid := peek.request.valid && peek.response.valid &&
+            !peek.response.bits.pageFault && !peek.response.bits.accessFault
+        precheck.response.bits.physicalAddress := peek.response.bits.physicalAddress
+        precheck.response.bits.pbmt := peek.response.bits.pbmt
+        precheck.response.bits.epoch := authorizationEpoch.get
+        changed
+    } else false.B
+    def staleAuthorization(request: DataRequest): Bool = if (p.virtualRamLoadPrecheck)
+        request.precheckedLoad && (request.translationEpoch =/= authorizationEpoch.get ||
+            authorizationChanged || io.precheckFlush.get)
+    else request.precheckedLoad
 
     // Registered queue boundaries keep the TLB CAM/PMP/TileLink arbitration off one FPGA combinational path.
     val translated = Module(new Queue(new TranslatedDataRequest, entries, pipe = false, flow = false))
@@ -76,10 +124,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         request
     }.getOrElse(io.virtual.request)
     val context = virtualRequests.map(_.io.deq.bits.context).getOrElse(io.vmState)
-    val active = incoming.bits.virtualized
+    val active = incoming.bits.virtualized && !incoming.bits.precheckedLoad
     val canAccept = !waiting && translated.io.enq.ready
     val identityOffer = if (p.identityDataRequestFlow)
-        incoming.valid && !active && canAccept && !translated.io.deq.valid else false.B
+        incoming.valid && !active && !incoming.bits.precheckedLoad && canAccept && !translated.io.deq.valid else false.B
     val identityPass = WireDefault(false.B)
 
     io.translation.request.valid := incoming.valid && active && canAccept
@@ -110,9 +158,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     translated.io.enq.bits.request.uncached := original.uncached ||
         ((active || waiting) && io.translation.response.bits.pbmt =/= 0.U)
     translated.io.enq.bits.privilege := Mux(waiting, savedPrivilege, context.dataPrivilege)
-    translated.io.enq.bits.checkPhysical := active || waiting
+    translated.io.enq.bits.checkPhysical := active || waiting || original.precheckedLoad
     translated.io.enq.bits.pageFault := (active || waiting) && io.translation.response.bits.pageFault
-    translated.io.enq.bits.accessFault := (active || waiting) && io.translation.response.bits.accessFault
+    translated.io.enq.bits.accessFault := ((active || waiting) && io.translation.response.bits.accessFault) ||
+        staleAuthorization(original) || (original.precheckedLoad &&
+            (original.virtualized || original.write || original.atomic || original.uncached ||
+                context.dataPrivilege === 3.U || context.satp(63, 60) === 0.U))
 
     when(io.translation.request.fire && !io.translation.response.fire) {
         waiting := true.B
@@ -135,7 +186,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val atomicOutside = request.atomic && head.checkPhysical &&
         !SpeculativeRamRange.contains(p, request.address, request.size)
     val fault = head.pageFault || head.accessFault ||
-        (head.checkPhysical && pmp.io.denied) || atomicOutside
+        (head.checkPhysical && pmp.io.denied) || atomicOutside || staleAuthorization(request) ||
+        (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size))
     // Snapshot the request and fault decision before downstream grants.
     // Fault placeholders remain ordered but never issue physical requests.
     val checked: Option[QueueIO[CheckedDataRequest]] = if (registerCheckedRequests)
@@ -178,7 +230,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     } else false.B
     checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)
     val physicalHead = checked.map(_.deq.bits.request).getOrElse(request)
-    val physicalFault = checked.map(_.deq.bits.fault).getOrElse(fault)
+    // This final gate is narrow. The full CSR/PMP snapshot comparator terminates in checked above.
+    // Context changes with accepted prechecked owners violate the drain contract asserted below.
+    val physicalStale = if (p.virtualRamLoadPrecheck) physicalHead.precheckedLoad &&
+        (physicalHead.translationEpoch =/= authorizationEpoch.get || io.precheckFlush.get)
+    else physicalHead.precheckedLoad
+    val physicalFault = checked.map(_.deq.bits.fault).getOrElse(fault) || physicalStale
     val physicalPageFault = checked.map(_.deq.bits.pageFault).getOrElse(head.pageFault)
     val physicalValid = checked.map(_.deq.valid).getOrElse(translated.io.deq.valid)
     val physicalReady = owners.io.enq.ready && (physicalFault || io.physical.request.ready)
@@ -188,11 +245,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     io.physical.request.valid := physicalValid && !physicalFault && owners.io.enq.ready
     io.physical.request.bits := physicalHead
+    // No authorization metadata escapes into the cache, MMIO fabric or page-walk arbiter.
+    io.physical.request.bits.precheckedLoad := false.B
+    io.physical.request.bits.translationEpoch := 0.U
     io.physical.request.bits.prefetchNextAllowed := (if (p.dataNextLinePrefetch)
         checked.map(_.deq.bits.request.prefetchNextAllowed).getOrElse(nextAllowed) else false.B)
     owners.io.enq.valid := physicalValid && physicalReady
     owners.io.enq.bits.fault := physicalFault
     owners.io.enq.bits.pageFault := physicalPageFault
+    owners.io.enq.bits.precheckedLoad := physicalHead.precheckedLoad
     io.physicalRequest := io.physical.request.fire
 
     val owner = owners.io.deq.bits
@@ -206,6 +267,17 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     io.physical.response.ready := owners.io.deq.valid && !owner.fault && io.virtual.response.ready
     owners.io.deq.ready := io.virtual.response.fire
+    if (p.virtualRamLoadPrecheck) {
+        val accepted = RegInit(0.U(8.W))
+        val push = io.virtual.request.fire && io.virtual.request.bits.precheckedLoad
+        val pop = io.virtual.response.fire && owner.precheckedLoad
+        when(push =/= pop) { accepted := Mux(push, accepted + 1.U, accepted - 1.U) }
+        when(authorizationChanged || io.precheckFlush.get) {
+            assert(accepted === 0.U,
+                "VM/PMP/SFENCE context changes must drain accepted prechecked loads before changing authorization")
+        }
+        when(pop) { assert(accepted =/= 0.U, "prechecked responses retain their ingress owner") }
+    }
     io.pageFault := io.virtual.response.fire && owner.fault && owner.pageFault
     io.idle := !waiting && !translated.io.deq.valid && !owners.io.deq.valid &&
         checked.map(stage => !stage.deq.valid).getOrElse(true.B) &&

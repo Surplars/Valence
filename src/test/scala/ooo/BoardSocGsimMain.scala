@@ -20,12 +20,14 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     loadIssueForwarding: Option[Boolean] = None,
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     identityDataFlow: Boolean = false,
-    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers) extends Module {
+    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers,
+    virtualRamLoadPrecheck: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
         isaProfile = isaProfile, ddrMemoryBytes = ddrMemoryBytes, instructionLineCacheLines = instructionLineCacheLines,
-        dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage))
+        dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
+        virtualRamLoadPrecheck = virtualRamLoadPrecheck))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -232,7 +234,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         // The registered-address profile captures operands before this predicate. The equality
         // is checked by the host on every nonreset sample, including cycles outside the ROI.
         val reserveWithoutCapacity = !tap(b.interruptDrain) && !tap(b.reserveSystem) &&
-            !tap(b.olderSystem) && !tap(b.fpMemoryEpoch) && tap(b.memoryChoice.valid) &&
+            !tap(b.olderSystem) && !tap(b.fpMemoryEpoch) && !tap(b.contextMemoryEpoch) &&
+            tap(b.memoryChoice.valid) &&
             tap(b.io.commitEnable) && !tap(b.ledger.io.recovering) &&
             (!tap(b.memoryEntry.request.atomic) || !tap(b.io.memoryBusy)) &&
             (tap(b.memoryChoice.index) === h || (tap(b.speculative) && !tap(b.blockedByStore)))
@@ -466,7 +469,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
 
 /** Same memory sizes, address map, latency and compact core as the FPGA board. */
 object BoardSocGsimMain extends App {
-    val (memoryArgs, mixedMemory) = soc.core.ooo.MixedMemoryConfig.parseArgs(args)
+    val virtualRamLoadPrecheck = args.contains("--virtual-ram-load-precheck")
+    val boardArgs = args.filterNot(_ == "--virtual-ram-load-precheck")
+    val (memoryArgs, mixedMemory) = soc.core.ooo.MixedMemoryConfig.parseArgs(boardArgs)
     val (storageArgs, fpgaStorage) = FpgaStorageConfig.parseArgs(memoryArgs)
     val identityDataFlow = storageArgs.contains("--identity-data-flow")
     val tagConfig = CacheTagConfig(compact = args.contains("--compact-tags"))
@@ -475,7 +480,7 @@ object BoardSocGsimMain extends App {
         "usage: BoardSocGsimMain output-directory [ddr] [clock-hz] " +
             "[baseline|early-issue|queued-memory|registered-response|registered-replay|staged-fabric|staged-control] " +
             "[uart-baud] [cache-ways] " +
-            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--lvt-prf]")
+            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--lvt-prf] [--virtual-ram-load-precheck]")
     require(cli.lift(18).forall(Set("0", "1").contains), "load issue forwarding must be 0 or 1")
     require(cli.lift(12).forall(Set("0", "1").contains), "backend-probes must be 0 or 1")
     require(cli.lift(10).forall(Set("0", "1").contains), "frontend-probes must be 0 or 1")
@@ -500,6 +505,7 @@ object BoardSocGsimMain extends App {
         mixedMemory.cache(CoherentCacheConcurrency(readMshrs = cli.lift(16).map(_.toInt).getOrElse(1),
             responseEntries = cli.lift(17).map(_.toInt).getOrElse(2))),
         loadIssueForwarding = cli.lift(18).map(_ == "1"),
-        tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage),
+        tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
+        virtualRamLoadPrecheck = virtualRamLoadPrecheck),
         Array("--target-dir", output.toString))
 }

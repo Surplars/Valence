@@ -122,8 +122,12 @@ case class OooParams(
     bankedRobPayload: Boolean = false,
     sharedStoreOperandReads: Boolean = false,
     lvtPhysicalRegisterFile: Boolean = false,
-    dataNextLinePrefetch: Boolean = false
+    dataNextLinePrefetch: Boolean = false,
+    virtualRamLoadPrecheck: Boolean = false
 ) {
+    require(!virtualRamLoadPrecheck || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0 &&
+        registeredMemoryAddress && memoryEntries >= 2 && speculativeRamBytes > 0),
+        "virtual RAM load precheck requires staged addresses, VM/PMP and parallel explicit RAM ownership")
     require(!dataNextLinePrefetch || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0),
         "data prefetch requires the machine privilege/PMP/translation guard")
     require(!lvtPhysicalRegisterFile || (completionWidth == 2 && !fastHeadLoadRetire),

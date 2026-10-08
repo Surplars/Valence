@@ -41,7 +41,9 @@ class StoreBuffer(p: OooParams) extends Module {
     val end                     = request.bits.address +& (1.U(64.W) << size)
     val ram                     = !request.bits.virtualized &&
         SpeculativeRamRange.contains(p, request.bits.address, size)
-    val buffered = ram && request.bits.write && !request.bits.atomic
+    // A prechecked PA is still awaiting the adapter's epoch/PMP authorization. Never
+    // satisfy it locally, even when a committed buffered store covers every requested byte.
+    val buffered = ram && request.bits.write && !request.bits.atomic && !request.bits.precheckedLoad
     val covered  = Wire(Vec(8, Bool()))
     val bytes    = Wire(Vec(8, UInt(8.W)))
     // Compare physical slots in parallel, before the age/head mux. A rotating head should
@@ -66,7 +68,7 @@ class StoreBuffer(p: OooParams) extends Module {
     val fastEnd = io.fastStore.bits.address +& (1.U(64.W) << io.fastStore.bits.size)
     val overlapsFastStore = io.fastStore.valid && request.valid &&
         request.bits.address < fastEnd && io.fastStore.bits.address < end
-    val forward = ram && !request.bits.write && !request.bits.atomic && count =/= 0.U &&
+    val forward = ram && !request.bits.write && !request.bits.atomic && !request.bits.precheckedLoad && count =/= 0.U &&
         (covered.asUInt & request.bits.mask) === request.bits.mask
     // Track external response ownership without reducing the existing parallel read capacity.
     // With flow disabled, a new request cannot own a response until its owner bit
@@ -147,7 +149,8 @@ class StoreBuffer(p: OooParams) extends Module {
     when(fastEnqueue) {
         if (n == 1) entries(0) := io.fastStore.bits else entries(tail) := io.fastStore.bits
         tail := next(tail)
-        assert(io.fastStore.bits.write && !io.fastStore.bits.atomic && !io.fastStore.bits.virtualized)
+        assert(io.fastStore.bits.write && !io.fastStore.bits.atomic && !io.fastStore.bits.virtualized &&
+            !io.fastStore.bits.precheckedLoad)
         assert(!io.fastStore.bits.uncached &&
             SpeculativeRamRange.contains(p, io.fastStore.bits.address, io.fastStore.bits.size))
         assert((io.fastStore.bits.address(2, 0) & ((1.U << io.fastStore.bits.size) - 1.U)) === 0.U)

@@ -30,10 +30,13 @@ object BoardSocConfig {
     val issueWidth = 2
     val isaProfile = "rv64imac"
     val isaProfiles = Set("rv64imac", "rv64imafc", "rv64gc")
+    def usesStagedMemoryFabric(profile: String, p: OooParams): Boolean = Set("staged-fabric", "staged-control", "staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
+            .contains(profile) || p.registeredFabricBoundary
     def boardParams(profile: String, width: Int = issueWidth, externalDdr: Boolean = false,
         isa: String = isaProfile, ddrMemoryBytes: BigInt = ddrBytes,
         loadIssueForwarding: Option[Boolean] = None, identityDataFlow: Boolean = false,
-        fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers, dataNextLinePrefetch: Boolean = false): OooParams = {
+        fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers, dataNextLinePrefetch: Boolean = false,
+        virtualRamLoadPrecheck: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -42,9 +45,12 @@ object BoardSocConfig {
             case _ => FloatingPointConfig.disabled
         }
         val timing = timingParams(profile, width)
+        require(!virtualRamLoadPrecheck || usesStagedMemoryFabric(profile, timing),
+            "virtual RAM load precheck requires a staged board fabric profile; choose it explicitly")
         fpgaStorage.configure(timing.copy(machineSystem = true, atomicMemory = true,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
+            virtualRamLoadPrecheck = virtualRamLoadPrecheck,
             pmpEntries = 16, virtualMemoryLevels = 3,
             speculativeRamBytes = if (externalDdr) ddrMemoryBytes else ramBytes,
             floatingPoint = fp, advertiseFloatingPoint = fp.f))
@@ -180,7 +186,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
     identityDataFlow: Boolean = false,
-    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers) extends Module {
+    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers,
+    virtualRamLoadPrecheck: Boolean = false) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
     require(dataCacheLines >= 4 && dataCacheLines <= 512 && isPow2(dataCacheLines),
         "board data cache lines must be a power of two in 4..512")
@@ -206,7 +213,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     private val memoryBytes = if (externalDdr) ddrMemoryBytes else BigInt(BoardSocConfig.ramBytes)
     private val p = BoardSocConfig.boardParams(timingProfile, issueWidth, externalDdr, isaProfile, ddrMemoryBytes,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
-        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch)
+        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck)
     val io = IO(new Bundle {
         val peripheralClock = if (peripheralClockHz > 0) Some(Input(Clock())) else None
         val alwaysOnClock = cmuConfig.map(_ => Input(Clock()))
@@ -270,8 +277,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         registerCoherentResponses = timingProfile == "registered-response", uartReferenceClockHz = uartBaud * 16,
         coherentLineCacheWays = dataCacheWays, instructionLineCachePrefetch = instructionPrefetch,
         registerPhysicalResponseOwners = true,
-        stagedMemoryFabric = Set("staged-fabric", "staged-control", "staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
-            .contains(timingProfile) || p.registeredFabricBoundary,
+        stagedMemoryFabric = BoardSocConfig.usesStagedMemoryFabric(timingProfile, p),
         bufferTranslatedResponses = Set("staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,

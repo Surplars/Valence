@@ -16,6 +16,8 @@ class MappedMachineCore(
 ) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
+    require(!p.virtualRamLoadPrecheck || (dataTranslation && stagedMemoryFabric),
+        "virtual load precheck requires the staged physical authorization adapter")
     require(!stagedMemoryFabric || dataTranslation)
     require(!bufferTranslatedResponses || (dataTranslation && stagedMemoryFabric))
     require(!p.registeredTranslatedResponses || bufferTranslatedResponses)
@@ -38,6 +40,8 @@ class MappedMachineCore(
         val vmFlush         = if (p.virtualMemoryLevels > 0) Some(Output(Bool())) else None
         val vmFlushReady    = if (p.virtualMemoryLevels > 0) Some(Input(Bool())) else None
         val translation     = if (dataTranslation) Some(new SvTranslationPort) else None
+        val translationPeek = if (p.virtualRamLoadPrecheck) Some(new SvTranslationPeekPort) else None
+        val precheckFlush = if (p.virtualRamLoadPrecheck) Some(Input(Bool())) else None
         val commitEnable    = Input(Bool())
         val commit          = Output(Vec(p.commitWidth, Valid(new CommitRecord(p))))
         val trap            = Output(Valid(new HeadException(p)))
@@ -98,6 +102,11 @@ class MappedMachineCore(
         } else adapter.io.virtual <> core.io.memory
         adapter.io.physical <> mappedUpstream
         adapter.io.translation <> io.translation.get
+        if (p.virtualRamLoadPrecheck) {
+            adapter.io.loadPrecheck.get <> core.io.loadPrecheck.get
+            adapter.io.translationPeek.get <> io.translationPeek.get
+            adapter.io.precheckFlush.get := io.precheckFlush.get
+        }
         adapter.io.vmState := core.io.vmState.get
         adapter.io.pmpState := core.io.pmpState.get
     } else {

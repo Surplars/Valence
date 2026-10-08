@@ -35,6 +35,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val fenceIFlushReady = Input(Bool())
         val recovering      = Output(Bool())
         val memory          = new DataPort
+        val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val msi             = Flipped(new RegisterPort)
         val externalPending = Output(UInt(imsicParams.files.W))
         val inspectRegister = Input(UInt(5.W))
@@ -78,6 +79,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     }
     core.io.commitEnable                    := io.commitEnable
     core.io.inspectRegister                 := io.inspectRegister
+    io.loadPrecheck.foreach(_ <> core.io.loadPrecheck.get)
     io.memory <> core.io.memory
     io.accepted       := core.io.accepted
     io.fetchPc        := core.io.fetchPc

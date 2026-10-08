@@ -13,6 +13,8 @@ class DataRequest extends Bundle {
     val data     = UInt(64.W) // Ordinary stores use aligned beat lanes; atomic rs2 is right-justified.
     val mask     = UInt(8.W)
     val virtualized = Bool() // Address has not yet been translated; only the core's VM adapter consumes it.
+    val precheckedLoad = Bool() // Frozen PA from the hit-only virtual-load authorization path.
+    val translationEpoch = UInt(32.W) // Consumed and cleared at the physical authorization adapter.
     val prefetchNextAllowed = Bool() // Full next-line permission captured by the physical authorization adapter.
     val uncached = Bool() // Physical access must bypass the private cache (for example, PBMT NC/IO).
 }
@@ -49,6 +51,9 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val unsigned = Bool()
     val accessDenied = Bool()
     val virtualized = Bool()
+    val precheckedLoad = Bool()
+    val physicalAddress = UInt(64.W)
+    val translationEpoch = UInt(32.W)
 }
 
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
@@ -120,12 +125,14 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     io.memory.request.valid         := state === request || startRequest
     io.memory.request.bits.atomic   := sending.atomic
     io.memory.request.bits.atomicOp := sending.atomicOp
-    io.memory.request.bits.address  := sending.address
+    io.memory.request.bits.address  := Mux(sending.precheckedLoad, sending.physicalAddress, sending.address)
     io.memory.request.bits.write    := sending.store
     io.memory.request.bits.size     := sending.size
     io.memory.request.bits.data     := Mux(sending.atomic, sending.data, sending.data << shift)
     io.memory.request.bits.mask     := mask << sending.address(2, 0)
-    io.memory.request.bits.virtualized := sending.virtualized
+    io.memory.request.bits.virtualized := sending.virtualized && !sending.precheckedLoad
+    io.memory.request.bits.precheckedLoad := sending.precheckedLoad
+    io.memory.request.bits.translationEpoch := sending.translationEpoch
     io.memory.request.bits.uncached := false.B
     io.memory.request.bits.prefetchNextAllowed := false.B
     io.memory.response.ready        := state === response ||
@@ -164,6 +171,13 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     when(io.complete.fire || (state === done && discard)) { state := idle }
     // New ownership wins over freeing the result accepted in the same cycle.
     when(io.start.fire) {
+        when(io.start.bits.precheckedLoad) {
+            assert(p.virtualRamLoadPrecheck.B && io.start.bits.virtualized &&
+                !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid,
+                "prechecked physical authorization belongs only to an ordinary virtual RAM load")
+            assert(io.start.bits.address(11, 0) === io.start.bits.physicalAddress(11, 0),
+                "translation preserves the page offset used for lane extraction and precise tval")
+        }
         cancelled        := false.B
         operation        := io.start.bits
         result           := 0.U.asTypeOf(new BackendCompletion(p))

@@ -83,6 +83,8 @@ class MachinePlatform(
     require(!translationService || (tileLinkMemory && Set(3, 4, 5).contains(translationLevels)))
     require(!translationService || Set(4, 8, 16).contains(pteCacheEntries))
     require(!coreDataTranslation || translationService)
+    require(!p.virtualRamLoadPrecheck || (coreDataTranslation && stagedMemoryFabric),
+        "virtual load precheck requires integrated data translation and staged authorization")
     require(!coreInstructionTranslation || translationService)
     require(!coherentLineCache || (tileLinkMemory && tileLinkFetch && !sharedReadCache))
     require(!ethernetDma || coherentLineCache,
@@ -345,6 +347,8 @@ class MachinePlatform(
     shared.io.dma.request.bits.atomic   := false.B
     shared.io.dma.request.bits.atomicOp := 0.U
     shared.io.dma.request.bits.virtualized := false.B
+    shared.io.dma.request.bits.precheckedLoad := false.B
+    shared.io.dma.request.bits.translationEpoch := 0.U
     shared.io.dma.request.bits.uncached := false.B
     shared.io.dma.request.bits.prefetchNextAllowed := false.B
     val coherentFlushDrained = WireDefault(true.B)
@@ -458,7 +462,8 @@ class MachinePlatform(
     }
     val physicalDataRequestCpu = WireDefault(shared.io.memoryRequestCpu)
     val physicalData = if (translationService) {
-        val walkers = Seq.fill(2)(Module(new SvTranslationService(translationLevels)))
+        val walkers = (0 until 2).map(i => Module(new SvTranslationService(translationLevels,
+            loadPeek = p.virtualRamLoadPrecheck && i == 1)))
         val adapters = Seq.fill(2)(Module(new SvPteDataBridge(pteCacheEntries)))
         val walkerArbiter = Module(new SharedDataArbiter)
         // OrderedTileLinkBridge cannot return a newly accepted DataPort request
@@ -467,6 +472,10 @@ class MachinePlatform(
         val systemArbiter = Module(new SharedDataArbiter(registerPhysicalResponseOwners))
         val coreFlush = Wire(Bool())
         val flush = io.translationFlush.get || coreFlush
+        if (p.virtualRamLoadPrecheck) {
+            walkers(1).io.loadPeek.get <> core.io.translationPeek.get
+            core.io.precheckFlush.get := flush
+        }
         for (i <- 0 until 2) {
             walkers(i).reset := reset.asBool || hold
             adapters(i).reset := reset.asBool || hold

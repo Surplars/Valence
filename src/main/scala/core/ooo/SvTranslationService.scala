@@ -32,11 +32,14 @@ private[ooo] class SvTlbEntry extends Bundle {
   * privilege, so cached permission success cannot authorize a different access. Superpage hits reconstruct their
   * page offset from the new VA. Each I/D instance has its own walker and can miss concurrently.
   */
-class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int = 16) extends Module {
+class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int = 16,
+    loadPeek: Boolean = false) extends Module {
+    private val enableLoadPeek = loadPeek
     require(Set(3, 4, 5).contains(maxLevels))
     require(Set(4, 8, 16).contains(entries))
     val io = IO(new Bundle {
         val client    = Flipped(new SvTranslationPort)
+        val loadPeek = if (enableLoadPeek) Some(Flipped(new SvTranslationPeekPort)) else None
         val flush     = Input(Bool())
         val idle      = Output(Bool())
         val pmpState  = Input(new PmpState)
@@ -56,42 +59,53 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     val savedResponse = Reg(new SvTranslationResponse)
     val request = io.client.request.bits
     val activeMode = request.mode =/= 0.U && request.privilege =/= 3.U
-    val equalContext = (0 until entries).map { i =>
-        val prior = tlb(i).request
-        val topMatches = MuxLookup(request.mode, false.B)(Seq(
-            8.U -> (prior.virtualAddress(63, 39) === request.virtualAddress(63, 39)),
-            9.U -> (prior.virtualAddress(63, 48) === request.virtualAddress(63, 48)),
-            10.U -> (prior.virtualAddress(63, 57) === request.virtualAddress(63, 57))
-        ))
-        prior.rootPpn === request.rootPpn && prior.asid === request.asid && prior.mode === request.mode &&
-            prior.privilege === request.privilege && prior.access === request.access &&
-            prior.sum === request.sum && prior.mxr === request.mxr && topMatches
+    // Demand and read-only precheck use exactly the same key and superpage/NAPOT reconstruction.
+    // A precheck has no ready/fire, replacement, miss, walker or response-owner side effect.
+    def lookup(query: SvTranslationRequest): (Bool, SvTranslationResponse) = {
+        val hits = Wire(Vec(entries, Bool()))
+        for (i <- 0 until entries) {
+            val prior = tlb(i).request
+            val topMatches = MuxLookup(query.mode, false.B)(Seq(
+                8.U -> (prior.virtualAddress(63, 39) === query.virtualAddress(63, 39)),
+                9.U -> (prior.virtualAddress(63, 48) === query.virtualAddress(63, 48)),
+                10.U -> (prior.virtualAddress(63, 57) === query.virtualAddress(63, 57))
+            ))
+            val contextMatches = prior.rootPpn === query.rootPpn && prior.asid === query.asid &&
+                prior.mode === query.mode && prior.privilege === query.privilege &&
+                prior.access === query.access && prior.sum === query.sum && prior.mxr === query.mxr && topMatches
+            val level = tlb(i).response.level
+            val matchingVpn = (0 until maxLevels).map { j =>
+                level > j.U || (if (j == 0) tlb(i).response.napot &&
+                    query.virtualAddress(20, 16) === prior.virtualAddress(20, 16) else false.B) ||
+                    query.virtualAddress(12 + 9 * j + 8, 12 + 9 * j) ===
+                        prior.virtualAddress(12 + 9 * j + 8, 12 + 9 * j)
+            }.reduce(_ && _)
+            hits(i) := tlb(i).valid && contextMatches && matchingVpn
+        }
+        val cached = tlb(PriorityEncoder(hits))
+        val offsetMasks = (0 until maxLevels).map(i => i.U -> ((BigInt(1) << (12 + 9 * i)) - 1).U(64.W))
+        val offsetMask = Mux(cached.response.napot, "hffff".U(64.W),
+            MuxLookup(cached.response.level, offsetMasks.head._2)(offsetMasks))
+        val response = WireDefault(cached.response)
+        response.physicalAddress := (cached.response.physicalAddress & ~offsetMask) |
+            (query.virtualAddress & offsetMask)
+        (query.mode =/= 0.U && query.privilege =/= 3.U && hits.asUInt.orR, response)
     }
-    val hitVec = Wire(Vec(entries, Bool()))
-    for (i <- 0 until entries) {
-        val level = tlb(i).response.level
-        val matchingVpn = (0 until maxLevels).map { j =>
-            level > j.U || (if (j == 0) tlb(i).response.napot &&
-                request.virtualAddress(20, 16) === tlb(i).request.virtualAddress(20, 16) else false.B) ||
-                request.virtualAddress(12 + 9 * j + 8, 12 + 9 * j) ===
-                    tlb(i).request.virtualAddress(12 + 9 * j + 8, 12 + 9 * j)
-        }.reduce(_ && _)
-        hitVec(i) := tlb(i).valid && equalContext(i) && matchingVpn
-    }
-    val hit = activeMode && hitVec.asUInt.orR
-    val cached = tlb(PriorityEncoder(hitVec))
-    val offsetMasks = (0 until maxLevels).map(i => i.U -> ((BigInt(1) << (12 + 9 * i)) - 1).U(64.W))
-    val offsetMask = Mux(cached.response.napot, "hffff".U(64.W),
-        MuxLookup(cached.response.level, offsetMasks.head._2)(offsetMasks))
-    val cachedAddress = (cached.response.physicalAddress & ~offsetMask) |
-        (request.virtualAddress & offsetMask)
+    val (hit, cachedResponse) = lookup(request)
     val fast = !activeMode || hit
     val fastResponse = WireDefault(0.U.asTypeOf(new SvTranslationResponse))
-    fastResponse.physicalAddress := Mux(activeMode, cachedAddress, request.virtualAddress)
-    fastResponse.level := Mux(activeMode, cached.response.level, 0.U)
-    fastResponse.napot := activeMode && cached.response.napot
-    fastResponse.global := activeMode && cached.response.global
-    fastResponse.pbmt := Mux(activeMode, cached.response.pbmt, 0.U)
+    fastResponse.physicalAddress := Mux(activeMode, cachedResponse.physicalAddress, request.virtualAddress)
+    fastResponse.level := Mux(activeMode, cachedResponse.level, 0.U)
+    fastResponse.napot := activeMode && cachedResponse.napot
+    fastResponse.global := activeMode && cachedResponse.global
+    fastResponse.pbmt := Mux(activeMode, cachedResponse.pbmt, 0.U)
+
+    io.loadPeek.foreach { peek =>
+        val (peekHit, response) = lookup(peek.request.bits)
+        peek.response.valid := peek.request.valid && peekHit && !io.flush &&
+            peek.request.bits.access === PmpAccess.read && !response.pageFault && !response.accessFault
+        peek.response.bits := response
+    }
 
     io.client.response.valid := (state === idle && io.client.request.valid && fast && !io.flush) ||
         state === replying

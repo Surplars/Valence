@@ -53,6 +53,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val invalidateFetch             = Output(Bool())
         val recovering                  = Output(Bool())
         val memory                      = new DataPort
+        val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val memoryBusy                  = Output(Bool())
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
@@ -86,6 +87,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         io.vmFlush.get := backend.io.vmFlush.get
         backend.io.vmFlushReady.get := io.vmFlushReady.get
     }
+    io.loadPrecheck.foreach(_ <> backend.io.loadPrecheck.get)
     io.memory <> backend.io.memory
     if (p.dataNextLinePrefetch) backend.io.externalPrefetchBusy.get := io.externalPrefetchBusy.get
     io.memoryBusy        := backend.io.memoryBusy

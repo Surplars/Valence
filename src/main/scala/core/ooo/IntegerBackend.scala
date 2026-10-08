@@ -109,6 +109,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val redirect                    = Output(Valid(new FrontendRedirect(p)))
         val invalidateFetch             = Output(Bool())
         val memory                      = new DataPort
+        val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val memoryBusy                  = Output(Bool())
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
@@ -269,6 +270,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     }
     val pending       = RegInit(VecInit(Seq.fill(p.robEntries)(false.B)))
     val memoryLive    = RegInit(VecInit(Seq.fill(p.robEntries)(false.B)))
+    val memoryCanonical = if (p.virtualRamLoadPrecheck)
+        Some(RegInit(VecInit(Seq.fill(p.robEntries)(false.B)))) else None
     val storeAddressKnown = RegInit(VecInit(Seq.fill(p.robEntries)(false.B)))
     val storePrepared = RegInit(VecInit(Seq.fill(p.robEntries)(false.B)))
     val storePreparationBusy = if (p.earlyStorePreparation)
@@ -469,11 +472,13 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         when(killed(i)) {
             pending(i) := false.B
             memoryLive(i) := false.B
+            memoryCanonical.foreach(_(i) := false.B)
             storeAddressKnown(i) := false.B
             storePrepared(i) := false.B
         }
         when(ledger.io.commit.map(c => c.valid && c.bits.token.index === i.U).reduce(_ || _)) {
             memoryLive(i)    := false.B
+            memoryCanonical.foreach(_(i) := false.B)
             storeAddressKnown(i) := false.B
             storePrepared(i) := false.B
         }
@@ -646,6 +651,35 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val savedStore    = memoryChoice.valid && memoryEntry.request.store && storePrepared(memoryChoice.index)
     val address       = if (p.registeredMemoryAddress) stagedMemoryAddress.get else
         Mux(savedStore, storeAddress(memoryChoice.index), operandValue(memorySource1) + memoryEntry.request.immediate)
+    val loadPreparation = if (p.virtualRamLoadPrecheck) Some(Module(new VirtualRamLoadPreparation(p))) else None
+    loadPreparation.foreach { preparation =>
+        preparation.io.precheck <> io.loadPrecheck.get
+        preparation.io.candidate.valid := memoryChoice.valid && virtualized &&
+            !memoryEntry.request.store && !memoryEntry.request.atomic
+        preparation.io.candidate.bits.token := memoryEntry.renamed.token
+        preparation.io.candidate.bits.address := address
+        preparation.io.candidate.bits.size := memorySize
+        preparation.io.pmpState := pmpState
+        preparation.io.privilege := dataPrivilege
+        // Do not feed same-cycle branch resolution into reservation selection. Full token/pending checks
+        // and the existing LSU launch recovery gate reject same-edge kills; rollback clears the proof.
+        preparation.io.flush := ledger.io.recovering || contextMemoryEpoch || interruptDrain || reserveSystem
+    }
+    val preparedLoadMatches = loadPreparation.map { preparation =>
+        val result = preparation.io.prepared
+        result.valid && memoryChoice.valid && result.bits.token.asUInt === memoryEntry.renamed.token.asUInt &&
+            result.bits.address === address && result.bits.size === memorySize
+    }.getOrElse(false.B)
+    val precheckedLoad = preparedLoadMatches && virtualized &&
+        !memoryEntry.request.store && !memoryEntry.request.atomic &&
+        loadPreparation.map(_.io.prepared.bits.allowed).getOrElse(false.B)
+    // Preparation is opportunistic. A ready head never waits for an optional certificate: it uses
+    // the existing serial virtual path unless a matching registered proof is already available.
+    // Only younger speculation requires a positive proof. This preserves cold/dependent head-load
+    // latency without a combinational TLB/PMP bypass. A serial start clears pending below, so a
+    // later proof for that full token cannot relaunch it or change the accepted LSU owner's mode.
+    val canonicalAddress = Mux(virtualized,
+        loadPreparation.map(_.io.prepared.bits.physicalAddress).getOrElse(address), address)
     val pmpCheck = Module(new PmpChecker(p.pmpEntries))
     pmpCheck.io.state     := pmpState
     pmpCheck.io.address   := address
@@ -655,33 +689,40 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         Mux(memoryEntry.request.atomicOp === 2.U, PmpAccess.read,
             Mux(memoryEntry.request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
         Mux(memoryEntry.request.store, PmpAccess.write, PmpAccess.read))
-    val ordinaryRam = !virtualized && SpeculativeRamRange.contains(p, address, memorySize)
+    val ordinaryRam = (!virtualized && SpeculativeRamRange.contains(p, address, memorySize)) || precheckedLoad
     val sourceStore                                = lsu.io.forwardStore
     def byteLanes(size: UInt, address: UInt): UInt = {
         val mask = MuxLookup(size, 255.U(8.W))(Seq(0.U -> 1.U, 1.U -> 3.U, 2.U -> 15.U))
         (mask << address(2, 0))(7, 0)
     }
-    val loadMask  = byteLanes(memorySize, address)
-    val loadAligned = AlignedMemoryDisjoint.aligned(address, memorySize)
+    val loadMask  = byteLanes(memorySize, canonicalAddress)
+    val loadAligned = AlignedMemoryDisjoint.aligned(canonicalAddress, memorySize)
     val storeMask = byteLanes(sourceStore.bits.size, sourceStore.bits.address)
     val sourceRam = SpeculativeRamRange.contains(p, sourceStore.bits.address, sourceStore.bits.size)
     val forwarding =
-        sourceStore.valid && sourceRam && ordinaryRam && !memoryEntry.request.store && !memoryEntry.request.atomic &&
-            sourceStore.bits.address(63, 3) === address(63, 3) && (storeMask & loadMask) === loadMask &&
+        sourceStore.valid && sourceRam && ordinaryRam && !precheckedLoad && !memoryEntry.request.store && !memoryEntry.request.atomic &&
+            sourceStore.bits.address(63, 3) === canonicalAddress(63, 3) && (storeMask & loadMask) === loadMask &&
             memoryLive(sourceStore.bits.token.index) &&
             (sourceStore.bits.token.index - head) < memoryChoice.age
-    val blockedByStore = (0 until p.robEntries)
+    val physicalStoreConflict = (0 until p.robEntries)
         .map { i =>
             // Safe prepared stores and naturally aligned loads are single-beat
             // byte intervals. Unaligned younger loads wait for precise head
             // fault handling; they cannot use a truncated lane mask to bypass.
-            val disjoint = AlignedMemoryDisjoint.withLanes(address, loadAligned, loadMask,
+            val disjoint = AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
                 storeAddress(i)(63, 3), storeByteLanes(i))
             memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age &&
             !(storeAddressKnown(i) && storeSafeRange(i) && disjoint) &&
             !(forwarding && queue(i).renamed.token.asUInt === sourceStore.bits.token.asUInt)
         }
         .reduce(_ || _)
+    // Initial virtual overlap never guesses an older store's PA or compares a VA with a PA.
+    // Unknown/unissued older memory must establish canonical ownership before a younger proof can launch.
+    val olderUncanonicalMemory = memoryCanonical.map { known =>
+        (0 until p.robEntries).map(i => memoryLive(i) && ages(i) < memoryChoice.age &&
+            (queue(i).request.store || !known(i))).reduce(_ || _)
+    }.getOrElse(false.B)
+    val blockedByStore = physicalStoreConflict || (precheckedLoad && olderUncanonicalMemory)
     val unknownOlderStore = (0 until p.robEntries)
         .map(i => memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age && !storeAddressKnown(i))
         .reduce(_ || _)
@@ -715,7 +756,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     // this check, so a conflict can still replay the oldest overlapping younger read precisely.
     // The register boundary removes address generation from the overlap/recovery path.
     // Aligned W/D/H/B loads lie within one 64-bit beat, so compare beat and byte lanes.
-    val selectedLanes = byteLanes(memorySize, address)
+    val selectedLanes = byteLanes(memorySize, canonicalAddress)
     val replaySelector = Module(new LoadReplaySelector(p))
     replaySelector.io.head := head
     // This check runs exactly one cycle after issue; the owner cannot retire and reuse its ROB slot yet.
@@ -727,7 +768,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     replaySelector.io.lanes := loadLanes
     replaySelector.io.eligible := VecInit((0 until p.robEntries).map { i =>
         memoryLive(i) && !pending(i) && queue(i).request.memory &&
-            !queue(i).request.store && !queue(i).request.atomic
+            !queue(i).request.store && !queue(i).request.atomic &&
+            memoryCanonical.map(_(i)).getOrElse(true.B)
     }).asUInt
     val loadReplay = Wire(new Candidate)
     loadReplay.valid := replaySelector.io.valid
@@ -770,6 +812,9 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     lsu.io.start.bits.token         := memoryEntry.renamed.token
     lsu.io.start.bits.pc            := memoryEntry.request.rename.pc
     lsu.io.start.bits.address       := address
+    lsu.io.start.bits.precheckedLoad := precheckedLoad
+    lsu.io.start.bits.physicalAddress := loadPreparation.map(_.io.prepared.bits.physicalAddress).getOrElse(0.U)
+    lsu.io.start.bits.translationEpoch := loadPreparation.map(_.io.prepared.bits.epoch).getOrElse(0.U)
     lsu.io.start.bits.data          := (if (p.registeredMemoryAddress) stagedMemoryData.get else
         Mux(savedStore, storeData(memoryChoice.index), operandValue(memorySource2)))
     lsu.io.start.bits.atomic        := memoryEntry.request.atomic
@@ -808,11 +853,16 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     }
     orderCheckValid := lsu.io.start.fire && speculative
     when(lsu.io.start.fire) {
+        when(precheckedLoad) {
+            assert(preparedLoadMatches && (memoryChoice.index === head || !olderUncanonicalMemory),
+                "a prechecked start requires its unchanged full-token certificate and canonical older memory")
+        }
         pending(memoryChoice.index) := false.B
-        loadBeat(memoryChoice.index)  := address(63, 3)
+        memoryCanonical.foreach(_(memoryChoice.index) := !virtualized || precheckedLoad)
+        loadBeat(memoryChoice.index)  := canonicalAddress(63, 3)
         loadLanes(memoryChoice.index) := selectedLanes
         orderCheckIndex := memoryChoice.index
-        orderCheckBeat  := address(63, 3)
+        orderCheckBeat  := canonicalAddress(63, 3)
         orderCheckLanes := selectedLanes
         // An overlapping RAM start must not release the previous irrevocable owner's protection.
         when(!speculative) {
@@ -1792,6 +1842,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             }
             pending(renamed.bits.token.index)       := true.B
             memoryLive(renamed.bits.token.index)    := io.allocate(lane).bits.memory
+            memoryCanonical.foreach(_(renamed.bits.token.index) := false.B)
             storeAddressKnown(renamed.bits.token.index) := false.B
             storePrepared(renamed.bits.token.index) := false.B
             when(renamed.bits.writesRd && !renamed.bits.moveAlias) {
