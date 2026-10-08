@@ -77,7 +77,7 @@ def require_console_contract(manifest, content, config):
             < init.index('exec /usr/sbin/dinit'), 'UART bootstrap order')
     bootstrap = content('usr/local/libexec/valence-uart-irq-init').decode()
     require('modprobe valence_aia' in bootstrap and 'ready=1 faulted=0' in bootstrap
-            and 'irq:[1-9][0-9]*' in bootstrap and 'mmio:0x10000000' in bootstrap
+            and 'irq:[1-9][0-9]*' in bootstrap and 'mmio:0x0*10000000' in bootstrap
             and 'exec < /dev/ttyS0 > /dev/ttyS0 2>&1' in bootstrap,
             'UART bootstrap must verify a real IRQ and reopen PID 1 descriptors')
 
@@ -108,6 +108,9 @@ def main(args):
         return data or linked.get((f[7], f[8], f[0]), b'')
 
     require_no_retired_tools(entries)
+    for path, (fields, data) in entries.items():
+        if stat.S_ISLNK(fields[1]):
+            require(not data.startswith(b'/workspace/'), 'build-host symlink leaked: ' + path)
     require('usr/lib/valence/busybox' not in entries and
             not any(p == 'usr/share/doc/valence/busybox' or p.startswith('usr/share/doc/valence/busybox/')
                     for p in entries), 'unused custom BusyBox inherited into Dinit image')

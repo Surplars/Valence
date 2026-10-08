@@ -2,7 +2,11 @@
 # No getty/HVC may consume input while 8250 claims the physical UART.
 uart_fail() {
     printf '<3>valence-uart: %s; reset and load the SBI recovery image\n' "$*" > /dev/kmsg
-    exit 1
+    # This helper runs in PID 1. Exiting would panic an otherwise live kernel.
+    # An unverified IRQ path cannot safely provide interactive tty input; keep
+    # diagnostic output alive and wait for an explicit reset/recovery image.
+    printf '%s\n' "$*" > /run/valence/uart-recovery-required
+    while :; do sleep 3600; done
 }
 # The IRQ controller is an explicit module in this BSP. Before it publishes its
 # IRQ domain, 8250 OF probing defers instead of silently selecting irq=0 polling.
@@ -17,11 +21,13 @@ done
 # /dev/ttyS0 alone is insufficient: 8250 allocates placeholder tty devices even
 # before OF probe binds. Require the correct MMIO port and a real Linux IRQ.
 uart_tries=0
-while ! awk '
+while ! [ -c /dev/ttyS0 ] || ! awk '
     $1 == "0:" && $2 == "uart:16550A" {
         mmio = 0; irq = 0
         for (i = 3; i <= NF; i++) {
-            if (tolower($i) == "mmio:0x10000000") mmio = 1
+            # Linux uart_get_ioinfos uses %pa: RV64 pads physical addresses
+            # to 16 hex digits. Accept only leading zeros, never another base.
+            if (tolower($i) ~ /^mmio:0x0*10000000$/) mmio = 1
             if ($i ~ /^irq:[1-9][0-9]*$/) irq = 1
         }
         if (mmio && irq) found = 1

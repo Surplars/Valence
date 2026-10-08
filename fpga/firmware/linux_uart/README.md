@@ -20,7 +20,7 @@ existing qualified single-hart CSR-only APLIC/IMSIC implementation.
 - `clock-frequency=7372800` is the UART's **virtual baud reference**, not its raw
   50 MHz peripheral clock. DLL=1 gives the unchanged 460800 baud.
 - Dinit `/init` mounts API filesystems, loads the AIA module and verifies both
-  controller selftests before waiting (at most five seconds) for the deferred
+  controller selftests before waiting (50 bounded 0.1-second sleeps, plus probe/process work) for the deferred
   8250 probe. It requires the expected MMIO port and a nonzero IRQ in
   `/proc/tty/driver/serial`, not just a placeholder `/dev/ttyS0` node.
 - After configuring CLOCAL (there are no external modem carrier pins), `/init`
@@ -65,8 +65,9 @@ not promised for arbitrary overload.
 
 If AIA selftest or native UART binding fails, the bootstrap writes an explicit
 error to `/dev/kmsg` (visible through the remaining early/native output path),
-then fails closed rather than quietly running an irq=0 polling port. Reset and
-load the unchanged `--console sbi` recovery image. Network/platform failures
+then fails closed rather than quietly running an irq=0 polling port. PID 1
+stays asleep and records `/run/valence/uart-recovery-required`, preserving
+diagnostic output without claiming an interactive input terminal. Reset and load the unchanged `--console sbi` recovery image. Network/platform failures
 **after** UART readiness still leave the native getty available; an IRQ-controller
 failure cannot retain an interrupt-driven input terminal.
 
@@ -75,6 +76,7 @@ Short isolated checks:
 ```
 python fpga/firmware/linux_uart/test_uart_profile.py
 python fpga/firmware/linux_uart/test_aia_budget.py
+python fpga/firmware/linux_uart/test_uart_bootstrap_regression.py
 python fpga/firmware/linux_net/test_build_image.py
 GSIM_CXX=clang++-19 python simulator/gsim/uart_runtime.py
 ```
@@ -100,3 +102,21 @@ Pinned Linux source: `551c722f40809618230001baccf219193e22fc5a`.
 - [8250 OF probe](https://github.com/torvalds/linux/blob/551c722f40809618230001baccf219193e22fc5a/drivers/tty/serial/8250/8250_of.c)
 - [8250 RX/TX, THRE startup tests and console code](https://github.com/torvalds/linux/blob/551c722f40809618230001baccf219193e22fc5a/drivers/tty/serial/8250/8250_port.c)
 - [SBI HVC initialization](https://github.com/torvalds/linux/blob/551c722f40809618230001baccf219193e22fc5a/drivers/tty/hvc/hvc_riscv_sbi.c)
+
+## RV64 binding-format regression (2026-10-08)
+
+The first real-board IRQ image reached a correctly bound 16550A ttyS0 at
+`MMIO:0x0000000010000000`, Linux IRQ 3, then falsely timed out in `/init`.
+The original bootstrap compared the address to an unpadded string. Linux
+`uart_get_ioinfos()` uses `%pa`, and `lib/vsprintf.c:address_val()` formats
+`sizeof(phys_addr_t)` bytes, so RV64 prints sixteen hexadecimal digits.
+The corrected strict expression accepts leading zeros at the same physical
+base; wrong addresses, unknown UART types, zero IRQs and failed AIA selftests
+remain rejected. No timeout increase or IRQ bypass is involved.
+
+The real-port `/proc` predicate is intentionally independent of sysfs serial
+controller/port nesting. Regression tests reproduce the nested ctrl/port/tty
+shape, deferred probe stages, real padded output, invalid lookalikes and a
+non-exiting PID 1 recovery state. The original shipped RV64 `mawk` also rejects
+the old predicate and accepts the corrected predicate under QEMU user-mode.
+This is software reproduction, not a successful repaired-image board boot.

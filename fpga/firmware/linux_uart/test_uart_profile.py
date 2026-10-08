@@ -112,11 +112,12 @@ class ProfileTests(unittest.TestCase):
 
     def test_bootstrap_success_and_failures(self):
         original = (rootfs.ASSETS / 'uart-irq-init').read_text()
-        for mode in ('ready', 'unknown-port', 'irq-zero', 'wrong-mmio', 'aia-fault', 'modprobe-fail'):
+        for mode in ('ready', 'rv64-padded', 'unknown-port', 'irq-zero', 'wrong-mmio', 'aia-fault', 'modprobe-fail'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 (root / 'status').write_text('ready=1 faulted=' + ('1' if mode == 'aia-fault' else '0'))
                 serial = '0: uart:16550A mmio:0x10000000 irq:7 tx:0 rx:0\n'
+                if mode == 'rv64-padded': serial = serial.replace('mmio:0x10000000', 'MMIO:0x0000000010000000')
                 if mode == 'unknown-port': serial = serial.replace('16550A', 'unknown')
                 if mode == 'irq-zero': serial = serial.replace('irq:7', 'irq:0')
                 if mode == 'wrong-mmio': serial = serial.replace('10000000', '10000100')
@@ -126,6 +127,8 @@ class ProfileTests(unittest.TestCase):
                 text = original.replace('/sys/bus/platform/devices/*/irqchip_status', str(root / 'status'))
                 text = text.replace('/proc/tty/driver/serial', str(root / 'serial'))
                 text = text.replace('/dev/kmsg', str(root / 'kmsg')).replace('/dev/ttyS0', str(root / 'tty'))
+                text = text.replace('/run/valence/uart-recovery-required', str(root / 'recovery-required'))
+                text = text.replace('sleep 3600', 'exit 77')
                 text = text.replace('[ -c ', '[ -f ')
                 text = text.replace('sleep 0.1', ': # bounded wait elided in host fixture')
                 text = text.replace('modprobe valence_aia', 'false' if mode == 'modprobe-fail' else 'true')
@@ -133,8 +136,8 @@ class ProfileTests(unittest.TestCase):
                 script = root / 'test.sh'
                 script.write_text('set -eu\n' + text)
                 result = subprocess.run(['/bin/sh', script], capture_output=True, timeout=3)
-                self.assertEqual(result.returncode, 0 if mode == 'ready' else 1)
-                if mode == 'ready':
+                self.assertEqual(result.returncode, 0 if mode in ('ready', 'rv64-padded') else 77)
+                if mode in ('ready', 'rv64-padded'):
                     self.assertIn('FIFO IRQ terminal ready', (root / 'tty').read_text())
                 else:
                     self.assertIn('reset and load the SBI recovery image', (root / 'kmsg').read_text())

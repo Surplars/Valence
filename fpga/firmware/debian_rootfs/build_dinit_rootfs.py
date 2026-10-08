@@ -18,6 +18,7 @@ sys.path[:0] = [str(HERE), str(ROOT / 'simulator/gsim')]
 from build_rootfs import sha, validate_output, copy, archive_paths, rootless_runner
 from build_systemd_rootfs import archive_names
 from run import run
+from rootfs_link_paths import normalize_build_links
 
 BINARIES = ('dinit', 'dinitctl', 'dinitcheck', 'dinit-shutdown')
 SERVICES = ('boot', 'platform', 'network', 'ready', 'login-ready', 'serial-console')
@@ -212,6 +213,10 @@ def rootfs(args):
     console = (root / 'dev/console').lstat()
     if not stat.S_ISCHR(console.st_mode) or console.st_rdev != os.makedev(5, 1):
         raise RuntimeError('Missing pre-init character console device')
+    if args.rootless_origin_root:
+        if not args.rootless_chroot:
+            raise RuntimeError('Build-origin normalization is only for an explicit rootless build')
+        record['rootless_link_normalization'] = normalize_build_links(root, args.rootless_origin_root)
     # The inherited seed uses this custom BusyBox only for its legacy init.
     # Dinit's init and all runtime helpers use Debian-provided commands.
     # Keep the original seed and all Debian-owned packages unchanged.
@@ -242,7 +247,7 @@ def rootfs(args):
         irq_controller_failure_requires_sbi_recovery=console_profile == 'uart-irq',
         persistent_storage=False, require_repaired_bit=True, vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
         sources={str(p.relative_to(HERE)): sha(p) for p in
-            [Path(__file__), HERE / 'build_rootfs.py', HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
+            [Path(__file__), HERE / 'build_rootfs.py', HERE / 'rootfs_link_paths.py', HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
         checks='target dinitcheck/module dry-run/package audit/LZ4 round-trip; not board execution')
     (out / 'rootfs-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('DINIT_LZ4_ROOTFS_PACKED_NOT_BOARD_VERIFIED ' + str(result), flush=True)
@@ -258,6 +263,8 @@ if __name__ == '__main__':
     parser.add_argument('--tools-build', type=Path)
     parser.add_argument('--kernel-build', type=Path)
     parser.add_argument('--rootless-chroot', type=Path, help='explicit userspace runner with caller-owned fakeroot metadata')
+    parser.add_argument('--rootless-origin-root', type=Path, action='append', default=[],
+                        help='exact former build root whose absolute links become guest paths')
     parser.add_argument('--jobs', type=int, default=8)
     parser.add_argument('--finish-tools', action='store_true', help='finish an incomplete tools output after checking all copied upstream files')
     args = parser.parse_args()
