@@ -15,6 +15,8 @@ import subprocess
 import tempfile
 import zlib
 
+from stage_incremental import STAGED_FOLDERS, check, check_hashes, check_tree, validate_cpu_proof
+
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "6c8977f684830137fae088d4679f9d84e5ce4a11"
 
@@ -25,6 +27,41 @@ def sha(path):
 
 def git(*args, env=None):
     return subprocess.check_output(["git", *map(str, args)], cwd=ROOT, env=env)
+
+
+def validate_proofs(proofs, root):
+    """PASS text alone must never requalify a receipt's changed sources."""
+    statuses = {"cpu": "PASS_SELECTED_BOARD_FUNCTIONAL", "prefetch": "PASS",
+                "prf": "PASS_PRF_RAM_ONLY", "monitor": "passed", "network": "passed"}
+    check(set(proofs) == set(statuses), "Missing local prerequisite")
+    documents = {role: json.loads(path.read_text()) for role, path in proofs.items()}
+    for role, document in documents.items():
+        check(document.get("status") == statuses[role], "Unpassed local prerequisite: " + role)
+        if role == "cpu":
+            validate_cpu_proof(document, root)
+        else:
+            check_hashes(root, document.get("source_sha256"), role + " frozen source drift")
+    cpu = documents["cpu"]
+    for role in ("prefetch", "prf", "monitor"):
+        check(cpu["inputs"].get(str(proofs[role])) == sha(proofs[role]),
+              "CPU did not test this prerequisite: " + role)
+    rom = proofs["monitor"].parent / "firmware/bootrom.bin"
+    check(rom.is_file() and documents["monitor"].get("rom_sha256") == sha(rom)
+          and cpu["inputs"].get(str(rom)) == sha(rom), "Monitor/CPU ROM identity mismatch")
+    return documents
+
+
+def validate_physical_state(state, candidate, proofs):
+    check(state.get("status") == "STAGED_SELECTED_DDR2G_RV64GC100_NOT_ROUTED",
+          "Candidate ROM/IP staging is not finalized")
+    check(state.get("proof_sha256") == sha(proofs["cpu"])
+          and state.get("network_proof_sha256") == sha(proofs["network"]),
+          "Candidate uses different functional proofs")
+    check_tree(candidate, state["candidate_sha256"],
+               (*STAGED_FOLDERS, "ip-build/board_ip.srcs", "ip-build/board_ip.gen"),
+               "Candidate input inventory/content drift")
+    rom = proofs["monitor"].parent / "firmware/bootrom.bin"
+    check(sha(candidate / "firmware/bootrom.bin") == sha(rom), "Candidate uses different tested ROM")
 
 
 def main():
@@ -40,9 +77,8 @@ def main():
         "prefetch": "data-prefetch-handoff-20261008-r2", "prf": "prf-handoff-20261008-r1",
         "monitor": "monitor-handoff-20261008-r1", "network": "network-tx-handoff-20261008-r1"}
     proofs = {role: ROOT / "build/gsim" / name / "receipt.json" for role, name in proof_dirs.items()}
-    for role, path in proofs.items():
-        if not json.loads(path.read_text())["status"].upper().startswith("PASS"):
-            raise RuntimeError("Unpassed local prerequisite: " + role)
+    validate_proofs(proofs, ROOT)
+    proof_hashes = {role: sha(path) for role, path in proofs.items()}
     index = Path(git("rev-parse", "--git-path", "index").decode().strip())
     if not index.is_absolute():
         index = ROOT / index
@@ -107,7 +143,8 @@ def main():
         "--rtl", "build/fpga/incremental-20261008-r1/rtl", "--output", candidate, "--finalize-rom"]
     physical = Path(candidate) / "inputs.json"
     physical_state = json.loads(physical.read_text()) if physical.is_file() else None
-    if physical_state:
+    if physical_state is not None:
+        validate_physical_state(physical_state, Path(candidate), proofs)
         shutil.copy2(physical, receipts / "candidate-inputs.json")
         shutil.copy2(Path(candidate) / "rom-ip.log", receipts / "rom-ip.log")
     state = {"status": "PASS_LOCAL_SHORT_ACCEPTANCE_NEXT_STA", "not_a_release": True,
@@ -119,7 +156,7 @@ def main():
         "selected_git_tree": tree, "replayed_git_tree": replay, "replay_verified": True,
         "source_sha256": sources,
         "host_unit_results": unit_results,
-        "proofs": {role: {"path": str(path), "sha256": sha(path),
+        "proofs": {role: {"path": str(path), "sha256": proof_hashes[role],
             "status": json.loads(path.read_text())["status"]} for role, path in proofs.items()},
         "configuration": {"isa": "rv64gc", "issue_width": 2, "lsu_entries": 2, "cpu_hz": 100000000,
             "uart_baud": 460800, "ddr_bytes": 2147483648, "icache_bytes": 32768, "dcache_bytes": 32768,
@@ -152,6 +189,11 @@ def main():
             "No running full-SoC synthesis, no new bit, no board qualification",
             "Large reusable model/object artifacts remain in WSL; archive paths are not executables",
             "Do not apply the standalone XOR-owner experiment to the CPU"]}
+    # Recheck frozen receipts and copied source identities after host tests.
+    validate_proofs(proofs, ROOT)
+    check(proof_hashes == {role: sha(path) for role, path in proofs.items()}, "Proof changed during export")
+    for name, digest in sources.items():
+        check(sha(ROOT / name) == digest, "Source changed during export: " + name)
     (out / "CURRENT-STATE.json").write_text(json.dumps(state, indent=2) + "\n")
     hashes = {p.relative_to(out).as_posix(): sha(p) for p in sorted(out.rglob("*")) if p.is_file()}
     (out / "SHA256.json").write_text(json.dumps(hashes, indent=2) + "\n")
