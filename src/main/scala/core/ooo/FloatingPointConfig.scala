@@ -10,7 +10,8 @@ case class FloatingPointConfig(
     divide: Boolean = true, squareRoot: Boolean = true,
     fusedMultiplyAdd: Boolean = true, compareMinMax: Boolean = true,
     signClassMove: Boolean = true, conversions: Boolean = true,
-    memory: Boolean = true
+    memory: Boolean = true,
+    resources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline
 ) {
     require(!d || f, "D requires F")
     def complete: Boolean = f && addSubtract && multiply && divide && squareRoot &&

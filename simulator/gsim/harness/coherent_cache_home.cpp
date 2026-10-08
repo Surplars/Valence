@@ -36,7 +36,10 @@ static void check(bool p, const char *m) { if (!p) throw std::runtime_error(m); 
 #else
 #include "board_ddr_multiid.h"
 #endif
-static constexpr uint64_t base = 0x80010000ULL;
+#ifndef CACHE_BASE
+#define CACHE_BASE 0x80010000ULL
+#endif
+static constexpr uint64_t base = CACHE_BASE;
 static bool injectMismatch = false;
 static bool unsafeFenceNegative = false;
 struct Request { uint64_t address; bool write = false; uint64_t data = 0; unsigned mask = 255; bool uncached = false; };

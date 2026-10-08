@@ -1,0 +1,95 @@
+{
+  "status": "MATCHED_BOUNDED_FIRMWARE_PREFIX",
+  "reference": {
+    "receipt": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-fw-prefix-reference/build/gsim/fpga-next-firmware-prefix-reference-1m-r1/receipt.json",
+    "sha256": "fdf226934106df87887fe41ae166fb61c858c1612736275de6a23adae53761a8",
+    "wall_seconds": 110.2650658509956
+  },
+  "selected": {
+    "receipt": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-fw-prefix-selected/build/gsim/fpga-next-firmware-prefix-selected-1m-r1/receipt.json",
+    "sha256": "fa4016f82a52fa4aa3a2262b181b9667dd937764e30fcd7879d405f2d2b5db22",
+    "wall_seconds": 121.84043424399715
+  },
+  "equality": {
+    "retirement_event_trace": true,
+    "snapshot": true,
+    "trap_histogram": true,
+    "backing_digest_and_sentinel": true
+  },
+  "fixed_endpoint": 1000000,
+  "guest_sha256": "5addbabefc52bc37a40a62a64f7d819b57dc09f1cb5af094434d598f33023504",
+  "retirement_trace_sha256": "284c59dcf81e6b5e78a29e853fd7224f58f12bd0434db89fca1a83c5f5a0247d",
+  "reference_snapshot": {
+    "endpoint": 1,
+    "cycles": 1000000,
+    "observation_begin": 115,
+    "commits": 579223,
+    "last_pc": 2149690496,
+    "pc_trace_fnv1a64": 8588258820457876835,
+    "trap_trace_fnv1a64": 16816217532386053829,
+    "uboot_commits": 0,
+    "relocated_commits": 0,
+    "traps": 36,
+    "supervisor_ecalls": 0,
+    "uart_bytes": 0,
+    "ddr_read_requests": 1594,
+    "ddr_write_requests": 400,
+    "ddr_read_bursts": 1583,
+    "ddr_write_bursts": 389,
+    "ddr_read_beats": 12675,
+    "ddr_write_beats": 3123,
+    "ddr_written_bytes": 24944,
+    "ddr_write_responses": 400,
+    "ddr_stalls": 1722,
+    "ddr_peak_read_ids": 3,
+    "ddr_pending_reads": 0,
+    "ddr_writing": 0,
+    "ddr_responding": 0
+  },
+  "selected_snapshot": {
+    "endpoint": 1,
+    "cycles": 1000000,
+    "observation_begin": 115,
+    "commits": 579223,
+    "last_pc": 2149690496,
+    "pc_trace_fnv1a64": 8588258820457876835,
+    "trap_trace_fnv1a64": 16816217532386053829,
+    "uboot_commits": 0,
+    "relocated_commits": 0,
+    "traps": 36,
+    "supervisor_ecalls": 0,
+    "uart_bytes": 0,
+    "ddr_read_requests": 1594,
+    "ddr_write_requests": 400,
+    "ddr_read_bursts": 1583,
+    "ddr_write_bursts": 389,
+    "ddr_read_beats": 12675,
+    "ddr_write_beats": 3123,
+    "ddr_written_bytes": 24944,
+    "ddr_write_responses": 400,
+    "ddr_stalls": 1722,
+    "ddr_peak_read_ids": 3,
+    "ddr_pending_reads": 0,
+    "ddr_writing": 0,
+    "ddr_responding": 0
+  },
+  "trap_lines": [
+    "UBOOT_PREFIX_TRAP cause=2 count=36"
+  ],
+  "backing_lines": [
+    "UBOOT_PREFIX_BACKING nonzero_words=123699 fnv1a64=15266476387241302694 sentinel_bytes=540672"
+  ],
+  "complete_uboot_pass": false,
+  "limits": [
+    "Bounded firmware prefix only, not U-Boot completion or an independent full-ISA oracle",
+    "No guest rebuild/port changes or RTL model build",
+    "No host serial commands; UART TX observed",
+    "Backing sentinel covers accepted AXI writes and host memory, not dirty lines never evicted",
+    "Fixed endpoint may retain accepted outstanding transactions; no final drain is fabricated",
+    "No physical hardware/MIG/CDC/Linux boot claim"
+  ],
+  "comparison_source": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-fw-prefix-selected/simulator/gsim/compare_firmware_prefix.py",
+    "sha256": "1af0d95d2514123fd2ff3d830d585d87d614e9b40b1978a7e60925ee6bd3db97"
+  }
+}

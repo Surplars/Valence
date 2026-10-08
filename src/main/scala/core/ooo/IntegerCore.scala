@@ -121,10 +121,10 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     val fetchPacketTraining = WireDefault(0.U.asTypeOf(Vec(p.renameWidth, Valid(new RawFetchSuccessor))))
     val fetchPacket = if (p.registeredFetchPacket) {
         val packet = Module(new RegisteredFetchPacket(p.renameWidth, p.compressedInstructions, resetPc,
-            p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor))
+            p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints))
         val permission = if (p.capturedFetchPermission && p.pmpEntries > 0) {
             val checks = Module(new FetchPacketPermission(p.pmpEntries, p.renameWidth,
-                p.wordSpanPacketPmp, p.balancedPacketPmp))
+                p.wordSpanPacketPmp, p.balancedPacketPmp, p.sharedFetchPmpRelations))
             checks.io.base := packet.io.fetchPc
             checks.io.state := backend.io.pmpState.get
             checks.io.privilege := backend.io.fetchPrivilege.get
@@ -242,7 +242,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     acceptedOffsets(0) := 0.U(packetOffsetBits.W)
     val packetPmp = if (p.parallelPacketPmp && p.pmpEntries > 0 && !p.capturedFetchPermission) {
         val checks = Module(new PacketFetchPmp(p.pmpEntries, p.renameWidth, p.wordSpanPacketPmp,
-            p.balancedPacketPmp))
+            p.balancedPacketPmp, p.sharedFetchPmpRelations))
         checks.io.base := pc
         checks.io.state := backend.io.pmpState.get
         checks.io.privilege := backend.io.fetchPrivilege.get

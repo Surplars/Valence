@@ -36,10 +36,12 @@ object FloatingPointFullGsimMain extends App {
         case "small" => FloatingPointConfig.fullF.copy(multiply = false, divide = false,
             squareRoot = false, fusedMultiplyAdd = false, conversions = false)
     }
-    ChiselStage.emitCHIRRTLFile(new FloatingPointFullGsim(c), Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new FloatingPointFullGsim(c.copy(resources =
+        FloatingPointResourceConfig.named(args.lift(2).getOrElse("baseline")))), Array("--target-dir", args.head))
 }
 object FloatingPointFullCpuGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new FloatingPointCpuGsim(withMemory = true, compressed = true, publishGc = true),
+    ChiselStage.emitCHIRRTLFile(new FloatingPointCpuGsim(withMemory = true, compressed = true, publishGc = true,
+        resources = FloatingPointResourceConfig.named(args.lift(1).getOrElse("baseline"))),
         Array("--target-dir", args.head))
 }
 class FloatingPointCompressedGsim extends Module {

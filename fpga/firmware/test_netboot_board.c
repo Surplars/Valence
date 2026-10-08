@@ -29,6 +29,7 @@ static struct {
     uint64_t tick, rx, tx, control, address, stop, mdio, mac_address;
     unsigned frames, delay, tail, writes, starts, dma_stops, controls;
     int stuck_producer, stuck_dma, old_mac, next_uart, bad_phy, verified, fail_after_verified;
+    unsigned managed_phy, managed_speed, media_fault, mdio_commands, managed_no_extension, media_reads;
     char log[65536]; unsigned logged;
 } hw;
 static int board_protocol(struct nb_ops *ops,const char *file,uint32_t *entry,uint32_t *length) {
@@ -120,11 +121,20 @@ uint64_t nb_test_read(uintptr_t base,unsigned offset) {
     assert(base==MAC_BASE);
     switch(offset) {
     case VGMAC_ID: return VALENCE_GMAC_ID;
-    case VGMAC_CAP: return hw.old_mac?0:VGMAC_CAP_RX_STOP | (hw.mac_slots?((1ULL<<9) | ((uint64_t)hw.mac_slots<<24)):0);
+    case VGMAC_CAP: return hw.old_mac?0:VGMAC_CAP_RX_STOP |
+        (hw.managed_phy?VGMAC_CAP_MANAGED_PHY|
+            (hw.managed_no_extension?0:VGMAC_CAP_TRI_SPEED|VGMAC_CAP_DROP_DIAGNOSTICS):0) |
+        (hw.mac_slots?((1ULL<<9) | ((uint64_t)hw.mac_slots<<24)):0);
+    case VGMAC_MEDIA_STATUS:
+        assert(hw.managed_phy && !hw.managed_no_extension);
+        ++hw.media_reads;
+        return (1ULL<<56) | ((uint64_t)hw.media_fault<<8) | ((uint64_t)hw.managed_speed<<4) |
+            ((uint64_t)hw.managed_speed<<2) | (hw.media_fault?0:VGMAC_MEDIA_READY|3);
     case VGMAC_RX_STOP:
         assert(!hw.old_mac);
         return hw.stop | ((hw.stop && !hw.frames && !hw.delay && !hw.stuck_producer)?2:0);
-    case VGMAC_STATUS: return (hw.frames || hw.delay || hw.stuck_producer)?4:0;
+    case VGMAC_STATUS: return ((hw.frames || hw.delay || hw.stuck_producer)?4:0) |
+        (hw.managed_phy && !hw.media_fault);
     case VGMAC_CONTROL: return hw.control;
     case VGMAC_MAC_ADDRESS: return hw.mac_address;
     case VGMAC_MDIO_STATUS: return 2;
@@ -152,7 +162,10 @@ void nb_test_write(uintptr_t base,unsigned offset,uint64_t value) {
                 ++hw.controls;
             }
             hw.control=value;
-        } else if(offset==VGMAC_MDIO_COMMAND) hw.mdio=value;
+        } else if(offset==VGMAC_MDIO_COMMAND) {
+            assert(!hw.managed_phy); /* managed initialization must issue NO PHY commands */
+            hw.mdio=value; ++hw.mdio_commands;
+        }
         else if(offset==VGMAC_MAC_ADDRESS) hw.mac_address=value;
         return;
     }
@@ -348,6 +361,20 @@ static void prepare_cases(void) {
     puts("BOOTROM_RAM_PREPARE_BOARD_PASS cases=1 borrowed_then_backlog=1 no_tx_after_quiet=1");
 }
 int main(void) {
+    for(unsigned rate=0;rate<3;++rate) {
+        uint32_t entry=123,length=456;
+        reset_hw(); hw.managed_phy=1; hw.managed_speed=rate; hw.verified=1;
+        assert(board_netboot(&entry,&length) && !active && !armed && !hw.mdio_commands);
+        assert(entry==RAM_BASE && length==16 && board_netboot_quiet());
+    }
+    reset_hw(); hw.managed_phy=1; hw.media_fault=4;
+    uint32_t managed_entry=123,managed_length=456;
+    assert(!board_netboot(&managed_entry,&managed_length) && !active && !armed && !hw.mdio_commands);
+    assert(managed_entry==123 && managed_length==456);
+    reset_hw(); hw.managed_phy=1; hw.managed_no_extension=1;
+    assert(!board_netboot(&managed_entry,&managed_length) && !active && !armed && !hw.mdio_commands);
+    assert(!hw.media_reads && strstr(hw.log,"media_capabilities"));
+    puts("BOOTROM_MANAGED_PHY_PASS rates=3 phy_commands=0 verified_delay_fault_blocks=1 unsupported_cap_no_probe=1 legacy_path_retained=1");
     prepare_cases();
     unsigned cases=0;
     quiet_case(0,0,0); ++cases;

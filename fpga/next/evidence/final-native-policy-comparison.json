@@ -1,0 +1,38 @@
+{
+  "status": "PASS_FINAL_NATIVE_POLICY_DELTA_ONLY",
+  "source_commit": "20a3382c79dd2ae25c35d17c59da619e4ad04400",
+  "receipts": {
+    "default": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-default-trispeed-export-r1/receipt.json",
+      "sha256": "dfad9fc95f2b60023bd65fc37287c2756f4c4cf055223415f5fd4989cde838b5"
+    },
+    "read": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-read3-trispeed-export-r1/receipt.json",
+      "sha256": "95ef7c7cc57c39e604351475aa1080b21b5f926dd8bb20ac12cf965bf3e218a3"
+    },
+    "copy": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-copy3-trispeed-export-r1/receipt.json",
+      "sha256": "70220bc7b2be1fde531544f987a19c3d080cbab5215b6fe6596cf83410b3c5fc"
+    }
+  },
+  "previous_default_all_sv_identical": true,
+  "previous_read_all_sv_identical": true,
+  "read_to_copy_changed_modules": [
+    "NonBlockingCoherentLineCache.sv"
+  ],
+  "cache_scalar_registers": {
+    "read": {
+      "scalar_register_declarations": 1382,
+      "scalar_register_bits": 3468
+    },
+    "copy": {
+      "scalar_register_declarations": 1382,
+      "scalar_register_bits": 3468
+    }
+  },
+  "limits": [
+    "Scalar RTL declarations only, not mapped resources or timing",
+    "Disabled store-history policy emits byte-identical SV to prior controls",
+    "No native independent-clock simulation or physical signoff"
+  ]
+}

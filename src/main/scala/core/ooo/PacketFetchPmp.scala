@@ -9,8 +9,9 @@ import chisel3.util._
   * Virtual-fetch bypass and instruction-fault authorization remain in the core.
   */
 class PacketFetchPmp(entries: Int, width: Int, wordSpan: Boolean = false,
-    balancedComparisons: Boolean = false) extends Module {
+    balancedComparisons: Boolean = false, sharedRelations: Boolean = false) extends Module {
     require(width >= 1)
+    require(!sharedRelations || (wordSpan && width < 256), "shared word relations require bounded word-span checks")
     val io = IO(new Bundle {
         val base = Input(UInt(64.W))
         val state = Input(new PmpState)
@@ -31,10 +32,12 @@ class PacketFetchPmp(entries: Int, width: Int, wordSpan: Boolean = false,
                 TimingArithmetic.lessOrEqual(a, b) else a <= b
             def select(index: UInt, values: Seq[Bool]): Bool =
                 MuxLookup(index, values.head)(values.zipWithIndex.map { case (value, n) => n.U -> value })
-            val lowLeWord = (0 until entries).map(i =>
-                words.map(word => le(io.state.regionLow(i)(63, 2), word(61, 0))))
-            val wordLeEnd = (0 until entries).map(i =>
-                words.map(word => le(word(61, 0), io.state.regionEnd(i)(63, 2))))
+            val nearby = if (sharedRelations) Some(new NearbyWordRelations(io.base(63, 2), width,
+                balancedComparisons)) else None
+            val lowLeWord = (0 until entries).map(i => nearby.map(_.compare(io.state.regionLow(i)(63, 2)).map(_._1))
+                .getOrElse(words.map(word => le(io.state.regionLow(i)(63, 2), word(61, 0)))))
+            val wordLeEnd = (0 until entries).map(i => nearby.map(_.compare(io.state.regionEnd(i)(63, 2)).map(_._2))
+                .getOrElse(words.map(word => le(word(61, 0), io.state.regionEnd(i)(63, 2)))))
             val carries = words.map(_(62))
             for (offset <- 0 until 2 * width - 1) {
                 val byteLow = io.base(1, 0) +& (2 * offset).U

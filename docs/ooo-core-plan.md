@@ -1,5 +1,12 @@
 # OoO Core 架构草案
 
+Opt-in shared fetch PMP comparisons (2026-10-08):
+`sharedFetchPmpRelations` shares neighboring-word high comparisons without
+changing full address width, first-overlap priority, permission policy, state,
+or fetch latency. It remains default-off and unpromoted.
+[Contract, focused test commands, and evidence limits](shared-fetch-pmp.md).
+No full-core or physical PPA qualification follows from the bounded module proof.
+
 Opt-in load-to-registered-issue experiment (2026-10-07): `staged-load-issue`
 keeps existing profiles unchanged. [Contract and validation status](registered-load-issue-forwarding.md).
 Focused GSIM A/B passed: one-iteration board CoreMark ticks 834653 → 831768 (0.346% fewer); DDR essentially unchanged, including a 5-tick COPY regression. Physical timing remains unverified; this opt-in experiment is not a default bitstream replacement.

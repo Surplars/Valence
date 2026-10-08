@@ -8,7 +8,8 @@ import soc.core.ooo._
 /** Scalar boundary for independent mixed-length, wrapping-PC and fault checks. */
 class FetchOffsetsGsim(width: Int, stableFaultMetadata: Boolean = false,
     alignedFetchPmp: Boolean = false, rawFetchPresence: Boolean = false,
-    parallelFetchTagLookup: Boolean = false, parallelAlignment: Boolean = false) extends Module {
+    parallelFetchTagLookup: Boolean = false, parallelAlignment: Boolean = false,
+    independentPayloadCapture: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val pc = Input(UInt(64.W))
         val enable = Input(Bool())
@@ -38,7 +39,8 @@ class FetchOffsetsGsim(width: Int, stableFaultMetadata: Boolean = false,
     })
     val fetch = Module(new SynchronousFetch(pmpEntries = 0, compressed = true,
         cacheSets = 8, fetchWidth = width, stableFaultMetadata = stableFaultMetadata, alignedFetchPmp = alignedFetchPmp,
-        rawFetchPresence = rawFetchPresence, parallelFetchTagLookup = parallelFetchTagLookup, parallelAlignment = parallelAlignment))
+        rawFetchPresence = rawFetchPresence, parallelFetchTagLookup = parallelFetchTagLookup, parallelAlignment = parallelAlignment,
+        independentPayloadCapture = independentPayloadCapture))
     fetch.io.pc := io.pc
     fetch.io.enable := io.enable
     fetch.io.invalidate := io.invalidate
@@ -78,6 +80,7 @@ class FetchOffsetsGsim(width: Int, stableFaultMetadata: Boolean = false,
 object FetchOffsetsGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new FetchOffsetsGsim(args(1).toInt, args.drop(2).contains("stable-fault-metadata"),
         args.drop(2).contains("aligned-fetch-pmp"), args.drop(2).contains("raw-fetch-presence"),
-        args.drop(2).contains("parallel-fetch-tags"), args.drop(2).contains("parallel-alignment")),
+        args.drop(2).contains("parallel-fetch-tags"), args.drop(2).contains("parallel-alignment"),
+        args.contains("--independent-payload-capture")),
         Array("--target-dir", args.head))
 }

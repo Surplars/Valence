@@ -1,0 +1,117 @@
+{
+  "schema": "valence-fpga-next-final-qualification-v1",
+  "status": "PASS_CLOUD_FUNCTIONAL_AND_NATIVE_EXPORT_PHYSICAL_PENDING",
+  "hardware_source_commit": "20a3382c79dd2ae25c35d17c59da619e4ad04400",
+  "hardware_source_tree": "818b5fca180d87735735d197da623ea82fa81157",
+  "full_board_policy_source_commit": "543daf342846e1da224ffe47ecd2875792033ff8",
+  "production_sources_identical_between_board_native_and_current": true,
+  "production_source_count": 199,
+  "production_source_manifest_sha256": "0ca8e03f351f86ee2c334c536119105650b8f6c8be07099f4e651c6e83b077aa",
+  "selected_defaults": {
+    "name": "FpgaNextConfig.Selected",
+    "prefetch_candidate_cycles": 1,
+    "prefetch_break_on_store": false,
+    "virtual_ram_load_precheck": false,
+    "jtag_transport": false,
+    "tri_speed_ethernet": false
+  },
+  "optional_measured_policies": {
+    "read": "--prefetch-candidate-cycles 3",
+    "store_history": "--prefetch-candidate-cycles 3 --prefetch-break-on-store"
+  },
+  "profile_decision": "Preserve conservative defaults; retained read and store-history choices have measured workload-dependent tradeoffs",
+  "evidence": {
+    "policy_comparison": {
+      "path": "fpga/next/evidence/store-history-integrated-543daf3.json",
+      "sha256": "26520d4e375060bd2008161ab9e142343e27bf77ee0609874af0e8001d4fbb1e"
+    },
+    "scorecard": {
+      "path": "fpga/next/evidence/prefetch-policy-scorecard.json",
+      "sha256": "4995e90e844bf960c5ecd4633af2b6effc660ab42b6450abff38ae66324127fc"
+    },
+    "native_comparison": {
+      "path": "fpga/next/evidence/final-native-policy-comparison.json",
+      "sha256": "6eca1c9d056e4fcd58aeb713a1a258e6cb75af26223b4237343ddea54dd76493"
+    },
+    "module_store_history": {
+      "path": "docs/evidence/fpga-prefetch-store-history-20261008.json",
+      "sha256": "36b74be49b204c6abf7635d5d18375745092cb2736245bc29a805042790ff5db"
+    },
+    "prefetch_attribution": {
+      "path": "docs/evidence/fpga-prefetch-board-attribution-20261008.json",
+      "sha256": "2fcf811b4c99f8bbdf7742498b51109f2730b50e273f6b06bd3baac959d828eb"
+    },
+    "default_mixed": {
+      "path": "fpga/next/evidence/retention1-mixed-baseline.json",
+      "sha256": "b1896a0127a88f89487747f6ddbbaa2642d36a3cfb86b164e52763bdeab18113"
+    },
+    "guest_dependency": {
+      "path": "fpga/next/evidence/guest-dependency-closure.json",
+      "sha256": "c0ed4686af1a91ee0138e176793aed711908317d2ad6157ea1b2180960459332"
+    },
+    "firmware_prefix": {
+      "path": "fpga/next/evidence/firmware-prefix-1m.json",
+      "sha256": "3c7d4683ac9ddd4641e6d5913b52285b7409c0881fec03348b4fcfadd5e01d24"
+    },
+    "precheck": {
+      "path": "fpga/next/evidence/precheck-requalified-selected-32775e2.json",
+      "sha256": "9ddda8a17302898de7841004e5ae9125766a9c914fa6f816cadceebb311f75a0"
+    },
+    "precheck_physical_cancel": {
+      "path": "fpga/next/evidence/precheck-selected-physical-cancellation.json",
+      "sha256": "238f156f278bf7732ce7a162d47a6a80cef6ab93d931756bc8519f0cf1c5079a"
+    }
+  },
+  "final_native_receipts": {
+    "default": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-default-trispeed-export-r1/receipt.json",
+      "sha256": "dfad9fc95f2b60023bd65fc37287c2756f4c4cf055223415f5fd4989cde838b5"
+    },
+    "read": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-read3-trispeed-export-r1/receipt.json",
+      "sha256": "95ef7c7cc57c39e604351475aa1080b21b5f926dd8bb20ac12cf965bf3e218a3"
+    },
+    "copy": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-copy3-trispeed-export-r1/receipt.json",
+      "sha256": "70220bc7b2be1fde531544f987a19c3d080cbab5215b6fe6596cf83410b3c5fc"
+    }
+  },
+  "final_native_storage_census": {
+    "path": "build/fpga-next/final-copy3-trispeed-export-r1/native-storage-census.json",
+    "sha256": "ba332dec0f4362c8f99f094cfd3a8c0e5360b41fd30ac53ab11ad94d0e8cd83a"
+  },
+  "prior_architecture_census": "fpga/next/evidence/selected-v2-b4e0e1b.json",
+  "contracts": {
+    "suites": [
+      "ooo.FpgaNextConfigSpec",
+      "ooo.DataPrefetchConfigSpec"
+    ],
+    "tests_passed": 14,
+    "source_commit": "20a3382c79dd2ae25c35d17c59da619e4ad04400"
+  },
+  "limits": [
+    "No new mapped FPGA LUT/FF/BRAM/DSP, routed setup/hold, Fmax, bitstream or board qualification",
+    "Enabled JTAG/TAP and tri-speed native independent-clock/reset/pad proofs remain pending",
+    "Tri-speed software kernel module compile passed; no driver runtime/IP/TFTP throughput claim",
+    "Precheck measurements use the one-attempt policy; retained-prefetch plus virtual-precheck combinations were not jointly benchmarked",
+    "Fixed1M firmware prefix is matched execution, not full U-Boot or Linux boot",
+    "Published history may be squashed; historical test revisions/artifact paths are provenance, not guaranteed public Git objects"
+  ],
+  "final_native_common_options": {
+    "experimental_tri_speed_ethernet": true,
+    "jtag_transport": false,
+    "virtual_ram_load_precheck": false,
+    "label_scope": "default/read/copy label prefetch policy; all three are tri-speed native export variants"
+  },
+  "all_default_native_export": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/final-default-legacy-export-r1/receipt.json",
+    "sha256": "fde926b0be8288634f216162d6e85f67caa1d37e63d4b49205081517d7eaacec",
+    "source_commit": "26a94d29edfc0f74454c9244930b41aa8d47df7a",
+    "experimental_tri_speed_ethernet": false,
+    "prefetch_candidate_cycles": 1,
+    "prefetch_break_on_store": false,
+    "jtag_transport": false,
+    "native_storage_census_sha256": "b0315a8d854aca25fb0db34d3405cf972f7e458e9d66066d5ebb385c5153cfd1",
+    "scope": "Exact documented default top; legacy media, native RTL export only"
+  }
+}

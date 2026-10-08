@@ -1,0 +1,129 @@
+{
+  "schema": "valence-fpga-next-virtual-precheck-comparison-v1",
+  "status": "PASS_MATCHED_INHERITED_OPTION_REQUALIFICATION",
+  "source_commit": "631fd681541f2141abc0082c01bdc869bfdd2b33",
+  "source_inputs_identical": true,
+  "receipts": {
+    "off": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-base-candidate-r1/receipt.json",
+      "sha256": "e3fcb0d785635048a1779722faab89441fe3261877e55fcec8f3497288e6d711"
+    },
+    "on": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-bandwidth/build/gsim/fpga-next-board-bandwidth-precheck-r1/receipt.json",
+      "sha256": "db09ec06cc28efb69264e3397da137f544322b4ce03eb4688fb10d6d3eb97fda"
+    }
+  },
+  "physical_workloads_byte_identical": {
+    "gc": "4242a0d902afc2edec59e7b55ca3be531df7786e7fbbe1fe5389cdf3e2dc310e",
+    "steady": "80b1749420244da4dbcec5751e92d0bf6fb63444d82d1470f2f3ddfc30734f1e",
+    "independent": "265d27cc6efdd284f2962e50295761be1e604a5b97dbcdc535a10e6942a60d0f"
+  },
+  "virtual": {
+    "warm_independent": {
+      "off": {
+        "cycles": 4422,
+        "retired": 1159,
+        "pc_trace": 13886498985714702645,
+        "physical_requests": 512,
+        "physical_replies": 512,
+        "physical_peak": 1,
+        "lsu_peak": 1,
+        "axi_peak": 1,
+        "parallel_starts": 0,
+        "multiple_physical_cycles": 0
+      },
+      "on": {
+        "cycles": 1809,
+        "retired": 1159,
+        "pc_trace": 13886498985714702645,
+        "physical_requests": 512,
+        "physical_replies": 512,
+        "physical_peak": 1,
+        "lsu_peak": 2,
+        "axi_peak": 1,
+        "parallel_starts": 512,
+        "multiple_physical_cycles": 0
+      },
+      "speedup": 2.4444444444444446,
+      "cycle_change_percent": -59.09090909090908
+    },
+    "cold_pages": {
+      "off": {
+        "cycles": 512,
+        "retired": 14,
+        "pc_trace": 14629714417150808343,
+        "physical_requests": 4,
+        "physical_replies": 4,
+        "physical_peak": 1,
+        "lsu_peak": 1,
+        "axi_peak": 2,
+        "parallel_starts": 0,
+        "multiple_physical_cycles": 0
+      },
+      "on": {
+        "cycles": 538,
+        "retired": 14,
+        "pc_trace": 14629714417150808343,
+        "physical_requests": 4,
+        "physical_replies": 4,
+        "physical_peak": 1,
+        "lsu_peak": 1,
+        "axi_peak": 2,
+        "parallel_starts": 0,
+        "multiple_physical_cycles": 0
+      },
+      "speedup": 0.9516728624535316,
+      "cycle_change_percent": 5.078125
+    },
+    "dependent_chase": {
+      "off": {
+        "cycles": 2311,
+        "retired": 776,
+        "pc_trace": 15979064537894237675,
+        "physical_requests": 256,
+        "physical_replies": 256,
+        "physical_peak": 1,
+        "lsu_peak": 1,
+        "axi_peak": 1,
+        "parallel_starts": 0,
+        "multiple_physical_cycles": 0
+      },
+      "on": {
+        "cycles": 2311,
+        "retired": 776,
+        "pc_trace": 15979064537894237675,
+        "physical_requests": 256,
+        "physical_replies": 256,
+        "physical_peak": 1,
+        "lsu_peak": 1,
+        "axi_peak": 1,
+        "parallel_starts": 1,
+        "multiple_physical_cycles": 0
+      },
+      "speedup": 1.0,
+      "cycle_change_percent": 0.0
+    }
+  },
+  "architectural_invariants": {
+    "signature_hash": 2725054555847287331,
+    "retired": 2247,
+    "pc_trace": 15900639054641019825,
+    "traps": 1,
+    "trap_pc": 2149581064,
+    "trap_cause": 13,
+    "trap_tval": 1073774592,
+    "lsr_reads": 1
+  },
+  "limits": [
+    "Inherited precheck option, not a new architecture invention",
+    "Warm-loop result does not generalize to cold or dependent loads",
+    "Cancellation witness means an accepted LSU owner remains tracked; it is not a physical AXI-phase classification",
+    "No physical resources, routed timing or board qualification; base default remains off"
+  ],
+  "cancelled_outstanding_cycles": {
+    "off": 0,
+    "on": 1
+  },
+  "cancellation_scope": "Benchmark guest: one accepted backend FIFO owner-cycle, before physical acceptance. Separate directed guest below proves physical outstanding cancellation.",
+  "directed_physical_cancellation": "precheck-physical-cancellation-631fd68.json"
+}

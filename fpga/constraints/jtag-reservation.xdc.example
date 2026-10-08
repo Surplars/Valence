@@ -1,0 +1,50 @@
+# TEMPLATE ONLY: not included automatically, no package pins or voltage invented.
+# Call after synthesis ONLY after verifying root names and board clock/pin plan.
+# The wrapper uses a fabric TAP, not an FPGA vendor's configuration/BSCAN TAP.
+# Do not apply a global asynchronous set_clock_groups between these two clocks:
+# that would override the bundled-data max-delay constraints below.
+proc valence_jtag_pin_set {pattern expected} {
+    set pins [get_pins -hier -regexp $pattern]
+    if {[llength $pins] != $expected} {
+        error "JTAG constraint selection '$pattern' has [llength $pins] pins; expected $expected. Recheck synthesized hierarchy."
+    }
+    return $pins
+}
+proc constrain_valence_jtag {root tck_port debug_clock period_ns bundled_ns abits} {
+    # root example: soc/debug/transport/enabled. This MUST match actual netlist.
+    if {$period_ns <= 0 || $bundled_ns <= 0 || $abits < 1 || $abits > 32} {
+        error "Invalid board-reviewed JTAG constraint values"
+    }
+    if {[llength [get_ports $tck_port]] != 1 || [llength [get_clocks $debug_clock]] != 1} {
+        error "TCK port/debug clock is missing or ambiguous"
+    }
+    # Caller must choose a board-validated clock period and I/O delays.
+    if {[llength [get_clocks -of_objects [get_ports $tck_port]]] == 0} {
+        create_clock -name valence_jtag_tck -period $period_ns [get_ports $tck_port]
+    }
+    if {![regexp {^[A-Za-z0-9_/]+$} $root]} {
+        error "Template expects a plain alphanumeric/underscore hierarchy path; adapt explicitly for escaped names"
+    }
+    set request0 [valence_jtag_pin_set [format {^%s/bridge/request_sync_reg\[0\]/D$} $root] 1]
+    set response0 [valence_jtag_pin_set [format {^%s/bridge/response_sync_reg\[0\]/D$} $root] 1]
+    set_false_path -to $request0
+    set_false_path -to $response0
+    set req_q [valence_jtag_pin_set [format {^%s/bridge/request_held_reg\[[0-9]+\]/Q$} $root] [expr {$abits+34}]]
+    set req_d [valence_jtag_pin_set [format {^%s/bridge/dest_request_reg\[[0-9]+\]/D$} $root] [expr {$abits+34}]]
+    set rsp_q [valence_jtag_pin_set [format {^%s/bridge/response_held_reg\[[0-9]+\]/Q$} $root] 34]
+    set rsp_d [valence_jtag_pin_set [format {^%s/bridge/s_rsp_payload_reg\[[0-9]+\]/D$} $root] 34]
+    set_max_delay -datapath_only $bundled_ns -from $req_q -to $req_d
+    set_max_delay -datapath_only $bundled_ns -from $rsp_q -to $rsp_d
+    set_bus_skew $bundled_ns -from $req_q -to $req_d
+    set_bus_skew $bundled_ns -from $rsp_q -to $rsp_d
+    # No broad false paths. Review reset recovery/removal and CDC/RDC separately.
+}
+# Board owner still must supply:
+# - TCK/TMS/TDI/TDO and optional TRST_N package pins, bank voltage, IOSTANDARD.
+# - TMS/TDI setup/hold input delays and TDO output delay relative to external TCK.
+# - An output buffer driven by TDO_OE (or a reviewed always-driven single-TAP route).
+# - A clock-capable TCK pin and suitable clock buffering for the selected FPGA.
+# - Common debug POR; TRST_N pull-up/tie-high if omitted; CPU reset stays separate.
+# - Numeric bundled_ns less than the available synchronized capture settling time
+#   at BOTH highest supported clock rates; derive it, do not use an arbitrary value.
+# - report_cdc, report_clock_interaction, report_exceptions, report_timing and RDC review.

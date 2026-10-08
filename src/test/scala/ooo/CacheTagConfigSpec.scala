@@ -26,6 +26,15 @@ class CacheTagConfigSpec extends AnyFlatSpec with Matchers {
             }
         }
     }
+    it should "keep bank topology independent of aperture qualification and tag width" in {
+        for (compact <- Seq(false, true); base <- Seq(BigInt("80010000", 16), BigInt("ffff0000", 16))) {
+            val registers = CacheTagConfig(compact = compact).geometry(base, 131072, 14)
+            val banked = CacheTagConfig(compact = compact, bankedStorage = true).geometry(base, 131072, 14)
+            banked shouldBe registers
+        }
+        CacheTagConfig.FullWidth.bankedStorage shouldBe false
+        CacheTagConfig.Aperture.bankedStorage shouldBe false
+    }
     it should "reject invalid apertures and tag geometries" in {
         for ((base, bytes) <- Seq((BigInt(-64), BigInt(64)), (BigInt(1), BigInt(64)),
             (BigInt(0), BigInt(0)), ((BigInt(1) << 64) - 64, BigInt(128)))) {

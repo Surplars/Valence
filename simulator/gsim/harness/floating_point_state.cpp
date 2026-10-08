@@ -216,6 +216,20 @@ int main(int argc,char** argv) {try {
     x={};x.flush=true;x.issue=true;x.command=command(1);x.fsWrite=true;x.fs=0;
     x.csr=true;x.csrWrite=true;x.csrValue=255;m.tick(x);
     x.flush=false;x.head=false;m.tick(x);m.tick();
+    // Earliest possible next issue overlaps the delayed physical commit write.
+    // Each address is exercised as all three simultaneous sources, raw and boxed.
+    // A following younger flush must preserve the already accepted older write.
+    for(unsigned rd=0;rd<32;++rd) for(unsigned youngerFlush=0;youngerFlush<2;++youngerFlush) {
+        auto write=command(rd);write.rounding=false;write.single=rd%2;write.flags=false;
+        x={};x.issue=true;x.command=write;m.tick(x);m.tick();
+        const uint64_t data=random();
+        x={};x.result=true;x.response={write.token,data,0,0,0,false};m.tick(x);
+        x={};x.retire=true;x.retireToken=write.token;m.tick(x);
+        if(youngerFlush) {x={};x.flush=true;m.tick(x);}
+        auto next=command(rd);next.source={rd,rd,rd};next.boxed={false,true,false};
+        next.rounding=false;next.writes=false;next.flags=false;
+        m.transaction(next,0);
+    }
     // Reset at every transaction boundary, including after committed nonzero state.
     // A real integration must reset/drain the producer too; generations are not reused.
     for(unsigned phase=0;phase<4;++phase) {
@@ -234,6 +248,6 @@ int main(int argc,char** argv) {try {
     std::cout<<"FP_STATE_PASS cycles="<<m.cycles<<" issued="<<m.issued<<" retired="<<m.committed
              <<" stale="<<m.stale<<" blocked_context="<<m.blocked<<" box_canonicalized="<<m.boxed
              <<" illegal="<<m.faults<<" flush_send="<<m.cancelled[1]<<" flush_wait="<<m.cancelled[2]
-             <<" flush_done="<<m.cancelled[3]<<" reset_boundaries=4 simultaneous_response_flush=1\n";
+             <<" flush_done="<<m.cancelled[3]<<" reset_boundaries=4 simultaneous_response_flush=1 immediate_forwarding=32x3 older_commit_younger_flush=32\n";
     return 0;
 } catch(const std::exception& e) {std::cerr<<e.what()<<"\n";return 1;}}

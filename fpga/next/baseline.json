@@ -1,0 +1,73 @@
+{
+  "schema": "valence-fpga-next-baseline-v1",
+  "project": "Valence FPGA-next",
+  "source_commit": "ea5406ea15d2d0797ce2c5ef7a4951827c55145e",
+  "hardware_source_commit": "3cb4298532ba28c732e7f88cef45cc9697eb7fa2",
+  "reference": {
+    "name": "NaxRiscv",
+    "repository": "https://github.com/SpinalHDL/NaxRiscv",
+    "commit": "9f452d50560d02fb391bc8039f5453c54e0911af",
+    "use": "Architecture and FPGA storage-topology reference; no equivalent-area claim"
+  },
+  "profile": {
+    "name": "fpga-next-reference-v1",
+    "isa": "rv64gc",
+    "hart_count": 1,
+    "issue_width": 2,
+    "lsu_entries": 2,
+    "rob_entries": 16,
+    "physical_registers": 48,
+    "cpu_hz": 100000000,
+    "uart_baud": 460800,
+    "aon_hz": 50000000,
+    "uart_hz": 50000000,
+    "ddr_ui_hz": 250000000,
+    "ddr_bytes": 2147483648,
+    "ram_base": "0x80200000",
+    "ram_end_exclusive": "0x100200000",
+    "cache_line_bytes": 64,
+    "instruction_cache_lines": 512,
+    "data_cache_lines": 512,
+    "cache_ways": 2,
+    "ddr_shared_slots": 4,
+    "ddr_write_slots": 2,
+    "ddr_burst_beats": 16,
+    "axi_id_width": 4,
+    "cache_read_mshrs": 2,
+    "cache_response_entries": 2,
+    "cache_writeback_entries": 2,
+    "virtual_ram_load_precheck": false
+  },
+  "inherited_implemented_features": [
+    "independent AXI AW/W owner queues",
+    "owner-qualified coherent DMA replies",
+    "compact aperture-qualified cache tags",
+    "banked ROB payload",
+    "shared store operand reads",
+    "owner-banked physical register file",
+    "data next-line prefetch with permission qualification",
+    "cache writeback/refill overlap"
+  ],
+  "physical_reference": {
+    "status": "HISTORICAL_REPORT_NOT_NEW_MEASUREMENT",
+    "variant": "integrated-off",
+    "cpu_hz": 100000000,
+    "setup_wns_ns": 0.028,
+    "hold_whs_ns": 0.010,
+    "total_lut": 208893,
+    "logic_lut": 205639,
+    "lutram": 4234,
+    "ff": 117938,
+    "bram36": 80,
+    "bram18": 4,
+    "dsp": 44,
+    "resource_count_note": "Report categories are retained verbatim; total LUT and logic/LUTRAM fields are not assumed additive across report scopes.",
+    "qualified_as_new_candidate": false
+  },
+  "limits": [
+    "No new routed PPA, CDC, board or bitstream result exists at project creation.",
+    "Every imported structural replacement needs a fresh independent positive and negative oracle.",
+    "The 2 GiB RAM aperture crosses 4 GiB; never truncate physical qualification to 32 bits.",
+    "A small integer NaxRiscv core is not an equivalent full RV64GC SoC area baseline."
+  ]
+}

@@ -9,7 +9,11 @@
 #define PACKET_WORDS 2
 #endif
 
-static constexpr uint64_t ram = 0x80010000;
+#ifndef CACHE_BASE
+#define CACHE_BASE 0x80010000ULL
+#endif
+static constexpr uint64_t ram = CACHE_BASE;
+static uint64_t simulationSteps=0;
 static constexpr uint64_t rom = 0x80000000;
 static void check(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
@@ -62,7 +66,7 @@ static Result step(SInstructionLineCacheGsim &dut, bool request = false, uint64_
     dut.set_io$$tl$$b$$valid(0);
     dut.set_io$$tl$$c$$ready(0);
     dut.set_io$$tl$$e$$ready(0);
-    dut.step();
+    dut.step(); ++simulationSteps;
     return {bool(dut.get_io$$fetch$$request$$ready()), bool(dut.get_io$$fetch$$response$$valid()),
         uint64_t(dut.get_io$$responseLow()), uint64_t(dut.get_io$$responseHigh()), bool(dut.get_io$$tl$$a$$valid()),
         dut.get_io$$tl$$a$$bits$$address(), unsigned(dut.get_io$$tl$$a$$bits$$source()),
@@ -204,6 +208,7 @@ int main(int argc, char **argv) {
         check(romAccepted, "ROM fetch was not accepted after line reply");
         check(romIssued, "ROM Get was not issued after stalled prefetch A");
         std::cout << "GSIM instruction prefetch: PASS packetWords=" << PACKET_WORDS
+                  << " steps=" << simulationSteps
                   << " three concurrent fills, full packet line hit, "
                      "invalidate, refetch and stalled ROM transition\n";
     } catch (const std::exception &error) {

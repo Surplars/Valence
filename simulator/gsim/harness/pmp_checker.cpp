@@ -46,6 +46,7 @@ static bool denied(const Entries &entries, uint64_t address, unsigned size, unsi
 }
 
 static unsigned alignedWordChecks = 0;
+static uint64_t packetChecks = 0;
 static void one(SPmpCheckerGsim &dut, const Entries &entries, uint64_t address,
                 unsigned size, unsigned access, unsigned privilege, bool inject = false) {
     dut.set_io$$cfg0(entries[0].cfg); dut.set_io$$cfg1(entries[1].cfg);
@@ -72,6 +73,20 @@ static void one(SPmpCheckerGsim &dut, const Entries &entries, uint64_t address,
     alignedWordChecks += size == 2 && (address & 3) == 0;
     if (inject) expected = !expected;
     check(bool(dut.get_io$$denied()) == expected, "PMP oracle mismatch");
+#ifdef PACKET_WIDTH
+    // Check every candidate instruction start, not only the lane chosen by the
+    // wrapper. Byte intervals and XLEN-wrapped starts stay independent of RTL.
+    constexpr unsigned starts = 2 * PACKET_WIDTH - 1;
+    const unsigned selected = ((address >> 2) & 63) % starts;
+    const uint64_t base = address - 2 * selected;
+    const uint64_t actual = dut.get_io$$packetDenied();
+    for (unsigned lane = 0; lane < starts; ++lane) {
+        const uint64_t start = base + 2 * lane;
+        check(bool((actual >> lane) & 1) == denied(entries, start, 2, 2, privilege),
+              "PMP oracle mismatch: packet lane");
+        ++packetChecks;
+    }
+#endif
 }
 
 int main(int argc, char **argv) {
@@ -148,6 +163,22 @@ int main(int argc, char **argv) {
                         ++executeChecks;
                     }
         }
+        // Dense independent execute checks straddling short-comparison chunks,
+        // physical-width limits and XLEN wrap, with each PMP priority position.
+        for (unsigned first = 0; first < 16; ++first) {
+            for (uint64_t center : std::array<uint64_t, 8>{0ULL, 16ULL, 32ULL, 0x1000ULL, (1ULL << 32),
+                                   (1ULL << 54), (1ULL << 56), UINT64_MAX}) {
+                entries = {};
+                const uint64_t encoded = ((center & ((1ULL << 56) - 1)) >> 2);
+                entries[first] = {0x94, encoded};
+                if (first + 1 < 16) entries[first + 1] = {0x98, encoded | 3};
+                for (int delta = -17; delta <= 17; ++delta)
+                    for (unsigned privilege : {0U, 1U, 3U}) {
+                        one(dut, entries, center + uint64_t(delta), 2, 2, privilege);
+                        ++executeChecks;
+                    }
+            }
+        }
         std::mt19937_64 rng(0x504d50434845434bULL);
         const unsigned permissions[] = {0, 1, 3, 4, 5, 7};
         for (unsigned i = 0; i < 6000; ++i) {
@@ -175,6 +206,10 @@ int main(int argc, char **argv) {
         std::cout << "GSIM PMP checker: PASS directed=16 randomized=6000 entries=16"
                   << " boundary=" << boundaryChecks << " execute4=" << executeChecks
                   << " sizes=0..7 aligned_words=" << alignedWordChecks << '\n';
+#ifdef PACKET_WIDTH
+        std::cout << "PMP_PACKET_PASS width=" << PACKET_WIDTH << " starts=" << (2 * PACKET_WIDTH - 1)
+                  << " checks=" << packetChecks << " independent_byte_intervals=1\n";
+#endif
         return 0;
     } catch (const std::exception &e) {
         std::cerr << "GSIM PMP checker: FAIL " << e.what() << '\n';

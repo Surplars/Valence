@@ -357,6 +357,10 @@ static int initialize(void) {
     begin(NB_INIT);
     active=1; write64(DMA_BASE,0x08,0); write64(MAC_BASE,0x38,0);
     uint64_t start=now(0);
+    uint64_t mac_capabilities=read64(MAC_BASE,VGMAC_CAP);
+    int managed_phy=(mac_capabilities&VGMAC_CAP_MANAGED_PHY)!=0;
+    if(managed_phy && !(mac_capabilities&VGMAC_CAP_TRI_SPEED)) return failed("media_capabilities");
+    if(!managed_phy) {
     int high=-1, low=-1;
     /* Pad MDIO ownership is initially held by the FPGA delay initializer.
      * Poll for its release; no PHY reset and no duplicate TX delay. */
@@ -378,11 +382,21 @@ static int initialize(void) {
     if(bmcr<0) return 0;
     /* Advertise only gigabit full duplex: MAC currently implements 1G only. */
     if(mdio(4,1,1)<0 || mdio(9,1,0x200)<0 || mdio(0,1,((unsigned)bmcr&~0x0c00U)|0x1200U)<0) return 0;
+    }
     start=now(0);
     do {
         if(abort_uart()) return 0;
-        (void)mdio(1,0,0); int status=mdio(1,0,0), speed=mdio(0x1a,0,0);
-        if(status>=0 && (status&0x24)==0x24 && speed>=0 && (speed&0x38)==0x28) {
+        int ready=0;
+        if(managed_phy) {
+            uint64_t media=read64(MAC_BASE,VGMAC_MEDIA_STATUS);
+            if((media>>56)!=VGMAC_MEDIA_EXTENSION_VERSION) return failed("media_extension_version");
+            ready=(media&VGMAC_MEDIA_READY) && !(media&VGMAC_MEDIA_FAULT_MASK) &&
+                ((media>>4)&3)<=2 && (read64(MAC_BASE,VGMAC_STATUS)&1);
+        } else {
+            (void)mdio(1,0,0); int status=mdio(1,0,0), speed=mdio(0x1a,0,0);
+            ready=status>=0 && (status&0x24)==0x24 && speed>=0 && (speed&0x38)==0x28;
+        }
+        if(ready) {
             write64(MAC_BASE,0x18,0x0256414c0001ULL);
             if(read64(MAC_BASE,0x18)!=0x0256414c0001ULL ||
                !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return 0;

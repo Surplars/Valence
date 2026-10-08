@@ -6,8 +6,14 @@ import soc.bus.tilelink.{TLBundle, TLParams}
 
 /** Independent capacities: changing miss slots never changes cache geometry or LSU width. */
 case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2, writebackEntries: Int = 1,
-    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false) {
+    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1, prefetchBreakOnStore: Boolean = false) {
     require(Set(1, 2, 4).contains(readMshrs))
+    require(prefetchCandidateCycles >= 1 && prefetchCandidateCycles <= 32,
+        "prefetch candidate lifetime must be in 1..32 allocation attempts")
+    require(prefetchCandidateCycles == 1 || nextLinePrefetch,
+        "retained prefetch candidates require next-line prefetch")
+    require(!prefetchBreakOnStore || nextLinePrefetch,
+        "store-sensitive prediction history requires next-line prefetch")
     require(!nextLinePrefetch || readMshrs >= 2, "data prefetch reuses a second miss slot")
     require(responseEntries >= readMshrs && responseEntries >= 2 && responseEntries <= 16 &&
         (responseEntries & (responseEntries - 1)) == 0)

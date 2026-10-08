@@ -1,0 +1,86 @@
+{
+  "status": "clock-or-reset-not-supported",
+  "gsim_revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+  "independent_edges_verified": false,
+  "cdc_signoff": false,
+  "cpu_rtl_changed": false,
+  "vendor_changed": false,
+  "observation": {
+    "status": "tool-capability-observation",
+    "cases": [
+      {
+        "name": "held-low",
+        "expected_a": 0,
+        "expected_b": 0,
+        "actual_a": 16,
+        "actual_b": 16,
+        "match": false
+      },
+      {
+        "name": "held-high",
+        "expected_a": 1,
+        "expected_b": 1,
+        "actual_a": 16,
+        "actual_b": 16,
+        "match": false
+      },
+      {
+        "name": "a-only",
+        "expected_a": 32,
+        "expected_b": 0,
+        "actual_a": 64,
+        "actual_b": 64,
+        "match": false
+      },
+      {
+        "name": "b-only",
+        "expected_a": 0,
+        "expected_b": 32,
+        "actual_a": 64,
+        "actual_b": 64,
+        "match": false
+      },
+      {
+        "name": "simultaneous",
+        "expected_a": 32,
+        "expected_b": 32,
+        "actual_a": 64,
+        "actual_b": 64,
+        "match": false
+      },
+      {
+        "name": "ratio-5-to-3-phase-offset",
+        "expected_a": 50,
+        "expected_b": 30,
+        "actual_a": 300,
+        "actual_b": 300,
+        "match": false
+      },
+      {
+        "name": "ratio-5-to-7-phase-offset",
+        "expected_a": 23,
+        "expected_b": 32,
+        "actual_a": 315,
+        "actual_b": 315,
+        "match": false
+      }
+    ],
+    "mismatching_cases": 7,
+    "independent_edges_verified": false,
+    "initial_zero_and_disabled_sanity_passed": true,
+    "enabled_progress_sanity_passed": true,
+    "async_reset": {
+      "before_a": 32,
+      "before_b": 32,
+      "after_a": 32,
+      "after_b": 32,
+      "expected_after_a": 0,
+      "expected_after_b": 0,
+      "verified": false
+    }
+  },
+  "async_reset_verified": false,
+  "required_contract_exit_code": 1,
+  "qualification_complete": true,
+  "implication": "Do not use unmodified independently clocked GSIM wrappers as dual-clock acceptance evidence."
+}

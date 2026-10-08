@@ -1,0 +1,14 @@
+{
+  "status": "PASS_IDENTICAL_DIRECTED_GUEST_CONTROL",
+  "candidate": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/board-load-cancellation-precheck-r4/receipt.json",
+  "candidate_sha256": "d0a91d179ae23c7ccfff42423f3a7cab8aeb7c0b3e62a54cf4dfa9786f4536b2",
+  "control": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/board-load-cancellation-reference-r2/receipt.json",
+  "control_sha256": "84cc0cfa69989b4f5cbd3413a2e48a0dfbabfb6b8e7b58d594f1246eb37d961a",
+  "guest_binary_sha256": "cbc3738bf9f0155e67ab26981f8e369d61945acbaae1dafb44b5919bfba91ddc",
+  "candidate_witness": [
+    "BOARD_LOAD_CANCEL cycle=9967 tag=2222 index=12 lsu_phase=2 backend_accepted=1 backend_stage=2 start=9896 fifo_enqueue=9896 fifo_dequeue=9897 physical_request=9900 physical_reply=none cpu_reply=none result=none",
+    "BOARD_LOAD_CANCEL_TARGET tag=2222 index=12 pc=2149581036 physical_address=2151678784 start=9896 physical_request=9900 cancelled=9967 physical_reply=9976 cpu_reply=9977 result=none physical_outstanding_witness=1"
+  ],
+  "control_witness": [],
+  "scope": "Fixed DDR behavior, deliberately added branch dependency; coverage guest, not throughput benchmark; no canceled result allowed"
+}

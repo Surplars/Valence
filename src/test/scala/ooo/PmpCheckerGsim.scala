@@ -7,7 +7,7 @@ import soc.core.ooo.{FetchPacketPermission, PacketFetchPmp, PmpChecker, PmpState
 
 class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, wordSpan: Boolean = false,
     balanced: Boolean = false, rawPrefix: Boolean = false, naturalAligned: Boolean = false,
-    packetWidth: Int = 2) extends Module {
+    packetWidth: Int = 2, sharedRelations: Boolean = false) extends Module {
     require(packetWidth >= 1)
     val io = IO(new Bundle {
         val cfg0      = Input(UInt(8.W))
@@ -48,6 +48,7 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
         val privilege = Input(UInt(2.W))
         val denied    = Output(Bool())
         val checkedAddress = Output(UInt(64.W))
+        val packetDenied = Output(UInt((2 * packetWidth - 1).W))
     })
     val state = WireDefault(0.U.asTypeOf(new PmpState))
     state.cfg(0) := io.cfg0
@@ -90,6 +91,7 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
     checker.io.access    := io.access
     checker.io.privilege := io.privilege
     io.checkedAddress := io.address
+    io.packetDenied := 0.U
     if (naturalAligned) {
         // The unchanged independent byte-range oracle covers the entire input
         // space. Select the optimized implementation ONLY for its exact domain.
@@ -104,7 +106,7 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
         io.denied := Mux(io.size <= 3.U && (io.address(2, 0) & mask) === 0.U,
             natural.io.denied, checker.io.denied)
     } else if (rawPrefix) {
-        val permission = Module(new FetchPacketPermission(16, 2, wordSpan, balanced))
+        val permission = Module(new FetchPacketPermission(16, 2, wordSpan, balanced, sharedRelations))
         val offset = Mux(io.address(4), 4.U(3.W), Mux(io.address(3), 2.U(3.W), 0.U(3.W)))
         permission.io.base := io.address - offset
         permission.io.state := state
@@ -116,7 +118,7 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
         io.denied := Mux(io.size === 2.U && io.access === 2.U,
             Mux(offset === 0.U, permission.io.denied(0), permission.io.denied(1)), checker.io.denied)
     } else if (packet) {
-        val checks = Module(new PacketFetchPmp(16, packetWidth, wordSpan, balancedComparisons = balanced))
+        val checks = Module(new PacketFetchPmp(16, packetWidth, wordSpan, balancedComparisons = balanced, sharedRelations = sharedRelations))
         // Exercise every lane offset against the existing independent byte-range
         // oracle. Address subtraction/addition wraps at XLEN before PMP checks.
         val position = io.address(7, 2) % (2 * packetWidth - 1).U
@@ -124,6 +126,7 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
         checks.io.base := io.address - offset
         checks.io.state := state
         checks.io.privilege := io.privilege
+        io.packetDenied := checks.io.denied.asUInt
         val denied = checks.io.denied(position)
         io.checkedAddress := checks.io.base + offset
         io.denied := Mux(io.size === 2.U && io.access === 2.U, denied, checker.io.denied)
@@ -142,6 +145,6 @@ object PmpCheckerGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new PmpCheckerGsim(args.drop(1).contains("aligned-word"),
         args.contains("packet"), args.contains("word-span"), args.contains("balanced"), args.contains("raw-prefix"),
         args.contains("natural-aligned"),
-        args.find(_.startsWith("width=")).map(_.stripPrefix("width=").toInt).getOrElse(2)),
+        args.find(_.startsWith("width=")).map(_.stripPrefix("width=").toInt).getOrElse(2), args.contains("shared-relations")),
         Array("--target-dir", args.head))
 }

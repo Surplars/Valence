@@ -126,7 +126,9 @@ static Answer reference(unsigned id,bool d,unsigned rm,uint64_t rawA,uint64_t ra
     return {numerical?canonical(result,d):result,flags()};
 }
 int main(int argc,char** argv) { try {
-    if(argc!=2) throw std::runtime_error("vector output path required");
+    if(argc<2 || argc>4) throw std::runtime_error("vector output path and optional --stress required");
+    const bool stress=argc>=3 && std::string(argv[2])=="--stress";
+    if(argc>=3 && !stress) throw std::runtime_error("unknown vector option");
     const std::array<uint32_t,24> edgeS = {0,0x80000000,1,0x80000001,0x7fffff,0x807fffff,
         0x800000,0x80800000,0x3f800000,0xbf800000,0x3f000000,0x40000000,0x40400000,
         0x3f800001,0x33800000,0x7f7fffff,0xff7fffff,0x7f800000,0xff800000,0x7f800001,
@@ -197,7 +199,77 @@ int main(int argc,char** argv) { try {
             ++count; seen|=r.flags;
         }
     }
+    if(stress) {
+        // Explicit one-round cancellation anchors: rounded multiply then add
+        // gives zero, while a correctly fused operation returns the residual.
+        anchor(5,false,0,box(0x3f800001),box(0x3f7ffffe),box(0xbf800000),0,box(0xa8800000),0);
+        anchor(5,true,0,0x3ff0000000000001ULL,0x3feffffffffffffeULL,
+            0xbff0000000000000ULL,0,0xb970000000000000ULL,0);
+        // Binary64 FMA followed by binary32 conversion double-rounds this
+        // halfway product after losing the very small addend. The S FMA result
+        // must instead see the sign of that addend before its only rounding.
+        anchor(5,false,0,box(0x3f800001),box(0x3fc00000),box(0x97800000),0,box(0x3fc00001),1);
+        for(unsigned id=5;id<=8;++id) for(unsigned rm=0;rm<5;++rm) for(unsigned sign=0;sign<2;++sign) {
+            const uint64_t a=box(0x3f800001),b=box(0x3fc00000),c=box(0x17800000U|(sign<<31));
+            const auto r=reference(id,false,rm,a,b,c,0);
+            out<<std::hex<<instruction(id,false,rm)<<' '<<rm<<' '<<a<<' '<<b<<' '<<c<<" 0 "<<r.value<<' '<<r.flags<<'\n';
+            ++count;seen|=r.flags;
+        }
+        for(bool d:{false,true}) for(unsigned rm=0;rm<5;++rm) for(unsigned id=0;id<9;++id) {
+            for(unsigned i=0;i<512;++i) {
+                const unsigned fraction=d?52:23;
+                const uint64_t fractionMask=(1ULL<<fraction)-1;
+                const unsigned maxExp=d?2047:255, bias=d?1023:127;
+                auto operand=[&](unsigned variant) {
+                    // Dense subnormal/normal, overflow, halfway and cancellation
+                    // neighborhoods complement the baseline uniform raw-bit set.
+                    const std::array<unsigned,8> exps={0,1,2,bias-1,bias,bias+1,maxExp-2,maxExp-1};
+                    const uint64_t payload=((random()&1)<<(fraction+(d?11:8))) |
+                        (uint64_t(exps[(i+variant)%exps.size()])<<fraction) | (random()&fractionMask);
+                    return d?payload:box(uint32_t(payload));
+                };
+                uint64_t a=operand(0),b=operand(3),c=operand(5);
+                if(id>=5 && i%2==0) {
+                    a=(uint64_t(bias)<<fraction)|(random()&fractionMask);
+                    b=(uint64_t(bias-1)<<fraction)|(random()&fractionMask);
+                    if(!d) {a=box(uint32_t(a));b=box(uint32_t(b));}
+                    const auto product=reference(2,d,0,a,b,0,0);
+                    const bool negate=id==5 || id==8;
+                    c=product.value ^ (negate?(1ULL<<(d?63:31)):0);
+                }
+                if(i%13==0) b=a ^ (1ULL<<(d?63:31));
+                if(!d && i%61==0) c&=0xffffffffULL;
+                const auto r=reference(id,d,rm,a,b,c,0);
+                out<<std::hex<<instruction(id,d,rm)<<' '<<rm<<' '<<a<<' '<<b<<' '<<c<<" 0 "<<r.value<<' '<<r.flags<<'\n';
+                ++count;seen|=r.flags;
+            }
+        }
+    }
+    if(argc==4) {
+        // Deliberately wrong numerical oracles. Both must be rejected by the
+        // hardware driver for the first value comparison, proving sensitivity
+        // to unfused product rounding and to D-then-S double rounding.
+        const std::string prefix=argv[3];
+        std::ofstream unfused(prefix+"-unfused.txt"),doubleRounded(prefix+"-double-rounded.txt");
+        auto emitWrong=[&](std::ofstream& stream,uint64_t a,uint64_t b,uint64_t c,Answer wrong) {
+            const auto correct=reference(5,false,0,a,b,c,0);
+            if(correct.value==wrong.value) throw std::runtime_error("negative rounding oracle did not differ");
+            stream<<std::hex<<instruction(5,false,0)<<" 0 "<<a<<' '<<b<<' '<<c<<" 0 "<<wrong.value<<' '<<wrong.flags<<'\n';
+        };
+        const uint64_t a=box(0x3f800001),b=box(0x3f7ffffe),c=box(0xbf800000);
+        const auto product=reference(2,false,0,a,b,0,0);
+        auto wrong=reference(0,false,0,product.value,c,0,0);wrong.flags|=product.flags;
+        emitWrong(unfused,a,b,c,wrong);
+        softfloat_roundingMode=0;softfloat_detectTininess=softfloat_tininess_afterRounding;softfloat_exceptionFlags=0;
+        const float64_t ad=f32_to_f64(float32_t{0x3f800001}),bd=f32_to_f64(float32_t{0x3fc00000}),
+            cd=f32_to_f64(float32_t{0x97800000});
+        const float64_t wide=f64_mulAdd(ad,bd,cd);
+        const float32_t narrow=f64_to_f32(wide);
+        wrong={box(narrow.v),flags()};
+        emitWrong(doubleRounded,box(0x3f800001),box(0x3fc00000),box(0x97800000),wrong);
+        if(!unfused || !doubleRounded) throw std::runtime_error("negative vector output failed");
+    }
     out.close(); if(!out || seen!=31) throw std::runtime_error("incomplete oracle flags/output");
-    std::cout<<"SOFTFLOAT_FD_PASS anchors=21 encodings=58 rounding_modes=5 vectors="<<count<<" flags_seen="<<seen<<'\n';
+    std::cout<<"SOFTFLOAT_FD_PASS anchors="<<(stress?24:21)<<" encodings=58 rounding_modes=5 vectors="<<count<<" flags_seen="<<seen<<'\n';
     return 0;
 } catch(const std::exception& e) { std::cerr<<e.what()<<'\n'; return 1; } }

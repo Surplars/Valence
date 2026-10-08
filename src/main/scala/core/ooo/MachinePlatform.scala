@@ -54,7 +54,8 @@ class MachinePlatform(
     ddrBridge: DdrBridgeConfig = DdrBridgeConfig.Legacy,
     cacheConcurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(),
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
-    networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default
+    networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
+    bankedInstructionData: Boolean = false
 ) extends Module {
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
     require(!p.dataNextLinePrefetch || (coherentLineCache && coreDataTranslation), "data prefetch requires the checked physical adapter")
@@ -200,7 +201,8 @@ class MachinePlatform(
     val frontend   = Module(new SynchronousFetch(16, p.compressedInstructions, p.frontendCacheSets,
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
-        parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow))
+        parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
+        independentPayloadCapture = p.independentFetchPayloadCapture))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
             virtualMemoryLevels = translationLevels, pmpEntries = 16)))
@@ -588,6 +590,7 @@ class MachinePlatform(
                     ramBase = p.speculativeRamBase, ramBytes = ramBytes,
                     romBytes = romWords * 4, lines = instructionLineCacheLines,
                     packetWords = fetchWords, prefetchEnabled = fetchWords == 4 && instructionLineCachePrefetch,
+                    bankedData = bankedInstructionData,
                     parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = tagConfig))
                 instructionLineCache = Some(fetchCache)
                 fetchCache.reset := reset.asBool || hold

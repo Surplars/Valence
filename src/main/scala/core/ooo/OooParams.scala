@@ -123,8 +123,25 @@ case class OooParams(
     sharedStoreOperandReads: Boolean = false,
     lvtPhysicalRegisterFile: Boolean = false,
     dataNextLinePrefetch: Boolean = false,
-    virtualRamLoadPrecheck: Boolean = false
+    virtualRamLoadPrecheck: Boolean = false,
+    bankedIssuePayload: Boolean = false,
+    bankedFetchHints: Boolean = false,
+    independentFetchPayloadCapture: Boolean = false,
+    ownerLocalIssueReady: Boolean = false,
+    sharedFetchPmpRelations: Boolean = false,
+    shareProtectedHeadPayload: Boolean = false
 ) {
+    require(!shareProtectedHeadPayload || (bankedIssuePayload && machineSystem && compressedInstructions && fpEnabled && fastHeadSystemRecovery),
+        "protected head payload sharing requires banked storage, compressed FP and the protected head-token observation")
+    require(!sharedFetchPmpRelations || (wordSpanPacketPmp && parallelPacketPmp && pmpEntries > 0),
+        "shared fetch PMP relations require the word-span packet permission profile")
+    require(!ownerLocalIssueReady || (ownerLocalOperandReady && registeredIssueExecute &&
+        !loadCompletionBypass && !mulWordPreviewBypass),
+        "owner-local ALU issue readiness needs exact ready mirrors and registered execution promises")
+    require(!bankedIssuePayload || (renameWidth == 2 && robEntries >= 4),
+        "banked issue payload requires contiguous two-wide allocation")
+    require(!bankedFetchHints || registeredFetchPacket,
+        "banked fetch hints require the registered fetch reservoir")
     require(!virtualRamLoadPrecheck || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0 &&
         registeredMemoryAddress && memoryEntries >= 2 && speculativeRamBytes > 0),
         "virtual RAM load precheck requires staged addresses, VM/PMP and parallel explicit RAM ownership")

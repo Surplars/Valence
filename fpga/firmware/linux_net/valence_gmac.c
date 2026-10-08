@@ -8,6 +8,7 @@
 #include "valence_driver_names.h"
 #define pr_fmt(fmt) VALENCE_GMAC_DRIVER ": " fmt
 #include <linux/delay.h>
+#include <linux/bitmap.h>
 #include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
@@ -27,12 +28,16 @@
 #include "valence_irq_policy.h"
 #include "valence_rx_queue.h"
 #include "valence_tx_queue.h"
+#include "valence_media_policy.h"
 
 #define GMAC_ID 0x56474d4100010001ULL
 #define DMA_ID  0x56444d4100010001ULL
 #define FRAME_BYTES 2048
 #define G_CAP 0x08
 #define G_CAP_RX_STOP BIT_ULL(8)
+#define G_CAP_MANAGED_PHY BIT_ULL(11)
+#define G_MEDIA_STATUS 0x98
+#define G_PHY_CONTROL 0x118
 #define G_CONTROL 0x10
 #define G_ADDRESS 0x18
 #define G_STATUS 0x28
@@ -90,6 +95,8 @@ struct vgmac {
 	unsigned int tx_length;
 	u64 interrupts, napi_polls, rx_work, empty_polls;
 	bool running, address_set, configured, tx_pending, faulted;
+	bool managed_phy;
+	unsigned int link_speed, media_stats_count;
 };
 
 static u64 vg_read(void __iomem *base, unsigned int offset)
@@ -179,8 +186,14 @@ static void vg_adjust_link(struct net_device *ndev)
 
 static int vg_delays(struct net_device *ndev)
 {
-	int tx = phy_read_paged(ndev->phydev, 0xd08, 0x11);
-	int rx = phy_read_paged(ndev->phydev, 0xd08, 0x15);
+	struct vgmac *p = netdev_priv(ndev);
+	int tx, rx;
+	if (p->managed_phy)
+		/* Hardware verifies delay programming before exposing MEDIA_READY.
+		 * ifup while unplugged/initializing must remain legal. */
+		return (vg_read(p->mac, G_MEDIA_STATUS) >> 56) == 1 ? 0 : -EINVAL;
+	tx = phy_read_paged(ndev->phydev, 0xd08, 0x11);
+	rx = phy_read_paged(ndev->phydev, 0xd08, 0x15);
 
 	if (tx < 0 || rx < 0)
 		return tx < 0 ? tx : rx;
@@ -206,10 +219,26 @@ static void vg_configure(struct work_struct *work)
 	struct vgmac *p = container_of(to_delayed_work(work), struct vgmac, configure);
 	struct net_device *ndev = p->ndev;
 	bool retry = false, start = false;
+	bool was_configured;
 
 	spin_lock_bh(&p->lock);
 	if (!p->running || p->faulted)
 		goto unlock;
+	was_configured = p->configured;
+	if (p->managed_phy) {
+		unsigned int speed = vg_managed_media_speed(vg_read(p->mac, G_MEDIA_STATUS));
+		if (!(vg_read(p->mac, G_STATUS) & 1))
+			speed = 0;
+		p->link_speed = speed;
+		if (speed) {
+			netif_carrier_on(ndev);
+			if (p->configured && vg_tx_space(p))
+				netif_wake_queue(ndev);
+		} else {
+			netif_carrier_off(ndev);
+			netif_stop_queue(ndev);
+		}
+	}
 	/* RX media/config CDC can be held until the PHY produces a 125MHz
 	 * clock. Let phylib negotiate first; ifup must also work unplugged.
 	 * RX is disabled during these two once-only configuration writes. */
@@ -251,16 +280,16 @@ static void vg_configure(struct work_struct *work)
 		if (vg_tx_space(p) && !p->faulted)
 			netif_wake_queue(ndev);
 	}
-	start = !p->faulted;
+	start = !p->faulted && !was_configured;
 unlock:
 	spin_unlock_bh(&p->lock);
 	if (!READ_ONCE(p->running))
 		return;
-	if (retry)
+	if (retry || p->managed_phy)
 		schedule_delayed_work(&p->configure, msecs_to_jiffies(100));
-	else if (start)
+	if (start)
 		napi_schedule(&p->napi);
-	/* No periodic data-plane worker after once-only MAC configuration. */
+	/* Managed mode polls link status only; the data plane remains IRQ/NAPI. */
 }
 
 static irqreturn_t vg_irq(int irq, void *data)
@@ -405,7 +434,7 @@ static netdev_tx_t vg_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 	spin_lock_bh(&p->lock);
 	if (p->posted_tx) slot = vgt_free_slot(&p->tx_ring);
-	if (!p->running || !p->configured || p->faulted ||
+	if (!p->running || !p->configured || p->faulted || !netif_carrier_ok(ndev) ||
 	    (p->posted_tx ? slot < 0 : (p->tx_pending || (vg_read(p->dma, D_TX_STATUS) & D_BUSY)))) {
 		netif_stop_queue(ndev);
 		spin_unlock_bh(&p->lock);
@@ -451,7 +480,8 @@ static int vg_open(struct net_device *ndev)
 	netif_carrier_off(ndev);
 	netif_start_queue(ndev);
 	netif_stop_queue(ndev);
-	phy_start(ndev->phydev);
+	if (!p->managed_phy)
+		phy_start(ndev->phydev);
 	schedule_delayed_work(&p->configure, 0);
 	return 0;
 }
@@ -468,7 +498,8 @@ static int vg_stop(struct net_device *ndev)
 	cancel_delayed_work_sync(&p->configure);
 	synchronize_irq(p->irq);
 	napi_disable(&p->napi);
-	phy_stop(ndev->phydev);
+	if (!p->managed_phy)
+		phy_stop(ndev->phydev);
 	netif_carrier_off(ndev);
 	/* Keep the existing pinned-buffer ifdown policy. Posted completions retain
 	 * ownership while NAPI is disabled; bounded MAC banks drop excess wire
@@ -479,6 +510,13 @@ static int vg_stop(struct net_device *ndev)
 static void vg_timeout(struct net_device *ndev, unsigned int queue)
 {
 	struct vgmac *p = netdev_priv(ndev);
+	if (p->managed_phy && !vg_managed_media_speed(vg_read(p->mac, G_MEDIA_STATUS))) {
+		/* A closed media epoch may retain an admitted DMA descriptor until
+		 * renegotiation. Link loss does not authorize cancelling its owner. */
+		netif_carrier_off(ndev);
+		netif_stop_queue(ndev);
+		return;
+	}
 
 	WRITE_ONCE(p->faulted, true);
 	vg_write(p->dma, D_IRQ_ENABLE, 0);
@@ -501,10 +539,79 @@ static void vg_drvinfo(struct net_device *ndev, struct ethtool_drvinfo *info)
 	strscpy(info->version, VALENCE_DRIVER_VERSION, sizeof(info->version));
 }
 
+static int vg_link_ksettings(struct net_device *ndev, struct ethtool_link_ksettings *cmd)
+{
+	struct vgmac *p = netdev_priv(ndev);
+	unsigned int speed;
+	if (!p->managed_phy)
+		return phy_ethtool_get_link_ksettings(ndev, cmd);
+	speed = READ_ONCE(p->link_speed);
+	cmd->base.speed = speed ? speed : SPEED_UNKNOWN;
+	cmd->base.duplex = speed ? DUPLEX_FULL : DUPLEX_UNKNOWN;
+	cmd->base.autoneg = AUTONEG_ENABLE;
+	cmd->base.port = PORT_TP;
+	cmd->base.phy_address = 1;
+	ethtool_link_ksettings_zero_link_mode(cmd, supported);
+	ethtool_link_ksettings_zero_link_mode(cmd, advertising);
+	ethtool_link_ksettings_add_link_mode(cmd, supported, 10baseT_Full);
+	ethtool_link_ksettings_add_link_mode(cmd, supported, 100baseT_Full);
+	ethtool_link_ksettings_add_link_mode(cmd, supported, 1000baseT_Full);
+	ethtool_link_ksettings_add_link_mode(cmd, supported, Autoneg);
+	ethtool_link_ksettings_add_link_mode(cmd, supported, TP);
+	bitmap_copy(cmd->link_modes.advertising, cmd->link_modes.supported,
+		    __ETHTOOL_LINK_MODE_MASK_NBITS);
+	return 0;
+}
+
+static int vg_restart_aneg(struct net_device *ndev)
+{
+	struct vgmac *p = netdev_priv(ndev);
+	if (!p->managed_phy)
+		return phy_ethtool_nway_reset(ndev);
+	vg_write(p->mac, G_PHY_CONTROL, 1);
+	return 0;
+}
+
+static unsigned int vg_media_stat_read32(void *context, unsigned int offset)
+{
+	struct vgmac *p = context;
+	return readl(p->mac + offset);
+}
+
+static int vg_stat_count(struct net_device *ndev, int stringset)
+{
+	struct vgmac *p = netdev_priv(ndev);
+	if (stringset != ETH_SS_STATS)
+		return -EOPNOTSUPP;
+	return p->media_stats_count;
+}
+
+static void vg_stat_names(struct net_device *ndev, u32 stringset, u8 *data)
+{
+	struct vgmac *p = netdev_priv(ndev);
+	unsigned int i;
+	if (stringset != ETH_SS_STATS)
+		return;
+	for (i = 0; i < p->media_stats_count; ++i)
+		ethtool_puts(&data, vg_media_stat(i)->name);
+}
+
+static void vg_stat_values(struct net_device *ndev, struct ethtool_stats *stats, u64 *data)
+{
+	struct vgmac *p = netdev_priv(ndev);
+	unsigned int i;
+	for (i = 0; i < p->media_stats_count; ++i)
+		data[i] = vg_media_stat_read(vg_media_stat_read32, p, i);
+}
+
 static const struct ethtool_ops vg_ethtool = {
 	.get_drvinfo = vg_drvinfo,
 	.get_link = ethtool_op_get_link,
-	.get_link_ksettings = phy_ethtool_get_link_ksettings,
+	.get_link_ksettings = vg_link_ksettings,
+	.nway_reset = vg_restart_aneg,
+	.get_sset_count = vg_stat_count,
+	.get_strings = vg_stat_names,
+	.get_ethtool_stats = vg_stat_values,
 };
 
 static bool vg_dma_address_ok(struct vgmac *p, dma_addr_t address)
@@ -541,7 +648,7 @@ static int vg_probe(struct platform_device *pdev)
 	struct net_device *ndev;
 	struct vgmac *p;
 	u8 address[ETH_ALEN];
-	u64 mac_address = 0;
+	u64 mac_address = 0, mac_capabilities;
 	phy_interface_t interface;
 	struct clk *clock;
 	int i, ret;
@@ -682,6 +789,19 @@ static int vg_probe(struct platform_device *pdev)
 	for (i = 0; i < ETH_ALEN; i++)
 		mac_address = (mac_address << 8) | ndev->dev_addr[i];
 	p->hw_address = mac_address;
+	mac_capabilities = vg_read(p->mac, G_CAP);
+	p->managed_phy = !!(mac_capabilities & G_CAP_MANAGED_PHY);
+	p->media_stats_count = VG_MEDIA_STATS_LEGACY;
+	if (p->managed_phy) {
+		/* The FPGA is the sole PHY configuration owner. Registering a phylib
+		 * instance would reset/reprogram it and race hardware page sequences. */
+		if (vg_managed_media_probe(mac_capabilities, vg_media_stat_read32, p) != 1) {
+			ret = -ENODEV;
+			goto free_buffers;
+		}
+		p->media_stats_count = vg_media_stat_count(mac_capabilities, 1);
+		goto phy_ready;
+	}
 	p->bus = mdiobus_alloc();
 	if (!p->bus) {
 		ret = -ENOMEM;
@@ -721,6 +841,7 @@ static int vg_probe(struct platform_device *pdev)
 	phy_remove_link_mode(ndev->phydev, ETHTOOL_LINK_MODE_1000baseT_Half_BIT);
 	phy_remove_link_mode(ndev->phydev, ETHTOOL_LINK_MODE_Pause_BIT);
 	phy_remove_link_mode(ndev->phydev, ETHTOOL_LINK_MODE_Asym_Pause_BIT);
+phy_ready:
 	ndev->netdev_ops = &vg_ops;
 	ndev->ethtool_ops = &vg_ethtool;
 	ndev->watchdog_timeo = 2 * HZ;
@@ -739,7 +860,10 @@ static int vg_probe(struct platform_device *pdev)
 		unregister_netdev(ndev);
 		goto free_irq;
 	}
-	phy_attached_info(ndev->phydev);
+	if (p->managed_phy)
+		dev_info(dev, "hardware-managed RTL8211F: autonegotiated 10/100/1000 full duplex\n");
+	else
+		phy_attached_info(ndev->phydev);
 	dev_info(dev, "%s: native GMAC + coherent DMA, IRQ %d / NAPI weight %u, MAC %pM\n",
 		 ndev->name, p->irq, VG_NAPI_WEIGHT, ndev->dev_addr);
 	dev_info(dev, "RX mode=%s slots=%u bytes=%u; TX mode=%s slots=%u bytes=%u\n",
@@ -751,11 +875,14 @@ free_irq:
 delete_napi:
 	netif_napi_del(&p->napi);
 disconnect:
-	phy_disconnect(ndev->phydev);
+	if (ndev->phydev)
+		phy_disconnect(ndev->phydev);
 unregister_bus:
-	mdiobus_unregister(p->bus);
+	if (p->bus)
+		mdiobus_unregister(p->bus);
 free_bus:
-	mdiobus_free(p->bus);
+	if (p->bus)
+		mdiobus_free(p->bus);
 free_buffers:
 	/* A late probe failure can race userspace ifup after register_netdev.
 	 * unregister_netdev stops callbacks, but never transfers DMA ownership.

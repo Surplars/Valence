@@ -295,6 +295,26 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val replayPendingValid = if (p.registeredLoadReplay) Some(RegInit(false.B)) else None
     val replayPending = if (p.registeredLoadReplay) Some(Reg(new FrontendRedirect(p))) else None
     val queue         = Reg(Vec(p.robEntries, new IntegerIssueEntry(p)))
+    // In the RAM profile, the six large immutable fields in this register view
+    // are tied to zero at allocation and optimized away. Full token/source/class
+    // metadata remains local to the scheduler and all completion owner checks.
+    // Only explicit selected consumers below may request a payload memory port.
+    val issuePayloadReads = scala.collection.mutable.ArrayBuffer.empty[
+        (String, UInt, Bool, Set[String], ImmutableIssuePayload)]
+    def readIssue(index: UInt, name: String, fields: Set[String] = ImmutableIssuePayload.all,
+        owner: Option[UInt] = None): IntegerIssueEntry = {
+        val metadata = owner.map(mask => CircularIssueSelector.selectPayload(mask, queue.map(_.asUInt).toSeq)
+            .asTypeOf(new IntegerIssueEntry(p))).getOrElse(queue(index))
+        if (!p.bankedIssuePayload) metadata
+        else {
+            val payload = Wire(new ImmutableIssuePayload).suggestName(s"${name}Payload")
+            issuePayloadReads += ((name, index, owner.map(_.orR).getOrElse(true.B), fields, payload))
+            val entry = Wire(new IntegerIssueEntry(p)).suggestName(s"${name}Entry")
+            entry := metadata
+            ImmutableIssuePayload.insert(entry.request, payload)
+            entry
+        }
+    }
     val queuedSourceDecode = if (p.sharedPhysicalSourceDecode && !p.lvtPhysicalRegisterFile)
         Some(Module(new QueuedPhysicalSourceDecode(p))) else None
     queuedSourceDecode.foreach { decode =>
@@ -360,7 +380,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         boundary.io.commits := acceptedCommits
         Some(boundary.io.afterHead)
     } else None
-    val headRequest = queue(head).request
+    val headRequest = readIssue(head, "head", ImmutableIssuePayload.head).request
     val headRenamed = queue(head).renamed
     // A completed load has its result in the LSU register before the completion arbiter writes
     // the physical register. Wake dependent ALU work from that stable result to avoid a CDB cycle.
@@ -401,8 +421,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     // recovery, completion acceptance and ROB tag comparisons are authorization
     // checks below, not feedback into speculative wake/ranking.
     def loadIssueHit(index: UInt): Bool = loadIssueWake.valid && loadIssueWake.bits === index
-    def issueOperandReady(index: UInt): Bool = operandReady(index) || loadIssueHit(index) ||
-        executionWake.map(wake => wake.valid && wake.bits === index).reduce(_ || _)
+    def issueOperandReady(index: UInt, localReady: Option[Bool] = None): Bool =
+        IssueOperandReadiness(index, localReady.getOrElse(operandReady(index)), loadIssueWake, executionWake.toSeq)
     def issueOperandValue(index: UInt, stored: UInt): UInt = {
         val hits = executionWake.map(wake => wake.valid && wake.bits === index)
         Mux(loadIssueHit(index), lsu.io.complete.bits.data,
@@ -462,9 +482,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         // Store preparation still computes its address in this cycle. Do not
         // concatenate the producer's ALU and that address adder through bypass.
         val source1Ready = entry.request.usePc || Mux(entry.request.memory,
-            ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)), issueOperandReady(source1))
+            ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)),
+            issueOperandReady(source1, if (p.ownerLocalIssueReady) ownerReady.map(_.io.ready1(i)) else None))
         val source2Ready = entry.request.useImmediate || Mux(entry.request.memory,
-            ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)), issueOperandReady(source2))
+            ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)),
+            issueOperandReady(source2, if (p.ownerLocalIssueReady) ownerReady.map(_.io.ready2(i)) else None))
         val readyToExecute = pending(i) && !entry.request.system && !entry.request.mulDiv &&
             (!entry.request.memory || prepareStore) && source1Ready &&
             (source2Ready || (prepareStore && !storeAddressKnown(i)))
@@ -592,8 +614,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 (planner.io.secondValid, planner.io.secondIndex)).zipWithIndex.map { case ((valid, index), rank) =>
                 val owner = if (rank == 0) planner.io.firstOwner else planner.io.secondOwner
                 def selected(payloads: Seq[UInt]): UInt = CircularIssueSelector.selectPayload(owner, payloads)
-                val entry = if (p.parallelMemoryPayload)
-                    selected(queue.map(_.asUInt).toSeq).asTypeOf(new IntegerIssueEntry(p)) else queue(index)
+                val entry = readIssue(index, s"memoryPreparation$rank", Set("immediate"),
+                    if (p.parallelMemoryPayload) Some(owner) else None)
                 val saved = valid && entry.request.store && (if (p.parallelMemoryPayload)
                     (owner & storePrepared.asUInt).orR else storePrepared(index))
                 val source1 = Mux(valid, entry.renamed.source1, 0.U)
@@ -623,7 +645,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 stagedMemorySize.get := Mux(planner.io.useSecond, candidates(1)._4, candidates(0)._4)
             }
         } else {
-            val preparation = queue(memoryPrechoice.index)
+            val preparation = readIssue(memoryPrechoice.index, "memoryPreparation", Set("immediate"))
             val saved = memoryPrechoice.valid && preparation.request.store && storePrepared(memoryPrechoice.index)
             val source1 = Mux(memoryPrechoice.valid, preparation.renamed.source1, 0.U)
             val source2 = Mux(memoryPrechoice.valid, preparation.renamed.source2, 0.U)
@@ -644,7 +666,9 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     } else {
         memoryChoice := memoryPrechoice
     }
-    val memoryEntry   = queue(memoryChoice.index)
+    val memoryEntry   = readIssue(memoryChoice.index, "memoryIssue",
+        Set("pc") ++ (if (!p.registeredMemoryAddress) Set("immediate") else Set.empty[String]) ++
+            (if (p.fastBufferedStoreRetire) Set("instruction") else Set.empty[String]))
     val memorySize    = stagedMemorySize.getOrElse(Mux(memoryChoice.valid, memoryEntry.request.memorySize, 0.U))
     val memorySource1 = Mux(memoryChoice.valid, memoryEntry.renamed.source1, 0.U)
     val memorySource2 = Mux(memoryChoice.valid, memoryEntry.renamed.source2, 0.U)
@@ -778,9 +802,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val loadReplayToken = Mux1H((0 until p.robEntries).map { i =>
         replaySelector.io.oneHot(i) -> queue(i).renamed.token
     })
-    val loadReplayPc = Mux1H((0 until p.robEntries).map { i =>
-        replaySelector.io.oneHot(i) -> queue(i).request.rename.pc
-    })
+    val loadReplayPc = readIssue(replaySelector.io.index, "loadReplay", Set("pc"),
+        Some(replaySelector.io.oneHot)).request.rename.pc
     if (p.registeredLoadReplay) {
         // The overlap is known one cycle after issue. Hold retirement while it is
         // checked and until any resulting redirect is presented to the ROB.
@@ -918,8 +941,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                     ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
                     ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))
             }).asUInt
-            val entry = CircularIssueSelector.selectPayload(selector.io.owner(kind), queue.map(_.asUInt).toSeq)
-                .asTypeOf(new IntegerIssueEntry(p))
+            val entry = readIssue(selector.io.index(kind), s"mulDiv$kind", Set("pc"),
+                Some(selector.io.owner(kind)))
             mulDivRequests(kind).token := entry.renamed.token
             mulDivRequests(kind).pc := entry.request.rename.pc
             mulDivRequests(kind).operation := entry.request.mulDivOp
@@ -946,7 +969,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             c.age   := ages(i)
             c
         })
-        val entry = queue(mulDivChoice.index)
+        val entry = readIssue(mulDivChoice.index, "mulDiv", Set("pc"))
         for (kind <- 0 until 2) {
             mulDivRequests(kind).token := entry.renamed.token
             mulDivRequests(kind).pc := entry.request.rename.pc
@@ -970,6 +993,20 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         0
     )
 
+    if (p.shareProtectedHeadPayload) {
+        // System/FP starts only at the current head. Its protected lifetime ends
+        // exactly at retirement or accepted exceptional completion; neither a
+        // younger redirect nor held retirement may change this full-token owner.
+        when(systemProtected) {
+            assert(ledger.io.headValid && ledger.io.headSystem.get.headToken.asUInt === systemOwner.asUInt &&
+                headRenamed.token.asUInt === systemOwner.asUInt,
+                "protected system payload owner must remain the exact ROB and queue head")
+        }
+        when(systemComplete.valid) {
+            assert(systemProtected && systemComplete.bits.token.asUInt === systemOwner.asUInt,
+                "held or exceptional system completion must retain the protected full token")
+        }
+    }
     when(systemComplete.fire && systemComplete.bits.exception) { systemProtected := false.B }
     when(ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === systemOwner.asUInt).reduce(_ || _)) {
         systemProtected := false.B
@@ -995,8 +1032,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         interruptDrain                      := unit.io.interruptPending && !systemProtected
         val headPending = pending(head) && queue(head).request.system
         val headInst = Mux(p.compressedInstructions.B &&
-            queue(head).request.rename.instruction(1, 0) =/= 3.U,
-            queue(head).request.expandedInstruction, queue(head).request.rename.instruction)
+            headRequest.rename.instruction(1, 0) =/= 3.U,
+            headRequest.expandedInstruction, headRequest.rename.instruction)
         val headCsr = headInst(31, 20)
         val pmpHead = if (p.pmpEntries > 0)
             headPending && headInst(6, 0) === "h73".U && headInst(14, 12) =/= 0.U &&
@@ -1033,7 +1070,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             (if (p.pmpEntries > 0) !drainFetch || io.fetchQuiescent.get else true.B)
         unit.io.start.valid      := reserveSystem && !ledger.io.recoveryAccepted && !ledger.io.pendingException.valid
         unit.io.start.bits.token := queue(head).renamed.token
-        unit.io.start.bits.pc    := queue(head).request.rename.pc
+        unit.io.start.bits.pc    := headRequest.rename.pc
         unit.io.start.bits.instruction := headInst
         unit.io.start.bits.operand     := readPhysical(source)
         systemStart                    := unit.io.start.fire
@@ -1050,7 +1087,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         // Compressed FP memory uses the expanded encoding for execution, but
         // sequential retirement must retain the original two-byte instruction.
         if (p.compressedInstructions && p.fpEnabled) {
-            val owner = queue(systemOwner.index).request
+            val owner = if (p.shareProtectedHeadPayload) headRequest
+                else readIssue(systemOwner.index, "systemCompletion", ImmutableIssuePayload.head).request
             when(FloatingPointDecode.memory(owner.expandedInstruction) &&
                 owner.rename.instruction(1, 0) =/= 3.U && !unit.io.complete.bits.redirect) {
                 systemComplete.bits.nextPc := owner.rename.pc + 2.U
@@ -1137,7 +1175,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         0.U.asTypeOf(new FrontendRedirect(p))))
     val systemCandidate = WireDefault(0.U.asTypeOf(new FrontendRedirect(p)))
     systemCandidate.token := systemOwner
-    systemCandidate.pc := queue(head).request.rename.pc
+    systemCandidate.pc := headRequest.rename.pc
     systemCandidate.target := systemComplete.bits.nextPc
     if (p.fastHeadSystemRecovery) {
         // The only producer is a head-authorized, protected MachineSystemUnit.
@@ -1155,10 +1193,12 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 "system protection excludes external recovery and automatic traps until precise completion/retirement")
         }
     } else {
+        val systemRedirectPc = readIssue(systemComplete.bits.token.index, "systemRedirect", Set("pc"))
+            .request.rename.pc
         when(systemComplete.valid && systemRedirect) {
             branchCandidate.valid       := true.B
             branchCandidate.bits.token  := systemComplete.bits.token
-            branchCandidate.bits.pc     := queue(systemComplete.bits.token.index).request.rename.pc
+            branchCandidate.bits.pc     := systemRedirectPc
             branchCandidate.bits.target := systemComplete.bits.nextPc
         }
     }
@@ -1324,8 +1364,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 operandReady(Mux(pending(i), queue(i).renamed.source2, 0.U))))).asUInt
         val payloads = Wire(Vec(2, new EarlyStoreOperands))
         for (rank <- 0 until 2) {
-            val entry = CircularIssueSelector.selectPayload(owners(rank), queue.map(_.asUInt).toSeq)
-                .asTypeOf(new IntegerIssueEntry(p))
+            val index = if (rank == 0) stores.io.firstIndex else stores.io.secondIndex
+            val entry = readIssue(index, s"storePreparation$rank", Set("immediate"), Some(owners(rank)))
             payloads(rank).token := entry.renamed.token
             payloads(rank).base := operands.io.left(rank)
             payloads(rank).immediate := entry.request.immediate
@@ -1430,9 +1470,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         dispatched(lane).bits  := dispatchChoice.index
         val dispatchEntry = if (p.parallelIssuePayload) {
             val oneHot = if (lane == 0) issueSelector.get.io.second else issueSelector.get.io.first
-            CircularIssueSelector.selectPayload(oneHot, (0 until p.robEntries).map(i => queue(i).asUInt))
-                .asTypeOf(new IntegerIssueEntry(p))
-        } else queue(dispatchChoice.index)
+            readIssue(dispatchChoice.index, s"execution$lane", ImmutableIssuePayload.execution, Some(oneHot))
+        } else readIssue(dispatchChoice.index, s"execution$lane", ImmutableIssuePayload.execution)
         if (p.parallelIssuePayload) {
             when(dispatchChoice.valid) {
                 assert(dispatchEntry.renamed.token.index === dispatchChoice.index,
@@ -1834,6 +1873,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         when(renamed.valid) {
             queue(renamed.bits.token.index).renamed := renamed.bits
             queue(renamed.bits.token.index).request := io.allocate(lane).bits
+            if (p.bankedIssuePayload) {
+                ImmutableIssuePayload.insert(queue(renamed.bits.token.index).request,
+                    0.U.asTypeOf(new ImmutableIssuePayload))
+            }
             storePreparationKinds.foreach { kinds =>
                 val offered = io.allocate(lane).bits
                 val storeClass = !offered.system && !offered.mulDiv && offered.memory && offered.store
@@ -1852,6 +1895,19 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         readyUpdate.foreach { update =>
             update.io.reserve(lane).valid := renamed.valid && renamed.bits.writesRd && !renamed.bits.moveAlias
             update.io.reserve(lane).bits := renamed.bits.destination
+        }
+    }
+    if (p.bankedIssuePayload) {
+        val payload = Module(new BankedIssuePayload(p.robEntries, issuePayloadReads.map(_._4).toSeq))
+        for (lane <- 0 until p.renameWidth) {
+            payload.io.write(lane).valid := ledger.io.renamed(lane).valid
+            payload.io.write(lane).bits.index := ledger.io.renamed(lane).bits.token.index
+            payload.io.write(lane).bits.data := ImmutableIssuePayload.fromRequest(io.allocate(lane).bits)
+        }
+        for (((_, index, enable, _, data), port) <- issuePayloadReads.zipWithIndex) {
+            payload.io.address(port) := index
+            payload.io.enable(port) := enable
+            data := payload.io.data(port)
         }
     }
     if (p.lvtPhysicalRegisterFile) {

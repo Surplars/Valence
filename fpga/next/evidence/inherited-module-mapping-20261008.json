@@ -1,0 +1,270 @@
+{
+  "schema": "valence-fpga-next-independent-inherited-review-v1",
+  "review_utc": "2026-10-08T18:38:00Z",
+  "integration_head_at_capture": "fa2986fa39e9e1ef6db7e687908387cfd47f8283",
+  "integration_source_root": "Valence-fpga-next",
+  "method": "Read-only source, artifact and oracle/receipt inspection. No hardware builds or simulations run by reviewer. Relative paths resolve from workspace root. Bindings qualify named module sources only, not whole historical trees.",
+  "modules": [
+    {
+      "name": "ddr-bridge",
+      "status": "INHERITED_SOURCE_MATCHED_WITH_REPLAY_ARTIFACTS",
+      "bindings": [
+        {
+          "path": "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala",
+          "sha256": "64f71000d1c4971c3c7c8804774a6c3fe3c9bf8feddcf01ae023143806fabfae"
+        },
+        {
+          "path": "src/main/scala/core/ooo/TileLinkTransferBeatCount.scala",
+          "sha256": "2664995b14ad1db34cf3b62c8fadb99d69d221f21e5703d37bd2be7b4c5f43be"
+        },
+        {
+          "path": "src/main/scala/core/ooo/DdrBridgeConfig.scala",
+          "sha256": "dc32b4870b684eb79dc2785ee1c642599d64a7b8829dac3246f8a59237f6cd0f"
+        },
+        {
+          "path": "src/main/scala/core/ooo/AlignedMemoryDisjoint.scala",
+          "sha256": "34b3b6c0570c677720d0970d086475347451c2af87b53c10fe44f85ab2d7cd80"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "Valence-throughput-candidate/build/gsim/write-pipeline-cloud-r1/receipt.json",
+          "sha256": "ae12e0876c904b30d15aec7d75d58182ce196919e127c8af50ddf6e1268cd483"
+        },
+        {
+          "path": "Valence/build/gsim/axi-write-pipeline-integrated/receipt.json",
+          "sha256": "016d8450383496c6e0bebdf5b0ae682b9b608e31257b5c913361b22cc6c82406"
+        }
+      ],
+      "verified": "Two integrated FIR hashes, all five replay log hashes and saved selected pipeline executable digest match the integrated receipt. Relevant production source hashes match the isolated tested receipt.",
+      "coverage": "AW/W skew, denied-tail recovery, mixed read/write, reordered R/B responses, reset skew, payload/ID/RLAST negatives; 4 total slots, 2 writes, 16 beats, AXI ID width 4 and TL source width 5.",
+      "limits": [
+        "Current base board proof supplies selected-profile composition, without replacing directed protocol negatives.",
+        "No physical/PPA requalification."
+      ],
+      "geometry_verification": {
+        "emitter": "Valence-throughput-candidate/src/test/scala/ooo/TileLinkAxi4OutstandingGsimMain.scala",
+        "emitter_sha256": "de1c248acc5ea3929f03a9dca1d673c2f9b4d4bfada18cda773618f2e5a093f9",
+        "fir": "Valence-throughput-candidate/build/gsim/write-pipeline-cloud-r1/s4-w2-u1/TileLinkAxi4Bridge.fir",
+        "fir_sha256": "99930f4d72d14ee98955fde2946cf4ba705088f7bdfbe1472494803daf1fc0f5",
+        "axi_id_bits": 4,
+        "tl_source_bits": 5,
+        "tl_size_bits": 3,
+        "note": "Corrects preliminary reviewer misreading of positional parameter 3 as AXI ID width. Emitter and actual FIR independently confirm AXI ID width 4; no such geometry gap exists."
+      }
+    },
+    {
+      "name": "coherent-home",
+      "status": "INHERITED_SOURCE_MATCHED_RETAINED_FIR_AND_LOGS",
+      "bindings": [
+        {
+          "path": "src/main/scala/core/ooo/NonBlockingCoherentLineHome.scala",
+          "sha256": "ae67ebcfcf4bcf2dc3490bb523d4fc3ec05ba675d6213e3142bc06757ce889bf"
+        },
+        {
+          "path": "src/main/scala/core/ooo/CoherentHomeUlBoundary.scala",
+          "sha256": "518f03c45e8393720bcd0541b8944adf4bb16fae58da7220cf1cf57d61ba2b5e"
+        },
+        {
+          "path": "src/main/scala/core/ooo/CoherentWriteDispatch.scala",
+          "sha256": "2f7ad2df46c38b69ae80eb5d81651f845e14ffc25e623314f7af7aef95db18ea"
+        },
+        {
+          "path": "src/main/scala/core/ooo/ParallelHomeQualification.scala",
+          "sha256": "be4b5b1f29988c19521acdadcd957ec08c5b80a73eeee2d971b68dfc56005fb6"
+        },
+        {
+          "path": "src/main/scala/ip/tilelink/TileLinkLineTransfer.scala",
+          "sha256": "ed9272429e49cb2e84bc4314aaf32d83045d27cb4755392570b1ebed2fbcd53c"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "Valence/build/gsim/home-tag-ram-cloud-r1/candidate/receipt.json",
+          "sha256": "df1feca7b71e49504b5b0a194f02a49fd8c186ece040518098e51ff62fa65ca4"
+        },
+        {
+          "path": "Valence-fpga-next-memory/build/gsim/fpga-tags-r2/receipt.json",
+          "sha256": "3638dcd561914ba9a13b105b46fae42cd3df378a8bcce58fdb922639ab1f99dc"
+        }
+      ],
+      "verified": "36 retained artifacts from old home receipt match, including emitted FIR and positive/negative logs. Generated C++/headers/executables and some build logs are omitted. Relevant home source and helper hashes match.",
+      "coverage": "Six home variants include 512 lines, two ways, two acquire owners and 19-bit compact tags across 4GiB; independent data/protocol checks, simultaneous E/C, held upstream, aliases, release recheck and reset. Current cache r2 adds real home/DMA composition.",
+      "limits": [
+        "CacheTagConfig differs only by trailing bankedStorage option. Home reads geometry/compact only; those definitions are unchanged. This is source-delta reasoning, not whole-file hash identity.",
+        "Old omitted binaries cannot be reused from the archive.",
+        "No physical mapping claim."
+      ]
+    },
+    {
+      "name": "integer-prf",
+      "status": "INHERITED_EXACT_LEAF_WRAPPER_ORACLE_MATCH",
+      "bindings": [
+        {
+          "path": "src/main/scala/core/ooo/OwnerBankedPhysicalRegisterFile.scala",
+          "sha256": "9a280d8d41269d38e2ba1e4e6c249fe3cda4e834aeea93ef4a35257ddf3c9b12"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/evidence/verified-prf-contribution/receipt.json",
+          "sha256": "10dd685c435819cd4d5cf1e5a2c441947466285dc298bc12b117dd1522ff3111"
+        },
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/evidence/verified-prf-contribution/proof/matrix/receipt.json",
+          "sha256": "268fc19090b36ec9d412eb5c42f32dae88e032aeff6a084a9352c582fd9d6f19"
+        },
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/evidence/verified-prf-contribution/artifact-manifest.json",
+          "sha256": "2bbff618f4152d1fa12c7680c266da80204abd02bc3b2c16d3aa7a0980e7d0b8"
+        }
+      ],
+      "verified": "All 65 archive-manifest artifacts match. Leaf, test wrapper and independent host oracle hashes match current source. Original and sampled synchronous-reset normalized SV are byte-identical.",
+      "coverage": "48/64/128-entry matrix with 16,522/16,682/17,386 data checks, lane collision priority, x0, disabled poison, 25 resets per depth, and seven negative controls.",
+      "limits": [
+        "Historical unit fixture has four read ports, not the entire selected native observer/read-port census. Current source has a parametric per-port loop; selected CPU/core/board composition was separately checked.",
+        "Reset lowering is explicitly test-only; raw original GSIM failure is preserved.",
+        "No current mapped resource or timing claim."
+      ]
+    },
+    {
+      "name": "rob-payload",
+      "status": "INHERITED_EXACT_LEAF_LEDGER_SOURCE_MATCH",
+      "bindings": [
+        {
+          "path": "src/main/scala/core/ooo/RenameRob.scala",
+          "sha256": "04230612b4c17cf613932a6faeae573693f7bd322dec87ea75b8b0d64dc4d7a3"
+        },
+        {
+          "path": "src/main/scala/core/ooo/BankedRobPayload.scala",
+          "sha256": "d51313a07857e39e7b09e84edfaa7267352cc809042113517777b8577771e574"
+        },
+        {
+          "path": "src/main/scala/core/ooo/BackendTypes.scala",
+          "sha256": "418f39616f8e161caabb44cdf344e5f8f2577c5fac32f2b42e9948b99de5d30a"
+        },
+        {
+          "path": "src/main/scala/core/ooo/ParallelRecoveryAdmission.scala",
+          "sha256": "665cac2b73bee4e66c64b7a9a5aeaaf172e7a93ec27c3390286f7635e591961e"
+        },
+        {
+          "path": "src/main/scala/core/ooo/FaultAwareRenameCandidates.scala",
+          "sha256": "644ed068df4de1e7719a4cb0ee1afd75f9e31677933f1e46176bd11cd1d8a3d2"
+        },
+        {
+          "path": "src/main/scala/core/ooo/RenameAllocationCapacity.scala",
+          "sha256": "104eb314acafd1e7af6f62f073186b85ce19f5ec969ee06bdee1f74c428fc6ba"
+        },
+        {
+          "path": "src/main/scala/core/ooo/RenameDestinationCandidates.scala",
+          "sha256": "ec5fc55d9e8e861e021386d72a878c49d3dea42dead23b212341b859660d5c0a"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/evidence/fpga-storage-delivery/proof/storage-ledger-r1/receipt.json",
+          "sha256": "7c58beabf300a76e34971e526269e6e4a12f1c8473a34a55c385e26bf30845a0"
+        },
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/evidence/fpga-storage-delivery/artifacts.json",
+          "sha256": "a2899a8670c599b89316238292acb883073e9227e3f666cdf2b65e6322faf963"
+        }
+      ],
+      "verified": "Leaf and relevant helper source hashes match. Both embedded positive ledger logs reproduce the archived SHA256 for the missing separate test.log files. Twelve retained archive artifacts match; eleven listed old log files are omitted.",
+      "coverage": "Register/banked pair: three seeds, 18,000 random cycles, 1,067 allocations, 778 commits, 339 dual commits, 58 recoveries and 17,892 rejected completions; payload negative recorded.",
+      "limits": [
+        "Historical focused ledger uses tagBits=8. Current CPU/core/board proofs supply full 64-bit token integration.",
+        "Separate old model artifacts and individual ledger negative log files were omitted; no fresh replay was performed.",
+        "No mapped resource or timing claim."
+      ]
+    },
+    {
+      "name": "translation-protection",
+      "status": "INHERITED_EXACT_UNIT_SOURCE_AND_OBJECT_MATCH_CURRENT_BACKEND_PENDING",
+      "bindings": [
+        {
+          "path": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+          "sha256": "ab88bdd9c0dc6005114fceed28e4062414e8669ceb24121e4994a9867693008f"
+        },
+        {
+          "path": "src/main/scala/core/ooo/SvTranslationService.scala",
+          "sha256": "9209ec97829755613c26b160d556fd00e7e89ba548eb4acb644efcac4262a866"
+        },
+        {
+          "path": "src/main/scala/core/ooo/SvPageTableWalker.scala",
+          "sha256": "9fad720faedfd0b7e2b83e01f5c9ded6211e8eec5bb6eb5385e1399aed0c13b2"
+        },
+        {
+          "path": "src/main/scala/core/ooo/PhysicalMemoryProtection.scala",
+          "sha256": "a3c65a02eca4692c0c9f1f7dac3a611ff13d6a24f2f74df7e0f073c94e237c25"
+        },
+        {
+          "path": "src/main/scala/core/ooo/VirtualRamLoadPrecheck.scala",
+          "sha256": "b5e9cc003c1a2eb5360fff6aea7b2c7228f3cecbda4b471d4e429f778711b50d"
+        },
+        {
+          "path": "src/main/scala/core/ooo/BackendTypes.scala",
+          "sha256": "418f39616f8e161caabb44cdf344e5f8f2577c5fac32f2b42e9948b99de5d30a"
+        },
+        {
+          "path": "src/main/scala/core/ooo/InstructionTranslationAdapter.scala",
+          "sha256": "dc168761ecd8c5041d9c2b767b4624bf1ad7e23385ceba088050b09892101854"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "Valence/build/gsim/virtual-load-precheck-cloud-policy2-r1/receipt.json",
+          "sha256": "5b83f41df9f39c57c760959a9d8049bab776ad157b337a7c296470765ec19e5e"
+        }
+      ],
+      "verified": "All five reused preparation/store-buffer/adapter model FIR hashes and model object hashes match. Relevant production sources and VirtualLoadPrecheckGsim wrapper match.",
+      "coverage": "Preparation cancellation/full-token checks, store alias blocking, actual DTLB+adapter with enabled/disabled and identity-flow variants, permission/range/epoch/backpressure negative oracles.",
+      "limits": [
+        "Historical decoded-backend composition has an older IntegerBackend. It does not qualify current enabled-precheck backend ownership/cancellation.",
+        "Current serial base board VM proof has zero cancellationWhileOutstanding witness. The separately queued enabled-precheck integration gate must witness real outstanding cancellation.",
+        "No model executable was run by this review."
+      ]
+    },
+    {
+      "name": "network-dma",
+      "status": "INHERITED_EXACT_SELECTED_PACKET_PROFILE_RETAINED_LOGS",
+      "bindings": [
+        {
+          "path": "src/main/scala/ip/dma/EthernetPacketDma.scala",
+          "sha256": "3c78c33ae35f455fe9df559119d537ca9a8632f4b59c5eff3322985b9ffb0304"
+        },
+        {
+          "path": "src/main/scala/ip/dma/EthernetTxDescriptorQueue.scala",
+          "sha256": "d012a4e9c4c90ee5f82bb9342e54ed4b1e00c67e9f562073f42a53eaee595c17"
+        },
+        {
+          "path": "src/main/scala/ip/dma/NetworkDmaConfig.scala",
+          "sha256": "e4aab6ac35a6589f3502bde895c6e51a700162c65cb9488c95d3d4a1912b6e79"
+        },
+        {
+          "path": "src/main/scala/ip/ethernet/EthernetDmaFrameAdapter.scala",
+          "sha256": "6a6027b75efe2d9c1bdef73975cf1a166e5e8bdce15fb9c64c45026746cb134c"
+        }
+      ],
+      "receipts": [
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/local-20261008-r1/evidence/network-receipt.json",
+          "sha256": "32b9260816b67ca9601fc3e72ae76f26cc1c1213cc257dd2828f4378ab8fdc4b"
+        },
+        {
+          "path": "latest_handoff/extracted/Valence-incremental-6c8977f-20261008/local-20261008-r1/SHA256.json",
+          "sha256": "228a028832a5bfdc604da2d7ca36b218000104a3ec9d14b66838842119f1a73c"
+        }
+      ],
+      "verified": "All 32 retained network receipt/log artifacts match their archive hashes. All six positive summaries and negative anchors match actual retained logs. DMA, queue, config and packet/queue host harness hashes match current source.",
+      "coverage": "packet-tx4: four RX slots, four memory credits, 2GiB aperture, four posted TX slots; six wrap batches, held-read/held-stream STOP, posted memory fault, simultaneous RX and legacy restart. coherent-tx4: real512 directory, dirty source probes, RX invalidation and retained FIFO completion.",
+      "limits": [
+        "Old emitted FIR and executable hashes are recorded but their files were omitted from the delivered archive. Do not claim fresh replay.",
+        "EthernetPort.scala now has appended tri-speed types/options; EthernetFrameBeat used by the packet interface is unchanged. This is source-delta reasoning.",
+        "New two-bank MAC 56-case DMA suite checks two posted batches/retained completion, but its faults are legacy-doorbell cases, not posted STOP/error coverage. MAC owner is preparing a fresh focused packet-tx4 check.",
+        "Native independent clocks, physical CDC, board and PPA are unqualified."
+      ]
+    }
+  ],
+  "overall": "All six inherited leaf implementations have source-matched historical proof. Retained-artifact and profile limits remain explicit; new integration gates should target changed composition and missing replayability."
+}

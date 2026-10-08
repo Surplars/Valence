@@ -46,7 +46,8 @@ class RawFetchValidation extends Bundle {
   * itself generate that flush. The consumer owns recovery-cycle suppression.
   */
 class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
-    parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false) extends Module {
+    parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
+    bankedHints: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64))
     require(Set(8, 16, 32).contains(hintEntries))
@@ -79,29 +80,60 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     val correctionPc = if (splitCursor) Some(Reg(UInt(64.W))) else None
     val correctionPending = if (splitCursor) Some(RegInit(false.B)) else None
     val supplyPc = if (splitCursor) Mux(correctionPending.get, correctionPc.get, rawCursor) else rawCursor
-    val hintValid = RegInit(VecInit(Seq.fill(hintEntries)(false.B)))
-    val hintPc = Reg(Vec(hintEntries, UInt(64.W)))
-    val hintInstruction = Reg(Vec(hintEntries, UInt(32.W)))
-    val hintNextPc = Reg(Vec(hintEntries, UInt(64.W)))
-    val hintAligned = Reg(Vec(hintEntries, Bool()))
-    val hintDifferent = Reg(Vec(hintEntries, Bool()))
     private val hintBits = log2Ceil(hintEntries)
     def hintIndex(address: UInt): UInt = address(hintBits, 1) ^ address(2 * hintBits, hintBits + 1)
-    for (entry <- 0 until hintEntries) {
+    val hintAddresses = Wire(Vec(width, UInt(hintBits.W)))
+    val hintReads = Wire(Vec(width, Valid(new FetchHintPayload)))
+    if (bankedHints) {
+        val hints = Module(new OwnerBankedFetchHints(hintEntries, width))
+        hints.io.address := hintAddresses
+        hints.io.invalidate := io.invalidate
+        hintReads := hints.io.read
         for (lane <- 0 until width) {
-            when(io.train(lane).valid && hintIndex(io.train(lane).bits.pc) === entry.U) {
-                hintValid(entry) := true.B
-                hintPc(entry) := io.train(lane).bits.pc
-                hintInstruction(entry) := io.train(lane).bits.instruction
-                hintNextPc(entry) := io.train(lane).bits.nextPc
-                val trainedShort = compressed.B && io.train(lane).bits.instruction(1, 0) =/= 3.U
-                val trainedSuccessor = io.train(lane).bits.pc + Mux(trainedShort, 2.U, 4.U)
-                hintAligned(entry) := (if (compressed) !io.train(lane).bits.nextPc(0)
-                    else io.train(lane).bits.nextPc(1, 0) === 0.U)
-                hintDifferent(entry) := io.train(lane).bits.nextPc =/= trainedSuccessor
-            }
+            val train = io.train(lane)
+            val short = compressed.B && train.bits.instruction(1, 0) =/= 3.U
+            val sequential = train.bits.pc + Mux(short, 2.U, 4.U)
+            hints.io.write(lane).valid := train.valid
+            hints.io.write(lane).bits.index := hintIndex(train.bits.pc)
+            hints.io.write(lane).bits.data.pc := train.bits.pc
+            hints.io.write(lane).bits.data.instruction := train.bits.instruction
+            hints.io.write(lane).bits.data.nextPc := train.bits.nextPc
+            hints.io.write(lane).bits.data.aligned := (if (compressed) !train.bits.nextPc(0)
+                else train.bits.nextPc(1, 0) === 0.U)
+            hints.io.write(lane).bits.data.different := train.bits.nextPc =/= sequential
         }
-        when(io.invalidate) { hintValid(entry) := false.B }
+    } else {
+        val hintValid = RegInit(VecInit(Seq.fill(hintEntries)(false.B)))
+        val hintPc = Reg(Vec(hintEntries, UInt(64.W)))
+        val hintInstruction = Reg(Vec(hintEntries, UInt(32.W)))
+        val hintNextPc = Reg(Vec(hintEntries, UInt(64.W)))
+        val hintAligned = Reg(Vec(hintEntries, Bool()))
+        val hintDifferent = Reg(Vec(hintEntries, Bool()))
+        for (entry <- 0 until hintEntries) {
+            for (lane <- 0 until width) {
+                when(io.train(lane).valid && hintIndex(io.train(lane).bits.pc) === entry.U) {
+                    hintValid(entry) := true.B
+                    hintPc(entry) := io.train(lane).bits.pc
+                    hintInstruction(entry) := io.train(lane).bits.instruction
+                    hintNextPc(entry) := io.train(lane).bits.nextPc
+                    val trainedShort = compressed.B && io.train(lane).bits.instruction(1, 0) =/= 3.U
+                    val trainedSuccessor = io.train(lane).bits.pc + Mux(trainedShort, 2.U, 4.U)
+                    hintAligned(entry) := (if (compressed) !io.train(lane).bits.nextPc(0)
+                        else io.train(lane).bits.nextPc(1, 0) === 0.U)
+                    hintDifferent(entry) := io.train(lane).bits.nextPc =/= trainedSuccessor
+                }
+            }
+            when(io.invalidate) { hintValid(entry) := false.B }
+        }
+        for (lane <- 0 until width) {
+            val index = hintAddresses(lane)
+            hintReads(lane).valid := BankedOneHotRead(hintValid, index)
+            hintReads(lane).bits.pc := BankedOneHotRead(hintPc, index)
+            hintReads(lane).bits.instruction := BankedOneHotRead(hintInstruction, index)
+            hintReads(lane).bits.nextPc := BankedOneHotRead(hintNextPc, index)
+            hintReads(lane).bits.aligned := BankedOneHotRead(hintAligned, index)
+            hintReads(lane).bits.different := BankedOneHotRead(hintDifferent, index)
+        }
     }
     val capturePrefix = Wire(Vec(width + 1, Bool()))
     val byteOffsets = Wire(Vec(width + 1, UInt(offsetBits.W)))
@@ -166,12 +198,13 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         }
         val directTarget = selectCursor(targets)
         val index = hintIndex(rawPcs(lane))
-        val selectedValid = BankedOneHotRead(hintValid, index)
-        val selectedPc = BankedOneHotRead(hintPc, index)
-        val selectedInstruction = BankedOneHotRead(hintInstruction, index)
-        val selectedNextPc = BankedOneHotRead(hintNextPc, index)
-        val selectedAligned = BankedOneHotRead(hintAligned, index)
-        val selectedDifferent = BankedOneHotRead(hintDifferent, index)
+        hintAddresses(lane) := index
+        val selectedValid = hintReads(lane).valid
+        val selectedPc = hintReads(lane).bits.pc
+        val selectedInstruction = hintReads(lane).bits.instruction
+        val selectedNextPc = hintReads(lane).bits.nextPc
+        val selectedAligned = hintReads(lane).bits.aligned
+        val selectedDifferent = hintReads(lane).bits.different
         val hintHit = selectedValid && selectedPc === rawPcs(lane) && selectedInstruction === instruction
         val relative = direct || compressedJump
         val target = Mux(relative, directTarget, selectedNextPc)

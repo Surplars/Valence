@@ -1,0 +1,36 @@
+{
+  "schema": "valence-fpga-next-reference-summary-v1",
+  "status": "PASS_FPGA_NEXT_BOARD_AND_STEADY",
+  "source_commit_at_build": "ea5406ea15d2d0797ce2c5ef7a4951827c55145e",
+  "receipt_sha256": "89f27cc430b7bfff24779eb10740f40156ea7ef30ac25b1ff51afc7752b6d782",
+  "rv64gc": {
+    "cycles": 33411,
+    "fpr_context_registers": 32,
+    "supervisor_ecall": 1,
+    "ddr_reads": 50,
+    "negative_control": "rejected incorrect ISA anchor"
+  },
+  "steady": {
+    "total_cycles": 3183262,
+    "regions": {
+      "read_64k_3passes": 279718,
+      "write_kernel": 344151,
+      "write_flush": 17754,
+      "copy_kernel": 641791,
+      "copy_flush": 9217,
+      "dependent_chase": 231188
+    },
+    "demand_mshr_peak": 1,
+    "note": "Stream uses eight same-line loads; independent-line replay is a separate receipt.",
+    "backing_oracle_mutation_rejected": true
+  },
+  "physical_qualification": false,
+  "limits": [
+    "No native GMAC/PHY in this CPU wrapper",
+    "No physical PPA/CDC/board result",
+    "No Linux scheduler or exhaustive ISA compliance result",
+    "Steady DDR is a controlled host-memory model, not physical bandwidth"
+  ],
+  "source_content_commit": "7e69a9e896feec1748b19b041d8ee8dd1ebd057b",
+  "source_content_commit_verified_files": 405
+}

@@ -124,9 +124,9 @@ struct Oracle {
     std::deque<Instruction> queue;
     std::array<Successor, HINT_ENTRIES> hints{};
     uint64_t pc = 0x80000000ULL;
-    bool inject = false;
+    bool inject = false, injectHint = false;
     unsigned cycles = 0, resetCancelled = 0, matches = 0, mismatches = 0, jumps = 0, learned = 0;
-    unsigned priorFaultSuppressed = 0;
+    unsigned priorFaultSuppressed = 0, dualTraining = 0, sameIndexTraining = 0, sameParityTraining = 0;
     void reset() {
         d.set_io$$pause(0); d.set_io$$consumed(0); d.set_io$$invalidate(0);
         d.set_io$$flush$$valid(0); d.set_io$$flush$$bits(0);
@@ -159,7 +159,7 @@ struct Oracle {
         }
         unsigned captured = 0;
         uint64_t next = pc;
-        bool priorFault = false;
+        bool priorFault = false, learnedNow = false;
         if (!pause) for (unsigned lane = 0; lane < FETCH_WIDTH; ++lane) {
             if (!offered[lane].valid || queue.size() + lane >= 2 * FETCH_WIDTH) break;
             auto& instruction = offered[lane];
@@ -177,7 +177,7 @@ struct Oracle {
             priorFaultSuppressed += priorFault && candidate;
             instruction.next = taken ? prediction : sequential;
             next = instruction.next; ++captured;
-            jumps += taken && direct; learned += taken && !direct;
+            jumps += taken && direct; learned += taken && !direct; learnedNow |= taken && !direct;
             priorFault |= instruction.access || instruction.page;
             if (taken) break;
         }
@@ -188,11 +188,18 @@ struct Oracle {
         check(d.get_io$$captured() == ((1U << captured) - 1), "capture prefix/registered credits mismatch");
         if (flush) next = target;
         else if (wrongPath) next = expected;
-        check(d.get_io$$nextPc() == next, "next supply PC prediction/path validation mismatch");
+        uint64_t actualNext = d.get_io$$nextPc();
+        if (injectHint && learnedNow && !flush && !wrongPath) actualNext ^= 2;
+        check(actualNext == next, "hint successor/prediction/path validation mismatch");
         if (flush || wrongPath) queue.clear();
         else {
             for (unsigned lane = 0; lane < consumed; ++lane) queue.pop_front();
             for (unsigned lane = 0; lane < captured; ++lane) queue.push_back(offered[lane]);
+        }
+        if (training[0].valid && training[1].valid) {
+            ++dualTraining;
+            sameIndexTraining += hintIndex(training[0].pc) == hintIndex(training[1].pc);
+            sameParityTraining += (hintIndex(training[0].pc) & 1) == (hintIndex(training[1].pc) & 1);
         }
         for (const auto& successor : training) if (successor.valid) hints[hintIndex(successor.pc)] = successor;
         if (invalidate) hints = {};
@@ -204,6 +211,7 @@ struct Oracle {
 int main(int argc, char** argv) { try {
     Oracle o;
     o.inject = argc > 1 && std::string_view(argv[1]) == "--inject-mismatch";
+    o.injectHint = argc > 1 && std::string_view(argv[1]) == "--inject-hint-mismatch";
     std::mt19937_64 random(0x516ca315ULL);
     unsigned streaming = 0, full = 0, partialJoin = 0, flushTraffic = 0;
     unsigned faults = 0, secondFault = 0, paused = 0, wrapped = 0;
@@ -238,9 +246,11 @@ int main(int argc, char** argv) { try {
         bool expectedValid = !stream && consumed != 0 && random() % 3 == 0;
         const uint64_t expected = expectedValid ? (random() % 4 == 0 ? target : o.queue[consumed - 1].next) : 0;
         Training training{};
-        if (consumed != 0 && !stream && random() % 4 == 0) {
-            const auto& last = o.queue[consumed - 1];
-            training[0] = {true, last.pc, expectedValid ? expected : last.next, last.bits};
+        if (!stream) for (unsigned lane = 0; lane < consumed; ++lane) {
+            if (random() % 4 != 0) continue;
+            const auto& accepted = o.queue[lane];
+            training[lane] = {true, accepted.pc,
+                lane + 1 == consumed && expectedValid ? expected : accepted.next, accepted.bits};
         }
         for (unsigned lane = 0; lane < available; ++lane) {
             faults += o.queue[lane].access || o.queue[lane].page;
@@ -256,12 +266,91 @@ int main(int argc, char** argv) { try {
         flushTraffic += flush && consumed != 0 && offered[0].valid;
         wrapped += !flush && o.pc < oldPc;
     }
+    // Make reset cancellation coverage deterministic rather than hoping a
+    // particular randomized reset lands while entries happen to be queued.
+    o.step({}, 0, false, true, 0x80000000ULL, false, 0, {}, true);
+    Packet resetPacket{};
+    for (auto& instruction : resetPacket) instruction = {true, false, false, 0x13};
+    o.step(resetPacket);
+    check(o.queue.size() == FETCH_WIDTH, "reset fixture failed to populate every lane");
+    o.reset(); o.step();
+    check(o.queue.empty() && o.pc == 0x80000000ULL, "reset retained valid raw instructions");
     check(streaming == 1023, "registered frontend introduces a steady-state packet bubble");
     check(full > 200 && partialJoin > 200 && flushTraffic > 100 && paused > 100,
         "insufficient occupancy/partial-prefix/flush/backpressure coverage");
+    if (!(faults > 1000 && secondFault > 500 && o.resetCancelled > 0))
+        std::cerr << "coverage faultLanes=" << faults << " secondFault=" << secondFault
+            << " resetCancelled=" << o.resetCancelled << '\n';
     check(faults > 1000 && secondFault > 500 && o.resetCancelled > 0,
         "insufficient precise fault or reset cancellation coverage");
     check(wrapped > 0 && o.mismatches > 100 && o.matches > 100, "insufficient PC/path correction coverage");
+
+    // Arbitrary two-writer training: same-parity different-index writes cannot
+    // be silently serialized/dropped; exact-index collisions are lane-priority.
+    // The event model above uses only architectural PCs and whole successors.
+    const uint64_t a = 0x80001200ULL, b = a + 4;
+    const uint64_t alias = a + uint64_t(HINT_ENTRIES) * HINT_ENTRIES * 2;
+    check(hintIndex(a) != hintIndex(b) && (hintIndex(a) & 1) == (hintIndex(b) & 1),
+        "directed different-index/same-parity fixture is wrong");
+    check(hintIndex(a) == hintIndex(alias), "directed full-PC alias fixture is wrong");
+    auto redirect = [&](uint64_t pc) { o.step({}, 0, false, true, pc); };
+    auto fetchOne = [&](uint32_t bits) {
+        Packet packet{}; packet[0] = {true, false, false, bits};
+        return o.step(packet);
+    };
+    Training pair{};
+    pair[0] = {true, a, a + 0x100, 0x13};
+    pair[1] = {true, b, b + 0x200, 0x13};
+    o.reset(); o.step({}, 0, false, false, 0, false, 0, pair);
+    redirect(a); fetchOne(0x13); check(o.pc == a + 0x100, "lane0 arbitrary writer was dropped");
+    redirect(b); fetchOne(0x13); check(o.pc == b + 0x200, "lane1 arbitrary writer was dropped");
+    pair[1] = {true, a, a + 0x400, 0x13};
+    o.step({}, 0, false, false, 0, false, 0, pair);
+    redirect(a); fetchOne(0x13); check(o.pc == a + 0x400, "same-index lane1 priority lost");
+    pair[1] = {true, alias, alias + 0x600, 0x93};
+    o.step({}, 0, false, false, 0, false, 0, pair);
+    redirect(a); fetchOne(0x13); check(o.pc == a + 4, "same-index writer mixed full PC/instruction tags");
+    redirect(alias); fetchOne(0x13); check(o.pc == alias + 4, "same-index writer mixed instruction and target");
+    redirect(alias); fetchOne(0x93); check(o.pc == alias + 0x600, "same-index latest whole payload lost");
+
+    // Read during training observes the prior value. Invalidation also changes
+    // validity only at the edge and dominates a simultaneous replacement write.
+    Training replacement{};
+    replacement[0] = {true, a, a + 0x800, 0x13};
+    o.step({}, 0, false, false, 0, false, 0, replacement);
+    redirect(a);
+    replacement[0].valid = false;
+    replacement[1] = {true, a, a + 0xa00, 0x13};
+    Packet collisionRead{}; collisionRead[0] = {true, false, false, 0x13};
+    o.step(collisionRead, 0, false, false, 0, false, 0, replacement);
+    check(o.pc == a + 0x800, "hint read/write collision became write-through");
+    redirect(a); fetchOne(0x13); check(o.pc == a + 0xa00, "new writer not visible after edge");
+    redirect(a);
+    o.step(collisionRead, 0, false, false, 0, false, 0, pair, true);
+    check(o.pc == a + 0xa00, "invalidation changed pre-edge hint read");
+    redirect(a); fetchOne(0x13); check(o.pc == a + 4, "invalidation lost to simultaneous training");
+    redirect(alias); fetchOne(0x93); check(o.pc == alias + 4, "invalidation missed writer1 alias");
+    o.step({}, 0, false, false, 0, false, 0, pair);
+    o.reset(); redirect(alias); fetchOne(0x93);
+    check(o.pc == alias + 4, "reset exposed stale unreset hint RAM");
+
+    // Both lookup ports are used together: lane0 has a sequential hint and
+    // lane1 supplies the taken successor. Preserve cross-boundary raw PCs too.
+    pair[0] = {true, a, a + 4, 0x13};
+    pair[1] = {true, b, b + 0xc00, 0x13};
+    o.step({}, 0, false, false, 0, false, 0, pair);
+    redirect(a);
+    Packet twoReads{}; twoReads[0] = twoReads[1] = {true, false, false, 0x13};
+    check(o.step(twoReads) == 2 && o.pc == b + 0xc00, "two hint lookup ports lost lane1 steering");
+    if (COMPRESSED) {
+        redirect(0xffe); fetchOne(0x13);
+        check(o.pc == 0x1002 && o.queue[0].pc == 0xffe, "cross-fetch 32-bit instruction PC lost");
+        Packet shortTail{}; shortTail[0] = {true, false, false, 0x0085};
+        o.step(shortTail, 1);
+        check(o.pc == 0x1004 && o.queue[0].pc == 0x1002, "compressed cross-fetch join PC lost");
+    }
+    check(o.dualTraining > 20 && o.sameIndexTraining >= 2 && o.sameParityTraining > 10,
+        "insufficient arbitrary two-writer hint coverage");
 
     // First-time direct JALs: one admission every cycle after the initial fill,
     // with no accepted-successor cache population at all.
@@ -448,7 +537,9 @@ int main(int argc, char** argv) { try {
         << " pathMatches=" << o.matches << " pathMisses=" << o.mismatches
         << " earlyJumps=" << o.jumps << " learnedJumps=" << o.learned
         << " boundaryJumps=" << boundaryJumps << " hintQualificationCases=" << hintQualificationCases
-        << " hintTaken=" << hintTaken << " hintRejected=" << hintRejected << '\n';
+        << " hintTaken=" << hintTaken << " hintRejected=" << hintRejected
+        << " dualTraining=" << o.dualTraining << " sameIndexTraining=" << o.sameIndexTraining
+        << " sameParityTraining=" << o.sameParityTraining << '\n';
     return 0;
 } catch (const std::exception& error) {
     std::cerr << "GSIM registered fetch packet: " << error.what() << '\n'; return 1;

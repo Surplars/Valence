@@ -31,7 +31,13 @@ class NonBlockingCoherentLineCache(
     private val tagGeometry = tagConfig.geometry(base, bytes, 6 + setBits)
     private val valid = RegInit(VecInit(Seq.fill(lines)(false.B)))
     private val dirty = RegInit(VecInit(Seq.fill(lines)(false.B)))
-    private val tags = Reg(Vec(lines, UInt(tagGeometry.tagBits.W)))
+    // The opt-in FPGA layout has one write port and two asynchronous read
+    // ports per way. Valid/dirty/replacement remain resettable registers.
+    private val tags = if (!tagConfig.bankedStorage) Some(Reg(Vec(lines, UInt(tagGeometry.tagBits.W)))) else None
+    private val tagBanks = if (tagConfig.bankedStorage)
+        Some(Seq.fill(ways)(Mem(lines / ways, UInt(tagGeometry.tagBits.W)))) else None
+    private val primaryTagSet = WireDefault(io.upstream.request.bits.address(5 + setBits, 6))
+    private val primaryTags = tagBanks.map(banks => VecInit(banks.map(_.read(primaryTagSet))))
     private val replacement = if (ways == 2) Some(RegInit(VecInit(Seq.fill(lines / ways)(false.B)))) else None
     private val data = Seq.fill(8)(SyncReadMem(lines, Vec(8, UInt(8.W))))
 
@@ -40,10 +46,16 @@ class NonBlockingCoherentLineCache(
     private def slot(address: UInt, way: Int): UInt =
         if (ways == 1) lineSet(address) else Cat(way.U(1.W), lineSet(address))
     private def matches(address: UInt, way: Int): Bool =
-        tagGeometry.qualifies(address) && valid(slot(address, way)) && tags(slot(address, way)) === lineTag(address)
+        tagGeometry.qualifies(address) && valid(slot(address, way)) &&
+            (if (tagConfig.bankedStorage) primaryTags.get(way) else tags.get(slot(address, way))) === lineTag(address)
     private def residentSlot(address: UInt): UInt =
         if (ways == 1) lineSet(address) else Mux(matches(address, 0), slot(address, 0), slot(address, 1))
-    private def slotAddress(index: UInt): UInt = tagGeometry.widen(Cat(tags(index), index(setBits - 1, 0), 0.U(6.W)))
+    private def slotAddress(index: UInt): UInt =
+        tagGeometry.widen(Cat(tags.get(index), index(setBits - 1, 0), 0.U(6.W)))
+    private def wayTag(read: Vec[UInt], index: UInt): UInt =
+        if (ways == 1) read(0) else read(index(indexBits - 1))
+    private def taggedAddress(tag: UInt, index: UInt): UInt =
+        tagGeometry.widen(Cat(tag, index(setBits - 1, 0), 0.U(6.W)))
     private def touch(index: UInt): Unit = replacement.foreach { r =>
         r(index(setBits - 1, 0)) := !index(indexBits - 1)
     }
@@ -78,6 +90,10 @@ class NonBlockingCoherentLineCache(
     io.prefetchBusy := false.B
     private val pending = Reg(Vec(mshrCount, new DataRequest))
     private val pendingIndex = Reg(Vec(mshrCount, UInt(indexBits.W)))
+    // An accepted miss exclusively reserves its set. Capture its victim tag
+    // once; a later probe may remove that victim but cannot replace the tag.
+    private val pendingVictimTag = if (tagConfig.bankedStorage)
+        Some(Reg(Vec(mshrCount, UInt(tagGeometry.tagBits.W)))) else None
     private val pendingTicket = Reg(Vec(mshrCount, UInt(ticketBits.W)))
     val mshrOccupancy = PopCount(phase.map(_ =/= free))
     private val mshrEmpty = mshrOccupancy === 0.U
@@ -95,6 +111,7 @@ class NonBlockingCoherentLineCache(
     private val bypassState = RegInit(bIdle)
     private val bypassRequest = Reg(new DataRequest)
     private val bypassIndex = Reg(UInt(indexBits.W))
+    private val bypassVictimTag = if (tagConfig.bankedStorage) Some(Reg(UInt(tagGeometry.tagBits.W))) else None
     private val bypassTicket = Reg(UInt(ticketBits.W))
     io.downstream.request.valid := bypassState === bSend
     io.downstream.request.bits := bypassRequest
@@ -111,6 +128,12 @@ class NonBlockingCoherentLineCache(
     private val flushIndex = RegInit(0.U(indexBits.W))
     private val flushWaiting = RegInit(false.B)
     private val scanComplete = RegInit(false.B)
+    if (tagConfig.bankedStorage) {
+        // B has priority; demand cannot fire with BVALID and flush excludes
+        // demand. Neither BREADY nor arbitration depends on the tag result.
+        primaryTagSet := Mux(io.tl.b.fire, lineSet(io.tl.b.bits.address),
+            Mux(flushActive, flushIndex(setBits - 1, 0), lineSet(io.upstream.request.bits.address)))
+    }
     io.flushDone := flushFinished
     when(!io.flushRequest) { flushFinished := false.B }
 
@@ -209,6 +232,12 @@ class NonBlockingCoherentLineCache(
     private val evictWanted = queuedEvictWanted || directEviction
     private val startEviction = evictionLaneAvailable && evictWanted && valid(evictIndex) && !probeFire
     private val evictionRead = startEviction && dirty(evictIndex)
+    private val evictAddress = if (tagConfig.bankedStorage) {
+        val tag = Mux(directEviction, wayTag(primaryTags.get, evictIndex),
+            Mux(queuedMissEviction, pendingVictimTag.get(queuedEvictMshr),
+                Mux(evictFromBypass, bypassVictimTag.get, wayTag(primaryTags.get, evictIndex))))
+        taggedAddress(tag, evictIndex)
+    } else slotAddress(evictIndex)
     when(evictionLaneAvailable && !probeFire) {
         when(evictFromMiss && !valid(evictIndex)) { phase(evictMshr) := acquire }
         when(!evictFromMiss && evictFromBypass && !valid(evictIndex)) { bypassState := bSend }
@@ -225,11 +254,11 @@ class NonBlockingCoherentLineCache(
             wbSent(wbFree) := false.B
             wbOwner(wbFree) := Mux(evictFromMiss, ownerMiss, Mux(evictFromBypass, ownerBypass, ownerFlush))
             wbMshr(wbFree) := evictMshr
-            wbAddress(wbFree) := slotAddress(evictIndex)
+            wbAddress(wbFree) := evictAddress
         }
         evictionOwner := Mux(evictFromMiss, ownerMiss, Mux(evictFromBypass, ownerBypass, ownerFlush))
         evictionMshr := evictMshr
-        evictionAddress := slotAddress(evictIndex)
+        evictionAddress := evictAddress
         evictionDirty := dirty(evictIndex)
         valid(evictIndex) := false.B
         dirty(evictIndex) := false.B
@@ -291,6 +320,7 @@ class NonBlockingCoherentLineCache(
         when(bypass) {
             bypassRequest := request
             bypassIndex := index
+            bypassVictimTag.foreach(_ := wayTag(primaryTags.get, index))
             bypassTicket := responseTail
             bypassState := Mux(needsEviction, bEvict, bSend)
         }.elsewhen(found) {
@@ -304,6 +334,7 @@ class NonBlockingCoherentLineCache(
             if (concurrency.nextLinePrefetch) prefetchOwner(freeMshr) := false.B
             pending(freeMshr) := request
             pendingIndex(freeMshr) := index
+            pendingVictimTag.foreach(_(freeMshr) := wayTag(primaryTags.get, index))
             pendingTicket(freeMshr) := responseTail
             phase(freeMshr) := Mux(needsEviction, evictWait, acquire)
         }
@@ -380,7 +411,13 @@ class NonBlockingCoherentLineCache(
             "write-back L1 requires T permission")
         when(!engine.io.response.bits.error) {
             if (tagConfig.compact) assert(tagGeometry.contains(fillRequest.address), "tag install outside aperture")
-            tags(fillIndex) := lineTag(fillRequest.address)
+            if (tagConfig.bankedStorage) {
+                for (way <- 0 until ways) {
+                    when((ways == 1).B || fillIndex(indexBits - 1) === way.U) {
+                        tagBanks.get(way).write(fillIndex(setBits - 1, 0), lineTag(fillRequest.address))
+                    }
+                }
+            } else tags.get(fillIndex) := lineTag(fillRequest.address)
             valid(fillIndex) := true.B
             dirty(fillIndex) := fillRequest.write
             when(!prefetchOwner(fillMshr)) { touch(fillIndex) }
@@ -403,6 +440,8 @@ class NonBlockingCoherentLineCache(
     if (concurrency.nextLinePrefetch) {
         val candidateValid = RegInit(false.B)
         val candidateAddress = Reg(UInt(64.W))
+        val candidateRemaining = if (concurrency.prefetchCandidateCycles > 1)
+            Some(Reg(UInt(log2Ceil(concurrency.prefetchCandidateCycles).W))) else None
         val lastValid = RegInit(false.B)
         val lastLine = Reg(UInt(58.W))
         val trackedValid = RegInit(false.B)
@@ -422,8 +461,13 @@ class NonBlockingCoherentLineCache(
             request.address(63, 6) === trackedAddress(63, 6)
         io.prefetch.useful := consume && !request.write
         io.prefetch.error := refill && prefetchOwner(fillMshr) && engine.io.response.bits.error
-        val trackedPresent = valid(Mux(trackedValid, trackedIndex, 0.U)) &&
-            tags(Mux(trackedValid, trackedIndex, 0.U)) === lineTag(trackedAddress)
+        val trackedPresent = if (tagConfig.bankedStorage) {
+            // Every replacement invalidates its victim before tag installation.
+            // The token sees that invalid cycle before any new tag can install,
+            // so presence needs no third asynchronous tag read.
+            valid(Mux(trackedValid, trackedIndex, 0.U))
+        } else valid(Mux(trackedValid, trackedIndex, 0.U)) &&
+            tags.get(Mux(trackedValid, trackedIndex, 0.U)) === lineTag(trackedAddress)
         when(trackedValid && (!trackedPresent || consume)) { trackedValid := false.B }
         // History predicts only; every token independently authorizes its new line.
         val line = request.address(63, 6)
@@ -436,9 +480,20 @@ class NonBlockingCoherentLineCache(
                 io.prefetch.candidate := true.B
                 candidateValid := true.B
                 candidateAddress := Cat(request.address(63, 12), request.address(11, 6) + 1.U(6.W), 0.U(6.W))
+                candidateRemaining.foreach(_ := (concurrency.prefetchCandidateCycles - 1).U)
             }
         }
-        val present = (0 until ways).map(matches(candidateAddress, _)).reduce(_ || _)
+        if (concurrency.prefetchBreakOnStore) {
+            // Admission ends the prior read stream even while this store's reply
+            // is held. Merely offering a backpressured store changes no history.
+            when(cpuFire && ordinary && request.write) { lastValid := false.B }
+        }
+        val candidateTags = tagBanks.map(banks => VecInit(banks.map(_.read(lineSet(candidateAddress)))))
+        val present = (0 until ways).map { way =>
+            tagGeometry.qualifies(candidateAddress) && valid(slot(candidateAddress, way)) &&
+                (if (tagConfig.bankedStorage) candidateTags.get(way) else tags.get(slot(candidateAddress, way))) ===
+                    lineTag(candidateAddress)
+        }.reduce(_ || _)
         val first = slot(candidateAddress, 0)
         val pfIndex = if (ways == 1) first else {
             val second = slot(candidateAddress, 1)
@@ -450,12 +505,23 @@ class NonBlockingCoherentLineCache(
         val victimPending = VecInit((0 until wbCount).map(i => wbLive(i) &&
             wbAddress(i)(63, 6) === candidateAddress(63, 6))).asUInt.orR
         val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
-        val canAllocate = !liveOwner && !releaseBusy && !present && !setReserved && !victimPending &&
+        val otherwiseEligible = !liveOwner && !releaseBusy && !present && !setReserved && !victimPending &&
             (!valid(pfIndex) || !dirty(pfIndex)) && freeMask.asUInt.orR && !demandMiss &&
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&
-            probeState === pIdle && !io.tl.b.valid && evictionState === eIdle && !queuedEvictWanted
+            probeState === pIdle && !io.tl.b.valid && !queuedEvictWanted
+        val canAllocate = otherwiseEligible && evictionState === eIdle
         when(candidateValid) {
-            candidateValid := false.B // one-cycle budget: never hold up demand for a prediction
+            candidateValid := false.B
+            candidateRemaining.foreach { remaining =>
+                // Retain only across the already-measured victim capture/send
+                // hazard. All other demand/protection/ownership exclusions cancel
+                // the token, and its existing busy contribution protects context.
+                when(otherwiseEligible && (evictionState === eCapture || evictionState === eSend) &&
+                    remaining =/= 0.U) {
+                    candidateValid := true.B
+                    remaining := remaining - 1.U
+                }
+            }
             when(canAllocate) {
                 io.prefetch.allocated := true.B
                 assert(!cpuFire || !needsMissSlot, "prefetch stole an admitted demand slot")
@@ -464,6 +530,7 @@ class NonBlockingCoherentLineCache(
                 pending(freeMshr) := 0.U.asTypeOf(new DataRequest)
                 pending(freeMshr).address := candidateAddress
                 pendingIndex(freeMshr) := pfIndex
+                pendingVictimTag.foreach(_(freeMshr) := wayTag(candidateTags.get, pfIndex))
                 pendingTicket(freeMshr) := 0.U
                 prefetchOwner(freeMshr) := true.B
                 phase(freeMshr) := Mux(valid(pfIndex), evictWait, acquire)
@@ -475,7 +542,9 @@ class NonBlockingCoherentLineCache(
             trackedIndex := fillIndex
         }
         when(io.flushRequest) { candidateValid := false.B; lastValid := false.B; trackedValid := false.B }
-        when(startEviction && evictFromMiss && prefetchOwner(evictMshr)) {
+        // Direct eviction is a newly admitted demand using a FREE MSHR; its
+        // previous prefetchOwner bit is stale until the allocation edge.
+        when(startEviction && !directEviction && evictFromMiss && prefetchOwner(evictMshr)) {
             assert(!dirty(evictIndex), "prefetch must never generate dirty victim writeback")
         }
     }

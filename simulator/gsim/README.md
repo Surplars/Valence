@@ -1,5 +1,13 @@
 # 新乱序核的 GSIM 仿真入口
 
+Opt-in shared fetch PMP comparisons (2026-10-08): run
+`mill -i IonSoC.test.testOnly ooo.SharedFetchPmpSpec`, then
+`python3 -B simulator/gsim/shared_fetch_pmp.py --tag UNIQUE_TAG --build-run`
+with the existing pinned toolchain (`VALENCE_GSIM_SOURCE` may name its checkout).
+[Contract, bounded oracle/mutation checks, and structural limits](../../docs/shared-fetch-pmp.md).
+`sharedFetchPmpRelations` remains default-off; module evidence does not qualify
+full-core integration, routed timing/resources, or a board release.
+
 2026-10-08 dot 交接组合的必要短验证（不是 Linux/时序/bit 验收）：
 
 ```sh

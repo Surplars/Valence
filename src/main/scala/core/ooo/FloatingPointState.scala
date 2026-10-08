@@ -85,7 +85,19 @@ class FloatingPointState(val p: OooParams) extends Module {
         val fcsr = Output(UInt(8.W))
         val busy = Output(Bool())
     })
-    val registers = RegInit(VecInit(Seq.fill(FloatingPointBits.registers)(0.U(64.W))))
+    // One committed write and three asynchronous operand reads fit distributed
+    // FPGA RAM. Payload is never reset; resettable validity supplies architectural
+    // zero until the first committed write, including across reset after use.
+    private val memoryPayload = if (p.fpConfig.resources.committedStateMemory)
+        Some(Mem(FloatingPointBits.registers, UInt(64.W))) else None
+    private val registerPayload = if (!p.fpConfig.resources.committedStateMemory)
+        Some(RegInit(VecInit(Seq.fill(FloatingPointBits.registers)(0.U(64.W))))) else None
+    private val initialized = if (p.fpConfig.resources.committedStateMemory)
+        Some(RegInit(VecInit(Seq.fill(FloatingPointBits.registers)(false.B)))) else None
+    private def storedRegister(index: UInt): UInt = memoryPayload match {
+        case Some(payload) => Mux(initialized.get(index), payload.read(index), 0.U(64.W))
+        case None => BankedOneHotRead(registerPayload.get, index)
+    }
     val frm = RegInit(0.U(3.W))
     val flags = RegInit(0.U(5.W))
     val fs = RegInit(0.U(2.W))
@@ -99,6 +111,8 @@ class FloatingPointState(val p: OooParams) extends Module {
     // An older accepted write MUST survive a following younger flush.
     val committedMask = RegInit(0.U(FloatingPointBits.registers.W))
     val committedValue = Reg(UInt(64.W))
+    private val committedAddress = Reg(UInt(5.W))
+    private val committedValid = committedMask.orR
 
     val idleAuthorized = state === idle && io.headAuthorized && !io.flush
     io.setFs.ready := idleAuthorized
@@ -119,13 +133,26 @@ class FloatingPointState(val p: OooParams) extends Module {
     committedMask := Mux(io.retireAccepted && !response.exception && pending.command.writesFp,
         destination, 0.U)
     committedValue := Mux(pending.command.singleResult, FloatingPointBits.boxSingle(response.value), response.value)
-    for (register <- 0 until FloatingPointBits.registers) {
-        when(committedMask(register)) { registers(register) := committedValue }
+    // No flush qualification here: this write was already irrevocably accepted
+    // on the preceding edge. A younger flush must not discard an older commit.
+    committedAddress := pending.command.destination
+    memoryPayload match {
+        case Some(payload) =>
+            when(committedValid) {
+                payload.write(committedAddress, committedValue)
+                initialized.get(committedAddress) := true.B
+            }
+        case None =>
+            for (register <- 0 until FloatingPointBits.registers) {
+                when(committedMask(register)) { registerPayload.get(register) := committedValue }
+            }
     }
     // Observational architectural view; the production read below uses the
     // equivalent per-port forwarding to avoid a 32-entry payload mux layer.
+    // Test-only observation is eliminated when unused; normalized production
+    // RTL must retain only the three real operand reads (checked structurally).
     val architecturalRegisters = VecInit((0 until FloatingPointBits.registers).map { register =>
-        Mux(committedMask(register), committedValue, registers(register))
+        Mux(committedMask(register), committedValue, storedRegister(register.U(5.W)))
     })
 
     val csrKnown = io.csr.bits.address === 1.U || io.csr.bits.address === 2.U || io.csr.bits.address === 3.U
@@ -150,7 +177,7 @@ class FloatingPointState(val p: OooParams) extends Module {
         destination := UIntToOH(io.issue.bits.destination, FloatingPointBits.registers)
         for (lane <- 0 until 3) {
             val source = io.issue.bits.sources(lane)
-            val stored = BankedOneHotRead(registers, source)
+            val stored = storedRegister(source)
             val architectural = Mux(committedMask(source), committedValue, stored)
             pending.operands(lane) := FloatingPointBits.operand(
                 architectural, io.issue.bits.checkSingleBox(lane))

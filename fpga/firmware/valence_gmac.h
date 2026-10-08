@@ -31,6 +31,44 @@
  * DMA DDR writes are separate: drain/stop the DMA only AFTER this barrier.
  * Keep a scratch RX descriptor consuming while awaiting drained. */
 #define VGMAC_CAP_RX_STOP (UINT64_C(1) << 8)
+#define VGMAC_CAP_TRI_SPEED (UINT64_C(1) << 10)
+#define VGMAC_CAP_MANAGED_PHY (UINT64_C(1) << 11)
+#define VGMAC_CAP_DROP_DIAGNOSTICS (UINT64_C(1) << 12)
+#define VGMAC_MEDIA_STATUS 0x98
+#define VGMAC_PHY_ERRORS 0xa0
+#define VGMAC_PHY_POLLS 0xa8
+#define VGMAC_RX_DROP_BANK_FULL 0xb0
+#define VGMAC_RX_DROP_ADMISSION 0xb8
+#define VGMAC_RX_DROP_PREAMBLE 0xc0
+#define VGMAC_RX_DROP_FCS 0xc8
+#define VGMAC_RX_DROP_LENGTH 0xd0
+#define VGMAC_RX_DROP_ADDRESS 0xd8
+#define VGMAC_RX_DROP_PHY_ERROR 0xe0
+#define VGMAC_RX_DROP_LINK_ABORT 0xe8
+#define VGMAC_TX_LINK_ABORTS 0xf0
+#define VGMAC_RX_FIFO_STALL_CYCLES 0xf8
+#define VGMAC_TX_FIFO_STALL_CYCLES 0x100
+#define VGMAC_RX_ODD_NIBBLES 0x108
+#define VGMAC_PHY_TRANSITION_ERRORS 0x110
+#define VGMAC_PHY_CONTROL 0x118
+#define VGMAC_RX_INGRESS_OVERFLOWS 0x120
+#define VGMAC_RX_INGRESS_SKIPPED 0x128
+#define VGMAC_MEDIA_INITIALIZED UINT64_C(1)
+#define VGMAC_MEDIA_PHY_LINK (UINT64_C(1) << 1)
+#define VGMAC_MEDIA_PENDING (UINT64_C(1) << 6)
+#define VGMAC_MEDIA_TIMEOUT (UINT64_C(1) << 7)
+#define VGMAC_MEDIA_FAULT_MASK (UINT64_C(15) << 8)
+#define VGMAC_MEDIA_READY (UINT64_C(1) << 12)
+#define VGMAC_MEDIA_EXTENSION_VERSION UINT64_C(1)
+/* CAP.MANAGED_PHY changes PHY ownership only on the opt-in profile. Software
+ * must not reset/configure the PHY or attach an independently writing phylib
+ * instance. Base-page diagnostic reads are serialized; writes/vendor-page
+ * accesses return noAck. PHY_CONTROL full-width write1 requests reinitialize.
+ * MEDIA_STATUS version[63:56], requested speed[3:2], applied speed[5:4]:
+ * 0=10, 1=100, 2=1000; bit12 means both media domains committed the same rate.
+ * Diagnostic counters are additive64 and clear with CLEAR_STATS; PHY counters
+ * are lifetime32 pairs (errors: noAck,verify; polls: linkChange,polls;
+ * transition errors: unsupported,timeout). No buffer reset on transition. */
 #define VGMAC_RX_STOP 0x90
 #define VGMAC_RX_STOP_REQUEST UINT64_C(1)
 #define VGMAC_RX_STOP_DRAINED UINT64_C(2)

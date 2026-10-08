@@ -21,13 +21,20 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     identityDataFlow: Boolean = false,
     fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers,
-    virtualRamLoadPrecheck: Boolean = false) extends Module {
+    virtualRamLoadPrecheck: Boolean = false,
+    floatingPointResources: soc.core.ooo.FloatingPointResourceConfig = soc.core.ooo.FloatingPointResourceConfig.baseline,
+    independentFetchPayloadCapture: Boolean = false,
+    ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
+    bankedInstructionData: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
         isaProfile = isaProfile, ddrMemoryBytes = ddrMemoryBytes, instructionLineCacheLines = instructionLineCacheLines,
         dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
-        virtualRamLoadPrecheck = virtualRamLoadPrecheck))
+        virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
+        independentFetchPayloadCapture = independentFetchPayloadCapture,
+        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        bankedInstructionData = bankedInstructionData))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -74,6 +81,20 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     } else {
         memoryLiveSlots := 0.U
     }
+
+    // Passive performance accounting only. Each field comes from an existing
+    // production event; this adds no flow-control or architectural state.
+    val dataPrefetchEvents = IO(Output(UInt(11.W)))
+    if (backendProbes && board.platform.privateCache.nonEmpty) {
+        val cache = board.platform.privateCache.get
+        dataPrefetchEvents := Cat(BoringUtils.bore(cache.io.prefetch.releaseOwners),
+            BoringUtils.bore(cache.io.prefetch.missOwners), VecInit(Seq(
+                BoringUtils.bore(cache.io.prefetch.candidate),
+                BoringUtils.bore(cache.io.prefetch.allocated),
+                BoringUtils.bore(cache.io.prefetch.useful),
+                BoringUtils.bore(cache.io.prefetch.error),
+                BoringUtils.bore(cache.io.prefetchBusy))).asUInt)
+    } else { dataPrefetchEvents := 0.U }
 
     // Optional passive owner-qualified backend probes. Index and 64-bit tag remain separate.
     val backendEvents = IO(Output(UInt(48.W)))

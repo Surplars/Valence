@@ -105,7 +105,8 @@ class InstructionRom(words: Int, base: BigInt, files: Seq[String] = Seq.empty, p
 class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSets: Int = 64,
     fetchWidth: Int = 2, stableFaultMetadata: Boolean = false, alignedFetchPmp: Boolean = false,
     rawFetchPresence: Boolean = false, parallelFetchTagLookup: Boolean = false,
-    parallelAlignment: Boolean = false, registeredWindow: Boolean = false) extends Module {
+    parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
+    independentPayloadCapture: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -114,6 +115,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     require(!parallelFetchTagLookup || compressed, "parallel tag lookup requires compressed packets")
     require(!parallelAlignment || compressed, "parallel alignment requires compressed packets")
     require(!registeredWindow || compressed, "registered window requires compressed packets")
+    require(!independentPayloadCapture || compressed, "independent payload capture requires compressed packets")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
@@ -411,8 +413,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                     contexts(index)(1) === context
                 val victim = Mux(protect0, true.B, Mux(protect1, false.B,
                     Mux(!valid(index)(0), false.B, Mux(!valid(index)(1), true.B, replace(index)))))
-                when(!pendingStale && !io.invalidate) {
-                    valid(index)(victim.asUInt) := true.B
+                def capturePayload(): Unit = {
                     bases(index)(victim.asUInt) := packetBase
                     for (offset <- 1 to maxPacketOffset) {
                         // A 16-byte response's second packet is +8 from its
@@ -423,7 +424,19 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                     words(index)(victim.asUInt) := io.memory.response.bits(64 * packet + 63, 64 * packet)
                     errors(index)(victim.asUInt) := io.memory.responseError(2 * packet + 1, 2 * packet)
                     pageFaults(index)(victim.asUInt) := io.memory.responsePageFault(2 * packet + 1, 2 * packet)
+                }
+                when(!pendingStale && !io.invalidate) {
+                    valid(index)(victim.asUInt) := true.B
+                    if (!independentPayloadCapture) capturePayload()
                     replace(index) := !victim
+                }
+                if (independentPayloadCapture) {
+                    // Invalidate clears validity on this edge. Capturing an
+                    // otherwise live owner's dead payload is harmless and
+                    // keeps late trap/redirect qualification out of data CE.
+                    // A delayed stale owner must still never overwrite a live
+                    // resident payload, even if invalidate is no longer high.
+                    when(!pendingStale) { capturePayload() }
                 }
             }
         }

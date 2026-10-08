@@ -1,0 +1,21 @@
+{
+  "status": "MATCHED_BOUNDED_FIRMWARE_PREFIX",
+  "files": {
+    "simulator/gsim/harness/board_uboot_prefix.cpp": "d5c2d08063c88a14a6f8131d6b67d7b7a94e040442eff7896c6f0fe9483e70a8",
+    "simulator/gsim/fpga_next_firmware_prefix.py": "2d523e1650d119aa2d14d9cc6ab67091a8173fe277115a8ee72af65fa1769d93",
+    "simulator/gsim/compare_firmware_prefix.py": "1af0d95d2514123fd2ff3d830d585d87d614e9b40b1978a7e60925ee6bd3db97"
+  },
+  "patch_sha256": "2fbd9cdf8f6d39fe876921733f5480482f7105cf04055f2dc084584254516bbb",
+  "comparison": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-fw-prefix-selected/build/gsim/firmware-prefix-1m-comparison-r1.json",
+  "comparison_sha256": "3c7d4683ac9ddd4641e6d5913b52285b7409c0881fec03348b4fcfadd5e01d24",
+  "checkpoint_harness_sha256": "8d1f43dad5f2ae8067c8fca901cc2585101ac2f9312ddaf7404ceefe08aa576f",
+  "support_policy": "Full board_boot.cpp plus all-header inventory is matched to each original model receipt in restored source checkouts; no drift check weakened",
+  "fixed_endpoint": 1000000,
+  "wall_safety_per_model_seconds": 300,
+  "complete_uboot_pass": false,
+  "limits": [
+    "Matched bounded OpenSBI execution prefix; no complete U-Boot or Linux boot claim",
+    "Cause2 traps are permitted by firmware address range, not individually instruction-decoded as CSR probes",
+    "Original fixed image/ELF and saved board objects are prerequisites; not a source-only image build recipe"
+  ]
+}

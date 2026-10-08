@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "sources": {
+    "simulator/gsim/harness/cache_concurrency_stress.cpp": "790d51ec8ecd871e6d48c5ffac8766590542f01bfabdc98fe69f8efea0142eb4",
+    "simulator/gsim/harness/coherent_cache_home.cpp": "db5eb9b21e0ad2fc57feb1faf164c8918a38fd88d3a50e30fd0344910d2e26dc",
+    "simulator/gsim/harness/board_ddr_mixed.h": "98d629febe08defd9ceb5ade87e41dfd00a88c7e0ca2c2201efa649327b0370e",
+    "simulator/gsim/harness/mshr_occupancy.h": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+    "simulator/gsim/cache_seeded_stress.py": "0d97bae528b49e10038f1603298bc1d2236055206966b8efc5c3ecab97bc80f7"
+  },
+  "models": {
+    "registers": {
+      "model_sha256": {
+        "CoherentCacheHomeGsim.fir": "b1499666332883a8aee4c7c577aeb69e7623229eada13a0818a8c8d2aa0bac22",
+        "CoherentCacheHomeGsim.h": "0e7fb9c88debc845e7923d6b1f130521014346e8558e19522eda5093801a702c",
+        "CoherentCacheHomeGsim0.cpp": "b95e8dd418b8b35aa9ca096e11681bfdd6d4ed5821b934fbec1f4aa2e1dd1efd"
+      },
+      "binary_sha256": "1130684568a6dd87dec5114ceb2f549ab87e556fa35e2d4d7fd5dad53eff8cdf",
+      "results": {
+        "1": "CACHE_STRESS_PASS seed=1 cycles=80575 cpu=1139 dma=180 load_bytes=6272 rbeats=5613 wbeats=1615 hit_p50=1 hit_p99=242 miss_p50=122 miss_p99=403 reply_max=475 held_head_cycles=15250 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=44 read_ids=2 write_ids=2\n",
+        "2": "CACHE_STRESS_PASS seed=2 cycles=81088 cpu=1139 dma=180 load_bytes=6208 rbeats=5645 wbeats=1615 hit_p50=1 hit_p99=244 miss_p50=124 miss_p99=381 reply_max=512 held_head_cycles=15517 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=42 read_ids=2 write_ids=2\n",
+        "3": "CACHE_STRESS_PASS seed=3 cycles=80293 cpu=1139 dma=180 load_bytes=6264 rbeats=5663 wbeats=1573 hit_p50=1 hit_p99=240 miss_p50=124 miss_p99=371 reply_max=408 held_head_cycles=15346 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=37 read_ids=2 write_ids=2\n",
+        "5": "CACHE_STRESS_PASS seed=5 cycles=79645 cpu=1139 dma=180 load_bytes=6480 rbeats=5809 wbeats=1491 hit_p50=1 hit_p99=270 miss_p50=122 miss_p99=363 reply_max=437 held_head_cycles=15396 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=48 read_ids=2 write_ids=2\n",
+        "8": "CACHE_STRESS_PASS seed=8 cycles=80477 cpu=1139 dma=180 load_bytes=6152 rbeats=5701 wbeats=1655 hit_p50=1 hit_p99=197 miss_p50=123 miss_p99=366 reply_max=451 held_head_cycles=15362 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=51 read_ids=2 write_ids=2\n",
+        "13": "CACHE_STRESS_PASS seed=13 cycles=80761 cpu=1139 dma=180 load_bytes=6360 rbeats=5704 wbeats=1620 hit_p50=1 hit_p99=231 miss_p50=120 miss_p99=366 reply_max=472 held_head_cycles=15389 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=44 read_ids=2 write_ids=2\n",
+        "21": "CACHE_STRESS_PASS seed=21 cycles=82710 cpu=1139 dma=180 load_bytes=6296 rbeats=5771 wbeats=1745 hit_p50=1 hit_p99=232 miss_p50=122 miss_p99=377 reply_max=451 held_head_cycles=15653 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=50 read_ids=2 write_ids=2\n",
+        "34": "CACHE_STRESS_PASS seed=34 cycles=76993 cpu=1139 dma=180 load_bytes=6320 rbeats=5458 wbeats=1538 hit_p50=1 hit_p99=240 miss_p50=122 miss_p99=337 reply_max=597 held_head_cycles=14546 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=42 read_ids=2 write_ids=2\n"
+      },
+      "negative": "PASS"
+    },
+    "banked": {
+      "model_sha256": {
+        "CoherentCacheHomeGsim.fir": "37f4033cc67c181ff050100333a8e06a474b48122e4c9c1966e836711e9aabf7",
+        "CoherentCacheHomeGsim.h": "fe5eb41a950b6eedbc5034448434670d0537c2db5af0b6545c145518faf71167",
+        "CoherentCacheHomeGsim0.cpp": "9c179e8c23306f8a0ddf54efef64c6c03d5d21de0876ce7340f5678434ebad79"
+      },
+      "binary_sha256": "5756ec8948028e669ee747f42c65cc3d2f875a7915116333f3c5c38c62d08191",
+      "results": {
+        "1": "CACHE_STRESS_PASS seed=1 cycles=80575 cpu=1139 dma=180 load_bytes=6272 rbeats=5613 wbeats=1615 hit_p50=1 hit_p99=242 miss_p50=122 miss_p99=403 reply_max=475 held_head_cycles=15250 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=44 read_ids=2 write_ids=2\n",
+        "2": "CACHE_STRESS_PASS seed=2 cycles=81088 cpu=1139 dma=180 load_bytes=6208 rbeats=5645 wbeats=1615 hit_p50=1 hit_p99=244 miss_p50=124 miss_p99=381 reply_max=512 held_head_cycles=15517 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=42 read_ids=2 write_ids=2\n",
+        "3": "CACHE_STRESS_PASS seed=3 cycles=80293 cpu=1139 dma=180 load_bytes=6264 rbeats=5663 wbeats=1573 hit_p50=1 hit_p99=240 miss_p50=124 miss_p99=371 reply_max=408 held_head_cycles=15346 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=37 read_ids=2 write_ids=2\n",
+        "5": "CACHE_STRESS_PASS seed=5 cycles=79645 cpu=1139 dma=180 load_bytes=6480 rbeats=5809 wbeats=1491 hit_p50=1 hit_p99=270 miss_p50=122 miss_p99=363 reply_max=437 held_head_cycles=15396 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=48 read_ids=2 write_ids=2\n",
+        "8": "CACHE_STRESS_PASS seed=8 cycles=80477 cpu=1139 dma=180 load_bytes=6152 rbeats=5701 wbeats=1655 hit_p50=1 hit_p99=197 miss_p50=123 miss_p99=366 reply_max=451 held_head_cycles=15362 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=51 read_ids=2 write_ids=2\n",
+        "13": "CACHE_STRESS_PASS seed=13 cycles=80761 cpu=1139 dma=180 load_bytes=6360 rbeats=5704 wbeats=1620 hit_p50=1 hit_p99=231 miss_p50=120 miss_p99=366 reply_max=472 held_head_cycles=15389 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=44 read_ids=2 write_ids=2\n",
+        "21": "CACHE_STRESS_PASS seed=21 cycles=82710 cpu=1139 dma=180 load_bytes=6296 rbeats=5771 wbeats=1745 hit_p50=1 hit_p99=232 miss_p50=122 miss_p99=377 reply_max=451 held_head_cycles=15653 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=50 read_ids=2 write_ids=2\n",
+        "34": "CACHE_STRESS_PASS seed=34 cycles=76993 cpu=1139 dma=180 load_bytes=6320 rbeats=5458 wbeats=1538 hit_p50=1 hit_p99=240 miss_p50=122 miss_p99=337 reply_max=597 held_head_cycles=14546 store_miss_overlap=0 dirty_probe_beats=264 release_overlap=42 read_ids=2 write_ids=2\n"
+      },
+      "negative": "PASS"
+    }
+  },
+  "seeds": [
+    1,
+    2,
+    3,
+    5,
+    8,
+    13,
+    21,
+    34
+  ],
+  "iterations": 1024,
+  "scope": "independent random RTL memory/coherence replay; no FPGA or CPU measurement",
+  "compiler": "Debian clang version 19.1.7 (3+b1)",
+  "qualified_receipt_sha256": "55e12fb23a1f696b4366d51cb6fe3e13b6c0ad552c3ad22aad53f6ed9c264e7e"
+}

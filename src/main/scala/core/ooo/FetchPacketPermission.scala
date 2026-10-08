@@ -12,7 +12,8 @@ import chisel3.util._
   * change. The ROB-head PMP/SATP/xRET barriers and every trap redirect already
   * discard younger reservoir entries before they can retire in a new context.
   */
-class FetchPacketPermission(entries: Int, width: Int, wordSpan: Boolean, balanced: Boolean) extends Module {
+class FetchPacketPermission(entries: Int, width: Int, wordSpan: Boolean, balanced: Boolean,
+    sharedRelations: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val base = Input(UInt(64.W))
         val state = Input(new PmpState)
@@ -22,7 +23,7 @@ class FetchPacketPermission(entries: Int, width: Int, wordSpan: Boolean, balance
         val denied = Output(Vec(width, Bool()))
         val addresses = Output(Vec(width, UInt(64.W)))
     })
-    val checks = Module(new PacketFetchPmp(entries, width, wordSpan, balanced))
+    val checks = Module(new PacketFetchPmp(entries, width, wordSpan, balanced, sharedRelations))
     checks.io.base := io.base
     checks.io.state := io.state
     checks.io.privilege := io.privilege

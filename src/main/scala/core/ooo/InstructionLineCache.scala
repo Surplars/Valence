@@ -18,7 +18,8 @@ class InstructionLineCache(
     packetWords: Int = 2,
     prefetchEnabled: Boolean = false,
     parallelFallbackAddresses: Boolean = false,
-    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+    bankedData: Boolean = false
 ) extends Module {
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(ramBase >= 0 && ramBase % 64 == 0 && ramBytes >= 64 && ramBytes % 64 == 0)
@@ -49,9 +50,14 @@ class InstructionLineCache(
         retryFallback) = Enum(8)
     private val state = RegInit(idle)
     private val valid = RegInit(VecInit(Seq.fill(sets)(VecInit(Seq.fill(2)(false.B)))))
-    private val tags = Reg(Vec(sets, Vec(2, UInt(tagBits.W))))
+    private val tags = if (!tagConfig.bankedStorage) Some(Reg(Vec(sets, Vec(2, UInt(tagBits.W))))) else None
+    private val tagBanks = if (tagConfig.bankedStorage) Some(Seq.fill(2)(Mem(sets, UInt(tagBits.W)))) else None
     private val replace = RegInit(VecInit(Seq.fill(sets)(false.B)))
-    private val data = Seq.fill(2)(SyncReadMem(sets, UInt(512.W)))
+    private val data = if (!bankedData) Some(Seq.fill(2)(SyncReadMem(sets, UInt(512.W)))) else None
+    // Combining way into the SRAM address doubles depth and narrows each port.
+    // Capacity remains exactly lines * 64 bytes. The tag-selected way must now
+    // meet the RAM address setup time; this is a real timing/packing tradeoff.
+    private val dataBanks = if (bankedData) Some(Seq.fill(8)(SyncReadMem(lines, UInt(64.W)))) else None
     private val savedPc = Reg(UInt(64.W))
     private val savedMask = Reg(UInt(packetWords.W))
     private val savedLine = Reg(UInt(64.W))
@@ -72,6 +78,7 @@ class InstructionLineCache(
     private val requestLine = Cat(requestPc(63, 6), 0.U(6.W))
     private val requestSet = requestPc(5 + indexBits, 6)
     private val requestTag = tagGeometry.tag(requestPc)
+    private val demandTags = tagBanks.map(banks => VecInit(banks.map(_.read(requestSet))))
     private val inRam = requestLine >= ramBase.U &&
         (requestLine +& 63.U) < (ramBase + ramBytes).U(65.W)
     private val pmp = Module(new PmpChecker(16))
@@ -87,7 +94,7 @@ class InstructionLineCache(
     private val lineAllowed = inRam && requestPc(2, 0) === 0.U && packetFitsLine &&
         io.fetch.requestMask === ((1 << packetWords) - 1).U && !pmp.io.denied
     private val hits = VecInit((0 until 2).map { way =>
-        tagGeometry.qualifies(requestPc) && valid(requestSet)(way) && tags(requestSet)(way) === requestTag && !io.invalidate
+        tagGeometry.qualifies(requestPc) && valid(requestSet)(way) && (if (tagConfig.bankedStorage) demandTags.get(way) else tags.get(requestSet)(way)) === requestTag && !io.invalidate
     })
     private val hit = hits.asUInt.orR
     private val hitWay = hits(1)
@@ -99,8 +106,11 @@ class InstructionLineCache(
     private val nextLine = requestLine + 64.U
     private val nextSet = nextLine(5 + indexBits, 6)
     private val nextTag = tagGeometry.tag(nextLine)
+    private val speculativeTagSet = Mux(prefetchCandidate,
+        (prefetchCandidateLine + 64.U)(5 + indexBits, 6), nextSet)
+    private val speculativeTags = tagBanks.map(banks => VecInit(banks.map(_.read(speculativeTagSet))))
     private val nextCached = (0 until 2).map(way =>
-        tagGeometry.qualifies(nextLine) && valid(nextSet)(way) && tags(nextSet)(way) === nextTag).reduce(_ || _)
+        tagGeometry.qualifies(nextLine) && valid(nextSet)(way) && (if (tagConfig.bankedStorage) speculativeTags.get(way) else tags.get(nextSet)(way)) === nextTag).reduce(_ || _)
     private val nextPending = (0 until prefetchSlots).map(i =>
         prefetchOutstanding(i) && prefetchLine(i) === nextLine).reduce(_ || _)
     private val prefetchPmp = Module(new PmpChecker(16))
@@ -116,7 +126,7 @@ class InstructionLineCache(
     private val followingSet = followingLine(5 + indexBits, 6)
     private val followingTag = tagGeometry.tag(followingLine)
     private val followingCached = (0 until 2).map(way =>
-        tagGeometry.qualifies(followingLine) && valid(followingSet)(way) && tags(followingSet)(way) === followingTag).reduce(_ || _)
+        tagGeometry.qualifies(followingLine) && valid(followingSet)(way) && (if (tagConfig.bankedStorage) speculativeTags.get(way) else tags.get(followingSet)(way)) === followingTag).reduce(_ || _)
     private val followingPending = (0 until prefetchSlots).map(i =>
         prefetchOutstanding(i) && prefetchLine(i) === followingLine).reduce(_ || _)
     private val prefetchDistance = math.min(4, sets - 1)
@@ -158,17 +168,44 @@ class InstructionLineCache(
     fallbackFetch.requestMask := Mux(state === retryFallback, savedMask, io.fetch.requestMask)
     fallbackFetch.response.ready := state === fallbackActive && io.fetch.response.ready
 
-    val readWords = VecInit((0 until 2).map { way =>
-        data(way).read(requestSet, io.fetch.request.fire && lineAllowed && hits(way))
-    })
-    val hitData = Mux(savedWay, readWords(1), readWords(0))
-    val hitPacket = (hitData >> (savedOffset << 6))(packetWords * 32 - 1, 0)
+    val hitPacket = if (bankedData) {
+        // Enable still requires the complete range/PMP/invalidate-qualified hit.
+        // Its unused address outside that window need not carry those cones.
+        val readWay = valid(requestSet)(1) &&
+            (if (tagConfig.bankedStorage) demandTags.get(1) else tags.get(requestSet)(1)) === requestTag
+        when(io.fetch.request.fire && lineAllowed && hit) {
+            assert(readWay === hitWay, "instruction SRAM enabled-read way disagrees with qualified hit")
+        }
+        val readIndex = Cat(readWay, requestSet)
+        val requestedWord = requestPc(5, 3)
+        val words = VecInit((0 until 8).map { bank =>
+            val selected = requestedWord === bank.U ||
+                (if (packetWords == 4) requestedWord === ((bank + 7) % 8).U else false.B)
+            dataBanks.get(bank).read(readIndex, io.fetch.request.fire && lineAllowed && hit && selected)
+        })
+        if (packetWords == 4) Cat(words((savedOffset + 1.U)(2, 0)), words(savedOffset))
+        else words(savedOffset)
+    } else {
+        val readWords = VecInit((0 until 2).map { way =>
+            data.get(way).read(requestSet, io.fetch.request.fire && lineAllowed && hits(way))
+        })
+        val hitData = Mux(savedWay, readWords(1), readWords(0))
+        (hitData >> (savedOffset << 6))(packetWords * 32 - 1, 0)
+    }
     io.fetch.response.valid := state === hitReply || state === lineReply ||
         (state === fallbackActive && fallbackFetch.response.valid)
     io.fetch.response.bits := Mux(state === hitReply, hitPacket,
         Mux(state === lineReply, replyData, fallbackFetch.response.bits))
     io.fetch.responseError := Mux(state === fallbackActive, fallbackFetch.responseError, 0.U)
     io.fetch.responsePageFault := Mux(state === fallbackActive, fallbackFetch.responsePageFault, 0.U)
+
+    // A SyncReadMem result is defined only for the cycle following its read.
+    // Retain the first stalled hit in the existing line-reply payload register;
+    // later cycles must not depend on a disabled SRAM port or a new offer's set.
+    when(state === hitReply && !io.fetch.response.ready) {
+        replyData := hitPacket
+        state := lineReply
+    }
 
     when(io.invalidate) {
         for (set <- 0 until sets; way <- 0 until 2) { valid(set)(way) := false.B }
@@ -254,7 +291,21 @@ class InstructionLineCache(
     for (way <- 0 until 2) {
         when((prefetchWrite && prefetchVictim === (way == 1).B) ||
             (demandWrite && savedWay === (way == 1).B)) {
-            data(way).write(Mux(prefetchWrite, prefetchSet, savedSet), fill.io.response.bits.data)
+            data.foreach(_(way).write(Mux(prefetchWrite, prefetchSet, savedSet), fill.io.response.bits.data))
+            tagBanks.foreach(_(way).write(Mux(prefetchWrite, prefetchSet, savedSet),
+                Mux(prefetchWrite, prefetchTag, savedTag)))
+        }
+    }
+    if (bankedData) {
+        val writeIndex = Cat(Mux(prefetchWrite, prefetchVictim, savedWay), Mux(prefetchWrite, prefetchSet, savedSet))
+        when(prefetchWrite || demandWrite) {
+            for (bank <- 0 until 8) {
+                dataBanks.get(bank).write(writeIndex, fill.io.response.bits.data(64 * bank + 63, 64 * bank))
+            }
+            // Existing admission intentionally excludes a newly read hit on
+            // every refill write cycle. No same-address RAM bypass is assumed.
+            assert(!(io.fetch.request.fire && lineAllowed && hit),
+                "packed instruction SRAM refill collided with a hit read")
         }
     }
     when(fill.io.response.fire) {
@@ -263,7 +314,7 @@ class InstructionLineCache(
             when(!prefetchStale(responsePrefetchSlot) && !io.invalidate &&
                 !fill.io.response.bits.error) {
                 if (tagConfig.compact) assert(tagGeometry.contains(responsePrefetchLine), "prefetch tag outside aperture")
-                tags(prefetchSet)(prefetchVictim.asUInt) := prefetchTag
+                tags.foreach(_(prefetchSet)(prefetchVictim.asUInt) := prefetchTag)
                 valid(prefetchSet)(prefetchVictim.asUInt) := true.B
                 replace(prefetchSet) := !prefetchVictim
             }
@@ -282,7 +333,7 @@ class InstructionLineCache(
         }.otherwise {
             when(!staleFill && !io.invalidate) {
                 if (tagConfig.compact) assert(tagGeometry.contains(savedLine), "instruction tag outside aperture")
-                tags(savedSet)(savedWay.asUInt) := savedTag
+                tags.foreach(_(savedSet)(savedWay.asUInt) := savedTag)
                 valid(savedSet)(savedWay.asUInt) := true.B
                 replace(savedSet) := !savedWay
             }

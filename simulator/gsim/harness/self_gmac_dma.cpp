@@ -27,6 +27,9 @@ struct Test{
     std::mt19937 random;
     unsigned cycles=0,reads=0,writes=0,peak=0,stalls=0,drops=0,accepted=0,rejected=0,simultaneous=0;
     int failRead=-1,failWrite=-1;
+    bool deterministicMemory=false;
+    unsigned dmaStreamOverlap=0,ddrReadOverlap=0;
+    std::vector<unsigned> wireStarts;
     Test(unsigned seed):random(seed){
         for(auto&b:memory)b=random();
         S(control$$request$$valid,0);S(control$$response$$ready,0);
@@ -39,7 +42,7 @@ struct Test{
         d.set_reset(1);d.step();d.step();d.set_reset(0);tick();
     }
     void tick(){
-        const bool ready=random()%4!=0,valid=!replies.empty()&&replies.front().due<=cycles;
+        const bool ready=deterministicMemory||random()%4!=0,valid=!replies.empty()&&replies.front().due<=cycles;
         S(memory$$request$$ready,ready);S(memory$$response$$valid,valid);
         S(memory$$response$$bits$$data,valid?replies.front().data:0);
         S(memory$$response$$bits$$error,valid?replies.front().error:false);
@@ -62,10 +65,11 @@ struct Test{
             if(write)check(incoming.empty(),"GMAC DMA wrote before physical EOF/FCS validation");
             if(!write)check(mask==255,"GMAC TX used partial memory read");
             write?++writes:++reads;
-            replies.push_back({cycles+7+unsigned(random()%6),address,write?data:value,mask,write,error});
+            replies.push_back({cycles+7+(deterministicMemory?0:unsigned(random()%6)),address,write?data:value,mask,write,error});
             peak=std::max(peak,unsigned(replies.size()));check(peak<=4,"GMAC DMA exceeded four memory credits");
         }
-        if(G(gmiiTxEnable)){burst.push_back(G(gmiiTxData));simultaneous+=!incoming.empty();}
+        dmaStreamOverlap+=G(txDmaOverlap);ddrReadOverlap+=G(memoryReadOverlap);
+        if(G(gmiiTxEnable)){if(burst.empty())wireStarts.push_back(cycles);burst.push_back(G(gmiiTxData));simultaneous+=!incoming.empty();}
         else if(!burst.empty()){wires.push_back(burst);burst.clear();}
         check(!G(gmiiTxError),"GMAC DMA unexpectedly emitted TX_ER");
         drops+=G(rxDropped);accepted+=G(rxAccepted);rejected+=G(txRejected);
@@ -96,6 +100,7 @@ struct Test{
         check(replies.empty()&&!held,"GMAC DMA completed before memory drain");
     }
 };
+#ifndef SELF_GMAC_DMA_NO_MAIN
 int main(int argc,char**argv){try{
     const bool inject=argc==2&&std::string_view(argv[1])=="--inject-mismatch";
     unsigned cases=0,peak=0,stalls=0,simultaneous=0;
@@ -151,3 +156,5 @@ int main(int argc,char**argv){try{
     std::cout<<"SELF_GMAC_DMA_PASS cases="<<cases<<" maxOutstanding="<<peak<<" memory_stalls="<<stalls
         <<" simultaneous_byte_cycles="<<simultaneous<<" bad_fcs_no_write=1 tail_masks=1\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}
+
+#endif

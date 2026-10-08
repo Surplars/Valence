@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "mode": "off",
+  "files": [
+    {
+      "name": "JtagDebugReservation.sv",
+      "sha256": "124bd6e0d17ec2e4101ed036edb1c9335a81a84a94535c8b94982f3c5ca096b9"
+    }
+  ],
+  "scope": "export closure and structural checks, not behavioral proof"
+}

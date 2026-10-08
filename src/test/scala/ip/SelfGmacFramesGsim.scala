@@ -62,7 +62,7 @@ class SelfGmacFramesGsim(frameSlots: Int = 4) extends Module {
 /** Real production DMA + native adapter + GMII framing, external memory oracle.
   * All five modules share a test clock; no CPU, CSR, PHY or CDC verification.
   */
-class SelfGmacDmaGsim(postedTxSlots: Int = 0) extends Module {
+class SelfGmacDmaGsim(postedTxSlots: Int = 0, macTxSlots: Int = 1) extends Module {
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
         val memory = new RegisterPort
@@ -76,13 +76,18 @@ class SelfGmacDmaGsim(postedTxSlots: Int = 0) extends Module {
         val active = Output(Bool())
         val txBusy = Output(Bool())
         val txDone = Output(Bool())
+        val txDmaOverlap = Output(Bool())
+        val memoryReadOverlap = Output(Bool())
         val txRejected = Output(Bool())
         val rxAccepted = Output(Bool())
         val rxDropped = Output(Bool())
     })
     val dma = Module(new EthernetPacketDma(ramBytes = 8192, postedTxSlots = postedTxSlots))
     val adapter = Module(new EthernetDmaFrameAdapter)
-    val tx = Module(new GmiiFrameTx())
+    val tx: EthernetFrameTransmitter = if (macTxSlots == 1) Module(new GmiiFrameTx())
+        else Module(new QueuedGmiiFrameTx(frameSlots = macTxSlots))
+    tx.io.byteStep.foreach(_ := true.B)
+    tx.io.abort.foreach(_ := false.B)
     val rx = Module(new GmiiFrameRx())
     dma.io.control <> io.control
     io.memory <> dma.io.memory
@@ -107,6 +112,8 @@ class SelfGmacDmaGsim(postedTxSlots: Int = 0) extends Module {
     io.active := dma.io.active
     io.txBusy := tx.io.busy
     io.txDone := tx.io.done
+    io.txDmaOverlap := tx.io.frame.fire && tx.io.gmiiEnable
+    io.memoryReadOverlap := dma.io.memory.request.fire && !dma.io.memory.request.bits.write && tx.io.gmiiEnable
     io.txRejected := tx.io.rejected
     io.rxAccepted := rx.io.accepted
     io.rxDropped := rx.io.dropped
@@ -119,7 +126,7 @@ object SelfGmacAdapterGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new EthernetDmaFrameAdapter, Array("--target-dir", args.head))
 }
 object SelfGmacDmaGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new SelfGmacDmaGsim(args.lift(1).map(_.toInt).getOrElse(0)), Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new SelfGmacDmaGsim(args.lift(1).map(_.toInt).getOrElse(0), args.lift(2).map(_.toInt).getOrElse(1)), Array("--target-dir", args.head))
 }
 object SelfGmacFramesRtlMain extends App {
     require(args.length == 1)

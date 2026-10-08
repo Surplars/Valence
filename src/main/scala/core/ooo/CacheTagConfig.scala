@@ -3,7 +3,7 @@ package soc.core.ooo
 import chisel3._
 
 /** Storage policy only: all request, coherence and backing addresses remain full width. */
-case class CacheTagConfig(compact: Boolean = false) {
+case class CacheTagConfig(compact: Boolean = false, bankedStorage: Boolean = false) {
     def geometry(base: BigInt, bytes: BigInt, tagLow: Int, addressWidth: Int = 64): CacheTagGeometry =
         CacheTagGeometry(base, bytes, tagLow, addressWidth, compact)
 }

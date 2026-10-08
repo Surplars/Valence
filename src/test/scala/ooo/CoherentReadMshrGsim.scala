@@ -40,6 +40,6 @@ object CoherentReadMshrGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CoherentReadMshrGsim(args(1).toInt,
         args.lift(2).map(_.toInt).getOrElse(512), args.lift(3).map(_.toInt).getOrElse(2),
         args.lift(4).map(_.toInt).getOrElse(8),
-        CacheTagConfig(compact = args.lift(5).contains("1")),
+        CacheTagConfig(compact = args.lift(5).contains("1"), bankedStorage = args.contains("--banked-cache-tags")),
         args.lift(6).map(BigInt(_)).getOrElse(BigInt("80010000", 16))), Array("--target-dir", args.head))
 }

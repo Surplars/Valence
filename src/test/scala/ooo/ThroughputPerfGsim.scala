@@ -2,6 +2,7 @@ package ooo
 
 import _root_.circt.stage.ChiselStage
 import chisel3._
+import chisel3.util.Valid
 import chisel3.util.experimental.BoringUtils
 import soc.core.ooo._
 
@@ -25,6 +26,25 @@ object ThroughputPerfConfig {
 
 class ThroughputPerfGsim(p: OooParams) extends IntegerCoreGsim(p) {
     override def desiredName: String = "IntegerCoreGsim"
+    // Passive, full-token event timestamps for the short CPU latency matrix.
+    // The request/response device stays outside the CPU; these are not SoC TLB/cache latencies.
+    val loadStart = IO(Output(Valid(new Bundle {
+        val token = new RobToken(p)
+        val pc = UInt(64.W)
+        val address = UInt(64.W)
+    })))
+    val loadResult = IO(Output(Valid(new RobToken(p))))
+    val observedLsu = core.backend.lsu
+    loadStart.valid := BoringUtils.bore(observedLsu.io.start.valid) &&
+        BoringUtils.bore(observedLsu.io.start.ready) &&
+        !BoringUtils.bore(observedLsu.io.start.bits.store) && !BoringUtils.bore(observedLsu.io.start.bits.atomic)
+    loadStart.bits.token := BoringUtils.bore(observedLsu.io.start.bits.token)
+    loadStart.bits.pc := BoringUtils.bore(observedLsu.io.start.bits.pc)
+    loadStart.bits.address := BoringUtils.bore(observedLsu.io.start.bits.address)
+    loadResult.valid := BoringUtils.bore(observedLsu.io.complete.valid) &&
+        BoringUtils.bore(core.backend.ledger.io.completionAccepted(0)) &&
+        !BoringUtils.bore(observedLsu.io.complete.bits.exception)
+    loadResult.bits := BoringUtils.bore(observedLsu.io.complete.bits.token)
     // GSIM applies registered state at the beginning of step(). The external
     // instruction device needs the next raw cursor before supplying that step.
     // This is device stimulus, never the expected architectural retirement PC.
@@ -134,9 +154,14 @@ class ThroughputPerfGsim(p: OooParams) extends IntegerCoreGsim(p) {
 
 object ThroughputPerfGsimMain extends App {
     val profile = args.lift(1).getOrElse("staged-throughput")
-    ChiselStage.emitCHIRRTLFile(new ThroughputPerfGsim(ThroughputPerfConfig.params(profile).copy(
+    val base = ThroughputPerfConfig.params(profile)
+    ChiselStage.emitCHIRRTLFile(new ThroughputPerfGsim(base.copy(
+        registeredLoadIssueForwarding = base.registeredLoadIssueForwarding || args.contains("load-issue-forwarding"),
         bankedRobPayload = args.drop(2).contains("banked-rob"),
         sharedStoreOperandReads = args.drop(2).contains("shared-store-reads"),
-        lvtPhysicalRegisterFile = args.drop(2).contains("lvt-prf"))),
+        lvtPhysicalRegisterFile = args.drop(2).contains("lvt-prf"),
+        bankedIssuePayload = args.drop(2).contains("banked-issue-payload"),
+        bankedFetchHints = args.drop(2).contains("banked-fetch-hints"),
+        ownerLocalIssueReady = args.drop(2).contains("owner-local-issue-ready"))),
         Array("--target-dir", args.head))
 }

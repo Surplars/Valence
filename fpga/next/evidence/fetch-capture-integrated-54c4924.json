@@ -1,0 +1,146 @@
+{
+  "schema": "valence-fpga-next-ce-integration-v1",
+  "status": "PASS_CHANGE_SCOPE_KNOWN_INHERITED_ICACHE_HOLD_GAP",
+  "source_commit": "54c49240c8dc81f04343a89741c9fd72975ded98",
+  "reference_commit": "631fd681541f2141abc0082c01bdc869bfdd2b33",
+  "receipts": {
+    "reference": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-base-candidate-r1/receipt.json",
+      "sha256": "e3fcb0d785635048a1779722faab89441fe3261877e55fcec8f3497288e6d711"
+    },
+    "candidate": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-ce-candidate-r1/receipt.json",
+      "sha256": "f7bee8ab1ac3cd30799eb0268cd34d9e245f1461c0bf40dda1acf48cee45c2f2"
+    }
+  },
+  "source_input_deltas": {
+    "simulator/gsim/fpga_next_board.py": {
+      "reference": "a1fdd5e8251ad0f86dbf02300a526a0427e84a425f3dd82678f3f0de5d8fa947",
+      "candidate": "eb8661d1b7702191388470ad016976be61838e653f96bc393f90c18d3c7bf7d6"
+    },
+    "src/main/scala/core/ooo/BoardSocTop.scala": {
+      "reference": "f92abc1493df84d2d05685dc24877cb4406cb372f14a86dfb8bcb40bdb7b9862",
+      "candidate": "bc558a52e651e769df778a5b4ebf0d6efa7cd01f763ba3f94d26ef845ff88ec5"
+    },
+    "src/main/scala/core/ooo/FpgaIntegerCore.scala": {
+      "reference": "b09a1f48c0c517920ec7a4e78083b4f3d2cc821da6add97264bcbca795e59351",
+      "candidate": "872ccb44ce284dfd34cf85827470f14b1b7b3dbf3159fd662a47cc4994b2c5ca"
+    },
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": {
+      "reference": "d5595f3e0e163b91db5404374976f3008a18ab78674dd4e29c5b9952bb418174",
+      "candidate": "d62f99a986fc941492eef7023095f1d069e2a1137352c35adf25ceee64e3449c"
+    },
+    "src/main/scala/core/ooo/InstructionRom.scala": {
+      "reference": "5c699b7d5f4808c6180630938b6a1f8ada8e43b33a6493491c4b2a656d9cccbe",
+      "candidate": "9ee54b6133a406b54df2144fa47906ed98d81840c15f12b08f79e5fa353ab4e9"
+    },
+    "src/main/scala/core/ooo/MachinePlatform.scala": {
+      "reference": "25dd225585b05319a0c73768a18cf2247e5b328a4049b7bec4e2a7da0c4eef95",
+      "candidate": "69b7232231e16ec0401964c40604df6972de1da8d80304192b63c861fcc65e25"
+    },
+    "src/main/scala/core/ooo/OooParams.scala": {
+      "reference": "b316401685c6d44c983497aaedcca68538eb46f13de7b78f49b9c4b005fa6937",
+      "candidate": "ba28740b86062db132aa71ff11f98b241948049ad57a2907d59a2feea6968962"
+    },
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": {
+      "reference": "9b99f90fe16c8d3b075f5128a73d1455532ac69fe96957fc1d10f73846d742ed",
+      "candidate": "5d27e5771bffb8619144b057b7c9768e136502c8ccb11b8cf9490bf3468e8695"
+    },
+    "src/main/scala/ip/ethernet/EthernetMediaTransition.scala": {
+      "reference": null,
+      "candidate": "a794ccafd8573849db519e76a2432ccecd7b78079f003fd888615b932a827d3b"
+    },
+    "src/main/scala/ip/ethernet/EthernetPhysicalIngress.scala": {
+      "reference": null,
+      "candidate": "0b0cd4f391f1cd5a8506aa6d58b92990c96e0d4a75066c4d30177e9330659da1"
+    },
+    "src/main/scala/ip/ethernet/EthernetPort.scala": {
+      "reference": "b2fda30eb0cbd0f1626041e44bf23ea79c8850cf19f1685a766c432f287775da",
+      "candidate": "99afa6742bfc409b1f55729f539928782c512c806c8913aed832b6eb7979007d"
+    },
+    "src/main/scala/ip/ethernet/GmiiFrameRx.scala": {
+      "reference": "e795b65831bd8ddee16b58ba1fad22c05aca3afeb0300c1c0842882688864afc",
+      "candidate": "33845185419e8fd45be39a112f0e6e2ea90f8abb5ea530e63648987b766c4ef1"
+    },
+    "src/main/scala/ip/ethernet/GmiiFrameTx.scala": {
+      "reference": "e2dfdd8f469122244b17cd3a645f35b55054db8133f4aceb8b219d9d5c8e27b8",
+      "candidate": "daecef74c480de35479cbf25491e53edb03d4aa7d180e553298c4eba5fd897e2"
+    },
+    "src/main/scala/ip/ethernet/QueuedGmiiFrameTx.scala": {
+      "reference": null,
+      "candidate": "af7a3952a849bfb2b4c5bd2cdb8502317d55a00c4961b9344c0996889d3f23e4"
+    },
+    "src/main/scala/ip/ethernet/Rtl8211fPhyManager.scala": {
+      "reference": null,
+      "candidate": "d31e6968130b8a668a88883b25625d9574e644ec89b89ce7808ebba8c3deffdf"
+    },
+    "src/main/scala/ip/ethernet/TileLinkGmacControl.scala": {
+      "reference": "326927437f02c0f739daa6bb9de622d112c4cc5358cb2d87bcadf734476cb973",
+      "candidate": "39514d69b3a22026ee73e60beaf56be50b42ef07810348fdc4b7f8a3a47a535a"
+    },
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": {
+      "reference": null,
+      "candidate": "972a5448e50dad7c9a13b453b96210dba48eaa523dbbec93bb0d0795a9361a4f"
+    },
+    "src/main/scala/ip/ethernet/TriSpeedRgmii.scala": {
+      "reference": null,
+      "candidate": "d90e9efa83a75eab750d7fb47a0b3331db676b2d181353c190eadb6abc8f04b0"
+    },
+    "src/test/scala/ip/SelfGmacFramesGsim.scala": {
+      "reference": "177dde8cb589658dd8f37ea0052b59106dc172aa0521b8d83ed0ac34cf33f503",
+      "candidate": "0431650b990c5eab8e428a42fbfbeb74b45f9df84d52bb6447b3f7dbc3863753"
+    },
+    "src/test/scala/ip/TriSpeedGmacGsim.scala": {
+      "reference": null,
+      "candidate": "f5d6b4a49f906c117a58a989c1e9ba3f12f9b3e156112d36f38b0c64777d4318"
+    },
+    "src/test/scala/ooo/BoardSocGsimMain.scala": {
+      "reference": "d5d57cb9ff6625fbb9b0c13849874eb683438769f8db7ede636f426ec14c08a2",
+      "candidate": "bcf1d223f3a0412eeb3746b5810e9abc309b055856dab6b7f7a87940568a72bd"
+    },
+    "src/test/scala/ooo/FetchOffsetsGsim.scala": {
+      "reference": "d4f7c5bafb9c25aef7ba442631b01dcd0c429485d0059c892a189d0100e811f0",
+      "candidate": "998c385081231ccecbd448873052b23d3d2f9a0f130592a5841db816bef64792"
+    },
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": {
+      "reference": "171eacfb21f74d55b9be0646f47c920bbc158e318e2259b7a4ccb3c2b38f5077",
+      "candidate": "513d1134eb6f7b679f54fbf86dd8604bf39de40e1b11a841fa586fc08983a080"
+    },
+    "src/test/scala/ooo/FpgaNextConfigSpec.scala": {
+      "reference": "16920872185931dc86fc5d509f4d9fb1042096950f2c80c0e71493f7aa922a5a",
+      "candidate": "01dfa6f5774cd70baabe5d3e7db63bde58ed2180547673f0bb1a105605544e36"
+    },
+    "src/test/scala/ooo/FpgaNextMain.scala": {
+      "reference": "c44ac28d8f219d7dcccd896b4b167544b1ce41845fd18bb7de8114e84e4840ac",
+      "candidate": "041bac3e2497c98958978d8c9654d4d861420ce724d66e91c60a77dc636e2b0d"
+    }
+  },
+  "logs": {
+    "gc": {
+      "raw_log_sha256": "4242a0d902afc2edec59e7b55ca3be531df7786e7fbbe1fe5389cdf3e2dc310e",
+      "byte_identical": true
+    },
+    "steady": {
+      "raw_log_sha256": "80b1749420244da4dbcec5751e92d0bf6fb63444d82d1470f2f3ddfc30734f1e",
+      "byte_identical": true
+    },
+    "independent": {
+      "raw_log_sha256": "265d27cc6efdd284f2962e50295761be1e604a5b97dbcdc535a10e6942a60d0f",
+      "byte_identical": true
+    },
+    "virtual": {
+      "raw_log_sha256": "921b0f98eba99b2c59c31a6a4611401480f743fa540d689e9d19a2350d1ef5d0",
+      "byte_identical": true
+    }
+  },
+  "guest_binary_identity": true,
+  "native_export_receipt_sha256": "a140d98242b7a950f3ce6a7d877bc2aa6e559eaa6b3052ca99421e6ae3172fac",
+  "ce_dependency_evidence": "fetch-capture-native-54c4924.json",
+  "ce_dependency_evidence_sha256": "4005bac4f40e9c840738ea70f7c3473ebfa3e4858e3a14f6a4296c2f06f91267",
+  "limits": [
+    "Exact matching board suite qualifies CE change, not every legal interface stimulus.",
+    "New independent I-cache cross-set stalled-hit fixture exposes inherited SyncReadMem hold gap absent from these board guests. Mandatory narrow fix remains pending.",
+    "Native export includes experimental tri-speed tx2; the single-clock board CPU wrapper has no native MAC.",
+    "No FPGA synthesis/routed timing/native clocks/PHY/JTAG qualification."
+  ]
+}

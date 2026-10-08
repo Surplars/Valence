@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "chisel_package": "soc.ip.debug",
+  "chisel_entry": "JtagDebugReservation",
+  "default_enabled": false,
+  "enabled_resources": [
+    {
+      "source": "src/main/resources/debug/ValenceJtagDebugPort.sv",
+      "exported_name": "ValenceJtagDebugPort.sv",
+      "modules": ["ValenceJtagTap", "ValenceDmiCdc", "ValenceDmiUnavailable", "ValenceJtagDebugPort"]
+    }
+  ],
+  "disabled_resources": [],
+  "exclude_from_synthesis": ["simulator/jtag/*_tb.sv"],
+  "debug_module_implemented": false,
+  "hart_control_connected": false,
+  "board_constraints_qualified": false
+}

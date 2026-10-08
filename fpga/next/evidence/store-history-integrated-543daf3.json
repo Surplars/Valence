@@ -1,0 +1,1531 @@
+{
+  "schema": "valence-fpga-next-store-history-comparison-v1",
+  "status": "PASS_MATCHED_STORE_HISTORY_ABLATION",
+  "source_commit": "543daf342846e1da224ffe47ecd2875792033ff8",
+  "source_inputs_identical": true,
+  "receipts": {
+    "off": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch-store/build/gsim/fpga-next-board-store-history-off-r1/receipt.json",
+      "sha256": "9acd3a9c109e875c62d04417ead1d7a14706294ba7e7c980d51dd41bff015717"
+    },
+    "on": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch-store/build/gsim/fpga-next-board-store-history-on-r1/receipt.json",
+      "sha256": "13e10ca03f23bdfed9d93fb234241d47ee3366cf16aad32b12511dd2452594de"
+    }
+  },
+  "analysis_sources": {
+    "compare_prefetch_store_history.py": "c4b40638994d4df6d526e278c2fd4d4d9834a792c3a4f85d12307ca0f9045b24",
+    "compare_prefetch_retention.py": "0927b4a10ce3fde3ca79f0e2a1615815c0d6645be9534a639b10e6258df7e32b"
+  },
+  "prior_control": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch/build/gsim/fpga-next-board-retention3-r1/receipt.json",
+    "sha256": "959da6e0eec96eb1542ee5fa5212bc15f5572446a29f6d8403144107b81bd701",
+    "raw_logs_preserved": {
+      "gc": "4242a0d902afc2edec59e7b55ca3be531df7786e7fbbe1fe5389cdf3e2dc310e",
+      "steady": "178aac490b06e5c8fe1d01dcab490d587c5f65b398a3cfd5dab103d8adc7be13",
+      "independent": "83890ca00dc1072db2ce4497439a52cd602716f03b344e2757b48369ef9f893b",
+      "virtual": "921b0f98eba99b2c59c31a6a4611401480f743fa540d689e9d19a2350d1ef5d0"
+    }
+  },
+  "workloads": {
+    "steady": {
+      "profiles": {
+        "off": {
+          "regions": {
+            "read_64KiB_3passes": {
+              "cpu": {
+                "cycles": 181647,
+                "retired": 55355,
+                "ipc": 0.304739,
+                "zero_commit": 142456,
+                "single_commit": 23027,
+                "dual_commit": 16164,
+                "head_empty": 2,
+                "head_not_done": 145216,
+                "head_operands_wait": 0,
+                "head_memory": 163861,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 90,
+                "write_miss": 0,
+                "miss_blocked": 107888,
+                "refill": 149504,
+                "eviction": 4668,
+                "request_cause_0": 181647,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 159245,
+                "any_occupied_cycles": 156380,
+                "multi_occupied_cycles": 2865,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 2739
+              },
+              "prefetch": {
+                "candidates": 3021,
+                "allocated": 2244,
+                "useful": 2244,
+                "errors": 0,
+                "busy_cycles": 155791,
+                "miss_owner_cycles": 152602,
+                "release_owner_cycles": 6855
+              },
+              "traffic": {
+                "reads": 2334,
+                "read_bytes": 149376,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 18672,
+                "w_beats": 0
+              }
+            },
+            "write_kernel": {
+              "cpu": {
+                "cycles": 344151,
+                "retired": 55333,
+                "ipc": 0.160781,
+                "zero_commit": 316481,
+                "single_commit": 7,
+                "dual_commit": 27663,
+                "head_empty": 56,
+                "head_not_done": 341010,
+                "head_operands_wait": 0,
+                "head_memory": 340993,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 3072,
+                "miss_blocked": 245761,
+                "refill": 224257,
+                "eviction": 27648,
+                "request_cause_0": 344151,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 1,
+                "occupied_entry_cycles": 254977,
+                "any_occupied_cycles": 254977,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 1,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3076,
+                "read_bytes": 196864,
+                "writes": 3072,
+                "write_bytes": 196608,
+                "r_beats": 24600,
+                "w_beats": 24576
+              }
+            },
+            "write_flush_tail": {
+              "cpu": {
+                "cycles": 17756,
+                "retired": 10,
+                "ipc": 0.00056319,
+                "zero_commit": 17747,
+                "single_commit": 8,
+                "dual_commit": 1,
+                "head_empty": 116,
+                "head_not_done": 17637,
+                "head_operands_wait": 0,
+                "head_memory": 0,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 0,
+                "eviction": 4608,
+                "request_cause_0": 17756,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 1,
+                "occupied_peak": 0,
+                "occupied_entry_cycles": 0,
+                "any_occupied_cycles": 0,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 0,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 2,
+                "read_bytes": 128,
+                "writes": 512,
+                "write_bytes": 32768,
+                "r_beats": 16,
+                "w_beats": 4096
+              }
+            },
+            "copy_kernel": {
+              "cpu": {
+                "cycles": 644683,
+                "retired": 79933,
+                "ipc": 0.123988,
+                "zero_commit": 601634,
+                "single_commit": 6165,
+                "dual_commit": 36884,
+                "head_empty": 166,
+                "head_not_done": 626071,
+                "head_operands_wait": 0,
+                "head_memory": 641401,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3073,
+                "write_miss": 3072,
+                "miss_blocked": 199888,
+                "refill": 425041,
+                "eviction": 32513,
+                "request_cause_0": 644683,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 480380,
+                "any_occupied_cycles": 463195,
+                "multi_occupied_cycles": 17185,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 16429
+              },
+              "prefetch": {
+                "candidates": 3021,
+                "allocated": 252,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 26248,
+                "miss_owner_cycles": 17185,
+                "release_owner_cycles": 756
+              },
+              "traffic": {
+                "reads": 6402,
+                "read_bytes": 409728,
+                "writes": 2817,
+                "write_bytes": 180288,
+                "r_beats": 51216,
+                "w_beats": 22536
+              }
+            },
+            "copy_flush_tail": {
+              "cpu": {
+                "cycles": 9215,
+                "retired": 10,
+                "ipc": 0.00108519,
+                "zero_commit": 9206,
+                "single_commit": 8,
+                "dual_commit": 1,
+                "head_empty": 116,
+                "head_not_done": 9096,
+                "head_operands_wait": 0,
+                "head_memory": 0,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 0,
+                "eviction": 2313,
+                "request_cause_0": 9215,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 1,
+                "occupied_peak": 0,
+                "occupied_entry_cycles": 0,
+                "any_occupied_cycles": 0,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 0,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 2,
+                "read_bytes": 128,
+                "writes": 257,
+                "write_bytes": 16448,
+                "r_beats": 16,
+                "w_beats": 2056
+              }
+            },
+            "dependent_chase_3072hops": {
+              "cpu": {
+                "cycles": 231188,
+                "retired": 3849,
+                "ipc": 0.0166488,
+                "zero_commit": 228109,
+                "single_commit": 2309,
+                "dual_commit": 770,
+                "head_empty": 0,
+                "head_not_done": 231184,
+                "head_operands_wait": 0,
+                "head_memory": 231176,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3072,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 200454,
+                "eviction": 6151,
+                "request_cause_0": 231188,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 1,
+                "occupied_entry_cycles": 209677,
+                "any_occupied_cycles": 209677,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 1,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3074,
+                "read_bytes": 196736,
+                "writes": 1,
+                "write_bytes": 64,
+                "r_beats": 24592,
+                "w_beats": 8
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 24213,
+            "writes": 10255,
+            "r_beats": 193704,
+            "w_beats": 82040
+          }
+        },
+        "on": {
+          "regions": {
+            "read_64KiB_3passes": {
+              "cpu": {
+                "cycles": 181647,
+                "retired": 55355,
+                "ipc": 0.304739,
+                "zero_commit": 142456,
+                "single_commit": 23027,
+                "dual_commit": 16164,
+                "head_empty": 2,
+                "head_not_done": 145216,
+                "head_operands_wait": 0,
+                "head_memory": 163861,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 90,
+                "write_miss": 0,
+                "miss_blocked": 107888,
+                "refill": 149504,
+                "eviction": 4668,
+                "request_cause_0": 181647,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 159245,
+                "any_occupied_cycles": 156380,
+                "multi_occupied_cycles": 2865,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 2739
+              },
+              "prefetch": {
+                "candidates": 3021,
+                "allocated": 2244,
+                "useful": 2244,
+                "errors": 0,
+                "busy_cycles": 155791,
+                "miss_owner_cycles": 152602,
+                "release_owner_cycles": 6855
+              },
+              "traffic": {
+                "reads": 2334,
+                "read_bytes": 149376,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 18672,
+                "w_beats": 0
+              }
+            },
+            "write_kernel": {
+              "cpu": {
+                "cycles": 344151,
+                "retired": 55333,
+                "ipc": 0.160781,
+                "zero_commit": 316481,
+                "single_commit": 7,
+                "dual_commit": 27663,
+                "head_empty": 56,
+                "head_not_done": 341010,
+                "head_operands_wait": 0,
+                "head_memory": 340993,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 3072,
+                "miss_blocked": 245761,
+                "refill": 224257,
+                "eviction": 27648,
+                "request_cause_0": 344151,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 1,
+                "occupied_entry_cycles": 254977,
+                "any_occupied_cycles": 254977,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 1,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3076,
+                "read_bytes": 196864,
+                "writes": 3072,
+                "write_bytes": 196608,
+                "r_beats": 24600,
+                "w_beats": 24576
+              }
+            },
+            "write_flush_tail": {
+              "cpu": {
+                "cycles": 17756,
+                "retired": 10,
+                "ipc": 0.00056319,
+                "zero_commit": 17747,
+                "single_commit": 8,
+                "dual_commit": 1,
+                "head_empty": 116,
+                "head_not_done": 17637,
+                "head_operands_wait": 0,
+                "head_memory": 0,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 0,
+                "eviction": 4608,
+                "request_cause_0": 17756,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 1,
+                "occupied_peak": 0,
+                "occupied_entry_cycles": 0,
+                "any_occupied_cycles": 0,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 0,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 2,
+                "read_bytes": 128,
+                "writes": 512,
+                "write_bytes": 32768,
+                "r_beats": 16,
+                "w_beats": 4096
+              }
+            },
+            "copy_kernel": {
+              "cpu": {
+                "cycles": 641855,
+                "retired": 79933,
+                "ipc": 0.124534,
+                "zero_commit": 598806,
+                "single_commit": 6165,
+                "dual_commit": 36884,
+                "head_empty": 166,
+                "head_not_done": 623243,
+                "head_operands_wait": 0,
+                "head_memory": 638573,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3073,
+                "write_miss": 3072,
+                "miss_blocked": 200110,
+                "refill": 422213,
+                "eviction": 32009,
+                "request_cause_0": 641855,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 1,
+                "occupied_entry_cycles": 460367,
+                "any_occupied_cycles": 460367,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 1,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 6150,
+                "read_bytes": 393600,
+                "writes": 2817,
+                "write_bytes": 180288,
+                "r_beats": 49200,
+                "w_beats": 22536
+              }
+            },
+            "copy_flush_tail": {
+              "cpu": {
+                "cycles": 9042,
+                "retired": 10,
+                "ipc": 0.00110595,
+                "zero_commit": 9033,
+                "single_commit": 8,
+                "dual_commit": 1,
+                "head_empty": 117,
+                "head_not_done": 8922,
+                "head_operands_wait": 0,
+                "head_memory": 0,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 0,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 0,
+                "eviction": 2313,
+                "request_cause_0": 9042,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 1,
+                "occupied_peak": 0,
+                "occupied_entry_cycles": 0,
+                "any_occupied_cycles": 0,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 0,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 2,
+                "read_bytes": 128,
+                "writes": 257,
+                "write_bytes": 16448,
+                "r_beats": 16,
+                "w_beats": 2056
+              }
+            },
+            "dependent_chase_3072hops": {
+              "cpu": {
+                "cycles": 231191,
+                "retired": 3849,
+                "ipc": 0.0166486,
+                "zero_commit": 228112,
+                "single_commit": 2309,
+                "dual_commit": 770,
+                "head_empty": 0,
+                "head_not_done": 231187,
+                "head_operands_wait": 0,
+                "head_memory": 231179,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3072,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 200457,
+                "eviction": 6151,
+                "request_cause_0": 231191,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 1,
+                "occupied_entry_cycles": 209680,
+                "any_occupied_cycles": 209680,
+                "multi_occupied_cycles": 0,
+                "acquire_fill_peak": 1,
+                "multi_acquire_fill_cycles": 0
+              },
+              "prefetch": {
+                "candidates": 0,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 0,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3074,
+                "read_bytes": 196736,
+                "writes": 1,
+                "write_bytes": 64,
+                "r_beats": 24592,
+                "w_beats": 8
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 23961,
+            "writes": 10255,
+            "r_beats": 191688,
+            "w_beats": 82040
+          }
+        }
+      },
+      "cycle_comparison": {
+        "read_64KiB_3passes": {
+          "off": 181647,
+          "on": 181647,
+          "speedup": 1.0,
+          "cycle_change_percent": 0.0
+        },
+        "write_kernel": {
+          "off": 344151,
+          "on": 344151,
+          "speedup": 1.0,
+          "cycle_change_percent": 0.0
+        },
+        "write_flush_tail": {
+          "off": 17756,
+          "on": 17756,
+          "speedup": 1.0,
+          "cycle_change_percent": 0.0
+        },
+        "copy_kernel": {
+          "off": 644683,
+          "on": 641855,
+          "speedup": 1.0044059795436664,
+          "cycle_change_percent": -0.4386652044493178
+        },
+        "copy_flush_tail": {
+          "off": 9215,
+          "on": 9042,
+          "speedup": 1.0191329351913294,
+          "cycle_change_percent": -1.8773738469886059
+        },
+        "dependent_chase_3072hops": {
+          "off": 231188,
+          "on": 231191,
+          "speedup": 0.9999870237163211,
+          "cycle_change_percent": 0.0012976452064883404
+        }
+      }
+    },
+    "independent": {
+      "profiles": {
+        "off": {
+          "regions": {
+            "independent_line_64KiB_3passes": {
+              "cpu": {
+                "cycles": 114346,
+                "retired": 9247,
+                "ipc": 0.0808686,
+                "zero_commit": 108185,
+                "single_commit": 3075,
+                "dual_commit": 3086,
+                "head_empty": 0,
+                "head_not_done": 109589,
+                "head_operands_wait": 0,
+                "head_memory": 109851,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3072,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 113245,
+                "eviction": 6151,
+                "request_cause_0": 114346,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 213284,
+                "any_occupied_cycles": 113788,
+                "multi_occupied_cycles": 99496,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 89329
+              },
+              "prefetch": {
+                "candidates": 2890,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 2890,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3073,
+                "read_bytes": 196672,
+                "writes": 1,
+                "write_bytes": 64,
+                "r_beats": 24576,
+                "w_beats": 8
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5152,
+            "writes": 1029,
+            "r_beats": 41216,
+            "w_beats": 8232
+          }
+        },
+        "on": {
+          "regions": {
+            "independent_line_64KiB_3passes": {
+              "cpu": {
+                "cycles": 114346,
+                "retired": 9247,
+                "ipc": 0.0808686,
+                "zero_commit": 108185,
+                "single_commit": 3075,
+                "dual_commit": 3086,
+                "head_empty": 0,
+                "head_not_done": 109589,
+                "head_operands_wait": 0,
+                "head_memory": 109851,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 3072,
+                "write_miss": 0,
+                "miss_blocked": 0,
+                "refill": 113245,
+                "eviction": 6151,
+                "request_cause_0": 114346,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 213284,
+                "any_occupied_cycles": 113788,
+                "multi_occupied_cycles": 99496,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 89329
+              },
+              "prefetch": {
+                "candidates": 2890,
+                "allocated": 0,
+                "useful": 0,
+                "errors": 0,
+                "busy_cycles": 2890,
+                "miss_owner_cycles": 0,
+                "release_owner_cycles": 0
+              },
+              "traffic": {
+                "reads": 3073,
+                "read_bytes": 196672,
+                "writes": 1,
+                "write_bytes": 64,
+                "r_beats": 24576,
+                "w_beats": 8
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5152,
+            "writes": 1029,
+            "r_beats": 41216,
+            "w_beats": 8232
+          }
+        }
+      },
+      "cycle_comparison": {
+        "independent_line_64KiB_3passes": {
+          "off": 114346,
+          "on": 114346,
+          "speedup": 1.0,
+          "cycle_change_percent": 0.0
+        }
+      }
+    },
+    "mixed16": {
+      "profiles": {
+        "off": {
+          "regions": {
+            "mixed_read_store_64KiB_3passes": {
+              "cpu": {
+                "cycles": 189016,
+                "retired": 83399,
+                "ipc": 0.441227,
+                "zero_commit": 136543,
+                "single_commit": 21547,
+                "dual_commit": 30926,
+                "head_empty": 137,
+                "head_not_done": 136988,
+                "head_operands_wait": 0,
+                "head_memory": 154845,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 90,
+                "write_miss": 2,
+                "miss_blocked": 92266,
+                "refill": 149863,
+                "eviction": 4678,
+                "request_cause_0": 189016,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 159612,
+                "any_occupied_cycles": 156754,
+                "multi_occupied_cycles": 2858,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 2732
+              },
+              "prefetch": {
+                "candidates": 3021,
+                "allocated": 2247,
+                "useful": 2247,
+                "errors": 0,
+                "busy_cycles": 156021,
+                "miss_owner_cycles": 152829,
+                "release_owner_cycles": 6867
+              },
+              "traffic": {
+                "reads": 2343,
+                "read_bytes": 149952,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 18752,
+                "w_beats": 0
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5214,
+            "writes": 1031,
+            "r_beats": 41712,
+            "w_beats": 8248
+          }
+        },
+        "on": {
+          "regions": {
+            "mixed_read_store_64KiB_3passes": {
+              "cpu": {
+                "cycles": 195765,
+                "retired": 83399,
+                "ipc": 0.426016,
+                "zero_commit": 143292,
+                "single_commit": 21547,
+                "dual_commit": 30926,
+                "head_empty": 137,
+                "head_not_done": 145297,
+                "head_operands_wait": 0,
+                "head_memory": 161594,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 350,
+                "write_miss": 2,
+                "miss_blocked": 99015,
+                "refill": 147434,
+                "eviction": 4820,
+                "request_cause_0": 195765,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 166126,
+                "any_occupied_cycles": 154136,
+                "multi_occupied_cycles": 11990,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 11462
+              },
+              "prefetch": {
+                "candidates": 2832,
+                "allocated": 2058,
+                "useful": 2058,
+                "errors": 0,
+                "busy_cycles": 143523,
+                "miss_owner_cycles": 140002,
+                "release_owner_cycles": 6621
+              },
+              "traffic": {
+                "reads": 2414,
+                "read_bytes": 154496,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 19320,
+                "w_beats": 0
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5285,
+            "writes": 1031,
+            "r_beats": 42280,
+            "w_beats": 8248
+          }
+        }
+      },
+      "cycle_comparison": {
+        "mixed_read_store_64KiB_3passes": {
+          "off": 189016,
+          "on": 195765,
+          "speedup": 0.9655249916992312,
+          "cycle_change_percent": 3.570597198120784
+        }
+      }
+    },
+    "mixed64": {
+      "profiles": {
+        "off": {
+          "regions": {
+            "mixed_read_store_64KiB_3passes": {
+              "cpu": {
+                "cycles": 188611,
+                "retired": 83111,
+                "ipc": 0.440648,
+                "zero_commit": 136282,
+                "single_commit": 21547,
+                "dual_commit": 30782,
+                "head_empty": 137,
+                "head_not_done": 136721,
+                "head_operands_wait": 0,
+                "head_memory": 154584,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 89,
+                "write_miss": 2,
+                "miss_blocked": 92761,
+                "refill": 149848,
+                "eviction": 4678,
+                "request_cause_0": 188611,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 159610,
+                "any_occupied_cycles": 156739,
+                "multi_occupied_cycles": 2871,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 2745
+              },
+              "prefetch": {
+                "candidates": 3021,
+                "allocated": 2248,
+                "useful": 2248,
+                "errors": 0,
+                "busy_cycles": 156074,
+                "miss_owner_cycles": 152884,
+                "release_owner_cycles": 6867
+              },
+              "traffic": {
+                "reads": 2343,
+                "read_bytes": 149952,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 18752,
+                "w_beats": 0
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5214,
+            "writes": 1031,
+            "r_beats": 41712,
+            "w_beats": 8248
+          }
+        },
+        "on": {
+          "regions": {
+            "mixed_read_store_64KiB_3passes": {
+              "cpu": {
+                "cycles": 188971,
+                "retired": 83111,
+                "ipc": 0.439808,
+                "zero_commit": 136642,
+                "single_commit": 21547,
+                "dual_commit": 30782,
+                "head_empty": 137,
+                "head_not_done": 137123,
+                "head_operands_wait": 0,
+                "head_memory": 154944,
+                "memory_completion_blocked": 0,
+                "store_blocked": 0,
+                "unknown_store_blocked": 0,
+                "read_miss": 96,
+                "write_miss": 2,
+                "miss_blocked": 93121,
+                "refill": 150161,
+                "eviction": 4678,
+                "request_cause_0": 188971,
+                "request_cause_1": 0,
+                "request_cause_2": 0,
+                "request_cause_3": 0,
+                "request_cause_4": 0,
+                "request_cause_5": 0,
+                "request_cause_6": 0,
+                "request_cause_7": 0
+              },
+              "ownership": {
+                "peak_read_ids": 2,
+                "occupied_peak": 2,
+                "occupied_entry_cycles": 159525,
+                "any_occupied_cycles": 157070,
+                "multi_occupied_cycles": 2455,
+                "acquire_fill_peak": 2,
+                "multi_acquire_fill_cycles": 2347
+              },
+              "prefetch": {
+                "candidates": 2976,
+                "allocated": 2241,
+                "useful": 2241,
+                "errors": 0,
+                "busy_cycles": 155566,
+                "miss_owner_cycles": 152395,
+                "release_owner_cycles": 6846
+              },
+              "traffic": {
+                "reads": 2343,
+                "read_bytes": 149952,
+                "writes": 0,
+                "write_bytes": 0,
+                "r_beats": 18752,
+                "w_beats": 0
+              }
+            }
+          },
+          "traffic_total": {
+            "reads": 5214,
+            "writes": 1031,
+            "r_beats": 41712,
+            "w_beats": 8248
+          }
+        }
+      },
+      "cycle_comparison": {
+        "mixed_read_store_64KiB_3passes": {
+          "off": 188611,
+          "on": 188971,
+          "speedup": 0.9980949457853321,
+          "cycle_change_percent": 0.19086903733080973
+        }
+      }
+    }
+  },
+  "mixed_execution_witnesses": {
+    "mixed16": {
+      "off": {
+        "architectural_source_loads": 24576,
+        "physical_source_reads": 24576,
+        "physical_minus_retired": 0,
+        "scratch_stores": 192
+      },
+      "on": {
+        "architectural_source_loads": 24576,
+        "physical_source_reads": 24576,
+        "physical_minus_retired": 0,
+        "scratch_stores": 192
+      }
+    },
+    "mixed64": {
+      "off": {
+        "architectural_source_loads": 24576,
+        "physical_source_reads": 24576,
+        "physical_minus_retired": 0,
+        "scratch_stores": 48
+      },
+      "on": {
+        "architectural_source_loads": 24576,
+        "physical_source_reads": 24576,
+        "physical_minus_retired": 0,
+        "scratch_stores": 48
+      }
+    }
+  },
+  "limits": [
+    "Controlled host DDR model; no physical bandwidth or mapped PPA claim",
+    "One accepted-store history policy ablation; no owner, credit or permission expansion",
+    "Physical source accepts may include legal speculation; retired fixed-guest LDs and scratch store ordinals are independently checked",
+    "Historical useful-event telemetry is not independently a fully hidden miss count",
+    "Functional PASS does not automatically promote a workload-dependent policy"
+  ],
+  "virtual": {
+    "off": {
+      "roi": {
+        "warm_independent": {
+          "cycles": 4422,
+          "retired": 1159,
+          "pc_trace": 13886498985714702645,
+          "physical_requests": 512,
+          "physical_replies": 512,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 1,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        },
+        "cold_pages": {
+          "cycles": 512,
+          "retired": 14,
+          "pc_trace": 14629714417150808343,
+          "physical_requests": 4,
+          "physical_replies": 4,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 2,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        },
+        "dependent_chase": {
+          "cycles": 2311,
+          "retired": 776,
+          "pc_trace": 15979064537894237675,
+          "physical_requests": 256,
+          "physical_replies": 256,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 1,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        }
+      },
+      "architecture": {
+        "signature_hash": 2725054555847287331,
+        "retired": 2247,
+        "pc_trace": 15900639054641019825,
+        "traps": 1,
+        "trap_pc": 2149581064,
+        "trap_cause": 13,
+        "trap_tval": 1073774592,
+        "lsr_reads": 1,
+        "owner_checks": 13672,
+        "cancelled_outstanding_cycles": 0
+      },
+      "performance": {
+        "warm_independent": {
+          "cycles": 4422,
+          "retired": 1159,
+          "ipc": 0.262099,
+          "zero_commit": 3586,
+          "single_commit": 513,
+          "dual_commit": 323,
+          "head_empty": 0,
+          "head_not_done": 4100,
+          "head_operands_wait": 0,
+          "head_memory": 4096,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 0,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 0,
+          "eviction": 0,
+          "request_cause_0": 4422,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        },
+        "cold_pages": {
+          "cycles": 512,
+          "retired": 14,
+          "ipc": 0.0273438,
+          "zero_commit": 504,
+          "single_commit": 2,
+          "dual_commit": 6,
+          "head_empty": 13,
+          "head_not_done": 497,
+          "head_operands_wait": 0,
+          "head_memory": 493,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 4,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 260,
+          "eviction": 0,
+          "request_cause_0": 512,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        },
+        "dependent_chase": {
+          "cycles": 2311,
+          "retired": 776,
+          "ipc": 0.335785,
+          "zero_commit": 1794,
+          "single_commit": 258,
+          "dual_commit": 259,
+          "head_empty": 0,
+          "head_not_done": 2052,
+          "head_operands_wait": 0,
+          "head_memory": 2048,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 0,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 0,
+          "eviction": 0,
+          "request_cause_0": 2311,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        }
+      },
+      "run": {
+        "total_cycles": 13676,
+        "regions": 3,
+        "physical_peak": 1,
+        "DDR_READ_LATENCY": 32,
+        "DDR_READ_CREDITS": 8,
+        "DDR_READ_BEAT_GAP": 1,
+        "forced_response_holds": 0
+      }
+    },
+    "on": {
+      "roi": {
+        "warm_independent": {
+          "cycles": 4422,
+          "retired": 1159,
+          "pc_trace": 13886498985714702645,
+          "physical_requests": 512,
+          "physical_replies": 512,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 1,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        },
+        "cold_pages": {
+          "cycles": 512,
+          "retired": 14,
+          "pc_trace": 14629714417150808343,
+          "physical_requests": 4,
+          "physical_replies": 4,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 2,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        },
+        "dependent_chase": {
+          "cycles": 2311,
+          "retired": 776,
+          "pc_trace": 15979064537894237675,
+          "physical_requests": 256,
+          "physical_replies": 256,
+          "physical_peak": 1,
+          "lsu_peak": 1,
+          "axi_peak": 1,
+          "parallel_starts": 0,
+          "multiple_physical_cycles": 0
+        }
+      },
+      "architecture": {
+        "signature_hash": 2725054555847287331,
+        "retired": 2247,
+        "pc_trace": 15900639054641019825,
+        "traps": 1,
+        "trap_pc": 2149581064,
+        "trap_cause": 13,
+        "trap_tval": 1073774592,
+        "lsr_reads": 1,
+        "owner_checks": 13672,
+        "cancelled_outstanding_cycles": 0
+      },
+      "performance": {
+        "warm_independent": {
+          "cycles": 4422,
+          "retired": 1159,
+          "ipc": 0.262099,
+          "zero_commit": 3586,
+          "single_commit": 513,
+          "dual_commit": 323,
+          "head_empty": 0,
+          "head_not_done": 4100,
+          "head_operands_wait": 0,
+          "head_memory": 4096,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 0,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 0,
+          "eviction": 0,
+          "request_cause_0": 4422,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        },
+        "cold_pages": {
+          "cycles": 512,
+          "retired": 14,
+          "ipc": 0.0273438,
+          "zero_commit": 504,
+          "single_commit": 2,
+          "dual_commit": 6,
+          "head_empty": 13,
+          "head_not_done": 497,
+          "head_operands_wait": 0,
+          "head_memory": 493,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 4,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 260,
+          "eviction": 0,
+          "request_cause_0": 512,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        },
+        "dependent_chase": {
+          "cycles": 2311,
+          "retired": 776,
+          "ipc": 0.335785,
+          "zero_commit": 1794,
+          "single_commit": 258,
+          "dual_commit": 259,
+          "head_empty": 0,
+          "head_not_done": 2052,
+          "head_operands_wait": 0,
+          "head_memory": 2048,
+          "memory_completion_blocked": 0,
+          "store_blocked": 0,
+          "unknown_store_blocked": 0,
+          "read_miss": 0,
+          "write_miss": 0,
+          "miss_blocked": 0,
+          "refill": 0,
+          "eviction": 0,
+          "request_cause_0": 2311,
+          "request_cause_1": 0,
+          "request_cause_2": 0,
+          "request_cause_3": 0,
+          "request_cause_4": 0,
+          "request_cause_5": 0,
+          "request_cause_6": 0,
+          "request_cause_7": 0
+        }
+      },
+      "run": {
+        "total_cycles": 13676,
+        "regions": 3,
+        "physical_peak": 1,
+        "DDR_READ_LATENCY": 32,
+        "DDR_READ_CREDITS": 8,
+        "DDR_READ_BEAT_GAP": 1,
+        "forced_response_holds": 0
+      }
+    }
+  }
+}

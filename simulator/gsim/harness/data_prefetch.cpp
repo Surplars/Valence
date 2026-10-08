@@ -84,11 +84,11 @@ int main(int argc,char**argv) { try {
         PrefetchTest t;
         for(unsigned n=0;n<512;++n)t.cpu({base+64ULL*((n*37)%512)});
         t.cpu({base+64ULL*512});
+        t.cpu({base+64ULL*7}); // break prediction history before the second input fill
         t.cpu({base+64ULL*513});t.settle();
-        // Install both predictor input lines before holding Acks. Generating
-        // a candidate on a demand miss that is already evicting must drop it:
-        // the production predictor gives demand eviction priority. Hit replay
-        // leaves the victim lane idle so the prediction can own its Release.
+        // Install both predictor inputs without generating a speculative owner.
+        // Then replay hits with the victim lane idle so the prediction alone
+        // owns the clean Release being held, independent of hint lifetime.
         t.cpu({base+64ULL*512});
         const auto before=t.allocations;
         t.d.set_io$$holdReleaseAck(1);

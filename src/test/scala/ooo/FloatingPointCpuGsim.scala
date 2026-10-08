@@ -8,15 +8,17 @@ import soc.core.ooo._
 
 /** External instruction device + observational probes, with no injected FP data. */
 class FloatingPointCpuGsim(withMemory: Boolean = false, bufferedMemory: Boolean = false,
-    compressed: Boolean = false, publishGc: Boolean = false) extends Module {
+    compressed: Boolean = false, publishGc: Boolean = false,
+    resources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
+    paramsOverride: Option[OooParams] = None) extends Module {
     require(!publishGc || (withMemory && compressed), "published GC fixture requires A/C memory geometry")
-    private val p = OooParams(robEntries = 8, physicalRegs = 40, machineSystem = true,
-        floatingPoint = FloatingPointConfig.fullFD, compressedInstructions = compressed,
+    private val p = paramsOverride.getOrElse(OooParams(robEntries = 8, physicalRegs = 40, machineSystem = true,
+        floatingPoint = FloatingPointConfig.fullFD.copy(resources = resources), compressedInstructions = compressed,
         advertiseFloatingPoint = publishGc, atomicMemory = publishGc,
         branchPredictorEntries = 64, returnStackEntries = 2,
         pmpEntries = if (withMemory) 8 else 0, virtualMemoryLevels = if (withMemory) 3 else 0,
         speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = if (withMemory) 4096 else 0,
-        bufferedRamStores = bufferedMemory, registeredMemoryRequests = bufferedMemory)
+        bufferedRamStores = bufferedMemory, registeredMemoryRequests = bufferedMemory))
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
@@ -104,7 +106,8 @@ object FloatingPointCpuGsimMain extends App {
 
 object FloatingPointMemoryCpuGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new FloatingPointCpuGsim(withMemory = true,
-        bufferedMemory = args.lift(1).contains("buffered")), Array("--target-dir", args.head))
+        bufferedMemory = args.lift(1).contains("buffered"),
+        resources = FloatingPointResourceConfig.named(args.lift(2).getOrElse("baseline"))), Array("--target-dir", args.head))
 }
 
 object FloatingPointIntegerRegressionGsimMain extends App {

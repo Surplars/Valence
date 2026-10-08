@@ -17,7 +17,8 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
     require(params.sourceBits >= 1)
     val io = IO(new Bundle {
         val tl = Flipped(new TLBundle(params))
-        val ports = Vec(config.ports.size, new GmacPortControl(config.aggregateStats, config.rxAdmissionStop))
+        val ports = Vec(config.ports.size, new GmacPortControl(config.aggregateStats, config.rxAdmissionStop,
+            config.triSpeedExtensions, config.externalMdio))
         val irq = Output(UInt(config.ports.size.W))
     })
     io.tl.b.valid := false.B
@@ -44,16 +45,18 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
     val maskedData = a.data & mask
     val knownOffsets = Seq(0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38,
         0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x78, 0x80, 0x88) ++
-        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty)
+        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty) ++
+        (if (config.triSpeedExtensions) (0x98 to 0x128 by 8) else Seq.empty)
     val known = knownOffsets.map(n => offset === n.U).reduce(_ || _)
     val writeOffsets = Seq(0x10, 0x18, 0x30, 0x38, 0x70, 0x78) ++
-        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty)
+        (if (config.rxAdmissionStop) Seq(0x90) else Seq.empty) ++
+        (if (config.triSpeedExtensions) Seq(0x118) else Seq.empty)
     val writable = writeOffsets.map(n => offset === n.U).reduce(_ || _)
     val allowedBits = MuxLookup(offset, 0.U(64.W))(Seq(
         0x10.U -> 15.U(64.W), 0x18.U -> ((BigInt(1) << 48) - 1).U(64.W),
         0x30.U -> 127.U(64.W), 0x38.U -> 127.U(64.W),
         0x70.U -> 1.U(64.W), 0x78.U -> ((BigInt(1) << 28) - 1).U(64.W),
-        0x90.U -> 1.U(64.W)))
+        0x90.U -> 1.U(64.W), 0x118.U -> 1.U(64.W)))
     val reservedLegal = (maskedData & ~allowedBits) === 0.U
     val selected = Wire(Vec(config.ports.size, Bool()))
     val portLegal = Wire(Vec(config.ports.size, Bool()))
@@ -70,37 +73,47 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         val irqEnable = RegInit(0.U(64.W))
         val mdioResult = RegInit(0.U(17.W))
         val mdioDone = RegInit(false.B)
-        val mdio = Module(new MdioClause22(config.controlClockHz, config.mdcHz))
+        val mdio = if (!config.externalMdio) Some(Module(new MdioClause22(config.controlClockHz, config.mdcHz))) else None
+        val mdioCommand = if (config.externalMdio) port.mdioCommand.get else mdio.get.io.command
+        val mdioResponse = if (config.externalMdio) port.mdioResponse.get else mdio.get.io.response
+        val mdioBusy = if (config.externalMdio) {
+            val busy = RegInit(false.B)
+            when(mdioCommand.fire) { busy := true.B }
+            when(mdioResponse.fire) { busy := false.B }
+            busy
+        } else mdio.get.io.busy
         val rxStopRequest = if (config.rxAdmissionStop) Some(RegInit(false.B)) else None
         val configuration = offset === 0x10.U || offset === 0x18.U
         val mdioStart = put && offset === 0x78.U && maskedData(17)
         // MDIO launch is a complete command, not a partial descriptor rewrite.
         val rxStopWrite = config.rxAdmissionStop.B && put && offset === 0x90.U
-        val commandLegal = (!mdioStart && !rxStopWrite) || (a.size === 3.U && a.mask === 255.U)
+        val restartWrite = config.triSpeedExtensions.B && put && offset === 0x118.U
+        val commandLegal = (!mdioStart && !rxStopWrite && !restartWrite) || (a.size === 3.U && a.mask === 255.U)
         portLegal(n) := selected(n) && protocolLegal && known &&
             (!put || (writable && reservedLegal && commandLegal &&
                 !(configuration && a.mask.orR && (port.txBusy || port.rxBusy))))
-        portReady(n) := !mdioStart || mdio.io.command.ready
+        portReady(n) := !mdioStart || mdioCommand.ready
         val accepted = io.tl.a.fire && portLegal(n) && put
         val ack = Mux(accepted && offset === 0x30.U, maskedData(6, 0), 0.U(7.W))
-        val events = Cat(mdio.io.response.fire, port.events)
+        val events = Cat(mdioResponse.fire, port.events)
         pending := (pending & ~ack) | events
         irqs(n) := (pending & irqEnable(6, 0)).orR
-        mdio.io.command.valid := accepted && mdioStart
-        mdio.io.command.bits.data := a.data(15, 0)
-        mdio.io.command.bits.write := a.data(16)
-        mdio.io.command.bits.phy := a.data(22, 18)
-        mdio.io.command.bits.register := a.data(27, 23)
-        mdio.io.response.ready := true.B
-        when(mdio.io.command.fire) { mdioDone := false.B }
-        when(mdio.io.response.fire) {
+        mdioCommand.valid := accepted && mdioStart
+        mdioCommand.bits.data := a.data(15, 0)
+        mdioCommand.bits.write := a.data(16)
+        mdioCommand.bits.phy := a.data(22, 18)
+        mdioCommand.bits.register := a.data(27, 23)
+        mdioResponse.ready := true.B
+        when(mdioCommand.fire) { mdioDone := false.B }
+        when(mdioResponse.fire) {
             mdioDone := true.B
-            mdioResult := Cat(mdio.io.response.bits.noAck, mdio.io.response.bits.data)
+            mdioResult := Cat(mdioResponse.bits.noAck, mdioResponse.bits.data)
         }
-        port.mdc := mdio.io.mdc
-        port.mdioOut := mdio.io.mdioOut
-        port.mdioOe := mdio.io.mdioOe
-        mdio.io.mdioIn := port.mdioIn
+        port.mdc := mdio.map(_.io.mdc).getOrElse(false.B)
+        port.mdioOut := mdio.map(_.io.mdioOut).getOrElse(true.B)
+        port.mdioOe := mdio.map(_.io.mdioOe).getOrElse(false.B)
+        mdio.foreach(_.io.mdioIn := port.mdioIn)
+        port.restartPhy.foreach(_ := accepted && restartWrite && maskedData(0))
         port.txEnable := control(0)
         port.rxEnable := control(1)
         port.promiscuous := control(2)
@@ -134,7 +147,17 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         val capability = (BigInt(config.maxFrameBytes) << 32) |
             (BigInt(kind.mediaBits) << 16) | (BigInt(1) << kind.capabilityBit) |
             (if (config.rxAdmissionStop) BigInt(1) << 8 else BigInt(0)) |
-            (if (config.rxFrameSlots != 0) (BigInt(1) << 9) | (BigInt(config.rxFrameSlots) << 24) else BigInt(0))
+            (if (config.rxFrameSlots != 0) (BigInt(1) << 9) | (BigInt(config.rxFrameSlots) << 24) else BigInt(0)) |
+            (if (config.triSpeedExtensions) (BigInt(1) << 10) | (BigInt(1) << 12) else BigInt(0)) |
+            (if (config.externalMdio) BigInt(1) << 11 else BigInt(0))
+        val extendedReads = if (config.triSpeedExtensions) {
+            val diagnostics = RegInit(VecInit(Seq.fill(14)(0.U(64.W))))
+            for (i <- 0 until 14) diagnostics(i) := Mux(clear, 0.U, diagnostics(i)) + port.diagnosticDeltas.get(i)
+            Seq(0x98.U -> port.mediaStatus.get, 0xa0.U -> port.phyCounters.get(0),
+                0xa8.U -> port.phyCounters.get(1), 0x110.U -> port.phyCounters.get(2), 0x118.U -> 0.U(64.W)) ++
+                (0 until 12).map(i => (0xb0 + 8 * i).U -> diagnostics(i)) ++
+                Seq(0x120.U -> diagnostics(12), 0x128.U -> diagnostics(13))
+        } else Seq.empty
         readValues(n) := MuxLookup(offset, 0.U(64.W))(Seq(
             0x00.U -> "h56474d4100010001".U(64.W), 0x08.U -> capability.U(64.W),
             0x10.U -> control, 0x18.U -> macAddress, 0x20.U -> config.maxFrameBytes.U(64.W),
@@ -142,7 +165,7 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
             0x30.U -> pending, 0x38.U -> irqEnable,
             0x40.U -> txFrames, 0x48.U -> rxFrames, 0x50.U -> rxDrops, 0x58.U -> rxBadFcs,
             0x60.U -> txBytes, 0x68.U -> rxBytes,
-            0x80.U -> Cat(mdioDone, mdio.io.busy), 0x88.U -> mdioResult) ++
+            0x80.U -> Cat(mdioDone, mdioBusy), 0x88.U -> mdioResult) ++ extendedReads ++
             (if (config.rxAdmissionStop) Seq(0x90.U ->
                 Cat(rxStopRequest.get && port.rxStopDrained.get, rxStopRequest.get)) else Seq.empty))
     }

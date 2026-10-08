@@ -6,6 +6,9 @@
 #include <string_view>
 #include <vector>
 
+#ifndef MDIO_DIVIDER
+#define MDIO_DIVIDER 4
+#endif
 static void check(bool ok,const char *why) { if(!ok) throw std::runtime_error(why); }
 struct Command { unsigned phy,reg; bool write; uint16_t data,rx; bool noAck; };
 static std::vector<bool> wireBits(const Command &c) {
@@ -31,8 +34,8 @@ int main(int argc,char **argv) { try {
         unsigned rises=0,falls=0,lastEdge=0;
         uint16_t sampled=0;
         bool heldReply=false; uint16_t heldData=0; bool heldNoAck=false;
-        for(unsigned cycle=0;cycle<1200 && !complete;++cycle) {
-            const bool ready=cycle>900 && cycle%3!=1;
+        for(unsigned cycle=0;cycle<300*MDIO_DIVIDER && !complete;++cycle) {
+            const bool ready=cycle>225*MDIO_DIVIDER && cycle%3!=1;
             // PHY changes its next bit during MDC low; reference cursor is based on edges.
             unsigned index=falls;
             bool in=true;
@@ -46,7 +49,7 @@ int main(int argc,char **argv) { try {
             if(!accepted && d.get_io$$command$$ready()) accepted=true;
             bool mdc=d.get_io$$mdc();
             if(mdc!=prevMdc) {
-                check(cycle-lastEdge==4 || (rises==0 && falls==0),"MDIO clock divider/edge spacing mismatch");
+                check(cycle-lastEdge==MDIO_DIVIDER || (rises==0 && falls==0),"MDIO clock divider/edge spacing mismatch");
                 lastEdge=cycle;
                 if(mdc) {
                     unsigned bit=rises++;
@@ -78,12 +81,12 @@ int main(int argc,char **argv) { try {
     for(unsigned position: {1U,17U,130U,260U,370U,390U,430U,500U}) {
         d.set_io$$command$$valid(1); d.set_io$$command$$bits$$write(0);
         d.set_io$$response$$ready(0); d.step();d.set_io$$command$$valid(0);
-        for(unsigned n=0;n<position;++n)d.step();
+        for(unsigned n=0;n<position*MDIO_DIVIDER/4;++n)d.step();
         d.set_reset(1);d.step();d.step();d.set_reset(0);d.step();
         check(!d.get_io$$busy() && !d.get_io$$mdc() && !d.get_io$$mdioOe() &&
             !d.get_io$$response$$valid() && d.get_io$$command$$ready(),"MDIO reset failed to cancel transaction");
         ++resetCases;
     }
     std::cout<<"MDIO_CLAUSE22_PASS transactions=96 reads="<<reads<<" writes="<<writes
-        <<" noack="<<noacks<<" reset_cases="<<resetCases<<" divider=4\n";return 0;
+        <<" noack="<<noacks<<" reset_cases="<<resetCases<<" divider="<<MDIO_DIVIDER<<"\n";return 0;
 } catch(const std::exception &e) {std::cerr<<e.what()<<'\n';return 1;} }

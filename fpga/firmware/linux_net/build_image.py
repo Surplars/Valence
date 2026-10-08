@@ -306,7 +306,7 @@ def build(args):
         log=output / 'kernel-build.log', timeout=2400)
     module_out = output / 'module'
     module_out.mkdir(exist_ok=True)
-    for name in ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_irq_policy.h', 'valence_rx_queue.h', 'valence_tx_queue.h',
+    for name in ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_irq_policy.h', 'valence_rx_queue.h', 'valence_tx_queue.h', 'valence_media_policy.h',
                  'valence_driver_names.h', 'valence_soc.c'):
         shutil.copyfile(HERE / name, module_out / name)
     run([*make, f'M={module_out}', 'W=1', f'-j{args.jobs}', 'modules'], cwd=source,

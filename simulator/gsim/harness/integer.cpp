@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+static bool injectFaultMismatch = false;
+
 struct Token {
     unsigned index = 0;
     uint64_t tag = 0;
@@ -21,6 +23,8 @@ struct Request {
     unsigned rs1 = 0, rs2 = 0, rd = 1, op = 0;
     uint64_t immediate = 0, pc = 0;
     uint32_t instruction = 0;
+    bool fetchFault = false, fetchPageFault = false;
+    uint64_t fetchTval = 0;
 };
 struct Input {
     std::array<Request, 2> requests{};
@@ -61,9 +65,9 @@ static void drive(SIntegerBackendGsim &dut, const Input &in) {
     dut.set_io$$allocate##N##$$bits$$predictedNextPc$$valid(0); \
     dut.set_io$$allocate##N##$$bits$$predictedNextPc$$bits(0); \
     dut.set_io$$allocate##N##$$bits$$memory(0); \
-    dut.set_io$$allocate##N##$$bits$$fetchFault(0); \
-    dut.set_io$$allocate##N##$$bits$$fetchPageFault(0); \
-    dut.set_io$$allocate##N##$$bits$$fetchTval(0); \
+    dut.set_io$$allocate##N##$$bits$$fetchFault(in.requests[N].fetchFault); \
+    dut.set_io$$allocate##N##$$bits$$fetchPageFault(in.requests[N].fetchPageFault); \
+    dut.set_io$$allocate##N##$$bits$$fetchTval(in.requests[N].fetchTval); \
     dut.set_io$$allocate##N##$$bits$$expandedInstruction(0); \
     dut.set_io$$allocate##N##$$bits$$atomic(0); \
     dut.set_io$$allocate##N##$$bits$$atomicOp(0); \
@@ -122,6 +126,7 @@ static Output sample(SIntegerBackendGsim &dut) {
     out.faultPc = dut.get_io$$headException$$bits$$pc();
     out.faultCause = dut.get_io$$headException$$bits$$cause();
     out.faultTval = dut.get_io$$headException$$bits$$tval();
+    if (injectFaultMismatch && out.fault) out.faultTval ^= 1;
     return out;
 }
 
@@ -129,6 +134,9 @@ static Output sample(SIntegerBackendGsim &dut) {
 static bool legal(const Request &r) {
     return r.op < 12 && (!r.word || r.op < 2 || (r.op >= 5 && r.op <= 7));
 }
+static bool faulting(const Request& r) { return r.fetchFault || r.fetchPageFault || !legal(r); }
+static uint64_t faultCause(const Request& r) { return r.fetchPageFault ? 12 : (r.fetchFault ? 1 : 2); }
+static uint64_t faultTval(const Request& r) { return r.fetchFault || r.fetchPageFault ? r.fetchTval : r.instruction; }
 static uint64_t evaluate(const Request &r, uint64_t a, uint64_t b) {
     const unsigned width = r.word ? 32 : 64;
     const unsigned shift = b % width;
@@ -211,12 +219,12 @@ public:
         if (accept) { keep = requested; ++stats.redirects; }
         const bool rollback = recovering || accept;
         const size_t survivors = rollback ? keep : live.size();
-        const bool fault = !rollback && !live.empty() && live.front().done && !legal(live.front().request);
+        const bool fault = !rollback && !live.empty() && live.front().done && faulting(live.front().request);
         check(out.fault == fault, "precise head exception valid");
         if (fault) {
             const auto &t = live.front();
-            check(out.faultToken == t.token && out.faultPc == t.request.pc && out.faultCause == 2 &&
-                  out.faultTval == t.request.instruction, "precise head exception payload");
+            check(out.faultToken == t.token && out.faultPc == t.request.pc && out.faultCause == faultCause(t.request) &&
+                  out.faultTval == faultTval(t.request), "precise head exception payload");
             ++stats.exceptions;
         }
         // Dependencies are captured as architectural producer identities. No physical maps or RTL selection network.
@@ -233,11 +241,11 @@ public:
                 auto &t = live[candidates[lane]];
                 const auto &result = out.issued[lane];
                 check(result.token == t.token, "oldest-ready issue order");
-                check(result.exception == !legal(t.request), "ALU operation legality, op=" +
+                check(result.exception == faulting(t.request), "ALU operation legality, op=" +
                     std::to_string(t.request.op) + " word=" + std::to_string(t.request.word) +
                     " actual_exception=" + std::to_string(result.exception));
-                if (legal(t.request)) check(result.data == t.expected, "ALU result, op=" + std::to_string(t.request.op));
-                else check(result.cause == 2 && result.tval == t.request.instruction, "illegal operation metadata");
+                if (!faulting(t.request)) check(result.data == t.expected, "ALU result, op=" + std::to_string(t.request.op));
+                else check(result.cause == faultCause(t.request) && result.tval == faultTval(t.request), "precise operation/fetch fault metadata");
                 for (size_t i = 0; i < candidates[lane]; ++i) {
                     if (!live[i].done && std::find(candidates.begin(), candidates.begin() + lane, i) == candidates.begin() + lane) {
                         ++stats.outOfOrder;
@@ -254,7 +262,7 @@ public:
                 std::find(candidates.begin(), candidates.begin() + std::min<size_t>(2, candidates.size()), lane) !=
                     candidates.begin() + std::min<size_t>(2, candidates.size());
             const bool valid = in.commit && !rollback && retire == lane && lane < live.size() &&
-                               (live[lane].done || completesNow) && legal(live[lane].request);
+                               (live[lane].done || completesNow) && !faulting(live[lane].request);
             check(out.retired[lane].valid == valid, "ordered retirement");
             if (valid) {
                 const auto &t = live[lane];
@@ -308,7 +316,7 @@ public:
         for (unsigned lane = 0; lane < 2 && lane < candidates.size(); ++lane) {
             auto &t = live[candidates[lane]];
             t.done = true;
-            if (legal(t.request)) completed.insert(t.token.tag);
+            if (!faulting(t.request)) completed.insert(t.token.tag);
         }
         if (rollback) {
             recovering = live.size() > keep + 1;
@@ -331,7 +339,7 @@ public:
         for (unsigned i = 0; !live.empty() && i < 1000; ++i) {
             Input in;
             in.inspect = i % 32;
-            if (live.front().done && !legal(live.front().request)) {
+            if (live.front().done && faulting(live.front().request)) {
                 in.recover = in.inclusive = true;
                 in.boundary = live.front().token;
             }
@@ -374,6 +382,23 @@ static void arithmetic(Bench &b) {
     }
     b.drain();
 }
+static void fetchFaults(Bench& b) {
+    // Preserve the entire supplied tval, including a second-halfword fetch fault
+    // and upper address bits unrelated to the original instruction or ROB PC.
+    const std::array<uint64_t, 5> addresses = {0, 0x1000, 0x80000002ULL,
+        0xffffffc012345678ULL, UINT64_MAX};
+    for (unsigned kind = 0; kind < 3; ++kind) for (auto address : addresses) {
+        Input in; in.commit = false;
+        in.requests[0] = immediate(0, 0x8bde01327ULL);
+        auto& request = in.requests[0];
+        request.writes = false; request.pc = 0x80000ffe;
+        request.instruction = 0xfedcba13; request.fetchTval = address;
+        request.fetchFault = kind != 1; request.fetchPageFault = kind != 0;
+        in.requests[1] = immediate(4, 0x123456789ULL);
+        b.tick(in); b.tick(Input{.commit = false}); b.drain();
+    }
+}
+
 static void directed(Bench &b) {
     // Same-packet RAW/WAW, x0 suppression, register operands and PC-relative inputs.
     Input in;
@@ -831,7 +856,7 @@ static void parallelCancellation() {
     if (!reused || requests != 5 || discarded != 4 || retired != 1) throw std::runtime_error("parallel coverage");
 }
 
-int main() {
+int main(int argc, char** argv) {
     try {
         redirectArbitration();
         memoryRetirementProtection(false);
@@ -840,8 +865,10 @@ int main() {
         memoryTurnaround();
         storeForwarding();
         parallelCancellation();
+        injectFaultMismatch = argc > 1 && std::string_view(argv[1]) == "--inject-fault-mismatch";
         Bench bench;
         arithmetic(bench);
+        fetchFaults(bench);
         directed(bench);
         throughput(bench);
         for (uint64_t seed : {UINT64_C(0x2341), UINT64_C(0xab918), UINT64_C(0x982fab)}) randomized(bench, seed);

@@ -1,0 +1,132 @@
+{
+  "schema": "valence-fpga-next-rob-full64-handoff-v1",
+  "status": "PASS_FOCUSED_FULL64_LEDGER",
+  "tested_commit": "50f5b106299c29f69c2dee4ba8863157f7755676",
+  "tested_base_commit": "54c49240c8dc81f04343a89741c9fd72975ded98",
+  "current_integration_at_binding": "e5006718da07f94933e67922b9e00f686bc29ff4",
+  "production_changes_in_test_clone": false,
+  "source_bindings": [
+    {
+      "path": "src/main/scala/core/ooo/RenameRob.scala",
+      "tested_sha256": "04230612b4c17cf613932a6faeae573693f7bd322dec87ea75b8b0d64dc4d7a3",
+      "current_integration_sha256": "04230612b4c17cf613932a6faeae573693f7bd322dec87ea75b8b0d64dc4d7a3",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/BankedRobPayload.scala",
+      "tested_sha256": "d51313a07857e39e7b09e84edfaa7267352cc809042113517777b8577771e574",
+      "current_integration_sha256": "d51313a07857e39e7b09e84edfaa7267352cc809042113517777b8577771e574",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/BackendTypes.scala",
+      "tested_sha256": "418f39616f8e161caabb44cdf344e5f8f2577c5fac32f2b42e9948b99de5d30a",
+      "current_integration_sha256": "418f39616f8e161caabb44cdf344e5f8f2577c5fac32f2b42e9948b99de5d30a",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/ParallelRecoveryAdmission.scala",
+      "tested_sha256": "665cac2b73bee4e66c64b7a9a5aeaaf172e7a93ec27c3390286f7635e591961e",
+      "current_integration_sha256": "665cac2b73bee4e66c64b7a9a5aeaaf172e7a93ec27c3390286f7635e591961e",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/FaultAwareRenameCandidates.scala",
+      "tested_sha256": "644ed068df4de1e7719a4cb0ee1afd75f9e31677933f1e46176bd11cd1d8a3d2",
+      "current_integration_sha256": "644ed068df4de1e7719a4cb0ee1afd75f9e31677933f1e46176bd11cd1d8a3d2",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/RenameAllocationCapacity.scala",
+      "tested_sha256": "104eb314acafd1e7af6f62f073186b85ce19f5ec969ee06bdee1f74c428fc6ba",
+      "current_integration_sha256": "104eb314acafd1e7af6f62f073186b85ce19f5ec969ee06bdee1f74c428fc6ba",
+      "exact_match": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/RenameDestinationCandidates.scala",
+      "tested_sha256": "ec5fc55d9e8e861e021386d72a878c49d3dea42dead23b212341b859660d5c0a",
+      "current_integration_sha256": "ec5fc55d9e8e861e021386d72a878c49d3dea42dead23b212341b859660d5c0a",
+      "exact_match": true
+    },
+    {
+      "path": "src/test/scala/ooo/RenameRobGsim.scala",
+      "tested_sha256": "1f3b782eb0acccf154804df9f33023531272a58635fb0c2634680196af482470",
+      "current_integration_sha256": "1f3b782eb0acccf154804df9f33023531272a58635fb0c2634680196af482470",
+      "exact_match": true
+    },
+    {
+      "path": "simulator/gsim/harness/backend.cpp",
+      "tested_sha256": "7bacf8f1426d88c71cdcbbec41a2f5a1571688e2b7df82ecfc3b627c6dbe3bd6",
+      "current_integration_sha256": "7bacf8f1426d88c71cdcbbec41a2f5a1571688e2b7df82ecfc3b627c6dbe3bd6",
+      "exact_match": true
+    }
+  ],
+  "other_current_source_deltas": [
+    {
+      "path": "src/main/scala/core/ooo/BoardSocTop.scala",
+      "tested_sha256": "bc558a52e651e769df778a5b4ebf0d6efa7cd01f763ba3f94d26ef845ff88ec5",
+      "current_sha256": "ce8f7ecf3029000cdd0b9578aa9cf8f71b0a74cc2d417b946b6a0e5b136a10ae"
+    },
+    {
+      "path": "src/main/scala/core/ooo/FetchPacketPermission.scala",
+      "tested_sha256": "876a1bc81780715f0208f8baa2c517cbeb2c5015f143c50041ef1dba5b524dac",
+      "current_sha256": "47d7c9b829dfc60d2c19fd93943271f036001ab9826e60ceae86e6008f9493b6"
+    },
+    {
+      "path": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "tested_sha256": "d62f99a986fc941492eef7023095f1d069e2a1137352c35adf25ceee64e3449c",
+      "current_sha256": "a802406bba1c25238182e2a268bf06b1a8f5a83714cb4f43f33d2a525267ec98"
+    },
+    {
+      "path": "src/main/scala/core/ooo/InstructionLineCache.scala",
+      "tested_sha256": "431829b0d1e92b11e9ac732e9220a1292290cc001030f23241a6bd591b9fdd2d",
+      "current_sha256": "3926bd980eb181c4bc38ad9799ea3383c62d18a9a9c31d17742614d332f1dd25"
+    },
+    {
+      "path": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "tested_sha256": "5b548e75a6d1eff180d9b8d83327358005a1a7f6a864e97cbdaa84ca16876672",
+      "current_sha256": "ddac2a32739dc53c3a74abec492201dea09809f49772704fd6d0ad4cfa90b571"
+    },
+    {
+      "path": "src/main/scala/core/ooo/IntegerCore.scala",
+      "tested_sha256": "defd9ab7682be30ed75ed0f0fd17b337262e1040049d0303053de1aa3861d724",
+      "current_sha256": "3d81889417d8bc46cb243b8c5257dd2fc2cf3fbaaafae51cb6612b1f98ced551"
+    },
+    {
+      "path": "src/main/scala/core/ooo/OooParams.scala",
+      "tested_sha256": "ba28740b86062db132aa71ff11f98b241948049ad57a2907d59a2feea6968962",
+      "current_sha256": "7e7dc05328e8bb07c5b40231da5203951986f0fbeae890472d09c840e04fbcf9"
+    },
+    {
+      "path": "src/main/scala/core/ooo/PacketFetchPmp.scala",
+      "tested_sha256": "4a8da50c15d1dd68dfa627e0ece0875a65aa3faeb77136506faf10d160aa010d",
+      "current_sha256": "8d102fe9aa0ef45a2acef699ceb67b3e08abe116fad920ad2ab219d17a7c5190"
+    }
+  ],
+  "current_profile_delta_assessment": "BoardSocTop/FpgaNextConfig/OooParams append optional ownerLocalIssueReady/sharedFetchPmpRelations flags with false defaults. Prior Candidate fields and ROB geometry/retirement/recovery options remain unchanged. The ROB leaf/helper graph never consumes either appended flag. This binds the module, not the complete changed integration tree.",
+  "receipt": {
+    "path": "proof/receipt.json",
+    "sha256": "e873d16e5a7b7d79ee0cd07d683762fca49ae715ac7c636fb3ecc7a9e5748f08"
+  },
+  "positive_results": {
+    "ledger": "GSIM RenameRob: PASS rob=16 physical=48 tagBits=64 recoveryWidth=4 allocations=14300 commits=8572 aliases=0 dualCommits=3425 recoveries=1191 rejectedCompletions=19147 seeds=3 randomCycles=18000\nGSIM FPGA-next ROB directed: PASS tagBitRejects=128 recoveryBitRejects=64 simultaneousAllocateCompleteRetire=1 indexWraps=24 reusedIndexStaleRejects=352 flushes=13 partialRetires=2 heldPayloadCycles=97 fullBackpressure=1 partialAllocation=1 exceptionHolds=33 recoveryPriority=13 resetWithOwners=1 pairAtEveryHead=16 boundaryStraddles=1\n",
+    "trusted-head-trap": "GSIM trusted head-trap ledger: PASS headTraps=204 activeRollbackShrinks=4 emptyRequests=15 duplicateZeroBoundary=43 dualCommits=445 rejectedCompletions=4186 seeds=2 randomCycles=3000\n",
+    "trusted-head-system": "GSIM authorization ledger: PASS headSystems=20 activeShrinks=1 duplicateRetainOne=53 externalHeadTies=2 trapPriority=1 ownerChecks=76 rawWaw=1 x0=1 validHoles=2 capacity=2 aliases=0\n"
+  },
+  "negative_controls_per_topology": 13,
+  "negative_controls_total": 26,
+  "topologies": [
+    "registers",
+    "banked"
+  ],
+  "paired_result": "IDENTICAL_POSITIVE_LOGS_AND_PARAMS_EXCEPT_STORAGE_TOPOLOGY",
+  "independent_review": "review_fpga_migration_safety independently rehashed all206 inputs and58 artifacts, compared parameters/logs and all26 negative anchors and mutation-fired witnesses.",
+  "limits": [
+    "Module-level ledger proof, not whole-core/ISA/system proof.",
+    "All 64 generation bits challenged with stale-owner mismatches. Live allocations start at zero; 2^64 generation exhaustion cannot be traversed by this bounded replay.",
+    "Retirement bypass qualifiers are true in this existing focused wrapper; fastHeadRetire is disabled. Current core/board tests own those integrated producer contracts.",
+    "Reset requires external producers reset/drained; cross-reset stale completions are not allowed by the RTL contract.",
+    "No synthesis, implementation, mapping, timing, CDC, FPGA-board or performance qualification."
+  ],
+  "closure": "Closes inherited tagBits8 and omitted model/executable/log gap for full64 focused selected ROB ledger scope. No RTL defect found and no redesign made."
+}

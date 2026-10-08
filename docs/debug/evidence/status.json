@@ -1,0 +1,23 @@
+{
+  "baseline": "ea5406ea15d2d0797ce2c5ef7a4951827c55145e",
+  "rtl_sha256": "21b8ee6c7690e29145150caae7f3cb54a588d7390c4621562db7b2ac3bd11adf",
+  "scala_tests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "sv_export_modes": [
+    "off",
+    "stub",
+    "external"
+  ],
+  "constraint_template_test": "passed; mock syntax/collection checks only",
+  "native_multiclock": "blocked: Icarus/vvp unavailable",
+  "native_test_coverage_claimed": false,
+  "mutation_checks": "not run without native simulator",
+  "gsim_multiclock_capability": "not supported; 7 edge cases and asynchronous reset mismatch",
+  "openocd_integration": "not run",
+  "physical_cdc_rdc": "not run",
+  "synthesis_ppa": "not run",
+  "cpu_halt_resume": "unimplemented, unconnected",
+  "production_enable_allowed": false
+}

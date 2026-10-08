@@ -70,7 +70,8 @@ object IntegerBackendGsimMain extends App {
         speculativeRamBytes = 4096,
         robEntries = args.lift(1).map(_.toInt).getOrElse(32),
         physicalRegs = args.lift(2).map(_.toInt).getOrElse(64),
-        tagBits = args.lift(3).map(_.toInt).getOrElse(64)
+        tagBits = args.lift(3).map(_.toInt).getOrElse(64),
+        bankedIssuePayload = args.contains("banked-issue-payload")
     )
     ChiselStage.emitCHIRRTLFile(new IntegerBackendGsim(p), Array("--target-dir", target))
 }

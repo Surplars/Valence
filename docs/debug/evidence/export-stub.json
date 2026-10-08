@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "mode": "stub",
+  "files": [
+    {
+      "name": "JtagDebugReservation.sv",
+      "sha256": "689fe02d5cf7d9afc75320b5b0ec1d401ca168771c8d37410fbe0fe99db1a51a"
+    },
+    {
+      "name": "ValenceJtagDebugPort.sv",
+      "sha256": "c26afde957f402ca163a09985777c3847cfdfdd57749047d6950cf9f4b80bc99"
+    }
+  ],
+  "scope": "export closure and structural checks, not behavioral proof"
+}

@@ -21,7 +21,8 @@ class FpgaIntegerCore(p: OooParams = OooParams()) extends Module {
     val frontend = Module(new SynchronousFetch(p.pmpEntries, p.compressedInstructions, p.frontendCacheSets,
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
-        parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow))
+        parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
+        independentPayloadCapture = p.independentFetchPayloadCapture))
     frontend.io.pc     := core.io.fetchPc
     frontend.io.enable := !core.io.exception.valid
     frontend.io.invalidate := core.io.invalidateFetch

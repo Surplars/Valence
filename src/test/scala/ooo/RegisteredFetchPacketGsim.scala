@@ -21,7 +21,7 @@ class RawSuccessorPorts(width: Int) extends Record {
 }
 
 class RegisteredFetchPacketGsim(width: Int, compressed: Boolean, parallel: Boolean = false,
-    hints: Int = 8, splitCursor: Boolean = false) extends Module {
+    hints: Int = 8, splitCursor: Boolean = false, bankedHints: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val supply = Input(new RawFetchPorts(width))
         val pause = Input(Bool())
@@ -37,7 +37,7 @@ class RegisteredFetchPacketGsim(width: Int, compressed: Boolean, parallel: Boole
         val occupancy = Output(UInt(log2Ceil(2 * width + 1).W))
     })
     val reservoir = Module(new RegisteredFetchPacket(width, compressed, BigInt("80000000", 16),
-        parallel, hints, splitCursor))
+        parallel, hints, splitCursor, bankedHints))
     reservoir.io.supply := VecInit((0 until width).map(io.supply.at))
     reservoir.io.pause := io.pause
     reservoir.io.consume := VecInit((0 until width).map(_.U < io.consumed))
@@ -65,5 +65,5 @@ class RegisteredFetchPacketGsim(width: Int, compressed: Boolean, parallel: Boole
 object RegisteredFetchPacketGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new RegisteredFetchPacketGsim(args.lift(1).map(_.toInt).getOrElse(2),
         !args.contains("plain"), args.contains("parallel-validation"),
-        if (args.contains("hints32")) 32 else 8, args.contains("split-cursor")), Array("--target-dir", args.head))
+        if (args.contains("hints32")) 32 else 8, args.contains("split-cursor"), args.contains("banked-hints")), Array("--target-dir", args.head))
 }

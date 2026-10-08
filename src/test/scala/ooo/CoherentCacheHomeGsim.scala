@@ -10,10 +10,12 @@ import soc.ip.tilelink.TwoMasterTileLinkArbiter
   * Only backing memory and CPU/DMA request expectations are independent C++.
   * This is not a CPU/board model and has no synthetic coherence responder.
   */
-class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: Int = 2, compactTags: Boolean = false, writebacks: Int = 1, mixed: Boolean = false, axiSlots: Int = 4, unordered: Boolean = false, prefetch: Boolean = false) extends Module {
-    private val base = BigInt("80010000", 16)
+class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: Int = 2, compactTags: Boolean = false, writebacks: Int = 1, mixed: Boolean = false, axiSlots: Int = 4, unordered: Boolean = false, prefetch: Boolean = false, bankedTags: Boolean = false, prefetchCandidateCycles: Int = 1,
+    testBase: BigInt = BigInt("80010000", 16), prefetchBreakOnStore: Boolean = false) extends Module {
+    private val base = testBase
     private val bytes = BigInt(128 * 1024)
-    private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch)
+    private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
+        prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore)
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
@@ -59,7 +61,7 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         val probeReplyFire = Output(Bool())
         val probeReplyData = Output(Bool())
     })
-    val tags = CacheTagConfig(compact = compactTags)
+    val tags = CacheTagConfig(compact = compactTags, bankedStorage = bankedTags)
     val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, 2, cfg, tags)
     val home = CoherentLineHomeModule.build(coherent, base, bytes, trackedLines = lines,
         trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks, mixedReadWrite = mixed)
@@ -157,6 +159,9 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
 object CoherentCacheHomeGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CoherentCacheHomeGsim(args(1).toInt,
         args.lift(2).map(_.toInt).getOrElse(512), args.lift(3).map(_.toInt).getOrElse(2), args.lift(4).contains("1"),
-        args.lift(5).map(_.toInt).getOrElse(1), args.lift(6).contains("1"), args.lift(7).map(_.toInt).getOrElse(4), args.lift(8).contains("1"), args.lift(9).contains("1")),
+        args.lift(5).map(_.toInt).getOrElse(1), args.lift(6).contains("1"), args.lift(7).map(_.toInt).getOrElse(4), args.lift(8).contains("1"), args.lift(9).contains("1"), args.contains("--banked-cache-tags"),
+        args.find(_.startsWith("--prefetch-candidate-cycles=")).map(_.split("=", 2)(1).toInt).getOrElse(1),
+        args.find(_.startsWith("--ram-base=")).map(a => BigInt(a.stripPrefix("--ram-base=")))
+            .getOrElse(BigInt("80010000", 16)), args.contains("--prefetch-break-on-store")),
         Array("--target-dir", args.head))
 }

@@ -1,0 +1,2406 @@
+{
+  "schema": "valence-fpga-next-selected-address-evidence-v1",
+  "status": "PASS_SELECTED_ADDRESS_REFINEMENT_PHYSICAL_PENDING",
+  "source_commit": "54bcc7508a0f0dd05fd6004d96f4f6649fb4da0b",
+  "source_tree": "f2ab786a0d0281c5430f3b3b69320cbb9146a930",
+  "baseline_selected_commit": "b4e0e1b7dffa5f46ad7158449ac0ffe72013de8a",
+  "base_selected_evidence": "selected-v2-b4e0e1b.json",
+  "receipt_bindings": {
+    "board": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-selected-address-r1/receipt.json",
+      "sha256": "308e65ba6c5edc51b5f540b53bc0534dd37e4f1a3eee56655b3eb4bc7516b7f2"
+    },
+    "native": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/selected-address-trispeed-export-r1/receipt.json",
+      "sha256": "832111c23704c91a4fb0f8d5bbd8ef7af2dfbfa8a09c2282d5f1fdf31a67b712"
+    },
+    "base_board": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-selected-v2-r1/receipt.json",
+      "sha256": "c68c0845ffdee7fd9d9b793fc2df968681eeda53ca40653291bdc7bfc96f36e0"
+    },
+    "base_native": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/selected-v2-trispeed-export-r1/receipt.json",
+      "sha256": "91a1a65ac5f1f4158ee1b1a22ec7573898f91938878a75fd428691d6166d43a2"
+    }
+  },
+  "raw_workload_logs_identical": {
+    "gc": "4242a0d902afc2edec59e7b55ca3be531df7786e7fbbe1fe5389cdf3e2dc310e",
+    "steady": "80b1749420244da4dbcec5751e92d0bf6fb63444d82d1470f2f3ddfc30734f1e",
+    "independent": "265d27cc6efdd284f2962e50295761be1e604a5b97dbcdc535a10e6942a60d0f",
+    "virtual": "921b0f98eba99b2c59c31a6a4611401480f743fa540d689e9d19a2350d1ef5d0"
+  },
+  "only_changed_native_modules": [
+    "rtl/InstructionLineCache.sv"
+  ],
+  "geometry": {
+    "instruction-address-audit.json": {
+      "sha256": "352bc810baeb369953a0f7023288ce7559302395410559ecd6c4df5e7e51167f",
+      "result": {
+        "status": "PASS_SCOPED_NATIVE_ADDRESS_CONE",
+        "independent": true,
+        "banks": [
+          {
+            "bank": 0,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 1,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 2,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 3,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 4,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 5,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 6,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          },
+          {
+            "bank": 7,
+            "address_has_invalidate": false,
+            "address_max_request_bit": 32,
+            "read_enable_has_invalidate": true,
+            "read_enable_has_pmp": true,
+            "address_dependency_set": "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3",
+            "enable_dependency_set": "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07"
+          }
+        ],
+        "scope": "Combinational expressions in InstructionLineCache only; register and memory outputs are leaves. No routed timing/physical path claim.",
+        "negative_controls": [
+          "restored address invalidate rejected",
+          "removed read-enable qualification rejected",
+          "unresolved internal alias rejected"
+        ],
+        "dependency_sets": {
+          "28f7742efdf7eea3cad07d7ff40ce208b91bd5134975ba60ef7a9318abdfb2e3": [
+            "_tagBanks_1_ext_R0_data",
+            "io_fetch_request_bits",
+            "valid_0_1",
+            "valid_100_1",
+            "valid_101_1",
+            "valid_102_1",
+            "valid_103_1",
+            "valid_104_1",
+            "valid_105_1",
+            "valid_106_1",
+            "valid_107_1",
+            "valid_108_1",
+            "valid_109_1",
+            "valid_10_1",
+            "valid_110_1",
+            "valid_111_1",
+            "valid_112_1",
+            "valid_113_1",
+            "valid_114_1",
+            "valid_115_1",
+            "valid_116_1",
+            "valid_117_1",
+            "valid_118_1",
+            "valid_119_1",
+            "valid_11_1",
+            "valid_120_1",
+            "valid_121_1",
+            "valid_122_1",
+            "valid_123_1",
+            "valid_124_1",
+            "valid_125_1",
+            "valid_126_1",
+            "valid_127_1",
+            "valid_128_1",
+            "valid_129_1",
+            "valid_12_1",
+            "valid_130_1",
+            "valid_131_1",
+            "valid_132_1",
+            "valid_133_1",
+            "valid_134_1",
+            "valid_135_1",
+            "valid_136_1",
+            "valid_137_1",
+            "valid_138_1",
+            "valid_139_1",
+            "valid_13_1",
+            "valid_140_1",
+            "valid_141_1",
+            "valid_142_1",
+            "valid_143_1",
+            "valid_144_1",
+            "valid_145_1",
+            "valid_146_1",
+            "valid_147_1",
+            "valid_148_1",
+            "valid_149_1",
+            "valid_14_1",
+            "valid_150_1",
+            "valid_151_1",
+            "valid_152_1",
+            "valid_153_1",
+            "valid_154_1",
+            "valid_155_1",
+            "valid_156_1",
+            "valid_157_1",
+            "valid_158_1",
+            "valid_159_1",
+            "valid_15_1",
+            "valid_160_1",
+            "valid_161_1",
+            "valid_162_1",
+            "valid_163_1",
+            "valid_164_1",
+            "valid_165_1",
+            "valid_166_1",
+            "valid_167_1",
+            "valid_168_1",
+            "valid_169_1",
+            "valid_16_1",
+            "valid_170_1",
+            "valid_171_1",
+            "valid_172_1",
+            "valid_173_1",
+            "valid_174_1",
+            "valid_175_1",
+            "valid_176_1",
+            "valid_177_1",
+            "valid_178_1",
+            "valid_179_1",
+            "valid_17_1",
+            "valid_180_1",
+            "valid_181_1",
+            "valid_182_1",
+            "valid_183_1",
+            "valid_184_1",
+            "valid_185_1",
+            "valid_186_1",
+            "valid_187_1",
+            "valid_188_1",
+            "valid_189_1",
+            "valid_18_1",
+            "valid_190_1",
+            "valid_191_1",
+            "valid_192_1",
+            "valid_193_1",
+            "valid_194_1",
+            "valid_195_1",
+            "valid_196_1",
+            "valid_197_1",
+            "valid_198_1",
+            "valid_199_1",
+            "valid_19_1",
+            "valid_1_1",
+            "valid_200_1",
+            "valid_201_1",
+            "valid_202_1",
+            "valid_203_1",
+            "valid_204_1",
+            "valid_205_1",
+            "valid_206_1",
+            "valid_207_1",
+            "valid_208_1",
+            "valid_209_1",
+            "valid_20_1",
+            "valid_210_1",
+            "valid_211_1",
+            "valid_212_1",
+            "valid_213_1",
+            "valid_214_1",
+            "valid_215_1",
+            "valid_216_1",
+            "valid_217_1",
+            "valid_218_1",
+            "valid_219_1",
+            "valid_21_1",
+            "valid_220_1",
+            "valid_221_1",
+            "valid_222_1",
+            "valid_223_1",
+            "valid_224_1",
+            "valid_225_1",
+            "valid_226_1",
+            "valid_227_1",
+            "valid_228_1",
+            "valid_229_1",
+            "valid_22_1",
+            "valid_230_1",
+            "valid_231_1",
+            "valid_232_1",
+            "valid_233_1",
+            "valid_234_1",
+            "valid_235_1",
+            "valid_236_1",
+            "valid_237_1",
+            "valid_238_1",
+            "valid_239_1",
+            "valid_23_1",
+            "valid_240_1",
+            "valid_241_1",
+            "valid_242_1",
+            "valid_243_1",
+            "valid_244_1",
+            "valid_245_1",
+            "valid_246_1",
+            "valid_247_1",
+            "valid_248_1",
+            "valid_249_1",
+            "valid_24_1",
+            "valid_250_1",
+            "valid_251_1",
+            "valid_252_1",
+            "valid_253_1",
+            "valid_254_1",
+            "valid_255_1",
+            "valid_25_1",
+            "valid_26_1",
+            "valid_27_1",
+            "valid_28_1",
+            "valid_29_1",
+            "valid_2_1",
+            "valid_30_1",
+            "valid_31_1",
+            "valid_32_1",
+            "valid_33_1",
+            "valid_34_1",
+            "valid_35_1",
+            "valid_36_1",
+            "valid_37_1",
+            "valid_38_1",
+            "valid_39_1",
+            "valid_3_1",
+            "valid_40_1",
+            "valid_41_1",
+            "valid_42_1",
+            "valid_43_1",
+            "valid_44_1",
+            "valid_45_1",
+            "valid_46_1",
+            "valid_47_1",
+            "valid_48_1",
+            "valid_49_1",
+            "valid_4_1",
+            "valid_50_1",
+            "valid_51_1",
+            "valid_52_1",
+            "valid_53_1",
+            "valid_54_1",
+            "valid_55_1",
+            "valid_56_1",
+            "valid_57_1",
+            "valid_58_1",
+            "valid_59_1",
+            "valid_5_1",
+            "valid_60_1",
+            "valid_61_1",
+            "valid_62_1",
+            "valid_63_1",
+            "valid_64_1",
+            "valid_65_1",
+            "valid_66_1",
+            "valid_67_1",
+            "valid_68_1",
+            "valid_69_1",
+            "valid_6_1",
+            "valid_70_1",
+            "valid_71_1",
+            "valid_72_1",
+            "valid_73_1",
+            "valid_74_1",
+            "valid_75_1",
+            "valid_76_1",
+            "valid_77_1",
+            "valid_78_1",
+            "valid_79_1",
+            "valid_7_1",
+            "valid_80_1",
+            "valid_81_1",
+            "valid_82_1",
+            "valid_83_1",
+            "valid_84_1",
+            "valid_85_1",
+            "valid_86_1",
+            "valid_87_1",
+            "valid_88_1",
+            "valid_89_1",
+            "valid_8_1",
+            "valid_90_1",
+            "valid_91_1",
+            "valid_92_1",
+            "valid_93_1",
+            "valid_94_1",
+            "valid_95_1",
+            "valid_96_1",
+            "valid_97_1",
+            "valid_98_1",
+            "valid_99_1",
+            "valid_9_1"
+          ],
+          "8a3f470b7eb22124dcea006983a9cf1468efbd23f75350c6cde0aa74b1d5bd07": [
+            "_fallback_io_fetch_request_ready",
+            "_fill_io_response_bits_tag",
+            "_fill_io_response_valid",
+            "_pmp_io_denied",
+            "_tagBanks_0_ext_R0_data",
+            "_tagBanks_1_ext_R0_data",
+            "io_fetch_requestMask",
+            "io_fetch_request_bits",
+            "io_fetch_request_valid",
+            "io_fetch_response_ready",
+            "io_invalidate",
+            "state",
+            "valid_0_0",
+            "valid_0_1",
+            "valid_100_0",
+            "valid_100_1",
+            "valid_101_0",
+            "valid_101_1",
+            "valid_102_0",
+            "valid_102_1",
+            "valid_103_0",
+            "valid_103_1",
+            "valid_104_0",
+            "valid_104_1",
+            "valid_105_0",
+            "valid_105_1",
+            "valid_106_0",
+            "valid_106_1",
+            "valid_107_0",
+            "valid_107_1",
+            "valid_108_0",
+            "valid_108_1",
+            "valid_109_0",
+            "valid_109_1",
+            "valid_10_0",
+            "valid_10_1",
+            "valid_110_0",
+            "valid_110_1",
+            "valid_111_0",
+            "valid_111_1",
+            "valid_112_0",
+            "valid_112_1",
+            "valid_113_0",
+            "valid_113_1",
+            "valid_114_0",
+            "valid_114_1",
+            "valid_115_0",
+            "valid_115_1",
+            "valid_116_0",
+            "valid_116_1",
+            "valid_117_0",
+            "valid_117_1",
+            "valid_118_0",
+            "valid_118_1",
+            "valid_119_0",
+            "valid_119_1",
+            "valid_11_0",
+            "valid_11_1",
+            "valid_120_0",
+            "valid_120_1",
+            "valid_121_0",
+            "valid_121_1",
+            "valid_122_0",
+            "valid_122_1",
+            "valid_123_0",
+            "valid_123_1",
+            "valid_124_0",
+            "valid_124_1",
+            "valid_125_0",
+            "valid_125_1",
+            "valid_126_0",
+            "valid_126_1",
+            "valid_127_0",
+            "valid_127_1",
+            "valid_128_0",
+            "valid_128_1",
+            "valid_129_0",
+            "valid_129_1",
+            "valid_12_0",
+            "valid_12_1",
+            "valid_130_0",
+            "valid_130_1",
+            "valid_131_0",
+            "valid_131_1",
+            "valid_132_0",
+            "valid_132_1",
+            "valid_133_0",
+            "valid_133_1",
+            "valid_134_0",
+            "valid_134_1",
+            "valid_135_0",
+            "valid_135_1",
+            "valid_136_0",
+            "valid_136_1",
+            "valid_137_0",
+            "valid_137_1",
+            "valid_138_0",
+            "valid_138_1",
+            "valid_139_0",
+            "valid_139_1",
+            "valid_13_0",
+            "valid_13_1",
+            "valid_140_0",
+            "valid_140_1",
+            "valid_141_0",
+            "valid_141_1",
+            "valid_142_0",
+            "valid_142_1",
+            "valid_143_0",
+            "valid_143_1",
+            "valid_144_0",
+            "valid_144_1",
+            "valid_145_0",
+            "valid_145_1",
+            "valid_146_0",
+            "valid_146_1",
+            "valid_147_0",
+            "valid_147_1",
+            "valid_148_0",
+            "valid_148_1",
+            "valid_149_0",
+            "valid_149_1",
+            "valid_14_0",
+            "valid_14_1",
+            "valid_150_0",
+            "valid_150_1",
+            "valid_151_0",
+            "valid_151_1",
+            "valid_152_0",
+            "valid_152_1",
+            "valid_153_0",
+            "valid_153_1",
+            "valid_154_0",
+            "valid_154_1",
+            "valid_155_0",
+            "valid_155_1",
+            "valid_156_0",
+            "valid_156_1",
+            "valid_157_0",
+            "valid_157_1",
+            "valid_158_0",
+            "valid_158_1",
+            "valid_159_0",
+            "valid_159_1",
+            "valid_15_0",
+            "valid_15_1",
+            "valid_160_0",
+            "valid_160_1",
+            "valid_161_0",
+            "valid_161_1",
+            "valid_162_0",
+            "valid_162_1",
+            "valid_163_0",
+            "valid_163_1",
+            "valid_164_0",
+            "valid_164_1",
+            "valid_165_0",
+            "valid_165_1",
+            "valid_166_0",
+            "valid_166_1",
+            "valid_167_0",
+            "valid_167_1",
+            "valid_168_0",
+            "valid_168_1",
+            "valid_169_0",
+            "valid_169_1",
+            "valid_16_0",
+            "valid_16_1",
+            "valid_170_0",
+            "valid_170_1",
+            "valid_171_0",
+            "valid_171_1",
+            "valid_172_0",
+            "valid_172_1",
+            "valid_173_0",
+            "valid_173_1",
+            "valid_174_0",
+            "valid_174_1",
+            "valid_175_0",
+            "valid_175_1",
+            "valid_176_0",
+            "valid_176_1",
+            "valid_177_0",
+            "valid_177_1",
+            "valid_178_0",
+            "valid_178_1",
+            "valid_179_0",
+            "valid_179_1",
+            "valid_17_0",
+            "valid_17_1",
+            "valid_180_0",
+            "valid_180_1",
+            "valid_181_0",
+            "valid_181_1",
+            "valid_182_0",
+            "valid_182_1",
+            "valid_183_0",
+            "valid_183_1",
+            "valid_184_0",
+            "valid_184_1",
+            "valid_185_0",
+            "valid_185_1",
+            "valid_186_0",
+            "valid_186_1",
+            "valid_187_0",
+            "valid_187_1",
+            "valid_188_0",
+            "valid_188_1",
+            "valid_189_0",
+            "valid_189_1",
+            "valid_18_0",
+            "valid_18_1",
+            "valid_190_0",
+            "valid_190_1",
+            "valid_191_0",
+            "valid_191_1",
+            "valid_192_0",
+            "valid_192_1",
+            "valid_193_0",
+            "valid_193_1",
+            "valid_194_0",
+            "valid_194_1",
+            "valid_195_0",
+            "valid_195_1",
+            "valid_196_0",
+            "valid_196_1",
+            "valid_197_0",
+            "valid_197_1",
+            "valid_198_0",
+            "valid_198_1",
+            "valid_199_0",
+            "valid_199_1",
+            "valid_19_0",
+            "valid_19_1",
+            "valid_1_0",
+            "valid_1_1",
+            "valid_200_0",
+            "valid_200_1",
+            "valid_201_0",
+            "valid_201_1",
+            "valid_202_0",
+            "valid_202_1",
+            "valid_203_0",
+            "valid_203_1",
+            "valid_204_0",
+            "valid_204_1",
+            "valid_205_0",
+            "valid_205_1",
+            "valid_206_0",
+            "valid_206_1",
+            "valid_207_0",
+            "valid_207_1",
+            "valid_208_0",
+            "valid_208_1",
+            "valid_209_0",
+            "valid_209_1",
+            "valid_20_0",
+            "valid_20_1",
+            "valid_210_0",
+            "valid_210_1",
+            "valid_211_0",
+            "valid_211_1",
+            "valid_212_0",
+            "valid_212_1",
+            "valid_213_0",
+            "valid_213_1",
+            "valid_214_0",
+            "valid_214_1",
+            "valid_215_0",
+            "valid_215_1",
+            "valid_216_0",
+            "valid_216_1",
+            "valid_217_0",
+            "valid_217_1",
+            "valid_218_0",
+            "valid_218_1",
+            "valid_219_0",
+            "valid_219_1",
+            "valid_21_0",
+            "valid_21_1",
+            "valid_220_0",
+            "valid_220_1",
+            "valid_221_0",
+            "valid_221_1",
+            "valid_222_0",
+            "valid_222_1",
+            "valid_223_0",
+            "valid_223_1",
+            "valid_224_0",
+            "valid_224_1",
+            "valid_225_0",
+            "valid_225_1",
+            "valid_226_0",
+            "valid_226_1",
+            "valid_227_0",
+            "valid_227_1",
+            "valid_228_0",
+            "valid_228_1",
+            "valid_229_0",
+            "valid_229_1",
+            "valid_22_0",
+            "valid_22_1",
+            "valid_230_0",
+            "valid_230_1",
+            "valid_231_0",
+            "valid_231_1",
+            "valid_232_0",
+            "valid_232_1",
+            "valid_233_0",
+            "valid_233_1",
+            "valid_234_0",
+            "valid_234_1",
+            "valid_235_0",
+            "valid_235_1",
+            "valid_236_0",
+            "valid_236_1",
+            "valid_237_0",
+            "valid_237_1",
+            "valid_238_0",
+            "valid_238_1",
+            "valid_239_0",
+            "valid_239_1",
+            "valid_23_0",
+            "valid_23_1",
+            "valid_240_0",
+            "valid_240_1",
+            "valid_241_0",
+            "valid_241_1",
+            "valid_242_0",
+            "valid_242_1",
+            "valid_243_0",
+            "valid_243_1",
+            "valid_244_0",
+            "valid_244_1",
+            "valid_245_0",
+            "valid_245_1",
+            "valid_246_0",
+            "valid_246_1",
+            "valid_247_0",
+            "valid_247_1",
+            "valid_248_0",
+            "valid_248_1",
+            "valid_249_0",
+            "valid_249_1",
+            "valid_24_0",
+            "valid_24_1",
+            "valid_250_0",
+            "valid_250_1",
+            "valid_251_0",
+            "valid_251_1",
+            "valid_252_0",
+            "valid_252_1",
+            "valid_253_0",
+            "valid_253_1",
+            "valid_254_0",
+            "valid_254_1",
+            "valid_255_0",
+            "valid_255_1",
+            "valid_25_0",
+            "valid_25_1",
+            "valid_26_0",
+            "valid_26_1",
+            "valid_27_0",
+            "valid_27_1",
+            "valid_28_0",
+            "valid_28_1",
+            "valid_29_0",
+            "valid_29_1",
+            "valid_2_0",
+            "valid_2_1",
+            "valid_30_0",
+            "valid_30_1",
+            "valid_31_0",
+            "valid_31_1",
+            "valid_32_0",
+            "valid_32_1",
+            "valid_33_0",
+            "valid_33_1",
+            "valid_34_0",
+            "valid_34_1",
+            "valid_35_0",
+            "valid_35_1",
+            "valid_36_0",
+            "valid_36_1",
+            "valid_37_0",
+            "valid_37_1",
+            "valid_38_0",
+            "valid_38_1",
+            "valid_39_0",
+            "valid_39_1",
+            "valid_3_0",
+            "valid_3_1",
+            "valid_40_0",
+            "valid_40_1",
+            "valid_41_0",
+            "valid_41_1",
+            "valid_42_0",
+            "valid_42_1",
+            "valid_43_0",
+            "valid_43_1",
+            "valid_44_0",
+            "valid_44_1",
+            "valid_45_0",
+            "valid_45_1",
+            "valid_46_0",
+            "valid_46_1",
+            "valid_47_0",
+            "valid_47_1",
+            "valid_48_0",
+            "valid_48_1",
+            "valid_49_0",
+            "valid_49_1",
+            "valid_4_0",
+            "valid_4_1",
+            "valid_50_0",
+            "valid_50_1",
+            "valid_51_0",
+            "valid_51_1",
+            "valid_52_0",
+            "valid_52_1",
+            "valid_53_0",
+            "valid_53_1",
+            "valid_54_0",
+            "valid_54_1",
+            "valid_55_0",
+            "valid_55_1",
+            "valid_56_0",
+            "valid_56_1",
+            "valid_57_0",
+            "valid_57_1",
+            "valid_58_0",
+            "valid_58_1",
+            "valid_59_0",
+            "valid_59_1",
+            "valid_5_0",
+            "valid_5_1",
+            "valid_60_0",
+            "valid_60_1",
+            "valid_61_0",
+            "valid_61_1",
+            "valid_62_0",
+            "valid_62_1",
+            "valid_63_0",
+            "valid_63_1",
+            "valid_64_0",
+            "valid_64_1",
+            "valid_65_0",
+            "valid_65_1",
+            "valid_66_0",
+            "valid_66_1",
+            "valid_67_0",
+            "valid_67_1",
+            "valid_68_0",
+            "valid_68_1",
+            "valid_69_0",
+            "valid_69_1",
+            "valid_6_0",
+            "valid_6_1",
+            "valid_70_0",
+            "valid_70_1",
+            "valid_71_0",
+            "valid_71_1",
+            "valid_72_0",
+            "valid_72_1",
+            "valid_73_0",
+            "valid_73_1",
+            "valid_74_0",
+            "valid_74_1",
+            "valid_75_0",
+            "valid_75_1",
+            "valid_76_0",
+            "valid_76_1",
+            "valid_77_0",
+            "valid_77_1",
+            "valid_78_0",
+            "valid_78_1",
+            "valid_79_0",
+            "valid_79_1",
+            "valid_7_0",
+            "valid_7_1",
+            "valid_80_0",
+            "valid_80_1",
+            "valid_81_0",
+            "valid_81_1",
+            "valid_82_0",
+            "valid_82_1",
+            "valid_83_0",
+            "valid_83_1",
+            "valid_84_0",
+            "valid_84_1",
+            "valid_85_0",
+            "valid_85_1",
+            "valid_86_0",
+            "valid_86_1",
+            "valid_87_0",
+            "valid_87_1",
+            "valid_88_0",
+            "valid_88_1",
+            "valid_89_0",
+            "valid_89_1",
+            "valid_8_0",
+            "valid_8_1",
+            "valid_90_0",
+            "valid_90_1",
+            "valid_91_0",
+            "valid_91_1",
+            "valid_92_0",
+            "valid_92_1",
+            "valid_93_0",
+            "valid_93_1",
+            "valid_94_0",
+            "valid_94_1",
+            "valid_95_0",
+            "valid_95_1",
+            "valid_96_0",
+            "valid_96_1",
+            "valid_97_0",
+            "valid_97_1",
+            "valid_98_0",
+            "valid_98_1",
+            "valid_99_0",
+            "valid_99_1",
+            "valid_9_0",
+            "valid_9_1"
+          ]
+        }
+      }
+    },
+    "native-storage-census.json": {
+      "sha256": "852d76f0c4b78a7881dd50a61c70decae7718ec848cefa967a469aed5857f9a8",
+      "result": {
+        "status": "PASS_SELECTED_NATIVE_STORAGE_CENSUS",
+        "source_commit": "54bcc7508a0f0dd05fd6004d96f4f6649fb4da0b",
+        "export_receipt_sha256": "832111c23704c91a4fb0f8d5bbd8ef7af2dfbfa8a09c2282d5f1fdf31a67b712",
+        "groups": {
+          "issue_pc": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "pcBank0_ext",
+                "module": "pcBank_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 7,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "e79d594053eb336ca157ca370f29e7d6c0200212ff55b6b43541be90e3d71ce3"
+              },
+              {
+                "instance": "pcBank1_ext",
+                "module": "pcBank_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 7,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "e79d594053eb336ca157ca370f29e7d6c0200212ff55b6b43541be90e3d71ce3"
+              }
+            ],
+            "logical_payload_bits": 1024
+          },
+          "issue_instruction": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "instructionBank0_ext",
+                "module": "instructionBank_8x32",
+                "width": 32,
+                "depth": 8,
+                "reads": 3,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "1900a043aac162ad045893d6bf43aa84e40167d7e533ec32046d6c922100c691"
+              },
+              {
+                "instance": "instructionBank1_ext",
+                "module": "instructionBank_8x32",
+                "width": 32,
+                "depth": 8,
+                "reads": 3,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "1900a043aac162ad045893d6bf43aa84e40167d7e533ec32046d6c922100c691"
+              }
+            ],
+            "logical_payload_bits": 512
+          },
+          "issue_expanded": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "expandedInstructionBank0_ext",
+                "module": "expandedInstructionBank_8x32",
+                "width": 32,
+                "depth": 8,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "3d9abd9bf42764444ca9843531050167d55d230c5905b9f1c8149d73103cf2d1"
+              },
+              {
+                "instance": "expandedInstructionBank1_ext",
+                "module": "expandedInstructionBank_8x32",
+                "width": 32,
+                "depth": 8,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "3d9abd9bf42764444ca9843531050167d55d230c5905b9f1c8149d73103cf2d1"
+              }
+            ],
+            "logical_payload_bits": 512
+          },
+          "issue_next_pc": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "predictedNextPcBank0_ext",
+                "module": "mem_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "d0c1dfe9c61ed1ed369f94307bd404624ca0965f2655c5a9cf81414ab6eac409"
+              },
+              {
+                "instance": "predictedNextPcBank1_ext",
+                "module": "mem_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "d0c1dfe9c61ed1ed369f94307bd404624ca0965f2655c5a9cf81414ab6eac409"
+              }
+            ],
+            "logical_payload_bits": 1024
+          },
+          "issue_immediate": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "immediateBank0_ext",
+                "module": "immediateBank_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 4,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "8498fc9451455249aec1b7c4ef8a05048d56197aa1f26e09a27ab39111071118"
+              },
+              {
+                "instance": "immediateBank1_ext",
+                "module": "immediateBank_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 4,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "8498fc9451455249aec1b7c4ef8a05048d56197aa1f26e09a27ab39111071118"
+              }
+            ],
+            "logical_payload_bits": 1024
+          },
+          "issue_tval": {
+            "parent": "BankedIssuePayload",
+            "parent_sha256": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+            "banks": [
+              {
+                "instance": "fetchTvalBank0_ext",
+                "module": "mem_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "d0c1dfe9c61ed1ed369f94307bd404624ca0965f2655c5a9cf81414ab6eac409"
+              },
+              {
+                "instance": "fetchTvalBank1_ext",
+                "module": "mem_8x64",
+                "width": 64,
+                "depth": 8,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "d0c1dfe9c61ed1ed369f94307bd404624ca0965f2655c5a9cf81414ab6eac409"
+              }
+            ],
+            "logical_payload_bits": 1024
+          },
+          "instruction_data": {
+            "parent": "InstructionLineCache",
+            "parent_sha256": "f7f0e3e145e7c02cadfc896a70313b2c548ffa3085be454ea8eb5a9dbc8050bb",
+            "banks": [
+              {
+                "instance": "dataBanks_0_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_1_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_2_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_3_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_4_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_5_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_6_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              },
+              {
+                "instance": "dataBanks_7_ext",
+                "module": "dataBanks_512x64",
+                "width": 64,
+                "depth": 512,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 1,
+                "helper_sha256": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5"
+              }
+            ],
+            "logical_payload_bits": 262144
+          },
+          "instruction_tags": {
+            "parent": "InstructionLineCache",
+            "parent_sha256": "f7f0e3e145e7c02cadfc896a70313b2c548ffa3085be454ea8eb5a9dbc8050bb",
+            "banks": [
+              {
+                "instance": "tagBanks_0_ext",
+                "module": "tagBanks_256x19_0",
+                "width": 19,
+                "depth": 256,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "5ab462c0469d3ae38d65e07ed2825631733cd17da92f755e20b718ec374b8d8a"
+              },
+              {
+                "instance": "tagBanks_1_ext",
+                "module": "tagBanks_256x19_0",
+                "width": 19,
+                "depth": 256,
+                "reads": 1,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "5ab462c0469d3ae38d65e07ed2825631733cd17da92f755e20b718ec374b8d8a"
+              }
+            ],
+            "logical_payload_bits": 9728
+          },
+          "data_tags": {
+            "parent": "NonBlockingCoherentLineCache",
+            "parent_sha256": "6a5ef23a29e6fc0c1eeed8b61efcd6943f476424c4aede66ce0ac254e861d25a",
+            "banks": [
+              {
+                "instance": "tagBanks_0_ext",
+                "module": "tagBanks_256x19",
+                "width": 19,
+                "depth": 256,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "611e87061e2f0ec6af47f34f4d51a6c90caf426eb98a1db45d58cf09f3573e0d"
+              },
+              {
+                "instance": "tagBanks_1_ext",
+                "module": "tagBanks_256x19",
+                "width": 19,
+                "depth": 256,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "611e87061e2f0ec6af47f34f4d51a6c90caf426eb98a1db45d58cf09f3573e0d"
+              }
+            ],
+            "logical_payload_bits": 9728
+          },
+          "fetch_hints": {
+            "parent": "OwnerBankedFetchHints",
+            "parent_sha256": "a3c5d63190f1ffb3490000bbf40d5ce1e5682ecbcecf4e2c896bc73617cf8666",
+            "banks": [
+              {
+                "instance": "writerBank0_ext",
+                "module": "writerBank_32x162",
+                "width": 162,
+                "depth": 32,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "81e9a15cc762ff372d1899fa3cee62a64fdd2d4ee1977760e27c38eed5e758ef"
+              },
+              {
+                "instance": "writerBank1_ext",
+                "module": "writerBank_32x162",
+                "width": 162,
+                "depth": 32,
+                "reads": 2,
+                "writes": 1,
+                "read_latency": 0,
+                "helper_sha256": "81e9a15cc762ff372d1899fa3cee62a64fdd2d4ee1977760e27c38eed5e758ef"
+              }
+            ],
+            "logical_payload_bits": 10368
+          }
+        },
+        "limits": [
+          "Normalized reachable production RTL geometry, not FPGA mapping/resource/frequency",
+          "Async multiport memory may require physical replication",
+          "I-data bank-way selection retains a tag-to-address path; address qualification is checked separately"
+        ]
+      }
+    },
+    "fp-state-geometry.json": {
+      "sha256": "2abc5d1f998d67e45a56bffd036c3435310dd15bf4b20a43cedd6221d13f6440",
+      "result": {
+        "status": "PASS_NORMALIZED_FP_GEOMETRY",
+        "rtl_root": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/selected-address-trispeed-export-r1/rtl",
+        "top": "FpgaNextSocTop",
+        "expect": "memory",
+        "states": [
+          {
+            "path": "FpgaNextSocTop/board/platform/core/core/core/backend/systemUnit/floatingPoint/fp",
+            "module": "FloatingPointState",
+            "file": "FloatingPointState.sv",
+            "validity_ff_count": 32,
+            "validity_reset_count": 32,
+            "payload_memory": {
+              "path": "FpgaNextSocTop/board/platform/core/core/core/backend/systemUnit/floatingPoint/fp/memoryPayload_ext",
+              "module": "memoryPayload_32x64",
+              "file": "memoryPayload_32x64.sv",
+              "depth": 32,
+              "width": 64,
+              "read_ports": [
+                "R0",
+                "R1",
+                "R2"
+              ],
+              "read_latency": 0,
+              "write_ports": [
+                "W0"
+              ],
+              "write_clock": "W0_clk",
+              "payload_reset": false,
+              "committed_forward_ports": 3,
+              "younger_flush_gates_write": false
+            }
+          }
+        ],
+        "reachable_module_count": 279,
+        "reachable_multiplier_expressions": [
+          {
+            "module": "FloatingPointRawMultiplyFusedD",
+            "file": "FloatingPointRawMultiplyFusedD.sv",
+            "expression": "wire [105:0] product = {53'h0, a_sig[52:0]} * {53'h0, b_sig[52:0]};"
+          },
+          {
+            "module": "FloatingPointRawMultiplyFusedS",
+            "file": "FloatingPointRawMultiplyFusedS.sv",
+            "expression": "wire [47:0] product = {24'h0, a_sig[23:0]} * {24'h0, b_sig[23:0]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_0 <= {16'h0, operands_left[15:0]} * {16'h0, operands_right[15:0]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_1 <= {16'h0, operands_left[31:16]} * {16'h0, operands_right[15:0]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_4 <= {16'h0, operands_left[15:0]} * {16'h0, operands_right[31:16]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_2 <= {16'h0, operands_left[47:32]} * {16'h0, operands_right[15:0]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_3 <= {16'h0, operands_left[63:48]} * {16'h0, operands_right[15:0]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_5 <= {16'h0, operands_left[31:16]} * {16'h0, operands_right[31:16]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_6 <= {16'h0, operands_left[47:32]} * {16'h0, operands_right[31:16]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_7 <= {16'h0, operands_left[63:48]} * {16'h0, operands_right[31:16]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_8 <= {16'h0, operands_left[15:0]} * {16'h0, operands_right[47:32]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_9 <= {16'h0, operands_left[31:16]} * {16'h0, operands_right[47:32]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_10 <= {16'h0, operands_left[47:32]} * {16'h0, operands_right[47:32]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_11 <= {16'h0, operands_left[63:48]} * {16'h0, operands_right[47:32]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_12 <= {16'h0, operands_left[15:0]} * {16'h0, operands_right[63:48]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_13 <= {16'h0, operands_left[31:16]} * {16'h0, operands_right[63:48]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_14 <= {16'h0, operands_left[47:32]} * {16'h0, operands_right[63:48]};"
+          },
+          {
+            "module": "PipelinedMultiply",
+            "file": "PipelinedMultiply.sv",
+            "expression": "partial_15 <= {16'h0, operands_left[63:48]} * {16'h0, operands_right[63:48]};"
+          }
+        ],
+        "file_sha256": {
+          "AddRawFN.sv": "004ccb2ec0cb27cfeb4bbd4f110198cf92700023e39cf1d93533684f884f851e",
+          "AddRawFN_1.sv": "2ce85eb5eef5ec6174a397300e47da7dc726c155bf4c7088a6a346d6f521c8b6",
+          "Aplic.sv": "40f368bbab08f15f23621c99e4b5395132d7e0bb16e45be29883f1e6b67b6b4c",
+          "Aplic_1.sv": "87bd535226b3d59a69e9f5bfa1b0ba9a0cd51ba329a1decb967c64c3dbc5a641",
+          "AtomicDataMemory.sv": "0e6a19c006ad43b511e0499c081467b68ff3cde0466684f1140b4687b341a7bb",
+          "AtomicMemory.sv": "0cdea3df751121bca873065e0d237f956da4c60b71e065acc87c5f1e17ad3780",
+          "AuipcPredictionQualification.sv": "8fd00003f077f2ad973c07fb3e8c3821913c79c6f3dbfe5efc17aaf4562c35bd",
+          "BankedIssuePayload.sv": "b61f31c8a966c5dd71c6a58621a8093f410b694ef365896c584b536f38cfc0ed",
+          "BankedRobPayload.sv": "0b0521facbd6f2888a1b26e871fd26674ace995ed71d27eaba3ce88825e0bf62",
+          "BoardSocTop.sv": "66641bfb32d94f809178163b529547ff74e3e526b9e9e3b53c89d2bf491d06b2",
+          "BranchPredictor.sv": "1c1cb03adaadd14a052badfb907e49fe442bc60720e609a4eab42c19261d4c3d",
+          "BranchUnit.sv": "7aca22f3dea177be36cd7fe7834cfcdf5b1905c760125ca877de5d7a1a2b9479",
+          "CdcCounterBank.sv": "f633e4c046872bf5524a4c0d4f39060e03781414580fd6e009f6f68b23f7c714",
+          "CdcCounterBank_2.sv": "8b3bb539a39b749d96bf413b274a1fd60375fec49665ad1ba2521bde0810335a",
+          "CdcCounterBank_3.sv": "cd6102de2c6760cafd4cf9968fee74100792a4e3ba5a7456fc47e66a0106c3dd",
+          "CdcDataFifo.sv": "6238e865ca745017a91ace80a3755668afd4fe062dab90f617cde1f92d450a4e",
+          "CdcDataFifo_1.sv": "b072a97ef640d14aa227cd4e48c286031f7fef5ab8951fa540e99fe3ff3ee373",
+          "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+          "CdcMailbox.sv": "9127756988c2c22c3d37ab052a03893e4a197b77061d83f4c96a4d21c6e03bb6",
+          "CdcMailbox_2.sv": "7935eefb953886746ed08578e994f5101758218e317cfc093dcf47cebd88c96d",
+          "CdcMailbox_4.sv": "b35c0db0e50fdccaa5d4f7b29e7edad86724d08fb1189d6ef20a26785fb7b85d",
+          "CdcMailbox_6.sv": "431e59772677f1966dfac44a538b0351b5f65a58334155bb73d876accac3fad2",
+          "CdcMailbox_7.sv": "c4102115a7e6a7ee560d50da115fc47aa6237bb81291b6c882b791815284f72b",
+          "CdcMailbox_8.sv": "81c23a9a16989550c2ea788df7ed06c422e09687e1a90fe23ffd38a4b5925e4d",
+          "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+          "CircularIssueSelector.sv": "81ce18f1e1625672bcfd3da448dca20f68593563b2a6e142413261b9224fefd5",
+          "ClockManagementBoundary.sv": "a81e1bb0d8c563a5ee496111288fa230f727af5ce7c15aff262ca3b5519dfc8d",
+          "ClockManagementUnit.sv": "cba3a52261bcbc142c75ac33895d9d07a59354705d92ca9517837baefe738c62",
+          "ClockRegisterAdmission.sv": "2fe70be59c9616ae318e9cbac0473ce268533eaa671a4601285b26681b79a09e",
+          "CoherentWriteDispatch.sv": "e0a181ddb81cf2777bf53f019d0d23705e0b2afb3e50e4f4ada50d10ac385e50",
+          "CommitPredictionTraining.sv": "84be562e75735c49b1ecdd47d340b30b740557346b44fbd4082e4c43db6adf0e",
+          "CompareRecFN.sv": "ef9bd43acdd12f7174eb6a0acf5d63846dce95e5f64ad04332a0a45de7fa746a",
+          "CompareRecFN_1.sv": "2691a56463f837f0215e37cafd7e8e500c761049edd3992ed3b574edfd398278",
+          "DataRequestBuffer.sv": "4cd53877bf9d12a7ac999e49fa3685c09e4ee1a54562ac18be2b6a45c9a8adfe",
+          "DataResponseBuffer.sv": "10b8e307c1d889db8c8d93ad13e2d16c9bd5954d5ef4b9a37f5f7580660564c4",
+          "DataTranslationAdapter.sv": "94c60c677579566554918eb5a44ca4b0e754c369369d5695a3529720441f56b8",
+          "DirectPredictionQualification.sv": "4b58fe8af33d4b548977e261f4fb8f9c07a5de65a53acf754b8f4092f143eaee",
+          "DivSqrtRawFN_small_e11_s53.sv": "248d6c7b84015e825d24eb272001e0d4f3ad039b48bee160c5d78df7dc7cd895",
+          "DivSqrtRawFN_small_e8_s24.sv": "18e33f4503b9a66ba445d285890f97e8ce9104086c6ac6ff80679e325b605e44",
+          "DivSqrtRecFMToRaw_small_e11_s53.sv": "b90ba1ab7a506e2530cb5c1edac5b20f831e376b672d25ffed0615a192de50b6",
+          "DivSqrtRecFMToRaw_small_e8_s24.sv": "839bc3192d8ef5f23f6503417c121f438687ad98e76f6436e8c5e9534f536685",
+          "DmaRegisterDataAdapter.sv": "31e01e0c11403c6e97ad29b148ea787bbdc7b5cb09aa8d7b991464de8d1b152e",
+          "EarlyRedirectCapture.sv": "1104fe7c238d094c879f4c2784ff271e001c3ef0a2d715700f572799d89ff622",
+          "EthernetConfigClockBridge.sv": "2826f0e286dff3efc3d7d83bf0686f2483724d0cf505aab89a8d4cd368e5df8d",
+          "EthernetDmaFrameAdapter.sv": "fb3ac7475c71751a33cda3a0d276df6a94c7ffa7f7ce91473eae4efb43cc0e64",
+          "EthernetFrameClockBridge.sv": "fd1a37eeb025e65515ccab8a73acdb4d96bfcc884d253a960eb25cff2ec4f437",
+          "EthernetFrameClockBridge_1.sv": "d7b26ecb86d9312568d09b3c45e29fc1ad85cfddeb28df7842cf5ae51dedf9b9",
+          "EthernetIngressPacker.sv": "75135bbc2bfb52dda167e967c6b15a928ec6865089f5b092f4e4bc63afd4666b",
+          "EthernetIngressUnpacker.sv": "c8d76ea3d76244cdb536c041efcbfc3ac29799a5a4e53bb2eec138cd6bddc798",
+          "EthernetMediaTransition.sv": "4790f2e00d9accb9ddc78ea6f5d13f2229369c2d634d558804af0fa93da8d19a",
+          "EthernetPacketDma.sv": "5ca6e27f48d9c294ef739dc92f66a5bbe513f8ed22ef5d058f122e39abc8bedc",
+          "EthernetPhysicalIngress.sv": "1fae660741b423c391bc8755d1587b276b28fbe3562d09ea30fef8cfe5ed9e7a",
+          "EthernetRxAdmissionStop.sv": "b41a56f618591b7169e5aac8291e36b8bd4e06c75627d7110f68e893fe06c6ad",
+          "EthernetRxClockWatchdog.sv": "489d41f7e89c5b0157fe7c3345646d98a9e1b27670dc6a63d042c66e007f277e",
+          "EthernetTxDescriptorQueue.sv": "49e0ad80e59766259c593ad5517e4032d7cb80cebd93672b140d2440f8634412",
+          "FaultAwareAllocationReady.sv": "fe88d58bbfed067afef6de3e4efaf11b64c1c31e2122d2bc697a1bd81a0c39be",
+          "FaultAwareRenameCandidates.sv": "281759f108dc1e50c4892a56c334eaf7f8ba689b78bcd6c89145e8d8c9244a48",
+          "FetchPacketPermission.sv": "4e6bf7a182f9110625f299d13a603476a39b5b5143d131862df86861b5ad68bb",
+          "FloatingPointExecute.sv": "2f704e89eaef82581a2114cd4b932092a51abeb8596cdcd21b84e4c8d4f58718",
+          "FloatingPointMemoryPipeline.sv": "f0952d85e44577eaf6ebcf3e17029989ff190c5d408cebb06975c9ee8d85b493",
+          "FloatingPointMiscD.sv": "9aeb1214d525327f74e755cf58e56f3527299b0becfdfc9805392c3249d121d5",
+          "FloatingPointMiscS.sv": "f4c158e0a4fd347c80f5793fde267d8f861ceb369c7248fb105e497ebb8f7736",
+          "FloatingPointRawAddD.sv": "064564f7fb7daaaee858388b1c3f3ff9a32a58c6ee7e613f4d8d220248c5f480",
+          "FloatingPointRawAddS.sv": "6e75fbdb15b8ebb3d3e5e4795a8c9e94663e26957ad55cc58835cab3b894d33f",
+          "FloatingPointRawDivSqrtD.sv": "9afa7a6a05f26fa0d875e4ced9e8f5ae7d0f2144064773abc0f17c5de97e86c0",
+          "FloatingPointRawDivSqrtS.sv": "c4d77c4deadf61e5d350f214fa286cc58c138f230abcdde02188836b2407caa0",
+          "FloatingPointRawMultiplyFusedD.sv": "aca9c4eee61c60e7ae71b43d1700e591618a7e5bea1576b649aa9c534e6dd4c0",
+          "FloatingPointRawMultiplyFusedS.sv": "b36f1f21c02677423030725d1b661f337782267171dfd6ab6cd3a8e0fdd69893",
+          "FloatingPointSharedArithmeticD.sv": "be28963383ae3465ab310281550a38a065e7662e43ce9bf1c13ea47df7250c90",
+          "FloatingPointSharedArithmeticS.sv": "736949100a9b8de2f550e2e28f76253ee6be41d5f99251d9fa9e45fb62c544d8",
+          "FloatingPointState.sv": "5bd7e5cb314bd9c5e867a1617aafe51b9689f5756dc8b3a13b86dd43be782faf",
+          "FloatingPointSystem.sv": "3f7e1a3c8980562e105ea5bf17a6af66a187792e268ca2611debe29f5e9279d2",
+          "FpgaNextSocTop.sv": "133e72594d773ef29939658829226dca286f842b695d7e5f53e2d41d88f2e431",
+          "FrontendControlDecode.sv": "967e2a016698ff550f78c40db183a268213ec2b11a0ee8ca475738af86d08e4f",
+          "GmiiFrameRx.sv": "4e2e260cd2a05edb43dcbd224b11b298c2d9215a68e66da8a261adc954fc5633",
+          "Imsic.sv": "4d0075c1a158384bf3936fda4f92adb86e70c63e7514019a484fc9ce59e6a2fc",
+          "InstructionLineCache.sv": "f7f0e3e145e7c02cadfc896a70313b2c548ffa3085be454ea8eb5a9dbc8050bb",
+          "InstructionRequestBuffer.sv": "aec8250b9e63fccd16e8c5270c1ac1c06f896208c9258a519dfadf22d8e7436c",
+          "InstructionRom.sv": "8220ede79cee2e461f894aadbccb1f1aee00fe42ac6850d6d070c37ed9bbbae9",
+          "InstructionTileLinkBridge.sv": "14466f62461cc4cc2eaf074c550616b6f04da68428acb8d53f98ae1ce6a4bcb6",
+          "InstructionTranslationAdapter.sv": "4b9c9aea90689797faccd27db19ecc0b282a969b877e06917735533f1b928848",
+          "IntegerAlu.sv": "c68fa2eaa9722c56691cb671865daf4240a06a62f26e89835736982783512624",
+          "IntegerAlu_1.sv": "23c85e84b0005a94b76e79b1c9b1589205ed6d77f5a069188a59032e0ab056bf",
+          "IntegerBackend.sv": "3549a62faf280c4a67868bccbc25bd613ab975bc4a7f15e775e946ca7b546c3a",
+          "IntegerBitDecode.sv": "767acd33b6238e56612cb2bf1b8dd65bbcb0d34ff4d6d48f056fdf0fdd30c67d",
+          "IntegerBitManip.sv": "b5c339869ca983f765d18fc62e2d4b4101067bed11a0344e5105a5dddc2058ae",
+          "IntegerBitManip_1.sv": "a9ff0639c857d9db6554ac54ef96d1b2bbff96e70337622718c58850dced8bde",
+          "IntegerCore.sv": "ba5dfa4119638d67cca1f3e544e894a0b448cd81ebf562d87a70e429d3e9f5ac",
+          "IntegerDecode.sv": "5414bbf6e17160815eda915208cad0ae24d5ae3f73c6224656bc70bcfb658a44",
+          "IssueExecuteStage.sv": "3d49d7e230072d71cd2829c1173c5ecd4badd7921039577b4be787844a9c662e",
+          "IssuePhysicalOperands.sv": "a1605b7abe3455c02b1535cc1d61aca63e356f6932cf265e5d5c6c6d73beacbe",
+          "LoadReplaySelector.sv": "cbfb3438b11362c5a8409e99d80ea523ec4defb0cf7b883951381077d8a26207",
+          "LoadStoreUnit.sv": "60ecb9f2982f8e9542ec2d33a49760c1228d91cfc5781f49037d46b4280baf03",
+          "LoadStoreUnit_2.sv": "96da58b50bdd8ce76056cf9f5eb19f897eac2effc1911f3d24c86c4101ffe46e",
+          "MachineCore.sv": "1226deafa085ea9c8b714518ed85815b71d319cecb9ef664613e6cd404de3a2c",
+          "MachinePlatform.sv": "8ec881ddeffd4fecb73ecf7bd2f3ea387acaa2e6c86f4308136ed3350927d1fa",
+          "MachineSystemUnit.sv": "fba5be2096532d1be83292ddcf9634a4859c14e9c30454770112904e46982a46",
+          "MachineTimer.sv": "af9eb5b68e9ca5bc8951c7b3a306485c62dfc328d586d3e60cd4bb9d0b0bd606",
+          "ManagedClockBuffer.sv": "9653851ab9fb3b9e31f57a88a5647733290db521c225ea3ad9c616b753134b39",
+          "ManagedMdioArbiter.sv": "c741d854a8fcfc33fd58aef8a4de99538995ee63453f6a48ea3dade804bca1ff",
+          "ManagedPeripheralBank.sv": "5859ee162bfc7fe4f4ccf5a14b371aa4b49e512fa535d8ead73d8c5d4c92ce31",
+          "ManagedUart.sv": "efb4785fc60738b05b6db498375c595eead18e3c780b41f25b26a490fbf5833c",
+          "MappedMachineCore.sv": "3c2a6d96b6c3e92e7be92b999b7cb7ec66601c74db33768c1a88e20c5529ef48",
+          "MdioClause22.sv": "5b5a16bb3c4e0f414317e492c1aa2af1c2520b2882246358cca9b4344d1b9bb0",
+          "MemoryCopyDma.sv": "4876d3f830016b5bec11d02c119160fde792c1a5ef34498b5d121b2e2dc12c52",
+          "MemoryPreparationSelector.sv": "27c7fd2ee33d97e438a111c56b766040175d3e3180981e7d96a6022e05aa0c93",
+          "MixedCoherentLineHome.sv": "4654a3ef6c4d2024004e740f4baeab2d9c06118f82cecaae5d6365bb93894e71",
+          "MulAddRecFNToRaw_postMul_e11_s53.sv": "a2cf9a5d5213080e549d135c038e3f418fd1af2e747fddfbaf215fbc1b7087be",
+          "MulAddRecFNToRaw_postMul_e8_s24.sv": "60790b9860663646ee038f6e19c7e3839ec08e537e285ba97b37e00a0568806f",
+          "MulAddRecFNToRaw_preMul_e11_s53.sv": "75c5de045b631ef2b3b2cd9964d9965ef76dfb7322fb2ef279d3b48973ea60d7",
+          "MulAddRecFNToRaw_preMul_e8_s24.sv": "87af583bc133c81bf810f904b90944a498e84fc88df59e47b18ec9f29a29a17a",
+          "MultiplyDivide.sv": "9ac1aeacadf82664be023c6d9478239fe4bdbb7c658ed6787cef3d30b71a2fa2",
+          "NextLineAuthorization.sv": "0568ac85cfb3672f1d85d1bc4630d2d2fb888e5d1f0b0f4fcb19db6208aa923c",
+          "NonBlockingCoherentLineCache.sv": "6a5ef23a29e6fc0c1eeed8b61efcd6943f476424c4aede66ce0ac254e861d25a",
+          "OrderedTileLinkBridge.sv": "a5f8a302decaee206843dedc0a7a97861eefd3e484fa1a01a1e8fe69d3459429",
+          "OwnerBankedFetchHints.sv": "a3c5d63190f1ffb3490000bbf40d5ce1e5682ecbcecf4e2c896bc73617cf8666",
+          "OwnerBankedPhysicalRegisterFile.sv": "b26d511194502c6c426a92b76c4407a0cb3a90771dddc1a494913c9a1f5c8e47",
+          "OwnerOperandReady.sv": "c2b78c692a6cdcb7bf18d8c94dc49b1a3e9adf45bf612bca82546c544b8b758f",
+          "PacketFetchPmp.sv": "b02636cb20f6fc27c58c1c2341b4fe620b1b2d1dc2f3082814a0d9a85af6b89e",
+          "ParallelBitLegality.sv": "c91b36f021b9448ce6f5e499dc864e46881cc5f3f1d3271906290a0559a8c36b",
+          "ParallelCompletionPayload.sv": "e9705ceebc6d73aabb52b99175144de983770b3410257570f79cf894f46aea40",
+          "ParallelFetchAlignment.sv": "b96c2fdca01a34cf6ac431fa7ecdea1777b384f8a2c17cec05491a00abb5e2a0",
+          "ParallelFetchTagLookup.sv": "d71253da43b89987eeae2453f70c7fd0d40027467d1b01f8bb226c894dfd6b83",
+          "ParallelFetchTagLookup_1.sv": "6d185a5668d8e04e44e4fa9bbc87de705b9e91ee5aa5d702fd35a01c44ff405e",
+          "ParallelFetchTagLookup_2.sv": "d50cd750aa0ed36e36558375899adae05ad57250759fbf847448c2b89cfb96ae",
+          "ParallelIntegerLegality.sv": "810be0a88446d3c32a081a73842b0161ba290da3007c13673a10d74711338f3e",
+          "ParallelLoadStoreUnit.sv": "fbd72945177a6f7d6f78c0df0d4ce921b84e1bd3f0c29e7f40b70299eb43a488",
+          "ParallelMinMaxResult.sv": "35955d5483140a64fb6a618feb64e09854070f44f909b207111bcbe736deece9",
+          "ParallelRecoveryAdmission.sv": "d96f27d525995638b303be5fdde2154c5a699c7faee9c851aaa03fb846291f95",
+          "ParallelRegisterRouter.sv": "62877dc2c7143d4f98a0a730cc81b0910203789e2417e46622fe52798b33ce37",
+          "ParallelRegisterRouter_1.sv": "789ed241c36207acd2aa0c0e1be655bc27470d2684b95fdb1cbbc0ae32cf5798",
+          "PeripheralClockControl.sv": "20aa2e7fea444342aa75d2b68c2599111de0f4145ee85560a65e056af9dff100",
+          "PeripheralQuiesceAck.sv": "7cf028ef1de1229492d96e3fe9de419b84bf1e40d218509723380539bc597aaa",
+          "PeripheralWakeDelay.sv": "46b0630021408f2f23cb7f51ae05f4e7d574bc712ba189d6ad8e951bbfa7cc06",
+          "PeripheralWakeDelay_1.sv": "4d619bd31410d7e7fe14137f4aca47ec5710aaf29ff2efc2095aab8e06a1b743",
+          "PhysicalReadyUpdate.sv": "671a49d6ae9c4d1ef82ba905f0b64879d321efd068970563e488b520c675ccea",
+          "PipelinedMultiply.sv": "2d6ed294efb0243d873ca02a1fadf1bf2760f8880a0fb7755aafdd3c93861266",
+          "PmpChecker.sv": "1f1c4587d2e7f7adff3fa9ab06d8b63acdde5c4adfc3931cf49c85b44204eb0c",
+          "PmpChecker_1.sv": "31be038a42abd118b9f697511051c92ced4af691e062ad75e24ca621ab5b1058",
+          "PmpChecker_5.sv": "408d284e11893bc3c2900b1c375debd49b50ac6f10bddd6e8171c82a3fae27c2",
+          "PredictionSourceQualification.sv": "35c2a572865a816546cfecce8bd163e2ff38362f5485e9fc73d88fa26eb1598a",
+          "Queue1_UInt64.sv": "4a9dd0a40c481d4f1e224e55bfcfc1a82ca2d221844481741692b17126cc2961",
+          "Queue2_Axi4Address.sv": "570551371f815e0762c017d5a7d14b1f6ea0804b6160e5cd68244841e4873027",
+          "Queue2_DataRequest.sv": "1320283462b54d9fdb1e8e838fc40066bad657d3e7946c578a811995516c378a",
+          "Queue2_EthernetFrameBeat.sv": "ad099a5b95deec74785b07a98b799b07122220ff7e06a3aa86ba9ae7ba8e026c",
+          "Queue2_LineWriteRequest.sv": "09534dc06fb2ba632db8a34dce106937ffddb681ed0584dde4a17a590297b368",
+          "Queue2_Message.sv": "2e4fe8687e6707aa28458198fc8c66656e12a8153c0fe1eae6ad14292b56555b",
+          "Queue2_RegisterResponse.sv": "213bf57109050f2d84c6f5fb8dad334813572e24ac66177fd8988613baf0cd5d",
+          "Queue2_RegisterResponse_7.sv": "8d5141dcdbe34667a458125fdb491c4f019b5ce9d03015016e140d18d8db924f",
+          "Queue2_TLBundleD.sv": "a0c3f350324fa32c678644b548e779789d7c2ea16a3dbaa3454bc28d26303d70",
+          "Queue2_UInt1.sv": "9d7bcbe079d32e94dc89a4d7fe73cb4983f8ab639d28ee108b782b8977df84c1",
+          "Queue2_UInt1_1.sv": "2a5375b8e1354012b33a427ea8d09720b1c229840e69271af2d4a26e9fa98124",
+          "Queue2_UInt2.sv": "9969ec584008b33bf740f544a72ed3aa7cc01c54500103235c692add3baff65b",
+          "Queue3_Bool.sv": "b82d5d8beed364b6ae2cc197f39cd170fadab4dd5602c8bcace94bbdebdab450",
+          "Queue4_Bool.sv": "3bac5111a613796597b07452f04bfa1f9828692cda9f1ccc5f0cd5a4bdcd65ff",
+          "Queue4_Metadata.sv": "e99e2ed08368176104d2f6fa4bd3da5908dd95301c1e3d6fad62f1a45b94e68e",
+          "Queue4_RegisterResponse.sv": "1c8034874d90da5db3ceffabbc01ea7ec61928ad107dcda7b29699f2b7c91b48",
+          "Queue4_TLBundleD.sv": "edaa28f4980d9b1f0e16f1a6f12681d8dfdf24c287c49fa2cd98ab1d06436439",
+          "Queue4_UInt2.sv": "b361ed8f7799f0a14f8157602431799c1fd49286e561b2da84c7209877e1b85c",
+          "Queue4_UInt3.sv": "0e5d0ae876400416f945fe1a7767a33cece69fdd77d71a3a605e93e7a1d1dd77",
+          "Queue4_UInt64.sv": "5a8588bd0c6d331402ee4c5d5895ec5fb1dde1e9500d72caf92f17d6463c8ef5",
+          "Queue8_Bool.sv": "9443fa81f1bb36c5bdb05fe6e7158672cb8321f9ed4485e60108f3625fc2d91c",
+          "Queue8_Bool_1.sv": "d275074f7790d09923db33c174e52bb90e05250101725b593746c92fa56e8c87",
+          "Queue8_ParallelRegisterRouter_Anon.sv": "d972ec7cec7fcd7fa195a178276df9bd14eedb478af2b7f0cd412b2f2eaf1ce6",
+          "Queue8_ParallelRegisterRouter_Anon_1.sv": "1c642a3bab30e1724e0dd359f42dbb53735e17d62d5dab951a3587b787ed6c5e",
+          "Queue8_TranslatedDataRequest.sv": "3e6dfd63a25dcb148f4ea53bbb5cde31808bca422377166c8407fdb46494fdfc",
+          "Queue8_TranslationResponseOwner.sv": "1ccf25d05f7d736272758e21ff94fd69066d8920d1a06ef6e85e51e2409a8cb5",
+          "Queue8_UInt1.sv": "42af835920b7f5cc9adcb1a190c75ae6d9768a489a2664ac974be72f02896b3b",
+          "Queue8_UInt3.sv": "ba20133c0849be2c1cb6b7b149a92b122cf2967005781450265b72ab69bef0cb",
+          "QueuedGmiiFrameTx.sv": "c026c1b55be251329dd56ff510b8cdbf6844959b7bfd7e23be79b2ebf97a8d66",
+          "RRArbiter2_BackendCompletion.sv": "8022edc443cca6fc72966feb1f6f10f086154e78f1ee7a186d52fddc986c5f15",
+          "RRArbiter2_DataRequest.sv": "020575310a3b0de318a2890c6f08de74e0da25198326403ba882980f748e8045",
+          "RRArbiter2_LineWriteRequest.sv": "7e2a06ef56671438d210589dfc41e3e7db27885fef612901aaa7da0ffb7bb9f6",
+          "RRArbiter2_RegisterRequest.sv": "9ce19e153231605a89e9f143791ff414ebc31efba76c4253d4f4bf145b1297eb",
+          "RRArbiter3_TLBundleD.sv": "8a86a1ec4dea39bb5c1f7d207f20cb2a4d9af696aab1ed7fa755e86ee94711dc",
+          "RRArbiter4_Axi4Address.sv": "0a305bd35e444fe1e8063986a9bb535f98a177519ef9b3018a9cfa1ebba26041",
+          "RecFNToIN_e11_s53_i32.sv": "2322f962c41ed411e0c75c18581aa3f39ced037fa87a5f4d6afad3d236542284",
+          "RecFNToIN_e11_s53_i64.sv": "87a5a77703da1f5b558a6dd980aeb6dd9f30cdef934e59d2edcad291a53458b3",
+          "RecFNToIN_e8_s24_i32.sv": "b131440816ba23aefe16264aaa61733b52d2008e8e965f735ef0d5cba150636a",
+          "RecFNToIN_e8_s24_i64.sv": "9229d0078a380d1fc277fa290c286f05860fe218b50cda5f87f47a7b7c6ab349",
+          "RedirectTokenQualification.sv": "ac51ee92a0968d9f75f60c35e213f1da8dfe237470044884f533d02121eb8c4a",
+          "RegisterArbiter.sv": "5766497b15c531ca91d3a730870a4aa9a555ad99905a7ffee03e0123ed705cac",
+          "RegisterClockDomainBridge.sv": "bf61eda7636a5aaef56a0bc26e9f8213146595d8ae750e38ef280a19094277f3",
+          "RegisterGmacControl.sv": "472c6870e448b9e3ff7b5c0fe4d6ab3d9c9eb299040f4517969fce8d8bffd8bc",
+          "RegisteredFetchPacket.sv": "2f9f56da271354741df0a7783d0fa52c18227ceeacc7a674034d0c5fe94d4d60",
+          "RegisteredFetchWindow.sv": "8f9297d623e33053db20405e909e40c59d0defce9a66a3098eab48483a05ac52",
+          "RegisteredRobHeadMask.sv": "fa2dd8b18bf68ee02e1335da4f4a743efe43368429de0f67e87f33604ccc21df",
+          "RegisteredTileLinkBoundary.sv": "de08417099d6434dab8e41b2d18b69d70f9826d6b2244a24bd305e2cc085402a",
+          "RenameRob.sv": "d410aa8f4adadfc66b5ee2f52793c56361560464d1fb46cc4f6630a43f0ab8b2",
+          "RetirementReturnStack.sv": "21769acebbb1af80457eaa80404f88825c913b7479b85df4794b7aa8f72905cf",
+          "RoundAnyRawFNToRecFN_ie11_is53_oe8_os24.sv": "8056212ca94e70920e51acbf6654038cf56e4480126b490dddeefa17763f6d3a",
+          "RoundAnyRawFNToRecFN_ie11_is55_oe11_os53.sv": "8e8f69a00258453d89f98b9ef235b1f428bc96b13968e38b07ab742e7fab5825",
+          "RoundAnyRawFNToRecFN_ie7_is64_oe11_os53.sv": "d3a5f0ce572f60825f20bb32510f48ed2c1bdf813597c385b5488aaa30607999",
+          "RoundAnyRawFNToRecFN_ie7_is64_oe8_os24.sv": "bc9dcdb3fbc45e5054bd62f44d3cd37f21597a022fa099fdafc50974fd36534c",
+          "RoundAnyRawFNToRecFN_ie8_is24_oe11_os53.sv": "176e979972409d421de5bef7b955ac6d1cc7a3a714656a38bebdcf2c9f08baa6",
+          "RoundAnyRawFNToRecFN_ie8_is26_oe8_os24.sv": "e4fd74899ed2852ce99044b0958752aad14f9bbdee5c2e167abaa48dd45fab04",
+          "RoundRawFNToRecFN_e11_s53.sv": "498211cdd83e079d4c504bec54ecf9bfcd8fc1826af3340f0b11a2d8d3b606cc",
+          "RoundRawFNToRecFN_e8_s24.sv": "8cde72ab0698e81f85a9fc062854a28ad22a05f2b0cbd8f7851dd29b888cffa3",
+          "Rtl8211fPhyManager.sv": "9046e3e332d7727aa8512c1c018490d2aed3c70c42b15b49e6f84c1b90773136",
+          "SharedDataArbiter.sv": "da19964b48aa85566186ea40a2114f5eb7a0be967f58193438250747b4a41ce8",
+          "SharedDataArbiter_1.sv": "f3c80614ecd7a10d73a8482b5af139ae9a551fcb4a2eda3644bbad6edb451ea6",
+          "SplitMulDivSelector.sv": "f85eb15c22f91658c1c3fbcc9b56a914e3d260af69e5fe914c04ff6ad0b128e6",
+          "StoreBuffer.sv": "5158cf6bbd334d7527d74c49a1302c60fcbaa8d0d1fe1009204a9d5f57ca9a7b",
+          "SvPageTableWalker.sv": "f186bbfa118c8cefd17a5ee081f3a2b138b43f9e97f3e29e8cb5238e1e1d939f",
+          "SvPteDataBridge.sv": "e4f147a220238c5f8324dd6380661f26ac55e2f7762e8f9fc262d8ab1b663506",
+          "SvTranslationService.sv": "f5b22b3176573fb5bc0de5e0e64c2b662991c534b0f2cf4afdd68d072e38d232",
+          "SynchronousFetch.sv": "9e1ada384d22ffc17b243409c8a3d3548db842a1400ec8b7f627b850d3e1d018",
+          "TileLinkAxi4Bridge.sv": "fda9b724c912a977bab05305dd6386dae14d256e3233967be9f3c0e8f285a01d",
+          "TileLinkAxi4BurstBridge.sv": "1e06bdb5daf05799954f9e704d3cc99733f1cdaf446aa04e06a5ee45c9eb8d5b",
+          "TileLinkAxi4OutstandingBridge.sv": "c59a2b1ac7ea0b0dd73718c03420d1bf0eb48380abb0ae5a74b061f3f59b50d9",
+          "TileLinkGmacControl.sv": "ee39490635394ab777e8723d8661651b03b4ea66271c95cb44f232c1ae1f22c5",
+          "TileLinkInstructionRomAdapter.sv": "98769878e5987b4a91925b5db4399b523f28d0bd34335f2bc07e0158f968ab12",
+          "TileLinkLineAcquireEngine.sv": "b99e478c3688fe0efa076fe56bf0f941958f60242f435964cb28bd16a1927e19",
+          "TileLinkLineFillEngine.sv": "43a751fd8ac70770694da34f2db0e419a4a5ff297bc404db6d935daf8e5625bd",
+          "TileLinkLineFillEngine_1.sv": "26b799c5bacb29441900718ff233377ab5411c4cd3d22df517d024ec408dec0c",
+          "TileLinkLineProbeEngine.sv": "36bd915b0506c7343f21c5fa423facb0399b60e3d8fca97eebe295e137ddf5b8",
+          "TileLinkLineTransfer.sv": "2698330275b7c3daccfebba366bd0198c148bd79e610494e2dca1694aa3af4d9",
+          "TileLinkLineWriteEngine.sv": "44ccb2876b69fd598bef0d9e3b85ca6da86224d28baab58dcec4bd36ab759e9b",
+          "TriSpeedManagedGmac.sv": "52d0654f1b14d1fe06ea4f9c9358c388615134a4c01fc1277d914ccda92f679f",
+          "TriSpeedRgmiiRx.sv": "44898f936b63e6b874389a0ea07c6b0cc1d57dc4417ee247845a1757eb68a450",
+          "TriSpeedRgmiiTx.sv": "6374714496e0b23b174ac542027eefc59370c13cd5a0eb85de9af58e77af79a7",
+          "TwoBankAddressDecoder.sv": "8e2459eaeb3d9c826af260b1b998f23c3a207f8b33f99852d7a116064c498150",
+          "TwoBankTileLinkRouter.sv": "c31cba63384f772afa872a40a319b59ec6423b7a860e3459c9a4f4f9b0aeb697",
+          "TwoEntryRegisterQueue.sv": "8efd8b99655e4d53d87da01dcb957b740f92bdb12876b2506801e0a8a998f093",
+          "TwoEntryRegisterQueue_1.sv": "ba0c08a3e4a4108a3c4be89404ddafcf07cf66b049e2f30e167892195e7c2d18",
+          "TwoEntryRegisterQueue_2.sv": "72ec9dc2646eab32c040926d88fc61241bdb8fccf11dfe554a4c46adc32aadda",
+          "TwoEntryRegisterQueue_3.sv": "bd2f6588697abab1676bd1fd1eae7d3f465b42dc55843715ca411855e17e8a33",
+          "TwoEntryRegisterQueue_5.sv": "74e10540dcdddc8defda35b7b44d667109d6d747f57df03c991b0b5c423cefba",
+          "TwoEntryRegisterQueue_6.sv": "c7fc9a86f725e63f69f84bdd0ff67aab7fdc3a232ebdd15e7f4e0008de951f93",
+          "TwoEntryRegisterQueue_7.sv": "b3eb65139ccffbff42d9eed8ce591c37e40cc5999b0742ba665b3419e895e706",
+          "TwoMasterRegisterArbiter.sv": "6c214a06cfced6205abc5a76340a2328be43ce12976d93dc3acd8da8c695ab5b",
+          "TwoMasterTileLinkArbiter.sv": "da9c3e87d935771807b6d25e5c793a9068a9f8b78746cfc8e1ff13b5513e50f3",
+          "TwoMasterTileLinkArbiter_1.sv": "e7b49446b8b8e12c5dd09cb4960541a03f1ffc42c68cd38c88d5ce188356032f",
+          "TwoMasterTileLinkArbiter_3.sv": "3bdebfbf52b3e6a976cf46cb0f5c4764a1f9297864af561661ab9b4d2a0aca4e",
+          "TwoMasterTwoBankTileLinkCrossbar.sv": "cf783b7e6d16db661393dd9f2d0efe56c81e0b9eecc0f493569671f88c49e05e",
+          "UartConsole.sv": "1093856cf515224b90ddfd7a28ac4def2f271c727561f40991fd32dd7de99374",
+          "banks_48x64.sv": "5c4ded28e5e552cf93df8e213e26e5caa60f2cef0719fb1cf5caf39b96647b4e",
+          "buffer_1024x32.sv": "c0bb2b131c68cb15b868573e6e4cfe1a439e96833cfc84fd77a874633265bff4",
+          "buffer_2048x32.sv": "17be2d88e10b9692e42deeb6aef36ddbffc619fd2206059caff093d8916e98fb",
+          "dataBanks_512x64.sv": "7d2f06c6b3410dbe49225f37ce38faf6ab5054693c336bf3a62363e1a47341d5",
+          "data_512x64.sv": "d922787692444e6289dbc7139469a77a57e2cb7d10aebe802becb1782ab24fdb",
+          "expandedInstructionBank_8x32.sv": "3d9abd9bf42764444ca9843531050167d55d230c5905b9f1c8149d73103cf2d1",
+          "immediateBank_8x64.sv": "8498fc9451455249aec1b7c4ef8a05048d56197aa1f26e09a27ab39111071118",
+          "instructionBank_8x32.sv": "1900a043aac162ad045893d6bf43aa84e40167d7e533ec32046d6c922100c691",
+          "mem_256x64.sv": "37935cae198afd7ba252691fb63ef5395697146e00e8c0912a096274fce9da6b",
+          "mem_8x64.sv": "d0c1dfe9c61ed1ed369f94307bd404624ca0965f2655c5a9cf81414ab6eac409",
+          "memoryPayload_32x64.sv": "7427afd55e447f5e5928ca73cc92695a8582a4b947633047a336f445dc03dcd0",
+          "memory_8x96.sv": "c2243dc2098efd408e91d06098c756b0f038732bd0f18e4a8e99b2a198677ef5",
+          "payload_16x72.sv": "aa6c1a9766dd72e8f4a12f94bca874298667e349add2b2c303e2b68b384ab174",
+          "pcBank_8x64.sv": "e79d594053eb336ca157ca370f29e7d6c0200212ff55b6b43541be90e3d71ce3",
+          "ram_2x1.sv": "a9449b364c7e31ab742f30b61e651e32b57aae65e3b63fd54baaef864dc668e6",
+          "ram_2x181.sv": "1d168de02e09bdb8c1998ce3d9bb556326e4a8f756689b09872d3aade51ba8ff",
+          "ram_2x2.sv": "312614035e60d22149fde40834a05fb7190a338e8c0902715b260bb2e901b4aa",
+          "ram_2x38.sv": "926183e1e874ac3a336883124f9364d05ac64451508d76d04f6a43466337716d",
+          "ram_2x578.sv": "f2623168b2111c91259473d5497daac59da584d2271b78d6af7122f3884f71b4",
+          "ram_2x61.sv": "8e0497f19271d7d37037d2cfba6af0298be49eed3940bdb8f8877d6c2791a74f",
+          "ram_2x65.sv": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d",
+          "ram_2x77.sv": "bb4e7593e7ad2de5f9573fbc8d00b2b11dd1972fd4baf0385a77706632f100ba",
+          "ram_2x8.sv": "6200f3e72f6483b224f1fbcef547d94af53f6f9f8e6eda68d5c3319b0af9176d",
+          "ram_3x1.sv": "228f3ae3aa14a9885685c00458930286b3b7677c1ff1b17f0e3ee4348d87693e",
+          "ram_4x1.sv": "aec0e74330dd13f95a68ade6aaae6cde16ee819e15f171f7aafe953c1aa867f9",
+          "ram_4x10.sv": "db6198af5a7373209c1a08720faa406fadda5a8281462dd9c852b0da87d12754",
+          "ram_4x2.sv": "f52c53d92a06a0f1e7da0f83b11c158543a298fa373670bf9dc52ddda1a0098f",
+          "ram_4x3.sv": "9036d802ec77a4178a54595effb0e53d7b48c81d030b691c0dc9a1c0d315699d",
+          "ram_4x64.sv": "9abcde696898b4894f656e18f3e864f19589c12ff5c3cb73d7d8748719d2e3be",
+          "ram_4x65.sv": "a509eee709208ab58bcd6908916f060032416dd597bde6fba40abb3139fe53dc",
+          "ram_4x66.sv": "0f2f0a664e0fba8ea2d66e917e88c3abab4806b751020ed687dfacb2b7d8f413",
+          "ram_8x1.sv": "f6174b01463580b17704c931032957a4520f610a1be897c3a439d3dd708a67c6",
+          "ram_8x153.sv": "dcbe12ab4baee73ff821b1d39a0fe6927f7100c8797becc2f696ecfac5d76c0d",
+          "ram_8x2.sv": "0bc6f83e9aa15e2f9db8f8a9dba85958d6a31435529c92ec2a3714d1196adb39",
+          "ram_8x3.sv": "a9bdb33b1a83f76d66ae05bdab63e0c59c6a3df1337fbebc5766e9c939741be4",
+          "ram_8x5.sv": "7fad46e9a8d2d7a02fe1d477bd85ae17543fa7b158a4862f9fa5e5323e053f01",
+          "ram_8x6.sv": "04f1e182cd3952dad0e01e5f06f40a4b253f28e2373af823884732ec83ab5816",
+          "storage_16x38.sv": "459a38bb778a24bc1f5b09791a89853c845afb86193d14d2ec95c6ffe169ef72",
+          "storage_2x66.sv": "7204f11169e5f9301bd271b6db07560443807f1476bea5adfacb381dfa1016f2",
+          "storage_64x38.sv": "019ceb52feb2dce0f198ac5dbc62a3ebf2b43a13e8803e77ba9fd85415189d4c",
+          "tagBanks_256x19.sv": "611e87061e2f0ec6af47f34f4d51a6c90caf426eb98a1db45d58cf09f3573e0d",
+          "tagBanks_256x19_0.sv": "5ab462c0469d3ae38d65e07ed2825631733cd17da92f755e20b718ec374b8d8a",
+          "writerBank_32x162.sv": "81e9a15cc762ff372d1899fa3cee62a64fdd2d4ee1977760e27c38eed5e758ef"
+        },
+        "normalized_sha256": "ffeb8ada21616c976786c9aaa909deec9f58cc18922490c21fb60661947dec81",
+        "limits": "Pre-synthesis production RTL geometry only; no mapped LUT/RAM/DSP or timing claim."
+      }
+    },
+    "fetch-capture.json": {
+      "sha256": "4005bac4f40e9c840738ea70f7c3473ebfa3e4858e3a14f6a4296c2f06f91267",
+      "result": {
+        "status": "PASS_SCOPED_NORMALIZED_SV_CE_DEPENDENCY",
+        "baseline": {
+          "sv_sha256": "a35a85548c7478822be2fc16b0ee649cdd719e0b440a4d9f648deee6cf3aafbb",
+          "validity_gates_checked": 32,
+          "groups": [
+            {
+              "targets": [
+                "words_0_0"
+              ],
+              "condition": "_GEN_19",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_0_1"
+              ],
+              "condition": "_GEN_20",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_1_0"
+              ],
+              "condition": "_GEN_22",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_1_1"
+              ],
+              "condition": "_GEN_23",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_2_0"
+              ],
+              "condition": "_GEN_25",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_2_1"
+              ],
+              "condition": "_GEN_26",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_3_0"
+              ],
+              "condition": "_GEN_28",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_3_1"
+              ],
+              "condition": "_GEN_29",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_4_0"
+              ],
+              "condition": "_GEN_31",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_4_1"
+              ],
+              "condition": "_GEN_32",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_5_0"
+              ],
+              "condition": "_GEN_34",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_5_1"
+              ],
+              "condition": "_GEN_35",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_6_0"
+              ],
+              "condition": "_GEN_37",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_6_1"
+              ],
+              "condition": "_GEN_38",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_7_0"
+              ],
+              "condition": "_GEN_40",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_7_1"
+              ],
+              "condition": "_GEN_41",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_8_0"
+              ],
+              "condition": "_GEN_43",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_8_1"
+              ],
+              "condition": "_GEN_44",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_9_0"
+              ],
+              "condition": "_GEN_46",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_9_1"
+              ],
+              "condition": "_GEN_47",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_10_0"
+              ],
+              "condition": "_GEN_49",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_10_1"
+              ],
+              "condition": "_GEN_50",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_11_0"
+              ],
+              "condition": "_GEN_52",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_11_1"
+              ],
+              "condition": "_GEN_53",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_12_0"
+              ],
+              "condition": "_GEN_55",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_12_1"
+              ],
+              "condition": "_GEN_56",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_13_0"
+              ],
+              "condition": "_GEN_58",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_13_1"
+              ],
+              "condition": "_GEN_59",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_14_0"
+              ],
+              "condition": "_GEN_61",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_14_1"
+              ],
+              "condition": "_GEN_62",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_15_0"
+              ],
+              "condition": "_GEN_63",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            },
+            {
+              "targets": [
+                "words_15_1"
+              ],
+              "condition": "_GEN_64",
+              "dependency_set": "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3"
+            }
+          ],
+          "word_payload_bits": 2048,
+          "invalidate_dependent_groups": 32,
+          "pending_stale_dependent_groups": 32,
+          "dependency_sets": {
+            "c73e79cb3ce304a457291989753c5665e2f29af38a9fde7f94d347cc8cb466f3": [
+              "bases_0_0",
+              "bases_0_1",
+              "bases_10_0",
+              "bases_10_1",
+              "bases_11_0",
+              "bases_11_1",
+              "bases_12_0",
+              "bases_12_1",
+              "bases_13_0",
+              "bases_13_1",
+              "bases_14_0",
+              "bases_14_1",
+              "bases_15_0",
+              "bases_15_1",
+              "bases_1_0",
+              "bases_1_1",
+              "bases_2_0",
+              "bases_2_1",
+              "bases_3_0",
+              "bases_3_1",
+              "bases_4_0",
+              "bases_4_1",
+              "bases_5_0",
+              "bases_5_1",
+              "bases_6_0",
+              "bases_6_1",
+              "bases_7_0",
+              "bases_7_1",
+              "bases_8_0",
+              "bases_8_1",
+              "bases_9_0",
+              "bases_9_1",
+              "contexts_0_0",
+              "contexts_0_1",
+              "contexts_10_0",
+              "contexts_10_1",
+              "contexts_11_0",
+              "contexts_11_1",
+              "contexts_12_0",
+              "contexts_12_1",
+              "contexts_13_0",
+              "contexts_13_1",
+              "contexts_14_0",
+              "contexts_14_1",
+              "contexts_15_0",
+              "contexts_15_1",
+              "contexts_1_0",
+              "contexts_1_1",
+              "contexts_2_0",
+              "contexts_2_1",
+              "contexts_3_0",
+              "contexts_3_1",
+              "contexts_4_0",
+              "contexts_4_1",
+              "contexts_5_0",
+              "contexts_5_1",
+              "contexts_6_0",
+              "contexts_6_1",
+              "contexts_7_0",
+              "contexts_7_1",
+              "contexts_8_0",
+              "contexts_8_1",
+              "contexts_9_0",
+              "contexts_9_1",
+              "io_enable",
+              "io_invalidate",
+              "io_memory_response_valid",
+              "io_pc",
+              "io_privilege",
+              "io_virtualized",
+              "pendingBase",
+              "pendingStale",
+              "replace_0",
+              "replace_1",
+              "replace_10",
+              "replace_11",
+              "replace_12",
+              "replace_13",
+              "replace_14",
+              "replace_15",
+              "replace_2",
+              "replace_3",
+              "replace_4",
+              "replace_5",
+              "replace_6",
+              "replace_7",
+              "replace_8",
+              "replace_9",
+              "valid_0_0",
+              "valid_0_1",
+              "valid_10_0",
+              "valid_10_1",
+              "valid_11_0",
+              "valid_11_1",
+              "valid_12_0",
+              "valid_12_1",
+              "valid_13_0",
+              "valid_13_1",
+              "valid_14_0",
+              "valid_14_1",
+              "valid_15_0",
+              "valid_15_1",
+              "valid_1_0",
+              "valid_1_1",
+              "valid_2_0",
+              "valid_2_1",
+              "valid_3_0",
+              "valid_3_1",
+              "valid_4_0",
+              "valid_4_1",
+              "valid_5_0",
+              "valid_5_1",
+              "valid_6_0",
+              "valid_6_1",
+              "valid_7_0",
+              "valid_7_1",
+              "valid_8_0",
+              "valid_8_1",
+              "valid_9_0",
+              "valid_9_1"
+            ]
+          }
+        },
+        "candidate": {
+          "sv_sha256": "9e1ada384d22ffc17b243409c8a3d3548db842a1400ec8b7f627b850d3e1d018",
+          "validity_gates_checked": 32,
+          "groups": [
+            {
+              "targets": [
+                "words_0_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_18",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_0_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_19",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_1_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_21",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_1_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_22",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_2_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_24",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_2_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_25",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_3_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_27",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_3_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_28",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_4_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_30",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_4_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_31",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_5_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_33",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_5_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_34",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_6_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_36",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_6_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_37",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_7_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_39",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_7_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_40",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_8_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_42",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_8_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_43",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_9_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_45",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_9_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_46",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_10_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_48",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_10_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_49",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_11_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_51",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_11_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_52",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_12_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_54",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_12_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_55",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_13_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_57",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_13_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_58",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_14_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_60",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_14_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_61",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_15_0"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_62",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            },
+            {
+              "targets": [
+                "words_15_1"
+              ],
+              "condition": "io_memory_response_valid & ~pendingStale & _GEN_63",
+              "dependency_set": "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023"
+            }
+          ],
+          "word_payload_bits": 2048,
+          "invalidate_dependent_groups": 0,
+          "pending_stale_dependent_groups": 32,
+          "dependency_sets": {
+            "3b2c1b56478dad069dd73f7f85223f030bfb599fd5668c9b9fb09f2139240023": [
+              "bases_0_0",
+              "bases_0_1",
+              "bases_10_0",
+              "bases_10_1",
+              "bases_11_0",
+              "bases_11_1",
+              "bases_12_0",
+              "bases_12_1",
+              "bases_13_0",
+              "bases_13_1",
+              "bases_14_0",
+              "bases_14_1",
+              "bases_15_0",
+              "bases_15_1",
+              "bases_1_0",
+              "bases_1_1",
+              "bases_2_0",
+              "bases_2_1",
+              "bases_3_0",
+              "bases_3_1",
+              "bases_4_0",
+              "bases_4_1",
+              "bases_5_0",
+              "bases_5_1",
+              "bases_6_0",
+              "bases_6_1",
+              "bases_7_0",
+              "bases_7_1",
+              "bases_8_0",
+              "bases_8_1",
+              "bases_9_0",
+              "bases_9_1",
+              "contexts_0_0",
+              "contexts_0_1",
+              "contexts_10_0",
+              "contexts_10_1",
+              "contexts_11_0",
+              "contexts_11_1",
+              "contexts_12_0",
+              "contexts_12_1",
+              "contexts_13_0",
+              "contexts_13_1",
+              "contexts_14_0",
+              "contexts_14_1",
+              "contexts_15_0",
+              "contexts_15_1",
+              "contexts_1_0",
+              "contexts_1_1",
+              "contexts_2_0",
+              "contexts_2_1",
+              "contexts_3_0",
+              "contexts_3_1",
+              "contexts_4_0",
+              "contexts_4_1",
+              "contexts_5_0",
+              "contexts_5_1",
+              "contexts_6_0",
+              "contexts_6_1",
+              "contexts_7_0",
+              "contexts_7_1",
+              "contexts_8_0",
+              "contexts_8_1",
+              "contexts_9_0",
+              "contexts_9_1",
+              "io_enable",
+              "io_memory_response_valid",
+              "io_pc",
+              "io_privilege",
+              "io_virtualized",
+              "pendingBase",
+              "pendingStale",
+              "replace_0",
+              "replace_1",
+              "replace_10",
+              "replace_11",
+              "replace_12",
+              "replace_13",
+              "replace_14",
+              "replace_15",
+              "replace_2",
+              "replace_3",
+              "replace_4",
+              "replace_5",
+              "replace_6",
+              "replace_7",
+              "replace_8",
+              "replace_9",
+              "valid_0_0",
+              "valid_0_1",
+              "valid_10_0",
+              "valid_10_1",
+              "valid_11_0",
+              "valid_11_1",
+              "valid_12_0",
+              "valid_12_1",
+              "valid_13_0",
+              "valid_13_1",
+              "valid_14_0",
+              "valid_14_1",
+              "valid_15_0",
+              "valid_15_1",
+              "valid_1_0",
+              "valid_1_1",
+              "valid_2_0",
+              "valid_2_1",
+              "valid_3_0",
+              "valid_3_1",
+              "valid_4_0",
+              "valid_4_1",
+              "valid_5_0",
+              "valid_5_1",
+              "valid_6_0",
+              "valid_6_1",
+              "valid_7_0",
+              "valid_7_1",
+              "valid_8_0",
+              "valid_8_1",
+              "valid_9_0",
+              "valid_9_1"
+            ]
+          }
+        },
+        "script_sha256": "8ed9c5bc13ce1cac3fef0c7ffe925ab964af0c03d9ba3cb70ed9a03b55169f93",
+        "negative_controls": [
+          "packed_alias_invalidate_detected",
+          "missing_alias_rejected",
+          "lost_validity_stale_gate_rejected"
+        ],
+        "limits": [
+          "Only combinational dependencies inside normalized SynchronousFetch; registers are timing boundaries",
+          "Valid installation still contains stale/invalidate gating; behavior is independently tested",
+          "No mapped FPGA fanout, setup/hold or routed path claim"
+        ]
+      }
+    }
+  },
+  "limits": [
+    "Only instruction RAM read-address selection changed; read-enable retains full permissions/invalidation.",
+    "No mapped resource/frequency/physical CDC or board claim.",
+    "Existing FP composition binds unchanged CPU native modules; instruction-cache address change is covered by this board/module proof."
+  ]
+}

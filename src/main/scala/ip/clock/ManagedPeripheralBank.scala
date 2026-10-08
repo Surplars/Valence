@@ -12,7 +12,9 @@ import soc.ip.dma.NetworkDmaConfig
   */
 class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true,
-    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default) extends RawModule {
+    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
+    triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1) extends RawModule {
+    require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(config.resources.size == 7 && config.gateableMask == 0x68)
     require(config.resources(1).nominalHz == cpuHz && config.resources(3).nominalHz == uartHz)
     val sourceClock = IO(Input(Clock()))
@@ -37,6 +39,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     val gmiiRxValid = IO(Input(Bool()))
     val gmiiRxError = IO(Input(Bool()))
     val linkUp = IO(Input(Bool()))
+    val triSpeedRgmii = if (triSpeedEthernet) Some(IO(new TriSpeedRgmiiPortV1)) else None
     val mdc = IO(Output(Bool()))
     val mdioIn = IO(Input(Bool()))
     val mdioOut = IO(Output(Bool()))
@@ -63,30 +66,64 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uart.rx := uartRx
     uartTx := uart.tx
     uartIrq := uart.irq
-    val gmac = Module(new ManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
-        networkDmaConfig = networkDmaConfig))
-    gmac.sourceClock := sourceClock
-    gmac.rawTxClock := rawTxClock
-    gmac.rawRxClock := rawRxClock
-    gmac.commonReset := commonReset
-    gmac.registers <> gmacRegisters
-    gmac.streams <> streams
-    for (n <- 0 until 2) gmac.control(n) <> cmu.resources(n + 5)
-    gmac.gmiiRxData := gmiiRxData
-    gmac.gmiiRxValid := gmiiRxValid
-    gmac.gmiiRxError := gmiiRxError
-    gmac.linkUp := linkUp
-    gmac.mdioIn := mdioIn
-    gmiiTxData := gmac.gmiiTxData
-    gmiiTxEnable := gmac.gmiiTxEnable
-    gmiiTxError := gmac.gmiiTxError
-    mdc := gmac.mdc
-    mdioOut := gmac.mdioOut
-    mdioOe := gmac.mdioOe
-    gmacIrq := gmac.irq
     uartClock := uart.managedClock
-    txClock := gmac.txClock
-    rxClock := gmac.rxClock
+    if (triSpeedEthernet) {
+        val gmac = Module(new TriSpeedManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+            networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots))
+        gmac.sourceClock := sourceClock
+        gmac.rawTxClock := rawTxClock
+        gmac.rawRxClock := rawRxClock
+        gmac.commonReset := commonReset
+        gmac.registers <> gmacRegisters
+        gmac.streams <> streams
+        for (n <- 0 until 2) gmac.control(n) <> cmu.resources(n + 5)
+        gmac.rawRgmiiRxRise := triSpeedRgmii.get.rxRise
+        gmac.rawRgmiiRxFall := triSpeedRgmii.get.rxFall
+        triSpeedRgmii.get.txRise := gmac.rgmiiTxRise
+        triSpeedRgmii.get.txFall := gmac.rgmiiTxFall
+        triSpeedRgmii.get.txClockRise := gmac.rgmiiTxClockRise
+        triSpeedRgmii.get.txClockFall := gmac.rgmiiTxClockFall
+        triSpeedRgmii.get.requestedSpeed := gmac.requestedSpeed
+        triSpeedRgmii.get.appliedSpeed := gmac.appliedSpeed
+        triSpeedRgmii.get.pending := gmac.mediaPending
+        triSpeedRgmii.get.linkUp := gmac.linkUp
+        triSpeedRgmii.get.txIdle := gmac.txIdle
+        triSpeedRgmii.get.rxDrained := gmac.rxDrained
+        gmac.mdioIn := mdioIn
+        gmiiTxData := gmac.gmiiTxData
+        gmiiTxEnable := gmac.gmiiTxEnable
+        gmiiTxError := gmac.gmiiTxError
+        mdc := gmac.mdc
+        mdioOut := gmac.mdioOut
+        mdioOe := gmac.mdioOe
+        gmacIrq := gmac.irq
+        txClock := gmac.txClock
+        rxClock := gmac.rxClock
+    } else {
+        val gmac = Module(new ManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+            networkDmaConfig = networkDmaConfig))
+        gmac.sourceClock := sourceClock
+        gmac.rawTxClock := rawTxClock
+        gmac.rawRxClock := rawRxClock
+        gmac.commonReset := commonReset
+        gmac.registers <> gmacRegisters
+        gmac.streams <> streams
+        for (n <- 0 until 2) gmac.control(n) <> cmu.resources(n + 5)
+        gmac.gmiiRxData := gmiiRxData
+        gmac.gmiiRxValid := gmiiRxValid
+        gmac.gmiiRxError := gmiiRxError
+        gmac.linkUp := linkUp
+        gmac.mdioIn := mdioIn
+        gmiiTxData := gmac.gmiiTxData
+        gmiiTxEnable := gmac.gmiiTxEnable
+        gmiiTxError := gmac.gmiiTxError
+        mdc := gmac.mdc
+        mdioOut := gmac.mdioOut
+        mdioOe := gmac.mdioOe
+        gmacIrq := gmac.irq
+        txClock := gmac.txClock
+        rxClock := gmac.rxClock
+    }
     enabled := VecInit(cmu.resources.map(_.clockEnable)).asUInt
     quiesce := VecInit(cmu.resources.map(_.quiesce)).asUInt
     isolate := VecInit(cmu.resources.map(_.isolate)).asUInt

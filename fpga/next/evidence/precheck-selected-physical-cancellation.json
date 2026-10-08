@@ -1,0 +1,173 @@
+{
+  "status": "PASS_CURRENT_SELECTED_PRECHECK_TIMING_AND_PHYSICAL_CANCEL",
+  "replays": {
+    "timing_off": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/selected-precheck-timing-off-r1/receipt.json",
+      "sha256": "08d22536d434f15e1e828fe16e2b9e6fa74e3d51a3c1c90723a44e89914d9c3c",
+      "status": "PASS_PASSIVE_FULL_TOKEN_REPLAY"
+    },
+    "cancellation_off": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/selected-precheck-cancellation-off-r1/receipt.json",
+      "sha256": "c737322516d4cf7409ee87d93a78c3fa0530f5b3caec049156a4c5fb00d24c9f",
+      "status": "PASS_DIRECTED_CANCELLATION_GUEST"
+    },
+    "timing_on": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/selected-precheck-timing-on-r1/receipt.json",
+      "sha256": "1d5b454add436962a08ef8b89023d95a20a3f1acdab36de7920d1bef62c5ec88",
+      "status": "PASS_PASSIVE_FULL_TOKEN_REPLAY"
+    },
+    "cancellation_on": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/build/gsim/selected-precheck-cancellation-on-r1/receipt.json",
+      "sha256": "a1354589a37b7c14bf0add4cf2fcf0e1c83ad381051a388991f6c19ca27e0252",
+      "status": "PASS_DIRECTED_CANCELLATION_GUEST"
+    }
+  },
+  "same_parent_input_count": 442,
+  "parent_inputs_sha256": "c6afccd561b36206e02cf750c90c99fc2fd7a9811955eede4931b92fd5e1a811",
+  "parent_git_heads": {
+    "off": "54bcc7508a0f0dd05fd6004d96f4f6649fb4da0b",
+    "on": "32775e2fa6c5ca45e4fb1bcbda95b5734d5f92e9"
+  },
+  "original_guest_sha256": "3360eb85d6f376c2b1684eb2e7be01481b4bca02ef49efbfab3f2dabc582e449",
+  "directed_guest_sha256": "cbc3738bf9f0155e67ab26981f8e369d61945acbaae1dafb44b5919bfba91ddc",
+  "directed_guest_matches_legacy_qualified_guest": true,
+  "physical_cancel_witness": {
+    "tag": "2222",
+    "index": "12",
+    "pc": "2149581036",
+    "physical_address": "2151678784",
+    "start": "9896",
+    "physical_request": "9900",
+    "cancelled": "9967",
+    "physical_reply": "9976",
+    "cpu_reply": "9977",
+    "result": "none",
+    "result_presented": "none",
+    "physical_outstanding_witness": "1"
+  },
+  "off_control_target_starts": 0,
+  "negative_rejections": {
+    "negative": "board load timing: missing full-token owner",
+    "negative-cancel-owner": "board load timing: missing full-token owner",
+    "negative-cancel-data": "independent physical read-data oracle mismatch",
+    "negative-cancel-result": "cancelled target produced a zombie result"
+  },
+  "stage_rows": {
+    "off": [
+      "BOARD_LOAD_TIMING region=warm_independent stage=cpu_reply_to_result count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=fifo_dequeue_to_physical count=512 sum=1536 min=3 max=3 bins=3:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=fifo_wait count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=load_start_gap count=511 sum=4403 min=8 max=13 bins=8:448,13:63",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_request_gap count=511 sum=4403 min=8 max=13 bins=8:448,13:63",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_service count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_to_cpu_reply count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=result_to_retire count=512 sum=0 min=0 max=0 bins=0:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_fifo count=512 sum=0 min=0 max=0 bins=0:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_physical count=512 sum=2048 min=4 max=4 bins=4:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_retire count=512 sum=3584 min=7 max=7 bins=7:512",
+      "BOARD_LOAD_CREDITS region=warm_independent retired_loads=512 virtualized_requests=512 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0",
+      "BOARD_LOAD_TIMING region=cold_pages stage=cpu_reply_to_result count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=fifo_dequeue_to_physical count=4 sum=212 min=53 max=53 bins=53:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=fifo_wait count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=load_start_gap count=3 sum=369 min=123 max=123 bins=123:3",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_request_gap count=3 sum=369 min=123 max=123 bins=123:3",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_service count=4 sum=264 min=66 max=66 bins=66:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_to_cpu_reply count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=result_to_retire count=4 sum=0 min=0 max=0 bins=0:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_fifo count=4 sum=0 min=0 max=0 bins=0:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_physical count=4 sum=216 min=54 max=54 bins=54:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_retire count=4 sum=488 min=122 max=122 bins=122:4",
+      "BOARD_LOAD_CREDITS region=cold_pages retired_loads=4 virtualized_requests=4 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=cpu_reply_to_result count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=fifo_dequeue_to_physical count=256 sum=768 min=3 max=3 bins=3:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=fifo_wait count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=load_start_gap count=255 sum=2295 min=9 max=9 bins=9:255",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_request_gap count=255 sum=2295 min=9 max=9 bins=9:255",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_service count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_to_cpu_reply count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=result_to_retire count=256 sum=0 min=0 max=0 bins=0:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_fifo count=256 sum=0 min=0 max=0 bins=0:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_physical count=256 sum=1024 min=4 max=4 bins=4:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_retire count=256 sum=1792 min=7 max=7 bins=7:256",
+      "BOARD_LOAD_CREDITS region=dependent_chase retired_loads=256 virtualized_requests=256 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0"
+    ],
+    "on": [
+      "BOARD_LOAD_TIMING region=warm_independent stage=cpu_reply_to_result count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=fifo_dequeue_to_physical count=512 sum=1536 min=3 max=3 bins=3:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=fifo_wait count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=load_start_gap count=511 sum=1790 min=3 max=5 bins=3:255,4:255,5:1",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_request_gap count=511 sum=1790 min=3 max=5 bins=3:255,4:255,5:1",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_service count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=physical_to_cpu_reply count=512 sum=512 min=1 max=1 bins=1:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=result_to_retire count=512 sum=379 min=0 max=4 bins=0:384,1:2,2:63,3:1,4:62",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_fifo count=512 sum=0 min=0 max=0 bins=0:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_physical count=512 sum=2048 min=4 max=4 bins=4:512",
+      "BOARD_LOAD_TIMING region=warm_independent stage=start_to_retire count=512 sum=3963 min=7 max=11 bins=7:384,8:2,9:63,10:1,11:62",
+      "BOARD_LOAD_CREDITS region=warm_independent retired_loads=512 virtualized_requests=0 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0",
+      "BOARD_LOAD_TIMING region=cold_pages stage=cpu_reply_to_result count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=fifo_dequeue_to_physical count=4 sum=212 min=53 max=53 bins=53:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=fifo_wait count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=load_start_gap count=3 sum=370 min=123 max=124 bins=123:2,124:1",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_request_gap count=3 sum=370 min=123 max=124 bins=123:2,124:1",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_service count=4 sum=265 min=66 max=67 bins=66:3,67:1",
+      "BOARD_LOAD_TIMING region=cold_pages stage=physical_to_cpu_reply count=4 sum=4 min=1 max=1 bins=1:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=result_to_retire count=4 sum=0 min=0 max=0 bins=0:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_fifo count=4 sum=0 min=0 max=0 bins=0:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_physical count=4 sum=216 min=54 max=54 bins=54:4",
+      "BOARD_LOAD_TIMING region=cold_pages stage=start_to_retire count=4 sum=489 min=122 max=123 bins=122:3,123:1",
+      "BOARD_LOAD_CREDITS region=cold_pages retired_loads=4 virtualized_requests=4 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=cpu_reply_to_result count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=fifo_dequeue_to_physical count=256 sum=768 min=3 max=3 bins=3:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=fifo_wait count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=load_start_gap count=255 sum=2295 min=9 max=9 bins=9:255",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_request_gap count=255 sum=2295 min=9 max=9 bins=9:255",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_service count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=physical_to_cpu_reply count=256 sum=256 min=1 max=1 bins=1:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=result_to_retire count=256 sum=0 min=0 max=0 bins=0:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_fifo count=256 sum=0 min=0 max=0 bins=0:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_physical count=256 sum=1024 min=4 max=4 bins=4:256",
+      "BOARD_LOAD_TIMING region=dependent_chase stage=start_to_retire count=256 sum=1792 min=7 max=7 bins=7:256",
+      "BOARD_LOAD_CREDITS region=dependent_chase retired_loads=256 virtualized_requests=255 forwarded_loads=0 response_buffer_full_cycles=0 lsu_valid_not_ready_cycles=0"
+    ]
+  },
+  "window_rows": {
+    "off": [
+      "BOARD_LOAD_WINDOW region=warm_independent first_start_from_roi=3 last_retire_to_roi_end=8 first_start_to_last_retire=4410",
+      "BOARD_LOAD_WINDOW region=cold_pages first_start_from_roi=16 last_retire_to_roi_end=4 first_start_to_last_retire=491",
+      "BOARD_LOAD_WINDOW region=dependent_chase first_start_from_roi=3 last_retire_to_roi_end=5 first_start_to_last_retire=2302"
+    ],
+    "on": [
+      "BOARD_LOAD_WINDOW region=warm_independent first_start_from_roi=3 last_retire_to_roi_end=8 first_start_to_last_retire=1797",
+      "BOARD_LOAD_WINDOW region=cold_pages first_start_from_roi=41 last_retire_to_roi_end=4 first_start_to_last_retire=492",
+      "BOARD_LOAD_WINDOW region=dependent_chase first_start_from_roi=3 last_retire_to_roi_end=5 first_start_to_last_retire=2302"
+    ]
+  },
+  "cold_instruction_refill": {
+    "off": {
+      "marker_to_first_start": 16,
+      "icache_miss_relative_to_marker": -44,
+      "icache_reply_relative_to_marker": 11,
+      "icache_service": 55,
+      "icache_reply_to_lsu_start": 5
+    },
+    "on": {
+      "marker_to_first_start": 41,
+      "icache_miss_relative_to_marker": -19,
+      "icache_reply_relative_to_marker": 36,
+      "icache_service": 55,
+      "icache_reply_to_lsu_start": 5
+    }
+  },
+  "stage_rows_match_prior_qualified_631_results": true,
+  "limits": [
+    "No new RTL or whole-model build; exact current saved model objects reused",
+    "Directed dependent-DIV/cold-line guest is coverage, not performance",
+    "Fixed DDR32/credits8/beatgap1, no forced reply hold; cache-facing physical acceptance is not an AXI-token identity claim",
+    "No mapped physical FPGA resource/frequency claim",
+    "Model scope is fixed ROB16 and the independently checked uncompressed integer-load guest"
+  ],
+  "comparison_source": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-cpu-ready/simulator/gsim/selected_precheck_replay_compare.py",
+    "sha256": "30658dbee7a41c224fd1e0b4880905fac40c9038832741263359fa117a647e2d"
+  }
+}

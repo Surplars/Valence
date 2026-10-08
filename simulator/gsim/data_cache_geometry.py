@@ -2,7 +2,7 @@
 import re
 
 def module(fir, name):
-    m=re.search(r'^  module '+name+r'\s*:.*?(?=^  (?:module|extmodule) |\Z)',fir,re.M|re.S)
+    m=re.search(r'^  (?:public )?module '+re.escape(name)+r'\s*:.*?(?=^  (?:public )?(?:module|extmodule) |\Z)',fir,re.M|re.S)
     if not m: raise RuntimeError('missing module '+name)
     return m[0]
 

@@ -1,6 +1,8 @@
 # Source from bash: source scripts/cloud/env.sh
 _VALENCE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-export VALENCE_CLOUD_ENV="${_VALENCE_ROOT}/simulator/build/cloud-env"
+# An independent FPGA-next checkout may reuse an explicitly selected, already
+# verified tool cache. Generated DUT models still belong to that checkout.
+export VALENCE_CLOUD_ENV="${VALENCE_CLOUD_ENV:-${_VALENCE_ROOT}/simulator/build/cloud-env}"
 export PATH="${VALENCE_CLOUD_ENV}/bin:${VALENCE_CLOUD_ENV}/sysroot/usr/bin:${VALENCE_CLOUD_ENV}/sysroot/usr/lib/llvm-19/bin:${PATH}"
 export HOME="${VALENCE_CLOUD_ENV}/home"
 export XDG_CACHE_HOME="${VALENCE_CLOUD_ENV}/cache"

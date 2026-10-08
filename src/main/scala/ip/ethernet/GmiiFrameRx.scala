@@ -10,13 +10,19 @@ import chisel3.util._
   * Config is snapshotted at frame start and must already be in this RX domain.
   * No VLAN tag removal, pause negotiation, multicast table, PHY or CDC here.
   */
-class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, frameSlots: Int = 4) extends Module {
+class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, frameSlots: Int = 4,
+    rateAdaptation: Boolean = false, diagnostics: Boolean = false) extends Module {
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
     require(frameSlots >= 1 && frameSlots <= 16 && isPow2(frameSlots))
     val io = IO(new Bundle {
         val gmiiData = Input(UInt(8.W))
         val gmiiValid = Input(Bool())
         val gmiiError = Input(Bool())
+        val byteStep = if (rateAdaptation) Some(Input(Bool())) else None
+        val abort = if (rateAdaptation) Some(Input(Bool())) else None
+        // Mutually exclusive dropped-frame causes: bank full, admission closed,
+        // preamble, FCS, length/LT, address, PHY error, link-transition abort.
+        val dropReasons = if (diagnostics) Some(Output(UInt(8.W))) else None
         val enable = Input(Bool())
         val stopNewFrames = if (admissionStop) Some(Input(Bool())) else None
         val ownedBusy = if (admissionStop) Some(Output(Bool())) else None
@@ -58,6 +64,9 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
     // for a coincidental 55/D5 pair in that frame's payload.
     val state = RegInit(drain)
     val reportDrop = RegInit(false.B)
+    val reason = if (diagnostics) Some(RegInit(0.U(3.W))) else None
+    val step = io.byteStep.getOrElse(true.B)
+    val abort = io.abort.getOrElse(false.B)
     val preambleCount = RegInit(0.U(3.W))
     val crc = RegInit("hffffffff".U(32.W))
     val wireCount = RegInit(0.U(lengthBits.W))
@@ -100,22 +109,26 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
     io.accepted := false.B
     io.dropped := false.B
     io.badFcs := false.B
+    io.dropReasons.foreach(_ := 0.U)
+    def dropReason(code: UInt): Unit = io.dropReasons.foreach(_ := UIntToOH(code, 8))
     val bodyBytes = wireCount - 4.U
     io.bytes := bodyBytes
-    when(state === search && io.gmiiValid) {
+    when(state === search && io.gmiiValid && step) {
         reportDrop := true.B
         address := io.macAddress
         promiscuous := io.promiscuous
         broadcastEnable := io.broadcastEnable
         errored := io.gmiiError
+        reason.foreach(_ := Mux(!io.enable || io.stopNewFrames.getOrElse(false.B), 1.U,
+            Mux(occupied === frameSlots.U, 0.U, 2.U)))
         when(io.enable && !io.stopNewFrames.getOrElse(false.B) && occupied < frameSlots.U && io.gmiiData === "h55".U) {
             preambleCount := 1.U
             state := preamble
         }.otherwise { state := drain }
     }
-    when(state === preamble) {
+    when(state === preamble && step) {
         errored := errored || io.gmiiError
-        when(!io.gmiiValid) { state := search; io.dropped := true.B }
+        when(!io.gmiiValid) { state := search; io.dropped := true.B; dropReason(2.U) }
             .elsewhen(io.gmiiData === "h55".U) {
                 when(preambleCount < 7.U) { preambleCount := preambleCount + 1.U }
             }.elsewhen(io.gmiiData === "hd5".U && preambleCount =/= 0.U) {
@@ -128,7 +141,7 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
                 typeLength := 0.U
             }.otherwise { state := drain }
     }
-    when(state === body) {
+    when(state === body && step) {
         when(io.gmiiValid) {
             crc := EthernetCrc32.update(crc, io.gmiiData, 1)
             errored := errored || io.gmiiError
@@ -150,7 +163,7 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
                     pack := 0.U
                 }.otherwise { pack := packed }
             }
-            when(wireCount === (maxFrameBytes + 4).U) { state := drain }
+            when(wireCount === (maxFrameBytes + 4).U) { state := drain; reason.foreach(_ := 4.U) }
         }.otherwise {
             val crcGood = crc === "hdebb20e3".U
             val lengthGood = wireCount >= 64.U && wireCount <= (maxFrameBytes + 4).U
@@ -162,6 +175,10 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
             io.badFcs := !crcGood
             io.dropped := !good
             io.accepted := good
+            when(!good) {
+                dropReason(Mux(errored, 6.U, Mux(!crcGood, 3.U,
+                    Mux(!lengthGood || !ltGood, 4.U, 5.U))))
+            }
             when(good) {
                 when(bodyBytes(1, 0) =/= 0.U) {
                     writeEnable := true.B
@@ -174,9 +191,25 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
             state := search
         }
     }
-    when(state === drain && !io.gmiiValid) {
+    when(state === drain && !io.gmiiValid && step) {
         state := search
         io.dropped := reportDrop
         reportDrop := false.B
+        when(reportDrop) { dropReason(reason.getOrElse(0.U)) }
+    }
+    if (rateAdaptation) {
+        // Keep all complete packet banks/output ownership intact on link loss.
+        // The parser drains the physical tail and cannot search for a false SFD.
+        when(abort && (state === preamble || state === body)) {
+            state := drain
+            reportDrop := true.B
+            reason.foreach(_ := 7.U)
+            io.accepted := false.B
+            io.dropped := false.B
+            io.badFcs := false.B
+            io.dropReasons.foreach(_ := 0.U)
+            publish := false.B
+            writeEnable := false.B
+        }
     }
 }

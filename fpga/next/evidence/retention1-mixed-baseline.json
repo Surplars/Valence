@@ -1,0 +1,101 @@
+{
+  "status": "MATCHED_RETENTION1_MIXED_BASELINE",
+  "baseline_receipt": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-mixed-workload/build/gsim/retention1-mixed-replay-r1/receipt.json",
+    "sha256": "2164d6bc155365dab57e34eceb9962810c06ddbd818982af7c0f980ad27dd994"
+  },
+  "qualified_retention1_model": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch/build/gsim/fpga-next-board-retention1-r1/receipt.json",
+    "sha256": "4b17b5b62a1f0ae73d814078a15f016a88db9f9af15ffbfda775ca68d3c4c099",
+    "git_head": "71dae69300bf953d3d12923a3816fe873f0c4a9e"
+  },
+  "store_history_off_receipt": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch-store/build/gsim/fpga-next-board-store-history-off-r1/receipt.json",
+    "sha256": "9acd3a9c109e875c62d04417ead1d7a14706294ba7e7c980d51dd41bff015717",
+    "git_head": "543daf342846e1da224ffe47ecd2875792033ff8"
+  },
+  "exact_host_sha256": "5ad287381ee4749e4edc449fcfbc51c499c6869fc61525cdd1333f7cda41883c",
+  "guest_final_pass_inputs_equal_prepare_snapshot": true,
+  "baseline_frozen_inputs": 79,
+  "baseline_artifacts": 32,
+  "cases": {
+    "16": {
+      "guest_sha256": "c76cd734cfa2bd79021226cb56dc419835d129eb9bb483be667efbc3c8c46396",
+      "baseline_cycles": 306585,
+      "retention3_history_off_cycles": 189016,
+      "retired": 83399,
+      "history_off_cycle_reduction_percent": 38.34792961169007,
+      "witness_rows": [
+        "MIXED_ACCEPTED_REQUESTS architectural_source_loads=24576 physical_source_reads=24576 physical_minus_retired=0 scratch_stores=192 source_read_scope=physical_accepts_in_ROI_including_speculation",
+        "MIXED_INTERMEDIATE_STORE_ORACLE ordinal_address_data_mask_checked=192 overwritten_store_value_address_omission_negatives=3 DUT_fault_injection=0",
+        "STEADY_ORACLE_SENSITIVITY mutation_detected=1 restored_verified=1 DUT_fault_injection=0",
+        "MIXED_ORACLE_SENSITIVITY scratch_mutations_detected=8 restored_verified=1 DUT_fault_injection=0",
+        "MIXED_WORKLOAD_CONTRACT expected_source_loads=24576 expected_scratch_stores=192 store_line_period=16 scratch_base=0x84000000 scratch_words=8"
+      ],
+      "baseline_prefetch": {
+        "region": 0,
+        "candidates": 3021,
+        "allocated": 0,
+        "useful": 0,
+        "errors": 0,
+        "busy_cycles": 3021,
+        "miss_owner_cycles": 0,
+        "release_owner_cycles": 0
+      },
+      "history_off_prefetch": {
+        "region": 0,
+        "candidates": 3021,
+        "allocated": 2247,
+        "useful": 2247,
+        "errors": 0,
+        "busy_cycles": 156021,
+        "miss_owner_cycles": 152829,
+        "release_owner_cycles": 6867
+      },
+      "baseline_log_sha256": "afa1e3cd65c160ad427749592fc13bfca08cdf11453079311098332cb2dda1d1",
+      "history_off_log_sha256": "ed023bc3044b1fb53fc0f121981c438bedab0fdc4e822e9f29c4b85ef67dd624"
+    },
+    "64": {
+      "guest_sha256": "1a95fcd466ae6b20529f883aa5246bd0eb9857d01edbb499d1e258f42dd20654",
+      "baseline_cycles": 305577,
+      "retention3_history_off_cycles": 188611,
+      "retired": 83111,
+      "history_off_cycle_reduction_percent": 38.277095462027575,
+      "witness_rows": [
+        "MIXED_ACCEPTED_REQUESTS architectural_source_loads=24576 physical_source_reads=24576 physical_minus_retired=0 scratch_stores=48 source_read_scope=physical_accepts_in_ROI_including_speculation",
+        "MIXED_INTERMEDIATE_STORE_ORACLE ordinal_address_data_mask_checked=48 overwritten_store_value_address_omission_negatives=3 DUT_fault_injection=0",
+        "STEADY_ORACLE_SENSITIVITY mutation_detected=1 restored_verified=1 DUT_fault_injection=0",
+        "MIXED_ORACLE_SENSITIVITY scratch_mutations_detected=8 restored_verified=1 DUT_fault_injection=0",
+        "MIXED_WORKLOAD_CONTRACT expected_source_loads=24576 expected_scratch_stores=48 store_line_period=64 scratch_base=0x84000000 scratch_words=8"
+      ],
+      "baseline_prefetch": {
+        "region": 0,
+        "candidates": 3021,
+        "allocated": 0,
+        "useful": 0,
+        "errors": 0,
+        "busy_cycles": 3021,
+        "miss_owner_cycles": 0,
+        "release_owner_cycles": 0
+      },
+      "history_off_prefetch": {
+        "region": 0,
+        "candidates": 3021,
+        "allocated": 2248,
+        "useful": 2248,
+        "errors": 0,
+        "busy_cycles": 156074,
+        "miss_owner_cycles": 152884,
+        "release_owner_cycles": 6867
+      },
+      "baseline_log_sha256": "3984be670d88694d428af11ddcd64de698d0d4162c67371db67999480eb12135",
+      "history_off_log_sha256": "08e6bdb9ea1f70bb07c4a00c55ca7170fd4a3befd1d32407e6f7a68a9faf2bdc"
+    }
+  },
+  "limits": [
+    "Existing retention1 model replays only; no RTL or guest change, no default promotion.",
+    "Cycle comparison uses the same guest bytes and host/source/request/backing witnesses with fixed DDR32/credits8/beatgap1.",
+    "Physical reads are observed counts distinct from retired source LDs; this pair happens to have exact24576 for both.",
+    "Synthetic board GSIM cycles are not physical FPGA timing, MIG/CDC qualification or a mapped-area result."
+  ]
+}

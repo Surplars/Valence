@@ -175,12 +175,22 @@ class FloatingPointExecute(p: OooParams, c: FloatingPointConfig) extends Module 
             unit.request.bits.rounding := Mux(FloatingPointDecode.usesRounding(inst), io.request.bits.rounding, 0.U)
             unit.request.valid := io.request.valid && !busy && legal && format && select && !io.flush
         }
-        if (c.addSubtract) connect(FloatingPointDecode.add(inst), Module(new FloatingPointArithmetic(p, double, "add")).io)
-        if (c.multiply) connect(FloatingPointDecode.multiply(inst), Module(new FloatingPointArithmetic(p, double, "multiply")).io)
-        if (c.fusedMultiplyAdd) connect(FloatingPointDecode.fused(inst), Module(new FloatingPointArithmetic(p, double, "fused")).io)
-        if (c.divide || c.squareRoot) connect(
-            (c.divide.B && FloatingPointDecode.divide(inst)) || (c.squareRoot.B && FloatingPointDecode.sqrt(inst)),
-            Module(new FloatingPointDivSqrt(p, double, c.divide, c.squareRoot)).io)
+        if (c.resources.sharedFormatRounders) {
+            if (c.addSubtract || c.multiply || c.fusedMultiplyAdd || c.divide || c.squareRoot) connect(
+                (c.addSubtract.B && FloatingPointDecode.add(inst)) ||
+                (c.multiply.B && FloatingPointDecode.multiply(inst)) ||
+                (c.fusedMultiplyAdd.B && FloatingPointDecode.fused(inst)) ||
+                (c.divide.B && FloatingPointDecode.divide(inst)) ||
+                (c.squareRoot.B && FloatingPointDecode.sqrt(inst)),
+                Module(new FloatingPointSharedArithmetic(p, double, c)).io)
+        } else {
+            if (c.addSubtract) connect(FloatingPointDecode.add(inst), Module(new FloatingPointArithmetic(p, double, "add")).io)
+            if (c.multiply) connect(FloatingPointDecode.multiply(inst), Module(new FloatingPointArithmetic(p, double, "multiply")).io)
+            if (c.fusedMultiplyAdd) connect(FloatingPointDecode.fused(inst), Module(new FloatingPointArithmetic(p, double, "fused")).io)
+            if (c.divide || c.squareRoot) connect(
+                (c.divide.B && FloatingPointDecode.divide(inst)) || (c.squareRoot.B && FloatingPointDecode.sqrt(inst)),
+                Module(new FloatingPointDivSqrt(p, double, c.divide, c.squareRoot)).io)
+        }
         if (c.compareMinMax || c.signClassMove || c.conversions) connect(
             FloatingPointDecode.sign(inst) || FloatingPointDecode.classify(inst) ||
             FloatingPointDecode.moveToFloat(inst) || FloatingPointDecode.moveToInteger(inst) ||

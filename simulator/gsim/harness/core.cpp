@@ -49,11 +49,13 @@ static void check(bool ok, const std::string &message) {
 }
 #include "isa_model.h"
 #include "reference.h"
+#include "load_timing.h"
 struct Commit {
     bool valid, writes;
     unsigned rd;
     uint64_t pc, value, nextPc, tag;
     uint32_t instruction;
+    unsigned index;
 };
 static std::array<Commit, 2> commits(SIntegerCoreGsim &dut) {
     std::array<Commit, 2> out{};
@@ -61,7 +63,8 @@ static std::array<Commit, 2> commits(SIntegerCoreGsim &dut) {
     out[N] = {bool(dut.get_io$$commit##N##$$valid()), bool(dut.get_io$$commit##N##$$bits$$writesRd()), \
               dut.get_io$$commit##N##$$bits$$rd(), dut.get_io$$commit##N##$$bits$$pc(), \
               dut.get_io$$commit##N##$$bits$$data(), dut.get_io$$commit##N##$$bits$$nextPc(), \
-              dut.get_io$$commit##N##$$bits$$token$$tag(), dut.get_io$$commit##N##$$bits$$instruction()};
+              dut.get_io$$commit##N##$$bits$$token$$tag(), dut.get_io$$commit##N##$$bits$$instruction(), \
+              dut.get_io$$commit##N##$$bits$$token$$index()};
     COMMIT(0)
     COMMIT(1)
 #undef COMMIT
@@ -152,13 +155,13 @@ struct BusRequest {
     bool operator==(const BusRequest &) const = default;
 };
 class DataMemory {
-    struct Response { uint64_t data, due; bool error, write; };
+    struct Response { uint64_t data, due; bool error, write; uint64_t accepted; };
     unsigned latency;
     std::optional<BusRequest> held;
     bool requestReady = false, responseValid = false;
     Response response{};
     Response read(const BusRequest &r, uint64_t due) const {
-        Response out{0, due, r.address < dataBase || r.address - dataBase >= memory.size(), r.write};
+        Response out{0, due, r.address < dataBase || r.address - dataBase >= memory.size(), r.write, due - latency};
         if (!out.error) {
             const auto index = (r.address - dataBase) & ~UINT64_C(7);
             for (unsigned i = 0; i < 8; ++i) out.data |= uint64_t(memory[index + i]) << (i * 8);
@@ -186,6 +189,9 @@ public:
     }
     std::deque<Response> pending;
     size_t maxOutstanding = 0;
+    CycleDistribution readRequestGap, readRequestToResponse;
+    std::optional<uint64_t> lastReadRequest;
+    uint64_t responseBackpressure = 0;
     uint64_t loads = 0, stores = 0, errors = 0, backpressure = 0, readWriteOverlap = 0;
     DataMemory(const Memory &initial, unsigned delay) : latency(delay), memory(initial) {}
     void drive(SIntegerCoreGsim &dut, uint64_t cycle, bool stalled, std::mt19937_64 &rng) {
@@ -202,6 +208,8 @@ public:
                  const std::vector<uint32_t> &program, const std::array<uint64_t, 32> &registers) {
         if (responseValid) {
             const bool accepted = dut.get_io$$memory$$response$$ready();
+            responseBackpressure += !accepted;
+            if (accepted && !response.write) readRequestToResponse.add(cycle - response.accepted);
 #if !REGISTERED_RESPONSE_OWNERS
             check(accepted, "LSU dropped outstanding response");
 #endif
@@ -251,6 +259,8 @@ public:
             }
         } else {
             ++loads;
+            if (lastReadRequest) readRequestGap.add(cycle - *lastReadRequest);
+            lastReadRequest = cycle;
             readAddresses.push_back(r.address);
         }
         if (latency == 0) {
@@ -290,6 +300,9 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
     bool hadRedirect = false;
     unsigned drained = 0;
     DataMemory ram(architecturalMemory, memoryLatency);
+#ifdef LOAD_TIMING_OBSERVE
+    LoadOwnerTiming loadTiming;
+#endif
     if (watchStoreIndex >= 0) {
         ram.watchAddress = dataBase + watchLoadOffset;
         ram.beforeStorePc = base + unsigned(watchStoreIndex) * 4;
@@ -405,6 +418,15 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
                       << ",\"dual_rename_cycles\":" << renameCycles[2]
                       << ",\"rob_occupancy_sum\":" << occupancySum << ",\"rob_full_cycles\":" << robFull
                       << ",\"memory_entries\":" << MEMORY_ENTRIES << ",\"max_outstanding\":" << ram.maxOutstanding << ",\"forwarded_loads\":" << forwarded << ",\"loads\":" << ram.loads << ",\"stores\":" << ram.stores << "}\n";
+#ifdef LOAD_TIMING_OBSERVE
+            std::cout << "LOAD_TIMING {\"name\":\"" << benchmark
+                      << "\",\"scope\":\"bare_core_synthetic_memory\",\"memory_latency\":" << memoryLatency;
+            loadTiming.json(std::cout);
+            ram.readRequestGap.json(std::cout, "external_read_request_gap");
+            ram.readRequestToResponse.json(std::cout, "external_read_request_to_response");
+            std::cout << ",\"external_request_backpressure_cycles\":" << ram.backpressure
+                      << ",\"external_reply_backpressure_cycles\":" << ram.responseBackpressure << "}\n";
+#endif
         }
     };
     auto inImage = [&](uint64_t pc) { return pc >= base && pc < end && (pc & 3) == 0; };
@@ -521,6 +543,17 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
         stats.mulDivOverlap += bool(dut.get_io$$mulDivOverlap());
         stats.mulDivBlocked += bool(dut.get_io$$mulDivBlocked());
         const auto output = commits(dut);
+#ifdef LOAD_TIMING_OBSERVE
+        if (dut.get_loadStart$$valid())
+            loadTiming.start({dut.get_loadStart$$bits$$token$$tag(), dut.get_loadStart$$bits$$token$$index()},
+                cycle, dut.get_loadStart$$bits$$pc(), dut.get_loadStart$$bits$$address());
+        if (dut.get_loadResult$$valid())
+            loadTiming.result({dut.get_loadResult$$bits$$tag(), dut.get_loadResult$$bits$$index()}, cycle);
+        for (const auto& commit : output) if (commit.valid) {
+            const auto* encoding = decode(commit.instruction);
+            if (encoding && encoding->memory == 1) loadTiming.commit({commit.tag, commit.index}, cycle, commit.pc);
+        }
+#endif
         ram.observe(dut, cycle, architecturalPc, program, architectural);
         if (!finished) {
             ++cycles;

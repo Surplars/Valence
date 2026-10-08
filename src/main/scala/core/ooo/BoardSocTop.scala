@@ -36,7 +36,10 @@ object BoardSocConfig {
         isa: String = isaProfile, ddrMemoryBytes: BigInt = ddrBytes,
         loadIssueForwarding: Option[Boolean] = None, identityDataFlow: Boolean = false,
         fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers, dataNextLinePrefetch: Boolean = false,
-        virtualRamLoadPrecheck: Boolean = false): OooParams = {
+        virtualRamLoadPrecheck: Boolean = false,
+        floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
+        independentFetchPayloadCapture: Boolean = false, ownerLocalIssueReady: Boolean = false,
+        sharedFetchPmpRelations: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -51,9 +54,11 @@ object BoardSocConfig {
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
             virtualRamLoadPrecheck = virtualRamLoadPrecheck,
+            independentFetchPayloadCapture = independentFetchPayloadCapture,
+            ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
             pmpEntries = 16, virtualMemoryLevels = 3,
             speculativeRamBytes = if (externalDdr) ddrMemoryBytes else ramBytes,
-            floatingPoint = fp, advertiseFloatingPoint = fp.f))
+            floatingPoint = fp.copy(resources = floatingPointResources), advertiseFloatingPoint = fp.f))
     }
     // Keep L1 response data flow-through; register physical owner metadata separately.
     val timingProfile = "early-issue"
@@ -187,8 +192,15 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
     identityDataFlow: Boolean = false,
     fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers,
-    virtualRamLoadPrecheck: Boolean = false) extends Module {
+    virtualRamLoadPrecheck: Boolean = false,
+    floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
+    independentFetchPayloadCapture: Boolean = false,
+    triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
+    ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
+    bankedInstructionData: Boolean = false) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
+    require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
+    require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
     require(dataCacheLines >= 4 && dataCacheLines <= 512 && isPow2(dataCacheLines),
         "board data cache lines must be a power of two in 4..512")
     require(instructionLineCacheLines >= 4 && instructionLineCacheLines <= 512 && isPow2(instructionLineCacheLines),
@@ -213,7 +225,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     private val memoryBytes = if (externalDdr) ddrMemoryBytes else BigInt(BoardSocConfig.ramBytes)
     private val p = BoardSocConfig.boardParams(timingProfile, issueWidth, externalDdr, isaProfile, ddrMemoryBytes,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
-        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck)
+        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
+        floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
+        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations)
     val io = IO(new Bundle {
         val peripheralClock = if (peripheralClockHz > 0) Some(Input(Clock())) else None
         val alwaysOnClock = cmuConfig.map(_ => Input(Clock()))
@@ -223,6 +237,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         val ethernetIrq = if (ethernetControl && !managedPeripherals) Some(Input(Bool())) else None
         val ethernetReset = if (ethernetControl && !managedPeripherals) Some(Output(Bool())) else None
         val nativeGmac = if (managedPeripherals) Some(new Bundle {
+            val triSpeedRgmii = if (triSpeedEthernet) Some(new soc.ip.ethernet.TriSpeedRgmiiPortV1) else None
             val rawTxClock = Input(Clock())
             val rawRxClock = Input(Clock())
             val rxData = Input(UInt(8.W))
@@ -281,7 +296,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         bufferTranslatedResponses = Set("staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
-        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig))
+        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData))
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }
     platform.io.peripheralClock.foreach(_ := io.peripheralClock.get)
     if (externalDdr) {
@@ -291,7 +306,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     platform.io.timerTick := true.B
     val nativeBank = if (managedPeripherals) {
         val bank = Module(new soc.ip.clock.ManagedPeripheralBank(cmuConfig.get, socClockHz,
-            peripheralClockHz, uartBaud, networkDmaConfig = networkDmaConfig))
+            peripheralClockHz, uartBaud, networkDmaConfig = networkDmaConfig, triSpeedEthernet = triSpeedEthernet,
+            triSpeedTxFrameSlots = triSpeedTxFrameSlots))
         bank.sourceClock := clock
         bank.alwaysOnClock := io.alwaysOnClock.get
         bank.rawUartClock := io.peripheralClock.get
@@ -308,6 +324,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         bank.gmiiRxValid := io.nativeGmac.get.rxValid
         bank.gmiiRxError := io.nativeGmac.get.rxError
         bank.linkUp := io.nativeGmac.get.linkUp
+        if (triSpeedEthernet) bank.triSpeedRgmii.get <> io.nativeGmac.get.triSpeedRgmii.get
         bank.mdioIn := io.nativeGmac.get.mdioIn
         io.nativeGmac.get.txData := bank.gmiiTxData
         io.nativeGmac.get.txEnable := bank.gmiiTxEnable

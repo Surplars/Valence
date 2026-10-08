@@ -1,0 +1,251 @@
+{
+  "schema": "valence-fpga-next-module-matrix-v1",
+  "baseline_commit": "ea5406ea15d2d0797ce2c5ef7a4951827c55145e",
+  "status": "SELECTED_V2_FUNCTIONAL_AND_NATIVE_EXPORT_PASSED_PHYSICAL_PENDING",
+  "modules": [
+    {
+      "name": "issue-payload",
+      "source": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "work": "replace immutable payload mux/register topology",
+      "proof": "independent queue ledger, simultaneous allocate/issue/flush, full-core NEMU",
+      "status": "MODULE_AND_COMBINED_BOARD_PASSED_PHYSICAL_PENDING",
+      "latest_evidence_summary": "Four 15-workload core variants each pass 9,318 NEMU-checked retirements with identical counters/load timing; native selected queue declarations are 2,256 bits, physical mapping pending"
+    },
+    {
+      "name": "fetch-hints",
+      "source": "src/main/scala/core/ooo/RegisteredFetchPacket.scala",
+      "work": "bank immutable hints with explicit last-writer ownership",
+      "proof": "full PC and instruction tags, alias/collision/reset/redirect oracle",
+      "status": "MODULE_AND_COMBINED_BOARD_PASSED_PHYSICAL_PENDING"
+    },
+    {
+      "name": "fp-state",
+      "source": "src/main/scala/core/ooo/FloatingPointState.scala",
+      "work": "RAM data plus validity and retirement forwarding",
+      "proof": "all FPR reads/writes, reset poison, same-cycle RAW, FP context",
+      "status": "MODULE_AND_COMBINED_BOARD_PASSED_PHYSICAL_PENDING",
+      "latest_evidence_summary": "Selected production RTL: 32x64 payload, 3 async reads, 1 write, 32 valid bits, no payload reset. Matched full RV64GC/VM board proof passes; mapped FPGA resources remain unmeasured."
+    },
+    {
+      "name": "fp-rounding",
+      "source": "src/main/scala/core/ooo/FloatingPointExecute.scala",
+      "work": "format-specific shared rounding under exact producer ownership",
+      "proof": "independent IEEE numerical oracle, all modes/flags, NaNs/subnormals, producer overlap",
+      "status": "MODULE_AND_COMBINED_BOARD_PASSED_PHYSICAL_PENDING",
+      "latest_evidence_summary": "73,960 independent SoftFloat vectors across three topologies, exact 848,952-cycle results; targeted cancellation, mixed-stream and CPU/memory proofs pass; rounder instances 8 to 2 and multiplier expressions 4 to 2; no mapped PPA"
+    },
+    {
+      "name": "dcache-tags",
+      "source": "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala",
+      "work": "explicit tag RAM port planning",
+      "proof": "demand/probe/eviction/prefetch overlap, dirty writeback, aliases, owner reuse",
+      "status": "MODULE_AND_COMBINED_BOARD_PASSED_PHYSICAL_PENDING",
+      "latest_evidence_summary": "Seven directed A/B pairs and eight seeded 1,024-operation stress pairs; exact cycles, no LUT claim"
+    },
+    {
+      "name": "ddr-bridge",
+      "source": "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala",
+      "work": "preserve shared ownership and independently benchmark bandwidth",
+      "proof": "independent AXI memory scoreboard, AW/W skew, denied tails, mixed reads/writes",
+      "status": "INHERITED_SOURCE_MATCHED_WITH_REPLAY_ARTIFACTS",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "Current base board proof supplies selected-profile composition, without replacing directed protocol negatives.",
+        "No physical/PPA requalification."
+      ]
+    },
+    {
+      "name": "coherent-home",
+      "source": "src/main/scala/core/ooo/NonBlockingCoherentLineHome.scala",
+      "work": "preserve home tag RAM and coherent DMA return owners",
+      "proof": "multi-source grants/releases, DMA read-after-write, backpressure",
+      "status": "INHERITED_SOURCE_MATCHED_RETAINED_FIR_AND_LOGS",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "CacheTagConfig differs only by trailing bankedStorage option. Home reads geometry/compact only; those definitions are unchanged. This is source-delta reasoning, not whole-file hash identity.",
+        "Old omitted binaries cannot be reused from the archive.",
+        "No physical mapping claim."
+      ]
+    },
+    {
+      "name": "integer-prf",
+      "source": "src/main/scala/core/ooo/OwnerBankedPhysicalRegisterFile.scala",
+      "work": "preserve already RAM-mapped owner-banked implementation",
+      "proof": "two write ports, collision priority, x0, sampled reset, independent oracle",
+      "status": "INHERITED_EXACT_LEAF_WRAPPER_ORACLE_MATCH",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "Historical unit fixture has four read ports, not the entire selected native observer/read-port census. Current source has a parametric per-port loop; selected CPU/core/board composition was separately checked.",
+        "Reset lowering is explicitly test-only; raw original GSIM failure is preserved.",
+        "No current mapped resource or timing claim."
+      ]
+    },
+    {
+      "name": "rob-payload",
+      "source": "src/main/scala/core/ooo/BankedRobPayload.scala",
+      "work": "preserve parity-banked allocation payload",
+      "proof": "wrap/flush/precise exception/retirement ledger",
+      "status": "FRESH_FULL64_LEDGER_PASSED_PHYSICAL_PENDING",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "Fresh16-entry/full64-token register and banked models close old archived8-bit/replay gaps.",
+        "No new mapped resource or timing result."
+      ],
+      "fresh_evidence": "evidence/rob-full64-recheck.json"
+    },
+    {
+      "name": "translation-protection",
+      "source": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+      "work": "preserve all privilege, PMP, epoch and full-width PA gates",
+      "proof": "independent access-fault/page-fault and stale owner negatives",
+      "status": "INHERITED_UNIT_SOURCE_MATCHED_CURRENT_PRECHECK_BOARD_PASSED",
+      "latest_evidence_summary": "Latest Selected off/on pair has442 identical source inputs and matching GC/physical-memory logs and guest bytes. Warm Sv394422to1809 cycles, cold512to538, chase2311 unchanged; protection/trap/MMIO/full-token checks pass. Default remains off.",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "Benchmark cancellation happens before physical issue; separate same-layout directed guest proves physical accept before cancellation, later reply/drain and no result/retirement.",
+        "Directed token/data/zombie-result negative controls pass; this remains bounded coverage, not an exhaustive concurrency proof.",
+        "No physical FPGA requalification."
+      ],
+      "integration_evidence": "evidence/precheck-requalified-selected-32775e2.json",
+      "physical_outstanding_cancellation_evidence": "evidence/precheck-selected-physical-cancellation.json"
+    },
+    {
+      "name": "gmac-trispeed",
+      "source": "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala",
+      "work": "explicit 10/100/1000 full-duplex byte/media/clock adaptation",
+      "proof": "wire bytes, CRC, IFG, pause/rate transitions and randomized independent clocks",
+      "status": "FOCUSED_LOGIC_AND_INTEGRATED_NATIVE_EXPORT_PASSED_NATIVE_CLOCKS_PENDING",
+      "latest_evidence_summary": "Selected tri-speed tx2 is integrated and exported; actual posted4 DMA STOP/error proof and CAP-aware software gates pass. True multi-clock/reset/pad/PHY/STA/board checks remain pending."
+    },
+    {
+      "name": "network-dma",
+      "source": "src/main/scala/ip/dma/EthernetPacketDma.scala",
+      "work": "preserve descriptor/credit and stop/drain ABI",
+      "proof": "posted RX/TX ownership, simultaneous status/data tails, errors and stop",
+      "status": "INHERITED_SOURCE_MATCHED_AND_FRESH_SELECTED_PACKET_REPLAY_PASSED",
+      "inherited_evidence": "evidence/inherited-module-mapping-20261008.json",
+      "limits": [
+        "Fresh posted4 proof closes archived packet replay gap; inherited coherent network probe evidence is separately source-matched.",
+        "Native asynchronous FIFO, pad, physical and board checks remain pending."
+      ],
+      "fresh_evidence": "../../docs/fpga-next/mac-handoff.json"
+    },
+    {
+      "name": "jtag-boundary",
+      "source": "src/main/scala/ip/debug/JtagDebugReservation.scala",
+      "work": "reserve TAP/DTM pins and DMI interface for future debug module and hart control",
+      "proof": "TAP state machine, IR/DR, CDC/backpressure/reset, unsupported command rejection",
+      "status": "DISABLED_TOP_RESERVED_ENABLED_NATIVE_PROOF_PENDING"
+    },
+    {
+      "name": "soc-integration",
+      "source": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "work": "frozen profile, source-matched integration and export",
+      "proof": "Scala contract, core NEMU, short RV64GC board/DDR smoke, physical frozen batch",
+      "status": "SELECTED_V2_FUNCTIONAL_AND_NATIVE_EXPORT_PASSED_PHYSICAL_PENDING",
+      "latest_evidence_summary": "Selected-v2 combines all qualified storage/control/head/I-data choices. Four complete guest/counter logs match corrected control; selected FP composition and actual native7/3/1 issue ports,8x512x64 I-data andFP3R1W pass. Physical/native clock/pad gates remain pending.",
+      "integration_evidence": "evidence/final-qualification.json"
+    },
+    {
+      "name": "frontend-payload-capture",
+      "source": "src/main/scala/core/ooo/InstructionRom.scala",
+      "work": "remove late invalidate from payload capture enables while preserving valid/owner gating",
+      "proof": "2/4-word context/stale/invalidate oracle, exact-profile board, normalized native cone",
+      "status": "MODULE_AND_COMBINED_BOARD_AND_NATIVE_DEPENDENCY_PASSED_PHYSICAL_PENDING",
+      "module_commit": "311beb71e9ddf2356c31404311a7eb57f977a3e1",
+      "integration_evidence": "evidence/fetch-capture-integrated-54c4924.json"
+    },
+    {
+      "name": "instruction-cache-hit-hold",
+      "source": "src/main/scala/core/ooo/InstructionLineCache.scala",
+      "work": "capture first stalled hit into existing replyData and stop reading undefined disabled SRAM output",
+      "proof": "cross-set20-cycle stalls, simultaneous prefetch/invalidate, reset, II1, broken-snapshot mutation",
+      "status": "MODULE_AND_SELECTED_BOARD_PASSED",
+      "module_fix_commit": "dec7d8e",
+      "integration_scope": "isolated correction first; later selected composition includes packed I-data with identical held-hit behavior",
+      "integration_evidence": "evidence/selected-v2-b4e0e1b.json"
+    },
+    {
+      "name": "protected-head-payload",
+      "source": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "proof": "Full-token lifetime, numeric and precise-memory equality; actual native7/3/1 reads",
+      "status": "MODULE_AND_SELECTED_BOARD_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/selected-v2-b4e0e1b.json"
+    },
+    {
+      "name": "owner-local-readiness",
+      "source": "src/main/scala/core/ooo/IssueOperandReadiness.scala",
+      "proof": "Independent mirrors/promises, NEMU matrix, actual native33to1 indexed reads with same reg declarations",
+      "status": "MODULE_AND_SELECTED_BOARD_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/selected-v2-b4e0e1b.json"
+    },
+    {
+      "name": "shared-fetch-pmp",
+      "source": "src/main/scala/core/ooo/NearbyWordRelations.scala",
+      "proof": "Reduced/full-width math, all-lane independent permissions, source mutants, integrated VM/GC",
+      "status": "MODULE_AND_SELECTED_BOARD_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/selected-v2-b4e0e1b.json"
+    },
+    {
+      "name": "instruction-data-banks",
+      "source": "src/main/scala/core/ooo/InstructionLineCache.scala",
+      "proof": "Six paired byte/way/hold/prefetch cases and selected native8x512x64 1R1W geometry",
+      "status": "MODULE_AND_SELECTED_BOARD_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/selected-address-54bcc75.json"
+    },
+    {
+      "name": "instruction-data-address",
+      "source": "src/main/scala/core/ooo/InstructionLineCache.scala",
+      "work": "use resident tag/valid to choose RAM way; permissions and invalidate remain on read-enable",
+      "proof": "six A/B pairs, enabled-read equality, eight-bank closed native dependency audit with three mutation controls, identical full-board logs",
+      "status": "MODULE_AND_SELECTED_BOARD_AND_NATIVE_CONE_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/selected-address-54bcc75.json"
+    },
+    {
+      "name": "bounded-prefetch-candidate",
+      "source": "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala",
+      "work": "retain an authorized candidate only across finite victim capture/send contention",
+      "proof": "1/3/16 module deadlines/ownership/authorization/context; matched Selected1/3 board/data/traffic and native two-bit counter",
+      "status": "DEFAULT_ONE_AND_OPTIONAL_THREE_BOARD_PASSED_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/prefetch-retention-71dae69.json",
+      "limits": [
+        "Default remains one attempt",
+        "Three improves repeated read but increases copy speculation; explicit workload choice",
+        "Sixteen is module-qualified only; no selected-board comparison",
+        "Busy deadline covers unallocated token, not arbitrary external memory response time"
+      ]
+    },
+    {
+      "name": "prefetch-history-store-policy",
+      "source": "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala",
+      "work": "optionally clear sequential history only when an ordinary store is accepted",
+      "proof": "36 history cases,45 lifetime cases, above4GiB/seeded/context gates, two six-workload board profiles, exact mixed store witnesses, native unchanged storage",
+      "status": "OPTIONAL_POLICY_PASSED_DEFAULT_OFF_PHYSICAL_PENDING",
+      "integration_evidence": "evidence/store-history-integrated-543daf3.json",
+      "limits": [
+        "Copy waste is suppressed but sparse-store workloads regress against read-oriented retention3",
+        "No unconditional default performance improvement"
+      ]
+    }
+  ],
+  "scope_note": "Inventory covers affected and critical reused modules. It is not a statement that every inherited module has been newly measured or is proven optimal.",
+  "integrated_source_commit": "20a3382c79dd2ae25c35d17c59da619e4ad04400",
+  "integrated_source_tree": "818b5fca180d87735735d197da623ea82fa81157",
+  "combined_evidence": "evidence/final-qualification.json",
+  "known_correctness_gaps": [
+    {
+      "module": "instruction-cache",
+      "issue": "stalled hit reply references SyncReadMem output after read enable drops",
+      "status": "FIXED_AND_SELECTED_BOARD_REQUALIFIED",
+      "affected_sources": [
+        "631fd68",
+        "54c4924"
+      ],
+      "scope": "legal cross-set response stalls; old board suites did not exercise this fixture",
+      "promotion_blocking": false,
+      "fix_evidence": "../../docs/evidence/fpga-instruction-hit-stability-20261008.json",
+      "corrected_source_commit": "e5006718da07f94933e67922b9e00f686bc29ff4"
+    }
+  ],
+  "final_policy_scorecard": "evidence/prefetch-policy-scorecard.json"
+}

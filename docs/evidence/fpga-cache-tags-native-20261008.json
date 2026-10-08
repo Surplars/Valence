@@ -1,0 +1,79 @@
+{
+  "status": "PASS_FIR_AND_REACHABLE_NATIVE_TAG_GEOMETRY",
+  "source": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-base-candidate-r1/model/BoardSocGsim.fir",
+  "fir_sha256": "4e534d5d771fdc90138c7f63ca4e88aec30ddce2a292f79c2a050f4541490238",
+  "physical_mapping": "UNMEASURED",
+  "modules": {
+    "NonBlockingCoherentLineCache": {
+      "banks": [
+        {
+          "name": "tagBanks_0",
+          "tag_bits": 19,
+          "sets": 256,
+          "declared_read_ports": 2,
+          "declared_write_ports": 1
+        },
+        {
+          "name": "tagBanks_1",
+          "tag_bits": 19,
+          "sets": 256,
+          "declared_read_ports": 2,
+          "declared_write_ports": 1
+        }
+      ],
+      "flat_tags_reg": false
+    },
+    "InstructionLineCache": {
+      "banks": [
+        {
+          "name": "tagBanks_0",
+          "tag_bits": 19,
+          "sets": 256,
+          "declared_read_ports": 2,
+          "declared_write_ports": 1
+        },
+        {
+          "name": "tagBanks_1",
+          "tag_bits": 19,
+          "sets": 256,
+          "declared_read_ports": 2,
+          "declared_write_ports": 1
+        }
+      ],
+      "flat_tags_reg": false
+    }
+  },
+  "native_export_receipt_sha256": "357fdafa73c29ecdf3b111ad7e8154c62300cee4e4a504c8fff0be12b2aa33c0",
+  "native_export_status": "PASS_RTL_EXPORT_ONLY",
+  "native_export_source_commit": "00c1d49b5666e33d7810a585085ab4340fa696e8",
+  "native_sv_modules": {
+    "NonBlockingCoherentLineCache": {
+      "instances": 2,
+      "helper": "tagBanks_256x19",
+      "width_bits": 19,
+      "depth": 256,
+      "asynchronous_read_ports_per_bank": 2,
+      "write_ports_per_bank": 1,
+      "files_sha256": {
+        "rtl/NonBlockingCoherentLineCache.sv": "6a5ef23a29e6fc0c1eeed8b61efcd6943f476424c4aede66ce0ac254e861d25a",
+        "rtl/tagBanks_256x19.sv": "611e87061e2f0ec6af47f34f4d51a6c90caf426eb98a1db45d58cf09f3573e0d"
+      }
+    },
+    "InstructionLineCache": {
+      "instances": 2,
+      "helper": "tagBanks_256x19_0",
+      "width_bits": 19,
+      "depth": 256,
+      "asynchronous_read_ports_per_bank": 1,
+      "write_ports_per_bank": 1,
+      "files_sha256": {
+        "rtl/InstructionLineCache.sv": "aae08632eb42180f7f5da04d9abe9f497850e5bd84bd0389b85b581925ec0179",
+        "rtl/tagBanks_256x19_0.sv": "5ab462c0469d3ae38d65e07ed2825631733cd17da92f755e20b718ec374b8d8a"
+      }
+    }
+  },
+  "limits": [
+    "Structural memory declaration/helper census, not inferred or routed FPGA resources.",
+    "Full-board runtime qualification is recorded separately by the integration task."
+  ]
+}

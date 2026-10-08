@@ -13,6 +13,26 @@ class DataPrefetchConfigSpec extends AnyFunSuite {
         assert(!BoardSocConfig.boardParams("staged-fetch-turnover").dataNextLinePrefetch)
         assert(BoardSocConfig.boardParams("staged-fetch-turnover", dataNextLinePrefetch = true).dataNextLinePrefetch)
     }
+    test("bounded candidate lifetime preserves every ownership capacity") {
+        for (cycles <- Seq(1, 3, 16)) {
+            val c = CoherentCacheConcurrency(2, 2, 2, overlapWritebackRefill = true,
+                nextLinePrefetch = true, prefetchCandidateCycles = cycles)
+            assert(c.readMshrs == 2 && c.responseEntries == 2 && c.writebackEntries == 2)
+            assert(c.prefetchCandidateCycles == cycles)
+        }
+        assert(CoherentCacheConcurrency(2).prefetchCandidateCycles == 1)
+        for (cycles <- Seq(0, 33)) intercept[IllegalArgumentException](
+            CoherentCacheConcurrency(2, nextLinePrefetch = true, prefetchCandidateCycles = cycles))
+        intercept[IllegalArgumentException](CoherentCacheConcurrency(2, prefetchCandidateCycles = 3))
+    }
+    test("accepted-store history option is explicit and preserves every capacity") {
+        val base = CoherentCacheConcurrency(2, 2, 2, overlapWritebackRefill = true,
+            nextLinePrefetch = true, prefetchCandidateCycles = 3)
+        assert(!base.prefetchBreakOnStore)
+        val candidate = base.copy(prefetchBreakOnStore = true)
+        assert(candidate.copy(prefetchBreakOnStore = false) == base)
+        intercept[IllegalArgumentException](CoherentCacheConcurrency(2, prefetchBreakOnStore = true))
+    }
     test("reject unsupported ownership and unprotected authorization boundaries") {
         intercept[IllegalArgumentException](CoherentCacheConcurrency(nextLinePrefetch = true))
         intercept[IllegalArgumentException](OooParams(dataNextLinePrefetch = true))

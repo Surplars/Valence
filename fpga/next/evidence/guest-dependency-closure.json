@@ -1,0 +1,208 @@
+{
+  "schema": "valence-fpga-next-guest-dependency-closure-v1",
+  "status": "PASS_INCLUDED_GUEST_SOURCE_REBUILD_EQUALITY",
+  "checker_sha256": "efc80536514e72f2790c00a19a653c4d75ba39feeab1ff0d542ec4c93075fe7b",
+  "inputs": {
+    "fpga/firmware/ddr_bench.c": "59edf9707c3b1724052cc5114bb1058452f0563ba0c2d470e45d3385cf232a4c",
+    "fpga/firmware/sample_start.S": "47c97bcc549d9e921adc6ef67f8142276b299133bf28524199e4db20949f26b5",
+    "fpga/firmware/sample_app.ld": "6655b7e5adede0afdb4cc0234dd5dae77301de5e38a0ccfdd90fdac3e464b615",
+    "simulator/gsim/payloads/board_memory_steady.c": "5ddcd0fff2da79f1d2afbabbba0d342a0138da8b2d730f26732b31481b4df0fb",
+    "simulator/gsim/payloads/board_memory_independent.c": "fbc6aa8bd45697507559025c9856fbd406180e9701aa242daad0e7694a94b3e4"
+  },
+  "historically_omitted_input": "fpga/firmware/ddr_bench.c",
+  "baseline_commit": "ea5406ea15d2d0797ce2c5ef7a4951827c55145e",
+  "included_file_equal_to_baseline": true,
+  "receipts": [
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-base-reference-r2/receipt.json",
+      "sha256": "c7ec7ba1906de0f8888552c9cb8358124bb74558246d37fbf681ffbfdaffb7c2"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-base-candidate-r1/receipt.json",
+      "sha256": "e3fcb0d785635048a1779722faab89441fe3261877e55fcec8f3497288e6d711"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-selected-address-r1/receipt.json",
+      "sha256": "308e65ba6c5edc51b5f540b53bc0534dd37e4f1a3eee56655b3eb4bc7516b7f2"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/gsim/fpga-next-board-selected-precheck-r1/receipt.json",
+      "sha256": "eb49fca370f7e1c53f14f300a77794026c676271f73e5f389ce5d38542c9ef24"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch/build/gsim/fpga-next-board-retention1-r1/receipt.json",
+      "sha256": "4b17b5b62a1f0ae73d814078a15f016a88db9f9af15ffbfda775ca68d3c4c099"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch/build/gsim/fpga-next-board-retention3-r1/receipt.json",
+      "sha256": "959da6e0eec96eb1542ee5fa5212bc15f5572446a29f6d8403144107b81bd701"
+    }
+  ],
+  "commands": [
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-gcc",
+        "-O2",
+        "-march=rv64im_zicsr_zifencei",
+        "-mabi=lp64",
+        "-mcmodel=medany",
+        "-mno-relax",
+        "-msmall-data-limit=0",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-nostdlib",
+        "-nostartfiles",
+        "-Wl,--no-relax",
+        "-Wl,--gc-sections",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-DCPU_HZ=100000000ULL",
+        "-DUART_BAUD=460800",
+        "-Wl,--defsym=BOARD_RAM_BYTES=2147483648",
+        "-Wl,--defsym=BOARD_MONITOR_BASE=4294934528",
+        "-T",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/fpga/firmware/sample_app.ld",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/fpga/firmware/sample_start.S",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/simulator/gsim/payloads/board_memory_steady.c",
+        "-lgcc",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/steady.elf"
+      ],
+      "log": "steady-compile.log",
+      "log_sha256": "2234f0ebd53f653379fb23fe4d88a6e047200d32ec8fde46c747de00ed1aa174"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-objcopy",
+        "-O",
+        "binary",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/steady.elf",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/steady.bin"
+      ],
+      "log": "steady-objcopy.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-gcc",
+        "-O2",
+        "-march=rv64im_zicsr_zifencei",
+        "-mabi=lp64",
+        "-mcmodel=medany",
+        "-mno-relax",
+        "-msmall-data-limit=0",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-nostdlib",
+        "-nostartfiles",
+        "-Wl,--no-relax",
+        "-Wl,--gc-sections",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-DCPU_HZ=100000000ULL",
+        "-DUART_BAUD=460800",
+        "-Wl,--defsym=BOARD_RAM_BYTES=2147483648",
+        "-Wl,--defsym=BOARD_MONITOR_BASE=4294934528",
+        "-T",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/fpga/firmware/sample_app.ld",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/fpga/firmware/sample_start.S",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/simulator/gsim/payloads/board_memory_independent.c",
+        "-lgcc",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/independent.elf"
+      ],
+      "log": "independent-compile.log",
+      "log_sha256": "9979701016a19b90303c208bdb58917cd0a8c5910970ddcf58f803387936a068"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-objcopy",
+        "-O",
+        "binary",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/independent.elf",
+        "/workspace/scratch/41e4a649bb60/Valence-fpga-next/build/fpga-next/guest-dependency-closure-r1/independent.bin"
+      ],
+      "log": "independent-objcopy.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "artifacts": {
+    "steady.bin": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83",
+    "independent.bin": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe",
+    "independent.elf": "96d7484078941fadebfdb05a277c2613ea45855583c6d83316fda10edb5c63ae",
+    "independent-compile.log": "9979701016a19b90303c208bdb58917cd0a8c5910970ddcf58f803387936a068",
+    "steady-objcopy.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent-objcopy.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "steady-compile.log": "2234f0ebd53f653379fb23fe4d88a6e047200d32ec8fde46c747de00ed1aa174",
+    "steady.elf": "b047000830103a2f20a66ae22990ccab097670dd842300e6323e22ffdcc7f9c6"
+  },
+  "matches": {
+    "steady": [
+      {
+        "receipt_sha256": "c7ec7ba1906de0f8888552c9cb8358124bb74558246d37fbf681ffbfdaffb7c2",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      },
+      {
+        "receipt_sha256": "e3fcb0d785635048a1779722faab89441fe3261877e55fcec8f3497288e6d711",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      },
+      {
+        "receipt_sha256": "308e65ba6c5edc51b5f540b53bc0534dd37e4f1a3eee56655b3eb4bc7516b7f2",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      },
+      {
+        "receipt_sha256": "eb49fca370f7e1c53f14f300a77794026c676271f73e5f389ce5d38542c9ef24",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      },
+      {
+        "receipt_sha256": "4b17b5b62a1f0ae73d814078a15f016a88db9f9af15ffbfda775ca68d3c4c099",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      },
+      {
+        "receipt_sha256": "959da6e0eec96eb1542ee5fa5212bc15f5572446a29f6d8403144107b81bd701",
+        "binary_sha256": "9e102f963b3ba3d2fbeaca66d3858f84fc7b2eeca22c5852aafd20d14ffd2e83"
+      }
+    ],
+    "independent": [
+      {
+        "receipt_sha256": "c7ec7ba1906de0f8888552c9cb8358124bb74558246d37fbf681ffbfdaffb7c2",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      },
+      {
+        "receipt_sha256": "e3fcb0d785635048a1779722faab89441fe3261877e55fcec8f3497288e6d711",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      },
+      {
+        "receipt_sha256": "308e65ba6c5edc51b5f540b53bc0534dd37e4f1a3eee56655b3eb4bc7516b7f2",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      },
+      {
+        "receipt_sha256": "eb49fca370f7e1c53f14f300a77794026c676271f73e5f389ce5d38542c9ef24",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      },
+      {
+        "receipt_sha256": "4b17b5b62a1f0ae73d814078a15f016a88db9f9af15ffbfda775ca68d3c4c099",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      },
+      {
+        "receipt_sha256": "959da6e0eec96eb1542ee5fa5212bc15f5572446a29f6d8403144107b81bd701",
+        "binary_sha256": "217a053b2669d15855163a79caeeb08620aaacc324721127800eb5a9b93344fe"
+      }
+    ]
+  },
+  "limits": [
+    "Preserves the original receipts; this is a dependency supplement",
+    "Exact executed guest bytes are re-established; no new DUT or physical qualification"
+  ],
+  "compiler": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-gcc",
+    "sha256": "9105719e661cb7362a3cd014f84807c8242e804716798d7f6b3a0770bd3c93da",
+    "version": "riscv64-unknown-elf-gcc (14.2.0+19) 14.2.0"
+  },
+  "objcopy": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/sysroot/usr/bin/riscv64-unknown-elf-objcopy",
+    "sha256": "7e82b40b74e0db55b47c8325447175688778f4cbed6b7cb186b50a24a02b341f"
+  }
+}

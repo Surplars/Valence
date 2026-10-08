@@ -5,6 +5,13 @@ Valence 是 OpenIon 的可配置 RISC-V SoC 工程，使用 Scala、Chisel 和 M
 4 发射属于独立实验配置。ISA、微架构和外设配置分别控制，不能由某个板级配置推断所有配置的能力。
 RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
+## FPGA-next 独立配置
+
+新的 FPGA 优先 SoC 入口与逐模块证据见 [FPGA-next](fpga/next/README.md)。
+Selected v2 组合 RAM 存储、浮点共享运算、控制路径优化和指令缓存修正，保留 RV64GC、双发射、
+32+32 KiB 缓存、2 GiB DDR 与 100 MHz 目标。三速 MAC 和 JTAG 预留有单独的原生时钟/物理验证边界；
+已有板级入口和历史物理记录保留，不能替代新配置的布局布线验收。
+
 ## dev 分支增量（2026-10-08）
 
 已核对的源码与短验证批次见 [dev 交付记录](docs/dev-delivery-20261008.md)。

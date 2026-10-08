@@ -1,0 +1,717 @@
+{
+  "schema": "valence-prefetch-policy-scorecard-v1",
+  "status": "PASS_THREE_POLICY_SCORECARD",
+  "checker_sha256": "48f09a2f55a88b8a1f038db60abe78b59e95a4ca815b60ec2c96d27a23ed2d34",
+  "parser_sha256": "0927b4a10ce3fde3ca79f0e2a1615815c0d6645be9534a639b10e6258df7e32b",
+  "receipts": {
+    "default": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch/build/gsim/fpga-next-board-retention1-r1/receipt.json",
+      "sha256": "4b17b5b62a1f0ae73d814078a15f016a88db9f9af15ffbfda775ca68d3c4c099",
+      "source_commit": "71dae69300bf953d3d12923a3816fe873f0c4a9e"
+    },
+    "read": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch-store/build/gsim/fpga-next-board-store-history-off-r1/receipt.json",
+      "sha256": "9acd3a9c109e875c62d04417ead1d7a14706294ba7e7c980d51dd41bff015717",
+      "source_commit": "543daf342846e1da224ffe47ecd2875792033ff8"
+    },
+    "copy": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-prefetch-store/build/gsim/fpga-next-board-store-history-on-r1/receipt.json",
+      "sha256": "13e10ca03f23bdfed9d93fb234241d47ee3366cf16aad32b12511dd2452594de",
+      "source_commit": "543daf342846e1da224ffe47ecd2875792033ff8"
+    }
+  },
+  "default_mixed_replay": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence-fpga-next-mixed-workload/build/gsim/retention1-mixed-replay-r1/receipt.json",
+    "sha256": "2164d6bc155365dab57e34eceb9962810c06ddbd818982af7c0f980ad27dd994"
+  },
+  "default_policy": "one attempt, history clear disabled",
+  "profile_labels": {
+    "default": "one attempt",
+    "read": "three attempts",
+    "copy": "three attempts plus accepted-store history clear"
+  },
+  "rows": {
+    "steady/read_64KiB_3passes": {
+      "workload": "steady",
+      "region": "read_64KiB_3passes",
+      "profiles": {
+        "default": {
+          "cycles": 279718,
+          "retired": 55355,
+          "traffic": {
+            "reads": 3075,
+            "read_bytes": 196800,
+            "writes": 2,
+            "write_bytes": 128,
+            "r_beats": 24592,
+            "w_beats": 16
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 3021,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3073,
+          "write_misses": 0
+        },
+        "read": {
+          "cycles": 181647,
+          "retired": 55355,
+          "traffic": {
+            "reads": 2334,
+            "read_bytes": 149376,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 18672,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 2244,
+            "useful": 2244,
+            "errors": 0,
+            "busy_cycles": 155791,
+            "miss_owner_cycles": 152602,
+            "release_owner_cycles": 6855
+          },
+          "read_misses": 90,
+          "write_misses": 0
+        },
+        "copy": {
+          "cycles": 181647,
+          "retired": 55355,
+          "traffic": {
+            "reads": 2334,
+            "read_bytes": 149376,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 18672,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 2244,
+            "useful": 2244,
+            "errors": 0,
+            "busy_cycles": 155791,
+            "miss_owner_cycles": 152602,
+            "release_owner_cycles": 6855
+          },
+          "read_misses": 90,
+          "write_misses": 0
+        }
+      }
+    },
+    "steady/write_kernel": {
+      "workload": "steady",
+      "region": "write_kernel",
+      "profiles": {
+        "default": {
+          "cycles": 344151,
+          "retired": 55333,
+          "traffic": {
+            "reads": 3076,
+            "read_bytes": 196864,
+            "writes": 3072,
+            "write_bytes": 196608,
+            "r_beats": 24600,
+            "w_beats": 24576
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 3072
+        },
+        "read": {
+          "cycles": 344151,
+          "retired": 55333,
+          "traffic": {
+            "reads": 3076,
+            "read_bytes": 196864,
+            "writes": 3072,
+            "write_bytes": 196608,
+            "r_beats": 24600,
+            "w_beats": 24576
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 3072
+        },
+        "copy": {
+          "cycles": 344151,
+          "retired": 55333,
+          "traffic": {
+            "reads": 3076,
+            "read_bytes": 196864,
+            "writes": 3072,
+            "write_bytes": 196608,
+            "r_beats": 24600,
+            "w_beats": 24576
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 3072
+        }
+      }
+    },
+    "steady/write_flush_tail": {
+      "workload": "steady",
+      "region": "write_flush_tail",
+      "profiles": {
+        "default": {
+          "cycles": 17754,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 512,
+            "write_bytes": 32768,
+            "r_beats": 16,
+            "w_beats": 4096
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        },
+        "read": {
+          "cycles": 17756,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 512,
+            "write_bytes": 32768,
+            "r_beats": 16,
+            "w_beats": 4096
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        },
+        "copy": {
+          "cycles": 17756,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 512,
+            "write_bytes": 32768,
+            "r_beats": 16,
+            "w_beats": 4096
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        }
+      }
+    },
+    "steady/copy_kernel": {
+      "workload": "steady",
+      "region": "copy_kernel",
+      "profiles": {
+        "default": {
+          "cycles": 641791,
+          "retired": 79933,
+          "traffic": {
+            "reads": 6149,
+            "read_bytes": 393536,
+            "writes": 2817,
+            "write_bytes": 180288,
+            "r_beats": 49192,
+            "w_beats": 22536
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 3021,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3073,
+          "write_misses": 3072
+        },
+        "read": {
+          "cycles": 644683,
+          "retired": 79933,
+          "traffic": {
+            "reads": 6402,
+            "read_bytes": 409728,
+            "writes": 2817,
+            "write_bytes": 180288,
+            "r_beats": 51216,
+            "w_beats": 22536
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 252,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 26248,
+            "miss_owner_cycles": 17185,
+            "release_owner_cycles": 756
+          },
+          "read_misses": 3073,
+          "write_misses": 3072
+        },
+        "copy": {
+          "cycles": 641855,
+          "retired": 79933,
+          "traffic": {
+            "reads": 6150,
+            "read_bytes": 393600,
+            "writes": 2817,
+            "write_bytes": 180288,
+            "r_beats": 49200,
+            "w_beats": 22536
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3073,
+          "write_misses": 3072
+        }
+      }
+    },
+    "steady/copy_flush_tail": {
+      "workload": "steady",
+      "region": "copy_flush_tail",
+      "profiles": {
+        "default": {
+          "cycles": 9217,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 257,
+            "write_bytes": 16448,
+            "r_beats": 16,
+            "w_beats": 2056
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        },
+        "read": {
+          "cycles": 9215,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 257,
+            "write_bytes": 16448,
+            "r_beats": 16,
+            "w_beats": 2056
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        },
+        "copy": {
+          "cycles": 9042,
+          "retired": 10,
+          "traffic": {
+            "reads": 2,
+            "read_bytes": 128,
+            "writes": 257,
+            "write_bytes": 16448,
+            "r_beats": 16,
+            "w_beats": 2056
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 0,
+          "write_misses": 0
+        }
+      }
+    },
+    "steady/dependent_chase_3072hops": {
+      "workload": "steady",
+      "region": "dependent_chase_3072hops",
+      "profiles": {
+        "default": {
+          "cycles": 231188,
+          "retired": 3849,
+          "traffic": {
+            "reads": 3074,
+            "read_bytes": 196736,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24592,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        },
+        "read": {
+          "cycles": 231188,
+          "retired": 3849,
+          "traffic": {
+            "reads": 3074,
+            "read_bytes": 196736,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24592,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        },
+        "copy": {
+          "cycles": 231191,
+          "retired": 3849,
+          "traffic": {
+            "reads": 3074,
+            "read_bytes": 196736,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24592,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 0,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 0,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        }
+      }
+    },
+    "independent/independent_line_64KiB_3passes": {
+      "workload": "independent",
+      "region": "independent_line_64KiB_3passes",
+      "profiles": {
+        "default": {
+          "cycles": 114346,
+          "retired": 9247,
+          "traffic": {
+            "reads": 3073,
+            "read_bytes": 196672,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24576,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 2890,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 2890,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        },
+        "read": {
+          "cycles": 114346,
+          "retired": 9247,
+          "traffic": {
+            "reads": 3073,
+            "read_bytes": 196672,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24576,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 2890,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 2890,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        },
+        "copy": {
+          "cycles": 114346,
+          "retired": 9247,
+          "traffic": {
+            "reads": 3073,
+            "read_bytes": 196672,
+            "writes": 1,
+            "write_bytes": 64,
+            "r_beats": 24576,
+            "w_beats": 8
+          },
+          "prefetch_events": {
+            "candidates": 2890,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 2890,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3072,
+          "write_misses": 0
+        }
+      }
+    },
+    "mixed16/mixed_read_store_64KiB_3passes": {
+      "workload": "mixed16",
+      "region": "mixed_read_store_64KiB_3passes",
+      "profiles": {
+        "default": {
+          "cycles": 306585,
+          "retired": 83399,
+          "traffic": {
+            "reads": 3081,
+            "read_bytes": 197184,
+            "writes": 3,
+            "write_bytes": 192,
+            "r_beats": 24648,
+            "w_beats": 24
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 3021,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3074,
+          "write_misses": 2
+        },
+        "read": {
+          "cycles": 189016,
+          "retired": 83399,
+          "traffic": {
+            "reads": 2343,
+            "read_bytes": 149952,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 18752,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 2247,
+            "useful": 2247,
+            "errors": 0,
+            "busy_cycles": 156021,
+            "miss_owner_cycles": 152829,
+            "release_owner_cycles": 6867
+          },
+          "read_misses": 90,
+          "write_misses": 2
+        },
+        "copy": {
+          "cycles": 195765,
+          "retired": 83399,
+          "traffic": {
+            "reads": 2414,
+            "read_bytes": 154496,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 19320,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 2832,
+            "allocated": 2058,
+            "useful": 2058,
+            "errors": 0,
+            "busy_cycles": 143523,
+            "miss_owner_cycles": 140002,
+            "release_owner_cycles": 6621
+          },
+          "read_misses": 350,
+          "write_misses": 2
+        }
+      }
+    },
+    "mixed64/mixed_read_store_64KiB_3passes": {
+      "workload": "mixed64",
+      "region": "mixed_read_store_64KiB_3passes",
+      "profiles": {
+        "default": {
+          "cycles": 305577,
+          "retired": 83111,
+          "traffic": {
+            "reads": 3081,
+            "read_bytes": 197184,
+            "writes": 3,
+            "write_bytes": 192,
+            "r_beats": 24648,
+            "w_beats": 24
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 0,
+            "useful": 0,
+            "errors": 0,
+            "busy_cycles": 3021,
+            "miss_owner_cycles": 0,
+            "release_owner_cycles": 0
+          },
+          "read_misses": 3074,
+          "write_misses": 2
+        },
+        "read": {
+          "cycles": 188611,
+          "retired": 83111,
+          "traffic": {
+            "reads": 2343,
+            "read_bytes": 149952,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 18752,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 3021,
+            "allocated": 2248,
+            "useful": 2248,
+            "errors": 0,
+            "busy_cycles": 156074,
+            "miss_owner_cycles": 152884,
+            "release_owner_cycles": 6867
+          },
+          "read_misses": 89,
+          "write_misses": 2
+        },
+        "copy": {
+          "cycles": 188971,
+          "retired": 83111,
+          "traffic": {
+            "reads": 2343,
+            "read_bytes": 149952,
+            "writes": 0,
+            "write_bytes": 0,
+            "r_beats": 18752,
+            "w_beats": 0
+          },
+          "prefetch_events": {
+            "candidates": 2976,
+            "allocated": 2241,
+            "useful": 2241,
+            "errors": 0,
+            "busy_cycles": 155566,
+            "miss_owner_cycles": 152395,
+            "release_owner_cycles": 6846
+          },
+          "read_misses": 96,
+          "write_misses": 2
+        }
+      }
+    }
+  },
+  "limits": [
+    "Host fixed-DDR cycles/handshakes, not physical bandwidth or mapped PPA",
+    "Read/copy policy models have identical source inputs; historical default mixed replay separately binds its qualified saved model and current guest/host",
+    "All regions execute identical guest bytes; compiler ELF metadata need not be identical",
+    "AXI counters are ROI handshakes and may include non-source traffic or split a transaction at a marker",
+    "No workload weighting or universal/default performance improvement is inferred"
+  ]
+}

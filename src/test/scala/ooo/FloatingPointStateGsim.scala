@@ -26,8 +26,10 @@ class ScalarFloatingPointCommand(p: OooParams) extends Bundle {
     def boxPorts: Seq[Bool] = Seq(checkSingleBox_0, checkSingleBox_1, checkSingleBox_2)
 }
 
-class FloatingPointStateGsim(withArithmetic: Boolean = false) extends Module {
-    private val p = OooParams(robEntries = 16, tagBits = 64)
+class FloatingPointStateGsim(withArithmetic: Boolean = false,
+    resources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline) extends Module {
+    private val p = OooParams(robEntries = 16, tagBits = 64, machineSystem = true,
+        floatingPoint = FloatingPointConfig.fullFD.copy(resources = resources))
     val io = IO(new Bundle {
         val headAuthorized = Input(Bool())
         val flush = Input(Bool())
@@ -121,5 +123,6 @@ class FloatingPointStateGsim(withArithmetic: Boolean = false) extends Module {
 class FloatingPointAddStateGsim extends FloatingPointStateGsim(withArithmetic = true)
 
 object FloatingPointStateGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new FloatingPointStateGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new FloatingPointStateGsim(resources =
+        FloatingPointResourceConfig.named(args.lift(1).getOrElse("baseline"))), Array("--target-dir", args.head))
 }
