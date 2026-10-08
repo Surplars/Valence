@@ -96,3 +96,31 @@ bridge/fabric CHIRRTL and replay passed. A full-core replay of this final merged
 AW/W version has not run. CPU precheck stays default off; directed same-ELF warm
 ROI was4422→1809cycles, chain2311→2311, cold512→538 under a fixed AXI model. Backing-
 fabric overlap is not full-board coherent CPU/DMA concurrency or MIG bandwidth.
+
+## Recovery when the historical candidate directory is missing
+
+An exact recovered ROM can replace the missing historical BMG artifacts without
+substituting an older firmware revision. Use the primary 52,592-byte ROM above;
+a GCC14.2 rebuild is a different binary and is not accepted by this recovery path.
+The old fixed-IP input directory is eligible only if all 257 authoritative hashes
+match (207 MIG plus50 clock/AXI files), irrespective of its unrelated old ROM.
+
+    python3 fpga/zu15eg/concurrency_validation/rebuild_rom_inputs.py verify-fixed --fixed OLD_FIXED_IP_ROOT
+    python3 fpga/zu15eg/concurrency_validation/rebuild_rom_inputs.py prepare-rom --binary RECOVERED_EXACT_BOOTROM_BIN --output build/FRESH_ROM_CANDIDATE
+
+This copies only verified exact ROM bytes, reconstructs and verifies the COE, and
+leaves `ip-build` absent. Run the existing ROM-only builder using native paths:
+
+    vivado.bat -mode batch -source REPO/fpga/zu15eg/build_netboot_rom.tcl -tclargs FRESH_ROM_CANDIDATE
+
+Then combine the fresh BMG with already emitted latest RTL and proven fixed IP:
+
+    python3 fpga/zu15eg/concurrency_validation/rebuild_rom_inputs.py assemble --repo . --commit DEV_SHA --fixed OLD_FIXED_IP_ROOT --rtl build/FRESH_NATIVE_EXPORT/integrated-off --variant integrated-off --output build/FRESH_ROM_CANDIDATE
+
+Assembly first checks all32768 MIF words against exact ROM bytes/zero padding,
+the pinned ROM auditor, Git source, selected RTL and fixed-IP inventory. It never
+copies the old BMG. It records the newly generated DCP hash and a fresh `inputs.json`;
+this is deliberately new provenance, not a claim that historical DCP bytes were
+recovered. Continue the ordinary board build using this root. Actual IP config,
+clocks and ROM INIT/INITP still need the native build/report gates. No bitstream is
+created by these helpers. Run `test_rebuild_rom_inputs.py` for host recovery tests.
