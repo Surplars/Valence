@@ -5,7 +5,15 @@ Valence 是 OpenIon 的可配置 RISC-V SoC 工程，使用 Scala、Chisel 和 M
 4 发射属于独立实验配置。ISA、微架构和外设配置分别控制，不能由某个板级配置推断所有配置的能力。
 RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
-## 当前状态（2026-10-07）
+## dev 分支增量（2026-10-08）
+
+已核对的源码与短验证批次见 [dev 交付记录](docs/dev-delivery-20261008.md)。
+本轮 Vivado 物理验证仍待完成，本轮物理时序/整板签核尚未验证；virtual-load precheck 默认关闭。
+此分支仅交付源码、脚本、测试与文档，不包含编译中间文件或固件/仿真/Vivado 生成物。
+
+## 历史板级状态（2026-10-07）
+
+以下为旧 r6 的历史记录，不能用于当前 dev 候选的物理验收。
 
 当前实现包含重命名、ROB、整数/分支执行、RV64C、原子访存、Sv39、可配置缓存及 F/D 路径。
 F/D 使用 Berkeley HardFloat 算术模块并接入本项目的译码、浮点状态、访存和提交控制；
@@ -64,5 +72,5 @@ make gsim-coremark
 - `build/` 是可再生输出，`out/` 是 Mill 缓存，`simulator/build/` 是工具/软件源码缓存，均不提交。
 
 2026-10-07 整理前的源码、全部 build 产物和最新 r6 发布报告已校验归档到
-`/home/openion/Valence-archive/20261007-precommit`，不放入 Git。
+`${LOCAL_ARCHIVE_ROOT}/20261007-precommit`，不放入 Git。
 历史文档中的旧 `build/...` 回执路径保留原始口径，恢复方法见整理清单。

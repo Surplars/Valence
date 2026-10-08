@@ -1,5 +1,29 @@
 # 当前性能与证据边界
 
+本次 `dev` 源码交付范围见 [交付记录](dev-delivery-20261008.md)。本轮 Vivado 物理验证仍待完成；
+本轮物理时序、整板签核和实板结果尚未验证，virtual-load precheck 默认关闭。
+
+## 2026-10-08：云端资源与并行访问接续（物理时序未签核）
+
+已保留6.1sol最新219文件交接并逐字重放到同一基线。新增总线payload共享/单cursor/AW owner直选：
+4组8beat真实GSIM输入与有效输出逐周期一致，另通过选定4槽/16beat/2写槽乱序回复的独立混合读写与
+AW/W验证，未降低原并发能力。详见[总线存储候选](axi-payload-reuse.md)。
+
+并发home的tag现已按way显式RAM化并移除重复set位，选定512行/2路几何从27降为19 tag位；
+6组baseline+6组candidate独立GSIM协议/周期日志一致，48项负控通过。
+原生SV已确认256×19异步读RAM及真实读写端口结构；这不等于Vivado已经映射LUTRAM或节省对应FF。
+详见[home tag RAM](home-tag-ram.md)。
+
+虚拟RAM load并行预检是默认关闭的独立选项。policy1曾使dependent chase从2311增为2821周期；
+该退化保留。policy2采用队首串行回退后，同ELF完整CPU验证通过：warm独立load仍为4422→1809周期
+（1159条相同退休指令，ROI IPC 0.2621→0.6407）；dependent chase恢复2311→2311；cold为512→538，
+仍有5.08%开销。六项独立负控拒绝，程序签名/异常/退休PC轨迹一致，无宿主强制响应等待。
+回执为build/gsim/virtual-load-board-cloud-policy2-r1/receipt.json。它是定向工作负载和固定AXI模型结果，
+不是NEMU/ISA合规、通用Linux增益或正式CoreMark成绩。默认配置未自动晋级；100MHz setup/hold/CDC/
+ROM INIT和实际资源仍须新物理实现验证。
+原交接的旧物理记录与短功能证明不自动覆盖这些新源码。
+
+
 ## 2026-10-08：dot 增量交接的本地接续
 
 本次交接接续于隔离的开发工作区，
@@ -56,7 +80,7 @@ CoreMark 的小 guest 全驻留32KiB后，测试返回 stub 真实执行 `fence.
 `fpga/zu15eg/stage_incremental.py`。当前只准备下一轮物理输入，不启动整板布局布线。
 本轮物理时序/资源尚未测量；
 旧板级正裕量不属于该候选。Linux 新 driver 的内核模块编译、新固件、真实板卡网络和
-Linux 浮点调度仍未验收；未生成 bit、未自动 commit/push。
+Linux 浮点调度仍未验收；该交接阶段未生成 bit，也未自动 commit/push；本次 dev 的提交状态见页首交付记录。
 
 以下为各自冻结输入的历史记录，不替代这次增量候选验收。
 
@@ -730,7 +754,7 @@ VM仍5次walk、7次PTE RAM读、263次physical request、8次ProbeAckData、16�
 相对50MHz基线，CoreMark须超过53.03MHz才抵消流水代价；上述VM工作量须超过57.95MHz。
 综合估计改善不等于已经达到这些真实布线频率，也不保证所有应用同样受益。
 短测：`build/gsim/staged-fabric-20261001`；归档及联合综合：
-`E:/VM/Share/Valence-rtl/ddr-opt-20261001/staged-fabric`，综合结论见时序台账。
+`${EVIDENCE_ROOT}/ddr-opt-20261001/staged-fabric`，综合结论见时序台账。
 
 ## 2026-10-01：staged-control 控制候选
 
@@ -785,7 +809,7 @@ VM保持walk5/PTE7/physical263/probe8/release16；3000拍窗commits=1271不是�
 新harness排空/覆盖激励及空FIFO size动态移位曾失败；局部修复，复跑受影响项后验收，
 没有关闭sanitizer或修改生成C++。last-subset JSON仍partial-pass，合并归档逐项列出全部
 passed组，不宣称一次不间断全绿。资源/时序与边界查询见 [时序台账](fpga-timing-windows.md)。
-证据 `E:/VM/Share/Valence-rtl/ddr-opt-20261001/staged-data/results.json`。
+证据 `${EVIDENCE_ROOT}/ddr-opt-20261001/staged-data/results.json`。
 
 ## 2026-10-01：staged-execute 双链联合候选
 
@@ -806,7 +830,7 @@ NEMU282程序及M/B/Zicond、独立RAS20000拍和故意完成payload/负向oracl
 不能以延迟倒数报告实际提频/吞吐收益。相对旧50MHz/639000ticks基线，CoreMark
 仍需超过55.38MHz才抵消以前访存流水成本；VM等工作量仍需超过65.61MHz。
 详情与后续2–3条组合方向见 [时序台账](fpga-timing-windows.md)。
-证据E:/VM/Share/Valence-rtl/ddr-opt-20261001/staged-execute/results.json。
+证据${EVIDENCE_ROOT}/ddr-opt-20261001/staged-execute/results.json。
 
 ## 2026-10-02：staged-rename 三链联合候选
 
@@ -843,7 +867,7 @@ owner.CE的局部回退已记录。因此这是资源及局部链改善，尚不
 成本；过去访存流水成本仍存在。相对旧50MHz/639000ticks基线，CoreMark仍需真实
 频率超过55.38MHz，VM等675退休工作量相对50MHz/1723拍仍需超过65.61MHz。
 剩余关联链和全部边界结果见 [时序台账](fpga-timing-windows.md)。
-证据E:/VM/Share/Valence-rtl/ddr-opt-20261001/staged-rename/results.json；目录沿用
+证据${EVIDENCE_ROOT}/ddr-opt-20261001/staged-rename/results.json；目录沿用
 10月1日tag，综合完成日期为10月2日。
 
 ## 2026-10-02：staged-retire 局部有效、整机回退的实验候选
@@ -872,7 +896,7 @@ RAS/ledger/预测packet/NEMU/VM/板级应用与负向判据、ASan/UBSan保留�
 没有布局布线频率测量，不能用OOC倒数计算正向吞吐；相对旧50MHz/639000ticks
 基线，CoreMark真实频率仍须超过55.38MHz抵消此前访存流水成本，VM等675退休
 工作量相对50MHz/1723拍仍需超过65.61MHz。现板频率/CDC结构没有变化。
-证据E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-retire/results.json。
+证据${EVIDENCE_ROOT}/ddr-opt-20261002/staged-retire/results.json。
 ## 2026-10-02：staged-redirect，向100MHz目标推进但未达标
 
 用户目标为先稳定100 MHz、再150 MHz，并为固定外设域准备。本批一次重构早期
@@ -895,7 +919,7 @@ FF61448→61449，RAMB36/DSP仍37/19；owner.CE9.364→9.900ns的回退亦留档
 比较同镜像周期。此前访存流水盈亏点仍需实际频率：CoreMark>55.38MHz、VM等工作量
 >65.61MHz。100/150MHz整板setup/hold/CDC与实板压力运行证据仍缺，不缩小目标。
 全部局部结果及验证范围见 [时序台账](fpga-timing-windows.md)；证据位于
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-redirect/results.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-redirect/results.json。
 
 ## 2026-10-02：staged-preparation 局部收益与面积/全局回退
 
@@ -915,7 +939,7 @@ WNS10ns=-2.309ns、约150MHz=-5.642ns，仍不达目标；TNS10ns改善到-26443
 控制耦合继续改造，保留精确异常、held mask和原架构oracle。多时钟域准备合同仍在，
 第三域/DFS未实现；100/150MHz整板与实板稳定运行仍待验收。
 详见 [时序台账](fpga-timing-windows.md)，证据
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-preparation/results.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-preparation/results.json。
 
 ## 2026-10-02：staged-payload，取指掩码切断，CPU仍需收敛
 
@@ -936,7 +960,7 @@ bit，不以未布线OOC宣称实际频率×IPC收益。新检查脚本端口名
 首次失败证据保留。下一批集中registered回复、memory/MMIO payload和PRF操作数链。
 动态调频/第三域尚未实施；静态100MHz须匹配UART/BootROM/timebase及整板与实板验收。
 详见 [时序台账](fpga-timing-windows.md)，证据
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-payload/results.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-payload/results.json。
 
 ## 2026-10-02：staged-return，回复切断成功，尚不能证明净性能收益
 
@@ -967,7 +991,7 @@ RAS CE虽然data9.965ns，slack仍-0.069ns：必须看setup/时钟裕量，不�
 pending/issue→PRF写回与操作数选择面积。仍每批2–3条相关链、必要短GSIM后一次综合；
 不因小幅OOC改善生成bit。动态clk先准备固定外设/timebase与启动选频，运行态DFS后置；
 100/150MHz完整整板和实板验收仍待完成。证据与详细比较见 [时序台账](fpga-timing-windows.md)
-及E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-return/results.json。
+及${EVIDENCE_ROOT}/ddr-opt-20261002/staged-return/results.json。
 
 ## 2026-10-02：staged-fetch-address，周期不变、面积回收，尚未100MHz
 
@@ -990,7 +1014,7 @@ FF61448→61439，RAMB36/DSP37/19。RAS CE回退9.965→10.315ns（slack-0.419�
 下一批共同处理ROM请求信用/返回ready、PC相邻取指命中及prediction→rename/PC资格，
 PRF10.503ns与RAS回退继续跟踪。第三域/DFS和100/150MHz整板稳定运行仍未验收。
 详见 [时序台账](fpga-timing-windows.md)；证据
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-fetch-address/results.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-fetch-address/results.json。
 
 ### 2026-10-02 staged-fetch-control：短验证通过，OOC改善仍未达标
 
@@ -1015,7 +1039,7 @@ RAS CE10.315仍超标，issueQ10.355→10.359小幅回退；前端/ROB/ready改�
 约150MHz WNS-3.941ns、失败59936，仍未达标。不声称实板频率×IPC正收益，不切默认/
 clock/reset/IP/bit；100/150MHz与第三外设域、timebase/选频仍未验收。导出参数仍为
 50MHz/115200，不能拿10ns重约束代替真实100MHz硬件、软件timebase及整板验收。
-证据E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-fetch-control/results.json与short-tests.json；
+证据${EVIDENCE_ROOT}/ddr-opt-20261002/staged-fetch-control/results.json与short-tests.json；
 61份短测日志、46份DCP报告、53份源码快照及相同固件。完整路径审计纠正此前基于网名
 的顺序PC推测：实际串行项为异常/恢复候选仲裁、选中token再次授权和重定向token匹配，
 之后才传播到completion/退休与predictor/RAS。PRF bit-manip写回链继续跟踪。
@@ -1049,7 +1073,7 @@ eligibility断言失败，日志/FIR留档，生产一拍IRQ时间合同仍未�
 与主ALU结果选择、completion/PRF写回链。未布线、导出参数仍50MHz/115200，不宣称
 物理Fmax或实板频率×IPC收益；100/150MHz、第三域、选频/DFS及注册IRQ门槛仍未验收。
 完整16族及回退证据见 [时序台账](fpga-timing-windows.md) 和
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-recovery-control/results.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-recovery-control/results.json。
 
 ### 2026-10-02 staged-execute-select：无新增周期成本，联合时序测量中
 
@@ -1064,7 +1088,7 @@ clock/reset/bit不改。33项Scala及七组行为必要范围通过；1087008独
 本批测到新增周期。121SV唯一一次pre-mapping10ns综合于08:31:43启动，当前仍运行；
 时序/面积尚无结论，不能提前宣称优于fetch-control或达100MHz。待同DCP查询完整终点
 族后决定，不跑全量GSIM/Linux或route/bit。证据
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-execute-select/results.json与short-tests.json。
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-execute-select/results.json与short-tests.json。
 
 ### 2026-10-02 staged-frontend-select：前端三链合并短测，无额外周期
 
@@ -1077,7 +1101,7 @@ E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-execute-select/results.json与sh
 DDR5295/7714/12987/3847以及VM2525/675完全保持。没有本批额外IPC损失证据，
 但频率×IPC收益必须等实际SYN/route/板测，不能先由结构化改造推断。
 
-证据已保存到E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-frontend-select。
+证据已保存到${EVIDENCE_ROOT}/ddr-opt-20261002/staged-frontend-select。
 78份原始日志/FIR/固件逐字节核对；196份当前源码及独立oracle冻结。上批单次
 staged-execute-select综合仍运行，使用其旧72源码/121SV快照，不是新工作树。
 新候选未导出/综合，不并行启动第二次SYN。没有完整GSIM/Linux/route/bit，
@@ -1101,7 +1125,7 @@ staged-execute-select综合仍运行，使用其旧72源码/121SV快照，不是
 两批功能短测结论保持，但staged-frontend-select仍未导出/SYN。
 
 诊断、日志/journal/timing哈希及停止证据见
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-execute-select/synthesis-hang-diagnosis.json；
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-execute-select/synthesis-hang-diagnosis.json；
 两个候选results.json已更正。建议先做rank/ALU/completion局部定位，未经确认不重跑
 整颗SoC。官方debug_log、RuntimeOptimized/no_timing_driven可用于后续经批准的诊断，
 但减少/关闭时序驱动的结果不等价于原10ns候选签核。
@@ -1181,7 +1205,7 @@ decode-align → rank-legality → word-destination的OOC全局CPD：10.178 → 
 
 26 IPC×23字段、同BIN CoreMark731130ticks、DDR5295/7714/12987/3847、VM2525/675不变；本轮没有新增流水级/周期损失。在同配置下组合重构周期不变，并不证明提高真实CPU时钟后frequency×IPC会等比例提升：DDR/CDC与CPU比例变化可能改变访存周期。1次CoreMark仅CRC/exit回归，不是正式分数。
 
-细节、19家族时序及资源增减见docs/fpga-timing-windows.md；证据：E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-word-destination/。默认/发布保持50MHz、115200，未改MMCM/MIG/ROM内容、未生成bit、未跑全量GSIM/长Linux；注册IMSIC temporal、真实DDR/CPU频率变化下IPC、整板setup/hold/CDC/RDC、第三域/DFS及实板高频仍未验收。
+细节、19家族时序及资源增减见docs/fpga-timing-windows.md；证据：${EVIDENCE_ROOT}/ddr-opt-20261002/staged-word-destination/。默认/发布保持50MHz、115200，未改MMCM/MIG/ROM内容、未生成bit、未跑全量GSIM/长Linux；注册IMSIC temporal、真实DDR/CPU频率变化下IPC、整板setup/hold/CDC/RDC、第三域/DFS及实板高频仍未验收。
 
 ## 2026-10-02：请求capture/目录批次，10ns OOC首次过线
 
