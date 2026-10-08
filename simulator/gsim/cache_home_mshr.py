@@ -48,8 +48,11 @@ def main():
                 assert f'regreset phase : UInt<3>[{mshrs}]' in cache
                 assert f'regreset phase : UInt<3>[{mshrs}]' in home
                 assert f'regreset responseOwned : UInt<1>[{responses}]' in cache
+                assert all(f'cmem tagBanks_{way} : UInt<50>[256]' in home for way in (0, 1))
             assert 'regreset active : UInt<1>[4]' in module(fir, 'TileLinkAxi4OutstandingBridge')
-            assert 'reg readData : UInt<64>[8]' in module(fir, 'TileLinkAxi4BurstBridge')
+            lane = module(fir, 'TileLinkAxi4BurstBridge')
+            assert 'cmem payload : UInt<72>[8]' in lane
+            assert 'reg readData :' not in lane and 'reg writeData :' not in lane
             log = (target / 'test.log').read_text()
             assert f'CACHE_HOME_PASS mshrs={mshrs}' in log
             negative = subprocess.run([target / 'run', '--inject-mismatch'], capture_output=True, text=True,

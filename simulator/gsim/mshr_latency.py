@@ -29,8 +29,9 @@ def main():
             except AssertionError:pass
             else:raise RuntimeError('changed header schema was accepted')
             fir=(target/'CoherentCacheHomeGsim.fir').read_text()
-            home_tags='ownedTags' if n==1 else 'tags'
-            assert 'reg tags : UInt<18>[512]' in fir and f'reg {home_tags} : UInt<26>[512]' in fir
+            assert 'reg tags : UInt<18>[512]' in fir
+            if n==1: assert 'reg ownedTags : UInt<26>[512]' in fir
+            else: assert all(f'cmem tagBanks_{way} : UInt<18>[256]' in fir for way in (0,1))
             common.run([cxx,'-std=c++20','-O1','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all',f'-DREAD_MSHRS={n}','-DCACHE_LINES=512',f'-DRESPONSE_ENTRIES={r}','-I'+str(target),*sorted(target.glob('CoherentCacheHomeGsim[0-9]*.cpp')),common.HERE/'harness/coherent_cache_home.cpp','-ldl','-o',target/'run'],log=target/'compile.log')
             common.run([target/'run'],env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},log=target/'test.log',timeout=180)
             text=(target/'test.log').read_text();print(text,flush=True)

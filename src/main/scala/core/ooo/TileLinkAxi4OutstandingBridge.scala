@@ -143,10 +143,10 @@ class TileLinkAxi4OutstandingBridge(
     }
 
     val arArb = Module(new RRArbiter(new Axi4Address(axiAddressWidth, axiIdWidth), maxOutstanding))
-    val awArb = Module(new RRArbiter(new Axi4Address(axiAddressWidth, axiIdWidth), maxOutstanding))
+    val awOffer = Wire(Decoupled(new Axi4Address(axiAddressWidth, axiIdWidth)))
     // Registered skid queues prevent arbitration changes from changing a stalled AXI payload.
     io.axi.ar <> Queue(arArb.io.out, 2)
-    io.axi.aw <> Queue(awArb.io.out, 2)
+    io.axi.aw <> Queue(awOffer, 2)
     val arIssued = RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))
     when(io.axi.ar.fire) { arIssued(io.axi.ar.bits.id(slotWidth - 1, 0)) := true.B }
     when(io.axi.r.fire && io.axi.r.bits.last) {
@@ -179,7 +179,7 @@ class TileLinkAxi4OutstandingBridge(
         writeOffer := q.io.deq.valid
         val addressSent = RegInit(false.B)
         val dataSent = RegInit(false.B)
-        val addressFire = awArb.io.out.fire
+        val addressFire = awOffer.fire
         val dataFire = io.axi.w.fire && io.axi.w.bits.last
         val localDone = VecInit(slots.map(_.io.tl.d.valid))(writeOwner)
         q.io.deq.ready := ((addressSent || addressFire) && (dataSent || dataFire)) || localDone
@@ -188,6 +188,15 @@ class TileLinkAxi4OutstandingBridge(
         when(q.io.deq.fire) { addressSent := false.B; dataSent := false.B }
         when(q.io.deq.valid) { assert(active(writeOwner) && writes(writeOwner), "write FIFO lost its live owner") }
     }
+    // The write-order FIFO (or exclusive-write owner) has already selected the
+    // only legal AW/W lane. A second round-robin arbiter duplicates selection
+    // and state without providing any concurrency. Share this static decode
+    // between the address and data channels; their handshakes stay independent.
+    val writeOwnerOH = VecInit((0 until maxOutstanding).map(i => writeOffer && writeOwner === i.U))
+    awOffer.valid := VecInit((0 until maxOutstanding).map(i =>
+        writeOwnerOH(i) && slots(i).io.axi.aw.valid)).asUInt.orR
+    awOffer.bits := Mux1H(writeOwnerOH, slots.map(_.io.axi.aw.bits))
+    awOffer.bits.id := writeOwner
     io.axi.w.valid := writeOffer && VecInit(slots.map(_.io.axi.w.valid))(writeOwner)
     io.axi.w.bits := VecInit(slots.map(_.io.axi.w.bits))(writeOwner)
     for ((slot, i) <- slots.zipWithIndex) {
@@ -201,13 +210,8 @@ class TileLinkAxi4OutstandingBridge(
         slot.io.tl.d.ready := io.tl.d.ready && active(i) && replySlot === i.U
         arArb.io.in(i) <> slot.io.axi.ar
         arArb.io.in(i).bits.id := i.U
-        awArb.io.in(i) <> slot.io.axi.aw
-        if (maxOutstandingWrites > 0) {
-            awArb.io.in(i).valid := slot.io.axi.aw.valid && writeOffer && writeOwner === i.U
-            slot.io.axi.aw.ready := awArb.io.in(i).ready && writeOffer && writeOwner === i.U
-        }
-        awArb.io.in(i).bits.id := i.U
-        slot.io.axi.w.ready := io.axi.w.ready && writeOffer && writeOwner === i.U
+        slot.io.axi.aw.ready := awOffer.ready && writeOwnerOH(i)
+        slot.io.axi.w.ready := io.axi.w.ready && writeOwnerOH(i)
         slot.io.axi.r.valid := io.axi.r.valid && rInRange && rSlot === i.U && active(i) && readIssued
         slot.io.axi.r.bits := io.axi.r.bits
         slot.io.axi.r.bits.id := 0.U // lane engine's local ID; external ID owns routing

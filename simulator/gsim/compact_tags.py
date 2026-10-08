@@ -61,7 +61,11 @@ def main():
             elif name.startswith('home-'):
                 m = params[0]
                 home = module(fir, 'CoherentLineHome' if m == 1 else 'NonBlockingCoherentLineHome')
-                assert f'reg {"ownedTags" if m == 1 else "tags"} : UInt<27>[16]' in home
+                if m == 1:
+                    assert 'reg ownedTags : UInt<27>[16]' in home
+                else:
+                    assert all(f'cmem tagBanks_{way} : UInt<24>[8]' in home for way in (0, 1))
+                    assert 'reg tags :' not in home
                 negative = [('--inject-data', 'independent Grant data mismatch'),
                     ('--bad-aperture', 'home accepts an aligned' if m == 1 else 'home accepts only an aligned unowned'),
                     ('--bad-release-aperture', 'invalid voluntary line release' if m == 1 else 'release has no committed directory owner')]

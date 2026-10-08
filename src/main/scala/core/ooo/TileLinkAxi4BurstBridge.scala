@@ -53,17 +53,27 @@ class TileLinkAxi4BurstBridge(
     val countWidth = TileLinkTransferBeatCount.width(tlParams)
     val beatCount = Reg(UInt(countWidth.W))
     val index = RegInit(0.U(countWidth.W))
-    val responseIndex = RegInit(0.U(countWidth.W))
     val bufferIndex = index(log2Ceil(maxBurstBeats) - 1, 0)
-    val replyBufferIndex = responseIndex(log2Ceil(maxBurstBeats) - 1, 0)
     val readError = RegInit(false.B)
     val writeError = RegInit(false.B)
     val writeOpcode = Reg(UInt(3.W))
     val writeAddressDone = RegInit(false.B)
     val writeDataDone = RegInit(false.B)
-    val writeData = Reg(Vec(maxBurstBeats, UInt(64.W)))
-    val writeStrb = Reg(Vec(maxBurstBeats, UInt(8.W)))
-    val readData = Reg(Vec(maxBurstBeats, UInt(64.W)))
+    // One lane owns either a TL write or an AXI read, never both. Share its
+    // payload capacity without sharing storage across independent AXI IDs.
+    // One explicit write port and one asynchronous read port permit distributed
+    // RAM inference; there is no extra request/response pipeline stage.
+    // Carry write strobes beside data so both use the same capture/read address.
+    // AXI read captures leave the unused strobe bits zero.
+    val payload = Mem(maxBurstBeats, UInt(72.W))
+    val payloadWrite = WireDefault(false.B)
+    val payloadWriteIndex = WireDefault(bufferIndex)
+    val payloadWriteData = WireDefault(Cat(io.tl.a.bits.mask, io.tl.a.bits.data))
+    // Capture and playback cannot overlap within this lane. Rewind the same
+    // cursor after the final R beat instead of adding an address mux before
+    // the asynchronous memory read or retaining a second counter/adder.
+    val payloadRead = payload.read(bufferIndex)
+    val payloadReadData = payloadRead(63, 0)
     val a = io.tl.a.bits
     val maxSize = log2Ceil(maxBurstBeats) + 3
     val requestBeats = TileLinkTransferBeatCount(a.size, tlParams)
@@ -117,7 +127,6 @@ class TileLinkAxi4BurstBridge(
             size := a.size
             beatCount := requestBeats
             index := 0.U
-            responseIndex := 0.U
             readError := !acceptedWindow
             writeError := !acceptedWindow
             writeAddressDone := false.B
@@ -126,8 +135,8 @@ class TileLinkAxi4BurstBridge(
                 state := Mux(acceptedWindow, sReadAddress, sReadReply)
             }.otherwise {
                 when(acceptedWindow) {
-                    writeData(0) := a.data
-                    writeStrb(0) := a.mask
+                    payloadWrite := true.B
+                    payloadWriteIndex := 0.U
                 }
                 writeOpcode := a.opcode
                 index := Mux(requestBeats === 1.U, 0.U, 1.U)
@@ -142,8 +151,7 @@ class TileLinkAxi4BurstBridge(
                 "TL write burst changed control fields")
             // Denied writes still own/drain every A beat but never touch the buffer or AXI.
             when(!writeError) {
-                writeData(bufferIndex) := a.data
-                writeStrb(bufferIndex) := a.mask
+                payloadWrite := true.B
             }
             index := index + 1.U
             when(index === beatCount - 1.U) {
@@ -175,16 +183,17 @@ class TileLinkAxi4BurstBridge(
         assert(io.axi.r.bits.id === 0.U &&
             io.axi.r.bits.last === (index === beatCount - 1.U),
             "AXI read ID or RLAST mismatch")
-        readData(bufferIndex) := io.axi.r.bits.data
+        payloadWrite := true.B
+        payloadWriteData := Cat(0.U(8.W), io.axi.r.bits.data)
         readError := readError || io.axi.r.bits.resp(1)
         index := index + 1.U
-        when(index === beatCount - 1.U) { state := sReadReply }
+        when(index === beatCount - 1.U) { index := 0.U; state := sReadReply }
     }
     // Neither VALID depends on the other channel's READY. A complete TL
     // burst is buffered before either independent AXI channel is offered.
     io.axi.w.valid := state === sWriteAddress && !writeDataDone
-    io.axi.w.bits.data := writeData(bufferIndex)
-    io.axi.w.bits.strb := writeStrb(bufferIndex)
+    io.axi.w.bits.data := payloadReadData
+    io.axi.w.bits.strb := payloadRead(71, 64)
     io.axi.w.bits.last := index === beatCount - 1.U
     when(io.axi.w.fire) {
         when(io.axi.w.bits.last) { writeDataDone := true.B }
@@ -208,9 +217,14 @@ class TileLinkAxi4BurstBridge(
     io.tl.d.bits.size := size
     io.tl.d.bits.denied := Mux(state === sReadReply, readError, writeError)
     io.tl.d.bits.corrupt := state === sReadReply && readError
-    io.tl.d.bits.data := Mux(state === sReadReply && !readError, readData(replyBufferIndex), 0.U)
+    io.tl.d.bits.data := Mux(state === sReadReply && !readError, payloadReadData, 0.U)
     when(io.tl.d.fire) {
-        responseIndex := responseIndex + 1.U
-        when(state === sWriteReply || responseIndex === beatCount - 1.U) { state := sIdle }
+        index := index + 1.U
+        when(state === sWriteReply || index === beatCount - 1.U) { state := sIdle }
+    }
+    when(payloadWrite) {
+        assert(!(io.tl.a.fire && io.axi.r.fire), "shared payload has two capture owners")
+        assert(!io.axi.w.valid && !io.tl.d.valid, "shared payload changed while being offered")
+        payload.write(payloadWriteIndex, payloadWriteData)
     }
 }

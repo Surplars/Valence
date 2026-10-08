@@ -41,19 +41,29 @@ class MixedCoherentLineHome(
     private def setOf(address: UInt): UInt = address(5 + setBits, 6)
     private def inRam(address: UInt): Bool = address >= base.U(65.W) && address < (base + bytes).U(65.W)
     private val owned = RegInit(VecInit(Seq.fill(trackedLines)(false.B)))
-    private val tagGeometry = tagConfig.geometry(base, bytes, 6)
-    private val tags = Reg(Vec(trackedLines, UInt(tagGeometry.tagBits.W)))
+    // The directory index already identifies the set; tags need not store
+    // those bits again. Keep ownership metadata separately resettable.
+    private val tagGeometry = tagConfig.geometry(base, bytes, 6 + setBits)
+    private val tagBanks = Seq.fill(trackedWays)(Mem(trackedLines / trackedWays, UInt(tagGeometry.tagBits.W)))
+    private val tagLookupAddress = WireDefault(io.upstream.request.bits.address)
+    // Two functional read clients remain independent: a first Release C beat
+    // and the live upstream / saved maintenance lookup. A third read serves
+    // only the independent Acquire admission assertion; synthesis must prove
+    // that verification-only cone is pruned before claiming two RAM copies.
+    private val lookupTags = tagBanks.map(_.read(setOf(tagLookupAddress)))
+    private val releaseTags = tagBanks.map(_.read(setOf(port.c.bits.address)))
+    private val acquireTags = tagBanks.map(_.read(setOf(port.a.bits.address)))
     private def waySlot(address: UInt, way: Int): UInt =
         if (trackedWays == 1) setOf(address) else Cat(way.U(1.W), setOf(address))
-    private def wayHit(address: UInt, way: Int): Bool = {
+    private def wayHit(address: UInt, way: Int, readTags: Seq[UInt]): Bool = {
         val slot = waySlot(address, way)
-        tagGeometry.qualifies(address) && owned(slot) && tags(slot) === tagGeometry.tag(address)
+        tagGeometry.qualifies(address) && owned(slot) && readTags(way) === tagGeometry.tag(address)
     }
-    private def lineOwned(address: UInt): Bool =
-        (0 until trackedWays).map(wayHit(address, _)).reduce(_ || _)
-    private def ownedSlot(address: UInt): UInt =
+    private def lineOwned(address: UInt, readTags: Seq[UInt]): Bool =
+        (0 until trackedWays).map(wayHit(address, _, readTags)).reduce(_ || _)
+    private def ownedSlot(address: UInt, readTags: Seq[UInt]): UInt =
         if (trackedWays == 1) waySlot(address, 0)
-        else Mux(wayHit(address, 0), waySlot(address, 0), waySlot(address, 1))
+        else Mux(wayHit(address, 0, readTags), waySlot(address, 0), waySlot(address, 1))
     private def freeDirectory(address: UInt): Bool =
         (0 until trackedWays).map(i => !owned(waySlot(address, i))).reduce(_ || _)
     private def freeDirectorySlot(address: UInt): UInt =
@@ -149,16 +159,16 @@ class MixedCoherentLineHome(
             "invalid release size/permission/corruption")
         when(!capturing) {
             assert(inRam(port.c.bits.address) && port.c.bits.address(5, 0) === 0.U &&
-                lineOwned(port.c.bits.address), "release has no committed directory owner")
+                lineOwned(port.c.bits.address, releaseTags), "release has no committed directory owner")
             captureEntry := newRelease
             releaseAddresses(newRelease) := port.c.bits.address
             releaseSources(newRelease) := port.c.bits.source
-            releaseDirectories(newRelease) := ownedSlot(port.c.bits.address)
+            releaseDirectories(newRelease) := ownedSlot(port.c.bits.address, releaseTags)
             releaseData(newRelease)(0) := port.c.bits.data
             releaseBeat := 1.U
             when(port.c.bits.opcode === TLOpcode.ReleaseData) {
                 releasePhases(newRelease) := rCapture; capturing := true.B
-            }.otherwise { owned(ownedSlot(port.c.bits.address)) := false.B; releasePhases(newRelease) := rAck }
+            }.otherwise { owned(ownedSlot(port.c.bits.address, releaseTags)) := false.B; releasePhases(newRelease) := rAck }
         }.otherwise {
             assert(releasePhase === rCapture && port.c.bits.opcode === TLOpcode.ReleaseData &&
                 port.c.bits.address === releaseAddresses(captureSlot) && port.c.bits.source === releaseSources(captureSlot),
@@ -180,6 +190,9 @@ class MixedCoherentLineHome(
     private val mIdle :: mProbeSend :: mProbeWait :: mWriteSend :: mWriteWait :: mAccessSend :: mAccessWait :: Nil = Enum(7)
     private val maintenance = RegInit(mIdle)
     private val access = Reg(new DataRequest)
+    // Both selection and ownership come from registered state. Never insert
+    // A.ready/fire or Release priority in this functional tag-address path.
+    tagLookupAddress := Mux(maintenance === mProbeSend, access.address, io.upstream.request.bits.address)
     private val maintenanceDirectory = Reg(UInt(directoryBits.W))
     private val maintenanceData = Reg(UInt(512.W))
     private val reads = RegInit(0.U(4.W))
@@ -193,7 +206,7 @@ class MixedCoherentLineHome(
     when(io.upstream.request.valid) { upperWaiting := true.B }
     when(io.upstream.request.fire || !io.upstream.request.valid) { upperWaiting := false.B }
     private val request = io.upstream.request.bits
-    private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && lineOwned(request.address)
+    private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && lineOwned(request.address, lookupTags)
     private val needsMaintenance = request.write || needsProbe
     private val sourceBusy = (0 until acquireEntries).map(i =>
         active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
@@ -212,7 +225,7 @@ class MixedCoherentLineHome(
     when(port.a.fire) {
         assert(port.a.bits.opcode === TLOpcode.AcquireBlock && port.a.bits.param === TLPermissions.nToT &&
             port.a.bits.size === 6.U && port.a.bits.address(5, 0) === 0.U &&
-            inRam(port.a.bits.address) && !lineOwned(port.a.bits.address) && !port.a.bits.corrupt,
+            inRam(port.a.bits.address) && !lineOwned(port.a.bits.address, acquireTags) && !port.a.bits.corrupt,
             "home accepts only an aligned unowned nToT AcquireBlock")
         addresses(allocate) := port.a.bits.address
         sources(allocate) := port.a.bits.source
@@ -246,7 +259,7 @@ class MixedCoherentLineHome(
     when(io.upstream.request.fire && needsMaintenance) {
         assert(!anyAcquire && reads === 0.U && !releaseBusy, "maintenance crossed active acquire/release")
         access := request
-        maintenanceDirectory := ownedSlot(request.address)
+        maintenanceDirectory := ownedSlot(request.address, lookupTags)
         maintenance := Mux(needsProbe, mProbeSend, mAccessSend)
     }
     when(maintenance === mAccessSend && io.downstream.request.fire) { maintenance := mAccessWait }
@@ -256,7 +269,7 @@ class MixedCoherentLineHome(
     port.b <> probe.io.probe
     // A not-yet-issued probe can disappear only before entering the engine.
     // An issued probe completes after any racing voluntary ReleaseAck.
-    private val probeStillOwned = lineOwned(access.address)
+    private val probeStillOwned = lineOwned(access.address, lookupTags)
     probe.io.request.valid := maintenance === mProbeSend && probeStillOwned && !releaseOffer && !releaseBusy
     probe.io.request.bits.address := Cat(access.address(63, 6), 0.U(6.W))
     probe.io.request.bits.tag := 0.U
@@ -359,7 +372,14 @@ class MixedCoherentLineHome(
         when(!errors(eEntry)) {
             assert(!owned(directory(eEntry)), "reserved directory slot changed before GrantAck")
             if (tagConfig.compact) assert(tagGeometry.contains(addresses(eEntry)), "home tag outside aperture")
-            tags(directory(eEntry)) := tagGeometry.tag(addresses(eEntry))
+            assert(directory(eEntry)(setBits - 1, 0) === setOf(addresses(eEntry)),
+                "GrantAck directory index lost its reserved set")
+            for (way <- 0 until trackedWays) {
+                val selectedWay = if (trackedWays == 1) true.B else directory(eEntry)(directoryBits - 1) === way.U
+                when(selectedWay) {
+                    tagBanks(way).write(directory(eEntry)(setBits - 1, 0), tagGeometry.tag(addresses(eEntry)))
+                }
+            }
             owned(directory(eEntry)) := true.B
         }
         phase(eEntry) := free
