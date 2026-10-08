@@ -28,7 +28,7 @@ proc record_bridge {directory label} {
     report_timing -delay_type max -max_paths 30 -file [file join $directory ${label}_setup_paths.rpt]
     report_timing -delay_type min -max_paths 30 -file [file join $directory ${label}_hold_paths.rpt]
     report_drc -file [file join $directory ${label}_drc.rpt]
-    redirect -file [file join $directory ${label}_check_timing.rpt] { check_timing -verbose }
+    check_timing -verbose -file [file join $directory ${label}_check_timing.rpt]
     set fp [open [file join $directory ${label}_ram_primitives.txt] w]
     puts $fp "Primitive and INIT inventory; inference/replication requires review."
     foreach cell [get_cells -hierarchical -filter {IS_PRIMITIVE == 1}] {

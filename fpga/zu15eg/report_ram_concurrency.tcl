@@ -16,7 +16,7 @@ report_clocks -file [file join $output clocks.rpt]
 report_clock_interaction -file [file join $output clock_interaction.rpt]
 report_cdc -details -file [file join $output cdc.rpt]
 report_drc -file [file join $output drc.rpt]
-redirect -file [file join $output check_timing.rpt] { check_timing -verbose }
+check_timing -verbose -file [file join $output check_timing.rpt]
 
 set fp [open [file join $output ram_primitives_and_init.txt] w]
 set count 0

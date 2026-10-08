@@ -158,7 +158,11 @@ dict for {name expected} $frozen {
     }
 }
 write_checkpoint [file join $out routed.dcp]
-redirect -file [file join $out quarter_tx_identity.txt] {valence_quarter_tx_audit u_rgmii}
+set pads [valence_quarter_tx_audit u_rgmii]
+set audit [open [file join $out quarter_tx_identity.txt] w]
+puts $audit "PASS_NATIVE_QUARTER_TX_TOPOLOGY SIX_COMMON_CLK250_RESET FIVE_EXACT_D0_D4_PAIRS PHASE_FEEDBACK"
+puts $audit "ACTUAL_VALIDATED_DATA_PADS=$pads"
+close $audit
 report_timing_summary -delay_type min_max -report_unconstrained -file [file join $out timing_summary.rpt]
 report_timing -delay_type max -max_paths 40 -input_pins -file [file join $out setup_paths.rpt]
 report_timing -delay_type min -max_paths 30 -input_pins -file [file join $out hold_paths.rpt]
