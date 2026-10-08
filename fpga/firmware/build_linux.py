@@ -89,12 +89,57 @@ def validate_payload(combined, kernel_bytes, monitor=MONITOR):
     padding = combined[payload_end:]
     # fw_payload.S aligns .payload to 16 bytes. GAS can retain section-tail
     # padding after R_RISCV_ALIGN relaxation; the linker then aligns to 8.
-    # Allow only their bounded zero padding, never a differing/truncated Image.
+    # GNU binutils 2.44 also retains exactly one C.NOP after a 16-byte-aligned
+    # incbin, followed by six zero bytes from the linker's ALIGN(8). Accept
+    # only that observed encoding/alignment, not arbitrary instructions/data.
     max_padding = (16 - 1) + (8 - 1)
+    retained_cnop = (len(kernel_bytes) % 16 == 0 and
+                     padding == b'\x01\x00' + bytes(6) and len(combined) % 8 == 0)
     if (combined[KERNEL - LOAD:payload_end] != kernel_bytes or len(padding) > max_padding
-            or any(padding) or len(combined) > monitor - LOAD):
+            or (any(padding) and not retained_cnop) or len(combined) > monitor - LOAD):
         raise RuntimeError("Payload mismatch or image overlaps monitor memory")
     return len(padding)
+
+
+def validate_payload_elf(elf, combined, kernel_bytes, monitor=MONITOR):
+    """Independently bind the flat firmware to allocated ELF segments/section."""
+    if (len(elf) < 64 or elf[:6] != b'\x7fELF\x02\x01' or
+            struct.unpack_from('<H', elf, 18)[0] != 243):
+        raise RuntimeError('Expected an ELF64 little-endian RISC-V firmware')
+    phoff, shoff = struct.unpack_from('<QQ', elf, 32)
+    phentsize, phnum, shentsize, shnum, shstrndx = struct.unpack_from('<HHHHH', elf, 54)
+    if phentsize != 56 or shentsize != 64 or not (0 < shstrndx < shnum):
+        raise RuntimeError('Unexpected ELF header table layout')
+    if phoff + phnum * 56 > len(elf) or shoff + shnum * 64 > len(elf):
+        raise RuntimeError('Truncated ELF tables')
+    loads = []
+    for i in range(phnum):
+        kind, flags, offset, address, physical, filesz, memsz, align = struct.unpack_from('<IIQQQQQQ', elf, phoff + 56*i)
+        if kind != 1:
+            continue
+        if (address != physical or address < LOAD or filesz > memsz or
+                address + memsz > monitor or offset + filesz > len(elf) or
+                address - LOAD + filesz > len(combined)):
+            raise RuntimeError('ELF load segment outside the approved RAM layout')
+        if elf[offset:offset+filesz] != combined[address-LOAD:address-LOAD+filesz]:
+            raise RuntimeError('Flat firmware differs from ELF load segment')
+        loads.append(address)
+    if not loads or min(loads) != LOAD:
+        raise RuntimeError('ELF firmware load base mismatch')
+    sections = [struct.unpack_from('<IIQQQQIIQQ', elf, shoff + 64*i) for i in range(shnum)]
+    strings = sections[shstrndx]
+    names = elf[strings[4]:strings[4]+strings[5]]
+    payload = [s for s in sections if names[s[0]:].split(b'\0', 1)[0] == b'.payload']
+    if len(payload) != 1:
+        raise RuntimeError('Missing or ambiguous ELF payload section')
+    s = payload[0]
+    if (s[1] != 1 or s[2] & 6 != 6 or s[3] != KERNEL or
+            s[4]+s[5] > len(elf) or s[5] != len(combined)-(KERNEL-LOAD) or
+            elf[s[4]:s[4]+s[5]] != combined[KERNEL-LOAD:]):
+        raise RuntimeError('ELF payload section identity mismatch')
+    validate_payload(combined, kernel_bytes, monitor)
+    return {'payload_section_sha256': hashlib.sha256(elf[s[4]:s[4]+s[5]]).hexdigest(),
+            'payload_section_bytes': s[5], 'load_segments_verified': len(loads)}
 
 
 def busybox_rootfs_lines(userland, coremark):
@@ -246,7 +291,7 @@ def build(args):
         "issue_width": 2, "ram_base": hex(LOAD), "ram_bytes": 0x20000000,
         "entry": hex(LOAD), "kernel_entry": hex(KERNEL), "dtb_relocation": hex(DTB),
         "kernel_runtime_bytes": runtime_size, "static_firmware_end": hex(symbols["_fw_end"]),
-        "payload_zero_padding_bytes": payload_padding,
+        "payload_alignment_padding_bytes": payload_padding,
         "bootrom_reserved": [hex(MONITOR), hex(RAM_END)],
         "initramfs": ("BusyBox 1.37.0 ash + CoreMark; static RV64IMAC/lp64 musl" if
                       args.rootfs == "busybox" else "minimal /init command loop + static soft-float CoreMark"),

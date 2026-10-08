@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pure host/static profile tests; no simulated or physical Valence execution."""
 import importlib.util
+import os
 from pathlib import Path
 import struct
 import unittest
@@ -52,7 +53,7 @@ class SystemdProfileTests(unittest.TestCase):
             image.net.validate_dts(new)
 
     def test_actual_systemd_config_and_negative_controls(self):
-        path = image.ROOT / 'build/fpga/debian-systemd-kernel-20261007-r1/linux/.config'
+        path = Path(os.environ.get('VALENCE_SYSTEMD_KERNEL_CONFIG', str(image.ROOT / 'build/fpga/debian-systemd-kernel-20261007-r1/linux/.config')))
         text = path.read_text()
         image.validate_kernel_config(text, 'systemd')
         for name in ('CGROUPS', 'FHANDLE', 'SECCOMP_FILTER'):

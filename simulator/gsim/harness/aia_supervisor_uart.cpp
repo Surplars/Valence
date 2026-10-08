@@ -75,7 +75,7 @@ int main(){try{
     registerAccess(0,m+12,true,0x400); // Delegate UART source 3 to child index 0.
     check(registerAccess(0,m+12,false)==0x400 && (dut.get_io$$childEnabled()&4),
           "M root did not delegate UART source");
-    registerAccess(1,s+12,true,4); // Active high level.
+    registerAccess(1,s+12,true,6); // APLIC source mode 6: active high level.
     registerAccess(1,s+0x300c,true,3); // S identity 3.
     registerAccess(1,s+0x1edc,true,3);
     registerAccess(1,s,true,0x100);
@@ -89,6 +89,25 @@ int main(){try{
     check(csr(0,1,0,true)==0x30003,"S TOPEI did not claim UART identity 3");
     for(unsigned n=0;n<20;++n)idle();
     check(!dut.get_io$$supervisorInterrupt(),"S interrupt did not clear after claim");
+    // Linux handle_level_irq masks/acks before the bounded UART handler.
+    // Leave an RX byte held, then reproduce the adapter's unmask/retrigger.
+    sendByte('R');
+    check(csr(0,1,0,true)==0x30003,"held RX claim");
+    registerAccess(1,s+0x1f00,true,1U<<3);
+    registerAccess(1,s+0x1ddc,true,3);
+    csr(0xc0,3,1U<<3);
+    for(unsigned n=0;n<20;++n)idle();
+    check(!dut.get_io$$supervisorInterrupt(),"masked held source leaked");
+    check(registerAccess(1,s+0x1d00,false)&(1U<<3),"held level input not visible");
+    csr(0xc0,2,1U<<3);
+    registerAccess(1,s+0x1e00,true,1U<<3);
+    registerAccess(1,s+0x1cdc,true,3);
+    for(unsigned n=0;n<20;++n)idle();
+    check(dut.get_io$$supervisorInterrupt(),"held level was lost across unmask");
+    check(registerAccess(2,u,false)=='R',"held RX byte changed");
+    check(csr(0,1,0,true)==0x30003,"retriggered claim identity");
+    for(unsigned n=0;n<20;++n)idle();
+    check(!dut.get_io$$supervisorInterrupt(),"drained source remained asserted");
     registerAccess(0,m+12,true,0);
     check(registerAccess(0,m+12,false)==0 && !(dut.get_io$$childEnabled()&4),
           "M root did not revoke delegation");

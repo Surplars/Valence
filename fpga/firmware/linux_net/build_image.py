@@ -17,6 +17,7 @@ sys.path[:0] = [str(FIRMWARE), str(ROOT / 'simulator/gsim')]
 from build_linux import board_dts, clean_revision, image_header, validate_payload, LOAD, KERNEL, DTB, MONITOR
 from run import run, opensbi_setup, OPENSBI_LOCK, coremark_setup, COREMARK_SOURCE
 from build_userland import verify
+import uart_console
 
 OUTPUT_NAME = 'opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin'
 ISA_EXTENSIONS = ('i', 'm', 'a', 'f', 'd', 'c', 'zicsr', 'zifencei')
@@ -48,7 +49,7 @@ DISABLED = ['EFI', 'SMP', 'VT', 'VT_CONSOLE', 'CONSOLE_TRANSLATIONS', 'DUMMY_CON
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTARGS):
+def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTARGS, console_profile="sbi"):
     base = board_dts('rv64gc', 100000000, 460800, memory_bytes)
     legacy_isa = 'riscv,isa = "rv64imafdc_zicsr_zifencei";'
     old_bootargs = 'bootargs = "earlycon=sbi console=hvc0 rdinit=/init loglevel=7";'
@@ -133,11 +134,13 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTAR
         status = "okay";
     };
     soc {''')
-    validate_dts(text, bootargs=bootargs)
+    text = uart_console.device_tree(text, console_profile)
+    validate_dts(text, bootargs=bootargs, console_profile=console_profile)
     return text
 
-def validate_dts(text, bootargs=BOOTARGS):
+def validate_dts(text, bootargs=BOOTARGS, console_profile="sbi"):
     """Fail closed on missing modern ISA discovery, not merely CONFIG_FPU=y."""
+    uart_console.validate_dts(text, console_profile)
     def strings(name):
         matches = re.findall(r'(?m)^\s*' + re.escape(name) + r'\s*=\s*(.*?);', text)
         if len(matches) != 1:
@@ -157,9 +160,9 @@ def validate_dts(text, bootargs=BOOTARGS):
     if '"openion,valence-aia-csr-v1"' not in text or '"riscv,imsics"' in text:
         raise RuntimeError('Describe the qualified CSR-only adapter, not a standard MSI aperture')
 
-def validate_dtb(dtc, path, bootargs=BOOTARGS):
+def validate_dtb(dtc, path, bootargs=BOOTARGS, console_profile="sbi"):
     text = subprocess.check_output([dtc, '-q', '-I', 'dtb', '-O', 'dts', path], text=True)
-    validate_dts(text, bootargs=bootargs)
+    validate_dts(text, bootargs=bootargs, console_profile=console_profile)
     def node(pattern):
         found = re.search(pattern, text, re.S)
         if not found:
@@ -181,14 +184,24 @@ def validate_dtb(dtc, path, bootargs=BOOTARGS):
         raise RuntimeError('CSR adapter must attach to this hart SEIP')
     if cells(mac, 'interrupts-extended') != cells(aia, 'phandle') + [6, 4]:
         raise RuntimeError('Packet DMA must use source 6, level-high')
+    if console_profile == 'uart-irq':
+        uart = node(r'\bserial@10000000\s*\{([^{}]*)\};')
+        if (cells(uart, 'interrupts-extended') != cells(aia, 'phandle') + [3, 4]
+                or cells(uart, 'fifo-size') != [16]
+                or cells(uart, 'reg') != [0, 0x10000000, 0, 8]
+                or cells(uart, 'reg-io-width') != [1]
+                or cells(uart, 'reg-shift') != [0]
+                or cells(uart, 'clock-frequency') != [7372800]):
+            raise RuntimeError('IRQ UART must use byte MMIO, 16-byte FIFO, source 3 level-high')
 
 def validate_embedded_dtb(firmware, dtb):
     if not dtb.startswith(b'\xd0\x0d\xfe\xed') or firmware.count(dtb) != 1:
         raise RuntimeError('Exact validated DTB not embedded once in OpenSBI firmware')
 
-def validate_config(text, bootargs=BOOTARGS):
+def validate_config(text, bootargs=BOOTARGS, console_profile="sbi"):
     lines = set(text.splitlines())
-    for name in ('64BIT', 'MMU', 'RISCV_SBI', 'HVC_RISCV_SBI', 'FPU', 'NET', 'INET',
+    uart_console.validate_config(text, console_profile)
+    for name in ('64BIT', 'MMU', 'RISCV_SBI', 'FPU', 'NET', 'INET',
                  'PACKET', 'NETDEVICES', 'PHYLIB', 'OF_MDIO', 'REALTEK_PHY', 'MODULES', 'HZ_250',
                  'NO_HZ_IDLE', 'IRQ_TIME_ACCOUNTING', 'IRQ_DOMAIN', 'OF_IRQ',
                  'RISCV_ISA_FALLBACK', 'PRINTK_TIME', 'CMDLINE_FORCE'):
@@ -353,7 +366,7 @@ def build(args):
         'default_ipv4': '192.168.137.30/24', 'default_gateway': '192.168.137.1',
         'dma_coherency': 'CPU/DMA probed CoherentLineHome, no false claim at external DDR boundary',
         'module_unload_supported': False, 'board_gmac_verified': False,
-        'gsim_run': False, 'vivado_run': False, 'payload_zero_padding_bytes': padding,
+        'gsim_run': False, 'vivado_run': False, 'payload_alignment_padding_bytes': padding,
         'userland': json.loads((output / 'userland/manifest.json').read_text()),
         'sources': {str(p.relative_to(ROOT)): sha(p) for p in HERE.rglob('*') if p.is_file()
                     and '__pycache__' not in p.parts},

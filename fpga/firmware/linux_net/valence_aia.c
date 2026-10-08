@@ -44,7 +44,7 @@ struct vaia {
 	struct completion selftest;
 	u32 levels;
 	unsigned int parent_irq;
-	u64 parent_calls, claims, selftest_irqs;
+	u64 parent_calls, claims, selftest_irqs, budget_yields;
 	bool ready, faulted;
 };
 
@@ -215,8 +215,11 @@ static void va_parent(struct irq_desc *desc)
 		}
 		p->claims++;
 	}
+	/* A busy UART can legitimately refill while its FIFO is drained. Leave
+	 * the next identity pending and return to the CPU at the budget boundary;
+	 * traffic is not evidence of a corrupt claim. Invalid IDs still fail closed. */
 	if (count == VA_CLAIM_BUDGET)
-		p->faulted = true;
+		p->budget_yields++;
 	if (p->faulted) {
 		va_reg_write(I_DELIVERY, 0);
 		dev_err_ratelimited(p->dev, "IRQ claim fault/storm; delivery disabled, reset board\n");
@@ -237,8 +240,8 @@ static ssize_t irqchip_status_show(struct device *dev, struct device_attribute *
 {
 	struct vaia *p = dev_get_drvdata(dev);
 
-	return sysfs_emit(buf, "ready=%u faulted=%u selftest_irqs=%llu claims=%llu parent_calls=%llu\n",
-			  p->ready, p->faulted, p->selftest_irqs, p->claims, p->parent_calls);
+	return sysfs_emit(buf, "ready=%u faulted=%u selftest_irqs=%llu claims=%llu parent_calls=%llu budget_yields=%llu\n",
+			  p->ready, p->faulted, p->selftest_irqs, p->claims, p->parent_calls, p->budget_yields);
 }
 static DEVICE_ATTR_RO(irqchip_status);
 static struct attribute *va_attrs[] = { &dev_attr_irqchip_status.attr, NULL };

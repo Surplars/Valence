@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import stat
 import struct
@@ -58,6 +59,29 @@ def require_no_retired_tools(entries):
             'retired custom utility shipped: ' + path)
 
 
+def require_console_contract(manifest, content, config):
+    """Check actual packed owners independently of the image generators."""
+    profile = manifest.get('console_profile', 'sbi')
+    require(profile in ('sbi', 'uart-irq'), 'unknown console profile')
+    require(manifest['rootfs'].get('console_profile', 'sbi') == profile, 'rootfs/kernel console mismatch')
+    serial = content('etc/dinit.d/serial-console').decode()
+    if profile == 'sbi':
+        require(' hvc0 vt100' in serial and 'CONFIG_HVC_RISCV_SBI=y' in config, 'SBI recovery owner')
+        return
+    require(' ttyS0 vt100' in serial and 'hvc0' not in serial, 'native serial getty owner')
+    require('# CONFIG_HVC_RISCV_SBI is not set' in config, 'concurrent HVC receive owner')
+    require('CONFIG_SERIAL_8250=y' in config and 'CONFIG_SERIAL_OF_PLATFORM=y' in config,
+            'native UART driver unavailable before userspace')
+    init = content('init').decode()
+    require(init.index('mount -t devtmpfs') < init.index('. /usr/local/libexec/valence-uart-irq-init')
+            < init.index('exec /usr/sbin/dinit'), 'UART bootstrap order')
+    bootstrap = content('usr/local/libexec/valence-uart-irq-init').decode()
+    require('modprobe valence_aia' in bootstrap and 'ready=1 faulted=0' in bootstrap
+            and 'irq:[1-9][0-9]*' in bootstrap and 'mmio:0x10000000' in bootstrap
+            and 'exec < /dev/ttyS0 > /dev/ttyS0 2>&1' in bootstrap,
+            'UART bootstrap must verify a real IRQ and reopen PID 1 descriptors')
+
+
 def main(args):
     delivery, rootfs_out = args.delivery.resolve(), args.rootfs_out.resolve()
     allowed = (ROOT / 'build/fpga').resolve()
@@ -84,6 +108,11 @@ def main(args):
         return data or linked.get((f[7], f[8], f[0]), b'')
 
     require_no_retired_tools(entries)
+    require('usr/lib/valence/busybox' not in entries and
+            not any(p == 'usr/share/doc/valence/busybox' or p.startswith('usr/share/doc/valence/busybox/')
+                    for p in entries), 'unused custom BusyBox inherited into Dinit image')
+    require(not any(p == '.valence-build-tools' or p.startswith('.valence-build-tools/')
+                    for p in entries), 'host build helper shipped')
     init = content('init').decode()
     require('exec /usr/sbin/dinit ' in init and 'setsid ' not in init, 'PID 1/getty contract')
     require('systemd' not in init and 'bb init' not in init, 'legacy init execution')
@@ -120,8 +149,11 @@ def main(args):
     config = (delivery / 'linux.config').read_text().splitlines()
     require('CONFIG_RD_LZ4=y' in config and 'CONFIG_INITRAMFS_COMPRESSION_LZ4=y' in config
         and 'CONFIG_INITRAMFS_COMPRESSION_GZIP=y' not in config, 'wrong kernel compressor')
+    require_console_contract(manifest, content, config)
+    native_uart = manifest.get('console_profile', 'sbi') == 'uart-irq'
+    firmware_name = 'opensbi_debian13_riscv64_vl100_cpu100_u460800_dinit_lz4' + ('_uart_irq' if native_uart else '') + '.bin'
     require(netboot_host.validate(delivery / 'valence.vld', netboot_host.LIMITS['ddr2g']) ==
-        manifest['files']['opensbi_debian13_riscv64_vl100_cpu100_u460800_dinit_lz4.bin']['bytes'], 'netboot size/header/CRC')
+        manifest['files'][firmware_name]['bytes'], 'netboot size/header/CRC')
     for name, expected in rr['sources'].items():
         require(digest((HERE / name).read_bytes()) == expected, 'rootfs source drift: ' + name)
     tests = {}
@@ -130,13 +162,18 @@ def main(args):
             stderr=subprocess.STDOUT, timeout=30)
         (delivery / (name + '.log')).write_bytes(result.stdout)
         require(result.returncode == 0, 'short test failure: ' + name)
+        skipped = name == 'test_dinit_rootfs.py' and bool(os.environ.get('VALENCE_DINIT_NATIVE_TEST_BLOCKER'))
         tests[name] = dict(source_sha256=digest((HERE / name).read_bytes()),
-                          log_sha256=digest(result.stdout), status='passed')
-    result = dict(status='software_content_and_short_tests_passed_not_board_verified',
+                          log_sha256=digest(result.stdout), status='passed_with_native_tests_blocked' if skipped else 'passed')
+    native_blocker = os.environ.get('VALENCE_DINIT_NATIVE_TEST_BLOCKER')
+    result = dict(status=('software_content_and_available_tests_passed_native_supervision_blocked_not_board_verified'
+                         if native_blocker else 'software_content_and_short_tests_passed_not_board_verified'),
         manifest_sha256=digest((delivery / 'manifest.json').read_bytes()), archive_entries=len(entries),
         archive_sha256=digest(blob), compressed_sha256=digest(compressed),
         dinit_source_revision=rr['dinit']['source']['revision'], service_descriptors=rr['service_descriptors'],
-        short_tests=tests, serial_recovery_native_test=True, target_dinitcheck=True,
+        short_tests=tests, serial_recovery_native_test=not bool(native_blocker),
+        native_supervision_blocker=native_blocker, target_dinitcheck=True,
+        console_profile=manifest.get('console_profile', 'sbi'), uart_irq_runtime_verified=False,
         exact_embedded_rootfs_verified_by_image_builder=True, rtl_changed=False,
         vivado_or_gsim_run=False, board_verified=False, shutdown_on_board_verified=False,
         audit_source_sha256=digest(Path(__file__).read_bytes()))

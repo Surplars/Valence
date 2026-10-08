@@ -52,7 +52,7 @@ def archive_paths(rootfs, extra_excluded=()):
     Leave source roots and completed seed archives untouched. Debian-managed
     /usr/bin packages are outside the retired /usr/local tool's scope.
     """
-    excluded = ('debootstrap', 'var/cache/apt/archives', 'var/lib/apt/lists',
+    excluded = ('debootstrap', '.valence-build-tools', 'var/cache/apt/archives', 'var/lib/apt/lists',
                 'usr/local/bin/fastfetch', 'usr/share/doc/valence/fastfetch',
                 *extra_excluded)
     paths = ['.']
@@ -117,7 +117,25 @@ def bootstrap(args, output):
     print('DEBIAN_RISCV64_BOOTSTRAPPED ' + str(rootfs), flush=True)
 
 
+def rootless_runner(args, require_qemu=False):
+    """Validate opt-in runner requirements before modifying a private rootfs."""
+    runner = getattr(args, 'rootless_chroot', None)
+    if runner is None:
+        return None
+    if not os.environ.get('FAKEROOTKEY'):
+        raise RuntimeError('Rootless packing requires caller-owned persistent fakeroot metadata')
+    runner = Path(runner).resolve()
+    if not runner.is_file() or not os.access(runner, os.X_OK):
+        raise RuntimeError('Rootless runner must be an existing executable')
+    if require_qemu:
+        qemu = getattr(args, 'qemu_user', None)
+        if qemu is None or not Path(qemu).is_file() or not os.access(qemu, os.X_OK):
+            raise RuntimeError('--rootless-chroot requires an existing executable --qemu-user')
+    return str(runner)
+
+
 def pack(args, output):
+    rootless_runner(args, require_qemu=True)
     marker = output / 'rootfs-build.json'
     identity = json.loads(marker.read_text())
     stages = ('bootstrapped', 'packed') if args.update_packed else ('bootstrapped',)
@@ -194,10 +212,11 @@ def pack(args, output):
     metadata = console.lstat()
     if not stat.S_ISCHR(metadata.st_mode) or metadata.st_rdev != os.makedev(5, 1):
         raise RuntimeError('rootfs console is not character device 5:1')
-    run([rootfs / 'usr/lib/valence/busybox', 'sh', '-n', rootfs / 'init'],
+    run(([args.qemu_user] if args.rootless_chroot else []) +
+        [rootfs / 'usr/lib/valence/busybox', 'sh', '-n', rootfs / 'init'],
         log=output / 'init-syntax.log')
     for module in kernel_record['modules']:
-        run(['chroot', rootfs, '/sbin/modprobe', '--show-depends', '--set-version', version,
+        run([args.rootless_chroot or 'chroot', rootfs, '/sbin/modprobe', '--show-depends', '--set-version', version,
              module.removesuffix('.ko')], log=output / (module + '-modprobe-dry-run.log'))
     # Do not ship bootstrap/QEMU helpers, downloaded .debs, or package indices.
     # Do not delete them: preserve bootstrap evidence and package setup outputs.
@@ -221,9 +240,12 @@ def pack(args, output):
     check_log = output / 'packed-userland-check.log'
     if check_log.exists():
         copy(check_log, output / ('packed-userland-prior-' + str(time.time_ns()) + '.log'))
-    run(['unshare', '--mount', '--propagation', 'private', '/bin/sh', '-c',
-         'mount -t proc -o ro,nosuid,nodev,noexec proc "$1/proc"; exec chroot "$1" /bin/bash -c "$2"',
-         'debian-userland-check', rootfs, check], log=check_log, timeout=60)
+    if args.rootless_chroot:
+        run([args.rootless_chroot, rootfs, '/bin/bash', '-c', check], log=check_log, timeout=60)
+    else:
+        run(['unshare', '--mount', '--propagation', 'private', '/bin/sh', '-c',
+             'mount -t proc -o ro,nosuid,nodev,noexec proc "$1/proc"; exec chroot "$1" /bin/bash -c "$2"',
+             'debian-userland-check', rootfs, check], log=check_log, timeout=60)
     identity.update(stage='packed', rootfs_file_bytes=payload_bytes,
                     archive={'path': cpio.name, 'bytes': cpio.stat().st_size, 'sha256': sha(cpio)},
                     compressed={'path': compressed.name, 'bytes': compressed.stat().st_size,
@@ -248,6 +270,8 @@ if __name__ == '__main__':
     parser.add_argument('--mirror', default='https://deb.debian.org/debian')
     parser.add_argument('--baseline', type=Path, default=ROOT / 'build/fpga/linux-net-rv64gc-20261006-r3')
     parser.add_argument('--kernel-build', type=Path, help='matching completed kernel/module build output')
+    parser.add_argument('--rootless-chroot', type=Path, help='explicit userspace runner; caller must preserve fakeroot metadata')
+    parser.add_argument('--qemu-user', type=Path, help='QEMU-user for the static shell syntax check only')
     parser.add_argument('--update-packed', action='store_true', help='create a separate automatic-network archive/record from the unpublished manual-network draft')
     parser.add_argument('--generation', help='distinct new archive/receipt name when updating a packed draft')
     args = parser.parse_args()

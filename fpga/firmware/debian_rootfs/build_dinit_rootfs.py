@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 ASSETS = HERE / 'dinit'
 sys.path[:0] = [str(HERE), str(ROOT / 'simulator/gsim')]
-from build_rootfs import sha, validate_output, copy, archive_paths
+from build_rootfs import sha, validate_output, copy, archive_paths, rootless_runner
 from build_systemd_rootfs import archive_names
 from run import run
 
@@ -73,7 +73,31 @@ def tools(args):
     print('DINIT_RV64GC_TOOLS_READY_NOT_BOARD_VERIFIED ' + str(out), flush=True)
 
 
+
+def configure_console(root, profile):
+    """Apply the kernel-owned console choice to this private staged RAM-root."""
+    if profile == 'sbi':
+        return
+    if profile != 'uart-irq':
+        raise RuntimeError('Unknown Dinit console profile: ' + profile)
+    init = root / 'init'
+    text = init.read_text()
+    marker = 'hostname valence\n'
+    if text.count(marker) != 1:
+        raise RuntimeError('Dinit early UART bootstrap insertion point changed')
+    init.write_text(text.replace(marker, marker +
+        '. /usr/local/libexec/valence-uart-irq-init\n'))
+    copy(ASSETS / 'uart-irq-init', root / 'usr/local/libexec/valence-uart-irq-init', 0o644)
+    serial = root / 'etc/dinit.d/serial-console'
+    text = serial.read_text()
+    if text.count(' hvc0 vt100') != 1:
+        raise RuntimeError('Dinit serial-console ownership changed')
+    serial.write_text(text.replace(' hvc0 vt100', ' ttyS0 vt100'))
+    for path in (init, root / 'usr/local/libexec/valence-uart-irq-init'):
+        subprocess.run(['/bin/sh', '-n', path], check=True)
+
 def rootfs(args):
+    validated_runner = rootless_runner(args)
     if os.geteuid() != 0:
         raise RuntimeError('Use WSL root for restoring device nodes into the private rootfs')
     out, seed = validate_output(args.out), validate_output(args.seed)
@@ -95,6 +119,9 @@ def rootfs(args):
     if (kr.get('stage') != 'kernel_and_modules_ready' or kr.get('init_system') != 'dinit'
             or kr.get('initramfs_compression') != 'lz4'):
         raise RuntimeError('Expected the matched Dinit/LZ4 kernel stage')
+    console_profile = kr.get('console_profile', 'sbi')
+    if console_profile not in ('sbi', 'uart-irq'):
+        raise RuntimeError('Unknown kernel console profile')
     tool_out = validate_output(args.tools_build)
     tr = json.loads((tool_out / 'tools-build.json').read_text())
     if tr.get('stage') != 'tools_ready' or tr.get('source_lock_sha256') != sha(ASSETS / 'lock.json'):
@@ -104,6 +131,7 @@ def rootfs(args):
     root.mkdir()
     record = dict(label=LABEL, stage='restoring', architecture='riscv64', suite='trixie',
         init_system='dinit', initramfs_compression='lz4', board_verified=False,
+        console_profile=console_profile,
         seed_record_sha256=sha(marker), seed_archive_sha256=sha(archive),
         seed_signature_provenance={key: seed_record.get(key) for key in
             ('key_package_sha256', 'keyring_sha256', 'packages_sha256', 'source_bootstrap_record_sha256')},
@@ -113,10 +141,16 @@ def rootfs(args):
         subprocess.run(['cpio', '--quiet', '-id', '--preserve-modification-time',
             '--no-absolute-filenames'], cwd=root, stdin=stream, stdout=log, stderr=log, check=True)
     # No package installation, host DNS substitution, systemd or automatic udev scan.
-    status = Path('/proc/sys/fs/binfmt_misc/qemu-riscv64').read_text()
-    if 'enabled' not in status or 'F' not in status.split('flags:', 1)[1]:
-        raise RuntimeError('Fixed-interpreter riscv64 static tool checks require binfmt')
-    package_list = subprocess.check_output(['chroot', str(root), 'dpkg-query', '-W',
+    if args.rootless_chroot:
+        target_runner = validated_runner
+        record['package_setup_execution'] = 'explicit userspace runner with caller-owned fakeroot metadata'
+        record['rootless_runner_sha256'] = sha(Path(target_runner))
+    else:
+        status = Path('/proc/sys/fs/binfmt_misc/qemu-riscv64').read_text()
+        if 'enabled' not in status or 'F' not in status.split('flags:', 1)[1]:
+            raise RuntimeError('Fixed-interpreter riscv64 static tool checks require binfmt')
+        target_runner = 'chroot'
+    package_list = subprocess.check_output([target_runner, str(root), '/usr/bin/dpkg-query', '-W',
         '-f=${binary:Package}\t${Version}\t${Architecture}\n'], text=True)
     if any(line.split('\t')[0].split(':')[0] in
            ('systemd', 'systemd-sysv', 'libpam-systemd', 'udev', 'dbus') for line in package_list.splitlines()):
@@ -142,6 +176,7 @@ def rootfs(args):
     copy(ASSETS / 'environment', root / 'etc/dinit/environment', 0o644)
     for name in SERVICES:
         copy(ASSETS / 'services' / name, root / 'etc/dinit.d' / name, 0o644)
+    configure_console(root, console_profile)
     copy(HERE / 'interfaces', root / 'etc/network/interfaces', 0o644)
     copy(HERE / 'valence-driver-order.conf', root / 'etc/modprobe.d/valence-order.conf', 0o644)
     copy(tool_out / 'riscv64/LICENSE', root / 'usr/share/doc/valence/dinit/LICENSE', 0o644)
@@ -164,20 +199,24 @@ def rootfs(args):
         '-mstrict-align', '-Wall', '-Wextra', '-Werror', HERE / 'mem-bench.c',
         '-o', root / 'usr/local/bin/mem-bench'], log=out / 'mem-bench-build.log')
     (root / 'etc/valence/build-time').write_text(datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S') + '\n')
-    run(['chroot', root, '/usr/sbin/dinit', '--version'], log=out / 'target-version.log')
-    run(['chroot', root, '/usr/sbin/dinitcheck', '--services-dir', '/etc/dinit.d', 'boot'],
+    run([target_runner, root, '/usr/sbin/dinit', '--version'], log=out / 'target-version.log')
+    run([target_runner, root, '/usr/sbin/dinitcheck', '--services-dir', '/etc/dinit.d', 'boot'],
         log=out / 'target-services-check.log')
-    audit = subprocess.check_output(['chroot', str(root), 'dpkg', '--audit'], text=True)
+    audit = subprocess.check_output([target_runner, str(root), '/usr/bin/dpkg', '--audit'], text=True)
     (out / 'dpkg-audit.log').write_text(audit)
     if audit.strip():
         raise RuntimeError('Debian package audit failed')
     for name in kr['modules']:
-        run(['chroot', root, '/sbin/modprobe', '--set-version', version, '--show-depends',
+        run([target_runner, root, '/sbin/modprobe', '--set-version', version, '--show-depends',
              name.removesuffix('.ko')], log=out / (name + '-dry-run.log'))
     console = (root / 'dev/console').lstat()
     if not stat.S_ISCHR(console.st_mode) or console.st_rdev != os.makedev(5, 1):
         raise RuntimeError('Missing pre-init character console device')
-    paths = archive_paths(root, extra_excluded=('etc/inittab',))
+    # The inherited seed uses this custom BusyBox only for its legacy init.
+    # Dinit's init and all runtime helpers use Debian-provided commands.
+    # Keep the original seed and all Debian-owned packages unchanged.
+    paths = archive_paths(root, extra_excluded=('etc/inittab', 'usr/lib/valence/busybox',
+                                               'usr/share/doc/valence/busybox'))
     payload_bytes = sum((root / p).stat().st_size for p in paths
         if not (root / p).is_symlink() and (root / p).is_file())
     if payload_bytes > 240 * 1024 * 1024:
@@ -197,8 +236,10 @@ def rootfs(args):
         rootfs_file_bytes=payload_bytes, packages_sha256=sha(out / 'packages.tsv'),
         memory_bytes=kr['memory_bytes'], cpu_hz=kr['cpu_hz'], uart_baud=kr['uart_baud'], modules=kr['modules'],
         service_descriptors=list(SERVICES), persistent_daemons=['dinit', 'agetty/login/bash'],
+        custom_busybox_included=False, runtime_shell='Debian /bin/sh',
         no_systemd_services=True, no_udev_or_dbus_daemons=True, network_auto_enable=True,
-        driver_failure_keeps_serial=True, network_failure_keeps_serial=True,
+        driver_failure_keeps_serial=console_profile == 'sbi', network_failure_keeps_serial=True,
+        irq_controller_failure_requires_sbi_recovery=console_profile == 'uart-irq',
         persistent_storage=False, require_repaired_bit=True, vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
         sources={str(p.relative_to(HERE)): sha(p) for p in
             [Path(__file__), HERE / 'build_rootfs.py', HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
@@ -216,6 +257,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed-record', default='rootfs-build-netboot-drain-r1.json')
     parser.add_argument('--tools-build', type=Path)
     parser.add_argument('--kernel-build', type=Path)
+    parser.add_argument('--rootless-chroot', type=Path, help='explicit userspace runner with caller-owned fakeroot metadata')
     parser.add_argument('--jobs', type=int, default=8)
     parser.add_argument('--finish-tools', action='store_true', help='finish an incomplete tools output after checking all copied upstream files')
     args = parser.parse_args()

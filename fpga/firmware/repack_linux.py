@@ -149,7 +149,7 @@ def build(args):
             "kernel_entry", "dtb_relocation", "bootrom_reserved", "console")}
     data.update(cpu_hz=args.cpu_hz, uart_baud=args.uart_baud, uart_reference_hz=args.uart_baud * 16,
                 kernel_runtime_bytes=runtime_size, static_firmware_end=hex(symbols["_fw_end"]),
-                payload_zero_padding_bytes=padding, on_board_verified=False, gsim_verified=False,
+                payload_alignment_padding_bytes=padding, on_board_verified=False, gsim_verified=False,
                 reused_kernel_manifest={"path": str(base / "manifest.json"),
                                         "sha256": digest(base / "manifest.json")},
                 builder_sha256=digest(Path(__file__)),

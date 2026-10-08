@@ -1,0 +1,41 @@
+# Sourced by /init after API filesystems are mounted, before Dinit starts.
+# No getty/HVC may consume input while 8250 claims the physical UART.
+uart_fail() {
+    printf '<3>valence-uart: %s; reset and load the SBI recovery image\n' "$*" > /dev/kmsg
+    exit 1
+}
+# The IRQ controller is an explicit module in this BSP. Before it publishes its
+# IRQ domain, 8250 OF probing defers instead of silently selecting irq=0 polling.
+modprobe valence_aia || uart_fail 'IRQ controller module load failed'
+uart_irq_ready=0
+for uart_status in /sys/bus/platform/devices/*/irqchip_status; do
+    if [ -r "$uart_status" ] && grep -q 'ready=1 faulted=0' "$uart_status"; then
+        uart_irq_ready=1
+    fi
+done
+[ "$uart_irq_ready" = 1 ] || uart_fail 'IRQ controller selftest failed'
+# /dev/ttyS0 alone is insufficient: 8250 allocates placeholder tty devices even
+# before OF probe binds. Require the correct MMIO port and a real Linux IRQ.
+uart_tries=0
+while ! awk '
+    $1 == "0:" && $2 == "uart:16550A" {
+        mmio = 0; irq = 0
+        for (i = 3; i <= NF; i++) {
+            if (tolower($i) == "mmio:0x10000000") mmio = 1
+            if ($i ~ /^irq:[1-9][0-9]*$/) irq = 1
+        }
+        if (mmio && irq) found = 1
+    }
+    END { exit !found }
+' /proc/tty/driver/serial; do
+    uart_tries=$((uart_tries + 1))
+    [ "$uart_tries" -lt 50 ] || uart_fail '8250 IRQ binding timed out'
+    sleep 0.1
+done
+[ -c /dev/ttyS0 ] || uart_fail 'ttyS0 device node missing'
+# Open without waiting for absent modem carrier, and keep board baud unchanged.
+stty -F /dev/ttyS0 460800 cs8 -parenb -cstopb -crtscts clocal cread || uart_fail 'ttyS0 setup failed'
+# Kernel PID 1 opened /dev/console before our modular IRQ controller existed.
+# Replace possibly missing inherited descriptors only after native binding.
+exec < /dev/ttyS0 > /dev/ttyS0 2>&1
+printf 'valence-uart: ttyS0 FIFO IRQ terminal ready (APLIC source 3)\n'

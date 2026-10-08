@@ -24,7 +24,7 @@ import importlib.util
 spec = importlib.util.spec_from_file_location('valence_network_image', NET / 'build_image.py')
 net = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(net)
-from build_linux import clean_revision, image_header, validate_payload, LOAD, KERNEL, DTB, MONITOR
+from build_linux import clean_revision, image_header, validate_payload, validate_payload_elf, LOAD, KERNEL, DTB, MONITOR
 from run import run, opensbi_setup, OPENSBI_LOCK
 from memory_layout import MemoryLayout
 
@@ -44,9 +44,9 @@ SYSTEMD_BOOTARGS = net.BOOTARGS.replace('loglevel=7', 'loglevel=8') + ' systemd.
 DINIT_BOOTARGS = net.BOOTARGS.replace('loglevel=7', 'loglevel=8')
 
 
-def profile_bootargs(init_system):
-    return {'busybox': net.BOOTARGS, 'systemd': SYSTEMD_BOOTARGS,
-            'dinit': DINIT_BOOTARGS}[init_system]
+def profile_bootargs(init_system, console_profile="sbi"):
+    return net.uart_console.bootargs({'busybox': net.BOOTARGS, 'systemd': SYSTEMD_BOOTARGS,
+            'dinit': DINIT_BOOTARGS}[init_system], console_profile)
 
 
 def sha(path):
@@ -61,9 +61,9 @@ def output_path(path):
     return path
 
 
-def validate_kernel_config(text, init_system='busybox'):
-    bootargs = profile_bootargs(init_system)
-    net.validate_config(text, bootargs=bootargs)
+def validate_kernel_config(text, init_system='busybox', console_profile='sbi'):
+    bootargs = profile_bootargs(init_system, console_profile)
+    net.validate_config(text, bootargs=bootargs, console_profile=console_profile)
     for name in DEBIAN_CONFIG + (SYSTEMD_CONFIG if init_system == 'systemd' else ()):
         if 'CONFIG_' + name + '=y' not in text.splitlines():
             raise RuntimeError('Missing Debian userland kernel feature: ' + name)
@@ -72,6 +72,10 @@ def validate_kernel_config(text, init_system='busybox'):
 
 
 def prepare(args):
+    console_profile = getattr(args, 'console', 'sbi')
+    net.uart_console.check_profile(console_profile)
+    if console_profile == 'uart-irq' and args.init_system != 'dinit':
+        raise RuntimeError('IRQ UART bootstrap is qualified only for the Dinit profile')
     out = output_path(args.out)
     if args.reuse_kernel is not None and args.resume_kernel:
         raise RuntimeError('Reuse is only for a fresh independent output, not resume')
@@ -115,14 +119,15 @@ def prepare(args):
     edit = [source / 'scripts/config', '--file', kernel / '.config',
             *[v for name in features for v in ('--enable', name)],
             '--set-str', 'INITRAMFS_SOURCE', '']
-    edit += ['--set-str', 'CMDLINE', profile_bootargs(args.init_system)]
+    edit += net.uart_console.config_flags(console_profile)
+    edit += ['--set-str', 'CMDLINE', profile_bootargs(args.init_system, console_profile)]
     if args.init_system in ('systemd', 'dinit'):
         edit += ['--set-val', 'LOG_BUF_SHIFT', '20']
     compression = args.initramfs_compression or ('lz4' if args.init_system == 'dinit' else 'gzip')
     edit += ['--enable', 'RD_' + compression.upper()]
     run(edit, log=out / 'config-edit.log')
     run([*make, 'olddefconfig'], cwd=source, log=out / 'config-final.log')
-    validate_kernel_config((kernel / '.config').read_text(), args.init_system)
+    validate_kernel_config((kernel / '.config').read_text(), args.init_system, console_profile)
     # Build software once, then only embed/relink the completed rootfs later.
     run([*make, '-j' + str(args.jobs), 'Image', 'modules'], cwd=source,
         log=out / 'kernel-build.log', timeout=2400)
@@ -152,7 +157,10 @@ def prepare(args):
         init_system=args.init_system,
         initramfs_compression=compression,
         reused_kernel_cache=str(args.reuse_kernel.resolve()) if args.reuse_kernel else None,
-        bootargs=profile_bootargs(args.init_system))
+        bootargs=profile_bootargs(args.init_system, console_profile),
+        console_profile=console_profile, runtime_uart_irq_requested=console_profile == 'uart-irq',
+        uart_irq_source=3 if console_profile == 'uart-irq' else None,
+        uart_irq_runtime_verified=False)
     (out / 'kernel-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('VL100_DEBIAN_KERNEL_MODULES_READY ' + str(out), flush=True)
 
@@ -174,6 +182,9 @@ def image(args):
     init_system = record.get('init_system', 'busybox')
     if root_record.get('init_system', 'busybox') != init_system:
         raise RuntimeError('Kernel and rootfs init profiles differ')
+    console_profile = record.get('console_profile', 'sbi')
+    if root_record.get('console_profile', 'sbi') != console_profile:
+        raise RuntimeError('Kernel and rootfs console owners differ')
     bootargs = record.get('bootargs', net.BOOTARGS)
     compression = record.get('initramfs_compression', 'gzip')
     if compression not in ('gzip', 'lz4'):
@@ -189,7 +200,7 @@ def image(args):
         for symbol in ('ROOT_UID', 'ROOT_GID'):
             if 'CONFIG_INITRAMFS_' + symbol + '=0' not in current.splitlines():
                 raise RuntimeError('Unexpected initramfs ownership')
-        validate_kernel_config(current, init_system)
+        validate_kernel_config(current, init_system, console_profile)
         normalized = re.sub(r'(?m)^CONFIG_INITRAMFS_SOURCE=.*$', 'CONFIG_INITRAMFS_SOURCE=""',
                             current)
         normalized = re.sub(r'(?m)^(?:# )?CONFIG_INITRAMFS_(?:ROOT_UID|ROOT_GID|COMPRESSION_[A-Z0-9]+).*\n',
@@ -214,7 +225,7 @@ def image(args):
     run([source / 'scripts/config', '--file', kernel / '.config', '--set-str',
          'INITRAMFS_SOURCE', str(cpio), *compression_flags])
     run([*make, 'olddefconfig'], cwd=source, log=out / 'config-rootfs.log')
-    validate_kernel_config((kernel / '.config').read_text(), init_system)
+    validate_kernel_config((kernel / '.config').read_text(), init_system, console_profile)
     if 'CONFIG_INITRAMFS_COMPRESSION_' + compression.upper() + '=y' not in (kernel / '.config').read_text().splitlines():
         raise RuntimeError('Initramfs compression choice was not selected')
     run([*make, '-j' + str(args.jobs), 'Image'], cwd=source,
@@ -233,10 +244,11 @@ def image(args):
     if unpacked != cpio.read_bytes():
         raise RuntimeError('Embedded rootfs differs from signed/packed rootfs')
     dts, dtb = delivery / 'valence-vl100.dts', delivery / 'valence-vl100.dtb'
-    dts.write_text(net.network_dts(layout.ram_bytes, platform_drivers=True, bootargs=bootargs))
+    dts.write_text(net.network_dts(layout.ram_bytes, platform_drivers=True, bootargs=bootargs,
+        console_profile=console_profile))
     dtc = kernel / 'scripts/dtc/dtc'
     run([dtc, '-q', '-I', 'dts', '-O', 'dtb', '-o', dtb, dts])
-    net.validate_dtb(dtc, dtb, bootargs=bootargs)
+    net.validate_dtb(dtc, dtb, bootargs=bootargs, console_profile=console_profile)
     if dtb.stat().st_size + 8192 > 0x10000:
         raise RuntimeError('DTB exceeds reserved slot')
     opensbi = opensbi_setup(False)
@@ -251,12 +263,15 @@ def image(args):
     net.validate_embedded_dtb(content, dtb.read_bytes())
     padding = validate_payload(content, linux_image.read_bytes(), layout.monitor)
     elf = firmware.with_suffix('.elf')
+    elf_binding = validate_payload_elf(elf.read_bytes(), content, linux_image.read_bytes(), layout.monitor)
     symbols = {line.split()[2]: int(line.split()[0], 16) for line in
         subprocess.check_output(['riscv64-linux-gnu-nm', elf], text=True).splitlines()
         if len(line.split()) == 3}
     if symbols.get('_fw_start') != LOAD or symbols.get('payload_bin') != KERNEL or not LOAD < symbols.get('_fw_end', MONITOR) <= DTB:
         raise RuntimeError('Unexpected OpenSBI/kernel/DTB memory layout')
     suffix = '_systemd' if init_system == 'systemd' else ('_dinit_' + compression if init_system == 'dinit' else '')
+    if console_profile == 'uart-irq':
+        suffix += '_uart_irq'
     result = delivery / ('opensbi_debian13_riscv64_vl100_cpu100_u460800' + suffix + '.bin')
     shutil.copyfile(firmware, result)
     # Match the configured BootROM RRQ; the server intentionally checks basename.
@@ -273,7 +288,9 @@ def image(args):
         rootfs_embedded=True, kernel_prepare_config_sha256=record['config_sha256'],
         config_sha256=sha(kernel / '.config'),
         kernel_runtime_bytes=runtime, bootargs=bootargs, opensbi_revision=OPENSBI_LOCK['revision'],
-        entry=hex(LOAD), kernel_entry=hex(KERNEL), payload_zero_padding_bytes=padding,
+        entry=hex(LOAD), kernel_entry=hex(KERNEL), payload_alignment_padding_bytes=padding,
+        payload_alignment_padding_hex=content[KERNEL - LOAD + linux_image.stat().st_size:].hex(),
+        payload_elf_binding=elf_binding,
         network_auto_enable=root_record['network_auto_enable'], persistent_storage=False,
         systemd=init_system == 'systemd',
         dinit=init_system == 'dinit', initramfs_compression=compression,
@@ -281,7 +298,7 @@ def image(args):
         bit_included=False, required_rtl_fix='CoherentLineHome stalled direct read offer retention',
         memory_profile=profile, full_address_translation_required=layout.ram_bytes == 0x80000000,
         sources={str(p.relative_to(ROOT)): sha(p) for p in [Path(__file__),
-            HERE / 'build_rootfs.py', HERE.parent / 'build_linux.py', NET / 'build_image.py',
+            HERE / 'build_rootfs.py', HERE.parent / 'build_linux.py', NET / 'build_image.py', NET / 'uart_console.py',
             *[NET / name for name in MODULE_SOURCES]]},
         files={p.name: dict(bytes=p.stat().st_size, sha256=sha(p)) for p in
             (result, vld, dtb, dts, delivery / 'linux.config', delivery / 'netboot_host.py',
@@ -305,6 +322,8 @@ if __name__ == '__main__':
     parser.add_argument('--reuse-kernel', type=Path, help='seed a fresh independent output with a matching completed kernel cache')
     parser.add_argument('--initramfs-compression', choices=('gzip', 'lz4'),
                         help='dinit defaults to LZ4; legacy profiles default to gzip')
+    parser.add_argument('--console', choices=net.uart_console.PROFILES, default='sbi',
+                        help='kernel stage: uart-irq selects ttyS0; sbi retains polling recovery')
     parser.add_argument('--init-system', choices=('dinit', 'systemd', 'busybox'), default='dinit',
                         help='new builds use dinit; other profiles remain explicit alternatives')
     args = parser.parse_args()

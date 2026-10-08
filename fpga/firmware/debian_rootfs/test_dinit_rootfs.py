@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Short static and isolated native-Dinit tests, not Valence CPU simulation."""
 import importlib.util
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -11,7 +12,7 @@ import unittest
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE / 'dinit'
 ROOT = HERE.parents[2]
-NATIVE = ROOT / 'build/fpga/dinit-tools-0.19.4-r2/native/src'
+NATIVE = Path(os.environ.get('VALENCE_DINIT_TOOLS_BUILD', str(ROOT / 'build/fpga/dinit-tools-0.19.4-r2'))) / 'native/src'
 
 
 def load(name, path):
@@ -33,7 +34,7 @@ class DinitRootfsTests(unittest.TestCase):
         self.assertNotIn('systemd.', image.DINIT_BOOTARGS)
 
     def test_actual_config_and_negative_profile(self):
-        text = (ROOT / 'build/fpga/debian-dinit-kernel-20261007-r1/linux/.config').read_text()
+        text = Path(os.environ.get('VALENCE_DINIT_KERNEL_CONFIG', str(ROOT / 'build/fpga/debian-dinit-kernel-20261007-r1/linux/.config'))).read_text()
         image.validate_kernel_config(text, 'dinit')
         for name in ('FPU', 'MMU', 'DMA_ENGINE'):
             with self.subTest(feature=name), self.assertRaises(RuntimeError):
@@ -81,6 +82,8 @@ class DinitRootfsTests(unittest.TestCase):
             subprocess.run(['/bin/sh', '-n', ASSETS / name], check=True)
 
     def supervision_case(self, failure):
+        if os.environ.get('VALENCE_DINIT_NATIVE_TEST_BLOCKER'):
+            self.skipTest(os.environ['VALENCE_DINIT_NATIVE_TEST_BLOCKER'])
         # Run as an ordinary user/container instance; never PID 1 or system manager.
         # Replace all commands and remove console ownership in this headless fixture.
         with tempfile.TemporaryDirectory(prefix='valence-dinit-test-') as directory:
@@ -110,7 +113,8 @@ class DinitRootfsTests(unittest.TestCase):
                 deadline = time.monotonic() + 8
                 while time.monotonic() < deadline and not marker.exists() and process.poll() is None:
                     time.sleep(0.05)
-                self.assertTrue(marker.exists(), 'Serial service must start even if platform/network failed')
+                early_log = process.communicate(timeout=2)[0].decode(errors='replace') if process.poll() is not None else ''
+                self.assertTrue(marker.exists(), 'Serial service must start even if platform/network failed: ' + early_log)
                 if not failure:
                     while time.monotonic() < deadline and not network.exists():
                         time.sleep(0.05)
