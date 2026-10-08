@@ -11,7 +11,8 @@ class EthernetAxisWord extends Bundle {
 }
 
 /** Simple, full-duplex store-and-forward DMA; NOT AXI DMA register/SG compatible.
-  * One software-owned descriptor per direction; four ordered memory credits total.
+  * Legacy single descriptors plus a bounded opt-in posted RX ownership queue.
+  * Ordered memory credits remain independent of packet queue capacity.
   * 64-bit aligned buffers, arbitrary byte lengths <= maxFrameBytes. Frames are
   * staged in synchronous RAM before transmission / before any RX memory write.
   * RX data and six-word PG138 status can arrive in either relative order.
@@ -19,11 +20,14 @@ class EthernetAxisWord extends Bundle {
   */
 class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     ramBase: BigInt = BigInt("80200000", 16), ramBytes: BigInt = BigInt(512) * 1024 * 1024,
-    maxFrameBytes: Int = 2048) extends Module {
+    maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0) extends Module {
     require(base >= 0 && base % 256 == 0 && base + 256 <= (BigInt(1) << 64))
     require(ramBase >= 0 && ramBase % 8 == 0 && ramBytes >= maxFrameBytes && ramBytes % 8 == 0 &&
         ramBase + ramBytes <= (BigInt(1) << 64))
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
+    require(postedRxSlots >= 1 && postedRxSlots <= 16 && isPow2(postedRxSlots))
+    require(postedTxSlots == 0 || (postedTxSlots >= 1 && postedTxSlots <= 16 && isPow2(postedTxSlots)))
+    require(memoryCredits >= 1 && memoryCredits <= 16 && isPow2(memoryCredits))
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
         val memory = new RegisterPort
@@ -37,7 +41,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     private val words = maxFrameBytes / 8
     private val indexBits = log2Ceil(words)
     private val countBits = indexBits + 1
-    val arbiter = Module(new RegisterArbiter)
+    val arbiter = Module(new RegisterArbiter(memoryCredits))
     io.memory <> arbiter.io.memory
     val tx = arbiter.io.clients(0)
     val rx = arbiter.io.clients(1)
@@ -48,6 +52,45 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val txLength = RegInit(0.U(64.W))
     val rxAddress = RegInit(0.U(64.W))
     val rxCapacity = RegInit(0.U(64.W))
+    // Posted RX ABI is additive; disabled at reset for existing Linux drivers.
+    // A slot remains owned from POST through completion POP, so retained
+    // completions can never be overwritten by new submissions.
+    private val rxSlots = postedRxSlots
+    private val slotBits = log2Ceil(rxSlots).max(1)
+    private val ownerBits = log2Ceil(rxSlots + 1)
+    private val queuedAddressBits = (ramBase + ramBytes - 1).bitLength.max(3)
+    private val queuedCapacityBits = log2Ceil(maxFrameBytes + 1)
+    val queueEnabled = RegInit(false.B)
+    val queueStopped = RegInit(false.B)
+    val postAddress = RegInit(0.U(64.W))
+    val postCapacity = RegInit(0.U(64.W))
+    val slotOwned = RegInit(VecInit(Seq.fill(rxSlots)(false.B)))
+    // POST validation proves bounded, eight-byte-aligned physical addresses.
+    // Retain only their significant word bits; the MMIO ABI remains full64.
+    val queuedAddressWords = Reg(Vec(rxSlots, UInt((queuedAddressBits - 3).W)))
+    val queuedAddress = Wire(Vec(rxSlots, UInt(queuedAddressBits.W)))
+    for (i <- 0 until rxSlots) { queuedAddress(i) := Cat(queuedAddressWords(i), 0.U(3.W)) }
+    val queuedCapacity = Reg(Vec(rxSlots, UInt(queuedCapacityBits.W)))
+    val completedMetadata = Reg(Vec(rxSlots, UInt(17.W)))
+    val postIndex = RegInit(0.U(slotBits.W))
+    val launchIndex = RegInit(0.U(slotBits.W))
+    val completionIndex = RegInit(0.U(slotBits.W))
+    val activeIndex = Reg(UInt(slotBits.W))
+    val queueActive = RegInit(false.B)
+    val ownedCount = RegInit(0.U(ownerBits.W))
+    val pendingCount = RegInit(0.U(ownerBits.W))
+    val completedCount = RegInit(0.U(ownerBits.W))
+    val post = WireDefault(false.B)
+    val consumePending = WireDefault(false.B)
+    val complete = WireDefault(false.B)
+    val pop = WireDefault(false.B)
+    when(post =/= pop) { ownedCount := Mux(post, ownedCount + 1.U, ownedCount - 1.U) }
+    when(post =/= consumePending) {
+        pendingCount := Mux(post, pendingCount + 1.U, pendingCount - 1.U)
+    }
+    when(complete =/= pop) {
+        completedCount := Mux(complete, completedCount + 1.U, completedCount - 1.U)
+    }
     val txDone = RegInit(false.B)
     val txFailed = RegInit(false.B)
     val rxDone = RegInit(false.B)
@@ -56,10 +99,13 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val txState = RegInit(txIdle)
     val rxIdle :: rxCollect :: rxLoad :: rxWait :: rxOffer :: rxDrain :: Nil = Enum(6)
     val rxState = RegInit(rxIdle)
+    val txQueue = if (postedTxSlots > 0) Some(Module(new EthernetTxDescriptorQueue(
+        postedTxSlots, ramBase, ramBytes, maxFrameBytes))) else None
+    val txQueueEnabled = txQueue.map(_.io.enabled).getOrElse(false.B)
     val txBusy = txState =/= txIdle
     val rxBusy = rxState =/= rxIdle
-    io.active := txBusy || rxBusy
-    io.irq := (irqEnable(0) && txDone) || (irqEnable(1) && rxDone)
+    io.active := txQueue.map(_.io.work).getOrElse(false.B) || txBusy || rxBusy || queueActive || (queueEnabled && pendingCount =/= 0.U)
+    io.irq := (irqEnable(0) && Mux(txQueueEnabled, txQueue.map(_.io.irq).getOrElse(false.B), txDone)) || (irqEnable(1) && Mux(queueEnabled, completedCount =/= 0.U, rxDone))
 
     // TX prefetch: errors drain accepted/held reads; no partial frame reaches MAC.
     val txSent = RegInit(0.U(countBits.W))
@@ -67,7 +113,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val txLocked = RegInit(false.B)
     val txWordCount = ((txLength + 7.U) >> 3)(countBits - 1, 0)
     tx.request.valid := txState === txFill && (txLocked || !txFailed) &&
-        txSent < txWordCount && txSent - txReceived < 4.U
+        txSent < txWordCount && txSent - txReceived < memoryCredits.U
     tx.request.bits.address := txAddress + (txSent << 3)
     tx.request.bits.write := false.B
     tx.request.bits.size := 3.U
@@ -161,7 +207,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val rxRemaining = rxBytes - (rxStoreIndex << 3)
     val rxMask = Mux(rxRemaining >= 8.U, 255.U,
         ((1.U(9.W) << rxRemaining(2, 0)) - 1.U)(7, 0))
-    rx.request.valid := rxState === rxOffer && rxIssued - rxReplied < 4.U
+    rx.request.valid := rxState === rxOffer && rxIssued - rxReplied < memoryCredits.U
     rx.request.bits.address := rxAddress + (rxStoreIndex << 3)
     rx.request.bits.write := true.B
     rx.request.bits.size := 3.U
@@ -196,17 +242,32 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     // Accepted memory requests are NEVER cancelled. A partly captured frame is
     // drained to both stream boundaries, then discarded without new DDR writes.
     val rxStop = offset === 144.U
-    val known = Seq(0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152)
+    val known = Seq(0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136,
+        144, 152, 160, 168, 176, 184, 192, 200, 208, 216)
         .map(n => offset === n.U).reduce(_ || _)
     val txWrite = offset === 16.U || offset === 24.U || offset === 32.U
+    val txQueueKnown = txQueue.map(_.io.known).getOrElse(false.B)
+    val txQueueAllowed = txQueue.map(_.io.allowed).getOrElse(false.B)
     val rxWrite = offset === 48.U || offset === 56.U || offset === 64.U
-    val writable = offset === 8.U || txWrite || rxWrite || rxStop
-    val legal = r.address >= base.U && r.address < (base + 256).U(65.W) && known &&
+    val queueWrite = offset === 160.U || offset === 168.U || offset === 176.U ||
+        offset === 184.U || offset === 216.U
+    val queueEmpty = !rxBusy && !rxDone && !queueActive && ownedCount === 0.U
+    val overlapsOwned = (0 until rxSlots).map { i =>
+        slotOwned(i) && postAddress < (queuedAddress(i) +& queuedCapacity(i)) &&
+            queuedAddress(i) < (postAddress +& postCapacity)
+    }.reduce(_ || _)
+    val writable = offset === 8.U || txWrite || rxWrite || rxStop || queueWrite || txQueueKnown
+    val legal = r.address >= base.U && r.address < (base + 256).U(65.W) && (known || txQueueKnown) &&
         r.size === 3.U && r.byteEnable === 255.U &&
-        (!r.write || (writable && (!txWrite || !txBusy) && (!rxWrite || !rxBusy) &&
+        (!r.write || (writable && (!txWrite || (!txBusy && !txQueueEnabled)) && (!rxWrite || (!rxBusy && !queueEnabled)) &&
             !(offset === 32.U && r.data(0) && txDone && !r.data(1)) &&
             !(offset === 64.U && r.data(0) && rxDone && !r.data(1)) &&
-            (!rxStop || r.data === 1.U)))
+            (!rxStop || r.data === 1.U) &&
+            (offset =/= 176.U || (r.data === 1.U && queueEnabled && !queueStopped &&
+                ownedCount < rxSlots.U && !overlapsOwned && descriptorLegal(postAddress, postCapacity))) &&
+            (offset =/= 184.U || (r.data <= 1.U && queueEmpty)) &&
+            (offset =/= 216.U || (r.data === 1.U && queueEnabled && completedCount =/= 0.U)) &&
+            (!txQueueKnown || txQueueAllowed)))
     io.control.request.ready := replies.io.enq.ready
     replies.io.enq.valid := io.control.request.valid
     replies.io.enq.bits.error := !legal
@@ -214,9 +275,29 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         0.U -> "h56444d4100010001".U(64.W), 8.U -> irqEnable,
         16.U -> txAddress, 24.U -> txLength, 40.U -> Cat(txFailed, txDone, txBusy),
         48.U -> rxAddress, 56.U -> rxCapacity, 72.U -> Cat(rxFailed, rxDone, rxBusy),
-        80.U -> rxBytes, 136.U -> maxFrameBytes.U, 152.U -> 1.U
-    ) ++ (0 until 6).map(i => (88 + i * 8).U -> statusWords(i))), 0.U)
+        80.U -> rxBytes, 136.U -> maxFrameBytes.U, 152.U -> ((BigInt(postedTxSlots) << 24) | (memoryCredits << 16) | (rxSlots << 8) |
+            (if (postedTxSlots > 0) 7 else 3)).U,
+        160.U -> postAddress, 168.U -> postCapacity, 184.U -> queueEnabled,
+        192.U -> (pendingCount | (completedCount << 8) | (queueActive.asUInt << 16) |
+            (queueStopped.asUInt << 17)),
+        200.U -> Mux(completedCount =/= 0.U, queuedAddress(completionIndex), 0.U),
+        208.U -> Mux(completedCount =/= 0.U, completedMetadata(completionIndex), 0.U)
+    ) ++ Seq(224, 232, 240, 248).map(n => n.U -> txQueue.map(_.io.readData).getOrElse(0.U)) ++ (0 until 6).map(i => (88 + i * 8).U -> statusWords(i))), 0.U)
     io.control.response <> replies.io.deq
+    txQueue.foreach { q =>
+        q.io.offset := offset(7, 0); q.io.data := r.data; q.io.accessWrite := r.write
+        q.io.write := io.control.request.fire && legal && r.write && q.io.known
+        q.io.engineIdle := !txBusy && !txDone
+        q.io.engineDone := txDone && !txBusy
+        q.io.engineFailed := txFailed; q.io.engineBytes := Mux(txFailed, 0.U, txLength(15, 0))
+        when(q.io.consumeDone) { txDone := false.B; txFailed := false.B }
+        when(q.io.launch.valid) {
+            txAddress := q.io.launch.bits.address; txLength := q.io.launch.bits.length
+            txState := txFill; txDone := false.B; txFailed := false.B
+            txSent := 0.U; txReceived := 0.U; txLocked := false.B; txBytes := 0.U
+        }
+    }
+
     def descriptorLegal(address: UInt, length: UInt): Bool = {
         val rounded = (length +& 7.U) & ~7.U(65.W)
         address(2, 0) === 0.U && address >= ramBase.U(65.W) && length =/= 0.U &&
@@ -224,17 +305,37 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     }
     when(io.control.request.fire && legal && r.write) {
         switch(offset) {
+            is(160.U) { postAddress := r.data }
+            is(168.U) { postCapacity := r.data }
+            is(176.U) {
+                slotOwned(postIndex) := true.B
+                queuedAddressWords(postIndex) := postAddress(queuedAddressBits - 1, 3)
+                queuedCapacity(postIndex) := postCapacity(queuedCapacityBits - 1, 0)
+                postIndex := (if (rxSlots == 1) 0.U else postIndex + 1.U)
+                post := true.B
+            }
+            is(184.U) {
+                queueEnabled := r.data(0)
+                queueStopped := false.B
+                postIndex := 0.U; launchIndex := 0.U; completionIndex := 0.U
+            }
+            is(216.U) {
+                pop := true.B; slotOwned(completionIndex) := false.B
+                completionIndex := (if (rxSlots == 1) 0.U else completionIndex + 1.U)
+            }
             is(144.U) {
+                when(queueEnabled) { queueStopped := true.B }
                 when(rxBusy) {
                     rxFailed := true.B
                     when(rxState === rxCollect && rxBytes === 0.U && rxStatusIndex === 0.U &&
                         !rxDataDone && !rxStatusDone && !io.rxData.valid && !io.rxStatus.valid) {
                         rxState := rxIdle; rxDone := true.B
                     }.elsewhen(rxState === rxLoad || rxState === rxWait ||
-                        (rxState === rxOffer && rx.request.fire)) {
+                        (rxState === rxOffer && (!rx.request.valid || rx.request.fire))) {
                         rxState := rxDrain
                     }
-                    // rxOffer with !ready must retain valid and its full payload.
+                    // A valid held rxOffer retains payload; a credit-blocked (invalid)
+                    // offer has no external owner and may stop without issuing it.
                     // rxCollect with any received/offered beat retains ready and
                     // drains data + status; rxFailed suppresses the memory phase.
                 }
@@ -266,6 +367,40 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
             }
         }
     }
-    assert(txSent >= txReceived && txSent - txReceived <= 4.U)
-    assert(rxIssued >= rxReplied && rxIssued - rxReplied <= 4.U)
+    // Publish completion only after both frame streams and all accepted DDR
+    // responses have retired. Firmware's consume fence precedes payload reads.
+    when(queueEnabled && queueActive && rxDone && !rxBusy) {
+        completedMetadata(activeIndex) := rxBytes(15, 0) | (rxFailed.asUInt << 16)
+        complete := true.B
+        queueActive := false.B
+        rxDone := false.B
+        rxFailed := false.B
+    }
+    // Stop wins over launches in the very cycle its MMIO write is accepted.
+    val stopping = queueStopped || (io.control.request.fire && legal && r.write && rxStop)
+    when(queueEnabled && !queueActive && !rxBusy && !rxDone && pendingCount =/= 0.U) {
+        consumePending := true.B
+        launchIndex := (if (rxSlots == 1) 0.U else launchIndex + 1.U)
+        when(stopping) {
+            completedMetadata(launchIndex) := (1 << 16).U // cancelled before capture
+            complete := true.B
+        }.otherwise {
+            rxAddress := queuedAddress(launchIndex)
+            rxCapacity := queuedCapacity(launchIndex)
+            activeIndex := launchIndex
+            queueActive := true.B
+            rxState := rxCollect
+            rxDone := false.B; rxFailed := false.B
+            rxBytes := 0.U; rxDataDone := false.B; rxStatusDone := false.B
+            rxStatusIndex := 0.U; rxUpper := false.B; rxCaptureIndex := 0.U
+            rxIssued := 0.U; rxReplied := 0.U; rxStoreIndex := 0.U
+            statusWords.foreach(_ := 0.U)
+        }
+    }
+    assert(ownedCount === PopCount(slotOwned))
+    assert(ownedCount <= rxSlots.U)
+    assert(ownedCount === pendingCount +& completedCount + queueActive.asUInt)
+    assert(!queueActive || queueEnabled)
+    assert(txSent >= txReceived && txSent - txReceived <= memoryCredits.U)
+    assert(rxIssued >= rxReplied && rxIssued - rxReplied <= memoryCredits.U)
 }

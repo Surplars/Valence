@@ -110,6 +110,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val invalidateFetch             = Output(Bool())
         val memory                      = new DataPort
         val memoryBusy                  = Output(Bool())
+        val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
         val memoryDiscarded             = Output(Bool())
         val memoryForwarded             = Output(Bool())
@@ -138,6 +139,12 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val reserveSystem   = WireDefault(false.B)
     val systemStart     = WireDefault(false.B)
     val systemProtected = RegInit(false.B)
+    // pending(head) clears at start, before CSR execution updates the context.
+    // Retain this owner through real retirement so a younger LSU cannot capture
+    // old MPRV/SATP/PMP authorization in that intervening cycle. Ordinary FP
+    // arithmetic does not change memory context and retains its prior overlap.
+    val systemContextBarrier = RegInit(false.B)
+    val contextMemoryEpoch = systemProtected && systemContextBarrier
     val systemOwner     = RegInit(0.U.asTypeOf(new RobToken(p)))
     val systemFpMemory = if (p.fpEnabled) Some(RegInit(false.B)) else None
     val fpMemoryEpoch = systemProtected && systemFpMemory.getOrElse(false.B)
@@ -166,7 +173,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val memoryOwner     = Reg(new RobToken(p))
     val integerMemory = Wire(new DataPort)
     val integerMemoryBusy = WireDefault(lsu.io.busy)
-    io.memoryBusy      := integerMemoryBusy
+    io.memoryBusy      := integerMemoryBusy || io.externalPrefetchBusy.getOrElse(false.B)
     io.memoryDiscarded := lsu.io.discarded
     io.memoryForwarded := lsu.io.forwarded
     val storeBufferStallCause = WireDefault(0.U(3.W))
@@ -217,7 +224,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         integerMemory.response.valid := !fpMemoryEpoch && io.memory.response.valid
         integerMemory.response.bits := io.memory.response.bits
         io.memory.response.ready := Mux(fpMemoryEpoch, fpMemory.response.ready, integerMemory.response.ready)
-        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get
+        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || io.externalPrefetchBusy.getOrElse(false.B)
         when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
     } else {
         io.memory <> integerMemory
@@ -240,7 +247,19 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     io.headProfile.pc             := ledger.io.headPc
     io.headException              := ledger.io.headException
 
-    val values        = RegInit(VecInit(Seq.fill(p.physicalRegs)(0.U(64.W))))
+    val values = if (!p.lvtPhysicalRegisterFile)
+        Some(RegInit(VecInit(Seq.fill(p.physicalRegs)(0.U(64.W))))) else None
+    val physicalReads = scala.collection.mutable.ArrayBuffer.empty[(UInt, UInt)]
+    val physicalWrites = if (p.lvtPhysicalRegisterFile) Some(Wire(Vec(p.completionWidth, Valid(new Bundle {
+        val address = UInt(p.physBits.W)
+        val data = UInt(64.W)
+    })))) else None
+    physicalWrites.foreach(_.foreach { port => port.valid := false.B; port.bits := 0.U.asTypeOf(port.bits) })
+    def readPhysical(index: UInt): UInt = if (p.lvtPhysicalRegisterFile) {
+        val result = Wire(UInt(64.W))
+        physicalReads += ((index, result))
+        result
+    } else values.get(index)
     val ready         = RegInit(VecInit((0 until p.physicalRegs).map(i => (i < 32).B)))
     val readyUpdate = if (p.parallelPrfReadyUpdates)
         Some(Module(new PhysicalReadyUpdate(p.physicalRegs, p.completionWidth + 1, p.renameWidth))) else None
@@ -273,7 +292,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val replayPendingValid = if (p.registeredLoadReplay) Some(RegInit(false.B)) else None
     val replayPending = if (p.registeredLoadReplay) Some(Reg(new FrontendRedirect(p))) else None
     val queue         = Reg(Vec(p.robEntries, new IntegerIssueEntry(p)))
-    val queuedSourceDecode = if (p.sharedPhysicalSourceDecode)
+    val queuedSourceDecode = if (p.sharedPhysicalSourceDecode && !p.lvtPhysicalRegisterFile)
         Some(Module(new QueuedPhysicalSourceDecode(p))) else None
     queuedSourceDecode.foreach { decode =>
         for (slot <- 0 until p.robEntries) {
@@ -282,13 +301,17 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
     }
     def independentPhysicalOperands(): IssuePhysicalOperands = {
-        val operands = Module(new IssuePhysicalOperands(p, sharedSourceDecode = p.sharedPhysicalSourceDecode))
+        val operands = Module(new IssuePhysicalOperands(p, sharedSourceDecode = p.sharedPhysicalSourceDecode && !p.lvtPhysicalRegisterFile))
         queuedSourceDecode.foreach { decode =>
             operands.io.decoded1.get := decode.io.decoded1
             operands.io.decoded2.get := decode.io.decoded2
         }
         // Existing call sites still connect their own early owners, source IDs
         // and PRF values. Store/M-D/LSU reads NEVER share a late grant/value mux.
+        if (p.lvtPhysicalRegisterFile) {
+            operands.io.values := 0.U.asTypeOf(operands.io.values)
+            for (port <- 0 until 4) operands.io.readData.get(port) := readPhysical(operands.io.readAddress.get(port))
+        }
         operands
     }
     val ownerReady = if (p.ownerLocalOperandReady)
@@ -322,7 +345,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             mirror.io.allocate(lane).bits.source2 := renamed.bits.source2
         }
     }
-    io.committedValue := Mux(io.inspectRegister === 0.U, 0.U, values(ledger.io.committedMapping))
+    io.committedValue := Mux(io.inspectRegister === 0.U, 0.U, readPhysical(ledger.io.committedMapping))
 
     // Recovery removes tails, so the head advances only on commit. Slot age needs robBits, not a full tag compare.
     val head = RegInit(0.U(p.robBits.W))
@@ -369,7 +392,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         completedLoadBypass && index === completedLoadEntry.renamed.destination,
         lsu.io.complete.bits.data,
         Mux(wordPreviewBypass && index === wordPreviewDestination,
-            multiplier.io.wordPreview.bits.data, values(index)))
+            multiplier.io.wordPreview.bits.data, readPhysical(index)))
     val loadIssueWake = lsu.io.completedIssueDestination.getOrElse(0.U.asTypeOf(Valid(UInt(p.physBits.W))))
     // Only registered LSU completion state/metadata feeds this promise. Current
     // recovery, completion acceptance and ROB tag comparisons are authorization
@@ -554,7 +577,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             memoryOperands.foreach { operands =>
                 operands.io.owners(0) := planner.io.firstOwner
                 operands.io.owners(1) := planner.io.secondOwner
-                operands.io.values := values
+                if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
                 for (slot <- 0 until p.robEntries) {
                     operands.io.source1(slot) := queue(slot).renamed.source1
                     operands.io.source2(slot) := queue(slot).renamed.source2
@@ -671,7 +694,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         )
         .reduce(_ || _)
     val reserveMemory =
-        !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch &&
+        !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch && !contextMemoryEpoch &&
             memoryChoice.valid && lsu.io.issueAvailable && io.commitEnable &&
             ((p.issueWidth > 1).B || !directStoreReserve) &&
             !ledger.io.recovering && (!memoryEntry.request.atomic || !io.memoryBusy) &&
@@ -679,7 +702,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 savedStore || (operandReady(memorySource1) &&
                     (!(memoryEntry.request.store || memoryEntry.request.atomic) || operandReady(memorySource2)))) &&
             (memoryChoice.index === head || (speculative && !blockedByStore))
-    val youngerLoadCouldIssue = !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch && memoryChoice.valid &&
+    val youngerLoadCouldIssue = !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch && !contextMemoryEpoch && memoryChoice.valid &&
         !memoryEntry.request.store && !memoryEntry.request.atomic && memoryChoice.index =/= head &&
         speculative && lsu.io.issueAvailable && io.commitEnable && !ledger.io.recovering &&
         !ledger.io.recoveryAccepted && !ledger.io.headException.valid && operandReady(memorySource1)
@@ -832,7 +855,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         selector.io.available := VecInit(Seq(multiplier.io.start.ready, mulDiv.io.start.ready))
         val operands = independentPhysicalOperands()
         operands.io.owners := selector.io.owner
-        operands.io.values := values
+        if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
             operands.io.source1(slot) := queue(slot).renamed.source1
             operands.io.source2(slot) := queue(slot).renamed.source2
@@ -962,10 +985,12 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         unit.io.start.bits.token := queue(head).renamed.token
         unit.io.start.bits.pc    := queue(head).request.rename.pc
         unit.io.start.bits.instruction := headInst
-        unit.io.start.bits.operand     := values(source)
+        unit.io.start.bits.operand     := readPhysical(source)
         systemStart                    := unit.io.start.fire
         when(unit.io.start.fire) {
             systemFpMemory.foreach(_ := FloatingPointSubset.memory(headInst))
+            systemContextBarrier := !(p.fpEnabled.B && FloatingPointDecode.supported(headInst, p.fpConfig) &&
+                !FloatingPointDecode.memory(headInst))
             pending(head)   := false.B
             systemProtected := true.B
             systemOwner     := queue(head).renamed.token
@@ -1181,7 +1206,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     physicalOperands.foreach { operands =>
         operands.io.owners(0) := issueSelector.get.io.second
         operands.io.owners(1) := issueSelector.get.io.first
-        operands.io.values := values
+        if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
             operands.io.source1(slot) := queue(slot).renamed.source1
             operands.io.source2(slot) := queue(slot).renamed.source2
@@ -1195,7 +1220,13 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val data = UInt(64.W)
         val dataReady = Bool()
     }
-    val earlyStorePayloads = if (p.earlyStorePreparation) {
+    val earlyStorePayloads = if (p.sharedStoreOperandReads) {
+        // Use common-ranked raw PRF operands before ALU forwarding. The same
+        // preparation grants and one-cycle capture stage remain authoritative.
+        val owners = Seq.fill(2)(Wire(UInt(p.robEntries.W)))
+        val payloads = Wire(Vec(2, new EarlyStoreOperands))
+        Some((owners, payloads))
+    } else if (p.earlyStorePreparation) {
         val storeCandidates = Module(new StorePreparationEligibility(p))
         storeCandidates.io.head := head
         storeCandidates.io.branchRedirect := branchRedirectValid
@@ -1233,7 +1264,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val owners = Seq(stores.io.first, stores.io.second)
         val operands = independentPhysicalOperands()
         operands.io.owners := VecInit(owners)
-        operands.io.values := values
+        if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
             operands.io.source1(slot) := queue(slot).renamed.source1
             operands.io.source2(slot) := queue(slot).renamed.source2
@@ -1375,6 +1406,19 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val storedRight = physicalOperands.map(_.io.right(lane)).getOrElse(operandValue(source2))
         val dispatchLeft = Mux(dispatchEntry.request.memory, storedLeft, issueOperandValue(source1, storedLeft))
         val dispatchRight = Mux(dispatchEntry.request.memory, storedRight, issueOperandValue(source2, storedRight))
+        if (p.sharedStoreOperandReads) {
+            val (owners, payloads) = earlyStorePayloads.get
+            val owner = if (lane == 0) issueSelector.get.io.second else issueSelector.get.io.first
+            owners(lane) := owner
+            payloads(lane).token := dispatchEntry.renamed.token
+            payloads(lane).base := storedLeft
+            payloads(lane).immediate := dispatchEntry.request.immediate
+            payloads(lane).size := dispatchEntry.request.memorySize
+            payloads(lane).data := storedRight
+            val dataReady = VecInit((0 until p.robEntries).map(i => ownerReady.map(_.io.ready2(i)).getOrElse(
+                operandReady(Mux(pending(i), queue(i).renamed.source2, 0.U))))).asUInt
+            payloads(lane).dataReady := (owner & dataReady).orR
+        }
         val dispatchStore = dispatchEntry.request.memory && dispatchEntry.request.store
         val preparationGrant = if (p.registeredIssueExecute) issueOpportunity else dispatchChoice.valid
         prepared(lane) := preparationGrant && dispatchStore && !killed(dispatchChoice.index) &&
@@ -1596,7 +1640,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             ledger.io
                 .completionAccepted(lane) && !ledger.io.complete(lane).bits.exception && completedEntry.renamed.writesRd
         ) {
-            values(completedEntry.renamed.destination) := ledger.io.complete(lane).bits.data
+            if (p.lvtPhysicalRegisterFile) {
+                physicalWrites.get(lane).valid := true.B
+                physicalWrites.get(lane).bits.address := completedEntry.renamed.destination
+                physicalWrites.get(lane).bits.data := ledger.io.complete(lane).bits.data
+            } else values.get(completedEntry.renamed.destination) := ledger.io.complete(lane).bits.data
             if (!p.parallelPrfReadyUpdates) { ready(completedEntry.renamed.destination) := true.B }
         }
         readyUpdate.foreach { update =>
@@ -1712,7 +1760,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
     }
     when(fastLoadRetire && headRenamed.writesRd) {
-        values(headRenamed.destination) := lsu.io.fastLoadPreview.bits.data
+        if (!p.lvtPhysicalRegisterFile) values.get(headRenamed.destination) := lsu.io.fastLoadPreview.bits.data
         if (!p.parallelPrfReadyUpdates) { ready(headRenamed.destination) := true.B }
     }
     readyUpdate.foreach { update =>
@@ -1755,4 +1803,13 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             update.io.reserve(lane).bits := renamed.bits.destination
         }
     }
+    if (p.lvtPhysicalRegisterFile) {
+        val physicalFile = Module(new OwnerBankedPhysicalRegisterFile(p.physicalRegs, physicalReads.length))
+        physicalFile.io.write := physicalWrites.get
+        for (((address, data), port) <- physicalReads.zipWithIndex) {
+            physicalFile.io.address(port) := address
+            data := physicalFile.io.data(port)
+        }
+    }
+
 }

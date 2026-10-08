@@ -5,7 +5,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
 import java.nio.file.{Files, Paths}
-import soc.core.ooo.{BoardSocConfig, BoardSocTop}
+import soc.core.ooo.{BoardSocConfig, BoardSocTop, DdrBridgeConfig, CoherentCacheConcurrency, CacheTagConfig, FpgaStorageConfig}
 
 /** Avoid exposing a Vec at the GSIM top boundary (the pinned generator needs scalar accessors). */
 class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
@@ -14,12 +14,18 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     issueWidth: Int = BoardSocConfig.issueWidth, instructionPrefetch: Boolean = true,
     isaProfile: String = BoardSocConfig.isaProfile,
     ddrMemoryBytes: BigInt = BoardSocConfig.ddrBytes, frontendProbes: Boolean = false,
-    instructionLineCacheLines: Int = 8, backendProbes: Boolean = false, dataCacheLines: Int = 32) extends Module {
+    instructionLineCacheLines: Int = 8, backendProbes: Boolean = false, dataCacheLines: Int = 32,
+    ddrBridge: DdrBridgeConfig = BoardSocConfig.ddrBridge,
+    cacheConcurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(),
+    loadIssueForwarding: Option[Boolean] = None,
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+    identityDataFlow: Boolean = false,
+    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
         isaProfile = isaProfile, ddrMemoryBytes = ddrMemoryBytes, instructionLineCacheLines = instructionLineCacheLines,
-        dataCacheLines = dataCacheLines))
+        dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -30,7 +36,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
             val data = UInt(64.W)
         })
         val ddrReady = Input(Bool())
-        val ddrAxi = if (externalDdr) Some(new soc.ip.axi.Axi4MemoryPort(32, 4)) else None
+        val ddrAxi = if (externalDdr) Some(new soc.ip.axi.Axi4MemoryPort(32, ddrBridge.axiIdWidth)) else None
         val trap = Output(chiselTypeOf(board.io.trap.get))
         val commit0 = Output(Bool())
         val commit0Pc = Output(UInt(64.W))
@@ -460,28 +466,40 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
 
 /** Same memory sizes, address map, latency and compact core as the FPGA board. */
 object BoardSocGsimMain extends App {
-    require(args.length >= 1 && args.length <= 14,
+    val (memoryArgs, mixedMemory) = soc.core.ooo.MixedMemoryConfig.parseArgs(args)
+    val (storageArgs, fpgaStorage) = FpgaStorageConfig.parseArgs(memoryArgs)
+    val identityDataFlow = storageArgs.contains("--identity-data-flow")
+    val tagConfig = CacheTagConfig(compact = args.contains("--compact-tags"))
+    val cli = storageArgs.filterNot(arg => arg == "--compact-tags" || arg == "--identity-data-flow")
+    require(cli.length >= 1 && cli.length <= 19,
         "usage: BoardSocGsimMain output-directory [ddr] [clock-hz] " +
             "[baseline|early-issue|queued-memory|registered-response|registered-replay|staged-fabric|staged-control] " +
             "[uart-baud] [cache-ways] " +
-            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines]")
-    require(args.lift(12).forall(Set("0", "1").contains), "backend-probes must be 0 or 1")
-    require(args.lift(10).forall(Set("0", "1").contains), "frontend-probes must be 0 or 1")
-    require(args.lift(7).forall(Set("0", "1").contains), "instruction-prefetch must be 0 or 1")
-    val output = Paths.get(args.head)
+            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--lvt-prf]")
+    require(cli.lift(18).forall(Set("0", "1").contains), "load issue forwarding must be 0 or 1")
+    require(cli.lift(12).forall(Set("0", "1").contains), "backend-probes must be 0 or 1")
+    require(cli.lift(10).forall(Set("0", "1").contains), "frontend-probes must be 0 or 1")
+    require(cli.lift(7).forall(Set("0", "1").contains), "instruction-prefetch must be 0 or 1")
+    val output = Paths.get(cli.head)
     Files.createDirectories(output)
-    ChiselStage.emitCHIRRTLFile(new BoardSocGsim(args.lift(1).contains("ddr"),
-        args.lift(2).map(_.toInt).getOrElse(40000000),
-        args.lift(3).getOrElse(BoardSocConfig.timingProfile),
-        args.lift(4).map(_.toInt).getOrElse(1500000),
-        args.lift(5).map(_.toInt).getOrElse(BoardSocConfig.dataCacheWays),
-        args.lift(6).map(_.toInt).getOrElse(BoardSocConfig.issueWidth),
-        !args.lift(7).contains("0"),
-        args.lift(8).getOrElse(BoardSocConfig.isaProfile),
-        args.lift(9).map(BigInt(_)).getOrElse(BoardSocConfig.ddrBytes),
-        args.lift(10).contains("1"),
-        args.lift(11).map(_.toInt).getOrElse(8),
-        args.lift(12).contains("1"),
-        args.lift(13).map(_.toInt).getOrElse(32)),
+    ChiselStage.emitCHIRRTLFile(new BoardSocGsim(cli.lift(1).contains("ddr"),
+        cli.lift(2).map(_.toInt).getOrElse(40000000),
+        cli.lift(3).getOrElse(BoardSocConfig.timingProfile),
+        cli.lift(4).map(_.toInt).getOrElse(1500000),
+        cli.lift(5).map(_.toInt).getOrElse(BoardSocConfig.dataCacheWays),
+        cli.lift(6).map(_.toInt).getOrElse(BoardSocConfig.issueWidth),
+        !cli.lift(7).contains("0"),
+        cli.lift(8).getOrElse(BoardSocConfig.isaProfile),
+        cli.lift(9).map(BigInt(_)).getOrElse(BoardSocConfig.ddrBytes),
+        cli.lift(10).contains("1"),
+        cli.lift(11).map(_.toInt).getOrElse(8),
+        cli.lift(12).contains("1"),
+        cli.lift(13).map(_.toInt).getOrElse(32),
+        mixedMemory.ddr(DdrBridgeConfig(maxOutstanding = cli.lift(14).map(_.toInt).getOrElse(1),
+            maxBurstBeats = cli.lift(15).map(_.toInt).getOrElse(16))),
+        mixedMemory.cache(CoherentCacheConcurrency(readMshrs = cli.lift(16).map(_.toInt).getOrElse(1),
+            responseEntries = cli.lift(17).map(_.toInt).getOrElse(2))),
+        loadIssueForwarding = cli.lift(18).map(_ == "1"),
+        tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage),
         Array("--target-dir", output.toString))
 }

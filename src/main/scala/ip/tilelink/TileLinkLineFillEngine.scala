@@ -85,7 +85,17 @@ class TileLinkLineFillEngine(params: TLParams = TLParams(), entries: Int = 4, ta
     }
 
     val doneMask = VecInit((0 until entries).map(i => phase(i) === complete))
-    val doneSlot = PriorityEncoder(doneMask)
+    // Once offered under backpressure, retain the selected complete owner even
+    // if a lower-numbered slot completes. No extra latency on an unstalled result.
+    val heldComplete = RegInit(false.B)
+    val heldCompleteSlot = Reg(UInt(slotBits.W))
+    val doneSlot = Mux(heldComplete, heldCompleteSlot, PriorityEncoder(doneMask))
+    when(io.response.valid && !io.response.ready && !heldComplete) {
+        heldComplete := true.B
+        heldCompleteSlot := doneSlot
+    }
+    when(io.response.fire) { heldComplete := false.B }
+    when(heldComplete) { assert(phase(heldCompleteSlot) === complete, "held completion lost its owner") }
     io.response.valid      := doneMask.asUInt.orR
     io.response.bits.tag   := tag(doneSlot)
     io.response.bits.data  := Cat((7 to 0 by -1).map(i => words(doneSlot)(i)))

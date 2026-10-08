@@ -8,7 +8,7 @@ import soc.ip.bus.RegisterPort
 import soc.ip.dma.EthernetPacketDma
 
 /** Single-clock functional wrapper only, never a physical multi-clock MAC top. */
-class SelfGmacFramesGsim extends Module {
+class SelfGmacFramesGsim(frameSlots: Int = 4) extends Module {
     val io = IO(new Bundle {
         val txFrame = Flipped(Decoupled(new EthernetFrameBeat(4)))
         val rxFrame = Decoupled(new EthernetFrameBeat(4))
@@ -34,7 +34,7 @@ class SelfGmacFramesGsim extends Module {
         val rxBytes = Output(UInt(16.W))
     })
     val tx = Module(new GmiiFrameTx())
-    val rx = Module(new GmiiFrameRx())
+    val rx = Module(new GmiiFrameRx(frameSlots = frameSlots))
     tx.io.frame <> io.txFrame
     io.rxFrame <> rx.io.frame
     tx.io.enable := io.txEnable
@@ -62,7 +62,7 @@ class SelfGmacFramesGsim extends Module {
 /** Real production DMA + native adapter + GMII framing, external memory oracle.
   * All five modules share a test clock; no CPU, CSR, PHY or CDC verification.
   */
-class SelfGmacDmaGsim extends Module {
+class SelfGmacDmaGsim(postedTxSlots: Int = 0) extends Module {
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
         val memory = new RegisterPort
@@ -80,7 +80,7 @@ class SelfGmacDmaGsim extends Module {
         val rxAccepted = Output(Bool())
         val rxDropped = Output(Bool())
     })
-    val dma = Module(new EthernetPacketDma(ramBytes = 8192))
+    val dma = Module(new EthernetPacketDma(ramBytes = 8192, postedTxSlots = postedTxSlots))
     val adapter = Module(new EthernetDmaFrameAdapter)
     val tx = Module(new GmiiFrameTx())
     val rx = Module(new GmiiFrameRx())
@@ -113,13 +113,13 @@ class SelfGmacDmaGsim extends Module {
 }
 
 object SelfGmacFramesGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new SelfGmacFramesGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new SelfGmacFramesGsim(args.lift(1).map(_.toInt).getOrElse(4)), Array("--target-dir", args.head))
 }
 object SelfGmacAdapterGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new EthernetDmaFrameAdapter, Array("--target-dir", args.head))
 }
 object SelfGmacDmaGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new SelfGmacDmaGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new SelfGmacDmaGsim(args.lift(1).map(_.toInt).getOrElse(0)), Array("--target-dir", args.head))
 }
 object SelfGmacFramesRtlMain extends App {
     require(args.length == 1)
@@ -128,6 +128,6 @@ object SelfGmacFramesRtlMain extends App {
     ChiselStage.emitSystemVerilogFile(new GmiiFrameRx, Array("--target-dir", args.head + "/rx"), options)
     ChiselStage.emitSystemVerilogFile(new EthernetDmaFrameAdapter,
         Array("--target-dir", args.head + "/adapter"), options)
-    ChiselStage.emitSystemVerilogFile(new SelfGmacDmaGsim,
+    ChiselStage.emitSystemVerilogFile(new SelfGmacDmaGsim(args.lift(1).map(_.toInt).getOrElse(0)),
         Array("--target-dir", args.head + "/single-clock-dma"), options)
 }

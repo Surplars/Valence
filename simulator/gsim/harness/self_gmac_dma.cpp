@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <string_view>
 #include <tuple>
+#ifndef TX_POSTED_SLOTS
+#define TX_POSTED_SLOTS 0
+#endif
 #define S(n,v) d.set_io$$##n(v)
 #define G(n) d.get_io$$##n()
 static void check(bool ok,const char*why){if(!ok)throw std::runtime_error(why);}
@@ -111,6 +114,21 @@ int main(int argc,char**argv){try{
         t.access(64,true,2);check(!t.G(irq),"GMAC DMA IRQ did not clear");
         peak=std::max(peak,t.peak);stalls+=t.stalls;simultaneous+=t.simultaneous;++cases;
     }
+#if TX_POSTED_SLOTS > 0
+    for(unsigned seed:{3U,919U}) {
+        Test t(seed);std::vector<std::vector<uint8_t>> expectedWires;
+        for(unsigned i=0;i<TX_POSTED_SLOTS;++i){auto b=ethernetBody(61+i*37,seed+i);std::copy(b.begin(),b.end(),t.memory.begin()+4096+i*512);expectedWires.push_back(ethernetWire(b));}
+        t.access(240,true,1);t.access(8,true,1);
+        for(unsigned i=0;i<TX_POSTED_SLOTS;++i){t.access(224,true,ram+4096+i*512);t.access(232,true,61+i*37);t.access(240,true,4);}
+        unsigned limit=t.cycles+50000;
+        while(((t.access(248)>>8)&255)!=TX_POSTED_SLOTS||t.G(txBusy)||!t.burst.empty()||t.wires.size()<TX_POSTED_SLOTS){t.tick();check(t.cycles<limit,"posted GMAC TX batch timeout");}
+        check(t.wires==expectedWires,"posted GMAC TX independent wire/FCS mismatch");
+        check(t.replies.empty()&&!t.held&&!t.rejected&&t.G(irq),"posted GMAC TX drain/IRQ mismatch");
+        for(unsigned i=0;i<TX_POSTED_SLOTS;++i){check(t.access(224)==ram+4096+i*512&&t.access(232)==61+i*37,"posted GMAC TX owner/result mismatch");t.access(240,true,8);}
+        check(!t.G(irq),"posted GMAC TX completion IRQ stuck");t.access(240,true,2);++cases;
+    }
+    std::cout<<"SELF_GMAC_POSTED_TX_PASS slots="<<TX_POSTED_SLOTS<<" batches=2 wire_bytes_fcs=1 retained_fifo=1\n";
+#endif
     // Corrupt physical frame must not write memory or finish the armed DMA;
     // the following good frame must work without rearming/resetting.
     Test bad(31);auto before=bad.memory;bad.startRx(128);auto body=ethernetBody(63);auto wire=ethernetWire(body);

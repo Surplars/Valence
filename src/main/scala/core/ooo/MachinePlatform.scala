@@ -50,8 +50,19 @@ class MachinePlatform(
     ethernetControl: Boolean = false,
     ethernetDma: Boolean = false,
     clockManagement: Boolean = false,
-    externalUart: Boolean = false
+    externalUart: Boolean = false,
+    ddrBridge: DdrBridgeConfig = DdrBridgeConfig.Legacy,
+    cacheConcurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(),
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+    networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default
 ) extends Module {
+    require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
+    require(!p.dataNextLinePrefetch || (coherentLineCache && coreDataTranslation), "data prefetch requires the checked physical adapter")
+    if (externalDdr) ddrBridge.validateSoc()
+    require(!externalDdr || !cacheConcurrency.overlapWritebackRefill || ddrBridge.maxOutstandingWrites > 0,
+        "overlapping DDR writeback/refill requires explicit bridge write credits")
+    require(coherentLineCache || cacheConcurrency == CoherentCacheConcurrency(),
+        "cache concurrency settings require a coherent private cache")
     private val romBase = BigInt("80000000", 16)
     require(peripheralClockHz == 0 || peripheralClockHz >= 6000000)
     private val ramBase = p.speculativeRamBase
@@ -68,7 +79,7 @@ class MachinePlatform(
     require(!splitTileLinkMemory || ramBytes == 4096)
     require(!tileLinkFetch || tileLinkMemory)
     require(instructionLineCacheLines == 0 || (instructionLineCacheLines >= 4 &&
-        instructionLineCacheLines <= 256 && isPow2(instructionLineCacheLines)))
+        instructionLineCacheLines <= 512 && isPow2(instructionLineCacheLines)))
     require(!translationService || (tileLinkMemory && Set(3, 4, 5).contains(translationLevels)))
     require(!translationService || Set(4, 8, 16).contains(pteCacheEntries))
     require(!coreDataTranslation || translationService)
@@ -111,7 +122,7 @@ class MachinePlatform(
             val rxData = Flipped(Decoupled(new soc.ip.dma.EthernetAxisWord))
             val rxStatus = Flipped(Decoupled(new soc.ip.dma.EthernetAxisWord))
         }) else None
-        val ddrAxi = if (externalDdr) Some(new Axi4MemoryPort(32, 4)) else None
+        val ddrAxi = if (externalDdr) Some(new Axi4MemoryPort(32, ddrBridge.axiIdWidth)) else None
         val ddrReady = if (externalDdr) Some(Input(Bool())) else None
         val timerTick       = Input(Bool())
         val sources         = Input(UInt(31.W))
@@ -246,7 +257,9 @@ class MachinePlatform(
         Some(Module(new CoreRegisterRouter(BigInt("02000000", 16), bytes = 65536))) else None
     val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes))
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
-        ramBase = ramBase, ramBytes = ramBytes))) else None
+        ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
+        postedRxSlots = networkDmaConfig.postedRxSlots, memoryCredits = networkDmaConfig.memoryCredits,
+        postedTxSlots = networkDmaConfig.postedTxSlots))) else None
     packetDma.foreach { network =>
         io.ethernetStreams.get.txData <> network.io.txData
         io.ethernetStreams.get.txControl <> network.io.txControl
@@ -323,18 +336,35 @@ class MachinePlatform(
     ))
     val privateCacheLines = if (coherentLineCacheLines == 0) (ramBytes / 64).min(128).toInt
         else coherentLineCacheLines
-    val privateCache = if (coherentLineCache) Some(Module(new CoherentLineCache(
-        base = ramBase, bytes = ramBytes, lines = privateCacheLines, ways = coherentLineCacheWays))) else None
+    private val coherentParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3,
+        sinkBits = cacheConcurrency.sinkBits)
+    val privateCache = if (coherentLineCache) Some(CoherentLineCacheModule.build(
+        base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
+        ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig)) else None
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
     shared.io.dma.request.bits.atomicOp := 0.U
     shared.io.dma.request.bits.virtualized := false.B
     shared.io.dma.request.bits.uncached := false.B
+    shared.io.dma.request.bits.prefetchNextAllowed := false.B
+    val coherentFlushDrained = WireDefault(true.B)
     privateCache match {
         case Some(cache) =>
             cache.reset := reset.asBool || hold
+            if (p.dataNextLinePrefetch) {
+                core.io.externalPrefetchBusy.get := cache.io.prefetchBusy
+                when(cache.io.upstream.request.fire && cache.io.upstream.request.bits.prefetchNextAllowed) {
+                    assert(core.io.memoryBusy, "authorized prefetch token lost its originating CPU memory owner")
+                }
+                when(core.io.fenceIFlush && cache.io.flushDone) {
+                    assert(!cache.io.prefetchBusy, "cache flush omitted autonomous prefetch ownership")
+                }
+            }
             cache.io.flushRequest := core.io.fenceIFlush
-            core.io.fenceIFlushReady := cache.io.flushDone
+            core.io.fenceIFlushReady := cache.io.flushDone && coherentFlushDrained
+            when(core.io.fenceIFlush && cache.io.flushDone) {
+                assert(!cache.io.tl.a.valid, "cache-local flush completed with an unissued Acquire")
+            }
             cache.io.upstream <> platformMemory
             shared.io.cpu <> cache.io.downstream
         case None =>
@@ -496,12 +526,18 @@ class MachinePlatform(
             flowHeadResponse = p.flowTileLinkResponse, allowPartialWrites = ethernetDma))
         bridge.reset := reset.asBool || hold
         val coherentHome = privateCache.map { cache =>
-            val home = Module(new CoherentLineHome(base = ramBase, bytes = ramBytes,
-                trackedLines = if (privateCacheLines < ramBytes / 64 || coherentLineCacheWays > 1)
-                    privateCacheLines else 0, trackedWays = coherentLineCacheWays,
+            val home = CoherentLineHomeModule.build(params = coherentParams, base = ramBase, bytes = ramBytes,
+                trackedLines = if (privateCacheLines < ramBytes / 64 || coherentLineCacheWays > 1 ||
+                    cacheConcurrency.readMshrs > 1) privateCacheLines else 0,
+                trackedWays = coherentLineCacheWays, acquireEntries = cacheConcurrency.readMshrs,
+                writebackEntries = cacheConcurrency.writebackEntries, mixedReadWrite = cacheConcurrency.overlapWritebackRefill,
                 rawResponseMetadata = p.rawTileLinkResponseMetadata,
-                parallelQualification = p.parallelHomeQualification))
+                parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig)
             home.reset := reset.asBool || hold
+            // Phase one drains cache MSHRs/bypasses/releases with normal admission.
+            // The registered cache-local done then closes new home transactions.
+            home.io.drainRequest := core.io.fenceIFlush && cache.io.flushDone
+            coherentFlushDrained := home.io.drainDone
             home.io.upstream <> homeUpstream
             home.io.upstreamRequestCpu := homeRequestCpu
             bridge.io.data <> home.io.downstream
@@ -543,7 +579,7 @@ class MachinePlatform(
                     ramBase = p.speculativeRamBase, ramBytes = ramBytes,
                     romBytes = romWords * 4, lines = instructionLineCacheLines,
                     packetWords = fetchWords, prefetchEnabled = fetchWords == 4 && instructionLineCachePrefetch,
-                    parallelFallbackAddresses = p.parallelFetchAddresses))
+                    parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = tagConfig))
                 instructionLineCache = Some(fetchCache)
                 fetchCache.reset := reset.asBool || hold
                 physicalFetch <> fetchCache.io.fetch
@@ -576,7 +612,7 @@ class MachinePlatform(
                         rawRequestMetadata = p.registeredFabricBoundary))
                     arbiter.reset := reset.asBool || hold
                     bridge.io.tl <> arbiter.io.masters(0)
-                    home.io.line <> arbiter.io.masters(1)
+                    CoherentHomeUlBoundary.connect(home.io.line, arbiter.io.masters(1))
                     crossbar.io.masters(0) <> fabricMaster(arbiter.io.manager)
                 case None => crossbar.io.masters(0) <> fabricMaster(bridge.io.tl)
             }
@@ -595,9 +631,12 @@ class MachinePlatform(
                 (Some(banks.head.io.memory), Some(banks(1).io.memory))
             } else if (externalDdr) {
                 // Coherence/atomics are resolved above this non-coherent DDR boundary.
-                // Capacity: one TL transaction, <=16 AXI beats, arbitrary backpressure.
+                // Configured bounded RAM overlap; the bridge preserves interval dependencies.
+                ddrBridge.validateTileLink(managerParams)
                 val manager = Module(new TileLinkAxi4Bridge(tlParams = managerParams,
-                    axiAddressWidth = 32, axiIdWidth = 4, maxBurstBeats = 16,
+                    axiAddressWidth = 32, axiIdWidth = ddrBridge.axiIdWidth,
+                    maxBurstBeats = ddrBridge.maxBurstBeats, maxOutstanding = ddrBridge.maxOutstanding,
+                    maxOutstandingWrites = ddrBridge.maxOutstandingWrites, unorderedResponses = ddrBridge.unorderedResponses,
                     axiAddressBase = ramBase, axiWindowBytes = ramBytes))
                 manager.reset := reset.asBool || hold
                 crossbar.io.banks(1) <> manager.io.tl

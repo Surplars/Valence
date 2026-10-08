@@ -22,23 +22,36 @@ def main():
     for line in raw.splitlines():
         parts = line.split()
         if len(parts) in (3,4): syms[parts[-1]] = int(parts[0],16)
-    assert len(re.findall(r'\bcrc32_nibble_table$', raw, re.M)) == 1
+    assert len(re.findall(r'\bcrc32_table$', raw, re.M)) == 1
+    contract=json.loads((args.rom/'bootrom-contract.json').read_text())
+    table_bytes=contract['crc_table_bytes']; mode=contract['crc_mode']
     start, end = syms['__crc32_table_start'], syms['__crc32_table_end']
-    assert start % 64 == 0 and end - start == 64 and start == syms['crc32_nibble_table']
+    assert start % 64 == 0 and end - start == table_bytes and start == syms['crc32_table']
     assert syms['__data_start'] <= start < end <= syms['__data_end']
     assert start >= syms['__app_stack_top'] >= 0x80200000
     assert syms['__bss_end'] <= syms['__boot_stack_top'] - 8192
     data = (args.rom / 'bootrom.bin').read_bytes()
-    expected = struct.pack('<16I', *VALUES)
+    values=list(VALUES)
+    if mode!='nibble':
+        values=[]
+        for n in range(256):
+            c=n
+            for _ in range(8): c=(c>>1)^(0xedb88320 if c&1 else 0)
+            values.append(c)
+        if mode=='slice4':
+            first=values[:];previous=values[:]
+            for _ in range(3):
+                previous=[(v>>8)^first[v&255] for v in previous];values.extend(previous)
+    expected = struct.pack('<'+str(len(values))+'I', *values)
     load = syms['__data_load'] + start - syms['__data_start']
-    assert data[load - 0x80000000:load - 0x80000000 + 64] == expected
+    assert data[load - 0x80000000:load - 0x80000000 + table_bytes] == expected
     assert data.count(expected) == 1 and len(data) <= 131072
     dis = run('objdump', '-d')
     helper = re.search(r'<firmware_crc_update>:\n(.*?)(?=\n\n|\Z)', dis, re.S).group(1)
-    assert len(re.findall(r'\blbu\s', helper)) == 1
-    assert len(re.findall(r'\blw\s', helper)) == 2
+    assert len(re.findall(r'\blbu\s', helper)) == (5 if mode=='slice4' else 1)
+    assert len(re.findall(r'\blw(?:u)?\s', helper)) == dict(nibble=2,byte=1,slice4=5)[mode]
     # Register/address dataflow and _start copy are reviewed in saved disassembly.
-    report = dict(status='passed', table_bytes=64, table_vma=hex(start), table_lma=hex(load),
+    report = dict(status='passed', crc_mode=mode, table_bytes=table_bytes, table_vma=hex(start), table_lma=hex(load),
                   globals_bytes=syms['__bss_end']-syms['__app_stack_top'],
                   reserved_stack_bytes=8192, rom_bytes=len(data),
                   target_execution=False, instruction_dataflow='manual disassembly review required')

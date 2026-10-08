@@ -13,6 +13,7 @@ class DataRequest extends Bundle {
     val data     = UInt(64.W) // Ordinary stores use aligned beat lanes; atomic rs2 is right-justified.
     val mask     = UInt(8.W)
     val virtualized = Bool() // Address has not yet been translated; only the core's VM adapter consumes it.
+    val prefetchNextAllowed = Bool() // Full next-line permission captured by the physical authorization adapter.
     val uncached = Bool() // Physical access must bypass the private cache (for example, PBMT NC/IO).
 }
 class DataResponse extends Bundle {
@@ -126,6 +127,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     io.memory.request.bits.mask     := mask << sending.address(2, 0)
     io.memory.request.bits.virtualized := sending.virtualized
     io.memory.request.bits.uncached := false.B
+    io.memory.request.bits.prefetchNextAllowed := false.B
     io.memory.response.ready        := state === response ||
         (state === request && io.memory.request.ready) || startRequest
     when(io.memory.request.fire) { state := response }

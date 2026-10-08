@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded independent cache geometry checks; never runs the board or full GSIM.
 
-Default production-width coverage: 8 and 32 lines. --edges adds 4 and 256.
+Default production-width coverage: 8 and 32 lines. --edges adds 4 and 512.
 Needs the parameterized InstructionLineCacheGsim wrapper and CACHE_LINES oracle.
 """
 import argparse
@@ -25,9 +25,9 @@ def main():
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9_-]+', args.tag):
         parser.error('Unsafe tag')
-    lines = sorted(set(args.lines + ([4, 256] if args.edges else [])))
-    if any(n < 4 or n > 256 or n & (n - 1) for n in lines):
-        parser.error('Line counts must be powers of two in 4..256')
+    lines = sorted(set(args.lines + ([4, 512] if args.edges else [])))
+    if any(n < 4 or n > 512 or n & (n - 1) for n in lines):
+        parser.error('Line counts must be powers of two in 4..512')
     cases = [{'name': f'icache-geometry-{args.tag}-w{args.words}-n{n}',
               'lines': n, 'sets': n // 2, 'ways': 2, 'line_bytes': 64,
               'set_stride_bytes': 64 * (n // 2), 'packet_words': args.words}

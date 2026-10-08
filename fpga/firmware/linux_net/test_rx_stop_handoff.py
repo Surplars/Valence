@@ -39,7 +39,9 @@ struct work_struct { int dummy; };
 struct delayed_work { struct work_struct work; };
 struct napi_struct { int polls; };
 struct net_device { bool carrier; int wakes; };
+struct vgq_ring { int unused; };
 struct vgmac {
+    bool posted_rx, posted_tx, ever_armed; struct vgq_ring rx_ring, tx_ring;
     struct delayed_work configure;
     struct net_device *ndev;
     struct napi_struct napi;
@@ -48,6 +50,10 @@ struct vgmac {
     uint64_t hw_address;
     bool running, configured, address_set, tx_pending, faulted;
 };
+static int vgq_start(struct vgq_ring *q) { (void)q; assert(!"legacy test must not enter posted mode"); return -1; }
+static void vg_queue_fault(struct vgmac *p) { (void)p; assert(!"unexpected posted fault in legacy handoff test"); }
+static int vgt_start(struct vgq_ring *q) { (void)q; assert(!"legacy test must not enter TX posted mode"); return -1; }
+static bool vg_tx_space(struct vgmac *p) { return !p->tx_pending; }
 static struct net_device dev;
 static struct vgmac state;
 static int mac_base, dma_base;

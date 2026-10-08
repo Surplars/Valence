@@ -1,5 +1,65 @@
 # 当前性能与证据边界
 
+## 2026-10-08：dot 增量交接的本地接续
+
+本次交接接续于隔离的开发工作区，
+基线 `6c8977f684830137fae088d4679f9d84e5ce4a11`。交接的累计补丁已核对 209 个文件，
+逐文件哈希零差异；原始包保存在 `build/handoff-20261008/archive`，Windows 原包未删除。
+交接包原状态是部分验证，不是发布版；旧 SATP 失败和平台任务失败记录不作为本轮测试结果。
+不要在当前工作分支再次应用原累计补丁，也不要覆盖原 `main`。
+
+显式候选为双发射 / LSU2 / RV64GC / CPU100MHz / UART460800 / DDR2GiB，
+32KiB I-cache + 32KiB D-cache、MSHR2、DDR4槽 / 写槽2、两项写回信用，
+启用 compact tags、identity request flow、banked ROB、共享 store 读口、LVT PRF、下一行数据预取。
+受管 GMAC 导出另显式选择 frame2048 / MAC RX4 / posted RX4 / memory credits4 / posted TX4。
+构造器默认配置与实验开关没有改变；不能省略参数后把默认导出叫作该候选。
+
+本轮已通过：15 项 Scala suite；PRF 48/64/128 容量；预取开/关的权限上下文与
+真实 MPRV 后继 load 精确异常、晚 ReleaseAck、DMA probe、flush/reset；
+GMAC posted TX 0/1/4 槽、实际字节/FCS、32KiB 目录与 dirty-cache 一致性；
+BootROM 可移植验证、Linux 网络软件 23 项、ROM profile/MIF 审计 4 项。
+预取最终回执 `build/gsim/data-prefetch-handoff-20261008-r2/receipt.json`；
+PRF 回执 `build/gsim/prf-handoff-20261008-r1/receipt.json`；
+网络回执 `build/gsim/network-tx-handoff-20261008-r1/receipt.json`。
+
+预取模块的 64KiB 流读由 75026 降至 71113 拍（吞吐约 +5.5%），chase 未改善；
+这是 cache/home 模块的相同输入对照，不是整 CPU、Linux 或上板增益。
+同一完整 CPU 模型的 RV64GC/Sv39/32 FPR 状态机制、单迭代 CoreMark CRC 和
+64KiB steady memory 已通过。CoreMark 444600 ticks，**单迭代不是有效分数**；
+新编译的 guest 未与归档 guest 做字节相同对照，不能据此宣称整 CPU 提速比例。
+
+| 当前 CPU 定时区域 | 周期 | ROI IPC |
+| --- | ---: | ---: |
+| READ 64KiB × 3 | 279735 | 0.197884 |
+| WRITE kernel | 344154 | 0.160780 |
+| WRITE flush tail | 17860 | 0.000560 |
+| COPY kernel | 641916 | 0.124527 |
+| COPY flush tail | 9215 | 0.001085 |
+| dependent chase 3072 hops | 231189 | 0.016649 |
+
+这些是固定独立 AXI 主机（读延迟32拍、beat间隔1拍、WLAST 后32拍 B响应、背压）的
+真实 CPU GSIM 周期，保留 flush 尾部和后备内存逐字校验；不是 MIG 物理带宽。
+当前结论仍不能保证双发射 IPC≥1。完整候选短批回执位于
+`build/gsim/incremental-handoff-20261008-r1/receipt.json`，以该文件的最终 status 为准；
+BootROM backing-only 损坏检测、外部应用返回锁以及两次诊断往返全部通过；
+后者实际执行内置短 CoreMark 和 512B DMA，独立核对64次读取/写入，恢复栈、gp、CSR和返回状态。
+完整候选回执最终为 `PASS_SELECTED_BOARD_FUNCTIONAL`（6 项短集成执行，含错误 ISA anchor、
+后备内存损坏和 cache 掩盖检测等独立负对照）。
+
+新入口 `simulator/gsim/incremental_acceptance.py` 冻结源码，只生成/编译一个模型，复用对象做短验证；
+`--resume` 核对所有检查点。仅审阅后的 CoreMark harness-only 修正可以显式刷新，
+旧失败回执保留，硬件模型不重建。两个原预取失败是无效 fixture 调度，修正未改 RTL 或弱化 oracle。
+CoreMark 的小 guest 全驻留32KiB后，测试返回 stub 真实执行 `fence.i`，再要求 DDR 写回，
+不通过修改 cache 元数据伪造流量。
+
+新受管 RTL 已导出至 `build/fpga/incremental-20261008-r1/rtl`，候选组装器为
+`fpga/zu15eg/stage_incremental.py`。当前只准备下一轮物理输入，不启动整板布局布线。
+本轮物理时序/资源尚未测量；
+旧板级正裕量不属于该候选。Linux 新 driver 的内核模块编译、新固件、真实板卡网络和
+Linux 浮点调度仍未验收；未生成 bit、未自动 commit/push。
+
+以下为各自冻结输入的历史记录，不替代这次增量候选验收。
+
 最新受管外设组合：UART50/AON50、CPU控制侧100、GMAC TX/RX125MHz，真实引擎/DMA流
 已接可选BoardSoc/CMU。必要短GSIM、独立边沿CDC-only xsim通过，组合OOC只综合/布线一次：
 内部setup/hold=+3.018/+0.031ns，3964 LUT/4503 FF/2 RAMB18/3 BUFGCE；13组skew最小+7.107ns。

@@ -117,8 +117,21 @@ case class OooParams(
     instructionCacheSets: Int = 0,
     returnStackEntries: Int = 16,
     indirectTargetEntries: Int = 0,
-    recoveryWidth: Int = 1
+    recoveryWidth: Int = 1,
+    identityDataRequestFlow: Boolean = false,
+    bankedRobPayload: Boolean = false,
+    sharedStoreOperandReads: Boolean = false,
+    lvtPhysicalRegisterFile: Boolean = false,
+    dataNextLinePrefetch: Boolean = false
 ) {
+    require(!dataNextLinePrefetch || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0),
+        "data prefetch requires the machine privilege/PMP/translation guard")
+    require(!lvtPhysicalRegisterFile || (completionWidth == 2 && !fastHeadLoadRetire),
+        "owner-banked PRF requires two completion writers and no fast-head-load third writer")
+    require(!sharedStoreOperandReads || (earlyStorePreparation && parallelIssuePayload && registeredIssueExecute),
+        "shared store operands require existing two-lane registered store preparation")
+    require(!bankedRobPayload || (renameWidth == 2 && commitWidth == 2 && robEntries >= 4),
+        "banked ROB payload requires two-wide contiguous allocation and retirement")
     require(
         Seq(renameWidth, commitWidth, completionWidth).forall(w => w >= 1 && w <= 6),
         "each backend port width must be between one and six"
@@ -216,6 +229,8 @@ case class OooParams(
         "registered fabric boundary builds on the request-capture profile")
     require(!registeredTranslationHeads || (registeredFabricBoundary && registeredTranslatedResponses),
         "translation heads require the registered request and response boundaries")
+    require(!identityDataRequestFlow || registeredTranslationHeads,
+        "identity data flow requires registered translation ingress")
     require(!(fetchReplyTurnover || fetchIdentityTranslation) || registeredTranslationHeads,
         "fetch turnover and identity capture require registered translation heads")
     require(!parallelMemoryPayload || (parallelMemoryPreparation && completionWidth == 2),

@@ -76,8 +76,12 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     // immutable owner may be loaded on the old burst's final accepted beat;
     // data/metadata never bypass these registers onto A.
     sendQueue.io.deq.ready := !active || (io.tl.a.fire && beat === 7.U)
+    // Empty queue payload is unspecified. Qualify before every dynamic read,
+    // including assertions, because a simulator may evaluate their operands eagerly.
+    val queuedSlot = Mux(sendQueue.io.deq.valid, sendQueue.io.deq.bits, 0.U)
     when(sendQueue.io.deq.valid) {
-        assert(phase(sendQueue.io.deq.bits) === send, "line write send queue contains a non-pending slot")
+        assert(queuedSlot < entries.U, "line write send queue slot out of range")
+        assert(phase(queuedSlot) === send, "line write send queue contains a non-pending slot")
     }
     when(io.tl.a.fire) {
         beat := beat + 1.U
@@ -92,7 +96,7 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     // remains send/receive-owned until its D ack and user response complete;
     // removing its scheduling ID from this queue must not free the slot.
     when(sendQueue.io.deq.fire) {
-        val nextSlot = sendQueue.io.deq.bits
+        val nextSlot = queuedSlot
         active := true.B
         activeSlot := nextSlot
         activeAddress := address(nextSlot)
@@ -119,7 +123,17 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     }
 
     val doneMask = VecInit((0 until entries).map(i => phase(i) === complete))
-    val doneSlot = PriorityEncoder(doneMask)
+    // Once offered under backpressure, retain the selected complete owner even
+    // if a lower-numbered slot completes. No extra latency on an unstalled result.
+    val heldComplete = RegInit(false.B)
+    val heldCompleteSlot = Reg(UInt(slotBits.W))
+    val doneSlot = Mux(heldComplete, heldCompleteSlot, PriorityEncoder(doneMask))
+    when(io.response.valid && !io.response.ready && !heldComplete) {
+        heldComplete := true.B
+        heldCompleteSlot := doneSlot
+    }
+    when(io.response.fire) { heldComplete := false.B }
+    when(heldComplete) { assert(phase(heldCompleteSlot) === complete, "held completion lost its owner") }
     io.response.valid := doneMask.asUInt.orR
     io.response.bits.tag := tag(doneSlot)
     io.response.bits.error := errors(doneSlot)

@@ -3,15 +3,16 @@ package soc.ip.ethernet
 import chisel3._
 import chisel3.util._
 
-/** Single RX clock, store-and-forward 1G/full-duplex native 32-bit frames.
-  * PHY cannot be backpressured: while the one frame buffer is owned, drain and
-  * drop new frames without touching it. Strip preamble/SFD/FCS, keep padding.
+/** Single RX clock, bounded store-and-forward 1G/full-duplex native 32-bit frames.
+  * PHY cannot be backpressured: when all frame banks are owned, drain and
+  * drop new frames without touching them. Strip preamble/SFD/FCS, keep padding.
   * Check CRC residue, min/max length, RX_ER, basic L/T and destination address.
   * Config is snapshotted at frame start and must already be in this RX domain.
   * No VLAN tag removal, pause negotiation, multicast table, PHY or CDC here.
   */
-class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) extends Module {
+class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, frameSlots: Int = 4) extends Module {
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
+    require(frameSlots >= 1 && frameSlots <= 16 && isPow2(frameSlots))
     val io = IO(new Bundle {
         val gmiiData = Input(UInt(8.W))
         val gmiiValid = Input(Bool())
@@ -31,14 +32,27 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) ext
     })
     private val indexBits = log2Ceil(maxFrameBytes / 4)
     private val lengthBits = log2Ceil(maxFrameBytes + 5)
-    val buffer = SyncReadMem(maxFrameBytes / 4, UInt(32.W))
+    private val slotBits = log2Ceil(frameSlots).max(1)
+    val buffer = SyncReadMem(frameSlots * maxFrameBytes / 4, UInt(32.W))
+    val producer = RegInit(0.U(slotBits.W))
+    val consumer = RegInit(0.U(slotBits.W))
+    val occupied = RegInit(0.U(log2Ceil(frameSlots + 1).W))
+    val lengths = Reg(Vec(frameSlots, UInt(lengthBits.W)))
+    val publish = WireDefault(false.B)
+    val release = WireDefault(false.B)
+    when(publish =/= release) { occupied := Mux(publish, occupied + 1.U, occupied - 1.U) }
+    when(publish) { producer := (if (frameSlots == 1) 0.U else producer + 1.U) }
+    when(release) { consumer := (if (frameSlots == 1) 0.U else consumer + 1.U) }
+    assert(occupied <= frameSlots.U)
+    assert(!release || occupied =/= 0.U)
+    assert(!publish || occupied < frameSlots.U)
     // One physical write port: the full-word and EOF-tail cases are mutually
     // exclusive but separate memory.write calls create two FIRRTL write ports.
     // That plus the reader cannot map to a dual-port FPGA block RAM.
     val writeEnable = WireDefault(false.B)
     val writeIndex = WireDefault(0.U(indexBits.W))
     val writeWord = WireDefault(0.U(32.W))
-    when(writeEnable) { buffer.write(writeIndex, writeWord) }
+    when(writeEnable) { buffer.write(if (frameSlots == 1) writeIndex else Cat(producer, writeIndex), writeWord) }
     val search :: preamble :: body :: drain :: Nil = Enum(4)
     // A reset in the middle of a physical frame must wait for DV=0, not search
     // for a coincidental 55/D5 pair in that frame's payload.
@@ -60,7 +74,12 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) ext
     val length = RegInit(0.U(lengthBits.W))
     val outputIndex = RegInit(0.U(indexBits.W))
     val outputWord = Reg(UInt(32.W))
-    val outputRead = buffer.read(outputIndex, outputState === load)
+    val outputRead = buffer.read(if (frameSlots == 1) outputIndex else Cat(consumer, outputIndex), outputState === load)
+    when(outputState === idle && occupied =/= 0.U) {
+        length := lengths(consumer)
+        outputIndex := 0.U
+        outputState := load
+    }
     when(outputState === load) { outputState := waitRead }
     when(outputState === waitRead) { outputWord := outputRead; outputState := offer }
     val remaining = length - (outputIndex << 2)
@@ -71,13 +90,13 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) ext
     io.frame.bits.last := remaining <= 4.U
     io.frame.bits.bad := false.B
     when(io.frame.fire) {
-        when(io.frame.bits.last) { outputState := idle }
+        when(io.frame.bits.last) { outputState := idle; release := true.B }
             .otherwise { outputIndex := outputIndex + 1.U; outputState := load }
     }
-    io.busy := state =/= search || outputState =/= idle
+    io.busy := state =/= search || occupied =/= 0.U
     // Discarding an unadmitted physical frame owns no payload. Its endless
     // arrival must not prevent a requested shutdown from becoming quiescent.
-    io.ownedBusy.foreach(_ := state === preamble || state === body || outputState =/= idle)
+    io.ownedBusy.foreach(_ := state === preamble || state === body || occupied =/= 0.U)
     io.accepted := false.B
     io.dropped := false.B
     io.badFcs := false.B
@@ -89,7 +108,7 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) ext
         promiscuous := io.promiscuous
         broadcastEnable := io.broadcastEnable
         errored := io.gmiiError
-        when(io.enable && !io.stopNewFrames.getOrElse(false.B) && outputState === idle && io.gmiiData === "h55".U) {
+        when(io.enable && !io.stopNewFrames.getOrElse(false.B) && occupied < frameSlots.U && io.gmiiData === "h55".U) {
             preambleCount := 1.U
             state := preamble
         }.otherwise { state := drain }
@@ -149,9 +168,8 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false) ext
                     writeIndex := (bodyBytes >> 2)(indexBits - 1, 0)
                     writeWord := pack
                 }
-                length := bodyBytes
-                outputIndex := 0.U
-                outputState := load
+                lengths(producer) := bodyBytes
+                publish := true.B
             }
             state := search
         }

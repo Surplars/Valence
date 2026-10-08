@@ -3,10 +3,11 @@ package soc.ip.bus
 import chisel3._
 import chisel3.util._
 
-/** Fair ordered two-master boundary. Four response owners, stable stalled offers.
+/** Fair ordered two-master boundary. Bounded response owners, stable stalled offers.
   * Responses may not bypass the registered owner queue (zero-cycle slaves hold valid).
   */
-class RegisterArbiter extends Module {
+class RegisterArbiter(responseCredits: Int = 4) extends Module {
+    require(responseCredits >= 1 && responseCredits <= 16)
     val io = IO(new Bundle {
         val clients = Vec(2, Flipped(new RegisterPort))
         val memory = new RegisterPort
@@ -16,7 +17,7 @@ class RegisterArbiter extends Module {
     val lockedOwner = Reg(Bool())
     val selected = Mux(locked, lockedOwner,
         Mux(io.clients(0).request.valid && io.clients(1).request.valid, turn, io.clients(1).request.valid))
-    val owners = Module(new Queue(Bool(), 4, pipe = false, flow = false))
+    val owners = Module(new Queue(Bool(), responseCredits, pipe = false, flow = false))
     io.memory.request.valid := Mux(selected, io.clients(1).request.valid, io.clients(0).request.valid) &&
         owners.io.enq.ready
     io.memory.request.bits := Mux(selected, io.clients(1).request.bits, io.clients(0).request.bits)

@@ -28,6 +28,60 @@ class ThroughputPerfGsim(p: OooParams) extends IntegerCoreGsim(p) {
     // GSIM applies registered state at the beginning of step(). The external
     // instruction device needs the next raw cursor before supplying that step.
     // This is device stimulus, never the expected architectural retirement PC.
+    val storeOperandGrant = IO(Output(Bool()))
+    val storeAndAluCapture = IO(Output(Bool()))
+    val storeCommonRankDiffers = IO(Output(Bool()))
+    if (p.earlyStorePreparation) {
+        val backend = core.backend
+        val grants = BoringUtils.bore(backend.preparedOwners)
+        val enqueued = BoringUtils.bore(backend.executionEnqueued)
+        val common = Seq(BoringUtils.bore(backend.issueSelector.get.io.second),
+            BoringUtils.bore(backend.issueSelector.get.io.first))
+        val values = if (!p.lvtPhysicalRegisterFile) {
+            VecInit(backend.values.get.map(v => BoringUtils.bore(v)))
+        } else {
+            // Test-only semantic shadow. Derive authorization independently from
+            // the ledger/queue, never from PRF bank/owner/write-port state.
+            val shadow = RegInit(VecInit(Seq.fill(p.physicalRegs)(0.U(64.W))))
+            val destinations = VecInit(backend.queue.map(q => BoringUtils.bore(q.renamed.destination)))
+            val writesRd = VecInit(backend.queue.map(q => BoringUtils.bore(q.renamed.writesRd)))
+            for (lane <- 0 until p.completionWidth) {
+                val accepted = BoringUtils.bore(backend.ledger.io.completionAccepted(lane))
+                val completion = BoringUtils.bore(backend.ledger.io.complete(lane).bits)
+                val index = Mux(accepted, completion.token.index, 0.U)
+                when(accepted && !completion.exception && writesRd(index)) {
+                    shadow(destinations(index)) := completion.data
+                }
+            }
+            shadow
+        }
+        val sources1 = VecInit(backend.queue.map(q => BoringUtils.bore(q.renamed.source1)))
+        val sources2 = VecInit(backend.queue.map(q => BoringUtils.bore(q.renamed.source2)))
+        val storeFlags = VecInit(backend.queue.map(q => BoringUtils.bore(q.request.store)))
+        val owners = backend.earlyStorePayloads.get._1.map(o => BoringUtils.bore(o))
+        val payloads = backend.earlyStorePayloads.get._2.map(o => BoringUtils.bore(o))
+        val accepted = grants.reduce(_ | _)
+        storeOperandGrant := accepted.orR
+        storeAndAluCapture := accepted.orR && enqueued.asUInt.orR
+        val commonOldestStore = (common(1) & storeFlags.asUInt).orR
+        storeCommonRankDiffers := grants(0).orR && !commonOldestStore
+        for (rank <- 0 until 2; slot <- 0 until p.robEntries) {
+            when(accepted(slot) && owners(rank)(slot)) {
+                val left = chisel3.util.Mux1H((0 until p.physicalRegs).map(r =>
+                    (sources1(slot) === r.U) -> values(r)))
+                val right = chisel3.util.Mux1H((0 until p.physicalRegs).map(r =>
+                    (sources2(slot) === r.U) -> values(r)))
+                assert(payloads(rank).base === left && payloads(rank).data === right,
+                    "granted store must capture raw PRF operands without ALU forwarding")
+                assert(payloads(rank).token.index === slot.U,
+                    "granted store token must remain paired with shared raw operands")
+            }
+        }
+    } else {
+        storeOperandGrant := false.B
+        storeAndAluCapture := false.B
+        storeCommonRankDiffers := false.B
+    }
     val nextFetchPc = IO(Output(UInt(64.W)))
     nextFetchPc := core.io.nextFetchPc.getOrElse(core.io.fetchPc)
     // Test-only coverage taps: the production SoC interface stays unchanged.
@@ -80,6 +134,9 @@ class ThroughputPerfGsim(p: OooParams) extends IntegerCoreGsim(p) {
 
 object ThroughputPerfGsimMain extends App {
     val profile = args.lift(1).getOrElse("staged-throughput")
-    ChiselStage.emitCHIRRTLFile(new ThroughputPerfGsim(ThroughputPerfConfig.params(profile)),
+    ChiselStage.emitCHIRRTLFile(new ThroughputPerfGsim(ThroughputPerfConfig.params(profile).copy(
+        bankedRobPayload = args.drop(2).contains("banked-rob"),
+        sharedStoreOperandReads = args.drop(2).contains("shared-store-reads"),
+        lvtPhysicalRegisterFile = args.drop(2).contains("lvt-prf"))),
         Array("--target-dir", args.head))
 }

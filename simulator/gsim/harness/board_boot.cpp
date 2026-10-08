@@ -94,6 +94,15 @@ static Bytes instructionFixture(char marker) {
 }
 
 #ifdef DDR_MODEL
+// Default legacy single-flight model remains unchanged. Explicit opt-in uses the
+// same fixed multi-ID model for both compared RTL builds.
+#ifdef DDR_MULTI_ID_MODEL
+#ifdef DDR_BENCHMARK_MODEL
+#include "board_ddr_benchmark.h"
+#else
+#include "board_ddr_multiid.h"
+#endif
+#else
 // Independent sparse AXI memory; protocol model, not a DDR PHY/CDC model.
 struct DdrModel {
     std::unordered_map<uint32_t, uint64_t> memory;
@@ -173,7 +182,8 @@ struct DdrModel {
         if (bValid && d.get_io$$ddrAxi$$b$$ready()) responding = false;
     }
 };
-#endif
+#endif // DDR_MULTI_ID_MODEL
+#endif // DDR_MODEL
 
 struct Test {
     std::unique_ptr<SBoardSocGsim> dut = std::make_unique<SBoardSocGsim>();
@@ -192,6 +202,9 @@ struct Test {
     void *observerContext = nullptr;
 
     void tick() {
+#ifdef BOARD_CYCLE_LIMIT
+        check(cycles < BOARD_CYCLE_LIMIT, "bounded Board workload exceeded cycle limit");
+#endif
 #ifdef DDR_MODEL
         ddr.drive(*dut, cycles);
 #endif
@@ -313,7 +326,13 @@ struct Test {
         throw std::runtime_error("UART response timeout");
     }
     void downloadMode() { expect("download mode (UART)\r\n"); }
-    void ready() { expect("ready to boot\r\n"); }
+    void ready() {
+#ifdef BOARD_MENU_MONITOR
+        expect("monitor> ");
+#else
+        expect("ready to boot\r\n");
+#endif
+    }
     void startDownload() { send('d'); expect("VLOAD1\r\n"); }
     void ack(uint32_t sequence, uint32_t status) {
         const auto offset = expect("VACK", 8);

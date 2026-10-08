@@ -1,0 +1,11 @@
+# Aperture-derived compact cache tags
+
+Opt-in `CacheTagConfig.Aperture` narrows tag storage from the configured physical RAM aperture; default `FullWidth` preserves full address tags. Board/managed/Ethernet exporters accept `--compact-tags` without changing positional arguments. All request/coherence/backing addresses remain64bit. Full-width aperture guards prevent high aliases; victim addresses reconstruct absolute retained bits and zero-extend. Existing static-prefix range decoder is reused.
+
+Validation:2 Scala tests plus12 focused ASan/UBSan cases passed, including negative oracles/assertions. Tests cover512-line data caches with M1/M2/M4, held responses, partial stores, dirty releases/flush, high-alias CPU and B requests,4GiB-crossing reconstruction, separate coherent homes M1/M2/M4, high-alias DMA, invalid Acquire/Release, exact Grant/source/sink ownership, release quota, legacy parallel qualification, and512-line instruction caches with2/4-word packets and prefetch off/on. Sources were frozen throughout. An executor interruption after8 cases was preserved; those logs/artifacts were verified and reused while the remaining4 completed separately.
+
+Matched D-cache clean replacement latency is unchanged: M1 full/compact60829/60829 cycles, M2 full/compact33795/33795. Hit checks retain one-cycle response latency and one-request-per-cycle throughput. These standalone fixture cycles are not CPU IPC.
+
+For the current2GiB board aperture at0x80200000,512-line two-way I/D tags shrink50→19bits each and home tags58→27:80896→33280 declared array bits,47616 fewer. The compact home behavioral fixture has16 directory entries;512-entry resource totals are geometry-derived. The current aperture decomposes into11 prefix blocks, so guards/fanout must be included in later physical measurements. No net LUT/FF/BRAM savings,100MHz timing, full-board CPU performance, or physical DDR signoff is claimed.
+
+Base: exact source from passed real cache/home integration r3, including bounded release-priority quota and safe idle writer index. This patch does not change those fixes. Compact endpoints were tested separately; compact real-cache+home/full-board execution remains a later combined integration check. Burst-limit/denial behavior is outside this patch; production should retain burst16 unless all request sizes are explicitly bounded.

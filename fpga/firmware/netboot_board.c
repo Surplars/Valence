@@ -1,5 +1,18 @@
 #include "netboot.h"
 #include "valence_gmac.h"
+#include "ethernet_dma.h"
+#ifndef NETBOOT_POSTED_RX
+#define NETBOOT_POSTED_RX 0
+#endif
+#ifndef NETBOOT_BLOCK_BYTES
+#define NETBOOT_BLOCK_BYTES 1024U
+#endif
+#ifndef NETBOOT_WINDOW
+#define NETBOOT_WINDOW 4U
+#endif
+#ifndef NETBOOT_RX_SLOTS
+#define NETBOOT_RX_SLOTS 4U
+#endif
 #ifndef CPU_HZ
 #define CPU_HZ 100000000ULL
 #endif
@@ -16,21 +29,52 @@
 #define NETBOOT_FILE "valence.vld"
 #endif
 #include "board_memory.h"
+#include "ram_verify.h"
 #define DMA_BASE 0x10002000UL
 #define MAC_BASE 0x10040000UL
 #define UART ((volatile uint8_t *)0x10000000UL)
 /* These lie in the monitor's reserved 16 KiB, excluded by IMAGE_LIMIT and DT. */
-static uint8_t tx_frame[2048] __attribute__((aligned(64)));
+/* TX contains only ARP, ACK, bounded RRQ and error packets, all below 512.
+ * Four 1152-byte posted slots cover a 1024-byte block plus even a 60-byte IPv4
+ * header (1110 bytes total). Keep the 8 KiB stack; legacy and posted receive storage share an exclusive union. */
+static uint8_t tx_frame[512] __attribute__((aligned(64)));
+#if NETBOOT_POSTED_RX
+#define POSTED_RX_COUNT NETBOOT_RX_SLOTS
+/* Ethernet + maximum IPv4 header + UDP + TFTP =86 bytes; align each slot. */
+#define POSTED_RX_BYTES ((NETBOOT_BLOCK_BYTES + 86U + 63U) & ~63U)
+_Static_assert(NETBOOT_BLOCK_BYTES == 512 || NETBOOT_BLOCK_BYTES == 1024, "supported TFTP block sizes");
+_Static_assert(POSTED_RX_COUNT >= 1 && POSTED_RX_COUNT <= 16, "posted software slots 1..16");
+_Static_assert(NETBOOT_WINDOW >= 1 && NETBOOT_WINDOW <= POSTED_RX_COUNT &&
+               NETBOOT_WINDOW <= NB_TFTP_WINDOW_MAX, "window must fit the posted pool");
+_Static_assert(POSTED_RX_COUNT * POSTED_RX_BYTES <= 4608, "posted pool exceeds reserved boot scratch budget");
+/* Modes are mutually exclusive. Borrowed posted frames remove the duplicate
+ * receive-copy buffer while preserving a full legacy 2048-byte DMA buffer. */
+static union {
+    uint8_t legacy[2048];
+    uint8_t posted[POSTED_RX_COUNT][POSTED_RX_BYTES];
+} rx_storage __attribute__((aligned(64)));
+#define rx_frame rx_storage.legacy
+#define posted_rx rx_storage.posted
+static unsigned borrowed_slot;
+static int borrowed_valid;
+static unsigned posted_count, negotiated_window_cap;
+static unsigned posted_owned;
+static int posted_available, posted_mode, posted_used;
+static unsigned posted_frames, posted_drops;
+static uint64_t posted_copy_ticks;
+#else
 static uint8_t rx_frame[2048] __attribute__((aligned(64)));
-static int active, armed, pending_command;
+#endif
+static int active, armed, pending_command, hardware_probed;
 static struct nb_stats stats;
 static enum nb_stage current_stage;
 static uint64_t stage_start, init_ticks, drain_ticks, mac_stop_ticks, transfer_ticks;
+static uint64_t ram_flush_ticks,ram_sweep_ticks,ram_readback_ticks;
 static uint32_t ram_crc;
 static unsigned drained_frames;
 static int ram_crc_valid, failure_reported;
 static const char *const stages[]={"init","arp","rx","header","stream_crc",
-    "ram_crc","rx_tx_drain","mac_stop","jump"};
+    "ram_crc","rx_tx_drain","mac_stop","jump","ram_prepare"};
 #ifdef NETBOOT_BOARD_TEST
 /* A scripted MMIO oracle tests firmware ordering, NOT physical CDC behavior. */
 extern uint64_t nb_test_now(void);
@@ -120,6 +164,9 @@ static int failed(const char *reason) {
     if(active) {
         hexfield("rx_dma",rx); hexfield("tx_dma",tx); hexfield("rx_bytes",bytes);
         hexfield("mac",mac); hexfield("control",control); hexfield("rx_stop",stopped);
+#if NETBOOT_POSTED_RX
+        if(posted_mode) hexfield("rx_queue",read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS));
+#endif
     }
     text("\r\n"); return 0;
 }
@@ -140,9 +187,93 @@ static void arm_rx(void) {
     write64(DMA_BASE,0x30,(uintptr_t)rx_frame); write64(DMA_BASE,0x38,sizeof rx_frame);
     write64(DMA_BASE,0x40,3); armed=1;
 }
+#if NETBOOT_POSTED_RX
+static unsigned queue_owned(uint64_t status) {
+    return (unsigned)(status&255)+((unsigned)(status>>8)&255)+((status>>16)&1);
+}
+static void post_rx(unsigned slot) {
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_POST_ADDRESS,(uintptr_t)posted_rx[slot]);
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_POST_CAPACITY,POSTED_RX_BYTES);
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_POST,1);
+    posted_owned|=1U<<slot;
+}
+static int start_posted_rx(void) {
+    unsigned hardware_slots=(unsigned)(read64(DMA_BASE,VALENCE_NET_DMA_CAPABILITIES)>>8)&255;
+    uint64_t mac_cap=read64(MAC_BASE,VGMAC_CAP);
+    unsigned mac_slots=(mac_cap&(1ULL<<9))?(unsigned)(mac_cap>>24)&255:1;
+    if(!hardware_slots || hardware_slots>16 || (hardware_slots&(hardware_slots-1)) ||
+       !mac_slots || mac_slots>16 || (mac_slots&(mac_slots-1))) return 0;
+    posted_count=hardware_slots<POSTED_RX_COUNT?hardware_slots:POSTED_RX_COUNT;
+    negotiated_window_cap=NETBOOT_WINDOW;
+    if(negotiated_window_cap>posted_count) negotiated_window_cap=posted_count;
+    if(negotiated_window_cap>mac_slots) negotiated_window_cap=mac_slots;
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL,1);
+    if(!(read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL)&1)) return 0;
+    posted_mode=1; posted_used=1; posted_owned=0; borrowed_valid=0;
+    for(unsigned slot=0;slot<posted_count;++slot) post_rx(slot);
+    return queue_owned(read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS))==posted_count;
+}
+/* The returned frame stays DMA-owned and immutable until the next recv or
+ * shutdown. Only after parsing/CRC/store may POP allow hardware to reuse it. */
+static int release_borrowed_rx(int repost) {
+    if(!borrowed_valid) return 1;
+    if(borrowed_slot>=posted_count || !(posted_owned&(1U<<borrowed_slot)) ||
+       read64(DMA_BASE,VALENCE_NET_DMA_RX_COMPLETE_ADDRESS)!=(uintptr_t)posted_rx[borrowed_slot]) return 0;
+    unsigned slot=borrowed_slot;
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_COMPLETE_POP,1);
+    posted_owned&=~(1U<<slot); borrowed_valid=0;
+    if(repost) post_rx(slot);
+    return 1;
+}
+static int complete_posted_rx(int copy_frame,int repost) {
+    uint64_t address=read64(DMA_BASE,VALENCE_NET_DMA_RX_COMPLETE_ADDRESS);
+    uint64_t result=read64(DMA_BASE,VALENCE_NET_DMA_RX_COMPLETE_RESULT);
+    unsigned slot=POSTED_RX_COUNT, bytes=(unsigned)result&65535;
+    for(unsigned i=0;i<POSTED_RX_COUNT;++i)
+        if(address==(uintptr_t)posted_rx[i] && (posted_owned&(1U<<i))) slot=i;
+    int good=slot<POSTED_RX_COUNT && !(result&VALENCE_NET_DMA_RX_COMPLETE_ERROR) &&
+        bytes>0 && bytes<=POSTED_RX_BYTES;
+    if(copy_frame) {
+        if(good) {
+            if(borrowed_valid) return -1;
+            borrowed_slot=slot; borrowed_valid=1; ++posted_frames;
+            return (int)bytes;
+        } else ++posted_drops;
+    }
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_COMPLETE_POP,1);
+    if(slot==POSTED_RX_COUNT) return -1; /* never dereference an unowned address */
+    posted_owned&=~(1U<<slot);
+    if(repost) post_rx(slot);
+    return good?(int)bytes:0;
+}
+static int stop_posted_rx(void) {
+    /* The producer barrier is already acknowledged. Cancel pending descriptors,
+     * drain the active write tail, and reclaim every completion before disable. */
+    if(!release_borrowed_rx(0)) return 0;
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_STOP,1);
+    uint64_t start=now(0);
+    int valid=1;
+    for(;;) {
+        uint64_t status=read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS);
+        if(!queue_owned(status)) break;
+        if(((status>>8)&255) && complete_posted_rx(0,0)<0) valid=0;
+        if(now(0)-start>=CPU_HZ/5) return 0;
+    }
+    write64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL,0);
+    if((read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL)&1) ||
+       (read64(DMA_BASE,0x48)&1)) return 0;
+    posted_mode=0; posted_owned=0;
+    return valid;
+}
+#endif
 static int stop_rx(void) {
     /* PRECONDITION: GMAC_RX_STOP.DRAINED is an acknowledged producer barrier.
      * No further data/status can appear. RX_STOP alone is NOT that barrier. */
+#if NETBOOT_POSTED_RX
+    if(posted_mode) {
+        if(!stop_posted_rx()) return 0;
+    } else
+#endif
     if(read64(DMA_BASE,0x48)&1) {
         write64(DMA_BASE,0x90,1);
         if(!wait_bits(DMA_BASE,0x48,1,0,CPU_HZ/5)) return 0;
@@ -157,14 +288,30 @@ int board_netboot_quiet(void) {
      * alive until admitted frames, CDC/prefetch and adapter status have drained.
      * New wire traffic cannot extend this bounded wait after admission closes. */
     write64(MAC_BASE,VGMAC_RX_STOP,VGMAC_RX_STOP_REQUEST);
+#if NETBOOT_POSTED_RX
+    /* Protocol consumption has ended before quiet(). Release its retained head
+     * before draining subsequent frames, never behind their FIFO completions. */
+    if(posted_mode && !release_borrowed_rx(1))return failed("rx_queue_owner");
+#endif
     uint64_t start=now(0);
     for(;;) {
         uint64_t mac_stop=read64(MAC_BASE,VGMAC_RX_STOP);
         if((mac_stop&3)==3) break;
-        uint64_t rx=read64(DMA_BASE,0x48);
-        if(!(rx&1)) {
-            if(rx&2) ++drained_frames;
-            arm_rx(); /* completed frames are discarded only in reserved scratch */
+#if NETBOOT_POSTED_RX
+        if(posted_mode) {
+            uint64_t queue=read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS);
+            if((queue>>8)&255) {
+                ++drained_frames;
+                if(complete_posted_rx(0,1)<0) return failed("rx_queue_owner");
+            }
+        } else
+#endif
+        {
+            uint64_t rx=read64(DMA_BASE,0x48);
+            if(!(rx&1)) {
+                if(rx&2) ++drained_frames;
+                arm_rx(); /* completed frames are discarded only in reserved scratch */
+            }
         }
         if(now(0)-start>=CPU_HZ/5) return failed("producer_drain_timeout");
     }
@@ -190,12 +337,21 @@ static int mdio(unsigned reg,int write,unsigned value) {
     return result&(1UL<<16)?-1:(int)(result&65535);
 }
 static int initialize(void) {
+    if(!firmware_ram_dma_idle())return failed("memory_dma_busy");
     /* Test existing capability locations before touching additive registers.
      * Old RTL skips networking entirely, so UART has no inherited DMA owner. */
     if(read64(DMA_BASE,0)!=0x56444d4100010001ULL ||
        read64(MAC_BASE,VGMAC_ID)!=VALENCE_GMAC_ID ||
        !(read64(MAC_BASE,VGMAC_CAP)&VGMAC_CAP_RX_STOP)) return failed("missing_mac_stop_capability");
-    if(!(read64(DMA_BASE,0x98)&1)) return failed("missing_dma_stop_capability");
+    uint64_t capabilities=read64(DMA_BASE,VALENCE_NET_DMA_CAPABILITIES);
+    if(!(capabilities&VALENCE_NET_DMA_CAP_RX_STOP)) return failed("missing_dma_stop_capability");
+    hardware_probed=1;
+    if(read64(DMA_BASE,0x88)<sizeof rx_frame) return failed("dma_frame_capacity");
+#if NETBOOT_POSTED_RX
+    unsigned hardware_slots=(unsigned)(capabilities>>VALENCE_NET_DMA_CAP_QUEUE_DEPTH_SHIFT)&255;
+    posted_available=(capabilities&VALENCE_NET_DMA_CAP_RX_QUEUE) && hardware_slots &&
+        hardware_slots<=16 && !(hardware_slots&(hardware_slots-1));
+#endif
     active=1;
     if(!board_netboot_quiet()) return 0;
     begin(NB_INIT);
@@ -230,6 +386,10 @@ static int initialize(void) {
             write64(MAC_BASE,0x18,0x0256414c0001ULL);
             if(read64(MAC_BASE,0x18)!=0x0256414c0001ULL ||
                !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return 0;
+#if NETBOOT_POSTED_RX
+            /* Post the whole receive window before reopening MAC admission. */
+            if(posted_available && !start_posted_rx()) return 0;
+#endif
             write64(MAC_BASE,0x10,11); /* TX/RX + broadcast, no promiscuous mode */
             if(read64(MAC_BASE,0x10)!=11 || !wait_bits(MAC_BASE,0x28,6,0,CPU_HZ/5)) return 0;
             write64(MAC_BASE,VGMAC_RX_STOP,0);
@@ -241,7 +401,7 @@ static int initialize(void) {
 }
 static int send(void *unused,unsigned length) {
     (void)unused;
-    if(!length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return -1;
+    if(!active || !length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return -1;
     write64(DMA_BASE,0x10,(uintptr_t)tx_frame); write64(DMA_BASE,0x18,length);
     write64(DMA_BASE,0x20,3);
     if(!wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5) || (read64(DMA_BASE,0x28)&6)!=2) return -1;
@@ -249,6 +409,21 @@ static int send(void *unused,unsigned length) {
 }
 static int recv(void *unused,uint64_t budget) {
     (void)unused;
+#if NETBOOT_POSTED_RX
+    if(posted_mode) {
+        if(!release_borrowed_rx(1)) return -1;
+        uint64_t start=now(0);
+        do {
+            if(abort_uart()) return -1;
+            uint64_t status=read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS);
+            if((status>>8)&255) {
+                int n=complete_posted_rx(1,1);
+                if(n) return n;
+            }
+        } while(now(0)-start<budget);
+        return 0; /* timeout never relinquishes any posted descriptor */
+    }
+#endif
     if(!armed) {
         if(read64(DMA_BASE,0x48)&1) return -1; /* never mutate a DMA-owned descriptor */
         arm_rx();
@@ -267,15 +442,44 @@ static int recv(void *unused,uint64_t budget) {
      * Keep it armed for the next poll/retry; cancellation uses quiet(). */
     return 0;
 }
+static uint8_t *received_frame(void *unused) {
+    (void)unused;
+#if NETBOOT_POSTED_RX
+    if(posted_mode && borrowed_valid) return posted_rx[borrowed_slot];
+#endif
+    return rx_frame;
+}
 static int store(void *unused,uint32_t offset,const uint8_t *p,unsigned n) {
     (void)unused;
     if(offset>IMAGE_LIMIT || n>IMAGE_LIMIT-offset) return -1;
     volatile uint8_t *to=ram_pointer(offset);
-    for(unsigned i=0;i<n;++i) to[i]=p[i];
+    /* Frame payload alignment is arbitrary. Pack from bytes, and issue only
+     * aligned wide RAM stores; prefix/tail stores preserve neighboring bytes.
+     * may_alias also keeps the native byte-array oracle well-defined. */
+    typedef uint64_t ram_word __attribute__((may_alias));
+    while(n && ((uintptr_t)to&7)) { *to++=*p++; --n; }
+    while(n>=8) {
+        uint64_t word=(uint64_t)p[0] | (uint64_t)p[1]<<8 | (uint64_t)p[2]<<16 |
+            (uint64_t)p[3]<<24 | (uint64_t)p[4]<<32 | (uint64_t)p[5]<<40 |
+            (uint64_t)p[6]<<48 | (uint64_t)p[7]<<56;
+        *(volatile ram_word *)to=word; to+=8; p+=8; n-=8;
+    }
+    while(n--) *to++=*p++;
     return 0;
 }
+static int prepare_verify(void *unused) {
+    (void)unused;
+    /* The fixed final ACK/dally has completed; no new network owner is needed. */
+    if(!board_netboot_quiet())return -1;
+    begin(NB_RAM_PREPARE);
+    if(!firmware_ram_prepare(&ram_flush_ticks,&ram_sweep_ticks)){
+        failed("memory_dma_busy");return -1;
+    }
+    ended(ram_flush_ticks+ram_sweep_ticks);return 0;
+}
 static int verify(void *unused,uint32_t length,uint32_t crc) {
-    (void)unused; fence();
+    (void)unused;
+    uint64_t crc_start=now(0);
     uint32_t running=0xffffffffU;
     for(uint32_t offset=0;offset<length;) {
         unsigned n=length-offset>4096?4096:length-offset;
@@ -284,6 +488,7 @@ static int verify(void *unused,uint32_t length,uint32_t crc) {
          * pass. This remains an independent readback, never the stream CRC. */
         if(abort_uart()) return -2;
     }
+    ram_readback_ticks=now(0)-crc_start;
     ram_crc=running^0xffffffffU;
     ram_crc_valid=1; return ram_crc==crc?0:-1;
 }
@@ -291,17 +496,25 @@ static void protocol_stage(void *unused,enum nb_stage value) {
     (void)unused;
     if(value==NB_RX && current_stage==NB_ARP) ended(now(0)-stage_start);
     if(value==NB_STREAM_CRC && current_stage==NB_RX) ended(now(0)-stage_start);
-    if(value==NB_RAM_CRC && current_stage==NB_STREAM_CRC) ended(stats.crc_ticks);
+    if((value==NB_RAM_CRC || value==NB_RAM_PREPARE) && current_stage==NB_STREAM_CRC) ended(stats.crc_ticks);
+    if(value==NB_RAM_PREPARE)return; /* quiet has its own stages; callback starts prepare after it */
     begin(value);
 }
 static void summary(void) {
     text("NB totals"); field("timebase_hz",CPU_HZ); field("init_ticks",init_ticks); field("transfer_ticks",transfer_ticks);
     field("rx_wait_ticks",stats.rx_ticks); field("copy_ticks",stats.copy_ticks);
     field("stream_crc_ticks",stats.crc_ticks); field("tx_ack_ticks",stats.tx_ticks);
-    field("ram_crc_ticks",stats.verify_ticks); field("drain_ticks",drain_ticks);
+    field("ram_crc_ticks",ram_readback_ticks); field("ram_flush_ticks",ram_flush_ticks); field("ram_sweep_ticks",ram_sweep_ticks); field("verify_callback_ticks",stats.verify_ticks); field("drain_ticks",drain_ticks);
     field("mac_stop_ticks",mac_stop_ticks); field("rx_frames",stats.rx_frames);
     field("rx_timeouts",stats.rx_timeouts); field("tx_frames",stats.tx_frames);
     field("retries",stats.retries); field("duplicates",stats.duplicates);
+    field("block_size",stats.block_size); field("window_size",stats.window_size);
+    field("acks",stats.acks); field("out_of_order",stats.out_of_order);
+    field("final_ack_ticks",stats.final_ack_ticks);
+#if NETBOOT_POSTED_RX
+    field("posted_rx",posted_used); field("posted_rx_frames",posted_frames);
+    field("posted_rx_drops",posted_drops); field("posted_rx_copy_ticks",posted_copy_ticks);
+#endif
     field("drain_completions_rearmed",drained_frames); field("length",stats.received); text("\r\n");
 }
 void board_netboot_jump(uint32_t entry,uint32_t length) {
@@ -310,7 +523,10 @@ void board_netboot_jump(uint32_t entry,uint32_t length) {
 }
 int board_netboot(uint32_t *entry,uint32_t *length) {
     stats=(struct nb_stats){0}; pending_command=0; ram_crc_valid=0; failure_reported=0;
-    init_ticks=drain_ticks=mac_stop_ticks=transfer_ticks=0; drained_frames=0;
+    init_ticks=drain_ticks=mac_stop_ticks=transfer_ticks=0; ram_flush_ticks=ram_sweep_ticks=ram_readback_ticks=0; drained_frames=0;
+#if NETBOOT_POSTED_RX
+    posted_used=0; posted_frames=posted_drops=0; posted_copy_ticks=0;
+#endif
     begin(NB_INIT); text("NB time_source=rdtime"); field("timebase_hz",CPU_HZ); text("\r\n");
     uint64_t init_start=now(0);
     if(!initialize()) {
@@ -323,20 +539,33 @@ int board_netboot(uint32_t *entry,uint32_t *length) {
         .mac={2,0x56,0x41,0x4c,0,1},.ip=NETBOOT_IP,.server_ip=NETBOOT_SERVER,
         .base=RAM_BASE,.limit=IMAGE_LIMIT,.hz=CPU_HZ,
         .now=now,.send=send,.recv=recv,.store=store,.verify=verify,
-        .stats=&stats,.stage=protocol_stage };
+        .stats=&stats,.stage=protocol_stage,.received_frame=received_frame,.prepare_verify=prepare_verify
+#if NETBOOT_POSTED_RX
+        ,.request_blksize=posted_mode?NETBOOT_BLOCK_BYTES:0,
+        .request_windowsize=posted_mode?negotiated_window_cap:0
+#endif
+    };
     uint32_t verified_entry=0, verified_length=0;
     uint64_t transfer_start=now(0);
     int good=nb_tftp(&ops,NETBOOT_FILE,&verified_entry,&verified_length);
     transfer_ticks=now(0)-transfer_start;
-    if(good) ended(stats.verify_ticks);
-    else {
+    if(good) ended(ram_readback_ticks);
+    else if(!failure_reported) {
         current_stage=stats.stage;
         static const char *const reasons[]={"none","send","uart_or_rx_abort","retry_limit",
-            "server_error","header","range","store","length","stream_crc","ram_crc"};
-        failed(reasons[stats.failure]);
+            "server_error","header","range","store","length","stream_crc","ram_crc","bad_options","ram_prepare"};
+        failed((unsigned)stats.failure<sizeof reasons/sizeof reasons[0]?reasons[stats.failure]:"unknown");
     }
     int quiet=board_netboot_quiet(); summary();
     if(good && abort_uart()) { text("NB cancel before_jump\r\n"); good=0; }
     if(!quiet || !good) return 0;
     *entry=verified_entry; *length=verified_length; return 1;
+}
+
+uint32_t board_netboot_verified_crc(void) { return ram_crc_valid ? ram_crc : 0; }
+
+void board_netboot_info(void) {
+    if(!hardware_probed){text("HW network unprobed; n validates MMIO identity before network-info reads\r\n");return;}
+    text("HW MMIO");hexfield("GMAC_ID",read64(MAC_BASE,VGMAC_ID));hexfield("GMAC_CAP",read64(MAC_BASE,VGMAC_CAP));
+    hexfield("NET_DMA_ID",read64(DMA_BASE,0));hexfield("NET_DMA_CAP",read64(DMA_BASE,VALENCE_NET_DMA_CAPABILITIES));text("\r\n");
 }

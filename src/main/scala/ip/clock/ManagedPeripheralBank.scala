@@ -4,13 +4,15 @@ import chisel3._
 import soc.ip.bus._
 import soc.ip.ethernet._
 import soc.ip.uart.ManagedUart
+import soc.ip.dma.NetworkDmaConfig
 
 /** One CMU owner, protected CPU/time/DDR and three real managed endpoints.
   * CPU MMIO/control remains running; raw UART/RX capture and PHY clocks remain
   * running. No CPU implementation, DDR reset/DFS or RGMII I/O primitives here.
   */
 class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
-    uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true) extends RawModule {
+    uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true,
+    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default) extends RawModule {
     require(config.resources.size == 7 && config.gateableMask == 0x68)
     require(config.resources(1).nominalHz == cpuHz && config.resources(3).nominalHz == uartHz)
     val sourceClock = IO(Input(Clock()))
@@ -61,7 +63,8 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uart.rx := uartRx
     uartTx := uart.tx
     uartIrq := uart.irq
-    val gmac = Module(new ManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks))
+    val gmac = Module(new ManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+        networkDmaConfig = networkDmaConfig))
     gmac.sourceClock := sourceClock
     gmac.rawTxClock := rawTxClock
     gmac.rawRxClock := rawRxClock

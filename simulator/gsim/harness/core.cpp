@@ -139,6 +139,7 @@ struct Stats {
     uint64_t commits = 0, dualCommits = 0, partialAccepts = 0, supplyStalls = 0, backendStalls = 0;
     uint64_t programs = 0, traps = 0, performanceCycles = 0, redirects = 0, recoveryCycles = 0;
     uint64_t branches = 0, takenBranches = 0, jumps = 0, olderRedirects = 0, misaligned = 0, olderDuringRollback = 0;
+    uint64_t storageGrants = 0, storageMixed = 0, storagePermuted = 0;
     uint64_t slot0HoldAndLane1Progress = 0, olderLane0BranchResolution = 0, aluForwardingHits = 0;
 };
 // Independent byte RAM. Serial requests must match the architectural head;
@@ -470,6 +471,11 @@ static void programTest(Reference &ref, const std::vector<uint32_t> &program, ui
         ram.drive(dut, cycle, stalled, rng);
         dut.step();
 #if REGISTERED_FETCH_PACKET
+#ifdef FPGA_STORAGE_OBSERVE
+        stats.storageGrants += bool(dut.get_storeOperandGrant());
+        stats.storageMixed += bool(dut.get_storeAndAluCapture());
+        stats.storagePermuted += bool(dut.get_storeCommonRankDiffers());
+#endif
         stats.slot0HoldAndLane1Progress += bool(dut.get_slot0HoldAndLane1Progress());
         stats.olderLane0BranchResolution += bool(dut.get_olderLane0BranchResolution());
         stats.aluForwardingHits += bool(dut.get_aluForwardingHit());
@@ -958,6 +964,29 @@ static void pipelineRecoveryTests(Reference &ref, Stats &stats) {
                          addiCode(6, 2, 42), storeCode(6, 1, 3, 512), loadCode(7, 1, 3, 512)},
                     seed, true, false, false, stats, 12);
     }
+#ifdef FPGA_STORAGE_OBSERVE
+    // Deliberately place a ready ALU before a ready store in each packet. A
+    // common-rank store then differs from the store-only rank. The ISA/NEMU and
+    // backing-memory oracles still own all architectural expectations.
+    std::vector<uint32_t> mixedStores{0x00010097U, addiCode(3, 0, 53)};
+    for (unsigned i = 0; i < 64; ++i) {
+        mixedStores.push_back(addiCode(8 + i % 16, 0, i));
+        mixedStores.push_back(storeCode(3, 1, 3, 512 + 8 * (i % 32)));
+    }
+    programTest(ref, mixedStores, 0x685, false, false, false, stats, 12);
+    // Store data initially waits on a load, then becomes ready; a taken branch
+    // discards younger store work before fresh owners reuse the queue slots.
+    programTest(ref, {0x00010097U, loadCode(3, 1, 3, 128), storeCode(3, 1, 3, 512),
+                     addiCode(4, 0, 7), branchCode(0, 0, 0, 8), storeCode(4, 1, 3, 520),
+                     storeCode(3, 1, 3, 528), loadCode(5, 1, 3, 528)},
+                0x686, true, false, false, stats, 12);
+#endif
+#ifdef FPGA_STORAGE_OBSERVE
+    check(stats.storageGrants > 0 && stats.storageMixed > 0 && stats.storagePermuted > 0,
+          "FPGA storage grant/mixed/permuted coverage missing");
+    std::cout << "FPGA_STORAGE grants=" << stats.storageGrants << " mixed=" << stats.storageMixed
+              << " permuted=" << stats.storagePermuted << "\n";
+#endif
     check(stats.programs >= 4 && stats.commits > 256 && stats.redirects > 0 &&
           stats.loads > 0 && stats.stores > 0 && stats.supplyStalls > 0,
           "pipeline recovery architectural coverage incomplete");

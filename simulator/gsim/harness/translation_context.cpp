@@ -7,6 +7,9 @@ static void check(bool v, const char *m) { if (!v) throw std::runtime_error(m); 
 int main(int argc, char **argv) { try {
     const bool inject = argc == 2 && std::string_view(argv[1]) == "--inject-mismatch";
     STranslationContextGsim d;
+#ifdef PROGRAMMABLE_PMP
+    d.set_pmpCfg0(0x1f); d.set_pmpAddr0((1ULL << 54) - 1); d.set_immediateTranslation(0);
+#endif
     d.set_io$$upstream$$request$$valid(0); d.set_io$$upstream$$response$$ready(0);
     d.set_io$$physical$$request$$ready(0); d.set_io$$physical$$response$$valid(0);
     d.set_io$$physical$$response$$bits$$data(0); d.set_io$$physical$$response$$bits$$error(0);

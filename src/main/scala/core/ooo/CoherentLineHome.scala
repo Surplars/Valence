@@ -5,6 +5,54 @@ import chisel3.util._
 import soc.bus.tilelink.{TLBundle, TLOpcode, TLParams, TLPermissions}
 import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
+/** Shared structural interface; the legacy and bounded concurrent homes remain separate implementations. */
+class CoherentLineHomeIO(params: TLParams, nClients: Int) extends Bundle {
+    val upstream = Flipped(new DataPort)
+    val downstream = new DataPort
+    val clients = Vec(nClients, Flipped(new TLBundle(params)))
+    val line = new TLBundle(params)
+    val upstreamRequestCpu = Input(Bool())
+    // Assert only after the cache-local flush has quiesced its own producers.
+    // New A/upstream admissions close; accepted owners and irrevocable offers drain.
+    val drainRequest = Input(Bool())
+    val drainDone = Output(Bool())
+}
+
+abstract class CoherentLineHomeModule(params: TLParams, nClients: Int) extends Module {
+    val io = IO(new CoherentLineHomeIO(params, nClients))
+}
+
+object CoherentLineHomeModule {
+    def build(
+        params: TLParams,
+        base: BigInt,
+        bytes: BigInt,
+        nClients: Int = 1,
+        trackedLines: Int = 0,
+        trackedWays: Int = 1,
+        acquireEntries: Int = 1,
+        rawResponseMetadata: Boolean = false,
+        parallelQualification: Boolean = false,
+        tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+        writebackEntries: Int = 1,
+        mixedReadWrite: Boolean = false
+    ): CoherentLineHomeModule = {
+        require(Set(1, 2, 4).contains(acquireEntries))
+        require(acquireEntries > 1 || writebackEntries == 1)
+        if (acquireEntries == 1) Module(new CoherentLineHome(params, base, bytes, nClients,
+            trackedLines, trackedWays, rawResponseMetadata, parallelQualification, tagConfig))
+        else {
+            require(nClients == 1 && trackedLines > 0,
+                "bounded concurrent home currently requires one client and an explicit directory capacity")
+            if (writebackEntries > 1 || mixedReadWrite)
+                Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
+                    trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite))
+            else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
+                trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
+        }
+    }
+}
+
 /** Serialized TL-C home for private T owners. A line has at most one owner; a competing
   * client or uncached agent probes that owner before accessing backing RAM. The client
   * count is explicit so source IDs and probe/GrantAck routing remain local to each hart.
@@ -17,8 +65,9 @@ class CoherentLineHome(
     trackedLines: Int = 0,
     trackedWays: Int = 1,
     rawResponseMetadata: Boolean = false,
-    parallelQualification: Boolean = false
-) extends Module {
+    parallelQualification: Boolean = false,
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth
+) extends CoherentLineHomeModule(params, nClients) {
     require(bytes >= 64 && bytes % 64 == 0 && isPow2(bytes) && base % 64 == 0)
     require(nClients >= 1 && nClients <= 8)
     require(trackedLines == 0 || (nClients == 1 && trackedLines >= 2 &&
@@ -27,13 +76,6 @@ class CoherentLineHome(
     require(Set(1, 2).contains(trackedWays) &&
         (trackedWays == 1 || (trackedLines != 0 && trackedLines / trackedWays >= 2)))
     require(params.sourceBits >= 3, "line transfer needs separate read and write source IDs")
-    val io = IO(new Bundle {
-        val upstream = Flipped(new DataPort)
-        val downstream = new DataPort
-        val clients = Vec(nClients, Flipped(new TLBundle(params)))
-        val line = new TLBundle(params)
-        val upstreamRequestCpu = Input(Bool())
-    })
     private def client(index: UInt): TLBundle = if (nClients == 1) io.clients(0) else io.clients(index)
     private val clientBits = math.max(1, log2Ceil(nClients))
     private val Seq(idle, probeSend, probeWait, accessSend, accessWait, fillSend, fillWait,
@@ -63,8 +105,9 @@ class CoherentLineHome(
     // Directory slots need not use the client's physical way number: tag lookup
     // finds owners, and a completed GrantAck reserves an empty slot in that set.
     // Capacity stays bounded by L1 capacity rather than external RAM size.
+    private val tagGeometry = tagConfig.geometry(base, bytes, 6, params.addrWidth)
     private val ownedTags = if (trackedLines == 0) None else
-        Some(Reg(Vec(ownerEntries, UInt((params.addrWidth - 6).W))))
+        Some(Reg(Vec(ownerEntries, UInt(tagGeometry.tagBits.W))))
     private val lineTransfer = Module(new TileLinkLineTransfer(
         params.copy(sourceBits = params.sourceBits - 1), entries = 4,
         rawResponseMetadata = rawResponseMetadata))
@@ -98,9 +141,9 @@ class CoherentLineHome(
         else {
             val first = Cat(0.U(1.W), set)
             val second = Cat(1.U(1.W), set)
-            val tag = address(params.addrWidth - 1, 6)
-            Mux(owned(first) && ownedTags.get(first) === tag, first,
-                Mux(owned(second) && ownedTags.get(second) === tag, second,
+            val tag = tagGeometry.tag(address)
+            Mux(tagGeometry.qualifies(address) && owned(first) && ownedTags.get(first) === tag, first,
+                Mux(tagGeometry.qualifies(address) && owned(second) && ownedTags.get(second) === tag, second,
                     Mux(!owned(first), first, second)))
         }
     }
@@ -113,13 +156,13 @@ class CoherentLineHome(
             val second = if (trackedWays == 1) first else Cat(1.U(1.W), set)
             val matches = Module(new ParallelHomeLineMatch(params.addrWidth))
             matches.io.address := address
-            matches.io.firstOwned := owned(first)
+            matches.io.firstOwned := tagGeometry.qualifies(address) && owned(first)
             matches.io.firstTag := ownedTags.get(first)
-            matches.io.secondOwned := (if (trackedWays == 2) owned(second) else false.B)
+            matches.io.secondOwned := tagGeometry.qualifies(address) && (if (trackedWays == 2) owned(second) else false.B)
             matches.io.secondTag := ownedTags.get(second)
             matches.io.owned
-        } else owned(lineIndex(address)) &&
-            ownedTags.map(_(lineIndex(address)) === address(params.addrWidth - 1, 6)).getOrElse(true.B)
+        } else tagGeometry.qualifies(address) && owned(lineIndex(address)) &&
+            ownedTags.map(_(lineIndex(address)) === tagGeometry.tag(address)).getOrElse(true.B)
     }
     private def inRam(address: UInt): Bool =
         if (parallelQualification) HomeRamRange.contains(address, params.addrWidth, base, bytes)
@@ -131,17 +174,18 @@ class CoherentLineHome(
     // Withdrawing that offer and waiting for a line fill deadlocks both paths.
     // The upstream request FIFO retains its head/payload until the same fire.
     private val directReadHeld = RegInit(false.B)
+    io.drainDone := state === idle && reads === 0.U && !directReadHeld && !releaseAny
     private val releaseAllowed = reads === 0.U && !directReadHeld &&
         (state === idle || state === probeSend || state === probeWait)
     private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) &&
         lineOwned(request.address)
     private val upperWrite = io.upstream.request.valid && request.write
     private val directRead = state === idle && io.upstream.request.valid && !upperWrite &&
-        !needsProbe && (directReadHeld || (!aAny && !releaseAny))
+        !needsProbe && (directReadHeld || (!io.drainRequest && !aAny && !releaseAny))
 
     io.downstream.request.valid := directRead || state === accessSend
     io.downstream.request.bits := Mux(state === accessSend, access, request)
-    io.upstream.request.ready := state === idle && (directReadHeld || (!aAny && !releaseAny)) &&
+    io.upstream.request.ready := state === idle && (directReadHeld || (!io.drainRequest && !aAny && !releaseAny)) &&
         Mux(upperWrite || needsProbe, reads === 0.U, io.downstream.request.ready)
     io.upstream.response.valid := Mux(state === accessWait, io.downstream.response.valid,
         state === idle && reads =/= 0.U && io.downstream.response.valid)
@@ -171,7 +215,7 @@ class CoherentLineHome(
     when(state === accessWait && io.upstream.response.fire) { state := idle }
 
     for (i <- 0 until nClients) {
-        io.clients(i).a.ready := state === idle && reads === 0.U && !releaseAny && !directReadHeld &&
+        io.clients(i).a.ready := !io.drainRequest && state === idle && reads === 0.U && !releaseAny && !directReadHeld &&
             aSelect === i.U
     }
     val selectedAcquire = client(aSelect).a.bits
@@ -237,7 +281,8 @@ class CoherentLineHome(
             if (trackedLines != 0) {
                 assert(!owned(lineIndex(acquireAddress)) || lineOwned(acquireAddress),
                     "single-hart L1 must release a set slot before acquiring another")
-                ownedTags.get(lineIndex(acquireAddress)) := acquireAddress(params.addrWidth - 1, 6)
+                if (tagConfig.compact) assert(tagGeometry.contains(acquireAddress), "home tag outside aperture")
+                ownedTags.get(lineIndex(acquireAddress)) := tagGeometry.tag(acquireAddress)
             }
             owned(lineIndex(acquireAddress)) := true.B
             owner(lineIndex(acquireAddress)) := acquireClient

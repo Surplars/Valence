@@ -1,5 +1,21 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-10-08 dot 交接组合的必要短验证（不是 Linux/时序/bit 验收）：
+
+```sh
+GSIM_CXX=clang++-19 python3 simulator/gsim/incremental_acceptance.py \
+  --tag handoff-20261008-r1 \
+  --prefetch-proof build/gsim/data-prefetch-handoff-20261008-r2/receipt.json \
+  --prf-proof build/gsim/prf-handoff-20261008-r1/receipt.json \
+  --monitor-proof build/gsim/monitor-handoff-20261008-r1/receipt.json
+```
+
+新运行请换唯一 tag；继续同一检查点加 `--resume`。显式启用双发射 RV64GC、32+32KiB cache、
+MSHR2、DDR4/写槽2、LVT PRF、预取；默认配置不变。一个模型复用到 RV64GC、
+一迭代 CoreMark CRC、64KiB steady memory、BootROM CRC/返回锁/小诊断。
+所有输入和对象有哈希，普通 source drift 会拒绝复用；旧失败回执不删除。
+当前结果与限制见 [本轮接续记录](../../docs/performance-status.md)。
+
 Opt-in memory-capacity experiment (2026-10-07): `staged-fetch-turnover-mlp4`
 changes only `memoryEntries` from 2 to 4 and preserves all existing profiles/defaults.
 Run `python3 simulator/gsim/memory_capacity.py --tag UNIQUE_TAG` with the configured GSIM toolchain.

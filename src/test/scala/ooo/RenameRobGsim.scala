@@ -110,7 +110,8 @@ object RenameRobGsimMain extends App {
             args.drop(5).contains("fast-head-trap") || args.drop(5).contains("fast-head-system"),
         fastHeadTrapRecovery = args.drop(5).contains("fast-head-trap"),
         fastHeadSystemRecovery = args.drop(5).contains("fast-head-system"),
-        tentativeRenameSources = args.drop(5).contains("tentative-sources")
+        tentativeRenameSources = args.drop(5).contains("tentative-sources"),
+        bankedRobPayload = args.drop(5).contains("banked-payload")
     )
     ChiselStage.emitCHIRRTLFile(new RenameRobGsim(p), Array("--target-dir", target))
 }

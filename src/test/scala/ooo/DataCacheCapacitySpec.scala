@@ -17,15 +17,15 @@ class DataCacheCapacitySpec extends AnyFunSuite {
         assert(home.contains(s"reg ownedTags : UInt<58>[$lines]"))
 
     }
-    test("selected managed board supports 2 and 4 KiB with matched bounded home directory") {
-        for (lines <- Seq(32, 64)) {
+    test("selected managed board supports 2, 4 and 32 KiB with matched bounded home directory") {
+        for (lines <- Seq(32, 64, 512)) {
             val fir = ChiselStage.emitCHIRRTL(new BoardSocTop(
                 socClockHz = 100000000, externalDdr = true, timingProfile = "staged-fetch-turnover",
                 uartBaud = 460800, isaProfile = "rv64gc", issueWidth = 2,
                 peripheralClockHz = 50000000, clockManagementHz = 50000000, ddrUiClockHz = 250000000,
                 ethernetControl = true, ethernetDma = true, managedPeripherals = true,
                 ddrMemoryBytes = BigInt(2147483648L),
-                instructionLineCacheLines = 32, dataCacheLines = lines))
+                instructionLineCacheLines = 512, dataCacheLines = lines))
             checkGeometry(fir, lines)
             assert(fir.contains("0h100200000"), "two-GiB DDR range must remain unchanged")
         }
@@ -35,10 +35,10 @@ class DataCacheCapacitySpec extends AnyFunSuite {
     }
     test("Ethernet wrapper forwards explicit data capacity") {
         checkGeometry(ChiselStage.emitCHIRRTL(new EthernetSocTop(isa = "rv64gc",
-            timingProfile = "staged-fetch-turnover", packetDma = true, dataCacheLines = 64)), 64)
+            timingProfile = "staged-fetch-turnover", packetDma = true, dataCacheLines = 512)), 512)
     }
     test("data cache rejects unsupported geometry instead of disabling cache") {
-        for (lines <- Seq(0, 2, 12, 257)) intercept[IllegalArgumentException] {
+        for (lines <- Seq(0, 2, 12, 513, 1024)) intercept[IllegalArgumentException] {
             ChiselStage.emitCHIRRTL(new BoardSocTop(dataCacheLines = lines))
         }
     }

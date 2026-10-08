@@ -16,7 +16,7 @@ class CoherentCacheWaysGsim(ways: Int, lines: Int = 4) extends Module {
         val hit = Output(Bool())
         val miss = Output(Bool())
     })
-    val cache = Module(new CoherentLineCache(lines = lines, ways = ways))
+    val cache = Module(new CoherentLineCache(bytes = math.max(8192, lines * 128), lines = lines, ways = ways))
     io.upstream <> cache.io.upstream
     io.downstream <> cache.io.downstream
     io.tl <> cache.io.tl

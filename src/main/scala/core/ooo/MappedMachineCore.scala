@@ -55,6 +55,7 @@ class MappedMachineCore(
         val robOccupancy    = Output(UInt(p.countBits.W))
         val headProfile     = Output(new HeadProfile)
         val issueCount      = Output(UInt(log2Ceil(p.issueWidth + 1).W))
+        val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val memoryBusy      = Output(Bool())
     })
     require(
@@ -150,5 +151,6 @@ class MappedMachineCore(
     io.robOccupancy         := core.io.robOccupancy
     io.headProfile          := core.io.headProfile
     io.issueCount           := core.io.issueCount
+    if (p.dataNextLinePrefetch) core.io.externalPrefetchBusy.get := io.externalPrefetchBusy.get
     io.memoryBusy           := core.io.memoryBusy
 }

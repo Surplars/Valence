@@ -85,6 +85,19 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
     val recovering = RegInit(false.B)
     val keepCount  = RegInit(0.U(p.countBits.W))
 
+    val allocationPayload = if (p.bankedRobPayload) Some(Module(new BankedRobPayload(p.robEntries))) else None
+    allocationPayload.foreach { payload =>
+        payload.io.head := head
+        for (lane <- 0 until 2) {
+            payload.io.write(lane).valid := io.renamed(lane).valid
+            payload.io.write(lane).bits.index := io.renamed(lane).bits.token.index
+            payload.io.write(lane).bits.data := Cat(io.allocate(lane).bits.pc, io.allocate(lane).bits.instruction)
+        }
+    }
+    def retirementPayload(lane: Int): UInt = allocationPayload.map(_.io.read(lane)).getOrElse(
+        Cat(entries(addIndex(head, lane.U)).pc.get, entries(addIndex(head, lane.U)).instruction.get))
+    def headPc: UInt = retirementPayload(0)(95, 32)
+
     def addIndex(index: UInt, increment: UInt): UInt = (index + increment)(p.robBits - 1, 0)
     def age(index: UInt): UInt                       = (index - head)(p.robBits - 1, 0)
     def live(token: RobToken): Bool = age(token.index) < count && entries(token.index).tag === token.tag
@@ -170,7 +183,7 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
     io.occupancy          := count
     io.headValid          := count =/= 0.U
     io.headDone           := count =/= 0.U && entries(head).done
-    io.headPc             := Mux(count =/= 0.U, entries(head).pc, 0.U)
+    io.headPc             := Mux(count =/= 0.U, headPc, 0.U)
     io.freeCount          := PopCount(free)
     io.tagExhausted       := exhausted
     io.speculativeMapping := rat(io.inspectRegister)
@@ -226,12 +239,12 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         val valid = commitPrefix(lane) && lane.U < count &&
             ((entry.done && !entry.exception) || (!entry.done && (finishNow || fastHeadNow)))
         // Re-evaluate interrupt enables after a system instruction retires, before any younger retirement.
-        commitPrefix(lane + 1) := valid && !(if (p.machineSystem) entry.instruction(6, 0) === "h73".U else false.B)
+        commitPrefix(lane + 1) := valid && !(if (p.machineSystem) retirementPayload(lane)(6, 0) === "h73".U else false.B)
         io.commit(lane).valid  := valid
         io.commit(lane).bits.token.index := index
         io.commit(lane).bits.token.tag   := entry.tag
-        io.commit(lane).bits.pc          := entry.pc
-        io.commit(lane).bits.instruction := entry.instruction
+        io.commit(lane).bits.pc          := retirementPayload(lane)(95, 32)
+        io.commit(lane).bits.instruction := retirementPayload(lane)(31, 0)
         io.commit(lane).bits.rd          := entry.rd
         io.commit(lane).bits.destination := entry.destination
         io.commit(lane).bits.writesRd    := entry.writesRd
@@ -257,7 +270,7 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
     io.headException.valid            := io.pendingException.valid && !acceptRecovery
     io.headException.bits.token.index := head
     io.headException.bits.token.tag   := entries(head).tag
-    io.headException.bits.pc          := entries(head).pc
+    io.headException.bits.pc          := headPc
     io.headException.bits.cause       := entries(head).cause
     io.headException.bits.tval        := entries(head).tval
 
@@ -404,8 +417,8 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         when(accepted) {
             entries(index)                := 0.U.asTypeOf(new RobEntry(p))
             entries(index).tag            := tag
-            entries(index).pc             := request.bits.pc
-            entries(index).instruction    := request.bits.instruction
+            entries(index).pc.foreach(_ := request.bits.pc)
+            entries(index).instruction.foreach(_ := request.bits.instruction)
             entries(index).rd             := request.bits.rd
             entries(index).writesRd       := writesRd
             entries(index).destination    := destination

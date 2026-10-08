@@ -19,6 +19,35 @@
  */
 #define VALENCE_NET_DMA_RX_STOP 0x90
 #define VALENCE_NET_DMA_CAPABILITIES 0x98
+/* CAP[15:8] posted slots; CAP[23:16] total ordered memory credits. */
+#define VALENCE_NET_DMA_CAP_MEMORY_CREDITS_SHIFT 16
+#define VALENCE_NET_DMA_CAP_RX_STOP 1UL
+#define VALENCE_NET_DMA_CAP_RX_QUEUE 2UL
+#define VALENCE_NET_DMA_CAP_QUEUE_DEPTH_SHIFT 8
+/* Additive opt-in posted RX ABI, preserving the legacy ID and descriptors.
+ * CAP bit 1 advertises it; CAP[15:8] is the owned-descriptor limit (currently 4).
+ * QUEUE_CONTROL bit 0 changes only while idle with no owned descriptors.
+ * Stage ADDRESS/CAPACITY then POST=1 while enabled and with free credit. Credit
+ * counts pending + active + retained completions. A descriptor and its buffer
+ * remain DMA-owned until COMPLETE_POP=1, even after its completion is visible.
+ * COMPLETE_ADDRESS/RESULT describe the oldest completion, stable until POP.
+ * RESULT[15:0]=bytes, bit16=error; unused bits are zero. QSTATUS[7:0]=pending,
+ * [15:8]=completion count, bit16=active, bit17=RX_STOP latched. RX_STOP blocks
+ * new posts/launches, safely drains the active frame/writes, then emits error
+ * completions for pending slots. Pop all completions before disable, which
+ * clears STOP. Reenable begins an empty queue. QUEUE_CONTROL bit1 is reserved.
+ * Legacy RX START is unavailable while queue mode is enabled.
+ */
+#define VALENCE_NET_DMA_RX_POST_ADDRESS 0xa0
+#define VALENCE_NET_DMA_RX_POST_CAPACITY 0xa8
+#define VALENCE_NET_DMA_RX_POST 0xb0
+#define VALENCE_NET_DMA_RX_QUEUE_CONTROL 0xb8
+#define VALENCE_NET_DMA_RX_QUEUE_STATUS 0xc0
+#define VALENCE_NET_DMA_RX_COMPLETE_ADDRESS 0xc8
+#define VALENCE_NET_DMA_RX_COMPLETE_RESULT 0xd0
+#define VALENCE_NET_DMA_RX_COMPLETE_POP 0xd8
+#define VALENCE_NET_DMA_RX_COMPLETE_ERROR (1UL<<16)
+#define VALENCE_NET_DMA_RX_QUEUE_STOPPED (1UL<<17)
 static inline void valence_dma_fence(void) {
     __asm__ volatile("fence iorw,iorw" ::: "memory");
 }

@@ -7,6 +7,7 @@ Serve the packed image on a trusted, directly connected Ethernet segment only.
 import argparse
 from dataclasses import dataclass
 import ipaddress
+import math
 from pathlib import Path
 import socket
 import struct
@@ -17,7 +18,13 @@ import zlib
 BASE = 0x80200000
 LIMIT = 512 * 1024 * 1024 - 0x4000
 LIMITS = {"ddr": LIMIT, "ddr1g": 0x40000000 - 0x4000, "ddr2g": 0xffff8000 - BASE}
+# Explicit menu ROM profiles reserve512KiB boot-only diagnostic scratch.
+LIMITS.update({name+"-menu": value-0x80000 for name,value in tuple(LIMITS.items()) if name.startswith("ddr")})
 MAGIC = 0x31444C56
+MAX_BLKSIZE = 1024
+MAX_WINDOWSIZE = 16
+DEFAULT_WINDOWSIZE = 4
+DEFAULT_PACKET_DELAY_US = 100
 
 def header(length, crc, base=BASE, entry=BASE, limit=LIMIT):
     if limit not in LIMITS.values() or base != BASE or not 0 < length <= limit or entry & 3 or not base <= entry < base + length:
@@ -63,11 +70,35 @@ def validate(image, limit=LIMIT):
             raise ValueError("packed-image length/CRC mismatch")
     return length
 
-def request(packet):
-    if len(packet) > 200 or not packet.startswith(b"\x00\x01"):
+@dataclass(frozen=True)
+class TftpRequest:
+    name: str
+    blksize: int = 512
+    windowsize: int = 1
+    options: tuple = ()
+
+    @property
+    def oack(self):
+        if not self.options:
+            return None
+        return b"\x00\x06" + b"".join(
+            key.encode("ascii") + b"\x00" + str(value).encode("ascii") + b"\x00"
+            for key, value in self.options)
+
+
+def parse_request(packet, max_blksize=MAX_BLKSIZE, max_windowsize=DEFAULT_WINDOWSIZE):
+    """Parse a bounded RRQ and negotiate only supported RFC 2347/7440 options.
+
+    Caps never increase the client's request. Unknown options are ignored, as
+    RFC 2347 requires; malformed/duplicate options reject the whole request.
+    Only 512/1024-byte blocks are supported by this board-specific server.
+    """
+    if max_blksize not in (512, 1024) or not 1 <= max_windowsize <= MAX_WINDOWSIZE:
+        raise ValueError("invalid TFTP negotiation limits")
+    if len(packet) > 512 or not packet.startswith(b"\x00\x01"):
         return None
     fields = packet[2:].split(b"\x00")
-    if len(fields) != 3 or fields[2] or fields[1].lower() != b"octet":
+    if len(fields) < 3 or len(fields) % 2 != 1 or fields[-1] or fields[1].lower() != b"octet":
         return None
     try:
         name = fields[0].decode("ascii")
@@ -76,7 +107,35 @@ def request(packet):
     if not name or len(name) > 127 or any(c not in
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in name):
         return None
-    return name
+    options, seen = [], set()
+    blksize, windowsize = 512, 1
+    for index in range(2, len(fields) - 1, 2):
+        key, value = fields[index].lower(), fields[index + 1]
+        if not key or not value or key in seen or any(c < 33 or c > 126 for c in key + value):
+            return None
+        seen.add(key)
+        if key not in (b"blksize", b"windowsize"):
+            continue
+        if len(value) > 5 or not value.isdigit():
+            return None
+        number = int(value)
+        if key == b"blksize":
+            if not 512 <= number <= 65464:
+                return None
+            blksize = min(max_blksize, 1024 if number >= 1024 else 512)
+            options.append(("blksize", blksize))
+        else:
+            if not 1 <= number <= 65535:
+                return None
+            windowsize = min(max_windowsize, number)
+            options.append(("windowsize", windowsize))
+    return TftpRequest(name, blksize, windowsize, tuple(options))
+
+
+def request(packet):
+    """Compatibility helper returning the filename of a valid RRQ."""
+    parsed = parse_request(packet)
+    return parsed.name if parsed else None
 
 class TransferProgress:
     """Throttled ACKed-byte progress; 100% includes the final EOF ACK."""
@@ -135,118 +194,228 @@ class TransferStats:
     ignored_packets: int = 0
     read_seconds: float = 0.0
     send_seconds: float = 0.0
+    pacing_seconds: float = 0.0
     ack_wait_seconds: float = 0.0
     elapsed_seconds: float = 0.0
     eof_acked: bool = False
+    blksize: int = 512
+    windowsize: int = 1
+    oack_packets: int = 0
+    oack_retransmits: int = 0
+    windows_sent: int = 0
+    window_restarts: int = 0
+    max_buffered_blocks: int = 0
+    max_buffered_bytes: int = 0
 
     def summary(self):
         other = max(0.0, self.elapsed_seconds - self.read_seconds -
-                    self.send_seconds - self.ack_wait_seconds)
+                    self.send_seconds - self.pacing_seconds - self.ack_wait_seconds)
         return (f"TFTP STATS bytes_acked={self.bytes_acked} data_packets={self.data_packets} "
                 f"acked_blocks={self.acked_blocks} retransmits={self.retransmits} "
                 f"timeouts={self.timeouts} rx_packets={self.reply_packets} "
                 f"ignored_packets={self.ignored_packets} read={self.read_seconds:.6f}s "
                 f"send={self.send_seconds:.6f}s ack_wait={self.ack_wait_seconds:.6f}s "
                 f"other={other:.6f}s elapsed={self.elapsed_seconds:.6f}s "
-                f"eof_acked={'yes' if self.eof_acked else 'no'}")
+                f"eof_acked={'yes' if self.eof_acked else 'no'} "
+                f"blksize={self.blksize} windowsize={self.windowsize} "
+                f"oack_packets={self.oack_packets} oack_retransmits={self.oack_retransmits} "
+                f"windows_sent={self.windows_sent} window_restarts={self.window_restarts} "
+                f"max_buffered_blocks={self.max_buffered_blocks} "
+                f"max_buffered_bytes={self.max_buffered_bytes} pacing={self.pacing_seconds:.6f}s")
 
 
-def transfer(sock, peer, source, retry_seconds=1, retries=10, progress=None, stats=None, clock=None):
-    """Window 1, 512-byte DATA, including rollover and the short/zero EOF ACK.
+def transfer(sock, peer, source, retry_seconds=1, retries=10, progress=None, stats=None, clock=None,
+             *, blksize=512, windowsize=1, oack=None,
+             inter_packet_seconds=DEFAULT_PACKET_DELAY_US / 1_000_000, sleeper=None):
+    """Send bounded RFC 7440 windows, retaining at most one unACKed window.
 
-    Pass a fresh TransferStats to retain counters on success or failure. Timings
-    are wall time in source.read, sendto and the ACK wait loop, not CPU timings.
+    Defaults preserve legacy TFTP. Pass negotiated sizes and the request's OACK
+    to perform the ACK0 handshake before reading/sending DATA. Counters and
+    progress only credit cumulative ACKs; EOF needs its own short/zero DATA ACK.
+    Retries bound each DATA packet's total sends, including gap recovery.
+    Multi-packet windows are paced conservatively (100 us by default); sleeper
+    and clock can be injected together for deterministic timing tests.
     """
+    if blksize not in (512, 1024) or not 1 <= windowsize <= MAX_WINDOWSIZE:
+        raise ValueError("invalid TFTP transfer sizes")
+    if not math.isfinite(retry_seconds) or retry_seconds <= 0 or retries < 1:
+        raise ValueError("TFTP timeout and retry count must be positive")
+    if not math.isfinite(inter_packet_seconds) or inter_packet_seconds <= 0:
+        raise ValueError("TFTP inter-packet delay must be finite and positive")
+    sleeper = time.sleep if sleeper is None else sleeper
     stats = TransferStats() if stats is None else stats
+    stats.blksize, stats.windowsize = blksize, windowsize
     clock = time.monotonic if clock is None else clock
     started = clock()
     try:
-        return _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock)
+        if oack is not None:
+            _negotiate(sock, peer, oack, retry_seconds, retries, stats, clock)
+        return _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock,
+                         blksize, windowsize, inter_packet_seconds, sleeper)
     finally:
         stats.elapsed_seconds = max(0.0, clock() - started)
 
 
-def _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock):
-    block, total = 1, 0
-    while True:
-        started = clock()
-        try:
-            data = source.read(512)
-        finally:
-            stats.read_seconds += clock() - started
-        wire_block = block & 0xffff
-        packet = struct.pack("!HH", 3, wire_block) + data
-        expected_ack = struct.pack("!HH", 4, wire_block)
-        acked = False
-        for attempt in range(retries):
-            started = clock()
-            try:
-                sock.sendto(packet, peer)
-            finally:
-                stats.send_seconds += clock() - started
-            stats.data_packets += 1
-            stats.retransmits += int(attempt != 0)
-            started = clock()
-            deadline = started + retry_seconds
-            try:
-                while clock() < deadline:
-                    sock.settimeout(max(0.001, deadline - clock()))
-                    try:
-                        reply, who = sock.recvfrom(2048)
-                    except socket.timeout:
-                        break
-                    stats.reply_packets += 1
-                    if who != peer:
-                        stats.ignored_packets += 1
-                        continue
-                    if reply.startswith(b"\x00\x05"):
-                        raise RuntimeError("board rejected image: " + repr(reply[4:]))
-                    if reply == expected_ack:
-                        acked = True
-                        break
-                    stats.ignored_packets += 1
-            finally:
-                stats.ack_wait_seconds += clock() - started
-            if acked:
-                break
-            stats.timeouts += 1
-        if not acked:
-            raise TimeoutError(f"no board ACK for block {wire_block}, completed={total}")
-        total += len(data)
-        stats.bytes_acked = total
-        stats.acked_blocks += 1
-        stats.eof_acked = len(data) < 512
-        if progress is not None:
-            progress(total, stats.eof_acked)
-        if stats.eof_acked:
-            return total
-        block += 1
+def _send(sock, peer, packet, stats, clock):
+    started = clock()
+    try:
+        sock.sendto(packet, peer)
+    finally:
+        stats.send_seconds += clock() - started
 
-def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progress=True, limit=LIMIT):
+
+def _receive_ack(sock, peer, deadline, stats, clock):
+    """Ignore foreign, malformed and non-ACK traffic without extending timeout."""
+    while clock() < deadline:
+        sock.settimeout(max(0.001, deadline - clock()))
+        try:
+            reply, who = sock.recvfrom(2048)
+        except socket.timeout:
+            return None
+        stats.reply_packets += 1
+        if who != peer:
+            stats.ignored_packets += 1
+            continue
+        if len(reply) >= 4 and reply.startswith(b"\x00\x05"):
+            raise RuntimeError("board rejected image: " + repr(reply[4:]))
+        if len(reply) == 4 and reply.startswith(b"\x00\x04"):
+            return struct.unpack("!H", reply[2:])[0]
+        stats.ignored_packets += 1
+    return None
+
+
+def _negotiate(sock, peer, oack, retry_seconds, retries, stats, clock):
+    for attempt in range(retries):
+        _send(sock, peer, oack, stats, clock)
+        stats.oack_packets += 1
+        stats.oack_retransmits += int(attempt != 0)
+        started = clock()
+        deadline = started + retry_seconds
+        try:
+            while (ack := _receive_ack(sock, peer, deadline, stats, clock)) is not None:
+                if ack == 0:
+                    return
+                stats.ignored_packets += 1
+        finally:
+            stats.ack_wait_seconds += clock() - started
+        stats.timeouts += 1
+    raise TimeoutError("no board ACK0 for TFTP option negotiation")
+
+
+def _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock, blksize, windowsize,
+              inter_packet_seconds, sleeper):
+    # Logical block numbers disambiguate current-window ACKs across 65535 -> 0.
+    # A packet is retained byte-for-byte until its cumulative ACK, never reread.
+    pending = []  # [logical block, encoded DATA, send count]
+    next_block, acked_block, total = 1, 0, 0
+    eof = False
+    duplicate_restart_used = False
+    last_send = None
+    while True:
+        while len(pending) < windowsize and not eof:
+            started = clock()
+            try:
+                data = source.read(blksize)
+            finally:
+                stats.read_seconds += clock() - started
+            if len(data) > blksize:
+                raise ValueError("source returned more than the requested TFTP block")
+            pending.append([next_block, struct.pack("!HH", 3, next_block & 0xffff) + data, 0])
+            next_block += 1
+            eof = len(data) < blksize
+        stats.max_buffered_blocks = max(stats.max_buffered_blocks, len(pending))
+        stats.max_buffered_bytes = max(stats.max_buffered_bytes,
+                                       sum(len(item[1]) for item in pending))
+        if any(item[2] >= retries for item in pending):
+            raise TimeoutError(f"no board ACK for block {pending[0][0] & 0xffff}, completed={total}")
+        for item in pending:
+            if windowsize > 1 and last_send is not None:
+                pause = last_send + inter_packet_seconds - clock()
+                if pause > 0:
+                    started = clock()
+                    try:
+                        sleeper(pause)
+                    finally:
+                        stats.pacing_seconds += clock() - started
+            _send(sock, peer, item[1], stats, clock)
+            last_send = clock()
+            stats.data_packets += 1
+            stats.retransmits += int(item[2] != 0)
+            item[2] += 1
+        stats.windows_sent += 1
+        started = clock()
+        deadline = started + retry_seconds
+        try:
+            while True:
+                ack = _receive_ack(sock, peer, deadline, stats, clock)
+                if ack is None:
+                    stats.timeouts += 1
+                    break
+                count = (ack - (acked_block & 0xffff)) & 0xffff
+                if 1 <= count <= len(pending):
+                    # A partial cumulative ACK signals a gap: discard only the
+                    # acknowledged prefix, refill, then restart at ACK + 1.
+                    total += sum(len(item[1]) - 4 for item in pending[:count])
+                    acked_block += count
+                    stats.bytes_acked = total
+                    stats.acked_blocks += count
+                    stats.eof_acked = eof and count == len(pending)
+                    if progress is not None:
+                        progress(total, stats.eof_acked)
+                    if stats.eof_acked:
+                        return total
+                    if count < len(pending):
+                        stats.window_restarts += 1
+                    del pending[:count]
+                    duplicate_restart_used = False
+                    break
+                if count == 0 and windowsize > 1 and not duplicate_restart_used:
+                    # Lost first DATA can produce ACK of the window base.
+                    # Allow one fast restart per base; duplicates thereafter
+                    # cannot amplify traffic or keep the deadline alive.
+                    duplicate_restart_used = True
+                    stats.window_restarts += 1
+                    break
+                stats.ignored_packets += 1
+        finally:
+            stats.ack_wait_seconds += clock() - started
+
+def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progress=True, limit=LIMIT,
+          max_blksize=MAX_BLKSIZE, max_windowsize=DEFAULT_WINDOWSIZE,
+          packet_delay_us=DEFAULT_PACKET_DELAY_US):
     image = Path(image).resolve()
+    if not math.isfinite(packet_delay_us) or packet_delay_us <= 0:
+        raise ValueError("TFTP packet delay must be finite and positive")
     size = validate(image, limit)
     ipaddress.IPv4Address(bind)
     ipaddress.IPv4Address(board)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener:
         listener.bind((bind, port))
         print(f"TFTP LISTEN {bind}:{port} file={image.name} board={board} payload={size}", flush=True)
+        print(f"TFTP OPTIONS max_blksize={max_blksize} max_windowsize={max_windowsize} "
+              f"packet_delay_us={packet_delay_us:g}; "
+              "legacy RRQ uses blksize=512 windowsize=1", flush=True)
         print("Reset board to request the file, or send n via UART. UART d remains recovery.", flush=True)
         while True:
             packet, peer = listener.recvfrom(2048)
             if peer[0] != board:
                 continue
-            name = request(packet)
-            if name != image.name:
+            requested = parse_request(packet, max_blksize, max_windowsize)
+            if requested is None or requested.name != image.name:
                 listener.sendto(b"\x00\x05\x00\x01file unavailable\x00", peer)
                 continue
             started = time.monotonic()
             display = TransferProgress(image.stat().st_size) if show_progress else None
             stats = TransferStats()
+            print(f"TFTP NEGOTIATED {peer} blksize={requested.blksize} "
+                  f"windowsize={requested.windowsize} oack={'yes' if requested.oack else 'no'}", flush=True)
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as session, image.open("rb") as source:
                     session.bind((bind, 0))
                     sent = transfer(session, peer, source, progress=display.update if display else None,
-                                    stats=stats)
+                                    stats=stats, blksize=requested.blksize,
+                                    windowsize=requested.windowsize, oack=requested.oack,
+                                    inter_packet_seconds=packet_delay_us / 1_000_000)
                 elapsed = max(time.monotonic() - started, 1e-9)
                 print(f"TFTP SENT {sent} bytes to {peer} in {elapsed:.2f}s ({sent / elapsed / 1048576:.3f} MiB/s); "
                       "final EOF ACK received; RAM verification and RUN/boot are not confirmed. "
@@ -278,12 +447,19 @@ def main():
     p.add_argument("--port", type=int, default=69)
     p.add_argument("--once", action="store_true")
     p.add_argument("--no-progress", action="store_true", help="disable ACKed-byte progress display")
+    p.add_argument("--max-blksize", type=int, choices=(512, 1024), default=MAX_BLKSIZE,
+                   help="maximum negotiated DATA bytes (default: 1024); legacy uses 512")
+    p.add_argument("--max-windowsize", type=int, choices=range(1, MAX_WINDOWSIZE + 1), default=DEFAULT_WINDOWSIZE,
+                   help="maximum negotiated DATA blocks per window (default: 4); legacy uses 1")
+    p.add_argument("--packet-delay-us", type=float, default=DEFAULT_PACKET_DELAY_US,
+                   help="positive minimum spacing between DATA in multi-block windows (default: 100 us)")
     p.add_argument("--memory", choices=LIMITS, default="ddr")
     args = parser.parse_args()
     if args.action == "pack":
         pack(args.image, args.out, args.entry, LIMITS[args.memory])
     else:
-        serve(args.image, args.bind, args.port, args.board, args.once, not args.no_progress, LIMITS[args.memory])
+        serve(args.image, args.bind, args.port, args.board, args.once, not args.no_progress,
+              LIMITS[args.memory], args.max_blksize, args.max_windowsize, args.packet_delay_us)
 
 if __name__ == "__main__":
     try:

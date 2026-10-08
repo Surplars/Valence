@@ -44,7 +44,7 @@ struct Test{
         d.set_reset(1);d.step();d.step();d.set_reset(0);idle(100);
         check((access(0,8)&256)!=0,"managed GMAC does not advertise RX_STOP capability");
         check(access(0,0x90)==0,"RX_STOP reset state is not released");
-        check(access(1,0x98)==1,"DMA does not advertise safe RX_STOP");
+        check((access(1,0x98)&1)==1,"DMA does not advertise safe RX_STOP");
         access(0,0x18,true,0x021122334455ULL);idle(100);
         access(0,0x10,true,11);idle(100);
     }

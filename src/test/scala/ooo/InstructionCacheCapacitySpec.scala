@@ -13,8 +13,8 @@ class InstructionCacheCapacitySpec extends AnyFunSuite {
         for (way <- 0 until 2) assert(cache.contains(s"smem data_$way : UInt<512>[$sets]"))
     }
 
-    test("managed RV64GC board defaults to eight lines and explicitly supports thirty-two") {
-        for (lines <- Seq(8, 32)) {
+    test("managed RV64GC board defaults to eight lines and explicitly supports 32 KiB") {
+        for (lines <- Seq(8, 32, 512)) {
             val fir = ChiselStage.emitCHIRRTL(new BoardSocTop(
                 socClockHz = 100000000, externalDdr = true, timingProfile = "staged-fetch-feedback",
                 uartBaud = 460800, isaProfile = "rv64gc", issueWidth = 2,
@@ -28,11 +28,11 @@ class InstructionCacheCapacitySpec extends AnyFunSuite {
 
     test("Ethernet board wrapper passes explicit instruction capacity through") {
         checkGeometry(ChiselStage.emitCHIRRTL(new EthernetSocTop(isa = "rv64gc",
-            timingProfile = "staged-fetch-feedback", packetDma = true, instructionLineCacheLines = 32)), 32)
+            timingProfile = "staged-fetch-feedback", packetDma = true, instructionLineCacheLines = 512)), 512)
     }
 
     test("board cache cannot be silently disabled or given an unsupported geometry") {
-        for (lines <- Seq(0, 3, 12, 257)) {
+        for (lines <- Seq(0, 3, 12, 513, 1024)) {
             intercept[IllegalArgumentException] {
                 ChiselStage.emitCHIRRTL(new BoardSocTop(instructionLineCacheLines = lines))
             }

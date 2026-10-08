@@ -143,6 +143,7 @@ class Scoreboard {
     size_t keep = 0;
     unsigned cycle = 0;
     bool injectHeadTrapMismatch = false, injectHeadSystemMismatch = false, injectSourceMismatch = false;
+    bool injectPayloadMismatch = false;
 
     std::array<unsigned, 32> speculative() const {
         auto result = committed;
@@ -195,8 +196,9 @@ public:
     unsigned headSystems = 0, headSystemShrinks = 0, duplicateHeadSystemRequests = 0;
     unsigned headSystemExternalTies = 0, headSystemTrapPriority = 0, headOwnerChecks = 0;
 
-    explicit Scoreboard(bool inject = false, bool injectSystem = false, bool injectSource = false)
-        : injectHeadTrapMismatch(inject), injectHeadSystemMismatch(injectSystem), injectSourceMismatch(injectSource) {
+    explicit Scoreboard(bool inject = false, bool injectSystem = false, bool injectSource = false, bool injectPayload = false)
+        : injectHeadTrapMismatch(inject), injectHeadSystemMismatch(injectSystem), injectSourceMismatch(injectSource),
+          injectPayloadMismatch(injectPayload) {
         reset();
     }
     void reset() {
@@ -220,6 +222,11 @@ public:
         drive(dut, in);
         dut.step();
         Output out = sample(dut);
+        // Software-oracle sensitivity only: corrupt one actually valid retirement.
+        if (injectPayloadMismatch && out.retired[0].valid) {
+            out.retired[0].pc ^= 4;
+            injectPayloadMismatch = false;
+        }
         if (injectSourceMismatch && out.allocated[1].valid) {
             out.allocated[1].source1 ^= 1;
             injectSourceMismatch = false;
@@ -658,7 +665,7 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    Scoreboard model;
+    Scoreboard model(false, false, false, argc == 2 && std::string(argv[1]) == "--inject-rob-payload-mismatch");
     Input in;
     // Same-packet RAW/WAW; a younger completion cannot retire past an unfinished head.
     in.allocate = {request(5, 5), request(5, 5, 5)};

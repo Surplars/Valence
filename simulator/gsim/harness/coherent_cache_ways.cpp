@@ -172,7 +172,7 @@ struct Test {
     void flush() {
         dut.set_io$$flushRequest(1);
         for (unsigned n = 0; ; ++n) {
-            check(n < 2000, "flush timeout"); tick();
+            check(n < 2000 + CACHE_LINES * 32, "flush timeout"); tick();
             if (dut.get_io$$flushDone()) break;
         }
         dut.set_io$$flushRequest(0); tick();
@@ -260,6 +260,20 @@ int main(int argc, char **argv) {
             check(lru.misses==m+1, "probe failed to invalidate resident line");
             lru.flush();
         }
+        // Exercise every physical slot, including the new high index bit, and
+        // prove all lines remain resident before scanning every dirty slot.
+        Test capacity;
+        for (unsigned i = 0; i < CACHE_LINES; ++i)
+            capacity.access(base + i*64, true, 0x55aa000000000000ULL ^ i);
+        auto capacityMisses = capacity.misses;
+        for (unsigned i = 0; i < CACHE_LINES; ++i)
+            capacity.access(base + i*64);
+        check(capacity.misses == capacityMisses, "full cache capacity did not remain resident");
+        capacity.flush();
+        capacity.dut.set_reset(1); capacity.tick(); capacity.tick(); capacity.dut.set_reset(0);
+        capacityMisses = capacity.misses;
+        capacity.access(base + (CACHE_LINES-1)*64);
+        check(capacity.misses == capacityMisses+1, "reset retained high-index valid state");
         Test error;
         error.denyRefill=true; error.access(base);
         error.denyRefill=false; auto errorMisses=error.misses; error.access(base);

@@ -15,6 +15,8 @@ IMAGE_LIMIT = 0xFC000  # Backward-compatible 1 MiB URAM profile.
 DDR_IMAGE_LIMIT = 0x20000000 - 0x4000
 IMAGE_LIMITS = {"uram": IMAGE_LIMIT, "ddr": DDR_IMAGE_LIMIT,
                 "ddr1g": 0x40000000 - 0x4000, "ddr2g": 0xffff8000 - RAM_BASE}
+# Explicit menu ROM profiles reserve512KiB boot-only diagnostic scratch.
+IMAGE_LIMITS.update({name+"-menu": value-0x80000 for name,value in tuple(IMAGE_LIMITS.items()) if name.startswith("ddr")})
 CHUNK_SIZE = 256
 HEADER_SEQ = 0xFFFFFFFF
 ACK = struct.Struct("<4sII")

@@ -37,6 +37,7 @@ class NetworkProbeGsim(ways: Int, lines: Int = 4, productionMetadata: Boolean = 
     shared.io.clearReservation := false.B
     buffer.io.upstream <> shared.io.memory
     buffer.io.requestCpu := shared.io.memoryRequestCpu
+    home.io.drainRequest := false.B
     home.io.upstream <> buffer.io.downstream
     home.io.upstreamRequestCpu := buffer.io.downstreamRequestCpu
     home.io.clients(0) <> cache.io.tl

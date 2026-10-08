@@ -100,14 +100,17 @@ int main() {
                   true, sourceForRequest[index], beat, denied, corrupt);
             dut.step();
             check(dut.get_io$$tl$$d$$ready(), "line fill stalled an outstanding D beat");
+            if (index != 2) checkResponse(dut, base + 128, 0x42, true);
         }
     }
     for (unsigned cycle = 0; cycle < 3; ++cycle) {
         drive(dut, false, 0, 0, false);
         dut.step();
-        checkResponse(dut, base, 0x40, false);
+        checkResponse(dut, base + 128, 0x42, true);
     }
-    for (unsigned index = 0; index < 4; ++index) {
+    // First offered owner2 remains irrevocable; afterwards choose the lowest
+    // completed owner. This order is derived from offers, not DUT output tags.
+    for (unsigned index : {2U, 0U, 1U, 3U}) {
         drive(dut, false, 0, 0, true);
         dut.step();
         checkResponse(dut, base + 64 * index, 0x40 + index, index >= 2);

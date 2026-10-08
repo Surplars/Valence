@@ -355,7 +355,7 @@ def main():
     parser.add_argument("--burst-beats", type=int, choices=(16, 256), default=16)
     parser.add_argument("--axi-address-width", type=int, choices=(32, 64), default=64)
     parser.add_argument("--issue-width", type=int, choices=(2, 4), default=2)
-    parser.add_argument("--instruction-cache-lines", type=int, choices=(0, 16, 32, 64), default=32)
+    parser.add_argument("--instruction-cache-lines", type=int, choices=(0, 16, 32, 64, 128, 256, 512), default=32)
     parser.add_argument("--frontend-cache-sets", type=int, choices=(64, 128, 256))
     parser.add_argument("--compressed-body", action="store_true")
     parser.add_argument("--long-body", action="store_true")

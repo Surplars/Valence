@@ -19,7 +19,9 @@ class GmacRxAdmissionStopSpec extends AnyFunSuite {
         assert(!fir.contains("BUFGCE") && !fir.contains("EthernetPacketDma"))
     }
     test("native RX preserves its old ports unless admission-stop is requested") {
+        intercept[IllegalArgumentException](ChiselStage.emitCHIRRTL(new GmiiFrameRx(frameSlots = 3)))
         val old = ChiselStage.emitCHIRRTL(new GmiiFrameRx)
+        assert(old.contains("occupied") && old.contains("producer") && old.contains("consumer"))
         assert(!old.contains("stopNewFrames") && !old.contains("ownedBusy"))
         val added = ChiselStage.emitCHIRRTL(new GmiiFrameRx(admissionStop = true))
         assert(added.contains("stopNewFrames") && added.contains("ownedBusy"))

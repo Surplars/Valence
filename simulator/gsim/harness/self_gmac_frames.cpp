@@ -99,6 +99,9 @@ struct Test {
         check(rxAccepted==accepted+good && rxDropped==dropped+!good,"RX whole-frame verdict mismatch");
     }
 };
+#ifndef RX_FRAME_SLOTS
+#define RX_FRAME_SLOTS 4
+#endif
 int main(int argc,char**argv){try{
     bool inject=argc==2&&std::string_view(argv[1])=="--inject-mismatch";
     Test t;unsigned cases=0;
@@ -123,16 +126,21 @@ int main(int argc,char**argv){try{
     auto lengthFrame=ethernetBody(60);lengthFrame[12]=0;lengthFrame[13]=8;t.receive(lengthFrame);
     lengthFrame[13]=80;t.receive(lengthFrame,0,false);lengthFrame[12]=5;lengthFrame[13]=255;
     t.receive(lengthFrame,0,false);cases+=3;
-    // An owned RX buffer must survive two newer frames, even when the reader
-    // finishes halfway through the second dropped physical frame.
-    t.ready=false;t.randomReady=false;auto first=ethernetBody(127,777);
-    t.expectedRx.push_back(first);auto wire=ethernetWire(first);
-    for(auto b:wire){t.rxValid(true);t.S(gmiiRxData,b);t.tick();}t.idle(12);
-    const unsigned dropped=t.rxDropped;
-    for(unsigned n=0;n<2;++n){auto next=ethernetWire(ethernetBody(256,n));
+    // Selected retained banks tolerate a bounded burst; the next two
+    // frames are wholly discarded without changing any of the retained bytes.
+    t.ready=false;t.randomReady=false;
+    const unsigned dropped=t.rxDropped,accepted=t.rxAccepted;
+    for(unsigned n=0;n<RX_FRAME_SLOTS+2;++n){auto body=ethernetBody(127+n*7,777+n);
+        if(n<RX_FRAME_SLOTS)t.expectedRx.push_back(body);
+        auto next=ethernetWire(body);
         for(unsigned i=0;i<next.size();++i){t.rxValid(true);t.S(gmiiRxData,next[i]);
-            if(n==1&&i==20)t.ready=true;t.tick();}t.idle(12);}
-    t.drain();check(t.rxDropped==dropped+2,"RX overflow did not drop complete frame");cases+=3;
+            if(n==RX_FRAME_SLOTS+1 && i==20)t.ready=true; // freed bank must not re-admit this physical tail
+            t.tick();}t.idle(12);}
+    check(t.rxAccepted==accepted+RX_FRAME_SLOTS&&t.rxDropped==dropped+2,"bounded RX bank admission mismatch");
+    t.ready=true;t.drain();cases+=RX_FRAME_SLOTS+2;
+    // Reuse wrapped banks after retirement; no old payload may reappear.
+    for(unsigned n=0;n<6;++n){t.receive(ethernetBody(65+n,991+n));++cases;}
+    std::vector<uint8_t> wire;
     t.randomReady=true;
     // Simultaneous TX packet input and uninterrupted PHY RX.
     auto both=ethernetBody(512,888);wire=ethernetWire(both);t.expectedRx.push_back(both);

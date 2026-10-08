@@ -1,0 +1,343 @@
+package soc.core.ooo
+
+import chisel3._
+import chisel3.util._
+import soc.bus.tilelink.{TLParams, TLOpcode, TLPermissions}
+import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
+
+/** Single-client bounded read-miss home. Acquire/Grant ownership and voluntary
+  * release/writeback ownership are independent. Maintenance remains a fair drain
+  * barrier; this does not add unordered DMA/atomic access or parallel AXI writes.
+  * One A acceptance/cycle, one D beat/cycle, M full-line buffers, one release
+  * buffer. Exact directory slots stay reserved through E; CPU response readiness
+  * is absent from this interface and cannot gate refill or writeback completion.
+  */
+class NonBlockingCoherentLineHome(
+    params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = 2),
+    base: BigInt = BigInt("80010000", 16),
+    bytes: BigInt = 8192,
+    trackedLines: Int = 128,
+    trackedWays: Int = 2,
+    acquireEntries: Int = 2,
+    rawResponseMetadata: Boolean = false,
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth
+) extends CoherentLineHomeModule(params, 1) {
+    require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
+    require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
+    require(bytes >= 64 && isPow2(bytes) && base % 64 == 0 && base + bytes <= (BigInt(1) << 64))
+    require(trackedLines >= 4 && isPow2(trackedLines) && trackedLines <= bytes / 64)
+    require(Set(1, 2).contains(trackedWays) && trackedLines / trackedWays >= acquireEntries,
+        "each Acquire entry needs an independently reservable directory set")
+    private val port = io.clients(0)
+    private val entryBits = log2Ceil(acquireEntries)
+    private val directoryBits = log2Ceil(trackedLines)
+    private val setBits = log2Ceil(trackedLines / trackedWays)
+    private def setOf(address: UInt): UInt = address(5 + setBits, 6)
+    private def inRam(address: UInt): Bool = address >= base.U(65.W) && address < (base + bytes).U(65.W)
+    private val owned = RegInit(VecInit(Seq.fill(trackedLines)(false.B)))
+    private val tagGeometry = tagConfig.geometry(base, bytes, 6)
+    private val tags = Reg(Vec(trackedLines, UInt(tagGeometry.tagBits.W)))
+    private def waySlot(address: UInt, way: Int): UInt =
+        if (trackedWays == 1) setOf(address) else Cat(way.U(1.W), setOf(address))
+    private def wayHit(address: UInt, way: Int): Bool = {
+        val slot = waySlot(address, way)
+        tagGeometry.qualifies(address) && owned(slot) && tags(slot) === tagGeometry.tag(address)
+    }
+    private def lineOwned(address: UInt): Bool =
+        (0 until trackedWays).map(wayHit(address, _)).reduce(_ || _)
+    private def ownedSlot(address: UInt): UInt =
+        if (trackedWays == 1) waySlot(address, 0)
+        else Mux(wayHit(address, 0), waySlot(address, 0), waySlot(address, 1))
+    private def freeDirectory(address: UInt): Bool =
+        (0 until trackedWays).map(i => !owned(waySlot(address, i))).reduce(_ || _)
+    private def freeDirectorySlot(address: UInt): UInt =
+        if (trackedWays == 1) waySlot(address, 0)
+        else Mux(!owned(waySlot(address, 0)), waySlot(address, 0), waySlot(address, 1))
+
+    private val free :: queued :: filling :: grantReady :: waitE :: Nil = Enum(5)
+    private val phase = RegInit(VecInit(Seq.fill(acquireEntries)(free)))
+    private val addresses = Reg(Vec(acquireEntries, UInt(64.W)))
+    private val sources = Reg(Vec(acquireEntries, UInt(params.sourceBits.W)))
+    private val directory = Reg(Vec(acquireEntries, UInt(directoryBits.W)))
+    private val data = Reg(Vec(acquireEntries, Vec(8, UInt(64.W))))
+    private val errors = Reg(Vec(acquireEntries, Bool()))
+    private val active = VecInit(phase.map(_ =/= free))
+    private val anyAcquire = active.asUInt.orR
+    private def transientSet(address: UInt): Bool =
+        (0 until acquireEntries).map(i => active(i) && setOf(addresses(i)) === setOf(address)).reduce(_ || _)
+    private val freeMask = VecInit(phase.map(_ === free))
+    private val allocate = PriorityEncoder(freeMask)
+    private val fillQueue = Module(new Queue(UInt(entryBits.W), acquireEntries, pipe = false, flow = false))
+    private val transfer = Module(new TileLinkLineTransfer(params.copy(sourceBits = params.sourceBits - 1),
+        entries = 4, tagBits = entryBits, rawResponseMetadata = rawResponseMetadata))
+    io.line <> transfer.io.tl
+    private val sendEntry = Mux(fillQueue.io.deq.valid, fillQueue.io.deq.bits, 0.U)
+    private val readDispatchAllowed = WireDefault(true.B)
+    private val releaseRetired = WireDefault(false.B)
+    private val yieldedToRelease = RegInit(false.B)
+    // At most one completed release may delay a queued fill head. Once that
+    // debt is paid, dispatch has priority until the engine accepts the request.
+    when(releaseRetired && fillQueue.io.deq.valid) { yieldedToRelease := true.B }
+    when(!fillQueue.io.deq.valid || transfer.io.readRequest.fire) { yieldedToRelease := false.B }
+    private val directFillOffer = WireDefault(false.B)
+    private val directFillFire = directFillOffer && transfer.io.readRequest.fire
+    transfer.io.readRequest.valid := (fillQueue.io.deq.valid || directFillOffer) && readDispatchAllowed
+    transfer.io.readRequest.bits.address := Mux(directFillOffer, port.a.bits.address, addresses(sendEntry))
+    transfer.io.readRequest.bits.tag := Mux(directFillOffer, allocate, sendEntry)
+    fillQueue.io.deq.ready := transfer.io.readRequest.ready && readDispatchAllowed
+    when(transfer.io.readRequest.fire) {
+        when(directFillOffer) {
+            assert(port.a.fire && !fillQueue.io.deq.valid && phase(allocate) === free,
+                "direct home fill requires the newly accepted free owner")
+        }.otherwise {
+            assert(phase(sendEntry) === queued, "home fill dispatch lost acquire owner")
+            phase(sendEntry) := filling
+        }
+    }
+    private val fillEntry = transfer.io.readResponse.bits.tag
+    transfer.io.readResponse.ready := true.B
+    when(transfer.io.readResponse.fire) {
+        assert(phase(fillEntry) === filling, "home refill result has no acquire owner")
+        data(fillEntry) := transfer.io.readResponse.bits.data.asTypeOf(data(fillEntry))
+        errors(fillEntry) := transfer.io.readResponse.bits.error
+        phase(fillEntry) := grantReady
+    }
+
+    // Voluntary releases are accepted independently of live fills and GrantAck.
+    private val rIdle :: rCapture :: rSend :: rWait :: rAck :: Nil = Enum(5)
+    private val releasePhase = RegInit(rIdle)
+    private val releaseAddress = Reg(UInt(64.W))
+    private val releaseSource = Reg(UInt(params.sourceBits.W))
+    private val releaseDirectory = Reg(UInt(directoryBits.W))
+    private val releaseData = Reg(Vec(8, UInt(64.W)))
+    private val releaseBeat = Reg(UInt(3.W))
+    private val releaseBusy = releasePhase =/= rIdle
+    private def releaseSet(address: UInt): Bool = releaseBusy && setOf(address) === setOf(releaseAddress)
+    private val isRelease = TLOpcode.isRelease(port.c.bits.opcode)
+    private val releaseOffer = port.c.valid && isRelease
+    private val probeCActive = RegInit(false.B)
+    private val probeCBeat = RegInit(0.U(3.W))
+    private val probeCSource = Reg(UInt(params.sourceBits.W))
+    private val releaseReady = !probeCActive && (releasePhase === rCapture ||
+        (releasePhase === rIdle && !transientSet(port.c.bits.address)))
+    // Finish a known victim writeback before launching a new refill into the
+    // exclusive-write AXI fence. Already-issued fills, Grants and E still drain.
+    // An inadmissible same-set release must not block the fill it depends on.
+    readDispatchAllowed := yieldedToRelease || !(releaseBusy || (releaseOffer && releaseReady))
+    when(port.c.fire && isRelease) {
+        assert(!port.c.bits.corrupt && port.c.bits.size === 6.U && port.c.bits.param === TLPermissions.tToN,
+            "invalid release size/permission/corruption")
+        when(releasePhase === rIdle) {
+            assert(inRam(port.c.bits.address) && port.c.bits.address(5, 0) === 0.U &&
+                lineOwned(port.c.bits.address), "release has no committed directory owner")
+            releaseAddress := port.c.bits.address
+            releaseSource := port.c.bits.source
+            releaseDirectory := ownedSlot(port.c.bits.address)
+            releaseData(0) := port.c.bits.data
+            releaseBeat := 1.U
+            when(port.c.bits.opcode === TLOpcode.ReleaseData) { releasePhase := rCapture }
+                .otherwise { owned(ownedSlot(port.c.bits.address)) := false.B; releasePhase := rAck }
+        }.otherwise {
+            assert(releasePhase === rCapture && port.c.bits.opcode === TLOpcode.ReleaseData &&
+                port.c.bits.address === releaseAddress && port.c.bits.source === releaseSource,
+                "release burst changed address/source/opcode")
+            releaseData(releaseBeat) := port.c.bits.data
+            when(releaseBeat === 7.U) { releasePhase := rSend }
+                .otherwise { releaseBeat := releaseBeat + 1.U }
+        }
+    }
+    when(port.c.valid && releasePhase === rCapture) {
+        assert(isRelease, "probe C interleaved a release burst")
+    }
+
+    // Ordinary direct reads retain the old ordered downstream protocol. A pending
+    // upstream request prevents an endless Acquire stream from starving DMA.
+    private val mIdle :: mProbeSend :: mProbeWait :: mWriteSend :: mWriteWait :: mAccessSend :: mAccessWait :: Nil = Enum(7)
+    private val maintenance = RegInit(mIdle)
+    private val access = Reg(new DataRequest)
+    private val maintenanceDirectory = Reg(UInt(directoryBits.W))
+    private val maintenanceData = Reg(UInt(512.W))
+    private val reads = RegInit(0.U(4.W))
+    private val directHeld = RegInit(false.B)
+    io.drainDone := maintenance === mIdle && !anyAcquire && reads === 0.U &&
+        !directHeld && !releaseBusy && !releaseOffer && !probeCActive
+    private val upperWaiting = RegInit(false.B)
+    private val preferAcquire = RegInit(false.B)
+    when(port.a.fire) { preferAcquire := false.B }
+    when(io.upstream.request.fire) { preferAcquire := true.B }
+    when(io.upstream.request.valid) { upperWaiting := true.B }
+    when(io.upstream.request.fire || !io.upstream.request.valid) { upperWaiting := false.B }
+    private val request = io.upstream.request.bits
+    private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && lineOwned(request.address)
+    private val needsMaintenance = request.write || needsProbe
+    private val sourceBusy = (0 until acquireEntries).map(i =>
+        active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
+    private val canAcquire = !io.drainRequest && maintenance === mIdle && reads === 0.U && !directHeld &&
+        ((!upperWaiting && !io.upstream.request.valid) || preferAcquire) &&
+        freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
+        !transientSet(port.a.bits.address) && !releaseSet(port.a.bits.address) &&
+        !(releaseOffer && setOf(port.c.bits.address) === setOf(port.a.bits.address)) &&
+        freeDirectory(port.a.bits.address)
+    port.a.ready := canAcquire
+    // Reader readiness does not affect A admission. A failed direct dispatch
+    // falls back to the existing FIFO with the same reserved metadata/tag.
+    directFillOffer := port.a.fire && !fillQueue.io.deq.valid && readDispatchAllowed
+    fillQueue.io.enq.valid := port.a.fire && !directFillFire
+    fillQueue.io.enq.bits := allocate
+    when(port.a.fire) {
+        assert(port.a.bits.opcode === TLOpcode.AcquireBlock && port.a.bits.param === TLPermissions.nToT &&
+            port.a.bits.size === 6.U && port.a.bits.address(5, 0) === 0.U &&
+            inRam(port.a.bits.address) && !lineOwned(port.a.bits.address) && !port.a.bits.corrupt,
+            "home accepts only an aligned unowned nToT AcquireBlock")
+        addresses(allocate) := port.a.bits.address
+        sources(allocate) := port.a.bits.source
+        directory(allocate) := freeDirectorySlot(port.a.bits.address)
+        errors(allocate) := false.B
+        phase(allocate) := Mux(directFillFire, filling, queued)
+    }
+    private val upperOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
+        (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+    private val directRead = io.upstream.request.valid && !needsMaintenance &&
+        (directHeld || (upperOpen && reads < 8.U))
+    io.downstream.request.valid := directRead || maintenance === mAccessSend
+    io.downstream.request.bits := Mux(maintenance === mAccessSend, access, request)
+    io.upstream.request.ready := (directHeld || upperOpen) &&
+        Mux(needsMaintenance, reads === 0.U, reads < 8.U && io.downstream.request.ready)
+    io.upstream.response.valid := io.downstream.response.valid &&
+        (maintenance === mAccessWait || (maintenance === mIdle && reads =/= 0.U))
+    io.upstream.response.bits := io.downstream.response.bits
+    io.downstream.response.ready := io.upstream.response.ready &&
+        (maintenance === mAccessWait || (maintenance === mIdle && reads =/= 0.U))
+    when(directRead && !io.downstream.request.ready) { directHeld := true.B }
+    when(directRead && io.downstream.request.fire) { directHeld := false.B }
+    when(directHeld) {
+        assert(maintenance === mIdle && !anyAcquire && io.upstream.request.valid && !needsMaintenance,
+            "stalled direct read must remain irrevocable")
+    }
+    private val startRead = io.upstream.request.fire && !needsMaintenance
+    private val finishRead = io.upstream.response.fire && maintenance === mIdle
+    when(startRead =/= finishRead) { reads := Mux(startRead, reads + 1.U, reads - 1.U) }
+    assert(reads <= 8.U, "home direct read credit overflow")
+    when(io.upstream.request.fire && needsMaintenance) {
+        assert(!anyAcquire && reads === 0.U && !releaseBusy, "maintenance crossed active acquire/release")
+        access := request
+        maintenanceDirectory := ownedSlot(request.address)
+        maintenance := Mux(needsProbe, mProbeSend, mAccessSend)
+    }
+    when(maintenance === mAccessSend && io.downstream.request.fire) { maintenance := mAccessWait }
+    when(maintenance === mAccessWait && io.upstream.response.fire) { maintenance := mIdle }
+
+    private val probe = Module(new TileLinkLineProbeEngine(params, entries = 2, tagBits = 1))
+    port.b <> probe.io.probe
+    // A not-yet-issued probe can disappear only before entering the engine.
+    // An issued probe completes after any racing voluntary ReleaseAck.
+    private val probeStillOwned = lineOwned(access.address)
+    probe.io.request.valid := maintenance === mProbeSend && probeStillOwned && !releaseOffer && !releaseBusy
+    probe.io.request.bits.address := Cat(access.address(63, 6), 0.U(6.W))
+    probe.io.request.bits.tag := 0.U
+    when(maintenance === mProbeSend && !probeStillOwned && !releaseBusy) { maintenance := mAccessSend }
+    when(probe.io.request.fire) { maintenance := mProbeWait }
+    probe.io.ack.valid := port.c.valid && !isRelease && releasePhase =/= rCapture
+    probe.io.ack.bits := port.c.bits
+    port.c.ready := Mux(isRelease, releaseReady, releasePhase =/= rCapture && probe.io.ack.ready)
+    when(port.c.valid && probeCActive) {
+        assert(port.c.bits.opcode === TLOpcode.ProbeAckData && port.c.bits.source === probeCSource,
+            "C message interleaved a probe-data burst")
+    }
+    when(port.c.fire && !isRelease && port.c.bits.opcode === TLOpcode.ProbeAckData) {
+        probeCSource := port.c.bits.source
+        probeCBeat := probeCBeat + 1.U
+        probeCActive := probeCBeat =/= 7.U
+    }
+    probe.io.response.ready := maintenance === mProbeWait && !releaseBusy && !releaseOffer
+    when(probe.io.response.fire) {
+        assert(!probe.io.response.bits.corrupt, "dirty probe data must not be corrupt")
+        owned(maintenanceDirectory) := false.B
+        maintenanceData := probe.io.response.bits.data
+        maintenance := Mux(probe.io.response.bits.hasData, mWriteSend, mAccessSend)
+    }
+
+    // The shared dispatch retains queued origins and explicitly bypasses only
+    // an empty queue with one offered origin; stalled offers spill unchanged.
+    private val writes = Module(new CoherentWriteDispatch(params.addrWidth, entryBits))
+    writes.io.in(0).valid := releasePhase === rSend
+    writes.io.in(0).bits.address := releaseAddress
+    writes.io.in(0).bits.data := releaseData.asUInt
+    writes.io.in(0).bits.tag := 0.U
+    writes.io.in(1).valid := maintenance === mWriteSend
+    writes.io.in(1).bits.address := Cat(access.address(63, 6), 0.U(6.W))
+    writes.io.in(1).bits.data := maintenanceData
+    writes.io.in(1).bits.tag := 1.U
+    transfer.io.writeRequest <> writes.io.out
+    when(writes.io.in(0).fire) { releasePhase := rWait }
+    when(writes.io.in(1).fire) { maintenance := mWriteWait }
+    transfer.io.writeResponse.ready := true.B
+    when(transfer.io.writeResponse.fire) {
+        assert(!transfer.io.writeResponse.bits.error, "coherent home backing rejected dirty writeback")
+        when(transfer.io.writeResponse.bits.tag === 0.U) {
+            assert(releasePhase === rWait, "writeback result has no release owner")
+            owned(releaseDirectory) := false.B
+            releasePhase := rAck
+        }.otherwise {
+            assert(transfer.io.writeResponse.bits.tag === 1.U && maintenance === mWriteWait,
+                "writeback result has no maintenance owner")
+            maintenance := mAccessSend
+        }
+    }
+
+    private val dLocked = RegInit(false.B)
+    private val dRelease = Reg(Bool())
+    private val dEntry = Reg(UInt(entryBits.W))
+    private val dBeat = RegInit(0.U(3.W))
+    private val dTurn = RegInit(0.U(entryBits.W))
+    private val grantMask = VecInit(phase.map(_ === grantReady))
+    private val afterTurn = VecInit((0 until acquireEntries).map(i => grantMask(i) && i.U >= dTurn))
+    private val selectedGrant = Mux(afterTurn.asUInt.orR, PriorityEncoder(afterTurn), PriorityEncoder(grantMask))
+    private val sendRelease = Mux(dLocked, dRelease, releasePhase === rAck)
+    private val grantEntry = Mux(dLocked, dEntry, selectedGrant)
+    port.d.valid := Mux(sendRelease, releasePhase === rAck, grantMask(grantEntry))
+    port.d.bits := 0.U.asTypeOf(port.d.bits)
+    port.d.bits.opcode := Mux(sendRelease, TLOpcode.ReleaseAck, TLOpcode.GrantData)
+    port.d.bits.param := Mux(sendRelease, 0.U, TLPermissions.toT)
+    port.d.bits.size := 6.U
+    port.d.bits.source := Mux(sendRelease, releaseSource, sources(grantEntry))
+    port.d.bits.sink := Mux(sendRelease, 0.U, grantEntry)
+    port.d.bits.denied := !sendRelease && errors(grantEntry)
+    port.d.bits.corrupt := !sendRelease && errors(grantEntry)
+    port.d.bits.data := Mux(sendRelease || errors(grantEntry), 0.U, data(grantEntry)(dBeat))
+    when(port.d.valid && !dLocked) { dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry }
+    when(port.d.fire) {
+        when(sendRelease) {
+            releaseRetired := true.B
+            releasePhase := rIdle
+            dLocked := false.B
+        }.elsewhen(dBeat === 7.U) {
+            phase(grantEntry) := waitE
+            dBeat := 0.U
+            dTurn := grantEntry + 1.U
+            dLocked := false.B
+        }.otherwise { dBeat := dBeat + 1.U }
+    }
+    private val eInRange = port.e.bits.sink < acquireEntries.U
+    private val eEntry = port.e.bits.sink(entryBits - 1, 0)
+    port.e.ready := eInRange && phase(eEntry) === waitE
+    when(port.e.valid) {
+        assert(eInRange && active(eEntry), "GrantAck has no live sink")
+    }
+    when(port.e.fire) {
+        when(!errors(eEntry)) {
+            assert(!owned(directory(eEntry)), "reserved directory slot changed before GrantAck")
+            if (tagConfig.compact) assert(tagGeometry.contains(addresses(eEntry)), "home tag outside aperture")
+            tags(directory(eEntry)) := tagGeometry.tag(addresses(eEntry))
+            owned(directory(eEntry)) := true.B
+        }
+        phase(eEntry) := free
+    }
+    for (i <- 0 until acquireEntries; j <- i + 1 until acquireEntries) {
+        when(active(i) && active(j)) {
+            assert(sources(i) =/= sources(j), "duplicate live Acquire source")
+            assert(setOf(addresses(i)) =/= setOf(addresses(j)), "overlapping transient cache sets")
+            assert(directory(i) =/= directory(j), "duplicate reserved directory slot")
+        }
+    }
+}

@@ -11,7 +11,7 @@
 #ifndef CACHE_LINES
 #define CACHE_LINES 16
 #endif
-static_assert(CACHE_LINES >= 4 && CACHE_LINES <= 256 && !(CACHE_LINES & (CACHE_LINES - 1)));
+static_assert(CACHE_LINES >= 4 && CACHE_LINES <= 512 && !(CACHE_LINES & (CACHE_LINES - 1)));
 static constexpr uint64_t setStride = 64ULL * (CACHE_LINES / 2);
 
 static bool injectMismatch = false;
@@ -172,6 +172,12 @@ int main(int argc, char **argv) {
         check(fetch(dut, ram + 128, 0, 6) == 1, "third line did not burst-fill");
         streamHits(dut);
         check(fetch(dut, ram + 8, 0, 6) == 0, "same line did not hit");
+#ifdef COMPACT_TAG_TEST
+        const uint64_t highAlias = ram | (1ULL << 40);
+        check(fetch(dut, highAlias, 0, 3) == PACKET_WORDS/2,
+              "high-alias instruction address hit a low physical tag");
+        check(fetch(dut, ram, 0, 6) == 0, "high-alias fallback invalidated resident code");
+#endif
         if (PACKET_WORDS == 4)
             check(fetch(dut, ram + 56, 0, 3) == 2, "cross-line wide packet did not use precise fallback");
         check(fetch(dut, ram, 0, 6) == 0, "resident line was evicted unexpectedly");
@@ -206,6 +212,16 @@ int main(int argc, char **argv) {
         dut.step();
         check(fetch(dut, ram, 3, 6, 3, 0, 0, true, 0, false, PACKET_WORDS / 2 - 1) == 1 + PACKET_WORDS / 2,
               "late fill error failed to preserve precise fallback error lanes");
+        drive(dut, false, 0, std::nullopt, 3, 0, 0, true);
+        dut.step();
+        for (unsigned i = 0; i < CACHE_LINES; ++i)
+            check(fetch(dut, ram + 64ULL*i, 3, 6) == 1, "full cache sweep failed to fill every slot");
+        for (unsigned i = 0; i < CACHE_LINES; ++i)
+            check(fetch(dut, ram + 64ULL*i, 3, 6) == 0, "full cache sweep lost resident line");
+        drive(dut, false, 0, std::nullopt);
+        dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+        check(fetch(dut, ram + 64ULL*(CACHE_LINES-1), 3, 6) == 1,
+              "reset retained high-index instruction cache line");
         // A TOR region ending after the requested packet must not authorize a 64-byte fill.
         check(fetch(dut, ram, 3, 3, 1, 0x0c, (ram + PACKET_WORDS * 4) >> 2) == PACKET_WORDS / 2,
               "PMP boundary did not fall back to a precise packet Get");

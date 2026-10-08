@@ -60,9 +60,10 @@ class FpMemoryPipelineGsim extends Module {
     io.busy := memory.io.busy
 }
 
-class TranslationContextGsim extends Module {
+class TranslationContextGsim(identityFlow: Boolean = false, programmablePmp: Boolean = false, prefetch: Boolean = false) extends Module {
     val p = BoardSocConfig.timingParams("staged-fetch-feedback").copy(
-        machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3)
+        machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3, identityDataRequestFlow = identityFlow, dataNextLinePrefetch = prefetch,
+        speculativeRamBase = BigInt("80200000", 16), speculativeRamBytes = BigInt("80000000", 16))
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
         val physical = new DataPort
@@ -70,14 +71,23 @@ class TranslationContextGsim extends Module {
         val context = Input(new VmCsrState)
         val idle = Output(Bool())
     })
+    val pmpCfg0 = if (programmablePmp) Some(IO(Input(UInt(8.W)))) else None
+    val pmpAddr0 = if (programmablePmp) Some(IO(Input(UInt(54.W)))) else None
+    val immediateTranslation = if (programmablePmp) Some(IO(Input(Bool()))) else None
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
     adapter.io.virtual <> io.upstream
     io.physical <> adapter.io.physical
-    io.translation <> adapter.io.translation
+    if (programmablePmp) {
+        io.translation.request <> adapter.io.translation.request
+        adapter.io.translation.response.valid := Mux(immediateTranslation.get,
+            adapter.io.translation.request.fire, io.translation.response.valid)
+        adapter.io.translation.response.bits := io.translation.response.bits
+        io.translation.response.ready := adapter.io.translation.response.ready
+    } else io.translation <> adapter.io.translation
     adapter.io.vmState := io.context
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
-    pmp.cfg(0) := "h1f".U
-    pmp.addr(0) := ((BigInt(1) << 54) - 1).U
+    pmp.cfg(0) := pmpCfg0.getOrElse("h1f".U)
+    pmp.addr(0) := pmpAddr0.getOrElse(((BigInt(1) << 54) - 1).U)
     PmpState.decodeRegions(pmp)
     adapter.io.pmpState := pmp
     io.idle := adapter.io.idle
@@ -101,7 +111,8 @@ object FpMemoryPipelineGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new FpMemoryPipelineGsim, Array("--target-dir", args.head))
 }
 object TranslationContextGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new TranslationContextGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new TranslationContextGsim(args.lift(1).contains("1"), args.lift(2).contains("pmp"), args.lift(3).contains("prefetch")),
+        Array("--target-dir", args.head))
 }
 object CursorNeighborGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CursorNeighborGsim, Array("--target-dir", args.head))

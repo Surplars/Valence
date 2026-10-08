@@ -21,7 +21,9 @@ SECTIONS {
     } > BOOT AT > ROM
     __data_load = LOADADDR(.data);
     ASSERT((__crc32_table_start & 63) == 0, "CRC table must be cache-line aligned")
-    ASSERT(__crc32_table_end - __crc32_table_start == 64, "expected one 64-byte CRC table")
+    ASSERT((__crc32_table_end - __crc32_table_start == 64) ||
+           (__crc32_table_end - __crc32_table_start == 1024) ||
+           (__crc32_table_end - __crc32_table_start == 4096), "unsupported CRC table size")
     .bss (NOLOAD) : ALIGN(8) {
         __bss_start = .;
         *(.sbss .sbss.* .bss .bss.* COMMON)

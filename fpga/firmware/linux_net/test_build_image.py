@@ -1,5 +1,6 @@
 """Host-only config/DT/time checks; do not claim PHY or DMA board qualification."""
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -108,7 +109,9 @@ class ImageTests(unittest.TestCase):
             subprocess.run(['sh', '-n', b.HERE / name], check=True)
 
     def test_compiled_irq_phandles_and_no_fake_standard_imsic(self):
-        dtc = b.ROOT / 'build/fpga/linux-net-rv64gc-20261006-r2/linux/scripts/dtc/dtc'
+        # A cleaned build tree is normal; do not depend on one dated image.
+        dtc = shutil.which('dtc') or b.ROOT / 'simulator/build/linux/scripts/dtc/dtc'
+        self.assertTrue(Path(dtc).is_file(), 'dtc is required for compiled DT validation')
         with tempfile.TemporaryDirectory() as directory:
             dts, dtb = Path(directory) / 'board.dts', Path(directory) / 'board.dtb'
             dts.write_text(b.network_dts())
@@ -132,7 +135,10 @@ class ImageTests(unittest.TestCase):
         self.assertNotIn('msecs_to_jiffies(1)', driver)
         self.assertNotIn('netif_rx(', driver)
         self.assertIn('work < budget', driver)
-        self.assertIn('ktime_get_ns() >= deadline', driver)
+        self.assertIn('vgq_poll_yield(work, budget, ktime_get_ns(), deadline)', driver)
+        queue = (b.HERE / 'valence_rx_queue.h').read_text()
+        self.assertIn('budget && work && (work >= budget || now >= deadline)', queue)
+        self.assertIn('valence_rx_queue.h', (b.HERE / 'build_image.py').read_text())
         irq = (b.HERE / 'valence_aia.c').read_text()
         setup = irq.split('static int va_program_source(', 1)[1].split('static int va_set_type(', 1)[0]
         self.assertLess(setup.index('writel(mode, p->leaf + A_SOURCE(source))'),

@@ -27,29 +27,21 @@ class CoherentCacheProfile extends Bundle {
 class CoherentLineCache(
     base: BigInt = BigInt("80010000", 16), bytes: BigInt = 8192, lines: Int = 128,
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
-    ways: Int = 1
-) extends Module {
-    require(lines >= 2 && lines <= 256 && isPow2(lines))
+    ways: Int = 1, responseEntries: Int = 2, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth
+) extends CoherentLineCacheModule(params) {
+    require(responseEntries >= 2 && responseEntries <= 16 && isPow2(responseEntries))
+    require(lines >= 2 && lines <= 512 && isPow2(lines))
     require(Set(1, 2).contains(ways) && lines / ways >= 2)
     require(bytes >= 64 && bytes % 64 == 0 && base % 64 == 0)
-    val io = IO(new Bundle {
-        val upstream = Flipped(new DataPort)
-        val downstream = new DataPort
-        val tl = new TLBundle(params)
-        val flushRequest = Input(Bool())
-        val flushDone = Output(Bool())
-        val hit = Output(Bool())
-        val miss = Output(Bool())
-        val profile = Output(new CoherentCacheProfile)
-    })
     private val indexBits = log2Ceil(lines)
     private val setBits = log2Ceil(lines / ways)
+    private val tagGeometry = tagConfig.geometry(base, bytes, 6 + setBits)
     private val Seq(idle, evictCapture, evictSend, evictAck, acquire, fill, missResponse,
         bypassSend, bypassResponse, probeCapture, probeSend, flushScan) = Enum(12)
     private val state = RegInit(idle)
     private val valid = RegInit(VecInit(Seq.fill(lines)(false.B)))
     private val dirty = RegInit(VecInit(Seq.fill(lines)(false.B)))
-    private val tags = Reg(Vec(lines, UInt((64 - 6 - setBits).W)))
+    private val tags = Reg(Vec(lines, UInt(tagGeometry.tagBits.W)))
     private val replacement = if (ways == 2)
         Some(RegInit(VecInit(Seq.fill(lines / ways)(false.B)))) else None
     private val data = Seq.fill(8)(SyncReadMem(lines, Vec(8, UInt(8.W))))
@@ -75,17 +67,17 @@ class CoherentLineCache(
     private val hitBank = Reg(UInt(3.W))
     private val readPending = RegInit(false.B)
     private val storePending = RegInit(false.B)
-    private val readResponses = Module(new Queue(new DataResponse, 2, pipe = false, flow = true))
+    private val readResponses = Module(new Queue(new DataResponse, responseEntries, pipe = false, flow = true))
 
     private def lineSet(address: UInt): UInt = address(5 + setBits, 6)
-    private def lineTag(address: UInt): UInt = address(63, 6 + setBits)
+    private def lineTag(address: UInt): UInt = tagGeometry.tag(address)
     private def slot(address: UInt, way: Int): UInt =
         if (ways == 1) lineSet(address) else Cat(way.U(1.W), lineSet(address))
     private def matches(address: UInt, way: Int): Bool =
-        valid(slot(address, way)) && tags(slot(address, way)) === lineTag(address)
+        tagGeometry.qualifies(address) && valid(slot(address, way)) && tags(slot(address, way)) === lineTag(address)
     private def residentSlot(address: UInt): UInt =
         if (ways == 1) lineSet(address) else Mux(matches(address, 0), slot(address, 0), slot(address, 1))
-    private def slotAddress(index: UInt): UInt = Cat(tags(index), index(setBits - 1, 0), 0.U(6.W))
+    private def slotAddress(index: UInt): UInt = tagGeometry.widen(Cat(tags(index), index(setBits - 1, 0), 0.U(6.W)))
     private def touch(index: UInt): Unit = replacement.foreach { lru =>
         lru(index(setBits - 1, 0)) := !index(indexBits - 1)
     }
@@ -115,7 +107,7 @@ class CoherentLineCache(
     private val needsEviction = cacheable && valid(index) && (!found || bypass)
     private val readHit = ordinary && found && !request.write
     private val writeHit = ordinary && found && request.write
-    private val readCapacity = readResponses.io.count +& readPending.asUInt < 2.U
+    private val readCapacity = readResponses.io.count +& readPending.asUInt < responseEntries.U
     private val noReadOutstanding = readResponses.io.count === 0.U && !readPending
     private val cpuFire = io.upstream.request.fire
     private val cpuRead = cpuFire && ordinary && found
@@ -135,6 +127,7 @@ class CoherentLineCache(
     // output; masked write hits update the byte lanes directly. Both return through
     // the same ordered response queue. Independent read hits may be captured while one
     // line is being acquired, but their responses remain behind the older miss.
+    io.prefetchBusy := false.B
     io.flushDone := flushFinished
     // A queued uncached/atomic CPU request may be behind a probing DMA at the
     // home. Never make B depend on that CPU reply. A completed refill is first
@@ -301,6 +294,7 @@ class CoherentLineCache(
             "write-back L1 requires T permission")
         val word = (engine.io.response.bits.data >> (selected << 6))(63, 0)
         when(!engine.io.response.bits.error) {
+            if (tagConfig.compact) assert(tagGeometry.contains(pending.address), "tag install outside aperture")
             tags(fillIndex) := lineTag(pending.address)
             valid(fillIndex) := true.B
             dirty(fillIndex) := pending.write
@@ -328,10 +322,10 @@ class CoherentLineCache(
         // idle in that case, not a response state whose credit was consumed.
         probeResume := Mux((state === bypassResponse || state === missResponse) &&
             io.upstream.response.fire, idle, state)
-        probeHit := valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address)
-        probeDirty := valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address) &&
+        probeHit := tagGeometry.qualifies(io.tl.b.bits.address) && valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address)
+        probeDirty := tagGeometry.qualifies(io.tl.b.bits.address) && valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address) &&
             dirty(probeIndex)
-        when(valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address)) {
+        when(tagGeometry.qualifies(io.tl.b.bits.address) && valid(probeIndex) && tags(probeIndex) === lineTag(io.tl.b.bits.address)) {
             valid(probeIndex) := false.B
             dirty(probeIndex) := false.B
         }

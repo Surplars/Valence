@@ -40,6 +40,63 @@ class FakeSocket:
             raise socket.timeout()
         return item
 
+class WindowSocket:
+    """Independent receiver oracle: cumulative ACKs only at a window or EOF.
+
+    Tests can drop DATA/ACK once, and inject unrelated/duplicate traffic. It
+    stores only test-sized data and selected boundary packets, not an image.
+    """
+    def __init__(self, blksize=1024, windowsize=4, drop_data=(), drop_acks=(), clock=None):
+        self.blksize, self.windowsize = blksize, windowsize
+        self.drop_data, self.drop_acks = set(drop_data), set(drop_acks)
+        self.clock = FakeClock() if clock is None else clock
+        self.accepted = self.last_ack = self.data_packets = self.bytes_received = 0
+        self.replies, self.boundary, self.bursts = [], [], []
+        self.burst = []
+        self.eof = False
+        self.gap_acks = 0
+
+    def settimeout(self, value):
+        self.timeout = value
+
+    def sendto(self, data, peer):
+        opcode, number = struct.unpack("!HH", data[:4])
+        if opcode != 3 or len(data) > self.blksize + 4:
+            raise AssertionError("invalid DATA")
+        self.data_packets += 1
+        self.burst.append(number)
+        expected = self.accepted + 1
+        if 65533 <= expected <= 65538:
+            self.boundary.append(number)
+        if number in self.drop_data:
+            self.drop_data.remove(number)
+            return
+        if number == expected % 65536:
+            if self.eof:
+                raise AssertionError("new DATA after EOF")
+            self.accepted += 1
+            self.bytes_received += len(data) - 4
+            self.eof = len(data) < self.blksize + 4
+            if self.accepted - self.last_ack < self.windowsize and not self.eof:
+                return
+        else:
+            self.gap_acks += 1
+        self.last_ack = self.accepted
+        if self.accepted in self.drop_acks:
+            self.drop_acks.remove(self.accepted)
+            return
+        self.replies.append((struct.pack("!HH", 4, self.accepted % 65536), peer))
+
+    def recvfrom(self, size):
+        if self.burst:
+            self.bursts.append(self.burst)
+            self.burst = []
+        self.clock.advance(0.001)
+        if not self.replies:
+            self.clock.advance(self.timeout)
+            raise socket.timeout()
+        return self.replies.pop(0)
+
 class Tests(unittest.TestCase):
     def test_pack_validate(self):
         with tempfile.TemporaryDirectory() as d:
@@ -66,6 +123,277 @@ class Tests(unittest.TestCase):
         for bad in (b"", b"\0\1../test\0octet\0", b"\0\1x\0netascii\0",
                     b"\0\1x\0octet\0blksize\01024\0", b"\0\1\xff\0octet\0"):
             self.assertIsNone(host.request(bad))
+    def test_rrq_negotiates_bounded_options_and_keeps_filename_api(self):
+        packet = b"\0\1valence.vld\0OCTET\0blksize\x001024\0windowsize\x004\0"
+        parsed = host.parse_request(packet)
+        self.assertEqual((parsed.name, parsed.blksize, parsed.windowsize), ("valence.vld", 1024, 4))
+        self.assertEqual(parsed.oack, b"\0\6blksize\x001024\0windowsize\x004\0")
+        self.assertEqual(host.request(packet), "valence.vld")
+        capped = host.parse_request(packet, max_blksize=512, max_windowsize=2)
+        self.assertEqual((capped.blksize, capped.windowsize), (512, 2))
+        self.assertEqual(capped.oack, b"\0\6blksize\x00512\0windowsize\x002\0")
+        large = host.parse_request(b"\0\1x\0octet\0blksize\x0065464\0windowsize\x0065535\0")
+        self.assertEqual((large.blksize, large.windowsize), (1024, 4))
+        for requested, expected in ((512, 512), (768, 512), (1024, 1024)):
+            parsed = host.parse_request(b"\0\1x\0octet\0blksize\0" + str(requested).encode() + b"\0")
+            self.assertEqual((parsed.blksize, parsed.windowsize), (expected, 1))
+        for window in range(1, 5):
+            parsed = host.parse_request(b"\0\1x\0octet\0WINDOWSIZE\0" + str(window).encode() + b"\0")
+            self.assertEqual((parsed.blksize, parsed.windowsize), (512, window))
+        for window in (8, 16):
+            parsed = host.parse_request(b"\0\1x\0octet\0windowsize\0" + str(window).encode() + b"\0",
+                                        max_windowsize=window)
+            self.assertEqual(parsed.windowsize, window)
+        legacy = host.parse_request(b"\0\1x\0octet\0")
+        self.assertEqual((legacy.blksize, legacy.windowsize, legacy.oack), (512, 1, None))
+        unknown = host.parse_request(b"\0\1x\0octet\0tsize\x000\0")
+        self.assertEqual((unknown.blksize, unknown.windowsize, unknown.oack), (512, 1, None))
+
+    def test_rrq_rejects_malformed_or_unbounded_options(self):
+        prefix = b"\0\1x\0octet\0"
+        bad_options = (b"blksize\0", b"blksize\x001024", b"blksize\0\0", b"\x001024\0",
+                       b"blksize\x001024\0BLKSIZE\x00512\0", b"windowsize\x000\0",
+                       b"windowsize\x0065536\0", b"windowsize\0-1\0", b"windowsize\0+4\0",
+                       b"windowsize\0 4\0", b"windowsize\x004.0\0", b"blksize\x0065465\0",
+                       b"blksize\x00256\0", b"windowsize\x00\xff\0", b"unknown\x00\xff\0",
+                       b"a\0b\0" * 128)
+        for suffix in bad_options:
+            with self.subTest(suffix=suffix):
+                self.assertIsNone(host.parse_request(prefix + suffix))
+
+    def test_oack_retries_until_matching_ack0_before_reading(self):
+        clock, stats, sent = FakeClock(), host.TransferStats(), []
+        peer = ("192.168.137.30", 49152)
+        oack = host.parse_request(b"\0\1x\0octet\0blksize\x001024\0windowsize\x004\0").oack
+
+        class Socket:
+            replies = []
+            oacks = 0
+            ack0 = False
+            def settimeout(self, value):
+                self.timeout = value
+            def sendto(self, data, who):
+                sent.append(data)
+                if data == oack:
+                    self.oacks += 1
+                    if self.oacks == 1:
+                        self.replies = [(b"\0\4\0\0", (peer[0], peer[1] + 1)),
+                                        (b"\0\4\0\1", peer), (b"\0\4\0\0extra", peer)]
+                    else:
+                        self.replies = [(b"\0\4\0\0", peer)]
+                else:
+                    if not self.ack0:
+                        raise AssertionError("DATA before ACK0")
+                    self.replies = [(b"\0\4" + data[2:4], peer)]
+            def recvfrom(self, size):
+                clock.advance(0.01)
+                if not self.replies:
+                    clock.advance(self.timeout)
+                    raise socket.timeout()
+                reply = self.replies.pop(0)
+                if reply == (b"\0\4\0\0", peer):
+                    self.ack0 = True
+                return reply
+
+        sock = Socket()
+        class Source(io.BytesIO):
+            def read(self, size):
+                if not sock.ack0:
+                    raise AssertionError("file read before ACK0")
+                return super().read(size)
+        self.assertEqual(host.transfer(sock, peer, Source(b"data"), stats=stats, clock=clock, sleeper=clock.advance,
+                                       blksize=1024, windowsize=4, oack=oack), 4)
+        self.assertEqual(sent[:2], [oack, oack])
+        self.assertEqual((stats.oack_packets, stats.oack_retransmits, stats.timeouts,
+                          stats.ignored_packets, stats.data_packets), (2, 1, 1, 3, 1))
+
+    def test_oack_failure_is_bounded_and_never_sends_data(self):
+        class NoAck:
+            sent = []
+            def settimeout(self, value):
+                pass
+            def sendto(self, data, peer):
+                self.sent.append(data)
+            def recvfrom(self, size):
+                raise socket.timeout()
+        sock, stats = NoAck(), host.TransferStats()
+        source = io.BytesIO(b"data")
+        with self.assertRaisesRegex(TimeoutError, "ACK0"):
+            host.transfer(sock, ("192.168.137.30", 49152), source, retries=2, stats=stats,
+                          blksize=1024, windowsize=4, oack=b"\0\6windowsize\x004\0")
+        self.assertEqual(len(sock.sent), 2)
+        self.assertEqual(source.tell(), 0)
+        self.assertEqual((stats.oack_packets, stats.data_packets, stats.timeouts), (2, 0, 2))
+
+    def test_oack_peer_rejection_stops_without_data(self):
+        class Rejected:
+            sent = []
+            def settimeout(self, value):
+                pass
+            def sendto(self, data, peer):
+                self.sent.append(data)
+                self.peer = peer
+            def recvfrom(self, size):
+                return b"\0\5\0\x08bad options\0", self.peer
+        sock, stats, source = Rejected(), host.TransferStats(), io.BytesIO(b"data")
+        with self.assertRaisesRegex(RuntimeError, "board rejected"):
+            host.transfer(sock, ("192.168.137.30", 49152), source, stats=stats,
+                          blksize=1024, windowsize=4, oack=b"\0\6windowsize\x004\0")
+        self.assertEqual((len(sock.sent), stats.data_packets, source.tell()), (1, 0, 0))
+
+    def test_recovery_keeps_unacked_payload_and_does_not_reread(self):
+        payload = bytes(range(251)) * 30
+        class Source(io.BytesIO):
+            sizes = []
+            def read(self, size):
+                self.sizes.append(size)
+                return super().read(size)
+        class Recorder(WindowSocket):
+            packets = {}
+            def sendto(self, data, peer):
+                number = struct.unpack("!H", data[2:4])[0]
+                if number in self.packets and self.packets[number] != data:
+                    raise AssertionError("retransmit changed bytes")
+                self.packets[number] = data
+                super().sendto(data, peer)
+        source, sock = Source(payload), Recorder(drop_data=(2,))
+        self.assertEqual(host.transfer(sock, ("192.168.137.30", 49152), source,
+                                       blksize=1024, windowsize=4, clock=sock.clock, sleeper=sock.clock.advance), len(payload))
+        self.assertEqual(len(source.sizes), len(payload) // 1024 + 1)
+        self.assertEqual(b"".join(sock.packets[n][4:] for n in sorted(sock.packets)), payload)
+
+    def test_cumulative_windows_and_zero_eof(self):
+        for blksize in (512, 1024):
+            for windowsize in (1, 2, 3, 4, 8, 16):
+                for size in (0, 1, blksize, blksize * windowsize - 1,
+                             blksize * windowsize, blksize * windowsize + 1, blksize * 10):
+                    with self.subTest(blksize=blksize, windowsize=windowsize, size=size):
+                        sock = WindowSocket(blksize, windowsize)
+                        stats, updates = host.TransferStats(), []
+                        result = host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(bytes(size)),
+                                               blksize=blksize, windowsize=windowsize,
+                                               stats=stats, clock=sock.clock, sleeper=sock.clock.advance,
+                                               progress=lambda *args: updates.append(args))
+                        blocks = size // blksize + 1
+                        self.assertEqual(result, size)
+                        self.assertEqual((stats.acked_blocks, stats.data_packets), (blocks, blocks))
+                        self.assertEqual(updates[-1], (size, True))
+                        self.assertTrue(all(not complete for total, complete in updates[:-1]))
+                        self.assertEqual(len(updates), (blocks + windowsize - 1) // windowsize)
+                        self.assertLessEqual(stats.max_buffered_blocks, windowsize)
+                        self.assertLessEqual(stats.max_buffered_bytes, windowsize * (blksize + 4))
+                        self.assertTrue(all(len(burst) <= windowsize for burst in sock.bursts))
+                        self.assertTrue(sock.eof)
+
+    def test_gap_restarts_full_window_after_cumulative_prefix(self):
+        for dropped in (1, 2, 3, 4, 5):
+            sock = WindowSocket(drop_data=(dropped,))
+            stats, updates = host.TransferStats(), []
+            source = io.BytesIO(bytes(9 * 1024 + 7))
+            self.assertEqual(host.transfer(sock, ("192.168.137.30", 49152), source,
+                                           blksize=1024, windowsize=4, stats=stats, clock=sock.clock, sleeper=sock.clock.advance,
+                                           progress=lambda *args: updates.append(args)), 9 * 1024 + 7)
+            if dropped < 4:
+                self.assertEqual(sock.bursts[1], list(range(dropped, dropped + 4)))
+            self.assertGreater(stats.retransmits, 0)
+            self.assertEqual(stats.bytes_acked, sock.bytes_received)
+            self.assertEqual(stats.acked_blocks, 10)
+            self.assertEqual(updates[-1], (9 * 1024 + 7, True))
+            self.assertEqual([count for count, _ in updates], sorted(set(count for count, _ in updates)))
+            self.assertLessEqual(stats.max_buffered_blocks, 4)
+
+    def test_window_timeout_replays_packets_and_ack_loss_does_not_double_count(self):
+        sock = WindowSocket(drop_acks=(4, 8))
+        stats = host.TransferStats()
+        host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(bytes(8 * 1024)),
+                      blksize=1024, windowsize=4, stats=stats, clock=sock.clock, sleeper=sock.clock.advance)
+        self.assertEqual(sock.bursts[:2], [[1, 2, 3, 4], [1, 2, 3, 4]])
+        self.assertEqual((stats.acked_blocks, stats.bytes_acked, stats.eof_acked), (9, 8192, True))
+        self.assertGreaterEqual(stats.timeouts, 1)
+        self.assertGreaterEqual(stats.retransmits, 8)
+
+    def test_window_ignores_foreign_stale_future_and_malformed_acks(self):
+        class NoisySocket(WindowSocket):
+            injected = False
+            def recvfrom(self, size):
+                if not self.injected:
+                    self.injected = True
+                    peer = self.replies[0][1]
+                    self.replies[0:0] = [(b"\0\4\0\4", (peer[0], peer[1] + 1)),
+                                         (b"\0\4\xff\xff", peer), (b"\0\4\0\5", peer),
+                                         (b"\0\4\0\4extra", peer)]
+                return super().recvfrom(size)
+        sock, stats = NoisySocket(), host.TransferStats()
+        host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(bytes(4096)),
+                      blksize=1024, windowsize=4, stats=stats, clock=sock.clock, sleeper=sock.clock.advance)
+        self.assertEqual((stats.ignored_packets, stats.retransmits, stats.bytes_acked), (4, 0, 4096))
+
+    def test_duplicate_gap_ack_storm_has_bounded_retransmission(self):
+        clock = FakeClock()
+        class Storm:
+            sent = []
+            def settimeout(self, value):
+                pass
+            def sendto(self, data, peer):
+                self.sent.append(data)
+                self.peer = peer
+            def recvfrom(self, size):
+                clock.advance(0.1)
+                return b"\0\4\0\0", self.peer
+        sock, stats = Storm(), host.TransferStats()
+        with self.assertRaises(TimeoutError):
+            host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(bytes(8192)),
+                          retries=3, blksize=1024, windowsize=4, stats=stats, clock=clock, sleeper=clock.advance)
+        self.assertEqual((stats.data_packets, stats.retransmits, stats.window_restarts), (12, 8, 1))
+        self.assertEqual((stats.bytes_acked, stats.acked_blocks), (0, 0))
+        self.assertEqual(sock.sent[:4], sock.sent[4:8])
+        self.assertEqual(sock.sent[:4], sock.sent[8:12])
+
+    def test_multi_packet_windows_pace_initial_and_retransmitted_data(self):
+        clock = FakeClock()
+        sent_at, sleeps = [], []
+        class TimedWindow(WindowSocket):
+            def sendto(self, data, peer):
+                sent_at.append(clock())
+                super().sendto(data, peer)
+        def sleep(seconds):
+            sleeps.append(seconds)
+            clock.advance(seconds)
+        sock, stats = TimedWindow(drop_data=(2,), clock=clock), host.TransferStats()
+        host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(bytes(8192)),
+                      blksize=1024, windowsize=4, stats=stats, clock=clock,
+                      inter_packet_seconds=0.0001, sleeper=sleep)
+        self.assertTrue(sleeps)
+        self.assertGreater(stats.retransmits, 0)
+        self.assertTrue(all(right - left >= 0.0001 - 1e-12
+                            for left, right in zip(sent_at, sent_at[1:])))
+        self.assertAlmostEqual(stats.pacing_seconds, sum(sleeps))
+        self.assertIn("pacing=", stats.summary())
+        self.assertIn("other=0.000000s", stats.summary())
+        for delay in (0, -1, float("nan"), float("inf")):
+            with self.subTest(delay=delay), self.assertRaises(ValueError):
+                host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(b"data"),
+                              blksize=1024, windowsize=4, inter_packet_seconds=delay)
+
+    def test_window_rollover_with_gap_zero_ack_and_short_eof(self):
+        length = 65536 * 1024 + 37
+        class Source:
+            remaining = length
+            reads = 0
+            def read(self, size):
+                self.reads += 1
+                amount = min(self.remaining, size)
+                self.remaining -= amount
+                return bytes(amount)
+        sock = WindowSocket(drop_data=(65535,))
+        stats, source = host.TransferStats(), Source()
+        self.assertEqual(host.transfer(sock, ("192.168.137.30", 49152), source,
+                                       blksize=1024, windowsize=4, stats=stats, clock=sock.clock, sleeper=sock.clock.advance), length)
+        self.assertEqual(sock.boundary, [65533, 65534, 65535, 0, 65535, 0, 1])
+        self.assertEqual((stats.bytes_acked, stats.acked_blocks, source.reads), (length, 65537, 65537))
+        self.assertEqual((stats.retransmits, stats.eof_acked), (2, True))
+        self.assertEqual((stats.max_buffered_blocks, stats.max_buffered_bytes), (4, 4 * 1028))
+
     def test_retry_and_zero_eof(self):
         for size in (4, 512, 1024, 1025):
             fake = FakeSocket()
@@ -165,7 +493,7 @@ class Tests(unittest.TestCase):
 
         stats = host.TransferStats()
         self.assertEqual(host.transfer(TimedSocket(), ("192.168.137.30", 49152),
-                                       TimedSource(bytes(1024)), stats=stats, clock=clock), 1024)
+                                       TimedSource(bytes(1024)), stats=stats, clock=clock, sleeper=clock.advance), 1024)
         self.assertEqual((stats.bytes_acked, stats.data_packets, stats.acked_blocks,
                           stats.retransmits, stats.timeouts, stats.reply_packets,
                           stats.ignored_packets, stats.eof_acked),
@@ -191,7 +519,7 @@ class Tests(unittest.TestCase):
         stats = host.TransferStats()
         with self.assertRaises(TimeoutError):
             host.transfer(MissingEofAck(), ("192.168.137.30", 49152), io.BytesIO(bytes(512)),
-                          retries=2, stats=stats, clock=clock)
+                          retries=2, stats=stats, clock=clock, sleeper=clock.advance)
         self.assertEqual((stats.bytes_acked, stats.data_packets, stats.acked_blocks,
                           stats.retransmits, stats.timeouts, stats.eof_acked),
                          (512, 3, 1, 1, 2, False))
@@ -269,7 +597,7 @@ class Tests(unittest.TestCase):
 
         source, receiver, stats = Source(), Receiver(), host.TransferStats()
         result = host.transfer(receiver, ("192.168.137.30", 49152), source,
-                               stats=stats, clock=clock)
+                               stats=stats, clock=clock, sleeper=clock.advance)
         self.assertEqual(result, length)
         self.assertEqual(receiver.rollover, [65534, 65535, 0, 0, 1, 2])
         self.assertEqual((receiver.acked, receiver.sent, source.reads), (129588, 129589, 129588))
@@ -305,6 +633,51 @@ class Tests(unittest.TestCase):
                           output.getvalue())
             self.assertIn("TFTP STATS bytes_acked=40 data_packets=1 acked_blocks=1", output.getvalue())
             self.assertEqual(output.getvalue().count("TFTP STATS"), 1)
+
+    def test_serve_negotiates_requested_options_with_configured_caps(self):
+        class ContextSocket(FakeSocket):
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def bind(self, address):
+                self.bound = address
+
+        class NegotiatedSession(WindowSocket):
+            oack = None
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def bind(self, address):
+                self.bound = address
+            def sendto(self, data, peer):
+                if data.startswith(b"\0\6"):
+                    self.oack = data
+                    self.replies.append((b"\0\4\0\0", peer))
+                else:
+                    if self.oack is None:
+                        raise AssertionError("DATA before option negotiation")
+                    super().sendto(data, peer)
+
+        with tempfile.TemporaryDirectory() as directory:
+            source, packed = Path(directory) / "app.bin", Path(directory) / "valence.vld"
+            source.write_bytes(bytes(4096))
+            host.pack(source, packed)
+            listener, session = ContextSocket(), NegotiatedSession(blksize=512, windowsize=2)
+            listener.replies = [(b"\0\1valence.vld\0octet\0blksize\x001024\0windowsize\x004\0",
+                                 ("192.168.137.30", 49152))]
+            output = io.StringIO()
+            with patch.object(host.socket, "socket", side_effect=[listener, session]), \
+                    patch.object(host.sys, "stdout", output):
+                host.serve(packed, "192.168.137.1", once=True, show_progress=False,
+                           max_blksize=512, max_windowsize=2)
+            self.assertEqual(session.oack, b"\0\6blksize\x00512\0windowsize\x002\0")
+            self.assertEqual(session.bound, ("192.168.137.1", 0))
+            self.assertEqual((session.bytes_received, session.accepted), (4132, 9))
+            self.assertIn("blksize=512 windowsize=2 oack=yes", output.getvalue())
+            self.assertIn("eof_acked=yes blksize=512 windowsize=2", output.getvalue())
+            self.assertIn("oack_packets=1 oack_retransmits=0", output.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,7 +50,7 @@ class TileLinkAxi4BurstBridge(
     val axiAddress = Reg(UInt(axiAddressWidth.W))
     val source = Reg(UInt(tlParams.sourceBits.W))
     val size = Reg(UInt(tlParams.sizeBits.W))
-    val countWidth = log2Ceil(maxBurstBeats + 1)
+    val countWidth = TileLinkTransferBeatCount.width(tlParams)
     val beatCount = Reg(UInt(countWidth.W))
     val index = RegInit(0.U(countWidth.W))
     val responseIndex = RegInit(0.U(countWidth.W))
@@ -59,13 +59,15 @@ class TileLinkAxi4BurstBridge(
     val readError = RegInit(false.B)
     val writeError = RegInit(false.B)
     val writeOpcode = Reg(UInt(3.W))
+    val writeAddressDone = RegInit(false.B)
+    val writeDataDone = RegInit(false.B)
     val writeData = Reg(Vec(maxBurstBeats, UInt(64.W)))
     val writeStrb = Reg(Vec(maxBurstBeats, UInt(8.W)))
     val readData = Reg(Vec(maxBurstBeats, UInt(64.W)))
     val a = io.tl.a.bits
     val maxSize = log2Ceil(maxBurstBeats) + 3
-    val requestBeats = MuxLookup(a.size, 1.U(countWidth.W))(
-        (4 to maxSize).map(n => n.U -> (1 << (n - 3)).U(countWidth.W)))
+    val requestBeats = TileLinkTransferBeatCount(a.size, tlParams)
+    val fitsBuffer = a.size <= maxSize.U
     val fullMask = MuxLookup(a.size, 255.U(8.W))(Seq(
         0.U -> (1.U(8.W) << a.address(2, 0)),
         1.U -> (3.U(8.W) << a.address(2, 0)),
@@ -81,18 +83,22 @@ class TileLinkAxi4BurstBridge(
             (a.address +& byteCount) <= (axiAddressBase + axiWindowBytes).U((tlParams.addrWidth + 1).W)
         else true.B
 
+    val acceptedWindow = inWindow && fitsBuffer
+
     io.tl.a.ready := state === sIdle || state === sCollectWrite
     when(io.tl.a.fire) {
         assert(a.param === 0.U && !a.corrupt && (isRead || isWrite), "unsupported TL-UL request")
         when(state === sIdle) {
-            assert(a.size <= maxSize.U && requestBeats <= maxBurstBeats.U,
-                "TL burst exceeds AXI bridge buffer")
             assert((a.address & (byteCount - 1.U)) === 0.U,
                 "TL-AXI address must be naturally aligned")
-            assert(pageOffset +& byteCount <= 4096.U,
-                "AXI burst must not cross a 4-KiB boundary")
+            when(fitsBuffer) {
+                assert(pageOffset +& byteCount <= 4096.U,
+                    "AXI burst must not cross a 4-KiB boundary")
+            }
             if (axiWindowBytes == 0 && axiAddressWidth < tlParams.addrWidth) {
-                assert((a.address >> axiAddressWidth) === 0.U, "AXI address truncation")
+                when(fitsBuffer) {
+                    assert((a.address >> axiAddressWidth) === 0.U, "AXI address truncation")
+                }
             }
             when(isBurst) {
                 when(a.opcode =/= TLOpcode.PutPartialData) {
@@ -112,17 +118,21 @@ class TileLinkAxi4BurstBridge(
             beatCount := requestBeats
             index := 0.U
             responseIndex := 0.U
-            readError := !inWindow
-            writeError := !inWindow
+            readError := !acceptedWindow
+            writeError := !acceptedWindow
+            writeAddressDone := false.B
+            writeDataDone := false.B
             when(isRead) {
-                state := Mux(inWindow, sReadAddress, sReadReply)
+                state := Mux(acceptedWindow, sReadAddress, sReadReply)
             }.otherwise {
-                writeData(0) := a.data
-                writeStrb(0) := a.mask
+                when(acceptedWindow) {
+                    writeData(0) := a.data
+                    writeStrb(0) := a.mask
+                }
                 writeOpcode := a.opcode
-                index := 1.U
+                index := Mux(requestBeats === 1.U, 0.U, 1.U)
                 state := Mux(requestBeats === 1.U,
-                    Mux(inWindow, sWriteAddress, sWriteReply), sCollectWrite)
+                    Mux(acceptedWindow, sWriteAddress, sWriteReply), sCollectWrite)
             }
         }.otherwise {
             assert(state === sCollectWrite && a.opcode === writeOpcode &&
@@ -130,16 +140,22 @@ class TileLinkAxi4BurstBridge(
                 a.size === size && a.source === source &&
                 (writeOpcode === TLOpcode.PutPartialData || a.mask === 255.U),
                 "TL write burst changed control fields")
-            writeData(bufferIndex) := a.data
-            writeStrb(bufferIndex) := a.mask
+            // Denied writes still own/drain every A beat but never touch the buffer or AXI.
+            when(!writeError) {
+                writeData(bufferIndex) := a.data
+                writeStrb(bufferIndex) := a.mask
+            }
             index := index + 1.U
-            when(index === beatCount - 1.U) { state := Mux(writeError, sWriteReply, sWriteAddress) }
+            when(index === beatCount - 1.U) {
+                when(!writeError) { index := 0.U }
+                state := Mux(writeError, sWriteReply, sWriteAddress)
+            }
         }
     }
 
     val axiSize = Mux(size > 3.U, 3.U, size)
     io.axi.ar.valid := state === sReadAddress
-    io.axi.aw.valid := state === sWriteAddress
+    io.axi.aw.valid := state === sWriteAddress && !writeAddressDone
     for (channel <- Seq(io.axi.ar.bits, io.axi.aw.bits)) {
         channel.id := 0.U
         channel.addr := axiAddress
@@ -152,7 +168,7 @@ class TileLinkAxi4BurstBridge(
         channel.qos := axiQos.U
     }
     when(io.axi.ar.fire) { index := 0.U; state := sReadData }
-    when(io.axi.aw.fire) { index := 0.U; state := sWriteData }
+    when(io.axi.aw.fire) { writeAddressDone := true.B }
 
     io.axi.r.ready := state === sReadData
     when(io.axi.r.fire) {
@@ -164,13 +180,19 @@ class TileLinkAxi4BurstBridge(
         index := index + 1.U
         when(index === beatCount - 1.U) { state := sReadReply }
     }
-    io.axi.w.valid := state === sWriteData
+    // Neither VALID depends on the other channel's READY. A complete TL
+    // burst is buffered before either independent AXI channel is offered.
+    io.axi.w.valid := state === sWriteAddress && !writeDataDone
     io.axi.w.bits.data := writeData(bufferIndex)
     io.axi.w.bits.strb := writeStrb(bufferIndex)
     io.axi.w.bits.last := index === beatCount - 1.U
     when(io.axi.w.fire) {
-        index := index + 1.U
-        when(index === beatCount - 1.U) { state := sWriteResponse }
+        when(io.axi.w.bits.last) { writeDataDone := true.B }
+            .otherwise { index := index + 1.U }
+    }
+    when(state === sWriteAddress && (writeAddressDone || io.axi.aw.fire) &&
+        (writeDataDone || (io.axi.w.fire && io.axi.w.bits.last))) {
+        state := sWriteResponse
     }
     io.axi.b.ready := state === sWriteResponse
     when(io.axi.b.fire) {

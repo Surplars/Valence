@@ -5,7 +5,7 @@ import chisel3.util._
 import soc.bus.tilelink._
 import soc.ip.bus._
 import soc.ip.clock._
-import soc.ip.dma.EthernetAxisWord
+import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
 
 /** One-credit internal RegisterPort to original native64 TL-UL CSR frontend.
   * No atomics/bursts; preserve held lane until D consumes the ordered reply.
@@ -54,7 +54,8 @@ class ManagedGmacStreams extends Bundle {
   * This is a GMII boundary, NOT a completed board RGMII/PHY or Linux driver.
   */
 class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
-    mediaHz: Int = 125000000, hardwareClocks: Boolean = true) extends RawModule {
+    mediaHz: Int = 125000000, hardwareClocks: Boolean = true,
+    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default) extends RawModule {
     require(mediaHz == 125000000, "current frame engines support1G/full-duplex only")
     val sourceClock = IO(Input(Clock()))
     val rawTxClock = IO(Input(Clock()))
@@ -117,8 +118,9 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rxFifo.destinationClock := sourceClock
     rxFifo.commonReset := commonReset
     adapter.io.rxFrame <> rxFifo.destination
-    val tx = withClockAndReset(txManaged, txRelease.resetOut) { Module(new GmiiFrameTx) }
-    val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx(admissionStop = true)) }
+    val tx = withClockAndReset(txManaged, txRelease.resetOut) { Module(new GmiiFrameTx(networkDmaConfig.maxFrameBytes)) }
+    val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx(maxFrameBytes = networkDmaConfig.maxFrameBytes, admissionStop = true,
+        frameSlots = networkDmaConfig.macRxSlots)) }
     tx.io.frame <> txFifo.destination
     rxFifo.source <> rx.io.frame
     val txConfig = Module(new EthernetConfigClockBridge)
@@ -147,7 +149,8 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     txStats.delta.ready := true.B
     rxStats.delta.ready := true.B
     val tlParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4)
-    val config = GmacParams(controlClockHz = cpuHz, aggregateStats = true, rxAdmissionStop = true)
+    val config = GmacParams(controlClockHz = cpuHz, aggregateStats = true, rxAdmissionStop = true,
+        maxFrameBytes = networkDmaConfig.maxFrameBytes, rxFrameSlots = networkDmaConfig.macRxSlots)
     val frontend = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         Module(new RegisterGmacControl(config.base, tlParams))
     }

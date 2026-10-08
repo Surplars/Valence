@@ -17,9 +17,10 @@ class InstructionLineCache(
     lines: Int = 16,
     packetWords: Int = 2,
     prefetchEnabled: Boolean = false,
-    parallelFallbackAddresses: Boolean = false
+    parallelFallbackAddresses: Boolean = false,
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth
 ) extends Module {
-    require(lines >= 4 && lines <= 256 && isPow2(lines))
+    require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(ramBase >= 0 && ramBase % 64 == 0 && ramBytes >= 64 && ramBytes % 64 == 0)
     require(ramBase + ramBytes <= (BigInt(1) << 64))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
@@ -27,7 +28,8 @@ class InstructionLineCache(
     private val sets = lines / 2
     private val prefetchSlots = 2
     private val indexBits = log2Ceil(sets)
-    private val tagBits = 64 - 6 - indexBits
+    private val tagGeometry = tagConfig.geometry(ramBase, ramBytes, 6 + indexBits)
+    private val tagBits = tagGeometry.tagBits
     val io = IO(new Bundle {
         val fetch = Flipped(new InstructionPort(packetWords))
         val tl = new TLBundle(params)
@@ -69,7 +71,7 @@ class InstructionLineCache(
     private val requestPc = io.fetch.request.bits
     private val requestLine = Cat(requestPc(63, 6), 0.U(6.W))
     private val requestSet = requestPc(5 + indexBits, 6)
-    private val requestTag = requestPc(63, 6 + indexBits)
+    private val requestTag = tagGeometry.tag(requestPc)
     private val inRam = requestLine >= ramBase.U &&
         (requestLine +& 63.U) < (ramBase + ramBytes).U(65.W)
     private val pmp = Module(new PmpChecker(16))
@@ -85,7 +87,7 @@ class InstructionLineCache(
     private val lineAllowed = inRam && requestPc(2, 0) === 0.U && packetFitsLine &&
         io.fetch.requestMask === ((1 << packetWords) - 1).U && !pmp.io.denied
     private val hits = VecInit((0 until 2).map { way =>
-        valid(requestSet)(way) && tags(requestSet)(way) === requestTag && !io.invalidate
+        tagGeometry.qualifies(requestPc) && valid(requestSet)(way) && tags(requestSet)(way) === requestTag && !io.invalidate
     })
     private val hit = hits.asUInt.orR
     private val hitWay = hits(1)
@@ -96,9 +98,9 @@ class InstructionLineCache(
             prefetchLine(i) === requestLine).reduce(_ || _) && !io.invalidate
     private val nextLine = requestLine + 64.U
     private val nextSet = nextLine(5 + indexBits, 6)
-    private val nextTag = nextLine(63, 6 + indexBits)
+    private val nextTag = tagGeometry.tag(nextLine)
     private val nextCached = (0 until 2).map(way =>
-        valid(nextSet)(way) && tags(nextSet)(way) === nextTag).reduce(_ || _)
+        tagGeometry.qualifies(nextLine) && valid(nextSet)(way) && tags(nextSet)(way) === nextTag).reduce(_ || _)
     private val nextPending = (0 until prefetchSlots).map(i =>
         prefetchOutstanding(i) && prefetchLine(i) === nextLine).reduce(_ || _)
     private val prefetchPmp = Module(new PmpChecker(16))
@@ -112,9 +114,9 @@ class InstructionLineCache(
         !prefetchPmp.io.denied && !nextCached
     private val followingLine = prefetchCandidateLine + 64.U
     private val followingSet = followingLine(5 + indexBits, 6)
-    private val followingTag = followingLine(63, 6 + indexBits)
+    private val followingTag = tagGeometry.tag(followingLine)
     private val followingCached = (0 until 2).map(way =>
-        valid(followingSet)(way) && tags(followingSet)(way) === followingTag).reduce(_ || _)
+        tagGeometry.qualifies(followingLine) && valid(followingSet)(way) && tags(followingSet)(way) === followingTag).reduce(_ || _)
     private val followingPending = (0 until prefetchSlots).map(i =>
         prefetchOutstanding(i) && prefetchLine(i) === followingLine).reduce(_ || _)
     private val prefetchDistance = math.min(4, sets - 1)
@@ -131,7 +133,7 @@ class InstructionLineCache(
     private val responsePrefetchSlot = (fill.io.response.bits.tag - 1.U)(0)
     private val responsePrefetchLine = prefetchLine(responsePrefetchSlot)
     private val prefetchSet = responsePrefetchLine(5 + indexBits, 6)
-    private val prefetchTag = responsePrefetchLine(63, 6 + indexBits)
+    private val prefetchTag = tagGeometry.tag(responsePrefetchLine)
     private val prefetchVictim = Mux(!valid(prefetchSet)(0), false.B,
         Mux(!valid(prefetchSet)(1), true.B, replace(prefetchSet)))
     private val candidatePmp = Module(new PmpChecker(16))
@@ -260,6 +262,7 @@ class InstructionLineCache(
             prefetchOutstanding(responsePrefetchSlot) := false.B
             when(!prefetchStale(responsePrefetchSlot) && !io.invalidate &&
                 !fill.io.response.bits.error) {
+                if (tagConfig.compact) assert(tagGeometry.contains(responsePrefetchLine), "prefetch tag outside aperture")
                 tags(prefetchSet)(prefetchVictim.asUInt) := prefetchTag
                 valid(prefetchSet)(prefetchVictim.asUInt) := true.B
                 replace(prefetchSet) := !prefetchVictim
@@ -278,6 +281,7 @@ class InstructionLineCache(
             state := retryFallback
         }.otherwise {
             when(!staleFill && !io.invalidate) {
+                if (tagConfig.compact) assert(tagGeometry.contains(savedLine), "instruction tag outside aperture")
                 tags(savedSet)(savedWay.asUInt) := savedTag
                 valid(savedSet)(savedWay.asUInt) := true.B
                 replace(savedSet) := !savedWay

@@ -110,4 +110,7 @@ run_image:
 
 .section .bss,"aw",@nobits
 .balign 8
+#ifdef BOOT_MENU
+.globl saved_boot_sp
+#endif
 saved_boot_sp: .dword 0

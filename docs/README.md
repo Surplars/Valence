@@ -5,6 +5,10 @@
 当前开发对象是 `core/ooo` 乱序核；GSIM 是唯一受支持的硬件仿真后端。
 日期化数据和“初始 / 实现前 / 本轮”章节保留当时的配置与结论，不自动代表当前板级状态。
 
+2026-10-08 dot 交接已接入 WSL `fix/dot-handoff-20261008`，保留 `main`；当前 32+32KiB、
+LVT PRF、MSHR2/并行写回/预取/posted TX4 候选及短验证结果查
+[接续与性能记录](performance-status.md)。该候选没有新板级时序签核或 bit，勿复用旧版签核。
+
 2026-10-07 已完成当前/历史源码的物理分离，目录与构建入口见 [layout](layout.md)，
 build 历史证据归档、恢复方法与提交检查见 [工程整理清单](repository-maintenance.md)。
 下面的 Board40 表仅描述早期实验；最新 r6 为 RV64GC、双发射、100 MHz、460800 baud、完整 2 GiB DDR，

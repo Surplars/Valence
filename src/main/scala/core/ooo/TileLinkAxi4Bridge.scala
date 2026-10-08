@@ -19,13 +19,30 @@ class TileLinkAxi4Bridge(
     axiProt: Int = 0,
     axiQos: Int = 0,
     axiAddressBase: BigInt = 0,
-    axiWindowBytes: BigInt = 0
+    axiWindowBytes: BigInt = 0,
+    maxOutstanding: Int = 1,
+    maxOutstandingWrites: Int = 0,
+    unorderedResponses: Boolean = false
 ) extends Module {
     val io = IO(new Bundle {
         val tl  = Flipped(new TLBundle(tlParams))
         val axi = new Axi4MemoryPort(axiAddressWidth, axiIdWidth)
     })
-    if (burstEnabled) {
+    require(maxOutstanding >= 1)
+    require(!unorderedResponses || maxOutstanding >= 2,
+        "cross-source unordered replies require at least two transaction slots")
+    require(!unorderedResponses || (burstEnabled && axiWindowBytes > 0),
+        "unordered TL replies require the burst-capable ordinary RAM window")
+    require(maxOutstandingWrites >= 0 && maxOutstandingWrites <= maxOutstanding)
+    require(burstEnabled || maxOutstandingWrites == 0)
+    require(maxOutstandingWrites == 0 || axiWindowBytes > 0, "mixed concurrency requires an explicit ordinary RAM window")
+    require(burstEnabled || maxOutstanding == 1, "outstanding burst slots require burst mode")
+    if (burstEnabled && maxOutstanding > 1) {
+        val bridge = Module(new TileLinkAxi4OutstandingBridge(tlParams, axiAddressWidth,
+            axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes, maxOutstanding, maxOutstandingWrites, unorderedResponses))
+        io.tl <> bridge.io.tl
+        io.axi <> bridge.io.axi
+    } else if (burstEnabled) {
         val bridge = Module(new TileLinkAxi4BurstBridge(tlParams, axiAddressWidth,
             axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes))
         io.tl <> bridge.io.tl

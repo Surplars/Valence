@@ -1,0 +1,60 @@
+{
+  "status": "candidate-unverified-timing",
+  "profile": "staged-fetch-turnover",
+  "isa": "rv64gc",
+  "issue_width": 2,
+  "lsu_entries": 2,
+  "cpu_hz": 100000000,
+  "uart_baud": 460800,
+  "ddr_bytes": 2147483648,
+  "instruction_cache_lines": 512,
+  "data_cache_lines": 512,
+  "cache_line_bytes": 64,
+  "cache_ways": 2,
+  "cache_sets": 256,
+  "cache_tag_bits": 50,
+  "home_directory_entries": 512,
+  "board_gsim_args": [
+    "ddr",
+    "100000000",
+    "staged-fetch-turnover",
+    "460800",
+    "2",
+    "2",
+    "1",
+    "rv64gc",
+    "2147483648",
+    "1",
+    "512",
+    "0",
+    "512",
+    "4",
+    "16"
+  ],
+  "managed_export_args": [
+    "100000000",
+    "staged-fetch-turnover",
+    "460800",
+    "rv64gc",
+    "50000000",
+    "50000000",
+    "250000000",
+    "2147483648",
+    "512",
+    "512",
+    "4",
+    "16"
+  ],
+  "limitations": [
+    "No routed timing, resource, physical network or board claim",
+    "Legacy defaults retained as reference",
+    "CPU-side LSU remains two entries; cache enlargement does not add miss slots"
+  ],
+  "ddr_bridge": {
+    "max_outstanding_reads": 4,
+    "max_burst_beats": 16,
+    "axi_id_width": 4,
+    "writes": "exclusive drain fence",
+    "tl_completion": "acceptance order"
+  }
+}

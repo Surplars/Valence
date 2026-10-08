@@ -182,18 +182,23 @@ int main(int argc, char **argv) {
             check(result.dReady && result.aValid && result.aAddress == ram + 64 &&
                   result.aSource == stalledSource, "stalled prefetch A changed during demand reply");
         }
+#ifdef COMPACT_TAG_TEST
+        const uint64_t fallbackAddress = ram | (1ULL << 40);
+#else
+        const uint64_t fallbackAddress = rom;
+#endif
         bool romAccepted = false, romIssued = false;
         for (unsigned cycle = 0; cycle < 8; ++cycle) {
             // A wide adapter can accept the ROM packet while its first narrow
             // Get waits behind the locked prefetch A. Never reissue that packet.
-            const auto result = step(stalled, !romAccepted, rom, std::nullopt, false, false);
+            const auto result = step(stalled, !romAccepted, fallbackAddress, std::nullopt, false, false);
             if (!romAccepted && result.requestReady) romAccepted = true;
             check(result.aValid && result.aAddress == ram + 64 &&
                   result.aSource == stalledSource, "stalled prefetch A changed at ROM transition");
         }
         for (unsigned cycle = 0; cycle < 8 && (!romAccepted || !romIssued); ++cycle) {
-            const auto result = step(stalled, !romAccepted, rom);
-            if (result.aValid && result.aAddress == rom) romIssued = true;
+            const auto result = step(stalled, !romAccepted, fallbackAddress);
+            if (result.aValid && result.aAddress == fallbackAddress) romIssued = true;
             if (!romAccepted && result.requestReady) romAccepted = true;
         }
         check(romAccepted, "ROM fetch was not accepted after line reply");

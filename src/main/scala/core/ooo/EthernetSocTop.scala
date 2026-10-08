@@ -80,7 +80,14 @@ class VivadoAxiEthernet extends BlackBox {
   */
 class EthernetSocTop(isa: String = BoardSocConfig.isaProfile,
     timingProfile: String = "staged-ethernet", packetDma: Boolean = false,
-    instructionLineCacheLines: Int = 8, dataCacheLines: Int = 32) extends Module {
+    instructionLineCacheLines: Int = 8, dataCacheLines: Int = 32,
+    ddrBridge: DdrBridgeConfig = BoardSocConfig.ddrBridge,
+    cacheConcurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(),
+    loadIssueForwarding: Option[Boolean] = None,
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+    networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
+    identityDataFlow: Boolean = false,
+    fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers) extends Module {
     val io = IO(new Bundle {
         val ethernetClock = Input(Clock())
         val ethernetRefClock = Input(Clock())
@@ -107,7 +114,8 @@ class EthernetSocTop(isa: String = BoardSocConfig.isaProfile,
     val soc = Module(new BoardSocTop(socClockHz = 100000000, externalDdr = true,
         timingProfile = timingProfile, uartBaud = 460800, dataCacheWays = 2,
         issueWidth = 2, isaProfile = isa, peripheralClockHz = 125000000, ethernetControl = true,
-        ethernetDma = packetDma, instructionLineCacheLines = instructionLineCacheLines, dataCacheLines = dataCacheLines))
+        ethernetDma = packetDma, instructionLineCacheLines = instructionLineCacheLines,
+        dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage))
     soc.io.peripheralClock.get := io.ethernetClock
     soc.io.ddrReady.get := io.ddrReady
     io.ddrAxi <> soc.io.ddrAxi.get

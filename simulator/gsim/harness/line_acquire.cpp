@@ -134,8 +134,10 @@ int main(int argc, char **argv) {
         dut.step();
         check(dut.get_io$$e$$valid() && dut.get_io$$e$$bits$$sink() == index,
               "line acquire E ack sink or ordering mismatch");
+        if (index != 2) checkResponse(dut, base + 128, 0x42, true, 0, true);
     }
-    for (unsigned index = 0; index < 4; ++index) {
+    // Result2 was offered while stalled before lower source0 completed E.
+    for (unsigned index : {2U, 0U, 1U, 3U}) {
         drive(dut, false, 0, 0, 0, false, true, true, true);
         dut.step();
         checkResponse(dut, base + 64 * index, 0x40 + index,

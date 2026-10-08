@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independent CRC equivalence tests. Host correctness only, not CPU timing."""
+import argparse
 import ctypes
 import os
 from pathlib import Path
@@ -18,12 +19,13 @@ uint32_t legacy(uint32_t c,const uint8_t *p,unsigned n) {
 '''
 
 def main():
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument("--mode",choices=("nibble","byte","slice4"),default="nibble");args=ap.parse_args()
     rng = random.Random(0x43524332)
     cases = 0
     with tempfile.TemporaryDirectory(prefix="valence-crc-") as temp:
         root = Path(temp)
         (root / "oracle.c").write_text(ORACLE)
-        subprocess.run([os.environ.get("CC", "cc"), "-O2", "-shared", "-fPIC",
+        subprocess.run([os.environ.get("CC", "cc"), "-O2", "-shared", "-fPIC", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice4=2)[args.mode]}",
                         str(SOURCE / "crc32.c"), str(root / "oracle.c"),
                         "-o", str(root / "crc.so")], check=True)
         lib = ctypes.CDLL(str(root / "crc.so"))
@@ -55,10 +57,10 @@ def main():
                 for n in lengths:
                     check(rng.randbytes(n), alignment)
         # Actual payload LENGTH; deterministic synthetic bytes, not claimed image content.
-        n = 66_348_740
         pattern = rng.randbytes(65536)
-        check((pattern * (n // len(pattern) + 1))[:n], 7)
-    print(f'CRC32_EQUIVALENCE_PASS cases={cases} full_payload_length={n} wire_length={n+36} alignments=8 epochs=2 oracle=legacy_bitwise+python_zlib host_timing_claim=0')
+        for n in (66_348_740, 76_564_168):
+            check((pattern * (n // len(pattern) + 1))[:n], 7)
+    print(f'CRC32_EQUIVALENCE_PASS mode={args.mode} cases={cases} full_payload_length={n} wire_length={n+36} alignments=8 epochs=2 oracle=legacy_bitwise+python_zlib host_timing_claim=0')
 
 if __name__ == '__main__':
     main()

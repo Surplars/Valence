@@ -27,11 +27,13 @@ case class GmacParams(
     controlClockHz: Int = 100000000,
     mdcHz: Int = 2500000,
     aggregateStats: Boolean = false,
-    rxAdmissionStop: Boolean = false
+    rxAdmissionStop: Boolean = false,
+    rxFrameSlots: Int = 0
 ) {
     require(base >= 0 && base % 4096 == 0 && ports.nonEmpty && ports.size <= 4)
     require(base + ports.size * 4096 <= (BigInt(1) << 64))
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
+    require(rxFrameSlots == 0 || (rxFrameSlots >= 1 && rxFrameSlots <= 16 && isPow2(rxFrameSlots)))
     require(controlClockHz > 0 && mdcHz > 0 && mdcHz <= 2500000 &&
         controlClockHz.toLong >= 4L * mdcHz)
 }

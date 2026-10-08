@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Native TL64 GMAC + single-descriptor coherent packet DMA, ABI v1.
+/* Native TL64 GMAC + coherent packet DMA, legacy V1 or posted RX capability.
  * Bring-up driver: DMA IRQ + budgeted NAPI, 1G/full duplex, no offloads.
- * DMA has no abort/reset register. Buffers remain allocated across ifdown;
+ * TX remains single-owner. RX rings and completions stay allocated across ifdown;
  * this module deliberately has no exit callback or sysfs unbind operation.
  * Reset the board to remove it. Never free an armed RX buffer.
  */
@@ -17,6 +17,7 @@
 #include <linux/iopoll.h>
 #include <linux/ktime.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 #include <linux/of_address.h>
 #include <linux/of_mdio.h>
 #include <linux/of_net.h>
@@ -24,6 +25,8 @@
 #include <linux/platform_device.h>
 #include <linux/workqueue.h>
 #include "valence_irq_policy.h"
+#include "valence_rx_queue.h"
+#include "valence_tx_queue.h"
 
 #define GMAC_ID 0x56474d4100010001ULL
 #define DMA_ID  0x56444d4100010001ULL
@@ -52,6 +55,19 @@
 #define D_DONE BIT_ULL(1)
 #define D_ERROR BIT_ULL(2)
 
+static unsigned int rx_queue_slots = 4;
+module_param(rx_queue_slots, uint, 0444);
+MODULE_PARM_DESC(rx_queue_slots, "Requested posted RX buffers (1..16), capped by hardware; legacy uses one");
+
+static unsigned int tx_queue_slots = 4;
+module_param(tx_queue_slots, uint, 0444);
+MODULE_PARM_DESC(tx_queue_slots, "Requested posted TX buffers (1..16), capped by hardware; legacy uses one");
+
+struct vg_rx_buffer {
+	void *data;
+	dma_addr_t address;
+};
+
 struct vgmac {
 	struct net_device *ndev;
 	void __iomem *mac, *dma;
@@ -61,6 +77,13 @@ struct vgmac {
 	int irq;
 	spinlock_t lock;
 	void *tx_buffer, *rx_buffer;
+	struct vg_rx_buffer *rx_pool, *tx_pool;
+	struct vgq_ring rx_ring;
+	struct vgt_ring tx_ring;
+	unsigned int tx_slots, tx_hw_slots, tx_max_batch;
+	bool posted_tx;
+	unsigned int rx_slots, rx_hw_slots, rx_max_batch, mac_rx_slots, dma_credits;
+	bool posted_rx, ever_armed;
 	dma_addr_t tx_address, rx_address;
 	u64 hw_address;
 	u64 ram_base, ram_bytes;
@@ -78,6 +101,31 @@ static void vg_write(void __iomem *base, unsigned int offset, u64 value)
 {
 	/* The packet DMA and MDIO launch REQUIRE a single full-width access. */
 	writeq(value, base + offset);
+}
+
+static vgq_u64 vg_queue_read(void *context, unsigned int offset)
+{
+	struct vgmac *p = context;
+	return vg_read(p->dma, offset);
+}
+static void vg_queue_write(void *context, unsigned int offset, vgq_u64 value)
+{
+	struct vgmac *p = context;
+	vg_write(p->dma, offset, value);
+}
+static void vg_queue_publish(void *context) { (void)context; dma_wmb(); }
+static void vg_queue_consume(void *context) { (void)context; dma_rmb(); }
+static void vg_queue_fault(struct vgmac *p)
+{
+	p->faulted = true;
+	vg_write(p->dma, D_IRQ_ENABLE, 0);
+	netif_stop_queue(p->ndev);
+	netdev_err(p->ndev, "DMA queue ownership/reset/stop fault; buffers remain pinned, reset required\n");
+}
+
+static bool vg_tx_space(struct vgmac *p)
+{
+	return p->posted_tx ? vgt_free_slot(&p->tx_ring) >= 0 : !p->tx_pending;
 }
 
 static int vg_mdio(struct mii_bus *bus, int phy, int reg, bool write, u16 data)
@@ -117,7 +165,7 @@ static void vg_adjust_link(struct net_device *ndev)
 
 	if (phy->link && phy->speed == SPEED_1000 && phy->duplex == DUPLEX_FULL) {
 		netif_carrier_on(ndev);
-		if (READ_ONCE(p->running) && READ_ONCE(p->configured) && !READ_ONCE(p->tx_pending) &&
+		if (READ_ONCE(p->running) && READ_ONCE(p->configured) && (p->posted_tx ? READ_ONCE(p->tx_ring.posted) < p->tx_slots : !READ_ONCE(p->tx_pending)) &&
 		    !READ_ONCE(p->faulted))
 			netif_wake_queue(ndev);
 		if (READ_ONCE(p->running) && !READ_ONCE(p->configured))
@@ -148,6 +196,7 @@ static void vg_arm_rx(struct vgmac *p)
 {
 	/* Caller proved !BUSY. RX buffer is permanently DMA-addressable. */
 	/* The descriptor address/capacity persist and were programmed at probe. */
+	p->ever_armed = true;
 	dma_wmb();
 	vg_write(p->dma, D_RX_COMMAND, 3); /* acknowledge, then start */
 }
@@ -182,12 +231,24 @@ static void vg_configure(struct work_struct *work)
 			retry = true;
 			goto unlock;
 		}
-		vg_arm_rx(p);
+		if (p->posted_rx) {
+			p->ever_armed = true;
+			if (vgq_start(&p->rx_ring)) {
+				vg_queue_fault(p);
+				goto unlock;
+			}
+		} else {
+			vg_arm_rx(p);
+		}
+		if (p->posted_tx && vgt_start(&p->tx_ring)) {
+			vg_queue_fault(p);
+			goto unlock;
+		}
 		if (vg_read(p->mac, G_CAP) & G_CAP_RX_STOP)
 			vg_write(p->mac, G_RX_STOP, 0);
 		vg_write(p->mac, G_CONTROL, 15);
 		p->configured = true;
-		if (!p->tx_pending && !p->faulted)
+		if (vg_tx_space(p) && !p->faulted)
 			netif_wake_queue(ndev);
 	}
 	start = !p->faulted;
@@ -229,7 +290,23 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 	spin_lock_bh(&p->lock);
 	active = vg_irq_allowed(p->running, p->configured, p->faulted);
 	/* Do not read an idle TX engine. TX completion is independent of RX budget. */
-	if (active && p->tx_pending) {
+	if (active && p->posted_tx) {
+		unsigned int completed;
+		for (completed = 0; completed < p->tx_slots; ++completed) {
+			struct vgq_completion c;
+			int available = vgt_peek(&p->tx_ring, &c);
+			if (available <= 0) {
+				if (available < 0) vg_queue_fault(p);
+				break;
+			}
+			if (c.error) ndev->stats.tx_errors++;
+			else { ndev->stats.tx_packets++; ndev->stats.tx_bytes += c.bytes; }
+			if (vgt_release(&p->tx_ring, c.slot)) { vg_queue_fault(p); break; }
+		}
+		if (completed > p->tx_max_batch) p->tx_max_batch = completed;
+		p->tx_pending = p->tx_ring.posted != 0;
+		if (vg_tx_space(p) && netif_carrier_ok(ndev) && !p->faulted) netif_wake_queue(ndev);
+	} else if (active && p->tx_pending) {
 		tx = vg_read(p->dma, D_TX_STATUS);
 		if ((tx & D_DONE) && !(tx & D_BUSY)) {
 			dma_rmb();
@@ -248,6 +325,9 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 	spin_unlock_bh(&p->lock);
 	while (active && work < budget) {
 		struct sk_buff *skb = NULL;
+		struct vgq_completion completion = { 0 };
+		void *buffer = p->rx_buffer;
+		int available;
 
 		spin_lock_bh(&p->lock);
 		active = vg_irq_allowed(p->running, p->configured, p->faulted);
@@ -255,21 +335,32 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 			spin_unlock_bh(&p->lock);
 			break;
 		}
-		rx = vg_read(p->dma, D_RX_STATUS);
-		if ((rx & D_BUSY) || !(rx & D_DONE)) {
-			if (!(rx & D_BUSY))
-				vg_arm_rx(p);
-			spin_unlock_bh(&p->lock);
-			break; /* Never spin waiting for hardware to finish. */
+		if (p->posted_rx) {
+			available = vgq_peek(&p->rx_ring, &completion);
+			if (available <= 0) {
+				if (available < 0) vg_queue_fault(p);
+				spin_unlock_bh(&p->lock);
+				break;
+			}
+			bytes = completion.bytes;
+			rx = completion.error ? D_ERROR : 0;
+			buffer = p->rx_pool[completion.slot].data;
+		} else {
+			rx = vg_read(p->dma, D_RX_STATUS);
+			if ((rx & D_BUSY) || !(rx & D_DONE)) {
+				if (!(rx & D_BUSY)) vg_arm_rx(p);
+				spin_unlock_bh(&p->lock);
+				break; /* Never spin waiting for hardware. */
+			}
+			bytes = vg_read(p->dma, D_RX_LENGTH);
+			dma_rmb();
 		}
-		bytes = vg_read(p->dma, D_RX_LENGTH);
-		dma_rmb();
 		if ((rx & D_ERROR) || bytes < ETH_HLEN || bytes > FRAME_BYTES) {
 			ndev->stats.rx_errors++;
 		} else {
 			skb = napi_alloc_skb(napi, bytes);
 			if (skb) {
-				memcpy(skb_put(skb, bytes), p->rx_buffer, bytes);
+				memcpy(skb_put(skb, bytes), buffer, bytes);
 				skb->protocol = eth_type_trans(skb, ndev);
 				skb->ip_summed = CHECKSUM_NONE;
 				ndev->stats.rx_packets++;
@@ -278,13 +369,19 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 				ndev->stats.rx_dropped++;
 			}
 		}
-		vg_arm_rx(p);
+		/* Copy/error handling precedes POP; no DMA owner can race skb reads. */
+		if (p->posted_rx) {
+			if (vgq_release(&p->rx_ring, completion.slot, true)) vg_queue_fault(p);
+		} else {
+			vg_arm_rx(p);
+		}
 		spin_unlock_bh(&p->lock);
 		work++;
+		if ((unsigned int)work > p->rx_max_batch) p->rx_max_batch = work;
 		p->rx_work++;
 		if (skb)
 			napi_gro_receive(napi, skb);
-		if (ktime_get_ns() >= deadline)
+		if (vgq_poll_yield(work, budget, ktime_get_ns(), deadline))
 			return budget; /* Leave IRQ masked; core budget yields to other tasks. */
 	}
 	if (!work)
@@ -303,32 +400,39 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 static netdev_tx_t vg_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct vgmac *p = netdev_priv(ndev);
-	u64 status;
+	int slot = -1;
+	void *buffer;
 
 	spin_lock_bh(&p->lock);
-	status = vg_read(p->dma, D_TX_STATUS);
-	if (!p->running || !p->configured || p->faulted || p->tx_pending || (status & D_BUSY)) {
+	if (p->posted_tx) slot = vgt_free_slot(&p->tx_ring);
+	if (!p->running || !p->configured || p->faulted ||
+	    (p->posted_tx ? slot < 0 : (p->tx_pending || (vg_read(p->dma, D_TX_STATUS) & D_BUSY)))) {
 		netif_stop_queue(ndev);
 		spin_unlock_bh(&p->lock);
 		return NETDEV_TX_BUSY;
 	}
-	if (skb->len < ETH_HLEN || skb->len > FRAME_BYTES ||
-	    skb_copy_bits(skb, 0, p->tx_buffer, skb->len)) {
+	buffer = p->posted_tx ? p->tx_pool[slot].data : p->tx_buffer;
+	if (skb->len < ETH_HLEN || skb->len > FRAME_BYTES || skb_copy_bits(skb, 0, buffer, skb->len)) {
 		ndev->stats.tx_dropped++;
 		spin_unlock_bh(&p->lock);
 		dev_kfree_skb_any(skb);
 		return NETDEV_TX_OK;
 	}
-	netif_stop_queue(ndev);
-	p->tx_pending = true;
-	p->tx_length = skb->len;
-	dma_wmb();
-	/* Persistent TX address was programmed at probe; only length changes. */
-	vg_write(p->dma, D_TX_LENGTH, skb->len);
-	vg_write(p->dma, D_TX_COMMAND, 3);
+	p->ever_armed = true;
+	if (p->posted_tx) {
+		if (vgt_post(&p->tx_ring, slot, skb->len)) vg_queue_fault(p);
+		p->tx_pending = p->tx_ring.posted != 0;
+		if (!vg_tx_space(p)) netif_stop_queue(ndev);
+	} else {
+		netif_stop_queue(ndev);
+		p->tx_pending = true; p->tx_length = skb->len;
+		dma_wmb();
+		vg_write(p->dma, D_TX_LENGTH, skb->len);
+		vg_write(p->dma, D_TX_COMMAND, 3);
+	}
 	netif_trans_update(ndev);
 	spin_unlock_bh(&p->lock);
-	dev_kfree_skb_any(skb); /* copied payload, not the skb, is DMA-owned */
+	dev_kfree_skb_any(skb); /* each copied buffer remains owned through completion POP */
 	return NETDEV_TX_OK;
 }
 
@@ -366,8 +470,9 @@ static int vg_stop(struct net_device *ndev)
 	napi_disable(&p->napi);
 	phy_stop(ndev->phydev);
 	netif_carrier_off(ndev);
-	/* Hardware has no cancel. Keep buffers and MAC configuration intact;
-	 * completion is consumed on the next ifup, never ACK a BUSY engine. */
+	/* Keep the existing pinned-buffer ifdown policy. Posted completions retain
+	 * ownership while NAPI is disabled; bounded MAC banks drop excess wire
+	 * traffic. Next ifup consumes completions. Never reset/free an owner here. */
 	return 0;
 }
 
@@ -413,10 +518,17 @@ static ssize_t napi_status_show(struct device *dev, struct device_attribute *att
 	struct net_device *ndev = dev_get_drvdata(dev);
 	struct vgmac *p = netdev_priv(ndev);
 
-	return sysfs_emit(buf, "irq=%d interrupts=%llu napi_polls=%llu rx_work=%llu empty_polls=%llu running=%u configured=%u faulted=%u\n",
+	return sysfs_emit(buf, "irq=%d interrupts=%llu napi_polls=%llu rx_work=%llu empty_polls=%llu running=%u configured=%u faulted=%u rx_mode=%s rx_slots=%u rx_dma_bytes=%u posted_owned=%u rx_max_batch=%u rx_completion_peak=%u mac_rx_slots=%u dma_memory_credits=%u tx_mode=%s tx_slots=%u tx_dma_bytes=%u tx_owned=%u tx_max_batch=%u tx_completion_peak=%u\n",
 			  p->irq, READ_ONCE(p->interrupts), READ_ONCE(p->napi_polls),
 			  READ_ONCE(p->rx_work), READ_ONCE(p->empty_polls), READ_ONCE(p->running),
-			  READ_ONCE(p->configured), READ_ONCE(p->faulted));
+			  READ_ONCE(p->configured), READ_ONCE(p->faulted),
+                          p->posted_rx ? "posted" : "legacy", p->rx_slots, p->rx_slots * FRAME_BYTES,
+                          p->posted_rx ? vgq_count(READ_ONCE(p->rx_ring.owned)) : 0,
+                          READ_ONCE(p->rx_max_batch), READ_ONCE(p->rx_ring.completion_high_water),
+                          p->mac_rx_slots, p->dma_credits, p->posted_tx ? "posted" : "legacy",
+                          p->tx_slots, p->tx_slots * FRAME_BYTES,
+                          p->posted_tx ? vgq_count(READ_ONCE(p->tx_ring.owned)) : READ_ONCE(p->tx_pending),
+                          READ_ONCE(p->tx_max_batch), READ_ONCE(p->tx_ring.completion_high_water));
 }
 static DEVICE_ATTR_RO(napi_status);
 static struct attribute *vg_attrs[] = { &dev_attr_napi_status.attr, NULL };
@@ -483,7 +595,7 @@ static int vg_probe(struct platform_device *pdev)
 		goto free_net;
 	}
 	if (vg_read(p->mac, 0) != GMAC_ID || vg_read(p->dma, 0) != DMA_ID ||
-	    vg_read(p->dma, 0x88) != FRAME_BYTES) {
+	    vg_read(p->dma, 0x88) < FRAME_BYTES) {
 		ret = -ENODEV;
 		goto free_net;
 	}
@@ -496,12 +608,67 @@ static int vg_probe(struct platform_device *pdev)
 	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
 	if (ret)
 		goto free_net;
-	p->tx_buffer = dma_alloc_coherent(dev, FRAME_BYTES, &p->tx_address, GFP_KERNEL);
-	p->rx_buffer = dma_alloc_coherent(dev, FRAME_BYTES, &p->rx_address, GFP_KERNEL);
-	if (!p->tx_buffer || !p->rx_buffer || !vg_dma_address_ok(p, p->tx_address) ||
-	    !vg_dma_address_ok(p, p->rx_address)) {
+	if (!rx_queue_slots || rx_queue_slots > VGQ_MAX_SLOTS || !tx_queue_slots || tx_queue_slots > VGQ_MAX_SLOTS) {
+		ret = -EINVAL;
+		goto free_net;
+	}
+	/* G_CAP.RX_STOP identifies the additive DMA register generation. Never
+	 * probe reserved DMA offsets on older paired MAC/DMA implementations. */
+	if (vg_read(p->mac, G_CAP) & G_CAP_RX_STOP) {
+		u64 cap = vg_read(p->dma, VGQ_CAP);
+		p->rx_hw_slots = vgq_cap_slots(cap);
+		p->tx_hw_slots = vgt_cap_slots(cap);
+		p->posted_tx = p->tx_hw_slots != 0;
+		if (p->posted_tx && ((vg_read(p->dma, VGT_COMMAND) & 1) ||
+			vgq_hw_owned(vg_read(p->dma, VGT_STATUS)))) { ret = -EBUSY; goto free_net; }
+		p->dma_credits = (cap >> 16) & 255;
+		if (vg_read(p->mac, G_CAP) & BIT_ULL(9))
+			p->mac_rx_slots = (vg_read(p->mac, G_CAP) >> 24) & 255;
+		p->posted_rx = p->rx_hw_slots != 0;
+		if (p->posted_rx && ((vg_read(p->dma, VGQ_CONTROL) & 1) ||
+				 vgq_hw_owned(vg_read(p->dma, VGQ_STATUS)))) {
+			ret = -EBUSY;
+			goto free_net;
+		}
+	}
+	p->rx_slots = p->posted_rx ? min(rx_queue_slots, p->rx_hw_slots) : 1;
+	p->rx_pool = kcalloc(p->rx_slots, sizeof(*p->rx_pool), GFP_KERNEL);
+	p->tx_slots = p->posted_tx ? min(tx_queue_slots, p->tx_hw_slots) : 1;
+	p->tx_pool = kcalloc(p->tx_slots, sizeof(*p->tx_pool), GFP_KERNEL);
+	if (!p->rx_pool || !p->tx_pool) {
 		ret = -ENOMEM;
 		goto free_buffers;
+	}
+	for (i = 0; i < p->rx_slots; ++i) {
+		p->rx_pool[i].data = dma_alloc_coherent(dev, FRAME_BYTES, &p->rx_pool[i].address, GFP_KERNEL);
+		if (!p->rx_pool[i].data || !vg_dma_address_ok(p, p->rx_pool[i].address)) {
+			ret = -ENOMEM;
+			goto free_buffers;
+		}
+	}
+	for (i = 0; i < p->tx_slots; ++i) {
+		p->tx_pool[i].data = dma_alloc_coherent(dev, FRAME_BYTES, &p->tx_pool[i].address, GFP_KERNEL);
+		if (!p->tx_pool[i].data || !vg_dma_address_ok(p, p->tx_pool[i].address)) { ret = -ENOMEM; goto free_buffers; }
+	}
+	p->tx_buffer = p->tx_pool[0].data; p->tx_address = p->tx_pool[0].address;
+	if (p->posted_tx) {
+		vgq_u64 addresses[VGQ_MAX_SLOTS];
+		struct vgq_ops ops = { .context = p, .read = vg_queue_read, .write = vg_queue_write,
+			.publish = vg_queue_publish, .consume = vg_queue_consume };
+		for (i = 0; i < p->tx_slots; ++i) addresses[i] = p->tx_pool[i].address;
+		if (vgt_init(&p->tx_ring, ops, p->tx_slots, FRAME_BYTES, addresses)) { ret = -EINVAL; goto free_buffers; }
+	}
+	p->rx_buffer = p->rx_pool[0].data;
+	p->rx_address = p->rx_pool[0].address;
+	if (p->posted_rx) {
+		vgq_u64 addresses[VGQ_MAX_SLOTS];
+		struct vgq_ops ops = { .context = p, .read = vg_queue_read, .write = vg_queue_write,
+			.publish = vg_queue_publish, .consume = vg_queue_consume };
+		for (i = 0; i < p->rx_slots; ++i) addresses[i] = p->rx_pool[i].address;
+		if (vgq_init(&p->rx_ring, ops, p->rx_slots, FRAME_BYTES, addresses)) {
+			ret = -EINVAL;
+			goto free_buffers;
+		}
 	}
 	vg_write(p->dma, D_IRQ_ENABLE, 0);
 	vg_write(p->mac, G_IRQ_ENABLE, 0);
@@ -575,6 +742,9 @@ static int vg_probe(struct platform_device *pdev)
 	phy_attached_info(ndev->phydev);
 	dev_info(dev, "%s: native GMAC + coherent DMA, IRQ %d / NAPI weight %u, MAC %pM\n",
 		 ndev->name, p->irq, VG_NAPI_WEIGHT, ndev->dev_addr);
+	dev_info(dev, "RX mode=%s slots=%u bytes=%u; TX mode=%s slots=%u bytes=%u\n",
+		 p->posted_rx ? "posted" : "legacy", p->rx_slots, p->rx_slots * FRAME_BYTES,
+		 p->posted_tx ? "posted" : "legacy", p->tx_slots, p->tx_slots * FRAME_BYTES);
 	return 0;
 free_irq:
 	free_irq(p->irq, ndev);
@@ -587,10 +757,20 @@ unregister_bus:
 free_bus:
 	mdiobus_free(p->bus);
 free_buffers:
-	if (p->rx_buffer)
-		dma_free_coherent(dev, FRAME_BYTES, p->rx_buffer, p->rx_address);
-	if (p->tx_buffer)
-		dma_free_coherent(dev, FRAME_BYTES, p->tx_buffer, p->tx_address);
+	/* A late probe failure can race userspace ifup after register_netdev.
+	 * unregister_netdev stops callbacks, but never transfers DMA ownership.
+	 * Leak pinned buffers rather than unmapping an armed hardware address. */
+	if (!p->ever_armed) {
+		if (p->rx_pool) for (i = 0; i < p->rx_slots; ++i)
+			if (p->rx_pool[i].data)
+				dma_free_coherent(dev, FRAME_BYTES, p->rx_pool[i].data, p->rx_pool[i].address);
+		if (p->tx_pool) for (i = 0; i < p->tx_slots; ++i)
+			if (p->tx_pool[i].data) dma_free_coherent(dev, FRAME_BYTES, p->tx_pool[i].data, p->tx_pool[i].address);
+	} else {
+		dev_warn(dev, "armed DMA buffers kept pinned after probe failure; board reset required\n");
+	}
+	kfree(p->rx_pool);
+	kfree(p->tx_pool);
 free_net:
 	free_netdev(ndev);
 	return ret;

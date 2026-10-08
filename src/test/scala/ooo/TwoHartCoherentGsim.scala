@@ -40,7 +40,8 @@ class TwoHartCoherentGsim extends Module {
         cache.io.downstream.response.valid := false.B
         cache.io.downstream.response.bits := 0.U.asTypeOf(new DataResponse)
         assert(!cache.io.downstream.request.valid, "two-hart test only issues cacheable ordinary traffic")
-        home.io.clients(i) <> cache.io.tl
+        home.io.drainRequest := false.B
+    home.io.clients(i) <> cache.io.tl
     }
     io.probe0 := caches(0).io.tl.b.fire
     io.probe1 := caches(1).io.tl.b.fire

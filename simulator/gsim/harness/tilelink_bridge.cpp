@@ -102,6 +102,7 @@ static void sourceStabilityTest() {
     SOrderedTileLinkBridge dut;
     drive(dut, {}, false, false, false, {});
     dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    for (auto &entry : dut.order$ram) entry = 0xff;
     for (unsigned i = 0; i < 3; ++i) {
         drive(dut, {base + 8 * i, 0, 3, 255, false}, true, false, true, {});
         dut.step();

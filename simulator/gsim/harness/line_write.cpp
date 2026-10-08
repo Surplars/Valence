@@ -54,6 +54,17 @@ int main(int argc, char **argv) { try {
     dut.step();
     dut.set_reset(0);
 
+    // Backend robustness: invalid FIFO storage is architecturally unobservable.
+    // Poison only the empty queue, then prove idle/backpressure remains quiet.
+    // Real enqueues must overwrite each owner before that owner can be consumed.
+    for (auto &slot : dut.write$sendQueue$ram) slot = 0xff;
+    for (unsigned idle = 0; idle < 8; ++idle) {
+        drive(dut, false, 0, 0, idle & 1, idle & 1);
+        dut.step();
+        check(!dut.get_io$$tl$$a$$valid() && !dut.get_io$$response$$valid(),
+              "empty poisoned queue emitted a transaction");
+    }
+
     std::array<unsigned, 4> sourceForRequest{};
     std::array<bool, 4> seenSource{};
     unsigned requests = 0, aBeats = 0, heldA = 0;
@@ -96,14 +107,17 @@ int main(int argc, char **argv) { try {
         drive(dut, false, 0, 0, true, false, true, sourceForRequest[index], index == 2);
         dut.step();
         check(dut.get_io$$tl$$d$$ready(), "line write stalled a pending D acknowledgement");
+        if (index != 3) check(dut.get_io$$response$$valid() &&
+            dut.get_io$$response$$bits$$tag() == 0x33 && !dut.get_io$$response$$bits$$error(),
+            "lower completion replaced a stalled line write owner");
     }
     for (unsigned cycle = 0; cycle < 3; ++cycle) {
         drive(dut, false, 0, 0, true, false);
         dut.step();
-        check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x30 &&
+        check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x33 &&
               !dut.get_io$$response$$bits$$error(), "backpressured line write result changed");
     }
-    for (unsigned index = 0; index < 4; ++index) {
+    for (unsigned index : {3U, 0U, 1U, 2U}) {
         drive(dut, false, 0, 0, true, true);
         dut.step();
         check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x30 + index &&

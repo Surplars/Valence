@@ -19,12 +19,23 @@ def build_reference():
     lock = json.loads((HERE / "config/reference-lock.json").read_text())
     source = BUILD / "nemu-src"
     source.mkdir(parents=True, exist_ok=True)
-    common = Path(subprocess.check_output(["git", "-C", ROOT, "rev-parse", "--git-common-dir"], text=True).strip())
-    gitdir = (common if common.is_absolute() else ROOT / common) / "modules/NEMU"
-    # Resolve metadata explicitly: the vendor .git file can contain an obsolete absolute worktree path.
-    if not gitdir.is_dir():
-        gitdir = Path(subprocess.check_output(["git", "-C", ROOT / "NEMU", "rev-parse", "--absolute-git-dir"],
-                                              text=True).strip())
+    # Archive-restored source trees have no Git metadata. An explicit isolated
+    # repository may supply only the locked commit; never infer another revision.
+    explicit_gitdir = os.environ.get("NEMU_REFERENCE_GIT_DIR")
+    if explicit_gitdir:
+        gitdir = Path(explicit_gitdir).resolve()
+        if not gitdir.is_dir():
+            raise RuntimeError("explicit NEMU reference Git directory does not exist")
+    else:
+        common = Path(subprocess.check_output(["git", "-C", ROOT, "rev-parse", "--git-common-dir"], text=True).strip())
+        gitdir = (common if common.is_absolute() else ROOT / common) / "modules/NEMU"
+        if not gitdir.is_dir():
+            gitdir = Path(subprocess.check_output(["git", "-C", ROOT / "NEMU", "rev-parse", "--absolute-git-dir"],
+                                                  text=True).strip())
+    resolved_revision = subprocess.check_output(
+        ["git", f"--git-dir={gitdir}", "rev-parse", lock["revision"] + "^{commit}"], text=True).strip()
+    if resolved_revision != lock["revision"]:
+        raise RuntimeError("NEMU reference revision differs from the lock")
     archive = subprocess.check_output(["git", f"--git-dir={gitdir}", "archive", lock["revision"]])
     with tarfile.open(fileobj=io.BytesIO(archive)) as tree:
         for entry in tree.getmembers():
@@ -41,8 +52,9 @@ def build_reference():
                 raise RuntimeError(f"unsupported reference archive member: {entry.name}")
     # Only the checkpoint layout header is compiled; the proto/empty nanopb directory prevent upstream
     # unconditional fetches. Protobuf checkpoint support is disabled; these tests use no checkpoints.
+    resource_root = Path(os.environ.get("NEMU_REFERENCE_RESOURCE_ROOT", str(ROOT / "NEMU/resource")))
     for name, expected in lock["resources"].items():
-        data = (ROOT / "NEMU/resource" / name).read_bytes()
+        data = (resource_root / name).read_bytes()
         if hashlib.sha256(data).hexdigest() != expected:
             raise RuntimeError(f"NEMU resource hash mismatch: {name}")
         destination = source / "resource" / name

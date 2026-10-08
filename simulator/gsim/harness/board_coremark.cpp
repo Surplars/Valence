@@ -15,6 +15,10 @@ int main(int argc, char **argv) {
         word(rom, 0x00700393); // addi t2,zero,7
         word(rom, 0x00730123); // sb t2,2(t1) -> FCR=7
         word(rom, 0x000280e7); // jalr ra,0(t0)
+        // With 32 KiB L1 the whole short guest can remain dirty-resident.
+        // Execute the real board writeback operation before checking backing
+        // traffic; do not demand a capacity eviction or mutate cache state.
+        word(rom, 0x0000100f); // fence.i -- Valence board writeback/invalidate
         Bytes returned = instructionFixture('R');
         returned.resize(returned.size() - 4);
         word(returned, 0x0000006f);

@@ -133,7 +133,8 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         // CAP records intended media interface, NOT a link-up or implemented-PCS claim.
         val capability = (BigInt(config.maxFrameBytes) << 32) |
             (BigInt(kind.mediaBits) << 16) | (BigInt(1) << kind.capabilityBit) |
-            (if (config.rxAdmissionStop) BigInt(1) << 8 else BigInt(0))
+            (if (config.rxAdmissionStop) BigInt(1) << 8 else BigInt(0)) |
+            (if (config.rxFrameSlots != 0) (BigInt(1) << 9) | (BigInt(config.rxFrameSlots) << 24) else BigInt(0))
         readValues(n) := MuxLookup(offset, 0.U(64.W))(Seq(
             0x00.U -> "h56474d4100010001".U(64.W), 0x08.U -> capability.U(64.W),
             0x10.U -> control, 0x18.U -> macAddress, 0x20.U -> config.maxFrameBytes.U(64.W),

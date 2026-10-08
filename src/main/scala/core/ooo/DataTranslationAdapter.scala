@@ -36,6 +36,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     require(p.virtualMemoryLevels > 0 && Set(4, 8, 16).contains(entries))
     require(!p.registeredTranslationHeads || registerCheckedRequests,
         "registered translation heads require checked request capture")
+    require(!p.identityDataRequestFlow || (p.registeredTranslationHeads && registerCheckedRequests),
+        "identity flow preserves registered ingress and checked request boundaries")
     val io = IO(new Bundle {
         val virtual = Flipped(new DataPort)
         val physical = new DataPort
@@ -76,6 +78,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val context = virtualRequests.map(_.io.deq.bits.context).getOrElse(io.vmState)
     val active = incoming.bits.virtualized
     val canAccept = !waiting && translated.io.enq.ready
+    val identityOffer = if (p.identityDataRequestFlow)
+        incoming.valid && !active && canAccept && !translated.io.deq.valid else false.B
+    val identityPass = WireDefault(false.B)
 
     io.translation.request.valid := incoming.valid && active && canAccept
     io.translation.request.bits.virtualAddress := incoming.bits.address
@@ -95,7 +100,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     io.translation.response.ready := translated.io.enq.ready
 
     val translatedReply = io.translation.response.valid && (waiting || io.translation.request.fire)
-    translated.io.enq.valid := (!waiting && incoming.valid && !active) || translatedReply
+    translated.io.enq.valid := (!waiting && incoming.valid && !active && !identityPass) || translatedReply
     val original = Mux(waiting, savedRequest, incoming.bits)
     translated.io.enq.bits := 0.U.asTypeOf(new TranslatedDataRequest)
     translated.io.enq.bits.request := original
@@ -139,12 +144,39 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else Module(new Queue(new CheckedDataRequest, 2, pipe = false, flow = false)).suggestName("checked").io)
     else None
     checked.foreach { stage =>
-        stage.enq.valid := translated.io.deq.valid
-        stage.enq.bits.request := request
-        stage.enq.bits.fault := fault
-        stage.enq.bits.pageFault := head.pageFault
+        if (p.identityDataRequestFlow) {
+            // Empty-FIFO pass-through only for an already-physical request.
+            // If checked stalls, the identical offer spills into translated,
+            // preserving held payload and capacity without a ready path from
+            // the external physical port. Older translated work always wins.
+            stage.enq.valid := translated.io.deq.valid || identityOffer
+            stage.enq.bits.request := Mux(identityOffer, incoming.bits, request)
+            stage.enq.bits.fault := Mux(identityOffer, false.B, fault)
+            stage.enq.bits.pageFault := Mux(identityOffer, false.B, head.pageFault)
+            identityPass := identityOffer && stage.enq.ready
+            when(identityPass) {
+                assert(incoming.fire && !translated.io.enq.fire && !waiting && !active,
+                    "identity request must transfer exactly once after authorization")
+            }
+        } else {
+            stage.enq.valid := translated.io.deq.valid
+            stage.enq.bits.request := request
+            stage.enq.bits.fault := fault
+            stage.enq.bits.pageFault := head.pageFault
+        }
         translated.io.deq.ready := stage.enq.ready
     }
+    // Authorization is captured with the checked request, including the identity
+    // queue bypass. The incoming hint is always overwritten, even when disabled.
+    val nextAllowed = if (p.dataNextLinePrefetch) {
+        val authorize = Module(new NextLineAuthorization(p))
+        authorize.io.request := Mux(identityOffer, incoming.bits, request)
+        authorize.io.privilege := Mux(identityOffer, context.dataPrivilege, head.privilege)
+        authorize.io.pmpState := io.pmpState
+        authorize.io.fault := Mux(identityOffer, false.B, fault)
+        authorize.io.allowed
+    } else false.B
+    checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)
     val physicalHead = checked.map(_.deq.bits.request).getOrElse(request)
     val physicalFault = checked.map(_.deq.bits.fault).getOrElse(fault)
     val physicalPageFault = checked.map(_.deq.bits.pageFault).getOrElse(head.pageFault)
@@ -156,6 +188,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     io.physical.request.valid := physicalValid && !physicalFault && owners.io.enq.ready
     io.physical.request.bits := physicalHead
+    io.physical.request.bits.prefetchNextAllowed := (if (p.dataNextLinePrefetch)
+        checked.map(_.deq.bits.request.prefetchNextAllowed).getOrElse(nextAllowed) else false.B)
     owners.io.enq.valid := physicalValid && physicalReady
     owners.io.enq.bits.fault := physicalFault
     owners.io.enq.bits.pageFault := physicalPageFault

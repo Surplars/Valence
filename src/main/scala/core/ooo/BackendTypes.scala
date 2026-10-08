@@ -69,8 +69,8 @@ class HeadException(p: OooParams) extends Bundle {
 
 private[ooo] class RobEntry(p: OooParams) extends Bundle {
     val tag            = UInt(p.tagBits.W)
-    val pc             = UInt(64.W)
-    val instruction    = UInt(32.W)
+    val pc             = if (!p.bankedRobPayload) Some(UInt(64.W)) else None
+    val instruction    = if (!p.bankedRobPayload) Some(UInt(32.W)) else None
     val rd             = UInt(5.W)
     val destination    = UInt(p.physBits.W)
     val oldDestination = UInt(p.physBits.W)

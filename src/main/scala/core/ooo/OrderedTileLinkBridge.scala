@@ -93,7 +93,7 @@ class OrderedTileLinkBridge(
         lockedSourceValid := false.B
     }
     when(lockedSourceValid) {
-        assert(free(lockedSource), "backpressured TileLink A source must remain free")
+        assert(free(chosen), "backpressured TileLink A source must remain free")
     }
     when(io.data.request.fire) {
         assert(!request.atomic, "TileLink memory bridge accepts ordinary requests only")
@@ -140,19 +140,29 @@ class OrderedTileLinkBridge(
         done(dIndex) := true.B
     }
 
-    // Queue bits already identify the stable head while valid. While empty the
-    // payload is unspecified and cannot fire; masking this index with valid
-    // made the enqueue-pointer comparator drive the entire return-data mux.
-    val head = order.io.deq.bits
+    // Decode the raw head by equality, never by an eager array index. Empty
+    // FIFO storage is unspecified in the generated simulator. Keeping the
+    // payload decode independent of valid also avoids adding the queue-empty
+    // comparator to the wide response-data select path.
+    val rawHead = order.io.deq.bits
+    val headSelect = VecInit((0 until entries).map(i => rawHead === i.U))
+    val headDone = (headSelect.asUInt & done.asUInt).orR
+    val headWrite = (headSelect.asUInt & writes.asUInt).orR
+    val headResult = Mux1H(headSelect, results)
+    val head = Mux(order.io.deq.valid, rawHead, 0.U)
+    when(order.io.deq.valid) {
+        assert(rawHead < entries.U && (headSelect.asUInt & occupied.asUInt).orR,
+            "ordered response queue lost its live source owner")
+    }
     val incomingHead = flowHeadResponse.B && io.tl.d.fire && order.io.deq.valid &&
-        dSource === head && !done(head)
+        dSource === rawHead && !headDone
     val incomingResult = Wire(new DataResponse)
     incomingResult.data := Mux(writes(dIndex), 0.U, io.tl.d.bits.data)
     incomingResult.error := io.tl.d.bits.denied || io.tl.d.bits.corrupt
     incomingResult.pageFault := false.B
-    io.data.response.valid := order.io.deq.valid && (done(head) || incomingHead)
-    io.data.response.bits  := Mux(done(head), results(head), incomingResult)
-    order.io.deq.ready := io.data.response.ready && (done(head) || incomingHead)
+    io.data.response.valid := order.io.deq.valid && (headDone || incomingHead)
+    io.data.response.bits  := Mux(headDone, headResult, incomingResult)
+    order.io.deq.ready := io.data.response.ready && (headDone || incomingHead)
     when(io.data.response.fire) {
         occupied(head) := false.B
         done(head)     := false.B
@@ -160,9 +170,9 @@ class OrderedTileLinkBridge(
     // Generic TL managers retain separate read/write cohorts; the ordered local RAM
     // may have both in flight while responses still retire in DataPort order.
     val readRequestFire  = io.data.request.fire && !request.write
-    val readResponseFire = io.data.response.fire && !writes(head)
+    val readResponseFire = io.data.response.fire && !headWrite
     val writeRequestFire = io.data.request.fire && request.write
-    val writeResponseFire = io.data.response.fire && writes(head)
+    val writeResponseFire = io.data.response.fire && headWrite
     when(readRequestFire =/= readResponseFire) {
         readCount := Mux(readRequestFire, readCount + 1.U, readCount - 1.U)
     }
