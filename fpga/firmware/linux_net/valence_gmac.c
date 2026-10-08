@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Native TL64 GMAC + coherent packet DMA, legacy V1 or posted RX capability.
+/* Native TL64 GMAC + coherent packet DMA, legacy V1 or posted RX/TX capability.
  * Bring-up driver: DMA IRQ + budgeted NAPI, 1G/full duplex, no offloads.
- * TX remains single-owner. RX rings and completions stay allocated across ifdown;
+ * RX/TX buffers and retained owners stay allocated across ifdown;
  * this module deliberately has no exit callback or sysfs unbind operation.
  * Reset the board to remove it. Never free an armed RX buffer.
  */
@@ -208,7 +208,7 @@ static void vg_configure(struct work_struct *work)
 	bool retry = false, start = false;
 
 	spin_lock_bh(&p->lock);
-	if (!p->running)
+	if (!p->running || p->faulted)
 		goto unlock;
 	/* RX media/config CDC can be held until the PHY produces a 125MHz
 	 * clock. Let phylib negotiate first; ifup must also work unplugged.

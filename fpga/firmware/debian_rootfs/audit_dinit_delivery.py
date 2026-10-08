@@ -50,6 +50,14 @@ def decode_newc(blob):
     raise RuntimeError('missing newc trailer')
 
 
+def require_no_retired_tools(entries):
+    for path in entries:
+        require(path != 'usr/local/bin/fastfetch' and
+            path != 'usr/share/doc/valence/fastfetch' and
+            not path.startswith('usr/share/doc/valence/fastfetch/'),
+            'retired custom utility shipped: ' + path)
+
+
 def main(args):
     delivery, rootfs_out = args.delivery.resolve(), args.rootfs_out.resolve()
     allowed = (ROOT / 'build/fpga').resolve()
@@ -75,6 +83,7 @@ def main(args):
         f, data = entries[name]
         return data or linked.get((f[7], f[8], f[0]), b'')
 
+    require_no_retired_tools(entries)
     init = content('init').decode()
     require('exec /usr/sbin/dinit ' in init and 'setsid ' not in init, 'PID 1/getty contract')
     require('systemd' not in init and 'bb init' not in init, 'legacy init execution')
@@ -101,7 +110,7 @@ def main(args):
     require(entries['dev/console'][0][1] & 0o170000 == 0o020000
         and entries['dev/console'][0][9:11] == [5, 1], 'console device node')
     for path in ('usr/bin/bash', 'usr/lib/riscv64-linux-gnu/libc.so.6', 'usr/local/bin/mem-bench',
-                 'usr/local/bin/coremark', 'usr/local/bin/fpu-test', 'usr/local/bin/fastfetch',
+                 'usr/local/bin/coremark', 'usr/local/bin/fpu-test',
                  'usr/bin/iperf3', 'usr/local/sbin/dma-bench'):
         require(path in entries and len(content(path)) > 0, 'missing Debian/tool functionality: ' + path)
     require('VALENCE_RAM_BYTES=2147483648' in content('etc/valence-release').decode(), 'RAM identity')

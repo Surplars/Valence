@@ -29,7 +29,7 @@ from run import run, opensbi_setup, OPENSBI_LOCK
 from memory_layout import MemoryLayout
 
 MODULE_SOURCES = ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_soc.c', 'valence_cmu.c', 'valence_dma.c',
-                  'valence_irq_policy.h', 'valence_driver_names.h')
+                  'valence_irq_policy.h', 'valence_driver_names.h', 'valence_rx_queue.h', 'valence_tx_queue.h')
 MODULES = ('valence_aia.ko', 'valence_gmac.ko', 'valence_soc.ko', 'valence_cmu.ko', 'valence_dma.ko')
 DEBIAN_CONFIG = ('SOC_BUS', 'SYSVIPC', 'SIGNALFD', 'TIMERFD', 'EVENTFD',
                  'INOTIFY_USER', 'AIO', 'FILE_LOCKING', 'ADVISE_SYSCALLS',

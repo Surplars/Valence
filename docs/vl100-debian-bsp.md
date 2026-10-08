@@ -1,17 +1,30 @@
-# OpenIon Valence VL100 Debian BSP（更新于 2026-10-07）
+# OpenIon Valence VL100 Debian BSP（源码更新于 2026-10-08）
+
+网络地址为固件随附的示例默认配置，实际部署需按本地网络调整；
+`${VALENCE_ROOT}` 和 `${EVIDENCE_ROOT}` 代表可配置的工程与证据根目录。
 
 厂商 OpenIon，SoC Valence VL100，CPU Orbital-A1。目标为单 hart、双发射、
 RV64GC/LP64D、CPU 100 MHz、UART 460800、完整 2 GiB PL DDR。
-最新软件为独立 Dinit/LZ4 RAM-root 镜像，配合已有 repaired netboot 2 GiB bit；
+已交付的软件为独立 Dinit/LZ4 RAM-root 镜像，配合已有 repaired netboot 2 GiB bit；
 **Dinit 镜像构建、内容审计和短服务验证完成，尚未板测**。
 本次没有改 RTL、运行 GSIM/Vivado 或重新生成 bit；下文 r5/r6 为历史交付记录。
 冻结 r4 bit 仍为 512 MiB，且有大帧活性故障，不可加载本设备树。
 
-## 当前 Dinit/LZ4 软件交付
+## 当前 rootfs 源码（2026-10-08）
+
+本版去掉自编译 fastfetch：不构建、不复制进镜像、不自动启动，取消其源码包与
+专用 CMake 工具包依赖；旧 Debian seed 中对应的自定义程序和许可证也不再打包。
+BusyBox/musl、CoreMark、FPU/网络/内存/DMA 工具、五个驱动及 Dinit/systemd 配置保留。
+不自动安装发行版 fastfetch，也不删除用户自行安装的发行版包。
+本轮只修改源码与短测试，未重新制作 rootfs/BIN 或进行板测。下文镜像大小、哈希和
+验证结果均属于 2026-10-07 历史交付，不能代表移除后的新镜像。
+构建步骤及本轮检查入口见 [rootfs README](../fpga/firmware/debian_rootfs/README.md)。
+
+## Dinit/LZ4 软件交付（2026-10-07 历史）
 
 WSL：`build/fpga/debian-dinit-firmware-20261007-r1/manifest.json`、
 `dinit-content-audit.json`。Windows：
-`E:\VM\Share\Valence-rtl\firmware-debian13-dinit-vl100-20261007-r1`。
+`${EVIDENCE_ROOT}\firmware-debian13-dinit-vl100-20261007-r1`。
 镜像 `opensbi_debian13_riscv64_vl100_cpu100_u460800_dinit_lz4.bin`，
 76,564,168 字节，SHA256
 `5c95af13e68251b8abd4b52263ded888fd2e871669617827ebd53f22a41dc81d`。
@@ -57,7 +70,7 @@ network 硬依赖 platform 成功。串口通过 ready 的软依赖独立恢复�
 ## systemd 软件交付（回退）
 
 WSL：`build/fpga/debian-systemd-firmware-20261007-r1/manifest.json`。
-Windows：`E:\VM\Share\Valence-rtl\firmware-debian13-systemd-vl100-20261007-r1`。
+Windows：`${EVIDENCE_ROOT}\firmware-debian13-systemd-vl100-20261007-r1`。
 下载镜像 `opensbi_debian13_riscv64_vl100_cpu100_u460800_systemd.bin`，
 115,328,712 字节；TFTP 文件仍为 `valence.vld`。沿用用户已启动 Linux 的
 `native-rv64gc-netboot-drain-20261007-r1` bit，不使用有 UART 勘误的旧 r5。

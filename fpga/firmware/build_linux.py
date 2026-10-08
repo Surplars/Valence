@@ -97,6 +97,31 @@ def validate_payload(combined, kernel_bytes, monitor=MONITOR):
     return len(padding)
 
 
+def busybox_rootfs_lines(userland, coremark):
+    """Stage only the supported BusyBox userland, including from an older build."""
+    rootfs_sources = HERE / "linux_rootfs"
+    busybox = userland / "busybox-linux/busybox"
+    user_manifest = json.loads((userland / "manifest.json").read_text())
+    for binary in (busybox,):
+        if digest(binary) != user_manifest["binaries"][binary.name]["sha256"]:
+            raise RuntimeError(f"Rootfs executable provenance mismatch: {binary}")
+    applets = set((userland / "busybox-linux/busybox.links").read_text().splitlines())
+    dirs = {"/dev", "/dev/pts", "/proc", "/sys", "/tmp", "/run", "/root", "/etc", "/bin", "/sbin",
+            "/usr", "/usr/bin", "/usr/sbin", "/usr/share", "/usr/share/licenses"}
+    lines = [f"dir {name} {'1777' if name == '/tmp' else '755'} 0 0" for name in sorted(dirs)]
+    lines += ["nod /dev/console 600 0 0 c 5 1", "nod /dev/null 666 0 0 c 1 3",
+              f"file /bin/busybox {busybox} 755 0 0",
+              f"file /bin/coremark {coremark} 755 0 0"]
+    lines += [f"slink {name} /bin/busybox 777 0 0" for name in sorted(applets)]
+    lines += [f"file {target} {rootfs_sources / name} {mode} 0 0" for name, target, mode in (
+        ("init", "/init", "755"), ("profile", "/etc/profile", "644"), ("passwd", "/etc/passwd", "644"),
+        ("group", "/etc/group", "644"), ("os-release", "/etc/os-release", "644"))]
+    lines += [f"file /usr/share/licenses/{name} {path} 644 0 0" for name, path in (
+        ("busybox", ROOT / "simulator/build/busybox-1.37.0/LICENSE"),
+        ("musl", ROOT / "simulator/build/musl-1.2.5/COPYRIGHT"))]
+    return lines, {"busybox": user_manifest["binaries"]["busybox"]}
+
+
 def build(args):
     source = args.source.resolve()
     if not (source / "Makefile").is_file():
@@ -129,27 +154,7 @@ def build(args):
     userland = args.userland.resolve()
     rootfs_sources = HERE / "linux_rootfs"
     if args.rootfs == "busybox":
-        busybox = userland / "busybox-linux/busybox"
-        fastfetch = userland / "fastfetch/fastfetch"
-        user_manifest = json.loads((userland / "manifest.json").read_text())
-        for binary in (busybox, fastfetch):
-            if digest(binary) != user_manifest["binaries"][binary.name]["sha256"]:
-                raise RuntimeError(f"Rootfs executable provenance mismatch: {binary}")
-        applets = set((userland / "busybox-linux/busybox.links").read_text().splitlines())
-        dirs = {"/dev", "/dev/pts", "/proc", "/sys", "/tmp", "/run", "/root", "/etc", "/bin", "/sbin",
-                "/usr", "/usr/bin", "/usr/sbin", "/usr/share", "/usr/share/licenses"}
-        lines = [f"dir {name} {'1777' if name == '/tmp' else '755'} 0 0" for name in sorted(dirs)]
-        lines += ["nod /dev/console 600 0 0 c 5 1", "nod /dev/null 666 0 0 c 1 3",
-                  f"file /bin/busybox {busybox} 755 0 0", f"file /bin/fastfetch {fastfetch} 755 0 0",
-                  f"file /bin/coremark {coremark} 755 0 0"]
-        lines += [f"slink {name} /bin/busybox 777 0 0" for name in sorted(applets)]
-        lines += [f"file {target} {rootfs_sources / name} {mode} 0 0" for name, target, mode in (
-            ("init", "/init", "755"), ("profile", "/etc/profile", "644"), ("passwd", "/etc/passwd", "644"),
-            ("group", "/etc/group", "644"), ("os-release", "/etc/os-release", "644"))]
-        lines += [f"file /usr/share/licenses/{name} {path} 644 0 0" for name, path in (
-            ("busybox", ROOT / "simulator/build/busybox-1.37.0/LICENSE"),
-            ("musl", ROOT / "simulator/build/musl-1.2.5/COPYRIGHT"),
-            ("fastfetch", ROOT / "simulator/build/fastfetch-2.69.0/LICENSE"))]
+        lines, user_binaries = busybox_rootfs_lines(userland, coremark)
         initramfs.write_text("\n".join(lines) + "\n")
     make = ["make", f"O={kernel_out}", "ARCH=riscv", "CROSS_COMPILE=riscv64-linux-gnu-"]
     config = kernel_out / ".config"
@@ -161,7 +166,7 @@ def build(args):
                 "syscall_sha256": digest(payloads / "linux-syscall.h")}
     if args.rootfs == "busybox":
         expected["rootfs_sources"] = {p.name: digest(p) for p in rootfs_sources.iterdir() if p.is_file()}
-        expected["userland_binaries"] = user_manifest["binaries"]
+        expected["userland_binaries"] = user_binaries
     saved = json.loads(config_marker.read_text()) if config_marker.exists() else {}
     if any(saved.get(k) != v for k, v in expected.items()) or saved.get("config_sha256") != (
             digest(config) if config.exists() else ""):
@@ -243,7 +248,7 @@ def build(args):
         "kernel_runtime_bytes": runtime_size, "static_firmware_end": hex(symbols["_fw_end"]),
         "payload_zero_padding_bytes": payload_padding,
         "bootrom_reserved": [hex(MONITOR), hex(RAM_END)],
-        "initramfs": ("BusyBox 1.37.0 ash + fastfetch 2.69.0 + CoreMark; static RV64IMAC/lp64 musl" if
+        "initramfs": ("BusyBox 1.37.0 ash + CoreMark; static RV64IMAC/lp64 musl" if
                       args.rootfs == "busybox" else "minimal /init command loop + static soft-float CoreMark"),
         "console": "SBI DBCN hvc0 polling; no Linux AIA/UART external IRQ claim",
         "files": {p.name: {"bytes": p.stat().st_size, "sha256": digest(p)} for p in (

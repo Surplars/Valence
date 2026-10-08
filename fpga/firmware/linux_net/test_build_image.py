@@ -1,6 +1,7 @@
 """Host-only config/DT/time checks; do not claim PHY or DMA board qualification."""
 from pathlib import Path
 import shutil
+import re
 import subprocess
 import sys
 import tempfile
@@ -35,6 +36,32 @@ class ImageTests(unittest.TestCase):
             self.assertIn('.name = ' + identifier, code)
             self.assertIn('MODULE_AUTHOR(VALENCE_VENDOR)', code)
             self.assertIn(compatible, code)
+
+    def test_gmac_ram_aperture_matches_memory_with_optional_platform_drivers(self):
+        for memory_bytes in (0x20000000, 0x40000000, 0x80000000):
+            for platform_drivers in (False, True):
+                with self.subTest(memory_bytes=memory_bytes, platform_drivers=platform_drivers):
+                    text = b.network_dts(memory_bytes, platform_drivers)
+                    mac = text.split('gmac0: ethernet@10040000 {', 1)[1].split('mdio {', 1)[0]
+                    self.assertEqual(mac.count('openion,ram-base'), 1)
+                    self.assertEqual(mac.count('openion,ram-bytes'), 1)
+                    self.assertIn('openion,ram-base = /bits/ 64 <0x80200000>;', mac)
+                    self.assertIn(f'openion,ram-bytes = /bits/ 64 <{hex(memory_bytes)}>;', mac)
+                    self.assertIn(f'reg = <0x0 0x80200000 0x0 0x{memory_bytes:x}>;', text)
+
+    def test_manifest_queue_policy_matches_driver_defaults_without_runtime_claim(self):
+        code = (b.HERE / 'valence_gmac.c').read_text()
+        policy = b.NETWORK_QUEUE_POLICY
+        for direction in ('rx', 'tx'):
+            default = re.search(r'static unsigned int ' + direction + r'_queue_slots = (\d+);', code)
+            self.assertIsNotNone(default)
+            self.assertEqual(policy[direction + '_requested_slots_default'], int(default[1]))
+        self.assertEqual(policy['requested_slots_range'], [1, 16])
+        self.assertEqual(policy['legacy_slots_each_direction'], 1)
+        self.assertEqual(policy['dma_buffer_bytes_each'], 2048)
+        self.assertTrue(policy['selected_slots_capped_by_hardware'])
+        self.assertFalse(policy['runtime_selected_slots_verified'])
+        self.assertNotIn("'single_descriptor_each_direction': True", (b.HERE / 'build_image.py').read_text())
 
     def test_modern_isa_discovery_rejects_missing_or_false_extensions(self):
         text = b.network_dts()

@@ -1,5 +1,8 @@
 # Linux 启动实验
 
+网络地址为固件随附的示例默认配置，实际部署需按本地网络调整；
+`${VALENCE_ROOT}` 和 `${EVIDENCE_ROOT}` 代表可配置的工程与证据根目录。
+
 ## 2026-10-06：OpenIon VL100 Debian / 2 GiB BSP
 
 官方签名 Debian13 riscv64 minbase、LP64D用户态、UP内核、五个自研驱动已构建，
@@ -95,7 +98,16 @@ WSL 编译及协议短验收（不跑 Linux/整板 GSIM/综合）：
 软件适配先读 [OS 移植指南](os-software-porting.md)，完整地址和寄存器分别见
 [SoC datasheet](soc-datasheet.md) 与 [寄存器手册](soc-registers.md)。
 
-## DDR50 板级镜像：BusyBox + fastfetch（2026-10-01）
+## 当前源码调整（2026-10-08）
+
+新构建已移除自编译 fastfetch、相关源码/CMake 工具包依赖和开机调用；基础 BusyBox、
+联网和 Debian 三条 rootfs 流程均不再依赖该程序。BusyBox shell、CoreMark、原有网络与
+诊断工具继续保留。长 Linux GSIM 的用户态检查改为 shell、`uname -m` 和返回提示符。
+本轮未重建大镜像、未跑长 Linux GSIM、未板测。下节已有镜像及其大小/哈希/fastfetch
+记录保留历史事实，不表示当前源码还要求 fastfetch。当前命令及源码说明见
+[固件 README](../fpga/firmware/README.md) 和 [Debian BSP](vl100-debian-bsp.md)。
+
+## DDR50 板级镜像：BusyBox + fastfetch（2026-10-01 历史）
 
 保持已板测的双发射、2 KiB 两路 D-L1、CPU/timebase 50 MHz 和 UART 115200 8N1。
 128 KiB ROM 下载监控程序进入 M-mode，`a0=a1=0`；因此不能把 Linux Image
@@ -119,7 +131,7 @@ ISA/ABI 为 `rv64imac/lp64`；ELF 静态链接/soft-float/无 F/D/V 属性已检
 Kernel `CONFIG_FPU` 关闭，设备树不宣告未实现扩展。
 
 ```sh
-# WSL /home/openion/Valence；先准备脚本列出的固定版本源码/交叉工具
+# WSL ${VALENCE_ROOT}；先准备脚本列出的固定版本源码/交叉工具
 python3 fpga/firmware/build_rootfs.py --jobs 16
 python3 fpga/firmware/build_linux.py --jobs 16
 python3 -m unittest discover -s fpga/firmware -p test_linux_image.py
@@ -134,7 +146,7 @@ GSIM_CXX=clang++-19 python3 simulator/gsim/board_linux.py \
 不能把它当作最终用户态镜像。
 
 使用匹配的 DDR50/115200 FIFO bit；最新 ROM-only 修复版为
-`E:/VM/Share/Valence-rtl/ddr-opt-20261001/bootrom-fix/release/valence_ddr50_uart115200_fifo.bit`，
+`${EVIDENCE_ROOT}/ddr-opt-20261001/bootrom-fix/release/valence_ddr50_uart115200_fifo.bit`，
 SHA256 `FBADD8F0CA86BA847A86F42DB93105C6F4193DB8458E884F9F184F2D04C9277C`。
 该 bit 不包含新的 registered-replay 候选。关闭其他串口窗口、复位回下载模式后运行：
 
@@ -161,7 +173,7 @@ GSIM 已观察到 OpenSBI→S-mode Linux、512 MiB 内存和 50 MHz timer，
 最后进度为 320,000,000 cycles/73,342,600 commits，正在 gzip 解压/创建 rootfs 文件。
 用户要求直接上板调试，已仅终止本轮长测试；**未完成用户态 init/shell/fastfetch/交互验证**，
 不计作 PASS。完整日志随镜像以 `gsim-interrupted.log` 保存。
-发布目录 `E:/VM/Share/Valence-rtl/linux-ddr50-20261001`，包含同哈希 BIN、ELF、
+发布目录 `${EVIDENCE_ROOT}/linux-ddr50-20261001`，包含同哈希 BIN、ELF、
 Image、DTB、配置、manifest、下载工具与使用说明；板级启动仍需用户验证。
 后续用户要求优化 SoC 后试 460800：需同时修改 RTL UART 参考时钟、BootROM、DTB，
 完成新 bit 签核/板测；当前 115200 镜像不随主机 `--baud` 自动改变。
@@ -174,7 +186,7 @@ Image、DTB、配置、manifest、下载工具与使用说明；板级启动仍�
 100,000,000 Hz timebase、460800 baud、7,372,800 Hz UART 参考频率。
 
 候选目录为
-`E:/VM/Share/Valence-rtl/ddr-opt-20261002/request-capture-board-u460800/`；
+`${EVIDENCE_ROOT}/ddr-opt-20261002/request-capture-board-u460800/`；
 镜像在 `linux-final/opensbi_linux_ddr100_uart460800.bin`，大小 5,394,424 B，SHA256
 `ee6acac8ea584092014129bad3ff8f4c52466aba34afc5b8a0a1612f4d6f84ca`。
 入口仍是 `0x80200000`，Linux/DTB/保留区布局不变。复用已构建的同哈希内核和

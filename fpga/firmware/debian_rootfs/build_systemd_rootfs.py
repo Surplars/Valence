@@ -18,7 +18,7 @@ import sys
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(ROOT / 'simulator/gsim')]
-from build_rootfs import sha, validate_output, copy
+from build_rootfs import sha, validate_output, copy, archive_paths
 from run import run
 
 PACKAGES = ('systemd', 'systemd-sysv', 'udev', 'dbus', 'libpam-systemd')
@@ -234,13 +234,7 @@ def pack(args):
     run(['unshare', '--mount', '--propagation', 'private', '/bin/sh', '-c',
          'mount -t proc -o ro,nosuid,nodev,noexec proc "$1/proc"; exec chroot "$1" /bin/sh -c "$2"',
          'valence-systemd-check', rootfs, check], log=out / 'userland-check.log', timeout=90)
-    excluded = ('debootstrap', 'var/cache/apt/archives', 'var/lib/apt/lists')
-    paths = ['.']
-    for path in rootfs.rglob('*'):
-        relative = path.relative_to(rootfs).as_posix()
-        if not any(relative == p or relative.startswith(p + '/') for p in excluded):
-            paths.append('./' + relative)
-    paths.sort()
+    paths = archive_paths(rootfs)
     payload_bytes = sum((rootfs / path).stat().st_size for path in paths
                         if not (rootfs / path).is_symlink() and (rootfs / path).is_file())
     if payload_bytes > 512 * 1024 * 1024:
@@ -263,7 +257,9 @@ def pack(args):
         modules=record['modules'], persistent_storage=False, required_repaired_bit=True,
         vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
         static_unit_verify=True, cpu_or_board_runtime_verified=False,
-        diagnostic_apps={'mem-bench': sha(binary)})
+        diagnostic_apps={'mem-bench': sha(binary)},
+        pack_sources={name: sha(HERE / name) for name in
+                      ('build_rootfs.py', 'build_systemd_rootfs.py')})
     marker.write_text(json.dumps(identity, indent=2) + '\n')
     print('SYSTEMD_DEBIAN_ROOTFS_PACKED_NOT_BOARD_VERIFIED ' + str(archive), flush=True)
 

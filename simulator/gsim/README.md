@@ -94,7 +94,7 @@ WNS+0.101ns/hold+0.010ns/pulse+0.081ns，详见 [FPGA 证据](../../docs/fpga-ti
 匹配 OpenSBI+Linux 镜像的物理验收仍由用户进行。本批未重复全量/长 Linux 仿真。
 
 晚间接续：用户已报告该整数版在实际板卡启动 Linux 并跑过 CoreMark CRC；
-尚不等价于长压力验收。F/D 源码现已授权合入原 `/home/openion/Valence`，仍默认关闭，
+尚不等价于长压力验收。F/D 源码现已授权合入原 `${VALENCE_ROOT}`，仍默认关闭，
 完整基础 F/D 功能候选已实现且短验收通过，但不代表 F/D 整板 bit 或 Linux FP
 上下文已验收。新增浮点时序批次和短 GSIM 验收见本页末尾。
 
@@ -774,7 +774,7 @@ ISA 设计参考固定到 RISC-V 文档版本 `20250508`；当前仅声明上述
 [规范版本入口](https://docs.riscv.org/reference/isa/v20250508/unpriv/colophon.html)。
 
 参考模型的整数子集构建与 ABI 已审查；完整平台的扩展、计时器、异常及中断配置仍需审查。
-NEMU 子模块工作树链接仍指向旧的 `/home/openion/IonSoC` 路径，本次未修改其元数据或源文件。
+NEMU 子模块工作树链接仍指向旧的 `${LEGACY_ROOT}` 路径，本次未修改其元数据或源文件。
 
 ## FPGA 同步取指验证
 
@@ -1280,8 +1280,9 @@ Uses DDR50/115200, 512 MiB CPU aperture, issue=2 and D-cache ways=2, default
 `early-issue`. Companion ELF identifies the exact OpenSBI semihosting probe PC.
 The observer permits architectural ECALL/page-fault/misaligned/timer handling
 and firmware CSR probes; unexpected access faults or user/kernel illegal
-instructions fail. UART must show real user-mode init, BusyBox command results,
-fastfetch 2.69.0 and the next prompt; echoed command text cannot satisfy markers.
+instructions fail. UART must show real user-mode init, BusyBox `uname -m` output, the shell
+completion marker and the next prompt; echoed command text cannot satisfy markers.
+Custom fastfetch is no longer built, packaged or required by this harness.
 Characters are paced for polling hvc0, not claimed IRQ-driven UART service.
 Exact BIN preload skips serial upload, not the independent sparse AXI DDR
 latency/backpressure model. It does not verify physical MIG/CDC or the board.
@@ -1695,7 +1696,7 @@ The separate single synthesis and49 DCP-only queries completed: recovery control
 through-paths improve, but global10.590->10.931ns/WNS-0.608->-0.949ns regresses
 to PRF writeback. LUT decreases1687 to128031, FF61426; this is not a promoted
 100MHz result. All16 endpoint families and new3 scopes, logs, firmware and frozen
-sources are under E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-recovery-control.
+sources are under ${EVIDENCE_ROOT}/ddr-opt-20261002/staged-recovery-control.
 No full GSIM/Linux, route or bit. Existing50MHz/115200 release and defaults stay.
 
 ### Execute/result/writeback selection short batch
@@ -1721,7 +1722,7 @@ driver context was repaired, no oracle relaxed.1087008 arithmetic,20384 payload,
 direct-IRQ system and coherent VM pass. All26 complete IPC rows and VM2525/675,
 same-image CoreMark731130 and DDR5295/7714/12987/3847 match recovery-control.
 One separate121-SV pre-mapping10ns synthesis is running; no Fmax/area/100MHz claim.
-Evidence:E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-execute-select.
+Evidence:${EVIDENCE_ROOT}/ddr-opt-20261002/staged-execute-select.
 
 ### Independent clock scheduling capability probe (not CDC acceptance)
 
@@ -1768,7 +1769,7 @@ DDR is synthetic AXI timing. Fixed32/direct-IRQ system is not registered-IRQ
 temporal acceptance. No full GSIM/Linux or alternative simulator was invoked.
 
 196 source snapshots and78 byte-verified raw log/FIR/firmware artifacts are in
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-frontend-select.
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-frontend-select.
 No export/synthesis yet for this profile; the prior frozen121-SV synthesis
 remains separate and running. Clock/reset/IP/default/released bit are unchanged.
 
@@ -1789,7 +1790,7 @@ remains separate and running. Clock/reset/IP/default/released bit are unchanged.
 两批功能短测结论保持，但staged-frontend-select仍未导出/SYN。
 
 诊断、日志/journal/timing哈希及停止证据见
-E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-execute-select/synthesis-hang-diagnosis.json；
+${EVIDENCE_ROOT}/ddr-opt-20261002/staged-execute-select/synthesis-hang-diagnosis.json；
 两个候选results.json已更正。建议先做rank/ALU/completion局部定位，未经确认不重跑
 整颗SoC。官方debug_log、RuntimeOptimized/no_timing_driven可用于后续经批准的诊断，
 但减少/关闭时序驱动的结果不等价于原10ns候选签核。
@@ -1816,7 +1817,7 @@ Removed278 regenerable model/object/executable files from nine older staged
 directories (932954165 bytes). Raw logs, FIR, firmware BIN/ELF, user-authored
 source and current frontend models remain. The old failed synthesis .Xil was
 fully verified and archived before deletion; total net space released1.37GiB.
-Exact files and recovery notes: E:/VM/Share/Valence-rtl/ddr-opt-20261002/
+Exact files and recovery notes: ${EVIDENCE_ROOT}/ddr-opt-20261002/
 cleanup-20261002.json. Detailed QoR and pending gates: docs/fpga-timing-windows.md.
 
 ### 2026-10-02: combined sensitive-path candidate, not promoted
@@ -1865,7 +1866,7 @@ contracts survive. The ~0.04% OOC period estimate does not offset CoreMark
 cycle cost; this candidate is retained but not promoted. No route/bit/default/
 MMCM/full GSIM/Linux/third domain/DFS changes.
 
-Evidence: E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-sensitive-paths/
+Evidence: ${EVIDENCE_ROOT}/ddr-opt-20261002/staged-sensitive-paths/
 results.json, short-tests.json,86 short-raw files,59 checkpoint-query/reports,
 timing-comparison.json and source/rtl manifests. Detailed measured path table,
 including regressions and remaining gates: docs/fpga-timing-windows.md.
@@ -1915,7 +1916,7 @@ PRF9.941 has only41ps and scoreboard9.921 only61ps (both margin regressions).
 LUT+580/FF+2, BRAM/DSP unchanged. No default promotion, route, bit, MMCM/MIG,
 full GSIM, long Linux, third domain or DFS. Actual RTL remains50MHz/115200.
 
-Evidence: E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-decode-align/
+Evidence: ${EVIDENCE_ROOT}/ddr-opt-20261002/staged-decode-align/
 results.json, short-tests.json,122 short-raw files,61 checkpoint-query/reports,
 timing-comparison.json, source/rtl manifests and report-query-fixes.
 Full path table, regressions and unverified physical gates: docs/fpga-timing-windows.md.
@@ -1933,7 +1934,7 @@ GSIM_CXX=clang++-19 GSIM_BUILD_JOBS=8 python3 simulator/gsim/retire_stage.py \
 
 Acceptance: 48 Scala tests/11 suites, ALU arithmetic1087008 plus illegal653861, independent ledger tag8/64 18000 cycles each, prediction/NEMU/system/coherent VM and one board model reused for CoreMark+DDR; all pass, 6 injected negative controls rejected. CoreMark731130 and DDR5295/7714/12987/3847 ticks match byte-identical binaries; 26 IPC rows×23 fields and VM2525/675 match decode-align. The one-iteration CoreMark raw under-10s ERROR remains archived: CRC/exit smoke only, NOT a score or FPGA bandwidth.
 
-Frozen228 inputs,131SV+1resource,70 raw files and66 DCP reports have SHA256 indexes under E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-word-destination/. Original failed compile, failed/partial-pass/passed driver reports and first-source overlays are retained; neither DUT expectations nor independent ISA/NEMU/ledger gold were relaxed. OOC 10ns WNS=-0.115, CPD=9.915, setup failures=80; NOT routed/board100MHz evidence. No bit/default/clock-IP promotion. Full family and regression table: docs/fpga-timing-windows.md.
+Frozen228 inputs,131SV+1resource,70 raw files and66 DCP reports have SHA256 indexes under ${EVIDENCE_ROOT}/ddr-opt-20261002/staged-word-destination/. Original failed compile, failed/partial-pass/passed driver reports and first-source overlays are retained; neither DUT expectations nor independent ISA/NEMU/ledger gold were relaxed. OOC 10ns WNS=-0.115, CPD=9.915, setup failures=80; NOT routed/board100MHz evidence. No bit/default/clock-IP promotion. Full family and regression table: docs/fpga-timing-windows.md.
 
 Primary66 reports aggregate the retained57-query plus9 successful primary supplements. The two broad-NAME query failures and later optimized-checkpoint frontend-contract failure remain archived; they are NOT labeled wholly successful. Only the live report helper changed after source freeze; hardware/oracles remain frozen. Post-synthesis opt_design was not selected because slack regressed to-0.147ns.
 
@@ -1963,7 +1964,7 @@ One700.7s pre-map10ns RuntimeOptimized synthesis and189.1s reused-DCP query71 re
 setup failures0, native capture WE1.011ns, ready-to-WE and ready-to-enqueue feedback paths0.
 LUT-31/FF+1. ROM response/next-request feedback still has only234ps; not all edge risks solved.
 No route/bit/default promotion/clock changes; physical100MHz/150MHz, third domain/DFS unverified.
-Evidence: E:/VM/Share/Valence-rtl/ddr-opt-20261002/staged-request-capture/ (232 inputs,131SV+1resource,
+Evidence: ${EVIDENCE_ROOT}/ddr-opt-20261002/staged-request-capture/ (232 inputs,131SV+1resource,
 66 raw files,71 reports and hash indexes); see docs/fpga-timing-windows.md for every family.
 
 ## 2026-10-02 ROM/fabric registered-boundary candidate
@@ -2007,7 +2008,7 @@ including continuous 8N1, CRC retry, bounds, rewrite/fence.i and image invalidat
 The original failed aggregate reports were not overwritten: `short-tests.json`
 records the passed checks and resumed logs in the frozen candidate directory.
 
-Evidence: `E:/VM/Share/Valence-rtl/ddr-opt-20261002/rom-boundary-board100-u460800/`,
+Evidence: `${EVIDENCE_ROOT}/ddr-opt-20261002/rom-boundary-board100-u460800/`,
 500 captured source files, 133 SV plus one memory resource, and 64 short raw files
 with hashes. Default/rebuilt synthesis was stopped after 3383.8s without a DCP;
 exit7/timed_out=False reflects an external stop, not successful completion.
@@ -2340,9 +2341,9 @@ Reproduce in this checkout after the M1/M2/M3 retained models and M2 pinned
 SoftFloat vectors exist. Pick a fresh tag; accepted receipts are never overwritten:
 
 ```sh
-GSIM_SOURCE=/home/openion/Valence/simulator/build/gsim-src GSIM_CXX=clang++-19 \
-NEMU_REFERENCE=/home/openion/Valence/build/gsim/nemu-src/build/riscv64-nemu-interpreter-so \
-NEMU_RECEIPT=/home/openion/Valence/build/gsim/reference-used.json \
+GSIM_SOURCE=${VALENCE_ROOT}/simulator/build/gsim-src GSIM_CXX=clang++-19 \
+NEMU_REFERENCE=${VALENCE_ROOT}/build/gsim/nemu-src/build/riscv64-nemu-interpreter-so \
+NEMU_RECEIPT=${VALENCE_ROOT}/build/gsim/reference-used.json \
 python3 simulator/gsim/floating_point_memory.py --tag m4-repeat-1
 ```
 
@@ -2361,7 +2362,7 @@ current WSL runners above; no Windows evidence path is needed for M4.
 
 ## 原 Valence 接续 / 100 MHz 浮点时序批次（2026-10-03 晚）
 
-主开发目录已为 `/home/openion/Valence`。38 个 F/D 文件以原脏工作区快照为基准
+主开发目录已为 `${VALENCE_ROOT}`。38 个 F/D 文件以原脏工作区快照为基准
 增量合入，未合并或提交 Git，不丢弃既有修改；合入凭据及可恢复 Windows 归档在
 `build/fd-handoff`。实验开关默认 false，misa/设备树 F/D 仍关闭。
 M1/M2/M3/M4 是部分实现，完整 F/D、OS 浮点上下文与带 F/D 的整板 bit 尚未验收。
@@ -2382,10 +2383,10 @@ M1/M2/M3/M4 是部分实现，完整 F/D、OS 浮点上下文与带 F/D 的整�
 重现同样使用上面的环境变量，但必须选择新 tag：
 
 ```sh
-cd /home/openion/Valence
+cd ${VALENCE_ROOT}
 GSIM_CXX=clang++-19 \
-NEMU_REFERENCE=/home/openion/Valence/build/gsim/nemu-src/build/riscv64-nemu-interpreter-so \
-NEMU_RECEIPT=/home/openion/Valence/build/gsim/reference-used.json \
+NEMU_REFERENCE=${VALENCE_ROOT}/build/gsim/nemu-src/build/riscv64-nemu-interpreter-so \
+NEMU_RECEIPT=${VALENCE_ROOT}/build/gsim/reference-used.json \
 python3 simulator/gsim/floating_point_memory.py --tag main-repeat-1
 ```
 
@@ -2410,7 +2411,7 @@ python3 simulator/gsim/floating_point_memory.py --tag main-repeat-1
 固定 SoftFloat ZIP；缺依赖时报错，不自动更换版本或下载其他后端。
 
 ```sh
-cd /home/openion/Valence
+cd ${VALENCE_ROOT}
 GSIM_CXX=clang++-19 python3 simulator/gsim/floating_point_full.py --tag fresh-fd-tag
 ```
 
@@ -2489,7 +2490,7 @@ Core 的零预算接口 hold 仍 -0.046 ns，模块 IO/reset 与整板、Linux F
 ## 2026-10-04 自研网络 DMA 与 TileLink 部分写
 
 ```sh
-cd /home/openion/Valence
+cd ${VALENCE_ROOT}
 GSIM_CXX=/usr/lib/llvm-19/bin/clang++ python3 simulator/gsim/ethernet_dma.py --tag fresh-tag
 ```
 

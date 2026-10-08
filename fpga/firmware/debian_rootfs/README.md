@@ -10,6 +10,22 @@ not hardware verification. New kernel builds default to the Dinit/LZ4 profile;
 Neither profile runs a generic SMP kernel, disk, SSH, automatic benchmark or board programming.
 Serial root login and driver/network init are automatic.
 
+As of 2026-10-08, new rootfs builds exclude the custom fastfetch executable and
+its license payload. There is no dependency on `build/fpga/linux-userland` or a
+fastfetch/CMake source/tool archive. BusyBox, musl, CoreMark and pinned Dinit
+sources are still needed for their respective supported components. No replacement
+Debian fastfetch package is installed automatically; package-owned `/usr/bin`
+files are untouched. All three packers also filter the retired `/usr/local/bin`
+executable and `usr/share/doc/valence` license when restoring an older seed.
+Original seed archives/rootfs trees and previously completed deliveries are kept.
+The removal is source-level only until a new rootfs/image is built and audited.
+
+Short source-only checks (no downloaded sources, root privileges or large image):
+
+    python3 fpga/firmware/test_rootfs_contents.py
+    python3 fpga/firmware/debian_rootfs/test_rootfs_contents.py
+    python3 fpga/firmware/debian_rootfs/test_module_sources.py
+
 Dinit RAM-root workflow (current 2 GiB repaired netboot bit; no new RTL/bit required):
 
     git clone --depth 1 --branch v0.19.4 https://github.com/davmac314/dinit.git build/fpga/dinit-source-0.19.4

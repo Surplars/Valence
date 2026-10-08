@@ -20,6 +20,15 @@ from build_userland import verify
 
 OUTPUT_NAME = 'opensbi_linux_rv64gc_cpu100_u460800_gmac_fpu.bin'
 ISA_EXTENSIONS = ('i', 'm', 'a', 'f', 'd', 'c', 'zicsr', 'zifencei')
+# These describe driver selection policy, not the queues present in a bitstream
+# or a successfully exercised Linux data path. Hardware discovery is runtime.
+NETWORK_QUEUE_POLICY = {
+    'selection': 'runtime DMA capability discovery; absent/malformed uses legacy',
+    'rx_requested_slots_default': 4, 'tx_requested_slots_default': 4,
+    'requested_slots_range': [1, 16], 'selected_slots_capped_by_hardware': True,
+    'legacy_slots_each_direction': 1, 'dma_buffer_bytes_each': 2048,
+    'runtime_selected_slots_verified': False,
+}
 BOOTARGS = ('earlycon=sbi console=hvc0 rdinit=/init loglevel=7 printk.time=1 '
             'initcall_debug initramfs_async=0')
 ENABLED = ['PRINTK', 'TTY', 'SERIAL_8250', 'SERIAL_8250_CONSOLE', 'SERIAL_OF_PLATFORM',
@@ -71,6 +80,8 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTAR
             reg = <0x0 0x10040000 0x0 0x1000>, <0x0 0x10002000 0x0 0x100>;
             reg-names = "mac", "dma";
             dma-coherent;
+            openion,ram-base = /bits/ 64 <0x80200000>;
+            openion,ram-bytes = /bits/ 64 <RAM_BYTES>;
             phy-mode = "rgmii-rxid";
             phy-handle = <&rtl8211f>;
             max-speed = <1000>;
@@ -89,7 +100,7 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTAR
                         '         * Linux uses SBI DBCN/hvc polling. UART IRQ3 is not used in this image. */',
                         '/* CSR-only IRQ adapter; no standard CPU MSI aperture.\n'
                         '         * UART remains SBI DBCN/hvc polling; packet DMA uses source 6. */')
-    text = base.replace(needle, node + needle).replace('aliases { serial0 = &uart0; };',
+    text = base.replace(needle, node.replace('RAM_BYTES', hex(memory_bytes)) + needle).replace('aliases { serial0 = &uart0; };',
         'aliases { serial0 = &uart0; ethernet0 = &gmac0; };')
     if platform_drivers:
         extra = '''        cmu0: clock-controller@10080000 {
@@ -113,9 +124,7 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTAR
         text = text.replace('            reg-names = "mac", "dma";',
             '            reg-names = "mac", "dma";\n'
             '            clocks = <&cmu0 5>, <&cmu0 6>;\n'
-            '            clock-names = "tx", "rx";\n'
-            '            openion,ram-base = /bits/ 64 <0x80200000>;\n'
-            f'            openion,ram-bytes = /bits/ 64 <0x{memory_bytes:x}>;')
+            '            clock-names = "tx", "rx";')
         # A software-only client node belongs at root, not under MMIO simple-bus.
         text = text.replace('    soc {', '''    dma-benchmark {
         compatible = "openion,valence-dma-bench-v1";
@@ -223,11 +232,6 @@ def build_apps(output):
 
 def rootfs_lines(output, apps):
     user = output / 'userland'
-    old_user = ROOT / 'build/fpga/linux-userland'
-    old_manifest = json.loads((old_user / 'manifest.json').read_text())
-    fastfetch = old_user / 'fastfetch/fastfetch'
-    if sha(fastfetch) != old_manifest['binaries']['fastfetch']['sha256']:
-        raise RuntimeError('Existing fastfetch provenance changed')
     dirs = {'/dev', '/dev/pts', '/proc', '/sys', '/tmp', '/run', '/root', '/etc', '/etc/network',
         '/bin', '/sbin', '/lib', '/lib/modules', '/var', '/var/run', '/usr', '/usr/bin',
         '/usr/sbin', '/usr/share', '/usr/share/udhcpc', '/usr/share/licenses',
@@ -239,14 +243,14 @@ def rootfs_lines(output, apps):
         ('/bin/coremark', apps / 'coremark', '755'), ('/bin/fpu-test', apps / 'fpu-test', '755'),
         ('/bin/net-bench', apps / 'net-bench', '755'),
         ('/bin/net-status', HERE / 'net-status', '755'), ('/bin/boot-time', HERE / 'boot-time', '755'),
-        ('/bin/fastfetch', fastfetch, '755'), ('/bin/net-test', HERE / 'net-test', '755'),
+        ('/bin/net-test', HERE / 'net-test', '755'),
         ('/init', HERE / 'init', '755'), ('/etc/network/interfaces', HERE / 'interfaces', '644'),
         ('/usr/share/udhcpc/default.script', HERE / 'udhcpc.script', '755')]
     files.append(('/etc/os-release', HERE / 'os-release', '644'))
     for name in ('profile', 'passwd', 'group'):
         files.append(('/etc/' + name, FIRMWARE / 'linux_rootfs' / name, '644'))
     for name, source in (('busybox', 'busybox-1.37.0/LICENSE'), ('musl', 'musl-1.2.5/COPYRIGHT'),
-                         ('fastfetch', 'fastfetch-2.69.0/LICENSE'), ('coremark', 'coremark-src/LICENSE.md')):
+                         ('coremark', 'coremark-src/LICENSE.md')):
         license_file = ROOT / 'simulator/build' / source
         if license_file.exists():
             files.append(('/usr/share/licenses/' + name, license_file, '644'))
@@ -340,7 +344,7 @@ def build(args):
         'exact_validated_dtb_embedded_in_OpenSBI': True,
         'fp_test_static_opcode_check': True, 'linux_fp_context_runtime_verified': False,
         'mac': 'native TL64 ABI v1; 1G/full duplex, DMA IRQ + NAPI weight 8/time budget 2ms',
-        'single_descriptor_each_direction': True, 'data_plane_periodic_polling': False,
+        'network_queue_policy': NETWORK_QUEUE_POLICY, 'data_plane_periodic_polling': False,
         'irq_source': 6, 'irq_type': 'level-high', 'internal_msi_selftest_required_on_board': True,
         'linux_irq_runtime_verified': False, 'initcall_debug': True, 'initramfs_async': False,
         'ipv6_enabled': False,
@@ -351,7 +355,6 @@ def build(args):
         'module_unload_supported': False, 'board_gmac_verified': False,
         'gsim_run': False, 'vivado_run': False, 'payload_zero_padding_bytes': padding,
         'userland': json.loads((output / 'userland/manifest.json').read_text()),
-        'fastfetch_reused_soft_float_static': True,
         'sources': {str(p.relative_to(ROOT)): sha(p) for p in HERE.rglob('*') if p.is_file()
                     and '__pycache__' not in p.parts},
         'files': {p.name: {'bytes': p.stat().st_size, 'sha256': sha(p)} for p in

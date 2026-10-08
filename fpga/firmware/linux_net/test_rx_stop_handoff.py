@@ -129,6 +129,10 @@ int main(void) {
     assert(count == 0 && retries == 1 && !state.configured);
     reset_case(1ULL << 8); state.running = false; vg_configure(&state.configure.work);
     assert(count == 0 && retries == 0 && state.napi.polls == 0);
+    /* A latched reset-required fault must never arm or retry configuration. */
+    reset_case(1ULL << 8); state.faulted = true; vg_configure(&state.configure.work);
+    assert(count == 0 && retries == 0 && fences == 0 && !state.ever_armed && !state.configured);
+    assert(state.napi.polls == 0 && dev.wakes == 0 && mac_regs[0x90 / 8] == 3);
     /* Initial address mailbox gets its acknowledgement before enabling RX. */
     reset_case(1ULL << 8); state.address_set = false; vg_configure(&state.configure.work);
     assert(count == 1 && retries == 1 && !state.configured);
@@ -137,7 +141,7 @@ int main(void) {
     reset_case(1ULL << 8); state.configured = true; dma_regs[0x48 / 8] = 1;
     vg_configure(&state.configure.work);
     assert(count == 0 && retries == 0 && state.napi.polls == 1);
-    puts("PASS_LINUX_GMAC_RX_STOP_HANDOFF cases=9");
+    puts("PASS_LINUX_GMAC_RX_STOP_HANDOFF cases=10");
     return 0;
 }
 '''
@@ -156,6 +160,7 @@ def main():
     controls = {
         "omit_admission_release": c.replace("vg_write(p->mac, G_RX_STOP, 0);", "(void)0;"),
         "omit_rx_consumer": c.replace("vg_arm_rx(p);", "if (0) vg_arm_rx(p);"),
+        "rearm_after_fault": c.replace("if (!p->running || p->faulted)", "if (!p->running)"),
     }
     outputs = {}
     with tempfile.TemporaryDirectory(prefix="valence-gmac-handoff-") as tmp:
@@ -170,11 +175,11 @@ def main():
             result = subprocess.run([str(binary)], capture_output=True, text=True)
             outputs[name] = dict(returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
             if name == "positive":
-                assert result.returncode == 0 and "PASS_LINUX_GMAC_RX_STOP_HANDOFF cases=9" in result.stdout, outputs[name]
+                assert result.returncode == 0 and "PASS_LINUX_GMAC_RX_STOP_HANDOFF cases=10" in result.stdout, outputs[name]
             else:
                 assert result.returncode != 0 and "Assertion" in result.stderr, outputs[name]
-    receipt = dict(status="PASS_LINUX_GMAC_RX_STOP_HANDOFF_SCRIPTED_MMIO", cases=9,
-                   negative_controls=2, driver_sha256=hashlib.sha256(args.driver.read_bytes()).hexdigest(),
+    receipt = dict(status="PASS_LINUX_GMAC_RX_STOP_HANDOFF_SCRIPTED_MMIO", cases=10,
+                   negative_controls=3, driver_sha256=hashlib.sha256(args.driver.read_bytes()).hexdigest(),
                    compiler=subprocess.check_output([args.cc, "--version"], text=True).splitlines()[0],
                    scope="Actual vg_configure/vg_arm_rx C bodies, scripted MMIO and kernel API stubs; not full kernel, RTL, or board runtime",
                    outputs=outputs)

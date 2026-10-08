@@ -46,6 +46,23 @@ def copy(source, target, mode=None):
         target.chmod(mode)
 
 
+def archive_paths(rootfs, extra_excluded=()):
+    """Omit build caches and retired custom tools, even from an older seed.
+
+    Leave source roots and completed seed archives untouched. Debian-managed
+    /usr/bin packages are outside the retired /usr/local tool's scope.
+    """
+    excluded = ('debootstrap', 'var/cache/apt/archives', 'var/lib/apt/lists',
+                'usr/local/bin/fastfetch', 'usr/share/doc/valence/fastfetch',
+                *extra_excluded)
+    paths = ['.']
+    for path in rootfs.rglob('*'):
+        relative = path.relative_to(rootfs).as_posix()
+        if not any(relative == prefix or relative.startswith(prefix + '/') for prefix in excluded):
+            paths.append('./' + relative)
+    return sorted(paths)
+
+
 def bootstrap(args, output):
     if os.geteuid() != 0:
         raise RuntimeError('bootstrap requires WSL root; use wsl -u root, not Windows admin tools')
@@ -151,14 +168,8 @@ def pack(args, output):
     user_manifest = json.loads((baseline / 'userland/manifest.json').read_text())
     if sha(rootfs / 'usr/lib/valence/busybox') != user_manifest['busybox_sha256']:
         raise RuntimeError('BusyBox init helper provenance mismatch')
-    fastfetch_root = ROOT / 'build/fpga/linux-userland'
-    fastfetch_manifest = json.loads((fastfetch_root / 'manifest.json').read_text())
-    fastfetch = fastfetch_root / 'fastfetch/fastfetch'
-    if sha(fastfetch) != fastfetch_manifest['binaries']['fastfetch']['sha256']:
-        raise RuntimeError('fastfetch provenance mismatch')
-    copy(fastfetch, rootfs / 'usr/local/bin/fastfetch', 0o755)
     for name, relative in (('busybox', 'busybox-1.37.0/LICENSE'),
-            ('musl', 'musl-1.2.5/COPYRIGHT'), ('fastfetch', 'fastfetch-2.69.0/LICENSE'),
+            ('musl', 'musl-1.2.5/COPYRIGHT'),
             ('coremark', 'coremark-src/LICENSE.md')):
         copy(ROOT / 'simulator/build' / relative, rootfs / 'usr/share/doc/valence' / name, 0o644)
     for name in ('net-status', 'boot-time'):
@@ -190,14 +201,7 @@ def pack(args, output):
              module.removesuffix('.ko')], log=output / (module + '-modprobe-dry-run.log'))
     # Do not ship bootstrap/QEMU helpers, downloaded .debs, or package indices.
     # Do not delete them: preserve bootstrap evidence and package setup outputs.
-    excluded = ('debootstrap', 'var/cache/apt/archives', 'var/lib/apt/lists')
-    paths = ['.']
-    for path in rootfs.rglob('*'):
-        relative = path.relative_to(rootfs).as_posix()
-        if any(relative == prefix or relative.startswith(prefix + '/') for prefix in excluded):
-            continue
-        paths.append('./' + relative)
-    paths.sort()
+    paths = archive_paths(rootfs)
     payload_bytes = sum((rootfs / path).stat().st_size for path in paths
                         if not (rootfs / path).is_symlink() and (rootfs / path).is_file())
     if payload_bytes > 240 * 1024 * 1024:

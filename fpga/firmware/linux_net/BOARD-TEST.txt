@@ -1,5 +1,13 @@
 Valence Linux GC + native GMAC bring-up, 2026-10-06
 
+Posted-queue source update, 2026-10-08:
+The current driver discovers optional posted RX/TX queues at runtime. It requests
+four slots per direction, capped by advertised hardware depth; absent or malformed
+capabilities use one legacy descriptor. Read napi_status via net-status to record
+actual selected mode, slots, owned buffers and completion/batch high-water marks.
+These source/host checks do not establish a rebuilt matching-kernel image or a
+posted-capable bitstream. The r3 bit below retains its own original capabilities.
+
 r3: DMA completion IRQ + bounded NAPI, without modifying the existing bit.
 CPU remains 100MHz/RV64GC; Linux tick is 250Hz with NO_HZ_IDLE.
 IPv4 static networking is retained; IPv6 is disabled in this test profile.
@@ -13,7 +21,8 @@ If it fails, the shell still starts but Ethernet stays disabled; no polling fall
 The data plane has no periodic timer/work item while idle. PHY status remains
 low-frequency polled; a 100ms once-only MAC config worker stops after setup.
 NAPI weight=8 and a 2ms loop budget yield to other work; never busy-wait for DMA.
-RX and TX descriptor buffer addresses are programmed once at probe.
+Legacy RX and TX descriptor buffer addresses are programmed once at probe;
+posted queues publish a selected coherent buffer address for each post.
 Packet buffers still persist across ifdown; no unsafe DMA cancel/unload was added.
 
 r2 ISA/timestamp fix is retained:
@@ -80,7 +89,7 @@ FPU arithmetic, process context, and workload:
 Expected: AT_HWCAP with F=1 D=1, F/D ARITHMETIC PASS,
 LINUX FP CONTEXT PASS, FPU TEST PASS errors=0.
 Both BusyBox and test/CoreMark binaries are static musl RV64GC/lp64d.
-The existing fastfetch utility is reused as a separate static soft-float ELF.
+The image no longer reuses the old custom fastfetch ELF or its source/license.
 CoreMark's algorithms remain integer. Only its compilation/accurate reporting
 uses hard-float; do not reinterpret CoreMark as an FPU benchmark.
 New CoreMark ticks are CLOCK_MONOTONIC nanoseconds, not CPU cycles or milliseconds.
@@ -110,7 +119,8 @@ Reverse direction: board listens with nc -l -p 5001 > /dev/null, PC sends data.
 
 Scope and limitations:
   Driver is 1Gbps/full-duplex only; no 10/100 or pause support.
-  One descriptor per direction; IRQ + NAPI is not a 1Gbps throughput claim.
+  One legacy descriptor or capability-selected posted queues per direction;
+  IRQ + NAPI and queue capacity are not a 1Gbps throughput claim.
   Packet DMA IRQ6 only. MAC IRQ5/UART IRQ3 remain unused by this Linux profile.
   TX stats reflect DMA handoff; MAC counters/PC capture verify actual wire TX.
   MTU <=1500; no SG, checksum, VLAN or timestamp offload.

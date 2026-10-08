@@ -39,7 +39,7 @@ static u64 vg_read(void *base,unsigned off){
  case 0xe0:assert(tx_completed);return tx_wrong_address?0xdeadbeef:state.tx_pool[tx_ids[(tx_head+(tx_wrong_order?1:0))%tx_depth]].address;
  case 0xe8:{assert(tx_completed);unsigned slot=tx_ids[tx_head];return tx_bad[slot]?65536:tx_sizes[slot]+tx_wrong_length;}
  case 0xf0:return tx_enabled|((u64)tx_stopped<<1);
- case 0xf8:{if(tx_reset)return 0;unsigned active=tx_count>tx_completed;return tx_count-tx_completed-active|((u64)tx_completed<<8)|((u64)active<<16)|((u64)tx_stopped<<17)|((u64)tx_enabled<<18);}
+ case 0xf8:{if(tx_reset)return 0;unsigned active=tx_count>tx_completed;return (tx_count-tx_completed-active)|((u64)tx_completed<<8)|((u64)active<<16)|((u64)tx_stopped<<17)|((u64)tx_enabled<<18);}
  default:assert(!"unknown TX read");return 0;
  }
 }

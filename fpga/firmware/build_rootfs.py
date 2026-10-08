@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static RV64IMAC/lp64 BusyBox + actual fastfetch, using isolated musl.
+"""Static RV64IMAC/lp64 BusyBox, using isolated musl.
 
 Sources/tools are downloaded separately into simulator/build/downloads.
 No system install, source checkout edits, or host ABI libraries in target links.
@@ -9,7 +9,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 
@@ -21,8 +20,6 @@ from run import run  # noqa: E402
 ARCHIVES = {
     "musl-1.2.5.tar.gz": "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4",
     "busybox-1.37.0.tar.bz2": "3311dff32e746499f4df0d5df04d7eb396382d7e108bb9250e7b519b837043a4",
-    "fastfetch-2.69.0.tar.gz": "d0e42faf307e39e7b531d632745a56e4eb558a6545f557280099c622562355ee",
-    "cmake-3.31.6-linux-x86_64.tar.gz": "5a1133ff103c71eb5120e2cc3de922733e7d8a26a98ae716397e8676adb367bf",
 }
 
 
@@ -46,14 +43,9 @@ def build(output, jobs):
     sources = ROOT / "simulator/build"
     downloads = sources / "downloads"
     for name, expected in ARCHIVES.items():
-        if name.startswith("cmake-") and shutil.which("cmake"):
-            continue
         archive = downloads / name
-        suffix = "-linux-x86_64.tar.gz" if name.startswith("cmake-") else (
-            ".tar.bz2" if name.endswith(".bz2") else ".tar.gz")
+        suffix = ".tar.bz2" if name.endswith(".bz2") else ".tar.gz"
         extracted = sources / name.removesuffix(suffix)
-        if name.startswith("cmake-"):
-            extracted = sources / name.removesuffix(".tar.gz")
         if archive.is_file() and sha(archive) != expected:
             raise RuntimeError(f"Wrong pinned archive: {archive}")
         if not extracted.exists():
@@ -105,33 +97,11 @@ def build(output, jobs):
     run([*make, "busybox.links"], cwd=busybox, log=output / "busybox-links.log")
     busy_binary = busy_out / "busybox"
     verify_elf(busy_binary)
-    fastfetch = sources / "fastfetch-2.69.0"
-    cmake = shutil.which("cmake") or sources / "cmake-3.31.6-linux-x86_64/bin/cmake"
-    fast_out = output / "fastfetch"
-    keep_modules = {"title", "separator", "os", "host", "kernel", "uptime", "shell", "terminal",
-                    "cpu", "memory", "swap", "disk", "locale", "break", "colors", "custom", "version"}
-    module_flags = [f"-DMODULE_DISABLE_{p.name.upper()}=ON" for p in (fastfetch / "src/modules").iterdir()
-                    if p.is_dir() and p.name not in keep_modules]
-    optional = re.findall(r'(?:option|cmake_dependent_option)\((ENABLE_[A-Z0-9_]+)',
-                          (fastfetch / "CMakeLists.txt").read_text())
-    run([cmake, "-S", fastfetch, "-B", fast_out, "-G", "Unix Makefiles",
-         "-DCMAKE_SYSTEM_NAME=Linux", "-DCMAKE_SYSTEM_PROCESSOR=riscv64",
-         f"-DCMAKE_C_COMPILER={wrapper}", "-DCMAKE_C_FLAGS=-Os", "-DCMAKE_EXE_LINKER_FLAGS=-static",
-         "-DCMAKE_BUILD_TYPE=MinSizeRel", "-DIS_MUSL=ON", "-DBINARY_LINK_TYPE=static",
-         "-DBUILD_FLASHFETCH=OFF", "-DBUILD_TESTS=OFF", "-DSET_TWEAK=OFF",
-         "-DDEFAULT_STRUCTURE=Title:Separator:OS:Host:Kernel:Uptime:CPU:Memory:Shell",
-         *[f"-D{name}=OFF" for name in optional], *module_flags],
-        log=output / "fastfetch-config.log")
-    run([cmake, "--build", fast_out, "--target", "fastfetch", "--clean-first", "--parallel", str(jobs)],
-        log=output / "fastfetch-build.log", timeout=900)
-    fast_binary = fast_out / "fastfetch"
-    verify_elf(fast_binary)
-    for binary in (busy_binary, fast_binary):
-        run(["riscv64-unknown-elf-strip", "--strip-unneeded", binary])
+    run(["riscv64-unknown-elf-strip", "--strip-unneeded", busy_binary])
     manifest = {"isa": "rv64imac", "abi": "lp64", "link": "static musl 1.2.5",
-                "host_cmake": subprocess.check_output([cmake, "--version"], text=True).splitlines()[0],
-                "archives": ARCHIVES, "binaries": {p.name: {"bytes": p.stat().st_size, "sha256": sha(p)}
-                                                        for p in (busy_binary, fast_binary)}}
+                "archives": ARCHIVES,
+                "binaries": {"busybox": {"bytes": busy_binary.stat().st_size,
+                                          "sha256": sha(busy_binary)}}}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print("ROOTFS BINARIES READY: " + str(output), flush=True)
 

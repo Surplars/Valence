@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 ASSETS = HERE / 'dinit'
 sys.path[:0] = [str(HERE), str(ROOT / 'simulator/gsim')]
-from build_rootfs import sha, validate_output, copy
+from build_rootfs import sha, validate_output, copy, archive_paths
 from build_systemd_rootfs import archive_names
 from run import run
 
@@ -177,13 +177,7 @@ def rootfs(args):
     console = (root / 'dev/console').lstat()
     if not stat.S_ISCHR(console.st_mode) or console.st_rdev != os.makedev(5, 1):
         raise RuntimeError('Missing pre-init character console device')
-    excluded = ('debootstrap', 'var/cache/apt/archives', 'var/lib/apt/lists', 'etc/inittab')
-    paths = ['.']
-    for path in root.rglob('*'):
-        relative = path.relative_to(root).as_posix()
-        if not any(relative == p or relative.startswith(p + '/') for p in excluded):
-            paths.append('./' + relative)
-    paths.sort()
+    paths = archive_paths(root, extra_excluded=('etc/inittab',))
     payload_bytes = sum((root / p).stat().st_size for p in paths
         if not (root / p).is_symlink() and (root / p).is_file())
     if payload_bytes > 240 * 1024 * 1024:
@@ -207,7 +201,7 @@ def rootfs(args):
         driver_failure_keeps_serial=True, network_failure_keeps_serial=True,
         persistent_storage=False, require_repaired_bit=True, vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
         sources={str(p.relative_to(HERE)): sha(p) for p in
-            [Path(__file__), HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
+            [Path(__file__), HERE / 'build_rootfs.py', HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
         checks='target dinitcheck/module dry-run/package audit/LZ4 round-trip; not board execution')
     (out / 'rootfs-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('DINIT_LZ4_ROOTFS_PACKED_NOT_BOARD_VERIFIED ' + str(result), flush=True)

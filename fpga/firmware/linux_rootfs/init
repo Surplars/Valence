@@ -9,10 +9,8 @@ mount -t devpts devpts /dev/pts || echo "WARNING: devpts mount failed"
 hostname valence
 echo
 echo "Valence Linux - BusyBox rootfs / RV64IMAC soft-float / DDR50"
-fastfetch --version
-fastfetch --pipe true --logo none --structure OS:Host:Kernel:Uptime:CPU:Memory:Shell
 echo "VALENCE_LINUX_INIT_OK"
-echo "Commands: fastfetch, uname -a, free -m, cat /proc/cpuinfo, coremark 0 0 0 1"
+echo "Commands: uname -a, free -m, cat /proc/cpuinfo, coremark 0 0 0 1"
 echo "RAM-only rootfs; files do not survive reset. No network/block device configured."
 while true; do
     setsid cttyhack /bin/sh -l

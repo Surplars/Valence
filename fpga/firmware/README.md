@@ -334,12 +334,12 @@ The initial full low-baud UART-upload GSIM attempt exceeded its 600-second budge
 and is not counted as a pass; the final focused entry explicitly uses direct
 memory loading. q/b FPGA bandwidth has not been measured by this agent.
 
-## DDR50 OpenSBI + Linux / BusyBox + fastfetch
+## DDR50 OpenSBI + Linux / BusyBox
 
 See [Linux bring-up](../../docs/linux-bringup.md) for the exact board layout.
 Use the existing stable DDR50/115200 bit, not the experimental replay-stage RTL.
 No floating-point hardware is required: kernel FPU is disabled, and musl 1.2.5,
-BusyBox 1.37.0 and actual fastfetch 2.69.0 are static RV64IMAC/lp64 soft-float.
+BusyBox 1.37.0 is static RV64IMAC/lp64 soft-float.
 Do not substitute prebuilt lp64d distro executables.
 
 ```sh
@@ -350,10 +350,15 @@ GSIM_CXX=clang++-19 python3 simulator/gsim/board_linux.py \
     build/fpga/linux-ddr50-busybox/opensbi_linux_ddr50.bin
 ```
 
+The current source no longer builds, packages or autoruns custom fastfetch,
+and no longer needs its source archive or the CMake tool archive. BusyBox and
+musl sources remain required. Existing built images are historical artifacts;
+this source change does not rewrite them or claim a fresh board boot.
+
 The rootfs builder requires existing pinned archives (hashes in the script), or
 already unpacked sources under `simulator/build`; it performs no network download
 or system installation. Build tools: Linux and bare-metal RISC-V GCC/binutils,
-make, CMake >=3.21, host compiler and kernel build prerequisites. Target Linux
+make, host compiler and kernel build prerequisites. Target Linux
 UAPI headers are copied into an isolated musl sysroot, not host glibc/CRT libraries.
 The Linux builder reads clean local `simulator/build/linux` and pinned OpenSBI.
 Outputs, logs and manifest are in `build/fpga/linux-ddr50-busybox`.
@@ -366,9 +371,9 @@ Entry remains `0x80200000` (OpenSBI); do NOT set entry to the Linux payload at
 `0x80400000`. OpenSBI embeds the DTB because the ROM hands off a1=0, relocates it
 to `0x80300000`, and enters Linux in S-mode. The upper 16 KiB monitor region is
 reserved in DT. No bit rebuild is needed to change this downloaded image.
-The approximately 5.15 MiB image takes at least 7.8 minutes on 115200 8N1.
-After boot, fastfetch runs then BusyBox ash shows `valence#`; use `uname -a`,
-`free -m`, `cat /proc/cpuinfo`, `fastfetch` or short `coremark 0 0 0 1` checks.
+The historical image was approximately 5.15 MiB; size/upload time must be
+remeasured after rebuilding. After boot, BusyBox ash shows `valence#`; use
+`uname -a`, `free -m`, `cat /proc/cpuinfo` or short `coremark 0 0 0 1` checks.
 Rootfs is volatile RAM only; no network or persistent block device is enabled.
 The console uses SBI DBCN/hvc0 polling, not qualified Linux AIA/UART IRQ support.
 The image manifest distinguishes GSIM testing from actual board validation.

@@ -84,8 +84,7 @@ int main(int argc, char **argv) {
             }
             if (!sentHelp && console.find("valence# ") != std::string::npos) {
                 const std::string command = ROOTFS_BUSYBOX ?
-                    "uname -m; printf 'VALENCE_%s_OK\\n' SHELL; fastfetch --version; "
-                    "printf 'VALENCE_%s_OK\\n' FASTFETCH\r" : "help\r";
+                    "uname -m; printf 'VALENCE_%s_OK\\n' SHELL\r" : "help\r";
                 for (uint8_t c : command) {
                     test.send(c);
                     // hvc0 is polled, not a qualified UART IRQ driver. Model
@@ -95,8 +94,7 @@ int main(int argc, char **argv) {
                 sentHelp = true;
             }
             const bool commandDone = ROOTFS_BUSYBOX ?
-                console.find("VALENCE_SHELL_OK") != std::string::npos &&
-                    console.find("VALENCE_FASTFETCH_OK") != std::string::npos :
+                console.find("VALENCE_SHELL_OK") != std::string::npos :
                 console.find("exit: park init (reset board to restart)") != std::string::npos;
             if (sentHelp && commandDone &&
                 console.ends_with("valence# ")) break;
@@ -114,10 +112,8 @@ int main(int argc, char **argv) {
         check(sentHelp && console.ends_with("valence# "), "UART help input/output not completed");
         if (ROOTFS_BUSYBOX) {
             check(console.find("VALENCE_SHELL_OK") != std::string::npos &&
-                  console.find("VALENCE_FASTFETCH_OK") != std::string::npos &&
-                  console.find("riscv64") != std::string::npos &&
-                  console.find("fastfetch 2.69.0") != std::string::npos,
-                  "BusyBox shell/real fastfetch not executed");
+                  console.find("riscv64") != std::string::npos,
+                  "BusyBox shell/uname not executed");
         }
         check(test.ddr.readBursts && test.ddr.writeBursts && test.ddr.stalls, "DDR path not exercised");
         std::cout << "\nGSIM DDR50 Linux: PASS cycles=" << test.cycles << " commits=" << observed.commits
