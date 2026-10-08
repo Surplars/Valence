@@ -10,8 +10,9 @@ import soc.ip.axi._
   * A positive write limit enables ordinary-RAM reads and writes to disjoint
   * eight-byte-rounded physical intervals. RAW/WAR/WAW overlaps wait for full
   * TL retirement. Each slot retains AXI ID and TL source until its final D.
-  * AW and complete W bursts follow one bounded write-order FIFO (AXI4 W has
-  * no ID); B can complete in any ID order. AW/W progress independently.
+  * AW and complete W bursts follow matching bounded owner FIFOs (AXI4 W has
+  * no ID). Their heads advance independently, so later AW can overlap older W.
+  * B can complete in any ID order; no payload capacity is added.
   * Complete R bursts are buffered before D so late errors remain aggregate.
   * This is not MMIO/AMO reordering and does not relax upstream barriers.
   * Optional unorderedResponses fairly selects completed slots and locks whole D messages.
@@ -75,12 +76,26 @@ class TileLinkAxi4OutstandingBridge(
         (writes(i) || isWrite) && Cat(0.U(1.W), requestStart) < ends(i) &&
         Cat(0.U(1.W), starts(i)) < requestEnd)).asUInt.orR
     val writeCount = PopCount(VecInit((0 until maxOutstanding).map(i => active(i) && writes(i))))
-    val writeOrder = if (maxOutstandingWrites > 0)
-        Some(Module(new Queue(UInt(slotWidth.W), maxOutstanding, pipe = false, flow = false))) else None
+    // At most maxOutstandingWrites write owners are live. Independent token
+    // queues let AW preparation run ahead of W while preserving the same order.
+    val writeAddressOrder = if (maxOutstandingWrites > 0)
+        Some(Module(new Queue(UInt(slotWidth.W), maxOutstandingWrites, pipe = false, flow = false))) else None
+    val writeDataOrder = if (maxOutstandingWrites > 0)
+        Some(Module(new Queue(UInt(slotWidth.W), maxOutstandingWrites, pipe = false, flow = false))) else None
+    val addressPending = if (maxOutstandingWrites > 0)
+        Some(RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))) else None
+    val dataPending = if (maxOutstandingWrites > 0)
+        Some(RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))) else None
+    // A denied younger write must not retire/reuse its slot while a token still
+    // waits behind older traffic. Valid writes have already shed both tokens
+    // before B; this qualification adds no valid-write completion latency.
+    val dispatchRetired = VecInit((0 until maxOutstanding).map(i =>
+        if (maxOutstandingWrites > 0) !writes(i) || (!addressPending.get(i) && !dataPending.get(i)) else true.B))
     val canAllocate = !active(allocationSlot) && !sourceBusy && (if (maxOutstandingWrites == 0)
         !writeActive && (!isWrite || !active.asUInt.orR)
-        else !overlaps && (!isWrite || (writeCount < maxOutstandingWrites.U && writeOrder.get.io.enq.ready)))
-    writeOrder.foreach { q =>
+        else !overlaps && (!isWrite || (writeCount < maxOutstandingWrites.U &&
+            writeAddressOrder.get.io.enq.ready && writeDataOrder.get.io.enq.ready)))
+    Seq(writeAddressOrder, writeDataOrder).flatten.foreach { q =>
         q.io.enq.valid := io.tl.a.fire && !collecting && isWrite
         q.io.enq.bits := allocationSlot
     }
@@ -94,7 +109,7 @@ class TileLinkAxi4OutstandingBridge(
     assert(!io.tl.c.valid && !io.tl.e.valid, "TL-AXI boundary does not support coherence")
 
     val replySlot = if (unorderedResponses) {
-        val readyMask = VecInit((0 until maxOutstanding).map(i => active(i) && slots(i).io.tl.d.valid))
+        val readyMask = VecInit((0 until maxOutstanding).map(i => active(i) && slots(i).io.tl.d.valid && dispatchRetired(i)))
         val turn = RegInit(0.U(slotWidth.W))
         val afterTurn = VecInit((0 until maxOutstanding).map(i => readyMask(i) && i.U >= turn))
         val chosen = Mux(afterTurn.asUInt.orR, PriorityEncoder(afterTurn), PriorityEncoder(readyMask))
@@ -110,7 +125,7 @@ class TileLinkAxi4OutstandingBridge(
         }
         selectedReply
     } else head
-    io.tl.d.valid := active(replySlot) && VecInit(slots.map(_.io.tl.d.valid))(replySlot)
+    io.tl.d.valid := active(replySlot) && dispatchRetired(replySlot) && VecInit(slots.map(_.io.tl.d.valid))(replySlot)
     io.tl.d.bits := VecInit(slots.map(_.io.tl.d.bits))(replySlot)
     when(io.tl.d.fire) {
         replyRemaining(replySlot) := replyRemaining(replySlot) - 1.U
@@ -128,6 +143,8 @@ class TileLinkAxi4OutstandingBridge(
             active(allocationSlot) := true.B
             sources(allocationSlot) := a.source
             writes(allocationSlot) := isWrite
+            addressPending.foreach(_(allocationSlot) := isWrite)
+            dataPending.foreach(_(allocationSlot) := isWrite)
             starts(allocationSlot) := requestStart
             ends(allocationSlot) := requestEnd
             replyRemaining(allocationSlot) := Mux(isWrite, 1.U, requestBeats)
@@ -167,36 +184,52 @@ class TileLinkAxi4OutstandingBridge(
         assert(bInRange && active(bSlot) && VecInit(slots.map(_.io.axi.b.ready))(bSlot),
             "AXI B response has no live write owner")
     }
-    // AXI4 W has no ID. AW enqueue order and complete W burst order must agree,
-    // even when W is accepted before AW. B completion does not occupy this lane.
+    // AXI4 W has no ID. Matching token FIFO order associates each complete W
+    // burst with its AW, whether address or data wins the handshake race.
     val writeOwner = WireDefault(exclusiveWriteSlot.getOrElse(head))
     val writeOffer = WireDefault(writeActive)
+    val addressOwner = WireDefault(exclusiveWriteSlot.getOrElse(head))
+    val addressOffer = WireDefault(writeActive)
     if (unorderedResponses && maxOutstandingWrites == 0) {
         when(writeOffer) { assert(active(writeOwner) && writes(writeOwner), "exclusive write lost its allocated owner") }
     }
-    writeOrder.foreach { q =>
+    writeAddressOrder.foreach { q =>
+        addressOwner := Mux(q.io.deq.valid, q.io.deq.bits, 0.U)
+        addressOffer := q.io.deq.valid
+        val localDone = VecInit(slots.map(_.io.tl.d.valid))(addressOwner)
+        q.io.deq.ready := awOffer.fire || localDone
+        when(q.io.deq.fire) { addressPending.get(addressOwner) := false.B }
+        when(q.io.deq.valid) {
+            assert(active(addressOwner) && writes(addressOwner) && addressPending.get(addressOwner),
+                "write address FIFO lost its live owner")
+        }
+    }
+    writeDataOrder.foreach { q =>
         writeOwner := Mux(q.io.deq.valid, q.io.deq.bits, 0.U)
         writeOffer := q.io.deq.valid
-        val addressSent = RegInit(false.B)
-        val dataSent = RegInit(false.B)
-        val addressFire = awOffer.fire
-        val dataFire = io.axi.w.fire && io.axi.w.bits.last
         val localDone = VecInit(slots.map(_.io.tl.d.valid))(writeOwner)
-        q.io.deq.ready := ((addressSent || addressFire) && (dataSent || dataFire)) || localDone
-        when(addressFire) { addressSent := true.B }
-        when(dataFire) { dataSent := true.B }
-        when(q.io.deq.fire) { addressSent := false.B; dataSent := false.B }
-        when(q.io.deq.valid) { assert(active(writeOwner) && writes(writeOwner), "write FIFO lost its live owner") }
+        q.io.deq.ready := (io.axi.w.fire && io.axi.w.bits.last) || localDone
+        when(q.io.deq.fire) { dataPending.get(writeOwner) := false.B }
+        when(q.io.deq.valid) {
+            assert(active(writeOwner) && writes(writeOwner) && dataPending.get(writeOwner),
+                "write data FIFO lost its live owner")
+        }
     }
-    // The write-order FIFO (or exclusive-write owner) has already selected the
-    // only legal AW/W lane. A second round-robin arbiter duplicates selection
-    // and state without providing any concurrency. Share this static decode
-    // between the address and data channels; their handshakes stay independent.
+    // Static per-channel decode replaces redundant arbitration. The existing
+    // registered AW skid queue isolates external backpressure and payloads.
     val writeOwnerOH = VecInit((0 until maxOutstanding).map(i => writeOffer && writeOwner === i.U))
+    val addressOwnerOH = VecInit((0 until maxOutstanding).map(i => addressOffer && addressOwner === i.U))
     awOffer.valid := VecInit((0 until maxOutstanding).map(i =>
-        writeOwnerOH(i) && slots(i).io.axi.aw.valid)).asUInt.orR
-    awOffer.bits := Mux1H(writeOwnerOH, slots.map(_.io.axi.aw.bits))
-    awOffer.bits.id := writeOwner
+        addressOwnerOH(i) && slots(i).io.axi.aw.valid)).asUInt.orR
+    awOffer.bits := Mux1H(addressOwnerOH, slots.map(_.io.axi.aw.bits))
+    awOffer.bits.id := addressOwner
+    // These are constructor constants in every lane. Keep them static even
+    // when no owner is offered, avoiding needless mux/queue payload state.
+    awOffer.bits.burst := 1.U
+    awOffer.bits.lock := false.B
+    awOffer.bits.cache := axiCache.U
+    awOffer.bits.prot := axiProt.U
+    awOffer.bits.qos := axiQos.U
     io.axi.w.valid := writeOffer && VecInit(slots.map(_.io.axi.w.valid))(writeOwner)
     io.axi.w.bits := VecInit(slots.map(_.io.axi.w.bits))(writeOwner)
     for ((slot, i) <- slots.zipWithIndex) {
@@ -207,10 +240,10 @@ class TileLinkAxi4OutstandingBridge(
         slot.io.tl.c.bits := 0.U.asTypeOf(slot.io.tl.c.bits)
         slot.io.tl.e.valid := false.B
         slot.io.tl.e.bits := 0.U.asTypeOf(slot.io.tl.e.bits)
-        slot.io.tl.d.ready := io.tl.d.ready && active(i) && replySlot === i.U
+        slot.io.tl.d.ready := io.tl.d.ready && active(i) && dispatchRetired(i) && replySlot === i.U
         arArb.io.in(i) <> slot.io.axi.ar
         arArb.io.in(i).bits.id := i.U
-        slot.io.axi.aw.ready := awOffer.ready && writeOwnerOH(i)
+        slot.io.axi.aw.ready := awOffer.ready && addressOwnerOH(i)
         slot.io.axi.w.ready := io.axi.w.ready && writeOwnerOH(i)
         slot.io.axi.r.valid := io.axi.r.valid && rInRange && rSlot === i.U && active(i) && readIssued
         slot.io.axi.r.bits := io.axi.r.bits
