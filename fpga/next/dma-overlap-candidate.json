@@ -1,0 +1,25 @@
+{
+  "schema": "valence-next-dma-overlap-profile-v1",
+  "name": "fpga-next-selected-v2-dma-lines-owners4",
+  "decision": "Selected experimental performance candidate; default enablement awaits physical qualification",
+  "options": {
+    "dmaLineTransfers": true,
+    "dmaLineEntries": 4,
+    "dmaLineYieldCycles": 0
+  },
+  "export_arguments": ["--dma-line-transfers", "--dma-line-entries", "4"],
+  "optional_paced_profile": {
+    "name": "fpga-next-selected-v2-dma-lines-owners4-yield4",
+    "options": {"dmaLineTransfers": true, "dmaLineEntries": 4, "dmaLineYieldCycles": 4},
+    "export_arguments": ["--dma-line-transfers", "--dma-line-entries", "4", "--dma-line-yield-cycles", "4"],
+    "tradeoff": "Lower worst latency in the tested dirty 4 KiB read/write cases; lower isolated throughput and slower cold 128 KiB write makespan. No universal fairness improvement."
+  },
+  "single_owner_reference": {"dmaLineTransfers": true, "dmaLineEntries": 1, "dmaLineYieldCycles": 0},
+  "scalar_default": {"dmaLineTransfers": false, "dmaLineEntries": 1, "dmaLineYieldCycles": 0},
+  "qualified_simulation": "build/dma-overlap-final-qualification.json",
+  "paired_measurements": "build/dma-overlap-comparison.json",
+  "native_rtl_export": "build/fpga-next/dma-overlap4-bulk-final/receipt.json",
+  "physical_qualification": false,
+  "network_dma_line_mode": false,
+  "qualification_scope": "Cloud source candidate. Tested owner/yield pairs: 1/0, 2/0, 4/0, 4/4, 4/16. Yield16 is measured but not selected. Native PPA, timing, CDC and board performance are pending."
+}

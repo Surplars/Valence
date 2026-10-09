@@ -124,4 +124,30 @@ class FpgaNextConfigSpec extends AnyFunSuite {
         assert(c.name == base.name + "-dma-lines")
     }
 
+    test("tagged line depth is explicit and does not silently enlarge DDR slots") {
+        for (depth <- Seq(2, 4)) {
+            val c = FpgaNextConfig.fromOptions(Set("--selected", "--dma-line-transfers", s"--dma-line-entries=$depth"), true)
+            assert(c.dmaLineEntries == depth && c.name.endsWith(s"-dma-lines-owners$depth"))
+            assert(c.ddr == FpgaNextConfig.Selected.ddr && c.cache == FpgaNextConfig.Selected.cache)
+        }
+        intercept[IllegalArgumentException] { FpgaNextConfig(dmaLineEntries = 2) }
+        intercept[IllegalArgumentException] { FpgaNextConfig(dmaLineTransfers = true, dmaLineEntries = 3) }
+    }
+
+    test("CPU flow and tagged DMA compose only through explicit independent options") {
+        val baseline = FpgaNextConfig.Selected
+        assert(!baseline.physicalLoadIngressFlow && !baseline.precheckedDataRequestFlow)
+        assert(!baseline.dmaLineTransfers && baseline.dmaLineEntries == 1 && baseline.dmaLineYieldCycles == 0)
+        val c = FpgaNextConfig.fromOptions(Set("--selected", "--physical-load-ingress-flow",
+            "--dma-line-transfers", "--dma-line-entries=4"), true)
+        assert(c.coreParams == baseline.coreParams.copy(physicalLoadIngressFlow = true))
+        assert(c.dmaLineTransfers && c.dmaLineEntries == 4 && c.dmaLineYieldCycles == 0)
+        assert(c.cache == baseline.cache && c.ddr == baseline.ddr && c.network == baseline.network)
+        assert(c.name == "fpga-next-selected-v2-physical-ingress-flow-dma-lines-owners4")
+        val checked = c.copy(virtualRamLoadPrecheck = true, precheckedDataRequestFlow = true)
+        assert(checked.coreParams.virtualRamLoadPrecheck && checked.coreParams.precheckedDataRequestFlow)
+        assert(checked.dmaLineEntries == c.dmaLineEntries && checked.ddr == c.ddr)
+        intercept[IllegalArgumentException] { c.copy(precheckedDataRequestFlow = true) }
+    }
+
 }

@@ -10,8 +10,10 @@ class MemoryCopyDma(
     ramBase: BigInt = BigInt("80010000", 16),
     ramBytes: BigInt = 4096,
     lineTransfers: Boolean = false,
-    lineYieldCycles: Int = 0
+    lineYieldCycles: Int = 0,
+    lineEntries: Int = 1
 ) extends Module {
+    require(Set(1, 2, 4).contains(lineEntries) && (lineTransfers || lineEntries == 1))
     require(lineYieldCycles >= 0 && lineYieldCycles <= 64 && (lineTransfers || lineYieldCycles == 0))
     require(base >= 0 && base % 8 == 0 && base + 40 <= (BigInt(1) << 64))
     require(
@@ -22,7 +24,7 @@ class MemoryCopyDma(
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
         val memory  = new RegisterPort
-        val line = if (lineTransfers) Some(new DmaLinePort) else None
+        val line = if (lineTransfers) Some(new DmaLinePort(lineEntries)) else None
         val irq     = Output(Bool())
         val active  = Output(Bool())
     })
@@ -78,7 +80,7 @@ class MemoryCopyDma(
         busy && !lineBusy && !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U &&
             (failed || writesDone === (length >> 3))
     ) { busy := false.B; done := true.B }
-    if (lineTransfers) {
+    if (lineTransfers && lineEntries == 1) {
         val line = io.line.get
         val lIdle :: lRead :: lReadWait :: lWrite :: lWriteWait :: Nil = Enum(5)
         val state = RegInit(lIdle)
@@ -104,6 +106,7 @@ class MemoryCopyDma(
             yielding := quiet =/= 0.U
         }
         line.request.valid := (state === lRead || state === lWrite) && !yielding
+        line.request.bits.tag := 0.U
         line.request.bits.address := Mux(state === lWrite, nextDestination, nextSource)
         line.request.bits.data := payload
         line.request.bits.write := state === lWrite
@@ -127,6 +130,88 @@ class MemoryCopyDma(
         when(lineBusy) {
             assert(!io.memory.request.valid && !owners.io.deq.valid && resident === 0.U,
                 "DMA line owner overlaps scalar traffic")
+        }
+    }
+    if (lineTransfers && lineEntries > 1) {
+        val line = io.line.get
+        val slotBits = log2Ceil(lineEntries)
+        val empty :: readWait :: writeReady :: writeWait :: Nil = Enum(4)
+        val phases = RegInit(VecInit(Seq.fill(lineEntries)(empty)))
+        // Each slot owns its source offset until its final write response. The
+        // existing transfer engines retain transport copies; no new RAM ports.
+        val payloads = Reg(Vec(lineEntries, UInt(512.W)))
+        val offsets = Reg(Vec(lineEntries, UInt(countBits.W)))
+        val held = RegInit(false.B)
+        val heldSlot = Reg(UInt(slotBits.W))
+        val heldWrite = Reg(Bool())
+        val free = VecInit(phases.map(_ === empty))
+        val writable = VecInit(phases.map(_ === writeReady))
+        val nextSource = source + (readsSent << 3)
+        lineEligible := nextSource(5, 0) === 0.U &&
+            (destination + (readsSent << 3))(5, 0) === 0.U &&
+            (length >> 3) - readsSent >= 8.U
+        val scalarDrained = !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U
+        lineBusy := phases.map(_ =/= empty).reduce(_ || _) || held
+        val chooseLineWrite = Mux(held, heldWrite, writable.asUInt.orR)
+        val selectedSlot = Mux(held, heldSlot,
+            Mux(writable.asUInt.orR, PriorityEncoder(writable), PriorityEncoder(free)))
+        val availableLine = Mux(chooseLineWrite, writable(selectedSlot), free.asUInt.orR && lineEligible)
+        val yielding = WireDefault(false.B)
+        if (lineYieldCycles > 0) {
+            val quiet = RegInit(0.U(log2Ceil(lineYieldCycles + 1).W))
+            when(quiet =/= 0.U) { quiet := quiet - 1.U }
+            when(line.response.fire) { quiet := lineYieldCycles.U }
+            when(!busy) { quiet := 0.U }
+            yielding := quiet =/= 0.U
+        }
+        line.request.valid := busy && scalarDrained && (held || (!failed && !yielding && availableLine))
+        line.request.bits.tag := selectedSlot
+        line.request.bits.write := chooseLineWrite
+        line.request.bits.address := Mux(chooseLineWrite,
+            destination + (offsets(selectedSlot) << 3), nextSource)
+        line.request.bits.data := Mux(chooseLineWrite, payloads(selectedSlot), 0.U)
+        when(line.request.valid && !line.request.ready) {
+            held := true.B; heldSlot := selectedSlot; heldWrite := chooseLineWrite
+        }
+        when(line.request.fire) {
+            assert(scalarDrained && !io.memory.request.valid, "pipelined line crossed scalar DMA ownership")
+            assert(line.request.bits.address(5, 0) === 0.U, "pipelined DMA line is unaligned")
+            held := false.B
+            when(chooseLineWrite) {
+                assert(phases(selectedSlot) === writeReady, "line write lost payload owner")
+                phases(selectedSlot) := writeWait
+                writesSent := writesSent + 8.U
+            }.otherwise {
+                assert(phases(selectedSlot) === empty && lineEligible, "line read reused occupied slot")
+                phases(selectedSlot) := readWait
+                offsets(selectedSlot) := readsSent
+                readsSent := readsSent + 8.U
+            }
+        }
+        line.response.ready := busy
+        when(line.response.valid) {
+            assert(line.response.bits.tag < lineEntries.U, "pipelined DMA response tag is out of range")
+        }
+        val replySlot = line.response.bits.tag(slotBits - 1, 0)
+        when(line.response.fire) {
+            assert(phases(replySlot) === readWait || phases(replySlot) === writeWait,
+                "pipelined DMA response has no retained owner")
+            when(line.response.bits.error) { failed := true.B }
+            when(phases(replySlot) === writeWait) {
+                writesDone := writesDone + 8.U
+                phases(replySlot) := empty
+            }.otherwise {
+                payloads(replySlot) := line.response.bits.data
+                phases(replySlot) := Mux(line.response.bits.error || failed, empty, writeReady)
+            }
+        }
+        // A failed descriptor drains all accepted/irrevocable work. Ready but
+        // not yet offered payloads may be discarded; a held write cannot be.
+        for (i <- 0 until lineEntries) {
+            when(failed && phases(i) === writeReady && !(held && heldSlot === i.U)) { phases(i) := empty }
+        }
+        when(lineBusy) {
+            assert(scalarDrained && !io.memory.request.valid, "pipelined line overlaps scalar traffic")
         }
     }
     io.irq    := interruptEnable && done

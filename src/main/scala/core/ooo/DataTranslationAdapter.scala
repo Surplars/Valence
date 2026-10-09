@@ -41,6 +41,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         "registered translation heads require checked request capture")
     require(!p.identityDataRequestFlow || (p.registeredTranslationHeads && registerCheckedRequests),
         "identity flow preserves registered ingress and checked request boundaries")
+    require(!p.precheckedDataRequestFlow || (p.virtualRamLoadPrecheck &&
+        p.registeredTranslationHeads && registerCheckedRequests),
+        "prechecked flow preserves certified ingress and registered physical authorization")
+    require(!p.physicalLoadIngressFlow || (p.identityDataRequestFlow &&
+        p.registeredTranslationHeads && registerCheckedRequests && p.registeredMemoryRequests),
+        "physical ingress flow preserves the registered LSU and checked permission boundaries")
     val io = IO(new Bundle {
         val virtual = Flipped(new DataPort)
         val physical = new DataPort
@@ -108,10 +114,11 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // must not inherit a later SATP/SUM/MXR/privilege value. PMP remains checked
     // at the existing physical authorization boundary. CPU fences drain accepted
     // memory, and idle includes this queue for all integrating clients.
+    val physicalIngressPass = WireDefault(false.B)
     val virtualRequests = if (p.registeredTranslationHeads)
         Some(Module(new TwoEntryRegisterQueue(new VirtualDataRequest))) else None
     virtualRequests.foreach { stage =>
-        stage.io.enq.valid := io.virtual.request.valid
+        stage.io.enq.valid := io.virtual.request.valid && !physicalIngressPass
         stage.io.enq.bits.request := io.virtual.request.bits
         stage.io.enq.bits.context := io.vmState
         io.virtual.request.ready := stage.io.enq.ready
@@ -129,6 +136,26 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val identityOffer = if (p.identityDataRequestFlow)
         incoming.valid && !active && !incoming.bits.precheckedLoad && canAccept && !translated.io.deq.valid else false.B
     val identityPass = WireDefault(false.B)
+    // A certified load already carries its PA at the registered ingress. It can
+    // share the empty translated-queue shortcut, but must still use the full
+    // PMP/epoch/shape/range authorization below. Older translated work wins.
+    val precheckedOffer = if (p.precheckedDataRequestFlow)
+        incoming.valid && incoming.bits.precheckedLoad && canAccept && !translated.io.deq.valid else false.B
+    val precheckedPass = WireDefault(false.B)
+    // The CPU has already checked ordinary physical load permissions before its
+    // registered request FIFO. With no older ingress/translated/walker owner, an
+    // aligned in-aperture read may enter checked directly. No request can reach
+    // the physical port without that register, and a blocked checked queue spills
+    // the accepted request into virtualRequests rather than losing/reoffering it.
+    // Stores, atomics, MMIO, uncached and virtual/certified accesses stay staged.
+    val physicalIngressOffer = if (p.physicalLoadIngressFlow) {
+        val offered = io.virtual.request.bits
+        io.virtual.request.valid && virtualRequests.get.io.enq.ready &&
+            !virtualRequests.get.io.deq.valid && !translated.io.deq.valid && !waiting &&
+            !offered.virtualized && !offered.precheckedLoad && !offered.write && !offered.atomic &&
+            !offered.uncached && AlignedMemoryDisjoint.aligned(offered.address, offered.size) &&
+            SpeculativeRamRange.contains(p, offered.address, offered.size)
+    } else false.B
 
     io.translation.request.valid := incoming.valid && active && canAccept
     io.translation.request.bits.virtualAddress := incoming.bits.address
@@ -148,7 +175,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     io.translation.response.ready := translated.io.enq.ready
 
     val translatedReply = io.translation.response.valid && (waiting || io.translation.request.fire)
-    translated.io.enq.valid := (!waiting && incoming.valid && !active && !identityPass) || translatedReply
+    translated.io.enq.valid := (!waiting && incoming.valid && !active && !identityPass && !precheckedPass) || translatedReply
     val original = Mux(waiting, savedRequest, incoming.bits)
     translated.io.enq.bits := 0.U.asTypeOf(new TranslatedDataRequest)
     translated.io.enq.bits.request := original
@@ -172,7 +199,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     when(waiting && io.translation.response.fire) { waiting := false.B }
 
-    val head = translated.io.deq.bits
+    // Both sources are registered. No TLB lookup or memory ready signal feeds
+    // this selection, and authorization still ends at the checked register.
+    val head = if (p.precheckedDataRequestFlow)
+        Mux(precheckedOffer, translated.io.enq.bits, translated.io.deq.bits) else translated.io.deq.bits
     val request = head.request
     val pmp = Module(new PmpChecker(p.pmpEntries))
     pmp.io.state := io.pmpState
@@ -185,7 +215,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         Mux(request.write, PmpAccess.write, PmpAccess.read))
     val atomicOutside = request.atomic && head.checkPhysical &&
         !SpeculativeRamRange.contains(p, request.address, request.size)
-    val fault = head.pageFault || head.accessFault ||
+    val precheckedShapeFault = if (p.precheckedDataRequestFlow) {
+        val mask = MuxLookup(request.size, 255.U(8.W))(Seq(0.U -> 1.U, 1.U -> 3.U, 2.U -> 15.U))
+        request.precheckedLoad && (!AlignedMemoryDisjoint.aligned(request.address, request.size) ||
+            request.mask =/= (mask << request.address(2, 0))(7, 0))
+    } else false.B
+    val fault = head.pageFault || head.accessFault || precheckedShapeFault ||
         (head.checkPhysical && pmp.io.denied) || atomicOutside || staleAuthorization(request) ||
         (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size))
     // Snapshot the request and fault decision before downstream grants.
@@ -196,19 +231,33 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else Module(new Queue(new CheckedDataRequest, 2, pipe = false, flow = false)).suggestName("checked").io)
     else None
     checked.foreach { stage =>
-        if (p.identityDataRequestFlow) {
+        if (p.identityDataRequestFlow || p.precheckedDataRequestFlow || p.physicalLoadIngressFlow) {
             // Empty-FIFO pass-through only for an already-physical request.
             // If checked stalls, the identical offer spills into translated,
             // preserving held payload and capacity without a ready path from
             // the external physical port. Older translated work always wins.
-            stage.enq.valid := translated.io.deq.valid || identityOffer
-            stage.enq.bits.request := Mux(identityOffer, incoming.bits, request)
-            stage.enq.bits.fault := Mux(identityOffer, false.B, fault)
-            stage.enq.bits.pageFault := Mux(identityOffer, false.B, head.pageFault)
+            stage.enq.valid := translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer
+            stage.enq.bits.request := Mux(physicalIngressOffer, io.virtual.request.bits,
+                Mux(identityOffer, incoming.bits, request))
+            stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
+            stage.enq.bits.pageFault := Mux(identityOffer || physicalIngressOffer, false.B, head.pageFault)
             identityPass := identityOffer && stage.enq.ready
+            precheckedPass := precheckedOffer && stage.enq.ready
+            physicalIngressPass := physicalIngressOffer && stage.enq.ready
             when(identityPass) {
                 assert(incoming.fire && !translated.io.enq.fire && !waiting && !active,
                     "identity request must transfer exactly once after authorization")
+            }
+            when(precheckedPass) {
+                assert(incoming.fire && !translated.io.enq.fire && !waiting && !active &&
+                    !translated.io.deq.valid && !identityPass,
+                    "certified request transfers once through registered physical authorization")
+            }
+            when(physicalIngressPass) {
+                assert(io.virtual.request.fire && !virtualRequests.get.io.enq.fire &&
+                    !incoming.fire && !translated.io.enq.fire && !translated.io.deq.valid &&
+                    !waiting && !identityPass && !precheckedPass,
+                    "physical ingress shortcut transfers one load through the checked register")
             }
         } else {
             stage.enq.valid := translated.io.deq.valid
@@ -222,10 +271,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // queue bypass. The incoming hint is always overwritten, even when disabled.
     val nextAllowed = if (p.dataNextLinePrefetch) {
         val authorize = Module(new NextLineAuthorization(p))
-        authorize.io.request := Mux(identityOffer, incoming.bits, request)
-        authorize.io.privilege := Mux(identityOffer, context.dataPrivilege, head.privilege)
+        authorize.io.request := Mux(physicalIngressOffer, io.virtual.request.bits,
+            Mux(identityOffer, incoming.bits, request))
+        authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
+            Mux(identityOffer, context.dataPrivilege, head.privilege))
         authorize.io.pmpState := io.pmpState
-        authorize.io.fault := Mux(identityOffer, false.B, fault)
+        authorize.io.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
         authorize.io.allowed
     } else false.B
     checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)

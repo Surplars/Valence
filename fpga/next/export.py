@@ -94,6 +94,8 @@ def main():
     choice.add_argument("--storage-candidate", action="store_true", help="emit the earlier storage-only candidate for ablation")
     ap.add_argument("--emit", action="store_true", help="actually elaborate; default only validates the locked profile")
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
+    ap.add_argument("--prechecked-data-flow", action="store_true")
+    ap.add_argument("--physical-load-ingress-flow", action="store_true")
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
@@ -101,11 +103,16 @@ def main():
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
+    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args()
+    if a.dma_line_entries != 1 and not a.dma_line_transfers:
+        ap.error("multiple DMA line owners require --dma-line-transfers")
     if a.dma_line_yield_cycles and not a.dma_line_transfers:
         ap.error("line yield requires --dma-line-transfers")
+    if a.prechecked_data_flow and not a.virtual_ram_load_precheck:
+        ap.error("prechecked data flow requires --virtual-ram-load-precheck")
     profile = json.loads((HERE / "baseline.json").read_text())
     selected = not (a.reference or a.storage_candidate)
     features = {
@@ -135,14 +142,23 @@ def main():
     profile["profile"]["virtual_ram_load_precheck"] = a.virtual_ram_load_precheck
     if a.virtual_ram_load_precheck:
         profile["profile"]["name"] += "-virtual-precheck"
+    profile["profile"]["prechecked_data_flow"] = a.prechecked_data_flow
+    profile["profile"]["physical_load_ingress_flow"] = a.physical_load_ingress_flow
+    if a.prechecked_data_flow:
+        profile["profile"]["name"] += "-prechecked-flow"
+    if a.physical_load_ingress_flow:
+        profile["profile"]["name"] += "-physical-ingress-flow"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
         profile["profile"]["name"] += "-experimental-trispeed"
     profile["profile"]["dma_line_transfers"] = a.dma_line_transfers
+    profile["profile"]["dma_line_entries"] = a.dma_line_entries
     profile["profile"]["dma_line_yield_cycles"] = a.dma_line_yield_cycles
     if a.dma_line_transfers:
         profile["profile"]["name"] += "-dma-lines"
+    if a.dma_line_entries > 1:
+        profile["profile"]["name"] += "-owners" + str(a.dma_line_entries)
     if a.dma_line_yield_cycles:
         profile["profile"]["name"] += "-yield" + str(a.dma_line_yield_cycles)
     profile["profile"]["banked_issue_payload"] = not a.reference
@@ -194,6 +210,8 @@ def main():
         command.append("--experimental-jtag-bscan=" + str(a.experimental_jtag_bscan))
     if a.dma_line_transfers:
         command.append("--dma-line-transfers")
+    if a.dma_line_entries > 1:
+        command.append("--dma-line-entries=" + str(a.dma_line_entries))
     if a.dma_line_yield_cycles:
         command.append("--dma-line-yield-cycles=" + str(a.dma_line_yield_cycles))
     if a.prefetch_break_on_store:
@@ -202,6 +220,10 @@ def main():
         command.append("--prefetch-candidate-cycles=" + str(a.prefetch_candidate_cycles))
     if a.virtual_ram_load_precheck:
         command.append("--virtual-ram-load-precheck")
+    if a.prechecked_data_flow:
+        command.append("--prechecked-data-flow")
+    if a.physical_load_ingress_flow:
+        command.append("--physical-load-ingress-flow")
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],

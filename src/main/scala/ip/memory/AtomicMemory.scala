@@ -30,8 +30,10 @@ class AtomicMemory(
     base: BigInt = BigInt("80010000", 16),
     bytes: BigInt = 4096,
     registerResponseOwners: Boolean = false,
-    dmaLineTransfers: Boolean = false
+    dmaLineTransfers: Boolean = false,
+    dmaLineEntries: Int = 1
 ) extends Module {
+    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(base >= 0 && base % 64 == 0 && bytes >= 64 && bytes % 64 == 0 && base + bytes <= (BigInt(1) << 64))
     val io = IO(new Bundle {
         val cpu              = Flipped(new AtomicMemoryPort)
@@ -39,8 +41,8 @@ class AtomicMemory(
         val memory           = new MemoryBeatPort
         val memoryRequestCpu = Output(Bool())
         val clearReservation = Input(Bool())
-        val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort)) else None
-        val memoryLine = if (dmaLineTransfers) Some(new soc.ip.dma.DmaLinePort) else None
+        val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort(dmaLineEntries))) else None
+        val memoryLine = if (dmaLineTransfers) Some(new soc.ip.dma.DmaLinePort(dmaLineEntries)) else None
     })
     val idle :: readRequest :: readResponse :: writeRequest :: writeResponse :: finish :: Nil = Enum(6)
     val state                                                                                 = RegInit(idle)
@@ -104,7 +106,7 @@ class AtomicMemory(
         turn   := !selected
         when(ordinary.write && ordinary.address(63, 6) === reservedAddress(63, 6)) { reserved := false.B }
     }
-    if (dmaLineTransfers) {
+    if (dmaLineTransfers && dmaLineEntries == 1) {
         val upstream = io.dmaLine.get
         val downstream = io.memoryLine.get
         val owned = RegInit(false.B)
@@ -134,6 +136,46 @@ class AtomicMemory(
         when(downstream.response.fire) { owned := false.B }
         when(io.cpu.request.fire || io.dma.request.fire) { preferLine := true.B }
         when(owned || held) {
+            assert(state === idle && owners.io.count === 0.U && !locked && !io.memory.request.valid,
+                "line DMA crossed atomic or ordinary ownership")
+        }
+        when(held) { assert(upstream.request.valid, "held line DMA request was withdrawn") }
+    }
+    if (dmaLineTransfers && dmaLineEntries > 1) {
+        val upstream = io.dmaLine.get
+        val downstream = io.memoryLine.get
+        val owned = RegInit(VecInit(Seq.fill(dmaLineEntries)(false.B)))
+        val anyOwned = owned.asUInt.orR
+        val held = RegInit(false.B)
+        val preferLine = RegInit(true.B)
+        val ordinaryOffer = io.cpu.request.valid || io.dma.request.valid
+        val selectedLine = !locked && (held ||
+            (upstream.request.valid && (preferLine || !ordinaryOffer)))
+        val requestTag = upstream.request.bits.tag
+        lineExclusion := anyOwned || selectedLine
+        downstream.request.valid := state === idle && selectedLine && owners.io.count === 0.U &&
+            upstream.request.valid && !owned(requestTag)
+        downstream.request.bits := upstream.request.bits
+        upstream.request.ready := downstream.request.valid && downstream.request.ready
+        upstream.response.valid := anyOwned && downstream.response.valid
+        upstream.response.bits := downstream.response.bits
+        downstream.response.ready := anyOwned && upstream.response.ready
+        when(downstream.request.valid && !downstream.request.ready) { held := true.B }
+        when(downstream.request.fire) {
+            assert(requestTag < dmaLineEntries.U && !owned(requestTag), "atomic line tag reused before response")
+            held := false.B
+            owned(requestTag) := true.B
+            preferLine := false.B
+            when(downstream.request.bits.write &&
+                downstream.request.bits.address(63, 6) === reservedAddress(63, 6)) { reserved := false.B }
+        }
+        when(downstream.response.valid) {
+            assert(downstream.response.bits.tag < dmaLineEntries.U && owned(downstream.response.bits.tag),
+                "atomic line response lost full tag owner")
+        }
+        when(downstream.response.fire) { owned(downstream.response.bits.tag) := false.B }
+        when(io.cpu.request.fire || io.dma.request.fire) { preferLine := true.B }
+        when(anyOwned || held) {
             assert(state === idle && owners.io.count === 0.U && !locked && !io.memory.request.valid,
                 "line DMA crossed atomic or ordinary ownership")
         }

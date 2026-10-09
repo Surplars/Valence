@@ -1,0 +1,63 @@
+{
+  "schema": "valence-board-hot-nemu-checker-provenance-v1",
+  "historical_fixture": "cpu-flow-board-nemu-r1",
+  "historical_receipt_sha256": "18f907a4507fe89612a207c685d19a092344af8d04e39158156563d5ed3af547",
+  "historical_summary_sha256": "1976970aeb56febb68d45655ea6ba6f2f2b787d8934ac174cd4bcb6cba454b99",
+  "production_origins": {
+    "reference.h": "cd75bdf860fdd0ac09c3e41540f5c0622f35183d8d1d86836302ff43a48a8e71",
+    "cpu_flow_bandwidth.h": "7fd21a43d443558d1f439bec6b41bab3eaa36d4599d7357a3ee6b23405504a07",
+    "data_path_sample.h": "4156a22490ad2ec97d3ac3dc882cf5267d8a035fe7ddecfb0591f364bc48176b",
+    "backend_ownership_ledger.h": "090080bfc3f4f5afadb30fbd987ab0d31bb3029df726a080603ae968966ed755",
+    "cpu_flow_bandwidth.cpp": "22a7fe901dbd5b2f63fdbfd85422a49288c3b875a9dc2e074669546b7f9e2412",
+    "performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "backend_observer.h": "f9c2c471eb6961a77bbdcd88f35d00a43bb7ab0ded7fc4cfb9a324e6406c873e",
+    "data_path_ownership_ledger.h": "7cc4219fa4180350122fcb6b97373fe202167e16f3e490704cb63792ef3cae29",
+    "board_boot.cpp": "f05568b7f40a162a13f0135e1d5acb0cdd146e76b1c92689e304be159cded66f",
+    "board_ddr_multiid.h": "8eedde413afee6ea1c51b1585ef580205fd9e27e2e914f0cf98b1760f6b16668",
+    "board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e"
+  },
+  "historical_production_origins": {
+    "reference.h": "cd75bdf860fdd0ac09c3e41540f5c0622f35183d8d1d86836302ff43a48a8e71",
+    "cpu_flow_bandwidth.h": "7fd21a43d443558d1f439bec6b41bab3eaa36d4599d7357a3ee6b23405504a07",
+    "data_path_sample.h": "4156a22490ad2ec97d3ac3dc882cf5267d8a035fe7ddecfb0591f364bc48176b",
+    "backend_ownership_ledger.h": "090080bfc3f4f5afadb30fbd987ab0d31bb3029df726a080603ae968966ed755",
+    "cpu_flow_bandwidth.cpp": "d5844bc43cd39f6a8be1a081a5a4756fc12457bc94c814d131d4f546ec130054",
+    "performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "backend_observer.h": "f9c2c471eb6961a77bbdcd88f35d00a43bb7ab0ded7fc4cfb9a324e6406c873e",
+    "data_path_ownership_ledger.h": "7cc4219fa4180350122fcb6b97373fe202167e16f3e490704cb63792ef3cae29",
+    "board_boot.cpp": "f05568b7f40a162a13f0135e1d5acb0cdd146e76b1c92689e304be159cded66f",
+    "board_ddr_multiid.h": "8eedde413afee6ea1c51b1585ef580205fd9e27e2e914f0cf98b1760f6b16668",
+    "board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e"
+  },
+  "historical_checker_files": {
+    "cpu_flow_bandwidth.h": "7fd21a43d443558d1f439bec6b41bab3eaa36d4599d7357a3ee6b23405504a07",
+    "board_boot.cpp": "f05568b7f40a162a13f0135e1d5acb0cdd146e76b1c92689e304be159cded66f",
+    "backend_observer.h": "f9c2c471eb6961a77bbdcd88f35d00a43bb7ab0ded7fc4cfb9a324e6406c873e",
+    "cpu_flow_bandwidth.cpp": "3b678a793d83cbe766709525aec8e191755bebbbaea86a31d7fb3b0ebe3aec11",
+    "data_path_sample.h": "4156a22490ad2ec97d3ac3dc882cf5267d8a035fe7ddecfb0591f364bc48176b",
+    "board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "board_ddr_multiid.h": "8eedde413afee6ea1c51b1585ef580205fd9e27e2e914f0cf98b1760f6b16668",
+    "data_path_ownership_ledger.h": "7cc4219fa4180350122fcb6b97373fe202167e16f3e490704cb63792ef3cae29",
+    "performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "board_nemu_observer.h": "0648eab4d14adad6a98a08b1d84d0f9fc45cc8ee974dc6833d76609a0c468aac",
+    "reference.h": "06e192eb8918b40554fc24ed99504ee2b86d132e1558588a974dffec47a18508",
+    "backend_ownership_ledger.h": "090080bfc3f4f5afadb30fbd987ab0d31bb3029df726a080603ae968966ed755"
+  },
+  "adaptation": "HOT_RESULT field split follows current production reporting; NEMU observer and reference client unchanged",
+  "checker_files": {
+    "backend_observer.h": "f9c2c471eb6961a77bbdcd88f35d00a43bb7ab0ded7fc4cfb9a324e6406c873e",
+    "backend_ownership_ledger.h": "090080bfc3f4f5afadb30fbd987ab0d31bb3029df726a080603ae968966ed755",
+    "board_boot.cpp": "f05568b7f40a162a13f0135e1d5acb0cdd146e76b1c92689e304be159cded66f",
+    "board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "board_ddr_multiid.h": "8eedde413afee6ea1c51b1585ef580205fd9e27e2e914f0cf98b1760f6b16668",
+    "board_nemu_observer.h": "0648eab4d14adad6a98a08b1d84d0f9fc45cc8ee974dc6833d76609a0c468aac",
+    "cpu_flow_bandwidth.cpp": "88fb3dcc90acf7a6a64375e6753f2559338796dcd80fefe2eb7eb5531be19f3a",
+    "cpu_flow_bandwidth.h": "7fd21a43d443558d1f439bec6b41bab3eaa36d4599d7357a3ee6b23405504a07",
+    "data_path_ownership_ledger.h": "7cc4219fa4180350122fcb6b97373fe202167e16f3e490704cb63792ef3cae29",
+    "data_path_sample.h": "4156a22490ad2ec97d3ac3dc882cf5267d8a035fe7ddecfb0591f364bc48176b",
+    "harness_adaptation.patch": "48420eb856e8cc1be6fa41fcc0b156adc2b2f0c99ef54be338bef4629d7ce2dc",
+    "performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "reference.h": "06e192eb8918b40554fc24ed99504ee2b86d132e1558588a974dffec47a18508",
+    "reference_client.patch": "4fff0b3d041e98e2ab7e43e3883ced482f6539625977931139d78664fd177d38"
+  }
+}

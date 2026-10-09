@@ -25,7 +25,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     floatingPointResources: soc.core.ooo.FloatingPointResourceConfig = soc.core.ooo.FloatingPointResourceConfig.baseline,
     independentFetchPayloadCapture: Boolean = false,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
-    bankedInstructionData: Boolean = false, dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0) extends Module {
+    bankedInstructionData: Boolean = false, dmaLineTransfers: Boolean = false,
+    dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
+    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -34,7 +36,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles))
+        bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -118,6 +121,15 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val backendReset = IO(Output(Bool()))
     // Full scalar fingerprints for passive physical data-path ownership, never dynamic vector taps.
     val dataPathEvents = IO(Output(UInt(48.W)))
+    // Optional bandwidth-experiment provenance. The legacy dataPath ABI stays
+    // intact; these taps include the authorization fields it predates.
+    val cpuFlowEvents = IO(Output(UInt(8.W)))
+    val cpuFlowIngressAuth = IO(Output(UInt(64.W)))
+    val cpuFlowCheckedAuth = IO(Output(UInt(64.W)))
+    val cpuFlowCheckedAddress = IO(Output(UInt(64.W)))
+    val cpuFlowCheckedData = IO(Output(UInt(64.W)))
+    val cpuFlowCheckedHeadAuth = IO(Output(UInt(64.W)))
+    val cpuFlowPhysicalAuth = IO(Output(UInt(64.W)))
     val dataPathCounts = IO(Output(UInt(64.W)))
     val dataPathRequest0Address = IO(Output(UInt(64.W)))
     val dataPathRequest0Data = IO(Output(UInt(64.W)))
@@ -206,6 +218,21 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         val checkedQueue = adapter.checked.get
         def requestMeta(r: soc.core.ooo.DataRequest): UInt = Cat(tap(r.uncached), tap(r.virtualized),
             tap(r.mask), tap(r.size), tap(r.atomicOp), tap(r.atomic), tap(r.write)).pad(64)
+        def requestAuthorization(r: soc.core.ooo.DataRequest): UInt = Cat(tap(r.prefetchNextAllowed),
+            tap(r.translationEpoch), tap(r.precheckedLoad), tap(r.uncached), tap(r.virtualized),
+            tap(r.mask), tap(r.size), tap(r.atomicOp), tap(r.atomic), tap(r.write)).pad(64)
+        cpuFlowEvents := VecInit(Seq(
+            tap(incomingQueue.io.enq.valid) && tap(incomingQueue.io.enq.ready),
+            tap(adapter.physicalIngressPass), tap(adapter.precheckedPass),
+            tap(checkedQueue.enq.valid) && tap(checkedQueue.enq.ready), tap(adapter.identityPass),
+            tap(incomingQueue.io.deq.valid) && tap(incomingQueue.io.deq.ready),
+            tap(checkedQueue.enq.ready), tap(adapter.io.virtual.request.valid))).asUInt
+        cpuFlowIngressAuth := requestAuthorization(adapter.io.virtual.request.bits)
+        cpuFlowCheckedAuth := requestAuthorization(checkedQueue.enq.bits.request)
+        cpuFlowCheckedAddress := tap(checkedQueue.enq.bits.request.address)
+        cpuFlowCheckedData := tap(checkedQueue.enq.bits.request.data)
+        cpuFlowCheckedHeadAuth := requestAuthorization(checkedQueue.deq.bits.request)
+        cpuFlowPhysicalAuth := requestAuthorization(adapter.io.physical.request.bits)
         dataPathRequest0Address := tap(q.io.enq.bits.address)
         dataPathRequest0Data := tap(q.io.enq.bits.data)
         dataPathRequest0Meta := requestMeta(q.io.enq.bits)
@@ -315,6 +342,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
             tap(l.io.start.bits.forward.valid), tap(stores.io.fastStore.valid) && tap(stores.io.fastStore.ready)
         )).asUInt
     } else {
+        cpuFlowEvents := 0.U; cpuFlowIngressAuth := 0.U; cpuFlowCheckedAuth := 0.U
+        cpuFlowCheckedAddress := 0.U; cpuFlowCheckedData := 0.U
+        cpuFlowCheckedHeadAuth := 0.U; cpuFlowPhysicalAuth := 0.U
         dataPathReply4Data := 0.U; dataPathReply4Flags := 0.U
         dataPathEvents := 0.U; dataPathCounts := 0.U
         dataPathRequest0Address := 0.U

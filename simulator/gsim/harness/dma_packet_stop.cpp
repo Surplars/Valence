@@ -14,6 +14,9 @@ static void check(bool ok, const char* message) { if (!ok) throw std::runtime_er
 #include "dma_coherent_ddr.h"
 #define S(n, v) d.set_io$$##n(v)
 #define G(n) d.get_io$$##n()
+#ifndef DMA_LINE_ENTRIES
+#define DMA_LINE_ENTRIES 1
+#endif
 #ifndef DMA_LINE_YIELD_CYCLES
 #define DMA_LINE_YIELD_CYCLES 0
 #endif
@@ -144,7 +147,7 @@ struct Test {
             check(!(G(lineRequestAddress) & 63), "copy line request alignment changed");
             ++lineRequests; lineWithPacket += G(packetActive);
         }
-        lineResponses += G(lineResponseFire); check(lineResponses <= lineRequests && lineRequests - lineResponses <= 1, "copy line owner count");
+        lineResponses += G(lineResponseFire); check(lineResponses <= lineRequests && lineRequests - lineResponses <= DMA_LINE_ENTRIES, "copy line owner count");
         if (G(lineResponseFire)) check(!G(lineResponseError), "copy line response error");
         simultaneous += G(active) && G(packetActive);
         probes += G(probeFire); dirtyBeats += G(probeReplyFire) && G(probeReplyData);

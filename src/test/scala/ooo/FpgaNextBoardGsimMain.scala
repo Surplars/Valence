@@ -7,7 +7,7 @@ import soc.core.ooo.FpgaNextConfig
 object FpgaNextBoardGsimMain extends App {
     val options = args.drop(1).toSet
     require(args.nonEmpty && options.size == args.length - 1 &&
-        options.subsetOf(Set("--dma-line-yield-cycles=0", "--dma-line-yield-cycles=4", "--dma-line-yield-cycles=8", "--dma-line-yield-cycles=16", "--dma-line-yield-cycles=32", "--dma-line-yield-cycles=64", "--dma-line-transfers", "--prefetch-break-on-store", "--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16", "--selected", "--share-protected-head-payload", "--banked-instruction-data", "--owner-local-issue-ready", "--shared-fetch-pmp-relations", "--independent-fetch-payload-capture", "--reference", "--candidate", "--virtual-ram-load-precheck")) &&
+        options.subsetOf(Set("--dma-line-entries=1", "--dma-line-entries=2", "--dma-line-entries=4", "--dma-line-yield-cycles=0", "--dma-line-yield-cycles=4", "--dma-line-yield-cycles=8", "--dma-line-yield-cycles=16", "--dma-line-yield-cycles=32", "--dma-line-yield-cycles=64", "--dma-line-transfers", "--prefetch-break-on-store", "--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16", "--selected", "--share-protected-head-payload", "--banked-instruction-data", "--owner-local-issue-ready", "--shared-fetch-pmp-relations", "--independent-fetch-payload-capture", "--reference", "--candidate", "--virtual-ram-load-precheck", "--physical-load-ingress-flow", "--prechecked-data-flow")) &&
         !(options.contains("--reference") && options.contains("--candidate")),
         "usage: FpgaNextBoardGsimMain output-directory [--reference|--candidate] [--virtual-ram-load-precheck]")
     val c = FpgaNextConfig.fromOptions(options, defaultSelected = false)
@@ -23,5 +23,8 @@ object FpgaNextBoardGsimMain extends App {
         virtualRamLoadPrecheck = c.virtualRamLoadPrecheck, floatingPointResources = c.floatingPointResources,
         independentFetchPayloadCapture = c.independentFetchPayloadCapture,
         ownerLocalIssueReady = c.ownerLocalIssueReady, sharedFetchPmpRelations = c.sharedFetchPmpRelations,
-        bankedInstructionData = c.bankedInstructionData, dmaLineTransfers = c.dmaLineTransfers, dmaLineYieldCycles = c.dmaLineYieldCycles), Array("--target-dir", args(0)))
+        bankedInstructionData = c.bankedInstructionData, dmaLineTransfers = c.dmaLineTransfers,
+        dmaLineYieldCycles = c.dmaLineYieldCycles, dmaLineEntries = c.dmaLineEntries,
+        precheckedDataRequestFlow = c.precheckedDataRequestFlow, physicalLoadIngressFlow = c.physicalLoadIngressFlow),
+        Array("--target-dir", args(0)))
 }

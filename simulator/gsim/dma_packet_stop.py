@@ -17,6 +17,7 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tag', required=True)
+    parser.add_argument('--line-entries', type=int, choices=(1,2,4), default=1)
     parser.add_argument('--line-yield-cycles', type=int, choices=(0, 4, 16), default=0)
     parser.add_argument('--rebuild-driver', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
@@ -30,7 +31,7 @@ def main():
         common.HERE / 'harness/dma_packet_stop.cpp', common.HERE / 'harness/dma_coherent_ddr.h',
         Path(__file__).resolve()]
     hashes = lambda: {str(p.relative_to(common.ROOT)): digest(p) for p in sources}
-    report = {'status': 'RUNNING', 'line_yield_cycles': args.line_yield_cycles,
+    report = {'status': 'RUNNING', 'line_yield_cycles': args.line_yield_cycles,'line_entries':args.line_entries,
               'source_sha256': hashes(), 'cases': [], 'negative_controls': {},
               'scope': 'Real EthernetPacketDma and MemoryCopyDma; production scalar arbiter/adapter, atomic boundary, coherent cache/mixed home, TileLink/AXI; independent host DDR and software-generation oracle. No MAC/CDC/PHY, CPU execution, physical DDR, routed timing, or explicit hardware generation tags.',
               'geometry': {'cache_lines': 512, 'cache_ways': 2, 'copy_bytes': 32768,
@@ -43,7 +44,7 @@ def main():
     try:
         if args.rebuild_driver:
             previous = json.loads((output / 'receipt.json').read_text())
-            if previous['line_yield_cycles'] != args.line_yield_cycles:
+            if previous['line_yield_cycles'] != args.line_yield_cycles or previous.get('line_entries',1)!=args.line_entries:
                 raise RuntimeError('cannot change RTL parameters during driver rebuild')
             for path, value in previous['source_sha256'].items():
                 if path.startswith('src/') and report['source_sha256'].get(path) != value:
@@ -53,7 +54,7 @@ def main():
                     raise RuntimeError('generated model changed: ' + path)
             cxx, _ = common.compiler()
             common.run([cxx, '-std=c++20', '-O1', '-g', '-fsanitize=address,undefined',
-                        '-fno-sanitize-recover=all', '-DDMA_LINE_YIELD_CYCLES=' + str(args.line_yield_cycles),
+                        '-fno-sanitize-recover=all', '-DDMA_LINE_ENTRIES='+str(args.line_entries), '-DDMA_LINE_YIELD_CYCLES=' + str(args.line_yield_cycles),
                         '-I' + str(output), *sorted(output.glob('DmaPacketStopGsim[0-9]*.cpp')),
                         common.HERE / 'harness/dma_packet_stop.cpp', '-ldl', '-o', output / 'run'],
                        log=output / 'compile.log')
@@ -63,8 +64,8 @@ def main():
                 raise RuntimeError('choose a fresh tag or --rebuild-driver')
             gsim, cxx = common.setup(False)
             common.test(gsim, cxx, name, 'ooo.DmaPacketStopGsimMain', 'DmaPacketStopGsim',
-                        'dma_packet_stop.cpp', parameters=(args.line_yield_cycles,),
-                        defines={'DMA_LINE_YIELD_CYCLES': args.line_yield_cycles}, timeout=180)
+                        'dma_packet_stop.cpp', parameters=(args.line_yield_cycles,args.line_entries),
+                        defines={'DMA_LINE_YIELD_CYCLES': args.line_yield_cycles,'DMA_LINE_ENTRIES':args.line_entries}, timeout=180)
         log = (output / 'test.log').read_text()
         if 'DMA_PACKET_STOP_LINE_PASS' not in log:
             raise RuntimeError('PASS anchor absent')

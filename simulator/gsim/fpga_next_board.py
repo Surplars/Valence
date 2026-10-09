@@ -58,6 +58,8 @@ def main():
     ap.add_argument("--variant", choices=("reference", "candidate", "selected"), default="reference")
     ap.add_argument("--jobs", type=int, choices=(1, 2), default=2)
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
+    ap.add_argument("--prechecked-data-flow", action="store_true")
+    ap.add_argument("--physical-load-ingress-flow", action="store_true")
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
@@ -65,6 +67,7 @@ def main():
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--dma-line-transfers", action="store_true")
+    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1,
                     help="bounded prefetch retention experiment; default keeps the inherited one-attempt policy")
@@ -72,6 +75,8 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.dma_line_entries != 1 and not args.dma_line_transfers:
+        ap.error("multiple DMA line owners require --dma-line-transfers")
     if args.dma_line_yield_cycles and not args.dma_line_transfers:
         ap.error("line yield requires --dma-line-transfers")
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.tag):
@@ -89,6 +94,8 @@ def main():
     parameters = ["--" + args.variant]
     if args.dma_line_transfers:
         parameters.append("--dma-line-transfers")
+    if args.dma_line_entries > 1:
+        parameters.append("--dma-line-entries=" + str(args.dma_line_entries))
     if args.dma_line_yield_cycles:
         parameters.append("--dma-line-yield-cycles=" + str(args.dma_line_yield_cycles))
     if args.prefetch_break_on_store:
@@ -97,6 +104,10 @@ def main():
         parameters.append("--prefetch-candidate-cycles=" + str(args.prefetch_candidate_cycles))
     if args.virtual_ram_load_precheck:
         parameters.append("--virtual-ram-load-precheck")
+    if args.physical_load_ingress_flow:
+        parameters.append("--physical-load-ingress-flow")
+    if args.prechecked_data_flow:
+        parameters.append("--prechecked-data-flow")
     if args.independent_fetch_payload_capture:
         parameters.append("--independent-fetch-payload-capture")
     if args.owner_local_issue_ready:

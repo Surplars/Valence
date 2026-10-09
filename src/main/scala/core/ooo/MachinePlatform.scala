@@ -58,7 +58,8 @@ class MachinePlatform(
     bankedInstructionData: Boolean = false,
     jtagRamDownload: Boolean = false,
     dmaLineTransfers: Boolean = false,
-    dmaLineYieldCycles: Int = 0
+    dmaLineYieldCycles: Int = 0,
+    dmaLineEntries: Int = 1
 ) extends Module {
     require(!dmaLineTransfers || (coherentLineCache && tileLinkMemory && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
@@ -278,7 +279,7 @@ class MachinePlatform(
         loader.io.linkUp := io.jtagLinkUp.get
     }
     val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes, lineTransfers = dmaLineTransfers,
-        lineYieldCycles = dmaLineYieldCycles))
+        lineYieldCycles = dmaLineYieldCycles, lineEntries = dmaLineEntries))
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
         postedRxSlots = networkDmaConfig.postedRxSlots, memoryCredits = networkDmaConfig.memoryCredits,
@@ -359,7 +360,7 @@ class MachinePlatform(
     core.io.timeValue      := timer.io.timeValue
     val shared    = Module(new AtomicDataMemory(
         base = ramBase, bytes = ramBytes, registerResponseOwners = registerPhysicalResponseOwners,
-        dmaLineTransfers = dmaLineTransfers
+        dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries
     ))
     val privateCacheLines = if (coherentLineCacheLines == 0) (ramBytes / 64).min(128).toInt
         else coherentLineCacheLines
@@ -576,7 +577,7 @@ class MachinePlatform(
                 writebackEntries = cacheConcurrency.writebackEntries, mixedReadWrite = cacheConcurrency.overlapWritebackRefill,
                 rawResponseMetadata = p.rawTileLinkResponseMetadata,
                 parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig,
-                dmaLineTransfers = dmaLineTransfers)
+                dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.

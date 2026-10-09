@@ -39,7 +39,8 @@ object BoardSocConfig {
         virtualRamLoadPrecheck: Boolean = false,
         floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
         independentFetchPayloadCapture: Boolean = false, ownerLocalIssueReady: Boolean = false,
-        sharedFetchPmpRelations: Boolean = false): OooParams = {
+        sharedFetchPmpRelations: Boolean = false, precheckedDataRequestFlow: Boolean = false,
+        physicalLoadIngressFlow: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -53,7 +54,8 @@ object BoardSocConfig {
         fpgaStorage.configure(timing.copy(machineSystem = true, atomicMemory = true,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
-            virtualRamLoadPrecheck = virtualRamLoadPrecheck,
+            virtualRamLoadPrecheck = virtualRamLoadPrecheck, precheckedDataRequestFlow = precheckedDataRequestFlow,
+            physicalLoadIngressFlow = physicalLoadIngressFlow,
             independentFetchPayloadCapture = independentFetchPayloadCapture,
             ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
             pmpEntries = 16, virtualMemoryLevels = 3,
@@ -198,7 +200,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
     bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false,
-    dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0) extends Module {
+    dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
+    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
@@ -228,7 +231,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
         dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
-        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations)
+        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
     // Internal composition ports stay outside the public BoardSocTop io bundle.
     val jtagDmi = if (jtagRamDownload) Some(IO(Flipped(new soc.ip.debug.DebugDmiPort(7)))) else None
     val jtagLinkUp = if (jtagRamDownload) Some(IO(Input(Bool()))) else None
@@ -301,7 +305,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
         externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
-        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles))
+        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries))
     jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
     jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }

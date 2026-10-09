@@ -19,9 +19,15 @@ final case class FpgaNextConfig(
     prefetchCandidateCycles: Int = 1,
     prefetchBreakOnStore: Boolean = false,
     dmaLineTransfers: Boolean = false,
-    dmaLineYieldCycles: Int = 0
+    dmaLineYieldCycles: Int = 0,
+    dmaLineEntries: Int = 1,
+    precheckedDataRequestFlow: Boolean = false,
+    physicalLoadIngressFlow: Boolean = false
 ) {
+    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
+    require(!precheckedDataRequestFlow || virtualRamLoadPrecheck,
+        "prechecked flow is an explicit virtual-load-precheck experiment")
     val selectedTopology = optimized && independentFetchPayloadCapture && ownerLocalIssueReady &&
         sharedFetchPmpRelations && shareProtectedHeadPayload && bankedInstructionData
     val name = (if (selectedTopology) "fpga-next-selected-v2" else if (optimized)
@@ -34,8 +40,11 @@ final case class FpgaNextConfig(
         (if (prefetchCandidateCycles > 1) s"-prefetch-retry${prefetchCandidateCycles}" else "") +
         (if (prefetchBreakOnStore) "-store-break" else "") +
         (if (virtualRamLoadPrecheck) "-virtual-precheck" else "") +
+        (if (precheckedDataRequestFlow) "-prechecked-flow" else "") +
+        (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
+        (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
         (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "")
     val interfaceVersion = 1
     val timingProfile = "staged-fetch-turnover"
@@ -78,7 +87,8 @@ final case class FpgaNextConfig(
         fpgaStorage = storage, dataNextLinePrefetch = cache.nextLinePrefetch,
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
-        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations)
+        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -95,7 +105,8 @@ final case class FpgaNextConfig(
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
-        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles)
+        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
 }
 
 object FpgaNextConfig {
@@ -120,10 +131,16 @@ object FpgaNextConfig {
         val yields = options.filter(_.startsWith("--dma-line-yield-cycles="))
         require(yields.size <= 1, "choose one DMA line yield duration")
         val lineYield = yields.headOption.map(_.stripPrefix("--dma-line-yield-cycles=").toInt).getOrElse(0)
+        val depths = options.filter(_.startsWith("--dma-line-entries="))
+        require(depths.size <= 1, "choose one DMA line owner count")
+        val lineDepth = depths.headOption.map(_.stripPrefix("--dma-line-entries=").toInt).getOrElse(1)
         base.copy(
+            dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),
             prefetchCandidateCycles = lifetime,
+            precheckedDataRequestFlow = options.contains("--prechecked-data-flow"),
+            physicalLoadIngressFlow = options.contains("--physical-load-ingress-flow"),
             prefetchBreakOnStore = options.contains("--prefetch-break-on-store"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),

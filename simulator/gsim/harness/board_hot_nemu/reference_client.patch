@@ -1,0 +1,35 @@
+--- simulator/gsim/harness/reference.h	2026-10-08 20:58:06.610535347 -0700
++++ build/gsim/cpu-flow-board-nemu-r1/harness/reference.h	2026-10-08 21:55:22.472321795 -0700
+@@ -39,6 +39,23 @@
+         initial.mtvec = initial.mepc = initial.mcause = initial.mtval = initial.mscratch = 0;
+         initial.mie = initial.mip = initial.medeleg = initial.mideleg = 0;
+     }
++    // Fixed ROM semantics only. Never receives any DUT-derived register state.
++    void initializeAfterBoardRom() {
++        machineReset();
++        initial.gpr[1] = 0x80000014ULL;
++        initial.gpr[5] = 0x80200000ULL;
++        initial.gpr[6] = 0x10000000ULL;
++        initial.gpr[7] = 7;
++    }
++    ReferenceState executeOne() {
++        step(1);
++        return inspectState();
++    }
++    Memory inspectMemory() {
++        Memory bytes(memoryBytes, 0);
++        copyMemory(dataBase, bytes.data(), bytes.size(), false);
++        return bytes;
++    }
+     ReferenceState inspectState() {
+         ReferenceState state{}; copyRegisters(&state, false); return state;
+     }
+@@ -49,7 +66,7 @@
+         // NEMU memcpy/regcpy do not invalidate its decoded-instruction cache. Execute FENCE.I at a
+         // reserved reference-only bootstrap address before resetting state for each new program.
+         // This is initialization between test cases, never resynchronization after a mismatch.
+-        constexpr uint64_t bootstrap = base + 0x00ffff00;
++        constexpr uint64_t bootstrap = 0x80ffff00; // Fits pinned 16 MiB RAM with guest at 0x80200000.
+         std::array<uint8_t, 4> fence{0x0f, 0x10, 0, 0};
+         copyMemory(bootstrap, fence.data(), fence.size(), true);
+         auto state = initial;

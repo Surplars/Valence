@@ -1,5 +1,9 @@
 # Experimental coherent memory-copy line transfers
 
+This page records the phase-one, single-owner design and qualification. The
+later optional two/four-owner design and selected next profile are described in
+[dma-line-overlap.md](dma-line-overlap.md).
+
 This is a default-off cloud candidate. `--dma-line-transfers` selects it for
 FPGA-next; `FpgaNextConfig.Selected` itself is unchanged. It is not a new board
 measurement, bitstream, or physical timing qualification. Network/packet DMA,

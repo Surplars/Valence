@@ -6,8 +6,8 @@ import soc.bus.tilelink.{TLBundle, TLOpcode, TLParams, TLPermissions}
 import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
 /** Shared structural interface; the legacy and bounded concurrent homes remain separate implementations. */
-class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false) extends Bundle {
-    val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort)) else None
+class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false, dmaLineEntries: Int = 1) extends Bundle {
+    val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort(dmaLineEntries))) else None
     val upstream = Flipped(new DataPort)
     val downstream = new DataPort
     val clients = Vec(nClients, Flipped(new TLBundle(params)))
@@ -19,8 +19,8 @@ class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Bool
     val drainDone = Output(Bool())
 }
 
-abstract class CoherentLineHomeModule(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false) extends Module {
-    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers))
+abstract class CoherentLineHomeModule(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false, dmaLineEntries: Int = 1) extends Module {
+    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers, dmaLineEntries))
 }
 
 object CoherentLineHomeModule {
@@ -37,7 +37,8 @@ object CoherentLineHomeModule {
         tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
         writebackEntries: Int = 1,
         mixedReadWrite: Boolean = false,
-        dmaLineTransfers: Boolean = false
+        dmaLineTransfers: Boolean = false,
+        dmaLineEntries: Int = 1
     ): CoherentLineHomeModule = {
         require(!dmaLineTransfers || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
             "line DMA requires the bounded mixed coherence home")
@@ -50,7 +51,7 @@ object CoherentLineHomeModule {
                 "bounded concurrent home currently requires one client and an explicit directory capacity")
             if (writebackEntries > 1 || mixedReadWrite)
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
-                    trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite, dmaLineTransfers))
+                    trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite, dmaLineTransfers, dmaLineEntries))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

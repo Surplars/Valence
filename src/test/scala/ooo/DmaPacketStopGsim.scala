@@ -12,7 +12,7 @@ import soc.ip.tilelink.TwoMasterTileLinkArbiter
 /** Real packet and copy engines share the production scalar arbiter, atomic boundary, cache/home, and AXI.
   * Packet DMA remains scalar. C++ independently checks software descriptor generations and byte contents.
   */
-class DmaPacketStopGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0) extends Module {
+class DmaPacketStopGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, lineEntries: Int = 1) extends Module {
     private val base = BigInt("80200000", 16)
     private val bytes = BigInt(2) * 1024 * 1024 * 1024
     private val tags = CacheTagConfig(compact = true, bankedStorage = true)
@@ -67,15 +67,15 @@ class DmaPacketStopGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0)
         val homeRequestFire = Output(Bool())
         val homeResponseFire = Output(Bool())
     })
-    val dma = Module(new MemoryCopyDma(ramBase = base, ramBytes = bytes, lineTransfers = lineTransfers, lineYieldCycles = lineYieldCycles))
+    val dma = Module(new MemoryCopyDma(ramBase = base, ramBytes = bytes, lineTransfers = lineTransfers, lineYieldCycles = lineYieldCycles, lineEntries = lineEntries))
     val packet = Module(new EthernetPacketDma(ramBase = base, ramBytes = bytes, postedRxSlots = 4,
         memoryCredits = 4, postedTxSlots = 4))
     val scalarArbiter = Module(new RegisterArbiter)
     val adapter = Module(new DmaRegisterDataAdapter)
     val cache = CoherentLineCacheModule.build(base, bytes, 512, coherent, 2, cfg, tags)
     val home = Module(new MixedCoherentLineHome(coherent, base, bytes, trackedLines = 512,
-        trackedWays = 2, acquireEntries = 2, tagConfig = tags, writebackEntries = 2, mixedReadWrite = true, dmaLineTransfers = lineTransfers))
-    val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true, dmaLineTransfers = lineTransfers))
+        trackedWays = 2, acquireEntries = 2, tagConfig = tags, writebackEntries = 2, mixedReadWrite = true, dmaLineTransfers = lineTransfers, dmaLineEntries = lineEntries))
+    val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true, dmaLineTransfers = lineTransfers, dmaLineEntries = lineEntries))
     val requests = Module(new DataRequestBuffer(registerHead = true))
     val ordered = Module(new OrderedTileLinkBridge(allowWriteErrors = true, allowPartialWrites = true))
     val arbiter = Module(new TwoMasterTileLinkArbiter(memory))
@@ -154,5 +154,5 @@ class DmaPacketStopGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0)
 }
 
 object DmaPacketStopGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new DmaPacketStopGsim(lineYieldCycles = args.lift(1).map(_.toInt).getOrElse(0)), Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new DmaPacketStopGsim(lineYieldCycles = args.lift(1).map(_.toInt).getOrElse(0), lineEntries = args.lift(2).map(_.toInt).getOrElse(1)), Array("--target-dir", args.head))
 }

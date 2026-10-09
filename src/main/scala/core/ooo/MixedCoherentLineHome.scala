@@ -23,8 +23,10 @@ class MixedCoherentLineHome(
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     writebackEntries: Int = 1,
     mixedReadWrite: Boolean = false,
-    dmaLineTransfers: Boolean = false
-) extends CoherentLineHomeModule(params, 1, dmaLineTransfers) {
+    dmaLineTransfers: Boolean = false,
+    dmaLineEntries: Int = 1
+) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries) {
+    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
     require(bytes >= 64 && isPow2(bytes) && base % 64 == 0 && base + bytes <= (BigInt(1) << 64))
@@ -33,8 +35,8 @@ class MixedCoherentLineHome(
         "each Acquire entry needs an independently reservable directory set")
     require(Set(1, 2, 4).contains(writebackEntries))
     require(params.sourceBits >= log2Ceil(acquireEntries + writebackEntries))
-    private val writeTagBits = math.max(log2Ceil(acquireEntries + (if (dmaLineTransfers) 1 else 0)),
-        log2Ceil(writebackEntries + (if (dmaLineTransfers) 2 else 1)))
+    private val writeTagBits = math.max(log2Ceil(acquireEntries + (if (dmaLineTransfers) dmaLineEntries else 0)),
+        log2Ceil(writebackEntries + (if (dmaLineTransfers) dmaLineEntries + 1 else 1)))
     private val releaseBits = math.max(1, log2Ceil(writebackEntries))
     private val port = io.clients(0)
     private val entryBits = log2Ceil(acquireEntries)
@@ -190,7 +192,7 @@ class MixedCoherentLineHome(
     // Ordinary direct reads retain the old ordered downstream protocol. A pending
     // upstream request prevents an endless Acquire stream from starving DMA.
     private val Seq(mIdle, mProbeSend, mProbeWait, mWriteSend, mWriteWait, mAccessSend, mAccessWait,
-        mLineReadSend, mLineReadWait, mLineWriteSend, mLineWriteWait, mLineResponse) = Enum(12)
+        mLineReadSend, mLineReadWait, mLineWriteSend, mLineWriteWait, mLineResponse, mLineHazard) = Enum(13)
     private val maintenance = RegInit(mIdle)
     private val access = Reg(new DataRequest)
     private val lineAccess = if (dmaLineTransfers) RegInit(false.B) else WireDefault(false.B)
@@ -198,16 +200,17 @@ class MixedCoherentLineHome(
     private val lineError = if (dmaLineTransfers) Some(RegInit(false.B)) else None
     private val linePending = io.dmaLine.map(_.request.valid).getOrElse(false.B)
     private val selectLine = WireDefault(false.B)
+    private val anyDmaLine = WireDefault(false.B)
     private val accessSend = Mux(lineAccess, Mux(access.write, mLineWriteSend, mLineReadSend), mAccessSend)
     // Both selection and ownership come from registered state. Never insert
     // A.ready/fire or Release priority in this functional tag-address path.
-    tagLookupAddress := Mux(maintenance === mProbeSend, access.address,
+    tagLookupAddress := Mux(maintenance === mProbeSend || maintenance === mLineHazard, access.address,
         Mux(selectLine, io.dmaLine.map(_.request.bits.address).getOrElse(0.U), io.upstream.request.bits.address))
     private val maintenanceDirectory = Reg(UInt(directoryBits.W))
     private val maintenanceData = Reg(UInt(512.W))
     private val reads = RegInit(0.U(4.W))
     private val directHeld = RegInit(false.B)
-    io.drainDone := maintenance === mIdle && !anyAcquire && reads === 0.U &&
+    io.drainDone := maintenance === mIdle && !anyDmaLine && !anyAcquire && reads === 0.U &&
         !directHeld && !releaseBusy && !releaseOffer && !probeCActive
     private val upperWaiting = RegInit(false.B)
     private val preferAcquire = RegInit(false.B)
@@ -220,7 +223,7 @@ class MixedCoherentLineHome(
     private val needsMaintenance = request.write || needsProbe
     private val sourceBusy = (0 until acquireEntries).map(i =>
         active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
-    private val canAcquire = !io.drainRequest && maintenance === mIdle && reads === 0.U && !directHeld &&
+    private val canAcquire = !io.drainRequest && !anyDmaLine && maintenance === mIdle && reads === 0.U && !directHeld &&
         ((!upperWaiting && !io.upstream.request.valid && !linePending) || preferAcquire) &&
         freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
         !transientSet(port.a.bits.address) && !releaseSet(port.a.bits.address) &&
@@ -243,8 +246,9 @@ class MixedCoherentLineHome(
         errors(allocate) := false.B
         phase(allocate) := Mux(directFillFire, filling, queued)
     }
-    private val upperOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
+    private val lineAdmissionOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
         (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+    private val upperOpen = lineAdmissionOpen && !anyDmaLine
     private val directRead = io.upstream.request.valid && !selectLine && !needsMaintenance &&
         (directHeld || (upperOpen && reads < 8.U))
     io.downstream.request.valid := directRead || maintenance === mAccessSend
@@ -339,7 +343,7 @@ class MixedCoherentLineHome(
         }
     }
 
-    if (dmaLineTransfers) {
+    if (dmaLineTransfers && dmaLineEntries == 1) {
         val line = io.dmaLine.get
         val preferLine = RegInit(true.B)
         selectLine := line.request.valid && !directHeld &&
@@ -347,6 +351,7 @@ class MixedCoherentLineHome(
         when(io.upstream.request.fire) { preferLine := true.B }
         line.request.ready := selectLine && upperOpen && reads === 0.U
         line.response.valid := maintenance === mLineResponse
+        line.response.bits.tag := 0.U
         line.response.bits.data := Mux(lineError.get, 0.U, maintenanceData)
         line.response.bits.error := lineError.get
         when(line.request.fire) {
@@ -389,12 +394,111 @@ class MixedCoherentLineHome(
         }
         when(line.response.fire) { maintenance := mIdle; lineAccess := false.B }
     }
+    if (dmaLineTransfers && dmaLineEntries > 1) {
+        val line = io.dmaLine.get
+        val slotBits = log2Ceil(dmaLineEntries)
+        val ownedLines = RegInit(VecInit(Seq.fill(dmaLineEntries)(false.B)))
+        val lineAddresses = Reg(Vec(dmaLineEntries, UInt(64.W)))
+        val lineWrites = Reg(Vec(dmaLineEntries, Bool()))
+        val accessTag = Reg(UInt(slotBits.W))
+        anyDmaLine := ownedLines.asUInt.orR
+        val preferLine = RegInit(true.B)
+        selectLine := line.request.valid && !directHeld && (preferLine || !io.upstream.request.valid)
+        when(io.upstream.request.fire) { preferLine := true.B }
+        // Only bounded occupancy/tag state enters admission. Address hazards
+        // are resolved after capture, outside the upstream READY path.
+        line.request.ready := selectLine && lineAdmissionOpen && reads === 0.U &&
+            !ownedLines(line.request.bits.tag)
+        when(line.request.fire) {
+            assert(line.request.bits.tag < dmaLineEntries.U && !ownedLines(line.request.bits.tag),
+                "home line tag reused before response")
+            assert(!anyAcquire && reads === 0.U && !releaseBusy && !directHeld,
+                "line DMA crossed a coherence owner")
+            assert(line.request.bits.address(5, 0) === 0.U && inRam(line.request.bits.address) &&
+                (line.request.bits.address +& 64.U) <= (base + bytes).U(65.W),
+                "line DMA only accepts a complete naturally aligned RAM line")
+            ownedLines(line.request.bits.tag) := true.B
+            lineAddresses(line.request.bits.tag) := line.request.bits.address
+            lineWrites(line.request.bits.tag) := line.request.bits.write
+            accessTag := line.request.bits.tag
+            access := 0.U.asTypeOf(new DataRequest)
+            access.address := line.request.bits.address
+            access.write := line.request.bits.write
+            lineWriteData.get := line.request.bits.data
+            lineAccess := true.B
+            maintenance := mLineHazard
+            preferLine := false.B
+            preferAcquire := true.B
+            upperWaiting := false.B
+        }
+        val olderSameLine = (0 until dmaLineEntries).map(i => ownedLines(i) && accessTag =/= i.U &&
+            lineAddresses(i)(63, 6) === access.address(63, 6)).reduce(_ || _)
+        when(maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer) {
+            maintenanceDirectory := ownedSlot(access.address, lookupTags)
+            maintenance := Mux(lineOwned(access.address, lookupTags), mProbeSend, accessSend)
+        }
+        when(maintenance === mLineReadSend) {
+            assert(!fillQueue.io.deq.valid && !anyAcquire && ownedLines(accessTag),
+                "pipelined DMA read lost exclusive admission")
+            transfer.io.readRequest.valid := true.B
+            transfer.io.readRequest.bits.address := access.address
+            transfer.io.readRequest.bits.tag := acquireEntries.U(writeTagBits.W) + accessTag
+            when(transfer.io.readRequest.fire) {
+                assert(transfer.io.readRequest.bits.tag >= acquireEntries.U &&
+                    transfer.io.readRequest.bits.tag < (acquireEntries + dmaLineEntries).U && !lineWrites(accessTag),
+                    "DMA read tag overlaps refill tag class")
+                maintenance := mIdle; lineAccess := false.B
+            }
+        }
+        when(maintenance === mLineWriteSend) {
+            writes.io.in(1).bits.tag := (writebackEntries + 1).U(writeTagBits.W) + accessTag
+            when(writes.io.in(1).fire) {
+                assert(writes.io.in(1).bits.tag > writebackEntries.U &&
+                    writes.io.in(1).bits.tag < (writebackEntries + 1 + dmaLineEntries).U && lineWrites(accessTag),
+                    "DMA write tag overlaps release/probe tag class")
+                maintenance := mIdle; lineAccess := false.B
+            }
+        }
+        val readIsLine = transfer.io.readResponse.bits.tag >= acquireEntries.U &&
+            transfer.io.readResponse.bits.tag < (acquireEntries + dmaLineEntries).U
+        val writeIsLine = transfer.io.writeResponse.bits.tag > writebackEntries.U &&
+            transfer.io.writeResponse.bits.tag < (writebackEntries + 1 + dmaLineEntries).U
+        val readValid = transfer.io.readResponse.valid && readIsLine
+        val writeValid = transfer.io.writeResponse.valid && writeIsLine
+        // Engines retain their own complete payloads/metadata. Lock the chosen
+        // direction under response backpressure rather than duplicate line RAM.
+        val replyHeld = RegInit(false.B)
+        val heldWrite = Reg(Bool())
+        val preferWrite = RegInit(false.B)
+        val chooseWrite = Mux(replyHeld, heldWrite, writeValid && (!readValid || preferWrite))
+        val readTag = (transfer.io.readResponse.bits.tag - acquireEntries.U)(slotBits - 1, 0)
+        val writeTag = (transfer.io.writeResponse.bits.tag - (writebackEntries + 1).U)(slotBits - 1, 0)
+        line.response.valid := Mux(chooseWrite, writeValid, readValid)
+        line.response.bits.tag := Mux(chooseWrite, writeTag, readTag)
+        line.response.bits.error := Mux(chooseWrite, transfer.io.writeResponse.bits.error, transfer.io.readResponse.bits.error)
+        line.response.bits.data := Mux(chooseWrite || line.response.bits.error, 0.U, transfer.io.readResponse.bits.data)
+        transfer.io.readResponse.ready := !readIsLine || (!chooseWrite && line.response.ready)
+        transfer.io.writeResponse.ready := !writeIsLine || (chooseWrite && line.response.ready)
+        when(line.response.valid && !line.response.ready) { replyHeld := true.B; heldWrite := chooseWrite }
+        when(line.response.fire) {
+            val tag = line.response.bits.tag
+            assert(ownedLines(tag) && lineWrites(tag) === chooseWrite,
+                "home line response lost read/write owner")
+            ownedLines(tag) := false.B
+            replyHeld := false.B
+            preferWrite := !chooseWrite
+        }
+        when(anyDmaLine) {
+            assert(!anyAcquire && reads === 0.U && !directHeld,
+                "live DMA line crossed refill or scalar owner")
+        }
+    }
     when(transfer.io.readResponse.fire) {
-        assert(transfer.io.readResponse.bits.tag < (acquireEntries + (if (dmaLineTransfers) 1 else 0)).U,
+        assert(transfer.io.readResponse.bits.tag < (acquireEntries + (if (dmaLineTransfers) dmaLineEntries else 0)).U,
             "home read result has an unknown full tag")
     }
     when(transfer.io.writeResponse.fire) {
-        assert(transfer.io.writeResponse.bits.tag < (writebackEntries + (if (dmaLineTransfers) 2 else 1)).U,
+        assert(transfer.io.writeResponse.bits.tag < (writebackEntries + (if (dmaLineTransfers) dmaLineEntries + 1 else 1)).U,
             "home write result has an unknown full tag")
     }
 

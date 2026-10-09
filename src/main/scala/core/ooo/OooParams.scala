@@ -119,6 +119,8 @@ case class OooParams(
     indirectTargetEntries: Int = 0,
     recoveryWidth: Int = 1,
     identityDataRequestFlow: Boolean = false,
+    precheckedDataRequestFlow: Boolean = false,
+    physicalLoadIngressFlow: Boolean = false,
     bankedRobPayload: Boolean = false,
     sharedStoreOperandReads: Boolean = false,
     lvtPhysicalRegisterFile: Boolean = false,
@@ -252,6 +254,10 @@ case class OooParams(
         "translation heads require the registered request and response boundaries")
     require(!identityDataRequestFlow || registeredTranslationHeads,
         "identity data flow requires registered translation ingress")
+    require(!precheckedDataRequestFlow || (virtualRamLoadPrecheck && registeredTranslationHeads),
+        "prechecked data flow requires certified loads and registered translation ingress")
+    require(!physicalLoadIngressFlow || (identityDataRequestFlow && registeredTranslationHeads && registeredMemoryRequests),
+        "physical load ingress flow requires registered LSU requests and the checked identity path")
     require(!(fetchReplyTurnover || fetchIdentityTranslation) || registeredTranslationHeads,
         "fetch turnover and identity capture require registered translation heads")
     require(!parallelMemoryPayload || (parallelMemoryPreparation && completionWidth == 2),

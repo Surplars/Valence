@@ -1,0 +1,449 @@
+#include "DmaPipelineGsim.h"
+#include <algorithm>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <vector>
+static void check(bool ok,const char* message){if(!ok)throw std::runtime_error(message);}
+#define DMA_RAM_BYTES (2ULL*1024*1024*1024)
+#include "dma_pipeline_ddr.h"
+#ifndef DMA_LINE_ENABLED
+#define DMA_LINE_ENABLED 0
+#endif
+static constexpr uint64_t base=0x80200000ULL;
+static std::string mutation;
+#ifndef DMA_LINE_ENTRIES
+#define DMA_LINE_ENTRIES 2
+#endif
+static unsigned diagnosticMode=0,profile=0,oracleLatency=1;
+#include "dma_overlap_metrics.h"
+struct Request {uint64_t address;bool write=false;uint64_t data=0;unsigned mask=255;bool atomic=false;unsigned operation=0;bool uncached=false;std::optional<uint64_t> expected;};
+struct Reply {uint64_t data,accepted;bool atomic=false;unsigned operation=0;bool write=false;unsigned bytes=0;};
+struct Test {
+    SDmaPipelineGsim d;
+    PipelineDdr ddr;
+    PipelineMetrics metrics;
+    struct OracleOwner {bool write;uint64_t due;unsigned _BitInt(512) data;unsigned tag;};
+    std::optional<OracleOwner> oracleOwner;
+    uint64_t oracleReads=0,oracleWrites=0,lastOracleWrite=0;
+    bool oracleReady=false,oracleResponseValid=false;
+    void oracleDrive(){
+        oracleReady=!oracleOwner;oracleResponseValid=oracleOwner&&cycles>=oracleOwner->due;
+        d.set_io$$oracle$$request$$ready(oracleReady);
+        d.set_io$$oracle$$response$$valid(oracleResponseValid);
+        d.set_io$$oracle$$response$$bits$$data(oracleOwner?oracleOwner->data:0);
+        d.set_io$$oracle$$response$$bits$$error(0);
+        d.set_io$$oracle$$response$$bits$$tag(oracleOwner?oracleOwner->tag:0);
+    }
+    void oracleSample(){
+        if(oracleResponseValid&&d.get_io$$oracle$$response$$ready()){
+            check(bool(oracleOwner),"ideal line response without owner");
+            if(oracleOwner->write)lastOracleWrite=cycles;oracleOwner.reset();
+        }
+        if(d.get_io$$oracle$$request$$valid()&&oracleReady){
+            check(!oracleOwner,"ideal line owner overwritten");uint64_t a=d.get_io$$oracle$$request$$bits$$address()-base;
+            check((a&63)==0&&a+64<=ddr.memory.size(),"ideal line outside independent memory");
+            bool w=d.get_io$$oracle$$request$$bits$$write();unsigned _BitInt(512) data=0;
+            if(w){data=d.get_io$$oracle$$request$$bits$$data();for(unsigned i=0;i<64;++i)ddr.byte(a+i)=uint8_t(data>>(8*i));++oracleWrites;ddr.destinationBytes+=64;}
+            else{for(unsigned i=0;i<64;++i)data|=(unsigned _BitInt(512))(ddr.byte(a+i))<<(8*i);++oracleReads;}
+            oracleOwner=OracleOwner{w,cycles+oracleLatency,data,unsigned(d.get_io$$oracle$$request$$bits$$tag())};
+        }
+    }
+    struct LineOwner {uint64_t address,bBefore;bool write;unsigned _BitInt(512) expected;};
+    bool manualActive=false;
+    std::map<unsigned,LineOwner> checkedLineOwners;
+    std::optional<std::tuple<unsigned,uint64_t,bool,unsigned _BitInt(512)>> heldLineOffer;
+    std::map<unsigned,unsigned> tlReadBeats;
+    uint64_t tlReadCompletions=0,tlWriteCompletions=0,tagChecks=0;
+    void checkLineOwners(){
+        auto offer=std::make_tuple(unsigned(d.get_io$$lineRequestTag()),uint64_t(d.get_io$$lineRequestAddress()),bool(d.get_io$$lineRequestWrite()),d.get_io$$lineRequestData());
+        if(heldLineOffer)check(d.get_io$$lineRequestOffer()&&offer==*heldLineOffer,"protocol held line offer changed");
+        heldLineOffer=d.get_io$$lineRequestOffer()&&!d.get_io$$lineRequestReady()?std::optional{offer}:std::nullopt;
+        if(d.get_io$$lineRequestFire()){
+            auto tag=unsigned(d.get_io$$lineRequestTag());auto address=uint64_t(d.get_io$$lineRequestAddress());
+            check(tag<DMA_LINE_ENTRIES&&!checkedLineOwners.count(tag),"protocol line tag reused before reply");
+            unsigned _BitInt(512) expected=0;for(unsigned i=0;i<64;++i)expected|=(unsigned _BitInt(512))(oracleByte(address-base+i))<<(8*i);
+            checkedLineOwners[tag]={address,ddr.completedB[address-base],bool(d.get_io$$lineRequestWrite()),expected};++tagChecks;
+            if(manualActive&&d.get_io$$lineRequestWrite()){auto data=d.get_io$$lineRequestData();for(unsigned i=0;i<64;++i)oracleByte(address-base+i)=uint8_t(data>>(8*i));}
+        }
+        if(d.get_io$$lineResponseFire()){
+            auto tag=unsigned(d.get_io$$lineResponseTag());check(checkedLineOwners.count(tag),"protocol response lost tag owner");auto owner=checkedLineOwners.at(tag);
+            if(owner.write&&diagnosticMode<2)check(ddr.completedB[owner.address-base]>owner.bBefore,"protocol line write completed before any backing B for its address");
+            if(!owner.write&&!d.get_io$$lineResponseError()){
+                check(d.get_io$$lineResponseData()==owner.expected,"protocol line read independent byte oracle mismatch");
+            }
+            checkedLineOwners.erase(tag);++tagChecks;
+        }
+        if(d.get_io$$tlDValid()&&d.get_io$$tlDReady()){
+            auto tag=unsigned(d.get_io$$tlDSource());if(d.get_io$$tlDOpcode()==1){if(++tlReadBeats[tag]==8){++tlReadCompletions;tlReadBeats.erase(tag);}}else ++tlWriteCompletions;
+        }
+        if(d.get_io$$irq())check(checkedLineOwners.empty()&&!heldLineOffer,"IRQ retained tagged or offered line owner");
+    }
+    std::vector<uint8_t> oracle,highOracle;
+    std::optional<Request> offered;
+    std::deque<Reply> replies;
+    std::optional<std::tuple<uint64_t,bool,bool>> heldCpu;
+    std::vector<uint64_t> cpuLatencies;
+    uint64_t cycles=0,cpuAccepted=0,cpuReturned=0,dmaRequests=0,dmaResponses=0,peakDma=0;
+    uint64_t probes=0,dirtyBeats=0,homeRequests=0,homeResponses=0,homeOfferCycles=0,homeBusyCycles=0;
+    uint64_t lineRequests=0,lineResponses=0,peakLine=0,lineBusyCycles=0,lastCpu=0;
+    bool blockCpu=false,measure=false,earlyChecked=false,atomicExclusive=false;
+    unsigned concurrent=0,concurrentIndex=0,concurrentLimit=0;
+    uint64_t lastCpuRead=0,cpuReadPayload=0,cpuWritePayload=0,offerBlocked=0,worstOfferBlocked=0;
+    static uint8_t initial(uint64_t i){return uint8_t(((i*0x9e3779b97f4a7c15ULL)^(i>>7)^0xa5)>>23);}
+    uint8_t& oracleByte(uint64_t offset){if(offset<oracle.size())return oracle.at(offset);check(offset>=DMA_RAM_BYTES-highOracle.size()&&offset<DMA_RAM_BYTES,"oracle address outside sparse image");return highOracle.at(offset-(DMA_RAM_BYTES-highOracle.size()));}
+    uint8_t oracleByte(uint64_t offset) const {if(offset<oracle.size())return oracle.at(offset);check(offset>=DMA_RAM_BYTES-highOracle.size()&&offset<DMA_RAM_BYTES,"oracle address outside sparse image");return highOracle.at(offset-(DMA_RAM_BYTES-highOracle.size()));}
+    uint64_t word(uint64_t address) const {uint64_t v=0;for(unsigned b=0;b<8;++b)v|=uint64_t(oracleByte(address-base+b))<<(8*b);return v;}
+    void store(uint64_t address,uint64_t value,unsigned mask){for(unsigned b=0;b<8;++b)if(mask&(1U<<b))oracleByte(address-base+b)=uint8_t(value>>(8*b));}
+    Test():oracle(1024*1024),highOracle(4096) {
+        d.set_io$$diagnosticMode(diagnosticMode);
+        d.set_io$$blockLineResponse(0);
+        d.set_io$$manualMode(0);d.set_io$$manualLine$$request$$valid(0);d.set_io$$manualLine$$response$$ready(1);
+        d.set_io$$manualLine$$request$$bits$$tag(0);d.set_io$$manualLine$$request$$bits$$write(0);
+        d.set_io$$manualLine$$request$$bits$$address(base);d.set_io$$manualLine$$request$$bits$$data(0);
+        if(profile==3)ddr.reversePairs=true;
+        if(profile==1||profile==2){ddr.readDelay=profile==1?1:0;ddr.bDelay=profile==1?1:0;ddr.idSkew=false;ddr.stalls=false;}
+
+        for(uint64_t i=0;i<oracle.size();++i)ddr.memory[i]=oracle[i]=initial(i);
+        for(uint64_t i=0;i<highOracle.size();++i)ddr.high[i]=highOracle[i]=initial(DMA_RAM_BYTES-4096+i);
+        d.set_io$$control$$request$$valid(0);d.set_io$$control$$response$$ready(0);
+        d.set_io$$control$$request$$bits$$address(0);d.set_io$$control$$request$$bits$$data(0);d.set_io$$control$$request$$bits$$write(0);
+        d.set_io$$control$$request$$bits$$size(3);d.set_io$$control$$request$$bits$$byteEnable(255);
+        d.set_io$$cpu$$request$$valid(0);d.set_io$$cpu$$response$$ready(0);d.set_io$$cpu$$request$$bits$$address(base);
+        d.set_io$$cpu$$request$$bits$$data(0);d.set_io$$cpu$$request$$bits$$mask(255);d.set_io$$cpu$$request$$bits$$write(0);
+        d.set_io$$cpu$$request$$bits$$size(3);d.set_io$$cpu$$request$$bits$$atomic(0);d.set_io$$cpu$$request$$bits$$atomicOp(0);
+        d.set_io$$cpu$$request$$bits$$virtualized(0);d.set_io$$cpu$$request$$bits$$uncached(0);d.set_io$$cpu$$request$$bits$$prefetchNextAllowed(0);
+        d.set_io$$flushRequest(0);d.set_io$$holdLineHome(0);d.set_reset(1);tick();tick();d.set_reset(0);tick();
+    }
+    void tick(){
+        check(cycles<15000000,"integration cycle budget exceeded");
+        bool ready=!blockCpu&&cycles%13!=4;
+        if(concurrent&&(!concurrentLimit||concurrentIndex<concurrentLimit)&&!offered&&replies.empty()&&cycles%32==0){
+            uint64_t a=base+0x80000+64ULL*((concurrentIndex/2)%1024);
+            if(concurrent==1)offered=Request{a};
+            else if(concurrent==2)offered=Request{a,true,0x1234567800000000ULL^concurrentIndex,0x55};
+            else if(!(concurrentIndex&1)){lastCpuRead=word(a);offered=Request{a};}
+            else offered=Request{a+0x20000,true,lastCpuRead};
+            ++concurrentIndex;
+        }
+        d.set_io$$cpu$$request$$valid(bool(offered));d.set_io$$cpu$$response$$ready(ready);
+        if(offered){auto&q=*offered;d.set_io$$cpu$$request$$bits$$address(q.address);d.set_io$$cpu$$request$$bits$$write(q.write);
+            d.set_io$$cpu$$request$$bits$$data(q.data);d.set_io$$cpu$$request$$bits$$mask(q.mask);d.set_io$$cpu$$request$$bits$$atomic(q.atomic);
+            d.set_io$$cpu$$request$$bits$$atomicOp(q.operation);d.set_io$$cpu$$request$$bits$$uncached(q.uncached);}
+        ddr.drive(d,cycles);oracleDrive();d.step();metrics.sample(d,cycles,ddr,oracleResponseValid,oracleOwner?oracleOwner->tag:0);oracleSample();ddr.sample(d);++cycles;checkLineOwners();
+        auto current=std::make_tuple(uint64_t(d.get_io$$cpu$$response$$bits$$data()),bool(d.get_io$$cpu$$response$$bits$$error()),bool(d.get_io$$cpu$$response$$bits$$pageFault()));
+        if(heldCpu)check(d.get_io$$cpu$$response$$valid()&&current==*heldCpu,"held CPU response changed");
+        heldCpu=d.get_io$$cpu$$response$$valid()&&!ready?std::optional{current}:std::nullopt;
+        if(offered&&d.get_io$$cpu$$request$$ready()){
+            auto q=*offered;uint64_t old=word(q.address),expected=q.expected.value_or(q.write&&!q.atomic?0:old);
+            if(q.atomic&&q.operation==3)expected=q.expected.value_or(1);
+            replies.push_back({expected,cycles,q.atomic,q.operation,q.write,unsigned(q.write?__builtin_popcount(q.mask):8)});
+            if(measure)worstOfferBlocked=std::max(worstOfferBlocked,offerBlocked);offerBlocked=0;
+            
+            if(q.write&&!q.atomic)store(q.address,q.data,q.mask);
+            if(q.atomic&&q.operation==0)store(q.address,old+q.data,255);
+            if(q.atomic&&q.operation==3&&expected==0)store(q.address,q.data,255);
+            offered.reset();++cpuAccepted;
+        } else if(offered&&measure)++offerBlocked;
+        if(d.get_io$$cpu$$response$$valid()&&ready){check(!replies.empty(),"CPU response without request owner");auto e=replies.front();replies.pop_front();
+            check(!std::get<1>(current)&&!std::get<2>(current),"CPU response error");check(std::get<0>(current)==e.data,e.atomic&&e.operation==3?"LR DMA SC reservation oracle mismatch":"CPU independent byte oracle mismatch");
+            
+            ++cpuReturned;if(measure){cpuLatencies.push_back(cycles-e.accepted);if(e.write)cpuWritePayload+=e.bytes;else cpuReadPayload+=e.bytes;}lastCpu=cycles;
+        }
+        atomicExclusive=d.get_io$$atomicActive();
+        if(atomicExclusive)check(checkedLineOwners.empty(),"AMO crossed a retained tagged line owner");
+        if(atomicExclusive)check(!d.get_io$$dmaRequestFire(),"DMA ordinary request crossed active AMO");
+        dmaRequests+=d.get_io$$dmaRequestFire();dmaResponses+=d.get_io$$dmaResponseFire();
+#if DMA_LINE_ENABLED
+        if(atomicExclusive)check(!d.get_io$$lineRequestFire(),"DMA line request crossed active AMO");
+        lineRequests+=d.get_io$$lineRequestFire();lineResponses+=d.get_io$$lineResponseFire();
+        check(lineResponses<=lineRequests,"DMA line response without owner");
+        peakLine=std::max(peakLine,lineRequests-lineResponses);check(peakLine<=DMA_LINE_ENTRIES,"DMA line owner overflow");
+        lineBusyCycles+=lineRequests>lineResponses;
+#endif
+        check(dmaResponses<=dmaRequests,"DMA response without ordinary owner");peakDma=std::max(peakDma,dmaRequests-dmaResponses);check(peakDma<=4,"DMA ordinary credit overflow");
+        probes+=d.get_io$$probeFire();dirtyBeats+=d.get_io$$probeReplyFire()&&d.get_io$$probeReplyData();
+        homeRequests+=d.get_io$$homeRequestFire();homeResponses+=d.get_io$$homeResponseFire();
+        check(homeResponses<=homeRequests,"home response without owner");homeOfferCycles+=d.get_io$$homeRequestOffer();homeBusyCycles+=homeRequests>homeResponses;
+        if(mutation=="early-ack"&&!earlyChecked&&ddr.destinationBytes>=ddr.length&&ddr.length&&ddr.destinationPending()){
+            earlyChecked=true;completion(false);
+        }
+    }
+    void enableManual(){manualActive=true;d.set_io$$manualMode(1);}
+    void setManual(unsigned tag,uint64_t address,bool write,unsigned _BitInt(512) data=0){
+        d.set_io$$manualLine$$request$$bits$$tag(tag);d.set_io$$manualLine$$request$$bits$$address(address);
+        d.set_io$$manualLine$$request$$bits$$write(write);d.set_io$$manualLine$$request$$bits$$data(data);d.set_io$$manualLine$$request$$valid(1);
+    }
+    void manual(unsigned tag,uint64_t address,bool write,unsigned _BitInt(512) data=0){
+        setManual(tag,address,write,data);do{tick();}while(!d.get_io$$manualLine$$request$$ready());d.set_io$$manualLine$$request$$valid(0);
+    }
+    void until(const std::function<bool()>& done,const char* message){uint64_t limit=cycles+5000000;while(!done()){tick();check(cycles<limit,message);}}
+    uint64_t control(unsigned offset,bool write=false,uint64_t value=0,bool error=false){
+        d.set_io$$control$$request$$bits$$address(0x10001000+offset);d.set_io$$control$$request$$bits$$write(write);d.set_io$$control$$request$$bits$$data(value);d.set_io$$control$$request$$valid(1);
+        do{tick();}while(!d.get_io$$control$$request$$ready());d.set_io$$control$$request$$valid(0);
+        until([&]{return d.get_io$$control$$response$$valid();},"control response timeout");
+        uint64_t result=d.get_io$$control$$response$$bits$$data();check(bool(d.get_io$$control$$response$$bits$$error())==error,"DMA control error mismatch");
+        d.set_io$$control$$response$$ready(1);tick();d.set_io$$control$$response$$ready(0);return result;
+    }
+    void cpu(Request q){check(!offered,"duplicate CPU offer");offered=q;until([&]{return !offered&&replies.empty();},"CPU request deadlock");}
+    void flush(){
+        check(!offered&&replies.empty(),"flush while CPU queue live");d.set_io$$flushRequest(1);
+        until([&]{return d.get_io$$flushDone();},"cache/home drain deadlock");d.set_io$$flushRequest(0);tick();
+        check(ddr.memory==oracle&&ddr.high==highOracle,"independent full-memory oracle mismatch after drain");
+        check(ddr.reads.empty()&&ddr.writes.empty()&&ddr.replies.empty(),"coherent flush completed before all AXI responses drained");
+    }
+    void completion(bool error){
+        check(checkedLineOwners.empty()&&!heldLineOffer,"DMA completion retained independently tagged owner");
+        check(!oracleOwner,"DMA completion before ideal line response");
+        check(!ddr.destinationPending(),"DMA completion before final AXI B");
+        check(dmaRequests==dmaResponses,"DMA completion retained ordinary owner");
+        check(lineRequests==lineResponses,"DMA completion retained line owner");
+        if(!error){check(ddr.destinationBytes>=ddr.length,"DMA completion before all payload writes");
+            for(uint64_t i=0;i<ddr.length;++i)check(ddr.byte(ddr.destination+i)==oracleByte(ddr.destination+i),"DMA independent destination byte oracle mismatch");}
+    }
+    void descriptor(uint64_t source,uint64_t destination,uint64_t bytes){control(0,true,source);control(8,true,destination);control(16,true,bytes);}
+    void arm(uint64_t source,uint64_t destination,uint64_t bytes,bool expectSuccess=true){
+        descriptor(source,destination,bytes);ddr.destination=destination-base;ddr.length=bytes;ddr.destinationBytes=0;ddr.lastDestinationB=0;
+        if(expectSuccess){std::vector<uint8_t> copy(bytes);for(uint64_t i=0;i<bytes;++i)copy[i]=oracleByte(source-base+i);for(uint64_t i=0;i<bytes;++i)oracleByte(destination-base+i)=copy[i];}
+    }
+    uint64_t start(uint64_t source,uint64_t destination,uint64_t bytes,bool expectSuccess=true){arm(source,destination,bytes,expectSuccess);uint64_t begin=cycles;control(24,true,7);return begin;}
+    uint64_t finish(bool error=false){until([&]{return d.get_io$$irq();},"DMA IRQ timeout");uint64_t done=cycles;completion(error);
+        check(control(32)==(error?6:2),"DMA completion status mismatch");control(24,true,6);tick();check(!d.get_io$$irq(),"DMA IRQ clear failed");return done;}
+};
+static uint64_t percentile(std::vector<uint64_t> values,unsigned p){if(values.empty())return 0;std::sort(values.begin(),values.end());return values[(values.size()-1)*p/100];}
+static void benchmark(unsigned bytes,unsigned warm,unsigned cpuMode,unsigned offset=0,unsigned delay=40){
+    Test t;t.ddr.bDelay=delay;
+    uint64_t source=base+offset,destination=base+0x40000+offset;
+    if(warm){for(unsigned i=0;i<bytes;i+=64){t.cpu({source+i,warm==2,0x76543210abcdef00ULL^i,0x55});t.cpu({destination+i,warm==2,0xaabbccdd11223344ULL^i,0xaa});}}
+    t.arm(source,destination,bytes);
+    while(t.cycles%385)t.tick();
+    auto ar=t.ddr.arCount,aw=t.ddr.awCount,rb=t.ddr.rBytes,wb=t.ddr.wBytes,bc=t.ddr.bCount,pr=t.probes,dp=t.dirtyBeats;
+    auto hr=t.homeRequests,hs=t.homeBusyCycles,ho=t.homeOfferCycles,dr=t.dmaRequests,lr=t.lineRequests,ls=t.lineBusyCycles;
+    t.measure=true;t.concurrent=cpuMode;t.ddr.corruptWrite=mutation=="corrupt-write";t.ddr.dropWrite=mutation=="drop-write";
+    uint64_t begin=t.cycles;t.control(24,true,7);t.until([&]{return t.d.get_io$$irq();},"DMA IRQ timeout");uint64_t done=t.cycles;t.completion(false);t.concurrent=0;t.measure=false;
+    uint64_t elapsed=done-begin,tail=done-t.ddr.lastDestinationB;auto count=t.cpuLatencies.size();
+    auto finalAr=t.ddr.arCount,finalAw=t.ddr.awCount,finalRb=t.ddr.rBytes,finalWb=t.ddr.wBytes,finalBc=t.ddr.bCount;
+    auto finalPr=t.probes,finalDp=t.dirtyBeats,finalHr=t.homeRequests,finalHs=t.homeBusyCycles,finalHo=t.homeOfferCycles;
+    auto finalLr=t.lineRequests,finalLs=t.lineBusyCycles;
+    auto finalWorst=std::max(t.worstOfferBlocked,t.offerBlocked),finalB=t.ddr.lastDestinationB;
+    auto finalDmaPeak=t.peakDma,finalLinePeak=t.peakLine,finalReadPeak=t.ddr.peakR,finalWritePeak=t.ddr.peakW;
+    check(t.control(32)==2,"DMA completion status mismatch");t.control(24,true,6);t.tick();check(!t.d.get_io$$irq(),"DMA IRQ clear failed");
+    t.until([&]{return !t.offered&&t.replies.empty();},"concurrent CPU drain timeout");
+    for(unsigned i=0;i<std::min(bytes,512U);i+=8)t.cpu({destination+i});
+    t.flush();
+    if(warm==2&&bytes<=4096&&cpuMode==0)check(t.dirtyBeats-dp>=16,"missing dirty source and destination probes");
+    std::cout<<"DMA_BENCH line="<<DMA_LINE_ENABLED<<" bytes="<<bytes<<" warm="<<warm<<" cpu="<<cpuMode<<" offset="<<offset<<" b_delay="<<delay
+        <<" cycles="<<elapsed<<" payload_MBps="<<std::fixed<<std::setprecision(6)<<(double(bytes)*100.0/double(elapsed))
+        <<" payload_MiBps="<<(double(bytes)*100000000.0/double(elapsed)/1048576.0)
+        <<" axi_ar="<<finalAr-ar<<" axi_aw="<<finalAw-aw<<" axi_read_bytes="<<finalRb-rb<<" axi_write_bytes="<<finalWb-wb
+        <<" axi_b="<<finalBc-bc<<" probes="<<finalPr-pr<<" dirty_probe_beats="<<finalDp-dp
+        <<" dma_requests="<<t.dmaRequests-dr<<" dma_peak="<<finalDmaPeak<<" axi_read_peak="<<finalReadPeak<<" axi_write_peak="<<finalWritePeak
+        <<" line_requests="<<finalLr-lr<<" line_service_cycles="<<finalLs-ls<<" line_peak="<<finalLinePeak
+        <<" scalar_home_requests="<<finalHr-hr<<" scalar_home_service_cycles="<<finalHs-hs<<" scalar_home_offer_cycles="<<finalHo-ho
+        <<" final_b_cycle="<<finalB<<" completion_cycle="<<done<<" completion_tail="<<tail
+        <<" cpu_completed="<<count<<" cpu_p50="<<percentile(t.cpuLatencies,50)<<" cpu_p95="<<percentile(t.cpuLatencies,95)<<" cpu_p99="<<percentile(t.cpuLatencies,99)<<" cpu_max="<<percentile(t.cpuLatencies,100)
+        <<" cpu_worst_offer_blocked="<<finalWorst
+        <<" cpu_read_payload_bytes="<<t.cpuReadPayload<<" cpu_write_payload_bytes="<<t.cpuWritePayload
+        <<" cpu_useful_MiBps="<<(double(cpuMode==1?t.cpuReadPayload:t.cpuWritePayload)*100000000.0/double(elapsed)/1048576.0)<<"\n";
+}
+static void cpuOnly(unsigned mode){
+    Test t;while(t.cycles%385)t.tick();const uint64_t begin=t.cycles,returned=t.cpuReturned;
+    const auto rb=t.ddr.rBytes,wb=t.ddr.wBytes;t.measure=true;t.concurrent=mode;
+    t.until([&]{return t.cpuReturned-returned==256;},"CPU-only fixed-work timeout");
+    t.measure=false;t.concurrent=0;const auto elapsed=t.cycles-begin;
+    check(!t.offered&&t.replies.empty(),"CPU-only fixed work retained request");
+    const uint64_t payload=mode==1?t.cpuReadPayload:t.cpuWritePayload;
+    std::cout<<"CPU_PORT_ONLY line="<<DMA_LINE_ENABLED<<" cpu="<<mode<<" operations=256 cycles="<<elapsed
+        <<" useful_payload_bytes="<<payload<<" useful_MiBps="<<std::fixed<<std::setprecision(6)<<(double(payload)*100000000.0/double(elapsed)/1048576.0)
+        <<" axi_read_bytes="<<t.ddr.rBytes-rb<<" axi_write_bytes="<<t.ddr.wBytes-wb
+        <<" cpu_p50="<<percentile(t.cpuLatencies,50)<<" cpu_p95="<<percentile(t.cpuLatencies,95)
+        <<" cpu_p99="<<percentile(t.cpuLatencies,99)<<" cpu_max="<<percentile(t.cpuLatencies,100)
+        <<" cpu_worst_offer_blocked="<<std::max(t.worstOfferBlocked,t.offerBlocked)<<"\n";
+    t.flush();
+}
+static void combined(unsigned bytes,unsigned warm,unsigned mode,unsigned operations=256){
+    Test t;const uint64_t source=base,destination=base+0x40000;
+    if(warm)for(unsigned i=0;i<bytes;i+=64){t.cpu({source+i,true,0x76543210abcdef00ULL^i,0x55});t.cpu({destination+i,true,0xaabbccdd11223344ULL^i,0xaa});}
+    t.arm(source,destination,bytes);while(t.cycles%385)t.tick();
+    const auto beforeCpu=t.cpuReturned,rb=t.ddr.rBytes,wb=t.ddr.wBytes;uint64_t dmaDone=0,cpuDone=0;
+    t.concurrent=mode;t.concurrentLimit=operations;t.measure=true;const auto begin=t.cycles;t.control(24,true,7);
+    t.until([&]{
+        if(!dmaDone&&t.d.get_io$$irq()){dmaDone=t.cycles;t.completion(false);}
+        if(!cpuDone&&t.cpuReturned-beforeCpu==operations)cpuDone=t.cycles;
+        return dmaDone&&cpuDone;
+    },"fixed-work CPU+DMA makespan timeout");
+    t.concurrent=0;t.measure=false;const auto elapsed=t.cycles-begin;
+    check(!t.offered&&t.replies.empty(),"fixed-work CPU target retained owner");
+    const uint64_t payload=mode==1?t.cpuReadPayload:t.cpuWritePayload;
+    std::ostringstream row;row<<"DMA_CPU_COMBINED line="<<DMA_LINE_ENABLED<<" bytes="<<bytes<<" warm="<<warm<<" cpu="<<mode<<" operations="<<operations<<" cycles="<<elapsed
+        <<" dma_cycles="<<dmaDone-begin<<" cpu_cycles="<<cpuDone-begin
+        <<" dma_MiBps="<<std::fixed<<std::setprecision(6)<<(double(bytes)*100000000.0/double(dmaDone-begin)/1048576.0)
+        <<" cpu_payload_bytes="<<payload<<" cpu_useful_MiBps="<<(double(payload)*100000000.0/double(cpuDone-begin)/1048576.0)
+        <<" aggregate_useful_MiBps="<<(double(bytes+payload)*100000000.0/double(elapsed)/1048576.0)
+        <<" axi_read_bytes="<<t.ddr.rBytes-rb<<" axi_write_bytes="<<t.ddr.wBytes-wb
+        <<" cpu_p50="<<percentile(t.cpuLatencies,50)<<" cpu_p95="<<percentile(t.cpuLatencies,95)<<" cpu_p99="<<percentile(t.cpuLatencies,99)
+        <<" cpu_max="<<percentile(t.cpuLatencies,100)<<" cpu_worst_offer_blocked="<<std::max(t.worstOfferBlocked,t.offerBlocked);
+    const auto kernelRead=t.ddr.rBytes,kernelWrite=t.ddr.wBytes;
+    check(t.control(32)==2,"fixed-work DMA status mismatch");t.control(24,true,6);t.tick();const auto flushBegin=t.cycles;t.flush();
+    row<<" completion_control_cycles="<<flushBegin-begin-elapsed<<" flush_tail_cycles="<<t.cycles-flushBegin
+        <<" full_makespan_cycles="<<t.cycles-begin<<" full_aggregate_useful_MiBps="<<(double(bytes+payload)*100000000.0/double(t.cycles-begin)/1048576.0)
+        <<" drain_axi_read_bytes="<<t.ddr.rBytes-kernelRead<<" drain_axi_write_bytes="<<t.ddr.wBytes-kernelWrite
+        <<" full_axi_read_bytes="<<t.ddr.rBytes-rb<<" full_axi_write_bytes="<<t.ddr.wBytes-wb;
+    std::cout<<row.str()<<"\n";
+}
+static void protocols(){
+    // Whole descriptors spanning a 4 KiB boundary still use legal individual AXI bursts.
+    benchmark(128,0,0,0xfc0);benchmark(512,0,0,8);benchmark(72,0,0,56);benchmark(64,0,0,0,240);
+    for(auto desc:{std::vector<uint64_t>{base+8,base+0x40010,512},{base,base+DMA_RAM_BYTES-64,64},{base,base+DMA_RAM_BYTES-72,72},{base,base+0x40000,72}}){
+        Test t;t.start(desc[0],desc[1],desc[2]);t.finish();t.flush();
+    }
+    Test high;const uint64_t highAddress=base+DMA_RAM_BYTES-64;
+    high.cpu({highAddress,true,0x0123456789abcdefULL,0x55});high.start(highAddress,base+0x40000,64);high.finish();high.flush();
+    high.cpu({highAddress,true,0xfedcba9876543210ULL,0xaa});high.start(base,highAddress,64);high.finish();high.cpu({highAddress});high.flush();
+    Test held;held.d.set_io$$holdLineHome(1);held.start(base,base+0x40000,512);
+#if DMA_LINE_ENABLED
+    held.until([&]{return held.d.get_io$$lineRequestOffer();},"held line offer timeout");
+    auto heldLines=held.lineRequests;for(unsigned i=0;i<20;++i){held.tick();check(held.lineRequests==heldLines,"line crossed forced home stall");}
+#endif
+    held.d.set_io$$flushRequest(1);held.until([&]{return held.d.get_io$$flushDone();},"fence blocked on unaccepted line offer");
+    check(held.d.get_io$$active(),"held line unexpectedly completed before fence");held.d.set_io$$flushRequest(0);held.tick();held.d.set_io$$holdLineHome(0);held.finish();held.flush();
+    Test busy;busy.ddr.bDelay=240;busy.start(base,base+0x40000,512);
+    busy.until([&]{return busy.d.get_io$$active()&&(busy.dmaRequests||busy.lineRequests);},"busy descriptor setup timeout");
+    busy.control(0,true,0,true);busy.control(24,true,0,true);busy.finish();busy.flush();
+    Test two;two.offered=Request{base+0x90000};two.until([&]{return !two.offered;},"first concurrent miss not accepted");
+    two.offered=Request{base+0x90040};two.until([&]{return !two.offered;},"second concurrent miss not accepted");
+    check(two.replies.size()==2,"two independent CPU miss owners not resident");
+    two.until([&]{return two.ddr.reads.size()==2;},"two independent home refills never coexisted");
+    two.start(base,base+0x40000,512);two.finish();two.until([&]{return two.replies.empty();},"concurrent miss replies did not drain");two.flush();
+    for(bool writeError:{false,true}){
+        Test t;if(writeError)t.ddr.denyWrite=0x40000;else t.ddr.denyRead=0;
+        t.start(base,base+0x40000,512,false);t.finish(true);t.ddr.denyRead.reset();t.ddr.denyWrite.reset();
+        t.start(base,base+0x40000,512);t.finish();t.flush();
+    }
+    Test lr;lr.cpu({base+0x40000,false,0,255,true,2,true});lr.start(base,base+0x40000,64);lr.finish();
+    lr.cpu({base+0x40000,true,0xfedcba9876543210ULL,255,true,3,true,uint64_t(1)});lr.flush();
+    Test amo;amo.offered=Request{base+0x90000,true,17,255,true,0,true};
+    amo.until([&]{return amo.atomicExclusive&&!amo.ddr.reads.empty();},"AMO read gap setup timeout");
+    amo.start(base,base+0x40000,512);amo.finish();amo.until([&]{return !amo.atomicExclusive&&amo.replies.empty();},"AMO concurrent completion timeout");amo.flush();
+    for(auto desc:{std::vector<uint64_t>{base,base+0x40000,0},{base+1,base+0x40000,64},{base,base+8,64},
+        {base,base+DMA_RAM_BYTES-8,16},{0xfffffffffffffff8ULL,base,16},{0x10000000,base+0x40000,64}}){
+        Test t;auto before=t.dmaRequests,lineBefore=t.lineRequests,ar=t.ddr.arCount,aw=t.ddr.awCount;t.descriptor(desc[0],desc[1],desc[2]);t.control(24,true,7);
+        t.until([&]{return t.d.get_io$$irq();},"invalid descriptor failed to retire");check(t.control(32)==6&&t.dmaRequests==before&&t.lineRequests==lineBefore&&t.ddr.arCount==ar&&t.ddr.awCount==aw,"invalid descriptor produced memory traffic");
+    }
+    std::cout<<"DMA_PROTOCOL_PASS errors=2 restart=2 lr_sc=1 amo_gap=1 descriptor_rejects=6 boundary=1 fallback=5 aperture_high=4 above4GiB=1 delayed_b=1 held_line_fence=1 busy_write_reject=2 two_mshr=1\n";
+}
+static void pipelineCase(unsigned id,unsigned bytes,unsigned mode,unsigned latencyProfile,unsigned lineLatency=1){
+    diagnosticMode=mode;profile=latencyProfile;oracleLatency=lineLatency;
+    Test t;t.arm(base,base+0x40000,bytes);while(t.cycles%385)t.tick();
+    const uint64_t begin=t.cycles;t.metrics.measure=true;t.ddr.corruptWrite=mutation=="corrupt-write";t.ddr.dropWrite=mutation=="drop-write";
+    t.control(24,true,7);t.until([&]{return t.d.get_io$$irq();},"pipeline DMA IRQ timeout");const uint64_t done=t.cycles;
+    t.completion(false);t.metrics.measure=false;
+    check(t.control(32)==2,"pipeline completion status mismatch");
+    check(t.metrics.ops.size()==bytes/32,"line operation count mismatch");
+    for(auto&o:t.metrics.ops){check(o.event[15]>=o.event[1],"unfinished pipeline operation");
+        if(mode<2){check(o.event[2]==o.event[1],"unexpected admission split");
+            check(o.aBeats==(o.write?8U:1U)&&o.dBeats==(o.write?1U:8U),"TL exact beat mismatch");
+            check(o.rBeats==(o.write?0U:8U)&&o.wBeats==(o.write?8U:0U),"AXI exact beat mismatch");
+            if(o.write)check(o.event[11]<=o.event[15],"DMA line completion before actual AXI B");}
+    }
+    if(latencyProfile==3&&DMA_LINE_ENTRIES>1){
+        bool readInversion=false,writeInversion=false;
+        for(unsigned i=0;i<t.metrics.ops.size();++i)for(unsigned j=i+1;j<t.metrics.ops.size();++j){
+            auto&a=t.metrics.ops[i];auto&b=t.metrics.ops[j];if(a.write==b.write&&b.event[15]<a.event[15]){if(a.write)writeInversion=true;else readInversion=true;}
+        }
+        check(readInversion&&writeInversion,"forced profile did not observe read and write response inversions");
+        std::cout<<"DMA_OVERLAP_REORDER case="<<id<<" reads=1 writes=1\n";
+    }
+    check(t.ddr.memory==t.oracle,"pipeline independent full memory oracle mismatch");
+    std::cout<<"PIPE_CASE case="<<id<<" bytes="<<bytes<<" entries="<<DMA_LINE_ENTRIES<<" mode="<<mode<<" profile="<<latencyProfile<<" oracle_latency="<<lineLatency
+        <<" cycles="<<done-begin<<" begin="<<begin<<" done="<<done<<" payload_MiBps="<<std::fixed<<std::setprecision(9)
+        <<double(bytes)*100000000.0/double(done-begin)/1048576.0<<" axi_read_bytes="<<t.ddr.rBytes<<" axi_write_bytes="<<t.ddr.wBytes
+        <<" axi_ar="<<t.ddr.arCount<<" axi_aw="<<t.ddr.awCount<<" axi_b="<<t.ddr.bCount
+        <<" oracle_read_bytes="<<t.oracleReads*64<<" oracle_write_bytes="<<t.oracleWrites*64
+        <<" completion_after_actual_b="<<(mode<2?int64_t(done-t.ddr.lastDestinationB):-1)
+        <<" completion_after_oracle_response="<<(mode>=2?int64_t(done-1-t.lastOracleWrite):-1)<<"\n";
+    t.metrics.print(id);
+}
+int main(int argc,char** argv){try{
+    bool smoke=false,protocolOnly=false,combinedOnly=false;for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--smoke")smoke=true;else if(a=="--protocol-only")protocolOnly=true;else if(a=="--combined-only")combinedOnly=true;
+        else if(a.rfind("--mutate=",0)==0)mutation=a.substr(9);else throw std::runtime_error("unknown argument");}
+    if(combinedOnly){
+        for(unsigned mode:{1U,2U,3U})cpuOnly(mode);
+        for(unsigned bytes:{4096U,131072U})for(unsigned mode:{1U,2U,3U}){
+            auto warm=bytes==4096?2U:0U;combined(bytes,warm,mode,256);combined(bytes,warm,mode,bytes/(mode==1?8:4));
+        }
+        std::cout<<"DMA_OVERLAP_COMBINED_PASS entries="<<DMA_LINE_ENTRIES<<" cases=12 cpu_only=3\n";return 0;
+    }
+    if(protocolOnly){protocols();
+        for(unsigned warm:{1U,2U})benchmark(4096,warm,0);
+        if(DMA_LINE_ENTRIES>1){Test errorHeld;errorHeld.ddr.denyRead=0;errorHeld.start(base,base+0x40000,512,false);
+        errorHeld.d.set_io$$holdLineHome(1);
+        errorHeld.until([&]{return errorHeld.lineResponses!=0;},"held-error response timeout");
+        check(errorHeld.d.get_io$$lineRequestOffer(),"error race did not hold a second offered owner");
+        auto heldAddress=errorHeld.d.get_io$$lineRequestAddress();auto heldTag=errorHeld.d.get_io$$lineRequestTag();
+        for(unsigned i=0;i<20;++i){errorHeld.tick();check(errorHeld.d.get_io$$lineRequestOffer()&&errorHeld.d.get_io$$lineRequestAddress()==heldAddress&&errorHeld.d.get_io$$lineRequestTag()==heldTag&&!errorHeld.d.get_io$$irq(),"error withdrew an irrevocable line offer");}
+        errorHeld.d.set_io$$holdLineHome(0);errorHeld.finish(true);errorHeld.ddr.denyRead.reset();errorHeld.start(base,base+0x40000,512);errorHeld.finish();errorHeld.flush();}
+        Test heldReply;heldReply.start(base,base+0x40000,4096);heldReply.d.set_io$$blockLineResponse(1);
+        heldReply.until([&]{return heldReply.d.get_io$$lineResponseOffer();},"line response hold setup timeout");
+        auto data=heldReply.d.get_io$$lineResponseData();auto tag=heldReply.d.get_io$$lineResponseOfferTag();auto replies=heldReply.lineResponses;
+        for(unsigned i=0;i<40;++i){heldReply.tick();check(heldReply.d.get_io$$lineResponseOffer()&&data==heldReply.d.get_io$$lineResponseData()&&tag==heldReply.d.get_io$$lineResponseOfferTag(),"held line response changed");check(heldReply.lineResponses==replies&&!heldReply.d.get_io$$irq(),"held line response prematurely retired");}
+        heldReply.d.set_io$$blockLineResponse(0);heldReply.finish();heldReply.flush();
+        if(DMA_LINE_ENTRIES>1){
+            Test both;both.ddr.reversePairs=true;both.start(base,base+0x40000,512);
+            both.until([&]{bool rd=false,wr=false;for(auto[tag,owner]:both.checkedLineOwners){rd|=!owner.write;wr|=owner.write;}return rd&&wr;},"mixed-direction hold setup timeout");
+            const auto responsesBeforeBlock=both.lineResponses;
+            both.d.set_io$$blockLineResponse(1);both.tick();both.until([&]{return both.d.get_io$$lineResponseOffer();},"mixed held reply never offered");
+            auto data=both.d.get_io$$lineResponseData();auto tag=both.d.get_io$$lineResponseOfferTag();auto error=both.d.get_io$$lineResponseError();
+            const auto firstHeldReadCount=both.tlReadCompletions,firstHeldWriteCount=both.tlWriteCompletions;
+            check(firstHeldReadCount<2||firstHeldWriteCount<1,"both directions completed before hold witness");
+            unsigned waited=0;while(both.tlReadCompletions<2||both.tlWriteCompletions<1||waited<40){both.tick();++waited;check(waited<2000,"mixed pending replies did not coexist");check(both.d.get_io$$lineResponseOffer()&&data==both.d.get_io$$lineResponseData()&&tag==both.d.get_io$$lineResponseOfferTag()&&error==both.d.get_io$$lineResponseError()&&both.lineResponses==responsesBeforeBlock,"mixed-direction held response changed");}
+            both.d.set_io$$blockLineResponse(0);both.finish();both.flush();
+            std::cout<<"DMA_OVERLAP_PROTOCOL mixed_reply_lock=1 pending_read=1 pending_write=1 all_case_tag_checker=1\n";
+        }
+        if(DMA_LINE_ENTRIES>1){
+            for(bool firstWrite:{false,true}){
+                Test same;same.enableManual();same.ddr.readDelay=120;same.ddr.bDelay=160;same.d.set_io$$blockLineResponse(1);
+                unsigned _BitInt(512) value=0;for(unsigned i=0;i<64;++i)value|=(unsigned _BitInt(512))(uint8_t(0xd3^i))<<(8*i);
+                same.manual(0,base+0x20000,firstWrite,value);same.manual(1,base+0x20000,!firstWrite,value);
+                same.until([&]{return same.d.get_io$$lineResponseOffer();},"same-address older reply not offered");
+                auto data=same.d.get_io$$lineResponseData();auto tag=same.d.get_io$$lineResponseOfferTag();
+                for(unsigned i=0;i<40;++i){same.tick();check(same.lineRequests==2&&same.lineResponses==0&&same.d.get_io$$lineResponseOffer()&&data==same.d.get_io$$lineResponseData()&&tag==same.d.get_io$$lineResponseOfferTag(),"same-address retained reply changed");check(firstWrite?same.ddr.arCount==0:same.ddr.awCount==0,"younger same-address transport crossed retained owner");}
+                same.d.set_io$$blockLineResponse(0);same.until([&]{return same.checkedLineOwners.empty();},"same-address owners failed to drain");same.flush();
+            }
+            Test reuse;reuse.enableManual();reuse.ddr.readDelay=80;reuse.manual(0,base+0x20000,false);reuse.setManual(0,base+0x20040,false);
+            for(unsigned i=0;i<20;++i){reuse.tick();check(reuse.lineRequests==1&&!reuse.d.get_io$$manualLine$$request$$ready(),"tag reused before older reply");}
+            do{reuse.tick();}while(!reuse.d.get_io$$manualLine$$request$$ready());reuse.d.set_io$$manualLine$$request$$valid(0);
+            reuse.until([&]{return reuse.checkedLineOwners.empty();},"reused tag failed to drain");reuse.flush();
+            std::cout<<"DMA_OVERLAP_MANUAL same_address_read_write=1 same_address_write_read=1 held_after_transport=1 tag_reuse_backpressure=1\n";
+        }
+        Test ordinaryDemand;ordinaryDemand.start(base,base+0x40000,4096);
+        ordinaryDemand.until([&]{return ordinaryDemand.lineRequests>=DMA_LINE_ENTRIES&&ordinaryDemand.lineResponses==0;},"atomic fairness owner setup failed");
+        ordinaryDemand.offered=Request{base+0x90000,true,11,255,true,0,true};
+        ordinaryDemand.until([&]{return ordinaryDemand.d.get_io$$atomicCpuOffer();},"atomic demand not observed");
+        auto ordinaryBegin=ordinaryDemand.cycles,ordinaryLines=ordinaryDemand.lineRequests;
+        while(!ordinaryDemand.atomicExclusive){ordinaryDemand.tick();check(ordinaryDemand.lineRequests<=ordinaryLines+1,"new line admission starved pending atomic demand");}
+        auto ordinaryWait=ordinaryDemand.cycles-ordinaryBegin;ordinaryDemand.finish();ordinaryDemand.until([&]{return !ordinaryDemand.offered&&ordinaryDemand.replies.empty();},"atomic demand did not finish");ordinaryDemand.flush();
+        Test acquireDemand;acquireDemand.start(base,base+0x40000,4096);
+        acquireDemand.until([&]{return acquireDemand.lineRequests>=DMA_LINE_ENTRIES&&acquireDemand.lineResponses==0;},"Acquire fairness owner setup failed");
+        acquireDemand.offered=Request{base+0x90000};acquireDemand.until([&]{return acquireDemand.d.get_io$$cacheAcquireOffer();},"cache Acquire demand not observed");
+        auto acquireBegin=acquireDemand.cycles,acquireLines=acquireDemand.lineRequests;
+        while(!acquireDemand.d.get_io$$cacheAcquireFire()){acquireDemand.tick();check(acquireDemand.lineRequests<=acquireLines+1,"new line admission starved pending Acquire demand");}
+        auto acquireWait=acquireDemand.cycles-acquireBegin;acquireDemand.finish();acquireDemand.until([&]{return !acquireDemand.offered&&acquireDemand.replies.empty();},"Acquire demand did not finish");acquireDemand.flush();
+        std::cout<<"DMA_OVERLAP_FAIRNESS entries="<<DMA_LINE_ENTRIES<<" atomic_wait_cycles="<<ordinaryWait<<" acquire_wait_cycles="<<acquireWait<<" additional_irrevocable_offers_max=1\n";
+        std::cout<<"DMA_PIPELINE_PROTOCOL_PASS held_response=1 error_held_offer="<<(DMA_LINE_ENTRIES>1)<<" dirty_cases=2 all_case_tag_checker=1\n";return 0;}
+    unsigned id=0;
+    if(!mutation.empty()){pipelineCase(id++,512,0,0);throw std::runtime_error("negative failed to reject");}
+    for(unsigned n:{512U,4096U,131072U}){if(smoke&&n!=512)continue;
+        for(unsigned p:{0U,1U,2U,3U})for(unsigned m:{0U,1U})pipelineCase(id++,n,m,p);
+        for(unsigned latency:{1U,8U,32U})for(unsigned m:{2U,3U})pipelineCase(id++,n,m,2,latency);
+    }
+    std::cout<<"DMA_PIPELINE_PASS cases="<<id<<" clock_MHz=100\n";
+}catch(const std::exception&e){std::cerr<<"DMA_PIPELINE_FAIL "<<e.what()<<"\n";return 1;}}

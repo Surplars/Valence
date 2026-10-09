@@ -1,0 +1,57 @@
+--- simulator/gsim/harness/cpu_flow_bandwidth.cpp	2026-10-08 21:51:07.488560805 -0700
++++ build/gsim/cpu-flow-board-nemu-r1/harness/cpu_flow_bandwidth.cpp	2026-10-08 21:56:08.059340581 -0700
+@@ -10,6 +10,7 @@
+ #include <map>
+ #include <optional>
+ #include <limits>
++#include "board_nemu_observer.h"
+ 
+ namespace {
+ std::string injection;
+@@ -93,6 +94,7 @@
+     }
+ };
+ struct Observer {
++    board_nemu::Observer nemu;
+     Test *test=nullptr; Bytes image;
+     BackendOwnershipLedger backend; FlowDataPathOwnershipLedger data;
+     std::map<Key,Stamp> stamps;
+@@ -137,6 +139,7 @@
+         for(auto w:v)check(w.actual==w.expected,"hot read data mismatch");
+     }
+     void sample(SBoardSocGsim &d) {
++        nemu.sample(d);
+         auto b=BackendObserver::read(d);auto p=BackendObserver::readData(d);
+         data.flowEvents=d.get_cpuFlowEvents();data.ingressAuth=d.get_cpuFlowIngressAuth();
+         data.checkedAuth=d.get_cpuFlowCheckedAuth();data.checkedAddress=d.get_cpuFlowCheckedAddress();
+@@ -336,18 +339,24 @@
+ };
+ }
+ int main(int argc,char **argv) {try{
+-    check(argc==2||argc==3,"usage: cpu_flow_bandwidth guest.bin [--inject-physical-fingerprint]");
+-    if(argc==3) {
+-        injection=argv[2];
+-        const std::array<std::string,7> modes{"--inject-physical-fingerprint","--inject-route",
++    check(argc==3||argc==4,"usage: cpu_flow_bandwidth guest.bin nemu.so [--inject-nemu-{pc,gpr,memory}]");
++    if(argc==4) {
++        injection=argv[3];
++        const std::array<std::string,10> modes{"--inject-physical-fingerprint","--inject-route",
+             "--inject-virtual-enqueue","--inject-checked-enqueue","--inject-authorization",
+-            "--inject-private-metadata","--inject-return-token"};
++            "--inject-private-metadata","--inject-return-token",
++            "--inject-nemu-pc","--inject-nemu-gpr","--inject-nemu-memory"};
+         check(std::find(modes.begin(),modes.end(),injection)!=modes.end(),"unknown injection mode");
+     }
+     Observer observer;const auto image=readFile(argv[1]);
+     check(!image.empty()&&image.size()<0x10000,"guest image bounds");
++    observer.nemu.initialize(image,argv[2],injection);
+     Bytes rom;word(rom,0x00200297);word(rom,0x10000337);word(rom,0x00700393);word(rom,0x00730123);word(rom,0x000280e7);word(rom,0x0000006f);
+     Test test(rom,Observer::sample,&observer);observer.initialize(test,image);
+     while(!observer.finished&&test.cycles<300000){test.running=true;test.tick();check(test.received.empty(),"unexpected UART output");}
+-    observer.verify();observer.report();return 0;
++    // One extra edge applies the final observed retirement. NEMU stops
++    // consuming candidates after the original done-marker edge.
++    test.tick();
++    observer.nemu.verifyMemory(test);
++    observer.verify();observer.report();observer.nemu.report();return 0;
+ }catch(const std::exception &e){std::cerr<<"HOT_FAIL "<<e.what()<<"\n";return 1;}}
