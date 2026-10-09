@@ -12,18 +12,31 @@ def audit(binary: Path, mif: Path, dcp: Path, profile="minimal"):
     data = binary.read_bytes()
     if not 0 < len(data) <= ROM_BYTES:
         raise ValueError("invalid BootROM binary size")
-    if profile not in ("minimal", "menu"):
+    if profile not in ("minimal", "menu", "ansi-menu"):
         raise ValueError("unknown BootROM profile")
-    required = [b"Valence Bootrom V0.1\r\n\0"]
-    if profile == "minimal":
-        required.append(b"download mode (UART)\r\n\0")
+    if profile == "ansi-menu":
+        version = "V0.2"
+        required = [
+            b"Valence Bootrom V0.2 | verified downloads auto-boot\r\n\0",
+            b"n/1  Network download + boot (TFTP)\0",
+            b"d/2  UART download + boot (VLD1)\0",
+            b"c/C/5  CoreMark formal (measured >10 seconds, all CRCs)\0",
+            b"EXTERNAL STATE LOCKED; BOARD RESET REQUIRED\r\n\0",
+        ]
     else:
-        required += [b"monitor> \0", b"locked> \0",
-                     b"EXTERNAL STATE LOCKED; BOARD RESET REQUIRED\r\n\0"]
+        version = "V0.1"
+        required = [b"Valence Bootrom V0.1\r\n\0"]
+        if profile == "minimal":
+            required.append(b"download mode (UART)\r\n\0")
+        else:
+            required += [b"monitor> \0", b"locked> \0",
+                         b"EXTERNAL STATE LOCKED; BOARD RESET REQUIRED\r\n\0"]
     if any(token not in data for token in required):
-        raise ValueError("expected " + profile + " Bootrom V0.1 identity/contract missing")
+        raise ValueError("expected " + profile + " Bootrom " + version + " identity/contract missing")
     if b"r:RAM" in data or b"CPU OK" in data:
         raise ValueError("retired ROM diagnostics detected")
+    if profile == "ansi-menu" and b"Run verified RAM image" in data:
+        raise ValueError("retired manual-launch menu detected")
     words = mif.read_text(encoding="ascii").splitlines()
     if len(words) != ROM_BYTES // 4 or any(len(w) != 32 or set(w) - set("01") for w in words):
         raise ValueError("expected 32768 binary MIF words")
@@ -51,7 +64,7 @@ def main():
     parser.add_argument("--mif", type=Path, required=True)
     parser.add_argument("--dcp", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument("--profile", choices=("minimal", "menu"), default="minimal")
+    parser.add_argument("--profile", choices=("minimal", "menu", "ansi-menu"), default="minimal")
     args = parser.parse_args()
     result = audit(args.bin, args.mif, args.dcp, args.profile)
     args.manifest.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

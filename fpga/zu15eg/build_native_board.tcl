@@ -135,6 +135,9 @@ report_drc -file drc.rpt
 report_clocks -file routed_clocks.rpt
 set cpuClock [get_clocks -of_objects [get_pins u_soc/clock]]
 report_timing -from $cpuClock -to $cpuClock -delay_type min_max -max_paths 20 -input_pins -file cpu_paths.rpt
+# A combined report may contain only hold paths; keep both CPU views explicit.
+report_timing -from $cpuClock -to $cpuClock -delay_type max -max_paths 20 -input_pins -file cpu_setup_paths.rpt
+report_timing -from $cpuClock -to $cpuClock -delay_type min -max_paths 20 -input_pins -file cpu_hold_paths.rpt
 # Query every physical lane independently: a report of only the globally
 # worst lanes can hide an excluded endpoint or its missing hold check.
 foreach direction {tx rx} {
