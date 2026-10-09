@@ -6,6 +6,7 @@ baseline commit label. Staging a local implementation is a separate operation.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
+_media_spec = importlib.util.spec_from_file_location("valence_media_integration", HERE / "media_integration.py")
+media_integration = importlib.util.module_from_spec(_media_spec)
+_media_spec.loader.exec_module(media_integration)
 
 
 def sha(path):
@@ -27,7 +31,8 @@ def sources():
              for p in (ROOT / folder).rglob("*.scala")]
     files += [ROOT / name for name in ("build.mill", ".mill-version",
         "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
-        "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl")]
+        "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
+        "fpga/next/media_integration.py", *media_integration.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -261,12 +266,14 @@ def main():
                 raise RuntimeError("enabled debug resource missing from export: " + name)
             if resource.name not in listed:
                 listed.append(resource.name)
-        if a.experimental_jtag_bscan:
+        if a.experimental_jtag_bscan or a.experimental_trispeed_ethernet:
             # Match the existing selected GMII board by default; tri-speed remains
             # an independent explicit option. Never deliver mismatched top ports.
             if a.experimental_trispeed_ethernet:
                 source = HERE / "soc_top_fpga_next_ddr.sv"
-                wrapper = bscan_board_wrapper(source.read_text())
+                wrapper = source.read_text()
+                if a.experimental_jtag_bscan:
+                    wrapper = bscan_board_wrapper(wrapper)
                 media = "experimental-trispeed"
             else:
                 source = ROOT / "fpga/zu15eg/soc_top_gmac_ddr.sv"
@@ -276,6 +283,16 @@ def main():
             (output / "board").mkdir()
             path = output / "board" / source.name
             path.write_text(wrapper)
+            receipt["board_wrapper"] = {"path": str(path.relative_to(output)), "sha256": sha(path),
+                "source": str(source.relative_to(ROOT)), "source_sha256": sha(source), "media": media,
+                "requires": "matching board/IP composition; debug allocation and CDC/RDC signoff",
+                "debug_por_source": "existing sys_rst_n/button_n whole-board reset" if a.experimental_jtag_bscan
+                    else "reserved external debug POR; no package mapping assigned",
+                "additional_jtag_package_pins": 0 if a.experimental_jtag_bscan else 7,
+                "named_ports_checked": connected_ports, "qualified": False}
+            if a.experimental_trispeed_ethernet:
+                receipt["tri_speed_native_integration"] = media_integration.stage(ROOT, output)
+        if a.experimental_jtag_bscan:
             guard = output / "board/check_jtag_chain.tcl"
             guard.write_text((HERE / "check_jtag_chain.tcl").read_text())
             required = output / "board/require_jtag_chain.tcl"
@@ -286,11 +303,8 @@ def main():
             receipt["required_post_synthesis_gate"] = {"path": str(required.relative_to(output)),
                 "sha256": sha(required), "guard_sha256": sha(guard), "status": "NOT_RUN_NO_VIVADO",
                 "must_pass_before_implementation_or_bitstream": True}
-            receipt["board_wrapper"] = {"path": str(path.relative_to(output)), "sha256": sha(path),
-                "source": str(source.relative_to(ROOT)), "source_sha256": sha(source), "media": media,
-                "requires": "matching board/IP composition; USER allocation and CDC/RDC signoff",
-                "debug_por_source": "existing sys_rst_n/button_n whole-board reset",
-                "additional_jtag_package_pins": 0, "named_ports_checked": connected_ports, "qualified": False}
+        if before != sources():
+            raise RuntimeError("source changed during board integration staging")
         for name in listed:
             item = Path(name)
             if item.is_absolute() or ".." in item.parts or not (rtl / item).is_file():

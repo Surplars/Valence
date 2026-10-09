@@ -1,0 +1,133 @@
+{
+  "status": "PASS_INTERFACE_ELABORATION_AND_LIGHT_SOURCE_CHECKS_ONLY",
+  "date_utc": "2026-10-09T06:43:46.229893+00:00",
+  "base_commit": "66c06d786275dc28c099301162cd09e70497f6eb",
+  "base_tree": "b3b9b20ecd094666c114af855147fd3116a34e39",
+  "new_contract_version": 1,
+  "production_hart_debug_connected": false,
+  "full_debug_module": false,
+  "existing_production_sources_changed": false,
+  "source_sha256": {
+    "src/main/scala/ip/debug/HartDebugContract.scala": "fc6ecb11bf3d494f55949f0f12f317129508db532cf9faf99256731ed2bb668b",
+    "src/test/scala/debug/HartDebugContractSpec.scala": "6054816ed420f33de5ad902ecdcf37f7648029025afd32ce00920cdc036b0723",
+    "docs/debug/hart-debug-contract.md": "5c797f0b956bf7cb61434a5f3a24baafeae4da3c83e5cfaab9903d36cff1ba7c",
+    "src/main/scala/ip/debug/JtagDebugReservation.scala": "445a8c1f2305f515a696d13c95369c227a1bedccc710949b699b8637dddfe98a",
+    "src/main/scala/ip/debug/JtagRamLoader.scala": "d698ba1db6f636fb8356671ed327c75cf279cbe38bc094bdc01b3fa69f50df85",
+    "src/main/resources/debug/ValenceJtagDebugPort.sv": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+    "src/main/resources/debug/ValenceBscanDebugPort.sv": "c9923e48204436abeb9ffa7334cefbd8f4ff19280754c2195638138040a7e8b3",
+    "fpga/next/check_jtag_chain.tcl": "cfb30678a3b1e8c49a41038e68e565ce4346ea4b9ff524fb76d3843a50b5057f",
+    "simulator/jtag/ram-loader.tcl": "a10d1a465d2cd05380a5f6eb1d8e0058684c323a31821623a16547a9c51799e7",
+    "simulator/jtag/ram-loader-bscan.tcl": "3cd5a71fe7cbcc3905cc857c6ee4b44bc76d40a8744fc61fd351ff818de04c81",
+    "simulator/jtag/ram-loader-xczu15eg.tcl": "dea5f9120a5cd28964a8646ac69e3f71e9ed1c92bc04829e10a6f9c60e61e03f"
+  },
+  "checks": {
+    "scala_elaboration": 9,
+    "host_direct": 44,
+    "host_bscan": 121,
+    "config_mock": 13,
+    "chain_guard_mock": 11,
+    "wrapper_binding": 6,
+    "bscan_codec_vectors": 120,
+    "standalone_constraint_mock": "PASS_TEMPLATE_ONLY"
+  },
+  "historical_evidence_binding_audit": {
+    "docs/debug/evidence/ram-download/gsim-endpoint.json": {
+      "receipt_sha256": "135c491a11b2b831a9f54d3b7c9e0419cff0f22bd37f018ba2fbc8fcace6df75",
+      "matching_bindings": 6,
+      "changed_or_missing_bindings": [],
+      "meaning": "source binding check only; never expands original test scope"
+    },
+    "docs/debug/evidence/ram-download/cpu-smoke/receipt.json": {
+      "receipt_sha256": "8b9df0cdcafe8c3f67a048990cee22c4978d6cbf55f179ee9dbd1aabee829298",
+      "matching_bindings": 180,
+      "changed_or_missing_bindings": [
+        "src/main/scala/core/ooo/AtomicDataMemory.scala",
+        "src/main/scala/core/ooo/BoardSocTop.scala",
+        "src/main/scala/core/ooo/CoherentLineHome.scala",
+        "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+        "src/main/scala/core/ooo/FpgaNextConfig.scala",
+        "src/main/scala/core/ooo/MachinePlatform.scala",
+        "src/main/scala/core/ooo/MixedCoherentLineHome.scala",
+        "src/main/scala/core/ooo/OooParams.scala",
+        "src/main/scala/ip/dma/MemoryCopyDma.scala",
+        "src/main/scala/ip/memory/AtomicMemory.scala"
+      ],
+      "meaning": "source binding check only; never expands original test scope"
+    },
+    "docs/debug/evidence/ram-download/selected-bscan-export.json": {
+      "receipt_sha256": "cc29b8d5f1550d61d58707ad404a3045f031d4d56658a2b4df7681eb92a49571",
+      "matching_bindings": 199,
+      "changed_or_missing_bindings": [
+        "fpga/next/export.py",
+        "src/main/scala/core/ooo/AtomicDataMemory.scala",
+        "src/main/scala/core/ooo/BoardSocTop.scala",
+        "src/main/scala/core/ooo/CoherentLineHome.scala",
+        "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+        "src/main/scala/core/ooo/FpgaNextConfig.scala",
+        "src/main/scala/core/ooo/MachinePlatform.scala",
+        "src/main/scala/core/ooo/MixedCoherentLineHome.scala",
+        "src/main/scala/core/ooo/OooParams.scala",
+        "src/main/scala/ip/dma/MemoryCopyDma.scala",
+        "src/main/scala/ip/memory/AtomicMemory.scala",
+        "src/test/scala/ooo/FpgaNextMain.scala"
+      ],
+      "meaning": "source binding check only; never expands original test scope"
+    },
+    "simulator/jtag/evidence/zu15eg-bsdl-config/receipt.json": {
+      "receipt_sha256": "8bb1d2695657adcde6b644ce76640403b5f937ee4588a63e9b839d880547625d",
+      "matching_bindings": 8,
+      "changed_or_missing_bindings": [],
+      "meaning": "source binding check only; never expands original test scope"
+    },
+    "fpga/firmware/tests/tui-evidence/receipt.json": {
+      "receipt_sha256": "9e5dd2fb884f3156ac4fc30a800c64120ed28b23a9e1528fa1e5fa14a19bd922",
+      "matching_bindings": 32,
+      "changed_or_missing_bindings": [],
+      "meaning": "source binding check only; never expands original test scope"
+    }
+  },
+  "tools_on_path": {
+    "iverilog": null,
+    "vvp": null,
+    "openocd": null,
+    "jimsh": null,
+    "vivado": null,
+    "xsim": null,
+    "tclsh": "/usr/bin/tclsh"
+  },
+  "never_run_this_candidate": [
+    "unavailable adapter behavioral simulation",
+    "native TCK/BSCAN/CDC HDL",
+    "AMD UNISIM",
+    "integrated current CPU download smoke",
+    "selected geometry production C CRC/CLAIM/autostart",
+    "combined MAC+JTAG RTL export",
+    "real new-image USER allocation guard",
+    "BSCAN physical clock constraints CDC/RDC/STA",
+    "real Jim/OpenOCD SMT2/board"
+  ],
+  "logs": {
+    "build/jtag/contract-check/bscan-structure.json": "ae362a9d165b3d93550821106f9a8201e9cabd6361c10a1f271c9f1cae715dca",
+    "build/jtag/contract-check/export-contract.log": "c6b9b1f09add0403cc07e90bfdf272129b1ddfa2f8f7675ea8218862f2516371",
+    "build/jtag/contract-check/ram-loader-bscan-test.log": "b03d78f9fcf7c769a065cb9c4980c6f659da28ac3bb72f912dcb4e884ef9ef95",
+    "build/jtag/contract-check/ram-loader-config-test.log": "e45cbf40803be69c7b2e2da5c3a58a6e929f2a2a5bd0e893d40bdd77be03b5ae",
+    "build/jtag/contract-check/ram-loader-test.log": "61a602b066c2772f9bcde3def26a8d4b7b0286ad57f97257bb651e72b0ed792a",
+    "build/jtag/contract-check/scala.log": "14965e4f9b3e4aa1ea9eadd1228d9f64ba299a75dd53aa32135ef9d3ae8a2968",
+    "build/jtag/contract-check/test_chain_guard.log": "e1ca5d845603c123a9c2fb31fcedf220c17729fbe9947a3f84f87a8aec305219",
+    "build/jtag/contract-check/test_constraints.log": "27ce860995e97c2a861e53e949544f0c574d438661c86c2137a9de275be93fb7"
+  },
+  "native_tool_install_attempted": false,
+  "board_access_attempted": false,
+  "remote_published": false,
+  "log_archive": {
+    "name": "Valence-jtag-hart-contract-checks-20261009.tar.gz",
+    "sha256": "78cc6ac2c13f9b3ea622fd4c092bf540d4cb6ed0aa02faebcc3b02866a86260a",
+    "layout": "files from build/jtag/contract-check at archive root",
+    "source_only_patch_omits_raw_logs": true
+  },
+  "independent_review": {
+    "scope": "read-only interface/terminator review by MAC integration worker",
+    "findings": "No false halted/success or handshake flaw found. Documented module-reset cancellation of pending unavailable response.",
+    "behavioral_simulation": false
+  }
+}

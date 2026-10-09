@@ -203,6 +203,15 @@ configuration writer. Completed RX/DMA ownership remains in fixed-clock domains
 when recovered RXC disappears. Native reset/CDC/pad simulation, per-rate both-edge
 setup/hold, routing and board qualification remain separate pending gates.
 
+The [native integration recipe](../../docs/fpga-next/native-media-integration.md)
+now stages that wrapper whenever tri-speed is explicitly enabled, freezes its
+pad/clock/reset/constraint dependencies, and separates the unchanged carrier
+pins from the legacy fixed-1G clock constraints. `board-synthesis-files.f` and
+`board/trispeed-integration.json` describe the extra native inputs. The optional
+BSCAN USER2 combination retains its separate mandatory chain-allocation gate.
+The three-rate scoped timing/packet-CDC recipe is prepared, not a mapped or
+routed result; complete board/control/reset/JTAG constraints still need review.
+
 ## Debug reservation
 
 `FpgaNextSocTop` reserves TCK/TMS/TDI/TRST, TDO/output-enable and independent debug

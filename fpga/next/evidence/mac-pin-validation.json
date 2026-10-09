@@ -1,0 +1,68 @@
+{
+  "schema": "valence-mac-pin-validation-v1",
+  "status": "PASS_HOST_CHECKS_AND_IDENTICAL_FIXED_STAGING",
+  "historical_source_candidate": "1ddf818887c634b2e31d539c0c604e271cb95f7b",
+  "historical_export_source": "020edf892f65df4259ad471e3fb7f2c30fd20ee4",
+  "historical_native_receipt": "fpga/next/evidence/mac-jtag-native-integration.json",
+  "historical_native_receipt_sha256": "d4e8368d5f4af7351e2b1eb680a673c4e80c809a7673b3ad6fd27c704ab626d9",
+  "source_sha256": {
+    "fpga/next/media_integration.py": "fc8bbd1d4bced320eb4f19126a9b462c2657fea9cf198146a0d515e11e90c79b",
+    "fpga/next/test_media_integration.py": "ab31510ec60f7762a6a3a66dfc873aac9423cf0bb19c1c7dabc977f4daa687ef",
+    "fpga/zu15eg/native_gmac_pins.xdc": "0be66071c3daeb8571fa43de9b2f9331d08dd226b34b17e6435eb5a0d88ab6ce"
+  },
+  "changes_to_historical_export_inventory": {
+    "entries": 223,
+    "unchanged_entries": 222,
+    "changed": [
+      {
+        "path": "fpga/next/media_integration.py",
+        "old_sha256": "199dfff3b1b5f15b62345f6f973b9c09838ecbf8a28737089e0a9bf1433750f3",
+        "new_sha256": "fc8bbd1d4bced320eb4f19126a9b462c2657fea9cf198146a0d515e11e90c79b",
+        "role": "post-export Python board-packaging helper; no RTL emission change"
+      }
+    ],
+    "all_scala_sv_and_other_export_inputs_unchanged": true
+  },
+  "checks": {
+    "media_host_tests": 27,
+    "all_fpga_next_host_tests": 47,
+    "complete_property_statements": 19,
+    "demonstrated_bypasses_old_accepts_new_rejects": [
+      "unbraced_pin_override",
+      "appended_timing_exception",
+      "comment_line_continuation"
+    ],
+    "fixed_staging_files_byte_identical": 13,
+    "original_receipts_unchanged": true,
+    "host_log_sha256": "bb5625405d8dcc1dd4dbf02b7ea92d5b6ea9e72b6b0fcbe3869f66976e10834c"
+  },
+  "historical_staging_path": "build/mac-jtag-integration-020edf8/native-enabled",
+  "identical_staging_artifacts_sha256": {
+    "board/cdc_constraints.tcl": "0955b07d09c037a3a6fb4a2f3830a87424e07d8aa5ecfd05e4236080105df10d",
+    "board/native-gmac-cdc-constraints.tcl": "0dc6204fcbd45de30a677c8df970928d5e632b5da93c9e2d14ada21348d40eff",
+    "board/native_gmac_divided_clock.sv": "babab83514e73dbb88407ecb0ce8f8e209ce13deb90d9f2fe9a7661c40bd7769",
+    "board/native_quarter_clock_constraints.tcl": "72576b4b88a36e7c6c6ad66b1a4d6166cca9cec69b5655a44cf546e20f03493c",
+    "board/native_rgmii_trispeed_quarter.sv": "747de2b34bcecaeb77dea1601b293b8d46755ad66918297b38119aa9c7dc81ab",
+    "board/native_tx_word_reset_boundary.sv": "9dadc616bd621e4419629c2ce8f7a3cc521e134ee0be24de4aa5db861c02feaf",
+    "board/require_trispeed.tcl": "5c4086713e9a274b445bfbb1a62361fc987befe59880e621cd16265e3f729572",
+    "board/soc_top_fpga_next_ddr.sv": "b2a4cdce840fde6c2c4750d4e0964d7c1f42e5c577fcef4c6723c84ab2de5474",
+    "board/trispeed-integration.json": "8bf997b1886ba334ad43aa3ef7bcde6fb5c0c1ebc209c664948be9101dbfe3f3",
+    "board/trispeed_board_constraints.tcl": "a5f51c66d10f76cebc280c1f8c0f1c34dbc909070112809d43c8a720abb61898",
+    "board/trispeed_pins_only.xdc": "ac8760aa578496c7f6603d5e8038bee8a441f4b1f94f264fd5125a13301e2971",
+    "board/trispeed_quarter_constraints.tcl": "995815e6834a3c2a8b0de73f52ead7c025016da99bec63012ca67a4581ff61dd",
+    "board-synthesis-files.f": "02262143d1125d0c98f3613f31c30081e1bd0c0d702ba1d3d8614f41080b6fe0"
+  },
+  "qualification": {
+    "new_rtl_export_run": false,
+    "native_xsim_unisim_run": false,
+    "actual_mapped_netlist_audited": false,
+    "physical_cdc_rdc_signoff": false,
+    "timing_signoff": false,
+    "board_verified": false
+  },
+  "evidence_availability": {
+    "original_export_archive": "mac-jtag-integration-final-evidence-20261009.tar.gz",
+    "original_export_archive_sha256": "b2711ebc93d8646414e4e0b254c0fff272bf348c3688e68c7fa086e88dee661c",
+    "raw_host_logs_and_replay": "Preserved separately with the source-publication audit; not tracked in source Git."
+  }
+}

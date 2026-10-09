@@ -1,0 +1,75 @@
+{
+  "schema": "valence-mac-jtag-final-dependency-binding-v1",
+  "status": "PASS_UNCHANGED_EXPORTED_INPUTS",
+  "current_commit": "20a3a06d04ccef7ae9d1136f9386f13b993a9dfc",
+  "current_tree": "65b13f4abaa9b98c48a612e496e233555983fe71",
+  "xsim_preparation_original_commit": "c317051195da9493382bd42f02fc4b471e57e5b7",
+  "production_export_inputs": 223,
+  "exports": {
+    "enabled": {
+      "exported_source_commit": "020edf892f65df4259ad471e3fb7f2c30fd20ee4",
+      "current_export_inputs_identical": true,
+      "rtl_artifacts_verified": 283
+    },
+    "default": {
+      "exported_source_commit": "020edf892f65df4259ad471e3fb7f2c30fd20ee4",
+      "current_export_inputs_identical": true,
+      "rtl_artifacts_verified": 263
+    }
+  },
+  "new_test_only_emitter_compiled": true,
+  "native_simulation_run": false,
+  "synthesis_run": false,
+  "route_run": false,
+  "bit_generated": false,
+  "on_board_verified": false,
+  "fixture_export": {
+    "receipt": "build/mac-jtag-integration-020edf8/native-loader-fixture/native-loader.json",
+    "sha256": "4471685f530cfadc10847be3b7b50f6738e08ec48b6514cafdb3464394e0c6a3",
+    "source_commit": "20a3a06d04ccef7ae9d1136f9386f13b993a9dfc",
+    "rtl_sha256": "ae3d2c919f9b549a39564f5e5d0b0adeb93048b7ffce1f447e25af4ff6d120ba",
+    "source_bindings_checked": 6,
+    "bench_named_ports_checked": 34,
+    "timeout_cycles": 64,
+    "ram_base": "0x80200000",
+    "ram_end": "0x80201000",
+    "status": "RTL_EXPORTED_NOT_SIMULATED"
+  },
+  "prepared_suites": {
+    "protocol": {
+      "path": "build/mac-jtag-integration-020edf8/xsim-protocol-prepared/receipt.json",
+      "sha256": "1e2c34df10c3d405166b986a6ec703b65c7d6889935daf9c42d64d65347387f2",
+      "cases": 7,
+      "runtime_executed": false
+    },
+    "unisim-profile": {
+      "path": "build/mac-jtag-integration-020edf8/xsim-profile-prepared/receipt.json",
+      "sha256": "71f7d96b85ba7f2d357692de72bc28fe671163088ae8633651b602245052d461",
+      "cases": 1,
+      "runtime_executed": false
+    },
+    "loader-drain": {
+      "path": "build/mac-jtag-integration-020edf8/xsim-loader-drain-prepared/receipt.json",
+      "sha256": "194ff56d9841aa682036edfcfcaa683772d81aea29de11a0b1ce0f6aded030f6",
+      "cases": 4,
+      "runtime_executed": false
+    }
+  },
+  "host_helper_checks": {
+    "python": 15,
+    "tcl_netlist_audit": 11,
+    "existing_chain_guard": 11
+  },
+  "artifact_sha256": {
+    "build/mac-jtag-integration-020edf8/final-xsim-runner.log": "d5a73ae4ad212c8ee90b59e90c91a3311bac13b7661b48e5eeba5304fd3b73ed",
+    "build/mac-jtag-integration-020edf8/final-netlist-audit.log": "6aa2426d3ef9e9c6d939d507c8f217fbde9956abb138fd1d85a76ad484f5c45f",
+    "build/mac-jtag-integration-020edf8/final-chain-guard.log": "e1ca5d845603c123a9c2fb31fcedf220c17729fbe9947a3f84f87a8aec305219",
+    "build/mac-jtag-integration-020edf8/native-loader-export.log": "780b1923a37381b8d3d9aabf05a70a3ea17b560b57e7dbe48b5c65928230e09f",
+    "build/mac-jtag-integration-020edf8/xsim-loader-prepare.log": "65edbf8358f3f67d6aeb50014abd4fe76e1459df8be0c5b9210de56be00e60e6"
+  },
+  "limits": [
+    "Fixture compile/export does not compile or execute native testbench HDL.",
+    "UNISIM scenario values must come from the separately authorized installed-model profile; physical IR12/USER2 0x903 is unchanged.",
+    "Whole-board/CDC/RDC/routed/on-board qualification remains pending."
+  ]
+}
