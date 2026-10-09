@@ -23,6 +23,7 @@ case class OooParams(
     registeredMemoryAddress: Boolean = false,
     registeredRobRetirement: Boolean = false,
     registeredLoadReplay: Boolean = false,
+    loadOrderOlderRetire: Boolean = false,
     parallelRenameAdmission: Boolean = false,
     stableFetchFaultMetadata: Boolean = false,
     precompleteMispredictedBranch: Boolean = false,
@@ -131,8 +132,11 @@ case class OooParams(
     independentFetchPayloadCapture: Boolean = false,
     ownerLocalIssueReady: Boolean = false,
     sharedFetchPmpRelations: Boolean = false,
-    shareProtectedHeadPayload: Boolean = false
+    shareProtectedHeadPayload: Boolean = false,
+    fetchPreviousPacket: Boolean = false
 ) {
+    require(!loadOrderOlderRetire || registeredLoadReplay,
+        "older-prefix load-order retirement requires the registered replay boundary")
     require(!shareProtectedHeadPayload || (bankedIssuePayload && machineSystem && compressedInstructions && fpEnabled && fastHeadSystemRecovery),
         "protected head payload sharing requires banked storage, compressed FP and the protected head-token observation")
     require(!sharedFetchPmpRelations || (wordSpanPacketPmp && parallelPacketPmp && pmpEntries > 0),
@@ -192,6 +196,8 @@ case class OooParams(
     require(!splitFetchCursor || registeredFetchPacket, "split cursor requires fetch reservoir")
     require(!registeredFetchWindow || (compressedInstructions && registeredFetchPacket),
         "registered cache window requires compressed packets and the fetch reservoir")
+    require(!fetchPreviousPacket || registeredFetchWindow,
+        "previous fetch packet requires the registered cache window")
 
     require(
         speculativeRamBase >= 0 && speculativeRamBytes >= 0 &&

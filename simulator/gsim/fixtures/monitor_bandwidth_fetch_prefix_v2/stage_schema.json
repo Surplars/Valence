@@ -1,0 +1,302 @@
+{
+  "board$platform$core$core$core$backend$payload_1$pcBank0": [
+    64,
+    8
+  ],
+  "board$platform$core$core$core$backend$payload_1$pcBank1": [
+    64,
+    8
+  ],
+  "board$platform$core$core$core$backend$ledger$count": [
+    5,
+    null
+  ],
+  "board$platform$core$core$core$backend$ledger$head": [
+    4,
+    null
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$token$$tag": [
+    64,
+    16
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$token$$index": [
+    4,
+    16
+  ],
+  "board$platform$core$core$core$backend$ledger$entries$$tag": [
+    64,
+    16
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_0": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_1": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_2": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_3": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_4": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_5": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_6": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_7": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_8": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_9": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_10": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_11": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_12": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_13": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_14": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready1_15": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_0": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_1": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_2": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_3": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_4": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_5": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_6": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_7": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_8": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_9": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_10": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_11": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_12": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_13": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_14": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$ownerReady$ready2_15": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$source1": [
+    6,
+    16
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$source2": [
+    6,
+    16
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$destination": [
+    6,
+    16
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$writesRd": [
+    1,
+    16
+  ],
+  "board$platform$core$core$core$backend$queue$$renamed$$moveAlias": [
+    1,
+    16
+  ],
+  "board$platform$core$core$core$backend$pending": [
+    1,
+    16
+  ],
+  "board$platform$core$core$core$backend$ledger$entries$$done": [
+    1,
+    16
+  ],
+  "board$platform$core$core$core$backend$stagedMemoryIndex": [
+    4,
+    null
+  ],
+  "board$platform$core$core$core$backend$stagedMemoryValid": [
+    1,
+    null
+  ],
+  "board$platform$core$core$core$backend$stagedMemoryToken$$tag": [
+    64,
+    null
+  ],
+  "board$platform$core$core$core$backend$stagedMemoryToken$$index": [
+    4,
+    null
+  ],
+  "board$platform$core$core$core$backend$stagedMemoryAddress": [
+    64,
+    null
+  ],
+  "board$platform$core$core$core$backend$ledger$tail": [
+    4,
+    null
+  ],
+  "board$platform$core$core$core$backend$ledger$nextTag": [
+    64,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$offsets_3": [
+    3,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$context": [
+    3,
+    null
+  ],
+  "board$platform$frontend$_io_instruction0_valid_T_2": [
+    1,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$present_2": [
+    1,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regions_1": [
+    58,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$offsets_4": [
+    3,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regionIds_2": [
+    2,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regionIds_3": [
+    2,
+    null
+  ],
+  "board$platform$frontend$_io_instruction1_valid_T_3": [
+    1,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regions_2": [
+    58,
+    null
+  ],
+  "board$platform$frontend$currentBase": [
+    64,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$offsets_2": [
+    3,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$present_1": [
+    1,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regions_0": [
+    58,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$_present_2_T": [
+    1,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$regionIds_4": [
+    2,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$present_0": [
+    1,
+    null
+  ],
+  "board$platform$frontend$context": [
+    3,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$contents$$data_0": [
+    64,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$contents$$accessFaults_0": [
+    2,
+    null
+  ],
+  "board$platform$frontend$suppliedPackets_window$contents$$pageFaults_0": [
+    2,
+    null
+  ],
+  "board$platform$frontend$alignment$_candidates_c_present_T_3": [
+    1,
+    null
+  ]
+}

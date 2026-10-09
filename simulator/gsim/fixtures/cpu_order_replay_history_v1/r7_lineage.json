@@ -1,0 +1,86 @@
+{
+  "schema": "valence-cpu-order-history-r7-lineage-v1",
+  "qualified_r7_receipt_sha256": "ebc318ee5e79f00c886d53d0f08b5e3668a8c40a88c7d3e4052855b1060efb63",
+  "qualified_snapshot_manifest_sha256": "13e0976bdf451b1930920fd3de98731c743d3f7c60012af46fd00b3e2349be0c",
+  "qualified_r7_status": "PASS_EXECUTED_CPU_ORDER_REPLAY_OFF_ON",
+  "qualified_r7_production_commit": "681ae55f14dde1c192f936b908476dc58a360e3a",
+  "production_commit": "2288c7f008e9d6440e8a28e339da28152b54892a",
+  "host_commit": "46b061977ad4189bd71d084dcb63e873a7f0c740",
+  "production_tree": "c6e69b6b539bc36285b602a39fae32cb76ea012c",
+  "retained_fixture_sha256": {
+    "build_guest.py": "8f750cb8f3ed0253f4c0ab85220941fcd4f5e620e9dbc81d25eb6750c9fcfd98",
+    "cpu_order_replay.S": "7a8b8a7d8ca1b29332e6cf3a0d3beea660d99934482fbc65c9d187146ee95134",
+    "cpu_order_replay.ld": "8ee85b1f42bd364d5cce2fe8c14378d90f6a4aae9d44bc67b9cc2e21a04561a7",
+    "cpu_order_replay.cpp": "a3fbec18be74d24c61766e59ba4c3d453c330784bfb7cb510de9b44a1d061919",
+    "order_oracle.h": "25dbf69a2375166ff89e804404036c37547d8b02d81d6fa4ed7bcc26467de78f",
+    "test_oracle.cpp": "a8ca03e1038a4ac29937b643ec42f5054c84cabe86fc5b6b026c0b2877c0900d"
+  },
+  "qualified_guest_manifest_sha256": "2579e0ebe7ed674c9e81dc480f9d8ee8e1b58a187bacae2928ded860a10d0846",
+  "guest_artifacts": {
+    "guest.o": "202752c9731a4ad5b5d2297e873c1f99e40c650003342c5962db7cc1df8750d1",
+    "guest.elf": "b9550bb791fd193a4dea4d1ec14df974932f850e46766ed6644e7dc12e564b48",
+    "guest.bin": "b78b01827b7646e3a80dc6d7d301b3251d8318ce261bbef083771a3647fae07f",
+    "symbols.txt": "be3ba3fd9396671ed207c1dec173812dcd5d72610d62ba4e8eef15d1420201bb"
+  },
+  "guest_symbols": {
+    "_start": 2147483648,
+    "warmup_load": 2147483656,
+    "replay_div": 2147483712,
+    "replay_older": 2147483748,
+    "replay_younger": 2147483752,
+    "branch_div": 2147483840,
+    "branch_taken": 2147483844,
+    "wrong0": 2147483848,
+    "wrong1": 2147483852,
+    "wrong2": 2147483856,
+    "wrong3": 2147483860,
+    "branch_target": 2147483872,
+    "survivor0": 2147483956,
+    "survivor1": 2147483960,
+    "survivor2": 2147483964,
+    "survivor3": 2147483968,
+    "signature_store": 2147483980,
+    "replay_done": 2147483992
+  },
+  "qualified_model_receipts": {
+    "off": {
+      "sha256": "747bef1281cf603f20cfc2c780c6ca5cbbee28c54989d7d3e58743fb619e4fe8",
+      "profile": {
+        "parameters": [
+          "--selected",
+          "--dma-line-transfers",
+          "--dma-line-entries=4",
+          "--lsu-entries=4",
+          "--physical-load-ingress-flow",
+          "--fetch-previous-packet"
+        ],
+        "fetch_previous_packet": true,
+        "smoke_only": true,
+        "passive_probes": true,
+        "guest_suite": [
+          "rv64gc"
+        ]
+      }
+    },
+    "on": {
+      "sha256": "0d14b7409ebe1fb71c676b269f2dfdfe3ec66e01732c5b7ef4593741e7158433",
+      "profile": {
+        "parameters": [
+          "--selected",
+          "--dma-line-transfers",
+          "--dma-line-entries=4",
+          "--lsu-entries=4",
+          "--physical-load-ingress-flow",
+          "--load-order-older-retire",
+          "--fetch-previous-packet"
+        ],
+        "fetch_previous_packet": true,
+        "smoke_only": true,
+        "passive_probes": true,
+        "guest_suite": [
+          "rv64gc"
+        ]
+      }
+    }
+  }
+}

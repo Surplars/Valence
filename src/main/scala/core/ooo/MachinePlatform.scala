@@ -213,7 +213,7 @@ class MachinePlatform(
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
-        independentPayloadCapture = p.independentFetchPayloadCapture))
+        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
             virtualMemoryLevels = translationLevels, pmpEntries = 16)))

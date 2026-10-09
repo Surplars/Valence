@@ -60,6 +60,7 @@ GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能�
 
 ## 验证与性能
 
+- [CPU 读带宽候选源码交付](cpu-fetch-prefix-source-delivery.md)：显式 LSU4/history/prefix 选择、默认 OFF、冻结证明与本次源码整合边界。
 - [GSIM 验证说明](../simulator/gsim/README.md)：依赖、Make 入口、独立参考模型和回归范围。
 - [当前性能与证据边界](performance-status.md)：各工作负载和配置的周期结果及不能外推的指标。
 - [裸核接口与 IPC](bare-core-ipc.md)：理想供指/内存的裸核基线与历次功能验收。

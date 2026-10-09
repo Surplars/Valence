@@ -40,7 +40,8 @@ object BoardSocConfig {
         floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
         independentFetchPayloadCapture: Boolean = false, ownerLocalIssueReady: Boolean = false,
         sharedFetchPmpRelations: Boolean = false, precheckedDataRequestFlow: Boolean = false,
-        physicalLoadIngressFlow: Boolean = false): OooParams = {
+        physicalLoadIngressFlow: Boolean = false, loadOrderOlderRetire: Boolean = false,
+        fetchPreviousPacket: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -55,8 +56,8 @@ object BoardSocConfig {
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
             virtualRamLoadPrecheck = virtualRamLoadPrecheck, precheckedDataRequestFlow = precheckedDataRequestFlow,
-            physicalLoadIngressFlow = physicalLoadIngressFlow,
-            independentFetchPayloadCapture = independentFetchPayloadCapture,
+            physicalLoadIngressFlow = physicalLoadIngressFlow, loadOrderOlderRetire = loadOrderOlderRetire,
+            independentFetchPayloadCapture = independentFetchPayloadCapture, fetchPreviousPacket = fetchPreviousPacket,
             ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
             pmpEntries = 16, virtualMemoryLevels = 3,
             speculativeRamBytes = if (externalDdr) ddrMemoryBytes else ramBytes,
@@ -201,7 +202,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
     bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false,
     dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
-    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false) extends Module {
+    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
+    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
@@ -232,7 +234,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
     // Internal composition ports stay outside the public BoardSocTop io bundle.
     val jtagDmi = if (jtagRamDownload) Some(IO(Flipped(new soc.ip.debug.DebugDmiPort(7)))) else None
     val jtagLinkUp = if (jtagRamDownload) Some(IO(Input(Bool()))) else None

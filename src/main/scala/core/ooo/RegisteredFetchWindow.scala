@@ -25,7 +25,8 @@ class FetchWindowPacket extends Bundle {
   * payload mux. There is no combinational cache-data path to the output.
   * Capacity, latency and II are structural targets, not measured FPGA timing.
   */
-class RegisteredFetchWindow(val capacity: Int, val outputPackets: Int = 3) extends Module {
+class RegisteredFetchWindow(val capacity: Int, val outputPackets: Int = 3, val previousPacket: Boolean = false)
+    extends Module {
     require(capacity >= outputPackets && capacity <= 5)
     require(outputPackets >= 1 && outputPackets <= 3)
     val io = IO(new Bundle {
@@ -63,6 +64,23 @@ class RegisteredFetchWindow(val capacity: Int, val outputPackets: Int = 3) exten
         contents(row) := io.query(row).bits
         present(row) := io.query(row).valid && !io.invalidate
     }
+    // Optional one-edge history, not a victim cache or an outstanding request.
+    // Every edge replaces it with OLD registered row zero, including its exact
+    // context and both fault bits. A repeated cursor can overwrite the history;
+    // this deliberately bounds retention instead of adding replacement policy.
+    val history = if (previousPacket) {
+        val historyContents = Reg(new FetchWindowPacket)
+        val historyKey = Reg(UInt(61.W))
+        val historyContext = Reg(UInt(3.W))
+        val historyPresent = RegInit(false.B)
+        historyContents := contents(0)
+        // Region one and the step-zero offset reconstruct the old row-zero key.
+        // No read-side address addition or shortened address comparison.
+        historyKey := Cat(regions(1), offsets(outputPackets - 1))
+        historyContext := context
+        historyPresent := present(0) && !io.invalidate
+        Some((historyContents, historyKey, historyContext, historyPresent))
+    } else None
     val sameContext = context === io.readContext
     val regionMatches = VecInit(regions.map(_ === io.readBase(63, 6)))
     val keyMatches = VecInit((0 until offsets.length).map { key =>
@@ -73,10 +91,19 @@ class RegisteredFetchWindow(val capacity: Int, val outputPackets: Int = 3) exten
         val matches = (0 until capacity).map { row =>
             keyMatches(row - packet - firstStep)
         }
-        io.packets(packet).valid := !io.invalidate &&
-            (0 until capacity).map(row => matches(row) && present(row)).reduce(_ || _)
-        io.packets(packet).bits := Mux1H(
-            (0 until capacity).map(row => matches(row) -> contents(row)))
+        val primaryPresent = (0 until capacity).map(row => matches(row) && present(row)).reduce(_ || _)
+        val primaryContents = Mux1H((0 until capacity).map(row => matches(row) -> contents(row)))
+        if (packet == 0 && previousPacket) {
+            val (savedContents, savedKey, savedContext, savedPresent) = history.get
+            val savedMatches = savedPresent && savedKey === io.readBase(63, 3) && savedContext === io.readContext
+            io.packets(packet).valid := !io.invalidate && (primaryPresent || savedMatches)
+            // Late invalidate kills validity only. It must not select data and
+            // feed the backend redirect path back through instruction decode.
+            io.packets(packet).bits := Mux(primaryPresent, primaryContents, savedContents)
+        } else {
+            io.packets(packet).valid := !io.invalidate && primaryPresent
+            io.packets(packet).bits := primaryContents
+        }
         // Uninitialized keys after reset are harmless while every row is empty.
         assert(PopCount((0 until capacity).map(row => matches(row) && present(row))) <= 1.U,
             "registered fetch window cannot alias distinct packet addresses")

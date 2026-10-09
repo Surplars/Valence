@@ -1,0 +1,22 @@
+{
+  "schema": "valence-archived-monitor-diagnostic-pins-v1",
+  "production_freeze": "66c06d786275dc28c099301162cd09e70497f6eb",
+  "archive_files": {
+    "receipt.json": "be9ae4dc1fbb4e44f09820711997fd0c1c3dd322e249f6a0d284168db28334d3",
+    "firmware/diagnostic-contract.json": "434123a335b8d69956fd764b3855a06b8c1dfe2e4b3f826760b96a1c486ad3c6",
+    "firmware/monitor-diagnostic.elf": "17a26a142b01c755e852876239f12b65569cb15e703a3137a0356ffd2984c1f4",
+    "firmware/monitor-diagnostic.bin": "3c6d9e6f259a0f82cb1b8584a2a3b57c6716b6df781b3bafd3237605351e9451",
+    "firmware/diag-0.o": "146aeb44c3a3277e50e9069921fb248bfd09dbd1a6fc473f49264e07df64d490",
+    "firmware/diag-1.o": "96adde6861f182d22a7952948fbfd834de70999276d4faf2e356d7b83503c8f2",
+    "firmware/diag-2.o": "ccb8d91f66e1c2b42999a5bbee0032bad30ed44890ca9705abd7be8e303cea83",
+    "firmware/diag-3.o": "f5e1c586bee1df7eba5eba6114c834fbaee987a2b2745cbaed62195409a2bf8b",
+    "firmware/diag-4.o": "3edfd43e645d77a48f1c08f2287ba9113dc940f3fc39ac561c6f16bc9a2eb0e0",
+    "firmware/diag-5.o": "51eacc7a3c06e84ee90f596bcd4d11f8f78215db29d809b02a49433c3b74bbe9",
+    "firmware/diag-6.o": "071945aa21bbf895f84d879588995a68070fc726a4d7496ca0095c4fb8cce795",
+    "firmware/diag-7.o": "1a2aa06654e539675c3fa0a515a3d292647c47d0748a568c7433bc4dadf2173b"
+  },
+  "model_receipts": {
+    "0": "06e3fab830ee8716f09f91acf326ce58f19be7b44ca3d5ab7e0bec4b6e67590a",
+    "1": "eba7a1df8c07b4a59cbeb1d6d1087e59fc2a495cc5d9787822c4c30777cb0daa"
+  }
+}

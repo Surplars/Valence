@@ -41,7 +41,13 @@ def verify_memory_geometry(fir, slots):
     if sorted(map(int, instances)) != list(range(slots)):
         raise RuntimeError("Emitted LSU slots differ from expected geometry")
     requests = ram(child(fir, backend, "requests"), slots)
-    owners = ram(child(fir, lsu, "owners"), slots, 1 if slots == 2 else 2)
+    # Registered load-forwarding sidebands also use the Scala val name owners.
+    # Chisel therefore suffixes the queue instance in the current selected profile.
+    # Match only an actual instance, require uniqueness, and still prove RAM shape.
+    instances = re.findall(r"^    inst (owners(?:_\d+)?) of \w+ ", lsu, re.M)
+    if len(instances) != 1:
+        raise RuntimeError("Missing or ambiguous emitted LSU response-owner queue")
+    owners = ram(child(fir, lsu, instances[0]), slots, 1 if slots == 2 else 2)
     return {"status": "PASS_EMITTED_MEMORY_GEOMETRY", "lsu_slots": slots,
             "request_fifo": requests, "lsu_owner_fifo": owners,
             "store_buffer": verify_store_geometry(fir, slots)}

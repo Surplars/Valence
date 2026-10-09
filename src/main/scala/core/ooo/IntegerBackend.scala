@@ -290,10 +290,16 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val loadLanes     = Reg(Vec(p.robEntries, UInt(8.W)))
     val orderCheckValid = RegInit(false.B)
     val orderCheckIndex = RegInit(0.U(p.robBits.W))
+    val orderCheckTag = if (p.loadOrderOlderRetire) Some(RegInit(0.U(p.tagBits.W))) else None
     val orderCheckBeat  = Reg(UInt(61.W))
     val orderCheckLanes = Reg(UInt(8.W))
     val replayPendingValid = if (p.registeredLoadReplay) Some(RegInit(false.B)) else None
     val replayPending = if (p.registeredLoadReplay) Some(Reg(new FrontendRedirect(p))) else None
+    ledger.io.loadOrderRetireLimit.foreach { limit =>
+        limit.valid := orderCheckValid
+        limit.bits.index := orderCheckIndex
+        limit.bits.tag := orderCheckTag.get
+    }
     val queue         = Reg(Vec(p.robEntries, new IntegerIssueEntry(p)))
     // In the RAM profile, the six large immutable fields in this register view
     // are tied to zero at allocation and optimized away. Full token/source/class
@@ -805,9 +811,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val loadReplayPc = readIssue(replaySelector.io.index, "loadReplay", Set("pc"),
         Some(replaySelector.io.oneHot)).request.rename.pc
     if (p.registeredLoadReplay) {
-        // The overlap is known one cycle after issue. Hold retirement while it is
-        // checked and until any resulting redirect is presented to the ROB.
-        replayRetirementHold := orderCheckValid || replayPendingValid.get
+        // The check itself and every younger instruction remain nonretirable.
+        // The optional full-token ROB limit releases only its strictly older
+        // prefix; pending replay still keeps the inherited global hold.
+        replayRetirementHold := (if (p.loadOrderOlderRetire) replayPendingValid.get
+            else orderCheckValid || replayPendingValid.get)
         replayPendingValid.get := loadReplay.valid
         when(loadReplay.valid) {
             replayPending.get.token := loadReplayToken
@@ -885,6 +893,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         loadBeat(memoryChoice.index)  := canonicalAddress(63, 3)
         loadLanes(memoryChoice.index) := selectedLanes
         orderCheckIndex := memoryChoice.index
+        orderCheckTag.foreach(_ := memoryEntry.renamed.token.tag)
         orderCheckBeat  := canonicalAddress(63, 3)
         orderCheckLanes := selectedLanes
         // An overlapping RAM start must not release the previous irrevocable owner's protection.

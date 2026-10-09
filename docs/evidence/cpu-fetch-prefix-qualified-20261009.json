@@ -1,0 +1,124 @@
+{
+  "schema": "valence-fetch-prefix-qualified-checkpoint-v1",
+  "status": "PASS_BOUNDED_FUNCTIONAL_AND_ORIGINAL_ELF_PERFORMANCE",
+  "source": {
+    "commit": "f23aed8ed367b168c0a7a4baf17ac5e2913bc3c6",
+    "tree": "e35fcc711318733d3745ff603b358b622b246711",
+    "production_anchor": "2288c7f008e9d6440e8a28e339da28152b54892a",
+    "production_src_main_tree": "c6e69b6b539bc36285b602a39fae32cb76ea012c",
+    "clean": true,
+    "bundle": "source.bundle",
+    "bundle_sha256": "1acee4c821f5fb68219f53d98c2e72792da93156364adcb8a469a81c0f177b63",
+    "incremental_patch_base": "200f9dbf16d7106ad8e4d944405016389b942f06"
+  },
+  "profile": {
+    "lsu_entries": 4,
+    "physical_load_ingress_flow": true,
+    "fetch_previous_packet": true,
+    "load_order_older_retire": true,
+    "virtual_ram_load_precheck": false,
+    "prechecked_data_flow": false,
+    "dma_line_transfers": true,
+    "dma_line_entries": 4,
+    "dma_line_yield_cycles": 0,
+    "cpu_hz_parameter": 100000000
+  },
+  "proofs": {
+    "packet_component": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fetch-previous-packet-history-r1/receipt.json",
+      "sha256": "85ae566d5b0005924f4f35dd5283329038b8bb5bc9f7f6aa3ea9945d8b715615",
+      "status": "PASS_FETCH_PREVIOUS_PACKET_AFFECTED_SHORT"
+    },
+    "board_both_off": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fpga-next-board-cpu-fetch-history-off-r1/receipt.json",
+      "sha256": "a7af2b06d0f1dac4df5024c102feb87036eca9ed884c08535e6473f6afa3a840",
+      "status": "PASS_FPGA_NEXT_BOARD_SMOKE"
+    },
+    "board_history_only": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fpga-next-board-cpu-fetch-history-on-r1/receipt.json",
+      "sha256": "747bef1281cf603f20cfc2c780c6ca5cbbee28c54989d7d3e58743fb619e4fe8",
+      "status": "PASS_FPGA_NEXT_BOARD_SMOKE"
+    },
+    "board_both_on": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fpga-next-board-cpu-fetch-history-prefix-on-r1/receipt.json",
+      "sha256": "0d14b7409ebe1fb71c676b269f2dfdfe3ec66e01732c5b7ef4593741e7158433",
+      "status": "PASS_FPGA_NEXT_BOARD_SMOKE"
+    },
+    "history_single_flag": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/monitor-fetch-history-comparison-v1-r1.json",
+      "sha256": "c08a8100ca79d1285523dbffea00b4202777a6568d324433550026b69016b068",
+      "status": "PASS_STRICT_WHOLE_MONITOR_FETCH_HISTORY_V1"
+    },
+    "prefix_given_history": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/monitor-fetch-prefix-comparison-v2-r1.json",
+      "sha256": "f3a8ab30a2cfcb20d007294bbc70b91e656dac37924391180969ec0727874ae1",
+      "status": "PASS_STRICT_WHOLE_MONITOR_FETCH_PREFIX_V2"
+    },
+    "total_same_source_effect": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/monitor-fetch-prefix-total-triad-r1/receipt.json",
+      "sha256": "4c9a6f75c9fa48f8536d48e970305f04a5e4c5d2c8cb393f83337be5e188f18a",
+      "status": "PASS_STRICT_SAME_SOURCE_FETCH_PREFIX_TRIAD"
+    },
+    "native_state_and_cones": {
+      "path": "Valence-cpu-fetch-history-next/build/fetch-prefix-census-r1.json",
+      "sha256": "d70d32886cfbeda045c7e617c81f2f941ce956ead838437fadb35663973b011c",
+      "status": "PASS_LITERAL_REACHABLE_FETCH_PREFIX_CENSUS"
+    },
+    "precise_executing_recovery": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/cpu-order-replay-history-prefix-r1/receipt.json",
+      "sha256": "eac1ea215c012372b92a71049c3466474494a6f5fc651ef277cb3d38e1befa42",
+      "status": "PASS_EXECUTED_CPU_ORDER_REPLAY_HISTORY_ON_PREFIX_OFF_ON"
+    },
+    "fetch_pmp_sv39": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fetch-context-history-prefix-r1/receipt.json",
+      "sha256": "d96ed94fe6b197294ada9993716c83ea69f6a443700717e562bd64b599aecadb",
+      "status": "PASS_FETCH_HISTORY_CONTEXT_PREFIX_OFF_ON"
+    },
+    "independent_nemu": {
+      "path": "Valence-cpu-fetch-history-next/build/gsim/fetch-prefix-nemu-r1/receipt.json",
+      "sha256": "57c19170042ba3b01bb35e5a2d3f6bc8a35ed1084009804a452cb0d312dcdbaf",
+      "status": "PASS_CURRENT_SOURCE_HISTORY_ON_PREFIX_OFF_ON_NEMU"
+    },
+    "active_cpu_dma_and_denied_load_pmp": {
+      "path": "Valence-cpu-fetch-history-next/simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/evidence/execute-r1/receipt.json",
+      "sha256": "49031609a7461a4a0171ebc7df449948068368f2c8ad5190d1c3c517db6d542e",
+      "status": "PASS_FETCH_HISTORY_PREFIX_DMA_AND_DATA_PMP_OFF_ON"
+    },
+    "immutable_archived_audits": {
+      "path": "Valence-cpu-fetch-history-next/simulator/gsim/fixtures/fetch_prefix_archive_v1/evidence-r2/receipt.json",
+      "sha256": "6cff7296d214ffee90dc23061b20c42738e10054fade81428c909a419b5212be",
+      "status": "PASS_FROZEN_FETCH_PREFIX_ARCHIVE_REVALIDATION"
+    }
+  },
+  "summary": {
+    "same_source_both_off_to_on_ticks": {
+      "hot_read_8k": [
+        3210,
+        2191
+      ],
+      "read_128k": [
+        166952,
+        163243
+      ],
+      "write_128k": [
+        252329,
+        252329
+      ],
+      "copy_128k": [
+        422833,
+        419219
+      ]
+    },
+    "extra_native_scalar_bits_vs_lsu4_both_off": 197,
+    "native_array_bits_unchanged": 704967
+  },
+  "limits": [
+    "Original archived GCC14.2 diagnostic, not unavailable board GCC13.2 binary.",
+    "Flags remain default OFF; no FPGA synthesis, mapped PPA, routed timing or board performance result.",
+    "Concurrent CPU/DMA gate is functional, not a payload throughput comparison.",
+    "Denied data-PMP gate covers loads, not all store/AMO fault scenarios.",
+    "Short CoreMark regression, Linux performance and MAC/CDC are not qualified by this checkpoint.",
+    "Vendor toolchains/reference source caches remain external; their recorded identities are retained.",
+    "source-from-200f9db.patch is incremental atop prior LSU4/older-prefix work; source.bundle preserves full source history and all historical proof anchors."
+  ]
+}

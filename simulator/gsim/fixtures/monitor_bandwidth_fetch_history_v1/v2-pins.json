@@ -1,0 +1,23 @@
+{
+  "schema": "valence-whole-monitor-lsu4-older-prefix-v2-pins",
+  "model_source_head": "681ae55f14dde1c192f936b908476dc58a360e3a",
+  "original_fixture_files": {
+    "run_replay.py": "c426a526dcc2141d832594d5d2b5630793db4c23c4e56589686c8e1e388807d1",
+    "pins.json": "79a111a99202f4dde2b3e6b956c21a177e97f8ff7ad771069c2d3d4b1fd202b1",
+    "test_oracle.cpp": "cf032cfcc060258dda01377396d381fa2b1eb0081e79fd660826e48202aade37",
+    ".gitignore": "81f7954e3b5b361d27ec0855798ad733b6987d308f3571229bd2590970b58923",
+    "compare.py": "4caa9fe5b1fd6d0c90c58199d11fea3b6fcc6db79392aa279998f735036fce56",
+    "prepare.py": "c499c47b36c9e8d2fda096242c91bb21970c635fca04905c00ebb08c4d6c47e4",
+    "replay.cpp": "fd1371a4ef0a49aa9f3c464d278dcdb37ae31c569e009663100da90bcb7610f7",
+    "launcher.S": "ff75a09b0e874e1ea1a9910a2e009574c2f26dbc549f76eb69b2e93123aa9696",
+    "memory_oracle.h": "4cbf79d8f514f707dabcf41721d27c81d91173634dea53407f11158312ff51f1",
+    "launcher.ld": "a83e74364b2bafe59f0173424bd800a634334d8e736a407f8dbd120677276b70",
+    "README.md": "833dbfe0b73961cd701eb469db53c13382d43e9cad539eb6f2ef7a7f05eb3f18"
+  },
+  "prepared_manifest_sha256": "a762752c2f6aef2b08c7b33a74764ea9f213815fbbd50d3d5a0e281093b737c4",
+  "model_receipts": {
+    "0": "1b52ad1aaf40692131313bf11b8be7064fe6600fedf27599af63ff3d0e819d4f",
+    "1": "3e8f1da14ced106f1272c5ed09b08d270d6c520bed3c5910c0bcef981ea244a6"
+  },
+  "lsu2_on_receipt_sha256": "ad052354656cb313d5d837258e79e3f558a5a94a4a3a5f62ab204ab9926d0c02"
+}

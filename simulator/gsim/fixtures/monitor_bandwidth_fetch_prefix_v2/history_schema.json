@@ -1,0 +1,32 @@
+{
+  "qualified": true,
+  "fields": {
+    "board$platform$frontend$suppliedPackets_window$history_1$$data": [
+      64,
+      null
+    ],
+    "board$platform$frontend$suppliedPackets_window$history_1$$accessFaults": [
+      2,
+      null
+    ],
+    "board$platform$frontend$suppliedPackets_window$history_1$$pageFaults": [
+      2,
+      null
+    ],
+    "board$platform$frontend$suppliedPackets_window$history_2": [
+      61,
+      null
+    ],
+    "board$platform$frontend$suppliedPackets_window$history_3": [
+      3,
+      null
+    ],
+    "board$platform$frontend$suppliedPackets_window$history_4": [
+      1,
+      null
+    ]
+  },
+  "source": "RegisteredFetchWindow.scala:72-81,94-106; FetchDecodeAlignment.scala candidate zero",
+  "effective_packet0_alias": "alignment$_candidates_c_present_T_3 = p & (short | p) = p",
+  "model_header_origin": "fpga-next-board-cpu-fetch-history-{off,on}-r1/model/BoardSocGsim.h"
+}

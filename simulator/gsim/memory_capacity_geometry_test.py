@@ -22,6 +22,13 @@ class GeometryTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 verify_memory_geometry(fixture(slots), 6 - slots)
 
+    def test_forwarding_sideband_owner_name_collision(self):
+        text = fixture(4).replace("inst owners of Owners", "inst owners_1 of Owners")
+        self.assertEqual(verify_memory_geometry(text, 4)["lsu_slots"], 4)
+        ambiguous = text.replace("inst owners_1 of Owners", "inst owners_1 of Owners \n    inst owners_2 of Owners")
+        with self.assertRaises(RuntimeError):
+            verify_memory_geometry(ambiguous, 4)
+
     def test_each_coupled_capacity_rejects_corruption(self):
         text = fixture(4)
         for old, new in (("slots_3", "slots_4"), ("UInt<64>}[4]", "UInt<64>}[2]"),

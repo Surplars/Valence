@@ -15,20 +15,30 @@ struct BackendObserver {
     uint64_t startPc=0,endPc=0,cycles=0,zero=0,retired=0;
     bool active=false,finished=false;
     std::map<std::string,uint64_t> counts;
-    std::array<uint64_t,3> freeSlots{};
+    std::array<uint64_t,BackendSample::ownerCount+1> freeSlots{};
     uint64_t ownerSelectedCauseDisagreement=0,ownerSelectedCauseSamples=0;
-    static BackendSample read(SBoardSocGsim &d){
+    template<class Board>
+    static BackendSample read(Board &d){
         BackendSample s;s.events=d.get_backendEvents();s.reset=d.get_backendReset();
         s.head={d.get_backendHeadTag(),unsigned(d.get_backendHeadIndex())};
         s.queueHead={d.get_backendQueueHeadTag(),unsigned(d.get_backendQueueHeadIndex())};
         s.request={d.get_backendRequestTag(),unsigned(d.get_backendRequestIndex())};
         s.start={d.get_backendStartTag(),unsigned(d.get_backendStartIndex())};
         s.complete={d.get_backendCompleteTag(),unsigned(d.get_backendCompleteIndex())};
-        auto indices=d.get_backendSlotIndices();auto state=d.get_backendSlotState();
-        s.slots[0]={d.get_backendSlot0Tag(),unsigned(indices&255)};
-        s.slots[1]={d.get_backendSlot1Tag(),unsigned((indices>>8)&255)};
-        for(unsigned i=0;i<2;++i){s.live[i]=(state>>i)&1;s.phase[i]=(state>>(2+2*i))&3;
-            s.parallel[i]=(state>>(6+i))&1;s.cancelled[i]=(state>>(8+i))&1;}
+        if constexpr(requires(Board &b){b.get_backendSlotCount();})
+            BackendOwnershipLedger::require(d.get_backendSlotCount()==BackendSample::ownerCount,"compiled owner count differs from probe schema");
+        else static_assert(BackendSample::ownerCount==2 || sizeof(Board)==0,"four-owner observation requires backendSlotCount");
+        auto pair=[&](unsigned first,uint64_t indices,uint64_t state,uint64_t tag0,uint64_t tag1) {
+            s.slots[first]={tag0,unsigned(indices&255)};
+            s.slots[first+1]={tag1,unsigned((indices>>8)&255)};
+            for(unsigned i=0;i<2;++i){s.live[first+i]=(state>>i)&1;s.phase[first+i]=(state>>(2+2*i))&3;
+                s.parallel[first+i]=(state>>(6+i))&1;s.cancelled[first+i]=(state>>(8+i))&1;}
+        };
+        pair(0,d.get_backendSlotIndices(),d.get_backendSlotState(),d.get_backendSlot0Tag(),d.get_backendSlot1Tag());
+        if constexpr(BackendSample::ownerCount==4)
+            pair(2,d.get_backendSlotIndicesHi(),d.get_backendSlotStateHi(),d.get_backendSlot2Tag(),d.get_backendSlot3Tag());
+        else if constexpr(requires(Board &b){b.get_backendSlotStateHi();})
+            BackendOwnershipLedger::require(d.get_backendSlotStateHi()==0,"two-owner probe exposes hidden upper owners");
         s.returnSlot=d.get_backendReturnSlot();s.fifoCount=d.get_backendFifoCount();s.storeCause=d.get_backendStoreCause();
         s.commits=d.get_io$$commit0()+d.get_io$$commit1();
         s.headValid=d.get_io$$headProfile$$valid();s.headDone=d.get_io$$headProfile$$done();
@@ -86,7 +96,7 @@ struct BackendObserver {
             o.capacityBlocked+=p.bit(DataPathSample::capacityBlocked);
             o.youngerLaunches+=p.bit(DataPathSample::youngerLaunch);
 #endif
-            ++o.freeSlots[2-unsigned(s.live[0])-unsigned(s.live[1])];
+            ++o.freeSlots[BackendSample::ownerCount-s.liveCount()];
             if(!s.commits&&s.headValid&&s.headMemory&&s.bit(41)&&s.request==s.head){
                 ++o.ownerSelectedCauseSamples;
                 o.ownerSelectedCauseDisagreement+=o.ledger.requests.empty()||!(o.ledger.requests.front()==s.head);
@@ -112,9 +122,9 @@ struct BackendObserver {
         uint64_t sum=0,zeroSum=0;for(auto &[name,n]:counts){sum+=n;if(name.rfind("progress_",0)!=0)zeroSum+=n;
             std::cout<<"BACKEND_OWNER_BUCKET name=coremark_roi category="<<name<<" cycles="<<n<<"\n";}
         BackendOwnershipLedger::require(sum==cycles&&zeroSum==zero,"cycle partition conservation failed");
-        std::cout<<"BACKEND_OWNER_TOTAL cycles="<<cycles<<" zero_commit="<<zero<<" retired="<<retired
-            <<" free_slots_0="<<freeSlots[0]<<" free_slots_1="<<freeSlots[1]<<" free_slots_2="<<freeSlots[2]
-            <<" unsafe_cause_samples="<<ownerSelectedCauseSamples<<" unrelated_fifo_owner="<<ownerSelectedCauseDisagreement<<"\n";
+        std::cout<<"BACKEND_OWNER_TOTAL cycles="<<cycles<<" zero_commit="<<zero<<" retired="<<retired;
+        for(unsigned i=0;i<freeSlots.size();++i)std::cout<<" free_slots_"<<i<<"="<<freeSlots[i];
+        std::cout<<" unsafe_cause_samples="<<ownerSelectedCauseSamples<<" unrelated_fifo_owner="<<ownerSelectedCauseDisagreement<<"\n";
         std::cout<<"BACKEND_OWNER_LEDGER checks="<<ledger.checks<<" resets="<<ledger.resets
             <<" enqueues="<<ledger.enqueues<<" dequeues="<<ledger.dequeues<<" returns="<<ledger.returns
             <<" pending_fifo="<<ledger.requests.size()<<" pending_responses="<<ledger.responses.size()

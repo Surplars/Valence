@@ -150,4 +150,81 @@ class FpgaNextConfigSpec extends AnyFunSuite {
         intercept[IllegalArgumentException] { c.copy(precheckedDataRequestFlow = true) }
     }
 
+    test("four LSU owners retain every other current selected parameter") {
+        val base = FpgaNextConfig.Selected.copy(physicalLoadIngressFlow = true,
+            dmaLineTransfers = true, dmaLineEntries = 4)
+        val four = FpgaNextConfig.fromOptions(Set("--selected", "--physical-load-ingress-flow",
+            "--dma-line-transfers", "--dma-line-entries=4", "--lsu-entries=4"), true)
+        assert(FpgaNextConfig.Selected.lsuEntries == 2 && four.lsuEntries == 4)
+        assert(four.coreParams.memoryEntries == 4)
+        assert(four.coreParams.copy(memoryEntries = 2) == base.coreParams)
+        assert(four.cache == base.cache && four.ddr == base.ddr && four.network == base.network)
+        assert(four.storage == base.storage && four.floatingPointResources == base.floatingPointResources)
+        assert(four.dataCacheLines == base.dataCacheLines && four.instructionCacheLines == base.instructionCacheLines)
+        assert(four.name.contains("-lsu4") && four.timingProfile == BoardSocConfig.memoryCapacityProfile)
+        intercept[IllegalArgumentException] { base.copy(lsuEntries = 3) }
+        intercept[IllegalArgumentException] {
+            FpgaNextConfig.fromOptions(Set("--selected", "--lsu-entries=2", "--lsu-entries=4"), true)
+        }
+    }
+
+    test("older-load retirement changes only its explicit registered boundary option") {
+        val options = Set("--selected", "--physical-load-ingress-flow", "--lsu-entries=4",
+            "--dma-line-transfers", "--dma-line-entries=4")
+        val off = FpgaNextConfig.fromOptions(options, true)
+        val on = FpgaNextConfig.fromOptions(options + "--load-order-older-retire", true)
+        assert(!off.loadOrderOlderRetire && !FpgaNextConfig.Selected.loadOrderOlderRetire)
+        assert(on.loadOrderOlderRetire && on.coreParams.registeredLoadReplay)
+        assert(on.coreParams.copy(loadOrderOlderRetire = false) == off.coreParams)
+        assert(on.copy(loadOrderOlderRetire = false) == off)
+        assert(on.cache == off.cache && on.ddr == off.ddr && on.storage == off.storage)
+        assert(on.network == off.network && on.floatingPointResources == off.floatingPointResources)
+        assert(!on.coreParams.virtualRamLoadPrecheck && !on.coreParams.precheckedDataRequestFlow)
+        assert(on.name == off.name.replace("-lsu4", "-lsu4-older-load-retire"))
+        intercept[IllegalArgumentException] { OooParams(loadOrderOlderRetire = true) }
+    }
+
+    test("previous fetch packet stays default-off and changes only its registered-window option") {
+        for (profile <- Seq("--reference", "--candidate", "--selected")) {
+            val base = FpgaNextConfig.fromOptions(Set(profile), defaultSelected = true)
+            val enabled = FpgaNextConfig.fromOptions(Set(profile, "--fetch-previous-packet"), defaultSelected = true)
+            assert(!base.fetchPreviousPacket && !base.coreParams.fetchPreviousPacket)
+            assert(enabled.fetchPreviousPacket && enabled.coreParams.registeredFetchWindow)
+            assert(enabled.coreParams.copy(fetchPreviousPacket = false) == base.coreParams)
+            assert(enabled.copy(fetchPreviousPacket = false) == base)
+            assert(enabled.name == base.name + "-fetch-previous-packet")
+        }
+        val options = Set("--selected", "--physical-load-ingress-flow", "--lsu-entries=4",
+            "--dma-line-transfers", "--dma-line-entries=4", "--dma-line-yield-cycles=0")
+        val off = FpgaNextConfig.fromOptions(options, defaultSelected = true)
+        val on = FpgaNextConfig.fromOptions(options + "--fetch-previous-packet", defaultSelected = true)
+        assert(on.copy(fetchPreviousPacket = false) == off)
+        assert(on.coreParams.copy(fetchPreviousPacket = false) == off.coreParams)
+        assert(on.coreParams.fetchPreviousPacket && on.coreParams.registeredFetchWindow)
+        assert(on.lsuEntries == 4 && on.coreParams.memoryEntries == 4 && on.physicalLoadIngressFlow)
+        assert(on.dmaLineTransfers && on.dmaLineEntries == 4 && on.dmaLineYieldCycles == 0)
+        assert(!on.virtualRamLoadPrecheck && !on.precheckedDataRequestFlow && !on.loadOrderOlderRetire)
+        assert(on.cache == off.cache && on.ddr == off.ddr && on.storage == off.storage)
+        assert(on.network == off.network && on.floatingPointResources == off.floatingPointResources)
+        assert(on.name == off.name.replace("-lsu4", "-lsu4-fetch-previous-packet"))
+        val older = FpgaNextConfig.fromOptions(options + "--load-order-older-retire", defaultSelected = true)
+        val both = FpgaNextConfig.fromOptions(options ++ Set("--load-order-older-retire", "--fetch-previous-packet"),
+            defaultSelected = true)
+        assert(both.copy(fetchPreviousPacket = false) == older)
+        assert(both.coreParams.copy(fetchPreviousPacket = false) == older.coreParams)
+    }
+
+    test("previous fetch packet rejects configurations without the registered window") {
+        assert(!OooParams().fetchPreviousPacket)
+        intercept[IllegalArgumentException] { OooParams(fetchPreviousPacket = true) }
+        intercept[IllegalArgumentException] {
+            OooParams(compressedInstructions = true, registeredFetchPacket = true, fetchPreviousPacket = true)
+        }
+        intercept[IllegalArgumentException] {
+            BoardSocConfig.boardParams("staged-ethernet", externalDdr = true, fetchPreviousPacket = true)
+        }
+        val p = BoardSocConfig.boardParams("staged-fetch-feedback", externalDdr = true, fetchPreviousPacket = true)
+        assert(p.registeredFetchWindow && p.fetchPreviousPacket)
+    }
+
 }

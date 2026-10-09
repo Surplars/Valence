@@ -100,7 +100,11 @@ def main():
     ap.add_argument("--emit", action="store_true", help="actually elaborate; default only validates the locked profile")
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
+    ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--load-order-older-retire", action="store_true")
+    ap.add_argument("--fetch-previous-packet", action="store_true",
+                    help="retain the previous registered fetch packet; explicit default-off experiment")
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
@@ -153,6 +157,15 @@ def main():
         profile["profile"]["name"] += "-prechecked-flow"
     if a.physical_load_ingress_flow:
         profile["profile"]["name"] += "-physical-ingress-flow"
+    profile["profile"]["load_order_older_retire"] = a.load_order_older_retire
+    profile["profile"]["lsu_entries"] = a.lsu_entries
+    if a.lsu_entries != 2:
+        profile["profile"]["name"] += "-lsu" + str(a.lsu_entries)
+    if a.load_order_older_retire:
+        profile["profile"]["name"] += "-older-load-retire"
+    profile["profile"]["fetch_previous_packet"] = a.fetch_previous_packet
+    if a.fetch_previous_packet:
+        profile["profile"]["name"] += "-fetch-previous-packet"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
@@ -189,6 +202,7 @@ def main():
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
             "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
+            "fetch_previous_packet": a.fetch_previous_packet,
             "physical_qualification": False}, indent=2))
         return
     output.mkdir(parents=True)
@@ -227,8 +241,14 @@ def main():
         command.append("--virtual-ram-load-precheck")
     if a.prechecked_data_flow:
         command.append("--prechecked-data-flow")
+    if a.lsu_entries != 2:
+        command.append("--lsu-entries=" + str(a.lsu_entries))
     if a.physical_load_ingress_flow:
         command.append("--physical-load-ingress-flow")
+    if a.load_order_older_retire:
+        command.append("--load-order-older-retire")
+    if a.fetch_previous_packet:
+        command.append("--fetch-previous-packet")
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],

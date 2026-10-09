@@ -56,8 +56,8 @@ struct Metrics {
         lsuReplies+=b.reply();results+=b.bit(26)&&b.bit(27);
         physicalRequests+=p.bit(P::physicalRequest);physicalReplies+=p.bit(P::physicalReply);
         if(p.bit(P::physicalRequest)){if(p.request[P::physical].write())++writes;else ++reads;}
-        lsuPeak=std::max<uint64_t>(lsuPeak,b.live[0]+b.live[1]);
-        const bool full=b.live[0]&&b.live[1],result=b.bit(26)&&b.bit(27);
+        lsuPeak=std::max<uint64_t>(lsuPeak,b.liveCount());
+        const bool full=b.liveCount()==BackendSample::ownerCount,result=b.bit(26)&&b.bit(27);
         startResultSameCycle+=b.bit(3)&&result;fullSlotReplacement+=full&&b.bit(3)&&result;
         fullSlots+=full;fullSlotsResult+=full&&result;fullSlotsStart+=full&&b.bit(3);
         physicalPeak=std::max<uint64_t>(physicalPeak,data.physicalPending.size());physicalMultiple+=data.physicalPending.size()>1;
@@ -79,7 +79,7 @@ struct Metrics {
             <<" fifo_dequeues="<<fifoDequeues<<" fast_stores="<<fastStores<<" lsu_replies="<<lsuReplies<<" results="<<results
             <<" physical_requests="<<physicalRequests<<" physical_replies="<<physicalReplies<<" reads="<<reads<<" writes="<<writes
             <<" lsu_peak="<<lsuPeak<<" physical_peak="<<physicalPeak<<" sb_peak="<<sbPeak<<" sb_full_cycles="<<sbFull
-            <<" sb_entries="<<HOT_SB_ENTRIES<<" same_cycle_start_result="<<startResultSameCycle
+            <<" lsu_entries="<<BackendSample::ownerCount<<" sb_entries="<<HOT_SB_ENTRIES<<" same_cycle_start_result="<<startResultSameCycle
             <<" full_slot_replacement="<<fullSlotReplacement<<" full_slots_cycles="<<fullSlots
             <<" full_slots_result_cycles="<<fullSlotsResult<<" full_slots_start_cycles="<<fullSlotsStart
             <<" fifo_backpressure_cycles="<<fifoBackpressure<<" capacity_blocked_cycles="<<capacityBlocked
@@ -104,6 +104,7 @@ struct Observer {
     std::map<Key,Witness> guardReads;
     uint64_t physicalGuardReads=0;
     std::array<Metrics,3> metrics{};
+    unsigned observedLiveOwners=0;bool observedStart=false;
     int phase=-1;bool finished=false;uint64_t cycle=0,begin=0,kernelEnd=0,drainEnd=0,completeEnd=0;
     uint64_t architecturalLoads=0,architecturalStores=0,physicalSourceReads=0,physicalDestinationWrites=0;
     uint64_t negativeChecks=0, kernelPcTrace=1469598103934665603ULL, kernelRetired=0;
@@ -138,6 +139,8 @@ struct Observer {
     }
     void sample(SBoardSocGsim &d) {
         auto b=BackendObserver::read(d);auto p=BackendObserver::readData(d);
+        observedLiveOwners=b.liveCount();observedStart=b.bit(3);
+        if(injection=="--inject-reserve-guard")p.events^=1ULL<<P::reserveGuardMatch;
         data.flowEvents=d.get_cpuFlowEvents();data.ingressAuth=d.get_cpuFlowIngressAuth();
         data.checkedAuth=d.get_cpuFlowCheckedAuth();data.checkedAddress=d.get_cpuFlowCheckedAddress();
         data.checkedData=d.get_cpuFlowCheckedData();data.checkedHeadAuth=d.get_cpuFlowCheckedHeadAuth();
@@ -149,9 +152,14 @@ struct Observer {
         if(injection=="--inject-authorization"&&data.flow(3))data.checkedAuth^=1ULL<<52;
         if(injection=="--inject-private-metadata"&&p.bit(P::physicalRequest))data.physicalAuth^=1ULL<<19;
         if(injection=="--inject-return-token"&&b.reply())b.slots[b.returnSlot].tag^=1;
+        if constexpr(BackendSample::ownerCount==4) {
+            if(injection=="--inject-upper-live"&&b.live[2])b.live[2]=false;
+            if(injection=="--inject-upper-token"&&b.live[3])b.slots[3].tag^=1ULL<<40;
+        }
         if(b.reset){data.advance(b,p,backend);backend.advance(b);++cycle;return;}
+        check(p.bit(P::reserveGuardMatch),"test-only capacity guard differs from production");
         check(!d.get_io$$trap$$valid(),"unexpected guest trap");
-        for(unsigned i=0;i<2;++i)if(b.live[i]&&b.cancelled[i]) {
+        for(unsigned i=0;i<BackendSample::ownerCount;++i)if(b.live[i]&&b.cancelled[i]) {
             auto &stamp=stamps[key(b.slots[i])];
             if(!stamp.cancel)stamp.cancel=cycle;
             check(!stamp.retired,"cancellation of retired full token");
@@ -257,9 +265,38 @@ struct Observer {
         bool rejected=false;try{f();}catch(const std::runtime_error &e){rejected=e.what()==expected;}
         check(rejected,"hot negative oracle did not reject expected corruption");++negativeChecks;
     }
+    void verifyTerminalDrain() const {
+        check(!observedLiveOwners&&!observedStart,"done before observed LSU owner drain");
+        check(std::none_of(backend.slotOwners.begin(),backend.slotOwners.end(),
+            [](const auto &owner){return owner.live;}),"done before shadow LSU owner drain");
+        check(pending.empty()&&backend.requests.empty()&&backend.responses.empty()&&
+            data.fifo.empty()&&data.storeOwners.empty()&&data.ingress.empty()&&data.translated.empty()&&
+            data.checked.empty()&&data.owners.empty()&&data.physicalPending.empty()&&
+            data.stores.empty()&&data.returns.empty()&&!data.waiting&&!data.localReply,
+            "done before complete data-path drain");
+        check(!backend.stalledRequest&&!data.stalledRequest&&!data.stalledReply,
+            "done before held backend handshake drain");
+    }
+    void terminalDrainNegatives() {
+        observedLiveOwners=1;rejects([&]{verifyTerminalDrain();},"done before observed LSU owner drain");observedLiveOwners=0;
+        observedStart=true;rejects([&]{verifyTerminalDrain();},"done before observed LSU owner drain");observedStart=false;
+        backend.slotOwners.back().live=true;rejects([&]{verifyTerminalDrain();},"done before shadow LSU owner drain");backend.slotOwners.back().live=false;
+        auto queued=[&](auto &queue) {
+            queue.emplace_back();rejects([&]{verifyTerminalDrain();},"done before complete data-path drain");queue.pop_back();
+        };
+        queued(pending);queued(backend.requests);queued(backend.responses);queued(data.fifo);queued(data.storeOwners);
+        queued(data.ingress);queued(data.translated);queued(data.checked);queued(data.owners);
+        queued(data.physicalPending);queued(data.stores);queued(data.returns);
+        data.waiting=FlowDataPathOwnershipLedger::Transaction{{},{},{},false,false,false,0};rejects([&]{verifyTerminalDrain();},"done before complete data-path drain");data.waiting.reset();
+        data.localReply=FlowDataPathOwnershipLedger::Returned{FlowDataPathOwnershipLedger::Transaction{{},{},{},false,false,false,0},{}};rejects([&]{verifyTerminalDrain();},"done before complete data-path drain");data.localReply.reset();
+        backend.stalledRequest.emplace();rejects([&]{verifyTerminalDrain();},"done before held backend handshake drain");backend.stalledRequest.reset();
+        data.stalledRequest.emplace();rejects([&]{verifyTerminalDrain();},"done before held backend handshake drain");data.stalledRequest.reset();
+        data.stalledReply.emplace();rejects([&]{verifyTerminalDrain();},"done before held backend handshake drain");data.stalledReply.reset();
+        verifyTerminalDrain();
+    }
     void verify() {
         check(finished&&phase==3,"hot bounded guest did not complete");
-        check(pending.empty()&&data.physicalPending.empty()&&data.storeOwners.empty()&&data.stores.empty()&&backend.requests.empty()&&backend.responses.empty(),"done before data-path drain");
+        verifyTerminalDrain();terminalDrainNegatives();
         const uint64_t count=HOT_BYTES/8*HOT_REPS;
         check(architecturalLoads==(HOT_OP==1?0:count),"architectural load count mismatch");
         check(architecturalStores==(HOT_OP==0?0:count),"architectural store count mismatch");
@@ -332,7 +369,8 @@ struct Observer {
             <<" physical_source_reads_minus_architectural="<<int64_t(physicalSourceReads)-int64_t(architecturalLoads)
             <<" kernel_pc_trace="<<kernelPcTrace<<" kernel_retired="<<kernelRetired
             <<" negative_oracle_checks="<<negativeChecks<<" board_measurement=0\n";
-        data.report();std::cout<<"HOT_PASS total_cycles="<<cycle<<" owner_checks="<<backend.checks<<" physical_read_data_checks="<<readReplies.size()<<"\n";
+        data.report();std::cout<<"HOT_PASS total_cycles="<<cycle<<" owner_checks="<<backend.checks<<" physical_read_data_checks="<<readReplies.size()<<" terminal_live_owners="<<observedLiveOwners
+            <<" terminal_start="<<observedStart<<" complete_owner_drain=1\n";
     }
 };
 }
@@ -340,9 +378,10 @@ int main(int argc,char **argv) {try{
     check(argc==2||argc==3,"usage: cpu_flow_bandwidth guest.bin [--inject-physical-fingerprint]");
     if(argc==3) {
         injection=argv[2];
-        const std::array<std::string,7> modes{"--inject-physical-fingerprint","--inject-route",
+        const std::array<std::string,10> modes{"--inject-physical-fingerprint","--inject-route",
             "--inject-virtual-enqueue","--inject-checked-enqueue","--inject-authorization",
-            "--inject-private-metadata","--inject-return-token"};
+            "--inject-private-metadata","--inject-return-token",
+            "--inject-upper-live","--inject-upper-token","--inject-reserve-guard"};
         check(std::find(modes.begin(),modes.end(),injection)!=modes.end(),"unknown injection mode");
     }
     Observer observer;const auto image=readFile(argv[1]);

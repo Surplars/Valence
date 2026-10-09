@@ -18,6 +18,7 @@ import threading
 import time
 import run as common
 from mshr_occupancy import validate
+from memory_capacity_geometry import verify_memory_geometry
 from build_virtual_load_core import build as build_virtual_guest
 from virtual_load_board import parse as parse_virtual_metrics
 
@@ -47,7 +48,7 @@ def source_inventory():
         "simulator/gsim/payloads/board_memory_independent.c", "simulator/gsim/payloads/board_memory_mixed_stores.c",
         "simulator/gsim/payloads/virtual_load_core.S",
         "simulator/gsim/payloads/virtual_load_core.ld", "simulator/gsim/build_virtual_load_core.py",
-        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/fpga_next_board.py")]
+        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/memory_capacity_geometry.py", "simulator/gsim/fpga_next_board.py")]
     return {str(p.relative_to(common.ROOT)): sha(p) for p in sorted(set(files))}
 
 
@@ -56,10 +57,14 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--variant", choices=("reference", "candidate", "selected"), default="reference")
+    ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
     ap.add_argument("--jobs", type=int, choices=(1, 2), default=2)
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--load-order-older-retire", action="store_true")
+    ap.add_argument("--fetch-previous-packet", action="store_true",
+                    help="retain the previous registered fetch packet; explicit default-off experiment")
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
@@ -104,8 +109,14 @@ def main():
         parameters.append("--prefetch-candidate-cycles=" + str(args.prefetch_candidate_cycles))
     if args.virtual_ram_load_precheck:
         parameters.append("--virtual-ram-load-precheck")
+    if args.lsu_entries != 2:
+        parameters.append("--lsu-entries=" + str(args.lsu_entries))
     if args.physical_load_ingress_flow:
         parameters.append("--physical-load-ingress-flow")
+    if args.load_order_older_retire:
+        parameters.append("--load-order-older-retire")
+    if args.fetch_previous_packet:
+        parameters.append("--fetch-previous-packet")
     if args.prechecked_data_flow:
         parameters.append("--prechecked-data-flow")
     if args.independent_fetch_payload_capture:
@@ -118,7 +129,8 @@ def main():
         parameters.append("--share-protected-head-payload")
     if args.banked_instruction_data:
         parameters.append("--banked-instruction-data")
-    plan = {"parameters": parameters, "smoke_only": args.smoke_only, "passive_probes": True,
+    plan = {"parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
+            "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}
     receipt_path = out / "receipt.json"
@@ -257,6 +269,7 @@ def main():
                       "module MixedCoherentLineHome", "module NonBlockingCoherentLineCache"):
             if token not in fir:
                 raise RuntimeError("selected profile component missing: " + token)
+        state["memory_geometry"] = verify_memory_geometry(fir, args.lsu_entries)
         validate(common.ROOT, model / "BoardSocGsim.h", 2, "board$platform$privateCache$")
         units = sorted(model.glob("BoardSocGsim[0-9]*.cpp"))
         if not units:
@@ -276,7 +289,7 @@ def main():
                 state["artifacts"][path.with_suffix(".o").relative_to(out).as_posix()] = sha(path.with_suffix(".o"))
                 save()
         objects = [p.with_suffix(".o") for p in units]
-        defines = ["-DUART_DIVISOR=1", "-DBOARD_CPU_HZ=100000000", "-DBOARD_UART_BAUD=460800", "-DUART_EXTRA_STOP_BITS=0",
+        defines = ["-DBACKEND_OWNER_COUNT=" + str(args.lsu_entries), "-DUART_DIVISOR=1", "-DBOARD_CPU_HZ=100000000", "-DBOARD_UART_BAUD=460800", "-DUART_EXTRA_STOP_BITS=0",
             "-DDDR_MODEL=1", "-DBOARD_DDR_BYTES=2147483648ULL", "-DDDR_MULTI_ID_MODEL=1", "-DDDR_BENCHMARK_MODEL=1",
             "-DDDR_READ_CREDITS=8", "-DDDR_READ_LATENCY=32", "-DDDR_READ_BEAT_GAP=1", "-DBOARD_CYCLE_LIMIT=12000000ULL"]
         cases = [("gc", "rv64gc_board.cpp", [], image, "RV64GC_BOARD_PASS")]

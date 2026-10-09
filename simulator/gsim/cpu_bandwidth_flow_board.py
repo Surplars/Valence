@@ -87,11 +87,12 @@ def normalize_guests(path, root=common.ROOT):
     return {'kind': 'historical_guest_receipt', 'path': str(path), 'sha256': sha(path)}, cases
 
 
-def expected_model_plan(flag, *, dma_line_transfers=False, dma_line_entries=1, dma_line_yield_cycles=0):
+def expected_model_plan(flag, *, dma_line_transfers=False, dma_line_entries=1, dma_line_yield_cycles=0, lsu_entries=2, load_order_older_retire=False):
     require(dma_line_entries in (1, 2, 4) and (dma_line_transfers or dma_line_entries == 1),
             'DMA owner count requires line transfers')
     require(dma_line_yield_cycles in (0, 4, 8, 16, 32, 64) and
             (dma_line_transfers or dma_line_yield_cycles == 0), 'DMA yield requires line transfers')
+    require(lsu_entries in (2, 4), 'unsupported LSU owner count')
     parameters = ['--selected']
     if dma_line_transfers:
         parameters.append('--dma-line-transfers')
@@ -99,7 +100,10 @@ def expected_model_plan(flag, *, dma_line_transfers=False, dma_line_entries=1, d
         parameters.append('--dma-line-entries=' + str(dma_line_entries))
     if dma_line_yield_cycles:
         parameters.append('--dma-line-yield-cycles=' + str(dma_line_yield_cycles))
-    return {'parameters': parameters + (['--physical-load-ingress-flow'] if flag else []),
+    if lsu_entries != 2:
+        parameters.append('--lsu-entries=' + str(lsu_entries))
+    return {'parameters': parameters + (['--physical-load-ingress-flow'] if flag else []) +
+            (['--load-order-older-retire'] if load_order_older_retire else []),
             'smoke_only': True, 'passive_probes': True, 'guest_suite': ['rv64gc']}
 
 

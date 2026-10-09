@@ -36,6 +36,7 @@ def main():
     p.add_argument('--guest',type=Path)
     p.add_argument('--out',type=Path)
     p.add_argument('--physical-flow',type=int,choices=[0,1],required=True)
+    p.add_argument('--lsu-entries',type=int,choices=[2,4],default=2)
     p.add_argument('--cxx',default=os.environ.get('GSIM_CXX','clang++-19'))
     p.add_argument('--schema-only',action='store_true',help='Nonqualifying header inspection; permits RUNNING models')
     a=p.parse_args(); repo=a.repo.resolve(); receipt=a.model_receipt.resolve()
@@ -63,7 +64,7 @@ def main():
     tools,tool_versions=helper.toolchain()
     shared={'dma_line_transfers':True,'dma_line_entries':4,'dma_line_yield_cycles':0}
     inputs=board.source_inventory()
-    model_state,model,objects=validation.validate_model(receipt,a.physical_flow,inputs,compiler,**shared)
+    model_state,model,objects=validation.validate_model(receipt,a.physical_flow,inputs,compiler,lsu_entries=a.lsu_entries,**shared)
     receipt_sha=sha(receipt)
     manifest_path=guest/'manifest.json'; manifest_sha=sha(manifest_path)
     manifest=json.loads(manifest_path.read_text())
@@ -86,7 +87,7 @@ def main():
     require(not out.exists(),'Use a fresh result directory')
     out.mkdir(parents=True)
     state={'schema':'valence-executed-cpu-dma-replay-v1','status':'RUNNING','physical_ingress_flow':a.physical_flow,
-           'shared_dma_profile':shared,'model_receipt_sha256':receipt_sha,'model_plan':model_state['plan'],
+           'shared_dma_profile':shared,'lsu_entries':a.lsu_entries,'model_receipt_sha256':receipt_sha,'model_plan':model_state['plan'],
            'model_inputs':inputs,'host_compiler':{'name':compiler_path.name,'version':compiler,'sha256':compiler_sha},
            'guest_manifest_sha256':manifest_sha,'guest_toolchain':tool_versions,
            'fixture_inputs':{path.name:sha(path) for path in paths[:6]},'runs':[],'products':{},
@@ -100,7 +101,7 @@ def main():
         require(sha(compiler_path)==compiler_sha,'Host compiler executable changed')
         for path,digest in frozen.items(): require(sha(path)==digest,'Fixture/validator input drift: '+str(path))
         require(board.source_inventory()==inputs,'Current model source inventory changed')
-        _,checked_model,checked_objects=validation.validate_model(receipt,a.physical_flow,inputs,compiler,**shared)
+        _,checked_model,checked_objects=validation.validate_model(receipt,a.physical_flow,inputs,compiler,lsu_entries=a.lsu_entries,**shared)
         require(checked_model==model and checked_objects==objects,'Model artifact set changed')
         for name,path in tools.items(): require(sha(path)==tool_versions[name]['sha256'],'Guest toolchain executable changed')
         for name,digest in manifest['sources'].items():
@@ -124,7 +125,7 @@ def main():
         for name in products: state['products'][name]=sha(out/name)
         save(); print(text[-1200:])
     flags=['-std=c++20','-O1','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all',
-           '-DUART_DIVISOR=1','-DBOARD_CPU_HZ=100000000','-DBOARD_UART_BAUD=460800','-DUART_EXTRA_STOP_BITS=0',
+           '-DBACKEND_OWNER_COUNT='+str(a.lsu_entries),'-DUART_DIVISOR=1','-DBOARD_CPU_HZ=100000000','-DBOARD_UART_BAUD=460800','-DUART_EXTRA_STOP_BITS=0',
            '-DDDR_MODEL=1','-DBOARD_DDR_BYTES=2147483648ULL','-DDDR_MULTI_ID_MODEL=1','-DDDR_BENCHMARK_MODEL=1',
            '-DDDR_READ_CREDITS=8','-DDDR_READ_LATENCY=32','-DDDR_READ_BEAT_GAP=1','-DBOARD_CYCLE_LIMIT=300000ULL',
            '-DPHYSICAL_INGRESS_FLOW='+str(a.physical_flow),'-I'+str(model),'-I'+str(repo/'simulator/gsim/harness')]

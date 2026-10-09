@@ -42,6 +42,10 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
             Some(Input(Vec(p.completionWidth, Bool()))) else None
         val completionAccepted = Output(Vec(p.completionWidth, Bool()))
         val commitEnable       = Input(Bool())
+        // A registered load-order check may release only the older prefix.
+        // Invalid generations fail closed rather than weakening its boundary.
+        val loadOrderRetireLimit = if (p.loadOrderOlderRetire)
+            Some(Input(Valid(new RobToken(p)))) else None
         val fastHeadRetire     = Input(Valid(new BackendCompletion(p)))
         val commit             = Output(Vec(p.commitWidth, Valid(new CommitRecord(p))))
         val pendingException   = Output(Valid(new HeadException(p)))
@@ -218,7 +222,9 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
     }
 
     val commitPrefix = Wire(Vec(p.commitWidth + 1, Bool()))
-    commitPrefix(0) := io.commitEnable && !recoveryCycle
+    val retireLimitAuthorized = io.loadOrderRetireLimit.map(limit =>
+        !limit.valid || live(limit.bits)).getOrElse(true.B)
+    commitPrefix(0) := io.commitEnable && !recoveryCycle && retireLimitAuthorized
     for (lane <- 0 until p.commitWidth) {
         val index = addIndex(head, lane.U)
         val entry = entries(index)
@@ -236,7 +242,9 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         val fastHeadNow = if (lane == 0) io.fastHeadRetire.valid && !entry.done &&
             io.fastHeadRetire.bits.token.index === index && io.fastHeadRetire.bits.token.tag === entry.tag
         else false.B
-        val valid = commitPrefix(lane) && lane.U < count &&
+        val olderThanLoadCheck = io.loadOrderRetireLimit.map(limit =>
+            !limit.valid || lane.U < age(limit.bits.index)).getOrElse(true.B)
+        val valid = commitPrefix(lane) && lane.U < count && olderThanLoadCheck &&
             ((entry.done && !entry.exception) || (!entry.done && (finishNow || fastHeadNow)))
         // Re-evaluate interrupt enables after a system instruction retires, before any younger retirement.
         commitPrefix(lane + 1) := valid && !(if (p.machineSystem) retirementPayload(lane)(6, 0) === "h73".U else false.B)

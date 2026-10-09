@@ -106,7 +106,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     fetchWidth: Int = 2, stableFaultMetadata: Boolean = false, alignedFetchPmp: Boolean = false,
     rawFetchPresence: Boolean = false, parallelFetchTagLookup: Boolean = false,
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
-    independentPayloadCapture: Boolean = false) extends Module {
+    independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -115,6 +115,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     require(!parallelFetchTagLookup || compressed, "parallel tag lookup requires compressed packets")
     require(!parallelAlignment || compressed, "parallel alignment requires compressed packets")
     require(!registeredWindow || compressed, "registered window requires compressed packets")
+    require(!fetchPreviousPacket || registeredWindow, "previous fetch packet requires the registered window")
     require(!independentPayloadCapture || compressed, "independent payload capture requires compressed packets")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
@@ -230,7 +231,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val queryCapacity = if (registeredWindow && fetchWidth == 4) 5 else 3
         val queriedPackets = (0 until queryCapacity).map(offset => packetAt(currentBase, offset))
         val suppliedPackets = if (registeredWindow) {
-            val window = Module(new RegisteredFetchWindow(queryCapacity))
+            val window = Module(new RegisteredFetchWindow(queryCapacity, previousPacket = fetchPreviousPacket))
             window.io.queryBase := currentBase
             window.io.queryContext := context
             window.io.readBase := currentBase

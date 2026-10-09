@@ -1,0 +1,44 @@
+{
+  "schema": "valence-fetch-prefix-archive-source-lock-v1",
+  "suites": {
+    "nemu": {
+      "receipt": "build/gsim/fetch-prefix-nemu-r1/receipt.json",
+      "receipt_sha256": "57c19170042ba3b01bb35e5a2d3f6bc8a35ed1084009804a452cb0d312dcdbaf",
+      "runner": "simulator/gsim/fixtures/fetch_prefix_nemu_v1/run_fixture.py",
+      "status": "PASS_CURRENT_SOURCE_HISTORY_ON_PREFIX_OFF_ON_NEMU"
+    },
+    "context": {
+      "receipt": "build/gsim/fetch-context-history-prefix-r1/receipt.json",
+      "receipt_sha256": "d96ed94fe6b197294ada9993716c83ea69f6a443700717e562bd64b599aecadb",
+      "runner": "simulator/gsim/fixtures/fetch_context_qualification_v1/run_fixture.py",
+      "status": "PASS_FETCH_HISTORY_CONTEXT_PREFIX_OFF_ON"
+    },
+    "dma_pmp": {
+      "receipt": "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/evidence/execute-r1/receipt.json",
+      "receipt_sha256": "49031609a7461a4a0171ebc7df449948068368f2c8ad5190d1c3c517db6d542e",
+      "runner": "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/run_fixture.py",
+      "status": "PASS_FETCH_HISTORY_PREFIX_DMA_AND_DATA_PMP_OFF_ON"
+    }
+  },
+  "original_sources": {
+    "simulator/gsim/fixtures/fetch_prefix_nemu_v1/lineage.json": "bceb709ff1157083530672af32c95cecbcdf1cee60f7e7df16c1163f2295159a",
+    "simulator/gsim/fixtures/fetch_prefix_nemu_v1/test_fixture.py": "28d3cffd62f2890af5a151b906c59f41e505e582f997f5b482962e3d58b4a3b3",
+    "simulator/gsim/fixtures/fetch_prefix_nemu_v1/run_fixture.py": "88bf3adaf5a1216386853133210e3252bb1753a58f0505517d2943fb22443fdd",
+    "simulator/gsim/fixtures/fetch_prefix_nemu_v1/README.md": "2c7d8a52cd48c0d2b8f3196fc94070eb9cb68af500424e25a7cec5c605352d9a",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/.gitignore": "214dadcf58ce07c3d2c7fc1452e488f8cdb189c900e6cd3657df1b19884fdae9",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/test_validation.py": "c4ca6642a3bc31389e4b602ffa08bc2d571ef88841eae45c3975e6c6ad8873d4",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/binding.py": "aae092723052164b2debc75496f08f166de2371243544fd4111a2bcb69d04755",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/source_lock.json": "a25ec6ff2e6ae5e324a16caee4c519e42f13dc3d7eb69e7222059736514bf1fb",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/run_fixture.py": "bd3840a1d18e90503cf111e968bd27708bcd9714ff2157190a04a09676e00a3b",
+    "simulator/gsim/fixtures/fetch_context_qualification_v1/README.md": "b5795e743bd1378aeb2564a882b0f61a2257a70152e98e34410faf56d6793c64",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/build_guests.py": "f2535fec94cdd1fdaceada23c39420258121ac5dd41fbcc310bc39b3c40006a2",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/.gitignore": "5b2824e05f9d0c47abf14961734c6a6a28c03f5c2401539e1ad735165972c2aa",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/test_validation.py": "4a12131071b4163a08d8522a9a9cfb50935efb51b06fd58143d482914124ff12",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/binding.py": "cc9d9af4ce3249dfd0ecd61ba69b14e429aaf17d808b3c28c7af135914041232",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/source_lock.json": "3564b7dd666d6b2cbc4fc6adc9b1555a9787fc6c9d7fe025cd60fc2d789d801a",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/run_fixture.py": "c26450698f82fd6621de6ada232aa8023838726d4ad3ebbd3b9d5a6b6c82c574",
+    "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/README.md": "96f67b51bcce860e2500d12a0bcde7b693e3a92be1d02c37f2766e7bcdd34b64",
+    "simulator/gsim/fixtures/cpu_order_replay_history_v1/strict_validation.py": "64159d5bec73d7cfb2569131918a30c5c001a992be0918714469a27d22125bdd"
+  },
+  "git_sha256": "9dae295c1a4ffae4ee772e6205fcf22b26e1bfeeb5ee98f278b5139bda7ca22f"
+}

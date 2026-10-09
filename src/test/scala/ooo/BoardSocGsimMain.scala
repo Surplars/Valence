@@ -27,7 +27,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
     bankedInstructionData: Boolean = false, dmaLineTransfers: Boolean = false,
     dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
-    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false) extends Module {
+    precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
+    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -37,7 +38,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
-        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow))
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -113,6 +115,12 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val backendCompleteIndex = IO(Output(UInt(8.W)))
     val backendSlot0Tag = IO(Output(UInt(64.W)))
     val backendSlot1Tag = IO(Output(UInt(64.W)))
+    // Upper-pair passive ABI leaves the historical lower pair unchanged.
+    val backendSlot2Tag = IO(Output(UInt(64.W)))
+    val backendSlot3Tag = IO(Output(UInt(64.W)))
+    val backendSlotIndicesHi = IO(Output(UInt(16.W)))
+    val backendSlotStateHi = IO(Output(UInt(16.W)))
+    val backendSlotCount = IO(Output(UInt(8.W)))
     val backendSlotIndices = IO(Output(UInt(16.W)))
     val backendSlotState = IO(Output(UInt(16.W)))
     val backendReturnSlot = IO(Output(UInt(2.W)))
@@ -172,13 +180,14 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val dataPathReply4Data = IO(Output(UInt(64.W)))
     val dataPathReply4Flags = IO(Output(UInt(64.W)))
     backendReset := reset.asBool
+    backendSlotCount := BoardSocConfig.timingParams(timingProfile, issueWidth).memoryEntries.U
     if (backendProbes) {
         require(frontendProbes && issueWidth == 2)
         val b = board.platform.core.core.core.backend
         val l = b.lsu
         val q = b.observationRequests.get
         val stores = b.observationStores.get
-        require(l.slots.size == 2, "backend probes require selected two-slot board")
+        require(Set(2, 4).contains(l.slots.size), "backend probes require two or four LSU owners")
         def tap[T <: Data](signal: T): T = BoringUtils.bore(signal)
         val h = tap(b.head)
         // Static scalar taps avoid dynamic-array output aliases in the pinned GSIM graph pass.
@@ -203,8 +212,21 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         backendSlot0Tag := tap(l.io.owner(0).tag)
         backendSlot1Tag := tap(l.io.owner(1).tag)
         backendSlotIndices := Cat(tap(l.io.owner(1).index).pad(8), tap(l.io.owner(0).index).pad(8))
-        backendSlotState := Cat(0.U(6.W), tap(l.io.cancel).asUInt, tap(l.parallel).asUInt,
-            tap(l.io.phase(1)), tap(l.io.phase(0)), tap(l.io.live).asUInt)
+        def slotPairState(first: Int): UInt = Cat(0.U(6.W),
+            tap(l.io.cancel(first + 1)), tap(l.io.cancel(first)),
+            tap(l.parallel(first + 1)), tap(l.parallel(first)),
+            tap(l.io.phase(first + 1)), tap(l.io.phase(first)),
+            tap(l.io.live(first + 1)), tap(l.io.live(first)))
+        backendSlotState := slotPairState(0)
+        if (l.slots.size == 4) {
+            backendSlot2Tag := tap(l.io.owner(2).tag)
+            backendSlot3Tag := tap(l.io.owner(3).tag)
+            backendSlotIndicesHi := Cat(tap(l.io.owner(3).index).pad(8), tap(l.io.owner(2).index).pad(8))
+            backendSlotStateHi := slotPairState(2)
+        } else {
+            backendSlot2Tag := 0.U; backendSlot3Tag := 0.U
+            backendSlotIndicesHi := 0.U; backendSlotStateHi := 0.U
+        }
         backendReturnSlot := tap(l.owners.io.deq.bits)
         backendFifoCount := tap(q.io.count)
         backendStoreCause := tap(stores.io.requestStallCause)
@@ -342,6 +364,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
             tap(l.io.start.bits.forward.valid), tap(stores.io.fastStore.valid) && tap(stores.io.fastStore.ready)
         )).asUInt
     } else {
+        backendSlot2Tag := 0.U; backendSlot3Tag := 0.U
+        backendSlotIndicesHi := 0.U; backendSlotStateHi := 0.U
         cpuFlowEvents := 0.U; cpuFlowIngressAuth := 0.U; cpuFlowCheckedAuth := 0.U
         cpuFlowCheckedAddress := 0.U; cpuFlowCheckedData := 0.U
         cpuFlowCheckedHeadAuth := 0.U; cpuFlowPhysicalAuth := 0.U

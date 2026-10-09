@@ -30,6 +30,8 @@ struct FlowDataPathOwnershipLedger {
     std::deque<Returned> returns;
     std::optional<Transaction> waiting;
     std::optional<Returned> localReply;
+    std::optional<std::pair<BackendToken,DataPathRequest>> stalledRequest;
+    std::optional<DataPathReply> stalledReply;
     std::map<std::string,uint64_t> counters;
     uint64_t flowEvents=0, ingressAuth=0, checkedAuth=0, checkedAddress=0, checkedData=0;
     uint64_t checkedHeadAuth=0, physicalAuth=0;
@@ -159,6 +161,14 @@ struct FlowDataPathOwnershipLedger {
     // counters. advance() invokes it, and must precede BackendOwnershipLedger::advance().
     void validate(const BackendSample &s,const P &p,const BackendOwnershipLedger &b) const {
         if(s.reset)return;
+        if(stalledRequest) {
+            require(s.bit(20)&&s.request==stalledRequest->first,"stalled request full-token lineage changed or vanished");
+            payload(p.request[P::fifoEnq],stalledRequest->second,"stalled request fingerprint corruption");
+        }
+        if(stalledReply) {
+            require(s.bit(24),"stalled backend response vanished");
+            response(p.reply[4],*stalledReply,"stalled backend response payload corruption");
+        }
         const bool predictedIngress=physicalIngressPass(p);
         require(flow(1)==predictedIngress,"physical ingress route prediction mismatch");
         require(flow(0)==(p.bit(P::virtualRequest)&&!predictedIngress),"raw virtual enqueue route mismatch");
@@ -314,7 +324,7 @@ struct FlowDataPathOwnershipLedger {
         const bool directReply=p.bit(P::storeResponse)&&!storeOwners.front().buffered;
         if(directReply)require(!localReply&&!acceptedLocal&&s.reply(),"direct return lost ordered backend response route");
         if(s.reply()) {
-            require(s.returnSlot<2&&s.live[s.returnSlot],"backend response has no live full-token slot");
+            require(s.returnSlot<BackendSample::ownerCount&&s.live[s.returnSlot],"backend response has no live full-token slot");
             std::optional<BackendToken> token;
             DataPathReply expectedReply;
             if(localReply){token=localReply->transaction.token;expectedReply=localReply->reply;}
@@ -356,6 +366,7 @@ struct FlowDataPathOwnershipLedger {
             discard(returns,"reset_return_drops");
             counters["reset_waiting_drops"]+=bool(waiting);waiting.reset();
             counters["reset_local_reply_drops"]+=bool(localReply);localReply.reset();
+            stalledRequest.reset();stalledReply.reset();
             ++counters["resets"];conservation();return;
         }
         counters["foreign_request"]+=p.bit(P::foreignRequest);
@@ -400,7 +411,7 @@ struct FlowDataPathOwnershipLedger {
         if(p.bit(P::checkedPop))newOwner=checked.front();
         if(p.bit(P::virtualReply))virtualReturn=Returned{owners.front(),p.reply[1]};
         if(p.bit(P::bufferedAccept)||p.bit(P::forwardedAccept))newLocal=localAccepted(p);
-        for(unsigned i=0;i<2;++i)if(s.cancelled[i]&&contains(s.slots[i]))++counters["cancelled_owner_cycles"];
+        for(unsigned i=0;i<BackendSample::ownerCount;++i)if(s.cancelled[i]&&contains(s.slots[i]))++counters["cancelled_owner_cycles"];
         if(p.bit(P::storeResponse)) {
             if(storeOwners.front().buffered){stores.pop_front();++counters["buffered_response"];}
             else ++counters["direct_response"];
@@ -443,6 +454,8 @@ struct FlowDataPathOwnershipLedger {
         counters["same_cycle_translation_reply"]+=p.bit(P::translationRequest)&&p.bit(P::translationReply);
         counters["simultaneous_fifo_transfer"]+=s.enq()&&s.deq();
         counters["simultaneous_return_transfer"]+=p.bit(P::returnPush)&&p.bit(P::returnPop);
+        if(s.bit(20)&&!s.bit(21))stalledRequest=std::pair{s.request,p.request[P::fifoEnq]};else stalledRequest.reset();
+        if(s.bit(24)&&!s.bit(25))stalledReply=p.reply[4];else stalledReply.reset();
         conservation();
     }
     // Full category string; empty means no proven stage. Caller must refine ONLY

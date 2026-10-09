@@ -34,7 +34,8 @@ struct Observer {
     std::map<uint64_t,uint64_t> oracle;
     std::map<std::string,uint64_t> symbols;
     std::string mutation;
-    bool previousBusy = false, finished = false;
+    bool previousBusy = false, finished = false, observedStart = false;
+    unsigned observedLiveOwners = 0, lsuResidentPeak = 0;
     unsigned starts = 0, completions = 0, generationMarkers = 0, errorMarkers = 0;
     uint64_t cycles = 0, retired = 0, cpuRamWhileDma = 0, scratchReadsWhileDma = 0, scratchWritesWhileDma = 0;
     uint64_t commitsWhileDma = 0, dirtySourceCycles = 0, dirtyDestinationCycles = 0;
@@ -72,6 +73,8 @@ struct Observer {
         ++cycles;
         auto b = BackendObserver::read(d);
         auto p = BackendObserver::readData(d);
+        observedLiveOwners=b.liveCount(); observedStart=b.bit(3);
+        lsuResidentPeak=std::max(lsuResidentPeak,observedLiveOwners);
         data.flowEvents=d.get_cpuFlowEvents(); data.ingressAuth=d.get_cpuFlowIngressAuth();
         data.checkedAuth=d.get_cpuFlowCheckedAuth(); data.checkedAddress=d.get_cpuFlowCheckedAddress();
         data.checkedData=d.get_cpuFlowCheckedData(); data.checkedHeadAuth=d.get_cpuFlowCheckedHeadAuth();
@@ -83,6 +86,7 @@ struct Observer {
         if (!negativeApplied && mutation=="--inject-return-token" && b.reply()) {
             b.slots[b.returnSlot].tag ^= 1; negativeApplied = true;
         }
+        check(p.bit(P::reserveGuardMatch),"test-only capacity guard differs from production");
         check(!d.get_io$$trap$$valid(),"unexpected executing CPU trap");
         const bool busy = d.board$platform$dma$busy;
         unsigned resident = 0;
@@ -241,6 +245,9 @@ struct Observer {
         check(dirtySourceCycles && dirtyDestinationCycles && dirtySourceBeats && dirtyDestinationBeats,
               "missing dirty source/destination coherence witness");
         check(dmaResidentPeak>=2,"configured DMA line pipeline never held multiple residents");
+        check(!observedLiveOwners && !observedStart && std::none_of(backend.slotOwners.begin(),backend.slotOwners.end(),
+              [](const auto &owner){return owner.live;}),"CPU LSU slots did not drain");
+        check(!backend.stalledRequest && !data.stalledRequest && !data.stalledReply,"CPU held handshakes did not drain");
         check(pending.empty() && backend.requests.empty() && backend.responses.empty(),"CPU owners did not drain");
         check(data.fifo.empty() && data.stores.empty() && data.storeOwners.empty() && data.ingress.empty() &&
               data.translated.empty() && data.checked.empty() && data.owners.empty() && data.physicalPending.empty() &&
@@ -255,6 +262,8 @@ struct Observer {
                   << " scratch_reads_while_dma=" << scratchReadsWhileDma << " scratch_writes_while_dma=" << scratchWritesWhileDma
                   << " dirty_source_state_cycles=" << dirtySourceCycles << " dirty_destination_state_cycles=" << dirtyDestinationCycles
                   << " dirty_source_checked_beats=" << dirtySourceBeats << " dirty_destination_checked_beats=" << dirtyDestinationBeats
+                  << " lsu_entries=" << BackendSample::ownerCount << " lsu_resident_peak=" << lsuResidentPeak
+                  << " terminal_live_owners=" << observedLiveOwners << " complete_owner_drain=1"
                   << " dma_resident_slots_peak=" << dmaResidentPeak
                   << " verified_cpu_loads=" << verifiedLoads << " physical_ingress_flow=" << PHYSICAL_INGRESS_FLOW
                   << " physical_ingress_passes=" << data.counters.at("physical_ingress_pass")

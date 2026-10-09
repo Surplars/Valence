@@ -1,0 +1,27 @@
+{
+  "schema": "valence-fetch-prefix-nemu-lineage-v1",
+  "production_commit": "2288c7f008e9d6440e8a28e339da28152b54892a",
+  "host_commit": "7c8b7bb800ed4fa3768c23eee9f608d3192391f2",
+  "production_tree": "c6e69b6b539bc36285b602a39fae32cb76ea012c",
+  "validator": "simulator/gsim/fixtures/cpu_order_replay_history_v1/strict_validation.py",
+  "retained_source_sha256": {
+    "simulator/gsim/cpu_retire_prefix_nemu.py": "c05bdf774c534af7eec9d04eb05fcab488df838de5cf5ef71c9c06edba06c22c",
+    "simulator/gsim/cpu_hot_bandwidth.py": "86d2e71d874e21abf915fe20c8fcfb00684eca05cc1833abf4f738f3279cb143",
+    "simulator/gsim/build_cpu_hot_bandwidth.py": "942279f8f42b43555c9ba8528b6003e282b38ffe8256482b6fbd6623993f1d43",
+    "simulator/gsim/harness/cpu_retire_prefix_hot.cpp": "5f4ecdcfdb05701cb0969dab83b1743e3d59c918e8d9cc31afbcde070a029f94",
+    "simulator/gsim/fixtures/cpu_order_replay_history_v1/strict_validation.py": "64159d5bec73d7cfb2569131918a30c5c001a992be0918714469a27d22125bdd",
+    "simulator/gsim/harness/board_hot_nemu/checker_provenance.json": "6285c1b7d4252292bb367dc5e5e8fc2c5b589d49b0c317daad0e55365274e27a",
+    "simulator/gsim/harness/board_hot_nemu/reference_cache_manifest.json": "3735c4ce91a8c9b20db44ddf10c967058127df44d11ccebddb04125719bc6dbb",
+    "simulator/gsim/fixtures/cpu_order_replay_history_v1/test_validation.py": "7486eb7aef02079913788d912aab64cb7b15f9e66c2cf60f11c3c5e64985959c"
+  },
+  "compiler": {
+    "version": "Debian clang version 19.1.7 (3+b1)",
+    "sha256": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a"
+  },
+  "model_receipt_sha256": {
+    "off": "747bef1281cf603f20cfc2c780c6ca5cbbee28c54989d7d3e58743fb619e4fe8",
+    "on": "0d14b7409ebe1fb71c676b269f2dfdfe3ec66e01732c5b7ef4593741e7158433"
+  },
+  "guest_manifest_sha256": "73b7f388a54a67cfaf577ae239e3259af80bd8582f2272dd8d684fb8af6f5208",
+  "provenance_note": "Qualified guest and pinned NEMU cache reused by content. No historical performance receipt or historical hardware result is a required input or current-source correctness claim."
+}

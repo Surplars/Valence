@@ -22,8 +22,12 @@ final case class FpgaNextConfig(
     dmaLineYieldCycles: Int = 0,
     dmaLineEntries: Int = 1,
     precheckedDataRequestFlow: Boolean = false,
-    physicalLoadIngressFlow: Boolean = false
+    physicalLoadIngressFlow: Boolean = false,
+    lsuEntries: Int = 2,
+    loadOrderOlderRetire: Boolean = false,
+    fetchPreviousPacket: Boolean = false
 ) {
+    require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
     require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
     require(!precheckedDataRequestFlow || virtualRamLoadPrecheck,
@@ -42,12 +46,15 @@ final case class FpgaNextConfig(
         (if (virtualRamLoadPrecheck) "-virtual-precheck" else "") +
         (if (precheckedDataRequestFlow) "-prechecked-flow" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
+        (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
+        (if (loadOrderOlderRetire) "-older-load-retire" else "") +
+        (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
         (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "")
     val interfaceVersion = 1
-    val timingProfile = "staged-fetch-turnover"
+    val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
     val issueWidth = 2
     val cpuHz = 100000000
@@ -88,7 +95,8 @@ final case class FpgaNextConfig(
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -106,7 +114,8 @@ final case class FpgaNextConfig(
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
-        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow)
+        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
 }
 
 object FpgaNextConfig {
@@ -128,6 +137,9 @@ object FpgaNextConfig {
         require(lifetimes.size <= 1, "choose one prefetch candidate lifetime")
         val lifetime = lifetimes.headOption.map(_.stripPrefix("--prefetch-candidate-cycles=").toInt).getOrElse(1)
         require(Set(1, 3, 16).contains(lifetime), "FPGA-next prefetch experiments use 1, 3 or 16 attempts")
+        val ownerCounts = options.filter(_.startsWith("--lsu-entries="))
+        require(ownerCounts.size <= 1, "choose one LSU owner count")
+        val lsuCount = ownerCounts.headOption.map(_.stripPrefix("--lsu-entries=").toInt).getOrElse(2)
         val yields = options.filter(_.startsWith("--dma-line-yield-cycles="))
         require(yields.size <= 1, "choose one DMA line yield duration")
         val lineYield = yields.headOption.map(_.stripPrefix("--dma-line-yield-cycles=").toInt).getOrElse(0)
@@ -135,6 +147,9 @@ object FpgaNextConfig {
         require(depths.size <= 1, "choose one DMA line owner count")
         val lineDepth = depths.headOption.map(_.stripPrefix("--dma-line-entries=").toInt).getOrElse(1)
         base.copy(
+            lsuEntries = lsuCount,
+            loadOrderOlderRetire = options.contains("--load-order-older-retire"),
+            fetchPreviousPacket = options.contains("--fetch-previous-packet"),
             dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),
