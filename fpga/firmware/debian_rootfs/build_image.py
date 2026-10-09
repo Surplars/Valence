@@ -18,7 +18,7 @@ import re
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 NET = HERE.parent / 'linux_net'
-sys.path[:0] = [str(NET), str(HERE.parent), str(ROOT / 'simulator/gsim')]
+sys.path[:0] = [str(NET), str(HERE.parent), str(HERE.parent / 'linux_uart'), str(ROOT / 'simulator/gsim')]
 # Avoid importing this file as build_image when importing the existing helper.
 import importlib.util
 spec = importlib.util.spec_from_file_location('valence_network_image', NET / 'build_image.py')
@@ -27,6 +27,7 @@ spec.loader.exec_module(net)
 from build_linux import clean_revision, image_header, validate_payload, validate_payload_elf, LOAD, KERNEL, DTB, MONITOR
 from run import run, opensbi_setup, OPENSBI_LOCK
 from memory_layout import MemoryLayout
+from kernel_proc_contract import validate as validate_uart_proc
 
 MODULE_SOURCES = ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_soc.c', 'valence_cmu.c', 'valence_dma.c',
                   'valence_irq_policy.h', 'valence_driver_names.h', 'valence_rx_queue.h', 'valence_tx_queue.h', 'valence_media_policy.h')
@@ -90,6 +91,8 @@ def prepare(args):
         out.mkdir(parents=True, exist_ok=False)
     source = ROOT / 'simulator/build/linux'
     revision = clean_revision(source)
+    uart_proc_contract = (validate_uart_proc(source, HERE / 'dinit/uart-irq-init')
+                          if console_profile == 'uart-irq' else None)
     baseline = args.baseline.resolve()
     baseline_manifest = json.loads((baseline / 'manifest.json').read_text())
     config = baseline / 'linux.config'
@@ -160,9 +163,21 @@ def prepare(args):
         bootargs=profile_bootargs(args.init_system, console_profile),
         console_profile=console_profile, runtime_uart_irq_requested=console_profile == 'uart-irq',
         uart_irq_source=3 if console_profile == 'uart-irq' else None,
-        uart_irq_runtime_verified=False)
+        uart_irq_runtime_verified=False, uart_proc_contract=uart_proc_contract)
     (out / 'kernel-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('VL100_DEBIAN_KERNEL_MODULES_READY ' + str(out), flush=True)
+
+
+def export_stage2_payload(linux_image, delivery):
+    """Expose the already-validated Linux bytes for U-Boot, without repackaging."""
+    raw = delivery / 'Image'
+    shutil.copyfile(linux_image, raw)
+    if sha(raw) != sha(linux_image):
+        raise RuntimeError('Raw stage-2 Linux Image copy changed')
+    return raw, dict(format='raw-riscv-linux-Image', image=raw.name,
+        runtime_dtb='valence-vl100.dtb', kernel_entry=hex(KERNEL),
+        initramfs='embedded', separate_initrd=False, board_verified=False,
+        note='U-Boot may stage Image elsewhere and relocate with booti; do not boot valence.vld as Image')
 
 
 def image(args):
@@ -183,6 +198,10 @@ def image(args):
     if root_record.get('init_system', 'busybox') != init_system:
         raise RuntimeError('Kernel and rootfs init profiles differ')
     console_profile = record.get('console_profile', 'sbi')
+    if console_profile == 'uart-irq':
+        contract = validate_uart_proc(source, HERE / 'dinit/uart-irq-init')
+        if record.get('uart_proc_contract') != contract:
+            raise RuntimeError('Re-qualify the kernel stage against the pinned UART proc contract')
     if root_record.get('console_profile', 'sbi') != console_profile:
         raise RuntimeError('Kernel and rootfs console owners differ')
     bootargs = record.get('bootargs', net.BOOTARGS)
@@ -232,7 +251,8 @@ def image(args):
         log=out / 'kernel-rootfs.log', timeout=600)
     linux_image = kernel / 'arch/riscv/boot/Image'
     layout = MemoryLayout(record['memory_bytes'])
-    runtime = image_header(linux_image, layout.monitor)
+    payload_limit = layout.monitor - (0x80000 if layout.ram_bytes == 0x80000000 else 0)
+    runtime = image_header(linux_image, payload_limit)
     if runtime + root_record['rootfs_file_bytes'] + 64*1024*1024 > layout.ram_bytes:
         raise RuntimeError('Insufficient conservative RAM budget for image + rootfs + 64 MiB reserve')
     embedded = (kernel / 'usr/initramfs_inc_data').read_bytes()
@@ -261,9 +281,9 @@ def image(args):
     firmware = out / 'opensbi/platform/generic/firmware/fw_payload.bin'
     content = firmware.read_bytes()
     net.validate_embedded_dtb(content, dtb.read_bytes())
-    padding = validate_payload(content, linux_image.read_bytes(), layout.monitor)
+    padding = validate_payload(content, linux_image.read_bytes(), payload_limit)
     elf = firmware.with_suffix('.elf')
-    elf_binding = validate_payload_elf(elf.read_bytes(), content, linux_image.read_bytes(), layout.monitor)
+    elf_binding = validate_payload_elf(elf.read_bytes(), content, linux_image.read_bytes(), payload_limit)
     symbols = {line.split()[2]: int(line.split()[0], 16) for line in
         subprocess.check_output(['riscv64-linux-gnu-nm', elf], text=True).splitlines()
         if len(line.split()) == 3}
@@ -276,16 +296,17 @@ def image(args):
     shutil.copyfile(firmware, result)
     # Match the configured BootROM RRQ; the server intentionally checks basename.
     vld = delivery / 'valence.vld'
-    profile = {0x20000000: 'ddr', 0x40000000: 'ddr1g', 0x80000000: 'ddr2g'}[layout.ram_bytes]
+    profile = {0x20000000: 'ddr', 0x40000000: 'ddr1g', 0x80000000: 'ddr2g-menu'}[layout.ram_bytes]
     run([sys.executable, HERE.parent / 'netboot_host.py', 'pack', result, '--out', vld, '--memory', profile],
         log=out / 'netboot-pack.log')
+    raw_image, stage2 = export_stage2_payload(linux_image, delivery)
     shutil.copyfile(kernel / '.config', delivery / 'linux.config')
     for tool in ('netboot_host.py', 'uart_load.py'):
         shutil.copyfile(HERE.parent / tool, delivery / tool)
     shutil.copyfile(NET / 'net_bench_peer.py', delivery / 'net_bench_peer.py')
     manifest = dict(**record)
     manifest.update(stage='firmware_ready_not_board_verified', rootfs=root_record,
-        rootfs_embedded=True, kernel_prepare_config_sha256=record['config_sha256'],
+        rootfs_embedded=True, stage2_payload=stage2, kernel_prepare_config_sha256=record['config_sha256'],
         config_sha256=sha(kernel / '.config'),
         kernel_runtime_bytes=runtime, bootargs=bootargs, opensbi_revision=OPENSBI_LOCK['revision'],
         entry=hex(LOAD), kernel_entry=hex(KERNEL), payload_alignment_padding_bytes=padding,
@@ -299,9 +320,10 @@ def image(args):
         memory_profile=profile, full_address_translation_required=layout.ram_bytes == 0x80000000,
         sources={str(p.relative_to(ROOT)): sha(p) for p in [Path(__file__),
             HERE / 'build_rootfs.py', HERE.parent / 'build_linux.py', NET / 'build_image.py', NET / 'uart_console.py',
+            HERE.parent / 'linux_uart/kernel_proc_contract.py',
             *[NET / name for name in MODULE_SOURCES]]},
         files={p.name: dict(bytes=p.stat().st_size, sha256=sha(p)) for p in
-            (result, vld, dtb, dts, delivery / 'linux.config', delivery / 'netboot_host.py',
+            (result, vld, raw_image, dtb, dts, delivery / 'linux.config', delivery / 'netboot_host.py',
              delivery / 'uart_load.py', delivery / 'net_bench_peer.py')})
     (delivery / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     print('VL100_DEBIAN_FIRMWARE_READY_NOT_BOARD_VERIFIED ' + str(result), flush=True)

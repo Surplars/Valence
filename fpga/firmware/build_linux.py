@@ -60,6 +60,17 @@ def board_dts(isa, cpu_hz, uart_baud, memory_bytes=0x20000000):
         if text.count(before) != 1:
             raise RuntimeError("Board DTS template mismatch: " + before)
         text = text.replace(before, after)
+    if memory_bytes == 0x80000000:
+        # Current 2 GiB menu ROM owns 512 KiB below its monitor. Preserve this
+        # in Linux as well as U-Boot; otherwise the page allocator may reuse it.
+        marker = f'        monitor@{layout.monitor:x} {{'
+        diagnostics = ('        diagnostics@fff78000 {\n'
+                       '            reg = <0x0 0xfff78000 0x0 0x80000>;\n'
+                       '            no-map;\n'
+                       '        };\n')
+        if text.count(marker) != 1:
+            raise RuntimeError('Menu diagnostic reservation insertion point changed')
+        text = text.replace(marker, diagnostics + marker)
     return text
 
 

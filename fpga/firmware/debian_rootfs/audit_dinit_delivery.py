@@ -78,7 +78,11 @@ def require_console_contract(manifest, content, config):
     bootstrap = content('usr/local/libexec/valence-uart-irq-init').decode()
     require('modprobe valence_aia' in bootstrap and 'ready=1 faulted=0' in bootstrap
             and 'irq:[1-9][0-9]*' in bootstrap and 'mmio:0x0*10000000' in bootstrap
-            and 'exec < /dev/ttyS0 > /dev/ttyS0 2>&1' in bootstrap,
+            and 'command exec < /dev/ttyS0 > /dev/ttyS0 2>&1 || uart_fail' in bootstrap
+            and 'uart_proc=/proc/tty/driver/serial_8250\n' in bootstrap
+            and '"$uart_proc"' in bootstrap
+            and 'uart_controller_ready || uart_fail' in bootstrap
+            and 'set +e' in bootstrap,
             'UART bootstrap must verify a real IRQ and reopen PID 1 descriptors')
 
 
@@ -155,7 +159,17 @@ def main(args):
     require_console_contract(manifest, content, config)
     native_uart = manifest.get('console_profile', 'sbi') == 'uart-irq'
     firmware_name = 'opensbi_debian13_riscv64_vl100_cpu100_u460800_dinit_lz4' + ('_uart_irq' if native_uart else '') + '.bin'
-    require(netboot_host.validate(delivery / 'valence.vld', netboot_host.LIMITS['ddr2g']) ==
+    raw_image = (delivery / 'Image').read_bytes()
+    firmware = (delivery / firmware_name).read_bytes()
+    require(raw_image and firmware[0x200000:0x200000 + len(raw_image)] == raw_image,
+            'U-Boot raw Linux Image differs from the bundled OpenSBI kernel')
+    stage2 = manifest.get('stage2_payload', {})
+    require(stage2.get('format') == 'raw-riscv-linux-Image' and stage2.get('image') == 'Image'
+            and stage2.get('runtime_dtb') == 'valence-vl100.dtb'
+            and stage2.get('kernel_entry') == '0x80400000'
+            and stage2.get('initramfs') == 'embedded' and stage2.get('separate_initrd') is False,
+            'U-Boot/Linux handoff identity mismatch')
+    require(netboot_host.validate(delivery / 'valence.vld', netboot_host.LIMITS['ddr2g-menu']) ==
         manifest['files'][firmware_name]['bytes'], 'netboot size/header/CRC')
     for name, expected in rr['sources'].items():
         require(digest((HERE / name).read_bytes()) == expected, 'rootfs source drift: ' + name)

@@ -100,3 +100,19 @@ explicitly selects the compiled RISC-V release, never the host WSL kernel.
 
 Five W=1 module builds/vermagic/depmod/DT/exact-initramfs checks are not board qualification.
 This 2 GiB image requires matching full-address RTL, Home stalled-read fix and ROM data.
+
+For the current native UART repair and raw `Image`/runtime-DTB handoff, see
+[the UART workflow](../linux_uart/README.md#pinned-proc-name-repair-2026-10-09).
+After packing, also run the reproducible packed-path/ELF dependency audit:
+
+    python3 fpga/firmware/debian_rootfs/audit_runtime_closure.py --archive build/fpga/<new-rootfs>/debian13-riscv64-dinit-vl100.cpio --receipt build/fpga/<new-delivery>/rootfs-runtime-closure.json
+    python3 fpga/firmware/debian_rootfs/test_runtime_closure.py
+
+An already provisioned cloud cache may use `scripts/cloud/rootless_chroot.py`
+with the explicit builder `--rootless-chroot` option. Run the packer under the
+existing `fakeroot-tcp`, set `FAKEROOTDONTTRYCHOWN=1` (metadata-only ownership),
+and preserve its state file. Supply each exact former seed root through
+`--rootless-origin-root` so build-host symlinks become guest paths. This flow
+installs no tools, changes no host ownership, and is not a privileged chroot.
+Do not ship its `.valence-build-tools` directory. The packed audit checks actual
+cpio device metadata and ownership, not the host filesystem's fake-root view.

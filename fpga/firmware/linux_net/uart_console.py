@@ -24,7 +24,8 @@ def config_flags(profile):
         return ['--enable', 'HVC_RISCV_SBI']
     # An enabled but unselected HVC still creates a polling receive owner.
     # Keep the separate SBI earlycon implementation for pre-driver diagnostics.
-    return ['--disable', 'HVC_RISCV_SBI', '--enable', 'SERIAL_8250',
+    return ['--disable', 'HVC_RISCV_SBI', '--enable', 'PROC_FS', '--enable', 'SYSFS',
+            '--enable', 'DEVTMPFS', '--enable', 'SERIAL_8250',
             '--enable', 'SERIAL_8250_CONSOLE', '--enable', 'SERIAL_OF_PLATFORM',
             '--enable', 'SERIAL_EARLYCON', '--enable', 'SERIAL_EARLYCON_RISCV_SBI',
             '--set-val', 'SERIAL_8250_NR_UARTS', '1',
@@ -38,7 +39,7 @@ def validate_config(text, profile):
         if 'CONFIG_HVC_RISCV_SBI=y' not in lines:
             raise RuntimeError('SBI recovery console driver missing')
         return
-    required = ('TTY', 'SERIAL_8250', 'SERIAL_8250_CONSOLE', 'SERIAL_OF_PLATFORM',
+    required = ('PROC_FS', 'SYSFS', 'DEVTMPFS', 'TTY', 'SERIAL_8250', 'SERIAL_8250_CONSOLE', 'SERIAL_OF_PLATFORM',
                 'SERIAL_EARLYCON', 'SERIAL_EARLYCON_RISCV_SBI')
     for name in required:
         if 'CONFIG_' + name + '=y' not in lines:

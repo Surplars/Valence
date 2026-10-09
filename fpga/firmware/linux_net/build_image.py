@@ -141,6 +141,21 @@ def network_dts(memory_bytes=0x20000000, platform_drivers=False, bootargs=BOOTAR
 def validate_dts(text, bootargs=BOOTARGS, console_profile="sbi"):
     """Fail closed on missing modern ISA discovery, not merely CONFIG_FPU=y."""
     uart_console.validate_dts(text, console_profile)
+    memory = re.search(r'\bmemory@80200000\s*\{([^{}]*)\};', text)
+    reg = re.search(r'\breg\s*=\s*<([^>]+)>;', memory[1]) if memory else None
+    cells = [int(word, 0) for word in reg[1].split()] if reg else []
+    if len(cells) != 4 or cells[:3] != [0, 0x80200000, 0] or cells[3] not in (0x20000000, 0x40000000, 0x80000000):
+        raise RuntimeError('Linux RAM must match the explicit Valence DDR aperture')
+    if cells[3] == 0x80000000:
+        tree = re.search(r'\breserved-memory\s*\{((?:[^{}]|\{[^{}]*\})*)\};', text)
+        if not tree:
+            raise RuntimeError('2 GiB menu ROM requires a reserved-memory parent')
+        for name, base, size in (('diagnostics', 0xfff78000, 0x80000), ('monitor', 0xffff8000, 0x4000)):
+            reserved = re.search(r'\b' + name + '@' + format(base, 'x') + r'\s*\{([^{}]*)\};', tree[1])
+            entry = re.search(r'\breg\s*=\s*<([^>]+)>;', reserved[1]) if reserved else None
+            actual = [int(word, 0) for word in entry[1].split()] if entry else []
+            if actual != [0, base, 0, size] or not re.search(r'\bno-map\s*;', reserved[1]):
+                raise RuntimeError('2 GiB menu ROM reservation missing or changed: ' + name)
     def strings(name):
         matches = re.findall(r'(?m)^\s*' + re.escape(name) + r'\s*=\s*(.*?);', text)
         if len(matches) != 1:

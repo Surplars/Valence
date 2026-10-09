@@ -1,27 +1,40 @@
 # Sourced by /init after API filesystems are mounted, before Dinit starts.
 # No getty/HVC may consume input while 8250 claims the physical UART.
+# Pinned Linux 551c722f: serial8250_reg.driver_name determines this proc name.
+# Do not fall back to another driver file or infer readiness from a tty node.
+uart_proc=/proc/tty/driver/serial_8250
 uart_fail() {
+    # This helper runs in PID 1. Even failed diagnostics must not trigger set -e
+    # and panic the live kernel. A failed IRQ path is not an interactive shell.
+    set +e
     printf '<3>valence-uart: %s; reset and load the SBI recovery image\n' "$*" > /dev/kmsg
-    # This helper runs in PID 1. Exiting would panic an otherwise live kernel.
-    # An unverified IRQ path cannot safely provide interactive tty input; keep
-    # diagnostic output alive and wait for an explicit reset/recovery image.
     printf '%s\n' "$*" > /run/valence/uart-recovery-required
+    {
+        printf 'reason: %s\nproc: %s\n' "$*" "$uart_proc"
+        if [ -r "$uart_proc" ]; then cat "$uart_proc"; else printf 'proc unavailable\n'; fi
+        for uart_status in /sys/bus/platform/devices/*/irqchip_status; do
+            if [ -r "$uart_status" ]; then printf '%s: ' "$uart_status"; cat "$uart_status"; fi
+        done
+    } > /run/valence/uart-failure.log
     while :; do sleep 3600; done
+}
+uart_controller_ready() {
+    for uart_status in /sys/bus/platform/devices/*/irqchip_status; do
+        if [ -r "$uart_status" ] && grep -Eq '^ready=1 faulted=0([[:space:]]|$)' "$uart_status"; then
+            return 0
+        fi
+    done
+    return 1
 }
 # The IRQ controller is an explicit module in this BSP. Before it publishes its
 # IRQ domain, 8250 OF probing defers instead of silently selecting irq=0 polling.
 modprobe valence_aia || uart_fail 'IRQ controller module load failed'
-uart_irq_ready=0
-for uart_status in /sys/bus/platform/devices/*/irqchip_status; do
-    if [ -r "$uart_status" ] && grep -q 'ready=1 faulted=0' "$uart_status"; then
-        uart_irq_ready=1
-    fi
-done
-[ "$uart_irq_ready" = 1 ] || uart_fail 'IRQ controller selftest failed'
+uart_controller_ready || uart_fail 'IRQ controller selftest failed'
 # /dev/ttyS0 alone is insufficient: 8250 allocates placeholder tty devices even
 # before OF probe binds. Require the correct MMIO port and a real Linux IRQ.
+# Linux IRQ numbers are allocated dynamically; APLIC source 3 need not be virq 3.
 uart_tries=0
-while ! [ -c /dev/ttyS0 ] || ! awk '
+while ! [ -c /dev/ttyS0 ] || ! [ -r "$uart_proc" ] || ! awk '
     $1 == "0:" && $2 == "uart:16550A" {
         mmio = 0; irq = 0
         for (i = 3; i <= NF; i++) {
@@ -33,15 +46,17 @@ while ! [ -c /dev/ttyS0 ] || ! awk '
         if (mmio && irq) found = 1
     }
     END { exit !found }
-' /proc/tty/driver/serial; do
+' "$uart_proc"; do
     uart_tries=$((uart_tries + 1))
     [ "$uart_tries" -lt 50 ] || uart_fail '8250 IRQ binding timed out'
     sleep 0.1
 done
+# A deferred probe may complete after a controller fault: do not hand it to getty.
+uart_controller_ready || uart_fail 'IRQ controller faulted during UART binding'
 [ -c /dev/ttyS0 ] || uart_fail 'ttyS0 device node missing'
 # Open without waiting for absent modem carrier, and keep board baud unchanged.
 stty -F /dev/ttyS0 460800 cs8 -parenb -cstopb -crtscts clocal cread || uart_fail 'ttyS0 setup failed'
 # Kernel PID 1 opened /dev/console before our modular IRQ controller existed.
 # Replace possibly missing inherited descriptors only after native binding.
-exec < /dev/ttyS0 > /dev/ttyS0 2>&1
-printf 'valence-uart: ttyS0 FIFO IRQ terminal ready (APLIC source 3)\n'
+command exec < /dev/ttyS0 > /dev/ttyS0 2>&1 || uart_fail 'ttyS0 descriptor reopen failed'
+printf 'valence-uart: ttyS0 FIFO IRQ binding ready (APLIC source 3; traffic unverified)\n'

@@ -32,7 +32,7 @@ def config(console):
     # Independent required-feature fixture, including the unmodified BSP policy.
     features = ('64BIT MMU RISCV_SBI FPU NET INET PACKET NETDEVICES PHYLIB OF_MDIO '
         'REALTEK_PHY MODULES HZ_250 NO_HZ_IDLE IRQ_TIME_ACCOUNTING IRQ_DOMAIN OF_IRQ '
-        'RISCV_ISA_FALLBACK PRINTK_TIME CMDLINE_FORCE TTY SERIAL_8250 SERIAL_8250_CONSOLE '
+        'RISCV_ISA_FALLBACK PRINTK_TIME CMDLINE_FORCE PROC_FS SYSFS DEVTMPFS TTY SERIAL_8250 SERIAL_8250_CONSOLE '
         'SERIAL_OF_PLATFORM SERIAL_EARLYCON SERIAL_EARLYCON_RISCV_SBI').split()
     features += list(image.DEBIAN_CONFIG)
     lines = ['CONFIG_' + name + '=y' for name in features]
@@ -54,7 +54,10 @@ class ProfileTests(unittest.TestCase):
     def test_native_configuration_and_mutations(self):
         text = config('uart-irq')
         image.validate_kernel_config(text, 'dinit', 'uart-irq')
-        changes = [('# CONFIG_HVC_RISCV_SBI is not set', 'CONFIG_HVC_RISCV_SBI=y'),
+        changes = [('CONFIG_PROC_FS=y', '# CONFIG_PROC_FS is not set'),
+                   ('CONFIG_SYSFS=y', '# CONFIG_SYSFS is not set'),
+                   ('CONFIG_DEVTMPFS=y', '# CONFIG_DEVTMPFS is not set'),
+                   ('# CONFIG_HVC_RISCV_SBI is not set', 'CONFIG_HVC_RISCV_SBI=y'),
                    ('CONFIG_SERIAL_OF_PLATFORM=y', '# CONFIG_SERIAL_OF_PLATFORM is not set'),
                    ('console=ttyS0,460800n8', 'console=hvc0'),
                    ('earlycon=sbi', 'earlycon=sbi keep_bootcon'),
@@ -94,6 +97,34 @@ class ProfileTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError):
                         image.net.validate_dtb(dtc, dtb, args, 'uart-irq')
 
+    def test_current_ddr_and_menu_reserved_regions(self):
+        args = image.profile_bootargs('dinit', 'uart-irq')
+        text = image.net.network_dts(0x80000000, True, args, 'uart-irq')
+        self.assertIn('reg = <0x0 0x80200000 0x0 0x80000000>;', text)
+        for before, after in (('reg = <0x0 0xfff78000 0x0 0x80000>;', 'reg = <0x0 0xfff79000 0x0 0x70000>;'),
+                              ('diagnostics@fff78000', 'unreserved@fff78000'),
+                              ('monitor@ffff8000', 'unreserved@ffff8000'),
+                              ('reg = <0x0 0x80200000 0x0 0x80000000>;', 'reg = <0x0 0x80000000 0x0 0x80000000>;')):
+            with self.subTest(mutation=before), self.assertRaises(RuntimeError):
+                image.net.validate_dts(text.replace(before, after), args, 'uart-irq')
+        with self.assertRaises(RuntimeError):
+            image.net.validate_dts(text.replace('            no-map;', '', 1), args, 'uart-irq')
+        block = ('        diagnostics@fff78000 {\n'
+                 '            reg = <0x0 0xfff78000 0x0 0x80000>;\n'
+                 '            no-map;\n        };\n')
+        misplaced = text.replace(block, '').replace('    soc {', block + '    soc {')
+        self.assertNotEqual(text, misplaced)
+        with self.assertRaises(RuntimeError):
+            image.net.validate_dts(misplaced, args, 'uart-irq')
+        dtc = shutil.which('dtc')
+        if not dtc:
+            self.skipTest('dtc unavailable for compiled reservation check')
+        with tempfile.TemporaryDirectory() as directory:
+            dts, dtb = Path(directory) / 'board.dts', Path(directory) / 'board.dtb'
+            dts.write_text(text)
+            subprocess.run([dtc, '-q', '-I', 'dts', '-O', 'dtb', '-o', dtb, dts], check=True)
+            image.net.validate_dtb(dtc, dtb, args, 'uart-irq')
+
     def test_rootfs_single_owner_and_order(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -125,9 +156,9 @@ class ProfileTests(unittest.TestCase):
                 (root / 'tty').touch()
                 # Only replace external hardware endpoints in this host fixture.
                 text = original.replace('/sys/bus/platform/devices/*/irqchip_status', str(root / 'status'))
-                text = text.replace('/proc/tty/driver/serial', str(root / 'serial'))
+                text = text.replace('/proc/tty/driver/serial_8250', str(root / 'serial'))
                 text = text.replace('/dev/kmsg', str(root / 'kmsg')).replace('/dev/ttyS0', str(root / 'tty'))
-                text = text.replace('/run/valence/uart-recovery-required', str(root / 'recovery-required'))
+                text = text.replace('/run/valence/', str(root) + '/')
                 text = text.replace('sleep 3600', 'exit 77')
                 text = text.replace('[ -c ', '[ -f ')
                 text = text.replace('sleep 0.1', ': # bounded wait elided in host fixture')
@@ -138,7 +169,7 @@ class ProfileTests(unittest.TestCase):
                 result = subprocess.run(['/bin/sh', script], capture_output=True, timeout=3)
                 self.assertEqual(result.returncode, 0 if mode in ('ready', 'rv64-padded') else 77)
                 if mode in ('ready', 'rv64-padded'):
-                    self.assertIn('FIFO IRQ terminal ready', (root / 'tty').read_text())
+                    self.assertIn('FIFO IRQ binding ready', (root / 'tty').read_text())
                 else:
                     self.assertIn('reset and load the SBI recovery image', (root / 'kmsg').read_text())
                     self.assertEqual((root / 'tty').read_text(), '')
@@ -158,6 +189,37 @@ class ProfileTests(unittest.TestCase):
             manifest['rootfs']['console_profile'] = 'sbi'
             with self.assertRaises(RuntimeError):
                 audit.require_console_contract(manifest, content, config('uart-irq').splitlines())
+
+    def test_packed_audit_rejects_regressions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'etc/dinit.d').mkdir(parents=True)
+            shutil.copyfile(rootfs.ASSETS / 'init', root / 'init')
+            shutil.copyfile(rootfs.ASSETS / 'services/serial-console', root / 'etc/dinit.d/serial-console')
+            rootfs.configure_console(root, 'uart-irq')
+            helper = root / 'usr/local/libexec/valence-uart-irq-init'
+            original = helper.read_text()
+            for before, after in (('uart_proc=/proc/tty/driver/serial_8250', 'uart_proc=/proc/tty/driver/serial'),
+                                  ('command exec <', 'exec <'), ('set +e', 'set -e')):
+                helper.write_text(original.replace(before, after))
+                with self.subTest(mutation=before), self.assertRaises(RuntimeError):
+                    audit.require_console_contract(
+                        {'console_profile': 'uart-irq', 'rootfs': {'console_profile': 'uart-irq'}},
+                        lambda name: (root / name).read_bytes(), config('uart-irq').splitlines())
+
+    def test_stage2_raw_payload_bytes_are_not_wrapped(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, delivery = root / 'kernel', root / 'delivery'
+            source.write_bytes(b'not-a-VLD-wrapper\x00' + bytes(range(256)))
+            delivery.mkdir()
+            result, contract = image.export_stage2_payload(source, delivery)
+            self.assertEqual(result.read_bytes(), source.read_bytes())
+            self.assertEqual(result.name, 'Image')
+            self.assertEqual(contract['runtime_dtb'], 'valence-vl100.dtb')
+            self.assertEqual(contract['kernel_entry'], '0x80400000')
+            self.assertEqual(contract['initramfs'], 'embedded')
+            self.assertFalse(contract['board_verified'])
 
     def test_busy_irq_budget_does_not_disable_other_devices(self):
         text = (FW / 'linux_net/valence_aia.c').read_text()
