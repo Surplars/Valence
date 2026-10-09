@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload a flat RV64 RAM binary to Valence Bootrom V0.1 / legacy ROM monitor (Windows or Linux)."""
+"""Upload a flat RV64 RAM binary to automatic-start or legacy Valence BootROM (Windows or Linux)."""
 import argparse
 from dataclasses import dataclass
 import os
@@ -85,9 +85,49 @@ def wait_marker(port, marker, timeout):
     raise TimeoutError(f"monitor did not send {marker!r}; reset board and close other terminals")
 
 
-def wait_ready(port, timeout=5.0):
-    # New ROMs have status lines only; retain support for legacy prompt ROMs.
-    wait_marker(port, (b"ready to boot\r\n", b"> "), timeout)
+def wait_ready(port, timeout=5.0, output=None):
+    """Return 'autoboot' or 'legacy' after VDON, without consuming guest output.
+
+    AUTOBOOT announces the ROM's launch path, not evidence of guest execution.
+    Read a byte at a time so bytes following the marker stay in the UART input
+    buffer for console(). Forward consumed text immediately when a sink is given,
+    including diagnostics on failure or timeout. Memory use stays bounded even
+    if a damaged stream never contains a newline.
+    """
+    if not 0 < timeout < float("inf"):
+        raise ValueError("boot status timeout must be finite and positive")
+    deadline, line = time.monotonic() + timeout, bytearray()
+    while time.monotonic() < deadline:
+        incoming = port.read(1)
+        if not incoming:
+            continue
+        if output is not None:
+            output.write(incoming)
+            output.flush()
+        line += incoming
+        if line == b"AUTOBOOT\r\n":
+            return "autoboot"
+        if line == b"ready to boot\r\n" or line.endswith(b"> "):
+            return "legacy"
+        if incoming == b"\n":
+            if any(marker in line for marker in (b"CRC FAIL", b"RESET REQUIRED", b"NO IMAGE",
+                                                b"NO TRUSTED IMAGE", b"IMAGE RECORD FAIL",
+                                                b"VERIFY CANCELLED", b"DOWNLOAD ABORT")):
+                raise ProtocolError("ROM refused to start after VDON: " +
+                                    line.decode("utf-8", errors="replace").strip())
+            line.clear()
+        elif len(line) > 256:
+            del line[:-256]
+    raise TimeoutError("RAM verified, but no AUTOBOOT or legacy readiness status received; "
+                       "no RUN command sent and guest execution is unconfirmed")
+
+
+def finish_download(port, run=False, timeout=5.0, output=None):
+    """Send g only when requested AND explicitly recognized as a legacy ROM."""
+    state = wait_ready(port, timeout=timeout, output=output)
+    if state == "legacy" and run:
+        send(port, b"g")
+    return state
 
 
 def read_exact(port, size, deadline):
@@ -298,8 +338,10 @@ def main():
                         help="must match ROM firmware; ddr allows 512 MiB minus 16 KiB")
     parser.add_argument("--verify-timeout", type=float,
                         help="seconds for final RAM CRC (default scales with image size)")
+    parser.add_argument("--boot-status-timeout", type=float,
+                        help="seconds after VDON for boot status (default scales with image size)")
     parser.add_argument("--run", action="store_true",
-                        help="send g after RAM verification; this does not confirm successful boot")
+                        help="send g only to legacy ROMs; new ROMs start automatically even without --run")
     parser.add_argument("--console", action="store_true",
                         help="interactive UART terminal until Ctrl-C (TTY keyboard required)")
     args = parser.parse_args()
@@ -308,6 +350,10 @@ def main():
         image = args.image.read_bytes()
         image_limit = IMAGE_LIMITS[args.memory]
         validate_image(image, args.entry, image_limit)
+        boot_timeout = (verification_timeout(len(image)) if args.boot_status_timeout is None
+                        else args.boot_status_timeout)
+        if not 0 < boot_timeout < float("inf"):
+            raise ValueError("boot status timeout must be finite and positive")
         import serial
         with serial.Serial(args.port, args.baud, timeout=0.05, write_timeout=5) as port:
             last_percent = [-1]
@@ -324,12 +370,16 @@ def main():
 
             upload(port, image, args.entry, progress=progress, image_limit=image_limit,
                    verify_timeout=args.verify_timeout, stats=stats)
-            print("\n" + stats.summary())
-            # Wait for the complete readiness line before sending the boot command.
-            wait_ready(port)
-            if args.run:
-                send(port, b"g")
-                print("RUN command sent; successful RUN/boot must be confirmed from board UART output.")
+            print("\n" + stats.summary(), flush=True)
+            state = finish_download(port, run=args.run, timeout=boot_timeout, output=sys.stdout.buffer)
+            if state == "autoboot":
+                print("ROM automatic start announced (with or without --run); "
+                      "guest execution must be confirmed from board UART output.", flush=True)
+            elif args.run:
+                print("\nLegacy RUN command sent; successful RUN/boot must be confirmed from board UART output.",
+                      flush=True)
+            else:
+                print("\nLegacy ROM is ready; image was not started (use --run to send g).", flush=True)
             if args.console:
                 console(port)
     except ImportError:

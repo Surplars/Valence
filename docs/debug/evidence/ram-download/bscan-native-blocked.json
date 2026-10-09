@@ -1,0 +1,13 @@
+{
+  "status": "blocked",
+  "native_multiclock_verified": false,
+  "amd_unisim_verified": false,
+  "physical_cdc_signoff": false,
+  "board_verified": false,
+  "sha256": {
+    "src/main/resources/debug/ValenceJtagDebugPort.sv": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+    "src/main/resources/debug/ValenceBscanDebugPort.sv": "c9923e48204436abeb9ffa7334cefbd8f4ff19280754c2195638138040a7e8b3",
+    "simulator/jtag/bscan_user_tb.sv": "f1169c708d3ced4f3f4eb80cd6bd2b4f629a33e680d7722d8cd2829a1ef33ce7"
+  },
+  "blocker": "Icarus Verilog and vvp not found; no tool installed or fallback simulator run."
+}

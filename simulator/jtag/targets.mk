@@ -21,3 +21,19 @@ jtag-mutation-test:
 	$(PYTHON) simulator/jtag/mutations.py
 jtag-constraints-test:
 	tclsh simulator/jtag/test_constraints.tcl
+
+# Deliberately separate source/one-clock acceptance from native TCK/primitive gates.
+.PHONY: jtag-ram-source-test jtag-ram-native-test
+jtag-ram-source-test:
+	$(MILL) -i IonSoC.test.testOnly debug.JtagRamLoaderSpec debug.JtagDebugReservationSpec ooo.FpgaNextConfigSpec
+	$(PYTHON) simulator/gsim/jtag_ram_loader.py
+	$(PYTHON) fpga/firmware/check_jtag_download.py
+	tclsh simulator/jtag/ram-loader-test.tcl
+	tclsh simulator/jtag/ram-loader-bscan-test.tcl
+	tclsh simulator/jtag/ram-loader-config-test.tcl
+	tclsh simulator/jtag/test_chain_guard.tcl
+	$(PYTHON) simulator/jtag/test_export_contract.py
+	$(PYTHON) simulator/jtag/bscan_check.py
+jtag-ram-native-test:
+	$(PYTHON) simulator/jtag/run.py
+	$(PYTHON) simulator/jtag/bscan_run.py

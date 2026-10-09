@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "scope": "host-native software and modeled MMIO only",
+  "source_sha256": {
+    "bootrom.c": "cd4fb2d339c6c8b2e7135c7ac3f7cd6c92df4f6c714be409d9966775682e3721",
+    "boot_tui.h": "291deb3efa3ad65d5f74c75cc74ba1bc3b9140a0c45c045e470a0301873c6e86",
+    "jtag_download.h": "9deaabd339e12de5f3d934478b6ae0ddbf74134a6a6d9ec7fb8d63522d819b5a",
+    "crc32.c": "a228ca84a9799707d76f223e6c8bbbb45928b703a94e10d23317c6df258463e7",
+    "crc32.h": "553fae8ca8f8f03f4c872c4850b2c7c541c3aa43821354cbb8fbf44055542878",
+    "board_memory.h": "9d6460c0a3f4133d43c81f83ffbcabbeec81eea6c192460ba67fb5c6bc8b05fa",
+    "ram_verify.h": "95877589d88e6399e07b42c26b256f5c908dba58dcbb2d33a0d07e35f22229e6",
+    "test_bootrom_jtag.c": "07c859eb085072e30f13d37604b7b0e4eaf8cba71058aa5d0789a7d87733f845",
+    "test_bootrom_menu.c": "0340d928d0970fb8bdb6c45f2c08c67944d1b25bda5706375a02463beebdf4b3",
+    "test_bootrom_recovery.c": "bef811212530b21cbd7fa0d9a81cad2d045757d2ccc3c1ee999aa1ea95df7c91",
+    "test_uart_only_pending.c": "c38c234ea5bb31f9044ed030b4e96c0dde5d8fe27ca6de731d735ab6dbf802fd",
+    "check_jtag_download.py": "9b6436668ae26c35017768f8f94a819fcf7294ea6df72fcb263fc6725edae957"
+  },
+  "sanitized": true,
+  "hardware_verified": false,
+  "board_verified": false,
+  "profiles": {
+    "legacy-uart": 45,
+    "legacy-network": 46,
+    "menu-uart": 45,
+    "menu-network": 46,
+    "test_bootrom_menu": 43,
+    "test_bootrom_recovery": 27,
+    "test_uart_only_pending": 2
+  }
+}

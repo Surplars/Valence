@@ -15,5 +15,5 @@ int firmware_ram_prepare(uint64_t *f,uint64_t *s){*f=1;*s=2;return 1;}
 void run_image(uintptr_t entry){assert(entry==RAM_BASE);++runs;longjmp(escape,2);}
 int main(void){image_entry=RAM_BASE;image_length=16;legacy_commit(crc32(memory,16));probe='d';
  assert(!legacy_verify_run()&&legacy_pending=='d');if(!setjmp(escape))boot_loop();assert(strstr(output,"VLOAD1")&&!image_valid&&!runs);
- image_entry=RAM_BASE;image_length=16;legacy_commit(crc32(memory,16));legacy_pending='g';if(!setjmp(escape))boot_loop();assert(runs==1);
- puts("UART_ONLY_PENDING_PASS cases=2 verify_cancel_to_download=1 queued_g=1");return 0;}
+ image_entry=RAM_BASE;image_length=16;legacy_commit(crc32(memory,16));legacy_pending='g';if(!setjmp(escape))boot_loop();assert(!runs);
+ puts("UART_ONLY_PENDING_PASS cases=2 verify_cancel_to_download=1 queued_g_cannot_launch=1");return 0;}

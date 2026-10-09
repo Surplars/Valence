@@ -75,7 +75,7 @@ final case class FpgaNextConfig(
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations)
 
-    def managedBoard: BoardSocTop = new BoardSocTop(
+    def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,
         instructionPrefetch = instructionPrefetch, isaProfile = isaProfile,
@@ -89,7 +89,7 @@ final case class FpgaNextConfig(
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        bankedInstructionData = bankedInstructionData)
+        bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload)
 }
 
 object FpgaNextConfig {

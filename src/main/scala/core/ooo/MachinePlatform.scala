@@ -55,8 +55,11 @@ class MachinePlatform(
     cacheConcurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(),
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
-    bankedInstructionData: Boolean = false
+    bankedInstructionData: Boolean = false,
+    jtagRamDownload: Boolean = false
 ) extends Module {
+    require(!jtagRamDownload || (stagedMemoryFabric && coherentLineCache && ramBytes >= 1024 * 1024),
+        "JTAG RAM loader requires staged coherent fabric and reserved monitor RAM")
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
     require(!p.dataNextLinePrefetch || (coherentLineCache && coreDataTranslation), "data prefetch requires the checked physical adapter")
     if (externalDdr) ddrBridge.validateSoc()
@@ -117,6 +120,8 @@ class MachinePlatform(
         val peripheralClock = if (peripheralClockHz > 0) Some(Input(Clock())) else None
         val ethernetRegisters = if (ethernetControl) Some(new soc.ip.bus.RegisterPort) else None
         val clockManagementRegisters = if (clockManagement) Some(new soc.ip.bus.RegisterPort) else None
+        val jtagDmi = if (jtagRamDownload) Some(Flipped(new soc.ip.debug.DebugDmiPort(7))) else None
+        val jtagLinkUp = if (jtagRamDownload) Some(Input(Bool())) else None
         val externalUartRegisters = if (externalUart) Some(new soc.ip.bus.RegisterPort) else None
         val externalUartIrq = if (externalUart) Some(Input(Bool())) else None
         val ethernetStreams = if (ethernetDma) Some(new Bundle {
@@ -259,6 +264,14 @@ class MachinePlatform(
     val timer       = Module(new MachineTimer())
     val timerRouter = if (!stagedMemoryFabric)
         Some(Module(new CoreRegisterRouter(BigInt("02000000", 16), bytes = 65536))) else None
+    // Always exclude monitor and the larger menu diagnostic reservation, even
+    // for non-menu ROM builds. Firmware checks this bound before arming.
+    val jtagLoader = if (jtagRamDownload) Some(Module(new soc.ip.debug.JtagRamLoader(
+        ramBase, (ramBase + ramBytes - 0x4000).min(BigInt("ffff8000", 16)) - 0x80000))) else None
+    jtagLoader.foreach { loader =>
+        loader.io.dmi <> io.jtagDmi.get
+        loader.io.linkUp := io.jtagLinkUp.get
+    }
     val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes))
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
@@ -284,7 +297,8 @@ class MachinePlatform(
         (BigInt("10001000", 16), BigInt(40))
     ) ++ (if (ethernetControl) Seq((BigInt("10040000", 16), BigInt(0x40000))) else Seq.empty) ++
         (if (ethernetDma) Seq((BigInt("10002000", 16), BigInt(256))) else Seq.empty) ++
-        (if (clockManagement) Seq((BigInt("10080000", 16), BigInt(4096))) else Seq.empty),
+        (if (clockManagement) Seq((BigInt("10080000", 16), BigInt(4096))) else Seq.empty) ++
+        (if (jtagRamDownload) Seq((BigInt("10003000", 16), BigInt(64))) else Seq.empty),
         bypassMemoryShift = p.directMemoryResponse))) else None
     val platformUpstream = platformRouter.map(_.io.upstream).getOrElse(timerRouter.get.io.upstream)
     val platformMemory = platformRouter.map(_.io.memory)
@@ -299,6 +313,8 @@ class MachinePlatform(
             packetDma.foreach(_.io.control <> fabric.io.registers(if (ethernetControl) 4 else 3))
             if (clockManagement) io.clockManagementRegisters.get <> fabric.io.registers(
                 3 + (if (ethernetControl) 1 else 0) + (if (ethernetDma) 1 else 0))
+            jtagLoader.foreach(_.io.control <> fabric.io.registers(
+                3 + (if (ethernetControl) 1 else 0) + (if (ethernetDma) 1 else 0) + (if (clockManagement) 1 else 0)))
         case None =>
             timerRouter.get.io.registers <> timer.io.mmio
             uartRouter.get.io.upstream <> timerRouter.get.io.memory
@@ -384,8 +400,16 @@ class MachinePlatform(
         arbiter.io.clients(1) <> network.io.memory
         arbiter
     }
-    val dmaMemory = dmaArbiter.map(_.io.memory).getOrElse(dma.io.memory)
-    if (ethernetDma) {
+    val regularDmaMemory = dmaArbiter.map(_.io.memory).getOrElse(dma.io.memory)
+    val debugDmaArbiter = jtagLoader.map { loader =>
+        val arbiter = Module(new soc.ip.bus.RegisterArbiter)
+        arbiter.reset := reset.asBool || hold
+        arbiter.io.clients(0) <> regularDmaMemory
+        arbiter.io.clients(1) <> loader.io.memory
+        arbiter
+    }
+    val dmaMemory = debugDmaArbiter.map(_.io.memory).getOrElse(regularDmaMemory)
+    if (ethernetDma || jtagRamDownload) {
         val lanes = Module(new DmaRegisterDataAdapter)
         lanes.reset := reset.asBool || hold
         lanes.io.registers <> dmaMemory
@@ -429,7 +453,7 @@ class MachinePlatform(
     for (module <- Seq(core, frontend, rom, dma, shared, timer) ++
         (if (peripheralClockHz == 0) uart.toSeq else Seq.empty) ++
         uartRouter.toSeq ++ dmaRouter.toSeq ++ timerRouter.toSeq ++ platformRouter.toSeq ++ ethernetRouter.toSeq ++
-        packetDma.toSeq ++ packetDmaRouter.toSeq ++ cmuRouter.toSeq ++
+        jtagLoader.toSeq ++ packetDma.toSeq ++ packetDmaRouter.toSeq ++ cmuRouter.toSeq ++
         ram.toSeq ++ secondRam.toSeq) {
         module.reset := reset.asBool || hold
     }

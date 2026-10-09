@@ -29,7 +29,10 @@ def memory_images(data, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path)
-    parser.add_argument("--boot-menu", action="store_true", help="interactive monitor; reserves512KiB boot-only diagnostic scratch, network download does not auto-run")
+    parser.add_argument("--boot-menu", action="store_true", help="80x24 ANSI monitor; reserves 512KiB diagnostic scratch; verified downloads auto-boot")
+    parser.add_argument("--plain-terminal", action="store_true", help="start boot menu without ANSI; a toggles at runtime")
+    parser.add_argument("--jtag-download", action="store_true",
+                        help="opt-in j command for cooperative JTAG RAM download; requires matching downloader RTL, host COMMIT verifies and executes")
     parser.add_argument("--crc-mode", choices=("nibble", "byte", "slice4"), default="nibble",
                         help="shared RAM CRC table:64/1024/4096 bytes; linker enforces global/stack budget")
     parser.add_argument("--uart-divisor", type=int, default=1)
@@ -51,6 +54,8 @@ def main():
     parser.add_argument("--prefix", default="riscv64-unknown-elf-")
     parser.add_argument("--cpu-hz", type=int, default=40_000_000)
     args = parser.parse_args()
+    if args.plain_terminal and not args.boot_menu:
+        parser.error("--plain-terminal requires --boot-menu")
     if args.boot_menu and not args.ddr:
         parser.error("--boot-menu requires DDR")
     if args.netboot and not args.ddr:
@@ -101,7 +106,7 @@ def main():
     if args.boot_menu:
         from build_monitor_diag import build as build_diagnostic
         diagnostic_blob=build_diagnostic(source,output,args.prefix,args.cpu_hz,ram_bytes,layout.monitor)
-        flags.append("-DBOOT_MENU=1")
+        flags.extend(["-DBOOT_MENU=1", f"-DBOOT_TUI_DEFAULT={int(not args.plain_terminal)}"])
     for name, inputs, linker in (
         ("bootrom", ("start.S", "bootrom.c", "crc32.c"), "bootrom.ld"),
         ("sample_app", ("sample_start.S", "sample_app.c"), "sample_app.ld"),
@@ -117,6 +122,8 @@ def main():
                               f"-DNETBOOT_WINDOW={args.netboot_window}",
                               f"-DNETBOOT_RX_SLOTS={args.netboot_rx_slots}"))
             inputs = (*inputs, "netboot.c", "netboot_board.c")
+        if args.jtag_download and name == "bootrom":
+            net_flags.append("-DBOARD_JTAG_DOWNLOAD=1")
         command = [gcc, *flags, *net_flags, f"-DUART_DIVISOR={args.uart_divisor}", f"-DCPU_HZ={args.cpu_hz}ULL",
                    f"-DBOARD_CLOCK_MHZ={args.cpu_hz // 1_000_000}",
                    *(["-DBOARD_DDR=1"] if args.ddr else []),
@@ -135,6 +142,17 @@ def main():
     (output / "bootrom-contract.json").write_text(json.dumps(dict(
         schema=1, external_return_policy="reset_required_unknown_peripheral_ownership", hardware_mcycle_minstret_available=False, ram_verify_cache_capacity_max=32768, ram_verify_cache_ways=[1,2], ram_verify_line_bytes=64, ram_verify_sweep_bytes=65536, ram_verify_sweep_passes=2, ram_verify_two_stage_flush=True, boot_menu=args.boot_menu, image_limit=layout.image_limit-(0x80000 if args.boot_menu else 0),
         diagnostic_boot_scratch_bytes=0x80000 if args.boot_menu else 0, cpu_hz=args.cpu_hz, timebase_hz=args.cpu_hz,
+        jtag_download=args.jtag_download,
+        jtag_download_mmio_base=0x10003000 if args.jtag_download else None,
+        jtag_download_autostart=args.jtag_download,
+        jtag_download_on_reset=False,
+        download_autostart=True,
+        manual_image_launch=False,
+        boot_ui=("plain" if args.plain_terminal else "ansi-vt100-80x24") if args.boot_menu else "plain",
+        tui_progress_max_hz=1 if args.boot_menu else 0,
+        tui_progress_during_uart_binary=False,
+        tui_progress_during_network_rx=False,
+        jtag_download_launch="host_commit_then_ram_crc_then_epoch_claim" if args.jtag_download else None,
         crc_mode=args.crc_mode, crc_table_bytes=dict(nibble=64,byte=1024,slice4=4096)[args.crc_mode],
         netboot_borrowed_rx=args.netboot_posted_rx,
         timebase_source="BoardSocTop.timerTick=true; MachineTimer.timeValue -> TIME CSR",

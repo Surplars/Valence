@@ -176,7 +176,9 @@ static int wait_bits(uintptr_t base,unsigned off,uint64_t mask,uint64_t value,ui
     return 0;
 }
 static int abort_uart(void) {
-    if(uart_get()=='d') { pending_command='d'; return 1; }
+    int c=uart_get();
+    if(c=='d') { pending_command='d'; return 1; }
+    if(c==3 || c==27) {pending_command=c;return 1;}
     return 0;
 }
 int board_netboot_command(void) {

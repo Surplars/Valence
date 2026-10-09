@@ -1,18 +1,39 @@
-# Interactive BootROM monitor
+# Interactive BootROM TUI and automatic startup
 
 Build explicitly with `build.py --boot-menu --crc-mode byte --ddr --ddr-bytes 0x80000000 --netboot --netboot-posted-rx --cpu-hz 100000000 --uart-reference-hz 7372800 --uart-baud 460800 --out OUT`.
 Run `setup_monitor_coremark.py --fetch` once if the pinned official source is absent. The archive SHA256 and official source revision are fixed in that script; no algorithm source is patched. The official archive's old `coremark.md5` header entry is stale; the pinned header was checked against its matching official raw GitHub URL. The five benchmark C files match the official MD5 inventory.
 
 Without `--boot-menu`, the existing automatic network boot and memory layout stay available. Both builds now enforce the strengthened physical-RAM verification below; the automatic ROM binary therefore changes too. The monitor and recovery compile at `-Os`; an independent diagnostic RAM payload compiles at `-O3`. ROM must fit128KiB. Monitor globals must fit8KiB and leave8KiB stack. Diagnostic code/data must end before its independent16KiB stack. Linker assertions enforce these limits. They are reservations, not a measured worst-case stack high-water claim.
 
-Plain text is the default. `a` toggles ANSI clear/home presentation; `h` redraws the menu. Keys:
+An ASCII-bordered 80x24 ANSI/VT100 TUI is the default. It uses no Unicode line
+characters or cursor-position query. Up/Down selects a highlighted row; Enter
+opens it; Esc/h redraws. Fragmented CSI/SS3, CRLF Enter and bounded escape parsing
+are tested; CSI tails and OSC/DCS control strings cannot become action shortcuts.
+Ctrl-C in the menu also clears an incomplete/malformed terminal control string.
+`a` toggles plain fallback; `k` toggles color while preserving reverse-video
+selection. `--plain-terminal` starts without any ANSI requirements.
 
-- `n`/`1`: negotiated network download, verify, safely stop DMA, return to menu.
-- `d`/`2`: existing checked UART download protocol. `uart_load.py --run` still sends `g`.
-- `v`/`3`: independently read and CRC the current RAM image. `d` or Ctrl-C can interrupt between4096-byte chunks.
-- `r`/`4` or `g`: validate metadata/range and full current RAM CRC, then run; an application return restores the monitor.
-- `c`/`5`: standard2000-byte CoreMark one-iteration CRC selftest. No score is printed. Golden CRCs are checked in the port as well as by unchanged official algorithms.
-- `C`: official CoreMark automatic calibration, requiring at least10seconds and all standard CRC checks before any result is valid. Never run this long mode in GSIM.
+Action transcripts use the normal terminal scrollback, with cursor/attributes
+restored before downloads, diagnostics or external entry. Before repainting the
+menu, the final action viewport is scrolled into history. The result box remains
+visible on return. Actual RAM-check progress is at most one short line per
+second; there is no new per-packet network output and no TUI output during raw
+UART transfer. The host uploader supplies transfer progress. There are no
+invented temperature, frequency, throughput or performance counters.
+
+Keys:
+
+- `n`/`1`: negotiated network download, verify, safely stop DMA, final verify, auto-boot.
+- `d`/`2`: checked UART VLD1 download and auto-boot. The updated uploader never sends `g` to this ROM; `--run` remains for old ROM compatibility.
+- `v`/`3`: independently read and CRC the current RAM image. `d`, Esc or Ctrl-C can interrupt between4096-byte chunks. A failed/cancelled check clears validity.
+- `j` (when built with `--jtag-download`): explicit session, host COMMIT, independent RAM CRC, final epoch CLAIM and auto-boot.
+- `r`/`4` or `g`: retired; no manual launch path remains.
+- `c`/`C`/`5`: one formal CoreMark action with official automatic calibration.
+  A valid score requires measured ticks strictly greater than 10 seconds and all
+  standard CRC checks. Exactly 10 seconds is rejected. Provisional iteration
+  rates are suppressed until validation; no short CoreMark menu/action remains.
+  Never run the long formal workload in GSIM. Short native kernel-oracle tests
+  remain verification machinery, and the unrelated `t` bandwidth selftest stays.
 - `b`/`6`: CPU read/write/copy at8KiB and128KiB, including a hot read, independent data checks, and separately measured flush tails. Rates count payload bytes; copy does not double-count bus traffic.
 - `m`/`7`: actual MemoryCopyDma CSR0x10001000 copy of128KiB, independently verify destination, report completion and flush tail. This is coherent DMA; the report is not a wire-speed claim.
 - `t`: bounded512-byte DMA and small CPU correctness diagnostics, no bandwidth score.
@@ -38,13 +59,21 @@ Official rules: https://github.com/eembc/coremark (fixed source revision1f483d5b
 
 ## Physical RAM verification boundary
 
-An ordinary ordering fence does not empty the data cache. Before every UART/network full verification and menu v/r, networking is quiet and memory-copy DMA must be idle. The SoC-specific fence.i first writes back and invalidates dirty private lines, then waits for the coherent home drain. Clean lines are not invalidated by that RTL operation. The ROM therefore reads two complete64KiB sweeps, one consumed volatile64-bit word per64-byte line, in `[monitor-64KiB,monitor)`. The sweep performs no writes and requires no additional auto-mode reservation. A static guard requires at least128KiB below the monitor.
+An ordinary ordering fence does not empty the data cache. Before every UART/network full verification and menu v, networking is quiet and memory-copy DMA must be idle. The SoC-specific fence.i first writes back and invalidates dirty private lines, then waits for the coherent home drain. Clean lines are not invalidated by that RTL operation. The ROM therefore reads two complete64KiB sweeps, one consumed volatile64-bit word per64-byte line, in `[monitor-64KiB,monitor)`. The sweep performs no writes and requires no additional auto-mode reservation. A static guard requires at least128KiB below the monitor.
 
 The supported firmware contract is64-byte lines,1 or2 ways, at most32KiB private D-cache, matching the selected512-line hardware. Both implementations use direct replacement or two-way LRU (`touch` marks the other way). Each sweep presents at least two cache capacities of distinct tags, replacing all older lines outside its window. If a large image overlaps the sweep window, CRC starts at the fixed image base and consumes at least64KiB of preceding lines before reaching it, evicting sweep-resident tail lines first. Stack/table accesses can evict image lines sooner; the generated sweep leaf loop has no stack/data accesses beyond its designated reads. No stale clean image line is used as physical-backing proof. Larger or different cache geometries require a new matched firmware contract/proof.
 
 Flush, sweep and CRC ticks are reported separately. TFTP's fixed final ACK/dally finishes before the optional preparation callback closes network ownership; EOF ACK still does not mean RAM verification or execution succeeded. Failure after quiet cannot restart TX DMA. Ordinary MMIO fences elsewhere are unchanged. Native cache-state tests cover small resident images, repeated downloads, overlapping large tails, and a missing-sweep negative. Real GSIM backing-only corruption after a clean-resident verification remains a required hardware-model gate.
 
-Legacy automatic mode also records the expected image CRC and checks metadata plus physical RAM before the first UART `g` after download. Any external return then locks further downloads/verification/execution until reset. Initial network auto-run directly follows its full physical-RAM verification. The new verification changes the auto ROM binary; old byte-identical auto receipts apply only to the earlier menu-only revision.
+Both menu and legacy mode record the expected image CRC and check metadata
+plus physical RAM immediately before automatic launch. Initial legacy TFTP boot
+uses the same final verification helper as manually selected TFTP and UART.
+Success consumes the one-shot validity record before invoking `run_image`;
+failed preflight, range/record/CRC verification, timeout or cancellation clears
+it. A new download cannot reuse a previous successful authorization. The assembly
+`run_image` ABI helper remains; only its independent user-facing command was
+removed. JTAG retains its separate epoch-checked CLAIM as final authorization.
+All ROM binaries change; earlier byte-identity receipts do not apply.
 
 ## External application return safety lock
 

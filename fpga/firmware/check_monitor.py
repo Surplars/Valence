@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bounded menu/diagnostic software proof. Never claims CPU/GSIM/board throughput."""
-import argparse,hashlib,json,os,pathlib,subprocess,sys
+import argparse,hashlib,json,os,pathlib,re,subprocess,sys
 S=pathlib.Path(__file__).resolve().parent;ROOT=S.parents[1]
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--out',type=pathlib.Path,required=True);args=ap.parse_args();out=args.out.resolve();out.mkdir(parents=True,exist_ok=True)
@@ -15,6 +15,8 @@ def main():
   flags=['-std=c11','-O1','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all','-Wall','-Wextra','-Werror']
   run(['clang-19',*flags,S/'test_bootrom_menu.c',S/'crc32.c','-o',out/'menu'],'menu-compile.log');run([out/'menu'],'menu.log')
   run(['clang-19',*flags,S/'test_uart_only_pending.c',S/'crc32.c','-o',out/'uart-only'],'uart-only-compile.log');run([out/'uart-only'],'uart-only.log')
+  run([sys.executable,S/'check_boot_tui.py','--binary',out/'menu','--out',out/'tui-preview'],'tui-terminal.log')
+  run([sys.executable,S/'test_uart_tui_interop.py','--cc','clang-19'],'uart-tui-interop.log')
   core=ROOT/'simulator/build/coremark-src';includes=['-I'+str(S/'coremark_port'),'-I'+str(core)]
   run(['clang-19',*flags,*includes,S/'test_monitor_diagnostics.c','-o',out/'diag'],'diag-compile.log');run([out/'diag'],'diag.log')
   cmflags=['-std=c11','-O3','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all','-DMONITOR_DIAGNOSTIC','-DDIAGNOSTIC_PORT_TEST','-DCPU_HZ=1000ULL','-DCOREMARK_COMPILER_VERSION="native oracle only"',*includes]
@@ -30,7 +32,8 @@ def main():
   globals_bytes=sym['__bss_end']-sym['__app_stack_top'];assert globals_bytes<=8192
   binary=(out/'firmware/bootrom.bin').read_bytes();assert len(binary)<=131072
   after={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files};assert before==after,'source drift'
-  report.update(status='passed',menu_cases=19,uart_only_pending_cases=2,diagnostic_fake_mmio_cases=11,official_coremark_short_crc_pass=True,official_score_claim=False,host_menu_profiles=3,globals_bytes=globals_bytes,monitor_stack_reserved=8192,diagnostic_stack_reserved=16384,rom_bytes=len(binary),rom_sha256=hashlib.sha256(binary).hexdigest(),contract=json.loads((out/'firmware/bootrom-contract.json').read_text()))
+  menu_match=re.search(r'BOOTROM_MENU_PASS cases=(\d+)',(out/'menu.log').read_text());assert menu_match
+  report.update(status='passed',menu_cases=int(menu_match[1]),uart_only_pending_cases=2,diagnostic_fake_mmio_cases=11,official_coremark_kernel_crc_oracle_pass=True,formal_duration_boundary_cases=6,official_score_claim=False,host_menu_profiles=3,globals_bytes=globals_bytes,monitor_stack_reserved=8192,diagnostic_stack_reserved=16384,rom_bytes=len(binary),rom_sha256=hashlib.sha256(binary).hexdigest(),contract=json.loads((out/'firmware/bootrom-contract.json').read_text()))
  except Exception as e:report.update(status='failed',failure=str(e));raise
  finally:(out/'receipt.json').write_text(json.dumps(report,indent=2)+'\n')
  print(json.dumps({k:report[k] for k in ('status','rom_bytes','globals_bytes','rom_sha256')}))

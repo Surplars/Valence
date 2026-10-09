@@ -37,7 +37,7 @@ def main():
         print(json.dumps(report, indent=2)); return 77
     try:
         report["iverilog"] = run([iverilog,"-V"],output/"version.log").splitlines()[0]
-        for name in ("jtag_debug", "dmi_cdc"):
+        for name in ("jtag_debug", "dmi_cdc", "dtm_completion"):
             run([iverilog,"-g2012","-Wall","-s",name+"_tb","-o",output/(name+".vvp"),
                  RTL,ROOT/"simulator/jtag"/(name+"_tb.sv")],output/(name+"-compile.log"))
             result=run([vvp,output/(name+".vvp")],output/(name+".log"))

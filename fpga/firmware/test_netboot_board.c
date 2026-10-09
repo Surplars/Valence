@@ -400,6 +400,12 @@ int main(void) {
     assert(recv(0,10)==-1 && armed && !hw.dma_stops);
     assert(board_netboot_quiet() && !active && !armed);
     assert(board_netboot_command()=='d' && !board_netboot_command()); ++cases;
+    for(unsigned cancel=0;cancel<2;++cancel){
+        int key=cancel?27:3;reset_hw();active=1;hw.next_uart=key;
+        assert(recv(0,10)==-1 && armed && !hw.dma_stops);
+        assert(board_netboot_quiet()&&!active&&!armed);
+        assert(board_netboot_command()==key&&!board_netboot_command());++cases;
+    }
     reset_hw(); hw.old_mac=1; uint32_t entry=123,length=456;
     assert(!board_netboot(&entry,&length));
     assert(!active && !armed && !hw.writes && entry==123 && length==456);

@@ -26,7 +26,8 @@ def sources():
     files = [p for folder in ("src/main/scala", "third_party/berkeley-hardfloat/src/main/scala")
              for p in (ROOT / folder).rglob("*.scala")]
     files += [ROOT / name for name in ("build.mill", ".mill-version",
-        "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py")]
+        "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
+        "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl")]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -34,11 +35,58 @@ def sources():
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(set(files))}
 
 
+def bscan_board_wrapper(text):
+    ports = "    input wire jtag_tck, jtag_tms, jtag_tdi, jtag_trst_n, jtag_debug_por_n,\n    output wire jtag_tdo, jtag_tdo_oe,\n"
+    reset = "    wire board_reset = ~sys_rst_n | ~button_n;"
+    if text.count(ports) != 1 or text.count(reset) != 1:
+        raise RuntimeError("board wrapper debug/reset binding changed; re-review required")
+    text = text.replace(ports, "")
+    text = text.replace(reset, reset + "\n    // Existing hard FPGA TAP supplies BSCAN; no extra package JTAG pins.\n"
+        "    wire jtag_tck = 1'b0, jtag_tms = 1'b1, jtag_tdi = 1'b0, jtag_trst_n = 1'b1;\n"
+        "    wire jtag_debug_por_n = ~board_reset;\n    wire jtag_tdo, jtag_tdo_oe;")
+    return text.replace("// JTAG reservation pins deliberately have no package assignments here.",
+        "// BSCAN candidate: existing FPGA JTAG connector; cold board reset supplies debug POR.")
+
+
+def bscan_legacy_board_wrapper(text):
+    instance = "    BoardSocTop u_soc ("
+    reset = "    wire board_reset = ~sys_rst_n | ~button_n;"
+    if text.count(instance) != 1 or text.count(reset) != 1:
+        raise RuntimeError("legacy board wrapper debug/reset binding changed; re-review required")
+    return text.replace(instance,
+        "    // Boot-only USER-chain downloader; physical JTAG belongs to BSCANE2.\n"
+        "    FpgaNextSocTop u_soc (\n"
+        "        .jtag_tck(1'b0), .jtag_tms(1'b1), .jtag_tdi(1'b0), .jtag_trstN(1'b1),\n"
+        "        .jtag_debugPorN(~board_reset), .jtag_tdo(), .jtag_tdoOe(),")
+
+def check_wrapper_ports(wrapper, top):
+    declaration = re.search(r"\bmodule\s+FpgaNextSocTop\s*\((.*?)\);", top, re.S)
+    instance = re.search(r"\bFpgaNextSocTop\s+u_soc\s*\((.*?)\);", wrapper, re.S)
+    if not declaration or not instance:
+        raise RuntimeError("missing exact top declaration/board instance")
+    # CIRCT emits ordinary ANSI ports; obtain the final identifier of each
+    # comma-separated declaration (including grouped same-direction ports).
+    ports = {re.findall(r"[A-Za-z_][A-Za-z0-9_$]*", part)[-1]
+             for part in declaration.group(1).split(",") if part.strip()}
+    connected = re.findall(r"\.([A-Za-z_][A-Za-z0-9_$]*)\s*\(", instance.group(1))
+    missing = set(connected) - ports
+    if missing or len(connected) != len(set(connected)):
+        raise RuntimeError("board wrapper/top named-port mismatch: " + str(sorted(missing)))
+    if ports - set(connected):
+        raise RuntimeError("board wrapper leaves top ports unbound: " + str(sorted(ports - set(connected))))
+    return len(connected)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--output", type=Path, required=True)
-    ap.add_argument("--experimental-jtag-stub", action="store_true",
+    debug = ap.add_mutually_exclusive_group()
+    debug.add_argument("--experimental-jtag-stub", action="store_true",
                     help="emit unqualified TAP/DTM with fail-only endpoint; never enables CPU halt/resume")
+    debug.add_argument("--experimental-jtag-ram", action="store_true",
+                       help="boot-owned RAM download through standalone soft TAP; no hart debug")
+    debug.add_argument("--experimental-jtag-bscan", type=int, choices=(1, 2, 3, 4),
+                       help="boot-owned RAM download through explicitly allocated FPGA USER chain")
     ap.add_argument("--experimental-trispeed-ethernet", action="store_true",
                     help="emit logic-qualified tri-speed media; native clocks/pads/CDC remain unqualified")
     choice = ap.add_mutually_exclusive_group()
@@ -93,8 +141,11 @@ def main():
     profile["profile"]["fp_shared_rounders"] = not a.reference
     profile["profile"]["banked_cache_tags"] = not a.reference
     profile["profile"]["fp_shared_product"] = not a.reference
-    profile["profile"]["jtag_pins_reserved"] = True
-    profile["profile"]["jtag_transport_experimental"] = a.experimental_jtag_stub
+    profile["profile"]["jtag_pins_reserved"] = not bool(a.experimental_jtag_bscan)
+    profile["profile"]["jtag_transport_experimental"] = bool(a.experimental_jtag_stub or a.experimental_jtag_ram or a.experimental_jtag_bscan)
+    profile["profile"]["jtag_ram_download"] = bool(a.experimental_jtag_ram or a.experimental_jtag_bscan)
+    profile["profile"]["jtag_backend"] = "bscan-user-v1" if a.experimental_jtag_bscan else "standalone-dtm"
+    profile["profile"]["bscan_chain"] = a.experimental_jtag_bscan
     profile["profile"]["debug_module_implemented"] = False
     before = sources()
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -127,6 +178,10 @@ def main():
         command.append("--independent-fetch-payload-capture")
     if a.experimental_jtag_stub:
         command.append("--experimental-jtag-stub")
+    if a.experimental_jtag_ram:
+        command.append("--experimental-jtag-ram")
+    if a.experimental_jtag_bscan:
+        command.append("--experimental-jtag-bscan=" + str(a.experimental_jtag_bscan))
     if a.prefetch_break_on_store:
         command.append("--prefetch-break-on-store")
     if a.prefetch_candidate_cycles != 1:
@@ -160,12 +215,46 @@ def main():
                       if line.strip() and not line.strip().startswith("#")]
         if not listed:
             listed = ["FpgaNextSocTop.sv"]
-        if a.experimental_jtag_stub:
-            resource = rtl / "ValenceJtagDebugPort.sv"
+        resources = (["ValenceJtagDebugPort.sv"] if
+            a.experimental_jtag_stub or a.experimental_jtag_ram or a.experimental_jtag_bscan else [])
+        if a.experimental_jtag_bscan:
+            resources.append("ValenceBscanDebugPort.sv")
+        for name in resources:
+            resource = rtl / name
             if not resource.is_file():
-                raise RuntimeError("enabled debug resource missing from export")
+                raise RuntimeError("enabled debug resource missing from export: " + name)
             if resource.name not in listed:
                 listed.append(resource.name)
+        if a.experimental_jtag_bscan:
+            # Match the existing selected GMII board by default; tri-speed remains
+            # an independent explicit option. Never deliver mismatched top ports.
+            if a.experimental_trispeed_ethernet:
+                source = HERE / "soc_top_fpga_next_ddr.sv"
+                wrapper = bscan_board_wrapper(source.read_text())
+                media = "experimental-trispeed"
+            else:
+                source = ROOT / "fpga/zu15eg/soc_top_gmac_ddr.sv"
+                wrapper = bscan_legacy_board_wrapper(source.read_text())
+                media = "existing-gmii-baseline"
+            connected_ports = check_wrapper_ports(wrapper, (rtl / "FpgaNextSocTop.sv").read_text())
+            (output / "board").mkdir()
+            path = output / "board" / source.name
+            path.write_text(wrapper)
+            guard = output / "board/check_jtag_chain.tcl"
+            guard.write_text((HERE / "check_jtag_chain.tcl").read_text())
+            required = output / "board/require_jtag_chain.tcl"
+            required.write_text("# Mandatory read-only post-synthesis gate; exact cell required.\n"
+                "source [file join [file dirname [info script]] check_jtag_chain.tcl]\n"
+                "if {![info exists VALENCE_JTAG_OWN_CELL]} {error {Set exact VALENCE_JTAG_OWN_CELL from the open synthesized design}}\n"
+                "valence_assert_jtag_chain " + str(a.experimental_jtag_bscan) + " $VALENCE_JTAG_OWN_CELL\n")
+            receipt["required_post_synthesis_gate"] = {"path": str(required.relative_to(output)),
+                "sha256": sha(required), "guard_sha256": sha(guard), "status": "NOT_RUN_NO_VIVADO",
+                "must_pass_before_implementation_or_bitstream": True}
+            receipt["board_wrapper"] = {"path": str(path.relative_to(output)), "sha256": sha(path),
+                "source": str(source.relative_to(ROOT)), "source_sha256": sha(source), "media": media,
+                "requires": "matching board/IP composition; USER allocation and CDC/RDC signoff",
+                "debug_por_source": "existing sys_rst_n/button_n whole-board reset",
+                "additional_jtag_package_pins": 0, "named_ports_checked": connected_ports, "qualified": False}
         for name in listed:
             item = Path(name)
             if item.is_absolute() or ".." in item.parts or not (rtl / item).is_file():

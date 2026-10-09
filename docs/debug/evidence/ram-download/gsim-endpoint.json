@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "scope": "single-clock endpoint, DMI/register protocol and independent byte-array memory oracle",
+  "negative_readback": "detected",
+  "source_sha256": {
+    "src/main/scala/ip/debug/JtagRamLoader.scala": "d698ba1db6f636fb8356671ed327c75cf279cbe38bc094bdc01b3fa69f50df85",
+    "src/main/scala/core/ooo/DmaRegisterDataAdapter.scala": "78c6a704f7c4898a9e00e726500e5c37a36f225c6af549ef608720e51cc4b906",
+    "src/test/scala/debug/JtagRamLoaderSpec.scala": "998ac752ec6cfefb1738934933ae5f82a3d71d46d0662567ac680e1fd6108ae5",
+    "src/test/scala/debug/JtagDmaLaneGsimMain.scala": "c6472e185339f0aacae79d760f9329fbe0c54b13f4b60abcfd5b0d3c0b7370c0",
+    "simulator/gsim/harness/jtag_ram_loader.cpp": "28d8dc8e3d224cc5ed9378afdebb61d0f3e3dbe2855e992ea174d410fd1d689e",
+    "simulator/gsim/harness/jtag_dma_lane.cpp": "260492a4c72adecf4d74c2919820741f0296d3c30b73c36a75953822d57d4231"
+  },
+  "dma_lane_cases": 64,
+  "cdc": "NOT_RUN",
+  "openocd": "NOT_RUN",
+  "board": "NOT_RUN"
+}

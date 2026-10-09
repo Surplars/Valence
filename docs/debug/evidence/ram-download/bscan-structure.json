@@ -1,0 +1,10 @@
+{
+  "status": "passed_structure_and_codec_only",
+  "codec_vectors": 120,
+  "rtl_sha256": "c9923e48204436abeb9ffa7334cefbd8f4ff19280754c2195638138040a7e8b3",
+  "hdl_elaboration_verified": false,
+  "native_multiclock_verified": false,
+  "amd_unisim_verified": false,
+  "physical_cdc_signoff": false,
+  "board_verified": false
+}

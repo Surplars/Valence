@@ -1,4 +1,13 @@
-# Valence Bootrom V0.1 and UART RAM loader
+# Valence BootROM V0.2 and checked RAM loaders
+
+An optional cooperative JTAG RAM path is available with `--jtag-download` and
+matching downloader RTL. Enter `j` explicitly; host COMMIT then requests RAM
+verification and execution. All successful UART/TFTP/JTAG downloads now boot
+automatically after their final checks; there is no separate Run Image action.
+`--boot-menu` selects the 80x24 ANSI/VT100 TUI; `--plain-terminal` or the `a` key
+provides a plain-terminal fallback. See [MONITOR-MENU.md](MONITOR-MENU.md).
+See [JTAG-DOWNLOAD.md](JTAG-DOWNLOAD.md) for bounds, drain/reset safety, the
+epoch-bound launch point, build flags, and focused host-native tests.
 
 Current VL100: RV64GC/two issue, CPU 100 MHz, UART raw 50 MHz, full 2 GiB DDR.
 The 16550 baud reference is **7,372,800 Hz**, so **DLL=1 gives 460800 baud**.
@@ -66,8 +75,10 @@ python uart_load.py COM5 sample_app.bin --baud 1500000 --run --console
 ```
 
 The tool also works on Linux (`python3 ... /dev/ttyUSB0 ...`). It validates
-a download at the specified host baud, checks the final RAM CRC, and optionally
-starts the app. Applications that reprogram UART need the exact profile's reference clock.
+a download at the specified host baud and checks the final RAM CRC. New ROMs
+start automatically; `--run` only requests startup on older manual-run ROMs.
+Use the matching updated uploader so a legacy `g` is never sent into the guest.
+See [UART-HOST-AUTOSTART.md](UART-HOST-AUTOSTART.md). Applications that reprogram UART need the exact profile's reference clock.
 For example divisor=13 gives approximately 115384.6 baud on the 24 MHz reference,
 while divisor=1 gives exactly 115200 on the 1.8432 MHz reference.
 Set the OpenSBI/DTB UART clock-frequency accordingly; `--baud` changes only
@@ -89,28 +100,24 @@ Valence Bootrom V0.1
 download mode (UART)
 ```
 
-After a verified download it prints `DOWNLOAD OK` and `ready to boot`.
-With `--run`, it then prints (DDR profile):
+After the download's independent RAM CRC, `VDON` and `DOWNLOAD OK` confirm
+transport/integrity. ROM then rechecks the committed metadata, DMA ownership and
+physical RAM immediately before launch. Only a successful final check produces
+`AUTOBOOT`, followed by `boot from UART (DDR)` (or `(RAM)`). The new uploader
+recognizes this line and never sends `g`, regardless of `--run`. On an old ROM it
+still accepts `ready to boot` / the legacy prompt and sends `g` only with `--run`.
+Neither VDON nor AUTOBOOT proves that the guest ran; inspect guest UART output.
 
-```text
-boot from UART (DDR) @ 0x0000000080200000
-```
+- `d`: download a fresh VLD1 image, validate it and automatically boot it.
+- `g`, `r`, `4`: retired; they cannot execute a cached or stale image.
 
-The UltraRAM profile uses `(RAM)`. UART is the image source, DDR/RAM is
-the execution memory; flash/SD boot is not implemented. There is no command-line
-prompt. Use the updated host tool, which waits for the complete `ready to boot`
-status line; it also accepts the legacy `> ` prompt for older programmed ROMs.
-The binary VLD1 protocol is unchanged.
-Only two monitor commands remain:
-
-- `d`: enter binary download mode (normally sent by the PC tool).
-- `g`: execute the verified RAM image. A new download invalidates the old image.
-
-Without `--run`, download only prepares the image; it does not auto-execute.
-Retired test commands and other input are ignored. Normal application return
-prints `APP RETURN` and permits rerun/re-download. Recoverable traps invalidate
-the image and return to download mode. CRC, range checks and receive timeouts
-are retained; they are download integrity protections, not built-in self-tests.
+A new attempt clears old validity before preflight, including on busy/error.
+Failure, interruption or final CRC mismatch never launches. Normal external
+application return prints `APP RETURN` but locks memory/execute operations until
+board reset because peripheral ownership may have changed. Embedded diagnostics
+are separate trusted payloads and return to the menu without this external lock.
+Recoverable traps invalidate the image; an external trap preserves the reset
+requirement. Reset never treats leftover DDR contents as a trusted image.
 
 ## DDR50 memory profile
 
@@ -157,8 +164,8 @@ within its own allowed region.
 Launch is in machine mode, bare addressing, interrupts disabled, unlocked PMP
 entries disabled, after `fence rw,rw; fence.i`. `a0=a1=0`; no Linux/OpenSBI
 boot ABI is provided. Normal return through `ra` restores the ROM stack and
-monitor. The example may be downloaded/run repeatedly; rerunning without
-downloading does not reset initialized data. A synchronous trap recovers the
+monitor. After an external app returns, reset the board before another download.
+There is no cached-image rerun command. A synchronous trap recovers the
 download mode if the app preserved the ROM trap handler and memory access. Apps that
 replace mtvec, lock PMP, change privilege, corrupt monitor RAM or hang may
 require hardware reset. This is a trusted development monitor, not a secure
@@ -186,9 +193,11 @@ CRC pass. Each chunk is buffered and checked before RAM writes.
    A payload CRC error can be retried with the same sequence.
 6. After the last chunk's VACK, wait for `VDON`, image_length, image_crc32.
    Only this completion marks a verified image. A final CRC failure reports
-   VACK sequence=0xffffffff/status=3. `ready to boot\r\n` follows success;
-   failures return to `download mode (UART)`.
-7. Send ASCII `g` after the full readiness status line to execute.
+   VACK sequence=0xffffffff/status=3. No ANSI/TUI bytes or progress are emitted
+   from VLOAD through this binary completion.
+7. Final metadata/ownership/physical-RAM checks follow. `AUTOBOOT\r\n` means
+   ROM selected automatic launch. Do not send `g`; observe guest output. The
+   updated uploader alone retains manual-run behavior for old programmed ROMs.
 
 The optimized UART has 16-byte RX/TX FIFOs (FCR=7 in BootROM).
 Firmware still drains each byte promptly, then computes CRC/copies after the

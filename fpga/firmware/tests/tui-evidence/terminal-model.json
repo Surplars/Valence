@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "columns": 80,
+  "rows": 24,
+  "occupied_columns": 78,
+  "offscreen_writes": 0,
+  "ansi_bytes": 2102,
+  "source": "actual host-compiled renderer",
+  "board_verified": false,
+  "model": "independent Python terminal interpreter"
+}

@@ -1,5 +1,7 @@
 # FPGA-next JTAG/debug reservation
 
+The transport remains available independently. For the newer, separately opt-in boot-owned RAM endpoint and shared FPGA USER-chain route, see [JTAG RAM download](jtag-ram-download.md). Neither route provides architectural hart debugging.
+
 This adds real transport hardware and an explicit future-core boundary. It does **not** implement a RISC-V Debug Module, halt/resume, single stepping, breakpoints, register access, program buffer, system-bus debug access, GDB operation, or board pin assignments. The legacy debug hardware is not imported. Existing `BoardSocTop` is untouched.
 
 ## Configuration and integration

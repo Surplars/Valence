@@ -1,0 +1,44 @@
+{
+  "status": "PASS_COMPILED_BOOTROM_UART_CONTRACT",
+  "reference_hz": 7372800,
+  "baud": 460800,
+  "divisor": 1,
+  "lcr": 3,
+  "ier": 0,
+  "fcr": 7,
+  "writes": [
+    {
+      "address": "0x10000003",
+      "value": 131,
+      "dlab": false
+    },
+    {
+      "address": "0x10000000",
+      "value": 1,
+      "dlab": true
+    },
+    {
+      "address": "0x10000001",
+      "value": 0,
+      "dlab": true
+    },
+    {
+      "address": "0x10000003",
+      "value": 3,
+      "dlab": true
+    },
+    {
+      "address": "0x10000001",
+      "value": 0,
+      "dlab": false
+    },
+    {
+      "address": "0x10000002",
+      "value": 7,
+      "dlab": false
+    }
+  ],
+  "binary_sha256": "254c00775039b4434101c914e54bf46e645a2f191a5530d51ca155c92627fc73",
+  "elf_sha256": "ab6871e0789858cda5b1bef698d71aa6252945d7ebb0fae74295ef5b9e691a6d",
+  "auditor_sha256": "ff06fa9d06e2814f74f6e7cfaf8583d742c57b8539003560d77ef5fd362af37f"
+}

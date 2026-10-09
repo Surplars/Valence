@@ -30,7 +30,7 @@ def main():
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
     sources = [SOURCE / p for p in ("crc32.c", "crc32.h", "test_crc32.py", "audit_crc32.py", "netboot.c", "netboot.h", "ram_verify.h", "netboot_board.c", "netboot_host.py",
-               "test_netboot.cpp", "test_netboot_host.py", "test_netboot_capacities.py", "test_netboot_interop.py", "bootrom.c", "bootrom.ld",
+               "test_netboot.cpp", "test_netboot_host.py", "test_netboot_capacities.py", "test_netboot_interop.py", "bootrom.c", "boot_tui.h", "bootrom.ld",
                "start.S", "build.py", "check_netboot.py", "valence_gmac.h", "board_memory.h",
                "test_netboot_board.c", "test_bootrom_recovery.c", "uart_load.py", "test_uart_load.py",
                "audit_uart_contract.py", "test_uart_contract.py", "ethernet_dma.h")]
@@ -65,8 +65,8 @@ def main():
                                   (output / "protocol-tests.log").read_text())
         if not window_result or int(window_result[1]) < 84:
             raise RuntimeError("window protocol success witness missing")
-        for test, witness, extra in (("test_netboot_board", "BOOTROM_MMIO_ORDER_PASS cases=30", [SOURCE / "netboot.c"]),
-                                     ("test_bootrom_recovery", "BOOTROM_UART_RECOVERY_PASS cases=25", [])):
+        for test, witness, extra in (("test_netboot_board", "BOOTROM_MMIO_ORDER_PASS cases=32", [SOURCE / "netboot.c"]),
+                                     ("test_bootrom_recovery", "BOOTROM_UART_RECOVERY_PASS cases=27", [])):
             command(["clang-19", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined",
                      "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={0 if args.crc_mode=='nibble' else 1}", "-Wall", "-Wextra", "-Werror",
                      SOURCE / (test + ".c"), *extra, output / "crc32.o", "-o", output / test], output / (test + "-compile.log"))
@@ -116,7 +116,7 @@ def main():
         if not contract.get("netboot_posted_rx") or contract.get("netboot_request_windowsize") != 4:
             raise RuntimeError("acceptance built legacy-only image instead of posted RX candidate")
         report.update(status="passed", protocol_cases=34, window_protocol_cases=int(window_result[1]),
-                      capacity_matrix_cases=10, invalid_capacity_cli_cases=3, mmio_order_cases=30, posted_mmio_cases=22, store_alignment_cases=4162, monitor_recovery_cases=25,
+                      capacity_matrix_cases=10, invalid_capacity_cli_cases=3, mmio_order_cases=32, posted_mmio_cases=22, store_alignment_cases=4162, monitor_recovery_cases=27,
                       host_tool_tests=int(host_result[1]), python_c_interop_cases=8, uart_tool_tests=int(uart_result[1]), compiled_uart_contract_verified=True,
                       rx_dma_buffers_and_globals_bytes=symbols["__bss_end"] - symbols["__app_stack_top"],
                       boot_stack_reserved_bytes=8192, rom_capacity_bytes=131072,

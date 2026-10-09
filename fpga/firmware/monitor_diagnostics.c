@@ -97,8 +97,8 @@ int main(void){
  unsigned op=*(volatile uint64_t *)(DIAG_BASE+0x7ff00UL);
  ee_printf("DIAG code=RAM flags=-O3 ISA=rv64im_zicsr_zifencei clock_hz=%lu\n",(unsigned long)CPU_HZ);
  if(op=='c'||op=='C'){
-  diagnostic_short=op=='c';seed4_volatile=diagnostic_short?1:0;
-  ee_printf(diagnostic_short?"COREMARK SHORT CRC SELFTEST; NOT A SCORE\n":"COREMARK FORMAL automatic >=10s; use full CRC/result validity\n");
+  diagnostic_short=0;seed4_volatile=0;
+  ee_printf("COREMARK FORMAL automatic; measured >10s and all CRCs required\n");
   return coremark_main();
  }
  if(op=='b')return cpu_bandwidth(0)?0:1;

@@ -197,7 +197,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     independentFetchPayloadCapture: Boolean = false,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
-    bankedInstructionData: Boolean = false) extends Module {
+    bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
@@ -228,6 +228,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations)
+    // Internal composition ports stay outside the public BoardSocTop io bundle.
+    val jtagDmi = if (jtagRamDownload) Some(IO(Flipped(new soc.ip.debug.DebugDmiPort(7)))) else None
+    val jtagLinkUp = if (jtagRamDownload) Some(IO(Input(Bool()))) else None
     val io = IO(new Bundle {
         val peripheralClock = if (peripheralClockHz > 0) Some(Input(Clock())) else None
         val alwaysOnClock = cmuConfig.map(_ => Input(Clock()))
@@ -296,7 +299,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         bufferTranslatedResponses = Set("staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
-        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData))
+        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload))
+    jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
+    jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }
     platform.io.peripheralClock.foreach(_ := io.peripheralClock.get)
     if (externalDdr) {

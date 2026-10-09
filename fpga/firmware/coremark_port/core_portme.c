@@ -112,25 +112,35 @@ static int emit_float(double value) {
 /* CoreMark uses %d, %u, %lu, %04x, %s and %f outside its timed region. */
 #ifdef MONITOR_DIAGNOSTIC
 extern unsigned diagnostic_short;
-static unsigned short_crc_seen,short_crc_bad;
+static unsigned short_crc_seen,short_crc_bad,formal_validated,formal_score_suppressed;
 static int starts(const char *s,const char *p){while(*p){if(*s++!=*p++)return 0;}return 1;}
 #endif
 int ee_printf(const char *fmt, ...) {
 #ifdef MONITOR_DIAGNOSTIC
+    if(formal_score_suppressed){if(fmt[0]=='\n'&&!fmt[1])formal_score_suppressed=0;return 0;}
     if(diagnostic_short) {
+        /* Native algorithm-oracle tests only; the production menu has no
+         * short CoreMark action. Short bandwidth selftests remain separate. */
         if(starts(fmt,"Iterations/Sec")||starts(fmt,"CoreMark 1.0"))return 0;
-        if(starts(fmt,"ERROR! Must execute"))return emit_string("SHORT runtime: formal >=10s rule intentionally not met; no score.\n");
+        if(starts(fmt,"ERROR! Must execute"))return emit_string("SHORT oracle runtime; no score.\n");
         if(starts(fmt,"Errors detected"))return 0;
-        for(const char *p=fmt;*p;p++)if(starts(p,"ERROR!"))short_crc_bad=1;
-        unsigned bit=0,wanted=0;
-        if(starts(fmt,"seedcrc")){bit=1;wanted=0xe9f5;}
-        if(starts(fmt,"[%d]crclist")){bit=2;wanted=0xe714;}
-        if(starts(fmt,"[%d]crcmatrix")){bit=4;wanted=0x1fd7;}
-        if(starts(fmt,"[%d]crcstate")){bit=8;wanted=0x8e3a;}
-        if(bit){va_list check;va_start(check,fmt);if(bit!=1)(void)va_arg(check,int);
-            unsigned value=(unsigned)va_arg(check,int);va_end(check);
-            short_crc_seen|=bit;if(value!=wanted)short_crc_bad=1;}
+    }else if(starts(fmt,"Iterations/Sec"))return 0; /* Provisional, before CRC verdict. */
+    for(const char *p=fmt;*p;p++)if(starts(p,"ERROR!"))short_crc_bad=1;
+    if(starts(fmt,"Errors detected")||starts(fmt,"Cannot validate"))short_crc_bad=1;
+    unsigned bit=0,wanted=0;
+    if(starts(fmt,"seedcrc")){bit=1;wanted=0xe9f5;}
+    if(starts(fmt,"[%d]crclist")){bit=2;wanted=0xe714;}
+    if(starts(fmt,"[%d]crcmatrix")){bit=4;wanted=0x1fd7;}
+    if(starts(fmt,"[%d]crcstate")){bit=8;wanted=0x8e3a;}
+    if(bit){va_list check;va_start(check,fmt);if(bit!=1)(void)va_arg(check,int);
+        unsigned value=(unsigned)va_arg(check,int);va_end(check);
+        short_crc_seen|=bit;if(value!=wanted)short_crc_bad=1;}
+    if(!diagnostic_short&&starts(fmt,"Correct operation validated")){
+        formal_validated=elapsed_ticks>CPU_HZ*10ULL&&short_crc_seen==15&&!short_crc_bad;
+        if(!formal_validated)return emit_string("COREMARK FORMAL INVALID: measured time must exceed 10s and all CRCs pass\n");
     }
+    if(!diagnostic_short&&starts(fmt,"CoreMark 1.0")&&!formal_validated){formal_score_suppressed=1;return 0;}
+
 #endif
     va_list args;
     int count = 0;
@@ -191,7 +201,7 @@ void portable_init(core_portable *p, int *argc, char *argv[]) {
     (void)argv;
     p->portable_id = 1;
 #ifdef MONITOR_DIAGNOSTIC
-    short_crc_seen=short_crc_bad=0;
+    short_crc_seen=short_crc_bad=formal_validated=formal_score_suppressed=0;
     ee_printf("COUNTERS mcycle=unavailable minstret=unavailable IPC=unavailable; rdtime is timebase only\n");
 #endif
     ee_printf("VALENCE CoreMark 2K started; calibration and run may take a while.\n");
@@ -203,5 +213,8 @@ void portable_fini(core_portable *p) {
     if(diagnostic_short)ee_printf(short_crc_seen==15&&!short_crc_bad?
         "COREMARK_SHORT_CRC_PASS standard2000=1 score=none\n":
         "COREMARK_SHORT_CRC_FAIL\n");
+    else ee_printf(formal_validated&&elapsed_ticks>CPU_HZ*10ULL&&short_crc_seen==15&&!short_crc_bad?
+        "COREMARK_FORMAL_PASS measured_gt10s=1 standard2000=1 crc=all\n":
+        "COREMARK_FORMAL_FAIL duration_or_crc_invalid; no valid score\n");
 #endif
 }

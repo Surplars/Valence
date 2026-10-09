@@ -1,4 +1,7 @@
+import io
 import struct
+import sys
+import types
 import unittest
 from unittest.mock import patch
 import zlib
@@ -118,6 +121,174 @@ class TimedPort(FakePort):
         return super().read(count)
 
 
+class StatusPort:
+    """Independent post-VDON UART stream with packet gaps and a bounded clock."""
+    def __init__(self, fragments, clock, output=None):
+        self.fragments = list(fragments)
+        self.clock = clock
+        self.writes = []
+        self.consumed = bytearray()
+        self.output = output
+
+    def read(self, count):
+        if self.output is not None:
+            # The last read must already be visible before the next UART read.
+            assert self.output.getvalue() == bytes(self.consumed)
+            assert self.output.flush_count == len(self.consumed)
+        self.clock.advance(0.001)
+        if not self.fragments:
+            return b""
+        result = self.fragments[0][:count]
+        self.fragments[0] = self.fragments[0][count:]
+        if not self.fragments[0]:
+            self.fragments.pop(0)
+        self.consumed += result
+        return result
+
+    def write(self, data):
+        self.writes.append(bytes(data))
+        return len(data)
+
+    def flush(self):
+        pass
+
+
+class FlushedOutput(io.BytesIO):
+    def __init__(self):
+        super().__init__()
+        self.flush_count = 0
+
+    def flush(self):
+        self.flush_count += 1
+
+
+class BootStatusTests(unittest.TestCase):
+    def test_autoboot_never_sends_g_with_or_without_run(self):
+        for run in (False, True):
+            with self.subTest(run=run):
+                clock, output = FakeClock(), FlushedOutput()
+                status = b"\r\nDOWNLOAD OK\r\nAUTOBOOT\r\n"
+                guest = b"GUEST first bytes\r\n> "
+                port = StatusPort([status + guest], clock, output)
+                with patch.object(protocol.time, "monotonic", clock):
+                    self.assertEqual(protocol.finish_download(port, run=run, timeout=1, output=output),
+                                     "autoboot")
+                self.assertEqual(port.writes, [])
+                self.assertEqual(output.getvalue(), status)
+                # Everything after AUTOBOOT, including the first guest byte, is
+                # still available for the regular receive/interactive console.
+                port.output = None
+                protocol.console_step(port, output=output)
+                self.assertEqual(output.getvalue(), status + guest)
+
+    def test_fragmented_autoboot_and_diagnostics_are_forwarded_immediately(self):
+        clock, output = FakeClock(), FlushedOutput()
+        fragments = [b"\r\nDOWNLOAD OK\r\n", b"", b"RAM check\r\n", b"AUT", b"",
+                     b"OB", b"OOT\r", b"", b"\n", b"guest"]
+        port = StatusPort(fragments, clock, output)
+        with patch.object(protocol.time, "monotonic", clock):
+            self.assertEqual(protocol.finish_download(port, run=True, timeout=1, output=output), "autoboot")
+        self.assertEqual(output.getvalue(), b"\r\nDOWNLOAD OK\r\nRAM check\r\nAUTOBOOT\r\n")
+        self.assertEqual(port.fragments, [b"guest"])
+        self.assertEqual(port.writes, [])
+
+    def test_legacy_readiness_sends_g_only_when_requested(self):
+        for status in (b"\r\nDOWNLOAD OK\r\nready to boot\r\n",
+                       b"\r\nDOWNLOAD OK\r\nr:RAM d:LOAD g:RUN\r\n> ",
+                       b"\r\nDOWNLOAD OK\r\nmonitor> "):
+            for run in (False, True):
+                with self.subTest(status=status, run=run):
+                    clock, output = FakeClock(), FlushedOutput()
+                    port = StatusPort([status + b"NEXT"], clock, output)
+                    with patch.object(protocol.time, "monotonic", clock):
+                        self.assertEqual(protocol.finish_download(port, run=run, timeout=1, output=output),
+                                         "legacy")
+                    self.assertEqual(port.writes, [b"g"] if run else [])
+                    self.assertEqual(output.getvalue(), status)
+                    self.assertEqual(port.fragments, [b"NEXT"])
+
+    def test_missing_or_partial_status_never_sends_g(self):
+        for status in (b"", b"\r\nDOWNLOAD OK\r\n", b"AUTOBOOT\r", b"AUTOBOOT\n",
+                       b"NOT AUTOBOOT\r\n", b"ready to boot\r", b"download mode (UART)\r\n"):
+            with self.subTest(status=status):
+                clock, output = FakeClock(), FlushedOutput()
+                port = StatusPort([status], clock, output)
+                with patch.object(protocol.time, "monotonic", clock), \
+                        self.assertRaisesRegex(TimeoutError, "guest execution is unconfirmed"):
+                    protocol.finish_download(port, run=True, timeout=0.2, output=output)
+                self.assertEqual(output.getvalue(), status)
+                self.assertEqual(port.writes, [])
+
+    def test_launch_failure_after_vdon_does_not_trigger_legacy_prompt(self):
+        for failure in (b"RAM CRC FAIL", b"IMAGE CRC FAIL", b"NO IMAGE", b"NO TRUSTED IMAGE",
+                        b"IMAGE RECORD FAIL", b"VERIFY CANCELLED", b"DOWNLOAD ABORT",
+                        b"MEMORY DMA BUSY; RESET REQUIRED"):
+            with self.subTest(failure=failure):
+                clock, output = FakeClock(), FlushedOutput()
+                status = b"\r\nDOWNLOAD OK\r\n" + failure + b"\r\n"
+                port = StatusPort([status + b"monitor> "], clock, output)
+                with patch.object(protocol.time, "monotonic", clock), \
+                        self.assertRaisesRegex(protocol.ProtocolError, "ROM refused to start after VDON"):
+                    protocol.finish_download(port, run=True, timeout=1, output=output)
+                self.assertEqual(output.getvalue(), status)
+                self.assertEqual(port.fragments, [b"monitor> "])
+                self.assertEqual(port.writes, [])
+
+    def test_invalid_status_timeout_is_rejected_without_uart_io(self):
+        for timeout in (0, -1, float("nan"), float("inf")):
+            port = StatusPort([b"AUTOBOOT\r\n"], FakeClock())
+            with self.subTest(timeout=timeout), self.assertRaises(ValueError):
+                protocol.finish_download(port, run=True, timeout=timeout)
+            self.assertEqual(port.consumed, b"")
+            self.assertEqual(port.writes, [])
+
+    def test_cli_autoboot_console_preserves_guest_prefix_and_ignores_run(self):
+        class AutomaticPort(FakePort):
+            def __init__(self):
+                super().__init__()
+                self.writes = []
+
+            def write(self, data):
+                self.writes.append(bytes(data))
+                if data == b"g":
+                    return len(data)
+                was_data = self.state == "data"
+                result = super().write(data)
+                if was_data and self.state == "menu":
+                    self.pending += b"\r\nDOWNLOAD OK\r\nAUTOBOOT\r\nGUEST FIRST > prompt\r\n"
+                return result
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        def receive_once(port):
+            protocol.console_step(port)
+            raise KeyboardInterrupt
+
+        for run in (False, True):
+            with self.subTest(run=run), tempfile.TemporaryDirectory() as directory:
+                image = Path(directory) / "image.bin"
+                image.write_bytes(bytes(8))
+                port, raw = AutomaticPort(), io.BytesIO()
+                stdout = io.TextIOWrapper(raw, encoding="utf-8")
+                argv = ["uart_load.py", "TEST", str(image), "--console"] + (["--run"] if run else [])
+                serial = types.SimpleNamespace(Serial=lambda *args, **kwargs: port)
+                with patch.object(sys, "argv", argv), patch.object(sys, "stdout", stdout), \
+                        patch.dict(sys.modules, {"serial": serial}), patch.object(protocol, "console", receive_once):
+                    protocol.main()
+                stdout.flush()
+                text = raw.getvalue()
+                self.assertNotIn(b"g", port.writes)
+                self.assertIn(b"RAM VERIFIED", text)
+                self.assertIn(b"ROM automatic start announced (with or without --run)", text)
+                self.assertIn(b"guest execution must be confirmed", text)
+                self.assertIn(b"GUEST FIRST > prompt\r\n", text)
+                self.assertEqual(port.pending, b"")
+
+
 class ProtocolTests(unittest.TestCase):
     def test_ready_without_prompt_and_legacy_compatibility(self):
         for status in (b"\r\nDOWNLOAD OK\r\nready to boot\r\n",
@@ -132,7 +303,8 @@ class ProtocolTests(unittest.TestCase):
                        b"NO IMAGE\r\n", b"DOWNLOAD OK\r\n"):
             port = FakePort()
             port.pending += status
-            with self.assertRaises(TimeoutError):
+            error = protocol.ProtocolError if status == b"NO IMAGE\r\n" else TimeoutError
+            with self.assertRaises(error):
                 protocol.wait_ready(port, timeout=0.001)
 
     def test_crc_known_vector(self):

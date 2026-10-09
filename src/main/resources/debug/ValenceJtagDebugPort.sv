@@ -223,34 +223,50 @@ module ValenceJtagDebugPort #(
             else hard_reset <= tap_reset || (update_dr && instruction == 5'h10 && dr_shift[17]);
         wire transport_reset_n = tap_reset_n && !hard_reset;
         reg [1:0] sticky_status;
+        // A completion hidden by sticky BUSY must survive dmireset recovery.
+        reg [1:0] hidden_completion_status;
         reg [31:0] result_data;
         reg [ABITS-1:0] result_address;
         wire source_ready, source_busy, response_valid;
         wire [33:0] response_payload;
+        wire [1:0] completion_status = response_payload[1:0] == 0 ? 2'b00 :
+            response_payload[1:0] == 3 ? 2'b11 : 2'b10;
         wire [1:0] visible_status = sticky_status != 0 ? sticky_status :
-            ((source_busy && !response_valid) ? 2'b11 : 2'b00);
+            (response_valid ? completion_status : (source_busy ? 2'b11 : 2'b00));
         // errinfo is optional and unimplemented (zero). Version remains 1, not 2.
         assign dtmcs = {17'b0, IDLE_HINT, visible_status, ADDRESS_BITS, 4'h1};
-        assign dmi_capture = {result_address, result_data, visible_status};
+        // CDC publishes on falling TCK. Capture-DR may precede the next falling
+        // edge that latches result_data, so forward BOTH data and status.
+        assign dmi_capture = {result_address,
+            response_valid ? response_payload[33:2] : result_data, visible_status};
         wire start = update_dr && instruction == 5'h11 && sticky_status == 0 &&
             (dr_shift[1:0] == 1 || dr_shift[1:0] == 2) && source_ready;
         always @(negedge tck or negedge transport_reset_n) begin
-            if (!transport_reset_n) begin sticky_status<=0; result_data<=0; result_address<=0; end
+            if (!transport_reset_n) begin sticky_status<=0; hidden_completion_status<=0; result_data<=0; result_address<=0; end
             else begin
                 if (response_valid) begin
                     result_data <= response_payload[33:2];
-                    if (sticky_status == 0 && response_payload[1:0] != 0)
-                        sticky_status <= response_payload[1:0] == 3 ? 2'b11 : 2'b10;
+                    if (sticky_status == 0 && completion_status != 0)
+                        sticky_status <= completion_status;
+                    if (sticky_status == 3 && completion_status != 0)
+                        hidden_completion_status <= completion_status;
                 end
                 if (capture_dr && instruction == 5'h11 && sticky_status == 0 &&
                     source_busy && !response_valid) sticky_status <= 2'b11;
-                if (start) result_address <= dr_shift[ABITS+33:34];
+                if (start) begin
+                    result_address <= dr_shift[ABITS+33:34];
+                    hidden_completion_status <= 0;
+                end
                 // Reserved request opcode is deliberately rejected with failure.
                 if (update_dr && instruction == 5'h11 && sticky_status == 0) begin
                     if (dr_shift[1:0] == 3) sticky_status <= 2'b10;
                     else if (dr_shift[1:0] != 0 && !source_ready) sticky_status <= 2'b11;
                 end
-                if (update_dr && instruction == 5'h10 && dr_shift[16]) sticky_status <= 0;
+                if (update_dr && instruction == 5'h10 && dr_shift[16]) begin
+                    sticky_status <= response_valid && completion_status != 0 ? completion_status :
+                        hidden_completion_status;
+                    hidden_completion_status <= 0;
+                end
             end
         end
         wire req_valid, req_ready, rsp_valid, rsp_ready;

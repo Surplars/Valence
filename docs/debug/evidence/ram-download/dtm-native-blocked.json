@@ -1,0 +1,8 @@
+{
+  "status": "blocked",
+  "native_multiclock_verified": false,
+  "physical_cdc_signoff": false,
+  "hart_debug_implemented": false,
+  "rtl_sha256": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+  "blocker": "Icarus Verilog and vvp not found. No tool was installed."
+}

@@ -1,0 +1,105 @@
+{
+  "status": "passed",
+  "recorded_utc": "2026-10-09T02:13:44.815923+00:00",
+  "tool": {
+    "name": "tclsh",
+    "version": "8.6.16",
+    "executable": "/usr/bin/tclsh"
+  },
+  "scope": {
+    "independent_host_contract_models": true,
+    "source_only_config_checks": true,
+    "jim_byte_api_simulated_by_stock_tcl_shim": true,
+    "real_jim_interpreter_run": false,
+    "real_openocd_run": false,
+    "physical_adapter_access": false,
+    "network_listener_opened": false,
+    "rtl_simulation_in_this_report": false,
+    "board_throughput_measured": false,
+    "guest_execution_observed": false
+  },
+  "tests": [
+    {
+      "command": "tclsh simulator/jtag/ram-loader-test.tcl",
+      "passed": 44,
+      "failed": 0,
+      "log": "simulator/jtag/evidence/ram-loader-direct.log"
+    },
+    {
+      "command": "tclsh simulator/jtag/ram-loader-bscan-test.tcl",
+      "passed": 15,
+      "failed": 0,
+      "log": "simulator/jtag/evidence/ram-loader-bscan.log"
+    },
+    {
+      "command": "tclsh simulator/jtag/ram-loader-config-test.tcl",
+      "passed": 4,
+      "failed": 0,
+      "log": "simulator/jtag/evidence/ram-loader-config.log"
+    }
+  ],
+  "cost": {
+    "command": "tclsh simulator/jtag/ram-loader-cost.tcl",
+    "log": "simulator/jtag/evidence/ram-loader-cost.log",
+    "conditions": "Direct DTM, single IR-5 TAP, chunk 256 words, zero additional busy stalls, full write/readback plus init metadata and one COMMIT. TCK = shifted bits + requested idle clocks + shortest 6/IR and 5/DR RUN/IDLE transitions. No USB/Tcl latency or ROM CRC/guest execution.",
+    "measurements": [
+      {
+        "bytes": 256,
+        "dmi_requests": 427,
+        "ir_scans": 857,
+        "dr_scans": 857,
+        "shifted_bits": 39404,
+        "idle_tck": 3424,
+        "ideal_single_tap_tck": 52255
+      },
+      {
+        "bytes": 4096,
+        "dmi_requests": 6211,
+        "ir_scans": 12425,
+        "dr_scans": 12425,
+        "shifted_bits": 571532,
+        "idle_tck": 49696,
+        "ideal_single_tap_tck": 757903
+      }
+    ]
+  },
+  "contract_cross_check": {
+    "status": "matched",
+    "method": "Read-only review of frozen JtagRamLoader.scala against host constants and command order. No RTL assertions or simulator outcome inferred from this review.",
+    "checked": [
+      "Capability 0x564c0101; truthful dmcontrol/dmstatus zero",
+      "STATUS ARMED0 COMMITTED1 CANCELLED2 BUSY3 FAULT4 LINK_UP5 CLAIMED6",
+      "SBA v1/address32/access32, SBCS side-effect bits and error masks",
+      "Metadata addresses 0x43..0x45; epoch0x46/base0x47/end0x48",
+      "EXPECTED_GENERATION0x49 set to original epoch before metadata; COMMIT atomically requires token",
+      "COMMIT clears ARMED; CLAIM clears COMMITTED and sets CLAIMED, both accepted by post-COMMIT observation",
+      "Epoch stable through COMMIT/CLAIM/ABORT, increments on OPEN",
+      "Timeout retains bus ownership; host never assumes cancellation",
+      "ABORT only before CLAIM; host waits BUSY clear and CANCELLED",
+      "Entry and rounded-length bounds match hardware"
+    ]
+  },
+  "source_sha256": {
+    "simulator/jtag/ram-loader.tcl": "a10d1a465d2cd05380a5f6eb1d8e0058684c323a31821623a16547a9c51799e7",
+    "simulator/jtag/ram-loader-bscan.tcl": "004bb83c64fa7c52f9750e20c341296e7ff3c2e4ee7050f54a7d592e68518c1c",
+    "simulator/jtag/openocd-ram-loader.cfg": "eaf889096edc84ea5ceddd7105477616f4552656ab43296daefef069365d8ea3",
+    "simulator/jtag/openocd-ram-loader-bscan.cfg": "a68c69d82dabac7be9c16e073cd6766bc28f956ec8eb546f22c411b2f9b6c81d",
+    "simulator/jtag/ram-loader-test.tcl": "911359c47365fc58b24e68389f05f42422b1bacef33a519f9f4a20f669d44b37",
+    "simulator/jtag/ram-loader-bscan-test.tcl": "b8f432fe84bfe87fb8aa09c1f0e3a3b1ebed2e6418b8a8358bf7e5e4e67d6c0e",
+    "simulator/jtag/ram-loader-test-model.tcl": "ff8b65103a0e12c09cfda7a081729ff9ddb683dcd393b5ce0023d0156a78ea1a",
+    "simulator/jtag/ram-loader-config-test.tcl": "2e532b744a277acddfad67f4e3b7233748aa9016174fe0bb4f37c25567df68fc",
+    "simulator/jtag/ram-loader-cost.tcl": "d2b31760d1744d7ecfc025ce65885e4ec154f8d609891383f68a0427c9e78ac5",
+    "simulator/jtag/RAM-LOADER.md": "5afda015cd44d364c00f3ec84bda6d9660c5dc87caadfb01dc6329e8ae6e648f"
+  },
+  "reviewed_hardware_sha256": {
+    "src/main/scala/ip/debug/JtagRamLoader.scala": "d698ba1db6f636fb8356671ed327c75cf279cbe38bc094bdc01b3fa69f50df85",
+    "src/main/resources/debug/ValenceJtagDebugPort.sv": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+    "src/main/resources/debug/ValenceBscanDebugPort.sv": "c9923e48204436abeb9ffa7334cefbd8f4ff19280754c2195638138040a7e8b3"
+  },
+  "log_sha256": {
+    "simulator/jtag/evidence/ram-loader-config.log": "f6031e035d7e3da892597e4752ffd8d49842e7dcb9ea99684aaf8e10dc937b7d",
+    "simulator/jtag/evidence/ram-loader-direct.log": "61a602b066c2772f9bcde3def26a8d4b7b0286ad57f97257bb651e72b0ed792a",
+    "simulator/jtag/evidence/ram-loader-bscan.log": "a7b841e8f93fc4d84671d644a701e4571546579bfa43fc4595ec4f489948f664",
+    "simulator/jtag/evidence/ram-loader-cost.log": "ff3b800b8e99a9525476b322434cf5e0b9f84d4b070a5623c98933ea18805827"
+  }
+}
