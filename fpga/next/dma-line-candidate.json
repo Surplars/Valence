@@ -1,0 +1,30 @@
+{
+  "schema": "valence-next-dma-line-profile-v1",
+  "name": "fpga-next-selected-v2-dma-lines-yield16",
+  "decision": "selected next shared-work performance profile; current published Selected remains unchanged pending physical qualification",
+  "options": {
+    "dmaLineTransfers": true,
+    "dmaLineYieldCycles": 16
+  },
+  "export_arguments": [
+    "--dma-line-transfers",
+    "--dma-line-yield-cycles",
+    "16"
+  ],
+  "bulk_option": {
+    "dmaLineTransfers": true,
+    "dmaLineYieldCycles": 0,
+    "export_arguments": [
+      "--dma-line-transfers"
+    ]
+  },
+  "scalar_reference": {
+    "dmaLineTransfers": false,
+    "dmaLineYieldCycles": 0
+  },
+  "qualified_simulation": "build/dma-coherent-line-final-qualification.json",
+  "native_rtl_export": "build/fpga-next/dma-lines-final-shared/receipt.json",
+  "physical_qualification": false,
+  "network_dma_line_mode": false,
+  "qualification_scope": "Source-only experimental profile; dynamic tests cover yields0,4,16. Native PPA and board/default promotion remain pending."
+}

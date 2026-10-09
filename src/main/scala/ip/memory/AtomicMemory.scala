@@ -29,7 +29,8 @@ class AtomicMemoryPort extends Bundle {
 class AtomicMemory(
     base: BigInt = BigInt("80010000", 16),
     bytes: BigInt = 4096,
-    registerResponseOwners: Boolean = false
+    registerResponseOwners: Boolean = false,
+    dmaLineTransfers: Boolean = false
 ) extends Module {
     require(base >= 0 && base % 64 == 0 && bytes >= 64 && bytes % 64 == 0 && base + bytes <= (BigInt(1) << 64))
     val io = IO(new Bundle {
@@ -38,6 +39,8 @@ class AtomicMemory(
         val memory           = new MemoryBeatPort
         val memoryRequestCpu = Output(Bool())
         val clearReservation = Input(Bool())
+        val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort)) else None
+        val memoryLine = if (dmaLineTransfers) Some(new soc.ip.dma.DmaLinePort) else None
     })
     val idle :: readRequest :: readResponse :: writeRequest :: writeResponse :: finish :: Nil = Enum(6)
     val state                                                                                 = RegInit(idle)
@@ -68,7 +71,8 @@ class AtomicMemory(
         ordinary.data    := io.cpu.request.bits.data
         ordinary.mask    := io.cpu.request.bits.mask
     }
-    val normal = state === idle && !wantsAtomic
+    val lineExclusion = WireDefault(false.B)
+    val normal = state === idle && !wantsAtomic && !lineExclusion
     io.memoryRequestCpu := state =/= idle || !selected
     io.memory.request.valid := normal && Mux(
         selected,
@@ -76,7 +80,7 @@ class AtomicMemory(
         io.cpu.request.valid
     ) && owners.io.enq.ready
     io.memory.request.bits := ordinary
-    io.cpu.request.ready   := state === idle && !selected && Mux(
+    io.cpu.request.ready   := state === idle && !lineExclusion && !selected && Mux(
         wantsAtomic,
         owners.io.count === 0.U,
         owners.io.enq.ready && io.memory.request.ready
@@ -99,6 +103,41 @@ class AtomicMemory(
         locked := false.B
         turn   := !selected
         when(ordinary.write && ordinary.address(63, 6) === reservedAddress(63, 6)) { reserved := false.B }
+    }
+    if (dmaLineTransfers) {
+        val upstream = io.dmaLine.get
+        val downstream = io.memoryLine.get
+        val owned = RegInit(false.B)
+        val held = RegInit(false.B)
+        val preferLine = RegInit(true.B)
+        val ordinaryOffer = io.cpu.request.valid || io.dma.request.valid
+        val selectedLine = !locked && (held ||
+            (upstream.request.valid && (preferLine || !ordinaryOffer)))
+        lineExclusion := owned || selectedLine
+        // Drain all ordinary reply owners before exposing the line offer. An
+        // AMO retains state across its read/write gap, so cannot be split here.
+        downstream.request.valid := state === idle && !owned && selectedLine &&
+            owners.io.count === 0.U && upstream.request.valid
+        downstream.request.bits := upstream.request.bits
+        upstream.request.ready := downstream.request.ready && downstream.request.valid
+        upstream.response.valid := owned && downstream.response.valid
+        upstream.response.bits := downstream.response.bits
+        downstream.response.ready := owned && upstream.response.ready
+        when(downstream.request.valid && !downstream.request.ready) { held := true.B }
+        when(downstream.request.fire) {
+            held := false.B
+            owned := true.B
+            preferLine := false.B
+            when(downstream.request.bits.write &&
+                downstream.request.bits.address(63, 6) === reservedAddress(63, 6)) { reserved := false.B }
+        }
+        when(downstream.response.fire) { owned := false.B }
+        when(io.cpu.request.fire || io.dma.request.fire) { preferLine := true.B }
+        when(owned || held) {
+            assert(state === idle && owners.io.count === 0.U && !locked && !io.memory.request.valid,
+                "line DMA crossed atomic or ordinary ownership")
+        }
+        when(held) { assert(upstream.request.valid, "held line DMA request was withdrawn") }
     }
     val r     = io.cpu.request.bits
     val isLr  = r.operation === 2.U

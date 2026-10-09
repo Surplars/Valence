@@ -25,7 +25,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     floatingPointResources: soc.core.ooo.FloatingPointResourceConfig = soc.core.ooo.FloatingPointResourceConfig.baseline,
     independentFetchPayloadCapture: Boolean = false,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
-    bankedInstructionData: Boolean = false) extends Module {
+    bankedInstructionData: Boolean = false, dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -34,7 +34,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        bankedInstructionData = bankedInstructionData))
+        bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())

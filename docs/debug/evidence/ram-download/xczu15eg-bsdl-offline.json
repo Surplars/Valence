@@ -1,0 +1,41 @@
+{
+  "status": "OFFLINE_FILE_AND_CHECKPOINT_EVIDENCE_ONLY",
+  "recorded_date": "2026-10-09",
+  "part": "xczu15eg-ffvb1156-2-i",
+  "bsdl": {
+    "tool_installation": "Vivado 2025.1",
+    "relative_path": "data/parts/xilinx/zynquplus/public/bsdl/xczu15eg_ffvb1156.bsd",
+    "revision": "1.1",
+    "status": "Production",
+    "production_date": "2017-04-25",
+    "generated_date": "2018-10-20",
+    "sha256": "13554c795fac67e7a4ab6fde86a59d6252b48a1ca17501e4dde1680e5b4e2613",
+    "instruction_length": 12,
+    "instructions": {
+      "USER1": {"binary": "100100000010", "hex": "0x902"},
+      "USER2": {"binary": "100100000011", "hex": "0x903"},
+      "USER3": {"binary": "100100100010", "hex": "0x922"},
+      "USER4": {"binary": "100100100011", "hex": "0x923"},
+      "IDCODE": "0x249",
+      "IDCODE_PL": "0x925",
+      "IDCODE_PSPL": "0x265",
+      "BYPASS": "0xfff"
+    },
+    "idcode_register": "XXXX0100011101010000000010010011",
+    "fixed_idcode": "0x04750093",
+    "fixed_idcode_mask": "0x0fffffff",
+    "private_user_requirement": "FPGA configuration must be complete"
+  },
+  "routed_checkpoint_inspection": {
+    "old_dbg_hub_user_chain": 1,
+    "new_dbg_hub_user_chain": 1,
+    "new_candidate_post_synthesis_guard_still_required": true
+  },
+  "not_established": [
+    "actual SMT2/OpenOCD scan results",
+    "board scan-chain order",
+    "other PS/DAP TAP IR lengths or exposure",
+    "future bitstream USER2/3/4 availability",
+    "native TCK/CDC or physical-board functionality"
+  ]
+}

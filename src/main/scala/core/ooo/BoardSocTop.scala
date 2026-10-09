@@ -197,7 +197,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     independentFetchPayloadCapture: Boolean = false,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
-    bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false) extends Module {
+    bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false,
+    dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0) extends Module {
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
@@ -299,7 +300,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         bufferTranslatedResponses = Set("staged-data", "staged-execute", "staged-rename", "staged-retire", "staged-redirect", "staged-preparation", "staged-payload", "staged-return", "staged-fetch-address", "staged-fetch-control", "staged-recovery-control", "staged-execute-select", "staged-frontend-select", "staged-sensitive-paths", "staged-decode-align", "staged-rank-legality", "staged-word-destination", "staged-request-capture")
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
-        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload))
+        externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
+        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles))
     jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
     jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }

@@ -36,24 +36,77 @@ implementation makes no USB-driver, reset-wiring, or host-access changes.
 [OpenOCD adapter source](https://github.com/openocd-org/openocd/blob/master/tcl/interface/ftdi/digilent_jtag_smt2.cfg),
 [Digilent SMT2 reference manual, rev. D](https://digilent.com/reference/_media/jtag_smt2:jtag-smt2_rm.pdf).
 
-The board configuration must supply:
+The board configuration must supply the physical TAP declaration and order,
+including any exposed PS/DAP or other device. That declaration must be checked
+against the board; the offline evidence below does not establish it. This
+loader does not create/reorder TAPs or issue PS chain-configuration instructions.
+It still needs a verified conservative TCK rate and the exact matching image.
 
-- Physical TAP names and order, including any exposed PS/DAP or other devices
-- Physical FPGA TAP IR width and actual observed/expected FPGA IDCODE
-- The **full physical instruction value** for the allocated USER chain
-- The matching RTL `JTAG_CHAIN` and a verified, conservative TCK rate
-- The exact optional image that contains this wrapper and matching loader/ROM
+### Verified exact-part offline BSDL profile
 
-Do not substitute the standalone soft TAP's five-bit IR or transport IDCODE.
-OpenOCD's ZynqMP configuration declares a 12-bit device TAP and lists the
-ZU15EG IDCODE base `0x04750093`; revision bits and actual chain exposure still
-need verification on the target. Its full A53 configuration also performs PS
-chain configuration, so it is not an inert template to source blindly for this
-loader. **No six-bit USER opcode is assumed or zero-extended here.** Obtain the
-matching full-width USER opcode from the actual part's BSDL/device description
-and verify that it selects this image's allocated chain.
-[OpenOCD ZynqMP target source](https://github.com/openocd-org/openocd/blob/master/tcl/target/xilinx_zynqmp.cfg),
-[OpenOCD TAP declaration requirements](https://openocd.org/doc/html/TAP-Declaration.html).
+An offline inspection of the installed Vivado 2025.1 file
+`data/parts/xilinx/zynquplus/public/bsdl/xczu15eg_ffvb1156.bsd` established:
+
+- Revision 1.1, Production 2017-04-25; generated 2018-10-20
+- SHA-256 `13554c795fac67e7a4ab6fde86a59d6252b48a1ca17501e4dde1680e5b4e2613`
+- IR length **12**, with full physical opcodes:
+
+| Instruction | 12-bit opcode | Allocation/use |
+|---|---|---|
+| USER1 | `0x902` | Rejected: dbg_hub occupies USER1 in both inspected routed checkpoints |
+| USER2 | `0x903` | Candidate only after new-image allocation guard passes |
+| USER3 | `0x922` | Candidate only after new-image allocation guard passes |
+| USER4 | `0x923` | Candidate only after new-image allocation guard passes |
+| IDCODE | `0x249` | Recorded BSDL instruction, not sent by this profile |
+| IDCODE_PL | `0x925` | Recorded BSDL instruction, not sent by this profile |
+| IDCODE_PSPL | `0x265` | Recorded BSDL instruction, not sent by this profile |
+| BYPASS | `0xfff` | Recorded full-width BSDL instruction |
+
+The BSDL `IDCODE_REGISTER` is `XXXX0100011101010000000010010011`:
+expected fixed bits `0x04750093`, mask `0x0fffffff`. Only the four revision bits
+are ignored; all 28 part/manufacturer/mandatory fixed bits are checked. PRIVATE
+USER instructions are valid **only after FPGA configuration**. These facts and
+the USER1 allocation came from offline files/checkpoints, not an SMT2 scan.
+See [offline evidence](evidence/ram-download/xczu15eg-bsdl-offline.json).
+
+Before sourcing `openocd-ram-loader-bscan.cfg`, explicitly provide all six
+variables. For a proposed USER2 image, the part-specific values are:
+
+```
+set VALENCE_RAM_TAP <the-already-verified-physical-FPGA-TAP-name>
+set VALENCE_RAM_FPGA_PART xczu15eg-ffvb1156-2-i
+set VALENCE_RAM_FPGA_IRLEN 12
+set VALENCE_RAM_JTAG_CHAIN 2
+set VALENCE_RAM_USER_IR 0x903
+set VALENCE_RAM_FPGA_IDCODE 0x04750093
+```
+
+This is a values example, not a runnable board/adapter configuration. USER2 is
+not selected implicitly or certified free by the example. USER3/4 require their
+matching explicit chain/opcode pair. The supplied FPGA IR width must also be
+used in the board's independently verified `jtag newtap ... -irlen` declaration;
+`VALENCE_RAM_FPGA_IRLEN` is an explicit declaration check, not a hardware-width
+measurement. OpenOCD exposes `jtag cget ... -idcode`, not `-irlen`; the loader
+queries the cached observed IDCODE after init and compares the BSDL mask.
+[OpenOCD TAP declaration and attribute commands](https://openocd.org/doc/html/TAP-Declaration.html).
+
+`ram-loader-xczu15eg.tcl` rejects an unsupported/missing exact part, non-12 IR,
+USER1, a six-bit opcode, a mismatched USER2/3/4 opcode, or wrong fixed ID bits
+while sourcing the config, before adapter-related commands. Validation repeats
+at download startup and before DMI, polling and raw USER-scan entry points,
+including a public launch-status wait after an earlier start. This conservative board profile deliberately cannot opt
+back into USER1 based on an old checkpoint or a chat preference; an intentional
+allocation change needs a separately reviewed profile update.
+
+The real **new-image** `board/require_jtag_chain.tcl` post-synthesis guard remains
+mandatory and unchanged. It checks the actual loader primitive and all visible
+BSCANE2/debug-hub owners; old/new offline checkpoint observations do not certify
+any future image's USER2/3/4 allocation. The board scan order, other TAP/DAP IR
+widths, reset wiring and actual SMT2/OpenOCD behavior remain unverified here.
+Do not substitute a standalone five-bit soft TAP or zero-extend a six-bit USER
+opcode. Do not source a full A53/ZynqMP target configuration blindly: it can
+perform PS chain configuration unrelated to this loader.
+[OpenOCD ZynqMP target source](https://github.com/openocd-org/openocd/blob/master/tcl/target/xilinx_zynqmp.cfg).
 
 ## Protocol version 1
 

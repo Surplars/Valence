@@ -17,8 +17,11 @@ final case class FpgaNextConfig(
     shareProtectedHeadPayload: Boolean = false,
     bankedInstructionData: Boolean = false,
     prefetchCandidateCycles: Int = 1,
-    prefetchBreakOnStore: Boolean = false
+    prefetchBreakOnStore: Boolean = false,
+    dmaLineTransfers: Boolean = false,
+    dmaLineYieldCycles: Int = 0
 ) {
+    require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
     val selectedTopology = optimized && independentFetchPayloadCapture && ownerLocalIssueReady &&
         sharedFetchPmpRelations && shareProtectedHeadPayload && bankedInstructionData
     val name = (if (selectedTopology) "fpga-next-selected-v2" else if (optimized)
@@ -31,7 +34,9 @@ final case class FpgaNextConfig(
         (if (prefetchCandidateCycles > 1) s"-prefetch-retry${prefetchCandidateCycles}" else "") +
         (if (prefetchBreakOnStore) "-store-break" else "") +
         (if (virtualRamLoadPrecheck) "-virtual-precheck" else "") +
-        (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "")
+        (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
+        (if (dmaLineTransfers) "-dma-lines" else "") +
+        (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "")
     val interfaceVersion = 1
     val timingProfile = "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -89,7 +94,8 @@ final case class FpgaNextConfig(
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload)
+        bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
+        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles)
 }
 
 object FpgaNextConfig {
@@ -111,7 +117,12 @@ object FpgaNextConfig {
         require(lifetimes.size <= 1, "choose one prefetch candidate lifetime")
         val lifetime = lifetimes.headOption.map(_.stripPrefix("--prefetch-candidate-cycles=").toInt).getOrElse(1)
         require(Set(1, 3, 16).contains(lifetime), "FPGA-next prefetch experiments use 1, 3 or 16 attempts")
+        val yields = options.filter(_.startsWith("--dma-line-yield-cycles="))
+        require(yields.size <= 1, "choose one DMA line yield duration")
+        val lineYield = yields.headOption.map(_.stripPrefix("--dma-line-yield-cycles=").toInt).getOrElse(0)
         base.copy(
+            dmaLineYieldCycles = lineYield,
+            dmaLineTransfers = options.contains("--dma-line-transfers"),
             prefetchCandidateCycles = lifetime,
             prefetchBreakOnStore = options.contains("--prefetch-break-on-store"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),

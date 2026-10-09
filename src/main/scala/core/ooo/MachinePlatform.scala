@@ -56,8 +56,13 @@ class MachinePlatform(
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     networkDmaConfig: soc.ip.dma.NetworkDmaConfig = soc.ip.dma.NetworkDmaConfig.Default,
     bankedInstructionData: Boolean = false,
-    jtagRamDownload: Boolean = false
+    jtagRamDownload: Boolean = false,
+    dmaLineTransfers: Boolean = false,
+    dmaLineYieldCycles: Int = 0
 ) extends Module {
+    require(!dmaLineTransfers || (coherentLineCache && tileLinkMemory && cacheConcurrency.readMshrs > 1 &&
+        (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
+        "DMA line mode requires a bounded mixed coherence home")
     require(!jtagRamDownload || (stagedMemoryFabric && coherentLineCache && ramBytes >= 1024 * 1024),
         "JTAG RAM loader requires staged coherent fabric and reserved monitor RAM")
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
@@ -272,7 +277,8 @@ class MachinePlatform(
         loader.io.dmi <> io.jtagDmi.get
         loader.io.linkUp := io.jtagLinkUp.get
     }
-    val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes))
+    val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes, lineTransfers = dmaLineTransfers,
+        lineYieldCycles = dmaLineYieldCycles))
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
         postedRxSlots = networkDmaConfig.postedRxSlots, memoryCredits = networkDmaConfig.memoryCredits,
@@ -352,7 +358,8 @@ class MachinePlatform(
     core.io.timerInterrupt := timer.io.irq
     core.io.timeValue      := timer.io.timeValue
     val shared    = Module(new AtomicDataMemory(
-        base = ramBase, bytes = ramBytes, registerResponseOwners = registerPhysicalResponseOwners
+        base = ramBase, bytes = ramBytes, registerResponseOwners = registerPhysicalResponseOwners,
+        dmaLineTransfers = dmaLineTransfers
     ))
     val privateCacheLines = if (coherentLineCacheLines == 0) (ramBytes / 64).min(128).toInt
         else coherentLineCacheLines
@@ -361,6 +368,7 @@ class MachinePlatform(
     val privateCache = if (coherentLineCache) Some(CoherentLineCacheModule.build(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
         ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig)) else None
+    if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
     shared.io.dma.request.bits.atomicOp := 0.U
@@ -567,12 +575,14 @@ class MachinePlatform(
                 trackedWays = coherentLineCacheWays, acquireEntries = cacheConcurrency.readMshrs,
                 writebackEntries = cacheConcurrency.writebackEntries, mixedReadWrite = cacheConcurrency.overlapWritebackRefill,
                 rawResponseMetadata = p.rawTileLinkResponseMetadata,
-                parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig)
+                parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig,
+                dmaLineTransfers = dmaLineTransfers)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.
             home.io.drainRequest := core.io.fenceIFlush && cache.io.flushDone
             coherentFlushDrained := home.io.drainDone
+            if (dmaLineTransfers) home.io.dmaLine.get <> shared.io.memoryLine.get
             home.io.upstream <> homeUpstream
             home.io.upstreamRequestCpu := homeRequestCpu
             bridge.io.data <> home.io.downstream

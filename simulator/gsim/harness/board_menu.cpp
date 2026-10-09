@@ -47,7 +47,7 @@ int main(int argc,char **argv){try {
   t.send(selected=="cpu"?'b':'m');t.expect(selected=="cpu"?"CPU_BANDWIDTH_PASS":"MEMORY_DMA_PASS");
   t.expect("DIAGNOSTIC RETURN STATE PASS sp_gp_saved_sp_mstatus_satp_mie=1\r\n");t.expect("DIAGNOSTIC RETURN\r\n");t.ready();
   check(w.diagnosticEntries==1,"bandwidth diagnostic entry count");
-  if(selected=="dma")check(w.maxDmaReads==16384&&w.maxDmaWrites==16384&&!t.dut->board$platform$dma$busy,"128KiB actual DMA request/response count");
+  if(selected=="dma")check(w.maxDmaReads==16384&&w.maxDmaWrites==16384&&!t.dut->board$platform$dma$busy,"128KiB DMA read/completed-write progress in 8-byte words");
   for(unsigned i=0;i<16384;i++){
    const auto a=t.ddr.memory.find(uint32_t(0xfff98000ULL-ramBase+i*8));const auto b=t.ddr.memory.find(uint32_t(0xfffb8000ULL-ramBase+i*8));
    check(a!=t.ddr.memory.end()&&b!=t.ddr.memory.end()&&a->second==b->second&&a->second==(0x935b76124aedc087ULL^(uint64_t(i)*0x102040810204081ULL)),"full bandwidth independent backing mismatch");
@@ -57,7 +57,7 @@ int main(int argc,char **argv){try {
   t.expect("DIAGNOSTIC RETURN STATE PASS sp_gp_saved_sp_mstatus_satp_mie=1\r\n");t.expect("DIAGNOSTIC RETURN\r\n");t.ready();
   t.send('t');t.expect("CPU_BANDWIDTH_PASS");t.expect("MEMORY_DMA_PASS");
   t.expect("DIAGNOSTIC RETURN STATE PASS sp_gp_saved_sp_mstatus_satp_mie=1\r\n");t.expect("DIAGNOSTIC RETURN\r\n");t.ready();
-  check(w.diagnosticEntries==2&&w.maxDmaReads==64&&w.maxDmaWrites==64&&!t.dut->board$platform$dma$busy,"real mem2mem64 reads/writes or two diagnostic returns missing");
+  check(w.diagnosticEntries==2&&w.maxDmaReads==64&&w.maxDmaWrites==64&&!t.dut->board$platform$dma$busy,"mem2mem 64-word read/write progress or two diagnostic returns missing");
   for(unsigned i=0;i<64;i++){
    const auto a=t.ddr.memory.find(uint32_t(0xfff98000ULL-ramBase+i*8));const auto b=t.ddr.memory.find(uint32_t(0xfffb8000ULL-ramBase+i*8));
    check(a!=t.ddr.memory.end()&&b!=t.ddr.memory.end()&&a->second==b->second,"DMA independent source/destination DDR mismatch");
@@ -79,5 +79,5 @@ int main(int argc,char **argv){try {
    image[12]^=0x55;t.download(image);backing(t,image);w.allowImage=true;t.send('r');t.expect("APP RETURN\r\n");t.expect("locked> ");lockedCommands(t,w);check(w.imageEntries==1,"repeated image download/run failed");
   }
  }
- std::cout<<"MENU_BOARD_PASS case="<<selected<<" cycles="<<t.cycles<<" image_entries="<<w.imageEntries<<" diagnostic_entries="<<w.diagnosticEntries<<" memory_dma_reads="<<w.maxDmaReads<<" memory_dma_writes="<<w.maxDmaWrites<<" no_gmac_access=1 physical_cdc=0 board=0\n";return 0;
+ std::cout<<"MENU_BOARD_PASS case="<<selected<<" cycles="<<t.cycles<<" image_entries="<<w.imageEntries<<" diagnostic_entries="<<w.diagnosticEntries<<" memory_dma_read_words="<<w.maxDmaReads<<" memory_dma_written_words="<<w.maxDmaWrites<<" no_gmac_access=1 physical_cdc=0 board=0\n";return 0;
 }catch(const std::exception &e){std::cerr<<"MENU_BOARD_FAIL "<<e.what()<<"\n";return 1;}}

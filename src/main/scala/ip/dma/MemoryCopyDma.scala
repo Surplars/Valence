@@ -8,8 +8,11 @@ import soc.ip.bus.{RegisterPort, RegisterResponse}
 class MemoryCopyDma(
     base: BigInt = BigInt("10001000", 16),
     ramBase: BigInt = BigInt("80010000", 16),
-    ramBytes: BigInt = 4096
+    ramBytes: BigInt = 4096,
+    lineTransfers: Boolean = false,
+    lineYieldCycles: Int = 0
 ) extends Module {
+    require(lineYieldCycles >= 0 && lineYieldCycles <= 64 && (lineTransfers || lineYieldCycles == 0))
     require(base >= 0 && base % 8 == 0 && base + 40 <= (BigInt(1) << 64))
     require(
         ramBase >= 0 && ramBase % 8 == 0 && ramBytes >= 8 && ramBytes % 8 == 0 && ramBase + ramBytes <= (BigInt(
@@ -19,6 +22,7 @@ class MemoryCopyDma(
     val io = IO(new Bundle {
         val control = Flipped(new RegisterPort)
         val memory  = new RegisterPort
+        val line = if (lineTransfers) Some(new DmaLinePort) else None
         val irq     = Output(Bool())
         val active  = Output(Bool())
     })
@@ -38,10 +42,14 @@ class MemoryCopyDma(
     val owners            = Module(new Queue(Bool(), 4, pipe = false, flow = false))
     val locked            = RegInit(false.B)
     val lockedWrite       = Reg(Bool())
+    // Scalar prefix/tail traffic keeps the existing four-credit path. A line
+    // transaction starts only after all scalar requests and responses drain.
+    val lineBusy = WireDefault(false.B)
+    val lineEligible = WireDefault(false.B)
     val chooseWrite       = Mux(locked, lockedWrite, data.io.deq.valid)
-    val available         = Mux(chooseWrite, data.io.deq.valid, readsSent < (length >> 3) && resident < 4.U)
+    val available         = Mux(chooseWrite, data.io.deq.valid, readsSent < (length >> 3) && resident < 4.U && !lineEligible)
     // A stalled offer remains stable even if an older response reports an error.
-    io.memory.request.valid           := busy && (locked || !failed) && owners.io.enq.ready && available
+    io.memory.request.valid           := busy && !lineBusy && (locked || !failed) && owners.io.enq.ready && available
     io.memory.request.bits.address    := Mux(chooseWrite, destination + (writesSent << 3), source + (readsSent << 3))
     io.memory.request.bits.data       := Mux(chooseWrite, data.io.deq.bits, 0.U)
     io.memory.request.bits.write      := chooseWrite
@@ -67,9 +75,60 @@ class MemoryCopyDma(
         when(owners.io.deq.bits) { writesDone := writesDone + 1.U }
     }
     when(
-        busy && !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U &&
+        busy && !lineBusy && !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U &&
             (failed || writesDone === (length >> 3))
     ) { busy := false.B; done := true.B }
+    if (lineTransfers) {
+        val line = io.line.get
+        val lIdle :: lRead :: lReadWait :: lWrite :: lWriteWait :: Nil = Enum(5)
+        val state = RegInit(lIdle)
+        // One 64-byte payload register. No additional memory ports or credits.
+        val payload = Reg(UInt(512.W))
+        val nextSource = source + (readsSent << 3)
+        val nextDestination = destination + (writesSent << 3)
+        lineBusy := state =/= lIdle
+        lineEligible := nextSource(5, 0) === 0.U &&
+            (destination + (readsSent << 3))(5, 0) === 0.U &&
+            (length >> 3) - readsSent >= 8.U
+        val scalarDrained = !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U &&
+            readsSent === writesDone && writesSent === writesDone
+        when(state === lIdle && busy && !failed && scalarDrained && lineEligible) { state := lRead }
+        val yielding = WireDefault(false.B)
+        if (lineYieldCycles > 0) {
+            // A bounded quiet period starts only after the previous owner has
+            // retired. Once VALID is offered it cannot be withdrawn by yield.
+            val quiet = RegInit(0.U(log2Ceil(lineYieldCycles + 1).W))
+            when(quiet =/= 0.U) { quiet := quiet - 1.U }
+            when(line.response.fire) { quiet := lineYieldCycles.U }
+            when(!busy) { quiet := 0.U }
+            yielding := quiet =/= 0.U
+        }
+        line.request.valid := (state === lRead || state === lWrite) && !yielding
+        line.request.bits.address := Mux(state === lWrite, nextDestination, nextSource)
+        line.request.bits.data := payload
+        line.request.bits.write := state === lWrite
+        line.response.ready := state === lReadWait || state === lWriteWait
+        when(line.request.fire) {
+            assert(!io.memory.request.valid && (scalarDrained || state === lWrite),
+                "line request crossed scalar DMA ownership")
+            assert(line.request.bits.address(5, 0) === 0.U,
+                "DMA line transaction must be naturally aligned")
+            when(state === lRead) { readsSent := readsSent + 8.U; state := lReadWait }
+                .otherwise { writesSent := writesSent + 8.U; state := lWriteWait }
+        }
+        when(line.response.fire) {
+            when(line.response.bits.error) { failed := true.B; state := lIdle }
+            when(state === lReadWait && !line.response.bits.error) {
+                payload := line.response.bits.data
+                state := lWrite
+            }
+            when(state === lWriteWait) { writesDone := writesDone + 8.U; state := lIdle }
+        }
+        when(lineBusy) {
+            assert(!io.memory.request.valid && !owners.io.deq.valid && resident === 0.U,
+                "DMA line owner overlaps scalar traffic")
+        }
+    }
     io.irq    := interruptEnable && done
     io.active := busy
     val responses = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))

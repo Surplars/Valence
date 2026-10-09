@@ -100,8 +100,12 @@ def main():
     ap.add_argument("--share-protected-head-payload", action="store_true")
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
+    ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
+    ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args()
+    if a.dma_line_yield_cycles and not a.dma_line_transfers:
+        ap.error("line yield requires --dma-line-transfers")
     profile = json.loads((HERE / "baseline.json").read_text())
     selected = not (a.reference or a.storage_candidate)
     features = {
@@ -135,6 +139,12 @@ def main():
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
         profile["profile"]["name"] += "-experimental-trispeed"
+    profile["profile"]["dma_line_transfers"] = a.dma_line_transfers
+    profile["profile"]["dma_line_yield_cycles"] = a.dma_line_yield_cycles
+    if a.dma_line_transfers:
+        profile["profile"]["name"] += "-dma-lines"
+    if a.dma_line_yield_cycles:
+        profile["profile"]["name"] += "-yield" + str(a.dma_line_yield_cycles)
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -182,6 +192,10 @@ def main():
         command.append("--experimental-jtag-ram")
     if a.experimental_jtag_bscan:
         command.append("--experimental-jtag-bscan=" + str(a.experimental_jtag_bscan))
+    if a.dma_line_transfers:
+        command.append("--dma-line-transfers")
+    if a.dma_line_yield_cycles:
+        command.append("--dma-line-yield-cycles=" + str(a.dma_line_yield_cycles))
     if a.prefetch_break_on_store:
         command.append("--prefetch-break-on-store")
     if a.prefetch_candidate_cycles != 1:

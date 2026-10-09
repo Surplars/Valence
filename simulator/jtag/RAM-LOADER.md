@@ -19,9 +19,16 @@ A raw Linux `Image` should not be assumed bootable through this interface.
   The wire DTMCS must advertise version 1 and `abits = 7`.
 - `openocd-ram-loader-bscan.cfg`: custom 64-bit USER-register endpoint behind
   BSCANE2. The board must have declared the physical FPGA TAP and must set
-  `VALENCE_RAM_TAP`, `VALENCE_RAM_USER_IR`, and `VALENCE_RAM_FPGA_IDCODE` before
-  sourcing it. The loader checks the hardware IDCODE captured by OpenOCD init
-  with `jtag cget`. The custom USER capability is `0x00000701`.
+  `VALENCE_RAM_TAP`, `VALENCE_RAM_FPGA_PART`, `VALENCE_RAM_FPGA_IRLEN`,
+  `VALENCE_RAM_JTAG_CHAIN`, `VALENCE_RAM_USER_IR`, and `VALENCE_RAM_FPGA_IDCODE`
+  before sourcing it. The exact supported part is `xczu15eg-ffvb1156-2-i`, IR12.
+  Explicit USER2/3/4 pairs are respectively `2/0x903`, `3/0x922`, `4/0x923`;
+  USER1 is rejected because both inspected routed checkpoints assign it to
+  dbg_hub. `ram-loader-xczu15eg.tcl` validates these supplied values before
+  adapter-related config commands and again at startup and each DMI/poll/scan entry. The loader checks
+  OpenOCD's cached observed IDCODE using `jtag cget`, comparing BSDL fixed bits
+  `0x04750093` with mask `0x0fffffff` (revision nibble ignored only).
+  The custom USER capability is `0x00000701`.
 
 Both configurations require the user's selected adapter/board configuration
 first. They supply no adapter, pins, voltage, TCK speed, physical reset wiring,
@@ -29,6 +36,15 @@ FPGA chain order, or USER opcode guesses. In particular, a physical FPGA TAP
 is not the direct IR-5 Valence DTM. A multi-TAP/long-IR FPGA board must use its
 actual chain declaration and full USER instruction. The USER backend is not
 OpenOCD's SiFive `riscv use_bscan_tunnel` protocol.
+
+The exact-part constants come from offline Vivado 2025.1 BSDL inspection, SHA-256
+`13554c795fac67e7a4ab6fde86a59d6252b48a1ca17501e4dde1680e5b4e2613`;
+PRIVATE USER instructions require a configured FPGA. They do not establish the
+board chain order or other TAP/DAP widths and are not actual SMT2 scan results.
+The explicit IR-length variable must match the independently verified physical
+TAP declaration; the loader does not query an unsupported `jtag cget -irlen`.
+The new-image post-synthesis BSCANE2/debug-hub collision guard remains mandatory.
+See [exact BSDL values and configuration](../../docs/debug/bscan-user-transport.md).
 
 When a board has already declared the direct DTM TAP, set `VALENCE_RAM_TAP` to
 that TAP name; no duplicate TAP is created. `VALENCE_RAM_IDCODE` can specify the

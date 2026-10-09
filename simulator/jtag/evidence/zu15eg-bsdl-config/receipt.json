@@ -1,0 +1,60 @@
+{
+  "status": "PASS_HOST_CONFIG_MOCKS_ONLY",
+  "recorded_utc": "2026-10-09T03:46:14.298930+00:00",
+  "tool": {
+    "name": "tclsh",
+    "version": "8.6.16"
+  },
+  "tests": {
+    "bscan_host": 121,
+    "source_only_configuration": 13,
+    "direct_dtm_regression": 44,
+    "unchanged_chain_guard_mock": 11,
+    "all_16_revision_nibbles": true,
+    "all_28_fixed_id_bits_expected_and_observed": true,
+    "post_start_user1_mutation_paths": [
+      "DMI read",
+      "public launch wait",
+      "raw USER scan",
+      "poll collect"
+    ]
+  },
+  "scope": {
+    "source_config_validation": true,
+    "actual_openocd_or_jim": false,
+    "adapter_access": false,
+    "hardware_scan_chain_order_or_ir_verified": false,
+    "native_hdl_or_board": false,
+    "production_rtl_or_firmware_changed": false
+  },
+  "base_local_commit": "1a81f17f9bae96e4205cde7178585cf8e179dcd0",
+  "published_dev_context": "8e78b5b (not modified or published by this patch)",
+  "post_synthesis_guard": {
+    "path": "fpga/next/check_jtag_chain.tcl",
+    "sha256": "cfb30678a3b1e8c49a41038e68e565ce4346ea4b9ff524fb76d3843a50b5057f",
+    "unchanged": true,
+    "new_candidate_netlist_check_still_required": true
+  },
+  "source_sha256": {
+    "simulator/jtag/openocd-ram-loader-bscan.cfg": "6c1f025f02bab899156fc1bdfce1f07e683e1f13282bfff29a518575329e9963",
+    "simulator/jtag/ram-loader-bscan.tcl": "3cd5a71fe7cbcc3905cc857c6ee4b44bc76d40a8744fc61fd351ff818de04c81",
+    "simulator/jtag/ram-loader-xczu15eg.tcl": "dea5f9120a5cd28964a8646ac69e3f71e9ed1c92bc04829e10a6f9c60e61e03f",
+    "simulator/jtag/ram-loader-bscan-test.tcl": "26fce447c8f3c38ab9e907d0b5551db758765cd0154648e60f62605437e28512",
+    "simulator/jtag/ram-loader-config-test.tcl": "69321cb146aad9a639dc6d982b765ff0ea98ba25f9088cfca226e7b55a29af8c",
+    "docs/debug/bscan-user-transport.md": "f852e7b325418d5e8724bc345a80af7ef85ad8a89343952a7194cea231382826",
+    "docs/debug/evidence/ram-download/xczu15eg-bsdl-offline.json": "c96f180258bf832f3fc68d3afeb8daf7d73c1d2aefe6b1bf7b16a9968e1a05e6",
+    "simulator/jtag/RAM-LOADER.md": "cb30a4937dfbf4260c1a1172460f0b7928c9d2b449173f96a2121079b92988bf"
+  },
+  "log_sha256": {
+    "simulator/jtag/evidence/zu15eg-bsdl-config/bscan.log": "b03d78f9fcf7c769a065cb9c4980c6f659da28ac3bb72f912dcb4e884ef9ef95",
+    "simulator/jtag/evidence/zu15eg-bsdl-config/chain-guard.log": "e1ca5d845603c123a9c2fb31fcedf220c17729fbe9947a3f84f87a8aec305219",
+    "simulator/jtag/evidence/zu15eg-bsdl-config/config.log": "e45cbf40803be69c7b2e2da5c3a58a6e929f2a2a5bd0e893d40bdd77be03b5ae",
+    "simulator/jtag/evidence/zu15eg-bsdl-config/direct.log": "61a602b066c2772f9bcde3def26a8d4b7b0286ad57f97257bb651e72b0ed792a"
+  },
+  "log_archive": {
+    "source_only_delivery": true,
+    "archive_name": "Valence-dma-qualified-20261009.tar.gz",
+    "archive_directory": "bsdl-original-logs",
+    "original_log_paths_are_not_tracked": "Log hashes above refer to the exact preserved files in the evidence archive, not files in this source-only tree."
+  }
+}

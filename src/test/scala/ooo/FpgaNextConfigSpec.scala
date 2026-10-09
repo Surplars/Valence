@@ -106,4 +106,22 @@ class FpgaNextConfigSpec extends AnyFunSuite {
         assert(!BoardSocConfig.boardParams(BoardSocConfig.timingProfile).fpEnabled)
         assert(!BoardSocConfig.params.lvtPhysicalRegisterFile)
     }
+    test("bounded DMA yield is explicit and does not change transaction credits") {
+        for (cycles <- Seq(0, 4, 8, 16, 32, 64)) {
+            val c = FpgaNextConfig.fromOptions(Set("--selected", "--dma-line-transfers",
+                s"--dma-line-yield-cycles=$cycles"), true)
+            assert(c.dmaLineTransfers && c.dmaLineYieldCycles == cycles)
+            assert(c.ddr == FpgaNextConfig.Selected.ddr && c.cache == FpgaNextConfig.Selected.cache)
+        }
+        intercept[IllegalArgumentException] { FpgaNextConfig(dmaLineYieldCycles = 4) }
+    }
+    test("line DMA remains an explicit option without larger bridge or cache geometry") {
+        val base = FpgaNextConfig.Selected
+        val c = FpgaNextConfig.fromOptions(Set("--selected", "--dma-line-transfers"), true)
+        assert(!base.dmaLineTransfers && c.dmaLineTransfers)
+        assert(c.copy(dmaLineTransfers = false) == base)
+        assert(c.coreParams == base.coreParams && c.ddr == base.ddr && c.cache == base.cache)
+        assert(c.name == base.name + "-dma-lines")
+    }
+
 }

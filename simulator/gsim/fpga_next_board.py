@@ -64,12 +64,16 @@ def main():
     ap.add_argument("--share-protected-head-payload", action="store_true")
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
+    ap.add_argument("--dma-line-transfers", action="store_true")
+    ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1,
                     help="bounded prefetch retention experiment; default keeps the inherited one-attempt policy")
     ap.add_argument("--mixed-store-stream", action="store_true",
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.dma_line_yield_cycles and not args.dma_line_transfers:
+        ap.error("line yield requires --dma-line-transfers")
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.tag):
         ap.error("unsafe tag")
     if args.smoke_only and args.mixed_store_stream:
@@ -83,6 +87,10 @@ def main():
     fw.mkdir(exist_ok=True)
     frozen = source_inventory()
     parameters = ["--" + args.variant]
+    if args.dma_line_transfers:
+        parameters.append("--dma-line-transfers")
+    if args.dma_line_yield_cycles:
+        parameters.append("--dma-line-yield-cycles=" + str(args.dma_line_yield_cycles))
     if args.prefetch_break_on_store:
         parameters.append("--prefetch-break-on-store")
     if args.prefetch_candidate_cycles != 1:

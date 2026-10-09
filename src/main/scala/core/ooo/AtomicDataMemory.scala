@@ -7,7 +7,8 @@ import soc.ip.memory.AtomicMemory
 class AtomicDataMemory(
     base: BigInt = BigInt("80010000", 16),
     bytes: BigInt = 4096,
-    registerResponseOwners: Boolean = false
+    registerResponseOwners: Boolean = false,
+    dmaLineTransfers: Boolean = false
 ) extends Module {
     val io = IO(new Bundle {
         val cpu              = Flipped(new DataPort)
@@ -15,8 +16,14 @@ class AtomicDataMemory(
         val memory           = new DataPort
         val memoryRequestCpu = Output(Bool())
         val clearReservation = Input(Bool())
+        val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort)) else None
+        val memoryLine = if (dmaLineTransfers) Some(new soc.ip.dma.DmaLinePort) else None
     })
-    val unit = Module(new AtomicMemory(base, bytes, registerResponseOwners))
+    val unit = Module(new AtomicMemory(base, bytes, registerResponseOwners, dmaLineTransfers))
+    if (dmaLineTransfers) {
+        unit.io.dmaLine.get <> io.dmaLine.get
+        io.memoryLine.get <> unit.io.memoryLine.get
+    }
     io.memoryRequestCpu := unit.io.memoryRequestCpu
     unit.io.clearReservation           := io.clearReservation
     unit.io.cpu.request.valid          := io.cpu.request.valid
