@@ -5,6 +5,38 @@ BootROM, TUI, UART upload protocol, clock profile and production RTL are unchang
 The default build remains `--console sbi` for recovery. The candidate requires the
 existing qualified single-hart CSR-only APLIC/IMSIC implementation.
 
+## V4: remove the userspace readiness gate (2026-10-09)
+
+The V3 board log still reached native 8250 probe and then timed out in PID 1.
+The shipped V3 VLD was independently unpacked: it did contain the intended
+`serial_8250` helper, including its infinite failure wait. The board log does
+not identify which node/readability/text condition failed. Do not infer an IRQ
+hardware failure from that userspace timeout or call the hardware qualified.
+
+V4 removes the proc parser, AIA text predicate and readiness wait entirely.
+Loading the existing IRQ controller remains necessary. A failed load, missing
+node, termios error or descriptor error records a warning and continues to
+Dinit. A bounded `timeout 2 stty` attempts the existing 460800/CLOCAL settings;
+`command exec` attempts descriptor handoff when a character ttyS0 exists.
+Dinit's existing agetty service opens ttyS0 independently and retains its bounded
+restart behavior. Separate platform service checks still prevent starting DMA
+consumers after an actual controller failure. No IRQ is disabled and no polling
+input driver is introduced.
+
+The `valence-uart-v4` messages identify the new behavior on the real console.
+`/run/valence/uart-startup.log` and `uart-warning` keep observations without
+holding PID 1. `boot-diagnose` can collect the actual proc, sysfs and interrupt
+state after login. Neither an opened descriptor nor the Dinit banner claims
+working UART IRQ RX/TX. Host and actual RV64 dash tests cover continuation after
+all former gate failures, plus real character-PTY descriptor input/output. PTY
+and QEMU user-mode checks are not board IRQ verification.
+
+The historical V1–V3 gate/recovery descriptions below are superseded by V4.
+`repack_dinit_overlay.py` updates only the three reviewed init/diagnostic helper
+entries in the existing signed-seed archive, preserving every other entry and
+its metadata. It avoids a second rootfs tree; final embedding, modules, hashes,
+ELF closure and package audits remain required. Old V3 archives are preserved.
+
 ## What changes
 
 - Build the Debian/Dinit kernel stage with `--console uart-irq`. The kernel,

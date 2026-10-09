@@ -19,3 +19,13 @@ ip address show dev eth0
 cat /proc/net/dev
 echo 'Manual tests: mem-bench 32 3; dma-bench 8388608 4; fpu-test'
 echo 'These tests are not run during boot. CPU/DMA bandwidth is not MIG peak bandwidth.'
+echo '=== UART V4 startup observations (not a boot gate) ==='
+cat /run/valence/uart-startup.log /run/valence/uart-warning 2>/dev/null || :
+ls -l /dev/ttyS0 /sys/class/tty/ttyS0 2>/dev/null || :
+for path in /proc/tty/driver/serial_8250 /proc/tty/driver/serial; do
+    if [ -r "$path" ]; then echo "--- $path"; cat "$path"; fi
+done
+for path in /sys/bus/platform/devices/*/irqchip_status; do
+    if [ -r "$path" ]; then echo "--- $path"; cat "$path"; fi
+done
+cat /proc/interrupts

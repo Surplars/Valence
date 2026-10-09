@@ -1,7 +1,7 @@
 #!/bin/sh
 read -r uptime unused < /proc/uptime
-printf '[%s] valence-init: Debian 13 / Dinit; serial ready, network starts separately\n' "$uptime"
+printf '[%s] valence-init: Debian 13 / Dinit; serial getty configured, network starts separately\n' "$uptime"
 echo 'VALENCE_DEBIAN_USERLAND_READY'
 echo 'Commands: dinitctl list; boot-diagnose; net-status; mem-bench 32 3; dma-bench 8388608 4'
 echo 'No systemd/udevd/dbus/journald daemons. RAM-only root; serial root autologin; no SSH.'
-echo 'Driver/network failure does not prevent serial login. See dinitctl catlog platform/network.'
+echo 'Driver/network failure does not prevent getty scheduling; this banner does not verify console I/O. See dinitctl catlog platform/network.'

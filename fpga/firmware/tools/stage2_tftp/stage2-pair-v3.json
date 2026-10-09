@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "label": "Valence Linux UART V3 20261009",
+  "files": {
+    "Image": {
+      "size": 72754512,
+      "sha256": "69a1f9991bd1385a2d3f8465e2388292020caa6c4b7e83068592ef9d08074f81"
+    },
+    "valence-vl100.dtb": {
+      "size": 3387,
+      "sha256": "bdd076a3fbfe13e73b13817efbe52389a2272b61d85a94b5080ff77de73f71a2"
+    }
+  }
+}

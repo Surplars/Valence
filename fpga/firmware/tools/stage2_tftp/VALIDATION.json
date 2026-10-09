@@ -1,0 +1,88 @@
+{
+  "status": "PASS_40_HOST_TESTS_WINDOWS_BOARD_PERFORMANCE_UNQUALIFIED",
+  "date_utc": "2026-10-09",
+  "host_tests": 40,
+  "test_command": "python -B -m unittest discover -s tests -v",
+  "defaults": {
+    "max_blksize": 1024,
+    "max_windowsize": 1,
+    "packet_delay_us": 100,
+    "pair": "V3 built-in"
+  },
+  "engine_changed": true,
+  "engine_sha256": "1ff8a4779cf35c6f98d1405518e7a85b08c6bc8e4e2e6a591c32158cc4fcbbc1",
+  "hardware_or_firmware_rebuilt": false,
+  "host_test_scope": [
+    "Synthetic small-file localhost transfers: windows 1/2/4; missing-window and no-option fallback",
+    "Deterministic independent model of pinned U-Boot receive control flow: windows 2/4",
+    "DATA loss at all first-window positions; ACK loss recovers at modeled U-Boot 5-second timeout",
+    "Delayed/duplicate/stale ACK; bounded ACK noise; foreign IP/TID and malformed ACK",
+    "OACK retry/exhaustion; no DATA or file read before ACK0",
+    "Short and zero-length EOF; final-ACK loss reported as unconfirmed failure",
+    "Generated bounded-memory 16-bit wrap and DATA loss at 65535/0",
+    "Strict manifest keys/names/size/hash, duplicate keys, bounded read and path rejection",
+    "Server negotiation binding and failure/Ctrl-C/missing-file statistics",
+    "Exact current V3 and V4 Image/DTB size/SHA256 checks without copying image files",
+    "Python 3.8 grammar checked; executable tests run on Python 3.12",
+    "Zero delay invokes no sleeper for windows 1/2/4/16; window1 never invokes sleeper",
+    "Exact per-burst sleep count, no initial/trailing/cross-window delay; retry bytes retained",
+    "15.625ms injected oversleep and deliberately frozen sleeper remain bounded without busy polling",
+    "Default stats/progress/deadlines advance at sub-tick resolution with monotonic frozen",
+    "Real localhost 5271-byte paired-server transfer with window4, delay0 and delay100us, 11 DATA / 3 windows / EOF ACK / zero retries"
+  ],
+  "limits": [
+    "No physical board, Windows timing, real packet loss or throughput qualification",
+    "Protocol receiver is a Python model of U-Boot control flow, not compiled U-Boot C execution",
+    "Lost intermediate ACK may incur about 5 seconds waiting for the U-Boot timer",
+    "Lost final ACK after U-Boot exits remains host-unconfirmed; inspect board CRC",
+    "Inputs must remain unchanged while the server runs",
+    "High-resolution timestamps do not make operating-system sleep scheduling precise",
+    "Linux localhost timing is not a Windows or physical-board speed claim",
+    "Zero pacing increases burst arrival rate; use measured retransmission/CRC results and fall back to window1 if needed"
+  ],
+  "uboot_reference": {
+    "upstream_commit": "5508406582f6f7120dce0c4b3059819a41788db2",
+    "net_tftp_source": "net/tftp.c",
+    "CONFIG_NET_TFTP_VARS": true,
+    "CONFIG_TFTP_WINDOWSIZE_default": 1,
+    "delivered_combined_binary_sha256": "13e38abfcd36d44fa7355982f761161cb9222e6b7288a4a43e74d991bda90dcd"
+  },
+  "independent_review": "New pacing test author ran all 40 tests and reviewed intended changes only; no blocker. Existing whole-transfer sequence/loss/wrap checks retained with burst-specific spacing oracle.",
+  "release": "stage2-pacing-v2-20261009",
+  "previous_engine_sha256": "5ad504f9b57b33a6c25375617bbd1f334734cb6085d7202aa453cc153dfadb8c",
+  "engine_change_scope": "High-resolution clock and explicit zero/within-window pacing only; parser/OACK/ACK/retry algorithms unchanged",
+  "timing_clock": "time.perf_counter_ns / 1e9 seconds",
+  "pacing": {
+    "explicit_zero_disables": true,
+    "positive_scope": "between adjacent DATA inside each transmitted window",
+    "first_or_trailing_delay": false,
+    "busy_wait": false,
+    "system_timer_changes": false
+  },
+  "baseline_user_log_observations": {
+    "window4": {
+      "bytes_acked": 10424320,
+      "data_packets": 10181,
+      "elapsed_seconds": 6.906,
+      "pacing_seconds": 6.859,
+      "ack_wait_seconds": 0.031,
+      "retransmits": 0,
+      "timeouts": 0,
+      "window_restarts": 0,
+      "eof_acked": false,
+      "stopped_by": "Ctrl-C"
+    },
+    "window1": {
+      "bytes_acked": 72738128,
+      "elapsed_seconds": 27.781,
+      "displayed_MiB_per_s": 2.497,
+      "retransmits": 0,
+      "timeouts": 0,
+      "pacing_seconds": 0,
+      "eof_acked": true
+    },
+    "clock_caveat": "Old monotonic timestamps are visibly quantized; zero read/send phases are not proof those operations consume no time. V2 fixes measurement and enables an explicit no-sleep comparison."
+  },
+  "source_integration_scope": "Standalone stage2 copy only; canonical BootROM netboot_host.py is not changed",
+  "previous_zip_preserved_sha256": "cbcb2675f584eb76e6cd9d71c43447fdabc14fa02aac69d4d98dbe0e647681f2"
+}

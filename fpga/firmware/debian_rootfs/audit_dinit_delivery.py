@@ -76,14 +76,13 @@ def require_console_contract(manifest, content, config):
     require(init.index('mount -t devtmpfs') < init.index('. /usr/local/libexec/valence-uart-irq-init')
             < init.index('exec /usr/sbin/dinit'), 'UART bootstrap order')
     bootstrap = content('usr/local/libexec/valence-uart-irq-init').decode()
-    require('modprobe valence_aia' in bootstrap and 'ready=1 faulted=0' in bootstrap
-            and 'irq:[1-9][0-9]*' in bootstrap and 'mmio:0x0*10000000' in bootstrap
-            and 'command exec < /dev/ttyS0 > /dev/ttyS0 2>&1 || uart_fail' in bootstrap
+    require('modprobe valence_aia' in bootstrap and 'command exec < /dev/ttyS0 > /dev/ttyS0 2>&1' in bootstrap
             and 'uart_proc=/proc/tty/driver/serial_8250\n' in bootstrap
-            and '"$uart_proc"' in bootstrap
-            and 'uart_controller_ready || uart_fail' in bootstrap
-            and 'set +e' in bootstrap,
-            'UART bootstrap must verify a real IRQ and reopen PID 1 descriptors')
+            and 'timeout 2 stty -F /dev/ttyS0 460800' in bootstrap
+            and 'continuing to Dinit' in bootstrap and 'UART IRQ traffic unverified' in bootstrap
+            and 'uart_warn' in bootstrap and 'while ' not in bootstrap and 'awk ' not in bootstrap
+            and not any(line.lstrip().startswith(('sleep ', 'exit ')) for line in bootstrap.splitlines()),
+            'UART bootstrap must continue to Dinit without a readiness gate')
 
 
 def main(args):

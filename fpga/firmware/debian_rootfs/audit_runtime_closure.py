@@ -12,7 +12,7 @@ from audit_dinit_delivery import decode_newc, require, require_no_retired_tools
 
 CRITICAL = ('/bin/sh', '/usr/bin/awk', '/usr/bin/nawk', '/usr/bin/mount',
     '/usr/sbin/modprobe', '/usr/bin/stty', '/usr/bin/grep', '/usr/bin/sleep',
-    '/usr/bin/hostname', '/usr/sbin/dinit', '/usr/sbin/agetty', '/usr/bin/login',
+    '/usr/bin/hostname', '/usr/bin/timeout', '/usr/sbin/dinit', '/usr/sbin/agetty', '/usr/bin/login',
     '/usr/bin/bash', '/etc/localtime', '/var/run', '/usr/lib/ssl/cert.pem',
     '/usr/lib/ssl/openssl.cnf')
 LIBRARIES = ('usr/lib/riscv64-linux-gnu', 'lib/riscv64-linux-gnu', 'usr/lib', 'lib')

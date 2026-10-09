@@ -167,12 +167,10 @@ class ProfileTests(unittest.TestCase):
                 script = root / 'test.sh'
                 script.write_text('set -eu\n' + text)
                 result = subprocess.run(['/bin/sh', script], capture_output=True, timeout=3)
-                self.assertEqual(result.returncode, 0 if mode in ('ready', 'rv64-padded') else 77)
-                if mode in ('ready', 'rv64-padded'):
-                    self.assertIn('FIFO IRQ binding ready', (root / 'tty').read_text())
-                else:
-                    self.assertIn('reset and load the SBI recovery image', (root / 'kmsg').read_text())
-                    self.assertEqual((root / 'tty').read_text(), '')
+                self.assertEqual(result.returncode, 0)
+                self.assertIn('ttyS0 descriptors opened', (root / 'uart-startup.log').read_text())
+                self.assertIn('UART IRQ traffic unverified', (root / 'uart-startup.log').read_text())
+                self.assertFalse((root / 'uart-recovery-required').exists())
 
     def test_packed_console_owner_audit(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -200,7 +198,7 @@ class ProfileTests(unittest.TestCase):
             helper = root / 'usr/local/libexec/valence-uart-irq-init'
             original = helper.read_text()
             for before, after in (('uart_proc=/proc/tty/driver/serial_8250', 'uart_proc=/proc/tty/driver/serial'),
-                                  ('command exec <', 'exec <'), ('set +e', 'set -e')):
+                                  ('command exec <', 'exec <'), ('\ntrue\n', '\nwhile :; do sleep 3600; done\n')):
                 helper.write_text(original.replace(before, after))
                 with self.subTest(mutation=before), self.assertRaises(RuntimeError):
                     audit.require_console_contract(
