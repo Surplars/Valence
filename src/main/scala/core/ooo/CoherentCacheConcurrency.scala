@@ -6,7 +6,7 @@ import soc.bus.tilelink.{TLBundle, TLParams}
 
 /** Independent capacities: changing miss slots never changes cache geometry or LSU width. */
 case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2, writebackEntries: Int = 1,
-    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1, prefetchBreakOnStore: Boolean = false) {
+    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1, prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false) {
     require(Set(1, 2, 4).contains(readMshrs))
     require(prefetchCandidateCycles >= 1 && prefetchCandidateCycles <= 32,
         "prefetch candidate lifetime must be in 1..32 allocation attempts")
@@ -14,6 +14,10 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "retained prefetch candidates require next-line prefetch")
     require(!prefetchBreakOnStore || nextLinePrefetch,
         "store-sensitive prediction history requires next-line prefetch")
+    require(!storeNextLinePrefetch || nextLinePrefetch,
+        "checked store prediction requires next-line prefetch")
+    require(!storePrefetchMruInsertion || storeNextLinePrefetch,
+        "store-origin MRU insertion requires checked store prefetch")
     require(!nextLinePrefetch || readMshrs >= 2, "data prefetch reuses a second miss slot")
     require(responseEntries >= readMshrs && responseEntries >= 2 && responseEntries <= 16 &&
         (responseEntries & (responseEntries - 1)) == 0)

@@ -28,7 +28,20 @@ private[ooo] class SvTlbEntry extends Bundle {
     val response  = new SvTranslationResponse
 }
 
-/** An eight/16-entry parallel-lookup TLB backed by a parameterized page walker. The key includes access and effective
+object SvTranslationService {
+    val DefaultEntries = 8
+    val SupportedEntries: Set[Int] = Set(4, 8, 16, 32)
+
+    // Exact powers of two make a wrapping replacement index address every entry,
+    // without an unreachable slot or a truncation/modulo mismatch at 32 entries.
+    def indexBits(entries: Int): Int = {
+        require(SupportedEntries.contains(entries) && entries > 0 && (entries & (entries - 1)) == 0,
+            "translation entries must be 4, 8, 16 or 32")
+        Integer.numberOfTrailingZeros(entries)
+    }
+}
+
+/** A bounded 4/8/16/32-entry parallel-lookup TLB backed by a parameterized page walker. The key includes access and effective
   * privilege, so cached permission success cannot authorize a different access. Superpage hits reconstruct their
   * page offset from the new VA. Each I/D instance has its own walker and can miss concurrently.
   */
@@ -36,7 +49,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     loadPeek: Boolean = false) extends Module {
     private val enableLoadPeek = loadPeek
     require(Set(3, 4, 5).contains(maxLevels))
-    require(Set(4, 8, 16).contains(entries))
+    private val entryIndexBits = SvTranslationService.indexBits(entries)
     val io = IO(new Bundle {
         val client    = Flipped(new SvTranslationPort)
         val loadPeek = if (enableLoadPeek) Some(Flipped(new SvTranslationPeekPort)) else None
@@ -52,7 +65,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     walker.io.pmpState := io.pmpState
     io.memory <> walker.io.memory
     val tlb  = RegInit(VecInit(Seq.fill(entries)(0.U.asTypeOf(new SvTlbEntry))))
-    val next = RegInit(0.U(log2Ceil(entries).W))
+    val next = RegInit(0.U(entryIndexBits.W))
     val idle :: walking :: replying :: Nil = Enum(3)
     val state = RegInit(idle)
     val saved = Reg(new SvTranslationRequest)
@@ -62,6 +75,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     // Demand and read-only precheck use exactly the same key and superpage/NAPOT reconstruction.
     // A precheck has no ready/fire, replacement, miss, walker or response-owner side effect.
     def lookup(query: SvTranslationRequest): (Bool, SvTranslationResponse) = {
+        // Demand and optional peek both search the full configured capacity.
         val hits = Wire(Vec(entries, Bool()))
         for (i <- 0 until entries) {
             val prior = tlb(i).request

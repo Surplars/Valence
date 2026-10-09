@@ -597,7 +597,27 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         if (p.parallelMemoryPreparation) {
             val planner = Module(new MemoryPreparationSelector(p, parallelRanks = p.parallelMemoryPayload,
                 predecodedHead = p.registeredIssueHeadMask))
-            planner.io.eligible := VecInit(memoryCandidates.map(_.valid)).asUInt
+            val originalMemoryMask = VecInit(memoryCandidates.map(_.valid)).asUInt
+            // Reconstructed default-off experiment: prefill the existing stage only
+            // when the original candidate pool is empty BEFORE issued-owner exclusion.
+            // An issued original candidate must never expose a younger store fallback.
+            val preparationMask = if (p.preparedStoreLookahead) {
+                val preparedStoreMask = VecInit((0 until p.robEntries).map { i =>
+                    val entry = queue(i)
+                    pending(i) && memoryLive(i) && i.U =/= head &&
+                        entry.renamed.token.index === i.U &&
+                        entry.request.memory && entry.request.store && !entry.request.atomic &&
+                        !entry.request.system && !entry.request.mulDiv &&
+                        entry.request.controlFlow === ControlFlow.none &&
+                        entry.request.operation === IntegerOp.add &&
+                        !entry.request.fetchFault && !entry.request.fetchPageFault &&
+                        storePrepared(i) && storeAddressKnown(i) && storeSafeRange(i) && !virtualized
+                }).asUInt
+                Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)
+            } else originalMemoryMask
+            // This selects payload preparation only. Existing full-token/head/PMP,
+            // interrupt and recovery checks below still authorize every LSU start.
+            planner.io.eligible := preparationMask
             planner.io.head := head
             planner.io.headMask.foreach(_ := issueHeadMask.get)
             planner.io.issued := memoryIssued

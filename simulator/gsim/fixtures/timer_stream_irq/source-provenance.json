@@ -1,0 +1,21 @@
+{
+  "status": "EXACT_FIXTURE_PROMOTION_ONLY",
+  "historical_source": "d31bbf3afc7fb4fd4e6682a036c382f63d811773",
+  "library_file_id": "libfile_fb5c66459b0c81919ba6de3155b19f48",
+  "comparison_sha256": "ba76c9273481bee1274bbf32eca6243a103d242285a8919b880558e065f57826",
+  "files": {
+    "guest.S": "d223059bb17d7c76d7421a9ba34d2fae8b36a559c26b8cfdda262c6ef104ccb9",
+    "guest.ld": "c5f147662cd84ae228dc5fd9da7336c57bf8eb050ddba31657a180b7e0c693df",
+    "host.cpp": "7a4e1de3d5bea47ac4b633a5e9b910ee9a94e02fca040bc979956027274cd3b2",
+    "drain.hpp": "f2fcffd006f56b47d1b6103ba0a25af1feea3df66d47d2feb468fcb5697af15a"
+  },
+  "historical_scope": "M/Bare real timer IRQ during64KiB streaming stores; same immutable guest both sides; not performance A/B",
+  "limits": [
+    "Trap handler saves t0..t6, but only t0..t4 and sp carry live main-loop values; no all-GPR context claim.",
+    "IRQ pending overlapped any PF owner for120cycles on C; no store-origin-specific live-mask classification.",
+    "No Sv39 IRQ or DMA simultaneous with IRQ in this fixture; separate CPU+DMA qualification exists.",
+    "R1 single-empty-edge results retained; R2 strengthens to two consecutive empty snapshots and a drain poison.",
+    "No hardware timing or mapped PPA."
+  ],
+  "new_source_execution": false
+}

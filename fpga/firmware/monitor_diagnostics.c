@@ -1,6 +1,7 @@
 /* Separate -O3 RAM-resident kernels. Monitor/ownership driver remains -Os. */
 #include <stdint.h>
 #include "board_memory.h"
+#include "mmu_diagnostic.h"
 #include "coremark.h"
 extern int coremark_main(void);
 extern volatile ee_s32 seed4_volatile;
@@ -101,6 +102,7 @@ int main(void){
   ee_printf("COREMARK FORMAL automatic; measured >10s and all CRCs required\n");
   return coremark_main();
  }
+ if(op=='u')return mmu_diagnostic();
  if(op=='b')return cpu_bandwidth(0)?0:1;
  if(op=='m')return dma_bandwidth(0)?0:1;
  if(op=='t'){diagnostic_short=1;ee_printf("SHORT DIAGNOSTICS SELFTEST; NOT BANDWIDTH SCORE\n");return cpu_bandwidth(1)&&dma_bandwidth(1)?0:1;}

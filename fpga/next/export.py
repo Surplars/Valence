@@ -101,7 +101,11 @@ def main():
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
+    ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
+                    help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--prepared-store-lookahead", action="store_true",
+                    help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -111,11 +115,15 @@ def main():
     ap.add_argument("--share-protected-head-payload", action="store_true")
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
+    ap.add_argument("--store-next-line-prefetch", action="store_true")
+    ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args()
+    if a.store_prefetch_mru_insertion and not a.store_next_line_prefetch:
+        ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if a.dma_line_entries != 1 and not a.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if a.dma_line_yield_cycles and not a.dma_line_transfers:
@@ -151,6 +159,11 @@ def main():
     profile["profile"]["virtual_ram_load_precheck"] = a.virtual_ram_load_precheck
     if a.virtual_ram_load_precheck:
         profile["profile"]["name"] += "-virtual-precheck"
+    profile["profile"]["data_translation_entries"] = a.data_translation_entries
+    profile["profile"]["instruction_translation_entries"] = 8
+    profile["profile"]["pte_cache_entries"] = 4
+    if a.data_translation_entries != 8:
+        profile["profile"]["name"] += "-dtlb" + str(a.data_translation_entries)
     profile["profile"]["prechecked_data_flow"] = a.prechecked_data_flow
     profile["profile"]["physical_load_ingress_flow"] = a.physical_load_ingress_flow
     if a.prechecked_data_flow:
@@ -166,6 +179,15 @@ def main():
     profile["profile"]["fetch_previous_packet"] = a.fetch_previous_packet
     if a.fetch_previous_packet:
         profile["profile"]["name"] += "-fetch-previous-packet"
+    profile["profile"]["prepared_store_lookahead"] = a.prepared_store_lookahead
+    if a.prepared_store_lookahead:
+        profile["profile"]["name"] += "-prepared-store-lookahead"
+    profile["profile"]["store_next_line_prefetch"] = a.store_next_line_prefetch
+    if a.store_next_line_prefetch:
+        profile["profile"]["name"] += "-checked-store-prefetch"
+    profile["profile"]["store_prefetch_mru_insertion"] = a.store_prefetch_mru_insertion
+    if a.store_prefetch_mru_insertion:
+        profile["profile"]["name"] += "-store-prefetch-mru"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
@@ -202,13 +224,17 @@ def main():
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
             "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
+            "data_translation_entries": a.data_translation_entries,
+            "instruction_translation_entries": 8, "pte_cache_entries": 4,
             "fetch_previous_packet": a.fetch_previous_packet,
+            "prepared_store_lookahead": a.prepared_store_lookahead,
             "physical_qualification": False}, indent=2))
         return
     output.mkdir(parents=True)
     rtl = output / "rtl"
     command = ["mill", "-i", "IonSoC.test.runMain", "ooo.FpgaNextMain", str(rtl)]
     command.append("--reference" if a.reference else "--candidate" if a.storage_candidate else "--selected")
+    command.append("--data-translation-entries=" + str(a.data_translation_entries))
     if a.share_protected_head_payload:
         command.append("--share-protected-head-payload")
     if a.banked_instruction_data:
@@ -249,6 +275,12 @@ def main():
         command.append("--load-order-older-retire")
     if a.fetch_previous_packet:
         command.append("--fetch-previous-packet")
+    if a.prepared_store_lookahead:
+        command.append("--prepared-store-lookahead")
+    if a.store_next_line_prefetch:
+        command.append("--store-next-line-prefetch")
+    if a.store_prefetch_mru_insertion:
+        command.append("--store-prefetch-mru-insertion")
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],

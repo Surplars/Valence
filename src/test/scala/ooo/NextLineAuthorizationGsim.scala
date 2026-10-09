@@ -4,7 +4,7 @@ import chisel3._
 import soc.core.ooo._
 import _root_.circt.stage.ChiselStage
 
-class NextLineAuthorizationGsim extends Module {
+class NextLineAuthorizationGsim(storePrefetch: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val request = Input(new DataRequest)
         val privilege = Input(UInt(2.W))
@@ -80,7 +80,8 @@ class NextLineAuthorizationGsim extends Module {
     state.addr(15) := io.pmpAddress15
     PmpState.decodeRegions(state)
     val p = OooParams(machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3,
-        speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 131072)
+        speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 131072,
+        dataNextLinePrefetch = true, dataStoreNextLinePrefetch = storePrefetch)
     val normal = Module(new NextLineAuthorization(p))
     val top = Module(new NextLineAuthorization(p.copy(speculativeRamBase = (BigInt(1) << 64) - 8192,
         speculativeRamBytes = 8192)))
@@ -95,5 +96,6 @@ class NextLineAuthorizationGsim extends Module {
     io.address := normal.io.address
 }
 object NextLineAuthorizationGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new NextLineAuthorizationGsim, Array("--target-dir", args.head))
+    require(args.lift(1).forall(Set("0", "1").contains))
+    ChiselStage.emitCHIRRTLFile(new NextLineAuthorizationGsim(args.lift(1).contains("1")), Array("--target-dir", args.head))
 }

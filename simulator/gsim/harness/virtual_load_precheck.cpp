@@ -132,7 +132,44 @@ public:
         query = false; tick();
     }
 };
+#ifdef DTLB_ENTRIES
+// External request/response and page-table checks only. No private TLB index is observed.
+static void capacityReplacement() {
+    static_assert(DTLB_ENTRIES == 4 || DTLB_ENTRIES == 8 || DTLB_ENTRIES == 16 || DTLB_ENTRIES == 32);
+    Bench c;
+    c.tables.pages.clear();
+    for (unsigned i = 0; i <= DTLB_ENTRIES; ++i) c.tables.pages[i] = {ram, 0x43};
+    for (unsigned i = 0; i < DTLB_ENTRIES; ++i) c.run({va + i * 4096}, {false, false, ram});
+    require(c.walks == DTLB_ENTRIES && c.hits == 0, "capacity compulsory miss count mismatch");
+    for (unsigned i = 0; i < DTLB_ENTRIES; ++i) {
+        c.peek(va + i * 4096 + 24, true, ram + 24);
+        c.run({va + i * 4096}, {false, false, ram});
+    }
+    require(c.walks == DTLB_ENTRIES && c.hits == DTLB_ENTRIES, "full-capacity warm hit count mismatch");
+    // A failed walk neither fills nor advances round-robin replacement.
+    c.run({va + (DTLB_ENTRIES + 1) * 4096}, {true, true});
+    c.peek(va + (DTLB_ENTRIES + 1) * 4096, false);
+    for (unsigned i = 0; i < DTLB_ENTRIES; ++i) c.peek(va + i * 4096, true, ram);
+    c.run({va + DTLB_ENTRIES * 4096}, {false, false, ram});
+    c.peek(va, false);
+    for (unsigned i = 1; i <= DTLB_ENTRIES; ++i) c.peek(va + i * 4096, true, ram);
+    c.run({va}, {false, false, ram});
+    c.peek(va, true, ram); c.peek(va + 4096, false);
+    // Wrapping through the remaining slots must leave exactly the new full set.
+    for (unsigned i = 1; i < DTLB_ENTRIES; ++i) c.run({va + i * 4096}, {false, false, ram});
+    for (unsigned i = 0; i < DTLB_ENTRIES; ++i) c.peek(va + i * 4096, true, ram);
+    c.peek(va + DTLB_ENTRIES * 4096, false);
+    require(c.walks == 2 * DTLB_ENTRIES + 2, "replacement/fault walk count mismatch");
+    c.flush = true; c.tick(); c.flush = false; c.settle();
+    for (unsigned i = 0; i < DTLB_ENTRIES; ++i) c.peek(va + i * 4096, false);
+    std::cout << "DATA_TRANSLATION_CAPACITY_PASS entries=" << DTLB_ENTRIES
+        << " walks=" << c.walks << " hits=" << c.hits << "\n";
+}
+#endif
 int main(int argc, char **argv) { try {
+#ifdef DTLB_ENTRIES
+    capacityReplacement();
+#endif
     Bench b; b.inject = argc > 1 && std::string(argv[1]) == "--inject-address";
     b.run({va}, {false, false, ram});
     b.run({va + 8}, {false, false, ram + 8});

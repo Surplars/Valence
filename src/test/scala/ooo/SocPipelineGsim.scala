@@ -60,9 +60,10 @@ class FpMemoryPipelineGsim extends Module {
     io.busy := memory.io.busy
 }
 
-class TranslationContextGsim(identityFlow: Boolean = false, programmablePmp: Boolean = false, prefetch: Boolean = false) extends Module {
+class TranslationContextGsim(identityFlow: Boolean = false, programmablePmp: Boolean = false, prefetch: Boolean = false, storePrefetch: Boolean = false) extends Module {
     val p = BoardSocConfig.timingParams("staged-fetch-feedback").copy(
         machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3, identityDataRequestFlow = identityFlow, dataNextLinePrefetch = prefetch,
+        dataStoreNextLinePrefetch = storePrefetch,
         speculativeRamBase = BigInt("80200000", 16), speculativeRamBytes = BigInt("80000000", 16))
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -111,7 +112,7 @@ object FpMemoryPipelineGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new FpMemoryPipelineGsim, Array("--target-dir", args.head))
 }
 object TranslationContextGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new TranslationContextGsim(args.lift(1).contains("1"), args.lift(2).contains("pmp"), args.lift(3).contains("prefetch")),
+    ChiselStage.emitCHIRRTLFile(new TranslationContextGsim(args.lift(1).contains("1"), args.lift(2).contains("pmp"), args.lift(3).contains("prefetch"), args.contains("store-prefetch")),
         Array("--target-dir", args.head))
 }
 object CursorNeighborGsimMain extends App {

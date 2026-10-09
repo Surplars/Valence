@@ -126,6 +126,7 @@ case class OooParams(
     sharedStoreOperandReads: Boolean = false,
     lvtPhysicalRegisterFile: Boolean = false,
     dataNextLinePrefetch: Boolean = false,
+    dataStoreNextLinePrefetch: Boolean = false,
     virtualRamLoadPrecheck: Boolean = false,
     bankedIssuePayload: Boolean = false,
     bankedFetchHints: Boolean = false,
@@ -133,8 +134,11 @@ case class OooParams(
     ownerLocalIssueReady: Boolean = false,
     sharedFetchPmpRelations: Boolean = false,
     shareProtectedHeadPayload: Boolean = false,
-    fetchPreviousPacket: Boolean = false
+    fetchPreviousPacket: Boolean = false,
+    preparedStoreLookahead: Boolean = false
 ) {
+    require(!preparedStoreLookahead || (registeredMemoryAddress && parallelMemoryPreparation),
+        "prepared store lookahead requires registered addresses and parallel memory preparation")
     require(!loadOrderOlderRetire || registeredLoadReplay,
         "older-prefix load-order retirement requires the registered replay boundary")
     require(!shareProtectedHeadPayload || (bankedIssuePayload && machineSystem && compressedInstructions && fpEnabled && fastHeadSystemRecovery),
@@ -151,6 +155,8 @@ case class OooParams(
     require(!virtualRamLoadPrecheck || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0 &&
         registeredMemoryAddress && memoryEntries >= 2 && speculativeRamBytes > 0),
         "virtual RAM load precheck requires staged addresses, VM/PMP and parallel explicit RAM ownership")
+    require(!dataStoreNextLinePrefetch || dataNextLinePrefetch,
+        "checked store prefetch requires checked next-line prefetch")
     require(!dataNextLinePrefetch || (machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0),
         "data prefetch requires the machine privilege/PMP/translation guard")
     require(!lvtPhysicalRegisterFile || (completionWidth == 2 && !fastHeadLoadRetire),

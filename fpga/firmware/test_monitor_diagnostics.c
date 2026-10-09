@@ -16,6 +16,7 @@ unsigned diagnostic_test_drop_read,diagnostic_test_drop_write;
 static char text[8192];static unsigned text_n;
 volatile ee_s32 seed4_volatile;
 int coremark_main(void){assert(0);return 0;}
+int mmu_diagnostic(void){assert(0);return 1;}
 volatile uint64_t *diagnostic_test_a(void){return source;}
 volatile uint64_t *diagnostic_test_b(void){return destination;}
 uint64_t diagnostic_test_tick(void){return ++ticks;}

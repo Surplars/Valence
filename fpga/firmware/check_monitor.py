@@ -24,6 +24,7 @@ def main():
   for name in ('core_main','core_list_join','core_matrix','core_state','core_util'):
    obj=out/(name+'.o');run(['clang-19',*cmflags,*(['-Dmain=coremark_main'] if name=='core_main' else []),'-c',core/(name+'.c'),'-o',obj],name+'-compile.log');objects.append(obj)
   run(['clang-19',*cmflags,S/'coremark_port/core_portme.c',S/'test_monitor_coremark.c',*objects,'-o',out/'coremark'],'coremark-link.log');run([out/'coremark'],'coremark.log')
+  run(['clang-19',*flags,'-DBOOT_MENU=1','-DBOARD_RAM_BYTES=0x80000000UL','-DBOARD_MONITOR_BASE=0xffff8000UL','-DCPU_HZ=100000000ULL',S/'test_mmu_diagnostic.c','-o',out/'mmu'],'mmu-compile.log');run([out/'mmu'],'mmu.log')
   run([sys.executable,S/'test_monitor_profiles.py'],'profiles.log')
   run([sys.executable,S/'test_ram_verify_model.py'],'ram-verify-model.log')
   run([sys.executable,S/'build.py','--boot-menu','--crc-mode','byte','--ddr','--ddr-bytes','0x80000000','--netboot','--netboot-posted-rx','--cpu-hz','100000000','--uart-reference-hz','7372800','--uart-baud','460800','--out',out/'firmware'],'firmware-build.log')
@@ -33,6 +34,8 @@ def main():
   binary=(out/'firmware/bootrom.bin').read_bytes();assert len(binary)<=131072
   after={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files};assert before==after,'source drift'
   menu_match=re.search(r'BOOTROM_MENU_PASS cases=(\d+)',(out/'menu.log').read_text());assert menu_match
+  mmu_match=re.search(r'RECOVERY_NATIVE_PASS algorithm_cases=(\d+) negative_checks=(\d+) pte_layout_cases=(\d+) context_predicate_cases=(\d+)',(out/'mmu.log').read_text());assert mmu_match
+  report.update(mmu_algorithm_cases=int(mmu_match[1]),mmu_negative_checks=int(mmu_match[2]),mmu_pte_layout_cases=int(mmu_match[3]),mmu_context_predicate_cases=int(mmu_match[4]),mmu_privileged_cpu_execution=False)
   report.update(status='passed',menu_cases=int(menu_match[1]),uart_only_pending_cases=2,diagnostic_fake_mmio_cases=11,official_coremark_kernel_crc_oracle_pass=True,formal_duration_boundary_cases=6,official_score_claim=False,host_menu_profiles=3,globals_bytes=globals_bytes,monitor_stack_reserved=8192,diagnostic_stack_reserved=16384,rom_bytes=len(binary),rom_sha256=hashlib.sha256(binary).hexdigest(),contract=json.loads((out/'firmware/bootrom-contract.json').read_text()))
  except Exception as e:report.update(status='failed',failure=str(e));raise
  finally:(out/'receipt.json').write_text(json.dumps(report,indent=2)+'\n')

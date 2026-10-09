@@ -56,12 +56,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--preflight-only", action="store_true", help="print exact profile; do not create outputs or build")
     ap.add_argument("--variant", choices=("reference", "candidate", "selected"), default="reference")
     ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
+    ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
+                    help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--jobs", type=int, choices=(1, 2), default=2)
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--prepared-store-lookahead", action="store_true",
+                    help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -71,6 +76,8 @@ def main():
     ap.add_argument("--share-protected-head-payload", action="store_true")
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
+    ap.add_argument("--store-next-line-prefetch", action="store_true")
+    ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--dma-line-transfers", action="store_true")
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
@@ -80,6 +87,8 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.store_prefetch_mru_insertion and not args.store_next_line_prefetch:
+        ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if args.dma_line_entries != 1 and not args.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if args.dma_line_yield_cycles and not args.dma_line_transfers:
@@ -91,12 +100,7 @@ def main():
     out = common.BUILD / ("fpga-next-board-" + args.tag)
     if out.exists() and not args.resume:
         ap.error("output exists; use a fresh tag or --resume for identical sources")
-    out.mkdir(parents=True, exist_ok=True)
-    model, fw = out / "model", out / "firmware"
-    model.mkdir(exist_ok=True)
-    fw.mkdir(exist_ok=True)
-    frozen = source_inventory()
-    parameters = ["--" + args.variant]
+    parameters = ["--" + args.variant, "--data-translation-entries=" + str(args.data_translation_entries)]
     if args.dma_line_transfers:
         parameters.append("--dma-line-transfers")
     if args.dma_line_entries > 1:
@@ -117,6 +121,12 @@ def main():
         parameters.append("--load-order-older-retire")
     if args.fetch_previous_packet:
         parameters.append("--fetch-previous-packet")
+    if args.prepared_store_lookahead:
+        parameters.append("--prepared-store-lookahead")
+    if args.store_next_line_prefetch:
+        parameters.append("--store-next-line-prefetch")
+    if args.store_prefetch_mru_insertion:
+        parameters.append("--store-prefetch-mru-insertion")
     if args.prechecked_data_flow:
         parameters.append("--prechecked-data-flow")
     if args.independent_fetch_payload_capture:
@@ -129,10 +139,22 @@ def main():
         parameters.append("--share-protected-head-payload")
     if args.banked_instruction_data:
         parameters.append("--banked-instruction-data")
-    plan = {"parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
+    plan = {"data_translation_entries": args.data_translation_entries,
+            "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
+            "prepared_store_lookahead": args.prepared_store_lookahead,
+            "store_next_line_prefetch": args.store_next_line_prefetch,
+            "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}
+    if args.preflight_only:
+        print(json.dumps({"status": "PREFLIGHT_ONLY", "plan": plan, "output": str(out)}, indent=2))
+        return
+    out.mkdir(parents=True, exist_ok=True)
+    model, fw = out / "model", out / "firmware"
+    model.mkdir(exist_ok=True)
+    fw.mkdir(exist_ok=True)
+    frozen = source_inventory()
     receipt_path = out / "receipt.json"
     state = json.loads(receipt_path.read_text()) if receipt_path.exists() else {
         "schema": "valence-fpga-next-board-evidence-v1", "status": "RUNNING", "inputs": frozen,

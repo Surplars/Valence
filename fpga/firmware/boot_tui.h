@@ -25,9 +25,11 @@ static const struct menu_item menu_items[]={
     {'b',"b/6  CPU bandwidth"},
     {'m',"m/7  Memory DMA bandwidth"},
     {'t',"t    Short bandwidth selftest"},
+    {'u',"u/9  S-mode Bare / Sv39 MMU bandwidth"},
     {'i',"i/8  Hardware / firmware information"}
 };
 #define MENU_COUNT (sizeof(menu_items)/sizeof(menu_items[0]))
+_Static_assert(MENU_COUNT<=10,"menu exceeds 80x24 action rows");
 static void tui_number(unsigned n) {
     char b[10];unsigned k=0;do{b[k++]=(char)('0'+n%10);n/=10;}while(n);
     while(k)putc_uart((uint8_t)b[--k]);

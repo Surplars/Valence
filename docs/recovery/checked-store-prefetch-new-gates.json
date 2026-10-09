@@ -1,0 +1,48 @@
+{
+  "status": "PASS_NEW_RECONSTRUCTED_POLICY_ADAPTER_CACHE",
+  "source_head": "d21d3eb3d681acfc241a2ba523d22edca23724b7",
+  "functional_checkpoint": "72d44d90d4a6b9c71046dd363cfb13fce339ec8a",
+  "passive_delta_commit": "eb18e1c2f1a8e9b5aec22bb0f39109c6dada042e",
+  "public_base": "926ea18ecab93364a1a7b1ae745fc674c275c2b1",
+  "historical_pass_inherited": false,
+  "unchanged_source_across_all_new_gates": true,
+  "schema": "archived-full-proof-index-reference-v1",
+  "full_original": {
+    "source_commit": "9483b274e6d9a32df60255c1dc1d1a884b8260c4",
+    "path": "docs/recovery/checked-store-prefetch-new-gates.json",
+    "git_blob_sha1": "255ca52c27587aadd4ca844d163d3443671bb300",
+    "sha256": "da7477e4332cd1b3b9cdc9f796b83a4b705823d1bc881dd267c2cafc2ede4130",
+    "bytes": 235493,
+    "library_file_id": "libfile_ff668136792081919c29f27c090b008b",
+    "archive": "delivery-mru-source-r1.tar.gz",
+    "archive_sha256": "c7963efa99480f24512904025f24c62fa918f76fda774cc83f00ecce2cddb60b",
+    "member": "delivery-mru-source-r1-source.tar -> source/docs/recovery/checked-store-prefetch-new-gates.json"
+  },
+  "stages": {
+    "policy": {
+      "status": "PASS_RECONSTRUCTED_STORE_PF_POLICY",
+      "receipt_path": "recovery-20261009-1816/checked-store-pf-reconstructed/build/gsim/recovered-store-pf-policy-r1/receipt.json",
+      "receipt_sha256": "9b5d8fcf406c84a54b623b00388406f29fa9f3ece651a0f8fe578b345c0785fd",
+      "source_input_count": 1230
+    },
+    "adapter": {
+      "status": "PASS_RECONSTRUCTED_STORE_PF_ADAPTER",
+      "receipt_path": "recovery-20261009-1816/checked-store-pf-reconstructed/build/gsim/recovered-store-pf-adapter-r1/receipt.json",
+      "receipt_sha256": "92f1b20ca0be0890488934c0603bac2b00d0b047c6e923749be2326cb8a2f8ec",
+      "source_input_count": 1230
+    },
+    "cache": {
+      "status": "PASS_RECONSTRUCTED_STORE_PF_CACHE",
+      "receipt_path": "recovery-20261009-1816/checked-store-pf-reconstructed/build/gsim/recovered-store-pf-cache-r1/receipt.json",
+      "receipt_sha256": "f401e6c2f5f6dec8d11250e1e5c744d84a18f2598295ecdac449e2e303d25f55",
+      "source_input_count": 1230
+    }
+  },
+  "historical_scope_limitations": [
+    "No fresh executing CPU performance result for this reconstructed PF source",
+    "Combined d31 has functional72d but lacks eb18 passive source: raw inputs differ; native no-bores DCE bridge remains pending",
+    "Generic TL corrupt-only manager unqualified; errors tested via actual Mixed home AXI path",
+    "No FPGA mapped PPA or timing proof"
+  ],
+  "publication_note": "Compact documentation index only; no runner consumes this schema. The complete original remains immutable in the9483 source archive. Later qualification is documented in ../cloud-delivery-20261009.md; historical pending statements above are not current status."
+}

@@ -1,6 +1,8 @@
 package ooo
 
 import chisel3._
+import chisel3.util.log2Ceil
+import chisel3.util.experimental.BoringUtils
 import _root_.circt.stage.ChiselStage
 import soc.bus.tilelink.{TLParams, TLOpcode}
 import soc.core.ooo._
@@ -11,14 +13,18 @@ import soc.ip.tilelink.TwoMasterTileLinkArbiter
   * This is not a CPU/board model and has no synthetic coherence responder.
   */
 class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: Int = 2, compactTags: Boolean = false, writebacks: Int = 1, mixed: Boolean = false, axiSlots: Int = 4, unordered: Boolean = false, prefetch: Boolean = false, bankedTags: Boolean = false, prefetchCandidateCycles: Int = 1,
-    testBase: BigInt = BigInt("80010000", 16), prefetchBreakOnStore: Boolean = false) extends Module {
+    testBase: BigInt = BigInt("80010000", 16), prefetchBreakOnStore: Boolean = false,
+    storeNextLinePrefetch: Boolean = false, observeStorePrefetch: Boolean = false,
+    storePrefetchMruInsertion: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
-        prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore)
+        prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
+        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion)
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
+        val storePfObs = if (observeStorePrefetch) Some(Output(new CheckedStorePrefetchObservation(log2Ceil(mshrs)))) else None
         val prefetchPmpCfg = Input(UInt(8.W))
         val prefetchPmpAddress = Input(UInt(54.W))
         val prefetchPrivilege = Input(UInt(2.W))
@@ -63,6 +69,10 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     })
     val tags = CacheTagConfig(compact = compactTags, bankedStorage = bankedTags)
     val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, 2, cfg, tags)
+    io.storePfObs.foreach { out =>
+        require(mshrs >= 2, "store PF observer requires nonblocking cache")
+        out := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationStorePrefetch)
+    }
     val home = CoherentLineHomeModule.build(coherent, base, bytes, trackedLines = lines,
         trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks, mixedReadWrite = mixed)
     val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true))
@@ -77,7 +87,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     cache.io.upstream <> io.cpu
     if (prefetch) {
         val p = OooParams(machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3,
-            speculativeRamBase = base, speculativeRamBytes = bytes)
+            speculativeRamBase = base, speculativeRamBytes = bytes,
+            dataNextLinePrefetch = true, dataStoreNextLinePrefetch = storeNextLinePrefetch)
         val auth = Module(new NextLineAuthorization(p))
         val state = WireDefault(0.U.asTypeOf(new PmpState))
         state.cfg(0) := io.prefetchPmpCfg
@@ -164,4 +175,24 @@ object CoherentCacheHomeGsimMain extends App {
         args.find(_.startsWith("--ram-base=")).map(a => BigInt(a.stripPrefix("--ram-base=")))
             .getOrElse(BigInt("80010000", 16)), args.contains("--prefetch-break-on-store")),
         Array("--target-dir", args.head))
+}
+
+/** Reconstructed functional gate only. Merge is absent; the original emitter remains unchanged. */
+object CheckedStorePrefetchCacheGsimMain extends App {
+    require(args.length == 2 && Set("0", "1").contains(args(1)), "output directory and explicit store PF 0|1 required")
+    ChiselStage.emitCHIRRTLFile(new CoherentCacheHomeGsim(mshrs = 2, lines = 512,
+        responseEntries = 2, compactTags = true, writebacks = 2, mixed = true,
+        axiSlots = 4, unordered = true, prefetch = true, bankedTags = true,
+        storeNextLinePrefetch = args(1) == "1", observeStorePrefetch = true),
+        Array("--target-dir", args(0)))
+}
+
+/** Same real cache/home fixture, checked-store PF always ON; only insertion differs. */
+object StorePrefetchInsertionGsimMain extends App {
+    require(args.length == 2 && Set("0", "1").contains(args(1)), "output directory and explicit store PF MRU 0|1 required")
+    ChiselStage.emitCHIRRTLFile(new CoherentCacheHomeGsim(mshrs = 2, lines = 512,
+        responseEntries = 2, compactTags = true, writebacks = 2, mixed = true,
+        axiSlots = 4, unordered = true, prefetch = true, bankedTags = true,
+        storeNextLinePrefetch = true, observeStorePrefetch = true,
+        storePrefetchMruInsertion = args(1) == "1"), Array("--target-dir", args(0)))
 }

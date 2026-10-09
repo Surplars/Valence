@@ -14,7 +14,8 @@ object VirtualLoadPrecheckFixture {
         speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 65536)
 }
 
-class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false) extends Module {
+class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
+    dataTranslationEntries: Int = 8) extends Module {
     val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -38,7 +39,7 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false) e
         val idle = Output(Bool())
     })
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
-    val translation = Module(new SvTranslationService(3, 8, 16, loadPeek = enabled))
+    val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16, loadPeek = enabled))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg
     pmp.addr(0) := io.pmpAddress
@@ -198,6 +199,13 @@ class VirtualLoadConcurrencyGsim(enabled: Boolean) extends Module {
 
 object VirtualLoadPrecheckGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(args.lift(1).contains("1"), args.lift(2).contains("identity")),
+        Array("--target-dir", args.head))
+}
+
+/** Same real adapter/service; capacity cases and permission oracles remain in the independent C++ host. */
+object DataTranslationCapacityGsimMain extends App {
+    require(args.length == 2, "usage: DataTranslationCapacityGsimMain output-directory entries")
+    ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true, dataTranslationEntries = args(1).toInt),
         Array("--target-dir", args.head))
 }
 

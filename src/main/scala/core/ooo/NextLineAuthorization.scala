@@ -29,8 +29,19 @@ class NextLineAuthorization(p: OooParams) extends Module {
     checker.io.size := 6.U(3.W)
     checker.io.privilege := io.privilege
     checker.io.access := PmpAccess.read
+    // This independent READ check never reuses the current store's WRITE PMP grant.
+    // A checked translated store has already passed PTE W/R and normal PBMT;
+    // only its current 4KiB subpage is covered by that translation.
+    val storeShape = if (p.dataStoreNextLinePrefetch) {
+        val alignMask = MuxLookup(io.request.size, 7.U(3.W))(Seq(
+            0.U -> 0.U(3.W), 1.U -> 1.U(3.W), 2.U -> 3.U(3.W), 3.U -> 7.U(3.W)))
+        val byteMask = MuxLookup(io.request.size, 0.U(8.W))(Seq(
+            0.U -> 1.U(8.W), 1.U -> 3.U(8.W), 2.U -> 15.U(8.W), 3.U -> 255.U(8.W)))
+        io.request.size <= 3.U && (io.request.address(2, 0) & alignMask) === 0.U &&
+            io.request.mask === (byteMask << io.request.address(2, 0))(7, 0)
+    } else false.B
     io.address := next
-    io.allowed := !io.fault && !io.request.write && !io.request.atomic && !io.request.uncached &&
+    io.allowed := !io.fault && (!io.request.write || storeShape) && !io.request.atomic && !io.request.uncached &&
         !io.request.virtualized && SpeculativeRamRange.contains(p, io.request.address, io.request.size) &&
         io.request.address(11, 6) =/= 63.U &&
         next >= p.speculativeRamBase.U(65.W) &&

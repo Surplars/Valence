@@ -18,6 +18,8 @@ final case class FpgaNextConfig(
     bankedInstructionData: Boolean = false,
     prefetchCandidateCycles: Int = 1,
     prefetchBreakOnStore: Boolean = false,
+    storeNextLinePrefetch: Boolean = false,
+    storePrefetchMruInsertion: Boolean = false,
     dmaLineTransfers: Boolean = false,
     dmaLineYieldCycles: Int = 0,
     dmaLineEntries: Int = 1,
@@ -25,8 +27,13 @@ final case class FpgaNextConfig(
     physicalLoadIngressFlow: Boolean = false,
     lsuEntries: Int = 2,
     loadOrderOlderRetire: Boolean = false,
-    fetchPreviousPacket: Boolean = false
+    fetchPreviousPacket: Boolean = false,
+    preparedStoreLookahead: Boolean = false,
+    dataTranslationEntries: Int = 8
 ) {
+    SvTranslationService.indexBits(dataTranslationEntries)
+    require(!storePrefetchMruInsertion || storeNextLinePrefetch,
+        "store-origin MRU insertion requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
     require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
@@ -44,11 +51,15 @@ final case class FpgaNextConfig(
         (if (prefetchCandidateCycles > 1) s"-prefetch-retry${prefetchCandidateCycles}" else "") +
         (if (prefetchBreakOnStore) "-store-break" else "") +
         (if (virtualRamLoadPrecheck) "-virtual-precheck" else "") +
+        (if (dataTranslationEntries != 8) s"-dtlb$dataTranslationEntries" else "") +
         (if (precheckedDataRequestFlow) "-prechecked-flow" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
         (if (loadOrderOlderRetire) "-older-load-retire" else "") +
         (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
+        (if (preparedStoreLookahead) "-prepared-store-lookahead" else "") +
+        (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
+        (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -73,7 +84,8 @@ final case class FpgaNextConfig(
         maxOutstandingWrites = 2, unorderedResponses = true)
     val cache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
-        prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore)
+        prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
+        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -92,11 +104,13 @@ final case class FpgaNextConfig(
         externalDdr = true, isa = isaProfile, ddrMemoryBytes = ddrBytes,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow,
         fpgaStorage = storage, dataNextLinePrefetch = cache.nextLinePrefetch,
+        dataStoreNextLinePrefetch = cache.storeNextLinePrefetch,
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
-        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        preparedStoreLookahead = preparedStoreLookahead)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -115,7 +129,9 @@ final case class FpgaNextConfig(
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
-        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        preparedStoreLookahead = preparedStoreLookahead,
+        dataTranslationEntries = dataTranslationEntries)
 }
 
 object FpgaNextConfig {
@@ -137,6 +153,9 @@ object FpgaNextConfig {
         require(lifetimes.size <= 1, "choose one prefetch candidate lifetime")
         val lifetime = lifetimes.headOption.map(_.stripPrefix("--prefetch-candidate-cycles=").toInt).getOrElse(1)
         require(Set(1, 3, 16).contains(lifetime), "FPGA-next prefetch experiments use 1, 3 or 16 attempts")
+        val tlbCounts = options.filter(_.startsWith("--data-translation-entries="))
+        require(tlbCounts.size <= 1, "choose one data translation entry count")
+        val tlbCount = tlbCounts.headOption.map(_.stripPrefix("--data-translation-entries=").toInt).getOrElse(8)
         val ownerCounts = options.filter(_.startsWith("--lsu-entries="))
         require(ownerCounts.size <= 1, "choose one LSU owner count")
         val lsuCount = ownerCounts.headOption.map(_.stripPrefix("--lsu-entries=").toInt).getOrElse(2)
@@ -147,9 +166,11 @@ object FpgaNextConfig {
         require(depths.size <= 1, "choose one DMA line owner count")
         val lineDepth = depths.headOption.map(_.stripPrefix("--dma-line-entries=").toInt).getOrElse(1)
         base.copy(
+            dataTranslationEntries = tlbCount,
             lsuEntries = lsuCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),
+            preparedStoreLookahead = options.contains("--prepared-store-lookahead"),
             dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),
@@ -157,6 +178,8 @@ object FpgaNextConfig {
             precheckedDataRequestFlow = options.contains("--prechecked-data-flow"),
             physicalLoadIngressFlow = options.contains("--physical-load-ingress-flow"),
             prefetchBreakOnStore = options.contains("--prefetch-break-on-store"),
+            storeNextLinePrefetch = options.contains("--store-next-line-prefetch"),
+            storePrefetchMruInsertion = options.contains("--store-prefetch-mru-insertion"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

@@ -59,13 +59,16 @@ class MachinePlatform(
     jtagRamDownload: Boolean = false,
     dmaLineTransfers: Boolean = false,
     dmaLineYieldCycles: Int = 0,
-    dmaLineEntries: Int = 1
+    dmaLineEntries: Int = 1,
+    dataTranslationEntries: Int = 8
 ) extends Module {
     require(!dmaLineTransfers || (coherentLineCache && tileLinkMemory && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
         "DMA line mode requires a bounded mixed coherence home")
     require(!jtagRamDownload || (stagedMemoryFabric && coherentLineCache && ramBytes >= 1024 * 1024),
         "JTAG RAM loader requires staged coherent fabric and reserved monitor RAM")
+    require(p.dataStoreNextLinePrefetch == cacheConcurrency.storeNextLinePrefetch,
+        "store authorization and cache prediction must agree")
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
     require(!p.dataNextLinePrefetch || (coherentLineCache && coreDataTranslation), "data prefetch requires the checked physical adapter")
     if (externalDdr) ddrBridge.validateSoc()
@@ -92,6 +95,7 @@ class MachinePlatform(
         instructionLineCacheLines <= 512 && isPow2(instructionLineCacheLines)))
     require(!translationService || (tileLinkMemory && Set(3, 4, 5).contains(translationLevels)))
     require(!translationService || Set(4, 8, 16).contains(pteCacheEntries))
+    SvTranslationService.indexBits(dataTranslationEntries)
     require(!coreDataTranslation || translationService)
     require(!p.virtualRamLoadPrecheck || (coreDataTranslation && stagedMemoryFabric),
         "virtual load precheck requires integrated data translation and staged authorization")
@@ -498,6 +502,7 @@ class MachinePlatform(
     val physicalDataRequestCpu = WireDefault(shared.io.memoryRequestCpu)
     val physicalData = if (translationService) {
         val walkers = (0 until 2).map(i => Module(new SvTranslationService(translationLevels,
+            entries = if (i == 1) dataTranslationEntries else 8,
             loadPeek = p.virtualRamLoadPrecheck && i == 1)))
         val adapters = Seq.fill(2)(Module(new SvPteDataBridge(pteCacheEntries)))
         val walkerArbiter = Module(new SharedDataArbiter)

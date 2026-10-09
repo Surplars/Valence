@@ -28,7 +28,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     bankedInstructionData: Boolean = false, dmaLineTransfers: Boolean = false,
     dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
     precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
-    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
+    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false,
+    preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -39,7 +40,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
-        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket))
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        preparedStoreLookahead = preparedStoreLookahead,
+        dataTranslationEntries = dataTranslationEntries))
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -89,6 +92,25 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
 
     // Passive performance accounting only. Each field comes from an existing
     // production event; this adds no flow-control or architectural state.
+    val dataPrefetchOriginEvents = IO(Output(UInt(6.W)))
+    dataPrefetchOriginEvents := 0.U
+    if (backendProbes && board.platform.privateCache.nonEmpty) {
+        board.platform.privateCache.get match {
+            case cache: soc.core.ooo.NonBlockingCoherentLineCache =>
+                val observed = cache.observationStorePrefetch
+                val candidate = BoringUtils.bore(observed.candidate)
+                val candidateStore = BoringUtils.bore(observed.candidateStore)
+                val allocated = BoringUtils.bore(observed.allocated)
+                val allocatedStore = BoringUtils.bore(observed.allocatedStore)
+                val useful = BoringUtils.bore(observed.useful)
+                val usefulStore = BoringUtils.bore(observed.usefulStore)
+                dataPrefetchOriginEvents := VecInit(Seq(
+                    candidate && !candidateStore, candidate && candidateStore,
+                    allocated && !allocatedStore, allocated && allocatedStore,
+                    useful && !usefulStore, useful && usefulStore)).asUInt
+            case _ =>
+        }
+    }
     val dataPrefetchEvents = IO(Output(UInt(11.W)))
     if (backendProbes && board.platform.privateCache.nonEmpty) {
         val cache = board.platform.privateCache.get

@@ -637,12 +637,12 @@ static void boot_loop(void) {
             if(c==MENU_ESC){show_menu();continue;}
             if(c==MENU_ENTER)c=menu_items[menu_selected].key;
             if(c=='1')c='n';else if(c=='2')c='d';else if(c=='3')c='v';
-            else if(c=='5')c='C';else if(c=='6')c='b';else if(c=='7')c='m';else if(c=='8')c='i';
+            else if(c=='5')c='C';else if(c=='6')c='b';else if(c=='7')c='m';else if(c=='8')c='i';else if(c=='9')c='u';
             if(c=='c')c='C';
             if(c=='a'){tui_leave();menu_ansi^=1;show_menu();continue;}
             if(c=='k'){menu_color^=1;show_menu();continue;}
             if(c=='h'){show_menu();continue;}
-            if(c=='v'||c=='c'||c=='C'||c=='b'||c=='m'||c=='t'||c=='i')break;
+            if(c=='v'||c=='c'||c=='C'||c=='b'||c=='m'||c=='t'||c=='u'||c=='i')break;
 #endif
             if(c=='g'||c=='r'||c=='4'){
                 tui_result("Manual launch removed. Download a fresh image to boot.");
@@ -677,7 +677,7 @@ static void boot_loop(void) {
         if(c=='v'){
             tui_result(verify_image()?"RAM image verified; no manual launch available.":"No trusted image, or verification failed/cancelled.");continue;
         }
-        if(c=='c'||c=='C'||c=='b'||c=='m'||c=='t'){
+        if(c=='c'||c=='C'||c=='b'||c=='m'||c=='t'||c=='u'){
             if(!monitor_quiet()){tui_result("Diagnostic blocked: DMA busy; reset required.");continue;}
             monitor_run_diagnostic(c,0);uart_init();tui_result("Diagnostic returned; see transcript for its measured result.");continue;
         }

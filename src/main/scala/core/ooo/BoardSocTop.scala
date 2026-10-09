@@ -36,12 +36,13 @@ object BoardSocConfig {
         isa: String = isaProfile, ddrMemoryBytes: BigInt = ddrBytes,
         loadIssueForwarding: Option[Boolean] = None, identityDataFlow: Boolean = false,
         fpgaStorage: FpgaStorageConfig = FpgaStorageConfig.Registers, dataNextLinePrefetch: Boolean = false,
+        dataStoreNextLinePrefetch: Boolean = false,
         virtualRamLoadPrecheck: Boolean = false,
         floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
         independentFetchPayloadCapture: Boolean = false, ownerLocalIssueReady: Boolean = false,
         sharedFetchPmpRelations: Boolean = false, precheckedDataRequestFlow: Boolean = false,
         physicalLoadIngressFlow: Boolean = false, loadOrderOlderRetire: Boolean = false,
-        fetchPreviousPacket: Boolean = false): OooParams = {
+        fetchPreviousPacket: Boolean = false, preparedStoreLookahead: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -53,8 +54,10 @@ object BoardSocConfig {
         require(!virtualRamLoadPrecheck || usesStagedMemoryFabric(profile, timing),
             "virtual RAM load precheck requires a staged board fabric profile; choose it explicitly")
         fpgaStorage.configure(timing.copy(machineSystem = true, atomicMemory = true,
+            preparedStoreLookahead = preparedStoreLookahead,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
+            dataStoreNextLinePrefetch = dataStoreNextLinePrefetch,
             virtualRamLoadPrecheck = virtualRamLoadPrecheck, precheckedDataRequestFlow = precheckedDataRequestFlow,
             physicalLoadIngressFlow = physicalLoadIngressFlow, loadOrderOlderRetire = loadOrderOlderRetire,
             independentFetchPayloadCapture = independentFetchPayloadCapture, fetchPreviousPacket = fetchPreviousPacket,
@@ -203,7 +206,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false,
     dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
     precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
-    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
+    loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false,
+    preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8) extends Module {
+    SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
@@ -231,11 +236,13 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     private val memoryBytes = if (externalDdr) ddrMemoryBytes else BigInt(BoardSocConfig.ramBytes)
     private val p = BoardSocConfig.boardParams(timingProfile, issueWidth, externalDdr, isaProfile, ddrMemoryBytes,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
-        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
+        dataNextLinePrefetch = cacheConcurrency.nextLinePrefetch,
+        dataStoreNextLinePrefetch = cacheConcurrency.storeNextLinePrefetch, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
-        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket)
+        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        preparedStoreLookahead = preparedStoreLookahead)
     // Internal composition ports stay outside the public BoardSocTop io bundle.
     val jtagDmi = if (jtagRamDownload) Some(IO(Flipped(new soc.ip.debug.DebugDmiPort(7)))) else None
     val jtagLinkUp = if (jtagRamDownload) Some(IO(Input(Bool()))) else None
@@ -297,6 +304,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         instructionLineCacheLines = instructionLineCacheLines, translationService = true, translationLevels = 3,
         coreDataTranslation = true, coreInstructionTranslation = true,
         coherentLineCache = true, coherentLineCacheLines = dataCacheLines, pteCacheEntries = 4,
+        dataTranslationEntries = dataTranslationEntries,
         bufferCoherentResponses = true, vivadoMemories = vivadoMemories,
         ramReadLatency = BoardSocConfig.ramReadLatency,
         uartClockHz = socClockHz, uartFastDivisorOne = true, externalDdr = externalDdr,

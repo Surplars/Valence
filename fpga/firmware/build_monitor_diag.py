@@ -11,7 +11,7 @@ def build(source,out,prefix,clock,ram_bytes,monitor):
   if not (core/name).exists() or hashlib.md5((core/name).read_bytes()).hexdigest()!=expected:raise RuntimeError('missing/modified pinned official CoreMark: '+str(core/name))
  gcc=prefix+'gcc';version=subprocess.check_output([gcc,'-dumpfullversion'],text=True).strip()
  flags=['-fstack-usage','-O3','-march=rv64im_zicsr_zifencei','-mabi=lp64','-mcmodel=medany','-mno-relax','-msmall-data-limit=0','-ffreestanding','-fno-builtin','-fno-stack-protector','-ffunction-sections','-fdata-sections','-nostdlib','-nostartfiles',f'-DCPU_HZ={clock}ULL',f'-DBOARD_RAM_BYTES={ram_bytes}UL',f'-DBOARD_MONITOR_BASE={monitor}UL','-DBOOT_MENU=1','-DMONITOR_DIAGNOSTIC=1','-DTOTAL_DATA_SIZE=2000',f'-DCOREMARK_COMPILER_VERSION="riscv64-unknown-elf-gcc {version}"','-DCOREMARK_COMPILER_FLAGS="-O3 -march=rv64im_zicsr_zifencei -mabi=lp64"','-DMEM_LOCATION="ROM-loaded independent RAM diagnostic region; standard2000bytes"','-I'+str(source/'coremark_port'),'-I'+str(source),'-I'+str(core)]
- inputs=[source/'sample_start.S',source/'monitor_diagnostics.c',source/'coremark_port/core_portme.c',*(core/n for n in MD5 if n.endswith('.c'))];objects=[]
+ inputs=[source/'sample_start.S',source/'monitor_diagnostics.c',source/'mmu_diagnostic.c',source/'mmu_diagnostic_enter.S',source/'coremark_port/core_portme.c',*(core/n for n in MD5 if n.endswith('.c'))];objects=[]
  for i,p in enumerate(inputs):
   o=out/f'diag-{i}.o';subprocess.run([gcc,*flags,*(['-Dmain=coremark_main'] if p.name=='core_main.c' else []),'-c',str(p),'-o',str(o)],check=True);objects.append(o)
  elf=out/'monitor-diagnostic.elf';binary=out/'monitor-diagnostic.bin'

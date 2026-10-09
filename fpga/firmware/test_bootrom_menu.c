@@ -30,7 +30,7 @@ void run_image(uintptr_t e){assert(e==RAM_BASE);assert(external_state_untrusted)
 int monitor_memory_dma_idle(void){return !dma_busy;}
 int firmware_ram_dma_idle(void){return !dma_busy;}
 int firmware_ram_prepare(uint64_t *f,uint64_t *s){*f=1;*s=2;return !dma_busy;}
-void monitor_run_diagnostic(unsigned op,unsigned len){assert(!busy&&!dma_busy);assert(op=='C'||op=='b'||op=='m'||op=='t');assert(len==0||len==16);++diagnostics;}
+void monitor_run_diagnostic(unsigned op,unsigned len){assert(!busy&&!dma_busy);assert(op=='C'||op=='b'||op=='m'||op=='t'||op=='u');assert(len==0||len==16);++diagnostics;}
 static int has(const char *s){for(unsigned i=0;i+strlen(s)<=output_n;i++)if(!memcmp(output+i,s,strlen(s)))return 1;return 0;}
 static void reset(void){input_n=input_at=output_n=runs=diagnostics=quiet_calls=net_calls=0;busy=netbad=corrupt_after_net=dma_busy=probe_char=external_takeover=external_network_started=0;external_state_untrusted=0;image_valid=image_entry=image_length=image_crc=image_record_crc=image_network=menu_ansi=0;menu_pending=0;uart_prefetched=-1;menu_color=1;menu_selected=menu_escape=menu_escape_bytes=menu_last_cr=menu_escape_timedout=menu_screen=menu_binary=menu_log_pending=0;menu_result="Choose a download; verified images start automatically.";menu_progress_at=0;memset(memory,0,sizeof memory);}
 static void commands(const char *s){input_n=strlen(s);memcpy(input,s,input_n);if(!setjmp(done))boot_main();}
@@ -58,7 +58,7 @@ int main(int argc,char **argv){unsigned cases=0;
  reset();probe_char='d';commands("n");assert(!runs&&!image_valid&&has("VERIFY CANCELLED")&&has("VLOAD1"));++cases;
  reset();probe_char=27;commands("n");assert(!runs&&!image_valid&&has("VERIFY CANCELLED"));++cases;
  reset();seed_image();image_entry++;image_record_crc=image_record_sum();launch_downloaded_image();assert(!runs&&!image_valid);++cases;
- reset();external_takeover=1;commands("nndvrgcCbmt12345678ahi");
+ reset();external_takeover=1;commands("nndvrgcCbmtu123456789ahi");
  assert(external_network_started&&external_state_untrusted&&runs==1&&net_calls==1&&!diagnostics&&!image_valid);
  assert(has("EXTERNAL STATE LOCKED")&&has("FW clock_hz"));
  for(unsigned i=0;i<16;i++){assert(memory[i]==(uint8_t)(i*17+3));}++cases;
@@ -90,5 +90,9 @@ int main(int argc,char **argv){unsigned cases=0;
  reset();assert(menu_key(27,0)==MENU_NONE);assert(menu_key(']',1)==MENU_NONE);assert(menu_key('d',2)==MENU_NONE);assert(menu_key(-1,CPU_HZ)==MENU_ESC);assert(menu_key('n',CPU_HZ+1)==MENU_NONE);assert(menu_key(3,CPU_HZ+2)==MENU_ESC);assert(menu_key('h',CPU_HZ+3)=='h');assert(menu_key('d',CPU_HZ+4)=='d');++cases;
  reset();commands("\033]unterminated\003hd");assert(!runs&&!net_calls&&!diagnostics&&has("VLOAD1"));++cases;
  reset();commands("cC5");assert(diagnostics==3&&!runs);++cases;
+ reset();commands("u9");assert(diagnostics==2&&!runs&&!external_state_untrusted);++cases;
+ reset();busy=1;commands("u9");assert(!diagnostics&&has("DMA BUSY"));++cases;
+ reset();dma_busy=1;commands("u9");assert(!diagnostics&&has("MEMORY DMA BUSY"));++cases;
+ reset();commands("h");assert(has("u/9  S-mode Bare / Sv39 MMU bandwidth")&&MENU_COUNT<=10);++cases;
  printf("BOOTROM_MENU_PASS cases=%u autostart=1 no_manual_run=1 metadata_crc=1 busy_invalidates=1 binary_no_ansi=1 diagnostic_dispatch_only=1\n",cases);return 0;
 }
