@@ -110,6 +110,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val invalidateFetch             = Output(Bool())
         val memory                      = new DataPort
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
+        val posted = p.postedProofConfig.map(c => new PostedStoreCpuPort(c))
         val memoryBusy                  = Output(Bool())
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
@@ -174,7 +175,15 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val memoryOwner     = Reg(new RobToken(p))
     val integerMemory = Wire(new DataPort)
     val integerMemoryBusy = WireDefault(lsu.io.busy)
-    io.memoryBusy      := integerMemoryBusy || io.externalPrefetchBusy.getOrElse(false.B)
+    val postedCompleted = WireDefault(false.B)
+    val postedStarted = WireDefault(false.B)
+    val postedCount = if (p.postedStoreMerge) Some(RegInit(0.U(log2Ceil(p.storeBufferEntries + p.memoryEntries + 2).W))) else None
+    val externalPostedBusy = io.posted.map(_.externalBusy).getOrElse(false.B)
+    val postedBusy = postedCount.map(_ =/= 0.U).getOrElse(false.B) || externalPostedBusy
+    val blockPostedStart = io.posted.map(_.blockNew).getOrElse(false.B)
+    val integerProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
+    val fastProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
+    io.memoryBusy      := integerMemoryBusy || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
     io.memoryDiscarded := lsu.io.discarded
     io.memoryForwarded := lsu.io.forwarded
     val storeBufferStallCause = WireDefault(0.U(3.W))
@@ -193,6 +202,16 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             val requests = Module(new Queue(new DataRequest, p.memoryEntries, pipe = false, flow = false))
             observationRequests = Some(requests)
             requests.io.enq <> lsu.io.memory.request
+            p.postedProofConfig.foreach { c =>
+                val proofQueue = Module(new Queue(Valid(new PostedStoreProof(c)), p.memoryEntries, pipe = false, flow = false))
+                proofQueue.io.enq.valid := requests.io.enq.fire
+                proofQueue.io.enq.bits := lsu.io.postedProof.get
+                proofQueue.io.deq.ready := requests.io.deq.fire
+                stores.io.upstreamProof.get := proofQueue.io.deq.bits
+                stores.io.upstreamProof.get.valid := requests.io.deq.valid && proofQueue.io.deq.bits.valid
+                assert(proofQueue.io.deq.valid === requests.io.deq.valid, "request FIFO and proof capture share every transfer")
+                when(requests.io.enq.fire) { assert(proofQueue.io.enq.ready) }
+            }
             stores.io.upstream.request <> requests.io.deq
             // Queue storage is undefined while empty. Keep only the size/shift
             // operand defined, using registered queue validity (not late issue).
@@ -200,10 +219,15 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             stores.io.upstream.response <> lsu.io.memory.response
         } else {
             stores.io.upstream <> lsu.io.memory
+            stores.io.upstreamProof.foreach(_ := lsu.io.postedProof.get)
         }
         stores.io.fastStore.valid := fastStoreValid
         stores.io.fastStore.bits := fastStoreRequest
         fastStoreReady := stores.io.fastStore.ready
+        stores.io.fastProof.foreach(_ := fastProof.get)
+        stores.io.externalPostedBusy.foreach(_ := externalPostedBusy)
+        integerProof.foreach(_ := stores.io.memoryProof.get)
+        postedCompleted := stores.io.postedCompleted.map(_.valid).getOrElse(false.B)
         integerMemory <> stores.io.memory
         integerMemoryBusy := lsu.io.busy || stores.io.busy
         io.memoryForwarded := lsu.io.forwarded || stores.io.forwarded
@@ -225,10 +249,22 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         integerMemory.response.valid := !fpMemoryEpoch && io.memory.response.valid
         integerMemory.response.bits := io.memory.response.bits
         io.memory.response.ready := Mux(fpMemoryEpoch, fpMemory.response.ready, integerMemory.response.ready)
-        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || io.externalPrefetchBusy.getOrElse(false.B)
+        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
         when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
     } else {
         io.memory <> integerMemory
+    }
+    io.posted.foreach { posted =>
+        posted.requestProof := integerProof.get
+        posted.requestProof.valid := io.memory.request.valid && !fpMemoryEpoch && integerProof.get.valid
+        posted.busy := postedCount.get =/= 0.U
+        posted.starting := postedStarted
+        when(postedStarted =/= postedCompleted) {
+            postedCount.get := Mux(postedStarted, postedCount.get + 1.U, postedCount.get - 1.U)
+        }
+        when(postedCompleted) { assert(postedCount.get =/= 0.U || postedStarted) }
+        assert(postedCount.get <= (p.storeBufferEntries + p.memoryEntries).U)
+        PostedStoreCpu.held(io.memory.request, posted.requestProof)
     }
     for (lane <- 0 until p.renameWidth) {
         ledger.io.allocate(lane).valid := io.allocate(lane).valid
@@ -550,13 +586,29 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         headRequest.memory && headRequest.store && !headRequest.atomic && storePrepared(head) &&
         fastAligned && fastRam && !virtualized && !fastPmp.io.denied &&
         io.commitEnable && !interruptDrain && !reserveSystem && !memoryProtected && !systemProtected &&
-        !ledger.io.recovering
+        !ledger.io.recovering && !blockPostedStart &&
+        (!p.postedStoreMerge.B || postedBusy || !io.memoryBusy)
     fastStoreValid := fastStoreCandidate && !ledger.io.recoveryAccepted && !ledger.io.headException.valid
     fastStoreRequest.address := fastAddress
     fastStoreRequest.size := fastSize
     fastStoreRequest.data := storeData(head) << Cat(fastAddress(2, 0), 0.U(3.W))
     fastStoreRequest.mask := byteLanes(fastSize, fastAddress)
     fastStoreRequest.write := true.B
+    fastProof.foreach { proof =>
+        proof := 0.U.asTypeOf(proof)
+        proof.valid := fastStoreValid
+        proof.bits.token.index := headRenamed.token.index
+        proof.bits.token.tag := headRenamed.token.tag
+        proof.bits.epoch := io.posted.get.contextEpoch
+        proof.bits.address := fastStoreRequest.address
+        proof.bits.data := fastStoreRequest.data
+        proof.bits.size := fastStoreRequest.size
+        proof.bits.mask := fastStoreRequest.mask
+        proof.bits.headAuthorized := true.B
+        proof.bits.physicalPmpAllowed := true.B
+        proof.bits.originalPhysical := true.B
+        proof.bits.integerOrigin := true.B
+    }
     // Selection reserves capacity before redirect resolution; the actual write is suppressed on recovery.
     val directStoreReserve = fastStoreCandidate && fastStoreReady
     val directStoreFire = fastStoreValid && fastStoreReady
@@ -784,7 +836,34 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 ages(i) < memoryChoice.age
         )
         .reduce(_ || _)
-    val reserveMemory =
+    val postedEligible = p.postedStoreMerge.B && ledger.io.headValid && memoryChoice.index === head &&
+        memoryEntry.renamed.token.asUInt === headRenamed.token.asUInt &&
+        memoryEntry.request.store && !memoryEntry.request.atomic && !virtualized &&
+        ordinaryRam && !pmpCheck.io.denied && AlignedMemoryDisjoint.aligned(address, memorySize)
+    // First posted ownership starts after all previously accepted memory drains. Once
+    // live, only additional head physical stores may launch; accepted LSU/FIFO/SB work
+    // remains free to drain. The blocked candidate is never counted as older work.
+    val postedLaunchAllowed = !p.postedStoreMerge.B || (!blockPostedStart && !directStoreReserve &&
+        Mux(postedBusy, postedEligible, !postedEligible || !io.memoryBusy))
+    io.posted.foreach { posted =>
+        // Lookahead prepares a younger safe store while an older ALU/branch is
+        // still head. Preparation is not an ordered memory boundary: sealing
+        // here would permanently prevent that store from joining once it really
+        // becomes head. This exception grants no launch/proof authority; all
+        // existing head/full-token/PMP checks above and below remain mandatory.
+        // Other candidates, including younger loads and virtual/IO/faulting
+        // stores, still seal accepted ownership just as before.
+        val preparedPhysicalStore = p.preparedStoreLookahead.B && memoryChoice.valid &&
+            memoryChoice.index =/= head && savedStore &&
+            memoryEntry.renamed.token.index === memoryChoice.index &&
+            memoryEntry.request.store && !memoryEntry.request.atomic && !virtualized &&
+            ordinaryRam && !pmpCheck.io.denied && AlignedMemoryDisjoint.aligned(address, memorySize)
+        posted.seal := recovery.valid || ledger.io.recovering || interruptDrain ||
+            reserveSystem || contextMemoryEpoch ||
+            (memoryChoice.valid && !postedEligible && !preparedPhysicalStore) ||
+            (ledger.io.headValid && headRequest.system)
+    }
+    val reserveMemory = postedLaunchAllowed &&
         !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch && !contextMemoryEpoch &&
             memoryChoice.valid && lsu.io.issueAvailable && io.commitEnable &&
             ((p.issueWidth > 1).B || !directStoreReserve) &&
@@ -875,6 +954,30 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     lsu.io.start.bits.unsigned      := memoryEntry.request.memoryUnsigned
     lsu.io.start.bits.accessDenied  := pmpCheck.io.denied && !virtualized
     lsu.io.start.bits.virtualized   := virtualized
+    lsu.io.start.bits.postedProof.foreach { proof =>
+        proof := 0.U.asTypeOf(proof)
+        proof.valid := postedEligible
+        proof.bits.token.index := lsu.io.start.bits.token.index
+        proof.bits.token.tag := lsu.io.start.bits.token.tag
+        proof.bits.epoch := io.posted.get.contextEpoch
+        proof.bits.address := lsu.io.start.bits.address
+        proof.bits.data := lsu.io.start.bits.data << Cat(address(2, 0), 0.U(3.W))
+        proof.bits.size := lsu.io.start.bits.size
+        proof.bits.mask := byteLanes(memorySize, address)
+        proof.bits.headAuthorized := true.B
+        proof.bits.physicalPmpAllowed := true.B
+        proof.bits.originalPhysical := true.B
+        proof.bits.integerOrigin := true.B
+        postedStarted := (lsu.io.start.fire && proof.valid) || directStoreFire
+        when(lsu.io.start.fire && proof.valid) {
+            assert(ledger.io.headValid && !ledger.io.headDone && pending(head) &&
+                lsu.io.start.bits.token.asUInt === headRenamed.token.asUInt &&
+                !pmpCheck.io.denied && !virtualized && !ledger.io.recoveryAccepted,
+                "posted authority is captured only at the actual successful physical integer ROB-head start")
+        }
+        when(lsu.io.start.fire && !proof.valid) { assert(!postedBusy) }
+        when(postedStarted && !postedBusy) { assert(!io.memoryBusy) }
+    }
     // Guaranteed RAM writes receive a local StoreBuffer acknowledgement with request acceptance.
     // Retire only the current head and only after that acceptance; the LSU discards its duplicate
     // registered completion. MMIO, atomics, faults and backpressured writes keep the normal path.

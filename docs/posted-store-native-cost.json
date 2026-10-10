@@ -1,0 +1,124 @@
+{
+  "status": "PASS_STRICT_LITERAL_NATIVE_CENSUS",
+  "source_commit": "0658f2d4a543ba5849498af626eec0a248363540",
+  "source_tree": "cc1d50b223fc0b6ebec448292ce8964986b56af2",
+  "plan_sha256": "6ddd1bae82e1185fa601c80cc07f3fa456642ef362d79b4b185bea098fba9a06",
+  "checker_sha256": "91ca46075cadd8ed3e73b2f78c6378c225051e7bf010a6863a757897d87a89bc",
+  "census_tool_sha256": "feddb875c24bd82896c58ebff7a364d3099ac6549179f8bef7d42809fc4dd9cf",
+  "fixed_storage_tool_sha256": "1588ea3dbdf3ac4474c5d3a1277d35d12d50420b053c3114ca0c9313fcb3b8e9",
+  "executions": {
+    "OFF": {
+      "execution_sha256": "0df514d9c65f21eabb65d10a93185a74795e27cc24eeab80cb5a50aae23bcc22",
+      "receipt_sha256": "ee2bf1d1b62038b2ba61545d7031dacdb52d7bbfc7c9e6debe6055b743cabbc4",
+      "model_inventory_sha256": "b80d6059023f250236621cf2bd679fa59851f61a1dbebd8e5c359679b77365f5",
+      "top_sha256": "b7800f3417610e48767467e7d3297bddb97e61e54a76296dc5c1409fa4831b66",
+      "rtl_files": 266,
+      "complete_profile_sha256": "977c6286c5e1366c4b05f2522439b8c69ee3e54d998b6db2d845e8b83f1782c2",
+      "production_source_inventory_sha256": "b1032ea0cd08f38755d44b901fdbf9fdc5f9529c4e02e303530edcbfa664d641"
+    },
+    "ON": {
+      "execution_sha256": "4b5865a1d6cab2fe6bb7a0cb875398ccd925e320502edae0d8ba94d3ce2cbc60",
+      "receipt_sha256": "caf2af5dbf85486f1971bea29d082eaef295c30088438052e4cc8e7fb0900d9f",
+      "model_inventory_sha256": "72846d17e79c7eef7c6947523dcd6f7546c45592793fc0ff7446745b41b5a052",
+      "top_sha256": "b7800f3417610e48767467e7d3297bddb97e61e54a76296dc5c1409fa4831b66",
+      "rtl_files": 269,
+      "complete_profile_sha256": "d5fdbfe1a830ac9977a65295c78d25da7864f56303c4e591664921f713375be0",
+      "production_source_inventory_sha256": "b1032ea0cd08f38755d44b901fdbf9fdc5f9529c4e02e303530edcbfa664d641"
+    }
+  },
+  "snapshots": {
+    "OFF": {
+      "receipt_sha256": "ee2bf1d1b62038b2ba61545d7031dacdb52d7bbfc7c9e6debe6055b743cabbc4",
+      "all_definition_totals": {
+        "scalar_reg_bits": 80034,
+        "array_reg_bits": 193355
+      },
+      "production_reachable_totals": {
+        "scalar_reg_bits": 85417,
+        "array_reg_bits": 705223
+      },
+      "production_module_instance_count": 475,
+      "unreachable_definitions": []
+    },
+    "ON": {
+      "receipt_sha256": "caf2af5dbf85486f1971bea29d082eaef295c30088438052e4cc8e7fb0900d9f",
+      "all_definition_totals": {
+        "scalar_reg_bits": 85847,
+        "array_reg_bits": 196287
+      },
+      "production_reachable_totals": {
+        "scalar_reg_bits": 91947,
+        "array_reg_bits": 708155
+      },
+      "production_module_instance_count": 478,
+      "unreachable_definitions": []
+    },
+    "prior_OFF": {
+      "receipt_sha256": "f24511281d2e87ee89ae9d9371fc6e2d875b1fe8c8fb131aa0503f1e9e252f3d",
+      "all_definition_totals": {
+        "scalar_reg_bits": 80034,
+        "array_reg_bits": 193355
+      },
+      "production_reachable_totals": {
+        "scalar_reg_bits": 85417,
+        "array_reg_bits": 705223
+      },
+      "production_module_instance_count": 475,
+      "unreachable_definitions": []
+    },
+    "prior_ON": {
+      "receipt_sha256": "819ba1398c0bdaabee4a05293bd444f0204e98452534bc35f05eef65d28643d7",
+      "all_definition_totals": {
+        "scalar_reg_bits": 85847,
+        "array_reg_bits": 196287
+      },
+      "production_reachable_totals": {
+        "scalar_reg_bits": 91947,
+        "array_reg_bits": 708155
+      },
+      "production_module_instance_count": 478,
+      "unreachable_definitions": []
+    }
+  },
+  "production_delta": {
+    "scalar_reg_bits": 6530,
+    "array_reg_bits": 2932
+  },
+  "production_state_bit_delta": 9462,
+  "default_OFF_delta_from_prior": {
+    "scalar_reg_bits": 0,
+    "array_reg_bits": 0
+  },
+  "fixed_ON_delta_from_prior": {
+    "scalar_reg_bits": 0,
+    "array_reg_bits": 0
+  },
+  "default_OFF_changed_definitions": [],
+  "fixed_ON_changed_definitions": [
+    "IntegerBackend"
+  ],
+  "changed_RAM_paths": {
+    "OFF-ON": 2,
+    "prior-OFF": 0,
+    "prior-ON": 0
+  },
+  "historical_result": {
+    "source_commit": "afe85a27d675199b7e4f32a3a208309fed3f3332",
+    "source_tree": "7d649252b35609ec2dede17ede1fa950e9df75d1",
+    "summary_sha256": "130d7ae2d8dad94c9707da8faaf19294225e0ffee7d1b167e20679b77cd99d2e",
+    "production_delta": {
+      "scalar_reg_bits": 6530,
+      "array_reg_bits": 2932
+    },
+    "scope": "Old source only; independently rechecked, never relabelled."
+  },
+  "limits": [
+    "Literal emitted declarations, not FPGA mapped resources or PPA/STA.",
+    "No behavioral, throughput, clock-frequency or board claim.",
+    "Every production instance counted once per actual hierarchy path; definition-only totals are separately labeled.",
+    "External blk_mem_gen_0 and BUFGCE state excluded and exact external instance paths checked.",
+    "No generated module name or expression normalization.",
+    "Native disabled verification removes assertion-only state; retained functional state is counted.",
+    "No functional equivalence inferred from zero state delta or raw-byte equality."
+  ]
+}

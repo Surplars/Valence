@@ -54,6 +54,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val precheckedLoad = Bool()
     val physicalAddress = UInt(64.W)
     val translationEpoch = UInt(32.W)
+    val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
 }
 
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
@@ -65,6 +66,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
         val issueAvailable = Output(Bool())
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
         val memory         = new DataPort
+        val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val complete       = Decoupled(new BackendCompletion(p))
         val busy           = Output(Bool())
         val phase          = Output(UInt(2.W))
@@ -135,6 +137,17 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     io.memory.request.bits.translationEpoch := sending.translationEpoch
     io.memory.request.bits.uncached := false.B
     io.memory.request.bits.prefetchNextAllowed := false.B
+    io.postedProof.foreach { proof =>
+        proof := sending.postedProof.get
+        proof.valid := io.memory.request.valid && sending.postedProof.get.valid
+        PostedStoreCpu.held(io.memory.request, proof)
+        when(io.start.fire && io.start.bits.postedProof.get.valid) {
+            assert(!misaligned && !atomicFault && !io.start.bits.accessDenied &&
+                !io.start.bits.forward.valid && !io.start.bits.virtualized &&
+                io.start.bits.store && !io.start.bits.atomic, "posted authority belongs to a successful physical store")
+            assert(io.start.bits.postedProof.get.bits.token.asUInt === io.start.bits.token.asUInt)
+        }
+    }
     io.memory.response.ready        := state === response ||
         (state === request && io.memory.request.ready) || startRequest
     when(io.memory.request.fire) { state := response }

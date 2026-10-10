@@ -1,0 +1,514 @@
+{
+  "schema": "new-posted-cache-component-gate-v1",
+  "status": "PASS_PRIVATE_CACHE_SYNTHETIC_MANAGER_ONLY",
+  "scope": "real private cache/engine/SRAM; synthetic manager and authority premises; no CPU or home qualification",
+  "source_head": "bc518ec83fc51bbef9e5376f9cee0e1e10200848",
+  "source_tree": "5081747bbe83f8c4fa02c25244f94552066f9132",
+  "historical_pass_inherited": false,
+  "tool_receipt_sha256": "0743301bca2da57ef871ab1cbc1184c831341269d1e4db377cb1628e29ea0512",
+  "receipt_sha256": "03f7d8022bd8423e43fc0b89e6c822f6bb03aabc2ff5a67446a9bd53254999b3",
+  "session": 49373,
+  "executor_exit": 0,
+  "steps": 23,
+  "step_seconds": 128.44297320100668,
+  "attempt_bytes": 54879161,
+  "host_tests": 22,
+  "host_mutants_detected": 10,
+  "transport_tests": 3,
+  "scala_config_tests": 3,
+  "positive_cases": 15,
+  "exact_assertion_negative_cases": 6,
+  "sanitizers": "PASS",
+  "budget_guards_triggered": [],
+  "cpu_runtime": "NOT_RUN",
+  "real_home": "NOT_RUN",
+  "throughput": "NOT_MEASURED",
+  "native_state_or_synthesis_resources": "NOT_MEASURED",
+  "models": {
+    "enabled0-generation64-wb2": {
+      "status": "PASS",
+      "scope": "real private cache/engine/SRAM; synthetic manager and authority premises; no real CPU/home claim",
+      "enabled": false,
+      "generation_bits": 64,
+      "wb_entries": 2,
+      "cases": [
+        {
+          "name": "off-legacy-sram-flush",
+          "cycles": 84,
+          "events": {
+            "cpu_accept": 11,
+            "legacy_write": 3,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "cpu_response": 11,
+            "cpu_hit": 10,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        }
+      ]
+    },
+    "enabled1-generation64-wb2": {
+      "status": "PASS",
+      "scope": "real private cache/engine/SRAM; synthetic manager and authority premises; no real CPU/home claim",
+      "enabled": true,
+      "generation_bits": 64,
+      "wb_entries": 2,
+      "cases": [
+        {
+          "name": "merge-response-reuse",
+          "cycles": 184,
+          "events": {
+            "cpu_accept": 13,
+            "posted_accept": 5,
+            "posted_new": 1,
+            "cpu_response": 13,
+            "posted_ack": 5,
+            "posted_join": 4,
+            "posted_a": 1,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 5,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "two-line-reordered",
+          "cycles": 200,
+          "events": {
+            "cpu_accept": 18,
+            "posted_accept": 2,
+            "posted_new": 2,
+            "cpu_response": 18,
+            "posted_ack": 2,
+            "posted_a": 2,
+            "a": 2,
+            "grant_beat": 16,
+            "e": 2,
+            "posted_refill": 2,
+            "posted_install": 2,
+            "token_drain": 2,
+            "owner_release": 2,
+            "cpu_hit": 16,
+            "release_dirty": 2,
+            "release_ack": 2,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "credit-held-to-legacy-hit",
+          "cycles": 95,
+          "events": {
+            "cpu_accept": 11,
+            "posted_accept": 2,
+            "posted_new": 1,
+            "posted_join": 1,
+            "posted_a": 1,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "cpu_response": 11,
+            "posted_ack": 2,
+            "token_drain": 2,
+            "owner_release": 1,
+            "legacy_write": 1,
+            "cpu_hit": 9,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "before-A-probe-DMA",
+          "cycles": 86,
+          "events": {
+            "cpu_accept": 9,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "cpu_response": 9,
+            "posted_ack": 1,
+            "probe": 1,
+            "probe_complete": 1,
+            "posted_a": 1,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 1,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "after-install-held-ACK-probe-DMA",
+          "cycles": 123,
+          "events": {
+            "cpu_accept": 9,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "posted_a": 1,
+            "a": 2,
+            "grant_beat": 16,
+            "e": 2,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "probe": 1,
+            "probe_complete": 1,
+            "cpu_response": 9,
+            "posted_ack": 1,
+            "token_drain": 1,
+            "owner_release": 1,
+            "cpu_hit": 7,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "after-E-probe",
+          "cycles": 119,
+          "events": {
+            "cpu_accept": 9,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "cpu_response": 9,
+            "posted_ack": 1,
+            "posted_a": 1,
+            "a": 2,
+            "grant_beat": 16,
+            "e": 2,
+            "probe_stall": 2,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "probe": 1,
+            "token_drain": 1,
+            "owner_release": 1,
+            "probe_complete": 1,
+            "cpu_hit": 7,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "clean-victim-overlap",
+          "cycles": 166,
+          "events": {
+            "cpu_accept": 11,
+            "a": 3,
+            "grant_beat": 24,
+            "e": 3,
+            "cpu_response": 11,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "posted_ack": 1,
+            "wb_attached": 1,
+            "wb_sent": 1,
+            "release_clean": 1,
+            "posted_a": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 1,
+            "wb_completed": 1,
+            "release_ack": 2,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "release_dirty": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "dirty-victim-overlap",
+          "cycles": 173,
+          "events": {
+            "cpu_accept": 11,
+            "legacy_write": 1,
+            "a": 3,
+            "grant_beat": 24,
+            "e": 3,
+            "cpu_response": 11,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "posted_ack": 1,
+            "wb_attached": 1,
+            "wb_sent": 1,
+            "release_dirty": 2,
+            "posted_a": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 1,
+            "wb_completed": 1,
+            "release_ack": 2,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "probe-cancels-victim",
+          "cycles": 164,
+          "events": {
+            "cpu_accept": 11,
+            "legacy_write": 1,
+            "a": 3,
+            "grant_beat": 24,
+            "e": 3,
+            "cpu_response": 11,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "posted_ack": 1,
+            "probe": 1,
+            "victim_cancel": 1,
+            "posted_a": 1,
+            "probe_complete": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 1,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "flush-live-owner",
+          "cycles": 73,
+          "events": {
+            "cpu_accept": 1,
+            "posted_accept": 1,
+            "posted_new": 1,
+            "cpu_response": 1,
+            "posted_ack": 1,
+            "posted_a": 1,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 1,
+            "owner_release": 1,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "explicit-episode-boundary",
+          "cycles": 179,
+          "events": {
+            "cpu_accept": 3,
+            "posted_accept": 3,
+            "posted_new": 3,
+            "cpu_response": 3,
+            "posted_ack": 3,
+            "posted_a": 3,
+            "a": 3,
+            "grant_beat": 24,
+            "e": 3,
+            "posted_refill": 3,
+            "posted_install": 3,
+            "token_drain": 3,
+            "owner_release": 3,
+            "release_dirty": 3,
+            "release_ack": 3,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "fatal-error",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "platform violated guaranteed posted RAM refill success",
+          "exit": -6,
+          "stimulus": {
+            "field": "tl.d.bits.denied",
+            "original": 0,
+            "poisoned": 1,
+            "boundary": "last GrantData beat after posted ACK"
+          }
+        },
+        {
+          "name": "fatal-cap",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "platform violated guaranteed posted RAM refill success",
+          "exit": -6,
+          "stimulus": {
+            "field": "tl.d.bits.param",
+            "original": 0,
+            "poisoned": 1,
+            "boundary": "T replaced by B permission"
+          }
+        },
+        {
+          "name": "held-proof",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "cache held original request/proof changed",
+          "exit": -6,
+          "stimulus": {
+            "field": "posted.requestProof.bits.token.tag",
+            "original": 3,
+            "poisoned": 999
+          }
+        },
+        {
+          "name": "held-context",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "cache original posted proof detached from request",
+          "exit": -6,
+          "stimulus": {
+            "field": "posted.contextEpoch",
+            "original": 0,
+            "poisoned": 1,
+            "unchanged_proof_epoch": 0
+          }
+        },
+        {
+          "name": "end-with-held",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "episode ended beside held or accepted original proof",
+          "exit": -6,
+          "stimulus": {
+            "field": "posted.endEpisode",
+            "original": 0,
+            "poisoned": 1,
+            "boundary": "two accepted stores plus held third proof"
+          }
+        }
+      ]
+    },
+    "enabled1-generation2-wb2": {
+      "status": "PASS",
+      "scope": "real private cache/engine/SRAM; synthetic manager and authority premises; no real CPU/home claim",
+      "enabled": true,
+      "generation_bits": 2,
+      "wb_entries": 2,
+      "cases": [
+        {
+          "name": "generation2-real-fallback",
+          "cycles": 340,
+          "events": {
+            "cpu_accept": 13,
+            "posted_accept": 4,
+            "posted_new": 4,
+            "cpu_response": 13,
+            "posted_ack": 4,
+            "posted_a": 4,
+            "a": 5,
+            "grant_beat": 40,
+            "e": 5,
+            "posted_refill": 4,
+            "posted_install": 4,
+            "token_drain": 4,
+            "owner_release": 4,
+            "legacy_write": 1,
+            "fallback": 1,
+            "cpu_hit": 8,
+            "release_dirty": 5,
+            "release_ack": 5,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "dirty-fallback-WB-tail",
+          "cycles": 418,
+          "events": {
+            "cpu_accept": 15,
+            "posted_accept": 4,
+            "posted_new": 4,
+            "cpu_response": 15,
+            "posted_ack": 4,
+            "posted_a": 4,
+            "a": 7,
+            "grant_beat": 56,
+            "e": 7,
+            "posted_refill": 4,
+            "posted_install": 4,
+            "token_drain": 4,
+            "owner_release": 4,
+            "legacy_write": 2,
+            "fallback": 2,
+            "release_dirty": 5,
+            "fallback_wb_tail": 1,
+            "probe": 2,
+            "probe_complete": 2,
+            "release_ack": 5,
+            "fallback_probe_tail": 1,
+            "cpu_hit": 8,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "fallback-context-before-WB-drain",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "cache fallback context changed before real coherence drain",
+          "stimulus": {
+            "field": "posted.contextEpoch",
+            "original": 0,
+            "poisoned": 1,
+            "boundary": "CPU ACK complete; exact old WB ReleaseAck held"
+          },
+          "exit": -6
+        }
+      ]
+    },
+    "enabled1-generation64-wb1": {
+      "status": "PASS",
+      "scope": "real private cache/engine/SRAM; synthetic manager and authority premises; no real CPU/home claim",
+      "enabled": true,
+      "generation_bits": 64,
+      "wb_entries": 1,
+      "cases": [
+        {
+          "name": "wb1-basic-merge",
+          "cycles": 194,
+          "events": {
+            "cpu_accept": 13,
+            "posted_accept": 5,
+            "posted_new": 1,
+            "cpu_response": 13,
+            "posted_ack": 5,
+            "posted_join": 4,
+            "posted_a": 1,
+            "a": 1,
+            "grant_beat": 8,
+            "e": 1,
+            "posted_refill": 1,
+            "posted_install": 1,
+            "token_drain": 5,
+            "owner_release": 1,
+            "cpu_hit": 8,
+            "release_dirty": 1,
+            "release_ack": 1,
+            "full_backing_check": 1
+          },
+          "status": "PASS"
+        }
+      ]
+    }
+  }
+}

@@ -13,6 +13,11 @@ class StoreBuffer(p: OooParams) extends Module {
         // Independently enqueue a proven non-faulting head RAM store. No response is owed.
         val fastStore = Flipped(Decoupled(new DataRequest))
         val memory    = new DataPort
+        val upstreamProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
+        val fastProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
+        val memoryProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
+        val postedCompleted = p.postedProofConfig.map(c => Output(Valid(new PostedStoreToken(c))))
+        val externalPostedBusy = if (p.postedStoreMerge) Some(Input(Bool())) else None
         val busy      = Output(Bool())
         val forwarded = Output(Bool())
         // 0 accepted/idle, 1 held local acknowledgement, 2 forwarded read behind older reads,
@@ -21,6 +26,7 @@ class StoreBuffer(p: OooParams) extends Module {
         val requestStallCause = Output(UInt(3.W))
     })
     val entries = Reg(Vec(n, new DataRequest))
+    val proofs = p.postedProofConfig.map(c => Reg(Vec(n, Valid(new PostedStoreProof(c)))))
     val head    = RegInit(0.U(indexBits.W))
     val tail    = RegInit(0.U(indexBits.W))
     val count   = RegInit(0.U(log2Ceil(n + 1).W))
@@ -68,7 +74,12 @@ class StoreBuffer(p: OooParams) extends Module {
     val fastEnd = io.fastStore.bits.address +& (1.U(64.W) << io.fastStore.bits.size)
     val overlapsFastStore = io.fastStore.valid && request.valid &&
         request.bits.address < fastEnd && io.fastStore.bits.address < end
-    val forward = ram && !request.bits.write && !request.bits.atomic && !request.bits.precheckedLoad && count =/= 0.U &&
+    val postedInBuffer = proofs.map(ps => (0 until n).map { age =>
+        val index = if (n == 1) 0.U else (head + age.U)(indexBits - 1, 0)
+        age.U < count && ps(index).valid
+    }.reduce(_ || _)).getOrElse(false.B)
+    val orderedBlocked = postedInBuffer || io.externalPostedBusy.getOrElse(false.B)
+    val forward = !orderedBlocked && ram && !request.bits.write && !request.bits.atomic && !request.bits.precheckedLoad && count =/= 0.U &&
         (covered.asUInt & request.bits.mask) === request.bits.mask
     // Track external response ownership without reducing the existing parallel read capacity.
     // With flow disabled, a new request cannot own a response until its owner bit
@@ -83,7 +94,7 @@ class StoreBuffer(p: OooParams) extends Module {
     val independentRead = ram && !request.bits.write && !request.bits.atomic && issued === count &&
         (covered.asUInt & request.bits.mask) === 0.U
     val direct = directHeld ||
-        ((count === 0.U || independentRead) && !buffered && !ackValid && !overlapsFastStore)
+        ((count === 0.U || independentRead) && !buffered && !ackValid && !overlapsFastStore && !orderedBlocked)
     io.fastStore.ready := count < n.U
     // A response may free an old slot while an independent younger write is issued.
     val drainRequest = issued < count && !directHeld
@@ -155,6 +166,38 @@ class StoreBuffer(p: OooParams) extends Module {
             SpeculativeRamRange.contains(p, io.fastStore.bits.address, io.fastStore.bits.size))
         assert((io.fastStore.bits.address(2, 0) & ((1.U << io.fastStore.bits.size) - 1.U)) === 0.U)
         assert(!enqueue, "only one store may enter the buffer per cycle")
+    }
+    io.memoryProof.foreach { proof =>
+        val selected = Mux(drainRequest, proofs.get(sending),
+            Mux(flowFastWrite, io.fastProof.get, io.upstreamProof.get))
+        proof := selected
+        proof.valid := io.memory.request.valid && selected.valid
+        // Flow-through already has a guaranteed same-edge local acceptance.
+        proof.bits.legacyPostedAccepted := selected.bits.legacyPostedAccepted || flowBufferedWrite || flowFastWrite
+        when(enqueue || fastEnqueue) {
+            val incoming = Mux(fastEnqueue, io.fastProof.get, io.upstreamProof.get)
+            proofs.get(tail) := incoming
+            proofs.get(tail).bits.legacyPostedAccepted := true.B
+            when(incoming.valid) {
+                assert(incoming.bits.headAuthorized && incoming.bits.physicalPmpAllowed &&
+                    incoming.bits.originalPhysical && incoming.bits.integerOrigin &&
+                    !incoming.bits.legacyPostedAccepted && !incoming.bits.finalChecked)
+                assert(PostedStoreCpu.matches(incoming.bits, Mux(fastEnqueue, io.fastStore.bits, request.bits)))
+            }
+        }
+        when(request.fire && io.upstreamProof.get.valid) { assert(buffered) }
+        when(io.fastStore.fire) { assert(io.fastProof.get.valid) }
+        // Preserve the existing optional zero-cycle response contract as well.
+        // A just-accepted flow-through store has not reached entry storage yet.
+        val completing = Mux(count === 0.U, proof, proofs.get(head))
+        io.postedCompleted.get.valid := dequeue && completing.valid
+        io.postedCompleted.get.bits := completing.bits.token
+        when(io.memory.request.fire && proof.valid) {
+            assert(drainRequest || enqueue || fastEnqueue, "only real StoreBuffer acceptance creates posted authority")
+            assert(proof.bits.legacyPostedAccepted)
+        }
+        PostedStoreCpu.held(io.memory.request, proof)
+        PostedStoreCpu.held(io.upstream.request, io.upstreamProof.get)
     }
     val anyEnqueue = enqueue || fastEnqueue
     when(anyEnqueue =/= dequeue) { count := Mux(anyEnqueue, count + 1.U, count - 1.U) }

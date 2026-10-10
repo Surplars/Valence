@@ -30,9 +30,12 @@ final case class FpgaNextConfig(
     loadOrderOlderRetire: Boolean = false,
     fetchPreviousPacket: Boolean = false,
     preparedStoreLookahead: Boolean = false,
-    dataTranslationEntries: Int = 8
+    dataTranslationEntries: Int = 8,
+    postedStoreMerge: Boolean = false
 ) {
     SvTranslationService.indexBits(dataTranslationEntries)
+    require(!postedStoreMerge || !precheckedDataRequestFlow,
+        "posted store candidate excludes unqualified prechecked data empty-flow")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,
         "store-origin MRU insertion requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
@@ -62,6 +65,7 @@ final case class FpgaNextConfig(
         (if (preparedStoreLookahead) "-prepared-store-lookahead" else "") +
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
+        (if (postedStoreMerge) "-posted-store-merge" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -113,7 +117,7 @@ final case class FpgaNextConfig(
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
-        preparedStoreLookahead = preparedStoreLookahead)
+        preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -135,7 +139,7 @@ final case class FpgaNextConfig(
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
-        dataTranslationEntries = dataTranslationEntries)
+        dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge)
 }
 
 object FpgaNextConfig {
@@ -171,6 +175,7 @@ object FpgaNextConfig {
         val lineDepth = depths.headOption.map(_.stripPrefix("--dma-line-entries=").toInt).getOrElse(1)
         base.copy(
             dataTranslationEntries = tlbCount,
+            postedStoreMerge = options.contains("--posted-store-merge"),
             lsuEntries = lsuCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),

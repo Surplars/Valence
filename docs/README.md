@@ -95,3 +95,8 @@ GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能�
 - 仿真通过、RTL 展开、独立模块综合、整机实现和上板验证分别陈述；不得互相替代。
 
 - [Optional translated-response empty flow](translated-response-empty-flow.md): default-OFF local response bypass, measured CPU pairs, strict observer controls and remaining qualification limits.
+
+- [Posted-store integration review](posted-store-delivery-review.md): source-only composition, exact frozen component qualification and pending actual CPU/cache/home gate.
+
+- [Posted-store WRITE/COPY performance tradeoff](posted-store-seal-performance.md)
+- [Posted-store same-source native storage cost](posted-store-native-cost.md)

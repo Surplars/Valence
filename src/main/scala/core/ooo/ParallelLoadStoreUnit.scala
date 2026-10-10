@@ -18,6 +18,7 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
         val memory         = new DataPort
+        val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val complete       = Decoupled(new BackendCompletion(p))
         val cancel         = Input(Vec(p.memoryEntries, Bool()))
         val fastStoreRetire = Input(Bool())
@@ -118,6 +119,13 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     }
     io.memory.request.valid := requests.io.out.valid && owners.io.enq.ready
     io.memory.request.bits  := requests.io.out.bits
+    io.postedProof.foreach { proof =>
+        val selectedProof = Mux1H((0 until p.memoryEntries).map(i =>
+            (requests.io.chosen === i.U) -> slots(i).io.postedProof.get))
+        proof := selectedProof
+        proof.valid := io.memory.request.valid && selectedProof.valid
+        PostedStoreCpu.held(io.memory.request, proof)
+    }
     requests.io.out.ready   := io.memory.request.ready && owners.io.enq.ready
     owners.io.enq.valid     := io.memory.request.fire
     owners.io.enq.bits      := requests.io.chosen

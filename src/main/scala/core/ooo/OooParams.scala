@@ -136,8 +136,14 @@ case class OooParams(
     sharedFetchPmpRelations: Boolean = false,
     shareProtectedHeadPayload: Boolean = false,
     fetchPreviousPacket: Boolean = false,
-    preparedStoreLookahead: Boolean = false
+    preparedStoreLookahead: Boolean = false,
+    postedStoreMerge: Boolean = false
 ) {
+    require(!postedStoreMerge || (bufferedRamStores && machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0 &&
+        speculativeRamBytes > 0 && speculativeRamBase % 64 == 0 && speculativeRamBytes % 64 == 0),
+        "posted stores require the physical guaranteed-success RAM, integer head and PMP contract")
+    require(!postedStoreMerge || !precheckedDataRequestFlow,
+        "initial posted CPU integration excludes the unqualified prechecked empty-flow candidate")
     require(!preparedStoreLookahead || (registeredMemoryAddress && parallelMemoryPreparation),
         "prepared store lookahead requires registered addresses and parallel memory preparation")
     require(!loadOrderOlderRetire || registeredLoadReplay,
@@ -356,6 +362,9 @@ case class OooParams(
     // A memory start shares the ALU issue budget. Completion ports are separately arbitrated.
     val issueWidth: Int = completionWidth
     val robBits: Int    = log2Ceil(robEntries)
+    // Shape only. The real private-cache assembly supplies and validates physical geometry.
+    def postedProofConfig: Option[PostedStoreMergeConfig] = if (postedStoreMerge)
+        Some(PostedStoreMergeConfig(tokenTagBits = tagBits, tokenIndexBits = robBits)) else None
     val physBits: Int   = log2Ceil(physicalRegs)
     val countBits: Int  = log2Ceil(robEntries + 1)
 

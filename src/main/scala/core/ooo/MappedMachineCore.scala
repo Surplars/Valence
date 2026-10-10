@@ -18,6 +18,8 @@ class MappedMachineCore(
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.virtualRamLoadPrecheck || (dataTranslation && stagedMemoryFabric),
         "virtual load precheck requires the staged physical authorization adapter")
+    require(!p.postedStoreMerge || (dataTranslation && stagedMemoryFabric),
+        "posted stores require checked authorization before the common APLIC/memory routing boundary")
     require(!stagedMemoryFabric || dataTranslation)
     require(!bufferTranslatedResponses || (dataTranslation && stagedMemoryFabric))
     require(!p.registeredTranslatedResponses || bufferTranslatedResponses)
@@ -51,6 +53,7 @@ class MappedMachineCore(
         val fenceIFlushReady = Input(Bool())
         val recovering      = Output(Bool())
         val memory          = new DataPort
+        val posted = p.postedProofConfig.map(c => Flipped(new PostedStoreCachePort(c)))
         val sources         = Input(UInt(aplicParams.sources.W))
         val msiError        = Output(Bool())
         val externalPending = Output(UInt(imsicParams.files.W))
@@ -109,6 +112,34 @@ class MappedMachineCore(
         }
         adapter.io.vmState := core.io.vmState.get
         adapter.io.pmpState := core.io.pmpState.get
+        io.posted.foreach { posted =>
+            val transport = adapter.io.posted.get
+            // DataResponseBuffer and both routing fabrics contain response-only
+            // storage: request payload and proof share the exact same handshake.
+            transport.upstreamProof := core.io.posted.get.requestProof
+            transport.externalBusy := posted.busy
+            core.io.posted.get.externalBusy := posted.busy
+            core.io.posted.get.contextEpoch := transport.contextEpoch
+            core.io.posted.get.blockNew := transport.contextChanging
+            val drained = !core.io.memoryBusy && adapter.io.idle && !core.io.posted.get.busy
+            transport.aggregateDrained := drained && !core.io.posted.get.starting &&
+                !core.io.posted.get.requestProof.valid
+            posted.contextEpoch := transport.contextEpoch
+            posted.requestProof := transport.requestProof
+            posted.requestProof.valid := io.memory.request.valid && transport.requestProof.valid
+            posted.seal := core.io.posted.get.seal || transport.contextChanging || core.io.recovering
+            // episodeActive is deliberately absent: it describes identity, not work.
+            posted.endEpisode := transport.aggregateDrained && !transport.requestProof.valid &&
+                !posted.requestProof.valid
+            when(posted.endEpisode) {
+                assert(!posted.busy && !core.io.posted.get.starting && !io.memory.request.fire)
+            }
+            when(io.memory.request.fire && posted.requestProof.valid) {
+                assert(adapter.io.physical.request.fire,
+                    "the request-only router must transport the saved checked proof on the same edge")
+            }
+            PostedStoreCpu.held(io.memory.request, posted.requestProof)
+        }
     } else {
         mappedUpstream <> core.io.memory
     }

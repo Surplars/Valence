@@ -23,7 +23,8 @@ class LineAcquireResponse(tagBits: Int) extends Bundle {
   * source; Grant and GrantData both require an E-channel GrantAck before a result is exposed.
   * A coherent cache must also handle B/C probes and voluntary C Releases outside this engine.
   */
-class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8)
+class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
+    observeIssued: Boolean = false)
     extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
@@ -32,6 +33,8 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
     val io = IO(new Bundle {
         val request  = Flipped(Decoupled(new LineAcquireRequest(params.addrWidth, tagBits)))
         val response = Decoupled(new LineAcquireResponse(tagBits))
+        // Optional saved transaction tag observed only on the actual A handshake.
+        val issued = if (observeIssued) Some(Output(Valid(UInt(tagBits.W)))) else None
         val a        = Decoupled(new TLBundleA(params))
         val d        = Flipped(Decoupled(new TLBundleD(params)))
         val e        = Decoupled(new TLBundleE(params))
@@ -86,6 +89,10 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
         assert(phase(sendSlot) === send, "line acquire send queue contains a non-pending slot")
     }
     when(io.a.fire) { phase(sendSlot) := receive }
+    io.issued.foreach { event =>
+        event.valid := io.a.fire
+        event.bits := tag(sendSlot)
+    }
 
     val source = io.d.bits.source(slotBits - 1, 0)
     val immediateGrant = io.a.fire && sendSlot === source

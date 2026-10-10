@@ -44,6 +44,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val headProfile     = Output(new HeadProfile)
         val issueCount      = Output(UInt(log2Ceil(p.issueWidth + 1).W))
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
+        val posted = p.postedProofConfig.map(c => new PostedStoreCpuPort(c))
         val memoryBusy      = Output(Bool())
     })
     val core  = Module(new IntegerCore(p.copy(machineSystem = true)))
@@ -81,6 +82,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     core.io.inspectRegister                 := io.inspectRegister
     io.loadPrecheck.foreach(_ <> core.io.loadPrecheck.get)
     io.memory <> core.io.memory
+    io.posted.foreach(_ <> core.io.posted.get)
     io.accepted       := core.io.accepted
     io.fetchPc        := core.io.fetchPc
     io.commit         := core.io.commit

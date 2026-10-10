@@ -39,7 +39,8 @@ class DataPrefetchEvents extends Bundle {
     val releaseOwners = UInt(3.W)
 }
 
-class CoherentLineCachePort(params: TLParams) extends Bundle {
+class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None) extends Bundle {
+    val posted = postedConfig.map(c => new PostedStoreCachePort(c))
     val upstream = Flipped(new DataPort)
     val downstream = new DataPort
     val tl = new TLBundle(params)
@@ -52,16 +53,19 @@ class CoherentLineCachePort(params: TLParams) extends Bundle {
     val profile = Output(new CoherentCacheProfile)
 }
 
-abstract class CoherentLineCacheModule(params: TLParams) extends Module {
-    val io = IO(new CoherentLineCachePort(params))
+abstract class CoherentLineCacheModule(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None) extends Module {
+    val io = IO(new CoherentLineCachePort(params, postedConfig))
     io.prefetch := 0.U.asTypeOf(new DataPrefetchEvents)
 }
 
 object CoherentLineCacheModule {
     /** Caller selects capacities explicitly; the reference implementation stays available unchanged. */
     def build(base: BigInt, bytes: BigInt, lines: Int, params: TLParams, ways: Int,
-        concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth): CoherentLineCacheModule = {
+        concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
+        postedConfig: Option[PostedStoreMergeConfig] = None): CoherentLineCacheModule = {
+        postedConfig.foreach(c => require(c.enabled && concurrency.readMshrs == 2,
+            "posted integration requires explicit ON and original two-MSHR cache"))
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))
-        else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig))
+        else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig, postedConfig))
     }
 }

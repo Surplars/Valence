@@ -119,11 +119,15 @@ def main():
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--posted-store-merge", action="store_true",
+                    help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args()
+    if a.posted_store_merge and a.prechecked_data_flow:
+        ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if a.store_prefetch_mru_insertion and not a.store_next_line_prefetch:
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if a.dma_line_entries != 1 and not a.dma_line_transfers:
@@ -193,6 +197,9 @@ def main():
     profile["profile"]["store_prefetch_mru_insertion"] = a.store_prefetch_mru_insertion
     if a.store_prefetch_mru_insertion:
         profile["profile"]["name"] += "-store-prefetch-mru"
+    profile["profile"]["posted_store_merge"] = a.posted_store_merge
+    if a.posted_store_merge:
+        profile["profile"]["name"] += "-posted-store-merge"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
@@ -234,6 +241,7 @@ def main():
             "fetch_previous_packet": a.fetch_previous_packet,
             "prepared_store_lookahead": a.prepared_store_lookahead,
             "translated_response_empty_flow": a.translated_response_empty_flow,
+            "posted_store_merge": a.posted_store_merge,
             "physical_qualification": False}, indent=2))
         return
     output.mkdir(parents=True)
@@ -289,6 +297,8 @@ def main():
         command.append("--store-next-line-prefetch")
     if a.store_prefetch_mru_insertion:
         command.append("--store-prefetch-mru-insertion")
+    if a.posted_store_merge:
+        command.append("--posted-store-merge")
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],

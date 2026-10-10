@@ -1,0 +1,565 @@
+{
+  "status": "PASS_REAL_HOME_COMPONENT_WITH_SEPARATE_OFFLINE_CONTROLS",
+  "production_source": "bc518ec83fc51bbef9e5376f9cee0e1e10200848",
+  "scope": "actual private cache/Mixed home/DMA/AXI; fixture committed-physical authority and independent backing; executing CPU and wholeboard separate",
+  "gates": [
+    {
+      "source_head": "7960d020f36f768124db5431bedcedbbaa6e8eec",
+      "source_tree": "a7bb18498f2c18b87982f36dcb6b7879a605a777",
+      "session": 58084,
+      "exit": 0,
+      "receipt_sha256": "4b8707edd4a1794a846645e7de39d246ca104304ac1f28f3e1b1877e424c2945",
+      "step_seconds": 100.47997528799897,
+      "models": {
+        "enabled0-generation64-wb2": {
+          "status": "PASS",
+          "scope": "real private cache/Mixed home/DMA/AXI; fixture authority, independent AXI memory; no executing CPU claim",
+          "enabled": false,
+          "cases": [
+            {
+              "name": "real-home-merge-reuse",
+              "cycles": 264,
+              "events": {
+                "cpu_accept": 13,
+                "legacy_write": 5,
+                "a": 1,
+                "grant_beat": 8,
+                "e": 1,
+                "cpu_response": 13,
+                "cpu_hit": 12,
+                "release_dirty": 1,
+                "release_ack": 1,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 1,
+                "r": 8,
+                "aw": 1,
+                "w": 8,
+                "b": 1
+              }
+            }
+          ]
+        },
+        "enabled1-generation64-wb2": {
+          "status": "PASS",
+          "scope": "real private cache/Mixed home/DMA/AXI; fixture authority, independent AXI memory; no executing CPU claim",
+          "enabled": true,
+          "cases": [
+            {
+              "name": "real-home-merge-reuse",
+              "cycles": 258,
+              "events": {
+                "cpu_accept": 13,
+                "posted_accept": 5,
+                "posted_new": 1,
+                "cpu_response": 13,
+                "posted_ack": 5,
+                "posted_join": 4,
+                "posted_a": 1,
+                "a": 1,
+                "grant_beat": 8,
+                "e": 1,
+                "posted_refill": 1,
+                "posted_install": 1,
+                "token_drain": 5,
+                "owner_release": 1,
+                "cpu_hit": 8,
+                "release_dirty": 1,
+                "release_ack": 1,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 1,
+                "r": 8,
+                "aw": 1,
+                "w": 8,
+                "b": 1
+              }
+            },
+            {
+              "name": "real-DMA-before-A",
+              "cycles": 138,
+              "events": {
+                "cpu_accept": 9,
+                "posted_accept": 1,
+                "posted_new": 1,
+                "cpu_response": 9,
+                "posted_ack": 1,
+                "dma_accept": 1,
+                "dma_response": 1,
+                "dma_before_a": 1,
+                "posted_a": 1,
+                "a": 1,
+                "grant_beat": 8,
+                "e": 1,
+                "posted_refill": 1,
+                "posted_install": 1,
+                "token_drain": 1,
+                "owner_release": 1,
+                "cpu_hit": 8,
+                "release_dirty": 1,
+                "release_ack": 1,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "aw": 2,
+                "w": 9,
+                "b": 2,
+                "ar": 1,
+                "r": 8
+              }
+            },
+            {
+              "name": "real-probe-held-ACK-DMA",
+              "cycles": 260,
+              "events": {
+                "cpu_accept": 9,
+                "posted_accept": 1,
+                "posted_new": 1,
+                "posted_a": 1,
+                "a": 2,
+                "grant_beat": 16,
+                "e": 2,
+                "posted_refill": 1,
+                "posted_install": 1,
+                "dma_accept": 2,
+                "probe": 1,
+                "probe_complete": 1,
+                "dma_response": 2,
+                "cpu_response": 9,
+                "posted_ack": 1,
+                "token_drain": 1,
+                "owner_release": 1,
+                "cpu_hit": 7,
+                "full_backing_check": 1,
+                "dma_with_held_posted_ack": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 3,
+                "r": 17,
+                "aw": 2,
+                "w": 9,
+                "b": 2
+              }
+            },
+            {
+              "name": "real-clean-victim-overlap",
+              "cycles": 263,
+              "events": {
+                "cpu_accept": 11,
+                "a": 3,
+                "grant_beat": 24,
+                "e": 3,
+                "cpu_response": 11,
+                "posted_accept": 1,
+                "posted_new": 1,
+                "posted_ack": 1,
+                "wb_attached": 1,
+                "wb_sent": 1,
+                "release_clean": 1,
+                "posted_a": 1,
+                "posted_refill": 1,
+                "posted_install": 1,
+                "real_c_last_acquire_overlap": 1,
+                "wb_completed": 1,
+                "release_ack": 2,
+                "token_drain": 1,
+                "owner_release": 1,
+                "cpu_hit": 8,
+                "release_dirty": 1,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 3,
+                "r": 24,
+                "aw": 1,
+                "w": 8,
+                "b": 1
+              }
+            },
+            {
+              "name": "real-dirty-victim-overlap",
+              "cycles": 278,
+              "events": {
+                "cpu_accept": 11,
+                "legacy_write": 1,
+                "a": 3,
+                "grant_beat": 24,
+                "e": 3,
+                "cpu_response": 11,
+                "posted_accept": 1,
+                "posted_new": 1,
+                "posted_ack": 1,
+                "wb_attached": 1,
+                "wb_sent": 1,
+                "release_dirty": 2,
+                "posted_a": 1,
+                "posted_refill": 1,
+                "posted_install": 1,
+                "real_c_last_acquire_overlap": 1,
+                "wb_completed": 1,
+                "release_ack": 2,
+                "token_drain": 1,
+                "owner_release": 1,
+                "cpu_hit": 8,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 3,
+                "r": 24,
+                "aw": 2,
+                "w": 16,
+                "b": 2
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source_head": "08af97c1c257526741fcc62dffd7aefc3b5cc922",
+      "source_tree": "839e9823c5e916929c030f961ba884966cfe632a",
+      "session": 50320,
+      "exit": 0,
+      "receipt_sha256": "838132477a72444073504570ccdcc413bccee70deb0e87230769a3530c4033bf",
+      "step_seconds": 57.10362352599623,
+      "models": {
+        "enabled1-generation2-wb2": {
+          "status": "PASS",
+          "scope": "real private cache/Mixed home/DMA/AXI; fixture authority, independent AXI memory; no executing CPU claim",
+          "enabled": true,
+          "cases": [
+            {
+              "name": "real-home-exhausted-fallback-tail",
+              "cycles": 736,
+              "events": {
+                "cpu_accept": 15,
+                "posted_accept": 4,
+                "posted_new": 4,
+                "cpu_response": 15,
+                "posted_ack": 4,
+                "posted_a": 4,
+                "a": 7,
+                "grant_beat": 56,
+                "e": 7,
+                "posted_refill": 4,
+                "posted_install": 4,
+                "token_drain": 4,
+                "owner_release": 4,
+                "legacy_write": 2,
+                "fallback": 2,
+                "release_dirty": 5,
+                "real_fallback_wb_tail": 1,
+                "dma_accept": 1,
+                "probe": 1,
+                "probe_complete": 1,
+                "dma_response": 1,
+                "release_ack": 5,
+                "cpu_hit": 8,
+                "full_backing_check": 1
+              },
+              "status": "PASS",
+              "axi_events": {
+                "ar": 8,
+                "r": 57,
+                "aw": 6,
+                "w": 48,
+                "b": 6
+              }
+            },
+            {
+              "name": "real-home-fallback-context-before-ReleaseAck",
+              "status": "EXPECTED_RTL_ASSERTION",
+              "diagnostic": "cache fallback context changed before real coherence drain",
+              "exit": -6,
+              "stimulus": {
+                "field": "posted.contextEpoch",
+                "original": 0,
+                "poisoned": 1,
+                "boundary": "CPU ACK complete; actual home-produced ReleaseAck still held"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "offline_observer": {
+    "status": "PASS_OFFLINE_OBSERVER_CONTROLS",
+    "scope": "offline mutation of observation records only; original RTL inputs, model and traces unchanged",
+    "model_receipt_sha256": "4b8707edd4a1794a846645e7de39d246ca104304ac1f28f3e1b1877e424c2945",
+    "source_head": "689cbbae5bb744ee001a21d065bafe82fe99fde0",
+    "observer_sha256": {
+      "replay_controls.py": "663ea9708e88b68f873fd97b82ce16b458a5b67d6b9ca6cdf98c98e4cbb5d01e",
+      "fixture.py": "c182bb04f73a2c4a5618a21b92e6753e1ef479d2ecc79621ceaf9c5ff3882ed7",
+      "memory.py": "0ea2356640772cd82cfef62f64e380d66f42235505cc09b30c2e3b5cd52945ba",
+      "ports.py": "b4e5c86ab6ca5041d11b2562580a96ab662a8a7d0d01b2c021a1e16efa0cfb99"
+    },
+    "positives": [
+      {
+        "name": "enabled0-generation64-wb2/real-home-merge-reuse",
+        "trace_sha256": "ec183b70a04bed0e013483a88afcd04f81ba1872dec393f4b3345f06cc056502",
+        "events": {
+          "cpu_accept": 13,
+          "legacy_write": 5,
+          "a": 1,
+          "grant_beat": 8,
+          "e": 1,
+          "cpu_response": 13,
+          "cpu_hit": 12,
+          "release_dirty": 1,
+          "release_ack": 1
+        },
+        "axi_events": {
+          "ar": 1,
+          "r": 8,
+          "aw": 1,
+          "w": 8,
+          "b": 1
+        },
+        "cycles": 264
+      },
+      {
+        "name": "enabled1-generation64-wb2/real-home-merge-reuse",
+        "trace_sha256": "722aaae9d9c3c6d2cf593ec2e34f32429e0e4fbb712d4593ac03dbc806791d62",
+        "events": {
+          "cpu_accept": 13,
+          "posted_accept": 5,
+          "posted_new": 1,
+          "cpu_response": 13,
+          "posted_ack": 5,
+          "posted_join": 4,
+          "posted_a": 1,
+          "a": 1,
+          "grant_beat": 8,
+          "e": 1,
+          "posted_refill": 1,
+          "posted_install": 1,
+          "token_drain": 5,
+          "owner_release": 1,
+          "cpu_hit": 8,
+          "release_dirty": 1,
+          "release_ack": 1
+        },
+        "axi_events": {
+          "ar": 1,
+          "r": 8,
+          "aw": 1,
+          "w": 8,
+          "b": 1
+        },
+        "cycles": 258
+      },
+      {
+        "name": "enabled1-generation64-wb2/real-DMA-before-A",
+        "trace_sha256": "d4466270678faec123df5490a433462904fa4016b86b41429adfeb7531901402",
+        "events": {
+          "cpu_accept": 9,
+          "posted_accept": 1,
+          "posted_new": 1,
+          "cpu_response": 9,
+          "posted_ack": 1,
+          "dma_accept": 1,
+          "dma_response": 1,
+          "posted_a": 1,
+          "a": 1,
+          "grant_beat": 8,
+          "e": 1,
+          "posted_refill": 1,
+          "posted_install": 1,
+          "token_drain": 1,
+          "owner_release": 1,
+          "cpu_hit": 8,
+          "release_dirty": 1,
+          "release_ack": 1
+        },
+        "axi_events": {
+          "aw": 2,
+          "w": 9,
+          "b": 2,
+          "ar": 1,
+          "r": 8
+        },
+        "cycles": 138
+      },
+      {
+        "name": "enabled1-generation64-wb2/real-probe-held-ACK-DMA",
+        "trace_sha256": "eafd5095de0ea9cc21df9502c51aeb8dd320ceb72e550f19991d1cc7fb70dbe2",
+        "events": {
+          "cpu_accept": 9,
+          "posted_accept": 1,
+          "posted_new": 1,
+          "posted_a": 1,
+          "a": 2,
+          "grant_beat": 16,
+          "e": 2,
+          "posted_refill": 1,
+          "posted_install": 1,
+          "dma_accept": 2,
+          "probe": 1,
+          "probe_complete": 1,
+          "dma_response": 2,
+          "cpu_response": 9,
+          "posted_ack": 1,
+          "token_drain": 1,
+          "owner_release": 1,
+          "cpu_hit": 7
+        },
+        "axi_events": {
+          "ar": 3,
+          "r": 17,
+          "aw": 2,
+          "w": 9,
+          "b": 2
+        },
+        "cycles": 260
+      },
+      {
+        "name": "enabled1-generation64-wb2/real-clean-victim-overlap",
+        "trace_sha256": "6614b52b80d901019963c69f049021ec2304299209d447945a75d140224f26ce",
+        "events": {
+          "cpu_accept": 11,
+          "a": 3,
+          "grant_beat": 24,
+          "e": 3,
+          "cpu_response": 11,
+          "posted_accept": 1,
+          "posted_new": 1,
+          "posted_ack": 1,
+          "wb_attached": 1,
+          "wb_sent": 1,
+          "release_clean": 1,
+          "posted_a": 1,
+          "posted_refill": 1,
+          "posted_install": 1,
+          "wb_completed": 1,
+          "release_ack": 2,
+          "token_drain": 1,
+          "owner_release": 1,
+          "cpu_hit": 8,
+          "release_dirty": 1
+        },
+        "axi_events": {
+          "ar": 3,
+          "r": 24,
+          "aw": 1,
+          "w": 8,
+          "b": 1
+        },
+        "cycles": 263
+      },
+      {
+        "name": "enabled1-generation64-wb2/real-dirty-victim-overlap",
+        "trace_sha256": "a92f2779b04e41346f1cfe3bebeaef1fcc7323c4763b9259dc4f15f6dc572faa",
+        "events": {
+          "cpu_accept": 11,
+          "legacy_write": 1,
+          "a": 3,
+          "grant_beat": 24,
+          "e": 3,
+          "cpu_response": 11,
+          "posted_accept": 1,
+          "posted_new": 1,
+          "posted_ack": 1,
+          "wb_attached": 1,
+          "wb_sent": 1,
+          "release_dirty": 2,
+          "posted_a": 1,
+          "posted_refill": 1,
+          "posted_install": 1,
+          "wb_completed": 1,
+          "release_ack": 2,
+          "token_drain": 1,
+          "owner_release": 1,
+          "cpu_hit": 8
+        },
+        "axi_events": {
+          "ar": 3,
+          "r": 24,
+          "aw": 2,
+          "w": 16,
+          "b": 2
+        },
+        "cycles": 278
+      }
+    ],
+    "mutants": [
+      {
+        "name": "wrong-dirty-byte",
+        "status": "EXPECTED_OFFLINE_OBSERVER_REJECTION",
+        "cycle": 141,
+        "field": "monCData",
+        "original": 4951,
+        "poisoned": 4950,
+        "diagnostic": "actual SRAM C bytes differ from authored coherent image"
+      },
+      {
+        "name": "wrong-full-generation",
+        "status": "EXPECTED_OFFLINE_OBSERVER_REJECTION",
+        "cycle": 150,
+        "field": "acquired.bits.context.owner.generation",
+        "original": 0,
+        "poisoned": 1,
+        "diagnostic": "unknown or released full owner"
+      },
+      {
+        "name": "wrong-owner-slot",
+        "status": "EXPECTED_OFFLINE_OBSERVER_REJECTION",
+        "cycle": 150,
+        "field": "acquired.bits.context.owner.slot",
+        "original": 0,
+        "poisoned": 1,
+        "diagnostic": "unknown or released full owner"
+      },
+      {
+        "name": "missing-WB-completion-association",
+        "status": "EXPECTED_OFFLINE_OBSERVER_REJECTION",
+        "cycle": 222,
+        "field": "completed.valid",
+        "original": 1,
+        "poisoned": 0,
+        "diagnostic": "resource release preceded token/WB drain"
+      },
+      {
+        "name": "early-WB-completion-association",
+        "status": "EXPECTED_OFFLINE_OBSERVER_REJECTION",
+        "cycle": 221,
+        "field": "completed.valid",
+        "original": 0,
+        "poisoned": 1,
+        "diagnostic": "WB completion was not real exact ReleaseAck"
+      }
+    ]
+  },
+  "resource_categories": {
+    "lifecycle_cohort_generation_control": 229,
+    "assertion_only_held_payload_and_epoch": 3659,
+    "cache_line_context_reservation_copy": 594,
+    "original_response_full_member_copy": 590,
+    "fallback_token_ticket_copies": 207,
+    "writeback_exact_ticket_and_context_copies": 858,
+    "owner_primary_line_context_reservation": 594,
+    "payload_and_byte_valid": 1152,
+    "member_full_rob_tokens": 1088,
+    "member_repeated_line_context": 3616,
+    "member_response_ticket": 16,
+    "original_acquire_tag_widening": 134
+  },
+  "declared_register_delta_bits": 12737,
+  "native_named_cache_register_bits": {
+    "enabled0-generation64-wb2": 3410,
+    "enabled1-generation64-wb2": 12655
+  },
+  "native_scope": "complete declared register delta and exact generated native named register leaves; observer and assertion cones retained; not uninstrumented production or FPGA PPA",
+  "throughput": "NOT_MEASURED",
+  "mapped_fpga_resources": "NOT_MEASURED",
+  "generation2_real_home": "PASS",
+  "cpu_authority": "ENVIRONMENTAL_PREMISE_ONLY"
+}

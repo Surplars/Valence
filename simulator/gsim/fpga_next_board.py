@@ -19,6 +19,7 @@ import time
 import run as common
 from mshr_occupancy import validate
 from memory_capacity_geometry import verify_memory_geometry
+from posted_cpu.verify_model import verify_posted_model
 from build_virtual_load_core import build as build_virtual_guest
 from virtual_load_board import parse as parse_virtual_metrics
 
@@ -48,7 +49,7 @@ def source_inventory():
         "simulator/gsim/payloads/board_memory_independent.c", "simulator/gsim/payloads/board_memory_mixed_stores.c",
         "simulator/gsim/payloads/virtual_load_core.S",
         "simulator/gsim/payloads/virtual_load_core.ld", "simulator/gsim/build_virtual_load_core.py",
-        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/memory_capacity_geometry.py", "simulator/gsim/fpga_next_board.py")]
+        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/memory_capacity_geometry.py", "simulator/gsim/fpga_next_board.py", "simulator/gsim/posted_cpu/verify_model.py")]
     return {str(p.relative_to(common.ROOT)): sha(p) for p in sorted(set(files))}
 
 
@@ -80,6 +81,8 @@ def main():
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--posted-store-merge", action="store_true",
+                    help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true")
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
@@ -89,6 +92,8 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.posted_store_merge and args.prechecked_data_flow:
+        ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if args.prechecked_data_flow and not args.virtual_ram_load_precheck:
         ap.error("prechecked data flow requires --virtual-ram-load-precheck")
     if args.store_prefetch_mru_insertion and not args.store_next_line_prefetch:
@@ -133,6 +138,8 @@ def main():
         parameters.append("--store-next-line-prefetch")
     if args.store_prefetch_mru_insertion:
         parameters.append("--store-prefetch-mru-insertion")
+    if args.posted_store_merge:
+        parameters.append("--posted-store-merge")
     if args.prechecked_data_flow:
         parameters.append("--prechecked-data-flow")
     if args.independent_fetch_payload_capture:
@@ -145,7 +152,8 @@ def main():
         parameters.append("--share-protected-head-payload")
     if args.banked_instruction_data:
         parameters.append("--banked-instruction-data")
-    plan = {"data_translation_entries": args.data_translation_entries,
+    plan = {"posted_store_merge": args.posted_store_merge,
+            "data_translation_entries": args.data_translation_entries,
             "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
             "prepared_store_lookahead": args.prepared_store_lookahead,
             "translated_response_empty_flow": args.translated_response_empty_flow,
@@ -292,8 +300,10 @@ def main():
                 mixed[period] = (elf, binary)
         step("elaborate", ["mill", "-i", "IonSoC.test.runMain", "ooo.FpgaNextBoardGsimMain", model, *parameters],
              [model / "BoardSocGsim.fir"])
-        step("generate", [gsim, "--threads=1", "--dir=" + str(model), model / "BoardSocGsim.fir"], timeout=900)
         fir = (model / "BoardSocGsim.fir").read_text()
+        state["posted_model_census"] = verify_posted_model(fir, args.posted_store_merge)
+        save()
+        step("generate", [gsim, "--threads=1", "--dir=" + str(model), model / "BoardSocGsim.fir"], timeout=900)
         for token in ("module FloatingPointSystem", "module OwnerBankedPhysicalRegisterFile", "module BankedRobPayload",
                       "module MixedCoherentLineHome", "module NonBlockingCoherentLineCache"):
             if token not in fir:

@@ -67,6 +67,9 @@ class MachinePlatform(
         "DMA line mode requires a bounded mixed coherence home")
     require(!jtagRamDownload || (stagedMemoryFabric && coherentLineCache && ramBytes >= 1024 * 1024),
         "JTAG RAM loader requires staged coherent fabric and reserved monitor RAM")
+    require(!p.postedStoreMerge || (coherentLineCache && coreDataTranslation && stagedMemoryFabric &&
+        cacheConcurrency.readMshrs == 2),
+        "posted stores require the real two-MSHR coherent cache and common checked CPU boundary")
     require(p.dataStoreNextLinePrefetch == cacheConcurrency.storeNextLinePrefetch,
         "store authorization and cache prediction must agree")
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")
@@ -370,9 +373,15 @@ class MachinePlatform(
         else coherentLineCacheLines
     private val coherentParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3,
         sinkBits = cacheConcurrency.sinkBits)
+    val postedConfig = p.postedProofConfig.map(_.copy(enabled = true, generationBits = 64, epochBits = 32,
+        cacheSets = privateCacheLines / coherentLineCacheWays, cacheWays = coherentLineCacheWays,
+        readMshrs = cacheConcurrency.readMshrs, responseEntries = cacheConcurrency.responseEntries,
+        writebackEntries = cacheConcurrency.writebackEntries, guaranteedBase = ramBase, guaranteedBytes = ramBytes))
+    postedConfig.foreach(_.requireCacheAperture(ramBase, ramBytes))
     val privateCache = if (coherentLineCache) Some(CoherentLineCacheModule.build(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
-        ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig)) else None
+        ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig,
+        postedConfig = postedConfig)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
@@ -401,6 +410,21 @@ class MachinePlatform(
                 assert(!cache.io.tl.a.valid, "cache-local flush completed with an unissued Acquire")
             }
             cache.io.upstream <> platformMemory
+            p.postedProofConfig.foreach { _ =>
+                val posted = cache.io.posted.get
+                posted.requestProof := core.io.posted.get.requestProof
+                posted.requestProof.valid := cache.io.upstream.request.valid && core.io.posted.get.requestProof.valid
+                posted.contextEpoch := core.io.posted.get.contextEpoch
+                posted.seal := core.io.posted.get.seal
+                posted.endEpisode := core.io.posted.get.endEpisode
+                core.io.posted.get.busy := posted.busy
+                core.io.posted.get.episodeActive := posted.episodeActive
+                when(cache.io.upstream.request.fire && posted.requestProof.valid) {
+                    assert(core.io.memory.request.fire && core.io.memoryBusy,
+                        "accepted upstream responsibility overlaps the cache admission edge")
+                }
+                PostedStoreCpu.held(cache.io.upstream.request, posted.requestProof)
+            }
             shared.io.cpu <> cache.io.downstream
         case None =>
             core.io.fenceIFlushReady := true.B

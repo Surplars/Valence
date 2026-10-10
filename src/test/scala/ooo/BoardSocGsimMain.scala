@@ -30,7 +30,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
     loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false,
     preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
-    translatedResponseEmptyFlow: Boolean = false) extends Module {
+    translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
+    lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -44,7 +45,14 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
-        dataTranslationEntries = dataTranslationEntries))
+        dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge))
+    // A test-only, passive scalar view of this exact Board instance. No inputs,
+    // queues or control paths are inserted by the composition fixture.
+    val lineage = lineageProfile.map { profile =>
+        val result = IO(Output(new PostedBoardTrace(profile.coreParams)))
+        PostedBoardProbes.connect(result, board, profile)
+        result
+    }
     val io = IO(new Bundle {
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
