@@ -95,7 +95,7 @@ class MappedMachineCore(
             // The platform's existing two response credits are relocated here,
             // ahead of APLIC/fault returns as well as external memory returns.
             val responses = Module(new DataResponseBuffer(registerPayload = p.registeredTranslatedResponses,
-                registerHead = p.registeredTranslationHeads))
+                registerHead = p.registeredTranslationHeads, emptyFlow = p.translatedResponseEmptyFlow))
             observationResponses = Some(responses)
             responses.io.upstream <> core.io.memory
             adapter.io.virtual <> responses.io.downstream

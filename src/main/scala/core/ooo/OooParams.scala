@@ -42,6 +42,7 @@ case class OooParams(
     rawFetchPresence: Boolean = false,
     oneHotPhysicalOperands: Boolean = false,
     registeredTranslatedResponses: Boolean = false,
+    translatedResponseEmptyFlow: Boolean = false,
     directMemoryResponse: Boolean = false,
     parallelFetchAddresses: Boolean = false,
     prefixTileLinkDecode: Boolean = false,
@@ -264,6 +265,8 @@ case class OooParams(
         "registered fabric boundary builds on the request-capture profile")
     require(!registeredTranslationHeads || (registeredFabricBoundary && registeredTranslatedResponses),
         "translation heads require the registered request and response boundaries")
+    require(!translatedResponseEmptyFlow || registeredTranslationHeads,
+        "local translated response flow requires the existing registered translation boundaries")
     require(!identityDataRequestFlow || registeredTranslationHeads,
         "identity data flow requires registered translation ingress")
     require(!precheckedDataRequestFlow || (virtualRamLoadPrecheck && registeredTranslationHeads),

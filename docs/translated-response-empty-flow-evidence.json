@@ -1,0 +1,377 @@
+{
+  "schema": "valence-return-flow-delivery-evidence-v1",
+  "status": "LOCAL_REVIEW_CANDIDATE_NOT_PUBLISHED",
+  "published_dev_commit": "2886a3b0c8e8ab701ae7caa8c8cf5c7a50534a54",
+  "published_tree": "ccab58e99eccd48ef0ef0644fd9a1330691ae5e1",
+  "publication_replica_commit": "38b5c10c61261f1aa2031b95037bd5cb54b6e226",
+  "qualified_commit": "c3f3af4857e02f83bac50bb54b78ba92d128b081",
+  "production_src_main_tree": "b178f3eacb834356e999f5bd5ee38daf5bf2b69f",
+  "default": "OFF",
+  "prechecked_data_flow": "OFF in all qualified response-flow profiles; combined option unqualified",
+  "full54_on": "PASS_FRESH_C3F3_ON_ORIGINAL_ROM",
+  "new_location_checks": "portable host/CLI checks only; original runtime receipts bind original paths",
+  "results": {
+    "translated-response-flow-final-results-r1/RESULTS.md": {
+      "sha256": "8869a4dcc24d690160270914c4232a60675f2d2ca2663ba333764f1152a67bb6"
+    },
+    "translated-response-flow-final-results-r1/index.json": {
+      "sha256": "916b4e0e0ef8e007d94a45184ad6d2eefb5277f0180aadeb18b28e1d48bf4132"
+    },
+    "return-response-flow-regressions-r1/RESULTS.md": {
+      "sha256": "404e9a40f2f26dd101d390a62ed875e68f3ed92171546c0a9f3b7e49846fc933"
+    },
+    "return-response-flow-regressions-r1/verification-r1/receipt.json": {
+      "sha256": "eb5c1574b1a12bd9e2c4685e7044b22f9641fedbe627c83921ae2cc0d9428526"
+    },
+    "warm-read-returnflow-replay-r1/pair.json": {
+      "sha256": "ab8161b29f5a88bb3cd2a16d3df8ca092d200b55f3299a2ab35aef7219c729aa"
+    },
+    "warm-read-returnflow-replay-r1/RESULTS.md": {
+      "sha256": "b03006efa126108ce1feaafd3b6a0b29195525d32f1f28be525484d8249368e7"
+    },
+    "return-response-flow-full54-checkpoint-r2/analysis-at-017016401-r1/results/rows.csv": {
+      "sha256": "0bf6b763a5a61f0502befd2b38473d954fc0b5f209bda815331c27c0a3b7ab07",
+      "scope": "Six complete UART rows only; no terminal full54 PASS"
+    },
+    "return-response-flow-full54-checkpoint-r2/analysis-at-017016401-r1/results/summary.json": {
+      "sha256": "5ed84f75c894a1e2b4aebb8440a1e7b622ebfa8949a1ec465493da201f541274",
+      "status": "PARTIAL_NOT_COMPLETE"
+    },
+    "bootrom-full54-checkpoint-prep-r3/final-audit-r1/results/rows.csv": {
+      "sha256": "6a64fb5ad522de4908673c58f174193334bb6425a80aabe7cdabf9ab41eb3b38",
+      "scope": "Original 9483 OFF full54 baseline; all54 matching tuples compared against the separately completed c3f3 ON run."
+    },
+    "warm-read-returnflow-schedule-r1/RESULTS.md": {
+      "sha256": "b407a1884f9f7f4cb5c634a73e944ae20067c3fb4caa19743ef7369ab97ab678"
+    },
+    "warm-read-returnflow-schedule-r1/schedule-witness.json": {
+      "sha256": "ddd10a2c61d5d20cf5543fe30eeef1d719bfe1db6da8e34339ee12616f105a79"
+    },
+    "warm-read-returnflow-schedule-r1/dependency-ready.json": {
+      "sha256": "ef4511bc6ac2330996aedde5c0edd67bc2912fdeb71676c6a24acb96513df78f"
+    },
+    "warm-read-returnflow-schedule-r1/pair.json": {
+      "sha256": "958dc6be2e0f4e289e655762d1efeca163e94bccb2aafb2a5574f350b9f9aca1"
+    },
+    "return-response-flow-full54-checkpoint-r2/final-audit-r1/receipt-with-provenance.json": {
+      "sha256": "371688a4e01cc0c273bcbf42e1fb3e1f648f4edc02a7957bf886d7e44ad8621b",
+      "scope": "Terminal original-ROM ON audit or complete matching-tuple OFF/ON comparison"
+    },
+    "return-response-flow-full54-checkpoint-r2/final-audit-r1/explicit-terminal-evidence.json": {
+      "sha256": "eee0610c58578d0420ae8dc418f22e2fe5b6d7cca178909c83b11e803b94ae14",
+      "scope": "Terminal original-ROM ON audit or complete matching-tuple OFF/ON comparison"
+    },
+    "return-response-flow-full54-checkpoint-r2/full54-comparison-r1/all54-comparison.csv": {
+      "sha256": "3e29c6a54250d46293bf8ca9e9d09f79e3b1118ee90ed54672ad1fe7f32f7617",
+      "scope": "Terminal original-ROM ON audit or complete matching-tuple OFF/ON comparison"
+    }
+  },
+  "archives": [
+    {
+      "name": "translated-response-flow-source-r2.tar.gz",
+      "bytes": 4885021,
+      "sha256": "e93555c2d9818c4686c0268907f95384d3a0b0bc5cef27fc3f18f84ed851320b",
+      "library_file_id": "libfile_404c5a94558c8191bc3b089546f9141d",
+      "version": 0,
+      "scope": "Current default-OFF c3f3 source; source-only, includes extractor tooling fix with unchanged RTL996e8819."
+    },
+    {
+      "name": "translated-response-flow-component-evidence-r1.tar.gz",
+      "bytes": 1813747,
+      "sha256": "89c9c123e44351bf95d284ec45b20e44d1709a321508b3fa5aa36f26444b6855",
+      "library_file_id": "libfile_212474740d588191aa356305606caac7",
+      "version": 0,
+      "scope": "Actual component-only PASS on c3f3; 656 returns/side, 14 negative controls, preserved r1/r2 attempts and extraction controls; no CPU or native claims."
+    },
+    {
+      "name": "translated-response-flow-model-smoke-evidence-r1.tar.gz",
+      "sha256": "1825a8fa3cac73051d1225edd13c835ea43abdd40312ae58f4d59b15b11923b0",
+      "bytes": 21742018,
+      "library_file_id": "libfile_c9980527271c8191926301d7133fd982",
+      "version": 0,
+      "scope": "Actual fresh OFF/ON model+GC positives/negatives; generated sources/objects, four receipts, strict pins/ABI checks and bounded static narrow-change audit. Formal replay/native pending at archive time."
+    },
+    {
+      "name": "translated-response-flow-CPU-evidence-r1.tar.gz",
+      "bytes": 15204010,
+      "sha256": "1ca0765890cfc3bdc60eef1f52967a83d73227d4b4ad25f6ed64d78de3719dda",
+      "library_file_id": "libfile_7ed49a2de544819188f80dad858fbc00",
+      "version": 0,
+      "scope": "All four actual WRITE20/COPY21 terminal cases/negative runs, exact hosts/guests/pins and two strict comparisons; local response-flow independent option only, no combined prechecked-data-flow."
+    },
+    {
+      "name": "translated-response-flow-native-final-evidence-r1.tar.gz",
+      "bytes": 1479175,
+      "sha256": "045f0114a8ed4f3b5c48d48da84a4a3a2a1b29536a02d7d472d1beecc6677ad3",
+      "library_file_id": "libfile_54a67f6a1910819194a3fa3320f811e1",
+      "version": 0,
+      "scope": "Actual OFF/ON native exports, reachable instance literalstate/array and tenRAM contracts, two preserved strict bridge failures plus complete enumerated native-delta review, source forward-path review and final experiment results. No formal equivalence or timing claim."
+    },
+    {
+      "name": "return-response-flow-regressions-r1-terminal.tar.gz",
+      "sha256": "bd6c8bed77c7b26b29dd37fcc787ec646282b5b7646e51fedd8b1e537f031bbb",
+      "bytes": 1009611,
+      "library_file_id": "libfile_d872b12398148191ab57573cda6a87f3",
+      "version": 0,
+      "scope": "Fresh c3f3 ON IRQ, three original M/Bare NEMU guests and CPU+DMA: five positives/eleven original runtime negatives. Both obsolete observer failures retained; same-edge return ledger44positive/19negative host controls, actual emptybypass nonzero, actualheld/queued zero; no Sv39 latecancel/general proof."
+    },
+    {
+      "name": "warm-read-returnflow-results-r1.tar.gz",
+      "bytes": 9991557,
+      "sha256": "580094d6d4fd698a21ac0f442842c899cd8b842fb8344ee356eeeea0f7a74dd5",
+      "library_file_id": "libfile_14591f0f7a5c8191805eb5de81009165",
+      "scope": "Independent same-guest warm READ case 0 OFF/ON terminal pair: functional gates pass, ON time regresses 12.7397%; exact sources, receipts and logs preserved. No causal or terminal full54 claim."
+    },
+    {
+      "name": "warm-read-schedule-diagnosis-r1.tar.gz",
+      "bytes": 2400764,
+      "sha256": "d87195ca01725b53b79af3d84ad06f25857adc34bba62204071e460fa7675ad9",
+      "library_file_id": "libfile_d100160120f88191a938debceb371dac",
+      "version": 0,
+      "scope": "Original-result passive fulltoken/PC/ready/completion diagnostic and disjoint interval decomposition; no remedy or timing claim."
+    },
+    {
+      "name": "return-response-flow-full54-terminal-complete-r1.tar.gz",
+      "bytes": 40883464,
+      "sha256": "8a6c0d35a898d64f9beb7e503bc915297722c690ffb9eade7961e079b951dbd1",
+      "library_file_id": "libfile_36a0294a57cc8191ab8548445eda30f8",
+      "version": 0,
+      "scope": "Fresh c3f3 ON original full54 terminal, 97 complete-state checkpoints and explicit firmware build-provenance correction; 818 payload hashes checked. Replay also needs the separately saved original preparation package."
+    }
+  ],
+  "limits": [
+    "No new controlled Sv39 late-cancel/ROB-reuse proof",
+    "No arbitrary IRQ/fault phase coverage",
+    "No concurrent CPU+DMA NEMU",
+    "No packet-DMA qualification",
+    "No formal or arbitrary X/Z equivalence",
+    "No synthesis, STA, routed Fmax, mapped PPA or board qualification",
+    "Two strict SV bridge failures retained in native archive",
+    "Warm READ is slower with flow ON; COPY/WRITE gains do not establish a universal speedup or justify default enablement"
+  ],
+  "original_receipt_sha256": {
+    "translated-response-flow-component-r3/receipt.json": "b8307cd9af0889183e5c9b4223e0ce7e934b03a9a41a74db42a41bbf4fad44a0",
+    "translated-response-flow-gate-r1/model-OFF/receipt.json": "4adfdd2d0fb7f56936c61c08dc9f3e6f051ad619ebb9407f219ad6372035775e",
+    "translated-response-flow-gate-r1/model-ON/receipt.json": "1ce276b28cbf0f8a9231a8cf88e4f7d76a0ae29cbbcfb4f59b1951a628770295",
+    "translated-response-flow-gate-r1/smoke-OFF/receipt.json": "63ee595e555a6bfd3930ed991c9e65087a1ed90245ef4d8f88283f2f69b10160",
+    "translated-response-flow-gate-r1/smoke-ON/receipt.json": "8dd85c4c53391b201ce4cfb6626841cd768fb81b71531ff9a2f9d018631908a0",
+    "return-response-flow-replay-prep-r1/pins.json": "89abc097cf8f404e794d5c46868f88c4f351f53b2d60937c154d1a2a5e965e52",
+    "return-response-flow-replay-prep-r1/replay/WRITE20-pair.json": "1be7232f02ce9f6533d416081403c8986830313d9219b967655a2e4418c7860f",
+    "return-response-flow-replay-prep-r1/replay/COPY21-pair.json": "48f80d54efcaa716bf15f3211b1c15d28157a235306d4667821b80d8bd9c91e1",
+    "translated-response-flow-gate-r1/native-OFF-execution.json": "9e72bdef85337bf4eee2908c665916d44826aeb0f78229a4c2eec1fda2c5d89c",
+    "translated-response-flow-gate-r1/native-ON-execution.json": "4588ae1dd63807e12c8973d628a298fa18e088661c527cf3cf46a7a99cb7e7ef",
+    "translated-response-flow-gate-r1/native-cost.json": "4895524132b7f2a4160c66436fd6c08098ea2fb94f408c6f2d28f399d8cfb810",
+    "translated-response-flow-gate-r1/native-compare-execution-r1.json": "00ce0cf984cf0bb06e7ea270862110fa8198555d71bfb4184a047bac02ab6570",
+    "translated-response-flow-gate-r1/native-compare-execution-r2.json": "4e75dd9247e03bdced4f58b07adadbc211cf25b5c957eece5225b4b5d61bd30f",
+    "coordination/translated-response-flow-path-review-r1/REPORT.md": "3187348e988d422d846dcad8fce0ab437af3e3fb45233cef39c437666e58afe6",
+    "coordination/translated-response-flow-path-review-r1/source-manifest.json": "644b2c72bed80f7dd6c3bb40eca364b37b10a75d33c398def24f1430fc4accd1",
+    "coordination/response-flow-native-delta-review-r1/report.md": "5a09d541ea2f61fa48718ed89e44ba94fd112a04cf535fc6a4c1610efc5ba052",
+    "coordination/response-flow-native-delta-review-r1/audit.json": "e7a04eadb09ab58641bdc24a69196619f969762bcb8fffc4702fd47c4907694c",
+    "coordination/response-flow-native-delta-review-r1/manifest.json": "be44c97d95b89a7bfb820c2f1b7cc999bbb52b4650903a40fae6b0713475d876"
+  },
+  "warm_read_regression": {
+    "status": "PASS_INDEPENDENT_SAME_GUEST_CASE0_PAIR",
+    "pair_sha256": "ab8161b29f5a88bb3cd2a16d3df8ca092d200b55f3299a2ab35aef7219c729aa",
+    "OFF_ticks": 16531,
+    "ON_ticks": 18637,
+    "ON_minus_OFF_ticks": 2106,
+    "time_change_percent": 12.739701167503469,
+    "throughput_change_percent": -11.300101947738373,
+    "case": {
+      "index": 0,
+      "mode": "S-Bare",
+      "kind": "8K_warmed",
+      "operation": "READ",
+      "pages": 2,
+      "count": 1024,
+      "passes": 8,
+      "payload_bytes": 65536,
+      "flush_ticks": 0,
+      "sum_u64_decimal": "6863348401280905216"
+    },
+    "roi_observations": {
+      "OFF_AXI_read_requests": 1,
+      "ON_AXI_read_requests": 2,
+      "OFF_AXI_read_beats": 8,
+      "ON_AXI_read_beats": 16,
+      "PF_events_and_owner_busy_both": 0,
+      "cause": "Separate later fulltoken/PC diagnostic measures completion-port/PTR scheduling and one canceled speculative miss; exact external AR address was not observed."
+    },
+    "scope": "Standalone and original-ROM startup/prestate differ; do not exchange baselines or infer a cause from passive counters",
+    "recommendation": "Remain explicit and default OFF; no unconditional enablement recommendation",
+    "full54_on": "PASS_SEPARATE_ORIGINAL_ROM_ON_RUN"
+  },
+  "partial_original_rom_first_six": {
+    "status": "HISTORICAL_PARTIAL_SNAPSHOT_PRESERVED",
+    "snapshot_cycle": 17016401,
+    "rows": [
+      {
+        "row": 0,
+        "mode": "S-Bare",
+        "kind": "8K_warmed",
+        "operation": "READ",
+        "count": 1024,
+        "passes": 8,
+        "payload_bytes": 65536,
+        "sum_u64_decimal": "6863348401280905216",
+        "OFF_ticks": 16582,
+        "ON_ticks": 18693,
+        "OFF_flush_ticks": 0,
+        "ON_flush_ticks": 0
+      },
+      {
+        "row": 1,
+        "mode": "S-Bare",
+        "kind": "8K_warmed",
+        "operation": "WRITE",
+        "count": 1024,
+        "passes": 8,
+        "payload_bytes": 65536,
+        "sum_u64_decimal": "0",
+        "OFF_ticks": 41256,
+        "ON_ticks": 41256,
+        "OFF_flush_ticks": 3224,
+        "ON_flush_ticks": 3214
+      },
+      {
+        "row": 2,
+        "mode": "S-Bare",
+        "kind": "8K_warmed",
+        "operation": "COPY",
+        "count": 1024,
+        "passes": 8,
+        "payload_bytes": 65536,
+        "sum_u64_decimal": "0",
+        "OFF_ticks": 57541,
+        "ON_ticks": 49294,
+        "OFF_flush_ticks": 3234,
+        "ON_flush_ticks": 3229
+      },
+      {
+        "row": 3,
+        "mode": "S-Bare",
+        "kind": "128K_stream",
+        "operation": "READ",
+        "count": 16384,
+        "passes": 1,
+        "payload_bytes": 131072,
+        "sum_u64_decimal": "12868991267764166656",
+        "OFF_ticks": 172194,
+        "ON_ticks": 172193,
+        "OFF_flush_ticks": 0,
+        "ON_flush_ticks": 0
+      },
+      {
+        "row": 4,
+        "mode": "S-Bare",
+        "kind": "128K_stream",
+        "operation": "WRITE",
+        "count": 16384,
+        "passes": 1,
+        "payload_bytes": 131072,
+        "sum_u64_decimal": "0",
+        "OFF_ticks": 215809,
+        "ON_ticks": 211731,
+        "OFF_flush_ticks": 10694,
+        "ON_flush_ticks": 10694
+      },
+      {
+        "row": 5,
+        "mode": "S-Bare",
+        "kind": "128K_stream",
+        "operation": "COPY",
+        "count": 16384,
+        "passes": 1,
+        "payload_bytes": 131072,
+        "sum_u64_decimal": "0",
+        "OFF_ticks": 383555,
+        "ON_ticks": 376455,
+        "OFF_flush_ticks": 5607,
+        "ON_flush_ticks": 5601
+      }
+    ],
+    "OFF_csv_sha256": "6a64fb5ad522de4908673c58f174193334bb6425a80aabe7cdabf9ab41eb3b38",
+    "ON_csv_sha256": "0bf6b763a5a61f0502befd2b38473d954fc0b5f209bda815331c27c0a3b7ab07",
+    "summary_sha256": "5ed84f75c894a1e2b4aebb8440a1e7b622ebfa8949a1ec465493da201f541274",
+    "scope": "Historical17016401 partial snapshot, unchanged; current terminal comparison is separately recorded."
+  },
+  "prior_review_checkpoint": {
+    "commit": "1269718ccd494114e533cf888c4d047e868b10d3",
+    "tree": "48415f7bdaa1831298b6a1b011a81bbc16a1905f",
+    "library_file_id": "libfile_b3a72f63c9308191ad8f74b2ccd215e3",
+    "archive": "translated-response-flow-delivery-freeze-r2.tar.gz",
+    "sha256": "e5487ca3c31e28ca81369a5c58db6fcbf780bb91c0183e590f65cefa62275601",
+    "scope": "Preserved pre-regression source/test/doc checkpoint. This candidate retains its qualified response-flow production files, incorporates the already-published uninstantiated posted sources, and adds terminal/tradeoff documentation."
+  },
+  "qualified_production_projection": {
+    "tree": "996e8819be894bc7272191331f78db8fd46e3fe4",
+    "removed_only": [
+      "src/main/scala/core/ooo/PostedStoreMerge.scala",
+      "src/main/scala/core/ooo/PostedStoreProof.scala"
+    ],
+    "status": "BYTE_EXACT_QUALIFIED_FILES_PLUS_UNINSTANTIATED_POSTED_SOURCES",
+    "scope": "Historical runtime receipts retain original c3f3 source inventory. No prior PASS rebound to the combined inventory."
+  },
+  "warm_read_schedule": {
+    "namespace": "warm-read-returnflow-schedule-r1",
+    "status": "PASS_ORIGINAL_RESULTS_REPRODUCED_AND_TOKEN_PC_CORRELATED",
+    "ticks": [
+      16531,
+      18637
+    ],
+    "extra_ticks_exclusive": [
+      2040,
+      49,
+      14,
+      1,
+      2
+    ],
+    "LSU_pointer_completion_overlap": [
+      0,
+      4093
+    ],
+    "retired_pointer_two_cycle_dispatch": [
+      0,
+      4085
+    ],
+    "four_load_steady_period": [
+      8,
+      9
+    ],
+    "retired_load_cache_hits": 8192,
+    "extra_accepted_cancelled_load": 1,
+    "limit": "Observed interval decomposition, not additive recoverable savings. No external AR address in this diagnostic. No remedy RTL tested."
+  },
+  "full54_on_terminal": {
+    "audit_sha256": "371688a4e01cc0c273bcbf42e1fb3e1f648f4edc02a7957bf886d7e44ad8621b",
+    "explicit_terminal_sha256": "eee0610c58578d0420ae8dc418f22e2fe5b6d7cca178909c83b11e803b94ae14",
+    "comparison_csv_sha256": "3e29c6a54250d46293bf8ca9e9d09f79e3b1118ee90ed54672ad1fe7f32f7617",
+    "cycles": 95279477,
+    "source": "c3f3af4857e02f83bac50bb54b78ba92d128b081",
+    "model_receipt_sha256": "1ce276b28cbf0f8a9231a8cf88e4f7d76a0ae29cbbcfb4f59b1951a628770295",
+    "ROM_sha256": "27773d692f139a46fc527cdf86de3aa63ea45ac66c9e71111eab92d5a2a48580",
+    "kernel_sha256": "f5a152ca2779ee567a9f864bc29d524bd91a935dab0323f21353ae9c9af0fec5",
+    "complete_attempts": 97,
+    "one_cold_seed": true,
+    "unknown_exits": 0,
+    "rows": 54,
+    "trap_returns": 57,
+    "poison_rejected": 163,
+    "CSR_PMP_fields": 64,
+    "final_drain": "single snapshot, all18 categories zero; no quiet2 claim",
+    "kernel_rows_faster_equal_slower": [
+      46,
+      1,
+      7
+    ],
+    "greater_than_1pct_regression_rows": [
+      0,
+      6
+    ],
+    "provenance_correction_sha256": "6757ae694988438c78b8b6d4efb20cf1975e0705990008d730d9d6765296e4e6",
+    "scope": "Original ROM/source/kernel preserved; same cold lineage resumes; baseline9483 OFF separate. Not Linux/FPGA/STA or per-row TLB miss-rate evidence.",
+    "archive_library_file_id": "libfile_36a0294a57cc8191ab8548445eda30f8",
+    "archive_sha256": "8a6c0d35a898d64f9beb7e503bc915297722c690ffb9eade7961e079b951dbd1",
+    "preparation_library_file_id": "libfile_3eeda4dd05d48191902caf884854e0d2"
+  }
+}

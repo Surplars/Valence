@@ -1,0 +1,30 @@
+{
+  "schema": "valence-return-flow-ledger-preserved-source-v1",
+  "qualified_production_commit": "c3f3af4857e02f83bac50bb54b78ba92d128b081",
+  "qualified_production_tree": "996e8819be894bc7272191331f78db8fd46e3fe4",
+  "preserved_files": {
+    "cpu_flow_bandwidth.h": {
+      "sha256": "55edd5d9b2020e4ea3e46ed95ed1831fe9607acbb1b9a645ca4a10c0de1767de",
+      "original_relative_path": "same-edge-ledger-r1/overlay/cpu_flow_bandwidth.h"
+    },
+    "test_return_ledger.cpp": {
+      "sha256": "5c39d8d89e379b6d9e7bdf9605dffde6fec676df0a69d3e5dcd07c92f867fff9",
+      "original_relative_path": "same-edge-ledger-r1/test_return_ledger.cpp"
+    },
+    "return-ledger.patch": {
+      "sha256": "f3d5807a86b90dc4c0d6648036528ca74576bc6a5109c0a9e2fe9f5313f616f5",
+      "original_relative_path": "same-edge-ledger-r1/return-ledger.patch"
+    }
+  },
+  "original_runtime_binding_sha256": "3b446d10e2c747c8d5ac7a798c5d6251ab4dda55421b6d258b0249cc57313884",
+  "original_runtime_receipts": {
+    "nemu/receipt.json": "8d98b1fbd0396ee0403fadb0e92b9ef1c37a2e002749326360d277340025c15d",
+    "dma/receipt.json": "dc47c559c8709b5f18fc9f42306856d5bb3c6d610797d73a14cac2396364e9f0"
+  },
+  "terminal_archive": {
+    "name": "return-response-flow-regressions-r1-terminal.tar.gz",
+    "sha256": "bd6c8bed77c7b26b29dd37fcc787ec646282b5b7646e51fedd8b1e537f031bbb",
+    "library_file_id": "libfile_d872b12398148191ab57573cda6a87f3"
+  },
+  "scope": "Exact observer/header controls snapshot from original physical M/Bare integer NEMU and separate CPU+DMA execution; new runner executes only host controls at this location. No CPU replay is claimed at this new path. Original failed hosts and observer inputs remain in the evidence archive."
+}

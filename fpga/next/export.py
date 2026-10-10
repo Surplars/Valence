@@ -104,6 +104,8 @@ def main():
     ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
                     help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--translated-response-empty-flow", action="store_true",
+                    help="default-off local response flow retaining registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
                     help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--load-order-older-retire", action="store_true")
@@ -166,10 +168,13 @@ def main():
         profile["profile"]["name"] += "-dtlb" + str(a.data_translation_entries)
     profile["profile"]["prechecked_data_flow"] = a.prechecked_data_flow
     profile["profile"]["physical_load_ingress_flow"] = a.physical_load_ingress_flow
+    profile["profile"]["translated_response_empty_flow"] = a.translated_response_empty_flow
     if a.prechecked_data_flow:
         profile["profile"]["name"] += "-prechecked-flow"
     if a.physical_load_ingress_flow:
         profile["profile"]["name"] += "-physical-ingress-flow"
+    if a.translated_response_empty_flow:
+        profile["profile"]["name"] += "-translated-response-empty-flow"
     profile["profile"]["load_order_older_retire"] = a.load_order_older_retire
     profile["profile"]["lsu_entries"] = a.lsu_entries
     if a.lsu_entries != 2:
@@ -228,6 +233,7 @@ def main():
             "instruction_translation_entries": 8, "pte_cache_entries": 4,
             "fetch_previous_packet": a.fetch_previous_packet,
             "prepared_store_lookahead": a.prepared_store_lookahead,
+            "translated_response_empty_flow": a.translated_response_empty_flow,
             "physical_qualification": False}, indent=2))
         return
     output.mkdir(parents=True)
@@ -271,6 +277,8 @@ def main():
         command.append("--lsu-entries=" + str(a.lsu_entries))
     if a.physical_load_ingress_flow:
         command.append("--physical-load-ingress-flow")
+    if a.translated_response_empty_flow:
+        command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:
         command.append("--load-order-older-retire")
     if a.fetch_previous_packet:

@@ -93,3 +93,5 @@ GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能�
 - 软件适配优先查前三份软件合同，再核对目标顶层参数和对应验证记录；模块文档中的早期阶段边界不能覆盖后来的实现。
 - 更新软件可见接口时同步修改 datasheet、寄存器或 OS 指南，并保留变更前后配置、日期与证据。
 - 仿真通过、RTL 展开、独立模块综合、整机实现和上板验证分别陈述；不得互相替代。
+
+- [Optional translated-response empty flow](translated-response-empty-flow.md): default-OFF local response bypass, measured CPU pairs, strict observer controls and remaining qualification limits.

@@ -29,7 +29,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
     precheckedDataRequestFlow: Boolean = false, physicalLoadIngressFlow: Boolean = false,
     loadOrderOlderRetire: Boolean = false, fetchPreviousPacket: Boolean = false,
-    preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8) extends Module {
+    preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
+    translatedResponseEmptyFlow: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -40,6 +41,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries))

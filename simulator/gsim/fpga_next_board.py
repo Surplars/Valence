@@ -65,6 +65,8 @@ def main():
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--translated-response-empty-flow", action="store_true",
+                    help="default-off local empty response flow; retains registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
                     help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--load-order-older-retire", action="store_true")
@@ -87,6 +89,8 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.prechecked_data_flow and not args.virtual_ram_load_precheck:
+        ap.error("prechecked data flow requires --virtual-ram-load-precheck")
     if args.store_prefetch_mru_insertion and not args.store_next_line_prefetch:
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if args.dma_line_entries != 1 and not args.dma_line_transfers:
@@ -117,6 +121,8 @@ def main():
         parameters.append("--lsu-entries=" + str(args.lsu_entries))
     if args.physical_load_ingress_flow:
         parameters.append("--physical-load-ingress-flow")
+    if args.translated_response_empty_flow:
+        parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
         parameters.append("--load-order-older-retire")
     if args.fetch_previous_packet:
@@ -142,6 +148,7 @@ def main():
     plan = {"data_translation_entries": args.data_translation_entries,
             "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
             "prepared_store_lookahead": args.prepared_store_lookahead,
+            "translated_response_empty_flow": args.translated_response_empty_flow,
             "store_next_line_prefetch": args.store_next_line_prefetch,
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,
             "smoke_only": args.smoke_only, "passive_probes": True,

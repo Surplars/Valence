@@ -25,6 +25,7 @@ final case class FpgaNextConfig(
     dmaLineEntries: Int = 1,
     precheckedDataRequestFlow: Boolean = false,
     physicalLoadIngressFlow: Boolean = false,
+    translatedResponseEmptyFlow: Boolean = false,
     lsuEntries: Int = 2,
     loadOrderOlderRetire: Boolean = false,
     fetchPreviousPacket: Boolean = false,
@@ -54,6 +55,7 @@ final case class FpgaNextConfig(
         (if (dataTranslationEntries != 8) s"-dtlb$dataTranslationEntries" else "") +
         (if (precheckedDataRequestFlow) "-prechecked-flow" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
+        (if (translatedResponseEmptyFlow) "-translated-response-empty-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
         (if (loadOrderOlderRetire) "-older-load-retire" else "") +
         (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
@@ -109,6 +111,7 @@ final case class FpgaNextConfig(
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead)
 
@@ -129,6 +132,7 @@ final case class FpgaNextConfig(
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
+        translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries)
@@ -177,6 +181,7 @@ object FpgaNextConfig {
             prefetchCandidateCycles = lifetime,
             precheckedDataRequestFlow = options.contains("--prechecked-data-flow"),
             physicalLoadIngressFlow = options.contains("--physical-load-ingress-flow"),
+            translatedResponseEmptyFlow = options.contains("--translated-response-empty-flow"),
             prefetchBreakOnStore = options.contains("--prefetch-break-on-store"),
             storeNextLinePrefetch = options.contains("--store-next-line-prefetch"),
             storePrefetchMruInsertion = options.contains("--store-prefetch-mru-insertion"),

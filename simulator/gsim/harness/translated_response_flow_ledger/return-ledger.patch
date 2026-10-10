@@ -1,0 +1,116 @@
+--- original/cpu_flow_bandwidth.h
++++ same-edge-ledger/cpu_flow_bandwidth.h
+@@ -12,7 +12,8 @@
+ // token and complete fingerprint until its ordered physical response, even after
+ // retirement and reuse of the same ROB index. Never infer ownership from address.
+ // This fixture-local fork adds the selected board's existing identity shortcut
+-// and its opt-in physical-load ingress shortcut.
++// and its opt-in physical-load ingress shortcut. The local continuation also
++// distinguishes actual translated-return port fires from internal queue fires.
+ // It preserves full-generation lineage and raw-probe conservation. The shortcut
+ // is predicted from pre-edge queue capacity, not inferred from a missing event.
+ struct FlowDataPathOwnershipLedger {
+@@ -65,6 +66,7 @@
+             "virtual_request","incoming_request","translation_request","translation_reply","translated_push",
+             "translated_pop","checked_pop","physical_request","virtual_reply","physical_reply","return_push","return_pop",
+             "route_drain","route_flow_buffered","route_flow_fast","route_direct","fault_placeholder",
++            "return_empty_pass","return_empty_capture","return_old_head_transfer",
+             "same_cycle_translation_reply","simultaneous_fifo_transfer","simultaneous_return_transfer","cancelled_owner_cycles",
+             "reset_fifo_drops","reset_buffered_drops","reset_store_owner_drops","reset_ingress_drops","reset_waiting_drops",
+             "reset_translated_drops","reset_checked_drops","reset_translation_owner_drops","reset_physical_drops",
+@@ -164,6 +166,28 @@
+     bool identityPass(const P &p) const {
+         return p.bit(P::incomingRequest) && !ingress.front().request.virtualized() &&
+             translated.empty() && checked.size() < 2;
++    }
++    // P::virtualReply is adapter virtual response valid && ready: the actual
++    // return-buffer input. P::storeResponse is StoreBuffer physical response
++    // valid && ready: its actual integer output. The fixture rejects foreign
++    // FP/system epochs before using this equivalence. returnPush/returnPop are
++    // separate INTERNAL queue fires, not the port fires under empty flow.
++    bool returnEmptyPass(const P &p) const {
++        return returns.empty() && p.bit(P::virtualReply) && p.bit(P::storeResponse);
++    }
++    void validateReturnBoundary(const P &p) const {
++        const bool pass=returnEmptyPass(p);
++        require(returns.size()<=2,"return two-credit capacity exceeded");
++        require(!p.bit(P::virtualReply)||returns.size()<2,"return input fired without pre-edge queue credit");
++        require(p.bit(P::returnPush)==(p.bit(P::virtualReply)&&!pass),"relocated return enqueue route corruption");
++        require(p.bit(P::returnPop)==(p.bit(P::storeResponse)&&!pass),"relocated return/StoreBuffer response route corruption");
++        require(!p.bit(P::returnPop)||!returns.empty(),"registered return dequeue underflow");
++        if(pass)require(!owners.empty(),"empty return pass lacks accepted input owner");
++    }
++    Returned selectedReturn(const P &p) const {
++        if(!returns.empty())return returns.front(); // Older queue head always wins.
++        require(returnEmptyPass(p)&&!owners.empty(),"StoreBuffer response has no accepted return owner");
++        return {owners.front(),p.reply[1]};
+     }
+     // Read-only checks, including all transfer payloads. This does not increment
+     // counters. advance() invokes it, and must precede BackendOwnershipLedger::advance().
+@@ -305,7 +329,7 @@
+         }
+         if(!owners.empty())require(p.bit(P::ownerFault)==owners.front().fault,"translation response owner fault corruption");
+         require(p.bit(P::physicalReply)==(p.bit(P::virtualReply)&&!p.bit(P::ownerFault)),"physical/virtual response route corruption");
+-        require(p.bit(P::returnPush)==p.bit(P::virtualReply),"relocated return enqueue route corruption");
++        validateReturnBoundary(p);
+         if(p.bit(P::virtualReply)) {
+             require(!owners.empty(),"virtual response registered-owner underflow");
+             const auto &t=owners.front();
+@@ -316,11 +340,11 @@
+                 response(p.reply[0],p.reply[1],"physical/virtual reply fingerprint corruption");
+             }
+         }
+-        require(p.bit(P::returnPop)==p.bit(P::storeResponse),"relocated return/StoreBuffer response route corruption");
+         if(p.bit(P::storeResponse)) {
+-            require(!returns.empty()&&!storeOwners.empty(),"StoreBuffer response registered-owner underflow");
+-            require(same(returns.front().transaction,storeOwners.front()),"StoreBuffer return full-token lineage corruption");
+-            response(returns.front().reply,p.reply[2],"relocated return payload corruption");
++            require(!storeOwners.empty(),"StoreBuffer response registered-owner underflow");
++            const auto returned=selectedReturn(p);
++            require(same(returned.transaction,storeOwners.front()),"StoreBuffer return full-token lineage corruption");
++            response(returned.reply,p.reply[2],"relocated return payload corruption");
+             response(p.reply[2],p.reply[3],"StoreBuffer response payload corruption");
+             if(storeOwners.front().buffered) {
+                 require(!stores.empty()&&stores.front().issued&&same(stores.front().transaction,storeOwners.front()),
+@@ -362,6 +386,8 @@
+         check("checked_pop","virtual_reply","reset_translation_owner_drops",owners.size());
+         check("physical_request","physical_reply","reset_physical_drops",physicalPending.size());
+         check("return_push","return_pop","reset_return_drops",returns.size());
++        require(value("virtual_reply")==value("return_push")+value("return_empty_pass"),"return input/queue/pass conservation failure");
++        require(value("store_response")==value("return_pop")+value("return_empty_pass"),"return output/queue/pass conservation failure");
+         check("local_accept","local_reply","reset_local_reply_drops",bool(localReply));
+     }
+     void advance(const BackendSample &s,const P &p,const BackendOwnershipLedger &b) {
+@@ -382,7 +408,12 @@
+         counters["foreign_epoch"]+=p.bit(P::foreignEpoch);
+         validate(s,p,b);++counters["checks"];
+         // Capture every source BEFORE mutation, then pop old registered heads
+-        // before pushing successors. Only translation and local ack may flow.
++        // before pushing successors. Empty return flow consumes its actual port
++        // input/output once; internal queue push/pop remain separately observed.
++        const bool emptyPass=returnEmptyPass(p);
++        counters["return_empty_pass"]+=emptyPass;
++        counters["return_empty_capture"]+=returns.empty()&&p.bit(P::virtualReply)&&!p.bit(P::storeResponse);
++        counters["return_old_head_transfer"]+=!returns.empty()&&p.bit(P::storeResponse);
+         std::optional<Transaction> bus, incomingTransfer, translatedTransfer, checkedTransfer;
+         std::optional<Returned> virtualReturn, newLocal;
+         if(p.bit(P::storeRequest))bus=selected(s,p);
+@@ -423,7 +454,8 @@
+         if(p.bit(P::storeResponse)) {
+             if(storeOwners.front().buffered){stores.pop_front();++counters["buffered_response"];}
+             else ++counters["direct_response"];
+-            storeOwners.pop_front();returns.pop_front();
++            storeOwners.pop_front();
++            if(p.bit(P::returnPop))returns.pop_front();
+         }
+         if(p.bit(P::virtualReply))owners.pop_front();
+         if(p.bit(P::physicalReply))physicalPending.pop_front();
+@@ -447,7 +479,7 @@
+         if(translatedTransfer)translated.push_back(*translatedTransfer);
+         if(checkedTransfer)checked.push_back(*checkedTransfer);
+         if(newOwner){owners.push_back(*newOwner);if(!newOwner->fault)physicalPending.push_back(*newOwner);else ++counters["fault_placeholder"];}
+-        if(virtualReturn)returns.push_back(*virtualReturn);
++        if(p.bit(P::returnPush)){require(bool(virtualReturn),"queue capture lacks accepted return input");returns.push_back(*virtualReturn);}
+         if(s.deq())fifo.pop_front();
+         if(s.enq()){auto r=p.request[P::fifoEnq];fifo.push_back({s.request,r,r,false,false,false});}
+         counters["fifo_enqueue"]+=s.enq();counters["fifo_dequeue"]+=s.deq();
