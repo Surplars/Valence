@@ -70,6 +70,8 @@ class MachinePlatform(
     require(!p.postedStoreMerge || (coherentLineCache && coreDataTranslation && stagedMemoryFabric &&
         cacheConcurrency.readMshrs == 2),
         "posted stores require the real two-MSHR coherent cache and common checked CPU boundary")
+    require(!p.postedPrefetchHeadOffer || cacheConcurrency.postedPrefetchCoexistence,
+        "posted PF head offer requires the cache posted/PF coexistence contract")
     require(p.dataStoreNextLinePrefetch == cacheConcurrency.storeNextLinePrefetch,
         "store authorization and cache prediction must agree")
     require(p.dataNextLinePrefetch == cacheConcurrency.nextLinePrefetch, "core authorization and cache prefetch must agree")

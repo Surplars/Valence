@@ -100,3 +100,5 @@ GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能�
 
 - [Posted-store WRITE/COPY performance tradeoff](posted-store-seal-performance.md)
 - [Posted-store same-source native storage cost](posted-store-native-cost.md)
+
+- [Posted/PF v2 integration](posted-prefetch-integration.md): recommended posted/coexistence/head-offer preset, completed scoped qualification and explicit remaining coverage limits; generic defaults stay OFF.

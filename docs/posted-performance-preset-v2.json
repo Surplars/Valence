@@ -1,0 +1,328 @@
+{
+  "schema": "posted-performance-preset-qualification-v2",
+  "status": "PASS_V2_RECOMMENDATION_FULL_PROFILE_NATIVE_BOUND",
+  "source_commit": "996d998275624e7527ce278dc0bc9157ef3ab3d1",
+  "source_tree": "bf354b96def51878a64f8813daceef4a0cf344d6",
+  "rows": [
+    {
+      "side": "ON",
+      "status": "PASS_EXACT_FULL_PROFILE_AND_RAW_NATIVE",
+      "parameters_fields": [
+        26,
+        135,
+        10
+      ],
+      "export_fields": 65,
+      "actual_profile_sha256": "15c7ad1a5aad36adc0cc8c1f4661a013ef85773145fa0532d63ad3415501c014",
+      "reference_profile_sha256": "15c7ad1a5aad36adc0cc8c1f4661a013ef85773145fa0532d63ad3415501c014",
+      "complete_native_files_identical": 269,
+      "systemverilog_files_identical": 268,
+      "receipt_sha256": "19632a7bec1d9bb35636ebdc25e0cb3c8615f1c03d5c1f0d7ca682715736e407",
+      "reference_receipt_sha256": "b75c2f4351030970336a71643e891919c219b45c18223aca1e14962b217cc5a5",
+      "seconds": 20.9047525699998
+    },
+    {
+      "side": "OFF",
+      "status": "PASS_EXACT_FULL_PROFILE_AND_RAW_NATIVE",
+      "parameters_fields": [
+        26,
+        135,
+        10
+      ],
+      "export_fields": 65,
+      "actual_profile_sha256": "9b9e86a7477cf33b4e448aebfeb50478e6a31b752008fa46c95227a3ef35014e",
+      "reference_profile_sha256": "9b9e86a7477cf33b4e448aebfeb50478e6a31b752008fa46c95227a3ef35014e",
+      "complete_native_files_identical": 266,
+      "systemverilog_files_identical": 265,
+      "receipt_sha256": "4a1b5ea802a85e43dd0e32cc6b3fa4e1e728961f24d4d7eaf0ed3866b0232021",
+      "reference_receipt_sha256": "7db0d028393b94b320f387f0d8d01c291efbd521e2152c49105709c1ad06540d",
+      "seconds": 20.833688936000726
+    },
+    {
+      "side": "LEGACY",
+      "status": "PASS_EXACT_ACTUAL_FULL_PROFILE",
+      "parameters_fields": [
+        26,
+        135,
+        10
+      ],
+      "export_fields": 65,
+      "actual_profile_sha256": "89287fc1bc2ca7b52bd1893d2fa70456e694bd5b6536b0402a97dc16503b8c02",
+      "reference_profile_sha256": "89287fc1bc2ca7b52bd1893d2fa70456e694bd5b6536b0402a97dc16503b8c02",
+      "seconds": 3.633069444999819
+    }
+  ],
+  "plan_sha256": "5b8b1c2cc20c7ec55bdc8fa06b39da41c817a236769cdd8d501e32aea4176239",
+  "no_gsim": true,
+  "limits": [
+    "ON exactly bound to qualified A-ON native and actual Board profile.",
+    "OFF raw exact to 0d1b integration OFF; old f1 raw files differ as separately documented.",
+    "LEGACY has fresh pure/full profile only and uses previously qualified same-production native correspondence.",
+    "No new GSIM guest run, FPGA, STA or PPA.",
+    "Original integration-to-f1 raw native equality remains FAIL; independent narrow structural correspondence only.",
+    "New integration Board launchers have not run fresh GSIM models.",
+    "Two focused producer overlap obligations remain UNREACHED; broader producer fault injection not fresh.",
+    "No Linux/Sv39 posted early-ACK, posted plus returnflow/prechecked flow, mapped PPA/STA, bitstream or live-FPGA qualification.",
+    "Older full54/Sv39 runs used different source and do not qualify this combination."
+  ],
+  "preset": "posted-performance-v2",
+  "entrypoint": "python3 -B fpga/next/performance.py --output FRESH_PATH --emit",
+  "controls": {
+    "recommended": {
+      "flags": [],
+      "postedStoreMerge": true,
+      "postedPrefetchCoexistence": true,
+      "postedPrefetchHeadOffer": true
+    },
+    "legacy-posted": {
+      "flags": [
+        "--disable-posted-prefetch"
+      ],
+      "postedStoreMerge": true,
+      "postedPrefetchCoexistence": false,
+      "postedPrefetchHeadOffer": false
+    },
+    "off": {
+      "flags": [
+        "--disable-posted"
+      ],
+      "postedStoreMerge": false,
+      "postedPrefetchCoexistence": false,
+      "postedPrefetchHeadOffer": false
+    }
+  },
+  "generic_defaults": {
+    "postedStoreMerge": false,
+    "postedPrefetchCoexistence": false,
+    "postedPrefetchHeadOffer": false
+  },
+  "returnflow": false,
+  "prechecked_request_flow": false,
+  "production_source_reference": "6f1e8c4fb1064f6d4fdd0b5ccbc4d5d595b5de94",
+  "production_blobs_and_modes_exact": 194,
+  "board_model_source": "e9af6a49e73f6606be233086fc1f57a4b86acb73",
+  "published_remote_base": "f1f1519b42a43773df8d407aedb0c6e48bebacc0",
+  "published_base_tree": "f8d771eff0bb282fc0ea1d362f608873a349ced5",
+  "local_surrogate_base": "46b0ffe73538bb31ae0445d10a9a8597a59f5dd0",
+  "local_surrogate_is_remote_ancestry": false,
+  "source_binding": {
+    "fpga/next/performance.py": "85788d631d13fb23411f653150168e81c8d4d031c829fcf287e22ef31e790756",
+    "fpga/next/performance-profile.json": "f16f2db5d401e1c59de0e2e00a420b9a83d13fc364ea38ea077a2fa3a690c09b",
+    "fpga/next/export.py": "dbfa6071ed3b1522d412e991e2e0eba2e672a6eaa70c2ad54a7a221e33983db1",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "5cac0046448b5b5cf8a62cced6522e2265e24276e3b526244ec41d95ce689214"
+  },
+  "v1_record_retained": "posted-performance-preset.json",
+  "original_integration_raw_gate": "FAIL_RETAINED",
+  "original_integration_source": "0d1bdaf435d6666188d3dbca05838291b22c847a",
+  "independent_narrow_bridge": {
+    "status": "PASS_INDEPENDENT_NARROW_COMBINATIONAL_BRIDGE",
+    "rows": [
+      {
+        "module_tokens": 102396,
+        "net_renames": 2,
+        "alias_extractions": 0,
+        "side": "OFF",
+        "old_sha256": "7a06334ef66fb878f3cf445fb096a37c6942d4f9153b94f46d39eb26b83842ce",
+        "new_sha256": "a66ee437b0533f7a06ae31f4e16830682d4ca922df4676f6c816b35ba5285382",
+        "raw_equal": false
+      },
+      {
+        "module_tokens": 109368,
+        "net_renames": 3,
+        "alias_extractions": 1,
+        "side": "ON",
+        "old_sha256": "51e8479a8f3a4c56f629ee80fe8fb69d2457df7c29d7b5e3f85a9df58d7651cf",
+        "new_sha256": "0c6c73b1cf9de782eddf80e0bd49e79aa1aca2642fbf63bfc3161de81df3ca4b",
+        "raw_equal": false
+      }
+    ],
+    "negative_controls": [
+      {
+        "side": "OFF",
+        "mutation": "probe-comparison",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "OFF",
+        "mutation": "bypass-comparison",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "OFF",
+        "mutation": "wire-width",
+        "rejected": true,
+        "reason": "('_otherwiseEligible_T_28', 'wire declaration')"
+      },
+      {
+        "side": "OFF",
+        "mutation": "extra-state-write",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "ON",
+        "mutation": "probe-comparison",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "ON",
+        "mutation": "bypass-comparison",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "ON",
+        "mutation": "wire-width",
+        "rejected": true,
+        "reason": "('_otherwiseEligible_T_28', 'wire declaration')"
+      },
+      {
+        "side": "ON",
+        "mutation": "extra-state-write",
+        "rejected": true,
+        "reason": "other token/content/logic difference"
+      },
+      {
+        "side": "ON",
+        "mutation": "authority-and-to-or",
+        "rejected": true,
+        "reason": "('exact substitution count', 0, 1)"
+      },
+      {
+        "side": "ON",
+        "mutation": "remove-episode-negation",
+        "rejected": true,
+        "reason": "('exact substitution count', 0, 1)"
+      },
+      {
+        "side": "ON",
+        "mutation": "remove-consumer-gate",
+        "rejected": true,
+        "reason": ""
+      },
+      {
+        "side": "ON",
+        "mutation": "alias-extra-writer",
+        "rejected": true,
+        "reason": "('postedPrefetchAllowed', 'extra write')"
+      }
+    ],
+    "raw_byte_equality": false,
+    "scope": "One cache module: exact scalar alias reversal and collision-free typed internal-wire renaming. Every other complete token is identical.",
+    "limits": [
+      "Not general formal equivalence.",
+      "No event/glitch, timing, mapped PPA or FPGA claim."
+    ],
+    "reviewer_script_sha256": "b9627ef0407fe269ccf3160682d75b7667aff90c1d0c9073a0347d491b7042c4"
+  },
+  "performance": {
+    "copy": {
+      "A_kernel": 457146,
+      "A_flush": 5620,
+      "B_kernel": 365235,
+      "B_flush": 5618,
+      "kernel_speedup_B_over_A": 1.251648938354758,
+      "including_flush_speedup_B_over_A": 1.2478421369113908,
+      "independent_posted_no_coexistence_kernel": 452641,
+      "independent_posted_no_coexistence_flush": 5666,
+      "kernel_speedup_B_over_independent_posted_reference": 1.23931441400742,
+      "including_flush_speedup_B_over_independent_posted_reference": 1.2358185049062567
+    },
+    "write": {
+      "A_kernel": 112826,
+      "A_flush": 10646,
+      "B_kernel": 112826,
+      "B_flush": 10646,
+      "independent_posted_no_coexistence_kernel": 112826,
+      "independent_posted_no_coexistence_flush": 10647,
+      "whole_roi_and_flush_axi_exact_equal": true
+    },
+    "other_architecture_historical_reference": {
+      "posted_store_merge": false,
+      "copy_kernel_cycles": 383603,
+      "kernel_ratio_reference_over_current_B": 1.0502909085930976,
+      "is_this_A_B_baseline": false,
+      "freshly_rerun_in_this_namespace": false,
+      "document_sha256": "8d9b46466e1118e956874b208806c706ae14191c0b9ffafc7f55b36657c0fe48",
+      "line": 87,
+      "copy_flush_cycles": 5618,
+      "including_flush_ratio_reference_over_current_B": 1.0495290586836294,
+      "document_path": "docs/posted-store-seal-performance.md",
+      "machine_record": "docs/posted-store-seal-performance.json",
+      "machine_record_sha256": "aad2a1ec97f15fc1e849c831f01b05d19c71642a198e7606d533411e0ce205a6",
+      "kernel_throughput_gain_percent": 5.029090859309759,
+      "including_flush_throughput_gain_percent": 4.9529058683629446
+    }
+  },
+  "focused_qualification": {
+    "sha256": "9297ffc6a9c0f244b52910019709d9efb9478fe9b740d9d1b04821fc81dbbbb9",
+    "full_qualification": false,
+    "candidate_producer_overlap": "UNREACHED",
+    "non_pf_accepted_producer_overlap": "UNREACHED",
+    "minimal_library_file_id": "libfile_f663b98dc0c48191a3113936889d4281",
+    "extended_library_file_id": "libfile_e4fb6d70b7ac8191868ed9102a7c34a0"
+  },
+  "durable_runtime_evidence": {
+    "model-only": {
+      "filename": "posted-head-offer-model-only-evidence-r1.tar.gz",
+      "bytes": 14958572,
+      "sha256": "bb2b6782bf4e0833b7b650daa1d221ccd02328ff5f2bbaa78ba885bdc5f07820",
+      "library_file_id": "libfile_ff39246cc25c8191b1a11414dfcf5a8e",
+      "version": 0
+    },
+    "board-composition-audit": {
+      "filename": "posted-head-offer-board-composition-evidence-r1.tar.gz",
+      "bytes": 13641374,
+      "sha256": "44093c15446dac465cf62f1fbd35ea3e5cdc74437e3141f9cdae6d7aa97552a4",
+      "library_file_id": "libfile_3047e5335e648191b69518a134321d0c",
+      "version": 0
+    },
+    "off-copy-source": {
+      "filename": "posted-head-offer-off-copy-evidence-r1.tar.gz",
+      "bytes": 5182510,
+      "sha256": "c7f46a60999c1086abadc785cfc2852968401b8030a3c16348d24f0dd363862c",
+      "library_file_id": "libfile_44b228bac6f481919a6058f2f6aeef85",
+      "version": 0
+    },
+    "off-write-increment": {
+      "filename": "posted-head-offer-off-write-increment-r1.tar.gz",
+      "bytes": 1666620,
+      "sha256": "3b499f5890f5d73c9e4c3145fc0748e0c473145c8f2dbe9f2e85381709810b3b",
+      "library_file_id": "libfile_6a33192b5a3481919663e443afd946a1",
+      "version": 0
+    },
+    "pair-frozen-source": {
+      "filename": "posted-head-offer-bandwidth-pair-frozen-source-r1.tar.gz",
+      "bytes": 241731,
+      "sha256": "4913a7313418e6dac02fee47f62a44451cc70a39cb11c0e106f5f0b8f9e0585d",
+      "library_file_id": "libfile_2625c61f41e88191a76f76701901be1f",
+      "version": 0
+    },
+    "copy-pair": {
+      "filename": "posted-head-offer-copy-pair-evidence-r1.tar.gz",
+      "bytes": 4942290,
+      "sha256": "5a637d03b01307da9580060a14e646c4e3a589bee719e573e0313feec2c1dc83",
+      "library_file_id": "libfile_b01b4036eb6c81919f0dfa36baca8d21",
+      "version": 0
+    },
+    "write-pair-increment": {
+      "filename": "posted-head-offer-write-pair-increment-r1.tar.gz",
+      "bytes": 1670636,
+      "sha256": "cf7e1bbaad3c30c3f54826797501112d8be25fe2ab2dc1da9b88c50f23f96ca6",
+      "library_file_id": "libfile_1faf05f8050881919e5f7c370079ed2e",
+      "version": 0
+    }
+  },
+  "runtime_dependency_files_bound": 161,
+  "board_diagnostic_limit": "reserveWithoutCapacity omits postedLaunchAllowed; bit35 is not reliable capacity-stall evidence. Performance, AXI and direct assertion gates do not depend on it.",
+  "literal_state_head_offer_delta": {
+    "scalar_bits": 0,
+    "array_bits": 0
+  },
+  "full_qualification": false,
+  "benchmark_execution_mode": "Original case18/19, S-mode Bare physical",
+  "full_54_and_linux_qualification": false
+}

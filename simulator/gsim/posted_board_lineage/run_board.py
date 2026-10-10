@@ -55,13 +55,13 @@ def verify_metrics(value):
         core.require(item["r_backpressure_cycles"] == item["r"]["valid_not_ready"], "R backpressure classification differs")
 
 
-def verify_same_guest_and_memory(out):
+def verify_same_guest_and_memory(out, variants=("old-only", "off", "on")):
     snapshots = ("guest.bin", "initial-memory.bin", "final-memory.bin",
                  "initial-memory-sparse.json", "final-memory-sparse.json")
     result = {}
     for name in snapshots:
         digests = {}
-        for variant in ("old-only", "off", "on"):
+        for variant in variants:
             path = out / "cases" / variant / name
             core.require(path.is_file() and path.stat().st_size > 0, "missing guest/full-memory witness: " + str(path))
             digests[variant] = core.sha(path)
@@ -110,9 +110,33 @@ def verify_trace(path, variant, control=None):
     return counts
 
 
-def bind(args):
+class PostedContract:
+    """Published experiment defaults. New experiments use distinct launchers."""
+    name = "posted"
+    entrypoint = "ooo.PostedStoreBoardLineageGsimMain"
+    audit_entrypoint = "ooo.PostedBoardActualParamsAuditMain"
+    verify_profile = staticmethod(verify_profile)
+    verify_profile_pair = staticmethod(verify_profile_pair)
+    snapshot_variants = ("old-only", "off", "on")
+    cases = (("off", "old-only", None), ("off", "off", None), ("on", "on", None),
+             ("on", "on", "token"), ("on", "on", "byte"))
+
+    @staticmethod
+    def posted_enabled(mode):
+        return mode == "on"
+
+    @staticmethod
+    def case_name(mode, variant, control):
+        return variant + ("-negative-" + control if control else "")
+
+
+DEFAULT_CONTRACT = PostedContract()
+
+
+def bind(args, contract=DEFAULT_CONTRACT, launcher=Path(__file__)):
     repo = args.repo.resolve()
-    core.require((repo / RELATIVE).resolve() == Path(__file__).resolve(), "invoke the bound repo launcher")
+    relative = launcher.resolve().relative_to(ROOT)
+    core.require((repo / relative).resolve() == launcher.resolve(), "invoke the bound repo launcher")
     snapshot = core.source(repo)
     core.require(snapshot["head"] == args.expect_head and snapshot["tree"] == args.expect_tree,
                  "approved source head/tree differs")
@@ -120,6 +144,7 @@ def bind(args):
     tools = json.loads(args.tool_files.read_text())
     core.check_tools(tools)
     binding = {"schema": "posted-board-binding-v1", "repo": str(repo), "source": snapshot,
+               "experiment": contract.name, "launcher": str(relative),
                "tool_receipt": tools, "tool_receipt_path": str(args.tool_files.resolve()),
                "tool_receipt_sha256": args.tool_files_sha256, "environment": core.environment(),
                "python": {"path": str(Path(sys.executable).resolve()), "sha256": core.sha(sys.executable),
@@ -129,17 +154,19 @@ def bind(args):
 
 
 class Gate(core.Gate):
-    def __init__(self, args, binding):
+    def __init__(self, args, binding, contract=DEFAULT_CONTRACT):
+        self.contract = contract
+        core.require(binding.get("experiment", "posted") == contract.name, "bound experiment differs")
         self.args, self.binding, self.out = args, binding, args.output.resolve()
         self.repo = Path(binding["repo"])
         self.tools = binding["tool_receipt"]["files"]
         self.receipt = {"schema": "posted-board-gate-v1", "status": "RUNNING", "phase": args.action,
                         "binding_sha256": args.binding_sha256, "binding": binding,
-                        "historical_pass_inherited": False, "steps": [], "models": {}, "cases": {},
+                        "historical_pass_inherited": False, "experiment": contract.name, "steps": [], "models": {}, "cases": {},
                         "scope": "real CPU/proof/private-cache/Mixed-home/AXI composition; raw functional guest; no throughput claim"}
         if args.action == "run":
-            self.receipt["cases"] = {name: {"status": "NOT_RUN"} for name in
-                                     ("old-only", "off", "on", "on-negative-token", "on-negative-byte")}
+            self.receipt["cases"] = {contract.case_name(*case): {"status": "NOT_RUN"}
+                                     for case in contract.cases}
 
     def artifacts(self, mode):
         model = self.out / "models" / mode
@@ -158,13 +185,13 @@ class Gate(core.Gate):
         model = self.out / "models" / mode
         model.mkdir(parents=True)
         self.checked([self.tools["mill_wrapper"]["path"], "-i", "-j", "1", "IonSoC.test.runMain",
-                      "ooo.PostedStoreBoardLineageGsimMain", model, mode], model / "elaborate.log", 1200)
+                      self.contract.entrypoint, model, mode], model / "elaborate.log", 1200)
         fir = model / (TOP + ".fir")
         text = fir.read_text()
         profile = json.loads((model / "profile.json").read_text())
-        verify_profile(profile, mode)
+        self.contract.verify_profile(profile, mode)
         structural_profile = verify_fir(text)
-        result = census.verify_posted_model(text, mode == "on")
+        result = census.verify_posted_model(text, self.contract.posted_enabled(mode))
         top = census._module(text, TOP)
         core.require("output lineage :" in top and "headInstruction : UInt<32>" in top and
                      "tag : UInt<64>" in top and "word7 : UInt<64>" in top, "actual passive Board scalar view missing")
@@ -199,6 +226,7 @@ class Gate(core.Gate):
             core.require(previous["schema"] == "posted-board-gate-v1" and previous["status"] in
                          ("PASS_MODELS_ONLY", "PASS_MODEL_SIDE") and mode in previous["models"],
                          "complete frozen side required: " + mode)
+            core.require(previous["binding"].get("experiment", "posted") == self.contract.name, "model experiment differs")
             core.require(previous["binding"]["tool_receipt"] == self.binding["tool_receipt"], "model tools differ")
             old, new = previous["binding"]["source"]["files"], self.binding["source"]["files"]
             changed = sorted(name for name in old.keys() | new.keys() if old.get(name) != new.get(name))
@@ -218,11 +246,11 @@ class Gate(core.Gate):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, target)
             summaries[mode] = json.loads((model / "profile.json").read_text())
-            verify_profile(summaries[mode], mode)
+            self.contract.verify_profile(summaries[mode], mode)
             self.receipt["models"][mode] = {"status": "REUSED", "flags": FLAGS, "census": item["census"]}
             self.receipt["reuse"]["sides"][mode] = {"origin": str(origin), "receipt_sha256": digest,
                 "original_binding": previous["binding"], "changed_host_files": changed}
-        verify_profile_pair(summaries["off"], summaries["on"])
+        self.contract.verify_profile_pair(summaries["off"], summaries["on"])
         self.receipt["reuse"]["same_full_source_inventory"] = all(
             not side["changed_host_files"] for side in self.receipt["reuse"]["sides"].values())
         self.receipt["full_profile_pair"] = summaries
@@ -241,7 +269,7 @@ class Gate(core.Gate):
         self.save()
 
     def case(self, mode, variant, control=None):
-        name = variant + ("-negative-" + control if control else "")
+        name = self.contract.case_name(mode, variant, control)
         out = self.out / "cases" / name
         out.mkdir(parents=True)
         command = [self.out / "models" / mode / "run", "--variant=" + variant,
@@ -290,17 +318,15 @@ class Gate(core.Gate):
                 for mode in ("off", "on"):
                     try:
                         self.host(mode)
-                        for variant in (("old-only", "off") if mode == "off" else ("on",)):
-                            self.case(mode, variant)
-                        if mode == "on":
-                            for control in ("token", "byte"):
-                                self.case(mode, "on", control)
+                        for case_mode, variant, control in self.contract.cases:
+                            if case_mode == mode:
+                                self.case(mode, variant, control)
                     finally:
                         self.artifacts(mode)
-                core.require(len(self.receipt["cases"]) == 5 and all(
+                core.require(len(self.receipt["cases"]) == len(self.contract.cases) and all(
                     item["status"] in ("PASS", "EXPECTED_ORACLE_REJECTION") for item in self.receipt["cases"].values()),
                     "real Board cases incomplete or failed")
-                self.receipt["same_guest_and_full_memory"] = verify_same_guest_and_memory(self.out)
+                self.receipt["same_guest_and_full_memory"] = verify_same_guest_and_memory(self.out, self.contract.snapshot_variants)
                 self.receipt["status"] = "PASS_REAL_BOARD_FUNCTIONAL_ONLY"
             self.verify()
         except BaseException as error:
@@ -314,7 +340,7 @@ class Gate(core.Gate):
         return 0 if self.receipt["status"].startswith("PASS_") else 1
 
 
-def main():
+def main(argv=None, *, contract=DEFAULT_CONTRACT, launcher=Path(__file__)):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
     prepare = sub.add_parser("bind")
@@ -339,9 +365,9 @@ def main():
             action.add_argument("--models-on-receipt-sha256")
             action.add_argument("--models", type=Path, required=True)
             action.add_argument("--models-receipt-sha256", required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.action == "bind":
-        bind(args)
+        bind(args, contract, launcher)
         return 0
     core.require(args.slot_granted, "parent-granted heavy slot required")
     core.require(core.sha(args.binding) == args.binding_sha256, "binding digest differs")
@@ -350,13 +376,14 @@ def main():
         core.require(bool(args.models_on) == bool(args.models_on_receipt_sha256),
                      "separate ON side requires both origin and receipt digest")
     core.require(binding["schema"] == "posted-board-binding-v1" and
-                 Path(binding["repo"]) / RELATIVE == Path(__file__).resolve(), "bound launcher differs")
+                 Path(binding["repo"]) / binding.get("launcher", str(RELATIVE)) == launcher.resolve(), "bound launcher differs")
+    core.require(binding.get("experiment", "posted") == contract.name, "bound experiment differs")
     core.require(not args.output.exists(), "fresh output required; never overwrite failed attempts")
     core.require(args.free_floor_mib >= 700 and args.output_budget_mib > 0, "invalid disk limits")
     core.require(shutil.disk_usage(args.output.parent).free >=
                  (args.free_floor_mib + args.output_budget_mib) * core.MIB, "insufficient disk budget")
     args.output.mkdir()
-    return Gate(args, binding).run()
+    return Gate(args, binding, contract).run()
 
 
 if __name__ == "__main__":

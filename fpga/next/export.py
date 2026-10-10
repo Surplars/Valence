@@ -32,7 +32,8 @@ def sources():
     files += [ROOT / name for name in ("build.mill", ".mill-version",
         "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
-        "fpga/next/media_integration.py", "fpga/next/performance.py", *media_integration.INPUTS)]
+        "fpga/next/media_integration.py", "fpga/next/performance.py",
+        "fpga/next/performance-profile.json", *media_integration.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -119,6 +120,10 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--posted-prefetch-head-offer", action="store_true",
+                    help="default-off staged posted head offer while only PF remains busy")
+    ap.add_argument("--posted-prefetch-coexistence", action="store_true",
+                    help="default-off prefetch in empty posted-work windows")
     ap.add_argument("--posted-store-merge", action="store_true",
                     help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
@@ -126,6 +131,10 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.posted_prefetch_head_offer and not (a.posted_store_merge and a.posted_prefetch_coexistence):
+        ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
+    if a.posted_prefetch_coexistence and not a.posted_store_merge:
+        ap.error("--posted-prefetch-coexistence requires --posted-store-merge")
     if a.posted_store_merge and a.prechecked_data_flow:
         ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if a.store_prefetch_mru_insertion and not a.store_next_line_prefetch:
@@ -200,6 +209,12 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["posted_store_merge"] = a.posted_store_merge
     if a.posted_store_merge:
         profile["profile"]["name"] += "-posted-store-merge"
+    profile["profile"]["posted_prefetch_coexistence"] = a.posted_prefetch_coexistence
+    if a.posted_prefetch_coexistence:
+        profile["profile"]["name"] += "-posted-prefetch-coexistence"
+    profile["profile"]["posted_prefetch_head_offer"] = a.posted_prefetch_head_offer
+    if a.posted_prefetch_head_offer:
+        profile["profile"]["name"] += "-posted-prefetch-head-offer"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
@@ -291,6 +306,10 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--store-prefetch-mru-insertion")
     if a.posted_store_merge:
         command.append("--posted-store-merge")
+    if a.posted_prefetch_coexistence:
+        command.append("--posted-prefetch-coexistence")
+    if a.posted_prefetch_head_offer:
+        command.append("--posted-prefetch-head-offer")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
@@ -301,6 +320,8 @@ def main(argv=None, expected_profile_sha256=None):
             "prepared_store_lookahead": a.prepared_store_lookahead,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
+            "posted_prefetch_coexistence": a.posted_prefetch_coexistence,
+            "posted_prefetch_head_offer": a.posted_prefetch_head_offer,
             "physical_qualification": False, "configuration": profile["profile"],
             "command": command}, indent=2))
         return

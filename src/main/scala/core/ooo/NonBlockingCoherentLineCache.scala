@@ -37,6 +37,8 @@ class NonBlockingCoherentLineCache(
             "posted owner must use the exact original cache resources")
         c.requireCacheAperture(base, bytes)
     }
+    require(!concurrency.postedPrefetchCoexistence || postedConfig.exists(_.enabled),
+        "posted/prefetch coexistence requires an enabled posted owner")
     private val posted = postedConfig.map(c => Module(new PostedStoreMerge(c)))
     val observationPosted = postedConfig.map(c => WireDefault(0.U.asTypeOf(new PostedStoreCacheObservation(c))))
     val observationLineWrite = WireDefault(0.U.asTypeOf(new CacheLineWriteObservation))
@@ -48,6 +50,13 @@ class NonBlockingCoherentLineCache(
     private val postedBusy = posted.map(_.io.busy).getOrElse(false.B) || fallbackDrainActive.getOrElse(false.B)
     private val postedEpoch = posted.map(_.io.episodeActive).getOrElse(false.B)
     private val postedIntent = io.posted.map(p => p.requestProof.valid && io.upstream.request.valid).getOrElse(false.B)
+    // A proof-bearing offer may avoid new posted responsibility only on the
+    // ordinary resident-hit route. This is filled from pre-edge classification,
+    // never from READY, accepted, cpuFire, or a downstream handshake.
+    private val postedLegacyHit = WireDefault(false.B)
+    private val postedPrefetchAllowed = if (concurrency.postedPrefetchCoexistence)
+        !postedBusy && (!postedIntent || postedLegacyHit)
+    else !postedEpoch && !postedIntent
     private val postedMshr = postedConfig.map(_ => RegInit(VecInit(Seq.fill(mshrCount)(false.B))))
     private val postedContext = postedConfig.map(c => Reg(Vec(mshrCount, new PostedLineContext(c))))
     private val postedReservation = postedConfig.map(c => Reg(Vec(mshrCount, new PostedCacheReservation(c))))
@@ -459,6 +468,7 @@ class NonBlockingCoherentLineCache(
         owner.io.cacheAdmission.reservation.victimDirty := valid(index) && dirty(index)
         owner.io.cacheAdmission.reservation.victimAddress := (if (tagConfig.bankedStorage)
             taggedAddress(wayTag(primaryTags.get, index), index) else slotAddress(index))
+        postedLegacyHit := owner.io.eligible && !owner.io.exhausted && writeHit
         val eligibleProof = boundary.requestProof.valid && owner.io.eligible
         val mergeRoute = eligibleProof && !owner.io.exhausted && !found
         val fallbackRoute = eligibleProof && owner.io.exhausted
@@ -466,7 +476,11 @@ class NonBlockingCoherentLineCache(
         // Only this bridge commits normal merges. The true held offer is upstream;
         // readiness uses pre-edge resources and no cpuFire/accepted/engine fire.
         owner.io.enq.valid := io.upstream.request.valid && (commitReady || fallbackRoute)
-        owner.io.fallback.ready := legacyReady && !postedBusy
+        // Coexistence makes PF/legacy windows reachable even after generation
+        // exhaustion. A fallback hit must reserve the same complete legacy
+        // response/maintenance boundary asserted by the owner on fallback.fire.
+        owner.io.fallback.ready := legacyReady && !postedBusy &&
+            (if (concurrency.postedPrefetchCoexistence) maintenanceReady else true.B)
         io.upstream.request.ready := Mux(mergeRoute, commitReady,
             Mux(fallbackRoute, owner.io.enq.ready, legacyReady && !postedBusy))
     }
@@ -736,6 +750,21 @@ class NonBlockingCoherentLineCache(
             wbLive(i) && v(i))).asUInt.orR).getOrElse(
             singleReleasePrefetch.map(_ && evictionState =/= eIdle).getOrElse(false.B))
         io.prefetchBusy := candidateValid || liveOwner || releaseBusy
+        if (concurrency.postedPrefetchCoexistence) {
+            // An old candidate cancels beside a held new-owner/fallback offer.
+            // Its pre-edge busy bit still prevents that offer from allocating
+            // a posted owner on this edge. Real PF/WB owners must drain in full.
+            when(io.prefetch.candidate || io.prefetch.allocated) {
+                assert(!postedBusy && (!postedIntent || postedLegacyHit),
+                    "prefetch crossed posted work or a non-legacy proof offer")
+                assert(!postedAccept && !postedFallbackFire,
+                    "prefetch and posted responsibility began on the same edge")
+            }
+            when(postedAccept || postedFallbackFire) {
+                assert(!candidateValid && !liveOwner && !releaseBusy,
+                    "posted or fallback admission crossed accepted prefetch ownership")
+            }
+        }
         io.prefetch.missOwners := PopCount((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free))
         io.prefetch.releaseOwners := wbPrefetch.map(v => PopCount((0 until wbCount).map(i => wbLive(i) && v(i))))
             .getOrElse(releaseBusy.asUInt)
@@ -759,7 +788,8 @@ class NonBlockingCoherentLineCache(
         when(cpuFire && ordinary && !request.write) {
             lastValid := true.B
             lastLine := line
-            when(sequential && request.prefetchNextAllowed && !postedEpoch && !postedIntent && !candidateValid && !liveOwner && !releaseBusy &&
+            when(sequential && request.prefetchNextAllowed && postedPrefetchAllowed &&
+                !candidateValid && !liveOwner && !releaseBusy &&
                 (!trackedValid || consume || !trackedPresent)) {
                 io.prefetch.candidate := true.B
                 candidateValid := true.B
@@ -775,7 +805,7 @@ class NonBlockingCoherentLineCache(
             history.io.acceptedStore := cpuFire && ordinary && request.write
             history.io.address := request.address
             history.io.currentlyAllowed := request.prefetchNextAllowed
-            history.io.candidateAvailable := !postedEpoch && !postedIntent && !candidateValid && !liveOwner && !releaseBusy &&
+            history.io.candidateAvailable := postedPrefetchAllowed && !candidateValid && !liveOwner && !releaseBusy &&
                 (!trackedValid || consume || !trackedPresent)
             history.io.clear := io.flushRequest || (cpuFire && !ordinary)
             when(history.io.candidate) {
@@ -813,7 +843,8 @@ class NonBlockingCoherentLineCache(
         val victimPending = VecInit((0 until wbCount).map(i => wbLive(i) &&
             wbAddress(i)(63, 6) === candidateAddress(63, 6))).asUInt.orR
         val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
-        val otherwiseEligible = !postedEpoch && !postedIntent && !liveOwner && !releaseBusy && !present && !setReserved && !victimPending &&
+        val otherwiseEligible = postedPrefetchAllowed && !liveOwner && !releaseBusy &&
+            !present && !setReserved && !victimPending &&
             (!valid(pfIndex) || !dirty(pfIndex) || candidateStore.getOrElse(false.B)) &&
             freeMask.asUInt.orR && !demandMiss &&
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&

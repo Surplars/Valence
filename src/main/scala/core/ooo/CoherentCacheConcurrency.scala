@@ -6,7 +6,9 @@ import soc.bus.tilelink.{TLBundle, TLParams}
 
 /** Independent capacities: changing miss slots never changes cache geometry or LSU width. */
 case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2, writebackEntries: Int = 1,
-    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1, prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false) {
+    overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1,
+    prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false,
+    postedPrefetchCoexistence: Boolean = false) {
     require(Set(1, 2, 4).contains(readMshrs))
     require(prefetchCandidateCycles >= 1 && prefetchCandidateCycles <= 32,
         "prefetch candidate lifetime must be in 1..32 allocation attempts")
@@ -18,6 +20,8 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "checked store prediction requires next-line prefetch")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,
         "store-origin MRU insertion requires checked store prefetch")
+    require(!postedPrefetchCoexistence || (nextLinePrefetch && readMshrs == 2),
+        "posted/prefetch coexistence requires the original two-MSHR prefetch cache")
     require(!nextLinePrefetch || readMshrs >= 2, "data prefetch reuses a second miss slot")
     require(responseEntries >= readMshrs && responseEntries >= 2 && responseEntries <= 16 &&
         (responseEntries & (responseEntries - 1)) == 0)
@@ -63,6 +67,8 @@ object CoherentLineCacheModule {
     def build(base: BigInt, bytes: BigInt, lines: Int, params: TLParams, ways: Int,
         concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
         postedConfig: Option[PostedStoreMergeConfig] = None): CoherentLineCacheModule = {
+        require(!concurrency.postedPrefetchCoexistence || postedConfig.exists(_.enabled),
+            "posted/prefetch coexistence requires an enabled posted owner")
         postedConfig.foreach(c => require(c.enabled && concurrency.readMshrs == 2,
             "posted integration requires explicit ON and original two-MSHR cache"))
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))

@@ -31,9 +31,15 @@ final case class FpgaNextConfig(
     fetchPreviousPacket: Boolean = false,
     preparedStoreLookahead: Boolean = false,
     dataTranslationEntries: Int = 8,
-    postedStoreMerge: Boolean = false
+    postedStoreMerge: Boolean = false,
+    postedPrefetchCoexistence: Boolean = false,
+    postedPrefetchHeadOffer: Boolean = false
 ) {
     SvTranslationService.indexBits(dataTranslationEntries)
+    require(!postedPrefetchHeadOffer || (postedStoreMerge && postedPrefetchCoexistence),
+        "posted PF head offer requires posted store merging and cache PF coexistence")
+    require(!postedPrefetchCoexistence || postedStoreMerge,
+        "posted/prefetch coexistence requires posted store merging")
     require(!postedStoreMerge || !precheckedDataRequestFlow,
         "posted store candidate excludes unqualified prechecked data empty-flow")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,
@@ -66,6 +72,8 @@ final case class FpgaNextConfig(
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
         (if (postedStoreMerge) "-posted-store-merge" else "") +
+        (if (postedPrefetchCoexistence) "-posted-prefetch-coexistence" else "") +
+        (if (postedPrefetchHeadOffer) "-posted-prefetch-head-offer" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -91,7 +99,8 @@ final case class FpgaNextConfig(
     val cache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
-        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion)
+        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
+        postedPrefetchCoexistence = postedPrefetchCoexistence)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -117,7 +126,8 @@ final case class FpgaNextConfig(
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
-        preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge)
+        preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
+        postedPrefetchHeadOffer = postedPrefetchHeadOffer)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -139,7 +149,8 @@ final case class FpgaNextConfig(
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
-        dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge)
+        dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
+        postedPrefetchHeadOffer = postedPrefetchHeadOffer)
 }
 
 object FpgaNextConfig {
@@ -176,6 +187,8 @@ object FpgaNextConfig {
         base.copy(
             dataTranslationEntries = tlbCount,
             postedStoreMerge = options.contains("--posted-store-merge"),
+            postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
+            postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             lsuEntries = lsuCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),

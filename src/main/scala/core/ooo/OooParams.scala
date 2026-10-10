@@ -137,8 +137,12 @@ case class OooParams(
     shareProtectedHeadPayload: Boolean = false,
     fetchPreviousPacket: Boolean = false,
     preparedStoreLookahead: Boolean = false,
-    postedStoreMerge: Boolean = false
+    postedStoreMerge: Boolean = false,
+    postedPrefetchHeadOffer: Boolean = false
 ) {
+    require(!postedPrefetchHeadOffer || (postedStoreMerge && dataNextLinePrefetch &&
+        registeredMemoryAddress && !fastBufferedStoreRetire),
+        "posted PF head offer requires posted stores, PF busy, staged addresses and non-fast retirement")
     require(!postedStoreMerge || (bufferedRamStores && machineSystem && pmpEntries > 0 && virtualMemoryLevels > 0 &&
         speculativeRamBytes > 0 && speculativeRamBase % 64 == 0 && speculativeRamBytes % 64 == 0),
         "posted stores require the physical guaranteed-success RAM, integer head and PMP contract")

@@ -25,7 +25,9 @@
       "fetchPreviousPacket": true,
       "preparedStoreLookahead": true,
       "dataTranslationEntries": 16,
-      "postedStoreMerge": false
+      "postedStoreMerge": false,
+      "postedPrefetchCoexistence": false,
+      "postedPrefetchHeadOffer": false
     },
     "on": {
       "virtualRamLoadPrecheck": true,
@@ -51,7 +53,9 @@
       "fetchPreviousPacket": true,
       "preparedStoreLookahead": true,
       "dataTranslationEntries": 16,
-      "postedStoreMerge": true
+      "postedStoreMerge": true,
+      "postedPrefetchCoexistence": false,
+      "postedPrefetchHeadOffer": false
     }
   },
   "derived": {

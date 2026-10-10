@@ -21,7 +21,9 @@ Omit `--emit` for a complete preflight. Hardware overrides are rejected; the
 second command changes only posted merging. Generic defaults remain unchanged.
 See the [measurements, costs and scope](../../docs/posted-store-seal-performance.md)
 and [preset qualification](../../docs/posted-performance-preset.md). Posted/PF
-coexistence, translated-response flow and prechecked request flow remain OFF.
+coexistence, PF-only initial head offer, translated-response flow and prechecked request flow remain OFF.
+The new default-OFF controls and separate Board experiments are described in
+[the source integration contract](../../docs/posted-prefetch-integration.md).
 
 ## Fixed contract
 

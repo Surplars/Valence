@@ -40,7 +40,23 @@ class TranslatedResponseFlowCli(unittest.TestCase):
         on = self.read('fpga/next/export.py', base + ['--translated-response-empty-flow'])
         self.assertFalse(off['translated_response_empty_flow'])
         self.assertTrue(on['translated_response_empty_flow'])
+        self.assertEqual(on['profile'].count('-translated-response-empty-flow'), 1)
         self.assertEqual(on['profile'].replace('-translated-response-empty-flow', ''), off['profile'])
+        self.assertFalse(off['configuration']['translated_response_empty_flow'])
+        self.assertTrue(on['configuration']['translated_response_empty_flow'])
+        self.assertEqual(on['configuration']['name'].count('-translated-response-empty-flow'), 1)
+        self.assertEqual(on['configuration']['name'].replace('-translated-response-empty-flow', ''),
+                         off['configuration']['name'])
+        self.assertEqual(on['command'].count('--translated-response-empty-flow'), 1)
+        expected_command = list(off['command'])
+        expected_command.insert(expected_command.index('--physical-load-ingress-flow') + 1,
+                                '--translated-response-empty-flow')
+        self.assertEqual(on['command'], expected_command)
+        self.assertEqual([option for option in on['command'] if option != '--translated-response-empty-flow'],
+                         off['command'])
+        on['configuration']['translated_response_empty_flow'] = False
+        on['configuration']['name'] = off['configuration']['name']
+        on['command'] = off['command']
         on['profile'] = off['profile']
         on['translated_response_empty_flow'] = False
         self.assertEqual(on, off)

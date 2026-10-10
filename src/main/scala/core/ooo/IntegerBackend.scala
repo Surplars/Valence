@@ -183,6 +183,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val blockPostedStart = io.posted.map(_.blockNew).getOrElse(false.B)
     val integerProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
     val fastProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
+    // Accepted CPU ownership only; PF stays in memoryBusy for every strong boundary.
+    // Elaboration-OFF creates no new hardware. Never derive this from start/ready/aggregateDrained.
+    val cpuAcceptedMemoryBusy = if (p.postedPrefetchHeadOffer)
+        Some(WireDefault(integerMemoryBusy || postedBusy)) else None
     io.memoryBusy      := integerMemoryBusy || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
     io.memoryDiscarded := lsu.io.discarded
     io.memoryForwarded := lsu.io.forwarded
@@ -250,6 +254,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         integerMemory.response.bits := io.memory.response.bits
         io.memory.response.ready := Mux(fpMemoryEpoch, fpMemory.response.ready, integerMemory.response.ready)
         io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
+        cpuAcceptedMemoryBusy.foreach(_ := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy)
         when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
     } else {
         io.memory <> integerMemory
@@ -840,11 +845,13 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         memoryEntry.renamed.token.asUInt === headRenamed.token.asUInt &&
         memoryEntry.request.store && !memoryEntry.request.atomic && !virtualized &&
         ordinaryRam && !pmpCheck.io.denied && AlignedMemoryDisjoint.aligned(address, memorySize)
-    // First posted ownership starts after all previously accepted memory drains. Once
-    // live, only additional head physical stores may launch; accepted LSU/FIFO/SB work
-    // remains free to drain. The blocked candidate is never counted as older work.
+    // First posted ownership drains all accepted CPU work. The opt-in staged head
+    // may offer while only autonomous PF remains; cache admission still owns every
+    // PF/MSHR/WB/response check. Once live, only eligible head physical stores may
+    // continue. The blocked offer never counts as accepted work.
     val postedLaunchAllowed = !p.postedStoreMerge.B || (!blockPostedStart && !directStoreReserve &&
-        Mux(postedBusy, postedEligible, !postedEligible || !io.memoryBusy))
+        Mux(postedBusy, postedEligible, !postedEligible ||
+            (if (p.postedPrefetchHeadOffer) !cpuAcceptedMemoryBusy.get else !io.memoryBusy)))
     io.posted.foreach { posted =>
         // Lookahead prepares a younger safe store while an older ALU/branch is
         // still head. Preparation is not an ordered memory boundary: sealing
@@ -976,7 +983,20 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 "posted authority is captured only at the actual successful physical integer ROB-head start")
         }
         when(lsu.io.start.fire && !proof.valid) { assert(!postedBusy) }
-        when(postedStarted && !postedBusy) { assert(!io.memoryBusy) }
+        if (p.postedPrefetchHeadOffer) {
+            when(postedStarted && !postedBusy) {
+                assert(lsu.io.start.fire && proof.valid && !directStoreFire,
+                    "PF head offer only relaxes the staged proof-bearing start")
+                assert(!cpuAcceptedMemoryBusy.get,
+                    "first posted head offer must drain integer, FP and posted accepted ownership")
+                when(io.memoryBusy) {
+                    assert(io.externalPrefetchBusy.get,
+                        "only autonomous PF may remain busy at the first posted head offer")
+                }
+            }
+        } else {
+            when(postedStarted && !postedBusy) { assert(!io.memoryBusy) }
+        }
     }
     // Guaranteed RAM writes receive a local StoreBuffer acknowledgement with request acceptance.
     // Retire only the current head and only after that acceptance; the LSU discards its duplicate

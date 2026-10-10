@@ -32,27 +32,29 @@ class Audit(board.Gate):
                 core.require(core.sha(origin / "receipt.json") == digest, "model receipt changed")
                 model = json.loads((origin / "receipt.json").read_text())
                 core.require(model["status"] == "PASS_MODEL_SIDE" and mode in model["models"], "wrong model side")
+                core.require(model["binding"].get("experiment", "posted") == self.contract.name, "audit experiment differs")
                 core.require(model["binding"]["tool_receipt"] == self.binding["tool_receipt"], "audit tools differ")
                 old, new = model["binding"]["source"]["files"], self.binding["source"]["files"]
                 changed = sorted(name for name in old.keys() | new.keys() if old.get(name) != new.get(name))
-                core.require(set(changed) == {"src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala",
-                    "simulator/gsim/posted_board_lineage/run_actual_audit.py"}, "audit changed model source: " + str(changed))
+                core.require(not changed, "audit changed model source: " + str(changed))
                 donor = origin / "models" / mode
                 for name, value in model["models"][mode]["artifacts"].items():
                     core.require(core.sha(donor / name) == value, "frozen donor artifact changed: " + name)
                 output = self.out / mode
                 output.mkdir()
                 self.checked([self.tools["mill_wrapper"]["path"], "-i", "-j", "1", "IonSoC.test.runMain",
-                    "ooo.PostedBoardActualParamsAuditMain", output, mode], output / "elaborate.log", 1200)
+                    self.contract.audit_entrypoint, output, mode], output / "elaborate.log", 1200)
                 source_fir = donor / "BoardSocGsim.fir"
                 audit_fir = output / "BoardSocGsim.fir"
                 reference = normalized_fir(source_fir.read_text())
                 actual = normalized_fir(audit_fir.read_text())
                 core.require(reference == actual, "actual-parameter audit changed frozen FIR graph")
                 profile = json.loads((donor / "profile.json").read_text())
+                self.contract.verify_profile(profile, mode)
                 report = json.loads((output / "actual-parameters.json").read_text())
                 core.require(report["schema"] == "posted-board-actual-parameters-v1" and report["mode"] == mode and
-                    report["hardwareMutation"] is False and report["allActualParametersEqualExpected"] is True,
+                    report["hardwareMutation"] is False and report["allActualParametersEqualExpected"] is True and
+                    report.get("experiment", "posted") == self.contract.name,
                     "actual parameter report incomplete")
                 core.require(report["entryProfile"] == profile["profile"] and report["expectedCore"] == profile["core"],
                     "audit reference differs from frozen model profile")
@@ -60,7 +62,7 @@ class Audit(board.Gate):
                     len(report["cacheConcurrency"]) == 3 and len(report["cacheTileLinkParameters"]) >= 1,
                     "actual constructor instances omitted")
                 for row in report["coreParameters"]:
-                    core.require(len(row["values"]) == 134 and row["values"] == profile["core"],
+                    core.require(len(row["values"]) == 135 and row["values"] == profile["core"],
                         "actual final core differs: " + row["instancePath"])
                 for row in report["ddrParameters"]:
                     core.require(row["values"] == profile["ddr"], "actual final DDR differs")
@@ -84,7 +86,7 @@ class Audit(board.Gate):
         return 0 if self.receipt["status"].startswith("PASS_") else 1
 
 
-def main():
+def main(argv=None, *, contract=board.DEFAULT_CONTRACT, launcher=Path(__file__)):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--binding", type=Path, required=True)
     p.add_argument("--binding-sha256", required=True)
@@ -93,17 +95,18 @@ def main():
     for mode in ("off", "on"):
         p.add_argument("--model-" + mode, type=Path, required=True)
         p.add_argument("--model-" + mode + "-sha256", required=True)
-    args = p.parse_args()
+    args = p.parse_args(argv)
     args.action = "audit"
     args.free_floor_mib = 1024
     args.output_budget_mib = 1024
     core.require(args.slot_granted and core.sha(args.binding) == args.binding_sha256, "missing slot or wrong binding")
     binding = json.loads(args.binding.read_text())
-    core.require(Path(binding["repo"]) / "simulator/gsim/posted_board_lineage/run_actual_audit.py" ==
-                 Path(__file__).resolve(), "audit launcher differs")
+    relative = launcher.resolve().relative_to(board.ROOT)
+    core.require(Path(binding["repo"]) / relative == launcher.resolve(), "audit launcher differs")
+    core.require(binding.get("experiment", "posted") == contract.name, "bound experiment differs")
     core.require(not args.output.exists(), "fresh audit namespace required")
     args.output.mkdir()
-    return Audit(args, binding).run()
+    return Audit(args, binding, contract).run()
 
 
 if __name__ == "__main__":

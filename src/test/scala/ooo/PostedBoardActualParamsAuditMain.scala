@@ -12,27 +12,19 @@ import soc.core.ooo._
   * hardware. The returned top is the same BoardSocGsim used by the frozen emitter.
   * Runtime reuse additionally requires independently checked normalized FIR equality.
   */
-object PostedBoardActualParamsAuditMain extends App {
-    require(args.length == 2 && Set("on", "off").contains(args(1)),
-        "target directory and explicit on/off required")
-    private val outputDirectory = Paths.get(args(0))
-    private val mode = args(1)
-    private val profile = FpgaNextConfig.Selected.copy(dataTranslationEntries = 16,
-        virtualRamLoadPrecheck = true, preparedStoreLookahead = true,
-        storeNextLinePrefetch = true, storePrefetchMruInsertion = true,
-        dmaLineTransfers = true, dmaLineEntries = 4,
-        lsuEntries = 4, physicalLoadIngressFlow = true, loadOrderOlderRetire = true,
-        fetchPreviousPacket = true, postedStoreMerge = mode == "on")
-    private val referenceOptions = Set("--selected", "--data-translation-entries=16", "--dma-line-transfers",
-        "--dma-line-entries=4", "--virtual-ram-load-precheck", "--lsu-entries=4",
-        "--physical-load-ingress-flow", "--load-order-older-retire", "--fetch-previous-packet",
-        "--prepared-store-lookahead", "--store-next-line-prefetch", "--store-prefetch-mru-insertion") ++
-        (if (mode == "on") Set("--posted-store-merge") else Set.empty[String])
-    private val nativeReference = FpgaNextConfig.fromOptions(referenceOptions, defaultSelected = false)
-    require(profile == nativeReference && profile.coreParams == nativeReference.coreParams,
-        "audit entry profile differs from exact archived native export options")
+/** Shared read-only audit; entry-point wrappers choose explicit experiment profiles. */
+final class PostedBoardActualParamsAudit(
+    profile: FpgaNextConfig,
+    output: String,
+    mode: String,
+    referenceOptions: Set[String],
+    experiment: String = "posted"
+) {
+    private val outputDirectory = Paths.get(output)
+    require(profile == FpgaNextConfig.fromOptions(referenceOptions, defaultSelected = false),
+        "audit entry profile differs from explicit native options")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 134 && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 135 && expectedCore.memoryEntries == 4 &&
         expectedCore.robEntries == 16 && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
         !expectedCore.translatedResponseEmptyFlow && profile.dmaLineTransfers && profile.dmaLineEntries == 4)
@@ -109,7 +101,7 @@ object PostedBoardActualParamsAuditMain extends App {
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 134 && actual == expectedCore,
+            require(actual.productArity == 135 && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }
@@ -138,7 +130,8 @@ object PostedBoardActualParamsAuditMain extends App {
                 s"actual cache TLParams differs at ${field.getDeclaringClass.getName}.${field.getName}")
             record(cache, cachePath, field, actual)
         }
-        Map("schema" -> "posted-board-actual-parameters-v1", "mode" -> mode,
+        Map("schema" -> "posted-board-actual-parameters-v1", "mode" -> mode, "experiment" -> experiment,
+            "qualificationInherited" -> false,
             "topClass" -> top.getClass.getName,
             "boardField" -> Map("declaringClass" -> boardField.getDeclaringClass.getName,
                 "fieldName" -> boardField.getName, "fieldType" -> boardField.getType.getName),
@@ -161,8 +154,29 @@ object PostedBoardActualParamsAuditMain extends App {
         val top = FpgaNextBoardGsim.build(profile, lineageProbes = true)
         actualReport = Some(audit(top))
         top
-    }, Array("--target-dir", args(0)))
+    }, Array("--target-dir", output))
     require(generationCount == 1 && actualReport.nonEmpty, "actual module audit did not execute")
     Files.createDirectories(outputDirectory)
     Files.writeString(outputDirectory.resolve("actual-parameters.json"), json(actualReport.get) + "\n")
+}
+
+object PostedBoardActualParamsAuditMain extends App {
+    require(args.length == 2 && Set("on", "off").contains(args(1)),
+        "target directory and explicit on/off required")
+    new PostedBoardActualParamsAudit(PostedPrefetchBoardProfiles.profile("posted", args(1)),
+        args(0), args(1), PostedPrefetchBoardProfiles.options("posted", args(1)))
+}
+
+object PostedPrefetchCoexistActualParamsAuditMain extends App {
+    require(args.length == 2 && Set("on", "off").contains(args(1)),
+        "target directory and explicit on/off required")
+    new PostedBoardActualParamsAudit(PostedPrefetchBoardProfiles.profile("coexistence", args(1)),
+        args(0), args(1), PostedPrefetchBoardProfiles.options("coexistence", args(1)), "coexistence")
+}
+
+object PostedPrefetchHeadOfferActualParamsAuditMain extends App {
+    require(args.length == 2 && Set("on", "off").contains(args(1)),
+        "target directory and explicit on/off required")
+    new PostedBoardActualParamsAudit(PostedPrefetchBoardProfiles.profile("head-offer", args(1)),
+        args(0), args(1), PostedPrefetchBoardProfiles.options("head-offer", args(1)), "head-offer")
 }

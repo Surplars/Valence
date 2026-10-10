@@ -1,4 +1,119 @@
-# Posted performance preset: exact configuration and native equivalence
+# Recommended posted performance preset v2
+
+`python3 -B fpga/next/performance.py --output FRESH_PATH --emit` selects
+`posted-performance-v2`: posted merging, posted/PF coexistence and PF-only
+initial head offer are ON. Generic module/export defaults remain OFF. Both
+translated-response empty flow and prechecked request flow remain OFF.
+
+There are three fixed selections; arbitrary hardware overrides and option
+abbreviations are rejected:
+
+| Selection | Posted | Coexistence | Head offer |
+|---|---|---|---|
+| Default recommendation | ON | ON | ON |
+| `--disable-posted-prefetch` (original v1 recommendation) | ON | OFF | OFF |
+| `--disable-posted` | OFF | OFF | OFF |
+
+The two disable switches are mutually exclusive. Generic exports additionally
+support coexistence ON/head offer OFF for the measured A control; that control
+is not the original v1 recommendation. Head offer requires posted merging and
+coexistence; coexistence requires posted merging. Existing eligibility and
+profile guards continue to enforce the other prerequisites.
+
+## Current measured behavior
+
+The original case18/19 guest was run in S-mode Bare physical addressing on fresh
+qualified Board models. Both A and B enable
+posted merging and coexistence; only head offer changes. Reported cycles are
+kernel plus subsequent flush, kept separately:
+
+| Workload | A: head offer OFF | B: head offer ON | Independent historical v1 reference |
+|---|---:|---:|---:|
+| COPY19 | 457,146 + 5,620 | 365,235 + 5,618 | 452,641 + 5,666 |
+| WRITE18 | 112,826 + 10,646 | 112,826 + 10,646 | 112,826 + 10,647 |
+
+COPY B/A throughput is 1.251649x for the kernel and 1.247842x including flush.
+Relative to the separate historical v1 reference it is 1.239314x and 1.235819x.
+The prior coexistence-only COPY regression (457,146 versus 452,641) remains part
+of the record. A separate no-posted architectural historical reference is
+383,603 COPY kernel + 5,618 flush cycles, as retained in the published
+[seal performance record](posted-store-seal-performance.md). B is 5.029% faster
+for the kernel and 4.953% including flush against that historical measurement;
+it was not freshly rerun in this A/B. WRITE retains its benefit with the same A/B cycles and exact
+ROI/flush AXI metrics. All byte, signature, fault, owner, quiet2 and trap-negative
+gates passed. COPY retains 2,015 allocated/useful prefetches and 33 single-member
+owners; WRITE retains 2,048 eight-member owners and no prefetch allocations.
+These are fixed-workload cycle results, not wall-clock or physical timing claims.
+
+## Actual preset qualification
+
+The source-only recommendation commit is
+`996d998275624e7527ce278dc0bc9157ef3ab3d1`, tree
+`bf354b96def51878a64f8813daceef4a0cf344d6`. All 194 production blobs/modes equal
+qualified `6f1e8c4fb1064f6d4fdd0b5ccbc4d5d595b5de94`; the measured Board helper
+source retains its separate `e9af6a49e73f6606be233086fc1f57a4b86acb73` identity.
+Each selection has a freshly executed pure constructor report: all 65 export
+fields and all 26 FPGA, 135 core and 10 cache constructor fields are compared,
+including nested values and types. The full canonical fixture and digests live
+in `fpga/next/performance-profile.json` and the wrapper.
+
+The recommended ON native emit matches all 269 raw files (268 SystemVerilog)
+from the qualified head-offer ON native export, with no normalization. Full
+OFF matches all 266 raw files (265 SystemVerilog) from the earlier integration
+OFF export. The legacy posted-only control has a fresh complete actual profile;
+its native correspondence uses the prior integration emit with unchanged
+production inputs. No new GSIM run of these integration launchers is implied.
+
+The prior `0d1bdaf435d6666188d3dbca05838291b22c847a` integration versus original
+f1 native raw equality remains FAIL: one cache module differs on each side.
+OFF has two internal wire renames. Posted-only ON has three wire renames and
+one scalar alias extracted at exactly three consumers. A separate narrow proof
+checks scope, widths, unique declarations, collision-free names, continuous
+assignments, no extra writes and equality of every remaining token after those
+exact transformations. Independent review rejected all 12 nonzero logic/type/
+write/gate mutations. This is bounded structural correspondence, not raw byte
+equality or general formal/timing equivalence. The original failed receipts are
+retained. All 161 external runtime dependencies are hash-bound; six absent
+source-local optional Mill resource directories are explicitly enumerated.
+
+The [current machine-readable record](posted-performance-preset-v2.json) binds
+profiles, receipts, source identities and scoped evidence. The original
+[v1 machine-readable record](posted-performance-preset.json) remains unchanged.
+Documentation added after qualification does not change native inputs.
+
+## Coverage and limits
+
+The focused gate contains 13 fresh genuine CPU/cache/home cases covering hot/
+cold PF A-held, E/ReleaseAck tails, held request/response, FENCE/SATP drain, PF
+AXI error and a distinct generation-two exhaustion model. It uses a smaller
+cache/backing geometry than the Board benchmark. Exact unchanged consumer
+source reuses the original 49 complete-byte cases and 12 expected assertions;
+those are not fresh combined CPU runs. `full_qualification=false` remains:
+
+- Eligible producer head overlapping candidate cancellation: UNREACHED.
+- Otherwise eligible PF-only head overlapping integer/FP/posted accepted owner:
+  UNREACHED in the serialized programs; source gates and direct assertions remain.
+- Broader recovery/trap, denied PMP, misaligned, virtual, atomic and MMIO producer
+  fault injection is not fresh coverage.
+
+The Board diagnostic `reserveWithoutCapacity` copy omits `postedLaunchAllowed`;
+bit 35 is not reliable capacity-stall evidence. The performance, AXI and direct
+assertion gates do not depend on it. This limitation does not change the frozen
+DUT or justify attributing individual blocked cycles as removable.
+
+Head offer adds no literal scalar/array state (0/0 delta in the qualified native
+pair). The older full 54-case/Sv39 runs used different source; this combination has not
+run that full suite or Linux. No mapped PPA/STA, routed timing, bitstream, live
+FPGA, Linux/Sv39 posted
+early-ACK or posted-plus-returnflow/prechecked-flow qualification is claimed.
+See [integration scope](posted-prefetch-integration.md).
+
+## Historical v1 record (retained below)
+
+Everything below describes the original published v1 source and receipts only.
+Its old selection, field counts and measurements are not the current v2 contract.
+
+### Original posted performance preset: exact configuration and native equivalence
 
 `python3 -B fpga/next/performance.py --output PATH --emit` selects the recommended
 `posted-performance-v1` profile with physical posted-store merging ON. Add

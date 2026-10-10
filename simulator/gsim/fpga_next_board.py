@@ -81,6 +81,10 @@ def main():
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--posted-prefetch-head-offer", action="store_true",
+                    help="default-off staged posted head offer while only PF remains busy")
+    ap.add_argument("--posted-prefetch-coexistence", action="store_true",
+                    help="default-off prefetch in empty posted-work windows")
     ap.add_argument("--posted-store-merge", action="store_true",
                     help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true")
@@ -92,6 +96,10 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.posted_prefetch_head_offer and not (args.posted_store_merge and args.posted_prefetch_coexistence):
+        ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
+    if args.posted_prefetch_coexistence and not args.posted_store_merge:
+        ap.error("--posted-prefetch-coexistence requires --posted-store-merge")
     if args.posted_store_merge and args.prechecked_data_flow:
         ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if args.prechecked_data_flow and not args.virtual_ram_load_precheck:
@@ -140,6 +148,10 @@ def main():
         parameters.append("--store-prefetch-mru-insertion")
     if args.posted_store_merge:
         parameters.append("--posted-store-merge")
+    if args.posted_prefetch_coexistence:
+        parameters.append("--posted-prefetch-coexistence")
+    if args.posted_prefetch_head_offer:
+        parameters.append("--posted-prefetch-head-offer")
     if args.prechecked_data_flow:
         parameters.append("--prechecked-data-flow")
     if args.independent_fetch_payload_capture:
@@ -153,6 +165,8 @@ def main():
     if args.banked_instruction_data:
         parameters.append("--banked-instruction-data")
     plan = {"posted_store_merge": args.posted_store_merge,
+            "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
+            "posted_prefetch_head_offer": args.posted_prefetch_head_offer,
             "data_translation_entries": args.data_translation_entries,
             "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
             "prepared_store_lookahead": args.prepared_store_lookahead,
