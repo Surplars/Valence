@@ -36,7 +36,7 @@ object PostedBoardConfiguration {
             "identityDataFlow" -> c.identityDataFlow, "loadIssueForwarding" -> c.loadIssueForwarding,
             "instructionPrefetch" -> c.instructionPrefetch, "coherentSourceBits" -> 3,
             "coherentSinkBits" -> c.cache.sinkBits, "axiAddressBits" -> 32)
-        val document = Map[String, Any]("schema" -> "posted-board-full-profile-v1", "profile" -> c,
+        val document = Map[String, Any]("schema" -> "posted-board-full-profile-v2", "profile" -> c,
             "core" -> c.coreParams, "cache" -> c.cache, "ddr" -> c.ddr, "storage" -> c.storage,
             "tags" -> c.tags, "floatingPointResources" -> c.floatingPointResources,
             "network" -> c.network, "derived" -> derived)
@@ -134,7 +134,7 @@ class PostedBoardTrace(p: OooParams) extends Bundle {
 object PostedBoardProbes {
     def connect(out: PostedBoardTrace, board: BoardSocTop, profile: FpgaNextConfig): Unit = {
         val p = profile.coreParams
-        require(p.memoryEntries == 4 && p.tagBits == 64 && p.robBits == 4 &&
+        require(p.memoryEntries == 4 && p.tagBits == 64 && Set(4, 5, 6).contains(p.robBits) &&
             profile.dataCacheLines == 512 && profile.cacheWays == 2 &&
             profile.cache.readMshrs == 2 && profile.cache.responseEntries == 2 &&
             profile.cache.writebackEntries == 2 && profile.cache.sinkBits == 1)

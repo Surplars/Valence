@@ -8,7 +8,7 @@ import soc.bus.tilelink.{TLBundle, TLParams}
 case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2, writebackEntries: Int = 1,
     overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1,
     prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false,
-    postedPrefetchCoexistence: Boolean = false) {
+    postedPrefetchCoexistence: Boolean = false, storePrefetchLruVictim: Boolean = false) {
     require(Set(1, 2, 4).contains(readMshrs))
     require(prefetchCandidateCycles >= 1 && prefetchCandidateCycles <= 32,
         "prefetch candidate lifetime must be in 1..32 allocation attempts")
@@ -20,6 +20,8 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "checked store prediction requires next-line prefetch")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,
         "store-origin MRU insertion requires checked store prefetch")
+    require(!storePrefetchLruVictim || storeNextLinePrefetch,
+        "store-origin LRU victim selection requires checked store prefetch")
     require(!postedPrefetchCoexistence || (nextLinePrefetch && readMshrs == 2),
         "posted/prefetch coexistence requires the original two-MSHR prefetch cache")
     require(!nextLinePrefetch || readMshrs >= 2, "data prefetch reuses a second miss slot")

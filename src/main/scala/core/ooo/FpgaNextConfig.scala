@@ -2,7 +2,8 @@ package soc.core.ooo
 
 import soc.ip.dma.NetworkDmaConfig
 
-/** A versioned, fixed geometry for the independent FPGA-first integration.
+/** Versioned geometry for the independent FPGA-first integration. Explicit optional
+  * backend capacity experiments preserve every omitted dimension.
   * Historical BoardSocConfig defaults deliberately remain unchanged. Replacements
   * are selected separately from dimensions so an area/throughput comparison cannot
   * silently gain capacity, remove RV64GC, or disable a protection mechanism.
@@ -34,9 +35,17 @@ final case class FpgaNextConfig(
     postedStoreMerge: Boolean = false,
     postedPrefetchCoexistence: Boolean = false,
     postedPrefetchHeadOffer: Boolean = false,
-    canonicalVirtualStoreOverlap: Boolean = false
+    canonicalVirtualStoreOverlap: Boolean = false,
+    memoryProofFrontier: Boolean = false,
+    robEntries: Option[Int] = None,
+    physicalRegs: Option[Int] = None,
+    storePrefetchLruVictim: Boolean = false
 ) {
+    val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     SvTranslationService.indexBits(dataTranslationEntries)
+    require(!memoryProofFrontier || (robEntries.contains(64) && physicalRegs.contains(64) && lsuEntries == 4 &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && loadOrderOlderRetire && dataTranslationEntries == 16),
+        "memory proof frontier requires the explicitly selected reviewed capacity and translation profile")
     require(!canonicalVirtualStoreOverlap || virtualRamLoadPrecheck,
         "canonical virtual store overlap requires explicit virtual RAM load precheck")
     require(!postedPrefetchHeadOffer || (postedStoreMerge && postedPrefetchCoexistence),
@@ -47,6 +56,8 @@ final case class FpgaNextConfig(
         "posted store candidate excludes unqualified prechecked data empty-flow")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,
         "store-origin MRU insertion requires checked store prefetch")
+    require(!storePrefetchLruVictim || storeNextLinePrefetch,
+        "store-origin LRU victim selection requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
     require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
@@ -69,15 +80,19 @@ final case class FpgaNextConfig(
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (translatedResponseEmptyFlow) "-translated-response-empty-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
+        robEntries.map(n => s"-rob$n").getOrElse("") +
+        physicalRegs.map(n => s"-prf$n").getOrElse("") +
         (if (loadOrderOlderRetire) "-older-load-retire" else "") +
         (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
         (if (preparedStoreLookahead) "-prepared-store-lookahead" else "") +
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
+        (if (storePrefetchLruVictim) "-store-prefetch-lru-victim" else "") +
         (if (postedStoreMerge) "-posted-store-merge" else "") +
         (if (postedPrefetchCoexistence) "-posted-prefetch-coexistence" else "") +
         (if (postedPrefetchHeadOffer) "-posted-prefetch-head-offer" else "") +
         (if (canonicalVirtualStoreOverlap) "-canonical-virtual-store-overlap" else "") +
+        (if (memoryProofFrontier) "-memory-proof-frontier" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -104,7 +119,7 @@ final case class FpgaNextConfig(
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
-        postedPrefetchCoexistence = postedPrefetchCoexistence)
+        postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -132,7 +147,8 @@ final case class FpgaNextConfig(
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap)
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+        backendCapacity = backendCapacity)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
@@ -156,7 +172,8 @@ final case class FpgaNextConfig(
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap)
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+        backendCapacity = backendCapacity)
 }
 
 object FpgaNextConfig {
@@ -184,6 +201,13 @@ object FpgaNextConfig {
         val ownerCounts = options.filter(_.startsWith("--lsu-entries="))
         require(ownerCounts.size <= 1, "choose one LSU owner count")
         val lsuCount = ownerCounts.headOption.map(_.stripPrefix("--lsu-entries=").toInt).getOrElse(2)
+        def capacityOption(prefix: String): Option[Int] = {
+            val values = options.filter(_.startsWith(prefix))
+            require(values.size <= 1, s"choose one $prefix capacity")
+            values.headOption.map(_.stripPrefix(prefix).toInt)
+        }
+        val robCount = capacityOption("--rob-entries=")
+        val physicalCount = capacityOption("--physical-regs=")
         val yields = options.filter(_.startsWith("--dma-line-yield-cycles="))
         require(yields.size <= 1, "choose one DMA line yield duration")
         val lineYield = yields.headOption.map(_.stripPrefix("--dma-line-yield-cycles=").toInt).getOrElse(0)
@@ -196,7 +220,8 @@ object FpgaNextConfig {
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
             postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             canonicalVirtualStoreOverlap = options.contains("--canonical-virtual-store-overlap"),
-            lsuEntries = lsuCount,
+            memoryProofFrontier = options.contains("--memory-proof-frontier"),
+            lsuEntries = lsuCount, robEntries = robCount, physicalRegs = physicalCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),
             preparedStoreLookahead = options.contains("--prepared-store-lookahead"),
@@ -210,6 +235,7 @@ object FpgaNextConfig {
             prefetchBreakOnStore = options.contains("--prefetch-break-on-store"),
             storeNextLinePrefetch = options.contains("--store-next-line-prefetch"),
             storePrefetchMruInsertion = options.contains("--store-prefetch-mru-insertion"),
+            storePrefetchLruVictim = options.contains("--store-prefetch-lru-victim"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

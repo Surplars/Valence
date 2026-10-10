@@ -1,0 +1,13 @@
+# Passive generated-model sampling convention
+
+The host invokes `drive(in); d.step();` and then reads both exported getters and passive generated fields before incrementing its own `cycle`. The frozen generated `step()` calls `resetAll()`, `subStep0()`, then increments the model cycle counter. In `subStep0`, register groups copy their previous `$NEXT` values into current registers, then the dependency-ordered combinational schedule computes the new outputs and next-state values.
+
+Consequently the sample contains the current registered state and the combinational offers/handshakes made from that state. Effects of the just-observed handshake, such as recording a load as canonical or freeing its consumed proof row, appear on the following step. A start at cycle 860 can therefore have `prechecked=1` while the same sample's `memoryCanonical[index]` remains zero; the next registered sample must be used to check the update. This is the same convention used by the existing actual bank admission/cancellation test.
+
+For the added proof pipeline diagnostics, `translatedValid` and all `translatedProof` fields are current registers copied together from their previous `$NEXT` group. `resultValid`, all `resultProof` fields and `resultRow` are likewise copied together. The diagnostic reads a stage's token/payload only when that current stage-valid is true. The exported inserted-proof payload is connected from this same current result register group, while its valid is the current combinational positive-result decision. This explains the observed query 870, translated 871, result/insert 872 progression without mixing future payload with an old valid.
+
+The raw candidate token/payload is read only while `snapshotLive` is true and the current scan state is SCAN or READY, or when the actual frontier-valid expression is true. FETCH does not yet authorize the old candidate payload. Row tokens are read only for a non-free row. PF tracked address/index/presence are read only under `trackedValid`; saved last line is read only under `lastValid`.
+
+The r1 diagnostic's `MP_DIAG_START pa` field is meaningful for prechecked loads only. On serial starts, the original oracle does not consume that field as physical authority; an arbitrary inactive value must not be mistaken for the real later translated/frozen store PA. Some r1 uint8 observations were streamed as characters. The frozen raw log is retained; numeric-cast output is used in the later warm diagnostic.
+
+These generated-member reads are passive diagnosis tied to the exact header/FIR/object hashes. They do not supply expected permission, data, ordering, or acceptance decisions to the oracle. The original byte/full-token/retirement assertions remain independent and unchanged.

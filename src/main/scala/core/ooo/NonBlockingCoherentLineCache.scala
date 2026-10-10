@@ -835,8 +835,46 @@ class NonBlockingCoherentLineCache(
             val dirtyChoice = if (concurrency.storeNextLinePrefetch)
                 Mux(!dirty(second), second, Cat(replacement.get(lineSet(candidateAddress)), lineSet(candidateAddress)))
             else second
+            val cleanFirst = Mux(!dirty(first), first, dirtyChoice)
+            // Only captured store-origin candidates opt into ordinary LRU policy.
+            // The candidate set is independent of the current upstream request.
+            // Existing dirty-victim capture/release ownership remains unchanged.
+            val fullVictim = if (concurrency.storePrefetchLruVictim)
+                Mux(candidateStore.get, Cat(replacement.get(lineSet(candidateAddress)), lineSet(candidateAddress)), cleanFirst)
+            else cleanFirst
             Mux(!valid(first), first, Mux(!valid(second), second,
-                Mux(!dirty(first), first, dirtyChoice)))
+                fullVictim))
+        }
+        // Qualification only. These wires feed no permission, replacement,
+        // ownership or protocol decision and add no state or memory read port.
+        val candidateVictimAddress = if (tagConfig.bankedStorage)
+            taggedAddress(wayTag(candidateTags.get, pfIndex), pfIndex) else slotAddress(pfIndex)
+        observationStorePrefetch.pendingCandidateValid := candidateValid
+        when(candidateValid) {
+            observationStorePrefetch.pendingCandidateStore := candidateStore.getOrElse(false.B)
+            observationStorePrefetch.pendingCandidateAddress := candidateAddress
+            observationStorePrefetch.pendingCandidateSet := lineSet(candidateAddress)
+            observationStorePrefetch.candidateReplacementWay := replacement.map(_(lineSet(candidateAddress))).getOrElse(false.B)
+            observationStorePrefetch.candidateWay0Valid := valid(first)
+            observationStorePrefetch.candidateWay0Dirty := valid(first) && dirty(first)
+            when(valid(first)) {
+                observationStorePrefetch.candidateWay0Address := (if (tagConfig.bankedStorage)
+                    taggedAddress(candidateTags.get(0), first) else slotAddress(first))
+            }
+            if (ways == 2) {
+                val second = slot(candidateAddress, 1)
+                observationStorePrefetch.candidateWay1Valid := valid(second)
+                observationStorePrefetch.candidateWay1Dirty := valid(second) && dirty(second)
+                when(valid(second)) {
+                    observationStorePrefetch.candidateWay1Address := (if (tagConfig.bankedStorage)
+                        taggedAddress(candidateTags.get(1), second) else slotAddress(second))
+                }
+            }
+            observationStorePrefetch.candidateVictimIndex := pfIndex
+            observationStorePrefetch.candidateVictimWay := (if (ways == 2) pfIndex(indexBits - 1) else false.B)
+            observationStorePrefetch.candidateVictimValid := valid(pfIndex)
+            observationStorePrefetch.candidateVictimDirty := valid(pfIndex) && dirty(pfIndex)
+            when(valid(pfIndex)) { observationStorePrefetch.candidateVictimAddress := candidateVictimAddress }
         }
         val setReserved = VecInit((0 until mshrCount).map(i => phase(i) =/= free &&
             pendingIndex(i)(setBits - 1, 0) === lineSet(candidateAddress))).asUInt.orR
@@ -868,6 +906,10 @@ class NonBlockingCoherentLineCache(
                 observationStorePrefetch.allocatedStore := candidateStore.getOrElse(false.B)
                 observationStorePrefetch.allocatedAddress := candidateAddress
                 observationStorePrefetch.allocatedSlot := freeMshr
+                observationStorePrefetch.allocatedIndex := pfIndex
+                observationStorePrefetch.allocatedVictimValid := valid(pfIndex)
+                observationStorePrefetch.allocatedVictimDirty := valid(pfIndex) && dirty(pfIndex)
+                when(valid(pfIndex)) { observationStorePrefetch.allocatedVictimAddress := candidateVictimAddress }
                 observedTrackedStore.foreach(_ := candidateStore.get)
                 assert(!cpuFire || !needsMissSlot, "prefetch stole an admitted demand slot")
                 assert(candidateAddress >= base.U(65.W) &&
@@ -1090,10 +1132,16 @@ class NonBlockingCoherentLineCache(
     observationStorePrefetch.refillAddress := fillRequest.address
     observationStorePrefetch.refillPrefetch := prefetchOwner(fillMshr)
     observationStorePrefetch.refillError := engine.io.response.bits.error
+    observationStorePrefetch.refillIndex := Mux(refill, fillIndex, 0.U)
+    observationStorePrefetch.installValid := installLine
+    observationStorePrefetch.installIndex := Mux(installLine, installIndex, 0.U)
+    observationStorePrefetch.installAddress := Mux(installLine, installAddress, 0.U)
+    observationStorePrefetch.installDirty := installLine && (postedInstall || fillRequest.write)
     observationStorePrefetch.wbCapture := startEviction
     observationStorePrefetch.wbCaptureSlot := wbFree
     observationStorePrefetch.wbCaptureMshr := evictMshr
     observationStorePrefetch.wbCaptureAddress := evictAddress
+    observationStorePrefetch.wbCaptureIndex := Mux(startEviction, evictIndex, 0.U)
     observationStorePrefetch.wbCaptureDirty := dirty(evictIndex)
     observationStorePrefetch.wbCaptureDirect := directEviction
     observationStorePrefetch.wbCaptureFromMiss := evictFromMiss

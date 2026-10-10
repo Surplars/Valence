@@ -1,0 +1,187 @@
+{
+  "schema": "frontier-lru-opt-in-evidence-v1",
+  "status": "PASS_SELECTED_FIVE_CASES_OPT_IN_BACKUP_NOT_PROMOTED",
+  "recommended_profile": "posted-performance-v3",
+  "recommendation_changed": false,
+  "source": {
+    "published_commit": "98fae6bd7d1603ee446529712715ff794fb08c35",
+    "published_tree": "a314ece03d7953b695ac8ca0e45c10337a7f1a1a",
+    "tested_experimental_source": "417c31f81746e297924c37d519fce7206654d7d1",
+    "frozen_integration": "93fc9c64a44ebeea91fa94c3488e61a4bfa23825",
+    "frozen_tree": "47e3357fc2b68c673d16c6cd5a12a0adf893500b"
+  },
+  "records": {
+    "case21_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-analysis-r1/case21-pair-r1.json",
+      "sha256": "4dddcf09840b7c90cd070a23075c930a2eecd7049958272aba878380337c0860"
+    },
+    "case21_all_baselines": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-analysis-r1/case21-complete-comparison-r1.json",
+      "sha256": "b678db7922a99e83f6ec910276426191d91f35c699bd7c362590206af53e391b"
+    },
+    "case21_causal": {
+      "capsule_relative_path": "lru-cpu-victim-audit-r1/comparison.json",
+      "sha256": "62accb90dc00d5233eb584f77f1f0b192992428b58e27ec9f39beb2632bb8bfb"
+    },
+    "case21_causal_members": {
+      "capsule_relative_path": "lru-cpu-victim-audit-r1/artifact-manifest.json",
+      "sha256": "5d1f0c42871829702a4a4a67180bf417c3dab612f2067dfb6259f0cfd3709183"
+    },
+    "case21_parts": {
+      "capsule_relative_path": "store-prefetch-lru-victim-case21-closed-checkpoint-r1/PARTS.json",
+      "sha256": "51e2b53fe8bae854c0223f5c28283d3d485ea4e4cfe15e8f6aa3045e3db89428"
+    },
+    "case21_members": {
+      "capsule_relative_path": "store-prefetch-lru-victim-case21-closed-checkpoint-r1/MEMBERS.json",
+      "sha256": "c33022c41774c10823919f19919908e1f8be60f83b8dc3b391cf7e227cc249a3"
+    },
+    "bare19_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/case19-pair-r1.json",
+      "sha256": "b65dd5b21408c9072e7010775095986648ab468fa8e0611cdb4e7eff4b5e223d"
+    },
+    "bare19_baselines": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/case19-comparison-r1.json",
+      "sha256": "3b898bbb94e97237b229bb1d33b3267b0c1c4faa3810b35d1216b9b957dba00a"
+    },
+    "write18_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/case18-pair-r1.json",
+      "sha256": "8b2d1dd41bd1f78ffe090dffc870ac7e32f34814419814845a139f6801b2f379"
+    },
+    "default_native_review": {
+      "capsule_relative_path": "frontier-lru-integration-r1/default-v3-native-reviewed-terminal-r1.json",
+      "sha256": "db873ab8610f021553285133acb3bdbe6c7dcfc1abf1c23abf285c1c71855ce3"
+    },
+    "default_native_bridge": {
+      "capsule_relative_path": "frontier-lru-integration-r1/default-v3-connected-bridge-r1.json",
+      "sha256": "1b6426106f1a36796b9839ad08b70ca6bd39c27977afbd4e29b19ba7ab4b7999"
+    },
+    "native_declaration_cost": {
+      "capsule_relative_path": "frontier-lru-integration-r1/native-declaration-cost-r1.json",
+      "sha256": "d67ac44d84f28073c8b1c61d3ef0c07edf59751c734002552280dfb7ce4328b6"
+    },
+    "default_native_package_verification": {
+      "capsule_relative_path": "frontier-lru-integration-r1/default-v3-terminal-package-verification-r1.json",
+      "sha256": "0e2839847b8910d8ca0649e6840e2b64f47b9d52ef00412775034cbace33d6f2"
+    },
+    "default_native_parent_review": {
+      "capsule_relative_path": "coordination/default-v3-connected-bridge-parent-review-r1.json",
+      "sha256": "5893b3f244f4d9cab5f04b515c41f2172d3faa2ccea592cc665969b846186bbf"
+    },
+    "lru_component_runtime": {
+      "capsule_relative_path": "store-prefetch-lru-victim-implementation-r1/component-runtime-r1/receipt.json",
+      "sha256": "18c81f4ab0f8b0df9a4b01b0cb067d525efb9e9118d5a40ec74fd60d24de893a"
+    },
+    "lru_native_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-implementation-r1/native-gate-r1/receipt.json",
+      "sha256": "9fb370a2f64d394228b1749a2c1d53a86e4515fe60d05385c6289b1e1937684e"
+    },
+    "actual_cpu_combination": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-qualification-r1/ACTUAL-COMBINATION.json",
+      "sha256": "40b924e366ac6d1daf5127bbcb835946508d5e78be48c70482808f2fd36bdc72"
+    },
+    "warm6_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/case6-pair-r1.json",
+      "sha256": "bcc5a7d333d9846ae4db8e63d347923e5b7b9f147e3a3d9b1ad7aa2def351742"
+    },
+    "warm0_pair": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/case0-pair-r1.json",
+      "sha256": "bb260063a8330c7622809ac756daf91a58e98a9d0e45bb63dd22d5d28c30d668"
+    },
+    "write18_warm6_durable_receipt": {
+      "capsule_relative_path": "coordination/lru-write18-warm6-closed-library-r1.json",
+      "sha256": "79c1c975fcd9b8c20ad34a1560b61000595d5bbc877293eed45be4c302ef9d3a"
+    },
+    "five_case_summary": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/five-case-summary-r1.json",
+      "sha256": "4b08f23b1ebd6302ad138de109bf516ae36bfaf931199bc13ba85526131e8b31"
+    },
+    "five_case_results": {
+      "capsule_relative_path": "store-prefetch-lru-victim-cpu-followup-analysis-r1/FINAL-RESULTS.md",
+      "sha256": "d4e4ef8955b37870b917db3faa250a75ce7af08dacf8ceb4b260361810c4de9d"
+    },
+    "warm0_archive_independent_verification": {
+      "capsule_relative_path": "coordination/lru-case0-final-independent-archive-r1.json",
+      "sha256": "d6ccdcb2549d91a45fba9a7903121a8e2b2f152353bc03720ec6f0f4abce6868"
+    }
+  },
+  "pending_workloads": [],
+  "new_defaults": {
+    "memoryProofFrontier": false,
+    "storePrefetchLruVictim": false
+  },
+  "literal_default_native_identity": false,
+  "bounded_default_native_review": true,
+  "native_whole_opt_in_delta": {
+    "scalar_bits": 35149,
+    "array_bits": 25984
+  },
+  "native_lru_only_delta": {
+    "scalar_bits": 0,
+    "array_bits": 0
+  },
+  "limits": [
+    "No Linux throughput, live FPGA, mapped PPA, STA, power, general formal equivalence or recommendation claim.",
+    "Legacy canonical endpoint join remains UNKNOWN_NOT_RECONSTRUCTED.",
+    "Bare19 and WRITE18 preserve NO_STRUCTURAL_WITNESS.",
+    "Some CPU raw is archived and must be restored before historical parsers run."
+  ],
+  "archived_case21": {
+    "stream_sha256": "99453d687b32303718c58c2b4c785810ed5e09b196b33ea14751892e896e0930",
+    "members": 536,
+    "ordered_parts": 3
+  },
+  "archived_default_v3": {
+    "filename": "frontier-lru-default-v3-terminal-r1.tar.gz",
+    "sha256": "c5f84ab2518d295b5f0aa32c0ed2dc1ddedfcf86893ab8eb8e68315f2878fddf",
+    "bytes": 8173425,
+    "members": 1148
+  },
+  "case21_detail": {
+    "kernel_speedup_metric": "baseline kernel cycles / candidate kernel cycles - 1",
+    "strict_external_distinct_line_overlaps": {
+      "off": 641,
+      "on": 991,
+      "on_scope": "nonoverlapping adjacent-line pairs; remaining misses are not counted as missed opportunities"
+    },
+    "PF_release_owner_occupancy_cycles": {
+      "off": 6081,
+      "on": 43836,
+      "nonadditive_overlapping_metric": true
+    },
+    "roi_plus_flush_R_plus_W_bytes": {
+      "off": 453312,
+      "on": 410304
+    },
+    "roi_plus_flush_AXI_AW": {
+      "off": 2305,
+      "on": 2305
+    },
+    "roi_plus_flush_AXI_W_beats": {
+      "off": 18440,
+      "on": 18440
+    },
+    "net_cycles_include_dirty_release_cost": true
+  },
+  "archived_write18_warm6": {
+    "filename": "complete-18-6.tar.gz",
+    "library_file_id": "libfile_a8bc8ef0d0fc8191b0670d2cbe8af217",
+    "version": 0,
+    "bytes": 219590280,
+    "sha256": "a854411322165a76535f4387da1586d4539113baa70df5a616b47c96af2fe9f4",
+    "restore_control": {
+      "filename": "control.tar.gz",
+      "library_file_id": "libfile_3d132b63516c819192f71983f6a32e62",
+      "version": 0,
+      "bytes": 21971,
+      "sha256": "6917fb9ebc3d630590bb5d6fa293ae652ea8a4f77349fc26d50f65fb2c03a64f"
+    }
+  },
+  "recovery_access": "Library identities refer to separately delivered recovery artifacts requiring owner access; they are not public download URLs. Final case0 archive delivery is included. Additional recovery locations may be recorded outside the source tree.",
+  "archived_warm0": {
+    "library_file_id": "libfile_bccd7eb80a8481918241375adf5683ea",
+    "version": 0,
+    "bytes": 94105600,
+    "sha256": "63989124377536e2954cf2c15c126c4109f53442507499e1acf4bcf3093feae6",
+    "scope": "Complete case0 raw, controls, restore, five-case summary and 991-window observations; independently verified outer3 and inner329 members."
+  }
+}

@@ -15,12 +15,13 @@ import soc.ip.tilelink.TwoMasterTileLinkArbiter
 class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: Int = 2, compactTags: Boolean = false, writebacks: Int = 1, mixed: Boolean = false, axiSlots: Int = 4, unordered: Boolean = false, prefetch: Boolean = false, bankedTags: Boolean = false, prefetchCandidateCycles: Int = 1,
     testBase: BigInt = BigInt("80010000", 16), prefetchBreakOnStore: Boolean = false,
     storeNextLinePrefetch: Boolean = false, observeStorePrefetch: Boolean = false,
-    storePrefetchMruInsertion: Boolean = false) extends Module {
+    storePrefetchMruInsertion: Boolean = false, storePrefetchLruVictim: Boolean = false, cacheWays: Int = 2) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
-        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion)
+        storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
+        storePrefetchLruVictim = storePrefetchLruVictim)
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
@@ -68,7 +69,7 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         val probeReplyData = Output(Bool())
     })
     val tags = CacheTagConfig(compact = compactTags, bankedStorage = bankedTags)
-    val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, 2, cfg, tags)
+    val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, cacheWays, cfg, tags)
     io.storePfObs.foreach { out =>
         require(mshrs >= 2, "store PF observer requires nonblocking cache")
         out := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationStorePrefetch)

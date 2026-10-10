@@ -1967,3 +1967,5 @@ memory/ALU 竞争 865 → 1015；明确保留性能代价。r2 整板最终 CPU 
 单一 word-clock 复位 epoch 和 wrapper 接口综合通过；不放宽 PHY 1.250 ns 预算。
 07:40（+08）启动一次全新完整 RV64GC 双发射 100 MHz 整板候选，与已验收 CPU r3
 批次一起验证，不使用旧 CPU DCP。新 bit 仍须等整板签核；三发射不混入本批。
+
+2026-10-10: isolated default-OFF store-origin PF victim-LRU experiment changes only the full-set candidate victim policy. It preserves read-origin clean-only selection and existing permission/cancel/dirty-release ownership. Source/config preparation is not runtime qualification; see [the focused contract](experiments/store-prefetch-lru-victim.md).

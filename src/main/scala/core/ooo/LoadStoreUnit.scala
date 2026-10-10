@@ -56,6 +56,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val translationEpoch = UInt(32.W)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreEpoch = if (p.canonicalVirtualStoreOverlap) Some(Valid(UInt(32.W))) else None
+    val frozenStoreProof = if (p.memoryProofFrontier) Some(Valid(new FrozenStoreProof)) else None
 }
 
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
@@ -70,6 +71,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
+        val frozenStoreProof = if (p.memoryProofFrontier) Some(Output(Valid(new FrozenStoreProof))) else None
         val complete       = Decoupled(new BackendCompletion(p))
         val busy           = Output(Bool())
         val phase          = Output(UInt(2.W))
@@ -161,6 +163,18 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
                 !io.start.bits.precheckedLoad && !io.start.bits.forward.valid &&
                 !misaligned && !io.start.bits.accessDenied,
                 "canonical origin belongs to an accepted ordinary virtual store")
+        }
+    }
+    io.frozenStoreProof.foreach { proof =>
+        proof := sending.frozenStoreProof.get
+        proof.valid := io.memory.request.valid && sending.frozenStoreProof.get.valid
+        CanonicalVirtualStore.heldFrozen(p, io.memory.request, io.canonicalStoreOrigin.get, proof)
+        when(io.start.fire && io.start.bits.frozenStoreProof.get.valid) {
+            assert(io.start.bits.canonicalStoreEpoch.get.valid && !io.start.bits.forward.valid &&
+                !io.start.bits.accessDenied && !misaligned && !atomicFault,
+                "a frozen binding transfers only with its successful real virtual-store start")
+            io.start.bits.postedProof.foreach(posted => assert(!posted.valid,
+                "frozen virtual-store proof cannot grant posted-store authority"))
         }
     }
     io.memory.response.ready        := state === response ||

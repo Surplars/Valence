@@ -1,0 +1,23 @@
+{
+  "baseline_name": "prefetch-lifetime16-cpu-prep-r1/expected-profile-life1.json",
+  "baseline_sha256": "7a9f5f547998be90fe8b393c022ecd7b0315903397e5d8338755dbd3567b684c",
+  "explicit_schema_revision": {
+    "added_profile_fields": {
+      "physicalRegs": "optional Int, null retains selected profile",
+      "robEntries": "optional Int, null retains selected profile"
+    },
+    "from": "posted-board-full-profile-v1",
+    "to": "posted-board-full-profile-v2"
+  },
+  "profiles": {
+    "default": "0557f050478a0d11940f728e99f7c87ed6c15774292824af286f65af1f489a63",
+    "rob16-prf48": "77e8ed9448207ee7f0ac81fcde56624fbf6c58e99f70672133db06a557b0cbaa",
+    "rob16-prf64": "99067d9165e9414de14d728370612831c775924f352229e23c81be0f180a414a",
+    "rob32-prf64": "2057337c811464586b4d169f85a1b1138f88dc50de62af9562b0f04c1b487b1d",
+    "rob64-prf64": "7154687fb5ea657724af1007f98cbe7dac92bca2787895d5de4ed350b63369fb"
+  },
+  "schema": "rob-capacity-expected-profile-inputs-v1",
+  "source_commit": "09f23d153577b792a5868ac5dd88bdcb7eead1cc",
+  "source_tree": "a314ece03d7953b695ac8ca0e45c10337a7f1a1a",
+  "status": "INDEPENDENT_EXPECTATIONS_NOT_ACTUAL_ELABORATION"
+}

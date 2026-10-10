@@ -25,7 +25,7 @@ object FpgaNextBoardGsim {
         translatedResponseEmptyFlow = c.translatedResponseEmptyFlow,
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
         postedPrefetchHeadOffer = c.postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = c.canonicalVirtualStoreOverlap,
+        canonicalVirtualStoreOverlap = c.canonicalVirtualStoreOverlap, memoryProofFrontier = c.memoryProofFrontier, backendCapacity = c.backendCapacity,
         lineageProfile = if (lineageProbes) Some(c) else None)
 }
 
@@ -33,10 +33,11 @@ object FpgaNextBoardGsim {
 object FpgaNextBoardGsimMain extends App {
     val options = args.drop(1).toSet
     require(args.nonEmpty && options.size == args.length - 1 &&
-        options.subsetOf(Set("--canonical-virtual-store-overlap", "--posted-prefetch-coexistence", "--posted-store-merge", "--posted-prefetch-head-offer", "--translated-response-empty-flow", "--store-prefetch-mru-insertion", "--store-next-line-prefetch", "--prepared-store-lookahead", "--data-translation-entries=4", "--data-translation-entries=8",
+        options.subsetOf(Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
+            "--physical-regs=48", "--physical-regs=64", "--canonical-virtual-store-overlap", "--memory-proof-frontier", "--posted-prefetch-coexistence", "--posted-store-merge", "--posted-prefetch-head-offer", "--translated-response-empty-flow", "--store-prefetch-mru-insertion", "--store-prefetch-lru-victim", "--store-next-line-prefetch", "--prepared-store-lookahead", "--data-translation-entries=4", "--data-translation-entries=8",
             "--data-translation-entries=16", "--data-translation-entries=32", "--fetch-previous-packet", "--load-order-older-retire", "--lsu-entries=2", "--lsu-entries=4", "--dma-line-entries=1", "--dma-line-entries=2", "--dma-line-entries=4", "--dma-line-yield-cycles=0", "--dma-line-yield-cycles=4", "--dma-line-yield-cycles=8", "--dma-line-yield-cycles=16", "--dma-line-yield-cycles=32", "--dma-line-yield-cycles=64", "--dma-line-transfers", "--prefetch-break-on-store", "--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16", "--selected", "--share-protected-head-payload", "--banked-instruction-data", "--owner-local-issue-ready", "--shared-fetch-pmp-relations", "--independent-fetch-payload-capture", "--reference", "--candidate", "--virtual-ram-load-precheck", "--physical-load-ingress-flow", "--prechecked-data-flow")) &&
         !(options.contains("--reference") && options.contains("--candidate")),
-        "usage: FpgaNextBoardGsimMain output-directory [--reference|--candidate] [--virtual-ram-load-precheck] [--fetch-previous-packet] [--data-translation-entries=4|8|16|32] [--prepared-store-lookahead] [--store-next-line-prefetch] [--store-prefetch-mru-insertion] [--posted-store-merge] [--posted-prefetch-coexistence] [--posted-prefetch-head-offer] [--canonical-virtual-store-overlap] [--translated-response-empty-flow]")
+        "usage: FpgaNextBoardGsimMain output-directory [--reference|--candidate] [--rob-entries=16|32|64] [--physical-regs=48|64] [--virtual-ram-load-precheck] [--fetch-previous-packet] [--data-translation-entries=4|8|16|32] [--prepared-store-lookahead] [--store-next-line-prefetch] [--store-prefetch-mru-insertion] [--store-prefetch-lru-victim] [--posted-store-merge] [--posted-prefetch-coexistence] [--posted-prefetch-head-offer] [--canonical-virtual-store-overlap] [--memory-proof-frontier] [--translated-response-empty-flow]")
     val c = FpgaNextConfig.fromOptions(options, defaultSelected = false)
     ChiselStage.emitCHIRRTLFile(FpgaNextBoardGsim.build(c),
         Array("--target-dir", args(0)))

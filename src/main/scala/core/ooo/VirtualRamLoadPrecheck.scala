@@ -3,7 +3,7 @@ package soc.core.ooo
 import chisel3._
 import chisel3.util._
 
-/** A read-only, hit-only TLB query. It never accepts a demand or starts a page walk. */
+/** A side-effect-free, access-tagged hit-only TLB query. It never starts a demand or page walk. */
 class SvTranslationPeekPort extends Bundle {
     val request = Output(Valid(new SvTranslationRequest))
     val response = Input(Valid(new SvTranslationResponse))
@@ -11,7 +11,8 @@ class SvTranslationPeekPort extends Bundle {
 
 class VirtualLoadPrecheckRequest extends Bundle {
     val address = UInt(64.W)
-    val size = UInt(2.W)
+    val size = UInt(3.W)
+    val write = Bool()
 }
 
 class VirtualLoadPrecheckResponse extends Bundle {
@@ -65,6 +66,7 @@ class VirtualRamLoadPreparation(p: OooParams) extends Module {
     io.precheck.request.valid := io.candidate.valid && !io.flush
     io.precheck.request.bits.address := io.candidate.bits.address
     io.precheck.request.bits.size := io.candidate.bits.size
+    io.precheck.request.bits.write := false.B
     io.hit := io.precheck.request.valid && io.precheck.response.valid && io.precheck.stable
     val capture = io.precheck.request.valid && io.precheck.stable &&
         (!io.precheck.response.valid || io.precheck.response.bits.epoch === io.precheck.epoch)

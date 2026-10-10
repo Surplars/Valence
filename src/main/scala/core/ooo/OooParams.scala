@@ -139,8 +139,20 @@ case class OooParams(
     preparedStoreLookahead: Boolean = false,
     postedStoreMerge: Boolean = false,
     postedPrefetchHeadOffer: Boolean = false,
-    canonicalVirtualStoreOverlap: Boolean = false
+    canonicalVirtualStoreOverlap: Boolean = false,
+    memoryProofFrontier: Boolean = false,
+    memoryProofRows: Int = 16,
+    memoryProofCacheSets: Int = 256
 ) {
+    require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
+        renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&
+        tagBits == 64 && virtualMemoryLevels == 3 && pmpEntries == 16 && speculativeRamBytes > 0 &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && bufferedRamStores &&
+        registeredIssueExecute && registeredMemoryAddress && registeredMemoryRequests && parallelMemoryPreparation &&
+        parallelMemoryPayload && compactMemoryOperandSelect && registeredTranslationHeads &&
+        registeredTranslatedResponses && registeredFabricBoundary && registeredLoadReplay && loadOrderOlderRetire &&
+        !precheckedDataRequestFlow && !fastBufferedStoreRetire && !fastHeadLoadRetire && memoryProofCacheSets == 256),
+        "memory proof frontier supports only the reviewed ROB64/PRF64/LSU4 staged Sv39 profile")
     require(!canonicalVirtualStoreOverlap || (virtualRamLoadPrecheck && bufferedRamStores &&
         registeredMemoryRequests && registeredMemoryAddress && registeredTranslationHeads && memoryEntries >= 2),
         "canonical virtual store overlap requires load precheck and registered buffered parallel memory ownership")

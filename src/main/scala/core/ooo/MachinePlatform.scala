@@ -375,6 +375,10 @@ class MachinePlatform(
     ))
     val privateCacheLines = if (coherentLineCacheLines == 0) (ramBytes / 64).min(128).toInt
         else coherentLineCacheLines
+    require(!p.memoryProofFrontier || (coherentLineCache &&
+        privateCacheLines / coherentLineCacheWays == p.memoryProofCacheSets && coherentLineCacheWays == 2 &&
+        cacheConcurrency.readMshrs == 2 && cacheConcurrency.responseEntries == 2 && cacheConcurrency.writebackEntries == 2),
+        "memory proof frontier must retain the reviewed actual cache geometry and capacities")
     private val coherentParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3,
         sinkBits = cacheConcurrency.sinkBits)
     val postedConfig = p.postedProofConfig.map(_.copy(enabled = true, generationBits = 64, epochBits = 32,

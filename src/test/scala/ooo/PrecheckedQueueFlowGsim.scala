@@ -63,6 +63,7 @@ class PrecheckedQueueFlowGsim(enabled: Boolean, prefetch: Boolean = false) exten
         adapter.io.loadPrecheck.get.request.valid := io.queryValid
         adapter.io.loadPrecheck.get.request.bits.address := io.queryAddress
         adapter.io.loadPrecheck.get.request.bits.size := io.querySize
+        adapter.io.loadPrecheck.get.request.bits.write := false.B
         adapter.io.precheckFlush.get := io.flush
         translation.io.loadPeek.get <> adapter.io.translationPeek.get
         io.queryHit := adapter.io.loadPrecheck.get.response.valid

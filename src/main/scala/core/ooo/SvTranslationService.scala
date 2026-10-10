@@ -72,7 +72,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     val savedResponse = Reg(new SvTranslationResponse)
     val request = io.client.request.bits
     val activeMode = request.mode =/= 0.U && request.privilege =/= 3.U
-    // Demand and read-only precheck use exactly the same key and superpage/NAPOT reconstruction.
+    // Demand and access-tagged precheck use exactly the same key and superpage/NAPOT reconstruction.
     // A precheck has no ready/fire, replacement, miss, walker or response-owner side effect.
     def lookup(query: SvTranslationRequest): (Bool, SvTranslationResponse) = {
         // Demand and optional peek both search the full configured capacity.
@@ -117,7 +117,8 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     io.loadPeek.foreach { peek =>
         val (peekHit, response) = lookup(peek.request.bits)
         peek.response.valid := peek.request.valid && peekHit && !io.flush &&
-            peek.request.bits.access === PmpAccess.read && !response.pageFault && !response.accessFault
+            (peek.request.bits.access === PmpAccess.read || peek.request.bits.access === PmpAccess.write) &&
+            !response.pageFault && !response.accessFault
         peek.response.bits := response
     }
 

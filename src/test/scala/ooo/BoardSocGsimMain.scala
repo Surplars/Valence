@@ -32,7 +32,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
-    postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false) extends Module {
+    postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
+    backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig()) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -48,7 +49,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap))
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity))
     // A test-only, passive scalar view of this exact Board instance. No inputs,
     // queues or control paths are inserted by the composition fixture.
     val lineage = lineageProfile.map { profile =>
@@ -227,11 +228,11 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         val h = tap(b.head)
         // Static scalar taps avoid dynamic-array output aliases in the pinned GSIM graph pass.
         def atHead(bits: Seq[Bool]): Bool = Mux1H(bits.zipWithIndex.map { case (bit, i) => (h === i.U) -> bit })
-        val memoryReady1 = atHead((0 until 16).map(i => tap(b.ownerReady.get.io.ready1(i))))
-        val memoryReady2 = atHead((0 until 16).map(i => tap(b.ownerReady.get.io.ready2(i))))
+        val memoryReady1 = atHead((0 until b.p.robEntries).map(i => tap(b.ownerReady.get.io.ready1(i))))
+        val memoryReady2 = atHead((0 until b.p.robEntries).map(i => tap(b.ownerReady.get.io.ready2(i))))
         val store = tap(b.headRequest.store)
         val atomic = tap(b.headRequest.atomic)
-        val saved = atHead((0 until 16).map(i => tap(b.storePrepared(i))))
+        val saved = atHead((0 until b.p.robEntries).map(i => tap(b.storePrepared(i))))
         val choiceHead = tap(b.memoryChoice.valid) && tap(b.memoryChoice.index) === h
         val headToken = b.ledger.io.headSystem.get.headToken
         backendHeadTag := tap(headToken.tag)
@@ -393,7 +394,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
             tap(q.io.enq.valid), tap(q.io.enq.ready), tap(q.io.deq.valid), tap(q.io.deq.ready),
             tap(l.io.memory.response.valid), tap(l.io.memory.response.ready),
             tap(l.io.complete.valid), tap(l.io.complete.ready), tap(l.owners.io.deq.valid),
-            atHead((0 until 16).map(i => tap(b.eligible(i)))), tap(b.headRequest.system), tap(b.headRequest.mulDiv), store, atomic, saved,
+            atHead((0 until b.p.robEntries).map(i => tap(b.eligible(i)))), tap(b.headRequest.system), tap(b.headRequest.mulDiv), store, atomic, saved,
             tap(l.io.fastLoadRetire), tap(l.io.forwarded), tap(stores.buffered), tap(stores.forward),
             tap(stores.local), tap(stores.ackValid), tap(l.io.requestOwner.valid),
             tap(l.io.start.bits.forward.valid), tap(stores.io.fastStore.valid) && tap(stores.io.fastStore.ready)

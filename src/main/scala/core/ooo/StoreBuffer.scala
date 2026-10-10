@@ -20,6 +20,10 @@ class StoreBuffer(p: OooParams) extends Module {
             Some(Input(Valid(new CanonicalStoreOrigin(p)))) else None
         val memoryCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
+        val upstreamFrozenStoreProof = if (p.memoryProofFrontier)
+            Some(Input(Valid(new FrozenStoreProof))) else None
+        val memoryFrozenStoreProof = if (p.memoryProofFrontier)
+            Some(Output(Valid(new FrozenStoreProof))) else None
         val postedCompleted = p.postedProofConfig.map(c => Output(Valid(new PostedStoreToken(c))))
         val externalPostedBusy = if (p.postedStoreMerge) Some(Input(Bool())) else None
         val busy      = Output(Bool())
@@ -50,7 +54,8 @@ class StoreBuffer(p: OooParams) extends Module {
     val size                    = request.bits.size
     val end                     = request.bits.address +& (1.U(64.W) << size)
     val ram                     = !request.bits.virtualized &&
-        SpeculativeRamRange.contains(p, request.bits.address, size)
+        SpeculativeRamRange.contains(p, request.bits.address, size) &&
+        !io.upstreamFrozenStoreProof.map(_.valid).getOrElse(false.B)
     // A prechecked PA is still awaiting the adapter's epoch/PMP authorization. Never
     // satisfy it locally, even when a committed buffered store covers every requested byte.
     val buffered = ram && request.bits.write && !request.bits.atomic && !request.bits.precheckedLoad
@@ -217,6 +222,20 @@ class StoreBuffer(p: OooParams) extends Module {
         }
         CanonicalVirtualStore.held(request, io.upstreamCanonicalStoreOrigin.get)
         CanonicalVirtualStore.held(io.memory.request, origin)
+    }
+    io.memoryFrozenStoreProof.foreach { proof =>
+        // A direct-held request remains owned by upstream; do not duplicate or detach its proof.
+        proof := io.upstreamFrozenStoreProof.get
+        proof.valid := io.memory.request.valid && !drainRequest && !flowBufferedWrite &&
+            !flowFastWrite && direct && io.upstreamFrozenStoreProof.get.valid
+        when(request.fire && io.upstreamFrozenStoreProof.get.valid) {
+            assert(!buffered && !forward && direct && io.memory.request.fire && proof.valid &&
+                !owners.io.enq.bits && !immediateAck,
+                "frozen stores require the actual direct response and never receive an early local ACK")
+        }
+        CanonicalVirtualStore.heldFrozen(p, request, io.upstreamCanonicalStoreOrigin.get,
+            io.upstreamFrozenStoreProof.get)
+        CanonicalVirtualStore.heldFrozen(p, io.memory.request, io.memoryCanonicalStoreOrigin.get, proof)
     }
     val anyEnqueue = enqueue || fastEnqueue
     when(anyEnqueue =/= dequeue) { count := Mux(anyEnqueue, count + 1.U, count - 1.U) }

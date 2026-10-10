@@ -90,8 +90,11 @@ def verify_profile(summary, mode):
     _require(isinstance(summary, dict), 'summary must be an object')
     _require(set(summary) == {'schema', 'profile', 'core', 'cache', 'ddr', 'storage',
         'tags', 'floatingPointResources', 'network', 'derived'}, 'summary keys differ')
-    _equal(summary['schema'], 'posted-board-full-profile-v1', 'schema')
-    _equal(summary['profile'], EXPECTED['fpga_next_config'][mode], 'profile')
+    _require(summary['schema'] in ('posted-board-full-profile-v1', 'posted-board-full-profile-v2'), 'schema differs')
+    expected_config = copy.deepcopy(EXPECTED['fpga_next_config'][mode])
+    if summary['schema'] == 'posted-board-full-profile-v2':
+        expected_config.update(robEntries=None, physicalRegs=None)
+    _equal(summary['profile'], expected_config, 'profile')
     _require(set(DERIVED_PATHS) == set(EXPECTED['derived']), 'incomplete expected geometry mapping')
     for name, path in DERIVED_PATHS.items():
         _equal(_at(summary, path), EXPECTED['derived'][name], path)

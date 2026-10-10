@@ -1,0 +1,18 @@
+# Reviewed source budget deviation: four selected owner reads
+
+2026-10-10. Coordinator explicitly accepted the bounded fourth metadata mux for this default-OFF experiment. This revises the source budget, not a PPA/timing or performance qualification. Preserve strong result and final token checks; do not report three reads or zero cost.
+
+At ROB64/PRF64/tag64, RobToken is70 bits. RenamedInstruction is96 bits: token70, source1/source2/destination/oldDestination each6, writesRd1, moveAlias1. The live issue register metadata is144 bits: those96 plus48 request bits. The48 are predictedNextPc.valid1; architectural rs1/rs2/rd each5 and writesRd1; fetchFault1/fetchPageFault1; operation6; system1/mulDiv1/mulDivOp3; word1/usePc1/useImmediate1; controlFlow4; memory1/atomic1/atomicOp5/store1/memorySize2/memoryUnsigned1. Six immutable RAM fields total320 bits; their queue register-view values are tied to zero in the selected profile. The declared IntegerIssueEntry is464 bits before constant/dead-field pruning.
+
+Four selected metadata lookup opportunities can coexist:
+
+1. memoryPreparation0: rank0 next original/head preparation. Selects the existing144-bit metadata record plus the existing64-bit immediate payload read. Captures original eligibility/owner metadata and original address/data stage. This was mistakenly omitted from the initial three-read claim.
+2. memoryPreparation1: independently selected query owner. Selects metadata with full70-bit token, source1(6), store(1), memorySize(2) among its used fields; existing immediate64 supplies the AGU. Store-address proof uses captured storeAddress64 and no rs2/readiness. This rank is dedicated to proof work when ON.
+3. queue(resultIndex).renamed.token: one binary selected70-bit current-token validation for a returning query. No immutable payload or PRF read.
+4. actualMemoryEntry/memoryIssue: one shared final original/frontier owner lookup with current70-bit token; final destination6/writesRd1/memoryUnsigned1 are needed for a frontier owner. The existing PC64 payload port supplies architectural start.pc. The original candidate profiling PC is valid only while frontierChoice=false; when the frontier wins, original blocked-candidate flags are suppressed rather than misattributing the frontier PC.
+
+Thus immutable memory-preparation/issue payload ports remain two64-bit immediate reads plus one64-bit PC read. The memory-preparation PRF paths are rank0 rs1+rs2 and rank1 rs1: three reads versus the baseline four. Other backend PRF and payload consumers remain present and must be counted at elaboration. Original rank0 metadata is registered, which removes a repeated old original-issue metadata lookup but does not eliminate the next rank0 lookup. There is no64x16 full-token bank CAM; the sixteen70-bit full-token consume comparisons and directory/event selects are still real logic.
+
+Declared field widths above are exact source arithmetic. Constant elimination, live subset of each mux, total PRF port replication, reachable register widths, fan-in, LUT/BRAM use and timing remain native elaboration/implementation evidence gates. No synthesized cost is asserted here.
+
+The original legal path pays more than initial lookup latency: with rank1 dedicated to query work, useSecond=false and first-owner-fire clears stagedMemoryValid for the following cycle. A steady stream of ready original-route loads therefore has a source-derived issue/bubble/issue sequence (II at least2). Bare mode cannot use the virtual frontier to fill this bubble. This is an explicit throughput cost to measure; unchanged warm throughput is not claimed. A later time-sharing optimization would require new source review and focused equivalence/port accounting.

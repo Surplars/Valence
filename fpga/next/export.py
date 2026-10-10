@@ -102,6 +102,10 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
+    ap.add_argument("--rob-entries", type=int, choices=(16, 32, 64), action="append",
+                    help="explicit ROB capacity experiment; omitted preserves the selected profile")
+    ap.add_argument("--physical-regs", type=int, choices=(48, 64), action="append",
+                    help="explicit integer PRF capacity experiment; omitted preserves the selected profile")
     ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
                     help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
@@ -120,6 +124,10 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--store-prefetch-lru-victim", action="store_true",
+                    help="default-off store-origin invalid-first/LRU victim experiment")
+    ap.add_argument("--memory-proof-frontier", action="store_true",
+                    help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
                     help="default-off checked virtual-store to disjoint prechecked-load overlap")
     ap.add_argument("--posted-prefetch-head-offer", action="store_true",
@@ -133,6 +141,16 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    for field in ("rob_entries", "physical_regs"):
+        values = getattr(a, field)
+        if values is not None and len(values) != 1:
+            ap.error("choose exactly one --" + field.replace("_", "-") + " value")
+        setattr(a, field, values[0] if values else None)
+    if a.memory_proof_frontier and not (a.rob_entries == 64 and a.physical_regs == 64 and
+            a.lsu_entries == 4 and a.data_translation_entries == 16 and
+            a.canonical_virtual_store_overlap and a.virtual_ram_load_precheck and
+            a.load_order_older_retire and not a.prechecked_data_flow):
+        ap.error("--memory-proof-frontier requires reviewed ROB64/PRF64/LSU4, DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if a.canonical_virtual_store_overlap and not a.virtual_ram_load_precheck:
         ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
     if a.posted_prefetch_head_offer and not (a.posted_store_merge and a.posted_prefetch_coexistence):
@@ -143,6 +161,8 @@ def main(argv=None, expected_profile_sha256=None):
         ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if a.store_prefetch_mru_insertion and not a.store_next_line_prefetch:
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
+    if a.store_prefetch_lru_victim and not a.store_next_line_prefetch:
+        ap.error("--store-prefetch-lru-victim requires --store-next-line-prefetch")
     if a.dma_line_entries != 1 and not a.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if a.dma_line_yield_cycles and not a.dma_line_transfers:
@@ -196,6 +216,12 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["lsu_entries"] = a.lsu_entries
     if a.lsu_entries != 2:
         profile["profile"]["name"] += "-lsu" + str(a.lsu_entries)
+    if a.rob_entries is not None:
+        profile["profile"]["rob_entries"] = a.rob_entries
+        profile["profile"]["name"] += "-rob" + str(a.rob_entries)
+    if a.physical_regs is not None:
+        profile["profile"]["physical_registers"] = a.physical_regs
+        profile["profile"]["name"] += "-prf" + str(a.physical_regs)
     if a.load_order_older_retire:
         profile["profile"]["name"] += "-older-load-retire"
     profile["profile"]["fetch_previous_packet"] = a.fetch_previous_packet
@@ -210,6 +236,11 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["store_prefetch_mru_insertion"] = a.store_prefetch_mru_insertion
     if a.store_prefetch_mru_insertion:
         profile["profile"]["name"] += "-store-prefetch-mru"
+    # Keep historical omitted-option profile bytes; complete constructor audits
+    # always report the new Boolean, including false.
+    if a.store_prefetch_lru_victim:
+        profile["profile"]["store_prefetch_lru_victim"] = True
+        profile["profile"]["name"] += "-store-prefetch-lru-victim"
     profile["profile"]["posted_store_merge"] = a.posted_store_merge
     if a.posted_store_merge:
         profile["profile"]["name"] += "-posted-store-merge"
@@ -219,6 +250,11 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["posted_prefetch_head_offer"] = a.posted_prefetch_head_offer
     if a.posted_prefetch_head_offer:
         profile["profile"]["name"] += "-posted-prefetch-head-offer"
+    # Preserve the frozen native preset profile when the experiment is omitted.
+    # Full Scala constructor reports still include the explicit false value.
+    if a.memory_proof_frontier:
+        profile["profile"]["memory_proof_frontier"] = True
+        profile["profile"]["name"] += "-memory-proof-frontier"
     profile["profile"]["canonical_virtual_store_overlap"] = a.canonical_virtual_store_overlap
     if a.canonical_virtual_store_overlap:
         profile["profile"]["name"] += "-canonical-virtual-store-overlap"
@@ -297,6 +333,10 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--prechecked-data-flow")
     if a.lsu_entries != 2:
         command.append("--lsu-entries=" + str(a.lsu_entries))
+    if a.rob_entries is not None:
+        command.append("--rob-entries=" + str(a.rob_entries))
+    if a.physical_regs is not None:
+        command.append("--physical-regs=" + str(a.physical_regs))
     if a.physical_load_ingress_flow:
         command.append("--physical-load-ingress-flow")
     if a.translated_response_empty_flow:
@@ -311,6 +351,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--store-next-line-prefetch")
     if a.store_prefetch_mru_insertion:
         command.append("--store-prefetch-mru-insertion")
+    if a.store_prefetch_lru_victim:
+        command.append("--store-prefetch-lru-victim")
     if a.posted_store_merge:
         command.append("--posted-store-merge")
     if a.posted_prefetch_coexistence:
@@ -319,6 +361,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--posted-prefetch-head-offer")
     if a.canonical_virtual_store_overlap:
         command.append("--canonical-virtual-store-overlap")
+    if a.memory_proof_frontier:
+        command.append("--memory-proof-frontier")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
@@ -328,6 +372,7 @@ def main(argv=None, expected_profile_sha256=None):
             "fetch_previous_packet": a.fetch_previous_packet,
             "prepared_store_lookahead": a.prepared_store_lookahead,
             "canonical_virtual_store_overlap": a.canonical_virtual_store_overlap,
+            "memory_proof_frontier": a.memory_proof_frontier,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,

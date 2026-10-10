@@ -19,6 +19,7 @@ import time
 import run as common
 from mshr_occupancy import validate
 from memory_capacity_geometry import verify_memory_geometry
+from backend_capacity_geometry import verify_backend_capacity
 from posted_cpu.verify_model import verify_posted_model
 from build_virtual_load_core import build as build_virtual_guest
 from virtual_load_board import parse as parse_virtual_metrics
@@ -49,7 +50,7 @@ def source_inventory():
         "simulator/gsim/payloads/board_memory_independent.c", "simulator/gsim/payloads/board_memory_mixed_stores.c",
         "simulator/gsim/payloads/virtual_load_core.S",
         "simulator/gsim/payloads/virtual_load_core.ld", "simulator/gsim/build_virtual_load_core.py",
-        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/memory_capacity_geometry.py", "simulator/gsim/fpga_next_board.py", "simulator/gsim/posted_cpu/verify_model.py")]
+        "simulator/gsim/virtual_load_board.py", "simulator/gsim/run.py", "simulator/gsim/mshr_occupancy.py", "simulator/gsim/memory_capacity_geometry.py", "simulator/gsim/backend_capacity_geometry.py", "simulator/gsim/fpga_next_board.py", "simulator/gsim/posted_cpu/verify_model.py")]
     return {str(p.relative_to(common.ROOT)): sha(p) for p in sorted(set(files))}
 
 
@@ -60,6 +61,10 @@ def main():
     ap.add_argument("--preflight-only", action="store_true", help="print exact profile; do not create outputs or build")
     ap.add_argument("--variant", choices=("reference", "candidate", "selected"), default="reference")
     ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
+    ap.add_argument("--rob-entries", type=int, choices=(16, 32, 64), action="append",
+                    help="explicit ROB capacity experiment; omitted preserves the selected profile")
+    ap.add_argument("--physical-regs", type=int, choices=(48, 64), action="append",
+                    help="explicit integer PRF capacity experiment; omitted preserves the selected profile")
     ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
                     help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--jobs", type=int, choices=(1, 2), default=2)
@@ -81,6 +86,10 @@ def main():
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--store-prefetch-lru-victim", action="store_true",
+                    help="default-off store-origin invalid-first/LRU victim experiment")
+    ap.add_argument("--memory-proof-frontier", action="store_true",
+                    help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
                     help="default-off checked virtual-store to disjoint prechecked-load overlap")
     ap.add_argument("--posted-prefetch-head-offer", action="store_true",
@@ -98,6 +107,16 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    for field in ("rob_entries", "physical_regs"):
+        values = getattr(args, field)
+        if values is not None and len(values) != 1:
+            ap.error("choose exactly one --" + field.replace("_", "-") + " value")
+        setattr(args, field, values[0] if values else None)
+    if args.memory_proof_frontier and not (args.rob_entries == 64 and args.physical_regs == 64 and
+            args.lsu_entries == 4 and args.data_translation_entries == 16 and
+            args.canonical_virtual_store_overlap and args.virtual_ram_load_precheck and
+            args.load_order_older_retire and not args.prechecked_data_flow):
+        ap.error("--memory-proof-frontier requires reviewed ROB64/PRF64/LSU4, DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if args.canonical_virtual_store_overlap and not args.virtual_ram_load_precheck:
         ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
     if args.posted_prefetch_head_offer and not (args.posted_store_merge and args.posted_prefetch_coexistence):
@@ -110,6 +129,8 @@ def main():
         ap.error("prechecked data flow requires --virtual-ram-load-precheck")
     if args.store_prefetch_mru_insertion and not args.store_next_line_prefetch:
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
+    if args.store_prefetch_lru_victim and not args.store_next_line_prefetch:
+        ap.error("--store-prefetch-lru-victim requires --store-next-line-prefetch")
     if args.dma_line_entries != 1 and not args.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if args.dma_line_yield_cycles and not args.dma_line_transfers:
@@ -136,6 +157,10 @@ def main():
         parameters.append("--virtual-ram-load-precheck")
     if args.lsu_entries != 2:
         parameters.append("--lsu-entries=" + str(args.lsu_entries))
+    if args.rob_entries is not None:
+        parameters.append("--rob-entries=" + str(args.rob_entries))
+    if args.physical_regs is not None:
+        parameters.append("--physical-regs=" + str(args.physical_regs))
     if args.physical_load_ingress_flow:
         parameters.append("--physical-load-ingress-flow")
     if args.translated_response_empty_flow:
@@ -150,6 +175,8 @@ def main():
         parameters.append("--store-next-line-prefetch")
     if args.store_prefetch_mru_insertion:
         parameters.append("--store-prefetch-mru-insertion")
+    if args.store_prefetch_lru_victim:
+        parameters.append("--store-prefetch-lru-victim")
     if args.posted_store_merge:
         parameters.append("--posted-store-merge")
     if args.posted_prefetch_coexistence:
@@ -170,7 +197,11 @@ def main():
         parameters.append("--banked-instruction-data")
     if args.canonical_virtual_store_overlap:
         parameters.append("--canonical-virtual-store-overlap")
-    plan = {"canonical_virtual_store_overlap": args.canonical_virtual_store_overlap,
+    if args.memory_proof_frontier:
+        parameters.append("--memory-proof-frontier")
+    plan = {"rob_entries_override": args.rob_entries, "physical_regs_override": args.physical_regs,
+            "canonical_virtual_store_overlap": args.canonical_virtual_store_overlap,
+            "memory_proof_frontier": args.memory_proof_frontier,
             "posted_store_merge": args.posted_store_merge,
             "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": args.posted_prefetch_head_offer,
@@ -180,6 +211,7 @@ def main():
             "translated_response_empty_flow": args.translated_response_empty_flow,
             "store_next_line_prefetch": args.store_next_line_prefetch,
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,
+            "store_prefetch_lru_victim": args.store_prefetch_lru_victim,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}
@@ -322,7 +354,9 @@ def main():
         step("elaborate", ["mill", "-i", "IonSoC.test.runMain", "ooo.FpgaNextBoardGsimMain", model, *parameters],
              [model / "BoardSocGsim.fir"])
         fir = (model / "BoardSocGsim.fir").read_text()
-        state["posted_model_census"] = verify_posted_model(fir, args.posted_store_merge)
+        state["backend_capacity_census"] = verify_backend_capacity(
+            fir, args.rob_entries or 16, args.physical_regs or 48)
+        state["posted_model_census"] = verify_posted_model(fir, args.posted_store_merge, rob_entries=args.rob_entries or 16)
         save()
         step("generate", [gsim, "--threads=1", "--dir=" + str(model), model / "BoardSocGsim.fir"], timeout=900)
         for token in ("module FloatingPointSystem", "module OwnerBankedPhysicalRegisterFile", "module BankedRobPayload",

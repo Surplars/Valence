@@ -17,10 +17,12 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
             Some(Output(Valid(UInt(p.physBits.W)))) else None
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
+        val acceptedStartSlot = if (p.memoryProofFrontier) Some(Output(Valid(UInt(indexBits.W)))) else None
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
+        val frozenStoreProof = if (p.memoryProofFrontier) Some(Output(Valid(new FrozenStoreProof))) else None
         val relaxStoreOwner = if (p.canonicalVirtualStoreOverlap)
             Some(Input(Valid(new RobToken(p)))) else None
         val complete       = Decoupled(new BackendCompletion(p))
@@ -102,6 +104,10 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     io.start.ready    := io.issueAvailable && Mux1H(
         (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
     )
+    io.acceptedStartSlot.foreach { accepted =>
+        accepted.valid := io.start.fire
+        accepted.bits := chosen
+    }
     for ((slot, i) <- slots.zipWithIndex) {
         slot.io.start.valid := io.start.valid && io.issueAvailable && chosen === i.U
         slot.io.start.bits  := io.start.bits
@@ -160,6 +166,18 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         origin := selected
         origin.valid := io.memory.request.valid && selected.valid
         CanonicalVirtualStore.held(io.memory.request, origin)
+    }
+    io.frozenStoreProof.foreach { proof =>
+        val selected = Mux1H((0 until p.memoryEntries).map(i =>
+            (requests.io.chosen === i.U) -> slots(i).io.frozenStoreProof.get))
+        proof := selected
+        proof.valid := io.memory.request.valid && selected.valid
+        CanonicalVirtualStore.heldFrozen(p, io.memory.request, io.canonicalStoreOrigin.get, proof)
+        when(io.memory.request.valid && proof.valid) {
+            assert(io.requestOwner.valid &&
+                io.canonicalStoreOrigin.get.bits.token.asUInt === io.requestOwner.bits.asUInt,
+                "frozen proof and canonical origin retain the actual selected LSU owner")
+        }
     }
     requests.io.out.ready   := io.memory.request.ready && owners.io.enq.ready
     owners.io.enq.valid     := io.memory.request.fire

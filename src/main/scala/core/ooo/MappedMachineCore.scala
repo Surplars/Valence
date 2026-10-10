@@ -115,6 +115,7 @@ class MappedMachineCore(
         if (p.canonicalVirtualStoreOverlap) {
             // The optional response buffer stores responses only: these requests share one fire.
             adapter.io.canonicalStoreOrigin.get := core.io.canonicalStore.get.requestOrigin
+            adapter.io.frozenStoreProof.foreach(_ := core.io.canonicalStore.get.requestFrozenProof.get)
             core.io.canonicalStore.get.checked := adapter.io.canonicalStoreCertificate.get
             when(core.io.memory.request.fire) { assert(adapter.io.virtual.request.fire) }
         }

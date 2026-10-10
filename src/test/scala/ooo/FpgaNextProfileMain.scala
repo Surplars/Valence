@@ -14,7 +14,7 @@ object FpgaNextProfileMain extends App {
     val output = Path.of(args(0)).toAbsolutePath
     require(!Files.exists(output), "configuration report requires a fresh directory")
     val config = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(config.productArity == 27 && config.coreParams.productArity == 136,
+    require(config.productArity == 31 && config.coreParams.productArity == 139,
         "configuration field count changed; review the complete qualified contract")
     PostedBoardConfiguration.write(config, output.toString)
 }

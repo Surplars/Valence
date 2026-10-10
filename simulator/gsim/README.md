@@ -2611,3 +2611,9 @@ IRQ、MIG 或 PHY，不启动 Vivado。每个夹具跑 48 组 64..2048 B DMA 访
 `expected_controls_confirmed`，不能当作当前 RTL PASS。
 硬件修复位于 `CoherentLineHome`，尚无本轮 routed 时序、IPC 或上板验收；
 详见 [Linux 长帧故障台账](../../docs/linux-bringup.md)。
+
+## Store-origin prefetch LRU victim experiment
+
+Current integration status and exact opt-in commands: [source checkpoint](../../docs/experiments/frontier-lru-opt-in.md). Initial-checkpoint statements below retain their historical scope.
+
+The independent default-OFF `--store-prefetch-lru-victim` option preserves invalid-first selection, then uses the candidate-set LRU only for captured store-origin prefetches. See [the experiment contract](../../docs/experiments/store-prefetch-lru-victim.md) for exact configuration entry points and required dirty-release/data controls. The first source checkpoint is unqualified for DUT behavior, CPU performance and physical timing.
