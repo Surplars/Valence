@@ -1,1 +1,5 @@
 *.bat text eol=crlf
+
+# Preserve exact archived fixture/log bytes, including their original trailing spaces.
+simulator/gsim/canonical_virtual_store/evidence/cpu-observer-controls/contract.py whitespace=-blank-at-eol
+simulator/gsim/canonical_virtual_store/evidence/originals/components-r1/config.log whitespace=-blank-at-eol

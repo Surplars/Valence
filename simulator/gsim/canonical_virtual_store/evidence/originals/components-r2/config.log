@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37029 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=37029 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37029 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=37029 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly ooo.CanonicalVirtualStoreConfigSpec
+069] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+170] IonSoC.test.compile compiling 2 Scala sources to out/IonSoC/test/compile.dest/classes ...
+170] done compiling
+190] IonSoC.test.testOnly
+190] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37029 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=37029 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190] Running Test Class ooo.CanonicalVirtualStoreConfigSpec
+190] [32mCanonicalVirtualStoreConfigSpec:[39m
+190] [32m- canonical virtual-store overlap is independently default off[39m
+190] [32m- canonical guard rejects its own missing transport prerequisites[39m
+190] [32m- existing load-precheck authority guards remain mandatory[39m
+190] [32m- independent legal LSU and store-buffer capacities stay configurable[39m
+190] [32m- canonical metadata and tracker are absent from option-off module interfaces[39m
+190] [32m- actual translation integration rejects a missing checked boundary[39m
+190] [36mRun completed in 3 seconds, 866 milliseconds.[39m
+190] [36mTotal number of tests run: 6[39m
+190] [36mSuites: completed 1, aborted 0[39m
+190] [36mTests: succeeded 6, failed 0, canceled 0, ignored 0, pending 0[39m
+190] [32mAll tests passed.[39m
+190/190, SUCCESS] mill IonSoC.test.testOnly ooo.CanonicalVirtualStoreConfigSpec 20s

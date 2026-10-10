@@ -33,7 +33,7 @@ object PostedPrefetchBoardProfiles {
             postedPrefetchHeadOffer = experiment == "head-offer" && mode == "on")
         require(result == expected && result.coreParams == expected.coreParams,
             "explicit Board options differ from complete constructor profile")
-        require(result.productArity == 26 && result.coreParams.productArity == 135,
+        require(result.productArity == 27 && result.coreParams.productArity == 136,
             "Board constructor fields changed; review the complete frozen contract")
         result
     }

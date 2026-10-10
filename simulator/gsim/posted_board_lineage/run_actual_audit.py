@@ -62,7 +62,7 @@ class Audit(board.Gate):
                     len(report["cacheConcurrency"]) == 3 and len(report["cacheTileLinkParameters"]) >= 1,
                     "actual constructor instances omitted")
                 for row in report["coreParameters"]:
-                    core.require(len(row["values"]) == 135 and row["values"] == profile["core"],
+                    core.require(len(row["values"]) == 136 and row["values"] == profile["core"],
                         "actual final core differs: " + row["instancePath"])
                 for row in report["ddrParameters"]:
                     core.require(row["values"] == profile["ddr"], "actual final DDR differs")

@@ -24,7 +24,7 @@ final class PostedBoardActualParamsAudit(
     require(profile == FpgaNextConfig.fromOptions(referenceOptions, defaultSelected = false),
         "audit entry profile differs from explicit native options")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 135 && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 136 && expectedCore.memoryEntries == 4 &&
         expectedCore.robEntries == 16 && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
         !expectedCore.translatedResponseEmptyFlow && profile.dmaLineTransfers && profile.dmaLineEntries == 4)
@@ -101,7 +101,7 @@ final class PostedBoardActualParamsAudit(
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 135 && actual == expectedCore,
+            require(actual.productArity == 136 && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }

@@ -81,6 +81,8 @@ def main():
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
+                    help="default-off checked virtual-store to disjoint prechecked-load overlap")
     ap.add_argument("--posted-prefetch-head-offer", action="store_true",
                     help="default-off staged posted head offer while only PF remains busy")
     ap.add_argument("--posted-prefetch-coexistence", action="store_true",
@@ -96,6 +98,8 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.canonical_virtual_store_overlap and not args.virtual_ram_load_precheck:
+        ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
     if args.posted_prefetch_head_offer and not (args.posted_store_merge and args.posted_prefetch_coexistence):
         ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
     if args.posted_prefetch_coexistence and not args.posted_store_merge:
@@ -164,7 +168,10 @@ def main():
         parameters.append("--share-protected-head-payload")
     if args.banked_instruction_data:
         parameters.append("--banked-instruction-data")
-    plan = {"posted_store_merge": args.posted_store_merge,
+    if args.canonical_virtual_store_overlap:
+        parameters.append("--canonical-virtual-store-overlap")
+    plan = {"canonical_virtual_store_overlap": args.canonical_virtual_store_overlap,
+            "posted_store_merge": args.posted_store_merge,
             "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": args.posted_prefetch_head_offer,
             "data_translation_entries": args.data_translation_entries,

@@ -1,0 +1,184 @@
+{
+  "extraction": "Selected fields from exact original receipt; no DUT execution.",
+  "original_receipt": {
+    "path": "canonical-store-overlap-cpu-prep-r1/host-preflight-r5/receipt.json",
+    "sha256": "c60f7136a830fb245a7e104bcf47d6c81f43f1bff99b5edfb87712247b3db168",
+    "bytes": 280578
+  },
+  "DUT_executed": false,
+  "error": "command failure {'argv': ['/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19', '-std=c++20', '-O1', '-g', '-fsanitize=address,undefined', '-fno-sanitize-recover=all', '/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_canonical_observer.cpp', '-o', '/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_canonical_observer'], 'cwd': '/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1', 'environment': {}, 'exit': 1, 'expected': 0, 'seconds': 1.003682636001031, 'guard': None, 'log': '/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_canonical_observer-build.log', 'log_sha256': '63964774b26b7c032a4829d6f6c803faea81e72f6a5fa044281aceb5d02f9bab'}",
+  "schema": "canonical-overlap-host-preflight-v1",
+  "status": "FAIL",
+  "steps": [
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_roi.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_roi"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_roi-build.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 1.0014327749995573
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_roi"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_roi.log",
+      "log_sha256": "05c56138e8edfb2d03af1c14fdd7ec4fbf8c20b277fd558499b3255a77337527",
+      "seconds": 0.25086012999963714
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_copy_eviction.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_eviction"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_eviction-build.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 1.2517258070001844
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_eviction"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_eviction.log",
+      "log_sha256": "6fa4c65df3cc3a78f17037d33f7f5dbab10d0257aefe18ade19953f902551709",
+      "seconds": 0.2510766320010589
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/axi_accounting_test.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/axi_accounting_test"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/axi_accounting_test-build.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 3.257054990001052
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/axi_accounting_test"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/axi_accounting_test.log",
+      "log_sha256": "9e2b5b7bb6a63810a021a802dcbbb67ea1b0e7682cfbae7faed0c765fa11b1c2",
+      "seconds": 0.2514736190005351
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_edges.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_edges"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_edges-build.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 1.7523884739985078
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_edges"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_edges.log",
+      "log_sha256": "24fd6197ff48a9f178443bc31e27275c09c9a87dcadafed3498a08db89c7f178",
+      "seconds": 0.25076306899973133
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_copy_adapter.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_adapter"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_adapter-build.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 1.0016049550013122
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_adapter"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_copy_adapter.log",
+      "log_sha256": "c9c35230489e5807ec9d3d813525276468ffa9e399ea000f6cb417c274f61daf",
+      "seconds": 0.250796229000116
+    }
+  ]
+}

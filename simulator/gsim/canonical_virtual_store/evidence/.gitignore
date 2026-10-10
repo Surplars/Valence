@@ -1,0 +1,2 @@
+# Preserve only the compact original qualification logs in this evidence directory.
+!originals/**/*.log

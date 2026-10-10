@@ -25,8 +25,8 @@ class PerformancePresetTests(unittest.TestCase):
             result=self.preflight(*control)
             self.assertEqual(result['status'],'PREFLIGHT_ONLY')
             self.assertEqual(result['command'],['mill','-i','IonSoC.test.runMain','ooo.FpgaNextMain',
-                str(self.output/'rtl'),*EXPECTED['native_reference']['command'][5:],*FLAGS[mode]])
-            profile=result['configuration'];self.assertEqual(profile,PROFILES[mode]);self.assertEqual(len(profile),65)
+                str(self.output/'rtl'),*EXPECTED['native_reference']['command'][5:],*FLAGS[mode],'--canonical-virtual-store-overlap'])
+            profile=result['configuration'];self.assertEqual(profile,PROFILES[mode]);self.assertEqual(len(profile),66)
             digest=performance.LEGACY_PROFILE_SHA256 if mode=='legacy-posted' else performance.PROFILE_SHA256[mode=='on']
             self.assertEqual(hashlib.sha256(json.dumps(profile,sort_keys=True,separators=(',',':')).encode()).hexdigest(),digest)
             for flag in ('translated_response_empty_flow','prechecked_data_flow'):self.assertFalse(profile[flag])
@@ -42,7 +42,7 @@ class PerformancePresetTests(unittest.TestCase):
                 self.assertEqual(profile['name'].count(suffix),int(profile[key]))
                 profile['name']=profile['name'].replace(suffix,'');profile[key]=False
             self.assertEqual(profile,off['configuration'])
-            self.assertEqual(value['command'],off['command']+FLAGS[mode])
+            self.assertEqual(value['command'],off['command'][:-1]+FLAGS[mode]+['--canonical-virtual-store-overlap'])
     def test_disable_posted_closes_all_dependencies(self):
         result=self.preflight('--disable-posted')
         for flag in FLAGS['on']:self.assertNotIn(flag,result['command'])

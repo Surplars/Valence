@@ -67,6 +67,8 @@ class MachinePlatform(
         "DMA line mode requires a bounded mixed coherence home")
     require(!jtagRamDownload || (stagedMemoryFabric && coherentLineCache && ramBytes >= 1024 * 1024),
         "JTAG RAM loader requires staged coherent fabric and reserved monitor RAM")
+    require(!p.canonicalVirtualStoreOverlap || (coherentLineCache && coreDataTranslation && stagedMemoryFabric),
+        "canonical virtual store overlap requires the private-cache RAM and checked physical boundary")
     require(!p.postedStoreMerge || (coherentLineCache && coreDataTranslation && stagedMemoryFabric &&
         cacheConcurrency.readMshrs == 2),
         "posted stores require the real two-MSHR coherent cache and common checked CPU boundary")

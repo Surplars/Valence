@@ -7,12 +7,15 @@ import soc.ip.bus.TwoEntryRegisterQueue
 private[ooo] class VirtualDataRequest(p: OooParams) extends Bundle {
     val request = new DataRequest
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
+    val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
     val context = new VmCsrState
 }
 
 private[ooo] class TranslatedDataRequest(p: OooParams) extends Bundle {
     val request = new DataRequest
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
+    val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
+    val originalVirtualAddress = if (p.canonicalVirtualStoreOverlap) Some(UInt(64.W)) else None
     val privilege = UInt(2.W)
     val checkPhysical = Bool()
     val pageFault = Bool()
@@ -42,6 +45,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         "posted proof needs the common registered checked boundary before every MMIO router")
     require(!p.virtualRamLoadPrecheck || registerCheckedRequests,
         "virtual load precheck requires a registered physical authorization boundary")
+    require(!p.canonicalVirtualStoreOverlap || (p.virtualRamLoadPrecheck &&
+        p.registeredTranslationHeads && registerCheckedRequests),
+        "canonical store certificates require the shared epoch and registered translation/checked boundaries")
     require(!p.registeredTranslationHeads || registerCheckedRequests,
         "registered translation heads require checked request capture")
     require(!p.identityDataRequestFlow || (p.registeredTranslationHeads && registerCheckedRequests),
@@ -60,6 +66,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(Flipped(new VirtualLoadPrecheckPort)) else None
         val translationPeek = if (p.virtualRamLoadPrecheck) Some(new SvTranslationPeekPort) else None
         val precheckFlush = if (p.virtualRamLoadPrecheck) Some(Input(Bool())) else None
+        val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+            Some(Input(Valid(new CanonicalStoreOrigin(p)))) else None
+        val canonicalStoreCertificate = if (p.canonicalVirtualStoreOverlap)
+            Some(Output(Valid(new CanonicalStoreCertificate(p)))) else None
         val vmState = Input(new VmCsrState)
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
@@ -123,6 +133,14 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         request.precheckedLoad && (request.translationEpoch =/= authorizationEpoch.get ||
             authorizationChanged || io.precheckFlush.get)
     else request.precheckedLoad
+    if (p.canonicalVirtualStoreOverlap) {
+        val origin = io.canonicalStoreOrigin.get
+        CanonicalVirtualStore.held(io.virtual.request, origin)
+        when(io.virtual.request.valid && origin.valid) {
+            io.posted.foreach(posted => assert(!posted.upstreamProof.valid,
+                "a virtual store origin is never physical posted-store authority"))
+        }
+    }
 
     // Registered queue boundaries keep the TLB CAM/PMP/TileLink arbitration off one FPGA combinational path.
     val translated = Module(new Queue(new TranslatedDataRequest(p), entries, pipe = false, flow = false))
@@ -130,6 +148,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val waiting = RegInit(false.B)
     val savedRequest = Reg(new DataRequest)
     val savedProof = p.postedProofConfig.map(c => Reg(Valid(new PostedStoreProof(c))))
+    val savedCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+        Some(Reg(Valid(new CanonicalStoreOrigin(p)))) else None
     val savedPrivilege = Reg(UInt(2.W))
     // Register the actual virtual ingress, not merely the translated egress.
     // Capture the architectural context at upstream acceptance; a queued request
@@ -144,6 +164,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         stage.io.enq.bits.request := io.virtual.request.bits
         stage.io.enq.bits.context := io.vmState
         stage.io.enq.bits.postedProof.foreach(_ := io.posted.get.upstreamProof)
+        stage.io.enq.bits.canonicalStoreOrigin.foreach(_ := io.canonicalStoreOrigin.get)
         io.virtual.request.ready := stage.io.enq.ready
     }
     val incoming = virtualRequests.map { stage =>
@@ -156,6 +177,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val incomingProof = p.postedProofConfig.map { _ =>
         virtualRequests.map(_.io.deq.bits.postedProof.get).getOrElse(io.posted.get.upstreamProof)
     }
+    val incomingCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+        Some(virtualRequests.get.io.deq.bits.canonicalStoreOrigin.get) else None
     val context = virtualRequests.map(_.io.deq.bits.context).getOrElse(io.vmState)
     val active = incoming.bits.virtualized && !incoming.bits.precheckedLoad
     val canAccept = !waiting && translated.io.enq.ready
@@ -206,6 +229,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     translated.io.enq.bits := 0.U.asTypeOf(new TranslatedDataRequest(p))
     translated.io.enq.bits.request := original
     translated.io.enq.bits.postedProof.foreach(_ := Mux(waiting, savedProof.get, incomingProof.get))
+    translated.io.enq.bits.canonicalStoreOrigin.foreach { origin =>
+        origin := Mux(waiting, savedCanonicalStoreOrigin.get, incomingCanonicalStoreOrigin.get)
+        // Only the response to this store's real write translation may preserve
+        // its optional origin. Identity and prechecked-load paths cannot create it.
+        origin.valid := Mux(waiting, savedCanonicalStoreOrigin.get.valid, incomingCanonicalStoreOrigin.get.valid) &&
+            translatedReply && original.virtualized && original.write && !original.atomic &&
+            !original.precheckedLoad && !original.uncached
+    }
+    translated.io.enq.bits.originalVirtualAddress.foreach(_ := original.address)
     translated.io.enq.bits.request.address := Mux(active || waiting,
         io.translation.response.bits.physicalAddress, original.address)
     translated.io.enq.bits.request.virtualized := false.B
@@ -223,6 +255,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         waiting := true.B
         savedRequest := incoming.bits
         savedProof.foreach(_ := incomingProof.get)
+        savedCanonicalStoreOrigin.foreach(_ := incomingCanonicalStoreOrigin.get)
         savedPrivilege := context.dataPrivilege
     }
     when(waiting && io.translation.response.fire) { waiting := false.B }
@@ -332,6 +365,51 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
                 "checked stage validates captured head/PMP/payload lineage; identity success creates no authority")
         }
     }
+    if (p.canonicalVirtualStoreOverlap) {
+        val stage = checked.get
+        val origin = head.canonicalStoreOrigin.get
+        val virtualAddress = head.originalVirtualAddress.get
+        val certificate = io.canonicalStoreCertificate.get
+        val fromTranslated = translated.io.deq.valid && !identityOffer && !precheckedOffer && !physicalIngressOffer
+        val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
+            !request.precheckedLoad && !request.uncached && head.checkPhysical
+        val shape = request.size <= 3.U && AlignedMemoryDisjoint.aligned(virtualAddress, request.size) &&
+            AlignedMemoryDisjoint.aligned(request.address, request.size) &&
+            virtualAddress(11, 0) === request.address(11, 0) &&
+            request.mask === AlignedMemoryDisjoint.lanes(request.address, request.size)
+        // Check the entire half-open interval at XLEN+1. Never truncate high PA
+        // bits, certify only a starting byte, or wrap an access at the RAM end.
+        val physicalStart = Cat(0.U(1.W), request.address)
+        val bytes = MuxLookup(request.size, 8.U(65.W))(
+            Seq(0.U -> 1.U(65.W), 1.U -> 2.U(65.W), 2.U -> 4.U(65.W)))
+        val physicalEnd = physicalStart + bytes
+        val inRam = physicalStart >= p.speculativeRamBase.U(65.W) &&
+            physicalEnd <= (p.speculativeRamBase + p.speculativeRamBytes).U(65.W) &&
+            physicalEnd > physicalStart
+        val fresh = io.loadPrecheck.get.stable && !authorizationChanged && !io.precheckFlush.get &&
+            origin.bits.epoch === authorizationEpoch.get
+        // This always-consumed event is captured by the backend on the same edge
+        // as the existing checked request. It adds no request or response owner,
+        // and losing the proof never changes the store's architectural outcome.
+        certificate.valid := stage.enq.fire && fromTranslated && origin.valid && ordinaryStore &&
+            shape && inRam && fresh && !stage.enq.bits.fault && !pmp.io.denied
+        certificate.bits.origin := origin.bits
+        certificate.bits.virtualAddress := virtualAddress
+        certificate.bits.physicalAddress := request.address
+        certificate.bits.size := request.size
+        certificate.bits.mask := request.mask
+        val expectedCheckedRequest = WireDefault(request)
+        expectedCheckedRequest.prefetchNextAllowed := nextAllowed
+        when(certificate.valid) {
+            assert(translated.io.deq.fire && stage.enq.bits.request.asUInt === expectedCheckedRequest.asUInt,
+                "canonical store certificate belongs to the exact checked request acceptance")
+            assert(!head.pageFault && !head.accessFault && !stage.enq.bits.pageFault &&
+                pmp.io.access === PmpAccess.write,
+                "canonical store certificate requires completed demand translation and physical write permission")
+            head.postedProof.foreach(proof => assert(!proof.valid,
+                "canonical virtual-store certificate cannot reuse physical posted-store proof"))
+        }
+    }
     val physicalHead = checked.map(_.deq.bits.request).getOrElse(request)
     // This final gate is narrow. The full CSR/PMP snapshot comparator terminates in checked above.
     // Context changes with accepted prechecked owners violate the drain contract asserted below.
@@ -399,4 +477,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     io.idle := !waiting && !translated.io.deq.valid && !owners.io.deq.valid &&
         checked.map(stage => !stage.deq.valid).getOrElse(true.B) &&
         virtualRequests.map(stage => !stage.io.deq.valid).getOrElse(true.B)
+    if (p.canonicalVirtualStoreOverlap) {
+        when(authorizationChanged || io.precheckFlush.get) {
+            assert(io.idle,
+                "VM/PMP/SFENCE changes must drain accepted canonical stores and overlapping adapter work")
+        }
+    }
 }

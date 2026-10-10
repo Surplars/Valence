@@ -1,0 +1,60 @@
+{
+  "extraction": "Selected fields from the exact original receipt; full inputs remain in the referenced archive. No status or result rewritten.",
+  "original_receipt": {
+    "path": "sv39-canonical-store-overlap-implementation-r1/components-r1/receipt.json",
+    "sha256": "30773bd465010de74851683658f60bd9656e90fe44556b8956752b36aeaac056",
+    "bytes": 256465
+  },
+  "schema": "canonical-virtual-store-components-v1",
+  "status": "FAIL",
+  "scope": "configuration and selected focused GSIM fixtures; no cache/board/performance/timing claim",
+  "head": "8eeab5a4c25d3aa7eb39b166fbd70de366861623",
+  "tree": "96993afa7f4cc55e4a6fe0f231bdf8ab481f61f2",
+  "tool_receipt_sha256": "09a2c9129ebe50f34e3be6529b83e100c74c00f883e675fb5846a2d4f9e5a037",
+  "models": {},
+  "steps": [
+    {
+      "name": "config",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.testOnly",
+        "ooo.CanonicalVirtualStoreConfigSpec"
+      ],
+      "exit": 1,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 94.65238005599895,
+      "log_sha256": "4c4afde2e7b6cda43e4ad55efef4790bfe8072f19ec1e253676955f59a75db1b"
+    }
+  ],
+  "historical_runtime_pass_inherited": false,
+  "error": "step failed: config",
+  "qualified_fixture_sha256": {
+    "simulator/gsim/canonical_virtual_store/run_components.py": "f4edabe981cfdad14bc53d1055cfa9fdd6ada2a5e569f6384c25b456fe83de8e",
+    "simulator/gsim/harness/canonical_store_SOURCE_NOTES.md": "8aac0e594888c81bf80fd1360e0967ee676b861f7fddd50c6ef9b11464edcc99",
+    "simulator/gsim/harness/canonical_store_adapter.cpp": "a473f6b6e466af19341c76fa8fb50829fe836a46968d97403fd10ec7425037f0",
+    "simulator/gsim/harness/canonical_store_lsu.cpp": "f5ad9a1227b84726fe0a1f02725c18774c109f39dfef2d240eecba463dcf71b1",
+    "simulator/gsim/harness/canonical_store_oracle.h": "d5914ece94eb6c033d50ffdb4f452cbd1490d69b1e2b00a79a7c0eedad558ca1",
+    "simulator/gsim/harness/canonical_store_tracker.cpp": "da575c1381cfb92cf1ca61cf05fe6c4aa9ba2b0bccd15e96241024e7de764e11",
+    "simulator/gsim/harness/canonical_virtual_store_backend.cpp": "ee598c8ec8ac54a8543e21cef512572705405cd1a72660b4ff017e671c9b3205",
+    "src/test/scala/ooo/CanonicalStoreGsim.scala": "0ba430add16bf264ffcb0a591129423f202b488dd0be859ac61979d530a55d2a",
+    "src/test/scala/ooo/CanonicalVirtualStoreBackendGsim.scala": "6c5537a08622a90c7f0f983d760c42d6ab32920cf702ceb75a566333f10f0aea",
+    "src/test/scala/ooo/CanonicalVirtualStoreConfigSpec.scala": "c4ae24d6d58c7c7ef829fba802b6df6669525ed759bcca38831c7842b1c15f17"
+  },
+  "frozen_production_sha256": {
+    "src/main/scala/core/ooo/CanonicalVirtualStore.scala": "b5128fd471b32155092e1ba34d34f7070b186b7a426f63df987000dd89a71913",
+    "src/main/scala/core/ooo/DataTranslationAdapter.scala": "cbc363a88b32308f1a8a65a20252ee70465e06466bc4a218a3b6535eb200fef2",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "1de3fe84f7a3aeda65fc68f7751b424e46365c9036396431e37d0ade532f40f3",
+    "src/main/scala/core/ooo/IntegerCore.scala": "5b31d540ce1a77ff5de112583e1ee018e18d0ef48dff1847cb6d9a8210c18909",
+    "src/main/scala/core/ooo/LoadStoreUnit.scala": "4db01d528f73f1838ce88af879c00597dbfa603e2498aba504c3b97b43bdeae8",
+    "src/main/scala/core/ooo/MachineCore.scala": "6f5d0ed4be8eefd95d8d7ba5220b52779397c00ae7445467f4d0def8cdf7cd49",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "90433ea723c6b660112784e9afe58cd7977e1d38b542bc8aa89a57f34a3801dd",
+    "src/main/scala/core/ooo/MappedMachineCore.scala": "ed78b4fbaa3d832dda04c983406eea9840e5694780dc1985829f1f5183b2b6bb",
+    "src/main/scala/core/ooo/OooParams.scala": "65dd99a628f7ca11d76cafb70b8e402c9d3a2bd1914ed4764b81c7177c911297",
+    "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": "4d4f958c8c0d850b276ef388dc16af7e4a67c2ae73cddaafe647d0c7036287e9",
+    "src/main/scala/core/ooo/StoreBuffer.scala": "fd13ac52ac2e5bd4b9eb0bc5c0902b33c89e0d2954b7d34bfde2346b56375215"
+  }
+}

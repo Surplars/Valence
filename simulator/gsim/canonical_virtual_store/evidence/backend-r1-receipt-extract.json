@@ -1,0 +1,282 @@
+{
+  "extraction": "Selected fields from the exact original receipt; full inputs remain in the referenced archive. No status or result rewritten.",
+  "original_receipt": {
+    "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/receipt.json",
+    "sha256": "0250b48f07f40c83b723b531dfd2c975891b25153650773dd01250a5fb3f553e",
+    "bytes": 267534
+  },
+  "schema": "canonical-virtual-store-components-v1",
+  "status": "PASS_SELECTED_CONFIG_AND_FOCUSED_COMPONENTS_ONLY",
+  "scope": "configuration and selected focused GSIM fixtures; no cache/board/performance/timing claim",
+  "head": "8665c3f78d88ced517fd70b1fe1380e32986a713",
+  "tree": "fc1425da2febc2ada4a63e4b4a27a70aaed1b819",
+  "tool_receipt_sha256": "09a2c9129ebe50f34e3be6529b83e100c74c00f883e675fb5846a2d4f9e5a037",
+  "models": {
+    "backendoff": {
+      "top": "CanonicalVirtualStoreBackendGsim",
+      "driver_sha256": "9bdb7c65a433d4ab948132d3a906149fcbd84009ee9dae3d4d2379ed1a0dbd34",
+      "artifacts": {
+        "backendoff/CanonicalVirtualStoreBackendGsim0.o": "86cb407bae11c195e922b067bc235205f05d0a08b826d40cf47423301f3d1c93",
+        "backendoff/run": "c9dd6c13e864b26f621423debd2964bf257d6010ed51148f63d97cdb84e21198",
+        "backendoff/CanonicalVirtualStoreBackendGsim.fir": "04e452c818e7bfaf255567a97c99e0eef5025eb39c0c1f50178cb8e1ccb05916",
+        "backendoff/CanonicalVirtualStoreBackendGsim0.cpp": "59ef26ab71e4bf854dd73178ede47b089bfd93196d7ef0508819dd705ba8bd05",
+        "backendoff/CanonicalVirtualStoreBackendGsim.h": "702305bb9b76cfe9fc56f7be43d54cbbc7768c3e25930638c6040a3045549297",
+        "backendoff/parameters.json": "0bde20b0c59e7e0e83339090177e65bc52dd04f3d6d8f6ff316c1c37545681d1"
+      }
+    },
+    "backendon": {
+      "top": "CanonicalVirtualStoreBackendGsim",
+      "driver_sha256": "9bdb7c65a433d4ab948132d3a906149fcbd84009ee9dae3d4d2379ed1a0dbd34",
+      "artifacts": {
+        "backendon/CanonicalVirtualStoreBackendGsim0.o": "934d29f87743b9e32db1aa561e90e777684c6d53647a4dd77ff254ba46b05124",
+        "backendon/run": "44db64ab51931df93485e2ba6f55168a88adabcdc0b4a36641f07a417fd8f0a9",
+        "backendon/CanonicalVirtualStoreBackendGsim.fir": "e71fd8b38e5b6c6539d0d1a1b488a67ea4089a0ee90fddf84f7d3e92b2c73911",
+        "backendon/CanonicalVirtualStoreBackendGsim0.cpp": "8279a099d39d7df57249e2339693940b150338d2ad0d1df8ecd5495e093b3de1",
+        "backendon/CanonicalVirtualStoreBackendGsim.h": "0b34bbc510c319a22a6e0b249fa8483274bf7b2f4291030f82207c6405be88fb",
+        "backendon/parameters.json": "8d5976dd8245c3bc783ebbdd13765a611f89e04ab8797be4436c7c5e236d735c"
+      }
+    }
+  },
+  "steps": [
+    {
+      "name": "backendoff-emit",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.runMain",
+        "ooo.CanonicalVirtualStoreBackendGsimMain",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff",
+        "0",
+        "4"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 19.532483412000147,
+      "log_sha256": "1f1a31b1d4fc2173c3717918874b1fa8f25e4fdbe68b3dcb85e3590f80a93c61"
+    },
+    {
+      "name": "backendoff-generate",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/gsim-src/build/gsim/gsim",
+        "--threads=1",
+        "--dir=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/CanonicalVirtualStoreBackendGsim.fir"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 9.01910554999995,
+      "log_sha256": "541168c41aab553d28a7e9602c28b4733ca12d5efee4008a4249d9e3d3f05035"
+    },
+    {
+      "name": "backendoff-compile-CanonicalVirtualStoreBackendGsim0",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=0",
+        "-c",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/CanonicalVirtualStoreBackendGsim0.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/CanonicalVirtualStoreBackendGsim0.o"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 45.33201464400008,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendoff-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=0",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness/canonical_virtual_store_backend.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/CanonicalVirtualStoreBackendGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/run"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 5.510035984001661,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendoff-cases",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/run"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 0.25119857099889487,
+      "log_sha256": "59deaca4979fa833096db5dbd72b39638144739f81df6adabc5f05802ca8b009"
+    },
+    {
+      "name": "backendoff-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/run",
+        "--inject-result"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "guard": null,
+      "seconds": 0.2512137339999754,
+      "log_sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244"
+    },
+    {
+      "name": "backendon-emit",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.runMain",
+        "ooo.CanonicalVirtualStoreBackendGsimMain",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon",
+        "1",
+        "4"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 6.2659740389990475,
+      "log_sha256": "969e42eaf5bd69429c992cdbc692a4367327ffa913f5b2e5c134fe5aabbee08e"
+    },
+    {
+      "name": "backendon-generate",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/gsim-src/build/gsim/gsim",
+        "--threads=1",
+        "--dir=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/CanonicalVirtualStoreBackendGsim.fir"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 9.27362819100017,
+      "log_sha256": "89bf65ac70a73df4cc38afff3dbc6e1d45b7f8c4a78b623ed9cf29c25518b4c7"
+    },
+    {
+      "name": "backendon-compile-CanonicalVirtualStoreBackendGsim0",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=1",
+        "-c",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/CanonicalVirtualStoreBackendGsim0.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/CanonicalVirtualStoreBackendGsim0.o"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 51.61849834700115,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendon-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=1",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness/canonical_virtual_store_backend.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/CanonicalVirtualStoreBackendGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/run"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 5.011722163000741,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendon-cases",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/run"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "guard": null,
+      "seconds": 0.25138456400054565,
+      "log_sha256": "66e5565c2c73b9e871d8d7611f52fbb41cd624bb3e7dd44d5bc31d121379d159"
+    },
+    {
+      "name": "backendon-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/run",
+        "--inject-result"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "guard": null,
+      "seconds": 0.2512013609994028,
+      "log_sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244"
+    }
+  ],
+  "historical_runtime_pass_inherited": false,
+  "qualified_fixture_sha256": {
+    "simulator/gsim/canonical_virtual_store/run_components.py": "2044e0b8394fed92a71b61c04423e578d1e72379751474094ee941b7f48cae18",
+    "simulator/gsim/harness/canonical_store_SOURCE_NOTES.md": "cd49ac23a4fcd3c793316ce3630b4b2cc3c136a9851bca23afd95e3b17bc870b",
+    "simulator/gsim/harness/canonical_store_adapter.cpp": "6e1ffc060188d4171265d68331bd73210a4e3aad8398cd6cc919e07b68326f83",
+    "simulator/gsim/harness/canonical_store_lsu.cpp": "3cc42c54e30c75c7ded57352d4fe5f94380fe431b58c71e5f8d3b3f933cfeb49",
+    "simulator/gsim/harness/canonical_store_oracle.h": "d5914ece94eb6c033d50ffdb4f452cbd1490d69b1e2b00a79a7c0eedad558ca1",
+    "simulator/gsim/harness/canonical_store_tracker.cpp": "da575c1381cfb92cf1ca61cf05fe6c4aa9ba2b0bccd15e96241024e7de764e11",
+    "simulator/gsim/harness/canonical_virtual_store_backend.cpp": "9bdb7c65a433d4ab948132d3a906149fcbd84009ee9dae3d4d2379ed1a0dbd34",
+    "src/test/scala/ooo/CanonicalStoreGsim.scala": "0ba430add16bf264ffcb0a591129423f202b488dd0be859ac61979d530a55d2a",
+    "src/test/scala/ooo/CanonicalVirtualStoreBackendGsim.scala": "68f2ce9ea33d91e88f13b360a6bddf9452117bc7f30229a652cc9828104bbd9a",
+    "src/test/scala/ooo/CanonicalVirtualStoreConfigSpec.scala": "77532f2433dcdc0574c3439be15dff688ab8c8bbfb96b7e59424189bd6799481"
+  },
+  "frozen_production_sha256": {
+    "src/main/scala/core/ooo/CanonicalVirtualStore.scala": "b5128fd471b32155092e1ba34d34f7070b186b7a426f63df987000dd89a71913",
+    "src/main/scala/core/ooo/DataTranslationAdapter.scala": "cbc363a88b32308f1a8a65a20252ee70465e06466bc4a218a3b6535eb200fef2",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "1de3fe84f7a3aeda65fc68f7751b424e46365c9036396431e37d0ade532f40f3",
+    "src/main/scala/core/ooo/IntegerCore.scala": "5b31d540ce1a77ff5de112583e1ee018e18d0ef48dff1847cb6d9a8210c18909",
+    "src/main/scala/core/ooo/LoadStoreUnit.scala": "4db01d528f73f1838ce88af879c00597dbfa603e2498aba504c3b97b43bdeae8",
+    "src/main/scala/core/ooo/MachineCore.scala": "6f5d0ed4be8eefd95d8d7ba5220b52779397c00ae7445467f4d0def8cdf7cd49",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "90433ea723c6b660112784e9afe58cd7977e1d38b542bc8aa89a57f34a3801dd",
+    "src/main/scala/core/ooo/MappedMachineCore.scala": "ed78b4fbaa3d832dda04c983406eea9840e5694780dc1985829f1f5183b2b6bb",
+    "src/main/scala/core/ooo/OooParams.scala": "65dd99a628f7ca11d76cafb70b8e402c9d3a2bd1914ed4764b81c7177c911297",
+    "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": "4d4f958c8c0d850b276ef388dc16af7e4a67c2ae73cddaafe647d0c7036287e9",
+    "src/main/scala/core/ooo/StoreBuffer.scala": "fd13ac52ac2e5bd4b9eb0bc5c0902b33c89e0d2954b7d34bfde2346b56375215"
+  }
+}

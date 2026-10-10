@@ -16,6 +16,10 @@ class StoreBuffer(p: OooParams) extends Module {
         val upstreamProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
         val fastProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
         val memoryProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
+        val upstreamCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+            Some(Input(Valid(new CanonicalStoreOrigin(p)))) else None
+        val memoryCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+            Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
         val postedCompleted = p.postedProofConfig.map(c => Output(Valid(new PostedStoreToken(c))))
         val externalPostedBusy = if (p.postedStoreMerge) Some(Input(Bool())) else None
         val busy      = Output(Bool())
@@ -198,6 +202,21 @@ class StoreBuffer(p: OooParams) extends Module {
         }
         PostedStoreCpu.held(io.memory.request, proof)
         PostedStoreCpu.held(io.upstream.request, io.upstreamProof.get)
+    }
+    io.memoryCanonicalStoreOrigin.foreach { origin =>
+        origin := io.upstreamCanonicalStoreOrigin.get
+        origin.valid := io.memory.request.valid && !drainRequest && !flowBufferedWrite &&
+            !flowFastWrite && direct && io.upstreamCanonicalStoreOrigin.get.valid
+        when(request.fire && io.upstreamCanonicalStoreOrigin.get.valid) {
+            assert(!buffered && !forward && direct && io.memory.request.fire && origin.valid,
+                "a virtual store origin uses only the real direct request and response owner")
+        }
+        when(io.memory.request.fire && origin.valid) {
+            assert(request.fire && !owners.io.enq.bits,
+                "certified stores must never receive the local buffered-store acknowledgement")
+        }
+        CanonicalVirtualStore.held(request, io.upstreamCanonicalStoreOrigin.get)
+        CanonicalVirtualStore.held(io.memory.request, origin)
     }
     val anyEnqueue = enqueue || fastEnqueue
     when(anyEnqueue =/= dequeue) { count := Mux(anyEnqueue, count + 1.U, count - 1.U) }

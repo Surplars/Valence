@@ -32,7 +32,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
-    postedPrefetchHeadOffer: Boolean = false) extends Module {
+    postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -47,7 +47,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
-        postedPrefetchHeadOffer = postedPrefetchHeadOffer))
+        postedPrefetchHeadOffer = postedPrefetchHeadOffer,
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap))
     // A test-only, passive scalar view of this exact Board instance. No inputs,
     // queues or control paths are inserted by the composition fixture.
     val lineage = lineageProfile.map { profile =>

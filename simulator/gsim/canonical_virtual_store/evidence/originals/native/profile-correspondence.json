@@ -1,0 +1,53 @@
+{
+  "schema": "canonical-native-baseline-profile-correspondence-v1",
+  "status": "PASS_EXACT_FULL_PROFILE_BASELINE_PROJECTION",
+  "published_reference_profile_fields": 26,
+  "published_reference_core_fields": 135,
+  "candidate_profile_fields": 26,
+  "candidate_core_fields": 136,
+  "differences_from_published": {
+    "core.canonicalVirtualStoreOverlap": false,
+    "developmentTreatment": {
+      "canonicalVirtualStoreOverlap": false,
+      "productionCliSupportsTreatment": false
+    }
+  },
+  "entire_remainder_exact_equal": true,
+  "native_actual_parameter_checks": [
+    {
+      "side": "OFF",
+      "source_commit": "6f975c14edd0ce01cc248b71893d85634fedf408",
+      "full_profile_equals_expected_with_only_treatment_choice": true,
+      "entry_profile_fields": 26,
+      "core_fields": 136,
+      "cache_fields": 10,
+      "actual_core_instances": 6,
+      "actual_cache_instances": 3,
+      "actual_ddr_instances": 2,
+      "actual_cache_tl_entries": 2
+    },
+    {
+      "side": "ON",
+      "source_commit": "6f975c14edd0ce01cc248b71893d85634fedf408",
+      "full_profile_equals_expected_with_only_treatment_choice": true,
+      "entry_profile_fields": 26,
+      "core_fields": 136,
+      "cache_fields": 10,
+      "actual_core_instances": 6,
+      "actual_cache_instances": 3,
+      "actual_ddr_instances": 2,
+      "actual_cache_tl_entries": 2
+    }
+  ],
+  "evidence_sha256": {
+    "posted-head-offer-integration-r1/preset-v2-qualification-r1/parameters-ON/profile.json": "15c7ad1a5aad36adc0cc8c1f4661a013ef85773145fa0532d63ad3415501c014",
+    "canonical-store-overlap-cpu-prep-r1/expected-profile-off.json": "7d4ebe9167e57d873a595447babe4e82be0f48ddb687b240fe0eda8e7a8b277d",
+    "canonical-store-overlap-native-r1/native-OFF/profile.json": "ccaeeea6e5024b1abccea73696fbce71b8e15ffa5bd4410ba94701a9b91a8939",
+    "canonical-store-overlap-native-r1/native-OFF/actual-parameters.json": "450adeff2a24da6afa6916c9aee7f5ff3b9ae2b5a612e984a6eaeaa9fd318c95",
+    "canonical-store-overlap-native-r1/native-OFF/receipt.json": "26cf8d30cef9babd701757bab3099a02f3702a3edf33c4fca263cd6deb5fcff4",
+    "canonical-store-overlap-native-r1/native-ON/profile.json": "ed7da217ee472859fb355be614d9440a7c89c36eacb441fad4c5d86f71d1339e",
+    "canonical-store-overlap-native-r1/native-ON/actual-parameters.json": "7b78de059470156638ff79c59ac4737141eb886b71198e92d6caa5ba29924055",
+    "canonical-store-overlap-native-r1/native-ON/receipt.json": "ff05135691ca01b5001c319220129220acc43321024dfa84064488ded22e7742"
+  },
+  "scope": "Read-only comparison of existing JSON evidence; no new elaboration, native build or simulation."
+}

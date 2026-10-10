@@ -1,0 +1,228 @@
+{
+  "schema": "canonical-overlap-terminal-cpu-pair-summary-v1",
+  "status": "PASS_THREE_FRESH_IDENTICAL_SOURCE_OFF_ON_CPU_PAIRS",
+  "scope": "Existing immutable guest, actual full-model runtime at qualified source 6f975c14; final integration CLI/config/native correspondence is a separate gate.",
+  "results": [
+    {
+      "case": 0,
+      "side": "off",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/off-case0-r1/receipt.json",
+        "sha256": "fa5735961f0cb4100f744f15ac445837e723e1fe0aae02c9750cc81c43e72d65",
+        "bytes": 19202
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 16530,
+      "flush_tail": 0,
+      "result_row": [
+        0,
+        0,
+        0,
+        1024,
+        8,
+        16530,
+        0,
+        6863348401280905216
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    },
+    {
+      "case": 0,
+      "side": "on",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/on-case0-r1/receipt.json",
+        "sha256": "ed951c8616d163536f3813baa8a628be997727b47aada59c8db508429749717c",
+        "bytes": 19187
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 16530,
+      "flush_tail": 0,
+      "result_row": [
+        0,
+        0,
+        0,
+        1024,
+        8,
+        16530,
+        0,
+        6863348401280905216
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    },
+    {
+      "case": 19,
+      "side": "off",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/off-case19-r1/receipt.json",
+        "sha256": "35df4aaed317d70ac6210ddb4f2ba8f0ae819cc23e0f31276c9356c573c07ee0",
+        "bytes": 27608
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 365235,
+      "flush_tail": 5618,
+      "result_row": [
+        0,
+        1,
+        2,
+        16384,
+        1,
+        365235,
+        5618,
+        0
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    },
+    {
+      "case": 19,
+      "side": "on",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/on-case19-r1/receipt.json",
+        "sha256": "bdde8219c8ce8811fe65e96b97447a380df64cb1ee832d3c08b54d54f51435a5",
+        "bytes": 27439
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 365235,
+      "flush_tail": 5618,
+      "result_row": [
+        0,
+        1,
+        2,
+        16384,
+        1,
+        365235,
+        5618,
+        0
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    },
+    {
+      "case": 21,
+      "side": "off",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/off-case21-r1/receipt.json",
+        "sha256": "5a91d78b4785018b855557a4482003d48998ed0cb67c11a61b1b09aaf923e4d9",
+        "bytes": 21218
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 497144,
+      "flush_tail": 5584,
+      "result_row": [
+        1,
+        1,
+        2,
+        16384,
+        1,
+        497144,
+        5584,
+        0
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    },
+    {
+      "case": 21,
+      "side": "on",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/on-case21-r1/receipt.json",
+        "sha256": "7596e32446954afb61b06e86d57215248fcd888ea997317c8bbdf5d610c390ad",
+        "bytes": 21294
+      },
+      "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+      "ticks": 431622,
+      "flush_tail": 5580,
+      "result_row": [
+        1,
+        1,
+        2,
+        16384,
+        1,
+        431622,
+        5580,
+        0
+      ],
+      "all_recorded_artifact_hashes_reverified": true,
+      "canonical_final_owner_queues": 0,
+      "canonical_three_boundary_overlap_tokens": 0,
+      "runtime_pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "guest_changed": false,
+      "historical_pass_inherited": false
+    }
+  ],
+  "pairs": [
+    {
+      "case": 0,
+      "status": "PASS_FRESH_IDENTICAL_SOURCE_OFF_ON_CPU_PAIR",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/pair-case0-r1.json",
+        "sha256": "8534961769275b91a5bac440fa4f822a9c34c0ef2e0e025cae142543c23ff3f6",
+        "bytes": 22000
+      },
+      "causal_report": {
+        "path": "canonical-store-overlap-cpu-prep-r1/causal-case0-r1.json",
+        "sha256": "1ea9e89d765868cc1da55f3a2474ea3dd20038c72f0e0269dc8f512109a379f8",
+        "bytes": 6521
+      },
+      "ticks_speedup": 1.0,
+      "speedup_required": false,
+      "historical_performance_inherited": false
+    },
+    {
+      "case": 19,
+      "status": "PASS_FRESH_IDENTICAL_SOURCE_OFF_ON_CPU_PAIR",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/pair-case19-r1.json",
+        "sha256": "7e22cb61b0f63bad37750699777277a61c6c87643ca4b810748036b0f40c134b",
+        "bytes": 37285
+      },
+      "causal_report": {
+        "path": "canonical-store-overlap-cpu-prep-r1/causal-case19-r1.json",
+        "sha256": "5cc5f60d474a623c085fdfcf99d0bd976412aeeb9e400ba384b1e6932dfe9853",
+        "bytes": 8864
+      },
+      "ticks_speedup": 1.0,
+      "speedup_required": false,
+      "historical_performance_inherited": false
+    },
+    {
+      "case": 21,
+      "status": "PASS_FRESH_IDENTICAL_SOURCE_OFF_ON_CPU_PAIR",
+      "receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/pair-case21-r1.json",
+        "sha256": "ec0a6e2cc1a96431c66ffecba438b8b778119c6fc13c61fa19cba8c1bb74c719",
+        "bytes": 25520
+      },
+      "causal_report": {
+        "path": "canonical-store-overlap-cpu-prep-r1/causal-case21-r1.json",
+        "sha256": "6867123fff9b1238dd1c2a0410077d2c6c33cd7bb91df00aedf6dc64f4ea6c9c",
+        "bytes": 20402
+      },
+      "ticks_speedup": 1.1518041249055886,
+      "speedup_required": false,
+      "historical_performance_inherited": false
+    }
+  ]
+}

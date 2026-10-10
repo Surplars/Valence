@@ -1,0 +1,564 @@
+{
+  "schema": "canonical-overlap-compact-evidence-v1",
+  "assembled_utc": "2026-10-10T11:38:52.078344+00:00",
+  "scope": "Receipt-verified source/component/backend/actual CPU cases0,19,21/native evidence plus separate official-entry actual parameter and raw-native equality gate. No new CPU runtime.",
+  "verification": [
+    "All component r1/r2, backend r1 and host-replay step logs rehashed against terminal receipts.",
+    "Qualified component/backend fixture bytes verified with git show at each receipt commit.",
+    "All six CPU runtime artifact sets, including complete raw event traces, rehashed against terminal receipts.",
+    "All 11 frozen production file hashes matched the integration worktree.",
+    "Native OFF/ON RTL files rehashed against export receipts; all 269 baseline/OFF files compared directly; 268 raw identical, exact one-name substitution for remaining IntegerBackend.sv.",
+    "Both original and independent identifier negative-control receipts preserved.",
+    "Observer/control copies match runtime pins; direct contract.py dependency matches model binding.",
+    "Official public-entry no-probes exports matched qualified native OFF269/269 and ON272/272 raw files; full CPU/native actual parameter comparison and 46 focused Scala tests passed."
+  ],
+  "original_copies": [
+    {
+      "tracked_path": "originals/audits/canonical-backend-log-audit-r1.json",
+      "path": "coordination/canonical-backend-log-audit-r1.json",
+      "sha256": "2f1cb9377af5f88634442d3f5f431faba1a2fe0ff6c4980c19c2cdf4981340fd",
+      "bytes": 2354
+    },
+    {
+      "tracked_path": "originals/audits/canonical-backend-parameter-audit-r1.json",
+      "path": "coordination/canonical-backend-parameter-audit-r1.json",
+      "sha256": "593cd0d27e29e919ac4deb0ecddb827a6db115d574e007d081f99dcc97a88c2f",
+      "bytes": 791
+    },
+    {
+      "tracked_path": "originals/audits/canonical-default-off-independent-audit-r1.json",
+      "path": "coordination/canonical-default-off-independent-audit-r1.json",
+      "sha256": "f23f9ae42074f181e5785190fb27a1f438a3164a2fbb8424655e367caccab82f",
+      "bytes": 826
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendoff-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff-cases.log",
+      "sha256": "46bdc805461903bbe78c4388ef45c673e888f8fbcf91377acf9be27560fa8cea",
+      "bytes": 13659
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendoff-result-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff-result-negative.log",
+      "sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244",
+      "bytes": 74
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendoff-retirement-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff-retirement-negative.log",
+      "sha256": "c35f59dddd9c3180021a4db70c5ca9a38d97f53f8ea4adcf1d16890c6595ecf7",
+      "bytes": 12321
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendon-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon-cases.log",
+      "sha256": "d456dce421f9897131e0dfc6083e11e82c6990560056eae51c39ab30d1476421",
+      "bytes": 14279
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendon-result-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon-result-negative.log",
+      "sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244",
+      "bytes": 74
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/backendon-retirement-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon-retirement-negative.log",
+      "sha256": "03de05482d79d2fb9f570b92f8c4349d01aa629630f1f8b7da18ed58b8cb2ed5",
+      "bytes": 12634
+    },
+    {
+      "tracked_path": "originals/backend-host-r2/receipt.json",
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/receipt.json",
+      "sha256": "c38f68deb29f67b641045f535d3384c979a8310a1db9c3339f4bbae8177ab4c9",
+      "bytes": 6956
+    },
+    {
+      "tracked_path": "originals/components-r1/config.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r1/config.log",
+      "sha256": "4c4afde2e7b6cda43e4ad55efef4790bfe8072f19ec1e253676955f59a75db1b",
+      "bytes": 7347
+    },
+    {
+      "tracked_path": "originals/components-r2/adapter-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/adapter-cases.log",
+      "sha256": "f8663a088d3ee082af7877604333a38cb2793a5d8c27187684d0978aaf5fe26d",
+      "bytes": 104
+    },
+    {
+      "tracked_path": "originals/components-r2/adapter-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/adapter-negative.log",
+      "sha256": "20699bb134b3f8662ffd5cb7f635c45a254038756c73335d31d52b304da94cdf",
+      "bytes": 87
+    },
+    {
+      "tracked_path": "originals/components-r2/config.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/config.log",
+      "sha256": "dbd48e2804e2202a64a0815a6904f28179393de98c623c55386f6816c9a689b6",
+      "bytes": 2266
+    },
+    {
+      "tracked_path": "originals/components-r2/lsu2-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/lsu2-cases.log",
+      "sha256": "a30b0de295ee5707a01aa877883e769efda4cea7abad4d18d4919d18748a0ace",
+      "bytes": 48
+    },
+    {
+      "tracked_path": "originals/components-r2/lsu2-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/lsu2-negative.log",
+      "sha256": "79c53e2a537cf353b655b57399efec8df0002649d2a9576cde061335f88c7769",
+      "bytes": 91
+    },
+    {
+      "tracked_path": "originals/components-r2/lsu4-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/lsu4-cases.log",
+      "sha256": "a30b0de295ee5707a01aa877883e769efda4cea7abad4d18d4919d18748a0ace",
+      "bytes": 48
+    },
+    {
+      "tracked_path": "originals/components-r2/lsu4-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/lsu4-negative.log",
+      "sha256": "79c53e2a537cf353b655b57399efec8df0002649d2a9576cde061335f88c7769",
+      "bytes": 91
+    },
+    {
+      "tracked_path": "originals/components-r2/tracker-cases.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/tracker-cases.log",
+      "sha256": "fc8be861107adc756be7a65f6287f7c86d521f7c65f0fc05d3d13229cb337315",
+      "bytes": 73
+    },
+    {
+      "tracked_path": "originals/components-r2/tracker-negative.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/tracker-negative.log",
+      "sha256": "211e7e146d9b2c5de9aa9280098136107c2f45becd6a6d79e6a095494342f064",
+      "bytes": 79
+    },
+    {
+      "tracked_path": "originals/cpu-case0/off/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case0-r1/positive.log",
+      "sha256": "f073abf4e3e6643cf2d39fe9d8d1f6a261b1b396c01f812b52bb20323dd1db23",
+      "bytes": 7583
+    },
+    {
+      "tracked_path": "originals/cpu-case0/off/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case0-r1/receipt.json",
+      "sha256": "fa5735961f0cb4100f744f15ac445837e723e1fe0aae02c9750cc81c43e72d65",
+      "bytes": 19202
+    },
+    {
+      "tracked_path": "originals/cpu-case0/off/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case0-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case0/on/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case0-r1/positive.log",
+      "sha256": "f073abf4e3e6643cf2d39fe9d8d1f6a261b1b396c01f812b52bb20323dd1db23",
+      "bytes": 7583
+    },
+    {
+      "tracked_path": "originals/cpu-case0/on/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case0-r1/receipt.json",
+      "sha256": "ed951c8616d163536f3813baa8a628be997727b47aada59c8db508429749717c",
+      "bytes": 19187
+    },
+    {
+      "tracked_path": "originals/cpu-case0/on/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case0-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case19/off/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case19-r1/positive.log",
+      "sha256": "47cc2eeda238b8493c8023b8471d675c0bf40bd2f844e63986dc02b5e0abc9e4",
+      "bytes": 12089
+    },
+    {
+      "tracked_path": "originals/cpu-case19/off/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case19-r1/receipt.json",
+      "sha256": "35df4aaed317d70ac6210ddb4f2ba8f0ae819cc23e0f31276c9356c573c07ee0",
+      "bytes": 27608
+    },
+    {
+      "tracked_path": "originals/cpu-case19/off/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case19-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case19/on/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case19-r1/positive.log",
+      "sha256": "47cc2eeda238b8493c8023b8471d675c0bf40bd2f844e63986dc02b5e0abc9e4",
+      "bytes": 12089
+    },
+    {
+      "tracked_path": "originals/cpu-case19/on/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case19-r1/receipt.json",
+      "sha256": "bdde8219c8ce8811fe65e96b97447a380df64cb1ee832d3c08b54d54f51435a5",
+      "bytes": 27439
+    },
+    {
+      "tracked_path": "originals/cpu-case19/on/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case19-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case21/causal.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/causal-case21-r1.json",
+      "sha256": "6867123fff9b1238dd1c2a0410077d2c6c33cd7bb91df00aedf6dc64f4ea6c9c",
+      "bytes": 20402
+    },
+    {
+      "tracked_path": "originals/cpu-case21/off/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case21-r1/positive.log",
+      "sha256": "e2a6d2e221a3d23220bdb5ec411602278f69082569bf1f5852de22bb80759eeb",
+      "bytes": 8792
+    },
+    {
+      "tracked_path": "originals/cpu-case21/off/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case21-r1/receipt.json",
+      "sha256": "5a91d78b4785018b855557a4482003d48998ed0cb67c11a61b1b09aaf923e4d9",
+      "bytes": 21218
+    },
+    {
+      "tracked_path": "originals/cpu-case21/off/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/off-case21-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case21/on/positive.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.log",
+      "sha256": "22a0d2a7f0320157f0e26dd72fa286c31a59e719953babaab0ac4507600cb19f",
+      "bytes": 8856
+    },
+    {
+      "tracked_path": "originals/cpu-case21/on/receipt.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case21-r1/receipt.json",
+      "sha256": "7596e32446954afb61b06e86d57215248fcd888ea997317c8bbdf5d610c390ad",
+      "bytes": 21294
+    },
+    {
+      "tracked_path": "originals/cpu-case21/on/trap-negative.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/on-case21-r1/trap-negative.log",
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    {
+      "tracked_path": "originals/cpu-case21/pair.json",
+      "path": "canonical-store-overlap-cpu-prep-r1/pair-case21-r1.json",
+      "sha256": "ec0a6e2cc1a96431c66ffecba438b8b778119c6fc13c61fa19cba8c1bb74c719",
+      "bytes": 25520
+    },
+    {
+      "tracked_path": "originals/cpu-host-preflight-r5/compiler-failure.log",
+      "path": "canonical-store-overlap-cpu-prep-r1/host-preflight-r5/test_canonical_observer-build.log",
+      "sha256": "63964774b26b7c032a4829d6f6c803faea81e72f6a5fa044281aceb5d02f9bab",
+      "bytes": 10909
+    },
+    {
+      "tracked_path": "originals/forced-flush/forced-flush.log",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2-forced-flush/forced-flush.log",
+      "sha256": "382a0e4c78ce24af294c889afa1e19ab951a4d6f8d7afc1978ec3d28072fe213",
+      "bytes": 410
+    },
+    {
+      "tracked_path": "originals/forced-flush/receipt.json",
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2-forced-flush/receipt.json",
+      "sha256": "61a27f1f51d978594a27cddf0cba83ebf37c0de9374ed121654710c4f122e762",
+      "bytes": 487
+    },
+    {
+      "tracked_path": "originals/native/off-identifier-check.json",
+      "path": "canonical-store-overlap-native-r1/off-identifier-check.json",
+      "sha256": "aadf279700ad5b1bfbd2106aa9688c0179cc007e4d4782e45162449940d9cd4b",
+      "bytes": 1087
+    },
+    {
+      "tracked_path": "originals/native/profile-correspondence.json",
+      "path": "canonical-native-baseline-audit-r1/profile-correspondence.json",
+      "sha256": "a08db68633cc96d607a33eff6ee6cc0f49a5a712d6b1f9021640e97a104a158c",
+      "bytes": 2617
+    },
+    {
+      "tracked_path": "originals/native/summary.json",
+      "path": "canonical-store-overlap-native-r1/analysis-r1/summary.json",
+      "sha256": "e2b72d6062a75ed1c16e988b7e50961562ff6be6043d00d5bb00556d972e3aa0",
+      "bytes": 19065
+    }
+  ],
+  "tracked_files": {
+    ".gitignore": {
+      "sha256": "08f046d36505ec885eb8f231586b3c5f9caa34e0fccf5a0f88902de8bcb20bfe",
+      "bytes": 104
+    },
+    "archive-index.json": {
+      "sha256": "f3e9d4894ccd8aa1838854fcbe66366e3731b9c70f22665f21bebf3f507f2af4",
+      "bytes": 7845
+    },
+    "backend-case-comparison.json": {
+      "sha256": "c07db3132455825424d6d1b2f1611bdda8ba5a9cd75538c60ce19cd98aa72591",
+      "bytes": 5129
+    },
+    "backend-r1-receipt-extract.json": {
+      "sha256": "5a58f276d017aa1724bee8342c2a383cb99a58a4450795c2b744662dc8871553",
+      "bytes": 15072
+    },
+    "components-r1-receipt-extract.json": {
+      "sha256": "7dcb955a6a4d081307ad3b34e0fffa965d6a0a0d2a106465d15d04b924a9f63e",
+      "bytes": 4006
+    },
+    "components-r2-receipt-extract.json": {
+      "sha256": "b400d40e8723c9d37697978dd1c1ac3d39352c7e727efee779eef1b19f5d5ba9",
+      "bytes": 25338
+    },
+    "cpu-case-summary.json": {
+      "sha256": "db440561030ed1d90f96e9f1127cf417dcb1b244ecda69d5f07bbf6b1ebbf10d",
+      "bytes": 7147
+    },
+    "cpu-observer-controls/canonical_observer.hpp": {
+      "sha256": "41737d4729ef3506ae89e43cb38d250129ae8e5e24d275370f50263179572130",
+      "bytes": 18122
+    },
+    "cpu-observer-controls/canonical_trace.py": {
+      "sha256": "79065ba0782bf17b07fa3856e2f0da4763dee87ad537e2294c8ad3ae37ca83fd",
+      "bytes": 4427
+    },
+    "cpu-observer-controls/contract.py": {
+      "sha256": "52e39e8513695892bfb4a24909eea3259cabfd2803747b5ebfccde839903ada9",
+      "bytes": 11042
+    },
+    "cpu-observer-controls/source-provenance.json": {
+      "sha256": "8a04c86cd5efbdc47c6a9afccc41687cbbdae05e7b7c5622f34ea4d6f913449b",
+      "bytes": 1988
+    },
+    "cpu-observer-controls/test_canonical_observer.cpp": {
+      "sha256": "48888cfff935dda1aaa3352c53dd1e4fab3bf535a3c384fe6cc5c808a885c1db",
+      "bytes": 4642
+    },
+    "final-host-checks.json": {
+      "sha256": "e23794222afc644453f59033f2a1442a64b3993fb48a48fcd33e5434a132b2bc",
+      "bytes": 2704
+    },
+    "host-preflight-r5-receipt-extract.json": {
+      "sha256": "ad4c8368d09ab295f7e171c0ece912d972d07e5b447b2616a0f361a6dbee89c3",
+      "bytes": 9529
+    },
+    "host-preflight-r8-receipt-extract.json": {
+      "sha256": "6ee66598612b2b904d68c1734d113eb50ec22f99ec3586874221b585fc68520c",
+      "bytes": 12458
+    },
+    "native-off-receipt-extract.json": {
+      "sha256": "b519b4b2462f25e8a55817e6541829e10ace29e9a054d7f804f080bf9056cef0",
+      "bytes": 9979
+    },
+    "native-on-receipt-extract.json": {
+      "sha256": "cb08d37a46745a2b2471542cb85fd8981009058a4e3c8c6bcb524136d44a2a9e",
+      "bytes": 9973
+    },
+    "official-entry-result.json": {
+      "sha256": "2cd2427ad67f279a53e507c1286f03ef69f0518d6d7b3885c65df8851dfba81b",
+      "bytes": 65310
+    },
+    "originals/audits/canonical-backend-log-audit-r1.json": {
+      "sha256": "2f1cb9377af5f88634442d3f5f431faba1a2fe0ff6c4980c19c2cdf4981340fd",
+      "bytes": 2354
+    },
+    "originals/audits/canonical-backend-parameter-audit-r1.json": {
+      "sha256": "593cd0d27e29e919ac4deb0ecddb827a6db115d574e007d081f99dcc97a88c2f",
+      "bytes": 791
+    },
+    "originals/audits/canonical-default-off-independent-audit-r1.json": {
+      "sha256": "f23f9ae42074f181e5785190fb27a1f438a3164a2fbb8424655e367caccab82f",
+      "bytes": 826
+    },
+    "originals/backend-host-r2/backendoff-cases.log": {
+      "sha256": "46bdc805461903bbe78c4388ef45c673e888f8fbcf91377acf9be27560fa8cea",
+      "bytes": 13659
+    },
+    "originals/backend-host-r2/backendoff-result-negative.log": {
+      "sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244",
+      "bytes": 74
+    },
+    "originals/backend-host-r2/backendoff-retirement-negative.log": {
+      "sha256": "c35f59dddd9c3180021a4db70c5ca9a38d97f53f8ea4adcf1d16890c6595ecf7",
+      "bytes": 12321
+    },
+    "originals/backend-host-r2/backendon-cases.log": {
+      "sha256": "d456dce421f9897131e0dfc6083e11e82c6990560056eae51c39ab30d1476421",
+      "bytes": 14279
+    },
+    "originals/backend-host-r2/backendon-result-negative.log": {
+      "sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244",
+      "bytes": 74
+    },
+    "originals/backend-host-r2/backendon-retirement-negative.log": {
+      "sha256": "03de05482d79d2fb9f570b92f8c4349d01aa629630f1f8b7da18ed58b8cb2ed5",
+      "bytes": 12634
+    },
+    "originals/backend-host-r2/receipt.json": {
+      "sha256": "c38f68deb29f67b641045f535d3384c979a8310a1db9c3339f4bbae8177ab4c9",
+      "bytes": 6956
+    },
+    "originals/components-r1/config.log": {
+      "sha256": "4c4afde2e7b6cda43e4ad55efef4790bfe8072f19ec1e253676955f59a75db1b",
+      "bytes": 7347
+    },
+    "originals/components-r2/adapter-cases.log": {
+      "sha256": "f8663a088d3ee082af7877604333a38cb2793a5d8c27187684d0978aaf5fe26d",
+      "bytes": 104
+    },
+    "originals/components-r2/adapter-negative.log": {
+      "sha256": "20699bb134b3f8662ffd5cb7f635c45a254038756c73335d31d52b304da94cdf",
+      "bytes": 87
+    },
+    "originals/components-r2/config.log": {
+      "sha256": "dbd48e2804e2202a64a0815a6904f28179393de98c623c55386f6816c9a689b6",
+      "bytes": 2266
+    },
+    "originals/components-r2/lsu2-cases.log": {
+      "sha256": "a30b0de295ee5707a01aa877883e769efda4cea7abad4d18d4919d18748a0ace",
+      "bytes": 48
+    },
+    "originals/components-r2/lsu2-negative.log": {
+      "sha256": "79c53e2a537cf353b655b57399efec8df0002649d2a9576cde061335f88c7769",
+      "bytes": 91
+    },
+    "originals/components-r2/lsu4-cases.log": {
+      "sha256": "a30b0de295ee5707a01aa877883e769efda4cea7abad4d18d4919d18748a0ace",
+      "bytes": 48
+    },
+    "originals/components-r2/lsu4-negative.log": {
+      "sha256": "79c53e2a537cf353b655b57399efec8df0002649d2a9576cde061335f88c7769",
+      "bytes": 91
+    },
+    "originals/components-r2/tracker-cases.log": {
+      "sha256": "fc8be861107adc756be7a65f6287f7c86d521f7c65f0fc05d3d13229cb337315",
+      "bytes": 73
+    },
+    "originals/components-r2/tracker-negative.log": {
+      "sha256": "211e7e146d9b2c5de9aa9280098136107c2f45becd6a6d79e6a095494342f064",
+      "bytes": 79
+    },
+    "originals/cpu-case0/off/positive.log": {
+      "sha256": "f073abf4e3e6643cf2d39fe9d8d1f6a261b1b396c01f812b52bb20323dd1db23",
+      "bytes": 7583
+    },
+    "originals/cpu-case0/off/receipt.json": {
+      "sha256": "fa5735961f0cb4100f744f15ac445837e723e1fe0aae02c9750cc81c43e72d65",
+      "bytes": 19202
+    },
+    "originals/cpu-case0/off/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case0/on/positive.log": {
+      "sha256": "f073abf4e3e6643cf2d39fe9d8d1f6a261b1b396c01f812b52bb20323dd1db23",
+      "bytes": 7583
+    },
+    "originals/cpu-case0/on/receipt.json": {
+      "sha256": "ed951c8616d163536f3813baa8a628be997727b47aada59c8db508429749717c",
+      "bytes": 19187
+    },
+    "originals/cpu-case0/on/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case19/off/positive.log": {
+      "sha256": "47cc2eeda238b8493c8023b8471d675c0bf40bd2f844e63986dc02b5e0abc9e4",
+      "bytes": 12089
+    },
+    "originals/cpu-case19/off/receipt.json": {
+      "sha256": "35df4aaed317d70ac6210ddb4f2ba8f0ae819cc23e0f31276c9356c573c07ee0",
+      "bytes": 27608
+    },
+    "originals/cpu-case19/off/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case19/on/positive.log": {
+      "sha256": "47cc2eeda238b8493c8023b8471d675c0bf40bd2f844e63986dc02b5e0abc9e4",
+      "bytes": 12089
+    },
+    "originals/cpu-case19/on/receipt.json": {
+      "sha256": "bdde8219c8ce8811fe65e96b97447a380df64cb1ee832d3c08b54d54f51435a5",
+      "bytes": 27439
+    },
+    "originals/cpu-case19/on/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case21/causal.json": {
+      "sha256": "6867123fff9b1238dd1c2a0410077d2c6c33cd7bb91df00aedf6dc64f4ea6c9c",
+      "bytes": 20402
+    },
+    "originals/cpu-case21/off/positive.log": {
+      "sha256": "e2a6d2e221a3d23220bdb5ec411602278f69082569bf1f5852de22bb80759eeb",
+      "bytes": 8792
+    },
+    "originals/cpu-case21/off/receipt.json": {
+      "sha256": "5a91d78b4785018b855557a4482003d48998ed0cb67c11a61b1b09aaf923e4d9",
+      "bytes": 21218
+    },
+    "originals/cpu-case21/off/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case21/on/positive.log": {
+      "sha256": "22a0d2a7f0320157f0e26dd72fa286c31a59e719953babaab0ac4507600cb19f",
+      "bytes": 8856
+    },
+    "originals/cpu-case21/on/receipt.json": {
+      "sha256": "7596e32446954afb61b06e86d57215248fcd888ea997317c8bbdf5d610c390ad",
+      "bytes": 21294
+    },
+    "originals/cpu-case21/on/trap-negative.log": {
+      "sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "bytes": 67
+    },
+    "originals/cpu-case21/pair.json": {
+      "sha256": "ec0a6e2cc1a96431c66ffecba438b8b778119c6fc13c61fa19cba8c1bb74c719",
+      "bytes": 25520
+    },
+    "originals/cpu-host-preflight-r5/compiler-failure.log": {
+      "sha256": "63964774b26b7c032a4829d6f6c803faea81e72f6a5fa044281aceb5d02f9bab",
+      "bytes": 10909
+    },
+    "originals/forced-flush/forced-flush.log": {
+      "sha256": "382a0e4c78ce24af294c889afa1e19ab951a4d6f8d7afc1978ec3d28072fe213",
+      "bytes": 410
+    },
+    "originals/forced-flush/receipt.json": {
+      "sha256": "61a27f1f51d978594a27cddf0cba83ebf37c0de9374ed121654710c4f122e762",
+      "bytes": 487
+    },
+    "originals/native/off-identifier-check.json": {
+      "sha256": "aadf279700ad5b1bfbd2106aa9688c0179cc007e4d4782e45162449940d9cd4b",
+      "bytes": 1087
+    },
+    "originals/native/profile-correspondence.json": {
+      "sha256": "a08db68633cc96d607a33eff6ee6cc0f49a5a712d6b1f9021640e97a104a158c",
+      "bytes": 2617
+    },
+    "originals/native/summary.json": {
+      "sha256": "e2b72d6062a75ed1c16e988b7e50961562ff6be6043d00d5bb00556d972e3aa0",
+      "bytes": 19065
+    },
+    "production-freeze-r1.sha256": {
+      "sha256": "1243acc839cf12438c36df97b9d5d9c324bcfedbff1f347711bb57275ecc48b9",
+      "bytes": 1232
+    },
+    "source-identities.json": {
+      "sha256": "7d9df8346f69d6837c918644e83edba7e312b74d8ade1f585a5de2a41d9e69ad",
+      "bytes": 8677
+    }
+  },
+  "official_entry_original_receipt": {
+    "path": "canonical-store-overlap-integration-r1/official-entry-qualification-r1/receipt.json",
+    "sha256": "0a55c01b2fe82f20b9e21059426b5fe3732823193845fd2a74990dbffcff93cc",
+    "bytes": 130305
+  }
+}

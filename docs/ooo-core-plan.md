@@ -1,5 +1,7 @@
 # OoO Core 架构草案
 
+Canonical virtual-store overlap is integrated through the explicit configuration paths; the v3 performance preset enables it with an independent v2 fallback. See [qualified scope, controls and evidence](../simulator/gsim/canonical_virtual_store/README.md) for the matched COPY result and official-entry gate status.
+
 Opt-in shared fetch PMP comparisons (2026-10-08):
 `sharedFetchPmpRelations` shares neighboring-word high comparisons without
 changing full address width, first-overlap priority, permission policy, state,

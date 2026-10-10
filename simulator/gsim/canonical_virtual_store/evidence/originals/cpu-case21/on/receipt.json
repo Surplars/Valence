@@ -1,0 +1,701 @@
+{
+  "artifacts": {
+    "host": "c52aa6c23033571a1bee861b96c3f69df84806e774faf03aa49ec8cff73830d9",
+    "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive.canonical.jsonl": "626ad3d6b06a8ef07313e4148b6d057db0b3ce9aecc9051981d9f92b66b55530",
+    "positive.log": "22a0d2a7f0320157f0e26dd72fa286c31a59e719953babaab0ac4507600cb19f",
+    "positive.owners.jsonl": "0893bc4466c4b700bfefb9299f9f8e9aa0200c5b78aeb9c63433110576f9fc25",
+    "trap-negative.canonical.jsonl": "2d313d7f6731bb4b58c31a3d1f4cad31809db0b5b0821d95a279042dacaa5c38",
+    "trap-negative.log": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+    "trap-negative.owners.jsonl": "2101f7312b189417157c1aae06ae6a0f48c360e6b7636cd66e9163df38ae7d91"
+  },
+  "canonical_trace": {
+    "causality": "exact full-token registered certificate, serial accepted live slot, protected head, current epoch, disjoint byte lanes, actual real response not yet visible; ordered passive FIFO correlation",
+    "counts": {
+      "cache_accept": 140013,
+      "cache_barrier_begin": 319,
+      "cache_barrier_end": 319,
+      "cache_response": 140013,
+      "checked_certificate": 32772,
+      "choice_selected": 172824,
+      "load_prepared": 196714,
+      "lsu_start": 140015,
+      "physical_accept": 140013,
+      "real_response": 140015,
+      "record_usable": 32768,
+      "upstream_accept": 140015
+    },
+    "events": 1275800,
+    "full_three_boundary_tokens": 0,
+    "overlaps": {
+      "lsu_start": 32701,
+      "upstream_accept": 486
+    },
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.canonical.jsonl",
+    "schema": "canonical-overlap-events-v1",
+    "sha256": "626ad3d6b06a8ef07313e4148b6d057db0b3ce9aecc9051981d9f92b66b55530",
+    "summary": {
+      "accepted_physical_occupancy": [
+        {
+          "cycles": 199896,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 231726,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "accepted_upstream_occupancy": [
+        {
+          "cycles": 98449,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 329834,
+          "known": 1,
+          "unknown": 0
+        },
+        {
+          "cycles": 3339,
+          "known": 2,
+          "unknown": 0
+        }
+      ],
+      "barrier_bins": [
+        428419,
+        3203,
+        0,
+        0
+      ],
+      "cache_overlap": 0,
+      "certificate_captures": 32772,
+      "final_owner_queues": 0,
+      "load_cache_barrier_relation": [
+        0,
+        32384,
+        0,
+        317,
+        0
+      ],
+      "lsu_start_overlap": 32701,
+      "occupancy": [
+        49198,
+        330032,
+        52392,
+        0,
+        0
+      ],
+      "physical_overlap": 0,
+      "roi_samples": 431622,
+      "samples": 1883885,
+      "stalls": [
+        16485,
+        16351,
+        51149,
+        347637,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "store_cache_hit_samples": 16351,
+      "store_cache_miss_samples": 33,
+      "unknown_cache_owners": 41491,
+      "unknown_upstream": 41491,
+      "upstream_overlap": 486
+    },
+    "timing_or_area_qualified": false
+  },
+  "case": 21,
+  "guest_changed": false,
+  "historical_pass_inherited": false,
+  "host_sha256": "c52aa6c23033571a1bee861b96c3f69df84806e774faf03aa49ec8cff73830d9",
+  "model_rebuilt": false,
+  "old_performance_inherited": false,
+  "owner_trace": {
+    "all_valid_events_recorded": true,
+    "bytes": 10309712,
+    "clean_victim_release_ack": 4,
+    "dirty_victim_release_ack": 3787,
+    "events": 37763,
+    "external_axi_b_attribution": "unknown",
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.owners.jsonl",
+    "sha256": "0893bc4466c4b700bfefb9299f9f8e9aa0200c5b78aeb9c63433110576f9fc25",
+    "window_counts": {
+      "flush": {
+        "accepted": 0,
+        "drained": 0,
+        "installed": 0,
+        "released": 0,
+        "victim_release_ack": 0
+      },
+      "outside": {
+        "accepted": 11888,
+        "drained": 11888,
+        "installed": 5098,
+        "released": 5098,
+        "victim_release_ack": 3791
+      },
+      "roi": {
+        "accepted": 0,
+        "drained": 0,
+        "installed": 0,
+        "released": 0,
+        "victim_release_ack": 0
+      }
+    }
+  },
+  "pins_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/runtime-pins-r2.json",
+  "pins_sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+  "result": {
+    "architectural_bytes_per_roi_cycle": 0.6073462427772449,
+    "architectural_useful_payload": {
+      "architectural_read_bytes": 131072,
+      "architectural_write_bytes": 131072,
+      "case": 21,
+      "ddr_beat_gap": 1,
+      "ddr_due": 32,
+      "injected_held_b": false,
+      "prefetch_useful_bus_bytes": null,
+      "raw_bus_bytes_are_useful": false
+    },
+    "axi": {
+      "flush": {
+        "accepted_r_requested_payload_bytes": 128,
+        "accepted_r_wire_bytes": 128,
+        "accepted_w_strobe_bytes": 16384,
+        "accepted_w_wire_bytes": 16384,
+        "ar": {
+          "fire": 1,
+          "no_offer": 5579,
+          "valid_not_ready": 0
+        },
+        "aw": {
+          "fire": 256,
+          "no_offer": 4976,
+          "valid_not_ready": 348
+        },
+        "both_outstanding_cycles": 0,
+        "cycles": 5580,
+        "outstanding_sample": "pre_edge_accepted_owners",
+        "r": {
+          "fire": 16,
+          "no_offer": 5564,
+          "valid_not_ready": 0
+        },
+        "r_backpressure_cycles": 0,
+        "read_carry_in": 1,
+        "read_carry_out": 0,
+        "read_outstanding_cycle_sum": 48,
+        "read_outstanding_histogram": {
+          "0": 5532,
+          "1": 48
+        },
+        "read_outstanding_mean": 0.00860215,
+        "read_outstanding_peak": 1,
+        "read_outstanding_without_r_valid": 32,
+        "read_window_empty": 5531,
+        "simultaneous_r_w_fire": 0,
+        "w": {
+          "fire": 2048,
+          "no_offer": 2211,
+          "valid_not_ready": 1321
+        },
+        "whole_bus_empty": 1687,
+        "window": "flush",
+        "write_carry_in": 0,
+        "write_carry_out": 0,
+        "write_outstanding_cycle_sum": 3283,
+        "write_outstanding_histogram": {
+          "0": 2297,
+          "1": 3283
+        },
+        "write_outstanding_mean": 0.588351,
+        "write_outstanding_peak": 1
+      },
+      "roi": {
+        "accepted_r_requested_payload_bytes": 262720,
+        "accepted_r_wire_bytes": 262720,
+        "accepted_w_strobe_bytes": 131136,
+        "accepted_w_wire_bytes": 131136,
+        "ar": {
+          "fire": 4161,
+          "no_offer": 398459,
+          "valid_not_ready": 29002
+        },
+        "aw": {
+          "fire": 2049,
+          "no_offer": 427048,
+          "valid_not_ready": 2525
+        },
+        "both_outstanding_cycles": 0,
+        "cycles": 431622,
+        "outstanding_sample": "pre_edge_accepted_owners",
+        "r": {
+          "fire": 32840,
+          "no_offer": 398782,
+          "valid_not_ready": 0
+        },
+        "r_backpressure_cycles": 0,
+        "read_carry_in": 1,
+        "read_carry_out": 1,
+        "read_outstanding_cycle_sum": 161850,
+        "read_outstanding_histogram": {
+          "0": 269779,
+          "1": 161836,
+          "2": 7
+        },
+        "read_outstanding_mean": 0.374981,
+        "read_outstanding_peak": 2,
+        "read_outstanding_without_r_valid": 129003,
+        "read_window_empty": 236617,
+        "simultaneous_r_w_fire": 0,
+        "w": {
+          "fire": 16392,
+          "no_offer": 405119,
+          "valid_not_ready": 10111
+        },
+        "whole_bus_empty": 232519,
+        "window": "roi",
+        "write_carry_in": 0,
+        "write_carry_out": 0,
+        "write_outstanding_cycle_sum": 26027,
+        "write_outstanding_histogram": {
+          "0": 405595,
+          "1": 26027
+        },
+        "write_outstanding_mean": 0.0603004,
+        "write_outstanding_peak": 1
+      }
+    },
+    "case": 21,
+    "copy_victim": {
+      "actual_probes": 0,
+      "matching_A_demand": 0,
+      "observed_evictions": 1763,
+      "store_pf_allocations": 2015,
+      "store_pf_errors": 0,
+      "store_pf_installs": 2015,
+      "subsequent_B_store_hit": 0,
+      "subsequent_B_store_miss": 0,
+      "used_before_eviction": 1763
+    },
+    "copy_witnesses": [],
+    "flush_tail": 5580,
+    "mode": 1,
+    "op": "COPY",
+    "owner_observation": [
+      {
+        "accepted": 0,
+        "causal_attribution": "unknown_bus_owner_not_joined",
+        "drained": 0,
+        "examples": [],
+        "full_generation_bits": 64,
+        "installed": 0,
+        "live_cycles": 350804,
+        "released": 0,
+        "victim_release_ack": 0,
+        "window": "roi"
+      },
+      {
+        "accepted": 0,
+        "causal_attribution": "unknown_bus_owner_not_joined",
+        "drained": 0,
+        "examples": [],
+        "full_generation_bits": 64,
+        "installed": 0,
+        "live_cycles": 5359,
+        "released": 0,
+        "victim_release_ack": 0,
+        "window": "flush"
+      },
+      {
+        "accepted": 11888,
+        "causal_attribution": "unknown_bus_owner_not_joined",
+        "drained": 11888,
+        "examples": [
+          {
+            "cohort_generation": 0,
+            "cohort_slot": 0,
+            "cycle": 202,
+            "epoch": 1,
+            "event": "accepted",
+            "generation": 0,
+            "line": 4294541248,
+            "mshr": 0,
+            "new_line": 1,
+            "response_ticket": 0,
+            "set": 255,
+            "slot": 0,
+            "token_index": 7,
+            "token_tag": 7,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 0,
+            "cohort_slot": 0,
+            "cycle": 268,
+            "epoch": 1,
+            "event": "installed",
+            "generation": 0,
+            "line": 4294541248,
+            "mshr": 0,
+            "set": 255,
+            "slot": 0,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 0,
+            "cohort_slot": 0,
+            "cycle": 269,
+            "epoch": 1,
+            "event": "drained",
+            "generation": 0,
+            "line": 4294541248,
+            "response_ticket": 0,
+            "slot": 0,
+            "token_index": 7,
+            "token_tag": 7
+          },
+          {
+            "cohort_generation": 0,
+            "cohort_slot": 0,
+            "cycle": 270,
+            "epoch": 1,
+            "event": "released",
+            "generation": 0,
+            "line": 4294541248,
+            "mshr": 0,
+            "set": 255,
+            "slot": 0,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 1,
+            "cohort_slot": 0,
+            "cycle": 440,
+            "epoch": 1,
+            "event": "accepted",
+            "generation": 1,
+            "line": 4294930432,
+            "mshr": 0,
+            "new_line": 1,
+            "response_ticket": 0,
+            "set": 192,
+            "slot": 0,
+            "token_index": 2,
+            "token_tag": 41,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 1,
+            "cohort_slot": 0,
+            "cycle": 506,
+            "epoch": 1,
+            "event": "installed",
+            "generation": 1,
+            "line": 4294930432,
+            "mshr": 0,
+            "set": 192,
+            "slot": 0,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 1,
+            "cohort_slot": 0,
+            "cycle": 507,
+            "epoch": 1,
+            "event": "drained",
+            "generation": 1,
+            "line": 4294930432,
+            "response_ticket": 0,
+            "slot": 0,
+            "token_index": 2,
+            "token_tag": 41
+          },
+          {
+            "cohort_generation": 1,
+            "cohort_slot": 0,
+            "cycle": 508,
+            "epoch": 1,
+            "event": "released",
+            "generation": 1,
+            "line": 4294930432,
+            "mshr": 0,
+            "set": 192,
+            "slot": 0,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 2,
+            "cohort_slot": 0,
+            "cycle": 743,
+            "epoch": 1,
+            "event": "accepted",
+            "generation": 2,
+            "line": 4294541056,
+            "mshr": 0,
+            "new_line": 1,
+            "response_ticket": 0,
+            "set": 252,
+            "slot": 0,
+            "token_index": 13,
+            "token_tag": 68,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 2,
+            "cohort_slot": 0,
+            "cycle": 746,
+            "epoch": 1,
+            "event": "accepted",
+            "generation": 2,
+            "line": 4294541056,
+            "mshr": 0,
+            "new_line": 0,
+            "response_ticket": 1,
+            "set": 252,
+            "slot": 0,
+            "token_index": 14,
+            "token_tag": 69,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 2,
+            "cohort_slot": 0,
+            "cycle": 752,
+            "epoch": 1,
+            "event": "accepted",
+            "generation": 3,
+            "line": 4294541184,
+            "mshr": 1,
+            "new_line": 1,
+            "response_ticket": 0,
+            "set": 254,
+            "slot": 1,
+            "token_index": 6,
+            "token_tag": 77,
+            "victim_valid": 0,
+            "way": 0
+          },
+          {
+            "cohort_generation": 2,
+            "cohort_slot": 0,
+            "cycle": 827,
+            "epoch": 1,
+            "event": "installed",
+            "generation": 2,
+            "line": 4294541056,
+            "mshr": 0,
+            "set": 252,
+            "slot": 0,
+            "victim_valid": 0,
+            "way": 0
+          }
+        ],
+        "full_generation_bits": 64,
+        "installed": 5098,
+        "live_cycles": 1507065,
+        "released": 5098,
+        "victim_release_ack": 3791,
+        "window": "whole_boot_diagnostic"
+      }
+    ],
+    "posted_acceptance_witnessed_in_roi": false,
+    "roi": {
+      "allocated": 2015,
+      "allocated_read": 0,
+      "allocated_store": 2015,
+      "axi_read_beats": 32840,
+      "axi_read_declared_beats": 32840,
+      "axi_read_requests": 4161,
+      "axi_write_beats": 16392,
+      "axi_write_declared_beats": 16392,
+      "axi_write_requests": 2049,
+      "axi_write_responses": 2049,
+      "begin_accepted": 1020789,
+      "begin_offer": 1020788,
+      "busy_cycles": 139296,
+      "candidate": 2079,
+      "candidate_read": 32,
+      "candidate_store": 2047,
+      "cycles": 431622,
+      "end_accepted": 1452411,
+      "end_offer": 1452410,
+      "error": 0,
+      "index": 21,
+      "miss_owner_cycles": 137217,
+      "miss_peak": 1,
+      "mode": 1,
+      "op": "COPY",
+      "release_owner_cycles": 6081,
+      "release_peak": 1,
+      "tail_accepted": 1457991,
+      "tail_offer": 1457990,
+      "useful": 2015,
+      "useful_read": 0,
+      "useful_store": 2015
+    },
+    "row": [
+      1,
+      1,
+      2,
+      16384,
+      1,
+      431622,
+      5580,
+      0
+    ],
+    "speedup_required": false,
+    "store_origin_witnessed_in_timed_roi": true,
+    "sv39_nonauthorized_path_control": true,
+    "tail": {
+      "allocated": 0,
+      "allocated_read": 0,
+      "allocated_store": 0,
+      "axi_read_beats": 16,
+      "axi_read_declared_beats": 8,
+      "axi_read_requests": 1,
+      "axi_write_beats": 2048,
+      "axi_write_declared_beats": 2048,
+      "axi_write_requests": 256,
+      "axi_write_responses": 256,
+      "busy_cycles": 0,
+      "candidate": 0,
+      "candidate_read": 0,
+      "candidate_store": 0,
+      "cycles": 5580,
+      "error": 0,
+      "index": 21,
+      "miss_owner_cycles": 0,
+      "miss_peak": 0,
+      "release_owner_cycles": 0,
+      "release_peak": 0,
+      "useful": 0,
+      "useful_read": 0,
+      "useful_store": 0
+    },
+    "ticks": 431622,
+    "whole_boot_diagnostic": {
+      "allocated": 3851,
+      "allocated_read": 6,
+      "allocated_store": 3845,
+      "axi_read_beats": 141864,
+      "axi_read_declared_beats": 141864,
+      "axi_read_requests": 17859,
+      "axi_write_beats": 74112,
+      "axi_write_declared_beats": 74112,
+      "axi_write_requests": 9264,
+      "axi_write_responses": 9264,
+      "busy_cycles": 268389,
+      "candidate": 4080,
+      "candidate_read": 76,
+      "candidate_store": 4004,
+      "cycles": 1883884,
+      "diagnostic_only": 1,
+      "error": 0,
+      "miss_owner_cycles": 264309,
+      "miss_peak": 1,
+      "release_owner_cycles": 13899,
+      "release_peak": 1,
+      "useful": 3848,
+      "useful_read": 3,
+      "useful_store": 3845
+    }
+  },
+  "schema": "canonical-overlap-cpu-case-v1",
+  "side": "on",
+  "status": "PASS_FRESH_ACTUAL_SINGLE_CASE",
+  "steps": [
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-DBACKEND_OWNER_COUNT=4",
+        "-DUART_DIVISOR=1",
+        "-DBOARD_CPU_HZ=100000000",
+        "-DBOARD_UART_BAUD=460800",
+        "-DUART_EXTRA_STOP_BITS=0",
+        "-DDDR_MODEL=1",
+        "-DBOARD_DDR_BYTES=2147483648ULL",
+        "-DDDR_MULTI_ID_MODEL=1",
+        "-DDDR_READ_CREDITS=8",
+        "-DDDR_READ_LATENCY=32",
+        "-DDDR_READ_BEAT_GAP=1",
+        "-DBOARD_CYCLE_LIMIT=24000000ULL",
+        "-DSTORE_PF_ON=1",
+        "-DPOSTED_STORE_ON=1",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/model-on-r1",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/host.cpp",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/source/simulator/gsim/harness",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/model-on-r1/BoardSocGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/host"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {},
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/link.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 9.260603255001115
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/host",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/guest.bin",
+        "21",
+        "22"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {
+        "CANONICAL_OVERLAP_TRACE": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.canonical.jsonl",
+        "POSTED_BANDWIDTH_OWNER_TRACE": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.owners.jsonl"
+      },
+      "exit": 0,
+      "expected": 0,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/positive.log",
+      "log_sha256": "22a0d2a7f0320157f0e26dd72fa286c31a59e719953babaab0ac4507600cb19f",
+      "seconds": 129.3833871959996
+    },
+    {
+      "argv": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/host",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/guest.bin",
+        "21",
+        "22",
+        "--inject-trap"
+      ],
+      "cwd": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1",
+      "environment": {
+        "CANONICAL_OVERLAP_TRACE": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/trap-negative.canonical.jsonl",
+        "POSTED_BANDWIDTH_OWNER_TRACE": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/trap-negative.owners.jsonl"
+      },
+      "exit": 1,
+      "expected": 1,
+      "guard": null,
+      "log": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/on-case21-r1/trap-negative.log",
+      "log_sha256": "34498a163d7eab99c5beb662e4de73c4459bc2ebf923e0c63122943da342bada",
+      "seconds": 2.0026125029999093
+    }
+  ]
+}

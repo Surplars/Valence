@@ -1,0 +1,24 @@
+{
+  "schema": "independent-canonical-off-native-audit-v1",
+  "status": "PASS_ONE_EXACT_GENERATED_IDENTIFIER_BIJECTION",
+  "utc": "2026-10-10T11:26:27.408849+00:00",
+  "files": 269,
+  "raw_equal_files": 268,
+  "raw_unequal": [
+    "IntegerBackend.sv"
+  ],
+  "raw_bytes_equal": false,
+  "before_sha256": "0a63fd5b4cddd5e68bedc3d1e9b03d4efa49befed3d6c37fe11266210c85afd7",
+  "after_sha256": "dd79ecba1e20d49dc01062211fb5323b940264daf1cffa991ba6d734f55bfe33",
+  "explicit_mapping": {
+    "_physicalStoreConflict_T_203": "_physicalStoreConflict_T_171"
+  },
+  "declarations": 1,
+  "references": 16,
+  "mutation_rejected": [
+    "width",
+    "logic",
+    "extra_net"
+  ],
+  "scope": "Independent exact bytes check with one explicit internal-wire rename only. No general normalization, formal equivalence, mapped PPA or STA claim."
+}

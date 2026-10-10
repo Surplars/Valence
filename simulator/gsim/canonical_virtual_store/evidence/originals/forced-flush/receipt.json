@@ -1,0 +1,12 @@
+{
+  "status": "PASS_ACTUAL_UNDRAINED_FLUSH_ASSERTION",
+  "command": [
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/components-r2/adapter/run",
+    "--force-undrained-flush"
+  ],
+  "exit": -6,
+  "seconds": 0.007858526998461457,
+  "executable_sha256": "0005c5fbfe0daad989860b208e23a468ac6c8a042fe70256ca06a0906a31d871",
+  "log_sha256": "382a0e4c78ce24af294c889afa1e19ab951a4d6f8d7afc1978ec3d28072fe213",
+  "no_rebuild": true
+}

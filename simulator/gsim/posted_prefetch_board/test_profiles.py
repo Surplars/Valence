@@ -29,8 +29,8 @@ class Profiles(unittest.TestCase):
                 profiles.expected(contract.name, 'on'))['only_differences'], list(contract.differences))
             for mode in ('off', 'on'):
                 self.assertTrue(contract.posted_enabled(mode))
-                self.assertEqual(len(profiles.expected(contract.name, mode)['core']), 135)
-                self.assertEqual(len(profiles.expected(contract.name, mode)['profile']), 26)
+                self.assertEqual(len(profiles.expected(contract.name, mode)['core']), 136)
+                self.assertEqual(len(profiles.expected(contract.name, mode)['profile']), 27)
 
     def test_all_old_fields_mutations_and_unknown_keys_fail(self):
         def leaves(value, path=()):

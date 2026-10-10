@@ -41,7 +41,7 @@
     "jtag_transport_experimental": false,
     "load_order_older_retire": true,
     "lsu_entries": 4,
-    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-posted-store-merge-dma-lines-owners4",
+    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-posted-store-merge-canonical-virtual-store-overlap-dma-lines-owners4",
     "owner_local_issue_ready": true,
     "physical_load_ingress_flow": true,
     "physical_registers": 48,
@@ -64,7 +64,8 @@
     "tri_speed_tx_frame_slots": 1,
     "uart_baud": 460800,
     "uart_hz": 50000000,
-    "virtual_ram_load_precheck": true
+    "virtual_ram_load_precheck": true,
+    "canonical_virtual_store_overlap": true
   },
   "off": {
     "aon_hz": 50000000,
@@ -108,7 +109,7 @@
     "jtag_transport_experimental": false,
     "load_order_older_retire": true,
     "lsu_entries": 4,
-    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-dma-lines-owners4",
+    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-canonical-virtual-store-overlap-dma-lines-owners4",
     "owner_local_issue_ready": true,
     "physical_load_ingress_flow": true,
     "physical_registers": 48,
@@ -131,7 +132,8 @@
     "tri_speed_tx_frame_slots": 1,
     "uart_baud": 460800,
     "uart_hz": 50000000,
-    "virtual_ram_load_precheck": true
+    "virtual_ram_load_precheck": true,
+    "canonical_virtual_store_overlap": true
   },
   "on": {
     "aon_hz": 50000000,
@@ -175,7 +177,7 @@
     "jtag_transport_experimental": false,
     "load_order_older_retire": true,
     "lsu_entries": 4,
-    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-posted-store-merge-posted-prefetch-coexistence-posted-prefetch-head-offer-dma-lines-owners4",
+    "name": "fpga-next-selected-v2-virtual-precheck-dtlb16-physical-ingress-flow-lsu4-older-load-retire-fetch-previous-packet-prepared-store-lookahead-checked-store-prefetch-store-prefetch-mru-posted-store-merge-posted-prefetch-coexistence-posted-prefetch-head-offer-canonical-virtual-store-overlap-dma-lines-owners4",
     "owner_local_issue_ready": true,
     "physical_load_ingress_flow": true,
     "physical_registers": 48,
@@ -198,6 +200,7 @@
     "tri_speed_tx_frame_slots": 1,
     "uart_baud": 460800,
     "uart_hz": 50000000,
-    "virtual_ram_load_precheck": true
+    "virtual_ram_load_precheck": true,
+    "canonical_virtual_store_overlap": true
   }
 }

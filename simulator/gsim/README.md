@@ -1,5 +1,7 @@
 # 新乱序核的 GSIM 仿真入口
 
+Canonical virtual-store overlap is integrated through the explicit configuration paths; the v3 performance preset enables it with an independent v2 fallback. See [qualified scope, controls and evidence](canonical_virtual_store/README.md) for the matched COPY result and official-entry gate status.
+
 Opt-in shared fetch PMP comparisons (2026-10-08): run
 `mill -i IonSoC.test.testOnly ooo.SharedFetchPmpSpec`, then
 `python3 -B simulator/gsim/shared_fetch_pmp.py --tag UNIQUE_TAG --build-run`

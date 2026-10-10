@@ -1,0 +1,59 @@
+In file included from /workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/test_canonical_observer.cpp:1:
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:55:196: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+   55 |   if(op.known&&!op.store&&parent!=parents.end()){auto it=stores.find(parent->second);need(it!=stores.end(),"parent store missing");const auto&t=it->second;unsigned relation=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;
+      |                                                                                                                                                                                                  ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:55:212: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+   55 |   if(op.known&&!op.store&&parent!=parents.end()){auto it=stores.find(parent->second);need(it!=stores.end(),"parent store missing");const auto&t=it->second;unsigned relation=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;
+      |                                                                                                                                                                                                                  ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:55:227: error: no member named 'barrierEnd' in 'canonical_overlap::Observer::Store'
+   55 |   if(op.known&&!op.store&&parent!=parents.end()){auto it=stores.find(parent->second);need(it!=stores.end(),"parent store missing");const auto&t=it->second;unsigned relation=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;
+      |                                                                                                                                                                                                                                 ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:56:129: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+   56 |    log<<",\"parent_store_index\":"<<it->first.index<<",\"parent_store_tag\":"<<it->first.tag<<",\"parent_store_hit_class\":"<<t.hitClass<<",\"barrier_relation\":"<<relation;
+      |                                                                                                                               ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:57:66: error: no member named 'cacheAccepted' in 'canonical_overlap::Observer::Store'
+   57 |    if(t.physicalIssued)log<<",\"parent_cache_accept_cycle\":"<<t.cacheAccepted;
+      |                                                                ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:58:9: error: no member named 'barrierBegin' in 'canonical_overlap::Observer::Store'
+   58 |    if(t.barrierBegin)log<<",\"parent_barrier_begin\":"<<*t.barrierBegin;
+      |       ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:58:60: error: no member named 'barrierBegin' in 'canonical_overlap::Observer::Store'
+   58 |    if(t.barrierBegin)log<<",\"parent_barrier_begin\":"<<*t.barrierBegin;
+      |                                                          ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:59:9: error: no member named 'barrierEnd' in 'canonical_overlap::Observer::Store'
+   59 |    if(t.barrierEnd)log<<",\"parent_barrier_end\":"<<*t.barrierEnd;
+      |       ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:59:56: error: no member named 'barrierEnd' in 'canonical_overlap::Observer::Store'
+   59 |    if(t.barrierEnd)log<<",\"parent_barrier_end\":"<<*t.barrierEnd;
+      |                                                      ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:83:236: error: no member named 'barrierCycles' in 'canonical_overlap::Observer::Store'
+   83 |   if(s.cacheObserved){need(s.cacheBarrier==barrierOwner.has_value(),"cache barrier owner/state mismatch");if(s.cacheBarrier&&barrierOwner->op.known&&barrierOwner->op.store&&barrierOwner->op.virtualized)++stores[barrierOwner->op.token].barrierCycles;
+      |                                                                                                                                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:111:274: error: no member named 'barrierEnd' in 'canonical_overlap::Observer::Store'
+  111 |   if(s.cacheObserved&&s.cacheResponse.fire()){need(!cacheOwners.empty(),"cache response owner underflow");auto old=cacheOwners.front();cacheOwners.pop_front();if(barrierOwner&&barrierOwner->id==old.id){if(old.op.known&&old.op.store&&old.op.virtualized)stores[old.op.token].barrierEnd=cycle;event("cache_barrier_end",cycle,old.op,s);barrierOwner.reset();}event("cache_response",cycle,old.op,s);}
+      |                                                                                                                                                                                                                                                             ~~~~~~~~~~~~~~~~~~~~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:117:89: error: no member named 'cacheAccepted' in 'canonical_overlap::Observer::Store'
+  117 |      if(o.known&&o.store&&o.virtualized){auto&t=stores[o.token];t.physicalIssued=true;t.cacheAccepted=cycle;t.hitClass=s.cacheWriteHit?1:(!s.cacheFound&&s.cacheBarrierRequest?2:0);if(roi){storeCacheHits+=t.hitClass==1;storeCacheMisses+=t.hitClass==2;}}
+      |                                                                                       ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:117:111: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+  117 |      if(o.known&&o.store&&o.virtualized){auto&t=stores[o.token];t.physicalIssued=true;t.cacheAccepted=cycle;t.hitClass=s.cacheWriteHit?1:(!s.cacheFound&&s.cacheBarrierRequest?2:0);if(roi){storeCacheHits+=t.hitClass==1;storeCacheMisses+=t.hitClass==2;}}
+      |                                                                                                             ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:117:207: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+  117 |      if(o.known&&o.store&&o.virtualized){auto&t=stores[o.token];t.physicalIssued=true;t.cacheAccepted=cycle;t.hitClass=s.cacheWriteHit?1:(!s.cacheFound&&s.cacheBarrierRequest?2:0);if(roi){storeCacheHits+=t.hitClass==1;storeCacheMisses+=t.hitClass==2;}}
+      |                                                                                                                                                                                                             ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:117:239: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+  117 |      if(o.known&&o.store&&o.virtualized){auto&t=stores[o.token];t.physicalIssued=true;t.cacheAccepted=cycle;t.hitClass=s.cacheWriteHit?1:(!s.cacheFound&&s.cacheBarrierRequest?2:0);if(roi){storeCacheHits+=t.hitClass==1;storeCacheMisses+=t.hitClass==2;}}
+      |                                                                                                                                                                                                                                             ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:119:164: error: no member named 'barrierBegin' in 'canonical_overlap::Observer::Store'
+  119 |      if(s.cacheBarrierRequest&&!s.cachePosted){need(!barrierOwner,"overlapping cache barriers");barrierOwner=co;if(o.known&&o.store&&o.virtualized)stores[o.token].barrierBegin=cycle;event("cache_barrier_begin",cycle,o,s);}
+      |                                                                                                                                                    ~~~~~~~~~~~~~~~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:121:159: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+  121 |      auto parent=parents.find(o.token);if(o.known&&!o.store&&parent!=parents.end()){const auto&t=stores.at(parent->second);unsigned rel=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;++loadCacheRelation[rel];}
+      |                                                                                                                                                             ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:121:175: error: no member named 'hitClass' in 'canonical_overlap::Observer::Store'
+  121 |      auto parent=parents.find(o.token);if(o.known&&!o.store&&parent!=parents.end()){const auto&t=stores.at(parent->second);unsigned rel=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;++loadCacheRelation[rel];}
+      |                                                                                                                                                                             ~ ^
+/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp:121:190: error: no member named 'barrierEnd' in 'canonical_overlap::Observer::Store'
+  121 |      auto parent=parents.find(o.token);if(o.known&&!o.store&&parent!=parents.end()){const auto&t=stores.at(parent->second);unsigned rel=!t.physicalIssued?0:t.hitClass==1?1:t.hitClass==2?(t.barrierEnd?3:2):4;++loadCacheRelation[rel];}
+      |                                                                                                                                                                                            ~ ^
+19 errors generated.

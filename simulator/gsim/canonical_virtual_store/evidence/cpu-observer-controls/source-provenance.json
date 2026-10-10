@@ -1,0 +1,43 @@
+{
+  "schema": "canonical-overlap-observer-controls-v1",
+  "scope": "Exact final passive observer/parser and independent host control sources. C++ control has only standard-library/system headers plus canonical_observer.hpp. canonical_trace.py imports require/sha from the exact contract.py copied alongside it; full runtime orchestration remains in its archive.",
+  "source_files": [
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/canonical_observer.hpp",
+      "sha256": "41737d4729ef3506ae89e43cb38d250129ae8e5e24d275370f50263179572130",
+      "bytes": 18122
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/canonical_trace.py",
+      "sha256": "79065ba0782bf17b07fa3856e2f0da4763dee87ad537e2294c8ad3ae37ca83fd",
+      "bytes": 4427
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/test_canonical_observer.cpp",
+      "sha256": "48888cfff935dda1aaa3352c53dd1e4fab3bf535a3c384fe6cc5c808a885c1db",
+      "bytes": 4642
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/contract.py",
+      "sha256": "52e39e8513695892bfb4a24909eea3259cabfd2803747b5ebfccde839903ada9",
+      "bytes": 11042
+    }
+  ],
+  "runtime_pins": {
+    "path": "canonical-store-overlap-cpu-prep-r1/runtime-pins-r2.json",
+    "sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+    "bytes": 275284
+  },
+  "final_host_preflight": {
+    "path": "canonical-store-overlap-cpu-prep-r1/host-preflight-r8/receipt.json",
+    "sha256": "8f133c30b144b00a645259f03459014c522ee5ba61cd995471d1d87afb88cd10",
+    "bytes": 283507
+  },
+  "cpu_source_commit": "6f975c14edd0ce01cc248b71893d85634fedf408",
+  "model_binding": {
+    "path": "canonical-store-overlap-cpu-prep-r1/model-binding-r2.json",
+    "sha256": "d924889beef3020791b0d9aa8c5bcb33ab19bb42399b33aff851570945337dc5",
+    "bytes": 345302
+  },
+  "verification": "Three requested files matched immutable runtime-pins-r2 base.files; contract.py bytes are bound by model-binding-r2 model inputs."
+}

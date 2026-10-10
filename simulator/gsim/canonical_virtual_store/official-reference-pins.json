@@ -1,0 +1,67 @@
+{
+  "schema": "canonical-official-reference-pins-v1",
+  "production_head": "aaaf6d701a3b47cb610b6b8b4775487b89b7a5b9",
+  "cpu_source_head": "6f975c14edd0ce01cc248b71893d85634fedf408",
+  "references": {
+    "off": {
+      "cpu_model_receipt": {
+        "sha256": "1fe9763354328a76335c8a0402783b899c4710d6cb0e2064b3a2acfafc869b64",
+        "path": "receipt.json"
+      },
+      "cpu_actual": {
+        "sha256": "8efd454e57841e22fe5be37c08246cbdb51a0e22c88ebb7b9f701bfdcfbb104b",
+        "path": "actual-parameters.json"
+      },
+      "cpu_profile": {
+        "sha256": "ccaeeea6e5024b1abccea73696fbce71b8e15ffa5bd4410ba94701a9b91a8939",
+        "path": "profile.json"
+      },
+      "native_actual": {
+        "sha256": "450adeff2a24da6afa6916c9aee7f5ff3b9ae2b5a612e984a6eaeaa9fd318c95",
+        "path": "actual-parameters.json"
+      },
+      "native_profile": {
+        "sha256": "ccaeeea6e5024b1abccea73696fbce71b8e15ffa5bd4410ba94701a9b91a8939",
+        "path": "profile.json"
+      },
+      "native_fir": {
+        "sha256": "de18d78314344068a41deba9832a7ddd1e1e93cb2646fcce4cb7152a84aaccc8",
+        "path": "FpgaNextSocTop.fir"
+      },
+      "native_receipt": {
+        "sha256": "26cf8d30cef9babd701757bab3099a02f3702a3edf33c4fca263cd6deb5fcff4",
+        "path": "receipt.json"
+      }
+    },
+    "on": {
+      "cpu_model_receipt": {
+        "sha256": "3b20e530f1409a4fb9bb344279413be8b2587a142c4e9784947ad244a379113d",
+        "path": "receipt.json"
+      },
+      "cpu_actual": {
+        "sha256": "e18dc5f939fdc247c205be14d423a70d8243d05cb3c8348530a23e295bd03f41",
+        "path": "actual-parameters.json"
+      },
+      "cpu_profile": {
+        "sha256": "ed7da217ee472859fb355be614d9440a7c89c36eacb441fad4c5d86f71d1339e",
+        "path": "profile.json"
+      },
+      "native_actual": {
+        "sha256": "7b78de059470156638ff79c59ac4737141eb886b71198e92d6caa5ba29924055",
+        "path": "actual-parameters.json"
+      },
+      "native_profile": {
+        "sha256": "ed7da217ee472859fb355be614d9440a7c89c36eacb441fad4c5d86f71d1339e",
+        "path": "profile.json"
+      },
+      "native_fir": {
+        "sha256": "1e0614fcd9157f14a7b7a3413192d1c220ef0b0fbe3d88f4e0a10c64c29cdeae",
+        "path": "FpgaNextSocTop.fir"
+      },
+      "native_receipt": {
+        "sha256": "ff05135691ca01b5001c319220129220acc43321024dfa84064488ded22e7742",
+        "path": "receipt.json"
+      }
+    }
+  }
+}

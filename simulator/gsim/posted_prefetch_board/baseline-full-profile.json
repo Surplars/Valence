@@ -163,7 +163,8 @@
     "unconditionalMemoryPayloadCapture": true,
     "virtualMemoryLevels": 3,
     "virtualRamLoadPrecheck": true,
-    "wordSpanPacketPmp": true
+    "wordSpanPacketPmp": true,
+    "canonicalVirtualStoreOverlap": false
   },
   "ddr": {
     "axiIdWidth": 4,
@@ -234,7 +235,8 @@
     "storeNextLinePrefetch": true,
     "storePrefetchMruInsertion": true,
     "translatedResponseEmptyFlow": false,
-    "virtualRamLoadPrecheck": true
+    "virtualRamLoadPrecheck": true,
+    "canonicalVirtualStoreOverlap": false
   },
   "schema": "posted-board-full-profile-v1",
   "storage": {

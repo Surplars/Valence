@@ -1,0 +1,599 @@
+{
+  "status": "PASS_NATIVE_COST_AND_OFF_PRUNING_WITH_EXPLICIT_IDENTIFIER_DIFF",
+  "execution_sha256": "0aeeb1889026dbf2829bdfd06063651a203004a44409ef7bb4c87a0eb8bcc408",
+  "analysis_script_sha256": "ae3cf5e52d39aab904c01fc19fa98c103f275e4ed2b4c50927a5b4328853f977",
+  "census_helpers": {
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-native-prep-r1/census.py": "75b0d75684527e24c84c97478e1083c95582224f1c58b3999c2b2e6e7b21846d",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/restored/posted-prefetch-head-offer-r1/fpga/next/lsu_capacity_census.py": "feddb875c24bd82896c58ebff7a364d3099ac6549179f8bef7d42809fc4dd9cf",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/restored/posted-prefetch-head-offer-r1/fpga/next/native_storage_census.py": "1588ea3dbdf3ac4474c5d3a1277d35d12d50420b053c3114ca0c9313fcb3b8e9"
+  },
+  "normalization_rules": [],
+  "default_off_raw_artifacts_equal": false,
+  "default_off_raw_difference": {
+    "before": "_physicalStoreConflict_T_203",
+    "after": "_physicalStoreConflict_T_171",
+    "occurrences_before": 17,
+    "occurrences_after": 17,
+    "after_name_absent_before": true,
+    "before_name_absent_after": true,
+    "single_literal_substitution_reproduces_entire_file": true,
+    "raw_files_equal": false,
+    "before_sha256": "0a63fd5b4cddd5e68bedc3d1e9b03d4efa49befed3d6c37fe11266210c85afd7",
+    "after_sha256": "dd79ecba1e20d49dc01062211fb5323b940264daf1cffa991ba6d734f55bfe33"
+  },
+  "default_off_erased_markers": [
+    "CanonicalStoreTracker",
+    "canonicalStoreTracker",
+    "canonicalStoreEpoch",
+    "canonicalStoreOrigin",
+    "savedCanonicalStoreOrigin",
+    "requestAccepted_",
+    "certifiedStoreClass_",
+    "relaxStoreOwner",
+    "canonicalStore_checked",
+    "canonicalStore_requestOrigin"
+  ],
+  "snapshots": {
+    "published": {
+      "production_reachable_totals": {
+        "scalar_reg_bits": 91947,
+        "array_reg_bits": 708155
+      },
+      "production_module_instance_count": 478,
+      "unreachable_definitions": []
+    },
+    "OFF": {
+      "production_reachable_totals": {
+        "scalar_reg_bits": 91947,
+        "array_reg_bits": 708155
+      },
+      "production_module_instance_count": 478,
+      "unreachable_definitions": []
+    },
+    "ON": {
+      "production_reachable_totals": {
+        "scalar_reg_bits": 92636,
+        "array_reg_bits": 709879
+      },
+      "production_module_instance_count": 481,
+      "unreachable_definitions": []
+    }
+  },
+  "delta": {
+    "scalar_reg_bits": 689,
+    "array_reg_bits": 1724
+  },
+  "state_bit_delta": 2413,
+  "cost_groups": {
+    "adapter_walk_saved_origin": {
+      "scalar_bits": 101,
+      "array_bits": 0,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/adapter",
+          "before": {
+            "module": "DataTranslationAdapter",
+            "sha256": "f7a88ca23cba1fdd0cebf47c942f99d0c0ab76c92f67cb08975603964dd31897",
+            "scalar_reg_bits": 1554,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "DataTranslationAdapter",
+            "sha256": "a8f1e2b139658b5b1b58352f6274b71147d58667d49940320c5c470e92c80e45",
+            "scalar_reg_bits": 1655,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 101,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "savedCanonicalStoreOrigin_bits_epoch",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "savedCanonicalStoreOrigin_bits_token_index",
+              "before_width": 0,
+              "after_width": 4
+            },
+            {
+              "name": "savedCanonicalStoreOrigin_bits_token_tag",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "savedCanonicalStoreOrigin_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        }
+      ]
+    },
+    "adapter_translated_origin_and_original_va": {
+      "scalar_bits": 0,
+      "array_bits": 1320,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/adapter/translated/ram_ext",
+          "before": {
+            "module": "ram_8x429",
+            "sha256": "8c56c6caeca087cf5d197ed11e42ab43436bbeb554fb3794b1e2098a76f66663",
+            "scalar_reg_bits": 0,
+            "array_reg_bits": 3432
+          },
+          "after": {
+            "module": "ram_8x594",
+            "sha256": "5231157828c36ddf3106d77d9aab0fe27581e028abe67a51a47d722f70f70c4b",
+            "scalar_reg_bits": 0,
+            "array_reg_bits": 4752
+          },
+          "scalar_delta": 0,
+          "array_delta": 1320,
+          "scalar_register_differences": []
+        }
+      ]
+    },
+    "adapter_registered_ingress_origin": {
+      "scalar_bits": 202,
+      "array_bits": 0,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/adapter/virtualRequests",
+          "before": {
+            "module": "TwoEntryRegisterQueue_2",
+            "sha256": "608711d17eaba4d334c5817cd63c31f0cb1a4d02ecffe77280f08ef34aae747a",
+            "scalar_reg_bits": 990,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "TwoEntryRegisterQueue_2",
+            "sha256": "5a924df07c9726a962dc9320738c698217e3900668cd50157af95d3a264a416a",
+            "scalar_reg_bits": 1192,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 202,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "head_canonicalStoreOrigin_bits_epoch",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "head_canonicalStoreOrigin_bits_token_index",
+              "before_width": 0,
+              "after_width": 4
+            },
+            {
+              "name": "head_canonicalStoreOrigin_bits_token_tag",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "head_canonicalStoreOrigin_valid",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "tail_canonicalStoreOrigin_bits_epoch",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "tail_canonicalStoreOrigin_bits_token_index",
+              "before_width": 0,
+              "after_width": 4
+            },
+            {
+              "name": "tail_canonicalStoreOrigin_bits_token_tag",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "tail_canonicalStoreOrigin_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        }
+      ]
+    },
+    "registered_checked_store_record": {
+      "scalar_bits": 241,
+      "array_bits": 0,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/canonicalStoreTracker",
+          "before": null,
+          "after": {
+            "module": "CanonicalStoreTracker",
+            "sha256": "573dc4758450c140474c327157c3927715e2a42fef89c2dc13d87674474cd458",
+            "scalar_reg_bits": 241,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 241,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "certified",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "record_mask",
+              "before_width": 0,
+              "after_width": 8
+            },
+            {
+              "name": "record_origin_epoch",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "record_origin_token_index",
+              "before_width": 0,
+              "after_width": 4
+            },
+            {
+              "name": "record_origin_token_tag",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "record_physicalAddress",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "record_size",
+              "before_width": 0,
+              "after_width": 3
+            },
+            {
+              "name": "record_virtualAddress",
+              "before_width": 0,
+              "after_width": 64
+            },
+            {
+              "name": "tracked",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        }
+      ]
+    },
+    "lsu_request_acceptance_and_store_class": {
+      "scalar_bits": 8,
+      "array_bits": 0,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/lsu",
+          "before": {
+            "module": "ParallelLoadStoreUnit",
+            "sha256": "66f13566ae8863fb764301bfa6dfba075a9da2a1c6a1de0e964d8c98f89425be",
+            "scalar_reg_bits": 35,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "ParallelLoadStoreUnit",
+            "sha256": "ba8d29255bffef05c8f928752a9b5a2aa2ab67ddee48fb3cb56dc6f3d1665e19",
+            "scalar_reg_bits": 43,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 8,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "certifiedStoreClass_0",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "certifiedStoreClass_1",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "certifiedStoreClass_2",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "certifiedStoreClass_3",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "requestAccepted_0",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "requestAccepted_1",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "requestAccepted_2",
+              "before_width": 0,
+              "after_width": 1
+            },
+            {
+              "name": "requestAccepted_3",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        }
+      ]
+    },
+    "lsu_saved_epoch_and_valid": {
+      "scalar_bits": 132,
+      "array_bits": 0,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/lsu/slots_0",
+          "before": {
+            "module": "LoadStoreUnit",
+            "sha256": "246180d3ffb517d63c1efe63844558a28ac3263b624c9b9b7352d0373123fecf",
+            "scalar_reg_bits": 871,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "LoadStoreUnit",
+            "sha256": "b10fcbe768a8cd210d36f98a349ce3e4829371ea3d47d696ae64b96d4ef336cb",
+            "scalar_reg_bits": 904,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 33,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "operation_canonicalStoreEpoch_bits",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "operation_canonicalStoreEpoch_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        },
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/lsu/slots_1",
+          "before": {
+            "module": "LoadStoreUnit",
+            "sha256": "246180d3ffb517d63c1efe63844558a28ac3263b624c9b9b7352d0373123fecf",
+            "scalar_reg_bits": 871,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "LoadStoreUnit",
+            "sha256": "b10fcbe768a8cd210d36f98a349ce3e4829371ea3d47d696ae64b96d4ef336cb",
+            "scalar_reg_bits": 904,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 33,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "operation_canonicalStoreEpoch_bits",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "operation_canonicalStoreEpoch_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        },
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/lsu/slots_2",
+          "before": {
+            "module": "LoadStoreUnit",
+            "sha256": "246180d3ffb517d63c1efe63844558a28ac3263b624c9b9b7352d0373123fecf",
+            "scalar_reg_bits": 871,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "LoadStoreUnit",
+            "sha256": "b10fcbe768a8cd210d36f98a349ce3e4829371ea3d47d696ae64b96d4ef336cb",
+            "scalar_reg_bits": 904,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 33,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "operation_canonicalStoreEpoch_bits",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "operation_canonicalStoreEpoch_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        },
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/lsu/slots_3",
+          "before": {
+            "module": "LoadStoreUnit",
+            "sha256": "246180d3ffb517d63c1efe63844558a28ac3263b624c9b9b7352d0373123fecf",
+            "scalar_reg_bits": 871,
+            "array_reg_bits": 0
+          },
+          "after": {
+            "module": "LoadStoreUnit",
+            "sha256": "b10fcbe768a8cd210d36f98a349ce3e4829371ea3d47d696ae64b96d4ef336cb",
+            "scalar_reg_bits": 904,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 33,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "operation_canonicalStoreEpoch_bits",
+              "before_width": 0,
+              "after_width": 32
+            },
+            {
+              "name": "operation_canonicalStoreEpoch_valid",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        }
+      ]
+    },
+    "backend_request_origin_fifo": {
+      "scalar_bits": 5,
+      "array_bits": 404,
+      "paths": [
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/origins",
+          "before": null,
+          "after": {
+            "module": "Queue4_Valid_CanonicalStoreOrigin",
+            "sha256": "6450713754502193ecaa84879a4d1be8adc6145ac18c018e83c8730cb76a055b",
+            "scalar_reg_bits": 5,
+            "array_reg_bits": 0
+          },
+          "scalar_delta": 5,
+          "array_delta": 0,
+          "scalar_register_differences": [
+            {
+              "name": "deq_ptr_value",
+              "before_width": 0,
+              "after_width": 2
+            },
+            {
+              "name": "enq_ptr_value",
+              "before_width": 0,
+              "after_width": 2
+            },
+            {
+              "name": "maybe_full",
+              "before_width": 0,
+              "after_width": 1
+            }
+          ]
+        },
+        {
+          "path": "FpgaNextSocTop/board/platform/core/core/core/backend/origins/ram_ext",
+          "before": null,
+          "after": {
+            "module": "ram_4x101",
+            "sha256": "fc266e045bf79ed7f8b69c196af3069217872b41bf78e81c0456577d70e6178d",
+            "scalar_reg_bits": 0,
+            "array_reg_bits": 404
+          },
+          "scalar_delta": 0,
+          "array_delta": 404,
+          "scalar_register_differences": []
+        }
+      ]
+    }
+  },
+  "lsu_scalar_breakdown": {
+    "requestAccepted_": 4,
+    "certifiedStoreClass_": 4
+  },
+  "ram_changes": {
+    "FpgaNextSocTop/board/platform/core/adapter/translated/ram_ext": {
+      "before": {
+        "module": "ram_8x429",
+        "helper_sha256": "8c56c6caeca087cf5d197ed11e42ab43436bbeb554fb3794b1e2098a76f66663",
+        "name": "Memory",
+        "width": 429,
+        "depth": 8,
+        "bits": 3432,
+        "ports": [
+          {
+            "port": "R0",
+            "kind": "read",
+            "address_bits": 3,
+            "data_bits": 429,
+            "latency": 0
+          },
+          {
+            "port": "W0",
+            "kind": "write",
+            "address_bits": 3,
+            "data_bits": 429,
+            "latency": 1,
+            "mask_bits": 1,
+            "mask_granularity_bits": 429
+          }
+        ]
+      },
+      "after": {
+        "module": "ram_8x594",
+        "helper_sha256": "5231157828c36ddf3106d77d9aab0fe27581e028abe67a51a47d722f70f70c4b",
+        "name": "Memory",
+        "width": 594,
+        "depth": 8,
+        "bits": 4752,
+        "ports": [
+          {
+            "port": "R0",
+            "kind": "read",
+            "address_bits": 3,
+            "data_bits": 594,
+            "latency": 0
+          },
+          {
+            "port": "W0",
+            "kind": "write",
+            "address_bits": 3,
+            "data_bits": 594,
+            "latency": 1,
+            "mask_bits": 1,
+            "mask_granularity_bits": 594
+          }
+        ]
+      }
+    },
+    "FpgaNextSocTop/board/platform/core/core/core/backend/origins/ram_ext": {
+      "before": null,
+      "after": {
+        "module": "ram_4x101",
+        "helper_sha256": "fc266e045bf79ed7f8b69c196af3069217872b41bf78e81c0456577d70e6178d",
+        "name": "Memory",
+        "width": 101,
+        "depth": 4,
+        "bits": 404,
+        "ports": [
+          {
+            "port": "R0",
+            "kind": "read",
+            "address_bits": 2,
+            "data_bits": 101,
+            "latency": 0
+          },
+          {
+            "port": "W0",
+            "kind": "write",
+            "address_bits": 2,
+            "data_bits": 101,
+            "latency": 1,
+            "mask_bits": 1,
+            "mask_granularity_bits": 101
+          }
+        ]
+      }
+    }
+  },
+  "fixed_memory_groups_equal": true,
+  "external_paths_equal": true,
+  "limits": [
+    "Raw output follows actual CIRCT lowering and dead-code elimination. Counts are reachable literal declarations, not mapped resources or PPA/STA.",
+    "Raw baseline bytes and all differences are retained. The one explicitly named identifier substitution is diagnostic, not broad normalization or a formal equivalence proof.",
+    "The complete audited native profile is separate from the focused backend fixture. No workload speedup is inferred from native state cost."
+  ]
+}

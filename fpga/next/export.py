@@ -120,6 +120,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
+    ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
+                    help="default-off checked virtual-store to disjoint prechecked-load overlap")
     ap.add_argument("--posted-prefetch-head-offer", action="store_true",
                     help="default-off staged posted head offer while only PF remains busy")
     ap.add_argument("--posted-prefetch-coexistence", action="store_true",
@@ -131,6 +133,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.canonical_virtual_store_overlap and not a.virtual_ram_load_precheck:
+        ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
     if a.posted_prefetch_head_offer and not (a.posted_store_merge and a.posted_prefetch_coexistence):
         ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
     if a.posted_prefetch_coexistence and not a.posted_store_merge:
@@ -215,6 +219,9 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["posted_prefetch_head_offer"] = a.posted_prefetch_head_offer
     if a.posted_prefetch_head_offer:
         profile["profile"]["name"] += "-posted-prefetch-head-offer"
+    profile["profile"]["canonical_virtual_store_overlap"] = a.canonical_virtual_store_overlap
+    if a.canonical_virtual_store_overlap:
+        profile["profile"]["name"] += "-canonical-virtual-store-overlap"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
     if a.experimental_trispeed_ethernet:
@@ -310,6 +317,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--posted-prefetch-coexistence")
     if a.posted_prefetch_head_offer:
         command.append("--posted-prefetch-head-offer")
+    if a.canonical_virtual_store_overlap:
+        command.append("--canonical-virtual-store-overlap")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
@@ -318,6 +327,7 @@ def main(argv=None, expected_profile_sha256=None):
             "instruction_translation_entries": 8, "pte_cache_entries": 4,
             "fetch_previous_packet": a.fetch_previous_packet,
             "prepared_store_lookahead": a.prepared_store_lookahead,
+            "canonical_virtual_store_overlap": a.canonical_virtual_store_overlap,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,

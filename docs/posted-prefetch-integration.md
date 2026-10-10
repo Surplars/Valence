@@ -1,5 +1,7 @@
 # Posted/PF integration and scoped qualification
 
+This is the preserved v2 integration/qualification record. The current [v3 canonical-overlap integration](../simulator/gsim/canonical_virtual_store/README.md) adds one explicit field (27 FPGA/136 core/66 export fields), enables it in the recommended preset, and retains v2 through `--disable-canonical-store-overlap`. Historical source identities and field counts below describe their original receipts.
+
 This source-only integration starts from the exact published dev tree
 `f8d771eff0bb282fc0ea1d362f608873a349ced5` at
 `f1f1519b42a43773df8d407aedb0c6e48bebacc0`. Its local recovered Git base is a

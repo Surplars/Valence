@@ -1,0 +1,106 @@
+{
+  "status": "PASS_FINAL_HOST_ONLY",
+  "tests": 126,
+  "steps": [
+    {
+      "name": "fpga-performance",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "fpga/next",
+        "-p",
+        "test_performance.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "sha256": "e7af5125a5eb11e49a2358bbef7e3be19b01a10ca8d50731fbb7d357e2db8ddd"
+    },
+    {
+      "name": "fpga-canonical",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "fpga/next",
+        "-p",
+        "test_canonical_overlap.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "sha256": "e9eb9057c4ed7d8d293f58b1d792c3a603c6036f7cdcbb76cde7a80767bec70c"
+    },
+    {
+      "name": "posted-profiles",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "simulator/gsim/posted_prefetch_board",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "sha256": "67dba7628edb37c23a66212a1c051c9ce2e88e78975bf3b66ed2f98c7f1ab901"
+    },
+    {
+      "name": "posted-runners",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "simulator/gsim/posted_board_lineage",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "sha256": "f20f97b9a2734bf187507eaa683dacd8b9a23de08f578ea215168411a344261d"
+    },
+    {
+      "name": "official-oracle",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "simulator/gsim/canonical_virtual_store",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "sha256": "40410e48966d7bb0b8b6735f83db05eddf29f9e1a989bd73b8ce7a22c576b079"
+    },
+    {
+      "name": "returnflow",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "test_translated_response_flow_cli",
+        "test_cpu_flow_board_nemu",
+        "test_cpu_flow_data_pmp",
+        "test_return_flow_ledger"
+      ],
+      "exit_code": 0,
+      "sha256": "2f1c0d191fa285bf11dcc9a9993acc70e016597fa0e9832e728cefee158f2b8b"
+    }
+  ]
+}

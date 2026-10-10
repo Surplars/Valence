@@ -7,23 +7,35 @@ remote `main` are not the implementation workspace.
 
 ## Recommended performance preset
 
-The recommended `posted-performance-v1` preset enables physical posted-store
-merging with the exact qualified DMA4/LSU4/D16 selected profile. Original Bare
-WRITE throughput improves 91.23%; COPY throughput falls about 15.25% (17.9973%
-more cycles). This recommendation accepts that measured tradeoff.
+The recommended `posted-performance-v3` preset enables posted-store merging,
+posted/PF coexistence, the PF-only initial head offer, and canonical virtual-store
+overlap on the qualified DMA4/LSU4/D16 profile. The matched Sv39 COPY case21 kernel
+falls from 497,144 to 431,622 cycles (+15.18% useful-payload throughput); Bare COPY
+and warm-read controls are unchanged. This is a bounded store-to-load handoff
+improvement. It does not establish full-Linux performance or overlapping consecutive
+COPY read misses. Physical/cache accepted-owner peak remains one in this case.
 
 ```sh
-python3 -B fpga/next/performance.py --output build/fpga-next/performance-on --emit
-python3 -B fpga/next/performance.py --output build/fpga-next/performance-off --disable-posted --emit
+python3 -B fpga/next/performance.py --output build/fpga-next/performance-v3 --emit
+# Restore the previous v2 recommendation, changing only canonical overlap:
+python3 -B fpga/next/performance.py --output build/fpga-next/performance-v2 --disable-canonical-store-overlap --emit
+# Existing independent posted controls remain available:
+python3 -B fpga/next/performance.py --output build/fpga-next/posted-disabled --disable-posted --emit
+python3 -B fpga/next/performance.py --output build/fpga-next/pf-disabled --disable-posted-prefetch --emit
 ```
 
-Omit `--emit` for a complete preflight. Hardware overrides are rejected; the
-second command changes only posted merging. Generic defaults remain unchanged.
-See the [measurements, costs and scope](../../docs/posted-store-seal-performance.md)
-and [preset qualification](../../docs/posted-performance-preset.md). Posted/PF
-coexistence, PF-only initial head offer, translated-response flow and prechecked request flow remain OFF.
-The new default-OFF controls and separate Board experiments are described in
-[the source integration contract](../../docs/posted-prefetch-integration.md).
+Omit `--emit` for a complete preflight. Arbitrary hardware overrides remain rejected.
+All generic constructors and `export.py` keep canonical overlap OFF; generic opt-in
+uses `--canonical-virtual-store-overlap --virtual-ram-load-precheck`. The independent
+canonical fallback combines with either posted control. Translated-response flow,
+prechecked request flow and rs2 forwarding are not enabled by this preset.
+
+See the [canonical qualification and exact boundaries](../../simulator/gsim/canonical_virtual_store/README.md),
+[prior posted/PF recommendation](../../docs/posted-prefetch-integration.md), and
+[original posted measurement scope](../../docs/posted-store-seal-performance.md).
+Native literal state grows by 689 scalar + 1,724 array bits; mapped PPA/STA and
+live-FPGA results remain unverified. Official entry/actual-profile correspondence
+is a separate recorded gate; source configuration alone is not an emitted-RTL pass.
 
 ## Fixed contract
 

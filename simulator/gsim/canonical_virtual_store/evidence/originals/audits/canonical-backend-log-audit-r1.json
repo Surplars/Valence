@@ -1,0 +1,68 @@
+{
+  "schema": "canonical-backend-independent-log-audit-v1",
+  "status": "PASS_LOG_LEVEL_ARCH_TRACE_AND_EVENT_ORDER",
+  "cases": 23,
+  "equal_architectural_fields": [
+    "trace",
+    "retired",
+    "traps"
+  ],
+  "pairs_on": [
+    {
+      "case": "checked_head_store_overlap",
+      "store": "11:11",
+      "younger": "12:12",
+      "lsu_start": "310",
+      "upstream_fire": "311",
+      "physical_fire": "314",
+      "store_response": "449"
+    },
+    {
+      "case": "second_unknown_store_barrier",
+      "store": "12:12",
+      "younger": "13:13",
+      "lsu_start": "416",
+      "upstream_fire": "417",
+      "physical_fire": "420",
+      "store_response": "451"
+    },
+    {
+      "case": "late_certified_store_error",
+      "store": "11:11",
+      "younger": "12:12",
+      "lsu_start": "310",
+      "upstream_fire": "311",
+      "physical_fire": "314",
+      "store_response": "469"
+    },
+    {
+      "case": "late_overlap_load_error",
+      "store": "11:11",
+      "younger": "12:12",
+      "lsu_start": "310",
+      "upstream_fire": "311",
+      "physical_fire": "314",
+      "store_response": "429"
+    }
+  ],
+  "late_error_frozen_host_assertion": "b.retired == before plus precise token/PC/cause/tval and full accepted response drain; younger load and dependency submitted only after before snapshot.",
+  "scope": "Independent log-level audit, not a substitute for actual exact-token/PA interval, per-retire, fault, or owner assertions in the frozen executed host. Existing stall buckets excluded due known attribution defect.",
+  "inputs": [
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/receipt.json",
+      "sha256": "0250b48f07f40c83b723b531dfd2c975891b25153650773dd01250a5fb3f553e"
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff-cases.log",
+      "sha256": "59deaca4979fa833096db5dbd72b39638144739f81df6adabc5f05802ca8b009"
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon-cases.log",
+      "sha256": "66e5565c2c73b9e871d8d7611f52fbb41cd624bb3e7dd44d5bc31d121379d159"
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness/canonical_virtual_store_backend.cpp",
+      "sha256": "9bdb7c65a433d4ab948132d3a906149fcbd84009ee9dae3d4d2379ed1a0dbd34"
+    }
+  ]
+}

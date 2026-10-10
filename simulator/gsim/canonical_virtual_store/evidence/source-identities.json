@@ -1,0 +1,169 @@
+{
+  "schema": "canonical-overlap-qualified-source-identities-v1",
+  "production_commit": "aaaf6d701a3b47cb610b6b8b4775487b89b7a5b9",
+  "production_tree": "c0b056442ae92a5083eedc0709128b431567f993",
+  "component_failed_commit": "8eeab5a4c25d3aa7eb39b166fbd70de366861623",
+  "component_pass_commit": "d8429b12de27a50f37350aa168bfbddebf939ea9",
+  "backend_pass_commit": "8665c3f78d88ced517fd70b1fe1380e32986a713",
+  "backend_host_replay_commit": "6e53dda283ddf611d79ed4b16eba292340a7fa2a",
+  "cpu_and_native_source_commit": "6f975c14edd0ce01cc248b71893d85634fedf408",
+  "production_sha256": {
+    "src/main/scala/core/ooo/CanonicalVirtualStore.scala": "b5128fd471b32155092e1ba34d34f7070b186b7a426f63df987000dd89a71913",
+    "src/main/scala/core/ooo/DataTranslationAdapter.scala": "cbc363a88b32308f1a8a65a20252ee70465e06466bc4a218a3b6535eb200fef2",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "1de3fe84f7a3aeda65fc68f7751b424e46365c9036396431e37d0ade532f40f3",
+    "src/main/scala/core/ooo/IntegerCore.scala": "5b31d540ce1a77ff5de112583e1ee018e18d0ef48dff1847cb6d9a8210c18909",
+    "src/main/scala/core/ooo/LoadStoreUnit.scala": "4db01d528f73f1838ce88af879c00597dbfa603e2498aba504c3b97b43bdeae8",
+    "src/main/scala/core/ooo/MachineCore.scala": "6f5d0ed4be8eefd95d8d7ba5220b52779397c00ae7445467f4d0def8cdf7cd49",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "90433ea723c6b660112784e9afe58cd7977e1d38b542bc8aa89a57f34a3801dd",
+    "src/main/scala/core/ooo/MappedMachineCore.scala": "ed78b4fbaa3d832dda04c983406eea9840e5694780dc1985829f1f5183b2b6bb",
+    "src/main/scala/core/ooo/OooParams.scala": "65dd99a628f7ca11d76cafb70b8e402c9d3a2bd1914ed4764b81c7177c911297",
+    "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": "4d4f958c8c0d850b276ef388dc16af7e4a67c2ae73cddaafe647d0c7036287e9",
+    "src/main/scala/core/ooo/StoreBuffer.scala": "fd13ac52ac2e5bd4b9eb0bc5c0902b33c89e0d2954b7d34bfde2346b56375215"
+  },
+  "integration_source_fixture_projection_sha256": {
+    "simulator/gsim/canonical_virtual_store/replay_backend_host.py": "a5093044d89d0551b04c1453b999d89dd3eb1c6b86f163f6b1315add76f9e9fe",
+    "simulator/gsim/canonical_virtual_store/run_components.py": "2044e0b8394fed92a71b61c04423e578d1e72379751474094ee941b7f48cae18",
+    "simulator/gsim/harness/canonical_store_SOURCE_NOTES.md": "cd49ac23a4fcd3c793316ce3630b4b2cc3c136a9851bca23afd95e3b17bc870b",
+    "simulator/gsim/harness/canonical_store_adapter.cpp": "6e1ffc060188d4171265d68331bd73210a4e3aad8398cd6cc919e07b68326f83",
+    "simulator/gsim/harness/canonical_store_lsu.cpp": "3cc42c54e30c75c7ded57352d4fe5f94380fe431b58c71e5f8d3b3f933cfeb49",
+    "simulator/gsim/harness/canonical_store_oracle.h": "d5914ece94eb6c033d50ffdb4f452cbd1490d69b1e2b00a79a7c0eedad558ca1",
+    "simulator/gsim/harness/canonical_store_tracker.cpp": "da575c1381cfb92cf1ca61cf05fe6c4aa9ba2b0bccd15e96241024e7de764e11",
+    "simulator/gsim/harness/canonical_virtual_store_backend.cpp": "aa4c6566cbebeaffbefef6573a3a7a6b63086df8ecf3f0891244ff43ace49eec",
+    "src/test/scala/ooo/CanonicalStoreGsim.scala": "0ba430add16bf264ffcb0a591129423f202b488dd0be859ac61979d530a55d2a",
+    "src/test/scala/ooo/CanonicalVirtualStoreBackendGsim.scala": "68f2ce9ea33d91e88f13b360a6bddf9452117bc7f30229a652cc9828104bbd9a",
+    "src/test/scala/ooo/CanonicalVirtualStoreConfigSpec.scala": "77532f2433dcdc0574c3439be15dff688ab8c8bbfb96b7e59424189bd6799481"
+  },
+  "projection_scope": "Copied fixture bytes in the integration worktree, inspected before its final commit; final CLI/config source binding is a separate gate. No new model or runtime qualification is implied.",
+  "original_evidence": [
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/source-freeze-r1-receipt.json",
+      "sha256": "7914a98e7e8d0d666674b97dcf331790db4b2f6452ac6d4c36c3eaaebaf76481",
+      "bytes": 967
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/production-freeze-r1.patch",
+      "sha256": "a2f4d341da78b92fc5ccaa9519bff7b71fcd071af7c66d6a1c98097576f1094c",
+      "bytes": 45147
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r1/receipt.json",
+      "sha256": "30773bd465010de74851683658f60bd9656e90fe44556b8956752b36aeaac056",
+      "bytes": 256465
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/components-r2/receipt.json",
+      "sha256": "80b61f19bc63c37cac5c862370d05050820bf8163b24edbb33d6a03f716c236b",
+      "bytes": 277797
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/receipt.json",
+      "sha256": "0250b48f07f40c83b723b531dfd2c975891b25153650773dd01250a5fb3f553e",
+      "bytes": 267534
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/comparison.json",
+      "sha256": "3ff5de3b5ed3e090f608be11f0ff615042d3da73964b7a5844f497bb034497e3",
+      "bytes": 50453
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/receipt.json",
+      "sha256": "c38f68deb29f67b641045f535d3384c979a8310a1db9c3339f4bbae8177ab4c9",
+      "bytes": 6956
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/model-binding-r2.json",
+      "sha256": "d924889beef3020791b0d9aa8c5bcb33ab19bb42399b33aff851570945337dc5",
+      "bytes": 345302
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/runtime-pins-r2.json",
+      "sha256": "b2677322fd2ab62dca741942467268180b6d1ce52db093f4d89f94ed106f0368",
+      "bytes": 275284
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/model-off-r1/receipt.json",
+      "sha256": "1fe9763354328a76335c8a0402783b899c4710d6cb0e2064b3a2acfafc869b64",
+      "bytes": 67455
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/model-on-r1/receipt.json",
+      "sha256": "3b20e530f1409a4fb9bb344279413be8b2587a142c4e9784947ad244a379113d",
+      "bytes": 67434
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/host-preflight-r8/receipt.json",
+      "sha256": "8f133c30b144b00a645259f03459014c522ee5ba61cd995471d1d87afb88cd10",
+      "bytes": 283507
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/guest.bin",
+      "sha256": "3af27dccda6acd677bb01fdad4d240ffee2f9af1c1fb4181a71c43ff2087a810",
+      "bytes": 6104
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/guest-provenance.json",
+      "sha256": "3312f1886c6a574d7c15ea96e8340b433b08844af721735b67ae27a78cd00c77",
+      "bytes": 18858
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/canonical-flags.json",
+      "sha256": "9cdbb0f0d6e9f9907467864ea72917adb2ae3f7c52651ccd1532b8326ceb9942",
+      "bytes": 984
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/expected-profile-off.json",
+      "sha256": "7d4ebe9167e57d873a595447babe4e82be0f48ddb687b240fe0eda8e7a8b277d",
+      "bytes": 8001
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/tool-receipt.json",
+      "sha256": "09a2c9129ebe50f34e3be6529b83e100c74c00f883e675fb5846a2d4f9e5a037",
+      "bytes": 2921
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/run.py",
+      "sha256": "311490e5f7f047ebfc24644cdf6fa8cb0c4544f1176ed95aa7a0043bdbafcd19",
+      "bytes": 11797
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/model.py",
+      "sha256": "7a877f764185998cd96361d8a6a493d11e68f8c756acbefdb3421f41b4a14fa8",
+      "bytes": 6901
+    },
+    {
+      "path": "canonical-store-overlap-cpu-prep-r1/summarize_case.py",
+      "sha256": "804423b49e4bf784809ffd4f44ade6cb580ac1c66cb76a6cf0232470ffd9f58b",
+      "bytes": 4088
+    },
+    {
+      "path": "canonical-store-overlap-native-r1/execution.json",
+      "sha256": "0aeeb1889026dbf2829bdfd06063651a203004a44409ef7bb4c87a0eb8bcc408",
+      "bytes": 386908
+    },
+    {
+      "path": "canonical-store-overlap-native-r1/plan.json",
+      "sha256": "8f6e1999276d8c92b899112ec1810145eac7e386c042f00c423d58edeca72bc8",
+      "bytes": 668667
+    },
+    {
+      "path": "canonical-store-overlap-native-r1/analyze.py",
+      "sha256": "ae3cf5e52d39aab904c01fc19fa98c103f275e4ed2b4c50927a5b4328853f977",
+      "bytes": 8746
+    },
+    {
+      "path": "canonical-store-overlap-native-r1/check_off_identifier.py",
+      "sha256": "39bb23b118478ca141b1c788a438251e2b8b89adf04d3f6a0f48e34d9e337a3f",
+      "bytes": 2868
+    },
+    {
+      "path": "canonical-native-baseline-audit-r1/manifest.json",
+      "sha256": "c363a7760784e1ff6cc0572a0ea6100c876b3c04381f7af9108fc76e9c3ef656",
+      "bytes": 491
+    },
+    {
+      "path": "canonical-native-baseline-audit-r1/audit.json",
+      "sha256": "21067a72992acc74ce42689be30744780d5f888181a32f38bfaa9ade25bb3867",
+      "bytes": 121296
+    }
+  ]
+}

@@ -19,6 +19,10 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         val issueAvailable = Output(Bool())
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
+        val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+            Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
+        val relaxStoreOwner = if (p.canonicalVirtualStoreOverlap)
+            Some(Input(Valid(new RobToken(p)))) else None
         val complete       = Decoupled(new BackendCompletion(p))
         val cancel         = Input(Vec(p.memoryEntries, Bool()))
         val fastStoreRetire = Input(Bool())
@@ -35,6 +39,10 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     })
     val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p)))
     val parallel   = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
+    val requestAccepted = if (p.canonicalVirtualStoreOverlap)
+        Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
+    val certifiedStoreClass = if (p.canonicalVirtualStoreOverlap)
+        Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
     val completion = Module(new RRArbiter(new BackendCompletion(p), p.memoryEntries))
     for ((slot, i) <- slots.zipWithIndex) {
         completion.io.in(i) <> slot.io.complete
@@ -80,8 +88,15 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     val chosen        = Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty))
     val available     = completion.io.out.valid || empty.asUInt.orR
     val othersIdle    = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
+    val ordinaryPrechecked = io.start.bits.precheckedLoad && io.start.bits.virtualized &&
+        !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid
+    val exemptSerial = (0 until p.memoryEntries).map { i =>
+        io.relaxStoreOwner.map(owner => owner.valid && ordinaryPrechecked && io.parallel &&
+            slots(i).io.busy && !parallel(i) && requestAccepted.get(i) && certifiedStoreClass.get(i) &&
+            owner.bits.asUInt === slots(i).io.owner.asUInt).getOrElse(false.B)
+    }
     val noOtherSerial = (0 until p.memoryEntries)
-        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U))
+        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U) || exemptSerial(i))
         .reduce(_ && _)
     io.issueAvailable := available && noOtherSerial && (io.parallel || othersIdle)
     io.start.ready    := io.issueAvailable && Mux1H(
@@ -91,6 +106,19 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         slot.io.start.valid := io.start.valid && io.issueAvailable && chosen === i.U
         slot.io.start.bits  := io.start.bits
         when(slot.io.start.fire) { parallel(i) := io.parallel }
+        requestAccepted.foreach { accepted =>
+            when(slot.io.start.fire) { accepted(i) := false.B }
+            // Fire belongs to the selected accepted operation, including start/request on the same edge.
+            when(slot.io.memory.request.fire) { accepted(i) := true.B }
+            when(slot.io.start.fire) {
+                certifiedStoreClass.get(i) := slot.io.start.bits.canonicalStoreEpoch.get.valid &&
+                    slot.io.start.bits.store && slot.io.start.bits.virtualized && !slot.io.start.bits.atomic
+            }
+            when(io.start.fire && exemptSerial(i)) {
+                assert(ordinaryPrechecked && !io.cancel(i) && accepted(i) && certifiedStoreClass.get(i))
+                assert(io.relaxStoreOwner.get.bits.asUInt === slot.io.owner.asUInt)
+            }
+        }
     }
 
     // Hold arbitration under request backpressure, even if a new slot becomes eligible meanwhile.
@@ -125,6 +153,13 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
         proof := selectedProof
         proof.valid := io.memory.request.valid && selectedProof.valid
         PostedStoreCpu.held(io.memory.request, proof)
+    }
+    io.canonicalStoreOrigin.foreach { origin =>
+        val selected = Mux1H((0 until p.memoryEntries).map(i =>
+            (requests.io.chosen === i.U) -> slots(i).io.canonicalStoreOrigin.get))
+        origin := selected
+        origin.valid := io.memory.request.valid && selected.valid
+        CanonicalVirtualStore.held(io.memory.request, origin)
     }
     requests.io.out.ready   := io.memory.request.ready && owners.io.enq.ready
     owners.io.enq.valid     := io.memory.request.fire

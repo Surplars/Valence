@@ -1,0 +1,217 @@
+{
+  "status": "PASS_REPARSED_23_CASES_AND_HOST_REPLAY",
+  "source_logs": [
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff-cases.log",
+      "sha256": "59deaca4979fa833096db5dbd72b39638144739f81df6adabc5f05802ca8b009",
+      "bytes": 13062
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon-cases.log",
+      "sha256": "66e5565c2c73b9e871d8d7611f52fbb41cd624bb3e7dd44d5bc31d121379d159",
+      "bytes": 13682
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff-cases.log",
+      "sha256": "46bdc805461903bbe78c4388ef45c673e888f8fbcf91377acf9be27560fa8cea",
+      "bytes": 13659
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon-cases.log",
+      "sha256": "d456dce421f9897131e0dfc6083e11e82c6990560056eae51c39ab30d1476421",
+      "bytes": 14279
+    }
+  ],
+  "architecture_equal_fields": [
+    "trace",
+    "retired",
+    "traps"
+  ],
+  "cases": [
+    {
+      "name": "warm_overlap",
+      "trace": 6700809738058909185,
+      "retired": 15,
+      "traps": 0,
+      "off_cycles": 115,
+      "on_cycles": 115
+    },
+    {
+      "name": "head_serial_single",
+      "trace": 1478123659005584272,
+      "retired": 11,
+      "traps": 0,
+      "off_cycles": 55,
+      "on_cycles": 55
+    },
+    {
+      "name": "cold_head_serial_single",
+      "trace": 11901720344367310884,
+      "retired": 9,
+      "traps": 0,
+      "off_cycles": 72,
+      "on_cycles": 72
+    },
+    {
+      "name": "head_serial_held_proof",
+      "trace": 6758986905849916587,
+      "retired": 44,
+      "traps": 0,
+      "off_cycles": 235,
+      "on_cycles": 235
+    },
+    {
+      "name": "backpressure",
+      "trace": 6484234522736257603,
+      "retired": 12,
+      "traps": 0,
+      "off_cycles": 160,
+      "on_cycles": 160
+    },
+    {
+      "name": "older_uncanonical_load",
+      "trace": 15794996171391416316,
+      "retired": 13,
+      "traps": 0,
+      "off_cycles": 138,
+      "on_cycles": 138
+    },
+    {
+      "name": "physical_alias_store_order",
+      "trace": 15853684729941139280,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 111,
+      "on_cycles": 111
+    },
+    {
+      "name": "serial_page_3",
+      "trace": 9829123582057579423,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 137,
+      "on_cycles": 137
+    },
+    {
+      "name": "serial_page_4",
+      "trace": 7654288475301413791,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 137,
+      "on_cycles": 137
+    },
+    {
+      "name": "serial_page_7",
+      "trace": 9436981466855965599,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 137,
+      "on_cycles": 137
+    },
+    {
+      "name": "cancel_token_reuse",
+      "trace": 8634510474264762425,
+      "retired": 48,
+      "traps": 0,
+      "off_cycles": 480,
+      "on_cycles": 480
+    },
+    {
+      "name": "sfence_remap",
+      "trace": 4722203210440459323,
+      "retired": 13,
+      "traps": 0,
+      "off_cycles": 419,
+      "on_cycles": 419
+    },
+    {
+      "name": "csr_epoch_drain",
+      "trace": 1226045002097397436,
+      "retired": 13,
+      "traps": 1,
+      "off_cycles": 86,
+      "on_cycles": 86
+    },
+    {
+      "name": "fault_0",
+      "trace": 7626613257053280887,
+      "retired": 10,
+      "traps": 1,
+      "off_cycles": 37,
+      "on_cycles": 37
+    },
+    {
+      "name": "fault_1",
+      "trace": 6471872315728054363,
+      "retired": 12,
+      "traps": 1,
+      "off_cycles": 26,
+      "on_cycles": 26
+    },
+    {
+      "name": "fault_2",
+      "trace": 2836311817363200973,
+      "retired": 13,
+      "traps": 1,
+      "off_cycles": 82,
+      "on_cycles": 82
+    },
+    {
+      "name": "fault_3",
+      "trace": 7626613257053280887,
+      "retired": 10,
+      "traps": 1,
+      "off_cycles": 17,
+      "on_cycles": 17
+    },
+    {
+      "name": "fault_4",
+      "trace": 7626613257053280887,
+      "retired": 10,
+      "traps": 1,
+      "off_cycles": 56,
+      "on_cycles": 56
+    },
+    {
+      "name": "checked_head_store_overlap",
+      "trace": 4392980223260099756,
+      "retired": 13,
+      "traps": 0,
+      "off_cycles": 216,
+      "on_cycles": 175
+    },
+    {
+      "name": "certified_physical_alias_block",
+      "trace": 5913648809817524352,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 175,
+      "on_cycles": 175
+    },
+    {
+      "name": "second_unknown_store_barrier",
+      "trace": 16923070419185445140,
+      "retired": 14,
+      "traps": 0,
+      "off_cycles": 217,
+      "on_cycles": 180
+    },
+    {
+      "name": "late_certified_store_error",
+      "trace": 5349576076686716902,
+      "retired": 11,
+      "traps": 1,
+      "off_cycles": 195,
+      "on_cycles": 196
+    },
+    {
+      "name": "late_overlap_load_error",
+      "trace": 1414046643306896413,
+      "retired": 12,
+      "traps": 1,
+      "off_cycles": 196,
+      "on_cycles": 156
+    }
+  ],
+  "scope": "Focused real IntegerBackend/StoreBuffer/adapter/Sv39 service; ordered physical response stub, realCache=false; cycle counts are synthetic fixture observations."
+}

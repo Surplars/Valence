@@ -1,0 +1,139 @@
+{
+  "status": "PASS_HOST_ONLY_EXACT_TOKEN_FAULT_CLOSURE",
+  "schema": "canonical-backend-host-replay-v1",
+  "scope": "same immutable backend OFF/ON DUT models; host-only token witnesses and unresolved stall labels",
+  "source_head": "6e53dda283ddf611d79ed4b16eba292340a7fa2a",
+  "driver_sha256": "aa4c6566cbebeaffbefef6573a3a7a6b63086df8ecf3f0891244ff43ace49eec",
+  "base_receipt_sha256": "0250b48f07f40c83b723b531dfd2c975891b25153650773dd01250a5fb3f553e",
+  "tool_receipt_sha256": "09a2c9129ebe50f34e3be6529b83e100c74c00f883e675fb5846a2d4f9e5a037",
+  "script_sha256": "a5093044d89d0551b04c1453b999d89dd3eb1c6b86f163f6b1315add76f9e9fe",
+  "no_java_emit_generate_or_model_recompile": true,
+  "steps": [
+    {
+      "name": "backendoff-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=0",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness/canonical_virtual_store_backend.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/CanonicalVirtualStoreBackendGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "seconds": 5.633731858999454,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendoff-cases",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "seconds": 0.16489665699918987,
+      "log_sha256": "46bdc805461903bbe78c4388ef45c673e888f8fbcf91377acf9be27560fa8cea"
+    },
+    {
+      "name": "backendoff-result-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff",
+        "--inject-result"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "seconds": 0.00822120899829315,
+      "log_sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244"
+    },
+    {
+      "name": "backendoff-retirement-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendoff",
+        "--inject-cancel-retirement"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "seconds": 0.16531550900072034,
+      "log_sha256": "c35f59dddd9c3180021a4db70c5ca9a38d97f53f8ea4adcf1d16890c6595ecf7"
+    },
+    {
+      "name": "backendon-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness",
+        "-DPRECHECK_ENABLED=1",
+        "-DCANONICAL_STORE_OVERLAP=1",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/source/simulator/gsim/harness/canonical_virtual_store_backend.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/CanonicalVirtualStoreBackendGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "seconds": 5.9853542180007935,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "backendon-cases",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon"
+      ],
+      "exit": 0,
+      "negative_control": false,
+      "seconds": 0.16498630700152717,
+      "log_sha256": "d456dce421f9897131e0dfc6083e11e82c6990560056eae51c39ab30d1476421"
+    },
+    {
+      "name": "backendon-result-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon",
+        "--inject-result"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "seconds": 0.007980200000019977,
+      "log_sha256": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244"
+    },
+    {
+      "name": "backendon-retirement-negative",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/backend-host-r2/backendon",
+        "--inject-cancel-retirement"
+      ],
+      "exit": 1,
+      "negative_control": true,
+      "seconds": 0.1647030160002032,
+      "log_sha256": "03de05482d79d2fb9f570b92f8c4349d01aa629630f1f8b7da18ed58b8cb2ed5"
+    }
+  ],
+  "artifacts": {
+    "backendoff-retirement-negative.log": "c35f59dddd9c3180021a4db70c5ca9a38d97f53f8ea4adcf1d16890c6595ecf7",
+    "backendon-retirement-negative.log": "03de05482d79d2fb9f570b92f8c4349d01aa629630f1f8b7da18ed58b8cb2ed5",
+    "backendon": "1d8b7c68799b15986bce6632a53d951248e9072395c07ebe4ef7e56e335dd4da",
+    "backendoff-result-negative.log": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244",
+    "backendoff-cases.log": "46bdc805461903bbe78c4388ef45c673e888f8fbcf91377acf9be27560fa8cea",
+    "backendon-cases.log": "d456dce421f9897131e0dfc6083e11e82c6990560056eae51c39ab30d1476421",
+    "backendon-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "backendoff-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "backendoff": "79da0ad15a661ce95d5d4cc21fbcb7cdc4f0d9ec18fc38061dce1515e9d1b17b",
+    "backendon-result-negative.log": "d253e1a1cfee27011575001e52c1885468bc1940934f64fa10c3c224b99f9244"
+  }
+}

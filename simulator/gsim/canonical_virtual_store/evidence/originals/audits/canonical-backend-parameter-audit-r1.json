@@ -1,0 +1,23 @@
+{
+  "schema": "canonical-backend-parameter-independent-audit-v1",
+  "status": "PASS_SINGLE_PARAMETER_DIFFERENCE_ONLY",
+  "time": "2026-10-10T11:12:22.468663+00:00",
+  "inputs": [
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendoff/parameters.json",
+      "sha256": "0bde20b0c59e7e0e83339090177e65bc52dd04f3d6d8f6ff316c1c37545681d1"
+    },
+    {
+      "path": "sv39-canonical-store-overlap-implementation-r1/backend-r1/backendon/parameters.json",
+      "sha256": "8d5976dd8245c3bc783ebbdd13765a611f89e04ab8797be4436c7c5e236d735c"
+    }
+  ],
+  "differences": [
+    [
+      ".core.canonicalVirtualStoreOverlap",
+      false,
+      true
+    ]
+  ],
+  "scope": "Focused backend profile only; realCache=False; no runtime or whole-board qualification claim."
+}

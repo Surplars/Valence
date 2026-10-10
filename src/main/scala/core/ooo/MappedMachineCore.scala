@@ -18,6 +18,8 @@ class MappedMachineCore(
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.virtualRamLoadPrecheck || (dataTranslation && stagedMemoryFabric),
         "virtual load precheck requires the staged physical authorization adapter")
+    require(!p.canonicalVirtualStoreOverlap || (dataTranslation && stagedMemoryFabric),
+        "canonical virtual stores require the registered checked authorization boundary")
     require(!p.postedStoreMerge || (dataTranslation && stagedMemoryFabric),
         "posted stores require checked authorization before the common APLIC/memory routing boundary")
     require(!stagedMemoryFabric || dataTranslation)
@@ -109,6 +111,12 @@ class MappedMachineCore(
             adapter.io.loadPrecheck.get <> core.io.loadPrecheck.get
             adapter.io.translationPeek.get <> io.translationPeek.get
             adapter.io.precheckFlush.get := io.precheckFlush.get
+        }
+        if (p.canonicalVirtualStoreOverlap) {
+            // The optional response buffer stores responses only: these requests share one fire.
+            adapter.io.canonicalStoreOrigin.get := core.io.canonicalStore.get.requestOrigin
+            core.io.canonicalStore.get.checked := adapter.io.canonicalStoreCertificate.get
+            when(core.io.memory.request.fire) { assert(adapter.io.virtual.request.fire) }
         }
         adapter.io.vmState := core.io.vmState.get
         adapter.io.pmpState := core.io.pmpState.get

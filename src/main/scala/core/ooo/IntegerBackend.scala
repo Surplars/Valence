@@ -111,6 +111,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val memory                      = new DataPort
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val posted = p.postedProofConfig.map(c => new PostedStoreCpuPort(c))
+        val canonicalStore = if (p.canonicalVirtualStoreOverlap) Some(new CanonicalStoreCpuPort(p)) else None
         val memoryBusy                  = Output(Bool())
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None
         val issueCount                  = Output(UInt(log2Ceil(p.issueWidth + 1).W))
@@ -183,6 +184,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val blockPostedStart = io.posted.map(_.blockNew).getOrElse(false.B)
     val integerProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
     val fastProof = p.postedProofConfig.map(c => Wire(Valid(new PostedStoreProof(c))))
+    val integerCanonicalOrigin = if (p.canonicalVirtualStoreOverlap)
+        Some(Wire(Valid(new CanonicalStoreOrigin(p)))) else None
     // Accepted CPU ownership only; PF stays in memoryBusy for every strong boundary.
     // Elaboration-OFF creates no new hardware. Never derive this from start/ready/aggregateDrained.
     val cpuAcceptedMemoryBusy = if (p.postedPrefetchHeadOffer)
@@ -216,6 +219,18 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 assert(proofQueue.io.deq.valid === requests.io.deq.valid, "request FIFO and proof capture share every transfer")
                 when(requests.io.enq.fire) { assert(proofQueue.io.enq.ready) }
             }
+            if (p.canonicalVirtualStoreOverlap) {
+                val origins = Module(new Queue(Valid(new CanonicalStoreOrigin(p)), p.memoryEntries,
+                    pipe = false, flow = false))
+                origins.io.enq.valid := requests.io.enq.fire
+                origins.io.enq.bits := lsu.io.canonicalStoreOrigin.get
+                origins.io.deq.ready := requests.io.deq.fire
+                stores.io.upstreamCanonicalStoreOrigin.get := origins.io.deq.bits
+                stores.io.upstreamCanonicalStoreOrigin.get.valid := requests.io.deq.valid && origins.io.deq.bits.valid
+                assert(origins.io.deq.valid === requests.io.deq.valid,
+                    "canonical origin FIFO shares every registered request transfer")
+                when(requests.io.enq.fire) { assert(origins.io.enq.ready) }
+            }
             stores.io.upstream.request <> requests.io.deq
             // Queue storage is undefined while empty. Keep only the size/shift
             // operand defined, using registered queue validity (not late issue).
@@ -224,6 +239,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         } else {
             stores.io.upstream <> lsu.io.memory
             stores.io.upstreamProof.foreach(_ := lsu.io.postedProof.get)
+            stores.io.upstreamCanonicalStoreOrigin.foreach(_ := lsu.io.canonicalStoreOrigin.get)
         }
         stores.io.fastStore.valid := fastStoreValid
         stores.io.fastStore.bits := fastStoreRequest
@@ -231,6 +247,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         stores.io.fastProof.foreach(_ := fastProof.get)
         stores.io.externalPostedBusy.foreach(_ := externalPostedBusy)
         integerProof.foreach(_ := stores.io.memoryProof.get)
+        integerCanonicalOrigin.foreach(_ := stores.io.memoryCanonicalStoreOrigin.get)
         postedCompleted := stores.io.postedCompleted.map(_.valid).getOrElse(false.B)
         integerMemory <> stores.io.memory
         integerMemoryBusy := lsu.io.busy || stores.io.busy
@@ -258,6 +275,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
     } else {
         io.memory <> integerMemory
+    }
+    io.canonicalStore.foreach { canonical =>
+        canonical.requestOrigin := integerCanonicalOrigin.get
+        canonical.requestOrigin.valid := io.memory.request.valid && !fpMemoryEpoch && integerCanonicalOrigin.get.valid
+        CanonicalVirtualStore.held(io.memory.request, canonical.requestOrigin)
     }
     io.posted.foreach { posted =>
         posted.requestProof := integerProof.get
@@ -811,6 +833,34 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             sourceStore.bits.address(63, 3) === canonicalAddress(63, 3) && (storeMask & loadMask) === loadMask &&
             memoryLive(sourceStore.bits.token.index) &&
             (sourceStore.bits.token.index - head) < memoryChoice.age
+    // One actual accepted head store, retaining the original VA and ordinary serial LSU ownership.
+    // Proof output depends on registered state only; same-edge kill/fault clears it at the next edge.
+    val canonicalStoreTracker = if (p.canonicalVirtualStoreOverlap) Some(Module(new CanonicalStoreTracker(p))) else None
+    canonicalStoreTracker.foreach { tracker =>
+        val token = tracker.io.owner
+        val index = Mux(tracker.io.tracked, token.index, 0.U)
+        tracker.io.ownerLive := tracker.io.tracked && memoryProtected && ledger.io.headValid &&
+            memoryOwner.asUInt === token.asUInt && headRenamed.token.asUInt === token.asUInt &&
+            memoryLive(index) && !pending(index) && queue(index).renamed.token.asUInt === token.asUInt &&
+            queue(index).request.memory && queue(index).request.store && !queue(index).request.atomic &&
+            !queue(index).request.system
+        tracker.io.epoch := io.loadPrecheck.get.epoch
+        tracker.io.stable := io.loadPrecheck.get.stable && !contextMemoryEpoch
+        tracker.io.checked := io.canonicalStore.get.checked
+        val retired = ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === token.asUInt).reduce(_ || _)
+        val faulted = lsu.io.complete.fire && lsu.io.complete.bits.exception &&
+            lsu.io.complete.bits.token.asUInt === token.asUInt
+        tracker.io.invalidate := ledger.io.recoveryAccepted || ledger.io.recovering ||
+            headTrapAccepted || headSystemAccepted || contextMemoryEpoch || reserveSystem ||
+            interruptDrain || (tracker.io.tracked && (killed(index) || retired || faulted))
+        lsu.io.relaxStoreOwner.get.valid := tracker.io.certificate.valid
+        lsu.io.relaxStoreOwner.get.bits := tracker.io.certificate.bits.origin.token
+    }
+    val certFor = (0 until p.robEntries).map { i =>
+        canonicalStoreTracker.map(t => t.io.certificate.valid && memoryLive(i) &&
+            queue(i).request.memory && queue(i).request.store && !queue(i).request.atomic &&
+            queue(i).renamed.token.asUInt === t.io.certificate.bits.origin.token.asUInt).getOrElse(false.B)
+    }
     val physicalStoreConflict = (0 until p.robEntries)
         .map { i =>
             // Safe prepared stores and naturally aligned loads are single-beat
@@ -818,16 +868,24 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             // fault handling; they cannot use a truncated lane mask to bypass.
             val disjoint = AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
                 storeAddress(i)(63, 3), storeByteLanes(i))
+            val knownDisjoint = canonicalStoreTracker.map { tracker =>
+                val checked = tracker.io.certificate.bits
+                val canonicalDisjoint = certFor(i) && AlignedMemoryDisjoint.withLanes(
+                    canonicalAddress, loadAligned, loadMask, checked.physicalAddress(63, 3), checked.mask)
+                // A prepared virtual address is never compared with this load's physical address.
+                Mux(precheckedLoad, canonicalDisjoint, storeAddressKnown(i) && storeSafeRange(i) && disjoint)
+            }.getOrElse(storeAddressKnown(i) && storeSafeRange(i) && disjoint)
             memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age &&
-            !(storeAddressKnown(i) && storeSafeRange(i) && disjoint) &&
+            !knownDisjoint &&
             !(forwarding && queue(i).renamed.token.asUInt === sourceStore.bits.token.asUInt)
         }
         .reduce(_ || _)
-    // Initial virtual overlap never guesses an older store's PA or compares a VA with a PA.
-    // Unknown/unissued older memory must establish canonical ownership before a younger proof can launch.
+    // Only the exact actual checked store can establish canonical ownership.
+    // Every unknown/unissued older store retains its barrier, even if its VA looks like RAM.
     val olderUncanonicalMemory = memoryCanonical.map { known =>
         (0 until p.robEntries).map(i => memoryLive(i) && ages(i) < memoryChoice.age &&
-            (queue(i).request.store || !known(i))).reduce(_ || _)
+            (if (p.canonicalVirtualStoreOverlap) Mux(queue(i).request.store, !certFor(i), !known(i))
+             else queue(i).request.store || !known(i))).reduce(_ || _)
     }.getOrElse(false.B)
     val blockedByStore = physicalStoreConflict || (precheckedLoad && olderUncanonicalMemory)
     val unknownOlderStore = (0 until p.robEntries)
@@ -961,6 +1019,35 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     lsu.io.start.bits.unsigned      := memoryEntry.request.memoryUnsigned
     lsu.io.start.bits.accessDenied  := pmpCheck.io.denied && !virtualized
     lsu.io.start.bits.virtualized   := virtualized
+    canonicalStoreTracker.foreach { tracker =>
+        val epoch = lsu.io.start.bits.canonicalStoreEpoch.get
+        epoch.valid := memoryChoice.valid && ledger.io.headValid && !ledger.io.headDone && pending(head) &&
+            memoryChoice.index === head && memoryEntry.renamed.token.asUInt === headRenamed.token.asUInt &&
+            virtualized && memoryEntry.request.memory && memoryEntry.request.store && !memoryEntry.request.atomic &&
+            !memoryEntry.request.system && !memoryEntry.request.mulDiv &&
+            AlignedMemoryDisjoint.aligned(address, memorySize) && io.loadPrecheck.get.stable &&
+            !contextMemoryEpoch && !reserveSystem && !interruptDrain && !ledger.io.recovering
+        epoch.bits := io.loadPrecheck.get.epoch
+        tracker.io.start.valid := lsu.io.start.fire && epoch.valid
+        tracker.io.start.bits.origin.token := lsu.io.start.bits.token
+        tracker.io.start.bits.origin.epoch := epoch.bits
+        tracker.io.start.bits.virtualAddress := address
+        tracker.io.start.bits.size := memorySize
+        tracker.io.start.bits.mask := byteLanes(memorySize, address)
+        when(tracker.io.start.valid) {
+            assert(!ledger.io.recoveryAccepted && !memoryProtected && !speculative && !postedBusy,
+                "canonical tracking starts only for an accepted unprotected ordinary virtual head store")
+        }
+        when(lsu.io.start.fire && precheckedLoad && memoryChoice.index =/= head) {
+            for (i <- 0 until p.robEntries) {
+                when(memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age) {
+                    assert(certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
+                        tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask),
+                        "every older store must have matching checked ownership and disjoint physical bytes")
+                }
+            }
+        }
+    }
     lsu.io.start.bits.postedProof.foreach { proof =>
         proof := 0.U.asTypeOf(proof)
         proof.valid := postedEligible

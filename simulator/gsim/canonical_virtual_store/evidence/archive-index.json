@@ -1,0 +1,170 @@
+{
+  "schema": "canonical-overlap-archives-v1",
+  "scope": "Existing confirmed archives plus two locally complete, hash-verified final CPU packages whose Library upload receipts are not yet confirmed in this index. CPU preparation r2 precedes the terminal CPU runtime results. No upload or sharing was performed while assembling this index.",
+  "archives": [
+    {
+      "file_name": "valence-canonical-virtual-store-source-freeze-r1.tar.gz",
+      "library_file_id": "libfile_8593f76ca1848191a0717e6ab3565597",
+      "library_version_number": 0,
+      "archive": {
+        "path": "sv39-canonical-store-overlap-implementation-r1/valence-canonical-virtual-store-source-freeze-r1.tar.gz",
+        "sha256": "5311ae21f27f487a970cba84223b8dc6f053d394afcc39b49249f8ee92ff8394",
+        "bytes": 10829270
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-source-upload-r1.json",
+        "sha256": "bd9b46999f64c570b5feafc36c73ad1bd146ed9f98ecf869483e8d6f102f78f6",
+        "bytes": 546
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "valence-canonical-virtual-store-components-r2.tar.gz",
+      "library_file_id": "libfile_8a1f378dfb848191947c2ef6d590bb9b",
+      "library_version_number": 0,
+      "archive": {
+        "path": "sv39-canonical-store-overlap-implementation-r1/valence-canonical-virtual-store-components-r2.tar.gz",
+        "sha256": "6dc4864d9eaf646b1f03c5502e9b84e4bf46edd22abebc6c7c3aec6a0a6883bd",
+        "bytes": 15073296
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-components-upload-r2.json",
+        "sha256": "b1ee472067f6af778ce9d4610b2efa4e50b9568041a027d69aed155e9a01f1e9",
+        "bytes": 537
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "valence-canonical-virtual-store-backend-r1.tar.gz",
+      "library_file_id": "libfile_00b6be616ed08191b91b010c450bf33b",
+      "library_version_number": 0,
+      "archive": {
+        "path": "sv39-canonical-store-overlap-implementation-r1/valence-canonical-virtual-store-backend-r1.tar.gz",
+        "sha256": "4038e3ea0889c4888be06a5618ad59cbf30cb3447232007d4c48672eb03edf5a",
+        "bytes": 25546206
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-backend-upload-r1.json",
+        "sha256": "a1bd6e2484ddc77c07f3551560d537417d3f0a2e6baa102d5e61c498f1904df3",
+        "bytes": 528
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "valence-canonical-virtual-store-backend-host-r2-increment.tar.gz",
+      "library_file_id": "libfile_ad69aa7bc9fc81919aef29e64b5d347a",
+      "library_version_number": 0,
+      "archive": {
+        "path": "sv39-canonical-store-overlap-implementation-r1/valence-canonical-virtual-store-backend-host-r2-increment.tar.gz",
+        "sha256": "5e04eda461b3828bc6817ab19e4e29d5a5e403d236cd68c55c717780e953606b",
+        "bytes": 133493
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-backend-host-upload-r2.json",
+        "sha256": "c6d06b1bd2b56d5e027ad157e3b77ebd33f69a4b4ee626384b76d923ba099218",
+        "bytes": 573
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "canonical-store-overlap-cpu-source-prep-r2.tar.gz",
+      "library_file_id": "libfile_65d21c7f4c48819184cacfd9ea8359da",
+      "library_version_number": 0,
+      "archive": {
+        "path": "canonical-store-overlap-cpu-source-prep-r2.tar.gz",
+        "sha256": "9faeba3770df99af5858f4d4bb447c1ce306b0121a4188eb0676a392d8a69f7a",
+        "bytes": 14922391
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-cpu-preparation-upload-r2.json",
+        "sha256": "24f71913bf60e1dca2c64165761e3ca66e711a7f03004b62da1179c19126d70c",
+        "bytes": 481
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "valence-canonical-store-overlap-native-r2.tar.gz",
+      "library_file_id": "libfile_3a62fd18341c8191b8f9b2d1dd1dac12",
+      "library_version_number": 0,
+      "archive": {
+        "path": "valence-canonical-store-overlap-native-r2.tar.gz",
+        "sha256": "04fb5252308717771816091ad534b9df36a4058e2c6aedec13d740affcbbc4c8",
+        "bytes": 11859119
+      },
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-store-native-upload-r2.json",
+        "sha256": "d9f0066bcaa2fa4ae86f743f453b87dfa74c786b516e57cdb06fb8a4a14fba3c",
+        "bytes": 478
+      },
+      "confirmation": "Saved upload receipt status=succeeded; local archive SHA256 recomputed for this index."
+    },
+    {
+      "file_name": "canonical-store-overlap-cpu-results-compact-r1.tar.gz",
+      "kind": "compact",
+      "archive": {
+        "path": "canonical-store-overlap-cpu-results-compact-r1.tar.gz",
+        "sha256": "a518b601df9d3269ea7f2e11b1746f2aa6979928e78d1131f87f97be1f9ac59f",
+        "bytes": 15432539
+      },
+      "member_count": 131,
+      "contains_all_raw_sidecars": false,
+      "package_index": {
+        "path": "canonical-store-overlap-cpu-prep-r1/PACKAGE-INDEX-R1.json",
+        "sha256": "d93f58dc085ddd0d03e75f7b3cf39d06af44d69338d0f7a8d2cc087cd935567a",
+        "bytes": 992
+      },
+      "member_verification_receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/PACKAGE-VERIFICATION-R1.json",
+        "sha256": "6b7382ede8266ed7a8e651bd875383f06ea8b41368c5ccc8495e2c9735372f33",
+        "bytes": 399
+      },
+      "final_manifest": {
+        "path": "canonical-store-overlap-cpu-prep-r1/FINAL-MANIFEST-R1.json",
+        "sha256": "1de3c9fcc71122e6e81d92d295184316d9b2e0d273c84f1c4bf158b3406aa80e",
+        "bytes": 25749
+      },
+      "library_status": "CONFIRMED_UPLOADED",
+      "library_file_id": "libfile_43c535d67d4c8191bf2a796eaba85ede",
+      "library_version_number": 0,
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-cpu-final-library-r1.json",
+        "sha256": "1ead4b982c563610f7edabe683078d250fdc950712b6a6f0f6982b82a6ab3516",
+        "bytes": 960
+      }
+    },
+    {
+      "file_name": "canonical-store-overlap-cpu-results-raw-r1.tar.gz",
+      "kind": "raw",
+      "archive": {
+        "path": "canonical-store-overlap-cpu-results-raw-r1.tar.gz",
+        "sha256": "5c474ab51dcbfcce862e51709e99024065947c9d8a595d7d5a1996845b2e9733",
+        "bytes": 122840480
+      },
+      "member_count": 155,
+      "contains_all_raw_sidecars": true,
+      "package_index": {
+        "path": "canonical-store-overlap-cpu-prep-r1/PACKAGE-INDEX-R1.json",
+        "sha256": "d93f58dc085ddd0d03e75f7b3cf39d06af44d69338d0f7a8d2cc087cd935567a",
+        "bytes": 992
+      },
+      "member_verification_receipt": {
+        "path": "canonical-store-overlap-cpu-prep-r1/PACKAGE-VERIFICATION-R1.json",
+        "sha256": "6b7382ede8266ed7a8e651bd875383f06ea8b41368c5ccc8495e2c9735372f33",
+        "bytes": 399
+      },
+      "final_manifest": {
+        "path": "canonical-store-overlap-cpu-prep-r1/FINAL-MANIFEST-R1.json",
+        "sha256": "1de3c9fcc71122e6e81d92d295184316d9b2e0d273c84f1c4bf158b3406aa80e",
+        "bytes": 25749
+      },
+      "library_status": "CONFIRMED_UPLOADED",
+      "library_file_id": "libfile_44e00bf97fe48191bd645f9e63ae0485",
+      "library_version_number": 0,
+      "saved_upload_receipt": {
+        "path": "coordination/canonical-cpu-final-library-r1.json",
+        "sha256": "1ead4b982c563610f7edabe683078d250fdc950712b6a6f0f6982b82a6ab3516",
+        "bytes": 960
+      }
+    }
+  ]
+}

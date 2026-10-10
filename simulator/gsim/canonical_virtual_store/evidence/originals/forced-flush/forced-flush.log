@@ -1,0 +1,3 @@
+[1;31mAssertion failed: VM/PMP/SFENCE changes must drain accepted canonical stores and overlapping adapter work
+[0m
+run: /workspace/scratch/41e4a649bb60/recovery-20261010-0816/sv39-canonical-store-overlap-implementation-r1/components-r2/adapter/CanonicalStoreAdapterGsim0.cpp:8043: void SCanonicalStoreAdapterGsim::subStep0(): Assertion `!(translation$_T_22 & adapter$_T_59) || adapter$_io_idle_T_8' failed.

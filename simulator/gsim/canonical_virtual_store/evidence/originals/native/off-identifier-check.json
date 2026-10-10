@@ -1,0 +1,19 @@
+{
+  "status": "PASS_EXACT_SINGLE_IDENTIFIER_DIFF_WITH_NEGATIVE_CONTROLS",
+  "before_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-integration-r1/preset-v2-qualification-r1/native-ON/rtl/IntegerBackend.sv",
+  "after_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/canonical-store-overlap-native-r1/native-OFF/rtl/IntegerBackend.sv",
+  "before_sha256": "0a63fd5b4cddd5e68bedc3d1e9b03d4efa49befed3d6c37fe11266210c85afd7",
+  "after_sha256": "dd79ecba1e20d49dc01062211fb5323b940264daf1cffa991ba6d734f55bfe33",
+  "checker_sha256": "39bb23b118478ca141b1c788a438251e2b8b89adf04d3f6a0f48e34d9e337a3f",
+  "raw_bytes_equal": false,
+  "declarations": 1,
+  "references": 16,
+  "old_identifier": "_physicalStoreConflict_T_203",
+  "new_identifier": "_physicalStoreConflict_T_171",
+  "negative_controls": {
+    "changed_net_width_rejected": true,
+    "changed_logic_rejected": true,
+    "identifier_collision_rejected": true
+  },
+  "scope": "One explicit name substitution reproduces every byte; no general normalization or formal equivalence claim."
+}

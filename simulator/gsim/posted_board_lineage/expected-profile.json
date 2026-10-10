@@ -27,7 +27,8 @@
       "dataTranslationEntries": 16,
       "postedStoreMerge": false,
       "postedPrefetchCoexistence": false,
-      "postedPrefetchHeadOffer": false
+      "postedPrefetchHeadOffer": false,
+      "canonicalVirtualStoreOverlap": false
     },
     "on": {
       "virtualRamLoadPrecheck": true,
@@ -55,7 +56,8 @@
       "dataTranslationEntries": 16,
       "postedStoreMerge": true,
       "postedPrefetchCoexistence": false,
-      "postedPrefetchHeadOffer": false
+      "postedPrefetchHeadOffer": false,
+      "canonicalVirtualStoreOverlap": false
     }
   },
   "derived": {

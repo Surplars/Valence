@@ -138,8 +138,12 @@ case class OooParams(
     fetchPreviousPacket: Boolean = false,
     preparedStoreLookahead: Boolean = false,
     postedStoreMerge: Boolean = false,
-    postedPrefetchHeadOffer: Boolean = false
+    postedPrefetchHeadOffer: Boolean = false,
+    canonicalVirtualStoreOverlap: Boolean = false
 ) {
+    require(!canonicalVirtualStoreOverlap || (virtualRamLoadPrecheck && bufferedRamStores &&
+        registeredMemoryRequests && registeredMemoryAddress && registeredTranslationHeads && memoryEntries >= 2),
+        "canonical virtual store overlap requires load precheck and registered buffered parallel memory ownership")
     require(!postedPrefetchHeadOffer || (postedStoreMerge && dataNextLinePrefetch &&
         registeredMemoryAddress && !fastBufferedStoreRetire),
         "posted PF head offer requires posted stores, PF busy, staged addresses and non-fast retirement")

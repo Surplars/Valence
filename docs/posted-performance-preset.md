@@ -1,6 +1,8 @@
-# Recommended posted performance preset v2
+# Posted performance preset v2 qualification
 
-`python3 -B fpga/next/performance.py --output FRESH_PATH --emit` selects
+The current recommendation is [v3 with canonical virtual-store overlap](../simulator/gsim/canonical_virtual_store/README.md). This page preserves the v2 measurements and source identities. Add `--disable-canonical-store-overlap` to restore exactly this configuration; the two posted controls below remain independent of that fallback.
+
+`python3 -B fpga/next/performance.py --output FRESH_PATH --disable-canonical-store-overlap --emit` selects
 `posted-performance-v2`: posted merging, posted/PF coexistence and PF-only
 initial head offer are ON. Generic module/export defaults remain OFF. Both
 translated-response empty flow and prechecked request flow remain OFF.

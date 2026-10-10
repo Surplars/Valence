@@ -1,0 +1,82 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33411 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33411 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33411 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33411 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly ooo.CanonicalVirtualStoreConfigSpec
+build.mill-62] compile compiling 1 Scala source to out/mill-build/compile.dest/classes ...
+build.mill-62] done compiling
+069] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+098] HardFloatLib.compile compiling 18 Scala sources to out/HardFloatLib/compile.dest/classes ...
+098] done compiling
+137] IonSoC.compile compiling 192 Scala sources to out/IonSoC/compile.dest/classes ...
+136/190] mill IonSoC.test.testOnly ooo.CanonicalVirtualStoreConfigSpec 60s
+137] IonSoC.compile 34s
+137] done compiling
+170] IonSoC.test.compile compiling 244 Scala sources to out/IonSoC/test/compile.dest/classes ...
+170] done compiling
+190] IonSoC.test.testOnly
+190] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33411 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33411 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190] Running Test Class ooo.CanonicalVirtualStoreConfigSpec
+190] [32mCanonicalVirtualStoreConfigSpec:[39m
+190] [31m- canonical virtual-store overlap is independently default off *** FAILED ***[39m
+190] [31m  java.lang.IllegalArgumentException: requirement failed: translation heads require the registered request and response boundaries[39m
+190] [31m  at scala.Predef$.require(Predef.scala:337)[39m
+190] [31m  at soc.core.ooo.OooParams.<init>(OooParams.scala:281)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.legal(CanonicalVirtualStoreConfigSpec.scala:14)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$1(CanonicalVirtualStoreConfigSpec.scala:21)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf(OutcomeOf.scala:85)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf$(OutcomeOf.scala:83)[39m
+190] [31m  at org.scalatest.OutcomeOf$.outcomeOf(OutcomeOf.scala:104)[39m
+190] [31m  at org.scalatest.Transformer.apply(Transformer.scala:22)[39m
+190] [31m  at org.scalatest.Transformer.apply(Transformer.scala:20)[39m
+190] [31m  at org.scalatest.funsuite.AnyFunSuiteLike$$anon$1.apply(AnyFunSuiteLike.scala:226)[39m
+190] [31m  ...[39m
+190] [31m- canonical virtual-store overlap rejects missing transport or authority *** FAILED ***[39m
+190] [31m  java.lang.IllegalArgumentException: requirement failed: translation heads require the registered request and response boundaries[39m
+190] [31m  at scala.Predef$.require(Predef.scala:337)[39m
+190] [31m  at soc.core.ooo.OooParams.<init>(OooParams.scala:281)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.legal(CanonicalVirtualStoreConfigSpec.scala:14)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$3(CanonicalVirtualStoreConfigSpec.scala:40)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf(OutcomeOf.scala:85)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf$(OutcomeOf.scala:83)[39m
+190] [31m  at org.scalatest.OutcomeOf$.outcomeOf(OutcomeOf.scala:104)[39m
+190] [31m  at org.scalatest.Transformer.apply(Transformer.scala:22)[39m
+190] [31m  at org.scalatest.Transformer.apply(Transformer.scala:20)[39m
+190] [31m  at org.scalatest.funsuite.AnyFunSuiteLike$$anon$1.apply(AnyFunSuiteLike.scala:226)[39m
+190] [31m  ...[39m
+190] [31m- independent legal LSU and store-buffer capacities stay configurable *** FAILED ***[39m
+190] [31m  java.lang.IllegalArgumentException: requirement failed: translation heads require the registered request and response boundaries[39m
+190] [31m  at scala.Predef$.require(Predef.scala:337)[39m
+190] [31m  at soc.core.ooo.OooParams.<init>(OooParams.scala:281)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.legal(CanonicalVirtualStoreConfigSpec.scala:14)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$18(CanonicalVirtualStoreConfigSpec.scala:47)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$18$adapted(CanonicalVirtualStoreConfigSpec.scala:46)[39m
+190] [31m  at scala.collection.immutable.List.foreach(List.scala:323)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$17(CanonicalVirtualStoreConfigSpec.scala:46)[39m
+190] [31m  at scala.runtime.java8.JFunction1$mcVI$sp.apply(JFunction1$mcVI$sp.scala:18)[39m
+190] [31m  at scala.collection.immutable.List.foreach(List.scala:323)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$16(CanonicalVirtualStoreConfigSpec.scala:46)[39m
+190] [31m  ...[39m
+190] [31m- canonical metadata and tracker are absent from option-off module interfaces *** FAILED ***[39m
+190] [31m  java.lang.IllegalArgumentException: requirement failed: translation heads require the registered request and response boundaries[39m
+190] [31m  at scala.Predef$.require(Predef.scala:337)[39m
+190] [31m  at soc.core.ooo.OooParams.<init>(OooParams.scala:281)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.legal(CanonicalVirtualStoreConfigSpec.scala:14)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$21(CanonicalVirtualStoreConfigSpec.scala:54)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$21$adapted(CanonicalVirtualStoreConfigSpec.scala:53)[39m
+190] [31m  at scala.collection.immutable.List.foreach(List.scala:323)[39m
+190] [31m  at ooo.CanonicalVirtualStoreConfigSpec.$anonfun$new$20(CanonicalVirtualStoreConfigSpec.scala:53)[39m
+190] [31m  at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf(OutcomeOf.scala:85)[39m
+190] [31m  at org.scalatest.OutcomeOf.outcomeOf$(OutcomeOf.scala:83)[39m
+190] [31m  ...[39m
+190] [32m- actual translation integration rejects a missing checked boundary[39m
+190] [36mRun completed in 1 second, 192 milliseconds.[39m
+190] [36mTotal number of tests run: 5[39m
+190] [36mSuites: completed 1, aborted 0[39m
+190] [36mTests: succeeded 1, failed 4, canceled 0, ignored 0, pending 0[39m
+190] [31m*** 4 TESTS FAILED ***[39m
+190/190, 1 FAILED] mill IonSoC.test.testOnly ooo.CanonicalVirtualStoreConfigSpec 92s
+190] [error] IonSoC.test.testOnly 4 tests failed: 
+  ooo.CanonicalVirtualStoreConfigSpec canonical virtual-store overlap is independently default off
+  ooo.CanonicalVirtualStoreConfigSpec canonical virtual-store overlap rejects missing transport or authority
+  ooo.CanonicalVirtualStoreConfigSpec independent legal LSU and store-buffer capacities stay configurable
+  ooo.CanonicalVirtualStoreConfigSpec canonical metadata and tracker are absent from option-off module interfaces

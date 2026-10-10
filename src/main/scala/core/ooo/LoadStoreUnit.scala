@@ -55,6 +55,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val physicalAddress = UInt(64.W)
     val translationEpoch = UInt(32.W)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
+    val canonicalStoreEpoch = if (p.canonicalVirtualStoreOverlap) Some(Valid(UInt(32.W))) else None
 }
 
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
@@ -67,6 +68,8 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
+        val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
+            Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
         val complete       = Decoupled(new BackendCompletion(p))
         val busy           = Output(Bool())
         val phase          = Output(UInt(2.W))
@@ -146,6 +149,18 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
                 !io.start.bits.forward.valid && !io.start.bits.virtualized &&
                 io.start.bits.store && !io.start.bits.atomic, "posted authority belongs to a successful physical store")
             assert(io.start.bits.postedProof.get.bits.token.asUInt === io.start.bits.token.asUInt)
+        }
+    }
+    io.canonicalStoreOrigin.foreach { origin =>
+        origin.valid := io.memory.request.valid && sending.canonicalStoreEpoch.get.valid
+        origin.bits.token := sending.token
+        origin.bits.epoch := sending.canonicalStoreEpoch.get.bits
+        CanonicalVirtualStore.held(io.memory.request, origin)
+        when(io.start.fire && io.start.bits.canonicalStoreEpoch.get.valid) {
+            assert(io.start.bits.virtualized && io.start.bits.store && !io.start.bits.atomic &&
+                !io.start.bits.precheckedLoad && !io.start.bits.forward.valid &&
+                !misaligned && !io.start.bits.accessDenied,
+                "canonical origin belongs to an accepted ordinary virtual store")
         }
     }
     io.memory.response.ready        := state === response ||

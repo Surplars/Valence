@@ -1,5 +1,7 @@
 # Valence 文档导航
 
+当前推荐入口与 Sv39 COPY canonical-store-overlap 资格记录见 [v3 配置、回退与证据](../simulator/gsim/canonical_virtual_store/README.md)。
+
 最新 `dev` 源码交付及限制见 [2026-10-08 交付记录](dev-delivery-20261008.md)。
 本轮 Vivado 物理验证仍待完成，当前候选没有新的物理时序签核。
 

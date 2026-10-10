@@ -1,0 +1,874 @@
+{
+  "off": {
+    "ticks": 497144,
+    "flush_tail": 5584,
+    "roi": {
+      "offer_interval": [
+        1086052,
+        1583196
+      ],
+      "accepted_state_interval": [
+        1086053,
+        1583197
+      ],
+      "cycles": 497144
+    },
+    "roi_event_counts": {
+      "load_prepared": 98334,
+      "lsu_start": 32768,
+      "upstream_accept": 32768,
+      "choice_selected": 49150,
+      "cache_accept": 32768,
+      "physical_accept": 32768,
+      "real_response": 32768,
+      "cache_response": 32768,
+      "cache_barrier_begin": 33,
+      "cache_barrier_end": 33
+    },
+    "roi_exact_live_store_overlap_events": {},
+    "roi_unique_overlap_tokens": {
+      "lsu_start": 0,
+      "upstream_accept": 0,
+      "physical_accept": 0,
+      "cache_accept": 0
+    },
+    "roi_three_boundary_overlap_tokens": 0,
+    "known_store_cache_classes": {
+      "miss": 33,
+      "hit": 16351
+    },
+    "parent_load_cache_relation": {},
+    "transient_prepared_state_changes": {
+      "valid": 81949,
+      "matches": 49182,
+      "not_matching": 49152,
+      "invalid": 16385
+    },
+    "miss_barrier_windows": [
+      {
+        "token_index": 5,
+        "token_tag": 289811,
+        "begin_offer": 1086239,
+        "end_offer": 1086337,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 13,
+        "token_tag": 289851,
+        "begin_offer": 1086547,
+        "end_offer": 1086645,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 292371,
+        "begin_offer": 1101838,
+        "end_offer": 1101934,
+        "registered_barrier_samples": 96,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 294931,
+        "begin_offer": 1117369,
+        "end_offer": 1117466,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 297491,
+        "begin_offer": 1132904,
+        "end_offer": 1133001,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 300051,
+        "begin_offer": 1148435,
+        "end_offer": 1148533,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 302611,
+        "begin_offer": 1163968,
+        "end_offer": 1164065,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 305171,
+        "begin_offer": 1179505,
+        "end_offer": 1179602,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 307731,
+        "begin_offer": 1195040,
+        "end_offer": 1195138,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 310291,
+        "begin_offer": 1210574,
+        "end_offer": 1210672,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 312851,
+        "begin_offer": 1226104,
+        "end_offer": 1226201,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 315411,
+        "begin_offer": 1241640,
+        "end_offer": 1241737,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 317971,
+        "begin_offer": 1257175,
+        "end_offer": 1257272,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 320531,
+        "begin_offer": 1272710,
+        "end_offer": 1272807,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 323091,
+        "begin_offer": 1288239,
+        "end_offer": 1288336,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 325651,
+        "begin_offer": 1303772,
+        "end_offer": 1303869,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 328211,
+        "begin_offer": 1319305,
+        "end_offer": 1319402,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 330771,
+        "begin_offer": 1334840,
+        "end_offer": 1334937,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 333331,
+        "begin_offer": 1350370,
+        "end_offer": 1350468,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 335891,
+        "begin_offer": 1365901,
+        "end_offer": 1365998,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 338451,
+        "begin_offer": 1381434,
+        "end_offer": 1381531,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 341011,
+        "begin_offer": 1396970,
+        "end_offer": 1397067,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 343571,
+        "begin_offer": 1412505,
+        "end_offer": 1412602,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 346131,
+        "begin_offer": 1428035,
+        "end_offer": 1428133,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 348691,
+        "begin_offer": 1443569,
+        "end_offer": 1443666,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 351251,
+        "begin_offer": 1459104,
+        "end_offer": 1459201,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 353811,
+        "begin_offer": 1474639,
+        "end_offer": 1474736,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 356371,
+        "begin_offer": 1490170,
+        "end_offer": 1490267,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 358931,
+        "begin_offer": 1505703,
+        "end_offer": 1505799,
+        "registered_barrier_samples": 96,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 361491,
+        "begin_offer": 1521234,
+        "end_offer": 1521331,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 364051,
+        "begin_offer": 1536769,
+        "end_offer": 1536866,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 366611,
+        "begin_offer": 1552300,
+        "end_offer": 1552398,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 369171,
+        "begin_offer": 1567833,
+        "end_offer": 1567930,
+        "registered_barrier_samples": 97,
+        "known": 1
+      }
+    ],
+    "roi_occupancy": {
+      "occupancy": [
+        65548,
+        431596,
+        0,
+        0,
+        0
+      ],
+      "accepted_upstream_occupancy": [
+        {
+          "cycles": 163852,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 333292,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "accepted_physical_occupancy": [
+        {
+          "cycles": 265368,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 231776,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "barrier_bins": [
+        493937,
+        3207,
+        0,
+        0
+      ]
+    },
+    "raw_summary": {
+      "accepted_physical_occupancy": [
+        {
+          "cycles": 265368,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 231776,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "accepted_upstream_occupancy": [
+        {
+          "cycles": 163852,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 333292,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "barrier_bins": [
+        493937,
+        3207,
+        0,
+        0
+      ],
+      "cache_overlap": 0,
+      "certificate_captures": 0,
+      "final_owner_queues": 0,
+      "load_cache_barrier_relation": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "lsu_start_overlap": 0,
+      "occupancy": [
+        65548,
+        431596,
+        0,
+        0,
+        0
+      ],
+      "physical_overlap": 0,
+      "roi_samples": 497144,
+      "samples": 2014680,
+      "stalls": [
+        32836,
+        0,
+        51152,
+        413156,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "store_cache_hit_samples": 16351,
+      "store_cache_miss_samples": 33,
+      "unknown_cache_owners": 41491,
+      "unknown_upstream": 41491,
+      "upstream_overlap": 0
+    },
+    "trace_sha256": "0bcd029167229818aecff33bed91a1c2efeb93087958ad8b2085034e42de543c"
+  },
+  "on": {
+    "ticks": 431622,
+    "flush_tail": 5580,
+    "roi": {
+      "offer_interval": [
+        1020788,
+        1452410
+      ],
+      "accepted_state_interval": [
+        1020789,
+        1452411
+      ],
+      "cycles": 431622
+    },
+    "roi_event_counts": {
+      "load_prepared": 98334,
+      "lsu_start": 32768,
+      "upstream_accept": 32768,
+      "choice_selected": 49150,
+      "cache_accept": 32768,
+      "physical_accept": 32768,
+      "real_response": 32768,
+      "cache_response": 32768,
+      "checked_certificate": 16384,
+      "record_usable": 16383,
+      "cache_barrier_begin": 33,
+      "cache_barrier_end": 33
+    },
+    "roi_exact_live_store_overlap_events": {
+      "lsu_start": 16351,
+      "upstream_accept": 202
+    },
+    "roi_unique_overlap_tokens": {
+      "lsu_start": 16351,
+      "upstream_accept": 202,
+      "physical_accept": 0,
+      "cache_accept": 0
+    },
+    "roi_three_boundary_overlap_tokens": 0,
+    "known_store_cache_classes": {
+      "miss": 33,
+      "hit": 16351
+    },
+    "parent_load_cache_relation": {
+      "3": 33,
+      "1": 16318
+    },
+    "transient_prepared_state_changes": {
+      "valid": 81949,
+      "matches": 49182,
+      "not_matching": 49152,
+      "invalid": 16385
+    },
+    "miss_barrier_windows": [
+      {
+        "token_index": 5,
+        "token_tag": 289815,
+        "begin_offer": 1020974,
+        "end_offer": 1021071,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 13,
+        "token_tag": 289855,
+        "begin_offer": 1021247,
+        "end_offer": 1021344,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 292375,
+        "begin_offer": 1034519,
+        "end_offer": 1034617,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 294935,
+        "begin_offer": 1048008,
+        "end_offer": 1048104,
+        "registered_barrier_samples": 96,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 297495,
+        "begin_offer": 1061488,
+        "end_offer": 1061585,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 300055,
+        "begin_offer": 1074974,
+        "end_offer": 1075071,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 302615,
+        "begin_offer": 1088465,
+        "end_offer": 1088563,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 305175,
+        "begin_offer": 1101955,
+        "end_offer": 1102052,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 307735,
+        "begin_offer": 1115444,
+        "end_offer": 1115541,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 310295,
+        "begin_offer": 1128926,
+        "end_offer": 1129023,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 312855,
+        "begin_offer": 1142412,
+        "end_offer": 1142509,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 315415,
+        "begin_offer": 1155899,
+        "end_offer": 1155996,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 317975,
+        "begin_offer": 1169385,
+        "end_offer": 1169483,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 320535,
+        "begin_offer": 1182870,
+        "end_offer": 1182967,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 323095,
+        "begin_offer": 1196354,
+        "end_offer": 1196451,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 325655,
+        "begin_offer": 1209841,
+        "end_offer": 1209938,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 328215,
+        "begin_offer": 1223328,
+        "end_offer": 1223425,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 330775,
+        "begin_offer": 1236810,
+        "end_offer": 1236907,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 333335,
+        "begin_offer": 1250296,
+        "end_offer": 1250393,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 335895,
+        "begin_offer": 1263785,
+        "end_offer": 1263882,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 338455,
+        "begin_offer": 1277265,
+        "end_offer": 1277362,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 341015,
+        "begin_offer": 1290752,
+        "end_offer": 1290849,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 343575,
+        "begin_offer": 1304241,
+        "end_offer": 1304338,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 346135,
+        "begin_offer": 1317722,
+        "end_offer": 1317820,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 348695,
+        "begin_offer": 1331207,
+        "end_offer": 1331304,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 351255,
+        "begin_offer": 1344696,
+        "end_offer": 1344793,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 353815,
+        "begin_offer": 1358178,
+        "end_offer": 1358274,
+        "registered_barrier_samples": 96,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 356375,
+        "begin_offer": 1371664,
+        "end_offer": 1371762,
+        "registered_barrier_samples": 98,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 358935,
+        "begin_offer": 1385151,
+        "end_offer": 1385248,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 361495,
+        "begin_offer": 1398636,
+        "end_offer": 1398733,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 364055,
+        "begin_offer": 1412122,
+        "end_offer": 1412219,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 366615,
+        "begin_offer": 1425607,
+        "end_offer": 1425704,
+        "registered_barrier_samples": 97,
+        "known": 1
+      },
+      {
+        "token_index": 5,
+        "token_tag": 369175,
+        "begin_offer": 1439093,
+        "end_offer": 1439189,
+        "registered_barrier_samples": 96,
+        "known": 1
+      }
+    ],
+    "roi_occupancy": {
+      "occupancy": [
+        49198,
+        330032,
+        52392,
+        0,
+        0
+      ],
+      "accepted_upstream_occupancy": [
+        {
+          "cycles": 98449,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 329834,
+          "known": 1,
+          "unknown": 0
+        },
+        {
+          "cycles": 3339,
+          "known": 2,
+          "unknown": 0
+        }
+      ],
+      "accepted_physical_occupancy": [
+        {
+          "cycles": 199896,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 231726,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "barrier_bins": [
+        428419,
+        3203,
+        0,
+        0
+      ]
+    },
+    "raw_summary": {
+      "accepted_physical_occupancy": [
+        {
+          "cycles": 199896,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 231726,
+          "known": 1,
+          "unknown": 0
+        }
+      ],
+      "accepted_upstream_occupancy": [
+        {
+          "cycles": 98449,
+          "known": 0,
+          "unknown": 0
+        },
+        {
+          "cycles": 329834,
+          "known": 1,
+          "unknown": 0
+        },
+        {
+          "cycles": 3339,
+          "known": 2,
+          "unknown": 0
+        }
+      ],
+      "barrier_bins": [
+        428419,
+        3203,
+        0,
+        0
+      ],
+      "cache_overlap": 0,
+      "certificate_captures": 32772,
+      "final_owner_queues": 0,
+      "load_cache_barrier_relation": [
+        0,
+        32384,
+        0,
+        317,
+        0
+      ],
+      "lsu_start_overlap": 32701,
+      "occupancy": [
+        49198,
+        330032,
+        52392,
+        0,
+        0
+      ],
+      "physical_overlap": 0,
+      "roi_samples": 431622,
+      "samples": 1883885,
+      "stalls": [
+        16485,
+        16351,
+        51149,
+        347637,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "store_cache_hit_samples": 16351,
+      "store_cache_miss_samples": 33,
+      "unknown_cache_owners": 41491,
+      "unknown_upstream": 41491,
+      "upstream_overlap": 486
+    },
+    "trace_sha256": "626ad3d6b06a8ef07313e4148b6d057db0b3ce9aecc9051981d9f92b66b55530"
+  },
+  "definition": "Event cycle is the current offered handshake; actual acceptance is cycle+1, so event ROI uses [begin_offer,end_offer). Occupancy is pre-current-event state, already reflecting previous accepted events, and uses [begin_accepted,end_accepted). Both clocks are explicit and share the same half-open retirement region length. Counts of events and durations are separate and must not be added as saved cycles.",
+  "barrier_relation": {
+    "0": "before parent store cache acceptance",
+    "1": "parent store hit; no miss barrier",
+    "2": "during parent store miss barrier",
+    "3": "after parent store miss barrier",
+    "4": "unknown"
+  },
+  "case": 21,
+  "saved_roi_cycles": 65522,
+  "relative_cycle_reduction": 0.13179682345557825,
+  "ticks_speedup": 1.1518041249055886
+}
