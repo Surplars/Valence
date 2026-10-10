@@ -1,0 +1,147 @@
+{
+  "schema": "posted-performance-preset-qualification-v1",
+  "status": "PASS_EXACT_NATIVE_AND_FULL_CONFIG_EQUIVALENCE",
+  "preset": "posted-performance-v1",
+  "entrypoint": "python3 -B fpga/next/performance.py --output FRESH_PATH --emit",
+  "off_control": "add --disable-posted; every other parameter identical",
+  "generic_posted_default": false,
+  "qualified_source_commit": "0f567b32adfe606494c0e18fe789533c31f5c4f7",
+  "qualified_source_tree": "0571868b015dbff52c99365a64685ecc81608d4d",
+  "local_base_commit": "434a6b2b86a63fff5e0cf0e58dfb2b29caa80de8",
+  "published_remote_base_commit": "b3a96472c1bf7c8aa6589f3fe2b1b86472cdfc44",
+  "base_tree": "0d6e8791f330b992a0e81394018e1a7c8eb3e69e",
+  "sealed_hardware_source_commit": "0658f2d4a543ba5849498af626eec0a248363540",
+  "sealed_hardware_source_tree": "cc1d50b223fc0b6ebec448292ce8964986b56af2",
+  "native_input_count": 230,
+  "native_input_inventory_canonical_sha256": "91d7ddcc56351744aed55a1e568b2e7e2424b044c0f1391e8f34f6c65061f3cf",
+  "native_inputs_changed": [
+    "fpga/next/export.py",
+    "fpga/next/performance.py"
+  ],
+  "hardware_inputs_changed": [],
+  "configuration_source_binding": {
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "f38e87d5c4e8fe1c0b089020443222a945e00c7e16e85a7b84693dd2395a1523",
+    "src/test/scala/ooo/FpgaNextMain.scala": "595ee1129be15cb600cc0544f73414afd19d53ede5e02d7e88cdf95b94efc433",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "59f922218565ed0b132ce9850b7d2b6840ac09370e1fe15f676025cfaa3c3954",
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": "c17456f0bb3cc18dec17d8ca90aef6409e881f64e9582ea3762c322c5dd60309"
+  },
+  "full_profile_hash_encoding": "UTF-8 JSON, sort_keys=true, separators=(comma,colon), no trailing newline",
+  "rows": [
+    {
+      "side": "OFF",
+      "status": "PASS_EXACT_PROFILE_AND_NATIVE_BYTES",
+      "new_receipt_sha256": "6d1bee7798bb72fee9c25114d65eea86939c4d94096c6577bcdd51fdc53215e8",
+      "sealed_receipt_sha256": "ee2bf1d1b62038b2ba61545d7031dacdb52d7bbfc7c9e6debe6055b743cabbc4",
+      "qualified_board_profile_sha256": "626478c8d9b4addce98f0ddd6051d27aa0ac7240357c2a71ec008b922fca83ea",
+      "final_instance_audit_sha256": "4914c6e54ff63d9046a3d40be0d936c922882c98a6c3d3c93387f67e85f115cc",
+      "new_parameter_report_sha256": "626478c8d9b4addce98f0ddd6051d27aa0ac7240357c2a71ec008b922fca83ea",
+      "export_profile_fields": 63,
+      "fpga_next_config_fields": 24,
+      "ooo_params_fields": 134,
+      "qualified_actual_core_instances": 6,
+      "complete_native_files_identical": 266,
+      "systemverilog_files_identical": 265,
+      "complete_rtl_inventory_sha256": "a3cb5bd953447c2a37cf4f117d143a0871954328fc04f45adce858c7ef50b778",
+      "no_hardware_source_change": true,
+      "full_profile_canonical_sha256": "7a5868d9c9d538463ef859c4ed3175ded96ce85a3888f4e27e3bcf305e4a5c9d",
+      "qualification_receipt_sha256": "bc3be7d6e361e9a6dc3ebcd6eee66c98e777f44373d236fe39d552fa49531b81",
+      "seconds": 95.32463554300193,
+      "new_native_receipt": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-performance-preset-qualification-r1/native-OFF/receipt.json",
+      "pure_report": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-performance-preset-qualification-r1/parameters-OFF/profile.json"
+    },
+    {
+      "side": "ON",
+      "status": "PASS_EXACT_PROFILE_AND_NATIVE_BYTES",
+      "new_receipt_sha256": "6b3d94f225f4cd67b3f1f85b7765f7eedd4493e65ac7c901a1743d59b915af62",
+      "sealed_receipt_sha256": "caf2af5dbf85486f1971bea29d082eaef295c30088438052e4cc8e7fb0900d9f",
+      "qualified_board_profile_sha256": "0be55bd6447f1e5d276c3b0400379854c4669b6222288f8e5d8a9472efa99aa4",
+      "final_instance_audit_sha256": "467ab60c186c268c4d04ed7803d9c1c9ba7bc5b837c1979ec11bd0f0811a19b5",
+      "new_parameter_report_sha256": "0be55bd6447f1e5d276c3b0400379854c4669b6222288f8e5d8a9472efa99aa4",
+      "export_profile_fields": 63,
+      "fpga_next_config_fields": 24,
+      "ooo_params_fields": 134,
+      "qualified_actual_core_instances": 6,
+      "complete_native_files_identical": 269,
+      "systemverilog_files_identical": 268,
+      "complete_rtl_inventory_sha256": "a0cfb8fb4cc1f8a2c4bb49238ca974bbfb296953528c7433db6032ce6769704b",
+      "no_hardware_source_change": true,
+      "full_profile_canonical_sha256": "1039ae7a318929d3219c5d264b21d37ab15a1f582fa3d1b9d37e2e0161cec049",
+      "qualification_receipt_sha256": "83985efd3e01ea3a35722b2aac73ba5bc34f8014bc757f7134f9f276e1dbd8fa",
+      "seconds": 19.856491292004648,
+      "new_native_receipt": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-performance-preset-qualification-r1/native-ON/receipt.json",
+      "pure_report": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-performance-preset-qualification-r1/parameters-ON/profile.json"
+    }
+  ],
+  "pair": {
+    "only_differences": [
+      "profile.postedStoreMerge",
+      "core.postedStoreMerge"
+    ]
+  },
+  "host_tests": {
+    "passed": 66,
+    "new_preset_tests": 7,
+    "log_sha256": "eb60210aec862b269aabbc8556f151ca8434e1c0b7366cf6c769ccfcdc3cc494"
+  },
+  "tools": {
+    "mill": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/bin/mill",
+      "sha256": "e87a4d479b3139534bf444a3bdfe80404e6cefec678991abf47b201bd1605586",
+      "bytes": 66
+    },
+    "mill_dist": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/bin/mill-dist",
+      "sha256": "49c1c575ad44efba1b9103ca1d6042624ef341aad9d8f4cb58fbfc56cf930e0d",
+      "bytes": 25201536
+    },
+    "java": {
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+      "bytes": 14384
+    },
+    "firtool": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/firtool-1.135.0/firtool",
+      "sha256": "c2e1ac4d88be9579313c8a33ea3c8643db7d1840c78a4593dc05395171e25051",
+      "bytes": 36079512
+    },
+    "python": {
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+      "bytes": 30894944
+    },
+    "activate": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-recovery/activate.sh",
+      "sha256": "df815075b320aee2682291db0c25b69964a3542f734c265e6ceca69378588499",
+      "bytes": 698
+    },
+    "cloud_env": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/scripts/cloud/env.sh",
+      "sha256": "5ab1c36a0ebbefc4c1d7e33235778db4523e01d8f0a909259e6b14303203d6f7",
+      "bytes": 2121
+    }
+  },
+  "frozen_dependency_files_checked": 165,
+  "actual_runtime_external_files_checked": 161,
+  "runtime_binding_sha256": "e5313c6199cc52c05028004232476c9e73b54d90e5e7f67d369fcdeb10d3782f",
+  "qualification_script_sha256": "e2d97ebb49c7e822e8d82d24cbabc6cfb1873dd574a79d02f9e75d6901d0b740",
+  "plan_sha256": "5cfd8ad015f9153bd14b89d88f3b633dd42454732f667574be974af8c4595b55",
+  "measurements": {
+    "WRITE18": {
+      "off_roi_cycles": 215756,
+      "on_roi_cycles": 112826,
+      "throughput_gain_percent": 91.23
+    },
+    "COPY19": {
+      "off_roi_cycles": 383603,
+      "on_roi_cycles": 452641,
+      "cycle_increase_percent": 17.9973,
+      "throughput_loss_percent_approx": 15.25
+    },
+    "native_literal_state_delta_bits": 9462
+  },
+  "limits": [
+    "No new CPU guest replay; original qualified runtime receipts retain their source identity.",
+    "No posted/prefetch coexistence, translated-response empty flow or prechecked request flow enabled.",
+    "No Linux/Sv39 posted early-ACK qualification, mapped PPA/STA, bitstream or live-FPGA claim."
+  ]
+}

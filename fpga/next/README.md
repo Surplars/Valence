@@ -5,6 +5,24 @@ explicit RAM payloads/ports, shared floating-point arithmetic and shorter contro
 cones at the same architectural capacity. The original repository checkout and
 remote `main` are not the implementation workspace.
 
+## Recommended performance preset
+
+The recommended `posted-performance-v1` preset enables physical posted-store
+merging with the exact qualified DMA4/LSU4/D16 selected profile. Original Bare
+WRITE throughput improves 91.23%; COPY throughput falls about 15.25% (17.9973%
+more cycles). This recommendation accepts that measured tradeoff.
+
+```sh
+python3 -B fpga/next/performance.py --output build/fpga-next/performance-on --emit
+python3 -B fpga/next/performance.py --output build/fpga-next/performance-off --disable-posted --emit
+```
+
+Omit `--emit` for a complete preflight. Hardware overrides are rejected; the
+second command changes only posted merging. Generic defaults remain unchanged.
+See the [measurements, costs and scope](../../docs/posted-store-seal-performance.md)
+and [preset qualification](../../docs/posted-performance-preset.md). Posted/PF
+coexistence, translated-response flow and prechecked request flow remain OFF.
+
 ## Fixed contract
 
 One RV64GC hart; two-wide issue/commit; 16 ROB entries; 48 integer physical

@@ -32,7 +32,7 @@ def sources():
     files += [ROOT / name for name in ("build.mill", ".mill-version",
         "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
-        "fpga/next/media_integration.py", *media_integration.INPUTS)]
+        "fpga/next/media_integration.py", "fpga/next/performance.py", *media_integration.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -82,7 +82,7 @@ def check_wrapper_ports(wrapper, top):
     return len(connected)
 
 
-def main():
+def main(argv=None, expected_profile_sha256=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--output", type=Path, required=True)
     debug = ap.add_mutually_exclusive_group()
@@ -125,7 +125,7 @@ def main():
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     if a.posted_store_merge and a.prechecked_data_flow:
         ap.error("--posted-store-merge excludes --prechecked-data-flow until separately qualified")
     if a.store_prefetch_mru_insertion and not a.store_next_line_prefetch:
@@ -225,6 +225,11 @@ def main():
     profile["profile"]["jtag_backend"] = "bscan-user-v1" if a.experimental_jtag_bscan else "standalone-dtm"
     profile["profile"]["bscan_chain"] = a.experimental_jtag_bscan
     profile["profile"]["debug_module_implemented"] = False
+    if expected_profile_sha256 is not None:
+        digest = hashlib.sha256(json.dumps(profile["profile"], sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        if digest != expected_profile_sha256:
+            ap.error("performance preset full profile changed; requalification required")
     before = sources()
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     if not re.fullmatch(r"[0-9a-f]{40}", head):
@@ -232,19 +237,6 @@ def main():
     output = a.output.resolve()
     if output.exists():
         raise RuntimeError("refusing existing export output: " + str(output))
-    if not a.emit:
-        print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
-            "git_head": head, "source_files": len(before), "output": str(output),
-            "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
-            "data_translation_entries": a.data_translation_entries,
-            "instruction_translation_entries": 8, "pte_cache_entries": 4,
-            "fetch_previous_packet": a.fetch_previous_packet,
-            "prepared_store_lookahead": a.prepared_store_lookahead,
-            "translated_response_empty_flow": a.translated_response_empty_flow,
-            "posted_store_merge": a.posted_store_merge,
-            "physical_qualification": False}, indent=2))
-        return
-    output.mkdir(parents=True)
     rtl = output / "rtl"
     command = ["mill", "-i", "IonSoC.test.runMain", "ooo.FpgaNextMain", str(rtl)]
     command.append("--reference" if a.reference else "--candidate" if a.storage_candidate else "--selected")
@@ -299,6 +291,20 @@ def main():
         command.append("--store-prefetch-mru-insertion")
     if a.posted_store_merge:
         command.append("--posted-store-merge")
+    if not a.emit:
+        print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
+            "git_head": head, "source_files": len(before), "output": str(output),
+            "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
+            "data_translation_entries": a.data_translation_entries,
+            "instruction_translation_entries": 8, "pte_cache_entries": 4,
+            "fetch_previous_packet": a.fetch_previous_packet,
+            "prepared_store_lookahead": a.prepared_store_lookahead,
+            "translated_response_empty_flow": a.translated_response_empty_flow,
+            "posted_store_merge": a.posted_store_merge,
+            "physical_qualification": False, "configuration": profile["profile"],
+            "command": command}, indent=2))
+        return
+    output.mkdir(parents=True)
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],

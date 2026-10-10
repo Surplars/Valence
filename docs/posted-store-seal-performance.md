@@ -1,17 +1,43 @@
 # Posted-store merge: original WRITE benefit and COPY cost
 
-The corrected optional path stays default OFF. On the unchanged Bare benchmark,
-WRITE18 drops from215756 to112826 ROI cycles (47.7067% fewer cycles,1.91229×
-architectural byte throughput). COPY19 rises from383603 to452641 cycles
-(17.9973% more cycles). These are two specific physical integer workloads,
-not a general benchmark-suite improvement.
+The recommended `posted-performance-v1` preset enables the corrected
+physical posted-store path. This accepts a measured workload tradeoff: on the
+unchanged Bare benchmark, WRITE18 drops from 215756 to 112826 ROI cycles
+(47.7067% fewer cycles, **91.23% more architectural byte throughput**), while
+COPY19 rises from 383603 to 452641 cycles (**17.9973% more cycles, about 15.25%
+less throughput**). These are two specific physical integer workloads, not a
+general benchmark-suite improvement. The preset favors contiguous physical
+store throughput and accepts the measured COPY regression.
 
-## Activation and default
+## Recommended activation and control
 
-`postedStoreMerge` remains default OFF. Enable it only for an evaluated workload;
-these COPY results do not support enabling it for general use. The complete
-measured native-export activation is reproducible with an already prepared
-toolchain:
+Use the named preset with an already prepared toolchain:
+
+```sh
+python3 -B fpga/next/performance.py --output build/fpga-next/posted-performance-on --emit
+```
+
+The exact reproducible OFF control changes only posted merging:
+
+```sh
+python3 -B fpga/next/performance.py --output build/fpga-next/posted-performance-off --disable-posted --emit
+```
+
+Omit `--emit` to validate and print the complete profile and native command
+without creating output. The preset rejects hardware overrides, including
+translated-response empty flow, prechecked request flow, alternate topology,
+DMA/LSU geometry, and debug/media experiments. It checks the frozen digest of
+all 63 export-profile fields before output creation or Mill invocation. Its
+full native command matches the qualified profile; OFF differs only by the
+absence of `--posted-store-merge`. No posted/prefetch coexistence is enabled.
+
+Generic `FpgaNextConfig` and `export.py` defaults remain posted OFF for backward
+compatibility. The preset is the recommended activation for the accepted
+tradeoff. Native declared storage increases by 9462 bits; this is not mapped
+FPGA area or STA. See [native cost](posted-store-native-cost.md) and
+[preset equivalence qualification](posted-performance-preset.md).
+
+The original explicit activation remains equivalent and available:
 
 ```sh
 python3 -B fpga/next/export.py \
@@ -24,10 +50,9 @@ python3 -B fpga/next/export.py \
   --store-prefetch-mru-insertion --posted-store-merge --emit
 ```
 
-For the measured OFF selection, remove only `--posted-store-merge` and use a
-fresh output directory. Keep translated-response empty flow and prechecked
-request flow disabled. The command emits native hardware; the separately
-pinned benchmark receipts below describe the actual guest replay environment.
+For its OFF selection, remove only `--posted-store-merge` and use a fresh output
+directory. The commands emit native hardware; the separately pinned benchmark
+receipts below describe the actual guest replay environment.
 
 ## Exact source and environment
 
