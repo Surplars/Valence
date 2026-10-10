@@ -1,0 +1,444 @@
+{
+  "schema": "posted-store-standalone-qualification-v1",
+  "status": "PASS_STANDALONE_OWNER_ONLY",
+  "scope": "standalone environmental component only; no actual CPU/cache/home proof",
+  "source_head": "d0408c050477f1628d94fcbe51dbaac133e80bd7",
+  "source_tree": "bc55b9ec478fad5852494f2c6533ae87dd35a55c",
+  "receipt_sha256": "4fa79c4842b2efbf5aa165c76d3f9664e2f6635465a890a4bf7a4278017aea6c",
+  "host_tests": 22,
+  "semantic_mutants_detected": 10,
+  "transport_tests": 3,
+  "scala_config_elaboration_tests": 3,
+  "models": {
+    "generation64": {
+      "scope": "standalone owner environmental component; no real CPU/cache/home qualification",
+      "generation_bits": 64,
+      "status": "PASS",
+      "cases": [
+        {
+          "name": "merge-held-ticket-reuse",
+          "cycles": 34,
+          "events": {
+            "accepted": 5,
+            "ack": 5,
+            "install": 1,
+            "drain": 5,
+            "release": 1,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "two-owner-reordered-refill",
+          "cycles": 27,
+          "events": {
+            "accepted": 2,
+            "ack": 2,
+            "install": 2,
+            "drain": 2,
+            "release": 2,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "victim-clean",
+          "cycles": 17,
+          "events": {
+            "accepted": 1,
+            "ack": 1,
+            "install": 1,
+            "drain": 1,
+            "release": 1,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "victim-dirty",
+          "cycles": 17,
+          "events": {
+            "accepted": 1,
+            "ack": 1,
+            "install": 1,
+            "drain": 1,
+            "release": 1,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "probe-cancelled-victim",
+          "cycles": 12,
+          "events": {
+            "accepted": 1,
+            "ack": 1,
+            "install": 1,
+            "drain": 1,
+            "release": 1,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "probe-after-install-held-ack",
+          "cycles": 12,
+          "events": {
+            "accepted": 1,
+            "ack": 1,
+            "install": 1,
+            "drain": 1,
+            "release": 1,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "episode-context-boundary",
+          "cycles": 26,
+          "events": {
+            "accepted": 3,
+            "ack": 3,
+            "install": 3,
+            "drain": 3,
+            "release": 3,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "error-preserves-held-install",
+          "cycles": 15,
+          "events": {
+            "accepted": 2,
+            "ack": 2,
+            "install": 1,
+            "drain": 0,
+            "release": 0,
+            "fallback": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "name": "stale-acquire",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "actual A.fire lost its reservation"
+        },
+        {
+          "name": "bad-ack",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "posted ACK must be the one real ordered"
+        },
+        {
+          "name": "duplicate-ack",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "posted ACK must be the one real ordered"
+        },
+        {
+          "name": "cancel-without-victim",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "only a genuinely removed"
+        },
+        {
+          "name": "cancel-after-capture",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "only a genuinely removed"
+        },
+        {
+          "name": "held-epoch",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "context changed while an original posted proof"
+        },
+        {
+          "name": "end-with-held",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "cohort may end only"
+        },
+        {
+          "name": "stale-refill",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "refill kind/full generation"
+        },
+        {
+          "name": "wrong-wb-ticket",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "ReleaseAck detached from captured WB generation"
+        },
+        {
+          "name": "changed-held-offer",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "held posted ingress changed"
+        },
+        {
+          "name": "reissue-cancelled-victim",
+          "status": "EXPECTED_RTL_ASSERTION",
+          "diagnostic": "real eviction capture must attach"
+        }
+      ]
+    },
+    "generation2": {
+      "scope": "standalone owner environmental component; no real CPU/cache/home qualification",
+      "generation_bits": 2,
+      "status": "PASS",
+      "cases": [
+        {
+          "name": "generation2-exhausted-fallback",
+          "cycles": 43,
+          "events": {
+            "accepted": 4,
+            "ack": 4,
+            "install": 4,
+            "drain": 4,
+            "release": 4,
+            "fallback": 1
+          },
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "host-contract",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-store-merge-rebuilt-r1/simulator/gsim/posted_merge_rebuild/run_host_checks.py",
+        "--output",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/host-results.json"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 1.0019404409977142,
+      "log_sha256": "5c8cc0463bb5be04afb11227e4bec65f12af9d5ba9c349268f66d0f429eb193f"
+    },
+    {
+      "name": "transport-preflight",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-store-merge-rebuilt-r1/simulator/gsim/posted_merge_rebuild",
+        "-p",
+        "test_transport.py",
+        "-v"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 2.5039923209988046,
+      "log_sha256": "6c86ecfc8754062ad2d868d493baa59a21149e195c059a6cd081aaca98c36135"
+    },
+    {
+      "name": "scala-config-owner-elaboration",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.testOnly",
+        "ooo.PostedStoreMergeRebuildSpec"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 81.6369571489995,
+      "log_sha256": "44de43fccc4044c4ea4ba17e58ba42b4cd6c5bc1e8ddc3fc452fcb2f4db3dfbc"
+    },
+    {
+      "name": "generation64-emit",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.runMain",
+        "ooo.PostedStoreMergeGsimMain",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64",
+        "64"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 5.5154795099988405,
+      "log_sha256": "086119f1fe95927246702337cf54af5eb3c8e088cc8dc40810e167f957660d98"
+    },
+    {
+      "name": "generation64-generate",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/gsim-src/build/gsim/gsim",
+        "--threads=1",
+        "--dir=/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/PostedStoreMergeGsim.fir"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 0.2512418379992596,
+      "log_sha256": "2afd703c9e89b05fa07b29af9811851b8d4a75d06bde6bc8ccd6983da96cee76"
+    },
+    {
+      "name": "generation64-compile-PostedStoreMergeGsim0",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64",
+        "-c",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/PostedStoreMergeGsim0.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/PostedStoreMergeGsim0.o"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 5.760154584000702,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generation64-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/driver.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/PostedStoreMergeGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/run"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 8.516945624000073,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generation64-cases",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-store-merge-rebuilt-r1/simulator/gsim/posted_merge_rebuild/fixture.py",
+        "--executable",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/run",
+        "--output",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation64/cases",
+        "--generation-bits",
+        "64"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 0.251421600998583,
+      "log_sha256": "1ad6fabb96985d7f7c400fd241def1e98d3c7362aad170c5928c84fcce6c9891"
+    },
+    {
+      "name": "generation2-emit",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/bin/mill",
+        "-i",
+        "-j",
+        "1",
+        "IonSoC.test.runMain",
+        "ooo.PostedStoreMergeGsimMain",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2",
+        "2"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 4.266098436997709,
+      "log_sha256": "76e66f718b3e79a4c430f8d386668631df748423f5291a61faafa1e009362dd4"
+    },
+    {
+      "name": "generation2-generate",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/gsim-src/build/gsim/gsim",
+        "--threads=1",
+        "--dir=/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/PostedStoreMergeGsim.fir"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 0.25129213000036543,
+      "log_sha256": "c4cc95efb6dadd36b62274b7310c69831759b288708ca047a0594587077a4c20"
+    },
+    {
+      "name": "generation2-compile-PostedStoreMergeGsim0",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2",
+        "-c",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/PostedStoreMergeGsim0.cpp",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/PostedStoreMergeGsim0.o"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 6.02051582599961,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generation2-link",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/toolchain-source/simulator/build/cloud-env/sysroot/usr/bin/clang++-19",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-gz=zlib",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/driver.cpp",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/PostedStoreMergeGsim0.o",
+        "-ldl",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/run"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 8.528808843999286,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generation2-cases",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-store-merge-rebuilt-r1/simulator/gsim/posted_merge_rebuild/fixture.py",
+        "--executable",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/run",
+        "--output",
+        "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/posted-merge-component-d0408c0-attempt1/generation2/cases",
+        "--generation-bits",
+        "2"
+      ],
+      "exit": 0,
+      "guard": null,
+      "seconds": 0.2515433980006492,
+      "log_sha256": "e2367215d88bf0740bb9f9df635b73b7657bb108a1b48fdb0c83a8799ba95b0e"
+    }
+  ],
+  "attempt_bytes": 10783765,
+  "guards": {
+    "artifact_budget_mib": 200,
+    "free_floor_mib": 700,
+    "triggered": false
+  },
+  "sanitizers": "ASan and UBSan; no diagnostic",
+  "historical_pass_inherited": false,
+  "not_qualified": [
+    "actual CPU head proof",
+    "production cache/SRAM integration",
+    "real TileLink/home reachability",
+    "architectural CPU fault and ordering behavior",
+    "performance",
+    "synthesis resources"
+  ]
+}
