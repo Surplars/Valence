@@ -33,7 +33,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
-    backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig()) extends Module {
+    backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
+    postedPreparationPriority: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -46,7 +47,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
-        preparedStoreLookahead = preparedStoreLookahead,
+        preparedStoreLookahead = preparedStoreLookahead, postedPreparationPriority = postedPreparationPriority,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity))

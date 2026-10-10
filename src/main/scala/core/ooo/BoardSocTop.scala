@@ -45,7 +45,8 @@ object BoardSocConfig {
         fetchPreviousPacket: Boolean = false, preparedStoreLookahead: Boolean = false,
         translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
         postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
-        backendCapacity: BackendCapacityConfig = BackendCapacityConfig()): OooParams = {
+        backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
+        postedPreparationPriority: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -58,7 +59,7 @@ object BoardSocConfig {
             "virtual RAM load precheck requires a staged board fabric profile; choose it explicitly")
         fpgaStorage.configure(timing.copy(machineSystem = true, atomicMemory = true,
             preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
-            postedPrefetchHeadOffer = postedPrefetchHeadOffer,
+            postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
             canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             translatedResponseEmptyFlow = translatedResponseEmptyFlow,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
@@ -216,7 +217,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
-    backendCapacity: BackendCapacityConfig = BackendCapacityConfig()) extends Module {
+    backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
+    postedPreparationPriority: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -253,7 +255,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
-        postedPrefetchHeadOffer = postedPrefetchHeadOffer,
+        postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity)
     require(!p.memoryProofFrontier || (dataCacheLines / dataCacheWays == p.memoryProofCacheSets && dataCacheWays == 2),
         "frontier PA set scheduling must match the actual cache geometry")

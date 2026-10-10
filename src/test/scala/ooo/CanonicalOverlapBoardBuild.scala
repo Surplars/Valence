@@ -21,7 +21,7 @@ object CanonicalOverlapBoardBuild {
         dmaLineYieldCycles = c.dmaLineYieldCycles, dmaLineEntries = c.dmaLineEntries,
         precheckedDataRequestFlow = c.precheckedDataRequestFlow, physicalLoadIngressFlow = c.physicalLoadIngressFlow,
         loadOrderOlderRetire = c.loadOrderOlderRetire, fetchPreviousPacket = c.fetchPreviousPacket,
-        preparedStoreLookahead = c.preparedStoreLookahead,
+        preparedStoreLookahead = c.preparedStoreLookahead, postedPreparationPriority = c.postedPreparationPriority,
         translatedResponseEmptyFlow = c.translatedResponseEmptyFlow,
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
         postedPrefetchHeadOffer = c.postedPrefetchHeadOffer, canonicalVirtualStoreOverlap = overlap, backendCapacity = c.backendCapacity,

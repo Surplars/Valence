@@ -75,6 +75,8 @@ def main():
                     help="default-off local empty response flow; retains registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
                     help="default-off reconstructed prepared physical RAM store prefill")
+    ap.add_argument("--posted-preparation-priority", action="store_true",
+                    help="default-off age-ordered prepared stores during an all-load posted window")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -119,6 +121,8 @@ def main():
         ap.error("--memory-proof-frontier requires reviewed ROB64/PRF64/LSU4, DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if args.canonical_virtual_store_overlap and not args.virtual_ram_load_precheck:
         ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
+    if args.posted_preparation_priority and not (args.prepared_store_lookahead and args.posted_store_merge):
+        ap.error("--posted-preparation-priority requires --prepared-store-lookahead and --posted-store-merge")
     if args.posted_prefetch_head_offer and not (args.posted_store_merge and args.posted_prefetch_coexistence):
         ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
     if args.posted_prefetch_coexistence and not args.posted_store_merge:
@@ -171,6 +175,8 @@ def main():
         parameters.append("--fetch-previous-packet")
     if args.prepared_store_lookahead:
         parameters.append("--prepared-store-lookahead")
+    if args.posted_preparation_priority:
+        parameters.append("--posted-preparation-priority")
     if args.store_next_line_prefetch:
         parameters.append("--store-next-line-prefetch")
     if args.store_prefetch_mru_insertion:
@@ -208,6 +214,7 @@ def main():
             "data_translation_entries": args.data_translation_entries,
             "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
             "prepared_store_lookahead": args.prepared_store_lookahead,
+            "posted_preparation_priority": args.posted_preparation_priority,
             "translated_response_empty_flow": args.translated_response_empty_flow,
             "store_next_line_prefetch": args.store_next_line_prefetch,
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,

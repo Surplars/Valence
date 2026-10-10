@@ -39,7 +39,8 @@ final case class FpgaNextConfig(
     memoryProofFrontier: Boolean = false,
     robEntries: Option[Int] = None,
     physicalRegs: Option[Int] = None,
-    storePrefetchLruVictim: Boolean = false
+    storePrefetchLruVictim: Boolean = false,
+    postedPreparationPriority: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     SvTranslationService.indexBits(dataTranslationEntries)
@@ -48,6 +49,8 @@ final case class FpgaNextConfig(
         "memory proof frontier requires the explicitly selected reviewed capacity and translation profile")
     require(!canonicalVirtualStoreOverlap || virtualRamLoadPrecheck,
         "canonical virtual store overlap requires explicit virtual RAM load precheck")
+    require(!postedPreparationPriority || (preparedStoreLookahead && postedStoreMerge),
+        "posted preparation priority requires prepared store lookahead and posted store merging")
     require(!postedPrefetchHeadOffer || (postedStoreMerge && postedPrefetchCoexistence),
         "posted PF head offer requires posted store merging and cache PF coexistence")
     require(!postedPrefetchCoexistence || postedStoreMerge,
@@ -85,6 +88,7 @@ final case class FpgaNextConfig(
         (if (loadOrderOlderRetire) "-older-load-retire" else "") +
         (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
         (if (preparedStoreLookahead) "-prepared-store-lookahead" else "") +
+        (if (postedPreparationPriority) "-posted-preparation-priority" else "") +
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
         (if (storePrefetchLruVictim) "-store-prefetch-lru-victim" else "") +
@@ -145,6 +149,7 @@ final case class FpgaNextConfig(
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        postedPreparationPriority = postedPreparationPriority,
         preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
@@ -169,6 +174,7 @@ final case class FpgaNextConfig(
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
+        postedPreparationPriority = postedPreparationPriority,
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
@@ -225,6 +231,7 @@ object FpgaNextConfig {
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),
             preparedStoreLookahead = options.contains("--prepared-store-lookahead"),
+            postedPreparationPriority = options.contains("--posted-preparation-priority"),
             dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),

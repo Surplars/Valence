@@ -1,0 +1,1420 @@
+{
+  "status": "SOURCE_ONLY_PENDING_GENERATED_HEADER",
+  "scalars": [
+    {
+      "name": "mpEnabled",
+      "width": 1,
+      "guard": null,
+      "source": "memoryProofFrontier.B"
+    },
+    {
+      "name": "mpEpoch",
+      "width": 32,
+      "guard": null,
+      "source": "capacityBackend.io.loadPrecheck.get.epoch"
+    },
+    {
+      "name": "mpStable",
+      "width": 1,
+      "guard": null,
+      "source": "capacityBackend.io.loadPrecheck.get.stable"
+    },
+    {
+      "name": "mpStartValid",
+      "width": 1,
+      "guard": null,
+      "source": "capacityBackend.lsu.io.start.valid"
+    },
+    {
+      "name": "mpStartReady",
+      "width": 1,
+      "guard": null,
+      "source": "capacityBackend.lsu.io.start.ready"
+    },
+    {
+      "name": "mpStartAccepted",
+      "width": 1,
+      "guard": null,
+      "source": "capacityBackend.lsu.io.start.valid && capacityBackend.lsu.io.start.ready"
+    },
+    {
+      "name": "mpStartIndex",
+      "width": 6,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.token.index"
+    },
+    {
+      "name": "mpStartTag",
+      "width": 64,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.token.tag"
+    },
+    {
+      "name": "mpStartEpoch",
+      "width": 32,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.translationEpoch"
+    },
+    {
+      "name": "mpStartVa",
+      "width": 64,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.address"
+    },
+    {
+      "name": "mpStartPa",
+      "width": 64,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.physicalAddress"
+    },
+    {
+      "name": "mpStartSize",
+      "width": 3,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.size"
+    },
+    {
+      "name": "mpStartStore",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.store"
+    },
+    {
+      "name": "mpStartAtomic",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.atomic"
+    },
+    {
+      "name": "mpStartPrechecked",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.precheckedLoad"
+    },
+    {
+      "name": "mpStartParallel",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.parallel"
+    },
+    {
+      "name": "mpStartSlot",
+      "width": 2,
+      "guard": "mpStartAccepted",
+      "source": "capacityBackend.lsu.chosen"
+    },
+    {
+      "name": "mpStartFrontier",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.frontierChoice"
+    },
+    {
+      "name": "mpStartIsHead",
+      "width": 1,
+      "guard": "mpStartValid",
+      "source": "capacityBackend.lsu.io.start.bits.token.index === capacityBackend.head"
+    },
+    {
+      "name": "mpReserved",
+      "width": 5,
+      "guard": null,
+      "source": "f.io.reservedCount"
+    },
+    {
+      "name": "mpAllowed",
+      "width": 5,
+      "guard": null,
+      "source": "f.io.allowedCount"
+    },
+    {
+      "name": "mpBound",
+      "width": 5,
+      "guard": null,
+      "source": "f.io.boundCount"
+    },
+    {
+      "name": "mpScanState",
+      "width": 2,
+      "guard": null,
+      "source": "f.scanState"
+    },
+    {
+      "name": "mpSnapshotLive",
+      "width": 1,
+      "guard": null,
+      "source": "f.snapshotLive"
+    },
+    {
+      "name": "mpReadSelectedGrant",
+      "width": 1,
+      "guard": null,
+      "source": "f.selectedRead"
+    },
+    {
+      "name": "mpReadCandidateGrant",
+      "width": 1,
+      "guard": null,
+      "source": "f.candidateRead && !f.selectedRead"
+    },
+    {
+      "name": "mpReadScanGrant",
+      "width": 1,
+      "guard": null,
+      "source": "f.scanRead && !f.selectedRead"
+    },
+    {
+      "name": "mpWriteGrant",
+      "width": 1,
+      "guard": null,
+      "source": "f.positiveResult && !f.removedRows(f.resultRow)"
+    },
+    {
+      "name": "mpEvict",
+      "width": 1,
+      "guard": null,
+      "source": "f.evict"
+    },
+    {
+      "name": "mpClearMask",
+      "width": 64,
+      "guard": null,
+      "source": "f.io.clearOwners"
+    },
+    {
+      "name": "mpPause",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.pause"
+    },
+    {
+      "name": "mpFlush",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.flushQueries"
+    },
+    {
+      "name": "mpAdmissionValid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.queryOwner.valid"
+    },
+    {
+      "name": "mpAdmissionIndex",
+      "width": 6,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.query.token.index"
+    },
+    {
+      "name": "mpAdmissionTag",
+      "width": 64,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.query.token.tag"
+    },
+    {
+      "name": "mpAdmissionEpoch",
+      "width": 32,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.precheck.epoch"
+    },
+    {
+      "name": "mpAdmissionVa",
+      "width": 64,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.query.address"
+    },
+    {
+      "name": "mpAdmissionWrite",
+      "width": 1,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.query.write"
+    },
+    {
+      "name": "mpAdmissionSize",
+      "width": 3,
+      "guard": "mpAdmissionValid",
+      "source": "f.io.query.size"
+    },
+    {
+      "name": "mpAdmissionRow",
+      "width": 4,
+      "guard": "mpAdmissionValid",
+      "source": "f.admittedRow"
+    },
+    {
+      "name": "mpQueryValid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.precheck.request.valid"
+    },
+    {
+      "name": "mpQueryIndex",
+      "width": 6,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.token.index"
+    },
+    {
+      "name": "mpQueryTag",
+      "width": 64,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.token.tag"
+    },
+    {
+      "name": "mpQueryEpoch",
+      "width": 32,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.epoch"
+    },
+    {
+      "name": "mpQueryVa",
+      "width": 64,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.payload.address"
+    },
+    {
+      "name": "mpQueryPa",
+      "width": 64,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.payload.physicalAddress"
+    },
+    {
+      "name": "mpQueryWrite",
+      "width": 1,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.payload.write"
+    },
+    {
+      "name": "mpQuerySize",
+      "width": 3,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.payload.size"
+    },
+    {
+      "name": "mpQueryMask",
+      "width": 8,
+      "guard": "mpQueryValid",
+      "source": "f.addressProof.payload.mask"
+    },
+    {
+      "name": "mpQueryRow",
+      "width": 4,
+      "guard": "mpQueryValid",
+      "source": "f.addressRow"
+    },
+    {
+      "name": "mpResultValid",
+      "width": 1,
+      "guard": null,
+      "source": "f.resultValid"
+    },
+    {
+      "name": "mpResultIndex",
+      "width": 6,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.token.index"
+    },
+    {
+      "name": "mpResultTag",
+      "width": 64,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.token.tag"
+    },
+    {
+      "name": "mpResultEpoch",
+      "width": 32,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.epoch"
+    },
+    {
+      "name": "mpResultVa",
+      "width": 64,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.payload.address"
+    },
+    {
+      "name": "mpResultPa",
+      "width": 64,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.payload.physicalAddress"
+    },
+    {
+      "name": "mpResultWrite",
+      "width": 1,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.payload.write"
+    },
+    {
+      "name": "mpResultSize",
+      "width": 3,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.payload.size"
+    },
+    {
+      "name": "mpResultMask",
+      "width": 8,
+      "guard": "mpResultValid",
+      "source": "f.resultProof.payload.mask"
+    },
+    {
+      "name": "mpResultRow",
+      "width": 4,
+      "guard": "mpResultValid",
+      "source": "f.resultRow"
+    },
+    {
+      "name": "mpSelectedValid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.selectedProof.valid"
+    },
+    {
+      "name": "mpSelectedIndex",
+      "width": 6,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.token.index"
+    },
+    {
+      "name": "mpSelectedTag",
+      "width": 64,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.token.tag"
+    },
+    {
+      "name": "mpSelectedEpoch",
+      "width": 32,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.epoch"
+    },
+    {
+      "name": "mpSelectedVa",
+      "width": 64,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.payload.address"
+    },
+    {
+      "name": "mpSelectedPa",
+      "width": 64,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.payload.physicalAddress"
+    },
+    {
+      "name": "mpSelectedWrite",
+      "width": 1,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.payload.write"
+    },
+    {
+      "name": "mpSelectedSize",
+      "width": 3,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.payload.size"
+    },
+    {
+      "name": "mpSelectedMask",
+      "width": 8,
+      "guard": "mpSelectedValid",
+      "source": "f.io.selectedProof.bits.payload.mask"
+    },
+    {
+      "name": "mpFrontierValid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.frontier.valid"
+    },
+    {
+      "name": "mpFrontierIndex",
+      "width": 6,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.token.index"
+    },
+    {
+      "name": "mpFrontierTag",
+      "width": 64,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.token.tag"
+    },
+    {
+      "name": "mpFrontierEpoch",
+      "width": 32,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.epoch"
+    },
+    {
+      "name": "mpFrontierVa",
+      "width": 64,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.payload.address"
+    },
+    {
+      "name": "mpFrontierPa",
+      "width": 64,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.payload.physicalAddress"
+    },
+    {
+      "name": "mpFrontierWrite",
+      "width": 1,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.payload.write"
+    },
+    {
+      "name": "mpFrontierSize",
+      "width": 3,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.payload.size"
+    },
+    {
+      "name": "mpFrontierMask",
+      "width": 8,
+      "guard": "mpFrontierValid",
+      "source": "f.io.frontier.bits.payload.mask"
+    },
+    {
+      "name": "mpFrontierRow",
+      "width": 4,
+      "guard": "mpFrontierValid",
+      "source": "f.candidateRow"
+    },
+    {
+      "name": "mpQueryHit",
+      "width": 1,
+      "guard": "mpQueryValid",
+      "source": "f.io.precheck.response.valid"
+    },
+    {
+      "name": "mpQueryHitPa",
+      "width": 64,
+      "guard": "mpQueryHit",
+      "source": "f.io.precheck.response.bits.physicalAddress"
+    },
+    {
+      "name": "mpQueryHitEpoch",
+      "width": 32,
+      "guard": "mpQueryHit",
+      "source": "f.io.precheck.response.bits.epoch"
+    },
+    {
+      "name": "mpQueryHitPbmt",
+      "width": 2,
+      "guard": "mpQueryHit",
+      "source": "f.io.precheck.response.bits.pbmt"
+    },
+    {
+      "name": "mpResultAllowed",
+      "width": 1,
+      "guard": "mpResultValid",
+      "source": "f.resultAllowed"
+    },
+    {
+      "name": "mpResultOwnerMatches",
+      "width": 1,
+      "guard": "mpResultValid",
+      "source": "f.resultMatches"
+    },
+    {
+      "name": "mpResultReservation",
+      "width": 1,
+      "guard": "mpResultValid",
+      "source": "f.returningReservation"
+    },
+    {
+      "name": "mpResultInserted",
+      "width": 1,
+      "guard": "mpResultValid",
+      "source": "f.positiveResult && !f.removedRows(f.resultRow)"
+    },
+    {
+      "name": "mpFrontierAccepted",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.frontierAccepted"
+    },
+    {
+      "name": "mpFrontierCovered",
+      "width": 64,
+      "guard": "mpFrontierValid",
+      "source": "f.covered"
+    },
+    {
+      "name": "mpFrontierRelied",
+      "width": 16,
+      "guard": "mpFrontierValid",
+      "source": "f.relied"
+    },
+    {
+      "name": "mpRow0Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(0) =/= f.free"
+    },
+    {
+      "name": "mpRow0State",
+      "width": 2,
+      "guard": "mpRow0Valid",
+      "source": "f.state(0)"
+    },
+    {
+      "name": "mpRow0Index",
+      "width": 6,
+      "guard": "mpRow0Valid",
+      "source": "f.tokens(0).index"
+    },
+    {
+      "name": "mpRow0Tag",
+      "width": 64,
+      "guard": "mpRow0Valid",
+      "source": "f.tokens(0).tag"
+    },
+    {
+      "name": "mpRow0Epoch",
+      "width": 32,
+      "guard": "mpRow0Valid",
+      "source": "f.epochs(0)"
+    },
+    {
+      "name": "mpRow0Bound",
+      "width": 1,
+      "guard": "mpRow0Valid",
+      "source": "f.bound(0)"
+    },
+    {
+      "name": "mpRow1Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(1) =/= f.free"
+    },
+    {
+      "name": "mpRow1State",
+      "width": 2,
+      "guard": "mpRow1Valid",
+      "source": "f.state(1)"
+    },
+    {
+      "name": "mpRow1Index",
+      "width": 6,
+      "guard": "mpRow1Valid",
+      "source": "f.tokens(1).index"
+    },
+    {
+      "name": "mpRow1Tag",
+      "width": 64,
+      "guard": "mpRow1Valid",
+      "source": "f.tokens(1).tag"
+    },
+    {
+      "name": "mpRow1Epoch",
+      "width": 32,
+      "guard": "mpRow1Valid",
+      "source": "f.epochs(1)"
+    },
+    {
+      "name": "mpRow1Bound",
+      "width": 1,
+      "guard": "mpRow1Valid",
+      "source": "f.bound(1)"
+    },
+    {
+      "name": "mpRow2Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(2) =/= f.free"
+    },
+    {
+      "name": "mpRow2State",
+      "width": 2,
+      "guard": "mpRow2Valid",
+      "source": "f.state(2)"
+    },
+    {
+      "name": "mpRow2Index",
+      "width": 6,
+      "guard": "mpRow2Valid",
+      "source": "f.tokens(2).index"
+    },
+    {
+      "name": "mpRow2Tag",
+      "width": 64,
+      "guard": "mpRow2Valid",
+      "source": "f.tokens(2).tag"
+    },
+    {
+      "name": "mpRow2Epoch",
+      "width": 32,
+      "guard": "mpRow2Valid",
+      "source": "f.epochs(2)"
+    },
+    {
+      "name": "mpRow2Bound",
+      "width": 1,
+      "guard": "mpRow2Valid",
+      "source": "f.bound(2)"
+    },
+    {
+      "name": "mpRow3Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(3) =/= f.free"
+    },
+    {
+      "name": "mpRow3State",
+      "width": 2,
+      "guard": "mpRow3Valid",
+      "source": "f.state(3)"
+    },
+    {
+      "name": "mpRow3Index",
+      "width": 6,
+      "guard": "mpRow3Valid",
+      "source": "f.tokens(3).index"
+    },
+    {
+      "name": "mpRow3Tag",
+      "width": 64,
+      "guard": "mpRow3Valid",
+      "source": "f.tokens(3).tag"
+    },
+    {
+      "name": "mpRow3Epoch",
+      "width": 32,
+      "guard": "mpRow3Valid",
+      "source": "f.epochs(3)"
+    },
+    {
+      "name": "mpRow3Bound",
+      "width": 1,
+      "guard": "mpRow3Valid",
+      "source": "f.bound(3)"
+    },
+    {
+      "name": "mpRow4Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(4) =/= f.free"
+    },
+    {
+      "name": "mpRow4State",
+      "width": 2,
+      "guard": "mpRow4Valid",
+      "source": "f.state(4)"
+    },
+    {
+      "name": "mpRow4Index",
+      "width": 6,
+      "guard": "mpRow4Valid",
+      "source": "f.tokens(4).index"
+    },
+    {
+      "name": "mpRow4Tag",
+      "width": 64,
+      "guard": "mpRow4Valid",
+      "source": "f.tokens(4).tag"
+    },
+    {
+      "name": "mpRow4Epoch",
+      "width": 32,
+      "guard": "mpRow4Valid",
+      "source": "f.epochs(4)"
+    },
+    {
+      "name": "mpRow4Bound",
+      "width": 1,
+      "guard": "mpRow4Valid",
+      "source": "f.bound(4)"
+    },
+    {
+      "name": "mpRow5Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(5) =/= f.free"
+    },
+    {
+      "name": "mpRow5State",
+      "width": 2,
+      "guard": "mpRow5Valid",
+      "source": "f.state(5)"
+    },
+    {
+      "name": "mpRow5Index",
+      "width": 6,
+      "guard": "mpRow5Valid",
+      "source": "f.tokens(5).index"
+    },
+    {
+      "name": "mpRow5Tag",
+      "width": 64,
+      "guard": "mpRow5Valid",
+      "source": "f.tokens(5).tag"
+    },
+    {
+      "name": "mpRow5Epoch",
+      "width": 32,
+      "guard": "mpRow5Valid",
+      "source": "f.epochs(5)"
+    },
+    {
+      "name": "mpRow5Bound",
+      "width": 1,
+      "guard": "mpRow5Valid",
+      "source": "f.bound(5)"
+    },
+    {
+      "name": "mpRow6Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(6) =/= f.free"
+    },
+    {
+      "name": "mpRow6State",
+      "width": 2,
+      "guard": "mpRow6Valid",
+      "source": "f.state(6)"
+    },
+    {
+      "name": "mpRow6Index",
+      "width": 6,
+      "guard": "mpRow6Valid",
+      "source": "f.tokens(6).index"
+    },
+    {
+      "name": "mpRow6Tag",
+      "width": 64,
+      "guard": "mpRow6Valid",
+      "source": "f.tokens(6).tag"
+    },
+    {
+      "name": "mpRow6Epoch",
+      "width": 32,
+      "guard": "mpRow6Valid",
+      "source": "f.epochs(6)"
+    },
+    {
+      "name": "mpRow6Bound",
+      "width": 1,
+      "guard": "mpRow6Valid",
+      "source": "f.bound(6)"
+    },
+    {
+      "name": "mpRow7Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(7) =/= f.free"
+    },
+    {
+      "name": "mpRow7State",
+      "width": 2,
+      "guard": "mpRow7Valid",
+      "source": "f.state(7)"
+    },
+    {
+      "name": "mpRow7Index",
+      "width": 6,
+      "guard": "mpRow7Valid",
+      "source": "f.tokens(7).index"
+    },
+    {
+      "name": "mpRow7Tag",
+      "width": 64,
+      "guard": "mpRow7Valid",
+      "source": "f.tokens(7).tag"
+    },
+    {
+      "name": "mpRow7Epoch",
+      "width": 32,
+      "guard": "mpRow7Valid",
+      "source": "f.epochs(7)"
+    },
+    {
+      "name": "mpRow7Bound",
+      "width": 1,
+      "guard": "mpRow7Valid",
+      "source": "f.bound(7)"
+    },
+    {
+      "name": "mpRow8Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(8) =/= f.free"
+    },
+    {
+      "name": "mpRow8State",
+      "width": 2,
+      "guard": "mpRow8Valid",
+      "source": "f.state(8)"
+    },
+    {
+      "name": "mpRow8Index",
+      "width": 6,
+      "guard": "mpRow8Valid",
+      "source": "f.tokens(8).index"
+    },
+    {
+      "name": "mpRow8Tag",
+      "width": 64,
+      "guard": "mpRow8Valid",
+      "source": "f.tokens(8).tag"
+    },
+    {
+      "name": "mpRow8Epoch",
+      "width": 32,
+      "guard": "mpRow8Valid",
+      "source": "f.epochs(8)"
+    },
+    {
+      "name": "mpRow8Bound",
+      "width": 1,
+      "guard": "mpRow8Valid",
+      "source": "f.bound(8)"
+    },
+    {
+      "name": "mpRow9Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(9) =/= f.free"
+    },
+    {
+      "name": "mpRow9State",
+      "width": 2,
+      "guard": "mpRow9Valid",
+      "source": "f.state(9)"
+    },
+    {
+      "name": "mpRow9Index",
+      "width": 6,
+      "guard": "mpRow9Valid",
+      "source": "f.tokens(9).index"
+    },
+    {
+      "name": "mpRow9Tag",
+      "width": 64,
+      "guard": "mpRow9Valid",
+      "source": "f.tokens(9).tag"
+    },
+    {
+      "name": "mpRow9Epoch",
+      "width": 32,
+      "guard": "mpRow9Valid",
+      "source": "f.epochs(9)"
+    },
+    {
+      "name": "mpRow9Bound",
+      "width": 1,
+      "guard": "mpRow9Valid",
+      "source": "f.bound(9)"
+    },
+    {
+      "name": "mpRow10Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(10) =/= f.free"
+    },
+    {
+      "name": "mpRow10State",
+      "width": 2,
+      "guard": "mpRow10Valid",
+      "source": "f.state(10)"
+    },
+    {
+      "name": "mpRow10Index",
+      "width": 6,
+      "guard": "mpRow10Valid",
+      "source": "f.tokens(10).index"
+    },
+    {
+      "name": "mpRow10Tag",
+      "width": 64,
+      "guard": "mpRow10Valid",
+      "source": "f.tokens(10).tag"
+    },
+    {
+      "name": "mpRow10Epoch",
+      "width": 32,
+      "guard": "mpRow10Valid",
+      "source": "f.epochs(10)"
+    },
+    {
+      "name": "mpRow10Bound",
+      "width": 1,
+      "guard": "mpRow10Valid",
+      "source": "f.bound(10)"
+    },
+    {
+      "name": "mpRow11Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(11) =/= f.free"
+    },
+    {
+      "name": "mpRow11State",
+      "width": 2,
+      "guard": "mpRow11Valid",
+      "source": "f.state(11)"
+    },
+    {
+      "name": "mpRow11Index",
+      "width": 6,
+      "guard": "mpRow11Valid",
+      "source": "f.tokens(11).index"
+    },
+    {
+      "name": "mpRow11Tag",
+      "width": 64,
+      "guard": "mpRow11Valid",
+      "source": "f.tokens(11).tag"
+    },
+    {
+      "name": "mpRow11Epoch",
+      "width": 32,
+      "guard": "mpRow11Valid",
+      "source": "f.epochs(11)"
+    },
+    {
+      "name": "mpRow11Bound",
+      "width": 1,
+      "guard": "mpRow11Valid",
+      "source": "f.bound(11)"
+    },
+    {
+      "name": "mpRow12Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(12) =/= f.free"
+    },
+    {
+      "name": "mpRow12State",
+      "width": 2,
+      "guard": "mpRow12Valid",
+      "source": "f.state(12)"
+    },
+    {
+      "name": "mpRow12Index",
+      "width": 6,
+      "guard": "mpRow12Valid",
+      "source": "f.tokens(12).index"
+    },
+    {
+      "name": "mpRow12Tag",
+      "width": 64,
+      "guard": "mpRow12Valid",
+      "source": "f.tokens(12).tag"
+    },
+    {
+      "name": "mpRow12Epoch",
+      "width": 32,
+      "guard": "mpRow12Valid",
+      "source": "f.epochs(12)"
+    },
+    {
+      "name": "mpRow12Bound",
+      "width": 1,
+      "guard": "mpRow12Valid",
+      "source": "f.bound(12)"
+    },
+    {
+      "name": "mpRow13Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(13) =/= f.free"
+    },
+    {
+      "name": "mpRow13State",
+      "width": 2,
+      "guard": "mpRow13Valid",
+      "source": "f.state(13)"
+    },
+    {
+      "name": "mpRow13Index",
+      "width": 6,
+      "guard": "mpRow13Valid",
+      "source": "f.tokens(13).index"
+    },
+    {
+      "name": "mpRow13Tag",
+      "width": 64,
+      "guard": "mpRow13Valid",
+      "source": "f.tokens(13).tag"
+    },
+    {
+      "name": "mpRow13Epoch",
+      "width": 32,
+      "guard": "mpRow13Valid",
+      "source": "f.epochs(13)"
+    },
+    {
+      "name": "mpRow13Bound",
+      "width": 1,
+      "guard": "mpRow13Valid",
+      "source": "f.bound(13)"
+    },
+    {
+      "name": "mpRow14Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(14) =/= f.free"
+    },
+    {
+      "name": "mpRow14State",
+      "width": 2,
+      "guard": "mpRow14Valid",
+      "source": "f.state(14)"
+    },
+    {
+      "name": "mpRow14Index",
+      "width": 6,
+      "guard": "mpRow14Valid",
+      "source": "f.tokens(14).index"
+    },
+    {
+      "name": "mpRow14Tag",
+      "width": 64,
+      "guard": "mpRow14Valid",
+      "source": "f.tokens(14).tag"
+    },
+    {
+      "name": "mpRow14Epoch",
+      "width": 32,
+      "guard": "mpRow14Valid",
+      "source": "f.epochs(14)"
+    },
+    {
+      "name": "mpRow14Bound",
+      "width": 1,
+      "guard": "mpRow14Valid",
+      "source": "f.bound(14)"
+    },
+    {
+      "name": "mpRow15Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.state(15) =/= f.free"
+    },
+    {
+      "name": "mpRow15State",
+      "width": 2,
+      "guard": "mpRow15Valid",
+      "source": "f.state(15)"
+    },
+    {
+      "name": "mpRow15Index",
+      "width": 6,
+      "guard": "mpRow15Valid",
+      "source": "f.tokens(15).index"
+    },
+    {
+      "name": "mpRow15Tag",
+      "width": 64,
+      "guard": "mpRow15Valid",
+      "source": "f.tokens(15).tag"
+    },
+    {
+      "name": "mpRow15Epoch",
+      "width": 32,
+      "guard": "mpRow15Valid",
+      "source": "f.epochs(15)"
+    },
+    {
+      "name": "mpRow15Bound",
+      "width": 1,
+      "guard": "mpRow15Valid",
+      "source": "f.bound(15)"
+    },
+    {
+      "name": "mpLine0Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.liveLines(0).valid"
+    },
+    {
+      "name": "mpLine0Index",
+      "width": 6,
+      "guard": "mpLine0Valid",
+      "source": "f.io.liveLines(0).bits.token.index"
+    },
+    {
+      "name": "mpLine0Tag",
+      "width": 64,
+      "guard": "mpLine0Valid",
+      "source": "f.io.liveLines(0).bits.token.tag"
+    },
+    {
+      "name": "mpLine0PaLine",
+      "width": 64,
+      "guard": "mpLine0Valid",
+      "source": "Cat(f.io.liveLines(0).bits.line, 0.U(6.W))"
+    },
+    {
+      "name": "mpLine1Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.liveLines(1).valid"
+    },
+    {
+      "name": "mpLine1Index",
+      "width": 6,
+      "guard": "mpLine1Valid",
+      "source": "f.io.liveLines(1).bits.token.index"
+    },
+    {
+      "name": "mpLine1Tag",
+      "width": 64,
+      "guard": "mpLine1Valid",
+      "source": "f.io.liveLines(1).bits.token.tag"
+    },
+    {
+      "name": "mpLine1PaLine",
+      "width": 64,
+      "guard": "mpLine1Valid",
+      "source": "Cat(f.io.liveLines(1).bits.line, 0.U(6.W))"
+    },
+    {
+      "name": "mpLine2Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.liveLines(2).valid"
+    },
+    {
+      "name": "mpLine2Index",
+      "width": 6,
+      "guard": "mpLine2Valid",
+      "source": "f.io.liveLines(2).bits.token.index"
+    },
+    {
+      "name": "mpLine2Tag",
+      "width": 64,
+      "guard": "mpLine2Valid",
+      "source": "f.io.liveLines(2).bits.token.tag"
+    },
+    {
+      "name": "mpLine2PaLine",
+      "width": 64,
+      "guard": "mpLine2Valid",
+      "source": "Cat(f.io.liveLines(2).bits.line, 0.U(6.W))"
+    },
+    {
+      "name": "mpLine3Valid",
+      "width": 1,
+      "guard": null,
+      "source": "f.io.liveLines(3).valid"
+    },
+    {
+      "name": "mpLine3Index",
+      "width": 6,
+      "guard": "mpLine3Valid",
+      "source": "f.io.liveLines(3).bits.token.index"
+    },
+    {
+      "name": "mpLine3Tag",
+      "width": 64,
+      "guard": "mpLine3Valid",
+      "source": "f.io.liveLines(3).bits.token.tag"
+    },
+    {
+      "name": "mpLine3PaLine",
+      "width": 64,
+      "guard": "mpLine3Valid",
+      "source": "Cat(f.io.liveLines(3).bits.line, 0.U(6.W))"
+    },
+    {
+      "name": "mpPfAlloc",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.observationStorePrefetch.allocated"
+    },
+    {
+      "name": "mpPfPa",
+      "width": 64,
+      "guard": "mpPfAlloc",
+      "source": "mpCache.observationStorePrefetch.allocatedAddress"
+    },
+    {
+      "name": "mpPfSlot",
+      "width": 2,
+      "guard": "mpPfAlloc",
+      "source": "mpCache.observationStorePrefetch.allocatedSlot"
+    },
+    {
+      "name": "mpDemandAlloc",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.observationStorePrefetch.demandAlloc"
+    },
+    {
+      "name": "mpDemandPa",
+      "width": 64,
+      "guard": "mpDemandAlloc",
+      "source": "mpCache.observationStorePrefetch.demandAllocAddress"
+    },
+    {
+      "name": "mpDemandSlot",
+      "width": 2,
+      "guard": "mpDemandAlloc",
+      "source": "mpCache.observationStorePrefetch.demandAllocSlot"
+    },
+    {
+      "name": "mpRefill",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.observationStorePrefetch.refill"
+    },
+    {
+      "name": "mpRefillPa",
+      "width": 64,
+      "guard": "mpRefill",
+      "source": "mpCache.observationStorePrefetch.refillAddress"
+    },
+    {
+      "name": "mpRefillSlot",
+      "width": 2,
+      "guard": "mpRefill",
+      "source": "mpCache.observationStorePrefetch.refillSlot"
+    },
+    {
+      "name": "mpRefillPrefetch",
+      "width": 1,
+      "guard": "mpRefill",
+      "source": "mpCache.observationStorePrefetch.refillPrefetch"
+    },
+    {
+      "name": "mpMshrLive",
+      "width": 2,
+      "guard": null,
+      "source": "mpCache.observationStorePrefetch.mshrLiveMask"
+    },
+    {
+      "name": "mpMshrPrefetch",
+      "width": 2,
+      "guard": null,
+      "source": "mpCache.observationStorePrefetch.mshrPrefetchMask"
+    },
+    {
+      "name": "mpTlAValid",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.io.tl.a.valid"
+    },
+    {
+      "name": "mpTlAReady",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.io.tl.a.ready"
+    },
+    {
+      "name": "mpTlAAddress",
+      "width": 64,
+      "guard": "mpTlAValid",
+      "source": "mpCache.io.tl.a.bits.address"
+    },
+    {
+      "name": "mpTlASource",
+      "width": 3,
+      "guard": "mpTlAValid",
+      "source": "mpCache.io.tl.a.bits.source"
+    },
+    {
+      "name": "mpTlAOpcode",
+      "width": 3,
+      "guard": "mpTlAValid",
+      "source": "mpCache.io.tl.a.bits.opcode"
+    },
+    {
+      "name": "mpTlASize",
+      "width": 3,
+      "guard": "mpTlAValid",
+      "source": "mpCache.io.tl.a.bits.size"
+    },
+    {
+      "name": "mpTlDValid",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.io.tl.d.valid"
+    },
+    {
+      "name": "mpTlDReady",
+      "width": 1,
+      "guard": null,
+      "source": "mpCache.io.tl.d.ready"
+    },
+    {
+      "name": "mpTlDSource",
+      "width": 3,
+      "guard": "mpTlDValid",
+      "source": "mpCache.io.tl.d.bits.source"
+    },
+    {
+      "name": "mpTlDOpcode",
+      "width": 3,
+      "guard": "mpTlDValid",
+      "source": "mpCache.io.tl.d.bits.opcode"
+    },
+    {
+      "name": "mpTlDSize",
+      "width": 3,
+      "guard": "mpTlDValid",
+      "source": "mpCache.io.tl.d.bits.size"
+    },
+    {
+      "name": "mpOtherValid",
+      "width": 1,
+      "guard": null,
+      "source": "board.platform.homeUpstream.request.valid"
+    },
+    {
+      "name": "mpOtherReady",
+      "width": 1,
+      "guard": null,
+      "source": "board.platform.homeUpstream.request.ready"
+    },
+    {
+      "name": "mpOtherPa",
+      "width": 64,
+      "guard": "mpOtherValid",
+      "source": "board.platform.homeUpstream.request.bits.address"
+    },
+    {
+      "name": "mpOtherSize",
+      "width": 3,
+      "guard": "mpOtherValid",
+      "source": "board.platform.homeUpstream.request.bits.size"
+    },
+    {
+      "name": "mpOtherWrite",
+      "width": 1,
+      "guard": "mpOtherValid",
+      "source": "board.platform.homeUpstream.request.bits.write"
+    },
+    {
+      "name": "mpOtherResponseValid",
+      "width": 1,
+      "guard": null,
+      "source": "board.platform.homeUpstream.response.valid"
+    },
+    {
+      "name": "mpOtherResponseReady",
+      "width": 1,
+      "guard": null,
+      "source": "board.platform.homeUpstream.response.ready"
+    },
+    {
+      "name": "mpFetchAccepted",
+      "width": 1,
+      "guard": null,
+      "source": "board.platform.io.activity.get.fetchGetFire"
+    },
+    {
+      "name": "mpFetchPa",
+      "width": 64,
+      "guard": "mpFetchAccepted",
+      "source": "board.platform.io.activity.get.fetchGetAddress"
+    },
+    {
+      "name": "mpFetchSize",
+      "width": 3,
+      "guard": "mpFetchAccepted",
+      "source": "board.platform.io.activity.get.fetchGetSize"
+    }
+  ],
+  "token_index_bits": 6,
+  "token_tag_bits": 64,
+  "epoch_bits": 32,
+  "pa_bits": 64,
+  "guard_rule": "Read valid before every payload. Invalid output payload is also zeroed in wrapper."
+}

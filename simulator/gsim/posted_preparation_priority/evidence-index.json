@@ -1,0 +1,134 @@
+{
+  "status": "FIVE_PAIR_CLOSED_EVIDENCE_REFERENCE_INDEX",
+  "production_head": "aa37b6a00666ee9be4284ea1793cd376c0775344",
+  "archives": [
+    {
+      "library_file_id": "libfile_2bc12ead11948191adb69da82af95c06",
+      "version": 0,
+      "size": 299794,
+      "sha256": "b7b5bfec4a9f11b48479caa9c7f9f0ac3a010b3ebc7f9e00ef86d9ec8dff38db",
+      "scope": ""
+    },
+    {
+      "library_file_id": "libfile_6f49ab6c16b88191b0a840dc607e4def",
+      "version": 0,
+      "size": 13139241,
+      "sha256": "70615195b0965b21b4f388b0c6a368b61ae9da75d60290f490e02774406d4c88",
+      "scope": "Complete native current source/exports/census/control + five semantic negative controls; zero state delta; no mapped PPA/STA"
+    },
+    {
+      "library_file_id": "libfile_4d23353ad2088191ba3c8cf80ab6c908",
+      "version": 0,
+      "size": 123820294,
+      "sha256": "58d567cff539e8a0114fece6ef232b87d5993e106f3e5a81189f813372edd041",
+      "scope": "Both fresh aa37 CPU models/GC/host ABI/source/classes; actual restore5793 files with modes/nsmtime/hardlinks. Original local ID xattr missing was corrected from confirmed server ID, bytes unchanged. CPU throughput not yet executed"
+    },
+    {
+      "library_file_id": "libfile_2b27052c903c8191acac3bff614badc2",
+      "version": 0,
+      "size": 23349856,
+      "sha256": "5edf2c1c9424d4998c4caf8d60b00712bf5bd67d740ddf756fb972cec0e2d58a",
+      "scope": "Actual52 focused positives+6 exact poison controls, same r4 host, raw model/binaries and original failures, generic OFF scoped source/raw native bridge. Main1cycle gain and final-drain2cycle regression both recorded. No CPU performance/PPA/STA claim"
+    },
+    {
+      "library_file_id": "libfile_52054a58f0388191bc7c7c836e009e0f",
+      "version": 0,
+      "size": 80298300,
+      "sha256": "b48bed761e3f868743ef62ba5e5117517e01a0ae7051972bfaff184ae25bb4bf",
+      "scope": "Actual aa37 preparation-priority OFF case19 complete terminal; old baseline all19raw exact; 10positive compressed sidecar actual fresh restoration verified before reversible collection"
+    },
+    {
+      "library_file_id": "libfile_1269dafb49b48191af36f4dc99be531d",
+      "version": 0,
+      "size": 83577700,
+      "sha256": "43797c29c7cc5dcc9ca861464fcec6bee5cbf7dc689cb3cf48d9b5e146c391e0",
+      "scope": "Actual aa37 ON Bare19 and strict OFF/ON net gain pair;41member streamed byte/mode audit. Original ON raw retained; no fresh full restore claimed."
+    },
+    {
+      "library_file_id": "libfile_5bb7af152894819191bfc24afe8fa99b",
+      "version": 0,
+      "size": 23153,
+      "sha256": "52c167e35a599f5e7fda68b01ef62ebe1a2ed25abeb548c0a2051a53f64e0734",
+      "scope": "Frozen separate case0/6/18 functional closure/contract/exact controls; source preparation only, not terminal DUT results"
+    },
+    {
+      "library_file_id": "libfile_2db192579b8c8191965f2fd69ab5de4f",
+      "version": 0,
+      "size": 150824960,
+      "sha256": "fafec6bbc17750c517611154595a42ab10897c38b4dd19ac1797dc7451ab57e6",
+      "scope": "Warm0 complete original OFF/ON positive raw archive; exact original-path restoration required"
+    },
+    {
+      "library_file_id": "libfile_f39d4a0be3e481919dc29ca09b38b911",
+      "version": 0,
+      "size": 59695,
+      "sha256": "499ab8eaa22f4b7797849440adad3c5dcd289d62223f44f9f4a0c658a86c42d8",
+      "scope": "Warm0 required r2 metadata and original-path restoration instructions"
+    },
+    {
+      "library_file_id": "libfile_2119c7ad27fc8191889f8e3c1a850025",
+      "version": 0,
+      "size": 62183,
+      "sha256": "c9171b9e7bf00d6d0caed87eeba38e86ca1c4525773cf82a71d228a6029a0caa",
+      "scope": "Warm0 final audited collection and recovery identity"
+    },
+    {
+      "library_file_id": "libfile_80a3582061748191ae5e1b1b85f5e06b",
+      "version": 0,
+      "size": 1542713,
+      "sha256": "db3ba412b9827e14c41a8c9b283786ee62c2deb079d789a61dfeb231ab043464",
+      "scope": "All five original strict terminal pairs and bounded results; 282 members actually restored. Full raw/source/model dependencies retain their separate archive identities."
+    }
+  ],
+  "original_local_anchors": [
+    {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-focused-r1/actual-focused-aggregate-r4.json",
+      "sha256": "48ee330f128ec12aebeafb43d521a3f8ae307a055e3896ff3f2c8332f3670baa"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case19-pair-r1.json",
+      "sha256": "9979624bf42c2829bf89c5007170e6b343066e3f7e756f92734cc1b8f6fa1cdb"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-native-r1/analysis/summary.json",
+      "sha256": "935651680a3b47affa11131066adf7772dfa5570782e80b4ab22a867427af578"
+    },
+    {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-host-r2/pair-runtime-pins-r1.json",
+      "sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd"
+    }
+  ],
+  "public_archive_reference_fields": [
+    "library_file_id",
+    "version",
+    "size",
+    "sha256",
+    "scope"
+  ],
+  "qualification_as_of_utc": "2026-10-10T23:35:03.043110+00:00",
+  "pending_workloads": [],
+  "terminal_pair_pins": {
+    "19": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case19-pair-r1.json",
+      "sha256": "9979624bf42c2829bf89c5007170e6b343066e3f7e756f92734cc1b8f6fa1cdb"
+    },
+    "21": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case21-pair-r1.json",
+      "sha256": "b30c30a0390aad16b06ddf63df3567299c4ff066cde5308e89c454689a59f187"
+    },
+    "0": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case0-pair-r1.json",
+      "sha256": "f3ebc487997249521490851f0292e102ce96591b53634177743d37b493d803fa"
+    },
+    "6": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case6-pair-r1.json",
+      "sha256": "c15a732943dd80d4b7e33f1290c0c7c36d4b2e30718c5fddd82e742afb1571c3"
+    },
+    "18": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case18-pair-r1.json",
+      "sha256": "0bb919c5ef7b35b910ca48fe3a80c740ccbd1737fb72e1c7e453420e54743b50"
+    }
+  },
+  "runtime_reverified_by_this_integration": false,
+  "terminal_results_summary_sha256": "af78eb7be8c081201c0b892661aedbde429a4c6c338b959e360519ea58b9b328"
+}

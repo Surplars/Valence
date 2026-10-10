@@ -746,7 +746,23 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                         !entry.request.fetchFault && !entry.request.fetchPageFault &&
                         storePrepared(i) && storeAddressKnown(i) && storeSafeRange(i) && !virtualized
                 }).asUInt
-                Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)
+                if (p.postedPreparationPriority) {
+                    val originalPreparationMask = Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)
+                    // Decode-only qualification of EVERY original candidate, before issued-owner exclusion.
+                    // Addresses/PMP are deliberately not inspected here; actual launch and seal gates stay below.
+                    val allOriginalLoads = (0 until p.robEntries).map { i =>
+                        val request = queue(i).request
+                        !originalMemoryMask(i) || (request.memory && !request.store && !request.atomic &&
+                            !request.system && !request.mulDiv && request.controlFlow === ControlFlow.none &&
+                            request.operation === IntegerOp.add && !request.fetchFault && !request.fetchPageFault)
+                    }.reduce(_ && _)
+                    val postedPreparationWindow = postedBusy && !virtualized && originalMemoryMask.orR &&
+                        allOriginalLoads && !blockPostedStart && !interruptDrain && !contextMemoryEpoch &&
+                        !fpMemoryEpoch && !ledger.io.recovering
+                    // Keep both pools in the existing circular age order: older loads and head stores win.
+                    // No P-only priority, saved owner, new rank/port, or launch/ready/seal feedback.
+                    Mux(postedPreparationWindow, originalMemoryMask | preparedStoreMask, originalPreparationMask)
+                } else Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)
             } else originalMemoryMask
             // This selects payload preparation only. Existing full-token/head/PMP,
             // interrupt and recovery checks below still authorize every LSU start.

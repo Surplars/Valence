@@ -25,7 +25,7 @@ final class CanonicalVirtualStoreActualParamsAudit(
         "audit entry profile differs from explicit native options")
     require(profile.canonicalVirtualStoreOverlap == (mode == "on"), "official treatment differs from side")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 139 && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 140 && expectedCore.memoryEntries == 4 &&
         expectedCore.robEntries == profile.robEntries.getOrElse(16) &&
         expectedCore.physicalRegs == profile.physicalRegs.getOrElse(48) && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
@@ -103,7 +103,7 @@ final class CanonicalVirtualStoreActualParamsAudit(
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 139 && actual == expectedCore,
+            require(actual.productArity == 140 && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }
@@ -171,7 +171,7 @@ object CanonicalVirtualStoreActualParamsMain extends App {
         (if (mode == "on") Set("--canonical-virtual-store-overlap") else Set.empty[String])
     require(options.size == args.length - 2 && options == expected, "official canonical options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(profile.productArity == 31 && profile.coreParams.productArity == 139)
+    require(profile.productArity == 32 && profile.coreParams.productArity == 140)
     require(profile == PostedPrefetchBoardProfiles.profile("head-offer", "on")
         .copy(canonicalVirtualStoreOverlap = mode == "on"))
     require(!Files.exists(Paths.get(args(0))), "actual entry audit requires a fresh output directory")

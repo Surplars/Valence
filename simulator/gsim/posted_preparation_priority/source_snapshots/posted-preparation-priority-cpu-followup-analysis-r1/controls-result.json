@@ -1,0 +1,312 @@
+{
+  "actual_warm_pairs_qualified": 0,
+  "full_runtime_build_or_verify_called": false,
+  "new_DUT_execution": false,
+  "positive_controls": [
+    "warm_OFF_identity_without_COPY_reproduction",
+    "exact_all_raw_executable_log_inventory",
+    "frozen_warm_OFF_actual_parser_measurement_without_COPY_field",
+    "actual_negative_argv_exit_exact_error_and_measured_invocation",
+    "timing_equality",
+    "timing_both_gain",
+    "timing_both_regression",
+    "timing_ROI_gain_total_regression",
+    "timing_ROI_regression_total_gain",
+    "timing_ROI_equal_total_gain",
+    "timing_ROI_gain_total_equal",
+    "unchanged_followup_bridge_predicate_with_synthetic_upstream_seam",
+    "warm_zero_proof_witness_is_applicable_and_boundary_stays_UNKNOWN"
+  ],
+  "positive_count": 13,
+  "raw_parsers_reexecuted": false,
+  "rejected_count": 57,
+  "rejections": [
+    {
+      "name": "wrong_side",
+      "reason_contains": "terminal identity",
+      "status": "REJECTED"
+    },
+    {
+      "name": "wrong_case",
+      "reason_contains": "terminal identity",
+      "status": "REJECTED"
+    },
+    {
+      "name": "running_terminal",
+      "reason_contains": "terminal identity",
+      "status": "REJECTED"
+    },
+    {
+      "name": "guest_changed",
+      "reason_contains": "terminal identity",
+      "status": "REJECTED"
+    },
+    {
+      "name": "model_rebuilt",
+      "reason_contains": "identity/model rebuild",
+      "status": "REJECTED"
+    },
+    {
+      "name": "different_pins",
+      "reason_contains": "exact pins changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "different_pins_path",
+      "reason_contains": "exact pins changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "COPY_only_field",
+      "reason_contains": "COPY-only reproduction",
+      "status": "REJECTED"
+    },
+    {
+      "name": "missing_actual_negative",
+      "reason_contains": "trap negative missing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "wrong_negative_exit",
+      "reason_contains": "trap negative missing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "missing_full_fault_oracle",
+      "reason_contains": "oracle missing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "COPY_case_out_of_scope",
+      "reason_contains": "only warm cases",
+      "status": "REJECTED"
+    },
+    {
+      "name": "bool_case_rejected",
+      "reason_contains": "only warm cases",
+      "status": "REJECTED"
+    },
+    {
+      "name": "raw_digest_changed",
+      "reason_contains": "artifact drift",
+      "status": "REJECTED"
+    },
+    {
+      "name": "executable_removed_from_inventory",
+      "reason_contains": "native executable/log/resource artifact missing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "required_raw_removed_from_inventory",
+      "reason_contains": "inventory changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "extra_unlisted_artifact",
+      "reason_contains": "inventory changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "tampered_primary_ticks_digest",
+      "reason_contains": "result digest mismatch",
+      "status": "REJECTED"
+    },
+    {
+      "name": "tampered_full_parser_result_digest",
+      "reason_contains": "result digest mismatch",
+      "status": "REJECTED"
+    },
+    {
+      "name": "wrong_parser_case",
+      "reason_contains": "invocation differs",
+      "status": "REJECTED"
+    },
+    {
+      "name": "wrong_parser_side",
+      "reason_contains": "invocation differs",
+      "status": "REJECTED"
+    },
+    {
+      "name": "parser_failed",
+      "reason_contains": "invocation differs",
+      "status": "REJECTED"
+    },
+    {
+      "name": "parser_stdin_digest",
+      "reason_contains": "stdin digest changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "parser_process_argv",
+      "reason_contains": "process/resources",
+      "status": "REJECTED"
+    },
+    {
+      "name": "parser_source_digest",
+      "reason_contains": "source mismatch",
+      "status": "REJECTED"
+    },
+    {
+      "name": "parser_result_digest",
+      "reason_contains": "result digest mismatch",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_wrong_expected_exit",
+      "reason_contains": "measured invocation",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_wrong_guest_case_argv",
+      "reason_contains": "measured invocation",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_wrong_environment",
+      "reason_contains": "measured invocation",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_wrong_cwd",
+      "reason_contains": "measured invocation",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_stdin_digest",
+      "reason_contains": "stdin digest changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_process_argv",
+      "reason_contains": "process/resources",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_failed_stage",
+      "reason_contains": "measured invocation",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_wrong_actual_exit",
+      "reason_contains": "argv/exit/guard",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_extra_error_text",
+      "reason_contains": "negative exact error",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_equality",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_both_gain",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_both_regression",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_ROI_gain_total_regression",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_ROI_regression_total_gain",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_ROI_equal_total_gain",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "timing_summary_tamper_ROI_gain_total_equal",
+      "reason_contains": "timing classification/delta changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "bool_timing",
+      "reason_contains": "integer cycle timing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "negative_tail",
+      "reason_contains": "integer cycle timing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_no_case19_gain",
+      "reason_contains": "case19 net gain required",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_wrong_parent_case",
+      "reason_contains": "case19 net gain required",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_not_permitted",
+      "reason_contains": "case19 net gain required",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_different_pins",
+      "reason_contains": "pins changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_contract_new_case_execution_required",
+      "reason_contains": "followup contract changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_contract_prior_variant_gain_inherited",
+      "reason_contains": "followup contract changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_contract_verification",
+      "reason_contains": "followup contract changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "followup_contract_sha256",
+      "reason_contains": "followup contract changed",
+      "status": "REJECTED"
+    },
+    {
+      "name": "terminal_followup_differs",
+      "reason_contains": "actual warm followup bridge differs",
+      "status": "REJECTED"
+    },
+    {
+      "name": "fabricated_boundary_sample",
+      "reason_contains": "unknown endpoint fabricated",
+      "status": "REJECTED"
+    },
+    {
+      "name": "LRU_OFF_is_not_new_flag_OFF",
+      "reason_contains": "fixed LRU qualification missing",
+      "status": "REJECTED"
+    },
+    {
+      "name": "OFF_inherited_focused",
+      "reason_contains": "OFF focused field",
+      "status": "REJECTED"
+    },
+    {
+      "name": "structural_count_tamper",
+      "reason_contains": "invalid proof witness count",
+      "status": "REJECTED"
+    }
+  ],
+  "status": "PASS_TINY_ANALYZER_HELPER_CONTROLS_NOT_DUT_QUALIFICATION",
+  "synthetic_helpers_only": true
+}

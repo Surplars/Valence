@@ -1,0 +1,415 @@
+{
+  "schema": "store-data-forwarding-cpu-guest-provenance-v1",
+  "status": "PASS_IMMUTABLE_BYTES_AND_CASE0_SEMANTICS",
+  "execution_scope": "Read-only pinned binutils inspection, source reads, independent checksum arithmetic; new evidence files only. No compile or DUT execution.",
+  "immutable_inputs": {
+    "guest_elf": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-bandwidth-pair-r1/guest.elf",
+      "sha256": "bdedff34099ab1195df390b5fb1964667cc8819474b3f219a6e7b350a9f77396",
+      "size": 45912
+    },
+    "guest_bin": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-bandwidth-pair-r1/guest.bin",
+      "sha256": "3af27dccda6acd677bb01fdad4d240ffee2f9af1c1fb4181a71c43ff2087a810",
+      "size": 6104
+    },
+    "kernel_bin": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-bandwidth-pair-r1/kernel.bin",
+      "sha256": "f5a152ca2779ee567a9f864bc29d524bd91a935dab0323f21353ae9c9af0fec5",
+      "size": 1472
+    },
+    "prep_guest_elf": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest.elf",
+      "sha256": "bdedff34099ab1195df390b5fb1964667cc8819474b3f219a6e7b350a9f77396",
+      "size": 45912
+    },
+    "prep_guest_bin": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest.bin",
+      "sha256": "3af27dccda6acd677bb01fdad4d240ffee2f9af1c1fb4181a71c43ff2087a810",
+      "size": 6104
+    }
+  },
+  "tools": {
+    "nm": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-nm",
+      "sha256": "f7ed1d259213c4e931ee7c84b94d4166f8e4df724eb0394bbd1b137e0f29d045",
+      "size": 1173728,
+      "resolved_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-nm",
+      "version": "GNU nm (2.44-3+7+b1) 2.44"
+    },
+    "objdump": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-objdump",
+      "sha256": "33ca20b231a527f387f75b1ef7c0b9ecb943203959b9613c50636af68fa45186",
+      "size": 2195904,
+      "resolved_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-objdump",
+      "version": "GNU objdump (2.44-3+7+b1) 2.44"
+    },
+    "gcc": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-gcc",
+      "sha256": "9105719e661cb7362a3cd014f84807c8242e804716798d7f6b3a0770bd3c93da",
+      "size": 2783560,
+      "resolved_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/env/sysroot/usr/bin/riscv64-unknown-elf-gcc",
+      "version": "riscv64-unknown-elf-gcc (14.2.0+19) 14.2.0"
+    }
+  },
+  "tool_receipt": {
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/toolchain/tool-receipt.json",
+    "sha256": "09a2c9129ebe50f34e3be6529b83e100c74c00f883e675fb5846a2d4f9e5a037",
+    "size": 2921
+  },
+  "elf_embedding": {
+    "allocated_file_sections": [
+      {
+        "section": ".text",
+        "virtual_address": 4294410240,
+        "guest_offset": 0,
+        "size": 6088,
+        "sha256": "cbe827ac15ffaf0353b7e203b8c3d34d09234119e3caa12c8d9fd5d2a08a730a",
+        "matches_guest": true
+      },
+      {
+        "section": ".rodata",
+        "virtual_address": 4294416328,
+        "guest_offset": 6088,
+        "size": 16,
+        "sha256": "47853619d2814a890b6f54016a915666fb273139a18eaed8f6b38e07970ec5ce",
+        "matches_guest": true
+      }
+    ],
+    "all_allocated_section_bytes_match_guest": true,
+    "kernel_offset": 3020,
+    "kernel_size": 1472,
+    "kernel_sha256": "f5a152ca2779ee567a9f864bc29d524bd91a935dab0323f21353ae9c9af0fec5",
+    "kernel_matches_embedded_guest_bytes": true
+  },
+  "symbols": {
+    "DIAGNOSTIC_BASE": 4294410240,
+    "_start": 4294410240,
+    "stop": 4294410316,
+    "mmu_worksets_done": 4294410400,
+    "case_marker": 4294410416,
+    "mmu_worksets_case_done": 4294410416,
+    "invoke": 4294410424,
+    "verify.constprop.0": 4294411292,
+    "selfcheck.constprop.0": 4294412312,
+    "mmu_diagnostic_supervisor": 4294413260,
+    "main": 4294414732,
+    "mmu_diagnostic_enter": 4294416036,
+    "mmu_diagnostic_supervisor_entry": 4294416188,
+    "mmu_diagnostic_return_ecall": 4294416196,
+    "mmu_diagnostic_trap": 4294416204,
+    "__bss_end": 4294416344,
+    "__bss_start": 4294416344,
+    "__global_pointer$": 4294418392,
+    "__app_stack_top": 4294541312
+  },
+  "markers": {
+    "read_begin": {
+      "pc": 4294413348,
+      "pc_hex": "0xfff78c24",
+      "encoding_u32": 3222284531,
+      "encoding_hex": "c01028f3",
+      "little_endian_bytes_hex": "f32810c0",
+      "instruction": "rdtime a7",
+      "guest_offset": 3108
+    },
+    "read_end": {
+      "pc": 4294414440,
+      "pc_hex": "0xfff79068",
+      "encoding_u32": 3222284147,
+      "encoding_hex": "c0102773",
+      "little_endian_bytes_hex": "732710c0",
+      "instruction": "rdtime a4",
+      "guest_offset": 4200
+    },
+    "case_done": {
+      "pc": 4294410416,
+      "pc_hex": "0xfff780b0",
+      "encoding_u32": 19,
+      "encoding_hex": "00000013",
+      "little_endian_bytes_hex": "13000000",
+      "instruction": "nop",
+      "guest_offset": 176
+    },
+    "terminal_done": {
+      "pc": 4294410400,
+      "pc_hex": "0xfff780a0",
+      "encoding_u32": 19,
+      "encoding_hex": "00000013",
+      "little_endian_bytes_hex": "13000000",
+      "instruction": "nop",
+      "guest_offset": 160
+    },
+    "timed_load": {
+      "pc": 4294414412,
+      "pc_hex": "0xfff7904c",
+      "encoding_u32": 472707,
+      "encoding_hex": "00073683",
+      "little_endian_bytes_hex": "83360700",
+      "instruction": "ld a3,0(a4)",
+      "guest_offset": 4172
+    },
+    "warmup_load": {
+      "pc": 4294413324,
+      "pc_hex": "0xfff78c0c",
+      "encoding_u32": 473219,
+      "encoding_hex": "00073883",
+      "little_endian_bytes_hex": "83380700",
+      "instruction": "ld a7,0(a4)",
+      "guest_offset": 3084
+    },
+    "return_ecall": {
+      "pc": 4294416196,
+      "pc_hex": "0xfff79744",
+      "encoding_u32": 115,
+      "encoding_hex": "00000073",
+      "little_endian_bytes_hex": "73000000",
+      "instruction": "ecall",
+      "guest_offset": 5956
+    }
+  },
+  "evidence_artifacts": {
+    "symbol_table": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.nm.txt",
+      "sha256": "49e230961d7ea7a831b06f1f06263395fcceb3dcedba6d96f3c2fe6a7b295c5e",
+      "size": 678
+    },
+    "full_disassembly_with_source_lines": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.disassembly.txt",
+      "sha256": "1b2510c907c51fdd2c51a1cb5205ba4df8c85fe67c23daa923f427645e5e12a7",
+      "size": 173415
+    },
+    "dwarf_info": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.dwarf-info.txt",
+      "sha256": "485384d80eb52068654ccdbc7032fb70fe914f4314e02ecdaccf6b441164bad2",
+      "size": 127524
+    },
+    "dwarf_decoded_lines": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.dwarf-lines.txt",
+      "sha256": "675d2913ba4cdb864bf14d1c68e3a103f1d7330d76a11065ea110e7d4253a548",
+      "size": 134962
+    },
+    "sections": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.sections.txt",
+      "sha256": "2125f0b093b584627220dbb055485e57b39b161e3bbdc90b805006d305073f4e",
+      "size": 1719
+    },
+    "relevant_disassembly": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/guest.relevant-disassembly.txt",
+      "sha256": "d6617fd6760e8863e464bc2ff26af73f1e9752afb6f2b77fb334237ce76c6f9a",
+      "size": 24183
+    },
+    "source_snippets": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source-snippets.txt",
+      "sha256": "da0298fa2b28cfad98c95990dd7925a76db6d464ef934111d7387f8a91757cef",
+      "size": 10690
+    }
+  },
+  "source_snapshots": {
+    "fpga/firmware/mmu_diagnostic.c": {
+      "current_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/source/fpga/firmware/mmu_diagnostic.c",
+        "sha256": "a00056e5e6503eae7a3a344f5143bf4948421d526c68beb592d3d28a3454f1f7",
+        "size": 11643
+      },
+      "snapshot": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source/fpga/firmware/mmu_diagnostic.c",
+        "sha256": "a00056e5e6503eae7a3a344f5143bf4948421d526c68beb592d3d28a3454f1f7",
+        "size": 11643
+      },
+      "historical_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/historical-native/posted-prefetch-native-cost-r1/source-snapshot/fpga/firmware/mmu_diagnostic.c",
+        "sha256": "a00056e5e6503eae7a3a344f5143bf4948421d526c68beb592d3d28a3454f1f7",
+        "size": 11643
+      },
+      "current_matches_historical": true,
+      "original_compilation_source_byte_identity_proven": false
+    },
+    "fpga/firmware/tests/mmu_working_sets.c": {
+      "current_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/source/fpga/firmware/tests/mmu_working_sets.c",
+        "sha256": "55aaac7d2003b86218e8ec7bf2a7659b81fc82fcf526c6f5584f0ed648b4a6e9",
+        "size": 2977
+      },
+      "snapshot": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source/fpga/firmware/tests/mmu_working_sets.c",
+        "sha256": "55aaac7d2003b86218e8ec7bf2a7659b81fc82fcf526c6f5584f0ed648b4a6e9",
+        "size": 2977
+      },
+      "historical_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/historical-native/posted-prefetch-native-cost-r1/source-snapshot/fpga/firmware/tests/mmu_working_sets.c",
+        "sha256": "55aaac7d2003b86218e8ec7bf2a7659b81fc82fcf526c6f5584f0ed648b4a6e9",
+        "size": 2977
+      },
+      "current_matches_historical": true,
+      "original_compilation_source_byte_identity_proven": false
+    },
+    "fpga/firmware/mmu_diagnostic_enter.S": {
+      "current_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/source/fpga/firmware/mmu_diagnostic_enter.S",
+        "sha256": "e1fbd48f51f89afaa26ff1bd4045801c4a67a6945bd1e96b0fc09699899dca03",
+        "size": 1906
+      },
+      "snapshot": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source/fpga/firmware/mmu_diagnostic_enter.S",
+        "sha256": "e1fbd48f51f89afaa26ff1bd4045801c4a67a6945bd1e96b0fc09699899dca03",
+        "size": 1906
+      },
+      "historical_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/historical-native/posted-prefetch-native-cost-r1/source-snapshot/fpga/firmware/mmu_diagnostic_enter.S",
+        "sha256": "e1fbd48f51f89afaa26ff1bd4045801c4a67a6945bd1e96b0fc09699899dca03",
+        "size": 1906
+      },
+      "current_matches_historical": true,
+      "original_compilation_source_byte_identity_proven": false
+    },
+    "fpga/firmware/mmu_diagnostic.h": {
+      "current_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/source/fpga/firmware/mmu_diagnostic.h",
+        "sha256": "2d58f10f56576fb7e3aaecda939bad2338b7e75f38204befd4267bafc1515ebd",
+        "size": 731
+      },
+      "snapshot": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source/fpga/firmware/mmu_diagnostic.h",
+        "sha256": "2d58f10f56576fb7e3aaecda939bad2338b7e75f38204befd4267bafc1515ebd",
+        "size": 731
+      },
+      "historical_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/historical-native/posted-prefetch-native-cost-r1/source-snapshot/fpga/firmware/mmu_diagnostic.h",
+        "sha256": "2d58f10f56576fb7e3aaecda939bad2338b7e75f38204befd4267bafc1515ebd",
+        "size": 731
+      },
+      "current_matches_historical": true,
+      "original_compilation_source_byte_identity_proven": false
+    },
+    "fpga/firmware/board_memory.h": {
+      "current_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/source/fpga/firmware/board_memory.h",
+        "sha256": "9d6460c0a3f4133d43c81f83ffbcabbeec81eea6c192460ba67fb5c6bc8b05fa",
+        "size": 840
+      },
+      "snapshot": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/store-data-forwarding-cpu-prep-r1/guest-evidence/source/fpga/firmware/board_memory.h",
+        "sha256": "9d6460c0a3f4133d43c81f83ffbcabbeec81eea6c192460ba67fb5c6bc8b05fa",
+        "size": 840
+      },
+      "historical_source": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/historical-native/posted-prefetch-native-cost-r1/source-snapshot/fpga/firmware/board_memory.h",
+        "sha256": "9d6460c0a3f4133d43c81f83ffbcabbeec81eea6c192460ba67fb5c6bc8b05fa",
+        "size": 840
+      },
+      "current_matches_historical": true,
+      "original_compilation_source_byte_identity_proven": false
+    }
+  },
+  "bootstrap": {
+    "dwarf_source_path": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/mmu/portable-worksets-r1/start.S",
+    "original_source_present": false,
+    "original_source_sha256": null,
+    "elf_start_pc": 4294410240,
+    "elf_end_pc_exclusive": 4294410316,
+    "elf_bytes_size": 76,
+    "elf_bytes_sha256": "68080d23aa2067e0782778080d06cd217f89088da08a1a14a90439b6227d60d5",
+    "note": "Original portable-worksets start.S bytes are unavailable in this restored namespace. Full exact machine instructions and DWARF line references are preserved. Current fpga/firmware/start.S is the BootROM bootstrap and is not substituted."
+  },
+  "build_provenance": {
+    "historical_preflight": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-head-offer-bandwidth-pair-r1/preflight.json",
+      "sha256": "aa6b0eef429c2da9fbc7392193b531b82d2a3c835023a7258c98bcbba911275e",
+      "size": 340532
+    },
+    "retained_original_guest_record": {
+      "receipt_sha256": "bb70a26d504ee87661ded7ac1697b0d0db10347040a302190c12180c62da82ce",
+      "binary_sha256": "3af27dccda6acd677bb01fdad4d240ffee2f9af1c1fb4181a71c43ff2087a810",
+      "kernel_sha256": "f5a152ca2779ee567a9f864bc29d524bd91a935dab0323f21353ae9c9af0fec5",
+      "symbols": {
+        "MMU_SMOKE_ENTRY": 4294410240,
+        "MMU_SMOKE_DONE_PC": 4294410400,
+        "MMU_WORKSETS_CASE_PC": 4294410416,
+        "MMU_SMOKE_SIGNATURE": 4294930432,
+        "MMU_SMOKE_DATA_A": 4294541312,
+        "MMU_SMOKE_DATA_B": 4294672384,
+        "MMU_SUPERVISOR_PC": 4294413260,
+        "MMU_RETURN_ECALL_PC": 4294416196,
+        "MMU_WRITE_BEGIN_PC": 4294413888,
+        "MMU_COPY_BEGIN_PC": 4294414008,
+        "MMU_WRITE_COPY_END_PC": 4294413748,
+        "MMU_WRITE_COPY_TAIL_PC": 4294413768
+      },
+      "provenance": "Exact restored guest bytes and embedded kernel; original build receipt hash retained from immutable historical preflight, original build not rerun"
+    },
+    "dwarf_compile_unit_source_paths": [
+      "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/mmu/portable-worksets-r1/start.S",
+      "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/mmu/portable-worksets-r1/mmu_working_sets.c",
+      "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/bootrom-mmu-reconstructed/fpga/firmware/mmu_diagnostic_enter.S"
+    ],
+    "dwarf_producers": [
+      "GNU AS 2.44",
+      "GNU C17 14.2.0 -mabi=lp64 -mcmodel=medany -mno-relax -mno-small-data-limit=0 -misa-spec=20191213 -march=rv64im_zicsr_zifencei -g -O3 -ffreestanding -fno-builtin -fno-stack-protector -ffunction-sections -fdata-sections",
+      "GNU AS 2.44"
+    ],
+    "original_portable_wrapper_source": "/workspace/scratch/41e4a649bb60/recovery-20261009-1816/mmu/portable-worksets-r1/mmu_working_sets.c",
+    "original_wrapper_source_present": false,
+    "original_build_receipt_sha256": "bb70a26d504ee87661ded7ac1697b0d0db10347040a302190c12180c62da82ce",
+    "original_build_receipt_body_available": false,
+    "original_build_rerun": false,
+    "full_original_source_build_reproduction_claimed": false,
+    "note": "ELF DWARF establishes source paths, line mappings and compiler flags. Recovered C and S entry snapshots are hashed and match historical snapshots, but original portable wrapper/bootstrap source byte hashes and complete original compile/link receipt are not available. Immutable full ELF, binary and embedded supervisor bytes are independently verified."
+  },
+  "case0": {
+    "selection": [
+      0,
+      1
+    ],
+    "mode": 0,
+    "test": 0,
+    "operation": 0,
+    "privilege": 1,
+    "satp": 0,
+    "source_pa": 4294541312,
+    "destination_pa": 4294672384,
+    "count": 1024,
+    "passes": 8,
+    "working_set_bytes": 8192,
+    "timed_load_count": 8192,
+    "architectural_read_bytes": 65536,
+    "architectural_write_bytes": 0,
+    "warmup_sum_u64": 857918550160113152,
+    "warmup_sum_hex": "0xbe7f0603c82fe00",
+    "timed_sum_u64": 6863348401280905216,
+    "timed_sum_hex": "0x5f3f8301e417f000",
+    "pattern": "0x729ad0513fe68bc4 XOR ((word_index * 0x0102040810204081) modulo 2^64)",
+    "checksum_arithmetic": "sum of 8 copies of independently generated 1024-word list, modulo 2^64",
+    "row_fixed_prefix": [
+      0,
+      0,
+      0,
+      1024,
+      8
+    ],
+    "row_ticks_constraint": "positive; execution-derived rdtime difference",
+    "row_tail": 0,
+    "row_checksum": 6863348401280905216,
+    "record_pa": 4294823936,
+    "timed_roi": {
+      "begin_pc": 4294413348,
+      "end_pc": 4294414440,
+      "interval": "begin-inclusive/end-exclusive accepted-retirement interval",
+      "acceptance": "Offer captured after step; marker accepted on next nonreset edge only after exact ROB-head advance by offered commit count modulo 16",
+      "read_has_flush_tail": false,
+      "end_to_case_marker_is_outside_roi": true
+    },
+    "expected_fault_causes": [
+      13,
+      15,
+      1,
+      9
+    ],
+    "full_buffer_words_checked": 32768,
+    "buffers": {
+      "A": "pattern(n) for all 16384 words",
+      "B": "bitwise NOT pattern(n) for all 16384 words"
+    },
+    "roi_cycles_equal_guest_ticks_claimed": false
+  }
+}

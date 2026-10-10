@@ -1,0 +1,14 @@
+{
+  "actual_warm_pairs_qualified": 0,
+  "contract_sha256": "ad1297aad385087a74c7726c07bfb2c54c61f59ca9f531171e2ae649e9673ff3",
+  "files": {
+    "CONTRACT.json": "ad1297aad385087a74c7726c07bfb2c54c61f59ca9f531171e2ae649e9673ff3",
+    "README.md": "9d736cede1e47333303bd53f0855510c84ae55a55094bcb6b1d5a6755187d08b",
+    "close_pair.py": "a2590c6a5da2d3c7544e314a5fb70cfea747b88f203915339e884e7a166ab044",
+    "controls-result.json": "2deba33fd1d0fc61b2d2398aff092e11e804a46e61914e23a48f029d0d8ab130",
+    "test_controls.py": "2332720c4e199060699a406696d649bdf33f7757fdaef189c772e03453767d73"
+  },
+  "new_DUT_execution": false,
+  "schema": "posted-preparation-priority-warm-analysis-freeze-v1",
+  "status": "FROZEN_ANALYSIS_ONLY_NOT_DUT_QUALIFICATION"
+}

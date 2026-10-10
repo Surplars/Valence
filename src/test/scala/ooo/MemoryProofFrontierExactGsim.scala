@@ -184,12 +184,13 @@ object MemoryProofFrontierExactFixture {
     }
     def validate(p: OooParams): Unit = {
         val current = p.productElementNames.zip(p.productIterator).map { case (k, v) => k -> normalized(v) }.toMap
-        require(current.keySet == originalFields.keySet ++ Set("memoryProofFrontier", "memoryProofRows", "memoryProofCacheSets"),
+        require(current.keySet == originalFields.keySet ++ Set("memoryProofFrontier", "memoryProofRows", "memoryProofCacheSets", "postedPreparationPriority"),
             "exact fixture parameter field set drift")
         originalFields.foreach { case (name, expected) =>
             require(current(name) == expected, s"exact fixture changed original core parameter $name: ${current(name)} != $expected")
         }
-        require(current.size == 139 && originalFields.size == 136)
+        require(current.size == 140 && originalFields.size == 136)
+        require(!p.postedPreparationPriority, "historical frontier fixture keeps posted preparation priority off")
         require(p.memoryProofRows == 16 && p.memoryProofCacheSets == 256)
     }
     def write(p: OooParams, profile: FpgaNextConfig, directory: String): Unit = {

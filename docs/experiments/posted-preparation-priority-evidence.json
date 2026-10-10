@@ -1,0 +1,213 @@
+{
+  "schema": "posted-preparation-priority-evidence-v1",
+  "updated_utc": "2026-10-10T23:35:03.043110+00:00",
+  "status": "FIVE_ORIGINAL_PAIRS_CLOSED_DEFAULT_OFF_REVIEW",
+  "tested_production_head": "aa37b6a00666ee9be4284ea1793cd376c0775344",
+  "tested_src_main_tree": "52da00911b5ee66cca85b24c46ffc02a8ed9607d",
+  "published_parent": "e2f506c9a67a742d3bcd63751625e82840fb53e3",
+  "published_parent_tree": "20831b2ee236504cbcfb3536af70d4f9d62f84f5",
+  "default_enabled": false,
+  "recommendation_changed": false,
+  "pending_workloads": [],
+  "terminal_pair_pins": {
+    "19": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case19-pair-r1.json",
+      "sha256": "9979624bf42c2829bf89c5007170e6b343066e3f7e756f92734cc1b8f6fa1cdb"
+    },
+    "21": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case21-pair-r1.json",
+      "sha256": "b30c30a0390aad16b06ddf63df3567299c4ff066cde5308e89c454689a59f187"
+    },
+    "0": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case0-pair-r1.json",
+      "sha256": "f3ebc487997249521490851f0292e102ce96591b53634177743d37b493d803fa"
+    },
+    "6": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case6-pair-r1.json",
+      "sha256": "c15a732943dd80d4b7e33f1290c0c7c36d4b2e30718c5fddd82e742afb1571c3"
+    },
+    "18": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case18-pair-r1.json",
+      "sha256": "0bb919c5ef7b35b910ca48fe3a80c740ccbd1737fb72e1c7e453420e54743b50"
+    }
+  },
+  "cases": {
+    "19": {
+      "original_status": "PASS_CASE19_NET_GAIN",
+      "functional_status": "PASS_BOTH_ORIGINAL_BYTE_FAULT_CSR_DRAIN_AND_NEGATIVES",
+      "primary_performance": "GAIN",
+      "measurements": {
+        "off": {
+          "kernel": 384957,
+          "flush": 5562,
+          "total": 390519
+        },
+        "on": {
+          "kernel": 380840,
+          "flush": 5572,
+          "total": 386412
+        }
+      },
+      "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+      "pins_sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd",
+      "pair": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case19-pair-r1.json",
+        "sha256": "9979624bf42c2829bf89c5007170e6b343066e3f7e756f92734cc1b8f6fa1cdb"
+      }
+    },
+    "21": {
+      "original_status": "NO_CASE21_GAIN_AND_STRUCTURE",
+      "functional_status": "PASS_BOTH_ORIGINAL_BYTE_FAULT_CSR_DRAIN_AND_NEGATIVES",
+      "primary_performance": "EQUAL",
+      "measurements": {
+        "off": {
+          "kernel": 345578,
+          "flush": 5565,
+          "total": 351143
+        },
+        "on": {
+          "kernel": 345578,
+          "flush": 5565,
+          "total": 351143
+        }
+      },
+      "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+      "pins_sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd",
+      "pair": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-recovery-r1/case21-pair-r1.json",
+        "sha256": "b30c30a0390aad16b06ddf63df3567299c4ff066cde5308e89c454689a59f187"
+      }
+    },
+    "0": {
+      "original_status": "PASS_FULL_WARM_FOLLOWUP_FUNCTIONAL_PAIR",
+      "functional_status": "PASS_BOTH_ORIGINAL_BYTE_FAULT_CSR_DRAIN_AND_NEGATIVES",
+      "primary_performance": "EQUAL",
+      "measurements": {
+        "off": {
+          "kernel": 16458,
+          "flush": 0,
+          "total": 16458
+        },
+        "on": {
+          "kernel": 16458,
+          "flush": 0,
+          "total": 16458
+        }
+      },
+      "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+      "pins_sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd",
+      "pair": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case0-pair-r1.json",
+        "sha256": "f3ebc487997249521490851f0292e102ce96591b53634177743d37b493d803fa"
+      }
+    },
+    "6": {
+      "original_status": "PASS_FULL_WARM_FOLLOWUP_FUNCTIONAL_PAIR",
+      "functional_status": "PASS_BOTH_ORIGINAL_BYTE_FAULT_CSR_DRAIN_AND_NEGATIVES",
+      "primary_performance": "EQUAL",
+      "measurements": {
+        "off": {
+          "kernel": 24589,
+          "flush": 0,
+          "total": 24589
+        },
+        "on": {
+          "kernel": 24589,
+          "flush": 0,
+          "total": 24589
+        }
+      },
+      "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+      "pins_sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd",
+      "pair": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case6-pair-r1.json",
+        "sha256": "c15a732943dd80d4b7e33f1290c0c7c36d4b2e30718c5fddd82e742afb1571c3"
+      }
+    },
+    "18": {
+      "original_status": "PASS_FULL_WARM_FOLLOWUP_FUNCTIONAL_PAIR",
+      "functional_status": "PASS_BOTH_ORIGINAL_BYTE_FAULT_CSR_DRAIN_AND_NEGATIVES",
+      "primary_performance": "EQUAL",
+      "measurements": {
+        "off": {
+          "kernel": 112761,
+          "flush": 10643,
+          "total": 123404
+        },
+        "on": {
+          "kernel": 112761,
+          "flush": 10643,
+          "total": 123404
+        }
+      },
+      "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+      "pins_sha256": "1451bdfbebe133f1c2fdec34aeae90c831113f7c2a3d300308b776e68dfb19fd",
+      "pair": {
+        "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-cpu-followup-analysis-r1/case18-pair-r1.json",
+        "sha256": "0bb919c5ef7b35b910ca48fe3a80c740ccbd1737fb72e1c7e453420e54743b50"
+      }
+    }
+  },
+  "focused": {
+    "positives": 52,
+    "exact_poisons": 6,
+    "host_sha256": "494e402d41c67caf15f9599afc7eb774b9414297c48d55a4336339fe876f6d36",
+    "aggregate_sha256": "48ee330f128ec12aebeafb43d521a3f8ae307a055e3896ff3f2c8332f3670baa",
+    "main_start_off_on": [
+      266,
+      265
+    ],
+    "final_drain_start_off_on": [
+      291,
+      293
+    ]
+  },
+  "native": {
+    "scalar_register_delta": 0,
+    "array_register_delta": 0,
+    "IntegerBackend_SV_bytes_delta": 26224,
+    "mapped_PPA_STA": "UNMEASURED"
+  },
+  "negative_controls": {
+    "CPU_original_trap_runs": {
+      "count": 10,
+      "scope": "Five cases times OFF/ON; actual DUT runs"
+    },
+    "Sv39_proof_parser_mutants": {
+      "count": 14,
+      "scope": "Seven per side against actual original parser inputs; no new DUT execution"
+    },
+    "focused_poison_runs": {
+      "count": 6,
+      "scope": "Data/token/timing on both focused sides"
+    },
+    "GC_inject_mismatch_runs": {
+      "count": 2,
+      "failure": "firmware independent anchor/context failure",
+      "scope": "One original GC mismatch control per fresh full model"
+    }
+  },
+  "limits": {
+    "all_repository_tests_passed": false,
+    "new_integration_DUT_execution": false,
+    "cross_interval_joins": "UNKNOWN_NOT_RECONSTRUCTED",
+    "original_v3_Bare_total_cycles": 370853,
+    "candidate_Bare_total_cycles": 386412,
+    "Bare_read_owner_cycles_off_on": [
+      159869,
+      159869
+    ]
+  },
+  "host_review": {
+    "priority_cli_tests": 3,
+    "recommended_v3_tests": 9,
+    "LRU_cli_cases": 10,
+    "original_selector_policy_tests": 5,
+    "snapshot_byte_AST_only": true,
+    "preexisting_failure": "test_selection.py:79 test_exact_native_metadata_delta; same failure on published-equivalent baseline; assertion left unchanged",
+    "snapshot_whitespace_exceptions": [
+      "cpu-prep-r1/contract.py:53 trailing space",
+      "native-r1/fixture/PostedPreparationPriorityNativeProfiles.scala:47 final blank line"
+    ]
+  }
+}

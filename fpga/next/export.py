@@ -113,6 +113,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off local response flow retaining registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
                     help="default-off reconstructed prepared physical RAM store prefill")
+    ap.add_argument("--posted-preparation-priority", action="store_true",
+                    help="default-off age-ordered prepared stores during an all-load posted window")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -153,6 +155,8 @@ def main(argv=None, expected_profile_sha256=None):
         ap.error("--memory-proof-frontier requires reviewed ROB64/PRF64/LSU4, DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if a.canonical_virtual_store_overlap and not a.virtual_ram_load_precheck:
         ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
+    if a.posted_preparation_priority and not (a.prepared_store_lookahead and a.posted_store_merge):
+        ap.error("--posted-preparation-priority requires --prepared-store-lookahead and --posted-store-merge")
     if a.posted_prefetch_head_offer and not (a.posted_store_merge and a.posted_prefetch_coexistence):
         ap.error("--posted-prefetch-head-offer requires --posted-store-merge and --posted-prefetch-coexistence")
     if a.posted_prefetch_coexistence and not a.posted_store_merge:
@@ -230,6 +234,10 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["prepared_store_lookahead"] = a.prepared_store_lookahead
     if a.prepared_store_lookahead:
         profile["profile"]["name"] += "-prepared-store-lookahead"
+    # Keep omitted-option bytes identical for the frozen recommended preset.
+    if a.posted_preparation_priority:
+        profile["profile"]["posted_preparation_priority"] = True
+        profile["profile"]["name"] += "-posted-preparation-priority"
     profile["profile"]["store_next_line_prefetch"] = a.store_next_line_prefetch
     if a.store_next_line_prefetch:
         profile["profile"]["name"] += "-checked-store-prefetch"
@@ -347,6 +355,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--fetch-previous-packet")
     if a.prepared_store_lookahead:
         command.append("--prepared-store-lookahead")
+    if a.posted_preparation_priority:
+        command.append("--posted-preparation-priority")
     if a.store_next_line_prefetch:
         command.append("--store-next-line-prefetch")
     if a.store_prefetch_mru_insertion:

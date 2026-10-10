@@ -1,0 +1,14 @@
+{
+  "status": "FROZEN_HOST_R4_PENDING_COMPLETE_OFF_ON_MATRIX",
+  "production_head": "aa37b6a00666ee9be4284ea1793cd376c0775344",
+  "files": {
+    "posted_preparation_priority.cpp": "494e402d41c67caf15f9599afc7eb774b9414297c48d55a4336339fe876f6d36",
+    "PostedPreparationPriorityGsim.scala": "6022d5e7140a999e0d2d9ec9558c04816bd5cfb4988d89458497584a1de557f0",
+    "memory_proof_frontier_exact_reference.h": "a3eb9dcf0baec99943e478e031c35eaf2112d329aa4284e532f3febb0609ede9",
+    "run_step.py": "b941d997eead6e389e59028bb7382516ff3115e6482834daa7caf1b00abd8113",
+    "focused_verify_r3.py": "1c60825f2bb06eb4dcc24a6386eaaeb163bec6bbe1a52a359bb0532da0163971",
+    "FOCUSED-GATE-CONTRACT-r3.json": "af1832636f5a9bb7131599b499512ad0b033ade0cbcbb19da891046f769c1850"
+  },
+  "supersedes": "source-freeze-r3.json",
+  "reason": "Actual OFF runtime diagnosed host-only virtual-proof event mismatch and omitted local redirects; true raw BEQ recovery and complete actual virtual translation lineage; numerical JSON trace formatting. Production wrapper/model unchanged."
+}

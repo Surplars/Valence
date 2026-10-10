@@ -2617,3 +2617,5 @@ IRQ、MIG 或 PHY，不启动 Vivado。每个夹具跑 48 组 64..2048 B DMA 访
 Current integration status and exact opt-in commands: [source checkpoint](../../docs/experiments/frontier-lru-opt-in.md). Initial-checkpoint statements below retain their historical scope.
 
 The independent default-OFF `--store-prefetch-lru-victim` option preserves invalid-first selection, then uses the candidate-set LRU only for captured store-origin prefetches. See [the experiment contract](../../docs/experiments/store-prefetch-lru-victim.md) for exact configuration entry points and required dirty-release/data controls. The first source checkpoint is unqualified for DUT behavior, CPU performance and physical timing.
+
+The independent default-OFF `--posted-preparation-priority` experiment admits safe prepared stores alongside an all-load original candidate pool only during registered posted ownership. See [the selection and timing contract](../../docs/experiments/posted-preparation-priority.md). Host/configuration tests are not DUT or performance qualification.

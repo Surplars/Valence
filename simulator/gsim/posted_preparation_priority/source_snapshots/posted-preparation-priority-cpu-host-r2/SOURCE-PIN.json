@@ -1,0 +1,11 @@
+{
+  "host_execution_owner": "/root/optimize_cpu_memory_supply/prepare_preparation_priority_cpu",
+  "model_execution_owner": "/root/optimize_cpu_memory_supply/prepare_preparation_priority_cpu",
+  "production_source_head": "aa37b6a00666ee9be4284ea1793cd376c0775344",
+  "runtime_allowed": false,
+  "schema": "posted-preparation-priority-cpu-source-pin-v1",
+  "selected_source_manifest_sha256": "5816b66c2d24348dce31b9ec08bf676b7e1f1eefbd1f95b2c33c085b70666753",
+  "source_commit": "aa37b6a00666ee9be4284ea1793cd376c0775344",
+  "source_freeze_path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/posted-preparation-priority-implementation-r1/source-freeze.json",
+  "source_freeze_sha256": "75b8d5acb0d5a139ae8fff8fb55bd15868490db5419f6ae8d125511139d4ce1a"
+}

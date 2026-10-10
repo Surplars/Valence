@@ -142,7 +142,8 @@ case class OooParams(
     canonicalVirtualStoreOverlap: Boolean = false,
     memoryProofFrontier: Boolean = false,
     memoryProofRows: Int = 16,
-    memoryProofCacheSets: Int = 256
+    memoryProofCacheSets: Int = 256,
+    postedPreparationPriority: Boolean = false
 ) {
     require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
         renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&
@@ -164,6 +165,9 @@ case class OooParams(
         "posted stores require the physical guaranteed-success RAM, integer head and PMP contract")
     require(!postedStoreMerge || !precheckedDataRequestFlow,
         "initial posted CPU integration excludes the unqualified prechecked empty-flow candidate")
+    require(!postedPreparationPriority || (preparedStoreLookahead && postedStoreMerge &&
+        registeredMemoryAddress && parallelMemoryPreparation),
+        "posted preparation priority requires prepared lookahead, posted stores and registered parallel preparation")
     require(!preparedStoreLookahead || (registeredMemoryAddress && parallelMemoryPreparation),
         "prepared store lookahead requires registered addresses and parallel memory preparation")
     require(!loadOrderOlderRetire || registeredLoadReplay,
