@@ -146,8 +146,14 @@ case class OooParams(
     postedPreparationPriority: Boolean = false,
     reconstructIssueTokenIndex: Boolean = false,
     sharedMemoryAddressState: Boolean = false,
-    registeredPmpRegions: Boolean = false
+    registeredPmpRegions: Boolean = false,
+    publishedPmpChanges: Boolean = false
 ) {
+    // The event has meaning only at the integrated VM authorization boundary.
+    // Other profiles retain no publication state or sideband, even if requested.
+    def pmpChangePublicationEnabled: Boolean = publishedPmpChanges && machineSystem && pmpEntries > 0 &&
+        virtualMemoryLevels > 0 && (virtualRamLoadPrecheck || postedStoreMerge)
+
     require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
         renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&
         tagBits == 64 && virtualMemoryLevels == 3 && pmpEntries == 16 && speculativeRamBytes > 0 &&

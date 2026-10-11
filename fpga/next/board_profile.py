@@ -49,6 +49,8 @@ def compare_constructor(mode, actual):
     expected["cache"]["readPrefetchDemandAdoption"] = False
     expected["profile"].setdefault("registeredPmpRegions", False)
     expected["core"].setdefault("registeredPmpRegions", False)
+    expected["profile"].setdefault("publishedPmpChanges", False)
+    expected["core"].setdefault("publishedPmpChanges", False)
     if actual != expected:
         raise RuntimeError("actual complete constructor differs from frozen mode " + mode)
 

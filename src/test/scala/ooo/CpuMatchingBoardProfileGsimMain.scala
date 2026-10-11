@@ -11,7 +11,7 @@ object CpuMatchingBoardProfileGsimMain extends App {
     require(args.length > 1, "output-directory plus explicit complete board-profile options required")
     val options = args.drop(1).toSet
     val allowed = Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
-            "--registered-pmp-regions", "--ddr-write-collection-flow",
+            "--registered-pmp-regions", "--published-pmp-changes", "--ddr-write-collection-flow",
             "--line-transfer-dispatch-flow",
             "--line-read-channel", "--split-prefetch-tracking", "--read-prefetch-dirty-retry", "--read-prefetch-demand-adoption",
             "--dtlb-write-read-reuse", "--translation-hit-flow", "--independent-demand-admission", "--dma-line-entries=8",

@@ -42,7 +42,9 @@ private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
   * requests outstanding. Fault placeholders share its response-order queue without issuing a physical request.
   */
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
-    translationHitFlow: Boolean = false) extends Module {
+    translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false) extends Module {
+    require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
+        "published PMP changes require the integrated same-clock CSR producer contract")
     require(!translationHitFlow || (registerCheckedRequests && p.registeredTranslationHeads &&
         p.virtualRamLoadPrecheck && !p.precheckedDataRequestFlow),
         "translation hit flow requires registered ingress/checked authorization and the stable VM epoch")
@@ -82,6 +84,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             Some(Output(Valid(new CanonicalStoreCertificate(p)))) else None
         val vmState = Input(new VmCsrState)
         val pmpState = Input(new PmpState)
+        val pmpRawChanged = if (usePublishedPmpChanges) Some(Input(Bool())) else None
         val idle = Output(Bool())
         val physicalRequest = Output(Bool())
         val pageFault = Output(Bool())
@@ -93,14 +96,18 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val authorizationEpoch = if (p.virtualRamLoadPrecheck) Some(RegInit(0.U(32.W))) else None
     val authorizationChanged = if (p.virtualRamLoadPrecheck || p.postedStoreMerge) {
         val previousVm = RegInit(0.U.asTypeOf(new VmCsrState))
-        // Derived 65-bit PMP region bounds are not additional architectural state. Snapshot only
-        // the implemented cfg/address CSRs, avoiding a second register bank for decoded ranges.
-        val pmpContext = Cat(io.pmpState.cfg.take(p.pmpEntries).reverse.map(_.asUInt) ++
-            io.pmpState.addr.take(p.pmpEntries).reverse.map(_.asUInt))
-        val previousPmp = RegInit(0.U(pmpContext.getWidth.W))
-        val changed = previousVm.asUInt =/= io.vmState.asUInt || previousPmp =/= pmpContext
+        // Standalone fixtures and arbitrary raw-state drivers retain the exact
+        // snapshot fallback. Only an explicit integrated producer contract opts in.
+        val pmpChanged = if (usePublishedPmpChanges) io.pmpRawChanged.get else if (p.pmpEntries > 0) {
+            // Derived region bounds are not architectural state.
+            val pmpContext = Cat(io.pmpState.cfg.take(p.pmpEntries).reverse.map(_.asUInt) ++
+                io.pmpState.addr.take(p.pmpEntries).reverse.map(_.asUInt))
+            val previousPmp = RegInit(0.U(pmpContext.getWidth.W))
+            previousPmp := pmpContext
+            previousPmp =/= pmpContext
+        } else false.B
+        val changed = previousVm.asUInt =/= io.vmState.asUInt || pmpChanged
         previousVm := io.vmState
-        previousPmp := pmpContext
         changed
     } else false.B
     if (p.virtualRamLoadPrecheck) {

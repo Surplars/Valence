@@ -7,7 +7,7 @@ import soc.core.ooo._
 class LatencyBandwidthConfigSpec extends AnyFunSuite {
     test("explicit latency capacities and DTLB reuse do not silently alter presets") {
         val base = FpgaNextConfig.Selected
-        assert(base.productArity == 47 && !base.registeredPmpRegions && !base.coreParams.registeredPmpRegions &&
+        assert(base.productArity == 48 && !base.publishedPmpChanges && !base.registeredPmpRegions && !base.coreParams.registeredPmpRegions &&
                 !base.readPrefetchDemandAdoption && !base.cache.readPrefetchDemandAdoption &&
             !base.readPrefetchDirtyRetry && !base.cache.readPrefetchDirtyRetry &&
             !base.splitPrefetchTracking && !base.cache.splitPrefetchTracking &&

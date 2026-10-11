@@ -55,7 +55,8 @@ final case class FpgaNextConfig(
     splitPrefetchTracking: Boolean = false,
     readPrefetchDirtyRetry: Boolean = false,
     readPrefetchDemandAdoption: Boolean = false,
-    registeredPmpRegions: Boolean = false
+    registeredPmpRegions: Boolean = false,
+    publishedPmpChanges: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -142,7 +143,8 @@ final case class FpgaNextConfig(
         (if (splitPrefetchTracking) "-split-prefetch-tracking" else "") +
         (if (readPrefetchDirtyRetry) "-read-prefetch-dirty-retry" else "") +
         (if (readPrefetchDemandAdoption) "-read-prefetch-demand-adoption" else "") +
-        (if (registeredPmpRegions) "-registered-pmp-regions" else "")
+        (if (registeredPmpRegions) "-registered-pmp-regions" else "") +
+        (if (publishedPmpChanges) "-published-pmp-changes" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -193,7 +195,7 @@ final case class FpgaNextConfig(
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        registeredPmpRegions = registeredPmpRegions,
+        registeredPmpRegions = registeredPmpRegions, publishedPmpChanges = publishedPmpChanges,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
@@ -217,7 +219,7 @@ final case class FpgaNextConfig(
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        registeredPmpRegions = registeredPmpRegions,
+        registeredPmpRegions = registeredPmpRegions, publishedPmpChanges = publishedPmpChanges,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
@@ -246,6 +248,8 @@ object FpgaNextConfig {
     val RegisteredPmpCandidate = Selected.copy(registeredPmpRegions = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--published-pmp-changes=")),
+            "--published-pmp-changes does not accept a value")
         require(!options.exists(_.startsWith("--registered-pmp-regions=")),
             "--registered-pmp-regions does not accept a value")
         require(!options.exists(_.startsWith("--read-prefetch-demand-adoption=")),
@@ -300,6 +304,7 @@ object FpgaNextConfig {
         val ddrWrites = capacityOption("--ddr-write-credits=").getOrElse(2)
         base.copy(
             registeredPmpRegions = options.contains("--registered-pmp-regions"),
+            publishedPmpChanges = options.contains("--published-pmp-changes"),
             dataTranslationEntries = tlbCount,
             postedStoreMerge = options.contains("--posted-store-merge"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),

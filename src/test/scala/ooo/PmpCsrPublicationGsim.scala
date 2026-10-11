@@ -2,6 +2,7 @@ package ooo
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
@@ -37,10 +38,18 @@ class PmpCsrObservedState extends Bundle {
 /** The production CSR unit, driven through its irrevocable SystemRequest port.
   * No replacement CSR decoding, state injection, or system-state peeking.
   */
-class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false) extends Module {
+class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false, boundaryMode: String = "none") extends Module {
+    require(Set("none", "precheck", "posted", "both").contains(boundaryMode))
+    private val withBoundary = boundaryMode != "none"
     private val p = OooParams(machineSystem = true, pmpEntries = entries,
+        publishedPmpChanges = withBoundary, virtualRamLoadPrecheck = Set("precheck", "both").contains(boundaryMode),
+        postedStoreMerge = Set("posted", "both").contains(boundaryMode),
+        bufferedRamStores = Set("posted", "both").contains(boundaryMode),
+        registeredMemoryAddress = withBoundary, memoryEntries = 2,
+        speculativeRamBase = BigInt("80000000", 16), speculativeRamBytes = 65536,
         registeredPmpRegions = registered, virtualMemoryLevels = if (entries > 0) 3 else 0)
     val io = IO(new Bundle {
+        val boundary = if (withBoundary) Some(new PmpChangeBoundaryPort) else None
         val start = Input(Bool())
         val instruction = Input(UInt(32.W))
         val operand = Input(UInt(64.W))
@@ -69,6 +78,23 @@ class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false) exte
         val fetchDenied = Output(Bool())
     })
     val system = Module(new MachineSystemUnit(p))
+    if (withBoundary) {
+        val pair = Module(new PmpChangeBoundary(p))
+        pair.io.test <> io.boundary.get
+        pair.io.pmp := system.io.pmpState
+        pair.io.vm := system.io.vmState.get
+        pair.io.rawChanged := system.io.pmpRawChanged.get
+        // Wrong alternatives are observable mutation controls only; the correct
+        // input above is the actual public registered producer output.
+        pair.io.early := BoringUtils.bore(system.pmpRawChangeWrite.get)
+        val executeWrite = BoringUtils.bore(system.state) === 1.U &&
+            BoringUtils.bore(system.csr) && BoringUtils.bore(system.legalCsr) && BoringUtils.bore(system.write)
+        pair.io.permission := RegNext(executeWrite && BoringUtils.bore(system.pmpPermissionsChange), false.B)
+        val address = BoringUtils.bore(system.address)
+        val pmpWrite = address === "h3a0".U || address === "h3a2".U ||
+            (address >= "h3b0".U && address < (0x3b0 + entries).U)
+        pair.io.writeEnable := RegNext(executeWrite && pmpWrite, false.B)
+    }
     system.io.start.valid := io.start
     system.io.start.bits.token.index := 0.U
     system.io.start.bits.token.tag := io.token
@@ -126,7 +152,8 @@ class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false) exte
 object PmpCsrPublicationGsimMain extends App {
     require(args.nonEmpty)
     val entries = args.find(_.startsWith("entries=")).map(_.stripPrefix("entries=").toInt).getOrElse(16)
-    require(args.drop(1).forall(a => a == "registered" || a == s"entries=$entries"))
-    ChiselStage.emitCHIRRTLFile(new PmpCsrPublicationGsim(entries, args.contains("registered")),
+    val boundary = args.find(_.startsWith("boundary=")).map(_.stripPrefix("boundary=")).getOrElse("none")
+    require(args.drop(1).forall(a => a == "registered" || a == s"entries=$entries" || a == s"boundary=$boundary"))
+    ChiselStage.emitCHIRRTLFile(new PmpCsrPublicationGsim(entries, args.contains("registered"), boundary),
         Array("--target-dir", args.head))
 }

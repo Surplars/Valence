@@ -58,6 +58,15 @@ class BoardTimingCdcTests(unittest.TestCase):
             with self.subTest(section=section, field=field), self.assertRaises(RuntimeError):
                 board_timing_cdc.compare_constructor(actual)
 
+    def test_published_pmp_change_is_false_in_the_preserved_release(self):
+        expected = board_timing_cdc.expected_constructor()
+        for section in ("profile", "core"):
+            self.assertIs(expected[section]["publishedPmpChanges"], False)
+            changed = copy.deepcopy(expected)
+            changed[section]["publishedPmpChanges"] = True
+            with self.assertRaises(RuntimeError):
+                board_timing_cdc.compare_constructor(changed)
+
     def test_overrides_and_manifest_drift_do_not_emit(self):
         for option in ("--experimental-jtag-bscan=1", "--lsu-entries=2", "--registered-pmp", "--mode=A", "--reference"):
             with self.subTest(option=option), mock.patch.object(exporter, "main") as emit, \

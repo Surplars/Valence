@@ -138,6 +138,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
+    ap.add_argument("--published-pmp-changes", action="count", default=0,
+                    help="default-off exact post-edge raw PMP change publication")
     ap.add_argument("--registered-pmp-regions", action="count", default=0,
                     help="default-off atomic PMP CSR/range publication; no request pipeline cycle")
     ap.add_argument("--share-protected-head-payload", action="store_true")
@@ -184,6 +186,10 @@ def main(argv=None, expected_profile_sha256=None):
     a.read_prefetch_demand_adoption = bool(a.read_prefetch_demand_adoption)
     if a.read_prefetch_demand_adoption and not (a.split_prefetch_tracking and a.independent_demand_admission):
         ap.error("--read-prefetch-demand-adoption requires --split-prefetch-tracking and --independent-demand-admission")
+    if a.published_pmp_changes and "--published-pmp-changes" not in raw_args:
+        ap.error("--published-pmp-changes requires the exact flag")
+    if a.published_pmp_changes > 1:
+        ap.error("duplicate --published-pmp-changes flag")
     if a.registered_pmp_regions and "--registered-pmp-regions" not in raw_args:
         ap.error("--registered-pmp-regions requires the exact flag")
     if a.read_prefetch_dirty_retry > 1:
@@ -410,6 +416,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.registered_pmp_regions:
         profile["profile"]["registered_pmp_regions"] = True
         profile["profile"]["name"] += "-registered-pmp-regions"
+    if a.published_pmp_changes:
+        profile["profile"]["published_pmp_changes"] = True
+        profile["profile"]["name"] += "-published-pmp-changes"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -446,6 +455,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--owner-local-issue-ready")
     if a.shared_fetch_pmp_relations:
         command.append("--shared-fetch-pmp-relations")
+    if a.published_pmp_changes:
+        command.append("--published-pmp-changes")
     if a.registered_pmp_regions:
         command.append("--registered-pmp-regions")
     if a.experimental_trispeed_ethernet:

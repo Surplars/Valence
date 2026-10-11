@@ -44,6 +44,8 @@ def expected_constructor():
         expected["cache"][field] = True
     expected["profile"]["registeredPmpRegions"] = True
     expected["core"]["registeredPmpRegions"] = True
+    expected["profile"]["publishedPmpChanges"] = False
+    expected["core"]["publishedPmpChanges"] = False
     return expected
 
 

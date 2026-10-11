@@ -7,7 +7,7 @@ class IndependentDemandAdmissionConfigSpec extends AnyFunSuite {
     test("independent admission defaults OFF and changes no core, storage or capacities") {
         val off = FpgaNextConfig.Selected.copy(virtualRamLoadPrecheck = true, canonicalVirtualStoreOverlap = true)
         val on = off.copy(independentDemandAdmission = true)
-        assert(off.productArity == 47 && !off.registeredPmpRegions && !off.coreParams.registeredPmpRegions &&
+        assert(off.productArity == 48 && !off.publishedPmpChanges && !off.registeredPmpRegions && !off.coreParams.registeredPmpRegions &&
                 !off.readPrefetchDemandAdoption && !off.cache.readPrefetchDemandAdoption &&
             !off.readPrefetchDirtyRetry && !off.cache.readPrefetchDirtyRetry &&
             !off.splitPrefetchTracking && !off.cache.splitPrefetchTracking &&

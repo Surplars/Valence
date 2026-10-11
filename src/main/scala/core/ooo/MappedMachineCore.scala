@@ -99,7 +99,7 @@ class MappedMachineCore(
     var observationResponses: Option[DataResponseBuffer] = None
     if (dataTranslation) {
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
-            translationHitFlow = translationHitFlow))
+            translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,
@@ -126,6 +126,7 @@ class MappedMachineCore(
         }
         adapter.io.vmState := core.io.vmState.get
         adapter.io.pmpState := core.io.pmpState.get
+        adapter.io.pmpRawChanged.foreach(_ := core.io.pmpRawChanged.get)
         io.posted.foreach { posted =>
             val transport = adapter.io.posted.get
             // DataResponseBuffer and both routing fabrics contain response-only

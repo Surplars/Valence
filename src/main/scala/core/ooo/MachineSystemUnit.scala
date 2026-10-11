@@ -53,6 +53,7 @@ class MachineSystemUnit(p: OooParams) extends Module {
         val fetchPrivilege              = Output(UInt(2.W))
         val dataPrivilege               = Output(UInt(2.W))
         val pmpState                    = Output(new PmpState)
+        val pmpRawChanged = if (p.pmpChangePublicationEnabled) Some(Output(Bool())) else None
         val vmState                     = if (p.virtualMemoryLevels > 0) Some(Output(new VmCsrState)) else None
         val vmFlush                     = if (p.virtualMemoryLevels > 0) Some(Output(Bool())) else None
         val vmFlushReady                = if (p.virtualMemoryLevels > 0) Some(Input(Bool())) else None
@@ -96,6 +97,11 @@ class MachineSystemUnit(p: OooParams) extends Module {
     val pmpAddrWrite = if (p.registeredPmpRegions) WireDefault(pmpAddr) else pmpAddr
     val pmpRegionWrite = if (p.registeredPmpRegions)
         Some(WireDefault(VecInit(Seq.fill(p.pmpEntries)(false.B)))) else None
+    // Publish after the same edge as the raw CSR bank. This is an every-cycle
+    // level, not a handshaken pulse: consecutive changes remain high, and every
+    // non-changing edge clears it. The adapter shares this clock and reset.
+    val pmpRawChangeWrite = if (p.pmpChangePublicationEnabled) Some(WireDefault(false.B)) else None
+    io.pmpRawChanged.foreach(_ := RegNext(pmpRawChangeWrite.get, false.B))
     val sie                                           = RegInit(false.B)
     val spie                                          = RegInit(false.B)
     val spp                                           = RegInit(false.B)
@@ -297,19 +303,24 @@ class MachineSystemUnit(p: OooParams) extends Module {
         (address =/= "hc01".U || timeAccessAllowed) && (address =/= "h14d".U || stimecmpAccessAllowed)
     val newValue = MuxLookup(operation, source)(Seq(2.U -> (readValue | source), 3.U -> (readValue & ~source)))
     val sfenceVma = inst(31, 25) === "b0001001".U && inst(14, 7) === 0.U && inst(6, 0) === "h73".U
-    val pmpPermissionsChange = if (p.pmpEntries > 0) {
-        val changed = (0 until p.pmpEntries).flatMap { i =>
-            val cfgAddress = if (i < 8) "h3a0".U else "h3a2".U
-            val raw = newValue(8 * (i % 8) + 7, 8 * (i % 8))
-            val nextCfg = Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
-            val nextTor = if (i + 1 < p.pmpEntries) pmpCfg(i + 1)(4, 3) === 1.U else false.B
-            val nextTorLocked = if (i + 1 < p.pmpEntries) nextTor && pmpCfg(i + 1)(7) else false.B
-            Seq(address === cfgAddress && !pmpCfg(i)(7) && nextCfg =/= pmpCfg(i),
-                address === (0x3b0 + i).U && !pmpCfg(i)(7) && !nextTorLocked &&
-                    (pmpCfg(i)(4, 3) =/= 0.U || nextTor) && pmpAddr(i) =/= newValue(53, 0))
-        }
-        VecInit(changed).asUInt.orR
-    } else false.B
+    // Share each filtered, lock-qualified local comparison between fetch
+    // permission invalidation and exact raw-image change publication. OFF-mode
+    // address writes change the raw image even when no permission changes.
+    val pmpChanges = (0 until p.pmpEntries).map { i =>
+        val cfgAddress = if (i < 8) "h3a0".U else "h3a2".U
+        val raw = newValue(8 * (i % 8) + 7, 8 * (i % 8))
+        val nextCfg = Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
+        val nextTor = if (i + 1 < p.pmpEntries) pmpCfg(i + 1)(4, 3) === 1.U else false.B
+        val nextTorLocked = if (i + 1 < p.pmpEntries) nextTor && pmpCfg(i + 1)(7) else false.B
+        val cfgChanged = address === cfgAddress && !pmpCfg(i)(7) && nextCfg =/= pmpCfg(i)
+        val addrChanged = address === (0x3b0 + i).U && !pmpCfg(i)(7) && !nextTorLocked &&
+            pmpAddr(i) =/= newValue(53, 0)
+        (cfgChanged, addrChanged, pmpCfg(i)(4, 3) =/= 0.U || nextTor)
+    }
+    val pmpPermissionsChange = if (p.pmpEntries > 0)
+        VecInit(pmpChanges.map { case (cfg, addr, active) => cfg || (addr && active) }).asUInt.orR else false.B
+    val pmpRawStateChange = if (p.pmpChangePublicationEnabled)
+        VecInit(pmpChanges.map { case (cfg, addr, _) => cfg || addr }).asUInt.orR else false.B
     floatingPoint.foreach { fp =>
         io.fpMemory.get <> fp.io.memory
         io.fpMemoryBusy.get := fp.io.memoryBusy
@@ -450,6 +461,8 @@ class MachineSystemUnit(p: OooParams) extends Module {
                         is("h350".U) { miselect := newValue(11, 0) }
                     }
                     if (p.pmpEntries > 0) {
+                        // Same execute/legal CSR/write branch as the actual writes below.
+                        pmpRawChangeWrite.foreach(_ := pmpRawStateChange)
                         when(address === "h3a0".U) {
                             for (i <- 0 until math.min(8, p.pmpEntries)) {
                                 val raw = newValue(8 * i + 7, 8 * i)

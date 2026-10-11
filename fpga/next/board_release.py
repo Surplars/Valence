@@ -53,6 +53,8 @@ def compare_constructor(actual):
     expected["cache"]["readPrefetchDemandAdoption"] = False
     expected["profile"].setdefault("registeredPmpRegions", False)
     expected["core"].setdefault("registeredPmpRegions", False)
+    expected["profile"].setdefault("publishedPmpChanges", False)
+    expected["core"].setdefault("publishedPmpChanges", False)
     if actual != expected:
         raise RuntimeError("complete release constructor differs from B plus tri-speed selector")
 

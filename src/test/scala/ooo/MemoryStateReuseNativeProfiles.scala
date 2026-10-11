@@ -14,13 +14,13 @@ object MemoryStateReuseNativeProfiles {
         val baseline = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true)
         val selected = FpgaNextConfig.fromOptions(options(reconstruct, shared), defaultSelected = false)
         require(selected == baseline.copy(reconstructIssueTokenIndex = reconstruct, sharedMemoryAddressState = shared))
-        require(selected.productArity == 47 && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
+        require(selected.productArity == 48 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
             !selected.readPrefetchDemandAdoption && !selected.cache.readPrefetchDemandAdoption &&
             !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
             !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
             !selected.translationHitFlow && selected.ddrOutstanding == 4 && selected.ddrWriteCredits == 2 &&
             !selected.dataTlbWriteReadReuse && !selected.ddrWriteCollectionFlow &&
-            !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 143 &&
+            !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 144 && !selected.coreParams.publishedPmpChanges &&
             !selected.distinctWayRelease && !selected.cache.distinctWayRelease)
         require(selected.coreParams == baseline.coreParams.copy(
             reconstructIssueTokenIndex = reconstruct, sharedMemoryAddressState = shared))

@@ -1,0 +1,213 @@
+{
+  "schema": "valence-pmp-change-publication-evidence-v1",
+  "status": "PASS_FOCUSED_BOUNDARY_NATIVE_EDGES_AND_MATCHED_CPU_NOT_PHYSICAL",
+  "executed_source_commit": "d02b01436bfdf6f6a09e88d14a26bdc530886b40",
+  "executed_source_tree": "383846ae96d1d5288a1772d52bb071fd401fc5c8",
+  "base_remote_commit": "6b27c67153709f5d2ddd1bc46b6f2a824a8551df",
+  "base_local_tree": "d793961ee08bb2f7c9e77c0ea081ba89798253cb",
+  "base_tested_production_commit": "b37d8f1bffb1e053a1ed7dd0a3d81c4aec8ceb70",
+  "production_narrow_patch_sha256": "09e953dd362e4fa60ef9f3bf6cdb6d05a45bb20fa6c11320f1ab6b1f1d01fe22",
+  "focused_receipt_sha256": "4f71e160392484bfce0782dc09968c4c34adb513a873daac33a0587ade878273",
+  "board_receipt_sha256": "162c974e254ff5fc1001c8715702350a3dc1e0825517cdbe51eb5666d5972055",
+  "board_runner_sha256": "4f8470995c58ff98db7835eb3d380cb1cc87ba11c0d7e38d016fe9eb55e61818",
+  "entry_host_bridge": {
+    "status": "PASS_PURE_HOST_ENTRY_AND_SAVED_EXECUTED_COMPLETE_CONSTRUCTOR",
+    "new_manifest_sha256": "7e12930ef8c787532c5a3ee8712fc8f639f4a3dff20d80d343cf11a0f024216c",
+    "host_log_sha256": "b015ccdddec7e346fa9bdbdfd18daa73c2e579dd4ffbdcde12a7147eccaddfed",
+    "tests": 15,
+    "qualified_profile_sha256": "19c00895fbc52b4095ebd752785c3ceb94103d20f66558087e5f0a95a12f3299",
+    "qualified_actual_fabric_sha256": "9d3c01db7bd925f5a63dea07940edab871d39c147831ab11d9513625d4264c85",
+    "complete_constructor_equal": true,
+    "actual_cpu_cache_ddr_equal": true,
+    "options_equal_to_runner": true,
+    "export_serialization_difference": "Exporter places the unique Boolean flag before registered-pmp-regions; removing that one flag restores the exact preserved option sequence. Complete executed constructor equals the candidate expectation.",
+    "no_new_hardware_build": true
+  },
+  "board_model": {
+    "options.txt": "b8414b0ba5974166efddc754ed5a492592920547912f5a433aee51bebdc53588",
+    "assembly-contract.json": "f094fdf0c1dec5649c921bb8a1863355d6a0898aa349d55650942dd67aaee795",
+    "BoardSocGsim.fir": "4e037d75d1907770e5524ad81d94343bfbe6cd18eaa100b7e5ce8038f42c7e1f",
+    "profile.json": "19c00895fbc52b4095ebd752785c3ceb94103d20f66558087e5f0a95a12f3299",
+    "actual-fabric.json": "9d3c01db7bd925f5a63dea07940edab871d39c147831ab11d9513625d4264c85",
+    "binary_sha256": "6a8956a9de9cbc4926302ba09c3731bfdebdc1a4fca78c56c559e79a20b74cc9"
+  },
+  "focused": {
+    "real_paired_checks": 79689,
+    "real_models": 4,
+    "real_mutants_rejected": 20,
+    "waveform_cycles": 2060,
+    "waveform_changes": 1379,
+    "consecutive_change_cycles": 853,
+    "waveform_resets": 23,
+    "waveform_mutants_rejected": 5,
+    "native_edge_checks_each": 29,
+    "native_models": 2,
+    "scala_tests": 5
+  },
+  "native_declarations": {
+    "8": {
+      "DataTranslationAdapter": {
+        "sha256": "af7c00f28a906313b0e22f9cbdb462b9b6cc0a73d0e394e9cb3d7dbf96c50ea0",
+        "scalar_reg_bits": 813,
+        "pmp_history_bits": 496,
+        "vm_history_bits": 68,
+        "event_bits": 0
+      },
+      "DataTranslationAdapter_1": {
+        "sha256": "aaaba24b6042abb16c9d912641652ed0f5a934082cb7c0acdfb5c87b056d18cb",
+        "scalar_reg_bits": 317,
+        "pmp_history_bits": 0,
+        "vm_history_bits": 68,
+        "event_bits": 0
+      },
+      "MachineSystemUnit": {
+        "sha256": "de4ce06b69e1f9bdf52a56081c9f2cf442fe98b99c590a4032429019d3c0681b",
+        "scalar_reg_bits": 1929,
+        "pmp_history_bits": 0,
+        "vm_history_bits": 0,
+        "event_bits": 1
+      },
+      "scope": "8-entry paired module declarations, not mapped resources or full-board census",
+      "adapter_delta": -496,
+      "net_with_producer_bit": -495
+    },
+    "16": {
+      "DataTranslationAdapter": {
+        "sha256": "350da6715d6dca2a75a7a6d287bbd1f8972c2992fe33ca5552c811bd59e8e3dd",
+        "scalar_reg_bits": 1309,
+        "pmp_history_bits": 992,
+        "vm_history_bits": 68,
+        "event_bits": 0,
+        "direct_array_declarations": 0,
+        "pmp_change_ports": [],
+        "queue_instances": [
+          [
+            "Queue8_TranslatedDataRequest",
+            "translated"
+          ],
+          [
+            "Queue8_TranslationResponseOwner",
+            "owners"
+          ],
+          [
+            "Queue2_CheckedDataRequest",
+            "checked_checked"
+          ]
+        ]
+      },
+      "DataTranslationAdapter_1": {
+        "sha256": "97cb89f4af782bfde567ba4776d4fb3451c6330a5e5ced82ac073ab33d779982",
+        "scalar_reg_bits": 317,
+        "pmp_history_bits": 0,
+        "vm_history_bits": 68,
+        "event_bits": 0,
+        "direct_array_declarations": 0,
+        "pmp_change_ports": [
+          {
+            "direction": "input",
+            "width": "",
+            "name": "io_pmpRawChanged"
+          }
+        ],
+        "queue_instances": [
+          [
+            "Queue8_TranslatedDataRequest",
+            "translated"
+          ],
+          [
+            "Queue8_TranslationResponseOwner",
+            "owners"
+          ],
+          [
+            "Queue2_CheckedDataRequest",
+            "checked_checked"
+          ]
+        ]
+      },
+      "MachineSystemUnit": {
+        "sha256": "ca41dda601f93703e54eaafff8ae955c5ddf04bb16ce8578cf481082ec9c9ac5",
+        "scalar_reg_bits": 4521,
+        "pmp_history_bits": 0,
+        "vm_history_bits": 0,
+        "event_bits": 1,
+        "direct_array_declarations": 0,
+        "pmp_change_ports": [
+          {
+            "direction": "output",
+            "width": "",
+            "name": "io_pmpRawChanged"
+          }
+        ],
+        "queue_instances": []
+      },
+      "scope": "16-entry paired module declarations, not mapped resources or full-board census",
+      "adapter_delta": -992,
+      "net_with_producer_bit": -991
+    }
+  },
+  "board_cases": {
+    "bare": {
+      "cycles": "251815",
+      "payload_MiBps": "49.639616385",
+      "exact_105_fields_and_full_traces": true,
+      "comparison": {
+        "result": true,
+        "perf": true,
+        "oracle": true,
+        "fabric": true,
+        "counts": true,
+        "ledger": true,
+        "adoption": true,
+        "traffic_regions": true,
+        "adoption_regions": true,
+        "raw": true
+      },
+      "raw": {
+        "supply-events.tsv": "9d498101c7a5d15de25ac1d337c4cef1d98b08db09b41c507b4e1417ab79b37a",
+        "axi-events.tsv": "90ad819a6202b30fb41583686fa88a65b6bd0abf198a85537912359fb54ddada"
+      }
+    },
+    "sv39": {
+      "cycles": "250604",
+      "payload_MiBps": "49.8794911494",
+      "exact_105_fields_and_full_traces": true,
+      "comparison": {
+        "result": true,
+        "perf": true,
+        "oracle": true,
+        "fabric": true,
+        "counts": true,
+        "ledger": true,
+        "adoption": true,
+        "traffic_regions": true,
+        "adoption_regions": true,
+        "raw": true
+      },
+      "raw": {
+        "supply-events.tsv": "f74984b47d5b3b605d44f17046f6df5458bb500f4879c46d2b0cfc308ada10ed",
+        "axi-events.tsv": "bbde5ce6568f40b708c2f4d59031f6d33419d6ebd0c5921e5a5c4f14991747aa"
+      }
+    }
+  },
+  "negative_controls": [
+    "read",
+    "memory",
+    "trap"
+  ],
+  "all_35_translation_units_fresh": true,
+  "toolchain_sha256": {
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/gsim-src/build/gsim/gsim": "e34560595258f679503714dffcd5251684a955ddde4bf2cafa493203a313393b",
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/sysroot/usr/lib/llvm-19/bin/clang": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a",
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/activate.sh": "9acf9cf8baae37e8eabc412ef2be413ce0389175712b7557ccd8fd3718f1c8c3",
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/bin/mill": "e87a4d479b3139534bf444a3bdfe80404e6cefec678991abf47b201bd1605586",
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/firtool-1.135.0/firtool": "c2e1ac4d88be9579313c8a33ea3c8643db7d1840c78a4593dc05395171e25051",
+    "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/jdk21/bin/java": "71523c0a4694aaca9001b81fe7ac16975bfe0d67ba31bde01073228d1f374700"
+  },
+  "limits": [
+    "Native counts are declaration bits, not mapped FF/LUT or whole-board totals.",
+    "No new synthesis, STA, routed result, vendor-primitive or board qualification.",
+    "Raw CSRs, decoded PMP ranges, 68-bit VM history and owner authorization remain.",
+    "GSIM driver reset/response fixes and abstract reset observation are test-only; original failed receipts are retained.",
+    "The new entry is host-only bridged to the executed constructor; the final doc/entry tree was not rebuilt."
+  ]
+}

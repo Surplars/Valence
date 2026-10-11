@@ -11,6 +11,9 @@
 #ifndef PMP_ENTRIES
 #define PMP_ENTRIES 16
 #endif
+#ifndef PMP_BOUNDARY
+#define PMP_BOUNDARY 0
+#endif
 using namespace pmp_csr_oracle;
 static_assert(PMP_ENTRIES == 0 || PMP_ENTRIES == 8 || PMP_ENTRIES == 16);
 static void check(bool okay, const std::string& message) {
@@ -19,6 +22,12 @@ static void check(bool okay, const std::string& message) {
 struct Input {
     bool start = false, completeReady = true, vmReady = true, fenceReady = true, trap = false;
     Command command{};
+#if PMP_BOUNDARY
+    bool memory = false, memoryWrite = false, prechecked = false, physicalReady = true, responseReady = true;
+    bool response = false, drained = true, flush = false, query = false, queryReply = false;
+    uint64_t memoryAddress = 0x80000000, memoryData = 0, responseData = 0;
+    uint32_t requestEpoch = 0;
+#endif
     uint64_t address = 0x1000, trapPc = 0x80000004;
     unsigned size = 2, access = 0;
 };
@@ -28,7 +37,19 @@ struct Suite {
     uint64_t cycles = 0, commands = 0, snapshots = 0, queries = 0, flushHolds = 0, completeHolds = 0;
     uint64_t nextToken = 1;
     bool inject = false;
-    explicit Suite(bool negative) : inject(negative) {
+#if PMP_BOUNDARY
+    unsigned mutation = 0;
+    Entries previousPmp{};
+    uint64_t previousSatp = 0, previousFlags = 0, rawEvents = 0, contextEvents = 0, boundaryChecks = 0;
+    unsigned previousPrivilege = 0;
+    uint32_t epoch = 0, postedEpoch = 0;
+    bool stable = false;
+    uint64_t accepted = 0, physicalAccepted = 0, responses = 0;
+#endif
+    explicit Suite(bool negative, unsigned mutant = 0) : inject(negative) {
+#if PMP_BOUNDARY
+        mutation = mutant;
+#endif
         // Same pinned-GSIM host initialization contract as coherent_read_mshr.cpp:
         // init() uses a uint32_t pointer distance as a byte count. Fully initialize
         // its trivially-copyable host storage, then exercise real DUT reset edges.
@@ -94,6 +115,40 @@ struct Suite {
         dut.set_io$$address(in.address);
         dut.set_io$$size(in.size);
         dut.set_io$$access(in.access);
+#if PMP_BOUNDARY
+        dut.set_io$$boundary$$request$$valid(in.memory);
+        dut.set_io$$boundary$$request$$bits$$atomic(false);
+        dut.set_io$$boundary$$request$$bits$$atomicOp(0);
+        dut.set_io$$boundary$$request$$bits$$address(in.memoryAddress);
+        dut.set_io$$boundary$$request$$bits$$write(in.memoryWrite);
+        dut.set_io$$boundary$$request$$bits$$size(3);
+        dut.set_io$$boundary$$request$$bits$$data(in.memoryData);
+        dut.set_io$$boundary$$request$$bits$$mask(255);
+        dut.set_io$$boundary$$request$$bits$$virtualized(false);
+        dut.set_io$$boundary$$request$$bits$$precheckedLoad(in.prechecked);
+        dut.set_io$$boundary$$request$$bits$$translationEpoch(in.requestEpoch);
+        dut.set_io$$boundary$$request$$bits$$prefetchNextAllowed(false);
+        dut.set_io$$boundary$$request$$bits$$uncached(false);
+        dut.set_io$$boundary$$physicalReady(in.physicalReady);
+        dut.set_io$$boundary$$response$$valid(in.response);
+        dut.set_io$$boundary$$response$$bits$$data(in.responseData);
+        dut.set_io$$boundary$$response$$bits$$error(false);
+        dut.set_io$$boundary$$response$$bits$$pageFault(false);
+        dut.set_io$$boundary$$responseReady(in.responseReady);
+        dut.set_io$$boundary$$aggregateDrained(in.drained);
+        dut.set_io$$boundary$$flush(in.flush);
+        dut.set_io$$boundary$$query$$valid(in.query);
+        dut.set_io$$boundary$$query$$bits$$address(0x80000000);
+        dut.set_io$$boundary$$query$$bits$$size(3);
+        dut.set_io$$boundary$$query$$bits$$write(false);
+        dut.set_io$$boundary$$queryReply$$valid(in.queryReply);
+        dut.set_io$$boundary$$queryReply$$bits$$physicalAddress(0x80000000);
+        dut.set_io$$boundary$$queryReply$$bits$$pbmt(0);
+        dut.set_io$$boundary$$queryReply$$bits$$pageFault(false);
+        dut.set_io$$boundary$$queryReply$$bits$$accessFault(false);
+        dut.set_io$$boundary$$mutation(mutation);
+        dut.set_io$$boundary$$poisonInvalid(true);
+#endif
         dut.step(); ++cycles;
         // GSIM reports combinational values before this call's edge. They are
         // the post-edge state from the preceding call. Observe EVERY cycle,
@@ -119,7 +174,52 @@ struct Suite {
             flushHolds += model.phase == Phase::VmFlush && !in.vmReady;
             completeHolds += model.phase == Phase::Finish && !in.completeReady;
         }
-        if (reset) { model.reset(); return; }
+#if PMP_BOUNDARY
+        bool rawChanged = false;
+        for (unsigned i = 0; i < PMP_ENTRIES; ++i)
+            rawChanged |= previousPmp[i].cfg != model.entries[i].cfg || previousPmp[i].addr != model.entries[i].addr;
+        const bool changed = rawChanged || previousSatp != model.satp ||
+            previousPrivilege != model.dataPrivilege() || previousFlags != (model.status & (3U << 18));
+        if (compare) {
+            check(!dut.get_io$$boundary$$mismatch(), "PMP boundary differential mismatch mutant=" + std::to_string(mutation));
+            check(bool(dut.get_io$$boundary$$rawChanged()) == rawChanged,
+                "PMP raw change phase oracle mismatch cycle=" + std::to_string(cycles));
+            check(bool(dut.get_io$$boundary$$changed()) == changed &&
+                bool(dut.get_io$$boundary$$oldChanged()) == changed, "PMP authorization change oracle mismatch cycle=" + std::to_string(cycles) +
+                " expected=" + std::to_string(changed) + " actual=" + std::to_string(dut.get_io$$boundary$$changed()) +
+                " reference=" + std::to_string(dut.get_io$$boundary$$oldChanged()) + " raw=" + std::to_string(rawChanged) +
+                " prevpriv=" + std::to_string(previousPrivilege) + " priv=" + std::to_string(model.dataPrivilege()) +
+                " prevsatp=" + std::to_string(previousSatp) + " satp=" + std::to_string(model.satp) +
+                " prevflags=" + std::to_string(previousFlags) + " flags=" + std::to_string(model.status & (3U << 18)));
+            check(dut.get_io$$boundary$$epoch() == ((PMP_BOUNDARY & 1) ? epoch : 0) &&
+                dut.get_io$$boundary$$postedEpoch() == ((PMP_BOUNDARY & 2) ? postedEpoch : 0),
+                "PMP epoch phase oracle mismatch");
+            check(bool(dut.get_io$$boundary$$stable()) == (bool(PMP_BOUNDARY & 1) && stable && !in.flush),
+                "PMP stable phase oracle mismatch");
+            ++boundaryChecks; rawEvents += rawChanged; contextEvents += changed;
+            accepted += in.memory && dut.get_io$$boundary$$requestReady();
+            physicalAccepted += dut.get_io$$boundary$$physical$$valid() && in.physicalReady;
+            responses += dut.get_io$$boundary$$upstreamResponse$$valid() && in.responseReady;
+        }
+        if (reset) {
+            previousPmp = {}; previousSatp = previousFlags = 0; previousPrivilege = 0;
+            epoch = postedEpoch = 0; stable = false;
+        } else {
+            previousPmp = model.entries; previousSatp = model.satp;
+            previousFlags = model.status & (3U << 18); previousPrivilege = model.dataPrivilege();
+            if (changed || in.flush) ++epoch;
+            if (changed && in.drained && dut.get_io$$boundary$$idle()) ++postedEpoch;
+            stable = !changed && !in.flush;
+        }
+#endif
+        if (reset) {
+            // GSIM evaluates NEXT during step even while reset is asserted.
+            // Keep the public reset active through that settle before release,
+            // so its speculative NEXT cannot consume the reset VM mismatch.
+            dut.resetAll();
+            model.reset();
+            return;
+        }
         if (model.phase == Phase::Execute) model.execute();
         else if (model.phase == Phase::VmFlush && in.vmReady) model.phase = Phase::Finish;
         else if (model.phase == Phase::FenceI && in.fenceReady) model.phase = Phase::Finish;
@@ -140,6 +240,9 @@ struct Suite {
         in.start = false;
         in.command = {0xffffffffU, UINT64_MAX, UINT64_MAX, UINT64_MAX};
         in.completeReady = in.vmReady = in.fenceReady = false;
+#if PMP_BOUNDARY
+        in.physicalReady = false; // producer context publication cannot depend on downstream READY
+#endif
         tick(in);
         for (unsigned n = 0; n < holds; ++n) { in.address = 0xfff + n; tick(in); }
         unsigned watchdog = 0;
@@ -167,6 +270,43 @@ struct Suite {
             Input in; in.address = address; in.size = size; in.access = access; tick(in);
         }
     }
+#if PMP_BOUNDARY
+    void memory(bool store, bool certified = false, bool stale = false, bool resetBusy = false) {
+        check(model.phase == Phase::Idle, "memory test overlaps CSR");
+        for (unsigned n = 0; n < 3; ++n) tick();
+        Input in; in.memory = true; in.memoryWrite = store; in.prechecked = certified;
+        in.requestEpoch = stale ? epoch - 1 : epoch;
+        in.memoryData = 0x12345678; in.physicalReady = false; in.responseReady = false;
+        unsigned watchdog = 0;
+        do { check(++watchdog < 20, "memory acceptance timeout"); tick(in); }
+        while (!dut.get_io$$boundary$$requestReady());
+        in.memory = false;
+        for (unsigned n = 0; n < 4; ++n) tick(in);
+        if (resetBusy) { reset(); for (unsigned n = 0; n < 3; ++n) tick(); return; }
+        if (stale) {
+            check(!dut.get_io$$boundary$$physical$$valid(), "stale precheck issued physical request");
+        } else {
+            check(dut.get_io$$boundary$$physical$$valid(), "authorized request missing at held physical boundary");
+            in.physicalReady = true; tick(in);
+            in.response = true; in.responseData = 0xabcdef123456ULL;
+            // The adapter retains response ownership but has no return-data buffer.
+            // Hold downstream VALID/data until the upstream sink accepts it.
+        }
+        watchdog = 0;
+        do { check(++watchdog < 20, "owner response timeout"); tick(in); }
+        while (!dut.get_io$$boundary$$upstreamResponse$$valid());
+        for (unsigned n = 0; n < 3; ++n) {
+            tick(in);
+            check(dut.get_io$$boundary$$upstreamResponse$$valid(), "held owner response disappeared");
+            check(bool(dut.get_io$$boundary$$upstreamResponse$$bits$$error()) == stale,
+                "authorization/fault response mismatch");
+            if (!stale) check(dut.get_io$$boundary$$upstreamResponse$$bits$$data() == in.responseData,
+                "owner response payload mismatch");
+        }
+        in.responseReady = true; tick(in); in.response = false; tick(); tick();
+        check(dut.get_io$$boundary$$idle(), "owner did not drain");
+    }
+#endif
     void boundaries() {
         std::vector<uint64_t> addresses{0, 1, 3, 0xfff, 0x1000, 0x1003, 0x1004,
             (uint64_t(1) << 56) - 1, uint64_t(1) << 56, UINT64_MAX - 3, UINT64_MAX};
@@ -182,8 +322,9 @@ struct Suite {
 int main(int argc, char** argv) {
     try {
         const bool inject = argc == 2 && std::string(argv[1]) == "--inject-mismatch";
-        check(argc == 1 || inject, "usage: pmp_csr_publication [--inject-mismatch]");
-        Suite s(inject);
+        const bool mutant = argc == 2 && std::string(argv[1]).find("--mutant=") == 0;
+        check(argc == 1 || inject || (PMP_BOUNDARY && mutant), "usage: pmp_csr_publication [--inject-mismatch|--mutant=N]");
+        Suite s(inject, mutant ? std::stoul(std::string(argv[1]).substr(9)) : 0);
         s.boundaries();
         // No-entry implementations reject PMP CSRs, with their original raw reset ports.
         s.csr(0x3a0, 0xffffffffffffffffULL); s.csr(0x3b0, UINT64_MAX); s.reset();
@@ -246,7 +387,26 @@ int main(int argc, char** argv) {
             s.enter(1); s.boundaries(); s.csr(0x3a0, 0); s.returnMachine();
             s.command(0x0000100f); s.reset();
         }
+#if PMP_BOUNDARY
+        std::cout << "PMP CSR+phase stream PASS checks=" << s.boundaryChecks << " raw=" << s.rawEvents << " contexts=" << s.contextEvents << std::endl;
+        s.reset();
+        for (unsigned n = 0; n < 16; ++n) s.memory(n % 2);
+        s.memory(false, false, false, true); // reset with a held physical owner
+        if (PMP_BOUNDARY & 1) {
+            s.addr(0, (0x80000000ULL >> 2) | 0x3fff); s.cfg(0, 0x1f);
+            s.csr(0x180, 0x8000000000000001ULL); s.enter(1);
+            s.memory(false, true, false); s.memory(false, true, true);
+            s.returnMachine(); s.reset();
+        }
+#endif
         s.tick();
+#if PMP_BOUNDARY
+        check(s.boundaryChecks > 100 && s.rawEvents > 0 && s.contextEvents > s.rawEvents,
+            "missing complete boundary/reset/VM coverage");
+        std::cout << "PMP boundary PASS mode=" << PMP_BOUNDARY << " checks=" << s.boundaryChecks
+                  << " raw_changes=" << s.rawEvents << " context_changes=" << s.contextEvents
+                  << " requests=" << s.accepted << " physical=" << s.physicalAccepted << " responses=" << s.responses << '\n';
+#endif
         check(s.snapshots >= 16 * s.queries / 2 && s.completeHolds > 0, "missing per-edge or backpressure checks");
         if (PMP_ENTRIES) check(s.flushHolds > 0, "missing held VM-flush checks");
         std::cout << "PMP CSR publication PASS entries=" << PMP_ENTRIES << " cycles=" << s.cycles

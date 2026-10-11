@@ -21,6 +21,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val accepted        = Output(Vec(p.renameWidth, Bool()))
         val fetchPc         = Output(UInt(64.W))
         val pmpState        = if (p.pmpEntries > 0) Some(Output(new PmpState)) else None
+        val pmpRawChanged = if (p.pmpChangePublicationEnabled) Some(Output(Bool())) else None
         val fetchPrivilege  = if (p.pmpEntries > 0) Some(Output(UInt(2.W))) else None
         val fetchQuiescent  = if (p.pmpEntries > 0) Some(Input(Bool())) else None
         val pauseFetch      = if (p.pmpEntries > 0) Some(Output(Bool())) else None
@@ -71,6 +72,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     core.io.instructionFaultAddresses.foreach(_ := io.instructionFaultAddresses.get)
     if (p.pmpEntries > 0) {
         io.pmpState.get := core.io.pmpState.get
+        io.pmpRawChanged.foreach(_ := core.io.pmpRawChanged.get)
         io.fetchPrivilege.get := core.io.fetchPrivilege.get
         core.io.fetchQuiescent.get := io.fetchQuiescent.get
         io.pauseFetch.get := core.io.pauseFetch.get

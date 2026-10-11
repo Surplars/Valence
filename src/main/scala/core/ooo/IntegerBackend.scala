@@ -85,6 +85,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val emptyPc                     = if (p.machineSystem) Some(Input(UInt(64.W))) else None
         val trap                        = if (p.machineSystem) Some(Output(Valid(new HeadException(p)))) else None
         val pmpState                    = if (p.machineSystem) Some(Output(new PmpState)) else None
+        val pmpRawChanged = if (p.pmpChangePublicationEnabled) Some(Output(Bool())) else None
         val fetchPrivilege              = if (p.machineSystem) Some(Output(UInt(2.W))) else None
         val fetchQuiescent               = if (p.pmpEntries > 0) Some(Input(Bool())) else None
         val pauseFetch                   = if (p.pmpEntries > 0) Some(Output(Bool())) else None
@@ -1483,6 +1484,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         pmpState := unit.io.pmpState
         dataPrivilege := unit.io.dataPrivilege
         io.pmpState.get       := unit.io.pmpState
+        io.pmpRawChanged.foreach(_ := unit.io.pmpRawChanged.get)
         io.fetchPrivilege.get := unit.io.fetchPrivilege
         io.imsic.get <> unit.io.imsic
         unit.io.externalInterrupt           := io.externalInterrupt.get

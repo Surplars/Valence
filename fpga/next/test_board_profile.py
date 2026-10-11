@@ -61,6 +61,8 @@ class BoardProfileTests(unittest.TestCase):
             current["cache"]["readPrefetchDemandAdoption"] = False
             current["profile"]["registeredPmpRegions"] = False
             current["core"]["registeredPmpRegions"] = False
+            current["profile"]["publishedPmpChanges"] = False
+            current["core"]["publishedPmpChanges"] = False
             board_profile.compare_constructor(mode, current)
             with self.assertRaises(RuntimeError):
                 board_profile.compare_constructor(mode, frozen[mode])

@@ -34,6 +34,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         // by hardware integrations and not an architectural correctness oracle.
         val nextFetchPc                 = if (p.registeredFetchPacket) Some(Output(UInt(64.W))) else None
         val pmpState                    = if (p.pmpEntries > 0) Some(Output(new PmpState)) else None
+        val pmpRawChanged = if (p.pmpChangePublicationEnabled) Some(Output(Bool())) else None
         val fetchPrivilege              = if (p.pmpEntries > 0) Some(Output(UInt(2.W))) else None
         val fetchQuiescent               = if (p.pmpEntries > 0) Some(Input(Bool())) else None
         val pauseFetch                   = if (p.pmpEntries > 0) Some(Output(Bool())) else None
@@ -81,6 +82,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     }
     if (p.pmpEntries > 0) {
         io.pmpState.get := backend.io.pmpState.get
+        io.pmpRawChanged.foreach(_ := backend.io.pmpRawChanged.get)
         io.fetchPrivilege.get := backend.io.fetchPrivilege.get
         backend.io.fetchQuiescent.get := io.fetchQuiescent.get
         io.pauseFetch.get := backend.io.pauseFetch.get

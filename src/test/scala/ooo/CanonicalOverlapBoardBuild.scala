@@ -17,7 +17,7 @@ object CanonicalOverlapBoardBuild {
         virtualRamLoadPrecheck = c.virtualRamLoadPrecheck, floatingPointResources = c.floatingPointResources,
         independentFetchPayloadCapture = c.independentFetchPayloadCapture,
         ownerLocalIssueReady = c.ownerLocalIssueReady, sharedFetchPmpRelations = c.sharedFetchPmpRelations,
-        registeredPmpRegions = c.registeredPmpRegions,
+        registeredPmpRegions = c.registeredPmpRegions, publishedPmpChanges = c.publishedPmpChanges,
         bankedInstructionData = c.bankedInstructionData, dmaLineTransfers = c.dmaLineTransfers,
         dmaLineYieldCycles = c.dmaLineYieldCycles, dmaLineEntries = c.dmaLineEntries,
         precheckedDataRequestFlow = c.precheckedDataRequestFlow, physicalLoadIngressFlow = c.physicalLoadIngressFlow,
