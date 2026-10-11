@@ -20,6 +20,9 @@ HERE = Path(__file__).resolve().parent
 _media_spec = importlib.util.spec_from_file_location("valence_media_integration", HERE / "media_integration.py")
 media_integration = importlib.util.module_from_spec(_media_spec)
 _media_spec.loader.exec_module(media_integration)
+_bscan_spec = importlib.util.spec_from_file_location("valence_bscan_integration", HERE / "bscan_integration.py")
+bscan_integration = importlib.util.module_from_spec(_bscan_spec)
+_bscan_spec.loader.exec_module(bscan_integration)
 
 
 def sha(path):
@@ -36,7 +39,8 @@ def sources():
         "fpga/next/performance-profile.json", "fpga/next/board_profile.py",
         "fpga/next/board-performance-profile.json", "fpga/next/board-performance-constructors.json",
         "fpga/next/board_release.py", "fpga/next/board-release-profile.json",
-        *media_integration.INPUTS)]
+        "fpga/next/board_timing_cdc.py", "fpga/next/board-timing-cdc-profile-v1.json",
+        *media_integration.INPUTS, *bscan_integration.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -134,6 +138,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--independent-fetch-payload-capture", action="store_true")
     ap.add_argument("--owner-local-issue-ready", action="store_true")
     ap.add_argument("--shared-fetch-pmp-relations", action="store_true")
+    ap.add_argument("--registered-pmp-regions", action="count", default=0,
+                    help="default-off atomic PMP CSR/range publication; no request pipeline cycle")
     ap.add_argument("--share-protected-head-payload", action="store_true")
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
@@ -171,12 +177,15 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off authorized LSU handoff and full-way cache demand admission")
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
-    a = ap.parse_args(argv)
+    raw_args = sys.argv[1:] if argv is None else list(argv)
+    a = ap.parse_args(raw_args)
     if a.read_prefetch_demand_adoption > 1:
         ap.error("duplicate --read-prefetch-demand-adoption flag")
     a.read_prefetch_demand_adoption = bool(a.read_prefetch_demand_adoption)
     if a.read_prefetch_demand_adoption and not (a.split_prefetch_tracking and a.independent_demand_admission):
         ap.error("--read-prefetch-demand-adoption requires --split-prefetch-tracking and --independent-demand-admission")
+    if a.registered_pmp_regions and "--registered-pmp-regions" not in raw_args:
+        ap.error("--registered-pmp-regions requires the exact flag")
     if a.read_prefetch_dirty_retry > 1:
         ap.error("duplicate --read-prefetch-dirty-retry flag")
     a.read_prefetch_dirty_retry = bool(a.read_prefetch_dirty_retry)
@@ -250,6 +259,8 @@ def main(argv=None, expected_profile_sha256=None):
         ap.error("line yield requires --dma-line-transfers")
     if a.prechecked_data_flow and not a.virtual_ram_load_precheck:
         ap.error("prechecked data flow requires --virtual-ram-load-precheck")
+    if a.registered_pmp_regions > 1:
+        ap.error("duplicate --registered-pmp-regions flag")
     profile = json.loads((HERE / "baseline.json").read_text())
     selected = not (a.reference or a.storage_candidate)
     features = {
@@ -396,6 +407,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.read_prefetch_demand_adoption:
         profile["profile"]["read_prefetch_demand_adoption"] = True
         profile["profile"]["name"] += "-read-prefetch-demand-adoption"
+    if a.registered_pmp_regions:
+        profile["profile"]["registered_pmp_regions"] = True
+        profile["profile"]["name"] += "-registered-pmp-regions"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -432,6 +446,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--owner-local-issue-ready")
     if a.shared_fetch_pmp_relations:
         command.append("--shared-fetch-pmp-relations")
+    if a.registered_pmp_regions:
+        command.append("--registered-pmp-regions")
     if a.experimental_trispeed_ethernet:
         command.append("--experimental-trispeed-ethernet")
     if a.independent_fetch_payload_capture:
@@ -610,6 +626,7 @@ def main(argv=None, expected_profile_sha256=None):
             receipt["required_post_synthesis_gate"] = {"path": str(required.relative_to(output)),
                 "sha256": sha(required), "guard_sha256": sha(guard), "status": "NOT_RUN_NO_VIVADO",
                 "must_pass_before_implementation_or_bitstream": True}
+            receipt["bscan_timing_candidate"] = bscan_integration.stage(ROOT, output, a.experimental_jtag_bscan)
         if before != sources():
             raise RuntimeError("source changed during board integration staging")
         for name in listed:

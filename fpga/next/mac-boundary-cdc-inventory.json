@@ -1,0 +1,214 @@
+{
+  "version": 2,
+  "scope": "EXPECTED_PRODUCTION_BOUNDARY_NOT_PHYSICAL_SIGNOFF",
+  "board_root": "u_soc/board/nativeBank/gmac",
+  "rtl_root_module": "TriSpeedManagedGmac",
+  "registered_level_launches": {
+    "txLink_sync": {
+      "source": "mediaOpen",
+      "source_clock": "sourceClock",
+      "target_clock": "txManaged",
+      "reset_value": false
+    },
+    "rxLink_sync": {
+      "source": "mediaOpen",
+      "source_clock": "sourceClock",
+      "target_clock": "rxManaged",
+      "reset_value": false
+    },
+    "rawRxOpen_sync": {
+      "source": "mediaOpen",
+      "source_clock": "sourceClock",
+      "target_clock": "rawRxClock",
+      "reset_value": false
+    },
+    "ingressEmpty_sync": {
+      "source": "ingressEmptySource",
+      "source_clock": "rawTxClock",
+      "target_clock": "sourceClock",
+      "reset_value": false
+    },
+    "txWireDrained_sync": {
+      "source": "txWireDrainedSource",
+      "source_clock": "rawTxClock",
+      "target_clock": "sourceClock",
+      "reset_value": false
+    }
+  },
+  "registered_epoch_launch": {
+    "source": "media/ingressResetSource",
+    "clock": "sourceClock",
+    "reset_value": true,
+    "sink": "physicalIngress/commonReset",
+    "cold_reset_direct_or": true
+  },
+  "retired_independent_level_chains": [
+    "txAbort_sync",
+    "rxAbort_sync",
+    "rawRxAbort_sync",
+    "physicalIngress_captureEnable_sync"
+  ],
+  "mailboxes": [
+    "txRate",
+    "rxRate",
+    "txConfig/mailbox",
+    "rxConfig/mailbox",
+    "txStats/mailbox",
+    "rxStats/mailbox",
+    "rxDiagnostics/mailbox",
+    "rawDiagnostics/mailbox",
+    "rxStop/command"
+  ],
+  "fifos": [
+    "txFifo/fifo",
+    "rxFifo/fifo",
+    "physicalIngress/crossing/fifo"
+  ],
+  "packet_constraint_budget_ns": 8.0,
+  "related_clocks": [
+    "rawTxClock -> txManaged",
+    "rawTxClock -> rxManaged"
+  ],
+  "physical_collector_status": "PREPARED_NOT_NETLIST_QUALIFIED",
+  "physical_acceptance_requires": [
+    "Exact first-stage D fanin must be one source-register Q bit; clock-pin counts alone are insufficient",
+    "Direct two-stage ASYNC_REG topology, correct reset polarity, no first-stage functional fanout",
+    "Every one of nine mailbox payload/toggle paths and three FIFO Gray/payload paths covered by scoped delay/skew",
+    "Raw-to-managed timing remains related; no broad false paths or asynchronous clock grouping",
+    "Complete CDC report includes CPU, raw125, managedTX/RX and physical RXC media clocks",
+    "Registered epoch Q reaches both physical endpoint releases; complete packet owners remain cold-reset-only"
+  ],
+  "netlist_contract": {
+    "version": 1,
+    "status": "PREPARED_NOT_NETLIST_QUALIFIED",
+    "collector": "audit_mac_netlist.tcl",
+    "root_ref": "TriSpeedManagedGmac",
+    "mailbox_widths": {
+      "txRate": 2,
+      "rxRate": 2,
+      "txConfig/mailbox": 52,
+      "rxConfig/mailbox": 52,
+      "txStats/mailbox": 160,
+      "rxStats/mailbox": 160,
+      "rxDiagnostics/mailbox": 256,
+      "rawDiagnostics/mailbox": 96,
+      "rxStop/command": 1
+    },
+    "fifo_pointer_widths": {
+      "txFifo/fifo": 5,
+      "rxFifo/fifo": 5,
+      "physicalIngress/crossing/fifo": 7
+    },
+    "fifo_payload_width": 38,
+    "clock_pins": {
+      "cpu": "sourceClock",
+      "raw_tx": "rawTxClock",
+      "raw_rx": "rawRxClock",
+      "tx": "txManaged_gate/buffer/O",
+      "rx": "rxManaged_gate/buffer/O"
+    },
+    "level_rules": [
+      [
+        "txLink_sync",
+        "mediaOpen_reg",
+        "cpu",
+        "tx",
+        "cpuRelease",
+        "txRelease"
+      ],
+      [
+        "rxLink_sync",
+        "mediaOpen_reg",
+        "cpu",
+        "rx",
+        "cpuRelease",
+        "rxRelease"
+      ],
+      [
+        "rawRxOpen_sync",
+        "mediaOpen_reg",
+        "cpu",
+        "raw_rx",
+        "cpuRelease",
+        "rawRxRelease"
+      ],
+      [
+        "ingressEmpty_sync",
+        "ingressEmptySource_reg",
+        "raw_tx",
+        "cpu",
+        "rawTxRelease",
+        "cpuRelease"
+      ],
+      [
+        "txWireDrained_sync",
+        "txWireDrainedSource_reg",
+        "raw_tx",
+        "cpu",
+        "rawTxRelease",
+        "cpuRelease"
+      ]
+    ],
+    "required_review": [
+      "Full report_cdc classification and reset recovery/removal at every rate",
+      "Every collected bundle has active scoped 8ns datapath-only max-delay and bus-skew; scalar bundles have no skew requirement",
+      "All raw125-to-managed and managed-to-raw125 functional paths retain ordinary setup/hold; no broad false path or async clock group",
+      "Exact source/export/checkpoint provenance, vendor mapping/INIT/reset polarity, and optimized constant payload bits",
+      "No physical signoff follows automatically from collector completion or mocked tests"
+    ],
+    "mapping_policy": "Exact current expected cell names/widths; any synthesis rename, merge, trimming or alternate reset LUT mapping fails closed for reviewed contract update",
+    "official_api_reference": "https://docs.amd.com/r/2025.1-English/ug835-vivado-tcl-commands/report_bus_skew",
+    "mailbox_clock_domains": {
+      "txRate": [
+        "cpu",
+        "raw_tx"
+      ],
+      "rxRate": [
+        "cpu",
+        "raw_rx"
+      ],
+      "txConfig/mailbox": [
+        "cpu",
+        "tx"
+      ],
+      "rxConfig/mailbox": [
+        "cpu",
+        "rx"
+      ],
+      "txStats/mailbox": [
+        "tx",
+        "cpu"
+      ],
+      "rxStats/mailbox": [
+        "rx",
+        "cpu"
+      ],
+      "rxDiagnostics/mailbox": [
+        "rx",
+        "cpu"
+      ],
+      "rawDiagnostics/mailbox": [
+        "raw_rx",
+        "cpu"
+      ],
+      "rxStop/command": [
+        "cpu",
+        "rx"
+      ]
+    },
+    "fifo_clock_domains": {
+      "txFifo/fifo": [
+        "cpu",
+        "tx"
+      ],
+      "rxFifo/fifo": [
+        "rx",
+        "cpu"
+      ],
+      "physicalIngress/crossing/fifo": [
+        "raw_rx",
+        "raw_tx"
+      ]
+    }
+  }
+}

@@ -145,7 +145,8 @@ case class OooParams(
     memoryProofCacheSets: Int = 256,
     postedPreparationPriority: Boolean = false,
     reconstructIssueTokenIndex: Boolean = false,
-    sharedMemoryAddressState: Boolean = false
+    sharedMemoryAddressState: Boolean = false,
+    registeredPmpRegions: Boolean = false
 ) {
     require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
         renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&
@@ -251,6 +252,8 @@ case class OooParams(
     require(Set(1, 2, 4, 8).contains(memoryEntries), "memory slots must be 1, 2, 4 or 8")
     require(Set(0, 16, 32, 64).contains(indirectTargetEntries), "indirect target entries must be 0, 16, 32 or 64")
     require(Set(1, 2, 4, 8).contains(storeBufferEntries), "store buffer must have 1, 2, 4 or 8 entries")
+    require(!registeredPmpRegions || (machineSystem && pmpEntries > 0),
+        "registered PMP ranges require the architectural machine CSR owner and implemented PMP entries")
     require(Set(0, 8, 16).contains(pmpEntries) && (pmpEntries == 0 || machineSystem),
         "PMP requires machine-system mode and supports 0, 8 or 16 entries")
     require(Set(0, 3, 4, 5).contains(virtualMemoryLevels) &&

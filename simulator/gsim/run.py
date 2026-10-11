@@ -126,7 +126,7 @@ def build_opensbi():
 
 
 def test(gsim, cxx, name, main, top, harness, parameters=(), runtime_args=(), defines=None,
-         sanitizer=True, timeout=120, interactive=False, run_log="test.log"):
+         sanitizer=True, timeout=120, interactive=False, run_log="test.log", gsim_options=()):
     output = BUILD / name
     output.mkdir(parents=True, exist_ok=True)
     run(["mill", "-i", "IonSoC.test.runMain", main, output, *parameters], log=output / "elaborate.log")
@@ -136,7 +136,7 @@ def test(gsim, cxx, name, main, top, harness, parameters=(), runtime_args=(), de
     for old in output.glob(top + "[0-9]*.cpp"):
         old.unlink()
     try:
-        run([gsim, "--threads=1", f"--dir={output}", output / f"{top}.fir"], log=output / "generate.log")
+        run([gsim, "--threads=1", *gsim_options, f"--dir={output}", output / f"{top}.fir"], log=output / "generate.log")
     except RuntimeError:
         # GSIM can abort with an opaque expression-tree assertion on combinational cycles.
         # Diagnose only a failed emit, so normal focused tests pay no extra tool startup cost.

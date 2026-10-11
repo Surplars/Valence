@@ -1,0 +1,26 @@
+{
+  "schema": "valence-bscan-timing-profile-v1",
+  "profile": "zu15eg-user2-tck50-positive-v1",
+  "status": "SOURCE_CONTROLLED_CANDIDATE_NOT_PHYSICAL_SIGNOFF",
+  "part": "xczu15eg-ffvb1156-2-i",
+  "user_chain": 2,
+  "frame_bits": 64,
+  "clocks": {
+    "tck": {"source_pin": "INTERNAL_TCK", "period_ns": 50.0, "waveform_ns": [0.0, 25.0]},
+    "drck": {"source_pin": "INTERNAL_TCK", "sink_pin": "DRCK", "divide_by": 1},
+    "update": {"source_pin": "INTERNAL_TCK", "sink_pin": "UPDATE", "edges": [2, 3, 4]},
+    "all_related_pairs_setup_uncertainty_ns": 0.1,
+    "all_related_pairs_hold_uncertainty_ns": 0.1,
+    "primitive_clock_delay_added_as_waveform_shift": false
+  },
+  "adapter_input_assumptions": {"pins": ["INTERNAL_TDI", "INTERNAL_TMS"], "reference": "TCK falling", "max_ns": 15.0, "min_ns": 0.0, "board_measured": false},
+  "reset_release": {"source_release": "negative TCK, 3 FDCE", "update_release": "positive TCK, 3 FDCE", "bridge/source_release": "negative TCK, 3 FDCE", "bridge/dest_release": "positive debug_clk, 3 FDCE", "exceptions": "only each fully checked bank's 3 CLR pins; total 12"},
+  "positive_tck_qualifiers": ["update_selected = SEL && source_release[2]", "update_ack = update_seen"],
+  "update_free_test": "live update_toggle equals sampled update_ack bit",
+  "asynchronous_mailbox_limits": {"max_datapath_ns": 8.0, "held_bundle_skew_ns": 8.0, "toggle_first_stages": ["bridge/request_toggle -> bridge/request_sync[0]", "bridge/response_toggle -> bridge/response_sync[0]"], "held_bundles": ["bridge/request_held -> bridge/dest_request, 41 bits", "bridge/response_held -> bridge/s_rsp_payload, 34 bits"]},
+  "never_cut": ["SEL to qualifier", "source release to qualifier", "update_seen to qualifier", "qualifier to UPDATE", "DRCK to UPDATE", "UPDATE to TCK", "TCK to DRCK", "functional reset recovery/removal"],
+  "source_history": "Replaces the untracked provisional local TCK50/UPDATE edges {2 3 4} recipe with a source-bound candidate, a positive-TCK control/reset island, and explicit uncertainty on all related pairs. The prior recipe is not promoted to qualified status.",
+  "evidence_required": ["actual installed-model USER2 transition/reset tests", "post-synthesis and post-opt bank/cone audits", "exception coverage", "min/max routed timing including reset recovery/removal and pulse width", "adapter duty/input characterization"],
+  "physical_qualification": false,
+  "board_qualification": false
+}

@@ -89,6 +89,13 @@ class MachineSystemUnit(p: OooParams) extends Module {
     val satp                                          = RegInit(0.U(64.W))
     val pmpCfg                                        = RegInit(VecInit(Seq.fill(16)(0.U(8.W))))
     val pmpAddr                                       = RegInit(VecInit(Seq.fill(16)(0.U(54.W))))
+    // OFF retains the original direct register writes and live range decoder.
+    // ON sends the exact same filtered writes to the next-state decoder so raw
+    // CSR state and derived bounds publish at one edge, with no request stage.
+    val pmpCfgWrite = if (p.registeredPmpRegions) WireDefault(pmpCfg) else pmpCfg
+    val pmpAddrWrite = if (p.registeredPmpRegions) WireDefault(pmpAddr) else pmpAddr
+    val pmpRegionWrite = if (p.registeredPmpRegions)
+        Some(WireDefault(VecInit(Seq.fill(p.pmpEntries)(false.B)))) else None
     val sie                                           = RegInit(false.B)
     val spie                                          = RegInit(false.B)
     val spp                                           = RegInit(false.B)
@@ -129,7 +136,36 @@ class MachineSystemUnit(p: OooParams) extends Module {
         io.pmpState.cfg(i)  := pmpCfg(i)
         io.pmpState.addr(i) := pmpAddr(i)
     }
-    PmpState.decodeRegions(io.pmpState)
+    if (p.registeredPmpRegions) {
+        val nextPmpState = Wire(new PmpState)
+        nextPmpState.cfg := pmpCfgWrite
+        nextPmpState.addr := pmpAddrWrite
+        PmpState.decodeRegions(nextPmpState)
+        pmpCfg := pmpCfgWrite
+        pmpAddr := pmpAddrWrite
+        for (i <- 0 until p.pmpEntries) {
+            // OFF with raw address zero decodes to low 0/end 7/inactive.
+            // Retain all 65 end bits, including inactive TOR top-zero underflow.
+            val regionLow = RegInit(0.U(65.W)).suggestName(s"pmpRegionLow_$i")
+            val regionEnd = RegInit(7.U(65.W)).suggestName(s"pmpRegionEnd_$i")
+            val regionActive = RegInit(false.B).suggestName(s"pmpRegionActive_$i")
+            when(pmpRegionWrite.get(i)) {
+                regionLow := nextPmpState.regionLow(i)
+                regionEnd := nextPmpState.regionEnd(i)
+                regionActive := nextPmpState.regionActive(i)
+            }
+            io.pmpState.regionLow(i) := regionLow
+            io.pmpState.regionEnd(i) := regionEnd
+            io.pmpState.regionActive(i) := regionActive
+        }
+        for (i <- p.pmpEntries until 16) {
+            io.pmpState.regionLow(i) := 0.U
+            io.pmpState.regionEnd(i) := 7.U
+            io.pmpState.regionActive(i) := false.B
+        }
+    } else {
+        PmpState.decodeRegions(io.pmpState)
+    }
     val machineGlobalEnable  = privilege =/= 3.U || mie
     val machineExternalReady = io.externalInterrupt && meie && machineGlobalEnable
     val machineTimerReady    = io.timerInterrupt && mtie && machineGlobalEnable
@@ -418,7 +454,8 @@ class MachineSystemUnit(p: OooParams) extends Module {
                             for (i <- 0 until math.min(8, p.pmpEntries)) {
                                 val raw = newValue(8 * i + 7, 8 * i)
                                 when(!pmpCfg(i)(7)) {
-                                    pmpCfg(i) := Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
+                                    pmpCfgWrite(i) := Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
+                                    pmpRegionWrite.foreach(_(i) := true.B)
                                 }
                             }
                         }
@@ -426,7 +463,8 @@ class MachineSystemUnit(p: OooParams) extends Module {
                             for (i <- 8 until p.pmpEntries) {
                                 val raw = newValue(8 * (i - 8) + 7, 8 * (i - 8))
                                 when(!pmpCfg(i)(7)) {
-                                    pmpCfg(i) := Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
+                                    pmpCfgWrite(i) := Cat(raw(7), 0.U(2.W), raw(4, 2), raw(1) && raw(0), raw(0))
+                                    pmpRegionWrite.foreach(_(i) := true.B)
                                 }
                             }
                         }
@@ -434,7 +472,18 @@ class MachineSystemUnit(p: OooParams) extends Module {
                             when(address === (0x3b0 + i).U) {
                                 val nextTorLocked = if (i + 1 < p.pmpEntries)
                                     pmpCfg(i + 1)(7) && pmpCfg(i + 1)(4, 3) === 1.U else false.B
-                                when(!pmpCfg(i)(7) && !nextTorLocked) { pmpAddr(i) := newValue(53, 0) }
+                                when(!pmpCfg(i)(7) && !nextTorLocked) {
+                                    pmpAddrWrite(i) := newValue(53, 0)
+                                    pmpRegionWrite.foreach { enables =>
+                                        // Even an OFF entry has observable decoded bounds.
+                                        enables(i) := true.B
+                                        if (i + 1 < p.pmpEntries) {
+                                            // A single CSR write cannot change cfg concurrently.
+                                            // This predecessor write changes the next TOR low/active.
+                                            when(pmpCfg(i + 1)(4, 3) === 1.U) { enables(i + 1) := true.B }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

@@ -35,7 +35,7 @@ class XsimRunnerTests(unittest.TestCase):
 
     def test_unisim_model_profile_is_not_forced_to_physical_bsdl(self):
         rows = runner.cases("unisim", self.model())
-        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(rows), 10)
         params = rows[0]["parameters"]
         self.assertEqual({k: params[k] for k in ("MODEL_PROFILE_TAG", "MODEL_IR_LENGTH",
                          "MODEL_USER1", "MODEL_USER2", "MODEL_IDCODE")},
@@ -86,7 +86,7 @@ class XsimRunnerTests(unittest.TestCase):
     def test_each_identity_negative_requires_its_own_oracle(self):
         rows = runner.cases("unisim", self.model())
         positive = rows[0]["parameters"]
-        for row in rows[4:]:
+        for row in rows[5:]:
             with self.subTest(case=row["name"]):
                 self.assertEqual(sum(row["parameters"][key] != positive[key]
                                      for key in row["parameters"]), 1)
@@ -109,6 +109,20 @@ class XsimRunnerTests(unittest.TestCase):
         rows = runner.cases("unisim", self.model())[:3]
         self.assertEqual(len({(r["parameters"]["SYS_HALF"],r["parameters"]["TCK_LOW"],
                               r["parameters"]["TCK_HIGH"]) for r in rows}), 3)
+
+    def test_exact_50ns_vendor_case_and_qualification_suite(self):
+        rows = runner.cases("unisim", self.model())
+        matched = [row for row in rows if row["name"] == "vendor_phase_3"]
+        self.assertEqual(len(matched), 1)
+        params = matched[0]["parameters"]
+        # The tick helper includes 2 ns after falling TCK.
+        self.assertEqual(params["TCK_LOW"] + 2, 25)
+        self.assertEqual(params["TCK_HIGH"], 25)
+        logical = runner.cases("bscan-qualification")
+        self.assertEqual(len(logical), 2)
+        self.assertEqual(logical[0]["marker"], "PASS BSCAN_QUALIFICATION")
+        for row in logical:
+            self.assertNotIn("unisims_ver", runner.command_plan(row, row["sources"], False)[1])
 
     def test_drain_has_negative_reset_owner_and_three_clock_ratios(self):
         rows = runner.cases("loader-drain")
@@ -153,7 +167,7 @@ class XsimRunnerTests(unittest.TestCase):
             self.assertFalse(report["installed_model_profile_hashes_verified"])
             self.assertFalse(report["installed_model_runtime_profile_verified"])
             self.assertFalse(report["runtime_executed"])
-            self.assertEqual(len(report["cases"]), 9)
+            self.assertEqual(len(report["cases"]), 10)
 
     def test_cli_rejects_missing_unknown_or_conflicting_profile_before_execution(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(runner.subprocess,"run",side_effect=AssertionError("execution")):

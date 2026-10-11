@@ -59,6 +59,8 @@ class BoardProfileTests(unittest.TestCase):
             current["cache"]["readPrefetchDirtyRetry"] = False
             current["profile"]["readPrefetchDemandAdoption"] = False
             current["cache"]["readPrefetchDemandAdoption"] = False
+            current["profile"]["registeredPmpRegions"] = False
+            current["core"]["registeredPmpRegions"] = False
             board_profile.compare_constructor(mode, current)
             with self.assertRaises(RuntimeError):
                 board_profile.compare_constructor(mode, frozen[mode])
@@ -72,6 +74,15 @@ class BoardProfileTests(unittest.TestCase):
                             actual[section][field] = True
                         with self.subTest(mode=mode, section=section, mutation=mutation), self.assertRaises(RuntimeError):
                             board_profile.compare_constructor(mode, actual)
+            for section in ("profile", "core"):
+                for mutation in ("missing", "enabled"):
+                    actual = copy.deepcopy(current)
+                    if mutation == "missing":
+                        actual[section].pop("registeredPmpRegions")
+                    else:
+                        actual[section]["registeredPmpRegions"] = True
+                    with self.subTest(mode=mode, section=section, mutation=mutation), self.assertRaises(RuntimeError):
+                        board_profile.compare_constructor(mode, actual)
             for mutation in ("change", "missing", "extra"):
                 actual = copy.deepcopy(current)
                 if mutation == "change":

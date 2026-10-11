@@ -65,7 +65,7 @@ module bscan_user_tb;
                 if(pending || rsp_valid) $fatal(1,"overlapping downstream request");
                 request_count=request_count+1;
                 pending<=1; pending_delay<=response_delay;
-                rsp_status<=req_address==7'h7f?2:0;
+                rsp_status <= req_address == 7'h7f ? 2 : 0;
                 rsp_data<=memory[req_address];
                 if(req_op==2 && req_address!=7'h7f) memory[req_address]<=req_data;
             end
@@ -144,7 +144,9 @@ module bscan_user_tb;
     integer n,before_count;
     initial begin
         for(n=0;n<128;n=n+1)memory[n]=32'hcafe0000+n;
-        #2;por_n=1;step(0);idle(10);
+        // Establish reset with real edges before POR release. A declaration-only
+        // time-zero level is not an asynchronous event on every simulator.
+        #2;repeat(2)step(1);por_n=1;step(0);idle(10);
         scan(frame(3,0,0),64,-1,rx);poll_done(rx);
         if(rx[33:2]!=32'h701 || rx[1:0]!=0 || request_count!=0)$fatal(1,"capability");
 
@@ -193,6 +195,8 @@ module bscan_user_tb;
         before_count=request_count;
         scan_empty;idle(8);scan(frame(0,0,0),64,-1,rx);
         if(!rx[43])$fatal(1,"zero-bit frame accepted");clear_result;
+        scan(frame(2,7'h22,32'h11223344),1,-1,rx);idle(8);
+        scan(frame(0,0,0),64,-1,rx);if(!rx[43])$fatal(1,"one-bit frame accepted");clear_result;
         scan(frame(2,7'h22,32'h11223344),63,-1,rx);idle(8);
         scan(frame(0,0,0),64,-1,rx);if(!rx[43])$fatal(1,"short frame accepted");clear_result;
         scan(frame(2,7'h22,32'h11223344),65,-1,rx);idle(8);

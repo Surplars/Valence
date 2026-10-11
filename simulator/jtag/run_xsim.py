@@ -88,6 +88,11 @@ def cases(suite, model=None):
         result.append(case("bscan_pin_model", "bscan_user_tb", "PASS BSCAN_USER", [
             DTM, BSCAN, "simulator/jtag/bscan_user_tb.sv"]))
         return result
+    if suite == "bscan-qualification":
+        return [case("bscan_qualification", "bscan_qualification_tb", "PASS BSCAN_QUALIFICATION", [
+                    DTM, BSCAN, "simulator/jtag/bscan_qualification_tb.sv"]),
+                case("bscan_pin_model", "bscan_user_tb", "PASS BSCAN_USER", [
+                    DTM, BSCAN, "simulator/jtag/bscan_user_tb.sv"])]
     if suite == "unisim-profile":
         return [case("vendor_profile", "bscan_unisim_profile_tb", "BSCAN_UNISIM_PROFILE_ONLY", [
             "simulator/jtag/bscan_unisim_profile_tb.sv"])]
@@ -99,7 +104,7 @@ def cases(suite, model=None):
                       MODEL_USER1=model["user1"], MODEL_USER2=model["user2"], MODEL_IDCODE=model["idcode"])
         result = [case("vendor_phase_" + str(i), "bscan_unisim_tb", "BSCAN_UNISIM_PASS", sources,
                        dict(params, SYS_HALF=half, TCK_LOW=low, TCK_HIGH=high, START_PHASE=phase))
-                  for i, (half, low, high, phase) in enumerate(((7, 19, 23, 3), (13, 11, 17, 5), (5, 29, 31, 7)))]
+                  for i, (half, low, high, phase) in enumerate(((7, 19, 23, 3), (13, 11, 17, 5), (5, 29, 31, 7), (7, 23, 25, 3)))]
         result.append(case("vendor_bad_oracle", "bscan_unisim_tb", "BSCAN_UNISIM_PASS", sources,
                            dict(params, BAD_EXPECTED=1), "UNISIM_READBACK_ORACLE"))
         # Deliberately corrupt one generic at a time. Each must fail before any
@@ -166,7 +171,7 @@ def validate_loader(directory):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite", choices=("protocol", "unisim-profile", "unisim", "loader-drain"), required=True)
+    parser.add_argument("--suite", choices=("protocol", "bscan-qualification", "unisim-profile", "unisim", "loader-drain"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--run", action="store_true", help="execute only in the separately authorized simulator task")
     parser.add_argument("--vivado-root", type=Path, help="existing installation; no PATH/tool download fallback")
@@ -236,7 +241,7 @@ def main(argv=None):
         runtime_attempted=False, runtime_executed=False, vendor_primitive_executed=False, physical_cdc_signoff=False,
         board_scan_chain_verified=False, board_verified=False, full_debug_module=False,
         installed_models_are_not_board_bsdl=True,
-        protocol_scope="pin-event model only; no BSCANE2" if args.suite == "protocol" else args.suite)
+        protocol_scope="pin-event model only; no BSCANE2" if args.suite in ("protocol", "bscan-qualification") else args.suite)
     try:
         if args.run:
             # Record the actual executables, not merely a user-entered version.

@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 // Production endpoint RTL + real DMI mailbox, independent clocks. No CPU/DDR.
 module loader_cdc_drain_tb #(
-    parameter integer SYS_HALF=7, TCK_HALF=11, BAD_RESET_OWNER=0
+    parameter integer SYS_HALF=7, TCK_HALF=11, BAD_RESET_OWNER=0, TIMEOUT_CYCLES=64
 );
     reg clk=0,tck=0,reset=1,por_n=0;
     always #(SYS_HALF)clk=~clk;
@@ -99,7 +99,7 @@ module loader_cdc_drain_tb #(
         open_session(0);
         // Accepted timeout cannot release the owner or admit OPEN/new traffic.
         mqready=1;start_write;@(negedge clk);mqready=0;
-        repeat(100)@(negedge clk);cpu(0,0,0,0,status);
+        repeat(TIMEOUT_CYCLES+36)@(negedge clk);cpu(0,0,0,0,status);
         if(!status[3] || !status[4] || status[0])$fatal(1,"timeout did not retain BUSY/fault");
         open_session(1);old_requests=requests;por_n=0;repeat(12)@(negedge clk);
         if(!mrready || requests!=old_requests)$fatal(1,"DRAIN_OWNER_ORACLE accepted owner lost");
@@ -117,5 +117,5 @@ module loader_cdc_drain_tb #(
             requests,SYS_HALF,TCK_HALF);
         $finish;
     end
-    initial begin #1000000;$fatal(1,"loader CDC drain watchdog");end
+    initial begin #(1000000 + 4*SYS_HALF*TIMEOUT_CYCLES);$fatal(1,"loader CDC drain watchdog");end
 endmodule

@@ -1,0 +1,52 @@
+{
+  "status": "PASS_EXACT_SEVEN_FILE_COPY_PYTHON_AST_AND_ENTRY_PATHS_ONLY",
+  "bindings": {
+    "simulator/gsim/harness/prefetch_demand_adoption_exclusions.cpp": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-exclusions-r1/source/simulator/gsim/harness/prefetch_demand_adoption_exclusions.cpp",
+      "origin_sha256": "6f6733349c169bef3549cc79c35d0b1076aa575d2e077f5db074a8bd23ad82e2",
+      "integrated_sha256": "6f6733349c169bef3549cc79c35d0b1076aa575d2e077f5db074a8bd23ad82e2",
+      "previous_sha256": null
+    },
+    "simulator/gsim/harness/prefetch_demand_adoption_oracle.h": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-exclusions-r1/source/simulator/gsim/harness/prefetch_demand_adoption_oracle.h",
+      "origin_sha256": "8ede7ca80ee2d62c71887bb05380c7af3d466dbd43b1a0d5171801594ef7c856",
+      "integrated_sha256": "8ede7ca80ee2d62c71887bb05380c7af3d466dbd43b1a0d5171801594ef7c856",
+      "previous_sha256": "9e360dd2400825bb681913aa4981efb5acd7fdd1dff1b62bea4f0b3277006195"
+    },
+    "simulator/gsim/prefetch_demand_adoption_exclusions.py": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-exclusions-r1/source/simulator/gsim/prefetch_demand_adoption_exclusions.py",
+      "origin_sha256": "f018a2b0e51f14a55e232ca826c40658b988e877a722e10f9bb2bae1f7e59e41",
+      "integrated_sha256": "f018a2b0e51f14a55e232ca826c40658b988e877a722e10f9bb2bae1f7e59e41",
+      "previous_sha256": null
+    },
+    "src/test/scala/ooo/PostedPrefetchCoexistGsim.scala": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-probe-r1/source/src/test/scala/ooo/PostedPrefetchCoexistGsim.scala",
+      "origin_sha256": "3f31e77f9c3fda6513fa2f70d25ee6f063b065b9174e33e616541e85b5c8edb6",
+      "integrated_sha256": "3f31e77f9c3fda6513fa2f70d25ee6f063b065b9174e33e616541e85b5c8edb6",
+      "previous_sha256": "c710d7ba4af923ea1e2d2c59281c423c1616a7243eaf72ca1619077a656b90b0"
+    },
+    "simulator/gsim/prefetch_adoption_probe/ports.py": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-probe-r1/source/simulator/gsim/prefetch_adoption_probe/ports.py",
+      "origin_sha256": "5dd9858d35e008e4ebbea8acec69bd193aa2c0efbdbae9162192c99009d071b7",
+      "integrated_sha256": "5dd9858d35e008e4ebbea8acec69bd193aa2c0efbdbae9162192c99009d071b7",
+      "previous_sha256": null
+    },
+    "simulator/gsim/prefetch_adoption_probe/fixture.py": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-probe-r1/source/simulator/gsim/prefetch_adoption_probe/fixture.py",
+      "origin_sha256": "a5151967b33e349debe49c679cef0117ac8290fca50b0b8045a082f5e55c1fbd",
+      "integrated_sha256": "a5151967b33e349debe49c679cef0117ac8290fca50b0b8045a082f5e55c1fbd",
+      "previous_sha256": null
+    },
+    "simulator/gsim/prefetch_adoption_probe/run.py": {
+      "origin_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-probe-r1/source/simulator/gsim/prefetch_adoption_probe/run.py",
+      "origin_sha256": "91df376e5bebcaa434a60b3aa3d40181a82e4142375e6c93dbed2d484a05dba8",
+      "integrated_sha256": "91df376e5bebcaa434a60b3aa3d40181a82e4142375e6c93dbed2d484a05dba8",
+      "previous_sha256": null
+    }
+  },
+  "historical_library_file_id": "libfile_630e92dba54081919c2985977fb618ff",
+  "historical_package_sha256": "761be38ac49cb7f66b2f597e2f0ed3993b7d6aa19de96d3170187deb9a00392f",
+  "source_roots_resolve": true,
+  "dynamic_execution_at_integrated_paths": false,
+  "scope": "Original three exclusions qualified original/legacy ON models; raw-B qualified separate synthetic-manager legacy model. Exact fixtures copied without rewriting their fail-closed source/model guards. Do not interpret their original absolute paths or passes as executions in this combined source."
+}

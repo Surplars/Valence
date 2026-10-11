@@ -9,8 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RTL = ROOT / 'src/main/resources/debug/ValenceBscanDebugPort.sv'
 
 
-def main():
-    text = RTL.read_text()
+def check_structure(text):
     clean = re.sub(r'//[^\n]*', '', text)
     assert 'module ValenceBscanUserTransport (' in clean
     assert 'module ValenceBscanDebugPort #(' in clean
@@ -19,11 +18,19 @@ def main():
     assert not re.search(r'\bValenceJtagTap\b', clean), 'A USER DR must not directly wrap a standalone TAP'
     assert len(re.findall(r'\bValenceDmiCdc\s*#', clean)) == 1
     assert 'always @(posedge bscan_drck or negedge work_reset_n)' in clean
-    assert 'always @(posedge bscan_update or negedge work_reset_n)' in clean
+    assert 'always @(posedge bscan_update or negedge update_reset_n)' in clean
+    assert 'always @(posedge bscan_tck or negedge work_reset_n)' in clean
+    assert 'always @(posedge bscan_tck or negedge update_reset_n)' in clean
     assert 'always @(negedge bscan_tck or negedge source_reset_n)' in clean
     assert "assign bscan_tdo = bscan_sel ? shift_frame[0] : 1'b0;" in clean
     assert 'if (shift_count < 65)' in clean and 'shift_count == 64' in clean
-    assert 'update_toggle == update_seen' in clean and 'update_overrun <= 1' in clean
+    assert 'update_toggle == update_ack' in clean and 'update_overrun <= 1' in clean
+    assert 'update_selected <= bscan_sel && source_reset_n;' in clean
+    assert 'update_ack <= update_seen;' in clean
+    update = clean.split('always @(posedge bscan_update', 1)[1].split('(* ASYNC_REG', 1)[0]
+    assert not re.search(r'\b(bscan_sel|source_reset_n|update_seen|work_reset_n)\b', update)
+    assert 'wire update_reset_n = update_release[2];' in clean
+    assert 'SHREG_EXTRACT = "NO"' in clean
     for pin in ('CAPTURE', 'DRCK', 'RESET', 'SEL', 'SHIFT', 'TCK', 'TDI', 'UPDATE', 'TDO'):
         assert f'.{pin}(' in clean, f'Missing real primitive {pin} interface'
     disabled = clean.split('if (ENABLE == 0) begin: disabled', 1)[1].split('end else begin: enabled', 1)[0]
@@ -33,6 +40,9 @@ def main():
     wrapper = clean.split('module ValenceBscanDebugPort #(', 1)[1].split('generate', 1)[0]
     assert not any(f'input wire {pin}' in wrapper for pin in ('tck', 'tms', 'tdi', 'trst_n'))
 
+
+def main():
+    check_structure(RTL.read_text())
     # Independent fixed-wire format exercise, including >32-bit Tcl field split.
     vectors = 0
     for op in range(4):

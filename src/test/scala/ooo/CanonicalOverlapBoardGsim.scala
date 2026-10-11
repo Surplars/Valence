@@ -34,7 +34,7 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
-    postedPreparationPriority: Boolean = false) extends Module {
+    postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false) extends Module {
     override def desiredName: String = "BoardSocGsim"
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
@@ -44,6 +44,7 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        registeredPmpRegions = registeredPmpRegions,
         bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,

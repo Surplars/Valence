@@ -9,7 +9,8 @@ class LineReadChannelConfigSpec extends AnyFunSuite {
         for (base <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected)) {
             assert(!base.lineReadChannel)
             val on = base.copy(lineReadChannel = true)
-            assert(on.productArity == 46 && !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
+            assert(on.productArity == 47 && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+                !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 !on.splitPrefetchTracking && !on.cache.splitPrefetchTracking &&
                 !on.translationHitFlow && on.coreParams == base.coreParams && on.cache == base.cache)
@@ -38,9 +39,11 @@ class LineReadChannelConfigSpec extends AnyFunSuite {
 
     test("official native and GSIM board assemblies connect the new shared DDR ingress") {
         val config = FpgaNextConfig.Selected.copy(ddrWriteCollectionFlow = true,
-            lineTransferDispatchFlow = true, lineReadChannel = true)
+            lineTransferDispatchFlow = true, lineReadChannel = true,
+            experimentalTriSpeedEthernet = true, lsuEntries = 4, dataTranslationEntries = 16,
+            dmaLineTransfers = true, dmaLineEntries = 4)
         val native = ChiselStage.emitCHIRRTL(config.managedBoard())
-        val gsim = ChiselStage.emitCHIRRTL(FpgaNextBoardGsim.build(config))
+        val gsim = ChiselStage.emitCHIRRTL(FpgaNextBoardGsim.build(config, verifyConfiguration = true))
         for (fir <- Seq(native, gsim)) {
             // InstructionLineCache deliberately keeps its independent TL fill
             // engine. Inspect the DATA-home transfer module, not all of SoC.

@@ -1,5 +1,13 @@
 # Valence FPGA-next
 
+The explicit next timing/CDC candidate is `board_timing_cdc.py`, documented in
+[the complete board contract](../../docs/fpga-next/timing-cdc-combined-v1.md).
+Its combined constructor/native/CPU gates passed; vendor/physical CDC, routed
+timing and board qualification remain pending. Use `--print-native-options` or
+`--output FRESH_DIRECTORY` for preflight. The versioned manifest retains all
+physical tri-speed/USER2/ROM features and adds dirty retry, demand adoption and
+registered PMP. Existing board/profile entries remain the rollback choices.
+
 Read-prefetch demand adoption 的显式默认关闭导出入口、实测收益与 Bare 额外读流量见 [实验记录](../../docs/experiments/read-prefetch-demand-adoption.md)；当前 preset 保持原样，下一统一板版须组合资格通过后显式启用。
 
 An independent FPGA-first RV64GC SoC integration. The selected v2 profile combines

@@ -103,3 +103,14 @@ fpga-board-ddr-rtl:
 	python3 fpga/firmware/build.py --out "$(FPGA_DDR_FIRMWARE_OUT)" --cpu-hz "$(FPGA_DDR_CLOCK_HZ)" --ddr
 	$(MILL) -i IonSoC.test.runMain ooo.BoardSocMain "$(FPGA_DDR_OUT)" "$(FPGA_DDR_CLOCK_HZ)" ddr "$(FPGA_DDR_TIMING_PROFILE)" "$(FPGA_DDR_UART_BAUD)"
 	cp fpga/zu15eg/soc_top_ddr.sv fpga/zu15eg/board_ddr.xdc fpga/zu15eg/pl_ddr4_pins.xdc fpga/zu15eg/prepare_ddr_project.tcl fpga/zu15eg/pl-ddr4-integration.md "$(FPGA_DDR_OUT)/"
+
+# Actual MAC/CDC boundary, independent clocks, no SoC/CAD/full GSIM.
+MAC_CDC_OUTPUT ?= build/mac-boundary-cdc
+.PHONY: native-mac-boundary-cdc
+.PHONY: native-mac-netlist-contract
+native-mac-netlist-contract:
+	python3 -m unittest discover -s fpga/next -p test_mac_netlist_review.py -v
+	python3 -m unittest discover -s fpga/next -p test_media_integration.py -v
+
+native-mac-boundary-cdc:
+	python3 fpga/next/check_mac_boundary.py --output "$(MAC_CDC_OUTPUT)" --mill "$(MILL)"

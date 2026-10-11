@@ -46,11 +46,13 @@ def compare_constructor(actual):
     load_manifest()
     expected = copy.deepcopy(json.loads((HERE / "board-performance-constructors.json").read_text())["B"])
     expected["profile"]["experimentalTriSpeedEthernet"] = True
-    # Keep the published constructor snapshot frozen; both optional policies are explicitly OFF.
+    # Keep the published snapshot frozen; the new optional policies are explicitly OFF.
     expected["profile"]["readPrefetchDirtyRetry"] = False
     expected["cache"]["readPrefetchDirtyRetry"] = False
     expected["profile"]["readPrefetchDemandAdoption"] = False
     expected["cache"]["readPrefetchDemandAdoption"] = False
+    expected["profile"].setdefault("registeredPmpRegions", False)
+    expected["core"].setdefault("registeredPmpRegions", False)
     if actual != expected:
         raise RuntimeError("complete release constructor differs from B plus tri-speed selector")
 

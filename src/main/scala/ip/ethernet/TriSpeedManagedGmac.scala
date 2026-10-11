@@ -110,11 +110,19 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     decode.io.rate <> rxRate.destination
     media.io.txRateIdle := txRate.sourceIdle
     media.io.rxRateIdle := rxRate.sourceIdle
-    val txAbort = ManagedPeripheralSupport.level(media.io.abortTraffic, txManaged, txRelease.resetOut)
-    val rxAbort = ManagedPeripheralSupport.level(media.io.abortTraffic, rxManaged, rxRelease.resetOut)
-    val rawRxAbort = ManagedPeripheralSupport.level(media.io.abortTraffic, rawRxClock, rawRxRelease.resetOut)
-    val txLink = ManagedPeripheralSupport.level(media.io.linkUp, txManaged, txRelease.resetOut)
-    val rxLink = ManagedPeripheralSupport.level(media.io.linkUp, rxManaged, rxRelease.resetOut)
+    // One registered CPU launch state, then one synchronizer per destination.
+    // Abort/link/capture must share the SAME destination state: independent
+    // complement chains can disagree for a destination edge. Reset is closed.
+    // CPU admission is immediate; ingress epoch reset uses the media controller's registered qualification.
+    val mediaOpen = withClockAndReset(sourceClock, cpuRelease.resetOut) {
+        RegNext(media.io.linkUp, false.B)
+    }
+    val txLink = ManagedPeripheralSupport.level(mediaOpen, txManaged, txRelease.resetOut)
+    val rxLink = ManagedPeripheralSupport.level(mediaOpen, rxManaged, rxRelease.resetOut)
+    val rawRxOpen = ManagedPeripheralSupport.level(mediaOpen, rawRxClock, rawRxRelease.resetOut)
+    val txAbort = !txLink
+    val rxAbort = !rxLink
+    val rawRxAbort = !rawRxOpen
     decode.io.abort := rawRxAbort
     decode.io.admissionClosed := rawRxAbort
     decode.io.rise := rawRgmiiRxRise
@@ -128,7 +136,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     physicalIngress.sourceError := decode.io.gmiiError
     physicalIngress.sourceByteStep := decode.io.byteStep
     physicalIngress.physicalValid := rawRgmiiRxRise(4)
-    physicalIngress.captureEnable := ManagedPeripheralSupport.level(media.io.linkUp, rawRxClock, rawRxRelease.resetOut)
+    physicalIngress.captureEnable := rawRxOpen
     val sourceEpochReady = ManagedPeripheralSupport.level(physicalIngress.sourceReady,
         sourceClock, cpuRelease.resetOut)
     val destinationEpochReady = ManagedPeripheralSupport.level(physicalIngress.destinationReady,
@@ -301,9 +309,19 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rx.io.gmiiError := ingress.delayed(8)
     rx.io.gmiiValid := ingress.delayed(9)
     rx.io.byteStep.get := ingress.delayed(10)
-    val ingressEmpty = ManagedPeripheralSupport.level(ingress.empty, sourceClock, cpuRelease.resetOut)
-    val txWireDrained = ManagedPeripheralSupport.level(!tx.io.busy && txFifo.destinationIdle && encode.io.idle,
-        sourceClock, cpuRelease.resetOut)
+    // Launch these return levels from fixed raw TX, which keeps running when
+    // recovered RXC or either managed gate stops. A sample delays both polarities;
+    // owner/admission handshakes, not this delay alone, establish safe draining.
+    val ingressEmptySource = withClockAndReset(rawTxClock, rawTxRelease.resetOut) {
+        RegNext(ingress.empty, false.B)
+    }
+    // txManaged is a phase-related gated derivative of rawTxClock. Keep these
+    // source-to-register paths timed; they are not asynchronous false paths.
+    val txWireDrainedSource = withClockAndReset(rawTxClock, rawTxRelease.resetOut) {
+        RegNext(!tx.io.busy && txFifo.destinationIdle && encode.io.idle, false.B)
+    }
+    val ingressEmpty = ManagedPeripheralSupport.level(ingressEmptySource, sourceClock, cpuRelease.resetOut)
+    val txWireDrained = ManagedPeripheralSupport.level(txWireDrainedSource, sourceClock, cpuRelease.resetOut)
     media.io.txDrained := adapter.io.txIdle && txFifo.sourceIdle && txWireDrained
     media.io.rxDrained := rxStop.drained && ingressEmpty
     txIdle := media.io.txDrained

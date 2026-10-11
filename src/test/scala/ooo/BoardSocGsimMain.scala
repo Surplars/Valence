@@ -36,8 +36,10 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
-    configurationCheck: Option[FpgaNextConfig] = None) extends Module {
+    configurationCheck: Option[FpgaNextConfig] = None, registeredPmpRegions: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
+    require(registeredPmpRegions == configurationCheck.get.coreParams.registeredPmpRegions,
+        "PMP publication flag differs from the actual matching-board configuration")
     private val board = Module(new MatchingManagedBoard(configurationCheck.get, jtagRamDownload = true))
     val service = IO(chiselTypeOf(board.service))
     service <> board.service

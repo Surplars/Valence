@@ -13,7 +13,8 @@ class ReadPrefetchDirtyRetryConfigSpec extends AnyFunSuite {
             assert(!base.readPrefetchDirtyRetry && !base.cache.readPrefetchDirtyRetry)
             val off = base.copy(storeNextLinePrefetch = true, splitPrefetchTracking = true)
             val on = off.copy(readPrefetchDirtyRetry = true)
-            assert(on.productArity == 46 && on.cache.productArity == 16)
+            assert(on.productArity == 47 && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+                on.cache.productArity == 16)
             assert(on.copy(readPrefetchDirtyRetry = false) == off)
             assert(on.cache.copy(readPrefetchDirtyRetry = false) == off.cache)
             assert(on.coreParams == off.coreParams && on.ddr == off.ddr && on.tags == off.tags)

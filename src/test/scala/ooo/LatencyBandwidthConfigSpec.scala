@@ -7,7 +7,8 @@ import soc.core.ooo._
 class LatencyBandwidthConfigSpec extends AnyFunSuite {
     test("explicit latency capacities and DTLB reuse do not silently alter presets") {
         val base = FpgaNextConfig.Selected
-        assert(base.productArity == 46 && !base.readPrefetchDemandAdoption && !base.cache.readPrefetchDemandAdoption &&
+        assert(base.productArity == 47 && !base.registeredPmpRegions && !base.coreParams.registeredPmpRegions &&
+                !base.readPrefetchDemandAdoption && !base.cache.readPrefetchDemandAdoption &&
             !base.readPrefetchDirtyRetry && !base.cache.readPrefetchDirtyRetry &&
             !base.splitPrefetchTracking && !base.cache.splitPrefetchTracking &&
             !base.translationHitFlow && base.dmaLineEntries == 1 && base.ddrOutstanding == 4 &&
@@ -39,9 +40,11 @@ class LatencyBandwidthConfigSpec extends AnyFunSuite {
     }
 
     test("native and GSIM official assembly forward the D-only translation policy") {
-        val config = FpgaNextConfig.Selected.copy(dataTlbWriteReadReuse = true)
+        val config = FpgaNextConfig.Selected.copy(dataTlbWriteReadReuse = true,
+            experimentalTriSpeedEthernet = true, lsuEntries = 4, dataTranslationEntries = 16,
+            dmaLineTransfers = true, dmaLineEntries = 4)
         val native = ChiselStage.emitCHIRRTL(config.managedBoard())
-        val simulated = ChiselStage.emitCHIRRTL(FpgaNextBoardGsim.build(config))
+        val simulated = ChiselStage.emitCHIRRTL(FpgaNextBoardGsim.build(config, verifyConfiguration = true))
         for (fir <- Seq(native, simulated)) {
             // Extra coalescing network is absent in the I-service; two distinct
             // definitions demonstrate that the D-only flag reached production.

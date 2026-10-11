@@ -1,0 +1,187 @@
+{
+  "status": "PASS_FOCUSED_COMPONENT_AND_NATIVE_STRUCTURE_NOT_STA",
+  "base_commit": "507c81beefede7ecb806dc5219d65df8591ba5df",
+  "frozen_patch_sha256": "fcb68252021d9ee856cb362d66001e7bb5d5bcdd63a5ec626d65dbdf83eb333e",
+  "production_source_sha256": {
+    "src/main/scala/core/ooo/BoardSocTop.scala": "2e4adc0cbad379e17e79f50a61526519236002a2f3518dbddb12c0acea505eab",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "fc1d542abc2ba99ba10c1360421e696d985eb27d52ea78eda574633c3fe20714",
+    "src/main/scala/core/ooo/MachineSystemUnit.scala": "e9fe1a23241dd0a087d69253b50a246115402e72c66f2106d04683d4b56b0378",
+    "src/main/scala/core/ooo/OooParams.scala": "17c85281e5eff71cbb294378b673273a5c62cf4d28afc2664c101d16c8453b1c"
+  },
+  "source_mutation_after_gates": "documentation/evidence only",
+  "host_tests": {
+    "cli_and_frozen_presets": 11,
+    "gsim_argument_compatibility": 2
+  },
+  "scala_tests": {
+    "suites": [
+      "ooo.RegisteredPmpRegionsSpec",
+      "ooo.FpgaNextConfigSpec"
+    ],
+    "passed": 21,
+    "log_sha256": "80f59b1b705b8c37b3c978913eb868cecca67844271d7f80c5fb59d861725882"
+  },
+  "gsim": {
+    "receipt_sha256": "c8a78932b969f67d549b88c21517b69d6b71fe8b6b2822782badec5dce1e4522",
+    "toolchain": {
+      "repository": "https://github.com/OpenXiangShan/gsim.git",
+      "revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+      "minimum_clang_major": 19,
+      "compiler": "Debian clang version 19.1.7 (3+b1)",
+      "gsim_binary_sha256": "e34560595258f679503714dffcd5251684a955ddde4bf2cafa493203a313393b",
+      "gsim_source": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/gsim-src",
+      "cxx": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/toolchain/sysroot/usr/bin/clang++-19"
+    },
+    "cases": {
+      "entries-0-live": {
+        "log": "PMP CSR publication PASS entries=0 cycles=767 commands=7 entry_snapshots=12224 access_checks=1528 flush_holds=0 completion_holds=18\n",
+        "derived_declared_bits": 0,
+        "fir_sha256": "157edeaef96d98cc7d1aa7d6b65a65f78c6d12a00693cc6ac50baa622f5141c9",
+        "negative_exit": 1
+      },
+      "entries-8-live": {
+        "log": "PMP CSR publication PASS entries=8 cycles=18795 commands=632 entry_snapshots=300304 access_checks=37538 flush_holds=493 completion_holds=1401\n",
+        "derived_declared_bits": 0,
+        "fir_sha256": "e38d3d3c5b3172bf30e71e043f22d34ea18b93d648815ede70afa6fe46020067",
+        "negative_exit": 1
+      },
+      "entries-8-registered": {
+        "log": "PMP CSR publication PASS entries=8 cycles=18795 commands=632 entry_snapshots=300304 access_checks=37538 flush_holds=493 completion_holds=1401\n",
+        "derived_declared_bits": 1048,
+        "fir_sha256": "5f7a6f76f340cec5043bc26f01abaadd740bb9491de6203063368d380437141c",
+        "negative_exit": 1
+      },
+      "entries-16-live": {
+        "log": "PMP CSR publication PASS entries=16 cycles=20441 commands=638 entry_snapshots=326640 access_checks=40830 flush_holds=793 completion_holds=1119\n",
+        "derived_declared_bits": 0,
+        "fir_sha256": "765ceb648b96a2f9026f1e38654f9241277edaa0b430bb28c74a87bc8c32f74c",
+        "negative_exit": 1
+      },
+      "entries-16-registered": {
+        "log": "PMP CSR publication PASS entries=16 cycles=20441 commands=638 entry_snapshots=326640 access_checks=40830 flush_holds=793 completion_holds=1119\n",
+        "derived_declared_bits": 2096,
+        "fir_sha256": "dd324c58a95c573ec446614af3b07cf43dc8aafc19f9a4e9db7c5ee54f9da6e6",
+        "negative_exit": 1
+      }
+    },
+    "source_mutants": {
+      "stale-raw-decode": {
+        "status": "REJECTED",
+        "exit": 1,
+        "anchor": "PMP publication oracle mismatch",
+        "mutated_source_sha256": "db5319a57b90119bb6ab7d5ee57ca649c8e0d77b22fa98bfcc04cd7726693383",
+        "log": "PMP publication oracle mismatch entry=0 cycle=376\n"
+      },
+      "drop-tor-predecessor": {
+        "status": "REJECTED",
+        "exit": 1,
+        "anchor": "PMP publication oracle mismatch",
+        "mutated_source_sha256": "4d57ea1ed3c16f0aff6fecefb3bc53c7106be327030a446dbcd29b0ce50a7464",
+        "log": "PMP publication oracle mismatch entry=1 cycle=966\n"
+      }
+    }
+  },
+  "native": {
+    "export_receipt_sha256": "deb4231460a4e85e7592d0930ebc8b4d4797b3cb04b952b06a78d6446fd6178b",
+    "census_sha256": "9a56b6db8177ee8eb504d8564e8ba9326d47c316774223bfd45fd0053eaa2ec7",
+    "census_script_sha256": "9dbb718ef0840ab382ed5b5a60df56013ffd1651ca34307c61ea05ef8fb67d68",
+    "deltas": {
+      "8": {
+        "scalar_register_count": 24,
+        "scalar_register_bits": 1048,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 1048,
+        "raw_pmp_register_bits": 0,
+        "ports_equal_all_modules": true
+      },
+      "16": {
+        "scalar_register_count": 48,
+        "scalar_register_bits": 2096,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 2096,
+        "raw_pmp_register_bits": 0,
+        "ports_equal_all_modules": true
+      }
+    },
+    "unit_counts": {
+      "entries-8-live": {
+        "scalar_register_count": 68,
+        "scalar_register_bits": 1928,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 0,
+        "raw_pmp_register_bits": 496,
+        "ports": {
+          "count": 69,
+          "bits": 2299,
+          "inputs": 13,
+          "input_bits": 359,
+          "outputs": 56,
+          "output_bits": 1940
+        }
+      },
+      "entries-8-registered": {
+        "scalar_register_count": 92,
+        "scalar_register_bits": 2976,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 1048,
+        "raw_pmp_register_bits": 496,
+        "ports": {
+          "count": 69,
+          "bits": 2299,
+          "inputs": 13,
+          "input_bits": 359,
+          "outputs": 56,
+          "output_bits": 1940
+        }
+      },
+      "entries-16-live": {
+        "scalar_register_count": 84,
+        "scalar_register_bits": 2424,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 0,
+        "raw_pmp_register_bits": 992,
+        "ports": {
+          "count": 109,
+          "bits": 3843,
+          "inputs": 13,
+          "input_bits": 359,
+          "outputs": 96,
+          "output_bits": 3484
+        }
+      },
+      "entries-16-registered": {
+        "scalar_register_count": 132,
+        "scalar_register_bits": 4520,
+        "array_register_count": 0,
+        "array_register_bits": 0,
+        "derived_register_bits": 2096,
+        "raw_pmp_register_bits": 992,
+        "ports": {
+          "count": 109,
+          "bits": 3843,
+          "inputs": 13,
+          "input_bits": 359,
+          "outputs": 96,
+          "output_bits": 3484
+        }
+      }
+    },
+    "retained_derived_widths": "65 low + 65 end + 1 active per implemented entry",
+    "per_entry_enable_declared_bit_load": 131,
+    "shared_csr_qualifier_entry_uses": [
+      8,
+      16
+    ],
+    "mapped_ff_lut_fanout": null
+  },
+  "full_matching_board_integration": "PENDING: actual CpuMatchingBoardProfileGsimMain allowlist and matching-wrapper constructor merge remain outside this component source",
+  "synthesis": false,
+  "sta": false,
+  "routed_signoff": false,
+  "board_run": false
+}

@@ -54,7 +54,8 @@ final case class FpgaNextConfig(
     independentDemandAdmission: Boolean = false,
     splitPrefetchTracking: Boolean = false,
     readPrefetchDirtyRetry: Boolean = false,
-    readPrefetchDemandAdoption: Boolean = false
+    readPrefetchDemandAdoption: Boolean = false,
+    registeredPmpRegions: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -140,7 +141,8 @@ final case class FpgaNextConfig(
         (if (independentDemandAdmission) "-independent-demand-admission" else "") +
         (if (splitPrefetchTracking) "-split-prefetch-tracking" else "") +
         (if (readPrefetchDirtyRetry) "-read-prefetch-dirty-retry" else "") +
-        (if (readPrefetchDemandAdoption) "-read-prefetch-demand-adoption" else "")
+        (if (readPrefetchDemandAdoption) "-read-prefetch-demand-adoption" else "") +
+        (if (registeredPmpRegions) "-registered-pmp-regions" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -191,6 +193,7 @@ final case class FpgaNextConfig(
         virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
         independentFetchPayloadCapture = independentFetchPayloadCapture,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        registeredPmpRegions = registeredPmpRegions,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
@@ -214,6 +217,7 @@ final case class FpgaNextConfig(
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
+        registeredPmpRegions = registeredPmpRegions,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
@@ -237,7 +241,13 @@ object FpgaNextConfig {
     val ControlCandidate = FetchCaptureCandidate.copy(ownerLocalIssueReady = true, sharedFetchPmpRelations = true)
     val Selected = ControlCandidate.copy(shareProtectedHeadPayload = true, bankedInstructionData = true)
 
+    // Source-prepared timing candidate. Activation remains explicit and does not
+    // change any frozen preset or its capacity/ISA/cache policy.
+    val RegisteredPmpCandidate = Selected.copy(registeredPmpRegions = true)
+
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--registered-pmp-regions=")),
+            "--registered-pmp-regions does not accept a value")
         require(!options.exists(_.startsWith("--read-prefetch-demand-adoption=")),
             "--read-prefetch-demand-adoption does not accept a value")
         require(!options.exists(_.startsWith("--read-prefetch-dirty-retry=")),
@@ -289,6 +299,7 @@ object FpgaNextConfig {
         val ddrSlots = capacityOption("--ddr-outstanding=").getOrElse(4)
         val ddrWrites = capacityOption("--ddr-write-credits=").getOrElse(2)
         base.copy(
+            registeredPmpRegions = options.contains("--registered-pmp-regions"),
             dataTranslationEntries = tlbCount,
             postedStoreMerge = options.contains("--posted-store-merge"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),

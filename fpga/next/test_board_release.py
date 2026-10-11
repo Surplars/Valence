@@ -45,6 +45,8 @@ class BoardReleaseTests(unittest.TestCase):
         expected["cache"]["readPrefetchDirtyRetry"] = False
         expected["profile"]["readPrefetchDemandAdoption"] = False
         expected["cache"]["readPrefetchDemandAdoption"] = False
+        expected["profile"]["registeredPmpRegions"] = False
+        expected["core"]["registeredPmpRegions"] = False
         expected["profile"]["experimentalTriSpeedEthernet"] = True
         board_release.compare_constructor(expected)
         for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption"):
@@ -57,6 +59,15 @@ class BoardReleaseTests(unittest.TestCase):
                         changed[section][field] = True
                     with self.subTest(section=section, mutation=mutation), self.assertRaises(RuntimeError):
                         board_release.compare_constructor(changed)
+        for section in ("profile", "core"):
+            for mutation in ("missing", "enabled"):
+                changed = copy.deepcopy(expected)
+                if mutation == "missing":
+                    changed[section].pop("registeredPmpRegions")
+                else:
+                    changed[section]["registeredPmpRegions"] = True
+                with self.subTest(section=section, mutation=mutation), self.assertRaises(RuntimeError):
+                    board_release.compare_constructor(changed)
         for section, key, value in (("core", "memoryEntries", 2), ("ddr", "futureFlag", False),
                                     ("cache", "splitPrefetchTracking", False)):
             changed = copy.deepcopy(expected)

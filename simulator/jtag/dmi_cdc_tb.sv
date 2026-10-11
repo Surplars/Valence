@@ -25,7 +25,8 @@ module dmi_cdc_tb;
         end
     endtask
     initial begin
-        #3;reset_n=1;
+        // A real assertion event avoids simulator-dependent time-zero levels.
+        #1;reset_n=1;#1;reset_n=0;#3;reset_n=1;
         for(i=0;i<100;i=i+1) begin
             request={$random,$random};response={$random,$random};
             send(request);

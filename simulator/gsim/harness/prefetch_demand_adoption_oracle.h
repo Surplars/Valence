@@ -290,7 +290,8 @@ struct Gate {
             check(observed == effective, "resident token validity differs from completed full-PA residency");
             if (effective) check(observedAddress == token[i]->address && observedIndex == token[i]->index,
                 "resident token full PA/index differs from immutable refill origin");
-            const bool use = fire && effective && line(offered->address) == token[i]->address;
+            const bool use = fire && !offered->atomic && !offered->uncached && !offered->virtualized &&
+                effective && line(offered->address) == token[i]->address;
             check(bool(i ? O(storeTokenConsume) : O(readTokenConsume)) == use,
                 "token consumed without accepted matching full-PA demand");
             if (use) consumed |= 1U << i;
@@ -545,7 +546,7 @@ struct Gate {
             }
             check(!(ownedTickets & (1U << (accepted % RESPONSE_ENTRIES))), "accepted request reused owned response ticket");
             ownedTickets |= 1U << (accepted % RESPONSE_ENTRIES);
-            if (offered->uncached) sequentialRead = false;
+            if (offered->uncached || offered->atomic || offered->virtualized) sequentialRead = false;
             else if (!offered->write) {
                 const auto current = line(offered->address);
                 sequentialRead = lastRead && (current == *lastRead + 64 || (current == *lastRead && sequentialRead));

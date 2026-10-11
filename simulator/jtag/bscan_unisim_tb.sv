@@ -49,6 +49,53 @@ module bscan_unisim_tb #(
             if(rsp_valid && rsp_ready) rsp_valid<=0;
         end
     end
+    // Independent TAP-state observer stays enabled during IR as well as DR.
+    // It observes the installed primitive; it does not drive or replace it.
+    localparam [3:0] TLR=0, IDLE=1, SELECT_DR=2, CAPTURE_DR=3, SHIFT_DR=4,
+        EXIT1_DR=5, PAUSE_DR=6, EXIT2_DR=7, UPDATE_DR=8, SELECT_IR=9,
+        CAPTURE_IR=10, SHIFT_IR=11, EXIT1_IR=12, PAUSE_IR=13, EXIT2_IR=14, UPDATE_IR=15;
+    reg [3:0] observed_state=TLR, observed_next;
+    integer phase_updates=0, selection_edges=0, empty_turnovers=0;
+    realtime last_selection=-1, last_update=-2;
+    always @* begin
+        case(observed_state)
+            TLR:observed_next=tms?TLR:IDLE;
+            IDLE:observed_next=tms?SELECT_DR:IDLE;
+            SELECT_DR:observed_next=tms?SELECT_IR:CAPTURE_DR;
+            CAPTURE_DR:observed_next=tms?EXIT1_DR:SHIFT_DR;
+            SHIFT_DR:observed_next=tms?EXIT1_DR:SHIFT_DR;
+            EXIT1_DR:observed_next=tms?UPDATE_DR:PAUSE_DR;
+            PAUSE_DR:observed_next=tms?EXIT2_DR:PAUSE_DR;
+            EXIT2_DR:observed_next=tms?UPDATE_DR:SHIFT_DR;
+            UPDATE_DR:observed_next=tms?SELECT_DR:IDLE;
+            SELECT_IR:observed_next=tms?TLR:CAPTURE_IR;
+            CAPTURE_IR:observed_next=tms?EXIT1_IR:SHIFT_IR;
+            SHIFT_IR:observed_next=tms?EXIT1_IR:SHIFT_IR;
+            EXIT1_IR:observed_next=tms?UPDATE_IR:PAUSE_IR;
+            PAUSE_IR:observed_next=tms?EXIT2_IR:PAUSE_IR;
+            EXIT2_IR:observed_next=tms?UPDATE_IR:SHIFT_IR;
+            UPDATE_IR:observed_next=tms?SELECT_DR:IDLE;
+            default:observed_next=TLR;
+        endcase
+    end
+    always @(posedge tck) observed_state<=observed_next;
+    always @(dut.enabled.sel) if(por_n) begin
+        selection_edges=selection_edges+1;
+        last_selection=$realtime;
+        if(observed_state!=UPDATE_IR && observed_state!=TLR)
+            $fatal(1,"UNISIM_SELECTION_PHASE_ORACLE outside UpdateIR/reset");
+        if(last_selection==last_update)
+            $fatal(1,"UNISIM_SELECTION_PHASE_ORACLE coincident SEL/UPDATE");
+    end
+    always @(posedge dut.enabled.update) if(por_n && dut.enabled.sel) begin
+        last_update=$realtime;
+        if(tck!==0 || observed_state!=UPDATE_DR || last_selection==last_update)
+            $fatal(1,"UNISIM_UPDATE_PHASE_ORACLE falling-TCK UpdateDR expected");
+        if(dut.enabled.transport.update_selected!==1 ||
+           dut.enabled.transport.update_ack!==dut.enabled.transport.update_toggle)
+            $fatal(1,"UNISIM_UPDATE_QUALIFIER_ORACLE selected/ACK before UPDATE");
+        phase_updates=phase_updates+1;
+    end
     reg monitor_on=0;
     integer expected_count=0;
     reg [63:0] expected_frame=0;
@@ -82,6 +129,25 @@ module bscan_unisim_tb #(
             for(k=0;k<MODEL_IR_LENGTH;k=k+1)tick(k==MODEL_IR_LENGTH-1,(opcode>>k)&1,ignored);
             step(1);step(0);idle(4);
             monitor_on=1;
+        end
+    endtask
+    // Ends in UpdateIR. The next scan goes straight to SelectDR/CaptureDR,
+    // proving qualification without the ordinary helper's optional RTI wait.
+    task ir_direct(input integer opcode);
+        integer k; begin
+            monitor_on=0;
+            step(1);step(1);step(0);step(0);
+            for(k=0;k<MODEL_IR_LENGTH;k=k+1)tick(k==MODEL_IR_LENGTH-1,(opcode>>k)&1,ignored);
+            step(1);monitor_on=1;
+        end
+    endtask
+    task scan_empty;
+        begin
+            expected_count=0;expected_frame=0;
+            step(1);step(0);step(1);step(1);
+            if(dut.enabled.transport.update_overrun)
+                $fatal(1,"UNISIM_EMPTY_TURNOVER_ORACLE overrun");
+            empty_turnovers=empty_turnovers+1;
         end
     endtask
     task scan(input [63:0] value,input integer count,input integer pause_at,output reg [63:0] result);
@@ -146,7 +212,9 @@ module bscan_unisim_tb #(
         if(other_sel!==1 || dut.enabled.sel!==0)$fatal(1,"UNISIM USER1 selection");
         scan(frame(2,7'h26,32'hffffffff),64,-1,rx);idle(12);
         if(accepted!=old_count || memory[7'h26]!==32'ha5000026)$fatal(1,"UNISIM USER isolation");
-        ir(MODEL_USER2);
+        ir_direct(MODEL_USER2);
+        scan(frame(0,0,0),64,-1,rx); // direct IR -> DR, no settling idle
+        repeat(8)scan_empty;clear_error;
         old_count=accepted;scan(frame(1,7'h25,0),64,-1,rx);#1000;
         if(accepted!=old_count)$fatal(1,"UNISIM stopped TCK accepted early");
         poll(rx);if(accepted!=old_count+1)$fatal(1,"UNISIM stopped TCK replay");
@@ -154,6 +222,8 @@ module bscan_unisim_tb #(
         scan(frame(0,0,0),64,-1,rx);
         if(!rx[42] || rx[43] || !req_valid || req_address!==7'h12)$fatal(1,"UNISIM held request");
         permit=1;poll(rx);
+        clear_error;scan(frame(2,7'h22,32'h1234),1,-1,rx);idle(8);
+        scan(frame(0,0,0),64,-1,rx);if(!rx[43])$fatal(1,"UNISIM one-bit scan accepted");
         clear_error;scan(frame(2,7'h22,32'h1234),63,-1,rx);idle(8);
         scan(frame(0,0,0),64,-1,rx);if(!rx[43])$fatal(1,"UNISIM short scan accepted");
         clear_error;scan(frame(2,7'h22,32'h1234),65,-1,rx);idle(8);
@@ -166,10 +236,16 @@ module bscan_unisim_tb #(
         old_count=accepted;por_n=1;permit=1;idle(16);
         scan(frame(0,0,0),64,-1,rx);idle(12);
         if(rx[43:41]!==0 || accepted!=old_count)$fatal(1,"UNISIM reset replay");
+        // Cancel a frame immediately after UPDATE, before any consumer edge.
+        old_count=accepted;scan(frame(1,7'h11,0),64,-1,rx);
+        por_n=0;#100;por_n=1;idle(16);
+        scan(frame(0,0,0),64,-1,rx);idle(12);
+        if(accepted!=old_count || rx[43:41]!==0)$fatal(1,"UNISIM pending UPDATE reset replay");
         // TAP reset also cancels transport; it is not a fabric bus reset.
         monitor_on=0;repeat(6)step(1);idle(16);ir(MODEL_USER2);
         scan(frame(3,0,0),64,-1,rx);poll(rx);
-        if(rx[33:2]!==32'h701 || updates<10 || captures<10 || shifted<640)
+        if(rx[33:2]!==32'h701 || updates<10 || captures<10 || shifted<640 ||
+           phase_updates<10 || selection_edges<4 || empty_turnovers!=8)
             $fatal(1,"UNISIM phase coverage incomplete");
         $display("BSCAN_UNISIM_PASS profile=%0d idcode=%h ir=%0d user2=%h requests=%0d updates=%0d captures=%0d shifts=%0d sys_half=%0d tck=%0d/%0d",
             MODEL_PROFILE_TAG,MODEL_IDCODE,MODEL_IR_LENGTH,MODEL_USER2,accepted,updates,captures,shifted,SYS_HALF,TCK_LOW,TCK_HIGH);

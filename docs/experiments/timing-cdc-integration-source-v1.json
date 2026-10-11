@@ -1,0 +1,352 @@
+{
+  "schema": "timing-cdc-source-integration-v1",
+  "status": "SOURCE_FROZEN_NO_COMBINED_DUT_OR_PHYSICAL_CLAIM",
+  "local_base_commit": "a7193953849c1670bbe653cb96b71b5219407844",
+  "local_base_tree": "4d578158cde7d458989af084fee72bbc74558faa",
+  "public_cas_expected_base": "4cb8332b92abdc626d880d3eb49a15ba001ad6d2",
+  "public_base_tree": "4d578158cde7d458989af084fee72bbc74558faa",
+  "local_history_complete": false,
+  "candidate_commits": {
+    "pmp": "f8b5b7db818f9a984b2e0772f1e3e2827a596530",
+    "cache": "db8394529f960622263e3c0d75fec4e2456285d4",
+    "bscan": "63f7ad116d420417ad4733d2cd3ce83fd99aed9a",
+    "mac": "d1060e290f7cd39219bf7edd947497181118b399"
+  },
+  "production_bindings": {
+    "src/main/scala/core/ooo/BoardSocTop.scala": {
+      "candidate": "pmp",
+      "candidate_commit": "f8b5b7db818f9a984b2e0772f1e3e2827a596530",
+      "qualified_candidate_sha256": "2e4adc0cbad379e17e79f50a61526519236002a2f3518dbddb12c0acea505eab",
+      "combined_sha256": "2e4adc0cbad379e17e79f50a61526519236002a2f3518dbddb12c0acea505eab",
+      "exact_bytes": true
+    },
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": {
+      "candidate": "pmp",
+      "candidate_commit": "f8b5b7db818f9a984b2e0772f1e3e2827a596530",
+      "qualified_candidate_sha256": "fc1d542abc2ba99ba10c1360421e696d985eb27d52ea78eda574633c3fe20714",
+      "combined_sha256": "fc1d542abc2ba99ba10c1360421e696d985eb27d52ea78eda574633c3fe20714",
+      "exact_bytes": true
+    },
+    "src/main/scala/core/ooo/MachineSystemUnit.scala": {
+      "candidate": "pmp",
+      "candidate_commit": "f8b5b7db818f9a984b2e0772f1e3e2827a596530",
+      "qualified_candidate_sha256": "e9fe1a23241dd0a087d69253b50a246115402e72c66f2106d04683d4b56b0378",
+      "combined_sha256": "e9fe1a23241dd0a087d69253b50a246115402e72c66f2106d04683d4b56b0378",
+      "exact_bytes": true
+    },
+    "src/main/scala/core/ooo/OooParams.scala": {
+      "candidate": "pmp",
+      "candidate_commit": "f8b5b7db818f9a984b2e0772f1e3e2827a596530",
+      "qualified_candidate_sha256": "17c85281e5eff71cbb294378b673273a5c62cf4d28afc2664c101d16c8453b1c",
+      "combined_sha256": "17c85281e5eff71cbb294378b673273a5c62cf4d28afc2664c101d16c8453b1c",
+      "exact_bytes": true
+    },
+    "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala": {
+      "candidate": "cache",
+      "candidate_commit": "db8394529f960622263e3c0d75fec4e2456285d4",
+      "qualified_candidate_sha256": "1a3cc0d7e7d95aad0cda6735a76164033ae2fcff2197219a13d97033dee6e591",
+      "combined_sha256": "1a3cc0d7e7d95aad0cda6735a76164033ae2fcff2197219a13d97033dee6e591",
+      "exact_bytes": true
+    },
+    "src/main/resources/debug/ValenceBscanDebugPort.sv": {
+      "candidate": "bscan",
+      "candidate_commit": "63f7ad116d420417ad4733d2cd3ce83fd99aed9a",
+      "qualified_candidate_sha256": "b39bf622ce5f789f502fc9be8d89b9eb489e0455285de39b1aeb83e969acee30",
+      "combined_sha256": "b39bf622ce5f789f502fc9be8d89b9eb489e0455285de39b1aeb83e969acee30",
+      "exact_bytes": true
+    },
+    "src/main/scala/ip/ethernet/EthernetMediaTransition.scala": {
+      "candidate": "mac",
+      "candidate_commit": "d1060e290f7cd39219bf7edd947497181118b399",
+      "qualified_candidate_sha256": "9a2545be6b519ba42997ecf704b224e2672d9599944c10dc0863dfce1bd97be3",
+      "combined_sha256": "9a2545be6b519ba42997ecf704b224e2672d9599944c10dc0863dfce1bd97be3",
+      "exact_bytes": true
+    },
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": {
+      "candidate": "mac",
+      "candidate_commit": "d1060e290f7cd39219bf7edd947497181118b399",
+      "qualified_candidate_sha256": "f679164b1b3385b74eaf98886277fac8369cc13b5a3c422bb59d776ff39a381a",
+      "combined_sha256": "f679164b1b3385b74eaf98886277fac8369cc13b5a3c422bb59d776ff39a381a",
+      "exact_bytes": true
+    }
+  },
+  "reviewed_resolutions": [
+    {
+      "path": "fpga/next/export.py",
+      "old_sha256": {
+        "adoption_base": "072a1f885da26a4ebd74b8cada70d78add2faabc3b7bf3e88f14543eeb7b9ce0",
+        "pmp": "472d44f378f4b52587770e7e962ec6c48248e0b70c67c12562f95d6300d3c24d",
+        "cache": "e63a699af12b010322359144c3d2bc13e0e319652dc15ae03b5a14dcf2c4fd6b",
+        "bscan": "5dac79a80bd9960caaf7799c2cb271dc29467d9243eae29be1eaf62213711454",
+        "mac": "e63a699af12b010322359144c3d2bc13e0e319652dc15ae03b5a14dcf2c4fd6b"
+      },
+      "combined_sha256": "e9cbd670b395c39d4a53379abc80e20abd10ddfb77e3cf9f872fed708d70d1ab",
+      "reason": "Merge adoption CLI validation/profile fields with exact PMP flag support and BSCAN helper import/staging; bind new versioned profile files in source inventory."
+    },
+    {
+      "path": "src/test/scala/ooo/BoardSocGsimMain.scala",
+      "old_sha256": {
+        "adoption_base": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6",
+        "pmp": "0d6345e793af4ddf38ea8c26c3a69f1a14b83955bbea4569ff68439bfad45d54",
+        "cache": "0812745230e5574506b9d9a62f4c68e2fa2734a2e756289fadb4328f5147ae01",
+        "bscan": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6",
+        "mac": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6"
+      },
+      "combined_sha256": "c317f1928e1186032476218bad3d6573e02595c10dbe08396e20938fe29f2440",
+      "reason": "Keep actual MatchingManagedBoard and service ports; add named PMP argument and assert equality to supplied actual core config; do not restore generic BoardSocTop."
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextMain.scala",
+      "old_sha256": {
+        "adoption_base": "abf648c6c3f6de9288f5c2cd2c4a495045cdf86c0edef6bc5c809434d9a2290d",
+        "pmp": "7d639adab056dcff2c375f749b9a7f3b39abcb3c72558642f9978ceb65c4597a",
+        "cache": "ed70259a7cfc22ee30fa710cee95824bc73760d23c9b4efcc4353f240783a477",
+        "bscan": "ed70259a7cfc22ee30fa710cee95824bc73760d23c9b4efcc4353f240783a477",
+        "mac": "ed70259a7cfc22ee30fa710cee95824bc73760d23c9b4efcc4353f240783a477"
+      },
+      "combined_sha256": "4918354eebe130cc1a8fc5206b4bdeb840003ace671eaf6b8456edd1a78a73ef",
+      "reason": "Union adoption and registered-PMP allowlist/help while retaining native board construction."
+    },
+    {
+      "path": "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+      "old_sha256": {
+        "adoption_base": "49bea45a24a28770a52bb38303f2f4f49eeda29d8b1fbb62dc03a577bd8a9971",
+        "bscan": "1b3fbeccc8c0b85f778d6a782fe4830833169f758ddd1a7006bd0bad33e5567a",
+        "mac": "1b3fbeccc8c0b85f778d6a782fe4830833169f758ddd1a7006bd0bad33e5567a"
+      },
+      "combined_sha256": "3832312783c9a7b81833c596c7673647e4ae247dfa8bb58122090a1dc63fff4a",
+      "reason": "Add exact PMP allowlist to the actual full-population CPU emitter; preserve its full service assembly contract."
+    },
+    {
+      "path": "src/test/scala/ooo/CpuBoardProfileGsimMain.scala",
+      "old_sha256": {
+        "adoption_base": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f",
+        "pmp": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f",
+        "cache": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f",
+        "bscan": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f",
+        "mac": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f"
+      },
+      "combined_sha256": "2ea8fd0e3a67dd2e1afcd12a6a7890fb5bbf8f8bcd18beaa12128eb40797b854",
+      "reason": "Expose same optional adoption/PMP flags in the constructor-checked CPU entry."
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+      "old_sha256": {
+        "adoption_base": "143a030fb1f8c8d7d44c36b038145b5bd85e24c8ce6df9e4c818fb479873fd48",
+        "pmp": "1385a6c75bbcc7856d788a43232a5e43b8a26b0f07760173e53f1f7fe90626c0",
+        "cache": "143a030fb1f8c8d7d44c36b038145b5bd85e24c8ce6df9e4c818fb479873fd48",
+        "bscan": "143a030fb1f8c8d7d44c36b038145b5bd85e24c8ce6df9e4c818fb479873fd48",
+        "mac": "143a030fb1f8c8d7d44c36b038145b5bd85e24c8ce6df9e4c818fb479873fd48"
+      },
+      "combined_sha256": "863042e8f2e7875d7a80347bad4321ea30e27d8db20c2574a22ef9ce5e12d777",
+      "reason": "Preserve candidate PMP propagation and add optional adoption CLI spelling."
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextProfileMain.scala",
+      "old_sha256": {
+        "adoption_base": "f1af6551469c1cca73fbf9e90bf865fe59900693a28f924c8376d918e6c9ff59",
+        "pmp": "f1af6551469c1cca73fbf9e90bf865fe59900693a28f924c8376d918e6c9ff59",
+        "cache": "f1af6551469c1cca73fbf9e90bf865fe59900693a28f924c8376d918e6c9ff59",
+        "bscan": "b740180f34167c3e96f215d588e468dd66b150735970a522e405be93313c1651",
+        "mac": "b740180f34167c3e96f215d588e468dd66b150735970a522e405be93313c1651"
+      },
+      "combined_sha256": "ad260b25200da436106f1313a38c5f416542c3a6bdb3ed58d2607e714ca6cd72",
+      "reason": "Increase Product arity 46 to 47 and core arity 142 to 143 for the added PMP field; no field comparison removed."
+    },
+    {
+      "path": "fpga/next/board_profile.py",
+      "old_sha256": {
+        "adoption_base": "746e543b157a32ef698e65531cf3d6464f3d588a6148510c1de8cbfd43f0169e",
+        "pmp": "d24c75b3c6094e5f56bf011b1cbfdfc52374c108d3e4f2cb5890b9a14518498f",
+        "cache": "d24c75b3c6094e5f56bf011b1cbfdfc52374c108d3e4f2cb5890b9a14518498f",
+        "bscan": "d24c75b3c6094e5f56bf011b1cbfdfc52374c108d3e4f2cb5890b9a14518498f",
+        "mac": "d24c75b3c6094e5f56bf011b1cbfdfc52374c108d3e4f2cb5890b9a14518498f"
+      },
+      "combined_sha256": "aed6b4ec8366195ec6dcca9c9c7fc887f464a4c6178c91e21bbba03a3b9ca5d2",
+      "reason": "Normalize missing historical PMP profile/core fields to false in expected data; keep actual complete strict equality and old manifests unchanged."
+    },
+    {
+      "path": "fpga/next/board_release.py",
+      "old_sha256": {
+        "adoption_base": "c9aa20f5430f3b3d464a2b3ea1b447ec0dda8b6e08c2c40f8ea2f4fd138bf11e",
+        "pmp": "95e4e9b1e815b761b16d1a806dcb1df666677f4a2b3713cc1e00c4d2a0e262e5",
+        "cache": "95e4e9b1e815b761b16d1a806dcb1df666677f4a2b3713cc1e00c4d2a0e262e5",
+        "bscan": "95e4e9b1e815b761b16d1a806dcb1df666677f4a2b3713cc1e00c4d2a0e262e5",
+        "mac": "95e4e9b1e815b761b16d1a806dcb1df666677f4a2b3713cc1e00c4d2a0e262e5"
+      },
+      "combined_sha256": "0d2a201e08c59728a2e9323230c147f77c3c21d36f58dc199ed14a41d555c5b7",
+      "reason": "Same false-only historical PMP expectation while retaining physical MAC/JTAG rollback profile."
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "ee83fb727aa80b985b5d884f6ad4d5f7a744f07cf66d151f46a055da5310404c"
+      },
+      "combined_sha256": "c0928d3cc0a31cc872760ae8017d42011b90ba35686d9257695735c943364ffb",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "0028240bcd95691555e620ea67270d74513ad319503dd943d8615054ae256b6c"
+      },
+      "combined_sha256": "d71697d8a2c8c4ae16e929e8335fb6fdc6282d6ff37c8a0071143b375acaddbc",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/IndependentDemandAdmissionConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "63b241bc8ef6ea76a00de0f012d10c0f0d6634761c444406299f378ac4538611"
+      },
+      "combined_sha256": "40a7f50da6e2dce85eabf6d38869ec1ffb5be505bfd077e024c9e404eec12a5c",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/LatencyBandwidthConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "b4490b679dc378473d9af2370bfa7a2f7a5a6387898ccbb6f880ee7e6e5ea4a8",
+        "source_checkpoint_0dcb": "f31710f7a3359146a776905370c2bc28cdd7578bcb751f13414c34926ab308ad"
+      },
+      "combined_sha256": "8694aa17a49c39524ed30a4a6291b4576370715a277d05285f3c42e46ed936f9",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened. Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/LineReadChannelConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "1bcdfd18fe045a37899a4bd7b131e72a2e0d0a4dddcbdd96ba3c15328067ff77",
+        "source_checkpoint_0dcb": "d756ce15bee65ed627f845370577584890e62a779add3e9d80b68416b3dc2438"
+      },
+      "combined_sha256": "a0cafddb25c07aa703134e6660eac3e496d24e463e9098b16ac65d7855efb86c",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened. Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchDirtyRetryConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "213e8b42d6e30475bfab445802cc44c7455e0e78c90f511d802bac7dd45dc3da"
+      },
+      "combined_sha256": "8d2a5e02b4b6e961403b83064f5590890f5e3ffb40701327ec7ec544a5bdd71e",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/SplitPrefetchTrackingConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "d4c3f6453b76f1791f409bc08514c4332dfd24ca7d863bb9e7a4d442285415c5"
+      },
+      "combined_sha256": "9eedb760ee5abd799501ef9b16e0cab67e3ef86c63cc30cbc733f935b7147b11",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/TranslationHitFlowConfigSpec.scala",
+      "old_sha256": {
+        "adoption_base": "ff125aa54015cf71d223bc2f09e268f83be4bb690ce8e1ab962d9b98e90f0fb9"
+      },
+      "combined_sha256": "19b4e0187702770962687ea97633626c774b0383bdb84a7ee5ce1ae16e1e2d73",
+      "reason": "Update explicit profile/core Product arity for the new PMP field and strengthen default-false checks; no hardware or prior comparison is weakened."
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseNativeMain.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "3e338c1b7d1359a7b5aa5589862b1cb624308c777ccb772b3d8cfdc816d64565"
+      },
+      "combined_sha256": "55b02b9e1f5f97de332c93ef69980381cc01e47c43ae73cb5f56aa9b7d8641f3",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/RobCapacityCpuGsimMain.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "00a0b1440efe3790e0a11c3c5dd0812bd1abc26c3cdf60694dc1ee4046421545"
+      },
+      "combined_sha256": "ca84d7ce08b05c0e43598df92f6124f0384799f5fba6d4761ba731a3397442b7",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "d4cbd90ad9a627fca5802cf22e1d03fac55858c3c5f0f4a66145a0ecc006296c"
+      },
+      "combined_sha256": "017b31e6cf78d42fe51abe43bf579df7736a00d6b728ced89b86ccd8ef6c5b55",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "5a392a6b5f2019101cd169666f567128e64b44eed3868f9e04ad34f7943e4a78"
+      },
+      "combined_sha256": "f1a1d0bd3aa54703dfe6465817cf1a70e9165f63e489cd62bed2a5a76ade6852",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "e7cac3a9b6f44c73dadd6baae2eec868cda33ed8ce9bfc24c9b6d5ea892f1d8f"
+      },
+      "combined_sha256": "fc339c9da85df5c9672b6f4298c8ce6eb111a2af88e65b9a06c9978fd6f2950b",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "9350ed0534d051930ad783b85ac6f3004b65addd9e5a962dadfe4512f7f54891"
+      },
+      "combined_sha256": "e9a407a891d445604dfc9515707d101df31993479131d8c0de3a8cf604de814a",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+      "old_sha256": {
+        "source_checkpoint_0dcb": "23ed3d09e1cacc8c855f2a73f10ff40eb0503ed1954cc7b7f9ab4f9774972f8f"
+      },
+      "combined_sha256": "c66f05ae87f6d109d3e5edd425f50168f6a1d648c01bc78ead42f0b129dc3421",
+      "reason": "Repair integration config-test metadata: retain strict arity and default-false PMP assertions; obsolete generic GSIM test calls select explicit full matching geometry and actual constructor verification."
+    }
+  ],
+  "matching_wrappers": {
+    "CpuMatchingBoardProfileGsimMain.scala": "3832312783c9a7b81833c596c7673647e4ae247dfa8bb58122090a1dc63fff4a",
+    "MatchingFabricAudit.scala": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6",
+    "MatchingGmacCpu.scala": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc",
+    "MatchingManagedBoard.scala": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e",
+    "BoardSocGsimMain.scala": "c317f1928e1186032476218bad3d6573e02595c10dbe08396e20938fe29f2440",
+    "PostedStoreBoardLineageGsim.scala": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74"
+  },
+  "profile_manifest": "fpga/next/board-timing-cdc-profile-v1.json",
+  "profile_manifest_sha256": "f8d871a68a29d506e2303047450a04694f6c08c8532c2df3f2405381b8228610",
+  "rollback_manifests_unchanged": {
+    "board-performance-profile.json": "1fc8470f0689c96ec53ac446e5d9a265f5eae8244a160e51b450d0d0abee69bd",
+    "board-performance-constructors.json": "0d2f4087a5cf1ba79cbad24c874dc510f79e59dd57e8abf595790370d4462baf",
+    "board-release-profile.json": "b9ec8315031d44ae41dd6a3188628f8766adfc67fef991453636cd4eb4857991"
+  },
+  "pending_collector": "MAC collector-only increment; no production mutation expected; model reuse requires exact dependency byte bridge, not full-tree qualification inheritance.",
+  "validation": {
+    "host_contracts": "22 PASS",
+    "host_log_sha256": "2c7e80f36a8a43686d1d1edc9e8f6097be7077ac1722f0c0d645cc1fcda4c99b",
+    "scala_compile": "NOT_RUN_AWAITING_RUN_GRANT",
+    "actual_constructor": "NOT_RUN",
+    "combined_cpu": "NOT_RUN",
+    "native_export": "NOT_RUN",
+    "physical": "NOT_RUN"
+  },
+  "planned_cpu_gate": {
+    "models": 1,
+    "new_off_model": false,
+    "modes": [
+      "bare",
+      "sv39"
+    ],
+    "operation": "COPY",
+    "bytes": 65536,
+    "repetitions": 2,
+    "axi_first_read_delay": 32,
+    "axi_write_response_delay": 32,
+    "reference": {
+      "bare": {
+        "cycles": 251815,
+        "clean_tail": 8053
+      },
+      "sv39": {
+        "cycles": 250604,
+        "clean_tail": 8187
+      }
+    },
+    "law": "Unchanged qualified adoption-ON host, guest, service laws, full byte/reply/checksum/owner/fabric oracles, actual profile and full traffic comparison."
+  }
+}

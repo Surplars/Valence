@@ -31,6 +31,15 @@ module ValenceBscanUserTransport (
         else source_release <= {source_release[1:0], 1'b1};
     wire source_reset_n = source_release[2];
 
+    // UPDATE rises from a falling TCK edge. Release its island on positive TCK
+    // so neither reset release nor its functional qualifiers launch on the
+    // capture edge. Assertion is still asynchronous, including stopped TCK.
+    (* ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) reg [2:0] update_release;
+    always @(posedge bscan_tck or negedge work_reset_n)
+        if (!work_reset_n) update_release <= 0;
+        else update_release <= {update_release[1:0], 1'b1};
+    wire update_reset_n = update_release[2];
+
     reg [63:0] shift_frame;
     reg [6:0] shift_count;
     reg scan_captured;
@@ -56,11 +65,27 @@ module ValenceBscanUserTransport (
     reg [63:0] update_frame;
     reg update_length_ok, update_toggle, update_overrun;
     reg update_seen;
-    always @(posedge bscan_update or negedge work_reset_n) begin
-        if (!work_reset_n) begin
+    reg update_selected, update_ack;
+    // Sample the complete qualification bundle, including negative-edge source
+    // readiness and acknowledgement. No live SEL/source_release/update_seen
+    // path may feed an UPDATE-clocked data or enable pin. These are related-
+    // clock qualifier registers, not asynchronous data synchronizers.
+    always @(posedge bscan_tck or negedge update_reset_n) begin
+        if (!update_reset_n) begin
+            update_selected <= 0; update_ack <= 0;
+        end else begin
+            update_selected <= bscan_sel && source_reset_n;
+            update_ack <= update_seen;
+        end
+    end
+    always @(posedge bscan_update or negedge update_reset_n) begin
+        if (!update_reset_n) begin
             update_frame <= 0; update_length_ok <= 0; update_toggle <= 0; update_overrun <= 0;
-        end else if (bscan_sel && source_reset_n) begin
-            if (update_toggle == update_seen) begin
+        end else if (update_selected) begin
+            // Compare the live local toggle to the sampled ACK BIT. Sampling a
+            // precomputed free flag would allow two malformed UPDATE pulses
+            // without intervening TCK to overwrite the first held frame.
+            if (update_toggle == update_ack) begin
                 update_frame <= shift_frame;
                 update_length_ok <= scan_captured && shift_count == 64;
                 update_toggle <= !update_toggle;

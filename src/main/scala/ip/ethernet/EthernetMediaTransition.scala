@@ -47,7 +47,14 @@ class EthernetMediaTransition(timeoutCycles: Int = 50000000) extends Module {
     io.appliedSpeed := applied
     io.stopNewTraffic := !io.linkUp
     io.abortTraffic := !io.linkUp
-    io.ingressReset := !(state === releaseIngress || (state === stable && activeLink && !changed))
+    // Physical-ingress reset is asynchronous at BOTH endpoints. Launch its
+    // complete qualification from one CPU register: reconverging state,
+    // activeLink and changed must not pulse reset during release -> stable.
+    // CPU admission still closes immediately; epoch assertion/deassertion may
+    // wait one CPU edge and never requires a recovered RX-clock edge.
+    val ingressResetSource = RegNext(
+        !(state === releaseIngress || (state === stable && activeLink && !changed)), true.B)
+    io.ingressReset := ingressResetSource
     io.txRate.valid := state === sendRates && !sentTx && requestValid
     io.rxRate.valid := state === sendRates && !sentRx && requestValid
     io.txRate.bits := targetSpeed

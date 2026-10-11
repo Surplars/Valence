@@ -10,10 +10,15 @@ import soc.core.ooo._
 /** Actual posted cache/engine/SRAM with policy OFF/ON, synthetic manager and authority premises.
   * This wrapper does not establish a real CPU proof or home-reachable schedule.
   */
-class PostedPrefetchCoexistGsim(coexistence: Boolean, generationBits: Int = 64, wbEntries: Int = 2) extends Module {
+class PostedPrefetchCoexistGsim(coexistence: Boolean, generationBits: Int = 64, wbEntries: Int = 2,
+    adoptionProbe: Boolean = false) extends Module {
+    require(!adoptionProbe || (coexistence && generationBits == 64 && wbEntries == 2))
     private val concurrency = CoherentCacheConcurrency(2, 2, wbEntries,
         overlapWritebackRefill = wbEntries > 1, nextLinePrefetch = true, storeNextLinePrefetch = true,
-        postedPrefetchCoexistence = coexistence)
+        postedPrefetchCoexistence = coexistence, independentDemandAdmission = adoptionProbe,
+        splitPrefetchTracking = adoptionProbe, prefetchCandidateCycles = (if (adoptionProbe) 16 else 1),
+        storePrefetchMruInsertion = adoptionProbe, readPrefetchDirtyRetry = adoptionProbe,
+        readPrefetchDemandAdoption = adoptionProbe)
     private val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = concurrency.sourceBits,
         sinkBits = concurrency.sinkBits)
     private val c = PostedStoreMergeConfig(enabled = true, tokenTagBits = 64, tokenIndexBits = 4,
@@ -121,5 +126,12 @@ class PostedPrefetchCoexistGsim(coexistence: Boolean, generationBits: Int = 64, 
 object PostedPrefetchCoexistGsimMain extends App {
     require(args.length == 4 && Set("0", "1").contains(args(1)))
     ChiselStage.emitCHIRRTLFile(new PostedPrefetchCoexistGsim(args(1) == "1", args(2).toInt, args(3).toInt),
+        Array("--target-dir", args.head))
+}
+
+/** One raw-manager contract configuration, not a naturally reachable Mixed-home schedule. */
+object ReadPrefetchAdoptionProbeGsimMain extends App {
+    require(args.length == 1)
+    ChiselStage.emitCHIRRTLFile(new PostedPrefetchCoexistGsim(true, 64, 2, adoptionProbe = true),
         Array("--target-dir", args.head))
 }

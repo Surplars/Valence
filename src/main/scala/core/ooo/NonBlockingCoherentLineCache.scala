@@ -532,6 +532,10 @@ class NonBlockingCoherentLineCache(
         evictionState === eIdle && !queuedEvictWanted && !prefetchRefillPending
     private val ordinaryReady = legacyReady || attachReady
     io.upstream.request.ready := ordinaryReady
+    // Legacy SRAM/metadata execution follows the pre-edge route and its own
+    // readiness, not the late posted merge/seal handshake. Shared response
+    // accounting still uses the original combined upstream acceptance below.
+    private val legacyFire = WireDefault(io.upstream.request.valid && ordinaryReady)
     for ((owner, boundary) <- posted.zip(io.posted)) {
         val legacyMshrsClear = VecInit((0 until mshrCount).map(i => phase(i) === free || isPosted(i.U))).asUInt.andR
         val legacyResponsesClear = VecInit((0 until responseCount).map(i =>
@@ -569,10 +573,21 @@ class NonBlockingCoherentLineCache(
             (if (concurrency.postedPrefetchCoexistence) maintenanceReady else true.B)
         io.upstream.request.ready := Mux(mergeRoute, commitReady,
             Mux(fallbackRoute, owner.io.enq.ready, ordinaryReady && !postedBusy))
+        val ordinaryFire = io.upstream.request.valid && !mergeRoute && !fallbackRoute &&
+            ordinaryReady && !postedBusy
+        val fallbackFire = io.upstream.request.valid && fallbackRoute && owner.io.fallback.ready
+        legacyFire := ordinaryFire || fallbackFire
+        assert(fallbackFire === owner.io.fallback.fire,
+            "route-local fallback execution must equal the original fallback handshake")
     }
     private val cpuFire = io.upstream.request.fire
     private val demandAttach = cpuFire && attachReady
-    directEviction := cpuFire && !postedAccept && !demandAttach && needsMissSlot && needsEviction &&
+    assert(legacyFire === (cpuFire && !postedAccept),
+        "route-local legacy execution must equal accepted non-posted ownership")
+    assert(!(legacyFire && postedAccept), "legacy and posted execution cannot share an acceptance")
+    // legacyFire implies cpuFire; testing attachReady here preserves the
+    // !demandAttach exclusion without reintroducing combined READY in this cone.
+    directEviction := legacyFire && !attachReady && needsMissSlot && needsEviction &&
         evictionLaneAvailable && !queuedEvictWanted && probeState === pIdle &&
         !io.tl.b.valid && !flushActive && !io.flushRequest && bypassState === bIdle
     directEvictionIndex := index
@@ -580,8 +595,8 @@ class NonBlockingCoherentLineCache(
         assert(phase(freeMshr) === free && reservationSafe && !probeFire,
             "direct victim allocation requires an admitted independent miss owner")
     }
-    private val hitRead = cpuFire && !postedAccept && readHit
-    private val storeWrite = cpuFire && !postedAccept && writeHit && !needsEviction
+    private val hitRead = legacyFire && readHit
+    private val storeWrite = legacyFire && writeHit && !needsEviction
     val observationIndependentDemand = VecInit(Seq(
         cpuFire && !postedAccept && readHit && !mshrEmpty,
         cpuFire && !postedAccept && !demandAttach && needsMissSlot && !mshrEmpty,
@@ -637,14 +652,7 @@ class NonBlockingCoherentLineCache(
             bypassVictimTag.foreach(_ := wayTag(primaryTags.get, index))
             bypassTicket := responseTail
             bypassState := Mux(needsEviction, bEvict, bSend)
-        }.elsewhen(found) {
-            hitPending := true.B
-            hitTicket := responseTail
-            hitBank := request.address(5, 3)
-            hitStore := request.write
-            touch(index)
-            when(request.write) { dirty(index) := true.B }
-        }.otherwise {
+        }.elsewhen(!found) {
             acquireIssued.foreach(_(freeMshr) := false.B)
             demandAttached.foreach(_(freeMshr) := false.B)
             if (concurrency.nextLinePrefetch) prefetchOwner(freeMshr) := false.B
@@ -656,6 +664,17 @@ class NonBlockingCoherentLineCache(
             pendingTicket(freeMshr) := responseTail
             phase(freeMshr) := Mux(needsEviction, evictWait, acquire)
         }
+    }
+    // This equivalent sibling grant also removes the alternate posted/seal
+    // dependency from hit replacement updates. Install-over-hit priority and
+    // the registered hit reply/ticket pipeline retain their original order.
+    when(legacyFire && ordinary && found) {
+        hitPending := true.B
+        hitTicket := responseTail
+        hitBank := request.address(5, 3)
+        hitStore := request.write
+        touch(index)
+        when(request.write) { dirty(index) := true.B }
     }
 
     private val readIndex = Mux(probeRead, probeIndex, Mux(evictionRead, evictIndex, index))

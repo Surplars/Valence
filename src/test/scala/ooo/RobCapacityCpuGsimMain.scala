@@ -25,7 +25,7 @@ final class RobCapacityCpuActualParamsAudit(
         "audit entry profile differs from explicit native options")
     require(profile.canonicalVirtualStoreOverlap == (mode == "on"), "official treatment differs from side")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 142 && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 143 && !expectedCore.registeredPmpRegions && expectedCore.memoryEntries == 4 &&
         Set(16, 32, 64).contains(expectedCore.robEntries) && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
         !expectedCore.translatedResponseEmptyFlow && profile.dmaLineTransfers && profile.dmaLineEntries == 4)
@@ -102,7 +102,7 @@ final class RobCapacityCpuActualParamsAudit(
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 142 && actual == expectedCore,
+            require(actual.productArity == 143 && !actual.registeredPmpRegions && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }
@@ -171,7 +171,7 @@ object RobCapacityCpuGsimMain extends App {
     require(options.size == args.length - 3 && options == expected, "capacity CPU options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = false)
     require(profile.coreParams.robEntries == rob && profile.coreParams.physicalRegs == phys && profile.coreParams.memoryEntries == 4)
-    require(profile.coreParams.productArity == 142 && profile.prefetchCandidateCycles == 1)
+    require(profile.coreParams.productArity == 143 && profile.prefetchCandidateCycles == 1)
     PostedBoardConfiguration.write(profile, args(0))
     new RobCapacityCpuActualParamsAudit(profile, args(0), "on", options, experiment = "rob-capacity-cpu")
 }

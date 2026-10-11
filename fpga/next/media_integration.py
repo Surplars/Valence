@@ -5,10 +5,16 @@ native_gmac_pins.xdc contains a fixed-1G clock and cannot be copied wholesale
 into a 10/100 scenario. Its package/electrical assignments are retained exactly.
 """
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
 import shutil
+
+_review_spec = importlib.util.spec_from_file_location(
+    'valence_mac_netlist_review', Path(__file__).with_name('mac_netlist_review.py'))
+mac_review = importlib.util.module_from_spec(_review_spec)
+_review_spec.loader.exec_module(mac_review)
 
 NATIVE_SOURCES = (
     "native_gmac_divided_clock.sv",
@@ -23,7 +29,7 @@ NATIVE_CONSTRAINTS = (
     "trispeed_board_constraints.tcl",
 )
 PIN_SOURCE = "native_gmac_pins.xdc"
-INPUTS = tuple("fpga/zu15eg/" + name for name in (*NATIVE_SOURCES, *NATIVE_CONSTRAINTS, PIN_SOURCE))
+INPUTS = tuple("fpga/zu15eg/" + name for name in (*NATIVE_SOURCES, *NATIVE_CONSTRAINTS, PIN_SOURCE)) + mac_review.INPUTS
 
 
 def sha(path):
@@ -89,7 +95,11 @@ def stage(root, output):
         "# This scoped gate is not complete board/CDC/RDC/routed signoff.\n"
         "if {![info exists VALENCE_TRISPEED_MBPS]} {error {Set VALENCE_TRISPEED_MBPS to 10, 100 or 1000}}\n"
         "source [file join [file dirname [info script]] trispeed_board_constraints.tcl]\n"
-        "valence_trispeed_board_constraints $VALENCE_TRISPEED_MBPS\n")
+        "valence_trispeed_board_constraints $VALENCE_TRISPEED_MBPS\n"
+        "source [file join [file dirname [info script]] mac-netlist-binding.tcl]\n"
+        "source [file join [file dirname [info script]] mac_registered_level_constraints.tcl]\n"
+        "valence_mac_registered_level_constraints $VALENCE_MAC_CONTRACT\n")
+    mac_collector = mac_review.stage(root, output)
     artifacts = {p.relative_to(output).as_posix(): sha(p) for p in sorted(board.iterdir()) if p.is_file()}
     artifacts["board-synthesis-files.f"] = sha(output / "board-synthesis-files.f")
     manifest = {
@@ -97,6 +107,7 @@ def stage(root, output):
         "top": "soc_top_fpga_next_ddr", "source_sha256": before, "artifacts_sha256": artifacts,
         "native_sources": sources, "package_constraints": "board/trispeed_pins_only.xdc",
         "post_synthesis_gate": "board/require_trispeed.tcl", "rates_mbps": [10, 100, 1000],
+        "mac_netlist_review": mac_collector,
         "clock_contract": {"cpu_hz": 100000000, "aon_hz": 50000000, "tx_raw_hz": 125000000,
             "rx_frame_hz": 125000000, "pad_hz": 250000000, "delay_hz": 500000000,
             "rx_recovered_hz": [2500000, 25000000, 125000000], "rx_clock_can_stop": True},

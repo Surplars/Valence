@@ -42,12 +42,13 @@ class CanonicalVirtualStoreBoardConfigSpec extends AnyFunSuite {
         assert(on.coreParams == off.coreParams.copy(canonicalVirtualStoreOverlap = true))
         assert(on.postedStoreMerge && on.postedPrefetchCoexistence && on.postedPrefetchHeadOffer)
         assert(!on.precheckedDataRequestFlow && !on.translatedResponseEmptyFlow)
-            assert(on.productArity == 46 && !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
+            assert(on.productArity == 47 && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+                !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 !on.splitPrefetchTracking && !on.cache.splitPrefetchTracking &&
                 !on.translationHitFlow && on.ddrOutstanding == 4 && on.ddrWriteCredits == 2 &&
                 !on.dataTlbWriteReadReuse && !on.ddrWriteCollectionFlow && !on.lineTransferDispatchFlow &&
             !on.lineReadChannel &&
-            on.coreParams.productArity == 142 && !on.distinctWayRelease && !on.cache.distinctWayRelease)
+            on.coreParams.productArity == 143 && !on.distinctWayRelease && !on.cache.distinctWayRelease)
     }
 }
