@@ -21,13 +21,13 @@ object StorePrefetchLruVictimProfiles {
         val original = MemoryProofFrontierExactFixture.profile(true)
         val selected = FpgaNextConfig.fromOptions(options(enabled), defaultSelected = false)
         require(selected == original.copy(storePrefetchLruVictim = enabled))
-        require(selected.productArity == 53 && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
+        require(selected.productArity == 56 && !selected.pendingReadyStoreBypass && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
             !selected.readPrefetchDemandAdoption && !selected.cache.readPrefetchDemandAdoption &&
             !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
             !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
             !selected.translationHitFlow && selected.ddrOutstanding == 4 && selected.ddrWriteCredits == 2 &&
             !selected.dataTlbWriteReadReuse && !selected.ddrWriteCollectionFlow &&
-            !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 148 && !selected.coreParams.boundHeadStoreOverlap && !selected.coreParams.pendingVirtualStoreProof && !selected.coreParams.frozenStoreProofTransport && selected.coreParams.pendingVirtualStoreProofSlots == 1 && !selected.coreParams.publishedPmpChanges)
+            !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 149 && !selected.coreParams.pendingReadyStoreBypass && !selected.coreParams.boundHeadStoreOverlap && !selected.coreParams.pendingVirtualStoreProof && !selected.coreParams.frozenStoreProofTransport && selected.coreParams.pendingVirtualStoreProofSlots == 1 && !selected.coreParams.publishedPmpChanges)
         require(selected.coreParams == original.coreParams)
         require(!selected.postedPreparationPriority && !selected.coreParams.postedPreparationPriority)
         require(!selected.reconstructIssueTokenIndex && !selected.coreParams.reconstructIssueTokenIndex)
@@ -38,7 +38,7 @@ object StorePrefetchLruVictimProfiles {
             prefetchCandidateCycles = 1, prefetchBreakOnStore = false, storeNextLinePrefetch = true,
             storePrefetchMruInsertion = true, postedPrefetchCoexistence = true,
             storePrefetchLruVictim = enabled)
-        require(selected.cache.productArity == 17 && selected.cache == expectedCache)
+        require(selected.cache.productArity == 19 && selected.cache == expectedCache)
         val actualCacheFields = selected.cache.productElementNames.zip(selected.cache.productIterator)
             .map { case (name, value) => name -> value.toString }.toMap
         require(actualCacheFields.keySet == originalCacheFields.keySet ++

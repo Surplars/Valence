@@ -13,7 +13,7 @@ class ReadPrefetchStoreHoldConfigSpec extends AnyFunSuite {
             assert(!base.readPrefetchStoreHold && !base.cache.readPrefetchStoreHold)
             val off = base.copy(prefetchCandidateCycles = cycles)
             val on = off.copy(readPrefetchStoreHold = true)
-            assert(on.productArity == 53 && on.cache.productArity == 17 && on.coreParams.productArity == 148)
+            assert(on.productArity == 56 && on.cache.productArity == 19 && on.coreParams.productArity == 149)
             assert(on.copy(readPrefetchStoreHold = false) == off)
             assert(on.cache.copy(readPrefetchStoreHold = false) == off.cache)
             assert(on.coreParams == off.coreParams && on.ddr == off.ddr && on.tags == off.tags)

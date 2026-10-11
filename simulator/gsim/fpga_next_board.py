@@ -99,6 +99,10 @@ def main():
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--durable-read-prefetch-candidate", action="count", default=0,
+                    help="default-off finite READ resource/ordinary resident STORE wait")
+    ap.add_argument("--read-prefetch-behind-store", action="count", default=0,
+                    help="default-off READ capture behind exactly one STORE PF; requires durable retention")
     ap.add_argument("--read-prefetch-store-hold", action="count", default=0,
                     help="default-off finite read-candidate retention across accepted ordinary store hits")
     ap.add_argument("--read-prefetch-demand-adoption", action="count", default=0,
@@ -116,6 +120,8 @@ def main():
                     help="default-off R16/PRF48 pending-store proof and one early-load credit")
     ap.add_argument("--bound-head-store-overlap", action="store_true",
                     help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    ap.add_argument("--pending-ready-store-bypass", action="count", default=0,
+                    help="default-off bypass of proved data-ready non-head stores; requires bound head overlap")
     ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
@@ -144,6 +150,16 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    for name in ("durable_read_prefetch_candidate", "read_prefetch_behind_store"):
+        if getattr(args, name) > 1:
+            ap.error("duplicate --" + name.replace("_", "-") + " flag")
+        setattr(args, name, bool(getattr(args, name)))
+    if args.read_prefetch_behind_store and not args.durable_read_prefetch_candidate:
+        ap.error("--read-prefetch-behind-store requires --durable-read-prefetch-candidate")
+    if args.durable_read_prefetch_candidate and not (args.prefetch_candidate_cycles == 16 and
+            args.split_prefetch_tracking and args.read_prefetch_dirty_retry and
+            args.read_prefetch_demand_adoption and args.read_prefetch_store_hold):
+        ap.error("--durable-read-prefetch-candidate requires lifetime 16 and split tracking, dirty retry, adoption and store hold")
     if args.read_prefetch_store_hold > 1:
         ap.error("duplicate --read-prefetch-store-hold flag")
     args.read_prefetch_store_hold = bool(args.read_prefetch_store_hold)
@@ -202,6 +218,11 @@ def main():
         setattr(args, field, values[0] if values else None)
     if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    if args.pending_ready_store_bypass > 1:
+        ap.error("duplicate --pending-ready-store-bypass flag")
+    args.pending_ready_store_bypass = bool(args.pending_ready_store_bypass)
+    if args.pending_ready_store_bypass and not args.bound_head_store_overlap:
+        ap.error("--pending-ready-store-bypass requires --bound-head-store-overlap")
     if args.bound_head_store_overlap and not args.pending_virtual_store_proof:
         ap.error("--bound-head-store-overlap requires --pending-virtual-store-proof")
     if args.pending_virtual_store_proof and not (not args.memory_proof_frontier and
@@ -289,6 +310,10 @@ def main():
         parameters.append("--read-prefetch-demand-adoption")
     if args.read_prefetch_store_hold:
         parameters.append("--read-prefetch-store-hold")
+    if args.durable_read_prefetch_candidate:
+        parameters.append("--durable-read-prefetch-candidate")
+    if args.read_prefetch_behind_store:
+        parameters.append("--read-prefetch-behind-store")
     if args.translated_response_empty_flow:
         parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
@@ -339,6 +364,8 @@ def main():
         parameters.append("--pending-virtual-store-proof")
     if args.bound_head_store_overlap:
         parameters.append("--bound-head-store-overlap")
+    if args.pending_ready_store_bypass:
+        parameters.append("--pending-ready-store-bypass")
     if args.pending_virtual_store_proof_slots != 1:
         parameters.append(f"--pending-virtual-store-proof-slots={args.pending_virtual_store_proof_slots}")
     plan = {"rob_entries_override": args.rob_entries, "physical_regs_override": args.physical_regs,
@@ -347,6 +374,7 @@ def main():
             "frozen_store_proof_transport": args.frozen_store_proof_transport,
             "pending_virtual_store_proof": args.pending_virtual_store_proof,
             "bound_head_store_overlap": args.bound_head_store_overlap,
+            "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,
             "posted_store_merge": args.posted_store_merge,
             "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
@@ -373,6 +401,8 @@ def main():
             "read_prefetch_dirty_retry": args.read_prefetch_dirty_retry,
             "read_prefetch_demand_adoption": args.read_prefetch_demand_adoption,
             "read_prefetch_store_hold": args.read_prefetch_store_hold,
+            "durable_read_prefetch_candidate": args.durable_read_prefetch_candidate,
+            "read_prefetch_behind_store": args.read_prefetch_behind_store,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

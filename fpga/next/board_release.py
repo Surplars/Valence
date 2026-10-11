@@ -59,9 +59,12 @@ def compare_constructor(actual):
         expected[section]["frozenStoreProofTransport"] = False
         expected[section]["pendingVirtualStoreProof"] = False
         expected[section]["boundHeadStoreOverlap"] = False
+        expected[section]["pendingReadyStoreBypass"] = False
         expected[section]["pendingVirtualStoreProofSlots"] = 1
     for section in ("profile", "cache"):
         expected[section]["readPrefetchStoreHold"] = False
+        expected[section]["durableReadPrefetchCandidate"] = False
+        expected[section]["readPrefetchBehindStore"] = False
     if actual != expected:
         raise RuntimeError("complete release constructor differs from B plus tri-speed selector")
 

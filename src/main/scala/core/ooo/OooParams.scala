@@ -145,6 +145,7 @@ case class OooParams(
     pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
+    pendingReadyStoreBypass: Boolean = false,
     memoryProofRows: Int = 16,
     memoryProofCacheSets: Int = 256,
     postedPreparationPriority: Boolean = false,
@@ -160,6 +161,8 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!pendingReadyStoreBypass || boundHeadStoreOverlap,
+        "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
     require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")

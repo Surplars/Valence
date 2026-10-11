@@ -11,7 +11,8 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     postedPrefetchCoexistence: Boolean = false, storePrefetchLruVictim: Boolean = false,
     distinctWayRelease: Boolean = false, independentDemandAdmission: Boolean = false,
     splitPrefetchTracking: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
-    readPrefetchDemandAdoption: Boolean = false, readPrefetchStoreHold: Boolean = false) {
+    readPrefetchDemandAdoption: Boolean = false, readPrefetchStoreHold: Boolean = false,
+    durableReadPrefetchCandidate: Boolean = false, readPrefetchBehindStore: Boolean = false) {
     require(!independentDemandAdmission || readMshrs >= 2,
         "independent demand admission reuses the existing nonblocking miss owners")
     require(Set(1, 2, 4).contains(readMshrs))
@@ -21,6 +22,12 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "retained prefetch candidates require next-line prefetch")
     require(!readPrefetchStoreHold || (nextLinePrefetch && prefetchCandidateCycles > 1),
         "read prefetch store hold requires next-line prefetch and an existing multi-cycle candidate")
+    require(!durableReadPrefetchCandidate || (prefetchCandidateCycles == 16 && readMshrs == 2 &&
+        writebackEntries == 2 && splitPrefetchTracking && readPrefetchDirtyRetry &&
+        readPrefetchDemandAdoption && readPrefetchStoreHold),
+        "durable read candidates require the reviewed 16-attempt two-MSHR/two-WB split retry/adoption/store-hold profile")
+    require(!readPrefetchBehindStore || durableReadPrefetchCandidate,
+        "read prefetch capture behind a store owner requires durable read candidates")
     require(!prefetchBreakOnStore || nextLinePrefetch,
         "store-sensitive prediction history requires next-line prefetch")
     require(!storeNextLinePrefetch || nextLinePrefetch,

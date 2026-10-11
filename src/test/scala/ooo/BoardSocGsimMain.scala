@@ -36,6 +36,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
+    pendingReadyStoreBypass: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
@@ -44,7 +45,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
         pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
-        boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap,
+        boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap &&
+        pendingReadyStoreBypass == configurationCheck.get.coreParams.pendingReadyStoreBypass,
         "pending-store proof switches differ from the actual matching-board configuration")
     require(publishedPmpChanges == configurationCheck.get.coreParams.publishedPmpChanges,
         "PMP raw change flag differs from the actual matching-board configuration")

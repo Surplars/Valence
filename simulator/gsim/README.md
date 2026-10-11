@@ -2688,6 +2688,18 @@ bits (joint4800) on the explicit ROB64/PRF64/LSU4/D16/DMA4 profile. Native and
 focused gates, official split Board/GC and exact original CPU cases 19/21 passed. Defaults and recommended presets are unchanged. See the
 [current evidence, preserved FAIL boundaries and limits](../../docs/experiments/memory-state-reuse.md).
 
+## Optional durable READ prefetch and ready-store profile
+
+The explicit `fpga/next/board_durable_read_prefetch.py` entry adds the tested
+ready-store bypass and durable READ lifecycle to the complete bound-store profile.
+Original-law Sv39 inclusive cycles improve 255223 → 246905, while Bare regresses
+259868 → 260694 (+0.3179%). The separately matched burst-locked Sv39 law improves
+251588 → 239050. Defaults remain OFF. See the [complete contract and reproduction
+guide](../../docs/fpga-next/durable-read-prefetch-v1.md) and [source-bound evidence
+index](../../docs/experiments/durable-read-prefetch-evidence-v1.json) for the exact
+56/149/19 constructor, observer recovery, bounded correctness gates and zero
+native declared-state delta. No mapped area, STA or board gain is claimed.
+
 ## Optional bound-store/prefetch profile
 
 The [bound-store/prefetch v1 contract](../../docs/fpga-next/bound-store-prefetch-v1.md)

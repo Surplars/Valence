@@ -36,6 +36,7 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
     frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
+    pendingReadyStoreBypass: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false) extends Module {
     override def desiredName: String = "BoardSocGsim"
@@ -57,7 +58,8 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
-            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap, backendCapacity = backendCapacity))
+            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+            pendingReadyStoreBypass = pendingReadyStoreBypass, backendCapacity = backendCapacity))
     // Passive capacity evidence, derived from the actual final backend constructor.
     private val capacityBackend = board.platform.core.core.core.backend
     private def capacityTap[T <: Data](signal: T): T = BoringUtils.bore(signal)

@@ -14,7 +14,8 @@ object CpuSv39BandwidthGsimMain extends App {
     require(options.size == args.length - 2, "duplicate CPU bandwidth experiment options")
     require(options.forall(option => option == "--split-prefetch-tracking" ||
         option == "--read-prefetch-dirty-retry" || option == "--read-prefetch-demand-adoption" ||
-        option == "--read-prefetch-store-hold" ||
+        option == "--read-prefetch-store-hold" || option == "--durable-read-prefetch-candidate" ||
+        option == "--read-prefetch-behind-store" ||
         Set("--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16").contains(option)),
         "only explicit split tracking, read-prefetch dirty retry/adoption and existing candidate lifetime may vary")
     val lifetimes = options.filter(_.startsWith("--prefetch-candidate-cycles="))
@@ -38,6 +39,8 @@ object CpuSv39BandwidthGsimMain extends App {
         readPrefetchDirtyRetry = options.contains("--read-prefetch-dirty-retry"),
         readPrefetchDemandAdoption = options.contains("--read-prefetch-demand-adoption"),
         readPrefetchStoreHold = options.contains("--read-prefetch-store-hold"),
+        durableReadPrefetchCandidate = options.contains("--durable-read-prefetch-candidate"),
+        readPrefetchBehindStore = options.contains("--read-prefetch-behind-store"),
         ddrWriteCollectionFlow = batch, lineTransferDispatchFlow = batch,
         lineReadChannel = batch, independentDemandAdmission = admission)
     require(profile.issueWidth == 2 && profile.lsuEntries == 2 &&

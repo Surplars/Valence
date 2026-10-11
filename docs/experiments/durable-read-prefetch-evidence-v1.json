@@ -1,0 +1,833 @@
+{
+  "schema": "durable-read-prefetch-evidence-v1",
+  "status": "PASS_BOUNDED_FOCUSED_CPU_NATIVE_COST_AND_NARROW_OFF_CORRESPONDENCE",
+  "baseline": {
+    "commit": "81ed0a53a066ff724101f6d9f2d19f764c32c520",
+    "tree": "a69437f508509a4dbc4492d7162f72def3b019b0",
+    "entry": "fpga/next/board_bound_store_prefetch.py"
+  },
+  "tested_source": {
+    "commit": "96b7217f6a28d98f53949f0db311de4a9a6f4f13",
+    "tree": "d1620ce9c5c93cfe56b6b17131482aa62078654e",
+    "changed_file_sha256": {
+      "fpga/next/board_bound_store_prefetch.py": "9f67abee659ff83c1b9ba22bf06c7405750c6b0092b2083b94fcd94573efc0d1",
+      "fpga/next/board_profile.py": "1ee7651492c978763bd9c0e1d9e55b8a40793fca6e67e44127e6ae1fa60cdb00",
+      "fpga/next/board_release.py": "6c6b3f2ff3376468ae5dcaa0ea7b65eed226c0c1d583c094aaa0653de1637682",
+      "fpga/next/board_timing_cdc.py": "b0cde888d14c828f1a878852f21f2b7f578de1214c0b6e9cbb63f989d62fd4f5",
+      "fpga/next/export.py": "e94bb03458de9a0f1cd7c6646dbf751e41fa78f0bfd9091c2f15d5ab47c45eb6",
+      "fpga/next/test_board_bound_store_prefetch.py": "4c9cb7614a524e8a36443c775e3e6d64f42b7106b1e8203ce1e8d680ee16db0b",
+      "fpga/next/test_board_pmp_publication.py": "d9df126ece5180724ac7b7838e15a4b77367a11807da37d9dd081a724adce586",
+      "fpga/next/test_board_profile.py": "bef868e4a321a9fab49ce6741d64da9f79ee2dbc7061cb28c5ddde5a8fcd689e",
+      "fpga/next/test_board_release.py": "386d7bdc274d15c508e2b09b6418ca48923d70d6ff2221fefe204cecca79531f",
+      "fpga/next/test_board_timing_cdc.py": "82ee61aac6d9386c77532dec58b940a1155288edec927e31a186a9dda5662f19",
+      "simulator/gsim/durable_read_prefetch.py": "b3eaeb9f47c7e649f553a155f9222077ab31e6e310bdee3406df1747e2dc29d0",
+      "simulator/gsim/fpga_next_board.py": "85fb670457355ee21dd61075e72cb6156f1ac89f2be35df0db0c25921d14c59e",
+      "simulator/gsim/harness/bound_head_store_overlap_backend.cpp": "665be533d9a99f526057d1fc24f904d2d96522580a852d5d6bad1ea395e3db26",
+      "simulator/gsim/harness/durable_read_prefetch.cpp": "f5bf8f8f9bf253c163b77f7979040096f6d78054b91d3550d12e516e7a21e458",
+      "simulator/gsim/harness/prefetch_demand_adoption_transport.h": "afe42aeeaa4c56c6d5fa8edbdd774ca7e062430dcf8df1833f108e2722104dd3",
+      "simulator/gsim/test_durable_read_prefetch_cli.py": "fa99ff0740e8147a8cee58051391cca9db99b02dcdd1b47b936d929fc637b914",
+      "simulator/gsim/test_pending_ready_store_bypass_cli.py": "6983b1e2d2a415f05b3e27b4b7bea20ac08cec3d3f0ba57249f74af430e1f262",
+      "src/main/scala/core/ooo/BoardSocTop.scala": "95a2a7f9111a0024bf253a1f05a436e92a2fadc247749787465215821d54d7cb",
+      "src/main/scala/core/ooo/CoherentCacheConcurrency.scala": "e0f210bdb3b1405321b7c27ab2056020738c9729b6a1d340d1e161daad726d27",
+      "src/main/scala/core/ooo/FpgaNextConfig.scala": "eae2a965d022d7dd7c808e3ef036c80349f426b104f6272ebd1faab964075ed0",
+      "src/main/scala/core/ooo/IntegerBackend.scala": "111ffeeb739c7201350934944e07d817968b9c6dfbf6ce796e7f621e4087817a",
+      "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala": "7e2e55e9e4d10b17e91e4067fe153209cc14fb4dcc8cc5fbc74eb395fb494ba9",
+      "src/main/scala/core/ooo/OooParams.scala": "6ecf9082fe1954c2300b2ed1fd50a63fb1e2bb535e16e462e8d51ae4c073a23e",
+      "src/test/scala/ooo/BoardSocGsimMain.scala": "c98e7ddf7a29e8b7a8f4ac6d4f7736490018860a24c45244a0c52961aa2aa849",
+      "src/test/scala/ooo/CanonicalOverlapBoardBuild.scala": "0d6464b8f88e12caac97fc3a87157ba798eedf85c40508a9b4539513b26b3e41",
+      "src/test/scala/ooo/CanonicalOverlapBoardGsim.scala": "5b89494eb24aa5f200dc4f8bbb68c4a3a3a303cf202514bea30efae20002f720",
+      "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala": "ce042c8ee261328b0ea61ce2bf8c30b22b045395cd4bf32a9dac78569aae5da4",
+      "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala": "33470476596d80ba87ce5aa16663a24615626cbaebf1316bfe009ba4f371569b",
+      "src/test/scala/ooo/CoherentCacheHomeGsim.scala": "a02a25b8a3dd01be539ecf6a15d0d73c0abcdd82b057caf2911ec6a7cb173437",
+      "src/test/scala/ooo/CpuBoardProfileGsimMain.scala": "9b7ff918fd3fafbb63f11c40f8709b2ed9d335ccbb8ca386fda5e001b1ce0014",
+      "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": "2e249845c8e581b87d4f44d7e5ab273eca7c8b7c190cf388f58d0f8815543d38",
+      "src/test/scala/ooo/CpuSv39BandwidthGsimMain.scala": "4d14f24aeb4f2a64b50a3694729971e4f4811da92216e5955bf0abe036e1783d",
+      "src/test/scala/ooo/DistinctWayReleaseConfigSpec.scala": "ee73c1e3aab30f3831b2b10ed0825f461bd8174c08012e7063aa40635acb0b58",
+      "src/test/scala/ooo/DistinctWayReleaseGsim.scala": "71c0195a2e688953ea6c93f8419b7ea03019b287e754d7f4b0e7302f41886028",
+      "src/test/scala/ooo/DistinctWayReleaseNativeMain.scala": "2f933c61e9a6a4b835f2bccb0f76019dc8929e765ee4b92a3131aa245f5f5baa",
+      "src/test/scala/ooo/DurableReadPrefetchConfigSpec.scala": "6e3a828c229b6ccc1d356d717c4ff70d79dd35044f9b6e9db36118dd4029ed3d",
+      "src/test/scala/ooo/DurableReadPrefetchGsimMain.scala": "dd2285fe560b91c6f6f7fa061c39b7345a5ad77fa8f3310c13b4e444ccc32387",
+      "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "e4524903831a3aa6d8da68119cdb568a583ee4876604369426090af4e15a8519",
+      "src/test/scala/ooo/FpgaNextMain.scala": "282332cb8be468ca970af4af80083c49996bd5f1fc8c8f176a3f90eb9df621a8",
+      "src/test/scala/ooo/FpgaNextProfileMain.scala": "075c00c7c170b0a89d244b12d263f03e74bf50eb1dc225a3b4a7d3128f50bb6e",
+      "src/test/scala/ooo/IndependentDemandAdmissionConfigSpec.scala": "186ea1bec7680c658a4685bf5ccaa82b076b253915815eae2ca770f71948a0a6",
+      "src/test/scala/ooo/LatencyBandwidthConfigSpec.scala": "f2726060d7317c2cbfe78781d71d869bbfeb13574146635c3ffdc524f34fb701",
+      "src/test/scala/ooo/LineReadChannelConfigSpec.scala": "d878b83eaa908ca7d0ca5a7d65135e2684cb04da78a70f45fe3dc1f41f538283",
+      "src/test/scala/ooo/MemoryProofFrontierExactGsim.scala": "01b11c2e00feb980e3d1d10a3d481168c03e98b06be190a3c77c4cabe24a15ee",
+      "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala": "f61ce5ae50e90f998484d146d2ed8684d11b844d68e3aa5e13e56bd81de45aff",
+      "src/test/scala/ooo/PendingStoreProofGsim.scala": "6096471cee73035731268f02b1f2a27c5b0cf2dd7e569910ab2c6154ca4090b0",
+      "src/test/scala/ooo/PendingVirtualStoreProofConfigSpec.scala": "2dd0f85ca3adf36b6a824c622f1717a7a30e530f90c4d8e2dc43446d5149170b",
+      "src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala": "c481c9e0f94a739d73651c9342bba116c5a6beb00e536a4472155ce3c64b0478",
+      "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala": "666aedcbf8bd02a9b926f29a8ef8676d2f80e31ff0b87ff91a1f4b3650acb3f9",
+      "src/test/scala/ooo/ReadPrefetchDemandAdoptionConfigSpec.scala": "319d4bb2a024a31249fd486efb5cc52377041f046b645ddf7c9bc3453eb58261",
+      "src/test/scala/ooo/ReadPrefetchDirtyRetryConfigSpec.scala": "4e0fe5871357b4c696b8df54430bd310d895ec64cbb4cd5982246252063186b2",
+      "src/test/scala/ooo/ReadPrefetchStoreHoldConfigSpec.scala": "dbf554a809f2eead6f446dc8cbe50dc1a0e5dfb2d42a36dc501055913753e2b3",
+      "src/test/scala/ooo/RobCapacityCpuGsimMain.scala": "9306cdd5579849726f52b8b0b078e240a00c761c32ea9b941d9ab5d3e4046f59",
+      "src/test/scala/ooo/SplitPrefetchTrackingConfigSpec.scala": "be6950024899d69d6adffba78af8cd818347fcda97cc0ed9287b812a41cb0ba3",
+      "src/test/scala/ooo/StorePrefetchLruVictimGsim.scala": "727af3a4a5465bcc1560d1ac793bd09ee730285b74efec59faab23acd5fba9c6",
+      "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala": "4715ff98640c74e4eee982a8afac1fb206ec117772387dbd7891ea9e103e8d05",
+      "src/test/scala/ooo/TranslationHitFlowConfigSpec.scala": "a4583afc7ab605afe725e7fec56645203f5351c24a6ad0c7d57e663002c43f9b"
+    }
+  },
+  "optional_entry": "fpga/next/board_durable_read_prefetch.py",
+  "actual_constructor_arity": {
+    "profile": 56,
+    "core": 149,
+    "cache": 19
+  },
+  "constructor_source": "Complete executed CPU constructor, exact emitted full fabric and native constructor; all fields checked.",
+  "defaults": "pendingReadyStoreBypass, durableReadPrefetchCandidate and readPrefetchBehindStore remain false in all generic and older complete entries.",
+  "focused": {
+    "modes": [
+      "00",
+      "11"
+    ],
+    "schedules_per_mode": 12,
+    "independent_image_bytes_each": 131072,
+    "real_corruption_controls": 7,
+    "retention_only_10": "STATIC_CONSTRUCTOR_ONLY_DYNAMICALLY_UNQUALIFIED"
+  },
+  "cpu": {
+    "status": "PASS_FUNCTIONAL_THREE_CASES_MIXED_PERFORMANCE",
+    "cases": {
+      "bare": {
+        "baseline_inclusive_cycles": 259868,
+        "baseline_inclusive_payload_MiBps": "48.101343759139",
+        "baseline_roi_axi": {
+          "ar": 4124,
+          "aw": 2048,
+          "r": 32992,
+          "w": 16384
+        },
+        "baseline_roi_cycles": 251815,
+        "baseline_roi_payload_MiBps": "49.639616385045",
+        "baseline_tail_cycles": 8053,
+        "functional_fields": 105,
+        "inclusive_cycle_change_percent": "0.317853679560",
+        "inclusive_cycles": 260694,
+        "inclusive_delta_cycles": 826,
+        "inclusive_payload_MiBps": "47.948936300797",
+        "inclusive_throughput_change_percent": "-0.316846571076",
+        "payload_bytes": 131072,
+        "raw": {
+          "axi-events.tsv": "075fe51bc600957b294922b160c13d3d4d3d8a82f505a4e2ec012ad9cf7552d1",
+          "supply-events.tsv": "47d50404553b5deabf13532a03f1386ae74f52772181333f3c27e05ca12a31b7"
+        },
+        "roi_axi": {
+          "ar": 4124,
+          "aw": 2048,
+          "r": 32992,
+          "w": 16384
+        },
+        "roi_cycles": 252648,
+        "roi_payload_MiBps": "49.475950729869",
+        "tail_cycles": 8046
+      },
+      "fixed": {
+        "baseline_inclusive_cycles": 251588,
+        "baseline_inclusive_payload_MiBps": "49.684404661590",
+        "baseline_roi_axi": {
+          "ar": 4160,
+          "aw": 2048,
+          "r": 32832,
+          "w": 16384
+        },
+        "baseline_roi_cycles": 243398,
+        "baseline_roi_payload_MiBps": "51.356214923705",
+        "baseline_tail_cycles": 8190,
+        "functional_fields": 105,
+        "inclusive_cycle_change_percent": "-4.983544525176",
+        "inclusive_cycles": 239050,
+        "inclusive_delta_cycles": -12538,
+        "inclusive_payload_MiBps": "52.290315833508",
+        "inclusive_throughput_change_percent": "5.244927839364",
+        "payload_bytes": 131072,
+        "raw": {
+          "axi-events.tsv": "840e106cf64dacd042df0c8e37a2b064e7a60a6e6aebbc49b4582f9e52cd98b3",
+          "supply-events.tsv": "5be99d38107eeff38edbb7b51dcf6acc2e6705928b32da9073bdfd299ca34615"
+        },
+        "roi_axi": {
+          "ar": 4160,
+          "aw": 2048,
+          "r": 32832,
+          "w": 16384
+        },
+        "roi_cycles": 230864,
+        "roi_payload_MiBps": "54.144431353524",
+        "tail_cycles": 8186
+      },
+      "sv39": {
+        "baseline_inclusive_cycles": 255223,
+        "baseline_inclusive_payload_MiBps": "48.976777171336",
+        "baseline_roi_axi": {
+          "ar": 4160,
+          "aw": 2048,
+          "r": 32832,
+          "w": 16384
+        },
+        "baseline_roi_cycles": 247034,
+        "baseline_roi_payload_MiBps": "50.600322222852",
+        "baseline_tail_cycles": 8189,
+        "functional_fields": 105,
+        "inclusive_cycle_change_percent": "-3.259110660089",
+        "inclusive_cycles": 246905,
+        "inclusive_delta_cycles": -8318,
+        "inclusive_payload_MiBps": "50.626759279885",
+        "inclusive_throughput_change_percent": "3.368907069521",
+        "payload_bytes": 131072,
+        "raw": {
+          "axi-events.tsv": "595fcd2d94ce35cc5de7c65b36b85fae111bba62459bfab5143181649af7a9a3",
+          "supply-events.tsv": "c49820023916bd97c42521475336d9a0910f68f2f57e7f0ad256ccac24e08ec8"
+        },
+        "roi_axi": {
+          "ar": 4160,
+          "aw": 2048,
+          "r": 32832,
+          "w": 16384
+        },
+        "roi_cycles": 238718,
+        "roi_payload_MiBps": "52.363039234578",
+        "tail_cycles": 8187
+      }
+    },
+    "prefetch_and_traffic": {
+      "deltas": {
+        "published": {
+          "clean_tail_cycles": -2,
+          "inclusive_cycles": -8318,
+          "read_allocations": 0,
+          "read_attached": 0,
+          "read_candidates": 2010,
+          "read_resident_useful": 0,
+          "roi_cycles": -8316,
+          "store_allocations": 0,
+          "store_candidates": 0,
+          "store_resident_useful": 0
+        },
+        "ready": {
+          "clean_tail_cycles": 157,
+          "inclusive_cycles": -30405,
+          "read_allocations": 990,
+          "read_attached": 670,
+          "read_candidates": 2040,
+          "read_resident_useful": 320,
+          "roi_cycles": -30562,
+          "store_allocations": 0,
+          "store_candidates": 0,
+          "store_resident_useful": 0
+        }
+      },
+      "new_host_or_dut_observations": false,
+      "region": "ROI unless explicitly labeled tail",
+      "resident_useful_excludes_attached": true,
+      "runs": {
+        "durable": {
+          "clean_tail_cycles": 8187,
+          "evidence": {
+            "axi_sha256": "595fcd2d94ce35cc5de7c65b36b85fae111bba62459bfab5143181649af7a9a3",
+            "receipt_sha256": "a6b350588cf21b85d423ff625824e0ca00ed8cee3df6ecc60e186d7c5b2ca50b",
+            "stdout_sha256": "e5265ab6c248101ba82824d543a714d7900fa354f394aa88f8583e4856c02df6",
+            "supply_sha256": "c49820023916bd97c42521475336d9a0910f68f2f57e7f0ad256ccac24e08ec8"
+          },
+          "inclusive_cycles": 246905,
+          "read_allocations": 2014,
+          "read_attached": 670,
+          "read_candidates": 4024,
+          "read_resident_useful": 1344,
+          "roi_axi": {
+            "ar": 4160,
+            "aw": 2048,
+            "r": 32832,
+            "w": 16384
+          },
+          "roi_cycles": 238718,
+          "store_allocations": 2014,
+          "store_candidates": 2014,
+          "store_resident_useful": 2014,
+          "tail_axi": {
+            "ar": 4,
+            "aw": 257,
+            "r": 18,
+            "w": 2056
+          }
+        },
+        "published": {
+          "clean_tail_cycles": 8189,
+          "evidence": {
+            "axi_sha256": "f54ebce811a00bf8ef139a4468110555f0a5763542913e80f9378ce6011dc88c",
+            "receipt_sha256": "db90e8e78c19e3fa6e0fbe2c54e5f9ea662e29b4e6aae074add14b4074522d25",
+            "stdout_sha256": "45ca3d66d49cd0d9f3b3247dcd2fa64b01e21f396d3e94ad1b2fa4e99c5754d4",
+            "supply_sha256": "9b6bdcf68661fdcecc030d1eb6e7ccb0475acc393559a4e589ba1dfa8ba91221"
+          },
+          "inclusive_cycles": 255223,
+          "read_allocations": 2014,
+          "read_attached": 670,
+          "read_candidates": 2014,
+          "read_resident_useful": 1344,
+          "roi_axi": {
+            "ar": 4160,
+            "aw": 2048,
+            "r": 32832,
+            "w": 16384
+          },
+          "roi_cycles": 247034,
+          "store_allocations": 2014,
+          "store_candidates": 2014,
+          "store_resident_useful": 2014,
+          "tail_axi": {
+            "ar": 4,
+            "aw": 257,
+            "r": 18,
+            "w": 2056
+          }
+        },
+        "ready": {
+          "clean_tail_cycles": 8030,
+          "evidence": {
+            "axi_sha256": "9af46889b418a15aaf0d84f9cf74855367a072c750427141960e11459791e98a",
+            "receipt_sha256": "343c64a3739a36ab1364b735482ac201bacff9f379165e30049e4a005bb8e961",
+            "stdout_sha256": "b1a5ae3f0ac22cb54e8f3da4e8f1838abb1eb37b402fe51dbdb332bbae16d437",
+            "supply_sha256": "b3904ca9e5dcc6cfb20851eb1fc18600760be290063e1aefa568706148a8d256"
+          },
+          "inclusive_cycles": 277310,
+          "read_allocations": 1024,
+          "read_attached": 0,
+          "read_candidates": 1984,
+          "read_resident_useful": 1024,
+          "roi_axi": {
+            "ar": 4160,
+            "aw": 2048,
+            "r": 32832,
+            "w": 16384
+          },
+          "roi_cycles": 269280,
+          "store_allocations": 2014,
+          "store_candidates": 2014,
+          "store_resident_useful": 2014,
+          "tail_axi": {
+            "ar": 4,
+            "aw": 257,
+            "r": 18,
+            "w": 2056
+          }
+        }
+      },
+      "schema": "durable-read-prefetch-first-net-comparison-v1",
+      "script_sha256": "d04c998b9aa0cbe9d2b0b186f86f7273cb5ad3845ab2b897883b42cd87c8102b",
+      "status": "PASS_ORIGINAL_TRACE_ACCOUNTING",
+      "store_prefetch_displaced": false,
+      "strictly_better_than_published": true
+    },
+    "original_architectural_negative_controls": [
+      "read",
+      "memory",
+      "trap"
+    ],
+    "additional_observer_negative_controls": [
+      "wrong-owner",
+      "token-capacity"
+    ],
+    "complete_architectural_fields": 105,
+    "new_models": 1,
+    "actual_generated_units": 36,
+    "rebuilt_off_models": 0,
+    "rates_definition": "131072 logical COPY payload bytes / (cycles / 100000000) / 1048576. 100 MHz is only the unchanged simulator reporting normalization, not a measured/qualified hardware clock. Reads+writes are not double counted.",
+    "baseline7cc_original_sv39": {
+      "comparison": "Sv39 vs 7cc original law",
+      "before_roi": 250604,
+      "before_tail": 8187,
+      "after_roi": 238718,
+      "after_tail": 8187,
+      "before_total": 258791,
+      "after_total": 246905,
+      "cycles_saved": 11886,
+      "total_time_change_percent": -4.592895425265953,
+      "total_throughput_change_percent": 4.813997286405702,
+      "roi_throughput_change_percent": 4.979096674737549,
+      "before_roi_MiBs": 49.87949114938309,
+      "after_roi_MiBs": 52.36303923457804,
+      "before_inclusive_MiBs": 48.30152516895873,
+      "after_inclusive_MiBs": 50.62675927988498
+    },
+    "ready_only_negative": {
+      "roi": 269280,
+      "tail": 8030,
+      "inclusive": 277310,
+      "status": "RETAINED_NEGATIVE_EXPERIMENT_NOT_RECOMMENDED"
+    },
+    "observer_change": "Exactly production_probe.h and supply_ledger.h; precise sole STORE-owner formation exception plus pre-edge READ token-capacity veto. Macro activation requires actual complete cache flags; no DUT writes, new observation ports or service-law change.",
+    "historical_first_failure_preserved": true
+  },
+  "native_declarations": {
+    "after": {
+      "array_reg_bits": 729335,
+      "module_instances": 568,
+      "port_bits": 237478,
+      "scalar_reg_bits": 97337,
+      "top_port_bits": 353
+    },
+    "before": {
+      "array_reg_bits": 729335,
+      "module_instances": 568,
+      "port_bits": 237478,
+      "scalar_reg_bits": 97337,
+      "top_port_bits": 353
+    },
+    "changed_paths": [
+      {
+        "after_module": "IntegerBackend",
+        "array_delta": 0,
+        "arrays_after": [],
+        "arrays_before": [],
+        "before_module": "IntegerBackend",
+        "path": "FpgaNextSocTop/board/platform/core/core/core/backend",
+        "port_bits_delta": 0,
+        "register_differences": [],
+        "scalar_delta": 0,
+        "structure_delta": {
+          "always_blocks": 0,
+          "assign": 0,
+          "bitwise_and": 15,
+          "bitwise_or": 16,
+          "case_statements": 0,
+          "equality": 0,
+          "logical_and": 0,
+          "logical_or": 0,
+          "nonblocking_writers": 0,
+          "raw_sv_bytes": 1889,
+          "ternary": 0,
+          "xor": 0
+        }
+      },
+      {
+        "after_module": "NonBlockingCoherentLineCache",
+        "array_delta": 0,
+        "arrays_after": [],
+        "arrays_before": [],
+        "before_module": "NonBlockingCoherentLineCache",
+        "path": "FpgaNextSocTop/board/platform/privateCache",
+        "port_bits_delta": 0,
+        "register_differences": [],
+        "scalar_delta": 0,
+        "structure_delta": {
+          "always_blocks": 0,
+          "assign": 0,
+          "bitwise_and": 21,
+          "bitwise_or": 8,
+          "case_statements": 0,
+          "equality": 1,
+          "logical_and": 0,
+          "logical_or": 0,
+          "nonblocking_writers": 0,
+          "raw_sv_bytes": 772,
+          "ternary": 1,
+          "xor": 0
+        }
+      }
+    ],
+    "delta": {
+      "array_reg_bits": 0,
+      "module_instances": 0,
+      "port_bits": 0,
+      "scalar_reg_bits": 0,
+      "top_port_bits": 0
+    },
+    "external_paths_identical": true,
+    "external_resource_bytes_identical": true,
+    "limits": [
+      "Native retained declared bits after firtool; not mapped FF/LUT/BRAM/DSP or STA.",
+      "Port bits sum both ends of all instantiated modules, not chip pins.",
+      "Operator text counts are structure indicators, not gates or delay.",
+      "External primitive/resource internals are excluded and proven identical between sides."
+    ],
+    "status": "PASS_NATIVE_REACHABLE_CENSUS",
+    "structure_delta": {
+      "always_blocks": 0,
+      "assign": 0,
+      "bitwise_and": 36,
+      "bitwise_or": 24,
+      "case_statements": 0,
+      "equality": 1,
+      "logical_and": 0,
+      "logical_or": 0,
+      "nonblocking_writers": 0,
+      "raw_sv_bytes": 2661,
+      "ternary": 1,
+      "xor": 0
+    }
+  },
+  "off_compatibility": {
+    "raw_equal": false,
+    "files": 293,
+    "exact_raw_files": 292,
+    "differing_file": "NonBlockingCoherentLineCache.sv",
+    "certificate_status": "PASS_NARROW_OFF_ALPHA_RENAME_AND_KNOWN_STATE_GUARD_IDENTITY",
+    "scope": "Exactly one cache file, fixed simultaneous identifier mapping and one added guard. Source Boolean identity is for known legal state and exact source implications; no claim of whole-design formal or arbitrary X-state equivalence."
+  },
+  "libraries": {
+    "source": {
+      "library_file_id": "libfile_a977d600323081919b259b76ff369201",
+      "version": 0,
+      "filename": "durable-read-prefetch-source-checkpoint-r1.tar.gz",
+      "bytes": 6382172,
+      "sha256": "4df0d5f1cc99ee75e69f0ce7a7222d62cae464a04d2cb1a6c8866676563cf73a",
+      "scope": "Historical source checkpoint before final focused host repair; use focused final-source.patch and tested-commit-bridge for exact final tested source, or the final publication source snapshot."
+    },
+    "focused": {
+      "library_file_id": "libfile_ba2090a4901881919b801b0496eaf2fb",
+      "version": 0,
+      "filename": "durable-read-prefetch-focused-r2-thin.tar.gz",
+      "bytes": 6157798,
+      "sha256": "82273f7f88f2a7eee73939115d57f18f7c1f36a1435774d5e661efdc2ff3dc3b"
+    },
+    "cpu_evidence": {
+      "library_file_id": "libfile_0d0343f4ebb0819199e12583be6cc031",
+      "version": 0,
+      "filename": "durable-read-prefetch-cpu-evidence-r1.tar.gz",
+      "bytes": 14761488,
+      "sha256": "55922e9862d1ae6be4d99333376f508c75c389fde7f1244c4ab21f79da8bfff8"
+    },
+    "cpu_model": {
+      "library_file_id": "libfile_3d79a0ea77bc81918d265129953e2c7c",
+      "version": 0,
+      "filename": "durable-read-prefetch-cpu-on36tu-recovery-r1.tar.gz",
+      "bytes": 45666631,
+      "sha256": "1fb09dd2f7e38304128e7b396da1c4281e84c5591e31374c6cb297543101ec56"
+    },
+    "ready_only_negative": {
+      "library_file_id": "libfile_04bc53f867f88191825c33057ce80653",
+      "version": 0,
+      "bytes": 4238762,
+      "sha256": "cd171fe3ed332eb929092472278a8387f76d676fa3585de5b90d9a41aacd15fc"
+    },
+    "ready_only_model": {
+      "library_file_id": "libfile_5e1aaa48a1a88191a8f28fd582750898",
+      "version": 0,
+      "bytes": 22071898,
+      "sha256": "bcb94a7d487022934a08a88c76b8019f71ad05762dde02f65dee9d9dc0b90da4"
+    },
+    "native": {
+      "library_file_id": "libfile_c36e6ebe93408191aa9ab190d82248eb",
+      "version": 0,
+      "filename": "durable-read-ready-native-r1.tar.gz",
+      "bytes": 2600262,
+      "sha256": "6494830adabb191505139dbb29c267e0049a61e3db122eac576a6e6dbda8f1ee"
+    }
+  },
+  "evidence": [
+    {
+      "path": "durable-read-prefetch-r1/tested-commit-bridge.json",
+      "sha256": "4dd629cf7f523d667539d340ad7b938cb028d9542c5db36e0b88f1d5365604a2",
+      "purpose": "Exact frozen tested source identity after commit",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/tested-commit-bridge.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/parent-source-review-r1.json",
+      "sha256": "ee27c2a1f6e2fdf9bc634aabce3614374eb362e3ad8f9a0b6ee97cd37179842c",
+      "purpose": "Independent parent source invariants review",
+      "library": "focused",
+      "member": "parent-source-review-r1.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/parent-focused-review-r2.json",
+      "sha256": "d3f363bb188bea2598896599bfe62775a46968de00bb44e00e53786fa5509ec1",
+      "purpose": "Parent 24 schedules/images and seven real nonzero controls readback",
+      "library": "focused",
+      "member": "parent-focused-review-r2.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/focused-r2/receipt.json",
+      "sha256": "fef1e768c7be290e06f931dc9ebb209eeb54617d3d8d0bd5972da48e8eaea945",
+      "purpose": "Terminal paired real-cache/home qualification; mode10 remains dynamically unqualified",
+      "library": "focused",
+      "member": "focused-r2/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-gates-r1/receipt.json",
+      "sha256": "6e52a652059f6fe5fce9b920e58e3e0a2e55ecac2b448d714ecf46413de01d12",
+      "purpose": "PRESERVED initial observer-mask failure after successful model compile",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-gates-r1/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-gates-r1/observer-recovery-r1/receipt.json",
+      "sha256": "a6b350588cf21b85d423ff625824e0ca00ed8cee3df6ecc60e186d7c5b2ca50b",
+      "purpose": "Positive Sv39 and three architectural corruption controls; explicit new observer host identity",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-gates-r1/observer-recovery-r1/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-gates-r1/observer-controls-r1/receipt.json",
+      "sha256": "bc2c0fcfd43875aa480d16db614043841927046291e12ee97b6c84960d07f8f8",
+      "purpose": "Two actual observer corruption controls",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-gates-r1/observer-controls-r1/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-bare-r1/receipt.json",
+      "sha256": "dca7b4dc91d831b73ca552be5b162bb545aa3b54a2dc4bd46e7679ed23734d51",
+      "purpose": "Functional Bare result, including small performance regression",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-bare-r1/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-burst-locked-r1/receipt.json",
+      "sha256": "5397ee627bf04f73448579cbb9e3a0912a128f3727675022fc7cf785c20c3d5d",
+      "purpose": "Separate second-law host relink with no new DUT objects",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-burst-locked-r1/receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-gates-r1/final-report.json",
+      "sha256": "70e6ac1c7a08a2fe248df87bb99ea1941ea4e129751ada3bbbba5e85b67254af",
+      "purpose": "All CPU rates, cycles, architecture/traffic and scope",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-gates-r1/final-report.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/cpu-gates-r1/source-host-bridge.json",
+      "sha256": "9a84449d3e67659b8b66a656b4efa22306aef82abd04155f0c2320cbc63a534a",
+      "purpose": "Source, original/positive/control/fixed hosts, 36 model objects and guest identities",
+      "library": "cpu_evidence",
+      "member": "durable-read-prefetch-r1/cpu-gates-r1/source-host-bridge.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/parent-performance-arithmetic-r1.json",
+      "sha256": "bd922e23a803f914c22ea077d61ac5a6d6e1d94acdfeb3ba850f303cf8170c01",
+      "purpose": "Independent arithmetic, rechecked against final receipts by this generator"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/emit-receipt.json",
+      "sha256": "d7d974ead7c9894085c6e8b77a1ab9c801daaa440b1067f395f82995aa7122ad",
+      "purpose": "Two complete official native exports",
+      "library": "native",
+      "member": "native-r1/emit-receipt.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/native-comparison.json",
+      "sha256": "eb2f7706fdd7d6083233a0c0fefd7cec8c748f497b8a3d02280f3555b746a713",
+      "purpose": "Measured full reachable native state and port cost",
+      "library": "native",
+      "member": "native-r1/native-comparison.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/off-raw-comparison.json",
+      "sha256": "3c3c2c9f4e85dcb9a7afb74b3b2b4f2780e013e4032669ca88cb6dbde911eda8",
+      "purpose": "OFF raw inequality preserved: exactly one of293 files differs",
+      "library": "native",
+      "member": "native-r1/off-raw-comparison.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/off-correspondence.json",
+      "sha256": "ea12c70926b7039ab34baef48c7bec93a42e75fdef935535f7541842d8c0f432",
+      "purpose": "Narrow fixed rename and legal-state guard certificate, four rejected mutations",
+      "library": "native",
+      "member": "native-r1/off-correspondence.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/source-cones.md",
+      "sha256": "41a4937b694d3ab2999b4136ba95822863d987d3bee0582487af36e79776f22c",
+      "purpose": "Changed combinational cones and future timing boundaries",
+      "library": "native",
+      "member": "native-r1/source-cones.md"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/summary.json",
+      "sha256": "4272df84779129713dc3d089bf45c605ba3d45605f2c9a3a9fde72b5f175553d",
+      "purpose": "Terminal full native/port/constructor and OFF certificate summary",
+      "library": "native",
+      "member": "native-r1/summary.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/memory-port-comparison.json",
+      "sha256": "fc36cd80eb1b27285d8bffa6ccfe7cf745929fdd31bb40a9d927cbf441b7749a",
+      "purpose": "All named native array memory and port signatures",
+      "library": "native",
+      "member": "native-r1/memory-port-comparison.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/native-r1/publication-source-bridge.json",
+      "sha256": "e0813934feb6fcfbfa39447f7f76d9138833dc624172033588362789235519f3",
+      "purpose": "504 complete compile/resource source inputs byte-identical to frozen tested source",
+      "library": "native",
+      "member": "native-r1/publication-source-bridge.json"
+    },
+    {
+      "path": "durable-read-prefetch-r1/parent-utilization-r1.json",
+      "sha256": "935d457b83e48fd521ebf6ab269d12b221ac1037287e9a4daa2f672dd4a52a31",
+      "purpose": "Independent original-law request/data handshake conservation"
+    }
+  ],
+  "reproduction": {
+    "focused_runner": "simulator/gsim/durable_read_prefetch.py",
+    "passive_host_materializer": "simulator/gsim/durable_read_prefetch_host.py",
+    "host_contract": "simulator/gsim/durable_read_prefetch/host-contract-v1.json",
+    "exact_historical_cpu_runners": "cpu_evidence archive durable-read-prefetch-r1/cpu-plan-r1 and observer-recovery-r1/run_recovery.py, observer-controls-r1/run_controls.py, run_bare_followon.py, run_fixed_followon.py",
+    "fresh_replay_qualification_inherited": false
+  },
+  "limits": [
+    "Measured Sv39 gains coexist with Bare regression; candidate stays explicitly optional.",
+    "Two matched simulator DDR laws are reported separately, not inferred board or MIG speedup.",
+    "Retained declaration counts are not mapped LUT/FF/BRAM/DSP, STA, routed frequency or board qualification.",
+    "No isolated ready-OFF/durable-ON CPU arm. Retention-only10 remains dynamically unqualified.",
+    "Existing CPU baseline uses its archived exact published constructor/native bridge; no new OFF CPU build."
+  ],
+  "native_summary": {
+    "actual_constructor_counts": {
+      "cache": 19,
+      "core": 149,
+      "profile": 56
+    },
+    "actual_constructor_exact_cpu_match": true,
+    "changed_modules": [
+      "IntegerBackend",
+      "NonBlockingCoherentLineCache"
+    ],
+    "delta": {
+      "array_reg_bits": 0,
+      "module_instances": 0,
+      "port_bits": 0,
+      "scalar_reg_bits": 0,
+      "top_port_bits": 0
+    },
+    "evidence": {
+      "audit_native.py": "3dc11aaa5ba332b2a841856216bb7daa3294a280fe7130c7daa5f241c97d5712",
+      "baseline-census.json": "f32d3dc23e30f2aba63f4136a4de66ce219dfa98fe461ccaa38d49ad2cb0179d",
+      "combo-census.json": "5ea1d17962ccae966c1f166acce24a019ef75362f78ce0f5ae932ce052cf6bc8",
+      "combo-raw-comparison.json": "fdcd9f6c9237350dce4447b894616b4911ea73bd1e86ba185fc331e96ba5c0c2",
+      "combo-vs-off.json": "e4e5bfda2ce7005cb6fd62198c60ce7ce43330237db994ae2352a79eaee18c64",
+      "emit-receipt.json": "d7d974ead7c9894085c6e8b77a1ab9c801daaa440b1067f395f82995aa7122ad",
+      "helpers/lsu_capacity_census.py": "feddb875c24bd82896c58ebff7a364d3099ac6549179f8bef7d42809fc4dd9cf",
+      "memory-port-comparison.json": "fc36cd80eb1b27285d8bffa6ccfe7cf745929fdd31bb40a9d927cbf441b7749a",
+      "native-comparison.json": "eb2f7706fdd7d6083233a0c0fefd7cec8c748f497b8a3d02280f3555b746a713",
+      "native_census.py": "eab3ed8c14e6478c38076d8590c8aeb2f83eee6691ff5c7f0382b4485542e7fa",
+      "off-census.json": "e4c3eac700ddc846dee8c5a8e08ca61a3be3a3b9df396d8e52cb132aff8d6353",
+      "off-correspondence.json": "ea12c70926b7039ab34baef48c7bec93a42e75fdef935535f7541842d8c0f432",
+      "off-raw-comparison.json": "3c3c2c9f4e85dcb9a7afb74b3b2b4f2780e013e4032669ca88cb6dbde911eda8",
+      "off-vs-published.json": "3c719f30225c358ec5e97c9e122399f9664d9c6dd6f4b309abfce9e4ee2137dd",
+      "package.py": "e907850a69f4cbdd3e8f467f38f0db1aaaf63b566fb23963cdef3f4a230cb710",
+      "plan.json": "13e2c3b8190be87d1c404afe42c336198511664594ad4cd4d64c3b0e789eec10",
+      "prepare.py": "847984eef34d5b681b76d3fe40fbe93f2649ccc4db4119eed11c81be35714a39",
+      "prove_off_correspondence.py": "bb28cf4ccb13240a8af721d89f8ab350a164e59af4937da643266e652cd55bfd",
+      "publication-source-bridge.json": "e0813934feb6fcfbfa39447f7f76d9138833dc624172033588362789235519f3",
+      "references/executed-cpu-profile.json": "3767e29d6754401911fb8d69c4e2664f1fcef3982f737f3d2f9a16902e33fad9",
+      "references/prior-narrow-checker.py": "dceebdb8ed4a86ecf7c1f3bb2372b92e3b09433941955b25d7a48e7f0cacde6a",
+      "references/published-emit-receipt.json": "f8e1b46d31c7b9e39212ed28f910be896c9bea281b12fac8b1b84d917eec7780",
+      "references/published-final-input-bridge.json": "cc6199b6141f70fbd0df7c9b19690dc5a7f04a24bf87d4298a8b924f1b4ad6a0",
+      "references/published-native-raw-comparison.json": "659410e7267bbcbb79c8908b03d92bb0bc3881c6f103d7ba4ae1b81f44768b2c",
+      "references/published-profile.json": "5dab42cc8906c0be91312ccf191dc8fa34c4e4c026408f92d2414e6489e53422",
+      "run_native.py": "cc79457e69f847df85f1fee3108159ff3f9ff5dec53a10c1483f95fdaa89be10",
+      "source-cones.md": "41a4937b694d3ab2999b4136ba95822863d987d3bee0582487af36e79776f22c",
+      "source-snapshots/IntegerBackend.scala": "111ffeeb739c7201350934944e07d817968b9c6dfbf6ce796e7f621e4087817a",
+      "source-snapshots/NonBlockingCoherentLineCache.scala": "7e2e55e9e4d10b17e91e4067fe153209cc14fb4dcc8cc5fbc74eb395fb494ba9",
+      "source-snapshots/RegisteredRobHeadMask.scala": "34098dc7d4c42ca936b8e6a1ee86c65443e4e9ff312a500ad2ab9e184d286921"
+    },
+    "exact_named_state_and_port_signatures_equal": true,
+    "full_on_after": {
+      "array_reg_bits": 729335,
+      "module_instances": 568,
+      "port_bits": 237478,
+      "scalar_reg_bits": 97337,
+      "top_port_bits": 353
+    },
+    "limits": [
+      "Native retained bits and interfaces after firtool, not technology-mapped FF/LUT/BRAM/DSP or STA.",
+      "The OFF known-state guard identity is narrowly scoped and is not arbitrary-X or whole-design formal equivalence.",
+      "External primitive/resource internals excluded but byte-identical and identically instantiated.",
+      "Memory port totals are emitted native R/W port families, not inferred physical RAM primitive ports."
+    ],
+    "memory_module_definitions": 46,
+    "memory_module_instances": 129,
+    "named_scalar_register_instances": 8355,
+    "native_array_memory_module_bytes_identical": true,
+    "native_exports": 2,
+    "native_named_memory_ports": {
+      "R": 186,
+      "W": 129
+    },
+    "new_GSIM_or_CPU_models": 0,
+    "new_test_source_files": 0,
+    "off_exact_raw_files": 292,
+    "off_known_state_abstract_cases": 160,
+    "off_narrow_correspondence": "PASS_NARROW_OFF_ALPHA_RENAME_AND_KNOWN_STATE_GUARD_IDENTITY",
+    "off_raw_equal": false,
+    "off_rejected_mutations": 4,
+    "off_total_files": 293,
+    "official_firtool_version": "1.135.0",
+    "publication_native_input_bridge": true,
+    "published_baseline_commit": "81ed0a53a066ff724101f6d9f2d19f764c32c520",
+    "published_baseline_tree": "a69437f508509a4dbc4492d7162f72def3b019b0",
+    "published_before": {
+      "array_reg_bits": 729335,
+      "module_instances": 568,
+      "port_bits": 237478,
+      "scalar_reg_bits": 97337,
+      "top_port_bits": 353
+    },
+    "source_clean_unchanged": true,
+    "source_commit": "96b7217f6a28d98f53949f0db311de4a9a6f4f13",
+    "source_tree": "d1620ce9c5c93cfe56b6b17131482aa62078654e",
+    "status": "PASS_DURABLE_READ_READY_NATIVE_RETAINED_COST_AND_CONE_AUDIT",
+    "textual_structure_delta": {
+      "always_blocks": 0,
+      "assign": 0,
+      "bitwise_and": 36,
+      "bitwise_or": 24,
+      "case_statements": 0,
+      "equality": 1,
+      "logical_and": 0,
+      "logical_or": 0,
+      "nonblocking_writers": 0,
+      "raw_sv_bytes": 2661,
+      "ternary": 1,
+      "xor": 0
+    }
+  },
+  "saved_counter_conservation": {
+    "status": "PASS_SAVED_COUNTER_CONSERVATION",
+    "scope": "Original law, Sv39 ROI. request port is physical data adapter/router -> private L1, not cache -> home. Data channels R/W fire counts only; no-data-handshake does not distinguish absent offers and channel backpressure. Each request cycle is exactly accepted, held, or no offer. R/W overlap is independently reported by original host. No causal savings claim from intersection counts.",
+    "runs": {
+      "published81ed": {
+        "roi_cycles": 247034,
+        "lsu_to_cache_request_accepted_cycles": 32768,
+        "lsu_to_cache_request_held_cycles": 34178,
+        "lsu_to_cache_no_offer_cycles": 180088,
+        "r_handshake_cycles": 32832,
+        "w_handshake_cycles": 16384,
+        "rw_same_cycle": 0,
+        "r_or_w_handshake_cycles": 49216,
+        "no_data_handshake_cycles": 197818,
+        "r_handshake_percent": 13.290478233765393,
+        "w_handshake_percent": 6.632285434393646,
+        "r_or_w_handshake_percent": 19.92276366815904,
+        "no_offer_percent": 72.90008662775165,
+        "read_outstanding_peak": 2,
+        "lsu_average": 1.5571135956993774,
+        "cache_owner_average": 1.0229563541860636,
+        "two_cache_owner_cycles": 37043,
+        "source_sha256": "45ca3d66d49cd0d9f3b3247dcd2fa64b01e21f396d3e94ad1b2fa4e99c5754d4"
+      },
+      "durable": {
+        "roi_cycles": 238718,
+        "lsu_to_cache_request_accepted_cycles": 32768,
+        "lsu_to_cache_request_held_cycles": 37326,
+        "lsu_to_cache_no_offer_cycles": 168624,
+        "r_handshake_cycles": 32832,
+        "w_handshake_cycles": 16384,
+        "rw_same_cycle": 0,
+        "r_or_w_handshake_cycles": 49216,
+        "no_data_handshake_cycles": 189502,
+        "r_handshake_percent": 13.753466433197328,
+        "w_handshake_percent": 6.863328278554612,
+        "r_or_w_handshake_percent": 20.616794711751943,
+        "no_offer_percent": 70.63732102313189,
+        "read_outstanding_peak": 2,
+        "lsu_average": 1.6981878199381697,
+        "cache_owner_average": 1.0798264060523295,
+        "two_cache_owner_cycles": 39367,
+        "source_sha256": "e5265ab6c248101ba82824d543a714d7900fa354f394aa88f8583e4856c02df6"
+      }
+    }
+  }
+}

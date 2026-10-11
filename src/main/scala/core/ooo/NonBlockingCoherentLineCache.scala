@@ -889,7 +889,8 @@ class NonBlockingCoherentLineCache(
         val lastLine = Reg(UInt(58.W))
         // Prediction only: ON remembers whether this read line was entered
         // sequentially. Retry still needs the current accepted read's permission.
-        // No owner/candidate is queued while the shared PF episode is busy.
+        // The optional STORE-only capture reuses the same finite candidate.
+        // Prediction history never authorizes an allocation on its own.
         val sequentialReadLine = if (concurrency.readPrefetchDirtyRetry) Some(RegInit(false.B)) else None
         val trackedValid = RegInit(false.B)
         val trackedAddress = Reg(UInt(64.W))
@@ -917,6 +918,13 @@ class NonBlockingCoherentLineCache(
             VecInit((0 until wbCount).map(i => !wbLive(i) || !wbPrefetch.get(i) || wbSent(i))).asUInt.andR
         else false.B
         val readReleaseAllowed = !releaseBusy || sentPrefetchWritebacks
+        // Count every live PF, including attached READ owners. Only a single
+        // unattached nonposted STORE PF may block this new capture arm.
+        val oneStoreBlocker = if (concurrency.readPrefetchBehindStore) {
+            val livePf = VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free))
+            PopCount(livePf) === 1.U && VecInit((0 until mshrCount).map(i =>
+                livePf(i) && storePrefetchOwner.get(i) && !isDemandAttached(i.U) && !isPosted(i.U))).asUInt.orR
+        } else false.B
         io.prefetchBusy := candidateValid || liveOwner || releaseBusy
         if (concurrency.postedPrefetchCoexistence) {
             // An old candidate cancels beside a held new-owner/fallback offer.
@@ -996,7 +1004,7 @@ class NonBlockingCoherentLineCache(
             val readPrediction = if (concurrency.readPrefetchDirtyRetry)
                 sequential || (lastValid && line === lastLine && sequentialReadLine.get) else sequential
             when(readPrediction && request.prefetchNextAllowed && postedPrefetchAllowed &&
-                !candidateValid && !readCandidateOwner && readReleaseAllowed &&
+                !candidateValid && (!readCandidateOwner || oneStoreBlocker) && readReleaseAllowed &&
                 (!trackedValid || consume || !trackedPresent)) {
                 io.prefetch.candidate := true.B
                 candidateValid := true.B
@@ -1141,7 +1149,11 @@ class NonBlockingCoherentLineCache(
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&
             probeState === pIdle && !io.tl.b.valid && !queuedEvictWanted
         val otherwiseEligible = eligibleWithoutDemand && !demandMiss
-        val canAllocate = otherwiseEligible && evictionState === eIdle
+        // Pre-edge resident-token capacity only: a same-edge consume becomes
+        // available on the next attempt, without a READY/SEAL/accepted path.
+        val readTokenCapacity = if (concurrency.durableReadPrefetchCandidate)
+            !readCandidate || !trackedValid || !trackedPresent else true.B
+        val canAllocate = otherwiseEligible && evictionState === eIdle && readTokenCapacity
         // Retain only a read-origin prediction displaced by a successfully
         // accepted ordinary resident store. The original allocation gate still
         // rejects all writes. No combined posted READY/SEAL/accepted signal is
@@ -1151,15 +1163,32 @@ class NonBlockingCoherentLineCache(
                 storeWrite && !postedIntent && !postedBusy &&
                 !(io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest))
         else false.B
+        // A held ordinary full-tag resident STORE does not revoke the saved
+        // READ permission. This class is rechecked every edge and deliberately
+        // excludes every proof-bearing posted/fallback offer before acceptance.
+        // New late request/acceptance predicates feed candidate next-state only.
+        val durableReadWait = if (concurrency.durableReadPrefetchCandidate)
+            !postedBusy && !postedIntent && !present && !barrier && !flushActive && !io.flushRequest &&
+                bypassState === bIdle && probeState === pIdle && !io.tl.b.valid &&
+                (!io.upstream.request.valid || (legacyFire && readHit) ||
+                    (io.upstream.request.valid && writeHit))
+        else false.B
         when(candidateValid) {
             candidateValid := false.B
             candidateRemaining.foreach { remaining =>
                 // Existing victim capture/send retention is unchanged. The
                 // opt-in accepted-store hold spends the same finite lifetime;
-                // held writes, posted/fallback offers and every other exclusion
-                // cancel. Architectural busy continues to protect context.
-                when((otherwiseEligible && (evictionState === eCapture || evictionState === eSend) ||
-                    acceptedStoreHold) && remaining =/= 0.U) {
+                // in original mode held writes and every other exclusion cancel.
+                // Durable READ mode replaces this finite wait class below.
+                // Architectural busy continues to protect the saved context.
+                val originalKeep = otherwiseEligible && (evictionState === eCapture || evictionState === eSend) ||
+                    acceptedStoreHold
+                val keep = if (concurrency.durableReadPrefetchCandidate)
+                    Mux(readCandidate, durableReadWait, originalKeep) else originalKeep
+                // Allocate, retain, cancel are exclusive. All resource waits
+                // spend the old countdown; neither hits nor owner completion
+                // refresh the target/origin/deadline or reserve a victim early.
+                when(!canAllocate && keep && remaining =/= 0.U) {
                     candidateValid := true.B
                     remaining := remaining - 1.U
                 }

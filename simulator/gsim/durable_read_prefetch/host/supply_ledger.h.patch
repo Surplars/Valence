@@ -1,0 +1,28 @@
+--- original/supply_ledger.h
++++ durable/supply_ledger.h
+@@ -88,6 +88,11 @@
+             bool(d.board$platform$core$core$core$backend$systemUnit$_io_fenceIFlush_T),PC(bypassState)!=0,PC(probeState)!=0,
+             bool(d.board$platform$coherentHome$probe$sendQueue$_io_deq_valid_T),bool(PC(queuedEvictWanted)),PC(evictionState)!=0,victimCreditBlocked};
+         for(unsigned i=0;i<19;++i)g.mask|=unsigned(bad[i])<<i;
++#if DURABLE_READ_PREFETCH_CANDIDATE
++        // New allocation veto is pre-edge capacity. A same-edge consume does
++        // not supply this token; otherwiseEligible intentionally omits this bit.
++        g.mask|=unsigned(!store && bool(PF(readTokenValid)))<<19;
++#endif
+         g.dup=present|(targetPending<<1)|(victimPending<<2);
+         if(PF(pendingCandidateValid)&&PF(pendingCandidateAddress)==pa)g.dup|=8;
+         return g;
+@@ -116,7 +121,12 @@
+         if(PF(pendingCandidateValid)){
+             auto g=guard(d,PF(pendingCandidateAddress),PF(pendingCandidateStore));
+             require((g.mask==0)==bool(PC(canAllocate)),"ledger exact candidate canAllocate disagreement");
+-            require((g.mask&~(1U<<17))==0?bool(PC(otherwiseEligible)):!bool(PC(otherwiseEligible)),"ledger exact candidate otherwiseEligible disagreement");
++#if DURABLE_READ_PREFETCH_CANDIDATE
++            constexpr unsigned otherwiseIgnored=(1U<<17)|(1U<<19);
++#else
++            constexpr unsigned otherwiseIgnored=(1U<<17);
++#endif
++            require((g.mask&~otherwiseIgnored)==0?bool(PC(otherwiseEligible)):!bool(PC(otherwiseEligible)),"ledger exact candidate otherwiseEligible disagreement");
+             require(g.index==PF(candidateVictimIndex),"ledger candidate victim identity disagreement");++guardChecks;
+         }
+         const auto oldWb=wb;const auto oldOwners=owners;

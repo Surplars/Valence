@@ -124,7 +124,22 @@ struct Test {
             const auto q = *cpuRequest;
             if (latencyTrace) latencyAccepted = cycles;
             const bool hit = d.get_io$$hit();
-            if ((q.write && !hit) || q.uncached) check(cpuExpected.empty(), "CPU barrier crossed older replies");
+            // Default keeps the legacy barrier contract. Only an audited actual
+            // independent-admission cache profile opts ordinary store misses out.
+#ifdef PREFETCH_INDEPENDENT_STORE_ADMISSION
+            constexpr bool independentStoreAdmission = PREFETCH_INDEPENDENT_STORE_ADMISSION;
+#else
+            constexpr bool independentStoreAdmission = false;
+#endif
+            if (((q.write && !hit && !independentStoreAdmission) || q.uncached) && !cpuExpected.empty()) {
+                std::cerr << "CPU_BARRIER_CONTRACT_WITNESS cycle=" << cycles << " valid=1 ready="
+                    << unsigned(d.get_io$$cpu$$request$$ready()) << " write=" << q.write << " hit=" << hit
+                    << " found=" << unsigned(d.cache$found) << " prior_responses=" << cpuExpected.size()
+                    << " response_valid=" << unsigned(d.get_io$$cpu$$response$$valid()) << " response_ready=" << cpuReady
+                    << " probe_fire=" << unsigned(d.get_io$$probeFire()) << " probe_state=" << unsigned(d.cache$probeState)
+                    << " independent_store_admission=" << independentStoreAdmission << '\n';
+                check(false, "CPU barrier crossed older replies");
+            }
             const bool error = d.get_io$$miss() && ddr.denyReadAddress &&
                 *ddr.denyReadAddress == ((q.address - base) & ~63ULL);
             check(architectural.count(q.address), "CPU address outside independent initialized image");

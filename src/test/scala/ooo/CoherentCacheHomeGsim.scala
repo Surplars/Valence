@@ -20,7 +20,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     independentDemandAdmission: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
     readPrefetchDemandAdoption: Boolean = false, demandAdoptionTest: Boolean = false,
     postedPrefetchCoexistence: Boolean = false, readPrefetchStoreHold: Boolean = false,
-    postedGenerationBits: Int = 64) extends Module {
+    postedGenerationBits: Int = 64, durableReadPrefetchCandidate: Boolean = false,
+    readPrefetchBehindStore: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
@@ -29,7 +30,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         storePrefetchLruVictim = storePrefetchLruVictim, distinctWayRelease = distinctWayRelease,
         splitPrefetchTracking = splitPrefetchTracking, independentDemandAdmission = independentDemandAdmission,
         readPrefetchDirtyRetry = readPrefetchDirtyRetry, readPrefetchDemandAdoption = readPrefetchDemandAdoption,
-        postedPrefetchCoexistence = postedPrefetchCoexistence, readPrefetchStoreHold = readPrefetchStoreHold)
+        postedPrefetchCoexistence = postedPrefetchCoexistence, readPrefetchStoreHold = readPrefetchStoreHold,
+        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore)
     private val postedCfg = if (demandAdoptionTest) Some(PostedStoreMergeConfig(enabled = true,
         generationBits = postedGenerationBits, cacheSets = lines / cacheWays, cacheWays = cacheWays,
         readMshrs = mshrs, responseEntries = responseEntries, writebackEntries = writebacks,

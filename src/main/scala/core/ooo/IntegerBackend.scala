@@ -1060,9 +1060,19 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         issueEntries(i).request.store && ages(i) < memoryChoice.age)).asUInt
     val pendingStoreBypass = p.pendingVirtualStoreProof.B && precheckedLoad && memoryChoice.index =/= head &&
         pendingStoreOlder.orR
+    val pendingStoreOfferAllowedFor = if (p.pendingReadyStoreBypass) Some((0 until p.robEntries).map { i =>
+        // The registered boundary names the current pre-edge head, including wrap.
+        // Readiness may relax only a new offer; accepted LSU owners and bound proofs
+        // remain unchanged when this store later becomes the actual head.
+        val isHead = issueHeadMask.map(mask => mask(i) &&
+            (if (i == 0) true.B else !mask(i - 1))).getOrElse(i.U === head)
+        assert(isHead === (i.U === head), "ready-store bypass must use the current ROB head")
+        pendingStoreProofFor(i) && (!pendingStoreDataReady(i) || !isHead)
+    }) else None
     val pendingStoreNewOfferAllowed = !pendingStoreBypass || (pendingStoreCredit.map(_.io.available).getOrElse(false.B) &&
         (0 until p.robEntries).map(i => !pendingStoreOlder(i) ||
-            (pendingStoreProofFor(i) && !pendingStoreDataReady(i))).reduce(_ && _))
+            pendingStoreOfferAllowedFor.map(_(i)).getOrElse(
+                pendingStoreProofFor(i) && !pendingStoreDataReady(i))).reduce(_ && _))
     pendingStoreProof.foreach { bank =>
         pendingStoreRelied := VecInit(bank.io.proofs.map(proof => pendingStoreBypass && proof.valid &&
             pendingStoreOlder(proof.bits.token.index))).asUInt
@@ -1346,7 +1356,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             assert(precheckedLoad && !lsu.io.start.bits.store && !lsu.io.start.bits.atomic &&
                 !lsu.io.start.bits.forward.valid && pendingStoreRelied.orR && pendingStoreNewOfferAllowed &&
                 !blockedByStore && !ledger.io.recoveryAccepted,
-                "one new early load reserves exact disjoint store proofs while every relied store lacks data")
+                (if (p.pendingReadyStoreBypass)
+                    "one new early load reserves exact disjoint proofs under the pending-store readiness/head policy"
+                 else "one new early load reserves exact disjoint store proofs while every relied store lacks data"))
         }
     }
     canonicalStoreTracker.foreach { tracker =>
@@ -1373,7 +1385,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 when(memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age) {
                     assert((certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
                         tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask)) ||
-                        (pendingStoreBypass && pendingStoreProofFor(i) && pendingStoreDisjointFor(i) &&
+                        (if (p.pendingReadyStoreBypass)
+                            pendingStoreBypass && pendingStoreOfferAllowedFor.get(i) && pendingStoreDisjointFor(i)
+                         else pendingStoreBypass && pendingStoreProofFor(i) && pendingStoreDisjointFor(i) &&
                             !pendingStoreDataReady(i)),
                         "every older store needs exact checked ownership or a retained pending write proof and disjoint PA bytes")
                 }

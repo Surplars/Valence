@@ -45,7 +45,14 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
     def test_complete_expectation_is_bound_to_executed_reference(self):
         expected = candidate.expected_constructor()
         reference = candidate.load_manifest()["constructor_profile"]
-        self.assertEqual(expected, reference)
+        historical = copy.deepcopy(expected)
+        for section in ("profile", "core"):
+            self.assertIs(historical[section].pop("pendingReadyStoreBypass"), False)
+        for section in ("profile", "cache"):
+            for field in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
+                self.assertIs(historical[section].pop(field), False)
+        self.assertEqual(historical, reference)
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (56, 149, 19))
         self.assertEqual(tuple(len(reference[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
         self.assertIsNone(reference["profile"]["robEntries"])
         self.assertIsNone(reference["profile"]["physicalRegs"])
@@ -56,7 +63,7 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
                               "boundHeadStoreOverlap", "readPrefetchStoreHold"},
                    "core": {"frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap"},
                    "cache": {"readPrefetchStoreHold"}}
-        for section, fields in reference.items():
+        for section, fields in expected.items():
             if isinstance(fields, dict):
                 self.assertEqual({k for k in fields.keys() | old[section].keys()
                                   if fields.get(k) != old[section].get(k)}, allowed.get(section, set()))
@@ -64,7 +71,9 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
                 self.assertEqual(fields, old[section])
         for section in ("core", "profile"):
             self.assertEqual(reference[section]["pendingVirtualStoreProofSlots"], 1)
-        candidate.compare_constructor(reference)
+        candidate.compare_constructor(expected)
+        with self.assertRaises(RuntimeError):
+            candidate.compare_constructor(reference)
         with self.assertRaises(RuntimeError):
             candidate.compare_constructor(old)
 

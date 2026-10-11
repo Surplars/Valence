@@ -1,0 +1,33 @@
+--- original/production_probe.h
++++ durable/production_probe.h
+@@ -2,6 +2,9 @@
+ #include <cstdint>
+ #ifndef READ_PREFETCH_DEMAND_ADOPTION
+ #define READ_PREFETCH_DEMAND_ADOPTION 0
++#endif
++#ifndef READ_PREFETCH_BEHIND_STORE
++#define READ_PREFETCH_BEHIND_STORE 0
+ #endif
+ template<class D> struct ProductionSupplyProbe {
+     D &d;
+@@ -28,7 +31,20 @@
+         unsigned owners=d.get_cpuSupplyPrefetch$$mshrLiveMask()&d.get_cpuSupplyPrefetch$$mshrPrefetchMask();
+         owners&=~unsigned(d.get_cpuSupplyPrefetch$$mshrDemandAttachedMask());
+         if(d.get_cpuSupplyPrefetch$$demandAttach())owners&=~(1U<<d.get_cpuSupplyPrefetch$$demandAttachSlot());
++#if READ_PREFETCH_BEHIND_STORE
++        // Count all live PFs, including attached READs. Only dereference posted
++        // kind for a live PF owner; a sole nonposted unattached STORE is eligible.
++        const unsigned allPf=d.get_cpuSupplyPrefetch$$mshrLiveMask()&d.get_cpuSupplyPrefetch$$mshrPrefetchMask();
++        const unsigned attached=d.get_cpuSupplyPrefetch$$mshrDemandAttachedMask();
++        const unsigned stores=d.get_cpuSupplyPrefetch$$mshrStoreMask();
++        bool oneStore=false;
++        if(allPf && !(allPf&(allPf-1)) && !(allPf&~3U))
++            for(unsigned i=0;i<2;++i)if(allPf&(1U<<i))
++                oneStore=(stores&(1U<<i)) && !(attached&(1U<<i)) && !d.board$platform$privateCache$postedMshr[i];
++        return owners!=0 && !oneStore;
++#else
+         return owners!=0;
++#endif
+ #else
+         return live();
+ #endif

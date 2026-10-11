@@ -38,21 +38,23 @@ class BoardProfileTests(unittest.TestCase):
             expected = copy.deepcopy(frozen[mode])
             for section in ("profile", "core"):
                 for field in ("registeredPmpRegions", "publishedPmpChanges", "frozenStoreProofTransport",
-                              "pendingVirtualStoreProof", "boundHeadStoreOverlap"):
+                              "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass"):
                     expected[section][field] = False
                 expected[section]["pendingVirtualStoreProofSlots"] = 1
             for section in ("profile", "cache"):
-                for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption", "readPrefetchStoreHold"):
+                for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption", "readPrefetchStoreHold",
+                              "durableReadPrefetchCandidate", "readPrefetchBehindStore"):
                     expected[section][field] = False
             compare = lambda value: board_profile.compare_constructor(mode, value)
             self.check_optional_defaults(expected, compare)
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (56, 149, 19))
         fields = [(s, f) for s in ("profile", "core")
-                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap")]
-        fields += [(s, "readPrefetchStoreHold") for s in ("profile", "cache")]
+                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass")]
+        fields += [(s, f) for s in ("profile", "cache")
+                   for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore")]
         for section, field in fields:
             self.assertIs(expected[section][field], False)
             for mutation in ("missing", "enabled"):
@@ -116,9 +118,12 @@ class BoardProfileTests(unittest.TestCase):
                 current[section]["frozenStoreProofTransport"] = False
                 current[section]["pendingVirtualStoreProof"] = False
                 current[section]["boundHeadStoreOverlap"] = False
+                current[section]["pendingReadyStoreBypass"] = False
                 current[section]["pendingVirtualStoreProofSlots"] = 1
             for section in ("profile", "cache"):
                 current[section]["readPrefetchStoreHold"] = False
+                current[section]["durableReadPrefetchCandidate"] = False
+                current[section]["readPrefetchBehindStore"] = False
             board_profile.compare_constructor(mode, current)
             with self.assertRaises(RuntimeError):
                 board_profile.compare_constructor(mode, frozen[mode])

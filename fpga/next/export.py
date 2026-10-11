@@ -148,6 +148,10 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--durable-read-prefetch-candidate", action="count", default=0,
+                    help="default-off finite READ resource/ordinary resident STORE wait")
+    ap.add_argument("--read-prefetch-behind-store", action="count", default=0,
+                    help="default-off READ capture behind exactly one STORE PF; requires durable retention")
     ap.add_argument("--read-prefetch-store-hold", action="count", default=0,
                     help="default-off finite read-candidate retention across accepted ordinary store hits")
     ap.add_argument("--read-prefetch-demand-adoption", action="count", default=0,
@@ -165,6 +169,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off R16/PRF48 pending-store proof and one early-load credit")
     ap.add_argument("--bound-head-store-overlap", action="store_true",
                     help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    ap.add_argument("--pending-ready-store-bypass", action="count", default=0,
+                    help="default-off bypass of proved data-ready non-head stores; requires bound head overlap")
     ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
@@ -190,6 +196,16 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
+    for name in ("durable_read_prefetch_candidate", "read_prefetch_behind_store"):
+        if getattr(a, name) > 1:
+            ap.error("duplicate --" + name.replace("_", "-") + " flag")
+        setattr(a, name, bool(getattr(a, name)))
+    if a.read_prefetch_behind_store and not a.durable_read_prefetch_candidate:
+        ap.error("--read-prefetch-behind-store requires --durable-read-prefetch-candidate")
+    if a.durable_read_prefetch_candidate and not (a.prefetch_candidate_cycles == 16 and
+            a.split_prefetch_tracking and a.read_prefetch_dirty_retry and
+            a.read_prefetch_demand_adoption and a.read_prefetch_store_hold):
+        ap.error("--durable-read-prefetch-candidate requires lifetime 16 and split tracking, dirty retry, adoption and store hold")
     if a.read_prefetch_store_hold > 1:
         ap.error("duplicate --read-prefetch-store-hold flag")
     a.read_prefetch_store_hold = bool(a.read_prefetch_store_hold)
@@ -254,6 +270,11 @@ def main(argv=None, expected_profile_sha256=None):
         setattr(a, field, values[0] if values else None)
     if a.frozen_store_proof_transport and not (a.virtual_ram_load_precheck and a.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    if a.pending_ready_store_bypass > 1:
+        ap.error("duplicate --pending-ready-store-bypass flag")
+    a.pending_ready_store_bypass = bool(a.pending_ready_store_bypass)
+    if a.pending_ready_store_bypass and not a.bound_head_store_overlap:
+        ap.error("--pending-ready-store-bypass requires --bound-head-store-overlap")
     if a.bound_head_store_overlap and not a.pending_virtual_store_proof:
         ap.error("--bound-head-store-overlap requires --pending-virtual-store-proof")
     if a.pending_virtual_store_proof and not (not a.memory_proof_frontier and
@@ -400,6 +421,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.bound_head_store_overlap:
         profile["profile"]["bound_head_store_overlap"] = True
         profile["profile"]["name"] += "-bound-head-store-overlap"
+    if a.pending_ready_store_bypass:
+        profile["profile"]["pending_ready_store_bypass"] = True
+        profile["profile"]["name"] += "-pending-ready-store-bypass"
     profile["profile"]["canonical_virtual_store_overlap"] = a.canonical_virtual_store_overlap
     if a.canonical_virtual_store_overlap:
         profile["profile"]["name"] += "-canonical-virtual-store-overlap"
@@ -456,6 +480,10 @@ def main(argv=None, expected_profile_sha256=None):
     if a.read_prefetch_store_hold:
         profile["profile"]["read_prefetch_store_hold"] = True
         profile["profile"]["name"] += "-read-prefetch-store-hold"
+    for name in ("durable_read_prefetch_candidate", "read_prefetch_behind_store"):
+        if getattr(a, name):
+            profile["profile"][name] = True
+            profile["profile"]["name"] += "-" + name.replace("_", "-")
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -552,6 +580,10 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--read-prefetch-demand-adoption")
     if a.read_prefetch_store_hold:
         command.append("--read-prefetch-store-hold")
+    if a.durable_read_prefetch_candidate:
+        command.append("--durable-read-prefetch-candidate")
+    if a.read_prefetch_behind_store:
+        command.append("--read-prefetch-behind-store")
     if a.translated_response_empty_flow:
         command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:
@@ -590,6 +622,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--pending-virtual-store-proof")
     if a.bound_head_store_overlap:
         command.append("--bound-head-store-overlap")
+    if a.pending_ready_store_bypass:
+        command.append("--pending-ready-store-bypass")
     if a.pending_virtual_store_proof_slots != 1 or any(
             option.split("=", 1)[0] == "--pending-virtual-store-proof-slots" for option in raw_args):
         command.append(f"--pending-virtual-store-proof-slots={a.pending_virtual_store_proof_slots}")
@@ -606,6 +640,7 @@ def main(argv=None, expected_profile_sha256=None):
             "frozen_store_proof_transport": a.frozen_store_proof_transport,
             "pending_virtual_store_proof": a.pending_virtual_store_proof,
             "bound_head_store_overlap": a.bound_head_store_overlap,
+            "pending_ready_store_bypass": a.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": a.pending_virtual_store_proof_slots,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,

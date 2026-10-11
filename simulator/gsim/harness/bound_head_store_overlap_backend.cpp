@@ -16,6 +16,9 @@
 #ifndef BOUND_HEAD_STORE_OVERLAP
 #define BOUND_HEAD_STORE_OVERLAP 0
 #endif
+#ifndef PENDING_READY_STORE_BYPASS
+#define PENDING_READY_STORE_BYPASS 0
+#endif
 using namespace pending_store_reference;
 static uint64_t sext(uint64_t v,unsigned bits) { return uint64_t(int64_t(v << (64-bits)) >> (64-bits)); }
 static uint32_t imm(unsigned rd,unsigned rs,int n) { return (uint32_t(n)&4095)<<20 | rs<<15 | rd<<7 | 0x13; }
@@ -33,7 +36,7 @@ struct Entry {
     Token token{}; Instruction inst{}; unsigned rd=0, rs1=0, rs2=0, size=0;
     bool writes=false,memory=false,store=false,system=false,divide=false,branch=false,atomic=false,fault=false,killed=false;
     uint64_t expected=0,address=0,pa=0,data=0,allocated=0,start=0,physical=0,response=0,complete=0,retire=0,checked=0,released=0;
-    bool started=false,requested=false,completed=false,retired=false,frozen=false;
+    bool started=false,requested=false,completed=false,retired=false,frozen=false,prechecked=false;
 };
 struct Reply { uint64_t due=0,data=0; Token token{}; bool error=false; };
 struct PteReply { uint64_t due=0,data=0; };
@@ -50,6 +53,8 @@ struct Bench {
     uint64_t oldDataReady=0,proofCycle=0,firstEarlyPhysical=0,earlyReadDrain=0,overlapCapture=0;
     unsigned accepted=0,retired=0,physicalCount=0,responseCount=0,queryReads=0,queryWrites=0,walks=0,traps=0;
     unsigned earlyStarts=0,peakCredit=0,creditReturns=0,holds=0,killCount=0,reuse=0;
+    unsigned readyEarlyStarts=0,readyHeadCycles=0,activeCreditCycles=0;
+    uint64_t readyRelease=0,firstReadyEarly=0,storeBecameHead=0;
     std::map<unsigned,uint64_t> generations;
     std::optional<Token> oldStore,youngLoad,secondLoad,previousCredit,expectedCredit;
     std::optional<Proof> boundProof;
@@ -129,6 +134,11 @@ struct Bench {
         dut.step();
         if(reset){dut.resetAll();++cycle;return{};}
         check(dut.get_io$$committedValue()==architectural[cycle%32],"architectural register snapshot mismatch");
+        // Rename, registered recovery and actual ordered retire outputs maintain
+        // this independent full-token queue. Sample before this edge's commits.
+        const std::optional<Token> preHead=live.empty()?std::nullopt:std::optional{live.front()};
+        const bool readyOldHead=oldStore&&preHead&&*preHead==*oldStore&&dut.get_io$$probePending()&&dut.get_io$$probeDataReady();
+        if(readyOldHead){++readyHeadCycles;if(!storeBecameHead)storeBecameHead=cycle;}
         std::vector<Token> allocated;
         std::optional<Token> earlyThisCycle;
 #define ACCEPT(N) \
@@ -172,6 +182,7 @@ struct Bench {
             Token t{unsigned(dut.get_io$$lsuToken$$index()),uint64_t(dut.get_io$$lsuToken$$tag())};
             check(entries.count(t),"LSU start has no full-token owner");auto &e=entries.at(t);
             check(!e.started&&!e.killed&&e.memory,"duplicate/cancelled/nonmemory LSU start");e.started=true;e.start=cycle;
+            e.prechecked=dut.get_io$$lsuPrechecked();
             check(dut.get_io$$lsuVa()==e.address&&bool(dut.get_io$$lsuStore())==e.store,"LSU original VA/type mismatch");
             if(e.store) {
                 check(!dut.get_io$$lsuParallel(),"pending proof made actual store parallel");
@@ -188,7 +199,12 @@ struct Bench {
                 dut.get_io$$lsuFrozen$$bits$$address()==e.address&&dut.get_io$$lsuFrozen$$bits$$mask()==lanes(e.pa,e.size),
                 "bound store failed frozen physical handoff");
             if(oldStore&&!e.store&&!entries.at(*oldStore).started) {
-                check(PENDING_STORE_ENABLED&&!oldDataReady&&boundProof,"new bypass without unavailable old data and bound proof");
+                check(PENDING_STORE_ENABLED&&boundProof,"new bypass without retained exact store proof");
+                if(oldDataReady){
+                    check(PENDING_READY_STORE_BYPASS&&preHead&&*preHead!=*oldStore,
+                        "ready store bypass lacks flag or bypassed actual pre-edge head");
+                    ++readyEarlyStarts;if(!firstReadyEarly)firstReadyEarly=cycle;
+                }
                 check(!previousCreditActive,"second early load acquired occupied credit");earlyThisCycle=t;++earlyStarts;
                 check(disjoint(*boundProof,{t,uint32_t(dut.get_io$$epoch()),e.address,e.pa,false,e.size,lanes(e.pa,e.size)}),
                     "overlapping physical byte interval bypassed old store");
@@ -230,7 +246,11 @@ struct Bench {
                 const uint64_t data=e.store?0:actual.read(e.pa&~7ULL,3);
                 if(injectData){++corruptions;std::cerr<<"ACTUAL_CORRUPTION count="<<corruptions<<'\n';}
                 replies.push_back({cycle+latency,data^uint64_t(injectData),t,e.fault});++physicalCount;
-                if(oldStore&&!e.store&&!entries.at(*oldStore).started){check(!oldDataReady||e.start<oldDataReady,"early operation was first offered after old data ready");if(!firstEarlyPhysical)firstEarlyPhysical=cycle;}
+                if(oldStore&&!e.store&&!entries.at(*oldStore).started){
+                    check(!oldDataReady||e.start<oldDataReady||(PENDING_READY_STORE_BYPASS&&e.start>=readyRelease),
+                        "early operation lacked qualified ready-store capture");
+                    if(!firstEarlyPhysical)firstEarlyPhysical=cycle;
+                }
             }
         } else {check(!heldPhysical,"held physical VALID withdrawn");}
         std::set<Token> actualLive;
@@ -248,6 +268,7 @@ struct Bench {
         const bool active=dut.get_io$$creditActive();
         check(active==expectedCredit.has_value()&&!dut.get_io$$creditReserved(),"credit lifetime differs from actual LSU full-token owner drain");
         if(active) {
+            ++activeCreditCycles;
             Token t{unsigned(dut.get_io$$creditOwner$$index()),uint64_t(dut.get_io$$creditOwner$$tag())};
             check(expectedCredit&&*expectedCredit==t&&entries.count(t)&&entries.at(t).started&&!entries.at(t).store,"credit has no actual load owner");
             if(previousCreditActive)check(previousCredit&&*previousCredit==t,"active credit owner substituted");previousCredit=t;peakCredit=1;
@@ -333,6 +354,42 @@ struct Bench {
         words.push_back(ld(20,loadBase,loadOffset,loadSize));
         auto t=submit(words);
         oldStore=t[branchKind==2?2:1];youngLoad=t.back();if(twice)secondLoad=submit({ld(21,11,16)})[0];}
+    void readyWorkload(bool twice=false,unsigned branchKind=0,unsigned prefixNops=4){
+        oldDataReady=proofCycle=firstEarlyPhysical=earlyReadDrain=0;boundProof.reset();commitEnable=false;
+        std::vector<uint32_t> words{divu(30,25,26)};
+        // A second real DIVU delays branch resolution until after the first producer
+        // wakes the store and commit is released. The four NOPs give both arms the
+        // same short, completed prefix ahead of the store.
+        if(branchKind)words.push_back(divu(29,30,26));
+        for(unsigned n=0;n<prefixNops;++n)words.push_back(imm(0,0,0));
+        if(branchKind==2)words.push_back(beq(29));
+        const auto storePosition=words.size();words.push_back(st(10,30));
+        if(branchKind==1)words.push_back(beq(29));
+        words.push_back(ld(20,11,0,0)); // LB: independent byte oracle must sign-extend 0x86.
+        auto t=submit(words);oldStore=t[storePosition];youngLoad=t.back();
+        if(twice)secondLoad=submit({ld(21,11,16)})[0];
+        for(unsigned n=0;n<300&&!(oldDataReady&&proofCycle);++n)tick();
+        check(oldDataReady&&proofCycle&&proofCycle<oldDataReady&&!entries.at(*oldStore).started&&
+            !entries.at(*youngLoad).started&&!live.empty()&&live.front()!=*oldStore,
+            "ready-before-head setup lacks retained proof, registered readiness or blocked capture");
+        check(entries.at(*youngLoad).expected==0xffffffffffffff86ULL,"signed byte oracle fixture drift");
+        readyRelease=cycle;commitEnable=true;
+    }
+    void readyWitness(bool fault=false){
+        const auto&s=entries.at(*oldStore);const auto&l=entries.at(*youngLoad);
+        check(bool(readyEarlyStarts)==bool(PENDING_READY_STORE_BYPASS),"matched ready-before-head OLD/NEW result differs");
+        if(PENDING_READY_STORE_BYPASS)check(readyEarlyStarts==1&&firstReadyEarly>=oldDataReady&&
+            firstReadyEarly<storeBecameHead&&s.frozen&&l.start<s.start&&l.prechecked,
+            "ready bypass lacks exact pre-edge nonhead/frozen/hit witness");
+        else check(!earlyStarts&&(fault||s.start<l.start),"OLD failed to block ready-store bypass");
+        if(!fault)check(s.retired&&l.retired&&s.retire<=l.retire,"ready case lost precise retirement");
+        std::cout<<"READY_STORE_BACKEND_WITNESS enabled="<<PENDING_READY_STORE_BYPASS
+            <<" proof="<<proofCycle<<" data_ready="<<oldDataReady<<" release="<<readyRelease
+            <<" load_start="<<l.start<<" store_head="<<storeBecameHead<<" store_start="<<s.start
+            <<" load_physical="<<l.physical<<" load_response="<<l.response<<" store_response="<<s.response
+            <<" credit_cycles="<<activeCreditCycles<<" store="<<s.token.index<<":"<<s.token.tag
+            <<" load="<<l.token.index<<":"<<l.token.tag<<'\n';
+    }
     void witness(bool expectEarly){check(oldStore&&youngLoad,"missing witness owners");const auto&s=entries.at(*oldStore);const auto&l=entries.at(*youngLoad);
         check(bool(firstEarlyPhysical)==expectEarly,"early physical acceptance expectation mismatch");
         if(expectEarly){check(proofCycle&&oldDataReady&&l.physical<oldDataReady&&l.physical<s.start&&s.frozen,"missing before-data/serial/frozen witness");
@@ -342,9 +399,74 @@ struct Bench {
         std::cout<<"PENDING_BACKEND_WITNESS enabled="<<PENDING_STORE_ENABLED<<" store="<<s.token.index<<":"<<s.token.tag<<" load="<<l.token.index<<":"<<l.token.tag
             <<" proof="<<proofCycle<<" load_physical="<<l.physical<<" data_ready="<<oldDataReady<<" load_response="<<l.response<<" store_start="<<s.start<<" store_checked="<<s.checked<<" store_physical="<<s.physical<<" load_release="<<l.released<<" overlaps="<<overlappedStarts<<" store_response="<<s.response<<" store_retire="<<s.retire<<" load_retire="<<l.retire<<'\n';}
 };
+static void readyCases(const std::string&mode){
+    require(PENDING_STORE_ENABLED&&BOUND_HEAD_STORE_OVERLAP,"ready-store paired fixture requires B-prime and B2 in both arms");
+    {Bench b;b.configure();b.warm();
+      // No recovery precedes this point, so accepted count independently predicts
+      // circular allocation. Position the store/load pair exactly at index 15/0.
+      const unsigned padding=(15-((b.accepted+5)%16)+16)%16;
+      for(unsigned n=0;n<padding;++n)b.one(imm(0,0,0));
+      b.injectData=mode=="--ready-mutate-data";b.injectFrozenPa=mode=="--ready-mutate-frozen-pa";
+      b.injectLocalAck=mode=="--ready-mutate-local-ack";b.latency=80;b.readyWorkload(true);
+      require(b.oldStore->index==15&&b.youngLoad->index==0&&b.reuse,"ready fixture missed full-token index wrap");
+      b.physicalHold=b.cycle+120;const auto epoch=b.dut.get_io$$epoch();b.tick();
+      if(PENDING_READY_STORE_BYPASS)require(b.readyEarlyStarts==1,"NEW missed first enabled nonhead-ready edge");
+      else require(!b.earlyStarts,"OLD admitted a ready-store early load");
+      b.tables.pages[0].physical=ram+4096; // External PTE edit, no SFENCE/context epoch change.
+      b.drain();b.readyWitness();
+      require(b.dut.get_io$$epoch()==epoch&&b.entries.at(*b.oldStore).pa==ram&&b.holds,
+          "held same-epoch case lost original PA or backpressure");
+      if(PENDING_READY_STORE_BYPASS){const auto&l=b.entries.at(*b.youngLoad);const auto&s=b.entries.at(*b.oldStore);
+        require(b.earlyStarts==1&&b.creditReturns==1&&b.activeCreditCycles&&b.storeBecameHead<l.physical&&s.start<l.response,
+            "credit/held owner failed across store becoming head");
+        const auto&second=b.entries.at(*b.secondLoad);
+        require(second.start>=s.start||second.start>l.released,"second pending-store bypass used an active credit");}
+      std::cout<<"READY_STORE_BACKEND_CASE ready_nonhead_signed_wrap_credit_held_frozen_pte\n";}
+    {Bench b;b.configure();b.warm();b.latency=80;b.readyWorkload(true,0,0);b.physicalHold=b.cycle+80;
+      b.drain();b.readyWitness();const auto&s=b.entries.at(*b.oldStore);const auto&l=b.entries.at(*b.youngLoad);
+      if(PENDING_READY_STORE_BYPASS)require(l.start==b.readyRelease&&b.storeBecameHead==b.readyRelease+1&&
+          s.start>=b.storeBecameHead&&b.earlyStarts==1&&b.creditReturns==1,
+          "nonhead capture did not cross exactly into ready head on the next edge");
+      std::cout<<"READY_STORE_BACKEND_CASE nonhead_capture_next_edge_head\n";}
+    {Bench b;b.configure();b.warm();b.tables.pages[6]={ram+16384};b.constant(13,va+6*4096);b.latency=160;
+      const auto cold=b.submit({ld(22,13)})[0];
+      for(unsigned n=0;n<100&&!b.entries.at(cold).requested;++n)b.tick();
+      require(b.entries.at(cold).requested&&!b.entries.at(cold).prechecked,"head guard needs a real cold serial read");
+      const auto priorWalks=b.walks;b.workload();b.drain();
+      const auto&s=b.entries.at(*b.oldStore);const auto&l=b.entries.at(*b.youngLoad);
+      require(b.proofCycle&&b.oldDataReady&&b.oldDataReady<b.entries.at(cold).response&&b.readyHeadCycles&&
+          !b.earlyStarts&&s.start<l.start&&s.retired&&l.retired&&b.entries.at(cold).retired,
+          "actual ready head store failed priority after cold-read drain");
+      require(priorWalks>0&&b.queryWrites>0,"cold/head case missed actual walk or retained write proof");
+      std::cout<<"READY_STORE_BACKEND_CASE actual_head_priority_cold_read_drain head="<<b.storeBecameHead
+          <<" ready="<<b.oldDataReady<<" store_start="<<s.start<<" load_start="<<l.start<<'\n';}
+    for(unsigned errors=1;errors<=3;++errors){Bench b;b.configure();b.warm();b.latency=120;
+      b.faultLoad=errors&1;b.faultStore=errors&2;
+      b.injectLoadError=mode=="--ready-mutate-load-error";b.injectStoreError=mode=="--ready-mutate-store-error";
+      b.readyWorkload();b.drain();b.readyWitness(true);
+      const auto&s=b.entries.at(*b.oldStore);const auto&l=b.entries.at(*b.youngLoad);
+      require(b.traps==1&&s.response&&!l.retired,"ready memory fault lost precise retirement");
+      require(errors==1?s.retired:!s.retired,"ready older-store error priority or successful retirement lost");
+      if(PENDING_READY_STORE_BYPASS)require(l.completed&&s.frozen,"ready late fault lacked completed early result/frozen store");
+      std::cout<<"READY_STORE_BACKEND_CASE late_memory_error errors="<<errors<<'\n';}
+    for(unsigned kind=1;kind<=2;++kind){Bench b;b.configure();b.warm();b.latency=180;const Bytes before=b.expected;
+      b.injectRetire=mode=="--ready-mutate-retirement";b.readyWorkload(false,kind);
+      for(unsigned n=0;n<300&&!b.entries.at(*b.youngLoad).killed;++n)b.tick();
+      const auto&s=b.entries.at(*b.oldStore);const auto&l=b.entries.at(*b.youngLoad);
+      require(l.killed&&!l.retired&&b.recoveryEdges,"ready fixture missed registered decoded branch recovery");
+      if(PENDING_READY_STORE_BYPASS)require(b.readyEarlyStarts==1&&l.requested&&!l.response&&b.recoveryWithLiveRead,
+          "ready recovery lacked an accepted undrained early read");
+      if(kind==2){require(s.killed&&!s.started,"older branch failed to kill pending ready store");b.expected=before;}
+      b.drain();
+      if(PENDING_READY_STORE_BYPASS)require(l.response&&b.creditReturns==1,"ready killed owner failed exact response/credit drain");
+      if(kind==1)require(s.retired&&(!PENDING_READY_STORE_BYPASS||s.frozen),"young branch kill lost surviving frozen store");
+      std::cout<<"READY_STORE_BACKEND_CASE registered_branch_kill_"<<(kind==1?"young":"older")<<'\n';}
+    std::cout<<"READY_STORE_BACKEND_PASS enabled="<<PENDING_READY_STORE_BYPASS<<'\n';
+}
 int main(int argc,char**argv){try{
     std::cout.setf(std::ios::unitbuf);
     const std::string mode=argc>1?argv[1]:"";
+    if(mode.rfind("--ready-",0)==0){readyCases(mode);return 0;}
     {Bench b;b.configure();b.warm();b.injectData=mode=="--mutate-data";b.injectFrozenPa=mode=="--mutate-frozen-pa";b.injectLocalAck=mode=="--mutate-local-ack";b.latency=80;b.workload(11,0,3,3,true);b.drain();b.witness(PENDING_STORE_ENABLED);
       if(PENDING_STORE_ENABLED)require(b.earlyStarts==1&&b.creditReturns==1,"one global credit allowed a second live early owner");
       std::cout<<"PENDING_BACKEND_CASE nonalias_credit_saturation reuse="<<b.reuse<<'\n';}

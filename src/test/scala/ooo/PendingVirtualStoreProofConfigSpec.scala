@@ -21,16 +21,16 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
             "--store-prefetch-mru-insertion", "--posted-store-merge", "--posted-prefetch-coexistence",
             "--posted-prefetch-head-offer", "--canonical-virtual-store-overlap", "--published-pmp-changes")
         val combined = published ++ Seq("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--pending-virtual-store-proof-slots=1", "--bound-head-store-overlap", "--read-prefetch-store-hold")
+            "--pending-virtual-store-proof-slots=1", "--bound-head-store-overlap", "--pending-ready-store-bypass", "--read-prefetch-store-hold")
         for (legal <- Seq(published, combined)) {
             FpgaNextProfileOptions.validate(legal)
             val config = FpgaNextConfig.fromOptions(legal.toSet, defaultSelected = true)
-            assert(config.productArity == 53 && config.coreParams.productArity == 148 && config.cache.productArity == 17)
+            assert(config.productArity == 56 && config.coreParams.productArity == 149 && config.cache.productArity == 19)
             assert(config.robEntries.isEmpty && config.physicalRegs.isEmpty)
             assert(config.coreParams.robEntries == 16 && config.coreParams.physicalRegs == 48)
         }
         for (flag <- Seq("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--bound-head-store-overlap", "--read-prefetch-store-hold"); value <- Seq("true", "false", "0", "1")) {
+            "--bound-head-store-overlap", "--pending-ready-store-bypass", "--read-prefetch-store-hold"); value <- Seq("true", "false", "0", "1")) {
             intercept[IllegalArgumentException] { FpgaNextProfileOptions.validate(Seq(flag + "=" + value)) }
             intercept[IllegalArgumentException] {
                 FpgaNextConfig.fromOptions(Set(flag + "=" + value), defaultSelected = true)
@@ -44,8 +44,8 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
     }
 
     test("proof bank and transport default off without changing the published profile") {
-        assert(!off.boundHeadStoreOverlap && !off.pendingVirtualStoreProof && !off.frozenStoreProofTransport && off.pendingVirtualStoreProofSlots == 1)
-        assert(!off.coreParams.frozenStoreProofEnabled && !FpgaNextConfig.Selected.boundHeadStoreOverlap && !FpgaNextConfig.Selected.pendingVirtualStoreProof)
+        assert(!off.pendingReadyStoreBypass && !off.boundHeadStoreOverlap && !off.pendingVirtualStoreProof && !off.frozenStoreProofTransport && off.pendingVirtualStoreProofSlots == 1)
+        assert(!off.coreParams.frozenStoreProofEnabled && !FpgaNextConfig.Selected.pendingReadyStoreBypass && !FpgaNextConfig.Selected.boundHeadStoreOverlap && !FpgaNextConfig.Selected.pendingVirtualStoreProof)
         for (slots <- Seq(1, 2)) {
             val on = FpgaNextConfig.fromOptions(options ++ Set("--frozen-store-proof-transport",
                 "--pending-virtual-store-proof", s"--pending-virtual-store-proof-slots=$slots"), defaultSelected = true)
@@ -68,7 +68,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
     }
     test("transport is separately selectable and has no proof-bank scheduling authority") {
         val transport = off.copy(frozenStoreProofTransport = true)
-        assert(transport.coreParams.frozenStoreProofEnabled && !transport.coreParams.boundHeadStoreOverlap && !transport.coreParams.pendingVirtualStoreProof)
+        assert(transport.coreParams.frozenStoreProofEnabled && !transport.coreParams.pendingReadyStoreBypass && !transport.coreParams.boundHeadStoreOverlap && !transport.coreParams.pendingVirtualStoreProof)
         assert(!transport.coreParams.memoryProofFrontier)
     }
     test("bound head-store overlap is one default-off change on either pending-proof bank size") {
@@ -78,12 +78,12 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
             val overlap = FpgaNextConfig.fromOptions(options ++ Set("--frozen-store-proof-transport",
                 "--pending-virtual-store-proof", s"--pending-virtual-store-proof-slots=$slots",
                 "--bound-head-store-overlap"), defaultSelected = true)
-            assert(!proof.boundHeadStoreOverlap && !proof.coreParams.boundHeadStoreOverlap)
+            assert(!proof.pendingReadyStoreBypass && !proof.boundHeadStoreOverlap && !proof.coreParams.pendingReadyStoreBypass && !proof.coreParams.boundHeadStoreOverlap)
             assert(overlap.boundHeadStoreOverlap && overlap.coreParams.boundHeadStoreOverlap)
             assert(overlap.copy(boundHeadStoreOverlap = false) == proof)
             assert(overlap.coreParams.copy(boundHeadStoreOverlap = false) == proof.coreParams)
             assert(overlap.cache == proof.cache && overlap.ddr == proof.ddr && overlap.storage == proof.storage)
-            assert(overlap.coreParams.productArity == 148 && overlap.productArity == 53)
+            assert(overlap.coreParams.productArity == 149 && overlap.productArity == 56)
         }
         intercept[IllegalArgumentException] { off.copy(boundHeadStoreOverlap = true) }
         intercept[IllegalArgumentException] { off.coreParams.copy(boundHeadStoreOverlap = true) }
@@ -91,6 +91,32 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
             boundHeadStoreOverlap = true)
         intercept[IllegalArgumentException] { on.copy(pendingVirtualStoreProof = false) }
         intercept[IllegalArgumentException] { on.coreParams.copy(pendingVirtualStoreProof = false) }
+    }
+    test("ready-store bypass is one default-off policy and requires bound head overlap") {
+        assert(!OooParams().pendingReadyStoreBypass && !FpgaNextConfig.Selected.pendingReadyStoreBypass)
+        for (slots <- Seq(1, 2)) {
+            val baseOptions = options ++ Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
+                s"--pending-virtual-store-proof-slots=$slots", "--bound-head-store-overlap")
+            val base = FpgaNextConfig.fromOptions(baseOptions, defaultSelected = true)
+            val on = FpgaNextConfig.fromOptions(baseOptions + "--pending-ready-store-bypass", defaultSelected = true)
+            assert(!base.pendingReadyStoreBypass && !base.coreParams.pendingReadyStoreBypass)
+            assert(on.pendingReadyStoreBypass && on.coreParams.pendingReadyStoreBypass)
+            assert(on.copy(pendingReadyStoreBypass = false) == base)
+            assert(on.coreParams.copy(pendingReadyStoreBypass = false) == base.coreParams)
+            assert(on.cache == base.cache && on.ddr == base.ddr && on.storage == base.storage)
+            assert(on.coreParams.copy(registeredIssueHeadMask = false).pendingReadyStoreBypass)
+            intercept[IllegalArgumentException] { on.copy(boundHeadStoreOverlap = false) }
+            intercept[IllegalArgumentException] { on.coreParams.copy(boundHeadStoreOverlap = false) }
+            intercept[IllegalArgumentException] {
+                FpgaNextConfig.fromOptions(baseOptions - "--bound-head-store-overlap" +
+                    "--pending-ready-store-bypass", defaultSelected = true)
+            }
+        }
+        intercept[IllegalArgumentException] { off.copy(pendingReadyStoreBypass = true) }
+        intercept[IllegalArgumentException] { off.coreParams.copy(pendingReadyStoreBypass = true) }
+        intercept[IllegalArgumentException] {
+            FpgaNextProfileOptions.validate(Seq("--pending-ready-store-bypass", "--pending-ready-store-bypass"))
+        }
     }
     test("capacity staging and original frontier qualification fail closed") {
         val on = off.copy(frozenStoreProofTransport = true, pendingVirtualStoreProof = true)

@@ -50,9 +50,12 @@ def expected_constructor():
         expected[section]["frozenStoreProofTransport"] = False
         expected[section]["pendingVirtualStoreProof"] = False
         expected[section]["boundHeadStoreOverlap"] = False
+        expected[section]["pendingReadyStoreBypass"] = False
         expected[section]["pendingVirtualStoreProofSlots"] = 1
     for section in ("profile", "cache"):
         expected[section]["readPrefetchStoreHold"] = False
+        expected[section]["durableReadPrefetchCandidate"] = False
+        expected[section]["readPrefetchBehindStore"] = False
     return expected
 
 

@@ -178,11 +178,13 @@ object PendingStoreProofTransportGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new PendingStoreProofTransportGsim(true), Array("--target-dir", args.head))
 }
 
-class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: Boolean = false) extends Module {
+class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: Boolean = false,
+    enabledReadyStoreBypass: Boolean = false) extends Module {
     private val enabled = true
     private val overlap = true
     private val memoryEntries = 4
-    val p = PendingStoreProofFixture.params(enabled = enabledProof).copy(boundHeadStoreOverlap = enabledBoundOverlap)
+    val p = PendingStoreProofFixture.params(enabled = enabledProof).copy(boundHeadStoreOverlap = enabledBoundOverlap,
+        pendingReadyStoreBypass = enabledReadyStoreBypass)
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
@@ -423,8 +425,8 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
 }
 
 object PendingStoreProofBackendGsimMain extends App {
-    require((args.length == 2 || args.length == 3) && Set("0", "1").contains(args(1)))
-    require(args.length == 2 || Set("0", "1").contains(args(2)))
-    ChiselStage.emitCHIRRTLFile(new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1")),
+    require(args.length >= 2 && args.length <= 4 && args.drop(1).forall(Set("0", "1").contains))
+    ChiselStage.emitCHIRRTLFile(new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1"),
+        args.lift(3).contains("1")),
         Array("--target-dir", args.head))
 }

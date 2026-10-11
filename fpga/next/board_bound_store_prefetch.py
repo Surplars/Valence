@@ -45,7 +45,17 @@ def expected_constructor():
     for section in ("profile", "cache"):
         expected[section]["readPrefetchStoreHold"] = True
     spec = load_manifest()
-    if expected != spec["constructor_profile"]:
+    # The archived 53/148-field reference stays byte-frozen. The only later
+    # constructor field is explicitly default OFF in both complete products.
+    historical = copy.deepcopy(expected)
+    for section in ("profile", "core"):
+        if historical[section].pop("pendingReadyStoreBypass") is not False:
+            raise RuntimeError("historical optional entry must keep ready-store bypass off")
+    for section in ("profile", "cache"):
+        for field in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
+            if historical[section].pop(field) is not False:
+                raise RuntimeError("historical optional entry must keep durable READ policies off")
+    if historical != spec["constructor_profile"]:
         raise RuntimeError("complete optional constructor differs from executed historical reference")
     return expected
 

@@ -41,6 +41,7 @@ final case class FpgaNextConfig(
     pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
+    pendingReadyStoreBypass: Boolean = false,
     robEntries: Option[Int] = None,
     physicalRegs: Option[Int] = None,
     storePrefetchLruVictim: Boolean = false,
@@ -61,7 +62,9 @@ final case class FpgaNextConfig(
     readPrefetchDemandAdoption: Boolean = false,
     registeredPmpRegions: Boolean = false,
     publishedPmpChanges: Boolean = false,
-    readPrefetchStoreHold: Boolean = false
+    readPrefetchStoreHold: Boolean = false,
+    durableReadPrefetchCandidate: Boolean = false,
+    readPrefetchBehindStore: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -72,6 +75,8 @@ final case class FpgaNextConfig(
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
+    require(!pendingReadyStoreBypass || boundHeadStoreOverlap,
+        "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
     require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
@@ -148,6 +153,7 @@ final case class FpgaNextConfig(
         (if (frozenStoreProofTransport) "-frozen-store-proof-transport" else "") +
         (if (pendingVirtualStoreProof) s"-pending-virtual-store-proof$pendingVirtualStoreProofSlots" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
+        (if (pendingReadyStoreBypass) "-pending-ready-store-bypass" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -164,7 +170,9 @@ final case class FpgaNextConfig(
         (if (readPrefetchDemandAdoption) "-read-prefetch-demand-adoption" else "") +
         (if (registeredPmpRegions) "-registered-pmp-regions" else "") +
         (if (publishedPmpChanges) "-published-pmp-changes" else "") +
-        (if (readPrefetchStoreHold) "-read-prefetch-store-hold" else "")
+        (if (readPrefetchStoreHold) "-read-prefetch-store-hold" else "") +
+        (if (durableReadPrefetchCandidate) "-durable-read-prefetch-candidate" else "") +
+        (if (readPrefetchBehindStore) "-read-prefetch-behind-store" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -191,7 +199,8 @@ final case class FpgaNextConfig(
         postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim,
         distinctWayRelease = distinctWayRelease, independentDemandAdmission = independentDemandAdmission,
         splitPrefetchTracking = splitPrefetchTracking, readPrefetchDirtyRetry = readPrefetchDirtyRetry,
-        readPrefetchDemandAdoption = readPrefetchDemandAdoption, readPrefetchStoreHold = readPrefetchStoreHold)
+        readPrefetchDemandAdoption = readPrefetchDemandAdoption, readPrefetchStoreHold = readPrefetchStoreHold,
+        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -225,6 +234,7 @@ final case class FpgaNextConfig(
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+            pendingReadyStoreBypass = pendingReadyStoreBypass,
         backendCapacity = backendCapacity)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
@@ -254,6 +264,7 @@ final case class FpgaNextConfig(
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+            pendingReadyStoreBypass = pendingReadyStoreBypass,
         backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow,
         dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow)
 }
@@ -273,7 +284,8 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--bound-head-store-overlap", "--read-prefetch-store-hold")) {
+            "--bound-head-store-overlap", "--pending-ready-store-bypass", "--read-prefetch-store-hold",
+            "--durable-read-prefetch-candidate", "--read-prefetch-behind-store")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -342,6 +354,7 @@ object FpgaNextConfig {
             frozenStoreProofTransport = options.contains("--frozen-store-proof-transport"),
             pendingVirtualStoreProof = options.contains("--pending-virtual-store-proof"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
+            pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),
             pendingVirtualStoreProofSlots = capacityOption("--pending-virtual-store-proof-slots=").getOrElse(1),
             lsuEntries = lsuCount, robEntries = robCount, physicalRegs = physicalCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
@@ -373,6 +386,8 @@ object FpgaNextConfig {
             readPrefetchDirtyRetry = options.contains("--read-prefetch-dirty-retry"),
             readPrefetchDemandAdoption = options.contains("--read-prefetch-demand-adoption"),
             readPrefetchStoreHold = options.contains("--read-prefetch-store-hold"),
+            durableReadPrefetchCandidate = options.contains("--durable-read-prefetch-candidate"),
+            readPrefetchBehindStore = options.contains("--read-prefetch-behind-store"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),
