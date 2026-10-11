@@ -99,6 +99,8 @@ def main():
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--read-prefetch-dirty-retry", action="count", default=0,
+                    help="default-off read prefetch dirty-victim retry; requires split prefetch tracking")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--store-prefetch-lru-victim", action="store_true",
                     help="default-off store-origin invalid-first/LRU victim experiment")
@@ -131,6 +133,11 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.read_prefetch_dirty_retry > 1:
+        ap.error("duplicate --read-prefetch-dirty-retry flag")
+    args.read_prefetch_dirty_retry = bool(args.read_prefetch_dirty_retry)
+    if args.read_prefetch_dirty_retry and not args.split_prefetch_tracking:
+        ap.error("--read-prefetch-dirty-retry requires --split-prefetch-tracking")
     if args.split_prefetch_tracking > 1:
         ap.error("duplicate --split-prefetch-tracking flag")
     args.split_prefetch_tracking = bool(args.split_prefetch_tracking)
@@ -245,6 +252,8 @@ def main():
         parameters.append("--independent-demand-admission")
     if args.split_prefetch_tracking:
         parameters.append("--split-prefetch-tracking")
+    if args.read_prefetch_dirty_retry:
+        parameters.append("--read-prefetch-dirty-retry")
     if args.translated_response_empty_flow:
         parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
@@ -314,6 +323,7 @@ def main():
             "translation_hit_flow": args.translation_hit_flow,
             "independent_demand_admission": args.independent_demand_admission,
             "split_prefetch_tracking": args.split_prefetch_tracking,
+            "read_prefetch_dirty_retry": args.read_prefetch_dirty_retry,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

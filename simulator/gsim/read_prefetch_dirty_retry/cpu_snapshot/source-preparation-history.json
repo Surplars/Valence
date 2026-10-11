@@ -1,0 +1,8 @@
+{
+  "status": "ARCHIVED_PRIOR_SOURCE_BINDING",
+  "note": "Prior source manifest restored from its original tracked blob; pre-lineage runner saved before amendment; source-freeze-v1 runner reconstructed by reversing the recorded bridge-only edit. No DUT had emitted under v1. Original first failed emit retained in receipt commands and off-emit.log.",
+  "manifest_v1_sha256": "f9c6042ac5a7730af63761e5d7d2d991df7ceb95628ed22c1c94fa07ea84bf01",
+  "runner_host_syntax_v1_sha256": "133216c7788eb853fae0fb68d290149eb5bb35f157b13e6270f9f7c1aabedc46",
+  "runner_first_emit_sha256": "d2bbcf2bcb9846da01837a9f9273f5a93e6c5fc12ce9d60d8debebb31b1d1a3f",
+  "manifest_v2_sha256": "13ca6880dbe3e257758b192b1c1e92f8750a55ffc45279199ef77be6c3ff25de"
+}

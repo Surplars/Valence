@@ -54,9 +54,23 @@ class BoardProfileTests(unittest.TestCase):
     def test_complete_constructor_extra_missing_and_changed_fields_fail(self):
         frozen = json.loads((board_profile.HERE / "board-performance-constructors.json").read_text())
         for mode in ("A", "B"):
-            board_profile.compare_constructor(mode, frozen[mode])
+            current = copy.deepcopy(frozen[mode])
+            current["profile"]["readPrefetchDirtyRetry"] = False
+            current["cache"]["readPrefetchDirtyRetry"] = False
+            board_profile.compare_constructor(mode, current)
+            with self.assertRaises(RuntimeError):
+                board_profile.compare_constructor(mode, frozen[mode])
+            for section in ("profile", "cache"):
+                for mutation in ("missing", "enabled"):
+                    actual = copy.deepcopy(current)
+                    if mutation == "missing":
+                        actual[section].pop("readPrefetchDirtyRetry")
+                    else:
+                        actual[section]["readPrefetchDirtyRetry"] = True
+                    with self.subTest(mode=mode, section=section, mutation=mutation), self.assertRaises(RuntimeError):
+                        board_profile.compare_constructor(mode, actual)
             for mutation in ("change", "missing", "extra"):
-                actual = copy.deepcopy(frozen[mode])
+                actual = copy.deepcopy(current)
                 if mutation == "change":
                     actual["core"]["memoryEntries"] = 2
                 elif mutation == "missing":

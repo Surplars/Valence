@@ -46,6 +46,9 @@ def compare_constructor(actual):
     load_manifest()
     expected = copy.deepcopy(json.loads((HERE / "board-performance-constructors.json").read_text())["B"])
     expected["profile"]["experimentalTriSpeedEthernet"] = True
+    # Keep the published constructor snapshot frozen; the new policy is explicitly OFF.
+    expected["profile"]["readPrefetchDirtyRetry"] = False
+    expected["cache"]["readPrefetchDirtyRetry"] = False
     if actual != expected:
         raise RuntimeError("complete release constructor differs from B plus tri-speed selector")
 

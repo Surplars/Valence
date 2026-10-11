@@ -1,0 +1,10 @@
+{
+  "status": "PASS_ZERO_POSTED_REFILL_BRIDGE",
+  "allocations": 6146,
+  "unique_legacy_refills": 6146,
+  "exact_full_PA_prefetch_origin_match": true,
+  "all_generation_sequence_counts_one": true,
+  "source_mutual_exclusion": "NonBlockingCoherentLineCache.scala legacy refill = engine.response.fire && !postedFill; posted refill = engine.response.valid && postedFill and ready",
+  "original_raw_sha256": "96483b849062a0ac1da54b5a905156fc728233c6de07e5876c7ef600652f001c",
+  "no_Sv39_rerun": true
+}

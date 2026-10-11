@@ -132,7 +132,7 @@ class PostedBoardTrace(p: OooParams) extends Bundle {
     val tlE = new PostedBoardChannel(new TLBundleE(tl))
 }
 object PostedBoardProbes {
-    def connect(out: PostedBoardTrace, board: BoardSocTop, profile: FpgaNextConfig): Unit = {
+    def connect(out: PostedBoardTrace, board: { val platform: MachinePlatform }, profile: FpgaNextConfig): Unit = {
         val p = profile.coreParams
         require(p.memoryEntries == 4 && p.tagBits == 64 && Set(4, 5, 6).contains(p.robBits) &&
             profile.dataCacheLines == 512 && profile.cacheWays == 2 &&

@@ -1,0 +1,125 @@
+{
+  "original_recovery_directory": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913",
+  "cpu_receipt_sha256": "92be0a2054965b39e1f62ababab0dbec12252a512d02b92e98b05c389215d287",
+  "copied_paths": [
+    {
+      "path": "cpu_passive_bandwidth.cpp",
+      "sha256": "6fda5c6a51fadf7dcf58cd8804aa4d50d6906b22ee3163ce72f58b779ba010e3",
+      "original_path": "cpu-ab-r1/cpu_passive_bandwidth.cpp"
+    },
+    {
+      "path": "harness/board_boot.cpp",
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+      "original_path": "cpu-ab-r1/harness/board_boot.cpp"
+    },
+    {
+      "path": "harness/board_ddr_benchmark.h",
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+      "original_path": "cpu-ab-r1/harness/board_ddr_benchmark.h"
+    },
+    {
+      "path": "harness/cpu_lsu_occupancy.h",
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+      "original_path": "cpu-ab-r1/harness/cpu_lsu_occupancy.h"
+    },
+    {
+      "path": "harness/cpu_sv39_bandwidth.cpp",
+      "sha256": "7f698aa4d9f1638af623e79b99fbd21cebe157c70addaa5706ba1847ab561cb7",
+      "original_path": "cpu-ab-r1/harness/cpu_sv39_bandwidth.cpp"
+    },
+    {
+      "path": "harness/fabric_idle_service.h",
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+      "original_path": "cpu-ab-r1/harness/fabric_idle_service.h"
+    },
+    {
+      "path": "harness/mshr_occupancy.h",
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+      "original_path": "cpu-ab-r1/harness/mshr_occupancy.h"
+    },
+    {
+      "path": "harness/performance_observer.h",
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+      "original_path": "cpu-ab-r1/harness/performance_observer.h"
+    },
+    {
+      "path": "ledger_negative.cpp",
+      "sha256": "ba18ae1b53c54784d6c36aa74bc4dac9c7bebf34ffcfe871f7db04db3ecd94e8",
+      "original_path": "cpu-ab-r1/ledger_negative.cpp"
+    },
+    {
+      "path": "passive_negative.cpp",
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+      "original_path": "cpu-ab-r1/passive_negative.cpp"
+    },
+    {
+      "path": "passive_supply.h",
+      "sha256": "203e7b876513a373ebb4558612ab44670f5bb31c58ba6827893f015aa711d3b0",
+      "original_path": "cpu-ab-r1/passive_supply.h"
+    },
+    {
+      "path": "production_probe.h",
+      "sha256": "c921184ac52d5bc8803e6bcfc89ed946f9a3e4befbca07d81829b02781474843",
+      "original_path": "cpu-ab-r1/production_probe.h"
+    },
+    {
+      "path": "run_cpu_ab.py",
+      "sha256": "dfe161765131bf957398f2f6a8fc0732dd544aae8a75f1346215b8029a50b686",
+      "original_path": "cpu-ab-r1/run_cpu_ab.py"
+    },
+    {
+      "path": "supply_ledger.h",
+      "sha256": "04115426b2f11e05cb975df6456cc3c0e5a4da5fd8738cbbae2f0d0e3141c0d3",
+      "original_path": "cpu-ab-r1/supply_ledger.h"
+    }
+  ],
+  "new_snapshot_path_executed": false,
+  "original_cpu_source_commit": "f99598c3d409a9866f6d2357735ee3e97ad7cd58",
+  "production_checkpoint": "28a8b30e55fbfc7dde88dbb7ee38d4bc3b9d730e",
+  "final_focused_driver_commit": "a14a94ecd8237bb99531c01ce2f6f389503ad00e",
+  "wrappers": {
+    "baseline_commit": "f6b0faac7dbc7a3d9a644a02862c6b7b2d8c7f98",
+    "tree": "834b09a2264676d9eadcff3be403feffc20de85b",
+    "tree_receipt_sha256": "c7638063ddf9bb20c2b6825f31382ed1a4cd43c5c3365b6d2a5d76c97eec3b35",
+    "changes": [
+      {
+        "path": "src/test/scala/ooo/BoardSocGsimMain.scala",
+        "status": "modified",
+        "qualified_sha256": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6",
+        "cpu_sha256": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6"
+      },
+      {
+        "path": "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+        "status": "added",
+        "qualified_sha256": "35e314dc4b1776a15115f8b8328e31d27be4065521c713b81b353df0286a9547",
+        "cpu_sha256": "1b3fbeccc8c0b85f778d6a782fe4830833169f758ddd1a7006bd0bad33e5567a"
+      },
+      {
+        "path": "src/test/scala/ooo/MatchingFabricAudit.scala",
+        "status": "added",
+        "qualified_sha256": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6",
+        "cpu_sha256": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6"
+      },
+      {
+        "path": "src/test/scala/ooo/MatchingGmacCpu.scala",
+        "status": "added",
+        "qualified_sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc",
+        "cpu_sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc"
+      },
+      {
+        "path": "src/test/scala/ooo/MatchingManagedBoard.scala",
+        "status": "added",
+        "qualified_sha256": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e",
+        "cpu_sha256": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e"
+      },
+      {
+        "path": "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
+        "status": "modified",
+        "qualified_sha256": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74",
+        "cpu_sha256": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74"
+      }
+    ],
+    "missing": []
+  },
+  "preserved_failures_and_old_observers": "Original CPU thin package and focused evidence package; see experiment evidence JSON."
+}

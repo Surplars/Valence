@@ -1,0 +1,808 @@
+{
+  "schema": "read-prefetch-dirty-retry-qualified-evidence-v1",
+  "status": "QUALIFIED_OPT_IN_SOURCE_BACKUP",
+  "production_source_commit": "28a8b30e55fbfc7dde88dbb7ee38d4bc3b9d730e",
+  "final_focused_source_commit": "a14a94ecd8237bb99531c01ce2f6f389503ad00e",
+  "public_base_commit": "f6b0faac7dbc7a3d9a644a02862c6b7b2d8c7f98",
+  "public_base_tree": "834b09a2264676d9eadcff3be403feffc20de85b",
+  "default_enabled": false,
+  "performance_presets_enable": false,
+  "focused": {
+    "receipt_sha256": "7382cfa98c6aab00aaa457529f8f4867a0f0b1d1a32ed4f2964cf07cf17b7070",
+    "status": "PASS_COMPONENT_ONLY",
+    "positive_cases_each_mode": 14,
+    "precise_mutation_failures": 9,
+    "scala_configuration_tests": 4,
+    "full_128_KiB_images_each_case_match": true,
+    "source_library_file_id": "libfile_d53f13f3954c81918c247605eb2862da",
+    "evidence_library_file_id": "libfile_37a0ce94e9b48191b0f9f17b8b0925b9"
+  },
+  "cpu": {
+    "receipt_sha256": "92be0a2054965b39e1f62ababab0dbec12252a512d02b92e98b05c389215d287",
+    "status": "PASS_MATCHING_BOARD_B_OFF_ON_CPU_AB",
+    "source_manifest_sha256": "13ca6880dbe3e257758b192b1c1e92f8750a55ffc45279199ef77be6c3ff25de",
+    "final_verification": {
+      "model_generated_objects_binaries_sources_tools_guest_hashes": "PASS",
+      "OFF_original_fields_each_case": 105,
+      "OFF_Sv39_exact_qualified_AXI_trace": true,
+      "OFF_translation_units": {
+        "REUSED_BYTE_IDENTICAL_TU": 33,
+        "FRESH_OFFICIAL_SPLIT_TU": 1
+      },
+      "ON_fresh_translation_units": 34,
+      "new_posted_controls_exact_expected_errors": "PASS",
+      "no_additional_DUT_runs_after_completion": true,
+      "physical_qualification": false,
+      "historical_system_header_hash_limitation": "Original B object receipt did not hash system transitive headers. Per-TU reuse approved using same unchanged environment, original qualified object SHA, exact CPP/header/flags/compiler identity, current resolved includes and complete repeated OFF functional/traffic calibration."
+    },
+    "thin_package": {
+      "status": "PASS_THIN_PACKAGE_READBACK",
+      "archive": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/read-prefetch-dirty-retry-candidate/cpu-ab-r1-thin.tar.gz",
+      "sha256": "197ec9719583b171321222daf4aa0636eeb6ca9302651bfa67177c6bee8543d5",
+      "bytes": 15154751,
+      "entry_count": 2756,
+      "manifest_sha256": "88e9f16cb9f7fda21536c4c4b5181c34c9720b7945508faa50ac815fe141ba73",
+      "cpu_receipt_sha256": "92be0a2054965b39e1f62ababab0dbec12252a512d02b92e98b05c389215d287",
+      "scope": "Tracked CPU source, preserved host observer revisions and controls, raw traces and logs, receipts, original guest and small constructor/tool metadata. No model C++/objects/executables/tool binaries. Duplicate immutable Sv39 raw alias omitted; canonical on/sv39 contains identical bytes."
+    },
+    "results": {
+      "bare": {
+        "off": {
+          "roi_cycles": 289431,
+          "flush_tail_cycles": 8115,
+          "roi_plus_flush": 297546,
+          "original_B_roi_plus_flush": 297546,
+          "inclusive_cycle_delta": 0,
+          "inclusive_cycle_reduction_pct": 0.0,
+          "roi_axi": {
+            "ar": 4096,
+            "aw": 2048,
+            "r_beats": 32768,
+            "w_beats": 16384
+          },
+          "traffic_regions": [
+            {
+              "region": "0",
+              "cycles": "0",
+              "ar": "2059",
+              "aw": "768",
+              "r": "16472",
+              "w": "6144",
+              "b": "768",
+              "alloc": "2049",
+              "refill": "2031",
+              "wb_capture": "1537",
+              "wb_ack": "1537",
+              "posted_refill": "18",
+              "posted_install": "18"
+            },
+            {
+              "region": "1",
+              "cycles": "289431",
+              "ar": "4096",
+              "aw": "2048",
+              "r": "32768",
+              "w": "16384",
+              "b": "2048",
+              "alloc": "4096",
+              "refill": "4058",
+              "wb_capture": "4096",
+              "wb_ack": "4096",
+              "posted_refill": "38",
+              "posted_install": "38"
+            },
+            {
+              "region": "2",
+              "cycles": "8115",
+              "ar": "2",
+              "aw": "257",
+              "r": "16",
+              "w": "2056",
+              "b": "257",
+              "alloc": "1",
+              "refill": "0",
+              "wb_capture": "258",
+              "wb_ack": "258",
+              "posted_refill": "1",
+              "posted_install": "1"
+            }
+          ],
+          "roi_origins": {
+            "1:demand:ALLOC": 2050,
+            "1:demand:WB_CAPTURE": 2050,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 2016,
+            "1:read:ALLOC": 36,
+            "1:read:CANDIDATE": 36,
+            "1:read:CONSUME": 36,
+            "1:read:WB_CAPTURE": 36,
+            "1:read:WB_CLEAN": 36,
+            "1:store:ALLOC": 2010,
+            "1:store:CANDIDATE": 2060,
+            "1:store:CONSUME": 2010,
+            "1:store:WB_CAPTURE": 2010,
+            "1:store:WB_CLEAN": 1978,
+            "1:store:WB_DIRTY": 32
+          },
+          "all_phase_origins": {
+            "0:demand:ALLOC": 1026,
+            "0:demand:WB_CAPTURE": 769,
+            "0:demand:WB_CLEAN": 13,
+            "0:demand:WB_DIRTY": 756,
+            "0:read:ALLOC": 17,
+            "0:read:CANDIDATE": 17,
+            "0:read:CONSUME": 17,
+            "0:read:WB_CAPTURE": 12,
+            "0:read:WB_CLEAN": 12,
+            "0:store:ALLOC": 1006,
+            "0:store:CANDIDATE": 1031,
+            "0:store:CONSUME": 1006,
+            "0:store:WB_CAPTURE": 756,
+            "0:store:WB_CLEAN": 744,
+            "0:store:WB_DIRTY": 12,
+            "1:demand:ALLOC": 2050,
+            "1:demand:WB_CAPTURE": 2050,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 2016,
+            "1:read:ALLOC": 36,
+            "1:read:CANDIDATE": 36,
+            "1:read:CONSUME": 36,
+            "1:read:WB_CAPTURE": 36,
+            "1:read:WB_CLEAN": 36,
+            "1:store:ALLOC": 2010,
+            "1:store:CANDIDATE": 2060,
+            "1:store:CONSUME": 2010,
+            "1:store:WB_CAPTURE": 2010,
+            "1:store:WB_CLEAN": 1978,
+            "1:store:WB_DIRTY": 32,
+            "2:demand:ALLOC": 1,
+            "2:demand:WB_CAPTURE": 258,
+            "2:demand:WB_CLEAN": 1,
+            "2:demand:WB_DIRTY": 257
+          },
+          "line_count": 1025,
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          }
+        },
+        "on": {
+          "roi_cycles": 261697,
+          "flush_tail_cycles": 8058,
+          "roi_plus_flush": 269755,
+          "original_B_roi_plus_flush": 297546,
+          "inclusive_cycle_delta": -27791,
+          "inclusive_cycle_reduction_pct": 9.340068426394577,
+          "roi_axi": {
+            "ar": 4110,
+            "aw": 2048,
+            "r_beats": 32880,
+            "w_beats": 16384
+          },
+          "traffic_regions": [
+            {
+              "region": "0",
+              "cycles": "0",
+              "ar": "2065",
+              "aw": "768",
+              "r": "16520",
+              "w": "6144",
+              "b": "768",
+              "alloc": "2055",
+              "refill": "1718",
+              "wb_capture": "1543",
+              "wb_ack": "1543",
+              "posted_refill": "337",
+              "posted_install": "337"
+            },
+            {
+              "region": "1",
+              "cycles": "261697",
+              "ar": "4110",
+              "aw": "2048",
+              "r": "32880",
+              "w": "16384",
+              "b": "2048",
+              "alloc": "4110",
+              "refill": "3432",
+              "wb_capture": "4110",
+              "wb_ack": "4110",
+              "posted_refill": "678",
+              "posted_install": "678"
+            },
+            {
+              "region": "2",
+              "cycles": "8058",
+              "ar": "2",
+              "aw": "257",
+              "r": "16",
+              "w": "2056",
+              "b": "257",
+              "alloc": "1",
+              "refill": "0",
+              "wb_capture": "258",
+              "wb_ack": "258",
+              "posted_refill": "1",
+              "posted_install": "1"
+            }
+          ],
+          "roi_origins": {
+            "1:demand:ALLOC": 1396,
+            "1:demand:WB_CAPTURE": 1396,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 1362,
+            "1:read:ALLOC": 1344,
+            "1:read:CANDIDATE": 1344,
+            "1:read:CONSUME": 1344,
+            "1:read:WB_CAPTURE": 1344,
+            "1:read:WB_CLEAN": 1344,
+            "1:store:ALLOC": 1370,
+            "1:store:CANDIDATE": 2086,
+            "1:store:CONSUME": 1370,
+            "1:store:WB_CAPTURE": 1370,
+            "1:store:WB_CLEAN": 684,
+            "1:store:WB_DIRTY": 686
+          },
+          "all_phase_origins": {
+            "0:demand:ALLOC": 697,
+            "0:demand:WB_CAPTURE": 523,
+            "0:demand:WB_CLEAN": 13,
+            "0:demand:WB_DIRTY": 510,
+            "0:read:ALLOC": 671,
+            "0:read:CANDIDATE": 671,
+            "0:read:CONSUME": 671,
+            "0:read:WB_CAPTURE": 504,
+            "0:read:WB_CLEAN": 504,
+            "0:store:ALLOC": 687,
+            "0:store:CANDIDATE": 969,
+            "0:store:CONSUME": 687,
+            "0:store:WB_CAPTURE": 516,
+            "0:store:WB_CLEAN": 258,
+            "0:store:WB_DIRTY": 258,
+            "1:demand:ALLOC": 1396,
+            "1:demand:WB_CAPTURE": 1396,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 1362,
+            "1:read:ALLOC": 1344,
+            "1:read:CANDIDATE": 1344,
+            "1:read:CONSUME": 1344,
+            "1:read:WB_CAPTURE": 1344,
+            "1:read:WB_CLEAN": 1344,
+            "1:store:ALLOC": 1370,
+            "1:store:CANDIDATE": 2086,
+            "1:store:CONSUME": 1370,
+            "1:store:WB_CAPTURE": 1370,
+            "1:store:WB_CLEAN": 684,
+            "1:store:WB_DIRTY": 686,
+            "2:demand:ALLOC": 1,
+            "2:demand:WB_CAPTURE": 258,
+            "2:demand:WB_CLEAN": 1,
+            "2:demand:WB_DIRTY": 257
+          },
+          "line_count": 1366,
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          }
+        },
+        "roi_throughput_gain_percent": 10.597752362464984,
+        "inclusive_throughput_gain_percent": 10.302311356601358
+      },
+      "sv39": {
+        "off": {
+          "roi_cycles": 273627,
+          "flush_tail_cycles": 8190,
+          "roi_plus_flush": 281817,
+          "original_B_roi_plus_flush": 281817,
+          "inclusive_cycle_delta": 0,
+          "inclusive_cycle_reduction_pct": 0.0,
+          "roi_axi": {
+            "ar": 4160,
+            "aw": 2048,
+            "r_beats": 32832,
+            "w_beats": 16384
+          },
+          "traffic_regions": [
+            {
+              "region": "0",
+              "cycles": "0",
+              "ar": "2097",
+              "aw": "768",
+              "r": "16517",
+              "w": "6144",
+              "b": "768",
+              "alloc": "2049",
+              "refill": "2049",
+              "wb_capture": "1537",
+              "wb_ack": "1537",
+              "posted_refill": "0",
+              "posted_install": "0"
+            },
+            {
+              "region": "1",
+              "cycles": "273627",
+              "ar": "4160",
+              "aw": "2048",
+              "r": "32832",
+              "w": "16384",
+              "b": "2048",
+              "alloc": "4096",
+              "refill": "4096",
+              "wb_capture": "4096",
+              "wb_ack": "4096",
+              "posted_refill": "0",
+              "posted_install": "0"
+            },
+            {
+              "region": "2",
+              "cycles": "8190",
+              "ar": "4",
+              "aw": "257",
+              "r": "18",
+              "w": "2056",
+              "b": "257",
+              "alloc": "1",
+              "refill": "1",
+              "wb_capture": "258",
+              "wb_ack": "258",
+              "posted_refill": "0",
+              "posted_install": "0"
+            }
+          ],
+          "roi_origins": {
+            "1:demand:ALLOC": 738,
+            "1:demand:WB_CAPTURE": 738,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 704,
+            "1:read:ALLOC": 1344,
+            "1:read:CANDIDATE": 1344,
+            "1:read:CONSUME": 1344,
+            "1:read:WB_CAPTURE": 1344,
+            "1:read:WB_CLEAN": 1344,
+            "1:store:ALLOC": 2014,
+            "1:store:CANDIDATE": 2014,
+            "1:store:CONSUME": 2014,
+            "1:store:WB_CAPTURE": 2014,
+            "1:store:WB_CLEAN": 670,
+            "1:store:WB_DIRTY": 1344
+          },
+          "all_phase_origins": {
+            "0:demand:ALLOC": 370,
+            "0:demand:WB_CAPTURE": 277,
+            "0:demand:WB_CLEAN": 13,
+            "0:demand:WB_DIRTY": 264,
+            "0:read:ALLOC": 672,
+            "0:read:CANDIDATE": 672,
+            "0:read:CONSUME": 672,
+            "0:read:WB_CAPTURE": 504,
+            "0:read:WB_CLEAN": 504,
+            "0:store:ALLOC": 1007,
+            "0:store:CANDIDATE": 1007,
+            "0:store:CONSUME": 1007,
+            "0:store:WB_CAPTURE": 756,
+            "0:store:WB_CLEAN": 252,
+            "0:store:WB_DIRTY": 504,
+            "1:demand:ALLOC": 738,
+            "1:demand:WB_CAPTURE": 738,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 704,
+            "1:read:ALLOC": 1344,
+            "1:read:CANDIDATE": 1344,
+            "1:read:CONSUME": 1344,
+            "1:read:WB_CAPTURE": 1344,
+            "1:read:WB_CLEAN": 1344,
+            "1:store:ALLOC": 2014,
+            "1:store:CANDIDATE": 2014,
+            "1:store:CONSUME": 2014,
+            "1:store:WB_CAPTURE": 2014,
+            "1:store:WB_CLEAN": 670,
+            "1:store:WB_DIRTY": 1344,
+            "2:demand:ALLOC": 1,
+            "2:demand:WB_CAPTURE": 258,
+            "2:demand:WB_CLEAN": 1,
+            "2:demand:WB_DIRTY": 257
+          },
+          "line_count": 1679,
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          }
+        },
+        "on": {
+          "roi_cycles": 273088,
+          "flush_tail_cycles": 8204,
+          "roi_plus_flush": 281292,
+          "original_B_roi_plus_flush": 281817,
+          "inclusive_cycle_delta": -525,
+          "inclusive_cycle_reduction_pct": 0.1862911038014059,
+          "roi_axi": {
+            "ar": 4160,
+            "aw": 2048,
+            "r_beats": 32832,
+            "w_beats": 16384
+          },
+          "traffic_regions": [
+            {
+              "region": "0",
+              "cycles": "0",
+              "ar": "2097",
+              "aw": "768",
+              "r": "16517",
+              "w": "6144",
+              "b": "768",
+              "alloc": "2049",
+              "refill": "2049",
+              "wb_capture": "1537",
+              "wb_ack": "1537"
+            },
+            {
+              "region": "1",
+              "cycles": "273088",
+              "ar": "4160",
+              "aw": "2048",
+              "r": "32832",
+              "w": "16384",
+              "b": "2048",
+              "alloc": "4096",
+              "refill": "4096",
+              "wb_capture": "4096",
+              "wb_ack": "4096"
+            },
+            {
+              "region": "2",
+              "cycles": "8204",
+              "ar": "4",
+              "aw": "257",
+              "r": "18",
+              "w": "2056",
+              "b": "257",
+              "alloc": "1",
+              "refill": "1",
+              "wb_capture": "258",
+              "wb_ack": "258"
+            }
+          ],
+          "roi_origins": {
+            "1:demand:ALLOC": 68,
+            "1:demand:WB_CAPTURE": 68,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 34,
+            "1:read:ALLOC": 2014,
+            "1:read:CANDIDATE": 2014,
+            "1:read:CONSUME": 2014,
+            "1:read:WB_CAPTURE": 2014,
+            "1:read:WB_CLEAN": 1024,
+            "1:read:WB_DIRTY": 990,
+            "1:store:ALLOC": 2014,
+            "1:store:CANDIDATE": 2014,
+            "1:store:CONSUME": 2014,
+            "1:store:WB_CAPTURE": 2014,
+            "1:store:WB_CLEAN": 990,
+            "1:store:WB_DIRTY": 1024
+          },
+          "all_phase_origins": {
+            "0:demand:ALLOC": 35,
+            "0:demand:WB_CAPTURE": 25,
+            "0:demand:WB_CLEAN": 13,
+            "0:demand:WB_DIRTY": 12,
+            "0:read:ALLOC": 1007,
+            "0:read:CANDIDATE": 1007,
+            "0:read:CONSUME": 1007,
+            "0:read:WB_CAPTURE": 756,
+            "0:read:WB_CLEAN": 384,
+            "0:read:WB_DIRTY": 372,
+            "0:store:ALLOC": 1007,
+            "0:store:CANDIDATE": 1007,
+            "0:store:CONSUME": 1007,
+            "0:store:WB_CAPTURE": 756,
+            "0:store:WB_CLEAN": 372,
+            "0:store:WB_DIRTY": 384,
+            "1:demand:ALLOC": 68,
+            "1:demand:WB_CAPTURE": 68,
+            "1:demand:WB_CLEAN": 34,
+            "1:demand:WB_DIRTY": 34,
+            "1:read:ALLOC": 2014,
+            "1:read:CANDIDATE": 2014,
+            "1:read:CONSUME": 2014,
+            "1:read:WB_CAPTURE": 2014,
+            "1:read:WB_CLEAN": 1024,
+            "1:read:WB_DIRTY": 990,
+            "1:store:ALLOC": 2014,
+            "1:store:CANDIDATE": 2014,
+            "1:store:CONSUME": 2014,
+            "1:store:WB_CAPTURE": 2014,
+            "1:store:WB_CLEAN": 990,
+            "1:store:WB_DIRTY": 1024,
+            "2:demand:ALLOC": 1,
+            "2:demand:WB_CAPTURE": 258,
+            "2:demand:WB_CLEAN": 1,
+            "2:demand:WB_DIRTY": 257
+          },
+          "line_count": 2014,
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          }
+        },
+        "roi_throughput_gain_percent": 0.19737227560345794,
+        "inclusive_throughput_gain_percent": 0.18663879527323068
+      }
+    }
+  },
+  "native": {
+    "receipt_sha256": "e177b93c99b5dedd90187f19eb5ba2bd5123ab4540fd4a97512d54d926a0e42e",
+    "status": "PASS_LITERAL_STANDALONE_CACHE_NATIVE_CENSUS",
+    "report_sha256": "95661352f0571fb9c927f29ef86c8f936f22ddcd78b48e8f0fb4f7c61b4e3b7b",
+    "census_sha256": "f1964232d7b8a504147b3e9ac94b664d8888eaeb918301e9e0ab9a7387a67db4",
+    "scalar_register_bits_off_on": [
+      8724,
+      8725
+    ],
+    "array_register_bits_off_on": [
+      271876,
+      271876
+    ],
+    "ports_off_on": [
+      122,
+      122
+    ],
+    "unchanged_child_modules": 7,
+    "mapped_resources_or_physical_timing_measured": false
+  },
+  "offline_supply_analysis": {
+    "original_directory": "wait-analysis-r1",
+    "artifacts_sha256": {
+      "REPORT.md": "796ae150c576c7175f59fb61a4ab80e5bad59f961175b48eba4130705e6a5fee",
+      "BARE-ADDENDUM.md": "77efbed1db93d42add32d18ca8356b56cce93bb45f1f0cbb529e732881b84e06",
+      "analysis.json": "8088baecf1b7084fb6abc768c32f24a670a0038022c554da02ce9cb27ccbd709",
+      "bare-crosscheck.json": "32bf24c29747c41f5c6dc58c58007a0b589fe462813573633a5a8202c52100cb"
+    },
+    "bare_extra_roi_reads": 14,
+    "bare_extra_warmup_reads": 6,
+    "bare_extra_whole_run_reads": 20,
+    "bare_extra_roi_source_addresses": [
+      "0x80402fc0",
+      "0x80404fc0",
+      "0x80406fc0",
+      "0x80408fc0",
+      "0x8040afc0",
+      "0x8040cfc0",
+      "0x8040efc0"
+    ],
+    "bare_verified_pattern": "One reread per line per pass after read PF first-word consume, store PF clean eviction of the exact index, then later source-word demand.",
+    "sv39_pattern": "Shared prefetch/writeback ownership serializes some previous demand plus following read-prefetch overlap.",
+    "all_cycle_cause_attribution_claimed": false
+  },
+  "publication_validation": {
+    "python_cli_tests": 3,
+    "python_board_profile_tests": 5,
+    "python_board_release_tests": 3,
+    "DUT_or_Scala_or_native_rerun": false
+  },
+  "changed_qualified_byte_bindings": [
+    {
+      "path": "fpga/next/board_profile.py",
+      "sha256": "d24c75b3c6094e5f56bf011b1cbfdfc52374c108d3e4f2cb5890b9a14518498f",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "fpga/next/board_release.py",
+      "sha256": "95e4e9b1e815b761b16d1a806dcb1df666677f4a2b3713cc1e00c4d2a0e262e5",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "fpga/next/export.py",
+      "sha256": "e63a699af12b010322359144c3d2bc13e0e319652dc15ae03b5a14dcf2c4fd6b",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "fpga/next/test_board_profile.py",
+      "sha256": "f8ca8bfdd0531b07a9783c542647ad13d7715d88950361389232244ea32d19c1",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "fpga/next/test_board_release.py",
+      "sha256": "566a436b19b3a02f92537f50fa77b1d87b3a176ff3eaddcd928717dc4d558b19",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "simulator/gsim/fpga_next_board.py",
+      "sha256": "48278cdd1915596b9835fccd0a0b1e74a5272b9daf36dca6dfa7b238ae12cc96",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "simulator/gsim/harness/dual_prefetch_tracking.cpp",
+      "sha256": "a626d309feecbfd07365bea68414a31edb4d50da8b271b580593ee0011002fc6",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "simulator/gsim/harness/read_prefetch_dirty_retry.cpp",
+      "sha256": "bc5607aa7e7e4b2d654dab4626d6b9bf6e596b6fccb9030e8cdb1946ec2f23b8",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "simulator/gsim/read_prefetch_dirty_retry.py",
+      "sha256": "60fb107a95c05c9c84411bb1f4bea26566a9d1302aec1dc6a38c01d135a88db1",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "simulator/gsim/test_read_prefetch_dirty_retry_cli.py",
+      "sha256": "36a9eb666e67bf83384bbc5926db302a32d638ec578b2df668bbfc71944c2b1d",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/main/scala/core/ooo/CoherentCacheConcurrency.scala",
+      "sha256": "d34e80767ca8da5206023ab8e99cd715b6baeaeeb10b2f0efcd492423659f99e",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "sha256": "40790bd67997f6551e62984bebf348964f2c7647f7ef8621de8fd790e049974e",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala",
+      "sha256": "12a3d47bd517221250ee0dd90efd355aae6d182bccfbe2c6829dbd772de1e4f5",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/BoardSocGsimMain.scala",
+      "sha256": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+      "sha256": "d8bf4cd1b71d2d60995ddf58956d6950be1b299fa5a3f3508911f2c46e969505",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+      "sha256": "903db48acfd824512937cb29e6a02b9fb71813ba3ac314a0da7af34de5faf898",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/CoherentCacheHomeGsim.scala",
+      "sha256": "81419de0456329339ced2c6f756e1db3a60d2094ed48b5fb90f81b0e753d113d",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuBoardProfileGsimMain.scala",
+      "sha256": "c702e4c43777c7532ed05b7a89272622cd63852a6f90f032534b30fed63d096f",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+      "sha256": "1b3fbeccc8c0b85f778d6a782fe4830833169f758ddd1a7006bd0bad33e5567a",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuSv39BandwidthGsimMain.scala",
+      "sha256": "2e67e8aae243cbcbaa261226a3ffa8a2b7f0703067ee828f610b6464acefced0",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseConfigSpec.scala",
+      "sha256": "ffe0b195965883d396c8ec791bddd1ed2acb75e40796b0c0902a14ec9256aaea",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseGsim.scala",
+      "sha256": "f420374c2199e11541b5a86fde1bc2447e4cbc6139b0784683c86385705a36db",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseNativeMain.scala",
+      "sha256": "2f510c4cabced4e9ccab677f903785f49fcd877d4d09611cba524fd30936a3ab",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+      "sha256": "143a030fb1f8c8d7d44c36b038145b5bd85e24c8ce6df9e4c818fb479873fd48",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextMain.scala",
+      "sha256": "ed70259a7cfc22ee30fa710cee95824bc73760d23c9b4efcc4353f240783a477",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextProfileMain.scala",
+      "sha256": "b740180f34167c3e96f215d588e468dd66b150735970a522e405be93313c1651",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/IndependentDemandAdmissionConfigSpec.scala",
+      "sha256": "1afbfa4c8ff8fc78202a137ab94e21f6cbbe2c272464ab5bb77fca2706e6abb9",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/LatencyBandwidthConfigSpec.scala",
+      "sha256": "b044a6fd879097a41aa138b546ec57d8f20a0da00e17dc0a3898623d748c4ec4",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/LineReadChannelConfigSpec.scala",
+      "sha256": "ed98758e66e998a9d05c7d401ac8d2eefff7cfb3281c8eb9d53427656d6567d9",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/MatchingFabricAudit.scala",
+      "sha256": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/MatchingGmacCpu.scala",
+      "sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/MatchingManagedBoard.scala",
+      "sha256": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+      "sha256": "b5ec5e35c1ae4dbf33337984336c115ca679e646975dd80ccdf513a0a207159d",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+      "sha256": "1fed15da64775ee62f744d6a629a1061318787933a717ec0418865b6269771c2",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
+      "sha256": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74",
+      "qualified_by": "cpu-ab-r1"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchDirtyRetryConfigSpec.scala",
+      "sha256": "5ce0238f807460a10387dd80d9904cc184bad1d06c7be28af6079f9532222ab8",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchDirtyRetryGsimMain.scala",
+      "sha256": "2222631745bed57cc916d27d1e70fbe001841a5a03ac30f10ee0170ce983ef24",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/SplitPrefetchTrackingConfigSpec.scala",
+      "sha256": "f27bfda7645aa4271d118c5eaff647c0c092b0dbefb553748de0f082f1ab878e",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimGsim.scala",
+      "sha256": "828f2fbe0e822f5fc84f6a6fd6dbc4c6684df5ab00e5838228e9321f4ee17f07",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala",
+      "sha256": "bd5684a1493f792124529095469646353e68e3a6e09fe6b3cad631f2191f9888",
+      "qualified_by": "focused-r3"
+    },
+    {
+      "path": "src/test/scala/ooo/TranslationHitFlowConfigSpec.scala",
+      "sha256": "c586f03488854e9f3aaf03eebffa4b613024e7ed24190fe3fe17031d2a09ca8f",
+      "qualified_by": "focused-r3"
+    }
+  ],
+  "full_binding_manifest_sha256": "a3fb6ce0f61a774b8c33e67388926c119c7c01d36729e62ae7ec918cafd55c6e",
+  "qualification_scope": "Original qualified source and host bytes reused; combined publication checkout not executed.",
+  "additional_library_references": {
+    "cpu": {
+      "library_file_id": "libfile_d30cc88238b88191983686b9aa6a0fb5",
+      "file_id": "file_00000000f120822fae6bff2ba95aad66",
+      "version": 0,
+      "bytes": 15154751,
+      "sha256": "197ec9719583b171321222daf4aa0636eeb6ca9302651bfa67177c6bee8543d5"
+    },
+    "native": {
+      "included_in_this_source_publication_archive": true,
+      "path": "evidence-references/native-cache-cost-r1",
+      "receipt_sha256": "e177b93c99b5dedd90187f19eb5ba2bd5123ab4540fd4a97512d54d926a0e42e",
+      "qualified_SV_and_seven_children_each_mode_included": true,
+      "compiled_class_files_and_CHIRRTL_excluded": true,
+      "packaging_did_not_rerun_native_gate": true
+    }
+  }
+}

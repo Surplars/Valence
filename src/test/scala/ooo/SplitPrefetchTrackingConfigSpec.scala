@@ -12,7 +12,8 @@ class SplitPrefetchTrackingConfigSpec extends AnyFunSuite {
             assert(!base.splitPrefetchTracking && !base.cache.splitPrefetchTracking)
             val off = base.copy(storeNextLinePrefetch = true)
             val on = off.copy(splitPrefetchTracking = true)
-            assert(on.productArity == 44 && on.cache.productArity == 14)
+            assert(on.productArity == 45 && !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
+                on.cache.productArity == 15)
             assert(on.copy(splitPrefetchTracking = false) == off)
             assert(on.cache.copy(splitPrefetchTracking = false) == off.cache)
             assert(on.coreParams == off.coreParams && on.ddr == off.ddr && on.tags == off.tags)

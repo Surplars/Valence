@@ -37,25 +37,10 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
     configurationCheck: Option[FpgaNextConfig] = None) extends Module {
-    private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
-        externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
-        dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
-        isaProfile = isaProfile, ddrMemoryBytes = ddrMemoryBytes, instructionLineCacheLines = instructionLineCacheLines,
-        dataCacheLines = dataCacheLines, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, loadIssueForwarding = loadIssueForwarding, tagConfig = tagConfig, identityDataFlow = identityDataFlow, fpgaStorage = fpgaStorage,
-        virtualRamLoadPrecheck = virtualRamLoadPrecheck, floatingPointResources = floatingPointResources,
-        independentFetchPayloadCapture = independentFetchPayloadCapture,
-        ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
-        bankedInstructionData = bankedInstructionData, dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
-        precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
-        translatedResponseEmptyFlow = translatedResponseEmptyFlow,
-        loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
-        preparedStoreLookahead = preparedStoreLookahead, postedPreparationPriority = postedPreparationPriority,
-        dataTranslationEntries = dataTranslationEntries, dataTlbWriteReadReuse = dataTlbWriteReadReuse,
-        translationHitFlow = translationHitFlow,
-        postedStoreMerge = postedStoreMerge,
-        postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
-        backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow))
+    require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
+    private val board = Module(new MatchingManagedBoard(configurationCheck.get, jtagRamDownload = true))
+    val service = IO(chiselTypeOf(board.service))
+    service <> board.service
     configurationCheck.foreach { expected =>
         // Read retained constructor products from the instances that are being emitted.
         def unique[T](instance: AnyRef, kind: Class[T]): T = {

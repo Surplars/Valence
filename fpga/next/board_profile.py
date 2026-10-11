@@ -42,6 +42,9 @@ def compare_constructor(mode, actual):
     instantiated core/cache/TLB/DMA/bridge parameters and active components.
     """
     expected = json.loads((HERE / "board-performance-constructors.json").read_text())[mode]
+    # Keep the published constructor snapshot frozen; the new policy is explicitly OFF.
+    expected["profile"]["readPrefetchDirtyRetry"] = False
+    expected["cache"]["readPrefetchDirtyRetry"] = False
     if actual != expected:
         raise RuntimeError("actual complete constructor differs from frozen mode " + mode)
 

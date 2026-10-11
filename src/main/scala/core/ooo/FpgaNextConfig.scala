@@ -52,7 +52,8 @@ final case class FpgaNextConfig(
     dataTlbWriteReadReuse: Boolean = false,
     translationHitFlow: Boolean = false,
     independentDemandAdmission: Boolean = false,
-    splitPrefetchTracking: Boolean = false
+    splitPrefetchTracking: Boolean = false,
+    readPrefetchDirtyRetry: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -80,6 +81,8 @@ final case class FpgaNextConfig(
         "store-origin MRU insertion requires checked store prefetch")
     require(!storePrefetchLruVictim || storeNextLinePrefetch,
         "store-origin LRU victim selection requires checked store prefetch")
+    require(!readPrefetchDirtyRetry || splitPrefetchTracking,
+        "read prefetch dirty retry requires split prefetch tracking")
     require(!splitPrefetchTracking || storeNextLinePrefetch,
         "split prefetch tracking requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
@@ -132,7 +135,8 @@ final case class FpgaNextConfig(
         (if (dataTlbWriteReadReuse) "-dtlb-write-read-reuse" else "") +
         (if (translationHitFlow) "-translation-hit-flow" else "") +
         (if (independentDemandAdmission) "-independent-demand-admission" else "") +
-        (if (splitPrefetchTracking) "-split-prefetch-tracking" else "")
+        (if (splitPrefetchTracking) "-split-prefetch-tracking" else "") +
+        (if (readPrefetchDirtyRetry) "-read-prefetch-dirty-retry" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -158,7 +162,7 @@ final case class FpgaNextConfig(
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
         postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim,
         distinctWayRelease = distinctWayRelease, independentDemandAdmission = independentDemandAdmission,
-        splitPrefetchTracking = splitPrefetchTracking)
+        splitPrefetchTracking = splitPrefetchTracking, readPrefetchDirtyRetry = readPrefetchDirtyRetry)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -229,6 +233,8 @@ object FpgaNextConfig {
     val Selected = ControlCandidate.copy(shareProtectedHeadPayload = true, bankedInstructionData = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--read-prefetch-dirty-retry=")),
+            "--read-prefetch-dirty-retry does not accept a value")
         require(!options.exists(_.startsWith("--split-prefetch-tracking=")),
             "--split-prefetch-tracking does not accept a value")
         require(!options.exists(_.startsWith("--ddr-write-collection-flow=")),
@@ -309,6 +315,7 @@ object FpgaNextConfig {
             translationHitFlow = options.contains("--translation-hit-flow"),
             independentDemandAdmission = options.contains("--independent-demand-admission"),
             splitPrefetchTracking = options.contains("--split-prefetch-tracking"),
+            readPrefetchDirtyRetry = options.contains("--read-prefetch-dirty-retry"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

@@ -13,6 +13,9 @@
 #if STORE_PF_LRU_ON != 0 && STORE_PF_LRU_ON != 1
 #error "STORE_PF_LRU_ON must be 0 or 1"
 #endif
+#ifndef READ_PF_DIRTY_RETRY
+#define READ_PF_DIRTY_RETRY 0
+#endif
 #ifndef CACHE_WAYS
 #define CACHE_WAYS 2
 #endif
@@ -47,6 +50,7 @@ struct Choice { unsigned index = 0; Resident victim{}; bool allowed = false; };
 struct Owner {
     Key key{}; uint64_t address = 0; Choice choice{};
     bool pf = false, store = false, acquired = false, acked = false, filled = false, error = false;
+    bool readDirtyAuthorized = false;
     unsigned beats = 0, sink = 0; Words expected{};
 };
 struct Wb {
@@ -111,7 +115,11 @@ struct Gate {
                 reserved |= owners.at(*owner).choice.index == index;
             // Independent demand admission reserves physical ways. PF retains
             // its separate whole-set admission gate, checked at allocation.
-            allowed[way] = !protectedLine && (pf || !reserved) && (!pf || store || !r.valid || !r.dirty);
+            const bool protectedStoreOther = READ_PF_DIRTY_RETRY && CACHE_WAYS == 2 && pf && !store && split &&
+                present(token[1]) && !(consumed & 2U) && set(token[1]->address) == set(address) &&
+                token[1]->index != index && !resident[token[1]->index].dirty;
+            allowed[way] = !protectedLine && (pf || !reserved) &&
+                (!pf || store || !r.valid || !r.dirty || protectedStoreOther);
         }
         const auto result = [&](unsigned way) {
             const unsigned index = way * sets + set(address);
@@ -210,7 +218,7 @@ struct Gate {
         for (const auto& [key, value] : counts) std::cout << ' ' << key << '=' << value;
         std::cout << " actual_cache_home=1 full_pa=1 full_flush=1 executing_cpu=0 performance_qualification=0\n";
     }
-    void allocate(unsigned slot, uint64_t address, bool pf, bool store, Choice selected) {
+    void allocate(unsigned slot, uint64_t address, bool pf, bool store, Choice selected, unsigned consumed = 0) {
         check(slot < 2 && !active[slot] && selected.allowed, "allocation lacks a free independently allowed slot");
         for (const auto& other : active) if (other) {
             check(owners.at(*other).choice.index != selected.index, "two MSHRs reserve one physical way");
@@ -218,6 +226,14 @@ struct Gate {
         }
         Owner o; o.key = {slot, ++generations[slot]}; o.address = line(address);
         o.pf = pf; o.store = store; o.choice = selected; o.expected = words(address);
+        // Authorization belongs to this allocation generation. The alternate
+        // token may later be consumed or probed before fixed-victim capture.
+        o.readDirtyAuthorized = READ_PF_DIRTY_RETRY && pf && !store && selected.victim.valid &&
+            selected.victim.dirty && present(token[1]) && !(consumed & 2U) &&
+            token[1]->index != selected.index && set(token[1]->address) == set(address) &&
+            !resident[token[1]->index].dirty;
+        check(!pf || !selected.victim.valid || !selected.victim.dirty || store || o.readDirtyAuthorized,
+            "dirty read allocation lacks independently captured store-token authorization");
         owners.emplace(o.key, o); active[slot] = o.key;
         ++counts[pf ? (store ? "store_alloc" : "read_alloc") : "demand_alloc"];
     }
@@ -330,7 +346,7 @@ struct Gate {
                 bool(O(allocatedVictimDirty)) == (selected.victim.valid && selected.victim.dirty) &&
                 (!selected.victim.valid || O(allocatedVictimAddress) == selected.victim.address),
                 "prefetch allocation selected disallowed/wrong full-PA victim");
-            allocate(O(allocatedSlot), candidate->first, true, candidate->second, selected);
+            allocate(O(allocatedSlot), candidate->first, true, candidate->second, selected, consumed);
         }
         for (unsigned i = 0; i < 2; ++i) if (consumed & (1U << i)) token[i].reset();
         if (O(wbCapture)) {
@@ -343,7 +359,8 @@ struct Gate {
                 check(m < 2 && active[m], "WB capture lacks originating MSHR generation");
                 w.key = *active[m]; const auto& o = owners.at(w.key); w.pf = o.pf;
                 check(o.choice.index == index && o.choice.victim.address == w.address &&
-                    (!w.pf || !w.dirty || o.store), "captured victim changed allocation or read PF released dirty data");
+                    (!w.pf || !w.dirty || o.store || o.readDirtyAuthorized),
+                    "captured victim changed allocation or read PF released unprotected dirty data");
             }
             check(bool(O(wbCapturePrefetch)) == w.pf, "WB capture inherited stale MSHR prefetch origin");
             resident[index] = {}; wb[slot] = w;

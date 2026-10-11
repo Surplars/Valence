@@ -13,7 +13,7 @@ object CpuBoardProfileGsimMain extends App {
     val allowed = Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
             "--ddr-write-collection-flow",
             "--line-transfer-dispatch-flow",
-            "--line-read-channel", "--split-prefetch-tracking",
+            "--line-read-channel", "--split-prefetch-tracking", "--read-prefetch-dirty-retry",
             "--dtlb-write-read-reuse", "--translation-hit-flow", "--independent-demand-admission", "--dma-line-entries=8",
             "--ddr-outstanding=4", "--ddr-outstanding=8",
             "--ddr-write-credits=1", "--ddr-write-credits=2", "--ddr-write-credits=4",

@@ -33,7 +33,8 @@ object PostedPrefetchBoardProfiles {
             postedPrefetchHeadOffer = experiment == "head-offer" && mode == "on")
         require(result == expected && result.coreParams == expected.coreParams,
             "explicit Board options differ from complete constructor profile")
-        require(result.productArity == 44 && !result.splitPrefetchTracking && !result.cache.splitPrefetchTracking &&
+        require(result.productArity == 45 && !result.readPrefetchDirtyRetry && !result.cache.readPrefetchDirtyRetry &&
+            !result.splitPrefetchTracking && !result.cache.splitPrefetchTracking &&
             !result.translationHitFlow && result.ddrOutstanding == 4 && result.ddrWriteCredits == 2 &&
             !result.dataTlbWriteReadReuse && !result.ddrWriteCollectionFlow && !result.lineTransferDispatchFlow &&
             !result.lineReadChannel &&

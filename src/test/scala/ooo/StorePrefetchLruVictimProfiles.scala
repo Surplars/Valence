@@ -21,7 +21,9 @@ object StorePrefetchLruVictimProfiles {
         val original = MemoryProofFrontierExactFixture.profile(true)
         val selected = FpgaNextConfig.fromOptions(options(enabled), defaultSelected = false)
         require(selected == original.copy(storePrefetchLruVictim = enabled))
-        require(selected.productArity == 44 && !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
+        require(selected.productArity == 45 &&
+            !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
+            !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
             !selected.translationHitFlow && selected.ddrOutstanding == 4 && selected.ddrWriteCredits == 2 &&
             !selected.dataTlbWriteReadReuse && !selected.ddrWriteCollectionFlow &&
             !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 142)
@@ -35,11 +37,12 @@ object StorePrefetchLruVictimProfiles {
             prefetchCandidateCycles = 1, prefetchBreakOnStore = false, storeNextLinePrefetch = true,
             storePrefetchMruInsertion = true, postedPrefetchCoexistence = true,
             storePrefetchLruVictim = enabled)
-        require(selected.cache.productArity == 14 && selected.cache == expectedCache)
+        require(selected.cache.productArity == 15 && selected.cache == expectedCache)
         val actualCacheFields = selected.cache.productElementNames.zip(selected.cache.productIterator)
             .map { case (name, value) => name -> value.toString }.toMap
         require(actualCacheFields.keySet == originalCacheFields.keySet ++
-            Set("storePrefetchLruVictim", "distinctWayRelease", "independentDemandAdmission", "splitPrefetchTracking"),
+            Set("storePrefetchLruVictim", "distinctWayRelease", "independentDemandAdmission", "splitPrefetchTracking",
+                "readPrefetchDirtyRetry"),
             "actual cache constructor field set differs from frozen original plus policy")
         originalCacheFields.foreach { case (name, value) =>
             require(actualCacheFields(name) == value, s"original cache field changed: $name")
@@ -47,6 +50,7 @@ object StorePrefetchLruVictimProfiles {
         require(actualCacheFields("distinctWayRelease") == "false")
         require(actualCacheFields("independentDemandAdmission") == "false")
         require(actualCacheFields("splitPrefetchTracking") == "false")
+        require(actualCacheFields("readPrefetchDirtyRetry") == "false")
         require(actualCacheFields("storePrefetchLruVictim") == enabled.toString)
         require(selected.cache.copy(storePrefetchLruVictim = false) == original.cache)
         require(selected.ddr == original.ddr && selected.tags == original.tags && selected.storage == original.storage &&

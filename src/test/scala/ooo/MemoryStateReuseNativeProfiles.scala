@@ -14,7 +14,9 @@ object MemoryStateReuseNativeProfiles {
         val baseline = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true)
         val selected = FpgaNextConfig.fromOptions(options(reconstruct, shared), defaultSelected = false)
         require(selected == baseline.copy(reconstructIssueTokenIndex = reconstruct, sharedMemoryAddressState = shared))
-        require(selected.productArity == 44 && !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
+        require(selected.productArity == 45 &&
+            !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
+            !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
             !selected.translationHitFlow && selected.ddrOutstanding == 4 && selected.ddrWriteCredits == 2 &&
             !selected.dataTlbWriteReadReuse && !selected.ddrWriteCollectionFlow &&
             !selected.lineTransferDispatchFlow && !selected.lineReadChannel && selected.coreParams.productArity == 142 &&

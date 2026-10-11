@@ -23,6 +23,8 @@ class NonBlockingCoherentLineCache(
     require(params.addrWidth == 64 && params.dataWidth == 64 &&
         params.sourceBits >= concurrency.sourceBits && params.sinkBits >= concurrency.sinkBits)
     private val mshrCount = concurrency.readMshrs
+    require(!concurrency.readPrefetchDirtyRetry || ways == 2,
+        "read prefetch dirty retry requires an alternate protected store-token way")
     require(!concurrency.distinctWayRelease || ways == 2,
         "distinct-way release requires the original two-way cache")
     require(lines / ways >= mshrCount, "each read MSHR needs an independently reservable set")
@@ -818,6 +820,10 @@ class NonBlockingCoherentLineCache(
             Some(Reg(UInt(log2Ceil(concurrency.prefetchCandidateCycles).W))) else None
         val lastValid = RegInit(false.B)
         val lastLine = Reg(UInt(58.W))
+        // Prediction only: ON remembers whether this read line was entered
+        // sequentially. Retry still needs the current accepted read's permission.
+        // No owner/candidate is queued while the shared PF episode is busy.
+        val sequentialReadLine = if (concurrency.readPrefetchDirtyRetry) Some(RegInit(false.B)) else None
         val trackedValid = RegInit(false.B)
         val trackedAddress = Reg(UInt(64.W))
         val trackedIndex = Reg(UInt(indexBits.W))
@@ -905,7 +911,12 @@ class NonBlockingCoherentLineCache(
         when(cpuFire && ordinary && !request.write) {
             lastValid := true.B
             lastLine := line
-            when(sequential && request.prefetchNextAllowed && postedPrefetchAllowed &&
+            sequentialReadLine.foreach { history =>
+                when(!lastValid || line =/= lastLine) { history := sequential }
+            }
+            val readPrediction = if (concurrency.readPrefetchDirtyRetry)
+                sequential || (lastValid && line === lastLine && sequentialReadLine.get) else sequential
+            when(readPrediction && request.prefetchNextAllowed && postedPrefetchAllowed &&
                 !candidateValid && !liveOwner && !releaseBusy &&
                 (!trackedValid || consume || !trackedPresent)) {
                 io.prefetch.candidate := true.B
@@ -939,7 +950,13 @@ class NonBlockingCoherentLineCache(
         if (concurrency.prefetchBreakOnStore) {
             // Admission ends the prior read stream even while this store's reply
             // is held. Merely offering a backpressured store changes no history.
-            when(cpuFire && ordinary && request.write) { lastValid := false.B }
+            when(cpuFire && ordinary && request.write) {
+                lastValid := false.B
+                sequentialReadLine.foreach(_ := false.B)
+            }
+        }
+        sequentialReadLine.foreach { history =>
+            when(cpuFire && !ordinary) { history := false.B }
         }
         val candidateTags = tagBanks.map(banks => VecInit(banks.map(_.read(lineSet(candidateAddress)))))
         val present = (0 until ways).map { way =>
@@ -983,8 +1000,17 @@ class NonBlockingCoherentLineCache(
                 Cat(!preferredPfIndex(indexBits - 1), lineSet(candidateAddress)))
         val allowedVictim = if (concurrency.splitPrefetchTracking)
             (if (ways == 1) victimAllowed(0) else victimAllowed(pfIndex(indexBits - 1))) else true.B
+        // Reuse the existing full-PA/index comparison in victimAllowed: for a
+        // read candidate the protected other origin is exactly the store token.
+        // This adds no tag port, wide PA comparison, reservation or owner state.
+        val readDirtyVictimAllowed = if (concurrency.readPrefetchDirtyRetry) {
+            val otherWay = !pfIndex(indexBits - 1)
+            val otherDirty = Mux(pfIndex(indexBits - 1), dirty(first), dirty(slot(candidateAddress, 1)))
+            !candidateStore.get && !victimAllowed(otherWay) && !otherDirty
+        } else false.B
         observationStorePrefetch.candidateVictimAllowed := allowedVictim &&
-            (!valid(pfIndex) || !dirty(pfIndex) || candidateStore.getOrElse(false.B))
+            (!valid(pfIndex) || !dirty(pfIndex) || (if (concurrency.readPrefetchDirtyRetry)
+                candidateStore.get || readDirtyVictimAllowed else candidateStore.getOrElse(false.B)))
         // Qualification only. These wires feed no permission, replacement,
         // ownership or protocol decision and add no state or memory read port.
         val candidateVictimAddress = if (tagConfig.bankedStorage)
@@ -1023,7 +1049,8 @@ class NonBlockingCoherentLineCache(
         val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
         val otherwiseEligible = postedPrefetchAllowed && !liveOwner && !releaseBusy &&
             !present && !setReserved && !victimPending && allowedVictim &&
-            (!valid(pfIndex) || !dirty(pfIndex) || candidateStore.getOrElse(false.B)) &&
+            (!valid(pfIndex) || !dirty(pfIndex) || (if (concurrency.readPrefetchDirtyRetry)
+                candidateStore.get || readDirtyVictimAllowed else candidateStore.getOrElse(false.B))) &&
             freeMask.asUInt.orR && !demandMiss &&
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&
             probeState === pIdle && !io.tl.b.valid && !queuedEvictWanted
@@ -1041,6 +1068,14 @@ class NonBlockingCoherentLineCache(
                 }
             }
             when(canAllocate) {
+                if (concurrency.readPrefetchDirtyRetry) {
+                    when(valid(pfIndex) && dirty(pfIndex) && !candidateStore.get) {
+                        assert(readDirtyVictimAllowed && allowedVictim,
+                            "read PF dirty allocation lost its protected clean store-token alternative")
+                        assert(pfIndex =/= storeTrackedIndex.get,
+                            "read PF dirty allocation selected its protected store token")
+                    }
+                }
                 io.prefetch.allocated := true.B
                 observationStorePrefetch.allocated := true.B
                 observationStorePrefetch.allocatedStore := candidateStore.getOrElse(false.B)
@@ -1093,14 +1128,24 @@ class NonBlockingCoherentLineCache(
         when(io.flushRequest) {
             candidateValid := false.B
             lastValid := false.B
+            sequentialReadLine.foreach(_ := false.B)
             trackedValid := false.B
             storeTrackedValid.foreach(_ := false.B)
         }
         // Direct eviction is a newly admitted demand using a FREE MSHR; its
         // previous prefetchOwner bit is stale until the allocation edge.
         when(startEviction && !directEviction && evictFromMiss && prefetchOwner(evictMshr)) {
-            assert(!dirty(evictIndex) || storePrefetchOwner.map(_(evictMshr)).getOrElse(false.B),
-                "dirty prefetch victim requires a captured store-origin owner")
+            if (concurrency.readPrefetchDirtyRetry) {
+                // Dirty-read permission was checked at actual allocation. The
+                // existing pendingIndex/pendingVictimTag reserve that identity;
+                // a later store-token consume/probe cannot revoke its WB duty.
+                // Keep read/store origin immutable, including after MSHR reuse.
+                assert(evictIndex === pendingIndex(evictMshr) && phase(evictMshr) === evictWait,
+                    "dirty prefetch capture lost its allocated victim reservation")
+            } else {
+                assert(!dirty(evictIndex) || storePrefetchOwner.map(_(evictMshr)).getOrElse(false.B),
+                    "dirty prefetch victim requires a captured store-origin owner")
+            }
         }
     }
     io.tl.a <> engine.io.a
