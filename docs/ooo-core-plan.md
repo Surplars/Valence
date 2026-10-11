@@ -1969,3 +1969,10 @@ memory/ALU 竞争 865 → 1015；明确保留性能代价。r2 整板最终 CPU 
 批次一起验证，不使用旧 CPU DCP。新 bit 仍须等整板签核；三发射不混入本批。
 
 2026-10-10: isolated default-OFF store-origin PF victim-LRU experiment changes only the full-set candidate victim policy. It preserves read-origin clean-only selection and existing permission/cancel/dirty-release ownership. Source/config preparation is not runtime qualification; see [the focused contract](experiments/store-prefetch-lru-victim.md).
+
+## Memory-state reuse resource candidate
+
+Two independent default-OFF options remove 384 and 4416 native declared scalar
+bits (joint4800) on the explicit ROB64/PRF64/LSU4/D16/DMA4 profile. Native and
+focused gates, official split Board/GC and exact original CPU cases 19/21 passed. Defaults and recommended presets are unchanged. See the
+[current evidence, preserved FAIL boundaries and limits](experiments/memory-state-reuse.md).

@@ -1,0 +1,319 @@
+{
+  "schema": "memory-state-reuse-integration-evidence-v1",
+  "status": "PASS_NATIVE_FOCUSED_MODEL_GC_CPU19_CPU21",
+  "publication_ready": true,
+  "base": {
+    "remote_dev_commit": "be675abe7e4e0e374d2e5f5c42f53ddab64c3d91",
+    "tree": "7cca8ba3f646732120fd29c3206bd07fb68b9359",
+    "local_equivalent_commit": "0da2a2258a202f911a1f2ad7a1dd6ed18098a5af",
+    "local_history_is_tree_equivalent_only": true
+  },
+  "production_commits": [
+    "2a2a3c858b484b8a69a1c5323f874c15a4e05762",
+    "4d3f1b57643ac9e59d379192e25e03372f6bd2c5"
+  ],
+  "compiled_source_commit": "3969476cad0775f5b6de405502a4e6822f566311",
+  "qualification_source_commit": "cc8ac594844fd0c21e492c634ea1251a418790ae",
+  "defaults": {
+    "reconstructIssueTokenIndex": false,
+    "sharedMemoryAddressState": false
+  },
+  "recommended_presets_changed": false,
+  "tested_explicit_geometry": {
+    "robEntries": 64,
+    "physicalRegisters": 64,
+    "memoryEntries": 4,
+    "dataTlbEntries": 16,
+    "dmaOutstanding": 4
+  },
+  "R16_runtime_qualification_claimed": false,
+  "native": {
+    "status": "PASS_LITERAL_FOUR_MODE_NATIVE_CENSUS",
+    "declared_scalar_delta": {
+      "off-off": 0,
+      "on-off": -384,
+      "off-on": -4416,
+      "on-on": -4800
+    },
+    "arrays_ports_ram_geometry_unchanged": true,
+    "queue_full_tag_bits": 4096,
+    "mapped_resource_or_timing_claim": false
+  },
+  "focused": {
+    "original_cases": 26,
+    "original_outputs_all_exact": true,
+    "directed_cases": 3,
+    "intended_nonzero_controls": 7,
+    "historical_observer_failure_preserved": true,
+    "new_checkout_execution_claimed": false,
+    "initial_failure_boundary": {
+      "case": "reuse_widths",
+      "original_jointON_exit": 1,
+      "original_jointON_expected_exit": 0,
+      "independent_OFF_exit": 1,
+      "independent_OFF_expected_exit": 1,
+      "failure": "POSTED_PREPARATION_FAIL ordinary cache allocation reused an outstanding line owner",
+      "original_jointON_log_sha256": "6cc2aaf690639e3d6b725ef6bab77a68b50691b8276009bb0dc85922dac62603",
+      "corrected_OFF_exit": 0,
+      "original_failure_reclassified_as_pass": false
+    }
+  },
+  "cpu_model": {
+    "status": "PASS_SPLIT_REAL_MODEL_ABI_LAYOUT_ORIGINAL_GC_CPU19_CPU21",
+    "translation_units": 17,
+    "official_split_KiB": 4096,
+    "actual_sizeof": 305776,
+    "actual_alignof": 8,
+    "identical_state_members": 17501,
+    "original_mono_compile_exit": -9,
+    "original_mono_kill_cause": "UNKNOWN_OOM_SUSPECTED_NOT_PROVEN"
+  },
+  "official_RV64GC": {
+    "status": "PASS",
+    "positive_cycles": 33018,
+    "intended_negative_exit": 1
+  },
+  "cpu_cases": {
+    "19": {
+      "status": "PASS",
+      "expected_kernel_flush_cycles": [
+        380840,
+        5572
+      ],
+      "actual_kernel_flush_cycles": [
+        380840,
+        5572
+      ],
+      "all_18_original_raw_digests_exact": true,
+      "both_original_stdout_exact": true,
+      "original_trap_negative_passed": true,
+      "raw_restore": {
+        "full_original_raw_library_id": "libfile_1269dafb49b48191af36f4dc99be531d",
+        "version": 0,
+        "corrected_collection_library_id": "libfile_265665fe4118819192b906205878fe5d",
+        "corrected_collection_version": 0,
+        "earlier_map_r1_preserved_and_superseded": true,
+        "earlier_40513_package_scope": "unique observer evidence only; not full raw"
+      }
+    },
+    "21": {
+      "status": "PASS",
+      "expected_kernel_flush_cycles": [
+        345578,
+        5565
+      ],
+      "retry_source": "simulator/gsim/memory_state_reuse/cpu_case21_retry/run.py",
+      "historical_attempt": "STOPPED_BY_1.1GiB_OUTPUT_CAP_NOT_TERMINAL_DUT_RESULT",
+      "retry_cap_bytes": 1610612736,
+      "retry_admission_bytes": 2362232012,
+      "measured_original_full_output_bytes": 1464074471,
+      "cap_margin_bytes": 146538265,
+      "actual_kernel_flush_cycles": [
+        345578,
+        5565
+      ],
+      "all_18_original_raw_digests_exact": true,
+      "both_original_stdout_exact": true,
+      "original_trap_negative_passed": true,
+      "raw_restore": {
+        "full_original_raw_library_id": "libfile_4b5d31cb153c8191979eca7d1f735fde",
+        "version": 0,
+        "archive_bytes": 169697280,
+        "archive_sha256": "856930c56ff7e71c559082ef079868038cb6a79987e8714bbf041697a19c8f13",
+        "member_layout": "Nine positive gzip/<name>.gz; nine negative evidence/posted-preparation-priority-cpu-host-r2/case21-on-r1/<name>",
+        "all18_original_hashes_and_sizes_verified_against_archive_entries": true
+      }
+    }
+  },
+  "required_cpu_oracles": [
+    "original stdout byte equality",
+    "all 18 original raw sidecar SHA256 equality",
+    "full guest/buffer/fault/owner oracles",
+    "intended trap negative",
+    "full original parser on any mismatch"
+  ],
+  "boundary_join": "UNKNOWN_NOT_RECONSTRUCTED",
+  "references": {
+    "native_summary": {
+      "recovery_relative_path": "memory-state-reuse-native-20261011-r1/analysis/summary.json",
+      "sha256": "e6f3057a062b8864a292b8822306d26ae03976df0b45fbbc3ca9f0a136d9e740",
+      "bytes": 6217
+    },
+    "native_cost_details": {
+      "recovery_relative_path": "memory-state-reuse-native-20261011-r1/analysis/cost-details.json",
+      "sha256": "a8b510dae7250aac3cae0d7f841a708fad76a78d23f1ee2caaf5462df950e130",
+      "bytes": 64082
+    },
+    "native_runtime": {
+      "recovery_relative_path": "memory-state-reuse-native-20261011-r1/execution/runtime-binding.json",
+      "sha256": "dade20350e1ec8ead4b5db5d39cd4219b3bae60c876d1dcc8f59a7cbc65cf49b",
+      "bytes": 270266
+    },
+    "focused_summary": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/qualification-summary.json",
+      "sha256": "6678a9b7ebb325ab1028f6366460a032b8299066e7a99ffe177dd805d7890465",
+      "bytes": 4706
+    },
+    "focused_original_output_comparison": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/original-26-output-comparison.json",
+      "sha256": "91396daf7b7b0a2302635ffa2f8557e5d0c7d898134bc1da6180d8852f8b792d",
+      "bytes": 10025
+    },
+    "focused_raw_manifest": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/raw-manifest-r1.json",
+      "sha256": "c4e7b6a7dd136817041ff9bf04c44ad58e519a88155f21655590dd6216fe3a49",
+      "bytes": 32646
+    },
+    "focused_state_abi": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/state-abi.json",
+      "sha256": "b0d9257a0a7e06181dcd6e6851ea304c0d89c87fb52ca6302391cb118392e8a2",
+      "bytes": 788
+    },
+    "original_failed_compile": {
+      "recovery_relative_path": "memory-state-reuse-cpu-20261011-r1/compile.receipt.json",
+      "sha256": "602fcd67748629b5e701b8f9462d025da39e54bffcadf877224de33b831d738b",
+      "bytes": 3965
+    },
+    "original_failed_compile_diagnosis": {
+      "recovery_relative_path": "memory-state-reuse-cpu-20261011-r1/compile-sigkill-diagnosis-r1.json",
+      "sha256": "cefe16f1d57fcc5d8db98616f825212c9dfa91a25ecd6406f749873c77930c62",
+      "bytes": 1651
+    },
+    "cpu_split_pins": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/pins.json",
+      "sha256": "d02a4816bd2e016ad7f694afa6a0158fc06e6374ab55325dd32bfe960c01ad62",
+      "bytes": 53265
+    },
+    "cpu_split_compile": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/compile.receipt.json",
+      "sha256": "2b333292d984ab486040f0e8e2deca56e82c1cefd45d5c18f6bdf2cc9e256b67",
+      "bytes": 11045
+    },
+    "cpu_split_model_qualification": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/model-qualification.json",
+      "sha256": "b7cc13fcc158277608c725301d0e2344ba8bbb8adb4f58fa407036471a6e8a65",
+      "bytes": 37699
+    },
+    "cpu_split_model_delivery": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/model-qualification-delivery.json",
+      "sha256": "98591428d39b92a1d1c751d245485ed17988523f01eb4104ebbfc671155281d4",
+      "bytes": 719
+    },
+    "cpu_split_source_preparation": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/preparation-delivery-r1.json",
+      "sha256": "833685c16383a0953a77041009377f14bd2a0adafb5d9bca1723ea53ec28625c",
+      "bytes": 769
+    },
+    "official_RV64GC": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/rv64gc/qualification.json",
+      "sha256": "68bc19efc21a8d504bfa329791fa6d54ddefb74b6ee121a8a17460236dac342a",
+      "bytes": 99830
+    },
+    "focused_initial_fail_batch": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/batch-diagnostic-matrix-r1.json",
+      "sha256": "5cb5eadb4573b652e75bf7e38fd01e6ddddb4f3888b106d27369af5b04e8cebc",
+      "bytes": 20177
+    },
+    "focused_off_fail_control": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/baseline-control-widths-r2.receipt.json",
+      "sha256": "b33a3549a50f3517281bd3e4fda49d57722480355e5bfd31957f67f4f0e362d0",
+      "bytes": 2524
+    },
+    "focused_off_corrected_control": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/baseline-control-widths-r3.receipt.json",
+      "sha256": "ddc67503c314a563c5fbe4d8f8cb228212fd25bcbaa72dfced340bbc6f1ba8ce",
+      "bytes": 2525
+    },
+    "focused_initial_source_and_control_binding": {
+      "recovery_relative_path": "memory-state-reuse-focused-20261011-r1/baseline-control-inputs.json",
+      "sha256": "662899ff8d2de70688356aaeea43bf2585a0e6cf9b84561a1b33dc4ff16fa64e",
+      "bytes": 996
+    },
+    "cpu19_terminal": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/case19/qualification.json",
+      "sha256": "6d6352d31f5a0ae9123c285b49e08a12b3b5eb6431272a86541e63b1ecf84d4f",
+      "bytes": 65861
+    },
+    "cpu19_raw_alias_map_r2": {
+      "recovery_relative_path": "memory-state-reuse-cpu-split-20261011-r1/case19-raw-alias-map-r2.json",
+      "sha256": "197e57f84a568503f7db44d6e100b9fbd79bd1396f7dc626f212340c45a89f06",
+      "bytes": 11159
+    },
+    "cpu21_retry_contract": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/contract.json",
+      "sha256": "1dcc339cca74fd96e9985ae9329b2f55d8c869a58b4b99660cd9fa3b467b7902",
+      "bytes": 4306
+    },
+    "cpu21_partial_archive_receipt": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/partial-archive-receipt.json",
+      "sha256": "1bb23ef5dc75a01a1aa5fc979fc95400d6559e320cebce802116d272bf56c4af",
+      "bytes": 693
+    },
+    "cpu21_terminal": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/case21/qualification.json",
+      "sha256": "4a136d3d09f7096f4cfa61b7853347d3165f241da9461d1514f5fad5d5a1fc5f",
+      "bytes": 60749
+    },
+    "cpu21_raw_recovery_map": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/case21-raw-recovery-map.json",
+      "sha256": "752cfb32bf4a058172d64e5543654095c745bfc30f8190934a49dd236ffec16e",
+      "bytes": 8167
+    },
+    "cpu_pair_qualification": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/cpu-pair-qualification.json",
+      "sha256": "34c4c270a8939ebfb75eda9bd188af867444760d1e6ff0714497d8937afb2064",
+      "bytes": 4183
+    },
+    "cpu_final_delivery": {
+      "recovery_relative_path": "memory-state-reuse-cpu-case21-retry-20261011-r1/final-delivery.json",
+      "sha256": "a9fe990266086833dd5b120c6728a91018d121672669968ecabcff171c62da0d",
+      "bytes": 6443
+    }
+  },
+  "portability": "Historical execution scripts retain original source/path/tool bindings. Rebind in a fresh namespace and generate new receipts; no new-path DUT runs are claimed.",
+  "excluded": [
+    "actual generated DUT model C++/headers",
+    "generated RTL/FIR",
+    "ELF/object/binary outputs",
+    "raw logs/trace sidecars",
+    "out/build directories"
+  ],
+  "abi_accessor_snapshot": {
+    "path": "simulator/gsim/memory_state_reuse/focused/state_abi.h",
+    "bytes": 10193,
+    "sha256": "dc7d0b17fb765006fb28866697306b0cd023a730f6bfb816e96d83a6be57b4ce",
+    "kind": "regenerable inline ABI accessor source snapshot; not a DUT model",
+    "historical_inputs": {
+      "schema": "memory-state-reuse-focused-abi-v1",
+      "profile_sha256": "406837cd2a8f4bce86c7ec5330d3d2148082860fa2c842bf2a0036b9c873f88e",
+      "header_sha256": "d6e1fb2b6806f79c7a048611de706ff01f50f92e9311e7bd4682d2b3e1a43afc",
+      "adapter_sha256": "dc7d0b17fb765006fb28866697306b0cd023a730f6bfb816e96d83a6be57b4ce",
+      "layout": {
+        "backend$storeAddress": "array64",
+        "backend$storeByteLanes": "array64",
+        "backend$queue$$renamed$$token$$tag": "array64",
+        "backend$pending": "array64",
+        "backend$memoryLive": "array64",
+        "backend$capturedOwners": "scalar2",
+        "backend$captured$$token$$index": "scalar2",
+        "backend$captured$$token$$tag": "scalar2"
+      },
+      "token_index": "literal owning slot only; actual profile explicitly ON",
+      "tag_bits": 64,
+      "fallback": false
+    }
+  },
+  "source_preparation": {
+    "status": "PASS_SOURCE_PREPARATION_ONLY",
+    "reused_baseline_inputs": 39,
+    "avoided_duplicate_bytes": 263604,
+    "historical89_files_exact": true,
+    "native10_files_exact": true,
+    "DUT_execution": false,
+    "hash_map": "simulator/gsim/memory_state_reuse/source-inputs.json",
+    "receipt_sha256": "aa60a22e91e35bce87011ae4b09080ce794321fd680660500e2c9cb681ad7161"
+  },
+  "historical_source_materialization_commit": "8d9bc67a3b0c526deae38c766912fab0104b44ac",
+  "pending_workloads": [],
+  "cpu_validation_scope": "Actual new joint-ON DUT positives and original trap negatives ran for cases19/21. Complete primary results were reparsed and equal. All18 original raw digests and both stdout matched, so unchanged full-parser certificates were reused; forced full-parser reruns were unnecessary and are not claimed."
+}

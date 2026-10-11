@@ -21,9 +21,11 @@ object StorePrefetchLruVictimProfiles {
         val original = MemoryProofFrontierExactFixture.profile(true)
         val selected = FpgaNextConfig.fromOptions(options(enabled), defaultSelected = false)
         require(selected == original.copy(storePrefetchLruVictim = enabled))
-        require(selected.productArity == 32 && selected.coreParams.productArity == 140)
+        require(selected.productArity == 34 && selected.coreParams.productArity == 142)
         require(selected.coreParams == original.coreParams)
         require(!selected.postedPreparationPriority && !selected.coreParams.postedPreparationPriority)
+        require(!selected.reconstructIssueTokenIndex && !selected.coreParams.reconstructIssueTokenIndex)
+        require(!selected.sharedMemoryAddressState && !selected.coreParams.sharedMemoryAddressState)
         MemoryProofFrontierExactFixture.validate(selected.coreParams)
         val expectedCache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
             writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,

@@ -143,7 +143,9 @@ case class OooParams(
     memoryProofFrontier: Boolean = false,
     memoryProofRows: Int = 16,
     memoryProofCacheSets: Int = 256,
-    postedPreparationPriority: Boolean = false
+    postedPreparationPriority: Boolean = false,
+    reconstructIssueTokenIndex: Boolean = false,
+    sharedMemoryAddressState: Boolean = false
 ) {
     require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
         renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&

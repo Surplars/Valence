@@ -14,7 +14,7 @@ object BoardSocMain extends App {
             "[baseline|early-issue|queued-memory|registered-response|registered-replay|staged-fabric|staged-control|staged-data|staged-execute|staged-rename|staged-retire|staged-redirect|staged-preparation|staged-payload|staged-return|staged-fetch-address|staged-fetch-control|staged-recovery-control|staged-execute-select|staged-frontend-select] " +
             "[uart-baud] [cache-ways] " +
             "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] " +
-            "[peripheral-clock-hz:0=same-domain] [--banked-rob] [--shared-store-reads] [--virtual-ram-load-precheck]")
+            "[peripheral-clock-hz:0=same-domain] [--banked-rob] [--shared-store-reads] [--reconstruct-issue-token-index] [--shared-memory-address-state] [--virtual-ram-load-precheck]")
     require(cli.lift(7).forall(Set("0", "1").contains), "instruction-prefetch must be 0 or 1")
     val output = Path.of(cli(0)).toAbsolutePath
     val clockHz = if (cli.length >= 2) cli(1).toInt else 40000000

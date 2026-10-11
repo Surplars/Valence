@@ -592,7 +592,7 @@ object BoardSocGsimMain extends App {
         "usage: BoardSocGsimMain output-directory [ddr] [clock-hz] " +
             "[baseline|early-issue|queued-memory|registered-response|registered-replay|staged-fabric|staged-control] " +
             "[uart-baud] [cache-ways] " +
-            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--lvt-prf] [--virtual-ram-load-precheck]")
+            "[issue-width:2|4] [instruction-prefetch:0|1] [isa:rv64imac|rv64imafc|rv64gc] [ddr-memory-bytes] [frontend-probes:0|1] [instruction-line-cache-lines] [backend-probes:0|1] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--reconstruct-issue-token-index] [--shared-memory-address-state] [--lvt-prf] [--virtual-ram-load-precheck]")
     require(cli.lift(18).forall(Set("0", "1").contains), "load issue forwarding must be 0 or 1")
     require(cli.lift(12).forall(Set("0", "1").contains), "backend-probes must be 0 or 1")
     require(cli.lift(10).forall(Set("0", "1").contains), "frontend-probes must be 0 or 1")

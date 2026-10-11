@@ -7,13 +7,17 @@ import chisel3.util.experimental.BoringUtils
 import soc.bus.tilelink.{TLBundle, TLParams}
 import soc.core.ooo._
 
-class PostedPreparationPriorityGsim(priorityEnabled: Boolean) extends Module {
+class PostedPreparationPriorityGsim(priorityEnabled: Boolean,
+    reconstructIssueTokenIndex: Boolean = false, sharedMemoryAddressState: Boolean = false,
+    observeMemoryReuse: Boolean = false) extends Module {
     private val overlap = true
     private val memoryEntries = 4
     private val enabled = true
     val baseline = StorePrefetchLruVictimProfiles.profile(true)
-    val profile = baseline.copy(postedPreparationPriority = priorityEnabled)
-    require(profile.coreParams.copy(postedPreparationPriority = false) == baseline.coreParams)
+    val profile = baseline.copy(postedPreparationPriority = priorityEnabled,
+        reconstructIssueTokenIndex = reconstructIssueTokenIndex, sharedMemoryAddressState = sharedMemoryAddressState)
+    require(profile.coreParams.copy(postedPreparationPriority = false,
+        reconstructIssueTokenIndex = false, sharedMemoryAddressState = false) == baseline.coreParams)
     require(profile.cache == baseline.cache && profile.ddr == baseline.ddr)
     val p = profile.coreParams
     require(p.memoryProofFrontier && p.robEntries == 64 && p.physicalRegs == 64)
@@ -129,6 +133,18 @@ class PostedPreparationPriorityGsim(priorityEnabled: Boolean) extends Module {
         val memoryStall = Output(UInt(4.W))
         val canonicalOrigin = Output(Valid(new CanonicalStoreOrigin(p)))
         val canonicalChecked = Output(Valid(new CanonicalStoreCertificate(p)))
+        val reuse = if (observeMemoryReuse) Some(Output(new Bundle {
+            val storeWrites0 = UInt(p.robEntries.W)
+            val storeWrites1 = UInt(p.robEntries.W)
+            val loadWrite = Bool()
+            val startStore = Bool()
+            val startAtomic = Bool()
+            val canonicalBeat = UInt(61.W)
+            val canonicalLanes = UInt(8.W)
+            val frontierChoice = Bool()
+            val actualIndex = UInt(p.robBits.W)
+            val killed = UInt(p.robEntries.W)
+        })) else None
     })
     val decoded = Seq.tabulate(2) { lane =>
         val decode = Module(new IntegerDecode(enableSystem = p.machineSystem, enableAtomic = p.atomicMemory,
@@ -325,6 +341,21 @@ class PostedPreparationPriorityGsim(priorityEnabled: Boolean) extends Module {
 
     def tap[T <: Data](value: T): T = BoringUtils.bore(value)
     def probe[T <: Data](values: Seq[T]): T = VecInit(values.map(tap(_)))(io.probeIndex)
+    io.reuse.foreach { reuse =>
+        require(p.sharedMemoryAddressState, "write observations require the shared-address candidate")
+        reuse.storeWrites0 := VecInit((0 until p.robEntries).map(i =>
+            tap(backend.sharedAddressStoreWrites.get(i)(0)))).asUInt
+        reuse.storeWrites1 := VecInit((0 until p.robEntries).map(i =>
+            tap(backend.sharedAddressStoreWrites.get(i)(1)))).asUInt
+        reuse.loadWrite := tap(backend.sharedAddressLoadWrite.get)
+        reuse.startStore := tap(backend.lsu.io.start.bits.store)
+        reuse.startAtomic := tap(backend.lsu.io.start.bits.atomic)
+        reuse.canonicalBeat := tap(backend.actualCanonicalAddress)(63, 3)
+        reuse.canonicalLanes := tap(backend.actualLanes)
+        reuse.frontierChoice := tap(backend.frontierChoice)
+        reuse.actualIndex := tap(backend.actualMemoryIndex)
+        reuse.killed := VecInit((0 until p.robEntries).map(i => tap(backend.killed(i)))).asUInt
+    }
     io.probePending := probe(backend.pending.toSeq)
     io.probeMemoryLive := probe(backend.memoryLive.toSeq)
     io.probePrepared := probe(backend.storePrepared.toSeq)
@@ -332,7 +363,7 @@ class PostedPreparationPriorityGsim(priorityEnabled: Boolean) extends Module {
     io.probeSafe := probe(backend.storeSafeRange.toSeq)
     io.probeReady1 := probe((0 until p.robEntries).map(i => backend.ownerReady.get.io.ready1(i)))
     io.probeReady2 := probe((0 until p.robEntries).map(i => backend.ownerReady.get.io.ready2(i)))
-    io.probeToken := probe((0 until p.robEntries).map(i => backend.queue(i).renamed.token))
+    io.probeToken := probe((0 until p.robEntries).map(i => backend.issueEntries(i).renamed.token))
     io.probeAddress := probe(backend.storeAddress.toSeq)
     io.originalMask := VecInit(backend.memoryCandidates.map(c => tap(c.valid))).asUInt
     io.stageValid := tap(backend.stagedMemoryValid.get)
@@ -374,5 +405,18 @@ object PostedPreparationPriorityGsimMain extends App {
     val profile = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = args(1) == "on")
     PostedBoardConfiguration.write(profile, args(0))
     ChiselStage.emitCHIRRTLFile(new PostedPreparationPriorityGsim(args(1) == "on"),
+        Array("--target-dir", args(0)))
+}
+
+/** Candidate-local selector; the existing two-argument priority entry stays unchanged. */
+object MemoryStateReuseGsimMain extends App {
+    require(args.length == 3 && args.drop(1).forall(Set("off", "on").contains),
+        "usage: MemoryStateReuseGsimMain output-directory index-off|on address-off|on (use literal off/on)")
+    val reconstruct = args(1) == "on"
+    val shared = args(2) == "on"
+    val profile = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true,
+        reconstructIssueTokenIndex = reconstruct, sharedMemoryAddressState = shared)
+    PostedBoardConfiguration.write(profile, args(0))
+    ChiselStage.emitCHIRRTLFile(new PostedPreparationPriorityGsim(true, reconstruct, shared, observeMemoryReuse = shared),
         Array("--target-dir", args(0)))
 }

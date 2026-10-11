@@ -367,8 +367,20 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val storeByteLanes = Reg(Vec(p.robEntries, UInt(8.W)))
     val storeSafeRange = Reg(Vec(p.robEntries, Bool()))
     val storeData      = Reg(Vec(p.robEntries, UInt(64.W)))
-    val loadBeat      = Reg(Vec(p.robEntries, UInt(61.W)))
-    val loadLanes     = Reg(Vec(p.robEntries, UInt(8.W)))
+    // A row has one immutable operation class for its live ROB generation.
+    // Stores retain their full prepared VA; ordinary loads retain only the
+    // canonical beat and byte lanes consumed by replay. All existing validity,
+    // token and canonical-address checks continue to select the interpretation.
+    val loadBeat = if (p.sharedMemoryAddressState) VecInit(storeAddress.map(_(63, 3)))
+        else Reg(Vec(p.robEntries, UInt(61.W)))
+    val loadLanes = if (p.sharedMemoryAddressState) storeByteLanes
+        else Reg(Vec(p.robEntries, UInt(8.W)))
+    // These combinational witnesses are used only by assertions, not arbitration.
+    val sharedAddressLoadWrite = if (p.sharedMemoryAddressState)
+        Some(lsu.io.start.fire && !lsu.io.start.bits.store && !lsu.io.start.bits.atomic) else None
+    val sharedAddressStoreWrites = if (p.sharedMemoryAddressState)
+        Some(Wire(Vec(p.robEntries, Vec(p.completionWidth, Bool())))) else None
+    sharedAddressStoreWrites.foreach(writes => writes := 0.U.asTypeOf(writes))
     val orderCheckValid = RegInit(false.B)
     val orderCheckIndex = RegInit(0.U(p.robBits.W))
     val orderCheckTag = if (p.loadOrderOlderRetire) Some(RegInit(0.U(p.tagBits.W))) else None
@@ -382,6 +394,18 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         limit.bits.tag := orderCheckTag.get
     }
     val queue         = Reg(Vec(p.robEntries, new IntegerIssueEntry(p)))
+    // Allocation is the only queue writer and targets renamed.token.index. Rows
+    // never move: a live row's index is its slot for its entire generation. Keep
+    // the full tag in storage and reconstruct only that fixed index BEFORE every
+    // dynamic/one-hot read. Captured producer tokens and all owner checks stay full.
+    // OFF is a Scala alias, so the original register names and circuitry remain.
+    val issueEntries = if (p.reconstructIssueTokenIndex) {
+        val entries = WireDefault(queue)
+        for (slot <- 0 until p.robEntries) {
+            entries(slot).renamed.token.index := slot.U(p.robBits.W)
+        }
+        entries
+    } else queue
     // In the RAM profile, the six large immutable fields in this register view
     // are tied to zero at allocation and optimized away. Full token/source/class
     // metadata remains local to the scheduler and all completion owner checks.
@@ -390,8 +414,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         (String, UInt, Bool, Set[String], ImmutableIssuePayload)]
     def readIssue(index: UInt, name: String, fields: Set[String] = ImmutableIssuePayload.all,
         owner: Option[UInt] = None): IntegerIssueEntry = {
-        val metadata = owner.map(mask => CircularIssueSelector.selectPayload(mask, queue.map(_.asUInt).toSeq)
-            .asTypeOf(new IntegerIssueEntry(p))).getOrElse(queue(index))
+        val metadata = owner.map(mask => CircularIssueSelector.selectPayload(mask, issueEntries.map(_.asUInt).toSeq)
+            .asTypeOf(new IntegerIssueEntry(p))).getOrElse(issueEntries(index))
         if (!p.bankedIssuePayload) metadata
         else {
             val payload = Wire(new ImmutableIssuePayload).suggestName(s"${name}Payload")
@@ -406,8 +430,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         Some(Module(new QueuedPhysicalSourceDecode(p))) else None
     queuedSourceDecode.foreach { decode =>
         for (slot <- 0 until p.robEntries) {
-            decode.io.source1(slot) := queue(slot).renamed.source1
-            decode.io.source2(slot) := queue(slot).renamed.source2
+            decode.io.source1(slot) := issueEntries(slot).renamed.source1
+            decode.io.source2(slot) := issueEntries(slot).renamed.source2
         }
     }
     def independentPhysicalOperands(): IssuePhysicalOperands = {
@@ -444,8 +468,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             mirror.io.allocationReady2.get := initialization.io.ready2
         }
         for (slot <- 0 until p.robEntries) {
-            mirror.io.source1(slot) := queue(slot).renamed.source1
-            mirror.io.source2(slot) := queue(slot).renamed.source2
+            mirror.io.source1(slot) := issueEntries(slot).renamed.source1
+            mirror.io.source2(slot) := issueEntries(slot).renamed.source2
         }
         for (lane <- 0 until p.renameWidth) {
             val renamed = ledger.io.renamed(lane)
@@ -468,11 +492,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         Some(boundary.io.afterHead)
     } else None
     val headRequest = readIssue(head, "head", ImmutableIssuePayload.head).request
-    val headRenamed = queue(head).renamed
+    val headRenamed = issueEntries(head).renamed
     // A completed load has its result in the LSU register before the completion arbiter writes
     // the physical register. Wake dependent ALU work from that stable result to avoid a CDB cycle.
     val completedLoadIndex = lsu.io.complete.bits.token.index
-    val completedLoadEntry = queue(completedLoadIndex)
+    val completedLoadEntry = issueEntries(completedLoadIndex)
     val completedLoadBypass = p.loadCompletionBypass.B && lsu.io.complete.valid &&
         !lsu.io.complete.bits.exception &&
         memoryLive(completedLoadIndex) &&
@@ -481,10 +505,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         !completedLoadEntry.request.atomic && completedLoadEntry.renamed.writesRd
     val wordPreviewBypass = p.mulWordPreviewBypass.B && multiplier.io.wordPreview.valid &&
         !multiplier.io.wordPreview.bits.exception &&
-        queue(multiplier.io.wordPreview.bits.token.index).renamed.token.asUInt ===
+        issueEntries(multiplier.io.wordPreview.bits.token.index).renamed.token.asUInt ===
             multiplier.io.wordPreview.bits.token.asUInt &&
-        queue(multiplier.io.wordPreview.bits.token.index).renamed.writesRd
-    val wordPreviewDestination = queue(multiplier.io.wordPreview.bits.token.index).renamed.destination
+        issueEntries(multiplier.io.wordPreview.bits.token.index).renamed.writesRd
+    val wordPreviewDestination = issueEntries(multiplier.io.wordPreview.bits.token.index).renamed.destination
     // A speculative ordinary-ALU availability promise comes from REGISTERED
     // ownership/legality, not same-cycle cancellation. It only selects/captures
     // next-cycle operand data; it never writes the PRF, ROB or ready scoreboard.
@@ -519,7 +543,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         // Invalid completion payload is unspecified (including its index). A when
         // does not prevent combinational assertion expressions being evaluated.
         val promisedIndex = Mux(loadIssueWake.valid, lsu.io.complete.bits.token.index, 0.U)
-        val promisedEntry = queue(promisedIndex)
+        val promisedEntry = issueEntries(promisedIndex)
         when(loadIssueWake.valid) {
             // Assertions intentionally inspect full ownership outside the wake cone.
             assert(memoryLive(promisedIndex) &&
@@ -558,7 +582,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     val killed   = Wire(Vec(p.robEntries, Bool()))
     val eligible = Wire(Vec(p.robEntries, Bool()))
     for (i <- 0 until p.robEntries) {
-        val entry = queue(i)
+        val entry = issueEntries(i)
         killed(i) := ledger.io.parallelRecovery.map(_.killed(i)).getOrElse(
             ledger.io.recoveryAccepted && (ages(i) > boundaryAge ||
                 (ledger.io.recover.bits.inclusive && i.U === ledger.io.recover.bits.token.index)))
@@ -679,12 +703,12 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         f.io.head := head
         f.io.pending := pending.asUInt
         f.io.memoryLive := memoryLive.asUInt
-        f.io.ordinary := VecInit(queue.map(e => e.request.memory && !e.request.atomic && !e.request.system &&
+        f.io.ordinary := VecInit(issueEntries.map(e => e.request.memory && !e.request.atomic && !e.request.system &&
             !e.request.mulDiv && !e.request.fetchFault && !e.request.fetchPageFault &&
             e.request.operation === IntegerOp.add && e.request.controlFlow === ControlFlow.none)).asUInt
-        f.io.stores := VecInit(queue.map(_.request.store)).asUInt
+        f.io.stores := VecInit(issueEntries.map(_.request.store)).asUInt
         f.io.systems := VecInit((0 until p.robEntries).map(i =>
-            (pending(i) && queue(i).request.system) || (memoryLive(i) && queue(i).request.atomic))).asUInt
+            (pending(i) && issueEntries(i).request.system) || (memoryLive(i) && issueEntries(i).request.atomic))).asUInt
         f.io.canonicalLoads := memoryCanonical.get.asUInt
         f.io.clearOwners := proofOwnerClear
         f.io.pause := interruptDrain || reserveSystem || contextMemoryEpoch || fpMemoryEpoch ||
@@ -692,10 +716,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         f.io.flushQueries := ledger.io.recovering || ledger.io.recoveryAccepted || contextMemoryEpoch ||
             interruptDrain || reserveSystem
         f.io.queryEligible := VecInit((0 until p.robEntries).map { i =>
-            pending(i) && memoryLive(i) && Mux(queue(i).request.store, storeAddressKnown(i),
-                ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(Mux(pending(i), queue(i).renamed.source1, 0.U))))
+            pending(i) && memoryLive(i) && Mux(issueEntries(i).request.store, storeAddressKnown(i),
+                ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(Mux(pending(i), issueEntries(i).renamed.source1, 0.U))))
         }).asUInt
-        f.io.resultToken := queue(f.io.resultIndex).renamed.token
+        f.io.resultToken := issueEntries(f.io.resultIndex).renamed.token
         f.io.precheck <> io.loadPrecheck.get
         f.io.pmpState := pmpState
         f.io.privilege := dataPrivilege
@@ -705,7 +729,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     }
     val memoryCandidates = (0 until p.robEntries).map { i =>
         val c            = Wire(new Candidate)
-        val entry        = queue(i)
+        val entry        = issueEntries(i)
         // Invalid queue slots are uninitialized. Do not use their stale IDs to
         // address the compact (48-entry, not 64-entry) PRF in the new planner.
         val source1 = if (p.parallelMemoryPreparation) Mux(pending(i), entry.renamed.source1, 0.U)
@@ -736,7 +760,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             // An issued original candidate must never expose a younger store fallback.
             val preparationMask = if (p.preparedStoreLookahead) {
                 val preparedStoreMask = VecInit((0 until p.robEntries).map { i =>
-                    val entry = queue(i)
+                    val entry = issueEntries(i)
                     pending(i) && memoryLive(i) && i.U =/= head &&
                         entry.renamed.token.index === i.U &&
                         entry.request.memory && entry.request.store && !entry.request.atomic &&
@@ -751,7 +775,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                     // Decode-only qualification of EVERY original candidate, before issued-owner exclusion.
                     // Addresses/PMP are deliberately not inspected here; actual launch and seal gates stay below.
                     val allOriginalLoads = (0 until p.robEntries).map { i =>
-                        val request = queue(i).request
+                        val request = issueEntries(i).request
                         !originalMemoryMask(i) || (request.memory && !request.store && !request.atomic &&
                             !request.system && !request.mulDiv && request.controlFlow === ControlFlow.none &&
                             request.operation === IntegerOp.add && !request.fetchFault && !request.fetchPageFault)
@@ -781,8 +805,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 operands.io.owners(1) := planner.io.secondOwner
                 if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
                 for (slot <- 0 until p.robEntries) {
-                    operands.io.source1(slot) := queue(slot).renamed.source1
-                    operands.io.source2(slot) := queue(slot).renamed.source2
+                    operands.io.source1(slot) := issueEntries(slot).renamed.source1
+                    operands.io.source2(slot) := issueEntries(slot).renamed.source2
                 }
             }
             val secondValid = proofFrontier.map(_.io.queryOwner.valid).getOrElse(planner.io.secondValid)
@@ -851,7 +875,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
         memoryChoice.valid := stagedMemoryValid.get && pending(stagedMemoryIndex.get) &&
             (if (p.memoryProofFrontier) !proofOwnerClear(stagedMemoryIndex.get)
-             else queue(stagedMemoryIndex.get).renamed.token.asUInt === stagedMemoryToken.get.asUInt)
+             else issueEntries(stagedMemoryIndex.get).renamed.token.asUInt === stagedMemoryToken.get.asUInt)
         memoryChoice.index := stagedMemoryIndex.get
         memoryChoice.age := stagedMemoryIndex.get - head
     } else {
@@ -943,9 +967,9 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val index = Mux(tracker.io.tracked, token.index, 0.U)
         tracker.io.ownerLive := tracker.io.tracked && memoryProtected && ledger.io.headValid &&
             memoryOwner.asUInt === token.asUInt && headRenamed.token.asUInt === token.asUInt &&
-            memoryLive(index) && !pending(index) && queue(index).renamed.token.asUInt === token.asUInt &&
-            queue(index).request.memory && queue(index).request.store && !queue(index).request.atomic &&
-            !queue(index).request.system
+            memoryLive(index) && !pending(index) && issueEntries(index).renamed.token.asUInt === token.asUInt &&
+            issueEntries(index).request.memory && issueEntries(index).request.store && !issueEntries(index).request.atomic &&
+            !issueEntries(index).request.system
         tracker.io.epoch := io.loadPrecheck.get.epoch
         tracker.io.stable := io.loadPrecheck.get.stable && !contextMemoryEpoch
         tracker.io.checked := io.canonicalStore.get.checked
@@ -960,8 +984,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     }
     val certFor = (0 until p.robEntries).map { i =>
         canonicalStoreTracker.map(t => t.io.certificate.valid && memoryLive(i) &&
-            queue(i).request.memory && queue(i).request.store && !queue(i).request.atomic &&
-            queue(i).renamed.token.asUInt === t.io.certificate.bits.origin.token.asUInt).getOrElse(false.B)
+            issueEntries(i).request.memory && issueEntries(i).request.store && !issueEntries(i).request.atomic &&
+            issueEntries(i).renamed.token.asUInt === t.io.certificate.bits.origin.token.asUInt).getOrElse(false.B)
     }
     proofFrontier.foreach { f =>
         f.io.canonicalStores := VecInit(certFor).asUInt
@@ -981,27 +1005,27 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 // A prepared virtual address is never compared with this load's physical address.
                 Mux(precheckedLoad, canonicalDisjoint, storeAddressKnown(i) && storeSafeRange(i) && disjoint)
             }.getOrElse(storeAddressKnown(i) && storeSafeRange(i) && disjoint)
-            memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age &&
+            memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age &&
             !knownDisjoint &&
-            !(forwarding && queue(i).renamed.token.asUInt === sourceStore.bits.token.asUInt)
+            !(forwarding && issueEntries(i).renamed.token.asUInt === sourceStore.bits.token.asUInt)
         }
         .reduce(_ || _)
     // Only the exact actual checked store can establish canonical ownership.
     // Every unknown/unissued older store retains its barrier, even if its VA looks like RAM.
     val olderUncanonicalMemory = memoryCanonical.map { known =>
         (0 until p.robEntries).map(i => memoryLive(i) && ages(i) < memoryChoice.age &&
-            (if (p.canonicalVirtualStoreOverlap) Mux(queue(i).request.store, !certFor(i), !known(i))
-             else queue(i).request.store || !known(i))).reduce(_ || _)
+            (if (p.canonicalVirtualStoreOverlap) Mux(issueEntries(i).request.store, !certFor(i), !known(i))
+             else issueEntries(i).request.store || !known(i))).reduce(_ || _)
     }.getOrElse(false.B)
     val blockedByStore = physicalStoreConflict || (precheckedLoad && olderUncanonicalMemory)
     val unknownOlderStore = (0 until p.robEntries)
-        .map(i => memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age && !storeAddressKnown(i))
+        .map(i => memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age && !storeAddressKnown(i))
         .reduce(_ || _)
     val speculative = !memoryEntry.request.store && !memoryEntry.request.atomic && ordinaryRam
     // Reserve before branch resolution to avoid a select -> redirect -> select combinational loop.
     val olderSystem = (0 until p.robEntries)
         .map(i =>
-            ((pending(i) && queue(i).request.system) || (memoryLive(i) && queue(i).request.atomic)) &&
+            ((pending(i) && issueEntries(i).request.system) || (memoryLive(i) && issueEntries(i).request.atomic)) &&
                 ages(i) < memoryChoice.age
         )
         .reduce(_ || _)
@@ -1081,8 +1105,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     replaySelector.io.beats := loadBeat
     replaySelector.io.lanes := loadLanes
     replaySelector.io.eligible := VecInit((0 until p.robEntries).map { i =>
-        memoryLive(i) && !pending(i) && queue(i).request.memory &&
-            !queue(i).request.store && !queue(i).request.atomic &&
+        memoryLive(i) && !pending(i) && issueEntries(i).request.memory &&
+            !issueEntries(i).request.store && !issueEntries(i).request.atomic &&
             memoryCanonical.map(_(i)).getOrElse(true.B)
     }).asUInt
     val loadReplay = Wire(new Candidate)
@@ -1090,7 +1114,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     loadReplay.index := replaySelector.io.index
     loadReplay.age := replaySelector.io.index - head
     val loadReplayToken = Mux1H((0 until p.robEntries).map { i =>
-        replaySelector.io.oneHot(i) -> queue(i).renamed.token
+        replaySelector.io.oneHot(i) -> issueEntries(i).renamed.token
     })
     val loadReplayPc = readIssue(replaySelector.io.index, "loadReplay", Set("pc"),
         Some(replaySelector.io.oneHot)).request.rename.pc
@@ -1178,7 +1202,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
         when(lsu.io.start.fire && precheckedLoad && !frontierChoice && memoryChoice.index =/= head) {
             for (i <- 0 until p.robEntries) {
-                when(memoryLive(i) && queue(i).request.store && ages(i) < memoryChoice.age) {
+                when(memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age) {
                     assert(certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
                         tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask),
                         "every older store must have matching checked ownership and disjoint physical bytes")
@@ -1266,8 +1290,19 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
         pending(actualMemoryIndex) := false.B
         memoryCanonical.foreach(_(actualMemoryIndex) := !virtualized || precheckedLoad || frontierChoice)
-        loadBeat(actualMemoryIndex) := actualCanonicalAddress(63, 3)
-        loadLanes(actualMemoryIndex) := actualLanes
+        if (p.sharedMemoryAddressState) {
+            // The old load-only bank was written on EVERY LSU start. Its values
+            // for stores/atomics were never eligible for replay. Do not let those
+            // starts overwrite a live store's prepared VA with a canonical PA.
+            // Final LSU class includes the independent frontier-selected winner.
+            when(sharedAddressLoadWrite.get) {
+                storeAddress(actualMemoryIndex) := Cat(actualCanonicalAddress(63, 3), 0.U(3.W))
+                storeByteLanes(actualMemoryIndex) := actualLanes
+            }
+        } else {
+            loadBeat(actualMemoryIndex) := actualCanonicalAddress(63, 3)
+            loadLanes(actualMemoryIndex) := actualLanes
+        }
         orderCheckIndex := actualMemoryIndex
         orderCheckTag.foreach(_ := lsu.io.start.bits.token.tag)
         orderCheckBeat := actualCanonicalAddress(63, 3)
@@ -1357,14 +1392,14 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         operands.io.owners := selector.io.owner
         if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
-            operands.io.source1(slot) := queue(slot).renamed.source1
-            operands.io.source2(slot) := queue(slot).renamed.source2
+            operands.io.source1(slot) := issueEntries(slot).renamed.source1
+            operands.io.source2(slot) := issueEntries(slot).renamed.source2
         }
         for (kind <- 0 until 2) {
             selector.io.eligible(kind) := VecInit((0 until p.robEntries).map { i =>
-                val source1 = Mux(pending(i), queue(i).renamed.source1, 0.U)
-                val source2 = Mux(pending(i), queue(i).renamed.source2, 0.U)
-                pending(i) && queue(i).request.mulDiv && queue(i).request.mulDivOp(2) === (kind == 1).B &&
+                val source1 = Mux(pending(i), issueEntries(i).renamed.source1, 0.U)
+                val source2 = Mux(pending(i), issueEntries(i).renamed.source2, 0.U)
+                pending(i) && issueEntries(i).request.mulDiv && issueEntries(i).request.mulDivOp(2) === (kind == 1).B &&
                     ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
                     ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))
             }).asUInt
@@ -1388,10 +1423,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     } else {
         mulDivChoice := tournament((0 until p.robEntries).map { i =>
             val c = Wire(new Candidate)
-            c.valid := pending(i) && queue(i).request.mulDiv &&
-                Mux(queue(i).request.mulDivOp(2), mulDiv.io.start.ready, multiplier.io.start.ready) &&
-                operandReady(Mux(pending(i), queue(i).renamed.source1, 0.U)) &&
-                operandReady(Mux(pending(i), queue(i).renamed.source2, 0.U))
+            c.valid := pending(i) && issueEntries(i).request.mulDiv &&
+                Mux(issueEntries(i).request.mulDivOp(2), mulDiv.io.start.ready, multiplier.io.start.ready) &&
+                operandReady(Mux(pending(i), issueEntries(i).renamed.source1, 0.U)) &&
+                operandReady(Mux(pending(i), issueEntries(i).renamed.source2, 0.U))
             c.index := i.U
             c.age   := ages(i)
             c
@@ -1457,7 +1492,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         io.fenceIFlush.get := unit.io.fenceIFlush
         unit.io.fenceIFlushReady := io.fenceIFlushReady.get
         interruptDrain                      := unit.io.interruptPending && !systemProtected
-        val headPending = pending(head) && queue(head).request.system
+        val headPending = pending(head) && issueEntries(head).request.system
         val headInst = Mux(p.compressedInstructions.B &&
             headRequest.rename.instruction(1, 0) =/= 3.U,
             headRequest.expandedInstruction, headRequest.rename.instruction)
@@ -1489,14 +1524,14 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             io.vmFlush.get := unit.io.vmFlush.get
             unit.io.vmFlushReady.get := io.vmFlushReady.get
         }
-        val source      = Mux(headPending, queue(head).renamed.source1, 0.U)
+        val source      = Mux(headPending, issueEntries(head).renamed.source1, 0.U)
         reserveSystem := !unit.io.interruptPending && headPending && ready(
             source
         ) && unit.io.start.ready && io.commitEnable &&
             !io.memoryBusy && !ledger.io.recovering &&
             (if (p.pmpEntries > 0) !drainFetch || io.fetchQuiescent.get else true.B)
         unit.io.start.valid      := reserveSystem && !ledger.io.recoveryAccepted && !ledger.io.pendingException.valid
-        unit.io.start.bits.token := queue(head).renamed.token
+        unit.io.start.bits.token := issueEntries(head).renamed.token
         unit.io.start.bits.pc    := headRequest.rename.pc
         unit.io.start.bits.instruction := headInst
         unit.io.start.bits.operand     := readPhysical(source)
@@ -1507,7 +1542,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 !FloatingPointDecode.memory(headInst))
             pending(head)   := false.B
             systemProtected := true.B
-            systemOwner     := queue(head).renamed.token
+            systemOwner     := issueEntries(head).renamed.token
         }
         systemComplete.valid   := unit.io.complete.valid
         systemComplete.bits    := unit.io.complete.bits.completion
@@ -1582,7 +1617,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val stage = executionStages(lane)
         val entry = executingOperands(lane).entry
         val ownerIndex = Mux(stage.io.occupied, entry.renamed.token.index, 0.U)
-        val stale = queue(ownerIndex).renamed.token.asUInt =/= entry.renamed.token.asUInt
+        val stale = issueEntries(ownerIndex).renamed.token.asUInt =/= entry.renamed.token.asUInt
         stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)
         stage.io.deq.ready := (if (lane == 0) branchResultPortFree else true.B) &&
             (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none)
@@ -1614,7 +1649,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 "a trusted system redirect requires its irrevocable nonexception head transaction")
             assert(systemOwner.asUInt === ledger.io.headSystem.get.headToken.asUInt &&
                 systemComplete.bits.token.asUInt === systemOwner.asUInt &&
-                queue(head).renamed.token.asUInt === systemOwner.asUInt,
+                issueEntries(head).renamed.token.asUInt === systemOwner.asUInt,
                 "system completion, protected owner and current ROB/queue head must have the same full token")
             assert(!ledger.io.recoveryProbe.valid && !automaticTrap,
                 "system protection excludes external recovery and automatic traps until precise completion/retirement")
@@ -1699,7 +1734,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     systemComplete.ready := !lsu.io.complete.valid && !mCompleteValid && ledger.io.completionAccepted(0)
     for (lane <- 0 until p.completionWidth) {
         val selectedBranch = selected(lane).valid &&
-            queue(selected(lane).bits).request.controlFlow =/= ControlFlow.none
+            issueEntries(selected(lane).bits).request.controlFlow =/= ControlFlow.none
         val nonAluResult = if (lane == 0)
             lsu.io.complete.valid || mCompleteValid || systemComplete.valid else false.B
         val heldBranchResult = if (lane == 0) branchRedirectReady else false.B
@@ -1717,7 +1752,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         selector.io.head := head
         selector.io.headMask.foreach(_ := issueHeadMask.get)
         selector.io.eligible := VecInit((0 until p.robEntries).map(i =>
-            eligible(i) && (!branchRedirectValid || queue(i).request.controlFlow === ControlFlow.none))).asUInt
+            eligible(i) && (!branchRedirectValid || issueEntries(i).request.controlFlow === ControlFlow.none))).asUInt
     }
     val physicalOperands = if (p.oneHotPhysicalOperands) Some(independentPhysicalOperands()) else None
     physicalOperands.foreach { operands =>
@@ -1725,8 +1760,8 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         operands.io.owners(1) := issueSelector.get.io.first
         if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
-            operands.io.source1(slot) := queue(slot).renamed.source1
-            operands.io.source2(slot) := queue(slot).renamed.source2
+            operands.io.source1(slot) := issueEntries(slot).renamed.source1
+            operands.io.source2(slot) := issueEntries(slot).renamed.source2
         }
     }
     class EarlyStoreOperands extends Bundle {
@@ -1748,7 +1783,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         storeCandidates.io.head := head
         storeCandidates.io.branchRedirect := branchRedirectValid
         for (slot <- 0 until p.robEntries) {
-            val entry = queue(slot)
+            val entry = issueEntries(slot)
             val candidate = storeCandidates.io.entries(slot)
             candidate.pending := pending(slot)
             candidate.system := false.B
@@ -1783,12 +1818,12 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         operands.io.owners := VecInit(owners)
         if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
         for (slot <- 0 until p.robEntries) {
-            operands.io.source1(slot) := queue(slot).renamed.source1
-            operands.io.source2(slot) := queue(slot).renamed.source2
+            operands.io.source1(slot) := issueEntries(slot).renamed.source1
+            operands.io.source2(slot) := issueEntries(slot).renamed.source2
         }
         val dataReady = VecInit((0 until p.robEntries).map(i =>
             ownerReady.map(_.io.ready2(i)).getOrElse(
-                operandReady(Mux(pending(i), queue(i).renamed.source2, 0.U))))).asUInt
+                operandReady(Mux(pending(i), issueEntries(i).renamed.source2, 0.U))))).asUInt
         val payloads = Wire(Vec(2, new EarlyStoreOperands))
         for (rank <- 0 until 2) {
             val index = if (rank == 0) stores.io.firstIndex else stores.io.secondIndex
@@ -1811,7 +1846,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     } else tournament((0 until p.robEntries).map { i =>
         val candidate = Wire(new Candidate)
         candidate.valid := eligible(i) && (!branchRedirectValid ||
-            queue(i).request.controlFlow === ControlFlow.none)
+            issueEntries(i).request.controlFlow === ControlFlow.none)
         candidate.index := i.U
         candidate.age := ages(i)
         candidate
@@ -1825,7 +1860,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     } else tournament((0 until p.robEntries).map { i =>
         val candidate = Wire(new Candidate)
         candidate.valid := eligible(i) && (!branchRedirectValid ||
-            queue(i).request.controlFlow === ControlFlow.none) &&
+            issueEntries(i).request.controlFlow === ControlFlow.none) &&
             (!rankedFirst.valid || rankedFirst.index =/= i.U)
         candidate.index := i.U
         candidate.age := ages(i)
@@ -1842,7 +1877,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             // The held redirect owns completion port 0. Lane 1 may still execute
             // non-control work; another branch waits until the redirect drains.
             val redirectAllowsLane = if (p.registeredBranchRedirect)
-                !branchRedirectValid || ((lane > 0).B && queue(i).request.controlFlow === ControlFlow.none)
+                !branchRedirectValid || ((lane > 0).B && issueEntries(i).request.controlFlow === ControlFlow.none)
             else true.B
             candidate.valid := eligible(
                 i
@@ -1868,10 +1903,10 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                 val preparationOnly = if (p.parallelIssuePayload) {
                     val owner = if (lane == 0) issueSelector.get.io.second else issueSelector.get.io.first
                     Mux1H((0 until p.robEntries).map(i =>
-                        owner(i) -> (queue(i).request.memory && queue(i).request.store)))
+                        owner(i) -> (issueEntries(i).request.memory && issueEntries(i).request.store)))
                 } else {
                     val rank = if (lane == 0) rankedSecond else rankedFirst
-                    queue(rank.index).request.memory && queue(rank.index).request.store
+                    issueEntries(rank.index).request.memory && issueEntries(rank.index).request.store
                 }
                 executionStages(lane).io.enq.ready || preparationOnly
             } else true.B
@@ -1932,7 +1967,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             payloads(lane).size := dispatchEntry.request.memorySize
             payloads(lane).data := storedRight
             val dataReady = VecInit((0 until p.robEntries).map(i => ownerReady.map(_.io.ready2(i)).getOrElse(
-                operandReady(Mux(pending(i), queue(i).renamed.source2, 0.U))))).asUInt
+                operandReady(Mux(pending(i), issueEntries(i).renamed.source2, 0.U))))).asUInt
             payloads(lane).dataReady := (owner & dataReady).orR
         }
         val dispatchStore = dispatchEntry.request.memory && dispatchEntry.request.store
@@ -1942,6 +1977,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         preparedOwners(lane) := Mux(prepared(lane), UIntToOH(dispatchChoice.index, p.robEntries), 0.U)
         if (!p.earlyStorePreparation) {
             when(prepared(lane)) {
+                sharedAddressStoreWrites.foreach(_(dispatchChoice.index)(lane) := true.B)
                 val preparedAddress = storedLeft + dispatchEntry.request.immediate
                 // The selected issue entry can be undefined when choice.valid is false.
                 // A lookup also avoids evaluating an out-of-range shift in the GSIM model.
@@ -2150,7 +2186,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
             }
         }
         val completedIndex = ledger.io.complete(lane).bits.token.index
-        val completedEntry = queue(completedIndex)
+        val completedEntry = issueEntries(completedIndex)
         when(ledger.io.completionAccepted(lane)) { pending(completedIndex) := false.B }
         when(
             ledger.io
@@ -2198,13 +2234,14 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         }
         for (slot <- 0 until p.robEntries; rank <- 0 until 2) {
             when(grants(slot) && owners(rank)(slot)) {
-                assert(payloads(rank).token.asUInt === queue(slot).renamed.token.asUInt,
+                assert(payloads(rank).token.asUInt === issueEntries(slot).renamed.token.asUInt,
                     "early store payload must match the final granted owner token")
             }
             val operand = captured(rank)
             val liveOwner = pending(slot) && memoryLive(slot) && !killed(slot) &&
-                queue(slot).renamed.token.asUInt === operand.token.asUInt
+                issueEntries(slot).renamed.token.asUInt === operand.token.asUInt
             when(capturedOwners(rank)(slot) && liveOwner) {
+                sharedAddressStoreWrites.foreach(_(slot)(rank) := true.B)
                 storeAddressKnown(slot) := true.B
                 storeAddress(slot) := preparedAddresses(rank)
                 storeByteLanes(slot) := preparedLanes(rank)
@@ -2213,6 +2250,23 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
                     storePrepared(slot) := true.B
                     storeData(slot) := operand.data
                 }
+            }
+        }
+    }
+    sharedAddressStoreWrites.foreach { writers =>
+        for (slot <- 0 until p.robEntries) {
+            assert(PopCount(writers(slot)) <= 1.U,
+                "independent store preparation ranks cannot write the same address row")
+            when(writers(slot).asUInt.orR) {
+                assert(issueEntries(slot).request.memory && issueEntries(slot).request.store,
+                    "a prepared address write must retain the current store interpretation")
+            }
+            when(sharedAddressLoadWrite.get && actualMemoryIndex === slot.U) {
+                assert(!writers(slot).asUInt.orR,
+                    "ordinary load and prepared stores may write concurrently only at different rows")
+                assert(issueEntries(slot).request.memory && !issueEntries(slot).request.store &&
+                    !issueEntries(slot).request.atomic,
+                    "replay bounds belong only to the actual accepted ordinary load")
             }
         }
     }
@@ -2299,6 +2353,11 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
         val renamed = ledger.io.renamed(lane)
         when(renamed.valid) {
             queue(renamed.bits.token.index).renamed := renamed.bits
+            if (p.reconstructIssueTokenIndex) {
+                // Like the banked immutable payload below, this unused field is
+                // tied to a constant at its only writer and removed by lowering.
+                queue(renamed.bits.token.index).renamed.token.index := 0.U
+            }
             queue(renamed.bits.token.index).request := io.allocate(lane).bits
             if (p.bankedIssuePayload) {
                 ImmutableIssuePayload.insert(queue(renamed.bits.token.index).request,

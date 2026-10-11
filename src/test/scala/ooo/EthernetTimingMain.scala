@@ -13,7 +13,7 @@ object EthernetTimingMain extends App {
     val tagConfig = CacheTagConfig(compact = args.contains("--compact-tags"))
     val (cli, networkConfig) = NetworkDmaConfig.parseArgs(storageArgs.filterNot(arg => arg == "--compact-tags" || arg == "--identity-data-flow"))
     require(cli.nonEmpty && cli.length <= 12,
-        "usage: EthernetTimingMain output [isa] [board] [profile] [dma] [instruction-cache-lines] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--lvt-prf] [--network-{frame-bytes|mac-slots|rx-slots|memory-credits|tx-slots}=N]")
+        "usage: EthernetTimingMain output [isa] [board] [profile] [dma] [instruction-cache-lines] [data-cache-lines] [ddr-read-slots:1|2|4|8] [ddr-burst-beats:8|16] [read-mshrs:1|2|4] [cache-response-entries] [load-issue-forwarding:0|1] [--compact-tags] [--identity-data-flow] [--unordered-ddr-responses] [--data-next-line-prefetch] [--ddr-write-slots=N] [--cache-writebacks=N] [--overlap-writeback-refill] [--banked-rob] [--shared-store-reads] [--reconstruct-issue-token-index] [--shared-memory-address-state] [--lvt-prf] [--network-{frame-bytes|mac-slots|rx-slots|memory-credits|tx-slots}=N]")
     require(cli.lift(11).forall(Set("0", "1").contains), "load issue forwarding must be 0 or 1")
     val output = Path.of(cli.head)
     require(!Files.exists(output), "fresh evidence directory required")

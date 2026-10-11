@@ -115,6 +115,10 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--posted-preparation-priority", action="store_true",
                     help="default-off age-ordered prepared stores during an all-load posted window")
+    ap.add_argument("--reconstruct-issue-token-index", action="count", default=0,
+                    help="default-off reconstruction of issue-token ROB indices from their owning rows")
+    ap.add_argument("--shared-memory-address-state", action="count", default=0,
+                    help="default-off shared address metadata for memory preparation and load launch")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -143,6 +147,12 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.reconstruct_issue_token_index > 1:
+        ap.error("duplicate --reconstruct-issue-token-index flag")
+    a.reconstruct_issue_token_index = bool(a.reconstruct_issue_token_index)
+    if a.shared_memory_address_state > 1:
+        ap.error("duplicate --shared-memory-address-state flag")
+    a.shared_memory_address_state = bool(a.shared_memory_address_state)
     for field in ("rob_entries", "physical_regs"):
         values = getattr(a, field)
         if values is not None and len(values) != 1:
@@ -238,6 +248,12 @@ def main(argv=None, expected_profile_sha256=None):
     if a.posted_preparation_priority:
         profile["profile"]["posted_preparation_priority"] = True
         profile["profile"]["name"] += "-posted-preparation-priority"
+    if a.reconstruct_issue_token_index:
+        profile["profile"]["reconstruct_issue_token_index"] = True
+        profile["profile"]["name"] += "-reconstruct-issue-token-index"
+    if a.shared_memory_address_state:
+        profile["profile"]["shared_memory_address_state"] = True
+        profile["profile"]["name"] += "-shared-memory-address-state"
     profile["profile"]["store_next_line_prefetch"] = a.store_next_line_prefetch
     if a.store_next_line_prefetch:
         profile["profile"]["name"] += "-checked-store-prefetch"
@@ -357,6 +373,10 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--prepared-store-lookahead")
     if a.posted_preparation_priority:
         command.append("--posted-preparation-priority")
+    if a.reconstruct_issue_token_index:
+        command.append("--reconstruct-issue-token-index")
+    if a.shared_memory_address_state:
+        command.append("--shared-memory-address-state")
     if a.store_next_line_prefetch:
         command.append("--store-next-line-prefetch")
     if a.store_prefetch_mru_insertion:

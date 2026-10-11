@@ -1,0 +1,67 @@
+{
+  "schema": "case21-output-budget-retry-v1",
+  "case": 21,
+  "wrapper_sha256": "20c075aac6c6830e667056dd1954ee7f59de0e128233443b0d95eb753b3deccd",
+  "model_pins_sha256": "d02a4816bd2e016ad7f694afa6a0158fc06e6374ab55325dd32bfe960c01ad62",
+  "production_source_head": "3969476cad0775f5b6de405502a4e6822f566311",
+  "files": {
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/run.py": "87b8d70d1a95ed435557a1493c7612cbbaf68ce39ecdd7770d629433689875bf",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/pins.json": "d02a4816bd2e016ad7f694afa6a0158fc06e6374ab55325dd32bfe960c01ad62",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/model-qualification.json": "b7cc13fcc158277608c725301d0e2344ba8bbb8adb4f58fa407036471a6e8a65",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/model-images.json": "a68e5619a29d786e62441c98a2ddbd79ad512e41c12cd322e809066d2c1c8845",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/case19/qualification.json": "6d6352d31f5a0ae9123c285b49e08a12b3b5eb6431272a86541e63b1ecf84d4f",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/case21/positive.receipt.json": "94df9787006b3d050152ec8b57720bc7af9b9ee2a45f8a4fe111c34106bbbbd2",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-split-20261011-r1/case21-budget-stop-receipt.json": "06e71f10f3329b46fabc645c2962031db0e67b2fc18c1f49e8c95b18f63ad425",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-case21-retry-20261011-r1/partial-manifest.json": "22112d96f00baf49592e6f310c074f0c84cb4fd9fc950bf47162869c1bd97faa",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/memory-state-reuse-cpu-case21-retry-20261011-r1/partial-archive-receipt.json": "1bb23ef5dc75a01a1aa5fc979fc95400d6559e320cebce802116d272bf56c4af",
+    "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/closed-priority-case21-on-positive-archive-r1/SCOPE.json": "073a5a1466301481e3f26e8512e3ab74035aba2def1ca731c528fe27aa29d4e3"
+  },
+  "output_cap_bytes": 1610612736,
+  "admission_bytes": 2362232012,
+  "floor_bytes": 734003200,
+  "expected_positive_nine_raw_bytes": 1417448926,
+  "expected_negative_nine_raw_bytes": 12230682,
+  "optional_original_derived_lifetime_bytes": 34394863,
+  "negative_original_files": {
+    "trap-negative.owners.jsonl": {
+      "bytes": 1165017,
+      "sha256": "69d8e3852e571c0fd1c1a636771dbe304aa75906cff23c8b3af8166779005744"
+    },
+    "trap-negative.canonical.jsonl": {
+      "bytes": 5635603,
+      "sha256": "4be79bae9cd301b91326f0e6240739bbfeabc56cc123ba84b909808019fe0bf6"
+    },
+    "trap-negative.admission.jsonl": {
+      "bytes": 1251722,
+      "sha256": "a1ca25ed9e1710b918a405bbbed308f8ab26e5af421f07e507cddb7d0454173b"
+    },
+    "trap-negative.dmmu.jsonl": {
+      "bytes": 4086,
+      "sha256": "15bbe05c1211510cf462ade0898397413632e70dd64715b7b450c219892928b0"
+    },
+    "trap-negative.unissued.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "trap-negative.window.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "trap-negative.proof.jsonl": {
+      "bytes": 2974398,
+      "sha256": "11cf9a6e0baa83225fe73887bb6db659e368e1c3e042e4afa9d52aa00f7dfda7"
+    },
+    "trap-negative.readiness.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "trap-negative.lru.jsonl": {
+      "bytes": 1199856,
+      "sha256": "75a995ece1e90a731929e67daf3c9cf13c2607779bb04ff72ae0092019cf3542"
+    }
+  },
+  "change_scope": "Fresh case21 namespace and corrected output/admission guard only; same immutable d02a model, source, host, guest, parser and original positive/negative stimulation. Case19 not rerun.",
+  "prior_attempt": "Preserved actual partial archive, not a DUT/oracle result or prefix-equivalence claim.",
+  "expected_with_negative_and_derived_bytes": 1464074471,
+  "cap_remaining_for_metadata_bytes": 146538265
+}

@@ -40,7 +40,9 @@ final case class FpgaNextConfig(
     robEntries: Option[Int] = None,
     physicalRegs: Option[Int] = None,
     storePrefetchLruVictim: Boolean = false,
-    postedPreparationPriority: Boolean = false
+    postedPreparationPriority: Boolean = false,
+    reconstructIssueTokenIndex: Boolean = false,
+    sharedMemoryAddressState: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     SvTranslationService.indexBits(dataTranslationEntries)
@@ -89,6 +91,8 @@ final case class FpgaNextConfig(
         (if (fetchPreviousPacket) "-fetch-previous-packet" else "") +
         (if (preparedStoreLookahead) "-prepared-store-lookahead" else "") +
         (if (postedPreparationPriority) "-posted-preparation-priority" else "") +
+        (if (reconstructIssueTokenIndex) "-reconstruct-issue-token-index" else "") +
+        (if (sharedMemoryAddressState) "-shared-memory-address-state" else "") +
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
         (if (storePrefetchLruVictim) "-store-prefetch-lru-victim" else "") +
@@ -128,7 +132,8 @@ final case class FpgaNextConfig(
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
         lvtPhysicalRegisterFile = true, bankedIssuePayload = optimized, bankedFetchHints = optimized,
-        shareProtectedHeadPayload = shareProtectedHeadPayload)
+        shareProtectedHeadPayload = shareProtectedHeadPayload, reconstructIssueTokenIndex = reconstructIssueTokenIndex,
+        sharedMemoryAddressState = sharedMemoryAddressState)
     val network = NetworkDmaConfig(maxFrameBytes = 2048, macRxSlots = 4, postedRxSlots = 4,
         memoryCredits = 4, postedTxSlots = 4)
     val triSpeedTxFrameSlots = if (experimentalTriSpeedEthernet) 2 else 1
@@ -192,6 +197,10 @@ object FpgaNextConfig {
     val Selected = ControlCandidate.copy(shareProtectedHeadPayload = true, bankedInstructionData = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--reconstruct-issue-token-index=")),
+            "--reconstruct-issue-token-index does not accept a value")
+        require(!options.exists(_.startsWith("--shared-memory-address-state=")),
+            "--shared-memory-address-state does not accept a value")
         val selectors = options.intersect(Set("--reference", "--candidate", "--selected"))
         require(selectors.size <= 1, "choose one FPGA-next profile")
         val base = if (options.contains("--reference")) Reference
@@ -232,6 +241,8 @@ object FpgaNextConfig {
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),
             preparedStoreLookahead = options.contains("--prepared-store-lookahead"),
             postedPreparationPriority = options.contains("--posted-preparation-priority"),
+            reconstructIssueTokenIndex = options.contains("--reconstruct-issue-token-index"),
+            sharedMemoryAddressState = options.contains("--shared-memory-address-state"),
             dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),

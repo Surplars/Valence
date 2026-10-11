@@ -2619,3 +2619,10 @@ Current integration status and exact opt-in commands: [source checkpoint](../../
 The independent default-OFF `--store-prefetch-lru-victim` option preserves invalid-first selection, then uses the candidate-set LRU only for captured store-origin prefetches. See [the experiment contract](../../docs/experiments/store-prefetch-lru-victim.md) for exact configuration entry points and required dirty-release/data controls. The first source checkpoint is unqualified for DUT behavior, CPU performance and physical timing.
 
 The independent default-OFF `--posted-preparation-priority` experiment admits safe prepared stores alongside an all-load original candidate pool only during registered posted ownership. See [the selection and timing contract](../../docs/experiments/posted-preparation-priority.md). Host/configuration tests are not DUT or performance qualification.
+
+## Memory-state reuse resource candidate
+
+Two independent default-OFF options remove 384 and 4416 native declared scalar
+bits (joint4800) on the explicit ROB64/PRF64/LSU4/D16/DMA4 profile. Native and
+focused gates, official split Board/GC and exact original CPU cases 19/21 passed. Defaults and recommended presets are unchanged. See the
+[current evidence, preserved FAIL boundaries and limits](../../docs/experiments/memory-state-reuse.md).

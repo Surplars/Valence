@@ -77,6 +77,10 @@ def main():
                     help="default-off reconstructed prepared physical RAM store prefill")
     ap.add_argument("--posted-preparation-priority", action="store_true",
                     help="default-off age-ordered prepared stores during an all-load posted window")
+    ap.add_argument("--reconstruct-issue-token-index", action="count", default=0,
+                    help="default-off reconstruction of issue-token ROB indices from their owning rows")
+    ap.add_argument("--shared-memory-address-state", action="count", default=0,
+                    help="default-off shared address metadata for memory preparation and load launch")
     ap.add_argument("--load-order-older-retire", action="store_true")
     ap.add_argument("--fetch-previous-packet", action="store_true",
                     help="retain the previous registered fetch packet; explicit default-off experiment")
@@ -109,6 +113,12 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.reconstruct_issue_token_index > 1:
+        ap.error("duplicate --reconstruct-issue-token-index flag")
+    args.reconstruct_issue_token_index = bool(args.reconstruct_issue_token_index)
+    if args.shared_memory_address_state > 1:
+        ap.error("duplicate --shared-memory-address-state flag")
+    args.shared_memory_address_state = bool(args.shared_memory_address_state)
     for field in ("rob_entries", "physical_regs"):
         values = getattr(args, field)
         if values is not None and len(values) != 1:
@@ -177,6 +187,10 @@ def main():
         parameters.append("--prepared-store-lookahead")
     if args.posted_preparation_priority:
         parameters.append("--posted-preparation-priority")
+    if args.reconstruct_issue_token_index:
+        parameters.append("--reconstruct-issue-token-index")
+    if args.shared_memory_address_state:
+        parameters.append("--shared-memory-address-state")
     if args.store_next_line_prefetch:
         parameters.append("--store-next-line-prefetch")
     if args.store_prefetch_mru_insertion:
@@ -215,6 +229,8 @@ def main():
             "instruction_translation_entries": 8, "pte_cache_entries": 4, "parameters": parameters, "fetch_previous_packet": args.fetch_previous_packet,
             "prepared_store_lookahead": args.prepared_store_lookahead,
             "posted_preparation_priority": args.posted_preparation_priority,
+            "reconstruct_issue_token_index": args.reconstruct_issue_token_index,
+            "shared_memory_address_state": args.shared_memory_address_state,
             "translated_response_empty_flow": args.translated_response_empty_flow,
             "store_next_line_prefetch": args.store_next_line_prefetch,
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,

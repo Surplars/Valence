@@ -1,0 +1,901 @@
+{
+  "schema": "memory-state-reuse-source-inputs-v1",
+  "historical_commit": "8d9bc67a3b0c526deae38c766912fab0104b44ac",
+  "baseline_commit": "0da2a2258a202f911a1f2ad7a1dd6ed18098a5af",
+  "reused_inputs": 39,
+  "avoided_duplicate_bytes": 263604,
+  "output_kind": "historical changed-file source overlay plus native reproduction sources; not a complete repository or a DUT run",
+  "files": [
+    {
+      "path": "fpga/next/export.py",
+      "source": "fpga/next/export.py",
+      "bytes": 31736,
+      "sha256": "1cc1cda64c82f2d5f71bc60fe95a9532f5d7dbf243e90928b084a7f9b83b176e",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/fpga_next_board.py",
+      "source": "simulator/gsim/fpga_next_board.py",
+      "bytes": 29821,
+      "sha256": "57f7c6b86ad64646463bb386390533841564f61bc48ad7bb59a02146edb732a4",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/README.md",
+      "source": "simulator/gsim/memory_state_reuse/historical-source-contract.md",
+      "bytes": 6109,
+      "sha256": "e0566a331d81723743bc343816cb75f0c26fc98182e94584404d216229021183",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/PLAN.md",
+      "source": "simulator/gsim/memory_state_reuse/cpu/PLAN.md",
+      "bytes": 4559,
+      "sha256": "6fac2a6096a4240dd0f05444a679869d66c1ad39c998683ac227506920cdabf1",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/cpu_profile_abi.py",
+      "source": "simulator/gsim/memory_state_reuse/cpu/cpu_profile_abi.py",
+      "bytes": 5182,
+      "sha256": "67cabca868cbad03cc5e9aac2a49158fdaa72a2b8b5aea925c5efe50bafa1f12",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCanonicalProbes.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCanonicalProbes.scala",
+      "bytes": 6161,
+      "sha256": "378d57d10fe116a327c61347610beb217713c80a7bc4684f9dae36e18ea19042",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuBuild.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuBuild.scala",
+      "bytes": 2192,
+      "sha256": "d29526b872d025e9cc071a1758a9aa57db93657629ec4b1415ba6e1358ba104c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuGsim.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuGsim.scala",
+      "bytes": 89208,
+      "sha256": "0aa536458d2a131b3d52754a5ac125828dbf7dbc36a07f5ea22743b9e9bfe8ca",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryStateReuseCpuGsimMain.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryStateReuseCpuGsimMain.scala",
+      "bytes": 11781,
+      "sha256": "8cac7abebd34e0f67eac3588ca9161b9dfe344ad71b6b31facb28020b141a2e1",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/abi.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/abi.hpp",
+      "bytes": 393,
+      "sha256": "aa7efaa1b319fbdd0767aa2fed357528d21e9ccf78c39187a65436c4d1b2d4f6",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/admission_getters.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/admission_getters.hpp",
+      "bytes": 322,
+      "sha256": "c2846a928f3e55aac4708398bdcf9470783c832d710ac34aeb8d7005f8339dfb",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/admission_model_adapter.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/admission_model_adapter.hpp",
+      "bytes": 7094,
+      "sha256": "d469678a7f69278882c1d5a029c82ada96f15b2171d64e8433cec42c216b826b",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/admission_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/admission_observer.hpp",
+      "bytes": 16843,
+      "sha256": "c5abf60b88ac3e0c62c9bee5654d3f4ff8cf8b530f0b39fff95acbde6afa2832",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/axi_accounting.h",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/axi_accounting.h",
+      "bytes": 12363,
+      "sha256": "8567b74637ebcf7980ff181081b5a7780b5efa024b92077d0e6fd40db470c32b",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/axi_accounting_test.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/axi_accounting_test.cpp",
+      "bytes": 13900,
+      "sha256": "6afa831c456fb329207e197a93a0385bb63bf6f584bcc50c28acab34dad31faf",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/cache_window_adapter.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/cache_window_adapter.hpp",
+      "bytes": 1750,
+      "sha256": "32d4d8014ff504b72d81656089c89adf1fc1228c2026b2fc200060160fa06046",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/canonical_model_adapter.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/canonical_model_adapter.hpp",
+      "bytes": 13412,
+      "sha256": "cda98a6c5bd1d4a33115648b61b4fc26133d6dd7c92f19487cff913434475e6a",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/canonical_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/canonical_observer.hpp",
+      "bytes": 18611,
+      "sha256": "71ae9a84327e7969addf1048bf0b5feef834f89a04020841a4693b01bc0c6496",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/capacity.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/capacity.hpp",
+      "bytes": 1144,
+      "sha256": "98792591b556ec1a7c387d43af56d4bfb9517b37ddf9295ce0abe7a8bec671e3",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/copy_adapter_logic.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/copy_adapter_logic.hpp",
+      "bytes": 1040,
+      "sha256": "aa58adbd67af101e68f3e1ca0cd8944e60d746f28b8c35d078f057b7cccf8ccb",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/copy_eviction.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/copy_eviction.hpp",
+      "bytes": 9202,
+      "sha256": "a3185dc98e7633068117192503c17102d49eaafd8954f57e4443c0318d9a2e21",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/copy_model_adapter.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/copy_model_adapter.hpp",
+      "bytes": 5224,
+      "sha256": "91d0ed69a029334501149ce72f098eba8f46da008699615e787820c37338f29b",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/dmmu_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/dmmu_observer.hpp",
+      "bytes": 6818,
+      "sha256": "a8cc347bfc46fb014d7ab909325675cb5de40c03a1b2f8a4390dd5eca07e6230",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/drain.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/drain.hpp",
+      "bytes": 2929,
+      "sha256": "f2fcffd006f56b47d1b6103ba0a25af1feea3df66d47d2feb468fcb5697af15a",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/host.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/host.cpp",
+      "bytes": 11430,
+      "sha256": "513ddd0e381c2a88c024f1ec162c2a4621a79f5bfd431a5270d7a76e4b565ded",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/lru_victim_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/lru_victim_observer.hpp",
+      "bytes": 9540,
+      "sha256": "096537b103e4a0593e6e9dde950f6e73ce18de8c24c068c13d3164df70d42a41",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/observer_header_probe.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/observer_header_probe.cpp",
+      "bytes": 138,
+      "sha256": "57a8aa1387ecf0ab6f4f1ab9809d81f3bd0082dbf9e0c456752ff8b80992331e",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/passive.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/passive.hpp",
+      "bytes": 12361,
+      "sha256": "94c161f725c096d88f7ee3478e3d71223c0d52a775450a77be54189bc273a3a9",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/proof_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/proof_observer.hpp",
+      "bytes": 32661,
+      "sha256": "2e0a80e2a2322bddb4ee33cbc8b4d1506c256c46b2908b4244c7a54dcc1160e9",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/ready_frontier.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/ready_frontier.hpp",
+      "bytes": 7967,
+      "sha256": "f1bf93204b8b410990bd3a13c1feb567b841698d485b8e0433c30c646931ec3d",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/roi.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/roi.hpp",
+      "bytes": 6779,
+      "sha256": "91bf8e7e77a310f1246c54537723cb44ebbe18684d90d3ead3ed700901472baa",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_admission.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_admission.cpp",
+      "bytes": 11306,
+      "sha256": "797484d7e0c015ff99779f3f94c0c128a2868875548a22ea285fa1c3e783fb89",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_canonical_observer.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_canonical_observer.cpp",
+      "bytes": 4642,
+      "sha256": "48888cfff935dda1aaa3352c53dd1e4fab3bf535a3c384fe6cc5c808a885c1db",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_capacity.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_capacity.cpp",
+      "bytes": 1420,
+      "sha256": "d0e40f94700d3f39cd8de27e270e007e87eacfa7780ba977406b6b03aa6f47d1",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_copy_adapter.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_copy_adapter.cpp",
+      "bytes": 2472,
+      "sha256": "1e996183f4a291bd21d6eef257ada47c3f90e733c58740d47c2b245ae81ba6d2",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_copy_eviction.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_copy_eviction.cpp",
+      "bytes": 3456,
+      "sha256": "7b2014ee8a46c4fc176d6437aa6054e26ef95c578ce966f280b37db2a28e65ff",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_dmmu.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_dmmu.cpp",
+      "bytes": 1485,
+      "sha256": "ef4632adb56bcf762359ecc1131e4770b2aeddc0b93fe297994b32ce7118a9f9",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_edges.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_edges.cpp",
+      "bytes": 1850,
+      "sha256": "357bcc8c91d61c52c9346de849ea07301e61384a0d7d4b448ecc61fcdd212e71",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_lru_victim.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_lru_victim.cpp",
+      "bytes": 2489,
+      "sha256": "e02e1caba7bf8ffa27cd28e6c915e2143938feff630c90b9852289bc50d4a592",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_roi.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_roi.cpp",
+      "bytes": 3303,
+      "sha256": "4a372ac7a7eb1644b67fccff3f9825f5ff1b756a436f1760aba853a0e5ddd58b",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_staging_owner.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_staging_owner.cpp",
+      "bytes": 1916,
+      "sha256": "f4f69b0abc5e488796e42ace77c483bf8cc3a24d763fbf5b85cc8b40c38e6936",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_unissued.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_unissued.cpp",
+      "bytes": 5348,
+      "sha256": "bee851729d5207126b516e4ee4668837858e00a6f6ce83f14889f716adab5c74",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/test_window.cpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/test_window.cpp",
+      "bytes": 1273,
+      "sha256": "ebb634eeba050788ee3aa01652cc7a4f5b25c073b75e1a706e3b7f8899ced5b9",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/unissued_model_adapter.hpp",
+      "source": "simulator/gsim/memory_state_reuse/cpu/host/unissued_model_adapter.hpp",
+      "bytes": 22640,
+      "sha256": "70b2398d533a6fb2fa9629666d9607224f7f82777dd7ab76e3d679c0104e29bc",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/unissued_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/unissued_observer.hpp",
+      "bytes": 12421,
+      "sha256": "adbff3a514e83b44bafd5b0bd086e2fec65f68c462bb9cd81df449bb7d1e15ca",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/window_observer.hpp",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/window_observer.hpp",
+      "bytes": 6800,
+      "sha256": "72f0a1112eff879bc5fb13ae9338ef8f157bc96135a711af194bbae3f14f37b3",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/host/worksets_symbols.h",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/worksets_symbols.h",
+      "bytes": 506,
+      "sha256": "0e0f764307fcf7d8a420ed25a512c7f810c19a98849aefcc49aa681263fad4b7",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/run.py",
+      "source": "simulator/gsim/memory_state_reuse/cpu/run.py",
+      "bytes": 21549,
+      "sha256": "088542e2af4034acbfe368655cfb9987972dabe5f183d8a8f1c549475a84f069",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/test_resource_index.cpp",
+      "source": "simulator/gsim/memory_state_reuse/cpu/test_resource_index.cpp",
+      "bytes": 2119,
+      "sha256": "6bc0824723506a6f8985cd029c3ee3de01fbf637f9572afeabc6bdaaac837370",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu/unissued_guard_fixture.hpp",
+      "source": "simulator/gsim/memory_state_reuse/cpu/unissued_guard_fixture.hpp",
+      "bytes": 3819,
+      "sha256": "0a87862286d681628a75afc4e7fcf8be177f2f59506304f3153522bbb6d29325",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu_split/PLAN.md",
+      "source": "simulator/gsim/memory_state_reuse/cpu_split/PLAN.md",
+      "bytes": 3284,
+      "sha256": "464a245ab95c0c08e9fed17c0e8149943d1c0a1f1857d991c0391dc2c95d2252",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu_split/header_identity.py",
+      "source": "simulator/gsim/memory_state_reuse/cpu_split/header_identity.py",
+      "bytes": 2343,
+      "sha256": "8fd0379daff23a4d2fd158480db5f4eaf64361ec9ca3c7a0b1d4ed571045ae3e",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/cpu_split/run.py",
+      "source": "simulator/gsim/memory_state_reuse/cpu_split/run.py",
+      "bytes": 24776,
+      "sha256": "87b8d70d1a95ed435557a1493c7612cbbaf68ce39ecdd7770d629433689875bf",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/PLAN.md",
+      "source": "simulator/gsim/memory_state_reuse/focused/PLAN.md",
+      "bytes": 2977,
+      "sha256": "67446ca28a55514fbd1fcb6ea6e5477216668b3664df7ea5fe65451ed03ae9c2",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/QUALIFICATION.md",
+      "source": "simulator/gsim/memory_state_reuse/focused/QUALIFICATION.md",
+      "bytes": 7142,
+      "sha256": "f8188bd694ddbef4b449e7b07892eb12c296f662dc502e1bbac1222a2aed610c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/baseline_control.cpp",
+      "source": "simulator/gsim/memory_state_reuse/focused/baseline_control.cpp",
+      "bytes": 92116,
+      "sha256": "b319828a4d5ed38a820da5de87b2602d287f262c4c67517c3d14fe2ff26f4347",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/generate_state_abi.py",
+      "source": "simulator/gsim/memory_state_reuse/focused/generate_state_abi.py",
+      "bytes": 2549,
+      "sha256": "757db53dd0bd8b59b0477422f8748bc4c8a568bd866e5ad4674f444bb0b81982",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/memory_proof_frontier_exact_reference.h",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-focused-r1/memory_proof_frontier_exact_reference.h",
+      "bytes": 3865,
+      "sha256": "a3eb9dcf0baec99943e478e031c35eaf2112d329aa4284e532f3febb0609ede9",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/memory_state_oracle.h",
+      "source": "simulator/gsim/memory_state_reuse/focused/memory_state_oracle.h",
+      "bytes": 2897,
+      "sha256": "37eb46dd1f29b4689e02483df49d7d3a51d082c7e957f9fce6be9143056136db",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/memory_state_reuse.cpp",
+      "source": "simulator/gsim/memory_state_reuse/focused/memory_state_reuse.cpp",
+      "bytes": 99333,
+      "sha256": "e20a4fa9677da8894e274e84347b2ce6668fa40a605ed955b355d0d4cd0fca79",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/run_matrix.py",
+      "source": "simulator/gsim/memory_state_reuse/focused/run_matrix.py",
+      "bytes": 2621,
+      "sha256": "1e337d09548ecf708b446d1505333ccd1f55be0e24fdeddedf9acdb88b5175e8",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/run_step.py",
+      "source": "simulator/gsim/memory_state_reuse/focused/run_step.py",
+      "bytes": 5210,
+      "sha256": "057d239b1187231bf75c23b5bdb2f0c8cf860f61b37ba2b5c99da2a5f5d07527",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/state_abi.h",
+      "source": "simulator/gsim/memory_state_reuse/focused/state_abi.h",
+      "bytes": 10193,
+      "sha256": "dc7d0b17fb765006fb28866697306b0cd023a730f6bfb816e96d83a6be57b4ce",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/focused/test_state_oracle.cpp",
+      "source": "simulator/gsim/memory_state_reuse/focused/test_state_oracle.cpp",
+      "bytes": 1517,
+      "sha256": "5dc5889e84acca4af6aa1207c252562b9c1c068f4c9493ca4a7c8ecfd527857c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/test_address_lifecycle.py",
+      "source": "simulator/gsim/memory_state_reuse/test_address_lifecycle.py",
+      "bytes": 6540,
+      "sha256": "8ced83484c0d1d36fcbfc3c49e417e8e70bcb05e2c52837515b526ae989f1a3f",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/test_contract.py",
+      "source": "simulator/gsim/memory_state_reuse/test_contract.py",
+      "bytes": 3130,
+      "sha256": "99a0927ed74c32682e48dd6c39e843510be9363f9fe87216442003dd6fe86989",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/verify_default_off_source.py",
+      "source": "simulator/gsim/memory_state_reuse/verify_default_off_source.py",
+      "bytes": 2842,
+      "sha256": "749ff090a5578f2a8f6e14507c9514efd5ba48010011f5010dc66f5c166df89c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/test_memory_state_reuse_cli.py",
+      "source": "simulator/gsim/test_memory_state_reuse_cli.py",
+      "bytes": 6322,
+      "sha256": "04e6d71e8ded4cee4f4f6f5b727a6a8a8725c3a1797b77fe5865c02a1029366b",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "source": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "bytes": 18599,
+      "sha256": "fe4561c1a48f9cf69d1bc6f1649cabfe59044bc12be0a1737a9c072dd14d6191",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/FpgaStorageConfig.scala",
+      "source": "src/main/scala/core/ooo/FpgaStorageConfig.scala",
+      "bytes": 2751,
+      "sha256": "46e94035d688818f6edeb6217e061d761bad2844faa23cb2c383f2961bcbb067",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "source": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "bytes": 152348,
+      "sha256": "d78b24863d1dc80ac5be4534ebaac0ca0e3b8dac4753e3b0f3915a1a1acdefae",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/main/scala/core/ooo/OooParams.scala",
+      "source": "src/main/scala/core/ooo/OooParams.scala",
+      "bytes": 26125,
+      "sha256": "032cf20de73a747b65f10b6a9444083b1fa1125dc8011df8416c6c9606554e9e",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/BoardSocGsimMain.scala",
+      "source": "src/test/scala/ooo/BoardSocGsimMain.scala",
+      "bytes": 39528,
+      "sha256": "1962bdd6c11bca132b1d007d256f2786a5f3aebc58a5f91369992c6ec28ea29c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/BoardSocMain.scala",
+      "source": "src/test/scala/ooo/BoardSocMain.scala",
+      "bytes": 2402,
+      "sha256": "21027a26b851cecdf70c0945b9188d9212e0e7247fdd4869c79aa0185b948051",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+      "source": "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+      "bytes": 10095,
+      "sha256": "75f0db9bc3a724309c57585460ba115af7df246ead96c8b4522a8cb7a757666a",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+      "source": "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+      "bytes": 2763,
+      "sha256": "b973cb53b77687d7f94e66f5612f8b1ebb9e2639587042cab94f325589977e6b",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/EthernetTimingMain.scala",
+      "source": "src/test/scala/ooo/EthernetTimingMain.scala",
+      "bytes": 3512,
+      "sha256": "8858d20447b6f00f3b2f75d5fba79bfb542e53cd21d93f93e9ba5b43c1f6ed19",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+      "source": "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+      "bytes": 4791,
+      "sha256": "cf061e5bd6062a0b23f27d2b584df0d7766d65defe9e58654d581da3da5a9f43",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextMain.scala",
+      "source": "src/test/scala/ooo/FpgaNextMain.scala",
+      "bytes": 3813,
+      "sha256": "8da12a47377fc522a90498394b0d955389f0fee4d4f7a0672a776589101d69b7",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextProfileMain.scala",
+      "source": "src/test/scala/ooo/FpgaNextProfileMain.scala",
+      "bytes": 1020,
+      "sha256": "1227f13464f878628e72e5d22865920f98ec72f97bd8751583cbf52680f4df83",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/ManagedBoardSocMain.scala",
+      "source": "src/test/scala/ooo/ManagedBoardSocMain.scala",
+      "bytes": 3503,
+      "sha256": "7c470bbf850ef1cb9591c6f2a962cbcadca4deb114136a4089c75a34925061ea",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryProofFrontierExactGsim.scala",
+      "source": "src/test/scala/ooo/MemoryProofFrontierExactGsim.scala",
+      "bytes": 26436,
+      "sha256": "f155a1060550e7726cd3aa47310bceb6b52b56cf75f045deb69ac27800838c3f",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryStateReuseConfigSpec.scala",
+      "source": "src/test/scala/ooo/MemoryStateReuseConfigSpec.scala",
+      "bytes": 4754,
+      "sha256": "359f06af44aa59ac7a7dab8aa903a274d86a9341edfd3e5937b837c735a3c036",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+      "source": "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+      "bytes": 2443,
+      "sha256": "0cdb6347b56ac42b20f4cab2dd6efa6c07ee32d97a9b205dc10d80049241eef4",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala",
+      "source": "src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala",
+      "bytes": 10026,
+      "sha256": "d4cbd90ad9a627fca5802cf22e1d03fac55858c3c5f0f4a66145a0ecc006296c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+      "source": "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+      "bytes": 3437,
+      "sha256": "45e556915be0bfb63dc142574f2181a3ae40c65225c55610ff40970329bbce1b",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/PostedPreparationPriorityGsim.scala",
+      "source": "src/test/scala/ooo/PostedPreparationPriorityGsim.scala",
+      "bytes": 24274,
+      "sha256": "8085c3f24cdeefdf1964cd3856e828c5006453554a2bc5f93630583109bf2f9e",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/RobCapacityCpuGsimMain.scala",
+      "source": "src/test/scala/ooo/RobCapacityCpuGsimMain.scala",
+      "bytes": 9989,
+      "sha256": "00a0b1440efe3790e0a11c3c5dd0812bd1abc26c3cdf60694dc1ee4046421545",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala",
+      "source": "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala",
+      "bytes": 4493,
+      "sha256": "3398bb32aabb5c52933ea3b16de9a74efb6523fbcc7c035181bacbae79362177",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": true
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/README.md",
+      "source": "simulator/gsim/memory_state_reuse/native/README.md",
+      "bytes": 8201,
+      "sha256": "e2fec378f8d6aa0089d48134d4b029ea31e2ad08a3cc67965379de76288db246",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/audit_native.py",
+      "source": "simulator/gsim/memory_state_reuse/native/audit_native.py",
+      "bytes": 11800,
+      "sha256": "a6ad943c1ae9716169b0dd59d2baff5f05f1009608041d2b92cdf961fac19a17",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/cost_details.py",
+      "source": "simulator/gsim/memory_state_reuse/native/cost_details.py",
+      "bytes": 3828,
+      "sha256": "bc60617dc70dda0bcb1e6eed08acf8a94c92e22227e35848a09ea221a803827c",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/fixture/MemoryStateReuseNativeProfiles.scala",
+      "source": "simulator/gsim/memory_state_reuse/native/fixture/MemoryStateReuseNativeProfiles.scala",
+      "bytes": 2443,
+      "sha256": "0cdb6347b56ac42b20f4cab2dd6efa6c07ee32d97a9b205dc10d80049241eef4",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/guard_700mib.py",
+      "source": "simulator/gsim/memory_state_reuse/native/guard_700mib.py",
+      "bytes": 2825,
+      "sha256": "6a2e28803f7a195d2753b6912e5782adb0ced0bb0c5d38980d24f5112f791b79",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/helpers/control_graph.py",
+      "source": "simulator/gsim/memory_state_reuse/native/helpers/control_graph.py",
+      "bytes": 2450,
+      "sha256": "ea5eae39cf67749cd83b8af6d7645d31024ea2e3097929ef38a548d171a4c032",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/helpers/lsu_capacity_census.py",
+      "source": "simulator/gsim/memory_state_reuse/native/helpers/lsu_capacity_census.py",
+      "bytes": 11627,
+      "sha256": "feddb875c24bd82896c58ebff7a364d3099ac6549179f8bef7d42809fc4dd9cf",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/helpers/native_storage_census_bound_rob64.py",
+      "source": "simulator/gsim/memory_state_reuse/native/helpers/native_storage_census_bound_rob64.py",
+      "bytes": 5082,
+      "sha256": "a5ddf0ba786495ddb87c5781e15e50201196ddab473a98bd8e458d1180bbd465",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/helpers/reachable_census.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-native-r1/helpers/reachable_census.py",
+      "bytes": 7131,
+      "sha256": "b0a1aa2ebbdca6bc619ff58dd3e501c5a0ccb51b831d9eb0ac6d5b145669d816",
+      "mode": "100644",
+      "reused_baseline_input": true,
+      "historical_89_file_snapshot": false
+    },
+    {
+      "path": "simulator/gsim/memory_state_reuse/native/run_native.py",
+      "source": "simulator/gsim/memory_state_reuse/native/run_native.py",
+      "bytes": 16697,
+      "sha256": "06d5c0c5cb4bb2791d0cc3015a6a5500f3573e5cbd3072ef4a24e86d4f825c0d",
+      "mode": "100644",
+      "reused_baseline_input": false,
+      "historical_89_file_snapshot": false
+    }
+  ]
+}
