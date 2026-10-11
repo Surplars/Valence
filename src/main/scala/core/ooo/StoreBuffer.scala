@@ -20,9 +20,9 @@ class StoreBuffer(p: OooParams) extends Module {
             Some(Input(Valid(new CanonicalStoreOrigin(p)))) else None
         val memoryCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
-        val upstreamFrozenStoreProof = if (p.memoryProofFrontier)
+        val upstreamFrozenStoreProof = if (p.frozenStoreProofEnabled)
             Some(Input(Valid(new FrozenStoreProof))) else None
-        val memoryFrozenStoreProof = if (p.memoryProofFrontier)
+        val memoryFrozenStoreProof = if (p.frozenStoreProofEnabled)
             Some(Output(Valid(new FrozenStoreProof))) else None
         val postedCompleted = p.postedProofConfig.map(c => Output(Valid(new PostedStoreToken(c))))
         val externalPostedBusy = if (p.postedStoreMerge) Some(Input(Bool())) else None

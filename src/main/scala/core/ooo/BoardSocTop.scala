@@ -45,6 +45,9 @@ object BoardSocConfig {
         fetchPreviousPacket: Boolean = false, preparedStoreLookahead: Boolean = false,
         translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
         postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
+        frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
+        pendingVirtualStoreProofSlots: Int = 1,
+    boundHeadStoreOverlap: Boolean = false,
         backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
         postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
@@ -61,6 +64,8 @@ object BoardSocConfig {
             preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
             postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
             canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+            frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
             translatedResponseEmptyFlow = translatedResponseEmptyFlow,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
@@ -218,6 +223,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     preparedStoreLookahead: Boolean = false, dataTranslationEntries: Int = 8,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
+    frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
+    pendingVirtualStoreProofSlots: Int = 1,
+    boundHeadStoreOverlap: Boolean = false,
     backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
@@ -260,7 +268,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity)
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+            frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap, backendCapacity = backendCapacity)
     require(!p.memoryProofFrontier || (dataCacheLines / dataCacheWays == p.memoryProofCacheSets && dataCacheWays == 2),
         "frontier PA set scheduling must match the actual cache geometry")
     // Internal composition ports stay outside the public BoardSocTop io bundle.

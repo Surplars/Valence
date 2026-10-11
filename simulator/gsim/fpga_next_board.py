@@ -99,6 +99,8 @@ def main():
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--read-prefetch-store-hold", action="count", default=0,
+                    help="default-off finite read-candidate retention across accepted ordinary store hits")
     ap.add_argument("--read-prefetch-demand-adoption", action="count", default=0,
                     help="default-off demand attachment to an issued read prefetch; requires independent split tracking")
     ap.add_argument("--read-prefetch-dirty-retry", action="count", default=0,
@@ -108,6 +110,13 @@ def main():
                     help="default-off store-origin invalid-first/LRU victim experiment")
     ap.add_argument("--distinct-way-release", action="store_true",
                     help="default-off issued-store-PF/read other-way dirty release experiment")
+    ap.add_argument("--frozen-store-proof-transport", action="store_true",
+                    help="default-off full frozen actual-store payload, independent of frontier scheduling")
+    ap.add_argument("--pending-virtual-store-proof", action="store_true",
+                    help="default-off R16/PRF48 pending-store proof and one early-load credit")
+    ap.add_argument("--bound-head-store-overlap", action="store_true",
+                    help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
@@ -135,6 +144,11 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.read_prefetch_store_hold > 1:
+        ap.error("duplicate --read-prefetch-store-hold flag")
+    args.read_prefetch_store_hold = bool(args.read_prefetch_store_hold)
+    if args.read_prefetch_store_hold and args.prefetch_candidate_cycles <= 1:
+        ap.error("--read-prefetch-store-hold requires --prefetch-candidate-cycles greater than 1")
     if args.read_prefetch_demand_adoption > 1:
         ap.error("duplicate --read-prefetch-demand-adoption flag")
     args.read_prefetch_demand_adoption = bool(args.read_prefetch_demand_adoption)
@@ -186,6 +200,16 @@ def main():
         if values is not None and len(values) != 1:
             ap.error("choose exactly one --" + field.replace("_", "-") + " value")
         setattr(args, field, values[0] if values else None)
+    if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
+        ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    if args.bound_head_store_overlap and not args.pending_virtual_store_proof:
+        ap.error("--bound-head-store-overlap requires --pending-virtual-store-proof")
+    if args.pending_virtual_store_proof and not (not args.memory_proof_frontier and
+            args.frozen_store_proof_transport and args.rob_entries in (None, 16) and args.physical_regs in (None, 48) and
+            args.lsu_entries == 4 and args.data_translation_entries == 16 and
+            args.canonical_virtual_store_overlap and args.virtual_ram_load_precheck and
+            args.load_order_older_retire and not args.prechecked_data_flow):
+        ap.error("--pending-virtual-store-proof requires independent frozen transport, ROB16/PRF48/LSU4/DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if args.memory_proof_frontier and not (args.rob_entries == 64 and args.physical_regs == 64 and
             args.lsu_entries == 4 and args.data_translation_entries == 16 and
             args.canonical_virtual_store_overlap and args.virtual_ram_load_precheck and
@@ -263,6 +287,8 @@ def main():
         parameters.append("--read-prefetch-dirty-retry")
     if args.read_prefetch_demand_adoption:
         parameters.append("--read-prefetch-demand-adoption")
+    if args.read_prefetch_store_hold:
+        parameters.append("--read-prefetch-store-hold")
     if args.translated_response_empty_flow:
         parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
@@ -307,9 +333,21 @@ def main():
         parameters.append("--canonical-virtual-store-overlap")
     if args.memory_proof_frontier:
         parameters.append("--memory-proof-frontier")
+    if args.frozen_store_proof_transport:
+        parameters.append("--frozen-store-proof-transport")
+    if args.pending_virtual_store_proof:
+        parameters.append("--pending-virtual-store-proof")
+    if args.bound_head_store_overlap:
+        parameters.append("--bound-head-store-overlap")
+    if args.pending_virtual_store_proof_slots != 1:
+        parameters.append(f"--pending-virtual-store-proof-slots={args.pending_virtual_store_proof_slots}")
     plan = {"rob_entries_override": args.rob_entries, "physical_regs_override": args.physical_regs,
             "canonical_virtual_store_overlap": args.canonical_virtual_store_overlap,
             "memory_proof_frontier": args.memory_proof_frontier,
+            "frozen_store_proof_transport": args.frozen_store_proof_transport,
+            "pending_virtual_store_proof": args.pending_virtual_store_proof,
+            "bound_head_store_overlap": args.bound_head_store_overlap,
+            "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,
             "posted_store_merge": args.posted_store_merge,
             "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": args.posted_prefetch_head_offer,
@@ -334,6 +372,7 @@ def main():
             "split_prefetch_tracking": args.split_prefetch_tracking,
             "read_prefetch_dirty_retry": args.read_prefetch_dirty_retry,
             "read_prefetch_demand_adoption": args.read_prefetch_demand_adoption,
+            "read_prefetch_store_hold": args.read_prefetch_store_hold,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

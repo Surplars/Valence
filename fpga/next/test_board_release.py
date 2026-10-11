@@ -16,6 +16,50 @@ import export as exporter
 
 
 class BoardReleaseTests(unittest.TestCase):
+    def test_new_optional_fields_are_explicit_false_and_fail_closed(self):
+        import board_timing_cdc
+        expected = board_timing_cdc.expected_constructor()
+        for section in ("profile", "core"):
+            expected[section]["registeredPmpRegions"] = False
+        for section in ("profile", "cache"):
+            expected[section]["readPrefetchDirtyRetry"] = False
+            expected[section]["readPrefetchDemandAdoption"] = False
+        self.check_optional_defaults(expected, board_release.compare_constructor)
+
+    def check_optional_defaults(self, expected, compare):
+        compare(expected)
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
+        fields = [(s, f) for s in ("profile", "core")
+                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap")]
+        fields += [(s, "readPrefetchStoreHold") for s in ("profile", "cache")]
+        for section, field in fields:
+            self.assertIs(expected[section][field], False)
+            for mutation in ("missing", "enabled"):
+                actual = copy.deepcopy(expected)
+                if mutation == "missing":
+                    del actual[section][field]
+                else:
+                    actual[section][field] = True
+                with self.subTest(section=section, field=field, mutation=mutation), self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in ("profile", "core"):
+            self.assertEqual(expected[section]["pendingVirtualStoreProofSlots"], 1)
+            for value in (None, 0, 2):
+                actual = copy.deepcopy(expected)
+                if value is None:
+                    del actual[section]["pendingVirtualStoreProofSlots"]
+                else:
+                    actual[section]["pendingVirtualStoreProofSlots"] = value
+                with self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in expected:
+            if not isinstance(expected[section], dict):
+                continue
+            actual = copy.deepcopy(expected)
+            actual[section]["unknownOptionalField"] = False
+            with self.assertRaises(RuntimeError):
+                compare(actual)
+
     def test_exact_cpu_B_and_only_explicit_perimeter_changes(self):
         base = board_profile.native_options("B")
         options = board_release.native_options()
@@ -49,6 +93,13 @@ class BoardReleaseTests(unittest.TestCase):
         expected["core"]["registeredPmpRegions"] = False
         expected["profile"]["publishedPmpChanges"] = False
         expected["core"]["publishedPmpChanges"] = False
+        for section in ("profile", "core"):
+            expected[section]["frozenStoreProofTransport"] = False
+            expected[section]["pendingVirtualStoreProof"] = False
+            expected[section]["boundHeadStoreOverlap"] = False
+            expected[section]["pendingVirtualStoreProofSlots"] = 1
+        for section in ("profile", "cache"):
+            expected[section]["readPrefetchStoreHold"] = False
         expected["profile"]["experimentalTriSpeedEthernet"] = True
         board_release.compare_constructor(expected)
         for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption"):
@@ -77,6 +128,15 @@ class BoardReleaseTests(unittest.TestCase):
                     changed[section].pop("publishedPmpChanges")
                 else:
                     changed[section]["publishedPmpChanges"] = True
+                with self.subTest(section=section, mutation=mutation), self.assertRaises(RuntimeError):
+                    board_release.compare_constructor(changed)
+        for section in ("profile", "core"):
+            for mutation in ("missing", "enabled"):
+                changed = copy.deepcopy(expected)
+                if mutation == "missing":
+                    changed[section].pop("boundHeadStoreOverlap")
+                else:
+                    changed[section]["boundHeadStoreOverlap"] = True
                 with self.subTest(section=section, mutation=mutation), self.assertRaises(RuntimeError):
                     board_release.compare_constructor(changed)
         for section, key, value in (("core", "memoryEntries", 2), ("ddr", "futureFlag", False),

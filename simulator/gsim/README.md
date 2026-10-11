@@ -2687,3 +2687,12 @@ Two independent default-OFF options remove 384 and 4416 native declared scalar
 bits (joint4800) on the explicit ROB64/PRF64/LSU4/D16/DMA4 profile. Native and
 focused gates, official split Board/GC and exact original CPU cases 19/21 passed. Defaults and recommended presets are unchanged. See the
 [current evidence, preserved FAIL boundaries and limits](../../docs/experiments/memory-state-reuse.md).
+
+## Optional bound-store/prefetch profile
+
+The [bound-store/prefetch v1 contract](../../docs/fpga-next/bound-store-prefetch-v1.md)
+consolidates B′, exact-head B2, finite read-prefetch store hold and the private
+translated-proof compaction. The explicit `fpga/next/board_bound_store_prefetch.py`
+entry is source-only by default and leaves old presets unchanged. Bounded compact CPU parity, native declaration accounting and publication
+constructor/native bridges pass; their exact scope is tracked separately in the [evidence index](../../docs/experiments/bound-store-prefetch-evidence-v1.json).
+No mapped-resource, STA, routed or board qualification is implied.

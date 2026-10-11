@@ -33,6 +33,9 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
+    frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
+    pendingVirtualStoreProofSlots: Int = 1,
+    boundHeadStoreOverlap: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false) extends Module {
     override def desiredName: String = "BoardSocGsim"
@@ -52,7 +55,9 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
         preparedStoreLookahead = preparedStoreLookahead, postedPreparationPriority = postedPreparationPriority,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity))
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+            frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap, backendCapacity = backendCapacity))
     // Passive capacity evidence, derived from the actual final backend constructor.
     private val capacityBackend = board.platform.core.core.core.backend
     private def capacityTap[T <: Data](signal: T): T = BoringUtils.bore(signal)

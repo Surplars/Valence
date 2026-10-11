@@ -141,6 +141,10 @@ case class OooParams(
     postedPrefetchHeadOffer: Boolean = false,
     canonicalVirtualStoreOverlap: Boolean = false,
     memoryProofFrontier: Boolean = false,
+    frozenStoreProofTransport: Boolean = false,
+    pendingVirtualStoreProof: Boolean = false,
+    pendingVirtualStoreProofSlots: Int = 1,
+    boundHeadStoreOverlap: Boolean = false,
     memoryProofRows: Int = 16,
     memoryProofCacheSets: Int = 256,
     postedPreparationPriority: Boolean = false,
@@ -154,6 +158,24 @@ case class OooParams(
     def pmpChangePublicationEnabled: Boolean = publishedPmpChanges && machineSystem && pmpEntries > 0 &&
         virtualMemoryLevels > 0 && (virtualRamLoadPrecheck || postedStoreMerge)
 
+    def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
+
+    require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
+        "bound head-store overlap requires the independent pending-store proof profile")
+    require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
+    require(!frozenStoreProofTransport || (canonicalVirtualStoreOverlap && virtualRamLoadPrecheck &&
+        registeredMemoryRequests && registeredTranslationHeads),
+        "frozen-store transport requires canonical origins and registered request/translation ownership")
+    require(!pendingVirtualStoreProof || (!memoryProofFrontier && frozenStoreProofTransport &&
+        robEntries == 16 && physicalRegs == 48 && memoryEntries == 4 &&
+        renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && tagBits == 64 &&
+        virtualMemoryLevels == 3 && pmpEntries == 16 && speculativeRamBytes > 0 &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && bufferedRamStores &&
+        registeredIssueExecute && registeredMemoryAddress && registeredMemoryRequests && parallelMemoryPreparation &&
+        parallelMemoryPayload && compactMemoryOperandSelect && registeredTranslationHeads &&
+        registeredTranslatedResponses && registeredFabricBoundary && registeredLoadReplay && loadOrderOlderRetire &&
+        !precheckedDataRequestFlow && !fastBufferedStoreRetire && !fastHeadLoadRetire),
+        "pending virtual-store proofs support only the independent staged ROB16/PRF48/LSU4 Sv39 profile")
     require(!memoryProofFrontier || (robEntries == 64 && physicalRegs == 64 && memoryEntries == 4 &&
         renameWidth == 2 && commitWidth == 2 && completionWidth == 2 && memoryProofRows == 16 &&
         tagBits == 64 && virtualMemoryLevels == 3 && pmpEntries == 16 && speculativeRamBytes > 0 &&

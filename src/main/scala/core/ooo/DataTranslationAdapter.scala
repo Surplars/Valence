@@ -8,7 +8,7 @@ private[ooo] class VirtualDataRequest(p: OooParams) extends Bundle {
     val request = new DataRequest
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
-    val frozenStoreProof = if (p.memoryProofFrontier) Some(Valid(new FrozenStoreProof)) else None
+    val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Valid(new FrozenStoreProof)) else None
     val context = new VmCsrState
 }
 
@@ -16,7 +16,9 @@ private[ooo] class TranslatedDataRequest(p: OooParams) extends Bundle {
     val request = new DataRequest
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
-    val frozenStoreProof = if (p.memoryProofFrontier) Some(Valid(new FrozenStoreProof)) else None
+    // Accepted bindings are already represented by originalVirtualAddress and request PA/size/mask.
+    // Invalid ingress bindings retain accessFault, so only frozen provenance needs separate storage.
+    val frozenStorePresent = if (p.frozenStoreProofEnabled) Some(Bool()) else None
     val originalVirtualAddress = if (p.canonicalVirtualStoreOverlap) Some(UInt(64.W)) else None
     val privilege = UInt(2.W)
     val checkPhysical = Bool()
@@ -56,7 +58,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     require(!p.canonicalVirtualStoreOverlap || (p.virtualRamLoadPrecheck &&
         p.registeredTranslationHeads && registerCheckedRequests),
         "canonical store certificates require the shared epoch and registered translation/checked boundaries")
-    require(!p.memoryProofFrontier || (p.canonicalVirtualStoreOverlap &&
+    require(!p.frozenStoreProofEnabled || (p.canonicalVirtualStoreOverlap &&
         p.registeredTranslationHeads && registerCheckedRequests),
         "frozen stores require registered ingress, translated storage and checked physical write authorization")
     require(!p.registeredTranslationHeads || registerCheckedRequests,
@@ -79,7 +81,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val precheckFlush = if (p.virtualRamLoadPrecheck) Some(Input(Bool())) else None
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Input(Valid(new CanonicalStoreOrigin(p)))) else None
-        val frozenStoreProof = if (p.memoryProofFrontier) Some(Input(Valid(new FrozenStoreProof))) else None
+        val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Input(Valid(new FrozenStoreProof))) else None
         val canonicalStoreCertificate = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreCertificate(p)))) else None
         val vmState = Input(new VmCsrState)
@@ -201,7 +203,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     val incomingCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
         Some(virtualRequests.get.io.deq.bits.canonicalStoreOrigin.get) else None
-    val incomingFrozenStoreProof = if (p.memoryProofFrontier)
+    val incomingFrozenStoreProof = if (p.frozenStoreProofEnabled)
         Some(virtualRequests.get.io.deq.bits.frozenStoreProof.get) else None
     val context = virtualRequests.map(_.io.deq.bits.context).getOrElse(io.vmState)
     val frozenPresent = incomingFrozenStoreProof.map(_.valid).getOrElse(false.B)
@@ -217,7 +219,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             10.U -> (address(63, 57) === Fill(7, address(56)))))
         context.dataPrivilege =/= 3.U && mode >= 8.U && mode <= (p.virtualMemoryLevels + 5).U && canonical
     }
-    val frozenIngressAllowed = if (p.memoryProofFrontier) {
+    val frozenIngressAllowed = if (p.frozenStoreProofEnabled) {
         val origin = incomingCanonicalStoreOrigin.get
         origin.valid && CanonicalVirtualStore.frozenMatches(p, incoming.bits, incomingFrozenStoreProof.get.bits) &&
             frozenVirtualContext(incoming.bits.address, context) && io.loadPrecheck.get.stable &&
@@ -295,10 +297,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             (translatedReply || frozenSource) && original.virtualized && original.write && !original.atomic &&
             !original.precheckedLoad && !original.uncached
     }
-    translated.io.enq.bits.frozenStoreProof.foreach { proof =>
-        proof := incomingFrozenStoreProof.get
-        proof.valid := frozenSource
-    }
+    translated.io.enq.bits.frozenStorePresent.foreach(_ := frozenSource)
     translated.io.enq.bits.originalVirtualAddress.foreach(_ := original.address)
     translated.io.enq.bits.request.address := Mux(frozenSource,
         incomingFrozenStoreProof.map(_.bits.physicalAddress).getOrElse(0.U),
@@ -313,13 +312,25 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         (frozenSource && !frozenIngressAllowed) || staleAuthorization(original) || (original.precheckedLoad &&
             (original.virtualized || original.write || original.atomic || original.uncached ||
                 context.dataPrivilege === 3.U || context.satp(63, 60) === 0.U))
-    if (p.memoryProofFrontier) {
+    if (p.frozenStoreProofEnabled) {
         when(incoming.fire && frozenPresent) {
             assert(translated.io.enq.fire && !io.translation.request.fire && !waiting &&
                 !identityPass && !precheckedPass && !physicalIngressPass,
                 "frozen store transfers once into translated storage without demand retranslation or flow bypass")
-            assert(translated.io.enq.bits.frozenStoreProof.get.asUInt === incomingFrozenStoreProof.get.asUInt,
-                "registered ingress transfers the frozen binding byte-for-byte")
+            assert(translated.io.enq.bits.frozenStorePresent.get,
+                "registered ingress retains frozen provenance")
+            when(frozenIngressAllowed) {
+                val proof = incomingFrozenStoreProof.get.bits
+                val captured = translated.io.enq.bits
+                assert(captured.originalVirtualAddress.get === proof.address &&
+                    captured.request.address === proof.physicalAddress && captured.request.size === proof.size &&
+                    captured.request.mask === proof.mask &&
+                    captured.canonicalStoreOrigin.get.asUInt === incomingCanonicalStoreOrigin.get.asUInt,
+                    "accepted compact binding retains the full incoming tuple and origin")
+            }.otherwise {
+                assert(translated.io.enq.bits.accessFault,
+                    "rejected frozen ingress remains a fault after compact capture")
+            }
         }
     }
 
@@ -354,18 +365,23 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         request.precheckedLoad && (!AlignedMemoryDisjoint.aligned(request.address, request.size) ||
             request.mask =/= (mask << request.address(2, 0))(7, 0))
     } else false.B
-    val frozenCheckedAllowed = if (p.memoryProofFrontier) {
-        val proof = head.frozenStoreProof.get.bits
+    val frozenCheckedAllowed = if (p.frozenStoreProofEnabled) {
+        // For allowed ingress this tuple equals the full original proof. A rejected binding
+        // cannot regain authority through reconstruction: its accessFault remains sticky.
+        val proof = Wire(new FrozenStoreProof)
+        proof.address := head.originalVirtualAddress.get
+        proof.physicalAddress := request.address
+        proof.size := request.size
+        proof.mask := request.mask
         val origin = head.canonicalStoreOrigin.get
         origin.valid && request.write && !request.atomic && !request.virtualized &&
             !request.precheckedLoad && !request.uncached && head.checkPhysical &&
-            proof.address === head.originalVirtualAddress.get && proof.physicalAddress === request.address &&
-            proof.size === request.size && proof.mask === request.mask && CanonicalVirtualStore.frozenShape(p, proof) &&
+            CanonicalVirtualStore.frozenShape(p, proof) &&
             frozenVirtualContext(proof.address, io.vmState) && io.loadPrecheck.get.stable &&
             !authorizationChanged && !io.precheckFlush.get && origin.bits.epoch === authorizationEpoch.get &&
             !head.postedProof.map(_.valid).getOrElse(false.B)
     } else false.B
-    val frozenFault = head.frozenStoreProof.map(proof => proof.valid && !frozenCheckedAllowed).getOrElse(false.B)
+    val frozenFault = head.frozenStorePresent.map(present => present && !frozenCheckedAllowed).getOrElse(false.B)
     val fault = head.pageFault || head.accessFault || precheckedShapeFault || frozenFault ||
         (head.checkPhysical && pmp.io.denied) || atomicOutside || staleAuthorization(request) ||
         (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size))
@@ -504,11 +520,11 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             head.postedProof.foreach(proof => assert(!proof.valid,
                 "canonical virtual-store certificate cannot reuse physical posted-store proof"))
         }
-        head.frozenStoreProof.foreach { proof =>
-            when(stage.enq.fire && fromTranslated && proof.valid && !stage.enq.bits.fault) {
+        head.frozenStorePresent.foreach { present =>
+            when(stage.enq.fire && fromTranslated && present && !stage.enq.bits.fault) {
                 assert(frozenCheckedAllowed && certificate.valid && !pmp.io.denied &&
-                    pmp.io.access === PmpAccess.write && request.address === proof.bits.physicalAddress,
-                    "successful frozen stores consume the same immutable PA at real checked write acceptance")
+                    pmp.io.access === PmpAccess.write,
+                    "successful frozen stores retain fresh origin and final checked physical write authority")
             }
         }
     }

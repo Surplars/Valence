@@ -2020,3 +2020,12 @@ Two independent default-OFF options remove 384 and 4416 native declared scalar
 bits (joint4800) on the explicit ROB64/PRF64/LSU4/D16/DMA4 profile. Native and
 focused gates, official split Board/GC and exact original CPU cases 19/21 passed. Defaults and recommended presets are unchanged. See the
 [current evidence, preserved FAIL boundaries and limits](experiments/memory-state-reuse.md).
+
+## Optional bound-store/prefetch composition
+
+See [bound-store/prefetch v1](fpga-next/bound-store-prefetch-v1.md) for the current
+B′/B2/hold invariants, bounded original/Bare/fixed-burst results, zero-benefit
+standalone hold control, corrected fixture history and native declaration census.
+The explicit optional board entry preserves generic false defaults and the exact
+published PMP rollback profile. Compact CPU parity, native declaration accounting and final constructor/native
+bridges pass within the recorded scope; no physical qualification is inferred.

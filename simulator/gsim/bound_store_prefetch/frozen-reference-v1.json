@@ -1,0 +1,27 @@
+{
+  "schema": "translated-proof-frozen-reference-v1",
+  "reference_path": "src/test/scala/ooo/TranslatedFrozenProofReference.scala",
+  "reference_sha256": "ac91f63c127a824b2867098cc5c73a6faa16817bdfcdd745e4e4bb5f48b5d497",
+  "baseline_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+  "baseline_path": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+  "baseline_sha256": "d85a05a9c1c28f3854e95229d92859e65dd9b3f07f757ecd6e4fd69e26605be1",
+  "allowed_transformation": {
+    "leading_comment_lines": 1,
+    "prefix_class_names": [
+      "VirtualDataRequest",
+      "TranslatedDataRequest",
+      "TranslationResponseOwner",
+      "CheckedDataRequest",
+      "DataTranslationAdapter"
+    ],
+    "prefix": "Reference"
+  },
+  "rule": "Frozen independent comparison source. Do not regenerate from the current DUT or update automatically when the DUT changes.",
+  "transport_bridge": {
+    "qualified_source_sha256": "4f0d53c8d3e3658f2af5b0c94664b95450c93062d8322ea226db6ac14fd71823",
+    "publication_source_sha256": "7744c09a6ff6e0aec6cfe0a08ae46826641ad49211f52f4b9b70e59ba43c99e7",
+    "exact_prefix_boundary": "class PendingStoreProofBackendGsim",
+    "prefix_sha256": "8111ae99c6fdaa66b75a9aa03cd91eacb2c7337fc02d74d5264a2f2b29680a37",
+    "differences": "Only backend optional bound-overlap argument, corrected vector probe, and backend emitter arity. Bank/transport and imports are byte-identical."
+  }
+}

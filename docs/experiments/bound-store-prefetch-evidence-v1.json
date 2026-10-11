@@ -1,0 +1,1645 @@
+{
+  "schema": "bound-store-prefetch-evidence-v1",
+  "status": "PASS_BOUNDED_COMPACT_COMBINATION_AND_PUBLICATION_BRIDGES_ROOT_REVIEW_PENDING",
+  "baseline": {
+    "commit": "7cc549ce32eac03a59adbf1ae388bf9dbae1ff25",
+    "tree": "82adf9aacea6f83603a88c4cb66a5341cfa3bbc6"
+  },
+  "historical_combination_source": {
+    "baseline": {
+      "root": "pmp-change-publication-r1/publication-source",
+      "commit": "0ccc2332a13891fb8bff8f9e4fbfa47ca93efc33",
+      "tree": "82adf9aacea6f83603a88c4cb66a5341cfa3bbc6",
+      "clean": true
+    },
+    "production": {
+      "root": "read-prefetch-store-hold-r1/cpu-source",
+      "commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "tree": "ebb31064dc7f2340e2c479988ba44b1dfd835e09",
+      "clean": true
+    },
+    "hold_fixtures": {
+      "root": "read-prefetch-store-hold-r1/source",
+      "commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "tree": "b1c5591cb667c271a56646a0333673127d1ff23a",
+      "clean": true
+    },
+    "b2_fixtures": {
+      "root": "bprime-bound-store-overlap-r1/source",
+      "commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "tree": "25957e3cf81e5a0123a021f42460f781b8051d80",
+      "clean": true
+    },
+    "bprime_fixtures": {
+      "root": "bprime-pending-store-proof-r1/source",
+      "commit": "869cbe7fced35520e1fd930d9ef7e738fbd55e3a",
+      "tree": "004ef9cef3d01431afc3f9da781b24946c83b2cf",
+      "clean": true
+    }
+  },
+  "profile": {
+    "options": [
+      "--selected",
+      "--data-translation-entries=16",
+      "--registered-pmp-regions",
+      "--experimental-trispeed-ethernet",
+      "--experimental-jtag-bscan=2",
+      "--dma-line-transfers",
+      "--dma-line-entries=4",
+      "--prefetch-candidate-cycles=16",
+      "--virtual-ram-load-precheck",
+      "--lsu-entries=4",
+      "--physical-load-ingress-flow",
+      "--ddr-write-collection-flow",
+      "--line-transfer-dispatch-flow",
+      "--line-read-channel",
+      "--dtlb-write-read-reuse",
+      "--translation-hit-flow",
+      "--independent-demand-admission",
+      "--split-prefetch-tracking",
+      "--read-prefetch-dirty-retry",
+      "--read-prefetch-demand-adoption",
+      "--load-order-older-retire",
+      "--fetch-previous-packet",
+      "--prepared-store-lookahead",
+      "--store-next-line-prefetch",
+      "--store-prefetch-mru-insertion",
+      "--posted-store-merge",
+      "--posted-prefetch-coexistence",
+      "--posted-prefetch-head-offer",
+      "--canonical-virtual-store-overlap",
+      "--published-pmp-changes",
+      "--frozen-store-proof-transport",
+      "--pending-virtual-store-proof",
+      "--pending-virtual-store-proof-slots=1",
+      "--bound-head-store-overlap",
+      "--read-prefetch-store-hold"
+    ],
+    "constructor_arities": [
+      53,
+      148,
+      17
+    ],
+    "generic_defaults": "four booleans false, proof slots 1; private compaction has no option"
+  },
+  "selected_source": [
+    {
+      "path": "fpga/next/board_profile.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "a5f6312b109ad5af83b9776e5400fb82d4f81004926738271b011079b44a72cd",
+      "selected_sha256": "4627d3d6461cc3613c072787823ad2d3369bf831b37efd68cd080b3ac63e4f02",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/board_release.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "db0184b967f959081f5ac700c3d94b6f3919fdf410959a58102ddc5c945ebcc6",
+      "selected_sha256": "8a0a3ff59b69457c31d750b1b019cc2ff068fcdfdcd34f213f6f97834b422692",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/board_timing_cdc.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "9ff7fa3ade20758980cc7a86ec2846dcb85f9eebd8ee0bda24ec561805c62757",
+      "selected_sha256": "b25e97dcddb9596fa76bcfd67e59e905614593f15a43835d166988179e3e386b",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/export.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "3b36ff8349799e3d190661db355f4152198df1aae9a3c31a1c968ab438223330",
+      "selected_sha256": "466c94fdd917bf13bfb419e68e6d7a8d809d3ba03e3f1ce866a5c907451947a1",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/test_board_pmp_publication.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "1f8270c7c63eaa69be0206b03a0845651d5d4962c4f3ac3e49cf84e8e4212d73",
+      "selected_sha256": "13b495b19210641e240bf54e72fd27cd34b6865de5b05502eebcaecefdab431d",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/test_board_profile.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "81cfb90b4a0560ccfcf8130dab05e1e74d950a66836ecc9118848a360b617d3b",
+      "selected_sha256": "26fdacbad908d2e80e11ccb71cfc884732e74cc4eefbe58d425d13a2f67c4b63",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/test_board_release.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "6ba19173faa3f436b505399a9fa3857b747b84fd9fdc09bc5ac39b9b910481ad",
+      "selected_sha256": "eee0277de3a3d5a285892a0f0e054c21e3b94542b67819a4718dadda44fba308",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "fpga/next/test_board_timing_cdc.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "f64ab2a8830b28e70c049ec3a4ae6fe5247a667b1cf293ae4638fed886333a8b",
+      "selected_sha256": "d84f404d0dc424193faf7507d097f76b22cec49cc61be3d68b746f082f33c45a",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/bound_head_store_overlap.py",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "6784cd1a945a870b356ad6469beaf8c1edef939520b896fec9ef27bcaceff5d4",
+      "selected_sha256": "7522c7a3d6549fc50bd472a207e4e4aa261602e727fd95a54e31e1518bd5d66d",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/fpga_next_board.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "43ebd4412fbe6f72607befd4ae11fe3ad13fd7a3682e73a5658e170a3b1b9b1a",
+      "selected_sha256": "43ebd4412fbe6f72607befd4ae11fe3ad13fd7a3682e73a5658e170a3b1b9b1a",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/bound_head_store_overlap_backend.cpp",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "b17f4fb001ec5628bd9d5f8632b78b556bd51ed990d871591bb31037d85fb71d",
+      "selected_sha256": "b17f4fb001ec5628bd9d5f8632b78b556bd51ed990d871591bb31037d85fb71d",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/bound_head_store_overlap_slots.cpp",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "540e829eaa4fa744a876b81c145a87c937d6d762144dad0272fd096a7e173b2a",
+      "selected_sha256": "540e829eaa4fa744a876b81c145a87c937d6d762144dad0272fd096a7e173b2a",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/pending_store_proof_backend.cpp",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "67bb1881721ae48e3454462d63d2ee8ae599744a7f0cd281919ed26c9249c5ca",
+      "selected_sha256": "67bb1881721ae48e3454462d63d2ee8ae599744a7f0cd281919ed26c9249c5ca",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/pending_store_proof_bank.cpp",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "b6e627863e5bf121792eab364a77332ff65859e62b14c60402fd082ee1f887d5",
+      "selected_sha256": "b6e627863e5bf121792eab364a77332ff65859e62b14c60402fd082ee1f887d5",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/pending_store_proof_reference.h",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "9b78eb81a52d505c2b94f83062a07f2be9645859097ed6c795e3c2b0a913c4be",
+      "selected_sha256": "9b78eb81a52d505c2b94f83062a07f2be9645859097ed6c795e3c2b0a913c4be",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/pending_store_proof_transport.cpp",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "3ffe8cd26a6027bc615e2e2e0e9395b545a7b63f84f22991e231d6d0768f5e79",
+      "selected_sha256": "3ffe8cd26a6027bc615e2e2e0e9395b545a7b63f84f22991e231d6d0768f5e79",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/read_prefetch_store_hold.cpp",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "733efc825ad3a9b2f442a92e1753185ab153dbb8c92686e3eac5e59207f1aaf9",
+      "selected_sha256": "733efc825ad3a9b2f442a92e1753185ab153dbb8c92686e3eac5e59207f1aaf9",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/read_prefetch_store_hold_fallback.cpp",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "5eb09c14f274b5ee55b46b912134e4bed5dc6c35560c3e200f674ed8bd0c0a88",
+      "selected_sha256": "5eb09c14f274b5ee55b46b912134e4bed5dc6c35560c3e200f674ed8bd0c0a88",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/harness/read_prefetch_store_hold_reused.cpp",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "8001de357058509f1a69fbb77f02576e222587809402de1bad6f827367dbb9f8",
+      "selected_sha256": "8001de357058509f1a69fbb77f02576e222587809402de1bad6f827367dbb9f8",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "simulator/gsim/pending_store_proof.py",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "dbbdbf7dc62e8a4efd494aac07c7fc2cfe16b21d5995f7b0d2e3f08bccb83a22",
+      "selected_sha256": "6c601bdbd339d1cb540f9029b3e08122916da699ebb6047bcce016df4b816269",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/pending_store_proof_integration.py",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "88eea67f158ba17390c840c2a11a2f1b852f1b485b8d9218492396b6f1cafc30",
+      "selected_sha256": "0a4f820edb936df5dbd24edc8c0a97a331ddcf1c3d5569d83157324849276439",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/read_prefetch_store_hold.py",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "a562842bd03f25d2d34aea60f041e409678c907e58537cf789a3e145b17f3a17",
+      "selected_sha256": "5614a1e67e073a400ab53a167a06c48da8fd1345d00df8a7f13d10b0bd1618a0",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/read_prefetch_store_hold_extras.py",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "4b066b6dc8bfbb0089fdaf47b525486de8acaa73c1673a148c920c0b18a60560",
+      "selected_sha256": "0bda34a630fd70b618041597999de1163f990ac7f880640548949113cf77193c",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "simulator/gsim/test_read_prefetch_store_hold_cli.py",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "6bc285183264d1e04643d98c2203c3c2db471ab8654033dbfd778734e4a5f875",
+      "selected_sha256": "6bc285183264d1e04643d98c2203c3c2db471ab8654033dbfd778734e4a5f875",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/BoardSocTop.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "6286ee2826a9abd5723d950c38ae3056655e4c3ddf734aa0e2e057982844333c",
+      "selected_sha256": "6286ee2826a9abd5723d950c38ae3056655e4c3ddf734aa0e2e057982844333c",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/CanonicalVirtualStore.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "5a867dad37e64a77a2feab6db8e76954908d03ffe3fdfc5cd2967e6a47c83488",
+      "selected_sha256": "5a867dad37e64a77a2feab6db8e76954908d03ffe3fdfc5cd2967e6a47c83488",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/CoherentCacheConcurrency.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "dce7498e51d741bdf2afb5972fe7a3bffedf852da0fccdfcca93e6094e76c426",
+      "selected_sha256": "dce7498e51d741bdf2afb5972fe7a3bffedf852da0fccdfcca93e6094e76c426",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "d85a05a9c1c28f3854e95229d92859e65dd9b3f07f757ecd6e4fd69e26605be1",
+      "selected_sha256": "79844d1e1ee285146b7511341b06aa86a513c6f36ba2e15fb3aa672b826a869f",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "src/main/scala/core/ooo/FpgaNextConfig.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "d6dd02d6a0ab038e49a101c76f067d969f6b490bf36fd37ca62aed33732c17fd",
+      "selected_sha256": "86353904fea683778c5db657713c5c17f398166678bc7fe8676133d16d340644",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "src/main/scala/core/ooo/IntegerBackend.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "9bf5f97e365165922654105630d4e9398d5e0899b757c20410dd06f7d5ca9e07",
+      "selected_sha256": "9bf5f97e365165922654105630d4e9398d5e0899b757c20410dd06f7d5ca9e07",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/LoadStoreUnit.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "66f776804aee5494c8abb21a3af877307dce8e8e1b76ab6bd65e665e6cb63217",
+      "selected_sha256": "66f776804aee5494c8abb21a3af877307dce8e8e1b76ab6bd65e665e6cb63217",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "cc57341c934365b54ba7b7ea7e9b3e098f63c668e8a9c7cd16cc942fe8db03d7",
+      "selected_sha256": "cc57341c934365b54ba7b7ea7e9b3e098f63c668e8a9c7cd16cc942fe8db03d7",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/OooParams.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "67f92ab2c8a1a89ce5c2ce505f5a3f820b66797e6c23b7396bb4f40a62012036",
+      "selected_sha256": "67f92ab2c8a1a89ce5c2ce505f5a3f820b66797e6c23b7396bb4f40a62012036",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "a8e2dc09fc52e245eab834b4fedc7f25dee29f1e961acc6e1bf7f7a1415926b4",
+      "selected_sha256": "a8e2dc09fc52e245eab834b4fedc7f25dee29f1e961acc6e1bf7f7a1415926b4",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/PendingVirtualStoreProof.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "42d5609a683bfcee7dd37273aa0f50d799e3c70127135191a2a1f5eee9474aca",
+      "selected_sha256": "42d5609a683bfcee7dd37273aa0f50d799e3c70127135191a2a1f5eee9474aca",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/main/scala/core/ooo/StoreBuffer.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "df469ad67e5697c3b58cbca2aba994cd63526a5f19bc47765337ce84d4d03ab1",
+      "selected_sha256": "df469ad67e5697c3b58cbca2aba994cd63526a5f19bc47765337ce84d4d03ab1",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/BoardSocGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "6cb90993eb3c66a70c8e0f983332849d09b67639a4af6c64b0ab74a1ff2d7475",
+      "selected_sha256": "6cb90993eb3c66a70c8e0f983332849d09b67639a4af6c64b0ab74a1ff2d7475",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/BoundHeadStoreOverlapGsim.scala",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "a98e8bf172617bfec2fc4b461cf586dcd5cd61982f533b2194367683c0947dd1",
+      "selected_sha256": "a98e8bf172617bfec2fc4b461cf586dcd5cd61982f533b2194367683c0947dd1",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalOverlapBoardBuild.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "3bdc4392634aa57f0ed3a8601d93b8c0a876e7fe79f96954ac0cffb197968a56",
+      "selected_sha256": "3bdc4392634aa57f0ed3a8601d93b8c0a876e7fe79f96954ac0cffb197968a56",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalOverlapBoardGsim.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "94a88baf9b6741bd2e19ce1b836c1bcb269464f076241b699086a099a1a34610",
+      "selected_sha256": "94a88baf9b6741bd2e19ce1b836c1bcb269464f076241b699086a099a1a34610",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "b5337ae4f6ff86164edd79bc00ea47f2a00a37212fb250c655cac8143d0bf5de",
+      "selected_sha256": "b5337ae4f6ff86164edd79bc00ea47f2a00a37212fb250c655cac8143d0bf5de",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "3f5c801012aee0ed4bc3801613218f16b18454378462dc50ac54bda0eac58397",
+      "selected_sha256": "3f5c801012aee0ed4bc3801613218f16b18454378462dc50ac54bda0eac58397",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CoherentCacheHomeGsim.scala",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "4853efd874f160f3e42e47108752cb373a0e79ed5201a19ddc9de911cd38a8d1",
+      "selected_sha256": "4853efd874f160f3e42e47108752cb373a0e79ed5201a19ddc9de911cd38a8d1",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuBoardProfileGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "5f391ca3d51752d56a5b1828b1a3df13615d0e8b2a01635e8e0f18c376bd32f0",
+      "selected_sha256": "5f391ca3d51752d56a5b1828b1a3df13615d0e8b2a01635e8e0f18c376bd32f0",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "3312bd501b792e00150a895a484948c077fafa5d6a04fe1c6248056fcb106dac",
+      "selected_sha256": "3312bd501b792e00150a895a484948c077fafa5d6a04fe1c6248056fcb106dac",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/CpuSv39BandwidthGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "d97432cec80b24364656e1666ffc6c0e6b49d6b8d59fed75cd61249972a28f4c",
+      "selected_sha256": "d97432cec80b24364656e1666ffc6c0e6b49d6b8d59fed75cd61249972a28f4c",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "058fbeb35af10fba7aa0e0ea16144331203fbd1dbac938be5b19a43fd11eb0c4",
+      "selected_sha256": "058fbeb35af10fba7aa0e0ea16144331203fbd1dbac938be5b19a43fd11eb0c4",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseGsim.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "c578468aec437f3cbd9cd360713d0a66ad635fc1c8a849c33ad1a9f5d35551a2",
+      "selected_sha256": "c578468aec437f3cbd9cd360713d0a66ad635fc1c8a849c33ad1a9f5d35551a2",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/DistinctWayReleaseNativeMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "ff30f81ca0425c9282fbbd0ea78646f6634f0204a2231286867028d22feb591a",
+      "selected_sha256": "ff30f81ca0425c9282fbbd0ea78646f6634f0204a2231286867028d22feb591a",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "35490f2ac5c2deba6d099a8ca3f097fe428da5276dcf318d4cb2cb95a5f5d92b",
+      "selected_sha256": "35490f2ac5c2deba6d099a8ca3f097fe428da5276dcf318d4cb2cb95a5f5d92b",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "554820fff9638a3815bceb60085a5a3fcc10e666ae9971bed24e61d71ecd6e70",
+      "selected_sha256": "554820fff9638a3815bceb60085a5a3fcc10e666ae9971bed24e61d71ecd6e70",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/FpgaNextProfileMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "cd74c16b3d58a183f06a4be461639745af2a28d85bdd1fdb2d8832c395a2b52c",
+      "selected_sha256": "db2948c9d6594ac9b1671f6d7a8fa53636605f37e4d7baa194207a28f77887e8",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "src/test/scala/ooo/IndependentDemandAdmissionConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "4ce18b4ddff30dfddefa3d2914917ca3b5abd16613d033d4ba6e9c96ba3b0310",
+      "selected_sha256": "4ce18b4ddff30dfddefa3d2914917ca3b5abd16613d033d4ba6e9c96ba3b0310",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/LatencyBandwidthConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "14a86040d4413fc81f8d9a7a4aacda00155277f0812390b6747cc1b52b709067",
+      "selected_sha256": "14a86040d4413fc81f8d9a7a4aacda00155277f0812390b6747cc1b52b709067",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/LineReadChannelConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "7a6448ba746d35c2b17c2652904e44de52657d3e6e9cb97f8a70c8c8955abfed",
+      "selected_sha256": "7a6448ba746d35c2b17c2652904e44de52657d3e6e9cb97f8a70c8c8955abfed",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryProofFrontierExactGsim.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "b98fecb16bee1931bac950d6bfacfee88b40ba6ff71aabf745cf2fe37b8021da",
+      "selected_sha256": "b98fecb16bee1931bac950d6bfacfee88b40ba6ff71aabf745cf2fe37b8021da",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "277ba7c0ec587100d1256bad53173276b7d2ecf2744d352c6dc4a6b4212619ac",
+      "selected_sha256": "277ba7c0ec587100d1256bad53173276b7d2ecf2744d352c6dc4a6b4212619ac",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/PendingStoreProofGsim.scala",
+      "ancestor_commit": "15aca31c74ed73cb799aaa44d9b70d15d7fb46c1",
+      "ancestor_sha256": "7744c09a6ff6e0aec6cfe0a08ae46826641ad49211f52f4b9b70e59ba43c99e7",
+      "selected_sha256": "7744c09a6ff6e0aec6cfe0a08ae46826641ad49211f52f4b9b70e59ba43c99e7",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/PendingVirtualStoreProofConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "abca1e3a7ae585c282fcd0f8dfe6e5eaeb41108ac4b40cf8fd8cc191fd35efea",
+      "selected_sha256": "8181cd5ad3c11f3390be064aedb36f666e37e9042137b28994f6c12accf5bcb4",
+      "status": "REVIEWED_PUBLICATION_REPAIR_OR_COMPACT_ADAPTER"
+    },
+    {
+      "path": "src/test/scala/ooo/PostedBoardActualParamsAuditMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "b1a561293ace8ae5e8df31aca2c1eb155bff4c1d696d3a2190e5fe8a9f2f3ac6",
+      "selected_sha256": "b1a561293ace8ae5e8df31aca2c1eb155bff4c1d696d3a2190e5fe8a9f2f3ac6",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "4baeee3272db28b6c199159f5fbab37bbd1430a01b69aca6983afbe31d1388bf",
+      "selected_sha256": "4baeee3272db28b6c199159f5fbab37bbd1430a01b69aca6983afbe31d1388bf",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchDemandAdoptionConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "d6ecb8e21fbe1e8256f7e414fb303aabe9e91e877aaaf5707b9f7936f88b6844",
+      "selected_sha256": "d6ecb8e21fbe1e8256f7e414fb303aabe9e91e877aaaf5707b9f7936f88b6844",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchDirtyRetryConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "286b6976a88ca964a68f014437a0047fb7d6a66c2155abf34544a59bc983ba2d",
+      "selected_sha256": "286b6976a88ca964a68f014437a0047fb7d6a66c2155abf34544a59bc983ba2d",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchStoreHoldConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "097331bedcd92c5e52acea610d17e9af6136cde1cc5e39e468f591cc702b52ff",
+      "selected_sha256": "097331bedcd92c5e52acea610d17e9af6136cde1cc5e39e468f591cc702b52ff",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchStoreHoldFallbackGsimMain.scala",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "e9e7a535261bb51f0491c558171b29a854b8b82035676eeddcd25456b25a6668",
+      "selected_sha256": "e9e7a535261bb51f0491c558171b29a854b8b82035676eeddcd25456b25a6668",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/ReadPrefetchStoreHoldGsimMain.scala",
+      "ancestor_commit": "147333186cb4c1cc68301c9cf3eddfc354999d4c",
+      "ancestor_sha256": "8d7a8d00607e8f3573c3954a6997643daa5573dfe7888c64c12e0a3a9cfca7e9",
+      "selected_sha256": "8d7a8d00607e8f3573c3954a6997643daa5573dfe7888c64c12e0a3a9cfca7e9",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/RobCapacityCpuGsimMain.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "4c543ab3a5b8df9159d9bce329a070bf4bb4eb7125fbd2c1db2c4d6d26666224",
+      "selected_sha256": "4c543ab3a5b8df9159d9bce329a070bf4bb4eb7125fbd2c1db2c4d6d26666224",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/SplitPrefetchTrackingConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "cfe57a32e5224c9d7b804b077a62cd559928ae8eadd85e3aa22899142c741d1f",
+      "selected_sha256": "cfe57a32e5224c9d7b804b077a62cd559928ae8eadd85e3aa22899142c741d1f",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimGsim.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "7fb248b1bce533c5e2ea855ba5ac9706269050b8ede665b68420d3fc349d5082",
+      "selected_sha256": "7fb248b1bce533c5e2ea855ba5ac9706269050b8ede665b68420d3fc349d5082",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "8136434e93bf027f9e0d104ee0b5bb40665a3d229427971d20b0245d4ab8a118",
+      "selected_sha256": "8136434e93bf027f9e0d104ee0b5bb40665a3d229427971d20b0245d4ab8a118",
+      "status": "EXACT_SELECTED_BYTES"
+    },
+    {
+      "path": "src/test/scala/ooo/TranslationHitFlowConfigSpec.scala",
+      "ancestor_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "ancestor_sha256": "88fa36554c792328e289ceaabeadb46fb79f575dfb40b9ab56252b638b4a7c55",
+      "selected_sha256": "88fa36554c792328e289ceaabeadb46fb79f575dfb40b9ab56252b638b4a7c55",
+      "status": "EXACT_SELECTED_BYTES"
+    }
+  ],
+  "coverage": [
+    {
+      "id": "bprime_bank",
+      "paths": [
+        "src/main/scala/core/ooo/PendingVirtualStoreProof.scala",
+        "src/test/scala/ooo/PendingStoreProofGsim.scala",
+        "simulator/gsim/harness/pending_store_proof_bank.cpp",
+        "simulator/gsim/harness/pending_store_proof_reference.h",
+        "simulator/gsim/pending_store_proof.py"
+      ],
+      "evidence": "bprime-pending-store-proof-r1/qualification-manifest.json",
+      "passed": "bank1/bank2 each ASan+UBSan: positive, mutate full tag and double-reserve controls; exact proof fields and single credit",
+      "limit": "Two proof slots are component coverage only; public optional combo fixes slots=1"
+    },
+    {
+      "id": "bprime_backend_transport",
+      "paths": [
+        "src/test/scala/ooo/PendingStoreProofGsim.scala",
+        "simulator/gsim/harness/pending_store_proof_backend.cpp",
+        "simulator/gsim/harness/pending_store_proof_transport.cpp",
+        "simulator/gsim/pending_store_proof_integration.py"
+      ],
+      "evidence": "bprime-pending-store-proof-r1/qualification-manifest.json",
+      "passed": "Real decoded OFF/ON backend; frozen transport genuine TLB replacement/PTE mutation; data, retirement, token, malformed-mask and atomic controls",
+      "limit": "Final B2 wrapper adds optional default-false overlap argument; preserve prior source bridge, do not claim original wrapper byte identity"
+    },
+    {
+      "id": "b2",
+      "paths": [
+        "src/test/scala/ooo/BoundHeadStoreOverlapGsim.scala",
+        "src/test/scala/ooo/PendingStoreProofGsim.scala",
+        "simulator/gsim/harness/bound_head_store_overlap_backend.cpp",
+        "simulator/gsim/harness/bound_head_store_overlap_slots.cpp",
+        "simulator/gsim/bound_head_store_overlap.py"
+      ],
+      "evidence": "bprime-bound-store-overlap-r1/qualification-manifest.json",
+      "passed": "Exact B-prime ON1 OLD backend and NEW slots/backend; full tokens, idle target, class/epoch/PA bytes, co-owner/recovery/drain, frozen handoff, late load/store errors and independent mutation anchors",
+      "limit": "OLD compiled artifacts currently mandatory; choose explicit verified artifact import or fresh OLD option, never quietly relink changed headers"
+    },
+    {
+      "id": "hold_paired",
+      "paths": [
+        "src/test/scala/ooo/ReadPrefetchStoreHoldGsimMain.scala",
+        "src/test/scala/ooo/CoherentCacheHomeGsim.scala",
+        "simulator/gsim/read_prefetch_store_hold.py",
+        "simulator/gsim/harness/read_prefetch_store_hold.cpp"
+      ],
+      "evidence": "read-prefetch-store-hold-r1/focused-r5/receipt.json",
+      "passed": "12 schedules each OFF/ON; 24 exact 128KiB expected/actual images and real hold-NEXT mutation",
+      "limit": "Component only; reuse ancestry rooted in focused-r1 OFF and focused-r4 ON"
+    },
+    {
+      "id": "hold_extras",
+      "paths": [
+        "src/test/scala/ooo/ReadPrefetchStoreHoldFallbackGsimMain.scala",
+        "simulator/gsim/read_prefetch_store_hold_extras.py",
+        "simulator/gsim/harness/read_prefetch_store_hold_fallback.cpp",
+        "simulator/gsim/harness/read_prefetch_store_hold_reused.cpp"
+      ],
+      "evidence": "read-prefetch-store-hold-r1/extras-r2/receipt.json",
+      "passed": "3 saved denied/corrupt/probe-flush cases on exact ON64 objects; real 4-generation exhaustion/fallback, exact image and nonposted mutation",
+      "limit": "test-only generationBits=2 does not change board generation capacity"
+    },
+    {
+      "id": "configuration",
+      "paths": [
+        "src/test/scala/ooo/PendingVirtualStoreProofConfigSpec.scala",
+        "src/test/scala/ooo/ReadPrefetchStoreHoldConfigSpec.scala",
+        "simulator/gsim/test_read_prefetch_store_hold_cli.py",
+        "fpga/next/test_board_profile.py",
+        "fpga/next/test_board_release.py",
+        "fpga/next/test_board_timing_cdc.py",
+        "fpga/next/test_board_pmp_publication.py"
+      ],
+      "evidence": "read-prefetch-store-hold-r1/cpu-on-gates-r1/constructor-on/profile.json",
+      "passed": "Final source9 Scala configuration tests,23 board-entry Python tests, actual complete old/new constructors53/148/17 and native ON293-file raw equality",
+      "limit": "Historical serialized rollback manifests/options byte-identical; OFF native has3 documented raw differences with narrow semantic proof"
+    },
+    {
+      "id": "whole_cpu",
+      "paths": [
+        "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+        "src/test/scala/ooo/BoardSocGsimMain.scala",
+        "simulator/gsim/bound_store_prefetch_cpu.py"
+      ],
+      "evidence": "read-prefetch-store-hold-r1/cpu-followon-result-r1/summary.json",
+      "passed": "Original-law Sv39, original-law Bare, fixed-burst Sv39, independent final-byte/response oracle and read/memory/trap negatives",
+      "limit": "Narrow identical workload; no NEMU/full ISA claim, no third service law"
+    },
+    {
+      "id": "isolation",
+      "paths": [
+        "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala"
+      ],
+      "evidence": "read-prefetch-store-hold-7cc-r1/final-result.json",
+      "passed": "7cc+hold alone exact original stdout/AXI/supply and zero cycle change",
+      "limit": "Combination benefit cannot be advertised as standalone hold benefit"
+    },
+    {
+      "id": "physical",
+      "paths": [],
+      "evidence": "translated-frozen-proof-compaction-r1/native-r1/native-comparison.json",
+      "passed": "Official native declaration census, compact -1112 array bits, final +1746 bits versus7cc; full ON raw bridge and narrow OFF correspondence",
+      "limit": "No mapped LUT/FF/BRAM, STA, routing or board validation"
+    }
+  ],
+  "metrics": [
+    {
+      "configuration": "published7cc",
+      "law": "original Sv39",
+      "roi": 250604,
+      "tail": 8187,
+      "inclusive": 258791
+    },
+    {
+      "configuration": "B-prime",
+      "law": "original Sv39",
+      "roi": 259554,
+      "tail": 8185,
+      "inclusive": 267739
+    },
+    {
+      "configuration": "B2",
+      "law": "original Sv39",
+      "roi": 297042,
+      "tail": 8030,
+      "inclusive": 305072
+    },
+    {
+      "configuration": "B-prime+B2+hold",
+      "law": "original Sv39",
+      "roi": 247034,
+      "tail": 8189,
+      "inclusive": 255223,
+      "throughput_percent_vs7cc": 1.3979931275786228,
+      "cycle_reduction_percent_vs7cc": 1.378718734422758
+    },
+    {
+      "configuration": "B-prime+B2+hold and7cc",
+      "law": "original Bare",
+      "roi": 251815,
+      "tail": 8053,
+      "inclusive": 259868,
+      "delta": 0
+    },
+    {
+      "configuration": "published7cc",
+      "law": "fixed burst",
+      "roi": 250170,
+      "tail": 8188,
+      "inclusive": 258358
+    },
+    {
+      "configuration": "B-prime+B2+hold",
+      "law": "fixed burst",
+      "roi": 243398,
+      "tail": 8190,
+      "inclusive": 251588,
+      "throughput_percent_vs7cc": 2.6909073564716834
+    },
+    {
+      "configuration": "7cc+hold only",
+      "law": "original Sv39",
+      "roi": 250604,
+      "tail": 8187,
+      "inclusive": 258791,
+      "delta": 0,
+      "stdout_axi_supply_byte_equal": true
+    }
+  ],
+  "native_declarations": {
+    "status": "PASS_COMPACT_NATIVE_DECLARATION_CENSUS",
+    "scalar_delta_bits": 1178,
+    "array_delta_bits": 1680,
+    "total_delta_bits": 2858,
+    "fir_delta_bits": 4399,
+    "fir_reconciliation": {
+      "assertion_history_bits": -1269,
+      "constant_fp_proof_bits": -280,
+      "retained_integer_control_bits": 8
+    },
+    "compact_target_saved_array_bits": 1112,
+    "compact_measurement": "PASS_NATIVE_REACHABLE_CENSUS",
+    "mapped_resources": false,
+    "sta": false,
+    "routed": false,
+    "board_run": false,
+    "compact_saved_array_bits": 1112,
+    "compact_scalar_delta_bits": 0,
+    "compact_total_delta_vs7cc_bits": 1746,
+    "compact_scalar_delta_vs7cc_bits": 1178,
+    "compact_array_delta_vs7cc_bits": 568
+  },
+  "compact_candidate": {
+    "production_commit": "e94f2adc098d40dc0084423dc8f0dbaac1de8dc4",
+    "path": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+    "sha256": "79844d1e1ee285146b7511341b06aa86a513c6f36ba2e15fb3aa672b826a869f",
+    "dynamic_status": "PASS_FOCUSED_AND_ALL_THREE_CPU_CASES",
+    "publication_constructor": "PASS_FULL_OLD_NEW_53_148_17",
+    "rollback_native_raw_equality": false,
+    "focused_status": "PASS_FOCUSED_WITH_RECORDED_HOST_ONLY_RECOVERIES",
+    "focused_receipt_sha256": "0ed10bf0639f8cb9c974ef336b846592d60473728fc008755f3ec31189283732",
+    "fixture_commit": "6f28be0800e83c4a0987e40aedecf9820fcecf4d",
+    "final_fixture_inputs": {
+      "simulator/gsim/harness/translated_frozen_proof.cpp": "6a588af244aff51ea57643881648ab660b7e96fb47502af924b2e89c8d41a8ad",
+      "simulator/gsim/harness/pending_store_proof_transport.cpp": "3ffe8cd26a6027bc615e2e2e0e9395b545a7b63f84f22991e231d6d0768f5e79",
+      "simulator/gsim/harness/pending_store_proof_reference.h": "9b78eb81a52d505c2b94f83062a07f2be9645859097ed6c795e3c2b0a913c4be",
+      "src/test/scala/ooo/TranslatedFrozenProofGsim.scala": "c8ba4ef1283b9b1a6bdabe5752a0dee46ab56d0e267daf5d00ccbc5f25edcdb4",
+      "src/test/scala/ooo/TranslatedFrozenProofReference.scala": "ac91f63c127a824b2867098cc5c73a6faa16817bdfcdd745e4e4bb5f48b5d497",
+      "src/test/scala/ooo/PendingStoreProofGsim.scala": "4f0d53c8d3e3658f2af5b0c94664b95450c93062d8322ea226db6ac14fd71823"
+    },
+    "frozen_reference": {
+      "schema": "translated-proof-frozen-reference-v1",
+      "reference_path": "src/test/scala/ooo/TranslatedFrozenProofReference.scala",
+      "reference_sha256": "ac91f63c127a824b2867098cc5c73a6faa16817bdfcdd745e4e4bb5f48b5d497",
+      "baseline_commit": "82c6dce82a0ea63ed2cfc09334624f8d8117d372",
+      "baseline_path": "src/main/scala/core/ooo/DataTranslationAdapter.scala",
+      "baseline_sha256": "d85a05a9c1c28f3854e95229d92859e65dd9b3f07f757ecd6e4fd69e26605be1",
+      "allowed_transformation": {
+        "leading_comment_lines": 1,
+        "prefix_class_names": [
+          "VirtualDataRequest",
+          "TranslatedDataRequest",
+          "TranslationResponseOwner",
+          "CheckedDataRequest",
+          "DataTranslationAdapter"
+        ],
+        "prefix": "Reference"
+      },
+      "rule": "Frozen independent comparison source. Do not regenerate from the current DUT or update automatically when the DUT changes.",
+      "transport_bridge": {
+        "qualified_source_sha256": "4f0d53c8d3e3658f2af5b0c94664b95450c93062d8322ea226db6ac14fd71823",
+        "publication_source_sha256": "7744c09a6ff6e0aec6cfe0a08ae46826641ad49211f52f4b9b70e59ba43c99e7",
+        "exact_prefix_boundary": "class PendingStoreProofBackendGsim",
+        "prefix_sha256": "8111ae99c6fdaa66b75a9aa03cd91eacb2c7337fc02d74d5264a2f2b29680a37",
+        "differences": "Only backend optional bound-overlap argument, corrected vector probe, and backend emitter arity. Bank/transport and imports are byte-identical."
+      }
+    },
+    "focused_scope": [
+      "Exact cycle-by-cycle real adapter pair public ready/valid/payload parity with independent original-owner/full-proof host oracle.",
+      "89 requests, 79 physical, 10 ordered faults, 60 certificates, 19 delayed translations; sizes1/2/4/8, full PA beyond32 bits, FIFO/backpressure, mixed physical/prechecked/nonfrozen, poisoned invalid payload.",
+      "Original real-translation/StoreBuffer transport fixture, same-epoch PTE mutation, staleepoch/PMP/MMIO/PBMT/readonly/late error and existing token/mask/atomic negatives.",
+      "Malformed shape and in-flight context changes are expected existing protocol assertions; legal drained context transitions and stale/canonical faults are positive ordered fault checks.",
+      "No new backend run or claim of hardware tval output: unchanged LSU start.address capture and response handling preserve prior backend evidence."
+    ],
+    "recorded_host_failures": [
+      {
+        "label": "TranslatedFrozenProofGsim-positive",
+        "reason": "test host required physical response handshake while upstream response was merely offered; replaced by qualified exact driver or corrected new test-only host"
+      },
+      {
+        "label": "PendingStoreProofTransportGsim-positive-r2",
+        "reason": "test host required physical response handshake while upstream response was merely offered; replaced by qualified exact driver or corrected new test-only host"
+      }
+    ],
+    "rollback_narrow_correspondence": "PASS_EXACT_DECLARATION_AND_SCALAR_EXPRESSION_CHANGES_ONLY",
+    "native_on_raw_equality": true,
+    "native_on_file_count": 293,
+    "cpu_cases": {
+      "bare": {
+        "inclusive_cycles": 259868,
+        "inclusive_delta": 0,
+        "parity_verdict": "PASS_EXACT_SAME_CYCLES_ALL_STDOUT_AXI_SUPPLY_AND_LEDGERS",
+        "exact_stdout_sha256": "a39b666f58689a73b14a8e31893850d2f79ecc17d3fc3533bcb3f55b44a4f646",
+        "functional_fields_captured": 105,
+        "raw": {
+          "axi-events.tsv": "90ad819a6202b30fb41583686fa88a65b6bd0abf198a85537912359fb54ddada",
+          "supply-events.tsv": "9d498101c7a5d15de25ac1d337c4cef1d98b08db09b41c507b4e1417ab79b37a"
+        }
+      },
+      "sv39": {
+        "inclusive_cycles": 255223,
+        "inclusive_delta": 0,
+        "parity_verdict": "PASS_EXACT_SAME_CYCLES_ALL_STDOUT_AXI_SUPPLY_AND_LEDGERS",
+        "exact_stdout_sha256": "45ca3d66d49cd0d9f3b3247dcd2fa64b01e21f396d3e94ad1b2fa4e99c5754d4",
+        "functional_fields_captured": 105,
+        "raw": {
+          "axi-events.tsv": "f54ebce811a00bf8ef139a4468110555f0a5763542913e80f9378ce6011dc88c",
+          "supply-events.tsv": "9b6bdcf68661fdcecc030d1eb6e7ccb0475acc393559a4e589ba1dfa8ba91221"
+        }
+      },
+      "burst-locked": {
+        "inclusive_cycles": 251588,
+        "inclusive_delta": 0,
+        "parity_verdict": "PASS_EXACT_SAME_CYCLES_ALL_STDOUT_AXI_SUPPLY_AND_LEDGERS",
+        "exact_stdout_sha256": "80695070cba315c4b615a47ccf19e9f00d8a4de80ed78686b8ec7777f6b59265",
+        "functional_fields_captured": 105,
+        "raw": {
+          "axi-events.tsv": "6094dd6011539534689ffa46def27d17caf3b8a5570b4c244de4052c806a97b3",
+          "supply-events.tsv": "bad8a7ed69c4cfa96d2265e0348a098a0591a9cde6057ba5dc8aca0ba9ecfae6"
+        }
+      }
+    },
+    "fixed_burst_postprocessing_recovery": {
+      "failure_receipt_sha256": "4ed93d5983ea1c107347216b94e13aaae98d8869898bc43847dc48cee9903639",
+      "finalizer_sha256": "a0196f48a409d24d5b360fb8de7f6feb5e916e5bb79c8d05e99e5c41ef528c17",
+      "no_rerun_or_recompile": true,
+      "service_verifier_sha256": "cbc2080e20a3449a9d567bb33e6cc2f82e7772c7f39c541d0ddfa0e24dfec24b",
+      "service_verifier_source": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/adoption-idle-response-pmp-candidate-r1/burst-locked-law-r1/run_pair.py"
+    }
+  },
+  "artifacts": [
+    {
+      "library_file_id": "libfile_1fa0f1cd31bc8191b1e7b10f001046d4",
+      "filename": "thin-source-results.tar.gz",
+      "bytes": 4277055,
+      "sha256": "9ad94a9bc1d6dddf46cdf562b4ca8a46105516bc590f56e71fc0944f88194478",
+      "historical_path": "bprime-pending-store-proof-r1/final-delivery-r1/thin-source-results.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-pending-store-proof-r1/final-delivery-r1/library-upload-r1.json",
+        "sha256": "0225bc6562ac8c06cabe006ea936443efdce52ddf18f201d56e5eec9f998e162",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_079f388458b08191a9c6380301414f2a",
+      "filename": "on1-model-recovery.tar.gz",
+      "bytes": 25586217,
+      "sha256": "1f9ff00ff205368de2ae7a4be1ed64a912398f8e558257e42e6fa4783bed8381",
+      "historical_path": "bprime-pending-store-proof-r1/final-delivery-r1/on1-model-recovery.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-pending-store-proof-r1/final-delivery-r1/library-upload-r1.json",
+        "sha256": "0225bc6562ac8c06cabe006ea936443efdce52ddf18f201d56e5eec9f998e162",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_49e45653f2c48191b8fb01cbf56e5157",
+      "filename": "b2-focused-source-results-r1.tar.gz",
+      "bytes": 386633,
+      "sha256": "a3080a7b1c8cf79ec38af0aef3cf400b4145d6f1c6c6959d3946ec544a62c97f",
+      "historical_path": "bprime-bound-store-overlap-r1/b2-focused-source-results-r1.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-bound-store-overlap-r1/library-focused-source-r1.json",
+        "sha256": "1b4dadd657d4067332839efdb2f927bc6d1c53ce48aab8ca5cc79f12ea1c7e54",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_44e887e81cf88191b93d2366b21dedda",
+      "filename": "b2-thin-results-r1.tar.gz",
+      "bytes": 20493923,
+      "sha256": "c5896c9b8c7c75c67ea66221659febed03321de6c79bbe39db06a8ca6134bdee",
+      "historical_path": "bprime-bound-store-overlap-r1/b2-thin-results-r1.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-bound-store-overlap-r1/library-final-r1.json",
+        "sha256": "a0e09c09bd415627e581501bef0b4e74e34acb8e92c3c75df89287c3858f4625",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_6ae29bb80214819199a880b1ff617562",
+      "filename": "b2-on36-recovery-r1.tar.gz",
+      "bytes": 33321764,
+      "sha256": "0a1215a7009b6f6b01763b9f5e55af63b355b11f2159c4e5666c943b3728e4df",
+      "historical_path": "bprime-bound-store-overlap-r1/b2-on36-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-bound-store-overlap-r1/library-final-r1.json",
+        "sha256": "a0e09c09bd415627e581501bef0b4e74e34acb8e92c3c75df89287c3858f4625",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_88f373b7e75081919dede2ecacc2b8e3",
+      "filename": "lifetime-source-review-r1.tar.gz",
+      "bytes": 10704,
+      "sha256": "c9fe224b58ffec7825d97aad08b00325ad2b67e37d1867d7da618845c622b211",
+      "historical_path": "bprime-bound-store-overlap-r1/lifetime-source-review-r1.tar.gz",
+      "upload_receipt": {
+        "path": "bprime-bound-store-overlap-r1/library-lifetime-review-r1.json",
+        "sha256": "27e8649871ce3cec3b1b172048d91b55e4634add86a2c663490f0b81268bfd5e",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_9796a630cea08191979150126f6a6c90",
+      "filename": "focused-model-images-recovery-r1.tar.gz",
+      "bytes": 13707600,
+      "sha256": "7ec0417d6f86af76e236799ee618568b1f4444e6f28a256c4a9c9e403b6c2731",
+      "historical_path": "read-prefetch-store-hold-r1/focused-model-images-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-r1/library-focused-recovery-r1.json",
+        "sha256": "adb823471412932e76037a21a00422652f67047219ad8a903349fc0a06a914e1",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+      "filename": "thin-qualified-r2.tar.gz",
+      "bytes": 1111504,
+      "sha256": "b01342a08a2576ff86fa8170247d6492ecbe701a776778067a8f8bf3f501e2d6",
+      "historical_path": "read-prefetch-store-hold-r1/thin-qualified-r2.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-r1/library-qualified-r2.json",
+        "sha256": "c61864f0a07b72e3186c8306cdab4a2b73fed1d70893725f8b355d1cd6ec4b44",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_2c84666715c08191bd0b45f64b1b0d59",
+      "filename": "cpu-original-law-recovery-r1.tar.gz",
+      "bytes": 29803975,
+      "sha256": "8ffd0221c97c05179ce773f5e18f1ec6f92c734b1d816956be8efe4cbcb13f19",
+      "historical_path": "read-prefetch-store-hold-r1/cpu-original-law-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-r1/library-cpu-original-law-r1.json",
+        "sha256": "d383bbb104fd2f8af1ef058908bcf2ac14974859c2beabbab0ffb155c0a7dcf9",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+      "filename": "store-hold-b2-cpu-thin-r1.tar.gz",
+      "bytes": 7609291,
+      "sha256": "abf5785d30e437796b25d7579ebc4b524b2887d68cfd74a04311fa6de7b25d5b",
+      "historical_path": "read-prefetch-store-hold-r1/store-hold-b2-cpu-thin-r1.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-r1/library-b2-followon-r1.json",
+        "sha256": "5f40654339e9fe98d496e7c759043d4623365f17934373a95822fb4681c3b35c",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_8f75e0cb61d88191815dfafeeee04ec1",
+      "filename": "final-qualified-thin-r1.tar.gz",
+      "bytes": 2363089,
+      "sha256": "bee4e5fcfdb9bf10e9bdc34d1cadf1bfddf94ba64ac1bd392a36e484ac06b73d",
+      "historical_path": "read-prefetch-store-hold-7cc-r1/checkpoint-r1/final-qualified-thin-r1.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-7cc-r1/library-final-r1.json",
+        "sha256": "c686d67fc7891011e33836380bb7df709479cbfe6e9647b4dde49db06efe35d8",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_2e34a12e1ba4819189e42c860b3853e3",
+      "filename": "unique-ON35TU-model-recovery-r1.tar.gz",
+      "bytes": 18932501,
+      "sha256": "15ec7ba6b06cb99d8d11946cc1c73a24fe1789fa4a29013ecc330fbbf24f78de",
+      "historical_path": "read-prefetch-store-hold-7cc-r1/checkpoint-r1/unique-ON35TU-model-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "read-prefetch-store-hold-7cc-r1/library-final-r1.json",
+        "sha256": "c686d67fc7891011e33836380bb7df709479cbfe6e9647b4dde49db06efe35d8",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_f27ebf9e072081919ac56eed0626717c",
+      "filename": "translated-proof-compact-source-e94f2ad-r1.tar.gz",
+      "bytes": 21783,
+      "sha256": "a6a4d6d8a6c2b54a62190e27bcb5379fddecd423ec070e98ef4d8d3451a793de",
+      "historical_path": "translated-frozen-proof-compaction-r1/source-checkpoint-r1/translated-proof-compact-source-e94f2ad-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-source-native-r1.json",
+        "sha256": "d37f99c80bc21d06315075fea4159887ff821e1851e8772706c0d53c9d476cc1",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_ce0860734f308191ba79092240cbcbed",
+      "filename": "native-cost-evidence-r1.tar.gz",
+      "bytes": 1544913,
+      "sha256": "60285b9a224c069c87d36a1852a3d44d1787c5a7ffcdcf48ee92405d92e16ff9",
+      "historical_path": "read-prefetch-store-hold-r1/native-cost-r1/native-cost-evidence-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-source-native-r1.json",
+        "sha256": "d37f99c80bc21d06315075fea4159887ff821e1851e8772706c0d53c9d476cc1",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_7d6d62735c108191b3bb529805b9c308",
+      "filename": "translated-proof-focused-native-recovery-r1.tar.gz",
+      "bytes": 7757879,
+      "sha256": "0c5ed84b8bb0f148d97b72eaef4faf1a99316f88c31a05b77f17b63dc5aa43c2",
+      "historical_path": "translated-frozen-proof-compaction-r1/focused-native-recovery-r1/translated-proof-focused-native-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-focused-replay-r1.json",
+        "sha256": "7cdf869daa49c2caad1416198207efcb0e9a192aeb0703e00683942aaf51b91c",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_cd98074e7c7481918d82f66c8ba02436",
+      "filename": "publication-cpu-reference-artifacts-v1.tar.gz",
+      "bytes": 160615,
+      "sha256": "1a0aaec7870757bc10de475c3900ce2ad0d79ddd0efb0a23dfa9763f51f6a6d1",
+      "historical_path": "translated-frozen-proof-compaction-r1/publication-cpu-reference-artifacts-v1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-focused-replay-r1.json",
+        "sha256": "7cdf869daa49c2caad1416198207efcb0e9a192aeb0703e00683942aaf51b91c",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_09e7e91a018c8191a7726a14561799e4",
+      "filename": "compact-proof-cpu-results-r1.tar.gz",
+      "bytes": 7229441,
+      "sha256": "2bb8e1958aaf00e1c1a1ed87a0850e61067c280b9816fca8c2b171f03949c55e",
+      "historical_path": "translated-frozen-proof-compaction-r1/cpu-packages-r1/compact-proof-cpu-results-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-cpu-final-r1.json",
+        "sha256": "450912edd1ae5bffc92acf3de88a9f5209715e20176e8f1fa5afa8cd2277512c",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_d7cfacd88fc481918941d088e56fd757",
+      "filename": "compact-proof-cpu-on36tu-recovery-r1.tar.gz",
+      "bytes": 29311701,
+      "sha256": "04238eaa2de7be8d8b3a465e81e95c3aad68fec727e2f09540d1b10f6bbb360c",
+      "historical_path": "translated-frozen-proof-compaction-r1/cpu-packages-r1/compact-proof-cpu-on36tu-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-cpu-final-r1.json",
+        "sha256": "450912edd1ae5bffc92acf3de88a9f5209715e20176e8f1fa5afa8cd2277512c",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    },
+    {
+      "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+      "filename": "bound-store-publication-review-recovery-r1.tar.gz",
+      "bytes": 203613,
+      "sha256": "d0800d6349b217311812a48eeeee3332971ecee12010fc2609fce1f78b8a0f6b",
+      "historical_path": "translated-frozen-proof-compaction-r1/bound-store-publication-review-recovery-r1.tar.gz",
+      "upload_receipt": {
+        "path": "translated-frozen-proof-compaction-r1/library-publication-review-r1.json",
+        "sha256": "e844940fdd7999c3ef35a893a970b32683426edc8fdf1ccd74de18cda2b12e3d",
+        "status": "succeeded",
+        "current_version_number": 0
+      }
+    }
+  ],
+  "external_evidence": [
+    {
+      "path": "bprime-pending-store-proof-r1/qualification-manifest.json",
+      "sha256": "b49188ea1ee072f100d7ab9d08e2c45c09d73c11841ec8110e36c82ff51209fd",
+      "purpose": "B-prime bank/backend/transport terminal coverage and four preserved failures",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_1fa0f1cd31bc8191b1e7b10f001046d4",
+          "member": "bprime-pending-store-proof-r1/qualification-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "bprime-bound-store-overlap-r1/qualification-manifest.json",
+      "sha256": "cb9289f696a49343afe7f7c7830a71f13aca1e3ec38150d91f3a6251533b9cbc",
+      "purpose": "B2 terminal component coverage, prior proof reuse and four preserved failures",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_49e45653f2c48191b8fb01cbf56e5157",
+          "member": "qualification-manifest.json"
+        },
+        {
+          "library_file_id": "libfile_44e887e81cf88191b93d2366b21dedda",
+          "member": "bprime-bound-store-overlap-r1/qualification-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/focused-r5/receipt.json",
+      "sha256": "b4f6d535880545448ad3c4b350f9b54f7b8091aa16a8f78f1b8677d2c556f9a4",
+      "purpose": "Paired OFF/ON real-cache terminal pass, 12 schedules per mode and hold NEXT mutation",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+          "member": "thin-qualified-r2/evidence/focused-r5/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/extras-r2/receipt.json",
+      "sha256": "75040832a8a5e4e8336fd571701583b0513b5b4ca1f0c45b38d1b8350aa17569",
+      "purpose": "3 exact ON64 guard schedules and real 2-bit exhaustion/fallback plus negative",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+          "member": "thin-qualified-r2/evidence/extras-r2/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/REPORT.md",
+      "sha256": "4298b42ef4156fe18dd230618f0079d57da5c1c1bdb10d288caba9de40de02bb",
+      "purpose": "Hold mechanism, fixture failures and generated-model reuse ancestry",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+          "member": "thin-qualified-r2/REPORT.md"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/guard-proof.json",
+      "sha256": "84290884beb3e9bfafc491e6b0dc71e136955e070ed2e8ba661a7fd8aebcf4a0",
+      "purpose": "Source Boolean proof only",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+          "member": "thin-qualified-r2/guard-proof.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/fir-structure.json",
+      "sha256": "4d69b2c76c867e1fe1be4676fb49b7b44540633b5081e4179310047a947bde76",
+      "purpose": "Paired hold component declarations and fanout only",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_c568f94ad6048191b40c8d64c2c23002",
+          "member": "thin-qualified-r2/fir-structure.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-original-law-result-r1.json",
+      "sha256": "bb62a5506b5294606bb1c811ac09c19ef0af6cf753c7bbed6ae150230578245a",
+      "purpose": "Qualified 82c6dce whole CPU original service-law verdict",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_2c84666715c08191bd0b45f64b1b0d59",
+          "member": "cpu-original-law-result-r1.json"
+        },
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-original-law-result-r1.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-on-gates-r1/receipt.json",
+      "sha256": "0b19ffeb153ecbb4b364f034da9b63725de37f82d33b9177e2eebec2db6d44dc",
+      "purpose": "Stage-level CPU compile/constructor/generation/Sv39/negative results; top status is PASS_NEGATIVES_ONLY",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_2c84666715c08191bd0b45f64b1b0d59",
+          "member": "cpu-on-gates-r1/receipt.json"
+        },
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-on-gates-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-followon-result-r1/summary.json",
+      "sha256": "770d7601ba8344671dbccad2d3d87e6a4993127ba2a8fa2569d2a0c482b7921c",
+      "purpose": "Original-law/Bare/fixed-burst comparison",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-followon-result-r1/summary.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-bare-r1/receipt.json",
+      "sha256": "0ac640cd981af5da140e4a13ca5c67b8adaa46a7bc19d4a881c6bc9a317f33ef",
+      "purpose": "Bare original-law exact-105-field/AXI control",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-bare-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-burst-locked-r1/receipt.json",
+      "sha256": "1a45f6a360a455c59f2d7efb5bd6fbd56a45b81d3ea20a41e7f2283abe5c8a12",
+      "purpose": "Fixed-burst pair, use top-level comparison not embedded original-law row",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-burst-locked-r1/receipt.json"
+        },
+        {
+          "library_file_id": "libfile_cd98074e7c7481918d82f66c8ba02436",
+          "member": "read-prefetch-store-hold-r1/cpu-burst-locked-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-7cc-r1/final-result.json",
+      "sha256": "1c46bb6ae4224117cfb533de4550f621afce87d601f93033671596f609280352",
+      "purpose": "Standalone 7cc+hold zero-benefit isolation, all stdout/AXI/supply byte-exact",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_8f75e0cb61d88191815dfafeeee04ec1",
+          "member": "final-qualified-thin-r1/final-result.json"
+        },
+        {
+          "library_file_id": "libfile_2e34a12e1ba4819189e42c860b3853e3",
+          "member": "unique-ON35TU-model-recovery-r1/final-result.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/cpu-on-plan-r3/contract.json",
+      "sha256": "031c88da37dee48c0efef20c4d554b18f949d21fc601822b27a1b7f30953211e",
+      "purpose": "Exact options/host17/guest3/tool/service-law/reference binding, historical runner pins",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_2c84666715c08191bd0b45f64b1b0d59",
+          "member": "cpu-on-plan-r3/contract.json"
+        },
+        {
+          "library_file_id": "libfile_d546688cd31481918b0aee4bcba0fe28",
+          "member": "cpu-on-plan-r3/contract.json"
+        }
+      ]
+    },
+    {
+      "path": "cpu-supply-f722/runtime-guest-receipt.json",
+      "sha256": "9dcba78b058f8ba1436d719ea163599a2ca0dc6b4e5bbc750acd1f16149da6dc",
+      "purpose": "Pinned assembly/linker build recipe and three exact generated guest hashes",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_cd98074e7c7481918d82f66c8ba02436",
+          "member": "cpu-supply-f722/runtime-guest-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/native-cost-r1/emit-receipt.json",
+      "sha256": "889837150fad53647aab366fba276fc2d4c68bb4f0594224cd6a212c986ac605",
+      "purpose": "Two official native board exports only; resource audit result pending",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_ce0860734f308191ba79092240cbcbed",
+          "member": "native-cost-r1/emit-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/native-cost-r1/final-receipt.json",
+      "sha256": "e864ac88045d4d45446cba3104799382776d27bd1ce0e5ba04f8d771a089d1f4",
+      "purpose": "Settled native declaration census only",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_f27ebf9e072081919ac56eed0626717c",
+          "member": "read-prefetch-store-hold-r1/native-cost-r1/final-receipt.json"
+        },
+        {
+          "library_file_id": "libfile_ce0860734f308191ba79092240cbcbed",
+          "member": "native-cost-r1/final-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/native-cost-r1/fir-reconciliation.json",
+      "sha256": "c6a6223bdc2d30dfa86ce29fbfeafae75b433e55e3b0a60348fbd303bad634a3",
+      "purpose": "Full reconciliation from FIR to retained native declarations",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_ce0860734f308191ba79092240cbcbed",
+          "member": "native-cost-r1/fir-reconciliation.json"
+        }
+      ]
+    },
+    {
+      "path": "read-prefetch-store-hold-r1/native-cost-r1/native-comparison.json",
+      "sha256": "87d219d82f3bde7b8fa210d0d25aa25c6448086737fa6c97306be2aac6a34de5",
+      "purpose": "Native scalar/array exact category comparison",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_ce0860734f308191ba79092240cbcbed",
+          "member": "native-cost-r1/native-comparison.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/focused-r1/receipt.json",
+      "sha256": "0ed10bf0639f8cb9c974ef336b846592d60473728fc008755f3ec31189283732",
+      "purpose": "Compact exact adapter/reference and real StoreBuffer transport terminal 24-command pass, with recorded host recoveries",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_7d6d62735c108191b3bb529805b9c308",
+          "member": "focused-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/native-r1/emit-receipt.json",
+      "sha256": "f8e1b46d31c7b9e39212ed28f910be896c9bea281b12fac8b1b84d917eec7780",
+      "purpose": "Official compact native export and full constructor binding",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_7d6d62735c108191b3bb529805b9c308",
+          "member": "native-r1/emit-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/native-r1/native-comparison.json",
+      "sha256": "757c6e3d20d4096a73b6a3115e08cf4b258709048503314e1ea691b2e407a04a",
+      "purpose": "Compact saves exactly1112 array bits versus uncompressed combination",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_7d6d62735c108191b3bb529805b9c308",
+          "member": "native-r1/native-comparison.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/native-r1/versus-7cc.json",
+      "sha256": "5898b213e17b87fbbfad3b01bd42bddb307923426a136119a4920fe2d6c6f11c",
+      "purpose": "Compact final retained native declaration delta1746 versus7cc",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_7d6d62735c108191b3bb529805b9c308",
+          "member": "native-r1/versus-7cc.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/cpu-gates-r1/receipt.json",
+      "sha256": "db90e8e78c19e3fa6e0fbe2c54e5f9ea662e29b4e6aae074add14b4074522d25",
+      "purpose": "Original Sv39/Bare and 3 real corruption controls; final status names negatives stage",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_09e7e91a018c8191a7726a14561799e4",
+          "member": "cpu-gates-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/cpu-burst-locked-r1/receipt.json",
+      "sha256": "923ae3f9eb9e30f57db87fb4f0bb2c45011cdd65e17cf33af2dab3f151d4ff4c",
+      "purpose": "Fixed second-law full stdout/105field/AXI/supply/service parity",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_09e7e91a018c8191a7726a14561799e4",
+          "member": "cpu-burst-locked-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/parent-cpu-review-r1.json",
+      "sha256": "517c6373dd265bcc1aed54355e19c924dee4dd452c5226c8dd46b93c1db287af",
+      "purpose": "Parent independent full-byte CPU and corruption-log readback",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/parent-cpu-review-r1.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/publication-gates-r1/receipt.json",
+      "sha256": "ec9ef849bf409e940538865cb43ff8f2332a6f1bac10e840e0d4a1b53eb4f0c7",
+      "purpose": "Original complete Scala/constructor/native run; raw-OFF mismatch preserved",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/publication-gates-r1/receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/publication-gates-r1/native-raw-comparison.json",
+      "sha256": "659410e7267bbcbb79c8908b03d92bb0bc3881c6f103d7ba4ae1b81f44768b2c",
+      "purpose": "293-file ON exact equality and3 OFF raw differences",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/publication-gates-r1/native-raw-comparison.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/publication-gates-r1/off-correspondence.json",
+      "sha256": "2640f19715d35791995e9b9fd6194ed5a8ee394c01ae90194a27e227d440604c",
+      "purpose": "Narrow explicit OFF declaration and scalar-expression certificate with4 rejected logic mutations",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/publication-gates-r1/off-correspondence.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/independent-publication-review-r1.json",
+      "sha256": "1c4add8551657628791fba35418292483d46784465fc6239f5a0b7c2cbe4728b",
+      "purpose": "Independent complete input/default/reference/runner and OFF-certificate review",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/independent-publication-review-r1.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/publication-gates-r1/parent-diff-review-r1.json",
+      "sha256": "00e210229d37edc957a238846d651b2bd7e4eb89063328cf6f9c7417c0858e51",
+      "purpose": "Parent independent raw-diff review and narrow proof execution",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/publication-gates-r1/parent-diff-review-r1.json"
+        }
+      ]
+    },
+    {
+      "path": "translated-frozen-proof-compaction-r1/publication-host-checks-r1/receipt.json",
+      "sha256": "5b01d3a7434f8c03e999e715660edf9c6abd7f7644c08c11b621c0b6fcf74573",
+      "purpose": "Final23 board,19 portable and3 hold CLI tests",
+      "recovery_members": [
+        {
+          "library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+          "member": "translated-frozen-proof-compaction-r1/publication-host-checks-r1/receipt.json"
+        }
+      ]
+    }
+  ],
+  "preserved_failures": [
+    {
+      "index": "bprime-pending-store-proof-r1/qualification-manifest.json",
+      "entries": [
+        {
+          "receipt": "bprime-pending-store-proof-r1/bank-gates-r1/receipt.json",
+          "sha256": "dfead5d28ebd797803fda2194294f5a1c0aa23a15e0e87877adcd6047ea83885",
+          "status": "EMIT_FAILED",
+          "diagnosis": "Test-only BoringUtils vector selection syntax; production Scala compilation passed."
+        },
+        {
+          "receipt": "bprime-pending-store-proof-r1/integration-gates-r2/receipt.json",
+          "sha256": "88bdc806f1085953e16ec4907c969fad75e391c29ccec548ea1b66556100bbff",
+          "status": "EMIT_FAILED",
+          "diagnosis": "Test-only cross-layer bound bit selection before BoringUtils; backend0 elaborated."
+        },
+        {
+          "receipt": "bprime-pending-store-proof-r1/integration-gates-r3/receipt.json",
+          "sha256": "19bab33e99e454d1131d6e71b6a13d19bd1762ff43ccaa67353d9344a097218c",
+          "status": "SANITIZED_FAILED",
+          "diagnosis": "Fixture used external recovery, forbidden by this registered-branch profile; replaced with real decoded BEQ."
+        },
+        {
+          "receipt": "bprime-pending-store-proof-r1/transport-gates-r1/receipt.json",
+          "sha256": "daa5b5396f33cc92bc86cdca5765edb30d5f6925fffae70682a3ed5a6b161777",
+          "status": "SANITIZED_FAILED",
+          "diagnosis": "Host treated held response VALID as acknowledgement; corrected to actual per-owner response FIRE."
+        }
+      ]
+    },
+    {
+      "index": "bprime-bound-store-overlap-r1/qualification-manifest.json",
+      "entries": [
+        {
+          "receipt": {
+            "path": "bprime-bound-store-overlap-r1/focused-gates-r1/receipt.json",
+            "sha256": "b8ab3951045bc2ae4aef7febcf1cb42e2bfb015cedfae3f9d258f7910ef34be7"
+          },
+          "reason": "Host initially mistook legal OLD completion/replacement for co-ownership."
+        },
+        {
+          "receipt": {
+            "path": "bprime-bound-store-overlap-r1/focused-gates-r2/receipt.json",
+            "sha256": "0772b387c89b13c3f6c079dbf5716340f57541a0f93a4b801eb141854e1a3af5"
+          },
+          "reason": "Host initially monitored external/trap recoveryAccepted instead of actual decoded local branch redirect."
+        },
+        {
+          "receipt": {
+            "path": "bprime-bound-store-overlap-r1/focused-gates-r3/receipt.json",
+            "sha256": "42eabadb064eeb34c4dd13d537d3e147c812b35f9b4a732f78a2b35fbee1bc68"
+          },
+          "reason": "Actual generated header exposed vector owner outputs without per-element getters."
+        },
+        {
+          "receipt": {
+            "path": "bprime-bound-store-overlap-r1/focused-gates-r4/receipt.json",
+            "sha256": "7300ea11afdbd17f585bb094f7fb9ef34d6250e69ccefe68bcc3e39a8a13b1b1"
+          },
+          "reason": "GSIM generated invalid scalar getters for vector-of-bundle output; test wrapper changed to four explicit owner ports."
+        }
+      ]
+    },
+    {
+      "index": "read-prefetch-store-hold-r1/REPORT.md",
+      "entries": [
+        "CLI-r1 prerequisite omission",
+        "focused-r1 uncached read mask",
+        "focused-r2 held-store flush image timing",
+        "focused-r3 held posted proof stability",
+        "focused-r4 real backing-error premise",
+        "extras-r1 generated input getter"
+      ]
+    }
+  ],
+  "qualification_boundary": "Bounded compact source dynamic/CPU/native declaration qualification is bridged to this publication source by complete actual old/new constructors and exact native ON. Default-OFF semantics have the separately limited declaration/expression correspondence; OFF raw bytes are not identical. Portable replay scripts are source/preflight tested, not a second newly executed DUT qualification. No mapped resources, STA, route or board result.",
+  "portable_replay": {
+    "status": "PREPARED_SOURCE_PREFLIGHT_ONLY_NO_NEW_DUT_REPLAY",
+    "tests": 19,
+    "reference_library_file_id": "libfile_cd98074e7c7481918d82f66c8ba02436",
+    "reference_archive_sha256": "1a0aaec7870757bc10de475c3900ce2ad0d79ddd0efb0a23dfa9763f51f6a6d1",
+    "inputs": "simulator/gsim/bound_store_prefetch/reference-artifacts-v1.json",
+    "fresh_component_builds_required": true,
+    "bprime_b2_object_relink_supported": false,
+    "extra_generated_inputs_rejected": true,
+    "historical_qualification_inherited": false
+  },
+  "publication_bridges": {
+    "scala_configuration_tests": 9,
+    "python_board_tests": 23,
+    "hold_cli_tests": 3,
+    "native_on_raw_files": 293,
+    "native_on_raw_equal": true,
+    "native_off_raw_files": 290,
+    "native_off_raw_equal": false,
+    "native_off_raw_equal_files": 287,
+    "native_off_differences": [
+      "IntegerBackend.sv",
+      "NonBlockingCoherentLineCache.sv",
+      "ParallelLoadStoreUnit.sv"
+    ],
+    "off_correspondence_receipt_sha256": "2640f19715d35791995e9b9fd6194ed5a8ee394c01ae90194a27e227d440604c",
+    "off_correspondence_checker_sha256": "dceebdb8ed4a86ecf7c1f3bb2372b92e3b09433941955b25d7a48e7f0cacde6a",
+    "raw_comparison_sha256": "659410e7267bbcbb79c8908b03d92bb0bc3881c6f103d7ba4ae1b81f44768b2c",
+    "original_raw_failure_receipt_sha256": "ec9ef849bf409e940538865cb43ff8f2332a6f1bac10e840e0d4a1b53eb4f0c7",
+    "logic_mutations_rejected": 4,
+    "scope": "Exact explicit renames, two unchanged wire declaration moves, one same-width scalar bitwise-AND operand move; every other token is identical. Raw failure remains preserved.",
+    "recovery_library_file_id": "libfile_5be0cd95d9ac8191bf8d565094aeb2a8",
+    "independent_review_sha256": "1c4add8551657628791fba35418292483d46784465fc6239f5a0b7c2cbe4728b"
+  },
+  "metrics_display": {
+    "nominal_hz_not_timing_closure": 100000000,
+    "original_sv39": {
+      "baseline_roi_MiBps": 49.879491,
+      "compact_roi_MiBps": 50.600322,
+      "baseline_inclusive_MiBps": 48.301525,
+      "compact_inclusive_MiBps": 48.976777,
+      "same_roi_AR_R_AW_W": [
+        4160,
+        32832,
+        2048,
+        16384
+      ],
+      "compact_r_beat_fraction_percent": 13.290478,
+      "compact_w_beat_fraction_percent": 6.632285,
+      "beat_fraction_is_payload_utilization": false
+    },
+    "generation_improvements_multiplied": false
+  }
+}

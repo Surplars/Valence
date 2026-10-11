@@ -15,6 +15,43 @@ import export as exporter
 
 
 class BoardPmpPublicationTests(unittest.TestCase):
+    def test_new_optional_fields_are_explicit_false_and_fail_closed(self):
+        self.check_optional_defaults(candidate.expected_constructor(), candidate.compare_constructor)
+
+    def check_optional_defaults(self, expected, compare):
+        compare(expected)
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
+        fields = [(s, f) for s in ("profile", "core")
+                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap")]
+        fields += [(s, "readPrefetchStoreHold") for s in ("profile", "cache")]
+        for section, field in fields:
+            self.assertIs(expected[section][field], False)
+            for mutation in ("missing", "enabled"):
+                actual = copy.deepcopy(expected)
+                if mutation == "missing":
+                    del actual[section][field]
+                else:
+                    actual[section][field] = True
+                with self.subTest(section=section, field=field, mutation=mutation), self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in ("profile", "core"):
+            self.assertEqual(expected[section]["pendingVirtualStoreProofSlots"], 1)
+            for value in (None, 0, 2):
+                actual = copy.deepcopy(expected)
+                if value is None:
+                    del actual[section]["pendingVirtualStoreProofSlots"]
+                else:
+                    actual[section]["pendingVirtualStoreProofSlots"] = value
+                with self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in expected:
+            if not isinstance(expected[section], dict):
+                continue
+            actual = copy.deepcopy(expected)
+            actual[section]["unknownOptionalField"] = False
+            with self.assertRaises(RuntimeError):
+                compare(actual)
+
     def test_complete_preflight_and_exact_options(self):
         spec = candidate.load_manifest()
         with tempfile.TemporaryDirectory() as directory:

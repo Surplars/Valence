@@ -56,7 +56,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val translationEpoch = UInt(32.W)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreEpoch = if (p.canonicalVirtualStoreOverlap) Some(Valid(UInt(32.W))) else None
-    val frozenStoreProof = if (p.memoryProofFrontier) Some(Valid(new FrozenStoreProof)) else None
+    val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Valid(new FrozenStoreProof)) else None
 }
 
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
@@ -71,7 +71,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
-        val frozenStoreProof = if (p.memoryProofFrontier) Some(Output(Valid(new FrozenStoreProof))) else None
+        val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Output(Valid(new FrozenStoreProof))) else None
         val complete       = Decoupled(new BackendCompletion(p))
         val busy           = Output(Bool())
         val phase          = Output(UInt(2.W))
@@ -80,6 +80,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
         val fastLoadRetire = Input(Bool())
         val fastLoadPreview = Output(Valid(new BackendCompletion(p)))
         val owner          = Output(new RobToken(p))
+        val savedLoadDisjointFromFrozenStart = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
         val discarded      = Output(Bool())
         val forwardStore   = Output(Valid(new StoreForward(p)))
         val forwarded      = Output(Bool())
@@ -111,6 +112,24 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     io.busy                      := state =/= idle
     io.phase                     := state
     io.issueAvailable            := state === idle || (state === done && !cancelled)
+    io.savedLoadDisjointFromFrozenStart.foreach { compatible =>
+        val frozen = io.start.bits.frozenStoreProof.get
+        val epoch = io.start.bits.canonicalStoreEpoch.get
+        // All co-owner facts are the immutable saved operation and registered
+        // cancellation. A response error, completion READY or same-edge cancel
+        // must not enter the reservation cone. The backend blocks recovery starts.
+        // In the restricted B′ integration, a noncancelled busy load has not yet
+        // completed to the ROB and cannot have retired or reused its full token.
+        // With the proposed exact head at age zero, a different live index is younger.
+        compatible := state =/= idle && !cancelled && operation.precheckedLoad && operation.virtualized &&
+            !operation.store && !operation.atomic && !operation.forward.valid && !operation.accessDenied &&
+            operation.token.index =/= io.start.bits.token.index && frozen.valid && epoch.valid &&
+            operation.translationEpoch === epoch.bits &&
+            AlignedMemoryDisjoint.withLanes(operation.physicalAddress,
+                AlignedMemoryDisjoint.aligned(operation.physicalAddress, operation.size),
+                AlignedMemoryDisjoint.lanes(operation.physicalAddress, operation.size),
+                frozen.bits.physicalAddress(63, 3), frozen.bits.mask)
+    }
     // A same-cycle cancel refers to the old owner. New ownership can replace a completed
     // slot; the backend suppresses new starts on recovery, so cancel need not feed start.ready.
     io.start.ready               := state === idle || (state === done && io.complete.ready && !cancelled)
@@ -219,6 +238,12 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
                 "prechecked physical authorization belongs only to an ordinary virtual RAM load")
             assert(io.start.bits.address(11, 0) === io.start.bits.physicalAddress(11, 0),
                 "translation preserves the page offset used for lane extraction and precise tval")
+            if (p.boundHeadStoreOverlap) {
+                assert(!io.start.bits.accessDenied &&
+                    AlignedMemoryDisjoint.aligned(io.start.bits.physicalAddress, io.start.bits.size) &&
+                    SpeculativeRamRange.contains(p, io.start.bits.physicalAddress, io.start.bits.size),
+                    "a saved successful precheck retains an aligned complete RAM byte interval")
+            }
         }
         cancelled        := false.B
         operation        := io.start.bits

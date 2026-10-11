@@ -11,7 +11,7 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     postedPrefetchCoexistence: Boolean = false, storePrefetchLruVictim: Boolean = false,
     distinctWayRelease: Boolean = false, independentDemandAdmission: Boolean = false,
     splitPrefetchTracking: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
-    readPrefetchDemandAdoption: Boolean = false) {
+    readPrefetchDemandAdoption: Boolean = false, readPrefetchStoreHold: Boolean = false) {
     require(!independentDemandAdmission || readMshrs >= 2,
         "independent demand admission reuses the existing nonblocking miss owners")
     require(Set(1, 2, 4).contains(readMshrs))
@@ -19,6 +19,8 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "prefetch candidate lifetime must be in 1..32 allocation attempts")
     require(prefetchCandidateCycles == 1 || nextLinePrefetch,
         "retained prefetch candidates require next-line prefetch")
+    require(!readPrefetchStoreHold || (nextLinePrefetch && prefetchCandidateCycles > 1),
+        "read prefetch store hold requires next-line prefetch and an existing multi-cycle candidate")
     require(!prefetchBreakOnStore || nextLinePrefetch,
         "store-sensitive prediction history requires next-line prefetch")
     require(!storeNextLinePrefetch || nextLinePrefetch,

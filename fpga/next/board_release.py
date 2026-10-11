@@ -55,6 +55,13 @@ def compare_constructor(actual):
     expected["core"].setdefault("registeredPmpRegions", False)
     expected["profile"].setdefault("publishedPmpChanges", False)
     expected["core"].setdefault("publishedPmpChanges", False)
+    for section in ("profile", "core"):
+        expected[section]["frozenStoreProofTransport"] = False
+        expected[section]["pendingVirtualStoreProof"] = False
+        expected[section]["boundHeadStoreOverlap"] = False
+        expected[section]["pendingVirtualStoreProofSlots"] = 1
+    for section in ("profile", "cache"):
+        expected[section]["readPrefetchStoreHold"] = False
     if actual != expected:
         raise RuntimeError("complete release constructor differs from B plus tri-speed selector")
 

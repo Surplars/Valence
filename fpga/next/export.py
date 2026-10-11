@@ -148,6 +148,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--read-prefetch-store-hold", action="count", default=0,
+                    help="default-off finite read-candidate retention across accepted ordinary store hits")
     ap.add_argument("--read-prefetch-demand-adoption", action="count", default=0,
                     help="default-off demand attachment to an issued read prefetch; requires independent split tracking")
     ap.add_argument("--read-prefetch-dirty-retry", action="count", default=0,
@@ -157,6 +159,13 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off store-origin invalid-first/LRU victim experiment")
     ap.add_argument("--distinct-way-release", action="store_true",
                     help="default-off issued-store-PF/read other-way dirty release experiment")
+    ap.add_argument("--frozen-store-proof-transport", action="store_true",
+                    help="default-off full frozen actual-store payload, independent of frontier scheduling")
+    ap.add_argument("--pending-virtual-store-proof", action="store_true",
+                    help="default-off R16/PRF48 pending-store proof and one early-load credit")
+    ap.add_argument("--bound-head-store-overlap", action="store_true",
+                    help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
@@ -181,6 +190,11 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
+    if a.read_prefetch_store_hold > 1:
+        ap.error("duplicate --read-prefetch-store-hold flag")
+    a.read_prefetch_store_hold = bool(a.read_prefetch_store_hold)
+    if a.read_prefetch_store_hold and a.prefetch_candidate_cycles <= 1:
+        ap.error("--read-prefetch-store-hold requires --prefetch-candidate-cycles greater than 1")
     if a.read_prefetch_demand_adoption > 1:
         ap.error("duplicate --read-prefetch-demand-adoption flag")
     a.read_prefetch_demand_adoption = bool(a.read_prefetch_demand_adoption)
@@ -238,6 +252,16 @@ def main(argv=None, expected_profile_sha256=None):
         if values is not None and len(values) != 1:
             ap.error("choose exactly one --" + field.replace("_", "-") + " value")
         setattr(a, field, values[0] if values else None)
+    if a.frozen_store_proof_transport and not (a.virtual_ram_load_precheck and a.canonical_virtual_store_overlap):
+        ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    if a.bound_head_store_overlap and not a.pending_virtual_store_proof:
+        ap.error("--bound-head-store-overlap requires --pending-virtual-store-proof")
+    if a.pending_virtual_store_proof and not (not a.memory_proof_frontier and
+            a.frozen_store_proof_transport and a.rob_entries in (None, 16) and a.physical_regs in (None, 48) and
+            a.lsu_entries == 4 and a.data_translation_entries == 16 and
+            a.canonical_virtual_store_overlap and a.virtual_ram_load_precheck and
+            a.load_order_older_retire and not a.prechecked_data_flow):
+        ap.error("--pending-virtual-store-proof requires independent frozen transport, ROB16/PRF48/LSU4/DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if a.memory_proof_frontier and not (a.rob_entries == 64 and a.physical_regs == 64 and
             a.lsu_entries == 4 and a.data_translation_entries == 16 and
             a.canonical_virtual_store_overlap and a.virtual_ram_load_precheck and
@@ -366,6 +390,16 @@ def main(argv=None, expected_profile_sha256=None):
     if a.memory_proof_frontier:
         profile["profile"]["memory_proof_frontier"] = True
         profile["profile"]["name"] += "-memory-proof-frontier"
+    if a.frozen_store_proof_transport:
+        profile["profile"]["frozen_store_proof_transport"] = True
+        profile["profile"]["name"] += "-frozen-store-proof-transport"
+    if a.pending_virtual_store_proof:
+        profile["profile"]["pending_virtual_store_proof"] = True
+        profile["profile"]["pending_virtual_store_proof_slots"] = a.pending_virtual_store_proof_slots
+        profile["profile"]["name"] += f"-pending-virtual-store-proof{a.pending_virtual_store_proof_slots}"
+    if a.bound_head_store_overlap:
+        profile["profile"]["bound_head_store_overlap"] = True
+        profile["profile"]["name"] += "-bound-head-store-overlap"
     profile["profile"]["canonical_virtual_store_overlap"] = a.canonical_virtual_store_overlap
     if a.canonical_virtual_store_overlap:
         profile["profile"]["name"] += "-canonical-virtual-store-overlap"
@@ -419,6 +453,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.published_pmp_changes:
         profile["profile"]["published_pmp_changes"] = True
         profile["profile"]["name"] += "-published-pmp-changes"
+    if a.read_prefetch_store_hold:
+        profile["profile"]["read_prefetch_store_hold"] = True
+        profile["profile"]["name"] += "-read-prefetch-store-hold"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -513,6 +550,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--read-prefetch-dirty-retry")
     if a.read_prefetch_demand_adoption:
         command.append("--read-prefetch-demand-adoption")
+    if a.read_prefetch_store_hold:
+        command.append("--read-prefetch-store-hold")
     if a.translated_response_empty_flow:
         command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:
@@ -545,6 +584,15 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--canonical-virtual-store-overlap")
     if a.memory_proof_frontier:
         command.append("--memory-proof-frontier")
+    if a.frozen_store_proof_transport:
+        command.append("--frozen-store-proof-transport")
+    if a.pending_virtual_store_proof:
+        command.append("--pending-virtual-store-proof")
+    if a.bound_head_store_overlap:
+        command.append("--bound-head-store-overlap")
+    if a.pending_virtual_store_proof_slots != 1 or any(
+            option.split("=", 1)[0] == "--pending-virtual-store-proof-slots" for option in raw_args):
+        command.append(f"--pending-virtual-store-proof-slots={a.pending_virtual_store_proof_slots}")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
@@ -555,6 +603,10 @@ def main(argv=None, expected_profile_sha256=None):
             "prepared_store_lookahead": a.prepared_store_lookahead,
             "canonical_virtual_store_overlap": a.canonical_virtual_store_overlap,
             "memory_proof_frontier": a.memory_proof_frontier,
+            "frozen_store_proof_transport": a.frozen_store_proof_transport,
+            "pending_virtual_store_proof": a.pending_virtual_store_proof,
+            "bound_head_store_overlap": a.bound_head_store_overlap,
+            "pending_virtual_store_proof_slots": a.pending_virtual_store_proof_slots,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,

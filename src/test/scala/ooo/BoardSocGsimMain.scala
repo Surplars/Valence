@@ -33,11 +33,19 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
+    frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
+    pendingVirtualStoreProofSlots: Int = 1,
+    boundHeadStoreOverlap: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
     configurationCheck: Option[FpgaNextConfig] = None, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
+    require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
+        pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
+        pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
+        boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap,
+        "pending-store proof switches differ from the actual matching-board configuration")
     require(publishedPmpChanges == configurationCheck.get.coreParams.publishedPmpChanges,
         "PMP raw change flag differs from the actual matching-board configuration")
     require(registeredPmpRegions == configurationCheck.get.coreParams.registeredPmpRegions,

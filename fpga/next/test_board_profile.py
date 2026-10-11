@@ -32,6 +32,55 @@ class BoardProfileTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         return json.loads(stream.getvalue())
 
+    def test_new_optional_fields_are_explicit_false_and_fail_closed(self):
+        frozen = json.loads((board_profile.HERE / "board-performance-constructors.json").read_text())
+        for mode in ("A", "B"):
+            expected = copy.deepcopy(frozen[mode])
+            for section in ("profile", "core"):
+                for field in ("registeredPmpRegions", "publishedPmpChanges", "frozenStoreProofTransport",
+                              "pendingVirtualStoreProof", "boundHeadStoreOverlap"):
+                    expected[section][field] = False
+                expected[section]["pendingVirtualStoreProofSlots"] = 1
+            for section in ("profile", "cache"):
+                for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption", "readPrefetchStoreHold"):
+                    expected[section][field] = False
+            compare = lambda value: board_profile.compare_constructor(mode, value)
+            self.check_optional_defaults(expected, compare)
+
+    def check_optional_defaults(self, expected, compare):
+        compare(expected)
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
+        fields = [(s, f) for s in ("profile", "core")
+                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap")]
+        fields += [(s, "readPrefetchStoreHold") for s in ("profile", "cache")]
+        for section, field in fields:
+            self.assertIs(expected[section][field], False)
+            for mutation in ("missing", "enabled"):
+                actual = copy.deepcopy(expected)
+                if mutation == "missing":
+                    del actual[section][field]
+                else:
+                    actual[section][field] = True
+                with self.subTest(section=section, field=field, mutation=mutation), self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in ("profile", "core"):
+            self.assertEqual(expected[section]["pendingVirtualStoreProofSlots"], 1)
+            for value in (None, 0, 2):
+                actual = copy.deepcopy(expected)
+                if value is None:
+                    del actual[section]["pendingVirtualStoreProofSlots"]
+                else:
+                    actual[section]["pendingVirtualStoreProofSlots"] = value
+                with self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in expected:
+            if not isinstance(expected[section], dict):
+                continue
+            actual = copy.deepcopy(expected)
+            actual[section]["unknownOptionalField"] = False
+            with self.assertRaises(RuntimeError):
+                compare(actual)
+
     def test_A_is_exact_unchanged_v3_and_both_expand_shared_arguments(self):
         self.assertEqual(self.preflight("A"), self.preflight("A", performance.main))
         for mode in ("A", "B"):
@@ -63,6 +112,13 @@ class BoardProfileTests(unittest.TestCase):
             current["core"]["registeredPmpRegions"] = False
             current["profile"]["publishedPmpChanges"] = False
             current["core"]["publishedPmpChanges"] = False
+            for section in ("profile", "core"):
+                current[section]["frozenStoreProofTransport"] = False
+                current[section]["pendingVirtualStoreProof"] = False
+                current[section]["boundHeadStoreOverlap"] = False
+                current[section]["pendingVirtualStoreProofSlots"] = 1
+            for section in ("profile", "cache"):
+                current[section]["readPrefetchStoreHold"] = False
             board_profile.compare_constructor(mode, current)
             with self.assertRaises(RuntimeError):
                 board_profile.compare_constructor(mode, frozen[mode])

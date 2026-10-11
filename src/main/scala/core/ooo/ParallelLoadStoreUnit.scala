@@ -18,12 +18,15 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
             Some(Output(Valid(UInt(p.physBits.W)))) else None
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
+        val boundHeadStoreOverlapQualified = if (p.boundHeadStoreOverlap) Some(Input(Bool())) else None
+        // Assertion/test witness only; never feeds reservation or ownership.
+        val boundHeadStoreOverlapAccepted = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
         val acceptedStartSlot = if (p.memoryProofFrontier) Some(Output(Valid(UInt(indexBits.W)))) else None
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
-        val frozenStoreProof = if (p.memoryProofFrontier) Some(Output(Valid(new FrozenStoreProof))) else None
+        val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Output(Valid(new FrozenStoreProof))) else None
         val relaxStoreOwner = if (p.canonicalVirtualStoreOverlap)
             Some(Input(Valid(new RobToken(p)))) else None
         val complete       = Decoupled(new BackendCompletion(p))
@@ -100,7 +103,12 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
     // this prechecked load; do not force it to replace the blocked completion.
     // Never feed completion READY or cancellation into the reservation selector.
     val handoffOffer = if (canonicalHandoff) empty.asUInt.orR && exemptSerial.reduce(_ || _) else false.B
-    val chosen = Mux(handoffOffer, PriorityEncoder(empty),
+    val boundHeadStoreOverlapOffer = io.boundHeadStoreOverlapQualified.map { qualified =>
+        qualified && !io.parallel && empty.asUInt.orR && io.busy &&
+            (0 until p.memoryEntries).map(i => !slots(i).io.busy ||
+                (parallel(i) && slots(i).io.savedLoadDisjointFromFrozenStart.get)).reduce(_ && _)
+    }.getOrElse(false.B)
+    val chosen = Mux(handoffOffer || boundHeadStoreOverlapOffer, PriorityEncoder(empty),
         Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty)))
     val available = completion.io.out.valid || empty.asUInt.orR
     val othersIdle = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
@@ -108,13 +116,28 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
     val noOtherSerial = (0 until p.memoryEntries)
         .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U) || exemptSerial(i))
         .reduce(_ && _)
-    io.issueAvailable := available && noOtherSerial && (io.parallel || othersIdle)
+    io.issueAvailable := available && noOtherSerial && (io.parallel || othersIdle || boundHeadStoreOverlapOffer)
     io.start.ready    := io.issueAvailable && Mux1H(
         (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
     )
     when(observationCanonicalHandoff) {
         assert(ordinaryPrechecked && io.parallel && empty(chosen),
             "authorized handoff must use an empty slot without completing or replacing the store")
+    }
+    io.boundHeadStoreOverlapAccepted.foreach { accepted =>
+        accepted := io.start.fire && boundHeadStoreOverlapOffer
+        when(accepted) {
+            assert(!io.parallel && empty(chosen) && io.start.bits.store && io.start.bits.virtualized &&
+                !io.start.bits.atomic && !io.start.bits.forward.valid && !io.start.bits.accessDenied &&
+                io.start.bits.frozenStoreProof.get.valid && io.start.bits.canonicalStoreEpoch.get.valid,
+                "bound head-store overlap captures only an ordinary frozen serial store in an actually idle slot")
+            for (i <- 0 until p.memoryEntries) {
+                when(slots(i).io.busy) {
+                    assert(parallel(i) && slots(i).io.savedLoadDisjointFromFrozenStart.get && !io.cancel(i),
+                        "every pre-edge co-owner must survive the accepted bound-store start")
+                }
+            }
+        }
     }
     io.acceptedStartSlot.foreach { accepted =>
         accepted.valid := io.start.fire

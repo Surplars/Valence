@@ -1,0 +1,13 @@
+{
+  "schema": "bound-store-cpu-reference-artifacts-v1",
+  "qualification_inherited": false,
+  "files": {
+    "read-prefetch-store-hold-r1/cpu-on-plan-r3/contract.json": "031c88da37dee48c0efef20c4d554b18f949d21fc601822b27a1b7f30953211e",
+    "read-prefetch-store-hold-r1/cpu-on-plan-r3/expected-published-fabric.json": "581c616f5d3b1e7b34babffdd7ee2e6f972559883201f6266f4971b3f9432823",
+    "read-prefetch-store-hold-r1/cpu-on-plan-r3/expected-on-fabric.json": "1d07ee020e429b144791fbdee5f1562716b161f4b8b965e44fc98fcef5b368e9",
+    "read-prefetch-store-hold-r1/cpu-on-plan-r3/baseline-temporary-semantic-audit.json": "158d32a3f82a2603dbf74873c3d5b08a7aa6fd6a9a493001e90c94fead8d48b5",
+    "read-prefetch-store-hold-r1/cpu-on-plan-r3/header-audit.json": "2fa130ed16d27bb48493ad2cd64e382714e10daf8932123148f0fd11dcd566ef",
+    "read-prefetch-store-hold-r1/cpu-burst-locked-r1/receipt.json": "1a45f6a360a455c59f2d7efb5bd6fbd56a45b81d3ea20a41e7f2283abe5c8a12",
+    "cpu-supply-f722/runtime-guest-receipt.json": "9dcba78b058f8ba1436d719ea163599a2ca0dc6b4e5bbc750acd1f16149da6dc"
+  }
+}

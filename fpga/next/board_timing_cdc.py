@@ -46,6 +46,13 @@ def expected_constructor():
     expected["core"]["registeredPmpRegions"] = True
     expected["profile"]["publishedPmpChanges"] = False
     expected["core"]["publishedPmpChanges"] = False
+    for section in ("profile", "core"):
+        expected[section]["frozenStoreProofTransport"] = False
+        expected[section]["pendingVirtualStoreProof"] = False
+        expected[section]["boundHeadStoreOverlap"] = False
+        expected[section]["pendingVirtualStoreProofSlots"] = 1
+    for section in ("profile", "cache"):
+        expected[section]["readPrefetchStoreHold"] = False
     return expected
 
 

@@ -25,7 +25,10 @@ object CanonicalOverlapBoardBuild {
         preparedStoreLookahead = c.preparedStoreLookahead, postedPreparationPriority = c.postedPreparationPriority,
         translatedResponseEmptyFlow = c.translatedResponseEmptyFlow,
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
-        postedPrefetchHeadOffer = c.postedPrefetchHeadOffer, canonicalVirtualStoreOverlap = overlap, backendCapacity = c.backendCapacity,
+        postedPrefetchHeadOffer = c.postedPrefetchHeadOffer, canonicalVirtualStoreOverlap = overlap,
+        frozenStoreProofTransport = c.frozenStoreProofTransport, pendingVirtualStoreProof = c.pendingVirtualStoreProof,
+        pendingVirtualStoreProofSlots = c.pendingVirtualStoreProofSlots, boundHeadStoreOverlap = c.boundHeadStoreOverlap,
+        backendCapacity = c.backendCapacity,
         lineageProfile = if (lineageProbes) Some(c) else None)
 }
 

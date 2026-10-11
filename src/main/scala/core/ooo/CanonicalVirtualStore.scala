@@ -37,7 +37,7 @@ class CanonicalStoreCertificate(p: OooParams) extends CanonicalStoreDescriptor(p
 
 class CanonicalStoreCpuPort(p: OooParams) extends Bundle {
     val requestOrigin = Output(Valid(new CanonicalStoreOrigin(p)))
-    val requestFrozenProof = if (p.memoryProofFrontier) Some(Output(Valid(new FrozenStoreProof))) else None
+    val requestFrozenProof = if (p.frozenStoreProofEnabled) Some(Output(Valid(new FrozenStoreProof))) else None
     val checked = Input(Valid(new CanonicalStoreCertificate(p)))
 }
 

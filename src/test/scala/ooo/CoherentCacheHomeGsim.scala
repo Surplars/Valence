@@ -19,7 +19,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     distinctWayRelease: Boolean = false, distinctWayTest: Boolean = false, splitPrefetchTracking: Boolean = false,
     independentDemandAdmission: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
     readPrefetchDemandAdoption: Boolean = false, demandAdoptionTest: Boolean = false,
-    postedPrefetchCoexistence: Boolean = false) extends Module {
+    postedPrefetchCoexistence: Boolean = false, readPrefetchStoreHold: Boolean = false,
+    postedGenerationBits: Int = 64) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
@@ -28,9 +29,9 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         storePrefetchLruVictim = storePrefetchLruVictim, distinctWayRelease = distinctWayRelease,
         splitPrefetchTracking = splitPrefetchTracking, independentDemandAdmission = independentDemandAdmission,
         readPrefetchDirtyRetry = readPrefetchDirtyRetry, readPrefetchDemandAdoption = readPrefetchDemandAdoption,
-        postedPrefetchCoexistence = postedPrefetchCoexistence)
+        postedPrefetchCoexistence = postedPrefetchCoexistence, readPrefetchStoreHold = readPrefetchStoreHold)
     private val postedCfg = if (demandAdoptionTest) Some(PostedStoreMergeConfig(enabled = true,
-        generationBits = 64, cacheSets = lines / cacheWays, cacheWays = cacheWays,
+        generationBits = postedGenerationBits, cacheSets = lines / cacheWays, cacheWays = cacheWays,
         readMshrs = mshrs, responseEntries = responseEntries, writebackEntries = writebacks,
         guaranteedBase = base, guaranteedBytes = bytes)) else None
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)

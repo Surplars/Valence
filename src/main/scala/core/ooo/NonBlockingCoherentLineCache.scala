@@ -1132,23 +1132,34 @@ class NonBlockingCoherentLineCache(
         val speculativeReleaseAvailable = if (concurrency.readPrefetchDemandAdoption)
             Mux(readCandidate, readReleaseAllowed, !releaseBusy) else !releaseBusy
         val victimCreditAvailable = if (concurrency.readPrefetchDemandAdoption) !valid(pfIndex) || wbSpace else true.B
-        val otherwiseEligible = postedPrefetchAllowed && speculativeOwnerAvailable && speculativeReleaseAvailable &&
+        val eligibleWithoutDemand = postedPrefetchAllowed && speculativeOwnerAvailable && speculativeReleaseAvailable &&
             victimCreditAvailable &&
             !present && !setReserved && !victimPending && allowedVictim &&
             (!valid(pfIndex) || !dirty(pfIndex) || (if (concurrency.readPrefetchDirtyRetry)
                 candidateStore.get || readDirtyVictimAllowed else candidateStore.getOrElse(false.B))) &&
-            freeMask.asUInt.orR && !demandMiss &&
+            freeMask.asUInt.orR &&
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&
             probeState === pIdle && !io.tl.b.valid && !queuedEvictWanted
+        val otherwiseEligible = eligibleWithoutDemand && !demandMiss
         val canAllocate = otherwiseEligible && evictionState === eIdle
+        // Retain only a read-origin prediction displaced by a successfully
+        // accepted ordinary resident store. The original allocation gate still
+        // rejects all writes. No combined posted READY/SEAL/accepted signal is
+        // added to the cache grant, eviction, install or allocation cones.
+        val acceptedStoreHold = if (concurrency.readPrefetchStoreHold)
+            readCandidate && eligibleWithoutDemand && evictionState === eIdle &&
+                storeWrite && !postedIntent && !postedBusy &&
+                !(io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest))
+        else false.B
         when(candidateValid) {
             candidateValid := false.B
             candidateRemaining.foreach { remaining =>
-                // Retain only across the already-measured victim capture/send
-                // hazard. All other demand/protection/ownership exclusions cancel
-                // the token, and its existing busy contribution protects context.
-                when(otherwiseEligible && (evictionState === eCapture || evictionState === eSend) &&
-                    remaining =/= 0.U) {
+                // Existing victim capture/send retention is unchanged. The
+                // opt-in accepted-store hold spends the same finite lifetime;
+                // held writes, posted/fallback offers and every other exclusion
+                // cancel. Architectural busy continues to protect context.
+                when((otherwiseEligible && (evictionState === eCapture || evictionState === eSend) ||
+                    acceptedStoreHold) && remaining =/= 0.U) {
                     candidateValid := true.B
                     remaining := remaining - 1.U
                 }

@@ -1,0 +1,31 @@
+struct Fake {
+uint64_t io$$ddrAxi$$ar$$bits$$addr=0; uint64_t get_io$$ddrAxi$$ar$$bits$$addr() const {return io$$ddrAxi$$ar$$bits$$addr;} void set_io$$ddrAxi$$ar$$bits$$addr(uint64_t v) {io$$ddrAxi$$ar$$bits$$addr=v;}
+uint64_t io$$ddrAxi$$ar$$bits$$burst=0; uint64_t get_io$$ddrAxi$$ar$$bits$$burst() const {return io$$ddrAxi$$ar$$bits$$burst;} void set_io$$ddrAxi$$ar$$bits$$burst(uint64_t v) {io$$ddrAxi$$ar$$bits$$burst=v;}
+uint64_t io$$ddrAxi$$ar$$bits$$id=0; uint64_t get_io$$ddrAxi$$ar$$bits$$id() const {return io$$ddrAxi$$ar$$bits$$id;} void set_io$$ddrAxi$$ar$$bits$$id(uint64_t v) {io$$ddrAxi$$ar$$bits$$id=v;}
+uint64_t io$$ddrAxi$$ar$$bits$$len=0; uint64_t get_io$$ddrAxi$$ar$$bits$$len() const {return io$$ddrAxi$$ar$$bits$$len;} void set_io$$ddrAxi$$ar$$bits$$len(uint64_t v) {io$$ddrAxi$$ar$$bits$$len=v;}
+uint64_t io$$ddrAxi$$ar$$bits$$size=0; uint64_t get_io$$ddrAxi$$ar$$bits$$size() const {return io$$ddrAxi$$ar$$bits$$size;} void set_io$$ddrAxi$$ar$$bits$$size(uint64_t v) {io$$ddrAxi$$ar$$bits$$size=v;}
+uint64_t io$$ddrAxi$$ar$$ready=0; uint64_t get_io$$ddrAxi$$ar$$ready() const {return io$$ddrAxi$$ar$$ready;} void set_io$$ddrAxi$$ar$$ready(uint64_t v) {io$$ddrAxi$$ar$$ready=v;}
+uint64_t io$$ddrAxi$$ar$$valid=0; uint64_t get_io$$ddrAxi$$ar$$valid() const {return io$$ddrAxi$$ar$$valid;} void set_io$$ddrAxi$$ar$$valid(uint64_t v) {io$$ddrAxi$$ar$$valid=v;}
+uint64_t io$$ddrAxi$$aw$$bits$$addr=0; uint64_t get_io$$ddrAxi$$aw$$bits$$addr() const {return io$$ddrAxi$$aw$$bits$$addr;} void set_io$$ddrAxi$$aw$$bits$$addr(uint64_t v) {io$$ddrAxi$$aw$$bits$$addr=v;}
+uint64_t io$$ddrAxi$$aw$$bits$$burst=0; uint64_t get_io$$ddrAxi$$aw$$bits$$burst() const {return io$$ddrAxi$$aw$$bits$$burst;} void set_io$$ddrAxi$$aw$$bits$$burst(uint64_t v) {io$$ddrAxi$$aw$$bits$$burst=v;}
+uint64_t io$$ddrAxi$$aw$$bits$$id=0; uint64_t get_io$$ddrAxi$$aw$$bits$$id() const {return io$$ddrAxi$$aw$$bits$$id;} void set_io$$ddrAxi$$aw$$bits$$id(uint64_t v) {io$$ddrAxi$$aw$$bits$$id=v;}
+uint64_t io$$ddrAxi$$aw$$bits$$len=0; uint64_t get_io$$ddrAxi$$aw$$bits$$len() const {return io$$ddrAxi$$aw$$bits$$len;} void set_io$$ddrAxi$$aw$$bits$$len(uint64_t v) {io$$ddrAxi$$aw$$bits$$len=v;}
+uint64_t io$$ddrAxi$$aw$$bits$$size=0; uint64_t get_io$$ddrAxi$$aw$$bits$$size() const {return io$$ddrAxi$$aw$$bits$$size;} void set_io$$ddrAxi$$aw$$bits$$size(uint64_t v) {io$$ddrAxi$$aw$$bits$$size=v;}
+uint64_t io$$ddrAxi$$aw$$ready=0; uint64_t get_io$$ddrAxi$$aw$$ready() const {return io$$ddrAxi$$aw$$ready;} void set_io$$ddrAxi$$aw$$ready(uint64_t v) {io$$ddrAxi$$aw$$ready=v;}
+uint64_t io$$ddrAxi$$aw$$valid=0; uint64_t get_io$$ddrAxi$$aw$$valid() const {return io$$ddrAxi$$aw$$valid;} void set_io$$ddrAxi$$aw$$valid(uint64_t v) {io$$ddrAxi$$aw$$valid=v;}
+uint64_t io$$ddrAxi$$b$$bits$$id=0; uint64_t get_io$$ddrAxi$$b$$bits$$id() const {return io$$ddrAxi$$b$$bits$$id;} void set_io$$ddrAxi$$b$$bits$$id(uint64_t v) {io$$ddrAxi$$b$$bits$$id=v;}
+uint64_t io$$ddrAxi$$b$$bits$$resp=0; uint64_t get_io$$ddrAxi$$b$$bits$$resp() const {return io$$ddrAxi$$b$$bits$$resp;} void set_io$$ddrAxi$$b$$bits$$resp(uint64_t v) {io$$ddrAxi$$b$$bits$$resp=v;}
+uint64_t io$$ddrAxi$$b$$ready=0; uint64_t get_io$$ddrAxi$$b$$ready() const {return io$$ddrAxi$$b$$ready;} void set_io$$ddrAxi$$b$$ready(uint64_t v) {io$$ddrAxi$$b$$ready=v;}
+uint64_t io$$ddrAxi$$b$$valid=0; uint64_t get_io$$ddrAxi$$b$$valid() const {return io$$ddrAxi$$b$$valid;} void set_io$$ddrAxi$$b$$valid(uint64_t v) {io$$ddrAxi$$b$$valid=v;}
+uint64_t io$$ddrAxi$$r$$bits$$data=0; uint64_t get_io$$ddrAxi$$r$$bits$$data() const {return io$$ddrAxi$$r$$bits$$data;} void set_io$$ddrAxi$$r$$bits$$data(uint64_t v) {io$$ddrAxi$$r$$bits$$data=v;}
+uint64_t io$$ddrAxi$$r$$bits$$id=0; uint64_t get_io$$ddrAxi$$r$$bits$$id() const {return io$$ddrAxi$$r$$bits$$id;} void set_io$$ddrAxi$$r$$bits$$id(uint64_t v) {io$$ddrAxi$$r$$bits$$id=v;}
+uint64_t io$$ddrAxi$$r$$bits$$last=0; uint64_t get_io$$ddrAxi$$r$$bits$$last() const {return io$$ddrAxi$$r$$bits$$last;} void set_io$$ddrAxi$$r$$bits$$last(uint64_t v) {io$$ddrAxi$$r$$bits$$last=v;}
+uint64_t io$$ddrAxi$$r$$bits$$resp=0; uint64_t get_io$$ddrAxi$$r$$bits$$resp() const {return io$$ddrAxi$$r$$bits$$resp;} void set_io$$ddrAxi$$r$$bits$$resp(uint64_t v) {io$$ddrAxi$$r$$bits$$resp=v;}
+uint64_t io$$ddrAxi$$r$$ready=0; uint64_t get_io$$ddrAxi$$r$$ready() const {return io$$ddrAxi$$r$$ready;} void set_io$$ddrAxi$$r$$ready(uint64_t v) {io$$ddrAxi$$r$$ready=v;}
+uint64_t io$$ddrAxi$$r$$valid=0; uint64_t get_io$$ddrAxi$$r$$valid() const {return io$$ddrAxi$$r$$valid;} void set_io$$ddrAxi$$r$$valid(uint64_t v) {io$$ddrAxi$$r$$valid=v;}
+uint64_t io$$ddrAxi$$w$$bits$$data=0; uint64_t get_io$$ddrAxi$$w$$bits$$data() const {return io$$ddrAxi$$w$$bits$$data;} void set_io$$ddrAxi$$w$$bits$$data(uint64_t v) {io$$ddrAxi$$w$$bits$$data=v;}
+uint64_t io$$ddrAxi$$w$$bits$$last=0; uint64_t get_io$$ddrAxi$$w$$bits$$last() const {return io$$ddrAxi$$w$$bits$$last;} void set_io$$ddrAxi$$w$$bits$$last(uint64_t v) {io$$ddrAxi$$w$$bits$$last=v;}
+uint64_t io$$ddrAxi$$w$$bits$$strb=0; uint64_t get_io$$ddrAxi$$w$$bits$$strb() const {return io$$ddrAxi$$w$$bits$$strb;} void set_io$$ddrAxi$$w$$bits$$strb(uint64_t v) {io$$ddrAxi$$w$$bits$$strb=v;}
+uint64_t io$$ddrAxi$$w$$ready=0; uint64_t get_io$$ddrAxi$$w$$ready() const {return io$$ddrAxi$$w$$ready;} void set_io$$ddrAxi$$w$$ready(uint64_t v) {io$$ddrAxi$$w$$ready=v;}
+uint64_t io$$ddrAxi$$w$$valid=0; uint64_t get_io$$ddrAxi$$w$$valid() const {return io$$ddrAxi$$w$$valid;} void set_io$$ddrAxi$$w$$valid(uint64_t v) {io$$ddrAxi$$w$$valid=v;}
+};
