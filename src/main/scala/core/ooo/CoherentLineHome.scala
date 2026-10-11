@@ -38,11 +38,15 @@ object CoherentLineHomeModule {
         writebackEntries: Int = 1,
         mixedReadWrite: Boolean = false,
         dmaLineTransfers: Boolean = false,
-        dmaLineEntries: Int = 1
+        dmaLineEntries: Int = 1,
+        distinctWayRelease: Boolean = false
     ): CoherentLineHomeModule = {
         require(!dmaLineTransfers || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
             "line DMA requires the bounded mixed coherence home")
         require(Set(1, 2, 4).contains(acquireEntries))
+        require(!distinctWayRelease || (mixedReadWrite && acquireEntries == 2 &&
+            writebackEntries == 2 && trackedWays == 2),
+            "distinct-way release requires the original two-way mixed home profile")
         require(acquireEntries > 1 || writebackEntries == 1)
         if (acquireEntries == 1) Module(new CoherentLineHome(params, base, bytes, nClients,
             trackedLines, trackedWays, rawResponseMetadata, parallelQualification, tagConfig))
@@ -51,7 +55,8 @@ object CoherentLineHomeModule {
                 "bounded concurrent home currently requires one client and an explicit directory capacity")
             if (writebackEntries > 1 || mixedReadWrite)
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
-                    trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite, dmaLineTransfers, dmaLineEntries))
+                    trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
+                    dmaLineTransfers, dmaLineEntries, distinctWayRelease))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

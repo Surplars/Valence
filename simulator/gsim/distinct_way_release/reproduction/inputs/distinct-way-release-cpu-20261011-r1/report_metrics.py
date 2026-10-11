@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Report exact original metrics; baseline runtime is historical, candidate runtime is fresh."""
+from pathlib import Path
+import hashlib,json
+HERE=Path(__file__).resolve().parent;BASE=HERE.parent
+read=lambda p:json.loads(Path(p).read_text())
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def one(result,validation):
+ ticks=result['ticks'];tail=result['flush_tail'];read_bytes=result['architectural_useful_payload']['architectural_read_bytes'];write_bytes=result['architectural_useful_payload']['architectural_write_bytes'];payload=read_bytes
+ out={'case':result['case'],'mode':result['mode'],'op':result['op'],'row':result['row'],'kernel_ticks':ticks,'flush_ticks':tail,'kernel_plus_flush_ticks':ticks+tail,'copy_payload_bytes':payload,'architectural_read_bytes':read_bytes,'architectural_write_bytes':write_bytes,'clock_hz':100000000,'copy_payload_bytes_per_kernel_tick':payload/ticks,'copy_payload_MB_per_second_at_100MHz':payload/ticks*100,'copy_payload_MiB_per_second_at_100MHz':payload/ticks*100000000/2**20,'copy_payload_MB_per_second_kernel_plus_flush':payload/(ticks+tail)*100,'architectural_read_plus_write_bytes_per_kernel_tick':(read_bytes+write_bytes)/ticks,'axi':{}}
+ for window,a in result['axi'].items():
+  x=dict(a);x['read_outstanding_mean_exact']=a['read_outstanding_cycle_sum']/a['cycles'];x['write_outstanding_mean_exact']=a['write_outstanding_cycle_sum']/a['cycles'];x['effective_requested_read_beats']=a['accepted_r_requested_payload_bytes']/8;x['effective_strobe_write_beats']=a['accepted_w_strobe_bytes']/8;x['whole_bus_empty_fraction']=a['whole_bus_empty']/a['cycles'];x['accepted_total_wire_bytes']=a['accepted_r_wire_bytes']+a['accepted_w_wire_bytes'];out['axi'][window]=x
+ out['axi_kernel_plus_flush_wire_bytes']=sum(a['accepted_total_wire_bytes']for a in out['axi'].values());out['bus_wire_bytes_above_architectural_read_plus_write']=out['axi_kernel_plus_flush_wire_bytes']-read_bytes-write_bytes
+ out['traffic_interpretation']='Difference from architectural bytes includes fetch, line allocation, coherence and cache flush traffic; it is not independently proven useless traffic.'
+ canonical_names=['not_selected_younger_ordinary_load','selected_load_started','selected_load_not_prechecked','physical_store_conflict','older_uncanonical_memory','serial_owner_busy','issue_unavailable','older_system','other_selected_load_wait']
+ out['original_exclusive_canonical_stall_cycles']=dict(zip(canonical_names,validation['canonical_trace']['summary']['stalls']))
+ out['original_exclusive_unissued_stall_cycles']=dict(zip(validation['unissued_trace']['exclusive_bin_names'],validation['unissued_trace']['summary']['exclusive_bins']))
+ out['original_canonical_occupancy_cycles']=validation['canonical_trace']['summary']['occupancy'];out['original_canonical_barrier_bins']=validation['canonical_trace']['summary']['barrier_bins'];out['copy_victim']=result['copy_victim'];out['roi']=result['roi'];out['tail']=result['tail']
+ return out
+def main():
+ oldfile=BASE/'posted-preparation-priority-cpu-host-r2/case19-on-r1/receipt.json';newfile=HERE/'case19/qualification.json';old=read(oldfile);new=read(newfile);assert old['status']=='SCOPED_PASS_WITH_BOUNDARY_JOIN_UNKNOWN' and new['status']=='PASS_SCOPED_ORIGINAL_ORACLES'
+ a=one(old['result'],old);b=one(new['result'],new['validation'])
+ r={'schema':'distinct-way-release-case19-historical-comparison-v1','comparison_scope':'Fresh distinctWayRelease ON versus exact pinned historical original guest/profile actual baseline; fresh current-source OFF is NOT qualified. Unequal generated CPP/header objects were NOT reused.','baseline_receipt':str(oldfile),'baseline_sha256':sha(oldfile),'candidate_receipt':str(newfile),'candidate_sha256':sha(newfile),'pins_sha256':sha(HERE/'pins.json'),'baseline':a,'candidate':b,'delta':{'kernel_ticks_saved':a['kernel_ticks']-b['kernel_ticks'],'kernel_reduction_percent':(a['kernel_ticks']-b['kernel_ticks'])/a['kernel_ticks']*100,'kernel_speedup':a['kernel_ticks']/b['kernel_ticks'],'flush_ticks_saved':a['flush_ticks']-b['flush_ticks'],'combined_ticks_saved':a['kernel_plus_flush_ticks']-b['kernel_plus_flush_ticks'],'copy_payload_throughput_gain_percent':(a['kernel_ticks']/b['kernel_ticks']-1)*100},'original_checks':old['checks'],'new_validation_checks':{k:(v.get('status')if isinstance(v,dict)else None)for k,v in new['validation'].items()},'cross_interval_boundary_join':'UNKNOWN; no invented boundary reconstruction','raw_equal_to_original':new['raw_equal'],'full_original_parsers_executed':new['full_parser_executed'],'next_gate':'STOP_NO_PROMOTION'if b['kernel_plus_flush_ticks']>=a['kernel_plus_flush_ticks']else'CURRENT_SOURCE_OFF_SAME_CASE19_REQUIRED_BEFORE_FRESH_PAIR_OR_PROMOTION'}
+ (HERE/'case19-metrics-comparison.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps({'delta':r['delta'],'next_gate':r['next_gate'],'baseline_MBps':a['copy_payload_MB_per_second_at_100MHz'],'candidate_MBps':b['copy_payload_MB_per_second_at_100MHz']},indent=2))
+if __name__=='__main__':main()

@@ -1,0 +1,22 @@
+[
+  "src/test/scala/ooo/BoardSocGsimMain.scala",
+  "src/test/scala/ooo/CanonicalVirtualStoreActualParamsMain.scala",
+  "src/test/scala/ooo/CanonicalVirtualStoreBoardConfigSpec.scala",
+  "src/test/scala/ooo/CoherentCacheHomeGsim.scala",
+  "src/test/scala/ooo/DistinctWayReleaseConfigSpec.scala",
+  "src/test/scala/ooo/DistinctWayReleaseGsim.scala",
+  "src/test/scala/ooo/DistinctWayReleaseNativeMain.scala",
+  "src/test/scala/ooo/FpgaNextBoardGsimMain.scala",
+  "src/test/scala/ooo/FpgaNextMain.scala",
+  "src/test/scala/ooo/FpgaNextProfileMain.scala",
+  "src/test/scala/ooo/MemoryProofFrontierExactGsim.scala",
+  "src/test/scala/ooo/MemoryStateReuseConfigSpec.scala",
+  "src/test/scala/ooo/MemoryStateReuseNativeProfiles.scala",
+  "src/test/scala/ooo/PostedPrefetchBoardProfiles.scala",
+  "src/test/scala/ooo/PostedPreparationPriorityConfigSpec.scala",
+  "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
+  "src/test/scala/ooo/PostedStoreCpuLineageGsim.scala",
+  "src/test/scala/ooo/StorePrefetchLruVictimConfigSpec.scala",
+  "src/test/scala/ooo/StorePrefetchLruVictimGsim.scala",
+  "src/test/scala/ooo/StorePrefetchLruVictimProfiles.scala"
+]

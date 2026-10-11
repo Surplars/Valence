@@ -1,0 +1,445 @@
+{
+  "schema": "distinct-way-release-qualified-evidence-v1",
+  "status": "PASS_FOCUSED_NATIVE_CPU19_PAIR_CPU21_AND_INTEGRATION_BRIDGE",
+  "publication_ready": true,
+  "pending_workloads": [],
+  "defaults": {
+    "distinctWayRelease": false,
+    "reconstructIssueTokenIndex": false,
+    "sharedMemoryAddressState": false
+  },
+  "recommended_presets_changed": false,
+  "joint_resource_on_cpu_qualified": false,
+  "candidate_source": {
+    "local_commit": "e8c1504da785486d761f213a5e8589a00ba0618c",
+    "tree": "1f0f32c87e54ffb47d86273c86261a2944215c0e",
+    "published_equivalent_base": "be675abe7e4e0e374d2e5f5c42f53ddab64c3d91"
+  },
+  "integration_source": {
+    "qualified_local_commit": "2885c2a9c40d817094f41ac21fa5f241b97df901",
+    "qualified_tree": "a6bedc209a85a50036dfec40040c3e9d8c3d5db5",
+    "production_tree": "708dd786e6dbfa9678cbe5b31784d3e6754179c6",
+    "published_parent": "6744b01fda4a816784cdfb54c3d2b1fe5645decb",
+    "published_base_tree": "47046da3e74dd2b8a488dadf313cc7030f3be549",
+    "post_bridge_changes": "Documentation and exact helper snapshots only; all compiled production/test bytes remain unchanged."
+  },
+  "cpu_cases": {
+    "19_on": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-cpu-20261011-r1/case19/qualification.json",
+      "sha256": "a267a765275df30dae2a4dd9f1bd4ca730cee82ab5e7a92d63fdef4dc5126609",
+      "status": "PASS_SCOPED_ORIGINAL_ORACLES",
+      "row": [
+        0,
+        1,
+        2,
+        16384,
+        1,
+        334071,
+        5558,
+        0
+      ]
+    },
+    "19_off": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-cpu-20261011-r1/case19-off/qualification.json",
+      "sha256": "0370359d3f03b812d7dcaee39416fbb64104cd34990a931a3c075578fcfeee6e",
+      "status": "PASS_FRESH_OFF_EXACT_ORIGINAL_CPU_AND_RAW",
+      "row": [
+        0,
+        1,
+        2,
+        16384,
+        1,
+        380840,
+        5572,
+        0
+      ]
+    },
+    "21_on": {
+      "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-cpu-20261011-r1/case21/qualification.json",
+      "sha256": "fe731ba1d5a166162dbf6c070b21242502f7ff81a14ec6f4b69683f27ce90334",
+      "status": "PASS_DISTINCT_WAY_SV39_ORIGINAL_ORACLES",
+      "row": [
+        1,
+        1,
+        2,
+        16384,
+        1,
+        345578,
+        5565,
+        0
+      ]
+    }
+  },
+  "row_fields": [
+    "mode",
+    "test",
+    "op",
+    "count",
+    "passes",
+    "ticks",
+    "flush",
+    "result"
+  ],
+  "cpu_validation": {
+    "19_on": {
+      "new_positive_and_trap_negative_execution": true,
+      "full_original_parser_executed": true,
+      "raw_equal_to_historical": false
+    },
+    "19_off": {
+      "new_positive_and_trap_negative_execution": true,
+      "same_source_as_on": true,
+      "original_sidecars_equal": 18,
+      "original_stdout_equal": 2,
+      "parser_success_reused_under_exact_inputs": true
+    },
+    "21_on": {
+      "new_positive_and_trap_negative_execution": true,
+      "original_sidecars_equal": 18,
+      "original_stdout_equal": 2,
+      "parser_success_reused_under_exact_inputs": true,
+      "fresh_same_source_off21_execution": false
+    }
+  },
+  "cpu19_gain": {
+    "kernel_cycles_saved": 46769,
+    "kernel_cycle_reduction_percent": 12.280485243146728,
+    "payload_per_cycle_gain_percent": 13.999718622687984,
+    "flush_cycles_saved": 14,
+    "copy_payload_bytes": 131072,
+    "guest_or_roi_changed": false
+  },
+  "focused": {
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-implementation-20261011-r1/focused-r2/receipt.json",
+    "sha256": "65904f07ada3d2dad8b75434907e92592c2075d1429d33d235362e2b3d3d05a7",
+    "status": "PASS_FRESH_REAL_CACHE_MIXED_HOME_C_BEFORE_E",
+    "positive_cases": {
+      "off": 18,
+      "on": 18
+    },
+    "negative_controls": {
+      "off": {
+        "exit": 1,
+        "expected": "home directory full-line identity mismatch"
+      },
+      "on": {
+        "exit": 1,
+        "expected": "home directory full-line identity mismatch"
+      }
+    },
+    "actual_cache_and_mixed_home": true,
+    "executing_cpu": false,
+    "posted_config_present": false,
+    "light_checks": {
+      "cli_tests": 10,
+      "scala_suites": 4,
+      "scala_tests": 11
+    }
+  },
+  "native": {
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-native-20261011-r1/analysis/SUMMARY.json",
+    "sha256": "24509d928bd75cb971c496ad4656c26fe81e79c25a591db854d0e9fa9c54d66c",
+    "status": "PASS_LITERAL_NATIVE_PAIR_CENSUS",
+    "delta": {
+      "array_reg_bits": 0,
+      "scalar_reg_bits": 2
+    },
+    "table": {
+      "off": {
+        "array_reg_bits": 735863,
+        "cache_scalar_reg_bits": 4088,
+        "home_scalar_reg_bits": 4345,
+        "issued_registers": [],
+        "production_instances": 484,
+        "ram_instances": 100,
+        "scalar_reg_bits": 127785
+      },
+      "on": {
+        "array_reg_bits": 735863,
+        "cache_scalar_reg_bits": 4090,
+        "home_scalar_reg_bits": 4345,
+        "issued_registers": [
+          {
+            "name": "acquireIssued_0",
+            "width": 1
+          },
+          {
+            "name": "acquireIssued_1",
+            "width": 1
+          }
+        ],
+        "production_instances": 484,
+        "ram_instances": 100,
+        "scalar_reg_bits": 127787
+      }
+    },
+    "all_ports_equal": true,
+    "all_ram_geometry_ports_and_raw_helper_bytes_equal": true,
+    "hierarchy_equal": true,
+    "mapped_PPA_STA": false
+  },
+  "integration_bridge": {
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-integration-20261011-r1/native-bridge-r3/receipt.json",
+    "sha256": "b180467cd6f5bdcd7031655c517b9aee8dd9aec05929ef0f049c99ce5a1c2d9e",
+    "status": "PASS_DIRECT_SCALAC_CONFIG_AND_EXACT_NATIVE_PAIR_BRIDGE"
+  },
+  "integration_bridge_details": {
+    "build_path": "direct scalac, not Mill; fresh full production and 20 needed test/audit source classes; final two-file test repair overlay",
+    "configuration_tests": 16,
+    "no_build_cli_tests": 10,
+    "literal_native_files_per_side": {
+      "off": 275,
+      "on": 275
+    },
+    "native_normalization_rules": [],
+    "raw_fir_identical": {
+      "off": false,
+      "on": false
+    },
+    "only_added_constructor_metadata": {
+      "reconstructIssueTokenIndex": false,
+      "sharedMemoryAddressState": false
+    },
+    "DUT_runtime_reexecuted": false,
+    "large_clang_rebuilt": false,
+    "retained_failures": [
+      {
+        "attempt": "r1",
+        "receipt_sha256": "9a58937ecf88378ee310f2967a9a37ae108bc2d0dafcd58bfef1ba082e63f997",
+        "reason": "In-memory emitCHIRRTL rejects --target-dir; stopped before elaboration."
+      },
+      {
+        "attempt": "r2",
+        "receipt_sha256": "4384622a7bef4930d7d43742ed2c8780046d1eb184e932d57c10fb186390dd26",
+        "reason": "In-memory API omitted DedupGroupAnnotation; queue/module dedup differed and strict raw equality rejected it."
+      }
+    ],
+    "resolution": "Restore the original emitCHIRRTLFile semantics; gzip the exact emitted bytes before unchanged firtool input.",
+    "compiled_production_scala_sources": 194,
+    "compiled_test_audit_scala_sources": 20
+  },
+  "original_raw_analysis": {
+    "analysis_path": "distinct-way-release-cpu-20261011-r1/trace-gain-analysis/analysis.json",
+    "analysis_sha256": "82fabd1ef77b657b54fdbf94d8e5e884f6b5b3ba894ddf92f4af0b94bbb4583a",
+    "gap_accounting_sha256": "d28f05474429de74e3af38d08f04c05bebf71a2d9664179b386d0d3e5ed3e020",
+    "matched_dirty_eight_C_groups": 2015,
+    "on_finished_before_pf_first_D": 2015,
+    "historical_off_finished_before_pf_last_D": 0,
+    "direct_E_cycle": "UNKNOWN",
+    "E_order_basis": "Pinned acquire engine last-D-to-E ordering, not an explicit E trace.",
+    "C_owner_binding": "Unique ordinary demand/full CPU identity, PA, opposite way, later refill and no intervening install; no CPU token carried by C.",
+    "nonoverlapping_gain_terms": [
+      46790,
+      -28,
+      7
+    ],
+    "read_outstanding_cycle_sum_both": 159869,
+    "read_outstanding_without_R_valid_both": 127007,
+    "exclusive_stall_causality": false,
+    "faster_or_hidden_DDR_latency": false
+  },
+  "archives": {
+    "case19_on_raw": {
+      "library_file_id": "libfile_58b7717c09088191a85035cb06473fa9",
+      "sha256": "07b773b388402e60632961c8dccde5c92982081cbb9bb55178b789eb0ed908c2"
+    },
+    "cpu_source_capsule": {
+      "library_file_id": "libfile_03ee9a8e35848191a6213a33aadf7af8",
+      "sha256": "624cf16b8d62f7efa197581727ca320b86ab32fda37be491b7049ef0f2dc8a3f"
+    },
+    "focused_source": {
+      "library_file_id": "libfile_2479a30c604081918387a0edfd5bf505"
+    },
+    "native_evidence": {
+      "library_file_id": "libfile_f3f53bf316508191b50fbafc92687218"
+    },
+    "cpu_models_and_hosts": {
+      "library_file_id": "libfile_b3dd2f5874dc8191905a93bfe46ad84a",
+      "sha256": "28c0f76f736e70a847f8a8ee18d097be429e725443b755b6e6c164333fd6539a",
+      "bytes": 74753110
+    },
+    "cpu_terminal_increment": {
+      "library_file_id": "libfile_8638730abcc48191b76d4474ee90cb54",
+      "sha256": "a682a1acd3f0a4e39c36d44bdb8688889c6881079c5be4ec8e530cf903bb80fd",
+      "bytes": 347960
+    }
+  },
+  "limits": [
+    "All options remain default false and recommended presets are unchanged.",
+    "The separate 4800-bit memory-resource reduction is independently qualified; no jointly enabled CPU claim.",
+    "Component postedConfig=None; no dynamic posted-live/intent proof from that fixture.",
+    "Direct E event/sink/cycle absent in original sidecars; E timing UNKNOWN.",
+    "Inherited cross-interval external ownership join remains UNKNOWN.",
+    "Original host AW/pending-R fence remains unchanged.",
+    "Native declarations and byte identity are not mapped PPA, STA, routed timing, full GSIM or board throughput."
+  ],
+  "terminal_cpu_summary": {
+    "path": "/workspace/scratch/41e4a649bb60/recovery-20261010-0816/distinct-way-release-cpu-20261011-r1/terminal-cpu-qualification.json",
+    "sha256": "98fa15925fb20c3ab1144a2ef3d398f51948aac4ed16c24d74ec3a51b278a18c"
+  },
+  "bandwidth_and_utilization": {
+    "source_terminal_sha256": "98fa15925fb20c3ab1144a2ef3d398f51948aac4ed16c24d74ec3a51b278a18c",
+    "units": "MiB/s means 1048576 bytes/s; 100 MHz reporting clock; copy payload counted once.",
+    "axi_data_bytes_per_beat": 8,
+    "theoretical_MiB_per_second_per_direction": 762.939453125,
+    "theoretical_MiB_per_second_independent_both_directions": 1525.87890625,
+    "combined_beat_percent_denominator": "(R_handshakes + W_handshakes) / cycles * 100; ceiling 200 percent.",
+    "dual_channel_utilization_denominator": "(R_handshakes + W_handshakes) / (2 * cycles) * 100.",
+    "architectural_copy_read_plus_write_bytes": 262144,
+    "model_rates_not_physical_timing": true,
+    "cases": {
+      "bare_off": {
+        "copy_payload_bytes": 131072,
+        "clock_hz": 100000000,
+        "kernel_ticks": 380840,
+        "kernel_plus_flush_ticks": 386412,
+        "payload_MiB_per_second": 32.82218254385044,
+        "payload_MiB_per_second_including_flush": 32.34889185636057,
+        "roi_ar": 4099,
+        "roi_r": 32792,
+        "roi_aw": 2049,
+        "roi_w": 16392,
+        "roi_r_handshake_percent": 8.610440079823547,
+        "roi_w_handshake_percent": 4.304169730070371,
+        "roi_R_plus_W_beats_per_cycle_percent": 12.914609809893918,
+        "roi_dual_channel_peak_utilization_percent": 6.457304904946959,
+        "whole_bus_idle_cycles": 183883,
+        "read_outstanding_without_R_valid": 127007,
+        "read_outstanding_mean": 0.41977996008822605,
+        "read_outstanding_peak": 2,
+        "write_outstanding_mean": 0.06857735531981934,
+        "write_outstanding_peak": 1,
+        "kernel_plus_flush_traffic": {
+          "ar": 4100,
+          "r": 32800,
+          "aw": 2305,
+          "w": 18440,
+          "accepted_r_requested_payload_bytes": 262400,
+          "accepted_r_wire_bytes": 262400,
+          "accepted_w_strobe_bytes": 147520,
+          "accepted_w_wire_bytes": 147520,
+          "read_outstanding_without_r_valid": 127038,
+          "whole_bus_empty": 185571
+        }
+      },
+      "bare_on": {
+        "copy_payload_bytes": 131072,
+        "clock_hz": 100000000,
+        "kernel_ticks": 334071,
+        "kernel_plus_flush_ticks": 339629,
+        "payload_MiB_per_second": 37.41719574581451,
+        "payload_MiB_per_second_including_flush": 36.804866486666334,
+        "roi_ar": 4099,
+        "roi_r": 32792,
+        "roi_aw": 2049,
+        "roi_w": 16392,
+        "roi_r_handshake_percent": 9.815877463173996,
+        "roi_w_handshake_percent": 4.9067413813231315,
+        "roi_R_plus_W_beats_per_cycle_percent": 14.722618844497129,
+        "roi_dual_channel_peak_utilization_percent": 7.361309422248564,
+        "whole_bus_idle_cycles": 137048,
+        "read_outstanding_without_R_valid": 127007,
+        "read_outstanding_mean": 0.47854797333500965,
+        "read_outstanding_peak": 2,
+        "write_outstanding_mean": 0.07835460126739525,
+        "write_outstanding_peak": 1,
+        "kernel_plus_flush_traffic": {
+          "ar": 4100,
+          "r": 32800,
+          "aw": 2305,
+          "w": 18440,
+          "accepted_r_requested_payload_bytes": 262400,
+          "accepted_r_wire_bytes": 262400,
+          "accepted_w_strobe_bytes": 147520,
+          "accepted_w_wire_bytes": 147520,
+          "read_outstanding_without_r_valid": 127038,
+          "whole_bus_empty": 138724
+        }
+      },
+      "sv39_on": {
+        "copy_payload_bytes": 131072,
+        "clock_hz": 100000000,
+        "kernel_ticks": 345578,
+        "kernel_plus_flush_ticks": 351143,
+        "payload_MiB_per_second": 36.17128405164681,
+        "payload_MiB_per_second_including_flush": 35.5980327103203,
+        "roi_ar": 4161,
+        "roi_r": 32840,
+        "roi_aw": 2049,
+        "roi_w": 16392,
+        "roi_r_handshake_percent": 9.502919746048649,
+        "roi_w_handshake_percent": 4.743357505396756,
+        "roi_R_plus_W_beats_per_cycle_percent": 14.246277251445406,
+        "roi_dual_channel_peak_utilization_percent": 7.123138625722703,
+        "whole_bus_idle_cycles": 177218,
+        "read_outstanding_without_R_valid": 99411,
+        "read_outstanding_mean": 0.4683602544143435,
+        "read_outstanding_peak": 2,
+        "write_outstanding_mean": 0.07586999172401021,
+        "write_outstanding_peak": 1,
+        "kernel_plus_flush_traffic": {
+          "ar": 4162,
+          "r": 32848,
+          "aw": 2305,
+          "w": 18440,
+          "accepted_r_requested_payload_bytes": 262784,
+          "accepted_r_wire_bytes": 262784,
+          "accepted_w_strobe_bytes": 147520,
+          "accepted_w_wire_bytes": 147520,
+          "read_outstanding_without_r_valid": 99442,
+          "whole_bus_empty": 178898
+        }
+      }
+    },
+    "bare_including_flush_payload_gain_percent": 13.774736550765688,
+    "host_fence_is_not_RTL_half_duplex": true
+  },
+  "tested_export_entry": {
+    "argv": [
+      "mill",
+      "-i",
+      "IonSoC.test.runMain",
+      "ooo.FpgaNextMain",
+      "/absolute/fresh-native-output",
+      "--canonical-virtual-store-overlap",
+      "--data-translation-entries=16",
+      "--distinct-way-release",
+      "--dma-line-entries=4",
+      "--dma-line-transfers",
+      "--fetch-previous-packet",
+      "--load-order-older-retire",
+      "--lsu-entries=4",
+      "--memory-proof-frontier",
+      "--physical-load-ingress-flow",
+      "--physical-regs=64",
+      "--posted-prefetch-coexistence",
+      "--posted-prefetch-head-offer",
+      "--posted-preparation-priority",
+      "--posted-store-merge",
+      "--prepared-store-lookahead",
+      "--rob-entries=64",
+      "--selected",
+      "--store-next-line-prefetch",
+      "--store-prefetch-lru-victim",
+      "--store-prefetch-mru-insertion",
+      "--virtual-ram-load-precheck"
+    ],
+    "argv_generated_from": "CPU pins canonical_flags plus distinct-way-release; exact equality to merged on actual-parameters canonicalOptions.",
+    "cpu_pins_sha256": "52daefb584167dfe1a28d6f4214afa2aea6f70e09db34ea260483e33a703a59b",
+    "merged_actual_parameters_sha256": "44b9afc73609071bf5b6bd4e4c93753da88de50a183192cafbbb645e1467779b",
+    "profile_sha256": "6d86c22a3846bfbc317bef5601bc694d189205857b4b522ce3a14e8ffef70201",
+    "output_placeholder": "/absolute/fresh-native-output",
+    "cpu_guest_placeholder": "<recovery-workspace>/posted-preparation-priority-cpu-host-r2/guest.bin",
+    "cpu_guest_sha256": "3af27dccda6acd677bb01fdad4d240ffee2f9af1c1fb4181a71c43ff2087a810",
+    "false_fields": {
+      "reconstructIssueTokenIndex": false,
+      "sharedMemoryAddressState": false,
+      "translatedResponseEmptyFlow": false,
+      "precheckedDataRequestFlow": false,
+      "flowTileLinkResponse": false
+    },
+    "generic_default_false": true,
+    "R16_recommended_preset_promoted": false,
+    "hardware_export_or_test_rerun_for_documentation": false
+  }
+}

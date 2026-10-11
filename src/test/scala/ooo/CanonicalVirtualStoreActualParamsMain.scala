@@ -171,7 +171,7 @@ object CanonicalVirtualStoreActualParamsMain extends App {
         (if (mode == "on") Set("--canonical-virtual-store-overlap") else Set.empty[String])
     require(options.size == args.length - 2 && options == expected, "official canonical options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(profile.productArity == 34 && profile.coreParams.productArity == 142)
+    require(profile.productArity == 35 && profile.coreParams.productArity == 142 && !profile.distinctWayRelease && !profile.cache.distinctWayRelease)
     require(profile == PostedPrefetchBoardProfiles.profile("head-offer", "on")
         .copy(canonicalVirtualStoreOverlap = mode == "on"))
     require(!Files.exists(Paths.get(args(0))), "actual entry audit requires a fresh output directory")

@@ -24,7 +24,8 @@ class MixedCoherentLineHome(
     writebackEntries: Int = 1,
     mixedReadWrite: Boolean = false,
     dmaLineTransfers: Boolean = false,
-    dmaLineEntries: Int = 1
+    dmaLineEntries: Int = 1,
+    val distinctWayRelease: Boolean = false
 ) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries) {
     require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
@@ -34,6 +35,9 @@ class MixedCoherentLineHome(
     require(Set(1, 2).contains(trackedWays) && trackedLines / trackedWays >= acquireEntries,
         "each Acquire entry needs an independently reservable directory set")
     require(Set(1, 2, 4).contains(writebackEntries))
+    require(!distinctWayRelease || (mixedReadWrite && acquireEntries == 2 &&
+        writebackEntries == 2 && trackedWays == 2),
+        "distinct-way release requires the original two-way mixed home profile")
     require(params.sourceBits >= log2Ceil(acquireEntries + writebackEntries))
     private val writeTagBits = math.max(log2Ceil(acquireEntries + (if (dmaLineTransfers) dmaLineEntries else 0)),
         log2Ceil(writebackEntries + (if (dmaLineTransfers) dmaLineEntries + 1 else 1)))
@@ -148,8 +152,15 @@ class MixedCoherentLineHome(
     private val probeCSource = Reg(UInt(params.sourceBits.W))
     private val releaseSourceBusy = (0 until writebackEntries).map(i =>
         releasePhases(i) =/= rIdle && releaseSources(i) === port.c.bits.source).reduce(_ || _)
+    // A remains set-serialized through E. Only a complete dirty victim may
+    // start C beside a distinct transient line; its committed directory owner
+    // is checked below, outside C.ready's functional tag-read cone.
+    private val distinctRelease = if (distinctWayRelease)
+        port.c.bits.opcode === TLOpcode.ReleaseData && !(0 until acquireEntries).map(i =>
+            active(i) && addresses(i)(63, 6) === port.c.bits.address(63, 6)).reduce(_ || _)
+    else false.B
     private val releaseReady = !probeCActive && (capturing ||
-        (releaseFree.asUInt.orR && !transientSet(port.c.bits.address) &&
+        (releaseFree.asUInt.orR && (!transientSet(port.c.bits.address) || distinctRelease) &&
             !releaseSet(port.c.bits.address) && !releaseSourceBusy))
     private val releaseQueue = Module(new Queue(UInt(releaseBits.W), writebackEntries))
     releaseQueue.io.enq.valid := port.c.fire && isRelease &&
@@ -164,6 +175,15 @@ class MixedCoherentLineHome(
         when(!capturing) {
             assert(inRam(port.c.bits.address) && port.c.bits.address(5, 0) === 0.U &&
                 lineOwned(port.c.bits.address, releaseTags), "release has no committed directory owner")
+            if (distinctWayRelease) {
+                for (i <- 0 until acquireEntries) {
+                    when(active(i)) {
+                        assert(addresses(i)(63, 6) =/= port.c.bits.address(63, 6) &&
+                            directory(i) =/= ownedSlot(port.c.bits.address, releaseTags),
+                            "first release C aliases a transient line or reserved directory slot")
+                    }
+                }
+            }
             captureEntry := newRelease
             releaseAddresses(newRelease) := port.c.bits.address
             releaseSources(newRelease) := port.c.bits.source
@@ -187,6 +207,27 @@ class MixedCoherentLineHome(
     }
     when(port.c.valid && capturing) {
         assert(isRelease, "probe C interleaved a release burst")
+    }
+    if (distinctWayRelease) {
+        // owned is a Reg Vec. Last C and E may write different full slots on
+        // one edge. A pending WB's saved directory is historical after last C.
+        when(capturing) {
+            assert(owned(releaseDirectories(captureEntry)), "captured release lost committed directory owner")
+            for (i <- 0 until acquireEntries) {
+                when(active(i)) {
+                    assert(directory(i) =/= releaseDirectories(captureEntry) &&
+                        addresses(i)(63, 6) =/= releaseAddresses(captureEntry)(63, 6),
+                        "captured release aliases a transient directory reservation")
+                }
+            }
+        }
+        for (i <- 0 until acquireEntries) {
+            when(active(i)) {
+                // Also masks the E destination's tag bank during first-C/E:
+                // an undefined read of that unowned bank cannot create a hit.
+                assert(!owned(directory(i)), "active Acquire reserved a committed directory slot")
+            }
+        }
     }
 
     // Ordinary direct reads retain the old ordered downstream protocol. A pending

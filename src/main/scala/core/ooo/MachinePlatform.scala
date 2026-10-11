@@ -614,7 +614,8 @@ class MachinePlatform(
                 writebackEntries = cacheConcurrency.writebackEntries, mixedReadWrite = cacheConcurrency.overlapWritebackRefill,
                 rawResponseMetadata = p.rawTileLinkResponseMetadata,
                 parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig,
-                dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries)
+                dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries,
+                distinctWayRelease = cacheConcurrency.distinctWayRelease)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.

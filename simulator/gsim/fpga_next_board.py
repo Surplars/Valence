@@ -94,6 +94,8 @@ def main():
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--store-prefetch-lru-victim", action="store_true",
                     help="default-off store-origin invalid-first/LRU victim experiment")
+    ap.add_argument("--distinct-way-release", action="store_true",
+                    help="default-off issued-store-PF/read other-way dirty release experiment")
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
@@ -145,6 +147,8 @@ def main():
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if args.store_prefetch_lru_victim and not args.store_next_line_prefetch:
         ap.error("--store-prefetch-lru-victim requires --store-next-line-prefetch")
+    if args.distinct_way_release and not args.store_next_line_prefetch:
+        ap.error("--distinct-way-release requires --store-next-line-prefetch")
     if args.dma_line_entries != 1 and not args.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if args.dma_line_yield_cycles and not args.dma_line_transfers:
@@ -197,6 +201,8 @@ def main():
         parameters.append("--store-prefetch-mru-insertion")
     if args.store_prefetch_lru_victim:
         parameters.append("--store-prefetch-lru-victim")
+    if args.distinct_way_release:
+        parameters.append("--distinct-way-release")
     if args.posted_store_merge:
         parameters.append("--posted-store-merge")
     if args.posted_prefetch_coexistence:
@@ -235,6 +241,7 @@ def main():
             "store_next_line_prefetch": args.store_next_line_prefetch,
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,
             "store_prefetch_lru_victim": args.store_prefetch_lru_victim,
+            "distinct_way_release": args.distinct_way_release,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

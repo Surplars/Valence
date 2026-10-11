@@ -42,7 +42,8 @@ final case class FpgaNextConfig(
     storePrefetchLruVictim: Boolean = false,
     postedPreparationPriority: Boolean = false,
     reconstructIssueTokenIndex: Boolean = false,
-    sharedMemoryAddressState: Boolean = false
+    sharedMemoryAddressState: Boolean = false,
+    distinctWayRelease: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     SvTranslationService.indexBits(dataTranslationEntries)
@@ -96,6 +97,7 @@ final case class FpgaNextConfig(
         (if (storeNextLinePrefetch) "-checked-store-prefetch" else "") +
         (if (storePrefetchMruInsertion) "-store-prefetch-mru" else "") +
         (if (storePrefetchLruVictim) "-store-prefetch-lru-victim" else "") +
+        (if (distinctWayRelease) "-distinct-way-release" else "") +
         (if (postedStoreMerge) "-posted-store-merge" else "") +
         (if (postedPrefetchCoexistence) "-posted-prefetch-coexistence" else "") +
         (if (postedPrefetchHeadOffer) "-posted-prefetch-head-offer" else "") +
@@ -127,7 +129,8 @@ final case class FpgaNextConfig(
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
-        postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim)
+        postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim,
+        distinctWayRelease = distinctWayRelease)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -254,6 +257,7 @@ object FpgaNextConfig {
             storeNextLinePrefetch = options.contains("--store-next-line-prefetch"),
             storePrefetchMruInsertion = options.contains("--store-prefetch-mru-insertion"),
             storePrefetchLruVictim = options.contains("--store-prefetch-lru-victim"),
+            distinctWayRelease = options.contains("--distinct-way-release"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

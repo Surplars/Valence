@@ -132,6 +132,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--store-prefetch-lru-victim", action="store_true",
                     help="default-off store-origin invalid-first/LRU victim experiment")
+    ap.add_argument("--distinct-way-release", action="store_true",
+                    help="default-off issued-store-PF/read other-way dirty release experiment")
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
@@ -177,6 +179,8 @@ def main(argv=None, expected_profile_sha256=None):
         ap.error("--store-prefetch-mru-insertion requires --store-next-line-prefetch")
     if a.store_prefetch_lru_victim and not a.store_next_line_prefetch:
         ap.error("--store-prefetch-lru-victim requires --store-next-line-prefetch")
+    if a.distinct_way_release and not a.store_next_line_prefetch:
+        ap.error("--distinct-way-release requires --store-next-line-prefetch")
     if a.dma_line_entries != 1 and not a.dma_line_transfers:
         ap.error("multiple DMA line owners require --dma-line-transfers")
     if a.dma_line_yield_cycles and not a.dma_line_transfers:
@@ -265,6 +269,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.store_prefetch_lru_victim:
         profile["profile"]["store_prefetch_lru_victim"] = True
         profile["profile"]["name"] += "-store-prefetch-lru-victim"
+    if a.distinct_way_release:
+        profile["profile"]["distinct_way_release"] = True
+        profile["profile"]["name"] += "-distinct-way-release"
     profile["profile"]["posted_store_merge"] = a.posted_store_merge
     if a.posted_store_merge:
         profile["profile"]["name"] += "-posted-store-merge"
@@ -383,6 +390,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--store-prefetch-mru-insertion")
     if a.store_prefetch_lru_victim:
         command.append("--store-prefetch-lru-victim")
+    if a.distinct_way_release:
+        command.append("--distinct-way-release")
     if a.posted_store_merge:
         command.append("--posted-store-merge")
     if a.posted_prefetch_coexistence:

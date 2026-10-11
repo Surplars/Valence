@@ -15,16 +15,25 @@ import soc.ip.tilelink.TwoMasterTileLinkArbiter
 class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: Int = 2, compactTags: Boolean = false, writebacks: Int = 1, mixed: Boolean = false, axiSlots: Int = 4, unordered: Boolean = false, prefetch: Boolean = false, bankedTags: Boolean = false, prefetchCandidateCycles: Int = 1,
     testBase: BigInt = BigInt("80010000", 16), prefetchBreakOnStore: Boolean = false,
     storeNextLinePrefetch: Boolean = false, observeStorePrefetch: Boolean = false,
-    storePrefetchMruInsertion: Boolean = false, storePrefetchLruVictim: Boolean = false, cacheWays: Int = 2) extends Module {
+    storePrefetchMruInsertion: Boolean = false, storePrefetchLruVictim: Boolean = false, cacheWays: Int = 2,
+    distinctWayRelease: Boolean = false, distinctWayTest: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
-        storePrefetchLruVictim = storePrefetchLruVictim)
+        storePrefetchLruVictim = storePrefetchLruVictim, distinctWayRelease = distinctWayRelease)
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
+        val distinctWay = if (distinctWayTest) Some(new Bundle {
+            val holdAcquire = Input(Bool())
+            val faultMode = Input(UInt(2.W)) // 0 original; 1 denied-only; 2 corrupt-only
+            val faultBeat = Input(UInt(3.W))
+            val enabled = Output(Bool())
+            val grantOffer = Output(Bool())
+            val grantReady = Output(Bool())
+        }) else None
         val storePfObs = if (observeStorePrefetch) Some(Output(new CheckedStorePrefetchObservation(log2Ceil(mshrs)))) else None
         val prefetchPmpCfg = Input(UInt(8.W))
         val prefetchPmpAddress = Input(UInt(54.W))
@@ -75,7 +84,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         out := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationStorePrefetch)
     }
     val home = CoherentLineHomeModule.build(coherent, base, bytes, trackedLines = lines,
-        trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks, mixedReadWrite = mixed)
+        trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks,
+        mixedReadWrite = mixed, distinctWayRelease = distinctWayRelease)
     val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true))
     val requests = Module(new DataRequestBuffer(registerHead = true))
     val ordered = Module(new OrderedTileLinkBridge(allowWriteErrors = true, allowPartialWrites = true))
@@ -120,6 +130,14 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     home.io.upstream <> requests.io.downstream
     home.io.upstreamRequestCpu := requests.io.downstreamRequestCpu
     home.io.clients(0) <> cache.io.tl
+    io.distinctWay.foreach { fixture =>
+        fixture.enabled := distinctWayRelease.B
+        home.io.clients(0).a.valid := cache.io.tl.a.valid && !fixture.holdAcquire
+        cache.io.tl.a.ready := home.io.clients(0).a.ready && !fixture.holdAcquire
+        // A bijection exercises engine source independently of home entry and
+        // directory way. Release sources retain their separate namespace.
+        home.io.clients(0).a.bits.source := cache.io.tl.a.bits.source ^ 1.U
+    }
     home.io.clients(0).c.valid := cache.io.tl.c.valid && !io.holdCoherentC
     cache.io.tl.c.ready := home.io.clients(0).c.ready && !io.holdCoherentC
     home.io.clients(0).e.valid := cache.io.tl.e.valid && !io.holdGrantAck
@@ -135,7 +153,25 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     delayedAcks.io.enq.bits := homeD.bits
     delayedAcks.io.deq.ready := replayAck && cache.io.tl.d.ready && !io.holdCoherentD
     cache.io.tl.d.valid := (replayAck || (homeD.valid && !captureAck)) && !io.holdCoherentD
-    cache.io.tl.d.bits := Mux(replayAck, delayedAcks.io.deq.bits, homeD.bits)
+    val forwardedD = Wire(chiselTypeOf(homeD.bits))
+    forwardedD := homeD.bits
+    if (distinctWayTest) forwardedD.source := Mux(incomingAck, homeD.bits.source, homeD.bits.source ^ 1.U)
+    io.distinctWay.foreach { fixture =>
+        val beat = RegInit(0.U(3.W))
+        when(cache.io.tl.d.fire && cache.io.tl.d.bits.opcode === TLOpcode.GrantData) { beat := beat + 1.U }
+        fixture.grantOffer := homeD.valid && homeD.bits.opcode === TLOpcode.GrantData
+        fixture.grantReady := homeD.ready
+        // The real home already owns a backing-error result and will suppress
+        // E installation. Deliver its error on one selected D beat to exercise
+        // the cache engine's independent denied/corrupt aggregation.
+        when(fixture.faultMode =/= 0.U && !incomingAck) {
+            val error = homeD.bits.denied || homeD.bits.corrupt
+            forwardedD.denied := error && beat === fixture.faultBeat && fixture.faultMode === 1.U
+            forwardedD.corrupt := error && beat === fixture.faultBeat && fixture.faultMode === 2.U
+        }
+        assert(fixture.faultMode =/= 3.U, "unsupported fixture fault mode")
+    }
+    cache.io.tl.d.bits := Mux(replayAck, delayedAcks.io.deq.bits, forwardedD)
     homeD.ready := !io.holdCoherentD && Mux(captureAck, delayedAcks.io.enq.ready,
         !replayAck && cache.io.tl.d.ready)
     ordered.io.data <> home.io.downstream

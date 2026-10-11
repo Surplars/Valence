@@ -23,6 +23,8 @@ class NonBlockingCoherentLineCache(
     require(params.addrWidth == 64 && params.dataWidth == 64 &&
         params.sourceBits >= concurrency.sourceBits && params.sinkBits >= concurrency.sinkBits)
     private val mshrCount = concurrency.readMshrs
+    require(!concurrency.distinctWayRelease || ways == 2,
+        "distinct-way release requires the original two-way cache")
     require(lines / ways >= mshrCount, "each read MSHR needs an independently reservable set")
     private val mshrBits = log2Ceil(mshrCount)
     val observationStorePrefetch = WireDefault(0.U.asTypeOf(new CheckedStorePrefetchObservation(mshrBits)))
@@ -189,13 +191,20 @@ class NonBlockingCoherentLineCache(
         RegInit(VecInit(Seq.fill(mshrCount)(false.B))) else WireDefault(VecInit(Seq.fill(mshrCount)(false.B)))
     private val storePrefetchOwner = if (concurrency.storeNextLinePrefetch)
         Some(RegInit(VecInit(Seq.fill(mshrCount)(false.B)))) else None
+    // A fill phase starts at engine request acceptance, before actual A.fire.
+    // Remember issued owners so early victim C cannot overtake an unissued PF.
+    private val acquireIssued = if (concurrency.distinctWayRelease)
+        Some(RegInit(VecInit(Seq.fill(mshrCount)(false.B)))) else None
+    acquireIssued.foreach { seen =>
+        for (i <- 0 until mshrCount) { when(phase(i) === free) { seen(i) := false.B } }
+    }
     // Wire breaks Scala declaration ordering; it carries actual pending refill,
     // not CPU VALID/READY, so it introduces no request-handshake feedback loop.
     private val prefetchRefillPending = WireDefault(false.B)
     io.prefetchBusy := false.B
     private val pending = Reg(Vec(mshrCount, new DataRequest))
     private val pendingIndex = Reg(Vec(mshrCount, UInt(indexBits.W)))
-    // An accepted miss exclusively reserves its set. Capture its victim tag
+    // An accepted miss reserves its fixed full index. Capture its victim tag
     // once; a later probe may remove that victim but cannot replace the tag.
     private val pendingVictimTag = if (tagConfig.bankedStorage)
         Some(Reg(Vec(mshrCount, UInt(tagGeometry.tagBits.W)))) else None
@@ -414,16 +423,42 @@ class NonBlockingCoherentLineCache(
         Mux(!valid(first), first, Mux(!valid(second), second,
             Cat(replacement.get(lineSet(request.address)), lineSet(request.address))))
     }
-    private val index = Mux(found, residentSlot(request.address), victim)
     private val cacheable = request.address >= base.U(65.W) &&
         (request.address +& (1.U(64.W) << request.size)) <= (base + bytes).U(65.W)
     private val ordinary = cacheable && !request.atomic && !request.virtualized && !request.uncached
     private val bypass = !ordinary
     private val readHit = ordinary && found && !request.write
     private val writeHit = ordinary && found && request.write
-    private val needsEviction = cacheable && valid(index) && (!found || bypass)
     private val reservedSet = VecInit((0 until mshrCount).map(i => phase(i) =/= free &&
         pendingIndex(i)(setBits - 1, 0) === lineSet(request.address))).asUInt.orR
+    private val distinctWayRead = WireDefault(false.B)
+    private val selectedVictim = if (concurrency.distinctWayRelease) {
+        val eligible = VecInit((0 until ways).map { way =>
+            !(0 until mshrCount).map(i => phase(i) =/= free &&
+                pendingIndex(i) === slot(request.address, way)).reduce(_ || _)
+        })
+        val first = slot(request.address, 0)
+        val second = slot(request.address, 1)
+        // Eligibility precedes invalid-first/LRU. A reserved invalid way is
+        // unavailable, and the original replacement policy is retained otherwise.
+        val selected = Mux(!eligible(0), second, Mux(!eligible(1), first, victim))
+        val onlyIssuedStorePrefetch = mshrOccupancy === 1.U && (0 until mshrCount).map(i =>
+            phase(i) === free || (phase(i) === fill && prefetchOwner(i) &&
+                storePrefetchOwner.get(i) && acquireIssued.get(i) && !isPosted(i.U))).reduce(_ && _)
+        val targetPending = (0 until mshrCount).map(i => phase(i) =/= free &&
+            pending(i).address(63, 6) === request.address(63, 6)).reduce(_ || _)
+        val victimPending = (0 until wbCount).map(i => wbLive(i) &&
+            wbAddress(i)(63, 6) === request.address(63, 6)).reduce(_ || _)
+        distinctWayRead := reservedSet && ordinary && !request.write && !found &&
+            onlyIssuedStorePrefetch && !targetPending && !victimPending && eligible.asUInt.orR &&
+            freeMask.asUInt.orR && responseSpace && !postedBusy && !postedIntent &&
+            !barrier && !flushActive && !io.flushRequest && !io.tl.b.valid && probeState === pIdle &&
+            bypassState === bIdle && evictionState === eIdle && !queuedEvictWanted &&
+            (!valid(selected) || wbSpace)
+        Mux(distinctWayRead, selected, victim)
+    } else victim
+    private val index = Mux(found, residentSlot(request.address), selectedVictim)
+    private val needsEviction = cacheable && valid(index) && (!found || bypass)
     // Hits retain the legacy acceptance-ordered read/store pipeline. Store
     // misses and bypasses still fence; no store hit crosses live miss/maintenance.
     private val barrierRequest = bypass || (request.write && !writeHit)
@@ -442,7 +477,7 @@ class NonBlockingCoherentLineCache(
         probeState === pIdle && bypassState === bIdle
     private val needsMissSlot = ordinary && !found
     private val legacyReady = responseSpace && !barrier && !flushActive && !io.flushRequest &&
-        !io.tl.b.valid && !reservedSet && (!barrierRequest || barrierSafe) &&
+        !io.tl.b.valid && (!reservedSet || distinctWayRead) && (!barrierRequest || barrierSafe) &&
         (!writeHit || storeHitSafe) &&
         (!needsMissSlot || freeMask.asUInt.orR) && (!readHit || !queuedEvictionRead)
     io.upstream.request.ready := legacyReady
@@ -490,7 +525,7 @@ class NonBlockingCoherentLineCache(
         !io.tl.b.valid && !flushActive && !io.flushRequest && bypassState === bIdle
     directEvictionIndex := index
     when(directEviction) {
-        assert(phase(freeMshr) === free && !reservedSet && !probeFire,
+        assert(phase(freeMshr) === free && (!reservedSet || distinctWayRead) && !probeFire,
             "direct victim allocation requires an admitted independent miss owner")
     }
     private val hitRead = cpuFire && !postedAccept && readHit
@@ -524,6 +559,7 @@ class NonBlockingCoherentLineCache(
                     postedContext.get(m) := owner.io.accepted.bits.member.context
                     postedReservation.get(m) := owner.io.accepted.bits.reservation
                     postedAcquired.get(m) := false.B
+                    acquireIssued.foreach(_(m) := false.B)
                     postedInstalled.get(m) := false.B
                     if (concurrency.nextLinePrefetch) prefetchOwner(m) := false.B
                     storePrefetchOwner.foreach(_(m) := false.B)
@@ -547,6 +583,7 @@ class NonBlockingCoherentLineCache(
             touch(index)
             when(request.write) { dirty(index) := true.B }
         }.otherwise {
+            acquireIssued.foreach(_(freeMshr) := false.B)
             if (concurrency.nextLinePrefetch) prefetchOwner(freeMshr) := false.B
             storePrefetchOwner.foreach(_(freeMshr) := false.B)
             postedMshr.foreach(_(freeMshr) := false.B)
@@ -589,7 +626,8 @@ class NonBlockingCoherentLineCache(
 
     private val acquireTagBits = postedConfig.map(c => mshrBits + c.lineBits + c.generationBits + 2).getOrElse(mshrBits)
     private val engine = Module(new TileLinkLineAcquireEngine(params,
-        entries = concurrency.acquireEntries, tagBits = acquireTagBits, observeIssued = postedConfig.nonEmpty))
+        entries = concurrency.acquireEntries, tagBits = acquireTagBits,
+        observeIssued = postedConfig.nonEmpty || concurrency.distinctWayRelease))
     private def transactionTag(m: UInt): UInt = postedConfig.map { c =>
         val kind = Mux(isPosted(m), 2.U(2.W), Mux(prefetchOwner(m), 1.U(2.W), 0.U(2.W)))
         Cat(kind, Mux(isPosted(m), postedContext.get(m).owner.generation, 0.U(c.generationBits.W)),
@@ -605,6 +643,16 @@ class NonBlockingCoherentLineCache(
     engine.io.request.bits.grow := TLPermissions.nToT
     engine.io.request.bits.permissionOnly := false.B
     when(engine.io.request.fire) { phase(acquireMshr) := fill }
+    acquireIssued.foreach { seen =>
+        val issued = engine.io.issued.get
+        when(issued.valid) {
+            val m = tagMshr(issued.bits)
+            assert(phase(m) === fill && issued.bits === transactionTag(m),
+                "actual A tag lost the distinct-way owner")
+            seen(m) := true.B
+        }
+        when(engine.io.response.fire) { seen(tagMshr(engine.io.response.bits.tag)) := false.B }
+    }
     for (owner <- posted) {
         val issued = engine.io.issued.get
         val m = tagMshr(issued.bits)
@@ -915,6 +963,7 @@ class NonBlockingCoherentLineCache(
                 assert(candidateAddress >= base.U(65.W) &&
                     (candidateAddress +& 64.U(64.W)) <= (base + bytes).U(65.W), "prefetch escaped RAM")
                 postedMshr.foreach(_(freeMshr) := false.B)
+                acquireIssued.foreach(_(freeMshr) := false.B)
                 pending(freeMshr) := 0.U.asTypeOf(new DataRequest)
                 pending(freeMshr).address := candidateAddress
                 pendingIndex(freeMshr) := pfIndex
@@ -1108,8 +1157,33 @@ class NonBlockingCoherentLineCache(
     io.profile.evictionCycle := evictionState =/= eIdle
     io.profile.refillCycle := phase.map(p => p === acquire || p === fill).reduce(_ || _)
     for (i <- 0 until mshrCount; j <- 0 until i) {
-        assert(phase(i) === free || phase(j) === free ||
-            pendingIndex(i)(setBits - 1, 0) =/= pendingIndex(j)(setBits - 1, 0), "two MSHRs reserved one set")
+        val bothLive = phase(i) =/= free && phase(j) =/= free
+        val sameSet = pendingIndex(i)(setBits - 1, 0) === pendingIndex(j)(setBits - 1, 0)
+        if (concurrency.distinctWayRelease) {
+            when(bothLive) {
+                assert(pendingIndex(i) =/= pendingIndex(j) && pending(i).address(63, 6) =/= pending(j).address(63, 6),
+                    "two MSHRs reserved one full index or line")
+                when(sameSet) {
+                    val iPrefetch = prefetchOwner(i) && storePrefetchOwner.get(i)
+                    val jPrefetch = prefetchOwner(j) && storePrefetchOwner.get(j)
+                    assert(iPrefetch ^ jPrefetch, "same-set owners require exactly one store PF")
+                    assert(!isPosted(i.U) && !isPosted(j.U) &&
+                        Mux(iPrefetch, !pending(j).write, !pending(i).write),
+                        "same-set owner must be an ordinary read beside store PF")
+                }
+            }
+        } else assert(!bothLive || !sameSet, "two MSHRs reserved one set")
+    }
+    if (concurrency.distinctWayRelease) {
+        when(cpuFire && distinctWayRead) {
+            for (i <- 0 until mshrCount) {
+                assert(phase(i) === free || pendingIndex(i) =/= index,
+                    "distinct-way admission selected a live reserved full index")
+            }
+        }
+        when(refill && !engine.io.response.bits.error && !postedFill) {
+            assert(!valid(fillIndex), "refill destination was valid before installation")
+        }
     }
     assert(!barrier || PopCount(responseOwned) === 1.U, "barrier overlapped another CPU request")
     when(storeWrite) {

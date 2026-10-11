@@ -48,6 +48,7 @@ struct GrantOwner { uint64_t address; unsigned beats = 0, sink = 0; };
 struct Test {
     SCoherentCacheHomeGsim d;
     std::function<void()> observer;
+    std::function<void()> beforeStep;
     DdrModel ddr;
     std::map<uint64_t, uint64_t> architectural;
     std::optional<Request> cpuRequest, dmaRequest;
@@ -99,6 +100,7 @@ struct Test {
 #undef DRIVE_REQUEST
         ddr.drive(d, cycles);
         if(blockDdrWrites){ddr.awReady=false;ddr.wReady=false;d.set_io$$ddrAxi$$aw$$ready(0);d.set_io$$ddrAxi$$w$$ready(0);}
+        if (beforeStep) beforeStep();
         d.step(); ddr.sample(d); ++cycles;
         const unsigned occupied=occupancy();check(occupied<=READ_MSHRS,"MSHR occupancy exceeds configuration");
         peakOccupied=std::max(peakOccupied,occupied);
@@ -216,6 +218,10 @@ struct Test {
         d.set_io$$prefetchPrivilege(3); d.set_io$$bypassPrefetchAuthorization(0);
 #undef INIT_PORT
         d.set_io$$holdGrantAck(0); d.set_io$$holdCoherentD(0); d.set_io$$holdCoherentC(0); d.set_io$$holdReleaseAck(0);
+#ifdef DISTINCT_WAY_FIXTURE
+        d.set_io$$distinctWay$$holdAcquire(0);
+        d.set_io$$distinctWay$$faultMode(0); d.set_io$$distinctWay$$faultBeat(0);
+#endif
         d.set_io$$flushRequest(0); d.set_reset(1); tick(); tick(); d.set_reset(0);
         check(occupancy()==0,"reset retained cache miss owner");
         // The order FIFO is empty after reset. Its unused storage must never

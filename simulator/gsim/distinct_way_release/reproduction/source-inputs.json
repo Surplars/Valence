@@ -1,0 +1,249 @@
+{
+  "schema": "distinct-way-release-exact-reproduction-sources-v1",
+  "qualification_source_commit": "e8c1504da785486d761f213a5e8589a00ba0618c",
+  "qualification_source_tree": "1f0f32c87e54ffb47d86273c86261a2944215c0e",
+  "integration_bridge_source_commit": "2885c2a9c40d817094f41ac21fa5f241b97df901",
+  "scope": "Exact helper source snapshots only. Historical pins/tool/runtime/native/raw data remain in separate evidence archives. Restore paths are relative to one chosen recovery workspace; they are not directly runnable from this source directory. No new qualification is implied by copying a source.",
+  "files": [
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/archive_case19.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/archive_case19.py",
+      "sha256": "11ce25c8e1366bcb1cbef194cdfc0dc7b70db44f818a779c166497071b40b3c6",
+      "bytes": 3931,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/case21_runner.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/case21_runner.py",
+      "sha256": "1a02b9ba782c494830fc15a1e548485e48a3bda48af26210e06588d0a71681af",
+      "bytes": 6429,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/fixture/DistinctWayReleaseCpuGsimMain.scala",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/fixture/DistinctWayReleaseCpuGsimMain.scala",
+      "sha256": "443e34f812edfe337a0cf3b63845b09d9988064aa132e2c0ccc6f6213ce1f668",
+      "bytes": 11622,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/fixture/MemoryProofFrontierCanonicalProbes.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCanonicalProbes.scala",
+      "sha256": "378d57d10fe116a327c61347610beb217713c80a7bc4684f9dae36e18ea19042",
+      "bytes": 6161,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/fixture/MemoryProofFrontierCpuBuild.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuBuild.scala",
+      "sha256": "d29526b872d025e9cc071a1758a9aa57db93657629ec4b1415ba6e1358ba104c",
+      "bytes": 2192,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/fixture/MemoryProofFrontierCpuGsim.scala",
+      "source": "simulator/gsim/memory_state_reuse/cpu/fixture/MemoryProofFrontierCpuGsim.scala",
+      "sha256": "0aa536458d2a131b3d52754a5ac125828dbf7dbc36a07f5ea22743b9e9bfe8ca",
+      "bytes": 89208,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/off_runner.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/off_runner.py",
+      "sha256": "55010a7eaab6e24eb6eb5dbb6a4c437fefee7998921eec118b448f2d5b0ab8ba",
+      "bytes": 8618,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/off_runner_r2.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/off_runner_r2.py",
+      "sha256": "32b7d21be71ef070d8c4f2d73efb8a6669ec0664db6fda38c0987a51998d5e56",
+      "bytes": 9769,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/report_metrics.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/report_metrics.py",
+      "sha256": "64ba95bddae787dc5987baf89fd652553e57cbde377c0ae6bd59a3902764ef3f",
+      "bytes": 5047,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/run.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/run.py",
+      "sha256": "187fc908823df57d0aca638788dbcf93d62be508f96bb4bba3a826de16931240",
+      "bytes": 17880,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/trace-gain-analysis/analyze.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/trace-gain-analysis/analyze.py",
+      "sha256": "eee127fae03dd4b53923f00f67f81649475d7dba9a5b346537fe276df09d2c2a",
+      "bytes": 14454,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-cpu-20261011-r1/trace-gain-analysis/summarize.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-cpu-20261011-r1/trace-gain-analysis/summarize.py",
+      "sha256": "3ae4ee8e45e07d99303dce62e0bc8e450bba998291e98c56afcf7f3ac0bf68a2",
+      "bytes": 2842,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-integration-20261011-r1/bridge-test-source-list.json",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-integration-20261011-r1/bridge-test-source-list.json",
+      "sha256": "281825d30ff4e4a01b718213012e32eca7031eba1cc4af58b497ff6e9d841513",
+      "bytes": 1149,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-integration-20261011-r1/run_native_bridge.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-integration-20261011-r1/run_native_bridge.py",
+      "sha256": "107974f2b7a3027d46d008d4f88eefb5d53cb4538c15cb08cb1f200cb9c336cb",
+      "bytes": 11198,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-integration-20261011-r1/run_native_bridge_r2.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-integration-20261011-r1/run_native_bridge_r2.py",
+      "sha256": "95a1f4e2cfca3a0f4a74da6bd49de1ebe61c223a584b29dc62023fa8627afc50",
+      "bytes": 11271,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-integration-20261011-r1/run_native_bridge_r3.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-integration-20261011-r1/run_native_bridge_r3.py",
+      "sha256": "620c78129f1a9fded19e1107b608c41702750dfc6a701356a87e3a04e28e3628",
+      "bytes": 12393,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/audit.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-native-20261011-r1/audit.py",
+      "sha256": "c30aad8b72d79129f8ac38298076fe60a2c2c88cb753ddd99cbf35bd06446921",
+      "bytes": 6424,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/fixture/DistinctWayReleaseNativeMain.scala",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-native-20261011-r1/fixture/DistinctWayReleaseNativeMain.scala",
+      "sha256": "aa6d6845b232110974cd8ecfe16ffa5276c1cdfa810da477357f0c47031f0154",
+      "bytes": 1101,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/helpers/lsu_capacity_census.py",
+      "source": "fpga/next/lsu_capacity_census.py",
+      "sha256": "feddb875c24bd82896c58ebff7a364d3099ac6549179f8bef7d42809fc4dd9cf",
+      "bytes": 11627,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/helpers/native_storage_census_bound_rob64.py",
+      "source": "simulator/gsim/memory_state_reuse/native/helpers/native_storage_census_bound_rob64.py",
+      "sha256": "a5ddf0ba786495ddb87c5781e15e50201196ddab473a98bd8e458d1180bbd465",
+      "bytes": 5082,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/helpers/reachable_census.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-native-r1/helpers/reachable_census.py",
+      "sha256": "b0a1aa2ebbdca6bc619ff58dd3e501c5a0ccb51b831d9eb0ac6d5b145669d816",
+      "bytes": 7131,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "distinct-way-release-native-20261011-r1/run.py",
+      "source": "simulator/gsim/distinct_way_release/reproduction/inputs/distinct-way-release-native-20261011-r1/run.py",
+      "sha256": "c7aa691f64676c248c6e471cebec915b6da1712055f152d6b8d22f91df31c1e3",
+      "bytes": 6217,
+      "existing_identical_source_reused": false,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "frontier-fetch-chain-cpu-prep-r1/resource_monitor.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/frontier-fetch-chain-cpu-prep-r1/resource_monitor.py",
+      "sha256": "24cb793c5850a93940afe92ddc8a6e611b4a466e22ef81707565f22753d2b42d",
+      "bytes": 1311,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-host-r2/contract.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/contract.py",
+      "sha256": "2d323fa51b098582aeb2fe4b741e806cafb287f73d7bd3a4ba03ac2c12ba309a",
+      "bytes": 811,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-host-r2/profile_abi.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-host-r2/profile_abi.py",
+      "sha256": "d936da4c91ba3fb39bf5f4d5baa64acc6a5542c734923009fc3defff14446733",
+      "bytes": 4361,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-prep-r1/contract.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-prep-r1/contract.py",
+      "sha256": "102502e3ace396d727c95625f5fea30d738feea395be2431d6a616922eed2801",
+      "bytes": 10748,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-prep-r1/model.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-cpu-prep-r1/model.py",
+      "sha256": "cee671230f5a7cd6ab0bacd59053194168a0d454bc6c9082be13f973e34566c0",
+      "bytes": 9241,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-prep-r1/resource_monitor.py",
+      "source": "simulator/gsim/posted_preparation_priority/source_snapshots/frontier-fetch-chain-cpu-prep-r1/resource_monitor.py",
+      "sha256": "24cb793c5850a93940afe92ddc8a6e611b4a466e22ef81707565f22753d2b42d",
+      "bytes": 1311,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-prep-r1/source/simulator/gsim/posted_board_lineage/profile_check.py",
+      "source": "simulator/gsim/posted_board_lineage/profile_check.py",
+      "sha256": "dc347c85d826c7be2b96bd36cf5c64c855b841a3acc65ce1f1bb4f8e958121a5",
+      "bytes": 13941,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    },
+    {
+      "restore_path": "posted-preparation-priority-cpu-prep-r1/source/simulator/gsim/posted_cpu/verify_model.py",
+      "source": "simulator/gsim/posted_cpu/verify_model.py",
+      "sha256": "29d9ffefb1bd7ee26ec1dbfdc51e801624bc1f5817a40f780cd63597aa24177e",
+      "bytes": 2608,
+      "existing_identical_source_reused": true,
+      "restore_mode": "0o644"
+    }
+  ]
+}
