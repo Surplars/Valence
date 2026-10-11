@@ -1,0 +1,1218 @@
+{
+  "schema": "split-prefetch-tracking-publication-evidence-v1",
+  "status": "QUALIFIED_LAYERS_WITH_EXPLICIT_LIMITS",
+  "base_commit": "f722c0915784849599d7a75f71c7fd0ada724eb0",
+  "production_commit": "ce31409957105a5fe64bb383cca05810da018595",
+  "fixture_commits": [
+    "18195d732fa4b415ab66fd1702edb49287b4e47f",
+    "a8002cdb646527789181fec24ffa3a1d15bf9937",
+    "f46776232e89b5a6e9ebd65d22fad281cc1160bd"
+  ],
+  "activation_argv": [
+    "mill",
+    "-i",
+    "IonSoC.test.runMain",
+    "ooo.CpuSv39BandwidthGsimMain",
+    "build/gsim/split-prefetch-on16",
+    "admission",
+    "--split-prefetch-tracking",
+    "--prefetch-candidate-cycles=16"
+  ],
+  "default_split": false,
+  "default_candidate_lifetime": 1,
+  "recommended_presets_changed": false,
+  "actual_profile": {
+    "issue_width": 2,
+    "rob_entries": 16,
+    "physical_regs": 48,
+    "lsu_entries": 2,
+    "data_tlb_entries": 8,
+    "cache_lines": 512,
+    "cache_ways": 2,
+    "cache_line_bytes": 64,
+    "cache_mshrs": 2,
+    "cache_writebacks": 2,
+    "cache_response_entries": 2,
+    "ddr_outstanding": 4,
+    "ddr_write_credits": 2,
+    "guest_bytes": 65536,
+    "guest_repetitions": 2,
+    "ddr_read_latency": 32,
+    "ddr_write_response_latency": 32,
+    "ddr_read_beat_gap": 1
+  },
+  "capacity_change": {
+    "resident_prefetch_tokens": [
+      1,
+      2
+    ],
+    "global_pending_candidates": [
+      1,
+      1
+    ],
+    "actual_prefetch_mshrs": [
+      1,
+      1
+    ]
+  },
+  "cpu_copy": {
+    "f722_off1": {
+      "receipt": {
+        "path_in_evidence": "cpu-supply-f722/runtime-baseline-receipt.json",
+        "sha256": "9b93dcb73b5f263f4e5478c7cab0acc6e89eb567bba59b35596f5771bd3a376e",
+        "bytes": 16011,
+        "status": "PASS_BASELINE_EXACT_ADMISSION_COPY_REFERENCE",
+        "source_head_recorded": null
+      },
+      "cases": {
+        "sv39": {
+          "result": {
+            "mode": "1",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "331412",
+            "drain": "3",
+            "clean_tail": "8149",
+            "payload_MiBps": "37.7174031115",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4160",
+            "aw": "2048",
+            "r_beats": "32832",
+            "w_beats": "16384",
+            "pf_candidates": "2078",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "1",
+            "two_cache_owner_cycles": "0",
+            "axi_read_peak": "1",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 339561,
+          "payload_including_clean_tail_MiBps_at_100MHz": 36.8122369765668
+        },
+        "bare": {
+          "result": {
+            "mode": "0",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "284800",
+            "drain": "3",
+            "clean_tail": "8062",
+            "payload_MiBps": "43.8904494382",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4096",
+            "aw": "2048",
+            "r_beats": "32768",
+            "w_beats": "16384",
+            "pf_candidates": "2046",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "26342",
+            "axi_read_peak": "1",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 292862,
+          "payload_including_clean_tail_MiBps_at_100MHz": 42.682218929051906
+        }
+      }
+    },
+    "split_on1": {
+      "receipt": {
+        "path_in_evidence": "cpu-supply-split-l1/receipt.json",
+        "sha256": "1e387b895a22d82de61da0bef02ffd40d145dc36c75b597c0db3249017cad4b4",
+        "bytes": 128465,
+        "status": "PASS_CANDIDATE_ON_ORACLE_AND_FROZEN_F722_ADMISSION_COMPARISON",
+        "source_head_recorded": "18195d732fa4b415ab66fd1702edb49287b4e47f"
+      },
+      "cases": {
+        "sv39": {
+          "result": {
+            "mode": "1",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "331412",
+            "drain": "3",
+            "clean_tail": "8030",
+            "payload_MiBps": "37.7174031115",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4160",
+            "aw": "2048",
+            "r_beats": "32832",
+            "w_beats": "16384",
+            "pf_candidates": "4060",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "1",
+            "two_cache_owner_cycles": "0",
+            "axi_read_peak": "1",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 339442,
+          "payload_including_clean_tail_MiBps_at_100MHz": 36.82514243965095
+        },
+        "bare": {
+          "result": {
+            "mode": "0",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "284800",
+            "drain": "3",
+            "clean_tail": "8112",
+            "payload_MiBps": "43.8904494382",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4096",
+            "aw": "2048",
+            "r_beats": "32768",
+            "w_beats": "16384",
+            "pf_candidates": "2046",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "26342",
+            "axi_read_peak": "1",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 292912,
+          "payload_including_clean_tail_MiBps_at_100MHz": 42.67493308570492
+        }
+      },
+      "publication_binding": {
+        "recorded_scala_inputs_checked": 475,
+        "mismatches": [
+          "src/test/scala/ooo/CanonicalStoreGsim.scala"
+        ],
+        "production_input_mismatches": [],
+        "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+        "qualification_inherited_by_commit_label": false
+      },
+      "options": [
+        "--split-prefetch-tracking",
+        "--prefetch-candidate-cycles=1"
+      ]
+    },
+    "split_off16": {
+      "receipt": {
+        "path_in_evidence": "cpu-supply-shared-l16/receipt.json",
+        "sha256": "11847339970249e78402d428ea79af442596164d525a1c35207eb273f477d61e",
+        "bytes": 129516,
+        "status": "PASS_SAME_PRODUCTION_OFF16_CONTROL_ORACLE",
+        "source_head_recorded": "a8002cdb646527789181fec24ffa3a1d15bf9937"
+      },
+      "cases": {
+        "sv39": {
+          "result": {
+            "mode": "1",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "325901",
+            "drain": "3",
+            "clean_tail": "8245",
+            "payload_MiBps": "38.3552060288",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4160",
+            "aw": "2048",
+            "r_beats": "32832",
+            "w_beats": "16384",
+            "pf_candidates": "2014",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "100935",
+            "axi_read_peak": "2",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 334146,
+          "payload_including_clean_tail_MiBps_at_100MHz": 37.408797352055686
+        },
+        "bare": {
+          "result": {
+            "mode": "0",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "341534",
+            "drain": "3",
+            "clean_tail": "8114",
+            "payload_MiBps": "36.5995772017",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4128",
+            "aw": "2048",
+            "r_beats": "33024",
+            "w_beats": "16384",
+            "pf_candidates": "2046",
+            "pf_allocated": "2046",
+            "pf_useful": "2046",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "1835",
+            "axi_read_peak": "2",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 349648,
+          "payload_including_clean_tail_MiBps_at_100MHz": 35.75024024161442
+        }
+      },
+      "publication_binding": {
+        "recorded_scala_inputs_checked": 475,
+        "mismatches": [
+          "src/test/scala/ooo/CanonicalStoreGsim.scala"
+        ],
+        "production_input_mismatches": [],
+        "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+        "qualification_inherited_by_commit_label": false
+      },
+      "options": [
+        "--prefetch-candidate-cycles=16"
+      ]
+    },
+    "split_on16": {
+      "receipt": {
+        "path_in_evidence": "cpu-supply-split-l16/receipt.json",
+        "sha256": "8a277171000aebbbc084a0ae06e2030cd33af8828c66cca8db4c25428b60ad41",
+        "bytes": 129099,
+        "status": "PASS_CANDIDATE_ON_ORACLE_AND_FROZEN_F722_ADMISSION_COMPARISON",
+        "source_head_recorded": "18195d732fa4b415ab66fd1702edb49287b4e47f"
+      },
+      "cases": {
+        "sv39": {
+          "result": {
+            "mode": "1",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "273627",
+            "drain": "3",
+            "clean_tail": "8190",
+            "payload_MiBps": "45.682626349",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4160",
+            "aw": "2048",
+            "r_beats": "32832",
+            "w_beats": "16384",
+            "pf_candidates": "3358",
+            "pf_allocated": "3358",
+            "pf_useful": "3358",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "40706",
+            "axi_read_peak": "2",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 281817,
+          "payload_including_clean_tail_MiBps_at_100MHz": 44.35502471461977
+        },
+        "bare": {
+          "result": {
+            "mode": "0",
+            "op": "2",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "283459",
+            "drain": "3",
+            "clean_tail": "8158",
+            "payload_MiBps": "44.0980882597",
+            "retired": "40984",
+            "pc_hash": "2052405062169827831",
+            "loads": "16384",
+            "stores": "16384",
+            "ar": "4096",
+            "aw": "2048",
+            "r_beats": "32768",
+            "w_beats": "16384",
+            "pf_candidates": "2078",
+            "pf_allocated": "2046",
+            "pf_useful": "2046",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "28326",
+            "axi_read_peak": "2",
+            "event15": "32768",
+            "event16": "32768"
+          },
+          "oracle": {
+            "checked_replies": "49157",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 291617,
+          "payload_including_clean_tail_MiBps_at_100MHz": 42.86444205927638
+        }
+      },
+      "publication_binding": {
+        "recorded_scala_inputs_checked": 475,
+        "mismatches": [
+          "src/test/scala/ooo/CanonicalStoreGsim.scala"
+        ],
+        "production_input_mismatches": [],
+        "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+        "qualification_inherited_by_commit_label": false
+      },
+      "options": [
+        "--split-prefetch-tracking",
+        "--prefetch-candidate-cycles=16"
+      ]
+    }
+  },
+  "cpu_read_write": {
+    "receipt": {
+      "path_in_evidence": "cpu-supply-split-l16/read-write/receipt.json",
+      "sha256": "d6c6a3553478eef42d798a1acd830ca2a7f00d4264e745c8d4ea3aa6677d2878",
+      "bytes": 29303,
+      "status": "PASS_FOUR_READ_WRITE_PAIRS_AND_THREE_ORIGINAL_ORACLE_NEGATIVES",
+      "source_head_recorded": null
+    },
+    "scope": "Combined split/lifetime16 versus frozen f722/lifetime1; no same-life READ/WRITE attribution",
+    "cases": {
+      "sv39-read": {
+        "f722": {
+          "result": {
+            "mode": "1",
+            "op": "0",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "173975",
+            "drain": "3",
+            "clean_tail": "746",
+            "payload_MiBps": "71.8494036499",
+            "retired": "38932",
+            "pc_hash": "7795828470704182543",
+            "loads": "16384",
+            "stores": "0",
+            "ar": "2080",
+            "aw": "0",
+            "r_beats": "16416",
+            "w_beats": "0",
+            "pf_candidates": "2014",
+            "pf_allocated": "0",
+            "pf_useful": "0",
+            "cache_owner_peak": "1",
+            "two_cache_owner_cycles": "0",
+            "axi_read_peak": "1",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "4432675725312"
+          },
+          "roi_plus_clean_tail_cycles": 174721,
+          "payload_including_clean_tail_MiBps_at_100MHz": 71.54263082285472
+        },
+        "on16": {
+          "result": {
+            "mode": "1",
+            "op": "0",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "108232",
+            "drain": "3",
+            "clean_tail": "746",
+            "payload_MiBps": "115.492645428",
+            "retired": "38932",
+            "pc_hash": "7795828470704182543",
+            "loads": "16384",
+            "stores": "0",
+            "ar": "1577",
+            "aw": "0",
+            "r_beats": "12392",
+            "w_beats": "0",
+            "pf_candidates": "2014",
+            "pf_allocated": "1512",
+            "pf_useful": "1512",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "1425",
+            "axi_read_peak": "2",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "4432675725312"
+          },
+          "roi_plus_clean_tail_cycles": 108978,
+          "payload_including_clean_tail_MiBps_at_100MHz": 114.7020499550368
+        }
+      },
+      "bare-read": {
+        "f722": {
+          "result": {
+            "mode": "0",
+            "op": "0",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "157722",
+            "drain": "3",
+            "clean_tail": "660",
+            "payload_MiBps": "79.2533698533",
+            "retired": "38932",
+            "pc_hash": "7795828470704182543",
+            "loads": "16384",
+            "stores": "0",
+            "ar": "2048",
+            "aw": "0",
+            "r_beats": "16384",
+            "w_beats": "0",
+            "pf_candidates": "2014",
+            "pf_allocated": "0",
+            "pf_useful": "0",
+            "cache_owner_peak": "1",
+            "two_cache_owner_cycles": "0",
+            "axi_read_peak": "1",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "4432675725312"
+          },
+          "roi_plus_clean_tail_cycles": 158382,
+          "payload_including_clean_tail_MiBps_at_100MHz": 78.92310994936294
+        },
+        "on16": {
+          "result": {
+            "mode": "0",
+            "op": "0",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "101826",
+            "drain": "3",
+            "clean_tail": "659",
+            "payload_MiBps": "122.758431049",
+            "retired": "38932",
+            "pc_hash": "7795828470704182543",
+            "loads": "16384",
+            "stores": "0",
+            "ar": "1545",
+            "aw": "0",
+            "r_beats": "12360",
+            "w_beats": "0",
+            "pf_candidates": "2014",
+            "pf_allocated": "1512",
+            "pf_useful": "1512",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "1425",
+            "axi_read_peak": "2",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "4432675725312"
+          },
+          "roi_plus_clean_tail_cycles": 102485,
+          "payload_including_clean_tail_MiBps_at_100MHz": 121.96906864419184
+        }
+      },
+      "sv39-write": {
+        "f722": {
+          "result": {
+            "mode": "1",
+            "op": "1",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "147186",
+            "drain": "3",
+            "clean_tail": "15732",
+            "payload_MiBps": "84.9265555148",
+            "retired": "24598",
+            "pc_hash": "14088637496587464351",
+            "loads": "0",
+            "stores": "16384",
+            "ar": "2080",
+            "aw": "2048",
+            "r_beats": "16416",
+            "w_beats": "16384",
+            "pf_candidates": "2046",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "1",
+            "two_cache_owner_cycles": "0",
+            "axi_read_peak": "1",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 162918,
+          "payload_including_clean_tail_MiBps_at_100MHz": 76.72571477675886
+        },
+        "on16": {
+          "result": {
+            "mode": "1",
+            "op": "1",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "146895",
+            "drain": "3",
+            "clean_tail": "15736",
+            "payload_MiBps": "85.0947956023",
+            "retired": "24598",
+            "pc_hash": "14088637496587464351",
+            "loads": "0",
+            "stores": "16384",
+            "ar": "2080",
+            "aw": "2048",
+            "r_beats": "16416",
+            "w_beats": "16384",
+            "pf_candidates": "2014",
+            "pf_allocated": "2014",
+            "pf_useful": "2014",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "1734",
+            "axi_read_peak": "2",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 162631,
+          "payload_including_clean_tail_MiBps_at_100MHz": 76.8611150395681
+        }
+      },
+      "bare-write": {
+        "f722": {
+          "result": {
+            "mode": "0",
+            "op": "1",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "77042",
+            "drain": "55",
+            "clean_tail": "15700",
+            "payload_MiBps": "162.249162794",
+            "retired": "24598",
+            "pc_hash": "14088637496587464351",
+            "loads": "0",
+            "stores": "16384",
+            "ar": "2048",
+            "aw": "2048",
+            "r_beats": "16372",
+            "w_beats": "16382",
+            "pf_candidates": "0",
+            "pf_allocated": "0",
+            "pf_useful": "0",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "74830",
+            "axi_read_peak": "2",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 92742,
+          "payload_including_clean_tail_MiBps_at_100MHz": 134.78251493390266
+        },
+        "on16": {
+          "result": {
+            "mode": "0",
+            "op": "1",
+            "bytes": "65536",
+            "reps": "2",
+            "cycles": "77042",
+            "drain": "55",
+            "clean_tail": "15700",
+            "payload_MiBps": "162.249162794",
+            "retired": "24598",
+            "pc_hash": "14088637496587464351",
+            "loads": "0",
+            "stores": "16384",
+            "ar": "2048",
+            "aw": "2048",
+            "r_beats": "16372",
+            "w_beats": "16382",
+            "pf_candidates": "0",
+            "pf_allocated": "0",
+            "pf_useful": "0",
+            "cache_owner_peak": "2",
+            "two_cache_owner_cycles": "74830",
+            "axi_read_peak": "2",
+            "event15": "16384",
+            "event16": "16384"
+          },
+          "oracle": {
+            "checked_replies": "24581",
+            "checksum": "0"
+          },
+          "roi_plus_clean_tail_cycles": 92742,
+          "payload_including_clean_tail_MiBps_at_100MHz": 134.78251493390266
+        }
+      }
+    },
+    "negative_checks": [
+      {
+        "injection": "read",
+        "operation": 0,
+        "exit": 1,
+        "expected_anchor": "CPU read data mismatch"
+      },
+      {
+        "injection": "memory",
+        "operation": 1,
+        "exit": 1,
+        "expected_anchor": "final copied/stored memory mismatch"
+      },
+      {
+        "injection": "trap",
+        "operation": 0,
+        "exit": 1,
+        "expected_anchor": "unexpected CPU trap cause"
+      }
+    ],
+    "contract": "Original op0 READ independently checks every returned word and final sum reps*(words*0x10203040+words*(words-1)/2); op1 WRITE checks every allowed store byte and every final destination word against 0x5a170000. Both check request size/class/PA, response owners/errors, cause9, workload completion, memory counts and CPU/AXI drain."
+  },
+  "inclusive_metric_definition": "payload bytes * repetitions * 100000000 / (ROI cycles + clean_tail) / 1048576. clean_tail already includes drain; do not add drain twice.",
+  "origin_observer": {
+    "receipt": {
+      "path_in_evidence": "cpu-supply-split-l16/observer-receipt.json",
+      "sha256": "ecf1cd5a1619a94b6d7db08d1d6d64d74e300722310a68306fbb8368eba4af92",
+      "bytes": 7520,
+      "status": "PASS_SOURCE_COUNTERS_EXACT_ORIGINAL_OUTPUT",
+      "source_head_recorded": null
+    },
+    "cases": {
+      "sv39": {
+        "all_original_output_fields_exact": true,
+        "source_counts": {
+          "candidate_read": "1344",
+          "allocated_read": "1344",
+          "useful_read": "1344",
+          "allocated_dirty_victim_read": "0",
+          "candidate_store": "2014",
+          "allocated_store": "2014",
+          "useful_store": "2014",
+          "allocated_dirty_victim_store": "1344",
+          "wb_capture": "4096",
+          "wb_dirty": "2048",
+          "wb_prefetch": "3358",
+          "wb_prefetch_dirty": "1344",
+          "c_release_beats": "2048",
+          "c_release_data_beats": "16384"
+        }
+      },
+      "bare": {
+        "all_original_output_fields_exact": true,
+        "source_counts": {
+          "candidate_read": "32",
+          "allocated_read": "32",
+          "useful_read": "32",
+          "allocated_dirty_victim_read": "0",
+          "candidate_store": "2046",
+          "allocated_store": "2014",
+          "useful_store": "2014",
+          "allocated_dirty_victim_store": "32",
+          "wb_capture": "4096",
+          "wb_dirty": "2048",
+          "wb_prefetch": "2046",
+          "wb_prefetch_dirty": "32",
+          "c_release_beats": "2048",
+          "c_release_data_beats": "16384"
+        }
+      }
+    },
+    "negative_receipt": {
+      "path_in_evidence": "cpu-supply-split-l16/counts-negative-receipt.json",
+      "sha256": "91a0a57542a4b47c62dcfab4b1723bc7570e286bab19dbbe5dfb0e94e7ba12d7",
+      "bytes": 1479,
+      "status": "PASS_ONE_VALID_GUARD_CASE_AND_TWO_NONZERO_NEGATIVES",
+      "source_head_recorded": null
+    }
+  },
+  "focused": {
+    "receipt": {
+      "path_in_evidence": "dual-prefetch-focused-r1/receipt.json",
+      "sha256": "00bd3856c862fa2841f7dbde2446b0ee0fa9f73c31b7837f7c0cccd0818cdece",
+      "bytes": 338875,
+      "status": "PASS_COMPONENT_ONLY",
+      "source_head_recorded": "18195d732fa4b415ab66fd1702edb49287b4e47f"
+    },
+    "publication_binding": {
+      "recorded_scala_inputs_checked": 478,
+      "mismatches": [
+        "src/test/scala/ooo/CanonicalStoreGsim.scala"
+      ],
+      "production_input_mismatches": [],
+      "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+      "qualification_inherited_by_commit_label": false
+    },
+    "scope": "Actual cache/Mixed home/AXI; component only, not an executing CPU",
+    "modes": "both",
+    "lifetime": 1,
+    "store_lru": 0,
+    "ways": 2,
+    "on_cases": [
+      "dual_distinct_sets",
+      "dual_same_set_different_way",
+      "cross_protection_dirty_release_ack",
+      "read_no_allowed_victim_demand_progress",
+      "probe_full_pa_way_reuse",
+      "failed_refill_preserves_other_origin",
+      "flush_overrides_accepted_prefetch_refill",
+      "consume_read_token_during_store_refill",
+      "cancel_pending_candidate_demand",
+      "cancel_pending_candidate_flush"
+    ],
+    "negative_checks": [
+      {
+        "name": "off-negative-mismatch",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "c95b0022a3ffca2c8b755aac1c384b36bf9bf958de979921e67104f940286b2b"
+      },
+      {
+        "name": "off-negative-token-address",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "c3142dda3d2332f9039079cd6bfa666b5889b6172202dece72be9f8e43fb2e62"
+      },
+      {
+        "name": "off-negative-token-origin",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "3dc6739e9b71a31a60932553d4380a950e1536970935c4cb1a5bd99d13b74598"
+      },
+      {
+        "name": "on-negative-mismatch",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "c95b0022a3ffca2c8b755aac1c384b36bf9bf958de979921e67104f940286b2b"
+      },
+      {
+        "name": "on-negative-token-address",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "c3142dda3d2332f9039079cd6bfa666b5889b6172202dece72be9f8e43fb2e62"
+      },
+      {
+        "name": "on-negative-token-origin",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "3dc6739e9b71a31a60932553d4380a950e1536970935c4cb1a5bd99d13b74598"
+      },
+      {
+        "name": "on-negative-victim",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "7a53fe95c6e11e7cbab7fafcab905e9bc52abb9ce24215e81d5a3a0b684058db"
+      }
+    ]
+  },
+  "retention": {
+    "receipt": {
+      "path_in_evidence": "dual-prefetch-retention-r1/receipt.json",
+      "sha256": "3fccb0d03ee4eb3c196178eb9aceb23f351c6dc6f80aa2b4d034ad6618371c7f",
+      "bytes": 329975,
+      "status": "PASS_RETENTION_COMPONENT_ONLY",
+      "source_head_recorded": "a8002cdb646527789181fec24ffa3a1d15bf9937"
+    },
+    "publication_binding": {
+      "recorded_scala_inputs_checked": 478,
+      "mismatches": [
+        "src/test/scala/ooo/CanonicalStoreGsim.scala"
+      ],
+      "production_input_mismatches": [],
+      "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+      "qualification_inherited_by_commit_label": false
+    },
+    "scope": "Only actual dirty-demand/read-candidate capture/send retention and existing demand/flush cancellation",
+    "on16_cases": [
+      "dirty_demand_read_candidate_retention",
+      "cancel_pending_candidate_demand",
+      "cancel_pending_candidate_flush"
+    ],
+    "life1_read_allocated": 0,
+    "life16_read_allocated": 1,
+    "dirty_demand_release_beats_preserved": 8,
+    "dirty_release_acks_preserved": 1
+  },
+  "generic": {
+    "receipt": {
+      "path_in_evidence": "dual-prefetch-generic-r1/receipt.json",
+      "sha256": "951048285e376aa8b494cdbe9bf632f8e0963c5aa75402ab397a68a11e0b8110",
+      "bytes": 332321,
+      "status": "PASS_TWO_GENERIC_BOUNDARIES_ONLY",
+      "source_head_recorded": "f46776232e89b5a6e9ebd65d22fad281cc1160bd"
+    },
+    "publication_binding": {
+      "recorded_scala_inputs_checked": 478,
+      "mismatches": [
+        "src/test/scala/ooo/CanonicalStoreGsim.scala"
+      ],
+      "production_input_mismatches": [],
+      "fixture_delta_explanation": "CanonicalStoreGsim.scala is an independent test-only adapterflow fixture from de867c9; original CPU/cache runs were not repeated on the publication tree.",
+      "qualification_inherited_by_commit_label": false
+    },
+    "scope": "Actual one-way no-eligible-victim cancellation and ordinary-demand progress; LRU1 opposite-token protection with dirty C8/Ack1",
+    "commands": [
+      {
+        "name": "one-way-emit",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e85aefff56cd95dab10b3b0ebccc853820e6ef98e27750e0728941307a2f7113"
+      },
+      {
+        "name": "one-way-generate",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "466ea71d51bc2894d52e55c004f6ee15d9b7ce78235e15f1d4eb810c0b40ca73"
+      },
+      {
+        "name": "one-way-compile-0",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "one-way-compile-1",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "one-way-link",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "one-way-positive",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "598ea84594797e86a7a09fbaf6db5b648ffdbd8ac78aee0b861e920deab2b636"
+      },
+      {
+        "name": "one-way-negative",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "bcc6a8c5e73a12b12a7d4f63a4cd921d5f10a38a48f3b1a807c3ee8a66ed56f3"
+      },
+      {
+        "name": "lru-protected-emit",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "414b053586cf012aeaf7e3b1488e2e44f02cac9ddbed6c3c7f6c51fe956d96b4"
+      },
+      {
+        "name": "lru-protected-generate",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "03a3cfd753903888a975e2e8d20711d1194894f050270809469283619763f9bf"
+      },
+      {
+        "name": "lru-protected-compile-0",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lru-protected-compile-1",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lru-protected-link",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lru-protected-positive",
+        "exit": 0,
+        "expected_exit": 0,
+        "log_sha256": "9e333bde7749f283b1b3997c6c901aac4de499c692856c61e7ba745f448a0279"
+      },
+      {
+        "name": "lru-protected-negative",
+        "exit": 1,
+        "expected_exit": 1,
+        "log_sha256": "86820664cc8168f3f3946e1125bcc795685d627439ea51372d611dbdfc1964d0"
+      }
+    ]
+  },
+  "independent_canonical_adapterflow": {
+    "receipt": {
+      "path_in_evidence": "hitflow-canonical-boundary/run-r1/receipt.json",
+      "sha256": "ccb593c10a9ae8583d8a06f787f622d0f85444d5c5624b56ecfb771c198dc0de",
+      "bytes": 363612,
+      "status": "PASS_SELECTED_CONFIG_AND_FOCUSED_COMPONENTS_ONLY",
+      "source_head_recorded": "de867c9590c887336374fde9acecddfe2c8db8fa"
+    },
+    "source_commit": "de867c9590c887336374fde9acecddfe2c8db8fa",
+    "scope": "adapterflow only, skip-config; 93 requests, 62 certificates, five original negative controls; no CPU/ISA/timing qualification",
+    "integration_check": "Four paths have exact parent bytes before patch; no overlap with dual-prefetch diff. DataTranslationAdapter and SvTranslationService bytes match the independently tested source and observation members exist.",
+    "final_tree_rerun": false,
+    "durable_artifact": {
+      "kind": "hitflow-canonical-boundary",
+      "source_commit": "de867c9590c887336374fde9acecddfe2c8db8fa",
+      "production_base": "f722c0915784849599d7a75f71c7fd0ada724eb0",
+      "scope": "adapterflow only, skip-config; no new CPU/ISA/timing qualification",
+      "runtime_receipt_sha256": "ccb593c10a9ae8583d8a06f787f622d0f85444d5c5624b56ecfb771c198dc0de",
+      "archive_sha256": "267ab7d4a7ee7b847bda9d67286031dba7ce5e99f2752fa65bc4c07bf98f2e9c",
+      "archive_bytes": 1348146,
+      "library": {
+        "local_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/hitflow-canonical-boundary/hitflow-canonical-boundary-qualified-r1.tar.gz",
+        "purpose": "create_library_file",
+        "status": "succeeded",
+        "file_id": "file_00000000301081f5a9c8323f2aaf3216",
+        "library_file_id": "libfile_569c71846394819185f1f1c909f65892",
+        "file_name": "hitflow-canonical-boundary-qualified-r1.tar.gz",
+        "local_metadata_applied": true,
+        "path": "/hitflow-canonical-boundary-qualified-r1.tar.gz",
+        "current_version_number": 0
+      }
+    }
+  },
+  "native": {
+    "receipt": {
+      "path_in_evidence": "dual-prefetch-native-prep/census-result.json",
+      "sha256": "67f8f1b2d04357e4de0b0b2e64f00e78a50eceb86734fe259969fedefa28f1da",
+      "bytes": 589928,
+      "status": "PASS_LITERAL_NATIVE_CENSUS_ONLY",
+      "source_head_recorded": null
+    },
+    "run_receipt": {
+      "path_in_evidence": "dual-prefetch-native-prep/run-receipt.json",
+      "sha256": "392ab13438734968fcfd975d6f18da807ad400c13f010d3470c65fe917f7c0a8",
+      "bytes": 98178,
+      "status": "PASS_LITERAL_NATIVE_THREE_MODE_ONLY",
+      "source_head_recorded": "a8002cdb646527789181fec24ffa3a1d15bf9937"
+    },
+    "recorded_on16_export_command": {
+      "name": "on16-native",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/dual-prefetch-tracking/fpga/next/export.py",
+        "--output",
+        "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/dual-prefetch-native-prep/native-on16",
+        "--virtual-ram-load-precheck",
+        "--physical-load-ingress-flow",
+        "--canonical-virtual-store-overlap",
+        "--fetch-previous-packet",
+        "--prepared-store-lookahead",
+        "--posted-store-merge",
+        "--posted-prefetch-coexistence",
+        "--posted-prefetch-head-offer",
+        "--store-next-line-prefetch",
+        "--store-prefetch-mru-insertion",
+        "--dtlb-write-read-reuse",
+        "--translation-hit-flow",
+        "--ddr-write-collection-flow",
+        "--line-transfer-dispatch-flow",
+        "--line-read-channel",
+        "--independent-demand-admission",
+        "--prefetch-candidate-cycles",
+        "16",
+        "--split-prefetch-tracking",
+        "--emit"
+      ],
+      "exit": 0,
+      "seconds": 15.18671767700016,
+      "log_sha256": "2ac1170041a92839c9952fc3bc95092fe8e9816ddd5fb65da20863cb6aebf755"
+    },
+    "scope": "Literal emitted reachable state/array/port census; not physical mapping",
+    "delta": {
+      "lifetime_only": {
+        "cache_scalar_reg_bits": 4,
+        "cache_array_reg_bits": 0
+      },
+      "tracking_only": {
+        "cache_scalar_reg_bits": 74,
+        "cache_array_reg_bits": 0
+      },
+      "combined": {
+        "cache_scalar_reg_bits": 78,
+        "cache_array_reg_bits": 0
+      }
+    },
+    "cache_bits": {
+      "off1": {
+        "scalar_reg_bits": 8605,
+        "array_reg_bits": 271876
+      },
+      "off16": {
+        "scalar_reg_bits": 8609,
+        "array_reg_bits": 271876
+      },
+      "on16": {
+        "scalar_reg_bits": 8683,
+        "array_reg_bits": 271876
+      }
+    },
+    "fixed_storage_group_count": 10,
+    "combinational_change": "Additional dynamically indexed read/select of valid[512]; opposite-token full-PA/index comparison and eligible-way selection. No extra tag RAM read port; combinational cost is nonzero and not measured physically here.",
+    "limits": [
+      "Literal emitted reachable state and array geometry only; no mapped FPGA area, power, timing or fmax.",
+      "Native lowering may remove constant low PA bits; report observed counts, never force a 74-bit net result.",
+      "Syntax operator occurrences are disclosure and review aids, not gate or mux counts.",
+      "Actual constructor reports and official native commands are bound to the R16/PRF48/LSU2/D8 admission profile; no R64/frontier fixture."
+    ]
+  },
+  "durable_artifacts": [
+    {
+      "library_file_id": "libfile_ed3b80032354819182fb7d83f9a99ed3",
+      "file_name": "cpu-supply-f722-final-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 30395263,
+      "sha256": "8465764311f401e86d5836e6548de4ab76829e4e3e5d4c5be4aec2116c964dd3"
+    },
+    {
+      "library_file_id": "libfile_50daf6339c208191a2a7e9f625da9de6",
+      "file_name": "dual-prefetch-source-ce314-r1.tar.gz",
+      "current_version_number": 0,
+      "bytes": 111359,
+      "sha256": "15e259f7dbf75f16487640aafc3f24c0b5df76b9ce4572bfb317df50580beb09"
+    },
+    {
+      "library_file_id": "libfile_d6c23ab664448191816e6f76ad042898",
+      "file_name": "dual-prefetch-focused-r1-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 3878310,
+      "sha256": "fc7fdd024116c3b2e2bba413597b4b7e0725ac490b47d0d9dad918461d458f08"
+    },
+    {
+      "library_file_id": "libfile_8c99bb8dc4ec819198067f08e5a26445",
+      "file_name": "cpu-supply-split-l1-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 13208021,
+      "sha256": "5db5b023991363c5906e2d18e90ba5c2f9e693d11a3966a88806c9298e34b7d8"
+    },
+    {
+      "library_file_id": "libfile_54194c80c99c8191a36b250dc923bacc",
+      "file_name": "dual-prefetch-retention-r1-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 1259397,
+      "sha256": "7ab32021d24e348e16bad64795572fed42ccffbfe495243d39e2385649a107cc"
+    },
+    {
+      "library_file_id": "libfile_7ef4941ef510819182b088a75e9354ad",
+      "file_name": "dual-prefetch-retention-r1-models.tar.gz",
+      "current_version_number": 0,
+      "bytes": 4180040,
+      "sha256": "8155aaf075742b0745f22971f1646675940944f6a7bfbb33a8a5f85ea269a2a4"
+    },
+    {
+      "library_file_id": "libfile_29eecbcc5da08191a7980462528e15f5",
+      "file_name": "cpu-supply-split-l16-thin.tar.gz",
+      "current_version_number": 0,
+      "bytes": 234525,
+      "sha256": "affdec50853221da00149ae8a38a9e9a784345989e41180139932b74b6ac067a"
+    },
+    {
+      "library_file_id": "libfile_26698bb2f62c8191aa51c197b7a2ebde",
+      "file_name": "cpu-supply-shared-l16-thin.tar.gz",
+      "current_version_number": 0,
+      "bytes": 151338,
+      "sha256": "fcbb0b12f02543a37f3329deccca76ddf024f4ba9296a087af45e993666de777"
+    },
+    {
+      "library_file_id": "libfile_023a2da56ed88191865c52b7c2f29541",
+      "file_name": "cpu-supply-l16-validation.tar.gz",
+      "current_version_number": 0,
+      "bytes": 48961,
+      "sha256": "5ea92fbf1b53ecdfb2ca46492f5c1ab4b191d7664de542210f4c37657d54892d"
+    },
+    {
+      "library_file_id": "libfile_e768dd3fce488191abd4c2fff390a825",
+      "file_name": "dual-prefetch-native-three-mode-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 1996306,
+      "sha256": "a0e8373dc42310e6c1d320c778e2e0abf2b20b47fe97eb40358945ff1429eeca"
+    },
+    {
+      "library_file_id": "libfile_1e5d6f07b32c8191831a14e6bb76a923",
+      "file_name": "dual-prefetch-generic-two-case-evidence.tar.gz",
+      "current_version_number": 0,
+      "bytes": 508478,
+      "sha256": "3ea9931f6e45dc2e63b735f2a31b43659b7b317429684bcabe63e73699890310"
+    },
+    {
+      "library_file_id": "libfile_8ccca4a9f8c48191963e2dcfaab1fd99",
+      "file_name": "cpu-supply-l16-models-recovery.tar.gz",
+      "current_version_number": 0,
+      "bytes": 32102308,
+      "sha256": "78b43f694cef34810a212e18012dc890cfc8f56058f8eb08a9ee10d4401bcae0"
+    },
+    {
+      "library_file_id": "libfile_bfd6f3e60cd08191b434a1c9f867e6f7",
+      "file_name": "cpu-supply-l16-report-errata.tar.gz",
+      "current_version_number": 0,
+      "bytes": 4198,
+      "sha256": "f8850de66039d1a2c13999365cd4d51d036ab66b6452b6fe5c6617e98581ac23"
+    }
+  ],
+  "pending": [],
+  "not_qualified": [
+    "mapped LUT/FF/BRAM or area",
+    "STA/fmax",
+    "board execution",
+    "broad workloads",
+    "default/preset promotion",
+    "globally optimal throughput"
+  ],
+  "provenance_rule": "Qualification attaches to exact recorded inputs and profile; historical commit labels alone confer no qualification."
+}

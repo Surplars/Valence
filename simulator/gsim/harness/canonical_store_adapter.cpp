@@ -27,12 +27,17 @@ class Bench {
     std::deque<Expected> expected;
     using Payload = std::tuple<uint64_t, uint64_t, unsigned, unsigned, bool, bool, bool, bool, bool, uint64_t, bool>;
     std::optional<Payload> held;
+    using Response = std::tuple<uint64_t, bool, bool>;
+    std::optional<Response> heldResponse;
 public:
     virtual_load_test::PageTables tables;
     uint64_t cycle = 0, blockPhysical = 0, blockResponse = 0, context = virtual_load_test::satp;
     uint32_t epoch = 1;
     unsigned cfg = 0x1f, privilege = 1, latency = 9;
     bool sum = false, mxr = false, flush = false, inject = false;
+    std::string mutation;
+    unsigned hitCertificates = 0, hitSpills = 0, checkedFull = 0, translatedFull = 0, ownersFull = 0;
+    unsigned heldResponses = 0, warmPmpDenied = 0;
     unsigned accepted = 0, returned = 0, certificates = 0, physical = 0, pteReads = 0, walks = 0, hits = 0;
     unsigned heldPhysical = 0, heldUpstream = 0, lateErrors = 0, noCertificate = 0;
     Bench() {
@@ -121,13 +126,24 @@ public:
             require(owner != expected.end() && owner->certify && !owner->certificateSeen,
                 "unexpected, forbidden, duplicate or unowned canonical certificate");
             const auto &a = owner->request.descriptor;
-            require(d.get_io$$certificate$$bits$$origin$$epoch() == a.epoch &&
+            bool mutateCertificate = true;
+#ifdef CANONICAL_HIT_FLOW
+            mutateCertificate = d.get_io$$hitPass();
+            if (mutateCertificate && !hitCertificates)
+                std::cout << "HIT_FLOW_CERTIFICATE_WITNESS token=" << token.index << "/" << token.tag << '\n';
+#endif
+            require(d.get_io$$certificate$$bits$$origin$$epoch() == (a.epoch ^ (mutateCertificate && mutation == "--inject-epoch" ? 1u : 0u)) &&
+                token.tag == (a.token.tag ^ (mutateCertificate && mutation == "--inject-token" ? 1u : 0u)) &&
                 d.get_io$$certificate$$bits$$virtualAddress() == a.virtualAddress &&
-                d.get_io$$certificate$$bits$$physicalAddress() == (owner->physical ^ (inject ? 4096ULL : 0ULL)) &&
+                d.get_io$$certificate$$bits$$physicalAddress() == (owner->physical ^ (inject && mutateCertificate ? 4096ULL : 0ULL)) &&
                 d.get_io$$certificate$$bits$$size() == a.size && d.get_io$$certificate$$bits$$mask() == a.mask,
                 "independent PTE/write-PMP/byte-range certificate mismatch");
             require(!owner->physicalSeen, "certificate did not precede its registered physical request");
             owner->certificateSeen = true; ++certificates;
+#ifdef CANONICAL_HIT_FLOW
+            require(d.get_io$$checkedPush(), "certificate escaped actual checked acceptance");
+            hitCertificates += d.get_io$$hitPass();
+#endif
         }
         const bool valid = d.get_io$$physical$$request$$valid();
         const bool ready = cycle >= blockPhysical && cycle % 7 != 5;
@@ -162,11 +178,22 @@ public:
                 replies.push_back({cycle + latency, r.write ? 0 : beatData(owner->physical), r.lateError});
             }
         }
-        if (d.get_io$$upstream$$response$$valid() && cycle >= blockResponse) {
+        const bool responseValid = d.get_io$$upstream$$response$$valid();
+        if (heldResponse) require(responseValid, "held upstream response withdrew valid");
+        if (responseValid) {
+            const Response payload{d.get_io$$upstream$$response$$bits$$data(),
+                bool(d.get_io$$upstream$$response$$bits$$error()),
+                bool(d.get_io$$upstream$$response$$bits$$pageFault())};
+            if (heldResponse) require(payload == *heldResponse, "held ordered response changed");
+            heldResponse = cycle < blockResponse ? std::optional<Response>{payload} : std::nullopt;
+            heldResponses += cycle < blockResponse;
+        }
+        if (responseValid && cycle >= blockResponse) {
             require(!expected.empty(), "unowned upstream response");
             const auto e = expected.front(); expected.pop_front();
             const bool fault = e.pageFault || e.accessFault || e.request.lateError;
-            require(bool(d.get_io$$upstream$$response$$bits$$error()) == fault &&
+            require(bool(d.get_io$$upstream$$response$$bits$$error()) ==
+                (fault != (mutation == "--inject-permission" && e.accessFault)) &&
                 bool(d.get_io$$upstream$$response$$bits$$pageFault()) == e.pageFault,
                 "ordered real response lost page/access/late physical error");
             const uint64_t data = e.pageFault || e.accessFault || e.request.write ? 0 : beatData(e.physical);
@@ -175,13 +202,22 @@ public:
                 "response arrived without exactly the independently required physical/certificate events");
             lateErrors += e.request.lateError; noCertificate += !e.certify; ++returned;
         }
+#ifdef CANONICAL_HIT_FLOW
+        const auto checked = d.get_io$$checkedCount();
+        checkedFull += checked == 2;
+        translatedFull += d.get_io$$translatedCount() == 8;
+        ownersFull += d.get_io$$ownerCount() == 8;
+        hitSpills += d.get_io$$hitOffer() && !d.get_io$$hitPass() && checked == 2;
+#endif
         walks += d.get_io$$translationWalk(); hits += d.get_io$$translationHit(); ++cycle;
         return take;
     }
     Request request(uint64_t address = va, unsigned size = 3) const {
         Request r; r.descriptor.virtualAddress = address; r.descriptor.size = size;
         r.descriptor.mask = lanes(address, size); r.descriptor.epoch = epoch;
-        r.descriptor.token = Token{unsigned(accepted % 16), 1 + accepted / 16}; return r;
+        r.descriptor.token = Token{unsigned(accepted % 16), 1 + accepted / 16};
+        r.data ^= uint64_t(accepted) * 0x0102040810204081ULL;
+        return r;
     }
     void send(Request r) {
         for (unsigned n = 0; n < 1000; ++n) if (tick(r)) return;
@@ -205,7 +241,7 @@ public:
 
 int main(int argc, char **argv) { try {
     Bench b; const std::string mode = argc > 1 ? argv[1] : "";
-    b.inject = mode == "--inject-pa";
+    b.inject = mode == "--inject-pa"; b.mutation = mode;
     // Cold walk then warm translation hit, with checked proof preceding a delayed actual write response.
     b.blockPhysical = b.cycle + 60; b.run(b.request());
     require(b.certificates == 1 && b.walks == 1 && b.heldPhysical, "cold checked-store witness missing");
@@ -231,7 +267,12 @@ int main(int argc, char **argv) { try {
         b.tables.pages[0] = {ram, 0xc7, pbmt}; b.maintenance(); b.run(b.request());
     }
     b.tables.pages[0] = {ram, 0xc7}; b.maintenance();
+    b.run(b.request()); // Explicitly populate a successful WRITE translation before PMP changes.
+    const auto warmHits = b.hits, warmWalks = b.walks, warmPhysical = b.physical, warmCert = b.certificates;
     b.cfg = 0x19; b.maintenance(false); b.run(b.request()); // PTE reads allowed, final physical write denied.
+    require(b.hits == warmHits + 1 && b.walks == warmWalks && b.physical == warmPhysical &&
+        b.certificates == warmCert, "warm TLB hit escaped final PMP write denial");
+    ++b.warmPmpDenied;
     b.cfg = 0x1f; b.maintenance(false);
     b.sum = true; b.maintenance(false); b.run(b.request(va + 6 * 4096));
     b.sum = false; b.maintenance(false);
@@ -243,6 +284,9 @@ int main(int argc, char **argv) { try {
     // Legal same-VA remap and ASID change retain the original VA but demand fresh PA/epoch truth.
     b.tables.pages[0] = {ram + 4096, 0xc7}; b.maintenance(); b.run(b.request());
     b.context ^= 1ULL << 44; b.maintenance(false); b.run(b.request());
+    for (uint64_t generation : {254ULL, 255ULL}) {
+        auto wrapped = b.request(va + 6, 1); wrapped.descriptor.token = {3, generation}; b.run(wrapped);
+    }
     // Late store errors still produce the real response after successful authorization.
     auto late = b.request(); late.lateError = true; b.run(late);
     if (mode == "--force-undrained-flush") {
@@ -253,12 +297,25 @@ int main(int argc, char **argv) { try {
     }
     // Fill existing queues, hold request payload/origin across changing offered owners, and drain every response.
     b.blockPhysical = b.cycle + 220; b.blockResponse = b.cycle + 300;
-    for (unsigned n = 0; n < 40; ++n) b.send(b.request(va + (n % 8) * 8));
+    for (unsigned n = 0; n < 40; ++n) {
+        auto queued = b.request(va + (n % 8) * 8);
+        if (n == 7 || n == 19) queued.descriptor.virtualAddress = va + 9 * 4096;
+        if (n % 11 == 5) --queued.descriptor.epoch;
+        queued.lateError = n % 13 == 9;
+        b.send(queued);
+    }
     b.drain();
     require(b.heldUpstream && b.heldPhysical && b.lateErrors && b.noCertificate,
         "backpressure/negative permission/late-error coverage missing");
+#ifdef CANONICAL_HIT_FLOW
+    require(b.hitCertificates && b.hitSpills && b.checkedFull && b.translatedFull && b.ownersFull &&
+        b.heldResponses && b.warmPmpDenied, "combined hit-flow certificate/full-queue/PMP witness missing");
+#endif
     std::cout << "CANONICAL_STORE_ADAPTER_PASS accepted=" << b.accepted << " returned=" << b.returned
         << " certificates=" << b.certificates << " physical=" << b.physical << " walks=" << b.walks
-        << " holds=" << b.heldUpstream << "/" << b.heldPhysical << '\n';
+        << " holds=" << b.heldUpstream << "/" << b.heldPhysical << "/" << b.heldResponses
+        << " hit_certificates=" << b.hitCertificates << " hit_spills=" << b.hitSpills
+        << " full=" << b.checkedFull << "/" << b.translatedFull << "/" << b.ownersFull
+        << " warm_pmp_denied=" << b.warmPmpDenied << '\n';
     return 0;
 } catch (const std::exception &e) { std::cerr << "CANONICAL_STORE_ADAPTER_FAIL " << e.what() << '\n'; return 1; } }

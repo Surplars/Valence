@@ -4,6 +4,18 @@ import chisel3._
 
 /** Passive qualification wires. They do not grant ownership or drive protocol. */
 class CheckedStorePrefetchObservation(mshrBits: Int) extends Bundle {
+    val trackingSplitEnabled = Bool()
+    // With split OFF, readToken* exposes the sole shared token regardless of origin.
+    // Valid outputs describe resident presence, rather than stale invalidation state.
+    val readTokenValid = Bool()
+    val readTokenAddress = UInt(64.W)
+    val readTokenIndex = UInt(9.W)
+    val readTokenConsume = Bool()
+    val storeTokenValid = Bool()
+    val storeTokenAddress = UInt(64.W)
+    val storeTokenIndex = UInt(9.W)
+    val storeTokenConsume = Bool()
+    val candidateVictimAllowed = Bool()
     val candidate = Bool()
     val candidateStore = Bool()
     val allocated = Bool()

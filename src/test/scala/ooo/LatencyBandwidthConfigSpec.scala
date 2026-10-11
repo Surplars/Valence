@@ -7,7 +7,8 @@ import soc.core.ooo._
 class LatencyBandwidthConfigSpec extends AnyFunSuite {
     test("explicit latency capacities and DTLB reuse do not silently alter presets") {
         val base = FpgaNextConfig.Selected
-        assert(base.productArity == 43 && !base.translationHitFlow && base.dmaLineEntries == 1 && base.ddrOutstanding == 4 &&
+        assert(base.productArity == 44 && !base.splitPrefetchTracking && !base.cache.splitPrefetchTracking &&
+            !base.translationHitFlow && base.dmaLineEntries == 1 && base.ddrOutstanding == 4 &&
             base.ddrWriteCredits == 2 && !base.dataTlbWriteReadReuse)
         val selected = FpgaNextConfig.fromOptions(Set("--selected", "--dma-line-transfers",
             "--dma-line-entries=8", "--ddr-outstanding=8", "--ddr-write-credits=4",

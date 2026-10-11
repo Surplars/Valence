@@ -72,7 +72,7 @@ object DistinctWayReleaseGsimMain extends App {
         val issued = named(cache, "acquireIssued").asInstanceOf[Option[Vec[Data]]]
         require(issued.map(_.length).getOrElse(0) == (if (enabled) 2 else 0), "actual issued-bit storage differs")
         val actual = unique(cache, classOf[CoherentCacheConcurrency])
-        require(actual.productArity == 12 && actual == expected, "actual cache policy/resource fields differ")
+        require(actual.productArity == 14 && !actual.splitPrefetchTracking && actual == expected, "actual cache policy/resource fields differ")
         val cacheGeometry = unique(cache, classOf[CacheTagGeometry])
         val homeGeometry = unique(home, classOf[CacheTagGeometry])
         val geometry = CacheTagGeometry(ramBase, ramBytes, 14, 64, compact = true)

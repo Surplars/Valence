@@ -97,6 +97,8 @@ def main():
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
+    ap.add_argument("--split-prefetch-tracking", action="count", default=0,
+                    help="default-off separate read/store resident prefetch tokens with cross-protection")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--store-prefetch-lru-victim", action="store_true",
                     help="default-off store-origin invalid-first/LRU victim experiment")
@@ -129,6 +131,11 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.split_prefetch_tracking > 1:
+        ap.error("duplicate --split-prefetch-tracking flag")
+    args.split_prefetch_tracking = bool(args.split_prefetch_tracking)
+    if args.split_prefetch_tracking and not args.store_next_line_prefetch:
+        ap.error("--split-prefetch-tracking requires --store-next-line-prefetch")
     if args.ddr_write_collection_flow > 1:
         ap.error("duplicate --ddr-write-collection-flow flag")
     args.ddr_write_collection_flow = bool(args.ddr_write_collection_flow)
@@ -236,6 +243,8 @@ def main():
         parameters.append("--translation-hit-flow")
     if args.independent_demand_admission:
         parameters.append("--independent-demand-admission")
+    if args.split_prefetch_tracking:
+        parameters.append("--split-prefetch-tracking")
     if args.translated_response_empty_flow:
         parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
@@ -304,6 +313,7 @@ def main():
             "data_tlb_write_read_reuse": args.dtlb_write_read_reuse,
             "translation_hit_flow": args.translation_hit_flow,
             "independent_demand_admission": args.independent_demand_admission,
+            "split_prefetch_tracking": args.split_prefetch_tracking,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

@@ -119,3 +119,23 @@ The archived CPU flow is `model.py` (strict source/tool/model binding, then fres
 [cpu-observer-controls](evidence/cpu-observer-controls/source-provenance.json) preserves the final passive observer, trace parser, independent observer control, and direct local dependency as byte-identical sources. It is a compact audit/control subset; the full archive supplies the runtime host, model adapter, independent checks, and orchestration. Native reproduction likewise uses its archived frozen `run.py`/plan and pinned firtool export; there is no synthesis/STA step.
 
 No mapped PPA, routed timing, physical-board execution, full Linux qualification, full regression, or broad workload win follows from these focused results. Final integration configuration/CLI and native correspondence are recorded by the separate [official gate receipt](evidence/official-entry-result.json); the CPU results remain bound to their original qualified runtime source.
+
+## Focused translation-hit/canonical boundary gate
+
+`run_components.py --slot-granted --skip-config --models adapterflow --output <fresh-directory> --tool-receipt <pinned-receipt>`
+selects the existing real Sv39 adapter fixture with translation-hit flow enabled. Source the matching recovered
+`activate.sh` first. The default fixture and all production options remain unchanged.
+
+The adapter host reuses `canonical_store_oracle.h` and independent software page tables. Passive outputs require a
+nonzero actual hit-pass plus certificate on checked acceptance, a blocked hit spill, full checked/translated/response
+queues, and held upstream/physical payloads. A warm WRITE translation must still fail changed final PMP permission
+without a walk, certificate, or physical request. Mixed queued successes, stale epochs, page faults and late physical
+errors retain full-token certificate identity and ordered physical/response ownership. Legal drained context changes
+and remapping are exercised; an undrained flush must trigger the existing drain assertion. PA, full-token generation,
+epoch and permission negative controls must fail semantically, with certificate mutations targeted at the hit path.
+
+This is adapter-boundary coverage only. `DataResponse` exposes data/error/pageFault, not architectural cause/tval or
+ROB retirement/recovery. Those remain the unchanged downstream `LoadStoreUnit` and canonical-tracker contracts;
+this gate does not claim their fresh execution, whole-CPU behavior, throughput or timing. ASan/UBSan stay enabled;
+`detect_leaks=0` is solely the documented executor LSan/ptrace accommodation. The receipt binds the exact source,
+newly recovered tool identities, generated model, host, commands and logs; historical runtime results are not inherited.

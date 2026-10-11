@@ -3,6 +3,7 @@ package ooo
 import _root_.circt.stage.ChiselStage
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 import soc.core.ooo._
 
 /** Dev-only fixtures. Production profiles remain unchanged. Expected permissions, byte intervals,
@@ -51,7 +52,7 @@ class CanonicalStoreTrackerGsim extends Module {
 }
 
 /** Real write translation, page walk, physical PMP and checked-queue certificate producer. */
-class CanonicalStoreAdapterGsim extends Module {
+class CanonicalStoreAdapterGsim(translationHitFlow: Boolean = false) extends Module {
     val p = CanonicalStoreFixture.params()
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -67,9 +68,17 @@ class CanonicalStoreAdapterGsim extends Module {
         val stable = Output(Bool())
         val translationHit = Output(Bool())
         val translationWalk = Output(Bool())
+        // Observation-only events. Permission/address expectations remain in the independent host.
+        val hitPass = Output(Bool())
+        val hitOffer = Output(Bool())
+        val checkedPush = Output(Bool())
+        val checkedCount = Output(UInt(2.W))
+        val translatedCount = Output(UInt(4.W))
+        val ownerCount = Output(UInt(4.W))
         val idle = Output(Bool())
     })
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        translationHitFlow = translationHitFlow))
     val translation = Module(new SvTranslationService(3, 8, 16, loadPeek = true))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg
@@ -93,6 +102,13 @@ class CanonicalStoreAdapterGsim extends Module {
     io.stable := adapter.io.loadPrecheck.get.stable
     io.translationHit := translation.io.tlbHit
     io.translationWalk := translation.io.walkStart
+    io.hitPass := BoringUtils.bore(adapter.translationHitPass)
+    io.hitOffer := BoringUtils.bore(adapter.translationHitOffer)
+    io.checkedPush := BoringUtils.bore(adapter.checked.get.enq.valid) &&
+        BoringUtils.bore(adapter.checked.get.enq.ready)
+    io.checkedCount := BoringUtils.bore(adapter.checked.get.count)
+    io.translatedCount := BoringUtils.bore(adapter.translated.io.count)
+    io.ownerCount := BoringUtils.bore(adapter.owners.io.count)
     io.idle := adapter.io.idle && translation.io.idle
 }
 
@@ -169,7 +185,10 @@ object CanonicalStoreTrackerGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CanonicalStoreTrackerGsim, Array("--target-dir", args.head))
 }
 object CanonicalStoreAdapterGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new CanonicalStoreAdapterGsim, Array("--target-dir", args.head))
+    require(args.length == 1 || (args.length == 2 && Set("0", "1").contains(args(1))),
+        "output-directory [translation-hit-flow-0-or-1]")
+    ChiselStage.emitCHIRRTLFile(new CanonicalStoreAdapterGsim(translationHitFlow = args.lift(1).contains("1")),
+        Array("--target-dir", args.head))
 }
 object CanonicalStoreLsuGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CanonicalStoreLsuGsim(args.lift(1).map(_.toInt).getOrElse(2),

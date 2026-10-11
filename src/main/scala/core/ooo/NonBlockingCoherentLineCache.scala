@@ -812,7 +812,8 @@ class NonBlockingCoherentLineCache(
         val candidateValid = RegInit(false.B)
         val candidateAddress = Reg(UInt(64.W))
         val candidateStore = if (concurrency.storeNextLinePrefetch) Some(RegInit(false.B)) else None
-        val observedTrackedStore = if (concurrency.storeNextLinePrefetch) Some(RegInit(false.B)) else None
+        val observedTrackedStore = if (concurrency.storeNextLinePrefetch && !concurrency.splitPrefetchTracking)
+            Some(RegInit(false.B)) else None
         val candidateRemaining = if (concurrency.prefetchCandidateCycles > 1)
             Some(Reg(UInt(log2Ceil(concurrency.prefetchCandidateCycles).W))) else None
         val lastValid = RegInit(false.B)
@@ -820,6 +821,11 @@ class NonBlockingCoherentLineCache(
         val trackedValid = RegInit(false.B)
         val trackedAddress = Reg(UInt(64.W))
         val trackedIndex = Reg(UInt(indexBits.W))
+        // The OFF branch retains its one shared token. ON gives each origin one
+        // resident token, but keeps the candidate, PF MSHR and release gates shared.
+        val storeTrackedValid = if (concurrency.splitPrefetchTracking) Some(RegInit(false.B)) else None
+        val storeTrackedAddress = if (concurrency.splitPrefetchTracking) Some(Reg(UInt(64.W))) else None
+        val storeTrackedIndex = if (concurrency.splitPrefetchTracking) Some(Reg(UInt(indexBits.W))) else None
         val liveOwner = VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free)).asUInt.orR
         // Release owner survives MSHR reuse; never infer it from wbMshr's
         // current prefetch bit after early writeback/refill overlap.
@@ -845,20 +851,54 @@ class NonBlockingCoherentLineCache(
         io.prefetch.missOwners := PopCount((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free))
         io.prefetch.releaseOwners := wbPrefetch.map(v => PopCount((0 until wbCount).map(i => wbLive(i) && v(i))))
             .getOrElse(releaseBusy.asUInt)
+        def tokenPresent(tokenValid: Bool, tokenIndex: UInt, tokenAddress: UInt): Bool = {
+            val residentIndex = Mux(tokenValid, tokenIndex, 0.U)
+            if (tagConfig.bankedStorage) {
+                // Every replacement invalidates its victim before tag installation.
+                // Each token sees that invalid cycle before any new tag can install:
+                // split tracking adds no asynchronous tag read port.
+                valid(residentIndex)
+            } else valid(residentIndex) && tags.get(residentIndex) === lineTag(tokenAddress)
+        }
+        val trackedPresent = tokenPresent(trackedValid, trackedIndex, trackedAddress)
         val consume = cpuFire && ordinary && trackedValid &&
-            request.address(63, 6) === trackedAddress(63, 6)
-        io.prefetch.useful := consume && (!request.write || concurrency.storeNextLinePrefetch.B)
+            request.address(63, 6) === trackedAddress(63, 6) &&
+            (if (concurrency.splitPrefetchTracking) trackedPresent else true.B)
+        val storeTrackedPresent = if (concurrency.splitPrefetchTracking)
+            tokenPresent(storeTrackedValid.get, storeTrackedIndex.get, storeTrackedAddress.get) else false.B
+        val storeConsume = if (concurrency.splitPrefetchTracking)
+            cpuFire && ordinary && storeTrackedValid.get && storeTrackedPresent &&
+                request.address(63, 6) === storeTrackedAddress.get(63, 6) else false.B
+        io.prefetch.useful := (consume || storeConsume) && (!request.write || concurrency.storeNextLinePrefetch.B)
         observationStorePrefetch.useful := io.prefetch.useful
-        observationStorePrefetch.usefulStore := observedTrackedStore.getOrElse(false.B)
+        observationStorePrefetch.usefulStore := (if (concurrency.splitPrefetchTracking) storeConsume
+            else observedTrackedStore.getOrElse(false.B))
         io.prefetch.error := refill && prefetchOwner(fillMshr) && engine.io.response.bits.error
-        val trackedPresent = if (tagConfig.bankedStorage) {
-            // Every replacement invalidates its victim before tag installation.
-            // The token sees that invalid cycle before any new tag can install,
-            // so presence needs no third asynchronous tag read.
-            valid(Mux(trackedValid, trackedIndex, 0.U))
-        } else valid(Mux(trackedValid, trackedIndex, 0.U)) &&
-            tags.get(Mux(trackedValid, trackedIndex, 0.U)) === lineTag(trackedAddress)
         when(trackedValid && (!trackedPresent || consume)) { trackedValid := false.B }
+        if (concurrency.splitPrefetchTracking) {
+            when(storeTrackedValid.get && (!storeTrackedPresent || storeConsume)) { storeTrackedValid.get := false.B }
+            when(trackedValid && trackedPresent && storeTrackedValid.get && storeTrackedPresent) {
+                assert(trackedAddress =/= storeTrackedAddress.get, "one resident full PA owns two PF tokens")
+                assert(trackedIndex =/= storeTrackedIndex.get, "one resident slot owns two PF tokens")
+            }
+            // These assertions prove the invalid-cycle rule used by banked tags.
+            // A later install cannot silently retag a still-resident old token.
+            when(installLine && trackedValid && trackedPresent && installIndex === trackedIndex) {
+                assert(installAddress(63, 6) === trackedAddress(63, 6), "read PF token missed victim invalidation")
+            }
+            when(installLine && storeTrackedValid.get && storeTrackedPresent && installIndex === storeTrackedIndex.get) {
+                assert(installAddress(63, 6) === storeTrackedAddress.get(63, 6), "store PF token missed victim invalidation")
+            }
+        }
+        observationStorePrefetch.trackingSplitEnabled := concurrency.splitPrefetchTracking.B
+        observationStorePrefetch.readTokenValid := trackedValid && trackedPresent
+        observationStorePrefetch.readTokenAddress := Mux(trackedValid, trackedAddress, 0.U)
+        observationStorePrefetch.readTokenIndex := Mux(trackedValid, trackedIndex, 0.U)
+        observationStorePrefetch.readTokenConsume := consume
+        observationStorePrefetch.storeTokenValid := storeTrackedValid.getOrElse(false.B) && storeTrackedPresent
+        observationStorePrefetch.storeTokenAddress := storeTrackedAddress.getOrElse(0.U)
+        observationStorePrefetch.storeTokenIndex := storeTrackedIndex.getOrElse(0.U)
+        observationStorePrefetch.storeTokenConsume := storeConsume
         // History predicts only; every token independently authorizes its new line.
         val line = request.address(63, 6)
         val sequential = lastValid && line === lastLine + 1.U && line =/= 0.U
@@ -883,7 +923,8 @@ class NonBlockingCoherentLineCache(
             history.io.address := request.address
             history.io.currentlyAllowed := request.prefetchNextAllowed
             history.io.candidateAvailable := postedPrefetchAllowed && !candidateValid && !liveOwner && !releaseBusy &&
-                (!trackedValid || consume || !trackedPresent)
+                (if (concurrency.splitPrefetchTracking) !storeTrackedValid.get || storeConsume || !storeTrackedPresent
+                else !trackedValid || consume || !trackedPresent)
             history.io.clear := io.flushRequest || (cpuFire && !ordinary)
             when(history.io.candidate) {
                 io.prefetch.candidate := true.B
@@ -907,7 +948,7 @@ class NonBlockingCoherentLineCache(
                     lineTag(candidateAddress)
         }.reduce(_ || _)
         val first = slot(candidateAddress, 0)
-        val pfIndex = if (ways == 1) first else {
+        val preferredPfIndex = if (ways == 1) first else {
             val second = slot(candidateAddress, 1)
             val dirtyChoice = if (concurrency.storeNextLinePrefetch)
                 Mux(!dirty(second), second, Cat(replacement.get(lineSet(candidateAddress)), lineSet(candidateAddress)))
@@ -922,6 +963,28 @@ class NonBlockingCoherentLineCache(
             Mux(!valid(first), first, Mux(!valid(second), second,
                 fullVictim))
         }
+        val victimAllowed = if (concurrency.splitPrefetchTracking) {
+            val otherValid = Mux(candidateStore.get, trackedValid && trackedPresent && !consume,
+                storeTrackedValid.get && storeTrackedPresent && !storeConsume)
+            val otherAddress = Mux(candidateStore.get, trackedAddress, storeTrackedAddress.get)
+            val otherIndex = Mux(candidateStore.get, trackedIndex, storeTrackedIndex.get)
+            VecInit((0 until ways).map { way =>
+                val candidateIndex = slot(candidateAddress, way)
+                val residentAddress = if (tagConfig.bankedStorage)
+                    taggedAddress(candidateTags.get(way), candidateIndex) else slotAddress(candidateIndex)
+                // Index alone is insufficient after reuse. Compare the full PA
+                // through the existing candidate-set tag port before protecting.
+                !(otherValid && valid(candidateIndex) && otherIndex === candidateIndex &&
+                    residentAddress === otherAddress)
+            })
+        } else VecInit(Seq.fill(ways)(true.B))
+        val pfIndex = if (!concurrency.splitPrefetchTracking || ways == 1) preferredPfIndex else
+            Mux(victimAllowed(preferredPfIndex(indexBits - 1)), preferredPfIndex,
+                Cat(!preferredPfIndex(indexBits - 1), lineSet(candidateAddress)))
+        val allowedVictim = if (concurrency.splitPrefetchTracking)
+            (if (ways == 1) victimAllowed(0) else victimAllowed(pfIndex(indexBits - 1))) else true.B
+        observationStorePrefetch.candidateVictimAllowed := allowedVictim &&
+            (!valid(pfIndex) || !dirty(pfIndex) || candidateStore.getOrElse(false.B))
         // Qualification only. These wires feed no permission, replacement,
         // ownership or protocol decision and add no state or memory read port.
         val candidateVictimAddress = if (tagConfig.bankedStorage)
@@ -959,7 +1022,7 @@ class NonBlockingCoherentLineCache(
             wbAddress(i)(63, 6) === candidateAddress(63, 6))).asUInt.orR
         val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
         val otherwiseEligible = postedPrefetchAllowed && !liveOwner && !releaseBusy &&
-            !present && !setReserved && !victimPending &&
+            !present && !setReserved && !victimPending && allowedVictim &&
             (!valid(pfIndex) || !dirty(pfIndex) || candidateStore.getOrElse(false.B)) &&
             freeMask.asUInt.orR && !demandMiss &&
             !barrier && !flushActive && !io.flushRequest && bypassState === bIdle &&
@@ -1004,11 +1067,35 @@ class NonBlockingCoherentLineCache(
             }
         }
         when(refill && prefetchOwner(fillMshr) && !engine.io.response.bits.error) {
-            trackedValid := true.B
-            trackedAddress := Cat(fillRequest.address(63, 6), 0.U(6.W))
-            trackedIndex := fillIndex
+            if (concurrency.splitPrefetchTracking) {
+                // Use the accepted transaction's functional origin on refill,
+                // never an observation bit or a free/recycled MSHR's old origin.
+                when(storePrefetchOwner.get(fillMshr)) {
+                    assert(!storeTrackedValid.get || !storeTrackedPresent || storeConsume,
+                        "store PF refill overwrote an unconsumed resident token")
+                    storeTrackedValid.get := true.B
+                    storeTrackedAddress.get := Cat(fillRequest.address(63, 6), 0.U(6.W))
+                    storeTrackedIndex.get := fillIndex
+                }.otherwise {
+                    assert(!trackedValid || !trackedPresent || consume,
+                        "read PF refill overwrote an unconsumed resident token")
+                    trackedValid := true.B
+                    trackedAddress := Cat(fillRequest.address(63, 6), 0.U(6.W))
+                    trackedIndex := fillIndex
+                }
+            } else {
+                trackedValid := true.B
+                trackedAddress := Cat(fillRequest.address(63, 6), 0.U(6.W))
+                trackedIndex := fillIndex
+            }
         }
-        when(io.flushRequest) { candidateValid := false.B; lastValid := false.B; trackedValid := false.B }
+        // Fresh refill wins an old token's consume/invalidation; flush wins both.
+        when(io.flushRequest) {
+            candidateValid := false.B
+            lastValid := false.B
+            trackedValid := false.B
+            storeTrackedValid.foreach(_ := false.B)
+        }
         // Direct eviction is a newly admitted demand using a FREE MSHR; its
         // previous prefetchOwner bit is stale until the allocation edge.
         when(startEviction && !directEviction && evictFromMiss && prefetchOwner(evictMshr)) {

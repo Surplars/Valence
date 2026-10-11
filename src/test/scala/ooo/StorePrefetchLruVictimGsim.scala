@@ -69,7 +69,7 @@ object StorePrefetchLruVictimGsimMain extends App {
         val cache = top.cache.asInstanceOf[NonBlockingCoherentLineCache]
         val home = top.home.asInstanceOf[MixedCoherentLineHome]
         val actual = unique(cache, classOf[CoherentCacheConcurrency])
-        require(actual.productArity == 12 && actual == expected, "actual cache policy/resource fields differ")
+        require(actual.productArity == 14 && !actual.splitPrefetchTracking && actual == expected, "actual cache policy/resource fields differ")
         val cacheGeometry = unique(cache, classOf[CacheTagGeometry])
         val homeGeometry = unique(home, classOf[CacheTagGeometry])
         val geometry = CacheTagGeometry(ramBase, ramBytes, 14, 64, compact = true)

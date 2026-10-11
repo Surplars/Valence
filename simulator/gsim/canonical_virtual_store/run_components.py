@@ -36,7 +36,7 @@ def main():
     ap.add_argument('--output', type=Path, required=True)
     ap.add_argument('--tool-receipt', type=Path, required=True)
     ap.add_argument('--models', nargs='*', default=['tracker', 'adapter', 'lsu2', 'lsu4'],
-                    choices=['tracker', 'adapter', 'lsu2', 'lsu4', 'backendoff', 'backendon'])
+                    choices=['tracker', 'adapter', 'adapterflow', 'lsu2', 'lsu4', 'backendoff', 'backendon'])
     ap.add_argument('--skip-config', action='store_true')
     args = ap.parse_args()
     require(args.slot_granted, 'explicit parent-granted heavy slot required')
@@ -103,7 +103,8 @@ def main():
         for name in args.models:
             backend = name.startswith('backend')
             if name == 'tracker': top, driver, extra = 'CanonicalStoreTrackerGsim', 'canonical_store_tracker.cpp', []
-            elif name == 'adapter': top, driver, extra = 'CanonicalStoreAdapterGsim', 'canonical_store_adapter.cpp', []
+            elif name in ('adapter', 'adapterflow'):
+                top, driver, extra = 'CanonicalStoreAdapterGsim', 'canonical_store_adapter.cpp', ['1' if name == 'adapterflow' else '0']
             elif name.startswith('lsu'): top, driver, extra = 'CanonicalStoreLsuGsim', 'canonical_store_lsu.cpp', [name[-1]]
             else: top, driver, extra = 'CanonicalVirtualStoreBackendGsim', 'canonical_virtual_store_backend.cpp', ['1' if name == 'backendon' else '0', '4']
             model = out / name; model.mkdir()
@@ -121,6 +122,7 @@ def main():
             step(name + '-generate', [gsim, '--threads=1', '--dir=' + str(model), model / (top + '.fir')])
             flags = ['-std=c++20', '-O1', '-g', '-gz=zlib', '-fsanitize=address,undefined',
                      '-fno-sanitize-recover=all', '-I' + str(model), '-I' + str(HARNESS)]
+            if name == 'adapterflow': flags += ['-DCANONICAL_HIT_FLOW=1']
             if backend: flags += ['-DPRECHECK_ENABLED=1', '-DCANONICAL_STORE_OVERLAP=' + ('1' if name == 'backendon' else '0')]
             objects = []
             for source in sorted(model.glob(top + '[0-9]*.cpp')):
@@ -130,12 +132,21 @@ def main():
             require(objects, 'no generated model sources')
             executable = model / 'run'
             step(name + '-link', [cxx, *flags, HARNESS / driver, *objects, '-ldl', '-o', executable])
-            marker = 'CANONICAL_BACKEND_PASS' if backend else 'CANONICAL_STORE_' + ('LSU' if name.startswith('lsu') else name.upper()) + '_PASS'
+            marker = 'CANONICAL_BACKEND_PASS' if backend else 'CANONICAL_STORE_' + ('LSU' if name.startswith('lsu') else ('ADAPTER' if name == 'adapterflow' else name.upper())) + '_PASS'
             step(name + '-cases', [executable], timeout=300, anchor=marker)
-            injection = '--inject-result' if backend else {'tracker': '--inject-valid', 'adapter': '--inject-pa'}.get(name, '--inject-payload')
+            injection = '--inject-result' if backend else {'tracker': '--inject-valid', 'adapter': '--inject-pa', 'adapterflow': '--inject-pa'}.get(name, '--inject-payload')
             fail_marker = 'CANONICAL_BACKEND_FAIL' if backend else marker.replace('_PASS', '_FAIL')
             step(name + '-negative', [executable, injection], timeout=60, anchor=fail_marker, negative=True)
+            if name == 'adapterflow':
+                for control in ['token', 'epoch', 'permission']:
+                    step(name + '-negative-' + control, [executable, '--inject-' + control],
+                         timeout=60, anchor=fail_marker, negative=True)
+                step(name + '-negative-undrained-flush', [executable, '--force-undrained-flush'],
+                     timeout=60,
+                     anchor='VM/PMP/SFENCE changes must drain accepted canonical stores and overlapping adapter work',
+                     negative=True)
             receipt['models'][name] = {'top': top, 'driver_sha256': sha(HARNESS / driver),
+                                      'emitter_arguments': extra, 'compiler_flags': flags,
                                       'artifacts': {str(p.relative_to(out)): sha(p) for p in model.rglob('*') if p.is_file()}}
             save()
         require(inputs() == frozen, 'final source drift')

@@ -7,9 +7,16 @@ import soc.core.ooo.FpgaNextConfig
   * Only bandwidth policies vary; no ROB/PRF/LSU/TLB/cache/DDR capacity sweep.
   */
 object CpuSv39BandwidthGsimMain extends App {
-    require(args.length == 2 && Set("baseline", "reuse", "batch", "flow", "scheduled", "accepted", "admission",
+    require(args.length >= 2 && Set("baseline", "reuse", "batch", "flow", "scheduled", "accepted", "admission",
         "admission-retained").contains(args(1)),
         "output directory and baseline|reuse|batch|flow|scheduled|accepted|admission|admission-retained required")
+    val options = args.drop(2).toSet
+    require(options.size == args.length - 2, "duplicate CPU bandwidth experiment options")
+    require(options.forall(option => option == "--split-prefetch-tracking" ||
+        Set("--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16").contains(option)),
+        "only explicit split tracking and existing candidate lifetime may vary")
+    val lifetimes = options.filter(_.startsWith("--prefetch-candidate-cycles="))
+    require(lifetimes.size <= 1, "choose one candidate lifetime")
     val scheduled = args(1) == "scheduled"
     val admission = args(1) == "admission" || args(1) == "admission-retained"
     val retained = args(1) == "flow" || scheduled || args(1) == "admission-retained"
@@ -23,7 +30,9 @@ object CpuSv39BandwidthGsimMain extends App {
         storeNextLinePrefetch = true, storePrefetchMruInsertion = true,
         dataTlbWriteReadReuse = args(1) != "baseline",
         translationHitFlow = flow, distinctWayRelease = scheduled,
-        prefetchCandidateCycles = if (retained) 16 else 1,
+        prefetchCandidateCycles = lifetimes.headOption.map(_.stripPrefix("--prefetch-candidate-cycles=").toInt)
+            .getOrElse(if (retained) 16 else 1),
+        splitPrefetchTracking = options.contains("--split-prefetch-tracking"),
         ddrWriteCollectionFlow = batch, lineTransferDispatchFlow = batch,
         lineReadChannel = batch, independentDemandAdmission = admission)
     require(profile.issueWidth == 2 && profile.lsuEntries == 2 &&

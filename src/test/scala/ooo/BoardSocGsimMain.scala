@@ -226,6 +226,10 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val cpuTranslationHitPass = IO(Output(Bool()))
     val cpuAuthorizedHandoff = IO(Output(Bool()))
     val cpuIndependentAdmission = IO(Output(UInt(3.W)))
+    // Test-only passive view of existing valid-guarded prefetch qualification wires.
+    val cpuSupplyPrefetch = IO(Output(new soc.core.ooo.CheckedStorePrefetchObservation(
+        log2Ceil(cacheConcurrency.readMshrs))))
+    cpuSupplyPrefetch := 0.U.asTypeOf(cpuSupplyPrefetch)
     cpuBandwidthEvents := 0.U
     cpuTranslationHitPass := false.B
     cpuAuthorizedHandoff := false.B
@@ -240,6 +244,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         board.platform.privateCache.get match {
             case cache: soc.core.ooo.NonBlockingCoherentLineCache =>
                 cpuIndependentAdmission := BoringUtils.bore(cache.observationIndependentDemand)
+                cpuSupplyPrefetch := BoringUtils.bore(cache.observationStorePrefetch)
             case _ =>
         }
         val q = b.observationRequests.get

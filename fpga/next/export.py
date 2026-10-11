@@ -135,6 +135,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--banked-instruction-data", action="store_true")
     ap.add_argument("--prefetch-break-on-store", action="store_true")
     ap.add_argument("--store-next-line-prefetch", action="store_true")
+    ap.add_argument("--split-prefetch-tracking", action="count", default=0,
+                    help="default-off separate read/store resident prefetch tokens with cross-protection")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
     ap.add_argument("--store-prefetch-lru-victim", action="store_true",
                     help="default-off store-origin invalid-first/LRU victim experiment")
@@ -163,6 +165,11 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.split_prefetch_tracking > 1:
+        ap.error("duplicate --split-prefetch-tracking flag")
+    a.split_prefetch_tracking = bool(a.split_prefetch_tracking)
+    if a.split_prefetch_tracking and not a.store_next_line_prefetch:
+        ap.error("--split-prefetch-tracking requires --store-next-line-prefetch")
     if a.ddr_write_collection_flow > 1:
         ap.error("duplicate --ddr-write-collection-flow flag")
     a.ddr_write_collection_flow = bool(a.ddr_write_collection_flow)
@@ -363,6 +370,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.independent_demand_admission:
         profile["profile"]["independent_demand_admission"] = True
         profile["profile"]["name"] += "-independent-demand-admission"
+    if a.split_prefetch_tracking:
+        profile["profile"]["split_prefetch_tracking"] = True
+        profile["profile"]["name"] += "-split-prefetch-tracking"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -447,6 +457,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--translation-hit-flow")
     if a.independent_demand_admission:
         command.append("--independent-demand-admission")
+    if a.split_prefetch_tracking:
+        command.append("--split-prefetch-tracking")
     if a.translated_response_empty_flow:
         command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:

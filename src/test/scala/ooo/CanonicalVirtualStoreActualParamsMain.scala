@@ -171,7 +171,8 @@ object CanonicalVirtualStoreActualParamsMain extends App {
         (if (mode == "on") Set("--canonical-virtual-store-overlap") else Set.empty[String])
     require(options.size == args.length - 2 && options == expected, "official canonical options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(profile.productArity == 43 && !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&
+    require(profile.productArity == 44 && !profile.splitPrefetchTracking && !profile.cache.splitPrefetchTracking &&
+        !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&
         !profile.dataTlbWriteReadReuse && !profile.ddrWriteCollectionFlow && !profile.lineTransferDispatchFlow &&
         !profile.lineReadChannel &&
         profile.coreParams.productArity == 142 && !profile.distinctWayRelease && !profile.cache.distinctWayRelease)
