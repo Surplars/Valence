@@ -10,7 +10,8 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false,
     postedPrefetchCoexistence: Boolean = false, storePrefetchLruVictim: Boolean = false,
     distinctWayRelease: Boolean = false, independentDemandAdmission: Boolean = false,
-    splitPrefetchTracking: Boolean = false, readPrefetchDirtyRetry: Boolean = false) {
+    splitPrefetchTracking: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
+    readPrefetchDemandAdoption: Boolean = false) {
     require(!independentDemandAdmission || readMshrs >= 2,
         "independent demand admission reuses the existing nonblocking miss owners")
     require(Set(1, 2, 4).contains(readMshrs))
@@ -24,6 +25,9 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
         "checked store prediction requires next-line prefetch")
     require(!splitPrefetchTracking || (nextLinePrefetch && storeNextLinePrefetch),
         "split prefetch tracking requires next-line and checked store prefetch")
+    require(!readPrefetchDemandAdoption || (splitPrefetchTracking && independentDemandAdmission &&
+        readMshrs >= 2 && writebackEntries >= 2 && overlapWritebackRefill),
+        "read prefetch demand adoption requires split tracking, independent admission and existing overlapping owners")
     require(!readPrefetchDirtyRetry || splitPrefetchTracking,
         "read prefetch dirty retry requires split read/store resident tracking")
     require(!storePrefetchMruInsertion || storeNextLinePrefetch,

@@ -17,7 +17,9 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     storeNextLinePrefetch: Boolean = false, observeStorePrefetch: Boolean = false,
     storePrefetchMruInsertion: Boolean = false, storePrefetchLruVictim: Boolean = false, cacheWays: Int = 2,
     distinctWayRelease: Boolean = false, distinctWayTest: Boolean = false, splitPrefetchTracking: Boolean = false,
-    independentDemandAdmission: Boolean = false, readPrefetchDirtyRetry: Boolean = false) extends Module {
+    independentDemandAdmission: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
+    readPrefetchDemandAdoption: Boolean = false, demandAdoptionTest: Boolean = false,
+    postedPrefetchCoexistence: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
@@ -25,10 +27,31 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
         storePrefetchLruVictim = storePrefetchLruVictim, distinctWayRelease = distinctWayRelease,
         splitPrefetchTracking = splitPrefetchTracking, independentDemandAdmission = independentDemandAdmission,
-        readPrefetchDirtyRetry = readPrefetchDirtyRetry)
+        readPrefetchDirtyRetry = readPrefetchDirtyRetry, readPrefetchDemandAdoption = readPrefetchDemandAdoption,
+        postedPrefetchCoexistence = postedPrefetchCoexistence)
+    private val postedCfg = if (demandAdoptionTest) Some(PostedStoreMergeConfig(enabled = true,
+        generationBits = 64, cacheSets = lines / cacheWays, cacheWays = cacheWays,
+        readMshrs = mshrs, responseEntries = responseEntries, writebackEntries = writebacks,
+        guaranteedBase = base, guaranteedBytes = bytes)) else None
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
+        val adoption = if (demandAdoptionTest) Some(new Bundle {
+            val holdAcquire = Input(Bool())
+            val faultMode = Input(UInt(2.W))
+            val faultBeat = Input(UInt(3.W))
+            val grantOffer = Output(Bool())
+            val grantError = Output(Bool())
+            val postedProofValid = Input(Bool())
+            val postedToken = Input(UInt(64.W))
+            val postedSeal = Input(Bool())
+            val postedEndEpisode = Input(Bool())
+            val postedBusy = Output(Bool())
+            val postedAccepted = Output(Bool())
+            val postedFallback = Output(Bool())
+            val postedReleased = Output(Bool())
+            val postedFailed = Output(Bool())
+        }) else None
         val distinctWay = if (distinctWayTest) Some(new Bundle {
             val holdAcquire = Input(Bool())
             val faultMode = Input(UInt(2.W)) // 0 original; 1 denied-only; 2 corrupt-only
@@ -81,10 +104,39 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         val probeReplyData = Output(Bool())
     })
     val tags = CacheTagConfig(compact = compactTags, bankedStorage = bankedTags)
-    val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, cacheWays, cfg, tags)
+    val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, cacheWays, cfg, tags, postedConfig = postedCfg)
     io.storePfObs.foreach { out =>
         require(mshrs >= 2, "store PF observer requires nonblocking cache")
         out := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationStorePrefetch)
+    }
+    io.adoption.foreach { fixture =>
+        val boundary = cache.io.posted.get
+        boundary.requestProof.valid := fixture.postedProofValid
+        boundary.requestProof.bits := 0.U.asTypeOf(boundary.requestProof.bits)
+        val proof = boundary.requestProof.bits
+        // Boundary-test premise only. CPU production proof is a separate gate.
+        proof.token.index := fixture.postedToken(3, 0)
+        proof.token.tag := fixture.postedToken
+        proof.epoch := 1.U
+        proof.address := io.cpu.request.bits.address
+        proof.data := io.cpu.request.bits.data
+        proof.mask := io.cpu.request.bits.mask
+        proof.size := io.cpu.request.bits.size
+        proof.headAuthorized := true.B
+        proof.physicalPmpAllowed := true.B
+        proof.originalPhysical := true.B
+        proof.integerOrigin := true.B
+        proof.legacyPostedAccepted := true.B
+        proof.finalChecked := true.B
+        boundary.contextEpoch := 1.U
+        boundary.seal := fixture.postedSeal
+        boundary.endEpisode := fixture.postedEndEpisode
+        fixture.postedBusy := boundary.busy
+        val observation = BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationPosted.get)
+        fixture.postedAccepted := observation.accepted.valid
+        fixture.postedFallback := observation.fallback.valid
+        fixture.postedReleased := observation.released.valid
+        fixture.postedFailed := observation.failed
     }
     val home = CoherentLineHomeModule.build(coherent, base, bytes, trackedLines = lines,
         trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks,
@@ -141,6 +193,10 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         // directory way. Release sources retain their separate namespace.
         home.io.clients(0).a.bits.source := cache.io.tl.a.bits.source ^ 1.U
     }
+    io.adoption.foreach { fixture =>
+        home.io.clients(0).a.valid := cache.io.tl.a.valid && !fixture.holdAcquire
+        cache.io.tl.a.ready := home.io.clients(0).a.ready && !fixture.holdAcquire
+    }
     home.io.clients(0).c.valid := cache.io.tl.c.valid && !io.holdCoherentC
     cache.io.tl.c.ready := home.io.clients(0).c.ready && !io.holdCoherentC
     home.io.clients(0).e.valid := cache.io.tl.e.valid && !io.holdGrantAck
@@ -150,6 +206,10 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     val delayedAcks = Module(new chisel3.util.Queue(chiselTypeOf(home.io.clients(0).d.bits), 4))
     val homeD = home.io.clients(0).d
     val incomingAck = homeD.bits.opcode === TLOpcode.ReleaseAck
+    io.adoption.foreach { fixture =>
+        fixture.grantOffer := homeD.valid && homeD.bits.opcode === TLOpcode.GrantData
+        fixture.grantError := homeD.valid && (homeD.bits.denied || homeD.bits.corrupt)
+    }
     val captureAck = incomingAck && (io.holdReleaseAck || delayedAcks.io.deq.valid)
     val replayAck = delayedAcks.io.deq.valid && !io.holdReleaseAck && (!homeD.valid || incomingAck)
     delayedAcks.io.enq.valid := homeD.valid && captureAck && !io.holdCoherentD
@@ -173,6 +233,16 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
             forwardedD.corrupt := error && beat === fixture.faultBeat && fixture.faultMode === 2.U
         }
         assert(fixture.faultMode =/= 3.U, "unsupported fixture fault mode")
+    }
+    io.adoption.foreach { fixture =>
+        val beat = RegInit(0.U(3.W))
+        when(cache.io.tl.d.fire && cache.io.tl.d.bits.opcode === TLOpcode.GrantData) { beat := beat + 1.U }
+        when(fixture.faultMode =/= 0.U && !incomingAck) {
+            val error = homeD.bits.denied || homeD.bits.corrupt
+            forwardedD.denied := error && beat === fixture.faultBeat && fixture.faultMode === 1.U
+            forwardedD.corrupt := error && beat === fixture.faultBeat && fixture.faultMode === 2.U
+        }
+        assert(fixture.faultMode =/= 3.U, "unsupported adoption fixture fault mode")
     }
     cache.io.tl.d.bits := Mux(replayAck, delayedAcks.io.deq.bits, forwardedD)
     homeD.ready := !io.holdCoherentD && Mux(captureAck, delayedAcks.io.enq.ready,

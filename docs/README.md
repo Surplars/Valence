@@ -1,5 +1,7 @@
 # Valence 文档导航
 
+Read-prefetch demand adoption 的独立默认关闭源码备份、Bare/Sv39 实测收益与额外读流量、原始失败门和 native 限制见 [实验记录](experiments/read-prefetch-demand-adoption.md)；下一统一板版须组合资格通过后显式启用。
+
 当前推荐入口与 Sv39 COPY canonical-store-overlap 资格记录见 [v3 配置、回退与证据](../simulator/gsim/canonical_virtual_store/README.md)。
 
 最新 `dev` 源码交付及限制见 [2026-10-08 交付记录](dev-delivery-20261008.md)。

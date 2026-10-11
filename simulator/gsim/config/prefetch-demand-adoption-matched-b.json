@@ -1,0 +1,26 @@
+{
+  "source": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/read-prefetch-dirty-retry-candidate/cpu-ab-r1/on/model/actual-fabric.json",
+  "source_sha256": "2623e4a7f140b234e058997a558b2d6f82683430a84a16ad0b5dcc7515b5745e",
+  "cache": {
+    "distinctWayRelease": false,
+    "independentDemandAdmission": true,
+    "nextLinePrefetch": true,
+    "overlapWritebackRefill": true,
+    "postedPrefetchCoexistence": true,
+    "prefetchBreakOnStore": false,
+    "prefetchCandidateCycles": 16,
+    "readMshrs": 2,
+    "readPrefetchDirtyRetry": true,
+    "responseEntries": 2,
+    "splitPrefetchTracking": true,
+    "storeNextLinePrefetch": true,
+    "storePrefetchLruVictim": false,
+    "storePrefetchMruInsertion": true,
+    "writebackEntries": 2
+  },
+  "comparison_scope": "complete actual B cache concurrency; component aperture intentionally 128KiB high full PA",
+  "expected_cache_tag_config": {
+    "compact": true,
+    "bankedStorage": true
+  }
+}

@@ -24,7 +24,7 @@ class LineAcquireResponse(tagBits: Int) extends Bundle {
   * A coherent cache must also handle B/C probes and voluntary C Releases outside this engine.
   */
 class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
-    observeIssued: Boolean = false)
+    observeIssued: Boolean = false, observeFailedOwners: Boolean = false)
     extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
@@ -35,6 +35,8 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
         val response = Decoupled(new LineAcquireResponse(tagBits))
         // Optional saved transaction tag observed only on the actual A handshake.
         val issued = if (observeIssued) Some(Output(Valid(UInt(tagBits.W)))) else None
+        // Existing registered errors and saved identity only; no D-to-READY lookahead.
+        val failedOwners = if (observeFailedOwners) Some(Output(Vec(entries, Valid(UInt(tagBits.W))))) else None
         val a        = Decoupled(new TLBundleA(params))
         val d        = Flipped(Decoupled(new TLBundleD(params)))
         val e        = Decoupled(new TLBundleE(params))
@@ -92,6 +94,13 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
     io.issued.foreach { event =>
         event.valid := io.a.fire
         event.bits := tag(sendSlot)
+    }
+
+    io.failedOwners.foreach { owners =>
+        for (i <- 0 until entries) {
+            owners(i).valid := phase(i) =/= free && errors(i)
+            owners(i).bits := tag(i)
+        }
     }
 
     val source = io.d.bits.source(slotBits - 1, 0)

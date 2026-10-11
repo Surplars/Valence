@@ -140,6 +140,8 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--store-next-line-prefetch", action="store_true")
     ap.add_argument("--split-prefetch-tracking", action="count", default=0,
                     help="default-off separate read/store resident prefetch tokens with cross-protection")
+    ap.add_argument("--read-prefetch-demand-adoption", action="count", default=0,
+                    help="default-off demand attachment to an issued read prefetch; requires independent split tracking")
     ap.add_argument("--read-prefetch-dirty-retry", action="count", default=0,
                     help="default-off read prefetch dirty-victim retry; requires split prefetch tracking")
     ap.add_argument("--store-prefetch-mru-insertion", action="store_true")
@@ -170,6 +172,11 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.read_prefetch_demand_adoption > 1:
+        ap.error("duplicate --read-prefetch-demand-adoption flag")
+    a.read_prefetch_demand_adoption = bool(a.read_prefetch_demand_adoption)
+    if a.read_prefetch_demand_adoption and not (a.split_prefetch_tracking and a.independent_demand_admission):
+        ap.error("--read-prefetch-demand-adoption requires --split-prefetch-tracking and --independent-demand-admission")
     if a.read_prefetch_dirty_retry > 1:
         ap.error("duplicate --read-prefetch-dirty-retry flag")
     a.read_prefetch_dirty_retry = bool(a.read_prefetch_dirty_retry)
@@ -386,6 +393,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.read_prefetch_dirty_retry:
         profile["profile"]["read_prefetch_dirty_retry"] = True
         profile["profile"]["name"] += "-read-prefetch-dirty-retry"
+    if a.read_prefetch_demand_adoption:
+        profile["profile"]["read_prefetch_demand_adoption"] = True
+        profile["profile"]["name"] += "-read-prefetch-demand-adoption"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -474,6 +484,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--split-prefetch-tracking")
     if a.read_prefetch_dirty_retry:
         command.append("--read-prefetch-dirty-retry")
+    if a.read_prefetch_demand_adoption:
+        command.append("--read-prefetch-demand-adoption")
     if a.translated_response_empty_flow:
         command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:

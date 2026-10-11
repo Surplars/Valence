@@ -1,5 +1,7 @@
 # Valence FPGA-next
 
+Read-prefetch demand adoption 的显式默认关闭导出入口、实测收益与 Bare 额外读流量见 [实验记录](../../docs/experiments/read-prefetch-demand-adoption.md)；当前 preset 保持原样，下一统一板版须组合资格通过后显式启用。
+
 An independent FPGA-first RV64GC SoC integration. The selected v2 profile combines
 explicit RAM payloads/ports, shared floating-point arithmetic and shorter control
 cones at the same architectural capacity. The original repository checkout and

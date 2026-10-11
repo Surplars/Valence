@@ -1,0 +1,141 @@
+{
+  "schema": "adoption-cpu-snapshot-provenance-v1",
+  "original_source_commit": "507c81beefede7ecb806dc5219d65df8591ba5df",
+  "production_checkpoint": "0c4beee087d3d4de036406ce3312cc4ff01a1b8c",
+  "cpu_receipt_sha256": "bb218e380825e5a573c658e3da219223d793106ad608c4b80355c158022753d4",
+  "source_manifest_sha256": "d1e1f37cfd950112326fb7b0bf21a90f0596545ccd0df50c77d5e6719e43a000",
+  "original_receipt_status_preserved": "SOURCE_FROZEN_NO_DUT_WORK",
+  "original_analysis_target": "FAIL_BARE_NO_EXTRA_SOURCE_RELOAD",
+  "relocated_paths_executed": false,
+  "copied_paths": [
+    {
+      "path": "HOST-CONTRACT.md",
+      "sha256": "53fc82f5ae161428666d8c7ea21ce2e0d64745ec9a674b280d7235fdf62e2521",
+      "original_path": "cpu-ab-r1/HOST-CONTRACT.md",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "adoption_ledger.h",
+      "sha256": "d99d0e5a307618c693a8c713c242049692f0f9cafccf87a47a36de3ec201abd9",
+      "original_path": "cpu-ab-r1/adoption_ledger.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "analyze_cpu_ab.py",
+      "sha256": "09f3e55b3a5721afdeb72b437839e909f7b782a2fe7136ffe0c7f2ada203c449",
+      "original_path": "cpu-ab-r1/analyze_cpu_ab.py",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "cpu_passive_bandwidth.cpp",
+      "sha256": "6fda5c6a51fadf7dcf58cd8804aa4d50d6906b22ee3163ce72f58b779ba010e3",
+      "original_path": "cpu-ab-r1/cpu_passive_bandwidth.cpp",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/board_boot.cpp",
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+      "original_path": "cpu-ab-r1/harness/board_boot.cpp",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/board_ddr_benchmark.h",
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+      "original_path": "cpu-ab-r1/harness/board_ddr_benchmark.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/cpu_lsu_occupancy.h",
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+      "original_path": "cpu-ab-r1/harness/cpu_lsu_occupancy.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/cpu_sv39_bandwidth.cpp",
+      "sha256": "7f698aa4d9f1638af623e79b99fbd21cebe157c70addaa5706ba1847ab561cb7",
+      "original_path": "cpu-ab-r1/harness/cpu_sv39_bandwidth.cpp",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/fabric_idle_service.h",
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+      "original_path": "cpu-ab-r1/harness/fabric_idle_service.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/mshr_occupancy.h",
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+      "original_path": "cpu-ab-r1/harness/mshr_occupancy.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "harness/performance_observer.h",
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+      "original_path": "cpu-ab-r1/harness/performance_observer.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "ledger_negative.cpp",
+      "sha256": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+      "original_path": "cpu-ab-r1/ledger_negative.cpp",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "passive_negative.cpp",
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+      "original_path": "cpu-ab-r1/passive_negative.cpp",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "passive_supply.h",
+      "sha256": "ec27f9c0581531695bd96657ad21022d104c2bdb2355b0b81023dc6b864582c2",
+      "original_path": "cpu-ab-r1/passive_supply.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "production_probe.h",
+      "sha256": "bab40b69bc41a33cebbab4e53136699be33665f399d76e0affbf741ac0bd0b07",
+      "original_path": "cpu-ab-r1/production_probe.h",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "run_cpu_ab.py",
+      "sha256": "c3a7f855c237a04b0d7ce704a45049e566efb3add2ef89a80f61b946d9aa37a1",
+      "original_path": "cpu-ab-r1/run_cpu_ab.py",
+      "original_bytes_executed": true
+    },
+    {
+      "path": "supply_ledger.h",
+      "sha256": "da5584b430e86281a4250ad3b7b49c7f4b57dda3ae4a3e168bd8fc0d15fc3ec9",
+      "original_path": "cpu-ab-r1/supply_ledger.h",
+      "original_bytes_executed": true
+    }
+  ],
+  "wrappers": {
+    "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": {
+      "origin_sha256": "1b3fbeccc8c0b85f778d6a782fe4830833169f758ddd1a7006bd0bad33e5567a",
+      "prepared_sha256": "49bea45a24a28770a52bb38303f2f4f49eeda29d8b1fbb62dc03a577bd8a9971"
+    },
+    "src/test/scala/ooo/MatchingFabricAudit.scala": {
+      "origin_sha256": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6",
+      "prepared_sha256": "18106c7bd30fd752bb6ee195467f2950a1699249a2f792b99b371d7c5ef919f6"
+    },
+    "src/test/scala/ooo/MatchingGmacCpu.scala": {
+      "origin_sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc",
+      "prepared_sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc"
+    },
+    "src/test/scala/ooo/MatchingManagedBoard.scala": {
+      "origin_sha256": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e",
+      "prepared_sha256": "ef765982255ad61a06e0492389e0577fc1f7f5c34ec6b5e311699ddad5db239e"
+    },
+    "src/test/scala/ooo/BoardSocGsimMain.scala": {
+      "origin_sha256": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6",
+      "prepared_sha256": "c4f16322903f225eace02b50bbcd07dfd7c310a07c1414b8cd03c162dcb3d4b6"
+    },
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": {
+      "origin_sha256": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74",
+      "prepared_sha256": "f7ba822bdf767957ef59479ed98d2120f324d211907dcb6c3669011e9797cf74"
+    }
+  },
+  "original_recovery_directory": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913"
+}

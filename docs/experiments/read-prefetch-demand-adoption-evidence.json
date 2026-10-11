@@ -1,0 +1,538 @@
+{
+  "schema": "read-prefetch-demand-adoption-evidence-v1",
+  "status": "OPT_IN_SOURCE_BACKUP_WITH_BOUNDED_TRAFFIC_COST",
+  "production_commit": "0c4beee087d3d4de036406ce3312cc4ff01a1b8c",
+  "final_focused_commit": "507c81beefede7ecb806dc5219d65df8591ba5df",
+  "public_base_commit": "0e52196ee512a0d137308a568b259a98372fbe61",
+  "public_base_tree": "2fee3fbe1865f94c1e4ab2fd8115f87805305774",
+  "default_enabled": false,
+  "current_presets_enable": false,
+  "next_unified_board_profile_intent": "Explicit dirty retry and adoption ON after combined qualification, retaining old-profile rollback. Not enabled or physically qualified by this backup.",
+  "focused": {
+    "status": "PASS_COMPONENT_ONLY",
+    "receipt_sha256": "46832fc00c59c49da0e31df49b247615387b172cc96ae80bb70d2031c782840c",
+    "actual_cases": {
+      "off": 2,
+      "on": 18
+    },
+    "configuration_tests": 10,
+    "precise_poison_negatives": 6,
+    "actual_memory_bytes_each_case": 131072,
+    "prior_failures_preserved": true
+  },
+  "cpu": {
+    "receipt_sha256": "bb218e380825e5a573c658e3da219223d793106ad608c4b80355c158022753d4",
+    "original_receipt_status": "SOURCE_FROZEN_NO_DUT_WORK",
+    "actual_mode_statuses": {
+      "off": "COPY_TWO_MODES_AND_NEGATIVE_CONTROLS_PASS",
+      "on": "COPY_TWO_MODES_AND_NEGATIVE_CONTROLS_PASS"
+    },
+    "original_analysis_gate": "FAIL_BARE_NO_EXTRA_SOURCE_RELOAD_PRESERVED",
+    "profile": {
+      "rob": 16,
+      "prf": 48,
+      "lsu": 4,
+      "dtlb": 16,
+      "dma_line_entries": 4
+    },
+    "guest": "original 64KiB COPY x2, Bare and Sv39",
+    "clock_hz": 100000000,
+    "service_laws": "independent R32/B32 unchanged",
+    "direct_comparison": {
+      "schema": "direct-f6b-current-off-on-comparison-v1",
+      "clock_hz": 100000000,
+      "payload_bytes_per_case": 131072,
+      "strict_zero_extra_source_reload_gate": "FAIL_BARE_PRESERVED",
+      "scoped_performance_finding": "MEASURED_SAME_BOARD_GAIN_WITH_EXPLICIT_BARE_TRAFFIC_COST",
+      "decision_scope": "Only fixed B, original 64KiB COPY x2 Bare/Sv39, unchanged independent R32/B32 service laws. This bounded performance finding does not override the earlier zero-reload gate or imply wider traffic/workload qualification.",
+      "identity": {
+        "original_f6B": {
+          "commit": "f6b0faac7dbc7a3d9a644a02862c6b7b2d8c7f98",
+          "receipt_sha256": "e12423ba808c644b041ad76bbb6c8b49dc48549c56aecea13bc958b1d63cfa64",
+          "binding_sha256": "136c67df4e73e2939fd52d5ee98ab532b4c985851a5d03877e8b4a2d90acabe8"
+        },
+        "current_pair": {
+          "receipt_sha256": "bb218e380825e5a573c658e3da219223d793106ad608c4b80355c158022753d4",
+          "production_checkpoint": "0c4beee087d3d4de036406ce3312cc4ff01a1b8c",
+          "source_commit": "507c81beefede7ecb806dc5219d65df8591ba5df"
+        }
+      },
+      "cases": {
+        "bare": {
+          "arms": {
+            "original_f6B": {
+              "roi_cycles": 289431,
+              "flush_cycles": 8115,
+              "inclusive_cycles": 297546,
+              "roi_seconds_at_100MHz": 0.00289431,
+              "flush_seconds_at_100MHz": 8.115e-05,
+              "roi_payload_MiBps": 43.18818647622404,
+              "inclusive_payload_MiBps": 42.010311010734476,
+              "roi_AR": 4096,
+              "roi_AW": 2048,
+              "roi_R_beats": 32768,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_MiBps": null,
+              "flush_traffic_scope": "Original f6B result does not separately record flush W bytes in this receipt."
+            },
+            "current_OFF": {
+              "roi_cycles": 261697,
+              "flush_cycles": 8058,
+              "inclusive_cycles": 269755,
+              "roi_seconds_at_100MHz": 0.00261697,
+              "flush_seconds_at_100MHz": 8.058e-05,
+              "roi_payload_MiBps": 47.76516352881386,
+              "inclusive_payload_MiBps": 46.338344052936925,
+              "roi_AR": 4110,
+              "roi_AW": 2048,
+              "roi_R_beats": 32880,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_bytes": 16448,
+              "flush_actual_W_data_MiBps": 194.6641245501365,
+              "flush_traffic": {
+                "region": "2",
+                "cycles": "8058",
+                "ar": "2",
+                "aw": "257",
+                "r": "16",
+                "w": "2056",
+                "b": "257",
+                "alloc": "1",
+                "refill": "0",
+                "wb_capture": "258",
+                "wb_ack": "258",
+                "posted_refill": "1",
+                "posted_install": "1"
+              }
+            },
+            "current_ON": {
+              "roi_cycles": 251815,
+              "flush_cycles": 8053,
+              "inclusive_cycles": 259868,
+              "roi_seconds_at_100MHz": 0.00251815,
+              "flush_seconds_at_100MHz": 8.053e-05,
+              "roi_payload_MiBps": 49.639616385044576,
+              "inclusive_payload_MiBps": 48.101343759139255,
+              "roi_AR": 4124,
+              "roi_AW": 2048,
+              "roi_R_beats": 32992,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_bytes": 16448,
+              "flush_actual_W_data_MiBps": 194.78498890165156,
+              "flush_traffic": {
+                "region": "2",
+                "cycles": "8053",
+                "ar": "2",
+                "aw": "257",
+                "r": "16",
+                "w": "2056",
+                "b": "257",
+                "alloc": "1",
+                "refill": "0",
+                "wb_capture": "258",
+                "wb_ack": "258",
+                "posted_refill": "1",
+                "posted_install": "1"
+              }
+            }
+          },
+          "ON_vs": {
+            "current_OFF": {
+              "roi_throughput_gain_pct": 3.924309512936075,
+              "inclusive_throughput_gain_pct": 3.8046238859728687,
+              "roi_cycles_delta": -9882,
+              "flush_cycles_delta": -5,
+              "inclusive_cycles_delta": -9887,
+              "extra_roi_AR": 14,
+              "extra_roi_R_beats": 112,
+              "extra_roi_R_bytes": 896,
+              "comparison_method": "Direct ratio of absolute cycles; no product of independently rounded percentages."
+            },
+            "original_f6B": {
+              "roi_throughput_gain_pct": 14.93795047951869,
+              "inclusive_throughput_gain_pct": 14.498899441254798,
+              "roi_cycles_delta": -37616,
+              "flush_cycles_delta": -62,
+              "inclusive_cycles_delta": -37678,
+              "extra_roi_AR": 28,
+              "extra_roi_R_beats": 224,
+              "extra_roi_R_bytes": 1792,
+              "comparison_method": "Direct ratio of absolute cycles; no product of independently rounded percentages."
+            }
+          }
+        },
+        "sv39": {
+          "arms": {
+            "original_f6B": {
+              "roi_cycles": 273627,
+              "flush_cycles": 8190,
+              "inclusive_cycles": 281817,
+              "roi_seconds_at_100MHz": 0.00273627,
+              "flush_seconds_at_100MHz": 8.19e-05,
+              "roi_payload_MiBps": 45.682626349007954,
+              "inclusive_payload_MiBps": 44.35502471461977,
+              "roi_AR": 4160,
+              "roi_AW": 2048,
+              "roi_R_beats": 32832,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_MiBps": null,
+              "flush_traffic_scope": "Original f6B result does not separately record flush W bytes in this receipt."
+            },
+            "current_OFF": {
+              "roi_cycles": 273088,
+              "flush_cycles": 8204,
+              "inclusive_cycles": 281292,
+              "roi_seconds_at_100MHz": 0.00273088,
+              "flush_seconds_at_100MHz": 8.204e-05,
+              "roi_payload_MiBps": 45.77279118818842,
+              "inclusive_payload_MiBps": 44.43780839839029,
+              "roi_AR": 4160,
+              "roi_AW": 2048,
+              "roi_R_beats": 32832,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_bytes": 16448,
+              "flush_actual_W_data_MiBps": 191.1998434452706,
+              "flush_traffic": {
+                "region": "2",
+                "cycles": "8204",
+                "ar": "4",
+                "aw": "257",
+                "r": "18",
+                "w": "2056",
+                "b": "257",
+                "alloc": "1",
+                "refill": "1",
+                "wb_capture": "258",
+                "wb_ack": "258",
+                "posted_refill": "0",
+                "posted_install": "0"
+              }
+            },
+            "current_ON": {
+              "roi_cycles": 250604,
+              "flush_cycles": 8187,
+              "inclusive_cycles": 258791,
+              "roi_seconds_at_100MHz": 0.00250604,
+              "flush_seconds_at_100MHz": 8.187e-05,
+              "roi_payload_MiBps": 49.87949114938309,
+              "inclusive_payload_MiBps": 48.30152516895873,
+              "roi_AR": 4160,
+              "roi_AW": 2048,
+              "roi_R_beats": 32832,
+              "roi_W_beats": 16384,
+              "flush_copy_payload_MiBps": null,
+              "flush_copy_payload_reason": "Flush creates no additional copied logical payload; dividing the copy payload by only flush cycles would be misleading.",
+              "flush_actual_W_data_bytes": 16448,
+              "flush_actual_W_data_MiBps": 191.59686278551362,
+              "flush_traffic": {
+                "region": "2",
+                "cycles": "8187",
+                "ar": "4",
+                "aw": "257",
+                "r": "18",
+                "w": "2056",
+                "b": "257",
+                "alloc": "1",
+                "refill": "1",
+                "wb_capture": "258",
+                "wb_ack": "258",
+                "posted_refill": "0",
+                "posted_install": "0"
+              }
+            }
+          },
+          "ON_vs": {
+            "current_OFF": {
+              "roi_throughput_gain_pct": 8.971923832021833,
+              "inclusive_throughput_gain_pct": 8.694660942613929,
+              "roi_cycles_delta": -22484,
+              "flush_cycles_delta": -17,
+              "inclusive_cycles_delta": -22501,
+              "extra_roi_AR": 0,
+              "extra_roi_R_beats": 0,
+              "extra_roi_R_bytes": 0,
+              "comparison_method": "Direct ratio of absolute cycles; no product of independently rounded percentages."
+            },
+            "original_f6B": {
+              "roi_throughput_gain_pct": 9.187004197857984,
+              "inclusive_throughput_gain_pct": 8.897527348323543,
+              "roi_cycles_delta": -23023,
+              "flush_cycles_delta": -3,
+              "inclusive_cycles_delta": -23026,
+              "extra_roi_AR": 0,
+              "extra_roi_R_beats": 0,
+              "extra_roi_R_bytes": 0,
+              "comparison_method": "Direct ratio of absolute cycles; no product of independently rounded percentages."
+            }
+          }
+        }
+      }
+    },
+    "source_reload": {
+      "bare": {
+        "source_ar_count_by_region": {
+          "off": {
+            "0": 1030,
+            "1": 2062,
+            "2": 0
+          },
+          "on": {
+            "0": 1035,
+            "1": 2076,
+            "2": 0
+          }
+        },
+        "extra_source_ar_per_pa_by_region": {
+          "0": {
+            "0x80405fc0": 1,
+            "0x80407fc0": 1,
+            "0x80409fc0": 1,
+            "0x8040bfc0": 1,
+            "0x8040dfc0": 1,
+            "0x8040ffc0": 1
+          },
+          "1": {
+            "0x80403fc0": 2,
+            "0x80405fc0": 2,
+            "0x80407fc0": 2,
+            "0x80409fc0": 2,
+            "0x8040bfc0": 2,
+            "0x8040dfc0": 2,
+            "0x8040ffc0": 2
+          },
+          "2": {}
+        },
+        "on_immediate_reload_chain_count": 39,
+        "on_use_classifications": {
+          "ACTUAL_ATTACHED_CPU_RESPONSE_BEFORE_EVICTION": 39
+        },
+        "unknown_resident_link_counts": {
+          "off": 0,
+          "on": 0
+        },
+        "chain_files": {
+          "off": {
+            "path": "off-bare-source-chains.json",
+            "sha256": "371aae661ca5f1aeb6585e74c308ec648f54abe032474459de6b0668c2457386"
+          },
+          "on": {
+            "path": "on-bare-source-chains.json",
+            "sha256": "e36c1084f7154cd3e264bff3b9b495fa29550119690227b6f1a7a4a739a83335"
+          }
+        }
+      },
+      "sv39": {
+        "source_ar_count_by_region": {
+          "off": {
+            "0": 1024,
+            "1": 2048,
+            "2": 0
+          },
+          "on": {
+            "0": 1024,
+            "1": 2048,
+            "2": 0
+          }
+        },
+        "extra_source_ar_per_pa_by_region": {
+          "0": {},
+          "1": {},
+          "2": {}
+        },
+        "on_immediate_reload_chain_count": 0,
+        "on_use_classifications": {},
+        "unknown_resident_link_counts": {
+          "off": 0,
+          "on": 0
+        },
+        "chain_files": {
+          "off": {
+            "path": "off-sv39-source-chains.json",
+            "sha256": "d2f80ce5386f16f3fc88d66f4cd7ef7a8f813b324e7235a49c204f7ba377be79"
+          },
+          "on": {
+            "path": "on-sv39-source-chains.json",
+            "sha256": "d2f80ce5386f16f3fc88d66f4cd7ef7a8f813b324e7235a49c204f7ba377be79"
+          }
+        }
+      }
+    },
+    "known_error_paths": "NOT_EXERCISED_BY_CPU_GUEST",
+    "actual_cache_E_handshake_cycles": "UNKNOWN_IN_CPU_OBSERVER",
+    "rss_monitor": "INVALID_DUT_PROCESS_IDENTIFICATION_NO_RSS_CLAIM"
+  },
+  "native": {
+    "status": "PASS_LITERAL_NATIVE_CENSUS_AND_BOUNDED_INPUT_CONE_CHECKS",
+    "receipt_sha256": "8db8eedeb4e0978bd53d6d29b3549e24b6221bb07078555088ff963b50c34ce3",
+    "census_sha256": "f1ec2a7255f7afe305400a721eec293f1015bd11a3951a34bb5a582b27e6e996",
+    "scalar_register_bits": [
+      8725,
+      8729
+    ],
+    "array_register_bits": [
+      271876,
+      271876
+    ],
+    "ports": [
+      122,
+      122
+    ],
+    "memory_geometry_ports_latency_equal": true,
+    "syntax_delta": {
+      "equality_occurrences": 3,
+      "ternary_occurrences": 25,
+      "variable_select_occurrences": 1
+    },
+    "ready_graph_nodes": [
+      1585,
+      1611
+    ],
+    "bounded_current_hint_and_D_error_to_READY_paths": false,
+    "poison_dependency_detected": true,
+    "mapped_resources_or_physical_timing": false
+  },
+  "libraries": {
+    "focused": {
+      "operation": "create_library_file",
+      "status": "succeeded",
+      "path": "/prefetch-demand-adoption-focused-507c81b.tar.gz",
+      "file_id": "file_00000000f9a08209b1ceeea9f9efdfcf",
+      "library_file_id": "libfile_d03a8ed8ebc0819182fcf097865df167",
+      "file_name": "prefetch-demand-adoption-focused-507c81b.tar.gz",
+      "current_version_number": 0,
+      "restored_from_version_number": null,
+      "xattrs": [
+        {
+          "name": "user.library-file-version",
+          "value": "0"
+        }
+      ],
+      "directory_id": "libdir_3cc9b06115bc81918af5163fcc28ecfd",
+      "mime_type": "application/x-tar",
+      "library_artifact_type": "other",
+      "file_size_bytes": 17228094,
+      "external_connectors_accessed": false,
+      "local_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-candidate/prefetch-demand-adoption-focused-507c81b.tar.gz",
+      "sha256": "43be4767b404283532545bbfb122995b2c4b231d0c25c77bfd6f7d36f3f03383",
+      "local_identity_applied": true,
+      "qualification": "PASS_COMPONENT_ONLY",
+      "source_commit": "507c81beefede7ecb806dc5219d65df8591ba5df",
+      "focused_receipt_sha256": "46832fc00c59c49da0e31df49b247615387b172cc96ae80bb70d2031c782840c"
+    },
+    "native": {
+      "operation": "create_library_file",
+      "status": "succeeded",
+      "path": "/adoption-native-cost-r1.tar.gz",
+      "file_id": "file_00000000f01c8209b41075c96821bd9a",
+      "library_file_id": "libfile_d9e55447be1c81918420b4bdbbfbf084",
+      "file_name": "adoption-native-cost-r1.tar.gz",
+      "current_version_number": 0,
+      "restored_from_version_number": null,
+      "xattrs": [
+        {
+          "name": "user.library-file-version",
+          "value": "0"
+        }
+      ],
+      "directory_id": "libdir_3cc9b06115bc81918af5163fcc28ecfd",
+      "mime_type": "application/x-tar",
+      "library_artifact_type": "other",
+      "file_size_bytes": 935753,
+      "external_connectors_accessed": false,
+      "local_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-candidate/adoption-native-cost-r1.tar.gz",
+      "sha256": "9beb934c0879130e6291713401973ec6a37470933a949b9a68b11ce741b237fe",
+      "xattrs_actual": {
+        "user.library-file-version": "0",
+        "user.library-file-id": "libfile_d9e55447be1c81918420b4bdbbfbf084"
+      },
+      "local_identity_verified": true
+    },
+    "cpu": {
+      "status": "BOTH_FILES_PERSISTED_AND_LOCAL_IDENTITY_VERIFIED",
+      "files": [
+        {
+          "local_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-candidate/cpu-archive-r1/prefetch-demand-adoption-cpu-evidence-thin-r1.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000003e20820daf019644ea790077",
+          "library_file_id": "libfile_eea3f18cdb68819187f84b3fcfc90b5b",
+          "file_name": "prefetch-demand-adoption-cpu-evidence-thin-r1.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/prefetch-demand-adoption-cpu-evidence-thin-r1.tar.gz",
+          "current_version_number": 0,
+          "size_bytes": 17042696,
+          "sha256": "d7c5ec310d95af2fb50e1d62ce862e41300720685d76775d4e367c63022b94d6",
+          "xattrs": {
+            "user.library-file-version": "0",
+            "user.library-file-id": "libfile_eea3f18cdb68819187f84b3fcfc90b5b"
+          },
+          "archive_members_verified": 2777
+        },
+        {
+          "local_path": "/workspace/scratch/41e4a649bb60/recovery-20261011-0913/prefetch-demand-adoption-candidate/cpu-archive-r1/prefetch-demand-adoption-cpu-model-checkpoint-r1.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000007a5081f7a2cbd787e45fa7c4",
+          "library_file_id": "libfile_a51d82e6de4c81919cad18ba764e8cbe",
+          "file_name": "prefetch-demand-adoption-cpu-model-checkpoint-r1.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/prefetch-demand-adoption-cpu-model-checkpoint-r1.tar.gz",
+          "current_version_number": 0,
+          "size_bytes": 36233117,
+          "sha256": "0e2e5fc9712e5e6139ac38e4e92a5fb262509d6dfa986beeaa27a10d6778e396",
+          "xattrs": {
+            "user.library-file-version": "0",
+            "user.library-file-id": "libfile_a51d82e6de4c81919cad18ba764e8cbe"
+          },
+          "archive_members_verified": 160
+        }
+      ]
+    }
+  },
+  "source_binding_manifest_sha256": "6252e90b490b0069d3e40864cfd08d79930ee54ae22c6eb01d5e8f168aaf40e0",
+  "coverage_limits": [
+    "Original focused 2/18 cases do not dynamically exercise store/atomic/uncached exclusion against pending read prefetch; separate extension pending before unified board enablement",
+    "No new full-54/GC qualification",
+    "No whole-board/native SoC/CDC or physical DDR qualification",
+    "No synthesis/STA/routed Fmax claim",
+    "Original failed target preserved",
+    "Relocated CPU snapshot not executed"
+  ],
+  "publication_host_checks": {
+    "receipt_sha256": "1e398de0a5b653123505627e51733c46648233e7dfb99c3a4bd0d29da7fd495e",
+    "status": "PASS",
+    "tests": 14
+  },
+  "publication_entrypoints": {
+    "receipt_sha256": "1c93808f3b90c8e3b4f0f69e2714a2ca009b8b1ac0ddb28a807ae4a8d1d0c01f",
+    "status": "PASS_ISOLATED_ENTRYPOINT_AND_EXACT_ACTUAL_PROFILE",
+    "RTL_emission": false,
+    "actual_executed_cpu_profiles_match": [
+      "off",
+      "on"
+    ],
+    "script_sha256": "f5b207e8b1f284f7216787f70326a786ca387ebb4dff9e53a47d76f54e479679"
+  },
+  "publication_preset_constructors": {
+    "status": "PASS_ACTUAL_A_B_RELEASE_CONSTRUCTORS_WITH_EXPLICIT_OFF_FIELDS",
+    "receipt_sha256": "e19875579766524fbc6678a721b7ee0d019c40994d8743889fd3d13f86dc1bf1",
+    "actual_cases": [
+      "A",
+      "B",
+      "release"
+    ],
+    "policies_explicit_false_in_profile_and_cache": true,
+    "frozen_manifests_unchanged": true,
+    "hardware_emission": false
+  }
+}

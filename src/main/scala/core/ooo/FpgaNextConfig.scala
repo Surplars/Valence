@@ -53,7 +53,8 @@ final case class FpgaNextConfig(
     translationHitFlow: Boolean = false,
     independentDemandAdmission: Boolean = false,
     splitPrefetchTracking: Boolean = false,
-    readPrefetchDirtyRetry: Boolean = false
+    readPrefetchDirtyRetry: Boolean = false,
+    readPrefetchDemandAdoption: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -81,6 +82,8 @@ final case class FpgaNextConfig(
         "store-origin MRU insertion requires checked store prefetch")
     require(!storePrefetchLruVictim || storeNextLinePrefetch,
         "store-origin LRU victim selection requires checked store prefetch")
+    require(!readPrefetchDemandAdoption || (splitPrefetchTracking && independentDemandAdmission),
+        "read prefetch demand adoption requires split tracking and independent demand admission")
     require(!readPrefetchDirtyRetry || splitPrefetchTracking,
         "read prefetch dirty retry requires split prefetch tracking")
     require(!splitPrefetchTracking || storeNextLinePrefetch,
@@ -136,7 +139,8 @@ final case class FpgaNextConfig(
         (if (translationHitFlow) "-translation-hit-flow" else "") +
         (if (independentDemandAdmission) "-independent-demand-admission" else "") +
         (if (splitPrefetchTracking) "-split-prefetch-tracking" else "") +
-        (if (readPrefetchDirtyRetry) "-read-prefetch-dirty-retry" else "")
+        (if (readPrefetchDirtyRetry) "-read-prefetch-dirty-retry" else "") +
+        (if (readPrefetchDemandAdoption) "-read-prefetch-demand-adoption" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -162,7 +166,8 @@ final case class FpgaNextConfig(
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
         postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim,
         distinctWayRelease = distinctWayRelease, independentDemandAdmission = independentDemandAdmission,
-        splitPrefetchTracking = splitPrefetchTracking, readPrefetchDirtyRetry = readPrefetchDirtyRetry)
+        splitPrefetchTracking = splitPrefetchTracking, readPrefetchDirtyRetry = readPrefetchDirtyRetry,
+        readPrefetchDemandAdoption = readPrefetchDemandAdoption)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -233,6 +238,8 @@ object FpgaNextConfig {
     val Selected = ControlCandidate.copy(shareProtectedHeadPayload = true, bankedInstructionData = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--read-prefetch-demand-adoption=")),
+            "--read-prefetch-demand-adoption does not accept a value")
         require(!options.exists(_.startsWith("--read-prefetch-dirty-retry=")),
             "--read-prefetch-dirty-retry does not accept a value")
         require(!options.exists(_.startsWith("--split-prefetch-tracking=")),
@@ -316,6 +323,7 @@ object FpgaNextConfig {
             independentDemandAdmission = options.contains("--independent-demand-admission"),
             splitPrefetchTracking = options.contains("--split-prefetch-tracking"),
             readPrefetchDirtyRetry = options.contains("--read-prefetch-dirty-retry"),
+            readPrefetchDemandAdoption = options.contains("--read-prefetch-demand-adoption"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

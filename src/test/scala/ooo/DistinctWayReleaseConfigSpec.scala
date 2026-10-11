@@ -23,12 +23,13 @@ class DistinctWayReleaseConfigSpec extends AnyFunSuite {
                 (if (shared) Set("--shared-memory-address-state") else Set.empty[String])
             val off = FpgaNextConfig.fromOptions(options, defaultSelected = false)
             val on = FpgaNextConfig.fromOptions(options + "--distinct-way-release", defaultSelected = false)
-            assert(on.productArity == 45 && !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
+            assert(on.productArity == 46 && !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
+                !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 !on.splitPrefetchTracking && !on.cache.splitPrefetchTracking &&
                 !on.translationHitFlow && on.ddrOutstanding == 4 && on.ddrWriteCredits == 2 &&
                 !on.dataTlbWriteReadReuse && !on.ddrWriteCollectionFlow && !on.lineTransferDispatchFlow &&
                 !on.lineReadChannel &&
-                on.coreParams.productArity == 142 && on.cache.productArity == 15)
+                on.coreParams.productArity == 142 && on.cache.productArity == 16)
             assert(on == off.copy(distinctWayRelease = true))
             assert(on.cache == off.cache.copy(distinctWayRelease = true))
             assert(on.coreParams == off.coreParams && on.storage == off.storage)

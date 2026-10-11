@@ -7,7 +7,8 @@ import soc.ip.tilelink.TileLinkLineAcquireEngine
 
 /** Opt-in miss concurrency. CPU replies retain acceptance order; maintenance
   * has independent ownership. The independent-demand policy reserves full ways,
-  * not whole sets; bypass/flush remain barriers. No same-line merging is added.
+  * not whole sets; bypass/flush remain barriers. An independent opt-in policy
+  * attaches one checked demand read to an already-issued read-prefetch owner.
   */
 class NonBlockingCoherentLineCache(
     base: BigInt = BigInt("80010000", 16), bytes: BigInt = 8192, lines: Int = 128,
@@ -193,9 +194,15 @@ class NonBlockingCoherentLineCache(
         RegInit(VecInit(Seq.fill(mshrCount)(false.B))) else WireDefault(VecInit(Seq.fill(mshrCount)(false.B)))
     private val storePrefetchOwner = if (concurrency.storeNextLinePrefetch)
         Some(RegInit(VecInit(Seq.fill(mshrCount)(false.B)))) else None
+    // Transaction origin stays immutable; an attached demand adds a response
+    // obligation to that same MSHR without changing its outstanding acquire tag.
+    private val demandAttached = if (concurrency.readPrefetchDemandAdoption)
+        Some(RegInit(VecInit(Seq.fill(mshrCount)(false.B)))) else None
+    private def isDemandAttached(i: UInt): Bool = demandAttached.map(_(i)).getOrElse(false.B)
+    private def hasDemandResponse(i: UInt): Bool = !prefetchOwner(i) || isDemandAttached(i)
     // A fill phase starts at engine request acceptance, before actual A.fire.
     // Remember issued owners so early victim C cannot overtake an unissued PF.
-    private val acquireIssued = if (concurrency.distinctWayRelease)
+    private val acquireIssued = if (concurrency.distinctWayRelease || concurrency.readPrefetchDemandAdoption)
         Some(RegInit(VecInit(Seq.fill(mshrCount)(false.B)))) else None
     acquireIssued.foreach { seen =>
         for (i <- 0 until mshrCount) { when(phase(i) === free) { seen(i) := false.B } }
@@ -203,6 +210,8 @@ class NonBlockingCoherentLineCache(
     // Wire breaks Scala declaration ordering; it carries actual pending refill,
     // not CPU VALID/READY, so it introduces no request-handshake feedback loop.
     private val prefetchRefillPending = WireDefault(false.B)
+    private val failedAcquireOwners = if (concurrency.readPrefetchDemandAdoption)
+        Some(WireDefault(VecInit(Seq.fill(mshrCount)(false.B)))) else None
     io.prefetchBusy := false.B
     private val pending = Reg(Vec(mshrCount, new DataRequest))
     private val pendingIndex = Reg(Vec(mshrCount, UInt(indexBits.W)))
@@ -220,7 +229,10 @@ class NonBlockingCoherentLineCache(
     when(io.upstream.response.fire) {
         when(barrier && responseHead === barrierTicket) { barrier := false.B }
         for (i <- 0 until mshrCount) {
-            when(phase(i) === result && !isPosted(i.U) && pendingTicket(i) === responseHead) { phase(i) := free }
+            when(phase(i) === result && !isPosted(i.U) && pendingTicket(i) === responseHead) {
+                phase(i) := free
+                demandAttached.foreach(_(i) := false.B)
+            }
         }
     }
     private val bIdle :: bEvict :: bSend :: bWait :: Nil = Enum(4)
@@ -433,8 +445,9 @@ class NonBlockingCoherentLineCache(
     private val writeHit = ordinary && found && request.write
     private val reservedSet = VecInit((0 until mshrCount).map(i => phase(i) =/= free &&
         pendingIndex(i)(setBits - 1, 0) === lineSet(request.address))).asUInt.orR
-    private val targetPending = (0 until mshrCount).map(i => phase(i) =/= free &&
-        pending(i).address(63, 6) === request.address(63, 6)).reduce(_ || _)
+    private val targetPendingMatches = VecInit((0 until mshrCount).map(i => phase(i) =/= free &&
+        pending(i).address(63, 6) === request.address(63, 6)))
+    private val targetPending = targetPendingMatches.asUInt.orR
     private val targetWriteback = (0 until wbCount).map(i => wbLive(i) &&
         wbAddress(i)(63, 6) === request.address(63, 6)).reduce(_ || _)
     private def wayAvailable(candidate: UInt): Bool = !(0 until mshrCount).map(i =>
@@ -464,8 +477,6 @@ class NonBlockingCoherentLineCache(
         val onlyIssuedStorePrefetch = mshrOccupancy === 1.U && (0 until mshrCount).map(i =>
             phase(i) === free || (phase(i) === fill && prefetchOwner(i) &&
                 storePrefetchOwner.get(i) && acquireIssued.get(i) && !isPosted(i.U))).reduce(_ && _)
-        val targetPending = (0 until mshrCount).map(i => phase(i) =/= free &&
-            pending(i).address(63, 6) === request.address(63, 6)).reduce(_ || _)
         val victimPending = (0 until wbCount).map(i => wbLive(i) &&
             wbAddress(i)(63, 6) === request.address(63, 6)).reduce(_ || _)
         distinctWayRead := reservedSet && ordinary && !request.write && !found &&
@@ -485,7 +496,7 @@ class NonBlockingCoherentLineCache(
     private val barrierRequest = bypass || (!concurrency.independentDemandAdmission.B && request.write && !writeHit)
     private val prefetchOnlyHit = if (concurrency.storeNextLinePrefetch) {
         val onlyPrefetchMisses = VecInit((0 until mshrCount).map(i =>
-            phase(i) === free || prefetchOwner(i))).asUInt.andR
+            phase(i) === free || (prefetchOwner(i) && !isDemandAttached(i.U)))).asUInt.andR
         val onlySentPrefetchWritebacks = wbPrefetch.map { saved =>
             VecInit((0 until wbCount).map(i => !wbLive(i) || (saved(i) && wbSent(i) &&
                 lineSet(wbAddress(i)) =/= lineSet(request.address)))).asUInt.andR
@@ -507,7 +518,20 @@ class NonBlockingCoherentLineCache(
         !io.tl.b.valid && reservationSafe && (!barrierRequest || barrierSafe) &&
         (!writeHit || storeHitSafe) &&
         (!needsMissSlot || freeMask.asUInt.orR) && (!readHit || !queuedEvictionRead)
-    io.upstream.request.ready := legacyReady
+    // No permission hint, cpuFire, candidate allocation or fresh WB credit feeds
+    // this grant. The current request is already checked at this physical port.
+    private val attachMatches = if (concurrency.readPrefetchDemandAdoption)
+        VecInit((0 until mshrCount).map(i => targetPendingMatches(i) && phase(i) === fill &&
+            prefetchOwner(i) && !storePrefetchOwner.get(i) && !isDemandAttached(i.U) &&
+            !isPosted(i.U) && acquireIssued.get(i) && !failedAcquireOwners.get(i))) else VecInit(Seq.fill(mshrCount)(false.B))
+    private val attachMshr = PriorityEncoder(attachMatches)
+    private val attachReady = concurrency.readPrefetchDemandAdoption.B && ordinary && !request.write && !found &&
+        attachMatches.asUInt.orR && !targetWriteback && responseSpace &&
+        !barrier && !flushActive && !io.flushRequest && !postedBusy && !postedIntent &&
+        probeState === pIdle && !io.tl.b.valid && bypassState === bIdle &&
+        evictionState === eIdle && !queuedEvictWanted && !prefetchRefillPending
+    private val ordinaryReady = legacyReady || attachReady
+    io.upstream.request.ready := ordinaryReady
     for ((owner, boundary) <- posted.zip(io.posted)) {
         val legacyMshrsClear = VecInit((0 until mshrCount).map(i => phase(i) === free || isPosted(i.U))).asUInt.andR
         val legacyResponsesClear = VecInit((0 until responseCount).map(i =>
@@ -544,10 +568,11 @@ class NonBlockingCoherentLineCache(
         owner.io.fallback.ready := legacyReady && !postedBusy &&
             (if (concurrency.postedPrefetchCoexistence) maintenanceReady else true.B)
         io.upstream.request.ready := Mux(mergeRoute, commitReady,
-            Mux(fallbackRoute, owner.io.enq.ready, legacyReady && !postedBusy))
+            Mux(fallbackRoute, owner.io.enq.ready, ordinaryReady && !postedBusy))
     }
     private val cpuFire = io.upstream.request.fire
-    directEviction := cpuFire && !postedAccept && needsMissSlot && needsEviction &&
+    private val demandAttach = cpuFire && attachReady
+    directEviction := cpuFire && !postedAccept && !demandAttach && needsMissSlot && needsEviction &&
         evictionLaneAvailable && !queuedEvictWanted && probeState === pIdle &&
         !io.tl.b.valid && !flushActive && !io.flushRequest && bypassState === bIdle
     directEvictionIndex := index
@@ -559,7 +584,7 @@ class NonBlockingCoherentLineCache(
     private val storeWrite = cpuFire && !postedAccept && writeHit && !needsEviction
     val observationIndependentDemand = VecInit(Seq(
         cpuFire && !postedAccept && readHit && !mshrEmpty,
-        cpuFire && !postedAccept && needsMissSlot && !mshrEmpty,
+        cpuFire && !postedAccept && !demandAttach && needsMissSlot && !mshrEmpty,
         storeWrite && !mshrEmpty)).asUInt
     private val hitPending = RegInit(false.B)
     private val hitTicket = Reg(UInt(ticketBits.W))
@@ -591,6 +616,7 @@ class NonBlockingCoherentLineCache(
                     postedReservation.get(m) := owner.io.accepted.bits.reservation
                     postedAcquired.get(m) := false.B
                     acquireIssued.foreach(_(m) := false.B)
+                    demandAttached.foreach(_(m) := false.B)
                     postedInstalled.get(m) := false.B
                     if (concurrency.nextLinePrefetch) prefetchOwner(m) := false.B
                     storePrefetchOwner.foreach(_(m) := false.B)
@@ -600,6 +626,11 @@ class NonBlockingCoherentLineCache(
                     phase(m) := Mux(needsEviction, evictWait, acquire)
                 }
             }
+        }.elsewhen(demandAttach) {
+            demandAttached.foreach(_(attachMshr) := true.B)
+            pending(attachMshr) := request
+            pendingTicket(attachMshr) := responseTail
+            // Keep phase, reserved index, victim identity and PF origin unchanged.
         }.elsewhen(bypass) {
             bypassRequest := request
             bypassIndex := index
@@ -615,6 +646,7 @@ class NonBlockingCoherentLineCache(
             when(request.write) { dirty(index) := true.B }
         }.otherwise {
             acquireIssued.foreach(_(freeMshr) := false.B)
+            demandAttached.foreach(_(freeMshr) := false.B)
             if (concurrency.nextLinePrefetch) prefetchOwner(freeMshr) := false.B
             storePrefetchOwner.foreach(_(freeMshr) := false.B)
             postedMshr.foreach(_(freeMshr) := false.B)
@@ -656,15 +688,30 @@ class NonBlockingCoherentLineCache(
     }
 
     private val acquireTagBits = postedConfig.map(c => mshrBits + c.lineBits + c.generationBits + 2).getOrElse(mshrBits)
+    require(acquireTagBits <= 128, "passive acquire identity observation must preserve the complete tag")
     private val engine = Module(new TileLinkLineAcquireEngine(params,
         entries = concurrency.acquireEntries, tagBits = acquireTagBits,
-        observeIssued = postedConfig.nonEmpty || concurrency.distinctWayRelease))
+        observeIssued = postedConfig.nonEmpty || concurrency.distinctWayRelease ||
+            concurrency.readPrefetchDemandAdoption,
+        observeFailedOwners = concurrency.readPrefetchDemandAdoption))
     private def transactionTag(m: UInt): UInt = postedConfig.map { c =>
         val kind = Mux(isPosted(m), 2.U(2.W), Mux(prefetchOwner(m), 1.U(2.W), 0.U(2.W)))
         Cat(kind, Mux(isPosted(m), postedContext.get(m).owner.generation, 0.U(c.generationBits.W)),
             Mux(isPosted(m), postedContext.get(m).owner.slot, 0.U(c.lineBits.W)), m)
     }.getOrElse(m)
     private def tagMshr(tag: UInt): UInt = tag(mshrBits - 1, 0)
+    engine.io.failedOwners.foreach { owners =>
+        for (i <- 0 until mshrCount) {
+            failedAcquireOwners.get(i) := owners.map(o => o.valid && tagMshr(o.bits) === i.U).reduce(_ || _)
+        }
+        for (owner <- owners) {
+            when(owner.valid) {
+                val m = tagMshr(owner.bits)
+                assert(phase(m) === fill && owner.bits === transactionTag(m),
+                    "registered acquire error lost its complete transaction identity")
+            }
+        }
+    }
     private val acquireMask = VecInit(phase.map(_ === acquire))
     private val acquireMshr = PriorityEncoder(acquireMask)
     // AcquireEngine latches this candidate on request.fire and owns its A offer.
@@ -679,7 +726,7 @@ class NonBlockingCoherentLineCache(
         when(issued.valid) {
             val m = tagMshr(issued.bits)
             assert(phase(m) === fill && issued.bits === transactionTag(m),
-                "actual A tag lost the distinct-way owner")
+                "actual A tag lost its original miss owner")
             seen(m) := true.B
         }
         when(engine.io.response.fire) { seen(tagMshr(engine.io.response.bits.tag)) := false.B }
@@ -770,15 +817,16 @@ class NonBlockingCoherentLineCache(
         }
     }
     when(refill) {
-        assert(phase(fillMshr) === fill && (prefetchOwner(fillMshr) ||
+        assert(phase(fillMshr) === fill && (!hasDemandResponse(fillMshr) ||
             (responseOwned(fillTicket) && !responseComplete(fillTicket))),
             "refill lost MSHR or response ownership")
         assert(!storeWrite, "barrier store overlapped a refill SRAM write")
-        assert(prefetchOwner(fillMshr) || !hitPending || hitTicket =/= fillTicket, "hit and refill shared a response ticket")
+        assert(!hasDemandResponse(fillMshr) || !hitPending || hitTicket =/= fillTicket,
+            "hit and refill shared a response ticket")
         assert(engine.io.response.bits.cap === TLPermissions.toT || engine.io.response.bits.error,
             "write-back L1 requires T permission")
 
-        when(!prefetchOwner(fillMshr)) {
+        when(hasDemandResponse(fillMshr)) {
         results(fillTicket).data := Mux(fillRequest.write || engine.io.response.bits.error, 0.U,
             (engine.io.response.bits.data >> (fillRequest.address(5, 3) << 6))(63, 0))
         results(fillTicket).error := engine.io.response.bits.error
@@ -801,9 +849,9 @@ class NonBlockingCoherentLineCache(
         } else tags.get(installIndex) := lineTag(installAddress)
         valid(installIndex) := true.B
         dirty(installIndex) := postedInstall || fillRequest.write
-        when(postedInstall || !prefetchOwner(fillMshr)) { touch(installIndex) }
+        when(postedInstall || hasDemandResponse(fillMshr)) { touch(installIndex) }
         if (concurrency.nextLinePrefetch) {
-            replacement.foreach { r => when(!postedInstall && prefetchOwner(fillMshr)) {
+            replacement.foreach { r => when(!postedInstall && prefetchOwner(fillMshr) && !isDemandAttached(fillMshr)) {
                 r(fillIndex(setBits - 1, 0)) := (if (concurrency.storePrefetchMruInsertion)
                     Mux(storePrefetchOwner.get(fillMshr), !fillIndex(indexBits - 1), fillIndex(indexBits - 1))
                 else fillIndex(indexBits - 1))
@@ -838,6 +886,18 @@ class NonBlockingCoherentLineCache(
         val releaseBusy = wbPrefetch.map(v => VecInit((0 until wbCount).map(i =>
             wbLive(i) && v(i))).asUInt.orR).getOrElse(
             singleReleasePrefetch.map(_ && evictionState =/= eIdle).getOrElse(false.B))
+        // These relaxed read-speculation gates never alter architectural busy
+        // or captured WB ownership. Store prediction keeps its original gates.
+        val unattachedOwner = if (concurrency.readPrefetchDemandAdoption)
+            VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free &&
+                !isDemandAttached(i.U))).asUInt.orR else liveOwner
+        val readCandidateOwner = if (concurrency.readPrefetchDemandAdoption)
+            VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free &&
+                !isDemandAttached(i.U) && !(demandAttach && attachMshr === i.U))).asUInt.orR else liveOwner
+        val sentPrefetchWritebacks = if (concurrency.readPrefetchDemandAdoption)
+            VecInit((0 until wbCount).map(i => !wbLive(i) || !wbPrefetch.get(i) || wbSent(i))).asUInt.andR
+        else false.B
+        val readReleaseAllowed = !releaseBusy || sentPrefetchWritebacks
         io.prefetchBusy := candidateValid || liveOwner || releaseBusy
         if (concurrency.postedPrefetchCoexistence) {
             // An old candidate cancels beside a held new-owner/fallback offer.
@@ -917,7 +977,7 @@ class NonBlockingCoherentLineCache(
             val readPrediction = if (concurrency.readPrefetchDirtyRetry)
                 sequential || (lastValid && line === lastLine && sequentialReadLine.get) else sequential
             when(readPrediction && request.prefetchNextAllowed && postedPrefetchAllowed &&
-                !candidateValid && !liveOwner && !releaseBusy &&
+                !candidateValid && !readCandidateOwner && readReleaseAllowed &&
                 (!trackedValid || consume || !trackedPresent)) {
                 io.prefetch.candidate := true.B
                 candidateValid := true.B
@@ -1047,7 +1107,14 @@ class NonBlockingCoherentLineCache(
         val victimPending = VecInit((0 until wbCount).map(i => wbLive(i) &&
             wbAddress(i)(63, 6) === candidateAddress(63, 6))).asUInt.orR
         val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
-        val otherwiseEligible = postedPrefetchAllowed && !liveOwner && !releaseBusy &&
+        val readCandidate = !candidateStore.getOrElse(false.B)
+        val speculativeOwnerAvailable = if (concurrency.readPrefetchDemandAdoption)
+            Mux(readCandidate, !unattachedOwner, !liveOwner) else !liveOwner
+        val speculativeReleaseAvailable = if (concurrency.readPrefetchDemandAdoption)
+            Mux(readCandidate, readReleaseAllowed, !releaseBusy) else !releaseBusy
+        val victimCreditAvailable = if (concurrency.readPrefetchDemandAdoption) !valid(pfIndex) || wbSpace else true.B
+        val otherwiseEligible = postedPrefetchAllowed && speculativeOwnerAvailable && speculativeReleaseAvailable &&
+            victimCreditAvailable &&
             !present && !setReserved && !victimPending && allowedVictim &&
             (!valid(pfIndex) || !dirty(pfIndex) || (if (concurrency.readPrefetchDirtyRetry)
                 candidateStore.get || readDirtyVictimAllowed else candidateStore.getOrElse(false.B))) &&
@@ -1086,11 +1153,12 @@ class NonBlockingCoherentLineCache(
                 observationStorePrefetch.allocatedVictimDirty := valid(pfIndex) && dirty(pfIndex)
                 when(valid(pfIndex)) { observationStorePrefetch.allocatedVictimAddress := candidateVictimAddress }
                 observedTrackedStore.foreach(_ := candidateStore.get)
-                assert(!cpuFire || !needsMissSlot, "prefetch stole an admitted demand slot")
+                assert(!cpuFire || !needsMissSlot || demandAttach, "prefetch stole an admitted demand slot")
                 assert(candidateAddress >= base.U(65.W) &&
                     (candidateAddress +& 64.U(64.W)) <= (base + bytes).U(65.W), "prefetch escaped RAM")
                 postedMshr.foreach(_(freeMshr) := false.B)
                 acquireIssued.foreach(_(freeMshr) := false.B)
+                demandAttached.foreach(_(freeMshr) := false.B)
                 pending(freeMshr) := 0.U.asTypeOf(new DataRequest)
                 pending(freeMshr).address := candidateAddress
                 pendingIndex(freeMshr) := pfIndex
@@ -1101,7 +1169,7 @@ class NonBlockingCoherentLineCache(
                 phase(freeMshr) := Mux(valid(pfIndex), evictWait, acquire)
             }
         }
-        when(refill && prefetchOwner(fillMshr) && !engine.io.response.bits.error) {
+        when(refill && prefetchOwner(fillMshr) && !isDemandAttached(fillMshr) && !engine.io.response.bits.error) {
             if (concurrency.splitPrefetchTracking) {
                 // Use the accepted transaction's functional origin on refill,
                 // never an observation bit or a free/recycled MSHR's old origin.
@@ -1306,8 +1374,8 @@ class NonBlockingCoherentLineCache(
 
     io.hit := cpuFire && ordinary && found
     io.miss := cpuFire && ordinary && !found
-    io.profile.emptySlotMiss := io.miss && !valid(index)
-    io.profile.replacementMiss := io.miss && valid(index)
+    io.profile.emptySlotMiss := io.miss && !demandAttach && !valid(index)
+    io.profile.replacementMiss := io.miss && !demandAttach && valid(index)
     io.profile.readMiss := io.miss && !request.write
     io.profile.writeMiss := io.miss && request.write
     io.profile.dirtyEviction := startEviction && dirty(evictIndex) && (evictFromMiss || evictFromBypass)
@@ -1360,8 +1428,50 @@ class NonBlockingCoherentLineCache(
     assert(PopCount(Seq(hitPending && !hitStore, probeState === pCapture && probeDirty,
         evictionState === eCapture && evictionDirty)) <= 1.U,
         "SRAM read result has more than one owner")
+    if (concurrency.readPrefetchDemandAdoption) {
+        assert(PopCount((0 until mshrCount).map(i => phase(i) =/= free && prefetchOwner(i) &&
+            !isDemandAttached(i.U))) <= 1.U, "more than one unattached prefetch owner")
+        when(demandAttach) {
+            assert(PopCount(attachMatches) === 1.U && !postedAccept && !directEviction &&
+                !engine.io.response.valid, "attachment crossed owner or maintenance boundary")
+        }
+        for (i <- 0 until mshrCount) {
+            when(isDemandAttached(i.U)) {
+                assert(prefetchOwner(i) && !storePrefetchOwner.get(i) && !isPosted(i.U) &&
+                    (phase(i) === fill || phase(i) === result) && responseOwned(pendingTicket(i)),
+                    "attached demand lost immutable PF origin or response lifetime")
+                assert(!pending(i).write && !pending(i).atomic && !pending(i).virtualized && !pending(i).uncached,
+                    "attached demand was not an ordinary checked read")
+            }
+        }
+    }
     // Passive reconstructed gate observations. No protocol/permission decision consumes them.
-    observationStorePrefetch.demandAlloc := cpuFire && needsMissSlot
+    observationStorePrefetch.demandAttach := demandAttach
+    observationStorePrefetch.demandAttachReady := attachReady
+    observationStorePrefetch.demandAttachSlot := attachMshr
+    observationStorePrefetch.demandAttachAddress := request.address
+    observationStorePrefetch.demandAttachTicket := responseTail
+    observationStorePrefetch.mshrDemandAttachedMask := demandAttached.map(_.asUInt).getOrElse(0.U)
+    observationStorePrefetch.mshrAcquireIssuedMask := acquireIssued.map(_.asUInt).getOrElse(0.U)
+    observationStorePrefetch.mshrKnownErrorMask := failedAcquireOwners.map(_.asUInt).getOrElse(0.U)
+    observationStorePrefetch.refillDemandAttached := isDemandAttached(fillMshr)
+    observationStorePrefetch.refillTicket := fillTicket
+    observationStorePrefetch.responseOwnedMask := responseOwned.asUInt
+    observationStorePrefetch.responseCompleteMask := responseComplete.asUInt
+    observationStorePrefetch.responseHeadTicket := responseHead
+    observationStorePrefetch.responseTailTicket := responseTail
+    observationStorePrefetch.acquireTagBits := acquireTagBits.U
+    engine.io.issued.foreach { issued =>
+        observationStorePrefetch.acquireIssued := issued.valid
+        observationStorePrefetch.acquireIssuedSlot := tagMshr(issued.bits)
+        observationStorePrefetch.acquireIssuedTag := issued.bits
+        observationStorePrefetch.acquireIssuedTagLo := issued.bits.pad(128)(63, 0)
+        observationStorePrefetch.acquireIssuedTagHi := issued.bits.pad(128)(127, 64)
+    }
+    observationStorePrefetch.refillTag := engine.io.response.bits.tag
+    observationStorePrefetch.refillTagLo := engine.io.response.bits.tag.pad(128)(63, 0)
+    observationStorePrefetch.refillTagHi := engine.io.response.bits.tag.pad(128)(127, 64)
+    observationStorePrefetch.demandAlloc := cpuFire && needsMissSlot && !demandAttach
     observationStorePrefetch.demandAllocSlot := freeMshr
     observationStorePrefetch.demandAllocAddress := request.address
     observationStorePrefetch.mshrLiveMask := VecInit(phase.map(_ =/= free)).asUInt
