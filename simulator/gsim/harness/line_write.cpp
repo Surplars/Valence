@@ -5,6 +5,10 @@
 #include <stdexcept>
 #include <string_view>
 
+#ifndef LINE_DISPATCH_FLOW
+#define LINE_DISPATCH_FLOW 0
+#endif
+
 static void check(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -67,7 +71,7 @@ int main(int argc, char **argv) { try {
 
     std::array<unsigned, 4> sourceForRequest{};
     std::array<bool, 4> seenSource{};
-    unsigned requests = 0, aBeats = 0, heldA = 0;
+    unsigned requests = 0, aBeats = 0, heldA = 0, firstOffer = 99;
     for (unsigned cycle = 0; cycle < 120 && (requests < 4 || aBeats < 32); ++cycle) {
         const bool ready = cycle % 3 != 1;
         drive(dut, requests < 4, base + 64 * requests, 0x30 + requests, ready, false);
@@ -76,6 +80,7 @@ int main(int argc, char **argv) { try {
               "line write unexpectedly emitted a coherence message");
         if (requests < 4 && dut.get_io$$request$$ready()) ++requests;
         if (dut.get_io$$tl$$a$$valid()) {
+            if (firstOffer == 99) firstOffer = cycle;
             const unsigned index = aBeats / 8, beat = aBeats % 8;
             const unsigned source = dut.get_io$$tl$$a$$bits$$source();
             check(index < 4 && source < 4 &&
@@ -99,6 +104,8 @@ int main(int argc, char **argv) { try {
     }
     check(requests == 4 && aBeats == 32 && heldA > 0,
           "four line writes did not issue under A backpressure");
+    check(firstOffer == (LINE_DISPATCH_FLOW ? 1U : 2U), "line write dispatch latency contract changed");
+    std::cout << "LINE_WRITE_DISPATCH first_a_offer=" << firstOffer << "\n";
     drive(dut, true, base + 256, 0x34, true, false);
     dut.step();
     check(!dut.get_io$$request$$ready(), "fifth line write overcommitted slots");
@@ -174,6 +181,36 @@ int main(int argc, char **argv) { try {
         }
     }
     check(requests == 4 && aBeats == 32, "line write streaming did not drain four bursts");
+    // A new input owner arrives exactly on last A, with no pre-existing queued
+    // successor. Flow must load the registered successor without a burst gap.
+    drive(dut, false, 0, 0, true, false);
+    dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    requests = 0; aBeats = 0; streaming = false;
+    unsigned bubbles = 0;
+    std::array<unsigned, 2> lateSources{};
+    for (unsigned cycle = 0; cycle < 40 && aBeats < 16; ++cycle) {
+        const unsigned index = aBeats / 8, beat = aBeats % 8;
+        const bool request = requests < 2 && (requests == 0 || aBeats == 7);
+        const bool ack = streaming && beat == 7;
+        drive(dut, request, base + 64 * requests, 0x70 + requests, true, false,
+              ack, lateSources[index]);
+        dut.step();
+        if (request && dut.get_io$$request$$ready()) ++requests;
+        if (streaming && !dut.get_io$$tl$$a$$valid()) ++bubbles;
+        if (dut.get_io$$tl$$a$$valid()) {
+            streaming = true;
+            const unsigned source = dut.get_io$$tl$$a$$bits$$source();
+            if (!beat) lateSources[index] = source;
+            check(source == lateSources[index] && dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
+                dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 64 * index, beat),
+                "late line write handoff owner/payload mismatch");
+            if (ack) check(dut.get_io$$tl$$d$$ready(), "late handoff withdrew final A/D owner");
+            ++aBeats;
+        }
+    }
+    check(requests == 2 && aBeats == 16 && bubbles == (LINE_DISPATCH_FLOW ? 0U : 1U),
+        "late line write handoff dispatch bubble contract changed");
+    std::cout << "LINE_WRITE_LATE_HANDOFF bubbles=" << bubbles << "\n";
     std::cout << "GSIM TileLink line write: PASS fourInflight burstLock outOfOrderAck denied reuse II1 adjacentFinalAck" << '\n';
     return 0;
 } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

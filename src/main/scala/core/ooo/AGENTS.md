@@ -2,6 +2,7 @@
 
 - IMPORTANT user preference (2026-10-01): optimize in coherent multi-change batches, then run necessary short GSIM checks once, then one combined synthesis/timing comparison. No GSIM/synthesis after every small edit; no full GSIM or long Linux run by default. Keep issue width 2, archive results, and reuse checkpoints. This takes precedence over generic full-acceptance guidance during ongoing optimization.
 - Latest user refinement (2026-10-05): batch ten or more related structural changes when justified by the measured paths, with one combined short acceptance and implementation. The earlier 2–3-path target is not a limit. Do not add unrelated changes merely to meet a count.
+- Latest user refinement (2026-10-11): bandwidth and effective accepted request/transfer duty take priority. Avoid frequent STA; use coherent structural batches and necessary short checks with unchanged traffic/service laws, then defer combined physical qualification until the bandwidth candidate is ready or explicitly requested.
 
 - This is a fresh implementation. The legacy in-order core is known to have bugs and is not a correctness oracle or a control-logic template.
 - Derive instruction/exception behavior from the pinned RISC-V specification; derive microarchitecture from explicit invariants. Audit any candidate reused module and its test expectations independently.

@@ -12,10 +12,14 @@ class MappedMachineCore(
     aplicParams: AplicParams = AplicParams(),
     dataTranslation: Boolean = false,
     stagedMemoryFabric: Boolean = false,
-    bufferTranslatedResponses: Boolean = false
+    bufferTranslatedResponses: Boolean = false,
+    translationHitFlow: Boolean = false,
+    canonicalHandoff: Boolean = false
 ) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
+    require(!translationHitFlow || (dataTranslation && stagedMemoryFabric),
+        "translation hit flow requires the staged data MMU")
     require(!p.virtualRamLoadPrecheck || (dataTranslation && stagedMemoryFabric),
         "virtual load precheck requires the staged physical authorization adapter")
     require(!p.canonicalVirtualStoreOverlap || (dataTranslation && stagedMemoryFabric),
@@ -73,7 +77,7 @@ class MappedMachineCore(
             aplicParams.base + 32768 <= p.speculativeRamBase,
         "APLIC domains must not overlap speculative or buffered RAM"
     )
-    val core  = Module(new MachineCore(p, imsicParams))
+    val core  = Module(new MachineCore(p, imsicParams, canonicalHandoff))
     val aplic = Module(new Aplic(aplicParams, hasChild = true,
         childMsiBase = imsicParams.supervisorBase))
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,
@@ -94,7 +98,8 @@ class MappedMachineCore(
     var observationTranslation: Option[DataTranslationAdapter] = None
     var observationResponses: Option[DataResponseBuffer] = None
     if (dataTranslation) {
-        val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric))
+        val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
+            translationHitFlow = translationHitFlow))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,

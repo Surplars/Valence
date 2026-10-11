@@ -43,10 +43,25 @@ final case class FpgaNextConfig(
     postedPreparationPriority: Boolean = false,
     reconstructIssueTokenIndex: Boolean = false,
     sharedMemoryAddressState: Boolean = false,
-    distinctWayRelease: Boolean = false
+    distinctWayRelease: Boolean = false,
+    ddrWriteCollectionFlow: Boolean = false,
+    lineTransferDispatchFlow: Boolean = false,
+    lineReadChannel: Boolean = false,
+    ddrOutstanding: Int = 4,
+    ddrWriteCredits: Int = 2,
+    dataTlbWriteReadReuse: Boolean = false,
+    translationHitFlow: Boolean = false,
+    independentDemandAdmission: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
+    require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
+        "the CPU admission batch requires exact canonical virtual-store authorization")
+    require(!translationHitFlow || (virtualRamLoadPrecheck && !precheckedDataRequestFlow),
+        "translation hit flow requires virtual precheck and excludes the separate prechecked flow experiment")
     SvTranslationService.indexBits(dataTranslationEntries)
+    require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
+    require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
+        "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
     require(!memoryProofFrontier || (robEntries.contains(64) && physicalRegs.contains(64) && lsuEntries == 4 &&
         virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && loadOrderOlderRetire && dataTranslationEntries == 16),
         "memory proof frontier requires the explicitly selected reviewed capacity and translation profile")
@@ -65,7 +80,7 @@ final case class FpgaNextConfig(
     require(!storePrefetchLruVictim || storeNextLinePrefetch,
         "store-origin LRU victim selection requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
-    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
+    require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
     require(!precheckedDataRequestFlow || virtualRamLoadPrecheck,
         "prechecked flow is an explicit virtual-load-precheck experiment")
@@ -106,7 +121,14 @@ final case class FpgaNextConfig(
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
-        (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "")
+        (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "") +
+        (if (ddrWriteCollectionFlow) "-ddr-write-collection-flow" else "") +
+        (if (lineTransferDispatchFlow) "-line-transfer-dispatch-flow" else "") +
+        (if (lineReadChannel) "-line-read-channel" else "") +
+        (if (ddrOutstanding != 4 || ddrWriteCredits != 2) s"-ddr${ddrOutstanding}w${ddrWriteCredits}" else "") +
+        (if (dataTlbWriteReadReuse) "-dtlb-write-read-reuse" else "") +
+        (if (translationHitFlow) "-translation-hit-flow" else "") +
+        (if (independentDemandAdmission) "-independent-demand-admission" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -123,14 +145,15 @@ final case class FpgaNextConfig(
     val instructionCacheLines = 512
     val dataCacheLines = 512
     val cacheWays = 2
-    val ddr = DdrBridgeConfig(maxOutstanding = 4, maxBurstBeats = 16, axiIdWidth = 4,
-        maxOutstandingWrites = 2, unorderedResponses = true)
+    val ddr = DdrBridgeConfig(maxOutstanding = ddrOutstanding, maxBurstBeats = 16, axiIdWidth = 4,
+        maxOutstandingWrites = ddrWriteCredits, unorderedResponses = true, writeCollectionFlow = ddrWriteCollectionFlow,
+        lineReadChannel = lineReadChannel)
     val cache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
         storeNextLinePrefetch = storeNextLinePrefetch, storePrefetchMruInsertion = storePrefetchMruInsertion,
         postedPrefetchCoexistence = postedPrefetchCoexistence, storePrefetchLruVictim = storePrefetchLruVictim,
-        distinctWayRelease = distinctWayRelease)
+        distinctWayRelease = distinctWayRelease, independentDemandAdmission = independentDemandAdmission)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -187,7 +210,8 @@ final case class FpgaNextConfig(
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
-        backendCapacity = backendCapacity)
+        backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow,
+        dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow)
 }
 
 object FpgaNextConfig {
@@ -200,6 +224,16 @@ object FpgaNextConfig {
     val Selected = ControlCandidate.copy(shareProtectedHeadPayload = true, bankedInstructionData = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
+        require(!options.exists(_.startsWith("--ddr-write-collection-flow=")),
+            "--ddr-write-collection-flow does not accept a value")
+        require(!options.exists(_.startsWith("--line-transfer-dispatch-flow=")),
+            "--line-transfer-dispatch-flow does not accept a value")
+        require(!options.exists(_.startsWith("--line-read-channel=")),
+            "--line-read-channel does not accept a value")
+        require(!options.exists(_.startsWith("--independent-demand-admission=")),
+            "--independent-demand-admission does not accept a value")
+        require(!options.exists(_.startsWith("--dtlb-write-read-reuse=")),
+            "--dtlb-write-read-reuse does not accept a value")
         require(!options.exists(_.startsWith("--reconstruct-issue-token-index=")),
             "--reconstruct-issue-token-index does not accept a value")
         require(!options.exists(_.startsWith("--shared-memory-address-state=")),
@@ -232,6 +266,8 @@ object FpgaNextConfig {
         val depths = options.filter(_.startsWith("--dma-line-entries="))
         require(depths.size <= 1, "choose one DMA line owner count")
         val lineDepth = depths.headOption.map(_.stripPrefix("--dma-line-entries=").toInt).getOrElse(1)
+        val ddrSlots = capacityOption("--ddr-outstanding=").getOrElse(4)
+        val ddrWrites = capacityOption("--ddr-write-credits=").getOrElse(2)
         base.copy(
             dataTranslationEntries = tlbCount,
             postedStoreMerge = options.contains("--posted-store-merge"),
@@ -258,6 +294,13 @@ object FpgaNextConfig {
             storePrefetchMruInsertion = options.contains("--store-prefetch-mru-insertion"),
             storePrefetchLruVictim = options.contains("--store-prefetch-lru-victim"),
             distinctWayRelease = options.contains("--distinct-way-release"),
+            ddrWriteCollectionFlow = options.contains("--ddr-write-collection-flow"),
+            lineTransferDispatchFlow = options.contains("--line-transfer-dispatch-flow"),
+            lineReadChannel = options.contains("--line-read-channel"),
+            ddrOutstanding = ddrSlots, ddrWriteCredits = ddrWrites,
+            dataTlbWriteReadReuse = options.contains("--dtlb-write-read-reuse"),
+            translationHitFlow = options.contains("--translation-hit-flow"),
+            independentDemandAdmission = options.contains("--independent-demand-admission"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

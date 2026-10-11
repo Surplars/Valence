@@ -15,7 +15,7 @@ object VirtualLoadPrecheckFixture {
 }
 
 class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
-    dataTranslationEntries: Int = 8) extends Module {
+    dataTranslationEntries: Int = 8, writeReadReuse: Boolean = false, translationHitFlow: Boolean = false) extends Module {
     val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -38,8 +38,10 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
         val translationWalk = Output(Bool())
         val idle = Output(Bool())
     })
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
-    val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16, loadPeek = enabled))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        translationHitFlow = translationHitFlow))
+    val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16,
+        loadPeek = enabled, writeReadReuse = writeReadReuse))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg
     pmp.addr(0) := io.pmpAddress
@@ -207,6 +209,16 @@ object VirtualLoadPrecheckGsimMain extends App {
 object DataTranslationCapacityGsimMain extends App {
     require(args.length == 2, "usage: DataTranslationCapacityGsimMain output-directory entries")
     ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true, dataTranslationEntries = args(1).toInt),
+        Array("--target-dir", args.head))
+}
+
+object DataTlbReuseGsimMain extends App {
+    require(args.length == 2 || args.length == 3,
+        "usage: DataTlbReuseGsimMain output-directory reuse-0-or-1 [entries]")
+    require(Set("0", "1").contains(args(1)))
+    val entries = args.lift(2).map(_.toInt).getOrElse(8)
+    ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true,
+        dataTranslationEntries = entries, writeReadReuse = args(1) == "1"),
         Array("--target-dir", args.head))
 }
 

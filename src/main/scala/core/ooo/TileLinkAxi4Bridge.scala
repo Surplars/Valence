@@ -22,11 +22,15 @@ class TileLinkAxi4Bridge(
     axiWindowBytes: BigInt = 0,
     maxOutstanding: Int = 1,
     maxOutstandingWrites: Int = 0,
-    unorderedResponses: Boolean = false
+    unorderedResponses: Boolean = false,
+    writeCollectionFlow: Boolean = false,
+    lineReadChannel: Boolean = false
 ) extends Module {
     val io = IO(new Bundle {
         val tl  = Flipped(new TLBundle(tlParams))
         val axi = new Axi4MemoryPort(axiAddressWidth, axiIdWidth)
+        val lineRead = if (lineReadChannel)
+            Some(Flipped(new soc.ip.tilelink.LineReadMemoryPort(tlParams.addrWidth))) else None
     })
     require(maxOutstanding >= 1)
     require(!unorderedResponses || maxOutstanding >= 2,
@@ -37,14 +41,22 @@ class TileLinkAxi4Bridge(
     require(burstEnabled || maxOutstandingWrites == 0)
     require(maxOutstandingWrites == 0 || axiWindowBytes > 0, "mixed concurrency requires an explicit ordinary RAM window")
     require(burstEnabled || maxOutstanding == 1, "outstanding burst slots require burst mode")
+    require(!writeCollectionFlow || (burstEnabled && axiWindowBytes > 0),
+        "write collection flow requires a burst-capable ordinary RAM window")
+    require(!lineReadChannel || (burstEnabled && maxOutstanding >= 2 && maxOutstandingWrites > 0 &&
+        unorderedResponses && axiWindowBytes > 0 && maxBurstBeats >= 8),
+        "independent line reads require the unordered shared RAM scheduler")
     if (burstEnabled && maxOutstanding > 1) {
         val bridge = Module(new TileLinkAxi4OutstandingBridge(tlParams, axiAddressWidth,
-            axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes, maxOutstanding, maxOutstandingWrites, unorderedResponses))
+            axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
+            maxOutstanding, maxOutstandingWrites, unorderedResponses, writeCollectionFlow, lineReadChannel))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
+        io.lineRead.foreach(_ <> bridge.io.lineRead.get)
     } else if (burstEnabled) {
         val bridge = Module(new TileLinkAxi4BurstBridge(tlParams, axiAddressWidth,
-            axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes))
+            axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
+            writeCollectionFlow))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
     } else {

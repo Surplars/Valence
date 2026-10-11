@@ -8,8 +8,9 @@ import soc.core.ooo._
 
 /** Independent manager, storage and CPU response oracle live entirely in C++. */
 class CoherentReadMshrGsim(mshrs: Int = 2, lines: Int = 512, ways: Int = 2, responses: Int = 8,
-    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth, base: BigInt = BigInt("80010000", 16)) extends Module {
-    private val cfg = CoherentCacheConcurrency(mshrs, responses)
+    tagConfig: CacheTagConfig = CacheTagConfig.FullWidth, base: BigInt = BigInt("80010000", 16),
+    independentDemandAdmission: Boolean = false) extends Module {
+    private val cfg = CoherentCacheConcurrency(mshrs, responses, independentDemandAdmission = independentDemandAdmission)
     private val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
@@ -41,5 +42,6 @@ object CoherentReadMshrGsimMain extends App {
         args.lift(2).map(_.toInt).getOrElse(512), args.lift(3).map(_.toInt).getOrElse(2),
         args.lift(4).map(_.toInt).getOrElse(8),
         CacheTagConfig(compact = args.lift(5).contains("1"), bankedStorage = args.contains("--banked-cache-tags")),
-        args.lift(6).map(BigInt(_)).getOrElse(BigInt("80010000", 16))), Array("--target-dir", args.head))
+        args.lift(6).map(BigInt(_)).getOrElse(BigInt("80010000", 16)),
+        independentDemandAdmission = args.contains("--independent-demand-admission")), Array("--target-dir", args.head))
 }

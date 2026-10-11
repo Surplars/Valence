@@ -6,7 +6,8 @@ import chisel3.util._
 /** Bounded RAM read concurrency over a strictly ordered-response data port. See docs/bare-core-ipc.md for throughput,
   * cancellation and platform contracts.
   */
-class ParallelLoadStoreUnit(p: OooParams) extends Module {
+class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) extends Module {
+    require(!canonicalHandoff || (p.canonicalVirtualStoreOverlap && p.virtualRamLoadPrecheck))
     private val indexBits = math.max(1, log2Ceil(p.memoryEntries))
     val io                = IO(new Bundle {
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
@@ -87,9 +88,6 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     // Prefer replacing the completing owner to preserve completion/start overlap and store forwarding.
     // Selection uses only registered slot state, not ready or same-cycle cancellation.
     val empty         = VecInit(slots.map(s => !s.io.busy))
-    val chosen        = Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty))
-    val available     = completion.io.out.valid || empty.asUInt.orR
-    val othersIdle    = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
     val ordinaryPrechecked = io.start.bits.precheckedLoad && io.start.bits.virtualized &&
         !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid
     val exemptSerial = (0 until p.memoryEntries).map { i =>
@@ -97,6 +95,16 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
             slots(i).io.busy && !parallel(i) && requestAccepted.get(i) && certifiedStoreClass.get(i) &&
             owner.bits.asUInt === slots(i).io.owner.asUInt).getOrElse(false.B)
     }
+    // A certified store may be waiting for completion arbitration while another
+    // physical slot is empty. Its exact registered authorization already permits
+    // this prechecked load; do not force it to replace the blocked completion.
+    // Never feed completion READY or cancellation into the reservation selector.
+    val handoffOffer = if (canonicalHandoff) empty.asUInt.orR && exemptSerial.reduce(_ || _) else false.B
+    val chosen = Mux(handoffOffer, PriorityEncoder(empty),
+        Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty)))
+    val available = completion.io.out.valid || empty.asUInt.orR
+    val othersIdle = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
+    val observationCanonicalHandoff = WireDefault(io.start.fire && handoffOffer)
     val noOtherSerial = (0 until p.memoryEntries)
         .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U) || exemptSerial(i))
         .reduce(_ && _)
@@ -104,6 +112,10 @@ class ParallelLoadStoreUnit(p: OooParams) extends Module {
     io.start.ready    := io.issueAvailable && Mux1H(
         (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
     )
+    when(observationCanonicalHandoff) {
+        assert(ordinaryPrechecked && io.parallel && empty(chosen),
+            "authorized handoff must use an empty slot without completing or replacing the store")
+    }
     io.acceptedStartSlot.foreach { accepted =>
         accepted.valid := io.start.fire
         accepted.bits := chosen

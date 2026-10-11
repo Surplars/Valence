@@ -62,7 +62,8 @@ struct Test {
     std::map<unsigned,LineOwner> checkedLineOwners;
     std::optional<std::tuple<unsigned,uint64_t,bool,unsigned _BitInt(512)>> heldLineOffer;
     std::map<unsigned,unsigned> tlReadBeats;
-    uint64_t tlReadCompletions=0,tlWriteCompletions=0,tagChecks=0;
+    uint64_t tlReadCompletions=0,packetReadCompletions=0,axiReadCompletions=0,tlWriteCompletions=0,tagChecks=0;
+    std::optional<std::tuple<unsigned,unsigned _BitInt(512),bool>> heldMemoryLine;
     void checkLineOwners(){
         auto offer=std::make_tuple(unsigned(d.get_io$$lineRequestTag()),uint64_t(d.get_io$$lineRequestAddress()),bool(d.get_io$$lineRequestWrite()),d.get_io$$lineRequestData());
         if(heldLineOffer)check(d.get_io$$lineRequestOffer()&&offer==*heldLineOffer,"protocol held line offer changed");
@@ -85,6 +86,10 @@ struct Test {
         if(d.get_io$$tlDValid()&&d.get_io$$tlDReady()){
             auto tag=unsigned(d.get_io$$tlDSource());if(d.get_io$$tlDOpcode()==1){if(++tlReadBeats[tag]==8){++tlReadCompletions;tlReadBeats.erase(tag);}}else ++tlWriteCompletions;
         }
+        auto memoryLine=std::make_tuple(unsigned(d.get_io$$lineMemoryResponseTag()),d.get_io$$lineMemoryResponseData(),bool(d.get_io$$lineMemoryResponseError()));
+        if(heldMemoryLine)check(d.get_io$$lineMemoryResponseValid()&&memoryLine==*heldMemoryLine,"held whole-line memory result changed");
+        heldMemoryLine=d.get_io$$lineMemoryResponseValid()&&!d.get_io$$lineMemoryResponseReady()?std::optional{memoryLine}:std::nullopt;
+        if(d.get_io$$lineMemoryResponseValid()&&d.get_io$$lineMemoryResponseReady())++packetReadCompletions;
         if(d.get_io$$irq())check(checkedLineOwners.empty()&&!heldLineOffer,"IRQ retained tagged or offered line owner");
     }
     std::vector<uint8_t> oracle,highOracle;
@@ -138,7 +143,13 @@ struct Test {
         if(offered){auto&q=*offered;d.set_io$$cpu$$request$$bits$$address(q.address);d.set_io$$cpu$$request$$bits$$write(q.write);
             d.set_io$$cpu$$request$$bits$$data(q.data);d.set_io$$cpu$$request$$bits$$mask(q.mask);d.set_io$$cpu$$request$$bits$$atomic(q.atomic);
             d.set_io$$cpu$$request$$bits$$atomicOp(q.operation);d.set_io$$cpu$$request$$bits$$uncached(q.uncached);}
-        ddr.drive(d,cycles);oracleDrive();d.step();metrics.sample(d,cycles,ddr,oracleResponseValid,oracleOwner?oracleOwner->tag:0);oracleSample();ddr.sample(d);++cycles;checkLineOwners();
+        ddr.drive(d,cycles);oracleDrive();d.step();metrics.sample(d,cycles,ddr,oracleResponseValid,oracleOwner?oracleOwner->tag:0);oracleSample();
+        if(ddr.rValid&&d.get_io$$ddrAxi$$r$$ready()){
+            auto r=PipelineDdr::selected(ddr.reads,ddr.heldR);
+            check(r!=ddr.reads.end(),"accepted RLAST lost independent service owner");
+            if(r->beat+1==r->count)++axiReadCompletions;
+        }
+        ddr.sample(d);++cycles;checkLineOwners();
         auto current=std::make_tuple(uint64_t(d.get_io$$cpu$$response$$bits$$data()),bool(d.get_io$$cpu$$response$$bits$$error()),bool(d.get_io$$cpu$$response$$bits$$pageFault()));
         if(heldCpu)check(d.get_io$$cpu$$response$$valid()&&current==*heldCpu,"held CPU response changed");
         heldCpu=d.get_io$$cpu$$response$$valid()&&!ready?std::optional{current}:std::nullopt;
@@ -350,7 +361,9 @@ static void pipelineCase(unsigned id,unsigned bytes,unsigned mode,unsigned laten
     check(t.metrics.ops.size()==bytes/32,"line operation count mismatch");
     for(auto&o:t.metrics.ops){check(o.event[15]>=o.event[1],"unfinished pipeline operation");
         if(mode<2){check(o.event[2]==o.event[1],"unexpected admission split");
-            check(o.aBeats==(o.write?8U:1U)&&o.dBeats==(o.write?1U:8U),"TL exact beat mismatch");
+            const bool packet=!o.write&&t.d.get_io$$lineReadEnabled();
+            check(o.aBeats==(o.write?8U:packet?0U:1U)&&o.dBeats==(o.write?1U:packet?0U:8U),"TL exact beat mismatch");
+            if(packet)check(o.event[17]>=o.event[2]&&o.event[18]>o.event[10],"whole-line completion without accepted request and RLAST");
             check(o.rBeats==(o.write?0U:8U)&&o.wBeats==(o.write?8U:0U),"AXI exact beat mismatch");
             if(o.write)check(o.event[11]<=o.event[15],"DMA line completion before actual AXI B");}
     }
@@ -364,6 +377,7 @@ static void pipelineCase(unsigned id,unsigned bytes,unsigned mode,unsigned laten
     }
     check(t.ddr.memory==t.oracle,"pipeline independent full memory oracle mismatch");
     std::cout<<"PIPE_CASE case="<<id<<" bytes="<<bytes<<" entries="<<DMA_LINE_ENTRIES<<" mode="<<mode<<" profile="<<latencyProfile<<" oracle_latency="<<lineLatency
+        <<" line_channel="<<bool(t.d.get_io$$lineReadEnabled())
         <<" cycles="<<done-begin<<" begin="<<begin<<" done="<<done<<" payload_MiBps="<<std::fixed<<std::setprecision(9)
         <<double(bytes)*100000000.0/double(done-begin)/1048576.0<<" axi_read_bytes="<<t.ddr.rBytes<<" axi_write_bytes="<<t.ddr.wBytes
         <<" axi_ar="<<t.ddr.arCount<<" axi_aw="<<t.ddr.awCount<<" axi_b="<<t.ddr.bCount
@@ -373,7 +387,8 @@ static void pipelineCase(unsigned id,unsigned bytes,unsigned mode,unsigned laten
     t.metrics.print(id);
 }
 int main(int argc,char** argv){try{
-    bool smoke=false,protocolOnly=false,combinedOnly=false;for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--smoke")smoke=true;else if(a=="--protocol-only")protocolOnly=true;else if(a=="--combined-only")combinedOnly=true;
+    bool smoke=false,protocolOnly=false,combinedOnly=false,transportOnly=false;for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--smoke")smoke=true;else if(a=="--protocol-only")protocolOnly=true;else if(a=="--combined-only")combinedOnly=true;
+        else if(a=="--transport-only")transportOnly=true;
         else if(a.rfind("--mutate=",0)==0)mutation=a.substr(9);else throw std::runtime_error("unknown argument");}
     if(combinedOnly){
         for(unsigned mode:{1U,2U,3U})cpuOnly(mode);
@@ -397,14 +412,28 @@ int main(int argc,char** argv){try{
         for(unsigned i=0;i<40;++i){heldReply.tick();check(heldReply.d.get_io$$lineResponseOffer()&&data==heldReply.d.get_io$$lineResponseData()&&tag==heldReply.d.get_io$$lineResponseOfferTag(),"held line response changed");check(heldReply.lineResponses==replies&&!heldReply.d.get_io$$irq(),"held line response prematurely retired");}
         heldReply.d.set_io$$blockLineResponse(0);heldReply.finish();heldReply.flush();
         if(DMA_LINE_ENTRIES>1){
-            Test both;both.ddr.reversePairs=true;both.start(base,base+0x40000,512);
+            // This witness deliberately holds the complete home response.
+            // Leave a shared slot for W: filling the entire pool with retained
+            // read results would legitimately prevent W allocation until that
+            // hold releases, especially with more DMA owners than DDR slots.
+            // Full retained-pool pressure is proved separately by the boundary
+            // driver; this case proves simultaneous directional progress.
+            Test both;both.ddr.reversePairs=true;
+            const unsigned mixedBytes=std::min<unsigned>(8,DMA_AXI_SLOTS-1)*64;
+            both.start(base,base+0x40000,mixedBytes);
             both.until([&]{bool rd=false,wr=false;for(auto[tag,owner]:both.checkedLineOwners){rd|=!owner.write;wr|=owner.write;}return rd&&wr;},"mixed-direction hold setup timeout");
             const auto responsesBeforeBlock=both.lineResponses;
             both.d.set_io$$blockLineResponse(1);both.tick();both.until([&]{return both.d.get_io$$lineResponseOffer();},"mixed held reply never offered");
             auto data=both.d.get_io$$lineResponseData();auto tag=both.d.get_io$$lineResponseOfferTag();auto error=both.d.get_io$$lineResponseError();
-            const auto firstHeldReadCount=both.tlReadCompletions,firstHeldWriteCount=both.tlWriteCompletions;
+            // A packet result stays in its shared bridge slot until accepted;
+            // unlike the old fill engine it is not copied into private RAM
+            // while the coherent response is held. Witness backing RLAST and
+            // the pending packet offer, not fictitious downstream retirement.
+            auto pendingReads=[&]{return both.d.get_io$$lineReadEnabled()?both.axiReadCompletions:both.tlReadCompletions;};
+            const auto firstHeldReadCount=pendingReads(),firstHeldWriteCount=both.tlWriteCompletions;
             check(firstHeldReadCount<2||firstHeldWriteCount<1,"both directions completed before hold witness");
-            unsigned waited=0;while(both.tlReadCompletions<2||both.tlWriteCompletions<1||waited<40){both.tick();++waited;check(waited<2000,"mixed pending replies did not coexist");check(both.d.get_io$$lineResponseOffer()&&data==both.d.get_io$$lineResponseData()&&tag==both.d.get_io$$lineResponseOfferTag()&&error==both.d.get_io$$lineResponseError()&&both.lineResponses==responsesBeforeBlock,"mixed-direction held response changed");}
+            unsigned waited=0;while(pendingReads()<2||both.tlWriteCompletions<1||waited<40){both.tick();++waited;check(waited<2000,"mixed pending replies did not coexist");check(both.d.get_io$$lineResponseOffer()&&data==both.d.get_io$$lineResponseData()&&tag==both.d.get_io$$lineResponseOfferTag()&&error==both.d.get_io$$lineResponseError()&&both.lineResponses==responsesBeforeBlock,"mixed-direction held response changed");}
+            if(both.d.get_io$$lineReadEnabled())check(both.d.get_io$$lineMemoryResponseValid(),"mixed blocked response lost pending whole-line result");
             both.d.set_io$$blockLineResponse(0);both.finish();both.flush();
             std::cout<<"DMA_OVERLAP_PROTOCOL mixed_reply_lock=1 pending_read=1 pending_write=1 all_case_tag_checker=1\n";
         }
@@ -424,15 +453,16 @@ int main(int argc,char** argv){try{
             reuse.until([&]{return reuse.checkedLineOwners.empty();},"reused tag failed to drain");reuse.flush();
             std::cout<<"DMA_OVERLAP_MANUAL same_address_read_write=1 same_address_write_read=1 held_after_transport=1 tag_reuse_backpressure=1\n";
         }
+        const unsigned initialOwners=std::min<unsigned>(DMA_LINE_ENTRIES,DMA_AXI_SLOTS);
         Test ordinaryDemand;ordinaryDemand.start(base,base+0x40000,4096);
-        ordinaryDemand.until([&]{return ordinaryDemand.lineRequests>=DMA_LINE_ENTRIES&&ordinaryDemand.lineResponses==0;},"atomic fairness owner setup failed");
+        ordinaryDemand.until([&]{return ordinaryDemand.lineRequests>=initialOwners&&ordinaryDemand.lineResponses==0;},"atomic fairness owner setup failed");
         ordinaryDemand.offered=Request{base+0x90000,true,11,255,true,0,true};
         ordinaryDemand.until([&]{return ordinaryDemand.d.get_io$$atomicCpuOffer();},"atomic demand not observed");
         auto ordinaryBegin=ordinaryDemand.cycles,ordinaryLines=ordinaryDemand.lineRequests;
         while(!ordinaryDemand.atomicExclusive){ordinaryDemand.tick();check(ordinaryDemand.lineRequests<=ordinaryLines+1,"new line admission starved pending atomic demand");}
         auto ordinaryWait=ordinaryDemand.cycles-ordinaryBegin;ordinaryDemand.finish();ordinaryDemand.until([&]{return !ordinaryDemand.offered&&ordinaryDemand.replies.empty();},"atomic demand did not finish");ordinaryDemand.flush();
         Test acquireDemand;acquireDemand.start(base,base+0x40000,4096);
-        acquireDemand.until([&]{return acquireDemand.lineRequests>=DMA_LINE_ENTRIES&&acquireDemand.lineResponses==0;},"Acquire fairness owner setup failed");
+        acquireDemand.until([&]{return acquireDemand.lineRequests>=initialOwners&&acquireDemand.lineResponses==0;},"Acquire fairness owner setup failed");
         acquireDemand.offered=Request{base+0x90000};acquireDemand.until([&]{return acquireDemand.d.get_io$$cacheAcquireOffer();},"cache Acquire demand not observed");
         auto acquireBegin=acquireDemand.cycles,acquireLines=acquireDemand.lineRequests;
         while(!acquireDemand.d.get_io$$cacheAcquireFire()){acquireDemand.tick();check(acquireDemand.lineRequests<=acquireLines+1,"new line admission starved pending Acquire demand");}
@@ -440,6 +470,10 @@ int main(int argc,char** argv){try{
         std::cout<<"DMA_OVERLAP_FAIRNESS entries="<<DMA_LINE_ENTRIES<<" atomic_wait_cycles="<<ordinaryWait<<" acquire_wait_cycles="<<acquireWait<<" additional_irrevocable_offers_max=1\n";
         std::cout<<"DMA_PIPELINE_PROTOCOL_PASS held_response=1 error_held_offer="<<(DMA_LINE_ENTRIES>1)<<" dirty_cases=2 all_case_tag_checker=1\n";return 0;}
     unsigned id=0;
+    if(transportOnly){
+        for(unsigned n:{4096U,131072U})for(unsigned p:{0U,1U})pipelineCase(id++,n,0,p);
+        std::cout<<"DMA_PIPELINE_TRANSPORT_PASS cases="<<id<<" real_atomic_home_axi=1\n";return 0;
+    }
     if(!mutation.empty()){pipelineCase(id++,512,0,0);throw std::runtime_error("negative failed to reject");}
     for(unsigned n:{512U,4096U,131072U}){if(smoke&&n!=512)continue;
         for(unsigned p:{0U,1U,2U,3U})for(unsigned m:{0U,1U})pipelineCase(id++,n,m,p);

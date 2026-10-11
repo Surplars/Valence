@@ -34,7 +34,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     lineageProfile: Option[soc.core.ooo.FpgaNextConfig] = None,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
-    postedPreparationPriority: Boolean = false) extends Module {
+    postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
+    dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -48,9 +49,12 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
         preparedStoreLookahead = preparedStoreLookahead, postedPreparationPriority = postedPreparationPriority,
-        dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
+        dataTranslationEntries = dataTranslationEntries, dataTlbWriteReadReuse = dataTlbWriteReadReuse,
+        translationHitFlow = translationHitFlow,
+        postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
-        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier, backendCapacity = backendCapacity))
+        canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
+        backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow))
     // A test-only, passive scalar view of this exact Board instance. No inputs,
     // queues or control paths are inserted by the composition fixture.
     val lineage = lineageProfile.map { profile =>
@@ -216,12 +220,28 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val dataPathReply3Flags = IO(Output(UInt(64.W)))
     val dataPathReply4Data = IO(Output(UInt(64.W)))
     val dataPathReply4Flags = IO(Output(UInt(64.W)))
+    // Passive bandwidth diagnostics. Bits are independent event/blocked predicates,
+    // not mutually exclusive causal buckets. No production ready/valid is changed.
+    val cpuBandwidthEvents = IO(Output(UInt(24.W)))
+    val cpuTranslationHitPass = IO(Output(Bool()))
+    val cpuAuthorizedHandoff = IO(Output(Bool()))
+    val cpuIndependentAdmission = IO(Output(UInt(3.W)))
+    cpuBandwidthEvents := 0.U
+    cpuTranslationHitPass := false.B
+    cpuAuthorizedHandoff := false.B
+    cpuIndependentAdmission := 0.U
     backendReset := reset.asBool
     backendSlotCount := BoardSocConfig.timingParams(timingProfile, issueWidth).memoryEntries.U
     if (backendProbes) {
         require(frontendProbes && issueWidth == 2)
         val b = board.platform.core.core.core.backend
         val l = b.lsu
+        cpuAuthorizedHandoff := BoringUtils.bore(l.observationCanonicalHandoff)
+        board.platform.privateCache.get match {
+            case cache: soc.core.ooo.NonBlockingCoherentLineCache =>
+                cpuIndependentAdmission := BoringUtils.bore(cache.observationIndependentDemand)
+            case _ =>
+        }
         val q = b.observationRequests.get
         val stores = b.observationStores.get
         require(Set(2, 4).contains(l.slots.size), "backend probes require two or four LSU owners")
@@ -268,6 +288,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         backendFifoCount := tap(q.io.count)
         backendStoreCause := tap(stores.io.requestStallCause)
         val adapter = board.platform.core.observationTranslation.get
+        cpuTranslationHitPass := BoringUtils.bore(adapter.translationHitPass)
         val responses = board.platform.core.observationResponses.get
         val profile = BoardSocConfig.timingParams(timingProfile, issueWidth)
         require(profile.registeredMemoryAddress && profile.earlyRecoveryIssueBlock &&
@@ -275,6 +296,24 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
             profile.registeredStoreResponseOwners && issueWidth == 2)
         val incomingQueue = adapter.virtualRequests.get
         val checkedQueue = adapter.checked.get
+        val vm = board.platform.io.translationEvents.get
+        cpuBandwidthEvents := VecInit(Seq(
+            tap(vm.hit(1)), tap(vm.walk(1)), tap(vm.pteRead(1)), tap(vm.pteCacheHit(1)),
+            tap(vm.hit(0)), tap(vm.walk(0)), tap(vm.pteRead(0)), !tap(vm.idle(1)),
+            tap(adapter.incoming.valid) && !tap(adapter.incoming.ready),
+            tap(adapter.waiting), tap(adapter.translated.io.deq.valid) && !tap(adapter.translated.io.deq.ready),
+            tap(checkedQueue.deq.valid) && !tap(checkedQueue.deq.ready),
+            tap(adapter.io.physical.request.valid) && !tap(adapter.io.physical.request.ready),
+            tap(adapter.io.virtual.request.valid) && !tap(adapter.io.virtual.request.ready),
+            tap(adapter.io.virtual.response.valid) && !tap(adapter.io.virtual.response.ready),
+            tap(adapter.io.physical.request.valid) && tap(adapter.io.physical.request.ready),
+            tap(adapter.io.physical.response.valid) && tap(adapter.io.physical.response.ready),
+            tap(board.platform.privateCache.get.io.upstream.request.valid) &&
+                !tap(board.platform.privateCache.get.io.upstream.request.ready),
+            tap(board.platform.io.fetchWait), tap(l.io.start.valid) && !tap(l.io.start.ready),
+            tap(vm.flush), tap(adapter.owners.io.enq.valid) && !tap(adapter.owners.io.enq.ready),
+            tap(adapter.translated.io.enq.valid) && !tap(adapter.translated.io.enq.ready),
+            tap(checkedQueue.enq.valid) && !tap(checkedQueue.enq.ready))).asUInt
         def requestMeta(r: soc.core.ooo.DataRequest): UInt = Cat(tap(r.uncached), tap(r.virtualized),
             tap(r.mask), tap(r.size), tap(r.atomicOp), tap(r.atomic), tap(r.write)).pad(64)
         def requestAuthorization(r: soc.core.ooo.DataRequest): UInt = Cat(tap(r.prefetchNextAllowed),

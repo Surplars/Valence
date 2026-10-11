@@ -13,7 +13,7 @@ class MemoryCopyDma(
     lineYieldCycles: Int = 0,
     lineEntries: Int = 1
 ) extends Module {
-    require(Set(1, 2, 4).contains(lineEntries) && (lineTransfers || lineEntries == 1))
+    require(Set(1, 2, 4, 8).contains(lineEntries) && (lineTransfers || lineEntries == 1))
     require(lineYieldCycles >= 0 && lineYieldCycles <= 64 && (lineTransfers || lineYieldCycles == 0))
     require(base >= 0 && base % 8 == 0 && base + 40 <= (BigInt(1) << 64))
     require(

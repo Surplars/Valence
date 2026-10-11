@@ -1,5 +1,49 @@
 # OoO Core 架构草案
 
+2026-10-11 第六批：[虚拟 store 授权交接与独立准入](line-read-channel.md#authorized-store-handoff-and-independent-demand-admission)。
+新增默认关闭的 `independentDemandAdmission`：精确授权后的 load 可选空 LSU 槽，
+正常 store miss 不再全局独占，cache 按完整物理行＋set/way 保留所有权；独立 resident
+store hit 只等待真实 SRAM 端口冲突。原 store 的响应、精确异常和 ROB 责任未提前解除。
+官方 native/GSIM 入口、配置与构造参数传递已接通，容量及推荐 preset 未扩大／改变。
+同源码真实 CPU OFF/ON 24正例/6负向检查通过；单独准入消除 Sv39 COPY 的2076周期
+cache背压，但吞吐只提升0.004%，仍无双MSHR重叠。结合已有单预取候选16周期保留后，
+再通过12正例/3负向：Sv39 COPY双MSHR重叠30.971%、AXI读峰值2，READ/WRITE/COPY
+为115.493/85.095/38.355MiB/s（相对上一轮+60.743%/+0.198%/+1.695%）。
+该组合让读miss2048→34，却让写miss34→2048；Bare COPY退化14.892%，因此不提升为
+推荐配置。下一批要重构已授权读／写预取的共享 owner 仲裁和成功响应后的 store 交接，
+不靠扩容或提前 ACK。48项Scala、13项CLI及cache/LSU边界与注错检查通过；
+本轮未跑综合／STA／Linux／bit，无新100MHz签核或完整ISA声明。
+
+2026-10-11 第五批：[真实 CPU / Sv39 吞吐](line-read-channel.md#actual-cpu-sv39-throughput-follow-up)
+已完成同二进制、同退休工作量、同容量与固定 DDR 延迟对照，不再只用组件结果外推。
+双发射、32+32KiB、DTLB8、LSU2、MSHR2、DDR4/写2 均未扩大。保留 DDR 三项结构优化，
+增加默认关闭的 `translationHitFlow`：成功 demand TLB hit 跳过空 translated FIFO，仍经 checked
+寄存器和最终 PMP/epoch；官方 native/GSIM 入口已传递。Sv39 64KiB 两遍的 READ/WRITE/COPY
+基线 63.480/69.900/32.279→最终 71.849/84.927/37.716MiB/s（假设 100MHz 模型周期）；
+仅本次 hit-flow 相对前批为纯读不变、写 +9.629%、复制 +5.340%。暖缓存写恰省每次命中一周期。
+预取候选保留16周期虽提升纯读，却拖慢 COPY；叠加已有 distinct-way 放行无收益，最终回退这两项。
+60 个 CPU 正例、15 个负向控制、独立译址边界检查、44 项 Scala 和11项相关 CLI 通过；
+广义 CLI 27/28，未修改 IntegerBackend 的历史文本锚点仍失败。无 NEMU/ISA 全量声明。
+COPY 中 walk 等待仅0.966%、年轻 load 被较老 store 挡住68.016%、physical/cache 背压0.626%；
+读/复制 MSHR2 未形成长期并行，下一轮优先虚拟写授权后的 ownership handoff 和真实延迟下准入重构，
+不以容量或发射宽度冒充去串行化。默认/推荐配置不变，本轮未跑综合、STA、Linux 或生成 bit。
+
+2026-10-11：以带宽和有效请求/传输占比为第一优先，避免频繁时序验证。
+三组默认关闭的结构候选已完成短验证：
+[DDR 写收集/发送重叠](ddr-write-collection-flow.md) 和
+[行传输调度去气泡](line-transfer-dispatch-flow.md)。后者在前者开启的匹配 DMA
+路径上，128KiB 延迟/最低延迟模型分别再提升 2.861%/6.091%；不是 CPU IPC 或上板结果。
+第三组 [独立行读入口与整行返回](line-read-channel.md) 已保持共享 4/2 owner/
+区间依赖合同完成读写入口解耦；128KiB 最低延迟 DMA 492.766→761.545MiB/s，
+AXI R/W 有效占比 64.588%→99.817%，延迟模型 199.007→214.441MiB/s。
+这仍是组件证据，推荐配置不变，没有新 CPU/整板时序签核。
+后续区分高延迟下的信用不足与 CPU/DMA 全局互斥，不以增加容量冒充同容量调度增益。
+第四批 [高延迟容量与 MMU](line-read-channel.md#latency-and-mmu-follow-up) 已完成短验证：
+DMA8 / DDR8 / 写信用4，固定 R32/B40 延迟模型的 128KiB COPY 221.714→442.243MiB/s；
+原 ID-skew 模型 214.441→332.403MiB/s，两种服务律分别报告。16-entry DTLB 同容量的
+成功写权限复用使 16 页读写交替的遍历 256→32，12183→2033 周期，纯读不退化。
+不是整核/Linux 性能；新增选项默认关闭，不跑新 STA，下一步重视 writer 保留与真实 CPU/MMU 路径。
+
 Canonical virtual-store overlap is integrated through the explicit configuration paths; the v3 performance preset enables it with an independent v2 fallback. See [qualified scope, controls and evidence](../simulator/gsim/canonical_virtual_store/README.md) for the matched COPY result and official-entry gate status.
 
 Opt-in shared fetch PMP comparisons (2026-10-08):

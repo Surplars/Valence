@@ -66,7 +66,7 @@ class HeadProfile extends Bundle {
   * wider configurations require a separate physical design assessment. Initial architectural registers are zero for
   * this standalone bring-up interface, not an ISA reset claim.
   */
-class IntegerBackend(val p: OooParams = OooParams()) extends Module {
+class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false) extends Module {
     require(!p.registeredIssueExecute || (p.completionWidth == 2 && p.registeredBranchRedirect &&
         p.precompleteMispredictedBranch && p.registeredRobRetirement && !p.fastBufferedStoreRetire &&
         !p.fastHeadLoadRetire && !p.moveAlias),
@@ -130,7 +130,7 @@ class IntegerBackend(val p: OooParams = OooParams()) extends Module {
     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
     ledger.io.rawRequests.foreach(_ := io.rawRequests.get)
     ledger.io.fetchFaultMask.foreach(_ := io.fetchFaultMask.get)
-    val lsu             = Module(new ParallelLoadStoreUnit(p))
+    val lsu             = Module(new ParallelLoadStoreUnit(p, canonicalHandoff))
     val mulDiv          = Module(new MultiplyDivide(p, divisionOnly = true))
     val multiplier      = Module(new PipelinedMultiply(p))
     val systemUnit      = if (p.machineSystem) Some(Module(new MachineSystemUnit(p))) else None

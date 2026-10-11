@@ -60,8 +60,18 @@ class MachinePlatform(
     dmaLineTransfers: Boolean = false,
     dmaLineYieldCycles: Int = 0,
     dmaLineEntries: Int = 1,
-    dataTranslationEntries: Int = 8
+    dataTranslationEntries: Int = 8,
+    lineTransferDispatchFlow: Boolean = false,
+    dataTlbWriteReadReuse: Boolean = false,
+    translationHitFlow: Boolean = false
 ) extends Module {
+    require(!ddrBridge.lineReadChannel || (externalDdr && tileLinkMemory && tileLinkFetch &&
+        !splitTileLinkMemory && coherentLineCache && cacheConcurrency.readMshrs > 1 &&
+        (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
+        "independent DDR line reads require the external-DDR mixed coherent assembly")
+    require(!lineTransferDispatchFlow || (coherentLineCache && tileLinkMemory && cacheConcurrency.readMshrs > 1 &&
+        (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
+        "line dispatch flow requires the bounded mixed coherence home")
     require(!dmaLineTransfers || (coherentLineCache && tileLinkMemory && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
         "DMA line mode requires a bounded mixed coherence home")
@@ -103,6 +113,8 @@ class MachinePlatform(
     require(!translationService || (tileLinkMemory && Set(3, 4, 5).contains(translationLevels)))
     require(!translationService || Set(4, 8, 16).contains(pteCacheEntries))
     SvTranslationService.indexBits(dataTranslationEntries)
+    require(!dataTlbWriteReadReuse || translationService,
+        "DTLB write/read reuse requires the real translation service")
     require(!coreDataTranslation || translationService)
     require(!p.virtualRamLoadPrecheck || (coreDataTranslation && stagedMemoryFabric),
         "virtual load precheck requires integrated data translation and staged authorization")
@@ -219,7 +231,8 @@ class MachinePlatform(
     val core       = Module(new MappedMachineCore(p.copy(machineSystem = true, atomicMemory = true,
         pmpEntries = 16, virtualMemoryLevels = if (translationService) translationLevels else 0),
         dataTranslation = coreDataTranslation, stagedMemoryFabric = stagedMemoryFabric,
-        bufferTranslatedResponses = bufferTranslatedResponses))
+        bufferTranslatedResponses = bufferTranslatedResponses, translationHitFlow = translationHitFlow,
+        canonicalHandoff = cacheConcurrency.independentDemandAdmission && p.canonicalVirtualStoreOverlap))
     val frontend   = Module(new SynchronousFetch(16, p.compressedInstructions, p.frontendCacheSets,
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
@@ -535,7 +548,8 @@ class MachinePlatform(
     val physicalData = if (translationService) {
         val walkers = (0 until 2).map(i => Module(new SvTranslationService(translationLevels,
             entries = if (i == 1) dataTranslationEntries else 8,
-            loadPeek = p.virtualRamLoadPrecheck && i == 1)))
+            loadPeek = p.virtualRamLoadPrecheck && i == 1,
+            writeReadReuse = dataTlbWriteReadReuse && i == 1)))
         val adapters = Seq.fill(2)(Module(new SvPteDataBridge(pteCacheEntries)))
         val walkerArbiter = Module(new SharedDataArbiter)
         // OrderedTileLinkBridge cannot return a newly accepted DataPort request
@@ -615,7 +629,8 @@ class MachinePlatform(
                 rawResponseMetadata = p.rawTileLinkResponseMetadata,
                 parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig,
                 dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries,
-                distinctWayRelease = cacheConcurrency.distinctWayRelease)
+                distinctWayRelease = cacheConcurrency.distinctWayRelease,
+                lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = ddrBridge.lineReadChannel)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.
@@ -630,10 +645,15 @@ class MachinePlatform(
         }
         io.activity.foreach { activity =>
             coherentHome.foreach { home =>
-                activity.lineFillGetFire := home.io.line.a.fire &&
-                    home.io.line.a.bits.opcode === soc.bus.tilelink.TLOpcode.Get &&
-                    home.io.line.a.bits.size === 6.U
-                activity.lineFillGetAddress := home.io.line.a.bits.address
+                if (ddrBridge.lineReadChannel) {
+                    activity.lineFillGetFire := home.io.lineRead.get.request.fire
+                    activity.lineFillGetAddress := home.io.lineRead.get.request.bits.address
+                } else {
+                    activity.lineFillGetFire := home.io.line.a.fire &&
+                        home.io.line.a.bits.opcode === soc.bus.tilelink.TLOpcode.Get &&
+                        home.io.line.a.bits.size === 6.U
+                    activity.lineFillGetAddress := home.io.line.a.bits.address
+                }
             }
         }
         if (coherentHome.isEmpty) { bridge.io.data <> homeUpstream }
@@ -722,9 +742,12 @@ class MachinePlatform(
                     axiAddressWidth = 32, axiIdWidth = ddrBridge.axiIdWidth,
                     maxBurstBeats = ddrBridge.maxBurstBeats, maxOutstanding = ddrBridge.maxOutstanding,
                     maxOutstandingWrites = ddrBridge.maxOutstandingWrites, unorderedResponses = ddrBridge.unorderedResponses,
+                    writeCollectionFlow = ddrBridge.writeCollectionFlow,
+                    lineReadChannel = ddrBridge.lineReadChannel,
                     axiAddressBase = ramBase, axiWindowBytes = ramBytes))
                 manager.reset := reset.asBool || hold
                 crossbar.io.banks(1) <> manager.io.tl
+                manager.io.lineRead.foreach(_ <> coherentHome.get.io.lineRead.get)
                 io.ddrAxi.get <> manager.io.axi
                 // The manager translates full physical addresses before narrowing to MIG offsets.
                 (None, None)

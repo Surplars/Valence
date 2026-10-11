@@ -6,12 +6,14 @@ import soc.bus.tilelink.{TLBundle, TLOpcode, TLParams, TLPermissions}
 import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
 /** Shared structural interface; the legacy and bounded concurrent homes remain separate implementations. */
-class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false, dmaLineEntries: Int = 1) extends Bundle {
+class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false,
+    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false) extends Bundle {
     val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort(dmaLineEntries))) else None
     val upstream = Flipped(new DataPort)
     val downstream = new DataPort
     val clients = Vec(nClients, Flipped(new TLBundle(params)))
     val line = new TLBundle(params)
+    val lineRead = if (lineReadChannel) Some(new soc.ip.tilelink.LineReadMemoryPort(params.addrWidth)) else None
     val upstreamRequestCpu = Input(Bool())
     // Assert only after the cache-local flush has quiesced its own producers.
     // New A/upstream admissions close; accepted owners and irrevocable offers drain.
@@ -19,8 +21,9 @@ class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Bool
     val drainDone = Output(Bool())
 }
 
-abstract class CoherentLineHomeModule(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false, dmaLineEntries: Int = 1) extends Module {
-    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers, dmaLineEntries))
+abstract class CoherentLineHomeModule(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false,
+    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false) extends Module {
+    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers, dmaLineEntries, lineReadChannel))
 }
 
 object CoherentLineHomeModule {
@@ -39,11 +42,17 @@ object CoherentLineHomeModule {
         mixedReadWrite: Boolean = false,
         dmaLineTransfers: Boolean = false,
         dmaLineEntries: Int = 1,
-        distinctWayRelease: Boolean = false
+        distinctWayRelease: Boolean = false,
+        lineTransferDispatchFlow: Boolean = false,
+        lineReadChannel: Boolean = false
     ): CoherentLineHomeModule = {
         require(!dmaLineTransfers || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
             "line DMA requires the bounded mixed coherence home")
         require(Set(1, 2, 4).contains(acquireEntries))
+        require(!lineTransferDispatchFlow || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
+            "line dispatch flow requires the bounded mixed coherence home")
+        require(!lineReadChannel || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
+            "independent line reads require the bounded mixed coherence home")
         require(!distinctWayRelease || (mixedReadWrite && acquireEntries == 2 &&
             writebackEntries == 2 && trackedWays == 2),
             "distinct-way release requires the original two-way mixed home profile")
@@ -56,7 +65,7 @@ object CoherentLineHomeModule {
             if (writebackEntries > 1 || mixedReadWrite)
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
                     trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
-                    dmaLineTransfers, dmaLineEntries, distinctWayRelease))
+                    dmaLineTransfers, dmaLineEntries, distinctWayRelease, lineTransferDispatchFlow, lineReadChannel))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

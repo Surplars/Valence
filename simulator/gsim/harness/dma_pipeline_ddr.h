@@ -1,4 +1,10 @@
 #pragma once
+#ifndef DMA_SERVICE_READS
+#define DMA_SERVICE_READS 4
+#endif
+#ifndef DMA_SERVICE_WRITES
+#define DMA_SERVICE_WRITES 2
+#endif
 // Independent byte-array AXI slave: no DUT constants/state contribute to expectations.
 struct PipelineDdr {
     struct Read { uint32_t address; unsigned count, size, id, beat; uint64_t due, serial; bool error; };
@@ -30,7 +36,8 @@ struct PipelineDdr {
         check(!(address&((1U<<size)-1))&&(address&4095U)+(count<<size)<=4096,"AXI alignment or 4KiB boundary");
     }
     template<class Dut> void drive(Dut& d,uint64_t cycle) {
-        now=cycle;arReady=reads.size()<4&&(!stalls||cycle%7!=2);awReady=writes.size()+replies.size()<2&&(!stalls||cycle%11!=3);
+        now=cycle;arReady=reads.size()<DMA_SERVICE_READS&&(!stalls||cycle%7!=2);
+        awReady=writes.size()+replies.size()<DMA_SERVICE_WRITES&&(!stalls||cycle%11!=3);
         wReady=!writes.empty()&&(!stalls||cycle%5!=1);
         if(!heldR)for(auto i=reads.rbegin();i!=reads.rend();++i)if(cycle>=i->due){heldR=i->serial;rData=word((i->address+(i->beat<<i->size))&~7U);break;}
         if(!heldB)for(auto i=replies.rbegin();i!=replies.rend();++i)if(cycle>=i->due){heldB=i->serial;break;}

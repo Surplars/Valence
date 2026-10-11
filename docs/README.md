@@ -62,6 +62,13 @@ GSIM 的 OpenSBI/Linux 成功不能证明上表的早期 1 MiB 板级平台能�
 
 ## 验证与性能
 
+- [DDR 写收集/发送重叠](ddr-write-collection-flow.md)：2026-10-11 默认关闭的结构候选、请求/传输占比和短验证边界。
+- [行传输调度去气泡](line-transfer-dispatch-flow.md)：第二组默认关闭的带宽结构优化、真实 DMA 路径增益和历史 checkpoint；后续解耦已由第三组完成，本组不跑 STA。
+- [独立行读入口与整行返回](line-read-channel.md)：第三组共享容量不变的重构，最低延迟 DMA 128KiB 达 99.817% AXI R/W 有效传输占比；实际延迟下的写信用限制及待完成 CPU/物理资格。
+- [高延迟容量与 MMU](line-read-channel.md#latency-and-mmu-follow-up)：第四批 DMA8/DDR8/写4 的固定延迟 COPY 221.7→442.2MiB/s；同容量 DTLB 成功写权限复用与异常/刷新证明、服务上限和 ID 延迟模型偏差；真实 CPU 接续见下一项。
+- [真实 CPU / Sv39 吞吐与阻塞](line-read-channel.md#actual-cpu-sv39-throughput-follow-up)：第五批同容量、同工作量的 S-mode READ/WRITE/COPY，默认关闭的翻译命中直送、被回退的预取组合、虚拟 store/并行准入瓶颈及60个短 CPU 正例；本轮不跑综合或 STA。
+- [授权 store 交接与独立准入](line-read-channel.md#authorized-store-handoff-and-independent-demand-admission)：第六批保持双MSHR／双响应槽，消除全局store-miss和整set独占；实际Sv39 COPY双owner重叠30.971%，但COPY仅+1.695%、Bare回归，继续定位读／写预取争用，候选默认关闭、不改preset、不跑综合。
+
 - [Proof frontier 与 store-PF LRU 显式实验](experiments/frontier-lru-opt-in.md)：推荐 v3 不变；完整 CLI/参数映射、已完成组件资格及待闭合 CPU/回归边界。
 
 - [CPU 读带宽候选源码交付](cpu-fetch-prefix-source-delivery.md)：显式 LSU4/history/prefix 选择、默认 OFF、冻结证明与本次源码整合边界。

@@ -41,6 +41,7 @@ Use Scalafmt-compatible formatting before submitting changes. `.scalafmt.conf` s
 
 - Keep the two-issue FPGA baseline. Batch related structural changes into one coherent candidate; do not run GSIM or Vivado after each small edit.
 - Latest explicit user refinement (2026-10-05): larger batches may address ten or more related structural changes/paths before one short verification and one implementation. The earlier 2–3-path target is no longer a limit. Prioritize measured long chains and preserve independent proof coverage; do not pad the batch with unrelated risky changes.
+- Latest explicit user refinement (2026-10-11): prioritize bandwidth and effective accepted request/transfer duty. Continue coherent structural batches when scheduling remains restrictive; do not insert frequent STA runs. Use necessary short affected checks and retain matched traffic/service laws; defer combined physical qualification until the bandwidth candidate is ready or the user requests it.
 - Finish the batch, compile once, then run only the necessary short, affected GSIM checks. Fix any failures before advancing to synthesis.
 - After short checks pass, export and synthesize the combined candidate once and compare timing/resources/cycle cost with saved baselines. Reuse checkpoints for report queries.
 - Do not run full GSIM, long Linux simulation, repeated full implementation, or bit generation unless the user explicitly requests them or approves a specific necessary exception.

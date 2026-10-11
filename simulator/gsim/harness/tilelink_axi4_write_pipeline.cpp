@@ -18,7 +18,7 @@ static void writePipeline(STileLinkAxi4Bridge& d, unsigned beats, unsigned prepa
     std::optional<unsigned> heldRead, heldReply;
     std::array<bool, 8> sourceLive{};
     std::array<bool, count> accepted{}, completed{}, addressed{};
-    std::array<unsigned, count> acceptedAt{}, firstAwAt{}, dBeat{};
+    std::array<unsigned, count> acceptedAt{}, firstAwAt{}, firstWAt{}, lastAAt{}, dBeat{};
     unsigned sent = 0, aBeat = 0, done = 0, wBeats = 0, rBeats = 0, dBeats = 0;
     unsigned cycle = 0, maxAwPending = 0, awAheadOfW = 0, overlapCycles = 0;
     unsigned writeStart = 0, writeFinish = 0, activePeak = 0, aStalls = 0, totalLatency = 0, maxLatency = 0;
@@ -78,7 +78,7 @@ static void writePipeline(STileLinkAxi4Bridge& d, unsigned beats, unsigned prepa
         stalledD = dv && !dr ? std::optional{dBits} : std::nullopt;
         if (av && d.get_io$$tl$$a$$ready()) {
             if (!aBeat) { check(!sourceLive[src], "pipeline source reused"); sourceLive[src] = true; accepted[n] = true; acceptedAt[n] = cycle; }
-            if (!isWrite(n) || ++aBeat == beats) { ++sent; aBeat = 0; }
+            if (!isWrite(n) || ++aBeat == beats) { lastAAt[n] = cycle; ++sent; aBeat = 0; }
         } else if (av) ++aStalls;
         // Process W using the AW owners that existed at the beginning of this
         // cycle: WREADY was computed before this cycle's new AW acceptance.
@@ -87,6 +87,7 @@ static void writePipeline(STileLinkAxi4Bridge& d, unsigned beats, unsigned prepa
             check(std::get<0>(wBits) == (dataValue(q.n, q.beat) ^ (injectWriteMismatch ? 1ULL : 0ULL)) &&
                 std::get<1>(wBits) == byteMask(q.n, q.beat) && std::get<2>(wBits) == (q.beat + 1 == beats),
                 "pipeline independent W pairing/data mismatch");
+            if (!q.beat) firstWAt[q.n] = cycle;
             if (!wBeats) writeStart = cycle; ++wBeats; writeFinish = cycle;
             if (++q.beat == beats) { auto b = q; b.due = cycle + 3 + (stress && q.n % 2 ? 17 : 0); replies.push_back(b); aw.pop_front(); }
         }
@@ -134,12 +135,18 @@ static void writePipeline(STileLinkAxi4Bridge& d, unsigned beats, unsigned prepa
         dBeats == expectedWrites + expectedReads * beats && aw.empty() && replies.empty() && reads.empty(), "pipeline lost/duplicated transaction or starvation");
     if (requireAwLead && beats == 8 && prepare == 12 && !stress)
         check(maxAwPending >= 2 && awAheadOfW > 0, "independent AW pipeline did not advance ahead of W");
+    unsigned awDuringCollection = 0, wDuringCollection = 0;
+    for (unsigned n = 0; n < count; ++n) if (isWrite(n)) {
+        awDuringCollection += firstAwAt[n] < lastAAt[n];
+        wDuringCollection += firstWAt[n] < lastAAt[n];
+    }
     std::cout << "WRITE_PIPELINE_PASS beats=" << beats << " prepare=" << prepare << " stress=" << stress << " mixed=" << mixed
         << " cycles=" << cycle << " transactions=" << done << " wbeats=" << wBeats << " rbeats=" << rBeats
         << " active_peak=" << activePeak << " aw_pending_peak=" << maxAwPending << " aw_ahead_of_w=" << awAheadOfW
         << " rw_overlap_cycles=" << overlapCycles << " a_stalls=" << aStalls << " max_latency=" << maxLatency
         << " latency_sum=" << totalLatency << " useful_beats_per_cycle=" << double(wBeats + rBeats) / cycle
-        << " w_window_beats_per_cycle=" << double(wBeats) / (writeFinish - writeStart + 1) << "\n";
+        << " w_window_beats_per_cycle=" << double(wBeats) / (writeFinish - writeStart + 1)
+        << " aw_during_collection=" << awDuringCollection << " w_during_collection=" << wDuringCollection << "\n";
 }
 
 static void deniedTail(STileLinkAxi4Bridge& d) {
@@ -209,10 +216,17 @@ static void resetSkew(STileLinkAxi4Bridge& d, bool addressesFirst) {
     }
     throw std::runtime_error("independent AW pipeline did not advance ahead of W");
 }
+#include "tilelink_axi4_write_collection.h"
+
 int main(int argc, char** argv) {
     try {
         STileLinkAxi4Bridge d;
         const std::string arg = argc > 1 ? argv[1] : "";
+        if (arg == "--collection-gaps") { collectionCases(d); return 0; }
+        if (arg == "--inject-credit") { collectionCase(d, 8, 3, 0, 0, false, 256, true); return 0; }
+        if (arg == "--mixed-contract") return mixed_regression_main(1, argv);
+        if (arg == "--inject-data" || arg == "--bad-id" || arg == "--bad-bid" || arg == "--bad-last")
+            return mixed_regression_main(argc, argv);
         if (arg == "--reset-skew") { resetSkew(d, true); resetSkew(d, false); return 0; }
         requireAwLead = arg == "--require-aw-lead";
         if (arg == "--denied-tail") { deniedTail(d); return 0; }

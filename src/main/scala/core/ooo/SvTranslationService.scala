@@ -42,11 +42,11 @@ object SvTranslationService {
 }
 
 /** A bounded 4/8/16/32-entry parallel-lookup TLB backed by a parameterized page walker. The key includes access and effective
-  * privilege, so cached permission success cannot authorize a different access. Superpage hits reconstruct their
-  * page offset from the new VA. Each I/D instance has its own walker and can miss concurrently.
+  * privilege. Optional successful-write data permission subsumption never grants writes from a read or execution
+  * from data access. Superpage hits reconstruct the new VA offset. I/D walkers can miss concurrently.
   */
 class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int = 16,
-    loadPeek: Boolean = false) extends Module {
+    loadPeek: Boolean = false, writeReadReuse: Boolean = false) extends Module {
     private val enableLoadPeek = loadPeek
     require(Set(3, 4, 5).contains(maxLevels))
     private val entryIndexBits = SvTranslationService.indexBits(entries)
@@ -72,13 +72,13 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     val savedResponse = Reg(new SvTranslationResponse)
     val request = io.client.request.bits
     val activeMode = request.mode =/= 0.U && request.privilege =/= 3.U
-    // Demand and access-tagged precheck use exactly the same key and superpage/NAPOT reconstruction.
-    // A precheck has no ready/fire, replacement, miss, walker or response-owner side effect.
-    def lookup(query: SvTranslationRequest): (Bool, SvTranslationResponse) = {
-        // Demand and optional peek both search the full configured capacity.
-        val hits = Wire(Vec(entries, Bool()))
-        for (i <- 0 until entries) {
-            val prior = tlb(i).request
+    // No new permission state: successful Svade WRITE/RW already proves
+    // R=1, W=1, A=1, D=1 (W without R is an invalid PTE). In exactly the
+    // same root/ASID/mode/privilege/SUM/MXR context it can cover data R/W/RW,
+    // never execute. A read (including MXR) cannot authorize a write.
+    // Final data PMP checks and SFENCE/drain contracts are unchanged.
+    def samePage(entry: SvTlbEntry, query: SvTranslationRequest): Bool = {
+            val prior = entry.request
             val topMatches = MuxLookup(query.mode, false.B)(Seq(
                 8.U -> (prior.virtualAddress(63, 39) === query.virtualAddress(63, 39)),
                 9.U -> (prior.virtualAddress(63, 48) === query.virtualAddress(63, 48)),
@@ -86,15 +86,28 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
             ))
             val contextMatches = prior.rootPpn === query.rootPpn && prior.asid === query.asid &&
                 prior.mode === query.mode && prior.privilege === query.privilege &&
-                prior.access === query.access && prior.sum === query.sum && prior.mxr === query.mxr && topMatches
-            val level = tlb(i).response.level
+                prior.sum === query.sum && prior.mxr === query.mxr && topMatches
+            val level = entry.response.level
             val matchingVpn = (0 until maxLevels).map { j =>
-                level > j.U || (if (j == 0) tlb(i).response.napot &&
+                level > j.U || (if (j == 0) entry.response.napot &&
                     query.virtualAddress(20, 16) === prior.virtualAddress(20, 16) else false.B) ||
                     query.virtualAddress(12 + 9 * j + 8, 12 + 9 * j) ===
                         prior.virtualAddress(12 + 9 * j + 8, 12 + 9 * j)
             }.reduce(_ && _)
-            hits(i) := tlb(i).valid && contextMatches && matchingVpn
+            entry.valid && contextMatches && matchingVpn
+    }
+    // Demand and optional access-qualified peek use the same permissions and
+    // superpage/NAPOT reconstruction. Peek never starts walks or replacements.
+    def lookup(query: SvTranslationRequest): (Bool, SvTranslationResponse) = {
+        val hits = Wire(Vec(entries, Bool()))
+        for (i <- 0 until entries) {
+            val prior = tlb(i).request
+            val priorWrite = prior.access === PmpAccess.write || prior.access === PmpAccess.readWrite
+            val dataAccess = query.access === PmpAccess.read || query.access === PmpAccess.write ||
+                query.access === PmpAccess.readWrite
+            val accessMatches = prior.access === query.access ||
+                (if (writeReadReuse) priorWrite && dataAccess else false.B)
+            hits(i) := samePage(tlb(i), query) && accessMatches
         }
         val cached = tlb(PriorityEncoder(hits))
         val offsetMasks = (0 until maxLevels).map(i => i.U -> ((BigInt(1) << (12 + 9 * i)) - 1).U(64.W))
@@ -147,10 +160,22 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
         savedResponse := walker.io.complete.bits
         state := replying
         when(!walker.io.complete.bits.pageFault && !walker.io.complete.bits.accessFault) {
-            tlb(next).valid := true.B
-            tlb(next).request := saved
-            tlb(next).response := walker.io.complete.bits
-            next := next + 1.U
+            // Upgrade the already matching read entry after a successful
+            // write walk instead of consuming a second entry for that page.
+            // Failed walks never insert/upgrade. Only the exact saved context
+            // participates; no PTE permission is inferred from a read.
+            val matching = VecInit(tlb.map(e => samePage(e, saved)))
+            val reuse = (if (writeReadReuse) matching.asUInt.orR else false.B)
+            val insert = Mux(reuse, PriorityEncoder(matching), next)
+            tlb(insert).valid := true.B
+            tlb(insert).request := saved
+            tlb(insert).response := walker.io.complete.bits
+            when(!reuse) { next := next + 1.U }
+            if (writeReadReuse) {
+                for (i <- 0 until entries) {
+                    when(reuse && matching(i) && insert =/= i.U) { tlb(i).valid := false.B }
+                }
+            }
         }
     }
     when(io.client.response.fire && state === replying) { state := idle }

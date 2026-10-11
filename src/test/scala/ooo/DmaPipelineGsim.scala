@@ -10,7 +10,9 @@ import soc.ip.dma.MemoryCopyDma
 import soc.ip.tilelink.TwoMasterTileLinkArbiter
 
 /** Source-bound DMA/cache/home/AXI fixture. CPU requests and all memory bytes are checked independently in C++. */
-class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, lineEntries: Int = 1) extends Module {
+class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, lineEntries: Int = 1,
+    writeCollectionFlow: Boolean = false, lineTransferDispatchFlow: Boolean = false,
+    lineReadChannel: Boolean = false, ddrSlots: Int = 4, ddrWrites: Int = 2) extends Module {
     private val base = BigInt("80200000", 16)
     private val bytes = BigInt(2) * 1024 * 1024 * 1024
     private val tags = CacheTagConfig(compact = true, bankedStorage = true)
@@ -26,13 +28,13 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
         val manualMode = Input(Bool())
         val manualLine = Flipped(new soc.ip.dma.DmaLinePort(lineEntries))
         val blockLineResponse = Input(Bool())
-        val lineRequestTag = Output(UInt(2.W))
-        val lineResponseTag = Output(UInt(2.W))
-        val homeLineRequestTag = Output(UInt(2.W))
-        val homeLineResponseTag = Output(UInt(2.W))
+        val lineRequestTag = Output(UInt(math.max(2, log2Ceil(lineEntries)).W))
+        val lineResponseTag = Output(UInt(math.max(2, log2Ceil(lineEntries)).W))
+        val homeLineRequestTag = Output(UInt(math.max(2, log2Ceil(lineEntries)).W))
+        val homeLineResponseTag = Output(UInt(math.max(2, log2Ceil(lineEntries)).W))
         val lineResponseOffer = Output(Bool())
         val lineResponseData = Output(UInt(512.W))
-        val lineResponseOfferTag = Output(UInt(2.W))
+        val lineResponseOfferTag = Output(UInt(math.max(2, log2Ceil(lineEntries)).W))
         val lineRequestData = Output(UInt(512.W))
         val homeLineOffer = Output(Bool())
         val homeLineFire = Output(Bool())
@@ -48,6 +50,16 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
         val tlDReady = Output(Bool())
         val tlDOpcode = Output(UInt(3.W))
         val tlDSource = Output(UInt(4.W))
+        val lineReadEnabled = Output(Bool())
+        val lineMemoryRequestValid = Output(Bool())
+        val lineMemoryRequestReady = Output(Bool())
+        val lineMemoryRequestAddress = Output(UInt(64.W))
+        val lineMemoryRequestTag = Output(UInt(8.W))
+        val lineMemoryResponseValid = Output(Bool())
+        val lineMemoryResponseReady = Output(Bool())
+        val lineMemoryResponseTag = Output(UInt(8.W))
+        val lineMemoryResponseData = Output(UInt(512.W))
+        val lineMemoryResponseError = Output(Bool())
         val control = Flipped(new RegisterPort)
         val cpu = Flipped(new DataPort)
         val ddrAxi = new soc.ip.axi.Axi4MemoryPort(32, 4)
@@ -85,14 +97,17 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
     val adapter = Module(new DmaRegisterDataAdapter)
     val cache = CoherentLineCacheModule.build(base, bytes, 512, coherent, 2, cfg, tags)
     val home = Module(new MixedCoherentLineHome(coherent, base, bytes, trackedLines = 512,
-        trackedWays = 2, acquireEntries = 2, tagConfig = tags, writebackEntries = 2, mixedReadWrite = true, dmaLineTransfers = lineTransfers, dmaLineEntries = lineEntries))
+        trackedWays = 2, acquireEntries = 2, tagConfig = tags, writebackEntries = 2, mixedReadWrite = true,
+        dmaLineTransfers = lineTransfers, dmaLineEntries = lineEntries,
+        lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = lineReadChannel))
     val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true, dmaLineTransfers = lineTransfers, dmaLineEntries = lineEntries))
     val requests = Module(new DataRequestBuffer(registerHead = true))
     val ordered = Module(new OrderedTileLinkBridge(allowWriteErrors = true, allowPartialWrites = true))
     val arbiter = Module(new TwoMasterTileLinkArbiter(memory))
     val ddr = Module(new TileLinkAxi4Bridge(tlParams = memory.copy(sourceBits = 4), axiAddressWidth = 32,
-        axiIdWidth = 4, maxOutstanding = 4, maxOutstandingWrites = 2, maxBurstBeats = 16,
-        unorderedResponses = true, axiAddressBase = base, axiWindowBytes = bytes))
+        axiIdWidth = 4, maxOutstanding = ddrSlots, maxOutstandingWrites = ddrWrites, maxBurstBeats = 16,
+        unorderedResponses = true, axiAddressBase = base, axiWindowBytes = bytes,
+        writeCollectionFlow = writeCollectionFlow, lineReadChannel = lineReadChannel))
     dma.io.control <> io.control
     adapter.io.registers <> dma.io.memory
     require(lineTransfers, "Pipeline diagnostic requires line transfers")
@@ -167,6 +182,7 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
     arbiter.io.masters(0) <> ordered.io.tl
     CoherentHomeUlBoundary.connect(home.io.line, arbiter.io.masters(1))
     ddr.io.tl <> arbiter.io.manager
+    ddr.io.lineRead.foreach(_ <> home.io.lineRead.get)
     io.ddrAxi <> ddr.io.axi
     io.tlAValid := ddr.io.tl.a.valid
     io.tlAReady := ddr.io.tl.a.ready
@@ -178,6 +194,16 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
     io.tlDReady := ddr.io.tl.d.ready
     io.tlDOpcode := ddr.io.tl.d.bits.opcode
     io.tlDSource := ddr.io.tl.d.bits.source
+    io.lineReadEnabled := lineReadChannel.B
+    io.lineMemoryRequestValid := ddr.io.lineRead.map(_.request.valid).getOrElse(false.B)
+    io.lineMemoryRequestReady := ddr.io.lineRead.map(_.request.ready).getOrElse(false.B)
+    io.lineMemoryRequestAddress := ddr.io.lineRead.map(_.request.bits.address).getOrElse(0.U)
+    io.lineMemoryRequestTag := ddr.io.lineRead.map(_.request.bits.tag).getOrElse(0.U)
+    io.lineMemoryResponseValid := ddr.io.lineRead.map(_.response.valid).getOrElse(false.B)
+    io.lineMemoryResponseReady := ddr.io.lineRead.map(_.response.ready).getOrElse(false.B)
+    io.lineMemoryResponseTag := ddr.io.lineRead.map(_.response.bits.tag).getOrElse(0.U)
+    io.lineMemoryResponseData := ddr.io.lineRead.map(_.response.bits.data).getOrElse(0.U)
+    io.lineMemoryResponseError := ddr.io.lineRead.map(_.response.bits.error).getOrElse(false.B)
     val atomicActive = RegInit(false.B)
     when(atomic.io.cpu.request.fire && atomic.io.cpu.request.bits.atomic && atomic.io.cpu.request.bits.atomicOp === 0.U) { atomicActive := true.B }
     when(atomic.io.cpu.response.fire) { atomicActive := false.B }
@@ -210,5 +236,9 @@ class DmaPipelineGsim(lineTransfers: Boolean = true, lineYieldCycles: Int = 0, l
 }
 
 object DmaPipelineGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new DmaPipelineGsim(true, args.lift(1).map(_.toInt).getOrElse(0), args.lift(2).map(_.toInt).getOrElse(1)), Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new DmaPipelineGsim(true, args.lift(1).map(_.toInt).getOrElse(0),
+        args.lift(2).map(_.toInt).getOrElse(1), args.lift(3).contains("1"), args.lift(4).contains("1"),
+        args.lift(5).contains("1"), args.lift(6).map(_.toInt).getOrElse(4),
+        args.lift(7).map(_.toInt).getOrElse(2)),
+        Array("--target-dir", args.head))
 }

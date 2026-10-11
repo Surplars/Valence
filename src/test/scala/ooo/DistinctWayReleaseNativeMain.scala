@@ -13,7 +13,10 @@ object DistinctWayReleaseNativeMain extends App {
     val baseline = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true)
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = false)
     require(profile == baseline.copy(distinctWayRelease = on))
-    require(profile.productArity == 35 && profile.coreParams.productArity == 142 && profile.cache.productArity == 12)
+    require(profile.productArity == 43 && !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&
+        !profile.dataTlbWriteReadReuse && !profile.ddrWriteCollectionFlow && !profile.lineTransferDispatchFlow &&
+        !profile.lineReadChannel &&
+        profile.coreParams.productArity == 142 && profile.cache.productArity == 13)
     require(profile.distinctWayRelease == on && profile.cache.distinctWayRelease == on)
     require(!profile.reconstructIssueTokenIndex && !profile.sharedMemoryAddressState &&
         !profile.coreParams.reconstructIssueTokenIndex && !profile.coreParams.sharedMemoryAddressState)

@@ -1,6 +1,7 @@
 #include "CoherentReadMshrGsim.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <iostream>
 #include <map>
@@ -8,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 #ifndef READ_MSHRS
 #define READ_MSHRS 2
@@ -26,7 +28,7 @@ static constexpr unsigned releaseSource = READ_MSHRS == 1 ? 0 : READ_MSHRS;
 static bool injectMismatch = false;
 static void check(bool good, const char *message) { if (!good) throw std::runtime_error(message); }
 struct Request { uint64_t address; bool write = false; uint64_t data = 0; unsigned mask = 255; bool uncached = false; };
-struct Expected { uint64_t data; bool error; };
+struct Expected { uint64_t data; bool error; uint64_t address=0; bool miss=false; };
 struct Acquire { uint64_t address, due; unsigned source, sink, beat = 0; bool error, grantDone = false; };
 struct Ack { uint64_t due; unsigned source; };
 struct Test {
@@ -114,11 +116,22 @@ struct Test {
         stalledC = d.get_io$$tl$$c$$valid() && !cr ? std::optional{c} : std::nullopt;
         if (request && d.get_io$$upstream$$request$$ready()) {
             const auto q = *request;
-            if ((q.write && !d.get_io$$hit()) || q.uncached)
+            const bool strongBoundary=q.uncached||q.address<base||q.address>=base+std::max<uint64_t>(16384,CACHE_LINES*256ULL);
+#ifdef INDEPENDENT_DEMAND_ADMISSION
+            // The new contract permits disjoint store misses, not same-line
+            // merging or weakened response ordering. A live accepted demand miss
+            // retains its physical line until its ordered response is consumed.
+            for(const auto &older:expected)
+                check(!older.miss||(older.address&~63ULL)!=(q.address&~63ULL),
+                    "independent admission reused a live physical miss line");
+            if(strongBoundary)
+#else
+            if ((q.write && !d.get_io$$hit()) || strongBoundary)
+#endif
                 check(expected.empty(), "barrier accepted before earlier CPU replies");
             memory(q.address);
             const bool error = !q.uncached && (q.address & ~63ULL) == denyLine && d.get_io$$miss();
-            expected.push_back({q.write ? 0 : architectural.at(q.address), error});
+            expected.push_back({q.write ? 0 : architectural.at(q.address), error,q.address,bool(d.get_io$$miss())});
             if (q.write && !error) architectural[q.address] = merge(architectural.at(q.address), q.data, q.mask);
             ++accepted; request.reset();
         }
@@ -196,6 +209,15 @@ struct Test {
         }
     }
     Test() {
+        // The pinned GSIM initializer passes a uint32_t-pointer distance as a
+        // byte count to memset, leaving the tail of its POD state uninitialized.
+        // In particular, an inactive SyncReadMem address can be evaluated on the
+        // very first reset edge. Initialize the host model, not generated RTL;
+        // the two real reset edges below still establish all DUT reset state.
+        static_assert(std::is_trivially_copyable_v<SCoherentReadMshrGsim>);
+        std::memset(&d, 0, sizeof(d));
+        d.LOG_START = 1;
+        d.activateAll();
         d.set_io$$upstream$$request$$valid(0); d.set_io$$upstream$$request$$bits$$atomic(0);
         d.set_io$$upstream$$request$$bits$$atomicOp(0); d.set_io$$upstream$$request$$bits$$virtualized(0);
         d.set_io$$upstream$$request$$bits$$uncached(0); d.set_io$$upstream$$request$$bits$$size(3);
@@ -249,6 +271,50 @@ struct Test {
 int main(int argc, char **argv) {
     injectMismatch = argc == 2 && std::string(argv[1]) == "--inject-mismatch";
     try {
+#ifdef INDEPENDENT_DEMAND_ADMISSION
+        const uint64_t independentStride=64ULL*CACHE_LINES/CACHE_WAYS;
+        {
+            Test pair;pair.blockCpu=true;
+            pair.offer({base,true,0x123456789abcdef0ULL},false);
+            pair.offer({base+independentStride},false);
+            pair.tick(); // Observe registered allocation after the second accepted edge.
+            check(pair.d.get_io$$mshrOccupancy()==2,
+                "independent store/read same-set ways failed to own both unchanged MSHRs");
+            pair.until([&]{return pair.acquires.size()==2;},"two independent acquires did not issue");
+            pair.request=Request{base+8};const auto before=pair.accepted;
+            for(unsigned n=0;n<8;++n)pair.tick();
+            check(pair.accepted==before,"same-line read bypassed held store ownership");
+            pair.blockCpu=false;pair.drain();pair.flush();
+            check(pair.backing.at(base)==0x123456789abcdef0ULL,"independent store bytes not written back");
+        }
+        {
+            Test resident;resident.offer({base});resident.blockCpu=true;
+            const auto oldA=resident.aCount;
+            resident.offer({base+independentStride,true,0xaabbccddeeff0011ULL},false);
+            resident.offer({base},false);
+            check(resident.accepted==3&&resident.returned==1,
+                "resident opposite-way read stalled behind authorized store miss or replied out of order");
+            resident.blockCpu=false;resident.drain();
+            check(resident.aCount==oldA+1,"resident opposite-way hit allocated a redundant miss");
+        }
+        {
+            Test snapshot;snapshot.offer({base});snapshot.blockCpu=true;
+            snapshot.offer({base+64},false);
+            snapshot.offer({base,true,0xffeeddccbbaa9988ULL,0x55},false);
+            check(snapshot.accepted==3&&snapshot.returned==1,
+                "independent resident store did not retain ordered reply ownership beside read miss");
+            snapshot.blockCpu=false;snapshot.drain();snapshot.offer({base});snapshot.probe(base);
+        }
+        {
+            Test late;late.blockCpu=true;late.denyLine=base;
+            late.offer({base,true,0x0706050403020100ULL},false);
+            late.offer({base+independentStride},false);
+            late.blockCpu=false;late.drain();late.denyLine=~0ULL;
+            late.offer({base});late.flush();
+            check(late.backing.at(base)==Test::initial(base),
+                "denied independent store refill produced memory side effects");
+        }
+#endif
 #ifdef COMPACT_TAG_TEST
         // Addresses intentionally share every retained tag/index bit. The
         // independent backing model distinguishes all64 address bits.

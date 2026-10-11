@@ -39,7 +39,7 @@ def summary(values):
     return {'n':len(s),'min':s[0],'mean':sum(s)/len(s),'p50':s[(len(s)-1)*50//100],
             'p95':s[(len(s)-1)*95//100],'p99':s[(len(s)-1)*99//100],'max':s[-1], 'sum':sum(s)}
 
-def parse(out):
+def parse(out, shared_slots=4, write_slots=2):
     cases={}; events={}; occupancies={}
     for line in (out/'test.log').read_text().splitlines():
         if not line.startswith(('PIPE_CASE ', 'PIPE_EVENT ', 'PIPE_OCCUPANCY ')): continue
@@ -53,7 +53,20 @@ def parse(out):
         trace=events[key]; occupancy=occupancies[key]; case['occupancy']=occupancy; case['latency']={}
         for write,label in [(0,'read'),(1,'write')]:
             rows=[e for e in trace if e['write']==write]
-            case['latency'][label]={name:s for name,(a,b) in EVENTS.items()
+            selected_events = dict(EVENTS)
+            if not write and case.get('line_channel'):
+                # Keep physical interface observations distinct: packet requests
+                # and whole-line results are NOT fabricated TL A/D beat events.
+                for name in ('home_to_first_tl_a', 'tl_a_span', 'tl_a_to_axi_ar',
+                             'rlast_to_dlast', 'tl_d_to_home_response', 'bridge_slot_lifetime'):
+                    selected_events.pop(name)
+                selected_events.update({
+                    'home_to_read_channel_request': ('home_accept', 'line_read_request'),
+                    'read_channel_request_to_axi_ar': ('line_read_request', 'ar'),
+                    'rlast_to_read_channel_response': ('r_last', 'line_read_response'),
+                    'read_channel_to_home_response': ('line_read_response', 'home_response'),
+                    'bridge_slot_lifetime': ('line_read_request', 'line_read_response')})
+            case['latency'][label]={name:s for name,(a,b) in selected_events.items()
                 if (s:=summary([e[b]-e[a] for e in rows if e[a]>=0 and e[b]>=0])) is not None}
             turns=[trace[i+1]['dma_accept']-e['dma_response'] for i,e in enumerate(trace[:-1]) if e['write']==write]
             case['latency'][label]['next_issue_minus_previous_completion']=summary(turns)
@@ -65,11 +78,13 @@ def parse(out):
         if case['mode']<2:
             rd=case['latency']['read']['bridge_slot_lifetime'];wr=case['latency']['write']['bridge_slot_lifetime']
             scale=64*100000000/1048576
+            shared_label = 'shared_four_slots' if shared_slots == 4 else f'shared_{shared_slots}_slots'
+            write_label = 'two_write_slots' if write_slots == 2 else f'{write_slots}_write_slots'
             case['latency_capacity_estimates_MiBps']={
-                'shared_four_slots_at_observed_mean':4*scale/(rd['mean']+wr['mean']),
-                'two_write_slots_at_observed_mean':2*scale/wr['mean'],
-                'shared_four_slots_at_observed_min':4*scale/(rd['min']+wr['min']),
-                'two_write_slots_at_observed_min':2*scale/wr['min'],
+                shared_label+'_at_observed_mean':shared_slots*scale/(rd['mean']+wr['mean']),
+                write_label+'_at_observed_mean':write_slots*scale/wr['mean'],
+                shared_label+'_at_observed_min':shared_slots*scale/(rd['min']+wr['min']),
+                write_label+'_at_observed_min':write_slots*scale/wr['min'],
                 'warning':'Capacity estimates from isolated observed slot residence; multiowner contention can lengthen residence. Not achieved throughput.'}
         case['occupancy_fraction']={name:occupancy[name]/case['cycles'] for name in ['lineArea','homeArea','bridgeArea','bridgeRArea','bridgeWArea','axiRArea','axiWArea']}
     (out/'events.json').write_text(json.dumps(events, separators=(',',':'))+'\n')

@@ -26,6 +26,9 @@ object FpgaNextBoardGsim {
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
         postedPrefetchHeadOffer = c.postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = c.canonicalVirtualStoreOverlap, memoryProofFrontier = c.memoryProofFrontier, backendCapacity = c.backendCapacity,
+        lineTransferDispatchFlow = c.lineTransferDispatchFlow,
+        dataTlbWriteReadReuse = c.dataTlbWriteReadReuse,
+        translationHitFlow = c.translationHitFlow,
         lineageProfile = if (lineageProbes) Some(c) else None)
 }
 
@@ -34,6 +37,12 @@ object FpgaNextBoardGsimMain extends App {
     val options = args.drop(1).toSet
     require(args.nonEmpty && options.size == args.length - 1 &&
         options.subsetOf(Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
+            "--ddr-write-collection-flow",
+            "--line-transfer-dispatch-flow",
+            "--line-read-channel",
+            "--dtlb-write-read-reuse", "--translation-hit-flow", "--independent-demand-admission", "--dma-line-entries=8",
+            "--ddr-outstanding=4", "--ddr-outstanding=8",
+            "--ddr-write-credits=1", "--ddr-write-credits=2", "--ddr-write-credits=4",
             "--physical-regs=48", "--physical-regs=64", "--canonical-virtual-store-overlap", "--memory-proof-frontier", "--posted-prefetch-coexistence", "--posted-store-merge", "--posted-prefetch-head-offer", "--translated-response-empty-flow", "--store-prefetch-mru-insertion", "--store-prefetch-lru-victim", "--distinct-way-release", "--store-next-line-prefetch", "--prepared-store-lookahead", "--posted-preparation-priority", "--reconstruct-issue-token-index", "--shared-memory-address-state", "--data-translation-entries=4", "--data-translation-entries=8",
             "--data-translation-entries=16", "--data-translation-entries=32", "--fetch-previous-packet", "--load-order-older-retire", "--lsu-entries=2", "--lsu-entries=4", "--dma-line-entries=1", "--dma-line-entries=2", "--dma-line-entries=4", "--dma-line-yield-cycles=0", "--dma-line-yield-cycles=4", "--dma-line-yield-cycles=8", "--dma-line-yield-cycles=16", "--dma-line-yield-cycles=32", "--dma-line-yield-cycles=64", "--dma-line-transfers", "--prefetch-break-on-store", "--prefetch-candidate-cycles=1", "--prefetch-candidate-cycles=3", "--prefetch-candidate-cycles=16", "--selected", "--share-protected-head-payload", "--banked-instruction-data", "--owner-local-issue-ready", "--shared-fetch-pmp-relations", "--independent-fetch-payload-capture", "--reference", "--candidate", "--virtual-ram-load-precheck", "--physical-load-ingress-flow", "--prechecked-data-flow")) &&
         !(options.contains("--reference") && options.contains("--candidate")),

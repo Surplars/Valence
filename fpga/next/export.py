@@ -109,6 +109,12 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--data-translation-entries", type=int, choices=(4, 8, 16, 32), default=8,
                     help="D-TLB capacity only; I-TLB remains 8 and PTE cache remains 4")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--ddr-write-collection-flow", action="count", default=0,
+                    help="default-off registered TL write collection / AXI W overlap; RAM window only")
+    ap.add_argument("--line-transfer-dispatch-flow", action="count", default=0,
+                    help="default-off bounded home/line-engine dispatch bypass with queue fallback")
+    ap.add_argument("--line-read-channel", action="count", default=0,
+                    help="default-off independent coherent-home line reads and aggregate whole-line returns")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
                     help="default-off local response flow retaining registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
@@ -145,10 +151,43 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--posted-store-merge", action="store_true",
                     help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
-    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
+    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4, 8), default=1)
+    ap.add_argument("--ddr-outstanding", type=int, choices=(4, 8), action="append")
+    ap.add_argument("--ddr-write-credits", type=int, choices=(1, 2, 4), action="append")
+    ap.add_argument("--dtlb-write-read-reuse", action="count", default=0,
+                    help="default-off successful-write DTLB permission reuse and same-page upgrade")
+    ap.add_argument("--translation-hit-flow", action="count", default=0,
+                    help="default-off demand TLB hit to registered checked boundary; no capacity change")
+    ap.add_argument("--independent-demand-admission", action="count", default=0,
+                    help="default-off authorized LSU handoff and full-way cache demand admission")
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     a = ap.parse_args(argv)
+    if a.ddr_write_collection_flow > 1:
+        ap.error("duplicate --ddr-write-collection-flow flag")
+    a.ddr_write_collection_flow = bool(a.ddr_write_collection_flow)
+    if a.line_transfer_dispatch_flow > 1:
+        ap.error("duplicate --line-transfer-dispatch-flow flag")
+    a.line_transfer_dispatch_flow = bool(a.line_transfer_dispatch_flow)
+    if a.line_read_channel > 1:
+        ap.error("duplicate --line-read-channel flag")
+    a.line_read_channel = bool(a.line_read_channel)
+    for key, default in (("ddr_outstanding", 4), ("ddr_write_credits", 2)):
+        values = getattr(a, key)
+        if values and len(values) > 1:
+            ap.error("duplicate --" + key.replace("_", "-"))
+        setattr(a, key, values[0] if values else default)
+    if a.dtlb_write_read_reuse > 1:
+        ap.error("duplicate --dtlb-write-read-reuse")
+    a.dtlb_write_read_reuse = bool(a.dtlb_write_read_reuse)
+    if a.translation_hit_flow > 1:
+        ap.error("duplicate --translation-hit-flow")
+    a.translation_hit_flow = bool(a.translation_hit_flow)
+    if a.independent_demand_admission > 1:
+        ap.error("duplicate --independent-demand-admission")
+    a.independent_demand_admission = bool(a.independent_demand_admission)
+    if a.independent_demand_admission and not (a.virtual_ram_load_precheck and a.canonical_virtual_store_overlap):
+        ap.error("independent admission requires virtual RAM precheck and canonical virtual store overlap")
     if a.reconstruct_issue_token_index > 1:
         ap.error("duplicate --reconstruct-issue-token-index flag")
     a.reconstruct_issue_token_index = bool(a.reconstruct_issue_token_index)
@@ -302,6 +341,28 @@ def main(argv=None, expected_profile_sha256=None):
         profile["profile"]["name"] += "-owners" + str(a.dma_line_entries)
     if a.dma_line_yield_cycles:
         profile["profile"]["name"] += "-yield" + str(a.dma_line_yield_cycles)
+    if a.ddr_write_collection_flow:
+        profile["profile"]["ddr_write_collection_flow"] = True
+        profile["profile"]["name"] += "-ddr-write-collection-flow"
+    if a.line_transfer_dispatch_flow:
+        profile["profile"]["line_transfer_dispatch_flow"] = True
+        profile["profile"]["name"] += "-line-transfer-dispatch-flow"
+    if a.line_read_channel:
+        profile["profile"]["line_read_channel"] = True
+        profile["profile"]["name"] += "-line-read-channel"
+    if a.ddr_outstanding != 4 or a.ddr_write_credits != 2:
+        profile["profile"]["ddr_shared_slots"] = a.ddr_outstanding
+        profile["profile"]["ddr_write_slots"] = a.ddr_write_credits
+        profile["profile"]["name"] += "-ddr" + str(a.ddr_outstanding) + "w" + str(a.ddr_write_credits)
+    if a.dtlb_write_read_reuse:
+        profile["profile"]["data_tlb_write_read_reuse"] = True
+        profile["profile"]["name"] += "-dtlb-write-read-reuse"
+    if a.translation_hit_flow:
+        profile["profile"]["translation_hit_flow"] = True
+        profile["profile"]["name"] += "-translation-hit-flow"
+    if a.independent_demand_admission:
+        profile["profile"]["independent_demand_admission"] = True
+        profile["profile"]["name"] += "-independent-demand-admission"
     profile["profile"]["banked_issue_payload"] = not a.reference
     profile["profile"]["banked_fetch_hints"] = not a.reference
     profile["profile"]["fp_state_ram"] = not a.reference
@@ -370,6 +431,22 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--physical-regs=" + str(a.physical_regs))
     if a.physical_load_ingress_flow:
         command.append("--physical-load-ingress-flow")
+    if a.ddr_write_collection_flow:
+        command.append("--ddr-write-collection-flow")
+    if a.line_transfer_dispatch_flow:
+        command.append("--line-transfer-dispatch-flow")
+    if a.line_read_channel:
+        command.append("--line-read-channel")
+    if a.ddr_outstanding != 4:
+        command.append("--ddr-outstanding=" + str(a.ddr_outstanding))
+    if a.ddr_write_credits != 2:
+        command.append("--ddr-write-credits=" + str(a.ddr_write_credits))
+    if a.dtlb_write_read_reuse:
+        command.append("--dtlb-write-read-reuse")
+    if a.translation_hit_flow:
+        command.append("--translation-hit-flow")
+    if a.independent_demand_admission:
+        command.append("--independent-demand-admission")
     if a.translated_response_empty_flow:
         command.append("--translated-response-empty-flow")
     if a.load_order_older_retire:

@@ -21,7 +21,7 @@ class DmaLineResponse(tagBits: Int = 1) extends Bundle {
     val error = Bool()
 }
 class DmaLinePort(entries: Int = 1) extends Bundle {
-    require(Set(1, 2, 4).contains(entries))
+    require(Set(1, 2, 4, 8).contains(entries))
     private val tagBits = math.max(1, log2Ceil(entries))
     val request = Decoupled(new DmaLineRequest(tagBits))
     val response = Flipped(Decoupled(new DmaLineResponse(tagBits)))

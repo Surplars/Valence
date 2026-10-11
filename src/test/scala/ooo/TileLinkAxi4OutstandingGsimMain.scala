@@ -12,5 +12,6 @@ object TileLinkAxi4OutstandingGsimMain extends App {
         axiAddressBase = BigInt("80200000", 16), axiWindowBytes = BigInt(1) << 31,
         maxOutstanding = args.lift(1).map(_.toInt).getOrElse(4),
         maxOutstandingWrites = args.lift(4).map(_.toInt).getOrElse(0),
-        unorderedResponses = args.lift(5).contains("1")), Array("--target-dir", args.head))
+        unorderedResponses = args.lift(5).contains("1"),
+        writeCollectionFlow = args.lift(7).contains("1")), Array("--target-dir", args.head))
 }

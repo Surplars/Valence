@@ -14,7 +14,8 @@ import soc.isa.Compressed
   * accepted still reports actual rename admissions, not consumption of the current external
   * supply. A two-packet reservoir separates raw fetch from decode and joins partial packets.
   */
-class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("80000000", 16)) extends Module {
+class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("80000000", 16),
+    canonicalHandoff: Boolean = false) extends Module {
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
     val io = IO(new Bundle {
         val imsic                       = if (p.machineSystem) Some(new MachineCsrPort) else None
@@ -67,7 +68,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val mulDivConcurrent            = Output(Bool())
         val mulDivMultiCancel           = Output(Bool())
     })
-    val backend = Module(new IntegerBackend(p))
+    val backend = Module(new IntegerBackend(p, canonicalHandoff))
     if (p.machineSystem) {
         io.imsic.get <> backend.io.imsic.get
         io.fenceIFlush.get := backend.io.fenceIFlush.get

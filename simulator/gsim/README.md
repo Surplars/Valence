@@ -1,5 +1,66 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-10-11 第六批授权 store 交接／准入重构（容量不变，默认OFF）：
+
+```sh
+GSIM_CXX=clang++-19 python3 -B simulator/gsim/independent_demand_admission.py --tag UNIQUE_TAG
+GSIM_CXX=clang++-19 python3 -B simulator/gsim/cpu_sv39_bandwidth.py \
+  --tag UNIQUE_TAG --profiles accepted admission
+python3 -B simulator/gsim/cpu_memory_admission_compare.py \
+  --receipt build/gsim/cpu-sv39-bandwidth-UNIQUE_TAG/receipt.json
+```
+
+`--independent-demand-admission` 已在官方native/GSIM入口传递；需同时启用canonical虚拟
+store overlap及virtual RAM load precheck。保持2个LSU／MSHR／响应槽和原DDR4/写2。
+按完整物理行和way准入，不再把store miss或整个set作为独占边界；精确store响应责任保留。
+同源码OFF/ON的24正例/6负向通过，但Sv39 COPY只省13周期。必要的单候选保留消融
+`--profiles admission-retained` 再通过12正例/3负向，真实Sv39 COPY双MSHR重叠30.971%，
+AXI读峰值2；READ/WRITE/COPY为115.493/85.095/38.355MiB/s，非上板成绩。
+COPY净收益仅1.695%，Bare COPY退化14.892%，所以保留实验、**不改推荐preset**；
+下一处是读／写预取争用导致miss从源流转移到目的流，不能把owner重叠当成带宽饱和。
+[合同、容量、消融、初始化缺陷、回归与完整证据](../../docs/line-read-channel.md#authorized-store-handoff-and-independent-demand-admission)。
+48项Scala/13项相关CLI和独立cache/LSU边界通过，无新综合/STA/bit或NEMU全量ISA验收。
+
+2026-10-11 第五批真实 CPU / Sv39 同工作量吞吐入口：
+
+```sh
+GSIM_CXX=clang++-19 python3 -B simulator/gsim/cpu_sv39_bandwidth.py \
+  --tag UNIQUE_TAG --profiles baseline accepted
+GSIM_CXX=clang++-19 python3 -B simulator/gsim/translation_hit_flow.py --tag UNIQUE_TAG
+```
+
+前者是真实 `FpgaNextBoardGsim` CPU 执行同一 guest，在 S-mode Bare/Sv39 跑4KiB/64KiB
+READ/WRITE/COPY；后者只证明新增命中直送的权限/背压边界。固定双发射、32+32KiB、
+DTLB8、LSU2、MSHR2、DDR4/写2，独立 AXI R32/B32 延迟和相同 READY 条件，无扩容。
+最终 Sv39 64KiB READ/WRITE/COPY 71.849/84.927/37.716MiB/s，基线63.480/69.900/32.279；
+按假设100MHz仿真周期换算，不是上板性能或100MHz时序签核。三项 DDR 改进与新增
+默认关闭的 `--translation-hit-flow` 合并测量；后者不跳过 checked/PMP/epoch 或旧请求。
+60 CPU正例/15负向控制、独立 PA/权限/内存结果、退休 PC 工作量及产物哈希核对已通过。
+既有预取重试的 COPY 负收益和 distinct-way 无收益也保留；最终不启用这两项。
+[完整口径、具体阻塞点、冻结对照审计和短验证](../../docs/line-read-channel.md#actual-cpu-sv39-throughput-follow-up)。
+配置/推荐 preset 不变；无 NEMU 全量 ISA、Linux、MIG/CDC 或新综合/STA/bit 验收。
+
+2026-10-11 带宽优先的三组默认关闭候选：
+[DDR 写收集/发送重叠](../../docs/ddr-write-collection-flow.md) 与
+[行传输调度去气泡](../../docs/line-transfer-dispatch-flow.md)。分别运行
+`GSIM_CXX=clang++-19 python3 -B simulator/gsim/ddr_write_collection.py --tag UNIQUE_TAG`
+和 `GSIM_CXX=clang++-19 python3 -B simulator/gsim/line_transfer_dispatch.py --tag UNIQUE_TAG`。
+每组完成结构修改后只做必要短验证；第二组不再跑时序。真实 DMA/cache/home/TL/AXI
+集成通过不等于执行 CPU、MIG、Linux、整板 100MHz 或 bit 的新验收，推荐配置不变。
+第三组 [独立行读入口与整行返回](../../docs/line-read-channel.md) 运行
+`GSIM_CXX=clang++-19 python3 -B simulator/gsim/line_read_channel.py --tag UNIQUE_TAG`。
+同样的共享 4/2 容量，128KiB 最低延迟 DMA 的 AXI R/W 有效占比达到 99.817%；
+延迟模型仍受写确认/信用深度限制。独立双入口与真实一致性 DMA 短验证已通过；
+完整 CPU、物理时序与板级性能未验证，本组也不跑 STA。
+第四批 [高延迟容量与 MMU](../../docs/line-read-channel.md#latency-and-mmu-follow-up)：
+`GSIM_CXX=clang++-19 python3 -B simulator/gsim/latency_bandwidth.py --tag UNIQUE_TAG`
+运行四组 DMA/DDR 容量消融及 8/16-entry Sv39 读写权限复用。再用
+`dma_fixed_latency.py --tag UNIQUE_TAG --receipt build/gsim/latency-bandwidth-PRIMARY_TAG/receipt.json`
+校验生成模型哈希后，仅重建独立驱动做固定延迟对照。固定 R32/B40 模型 128KiB
+COPY 221.714→442.243MiB/s；16 页 MMU 读写交替遍历 256→32，纯读不退化。
+记录 ID 分布对旧延迟模型的影响；不能把定向 MMU 倍数或 DMA 带宽当成 Linux/CPU 倍数。
+容量与权限候选仍默认关闭，本轮无综合或 bit。
+
 Canonical virtual-store overlap is integrated through the explicit configuration paths; the v3 performance preset enables it with an independent v2 fallback. See [qualified scope, controls and evidence](canonical_virtual_store/README.md) for the matched COPY result and official-entry gate status.
 
 Opt-in shared fetch PMP comparisons (2026-10-08): run

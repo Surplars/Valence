@@ -21,7 +21,8 @@ class LineWriteResponse(tagBits: Int) extends Bundle {
   * Initial launch adds one cycle; accepted beats remain II=1, including adjacent queued bursts.
   * This writes backing memory; a TL-C cache eviction requires ReleaseData and a coherent home.
   */
-class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8) extends Module {
+class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
+    dispatchFlow: Boolean = false) extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
     require(params.sourceBits >= log2Ceil(entries) && tagBits >= 1)
@@ -49,9 +50,14 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
 
     val freeMask = VecInit((0 until entries).map(i => phase(i) === free))
     val freeSlot = PriorityEncoder(freeMask)
-    sendQueue.io.enq.valid := io.request.valid && freeMask.asUInt.orR
-    sendQueue.io.enq.bits := freeSlot
     io.request.ready := freeMask.asUInt.orR && sendQueue.io.enq.ready
+    val launchReady = !active || (io.tl.a.fire && beat === 7.U)
+    // Skip only an empty scheduler, not the registered active payload boundary.
+    // This also permits a new captured owner on the old burst's final edge.
+    val directLaunch = if (dispatchFlow)
+        io.request.fire && !sendQueue.io.deq.valid && launchReady else false.B
+    sendQueue.io.enq.valid := io.request.valid && freeMask.asUInt.orR && !directLaunch
+    sendQueue.io.enq.bits := freeSlot
     when(io.request.fire) {
         assert(io.request.bits.address(5, 0) === 0.U, "line write address must be 64-byte aligned")
         phase(freeSlot) := send
@@ -75,7 +81,7 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     // Occupancy-only queue validity is independent of its ready. The next
     // immutable owner may be loaded on the old burst's final accepted beat;
     // data/metadata never bypass these registers onto A.
-    sendQueue.io.deq.ready := !active || (io.tl.a.fire && beat === 7.U)
+    sendQueue.io.deq.ready := launchReady
     // Empty queue payload is unspecified. Qualify before every dynamic read,
     // including assertions, because a simulator may evaluate their operands eagerly.
     val queuedSlot = Mux(sendQueue.io.deq.valid, sendQueue.io.deq.bits, 0.U)
@@ -102,6 +108,16 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
         activeAddress := address(nextSlot)
         activeWords := words(nextSlot)
         activeData := words(nextSlot)(0)
+        beat := 0.U
+    }
+    when(directLaunch) {
+        assert(!sendQueue.io.enq.fire && !sendQueue.io.deq.fire && phase(freeSlot) === free,
+            "direct line launch must own a newly accepted free slot")
+        active := true.B
+        activeSlot := freeSlot
+        activeAddress := io.request.bits.address
+        for (i <- 0 until 8) { activeWords(i) := io.request.bits.data(64 * i + 63, 64 * i) }
+        activeData := io.request.bits.data(63, 0)
         beat := 0.U
     }
 

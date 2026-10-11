@@ -15,10 +15,14 @@ final case class DdrBridgeConfig(
     maxBurstBeats: Int = 16,
     axiIdWidth: Int = 4,
     maxOutstandingWrites: Int = 0,
-    unorderedResponses: Boolean = false
+    unorderedResponses: Boolean = false,
+    writeCollectionFlow: Boolean = false,
+    lineReadChannel: Boolean = false
 ) {
     require(!unorderedResponses || maxOutstanding >= 2,
         "cross-source unordered replies require at least two transaction slots")
+    require(!lineReadChannel || (unorderedResponses && maxOutstandingWrites > 0 && maxBurstBeats >= 8),
+        "independent line reads require the unordered shared RAM scheduler")
     require(Set(1, 2, 4, 8).contains(maxOutstanding), "DDR read slots must be 1, 2, 4 or 8")
     require(maxOutstandingWrites >= 0 && maxOutstandingWrites <= maxOutstanding,
         "write credits must fit the shared transaction slots; zero selects legacy fencing")

@@ -3,6 +3,11 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
+
+#ifndef LINE_DISPATCH_FLOW
+#define LINE_DISPATCH_FLOW 0
+#endif
 
 static void check(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
@@ -51,7 +56,8 @@ static void checkResponse(STileLinkLineFillGsim &dut, uint64_t address, unsigned
         check(words[beat] == lineWord(address, beat), "line fill data beat mismatch");
 }
 
-int main() {
+int main(int argc, char **argv) { try {
+    const bool inject = argc == 2 && std::string_view(argv[1]) == "--inject-get";
     STileLinkLineFillGsim dut;
     const uint64_t base = 0x80010000ULL;
     drive(dut, false, 0, 0, false);
@@ -59,6 +65,36 @@ int main() {
     dut.step();
     dut.step();
     dut.set_reset(0);
+
+    // One accepted empty-queue offer must spill without changing its source or
+    // address while A is blocked. Expected bytes/tag come from this host request.
+    bool captured = false, sent = false;
+    unsigned firstOffer = 99;
+    for (unsigned cycle = 0; cycle < 12; ++cycle) {
+        drive(dut, !captured, base, 0x21, false);
+        dut.set_io$$tl$$a$$ready(cycle >= 5);
+        dut.step();
+        if (!captured && dut.get_io$$request$$ready()) captured = true;
+        if (dut.get_io$$tl$$a$$valid()) {
+            if (firstOffer == 99) firstOffer = cycle;
+            check(captured && !sent && dut.get_io$$tl$$a$$bits$$source() == 0 &&
+                dut.get_io$$tl$$a$$bits$$address() == (base ^ uint64_t(inject ? 64 : 0)) &&
+                dut.get_io$$tl$$a$$bits$$opcode() == 4 && dut.get_io$$tl$$a$$bits$$size() == 6 &&
+                dut.get_io$$tl$$a$$bits$$mask() == 255, "line fill independent stalled Get oracle mismatch");
+            if (cycle >= 5) sent = true;
+        }
+    }
+    check(captured && sent, "line fill empty dispatch did not spill/drain");
+    for (unsigned beat = 0; beat < 8; ++beat) {
+        drive(dut, false, base, 0x21, false, true, 0, beat, beat == 7);
+        dut.step();
+        check(dut.get_io$$tl$$d$$ready(), "spilled line Get lost its response owner");
+    }
+    drive(dut, false, 0, 0, true); dut.step();
+    checkResponse(dut, base, 0x21, true);
+    check(firstOffer == (LINE_DISPATCH_FLOW ? 0U : 1U), "line read dispatch latency contract changed");
+    std::cout << "LINE_READ_DISPATCH first_a_offer=" << firstOffer << " spill_PASS\n";
+    drive(dut, false, 0, 0, false); dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
 
     // Fill all four slots before returning any D beat. Each A Get is a single beat.
     std::array<unsigned, 4> sourceForRequest{};
@@ -140,4 +176,6 @@ int main() {
     dut.step();
     checkResponse(dut, base + 256, 0x44, false);
     std::cout << "GSIM TileLink line fill: PASS fourInflight outOfOrderD backpressure errors reuse" << '\n';
+    return 0;
+} catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

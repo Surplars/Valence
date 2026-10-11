@@ -99,7 +99,7 @@ class CanonicalStoreAdapterGsim extends Module {
 /** Exact-slot serial-owner exception without a backend oracle or synthetic certificate generator.
   * The driver supplies the already registered owner authorization and independently records all fires.
   */
-class CanonicalStoreLsuGsim(entries: Int = 2) extends Module {
+class CanonicalStoreLsuGsim(entries: Int = 2, canonicalHandoff: Boolean = false) extends Module {
     val p = CanonicalStoreFixture.params(entries)
     val io = IO(new Bundle {
         val startValid = Input(Bool())
@@ -127,7 +127,7 @@ class CanonicalStoreLsuGsim(entries: Int = 2) extends Module {
         val busy = Output(Bool())
         val discarded = Output(Bool())
     })
-    val lsu = Module(new ParallelLoadStoreUnit(p))
+    val lsu = Module(new ParallelLoadStoreUnit(p, canonicalHandoff))
     lsu.io.start.valid := io.startValid
     lsu.io.start.bits := 0.U.asTypeOf(new MemoryOperation(p))
     lsu.io.start.bits.token := io.token
@@ -172,6 +172,7 @@ object CanonicalStoreAdapterGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new CanonicalStoreAdapterGsim, Array("--target-dir", args.head))
 }
 object CanonicalStoreLsuGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new CanonicalStoreLsuGsim(args.lift(1).map(_.toInt).getOrElse(2)),
+    ChiselStage.emitCHIRRTLFile(new CanonicalStoreLsuGsim(args.lift(1).map(_.toInt).getOrElse(2),
+        canonicalHandoff = args.contains("--canonical-handoff")),
         Array("--target-dir", args.head))
 }

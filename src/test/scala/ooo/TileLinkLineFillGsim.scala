@@ -6,7 +6,7 @@ import _root_.circt.stage.ChiselStage
 import soc.bus.tilelink.{TLBundle, TLParams}
 import soc.ip.tilelink.{LineFillRequest, TileLinkLineFillEngine}
 
-class TileLinkLineFillGsim extends Module {
+class TileLinkLineFillGsim(dispatchFlow: Boolean = false) extends Module {
     private val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
         val request = Flipped(Decoupled(new LineFillRequest(64, 8)))
@@ -24,7 +24,7 @@ class TileLinkLineFillGsim extends Module {
         val word7 = Output(UInt(64.W))
         val tl = new TLBundle(params)
     })
-    val fill = Module(new TileLinkLineFillEngine(params, entries = 4))
+    val fill = Module(new TileLinkLineFillEngine(params, entries = 4, dispatchFlow = dispatchFlow))
     fill.io.request <> io.request
     io.tl <> fill.io.tl
     io.response.valid := fill.io.response.valid
@@ -42,7 +42,8 @@ class TileLinkLineFillGsim extends Module {
 }
 
 object TileLinkLineFillGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new TileLinkLineFillGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new TileLinkLineFillGsim(args.lift(1).contains("1")),
+        Array("--target-dir", args.head))
 }
 
 object TileLinkLineFillRtlMain extends App {

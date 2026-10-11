@@ -5,9 +5,9 @@ import chisel3.util._
 import soc.bus.tilelink.{TLParams, TLOpcode, TLPermissions}
 import soc.ip.tilelink.TileLinkLineAcquireEngine
 
-/** Opt-in read-miss concurrency. CPU replies retain acceptance order; maintenance
-  * has independent ownership, and store/bypass/flush operations remain barriers.
-  * One reserved set per MSHR deliberately excludes merging and same-set replay.
+/** Opt-in miss concurrency. CPU replies retain acceptance order; maintenance
+  * has independent ownership. The independent-demand policy reserves full ways,
+  * not whole sets; bypass/flush remain barriers. No same-line merging is added.
   */
 class NonBlockingCoherentLineCache(
     base: BigInt = BigInt("80010000", 16), bytes: BigInt = 8192, lines: Int = 128,
@@ -431,8 +431,25 @@ class NonBlockingCoherentLineCache(
     private val writeHit = ordinary && found && request.write
     private val reservedSet = VecInit((0 until mshrCount).map(i => phase(i) =/= free &&
         pendingIndex(i)(setBits - 1, 0) === lineSet(request.address))).asUInt.orR
+    private val targetPending = (0 until mshrCount).map(i => phase(i) =/= free &&
+        pending(i).address(63, 6) === request.address(63, 6)).reduce(_ || _)
+    private val targetWriteback = (0 until wbCount).map(i => wbLive(i) &&
+        wbAddress(i)(63, 6) === request.address(63, 6)).reduce(_ || _)
+    private def wayAvailable(candidate: UInt): Bool = !(0 until mshrCount).map(i =>
+        phase(i) =/= free && pendingIndex(i) === candidate).reduce(_ || _)
     private val distinctWayRead = WireDefault(false.B)
-    private val selectedVictim = if (concurrency.distinctWayRelease) {
+    private val selectedVictim = if (concurrency.independentDemandAdmission) {
+        if (ways == 1) victim else {
+            val first = slot(request.address, 0)
+            val second = slot(request.address, 1)
+            val firstFree = wayAvailable(first)
+            val secondFree = wayAvailable(second)
+            // Invalid-first/LRU is evaluated only among unreserved physical ways.
+            Mux(firstFree && !valid(first), first,
+                Mux(secondFree && !valid(second), second,
+                    Mux(wayAvailable(victim), victim, Mux(firstFree, first, second))))
+        }
+    } else if (concurrency.distinctWayRelease) {
         val eligible = VecInit((0 until ways).map { way =>
             !(0 until mshrCount).map(i => phase(i) =/= free &&
                 pendingIndex(i) === slot(request.address, way)).reduce(_ || _)
@@ -458,10 +475,12 @@ class NonBlockingCoherentLineCache(
         Mux(distinctWayRead, selected, victim)
     } else victim
     private val index = Mux(found, residentSlot(request.address), selectedVictim)
+    private val reservationSafe = if (concurrency.independentDemandAdmission)
+        !targetPending && !targetWriteback && wayAvailable(index) else !reservedSet || distinctWayRead
     private val needsEviction = cacheable && valid(index) && (!found || bypass)
     // Hits retain the legacy acceptance-ordered read/store pipeline. Store
     // misses and bypasses still fence; no store hit crosses live miss/maintenance.
-    private val barrierRequest = bypass || (request.write && !writeHit)
+    private val barrierRequest = bypass || (!concurrency.independentDemandAdmission.B && request.write && !writeHit)
     private val prefetchOnlyHit = if (concurrency.storeNextLinePrefetch) {
         val onlyPrefetchMisses = VecInit((0 until mshrCount).map(i =>
             phase(i) === free || prefetchOwner(i))).asUInt.andR
@@ -471,13 +490,19 @@ class NonBlockingCoherentLineCache(
         }.getOrElse(wbEmpty)
         onlyPrefetchMisses && onlySentPrefetchWritebacks && !prefetchRefillPending && !queuedEvictWanted
     } else false.B
-    private val storeHitSafe = ((mshrEmpty && wbEmpty) || prefetchOnlyHit) &&
+    // A resident store needs the SRAM write port, not an empty entire cache.
+    // Final grants/installations retain priority; full-way/line reservations and
+    // writeback target checks above exclude aliases. No accepted read loses its
+    // snapshot, ticket or maintenance ownership when a disjoint store is admitted.
+    private val independentStoreHit = concurrency.independentDemandAdmission.B &&
+        !prefetchRefillPending && !queuedEvictWanted && reservationSafe
+    private val storeHitSafe = ((mshrEmpty && wbEmpty) || prefetchOnlyHit || independentStoreHit) &&
         evictionState === eIdle && probeState === pIdle && bypassState === bIdle
     private val barrierSafe = responseEmpty && mshrEmpty && wbEmpty && evictionState === eIdle &&
         probeState === pIdle && bypassState === bIdle
     private val needsMissSlot = ordinary && !found
     private val legacyReady = responseSpace && !barrier && !flushActive && !io.flushRequest &&
-        !io.tl.b.valid && (!reservedSet || distinctWayRead) && (!barrierRequest || barrierSafe) &&
+        !io.tl.b.valid && reservationSafe && (!barrierRequest || barrierSafe) &&
         (!writeHit || storeHitSafe) &&
         (!needsMissSlot || freeMask.asUInt.orR) && (!readHit || !queuedEvictionRead)
     io.upstream.request.ready := legacyReady
@@ -525,11 +550,15 @@ class NonBlockingCoherentLineCache(
         !io.tl.b.valid && !flushActive && !io.flushRequest && bypassState === bIdle
     directEvictionIndex := index
     when(directEviction) {
-        assert(phase(freeMshr) === free && (!reservedSet || distinctWayRead) && !probeFire,
+        assert(phase(freeMshr) === free && reservationSafe && !probeFire,
             "direct victim allocation requires an admitted independent miss owner")
     }
     private val hitRead = cpuFire && !postedAccept && readHit
     private val storeWrite = cpuFire && !postedAccept && writeHit && !needsEviction
+    val observationIndependentDemand = VecInit(Seq(
+        cpuFire && !postedAccept && readHit && !mshrEmpty,
+        cpuFire && !postedAccept && needsMissSlot && !mshrEmpty,
+        storeWrite && !mshrEmpty)).asUInt
     private val hitPending = RegInit(false.B)
     private val hitTicket = Reg(UInt(ticketBits.W))
     private val hitBank = Reg(UInt(3.W))
@@ -1159,7 +1188,12 @@ class NonBlockingCoherentLineCache(
     for (i <- 0 until mshrCount; j <- 0 until i) {
         val bothLive = phase(i) =/= free && phase(j) =/= free
         val sameSet = pendingIndex(i)(setBits - 1, 0) === pendingIndex(j)(setBits - 1, 0)
-        if (concurrency.distinctWayRelease) {
+        if (concurrency.independentDemandAdmission) {
+            when(bothLive) {
+                assert(pendingIndex(i) =/= pendingIndex(j) && pending(i).address(63, 6) =/= pending(j).address(63, 6),
+                    "independent demand owners must reserve distinct full ways and physical lines")
+            }
+        } else if (concurrency.distinctWayRelease) {
             when(bothLive) {
                 assert(pendingIndex(i) =/= pendingIndex(j) && pending(i).address(63, 6) =/= pending(j).address(63, 6),
                     "two MSHRs reserved one full index or line")

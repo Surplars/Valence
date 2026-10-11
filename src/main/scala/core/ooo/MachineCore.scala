@@ -8,7 +8,8 @@ import soc.ip.interrupt.{Imsic, ImsicParams}
 /** Initial system-capable assembly: CPU + independent IMSIC, with external instruction/data/MSI boundaries. The M/S
   * IMSIC files and external interrupt signals are connected; VS delivery remains future work.
   */
-class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams()) extends Module {
+class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams(),
+    canonicalHandoff: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
@@ -48,7 +49,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val posted = p.postedProofConfig.map(c => new PostedStoreCpuPort(c))
         val memoryBusy      = Output(Bool())
     })
-    val core  = Module(new IntegerCore(p.copy(machineSystem = true)))
+    val core  = Module(new IntegerCore(p.copy(machineSystem = true), canonicalHandoff = canonicalHandoff))
     val imsic = Module(new Imsic(imsicParams))
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse

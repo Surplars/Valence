@@ -71,6 +71,12 @@ def main():
     ap.add_argument("--virtual-ram-load-precheck", action="store_true")
     ap.add_argument("--prechecked-data-flow", action="store_true")
     ap.add_argument("--physical-load-ingress-flow", action="store_true")
+    ap.add_argument("--ddr-write-collection-flow", action="count", default=0,
+                    help="default-off registered DDR write collection / AXI W overlap")
+    ap.add_argument("--line-transfer-dispatch-flow", action="count", default=0,
+                    help="default-off bounded home/line-engine dispatch bypass")
+    ap.add_argument("--line-read-channel", action="count", default=0,
+                    help="default-off independent home read ingress and whole-line return")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
                     help="default-off local empty response flow; retains registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
@@ -107,7 +113,15 @@ def main():
     ap.add_argument("--posted-store-merge", action="store_true",
                     help="default-off physical committed-store merge candidate")
     ap.add_argument("--dma-line-transfers", action="store_true")
-    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4), default=1)
+    ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4, 8), default=1)
+    ap.add_argument("--ddr-outstanding", type=int, choices=(4, 8), action="append")
+    ap.add_argument("--ddr-write-credits", type=int, choices=(1, 2, 4), action="append")
+    ap.add_argument("--dtlb-write-read-reuse", action="count", default=0,
+                    help="default-off successful-write DTLB permission reuse and same-page upgrade")
+    ap.add_argument("--translation-hit-flow", action="count", default=0,
+                    help="default-off demand TLB hit to registered checked boundary")
+    ap.add_argument("--independent-demand-admission", action="count", default=0,
+                    help="default-off authorized LSU handoff and full-way cache demand admission")
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1,
                     help="bounded prefetch retention experiment; default keeps the inherited one-attempt policy")
@@ -115,6 +129,31 @@ def main():
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
     args = ap.parse_args()
+    if args.ddr_write_collection_flow > 1:
+        ap.error("duplicate --ddr-write-collection-flow flag")
+    args.ddr_write_collection_flow = bool(args.ddr_write_collection_flow)
+    if args.line_transfer_dispatch_flow > 1:
+        ap.error("duplicate --line-transfer-dispatch-flow flag")
+    args.line_transfer_dispatch_flow = bool(args.line_transfer_dispatch_flow)
+    if args.line_read_channel > 1:
+        ap.error("duplicate --line-read-channel flag")
+    args.line_read_channel = bool(args.line_read_channel)
+    for key, default in (("ddr_outstanding", 4), ("ddr_write_credits", 2)):
+        values = getattr(args, key)
+        if values and len(values) > 1:
+            ap.error("duplicate --" + key.replace("_", "-"))
+        setattr(args, key, values[0] if values else default)
+    if args.dtlb_write_read_reuse > 1:
+        ap.error("duplicate --dtlb-write-read-reuse")
+    args.dtlb_write_read_reuse = bool(args.dtlb_write_read_reuse)
+    if args.translation_hit_flow > 1:
+        ap.error("duplicate --translation-hit-flow")
+    args.translation_hit_flow = bool(args.translation_hit_flow)
+    if args.independent_demand_admission > 1:
+        ap.error("duplicate --independent-demand-admission")
+    args.independent_demand_admission = bool(args.independent_demand_admission)
+    if args.independent_demand_admission and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
+        ap.error("independent admission requires virtual RAM precheck and canonical virtual store overlap")
     if args.reconstruct_issue_token_index > 1:
         ap.error("duplicate --reconstruct-issue-token-index flag")
     args.reconstruct_issue_token_index = bool(args.reconstruct_issue_token_index)
@@ -181,6 +220,22 @@ def main():
         parameters.append("--physical-regs=" + str(args.physical_regs))
     if args.physical_load_ingress_flow:
         parameters.append("--physical-load-ingress-flow")
+    if args.ddr_write_collection_flow:
+        parameters.append("--ddr-write-collection-flow")
+    if args.line_transfer_dispatch_flow:
+        parameters.append("--line-transfer-dispatch-flow")
+    if args.line_read_channel:
+        parameters.append("--line-read-channel")
+    if args.ddr_outstanding != 4:
+        parameters.append("--ddr-outstanding=" + str(args.ddr_outstanding))
+    if args.ddr_write_credits != 2:
+        parameters.append("--ddr-write-credits=" + str(args.ddr_write_credits))
+    if args.dtlb_write_read_reuse:
+        parameters.append("--dtlb-write-read-reuse")
+    if args.translation_hit_flow:
+        parameters.append("--translation-hit-flow")
+    if args.independent_demand_admission:
+        parameters.append("--independent-demand-admission")
     if args.translated_response_empty_flow:
         parameters.append("--translated-response-empty-flow")
     if args.load_order_older_retire:
@@ -242,6 +297,13 @@ def main():
             "store_prefetch_mru_insertion": args.store_prefetch_mru_insertion,
             "store_prefetch_lru_victim": args.store_prefetch_lru_victim,
             "distinct_way_release": args.distinct_way_release,
+            "ddr_write_collection_flow": args.ddr_write_collection_flow,
+            "line_transfer_dispatch_flow": args.line_transfer_dispatch_flow,
+            "line_read_channel": args.line_read_channel,
+            "ddr_outstanding": args.ddr_outstanding, "ddr_write_credits": args.ddr_write_credits,
+            "data_tlb_write_read_reuse": args.dtlb_write_read_reuse,
+            "translation_hit_flow": args.translation_hit_flow,
+            "independent_demand_admission": args.independent_demand_admission,
             "smoke_only": args.smoke_only, "passive_probes": True,
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}

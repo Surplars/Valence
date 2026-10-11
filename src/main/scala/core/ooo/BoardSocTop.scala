@@ -218,7 +218,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     translatedResponseEmptyFlow: Boolean = false, postedStoreMerge: Boolean = false,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
     backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
-    postedPreparationPriority: Boolean = false) extends Module {
+    postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
+    dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -320,7 +321,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         instructionLineCacheLines = instructionLineCacheLines, translationService = true, translationLevels = 3,
         coreDataTranslation = true, coreInstructionTranslation = true,
         coherentLineCache = true, coherentLineCacheLines = dataCacheLines, pteCacheEntries = 4,
-        dataTranslationEntries = dataTranslationEntries,
+        dataTranslationEntries = dataTranslationEntries, dataTlbWriteReadReuse = dataTlbWriteReadReuse,
+        translationHitFlow = translationHitFlow,
         bufferCoherentResponses = true, vivadoMemories = vivadoMemories,
         ramReadLatency = BoardSocConfig.ramReadLatency,
         uartClockHz = socClockHz, uartFastDivisorOne = true, externalDdr = externalDdr,
@@ -332,7 +334,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             .contains(timingProfile) || p.registeredFabricBoundary, peripheralClockHz = peripheralClockHz,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
         externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
-        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries))
+        dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
+        lineTransferDispatchFlow = lineTransferDispatchFlow))
     jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
     jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }

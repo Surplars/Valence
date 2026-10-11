@@ -19,7 +19,9 @@ class TileLinkAxi4BurstBridge(
     axiProt: Int = 0,
     axiQos: Int = 0,
     axiAddressBase: BigInt = 0,
-    axiWindowBytes: BigInt = 0
+    axiWindowBytes: BigInt = 0,
+    writeCollectionFlow: Boolean = false,
+    lineReadChannel: Boolean = false
 ) extends Module {
     require(tlParams.dataWidth == 64 && tlParams.addrWidth >= axiAddressWidth)
     require(tlParams.sizeBits >= 3 && maxBurstBeats >= 2 && maxBurstBeats <= 256 && isPow2(maxBurstBeats))
@@ -31,9 +33,15 @@ class TileLinkAxi4BurstBridge(
     require(axiWindowBytes == 0 || (axiWindowBytes <= (BigInt(1) << axiAddressWidth) &&
         axiAddressBase + axiWindowBytes <= (BigInt(1) << tlParams.addrWidth)))
     require(axiAddressBase == 0 || axiWindowBytes > 0)
+    require(!writeCollectionFlow || axiWindowBytes > 0,
+        "write collection flow requires an explicit ordinary RAM window")
+    require(!lineReadChannel || (axiWindowBytes > 0 && maxBurstBeats >= 8),
+        "whole-line playback requires a bounded RAM window and at least eight beats")
     val io = IO(new Bundle {
         val tl = Flipped(new TLBundle(tlParams))
         val axi = new Axi4MemoryPort(axiAddressWidth, axiIdWidth)
+        val lineData = if (lineReadChannel) Some(Output(UInt(512.W))) else None
+        val lineMode = if (lineReadChannel) Some(Input(Bool())) else None
     })
     io.tl.b.valid := false.B
     io.tl.b.bits := 0.U.asTypeOf(io.tl.b.bits)
@@ -65,14 +73,33 @@ class TileLinkAxi4BurstBridge(
     // RAM inference; there is no extra request/response pipeline stage.
     // Carry write strobes beside data so both use the same capture/read address.
     // AXI read captures leave the unused strobe bits zero.
-    val payload = Mem(maxBurstBeats, UInt(72.W))
+    val payload = if (!lineReadChannel) Some(Mem(maxBurstBeats, UInt(72.W))) else None
+    // Same total payload bits. Eight beat-interleaved banks each have one
+    // write/read port, allowing a completed 64-byte line to leave in one beat.
+    // R capture still accepts one 64-bit beat/cycle; no unreturned byte escapes.
+    val payloadBanks = if (lineReadChannel)
+        Seq.fill(8)(Mem(maxBurstBeats / 8, UInt(72.W))) else Seq.empty
     val payloadWrite = WireDefault(false.B)
     val payloadWriteIndex = WireDefault(bufferIndex)
     val payloadWriteData = WireDefault(Cat(io.tl.a.bits.mask, io.tl.a.bits.data))
-    // Capture and playback cannot overlap within this lane. Rewind the same
-    // cursor after the final R beat instead of adding an address mux before
-    // the asynchronous memory read or retaining a second counter/adder.
-    val payloadRead = payload.read(bufferIndex)
+    // Default lanes still share one capture/playback cursor. The opt-in write
+    // path gives the consumer its own cursor and uses registered capture
+    // credits: no W beat can see a same-edge A write or an uninitialized word.
+    // Capacity and the single memory write/read ports are unchanged.
+    val writeCaptured = if (writeCollectionFlow) Some(RegInit(0.U(countWidth.W))) else None
+    val writeSendIndex = if (writeCollectionFlow) Some(RegInit(0.U(countWidth.W))) else None
+    val earlyWrite = if (writeCollectionFlow) state === sCollectWrite && !writeError else false.B
+    val writePhase = state === sWriteAddress || earlyWrite
+    val sendIndex = if (writeCollectionFlow) writeSendIndex.get else index
+    val payloadReadIndex = if (writeCollectionFlow)
+        Mux(writePhase, sendIndex, index)(log2Ceil(maxBurstBeats) - 1, 0) else bufferIndex
+    val bankReads = if (lineReadChannel) {
+        val row = if (maxBurstBeats == 8) 0.U else payloadReadIndex >> 3
+        VecInit(payloadBanks.map(_.read(row)))
+    } else WireDefault(VecInit(Seq.fill(8)(0.U(72.W))))
+    val payloadRead = if (lineReadChannel) bankReads(payloadReadIndex(2, 0))
+        else payload.get.read(payloadReadIndex)
+    io.lineData.foreach(_ := Cat((0 until 8).reverse.map(i => bankReads(i)(63, 0))))
     val payloadReadData = payloadRead(63, 0)
     val a = io.tl.a.bits
     val maxSize = log2Ceil(maxBurstBeats) + 3
@@ -131,6 +158,8 @@ class TileLinkAxi4BurstBridge(
             writeError := !acceptedWindow
             writeAddressDone := false.B
             writeDataDone := false.B
+            writeCaptured.foreach(_ := 1.U)
+            writeSendIndex.foreach(_ := 0.U)
             when(isRead) {
                 state := Mux(acceptedWindow, sReadAddress, sReadReply)
             }.otherwise {
@@ -152,6 +181,7 @@ class TileLinkAxi4BurstBridge(
             // Denied writes still own/drain every A beat but never touch the buffer or AXI.
             when(!writeError) {
                 payloadWrite := true.B
+                writeCaptured.foreach(count => count := count + 1.U)
             }
             index := index + 1.U
             when(index === beatCount - 1.U) {
@@ -163,7 +193,7 @@ class TileLinkAxi4BurstBridge(
 
     val axiSize = Mux(size > 3.U, 3.U, size)
     io.axi.ar.valid := state === sReadAddress
-    io.axi.aw.valid := state === sWriteAddress && !writeAddressDone
+    io.axi.aw.valid := writePhase && !writeAddressDone
     for (channel <- Seq(io.axi.ar.bits, io.axi.aw.bits)) {
         channel.id := 0.U
         channel.addr := axiAddress
@@ -189,15 +219,21 @@ class TileLinkAxi4BurstBridge(
         index := index + 1.U
         when(index === beatCount - 1.U) { index := 0.U; state := sReadReply }
     }
-    // Neither VALID depends on the other channel's READY. A complete TL
-    // burst is buffered before either independent AXI channel is offered.
-    io.axi.w.valid := state === sWriteAddress && !writeDataDone
+    // Neither VALID depends on the other channel's READY. In flow mode AW
+    // may prepare the subordinate while A is still collecting, and W consumes
+    // only previously captured beats. Producer gaps and either channel's
+    // backpressure cannot withdraw an offered W or overwrite its memory word.
+    io.axi.w.valid := writePhase && !writeDataDone &&
+        (if (writeCollectionFlow) sendIndex < writeCaptured.get else true.B)
     io.axi.w.bits.data := payloadReadData
     io.axi.w.bits.strb := payloadRead(71, 64)
-    io.axi.w.bits.last := index === beatCount - 1.U
+    io.axi.w.bits.last := sendIndex === beatCount - 1.U
     when(io.axi.w.fire) {
         when(io.axi.w.bits.last) { writeDataDone := true.B }
-            .otherwise { index := index + 1.U }
+            .otherwise {
+                if (writeCollectionFlow) writeSendIndex.get := sendIndex + 1.U
+                else index := index + 1.U
+            }
     }
     when(state === sWriteAddress && (writeAddressDone || io.axi.aw.fire) &&
         (writeDataDone || (io.axi.w.fire && io.axi.w.bits.last))) {
@@ -220,11 +256,33 @@ class TileLinkAxi4BurstBridge(
     io.tl.d.bits.data := Mux(state === sReadReply && !readError, payloadReadData, 0.U)
     when(io.tl.d.fire) {
         index := index + 1.U
-        when(state === sWriteReply || index === beatCount - 1.U) { state := sIdle }
+        val wholeLine = io.lineMode.getOrElse(false.B)
+        when(wholeLine) {
+            assert(state === sReadReply && size === 6.U && beatCount === 8.U && index === 0.U,
+                "whole-line owner completed before a complete eight-beat read")
+        }
+        when(state === sWriteReply || index === beatCount - 1.U || wholeLine) { state := sIdle }
     }
     when(payloadWrite) {
         assert(!(io.tl.a.fire && io.axi.r.fire), "shared payload has two capture owners")
-        assert(!io.axi.w.valid && !io.tl.d.valid, "shared payload changed while being offered")
-        payload.write(payloadWriteIndex, payloadWriteData)
+        assert(!io.tl.d.valid, "shared payload changed while TL reply was offered")
+        if (writeCollectionFlow) {
+            when(io.axi.w.valid) {
+                assert(earlyWrite && io.tl.a.fire && payloadWriteIndex =/= payloadReadIndex,
+                    "write capture overwrote a live AXI W word")
+            }
+            when(writePhase && !writeError) {
+                assert(sendIndex < beatCount && writeCaptured.get <= beatCount &&
+                    sendIndex <= writeCaptured.get, "write producer/consumer credit overflow")
+            }
+        } else {
+            assert(!io.axi.w.valid, "shared payload changed while AXI W was offered")
+        }
+        if (lineReadChannel) {
+            val row = if (maxBurstBeats == 8) 0.U else payloadWriteIndex >> 3
+            for (i <- 0 until 8) {
+                when(payloadWriteIndex(2, 0) === i.U) { payloadBanks(i).write(row, payloadWriteData) }
+            }
+        } else payload.get.write(payloadWriteIndex, payloadWriteData)
     }
 }

@@ -182,6 +182,23 @@ static Operation load(Token token) {
 
 int main(int argc, char **argv) { try {
     unsigned totalOverlaps = 0, totalCancelled = 0;
+#ifdef CANONICAL_HANDOFF
+    {
+        Bench b; const auto s = store({1, 90}), l = load({2, 91});
+        b.accept(s); b.allowReplies = true; b.completeReady = false;
+        for(unsigned n=0;n<20;++n)b.tick();
+        require(b.responses==1&&b.completions==0,"blocked store completion setup");
+        b.relaxed=Token{s.token.index,s.token.tag+1};b.reject(l,3);
+        b.relaxed=s.token;
+        auto unproved=l;unproved.prechecked=false;b.reject(unproved,3);
+        b.accept(l);
+        require(b.completions==0&&b.starts==2,
+            "certified empty-slot handoff waited for or falsely consumed store completion");
+        b.completeReady=true;b.drain();
+        require(b.requests==2&&b.responses==2&&b.completions==2,
+            "empty-slot handoff lost exact original response/completion owners");
+    }
+#endif
     {
         Bench b; b.inject = argc > 1 && std::string(argv[1]) == "--inject-payload";
         const auto s = store({3, 7}), l = load({4, 8});

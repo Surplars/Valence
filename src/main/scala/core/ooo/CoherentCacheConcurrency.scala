@@ -9,7 +9,9 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     overlapWritebackRefill: Boolean = false, nextLinePrefetch: Boolean = false, prefetchCandidateCycles: Int = 1,
     prefetchBreakOnStore: Boolean = false, storeNextLinePrefetch: Boolean = false, storePrefetchMruInsertion: Boolean = false,
     postedPrefetchCoexistence: Boolean = false, storePrefetchLruVictim: Boolean = false,
-    distinctWayRelease: Boolean = false) {
+    distinctWayRelease: Boolean = false, independentDemandAdmission: Boolean = false) {
+    require(!independentDemandAdmission || readMshrs >= 2,
+        "independent demand admission reuses the existing nonblocking miss owners")
     require(Set(1, 2, 4).contains(readMshrs))
     require(prefetchCandidateCycles >= 1 && prefetchCandidateCycles <= 32,
         "prefetch candidate lifetime must be in 1..32 allocation attempts")

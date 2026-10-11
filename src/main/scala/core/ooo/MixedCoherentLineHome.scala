@@ -25,9 +25,11 @@ class MixedCoherentLineHome(
     mixedReadWrite: Boolean = false,
     dmaLineTransfers: Boolean = false,
     dmaLineEntries: Int = 1,
-    val distinctWayRelease: Boolean = false
-) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries) {
-    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
+    val distinctWayRelease: Boolean = false,
+    val lineTransferDispatchFlow: Boolean = false,
+    val lineReadChannel: Boolean = false
+) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel) {
+    require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
     require(bytes >= 64 && isPow2(bytes) && base % 64 == 0 && base + bytes <= (BigInt(1) << 64))
@@ -93,8 +95,10 @@ class MixedCoherentLineHome(
     private val allocate = PriorityEncoder(freeMask)
     private val fillQueue = Module(new Queue(UInt(entryBits.W), acquireEntries, pipe = false, flow = false))
     private val transfer = Module(new TileLinkLineTransfer(params.copy(sourceBits = params.sourceBits - 1),
-        entries = 4, tagBits = writeTagBits, rawResponseMetadata = rawResponseMetadata))
+        entries = 4, tagBits = writeTagBits, rawResponseMetadata = rawResponseMetadata,
+        dispatchFlow = lineTransferDispatchFlow, lineReadChannel = lineReadChannel))
     io.line <> transfer.io.tl
+    io.lineRead.foreach(_ <> transfer.io.lineRead.get)
     private val sendEntry = Mux(fillQueue.io.deq.valid, fillQueue.io.deq.bits, 0.U)
     private val readDispatchAllowed = WireDefault(true.B)
     private val releaseRetired = WireDefault(false.B)
@@ -467,7 +471,17 @@ class MixedCoherentLineHome(
             access.write := line.request.bits.write
             lineWriteData.get := line.request.bits.data
             lineAccess := true.B
-            maintenance := mLineHazard
+            if (lineTransferDispatchFlow) {
+                // Qualify only the captured offer, never upstream READY. A
+                // committed owner or older same-line DMA uses the unchanged
+                // registered hazard/probe path. There is still a register cut
+                // between accepted line metadata and the transfer engine.
+                val incomingConflict = (0 until dmaLineEntries).map(i => ownedLines(i) &&
+                    lineAddresses(i)(63, 6) === line.request.bits.address(63, 6)).reduce(_ || _)
+                val incomingOwned = lineOwned(line.request.bits.address, lookupTags)
+                maintenance := Mux(incomingConflict || incomingOwned, mLineHazard,
+                    Mux(line.request.bits.write, mLineWriteSend, mLineReadSend))
+            } else maintenance := mLineHazard
             preferLine := false.B
             preferAcquire := true.B
             upperWaiting := false.B

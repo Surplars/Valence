@@ -33,7 +33,7 @@ class AtomicMemory(
     dmaLineTransfers: Boolean = false,
     dmaLineEntries: Int = 1
 ) extends Module {
-    require(Set(1, 2, 4).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
+    require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(base >= 0 && base % 64 == 0 && bytes >= 64 && bytes % 64 == 0 && base + bytes <= (BigInt(1) << 64))
     val io = IO(new Bundle {
         val cpu              = Flipped(new AtomicMemoryPort)

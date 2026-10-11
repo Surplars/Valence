@@ -20,7 +20,8 @@ class LineFillResponse(tagBits: Int) extends Bundle {
   * retain the caller's tag under response backpressure. This is a line-transfer engine, not a TL-C cache client:
   * it holds no coherence permissions and never answers probes.
   */
-class TileLinkLineFillEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8) extends Module {
+class TileLinkLineFillEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
+    dispatchFlow: Boolean = false) extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
     require(params.sourceBits >= log2Ceil(entries) && tagBits >= 1)
@@ -43,9 +44,14 @@ class TileLinkLineFillEngine(params: TLParams = TLParams(), entries: Int = 4, ta
 
     val freeMask = VecInit((0 until entries).map(i => phase(i) === free))
     val freeSlot = PriorityEncoder(freeMask)
-    sendQueue.io.enq.valid := io.request.valid && freeMask.asUInt.orR
-    sendQueue.io.enq.bits := freeSlot
     io.request.ready := freeMask.asUInt.orR && sendQueue.io.enq.ready
+    // Admission uses bounded registered occupancy only. A newly accepted owner
+    // may offer Get at an empty dispatch queue; a stalled offer spills into that
+    // same queue and its metadata registers, without withdrawing or reordering.
+    val directOffer = if (dispatchFlow) io.request.fire && !sendQueue.io.deq.valid else false.B
+    val directFire = directOffer && io.tl.a.fire
+    sendQueue.io.enq.valid := io.request.valid && freeMask.asUInt.orR && !directFire
+    sendQueue.io.enq.bits := freeSlot
     when(io.request.fire) {
         assert(io.request.bits.address(5, 0) === 0.U, "line fill address must be 64-byte aligned")
         phase(freeSlot)   := send
@@ -55,18 +61,20 @@ class TileLinkLineFillEngine(params: TLParams = TLParams(), entries: Int = 4, ta
         errors(freeSlot)  := false.B
     }
 
-    val sendSlot = Mux(sendQueue.io.deq.valid, sendQueue.io.deq.bits, 0.U)
-    io.tl.a.valid        := sendQueue.io.deq.valid
+    val queuedSlot = Mux(sendQueue.io.deq.valid, sendQueue.io.deq.bits, 0.U)
+    val sendSlot = Mux(directOffer, freeSlot, queuedSlot)
+    io.tl.a.valid        := sendQueue.io.deq.valid || directOffer
     io.tl.a.bits         := 0.U.asTypeOf(io.tl.a.bits)
     io.tl.a.bits.opcode  := TLOpcode.Get
     io.tl.a.bits.size    := 6.U
     io.tl.a.bits.source  := sendSlot
-    io.tl.a.bits.address := address(sendSlot)
+    io.tl.a.bits.address := Mux(directOffer, io.request.bits.address, address(sendSlot))
     io.tl.a.bits.mask    := "hff".U
     sendQueue.io.deq.ready := io.tl.a.ready
     when(sendQueue.io.deq.valid) {
-        assert(phase(sendSlot) === send, "line fill send queue contains a non-pending slot")
+        assert(phase(queuedSlot) === send, "line fill send queue contains a non-pending slot")
     }
+    when(directFire) { assert(io.request.fire && !sendQueue.io.enq.fire && phase(freeSlot) === free) }
     when(io.tl.a.fire) { phase(sendSlot) := receive }
 
     val source = io.tl.d.bits.source(slotBits - 1, 0)
