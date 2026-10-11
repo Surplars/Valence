@@ -6,6 +6,7 @@ access, synthesis or bit generation. Protocol models and vendor UNISIM are
 separate suites; neither establishes physical CDC or a board scan-chain layout.
 """
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -23,6 +24,47 @@ LOADER_SOURCES = ("build.mill", ".mill-version",
                   "src/main/scala/ip/debug/JtagDebugReservation.scala",
                   "src/main/scala/ip/bus/RegisterPort.scala",
                   "src/test/scala/debug/JtagRamNativeMain.scala")
+# Simulation identities only. These values must never configure a physical TAP.
+# Recorded from the installed 2025.1 files on 2026-10-11; no vendor file is edited.
+MODEL_PROFILES = {
+    "vivado-2025.1-xczu15eg": dict(
+        name="vivado-2025.1-xczu15eg", part="XCZU15EG", profile_tag=202501,
+        ir_length=12, user1=0x0a4, user2=0x0e4, idcode=0x04a52093,
+        source_sha256={
+            "unisims/JTAG_SIME2.v": "73db6473f4d162bacc0c42ca1d28986ad2074e986b7ebe122cba615e5f8a536d",
+            "unisims/BSCANE2.v": "77795f9c236f62c74c07ce61a2deaecc5c8816e94fe8cd4b2de1646f56bbaf8b",
+        })
+}
+
+
+def select_model(name):
+    if name not in MODEL_PROFILES:
+        raise ValueError("explicit reviewed simulation --model-profile required")
+    return copy.deepcopy(MODEL_PROFILES[name])
+
+
+def validate_model(model):
+    if not isinstance(model, dict) or model != select_model(model.get("name")):
+        raise ValueError("simulation model identity/profile mismatch")
+
+
+def validate_vendor_hashes(model, hashes):
+    validate_model(model)
+    for name, expected in model["source_sha256"].items():
+        if hashes.get(name) != expected:
+            raise ValueError("installed model hash/profile mismatch: " + name)
+
+
+def validate_profile_log(model, log):
+    validate_model(model)
+    matches = re.findall(
+        r"^BSCAN_UNISIM_PROFILE_ONLY part=(\S+) ir_length=(\d+) "
+        r"user1=([0-9a-fA-F]+) user2=([0-9a-fA-F]+) idcode=([0-9a-fA-F]+)\s*$",
+        log, re.MULTILINE)
+    expected = (model["part"], model["ir_length"], model["user1"], model["user2"], model["idcode"])
+    if len(matches) != 1 or (matches[0][0], int(matches[0][1]),
+                           *[int(value, 16) for value in matches[0][2:]]) != expected:
+        raise ValueError("installed model runtime profile mismatch")
 
 
 def sha(path):
@@ -50,18 +92,26 @@ def cases(suite, model=None):
         return [case("vendor_profile", "bscan_unisim_profile_tb", "BSCAN_UNISIM_PROFILE_ONLY", [
             "simulator/jtag/bscan_unisim_profile_tb.sv"])]
     if suite == "unisim":
-        if model is None or not 1 <= model["ir_length"] <= 32:
-            raise ValueError("UNISIM requires explicit model IR length and USER1/USER2 opcodes from the installed model")
+        validate_model(model)
         width = model["ir_length"]
-        if any(not 0 <= model[k] < 1 << width for k in ("user1", "user2")) or model["user1"] == model["user2"]:
-            raise ValueError("invalid model USER opcode pair")
         sources = [DTM, BSCAN, "simulator/jtag/bscan_unisim_tb.sv"]
-        params = dict(MODEL_IR_LENGTH=width, MODEL_USER1=model["user1"], MODEL_USER2=model["user2"])
+        params = dict(MODEL_PROFILE_TAG=model["profile_tag"], MODEL_IR_LENGTH=width,
+                      MODEL_USER1=model["user1"], MODEL_USER2=model["user2"], MODEL_IDCODE=model["idcode"])
         result = [case("vendor_phase_" + str(i), "bscan_unisim_tb", "BSCAN_UNISIM_PASS", sources,
                        dict(params, SYS_HALF=half, TCK_LOW=low, TCK_HIGH=high, START_PHASE=phase))
                   for i, (half, low, high, phase) in enumerate(((7, 19, 23, 3), (13, 11, 17, 5), (5, 29, 31, 7)))]
         result.append(case("vendor_bad_oracle", "bscan_unisim_tb", "BSCAN_UNISIM_PASS", sources,
                            dict(params, BAD_EXPECTED=1), "UNISIM_READBACK_ORACLE"))
+        # Deliberately corrupt one generic at a time. Each must fail before any
+        # USER transaction, at its own diagnostic, not an unrelated fatal.
+        for name, key, value, reject in (
+                ("profile", "MODEL_PROFILE_TAG", 0, "UNISIM_PROFILE_MISMATCH"),
+                ("ir", "MODEL_IR_LENGTH", 16, "UNISIM_IR_MISMATCH"),
+                ("user1", "MODEL_USER1", 0x902, "UNISIM_USER1_MISMATCH"),
+                ("user2", "MODEL_USER2", 0x903, "UNISIM_USER2_MISMATCH"),
+                ("legacy_physical_id", "MODEL_IDCODE", 0x04750093, "UNISIM_IDCODE_MISMATCH")):
+            result.append(case("vendor_bad_" + name, "bscan_unisim_tb", "BSCAN_UNISIM_PASS", sources,
+                               dict(params, **{key: value}), reject))
         return result
     if suite == "loader-drain":
         sources = [DTM, "@loader/JtagRamLoader.sv", "simulator/jtag/loader_cdc_drain_tb.sv"]
@@ -120,16 +170,24 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--run", action="store_true", help="execute only in the separately authorized simulator task")
     parser.add_argument("--vivado-root", type=Path, help="existing installation; no PATH/tool download fallback")
+    parser.add_argument("--model-profile", choices=tuple(MODEL_PROFILES),
+                        help="reviewed simulation identity; never a physical BSDL/OpenOCD profile")
     parser.add_argument("--model-ir-length", type=int)
     parser.add_argument("--model-user1", type=lambda s: int(s, 0))
     parser.add_argument("--model-user2", type=lambda s: int(s, 0))
+    parser.add_argument("--model-idcode", type=lambda s: int(s, 0))
     parser.add_argument("--loader-rtl", type=Path)
     args = parser.parse_args(argv)
-    model = None
-    if args.suite == "unisim":
-        if None in (args.model_ir_length, args.model_user1, args.model_user2):
-            parser.error("explicit installed-model IR/USER profile required; physical BSDL values are not defaults")
-        model = dict(ir_length=args.model_ir_length, user1=args.model_user1, user2=args.model_user2)
+    if args.suite == "unisim" and not args.model_profile:
+        parser.error("explicit reviewed simulation --model-profile required; physical BSDL values are not defaults")
+    model = select_model(args.model_profile) if args.model_profile else None
+    overrides = dict(ir_length=args.model_ir_length, user1=args.model_user1,
+                     user2=args.model_user2, idcode=args.model_idcode)
+    if (model or any(value is not None for value in overrides.values())) and not args.suite.startswith("unisim"):
+        parser.error("model options are valid only for UNISIM suites")
+    for key, value in overrides.items():
+        if value is not None and (model is None or value != model[key]):
+            parser.error("model override does not match the selected reviewed profile: " + key)
     rows = cases(args.suite, model)
     output = args.output.resolve()
     if output.exists():
@@ -153,6 +211,10 @@ def main(argv=None):
             vendor_files[name] = path
     if vendor and args.run and not vendor_files:
         parser.error("installed vendor model provenance required")
+    vendor_hashes = {k: sha(v) for k, v in vendor_files.items()}
+    if model and vendor_files:
+        # Fail before even probing a tool when the selected installation differs.
+        validate_vendor_hashes(model, vendor_hashes)
     inputs = {p: (loader / p[len("@loader/"):]) if p.startswith("@loader/") else ROOT / p
               for row in rows for p in row["sources"]}
     inputs["simulator/jtag/run_xsim.py"] = Path(__file__).resolve()
@@ -167,8 +229,10 @@ def main(argv=None):
         shutil.copy2(path, dest)
         staged[key] = dest
     report = dict(schema="valence-xsim-native-v1", status="PREPARED_NOT_RUN", suite=args.suite,
-        input_sha256=before, installed_model_sha256={k: sha(v) for k, v in vendor_files.items()},
+        input_sha256=before, installed_model_sha256=vendor_hashes,
         model_profile=model, loader_receipt=loader_receipt, cases=[],
+        installed_model_profile_hashes_verified=bool(model and vendor_files),
+        installed_model_runtime_profile_verified=False,
         runtime_attempted=False, runtime_executed=False, vendor_primitive_executed=False, physical_cdc_signoff=False,
         board_scan_chain_verified=False, board_verified=False, full_debug_module=False,
         installed_models_are_not_board_bsdl=True,
@@ -208,9 +272,14 @@ def main(argv=None):
                     raise RuntimeError(row["name"] + " " + command[0] + " failed")
                 if index == 2:
                     result_row["status"] = classify_run(row, result.returncode, log)
+                    if args.suite == "unisim-profile" and model:
+                        validate_profile_log(model, log)
+                        report["installed_model_runtime_profile_verified"] = True
         if args.run:
             report.update(status="PASS_SIMULATION_ONLY", runtime_executed=True,
                           vendor_primitive_executed=args.suite == "unisim")
+            if args.suite == "unisim":
+                report["installed_model_runtime_profile_verified"] = True
             if args.suite == "unisim-profile":
                 report["status"] = "PROFILE_PRINTED_NOT_PROTOCOL_QUALIFIED"
     except BaseException as error:

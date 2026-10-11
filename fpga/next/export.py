@@ -33,7 +33,10 @@ def sources():
         "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
-        "fpga/next/performance-profile.json", *media_integration.INPUTS)]
+        "fpga/next/performance-profile.json", "fpga/next/board_profile.py",
+        "fpga/next/board-performance-profile.json", "fpga/next/board-performance-constructors.json",
+        "fpga/next/board_release.py", "fpga/next/board-release-profile.json",
+        *media_integration.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():

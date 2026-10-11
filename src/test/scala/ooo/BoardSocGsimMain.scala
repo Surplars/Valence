@@ -5,7 +5,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
 import java.nio.file.{Files, Paths}
-import soc.core.ooo.{BoardSocConfig, BoardSocTop, DdrBridgeConfig, CoherentCacheConcurrency, CacheTagConfig, FpgaStorageConfig}
+import soc.core.ooo.{BoardSocConfig, BoardSocTop, DdrBridgeConfig, CoherentCacheConcurrency, CacheTagConfig, FpgaStorageConfig, FpgaNextConfig}
 
 /** Avoid exposing a Vec at the GSIM top boundary (the pinned generator needs scalar accessors). */
 class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
@@ -35,7 +35,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
-    dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false) extends Module {
+    dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
+    configurationCheck: Option[FpgaNextConfig] = None) extends Module {
     private val board = Module(new BoardSocTop(vivadoMemories = false, simulation = true,
         externalDdr = externalDdr, socClockHz = clockHz, timingProfile = timingProfile, uartBaud = uartBaud,
         dataCacheWays = dataCacheWays, issueWidth = issueWidth, instructionPrefetch = instructionPrefetch,
@@ -55,6 +56,38 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow))
+    configurationCheck.foreach { expected =>
+        // Read retained constructor products from the instances that are being emitted.
+        def unique[T](instance: AnyRef, kind: Class[T]): T = {
+            val fields = scala.collection.mutable.ArrayBuffer.empty[java.lang.reflect.Field]
+            var declaring: Class[_] = instance.getClass
+            while (declaring != null) {
+                fields ++= declaring.getDeclaredFields.filter(f =>
+                    !java.lang.reflect.Modifier.isStatic(f.getModifiers) && f.getType == kind)
+                declaring = declaring.getSuperclass
+            }
+            require(fields.size == 1, "actual constructor field is absent or ambiguous: " + kind.getName)
+            fields.head.setAccessible(true)
+            kind.cast(fields.head.get(instance))
+        }
+        require(unique(board.platform, classOf[DdrBridgeConfig]) == expected.ddr,
+            "actual platform DDR bridge parameters differ from the single board profile")
+        require(unique(board.platform.privateCache.get, classOf[CoherentCacheConcurrency]) == expected.cache,
+            "actual cache concurrency differs from the single board profile")
+        require(board.platform.core.core.core.p == expected.coreParams,
+            "actual GSIM core parameters differ from the single board profile")
+        require(board.platform.core.core.core.backend.lsu.slots.size == expected.lsuEntries,
+            "actual GSIM LSU owner count differs from the single board profile")
+        require(expected.lsuEntries != 4 || timingProfile == BoardSocConfig.memoryCapacityProfile,
+            "four-slot occupancy requires the actual memory-capacity timing profile")
+        require(board.platform.dma.io.line.nonEmpty == expected.dmaLineTransfers,
+            "actual GSIM DMA line port presence differs from the single board profile")
+        require(dataCacheLines == expected.dataCacheLines && dataCacheWays == expected.cacheWays &&
+            instructionLineCacheLines == expected.instructionCacheLines && ddrMemoryBytes == expected.ddrBytes &&
+            dataTranslationEntries == expected.dataTranslationEntries && dmaLineEntries == expected.dmaLineEntries &&
+            ddrBridge == expected.ddr && cacheConcurrency == expected.cache && tagConfig == expected.tags,
+            "actual GSIM constructor geometry differs from the single board profile")
+    }
     // A test-only, passive scalar view of this exact Board instance. No inputs,
     // queues or control paths are inserted by the composition fixture.
     val lineage = lineageProfile.map { profile =>

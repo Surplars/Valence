@@ -3,6 +3,10 @@
 #undef main
 #include "performance_observer.h"
 #include "mshr_occupancy.h"
+#include "cpu_lsu_occupancy.h"
+#ifndef BOARD_EXPECTED_LSU_ENTRIES
+#define BOARD_EXPECTED_LSU_ENTRIES 2
+#endif
 #include "cpu_sv39_symbols.h"
 #include <array>
 #include <deque>
@@ -19,7 +23,7 @@ struct Observer {
     std::deque<Reply> replies;
     PerfCounts perf;
     std::array<uint64_t,24> events{};
-    uint64_t ar=0,aw=0,r=0,w=0,lsuSum=0,lsuPeak=0,physicalPeak=0;
+    uint64_t ar=0,aw=0,r=0,w=0,axiReadWriteFireCycles=0,lsuSum=0,lsuPeak=0,physicalPeak=0;
     uint64_t hitPass=0,pfCandidates=0,pfAllocated=0,pfUseful=0,pfMissSum=0;
     uint64_t handoffs=0,independentReadHits=0,independentMisses=0,independentStoreHits=0;
     uint64_t cacheOwnerPeak=0,cacheOwnerSum=0,twoCacheOwnerCycles=0,axiReadPeak=0;
@@ -89,7 +93,9 @@ struct Observer {
             aw+=d.get_io$$ddrAxi$$aw$$valid()&&test->ddr.awReady;
             r+=test->ddr.rValid&&d.get_io$$ddrAxi$$r$$ready();
             w+=test->ddr.wReady&&d.get_io$$ddrAxi$$w$$valid();
-            const unsigned state=d.get_backendSlotState(),live=(state&1)+((state>>1)&1);
+            axiReadWriteFireCycles+=(test->ddr.rValid&&d.get_io$$ddrAxi$$r$$ready())&&
+                (test->ddr.wReady&&d.get_io$$ddrAxi$$w$$valid());
+            const unsigned live=CpuLsuOccupancy::sample(d,BOARD_EXPECTED_LSU_ENTRIES);
             lsuSum+=live;lsuPeak=std::max<uint64_t>(lsuPeak,live);
             physicalPeak=std::max<uint64_t>(physicalPeak,replies.size());
         }
@@ -139,6 +145,7 @@ int main(int argc,char **argv){try{
         <<" payload_MiBps="<<std::setprecision(12)<<double(bytes)*reps*100000000/o.perf.cycles/1048576
         <<" retired="<<o.perf.retired<<" pc_hash="<<o.pcHash<<" loads="<<o.roiLoads<<" stores="<<o.roiStores
         <<" ar="<<o.ar<<" aw="<<o.aw<<" r_beats="<<o.r<<" w_beats="<<o.w
+        <<" lsu_capacity="<<BOARD_EXPECTED_LSU_ENTRIES<<" axi_rw_fire_cycles="<<o.axiReadWriteFireCycles
         <<" lsu_peak="<<o.lsuPeak<<" lsu_sum="<<o.lsuSum<<" physical_peak="<<o.physicalPeak
         <<" hit_pass="<<o.hitPass<<" pf_candidates="<<o.pfCandidates<<" pf_allocated="<<o.pfAllocated
         <<" pf_useful="<<o.pfUseful<<" pf_miss_sum="<<o.pfMissSum;

@@ -3,7 +3,9 @@
 // MODEL_* are SIMULATION encodings, explicitly profiled from this installation.
 // They must never overwrite the physical BSDL/SMT2 IR12/USER2=0x903 profile.
 module bscan_unisim_tb #(
+    parameter integer MODEL_PROFILE_TAG=0,
     parameter integer MODEL_IR_LENGTH=0, MODEL_USER1=0, MODEL_USER2=0,
+    parameter [31:0] MODEL_IDCODE=0,
     parameter integer SYS_HALF=7, TCK_LOW=19, TCK_HIGH=23, START_PHASE=3,
     parameter integer BAD_EXPECTED=0
 );
@@ -118,11 +120,18 @@ module bscan_unisim_tb #(
     initial begin
         for(i=0;i<128;i=i+1)memory[i]=32'ha5000000+i;
         #1000;
-        if(MODEL_IR_LENGTH<1 || MODEL_IR_LENGTH>32 || MODEL_IR_LENGTH!=tap.IRLength ||
-           MODEL_USER1!=(tap.USER1_INSTR>>(tap.IRLengthMax-tap.IRLength)) ||
-           MODEL_USER2!=(tap.USER2_INSTR>>(tap.IRLengthMax-tap.IRLength)))
-            $fatal(1,"UNISIM_PROFILE_MISMATCH inspect installed model; do not modify physical BSDL config");
-        if((tap.IDCODEval_sig & 32'h0fffffff)!==32'h04750093)$fatal(1,"UNISIM wrong part model");
+        // Reviewed installed-model identity, independently checked against the
+        // instantiated primitives. Full simulation ID: never mask/relax a board ID.
+        if(MODEL_PROFILE_TAG!==202501)
+            $fatal(1,"UNISIM_PROFILE_MISMATCH explicit vivado-2025.1-xczu15eg required");
+        if(MODEL_IR_LENGTH!==12 || MODEL_IR_LENGTH!==tap.IRLength)
+            $fatal(1,"UNISIM_IR_MISMATCH");
+        if(MODEL_USER1!==12'h0a4 || MODEL_USER1!==(tap.USER1_INSTR>>(tap.IRLengthMax-tap.IRLength)))
+            $fatal(1,"UNISIM_USER1_MISMATCH");
+        if(MODEL_USER2!==12'h0e4 || MODEL_USER2!==(tap.USER2_INSTR>>(tap.IRLengthMax-tap.IRLength)))
+            $fatal(1,"UNISIM_USER2_MISMATCH");
+        if(MODEL_IDCODE!==32'h04a52093 || MODEL_IDCODE!==tap.IDCODEval_sig)
+            $fatal(1,"UNISIM_IDCODE_MISMATCH do not modify physical BSDL config");
         por_n=1;repeat(6)step(1);idle(12);ir(MODEL_USER2);idle(12);
         if(dut.enabled.sel!==1 || other_sel!==0)$fatal(1,"UNISIM_USER2_SELECTION_ORACLE SEL");
         scan(frame(3,0,0),64,-1,rx);poll(rx);
@@ -162,8 +171,8 @@ module bscan_unisim_tb #(
         scan(frame(3,0,0),64,-1,rx);poll(rx);
         if(rx[33:2]!==32'h701 || updates<10 || captures<10 || shifted<640)
             $fatal(1,"UNISIM phase coverage incomplete");
-        $display("BSCAN_UNISIM_PASS ir=%0d user2=%h requests=%0d updates=%0d captures=%0d shifts=%0d sys_half=%0d tck=%0d/%0d",
-            MODEL_IR_LENGTH,MODEL_USER2,accepted,updates,captures,shifted,SYS_HALF,TCK_LOW,TCK_HIGH);
+        $display("BSCAN_UNISIM_PASS profile=%0d idcode=%h ir=%0d user2=%h requests=%0d updates=%0d captures=%0d shifts=%0d sys_half=%0d tck=%0d/%0d",
+            MODEL_PROFILE_TAG,MODEL_IDCODE,MODEL_IR_LENGTH,MODEL_USER2,accepted,updates,captures,shifted,SYS_HALF,TCK_LOW,TCK_HIGH);
         $finish;
     end
     initial begin #10000000;$fatal(1,"UNISIM global watchdog");end

@@ -19,7 +19,7 @@ currently running Vivado work is finished.
 |---|---|---|
 | `protocol` | Seven native cases: soft-TAP arcs/IR/IDCODE/BYPASS/fail stub, mailbox CDC, completion-phase regression, ABITS 1/7/32, BSCAN pin-event protocol model | Real FPGA BSCANE2, board TAP, physical timing |
 | `unisim-profile` | Installed `JTAG_SIME2` attributes printed with model source hashes | Any USER transaction or board scan |
-| `unisim` | Real `JTAG_SIME2` and `BSCANE2`, three independent-clock phase ratios, independent readback negative | Full dbg_hub simulation, memory bus owner, metastability/STA |
+| `unisim` | Real `JTAG_SIME2` and `BSCANE2`, three independent-clock phase ratios, independent readback negative and five identity negatives | Full dbg_hub simulation, memory bus owner, metastability/STA |
 | `loader-drain` | Actual generated `JtagRamLoader` plus `ValenceDmiCdc`, three clock ratios and wrong-owner-reset negative | CPU/cache/DDR execution, TAP or vendor primitive |
 
 The last two suites are complementary. The vendor suite uses a clearly named
@@ -62,32 +62,74 @@ project, acquire SMT2, or alter Windows USB bindings for these simulation tests.
 Compile/elaboration uses the documented command-line simulator workflow.
 [AMD UG900 command options](https://docs.amd.com/r/2025.1-English/ug900-vivado-logic-simulation/xelab-xvhdl-and-xvlog-xsim-Command-Options).
 
-## Vendor model IR is not the physical board IR
+## Vendor model identity is separate from the physical board identity
 
-The offline exact-part BSDL says physical IR12, USER2=0x903 and fixed ID
-0x04750093. Keep the existing host profile unchanged.
+The offline exact-part BSDL says physical IR12, USER1=0x902, USER2=0x903 and
+IDCODE 0x04750093 with mask 0x0fffffff. Keep the existing BSDL/OpenOCD settings
+unchanged. The physical TAP order and nSRST wiring remain unknown.
 
-There is a material simulation-model distinction: the officially published
-archived `JTAG_SIME2.v` selects IR length 16 for `XCZU15EG`, with USER opcodes
-selected from its model constants. This observation does not explain or prove
-any physical PS/DAP chain layout. The installed 2025.1 model, not that archived
-file, is the execution input. First record its file hashes and profile output;
-inspect the matching installed model/template. Do not patch a vendor model or
-fall back to a different part to make a test pass.
-[Official archived model source](https://github.com/Xilinx/XilinxUnisimLibrary/blob/master/verilog/src/unisims/JTAG_SIME2.v).
+Read-only inspection of the installed Vivado 2025.1 sources on 2026-10-11 found
+the simulation identity below for `PART_NAME="XCZU15EG"`. This is distinct from
+both the physical BSDL and older archived model revisions. The supported
+simulation profile is explicitly named `vivado-2025.1-xczu15eg`; it is never a
+default, and an unreviewed profile or conflicting numeric override is rejected.
 
-After the profile is understood, pass its exact values explicitly:
+| Field | Simulation profile | Physical BSDL/OpenOCD |
+|---|---|---|
+| IR length | 12 | 12 |
+| USER1 | 0x0a4 | 0x902 |
+| USER2 | 0x0e4 | 0x903 |
+| IDCODE | exact 0x04a52093, all 32 bits | 0x04750093, mask 0x0fffffff |
+
+The runner pins these installed file SHA-256 values and rejects drift before
+invoking even a tool version probe:
+
+- `JTAG_SIME2.v`: `73db6473f4d162bacc0c42ca1d28986ad2074e986b7ebe122cba615e5f8a536d`
+- `BSCANE2.v`: `77795f9c236f62c74c07ce61a2deaecc5c8816e94fe8cd4b2de1646f56bbaf8b`
+
+`glbl.v` and test inputs retain the runner's source/drift hashing. Vendor files
+are read from the explicitly selected existing installation and are never
+modified. `unisims_ver` is still the vendor library; no replacement primitive
+is introduced. The bench independently checks the named profile tag, the exact
+IR/USER/full-ID values and the instantiated model attributes before traffic.
+The named `unisim-profile` run also validates its printed values against the
+profile. An unnamed `unisim-profile` run remains inspection-only, with no claim
+that its identity matches the supported profile.
+
+At base commit `adf7059513be64c61303dd17de344ac446ab0cca`, the bench incorrectly
+required `(tap.IDCODEval_sig & 32'h0fffffff) === 32'h04750093`. The installed
+simulation ID would fail this assertion before a USER transaction. This is a
+source/host arithmetic finding, not an observed xsim failure: xsim had not been
+run when this fix was prepared. The [retained finding](evidence/xsim-vendor-profile-20261011.json)
+binds the original bench hash, original condition and inspected source hashes.
+`vendor_bad_legacy_physical_id` now deliberately supplies the physical ID as a
+simulation expectation and must reach `UNISIM_IDCODE_MISMATCH`. Four additional
+identity negatives independently corrupt the profile tag, IR length, USER1 and
+USER2. None may pass from an unrelated fatal or a compile failure.
+
+From this patched snapshot, on the authorized local executor, use fresh result
+directories and the verified existing installation root:
 
 ```text
-python simulator/jtag/run_xsim.py --suite unisim --model-ir-length <MODEL_IR_LENGTH> --model-user1 <MODEL_USER1_OPCODE> --model-user2 <MODEL_USER2_OPCODE> --output <fresh-results> --run --vivado-root <existing-Vivado-installation>
+python simulator/jtag/run_xsim.py --suite unisim-profile --model-profile vivado-2025.1-xczu15eg --output <fresh-profile-results> --run --vivado-root <existing-Vivado-installation>
+python simulator/jtag/run_xsim.py --suite unisim --model-profile vivado-2025.1-xczu15eg --output <fresh-unisim-results> --run --vivado-root <existing-Vivado-installation>
 ```
 
-The bench independently checks the supplied parameters against the instantiated
-vendor attributes and the part ID. No numeric simulation profile is a default.
-If the installed model changes its internal attribute names, stop and update
-the profile adapter after review; do not waive that check. JTAG_SIME2 models only
-part of the JTAG interface, so this test does not discover the board's TAP order.
-[AMD JTAG simulation scope](https://docs.amd.com/r/2020.2-English/ug900-vivado-logic-simulation/JTAG-Simulation).
+Prerequisites: Python 3, the installation's `bin/xvlog`, `bin/xelab`, `bin/xsim`
+(the `.bat` variants on Windows), `data/verilog/src/glbl.v`, the two pinned
+`data/verilog/src/unisims/` sources, and its usable `unisims_ver` library.
+No installation or download is performed. First require
+`PROFILE_PRINTED_NOT_PROTOCOL_QUALIFIED` with both model verification fields
+true; then require all nine unisim cases and `PASS_SIMULATION_ONLY`. Preparation
+without `--run` still does not claim execution or installed hash verification
+unless the actual installation path was supplied. If hashes, attributes or
+runtime behavior differ, retain the failure and review the actual installed
+model; do not widen the physical accepted ID, edit vendor sources, waive the
+checks or switch the part. These commands have not been executed as part of the
+host-side fix.
+
+JTAG_SIME2 models only part of the JTAG interface, so this test does not discover
+the board's TAP order. [AMD JTAG simulation scope](https://docs.amd.com/r/2020.2-English/ug900-vivado-logic-simulation/JTAG-Simulation).
 
 ## Clock phases and vendor test coverage
 

@@ -98,7 +98,8 @@ proc valence_trispeed_packet_cdc_constraints {bank} {
 }
 
 proc valence_trispeed_board_constraints {mbps} {
-    set bank u_soc/nativeBank/gmac
+    # FpgaNextSocTop wraps its managed BoardSocTop in the exact board instance.
+    set bank u_soc/board/nativeBank/gmac
     valence_trispeed_rx_constraints $mbps
     valence_trispeed_clock_reset_audit $bank $mbps
     valence_trispeed_quarter_tx_constraints u_rgmii $mbps

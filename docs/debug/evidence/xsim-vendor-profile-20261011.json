@@ -1,0 +1,47 @@
+{
+  "schema": "valence-xsim-vendor-model-finding-v1",
+  "date_utc": "2026-10-11",
+  "base_commit": "adf7059513be64c61303dd17de344ac446ab0cca",
+  "status": "SOURCE_IDENTITY_MISMATCH_CONFIRMED_RUNTIME_NOT_RUN",
+  "source": "Read-only inspection of the existing local Vivado 2025.1 installation, reported by the authorized local task; no vendor files copied or edited here.",
+  "original_bench": {
+    "path": "simulator/jtag/bscan_unisim_tb.sv",
+    "sha256": "4169714fbb10855814c878f0cf596ce596c93cf4807dd319e13d1f5715df0128",
+    "assertion": "if((tap.IDCODEval_sig & 32'h0fffffff)!==32'h04750093)$fatal(1,\"UNISIM wrong part model\");",
+    "host_arithmetic_result": "0x04a52093 & 0x0fffffff is 0x04a52093, which differs from 0x04750093",
+    "expected_old_behavior": "Reject the installed vendor simulation model before USER transactions",
+    "old_xsim_failure_observed": false
+  },
+  "simulation_profile": {
+    "name": "vivado-2025.1-xczu15eg",
+    "part": "XCZU15EG",
+    "profile_tag": 202501,
+    "ir_length": 12,
+    "user1": "0x0a4",
+    "user2": "0x0e4",
+    "idcode": "0x04a52093",
+    "idcode_comparison": "exact full 32 bits",
+    "installed_source_sha256": {
+      "JTAG_SIME2.v": "73db6473f4d162bacc0c42ca1d28986ad2074e986b7ebe122cba615e5f8a536d",
+      "BSCANE2.v": "77795f9c236f62c74c07ce61a2deaecc5c8816e94fe8cd4b2de1646f56bbaf8b"
+    }
+  },
+  "physical_profile_unchanged": {
+    "ir_length": 12,
+    "user1": "0x902",
+    "user2": "0x903",
+    "idcode": "0x04750093",
+    "idcode_mask": "0x0fffffff",
+    "installed_bsdl_sha256": "13554c795fac67e7a4ab6fde86a59d6252b48a1ca17501e4dde1680e5b4e2613",
+    "tap_order_known": false,
+    "nsrst_wiring_known": false
+  },
+  "limitations": [
+    "Host/static tests do not establish xsim execution or vendor behavior.",
+    "USER2 remains a candidate until the actual new netlist proves no existing USER1 debug-hub or other USER-chain conflict.",
+    "This is the custom 64-bit USER DR RAM-loader protocol, not RISC-V use_bscan_tunnel.",
+    "No physical CDC/RDC signoff, timing result, hardware scan, RAM download or board execution is claimed."
+  ],
+  "xsim_executed": false,
+  "board_verified": false
+}

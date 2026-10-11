@@ -5,7 +5,7 @@ import soc.core.ooo.FpgaNextConfig
 
 /** Shared by the CLI emitter and the actual ON/OFF elaboration test. */
 object FpgaNextBoardGsim {
-    def build(c: FpgaNextConfig, lineageProbes: Boolean = false): BoardSocGsim = new BoardSocGsim(
+    def build(c: FpgaNextConfig, lineageProbes: Boolean = false, verifyConfiguration: Boolean = false): BoardSocGsim = new BoardSocGsim(
         externalDdr = true, clockHz = c.cpuHz, timingProfile = c.timingProfile,
         uartBaud = c.uartBaud, dataCacheWays = c.cacheWays, issueWidth = c.issueWidth,
         instructionPrefetch = c.instructionPrefetch, isaProfile = c.isaProfile,
@@ -29,7 +29,8 @@ object FpgaNextBoardGsim {
         lineTransferDispatchFlow = c.lineTransferDispatchFlow,
         dataTlbWriteReadReuse = c.dataTlbWriteReadReuse,
         translationHitFlow = c.translationHitFlow,
-        lineageProfile = if (lineageProbes) Some(c) else None)
+        lineageProfile = if (lineageProbes) Some(c) else None,
+        configurationCheck = if (verifyConfiguration) Some(c) else None)
 }
 
 /** Same fixed CPU/cache/fabric profile as the native export, without clock-domain peripherals. */
