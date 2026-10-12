@@ -46,7 +46,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
     registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
     directRank1MemorySourceIds: Boolean = false, directRegisteredExecutionOperands: Boolean = false,
-    sharedCanonicalStoreOwnerMatch: Boolean = false) extends Module {
+    sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
@@ -57,6 +57,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         directRank1MemorySourceIds == configurationCheck.get.coreParams.directRank1MemorySourceIds &&
         directRegisteredExecutionOperands == configurationCheck.get.coreParams.directRegisteredExecutionOperands &&
         sharedCanonicalStoreOwnerMatch == configurationCheck.get.coreParams.sharedCanonicalStoreOwnerMatch &&
+        eagerFetchPrefixSelect == configurationCheck.get.coreParams.eagerFetchPrefixSelect &&
         pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
         pendingStoreEarlyLoadCredits == configurationCheck.get.coreParams.pendingStoreEarlyLoadCredits &&
         boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap &&

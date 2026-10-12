@@ -10,7 +10,7 @@
     "qualified_source_tree": "6a4d8f4c87a314757e07b1928ce9afe6d5ac3280"
   },
   "export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
-  "export_sources_sha256": "75990b312b371affabdaa086d30e2a3e72267c158178569aec610a0b5549487d",
+  "export_sources_sha256": "2104ab0a1593af37c681d0178ef334b3aa07cad1cde079920b852cc1237ec8ea",
   "native_options": [
     "--selected",
     "--data-translation-entries=16",
@@ -84,5 +84,19 @@
     "path": "simulator/gsim/owner_row/evidence/public-receipt.json",
     "sha256": "9e3012abadb499e753a3c2d7caf7c719049dc012aed5e1cdb442300936b1eada",
     "scope": "RECORDED_FULL_QUALIFICATION_WITH_LOCAL_SOURCE_CONFIG_RECHECK_ONLY"
+  },
+  "source_only_optional_bridge": {
+    "published_base_commit": "b22f10fde916a0c8209d070e282ebd98cf4c0b2f",
+    "published_base_tree": "a931ea8ec32438b5fe45852509b0b3dc0a782a6b",
+    "new_default_off_field": "eagerFetchPrefixSelect",
+    "recorded_qualification_identity": "Retained owner-row52 evidence is unchanged; no new default52 CPU run is claimed.",
+    "source_only_entry_rebind": true,
+    "default52_cpu_rerun": false,
+    "optional53_receipt": {
+      "path": "simulator/gsim/eager_prefix/evidence/public-receipt.json",
+      "sha256": "ae6305b0f59d38b94334ea36873691b7dde099308f51be96e85d1d159d22fd5f"
+    },
+    "default52_native_raw_byte_identical": false,
+    "default52_native_exact_residual_identical": true
   }
 }

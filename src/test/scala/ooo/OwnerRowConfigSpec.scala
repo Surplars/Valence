@@ -56,14 +56,14 @@ class OwnerRowConfigSpec extends AnyFunSuite {
     }
 
     test("new fields append to every product and remain off in all generic presets") {
-        assert(OooParams().productArity == 158 && !OooParams().sharedCanonicalStoreOwnerMatch)
+        assert(OooParams().productArity == 159 && !OooParams().sharedCanonicalStoreOwnerMatch)
         assert(OooParams().productElementName(157) == "sharedCanonicalStoreOwnerMatch")
         for (ddr <- Seq(DdrBridgeConfig.Legacy, DdrBridgeConfig.ReadOverlap4)) {
             assert(ddr.productArity == 9 && !ddr.localPayloadWriteRow)
             assert(ddr.productElementName(8) == "localPayloadWriteRow")
         }
         for (base <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected, off)) {
-            assert(base.productArity == 70 && base.coreParams.productArity == 158 &&
+            assert(base.productArity == 71 && base.coreParams.productArity == 159 &&
                 base.ddr.productArity == 9 && base.cache.productArity == 22)
             assert(base.productElementName(68) == "sharedCanonicalStoreOwnerMatch" &&
                 base.productElementName(69) == "localPayloadWriteRow")

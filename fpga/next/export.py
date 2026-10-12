@@ -48,6 +48,9 @@ def sources():
         "fpga/next/timing-batch-zero-cycle-cleanup-profile.json",
         "fpga/next/timing-batch-owner-row-profile.json",
         "src/test/scala/ooo/OwnerRowActualAudit.scala",
+        "src/test/scala/ooo/EagerPrefixActualAudit.scala",
+        "fpga/next/timing-batch-eager-prefix-profile.json",
+        "fpga/next/board_eager_prefix.py",
         *media_integration.INPUTS, *bscan_integration.INPUTS, *board_t1.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
@@ -136,6 +139,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--local-payload-write-row", action="count", default=0,
                     help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--eager-fetch-prefix-select", action="count", default=0,
+                    help="default-off direct accepted-prefix selection within the aligned permission phase")
     ap.add_argument("--shared-canonical-store-owner-match", action="count", default=0,
                     help="default-off canonical certificate consumer owner-map sharing")
     ap.add_argument("--internal-line-grant", action="count", default=0,
@@ -337,10 +342,12 @@ def main(argv=None, expected_profile_sha256=None):
     if a.tagged_store_returns > 1:
         ap.error("duplicate --tagged-store-returns flag")
     a.tagged_store_returns = bool(a.tagged_store_returns)
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select"):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
+    if a.eager_fetch_prefix_select and not a.aligned_fetch_permission_stage:
+        ap.error("--eager-fetch-prefix-select requires --aligned-fetch-permission-stage")
     if a.shared_canonical_store_owner_match and not a.canonical_virtual_store_overlap:
         ap.error("--shared-canonical-store-owner-match requires --canonical-virtual-store-overlap")
     if a.local_payload_write_row and not (a.line_read_channel and a.local_payload_write_enable):
@@ -503,7 +510,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select"):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -739,6 +746,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--direct-rank1-memory-source-ids")
     if a.direct_registered_execution_operands:
         command.append("--direct-registered-execution-operands")
+    if a.eager_fetch_prefix_select:
+        command.append("--eager-fetch-prefix-select")
     if a.shared_canonical_store_owner_match:
         command.append("--shared-canonical-store-owner-match")
     if a.local_payload_write_row:
@@ -774,6 +783,7 @@ def main(argv=None, expected_profile_sha256=None):
             "direct_rank1_memory_source_ids": a.direct_rank1_memory_source_ids,
             "direct_registered_execution_operands": a.direct_registered_execution_operands,
             "shared_canonical_store_owner_match": a.shared_canonical_store_owner_match,
+            "eager_fetch_prefix_select": a.eager_fetch_prefix_select,
             "local_payload_write_row": a.local_payload_write_row,
             "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,

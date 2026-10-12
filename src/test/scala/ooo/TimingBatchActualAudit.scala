@@ -30,6 +30,8 @@ object TimingBatchActualAudit {
             "actual canonical event producer/backend configuration differs")
         val packet = core.fetchPacket.getOrElse(
             throw new IllegalArgumentException("actual registered fetch packet is absent"))
+        require(packet.eagerPrefixSelect == actual.eagerFetchPrefixSelect,
+            "actual selected packet eager prefix mode differs")
         require(packet.alignedPermissionStage == actual.alignedFetchPermissionStage &&
             platform.frontend.boundedRequestFrontier == actual.alignedFetchPermissionStage,
             "actual fetch packet/frontend mode differs")

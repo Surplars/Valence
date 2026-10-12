@@ -20,9 +20,9 @@ object OwnerRowActualAudit {
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
         val core = platform.core.core.core
         val backend = core.backend
-        require(core.p == expected.coreParams && backend.p == core.p && core.p.productArity == 158,
+        require(core.p == expected.coreParams && backend.p == core.p && core.p.productArity == 159,
             "actual owner-row core differs from the complete requested profile")
-        require(expected.productArity == 70 && expected.ddr.productArity == 9 && expected.cache.productArity == 22)
+        require(expected.productArity == 71 && expected.ddr.productArity == 9 && expected.cache.productArity == 22)
         require(backend.shareCanonicalStoreOwnerMatch == backend.p.sharedCanonicalStoreOwnerMatch &&
             backend.shareCanonicalStoreOwnerMatch == expected.sharedCanonicalStoreOwnerMatch,
             "actual shared canonical-store owner comparator differs from its OooParams flag")

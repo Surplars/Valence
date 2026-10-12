@@ -134,7 +134,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     val fetchPacket = if (p.registeredFetchPacket) {
         val packet = Module(new RegisteredFetchPacket(p.renameWidth, p.compressedInstructions, resetPc,
             p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints,
-            p.alignedFetchPermissionStage))
+            p.alignedFetchPermissionStage, p.eagerFetchPrefixSelect))
         val permission = if (p.capturedFetchPermission && p.pmpEntries > 0) {
             val checks = Module(new FetchPacketPermission(p.pmpEntries, p.renameWidth,
                 p.wordSpanPacketPmp, p.balancedPacketPmp, p.sharedFetchPmpRelations))

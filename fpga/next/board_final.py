@@ -14,7 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 MANIFEST = HERE / "board-final-profile-v1.json"
-MANIFEST_SHA256 = "f5cd0e44a79463eaa3d7e1bad48f4012c8a0e7254fecfb19e48ffc9ed7c6bc66"
+MANIFEST_SHA256 = "4a3cdda058f99a660520bb1711992ac5354ef1662d81debd186b47281628bafe"
 INPUTS = ("fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json")
 
 

@@ -71,10 +71,13 @@ class FetchPhaseStatus(width: Int) extends Bundle {
   */
 class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
-    bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false) extends Module {
+    bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false,
+    val eagerPrefixSelect: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
     require(!alignedPermissionStage || (width == 2 && compressed && splitCursor),
         "aligned permission phase requires two compressed lanes and split cursor")
+    require(!eagerPrefixSelect || alignedPermissionStage,
+        "direct eager prefix selection requires the aligned permission phase")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64))
     require(Set(8, 16, 32).contains(hintEntries))
     private val capacity = 2 * width
@@ -364,13 +367,9 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         // A later B correction cancels the speculative A write without entering
         // this cursor's arithmetic or write-enable.
         val scanPrefix = Wire(Vec(width + 1, Bool()))
-        val scanOffsets = Wire(Vec(width + 1, UInt(offsetBits.W)))
         scanPrefix(0) := !io.pause && tokenReady
-        scanOffsets(0) := 0.U
         for (lane <- 0 until width) {
             scanPrefix(lane + 1) := scanPrefix(lane) && io.supply(lane).valid
-            val short = compressed.B && io.supply(lane).bits.instruction(1, 0) =/= 3.U
-            scanOffsets(lane + 1) := scanOffsets(lane) + Mux(short, 2.U, 4.U)
         }
         val scanBases = Seq(rawCursor, correctionPc.get)
         val scanHighs = scanBases.map(_(63, 21))
@@ -382,10 +381,32 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
             }
             (2 * halfwords).U -> Mux(correctionPending.get, alternatives(1), alternatives(0))
         }
-        val scanNext = Mux1H(Seq(!scanPrefix(1) -> supplyPc) ++ (0 until width).map { lane =>
-            val last = scanPrefix(lane + 1) && (if (lane + 1 == width) true.B else !scanPrefix(lane + 2))
-            last -> MuxLookup(scanOffsets(lane + 1), supplyPc)(scanCandidates)
-        })
+        val scanNext = if (eagerPrefixSelect) {
+            // scanPrefix(2) implies scanPrefix(1). The accepted prefix advances
+            // by zero, one 2/4-byte instruction, or two such instructions.
+            // Keep the completed full-width carry/correction candidates intact.
+            val one = scanPrefix(1) && !scanPrefix(2)
+            val long0 = io.supply(0).bits.instruction(1, 0) === 3.U
+            val long1 = io.supply(1).bits.instruction(1, 0) === 3.U
+            val selected = Seq(
+                !scanPrefix(1),
+                one && !long0,
+                (one && long0) || (scanPrefix(2) && !long0 && !long1),
+                scanPrefix(2) && (long0 ^ long1),
+                scanPrefix(2) && long0 && long1)
+            Mux1H(selected.zip(scanCandidates.map(_._2)))
+        } else {
+            val scanOffsets = Wire(Vec(width + 1, UInt(offsetBits.W)))
+            scanOffsets(0) := 0.U
+            for (lane <- 0 until width) {
+                val short = compressed.B && io.supply(lane).bits.instruction(1, 0) =/= 3.U
+                scanOffsets(lane + 1) := scanOffsets(lane) + Mux(short, 2.U, 4.U)
+            }
+            Mux1H(Seq(!scanPrefix(1) -> supplyPc) ++ (0 until width).map { lane =>
+                val last = scanPrefix(lane + 1) && (if (lane + 1 == width) true.B else !scanPrefix(lane + 2))
+                last -> MuxLookup(scanOffsets(lane + 1), supplyPc)(scanCandidates)
+            })
+        }
         rawCursor := scanNext
         when(tokenTransfer) { tokenPresent.get := 0.U }
         when(scanPrefix(1)) {

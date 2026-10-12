@@ -166,7 +166,9 @@ case class OooParams(
     // Experimental removal of memory selects only at registered execution inputs.
     directRegisteredExecutionOperands: Boolean = false,
     // Reuse the canonical producer's complete indexed owner proof at consumer rows.
-    sharedCanonicalStoreOwnerMatch: Boolean = false
+    sharedCanonicalStoreOwnerMatch: Boolean = false,
+    // Optional direct prefix choice within the existing aligned permission stage.
+    eagerFetchPrefixSelect: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -175,6 +177,8 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,
+        "eager fetch prefix selection requires the aligned permission stage")
     require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
         "shared canonical-store owner matching requires canonical virtual-store overlap")
     require(!directRegisteredExecutionOperands || registeredIssueExecute,

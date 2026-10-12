@@ -1,3 +1,5 @@
+> Historical final52 qualification: this receipt and checker bind the complete source at `b22f10fde916a0c8209d070e282ebd98cf4c0b2f`. On the later optional53 source, use `simulator/gsim/eager_prefix/check_retained.py` for the explicit source-only default52 bridge. No new default52 CPU run is claimed.
+
 # Final52 owner/row source and qualification
 
 The reviewed entry is `python3 fpga/next/board_final.py --output build/final52`.

@@ -81,6 +81,8 @@ def main():
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--local-payload-write-row", action="count", default=0,
                     help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--eager-fetch-prefix-select", action="count", default=0,
+                    help="default-off direct prefix selection; aligned permission phase required")
     ap.add_argument("--shared-canonical-store-owner-match", action="count", default=0,
                     help="default-off canonical certificate consumer owner-map sharing")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
@@ -246,10 +248,12 @@ def main():
         setattr(args, field, values[0] if values else None)
     if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select"):
         if getattr(args, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(args, field, bool(getattr(args, field)))
+    if args.eager_fetch_prefix_select and not args.aligned_fetch_permission_stage:
+        ap.error("--eager-fetch-prefix-select requires --aligned-fetch-permission-stage")
     if args.shared_canonical_store_owner_match and not args.canonical_virtual_store_overlap:
         ap.error("--shared-canonical-store-owner-match requires --canonical-virtual-store-overlap")
     if args.local_payload_write_row and not (args.line_read_channel and args.local_payload_write_enable):
@@ -419,6 +423,8 @@ def main():
         parameters.append("--direct-rank1-memory-source-ids")
     if args.direct_registered_execution_operands:
         parameters.append("--direct-registered-execution-operands")
+    if args.eager_fetch_prefix_select:
+        parameters.append("--eager-fetch-prefix-select")
     if args.shared_canonical_store_owner_match:
         parameters.append("--shared-canonical-store-owner-match")
     if args.local_payload_write_row:
@@ -445,6 +451,7 @@ def main():
             "direct_registered_execution_operands": args.direct_registered_execution_operands,
             "shared_canonical_store_owner_match": args.shared_canonical_store_owner_match,
             "local_payload_write_row": args.local_payload_write_row,
+            "eager_fetch_prefix_select": args.eager_fetch_prefix_select,
             "bound_head_store_overlap": args.bound_head_store_overlap,
             "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,

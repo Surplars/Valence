@@ -1,0 +1,276 @@
+{
+  "schema": "valence-eager-prefix-public-qualification-v1",
+  "baseline_commit": "b22f10fde916a0c8209d070e282ebd98cf4c0b2f",
+  "baseline_tree": "a931ea8ec32438b5fe45852509b0b3dc0a782a6b",
+  "tested_candidate_commit": "75e450562cc5d3f818e264b602966191950b66ac",
+  "tested_candidate_tree": "5736ae9442acfe05a4ffee1df58726c86e7d7e69",
+  "verification_scope": {
+    "recorded_results": "Completed component, full native, one ON CPU and same-object NEMU qualification, bound to exact external receipts.",
+    "local_checker": "Receipt, aggregate source closures, exact option vectors and source-only entry contracts. No Scala, hardware, NEMU or physical replay.",
+    "entry_bridge": "Public entry receipt binding and default52 export-source digest were updated after qualification; tested production and Scala test bytes are identical.",
+    "resources": "Native declared state/ports only. Mapped resources, area, Fmax, buffering, routed fanout and STA are unmeasured.",
+    "traffic": "CPU COPY stdout, all functional fields, raw AXI and supply match saved52. Component stress is separate; no new high-outstanding CPU throughput or network concurrency claim."
+  },
+  "recorded_qualification": {
+    "status": "PASS_COMBINED_EAGER_PREFIX_QUALIFICATION",
+    "config": {
+      "unfiltered_production_scala": 199,
+      "unfiltered_test_scala": 343,
+      "hardfloat_scala": 18,
+      "focused_scala_tests": 37,
+      "python_profile_tests": 15
+    },
+    "cpu": {
+      "inclusive_cycles": {
+        "sv39": 191618,
+        "bare": 194153
+      },
+      "functional_fields_per_case": 105,
+      "equal_result_sections_per_case": 12,
+      "inclusive_roi_tail_deltas": [
+        0,
+        0,
+        0
+      ],
+      "complete_stdout_exact": true,
+      "raw_axi_supply_exact": true,
+      "negative_controls": [
+        "read",
+        "memory",
+        "trap"
+      ],
+      "fresh_on_models": 1,
+      "off_models": 0,
+      "model_translation_units": 36,
+      "compiler_jobs": 1
+    },
+    "native": {
+      "module_count": 239,
+      "changed_modules": [
+        "RegisteredFetchPacket.sv"
+      ],
+      "other_modules_byte_identical": 238,
+      "all_module_ports_identical": true,
+      "all_declared_state_identical": true,
+      "removed_small_prefix_sums": 1,
+      "removed_offset_decode_comparisons": 4,
+      "removed_indexed_64bit_selectors": 1,
+      "removed_selector_inputs": 4,
+      "removed_selector_conditional_levels": 4,
+      "wide_masks_before_after": [
+        3,
+        5
+      ],
+      "wide_or_joins_before_after": [
+        2,
+        4
+      ],
+      "possible_control_fanout_cost": "UNMEASURED"
+    },
+    "nemu": {
+      "same_cpu_object_count": 36,
+      "case_cycles": {
+        "hot": 1847,
+        "compressed": 958
+      },
+      "negative_control_exits": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      },
+      "zero_work": {
+        "dut_generations": 0,
+        "dut_object_compiles": 0,
+        "reference_builds": 0,
+        "state_resynchronizations": 0
+      }
+    },
+    "component": {
+      "whole_cycle_observations": 4140,
+      "whole_cycle_off_on_exact": true,
+      "negative_controls": 14,
+      "native_state_port_delta": 0
+    },
+    "new_pipeline_cycles": 0,
+    "new_prf_ports": 0,
+    "physical_qualification": false,
+    "actual_netlist": "NOT_RUN",
+    "STA": "NOT_RUN",
+    "mapped_resources": "NOT_RUN",
+    "network_concurrency_qualification": false
+  },
+  "configuration": {
+    "native_options": [
+      "--selected",
+      "--data-translation-entries=16",
+      "--registered-pmp-regions",
+      "--experimental-trispeed-ethernet",
+      "--experimental-jtag-bscan=2",
+      "--dma-line-transfers",
+      "--dma-line-entries=4",
+      "--prefetch-candidate-cycles=16",
+      "--virtual-ram-load-precheck",
+      "--lsu-entries=4",
+      "--physical-load-ingress-flow",
+      "--ddr-write-collection-flow",
+      "--line-transfer-dispatch-flow",
+      "--line-read-channel",
+      "--dtlb-write-read-reuse",
+      "--translation-hit-flow",
+      "--independent-demand-admission",
+      "--split-prefetch-tracking",
+      "--read-prefetch-dirty-retry",
+      "--read-prefetch-demand-adoption",
+      "--load-order-older-retire",
+      "--fetch-previous-packet",
+      "--prepared-store-lookahead",
+      "--store-next-line-prefetch",
+      "--store-prefetch-mru-insertion",
+      "--posted-store-merge",
+      "--posted-prefetch-coexistence",
+      "--posted-prefetch-head-offer",
+      "--canonical-virtual-store-overlap",
+      "--published-pmp-changes",
+      "--frozen-store-proof-transport",
+      "--pending-virtual-store-proof",
+      "--pending-virtual-store-proof-slots=2",
+      "--bound-head-store-overlap",
+      "--read-prefetch-store-hold",
+      "--pending-ready-store-bypass",
+      "--durable-read-prefetch-candidate",
+      "--read-prefetch-behind-store",
+      "--pending-store-early-load-credits=2",
+      "--tagged-store-returns",
+      "--internal-line-grant",
+      "--concurrent-read-store-prefetch",
+      "--memory-schedule-overlap",
+      "--registered-pending-store-query",
+      "--aligned-fetch-permission-stage",
+      "--registered-canonical-store-event",
+      "--shared-lane1-owner-match",
+      "--direct-rank1-memory-source-ids",
+      "--direct-registered-execution-operands",
+      "--local-payload-write-enable",
+      "--shared-canonical-store-owner-match",
+      "--local-payload-write-row",
+      "--eager-fetch-prefix-select"
+    ],
+    "constructor_counts": {
+      "OooParams": 159,
+      "FpgaNextConfig": 71,
+      "DdrBridgeConfig": 9,
+      "CoherentCacheConcurrency": 22
+    },
+    "fixture_overrides": {},
+    "native_mac_t1": true,
+    "jtag_user_chain": 2,
+    "actual_eager_prefix": {
+      "alignedPermissionStage": true,
+      "eagerFetchPrefixSelect": true,
+      "schema": "actual-eager-prefix-v1",
+      "selectedPacketEagerPrefixSelect": true
+    },
+    "actual_profile_sha256": "e369f063a3ac0f218413cf01eb795092a67052657a4fcbf98cf7f3cb73507cd2",
+    "actual_fabric_sha256": "ba0e3556f332a10aa08d105414c23d4a9251a00c742c34bbb4fca3516654630a",
+    "export_profile_sha256": "4e561be22f6590f2e8a739b9d07d1edbb1041021dd5de6ba97d43ee356e293dd",
+    "default_export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de"
+  },
+  "source_fingerprints": {
+    ".mill-version": "f2fb797db5b32c15ac4c67b2180b593bf46c768ba1d69971fecbef1d9afb1975",
+    "build.mill": "a19c3366c3da6020edcf0f1c14437c4d7fb29a2842fb2f8dea68c2c8b8b7593b",
+    "fpga/next/board_t1.py": "c2aa590db39da0fe143edc6cee097cb29d851f4621a5b627445ceeb9369bbbb3",
+    "fpga/next/bscan_integration.py": "5bd8d7b0d461d9672b91f5b5b89684f597c3514efa97817b9fd84b43d964de3b",
+    "fpga/next/check_jtag_chain.tcl": "cfb30678a3b1e8c49a41038e68e565ce4346ea4b9ff524fb76d3843a50b5057f",
+    "fpga/next/export.py": "1e06c3eeacff6f75d64c06313ed03bb1aadac413cb9e470abdd7cf6e53f286a8",
+    "fpga/next/media_integration.py": "b37195b37e863912e7883a5fd875709ac95db618991d53baafca7670000ea204",
+    "fpga/next/soc_top_fpga_next_ddr.sv": "25157a2a4dd281c0ff5024533e495f503414e70beb105da0a3e2ad56ecd21d38",
+    "fpga/next/test_eager_prefix_profile.py": "1759abdd1fb8e660df46c85b875025a385b7b30043abf81a1695e5d5301b92a3",
+    "fpga/next/timing-batch-eager-prefix-profile.json": "dcad074901d5c63dda2439049dd0ed564aca722493be1d4d8e1e8f0b5beb9708",
+    "fpga/next/timing-batch-owner-row-profile.json": "32063adb7dd598ea5fcd014eee71c02d599139a59bf69287598f780a35d6d923",
+    "simulator/gsim/fpga_next_board.py": "e5da4882f273b668e96221ebe943ab686aa841cba198aeb829dc14b7aff51f78",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "3502c257f0ad195926913aff1c6b479db5c90ba2f64b869fbc390c867decaf8b",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "02c62c07a1efe23f7386d76f1ee3fc70e709badb4bfae87435c976fd9e723a00",
+    "src/main/scala/core/ooo/IntegerCore.scala": "2f26c805f3463c33bdf95e0f9a03a1abcc146ce7216ae35bce0d6c6e0a3f5f82",
+    "src/main/scala/core/ooo/OooParams.scala": "204dc0d7619ebe722419c102455bcf6e0b206f47afe3fcbc85f4bee5a726cb2b",
+    "src/main/scala/core/ooo/RegisteredFetchPacket.scala": "78aaf3aecc05816b725443c13c378ef5330c8f387bc3073b21c3e2887b358442",
+    "src/test/scala/ooo/BoardSocGsimMain.scala": "0563699d32f1b4e02a63c12610426b30b52f4f32b4955058b696c1c0605c341d",
+    "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": "33dc056f57bf3a6cf588cd4ebde2c273323271ab34c34b4a02ed63e1715e43d7",
+    "src/test/scala/ooo/EagerPrefixActualAudit.scala": "aadc815514e146efd3a8e7bd853af85a39f3336af9c2ef63fc5b771a860f52f4",
+    "src/test/scala/ooo/EagerPrefixConfigSpec.scala": "146689f9347e3ae11dfc706ec594086f76563857c62bc0f7d4be6d2b57e0d585",
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "bda64f7a53ab540fd93ef1cca42a7d8133493ff179e6030282ff7f3f4e13ea39",
+    "src/test/scala/ooo/FpgaNextMain.scala": "5e30be6ae1ebd9df8662e38e788df2df24962a2576ab21fabd36588357e25107",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "c60d11ade55487837a12369939c8e312d603f15246540bad27d002bf6a0ef343",
+    "src/test/scala/ooo/MatchingFabricAudit.scala": "80cc52adb9abdbbf99e2610e4d5363b6b9ebe49eea942644737156e480f85447",
+    "src/test/scala/ooo/OwnerRowActualAudit.scala": "f89c9fbb51a268a834b2d97c032bb4d797454c451eaf0c2ac578427e0e7c945f",
+    "src/test/scala/ooo/OwnerRowConfigSpec.scala": "8b4feab2da621d92fe5939e6e7c4640a290737599eda674235b6b7ab36a071b0",
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": "308487534196eef8b22d7cf661d4a0f8be5a06653d210e6610d422c4e4230bcf",
+    "src/test/scala/ooo/TimingBatchActualAudit.scala": "29731c8a619b10f63a7b3b49177499692f329a38f4dbf68f8238e78432e933cd",
+    "src/test/scala/ooo/TimingBatchConfigSpec.scala": "d5b8d5abdfbda129d110fc9aa62385593870983adaf45bfe9cab375d1eb2a9e3",
+    "src/test/scala/ooo/ZeroCycleCleanupActualAudit.scala": "9fdd96071c8ae1cfee7b1308ce3191ed2b8eea87e3766ffc93ec9e674dd6eab2",
+    "src/test/scala/ooo/ZeroCycleCleanupConfigSpec.scala": "6c7fe7c90539fb482758697fb23cd5a2c1441eae5c47d76f4178b4626f1507c6"
+  },
+  "production_source_closure": {
+    "scope": [
+      "src/main/scala",
+      "src/main/resources",
+      "third_party/berkeley-hardfloat/src/main/scala",
+      "fpga/next/rtl"
+    ],
+    "file_count": 220,
+    "canonical_sha256": "a3bf438bf7dac208fc2351e4cc55065f7e12d0d43658d6dbcfc8a1b66740f237"
+  },
+  "qualified_scala_source_closure": {
+    "scope": [
+      "src/main/scala",
+      "src/test/scala",
+      "third_party/berkeley-hardfloat/src/main/scala"
+    ],
+    "file_count": 560,
+    "canonical_sha256": "a4cef96986dbad66936a9152f035e920376ba8b1a281da524e3b0698fa6ab3c1"
+  },
+  "full_receipt_sha256": {
+    "qualification": "1dd31e90bd797a11bb5d9a7e6207dab8a1ddfc5868c92d25e6a8a07f95ab570d",
+    "native": "cc7a2bdfd78b7757df07426ece85f95fdd2f4861ced3489a24e626890dde64aa",
+    "default_native_comparison": "ec14c0c74d51d4dba29ca3822be9dac0702530ee8d9dd04107457d9fe30f60ed",
+    "cpu": "a13fb29048c62ed0177772293fc3911c1f900c007891881090e9f66c19dde61e",
+    "nemu": "fe7a20dafaf8b3225bb0d9c102e1aa5aec42275cb98a3b23e1d7e6ad407cd3d5",
+    "config": "c33361adf495f56939e991d14a8042535f3faf4e73cc266f8a8640a0e3460135"
+  },
+  "external_evidence": {
+    "complete_qualification": {
+      "sha256": "a2d0fe8422218299b6b42d436ee64e1a22a729287eccbdfd77576bdc9e6470ad",
+      "scope": "Complete thin terminal qualification receipts, logs, reports and replay helpers. Large raw model/dependency bundles remain separately retained in external evidence."
+    },
+    "component": {
+      "sha256": "e56a9b6ad371c50126856c814a230bdc2e87205a6848499ca61e09ae50a19f4b",
+      "scope": "Independent whole-cycle component oracle, negative controls and native audit."
+    },
+    "source_checkpoint": {
+      "sha256": "0f0496b306fa07c11c677602570c0f4c3f6b68c9489800d721f05d41601319f0",
+      "scope": "Frozen tested source and pre-CPU config checkpoint."
+    },
+    "native_checkpoint": {
+      "sha256": "a4cb461be5240337aeb66d8b47c55e3aa0b1ed594ef481a73d49cbdfc6213b7c",
+      "scope": "Full native OFF/ON comparison, original comparator failure and strict repair controls."
+    }
+  },
+  "default52_bridge": {
+    "historical_receipt_path": "simulator/gsim/owner_row/evidence/public-receipt.json",
+    "historical_receipt_sha256": "9e3012abadb499e753a3c2d7caf7c719049dc012aed5e1cdb442300936b1eada",
+    "new_off_cpu_runs": 0,
+    "raw_native_byte_identical": false,
+    "exact_residual_identical": true,
+    "automatic_local_declarations": 2,
+    "all_other_modules_byte_identical": 238,
+    "source_only_entry_rebind": true,
+    "normalization_scope": "Only two exact selector-local automatic declaration identifiers and their uses; same pure-initializer prefix and lexical scope, every use after definition. No broad sorting or normalization.",
+    "restore_exact_historical_source": "b22f10fde916a0c8209d070e282ebd98cf4c0b2f"
+  },
+  "prior_failures_and_limits": [
+    "The first OFF native comparator failed on relocation of two pure automatic declarations. Original failure and generated outputs are retained; the repaired audit proves exact names, expressions, lexical scope, dependency/use positions and residual token equality. Raw-byte inequality remains recorded.",
+    "The repaired native audit passed 19 helper checks and six actual-copy tamper controls; these checks are not replacement CPU observations.",
+    "Only one four-input 64-bit indexed selector plus a separate four-level conditional chain were replaced. This is not four independent mux banks. Wide masks grow from three to five, OR joins from two to four.",
+    "The acquisition-time eager-prefix option manifest retains SOURCE_CANDIDATE_UNQUALIFIED. The later exact qualification is recorded here, without rewriting that historical acquisition status.",
+    "Default52 remains the default entry. Optional53 is separately selectable for physical A/B; no area, Fmax, STA, new pipeline cycle, or physical qualification result is inferred from public source checks."
+  ]
+}

@@ -78,7 +78,8 @@ final case class FpgaNextConfig(
     directRank1MemorySourceIds: Boolean = false,
     directRegisteredExecutionOperands: Boolean = false,
     sharedCanonicalStoreOwnerMatch: Boolean = false,
-    localPayloadWriteRow: Boolean = false
+    localPayloadWriteRow: Boolean = false,
+    eagerFetchPrefixSelect: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -89,6 +90,8 @@ final case class FpgaNextConfig(
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
+    require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,
+        "eager fetch prefix selection requires the aligned permission stage")
     require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
         "shared canonical-store owner matching requires canonical virtual-store overlap")
     require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
@@ -194,6 +197,7 @@ final case class FpgaNextConfig(
         (if (ddrWriteCollectionFlow) "-ddr-write-collection-flow" else "") +
         (if (lineTransferDispatchFlow) "-line-transfer-dispatch-flow" else "") +
         (if (lineReadChannel) "-line-read-channel" else "") +
+        (if (eagerFetchPrefixSelect) "-eager-fetch-prefix-select" else "") +
         (if (sharedCanonicalStoreOwnerMatch) "-shared-canonical-store-owner-match" else "") +
         (if (localPayloadWriteRow) "-local-payload-write-row" else "") +
         (if (localPayloadWriteEnable) "-local-payload-write-enable" else "") +
@@ -281,6 +285,7 @@ final case class FpgaNextConfig(
         directRank1MemorySourceIds = directRank1MemorySourceIds,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
+        eagerFetchPrefixSelect = eagerFetchPrefixSelect,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -319,6 +324,7 @@ final case class FpgaNextConfig(
         directRank1MemorySourceIds = directRank1MemorySourceIds,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
+        eagerFetchPrefixSelect = eagerFetchPrefixSelect,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -374,6 +380,8 @@ object FpgaNextConfig {
             "--reconstruct-issue-token-index does not accept a value")
         require(!options.exists(_.startsWith("--shared-memory-address-state=")),
             "--shared-memory-address-state does not accept a value")
+        require(!options.exists(_.startsWith("--eager-fetch-prefix-select=")),
+            "--eager-fetch-prefix-select does not accept a value")
         val selectors = options.intersect(Set("--reference", "--candidate", "--selected"))
         require(selectors.size <= 1, "choose one FPGA-next profile")
         val base = if (options.contains("--reference")) Reference
@@ -451,6 +459,7 @@ object FpgaNextConfig {
             localPayloadWriteEnable = options.contains("--local-payload-write-enable"),
             localPayloadWriteRow = options.contains("--local-payload-write-row"),
             sharedCanonicalStoreOwnerMatch = options.contains("--shared-canonical-store-owner-match"),
+            eagerFetchPrefixSelect = options.contains("--eager-fetch-prefix-select"),
             ddrOutstanding = ddrSlots, ddrWriteCredits = ddrWrites,
             dataTlbWriteReadReuse = options.contains("--dtlb-write-read-reuse"),
             translationHitFlow = options.contains("--translation-hit-flow"),
