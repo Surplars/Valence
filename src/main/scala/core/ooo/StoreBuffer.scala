@@ -9,10 +9,10 @@ class StoreBuffer(p: OooParams) extends Module {
     private val n         = p.storeBufferEntries
     private val indexBits = math.max(1, log2Ceil(n))
     val io                = IO(new Bundle {
-        val upstream  = Flipped(new DataPort)
+        val upstream  = Flipped(new DataPort(p.dataReturnHandleBits))
         // Independently enqueue a proven non-faulting head RAM store. No response is owed.
         val fastStore = Flipped(Decoupled(new DataRequest))
-        val memory    = new DataPort
+        val memory    = new DataPort(p.dataReturnHandleBits)
         val upstreamProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
         val fastProof = p.postedProofConfig.map(c => Input(Valid(new PostedStoreProof(c))))
         val memoryProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
@@ -43,6 +43,7 @@ class StoreBuffer(p: OooParams) extends Module {
     val issued                  = RegInit(0.U(log2Ceil(n + 1).W))
     val ackValid                = RegInit(false.B)
     val ackData                 = Reg(UInt(64.W))
+    val ackHandle = p.cpuReturnConfig.map(c => Reg(UInt(c.handleBits.W)))
     // An unsent direct request owns the external port until it handshakes. A fast store
     // may enter the queue meanwhile, but it must not replace the held request on the bus.
     val directHeld              = RegInit(false.B)
@@ -94,8 +95,7 @@ class StoreBuffer(p: OooParams) extends Module {
     // With flow disabled, a new request cannot own a response until its owner bit
     // has crossed the queue register. This breaks the request-valid -> response-ready
     // feedback path; a zero-latency memory must hold its response until then.
-    val owners = Module(new Queue(Bool(), p.memoryEntries + 1, pipe = false,
-        flow = !p.registeredStoreResponseOwners))
+    val owners = CpuReturnTransport.ownerView(Bool(), p.memoryEntries + 1)
     val reads  = RegInit(0.U(log2Ceil(p.memoryEntries + 2).W))
     val local  = (buffered || forward) && reads === 0.U && !ackValid && !overlapsFastStore &&
         !(io.fastStore.valid && buffered)
@@ -115,8 +115,15 @@ class StoreBuffer(p: OooParams) extends Module {
         !drainRequest && !directHeld
     io.memory.request.valid := owners.io.enq.ready &&
         (drainRequest || flowBufferedWrite || flowFastWrite || (request.valid && direct))
-    io.memory.request.bits  := Mux(drainRequest, if (n == 1) entries(0) else entries(sending),
-        Mux(flowFastWrite, io.fastStore.bits, request.bits))
+    val directPayload = Wire(new DataRequest)
+    CpuReturnTransport.requestPayload(directPayload, request.bits)
+    CpuReturnTransport.requestPayload(io.memory.request.bits,
+        Mux(drainRequest, if (n == 1) entries(0) else entries(sending),
+            Mux(flowFastWrite, io.fastStore.bits, directPayload)))
+    io.memory.request.bits.returnHandle.foreach { handle =>
+        handle := Mux(drainRequest || flowBufferedWrite || flowFastWrite,
+            p.cpuReturnConfig.get.storeHandle(Mux(drainRequest, sending, tail)), request.bits.returnHandle.get)
+    }
     request.ready           := Mux(
         buffered || forward,
         local && (!buffered || count < n.U),
@@ -131,6 +138,37 @@ class StoreBuffer(p: OooParams) extends Module {
                         Mux(!owners.io.enq.ready, 5.U, 6.U))))))
     owners.io.enq.valid := io.memory.request.fire
     owners.io.enq.bits  := drainRequest || flowBufferedWrite || flowFastWrite
+    p.cpuReturnConfig match {
+        case None => CpuReturnTransport.orderedOwners(owners, Bool(), p.memoryEntries + 1,
+            flow = !p.registeredStoreResponseOwners)
+        case Some(config) =>
+            val directLive = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
+            val outstanding = RegInit(0.U(log2Ceil(p.memoryEntries + 2).W))
+            val handle = io.memory.response.bits.returnHandle.get
+            val directIndex = handle(math.max(1, log2Ceil(p.memoryEntries)) - 1, 0)
+            val requestHandle = request.bits.returnHandle.get
+            val requestIndex = requestHandle(math.max(1, log2Ceil(p.memoryEntries)) - 1, 0)
+            val isDrain = config.store(handle)
+            val exactDrain = isDrain && issued =/= 0.U && handle === config.storeHandle(head)
+            owners.io.enq.ready := outstanding < (p.memoryEntries + 1).U &&
+                (owners.io.enq.bits || (config.integer(requestHandle) && !directLive(requestIndex)))
+            owners.io.deq.valid := exactDrain || (config.integer(handle) && directLive(directIndex))
+            owners.io.deq.bits := isDrain
+            owners.io.count := outstanding
+            when(owners.io.enq.fire && !owners.io.enq.bits) { directLive(requestIndex) := true.B }
+            when(io.memory.response.fire && !isDrain) { directLive(directIndex) := false.B }
+            when(owners.io.enq.fire =/= io.memory.response.fire) {
+                outstanding := Mux(owners.io.enq.fire, outstanding + 1.U, outstanding - 1.U)
+            }
+            when(io.memory.response.valid) {
+                val entering = io.memory.request.fire && handle === io.memory.request.bits.returnHandle.get
+                assert(owners.io.deq.valid || entering, "StoreBuffer return lost its direct or ordered drain owner")
+            }
+            when(request.valid) { assert(config.integer(requestHandle), "StoreBuffer upstream must name an LSU slot") }
+            assert(outstanding <= (p.memoryEntries + 1).U)
+            CpuReturnTransport.held(io.memory.response)
+            CpuReturnTransport.held(io.upstream.response)
+    }
     val bufferResponse = owners.io.deq.valid && owners.io.deq.bits
     // Optional registered local replies can break the request/response feedback path.
     // Default profiles keep the same-cycle reply. External write ordering is unchanged.
@@ -143,6 +181,10 @@ class StoreBuffer(p: OooParams) extends Module {
         Mux(local, Mux(forward, bytes.asUInt, 0.U), io.memory.response.bits.data))
     io.upstream.response.bits.error := !ackValid && !immediateAck && io.memory.response.bits.error
     io.upstream.response.bits.pageFault := !ackValid && !immediateAck && io.memory.response.bits.pageFault
+    io.upstream.response.bits.returnHandle.foreach { handle =>
+        handle := Mux(ackValid, ackHandle.get,
+            Mux(immediateAck, request.bits.returnHandle.get, io.memory.response.bits.returnHandle.get))
+    }
     io.memory.response.ready := owners.io.deq.valid && (bufferResponse || (!ackValid && io.upstream.response.ready))
     owners.io.deq.ready      := io.memory.response.fire
     val enqueue   = request.fire && buffered
@@ -163,7 +205,7 @@ class StoreBuffer(p: OooParams) extends Module {
         head := next(head)
     }
     when(enqueue) {
-        if (n == 1) entries(0) := request.bits else entries(tail) := request.bits
+        CpuReturnTransport.requestPayload(if (n == 1) entries(0) else entries(tail), request.bits)
         tail                   := next(tail)
     }
     when(fastEnqueue) {
@@ -191,7 +233,7 @@ class StoreBuffer(p: OooParams) extends Module {
                 assert(incoming.bits.headAuthorized && incoming.bits.physicalPmpAllowed &&
                     incoming.bits.originalPhysical && incoming.bits.integerOrigin &&
                     !incoming.bits.legacyPostedAccepted && !incoming.bits.finalChecked)
-                assert(PostedStoreCpu.matches(incoming.bits, Mux(fastEnqueue, io.fastStore.bits, request.bits)))
+                assert(PostedStoreCpu.matches(incoming.bits, Mux(fastEnqueue, io.fastStore.bits, directPayload)))
             }
         }
         when(request.fire && io.upstreamProof.get.valid) { assert(buffered) }
@@ -243,6 +285,7 @@ class StoreBuffer(p: OooParams) extends Module {
     when(request.fire && (buffered || forward)) {
         ackValid := p.registeredLocalStoreResponses.B || !io.upstream.response.ready
         ackData  := Mux(forward, bytes.asUInt, 0.U)
+        ackHandle.foreach(_ := request.bits.returnHandle.get)
         assert((request.bits.address(2, 0) & ((1.U << size) - 1.U)) === 0.U)
     }
     io.forwarded := request.fire && forward

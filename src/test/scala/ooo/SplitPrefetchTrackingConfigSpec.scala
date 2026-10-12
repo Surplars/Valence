@@ -12,7 +12,7 @@ class SplitPrefetchTrackingConfigSpec extends AnyFunSuite {
             assert(!base.splitPrefetchTracking && !base.cache.splitPrefetchTracking)
             val off = base.copy(storeNextLinePrefetch = true)
             val on = off.copy(splitPrefetchTracking = true)
-            assert(on.productArity == 57 && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+            assert(on.productArity == 58 && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
                 !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 on.cache.productArity == 19)

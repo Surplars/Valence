@@ -24,10 +24,11 @@ class BoardDurableReadPrefetchTests(unittest.TestCase):
             "--pending-ready-store-bypass", "--durable-read-prefetch-candidate", "--read-prefetch-behind-store"])
         historical = copy.deepcopy(expected)
         for section in ("profile", "core"):
+            self.assertIs(historical[section].pop("taggedStoreReturns"), False)
             self.assertEqual(historical[section].pop("pendingStoreEarlyLoadCredits"), 1)
         self.assertEqual(historical, spec["constructor_profile"])
         self.assertEqual({k: len(expected[k]) for k in ("profile", "core", "cache")},
-                         {"profile": 57, "core": 150, "cache": 19})
+                         {"profile": 58, "core": 151, "cache": 19})
         self.assertEqual(spec["executed_fabric"]["cpu"], historical["core"])
         self.assertEqual(spec["executed_fabric"]["cache"], expected["cache"])
         self.assertEqual(expected["core"]["robEntries"], 16)

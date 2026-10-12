@@ -18,19 +18,20 @@ import soc.ip.bus.TwoEntryRegisterQueue
 class DataResponseBuffer(
     registerPayload: Boolean = false,
     registerHead: Boolean = false,
-    emptyFlow: Boolean = false
+    emptyFlow: Boolean = false,
+    returnConfig: Option[CpuReturnConfig] = None
 ) extends Module {
     require(!registerHead || registerPayload, "direct response head requires registered payload")
     require(!emptyFlow || registerHead, "local response flow requires the two-register response head")
     val io = IO(new Bundle {
-        val upstream = Flipped(new DataPort)
-        val downstream = new DataPort
+        val upstream = Flipped(new DataPort(returnConfig.map(_.handleBits).getOrElse(0)))
+        val downstream = new DataPort(returnConfig.map(_.handleBits).getOrElse(0))
         val idle = Output(Bool())
     })
     io.downstream.request <> io.upstream.request
     val responses = if (registerHead)
-        Module(new TwoEntryRegisterQueue(new DataResponse)).suggestName("responses").io
-    else Module(new Queue(new DataResponse, 2, pipe = false, flow = !registerPayload)).suggestName("responses").io
+        Module(new TwoEntryRegisterQueue(new DataResponse(returnConfig.map(_.handleBits).getOrElse(0)))).suggestName("responses").io
+    else Module(new Queue(new DataResponse(returnConfig.map(_.handleBits).getOrElse(0)), 2, pipe = false, flow = !registerPayload)).suggestName("responses").io
     if (emptyFlow) {
         // Old queued responses always win. An empty, accepted response consumes
         // no slot; an empty, held response is captured exactly once instead.

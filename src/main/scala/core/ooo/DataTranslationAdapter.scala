@@ -5,7 +5,7 @@ import chisel3.util._
 import soc.ip.bus.TwoEntryRegisterQueue
 
 private[ooo] class VirtualDataRequest(p: OooParams) extends Bundle {
-    val request = new DataRequest
+    val request = new DataRequest(p.dataReturnHandleBits)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
     val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Valid(new FrozenStoreProof)) else None
@@ -13,7 +13,7 @@ private[ooo] class VirtualDataRequest(p: OooParams) extends Bundle {
 }
 
 private[ooo] class TranslatedDataRequest(p: OooParams) extends Bundle {
-    val request = new DataRequest
+    val request = new DataRequest(p.dataReturnHandleBits)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
     // Accepted bindings are already represented by originalVirtualAddress and request PA/size/mask.
@@ -33,7 +33,7 @@ private[ooo] class TranslationResponseOwner extends Bundle {
 }
 
 private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
-    val request = new DataRequest
+    val request = new DataRequest(p.dataReturnHandleBits)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val fault = Bool()
     val pageFault = Bool()
@@ -72,8 +72,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         p.registeredTranslationHeads && registerCheckedRequests && p.registeredMemoryRequests),
         "physical ingress flow preserves the registered LSU and checked permission boundaries")
     val io = IO(new Bundle {
-        val virtual = Flipped(new DataPort)
-        val physical = new DataPort
+        val virtual = Flipped(new DataPort(p.dataReturnHandleBits))
+        val physical = new DataPort(p.dataReturnHandleBits)
         val posted = p.postedProofConfig.map(c => new PostedStoreTranslationPort(c))
         val translation = new SvTranslationPort
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(Flipped(new VirtualLoadPrecheckPort)) else None
@@ -167,9 +167,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
 
     // Registered queue boundaries keep the TLB CAM/PMP/TileLink arbitration off one FPGA combinational path.
     val translated = Module(new Queue(new TranslatedDataRequest(p), entries, pipe = false, flow = false))
-    val owners = Module(new Queue(new TranslationResponseOwner, entries, pipe = false, flow = false))
+    val owners = CpuReturnTransport.ownerView(new TranslationResponseOwner, entries)
     val waiting = RegInit(false.B)
-    val savedRequest = Reg(new DataRequest)
+    val savedRequest = Reg(new DataRequest(p.dataReturnHandleBits))
     val savedProof = p.postedProofConfig.map(c => Reg(Valid(new PostedStoreProof(c))))
     val savedCanonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
         Some(Reg(Valid(new CanonicalStoreOrigin(p)))) else None
@@ -192,7 +192,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         io.virtual.request.ready := stage.io.enq.ready
     }
     val incoming = virtualRequests.map { stage =>
-        val request = Wire(Decoupled(new DataRequest))
+        val request = Wire(Decoupled(new DataRequest(p.dataReturnHandleBits)))
         request.valid := stage.io.deq.valid
         request.bits := stage.io.deq.bits.request
         stage.io.deq.ready := request.ready
@@ -441,8 +441,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // queue bypass. The incoming hint is always overwritten, even when disabled.
     val nextAllowed = if (p.dataNextLinePrefetch) {
         val authorize = Module(new NextLineAuthorization(p))
-        authorize.io.request := Mux(physicalIngressOffer, io.virtual.request.bits,
-            Mux(identityOffer, incoming.bits, request))
+        CpuReturnTransport.requestPayload(authorize.io.request, Mux(physicalIngressOffer, io.virtual.request.bits,
+            Mux(identityOffer, incoming.bits, request)))
         authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
             Mux(identityOffer, context.dataPrivilege, head.privilege))
         authorize.io.pmpState := io.pmpState
@@ -569,10 +569,47 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         PostedStoreCpu.held(io.physical.request, posted.requestProof)
     }
 
+    p.cpuReturnConfig match {
+        case None => CpuReturnTransport.orderedOwners(owners, new TranslationResponseOwner, entries, flow = false)
+        case Some(config) =>
+            val valid = RegInit(VecInit(Seq.fill(config.tableEntries)(false.B)))
+            val metadata = Reg(Vec(config.tableEntries, new TranslationResponseOwner))
+            val incomingHandle = physicalHead.returnHandle.get
+            val physicalHandle = io.physical.response.bits.returnHandle.get
+            val faultMask = VecInit((0 until config.tableEntries).map(i => valid(i) && metadata(i).fault))
+            val faultLive = faultMask.asUInt.orR
+            val faultHandle = PriorityEncoder(faultMask)
+            val responseHandle = Mux(faultLive, faultHandle, physicalHandle)
+            val count = PopCount(valid)
+            // A checked local fault waits behind all older physical owners, then
+            // owns an exclusive response interval. The checked head blocks younger work.
+            owners.io.enq.ready := config.legal(incomingHandle) && !valid(incomingHandle) &&
+                count < entries.U && !faultLive && (!physicalFault || count === 0.U)
+            owners.io.deq.valid := valid(responseHandle)
+            owners.io.deq.bits := metadata(responseHandle)
+            owners.io.count := count
+            io.virtual.response.bits.returnHandle.get := responseHandle
+            when(owners.io.enq.fire) {
+                assert(!valid(incomingHandle), "translation owner handle reused before actual reply")
+                valid(incomingHandle) := true.B
+                metadata(incomingHandle) := owners.io.enq.bits
+            }
+            when(owners.io.deq.fire) { valid(responseHandle) := false.B }
+            when(io.physical.response.valid) {
+                val entering = io.physical.request.fire && physicalHandle === incomingHandle
+                assert(!faultLive && config.legal(physicalHandle) &&
+                    ((valid(physicalHandle) && !metadata(physicalHandle).fault) || entering),
+                    "physical return lost its exact nonfault translation owner")
+            }
+            assert(count <= entries.U && PopCount(faultMask) <= 1.U)
+            when(faultLive) { assert(count === 1.U && !io.physical.request.fire) }
+            CpuReturnTransport.held(io.virtual.response)
+    }
     val owner = owners.io.deq.bits
     io.virtual.response.valid := owners.io.deq.valid &&
         (owner.fault || io.physical.response.valid)
-    io.virtual.response.bits := io.physical.response.bits
+    CpuReturnTransport.responsePayload(io.virtual.response.bits, io.physical.response.bits)
+    if (!p.taggedStoreReturns) { io.virtual.response.bits := io.physical.response.bits }
     when(owner.fault) {
         io.virtual.response.bits.data := 0.U
         io.virtual.response.bits.error := true.B
@@ -592,7 +629,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         when(pop) { assert(accepted =/= 0.U, "prechecked responses retain their ingress owner") }
     }
     io.pageFault := io.virtual.response.fire && owner.fault && owner.pageFault
-    io.idle := !waiting && !translated.io.deq.valid && !owners.io.deq.valid &&
+    io.idle := !waiting && !translated.io.deq.valid && owners.io.count === 0.U &&
         checked.map(stage => !stage.deq.valid).getOrElse(true.B) &&
         virtualRequests.map(stage => !stage.io.deq.valid).getOrElse(true.B)
     if (p.canonicalVirtualStoreOverlap) {

@@ -4,7 +4,8 @@ import chisel3._
 import chisel3.util._
 import soc.isa.MCause
 
-class DataRequest extends Bundle {
+class DataRequest(returnHandleBits: Int = 0) extends Bundle {
+    val returnHandle = if (returnHandleBits > 0) Some(UInt(returnHandleBits.W)) else None
     val atomic   = Bool()
     val atomicOp = UInt(5.W)
     val address  = UInt(64.W) // Effective byte address, not aligned down.
@@ -18,19 +19,21 @@ class DataRequest extends Bundle {
     val prefetchNextAllowed = Bool() // Full next-line permission captured by the physical authorization adapter.
     val uncached = Bool() // Physical access must bypass the private cache (for example, PBMT NC/IO).
 }
-class DataResponse extends Bundle {
+class DataResponse(returnHandleBits: Int = 0) extends Bundle {
+    val returnHandle = if (returnHandleBits > 0) Some(UInt(returnHandleBits.W)) else None
     val data  = UInt(64.W) // Ordinary loads return a beat; atomics return the complete XLEN result.
     val error = Bool()     // An errored write must have no memory side effect.
     val pageFault = Bool() // An address-translation fault, distinct from a physical access error.
 }
 
-/** Each accepted request produces exactly one response, in request-handshake order. No transaction IDs: an integrating
-  * cache/bus adapter must restore order before this port. Overlapping reads must observe a nondecreasing memory version
-  * in request order, including external writes; response reordering alone does not satisfy this contract.
+/** Each accepted request produces exactly one actual response. The default untagged port requires request order.
+  * A configured CPU return handle permits only the qualified completed-store exception; every consumer must recognize
+  * exact reservations, and ordered domains retain their drain boundaries. Overlapping reads must observe a
+  * nondecreasing memory version in request order, including external writes; tags alone do not establish this.
   */
-class DataPort extends Bundle {
-    val request  = Decoupled(new DataRequest)
-    val response = Flipped(Decoupled(new DataResponse))
+class DataPort(returnHandleBits: Int = 0) extends Bundle {
+    val request  = Decoupled(new DataRequest(returnHandleBits))
+    val response = Flipped(Decoupled(new DataResponse(returnHandleBits)))
 }
 class StoreForward(p: OooParams) extends Bundle {
     val token   = new RobToken(p)

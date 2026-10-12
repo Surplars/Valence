@@ -3,8 +3,8 @@ package soc.core.ooo
 import chisel3._
 import chisel3.util._
 
-/** Bounded RAM read concurrency over a strictly ordered-response data port. See docs/bare-core-ipc.md for throughput,
-  * cancellation and platform contracts.
+/** Bounded RAM read concurrency. Replies are ordered by default, or matched to
+  * nonreused slot reservations by the optional CPU return protocol.
   */
 class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) extends Module {
     require(!canonicalHandoff || (p.canonicalVirtualStoreOverlap && p.virtualRamLoadPrecheck))
@@ -22,7 +22,7 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
         // Assertion/test witness only; never feeds reservation or ownership.
         val boundHeadStoreOverlapAccepted = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
         val acceptedStartSlot = if (p.memoryProofFrontier) Some(Output(Valid(UInt(indexBits.W)))) else None
-        val memory         = new DataPort
+        val memory         = new DataPort(p.dataReturnHandleBits)
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
             Some(Output(Valid(new CanonicalStoreOrigin(p)))) else None
@@ -176,7 +176,26 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
         (requests.io.chosen === i.U) -> Mux(slots(i).io.start.fire,
             slots(i).io.start.bits.token, slots(i).io.owner)))
     // A slot is never reused until its response and completion have both been consumed.
-    val owners = Module(new Queue(UInt(indexBits.W), p.memoryEntries, pipe = false, flow = true))
+    val owners = CpuReturnTransport.ownerView(UInt(indexBits.W), p.memoryEntries)
+    p.cpuReturnConfig match {
+        case None => CpuReturnTransport.orderedOwners(owners, UInt(indexBits.W), p.memoryEntries, flow = true)
+        case Some(config) =>
+            val pending = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
+            val handle = io.memory.response.bits.returnHandle.get
+            val slot = handle(indexBits - 1, 0)
+            owners.io.enq.ready := !pending(requests.io.chosen)
+            owners.io.deq.valid := config.integer(handle) && pending(slot)
+            owners.io.deq.bits := slot
+            owners.io.count := PopCount(pending)
+            when(owners.io.enq.fire) { pending(owners.io.enq.bits) := true.B }
+            when(io.memory.response.fire) { pending(slot) := false.B }
+            when(io.memory.response.valid) {
+                val entering = io.memory.request.fire && requests.io.chosen === slot
+                assert(config.integer(handle) && (pending(slot) || entering),
+                    "CPU response lost its exact LSU reservation")
+            }
+            CpuReturnTransport.held(io.memory.response)
+    }
     io.fastLoadPreview.valid := owners.io.deq.valid && Mux1H(
         (0 until p.memoryEntries).map(i =>
             (owners.io.deq.bits === i.U) -> slots(i).io.fastLoadPreview.valid))
@@ -187,7 +206,8 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
         slot.io.fastLoadRetire := io.fastLoadRetire && owners.io.deq.valid && owners.io.deq.bits === i.U
     }
     io.memory.request.valid := requests.io.out.valid && owners.io.enq.ready
-    io.memory.request.bits  := requests.io.out.bits
+    CpuReturnTransport.requestPayload(io.memory.request.bits, requests.io.out.bits)
+    io.memory.request.bits.returnHandle.foreach(_ := requests.io.chosen)
     io.postedProof.foreach { proof =>
         val selectedProof = Mux1H((0 until p.memoryEntries).map(i =>
             (requests.io.chosen === i.U) -> slots(i).io.postedProof.get))
@@ -228,6 +248,6 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
     owners.io.deq.ready := io.memory.response.fire
     for ((slot, i) <- slots.zipWithIndex) {
         slot.io.memory.response.valid := io.memory.response.valid && owners.io.deq.valid && owners.io.deq.bits === i.U
-        slot.io.memory.response.bits  := io.memory.response.bits
+        CpuReturnTransport.responsePayload(slot.io.memory.response.bits, io.memory.response.bits)
     }
 }

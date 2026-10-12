@@ -51,6 +51,7 @@ def expected_constructor():
         expected[section]["pendingVirtualStoreProof"] = False
         expected[section]["boundHeadStoreOverlap"] = False
         expected[section]["pendingReadyStoreBypass"] = False
+        expected[section]["taggedStoreReturns"] = False
         expected[section]["pendingVirtualStoreProofSlots"] = 1
         expected[section]["pendingStoreEarlyLoadCredits"] = 1
     for section in ("profile", "cache"):
@@ -61,7 +62,7 @@ def expected_constructor():
 
 
 def compare_constructor(actual):
-    if actual != expected_constructor():
+    if json.dumps(actual, sort_keys=True) != json.dumps(expected_constructor(), sort_keys=True):
         raise RuntimeError("actual complete constructor differs from timing/CDC v1")
 
 

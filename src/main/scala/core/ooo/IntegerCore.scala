@@ -54,7 +54,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val redirect                    = Output(Valid(new FrontendRedirect(p)))
         val invalidateFetch             = Output(Bool())
         val recovering                  = Output(Bool())
-        val memory                      = new DataPort
+        val memory                      = new DataPort(p.dataReturnHandleBits)
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val canonicalStore = if (p.canonicalVirtualStoreOverlap) Some(new CanonicalStoreCpuPort(p)) else None
         val externalPrefetchBusy = if (p.dataNextLinePrefetch) Some(Input(Bool())) else None

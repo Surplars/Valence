@@ -38,6 +38,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
+    taggedStoreReturns: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
@@ -48,7 +49,8 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
         pendingStoreEarlyLoadCredits == configurationCheck.get.coreParams.pendingStoreEarlyLoadCredits &&
         boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap &&
-        pendingReadyStoreBypass == configurationCheck.get.coreParams.pendingReadyStoreBypass,
+        pendingReadyStoreBypass == configurationCheck.get.coreParams.pendingReadyStoreBypass &&
+        taggedStoreReturns == configurationCheck.get.coreParams.taggedStoreReturns,
         "pending-store proof switches differ from the actual matching-board configuration")
     require(publishedPmpChanges == configurationCheck.get.coreParams.publishedPmpChanges,
         "PMP raw change flag differs from the actual matching-board configuration")
@@ -201,6 +203,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     val backendReturnSlot = IO(Output(UInt(2.W)))
     val backendFifoCount = IO(Output(UInt(4.W)))
     val backendStoreCause = IO(Output(UInt(3.W)))
+    val cpuTagged = if (taggedStoreReturns) Some(IO(Output(new TaggedBoardTrace))) else None
     val backendReset = IO(Output(Bool()))
     // Full scalar fingerprints for passive physical data-path ownership, never dynamic vector taps.
     val dataPathEvents = IO(Output(UInt(48.W)))
@@ -329,6 +332,82 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         val adapter = board.platform.core.observationTranslation.get
         cpuTranslationHitPass := BoringUtils.bore(adapter.translationHitPass)
         val responses = board.platform.core.observationResponses.get
+        cpuTagged.foreach { o =>
+            require(l.slots.size == 4 && b.p.storeBufferEntries == 2 && b.p.tagBits == 64)
+            require(b.p.cpuReturnConfig.get.handleBits == 3 && b.p.cpuReturnConfig.get.handleCount == 7)
+            def privateData[T <: Data](instance: AnyRef, name: String): T = {
+                val fields = instance.getClass.getDeclaredFields.filter(_.getName == name)
+                require(fields.size == 1, "tagged board observation field absent/ambiguous: " + name)
+                fields.head.setAccessible(true)
+                fields.head.get(instance).asInstanceOf[T]
+            }
+            def request(out: TaggedBoardRequest, in: DecoupledIO[soc.core.ooo.DataRequest]): Unit = {
+                out.valid := tap(in.valid); out.ready := tap(in.ready)
+                out.handle := tap(in.bits.returnHandle.get)
+                out.address := tap(in.bits.address); out.data := tap(in.bits.data)
+                out.write := tap(in.bits.write); out.size := tap(in.bits.size)
+                out.ordinary := !tap(in.bits.atomic) && !tap(in.bits.uncached)
+            }
+            def response(out: TaggedBoardResponse, in: DecoupledIO[soc.core.ooo.DataResponse]): Unit = {
+                out.valid := tap(in.valid); out.ready := tap(in.ready)
+                out.handle := tap(in.bits.returnHandle.get); out.data := tap(in.bits.data)
+                out.flags := Cat(tap(in.bits.pageFault), tap(in.bits.error))
+            }
+            o.startValid := (tap(l.io.start.valid) && tap(l.io.start.ready)); o.startSlot := tap(l.chosen)
+            o.startVa := tap(l.io.start.bits.address); o.startPa := tap(l.io.start.bits.physicalAddress)
+            o.startData := tap(l.io.start.bits.data); o.startSize := tap(l.io.start.bits.size)
+            o.startFlags := Cat(tap(l.io.start.bits.frozenStoreProof.get.valid),
+                tap(l.io.start.bits.precheckedLoad), tap(l.io.start.bits.virtualized),
+                tap(l.io.start.bits.atomic), tap(l.io.start.bits.store))
+            request(o.queued, q.io.enq)
+            request(o.physical, adapter.io.physical.request)
+            response(o.physicalReply, adapter.io.physical.response)
+            response(o.integerReply, l.io.memory.response)
+            request(o.sbRequest, stores.io.memory.request)
+            response(o.sbReply, stores.io.memory.response)
+            o.sbEnqueue := tap(stores.anyEnqueue); o.sbFast := tap(stores.fastEnqueue)
+            o.sbSlot := tap(stores.tail); o.sbOriginHandle := tap(stores.request.bits.returnHandle.get)
+            o.sbAddress := Mux(tap(stores.fastEnqueue), tap(stores.io.fastStore.bits.address), tap(stores.request.bits.address))
+            o.sbData := Mux(tap(stores.fastEnqueue), tap(stores.io.fastStore.bits.data), tap(stores.request.bits.data))
+            o.sbSize := Mux(tap(stores.fastEnqueue), tap(stores.io.fastStore.bits.size), tap(stores.request.bits.size))
+            o.sbLocal := (tap(stores.request.valid) && tap(stores.request.ready)) && (tap(stores.buffered) || tap(stores.forward))
+            o.sbLocalWrite := tap(stores.request.bits.write)
+            o.sbDrainReply := tap(stores.dequeue)
+            o.fpEpoch := tap(b.fpMemoryEpoch)
+            o.fpIndex := tap(b.systemOwner.index); o.fpTag := tap(b.systemOwner.tag)
+            request(o.backendRequest, b.io.memory.request); response(o.backendReply, b.io.memory.response)
+            o.fpComplete := tap(b.fpMemoryEpoch) && (tap(b.systemComplete.valid) && tap(b.systemComplete.ready))
+            o.fpCompleteIndex := tap(b.systemComplete.bits.token.index); o.fpCompleteTag := tap(b.systemComplete.bits.token.tag)
+            o.fpTval := tap(b.systemComplete.bits.tval); o.fpException := tap(b.systemComplete.bits.exception)
+            o.fpCause := tap(b.systemComplete.bits.cause)
+            for ((out, i) <- o.slots.zipWithIndex) {
+                val s = l.slots(i)
+                out.live := tap(s.io.busy); out.index := tap(s.io.owner.index); out.tag := tap(s.io.owner.tag)
+                out.cancel := tap(s.io.cancel); out.discard := tap(s.io.discarded)
+                out.complete := (tap(s.io.complete.valid) && tap(s.io.complete.ready)); out.fastLoad := tap(s.io.fastLoadRetire)
+                out.completeIndex := tap(s.io.complete.bits.token.index); out.completeTag := tap(s.io.complete.bits.token.tag)
+                out.tval := tap(s.io.complete.bits.tval); out.exception := tap(s.io.complete.bits.exception)
+                out.cause := tap(s.io.complete.bits.cause)
+            }
+            val cache = board.platform.privateCache.get.asInstanceOf[soc.core.ooo.NonBlockingCoherentLineCache]
+            request(o.cache, cache.io.upstream.request); response(o.cacheReply, cache.io.upstream.response)
+            def privateOption[T](name: String): T = {
+                val fields = cache.getClass.getDeclaredFields.filter(_.getName == name)
+                require(fields.size == 1, "tagged board option observation absent/ambiguous: " + name)
+                fields.head.setAccessible(true)
+                fields.head.get(cache).asInstanceOf[Option[T]].get
+            }
+            val rowHandles = privateOption[Vec[UInt]]("responseHandle")
+            val rowKinds = privateOption[Vec[UInt]]("responseKind")
+            o.cacheHandle0 := tap(rowHandles(0)); o.cacheHandle1 := tap(rowHandles(1))
+            o.cacheKind0 := tap(rowKinds(0)); o.cacheKind1 := tap(rowKinds(1))
+            o.cacheSelected := tap(privateData[UInt](cache, "responseSelected"))
+            o.cacheOldestHit := tap(privateData[Bool](cache, "headHitAvailable"))
+            o.cacheStoreWrite := tap(privateData[Bool](cache, "storeWrite"))
+            o.cachePostedIntent := tap(privateData[Bool](cache, "postedIntent"))
+        }
+
+
         val profile = BoardSocConfig.timingParams(timingProfile, issueWidth)
         require(profile.registeredMemoryAddress && profile.earlyRecoveryIssueBlock &&
             profile.registeredTranslationHeads && profile.registeredTranslatedResponses &&

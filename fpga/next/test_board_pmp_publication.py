@@ -20,9 +20,9 @@ class BoardPmpPublicationTests(unittest.TestCase):
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (57, 150, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (58, 151, 19))
         fields = [(s, f) for s in ("profile", "core")
-                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass")]
+                  for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass", "taggedStoreReturns")]
         fields += [(s, f) for s in ("profile", "cache")
                    for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore")]
         for section, field in fields:

@@ -330,7 +330,7 @@ class MachinePlatform(
         (if (ethernetDma) Seq((BigInt("10002000", 16), BigInt(256))) else Seq.empty) ++
         (if (clockManagement) Seq((BigInt("10080000", 16), BigInt(4096))) else Seq.empty) ++
         (if (jtagRamDownload) Seq((BigInt("10003000", 16), BigInt(64))) else Seq.empty),
-        bypassMemoryShift = p.directMemoryResponse))) else None
+        bypassMemoryShift = p.directMemoryResponse, returnConfig = p.cpuReturnConfig))) else None
     val platformUpstream = platformRouter.map(_.io.upstream).getOrElse(timerRouter.get.io.upstream)
     val platformMemory = platformRouter.map(_.io.memory)
         .getOrElse(cmuRouter.map(_.io.memory).getOrElse(packetDmaRouter.map(_.io.memory)
@@ -369,7 +369,7 @@ class MachinePlatform(
         // Decouple CPU response backpressure before it traverses the MMIO routers,
         // private cache, arbiters, and coherence home. Optional non-flow mode also
         // cuts request->ready->same-cycle-response->CPU timing; it adds one cycle.
-        val responses = Module(new Queue(new DataResponse, 2, pipe = false, flow = !registerCoherentResponses))
+        val responses = Module(new Queue(new DataResponse(p.dataReturnHandleBits), 2, pipe = false, flow = !registerCoherentResponses))
         responses.reset := reset.asBool || hold
         platformUpstream.request <> core.io.memory.request
         responses.io.enq.valid := platformUpstream.response.valid
@@ -399,10 +399,13 @@ class MachinePlatform(
         readMshrs = cacheConcurrency.readMshrs, responseEntries = cacheConcurrency.responseEntries,
         writebackEntries = cacheConcurrency.writebackEntries, guaranteedBase = ramBase, guaranteedBytes = ramBytes))
     postedConfig.foreach(_.requireCacheAperture(ramBase, ramBytes))
+    require(!p.taggedStoreReturns || (stagedMemoryFabric && coherentLineCache && coreDataTranslation &&
+        bufferTranslatedResponses && cacheConcurrency.readMshrs == 2 && cacheConcurrency.responseEntries == 2),
+        "tagged returns require the reviewed translated CPU path and original two-response cache")
     val privateCache = if (coherentLineCache) Some(CoherentLineCacheModule.build(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
         ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig,
-        postedConfig = postedConfig)) else None
+        postedConfig = postedConfig, returnConfig = p.cpuReturnConfig)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B

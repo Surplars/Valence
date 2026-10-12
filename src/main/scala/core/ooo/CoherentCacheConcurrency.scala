@@ -69,9 +69,10 @@ class DataPrefetchEvents extends Bundle {
     val releaseOwners = UInt(3.W)
 }
 
-class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None) extends Bundle {
+class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None,
+    returnConfig: Option[CpuReturnConfig] = None) extends Bundle {
     val posted = postedConfig.map(c => new PostedStoreCachePort(c))
-    val upstream = Flipped(new DataPort)
+    val upstream = Flipped(new DataPort(returnConfig.map(_.handleBits).getOrElse(0)))
     val downstream = new DataPort
     val tl = new TLBundle(params)
     val flushRequest = Input(Bool())
@@ -83,8 +84,9 @@ class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMe
     val profile = Output(new CoherentCacheProfile)
 }
 
-abstract class CoherentLineCacheModule(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None) extends Module {
-    val io = IO(new CoherentLineCachePort(params, postedConfig))
+abstract class CoherentLineCacheModule(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None,
+    returnConfig: Option[CpuReturnConfig] = None) extends Module {
+    val io = IO(new CoherentLineCachePort(params, postedConfig, returnConfig))
     io.prefetch := 0.U.asTypeOf(new DataPrefetchEvents)
 }
 
@@ -92,12 +94,15 @@ object CoherentLineCacheModule {
     /** Caller selects capacities explicitly; the reference implementation stays available unchanged. */
     def build(base: BigInt, bytes: BigInt, lines: Int, params: TLParams, ways: Int,
         concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
-        postedConfig: Option[PostedStoreMergeConfig] = None): CoherentLineCacheModule = {
+        postedConfig: Option[PostedStoreMergeConfig] = None,
+        returnConfig: Option[CpuReturnConfig] = None): CoherentLineCacheModule = {
+        require(returnConfig.isEmpty || (concurrency.readMshrs == 2 && concurrency.responseEntries == 2),
+            "tagged CPU store returns retain the reviewed two-MSHR/two-response cache")
         require(!concurrency.postedPrefetchCoexistence || postedConfig.exists(_.enabled),
             "posted/prefetch coexistence requires an enabled posted owner")
         postedConfig.foreach(c => require(c.enabled && concurrency.readMshrs == 2,
             "posted integration requires explicit ON and original two-MSHR cache"))
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))
-        else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig, postedConfig))
+        else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig, postedConfig, returnConfig))
     }
 }

@@ -36,7 +36,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val fenceIFlush     = Output(Bool())
         val fenceIFlushReady = Input(Bool())
         val recovering      = Output(Bool())
-        val memory          = new DataPort
+        val memory          = new DataPort(p.dataReturnHandleBits)
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val canonicalStore = if (p.canonicalVirtualStoreOverlap) Some(new CanonicalStoreCpuPort(p)) else None
         val msi             = Flipped(new RegisterPort)

@@ -25,6 +25,15 @@ object MatchingFabricAudit {
         val actualDdr = unique(p, classOf[DdrBridgeConfig])
         val actualCache = unique(cache, classOf[CoherentCacheConcurrency])
         require(actualCore == expected.coreParams && actualDdr == expected.ddr && actualCache == expected.cache)
+        require(actualCore.productArity == 151 && expected.productArity == 58 && actualCache.productArity == 19,
+            "tagged board full parameter summary arity changed")
+        require(actualCore.taggedStoreReturns == expected.taggedStoreReturns)
+        require(actualCore.cpuReturnConfig.map(c => (c.memoryEntries, c.storeBufferEntries, c.fpEnabled,
+            c.handleBits, c.handleCount, c.tableEntries)) ==
+            (if (expected.taggedStoreReturns) Some((4, 2, true, 3, 7, 8)) else None),
+            "tagged board return namespace differs from exact 4/2/1 domain")
+        require(p.core.core.core.backend.lsu.io.memory.request.bits.returnHandle.map(_.getWidth) ==
+            (if (expected.taggedStoreReturns) Some(3) else None), "actual LSU optional port width changed")
         require(p.packetDma.get.txQueue.get.owned.size == expected.network.postedTxSlots)
         require(p.packetDma.get.slotOwned.size == expected.network.postedRxSlots)
         require(p.dmaArbiter.get.io.clients.size == 2 && p.debugDmaArbiter.get.io.clients.size == 2)

@@ -50,6 +50,8 @@ def expected_constructor():
     # constructor fields are explicitly default in both complete products.
     historical = copy.deepcopy(expected)
     for section in ("profile", "core"):
+        if historical[section].pop("taggedStoreReturns") is not False:
+            raise RuntimeError("historical optional entry must keep tagged store returns off")
         if historical[section].pop("pendingStoreEarlyLoadCredits") != 1:
             raise RuntimeError("historical optional entry must retain one early-load credit")
         if historical[section].pop("pendingReadyStoreBypass") is not False:
@@ -64,7 +66,7 @@ def expected_constructor():
 
 
 def compare_constructor(actual):
-    if actual != expected_constructor():
+    if json.dumps(actual, sort_keys=True) != json.dumps(expected_constructor(), sort_keys=True):
         raise RuntimeError("actual complete constructor differs from bound-store/prefetch v1")
 
 

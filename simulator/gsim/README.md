@@ -2710,3 +2710,15 @@ translated-proof compaction. The explicit `fpga/next/board_bound_store_prefetch.
 entry is source-only by default and leaves old presets unchanged. Bounded compact CPU parity, native declaration accounting and publication
 constructor/native bridges pass; their exact scope is tracked separately in the [evidence index](../../docs/experiments/bound-store-prefetch-evidence-v1.json).
 No mapped-resource, STA, routed or board qualification is implied.
+
+### Optional tagged completed-store returns
+
+`tagged_store_returns.py` provides the six focused OFF/ON model gates.
+`tagged_store_return_board.py` provides a portable explicit ON board profile,
+read-only command plan and qualified-model identity check, plus separately
+selected replay stages. The generic production flag stays OFF. See
+[`docs/tagged-store-returns.md`](../../docs/tagged-store-returns.md) for the exact
+contracts and qualification limits: about 0.5% throughput under each separate
+Sv39 service law, zero Bare benefit, native retained declared state +66 bits,
+and no mapped PPA/STA claim. The portable board wrapper itself has not run a DUT;
+its command/body bridge binds the previously tested model and host.

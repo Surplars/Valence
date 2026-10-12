@@ -18,7 +18,7 @@ class DurableReadPrefetchConfigSpec extends AnyFunSuite {
             val off = FpgaNextConfig.fromOptions(prerequisites + selector, defaultSelected = false)
             val retained = FpgaNextConfig.fromOptions(prerequisites + selector + retention, defaultSelected = false)
             val captured = FpgaNextConfig.fromOptions(prerequisites + selector + retention + capture, defaultSelected = false)
-            assert(off.productArity == 57 && off.cache.productArity == 19 && off.coreParams.productArity == 150)
+            assert(off.productArity == 58 && !off.taggedStoreReturns && off.cache.productArity == 19 && off.coreParams.productArity == 151 && !off.coreParams.taggedStoreReturns)
             assert(!off.durableReadPrefetchCandidate && !off.readPrefetchBehindStore)
             assert(retained == off.copy(durableReadPrefetchCandidate = true))
             assert(captured == retained.copy(readPrefetchBehindStore = true))

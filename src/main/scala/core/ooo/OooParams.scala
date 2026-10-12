@@ -18,6 +18,7 @@ case class OooParams(
     registeredLocalStoreResponses: Boolean = false,
     registeredImsicInterrupts: Boolean = false,
     registeredMemoryRequests: Boolean = false,
+    taggedStoreReturns: Boolean = false,
     registeredStoreResponseOwners: Boolean = false,
     registeredBranchRedirect: Boolean = false,
     registeredMemoryAddress: Boolean = false,
@@ -248,6 +249,12 @@ case class OooParams(
     def fpConfig: FloatingPointConfig = if (experimentalFloatingPoint && !floatingPoint.f)
         FloatingPointConfig.fullFD else floatingPoint
     def fpEnabled: Boolean = fpConfig.f
+    def cpuReturnConfig: Option[CpuReturnConfig] = if (taggedStoreReturns)
+        Some(CpuReturnConfig(memoryEntries, storeBufferEntries, fpEnabled)) else None
+    def dataReturnHandleBits: Int = cpuReturnConfig.map(_.handleBits).getOrElse(0)
+    require(!taggedStoreReturns || (bufferedRamStores && registeredMemoryRequests &&
+        registeredStoreResponseOwners && !fastBufferedStoreRetire && !fastHeadLoadRetire),
+        "tagged store returns retain registered request/owner boundaries and actual LSU completion")
     require(!fpEnabled || machineSystem, "FP requires machine-system mode")
     require(!advertiseFloatingPoint || (fpEnabled && fpConfig.complete),
         "ISA advertisement requires every instruction group of the selected F/D extension")

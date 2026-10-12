@@ -13,13 +13,13 @@ object DistinctWayReleaseNativeMain extends App {
     val baseline = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true)
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = false)
     require(profile == baseline.copy(distinctWayRelease = on))
-    require(profile.productArity == 57 && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
+    require(profile.productArity == 58 && !profile.taggedStoreReturns && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
         !profile.readPrefetchDirtyRetry && !profile.cache.readPrefetchDirtyRetry &&
         !profile.splitPrefetchTracking && !profile.cache.splitPrefetchTracking &&
         !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&
         !profile.dataTlbWriteReadReuse && !profile.ddrWriteCollectionFlow && !profile.lineTransferDispatchFlow &&
         !profile.lineReadChannel &&
-        profile.coreParams.productArity == 150 && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && profile.coreParams.pendingStoreEarlyLoadCredits == 1 && !profile.coreParams.publishedPmpChanges && profile.cache.productArity == 19)
+        profile.coreParams.productArity == 151 && !profile.coreParams.taggedStoreReturns && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && profile.coreParams.pendingStoreEarlyLoadCredits == 1 && !profile.coreParams.publishedPmpChanges && profile.cache.productArity == 19)
     require(profile.distinctWayRelease == on && profile.cache.distinctWayRelease == on)
     require(!profile.reconstructIssueTokenIndex && !profile.sharedMemoryAddressState &&
         !profile.coreParams.reconstructIssueTokenIndex && !profile.coreParams.sharedMemoryAddressState)

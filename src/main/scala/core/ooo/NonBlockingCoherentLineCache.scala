@@ -15,8 +15,9 @@ class NonBlockingCoherentLineCache(
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = 2),
     ways: Int = 2, concurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(2),
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
-    postedConfig: Option[PostedStoreMergeConfig] = None
-) extends CoherentLineCacheModule(params, postedConfig) {
+    postedConfig: Option[PostedStoreMergeConfig] = None,
+    returnConfig: Option[CpuReturnConfig] = None
+) extends CoherentLineCacheModule(params, postedConfig, returnConfig) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(Set(1, 2).contains(ways) && lines / ways >= 2)
@@ -32,6 +33,8 @@ class NonBlockingCoherentLineCache(
     private val mshrBits = log2Ceil(mshrCount)
     val observationStorePrefetch = WireDefault(0.U.asTypeOf(new CheckedStorePrefetchObservation(mshrBits)))
     private val responseCount = concurrency.responseEntries
+    require(returnConfig.isEmpty || (mshrCount == 2 && responseCount == 2),
+        "tagged store returns preserve the original two MSHRs and two response rows")
     private val ticketBits = log2Ceil(responseCount)
     private val indexBits = log2Ceil(lines)
     private val setBits = log2Ceil(lines / ways)
@@ -73,7 +76,7 @@ class NonBlockingCoherentLineCache(
     private val postedFallbackFire = posted.map(_.io.fallback.fire).getOrElse(false.B)
     for ((owner, boundary) <- posted.zip(io.posted)) {
         owner.io.enq.valid := false.B
-        owner.io.enq.bits.request := io.upstream.request.bits
+        CpuReturnTransport.requestPayload(owner.io.enq.bits.request, io.upstream.request.bits)
         owner.io.enq.bits.proof := boundary.requestProof.bits
         owner.io.cacheAdmission := 0.U.asTypeOf(owner.io.cacheAdmission)
         owner.io.contextEpoch := boundary.contextEpoch
@@ -168,23 +171,64 @@ class NonBlockingCoherentLineCache(
     private val results = Reg(Vec(responseCount, new DataResponse))
     private val responseHead = RegInit(0.U(ticketBits.W))
     private val responseTail = RegInit(0.U(ticketBits.W))
+    private val responseHandle = returnConfig.map(c => Reg(Vec(responseCount, UInt(c.handleBits.W))))
+    // 0 ordered/other, 1 ordinary integer read, 2 actual ordinary integer store hit.
+    private val responseClass = returnConfig.map(_ => Reg(Vec(responseCount, UInt(2.W))))
+    private val responseAllocation = if (returnConfig.nonEmpty)
+        PriorityEncoder(VecInit(responseOwned.map(!_))) else responseTail
     private val responseEmpty = !responseOwned.asUInt.orR
-    private val responseSpace = !responseOwned(responseTail)
+    private val responseSpace = if (returnConfig.nonEmpty) !responseOwned.asUInt.andR else !responseOwned(responseTail)
     private val hitReplyValid = WireDefault(false.B)
+    private val headHitAvailable = WireDefault(false.B)
+    private val orderedReturnBlocked = WireDefault(false.B)
     private val hitReplyBits = WireDefault(0.U.asTypeOf(new DataResponse))
-    private val storedReply = responseOwned(responseHead) && responseComplete(responseHead)
+    private val responseSelected = WireDefault(responseHead)
+    private val storedReply = responseOwned(responseSelected) && responseComplete(responseSelected)
     io.upstream.response.valid := storedReply || hitReplyValid
-    io.upstream.response.bits := Mux(storedReply, results(responseHead), hitReplyBits)
+    CpuReturnTransport.responsePayload(io.upstream.response.bits, Mux(storedReply, results(responseSelected), hitReplyBits))
+    returnConfig.foreach { config =>
+        val held = RegInit(false.B)
+        val heldTicket = Reg(UInt(ticketBits.W))
+        val other = ~responseHead
+        val oldestReady = responseOwned(responseHead) && responseComplete(responseHead)
+        // hitPending for the oldest row is added below through this wire. A stored
+        // younger store may never preempt an existing offered or held result.
+        val oldestAvailable = oldestReady || headHitAvailable
+        val ordinaryKinds = responseKind.map(k => k(responseHead) === 0.U && k(other) === 0.U).getOrElse(true.B)
+        val bypassStoredStore = responseOwned(responseHead) && responseOwned(other) &&
+            responseClass.get(responseHead) === 1.U && responseClass.get(other) === 2.U &&
+            responseComplete(other) && !results(other).error && !results(other).pageFault && ordinaryKinds && !orderedReturnBlocked
+        responseSelected := Mux(held, heldTicket,
+            Mux(!oldestAvailable && bypassStoredStore, other, responseHead))
+        io.upstream.response.bits.returnHandle.get := responseHandle.get(responseSelected)
+        when(io.upstream.response.valid && !io.upstream.response.ready) {
+            held := true.B
+            heldTicket := responseSelected
+        }
+        when(io.upstream.response.fire) { held := false.B }
+        when(io.upstream.request.fire) {
+            assert(config.legal(io.upstream.request.bits.returnHandle.get), "cache received an unknown CPU return domain")
+            responseHandle.get(responseAllocation) := io.upstream.request.bits.returnHandle.get
+        }
+        CpuReturnTransport.held(io.upstream.response)
+    }
     when(io.upstream.response.fire) {
-        responseOwned(responseHead) := false.B
-        responseComplete(responseHead) := false.B
-        responseHead := responseHead + 1.U
+        responseOwned(responseSelected) := false.B
+        responseComplete(responseSelected) := false.B
+        if (returnConfig.isEmpty) responseHead := responseHead + 1.U
         for (owner <- posted) {
-            owner.io.acknowledged.valid := responseKind.get(responseHead) === 1.U
-            owner.io.acknowledged.bits := responseMember.get(responseHead)
-            owner.io.fallbackAcknowledged.valid := responseKind.get(responseHead) === 2.U
-            owner.io.fallbackAcknowledged.bits := responseFallback.get(responseHead)
-            responseKind.get(responseHead) := 0.U
+            owner.io.acknowledged.valid := responseKind.get(responseSelected) === 1.U
+            owner.io.acknowledged.bits := responseMember.get(responseSelected)
+            owner.io.fallbackAcknowledged.valid := responseKind.get(responseSelected) === 2.U
+            owner.io.fallbackAcknowledged.bits := responseFallback.get(responseSelected)
+            responseKind.get(responseSelected) := 0.U
+        }
+    }
+    if (returnConfig.nonEmpty) {
+        when(io.upstream.response.fire && responseSelected === responseHead) { responseHead := ~responseHead }
+        when(io.upstream.request.fire && (responseEmpty ||
+            (io.upstream.response.fire && responseSelected === responseHead && !responseOwned(~responseHead)))) {
+            responseHead := responseAllocation
         }
     }
 
@@ -226,10 +270,11 @@ class NonBlockingCoherentLineCache(
     private val freeMshr = PriorityEncoder(freeMask)
     private val barrier = RegInit(false.B)
     private val barrierTicket = Reg(UInt(ticketBits.W))
+    orderedReturnBlocked := barrier
     when(io.upstream.response.fire) {
-        when(barrier && responseHead === barrierTicket) { barrier := false.B }
+        when(barrier && responseSelected === barrierTicket) { barrier := false.B }
         for (i <- 0 until mshrCount) {
-            when(phase(i) === result && !isPosted(i.U) && pendingTicket(i) === responseHead) {
+            when(phase(i) === result && !isPosted(i.U) && pendingTicket(i) === responseSelected) {
                 phase(i) := free
                 demandAttached.foreach(_(i) := false.B)
             }
@@ -549,7 +594,7 @@ class NonBlockingCoherentLineCache(
             probeState === pIdle && !io.tl.b.valid
         owner.io.cacheAdmission.responseAvailable := responseSpace && maintenanceReady
         owner.io.cacheAdmission.targetAbsent := !found
-        owner.io.cacheAdmission.responseTicket := responseTail
+        owner.io.cacheAdmission.responseTicket := responseAllocation
         owner.io.cacheAdmission.reservationValid := freeMask.asUInt.orR && !reservedSet && maintenanceReady
         owner.io.cacheAdmission.reservation.mshr := freeMshr
         owner.io.cacheAdmission.reservation.set := lineSet(request.address)
@@ -607,21 +652,26 @@ class NonBlockingCoherentLineCache(
     private val hitStore = Reg(Bool())
     hitPending := false.B
     when(cpuFire) {
-        responseOwned(responseTail) := true.B
-        responseComplete(responseTail) := postedAccept
-        responseTail := responseTail + 1.U
+        returnConfig.foreach { config =>
+            val integer = config.integer(request.returnHandle.get)
+            responseClass.get(responseAllocation) := Mux(integer && !postedIntent && storeWrite, 2.U,
+                Mux(integer && !postedIntent && ordinary && !request.write, 1.U, 0.U))
+        }
+        responseOwned(responseAllocation) := true.B
+        responseComplete(responseAllocation) := postedAccept
+        if (returnConfig.isEmpty) { responseTail := responseTail + 1.U }
         for (owner <- posted) {
-            responseKind.get(responseTail) := Mux(postedAccept, 1.U, Mux(postedFallbackFire, 2.U, 0.U))
+            responseKind.get(responseAllocation) := Mux(postedAccept, 1.U, Mux(postedFallbackFire, 2.U, 0.U))
             when(postedAccept) {
-                responseMember.get(responseTail) := owner.io.accepted.bits.member
-                results(responseTail) := 0.U.asTypeOf(new DataResponse)
+                responseMember.get(responseAllocation) := owner.io.accepted.bits.member
+                results(responseAllocation) := 0.U.asTypeOf(new DataResponse)
             }
             when(postedFallbackFire) {
-                responseFallback.get(responseTail).token := owner.io.fallback.bits.proof.token
-                responseFallback.get(responseTail).responseTicket := responseTail
+                responseFallback.get(responseAllocation).token := owner.io.fallback.bits.proof.token
+                responseFallback.get(responseAllocation).responseTicket := responseAllocation
             }
         }
-        when(barrierRequest && !postedAccept) { barrier := true.B; barrierTicket := responseTail }
+        when(barrierRequest && !postedAccept) { barrier := true.B; barrierTicket := responseAllocation }
         when(postedAccept) {
             for (owner <- posted) {
                 when(owner.io.accepted.bits.newLine) {
@@ -635,7 +685,7 @@ class NonBlockingCoherentLineCache(
                     postedInstalled.get(m) := false.B
                     if (concurrency.nextLinePrefetch) prefetchOwner(m) := false.B
                     storePrefetchOwner.foreach(_(m) := false.B)
-                    pending(m) := request
+                    CpuReturnTransport.requestPayload(pending(m), request)
                     pendingIndex(m) := index
                     pendingVictimTag.foreach(_(m) := wayTag(primaryTags.get, index))
                     phase(m) := Mux(needsEviction, evictWait, acquire)
@@ -643,14 +693,14 @@ class NonBlockingCoherentLineCache(
             }
         }.elsewhen(demandAttach) {
             demandAttached.foreach(_(attachMshr) := true.B)
-            pending(attachMshr) := request
-            pendingTicket(attachMshr) := responseTail
+            CpuReturnTransport.requestPayload(pending(attachMshr), request)
+            pendingTicket(attachMshr) := responseAllocation
             // Keep phase, reserved index, victim identity and PF origin unchanged.
         }.elsewhen(bypass) {
-            bypassRequest := request
+            CpuReturnTransport.requestPayload(bypassRequest, request)
             bypassIndex := index
             bypassVictimTag.foreach(_ := wayTag(primaryTags.get, index))
-            bypassTicket := responseTail
+            bypassTicket := responseAllocation
             bypassState := Mux(needsEviction, bEvict, bSend)
         }.elsewhen(!found) {
             acquireIssued.foreach(_(freeMshr) := false.B)
@@ -658,10 +708,10 @@ class NonBlockingCoherentLineCache(
             if (concurrency.nextLinePrefetch) prefetchOwner(freeMshr) := false.B
             storePrefetchOwner.foreach(_(freeMshr) := false.B)
             postedMshr.foreach(_(freeMshr) := false.B)
-            pending(freeMshr) := request
+            CpuReturnTransport.requestPayload(pending(freeMshr), request)
             pendingIndex(freeMshr) := index
             pendingVictimTag.foreach(_(freeMshr) := wayTag(primaryTags.get, index))
-            pendingTicket(freeMshr) := responseTail
+            pendingTicket(freeMshr) := responseAllocation
             phase(freeMshr) := Mux(needsEviction, evictWait, acquire)
         }
     }
@@ -670,7 +720,7 @@ class NonBlockingCoherentLineCache(
     // the registered hit reply/ticket pipeline retain their original order.
     when(legacyFire && ordinary && found) {
         hitPending := true.B
-        hitTicket := responseTail
+        hitTicket := responseAllocation
         hitBank := request.address(5, 3)
         hitStore := request.write
         touch(index)
@@ -683,8 +733,9 @@ class NonBlockingCoherentLineCache(
     private val readWords = VecInit((0 until 8).map { bank =>
         data(bank).read(readIndex, readEnables(bank)).asUInt
     })
-    hitReplyValid := hitPending && hitTicket === responseHead && responseOwned(responseHead) &&
+    headHitAvailable := hitPending && hitTicket === responseHead && responseOwned(responseHead) &&
         !responseComplete(responseHead)
+    hitReplyValid := headHitAvailable && responseSelected === responseHead
     hitReplyBits.data := Mux(hitStore, 0.U, readWords(hitBank))
     hitReplyBits.error := false.B
     hitReplyBits.pageFault := false.B
@@ -693,7 +744,7 @@ class NonBlockingCoherentLineCache(
         results(hitTicket).data := Mux(hitStore, 0.U, readWords(hitBank))
         results(hitTicket).error := false.B
         results(hitTicket).pageFault := false.B
-        when(!(hitReplyValid && io.upstream.response.fire)) { responseComplete(hitTicket) := true.B }
+        when(!(hitReplyValid && io.upstream.response.fire && responseSelected === hitTicket)) { responseComplete(hitTicket) := true.B }
     }
     when(probeState === pCapture) {
         probeWords := Mux(probeDirty, readWords, 0.U.asTypeOf(probeWords))
@@ -1421,7 +1472,7 @@ class NonBlockingCoherentLineCache(
         observation.cancelled := owner.io.victimCancelled
         observation.fallback.valid := owner.io.fallback.fire
         observation.fallback.bits.token := owner.io.fallback.bits.proof.token
-        observation.fallback.bits.responseTicket := responseTail
+        observation.fallback.bits.responseTicket := responseAllocation
         observation.fallbackAck := owner.io.fallbackAcknowledged
         observation.failed := owner.io.failed
         observation.mshrMask := VecInit(phase.map(_ =/= free)).asUInt
@@ -1509,7 +1560,7 @@ class NonBlockingCoherentLineCache(
     observationStorePrefetch.demandAttachReady := attachReady
     observationStorePrefetch.demandAttachSlot := attachMshr
     observationStorePrefetch.demandAttachAddress := request.address
-    observationStorePrefetch.demandAttachTicket := responseTail
+    observationStorePrefetch.demandAttachTicket := responseAllocation
     observationStorePrefetch.mshrDemandAttachedMask := demandAttached.map(_.asUInt).getOrElse(0.U)
     observationStorePrefetch.mshrAcquireIssuedMask := acquireIssued.map(_.asUInt).getOrElse(0.U)
     observationStorePrefetch.mshrKnownErrorMask := failedAcquireOwners.map(_.asUInt).getOrElse(0.U)
@@ -1518,7 +1569,7 @@ class NonBlockingCoherentLineCache(
     observationStorePrefetch.responseOwnedMask := responseOwned.asUInt
     observationStorePrefetch.responseCompleteMask := responseComplete.asUInt
     observationStorePrefetch.responseHeadTicket := responseHead
-    observationStorePrefetch.responseTailTicket := responseTail
+    observationStorePrefetch.responseTailTicket := responseAllocation
     observationStorePrefetch.acquireTagBits := acquireTagBits.U
     engine.io.issued.foreach { issued =>
         observationStorePrefetch.acquireIssued := issued.valid

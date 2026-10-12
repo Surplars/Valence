@@ -25,7 +25,7 @@ final class CanonicalVirtualStoreActualParamsAudit(
         "audit entry profile differs from explicit native options")
     require(profile.canonicalVirtualStoreOverlap == (mode == "on"), "official treatment differs from side")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 150 && !expectedCore.pendingReadyStoreBypass && !expectedCore.boundHeadStoreOverlap && !expectedCore.pendingVirtualStoreProof && !expectedCore.frozenStoreProofTransport && expectedCore.pendingVirtualStoreProofSlots == 1 && expectedCore.pendingStoreEarlyLoadCredits == 1 && !expectedCore.publishedPmpChanges && !expectedCore.registeredPmpRegions && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 151 && !expectedCore.taggedStoreReturns && !expectedCore.pendingReadyStoreBypass && !expectedCore.boundHeadStoreOverlap && !expectedCore.pendingVirtualStoreProof && !expectedCore.frozenStoreProofTransport && expectedCore.pendingVirtualStoreProofSlots == 1 && expectedCore.pendingStoreEarlyLoadCredits == 1 && !expectedCore.publishedPmpChanges && !expectedCore.registeredPmpRegions && expectedCore.memoryEntries == 4 &&
         expectedCore.robEntries == profile.robEntries.getOrElse(16) &&
         expectedCore.physicalRegs == profile.physicalRegs.getOrElse(48) && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
@@ -103,7 +103,7 @@ final class CanonicalVirtualStoreActualParamsAudit(
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 150 && !actual.pendingReadyStoreBypass && !actual.boundHeadStoreOverlap && !actual.pendingVirtualStoreProof && !actual.frozenStoreProofTransport && actual.pendingVirtualStoreProofSlots == 1 && actual.pendingStoreEarlyLoadCredits == 1 && !actual.publishedPmpChanges && !actual.registeredPmpRegions && actual == expectedCore,
+            require(actual.productArity == 151 && !actual.taggedStoreReturns && !actual.pendingReadyStoreBypass && !actual.boundHeadStoreOverlap && !actual.pendingVirtualStoreProof && !actual.frozenStoreProofTransport && actual.pendingVirtualStoreProofSlots == 1 && actual.pendingStoreEarlyLoadCredits == 1 && !actual.publishedPmpChanges && !actual.registeredPmpRegions && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }
@@ -171,13 +171,13 @@ object CanonicalVirtualStoreActualParamsMain extends App {
         (if (mode == "on") Set("--canonical-virtual-store-overlap") else Set.empty[String])
     require(options.size == args.length - 2 && options == expected, "official canonical options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(profile.productArity == 57 && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
+    require(profile.productArity == 58 && !profile.taggedStoreReturns && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
         !profile.readPrefetchDirtyRetry && !profile.cache.readPrefetchDirtyRetry &&
         !profile.splitPrefetchTracking && !profile.cache.splitPrefetchTracking &&
         !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&
         !profile.dataTlbWriteReadReuse && !profile.ddrWriteCollectionFlow && !profile.lineTransferDispatchFlow &&
         !profile.lineReadChannel &&
-        profile.coreParams.productArity == 150 && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && profile.coreParams.pendingStoreEarlyLoadCredits == 1 && !profile.coreParams.publishedPmpChanges && !profile.distinctWayRelease && !profile.cache.distinctWayRelease)
+        profile.coreParams.productArity == 151 && !profile.coreParams.taggedStoreReturns && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && profile.coreParams.pendingStoreEarlyLoadCredits == 1 && !profile.coreParams.publishedPmpChanges && !profile.distinctWayRelease && !profile.cache.distinctWayRelease)
     require(profile == PostedPrefetchBoardProfiles.profile("head-offer", "on")
         .copy(canonicalVirtualStoreOverlap = mode == "on"))
     require(!Files.exists(Paths.get(args(0))), "actual entry audit requires a fresh output directory")

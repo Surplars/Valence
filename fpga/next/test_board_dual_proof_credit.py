@@ -26,9 +26,12 @@ class BoardDualProofCreditTests(unittest.TestCase):
                 self.assertEqual(expected[section][field], 1)
                 expected[section][field] = 2
         self.assertEqual(candidate.expected_constructor(), expected)
-        self.assertEqual(expected, spec["constructor_profile"])
+        historical = copy.deepcopy(expected)
+        for section in ("profile", "core"):
+            self.assertIs(historical[section].pop("taggedStoreReturns"), False)
+        self.assertEqual(historical, spec["constructor_profile"])
         self.assertEqual({k: len(expected[k]) for k in ("profile", "core", "cache")},
-                         {"profile": 57, "core": 150, "cache": 19})
+                         {"profile": 58, "core": 151, "cache": 19})
         self.assertEqual(expected["core"]["robEntries"], 16)
         self.assertEqual(expected["core"]["physicalRegs"], 48)
         self.assertEqual(expected["core"]["memoryEntries"], 4)
@@ -47,8 +50,10 @@ class BoardDualProofCreditTests(unittest.TestCase):
         for field in candidate.CAPACITIES:
             self.assertEqual(expected["cpu"][field], 1)
             expected["cpu"][field] = 2
+        historical = copy.deepcopy(expected)
+        expected["cpu"]["taggedStoreReturns"] = False
         self.assertEqual(candidate.expected_fabric(), expected)
-        self.assertEqual(expected, spec["executed_fabric"])
+        self.assertEqual(historical, spec["executed_fabric"])
         constructor = candidate.expected_constructor()
         for fabric_key, constructor_key in (("cpu", "core"), ("cache", "cache"), ("ddr", "ddr")):
             self.assertEqual(expected[fabric_key], constructor[constructor_key])

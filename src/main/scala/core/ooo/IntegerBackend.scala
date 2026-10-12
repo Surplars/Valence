@@ -109,7 +109,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val committedValue              = Output(UInt(64.W))
         val redirect                    = Output(Valid(new FrontendRedirect(p)))
         val invalidateFetch             = Output(Bool())
-        val memory                      = new DataPort
+        val memory                      = new DataPort(p.dataReturnHandleBits)
         val loadPrecheck = if (p.virtualRamLoadPrecheck) Some(new VirtualLoadPrecheckPort) else None
         val posted = p.postedProofConfig.map(c => new PostedStoreCpuPort(c))
         val canonicalStore = if (p.canonicalVirtualStoreOverlap) Some(new CanonicalStoreCpuPort(p)) else None
@@ -175,7 +175,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     // Irrevocable head memory ownership survives the response until retirement, including commit backpressure.
     val memoryProtected = RegInit(false.B)
     val memoryOwner     = Reg(new RobToken(p))
-    val integerMemory = Wire(new DataPort)
+    val integerMemory = Wire(new DataPort(p.dataReturnHandleBits))
     val integerMemoryBusy = WireDefault(lsu.io.busy)
     val postedCompleted = WireDefault(false.B)
     val postedStarted = WireDefault(false.B)
@@ -208,7 +208,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         if (p.registeredMemoryRequests) {
             // The LSU owns the response as soon as its request enters this ordered,
             // non-flow queue. A cancelled speculative read still drains normally.
-            val requests = Module(new Queue(new DataRequest, p.memoryEntries, pipe = false, flow = false))
+            val requests = Module(new Queue(new DataRequest(p.dataReturnHandleBits), p.memoryEntries, pipe = false, flow = false))
             observationRequests = Some(requests)
             requests.io.enq <> lsu.io.memory.request
             p.postedProofConfig.foreach { c =>
@@ -277,17 +277,30 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // buffered writes). Hold this exclusive owner through real retirement,
         // not just through its response, and prohibit younger LSU launches below.
         io.memory.request.valid := Mux(fpMemoryEpoch, fpMemory.request.valid, integerMemory.request.valid)
-        io.memory.request.bits := Mux(fpMemoryEpoch, fpMemory.request.bits, integerMemory.request.bits)
+        CpuReturnTransport.requestPayload(io.memory.request.bits,
+            Mux(fpMemoryEpoch, fpMemory.request.bits, {
+                val payload = Wire(new DataRequest)
+                CpuReturnTransport.requestPayload(payload, integerMemory.request.bits)
+                payload
+            }))
+        io.memory.request.bits.returnHandle.foreach(_ := Mux(fpMemoryEpoch,
+            p.cpuReturnConfig.get.fpHandle.U, integerMemory.request.bits.returnHandle.get))
         fpMemory.request.ready := fpMemoryEpoch && io.memory.request.ready
         integerMemory.request.ready := !fpMemoryEpoch && io.memory.request.ready
         fpMemory.response.valid := fpMemoryEpoch && io.memory.response.valid
-        fpMemory.response.bits := io.memory.response.bits
+        CpuReturnTransport.responsePayload(fpMemory.response.bits, io.memory.response.bits)
         integerMemory.response.valid := !fpMemoryEpoch && io.memory.response.valid
         integerMemory.response.bits := io.memory.response.bits
         io.memory.response.ready := Mux(fpMemoryEpoch, fpMemory.response.ready, integerMemory.response.ready)
         io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
         cpuAcceptedMemoryBusy.foreach(_ := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy)
         when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
+        p.cpuReturnConfig.foreach { config =>
+            when(fpMemoryEpoch && io.memory.response.valid) {
+                assert(io.memory.response.bits.returnHandle.get === config.fpHandle.U,
+                    "exclusive FP response lost its drained domain")
+            }
+        }
     } else {
         io.memory <> integerMemory
     }

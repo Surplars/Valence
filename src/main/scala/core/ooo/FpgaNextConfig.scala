@@ -43,6 +43,7 @@ final case class FpgaNextConfig(
     pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
+    taggedStoreReturns: Boolean = false,
     robEntries: Option[Int] = None,
     physicalRegs: Option[Int] = None,
     storePrefetchLruVictim: Boolean = false,
@@ -159,6 +160,7 @@ final case class FpgaNextConfig(
         (if (pendingStoreEarlyLoadCredits != 1) s"-pending-store-early-load-credits$pendingStoreEarlyLoadCredits" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
         (if (pendingReadyStoreBypass) "-pending-ready-store-bypass" else "") +
+        (if (taggedStoreReturns) "-tagged-store-returns" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
@@ -240,7 +242,7 @@ final case class FpgaNextConfig(
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
-            pendingReadyStoreBypass = pendingReadyStoreBypass,
+            pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity)
 
     def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
@@ -271,7 +273,7 @@ final case class FpgaNextConfig(
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
-            pendingReadyStoreBypass = pendingReadyStoreBypass,
+            pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow,
         dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow)
 }
@@ -291,7 +293,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--bound-head-store-overlap", "--pending-ready-store-bypass", "--read-prefetch-store-hold",
+            "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
@@ -362,6 +364,7 @@ object FpgaNextConfig {
             pendingVirtualStoreProof = options.contains("--pending-virtual-store-proof"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
             pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),
+            taggedStoreReturns = options.contains("--tagged-store-returns"),
             pendingVirtualStoreProofSlots = capacityOption("--pending-virtual-store-proof-slots=").getOrElse(1),
             pendingStoreEarlyLoadCredits = capacityOption("--pending-store-early-load-credits=").getOrElse(1),
             lsuEntries = lsuCount, robEntries = robCount, physicalRegs = physicalCount,

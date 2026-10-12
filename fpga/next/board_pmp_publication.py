@@ -44,7 +44,7 @@ def expected_constructor():
 
 
 def compare_constructor(actual):
-    if actual != expected_constructor():
+    if json.dumps(actual, sort_keys=True) != json.dumps(expected_constructor(), sort_keys=True):
         raise RuntimeError("actual complete constructor differs from PMP publication v1")
 
 

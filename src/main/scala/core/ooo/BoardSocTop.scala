@@ -50,6 +50,7 @@ object BoardSocConfig {
         pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
+    taggedStoreReturns: Boolean = false,
         backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
         postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
@@ -69,7 +70,7 @@ object BoardSocConfig {
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
-            pendingReadyStoreBypass = pendingReadyStoreBypass,
+            pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
             translatedResponseEmptyFlow = translatedResponseEmptyFlow,
             registeredLoadIssueForwarding = loadIssueForwarding.getOrElse(timing.registeredLoadIssueForwarding),
             identityDataRequestFlow = identityDataFlow, dataNextLinePrefetch = dataNextLinePrefetch,
@@ -232,6 +233,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
+    taggedStoreReturns: Boolean = false,
     backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
@@ -278,7 +280,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
-            pendingReadyStoreBypass = pendingReadyStoreBypass, backendCapacity = backendCapacity)
+            pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns, backendCapacity = backendCapacity)
     require(!p.memoryProofFrontier || (dataCacheLines / dataCacheWays == p.memoryProofCacheSets && dataCacheWays == 2),
         "frontier PA set scheduling must match the actual cache geometry")
     // Internal composition ports stay outside the public BoardSocTop io bundle.

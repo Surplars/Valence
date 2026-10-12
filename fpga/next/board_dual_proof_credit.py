@@ -53,7 +53,11 @@ def expected_constructor():
     expected = copy.deepcopy(rollback.expected_constructor())
     for section in ("profile", "core"):
         _dual_capacity(expected[section])
-    _compare(expected, spec["constructor_profile"], "constructor expectation")
+    historical = copy.deepcopy(expected)
+    for section in ("profile", "core"):
+        if historical[section].pop("taggedStoreReturns") is not False:
+            raise RuntimeError("historical dual-credit entry must keep tagged returns off")
+    _compare(historical, spec["constructor_profile"], "constructor expectation")
     return expected
 
 
@@ -66,6 +70,7 @@ def expected_fabric():
     expected["cpu"]["pendingStoreEarlyLoadCredits"] = 1
     _dual_capacity(expected["cpu"])
     _compare(expected, spec["executed_fabric"], "fabric expectation")
+    expected["cpu"]["taggedStoreReturns"] = False
     return expected
 
 

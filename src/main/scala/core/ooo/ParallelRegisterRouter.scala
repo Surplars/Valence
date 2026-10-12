@@ -4,15 +4,15 @@ import chisel3._
 import chisel3.util._
 import soc.ip.bus.RegisterPort
 
-/** Parallel, non-overlapping MMIO decode with one ordered response-owner FIFO.
+/** Parallel, non-overlapping MMIO decode with an ordered response-owner FIFO by default.
   * Eight requests outstanding, one request/response per cycle, no request stage.
   * Register lanes are right-justified; memory/atomic requests pass through intact.
-  * Responses from faster ports wait behind earlier requests to any other port.
+  * With CPU return handles, memory replies select exact owners; ID-less local CSR requests use drained exclusive intervals.
   * bypassMemoryShift keeps external-memory payload outside local-register lane
   * placement; invalid local payload is immaterial, valid controls all consumption.
   */
 class ParallelRegisterRouter(windows: Seq[(BigInt, BigInt)], capacity: Int = 8,
-    bypassMemoryShift: Boolean = false) extends Module {
+    bypassMemoryShift: Boolean = false, returnConfig: Option[CpuReturnConfig] = None) extends Module {
     require(windows.nonEmpty && capacity >= 2)
     windows.foreach { case (base, bytes) =>
         require(base >= 0 && base % 8 == 0 && bytes > 0 && bytes % 8 == 0 &&
@@ -23,20 +23,56 @@ class ParallelRegisterRouter(windows: Seq[(BigInt, BigInt)], capacity: Int = 8,
             windows(j)._1 + windows(j)._2 <= windows(i)._1, "MMIO windows overlap")
     }
     val io = IO(new Bundle {
-        val upstream = Flipped(new DataPort)
-        val memory = new DataPort
+        val upstream = Flipped(new DataPort(returnConfig.map(_.handleBits).getOrElse(0)))
+        val memory = new DataPort(returnConfig.map(_.handleBits).getOrElse(0))
         val registers = Vec(windows.size, new RegisterPort)
     })
-    val owners = Module(new Queue(new Bundle {
+    class RouteOwner extends Bundle {
         val port = UInt(log2Ceil(windows.size + 1).W)
         val offset = UInt(3.W)
-    }, capacity, pipe = false, flow = false))
+    }
+    val owners = CpuReturnTransport.ownerView(new RouteOwner, capacity)
     val request = io.upstream.request.bits
     val hits = VecInit(windows.map { case (base, bytes) =>
         !request.atomic && request.address >= base.U(65.W) &&
             request.address < (base + bytes).U(65.W)
     })
     val local = hits.asUInt.orR
+    returnConfig match {
+        case None => CpuReturnTransport.orderedOwners(owners, new RouteOwner, capacity, flow = false)
+        case Some(config) =>
+            val live = RegInit(VecInit(Seq.fill(config.tableEntries)(false.B)))
+            val routes = Reg(Vec(config.tableEntries, new RouteOwner))
+            val localHandle = Reg(UInt(config.handleBits.W))
+            val localLive = VecInit((0 until config.tableEntries).map(i =>
+                live(i) && routes(i).port =/= 0.U)).asUInt.orR
+            val requestHandle = request.returnHandle.get
+            val memoryHandle = io.memory.response.bits.returnHandle.get
+            val responseHandle = Mux(localLive, localHandle, memoryHandle)
+            val count = PopCount(live)
+            // Local ID-less CSR ports occupy an exclusive drained interval.
+            owners.io.enq.ready := config.legal(requestHandle) && !live(requestHandle) &&
+                count < capacity.U && !localLive && (!local || count === 0.U)
+            owners.io.deq.valid := live(responseHandle)
+            owners.io.deq.bits := routes(responseHandle)
+            owners.io.count := count
+            io.upstream.response.bits.returnHandle.get := responseHandle
+            when(owners.io.enq.fire) {
+                live(requestHandle) := true.B
+                routes(requestHandle) := owners.io.enq.bits
+                when(local) { localHandle := requestHandle }
+            }
+            when(owners.io.deq.fire) { live(responseHandle) := false.B }
+            when(io.memory.response.valid) {
+                val entering = io.memory.request.fire && memoryHandle === io.memory.request.bits.returnHandle.get
+                assert(!localLive && config.legal(memoryHandle) &&
+                    ((live(memoryHandle) && routes(memoryHandle).port === 0.U) || entering),
+                    "router memory return lost its exact owner")
+            }
+            when(localLive) { assert(count === 1.U && !io.upstream.request.fire) }
+            assert(count <= capacity.U)
+            CpuReturnTransport.held(io.upstream.response)
+    }
     val shift = Cat(request.address(2, 0), 0.U(3.W))
     io.memory.request.valid := io.upstream.request.valid && owners.io.enq.ready && !local
     io.memory.request.bits := request

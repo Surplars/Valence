@@ -58,7 +58,7 @@ class MappedMachineCore(
         val fenceIFlush     = Output(Bool())
         val fenceIFlushReady = Input(Bool())
         val recovering      = Output(Bool())
-        val memory          = new DataPort
+        val memory          = new DataPort(p.dataReturnHandleBits)
         val posted = p.postedProofConfig.map(c => Flipped(new PostedStoreCachePort(c)))
         val sources         = Input(UInt(aplicParams.sources.W))
         val msiError        = Output(Bool())
@@ -77,6 +77,8 @@ class MappedMachineCore(
             aplicParams.base + 32768 <= p.speculativeRamBase,
         "APLIC domains must not overlap speculative or buffered RAM"
     )
+    require(!p.taggedStoreReturns || (stagedMemoryFabric && dataTranslation && bufferTranslatedResponses),
+        "tagged CPU returns require checked translation and both registered response credits")
     val core  = Module(new MachineCore(p, imsicParams, canonicalHandoff))
     val aplic = Module(new Aplic(aplicParams, hasChild = true,
         childMsiBase = imsicParams.supervisorBase))
@@ -92,7 +94,7 @@ class MappedMachineCore(
         Some(Module(new CoreRegisterRouter(supervisorParams.base))) else None
     val parallelRouter = if (stagedMemoryFabric) Some(Module(new ParallelRegisterRouter(Seq(
         (aplicParams.base, BigInt(16384)), (supervisorParams.base, BigInt(16384))
-    ), bypassMemoryShift = p.directMemoryResponse))) else None
+    ), bypassMemoryShift = p.directMemoryResponse, returnConfig = p.cpuReturnConfig))) else None
     val mappedUpstream = parallelRouter.map(_.io.upstream).getOrElse(router.get.io.upstream)
     // Elaboration-only references for passive board-wrapper lineage observation.
     var observationTranslation: Option[DataTranslationAdapter] = None
@@ -105,7 +107,8 @@ class MappedMachineCore(
             // The platform's existing two response credits are relocated here,
             // ahead of APLIC/fault returns as well as external memory returns.
             val responses = Module(new DataResponseBuffer(registerPayload = p.registeredTranslatedResponses,
-                registerHead = p.registeredTranslationHeads, emptyFlow = p.translatedResponseEmptyFlow))
+                registerHead = p.registeredTranslationHeads, emptyFlow = p.translatedResponseEmptyFlow,
+                returnConfig = p.cpuReturnConfig))
             observationResponses = Some(responses)
             responses.io.upstream <> core.io.memory
             adapter.io.virtual <> responses.io.downstream

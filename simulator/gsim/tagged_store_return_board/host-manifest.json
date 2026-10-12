@@ -1,0 +1,21 @@
+{
+  "files": {
+    "host/adoption_ledger.h": "93e7de6d98cc816c7ccebf19e86ff82d46a7f66d9206d469ba009fa23a12ddcf",
+    "host/cpu_passive_bandwidth.cpp": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c",
+    "host/harness/board_boot.cpp": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+    "host/harness/board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "host/harness/cpu_lsu_occupancy.h": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+    "host/harness/fabric_idle_service.h": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+    "host/harness/mshr_occupancy.h": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+    "host/harness/performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "host/ledger_negative.cpp": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+    "host/passive_negative.cpp": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+    "host/passive_supply.h": "ec27f9c0581531695bd96657ad21022d104c2bdb2355b0b81023dc6b864582c2",
+    "host/production_probe.h": "c220bb53e89cd1f3a77264536f63785c7cdfe165ab7d312ff7d3ad98034e56db",
+    "host/supply_ledger.h": "83cacf66b56bc6bf56d0e55a599eee1f9f65d3c6a9437eb8b2313ac709445eed",
+    "host/tagged_board_oracle.h": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51",
+    "host/tagged_board_probe.h": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269",
+    "host/tagged_getter_guard.cpp": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129",
+    "host/tagged_return_negative.cpp": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa"
+  }
+}
