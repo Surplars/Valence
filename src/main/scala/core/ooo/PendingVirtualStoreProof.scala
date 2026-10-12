@@ -55,11 +55,12 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
     }
     def consumed(proof: MemoryAddressProof): Bool =
         io.consume.valid && io.consume.bits.asUInt === proof.token.asUInt
-    def ownerCleared(proof: MemoryAddressProof): Bool = io.clearOwners(proof.token.index) ||
-        !ownerMatches(proof) || consumed(proof)
+    val rowOwnerMatches = VecInit(records.map(ownerMatches))
+    def ownerCleared(row: Int): Bool = io.clearOwners(records(row).token.index) ||
+        !rowOwnerMatches(row) || consumed(records(row))
     val epochStable = io.precheck.stable
     val cancelQueries = io.flushQueries || !epochStable
-    val liveRows = VecInit((0 until rows).map(r => state(r) === proved && ownerMatches(records(r)) &&
+    val liveRows = VecInit((0 until rows).map(r => state(r) === proved && rowOwnerMatches(r) &&
         records(r).epoch === io.precheck.epoch && epochStable))
     val presentOwners = (0 until rows).map(r => Mux(state(r) =/= free,
         UIntToOH(records(r).token.index, p.robEntries), 0.U(p.robEntries.W))).reduce(_ | _)
@@ -96,7 +97,7 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
     // Same-cycle hit-only responses belong to exactly this grant. The registered
     // descriptor carries the access kind through the shared physical PMP stage.
     val queuedMask = VecInit((0 until rows).map(r => state(r) === queued &&
-        !ownerCleared(records(r)) && records(r).epoch === io.precheck.epoch)).asUInt
+        !ownerCleared(r) && records(r).epoch === io.precheck.epoch)).asUInt
     val storeRow = PriorityEncoder(queuedMask)
     val storeOffer = mayQuery && queuedMask.orR
     val loadOffer = mayQuery && io.loadCandidate.valid
@@ -149,9 +150,20 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
         SpeculativeRamRange.contains(p, translated.payload.physicalAddress, translated.payload.size)
     val freshResult = translatedValid && epochStable && translated.epoch === io.precheck.epoch && !io.flushQueries
     val allowed = translatedNormal && !pmp.io.denied && shape
+    // A granted row is immutable until this result: admission writes only free rows,
+    // and this descriptor was copied from the queued row on its inflight transition.
+    // Reuse that row's current full owner check; this is not a saved authorization.
+    when(translatedValid && translatedStore) {
+        val granted = records(translatedRow)
+        assert(granted.token.asUInt === translated.token.asUInt && granted.epoch === translated.epoch &&
+            granted.payload.address === translated.payload.address && granted.payload.size === translated.payload.size &&
+            granted.payload.mask === translated.payload.mask && granted.payload.write === translated.payload.write,
+            "a granted pending-store row preserves its exact owner descriptor through translation")
+    }
     val storeResult = freshResult && translatedStore && state(translatedRow) === inflight &&
         records(translatedRow).token.asUInt === translated.token.asUInt &&
-        records(translatedRow).epoch === translated.epoch && ownerMatches(translated) && !ownerCleared(translated)
+        records(translatedRow).epoch === translated.epoch && rowOwnerMatches(translatedRow) &&
+        !io.clearOwners(translated.token.index) && !consumed(translated)
     when(storeResult) {
         state(translatedRow) := Mux(allowed, proved, free)
         when(allowed) { records(translatedRow) := translated }
@@ -181,11 +193,11 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
         io.proofs(r).valid := liveRows(r)
         io.proofs(r).bits := records(r)
         when(io.bind(r)) {
-            assert(!io.flushQueries && liveRows(r) && !ownerCleared(records(r)),
+            assert(!io.flushQueries && liveRows(r) && !ownerCleared(r),
                 "an early load can bind only a live exact pending-store certificate")
             bound(r) := true.B
         }
-        val ownerGone = ownerCleared(records(r))
+        val ownerGone = ownerCleared(r)
         val epochGone = records(r).epoch =/= io.precheck.epoch
         when(state(r) =/= free && bound(r) && !ownerGone) {
             assert(!epochGone, "a surviving bound store cannot cross an authorization epoch")
