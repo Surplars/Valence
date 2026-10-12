@@ -1,0 +1,15 @@
+{
+  "scope": "Synthetic Tcl API contract only; no Vivado or netlist qualification",
+  "tcl_version": "8.6.16",
+  "result": "MOCK_CONTRACT_PASS",
+  "cases_passed": 9,
+  "positive_case_families": 16,
+  "positive_case_max_min_queries": 32,
+  "positive_case_max_min_reports": 32,
+  "source_and_output_paths_with_spaces": true,
+  "sha256": {
+    "report_timing_batch_paths.tcl": "5599ada873a2ba445c00b54597315ce856a8357faf9bdccc3215e8f63d70261a",
+    "test_report_timing_batch_paths.tcl": "63b8a1f4b28f6d51c4e047f42bcb0d9530dcf6552d9ae7a2b8426d54e25d5194",
+    "README.md": "5541052fb086ce9f25f5e4f7201ee297834ecc313466ff3a317ed8b0bdfac652"
+  }
+}
