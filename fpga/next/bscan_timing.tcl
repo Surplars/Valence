@@ -181,6 +181,66 @@ proc valence_bscan_phase_handoff {engine} {
     }
     puts "BSCAN_PHASE_HANDOFF payload_bits=64 length_bits=1 toggle_bits=1 functional_reset_fences=verified overrun_remains_timed=1"
 }
+# Read-only, and also called by the independent report collector. Discover ALL
+# negative-TCK D/CE sinks below the exact transport root, including bridge and
+# controller state that is not part of the named request-payload bank.
+proc valence_bscan_fault_phase {engine} {
+    set sample [valence_bscan_bank $engine fault_sample 1]
+    set raw [valence_bscan_bank $engine update_overrun 1]
+    set sticky [valence_bscan_bank $engine protocol_error 1]
+    if {[get_property REF_NAME $sample] ne "FDCE" ||
+        [get_property IS_INVERTED [valence_bscan_pin $sample C]] != 0 ||
+        [get_clocks -quiet -of_objects [valence_bscan_pin $sample C]] ne {valence_bscan_tck}} {
+        error "BSCAN fault sample must remain positive TCK"
+    }
+    if {[valence_bscan_driver [valence_bscan_pin $sample D]] ne "$raw/Q"} {
+        error "BSCAN fault sample input must be direct UPDATE overrun"
+    }
+    set enable_driver [valence_bscan_driver [valence_bscan_pin $sample CE]]
+    set enable_cell [get_cells -quiet -of_objects $enable_driver]
+    if {[llength $enable_cell] != 1 || [get_property REF_NAME $enable_cell] ne "VCC"} {
+        error "BSCAN fault sample must capture every positive TCK"
+    }
+    set expected [format {%s/source_release_reg[2]/C} $engine]
+    set starts [lsort -unique [all_fanin -flat -startpoints_only -to [valence_bscan_pin $sample CLR]]]
+    if {$starts ne [list $expected]} {error "BSCAN fault sample reset bypasses source release: $starts"}
+    if {[get_property IS_INVERTED [valence_bscan_pin $sticky C]] != 1 ||
+        [get_clocks -quiet -of_objects [valence_bscan_pin $sticky C]] ne {valence_bscan_tck}} {
+        error "BSCAN sticky fault must remain negative TCK"
+    }
+    set root [regsub -all {[][{}().+*?^$|\\]} $engine {\\&}]
+    set descendants [get_cells -quiet -hierarchical -regexp [format {^%s/.*$} $root]]
+    # Reconstitute object collections before -of_objects. C-pin IS_INVERTED is
+    # the mapped edge property; do not query the historical cell-level name.
+    set descendants [get_cells -quiet $descendants]
+    set negative_cells {}
+    foreach pin [get_pins -quiet -of_objects $descendants -filter {REF_PIN_NAME == C}] {
+        if {[lsearch -exact [get_clocks -quiet -of_objects $pin] valence_bscan_tck] >= 0 &&
+            [get_property IS_INVERTED $pin] == 1} {
+            set owner [get_cells -quiet -of_objects $pin]
+            if {[llength $owner] != 1} {error "BSCAN negative-TCK clock owner is ambiguous: $pin"}
+            lappend negative_cells {*}$owner
+        }
+    }
+    if {[llength $negative_cells] == 0 || [lsearch -exact $negative_cells $sticky] < 0} {
+        error "BSCAN negative-TCK fault sink collection is incomplete"
+    }
+    set negative_cells [get_cells -quiet [lsort -unique $negative_cells]]
+    set targets [get_pins -quiet -of_objects $negative_cells -filter {REF_PIN_NAME == D || REF_PIN_NAME == CE}]
+    if {[llength $targets] < [llength $negative_cells]} {error "BSCAN negative-TCK D/CE sinks missing"}
+    set cone [all_fanin -flat -to $targets]
+    if {[lsearch -exact $cone "$raw/Q"] >= 0} {
+        error "Raw UPDATE overrun feeds negative-TCK D/CE cone"
+    }
+    set sticky_targets [get_pins -quiet -of_objects [get_cells -quiet $sticky] -filter {REF_PIN_NAME == D || REF_PIN_NAME == CE}]
+    if {[lsearch -exact [all_fanin -flat -to $sticky_targets] "$sample/Q"] < 0} {
+        error "BSCAN sampled fault does not feed sticky error"
+    }
+    set result [dict create fault_sample $sample negative_tck_registers [llength $negative_cells] \
+        negative_tck_d_ce_pins [llength $targets] raw_overrun_cones 0]
+    puts "BSCAN_PHASED_FAULT $result functional_reset_fence=verified"
+    return $result
+}
 proc valence_bscan_bundle {engine source destination count} {
     set src [valence_bscan_bank $engine $source $count]
     set dst [valence_bscan_bank $engine $destination $count]
@@ -194,6 +254,7 @@ proc valence_bscan_bundle {engine source destination count} {
 proc valence_reapply_bscan_cdc {primitive engine fabric_clock} {
     valence_bscan_qualifiers $primitive $engine
     valence_bscan_phase_handoff $engine
+    valence_bscan_fault_phase $engine
     foreach {tail count} {update_sync 2 bridge/request_sync 2 bridge/response_sync 2} {
         valence_bscan_bank $engine $tail $count 1
     }

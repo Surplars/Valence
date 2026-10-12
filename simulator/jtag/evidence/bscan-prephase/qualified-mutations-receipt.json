@@ -1,0 +1,420 @@
+{
+  "schema": "valence-bscan-mutations-v1",
+  "status": "PASS_ALL_MUTANTS_KILLED",
+  "input_sha256": {
+    "src/main/resources/debug/ValenceJtagDebugPort.sv": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+    "src/main/resources/debug/ValenceBscanDebugPort.sv": "3fe23b64f8a40c3bdd77ca0120e52fff7a73501a8968ec92cdbfa1939bc56b39",
+    "simulator/jtag/bscan_qualification_tb.sv": "6edf97f39681aa468f39b01e520cba13b64dd0705dd8c6dcceb5c0c348e7a9f2",
+    "simulator/jtag/bscan_qualification_run.py": "e564870061e36f9ac6fc3edbebeeea3fa0cb28c9e26294390d19efcb473696f5",
+    "simulator/jtag/bscan_qualification_mutations.py": "cb89b6ef82a48ef1cd375f882bd07e25b6ed2d11def34cab71831b465bdd8f14"
+  },
+  "mutants": [
+    {
+      "name": "negative_handoff",
+      "oracle": "QUAL positive handoff bundle",
+      "staged_rtl_sha256": "9b72ec7f933add17d8c2a381d74d39f621dd3e9c3e9dcd88fc2580d3f1720908",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_handoff/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_handoff/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.021682,
+          "peak_rss_kib": 8076,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_handoff/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_handoff/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.021598,
+          "peak_rss_kib": 8076,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_handoff/run.log",
+          "log_sha256": "e4d745cf3640f26e194bfbf2dacf0438501b9b5c301034521d10131d5e1e0c94",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "sampled_overrun",
+      "oracle": "QUAL late overrun did not fail closed",
+      "staged_rtl_sha256": "bc5f967d651ff9c70778b0a4a43a9f55f6d8b200cd58d866a9de99c5bca4d4d8",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/sampled_overrun/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/sampled_overrun/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.021417,
+          "peak_rss_kib": 8080,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/sampled_overrun/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/sampled_overrun/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.021743,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/sampled_overrun/run.log",
+          "log_sha256": "dce5686adcc86548c7ee2ba9836ffe52d1bcaaba114752ee269a725238d84f62",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "self_reset_hard",
+      "oracle": "QUAL hard reset assertion",
+      "staged_rtl_sha256": "c6cd0c629a4d8082b03c68eb25b1dab1d6c4a055182beddd3cdccec715acdbd8",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/self_reset_hard/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/self_reset_hard/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.021682,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/self_reset_hard/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/self_reset_hard/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.032074,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/self_reset_hard/run.log",
+          "log_sha256": "9763fa76bc605a505f88bf8dd4713396638b977deb1011891a3d2355b7dcbabb",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "latched_free",
+      "oracle": "QUAL duplicate UPDATE overwrote held frame",
+      "staged_rtl_sha256": "f86323feac7f32c171e557c55c5dc25dfaf4a486c94215043b6dc19884d37611",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/latched_free/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/latched_free/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.02151,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/latched_free/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/latched_free/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.02208,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/latched_free/run.log",
+          "log_sha256": "fbef3ee3a5016a88a179934451ef8422e3da20561e47ef7c0c8ab842e0d473c6",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "raw_sel",
+      "oracle": "QUAL UPDATE accepted before qualification",
+      "staged_rtl_sha256": "259e1f0e1b618de76dd4777141edbf68933ce4ed02ad92fd6506072e381e9595",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_sel/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_sel/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.022175,
+          "peak_rss_kib": 8084,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_sel/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_sel/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.012132,
+          "peak_rss_kib": 8092,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_sel/run.log",
+          "log_sha256": "36223dfa3563ec418ec3b885d3a75c5318d7a10cfa86fa0b0d85a5bdbed4274c",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "raw_reset_release",
+      "oracle": "QUAL positive fence early",
+      "staged_rtl_sha256": "7ddf5470f5b77d4666eb1681f77ded86136d1ec757908a75b591d1288ddffcaf",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_reset_release/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_reset_release/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.02282,
+          "peak_rss_kib": 8092,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_reset_release/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_reset_release/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.011529,
+          "peak_rss_kib": 8092,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/raw_reset_release/run.log",
+          "log_sha256": "600ee29ed5f5d5e42e93d31dab4582390e251acaffbc57dfe436cb09dac4079f",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "negative_qualifier",
+      "oracle": "QUAL fourth positive edge must sample selected/released",
+      "staged_rtl_sha256": "c1816739e9578ce8e414c61109d02196253edf1b6a9558669b8456580968712b",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_qualifier/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_qualifier/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.022857,
+          "peak_rss_kib": 8092,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_qualifier/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_qualifier/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.011736,
+          "peak_rss_kib": 8096,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/negative_qualifier/run.log",
+          "log_sha256": "a8e9c18f64c13e7a816720aafbe21777ae4640675e2f6e75fa85046b0c3c0f9c",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "wrong_length",
+      "oracle": "QUAL first legal 64-bit command",
+      "staged_rtl_sha256": "b0e068d508bc7174171c6164954d92d2016bd77471c7f24378704ff7b6893db5",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/wrong_length/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/wrong_length/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.021553,
+          "peak_rss_kib": 8096,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/wrong_length/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/wrong_length/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.021725,
+          "peak_rss_kib": 8096,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/wrong_length/run.log",
+          "log_sha256": "bd021b3640694f5b8bce8bed9a032433f2f891f3b218f03e54b39b6a3e2ba35d",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    },
+    {
+      "name": "synchronous_assertion",
+      "oracle": "QUAL positive fence early",
+      "staged_rtl_sha256": "285d5ff84aab68d4f27260e3a37f6ad0ac0eef77789db8f71dc165384c45effa",
+      "stages": [
+        {
+          "stage": "compile",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/iverilog",
+            "-g2012",
+            "-s",
+            "bscan_qualification_tb",
+            "-o",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/synchronous_assertion/test.vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/src/main/resources/debug/ValenceJtagDebugPort.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/synchronous_assertion/mutant.sv",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/source/simulator/jtag/bscan_qualification_tb.sv"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "seconds": 0.021564,
+          "peak_rss_kib": 8096,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/synchronous_assertion/compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        },
+        {
+          "stage": "run",
+          "command": [
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/tool-input/restored/iverilog-toolchain/bin/vvp",
+            "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/synchronous_assertion/test.vvp"
+          ],
+          "exit": 1,
+          "timed_out": false,
+          "seconds": 0.011645,
+          "peak_rss_kib": 8100,
+          "log": "/workspace/scratch/41e4a649bb60/timing-batch-r1/bscan-handoff/checks/mutations-r1/synchronous_assertion/run.log",
+          "log_sha256": "600ee29ed5f5d5e42e93d31dab4582390e251acaffbc57dfe436cb09dac4079f",
+          "memory_limit_bytes": 1073741824,
+          "timeout_seconds": 60
+        }
+      ],
+      "status": "EXPECTED_ORACLE_REJECTION"
+    }
+  ],
+  "physical_qualification": false,
+  "vendor_primitive_executed": false
+}

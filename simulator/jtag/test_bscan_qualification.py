@@ -53,6 +53,59 @@ class BscanQualificationTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(AssertionError):
                 check.check_structure(mutant)
 
+    def test_phased_fault_source_controls_rejected_at_intended_guard(self):
+        text = check.RTL.read_text()
+        sample_edge = 'reg fault_sample;\n    always @(posedge bscan_tck or negedge source_reset_n)'
+        merge = 'if (fault_sample && !hard_reset_command) protocol_error <= 1;'
+        mutants = {
+            'raw_overrun_d': (text.replace('wire visible_error = protocol_error;',
+                                          'wire visible_error = protocol_error || update_overrun;'),
+                              'Raw UPDATE overrun'),
+            'raw_overrun_ce': (text.replace('if (response_valid) begin',
+                                           'if (response_valid && !update_overrun) begin'),
+                               'Raw UPDATE overrun'),
+            'raw_overrun_alias': (text.replace('wire visible_error = protocol_error;',
+                                              'wire fault_alias = update_overrun;\n'
+                                              '    wire visible_error = protocol_error || fault_alias;'),
+                                  'Raw UPDATE overrun'),
+            'negative_fault_sample': (text.replace(sample_edge, sample_edge.replace('posedge', 'negedge')),
+                                      'phase/reset mismatch'),
+            'wrong_fault_reset': (text.replace(sample_edge, sample_edge.replace('source_reset_n', 'work_reset_n')),
+                                  'phase/reset mismatch'),
+            'wrong_fault_input': (text.replace('fault_sample <= update_overrun;', 'fault_sample <= update_toggle;'),
+                                  'capture raw sticky fault'),
+            'lost_fault_sample': (text.replace('fault_sample <= update_overrun;', 'fault_sample <= 0;'),
+                                  'capture raw sticky fault'),
+            'gated_fault_sample': (text.replace('fault_sample <= update_overrun;',
+                                                'if (consume_update) fault_sample <= update_overrun;'),
+                                   'capture raw sticky fault'),
+            'stale_fault_sample': (text.replace('fault_sample <= 0;', 'fault_sample <= 1;'),
+                                   'capture raw sticky fault'),
+            'missing_fault_admission_guard': (text.replace('!protocol_error && !fault_sample && source_ready',
+                                                          '!protocol_error && source_ready'),
+                                              'DMI fault admission guard'),
+            'capability_before_sticky_fault': (text.replace('visible_error || fault_sample || !source_ready',
+                                                           'visible_error || !source_ready'),
+                                               'Capability fault admission guard'),
+            'visible_sample_bypass': (text.replace('wire visible_error = protocol_error;',
+                                                   'wire visible_error = protocol_error || fault_sample;'),
+                                      'Visible error'),
+            'lost_independent_merge': (text.replace(merge, ''), 'merge after CLEAR'),
+            'consume_only_merge': (text.replace(merge, merge.replace('fault_sample &&',
+                                                                    'consume_update && fault_sample &&')),
+                                   'merge after CLEAR'),
+            'clear_overrides_fault': (text.replace(merge, '').replace('if (consume_update) begin',
+                                                                    merge + '\n            if (consume_update) begin'),
+                                      'merge after CLEAR'),
+            'hard_reset_loses_priority': (text.replace(merge, 'if (fault_sample) protocol_error <= 1;'),
+                                          'merge after CLEAR'),
+        }
+        for name, (mutant, anchor) in mutants.items():
+            with self.subTest(name=name):
+                self.assertNotEqual(text, mutant, 'Mutation did not match the production source')
+                with self.assertRaisesRegex(AssertionError, anchor):
+                    check.check_structure(mutant)
+
     def test_dmi_loader_crc_and_host_protocol_are_outside_patch(self):
         # The export must keep the selected custom 64-bit USER2 profile explicit.
         profile = json.loads((ROOT/'fpga/next/bscan-timing-profile.json').read_text())

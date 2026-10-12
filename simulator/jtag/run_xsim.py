@@ -89,8 +89,8 @@ def cases(suite, model=None):
             DTM, BSCAN, "simulator/jtag/bscan_user_tb.sv"]))
         return result
     if suite == "bscan-qualification":
-        return [case("bscan_qualification", "bscan_qualification_tb", "PASS BSCAN_QUALIFICATION", [
-                    DTM, BSCAN, "simulator/jtag/bscan_qualification_tb.sv"]),
+        return [case("bscan_fault_phase", "bscan_fault_phase_tb", "PASS BSCAN_FAULT_PHASE", [
+                    DTM, BSCAN, "simulator/jtag/bscan_fault_phase_tb.sv"]),
                 case("bscan_pin_model", "bscan_user_tb", "PASS BSCAN_USER", [
                     DTM, BSCAN, "simulator/jtag/bscan_user_tb.sv"])]
     if suite == "unisim-profile":

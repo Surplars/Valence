@@ -99,9 +99,9 @@ module ValenceBscanUserTransport (
                 update_toggle <= !update_toggle;
             end else begin
                 // Cannot occur with legal BSCAN TAP sequencing: even the next
-                // zero-bit DR scan gives the consumer enough TCK edges. Fail
-                // closed for an invalid primitive model/wiring, preserving the
-                // first held frame. Requires TAP reset or control hard reset.
+                // zero-bit DR scan gives the consumer enough TCK edges. Reject
+                // the duplicate without replacing the first held frame. Fault
+                // observation is phased; recovery requires TAP or hard reset.
                 update_overrun <= 1;
             end
         end
@@ -113,13 +113,16 @@ module ValenceBscanUserTransport (
     // not per-bit asynchronous synchronizers. Reset release is negative TCK.
     reg [63:0] handoff_frame;
     reg handoff_length_ok, handoff_toggle;
+    reg fault_sample;
     always @(posedge bscan_tck or negedge source_reset_n) begin
         if (!source_reset_n) begin
             handoff_frame <= 0; handoff_length_ok <= 0; handoff_toggle <= 0;
+            fault_sample <= 0;
         end else begin
             handoff_frame <= update_frame;
             handoff_length_ok <= update_length_ok;
             handoff_toggle <= update_toggle;
+            fault_sample <= update_overrun;
         end
     end
 
@@ -137,15 +140,15 @@ module ValenceBscanUserTransport (
     wire [1:0] request_op = handoff_frame[1:0];
     wire [6:0] request_address = handoff_frame[40:34];
     wire request_is_dmi = request_op == 1 || request_op == 2;
-    // Keep the sticky UPDATE-local overrun in this final gate. Sampling it
-    // only at positive TCK would miss an invalid duplicate between that sample
-    // and negative-TCK consumption. This remaining related-clock path is timed.
+    // Sample sticky UPDATE-local fault on positive TCK. A late illegal pulse
+    // may admit the immutable first frame once before the next sample; it never
+    // creates a second token. Fault detection does not cancel mailbox ownership.
     wire accept_dmi = consume_update && frame_ok && request_is_dmi &&
-        !protocol_error && !update_overrun && source_ready;
+        !protocol_error && !fault_sample && source_ready;
     // UPDATE pending participates immediately, so an old DONE can never appear
     // complete while a newly updated command is still reaching the TCK domain.
     wire visible_busy = source_busy || update_toggle != update_seen;
-    wire visible_error = protocol_error || update_overrun;
+    wire visible_error = protocol_error;
     wire [1:0] visible_status = visible_busy ? 2'b11 :
         visible_error ? 2'b10 : result_status;
     assign capture_frame = {SIGNATURE, VERSION, visible_error, visible_busy,
@@ -188,7 +191,7 @@ module ValenceBscanUserTransport (
                              handoff_frame[33:2] == 0 && source_ready) begin
                     protocol_error <= 0; result_done <= 0; result_status <= 0;
                     result_address <= 0; result_data <= 0;
-                end else if (visible_error || !source_ready) begin
+                end else if (visible_error || fault_sample || !source_ready) begin
                     protocol_error <= 1;
                 end else if (request_op == 3 && request_address == 0 &&
                              handoff_frame[33:2] == 0) begin
@@ -201,6 +204,9 @@ module ValenceBscanUserTransport (
                     protocol_error <= 1;
                 end
             end
+            // Observe faults even after ingress was consumed. Ordinary CLEAR
+            // cannot erase the sticky UPDATE fault; hard reset resets the epoch.
+            if (fault_sample && !hard_reset_command) protocol_error <= 1;
         end
     end
 

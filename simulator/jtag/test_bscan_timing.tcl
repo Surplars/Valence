@@ -5,6 +5,7 @@ set engine chip/bscan/enabled.transport
 set props {};set pins {};set nets {};set pin_net {};set cells {};set clocks {};set clock_pins {}
 set calls {};set bad_cone {};set bad_reset 0;set cases 0
 set bad_handoff {};set bad_functional_reset 0;set bad_hard_feedback 0
+set bad_fault_target {};set bad_fault_reset {};set missing_fault_merge 0
 proc addcell {name ref {inverted 0} {clock valence_bscan_tck}} {
     global props cells pins clock_pins
     lappend cells $name
@@ -29,7 +30,7 @@ foreach pin {INTERNAL_TCK TCK DRCK UPDATE SEL INTERNAL_TDI INTERNAL_TMS} {dict s
 dict set props design [dict create PART xczu15eg-ffvb1156-2-i]
 dict set props fabric [dict create NAME fabric PERIOD 10.0 WAVEFORM {0 5}]
 set clocks {fabric}
-foreach {tail count invert} {source_release 3 1 update_release 3 0 hard_release 3 0 handoff_frame 64 0 handoff_length_ok 1 0 handoff_toggle 1 0 shift_frame 64 0 shift_count 7 0 scan_captured 1 0 hard_reset 1 1 bridge/source_release 3 1 bridge/dest_release 3 0 update_sync 2 1 bridge/request_sync 2 0 bridge/response_sync 2 1 update_frame 64 0 update_length_ok 1 0 update_toggle 1 0 update_overrun 1 0 update_selected 1 0 update_ack 1 0 bridge/request_toggle 1 1 bridge/response_toggle 1 0 bridge/request_held 41 1 bridge/dest_request 41 0 bridge/response_held 34 0 bridge/s_rsp_payload 34 1} {
+foreach {tail count invert} {source_release 3 1 update_release 3 0 hard_release 3 0 handoff_frame 64 0 handoff_length_ok 1 0 handoff_toggle 1 0 fault_sample 1 0 protocol_error 1 1 unlisted_controller_state 1 1 shift_frame 64 0 shift_count 7 0 scan_captured 1 0 hard_reset 1 1 bridge/source_release 3 1 bridge/dest_release 3 0 update_sync 2 1 bridge/request_sync 2 0 bridge/response_sync 2 1 update_frame 64 0 update_length_ok 1 0 update_toggle 1 0 update_overrun 1 0 update_selected 1 0 update_ack 1 0 bridge/request_toggle 1 1 bridge/response_toggle 1 0 bridge/request_held 41 1 bridge/dest_request 41 0 bridge/response_held 34 0 bridge/s_rsp_payload 34 1} {
     for {set i 0} {$i<$count} {incr i} {
         set cell [expr {$count==1?"${engine}/${tail}_reg":[format {%s/%s_reg[%d]} $engine $tail $i]}]
         set clock [expr {$tail in {update_frame update_length_ok update_toggle update_overrun}?"valence_bscan_update":"valence_bscan_tck"}]
@@ -51,7 +52,8 @@ foreach tail {source_release update_release hard_release bridge/source_release b
     }
 }
 connect tckbuf/O $clocks_tck;connect fabricbuf/O $clocks_fabric
-connect raw_reset/O $reset_pins;connect vcc/P $first_pins
+connect raw_reset/O $reset_pins;connect vcc/P [concat $first_pins [list $engine/fault_sample_reg/CE]]
+connect $engine/update_overrun_reg/Q [list $engine/fault_sample_reg/D]
 foreach {tail source count} {handoff_frame update_frame 64 handoff_length_ok update_length_ok 1 handoff_toggle update_toggle 1} {
     for {set i 0} {$i<$count} {incr i} {
         set from [expr {$count==1 ? "${engine}/${source}_reg" : [format {%s/%s_reg[%d]} $engine $source $i]}]
@@ -114,7 +116,7 @@ proc get_clocks {args} {
     global clocks clock_pins primitive
     if {[lsearch -exact $args -of_objects]>=0} {
         set pin [lindex $args end]
-        if {[dict exists $clock_pins $pin]} {return [list [dict get $clock_pins $pin]]}
+        if {[dict exists $clock_pins $pin]} {return [dict get $clock_pins $pin]}
         foreach {p c} {TCK valence_bscan_tck DRCK valence_bscan_drck UPDATE valence_bscan_update} {
             if {$pin eq "$primitive/$p" && [lsearch -exact $clocks $c]>=0} {return [list $c]}
         }
@@ -127,11 +129,13 @@ proc list_property {obj} {global props;return [dict keys [dict get $props $obj]]
 proc get_property {name obj} {global props;return [dict get $props $obj $name]}
 proc all_fanin {args} {
     global engine bad_cone bad_reset bad_handoff bad_functional_reset bad_hard_feedback
+    global bad_fault_target bad_fault_reset missing_fault_merge
     set targets [lindex $args end]
     if {[lsearch -exact $args -startpoints_only]>=0} {
         if {$bad_reset} {return raw_reset/O}
         set release update_release
-        if {[regexp {/(handoff_frame|handoff_length_ok|handoff_toggle|shift_frame|shift_count|scan_captured)_reg} $targets]} {
+        if {$targets eq "$engine/fault_sample_reg/CLR" && $bad_fault_reset ne ""} {return $bad_fault_reset}
+        if {[regexp {/(handoff_frame|handoff_length_ok|handoff_toggle|fault_sample|shift_frame|shift_count|scan_captured)_reg} $targets]} {
             set release source_release
             if {$bad_functional_reset} {return raw_reset/O}
         }
@@ -141,6 +145,13 @@ proc all_fanin {args} {
     if {$targets eq [format {%s/hard_release_reg[0]/CLR} $engine]} {
         if {$bad_hard_feedback} {return "$engine/hard_reset_reg/Q"}
         return raw_reset/O
+    }
+    if {$bad_fault_target ne "" && [lsearch -exact $targets $bad_fault_target] >= 0} {
+        return [list $engine/update_overrun_reg/Q]
+    }
+    if {[lsearch -exact $targets "$engine/protocol_error_reg/D"] >= 0} {
+        if {$missing_fault_merge} {return {}}
+        return [list $engine/fault_sample_reg/Q]
     }
     if {[string first /bridge/request_held_reg $targets]>=0} {
         return [concat [list [format {%s/handoff_frame_reg[0]/Q} $engine]] $bad_handoff]
@@ -179,17 +190,19 @@ proc reject {body anchor} {
 }
 valence_apply_bscan_timing $primitive $engine fabric zu15eg-user2-tck50-positive-v1
 incr cases
-set false_pins {};set maxes 0;set skews 0;set uncertainty 0
+set false_pins {};set maxes 0;set skews 0;set uncertainty 0;set max_pairs {};set skew_pairs {}
 foreach call $calls {
     switch -- [lindex $call 0] {
         set_false_path {lappend false_pins {*}[lindex $call 2]}
         set_max_delay {
             incr maxes
             if {[lindex $call 1] ne "-datapath_only" || [lindex $call 2] != 8.0} {error "mailbox max-delay changed"}
+            lappend max_pairs [list [lsort [lindex $call 4]] [lsort [lindex $call 6]]]
         }
         set_bus_skew {
             incr skews
             if {[lindex $call 1] != 8.0} {error "held-bundle skew changed"}
+            lappend skew_pairs [list [lsort [lindex $call 3]] [lsort [lindex $call 5]]]
         }
         set_input_delay {
             if {[lsearch -exact $call -clock_fall]<0 || [lindex $call 2] ne "valence_bscan_tck"} {error "adapter reference changed"}
@@ -205,6 +218,22 @@ foreach call $calls {
 }
 if {[llength $false_pins]!=15 || [llength [lsort -unique $false_pins]]!=15 || $maxes!=4 || $skews!=2 || $uncertainty!=2} {error "exception scope/count mismatch"}
 foreach pin $false_pins {if {![regexp {/(source_release|update_release|hard_release|dest_release)_reg\[[0-2]\]/CLR$} $pin]} {error "functional exception leaked: $pin"}}
+set expected_max {};set expected_skew {}
+foreach {source destination count} {request_toggle request_sync 1 response_toggle response_sync 1 request_held dest_request 41 response_held s_rsp_payload 34} {
+    set launch {};set capture {}
+    for {set i 0} {$i < $count} {incr i} {
+        if {$count == 1} {lappend launch $engine/bridge/${source}_reg/C} else {
+            lappend launch [format {%s/bridge/%s_reg[%d]/C} $engine $source $i]
+        }
+        lappend capture [format {%s/bridge/%s_reg[%d]/D} $engine $destination $i]
+    }
+    set pair [list [lsort $launch] [lsort $capture]]
+    lappend expected_max $pair
+    if {$count > 1} {lappend expected_skew $pair}
+}
+if {[lsort $max_pairs] ne [lsort $expected_max] || [lsort $skew_pairs] ne [lsort $expected_skew]} {
+    error "exception escaped the exact four true-mailbox crossings"
+}
 incr cases
 reject {valence_apply_bscan_timing $primitive $engine fabric zu15eg-user2-tck50-positive-v1} "already exists"
 reject {valence_apply_bscan_timing $primitive $engine fabric arbitrary} "profile required"
@@ -277,6 +306,44 @@ reject {valence_reapply_bscan_cdc $primitive $engine fabric} "functional reset b
 set bad_functional_reset 0;set bad_hard_feedback 1
 reject {valence_reapply_bscan_cdc $primitive $engine fabric} "work-reset feedback"
 set bad_hard_feedback 0
+# Both D and CE are checked on every negative-TCK register, including unnamed
+# controller state and the bridge response side, not only request payload.
+foreach cell [list $engine/protocol_error_reg $engine/unlisted_controller_state_reg \
+                   [format {%s/bridge/request_held_reg[27]} $engine] \
+                   [format {%s/bridge/s_rsp_payload_reg[7]} $engine] $engine/hard_reset_reg] {
+    foreach pin {D CE} {
+        set bad_fault_target $cell/$pin
+        reject {valence_reapply_bscan_cdc $primitive $engine fabric} "Raw UPDATE overrun feeds negative-TCK D/CE"
+    }
+}
+set bad_fault_target {}
+# A second propagated clock must not hide a TCK sink from the cone query.
+dict set clock_pins $engine/unlisted_controller_state_reg/C {fabric valence_bscan_tck}
+set bad_fault_target $engine/unlisted_controller_state_reg/CE
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "Raw UPDATE overrun feeds negative-TCK D/CE"
+dict set clock_pins $engine/unlisted_controller_state_reg/C valence_bscan_tck
+set bad_fault_target {}
+set sample $engine/fault_sample_reg
+dict set props $sample/C IS_INVERTED 1
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "fault sample must remain positive"
+dict set props $sample/C IS_INVERTED 0
+dict set clock_pins $sample/C valence_bscan_update
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "fault sample must remain positive"
+dict set clock_pins $sample/C valence_bscan_tck
+set saved [dict get $pin_net $sample/D];dict set pin_net $sample/D net:raw_reset/O
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "fault sample input"
+dict set pin_net $sample/D $saved
+set saved [dict get $pin_net $sample/CE];dict set pin_net $sample/CE net:raw_reset/O
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "capture every positive"
+dict set pin_net $sample/CE $saved
+foreach wrong_origin [list raw_reset/O [format {%s/update_release_reg[2]/C} $engine] \
+                          [format {%s/source_release_reg[2]/Q} $engine]] {
+    set bad_fault_reset [list $wrong_origin]
+    reject {valence_reapply_bscan_cdc $primitive $engine fabric} "fault sample reset bypasses"
+}
+set bad_fault_reset {};set missing_fault_merge 1
+reject {valence_reapply_bscan_cdc $primitive $engine fabric} "does not feed sticky error"
+set missing_fault_merge 0
 set calls {};valence_reapply_bscan_cdc $primitive $engine fabric
 foreach call $calls {if {[lindex $call 0] in {create_clock create_generated_clock}} {error "CDC reapplication recreated clock"}}
 incr cases

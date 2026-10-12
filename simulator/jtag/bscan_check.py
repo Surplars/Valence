@@ -9,8 +9,58 @@ ROOT = Path(__file__).resolve().parents[2]
 RTL = ROOT / 'src/main/resources/debug/ValenceBscanDebugPort.sv'
 
 
+def begin_blocks(text):
+    """Find explicit always/begin blocks in this source, not an HDL elaborator."""
+    for match in re.finditer(r'always\s*@\(([^)]*)\)\s*(?=begin\b)', text):
+        depth = 0
+        for token in re.finditer(r'\b(begin|end)\b', text[match.end():]):
+            depth += 1 if token.group() == 'begin' else -1
+            if depth == 0:
+                yield match.group(1), text[match.end():match.end() + token.end()]
+                break
+        else:
+            raise AssertionError('Unbalanced source always block')
+
+
+def check_fault_phase(clean):
+    blocks = list(begin_blocks(clean))
+    sampled = [(edge, body) for edge, body in blocks if re.search(r'\bfault_sample\s*<=', body)]
+    assert len(sampled) == 1, 'Fault sample must have exactly one clocked owner'
+    edge, body = sampled[0]
+    assert edge == 'posedge bscan_tck or negedge source_reset_n', 'Fault sample phase/reset mismatch'
+    # Exact source topology is intentional: a gated sample, stale retained bit,
+    # extra fault writer, or a different reset epoch requires explicit review.
+    fault_body = re.sub(r'\bhandoff_(?:frame|length_ok|toggle)\s*<=\s*[^;]+;', '', body)
+    assert ' '.join(fault_body.split()) == (
+        'begin if (!source_reset_n) begin fault_sample <= 0; end else begin '
+        'fault_sample <= update_overrun; end end'), 'Fault sample must capture raw sticky fault every positive TCK'
+    assert len(re.findall(r'\bfault_sample\s*<=', clean)) == 2, 'Extra fault sample writer'
+
+    # All raw-overrun references have a closed whitelist. Thus no continuous
+    # alias, condition (CE), or RHS (D) can reconnect it to any negative-TCK
+    # consumer, including hard-reset and bridge admission, through source logic.
+    residual = re.sub(r'\breg update_length_ok, update_toggle, update_overrun;', '', clean)
+    residual = re.sub(r'\bupdate_overrun\s*<=\s*[01]\s*;', '', residual)
+    residual = re.sub(r'\bfault_sample\s*<=\s*update_overrun\s*;', '', residual)
+    assert not re.search(r'\bupdate_overrun\b', residual), 'Raw UPDATE overrun outside its island and positive sample'
+    assert len(re.findall(r'\bupdate_overrun\s*<=', clean)) == 2, 'Sticky UPDATE fault ownership changed'
+    assert re.search(r'wire\s+accept_dmi\s*=\s*consume_update\s*&&\s*frame_ok\s*&&\s*request_is_dmi\s*&&\s*'
+                     r'!protocol_error\s*&&\s*!fault_sample\s*&&\s*source_ready\s*;', clean), 'DMI fault admission guard changed'
+    assert re.search(r'wire\s+visible_error\s*=\s*protocol_error\s*;', clean), 'Visible error must use negative-TCK sticky error'
+    assert re.search(r'else\s+if\s*\(visible_error\s*\|\|\s*fault_sample\s*\|\|\s*!source_ready\)', clean), 'Capability fault admission guard changed'
+    consumer = [body for edge, body in blocks
+                if edge == 'negedge bscan_tck or negedge source_reset_n' and 'protocol_error' in body]
+    assert len(consumer) == 1, 'Missing negative-TCK sticky fault owner'
+    consumer = consumer[0]
+    merge = re.search(r'if\s*\(fault_sample\s*&&\s*!hard_reset_command\)\s*protocol_error\s*<=\s*1\s*;\s*end\s*end\s*$', consumer)
+    assert merge, 'Sampled fault must merge after CLEAR, with hard-reset priority'
+    prefix = consumer[:merge.start()]
+    depth = sum(1 if word == 'begin' else -1 for word in re.findall(r'\b(begin|end)\b', prefix))
+    assert depth == 2, 'Sticky fault merge must be independent of command consumption'
+
+
 def check_structure(text):
-    clean = re.sub(r'//[^\n]*', '', text)
+    clean = re.sub(r'/\*.*?\*/|//[^\n]*', '', text, flags=re.S)
     assert 'module ValenceBscanUserTransport (' in clean
     assert 'module ValenceBscanDebugPort #(' in clean
     assert 'parameter integer ENABLE = 0' in clean
@@ -38,6 +88,7 @@ def check_structure(text):
     assert 'handoff_frame <= update_frame;' in clean
     assert 'handoff_length_ok <= update_length_ok;' in clean
     assert 'handoff_toggle <= update_toggle;' in clean
+    check_fault_phase(clean)
     assert 'SHREG_EXTRACT = "NO"' in clean
     for pin in ('CAPTURE', 'DRCK', 'RESET', 'SEL', 'SHIFT', 'TCK', 'TDI', 'UPDATE', 'TDO'):
         assert f'.{pin}(' in clean, f'Missing real primitive {pin} interface'

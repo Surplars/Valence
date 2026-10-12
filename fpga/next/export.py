@@ -23,6 +23,9 @@ _media_spec.loader.exec_module(media_integration)
 _bscan_spec = importlib.util.spec_from_file_location("valence_bscan_integration", HERE / "bscan_integration.py")
 bscan_integration = importlib.util.module_from_spec(_bscan_spec)
 _bscan_spec.loader.exec_module(bscan_integration)
+_t1_spec = importlib.util.spec_from_file_location("valence_board_t1", HERE / "board_t1.py")
+board_t1 = importlib.util.module_from_spec(_t1_spec)
+_t1_spec.loader.exec_module(board_t1)
 
 
 def sha(path):
@@ -40,7 +43,7 @@ def sources():
         "fpga/next/board-performance-profile.json", "fpga/next/board-performance-constructors.json",
         "fpga/next/board_release.py", "fpga/next/board-release-profile.json",
         "fpga/next/board_timing_cdc.py", "fpga/next/board-timing-cdc-profile-v1.json",
-        *media_integration.INPUTS, *bscan_integration.INPUTS)]
+        *media_integration.INPUTS, *bscan_integration.INPUTS, *board_t1.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
         if (ROOT / folder).exists():
@@ -102,6 +105,8 @@ def main(argv=None, expected_profile_sha256=None):
                        help="boot-owned RAM download through explicitly allocated FPGA USER chain")
     ap.add_argument("--experimental-trispeed-ethernet", action="store_true",
                     help="emit logic-qualified tri-speed media; native clocks/pads/CDC remain unqualified")
+    ap.add_argument(board_t1.FLAG, action="count", default=0,
+                    help="explicit default-off physical-top reset mode; requires tri-speed and a bound synthesis consumer")
     choice = ap.add_mutually_exclusive_group()
     choice.add_argument("--reference", action="store_true", help="emit register-topology control with common correctness fixes")
     choice.add_argument("--storage-candidate", action="store_true", help="emit the earlier storage-only candidate for ablation")
@@ -213,6 +218,14 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
+    if a.native_mac_local_pad_reset_release > 1:
+        ap.error("duplicate " + board_t1.FLAG)
+    if a.native_mac_local_pad_reset_release and board_t1.FLAG not in raw_args:
+        ap.error("use the exact " + board_t1.FLAG + " flag")
+    a.native_mac_local_pad_reset_release = bool(a.native_mac_local_pad_reset_release)
+    if a.native_mac_local_pad_reset_release and not a.experimental_trispeed_ethernet:
+        ap.error(board_t1.FLAG + " requires --experimental-trispeed-ethernet")
+    native_mac_mode = board_t1.selection(a.native_mac_local_pad_reset_release) if a.experimental_trispeed_ethernet else None
     if sum(option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args) > 1:
         ap.error("duplicate --pending-store-early-load-credits capacity")
     if a.pending_store_early_load_credits != 1 and not a.pending_virtual_store_proof:
@@ -727,6 +740,7 @@ def main(argv=None, expected_profile_sha256=None):
             "posted_store_merge": a.posted_store_merge,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": a.posted_prefetch_head_offer,
+            "native_mac_mode": native_mac_mode,
             "physical_qualification": False, "configuration": profile["profile"],
             "command": command}, indent=2))
         return
@@ -735,6 +749,7 @@ def main(argv=None, expected_profile_sha256=None):
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],
         "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
+        "native_mac_mode": native_mac_mode,
         "command": command, "synthesis": False, "physical_qualification": False}
     try:
         started = time.monotonic()
@@ -794,6 +809,7 @@ def main(argv=None, expected_profile_sha256=None):
                 "named_ports_checked": connected_ports, "qualified": False}
             if a.experimental_trispeed_ethernet:
                 receipt["tri_speed_native_integration"] = media_integration.stage(ROOT, output)
+                receipt["native_mac_mode"] = board_t1.stage(ROOT, output, a.native_mac_local_pad_reset_release)
         if a.experimental_jtag_bscan:
             guard = output / "board/check_jtag_chain.tcl"
             guard.write_text((HERE / "check_jtag_chain.tcl").read_text())

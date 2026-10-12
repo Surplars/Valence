@@ -238,3 +238,10 @@ Chisel export of a blackbox is not parsing or simulating this SV. Physical CDC,
 primitive timing, synthesis, bitstream generation, and board operation remain
 unverified. Host Tcl mock tests separately validate host protocol handling and
 must not be presented as HDL or end-to-end hardware results.
+
+### Bounded phased fault observation
+
+The current transport samples sticky UPDATE-local overrun on positive TCK and
+merges it independently into negative-TCK protocol error. See
+[the phased fault contract](bscan-fault-phase.md) for the explicit late-duplicate
+behavior, preserved ownership, reset epoch, and remaining timed paths.

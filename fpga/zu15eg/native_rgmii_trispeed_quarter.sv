@@ -7,7 +7,8 @@
 // RX remains direct recovered-clock capture with independent-rate constraints.
 // This new logic is NOT physically qualified merely because its1G ancestor was.
 module native_rgmii_trispeed_quarter #(
-    parameter RX_DATA_DELAY_PS = 1100
+    parameter RX_DATA_DELAY_PS = 1100,
+    parameter LOCAL_PAD_RESET_RELEASE = 0
 )(
     input wire tx_clock, tx_pad_clock, tx_pad_reset, rx_clock, tx_reset, rx_reset,
     input wire delay_clock, delay_reset,
@@ -24,17 +25,32 @@ module native_rgmii_trispeed_quarter #(
         if(RX_DATA_DELAY_PS<0 || RX_DATA_DELAY_PS>1100)
             $fatal(1,"RGMII fixed input delay outside supported UltraScale+ range");
     end
-    // Reuse the established word-reset phase contract: first PAD250 edge after
-    // shared RAW125 reset release is raw+4. Low-half edges then occur at raw+0.
+    // Default is the unchanged common RAW125 release. The opt-in T1 boundary
+    // holds every serializer sink through the first falling PAD edge (raw+2).
+    // Its PRE recovery/removal and every downstream reset arc stay STA-timed.
+    // This is one phase-selected release FF, not an asynchronous CDC waiver.
+    wire serializer_reset;
+    generate if (LOCAL_PAD_RESET_RELEASE) begin: pad_release
+        reg pad_release_reset;
+        always @(negedge tx_pad_clock or posedge tx_pad_reset)
+            if (tx_pad_reset) pad_release_reset <= 1'b1;
+            else pad_release_reset <= 1'b0;
+        assign serializer_reset = pad_release_reset;
+    end else begin: common_release
+        assign serializer_reset = tx_pad_reset;
+    end endgenerate
+    // Preserve the established preset-high phase: first active positive PAD
+    // edge after common RAW125 reset release is raw+4 in either mode. Complete
+    // pairs capture at raw+6 and low-half output edges then occur at raw+0.
     reg phase_high;
     reg [4:0] low_symbol, high_symbol;
     reg low_clock, high_clock, previous_clock;
-    always @(posedge tx_pad_clock or posedge tx_pad_reset)
-        if(tx_pad_reset) phase_high<=1'b1;
+    always @(posedge tx_pad_clock or posedge serializer_reset)
+        if(serializer_reset) phase_high<=1'b1;
         else phase_high<=~phase_high;
     // Capture a complete stable125MHz pair at raw+6, never mixed byte halves.
-    always @(negedge tx_pad_clock or posedge tx_pad_reset)
-        if(tx_pad_reset) begin
+    always @(negedge tx_pad_clock or posedge serializer_reset)
+        if(serializer_reset) begin
             low_symbol<=0; high_symbol<=0; low_clock<=0; high_clock<=0;
         end else if(!phase_high) begin
             low_symbol<=tx_rise; high_symbol<=tx_fall;
@@ -42,18 +58,18 @@ module native_rgmii_trispeed_quarter #(
         end
     wire [4:0] symbol=phase_high ? high_symbol : low_symbol;
     wire clock_symbol=phase_high ? high_clock : low_clock;
-    always @(posedge tx_pad_clock or posedge tx_pad_reset)
-        if(tx_pad_reset) previous_clock<=1'b0;
+    always @(posedge tx_pad_clock or posedge serializer_reset)
+        if(serializer_reset) previous_clock<=1'b0;
         else previous_clock<=clock_symbol;
     // D1 repeats the previous physical clock value, so positive PAD250 edges
     // never change TXC. D2 applies this half's clock value2ns after data changes.
     // This is fixed2ns skew at ALL rates, not90degrees of a25/2.5MHz clock.
     ODDRE1 #(.SIM_DEVICE("ULTRASCALE_PLUS")) tx_clock_ddr (
-        .C(tx_pad_clock), .D1(previous_clock), .D2(clock_symbol), .SR(tx_pad_reset), .Q(rgmii_tx_clock));
+        .C(tx_pad_clock), .D1(previous_clock), .D2(clock_symbol), .SR(serializer_reset), .Q(rgmii_tx_clock));
     for(genvar n=0;n<5;n=n+1) begin: transmit
         wire output_symbol;
         ODDRE1 #(.SIM_DEVICE("ULTRASCALE_PLUS")) data_ddr (
-            .C(tx_pad_clock), .D1(symbol[n]), .D2(symbol[n]), .SR(tx_pad_reset), .Q(output_symbol));
+            .C(tx_pad_clock), .D1(symbol[n]), .D2(symbol[n]), .SR(serializer_reset), .Q(output_symbol));
         if(n<4) assign rgmii_tx_data[n]=output_symbol;
         else assign rgmii_tx_control=output_symbol;
     end

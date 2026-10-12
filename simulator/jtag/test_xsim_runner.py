@@ -120,7 +120,7 @@ class XsimRunnerTests(unittest.TestCase):
         self.assertEqual(params["TCK_HIGH"], 25)
         logical = runner.cases("bscan-qualification")
         self.assertEqual(len(logical), 2)
-        self.assertEqual(logical[0]["marker"], "PASS BSCAN_QUALIFICATION")
+        self.assertEqual(logical[0]["marker"], "PASS BSCAN_FAULT_PHASE")
         for row in logical:
             self.assertNotIn("unisims_ver", runner.command_plan(row, row["sources"], False)[1])
 

@@ -1,7 +1,9 @@
 # Read-only netlist queries and report files; never creates clocks, waivers,
 # resets, probes, synthesis or bitstreams. Source in a separately opened matching
 # synthesized/routed design. This is an evidence collector, NOT CDC/RDC signoff.
-source [file join [file dirname [info script]] check_jtag_chain.tcl]
+# This file defines the shared read-only topology queries as well as separate
+# timing-application procedures. Collecting reports never invokes the latter.
+source [file join [file dirname [info script]] bscan_timing.tcl]
 
 proc valence_bscan_exact {kind name} {
     if {$name eq "" || [regexp {[\*\?\[\]]} $name]} {error "Exact BSCAN hierarchy required"}
@@ -52,11 +54,13 @@ proc valence_collect_bscan_netlist {primitive engine fabric_clock output} {
         }
         lappend syncs {*}[valence_bscan_sync_bank $root $name $count]
     }
+    set fault_phase [valence_bscan_fault_phase $engine]
     file mkdir $output
     set file [open [file join $output structure.txt] w]
     puts $file "USER2 primitive=$primitive engine=$engine fabric_clock=$fabric_clock"
     puts $file "clock_rows=$clock_rows"
     puts $file "synchronizers=$syncs"
+    puts $file "fault_phase=$fault_phase"
     puts $file "Primitive pins (including vendor special internal pins):"
     foreach pin [get_pins -of_objects [get_cells $primitive]] {puts $file $pin}
     puts $file "STATUS=SCOPED_STRUCTURE_PRESENT_NOT_PHYSICAL_SIGNOFF"

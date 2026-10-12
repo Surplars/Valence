@@ -3,7 +3,10 @@
 # The inherited 1.250ns PHY+PCB setup/hold budget is unchanged at every rate.
 source [file join [file dirname [info script]] native_quarter_clock_constraints.tcl]
 
-proc valence_trispeed_quarter_audit {hier} {
+# Optional expected mode lets qualification require a retained T1 FF explicitly.
+# Auto keeps the default board recipe compatible with either source parameter;
+# it still audits the detected circuit and never adds a reset exception.
+proc valence_trispeed_quarter_audit {hier {localResetRelease auto}} {
     set clock [get_cells -quiet $hier/tx_clock_ddr]
     set lanes [get_cells -quiet "$hier/transmit*.data_ddr"]
     if {[llength $clock]!=1 || [llength $lanes]!=5} {error "Require six real tri-speed ODDR cells"}
@@ -26,7 +29,7 @@ proc valence_trispeed_quarter_audit {hier} {
     }
     set carry [get_cells -quiet $hier/previous_clock_reg]
     if {[llength $carry]!=1 || [get_property REF_NAME $carry] ne "FDCE" ||
-        [get_property INIT $carry] ne "1'b0" || [get_property IS_C_INVERTED $carry] ni {{} 0 1'b0} ||
+        [get_property INIT $carry] ne "1'b0" || [get_property IS_INVERTED [get_pins $carry/C]] ni {0 1'b0} ||
         [get_nets -of_objects [get_pins $carry/C]] ne $clkNet ||
         [get_nets -of_objects [get_pins $carry/CLR]] ne $rstNet ||
         [get_property TYPE [get_nets -of_objects [get_pins $carry/CE]]] ne "POWER"} {
@@ -38,7 +41,7 @@ proc valence_trispeed_quarter_audit {hier} {
     }
     set phase [get_cells -quiet $hier/phase_high_reg]
     if {[llength $phase]!=1 || [get_property REF_NAME $phase] ne "FDPE" ||
-        [get_property INIT $phase] ne "1'b1" || [get_property IS_C_INVERTED $phase] ni {{} 0 1'b0} ||
+        [get_property INIT $phase] ne "1'b1" || [get_property IS_INVERTED [get_pins $phase/C]] ni {0 1'b0} ||
         [get_nets -of_objects [get_pins $phase/C]] ne $clkNet ||
         [get_nets -of_objects [get_pins $phase/PRE]] ne $rstNet} {
         error "Unproved preset-high quarter phase/reset alignment"
@@ -54,14 +57,53 @@ proc valence_trispeed_quarter_audit {hier} {
         set input [get_pins $inversion/I0]
     } else {error "Quarter phase feedback is not exact inversion"}
     if {[get_nets -of_objects $input] ne $phaseQ} {error "Quarter phase must invert its own Q"}
+    # All twelve falling-edge payload/clock registers share the phase/carry/DDR
+    # reset epoch. Proving the DDR resets alone would miss a bypassed bank.
+    set symbols [concat [get_cells -quiet "$hier/low_symbol_reg*"] \
+        [get_cells -quiet "$hier/high_symbol_reg*"] \
+        [get_cells -quiet $hier/low_clock_reg] [get_cells -quiet $hier/high_clock_reg]]
+    if {[llength $symbols]!=12} {error "Require twelve tri-speed symbol/clock registers"}
+    foreach c $symbols {
+        if {[get_property REF_NAME $c] ne "FDCE" || [get_property INIT $c] ne "1'b0" ||
+            [get_property IS_INVERTED [get_pins $c/C]] ni {1 1'b1} ||
+            [get_nets -of_objects [get_pins $c/C]] ne $clkNet ||
+            [get_nets -of_objects [get_pins $c/CLR]] ne $rstNet} {
+            error "Unproved falling-edge symbol/shared reset epoch: $c"
+        }
+    }
+    set localRelease [get_cells -quiet $hier/pad_release.pad_release_reset_reg]
+    if {$localResetRelease eq "auto"} {set localResetRelease [expr {[llength $localRelease]!=0}]}
+    if {$localResetRelease ni {0 1}} {error "Use reset-release mode auto, 0 or 1"}
+    set upstream [get_pins -quiet $hier/tx_pad_reset]
+    if {[llength $upstream]!=1} {error "Missing common RAW word-reset input"}
+    set upstreamNet [get_nets -of_objects $upstream]
+    if {$localResetRelease} {
+        if {[llength $localRelease]!=1 || [get_property REF_NAME $localRelease] ne "FDPE" ||
+            [get_property INIT $localRelease] ne "1'b1" ||
+            [get_property IS_INVERTED [get_pins $localRelease/C]] ni {1 1'b1} ||
+            [get_nets -of_objects [get_pins $localRelease/C]] ne $clkNet ||
+            [get_nets -of_objects [get_pins $localRelease/Q]] ne $rstNet ||
+            [get_property TYPE [get_nets -of_objects [get_pins $localRelease/D]]] ne "GROUND" ||
+            [get_property TYPE [get_nets -of_objects [get_pins $localRelease/CE]]] ne "POWER"} {
+            error "Unproved falling-PAD async-preset local reset release"
+        }
+        set localPre [get_nets -of_objects [get_pins $localRelease/PRE]]
+        if {[lsort [get_nets -segments $localPre]] ne [lsort [get_nets -segments $upstreamNet]] ||
+            [lsort [get_nets -segments $rstNet]] eq [lsort [get_nets -segments $upstreamNet]]} {
+            error "Local PRE must use common RAW word reset; all serializer sinks must use local Q"
+        }
+    } elseif {[llength $localRelease]!=0 ||
+        [lsort [get_nets -segments $rstNet]] ne [lsort [get_nets -segments $upstreamNet]]} {
+        error "Default mode must preserve the direct common word-reset epoch"
+    }
     set actual [get_clocks -of_objects [get_pins $clock/CLK]]
     if {[llength $actual]!=1 || abs([get_property PERIOD $actual]-4.0)>0.001} {error "Pad clock is not250MHz"}
-    puts "TRISPEED_QUARTER_TOPOLOGY six_common_clock_reset five_exact_D0_D4_pairs previous_clock_carry"
+    puts "TRISPEED_QUARTER_TOPOLOGY six_common_clock_reset five_exact_D0_D4_pairs previous_clock_carry twelve_shared_reset_symbols local_reset_release=$localResetRelease"
     return $lanes
 }
 
-proc valence_trispeed_quarter_tx_constraints {hier mbps} {
-    set lanes [valence_trispeed_quarter_audit $hier]
+proc valence_trispeed_quarter_tx_constraints {hier mbps {localResetRelease auto}} {
+    set lanes [valence_trispeed_quarter_audit $hier $localResetRelease]
     switch -- $mbps {
         1000 {set edges {2 4 6}; set period 8.0}
         100  {set edges {2 12 22}; set period 40.0}

@@ -1,4 +1,10 @@
-# BSCAN phase-separated payload/reset candidate
+# BSCAN phase-separated payload/reset candidate (historical contract)
+
+**Historical prephase evidence:** The immediate-revocation requirement below
+was superseded by [the bounded phased fault contract](bscan-fault-phase.md).
+The original source, bench, mutator and nine-control receipt are preserved in
+`simulator/jtag/evidence/bscan-prephase`; the old P3–F3 expectation is still a
+counterexample and is not counted as a new-contract PASS.
 
 Status: logical production-RTL checks passed on 2026-10-12. No changed-candidate
 Vivado, AMD primitive, synthesis, placement, routed STA or board run is claimed.

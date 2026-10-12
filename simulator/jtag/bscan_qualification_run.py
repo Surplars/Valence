@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DTM = "src/main/resources/debug/ValenceJtagDebugPort.sv"
 BSCAN = "src/main/resources/debug/ValenceBscanDebugPort.sv"
 ROWS = {
-    "qualification": ("bscan_qualification_tb", "PASS BSCAN_QUALIFICATION", [DTM, BSCAN, "simulator/jtag/bscan_qualification_tb.sv"]),
+    "qualification": ("bscan_fault_phase_tb", "PASS BSCAN_FAULT_PHASE", [DTM, BSCAN, "simulator/jtag/bscan_fault_phase_tb.sv"]),
     "transport": ("bscan_user_tb", "PASS BSCAN_USER", [DTM, BSCAN, "simulator/jtag/bscan_user_tb.sv"]),
     "cdc": ("dmi_cdc_tb", "PASS CDC requests=101", [DTM, "simulator/jtag/dmi_cdc_tb.sv"]),
 }
