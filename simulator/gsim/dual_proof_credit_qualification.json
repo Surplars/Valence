@@ -1,0 +1,180 @@
+{
+  "schema": "dual-proof-credit-published-qualification-v1",
+  "qualification_scope": "Focused components and decoded backend; full same-board original and separate fixed-wholeburst service laws; native declarations only",
+  "baseline_commit": "e8c0062617255a370ed1bf13980f0c874b81e4fb",
+  "baseline_tree": "20f7afcc13c62f1a102a31c8ad45e110b9bcf5f0",
+  "production_sha256": {
+    "src/main/scala/core/ooo/BoardSocTop.scala": "30e1fe0803f36d9870374c32f80f3ee0815918e3e959fd31f828841a0dcf7862",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "691b24ad4e91017d528f0988370c5374cf3c3956e206a2c9d6498103536c1363",
+    "src/main/scala/core/ooo/OooParams.scala": "881ee9376be44337a03536fefecd01f5c62cdacf0597a467ea73e2a1ddaafd6d",
+    "src/main/scala/core/ooo/PendingVirtualStoreProof.scala": "34139339203f2f69facbba51afdeafda8771a6aa5ea825f6b4f7d60e603a2f10"
+  },
+  "actual_counts": {
+    "profile": 57,
+    "core": 150,
+    "cache": 19
+  },
+  "guest_sha256": {
+    "cpu_sv39_symbols.h": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d",
+    "guest.bin": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94",
+    "guest.elf": "1622c26f932d3bc238d2bce817619fa8df2fd32249cf398534dc4a036432bcd1"
+  },
+  "original_host_sha256": {
+    "HOST-CONTRACT.md": "53fc82f5ae161428666d8c7ea21ce2e0d64745ec9a674b280d7235fdf62e2521",
+    "adoption_ledger.h": "d99d0e5a307618c693a8c713c242049692f0f9cafccf87a47a36de3ec201abd9",
+    "analyze_cpu_ab.py": "09f3e55b3a5721afdeb72b437839e909f7b782a2fe7136ffe0c7f2ada203c449",
+    "cpu_passive_bandwidth.cpp": "6fda5c6a51fadf7dcf58cd8804aa4d50d6906b22ee3163ce72f58b779ba010e3",
+    "harness/board_boot.cpp": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+    "harness/board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "harness/cpu_lsu_occupancy.h": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+    "harness/cpu_sv39_bandwidth.cpp": "7f698aa4d9f1638af623e79b99fbd21cebe157c70addaa5706ba1847ab561cb7",
+    "harness/fabric_idle_service.h": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+    "harness/mshr_occupancy.h": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+    "harness/performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "ledger_negative.cpp": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+    "passive_negative.cpp": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+    "passive_supply.h": "ec27f9c0581531695bd96657ad21022d104c2bdb2355b0b81023dc6b864582c2",
+    "production_probe.h": "c220bb53e89cd1f3a77264536f63785c7cdfe165ab7d312ff7d3ad98034e56db",
+    "run_cpu_ab.py": "c3a7f855c237a04b0d7ce704a45049e566efb3add2ef89a80f61b946d9aa37a1",
+    "supply_ledger.h": "063757427d793986ea3b936a14d0229e78cf8e76431a578bae57008880635801"
+  },
+  "native_options": [
+    "--selected",
+    "--data-translation-entries=16",
+    "--registered-pmp-regions",
+    "--experimental-trispeed-ethernet",
+    "--experimental-jtag-bscan=2",
+    "--dma-line-transfers",
+    "--dma-line-entries=4",
+    "--prefetch-candidate-cycles=16",
+    "--virtual-ram-load-precheck",
+    "--lsu-entries=4",
+    "--physical-load-ingress-flow",
+    "--ddr-write-collection-flow",
+    "--line-transfer-dispatch-flow",
+    "--line-read-channel",
+    "--dtlb-write-read-reuse",
+    "--translation-hit-flow",
+    "--independent-demand-admission",
+    "--split-prefetch-tracking",
+    "--read-prefetch-dirty-retry",
+    "--read-prefetch-demand-adoption",
+    "--load-order-older-retire",
+    "--fetch-previous-packet",
+    "--prepared-store-lookahead",
+    "--store-next-line-prefetch",
+    "--store-prefetch-mru-insertion",
+    "--posted-store-merge",
+    "--posted-prefetch-coexistence",
+    "--posted-prefetch-head-offer",
+    "--canonical-virtual-store-overlap",
+    "--published-pmp-changes",
+    "--frozen-store-proof-transport",
+    "--pending-virtual-store-proof",
+    "--pending-virtual-store-proof-slots=2",
+    "--bound-head-store-overlap",
+    "--read-prefetch-store-hold",
+    "--pending-ready-store-bypass",
+    "--durable-read-prefetch-candidate",
+    "--read-prefetch-behind-store",
+    "--pending-store-early-load-credits=2"
+  ],
+  "receipts": {
+    "shortgate-r5/receipt.json": "83e5d08a2364ec20ae55ef2b4980b9322d5ef467955e59adccab669a0dae4dbc",
+    "cpu-r1/receipt.json": "4c106d873d66a7fe266124766a5b572451cafb0eb333fa3b6d305b44a1ab1507",
+    "cpu-fixed-r1/receipt.json": "7f141026e68259c6283f0a548ee9d4575affef3e9c58cfb57d9e161a506aa882",
+    "native-r1/emit-receipt.json": "5aeecb14370f8dbac52ea990be4dbff6722a601664287cbde3b24c3583de436e",
+    "native-r1/native-comparison.json": "494f6bb12fd91ea41e46f422395227356905f11c01ee1223cf6d74a92a00e507",
+    "board-plan-r1/contract.json": "a612af0f97dbe4b96c292c1ac4b1f44865de20eccbcda2b8cbbcfb505fb32a91",
+    "analysis-r1/comparison.json": "feebd7397ce2b74ca34ac1685e3357ecb563c18225f0fc4294037340fb77f681"
+  },
+  "source_only_host_bridge_sha256": "e10c73f34ec154258c8b8695b9beaa7341ecc29be4430f9078358e894362ad05",
+  "preserved_history": {
+    "shortgate-r1/receipt.json": {
+      "status": "CONFIG_PASS",
+      "sha256": "399746f8c20680f75bd1745b4ea03bd6cd55b6c2c960bda6c2da02fc0288c78b"
+    },
+    "shortgate-r2/receipt.json": {
+      "status": "SANITIZED_FAILED",
+      "sha256": "0ab498543b196756c7382f933e4a3b198c61b6a9d92a6297efae4ac1481f73fc"
+    },
+    "shortgate-r3/receipt.json": {
+      "status": "SANITIZED_FAILED",
+      "sha256": "1a0bf09dc5fd210cb9f66e69adcc417ab46d81a1a7e4f81109b1353a6eb68e21"
+    },
+    "shortgate-r4/receipt.json": {
+      "status": "SANITIZED_FAILED",
+      "sha256": "36b04068f3810b9bcc547c773588aefd5a8c28f0e39b9c3e8b29c7ecb6b815fc"
+    }
+  },
+  "recovery": {
+    "focused": {
+      "library_file_id": "libfile_99723945632c8191bf717157170be803",
+      "version": 0,
+      "archive_sha256": "7e07ea50d9c3ad897cf1695e11e1af788ebc0a4839e1ed1e92ac6a860c1c9bc2"
+    },
+    "board": {
+      "aggregate_path": "micro-proof-credit-pipeline-r1/persistence-r1/terminal-aggregate.json",
+      "aggregate_sha256": "1ba80d2342ccc1323463a37dcea6b3dead57771cf84cae6be0a0bae8a4bac100",
+      "entrypoint_recipe": "micro-proof-credit-pipeline-r1/persistence-r1/RECOVERY.json",
+      "restore_utility": "micro-proof-credit-pipeline-r1/persistence-r1/restore.py",
+      "libraries": [
+        {
+          "library_file_id": "libfile_69c2d07ef0e081919cd8cd6c5a8d0262",
+          "file_name": "micro-proof-credit-terminal-evidence-r1.tar.gz",
+          "sha256": "795f68227fc90c7949cbf85727f0dad5e334ec38d0fa1977c3150937294c1de9",
+          "bytes": 13502431,
+          "current_version_number": 0
+        },
+        {
+          "library_file_id": "libfile_d350897f6340819181f2e7d1506c5fdf",
+          "file_name": "micro-proof-credit-model-recovery-r1.tar.gz",
+          "sha256": "601e8a668aa9dd3dc17fd8804ca047b18cb89c41e23c0023ddcaa308eab5e9d8",
+          "bytes": 27073911,
+          "current_version_number": 0
+        }
+      ],
+      "dependencies": {
+        "e8_baseline_model_native": {
+          "bytes": 24252299,
+          "file_name": "proof-owner-match-reuse-model-evidence-r1.tar.gz",
+          "library_file_id": "libfile_1ac5391d35bc8191b7cd09c57e1254bc",
+          "sha256": "ca29ad97d09bb69fe121801ef5b88c55f124c8ce3aafe31877d480000e39c845",
+          "version": 0
+        },
+        "e8_publication_source": {
+          "bytes": 777310,
+          "file_name": "proof-owner-match-final-source-cas-r1.tar.gz",
+          "library_file_id": "libfile_ba7b1e6f72c48191b99740b205f5a922",
+          "sha256": "d3e76b70c0cde1c78f5e4c7bb38d219b28f917f2d532772aa44308e9adb7fb5d",
+          "version": 0
+        },
+        "focused": {
+          "bytes": 14250304,
+          "file_name": "micro-proof-credit-qualification-r5.tar.gz",
+          "library_file_id": "libfile_99723945632c8191bf717157170be803",
+          "sha256": "7e07ea50d9c3ad897cf1695e11e1af788ebc0a4839e1ed1e92ac6a860c1c9bc2",
+          "version": 0
+        },
+        "production_source_only": {
+          "bytes": 119195,
+          "file_name": "micro-proof-credit-pipeline-source-r2.tar.gz",
+          "library_file_id": "libfile_d703fe5df950819185981b9a977bb828",
+          "sha256": "f5d9d65585ff0ee19cdac26a1dbe4908b25c21a6731c2444973193a5ccef3c40",
+          "version": 0
+        },
+        "toolchain_restore_recipe": {
+          "bytes": 138794,
+          "file_name": "toolchain-recovery-20261011-compact.tar.gz",
+          "library_file_id": "libfile_7cdf77f3bc9c81919818a24fa6041a06",
+          "sha256": "095cdc552ce56940c0253c6f146908aee4bbd8fba6568f42bafa9dc13bae17da",
+          "version": 0
+        }
+      }
+    }
+  },
+  "physical_qualification": false,
+  "actual_mig_validation": false,
+  "board_credit_utilization_measured": false,
+  "cumulative_f6_basis": "Saved 616-binding analysis only; actual historical44/142/14 profile; cumulative changes intentionally differ"
+}

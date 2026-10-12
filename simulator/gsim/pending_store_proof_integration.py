@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Portable fresh-build pending-store focused qualification. No object relink or board/Vivado work."""
-import argparse, hashlib, json, os, re, subprocess, time
+import argparse, hashlib, json, os, re, shutil, subprocess, time
 from pathlib import Path
 import bound_store_replay_common as portable
 ROOT=Path(__file__).resolve().parents[2]
@@ -102,7 +102,14 @@ def main():
                 sources=sorted(model.glob(top+'[0-9]*.cpp'));assert sources,'generated model missing'
                 for n,source in enumerate(sources):
                     obj=target/(source.stem+'.o');objects.append(obj)
-                    run(name+'-'+args.stage+f'-compile-{n}',[CXX,*flags,'-c',source,'-o',obj])
+                    reused=receipt.get('reusable_objects',{}).get(name,{}).get(source.name)
+                    if reused:
+                        assert sha(source)==reused['cpp_sha256'] and sha(reused['path'])==reused['object_sha256'], 'reused object drift'
+                        assert [f for f in reused['flags'] if not f.startswith('-I')]==[f for f in flags if not f.startswith('-I')] and reused['tools']==receipt['tools'], 'reused object compiler/flags drift'
+                        shutil.copy2(reused['path'],obj)
+                        receipt.setdefault('object_reuse',{})[str(obj.relative_to(out))]=reused;save()
+                    else:
+                        run(name+'-'+args.stage+f'-compile-{n}',[CXX,*flags,'-c',source,'-o',obj])
                     receipt.setdefault('objects',{})[str(obj.relative_to(out))]=sha(obj);save()
                 binary=target/'run'
                 run(name+'-'+args.stage+'-link',[CXX,*flags,*['-D'+d for d in defines],
@@ -110,7 +117,7 @@ def main():
                 run(name+'-'+args.stage+'-positive',[binary],anchor)
                 if stem=='bank':
                     run(name+'-'+args.stage+'-mutate-full-tag',[binary,'--mutate-full-tag'],'independent full-tuple oracle mismatch',True)
-                    run(name+'-'+args.stage+'-double-reserve',[binary,'--assert-double-reserve'],'exactly one early-load credit',True)
+                    run(name+'-'+args.stage+'-double-reserve',[binary,'--assert-double-reserve'],'early-load reserve requires a pre-edge free entry',True)
                 elif stem=='backend':
                     run(name+'-'+args.stage+'-mutate-data',[binary,'--mutate-data'],'independent execution data mismatch',True)
                     if name=='backend1':run(name+'-'+args.stage+'-mutate-retirement',[binary,'--mutate-retirement'],'fault/killed/duplicate retirement',True)

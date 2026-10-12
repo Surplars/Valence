@@ -33,8 +33,8 @@ object PendingStoreProofFixture {
 /** Component contracts. Synthetic hit replies test the production shared registered
   * PMP/certificate logic; actual translation is covered by the separate real backend.
   */
-class PendingStoreProofBankGsim(slots: Int = 1) extends Module {
-    val p = PendingStoreProofFixture.params(slots = slots)
+class PendingStoreProofBankGsim(slots: Int = 1, credits: Int = 1) extends Module {
+    val p = PendingStoreProofFixture.params(slots = slots).copy(pendingStoreEarlyLoadCredits = credits)
     val io = IO(new Bundle {
         val head = Input(UInt(4.W))
         val owner0 = Input(Valid(new PendingStoreProofOwner(p)))
@@ -68,6 +68,9 @@ class PendingStoreProofBankGsim(slots: Int = 1) extends Module {
         val creditReserved = Output(Bool())
         val creditActive = Output(Bool())
         val creditOwner = Output(new RobToken(p))
+        val creditActiveMask = Output(UInt(2.W))
+        val creditReservedMask = Output(UInt(2.W))
+        val creditOwnerSecond = Output(new RobToken(p))
     })
     val bank = Module(new PendingVirtualStoreProof(p))
     bank.io.head := io.head
@@ -102,13 +105,17 @@ class PendingStoreProofBankGsim(slots: Int = 1) extends Module {
     credit.io.liveOwners(0) := io.live0
     credit.io.liveOwners(1) := io.live1
     io.creditAvailable := credit.io.available
-    io.creditReserved := credit.io.reserved
-    io.creditActive := credit.io.active
-    io.creditOwner := credit.io.owner
+    io.creditReserved := credit.io.reserved(0)
+    io.creditActive := credit.io.active(0)
+    io.creditOwner := credit.io.owner(0)
+    io.creditActiveMask := credit.io.active.asUInt
+    io.creditReservedMask := credit.io.reserved.asUInt
+    io.creditOwnerSecond := (if (credits == 2) credit.io.owner(1) else 0.U.asTypeOf(io.creditOwnerSecond))
 }
 
 object PendingStoreProofBankGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new PendingStoreProofBankGsim(args.lift(1).map(_.toInt).getOrElse(1)),
+    ChiselStage.emitCHIRRTLFile(new PendingStoreProofBankGsim(args.lift(1).map(_.toInt).getOrElse(1),
+        args.lift(2).map(_.toInt).getOrElse(1)),
         Array("--target-dir", args.head))
 }
 
@@ -179,12 +186,13 @@ object PendingStoreProofTransportGsimMain extends App {
 }
 
 class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: Boolean = false,
-    enabledReadyStoreBypass: Boolean = false) extends Module {
+    enabledReadyStoreBypass: Boolean = false, proofRows: Int = 1, earlyCredits: Int = 1) extends Module {
     private val enabled = true
     private val overlap = true
     private val memoryEntries = 4
-    val p = PendingStoreProofFixture.params(enabled = enabledProof).copy(boundHeadStoreOverlap = enabledBoundOverlap,
-        pendingReadyStoreBypass = enabledReadyStoreBypass)
+    val p = PendingStoreProofFixture.params(enabled = enabledProof, slots = proofRows).copy(
+        boundHeadStoreOverlap = enabledBoundOverlap, pendingReadyStoreBypass = enabledReadyStoreBypass,
+        pendingStoreEarlyLoadCredits = earlyCredits)
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
@@ -197,6 +205,13 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
         val probePending = Output(Bool())
         val probeToken = Output(new RobToken(p))
         val proof = Output(Valid(new MemoryAddressProof(p)))
+        val proofSecond = Output(Valid(new MemoryAddressProof(p)))
+        val proofBoundMask = Output(UInt(2.W))
+        val creditActiveMask = Output(UInt(2.W))
+        val creditReservedMask = Output(UInt(2.W))
+        val creditOwnerSecond = Output(new RobToken(p))
+        val b2Accepted = Output(Bool())
+        val lsuIdleMask = Output(UInt(4.W))
         val bound = Output(Bool())
         val creditReserved = Output(Bool())
         val creditActive = Output(Bool())
@@ -349,6 +364,13 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
         io.epoch := adapter.io.loadPrecheck.get.epoch
     }
     io.proof := 0.U.asTypeOf(io.proof)
+    io.proofSecond := 0.U.asTypeOf(io.proofSecond)
+    io.proofBoundMask := 0.U
+    io.creditActiveMask := 0.U
+    io.creditReservedMask := 0.U
+    io.creditOwnerSecond := 0.U.asTypeOf(io.creditOwnerSecond)
+    io.b2Accepted := backend.lsu.io.boundHeadStoreOverlapAccepted.map(BoringUtils.bore(_)).getOrElse(false.B)
+    io.lsuIdleMask := VecInit(backend.lsu.slots.map(slot => !BoringUtils.bore(slot.io.busy))).asUInt
     io.bound := false.B
     io.creditReserved := false.B
     io.creditActive := false.B
@@ -356,9 +378,14 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
     if (enabledProof) {
         io.proof := BoringUtils.bore(backend.pendingStoreProof.get.io.proofs(0))
         io.bound := BoringUtils.bore(backend.pendingStoreProof.get.io.bound).apply(0)
-        io.creditReserved := BoringUtils.bore(backend.pendingStoreCredit.get.io.reserved)
-        io.creditActive := BoringUtils.bore(backend.pendingStoreCredit.get.io.active)
-        io.creditOwner := BoringUtils.bore(backend.pendingStoreCredit.get.io.owner)
+        io.creditReserved := BoringUtils.bore(backend.pendingStoreCredit.get.io.reserved(0))
+        io.proofBoundMask := BoringUtils.bore(backend.pendingStoreProof.get.io.bound)
+        io.creditReservedMask := BoringUtils.bore(backend.pendingStoreCredit.get.io.reserved).asUInt
+        io.creditActiveMask := BoringUtils.bore(backend.pendingStoreCredit.get.io.active).asUInt
+        if (proofRows == 2) io.proofSecond := BoringUtils.bore(backend.pendingStoreProof.get.io.proofs(1))
+        if (earlyCredits == 2) io.creditOwnerSecond := BoringUtils.bore(backend.pendingStoreCredit.get.io.owner(1))
+        io.creditActive := BoringUtils.bore(backend.pendingStoreCredit.get.io.active(0))
+        io.creditOwner := BoringUtils.bore(backend.pendingStoreCredit.get.io.owner(0))
     }
     io.probeDataReady := VecInit(backend.pendingStoreDataReady.map(BoringUtils.bore(_)))(io.probeIndex)
     io.probePending := BoringUtils.bore(backend.pending).apply(io.probeIndex)
@@ -425,8 +452,10 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
 }
 
 object PendingStoreProofBackendGsimMain extends App {
-    require(args.length >= 2 && args.length <= 4 && args.drop(1).forall(Set("0", "1").contains))
+    require(args.length >= 2 && args.length <= 6 && args.slice(1, 4).forall(Set("0", "1").contains))
+    require(args.drop(4).forall(Set("1", "2").contains))
     ChiselStage.emitCHIRRTLFile(new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1"),
-        args.lift(3).contains("1")),
+        args.lift(3).contains("1"), args.lift(4).map(_.toInt).getOrElse(1),
+        args.lift(5).map(_.toInt).getOrElse(1)),
         Array("--target-dir", args.head))
 }

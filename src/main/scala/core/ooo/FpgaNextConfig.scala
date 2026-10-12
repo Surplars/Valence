@@ -40,6 +40,7 @@ final case class FpgaNextConfig(
     frozenStoreProofTransport: Boolean = false,
     pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
+    pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
     robEntries: Option[Int] = None,
@@ -80,6 +81,9 @@ final case class FpgaNextConfig(
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
     require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
+    require(Set(1, 2).contains(pendingStoreEarlyLoadCredits), "pending-store early loads use one or two credits")
+    require(pendingStoreEarlyLoadCredits == 1 || pendingVirtualStoreProof,
+        "additional early-load responsibility requires pending-store proofs")
     require(!frozenStoreProofTransport || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
         "frozen-store transport requires canonical virtual-store origins")
     require(!pendingVirtualStoreProof || (!memoryProofFrontier && frozenStoreProofTransport &&
@@ -152,6 +156,7 @@ final case class FpgaNextConfig(
         (if (memoryProofFrontier) "-memory-proof-frontier" else "") +
         (if (frozenStoreProofTransport) "-frozen-store-proof-transport" else "") +
         (if (pendingVirtualStoreProof) s"-pending-virtual-store-proof$pendingVirtualStoreProofSlots" else "") +
+        (if (pendingStoreEarlyLoadCredits != 1) s"-pending-store-early-load-credits$pendingStoreEarlyLoadCredits" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
         (if (pendingReadyStoreBypass) "-pending-ready-store-bypass" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
@@ -233,7 +238,8 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
-        pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+        pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
+        pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass,
         backendCapacity = backendCapacity)
 
@@ -263,7 +269,8 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
-        pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+        pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
+        pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass,
         backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow,
         dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow)
@@ -356,6 +363,7 @@ object FpgaNextConfig {
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
             pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),
             pendingVirtualStoreProofSlots = capacityOption("--pending-virtual-store-proof-slots=").getOrElse(1),
+            pendingStoreEarlyLoadCredits = capacityOption("--pending-store-early-load-credits=").getOrElse(1),
             lsuEntries = lsuCount, robEntries = robCount, physicalRegs = physicalCount,
             loadOrderOlderRetire = options.contains("--load-order-older-retire"),
             fetchPreviousPacket = options.contains("--fetch-previous-packet"),

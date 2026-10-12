@@ -2700,6 +2700,8 @@ index](../../docs/experiments/durable-read-prefetch-evidence-v1.json) for the ex
 56/149/19 constructor, observer recovery, bounded correctness gates and zero
 native declared-state delta. No mapped area, STA or board gain is claimed.
 
+The explicit [dual proof-row/early-credit profile](../../docs/fpga-next/dual-proof-credit-v1.md) selects the qualified optional 2/2 board and documents its focused runner, measured service laws and recovery evidence.
+
 ## Optional bound-store/prefetch profile
 
 The [bound-store/prefetch v1 contract](../../docs/fpga-next/bound-store-prefetch-v1.md)

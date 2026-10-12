@@ -28,7 +28,7 @@ class BoardReleaseTests(unittest.TestCase):
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (56, 149, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (57, 150, 19))
         fields = [(s, f) for s in ("profile", "core")
                   for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass")]
         fields += [(s, f) for s in ("profile", "cache")
@@ -42,6 +42,16 @@ class BoardReleaseTests(unittest.TestCase):
                 else:
                     actual[section][field] = True
                 with self.subTest(section=section, field=field, mutation=mutation), self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in ("profile", "core"):
+            self.assertEqual(expected[section]["pendingStoreEarlyLoadCredits"], 1)
+            for value in (None, 0, 2):
+                actual = copy.deepcopy(expected)
+                if value is None:
+                    del actual[section]["pendingStoreEarlyLoadCredits"]
+                else:
+                    actual[section]["pendingStoreEarlyLoadCredits"] = value
+                with self.assertRaises(RuntimeError):
                     compare(actual)
         for section in ("profile", "core"):
             self.assertEqual(expected[section]["pendingVirtualStoreProofSlots"], 1)
@@ -100,6 +110,7 @@ class BoardReleaseTests(unittest.TestCase):
             expected[section]["boundHeadStoreOverlap"] = False
             expected[section]["pendingReadyStoreBypass"] = False
             expected[section]["pendingVirtualStoreProofSlots"] = 1
+            expected[section]["pendingStoreEarlyLoadCredits"] = 1
         for section in ("profile", "cache"):
             expected[section]["readPrefetchStoreHold"] = False
             expected[section]["durableReadPrefetchCandidate"] = False

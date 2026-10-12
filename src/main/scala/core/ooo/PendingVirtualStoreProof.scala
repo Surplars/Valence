@@ -215,45 +215,78 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
     io.provedCount := PopCount(state.map(_ === proved))
 }
 
-/** One early-load credit. Reserve is the first committed offer; consume is actual
-  * LSU capture. A reserved credit cannot be returned by the absence of an LSU owner.
-  * Active credit returns only after the original full-token completion/discard drain.
+/** Bounded early-load responsibilities. Reserve is the first committed offer;
+  * consume is actual LSU capture. Reserved and active entries share one capacity.
+  * Only pre-edge free entries admit new owners; active entries return after their
+  * exact full token disappears from every busy LSU slot after completion/discard.
   */
 class PendingStoreEarlyLoadCredit(p: OooParams) extends Module {
     require(p.pendingVirtualStoreProof)
+    private val capacity = p.pendingStoreEarlyLoadCredits
     val io = IO(new Bundle {
         val reserve = Input(Valid(new RobToken(p)))
         val consume = Input(Valid(new RobToken(p)))
         val cancelReservation = Input(Valid(new RobToken(p)))
         val liveOwners = Input(Vec(p.memoryEntries, Valid(new RobToken(p))))
         val available = Output(Bool())
-        val reserved = Output(Bool())
-        val active = Output(Bool())
-        val owner = Output(new RobToken(p))
+        val reserved = Output(Vec(capacity, Bool()))
+        val active = Output(Vec(capacity, Bool()))
+        val owner = Output(Vec(capacity, new RobToken(p)))
     })
     val free :: reserved :: active :: Nil = Enum(3)
-    val state = RegInit(free)
-    val owner = Reg(new RobToken(p))
-    io.available := state === free
-    io.reserved := state === reserved
-    io.active := state === active
-    io.owner := owner
-    val live = io.liveOwners.map(o => o.valid && o.bits.asUInt === owner.asUInt).reduce(_ || _)
-    when(state === active && !live) { state := free }
+    val state = RegInit(VecInit(Seq.fill(capacity)(free)))
+    val owner = Reg(Vec(capacity, new RobToken(p)))
+    val freeEntries = VecInit(state.map(_ === free))
+    // Reclaim affects only next state, never this admission/READY path.
+    io.available := freeEntries.asUInt.orR
+    val reserveEntry = PriorityEncoderOH(freeEntries.asUInt)
+    val consumeMatches = Wire(Vec(capacity, Bool()))
+    val cancelMatches = Wire(Vec(capacity, Bool()))
+    for (entry <- 0 until capacity) {
+        io.reserved(entry) := state(entry) === reserved
+        io.active(entry) := state(entry) === active
+        io.owner(entry) := owner(entry)
+        val live = io.liveOwners.map(o =>
+            o.valid && o.bits.asUInt === owner(entry).asUInt).reduce(_ || _)
+        val reserveHere = io.reserve.valid && reserveEntry(entry)
+        consumeMatches(entry) := (state(entry) === reserved &&
+            owner(entry).asUInt === io.consume.bits.asUInt) ||
+            (reserveHere && io.reserve.bits.asUInt === io.consume.bits.asUInt)
+        cancelMatches(entry) := state(entry) === reserved &&
+            owner(entry).asUInt === io.cancelReservation.bits.asUInt
+        when(state(entry) === active && !live) { state(entry) := free }
+        when(reserveHere) {
+            state(entry) := reserved
+            owner(entry) := io.reserve.bits
+        }
+        when(io.consume.valid && consumeMatches(entry)) { state(entry) := active }
+        when(io.cancelReservation.valid && cancelMatches(entry)) { state(entry) := free }
+        when(io.reserve.valid && state(entry) =/= free) {
+            assert(owner(entry).asUInt =/= io.reserve.bits.asUInt,
+                "a full token cannot reserve a second early-load responsibility")
+        }
+        for (other <- 0 until entry) {
+            when(state(entry) =/= free && state(other) =/= free) {
+                assert(owner(entry).asUInt =/= owner(other).asUInt,
+                    "nonfree early-load responsibilities have distinct full tokens")
+            }
+        }
+    }
     when(io.reserve.valid) {
-        assert(state === free, "there is exactly one early-load credit, with no same-edge drain reuse")
-        state := reserved
-        owner := io.reserve.bits
+        assert(io.available, "early-load reserve requires a pre-edge free entry, with no same-edge drain reuse")
     }
     when(io.consume.valid) {
-        assert((state === reserved && owner.asUInt === io.consume.bits.asUInt) ||
-            (state === free && io.reserve.valid && io.reserve.bits.asUInt === io.consume.bits.asUInt),
-            "early-load consumption requires its exact reserved full token")
-        state := active
+        assert(PopCount(consumeMatches) === 1.U,
+            "early-load consumption requires exactly one reserved or freshly reserved full token")
     }
     when(io.cancelReservation.valid) {
-        assert(!io.consume.valid && state === reserved && owner.asUInt === io.cancelReservation.bits.asUInt,
+        assert(!io.consume.valid && PopCount(cancelMatches) === 1.U,
             "only an unconsumed exact offer may cancel its reservation")
-        state := free
+    }
+    for (slot <- 0 until p.memoryEntries; other <- 0 until slot) {
+        when(io.liveOwners(slot).valid && io.liveOwners(other).valid) {
+            assert(io.liveOwners(slot).bits.asUInt =/= io.liveOwners(other).bits.asUInt,
+                "an accepted full token owns at most one live LSU slot")
+        }
     }
 }

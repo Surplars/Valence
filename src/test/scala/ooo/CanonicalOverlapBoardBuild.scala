@@ -27,7 +27,8 @@ object CanonicalOverlapBoardBuild {
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
         postedPrefetchHeadOffer = c.postedPrefetchHeadOffer, canonicalVirtualStoreOverlap = overlap,
         frozenStoreProofTransport = c.frozenStoreProofTransport, pendingVirtualStoreProof = c.pendingVirtualStoreProof,
-        pendingVirtualStoreProofSlots = c.pendingVirtualStoreProofSlots, boundHeadStoreOverlap = c.boundHeadStoreOverlap,
+        pendingVirtualStoreProofSlots = c.pendingVirtualStoreProofSlots,
+        pendingStoreEarlyLoadCredits = c.pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = c.boundHeadStoreOverlap,
         pendingReadyStoreBypass = c.pendingReadyStoreBypass,
         backendCapacity = c.backendCapacity,
         lineageProfile = if (lineageProbes) Some(c) else None)

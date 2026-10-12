@@ -25,7 +25,7 @@ final class RobCapacityCpuActualParamsAudit(
         "audit entry profile differs from explicit native options")
     require(profile.canonicalVirtualStoreOverlap == (mode == "on"), "official treatment differs from side")
     private val expectedCore = profile.coreParams
-    require(expectedCore.productArity == 149 && !expectedCore.pendingReadyStoreBypass && !expectedCore.boundHeadStoreOverlap && !expectedCore.pendingVirtualStoreProof && !expectedCore.frozenStoreProofTransport && expectedCore.pendingVirtualStoreProofSlots == 1 && !expectedCore.publishedPmpChanges && !expectedCore.registeredPmpRegions && expectedCore.memoryEntries == 4 &&
+    require(expectedCore.productArity == 150 && !expectedCore.pendingReadyStoreBypass && !expectedCore.boundHeadStoreOverlap && !expectedCore.pendingVirtualStoreProof && !expectedCore.frozenStoreProofTransport && expectedCore.pendingVirtualStoreProofSlots == 1 && expectedCore.pendingStoreEarlyLoadCredits == 1 && !expectedCore.publishedPmpChanges && !expectedCore.registeredPmpRegions && expectedCore.memoryEntries == 4 &&
         Set(16, 32, 64).contains(expectedCore.robEntries) && expectedCore.renameWidth == 2 && expectedCore.tagBits == 64 &&
         !expectedCore.fastBufferedStoreRetire && !expectedCore.precheckedDataRequestFlow &&
         !expectedCore.translatedResponseEmptyFlow && profile.dmaLineTransfers && profile.dmaLineEntries == 4)
@@ -102,7 +102,7 @@ final class RobCapacityCpuActualParamsAudit(
             "top.board.platform.core.core.core.backend" -> backend)
         val coreRecords = modules.map { case (path, instance) =>
             val (field, actual) = unique(instance, classOf[OooParams], path)
-            require(actual.productArity == 149 && !actual.pendingReadyStoreBypass && !actual.boundHeadStoreOverlap && !actual.pendingVirtualStoreProof && !actual.frozenStoreProofTransport && actual.pendingVirtualStoreProofSlots == 1 && !actual.publishedPmpChanges && !actual.registeredPmpRegions && actual == expectedCore,
+            require(actual.productArity == 150 && !actual.pendingReadyStoreBypass && !actual.boundHeadStoreOverlap && !actual.pendingVirtualStoreProof && !actual.frozenStoreProofTransport && actual.pendingVirtualStoreProofSlots == 1 && actual.pendingStoreEarlyLoadCredits == 1 && !actual.publishedPmpChanges && !actual.registeredPmpRegions && actual == expectedCore,
                 s"actual final OooParams differs at $path (${field.getDeclaringClass.getName}.${field.getName})")
             record(instance, path, field, actual)
         }
@@ -171,7 +171,7 @@ object RobCapacityCpuGsimMain extends App {
     require(options.size == args.length - 3 && options == expected, "capacity CPU options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = false)
     require(profile.coreParams.robEntries == rob && profile.coreParams.physicalRegs == phys && profile.coreParams.memoryEntries == 4)
-    require(profile.coreParams.productArity == 149 && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && !profile.coreParams.publishedPmpChanges && profile.prefetchCandidateCycles == 1)
+    require(profile.coreParams.productArity == 150 && !profile.coreParams.pendingReadyStoreBypass && !profile.coreParams.boundHeadStoreOverlap && !profile.coreParams.pendingVirtualStoreProof && !profile.coreParams.frozenStoreProofTransport && profile.coreParams.pendingVirtualStoreProofSlots == 1 && profile.coreParams.pendingStoreEarlyLoadCredits == 1 && !profile.coreParams.publishedPmpChanges && profile.prefetchCandidateCycles == 1)
     PostedBoardConfiguration.write(profile, args(0))
     new RobCapacityCpuActualParamsAudit(profile, args(0), "on", options, experiment = "rob-capacity-cpu")
 }

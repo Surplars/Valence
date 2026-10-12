@@ -35,6 +35,7 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
     postedPrefetchHeadOffer: Boolean = false, canonicalVirtualStoreOverlap: Boolean = false, memoryProofFrontier: Boolean = false,
     frozenStoreProofTransport: Boolean = false, pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
+    pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
     backendCapacity: soc.core.ooo.BackendCapacityConfig = soc.core.ooo.BackendCapacityConfig(),
@@ -58,7 +59,8 @@ class CanonicalOverlapBoardGsim(externalDdr: Boolean = false, clockHz: Int = 400
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
-            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots, boundHeadStoreOverlap = boundHeadStoreOverlap,
+            pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
+            pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, backendCapacity = backendCapacity))
     // Passive capacity evidence, derived from the actual final backend constructor.
     private val capacityBackend = board.platform.core.core.core.backend

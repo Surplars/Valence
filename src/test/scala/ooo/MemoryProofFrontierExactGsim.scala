@@ -185,14 +185,14 @@ object MemoryProofFrontierExactFixture {
     def validate(p: OooParams): Unit = {
         val current = p.productElementNames.zip(p.productIterator).map { case (k, v) => k -> normalized(v) }.toMap
         require(current.keySet == originalFields.keySet ++ Set("memoryProofFrontier", "memoryProofRows", "memoryProofCacheSets", "postedPreparationPriority", "reconstructIssueTokenIndex", "sharedMemoryAddressState", "registeredPmpRegions", "publishedPmpChanges",
-            "frozenStoreProofTransport", "pendingVirtualStoreProof", "pendingVirtualStoreProofSlots", "boundHeadStoreOverlap", "pendingReadyStoreBypass"),
+            "frozenStoreProofTransport", "pendingVirtualStoreProof", "pendingVirtualStoreProofSlots", "pendingStoreEarlyLoadCredits", "boundHeadStoreOverlap", "pendingReadyStoreBypass"),
             "exact fixture parameter field set drift")
         originalFields.foreach { case (name, expected) =>
             require(current(name) == expected, s"exact fixture changed original core parameter $name: ${current(name)} != $expected")
         }
-        require(current.size == 149 && originalFields.size == 136)
+        require(current.size == 150 && originalFields.size == 136)
         require(!p.registeredPmpRegions && !p.publishedPmpChanges && !p.frozenStoreProofTransport &&
-            !p.pendingReadyStoreBypass && !p.boundHeadStoreOverlap && !p.pendingVirtualStoreProof && p.pendingVirtualStoreProofSlots == 1,
+            !p.pendingReadyStoreBypass && !p.boundHeadStoreOverlap && !p.pendingVirtualStoreProof && p.pendingVirtualStoreProofSlots == 1 && p.pendingStoreEarlyLoadCredits == 1,
             "historical frontier fixture keeps later optional proof/PMP experiments at their original defaults")
         require(!p.postedPreparationPriority, "historical frontier fixture keeps posted preparation priority off")
         require(!p.reconstructIssueTokenIndex, "historical frontier fixture keeps issue-token reconstruction off")

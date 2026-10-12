@@ -144,6 +144,7 @@ case class OooParams(
     frozenStoreProofTransport: Boolean = false,
     pendingVirtualStoreProof: Boolean = false,
     pendingVirtualStoreProofSlots: Int = 1,
+    pendingStoreEarlyLoadCredits: Int = 1,
     boundHeadStoreOverlap: Boolean = false,
     pendingReadyStoreBypass: Boolean = false,
     memoryProofRows: Int = 16,
@@ -166,6 +167,9 @@ case class OooParams(
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
     require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
+    require(Set(1, 2).contains(pendingStoreEarlyLoadCredits), "pending-store early loads use one or two credits")
+    require(pendingStoreEarlyLoadCredits == 1 || pendingVirtualStoreProof,
+        "additional early-load responsibility requires pending-store proofs")
     require(!frozenStoreProofTransport || (canonicalVirtualStoreOverlap && virtualRamLoadPrecheck &&
         registeredMemoryRequests && registeredTranslationHeads),
         "frozen-store transport requires canonical origins and registered request/translation ownership")

@@ -92,7 +92,7 @@ def main():
                 run(name+'-'+args.stage+'-positive',[binary],anchor)
                 if stem=='bank':
                     run(name+'-'+args.stage+'-mutate-full-tag',[binary,'--mutate-full-tag'],'independent full-tuple oracle mismatch',True)
-                    run(name+'-'+args.stage+'-double-reserve',[binary,'--assert-double-reserve'],'exactly one early-load credit',True)
+                    run(name+'-'+args.stage+'-double-reserve',[binary,'--assert-double-reserve'],'early-load reserve requires a pre-edge free entry',True)
                 elif stem=='backend':
                     run(name+'-'+args.stage+'-mutate-data',[binary,'--mutate-data'],'independent execution data mismatch',True)
                     if name=='backend1':run(name+'-'+args.stage+'-mutate-retirement',[binary,'--mutate-retirement'],'fault/killed/duplicate retirement',True)

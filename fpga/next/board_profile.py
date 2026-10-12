@@ -57,6 +57,7 @@ def compare_constructor(mode, actual):
         expected[section]["boundHeadStoreOverlap"] = False
         expected[section]["pendingReadyStoreBypass"] = False
         expected[section]["pendingVirtualStoreProofSlots"] = 1
+        expected[section]["pendingStoreEarlyLoadCredits"] = 1
     for section in ("profile", "cache"):
         expected[section]["readPrefetchStoreHold"] = False
         expected[section]["durableReadPrefetchCandidate"] = False

@@ -25,7 +25,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
         for (legal <- Seq(published, combined)) {
             FpgaNextProfileOptions.validate(legal)
             val config = FpgaNextConfig.fromOptions(legal.toSet, defaultSelected = true)
-            assert(config.productArity == 56 && config.coreParams.productArity == 149 && config.cache.productArity == 19)
+            assert(config.productArity == 57 && config.coreParams.productArity == 150 && config.cache.productArity == 19)
             assert(config.robEntries.isEmpty && config.physicalRegs.isEmpty)
             assert(config.coreParams.robEntries == 16 && config.coreParams.physicalRegs == 48)
         }
@@ -44,7 +44,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
     }
 
     test("proof bank and transport default off without changing the published profile") {
-        assert(!off.pendingReadyStoreBypass && !off.boundHeadStoreOverlap && !off.pendingVirtualStoreProof && !off.frozenStoreProofTransport && off.pendingVirtualStoreProofSlots == 1)
+        assert(!off.pendingReadyStoreBypass && !off.boundHeadStoreOverlap && !off.pendingVirtualStoreProof && !off.frozenStoreProofTransport && off.pendingVirtualStoreProofSlots == 1 && off.pendingStoreEarlyLoadCredits == 1)
         assert(!off.coreParams.frozenStoreProofEnabled && !FpgaNextConfig.Selected.pendingReadyStoreBypass && !FpgaNextConfig.Selected.boundHeadStoreOverlap && !FpgaNextConfig.Selected.pendingVirtualStoreProof)
         for (slots <- Seq(1, 2)) {
             val on = FpgaNextConfig.fromOptions(options ++ Set("--frozen-store-proof-transport",
@@ -83,7 +83,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
             assert(overlap.copy(boundHeadStoreOverlap = false) == proof)
             assert(overlap.coreParams.copy(boundHeadStoreOverlap = false) == proof.coreParams)
             assert(overlap.cache == proof.cache && overlap.ddr == proof.ddr && overlap.storage == proof.storage)
-            assert(overlap.coreParams.productArity == 149 && overlap.productArity == 56)
+            assert(overlap.coreParams.productArity == 150 && overlap.productArity == 57)
         }
         intercept[IllegalArgumentException] { off.copy(boundHeadStoreOverlap = true) }
         intercept[IllegalArgumentException] { off.coreParams.copy(boundHeadStoreOverlap = true) }
@@ -116,6 +116,41 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
         intercept[IllegalArgumentException] { off.coreParams.copy(pendingReadyStoreBypass = true) }
         intercept[IllegalArgumentException] {
             FpgaNextProfileOptions.validate(Seq("--pending-ready-store-bypass", "--pending-ready-store-bypass"))
+        }
+    }
+    test("early-load credits are independently bounded and explicitly routed") {
+        assert(OooParams().pendingStoreEarlyLoadCredits == 1 && off.pendingStoreEarlyLoadCredits == 1)
+        for (slots <- Seq(1, 2); credits <- Seq(1, 2)) {
+            val selected = options ++ Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
+                s"--pending-virtual-store-proof-slots=$slots", s"--pending-store-early-load-credits=$credits")
+            FpgaNextProfileOptions.validate(selected.toSeq)
+            val on = FpgaNextConfig.fromOptions(selected, defaultSelected = true)
+            assert(on.pendingStoreEarlyLoadCredits == credits && on.coreParams.pendingStoreEarlyLoadCredits == credits)
+            assert(on.pendingVirtualStoreProofSlots == slots && on.coreParams.pendingVirtualStoreProofSlots == slots)
+            assert(on.coreParams.memoryEntries == 4 && on.coreParams.robEntries == 16 &&
+                on.coreParams.physicalRegs == 48 && on.dataTranslationEntries == 16)
+            assert(on.copy(pendingStoreEarlyLoadCredits = 1, pendingVirtualStoreProofSlots = 1,
+                pendingVirtualStoreProof = false, frozenStoreProofTransport = false) == off)
+            assert(on.cache == off.cache && on.ddr == off.ddr && on.storage == off.storage)
+            val old = on.copy(pendingStoreEarlyLoadCredits = 1)
+            assert(on.coreParams.copy(pendingStoreEarlyLoadCredits = 1) == old.coreParams)
+        }
+        val on = off.copy(frozenStoreProofTransport = true, pendingVirtualStoreProof = true)
+        for (credits <- Seq(0, 3)) {
+            intercept[IllegalArgumentException] { on.copy(pendingStoreEarlyLoadCredits = credits) }
+            intercept[IllegalArgumentException] { on.coreParams.copy(pendingStoreEarlyLoadCredits = credits) }
+            intercept[IllegalArgumentException] {
+                FpgaNextProfileOptions.validate(Seq(s"--pending-store-early-load-credits=$credits"))
+            }
+        }
+        intercept[IllegalArgumentException] { off.copy(pendingStoreEarlyLoadCredits = 2) }
+        intercept[IllegalArgumentException] { off.coreParams.copy(pendingStoreEarlyLoadCredits = 2) }
+        intercept[IllegalArgumentException] {
+            FpgaNextConfig.fromOptions(options ++ Set("--pending-store-early-load-credits=1",
+                "--pending-store-early-load-credits=2"), defaultSelected = true)
+        }
+        intercept[IllegalArgumentException] {
+            FpgaNextProfileOptions.validate(Seq.fill(2)("--pending-store-early-load-credits=2"))
         }
     }
     test("capacity staging and original frontier qualification fail closed") {

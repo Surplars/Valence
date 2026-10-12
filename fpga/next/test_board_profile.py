@@ -41,6 +41,7 @@ class BoardProfileTests(unittest.TestCase):
                               "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass"):
                     expected[section][field] = False
                 expected[section]["pendingVirtualStoreProofSlots"] = 1
+                expected[section]["pendingStoreEarlyLoadCredits"] = 1
             for section in ("profile", "cache"):
                 for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption", "readPrefetchStoreHold",
                               "durableReadPrefetchCandidate", "readPrefetchBehindStore"):
@@ -50,7 +51,7 @@ class BoardProfileTests(unittest.TestCase):
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (56, 149, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (57, 150, 19))
         fields = [(s, f) for s in ("profile", "core")
                   for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass")]
         fields += [(s, f) for s in ("profile", "cache")
@@ -64,6 +65,16 @@ class BoardProfileTests(unittest.TestCase):
                 else:
                     actual[section][field] = True
                 with self.subTest(section=section, field=field, mutation=mutation), self.assertRaises(RuntimeError):
+                    compare(actual)
+        for section in ("profile", "core"):
+            self.assertEqual(expected[section]["pendingStoreEarlyLoadCredits"], 1)
+            for value in (None, 0, 2):
+                actual = copy.deepcopy(expected)
+                if value is None:
+                    del actual[section]["pendingStoreEarlyLoadCredits"]
+                else:
+                    actual[section]["pendingStoreEarlyLoadCredits"] = value
+                with self.assertRaises(RuntimeError):
                     compare(actual)
         for section in ("profile", "core"):
             self.assertEqual(expected[section]["pendingVirtualStoreProofSlots"], 1)
@@ -120,6 +131,7 @@ class BoardProfileTests(unittest.TestCase):
                 current[section]["boundHeadStoreOverlap"] = False
                 current[section]["pendingReadyStoreBypass"] = False
                 current[section]["pendingVirtualStoreProofSlots"] = 1
+                current[section]["pendingStoreEarlyLoadCredits"] = 1
             for section in ("profile", "cache"):
                 current[section]["readPrefetchStoreHold"] = False
                 current[section]["durableReadPrefetchCandidate"] = False

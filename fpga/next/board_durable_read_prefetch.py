@@ -41,7 +41,11 @@ def expected_constructor():
     for section in ("profile", "cache"):
         for key in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
             expected[section][key] = True
-    if expected != spec["constructor_profile"]:
+    historical = copy.deepcopy(expected)
+    for section in ("profile", "core"):
+        if historical[section].pop("pendingStoreEarlyLoadCredits") != 1:
+            raise RuntimeError("published durable READ profile retains one early-load credit")
+    if historical != spec["constructor_profile"]:
         raise RuntimeError("complete durable READ constructor differs from executed reference")
     return expected
 

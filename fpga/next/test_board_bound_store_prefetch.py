@@ -47,12 +47,13 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
         reference = candidate.load_manifest()["constructor_profile"]
         historical = copy.deepcopy(expected)
         for section in ("profile", "core"):
+            self.assertEqual(historical[section].pop("pendingStoreEarlyLoadCredits"), 1)
             self.assertIs(historical[section].pop("pendingReadyStoreBypass"), False)
         for section in ("profile", "cache"):
             for field in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
                 self.assertIs(historical[section].pop(field), False)
         self.assertEqual(historical, reference)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (56, 149, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (57, 150, 19))
         self.assertEqual(tuple(len(reference[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
         self.assertIsNone(reference["profile"]["robEntries"])
         self.assertIsNone(reference["profile"]["physicalRegs"])

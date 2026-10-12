@@ -117,12 +117,14 @@ def main():
     ap.add_argument("--frozen-store-proof-transport", action="store_true",
                     help="default-off full frozen actual-store payload, independent of frontier scheduling")
     ap.add_argument("--pending-virtual-store-proof", action="store_true",
-                    help="default-off R16/PRF48 pending-store proof and one early-load credit")
+                    help="default-off R16/PRF48 pending-store proof and bounded early-load credits")
     ap.add_argument("--bound-head-store-overlap", action="store_true",
                     help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
     ap.add_argument("--pending-ready-store-bypass", action="count", default=0,
                     help="default-off bypass of proved data-ready non-head stores; requires bound head overlap")
     ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
+    ap.add_argument("--pending-store-early-load-credits", type=int, choices=(1, 2), default=1,
+                    help="bounded total of reserved plus active early-load responsibilities; default 1")
     ap.add_argument("--memory-proof-frontier", action="store_true",
                     help="default-off unqualified bounded proof frontier; reviewed ROB64/PRF64/LSU4 only")
     ap.add_argument("--canonical-virtual-store-overlap", action="store_true",
@@ -149,7 +151,12 @@ def main():
     ap.add_argument("--mixed-store-stream", action="store_true",
                     help="also run identical 64KiB read streams with one scratch store every16/64 lines")
     ap.add_argument("--smoke-only", action="store_true", help="omit steady-memory run, but build the same full model")
-    args = ap.parse_args()
+    raw_args = sys.argv[1:]
+    args = ap.parse_args(raw_args)
+    if sum(option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args) > 1:
+        ap.error("duplicate --pending-store-early-load-credits capacity")
+    if args.pending_store_early_load_credits != 1 and not args.pending_virtual_store_proof:
+        ap.error("--pending-store-early-load-credits=2 requires --pending-virtual-store-proof")
     for name in ("durable_read_prefetch_candidate", "read_prefetch_behind_store"):
         if getattr(args, name) > 1:
             ap.error("duplicate --" + name.replace("_", "-") + " flag")
@@ -368,6 +375,9 @@ def main():
         parameters.append("--pending-ready-store-bypass")
     if args.pending_virtual_store_proof_slots != 1:
         parameters.append(f"--pending-virtual-store-proof-slots={args.pending_virtual_store_proof_slots}")
+    if args.pending_store_early_load_credits != 1 or any(
+            option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args):
+        parameters.append(f"--pending-store-early-load-credits={args.pending_store_early_load_credits}")
     plan = {"rob_entries_override": args.rob_entries, "physical_regs_override": args.physical_regs,
             "canonical_virtual_store_overlap": args.canonical_virtual_store_overlap,
             "memory_proof_frontier": args.memory_proof_frontier,
@@ -376,6 +386,7 @@ def main():
             "bound_head_store_overlap": args.bound_head_store_overlap,
             "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,
+            "pending_store_early_load_credits": args.pending_store_early_load_credits,
             "posted_store_merge": args.posted_store_merge,
             "posted_prefetch_coexistence": args.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": args.posted_prefetch_head_offer,

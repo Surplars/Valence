@@ -42,13 +42,16 @@ def expected_constructor():
         for field in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap"):
             expected[section][field] = True
         expected[section]["pendingVirtualStoreProofSlots"] = 1
+        expected[section]["pendingStoreEarlyLoadCredits"] = 1
     for section in ("profile", "cache"):
         expected[section]["readPrefetchStoreHold"] = True
     spec = load_manifest()
     # The archived 53/148-field reference stays byte-frozen. The only later
-    # constructor field is explicitly default OFF in both complete products.
+    # constructor fields are explicitly default in both complete products.
     historical = copy.deepcopy(expected)
     for section in ("profile", "core"):
+        if historical[section].pop("pendingStoreEarlyLoadCredits") != 1:
+            raise RuntimeError("historical optional entry must retain one early-load credit")
         if historical[section].pop("pendingReadyStoreBypass") is not False:
             raise RuntimeError("historical optional entry must keep ready-store bypass off")
     for section in ("profile", "cache"):
