@@ -21,7 +21,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     readPrefetchDemandAdoption: Boolean = false, demandAdoptionTest: Boolean = false,
     postedPrefetchCoexistence: Boolean = false, readPrefetchStoreHold: Boolean = false,
     postedGenerationBits: Int = 64, durableReadPrefetchCandidate: Boolean = false,
-    readPrefetchBehindStore: Boolean = false) extends Module {
+    readPrefetchBehindStore: Boolean = false, concurrentReadStorePrefetch: Boolean = false,
+    memoryScheduleOverlap: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
@@ -31,7 +32,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         splitPrefetchTracking = splitPrefetchTracking, independentDemandAdmission = independentDemandAdmission,
         readPrefetchDirtyRetry = readPrefetchDirtyRetry, readPrefetchDemandAdoption = readPrefetchDemandAdoption,
         postedPrefetchCoexistence = postedPrefetchCoexistence, readPrefetchStoreHold = readPrefetchStoreHold,
-        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore)
+        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore,
+        concurrentReadStorePrefetch = concurrentReadStorePrefetch, memoryScheduleOverlap = memoryScheduleOverlap)
     private val postedCfg = if (demandAdoptionTest) Some(PostedStoreMergeConfig(enabled = true,
         generationBits = postedGenerationBits, cacheSets = lines / cacheWays, cacheWays = cacheWays,
         readMshrs = mshrs, responseEntries = responseEntries, writebackEntries = writebacks,
@@ -143,7 +145,7 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     }
     val home = CoherentLineHomeModule.build(coherent, base, bytes, trackedLines = lines,
         trackedWays = 2, acquireEntries = mshrs, tagConfig = tags, writebackEntries = writebacks,
-        mixedReadWrite = mixed, distinctWayRelease = distinctWayRelease)
+        mixedReadWrite = mixed, distinctWayRelease = distinctWayRelease, memoryScheduleOverlap = memoryScheduleOverlap)
     val atomic = Module(new AtomicDataMemory(base, bytes, registerResponseOwners = true))
     val requests = Module(new DataRequestBuffer(registerHead = true))
     val ordered = Module(new OrderedTileLinkBridge(allowWriteErrors = true, allowPartialWrites = true))

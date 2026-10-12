@@ -12,10 +12,10 @@ class SplitPrefetchTrackingConfigSpec extends AnyFunSuite {
             assert(!base.splitPrefetchTracking && !base.cache.splitPrefetchTracking)
             val off = base.copy(storeNextLinePrefetch = true)
             val on = off.copy(splitPrefetchTracking = true)
-            assert(on.productArity == 58 && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+            assert(on.productArity == 61 && !on.internalLineGrant && !on.concurrentReadStorePrefetch && !on.memoryScheduleOverlap && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
                 !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
-                on.cache.productArity == 19)
+                on.cache.productArity == 22 && !on.cache.internalLineGrant && !on.cache.concurrentReadStorePrefetch)
             assert(on.copy(splitPrefetchTracking = false) == off)
             assert(on.cache.copy(splitPrefetchTracking = false) == off.cache)
             assert(on.coreParams == off.coreParams && on.ddr == off.ddr && on.tags == off.tags)

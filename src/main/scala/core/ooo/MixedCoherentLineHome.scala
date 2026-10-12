@@ -27,8 +27,10 @@ class MixedCoherentLineHome(
     dmaLineEntries: Int = 1,
     val distinctWayRelease: Boolean = false,
     val lineTransferDispatchFlow: Boolean = false,
-    val lineReadChannel: Boolean = false
-) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel) {
+    val lineReadChannel: Boolean = false,
+    val internalLineGrant: Boolean = false,
+    val memoryScheduleOverlap: Boolean = false
+) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
     require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
@@ -37,6 +39,8 @@ class MixedCoherentLineHome(
     require(Set(1, 2).contains(trackedWays) && trackedLines / trackedWays >= acquireEntries,
         "each Acquire entry needs an independently reservable directory set")
     require(Set(1, 2, 4).contains(writebackEntries))
+    require(!memoryScheduleOverlap || (mixedReadWrite && acquireEntries == 2 &&
+        writebackEntries == 2 && trackedWays == 2), "overlap requires exact two-way mixed ownership")
     require(!distinctWayRelease || (mixedReadWrite && acquireEntries == 2 &&
         writebackEntries == 2 && trackedWays == 2),
         "distinct-way release requires the original two-way mixed home profile")
@@ -74,11 +78,17 @@ class MixedCoherentLineHome(
     private def ownedSlot(address: UInt, readTags: Seq[UInt]): UInt =
         if (trackedWays == 1) waySlot(address, 0)
         else Mux(wayHit(address, 0, readTags), waySlot(address, 0), waySlot(address, 1))
+    private def directoryAvailable(address: UInt, way: Int): Bool = {
+        val slot = waySlot(address, way)
+        !owned(slot) && (if (memoryScheduleOverlap)
+            !(0 until acquireEntries).map(i => active(i) && directory(i) === slot).reduce(_ || _)
+        else true.B)
+    }
     private def freeDirectory(address: UInt): Bool =
-        (0 until trackedWays).map(i => !owned(waySlot(address, i))).reduce(_ || _)
+        (0 until trackedWays).map(directoryAvailable(address, _)).reduce(_ || _)
     private def freeDirectorySlot(address: UInt): UInt =
         if (trackedWays == 1) waySlot(address, 0)
-        else Mux(!owned(waySlot(address, 0)), waySlot(address, 0), waySlot(address, 1))
+        else Mux(directoryAvailable(address, 0), waySlot(address, 0), waySlot(address, 1))
 
     private val free :: queued :: filling :: grantReady :: waitE :: Nil = Enum(5)
     private val phase = RegInit(VecInit(Seq.fill(acquireEntries)(free)))
@@ -159,7 +169,7 @@ class MixedCoherentLineHome(
     // A remains set-serialized through E. Only a complete dirty victim may
     // start C beside a distinct transient line; its committed directory owner
     // is checked below, outside C.ready's functional tag-read cone.
-    private val distinctRelease = if (distinctWayRelease)
+    private val distinctRelease = if (distinctWayRelease || memoryScheduleOverlap)
         port.c.bits.opcode === TLOpcode.ReleaseData && !(0 until acquireEntries).map(i =>
             active(i) && addresses(i)(63, 6) === port.c.bits.address(63, 6)).reduce(_ || _)
     else false.B
@@ -179,7 +189,7 @@ class MixedCoherentLineHome(
         when(!capturing) {
             assert(inRam(port.c.bits.address) && port.c.bits.address(5, 0) === 0.U &&
                 lineOwned(port.c.bits.address, releaseTags), "release has no committed directory owner")
-            if (distinctWayRelease) {
+            if (distinctWayRelease || memoryScheduleOverlap) {
                 for (i <- 0 until acquireEntries) {
                     when(active(i)) {
                         assert(addresses(i)(63, 6) =/= port.c.bits.address(63, 6) &&
@@ -212,7 +222,7 @@ class MixedCoherentLineHome(
     when(port.c.valid && capturing) {
         assert(isRelease, "probe C interleaved a release burst")
     }
-    if (distinctWayRelease) {
+    if (distinctWayRelease || memoryScheduleOverlap) {
         // owned is a Reg Vec. Last C and E may write different full slots on
         // one edge. A pending WB's saved directory is historical after last C.
         when(capturing) {
@@ -271,8 +281,11 @@ class MixedCoherentLineHome(
     private val canAcquire = !io.drainRequest && !anyDmaLine && maintenance === mIdle && reads === 0.U && !directHeld &&
         ((!upperWaiting && !io.upstream.request.valid && !linePending) || preferAcquire) &&
         freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
-        !transientSet(port.a.bits.address) && !releaseSet(port.a.bits.address) &&
-        !(releaseOffer && setOf(port.c.bits.address) === setOf(port.a.bits.address)) &&
+        (if (memoryScheduleOverlap) !(0 until acquireEntries).map(i => active(i) &&
+            addresses(i)(63, 6) === port.a.bits.address(63, 6)).reduce(_ || _) else !transientSet(port.a.bits.address)) &&
+        !releaseSet(port.a.bits.address) &&
+        !(releaseOffer && (if (memoryScheduleOverlap) port.c.bits.address(63, 6) === port.a.bits.address(63, 6)
+            else setOf(port.c.bits.address) === setOf(port.a.bits.address))) &&
         freeDirectory(port.a.bits.address)
     port.a.ready := canAcquire
     // Reader readiness does not affect A admission. A failed direct dispatch
@@ -580,13 +593,35 @@ class MixedCoherentLineHome(
     port.d.bits.denied := !sendRelease && errors(grantEntry)
     port.d.bits.corrupt := !sendRelease && errors(grantEntry)
     port.d.bits.data := Mux(sendRelease || errors(grantEntry), 0.U, data(grantEntry)(dBeat))
-    when(port.d.valid && !dLocked) { dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease }
+    private val grantFire = if (internalLineGrant) {
+        val grant = io.lineGrants.get(0)
+        // Preserve the shared arbitration/held-owner cut. ReleaseAck stays on
+        // standard D; a data Grant uses exactly one of the two transports.
+        port.d.valid := sendRelease && releaseAckMask(ackRelease)
+        grant.valid := !sendRelease && grantMask(grantEntry)
+        grant.bits.source := sources(grantEntry)
+        grant.bits.sink := grantEntry
+        grant.bits.cap := TLPermissions.toT
+        grant.bits.denied := errors(grantEntry)
+        grant.bits.corrupt := errors(grantEntry)
+        grant.bits.data := Mux(errors(grantEntry), 0.U, data(grantEntry).asUInt)
+        when((port.d.valid || grant.valid) && !dLocked) {
+            dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease
+        }
+        grant.fire
+    } else {
+        when(port.d.valid && !dLocked) { dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease }
+        port.d.fire && !sendRelease
+    }
     when(port.d.fire) {
         when(sendRelease) {
             releaseRetired := true.B
             releasePhases(ackRelease) := rIdle
             dLocked := false.B
-        }.elsewhen(dBeat === 7.U) {
+        }
+    }
+    when(grantFire) {
+        when(internalLineGrant.B || dBeat === 7.U) {
             phase(grantEntry) := waitE
             dBeat := 0.U
             dTurn := grantEntry + 1.U
@@ -618,7 +653,9 @@ class MixedCoherentLineHome(
     for (i <- 0 until acquireEntries; j <- i + 1 until acquireEntries) {
         when(active(i) && active(j)) {
             assert(sources(i) =/= sources(j), "duplicate live Acquire source")
-            assert(setOf(addresses(i)) =/= setOf(addresses(j)), "overlapping transient cache sets")
+            if (memoryScheduleOverlap) {
+                assert(addresses(i)(63, 6) =/= addresses(j)(63, 6), "duplicate transient physical line")
+            } else assert(setOf(addresses(i)) =/= setOf(addresses(j)), "overlapping transient cache sets")
             assert(directory(i) =/= directory(j), "duplicate reserved directory slot")
         }
     }

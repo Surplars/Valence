@@ -49,6 +49,10 @@ def expected_constructor():
     # The archived 53/148-field reference stays byte-frozen. The only later
     # constructor fields are explicitly default in both complete products.
     historical = copy.deepcopy(expected)
+    for section in ("profile", "cache"):
+        for field in ("internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
+            if historical[section].pop(field) is not False:
+                raise RuntimeError("historical entry must keep line Grant / dual-origin prefetch off")
     for section in ("profile", "core"):
         if historical[section].pop("taggedStoreReturns") is not False:
             raise RuntimeError("historical optional entry must keep tagged store returns off")

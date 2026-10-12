@@ -24,7 +24,7 @@ def original_expected(mode):
         expected[section]['pendingStoreEarlyLoadCredits']=1
     for section in ('profile','cache'):
         for field in ('readPrefetchDirtyRetry','readPrefetchDemandAdoption','readPrefetchStoreHold',
-                      'durableReadPrefetchCandidate','readPrefetchBehindStore'):
+                      'durableReadPrefetchCandidate','readPrefetchBehindStore','internalLineGrant','concurrentReadStorePrefetch','memoryScheduleOverlap'):
             expected[section][field]=False
     return expected
 

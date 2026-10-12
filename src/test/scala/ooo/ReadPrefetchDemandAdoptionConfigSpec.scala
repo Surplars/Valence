@@ -16,7 +16,7 @@ class ReadPrefetchDemandAdoptionConfigSpec extends AnyFunSuite {
             assert(!p.readPrefetchDemandAdoption && !p.cache.readPrefetchDemandAdoption)
         val on = off.copy(readPrefetchDemandAdoption = true)
         assert(on.copy(readPrefetchDemandAdoption = false) == off)
-        assert(on.productArity == 19 && on.readMshrs == 2 && on.responseEntries == 2 && on.writebackEntries == 2)
+        assert(on.productArity == 22 && !on.internalLineGrant && !on.concurrentReadStorePrefetch && !on.memoryScheduleOverlap && on.readMshrs == 2 && on.responseEntries == 2 && on.writebackEntries == 2)
         assert(!on.readPrefetchDirtyRetry && !on.distinctWayRelease)
     }
     test("adoption requires existing independent split overlapping owners") {

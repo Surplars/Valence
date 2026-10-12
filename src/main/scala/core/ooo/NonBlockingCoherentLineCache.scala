@@ -17,7 +17,7 @@ class NonBlockingCoherentLineCache(
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     postedConfig: Option[PostedStoreMergeConfig] = None,
     returnConfig: Option[CpuReturnConfig] = None
-) extends CoherentLineCacheModule(params, postedConfig, returnConfig) {
+) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(Set(1, 2).contains(ways) && lines / ways >= 2)
@@ -320,7 +320,9 @@ class NonBlockingCoherentLineCache(
     private val probeBeat = RegInit(0.U(3.W))
     private val eIdle :: eCapture :: eSend :: eAck :: Nil = Enum(4)
     private val evictionState = RegInit(eIdle)
-    private val ownerMiss :: ownerBypass :: ownerFlush :: Nil = Enum(3)
+    // The fourth value uses the same existing two bits. Captured-miss WB duty
+    // is independent of the originating MSHR after the immutable SRAM snapshot.
+    private val ownerMiss :: ownerBypass :: ownerFlush :: ownerCapturedMiss :: Nil = Enum(4)
     private val evictionOwner = Reg(UInt(2.W))
     private val evictionMshr = Reg(UInt(mshrBits.W))
     private val evictionAddress = Reg(UInt(64.W))
@@ -350,7 +352,9 @@ class NonBlockingCoherentLineCache(
     private val ackInRange = io.tl.d.bits.source >= concurrency.releaseSource.U &&
         io.tl.d.bits.source < (concurrency.releaseSource + wbCount).U
     private val pendingMissWrite = VecInit((0 until mshrCount).map(i =>
-        VecInit((0 until wbCount).map(j => wbLive(j) && (if (concurrency.overlapWritebackRefill) !wbSent(j) else true.B) && wbOwner(j) === ownerMiss && wbMshr(j) === i.U)).asUInt.orR))
+        VecInit((0 until wbCount).map(j => wbLive(j) &&
+            (if (concurrency.overlapWritebackRefill) !wbSent(j) else true.B) &&
+            (wbOwner(j) === ownerMiss || wbOwner(j) === ownerCapturedMiss) && wbMshr(j) === i.U)).asUInt.orR))
 
     // The home may publish T ownership at E before the local result installs.
     // A B for that line waits for installation, independently of CPU DREADY.
@@ -460,11 +464,15 @@ class NonBlockingCoherentLineCache(
             wbSlot := wbFree
             wbLive(wbFree) := true.B
             wbSent(wbFree) := false.B
-            wbOwner(wbFree) := Mux(evictFromMiss, ownerMiss, Mux(evictFromBypass, ownerBypass, ownerFlush))
+            wbOwner(wbFree) := Mux(evictFromMiss,
+                Mux(concurrency.memoryScheduleOverlap.B && !postedEvict, ownerCapturedMiss, ownerMiss),
+                Mux(evictFromBypass, ownerBypass, ownerFlush))
             wbMshr(wbFree) := evictMshr
             wbAddress(wbFree) := evictAddress
         }
-        evictionOwner := Mux(evictFromMiss, ownerMiss, Mux(evictFromBypass, ownerBypass, ownerFlush))
+        evictionOwner := Mux(evictFromMiss,
+            Mux(concurrency.memoryScheduleOverlap.B && !postedEvict, ownerCapturedMiss, ownerMiss),
+            Mux(evictFromBypass, ownerBypass, ownerFlush))
         evictionMshr := evictMshr
         evictionAddress := evictAddress
         evictionDirty := dirty(evictIndex)
@@ -553,9 +561,11 @@ class NonBlockingCoherentLineCache(
     // writeback target checks above exclude aliases. No accepted read loses its
     // snapshot, ticket or maintenance ownership when a disjoint store is admitted.
     private val independentStoreHit = concurrency.independentDemandAdmission.B &&
-        !prefetchRefillPending && !queuedEvictWanted && reservationSafe
+        !prefetchRefillPending &&
+        (if (concurrency.memoryScheduleOverlap) !queuedEvictionRead else !queuedEvictWanted) && reservationSafe
     private val storeHitSafe = ((mshrEmpty && wbEmpty) || prefetchOnlyHit || independentStoreHit) &&
-        evictionState === eIdle && probeState === pIdle && bypassState === bIdle
+        (evictionState === eIdle || (concurrency.memoryScheduleOverlap.B && evictionState === eSend)) &&
+        probeState === pIdle && bypassState === bIdle
     private val barrierSafe = responseEmpty && mshrEmpty && wbEmpty && evictionState === eIdle &&
         probeState === pIdle && bypassState === bIdle
     private val needsMissSlot = ordinary && !found
@@ -755,6 +765,13 @@ class NonBlockingCoherentLineCache(
         evictionWords := Mux(evictionDirty, readWords, 0.U.asTypeOf(evictionWords))
         evictionBeat := 0.U
         evictionState := eSend
+        if (concurrency.memoryScheduleOverlap) {
+            when(evictionOwner === ownerCapturedMiss) {
+                assert(phase(evictionMshr) === evictWait && !isPosted(evictionMshr),
+                    "early Acquire requires the exact retained legacy victim owner")
+                phase(evictionMshr) := acquire
+            }
+        }
     }
 
     private val acquireTagBits = postedConfig.map(c => mshrBits + c.lineBits + c.generationBits + 2).getOrElse(mshrBits)
@@ -763,7 +780,9 @@ class NonBlockingCoherentLineCache(
         entries = concurrency.acquireEntries, tagBits = acquireTagBits,
         observeIssued = postedConfig.nonEmpty || concurrency.distinctWayRelease ||
             concurrency.readPrefetchDemandAdoption,
-        observeFailedOwners = concurrency.readPrefetchDemandAdoption))
+        observeFailedOwners = concurrency.readPrefetchDemandAdoption,
+        internalLineGrant = concurrency.internalLineGrant))
+    io.lineGrant.foreach(engine.io.lineGrant.get <> _)
     private def transactionTag(m: UInt): UInt = postedConfig.map { c =>
         val kind = Mux(isPosted(m), 2.U(2.W), Mux(prefetchOwner(m), 1.U(2.W), 0.U(2.W)))
         Cat(kind, Mux(isPosted(m), postedContext.get(m).owner.generation, 0.U(c.generationBits.W)),
@@ -902,7 +921,12 @@ class NonBlockingCoherentLineCache(
         results(fillTicket).error := engine.io.response.bits.error
         results(fillTicket).pageFault := false.B
         responseComplete(fillTicket) := true.B
-        phase(fillMshr) := result
+        if (concurrency.memoryScheduleOverlap) {
+            // Complete payload/error/ticket remains in the existing response
+            // ledger. Its backpressure no longer owns a cache fill reservation.
+            phase(fillMshr) := free
+            demandAttached.foreach(_(fillMshr) := false.B)
+        } else phase(fillMshr) := result
         }.otherwise { phase(fillMshr) := free }
     }
     private val installLine = (refill && !engine.io.response.bits.error) || postedInstall
@@ -952,6 +976,12 @@ class NonBlockingCoherentLineCache(
         val storeTrackedAddress = if (concurrency.splitPrefetchTracking) Some(Reg(UInt(64.W))) else None
         val storeTrackedIndex = if (concurrency.splitPrefetchTracking) Some(Reg(UInt(indexBits.W))) else None
         val liveOwner = VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free)).asUInt.orR
+        // Separate speculative classes without adding an owner/queue. A live
+        // attached READ remains a demand responsibility; each unattached origin
+        // may occupy at most one of the same two physical MSHRs.
+        val liveStoreOwner = if (concurrency.concurrentReadStorePrefetch)
+            VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free &&
+                storePrefetchOwner.get(i))).asUInt.orR else liveOwner
         // Release owner survives MSHR reuse; never infer it from wbMshr's
         // current prefetch bit after early writeback/refill overlap.
         val releaseBusy = wbPrefetch.map(v => VecInit((0 until wbCount).map(i =>
@@ -961,10 +991,12 @@ class NonBlockingCoherentLineCache(
         // or captured WB ownership. Store prediction keeps its original gates.
         val unattachedOwner = if (concurrency.readPrefetchDemandAdoption)
             VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free &&
-                !isDemandAttached(i.U))).asUInt.orR else liveOwner
+                !isDemandAttached(i.U) && (!concurrency.concurrentReadStorePrefetch.B ||
+                    !storePrefetchOwner.get(i)))).asUInt.orR else liveOwner
         val readCandidateOwner = if (concurrency.readPrefetchDemandAdoption)
             VecInit((0 until mshrCount).map(i => prefetchOwner(i) && phase(i) =/= free &&
-                !isDemandAttached(i.U) && !(demandAttach && attachMshr === i.U))).asUInt.orR else liveOwner
+                !isDemandAttached(i.U) && !(demandAttach && attachMshr === i.U) &&
+                (!concurrency.concurrentReadStorePrefetch.B || !storePrefetchOwner.get(i)))).asUInt.orR else liveOwner
         val sentPrefetchWritebacks = if (concurrency.readPrefetchDemandAdoption)
             VecInit((0 until wbCount).map(i => !wbLive(i) || !wbPrefetch.get(i) || wbSent(i))).asUInt.andR
         else false.B
@@ -1071,7 +1103,7 @@ class NonBlockingCoherentLineCache(
             history.io.acceptedStore := cpuFire && ordinary && request.write
             history.io.address := request.address
             history.io.currentlyAllowed := request.prefetchNextAllowed
-            history.io.candidateAvailable := postedPrefetchAllowed && !candidateValid && !liveOwner && !releaseBusy &&
+            history.io.candidateAvailable := postedPrefetchAllowed && !candidateValid && !liveStoreOwner && !releaseBusy &&
                 (if (concurrency.splitPrefetchTracking) !storeTrackedValid.get || storeConsume || !storeTrackedPresent
                 else !trackedValid || consume || !trackedPresent)
             history.io.clear := io.flushRequest || (cpuFire && !ordinary)
@@ -1184,10 +1216,14 @@ class NonBlockingCoherentLineCache(
             pendingIndex(i)(setBits - 1, 0) === lineSet(candidateAddress))).asUInt.orR
         val victimPending = VecInit((0 until wbCount).map(i => wbLive(i) &&
             wbAddress(i)(63, 6) === candidateAddress(63, 6))).asUInt.orR
-        val demandMiss = io.upstream.request.valid && ((needsMissSlot && !reservedSet) || barrierRequest || request.write)
+        // With full-way admission a demand miss can be accepted beside another
+        // owner in the same set. Whole-set rejection no longer proves it cannot
+        // reserve the free MSHR. Give every offered demand miss first refusal.
+        val demandMiss = io.upstream.request.valid &&
+            ((needsMissSlot && (concurrency.concurrentReadStorePrefetch.B || !reservedSet)) || barrierRequest || request.write)
         val readCandidate = !candidateStore.getOrElse(false.B)
         val speculativeOwnerAvailable = if (concurrency.readPrefetchDemandAdoption)
-            Mux(readCandidate, !unattachedOwner, !liveOwner) else !liveOwner
+            Mux(readCandidate, !unattachedOwner, !liveStoreOwner) else !liveOwner
         val speculativeReleaseAvailable = if (concurrency.readPrefetchDemandAdoption)
             Mux(readCandidate, readReleaseAllowed, !releaseBusy) else !releaseBusy
         val victimCreditAvailable = if (concurrency.readPrefetchDemandAdoption) !valid(pfIndex) || wbSpace else true.B
@@ -1350,7 +1386,7 @@ class NonBlockingCoherentLineCache(
         }
         val retiringOwner = if (wbCount == 1) evictionOwner else wbOwner(ackIndex)
         val retiringMshr = if (wbCount == 1) evictionMshr else wbMshr(ackIndex)
-        when(retiringOwner === ownerMiss) {
+        when(retiringOwner === ownerMiss || retiringOwner === ownerCapturedMiss) {
             if (!concurrency.overlapWritebackRefill) phase(retiringMshr) := acquire
         }
             .elsewhen(retiringOwner === ownerBypass) { bypassState := bSend }
@@ -1539,8 +1575,16 @@ class NonBlockingCoherentLineCache(
         evictionState === eCapture && evictionDirty)) <= 1.U,
         "SRAM read result has more than one owner")
     if (concurrency.readPrefetchDemandAdoption) {
-        assert(PopCount((0 until mshrCount).map(i => phase(i) =/= free && prefetchOwner(i) &&
-            !isDemandAttached(i.U))) <= 1.U, "more than one unattached prefetch owner")
+        if (concurrency.concurrentReadStorePrefetch) {
+            for (store <- Seq(false, true)) {
+                assert(PopCount((0 until mshrCount).map(i => phase(i) =/= free && prefetchOwner(i) &&
+                    !isDemandAttached(i.U) && storePrefetchOwner.get(i) === store.B)) <= 1.U,
+                    "more than one unattached prefetch owner of one origin")
+            }
+        } else {
+            assert(PopCount((0 until mshrCount).map(i => phase(i) =/= free && prefetchOwner(i) &&
+                !isDemandAttached(i.U))) <= 1.U, "more than one unattached prefetch owner")
+        }
         when(demandAttach) {
             assert(PopCount(attachMatches) === 1.U && !postedAccept && !directEviction &&
                 !engine.io.response.valid, "attachment crossed owner or maintenance boundary")

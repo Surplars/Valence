@@ -11,7 +11,7 @@ object FpgaNextMain extends App {
     require(args.nonEmpty && options.size == args.length - 1 &&
         options.subsetOf(Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
             "--registered-pmp-regions", "--published-pmp-changes", "--ddr-write-collection-flow",
-            "--line-transfer-dispatch-flow",
+            "--line-transfer-dispatch-flow", "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap",
             "--line-read-channel", "--split-prefetch-tracking", "--read-prefetch-dirty-retry", "--read-prefetch-demand-adoption", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--dtlb-write-read-reuse", "--translation-hit-flow", "--independent-demand-admission", "--dma-line-entries=8",

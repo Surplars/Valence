@@ -24,7 +24,7 @@ class LineAcquireResponse(tagBits: Int) extends Bundle {
   * A coherent cache must also handle B/C probes and voluntary C Releases outside this engine.
   */
 class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
-    observeIssued: Boolean = false, observeFailedOwners: Boolean = false)
+    observeIssued: Boolean = false, observeFailedOwners: Boolean = false, internalLineGrant: Boolean = false)
     extends Module {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
@@ -40,6 +40,7 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
         val a        = Decoupled(new TLBundleA(params))
         val d        = Flipped(Decoupled(new TLBundleD(params)))
         val e        = Decoupled(new TLBundleE(params))
+        val lineGrant = if (internalLineGrant) Some(Flipped(Decoupled(new LineGrant(params)))) else None
     })
 
     private val free :: send :: receive :: acknowledge :: complete :: Nil = Enum(5)
@@ -110,6 +111,27 @@ class TileLinkLineAcquireEngine(params: TLParams = TLParams(), entries: Int = 4,
         (!lastBeat || ackQueue.io.enq.ready)
     ackQueue.io.enq.valid := io.d.fire && lastBeat
     ackQueue.io.enq.bits := source
+    io.lineGrant.foreach { grant =>
+        val fullSource = grant.bits.source(slotBits - 1, 0)
+        val fullImmediate = io.a.fire && sendSlot === fullSource
+        grant.ready := grant.valid && (phase(fullSource) === receive || fullImmediate) && ackQueue.io.enq.ready
+        when(grant.valid) {
+            assert(grant.bits.source < entries.U &&
+                (phase(fullSource) === receive || fullImmediate), "whole Grant has no live Acquire source")
+            assert(!permissionOnly(fullSource) && beats(fullSource) === 0.U && !dBurst,
+                "whole Grant must replace, not follow or interleave, the original data beats")
+            assert(grant.bits.cap <= 2.U && !io.d.valid, "whole Grant overlaps a legacy D Grant")
+        }
+        when(grant.fire) {
+            ackQueue.io.enq.valid := true.B
+            ackQueue.io.enq.bits := fullSource
+            words(fullSource) := grant.bits.data.asTypeOf(words(fullSource))
+            sink(fullSource) := grant.bits.sink
+            cap(fullSource) := grant.bits.cap
+            errors(fullSource) := grant.bits.denied || grant.bits.corrupt
+            phase(fullSource) := acknowledge
+        }
+    }
     when(io.d.valid) {
         assert(io.d.bits.source < entries.U, "line acquire returned an unknown source")
         assert(phase(source) === receive || immediateGrant, "line acquire response has no outstanding request")

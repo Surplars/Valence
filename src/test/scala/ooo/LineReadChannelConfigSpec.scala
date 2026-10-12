@@ -9,7 +9,7 @@ class LineReadChannelConfigSpec extends AnyFunSuite {
         for (base <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected)) {
             assert(!base.lineReadChannel)
             val on = base.copy(lineReadChannel = true)
-            assert(on.productArity == 58 && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+            assert(on.productArity == 61 && !on.internalLineGrant && !on.concurrentReadStorePrefetch && !on.memoryScheduleOverlap && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
                 !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 !on.splitPrefetchTracking && !on.cache.splitPrefetchTracking &&

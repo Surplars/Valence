@@ -12,7 +12,17 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     distinctWayRelease: Boolean = false, independentDemandAdmission: Boolean = false,
     splitPrefetchTracking: Boolean = false, readPrefetchDirtyRetry: Boolean = false,
     readPrefetchDemandAdoption: Boolean = false, readPrefetchStoreHold: Boolean = false,
-    durableReadPrefetchCandidate: Boolean = false, readPrefetchBehindStore: Boolean = false) {
+    durableReadPrefetchCandidate: Boolean = false, readPrefetchBehindStore: Boolean = false,
+    internalLineGrant: Boolean = false, concurrentReadStorePrefetch: Boolean = false,
+    memoryScheduleOverlap: Boolean = false) {
+    require(!memoryScheduleOverlap || (readMshrs == 2 && responseEntries == 2 && writebackEntries == 2 &&
+        overlapWritebackRefill && independentDemandAdmission),
+        "memory scheduling overlap preserves the reviewed two-owner independent cache")
+    require(!internalLineGrant || (readMshrs == 2 && writebackEntries == 2 && overlapWritebackRefill),
+        "whole Grant transport requires the reviewed bounded mixed Home/cache")
+    require(!concurrentReadStorePrefetch || (readMshrs == 2 && writebackEntries == 2 &&
+        independentDemandAdmission && durableReadPrefetchCandidate),
+        "read/store PF coexistence requires existing two-MSHR/two-WB independent/durable owners")
     require(!independentDemandAdmission || readMshrs >= 2,
         "independent demand admission reuses the existing nonblocking miss owners")
     require(Set(1, 2, 4).contains(readMshrs))
@@ -70,11 +80,12 @@ class DataPrefetchEvents extends Bundle {
 }
 
 class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None,
-    returnConfig: Option[CpuReturnConfig] = None) extends Bundle {
+    returnConfig: Option[CpuReturnConfig] = None, internalLineGrant: Boolean = false) extends Bundle {
     val posted = postedConfig.map(c => new PostedStoreCachePort(c))
     val upstream = Flipped(new DataPort(returnConfig.map(_.handleBits).getOrElse(0)))
     val downstream = new DataPort
     val tl = new TLBundle(params)
+    val lineGrant = if (internalLineGrant) Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
     val flushRequest = Input(Bool())
     val flushDone = Output(Bool())
     val prefetchBusy = Output(Bool())
@@ -85,8 +96,8 @@ class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMe
 }
 
 abstract class CoherentLineCacheModule(params: TLParams, postedConfig: Option[PostedStoreMergeConfig] = None,
-    returnConfig: Option[CpuReturnConfig] = None) extends Module {
-    val io = IO(new CoherentLineCachePort(params, postedConfig, returnConfig))
+    returnConfig: Option[CpuReturnConfig] = None, internalLineGrant: Boolean = false) extends Module {
+    val io = IO(new CoherentLineCachePort(params, postedConfig, returnConfig, internalLineGrant))
     io.prefetch := 0.U.asTypeOf(new DataPrefetchEvents)
 }
 

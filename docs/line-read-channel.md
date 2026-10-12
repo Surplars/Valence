@@ -1,5 +1,15 @@
 # Independent line-read ingress and whole-line return
 
+Later follow-up: [snapshot/response handoff and full-way Home admission](memory-schedule-overlap.md).
+Same two-issue/two-MSHR geometry; Sv39/Bare COPY incl. flush improves a further2.9340%/9.1163%.
+Sv39 simultaneous R/W remains zero; default OFF and no new physical qualification.
+
+Latest follow-up (2026-10-12): [internal Home-to-cache whole Grant and bounded
+dual-origin prefetch](internal-line-grant-prefetch.md). This extends the earlier
+memory-to-Home transport without widening public TL. Matched f1ef886 Sv39 COPY
+incl. flush gains17.1343% with the same two MSHRs; four-arm results, preserved
+regression and remaining bottlenecks are documented. Both options stay default OFF.
+
 2026-10-11, `dev` at `c46359c3f35758465ca6e94d3fa5609747a1be30` plus
 source-hashed local changes. Third coherent bandwidth batch, following
 [write capture/send overlap](ddr-write-collection-flow.md) and

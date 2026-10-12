@@ -66,7 +66,10 @@ final case class FpgaNextConfig(
     publishedPmpChanges: Boolean = false,
     readPrefetchStoreHold: Boolean = false,
     durableReadPrefetchCandidate: Boolean = false,
-    readPrefetchBehindStore: Boolean = false
+    readPrefetchBehindStore: Boolean = false,
+    internalLineGrant: Boolean = false,
+    concurrentReadStorePrefetch: Boolean = false,
+    memoryScheduleOverlap: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -179,7 +182,10 @@ final case class FpgaNextConfig(
         (if (publishedPmpChanges) "-published-pmp-changes" else "") +
         (if (readPrefetchStoreHold) "-read-prefetch-store-hold" else "") +
         (if (durableReadPrefetchCandidate) "-durable-read-prefetch-candidate" else "") +
-        (if (readPrefetchBehindStore) "-read-prefetch-behind-store" else "")
+        (if (readPrefetchBehindStore) "-read-prefetch-behind-store" else "") +
+        (if (internalLineGrant) "-internal-line-grant" else "") +
+        (if (concurrentReadStorePrefetch) "-concurrent-read-store-prefetch" else "") +
+        (if (memoryScheduleOverlap) "-memory-schedule-overlap" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -207,7 +213,9 @@ final case class FpgaNextConfig(
         distinctWayRelease = distinctWayRelease, independentDemandAdmission = independentDemandAdmission,
         splitPrefetchTracking = splitPrefetchTracking, readPrefetchDirtyRetry = readPrefetchDirtyRetry,
         readPrefetchDemandAdoption = readPrefetchDemandAdoption, readPrefetchStoreHold = readPrefetchStoreHold,
-        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore)
+        durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore,
+        internalLineGrant = internalLineGrant, concurrentReadStorePrefetch = concurrentReadStorePrefetch,
+        memoryScheduleOverlap = memoryScheduleOverlap)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -294,7 +302,8 @@ object FpgaNextConfig {
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
-            "--durable-read-prefetch-candidate", "--read-prefetch-behind-store")) {
+            "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
+            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -399,6 +408,9 @@ object FpgaNextConfig {
             readPrefetchStoreHold = options.contains("--read-prefetch-store-hold"),
             durableReadPrefetchCandidate = options.contains("--durable-read-prefetch-candidate"),
             readPrefetchBehindStore = options.contains("--read-prefetch-behind-store"),
+            internalLineGrant = options.contains("--internal-line-grant"),
+            concurrentReadStorePrefetch = options.contains("--concurrent-read-store-prefetch"),
+            memoryScheduleOverlap = options.contains("--memory-schedule-overlap"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

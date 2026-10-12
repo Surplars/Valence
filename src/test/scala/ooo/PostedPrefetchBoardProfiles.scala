@@ -33,7 +33,7 @@ object PostedPrefetchBoardProfiles {
             postedPrefetchHeadOffer = experiment == "head-offer" && mode == "on")
         require(result == expected && result.coreParams == expected.coreParams,
             "explicit Board options differ from complete constructor profile")
-        require(result.productArity == 58 && !result.taggedStoreReturns && !result.pendingReadyStoreBypass && !result.boundHeadStoreOverlap && !result.pendingVirtualStoreProof && !result.frozenStoreProofTransport && result.pendingVirtualStoreProofSlots == 1 && result.pendingStoreEarlyLoadCredits == 1 && !result.publishedPmpChanges && !result.registeredPmpRegions && !result.coreParams.registeredPmpRegions && !result.readPrefetchDemandAdoption && !result.cache.readPrefetchDemandAdoption &&
+        require(result.productArity == 61 && !result.internalLineGrant && !result.concurrentReadStorePrefetch && !result.memoryScheduleOverlap && !result.taggedStoreReturns && !result.pendingReadyStoreBypass && !result.boundHeadStoreOverlap && !result.pendingVirtualStoreProof && !result.frozenStoreProofTransport && result.pendingVirtualStoreProofSlots == 1 && result.pendingStoreEarlyLoadCredits == 1 && !result.publishedPmpChanges && !result.registeredPmpRegions && !result.coreParams.registeredPmpRegions && !result.readPrefetchDemandAdoption && !result.cache.readPrefetchDemandAdoption &&
             !result.readPrefetchDirtyRetry && !result.cache.readPrefetchDirtyRetry &&
             !result.splitPrefetchTracking && !result.cache.splitPrefetchTracking &&
             !result.translationHitFlow && result.ddrOutstanding == 4 && result.ddrWriteCredits == 2 &&

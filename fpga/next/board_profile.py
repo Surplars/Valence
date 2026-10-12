@@ -63,6 +63,9 @@ def compare_constructor(mode, actual):
         expected[section]["readPrefetchStoreHold"] = False
         expected[section]["durableReadPrefetchCandidate"] = False
         expected[section]["readPrefetchBehindStore"] = False
+        expected[section]["internalLineGrant"] = False
+        expected[section]["concurrentReadStorePrefetch"] = False
+        expected[section]["memoryScheduleOverlap"] = False
     if json.dumps(actual, sort_keys=True) != json.dumps(expected, sort_keys=True):
         raise RuntimeError("actual complete constructor differs from frozen mode " + mode)
 

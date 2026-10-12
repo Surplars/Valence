@@ -28,11 +28,11 @@ class BoardReleaseTests(unittest.TestCase):
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (58, 151, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (61, 151, 22))
         fields = [(s, f) for s in ("profile", "core")
                   for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass", "taggedStoreReturns")]
         fields += [(s, f) for s in ("profile", "cache")
-                   for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore")]
+                   for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore", "internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap")]
         for section, field in fields:
             self.assertIs(expected[section][field], False)
             for mutation in ("missing", "enabled"):
@@ -116,6 +116,9 @@ class BoardReleaseTests(unittest.TestCase):
             expected[section]["readPrefetchStoreHold"] = False
             expected[section]["durableReadPrefetchCandidate"] = False
             expected[section]["readPrefetchBehindStore"] = False
+            expected[section]["internalLineGrant"] = False
+            expected[section]["concurrentReadStorePrefetch"] = False
+            expected[section]["memoryScheduleOverlap"] = False
         expected["profile"]["experimentalTriSpeedEthernet"] = True
         board_release.compare_constructor(expected)
         for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption"):

@@ -1,5 +1,18 @@
 # 当前性能与证据边界
 
+2026-10-12 后续：[三链调度与所有权交接](memory-schedule-overlap.md)。固定双发射／两个MSHR，
+Sv39 COPY含flush61.7925→63.6055MiB/s（+2.9340%），Bare57.9382→63.2201（+9.1163%）。
+新调度默认OFF，短功能与同板对照通过；Sv39同时R/W仍0，串行瓶颈未彻底解决。
+未综合、STA、bit或跑Linux；验收时未commit/push，源码交付以Git记录为准。
+本批回执不替代物理签核。
+
+2026-10-12 最新带宽候选见[整行 Grant＋读写预取有限并行](internal-line-grant-prefetch.md)。
+从 f1ef886 本地实现并完成四组同源真实 CPU 消融；不扩容，Sv39 COPY 含 flush
+52.7535->61.7925MiB/s（+17.1343%），Bare47.9489->57.9382（+20.8332%）。
+整行传输单开负收益已保留。两项参数独立/default OFF，旧板级 manifest 不变；
+必要短检查通过，未综合/生成bit/跑Linux；验收时未commit push。
+不能当成上板带宽或100MHz签核。
+
 本次 `dev` 源码交付范围见 [交付记录](dev-delivery-20261008.md)。本轮 Vivado 物理验证仍待完成；
 本轮物理时序、整板签核和实板结果尚未验证，virtual-load precheck 默认关闭。
 

@@ -1,5 +1,10 @@
 # OoO Core 架构草案
 
+2026-10-12：[三链调度与所有权交接](memory-schedule-overlap.md)。victim快照后提前排队A，
+无冲突store可与C发送共存；完整回填交原response账本后释放非posted MSHR；Home按完整行和
+瞬态directory way准入。双发射、两个MSHR及原队列容量不变，新开关默认OFF。
+同客体Sv39/Bare COPY含flush较前批+2.9340%/+9.1163%；只短GSIM，未综合或新物理签核。
+
 2026-10-11 第六批：[虚拟 store 授权交接与独立准入](line-read-channel.md#authorized-store-handoff-and-independent-demand-admission)。
 新增默认关闭的 `independentDemandAdmission`：精确授权后的 load 可选空 LSU 槽，
 正常 store miss 不再全局独占，cache 按完整物理行＋set/way 保留所有权；独立 resident
@@ -2022,6 +2027,13 @@ focused gates, official split Board/GC and exact original CPU cases 19/21 passed
 [current evidence, preserved FAIL boundaries and limits](experiments/memory-state-reuse.md).
 
 ## Optional bound-store/prefetch composition
+
+2026-10-12 follow-up: [private whole-line Grant and bounded dual-origin
+prefetch](internal-line-grant-prefetch.md) improves matched f1ef886 Sv39 COPY
+including flush52.7535->61.7925MiB/s (+17.1343%) and Bare +20.8332%, using the
+same two MSHRs. Whole Grant alone regresses Sv39; demand-first READ/STORE
+coexistence is the essential scheduling fix. Both switches stay default OFF.
+Short component/actual-CPU checks passed; no new physical qualification or bit.
 
 See [bound-store/prefetch v1](fpga-next/bound-store-prefetch-v1.md) for the current
 B′/B2/hold invariants, bounded original/Bare/fixed-burst results, zero-benefit

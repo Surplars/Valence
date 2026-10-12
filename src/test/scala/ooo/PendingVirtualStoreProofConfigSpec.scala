@@ -25,7 +25,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
         for (legal <- Seq(published, combined)) {
             FpgaNextProfileOptions.validate(legal)
             val config = FpgaNextConfig.fromOptions(legal.toSet, defaultSelected = true)
-            assert(config.productArity == 58 && !config.taggedStoreReturns && config.coreParams.productArity == 151 && !config.coreParams.taggedStoreReturns && config.cache.productArity == 19)
+            assert(config.productArity == 61 && !config.internalLineGrant && !config.concurrentReadStorePrefetch && !config.memoryScheduleOverlap && !config.taggedStoreReturns && config.coreParams.productArity == 151 && !config.coreParams.taggedStoreReturns && config.cache.productArity == 22 && !config.cache.internalLineGrant && !config.cache.concurrentReadStorePrefetch)
             assert(config.robEntries.isEmpty && config.physicalRegs.isEmpty)
             assert(config.coreParams.robEntries == 16 && config.coreParams.physicalRegs == 48)
         }
@@ -83,7 +83,7 @@ class PendingVirtualStoreProofConfigSpec extends AnyFunSuite {
             assert(overlap.copy(boundHeadStoreOverlap = false) == proof)
             assert(overlap.coreParams.copy(boundHeadStoreOverlap = false) == proof.coreParams)
             assert(overlap.cache == proof.cache && overlap.ddr == proof.ddr && overlap.storage == proof.storage)
-            assert(overlap.coreParams.productArity == 151 && !overlap.coreParams.taggedStoreReturns && overlap.productArity == 58 && !overlap.taggedStoreReturns)
+            assert(overlap.coreParams.productArity == 151 && !overlap.coreParams.taggedStoreReturns && overlap.productArity == 61 && !overlap.internalLineGrant && !overlap.concurrentReadStorePrefetch && !overlap.memoryScheduleOverlap && !overlap.taggedStoreReturns)
         }
         intercept[IllegalArgumentException] { off.copy(boundHeadStoreOverlap = true) }
         intercept[IllegalArgumentException] { off.coreParams.copy(boundHeadStoreOverlap = true) }

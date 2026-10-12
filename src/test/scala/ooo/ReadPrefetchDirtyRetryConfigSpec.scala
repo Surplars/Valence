@@ -13,8 +13,8 @@ class ReadPrefetchDirtyRetryConfigSpec extends AnyFunSuite {
             assert(!base.readPrefetchDirtyRetry && !base.cache.readPrefetchDirtyRetry)
             val off = base.copy(storeNextLinePrefetch = true, splitPrefetchTracking = true)
             val on = off.copy(readPrefetchDirtyRetry = true)
-            assert(on.productArity == 58 && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
-                on.cache.productArity == 19)
+            assert(on.productArity == 61 && !on.internalLineGrant && !on.concurrentReadStorePrefetch && !on.memoryScheduleOverlap && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+                on.cache.productArity == 22 && !on.cache.internalLineGrant && !on.cache.concurrentReadStorePrefetch)
             assert(on.copy(readPrefetchDirtyRetry = false) == off)
             assert(on.cache.copy(readPrefetchDirtyRetry = false) == off.cache)
             assert(on.coreParams == off.coreParams && on.ddr == off.ddr && on.tags == off.tags)

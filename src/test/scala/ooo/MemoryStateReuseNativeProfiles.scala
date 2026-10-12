@@ -14,7 +14,7 @@ object MemoryStateReuseNativeProfiles {
         val baseline = StorePrefetchLruVictimProfiles.profile(true).copy(postedPreparationPriority = true)
         val selected = FpgaNextConfig.fromOptions(options(reconstruct, shared), defaultSelected = false)
         require(selected == baseline.copy(reconstructIssueTokenIndex = reconstruct, sharedMemoryAddressState = shared))
-        require(selected.productArity == 58 && !selected.taggedStoreReturns && !selected.pendingReadyStoreBypass && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && selected.pendingStoreEarlyLoadCredits == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
+        require(selected.productArity == 61 && !selected.internalLineGrant && !selected.concurrentReadStorePrefetch && !selected.memoryScheduleOverlap && !selected.taggedStoreReturns && !selected.pendingReadyStoreBypass && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && selected.pendingStoreEarlyLoadCredits == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
             !selected.readPrefetchDemandAdoption && !selected.cache.readPrefetchDemandAdoption &&
             !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
             !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&

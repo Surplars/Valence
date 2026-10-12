@@ -251,7 +251,16 @@ struct Gate {
         for (const auto& entry : active) if (entry) {
             const auto& owner = owners.at(*entry); speculative += owner.pf && !owner.attached;
         }
+        #if CONCURRENT_READ_STORE_PREFETCH
+        unsigned reads=0, stores=0;
+        for (const auto& entry : active) if (entry) {
+            const auto& owner=owners.at(*entry);
+            if(owner.pf&&!owner.attached)(owner.store?stores:reads)++;
+        }
+        check(reads<=1&&stores<=1&&speculative<=2, "two speculative MSHRs must have distinct READ/STORE origins");
+        #else
         check(speculative <= 1, "more than one unattached speculative MSHR exists");
+        #endif
         for (unsigned i = 0; i < 2; ++i) {
             if (active[i] && !(live & (1U << i))) {
                 check(owners.at(*active[i]).filled, "MSHR retired before refill"); active[i].reset();

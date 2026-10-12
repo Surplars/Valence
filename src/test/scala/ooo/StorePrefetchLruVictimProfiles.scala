@@ -21,7 +21,7 @@ object StorePrefetchLruVictimProfiles {
         val original = MemoryProofFrontierExactFixture.profile(true)
         val selected = FpgaNextConfig.fromOptions(options(enabled), defaultSelected = false)
         require(selected == original.copy(storePrefetchLruVictim = enabled))
-        require(selected.productArity == 58 && !selected.taggedStoreReturns && !selected.pendingReadyStoreBypass && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && selected.pendingStoreEarlyLoadCredits == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
+        require(selected.productArity == 61 && !selected.internalLineGrant && !selected.concurrentReadStorePrefetch && !selected.memoryScheduleOverlap && !selected.taggedStoreReturns && !selected.pendingReadyStoreBypass && !selected.boundHeadStoreOverlap && !selected.pendingVirtualStoreProof && !selected.frozenStoreProofTransport && selected.pendingVirtualStoreProofSlots == 1 && selected.pendingStoreEarlyLoadCredits == 1 && !selected.publishedPmpChanges && !selected.registeredPmpRegions && !selected.coreParams.registeredPmpRegions &&
             !selected.readPrefetchDemandAdoption && !selected.cache.readPrefetchDemandAdoption &&
             !selected.readPrefetchDirtyRetry && !selected.cache.readPrefetchDirtyRetry &&
             !selected.splitPrefetchTracking && !selected.cache.splitPrefetchTracking &&
@@ -38,7 +38,7 @@ object StorePrefetchLruVictimProfiles {
             prefetchCandidateCycles = 1, prefetchBreakOnStore = false, storeNextLinePrefetch = true,
             storePrefetchMruInsertion = true, postedPrefetchCoexistence = true,
             storePrefetchLruVictim = enabled)
-        require(selected.cache.productArity == 19 && selected.cache == expectedCache)
+        require(selected.cache.productArity == 22 && !selected.cache.internalLineGrant && !selected.cache.concurrentReadStorePrefetch && selected.cache == expectedCache)
         val actualCacheFields = selected.cache.productElementNames.zip(selected.cache.productIterator)
             .map { case (name, value) => name -> value.toString }.toMap
         require(actualCacheFields.keySet == originalCacheFields.keySet ++

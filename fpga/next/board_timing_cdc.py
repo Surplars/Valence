@@ -58,6 +58,9 @@ def expected_constructor():
         expected[section]["readPrefetchStoreHold"] = False
         expected[section]["durableReadPrefetchCandidate"] = False
         expected[section]["readPrefetchBehindStore"] = False
+        expected[section]["internalLineGrant"] = False
+        expected[section]["concurrentReadStorePrefetch"] = False
+        expected[section]["memoryScheduleOverlap"] = False
     return expected
 
 

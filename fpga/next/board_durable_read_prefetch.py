@@ -42,6 +42,10 @@ def expected_constructor():
         for key in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
             expected[section][key] = True
     historical = copy.deepcopy(expected)
+    for section in ("profile", "cache"):
+        for field in ("internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
+            if historical[section].pop(field) is not False:
+                raise RuntimeError("historical entry must keep line Grant / dual-origin prefetch off")
     for section in ("profile", "core"):
         if historical[section].pop("taggedStoreReturns") is not False:
             raise RuntimeError("historical optional entry must keep tagged store returns off")

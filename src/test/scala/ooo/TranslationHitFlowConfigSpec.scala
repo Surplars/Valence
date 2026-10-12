@@ -7,7 +7,7 @@ class TranslationHitFlowConfigSpec extends AnyFunSuite {
     test("default OFF preserves all core parameters, owners and geometry") {
         val base = FpgaNextConfig.Selected.copy(virtualRamLoadPrecheck = true)
         val on = base.copy(translationHitFlow = true)
-        assert(base.productArity == 58 && !base.taggedStoreReturns && !base.pendingReadyStoreBypass && !base.boundHeadStoreOverlap && !base.pendingVirtualStoreProof && !base.frozenStoreProofTransport && base.pendingVirtualStoreProofSlots == 1 && base.pendingStoreEarlyLoadCredits == 1 && !base.publishedPmpChanges && !base.registeredPmpRegions && !base.coreParams.registeredPmpRegions &&
+        assert(base.productArity == 61 && !base.internalLineGrant && !base.concurrentReadStorePrefetch && !base.memoryScheduleOverlap && !base.taggedStoreReturns && !base.pendingReadyStoreBypass && !base.boundHeadStoreOverlap && !base.pendingVirtualStoreProof && !base.frozenStoreProofTransport && base.pendingVirtualStoreProofSlots == 1 && base.pendingStoreEarlyLoadCredits == 1 && !base.publishedPmpChanges && !base.registeredPmpRegions && !base.coreParams.registeredPmpRegions &&
                 !base.readPrefetchDemandAdoption && !base.cache.readPrefetchDemandAdoption &&
             !base.readPrefetchDirtyRetry && !base.cache.readPrefetchDirtyRetry &&
             !base.splitPrefetchTracking && !base.cache.splitPrefetchTracking &&

@@ -45,18 +45,18 @@ class BoardProfileTests(unittest.TestCase):
                 expected[section]["taggedStoreReturns"] = False
             for section in ("profile", "cache"):
                 for field in ("readPrefetchDirtyRetry", "readPrefetchDemandAdoption", "readPrefetchStoreHold",
-                              "durableReadPrefetchCandidate", "readPrefetchBehindStore"):
+                              "durableReadPrefetchCandidate", "readPrefetchBehindStore", "internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
                     expected[section][field] = False
             compare = lambda value: board_profile.compare_constructor(mode, value)
             self.check_optional_defaults(expected, compare)
 
     def check_optional_defaults(self, expected, compare):
         compare(expected)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (58, 151, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (61, 151, 22))
         fields = [(s, f) for s in ("profile", "core")
                   for f in ("frozenStoreProofTransport", "pendingVirtualStoreProof", "boundHeadStoreOverlap", "pendingReadyStoreBypass", "taggedStoreReturns")]
         fields += [(s, f) for s in ("profile", "cache")
-                   for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore")]
+                   for f in ("readPrefetchStoreHold", "durableReadPrefetchCandidate", "readPrefetchBehindStore", "internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap")]
         for section, field in fields:
             self.assertIs(expected[section][field], False)
             for mutation in ("missing", "enabled"):
@@ -138,6 +138,9 @@ class BoardProfileTests(unittest.TestCase):
                 current[section]["readPrefetchStoreHold"] = False
                 current[section]["durableReadPrefetchCandidate"] = False
                 current[section]["readPrefetchBehindStore"] = False
+                current[section]["internalLineGrant"] = False
+                current[section]["concurrentReadStorePrefetch"] = False
+                current[section]["memoryScheduleOverlap"] = False
             board_profile.compare_constructor(mode, current)
             with self.assertRaises(RuntimeError):
                 board_profile.compare_constructor(mode, frozen[mode])

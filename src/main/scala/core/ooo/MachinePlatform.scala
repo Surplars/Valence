@@ -633,7 +633,9 @@ class MachinePlatform(
                 parallelQualification = p.parallelHomeQualification, tagConfig = tagConfig,
                 dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries,
                 distinctWayRelease = cacheConcurrency.distinctWayRelease,
-                lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = ddrBridge.lineReadChannel)
+                lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = ddrBridge.lineReadChannel,
+        internalLineGrant = cacheConcurrency.internalLineGrant,
+        memoryScheduleOverlap = cacheConcurrency.memoryScheduleOverlap)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.
@@ -644,6 +646,7 @@ class MachinePlatform(
             home.io.upstreamRequestCpu := homeRequestCpu
             bridge.io.data <> home.io.downstream
             home.io.clients(0) <> cache.io.tl
+            if (cacheConcurrency.internalLineGrant) cache.io.lineGrant.get <> home.io.lineGrants.get(0)
             home
         }
         io.activity.foreach { activity =>

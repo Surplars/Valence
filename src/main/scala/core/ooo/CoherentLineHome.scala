@@ -7,11 +7,12 @@ import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
 /** Shared structural interface; the legacy and bounded concurrent homes remain separate implementations. */
 class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false,
-    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false) extends Bundle {
+    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false, internalLineGrant: Boolean = false) extends Bundle {
     val dmaLine = if (dmaLineTransfers) Some(Flipped(new soc.ip.dma.DmaLinePort(dmaLineEntries))) else None
     val upstream = Flipped(new DataPort)
     val downstream = new DataPort
     val clients = Vec(nClients, Flipped(new TLBundle(params)))
+    val lineGrants = if (internalLineGrant) Some(Vec(nClients, Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
     val line = new TLBundle(params)
     val lineRead = if (lineReadChannel) Some(new soc.ip.tilelink.LineReadMemoryPort(params.addrWidth)) else None
     val upstreamRequestCpu = Input(Bool())
@@ -22,8 +23,8 @@ class CoherentLineHomeIO(params: TLParams, nClients: Int, dmaLineTransfers: Bool
 }
 
 abstract class CoherentLineHomeModule(params: TLParams, nClients: Int, dmaLineTransfers: Boolean = false,
-    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false) extends Module {
-    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers, dmaLineEntries, lineReadChannel))
+    dmaLineEntries: Int = 1, lineReadChannel: Boolean = false, internalLineGrant: Boolean = false) extends Module {
+    val io = IO(new CoherentLineHomeIO(params, nClients, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant))
 }
 
 object CoherentLineHomeModule {
@@ -44,8 +45,14 @@ object CoherentLineHomeModule {
         dmaLineEntries: Int = 1,
         distinctWayRelease: Boolean = false,
         lineTransferDispatchFlow: Boolean = false,
-        lineReadChannel: Boolean = false
+        lineReadChannel: Boolean = false,
+        internalLineGrant: Boolean = false,
+        memoryScheduleOverlap: Boolean = false
     ): CoherentLineHomeModule = {
+        require(!memoryScheduleOverlap || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 &&
+            trackedWays == 2 && mixedReadWrite), "memory scheduling requires the reviewed two-way mixed Home")
+        require(!internalLineGrant || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite),
+            "whole Grant requires the reviewed mixed two-owner Home")
         require(!dmaLineTransfers || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
             "line DMA requires the bounded mixed coherence home")
         require(Set(1, 2, 4).contains(acquireEntries))
@@ -65,7 +72,8 @@ object CoherentLineHomeModule {
             if (writebackEntries > 1 || mixedReadWrite)
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
                     trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
-                    dmaLineTransfers, dmaLineEntries, distinctWayRelease, lineTransferDispatchFlow, lineReadChannel))
+                    dmaLineTransfers, dmaLineEntries, distinctWayRelease, lineTransferDispatchFlow, lineReadChannel,
+                    internalLineGrant, memoryScheduleOverlap))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

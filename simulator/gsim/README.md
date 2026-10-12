@@ -1,5 +1,19 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-10-12 后续三链批量优化：`GSIM_CXX=clang++-19 python3 -B
+simulator/gsim/memory_schedule_overlap.py --output build/gsim/memory-schedule-overlap-UNIQUE_TAG --jobs 2`。
+固定双发射/MSHR2，相对前批Sv39/Bare COPY含flush+2.9340%/+9.1163%；
+新开关default OFF，无综合/STA/bit，读写串行尚未彻底解决。
+完整边界与保留失败见[三链验收](../../docs/memory-schedule-overlap.md)。
+
+2026-10-12：内部整行 Grant＋读写预取有限并行（不扩容，两个独立开关默认OFF）。
+运行 `GSIM_CXX=clang++-19 python3 -B simulator/gsim/line_grant_prefetch.py
+--output build/gsim/line-grant-prefetch-UNIQUE_TAG --jobs 2`，一次完成组件检查及四组
+真实板级 CPU 消融，不运行综合。f1ef886 下 Sv39 COPY 含 flush236951->202290拍，
+52.7535->61.7925MiB/s（+17.1343%）；Bare +20.8332%。整行传输单开反而退化。
+完整合同、证据、负控、保留失败与剩余瓶颈见
+[本轮接续](../../docs/internal-line-grant-prefetch.md)。preset不变，无新STA/bit/Linux资格。
+
 2026-10-11 第六批授权 store 交接／准入重构（容量不变，默认OFF）：
 
 ```sh

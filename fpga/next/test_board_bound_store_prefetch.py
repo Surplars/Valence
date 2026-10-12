@@ -46,6 +46,9 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
         expected = candidate.expected_constructor()
         reference = candidate.load_manifest()["constructor_profile"]
         historical = copy.deepcopy(expected)
+        for section in ("profile", "cache"):
+            for field in ("internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
+                self.assertIs(historical[section].pop(field), False)
         for section in ("profile", "core"):
             self.assertIs(historical[section].pop("taggedStoreReturns"), False)
             self.assertEqual(historical[section].pop("pendingStoreEarlyLoadCredits"), 1)
@@ -54,7 +57,7 @@ class BoardBoundStorePrefetchTests(unittest.TestCase):
             for field in ("durableReadPrefetchCandidate", "readPrefetchBehindStore"):
                 self.assertIs(historical[section].pop(field), False)
         self.assertEqual(historical, reference)
-        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (58, 151, 19))
+        self.assertEqual(tuple(len(expected[s]) for s in ("profile", "core", "cache")), (61, 151, 22))
         self.assertEqual(tuple(len(reference[s]) for s in ("profile", "core", "cache")), (53, 148, 17))
         self.assertIsNone(reference["profile"]["robEntries"])
         self.assertIsNone(reference["profile"]["physicalRegs"])

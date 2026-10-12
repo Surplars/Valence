@@ -171,7 +171,7 @@ object CanonicalVirtualStoreActualParamsMain extends App {
         (if (mode == "on") Set("--canonical-virtual-store-overlap") else Set.empty[String])
     require(options.size == args.length - 2 && options == expected, "official canonical options differ")
     val profile = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(profile.productArity == 58 && !profile.taggedStoreReturns && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
+    require(profile.productArity == 61 && !profile.internalLineGrant && !profile.concurrentReadStorePrefetch && !profile.memoryScheduleOverlap && !profile.taggedStoreReturns && !profile.pendingReadyStoreBypass && !profile.boundHeadStoreOverlap && !profile.pendingVirtualStoreProof && !profile.frozenStoreProofTransport && profile.pendingVirtualStoreProofSlots == 1 && profile.pendingStoreEarlyLoadCredits == 1 && !profile.publishedPmpChanges && !profile.registeredPmpRegions && !profile.coreParams.registeredPmpRegions && !profile.readPrefetchDemandAdoption && !profile.cache.readPrefetchDemandAdoption &&
         !profile.readPrefetchDirtyRetry && !profile.cache.readPrefetchDirtyRetry &&
         !profile.splitPrefetchTracking && !profile.cache.splitPrefetchTracking &&
         !profile.translationHitFlow && profile.ddrOutstanding == 4 && profile.ddrWriteCredits == 2 &&

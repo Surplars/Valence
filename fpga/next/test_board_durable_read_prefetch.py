@@ -23,14 +23,17 @@ class BoardDurableReadPrefetchTests(unittest.TestCase):
         self.assertEqual(candidate.native_options(), rollback.native_options() + [
             "--pending-ready-store-bypass", "--durable-read-prefetch-candidate", "--read-prefetch-behind-store"])
         historical = copy.deepcopy(expected)
+        for section in ("profile", "cache"):
+            for field in ("internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
+                self.assertIs(historical[section].pop(field), False)
         for section in ("profile", "core"):
             self.assertIs(historical[section].pop("taggedStoreReturns"), False)
             self.assertEqual(historical[section].pop("pendingStoreEarlyLoadCredits"), 1)
         self.assertEqual(historical, spec["constructor_profile"])
         self.assertEqual({k: len(expected[k]) for k in ("profile", "core", "cache")},
-                         {"profile": 58, "core": 151, "cache": 19})
+                         {"profile": 61, "core": 151, "cache": 22})
         self.assertEqual(spec["executed_fabric"]["cpu"], historical["core"])
-        self.assertEqual(spec["executed_fabric"]["cache"], expected["cache"])
+        self.assertEqual(spec["executed_fabric"]["cache"], historical["cache"])
         self.assertEqual(expected["core"]["robEntries"], 16)
         self.assertEqual(expected["core"]["physicalRegs"], 48)
         self.assertEqual(expected["core"]["memoryEntries"], 4)

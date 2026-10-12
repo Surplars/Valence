@@ -72,7 +72,7 @@ object DistinctWayReleaseGsimMain extends App {
         val issued = named(cache, "acquireIssued").asInstanceOf[Option[Vec[Data]]]
         require(issued.map(_.length).getOrElse(0) == (if (enabled) 2 else 0), "actual issued-bit storage differs")
         val actual = unique(cache, classOf[CoherentCacheConcurrency])
-        require(actual.productArity == 19 && !actual.readPrefetchDemandAdoption && !actual.readPrefetchDirtyRetry &&
+        require(actual.productArity == 22 && !actual.internalLineGrant && !actual.concurrentReadStorePrefetch && !actual.memoryScheduleOverlap && !actual.readPrefetchDemandAdoption && !actual.readPrefetchDirtyRetry &&
             !actual.splitPrefetchTracking && actual == expected,
             "actual cache policy/resource fields differ")
         val cacheGeometry = unique(cache, classOf[CacheTagGeometry])

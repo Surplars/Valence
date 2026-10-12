@@ -122,6 +122,12 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off bounded home/line-engine dispatch bypass with queue fallback")
     ap.add_argument("--line-read-channel", action="count", default=0,
                     help="default-off independent coherent-home line reads and aggregate whole-line returns")
+    ap.add_argument("--internal-line-grant", action="count", default=0,
+                    help="default-off private whole GrantData transport; original GrantAck responsibility retained")
+    ap.add_argument("--concurrent-read-store-prefetch", action="count", default=0,
+                    help="default-off opposite-origin prefetch coexistence within the existing two MSHRs")
+    ap.add_argument("--memory-schedule-overlap", action="count", default=0,
+                    help="default-off snapshot/response ownership handoff and conflict-qualified home admission")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
                     help="default-off local response flow retaining registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
@@ -247,6 +253,16 @@ def main(argv=None, expected_profile_sha256=None):
     if a.line_read_channel > 1:
         ap.error("duplicate --line-read-channel flag")
     a.line_read_channel = bool(a.line_read_channel)
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+        if getattr(a, key) and "--" + key.replace("_", "-") not in raw_args:
+            ap.error("use the exact --" + key.replace("_", "-") + " flag")
+        if getattr(a, key) > 1:
+            ap.error("duplicate --" + key.replace("_", "-"))
+        setattr(a, key, bool(getattr(a, key)))
+    if a.concurrent_read_store_prefetch and not (a.durable_read_prefetch_candidate and a.independent_demand_admission):
+        ap.error("--concurrent-read-store-prefetch requires durable read candidates and independent demand admission")
+    if a.memory_schedule_overlap and not a.independent_demand_admission:
+        ap.error("--memory-schedule-overlap requires independent demand admission")
     for key, default in (("ddr_outstanding", 4), ("ddr_write_credits", 2)):
         values = getattr(a, key)
         if values and len(values) > 1:
@@ -458,6 +474,10 @@ def main(argv=None, expected_profile_sha256=None):
     if a.line_read_channel:
         profile["profile"]["line_read_channel"] = True
         profile["profile"]["name"] += "-line-read-channel"
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+        if getattr(a, key):
+            profile["profile"][key] = True
+            profile["profile"]["name"] += "-" + key.replace("_", "-")
     if a.ddr_outstanding != 4 or a.ddr_write_credits != 2:
         profile["profile"]["ddr_shared_slots"] = a.ddr_outstanding
         profile["profile"]["ddr_write_slots"] = a.ddr_write_credits
@@ -571,6 +591,9 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--line-transfer-dispatch-flow")
     if a.line_read_channel:
         command.append("--line-read-channel")
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+        if getattr(a, key):
+            command.append("--" + key.replace("_", "-"))
     if a.ddr_outstanding != 4:
         command.append("--ddr-outstanding=" + str(a.ddr_outstanding))
     if a.ddr_write_credits != 2:

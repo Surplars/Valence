@@ -23,14 +23,14 @@ class DistinctWayReleaseConfigSpec extends AnyFunSuite {
                 (if (shared) Set("--shared-memory-address-state") else Set.empty[String])
             val off = FpgaNextConfig.fromOptions(options, defaultSelected = false)
             val on = FpgaNextConfig.fromOptions(options + "--distinct-way-release", defaultSelected = false)
-            assert(on.productArity == 58 && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
+            assert(on.productArity == 61 && !on.internalLineGrant && !on.concurrentReadStorePrefetch && !on.memoryScheduleOverlap && !on.taggedStoreReturns && !on.pendingReadyStoreBypass && !on.boundHeadStoreOverlap && !on.pendingVirtualStoreProof && !on.frozenStoreProofTransport && on.pendingVirtualStoreProofSlots == 1 && on.pendingStoreEarlyLoadCredits == 1 && !on.publishedPmpChanges && !on.registeredPmpRegions && !on.coreParams.registeredPmpRegions &&
                 !on.readPrefetchDemandAdoption && !on.cache.readPrefetchDemandAdoption &&
                 !on.readPrefetchDirtyRetry && !on.cache.readPrefetchDirtyRetry &&
                 !on.splitPrefetchTracking && !on.cache.splitPrefetchTracking &&
                 !on.translationHitFlow && on.ddrOutstanding == 4 && on.ddrWriteCredits == 2 &&
                 !on.dataTlbWriteReadReuse && !on.ddrWriteCollectionFlow && !on.lineTransferDispatchFlow &&
                 !on.lineReadChannel &&
-                on.coreParams.productArity == 151 && !on.coreParams.taggedStoreReturns && !on.coreParams.pendingReadyStoreBypass && !on.coreParams.boundHeadStoreOverlap && !on.coreParams.pendingVirtualStoreProof && !on.coreParams.frozenStoreProofTransport && on.coreParams.pendingVirtualStoreProofSlots == 1 && on.coreParams.pendingStoreEarlyLoadCredits == 1 && !on.coreParams.publishedPmpChanges && on.cache.productArity == 19)
+                on.coreParams.productArity == 151 && !on.coreParams.taggedStoreReturns && !on.coreParams.pendingReadyStoreBypass && !on.coreParams.boundHeadStoreOverlap && !on.coreParams.pendingVirtualStoreProof && !on.coreParams.frozenStoreProofTransport && on.coreParams.pendingVirtualStoreProofSlots == 1 && on.coreParams.pendingStoreEarlyLoadCredits == 1 && !on.coreParams.publishedPmpChanges && on.cache.productArity == 22 && !on.cache.internalLineGrant && !on.cache.concurrentReadStorePrefetch)
             assert(on == off.copy(distinctWayRelease = true))
             assert(on.cache == off.cache.copy(distinctWayRelease = true))
             assert(on.coreParams == off.coreParams && on.storage == off.storage)

@@ -25,7 +25,7 @@ object MatchingFabricAudit {
         val actualDdr = unique(p, classOf[DdrBridgeConfig])
         val actualCache = unique(cache, classOf[CoherentCacheConcurrency])
         require(actualCore == expected.coreParams && actualDdr == expected.ddr && actualCache == expected.cache)
-        require(actualCore.productArity == 151 && expected.productArity == 58 && actualCache.productArity == 19,
+        require(actualCore.productArity == 151 && expected.productArity == 61 && actualCache.productArity == 22,
             "tagged board full parameter summary arity changed")
         require(actualCore.taggedStoreReturns == expected.taggedStoreReturns)
         require(actualCore.cpuReturnConfig.map(c => (c.memoryEntries, c.storeBufferEntries, c.fpEnabled,

@@ -7,7 +7,7 @@ import soc.core.ooo.FpgaNextConfig
 private[ooo] object FpgaNextProfileOptions {
     val allowed: Set[String] = Set("--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
             "--registered-pmp-regions", "--published-pmp-changes", "--ddr-write-collection-flow",
-            "--line-transfer-dispatch-flow",
+            "--line-transfer-dispatch-flow", "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap",
             "--line-read-channel", "--split-prefetch-tracking", "--read-prefetch-dirty-retry", "--read-prefetch-demand-adoption", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--dtlb-write-read-reuse", "--translation-hit-flow", "--independent-demand-admission", "--dma-line-entries=8",
@@ -34,7 +34,7 @@ object FpgaNextProfileMain extends App {
     val output = Path.of(args(0)).toAbsolutePath
     require(!Files.exists(output), "configuration report requires a fresh directory")
     val config = FpgaNextConfig.fromOptions(options, defaultSelected = true)
-    require(config.productArity == 58 && config.cache.productArity == 19 && config.coreParams.productArity == 151,
+    require(config.productArity == 61 && config.cache.productArity == 22 && config.coreParams.productArity == 151,
         "configuration field count changed; review the complete qualified contract")
     PostedBoardConfiguration.write(config, output.toString)
 }

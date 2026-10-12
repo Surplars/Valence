@@ -11,9 +11,11 @@ import soc.core.ooo._
   * resources; only default-OFF read-candidate store hold differs; posted kind encoding is enabled.
   */
 object DurableReadPrefetchGsimMain extends App {
-    require(args.length == 2 && Set("0", "1").contains(args(1)),
+    require((args.length >= 2 && args.length <= 4) && args.drop(1).forall(Set("0", "1").contains),
         "output directory and explicit durable/capture pair 0|1 required")
     private val enabled = args(1) == "1"
+    private val concurrent = args.lift(2).contains("1")
+    private val overlap = args.lift(3).contains("1")
     private val ways = 2
     private val expected = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
@@ -21,7 +23,8 @@ object DurableReadPrefetchGsimMain extends App {
         storePrefetchMruInsertion = true, postedPrefetchCoexistence = true,
         storePrefetchLruVictim = false, independentDemandAdmission = true,
         splitPrefetchTracking = true, readPrefetchDirtyRetry = true, readPrefetchDemandAdoption = true, readPrefetchStoreHold = true,
-        durableReadPrefetchCandidate = enabled, readPrefetchBehindStore = enabled)
+        durableReadPrefetchCandidate = enabled, readPrefetchBehindStore = enabled,
+        concurrentReadStorePrefetch = concurrent, memoryScheduleOverlap = overlap)
     private val ramBase = BigInt("1000080010000", 16)
     private val ramBytes = BigInt(128 * 1024)
 
@@ -74,7 +77,8 @@ object DurableReadPrefetchGsimMain extends App {
             storePrefetchMruInsertion = true, storePrefetchLruVictim = false,
             splitPrefetchTracking = true, cacheWays = ways, independentDemandAdmission = true,
             readPrefetchDirtyRetry = true, readPrefetchDemandAdoption = true, readPrefetchStoreHold = true,
-        durableReadPrefetchCandidate = enabled, readPrefetchBehindStore = enabled, demandAdoptionTest = true, postedPrefetchCoexistence = true)
+        durableReadPrefetchCandidate = enabled, readPrefetchBehindStore = enabled, demandAdoptionTest = true,
+        postedPrefetchCoexistence = true, concurrentReadStorePrefetch = concurrent, memoryScheduleOverlap = overlap)
         val cache = top.cache.asInstanceOf[NonBlockingCoherentLineCache]
         val home = top.home.asInstanceOf[MixedCoherentLineHome]
         val actual = unique(cache, classOf[CoherentCacheConcurrency])

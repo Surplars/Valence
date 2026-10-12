@@ -54,6 +54,10 @@ def expected_constructor():
     for section in ("profile", "core"):
         _dual_capacity(expected[section])
     historical = copy.deepcopy(expected)
+    for section in ("profile", "cache"):
+        for field in ("internalLineGrant", "concurrentReadStorePrefetch", "memoryScheduleOverlap"):
+            if historical[section].pop(field) is not False:
+                raise RuntimeError("historical entry must keep line Grant / dual-origin prefetch off")
     for section in ("profile", "core"):
         if historical[section].pop("taggedStoreReturns") is not False:
             raise RuntimeError("historical dual-credit entry must keep tagged returns off")
@@ -71,6 +75,9 @@ def expected_fabric():
     _dual_capacity(expected["cpu"])
     _compare(expected, spec["executed_fabric"], "fabric expectation")
     expected["cpu"]["taggedStoreReturns"] = False
+    expected["cache"]["internalLineGrant"] = False
+    expected["cache"]["concurrentReadStorePrefetch"] = False
+    expected["cache"]["memoryScheduleOverlap"] = False
     return expected
 
 
