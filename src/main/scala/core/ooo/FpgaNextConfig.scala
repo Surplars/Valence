@@ -72,7 +72,8 @@ final case class FpgaNextConfig(
     memoryScheduleOverlap: Boolean = false,
     registeredPendingStoreQuery: Boolean = false,
     alignedFetchPermissionStage: Boolean = false,
-    registeredCanonicalStoreEvent: Boolean = false
+    registeredCanonicalStoreEvent: Boolean = false,
+    sharedLane1OwnerMatch: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -169,6 +170,7 @@ final case class FpgaNextConfig(
         (if (pendingVirtualStoreProof) s"-pending-virtual-store-proof$pendingVirtualStoreProofSlots" else "") +
         (if (registeredPendingStoreQuery) "-registered-pending-store-query" else "") +
         (if (alignedFetchPermissionStage) "-aligned-fetch-permission-stage" else "") +
+        (if (sharedLane1OwnerMatch) "-shared-lane1-owner-match" else "") +
         (if (registeredCanonicalStoreEvent) "-registered-canonical-store-event" else "") +
         (if (pendingStoreEarlyLoadCredits != 1) s"-pending-store-early-load-credits$pendingStoreEarlyLoadCredits" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
@@ -260,6 +262,7 @@ final case class FpgaNextConfig(
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
         alignedFetchPermissionStage = alignedFetchPermissionStage,
+        sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -294,6 +297,7 @@ final case class FpgaNextConfig(
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
         alignedFetchPermissionStage = alignedFetchPermissionStage,
+        sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -317,7 +321,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event",
+            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
@@ -390,6 +394,7 @@ object FpgaNextConfig {
             pendingVirtualStoreProof = options.contains("--pending-virtual-store-proof"),
             registeredPendingStoreQuery = options.contains("--registered-pending-store-query"),
             alignedFetchPermissionStage = options.contains("--aligned-fetch-permission-stage"),
+            sharedLane1OwnerMatch = options.contains("--shared-lane1-owner-match"),
             registeredCanonicalStoreEvent = options.contains("--registered-canonical-store-event"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
             pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),

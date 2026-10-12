@@ -1817,7 +1817,22 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val stage = executionStages(lane)
         val entry = executingOperands(lane).entry
         val ownerIndex = Mux(stage.io.occupied, entry.renamed.token.index, 0.U)
-        val stale = issueEntries(ownerIndex).renamed.token.asUInt =/= entry.renamed.token.asUInt
+        // Retain the old full queue-token read only as an independent witness on lane 1.
+        // Both rows are written from the same accepted rename token; retire/recovery
+        // leave their payloads intact. A pure ROB tag match therefore preserves stale
+        // semantics even outside the live window. Lane 0 has other completion producers.
+        val queueOwnerMatches = issueEntries(ownerIndex).renamed.token.asUInt === entry.renamed.token.asUInt
+        val ownerMatches = if (p.sharedLane1OwnerMatch && lane == 1) ledger.io.lane1OwnerMatch.get
+        else queueOwnerMatches
+        val stale = !ownerMatches
+        if (p.sharedLane1OwnerMatch && lane == 1) {
+            when(stage.io.occupied) {
+                assert(queueOwnerMatches === ownerMatches,
+                    "lane-1 pure ROB tag equality must match the independent full queue-token witness")
+                assert(ledger.io.complete(1).bits.token.asUInt === entry.renamed.token.asUInt,
+                    "lane-1 owner query must use the raw held execution token independently of completion valid")
+            }
+        }
         stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)
         stage.io.deq.ready := (if (lane == 0) branchResultPortFree else true.B) &&
             (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none)

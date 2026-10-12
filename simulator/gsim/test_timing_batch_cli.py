@@ -77,7 +77,7 @@ class TimingBatchCliTests(unittest.TestCase):
             'p: OooParams, registerQuery: Boolean')
         self.assertEqual(hashlib.sha256(qualified.encode()).hexdigest(),
             'a489d9bd803730f584ef9c65f15e113276aed38a9f87bb0d0776f42d5b6eb2ce')
-        for kind, count in [('OooParams',154), ('FpgaNextConfig',64)]:
+        for kind, count in [('OooParams',155), ('FpgaNextConfig',65)]:
             text = (ROOT/f'src/main/scala/core/ooo/{kind}.scala').read_text()
             ctor = text.split('case class '+kind+'(',1)[1].split('\n) {',1)[0]
             fields = re.findall(r'^\s*(\w+):',ctor,re.M)

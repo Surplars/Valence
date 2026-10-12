@@ -158,7 +158,9 @@ case class OooParams(
     registeredPmpRegions: Boolean = false,
     publishedPmpChanges: Boolean = false,
     registeredPendingStoreQuery: Boolean = false,
-    registeredCanonicalStoreEvent: Boolean = false
+    registeredCanonicalStoreEvent: Boolean = false,
+    // Experimental lane-1 reuse of the registered ROB tag query.
+    sharedLane1OwnerMatch: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -167,6 +169,9 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!sharedLane1OwnerMatch || (registeredIssueExecute && parallelIssuePayload &&
+        completionWidth == 2 && tagBits == 64),
+        "shared lane-1 ownership requires two registered execution lanes, raw parallel payload and full 64-bit tags")
     require(!registeredCanonicalStoreEvent || canonicalVirtualStoreOverlap,
         "registered canonical-store events require canonical virtual-store overlap")
     require(!registeredPendingStoreQuery || pendingVirtualStoreProof,

@@ -41,6 +41,8 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         val sameCycleFault = if (p.separateBranchRetireFault)
             Some(Input(Vec(p.completionWidth, Bool()))) else None
         val completionAccepted = Output(Vec(p.completionWidth, Bool()))
+        // Pure registered-row equality: no valid, done, live-window or recovery qualification.
+        val lane1OwnerMatch = if (p.sharedLane1OwnerMatch) Some(Output(Bool())) else None
         val commitEnable       = Input(Bool())
         // A registered load-order check may release only the older prefix.
         // Invalid generations fail closed rather than weakening its boundary.
@@ -193,6 +195,13 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
     io.speculativeMapping := rat(io.inspectRegister)
     io.committedMapping   := committed(io.inspectRegister)
 
+    // Lane 1 is the raw registered execution token in the supported backend topology.
+    // Reuse this exact comparator for final admission and execution cancellation.
+    // In particular, complete.valid and completionAccepted must never feed this query.
+    val lane1OwnerMatch = if (p.sharedLane1OwnerMatch) Some(
+        entries(io.complete(1).bits.token.index).tag === io.complete(1).bits.token.tag) else None
+    io.lane1OwnerMatch.foreach(_ := lane1OwnerMatch.get)
+
     // Completions for instructions on a discarded path cannot write a newly reused PRF entry.
     for (lane <- 0 until p.completionWidth) {
         val completion = io.complete(lane)
@@ -201,7 +210,10 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
             .foldLeft(false.B)(_ || _)
         val ordinarySurvives = recoveryAdmission.map(_.io.survives(completion.bits.token.index))
             .getOrElse(!recoveryCycle || age(completion.bits.token.index) < activeKeep)
-        val accepted = completion.valid && live(completion.bits.token) &&
+        val completionLive = if (p.sharedLane1OwnerMatch && lane == 1)
+            age(completion.bits.token.index) < count && lane1OwnerMatch.get
+        else live(completion.bits.token)
+        val accepted = completion.valid && completionLive &&
             !entries(completion.bits.token.index).done && !duplicate && !acceptHeadTrap &&
             Mux(acceptHeadSystem, completion.bits.token.index === head, ordinarySurvives)
         io.completionAccepted(lane) := accepted
