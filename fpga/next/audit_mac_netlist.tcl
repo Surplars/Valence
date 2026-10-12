@@ -2,6 +2,14 @@
 # Source a hash-bound mac-netlist-binding.tcl first, then call the collector on
 # an explicitly opened matching checkpoint. No timing exceptions or waivers are
 # created here. Changed/optimized mapping fails closed for a reviewed update.
+# Same read-only leaf/path queries as the active payload constraint recipe.
+# Staged exports put these files together; source checkouts keep them in zu15eg.
+set valence_mac_cdc_file [file join [file dirname [info script]] native-gmac-cdc-constraints.tcl]
+if {![file exists $valence_mac_cdc_file]} {
+    set valence_mac_cdc_file [file join [file dirname [info script]] .. zu15eg native-gmac-cdc-constraints.tcl]
+}
+source $valence_mac_cdc_file
+unset valence_mac_cdc_file
 namespace eval valence_mac {variable facts; variable out; variable clocks; variable root}
 
 proc valence_mac::validate_contract {contract} {
@@ -345,11 +353,16 @@ proc valence_mac::fifo {path width payload_width from to} {
         if {[llength [lsort -unique $sources]]!=$width} {error "MAC duplicate Gray source bits: $path/$prefix"}
         timed $path/$prefix $starts [pins $first D] 8.0 1
     }
-    set captures [bank $h/output_0_reg $payload_width]
-    set starts [get_pins -quiet -hierarchical -regexp "^[quote $h/storage_ext/].*/(CLK|WCLK)$"]
-    if {![llength $starts]} {error "MAC FIFO RAM physical write-clock mapping requires review: $path"}
-    foreach pin $starts {if {[clock $pin] ne [dict get $clocks fifo_source]} {error "MAC FIFO RAM write clock mismatch"}}
-    foreach reg $captures {if {[clock $reg/C] ne [dict get $clocks fifo_destination]} {error "MAC FIFO output clock mismatch"}}
-    timed $path/payload $starts [pins $captures D] 8.0 1
+    set payload [valence_fifo_payload::collect $h $payload_width]
+    set path_count [valence_fifo_payload::check_paths $payload 8.0]
+    set starts [dict get $payload starts]; set ends [dict get $payload ends]
+    dict for {end launch} [dict get $payload by_end] {
+        puts $facts [list FIFO_PAYLOAD_LEAVES $path TO=$end FROM=$launch]
+    }
+    dict for {end launch} [dict get $payload ordinary_by_end] {
+        puts $facts [list FIFO_PAYLOAD_DESTINATION_FFS $path TO=$end FROM=$launch]
+    }
+    timed $path/payload $starts $ends 8.0 1
+    puts $facts [list FIFO_PAYLOAD_PATHS $path CHECKED=$path_count EXCEPTION_AND_SKEW_REVIEW_REQUIRED=1]
     puts $facts [list FIFO $path POINTER_BITS=$width PAYLOAD_BITS=$payload_width]
 }

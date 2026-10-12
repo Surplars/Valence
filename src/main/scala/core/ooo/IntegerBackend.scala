@@ -66,7 +66,10 @@ class HeadProfile extends Bundle {
   * wider configurations require a separate physical design assessment. Initial architectural registers are zero for
   * this standalone bring-up interface, not an ISA reset claim.
   */
-class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false) extends Module {
+class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
+    val registerCanonicalStoreEvent: Boolean = false) extends Module {
+    require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
+        "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!p.registeredIssueExecute || (p.completionWidth == 2 && p.registeredBranchRedirect &&
         p.precompleteMispredictedBranch && p.registeredRobRetirement && !p.fastBufferedStoreRetire &&
         !p.fastHeadLoadRetire && !p.moveAlias),
@@ -706,7 +709,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val stagedMemorySize = if (p.registeredMemoryAddress) Some(RegInit(0.U(2.W))) else None
     val memoryIssued = WireDefault(false.B)
     val proofFrontier = if (p.memoryProofFrontier) Some(Module(new MemoryProofFrontier(p))) else None
-    val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p))) else None
+    val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p, p.registeredPendingStoreQuery))) else None
     val pendingStoreCredit = if (p.pendingVirtualStoreProof) Some(Module(new PendingStoreEarlyLoadCredit(p))) else None
     val pendingStoreRelied = WireDefault(0.U(p.pendingVirtualStoreProofSlots.W))
     val frontierChoice = WireDefault(false.B)
@@ -957,17 +960,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         for (i <- 0 until p.robEntries) {
             val entry = issueEntries(i)
             val owner = bank.io.owners(i)
-            // Readiness is deliberately absent: a relied-on physical binding
-            // must survive until its store really starts, including after rs2 wakes.
-            owner.valid := pending(i) && memoryLive(i) && storeAddressKnown(i) &&
-                entry.renamed.token.index === i.U && entry.request.memory && entry.request.store &&
-                !entry.request.atomic && !entry.request.system && !entry.request.mulDiv &&
-                !entry.request.fetchFault && !entry.request.fetchPageFault &&
-                entry.request.operation === IntegerOp.add && entry.request.controlFlow === ControlFlow.none
-            owner.bits.token := entry.renamed.token
-            owner.bits.address := storeAddress(i)
-            owner.bits.size := entry.request.memorySize
-            owner.bits.mask := storeByteLanes(i)
+            PendingStoreProofRobOwner.connect(owner, entry.renamed.token, entry.request,
+                pending(i), memoryLive(i), storeAddressKnown(i), storeAddress(i), storeByteLanes(i), i)
         }
         bank.io.queryEligible := VecInit((0 until p.robEntries).map { i =>
             bank.io.loadCandidate.valid && ages(i) < memoryChoice.age && !pendingStoreDataReady(i)
@@ -1028,6 +1022,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val token = tracker.io.owner
         val index = Mux(tracker.io.tracked, token.index, 0.U)
         tracker.io.ownerLive := tracker.io.tracked && memoryProtected && ledger.io.headValid &&
+            (if (registerCanonicalStoreEvent) !ledger.io.headDone else true.B) &&
             memoryOwner.asUInt === token.asUInt && headRenamed.token.asUInt === token.asUInt &&
             memoryLive(index) && !pending(index) && issueEntries(index).renamed.token.asUInt === token.asUInt &&
             issueEntries(index).request.memory && issueEntries(index).request.store && !issueEntries(index).request.atomic &&
@@ -1036,11 +1031,15 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         tracker.io.stable := io.loadPrecheck.get.stable && !contextMemoryEpoch
         tracker.io.checked := io.canonicalStore.get.checked
         val retired = ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === token.asUInt).reduce(_ || _)
-        val faulted = lsu.io.complete.fire && lsu.io.complete.bits.exception &&
+        // The staged mode conservatively disposes proof for every matching
+        // consumed LSU result, even when the ROB rejects that result. The default
+        // retains its existing exception-only disposal contract.
+        val disposed = lsu.io.complete.fire &&
+            (if (registerCanonicalStoreEvent) true.B else lsu.io.complete.bits.exception) &&
             lsu.io.complete.bits.token.asUInt === token.asUInt
         tracker.io.invalidate := ledger.io.recoveryAccepted || ledger.io.recovering ||
             headTrapAccepted || headSystemAccepted || contextMemoryEpoch || reserveSystem ||
-            interruptDrain || (tracker.io.tracked && (killed(index) || retired || faulted))
+            interruptDrain || (tracker.io.tracked && (killed(index) || retired || disposed))
         lsu.io.relaxStoreOwner.get.valid := tracker.io.certificate.valid
         lsu.io.relaxStoreOwner.get.bits := tracker.io.certificate.bits.origin.token
     }
@@ -1059,15 +1058,18 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         bank.io.proofs.map(proof => proof.valid && AlignedMemoryDisjoint.withLanes(
             canonicalAddress, loadAligned, loadMask, proof.bits.payload.physicalAddress(63, 3), proof.bits.payload.mask))
     }
+    pendingStoreProof.foreach { bank =>
+        bank.io.proofs.foreach(proof => PendingStoreProofRobMapping.assertIndexedOwner(
+            proof, issueEntries(proof.bits.token.index).renamed.token))
+    }
     val pendingStoreProofFor = (0 until p.robEntries).map { i =>
-        pendingStoreProof.map(bank => bank.io.proofs.map(proof => proof.valid &&
-            proof.bits.token.asUInt === issueEntries(i).renamed.token.asUInt && proof.bits.token.index === i.U)
+        pendingStoreProof.map(bank => bank.io.proofs.map(proof => PendingStoreProofRobMapping.matches(proof, i))
             .reduce(_ || _)).getOrElse(false.B)
     }
     val pendingStoreDisjointFor = (0 until p.robEntries).map { i =>
         pendingStoreProof.map(bank => (0 until p.pendingVirtualStoreProofSlots).map(r =>
-            pendingStoreRowDisjoint.get(r) && bank.io.proofs(r).bits.token.asUInt === issueEntries(i).renamed.token.asUInt &&
-                bank.io.proofs(r).bits.token.index === i.U).reduce(_ || _)).getOrElse(false.B)
+            pendingStoreRowDisjoint.get(r) && PendingStoreProofRobMapping.matches(bank.io.proofs(r), i))
+            .reduce(_ || _)).getOrElse(false.B)
     }
     val pendingStoreOlder = VecInit((0 until p.robEntries).map(i => memoryLive(i) && pending(i) &&
         issueEntries(i).request.store && ages(i) < memoryChoice.age)).asUInt

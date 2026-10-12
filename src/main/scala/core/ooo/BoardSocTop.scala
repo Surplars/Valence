@@ -52,7 +52,9 @@ object BoardSocConfig {
     pendingReadyStoreBypass: Boolean = false,
     taggedStoreReturns: Boolean = false,
         backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
-        postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false): OooParams = {
+        postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false,
+        registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
+        registeredCanonicalStoreEvent: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -68,6 +70,9 @@ object BoardSocConfig {
             postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
             canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+            registeredPendingStoreQuery = registeredPendingStoreQuery,
+            alignedFetchPermissionStage = alignedFetchPermissionStage,
+            registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
@@ -237,7 +242,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
     postedPreparationPriority: Boolean = false, lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
-    registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false) extends Module {
+    registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false,
+    registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
+    registeredCanonicalStoreEvent: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -278,6 +285,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+            registeredPendingStoreQuery = registeredPendingStoreQuery,
+            alignedFetchPermissionStage = alignedFetchPermissionStage,
+            registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns, backendCapacity = backendCapacity)

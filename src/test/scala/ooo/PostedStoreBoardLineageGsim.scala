@@ -26,7 +26,7 @@ object PostedBoardConfiguration {
         case other => throw new IllegalArgumentException("unserialized profile value: " + other.getClass.getName)
     }
     def write(c: FpgaNextConfig, directory: String): Unit = {
-        require(c.productArity == 61 && c.coreParams.productArity == 151 && c.cache.productArity == 22,
+        require(c.productArity == 64 && c.coreParams.productArity == 154 && c.cache.productArity == 22,
             "full tagged profile/core/cache summary has unexpected fields")
         val derived = Map[String, Any]("isaProfile" -> c.isaProfile, "issueWidth" -> c.issueWidth,
             "instructionCacheLines" -> c.instructionCacheLines, "dataCacheLines" -> c.dataCacheLines,

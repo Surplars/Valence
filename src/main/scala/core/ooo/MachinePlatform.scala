@@ -237,7 +237,8 @@ class MachinePlatform(
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
-        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket))
+        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
+        boundedRequestFrontier = p.alignedFetchPermissionStage))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
             virtualMemoryLevels = translationLevels, pmpEntries = 16)))
@@ -783,6 +784,11 @@ class MachinePlatform(
         }
     } else (Some(physicalData), None)
     frontend.io.pc     := core.io.fetchPc
+    if (p.alignedFetchPermissionStage) {
+        frontend.io.requestFrontier.get := core.io.fetchRequestFrontier.get
+        frontend.io.suppressRequest.get := core.io.suppressFetchRequest.get
+        core.io.instructionFaultOffsets.get := frontend.io.instructionFaultOffsets
+    }
     frontend.io.enable := !hold
     frontend.io.invalidate := core.io.invalidateFetch
     frontend.io.pause := core.io.pauseFetch.get

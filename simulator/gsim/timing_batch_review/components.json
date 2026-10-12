@@ -1,0 +1,128 @@
+{
+  "schema": "timing-batch-component-evidence-v1",
+  "archives": {
+    "A-source": {
+      "filename": "proof-query-stage-source-r2.tar.gz",
+      "sha256": "ac2a768c1643495905e9d39f6fd2201bc38c3b6b582feec794d381e678664812",
+      "bytes": 278306,
+      "library_file_id": "libfile_97092a2409208191a3328eea671d4869",
+      "version": 0,
+      "upload_result_sha256": "2af548da5ce1f05c8921465acfd22126445d80ad4c60047ece8b5f23707d5b3d"
+    },
+    "A-evidence": {
+      "filename": "proof-query-stage-evidence-r2.tar.gz",
+      "sha256": "a061134cb2abe529ba05cc30e9bf51f34c100e5106c06cafc71b0914e927f3a4",
+      "bytes": 327770,
+      "library_file_id": "libfile_3782289005588191a9a11b796d8a3579",
+      "version": 0,
+      "upload_result_sha256": "1037f0f88db66e133428a0ed6695821c26d6528027fad740666756406b2b6e44"
+    },
+    "B": {
+      "filename": "fetch-packet-stage-pass-r1.tar.gz",
+      "sha256": "966ee5445dd17d15b078d7ef95d936b13ca3f60ec2ac67fb817cc00d90c2f971",
+      "bytes": 489035,
+      "library_file_id": "libfile_6f1a3b9682c081918d2df1817f98e60b",
+      "version": 0,
+      "upload_result_sha256": "45329505fcb5844378517a2d558a5b8f8c64b533393de6321f2758c95088156a"
+    },
+    "C-source": {
+      "filename": "canonical-event-source-r1.tar.gz",
+      "sha256": "ee488758608c763ce1adeaafe440b23eaf4e5e66d3c9b2a34dc2fe65348a6f21",
+      "bytes": 308164,
+      "library_file_id": "libfile_8186cff96b988191903295f45f8b0902",
+      "version": 0,
+      "upload_result_sha256": "79f430b593729a97f7289587a4d94f00333ff87e77b211e87d829745dac50303"
+    },
+    "C-qualified": {
+      "filename": "canonical-event-qualified-r5.tar.gz",
+      "sha256": "6f317f98505d6c66eb237d962995d7eb0839cc2d8f6467c82605f9166200a177",
+      "bytes": 1311772,
+      "library_file_id": "libfile_f840fc6609e08191b41a8271b59198ef",
+      "version": 0,
+      "upload_result_sha256": "96f3b03a2b9f8d6ef2964d0519a43c36cb447cc72ad7406d54b1ee344975e542"
+    }
+  },
+  "components": {
+    "A": {
+      "status": "COMPONENT_PASS; integrated readonly getter bridge separately byte-equivalent at backend FIR",
+      "archives": [
+        "A-source",
+        "A-evidence"
+      ],
+      "production_members": [
+        "source/src/main/scala/core/ooo/PendingVirtualStoreProof.scala"
+      ],
+      "fixture_members": [
+        "source/src/test/scala/ooo/PendingStoreQueryStageGsim.scala"
+      ],
+      "host_oracle_members": [
+        "source/simulator/gsim/harness/pending_store_query_stage.cpp",
+        "source/simulator/gsim/harness/pending_store_query_stage_bench.h",
+        "source/simulator/gsim/harness/pending_store_query_translation.cpp"
+      ],
+      "base_oracle": "simulator/gsim/harness/pending_store_proof_reference.h",
+      "replay_limit": "Component cache-binding scripts require source/class/tool rebinding. The active combined backend runner and independent dual-credit host are already tracked; independent component fixture is archived, not compiled by the combined checkout.",
+      "member_sha256": {
+        "source/src/test/scala/ooo/PendingStoreQueryStageGsim.scala": "4ee68c26de44beebdf1f2dad3c43cc223b0db22164b3fce37ea9a445f85c7f86",
+        "source/simulator/gsim/harness/pending_store_query_stage.cpp": "c95212e25c4fc849db2753377d0fdc928e8ea31958a89a513ec66fd6a9cc30a5",
+        "source/simulator/gsim/harness/pending_store_query_stage_bench.h": "1fe43e0146b402e722679328ad5c5e61502bbed180b129d21fc16b4064285d47",
+        "source/simulator/gsim/harness/pending_store_query_translation.cpp": "c8ee37591e8654088d9e9c6f26d90ae235011b55e50eb6d6833675c587f2841a"
+      },
+      "base_oracle_sha256": "9b78eb81a52d505c2b94f83062a07f2be9645859097ed6c795e3c2b0a913c4be"
+    },
+    "B": {
+      "status": "Frozen component PASS; combined ABC matching CPU passed separately",
+      "archives": [
+        "B"
+      ],
+      "production_patch_member": "fetch-packet-stage.patch",
+      "fixture_members": [
+        "lab/fixture/src/FetchPhaseGsim.scala"
+      ],
+      "host_oracle_members": [
+        "lab/harness/fetch_phase.cpp",
+        "lab/harness/fetch_phase_oracle.hpp"
+      ],
+      "replay_limit": "Isolated lab includes exact production dependency copies and its own build.mill, not the whole CPU. Historical grant/cache/tool records are provenance and do not grant future execution. Context supplement has a separate source/evidence locator below.",
+      "member_sha256": {
+        "lab/fixture/src/FetchPhaseGsim.scala": "36e9523ef6277c62a9ba31a3192ffa68b7814f146739e82cfdbaee6735d5cbb2",
+        "lab/harness/fetch_phase.cpp": "21a7de430096de4ca345086ab8b6999ebb0334682b4b592cdac85d5a1bc8da77",
+        "lab/harness/fetch_phase_oracle.hpp": "83bc9001d3a0149e84204906b87813ead42cae66a5a75e98eca92cb8677ede3e"
+      },
+      "context_supplement": {
+        "filename": "fetch-packet-stage-context-supplement-r1.tar.gz",
+        "sha256": "0dc51e0a9fa4a6573c24da3d8e1db3a02335e48ccde94970163c11bfcb77911f",
+        "bytes": 532596,
+        "source_locator": "timing-batch-r1/fetch-packet-stage/supplement",
+        "library_file_id": "libfile_058f782c5d3c8191aa865b5c3ed78d81",
+        "publication_status": "Library upload succeeded; indexed source-bound artifact",
+        "version": 0
+      }
+    },
+    "C": {
+      "status": "COMPONENT_PASS_STRICT_RESET; integrated backend/CPU passed separately",
+      "archives": [
+        "C-qualified"
+      ],
+      "production_patch_member": "production-r1.patch",
+      "fixture_members": [
+        "source/src/test/scala/ooo/CanonicalStoreEventBoundaryGsim.scala",
+        "source/src/test/scala/ooo/FrozenCanonicalEventAdapter.scala"
+      ],
+      "host_oracle_members": [
+        "host-r5/host.cpp",
+        "source/simulator/gsim/harness/canonical_store_oracle.h",
+        "source/simulator/gsim/harness/virtual_load_test_memory.h"
+      ],
+      "replay_limit": "Use final qualified-r5 bundle, not initial source-r1 host: reserved-name fixture correction and strict-reset host revisions are preserved separately. Cache/tool source rebinding required. Do not add frozen standalone wrapper directly to combined test tree because unified C flag equality differs.",
+      "member_sha256": {
+        "source/src/test/scala/ooo/CanonicalStoreEventBoundaryGsim.scala": "a65fa34e7c6275525ffb6295e6ab7293b033fce40168d38ea71dac79b4faf210",
+        "source/src/test/scala/ooo/FrozenCanonicalEventAdapter.scala": "a5ea5fb26418e1716b65bd3d3c4d1d4b4d6e833f969da7429c72c8dcc8ab845c",
+        "host-r5/host.cpp": "d34f00442280a30f778377efc71341af50639d260a3ee012f5c2401781ae3121",
+        "source/simulator/gsim/harness/canonical_store_oracle.h": "d5914ece94eb6c033d50ffdb4f452cbd1490d69b1e2b00a79a7c0eedad558ca1",
+        "source/simulator/gsim/harness/virtual_load_test_memory.h": "410c52fc19eacce268116569ca9bc1066b68acdeba4742797c714f66bb5c44d9"
+      }
+    }
+  },
+  "clean_checkout_independent_component_one_click_claim": false
+}

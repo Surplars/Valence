@@ -37,6 +37,22 @@ class BscanQualificationTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(AssertionError):
                 check.check_structure(mutant)
 
+    def test_phase_handoff_and_functional_reset_bypasses_rejected(self):
+        text = check.RTL.read_text()
+        mutants = {
+            "raw_drck_reset": text.replace('always @(posedge bscan_drck or negedge source_reset_n)',
+                                             'always @(posedge bscan_drck or negedge work_reset_n)'),
+            "raw_hard_reset": text.replace('always @(negedge bscan_tck or negedge hard_reset_n)',
+                                             'always @(negedge bscan_tck or negedge raw_reset_n)'),
+            "payload_bypass": text.replace('.s_req_payload(handoff_frame[40:0])',
+                                            '.s_req_payload(update_frame[40:0])'),
+            "toggle_bypass": text.replace('update_sync <= {update_sync[0], handoff_toggle};',
+                                           'update_sync <= {update_sync[0], update_toggle};'),
+        }
+        for name, mutant in mutants.items():
+            with self.subTest(name=name), self.assertRaises(AssertionError):
+                check.check_structure(mutant)
+
     def test_dmi_loader_crc_and_host_protocol_are_outside_patch(self):
         # The export must keep the selected custom 64-bit USER2 profile explicit.
         profile = json.loads((ROOT/'fpga/next/bscan-timing-profile.json').read_text())

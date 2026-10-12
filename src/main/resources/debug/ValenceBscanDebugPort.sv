@@ -23,6 +23,13 @@ module ValenceBscanUserTransport (
     localparam [3:0] VERSION = 4'h1;
     localparam [31:0] CAPABILITY = 32'h00000701;
     wire raw_reset_n = debug_por_n && !bscan_reset;
+    // This fence depends only on external reset. Using work_reset_n here would
+    // feed hard_reset back into its own CLR and truncate its full-TCK pulse.
+    (* ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) reg [2:0] hard_release;
+    always @(posedge bscan_tck or negedge raw_reset_n)
+        if (!raw_reset_n) hard_release <= 0;
+        else hard_release <= {hard_release[1:0], 1'b1};
+    wire hard_reset_n = hard_release[2];
     reg hard_reset;
     wire work_reset_n = raw_reset_n && !hard_reset;
     (* ASYNC_REG = "TRUE" *) reg [2:0] source_release;
@@ -47,10 +54,11 @@ module ValenceBscanUserTransport (
     // The BSCANE2 already registers this input at the falling TCK edge. Adding
     // another falling-edge TDO register here would introduce a one-bit skew.
     assign bscan_tdo = bscan_sel ? shift_frame[0] : 1'b0;
-    always @(posedge bscan_drck or negedge work_reset_n) begin
-        if (!work_reset_n) begin
-            shift_frame <= 0; shift_count <= 0; scan_captured <= 0;
-        end else if (!source_reset_n) begin
+    // Negative-TCK release precedes the next positive DRCK capture/shift edge.
+    // Keep raw/work reset off the functional DRCK CLR pins, including when
+    // DRCK is stopped; asynchronous assertion still propagates through the fence.
+    always @(posedge bscan_drck or negedge source_reset_n) begin
+        if (!source_reset_n) begin
             shift_frame <= 0; shift_count <= 0; scan_captured <= 0;
         end else if (bscan_sel) begin
             if (bscan_capture) begin
@@ -99,6 +107,22 @@ module ValenceBscanUserTransport (
         end
     end
 
+    // Phase-separated ingress: UPDATE rises on falling TCK in the selected
+    // primitive profile. Copy its held bundle on positive TCK before the
+    // existing negative-TCK consumer. These are related-clock handoff flops,
+    // not per-bit asynchronous synchronizers. Reset release is negative TCK.
+    reg [63:0] handoff_frame;
+    reg handoff_length_ok, handoff_toggle;
+    always @(posedge bscan_tck or negedge source_reset_n) begin
+        if (!source_reset_n) begin
+            handoff_frame <= 0; handoff_length_ok <= 0; handoff_toggle <= 0;
+        end else begin
+            handoff_frame <= update_frame;
+            handoff_length_ok <= update_length_ok;
+            handoff_toggle <= update_toggle;
+        end
+    end
+
     (* ASYNC_REG = "TRUE" *) reg [1:0] update_sync;
     reg protocol_error, result_done;
     reg [1:0] result_status;
@@ -108,11 +132,14 @@ module ValenceBscanUserTransport (
     wire source_ready, source_busy, response_valid;
     wire [33:0] response_payload;
     wire consume_update = update_sync[1] != update_seen;
-    wire frame_ok = update_length_ok && update_frame[63:48] == SIGNATURE &&
-        update_frame[47:44] == VERSION && update_frame[43:41] == 0;
-    wire [1:0] request_op = update_frame[1:0];
-    wire [6:0] request_address = update_frame[40:34];
+    wire frame_ok = handoff_length_ok && handoff_frame[63:48] == SIGNATURE &&
+        handoff_frame[47:44] == VERSION && handoff_frame[43:41] == 0;
+    wire [1:0] request_op = handoff_frame[1:0];
+    wire [6:0] request_address = handoff_frame[40:34];
     wire request_is_dmi = request_op == 1 || request_op == 2;
+    // Keep the sticky UPDATE-local overrun in this final gate. Sampling it
+    // only at positive TCK would miss an invalid duplicate between that sample
+    // and negative-TCK consumption. This remaining related-clock path is timed.
     wire accept_dmi = consume_update && frame_ok && request_is_dmi &&
         !protocol_error && !update_overrun && source_ready;
     // UPDATE pending participates immediately, so an old DONE can never appear
@@ -127,9 +154,9 @@ module ValenceBscanUserTransport (
     // A full TCK-period assertion reaches a stopped destination too. Reset all
     // event toggles together; never release a stale event into a fresh mailbox.
     wire hard_reset_command = consume_update && frame_ok && request_op == 3 &&
-        request_address == 2 && update_frame[33:2] == 0;
-    always @(negedge bscan_tck or negedge raw_reset_n)
-        if (!raw_reset_n) hard_reset <= 0;
+        request_address == 2 && handoff_frame[33:2] == 0;
+    always @(negedge bscan_tck or negedge hard_reset_n)
+        if (!hard_reset_n) hard_reset <= 0;
         else hard_reset <= hard_reset_command;
 
     always @(negedge bscan_tck or negedge source_reset_n) begin
@@ -138,7 +165,7 @@ module ValenceBscanUserTransport (
             protocol_error <= 0; result_done <= 0; result_status <= 0;
             result_address <= 0; result_data <= 0;
         end else begin
-            update_sync <= {update_sync[0], update_toggle};
+            update_sync <= {update_sync[0], handoff_toggle};
             if (response_valid) begin
                 result_done <= 1;
                 result_data <= response_payload[33:2];
@@ -158,13 +185,13 @@ module ValenceBscanUserTransport (
                     protocol_error <= 0; result_done <= 0; result_status <= 0;
                     result_address <= 0; result_data <= 0;
                 end else if (request_op == 3 && request_address == 1 &&
-                             update_frame[33:2] == 0 && source_ready) begin
+                             handoff_frame[33:2] == 0 && source_ready) begin
                     protocol_error <= 0; result_done <= 0; result_status <= 0;
                     result_address <= 0; result_data <= 0;
                 end else if (visible_error || !source_ready) begin
                     protocol_error <= 1;
                 end else if (request_op == 3 && request_address == 0 &&
-                             update_frame[33:2] == 0) begin
+                             handoff_frame[33:2] == 0) begin
                     result_done <= 1; result_status <= 0;
                     result_address <= 0; result_data <= CAPABILITY;
                 end else if (accept_dmi) begin
@@ -180,7 +207,7 @@ module ValenceBscanUserTransport (
     wire [40:0] request_payload;
     ValenceDmiCdc #(.ABITS(7)) bridge (
         .tck(bscan_tck), .debug_clk(debug_clk), .reset_n(bridge_reset_n),
-        .s_req_valid(accept_dmi), .s_req_ready(source_ready), .s_req_payload(update_frame[40:0]),
+        .s_req_valid(accept_dmi), .s_req_ready(source_ready), .s_req_payload(handoff_frame[40:0]),
         .s_rsp_valid(response_valid), .s_rsp_payload(response_payload), .s_rsp_ready(1'b1),
         .s_busy(source_busy), .dmi_reset_n(dmi_reset_n),
         .d_req_valid(dmi_req_valid), .d_req_ready(dmi_req_ready), .d_req_payload(request_payload),

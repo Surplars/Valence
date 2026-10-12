@@ -1,0 +1,19 @@
+{
+  "status": "SANITIZED_PASS",
+  "source_tree": "9517ac3492b48d8336207d62984907aa8687b9bb",
+  "receipt_sha256": "212d4892ab76d5188532d61d25ff62a9ba34a6e5541e8e78d6ec018cb8bec65b",
+  "max_rss_KiB": 2836912,
+  "fir_bytes": 11312300,
+  "generated_units": 13,
+  "generated_cpp_bytes": 16286489,
+  "negative_evidence": {
+    "status": "PASS",
+    "controls": 5,
+    "contract": "Specific oracle anchor, nonzero exit and actual injected-event count."
+  },
+  "positive_log": "DUAL_BACKEND_CASE ready_head_spare_credit_veto cycles=2\nDUAL_BACKEND_WITNESS early=3 peak_credit=2 two_proof_cycles=62 two_bound_cycles=61 two_credit_cycles=161 store_start=526 load0_start=465 load1_start=469 load0_response=628 load1_response=629 idle_b2=1 credit_returns=3\nDUAL_BACKEND_CASE two_stores_two_loads_frozen_pte_idle_b2_third_veto\nDUAL_BACKEND_WITNESS early=3 peak_credit=2 two_proof_cycles=62 two_bound_cycles=61 two_credit_cycles=145 store_start=526 load0_start=465 load1_start=469 load0_response=609 load1_response=613 idle_b2=1 credit_returns=3\nDUAL_BACKEND_CASE oldest_store_late_fault_precise\nDUAL_BACKEND_WITNESS early=2 peak_credit=2 two_proof_cycles=61 two_bound_cycles=60 two_credit_cycles=182 store_start=526 load0_start=466 load1_start=470 load0_response=650 load1_response=654 idle_b2=1 credit_returns=2\nDUAL_BACKEND_CASE decoded_redirect_retain_bound_stores_response_drain\nDUAL_BACKEND_WITNESS early=2 peak_credit=2 two_proof_cycles=62 two_bound_cycles=61 two_credit_cycles=182 store_start=0 load0_start=466 load1_start=470 load0_response=650 load1_response=654 idle_b2=0 credit_returns=2\nDUAL_BACKEND_CASE decoded_redirect_kill_both_stores_response_drain\nDUAL_BACKEND_PASS rows=2 credits=2 lsu=4\n",
+  "limitations": [
+    "Production classes must come from the combined candidate compile, including IntegerBackend and OooParams.",
+    "No whole-board, CPU workload performance, native placement or timing qualification."
+  ]
+}

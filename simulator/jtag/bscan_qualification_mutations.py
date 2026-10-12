@@ -17,6 +17,21 @@ run = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(run)
 
 MUTANTS = {
+    "negative_handoff": ([('always @(posedge bscan_tck or negedge source_reset_n)',
+                              'always @(negedge bscan_tck or negedge source_reset_n)')],
+                            'QUAL positive handoff bundle'),
+    "sampled_overrun": ([('    wire accept_dmi =',
+                           '    reg sampled_overrun;\n'
+                           '    always @(posedge bscan_tck or negedge source_reset_n)\n'
+                           '        if (!source_reset_n) sampled_overrun <= 0;\n'
+                           '        else sampled_overrun <= update_overrun;\n'
+                           '    wire accept_dmi ='),
+                          ('!protocol_error && !update_overrun && source_ready',
+                           '!protocol_error && !sampled_overrun && source_ready')],
+                         'QUAL late overrun did not fail closed'),
+    "self_reset_hard": ([('wire hard_reset_n = hard_release[2];',
+                          'wire hard_reset_n = update_release[2];')],
+                         'QUAL hard reset assertion'),
     "latched_free": ([('update_ack <= update_seen;', 'update_ack <= update_toggle == update_seen;'),
                       ('if (update_toggle == update_ack)', 'if (update_ack)')],
                      'QUAL duplicate UPDATE overwrote held frame'),

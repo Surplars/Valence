@@ -21,12 +21,19 @@ class FetchPacketPermission(entries: Int, width: Int, wordSpan: Boolean, balance
         val virtualized = Input(Bool())
         val instructionLow = Input(Vec(width, UInt(2.W)))
         val denied = Output(Vec(width, Bool()))
+        // Candidate permissions do not depend on the live instruction lengths.
+        // A staged consumer captures these with the aligned bytes and selects
+        // the actual instruction starts after the register boundary.
+        val candidateDenied = Output(Vec(2 * width - 1, Bool()))
         val addresses = Output(Vec(width, UInt(64.W)))
     })
     val checks = Module(new PacketFetchPmp(entries, width, wordSpan, balanced, sharedRelations))
     checks.io.base := io.base
     checks.io.state := io.state
     checks.io.privilege := io.privilege
+    for (offset <- 0 until 2 * width - 1) {
+        io.candidateDenied(offset) := !io.virtualized && checks.io.denied(offset)
+    }
     val offsets = Wire(Vec(width, UInt(log2Ceil(2 * width + 1).W)))
     val addresses = (0 until 2 * width - 1).map(offset => offset.U -> (io.base + (2 * offset).U))
     for (lane <- 0 until width) {

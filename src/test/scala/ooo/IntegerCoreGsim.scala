@@ -56,6 +56,7 @@ class IntegerCoreGsim(p: OooParams) extends Module {
     core.io.instructionFaults := VecInit(Seq.fill(p.renameWidth)(false.B))
     core.io.instructionPageFaults := VecInit(Seq.fill(p.renameWidth)(false.B))
     core.io.instructionFaultAddresses.foreach(_ := VecInit(Seq.fill(p.renameWidth)(0.U(64.W))))
+    core.io.instructionFaultOffsets.foreach(_ := VecInit(Seq.fill(p.renameWidth)(0.U(5.W))))
     core.io.commitEnable    := io.commitEnable
     core.io.inspectRegister := io.inspectRegister
     io.fetchPc              := core.io.fetchPc

@@ -16,6 +16,8 @@ HERE = Path(__file__).resolve().parent
 FILES = ('audit_mac_netlist.tcl', 'mac-boundary-cdc-inventory.json', 'mac_netlist_review.py',
          'mac_registered_level_constraints.tcl')
 INPUTS = tuple('fpga/next/' + name for name in FILES) + (
+    'fpga/zu15eg/native-gmac-cdc-constraints.tcl',
+    'fpga/zu15eg/cdc_constraints.tcl',
     'src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala',
     'src/main/scala/ip/ethernet/EthernetMediaTransition.scala',
 )

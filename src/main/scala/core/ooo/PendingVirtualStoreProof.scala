@@ -13,10 +13,14 @@ class PendingStoreProofOwner(p: OooParams) extends Bundle {
 
 /** One/two retained write certificates, sharing one hit-only query and one registered PMP
   * checker with the original load preparation. Target: one query/cycle, load/store fairness
-  * within two available query cycles, two query-to-proof register boundaries. Proof storage
+  * within two available selection cycles and two query-to-proof register boundaries.
+  * The optional registered query adds one selection-to-query boundary. Proof storage
   * grants no memory ownership; bound rows survive until exact actual-store capture or kill.
   */
-class PendingVirtualStoreProof(p: OooParams) extends Module {
+class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean) extends Module {
+    // Keep the original unstaged constructor for production users and compiled fixtures.
+    // The explicit switch retains the unstaged query path for isolated A/B qualification.
+    def this(p: OooParams) = this(p, false)
     require(p.pendingVirtualStoreProof)
     private val rows = p.pendingVirtualStoreProofSlots
     private val rowBits = math.max(1, log2Ceil(rows))
@@ -55,6 +59,10 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
     }
     def consumed(proof: MemoryAddressProof): Bool =
         io.consume.valid && io.consume.bits.asUInt === proof.token.asUInt
+    def sameDescriptor(a: MemoryAddressProof, b: MemoryAddressProof): Bool =
+        a.token.asUInt === b.token.asUInt && a.epoch === b.epoch &&
+            a.payload.address === b.payload.address && a.payload.size === b.payload.size &&
+            a.payload.mask === b.payload.mask && a.payload.write === b.payload.write
     val rowOwnerMatches = VecInit(records.map(ownerMatches))
     def ownerCleared(row: Int): Bool = io.clearOwners(records(row).token.index) ||
         !rowOwnerMatches(row) || consumed(records(row))
@@ -94,8 +102,8 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
         bound(admittedRow) := false.B
     }
 
-    // Same-cycle hit-only responses belong to exactly this grant. The registered
-    // descriptor carries the access kind through the shared physical PMP stage.
+    // Arbitrate one descriptor per cycle. A store leaves queued at selection, so
+    // the extra query stage cannot select the same row again on the following edge.
     val queuedMask = VecInit((0 until rows).map(r => state(r) === queued &&
         !ownerCleared(r) && records(r).epoch === io.precheck.epoch)).asUInt
     val storeRow = PriorityEncoder(queuedMask)
@@ -105,28 +113,62 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
     val storeGrant = storeOffer && (!loadOffer || preferStore)
     val loadGrant = loadOffer && !storeGrant
     when(storeGrant || loadGrant) { preferStore := loadGrant }
-    io.precheck.request.valid := storeGrant || loadGrant
-    io.precheck.request.bits.address := Mux(storeGrant,
-        records(storeRow).payload.address, io.loadCandidate.bits.address)
-    io.precheck.request.bits.size := Mux(storeGrant,
-        records(storeRow).payload.size, io.loadCandidate.bits.size)
-    io.precheck.request.bits.write := storeGrant
+    val selected = WireDefault(0.U.asTypeOf(new MemoryAddressProof(p)))
+    selected.token := Mux(storeGrant, records(storeRow).token, io.loadCandidate.bits.token)
+    selected.epoch := io.precheck.epoch
+    selected.payload.address := Mux(storeGrant, records(storeRow).payload.address, io.loadCandidate.bits.address)
+    selected.payload.size := Mux(storeGrant, records(storeRow).payload.size, io.loadCandidate.bits.size)
+    selected.payload.write := storeGrant
+    selected.payload.mask := Mux(storeGrant, records(storeRow).payload.mask,
+        AlignedMemoryDisjoint.lanes(io.loadCandidate.bits.address, io.loadCandidate.bits.size))
+    val queryValid = Wire(Bool())
+    val queryStore = Wire(Bool())
+    val queryRow = Wire(UInt(rowBits.W))
+    val query = Wire(new MemoryAddressProof(p))
+    if (registerQuery) {
+        val selectedValid = RegInit(false.B)
+        val selectedStore = RegInit(false.B)
+        val selectedRow = Reg(UInt(rowBits.W))
+        val descriptor = Reg(new MemoryAddressProof(p))
+        selectedValid := (storeGrant || loadGrant) &&
+            !io.clearOwners(selected.token.index) && !consumed(selected)
+        when(storeGrant || loadGrant) {
+            selectedStore := storeGrant
+            selectedRow := storeRow
+            descriptor := selected
+        }
+        // A granted hit-only peek drains even when admission pauses. Clear/consume
+        // must not enter request.valid or its payload: they invalidate the result,
+        // after the side-effect-free translation lookup. Context cancellation is
+        // separate and also frees every unbound inflight row.
+        queryValid := selectedValid && epochStable && !io.flushQueries &&
+            descriptor.epoch === io.precheck.epoch
+        queryStore := selectedStore
+        queryRow := selectedRow
+        query := descriptor
+    } else {
+        queryValid := storeGrant || loadGrant
+        queryStore := storeGrant
+        queryRow := storeRow
+        query := selected
+    }
+    io.precheck.request.valid := queryValid
+    io.precheck.request.bits.address := query.payload.address
+    io.precheck.request.bits.size := query.payload.size
+    io.precheck.request.bits.write := queryStore
     val translatedValid = RegInit(false.B)
     val translatedStore = RegInit(false.B)
     val translatedRow = Reg(UInt(rowBits.W))
     val translated = Reg(new MemoryAddressProof(p))
     val translatedNormal = RegInit(false.B)
-    translatedValid := io.precheck.request.valid
+    val queryOwnerLive = !io.clearOwners(query.token.index) && !consumed(query) &&
+        (!queryStore || (state(queryRow) === inflight && sameDescriptor(records(queryRow), query) &&
+            rowOwnerMatches(queryRow)))
+    translatedValid := io.precheck.request.valid && (if (registerQuery) queryOwnerLive else true.B)
     when(io.precheck.request.valid) {
-        translatedStore := storeGrant
-        translatedRow := storeRow
-        translated.token := Mux(storeGrant, records(storeRow).token, io.loadCandidate.bits.token)
-        translated.epoch := io.precheck.epoch
-        translated.payload.address := io.precheck.request.bits.address
-        translated.payload.size := io.precheck.request.bits.size
-        translated.payload.write := storeGrant
-        translated.payload.mask := Mux(storeGrant, records(storeRow).payload.mask,
-            AlignedMemoryDisjoint.lanes(io.loadCandidate.bits.address, io.loadCandidate.bits.size))
+        translatedStore := queryStore
+        translatedRow := queryRow
+        translated := query
         translated.payload.physicalAddress := Mux(io.precheck.response.valid,
             io.precheck.response.bits.physicalAddress, 0.U)
         translatedNormal := io.precheck.response.valid && io.precheck.response.bits.pbmt === 0.U &&
@@ -150,20 +192,19 @@ class PendingVirtualStoreProof(p: OooParams) extends Module {
         SpeculativeRamRange.contains(p, translated.payload.physicalAddress, translated.payload.size)
     val freshResult = translatedValid && epochStable && translated.epoch === io.precheck.epoch && !io.flushQueries
     val allowed = translatedNormal && !pmp.io.denied && shape
-    // A granted row is immutable until this result: admission writes only free rows,
-    // and this descriptor was copied from the queued row on its inflight transition.
-    // Reuse that row's current full owner check; this is not a saved authorization.
-    when(translatedValid && translatedStore) {
-        val granted = records(translatedRow)
-        assert(granted.token.asUInt === translated.token.asUInt && granted.epoch === translated.epoch &&
-            granted.payload.address === translated.payload.address && granted.payload.size === translated.payload.size &&
-            granted.payload.mask === translated.payload.mask && granted.payload.write === translated.payload.write,
-            "a granted pending-store row preserves its exact owner descriptor through translation")
-    }
-    val storeResult = freshResult && translatedStore && state(translatedRow) === inflight &&
+    // Clear/consume may free and later reuse a row while an old descriptor drains.
+    // Only the same still-live inflight owner has the immutable-record invariant;
+    // the functional result guard independently checks its complete descriptor.
+    val translatedRowLive = state(translatedRow) === inflight &&
         records(translatedRow).token.asUInt === translated.token.asUInt &&
         records(translatedRow).epoch === translated.epoch && rowOwnerMatches(translatedRow) &&
         !io.clearOwners(translated.token.index) && !consumed(translated)
+    when(translatedValid && translatedStore && translatedRowLive) {
+        assert(sameDescriptor(records(translatedRow), translated),
+            "a granted pending-store row preserves its exact owner descriptor through translation")
+    }
+    val storeResult = freshResult && translatedStore && translatedRowLive &&
+        sameDescriptor(records(translatedRow), translated)
     when(storeResult) {
         state(translatedRow) := Mux(allowed, proved, free)
         when(allowed) { records(translatedRow) := translated }

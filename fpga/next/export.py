@@ -175,6 +175,15 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off R16/PRF48 pending-store proof and bounded early-load credits")
     ap.add_argument("--bound-head-store-overlap", action="store_true",
                     help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    # Existing measured tagged-return contract; also present in the user's local exporter fix.
+    ap.add_argument("--tagged-store-returns", action="count", default=0,
+                    help="default-off generation-qualified CPU store returns")
+    ap.add_argument("--aligned-fetch-permission-stage", action="count", default=0,
+                    help="default-off aligned fetch permission token experiment")
+    ap.add_argument("--registered-canonical-store-event", action="count", default=0,
+                    help="default-off canonical certificate event and matching backend lifecycle stage")
+    ap.add_argument("--registered-pending-store-query", action="count", default=0,
+                    help="default-off registered shared proof query; requires pending-store proofs")
     ap.add_argument("--pending-ready-store-bypass", action="count", default=0,
                     help="default-off bypass of proved data-ready non-head stores; requires bound head overlap")
     ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
@@ -292,6 +301,20 @@ def main(argv=None, expected_profile_sha256=None):
         setattr(a, field, values[0] if values else None)
     if a.frozen_store_proof_transport and not (a.virtual_ram_load_precheck and a.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    if a.tagged_store_returns > 1:
+        ap.error("duplicate --tagged-store-returns flag")
+    a.tagged_store_returns = bool(a.tagged_store_returns)
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event"):
+        if getattr(a, field) > 1:
+            ap.error("duplicate --" + field.replace("_", "-") + " flag")
+        setattr(a, field, bool(getattr(a, field)))
+    if a.registered_canonical_store_event and not a.canonical_virtual_store_overlap:
+        ap.error("--registered-canonical-store-event requires --canonical-virtual-store-overlap")
+    if a.registered_pending_store_query > 1:
+        ap.error("duplicate --registered-pending-store-query flag")
+    a.registered_pending_store_query = bool(a.registered_pending_store_query)
+    if a.registered_pending_store_query and not a.pending_virtual_store_proof:
+        ap.error("--registered-pending-store-query requires --pending-virtual-store-proof")
     if a.pending_ready_store_bypass > 1:
         ap.error("duplicate --pending-ready-store-bypass flag")
     a.pending_ready_store_bypass = bool(a.pending_ready_store_bypass)
@@ -443,12 +466,22 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event"):
+        if getattr(a, field):
+            profile["profile"][field] = True
+            profile["profile"]["name"] += "-" + field.replace("_", "-")
+    if a.registered_pending_store_query:
+        profile["profile"]["registered_pending_store_query"] = True
+        profile["profile"]["name"] += "-registered-pending-store-query"
     if a.bound_head_store_overlap:
         profile["profile"]["bound_head_store_overlap"] = True
         profile["profile"]["name"] += "-bound-head-store-overlap"
     if a.pending_ready_store_bypass:
         profile["profile"]["pending_ready_store_bypass"] = True
         profile["profile"]["name"] += "-pending-ready-store-bypass"
+    if a.tagged_store_returns:
+        profile["profile"]["tagged_store_returns"] = True
+        profile["profile"]["name"] += "-tagged-store-returns"
     profile["profile"]["canonical_virtual_store_overlap"] = a.canonical_virtual_store_overlap
     if a.canonical_virtual_store_overlap:
         profile["profile"]["name"] += "-canonical-virtual-store-overlap"
@@ -652,10 +685,18 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--frozen-store-proof-transport")
     if a.pending_virtual_store_proof:
         command.append("--pending-virtual-store-proof")
+    if a.registered_pending_store_query:
+        command.append("--registered-pending-store-query")
+    if a.aligned_fetch_permission_stage:
+        command.append("--aligned-fetch-permission-stage")
+    if a.registered_canonical_store_event:
+        command.append("--registered-canonical-store-event")
     if a.bound_head_store_overlap:
         command.append("--bound-head-store-overlap")
     if a.pending_ready_store_bypass:
         command.append("--pending-ready-store-bypass")
+    if a.tagged_store_returns:
+        command.append("--tagged-store-returns")
     if a.pending_virtual_store_proof_slots != 1 or any(
             option.split("=", 1)[0] == "--pending-virtual-store-proof-slots" for option in raw_args):
         command.append(f"--pending-virtual-store-proof-slots={a.pending_virtual_store_proof_slots}")
@@ -674,6 +715,10 @@ def main(argv=None, expected_profile_sha256=None):
             "memory_proof_frontier": a.memory_proof_frontier,
             "frozen_store_proof_transport": a.frozen_store_proof_transport,
             "pending_virtual_store_proof": a.pending_virtual_store_proof,
+            "registered_pending_store_query": a.registered_pending_store_query,
+            "aligned_fetch_permission_stage": a.aligned_fetch_permission_stage,
+            "registered_canonical_store_event": a.registered_canonical_store_event,
+            "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,
             "pending_ready_store_bypass": a.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": a.pending_virtual_store_proof_slots,

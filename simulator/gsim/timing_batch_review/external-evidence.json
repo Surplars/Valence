@@ -1,0 +1,39 @@
+{
+  "native": {
+    "summary_member": "results/native-summary.json",
+    "summary_sha256": "b44835e639b2139b3790333cb61daa540d417390ef843d2eac5051fd3485686a",
+    "archive_name": "native-combined-r1.tar.gz",
+    "archive_sha256": "9415b797f8f4badb0a9aad43bcce1f4e1c96db810b8141d92f15bd24b17689d9",
+    "archive_bytes": 3086390,
+    "library_file_id": "libfile_8cb64638b6308191b54cdc204b46d60e",
+    "publication_status": "Library upload succeeded; exact archive SHA locally reverified",
+    "portable_limit": "Historical absolute source/dependency paths require explicit same-hash remap; no automatic relocated runtime claim.",
+    "version": 0
+  },
+  "nemu": {
+    "summary_member": "results/nemu-summary-r3.json",
+    "summary_sha256": "47391b39490a173233261b141ed171f29c8b039866cfa2bee5cdcbb773525b4f",
+    "archive_name": "current-board-nemu-source-evidence-r3.tar.gz",
+    "archive_sha256": "ead03b4cfb7e124bd5f80b3ec62c663b6b205aab7e7317e6160a586dd66496ac",
+    "archive_bytes": 755575,
+    "library_file_id": "libfile_a92fbfc0afd481918618fdcdd72b2741",
+    "publication_status": "Library upload succeeded; exact archive SHA locally reverified",
+    "portable_limit": "Historical absolute source/dependency paths require explicit same-hash remap; no automatic relocated runtime claim.",
+    "version": 0
+  },
+  "pristine_source_tool_prerequisite": {
+    "filename": "timing-batch-qualified-progress-r2.tar.gz",
+    "library_file_id": "libfile_a879b6db93e8819196ff53b639f92d93",
+    "version": 0,
+    "bytes": 43488365,
+    "sha256": "8976e574d6506092623576cdf1e3a098c309476f4f66bdb52a386633f7f4308b",
+    "scope": "Full pristine1e90 source and completed37TU baseline model/raw; completed13TU backend positive and negative evidence; frozen combined source r2 delta; new GCC/NEMU recipe/sourcepins and NEMU binary smoke. Running AC model excluded."
+  },
+  "ac_abc_complete_model_recovery": {
+    "bytes": 50805062,
+    "sha256": "dd42ec798aeffd59e74067fe21a43a01395dacc559a868ffc387d2ea9e005252",
+    "library_file_id": "libfile_c0d5771b289481918bc06bb15a2b5c9f",
+    "current_version_number": 0,
+    "filename": "timing-batch-cpu-ac-abc-recovery-r2.tar.gz"
+  }
+}

@@ -30,6 +30,10 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val instructionFaultAddresses   = if (p.compressedInstructions)
             Some(Input(Vec(p.renameWidth, UInt(64.W)))) else None
         val fetchPc                     = Output(UInt(64.W))
+        val fetchRequestFrontier = if (p.alignedFetchPermissionStage) Some(Output(UInt(64.W))) else None
+        val suppressFetchRequest = if (p.alignedFetchPermissionStage) Some(Output(Bool())) else None
+        val instructionFaultOffsets = if (p.alignedFetchPermissionStage)
+            Some(Input(Vec(p.renameWidth, UInt(5.W)))) else None
         // ROM-device scheduling aid for the single-step GSIM interface; unused
         // by hardware integrations and not an architectural correctness oracle.
         val nextFetchPc                 = if (p.registeredFetchPacket) Some(Output(UInt(64.W))) else None
@@ -69,7 +73,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val mulDivConcurrent            = Output(Bool())
         val mulDivMultiCancel           = Output(Bool())
     })
-    val backend = Module(new IntegerBackend(p, canonicalHandoff))
+    val backend = Module(new IntegerBackend(p, canonicalHandoff,
+        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
     if (p.machineSystem) {
         io.imsic.get <> backend.io.imsic.get
         io.fenceIFlush.get := backend.io.fenceIFlush.get
@@ -128,7 +133,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     val fetchPacketTraining = WireDefault(0.U.asTypeOf(Vec(p.renameWidth, Valid(new RawFetchSuccessor))))
     val fetchPacket = if (p.registeredFetchPacket) {
         val packet = Module(new RegisteredFetchPacket(p.renameWidth, p.compressedInstructions, resetPc,
-            p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints))
+            p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints,
+            p.alignedFetchPermissionStage))
         val permission = if (p.capturedFetchPermission && p.pmpEntries > 0) {
             val checks = Module(new FetchPacketPermission(p.pmpEntries, p.renameWidth,
                 p.wordSpanPacketPmp, p.balancedPacketPmp, p.sharedFetchPmpRelations))
@@ -143,6 +149,13 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             }
             Some(checks)
         } else None
+        if (p.alignedFetchPermissionStage) {
+            packet.io.phaseInput.get.faultOffsets := io.instructionFaultOffsets.get
+            packet.io.phaseInput.get.denied := permission.map(_.io.candidateDenied)
+                .getOrElse(VecInit(Seq.fill(2 * p.renameWidth - 1)(false.B)))
+            io.fetchRequestFrontier.get := packet.io.requestFrontier.get
+            io.suppressFetchRequest.get := packet.io.suppressRequest.get
+        }
         packet.io.pause := io.exception.valid || io.recovering ||
             backend.io.pauseFetch.map(identity).getOrElse(false.B)
         packet.io.consume := io.accepted
@@ -154,7 +167,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             packet.io.supply(lane).valid := io.instructions(lane).valid
             packet.io.supply(lane).bits.instruction := io.instructions(lane).bits
             packet.io.supply(lane).bits.accessFault := io.instructionFaults(lane) ||
-                permission.map(_.io.denied(lane)).getOrElse(false.B)
+                (if (p.alignedFetchPermissionStage) false.B else
+                    permission.map(_.io.denied(lane)).getOrElse(false.B))
             packet.io.supply(lane).bits.pageFault := io.instructionPageFaults(lane)
             val suppliedFaultAddress = io.instructionFaultAddresses
                 .map(_(lane)).getOrElse(packet.io.fetchPc + (4 * lane).U)
@@ -162,10 +176,11 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             // reports a fault. A cached/raw PMP-only denial must name this
             // instruction, not the aligner's unused second-half fallback (+2).
             // Real second-half access/page faults retain their precise address.
-            packet.io.supply(lane).bits.faultAddress := permission.map { checks =>
-                Mux(checks.io.denied(lane) && !io.instructionFaults(lane) && !io.instructionPageFaults(lane),
-                    checks.io.addresses(lane), suppliedFaultAddress)
-            }.getOrElse(suppliedFaultAddress)
+            packet.io.supply(lane).bits.faultAddress := (if (p.alignedFetchPermissionStage) 0.U else
+                permission.map { checks =>
+                    Mux(checks.io.denied(lane) && !io.instructionFaults(lane) && !io.instructionPageFaults(lane),
+                        checks.io.addresses(lane), suppliedFaultAddress)
+                }.getOrElse(suppliedFaultAddress))
             // The reservoir generates the real PC and raw successor from its
             // registered cursor and raw lengths, independent of decode.
             packet.io.supply(lane).bits.pc := 0.U

@@ -144,7 +144,8 @@ class PendingStoreProofTransportGsim(enabled: Boolean) extends Module {
         val idle = Output(Bool())
     })
     val buffer = Module(new StoreBuffer(p))
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
     val translation = Module(new SvTranslationService(3, 16, 16, loadPeek = true, writeReadReuse = true))
     val pmp = PendingStoreProofFixture.pmp(io.pmpCfg, io.pmpAddress)
     buffer.io.upstream <> io.upstream
@@ -186,13 +187,15 @@ object PendingStoreProofTransportGsimMain extends App {
 }
 
 class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: Boolean = false,
-    enabledReadyStoreBypass: Boolean = false, proofRows: Int = 1, earlyCredits: Int = 1) extends Module {
+    enabledReadyStoreBypass: Boolean = false, proofRows: Int = 1, earlyCredits: Int = 1,
+    registeredQuery: Boolean = false, registeredCanonicalEvent: Boolean = false) extends Module {
     private val enabled = true
     private val overlap = true
     private val memoryEntries = 4
     val p = PendingStoreProofFixture.params(enabled = enabledProof, slots = proofRows).copy(
         boundHeadStoreOverlap = enabledBoundOverlap, pendingReadyStoreBypass = enabledReadyStoreBypass,
-        pendingStoreEarlyLoadCredits = earlyCredits)
+        pendingStoreEarlyLoadCredits = earlyCredits, registeredPendingStoreQuery = registeredQuery,
+        registeredCanonicalStoreEvent = registeredCanonicalEvent)
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
@@ -292,8 +295,10 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
     val allocate1 = decoded(1)
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
-    val backend = Module(new IntegerBackend(p))
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
+    val backend = Module(new IntegerBackend(p,
+        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
     val translation = Module(new SvTranslationService(3, 16, 16, loadPeek = enabled, writeReadReuse = true))
     backend.io.rawDestinations.foreach { ports =>
         ports(0) := allocate0.bits.rename.rd
@@ -452,10 +457,21 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
 }
 
 object PendingStoreProofBackendGsimMain extends App {
-    require(args.length >= 2 && args.length <= 6 && args.slice(1, 4).forall(Set("0", "1").contains))
-    require(args.drop(4).forall(Set("1", "2").contains))
-    ChiselStage.emitCHIRRTLFile(new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1"),
-        args.lift(3).contains("1"), args.lift(4).map(_.toInt).getOrElse(1),
-        args.lift(5).map(_.toInt).getOrElse(1)),
-        Array("--target-dir", args.head))
+    require(args.length >= 2 && args.length <= 8 && args.slice(1, 4).forall(Set("0", "1").contains))
+    require(args.slice(4, 6).forall(Set("1", "2").contains))
+    require(args.slice(6, 8).forall(Set("0", "1").contains))
+    ChiselStage.emitCHIRRTLFile({
+        val dut = new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1"),
+            args.lift(3).contains("1"), args.lift(4).map(_.toInt).getOrElse(1),
+            args.lift(5).map(_.toInt).getOrElse(1), args.lift(6).contains("1"), args.lift(7).contains("1"))
+        val actualQuery = TimingBatchActualAudit.requireQueryStage(
+            dut.p.registeredPendingStoreQuery, dut.backend.pendingStoreProof)
+        println(s"PENDING_BACKEND_QUERY_STAGE registered=$actualQuery " +
+            s"proofRows=${dut.p.pendingVirtualStoreProofSlots} credits=${dut.p.pendingStoreEarlyLoadCredits}")
+        require(dut.backend.registerCanonicalStoreEvent == dut.p.registeredCanonicalStoreEvent &&
+            dut.adapter.registerCanonicalStoreEvent == dut.p.registeredCanonicalStoreEvent)
+        println(s"PENDING_BACKEND_CANONICAL_STAGE backend=${dut.backend.registerCanonicalStoreEvent} " +
+            s"adapter=${dut.adapter.registerCanonicalStoreEvent}")
+        dut
+    }, Array("--target-dir", args.head))
 }

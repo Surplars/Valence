@@ -6,7 +6,7 @@ set cells [list $primitive $engine]
 set props [dict create $primitive [dict create NAME $primitive REF_NAME BSCANE2 JTAG_CHAIN 2] \
     $engine [dict create NAME $engine REF_NAME ValenceBscanUserTransport] \
     dbg_hub [dict create C_USER_SCAN_CHAIN 1]]
-foreach {bank count} {source_release 3 update_release 3 update_sync 2 bridge/source_release 3 bridge/dest_release 3 \
+foreach {bank count} {source_release 3 update_release 3 hard_release 3 update_sync 2 bridge/source_release 3 bridge/dest_release 3 \
                      bridge/request_sync 2 bridge/response_sync 2} {
     for {set i 0} {$i<$count} {incr i} {
         set cell [format {%s/%s_reg[%d]} $engine $bank $i]

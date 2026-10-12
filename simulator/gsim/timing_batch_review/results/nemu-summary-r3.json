@@ -1,0 +1,249 @@
+{
+  "status": "PASS_THREE_CURRENT_BOARD_MODELS_NEMU",
+  "scope": "Physical integer M-mode correctness only; no Sv39/CSR/FP/permission/concurrent-DMA or performance claim",
+  "adapter_source_manifest_sha256": "f1a5b9e36b8eaeb7bdbad7a9389538ffde0af1462dab525aa2c5bb6979285bfe",
+  "reference_so_sha256": "c7c91e002909228a897657362603908c40a9ab28cbff694b77a578d4e588092f",
+  "reference_client_unchanged": true,
+  "models": {
+    "baseline": {
+      "status": "PASS_CURRENT_BOARD_NEMU",
+      "receipt": "/workspace/scratch/41e4a649bb60/timing-batch-r1/current-board-nemu/baseline-r3/receipt.json",
+      "receipt_sha256": "5a832a70563876e249fe2b5e8ed4fb7602b8d5cd0f6fe8467500e7603acf86ba",
+      "cpu_model_receipt_sha256": "848e6e3c43ecc0f470eb9383ac594375dc9c8c2145b8762c8ef1ed3a0830d84f",
+      "model_objects": 37,
+      "binary_sha256": "e5ca36a9d2209ab532db21a3725079b3852ff7c6c7d26f36c647af3b6428123c",
+      "host_link_wall_seconds": 4.830065643000125,
+      "host_link_max_rss_kib": 190864,
+      "cases": {
+        "hot": {
+          "guest_sha256": "0111fa1a14051f2c909974e6d09786621ac20c0ecbbc86d11072f62b869df8c3",
+          "nemu": {
+            "guest_pc_checks": "108",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "79",
+            "dual_retire_edges": "29",
+            "guest_gpr_edges": "79",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "2624",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "1706468337379855559",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "0",
+            "branches_retired": "5",
+            "taken_branches": "0",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "hot",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "1842"
+          }
+        },
+        "compressed": {
+          "guest_sha256": "3a7ec09c504ba3f2502885d3336886d51bd205ad366690f728dbd113e913b88d",
+          "nemu": {
+            "guest_pc_checks": "24",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "18",
+            "dual_retire_edges": "6",
+            "guest_gpr_edges": "18",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "672",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "2170529770114698145",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "6",
+            "branches_retired": "3",
+            "taken_branches": "2",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "compressed",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "950"
+          }
+        }
+      },
+      "negative_exit_codes": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      }
+    },
+    "ac": {
+      "status": "PASS_CURRENT_BOARD_NEMU",
+      "receipt": "/workspace/scratch/41e4a649bb60/timing-batch-r1/current-board-nemu/ac-r3/receipt.json",
+      "receipt_sha256": "51513dd823d1f42649addb50914da9f5799f1f4a2baa38d6296f587875980dd2",
+      "cpu_model_receipt_sha256": "ac85a757eb31776fc59eaa8ba74e588488a0418ad2477fe5f717d897768d5eb9",
+      "model_objects": 37,
+      "binary_sha256": "34d758e6f6068701f3490845272111c52e8cafea0e9e50d8dd38f1577238359d",
+      "host_link_wall_seconds": 4.804053137002484,
+      "host_link_max_rss_kib": 191732,
+      "cases": {
+        "hot": {
+          "guest_sha256": "0111fa1a14051f2c909974e6d09786621ac20c0ecbbc86d11072f62b869df8c3",
+          "nemu": {
+            "guest_pc_checks": "108",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "79",
+            "dual_retire_edges": "29",
+            "guest_gpr_edges": "79",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "2624",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "1706468337379855559",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "0",
+            "branches_retired": "5",
+            "taken_branches": "0",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "hot",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "1842"
+          }
+        },
+        "compressed": {
+          "guest_sha256": "3a7ec09c504ba3f2502885d3336886d51bd205ad366690f728dbd113e913b88d",
+          "nemu": {
+            "guest_pc_checks": "24",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "18",
+            "dual_retire_edges": "6",
+            "guest_gpr_edges": "18",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "672",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "2170529770114698145",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "6",
+            "branches_retired": "3",
+            "taken_branches": "2",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "compressed",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "950"
+          }
+        }
+      },
+      "negative_exit_codes": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      }
+    },
+    "abc": {
+      "status": "PASS_CURRENT_BOARD_NEMU",
+      "receipt": "/workspace/scratch/41e4a649bb60/timing-batch-r1/current-board-nemu/abc-r3/receipt.json",
+      "receipt_sha256": "691d71a565b860ee92de875aeb82fd59e54ba05e56c636a26785ac045795ec28",
+      "cpu_model_receipt_sha256": "aaaa8981035351df27df5e034a04428f5fdcd5e536ab97d9dd9f4ae68e65b25a",
+      "model_objects": 36,
+      "binary_sha256": "3abb726e12eda7c9707249c8f2a5614394ee2729eaf8be4ab95159f117c60df6",
+      "host_link_wall_seconds": 5.187744383998506,
+      "host_link_max_rss_kib": 191756,
+      "cases": {
+        "hot": {
+          "guest_sha256": "0111fa1a14051f2c909974e6d09786621ac20c0ecbbc86d11072f62b869df8c3",
+          "nemu": {
+            "guest_pc_checks": "108",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "80",
+            "dual_retire_edges": "28",
+            "guest_gpr_edges": "80",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "2656",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "1706468337379855559",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "0",
+            "branches_retired": "5",
+            "taken_branches": "0",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "hot",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "1847"
+          }
+        },
+        "compressed": {
+          "guest_sha256": "3a7ec09c504ba3f2502885d3336886d51bd205ad366690f728dbd113e913b88d",
+          "nemu": {
+            "guest_pc_checks": "24",
+            "boot_pc_checks": "5",
+            "guest_retire_edges": "18",
+            "dual_retire_edges": "6",
+            "guest_gpr_edges": "18",
+            "boot_gpr_edges": "3",
+            "gpr_value_checks": "672",
+            "final_memory_bytes": "4194368",
+            "guest_pc_trace": "2170529770114698145",
+            "reference_resynchronizations": "0",
+            "gpr_boundary": "post_entire_retire_edge",
+            "independent_lane_intermediate_gpr": "0",
+            "speculative_requests_stepped": "0"
+          },
+          "control": {
+            "compressed_retired": "6",
+            "branches_retired": "3",
+            "taken_branches": "2",
+            "nonsequential_next_pcs": "4"
+          },
+          "completion": {
+            "kind": "compressed",
+            "correctness_only": "1",
+            "dma_idle": "1",
+            "cycles": "958"
+          }
+        }
+      },
+      "negative_exit_codes": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      }
+    }
+  },
+  "all_case_inputs_and_architectural_traces_equal": true,
+  "model_generations": 0,
+  "model_object_compiles": 0,
+  "reference_builds": 0,
+  "reference_resynchronizations": 0,
+  "retained_failures": [
+    "baseline-r1/receipt.json",
+    "baseline-r2/receipt.json"
+  ]
+}

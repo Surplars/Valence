@@ -40,6 +40,10 @@ class MappedMachineCore(
             Some(Input(Vec(p.renameWidth, UInt(64.W)))) else None
         val accepted        = Output(Vec(p.renameWidth, Bool()))
         val fetchPc         = Output(UInt(64.W))
+        val fetchRequestFrontier = if (p.alignedFetchPermissionStage) Some(Output(UInt(64.W))) else None
+        val suppressFetchRequest = if (p.alignedFetchPermissionStage) Some(Output(Bool())) else None
+        val instructionFaultOffsets = if (p.alignedFetchPermissionStage)
+            Some(Input(Vec(p.renameWidth, UInt(5.W)))) else None
         val pmpState        = if (p.pmpEntries > 0) Some(Output(new PmpState)) else None
         val fetchPrivilege  = if (p.pmpEntries > 0) Some(Output(UInt(2.W))) else None
         val fetchQuiescent  = if (p.pmpEntries > 0) Some(Input(Bool())) else None
@@ -101,7 +105,8 @@ class MappedMachineCore(
     var observationResponses: Option[DataResponseBuffer] = None
     if (dataTranslation) {
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
-            translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled))
+            translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
+            registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,
@@ -184,6 +189,11 @@ class MappedMachineCore(
     core.io.instructionFaults := io.instructionFaults
     core.io.instructionPageFaults := io.instructionPageFaults
     core.io.instructionFaultAddresses.foreach(_ := io.instructionFaultAddresses.get)
+    if (p.alignedFetchPermissionStage) {
+        core.io.instructionFaultOffsets.get := io.instructionFaultOffsets.get
+        io.fetchRequestFrontier.get := core.io.fetchRequestFrontier.get
+        io.suppressFetchRequest.get := core.io.suppressFetchRequest.get
+    }
     if (p.pmpEntries > 0) {
         io.pmpState.get := core.io.pmpState.get
         io.fetchPrivilege.get := core.io.fetchPrivilege.get

@@ -13,6 +13,7 @@ MODELS={
 }
 # Thin public adapters may register a model without copying stage execution.
 DEFAULT_MODELS='backend0,backend1,transport'
+CONFIG_SUITES=['ooo.PendingVirtualStoreProofConfigSpec']
 HOST_FILES={}
 EXTRA_NEGATIVES={}
 EXTRA_INPUTS=[]
@@ -84,7 +85,7 @@ def main():
         print(label,proc.returncode,f"{result['seconds']}s",flush=True)
     try:
         if args.stage=='config':
-            run('focused-config',[MILL,'-i','-j','1','IonSoC.test.testOnly','ooo.PendingVirtualStoreProofConfigSpec'])
+            run('focused-config',[MILL,'-i','-j','1','IonSoC.test.testOnly',*CONFIG_SUITES])
         for name in ([] if args.stage=='config' else models):
             top,stem,parameters,defines,anchor=MODELS[name];model=out/name
             if args.stage=='emit':

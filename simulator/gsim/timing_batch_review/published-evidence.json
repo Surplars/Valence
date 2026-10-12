@@ -1,0 +1,11 @@
+{
+  "source": "Successful ordered Library helper stdout from session 77414; parsed identity index, not a raw app response",
+  "all_succeeded": true,
+  "files": [
+    {"path": "combined/timing-batch-cpu-ac-abc-recovery-r2.tar.gz", "bytes": 50805062, "sha256": "dd42ec798aeffd59e74067fe21a43a01395dacc559a868ffc387d2ea9e005252", "library_file_id": "libfile_c0d5771b289481918bc06bb15a2b5c9f", "file_id": "file_000000006fc081fdb1e1855ea1839133", "current_version_number": 0, "local_metadata_applied": true},
+    {"path": "current-board-nemu/current-board-nemu-source-evidence-r3.tar.gz", "bytes": 755575, "sha256": "ead03b4cfb7e124bd5f80b3ec62c663b6b205aab7e7317e6160a586dd66496ac", "library_file_id": "libfile_a92fbfc0afd481918618fdcdd72b2741", "file_id": "file_00000000edc081f6ac149bc3fd4515c2", "current_version_number": 0, "local_metadata_applied": true},
+    {"path": "native-combined/native-combined-r1.tar.gz", "bytes": 3086390, "sha256": "9415b797f8f4badb0a9aad43bcce1f4e1c96db810b8141d92f15bd24b17689d9", "library_file_id": "libfile_8cb64638b6308191b54cdc204b46d60e", "file_id": "file_00000000ea4081fd8b389af3e50da421", "current_version_number": 0, "local_metadata_applied": true}
+  ],
+  "pristine_source_and_tool_prerequisite": {"library_file_id": "libfile_a879b6db93e8819196ff53b639f92d93", "sha256": "8976e574d6506092623576cdf1e3a098c309476f4f66bdb52a386633f7f4308b"},
+  "limits": ["No mapped FF/LUT or physical timing qualification", "NEMU scope is physical M-mode integer only", "All historical failures remain archived"]
+}

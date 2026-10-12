@@ -1,0 +1,82 @@
+{
+  "status": "PASS_TIMING_BATCH_CPU",
+  "source_head": "1e90af966c15d871d2544469174acba78473113b",
+  "pristine_source": true,
+  "receipt": "/workspace/scratch/41e4a649bb60/valence-local-review-20261012-1129/build/gsim/timing-batch-pristine-1e90-r1/receipt.json",
+  "receipt_sha256": "848e6e3c43ecc0f470eb9383ac594375dc9c8c2145b8762c8ef1ed3a0830d84f",
+  "profiles": {
+    "sv39": {
+      "inclusive_cycles": 196524,
+      "roi_cycles": 188286,
+      "clean_tail": 8238,
+      "inclusive_MiBps": 63.60546294600151,
+      "functional_fields_captured": 105,
+      "retired": "40984",
+      "pc_hash": "2052405062169827831",
+      "tagged": {
+        "accepted": "49157",
+        "physical": "49157",
+        "physical_replies": "49157",
+        "cache_replies": "49157",
+        "bypassed_stores": "3",
+        "complete": "49157",
+        "cancelled_drains": "0",
+        "local_replies": "0",
+        "sb_accepted": "0",
+        "sb_replies": "0",
+        "fp_epochs": "0",
+        "fp_path": "NOT_EXERCISED",
+        "namespace": "7",
+        "handle_bits": "3",
+        "full_token_bits": "68"
+      }
+    },
+    "bare": {
+      "inclusive_cycles": 197722,
+      "roi_cycles": 189789,
+      "clean_tail": 7933,
+      "inclusive_MiBps": 63.22007667330899,
+      "functional_fields_captured": 105,
+      "retired": "40984",
+      "pc_hash": "2052405062169827831",
+      "tagged": {
+        "accepted": "49157",
+        "physical": "49157",
+        "physical_replies": "49157",
+        "cache_replies": "49157",
+        "bypassed_stores": "0",
+        "complete": "49157",
+        "cancelled_drains": "0",
+        "local_replies": "24577",
+        "sb_accepted": "24577",
+        "sb_replies": "24577",
+        "fp_epochs": "0",
+        "fp_path": "NOT_EXERCISED",
+        "namespace": "7",
+        "handle_bits": "3",
+        "full_token_bits": "68"
+      }
+    }
+  },
+  "negative_commands": [
+    {
+      "name": "baseline-negative-read",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "baseline-negative-memory",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "baseline-negative-trap",
+      "exit": 1,
+      "expected": 1
+    }
+  ],
+  "source_frozen": 1239,
+  "models": {
+    "baseline": 118
+  }
+}

@@ -69,7 +69,10 @@ final case class FpgaNextConfig(
     readPrefetchBehindStore: Boolean = false,
     internalLineGrant: Boolean = false,
     concurrentReadStorePrefetch: Boolean = false,
-    memoryScheduleOverlap: Boolean = false
+    memoryScheduleOverlap: Boolean = false,
+    registeredPendingStoreQuery: Boolean = false,
+    alignedFetchPermissionStage: Boolean = false,
+    registeredCanonicalStoreEvent: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -80,6 +83,10 @@ final case class FpgaNextConfig(
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
+    require(!registeredCanonicalStoreEvent || canonicalVirtualStoreOverlap,
+        "registered canonical-store events require canonical virtual-store overlap")
+    require(!registeredPendingStoreQuery || pendingVirtualStoreProof,
+        "registered pending-store queries require pending-store proofs")
     require(!pendingReadyStoreBypass || boundHeadStoreOverlap,
         "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
@@ -160,6 +167,9 @@ final case class FpgaNextConfig(
         (if (memoryProofFrontier) "-memory-proof-frontier" else "") +
         (if (frozenStoreProofTransport) "-frozen-store-proof-transport" else "") +
         (if (pendingVirtualStoreProof) s"-pending-virtual-store-proof$pendingVirtualStoreProofSlots" else "") +
+        (if (registeredPendingStoreQuery) "-registered-pending-store-query" else "") +
+        (if (alignedFetchPermissionStage) "-aligned-fetch-permission-stage" else "") +
+        (if (registeredCanonicalStoreEvent) "-registered-canonical-store-event" else "") +
         (if (pendingStoreEarlyLoadCredits != 1) s"-pending-store-early-load-credits$pendingStoreEarlyLoadCredits" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
         (if (pendingReadyStoreBypass) "-pending-ready-store-bypass" else "") +
@@ -248,6 +258,9 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+        registeredPendingStoreQuery = registeredPendingStoreQuery,
+        alignedFetchPermissionStage = alignedFetchPermissionStage,
+        registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
@@ -279,6 +292,9 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
+        registeredPendingStoreQuery = registeredPendingStoreQuery,
+        alignedFetchPermissionStage = alignedFetchPermissionStage,
+        registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
@@ -301,6 +317,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
+            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
@@ -371,6 +388,9 @@ object FpgaNextConfig {
             memoryProofFrontier = options.contains("--memory-proof-frontier"),
             frozenStoreProofTransport = options.contains("--frozen-store-proof-transport"),
             pendingVirtualStoreProof = options.contains("--pending-virtual-store-proof"),
+            registeredPendingStoreQuery = options.contains("--registered-pending-store-query"),
+            alignedFetchPermissionStage = options.contains("--aligned-fetch-permission-stage"),
+            registeredCanonicalStoreEvent = options.contains("--registered-canonical-store-event"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
             pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),
             taggedStoreReturns = options.contains("--tagged-store-returns"),

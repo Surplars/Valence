@@ -27,6 +27,30 @@ class RawFetchValidation extends Bundle {
     val predicts = Bool()
 }
 
+/** A-phase metadata, before length-selected PMP and raw successor prediction. */
+class FetchPhaseInput(width: Int) extends Bundle {
+    val faultOffsets = Vec(width, UInt(5.W))
+    val denied = Vec(2 * width - 1, Bool())
+}
+
+/** One compact aligned token. Presence is held separately as resettable state. */
+class FetchPhaseToken(width: Int) extends Bundle {
+    val pc = UInt(64.W)
+    val instructions = Vec(width, UInt(32.W))
+    val accessFaults = Vec(width, Bool())
+    val pageFaults = Vec(width, Bool())
+    val faultOffsets = Vec(width, UInt(5.W))
+    val denied = Vec(2 * width - 1, Bool())
+}
+
+class FetchPhaseStatus(width: Int) extends Bundle {
+    val tokenValid = Bool()
+    val tokenPc = UInt(64.W)
+    val tokenPresent = UInt(width.W)
+    val accepted = UInt(width.W)
+    val transferred = Bool()
+}
+
 /** Compact, registered instruction reservoir between the fetch cache and decode.
   *
   * Capacity is two rename packets; minimum latency is one cycle, and both ports
@@ -47,8 +71,10 @@ class RawFetchValidation extends Bundle {
   */
 class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
-    bankedHints: Boolean = false) extends Module {
+    bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
+    require(!alignedPermissionStage || (width == 2 && compressed && splitCursor),
+        "aligned permission phase requires two compressed lanes and split cursor")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64))
     require(Set(8, 16, 32).contains(hintEntries))
     private val capacity = 2 * width
@@ -56,6 +82,10 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     private val offsetBits = log2Ceil(4 * width + 1)
     val io = IO(new Bundle {
         val supply = Input(Vec(width, Valid(new RawFetchInstruction)))
+        val phaseInput = if (alignedPermissionStage) Some(Input(new FetchPhaseInput(width))) else None
+        val phaseStatus = if (alignedPermissionStage) Some(Output(new FetchPhaseStatus(width))) else None
+        val requestFrontier = if (alignedPermissionStage) Some(Output(UInt(64.W))) else None
+        val suppressRequest = if (alignedPermissionStage) Some(Output(Bool())) else None
         val pause = Input(Bool())
         val consume = Input(Vec(width, Bool()))
         val flush = Input(Valid(UInt(64.W)))
@@ -80,6 +110,34 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     val correctionPc = if (splitCursor) Some(Reg(UInt(64.W))) else None
     val correctionPending = if (splitCursor) Some(RegInit(false.B)) else None
     val supplyPc = if (splitCursor) Mux(correctionPending.get, correctionPc.get, rawCursor) else rawCursor
+    // The token contains 145 payload bits at width two, plus two presence bits.
+    // PMP candidate facts and aligned transport metadata cross the same edge.
+    val token = if (alignedPermissionStage) Some(Reg(new FetchPhaseToken(width))) else None
+    val tokenPresent = if (alignedPermissionStage) Some(RegInit(0.U(width.W))) else None
+    val tokenValid = tokenPresent.map(_(0)).getOrElse(false.B)
+    val tokenCount = tokenPresent.map(PopCount(_)).getOrElse(0.U)
+    val tokenTransfer = alignedPermissionStage.B && tokenValid && !io.pause &&
+        count +& tokenCount <= capacity.U
+    val tokenReady = !tokenValid || tokenTransfer
+    val resolutionPc = token.map(_.pc).getOrElse(supplyPc)
+    val resolutionSupply = Wire(Vec(width, Valid(new RawFetchInstruction)))
+    resolutionSupply := io.supply
+    if (alignedPermissionStage) {
+        for (lane <- 0 until width) {
+            resolutionSupply(lane).valid := tokenPresent.get(lane) && tokenTransfer
+            resolutionSupply(lane).bits.pc := 0.U
+            resolutionSupply(lane).bits.nextPc := 0.U
+            resolutionSupply(lane).bits.instruction := token.get.instructions(lane)
+            resolutionSupply(lane).bits.accessFault := token.get.accessFaults(lane)
+            resolutionSupply(lane).bits.pageFault := token.get.pageFaults(lane)
+            resolutionSupply(lane).bits.faultAddress :=
+                Cat(token.get.pc(63, 3), 0.U(3.W)) + token.get.faultOffsets(lane)
+        }
+        io.requestFrontier.get := Mux(tokenValid, token.get.pc, supplyPc)
+        io.phaseStatus.get.tokenValid := tokenValid
+        io.phaseStatus.get.tokenPc := token.get.pc
+        io.phaseStatus.get.tokenPresent := tokenPresent.get
+    }
     private val hintBits = log2Ceil(hintEntries)
     def hintIndex(address: UInt): UInt = address(hintBits, 1) ^ address(2 * hintBits, hintBits + 1)
     val hintAddresses = Wire(Vec(width, UInt(hintBits.W)))
@@ -146,7 +204,8 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     // correction alternatives from their own registers BEFORE that selection,
     // so correctionPending cannot launch low-PC + high-PC carry chains.
     // Modulo-XLEN arithmetic and the original redirect latency are unchanged.
-    val cursorBases = if (splitCursor) Seq(rawCursor, correctionPc.get) else Seq(rawCursor)
+    val cursorBases = if (alignedPermissionStage) Seq(token.get.pc)
+        else if (splitCursor) Seq(rawCursor, correctionPc.get) else Seq(rawCursor)
     val cursorHighs = cursorBases.map(_(63, 21))
     // High-word +/-1 is prepared in parallel eight-bit slices before any hint,
     // jump or correction selection. Preserve packet/redirect latency and the
@@ -154,7 +213,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     val incrementedHighs = cursorHighs.map(high => TimingArithmetic.neighbor(high))
     val decrementedHighs = cursorHighs.map(high => TimingArithmetic.neighbor(high, decrement = true))
     def selectCursor(values: Seq[UInt]): UInt =
-        if (splitCursor) Mux(correctionPending.get, values(1), values(0)) else values.head
+        if (splitCursor && !alignedPermissionStage) Mux(correctionPending.get, values(1), values(0)) else values.head
     val pcCandidates = (0 to 2 * width).map { offset =>
         val alternatives = cursorBases.indices.map { base =>
             val low = cursorBases(base)(20, 0) +& (2 * offset).U
@@ -162,19 +221,29 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         }
         (2 * offset).U -> selectCursor(alternatives)
     }
-    def rawPc(offset: UInt): UInt = MuxLookup(offset, supplyPc)(pcCandidates)
+    def rawPc(offset: UInt): UInt = MuxLookup(offset, resolutionPc)(pcCandidates)
     capturePrefix(0) := !io.pause
     byteOffsets(0) := 0.U
     for (lane <- 0 until width) {
         io.instructions(lane).valid := count > lane.U
         io.instructions(lane).bits := slots(lane)
-        capturePrefix(lane + 1) := capturePrefix(lane) && io.supply(lane).valid &&
+        capturePrefix(lane + 1) := capturePrefix(lane) && resolutionSupply(lane).valid &&
             count <= (capacity - lane - 1).U &&
             (if (lane == 0) true.B else !rawTaken(lane - 1))
-        val instruction = io.supply(lane).bits.instruction
+        val instruction = resolutionSupply(lane).bits.instruction
         val short = compressed.B && instruction(1, 0) =/= 3.U
         byteOffsets(lane + 1) := byteOffsets(lane) + Mux(short, 2.U, 4.U)
         rawPcs(lane) := rawPc(byteOffsets(lane))
+        if (alignedPermissionStage) {
+            // Select the captured candidates only after the boundary. This
+            // prevents PMP and live alignment from entering rawTaken/scan CE.
+            val denied = MuxLookup(byteOffsets(lane), token.get.denied(0))(
+                token.get.denied.zipWithIndex.map { case (value, offset) => (2 * offset).U -> value })
+            resolutionSupply(lane).bits.accessFault := token.get.accessFaults(lane) || denied
+            when(denied && !token.get.accessFaults(lane) && !token.get.pageFaults(lane)) {
+                resolutionSupply(lane).bits.faultAddress := rawPcs(lane)
+            }
+        }
         val successor = rawPc(byteOffsets(lane + 1))
         // RV64 C.J only (quadrant 1, funct3=101); funct3=001 is C.ADDIW.
         val direct = !short && instruction(6, 0) === "h6f".U
@@ -217,9 +286,9 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         val relativeDifferent = offset =/= Mux(compressedJump, 2.U(21.W), 4.U(21.W))
         val qualified = Mux(relative, relativeAligned && relativeDifferent,
             hintHit && selectedAligned && selectedDifferent)
-        val fault = io.supply(lane).bits.accessFault || io.supply(lane).bits.pageFault
+        val fault = resolutionSupply(lane).bits.accessFault || resolutionSupply(lane).bits.pageFault
         val priorFault = (0 until lane).map(earlier =>
-            io.supply(earlier).bits.accessFault || io.supply(earlier).bits.pageFault)
+            resolutionSupply(earlier).bits.accessFault || resolutionSupply(earlier).bits.pageFault)
             .foldLeft(false.B)(_ || _)
         rawTaken(lane) := !fault && !priorFault && qualified
         rawNextPcs(lane) := Mux(rawTaken(lane), target, successor)
@@ -244,29 +313,36 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         }
         for (lane <- 0 until width) {
             when(capturePrefix(lane + 1) && remaining + lane.U === slot.U) {
-                slots(slot) := io.supply(lane).bits
+                slots(slot) := resolutionSupply(lane).bits
                 slots(slot).pc := rawPcs(lane)
                 slots(slot).nextPc := rawNextPcs(lane)
             }
         }
     }
     count := remaining + captured
-    // Precompute carry chains from the registered PC. Compressed lengths and
-    // capture credits select one candidate instead of launching a late adder.
-    val supplySuccessor = MuxLookup(captured, supplyPc)(
-        (1 to width).map(lanes => lanes.U -> rawNextPcs(lanes - 1)))
+    // Captures form a contiguous prefix. Select its last lane directly, keeping
+    // the occupancy PopCount out of the successor control path. No capture
+    // holds the supply PC; a captured lane retains its fault-qualified next PC.
+    val lastCaptured = (0 until width).map { lane =>
+        capturePrefix(lane + 1) && (if (lane + 1 == width) true.B else !capturePrefix(lane + 2))
+    }
+    val supplySuccessor = Mux1H(Seq(!capturePrefix(1) -> resolutionPc) ++
+        lastCaptured.zip(rawNextPcs))
     // Compare the first surviving instruction, not the cursor several words
     // ahead. If no instruction survives, a matching offer or cursor is enough.
     // This keeps an already-correct taken path and discards a stale early hint.
     val queuedSuccessor = MuxLookup(consumed, slots(0).pc)(
         (1 to width).filter(_ < capacity).map(lanes => lanes.U -> slots(lanes).pc))
-    val firstSuccessor = Mux(remaining =/= 0.U, queuedSuccessor, supplyPc)
+    // An unresolved token is older than the eager scanner even when it is
+    // blocked from transfer. Both validation forms must inspect that token.
+    val unqueuedSuccessor = Mux(tokenValid, resolutionPc, supplyPc)
+    val firstSuccessor = Mux(remaining =/= 0.U, queuedSuccessor, unqueuedSuccessor)
     val mismatch = if (parallelValidation) {
         // Compare registered queue candidates against both early alternatives
         // before PMP/rename selects a prefix. Late admission selects one BIT,
         // rather than a 64-bit successor mux followed by a 64-bit comparator.
         val candidates = (1 to width).map { lanes =>
-            val observed = Mux(count > lanes.U, slots(lanes).pc, supplyPc)
+            val observed = Mux(count > lanes.U, slots(lanes).pc, unqueuedSuccessor)
             val validation = io.validation.get(lanes - 1)
             consumed === lanes.U && Mux(validation.predicts,
                 observed =/= validation.predictedPc, observed =/= validation.sequentialPc)
@@ -274,17 +350,74 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         candidates.reduce(_ || _) || (consumed === 0.U && firstSuccessor =/= io.expectedNext.bits)
     } else firstSuccessor =/= io.expectedNext.bits
     val wrongPath = io.expectedNext.valid && mismatch
+    // invalidate retains its historical hint-only meaning here. Real core
+    // context changes also assert flush with the exact architectural restart PC.
     val cancel = io.flush.valid || wrongPath
     for (lane <- 0 until width) {
         io.captured(lane) := capturePrefix(lane + 1) && !cancel
     }
-    io.nextFetchPc := Mux(io.flush.valid, io.flush.bits,
-        Mux(wrongPath, io.expectedNext.bits, supplySuccessor))
-    if (splitCursor) {
-        rawCursor := supplySuccessor
-        correctionPc.get := Mux(io.flush.valid, io.flush.bits, io.expectedNext.bits)
-        correctionPending.get := cancel
-    } else rawCursor := io.nextFetchPc
+    val rawCorrection = alignedPermissionStage.B &&
+        (0 until width).map(lane => capturePrefix(lane + 1) && rawTaken(lane)).reduce(_ || _)
+    if (alignedPermissionStage) {
+        // Eager sequential scanning has its own recurrence. It uses completed
+        // PC+{0,2,4,6,8} alternatives and registered-only token/reservoir credit.
+        // A later B correction cancels the speculative A write without entering
+        // this cursor's arithmetic or write-enable.
+        val scanPrefix = Wire(Vec(width + 1, Bool()))
+        val scanOffsets = Wire(Vec(width + 1, UInt(offsetBits.W)))
+        scanPrefix(0) := !io.pause && tokenReady
+        scanOffsets(0) := 0.U
+        for (lane <- 0 until width) {
+            scanPrefix(lane + 1) := scanPrefix(lane) && io.supply(lane).valid
+            val short = compressed.B && io.supply(lane).bits.instruction(1, 0) =/= 3.U
+            scanOffsets(lane + 1) := scanOffsets(lane) + Mux(short, 2.U, 4.U)
+        }
+        val scanBases = Seq(rawCursor, correctionPc.get)
+        val scanHighs = scanBases.map(_(63, 21))
+        val scanIncremented = scanHighs.map(high => TimingArithmetic.neighbor(high))
+        val scanCandidates = (0 to 2 * width).map { halfwords =>
+            val alternatives = scanBases.indices.map { base =>
+                val low = scanBases(base)(20, 0) +& (2 * halfwords).U
+                Cat(Mux(low(21), scanIncremented(base), scanHighs(base)), low(20, 0))
+            }
+            (2 * halfwords).U -> Mux(correctionPending.get, alternatives(1), alternatives(0))
+        }
+        val scanNext = Mux1H(Seq(!scanPrefix(1) -> supplyPc) ++ (0 until width).map { lane =>
+            val last = scanPrefix(lane + 1) && (if (lane + 1 == width) true.B else !scanPrefix(lane + 2))
+            last -> MuxLookup(scanOffsets(lane + 1), supplyPc)(scanCandidates)
+        })
+        rawCursor := scanNext
+        when(tokenTransfer) { tokenPresent.get := 0.U }
+        when(scanPrefix(1)) {
+            token.get.pc := supplyPc
+            tokenPresent.get := VecInit(scanPrefix.drop(1)).asUInt
+            for (lane <- 0 until width) {
+                token.get.instructions(lane) := io.supply(lane).bits.instruction
+                token.get.accessFaults(lane) := io.supply(lane).bits.accessFault
+                token.get.pageFaults(lane) := io.supply(lane).bits.pageFault
+                token.get.faultOffsets(lane) := io.phaseInput.get.faultOffsets(lane)
+            }
+            token.get.denied := io.phaseInput.get.denied
+        }
+        when(cancel || rawCorrection) { tokenPresent.get := 0.U }
+        val corrected = Mux(io.flush.valid, io.flush.bits,
+            Mux(wrongPath, io.expectedNext.bits, supplySuccessor))
+        correctionPc.get := corrected
+        correctionPending.get := cancel || rawCorrection
+        io.nextFetchPc := Mux(cancel || rawCorrection, corrected, scanNext)
+        io.suppressRequest.get := cancel || rawCorrection
+        io.phaseStatus.get.accepted := Mux(cancel || rawCorrection, 0.U,
+            VecInit(scanPrefix.drop(1)).asUInt)
+        io.phaseStatus.get.transferred := tokenTransfer && !cancel
+    } else {
+        io.nextFetchPc := Mux(io.flush.valid, io.flush.bits,
+            Mux(wrongPath, io.expectedNext.bits, supplySuccessor))
+        if (splitCursor) {
+            rawCursor := supplySuccessor
+            correctionPc.get := Mux(io.flush.valid, io.flush.bits, io.expectedNext.bits)
+            correctionPending.get := cancel
+        } else rawCursor := io.nextFetchPc
+    }
     when(cancel) {
         count := 0.U
     }

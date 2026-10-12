@@ -17,7 +17,7 @@ def check_structure(text):
     assert 'parameter integer JTAG_CHAIN = 0' in clean
     assert not re.search(r'\bValenceJtagTap\b', clean), 'A USER DR must not directly wrap a standalone TAP'
     assert len(re.findall(r'\bValenceDmiCdc\s*#', clean)) == 1
-    assert 'always @(posedge bscan_drck or negedge work_reset_n)' in clean
+    assert 'always @(posedge bscan_drck or negedge source_reset_n)' in clean
     assert 'always @(posedge bscan_update or negedge update_reset_n)' in clean
     assert 'always @(posedge bscan_tck or negedge work_reset_n)' in clean
     assert 'always @(posedge bscan_tck or negedge update_reset_n)' in clean
@@ -27,9 +27,17 @@ def check_structure(text):
     assert 'update_toggle == update_ack' in clean and 'update_overrun <= 1' in clean
     assert 'update_selected <= bscan_sel && source_reset_n;' in clean
     assert 'update_ack <= update_seen;' in clean
-    update = clean.split('always @(posedge bscan_update', 1)[1].split('(* ASYNC_REG', 1)[0]
+    update = clean.split('always @(posedge bscan_update', 1)[1].split('reg [63:0] handoff_frame;', 1)[0]
     assert not re.search(r'\b(bscan_sel|source_reset_n|update_seen|work_reset_n)\b', update)
     assert 'wire update_reset_n = update_release[2];' in clean
+    assert 'always @(posedge bscan_tck or negedge raw_reset_n)' in clean
+    assert 'always @(negedge bscan_tck or negedge hard_reset_n)' in clean
+    assert 'wire hard_reset_n = hard_release[2];' in clean
+    assert '.s_req_payload(handoff_frame[40:0])' in clean
+    assert 'update_sync <= {update_sync[0], handoff_toggle};' in clean
+    assert 'handoff_frame <= update_frame;' in clean
+    assert 'handoff_length_ok <= update_length_ok;' in clean
+    assert 'handoff_toggle <= update_toggle;' in clean
     assert 'SHREG_EXTRACT = "NO"' in clean
     for pin in ('CAPTURE', 'DRCK', 'RESET', 'SEL', 'SHIFT', 'TCK', 'TDI', 'UPDATE', 'TDO'):
         assert f'.{pin}(' in clean, f'Missing real primitive {pin} interface'

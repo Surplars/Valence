@@ -20,6 +20,10 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
             Some(Input(Vec(p.renameWidth, UInt(64.W)))) else None
         val accepted        = Output(Vec(p.renameWidth, Bool()))
         val fetchPc         = Output(UInt(64.W))
+        val fetchRequestFrontier = if (p.alignedFetchPermissionStage) Some(Output(UInt(64.W))) else None
+        val suppressFetchRequest = if (p.alignedFetchPermissionStage) Some(Output(Bool())) else None
+        val instructionFaultOffsets = if (p.alignedFetchPermissionStage)
+            Some(Input(Vec(p.renameWidth, UInt(5.W)))) else None
         val pmpState        = if (p.pmpEntries > 0) Some(Output(new PmpState)) else None
         val pmpRawChanged = if (p.pmpChangePublicationEnabled) Some(Output(Bool())) else None
         val fetchPrivilege  = if (p.pmpEntries > 0) Some(Output(UInt(2.W))) else None
@@ -70,6 +74,11 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     core.io.instructionFaults               := io.instructionFaults
     core.io.instructionPageFaults           := io.instructionPageFaults
     core.io.instructionFaultAddresses.foreach(_ := io.instructionFaultAddresses.get)
+    if (p.alignedFetchPermissionStage) {
+        core.io.instructionFaultOffsets.get := io.instructionFaultOffsets.get
+        io.fetchRequestFrontier.get := core.io.fetchRequestFrontier.get
+        io.suppressFetchRequest.get := core.io.suppressFetchRequest.get
+    }
     if (p.pmpEntries > 0) {
         io.pmpState.get := core.io.pmpState.get
         io.pmpRawChanged.foreach(_ := core.io.pmpRawChanged.get)

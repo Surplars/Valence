@@ -1,6 +1,9 @@
 # BSCAN positive-TCK qualification candidate
 
-Status: source-controlled structural candidate. Logical production-transport tests
+This page describes the earlier positive-control qualifier candidate. Current
+payload/reset changes and current evidence are in [BSCAN phase handoff](bscan-phase-handoff.md).
+
+Status of that earlier candidate: source-controlled structural candidate. Logical production-transport tests
 pass; **AMD primitive execution, synthesized/routed timing and board qualification
 for this changed candidate have not run**. This does not close the reported
 pre-route −7.703 ns hold violation by assertion or waiver.

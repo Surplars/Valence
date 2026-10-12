@@ -22,8 +22,14 @@ class FpgaIntegerCore(p: OooParams = OooParams()) extends Module {
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
-        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket))
+        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
+        boundedRequestFrontier = p.alignedFetchPermissionStage))
     frontend.io.pc     := core.io.fetchPc
+    if (p.alignedFetchPermissionStage) {
+        frontend.io.requestFrontier.get := core.io.fetchRequestFrontier.get
+        frontend.io.suppressRequest.get := core.io.suppressFetchRequest.get
+        core.io.instructionFaultOffsets.get := frontend.io.instructionFaultOffsets
+    }
     frontend.io.enable := !core.io.exception.valid
     frontend.io.invalidate := core.io.invalidateFetch
     frontend.io.pause := (if (p.pmpEntries > 0) core.io.pauseFetch.get else false.B)

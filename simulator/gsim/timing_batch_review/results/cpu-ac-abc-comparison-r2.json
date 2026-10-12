@@ -1,0 +1,115 @@
+{
+  "status": "MATCHED_CPU_PAIR_PASS",
+  "source_tree": "3dfac0c63332c60c3ebe5d63b3e9c0d1fe282bb4",
+  "baseline_sha256": "848e6e3c43ecc0f470eb9383ac594375dc9c8c2145b8762c8ef1ed3a0830d84f",
+  "ac_receipt_sha256": "ac85a757eb31776fc59eaa8ba74e588488a0418ad2477fe5f717d897768d5eb9",
+  "abc_receipt_sha256": "aaaa8981035351df27df5e034a04428f5fdcd5e536ab97d9dd9f4ae68e65b25a",
+  "cases": {
+    "sv39": {
+      "ac_cycles": 191618,
+      "abc_cycles": 191618,
+      "abc_minus_ac_cycles": 0,
+      "cpu_report_differences": {
+        "event18": {
+          "ac": "2062",
+          "abc": "2076"
+        }
+      }
+    },
+    "bare": {
+      "ac_cycles": 197722,
+      "abc_cycles": 194153,
+      "abc_minus_ac_cycles": -3569,
+      "cpu_report_differences": {
+        "event12": {
+          "ac": "90158",
+          "abc": "86336"
+        },
+        "ar": {
+          "ac": "4112",
+          "abc": "4114"
+        },
+        "axi_rw_fire_cycles": {
+          "ac": "6",
+          "abc": "2"
+        },
+        "pf_useful": {
+          "ac": "3186",
+          "abc": "3286"
+        },
+        "independent_store_hits": {
+          "ac": "11723",
+          "abc": "11781"
+        },
+        "independent_misses": {
+          "ac": "168",
+          "abc": "200"
+        },
+        "event23": {
+          "ac": "6257",
+          "abc": "5589"
+        },
+        "event11": {
+          "ac": "90158",
+          "abc": "86336"
+        },
+        "cycles": {
+          "ac": "189789",
+          "abc": "186216"
+        },
+        "payload_MiBps": {
+          "ac": "65.8626158523",
+          "abc": "67.1263478971"
+        },
+        "event18": {
+          "ac": "2065",
+          "abc": "2067"
+        },
+        "cache_owner_sum": {
+          "ac": "221114",
+          "abc": "221404"
+        },
+        "pf_miss_sum": {
+          "ac": "187070",
+          "abc": "189613"
+        },
+        "event10": {
+          "ac": "5477",
+          "abc": "4935"
+        },
+        "pf_candidates": {
+          "ac": "8397",
+          "abc": "8209"
+        },
+        "pf_allocated": {
+          "ac": "3536",
+          "abc": "3571"
+        },
+        "independent_read_hits": {
+          "ac": "13002",
+          "abc": "13055"
+        },
+        "two_cache_owner_cycles": {
+          "ac": "47168",
+          "abc": "51105"
+        },
+        "lsu_sum": {
+          "ac": "214023",
+          "abc": "210494"
+        },
+        "event17": {
+          "ac": "90158",
+          "abc": "86336"
+        },
+        "clean_tail": {
+          "ac": "7933",
+          "abc": "7937"
+        },
+        "r_beats": {
+          "ac": "32896",
+          "abc": "32912"
+        }
+      }
+    }
+  }
+}

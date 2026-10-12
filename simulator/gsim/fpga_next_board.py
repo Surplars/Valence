@@ -120,6 +120,12 @@ def main():
                     help="default-off R16/PRF48 pending-store proof and bounded early-load credits")
     ap.add_argument("--bound-head-store-overlap", action="store_true",
                     help="default-off bound head store into an idle LSU beside saved disjoint younger loads")
+    ap.add_argument("--aligned-fetch-permission-stage", action="count", default=0,
+                    help="default-off aligned fetch permission token experiment")
+    ap.add_argument("--registered-canonical-store-event", action="count", default=0,
+                    help="default-off canonical certificate event and matching backend lifecycle stage")
+    ap.add_argument("--registered-pending-store-query", action="count", default=0,
+                    help="default-off registered shared proof query; requires pending-store proofs")
     ap.add_argument("--pending-ready-store-bypass", action="count", default=0,
                     help="default-off bypass of proved data-ready non-head stores; requires bound head overlap")
     ap.add_argument("--pending-virtual-store-proof-slots", type=int, choices=(1, 2), default=1)
@@ -225,6 +231,17 @@ def main():
         setattr(args, field, values[0] if values else None)
     if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event"):
+        if getattr(args, field) > 1:
+            ap.error("duplicate --" + field.replace("_", "-") + " flag")
+        setattr(args, field, bool(getattr(args, field)))
+    if args.registered_canonical_store_event and not args.canonical_virtual_store_overlap:
+        ap.error("--registered-canonical-store-event requires --canonical-virtual-store-overlap")
+    if args.registered_pending_store_query > 1:
+        ap.error("duplicate --registered-pending-store-query flag")
+    args.registered_pending_store_query = bool(args.registered_pending_store_query)
+    if args.registered_pending_store_query and not args.pending_virtual_store_proof:
+        ap.error("--registered-pending-store-query requires --pending-virtual-store-proof")
     if args.pending_ready_store_bypass > 1:
         ap.error("duplicate --pending-ready-store-bypass flag")
     args.pending_ready_store_bypass = bool(args.pending_ready_store_bypass)
@@ -369,6 +386,12 @@ def main():
         parameters.append("--frozen-store-proof-transport")
     if args.pending_virtual_store_proof:
         parameters.append("--pending-virtual-store-proof")
+    if args.registered_pending_store_query:
+        parameters.append("--registered-pending-store-query")
+    if args.aligned_fetch_permission_stage:
+        parameters.append("--aligned-fetch-permission-stage")
+    if args.registered_canonical_store_event:
+        parameters.append("--registered-canonical-store-event")
     if args.bound_head_store_overlap:
         parameters.append("--bound-head-store-overlap")
     if args.pending_ready_store_bypass:
@@ -383,6 +406,9 @@ def main():
             "memory_proof_frontier": args.memory_proof_frontier,
             "frozen_store_proof_transport": args.frozen_store_proof_transport,
             "pending_virtual_store_proof": args.pending_virtual_store_proof,
+            "registered_pending_store_query": args.registered_pending_store_query,
+            "aligned_fetch_permission_stage": args.aligned_fetch_permission_stage,
+            "registered_canonical_store_event": args.registered_canonical_store_event,
             "bound_head_store_overlap": args.bound_head_store_overlap,
             "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,

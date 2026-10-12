@@ -69,7 +69,10 @@ module bscan_qualification_tb;
         begin
             por_n=0;#2;
             if(dut.update_release!==0 || dut.update_selected!==0 || dut.update_ack!==0 ||
-               dut.update_toggle!==0 || dut.update_overrun!==0 || req_valid || rsp_ready || link)
+               dut.update_toggle!==0 || dut.update_overrun!==0 || dut.handoff_toggle!==0 ||
+               dut.handoff_frame!==0 || dut.handoff_length_ok!==0 || dut.hard_release!==0 ||
+               dut.hard_reset!==0 || dut.shift_frame!==0 || dut.scan_captured!==0 ||
+               req_valid || rsp_ready || link)
                 $fatal(1,"QUAL asynchronous reset isolation");
             por_n=1;#2;
             if(dut.update_reset_n!==0)$fatal(1,"QUAL release without TCK");
@@ -128,6 +131,36 @@ module bscan_qualification_tb;
         before_count=accepted;idle(12);
         if(accepted!=before_count)$fatal(1,"QUAL overrun did not fail closed");
 
+        // Observe the new handoff at its actual edges, including a stopped
+        // positive phase. No old or partially copied frame can enter the bridge.
+        start_clean;a=frame(2,7'h12,32'h12345678);before_count=accepted;
+        command(a,64);
+        if(dut.handoff_toggle!==0 || dut.handoff_frame!==0)
+            $fatal(1,"QUAL handoff advanced without positive TCK");
+        rise;
+        if(dut.handoff_frame!==a || !dut.handoff_length_ok || dut.handoff_toggle!==1 ||
+           dut.update_sync!==0 || dut.update_seen!==0)
+            $fatal(1,"QUAL positive handoff bundle");
+        #200;
+        if(accepted!=before_count || dut.update_seen!==0)
+            $fatal(1,"QUAL stopped positive handoff bypass");
+        fall;
+        if(dut.update_sync!==2'b01 || dut.update_seen!==0)
+            $fatal(1,"QUAL first negative handoff notification");
+        cycle;
+        if(dut.update_sync!==2'b11 || dut.update_seen!==0)
+            $fatal(1,"QUAL second negative handoff notification");
+        // A duplicate after P3 but before F3 must cancel DMI acceptance. A
+        // positive-TCK copy of update_overrun would miss this precise window.
+        rise;held=dut.update_frame;old_toggle=dut.update_toggle;
+        capture=1;drck=1;#1;drck=0;capture=0;
+        event_update;
+        if(dut.update_frame!==held || dut.update_toggle!==old_toggle || !dut.update_overrun)
+            $fatal(1,"QUAL late duplicate held frame");
+        fall;idle(12);
+        if(accepted!=before_count || !dut.protocol_error)
+            $fatal(1,"QUAL late overrun did not fail closed");
+
         // Four TCK cycles is the shortest legal UPDATE-to-UPDATE (SelectDR,
         // CaptureDR, Exit1DR, UpdateDR). The returned ACK must be sampled on
         // the fourth rising edge. Empty scans set length error, never overrun.
@@ -171,10 +204,17 @@ module bscan_qualification_tb;
         start_clean;command(frame(3,2,0),64);idle(3);
         if(!dut.hard_reset || dut.update_reset_n!==0 || dut.update_toggle!==0)
             $fatal(1,"QUAL hard reset assertion");
-        #200;if(dut.update_reset_n!==0)$fatal(1,"QUAL stopped hard reset release");
-        idle(9);before_count=accepted;command(frame(0,0,0),64);idle(8);
+        #200;if(dut.update_reset_n!==0 || !dut.hard_reset || !dut.hard_reset_n)
+            $fatal(1,"QUAL stopped hard reset release");
+        rise;
+        if(!dut.hard_reset || !dut.hard_reset_n || dut.source_reset_n || dut.update_reset_n)
+            $fatal(1,"QUAL independent hard reset full pulse");
+        fall;
+        if(dut.hard_reset || dut.source_reset_n || dut.update_reset_n)
+            $fatal(1,"QUAL hard reset pulse completion");
+        idle(8);before_count=accepted;command(frame(0,0,0),64);idle(8);
         if(accepted!=before_count || dut.update_overrun)$fatal(1,"QUAL hard reset replay");
-        $display("PASS BSCAN_QUALIFICATION release_edges=%0d shortest_turnover=%0d duplicate_no_tck immediate_capture selection reset_low_high hard_reset",release_cases,turnover_cases);
+        $display("PASS BSCAN_QUALIFICATION release_edges=%0d shortest_turnover=%0d duplicate_no_tck positive_handoff late_overrun immediate_capture selection reset_low_high hard_reset",release_cases,turnover_cases);
         $finish;
     end
     initial begin #1000000;$fatal(1,"QUAL watchdog");end

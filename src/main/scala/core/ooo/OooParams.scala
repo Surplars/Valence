@@ -88,6 +88,8 @@ case class OooParams(
     compactMemoryOperandSelect: Boolean = false,
     parallelMemoryAddressSum: Boolean = false,
     capturedFetchPermission: Boolean = false,
+    // Experimental aligned-byte/permission token; preserved OFF by default.
+    alignedFetchPermissionStage: Boolean = false,
     splitFetchCursor: Boolean = false,
     registeredFetchWindow: Boolean = false,
     fastHeadTrapRecovery: Boolean = false,
@@ -154,7 +156,9 @@ case class OooParams(
     reconstructIssueTokenIndex: Boolean = false,
     sharedMemoryAddressState: Boolean = false,
     registeredPmpRegions: Boolean = false,
-    publishedPmpChanges: Boolean = false
+    publishedPmpChanges: Boolean = false,
+    registeredPendingStoreQuery: Boolean = false,
+    registeredCanonicalStoreEvent: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -163,6 +167,10 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!registeredCanonicalStoreEvent || canonicalVirtualStoreOverlap,
+        "registered canonical-store events require canonical virtual-store overlap")
+    require(!registeredPendingStoreQuery || pendingVirtualStoreProof,
+        "registered pending-store queries require pending-store proofs")
     require(!pendingReadyStoreBypass || boundHeadStoreOverlap,
         "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
@@ -275,6 +283,9 @@ case class OooParams(
     require(!parallelFetchValidation || registeredFetchPacket, "parallel validation requires fetch reservoir")
     require(!capturedFetchPermission || (registeredFetchPacket && parallelPacketPmp),
         "captured fetch permissions require the packet reservoir and parallel PMP")
+    require(!alignedFetchPermissionStage || (renameWidth == 2 && compressedInstructions &&
+        registeredFetchWindow && parallelFetchAlignment && capturedFetchPermission && splitFetchCursor),
+        "aligned fetch phase requires two compressed lanes, window, parallel alignment, permissions and split cursor")
     require(!splitFetchCursor || registeredFetchPacket, "split cursor requires fetch reservoir")
     require(!registeredFetchWindow || (compressedInstructions && registeredFetchPacket),
         "registered cache window requires compressed packets and the fetch reservoir")

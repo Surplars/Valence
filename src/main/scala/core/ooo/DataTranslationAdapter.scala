@@ -44,7 +44,10 @@ private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
   * requests outstanding. Fault placeholders share its response-order queue without issuing a physical request.
   */
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
-    translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false) extends Module {
+    translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
+    val registerCanonicalStoreEvent: Boolean = false) extends Module {
+    require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
+        "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
         "published PMP changes require the integrated same-clock CSR producer contract")
     require(!translationHitFlow || (registerCheckedRequests && p.registeredTranslationHeads &&
@@ -478,7 +481,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val stage = checked.get
         val origin = head.canonicalStoreOrigin.get
         val virtualAddress = head.originalVirtualAddress.get
-        val certificate = io.canonicalStoreCertificate.get
+        val certificate = Wire(Valid(new CanonicalStoreCertificate(p)))
         val fromTranslated = (translated.io.deq.valid || translationHitOffer) &&
             !identityOffer && !precheckedOffer && !physicalIngressOffer
         val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
@@ -498,9 +501,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             physicalEnd > physicalStart
         val fresh = io.loadPrecheck.get.stable && !authorizationChanged && !io.precheckFlush.get &&
             origin.bits.epoch === authorizationEpoch.get
-        // This always-consumed event is captured by the backend on the same edge
-        // as the existing checked request. It adds no request or response owner,
-        // and losing the proof never changes the store's architectural outcome.
+        // The optional event stage captures the full qualified tuple at checked
+        // acceptance. The default preserves same-edge backend capture. Neither
+        // form owns request or response credit or changes the store's outcome.
         certificate.valid := stage.enq.fire && fromTranslated && origin.valid && ordinaryStore &&
             shape && inRam && fresh && !stage.enq.bits.fault && !pmp.io.denied
         certificate.bits.origin := origin.bits
@@ -508,6 +511,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         certificate.bits.physicalAddress := request.address
         certificate.bits.size := request.size
         certificate.bits.mask := request.mask
+        if (registerCanonicalStoreEvent) {
+            val certificateValid = RegNext(certificate.valid, false.B)
+            val certificateBits = RegEnable(certificate.bits, certificate.valid)
+            io.canonicalStoreCertificate.get.valid := certificateValid
+            io.canonicalStoreCertificate.get.bits := certificateBits
+        } else {
+            io.canonicalStoreCertificate.get := certificate
+        }
+        // Assertions below describe raw checked acceptance in both modes.
         val expectedCheckedRequest = WireDefault(request)
         expectedCheckedRequest.prefetchNextAllowed := nextAllowed
         when(certificate.valid) {

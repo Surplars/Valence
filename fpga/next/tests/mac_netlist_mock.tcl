@@ -91,7 +91,7 @@ proc get_nets {args} {
 proc get_clocks {args} {
     check_opts $args {-of_objects -quiet} {-quiet}
     set out {}; set of [opt $args -of_objects]
-    if {$of ne ""} {foreach pin $of {lappend out [get_property CLOCK $pin]}} else {set out [lindex $args end]}
+    if {$of ne ""} {foreach pin $of {lappend out {*}[get_property CLOCK $pin]}} else {set out [lindex $args end]}
     return [lsort -unique $out]
 }
 proc mock_fanin {pin seen} {
@@ -109,7 +109,9 @@ proc mock_fanin {pin seen} {
 }
 proc all_fanin {args} {
     check_opts $args {-flat -startpoints_only -to} {-flat -startpoints_only}
-    return [mock_fanin [opt $args -to] {}]
+    set starts {}
+    foreach pin [opt $args -to] {lappend starts {*}[mock_fanin $pin {}]}
+    return [lsort -unique $starts]
 }
 proc mock_fanout {pin seen} {
     if {$pin in $seen} {return {}}; lappend seen $pin
@@ -136,13 +138,23 @@ proc get_timing_paths {args} {
     }
     lappend TIMING_CALLS [list $starts $end $type]
     if {[dict exists $MODEL $end CUT] && [dict get $MODEL $end CUT]} {return {}}
+    if {[dict exists $MODEL $end TIMING_STARTPOINTS]} {
+        set reachable [dict get $MODEL $end TIMING_STARTPOINTS]
+        set found {}
+        foreach start $starts {if {$start in $reachable} {lappend found $start}}
+        if {![llength $found]} {return {}}
+        set launch [lindex $found 0]
+    } else {set launch [lindex $starts 0]}
+    if {[dict exists $MODEL $end BAD_STARTPOINT]} {set launch [dict get $MODEL $end BAD_STARTPOINT]}
+    set exception {MaxDelay Path 8.000ns -datapath_only}
+    if {[dict exists $MODEL $end EXCEPTION]} {set exception [dict get $MODEL $end EXCEPTION]}
     set req [expr {$type eq "max" ? 8.0 : 0.0}]
     if {[dict exists $MODEL $end REQUIREMENT]} {set req [dict get $MODEL $end REQUIREMENT]}
     set target $end
     if {[dict exists $MODEL $end BAD_ENDPOINT]} {set target [dict get $MODEL $end BAD_ENDPOINT]}
     set slack 0.5
     if {[dict exists $MODEL $end SLACK]} {set slack [dict get $MODEL $end SLACK]}
-    dict set MODEL timing_path [dict create KIND path NAME timing_path ENDPOINT_PIN $target REQUIREMENT $req SLACK $slack]
+    dict set MODEL timing_path [dict create KIND path NAME timing_path STARTPOINT_PIN $launch ENDPOINT_PIN $target REQUIREMENT $req SLACK $slack EXCEPTION $exception]
     return timing_path
 }
 proc mock_report {command args} {
@@ -161,3 +173,22 @@ foreach command {report_timing report_exceptions report_bus_skew report_cdc repo
     proc $command {args} "mock_report $command {*}\$args"
 }
 set TIMING_CALLS {}; set REPORT_CALLS {}
+
+# Mutating constraint commands are available only to focused constraint tests.
+# The read-only collector tests assert that neither command is called.
+proc set_max_delay {args} {
+    global MODEL BOUND_CALLS IGNORE_BOUNDS
+    check_opts $args {-datapath_only -from -to} {-datapath_only}
+    lappend BOUND_CALLS [list max $args]
+    if {[info exists IGNORE_BOUNDS] && $IGNORE_BOUNDS} {return}
+    foreach end [opt $args -to] {
+        dict set MODEL $end EXCEPTION {MaxDelay Path 8.000ns -datapath_only}
+        dict set MODEL $end REQUIREMENT [lindex $args 1]
+    }
+}
+proc set_bus_skew {args} {
+    global BOUND_CALLS
+    check_opts $args {-from -to} {}
+    lappend BOUND_CALLS [list skew $args]
+}
+set BOUND_CALLS {}

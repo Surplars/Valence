@@ -41,7 +41,7 @@ proc valence_bscan_release {engine tail inverted expected_clock} {
     for {set i 0} {$i < 3} {incr i} {
         set cell [valence_bscan_one get_cells [format {%s/%s_reg[%d]} $engine $tail $i]]
         if {[get_property REF_NAME $cell] ne "FDCE" ||
-            [get_property IS_C_INVERTED $cell] != $inverted} {error "BSCAN release type/edge mismatch: $cell"}
+            [get_property IS_INVERTED [valence_bscan_pin $cell C]] != $inverted} {error "BSCAN release type/edge mismatch: $cell"}
         set clock_pin [valence_bscan_pin $cell C]
         if {[get_clocks -quiet -of_objects $clock_pin] ne [list $expected_clock]} {
             error "BSCAN release clock domain mismatch: $cell"
@@ -77,6 +77,9 @@ proc valence_bscan_qualifiers {primitive engine} {
     }
     set qualifiers {}
     foreach tail {update_selected update_ack} {lappend qualifiers {*}[valence_bscan_bank $engine $tail 1]}
+    # Restore Vivado object collections after assembling exact bank names.
+    set update_cells [get_cells -quiet $update_cells]
+    set qualifiers [get_cells -quiet $qualifiers]
     foreach cell $update_cells {
         if {[get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_update}} {
             error "BSCAN UPDATE bank clock domain mismatch: $cell"
@@ -86,7 +89,7 @@ proc valence_bscan_qualifiers {primitive engine} {
         if {[get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_tck}} {
             error "BSCAN qualifier clock domain mismatch: $cell"
         }
-        if {[get_property REF_NAME $cell] ne "FDCE" || [get_property IS_C_INVERTED $cell] != 0} {
+        if {[get_property REF_NAME $cell] ne "FDCE" || [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0} {
             error "BSCAN qualifier must remain a positive-TCK resettable register: $cell"
         }
     }
@@ -102,13 +105,81 @@ proc valence_bscan_qualifiers {primitive engine} {
     }
     # Both the UPDATE bank and qualifier flops release only through stage 2 of
     # the new positive-TCK fence. Functional CLR paths remain normally timed.
-    set expected [format {%s/update_release_reg[2]/Q} $engine]
+    set expected [format {%s/update_release_reg[2]/C} $engine]
     foreach cell [concat $update_cells $qualifiers] {
         set pin [valence_bscan_pin $cell CLR]
         set starts [lsort -unique [all_fanin -flat -startpoints_only -to $pin]]
         if {$starts ne [list $expected]} {error "BSCAN UPDATE reset bypasses positive release: $cell $starts"}
     }
     puts "BSCAN_POSITIVE_QUALIFICATION present=2 update_bits=67 raw_control_cones=0"
+}
+# This check adds no exception. The related-clock ingress and functional CLR
+# pins remain timed, and any reshaped/optimized bank requires a source review.
+proc valence_bscan_phase_handoff {engine} {
+    set handoff_cells {}
+    foreach {tail source count} {handoff_frame update_frame 64 handoff_length_ok update_length_ok 1 handoff_toggle update_toggle 1} {
+        set bank [valence_bscan_bank $engine $tail $count]
+        lappend handoff_cells {*}$bank
+        foreach cell $bank {
+            if {[get_property REF_NAME $cell] ne "FDCE" ||
+                [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0 ||
+                [get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_tck}} {
+                error "BSCAN handoff must remain positive TCK: $cell"
+            }
+            set source_cell [string map [list "/${tail}_reg" "/${source}_reg"] $cell]
+            if {[valence_bscan_driver [valence_bscan_pin $cell D]] ne "$source_cell/Q"} {
+                error "BSCAN handoff input bypass/mismatch: $cell"
+            }
+        }
+    }
+    set first [valence_bscan_one get_cells [format {%s/update_sync_reg[0]} $engine]]
+    if {[get_property IS_INVERTED [valence_bscan_pin $first C]] != 1 ||
+        [get_clocks -quiet -of_objects [valence_bscan_pin $first C]] ne {valence_bscan_tck}} {
+        error "BSCAN notification must remain negative TCK"
+    }
+    if {[valence_bscan_driver [valence_bscan_pin $first D]] ne "$engine/handoff_toggle_reg/Q"} {
+        error "BSCAN notification bypasses positive handoff"
+    }
+    set request [valence_bscan_bank $engine bridge/request_held 41]
+    set targets [get_pins -quiet -of_objects $request -filter {REF_PIN_NAME == D || REF_PIN_NAME == CE}]
+    set cone [all_fanin -flat -to $targets]
+    foreach {tail count} {update_frame 64 update_length_ok 1 update_toggle 1} {
+        foreach cell [valence_bscan_bank $engine $tail $count] {
+            if {[lsearch -exact $cone "$cell/Q"] >= 0} {error "BSCAN request bypasses positive handoff: $cell"}
+        }
+    }
+    set shift_cells {}
+    foreach {tail count} {shift_frame 64 shift_count 7 scan_captured 1} {
+        lappend shift_cells {*}[valence_bscan_bank $engine $tail $count]
+    }
+    foreach cell $shift_cells {
+        if {[get_property REF_NAME $cell] ne "FDCE" ||
+            [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0 ||
+            [get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_drck}} {
+            error "BSCAN shift storage must remain positive DRCK: $cell"
+        }
+    }
+    set hard_reset [valence_bscan_bank $engine hard_reset 1]
+    if {[get_property REF_NAME $hard_reset] ne "FDCE" ||
+        [get_property IS_INVERTED [valence_bscan_pin $hard_reset C]] != 1 ||
+        [get_clocks -quiet -of_objects [valence_bscan_pin $hard_reset C]] ne {valence_bscan_tck}} {
+        error "BSCAN hard reset must remain negative TCK"
+    }
+    foreach {bank release} [list [concat $handoff_cells $shift_cells] source_release $hard_reset hard_release] {
+        set expected [format {%s/%s_reg[2]/C} $engine $release]
+        foreach cell $bank {
+            set starts [lsort -unique [all_fanin -flat -startpoints_only -to [valence_bscan_pin $cell CLR]]]
+            if {$starts ne [list $expected]} {error "BSCAN functional reset bypasses phase fence: $cell $starts"}
+        }
+    }
+    # hard_reset drives work_reset. Its independent raw-reset release fence may
+    # not receive that feedback, even indirectly through another release bank.
+    set hard [valence_bscan_one get_cells [format {%s/hard_release_reg[0]} $engine]]
+    set reset_cone [all_fanin -flat -to [valence_bscan_pin $hard CLR]]
+    foreach forbidden [list "$engine/hard_reset_reg/Q"                        [format {%s/source_release_reg[2]/Q} $engine]                        [format {%s/update_release_reg[2]/Q} $engine]] {
+        if {[lsearch -exact $reset_cone $forbidden] >= 0} {error "BSCAN hard-reset release has work-reset feedback: $forbidden"}
+    }
+    puts "BSCAN_PHASE_HANDOFF payload_bits=64 length_bits=1 toggle_bits=1 functional_reset_fences=verified overrun_remains_timed=1"
 }
 proc valence_bscan_bundle {engine source destination count} {
     set src [valence_bscan_bank $engine $source $count]
@@ -122,10 +193,11 @@ proc valence_bscan_bundle {engine source destination count} {
 }
 proc valence_reapply_bscan_cdc {primitive engine fabric_clock} {
     valence_bscan_qualifiers $primitive $engine
+    valence_bscan_phase_handoff $engine
     foreach {tail count} {update_sync 2 bridge/request_sync 2 bridge/response_sync 2} {
         valence_bscan_bank $engine $tail $count 1
     }
-    foreach {tail inverted} {source_release 1 update_release 0 bridge/source_release 1 bridge/dest_release 0} {
+    foreach {tail inverted} {source_release 1 update_release 0 hard_release 0 bridge/source_release 1 bridge/dest_release 0} {
         set clock [expr {$tail eq "bridge/dest_release" ? $fabric_clock : "valence_bscan_tck"}]
         valence_bscan_release $engine $tail $inverted $clock
     }

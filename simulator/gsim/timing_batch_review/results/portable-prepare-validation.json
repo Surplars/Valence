@@ -1,0 +1,50 @@
+{
+  "status": "PASS_LIGHT_SOURCE_REPLAY_CHECKS",
+  "script_sha256": "fedef40b31d6d713d9bd9a7c7c071f341ec9220a381890736937904eb22a36a4",
+  "manifest_sha256": "a6c7c6541571aaf92fb48b4bc3239e788e6dffe46427e06aa1e47e7ffd938b55",
+  "tests": [
+    {
+      "name": "default-plan-no-write",
+      "exit": 0,
+      "anchor": "PLAN_ONLY"
+    },
+    {
+      "name": "existing-destination-rejected",
+      "exit": 1,
+      "anchor": "destination must not exist"
+    },
+    {
+      "name": "dirty-source-rejected",
+      "exit": 1,
+      "anchor": "input repository is dirty"
+    },
+    {
+      "name": "nested-input-destination-rejected",
+      "exit": 1,
+      "anchor": "destination must be outside input repository"
+    },
+    {
+      "name": "patch-hash-drift-rejected",
+      "exit": 1,
+      "anchor": "complete frozen patch hash mismatch"
+    },
+    {
+      "name": "actual-replay-full-tree",
+      "exit": 0,
+      "anchor": "SOURCE_REPLAY_VERIFIED"
+    }
+  ],
+  "hardware_commands_run": false,
+  "executed_replay_receipt": {
+    "schema": "timing-batch-source-replay-v1",
+    "status": "SOURCE_REPLAY_VERIFIED",
+    "repository": "/workspace/scratch/41e4a649bb60/valence-local-review-20261012-1129",
+    "destination": "/tmp/timing-batch-r2-portable-finalcheck-20261012",
+    "variant": "r2",
+    "base_commit": "1e90af966c15d871d2544469174acba78473113b",
+    "expected_tree": "3dfac0c63332c60c3ebe5d63b3e9c0d1fe282bb4",
+    "patch_sha256": "162dd7789927706037390582e5cdc52eba13911ca31de1445ce5e2870491dd6a",
+    "hardware_commands_run": false,
+    "scope": "Historical source reconstruction only; no clean-checkout runtime qualification claim."
+  }
+}

@@ -43,7 +43,7 @@ proc valence_collect_bscan_netlist {primitive engine fabric_clock output} {
         }
     }
     set syncs {}
-    foreach {suffix count} {source_release 3 update_release 3 update_sync 2 bridge/source_release 3 \
+    foreach {suffix count} {source_release 3 update_release 3 hard_release 3 update_sync 2 bridge/source_release 3 \
                            bridge/dest_release 3 bridge/request_sync 2 bridge/response_sync 2} {
         set slash [string last / $suffix]
         if {$slash<0} {set root $engine;set name $suffix} else {

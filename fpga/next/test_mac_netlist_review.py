@@ -71,12 +71,12 @@ class SyntheticMapping:
         self.m[name].update(props)
 
     def cell(self, name, ref, **props):
-        self.m[name]=dict(KIND='cell',NAME=name,REF_NAME=ref,IS_SEQUENTIAL=ref.startswith('FD'), **props)
+        self.m[name]=dict(KIND='cell',NAME=name,REF_NAME=ref,IS_SEQUENTIAL=ref.startswith('FD'), IS_PRIMITIVE=ref.startswith(('FD','RAM')), **props)
 
     def pin(self, name, net, direction, leaf=True, **props):
         self.net(net)
         cell, ref=name.rsplit('/',1)
-        self.m[name]=dict(KIND='pin',NAME=name,CELL=cell,REF_PIN_NAME=ref,NET=net,DIRECTION=direction,LEAF=leaf,**props)
+        self.m[name]=dict(KIND='pin',NAME=name,CELL=cell,REF_PIN_NAME=ref,NET=net,DIRECTION=direction,LEAF=leaf,IS_LEAF=leaf,**props)
 
     def ff(self, name, domain, reset=0, net='cold', async_reg=False):
         if name in self.m: return
@@ -122,8 +122,22 @@ class SyntheticMapping:
                 self.ff(launch,fr,0,h+'/'+source_rel+'_released');self.ff(a,to,0,h+'/'+target_rel+'_released',True);self.ff(b,to,0,h+'/'+target_rel+'_released',True)
                 self.m[a+'/D']['NET']=launch+'_q';self.m[b+'/D']['NET']=a+'_q'
         for i in range(38): self.ff(f'{h}/output_0_reg[{i}]',dst)
-        self.cell(h+'/storage_ext/ram','RAMD32')
-        self.pin(h+'/storage_ext/ram/WCLK','clock_'+src,'IN',CLOCK=self.clocks[src])
+        # Deliberately expose a composite WCLK and two legal expanded leaves.
+        # Endpoint fanin/path evidence names only the leaves; a name wildcard
+        # sees all three and is an invalid collector for this toy mapping.
+        self.cell(h+'/storage_ext/ram','RAM32M16')
+        self.pin(h+'/storage_ext/ram/WCLK','clock_'+src,'IN',False,CLOCK=self.clocks[src])
+        for ram in ('a','b'):
+            self.cell(h+'/storage_ext/ram/'+ram,'RAMD32')
+            self.pin(h+'/storage_ext/ram/'+ram+'/CLK','clock_'+src,'IN',CLOCK=self.clocks[src])
+        self.ff(h+'/storage_ext/readAddress_reg[0]',dst)
+        for i in range(38):
+            end=f'{h}/output_0_reg[{i}]/D'
+            launches=[h+'/storage_ext/ram/a/CLK']
+            if i % 2: launches.append(h+'/storage_ext/ram/b/CLK')
+            self.m[end]['STARTPOINTS']=launches+[f'{h}/readGray_reg[0]/C', f'{h}/storage_ext/readAddress_reg[0]/C']
+            self.m[end]['TIMING_STARTPOINTS']=launches
+
 
 
 class CollectorTclTests(unittest.TestCase):
@@ -135,6 +149,7 @@ class CollectorTclTests(unittest.TestCase):
             body+='set contract '+review.tcl(contract or CONTRACT)+'\n'
             body+='set bank '+review.tcl(BANK)+'\n'+mutation+'\nmock_reindex\n'
             body+='valence_mac::collect $contract [dict create status SOURCE_BOUND_PREPARED_NOT_NETLIST_QUALIFIED] '+review.tcl(Path(tmp)/'reports')+' '+str(rate)+'\n'
+            body+='if {[llength $BOUND_CALLS]} {error {read-only collector changed constraints}}\n'
             body+='puts "MOCK_FACTS_COMPLETE_NOT_VIVADO timing=[llength $TIMING_CALLS] reports=[llength $REPORT_CALLS]"\n'
             command='if {[catch {\n'+body+'\n} why opts]} {puts stderr $why; puts stderr [dict get $opts -errorinfo]; exit 1}\n'
             r=subprocess.run(['tclsh'],input=command,text=True,capture_output=True,timeout=90)
@@ -212,7 +227,9 @@ class CollectorTclTests(unittest.TestCase):
             ('dict unset MODEL [format {%s/txConfig/mailbox/captured_reg[0]} $bank]','bank shape changed'),
             ('dict set MODEL [format {%s/txConfig/mailbox/captured_reg[0]/D} $bank] NET [format {%s/txConfig/mailbox/held_reg[1]_q} $bank]','wrong-bit source'),
             ('dict set MODEL [format {%s/txFifo/fifo/readGraySync_stage0_reg[0]/D} $bank] NET [format {%s/txFifo/fifo/readGray_reg[1]_q} $bank]','Gray launch bit/source mismatch'),
-            ('dict unset MODEL $bank/txFifo/fifo/storage_ext/ram/WCLK','RAM physical write-clock mapping'),
+            ('dict set MODEL [format {%s/txFifo/fifo/output_0_reg[0]/D} $bank] STARTPOINTS {}','uncovered payload bit'),
+            ('dict set MODEL [format {%s/txFifo/fifo/output_0_reg[37]/D} $bank] EXCEPTION {}','missing/ignored/relaxed max-delay bound'),
+            ('dict set MODEL [format {%s/txFifo/fifo/output_0_reg[37]/D} $bank] TIMING_STARTPOINTS [list $bank/txFifo/fifo/storage_ext/ram/a/CLK]','missing/false-pathed RAM path'),
             ('dict set MODEL [format {%s/txRate/captured_reg[0]/D} $bank] CUT 1','missing/false-pathed'),
             ('dict set MODEL [format {%s/txRate/captured_reg[0]/D} $bank] REQUIREMENT 40','relaxed timing requirement'),
             ('dict set MODEL [format {%s/txRate/captured_reg[0]/D} $bank] REQUIREMENT Inf','relaxed timing requirement'),
@@ -225,6 +242,114 @@ class CollectorTclTests(unittest.TestCase):
         ]
         for mutation, expected in mutations:
             with self.subTest(expected=expected,mutation=mutation): self.run_model(mutation,expected)
+
+
+class FifoPayloadTclTests(unittest.TestCase):
+    """Leaf discovery and per-reachable-leaf coverage; no physical proof."""
+    def run_payload(self, mutation='', expected=None, bounds=0):
+        h = BANK+'/txFifo/fifo'
+        model = SyntheticMapping().m
+        model = {k:v for k,v in model.items() if k.startswith(h+'/') or v['KIND']=='clock'}
+        body='set MODEL '+review.tcl(model)+'\n'
+        body+='source '+review.tcl(HERE/'tests/mac_netlist_mock.tcl')+'\n'
+        body+='source '+review.tcl(ROOT/'fpga/zu15eg/native-gmac-cdc-constraints.tcl')+'\n'
+        body+='set h '+review.tcl(h)+'\n'+mutation+'\nmock_reindex\n'
+        body+='set rc [catch {valence_fifo_payload_constraints $h 8.0} why]\n'
+        if expected:
+            body+='if {!$rc || [string first '+review.tcl(expected)+' $why]<0} {error "wrong failure: $rc $why"}\n'
+            body+='if {[llength $BOUND_CALLS]!='+str(bounds)+'} {error {partial/unexpected constraint application}}\n'
+        else:
+            body+=r'''
+if {$rc} {error $why}
+if {[llength $BOUND_CALLS]!=2} {error {expected exact max-delay and skew bounds}}
+set expected [list $h/storage_ext/ram/a/CLK $h/storage_ext/ram/b/CLK]
+foreach call $BOUND_CALLS {
+    set args [lindex $call 1]
+    if {[opt $args -from] ne $expected || [llength [opt $args -to]]!=38} {error {composite/FF/wrong scope bounded}}
+}
+# 57 reachable leaf/bit pairs queried once before and once after application.
+if {[llength $TIMING_CALLS]!=114} {error {missing per-leaf per-bit query}}
+set scope [valence_fifo_payload::collect $h]
+dict for {end ordinary} [dict get $scope ordinary_by_end] {
+    if {[llength $ordinary]!=2} {error {ordinary destination-domain launches were dropped}}
+}
+'''
+        body+='puts FIFO_MOCK_PASS_NOT_VIVADO\n'
+        script='if {[catch {\n'+body+'\n} why opts]} {puts stderr $why; puts stderr [dict get $opts -errorinfo]; exit 1}\n'
+        r=subprocess.run(['tclsh'],input=script,text=True,capture_output=True,timeout=10)
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('FIFO_MOCK_PASS_NOT_VIVADO',r.stdout)
+
+    def test_composite_present_but_only_reachable_leaf_clocks_bounded(self):
+        self.run_payload()
+
+    def test_bad_leaf_shapes_rejected_before_constraints(self):
+        for mutation, expected in [
+            ('dict set MODEL [format {%s/output_0_reg[0]/D} $h] STARTPOINTS [list $h/storage_ext/ram/WCLK]', 'not a reviewed leaf clock'),
+            ('dict set MODEL $h/storage_ext/ram/a REF_NAME RAM32M16', 'not a reviewed leaf clock'),
+            ('dict set MODEL $h/storage_ext/ram/a/CLK IS_LEAF 0', 'not a reviewed leaf clock'),
+            ('dict set MODEL $h/storage_ext/ram/a IS_PRIMITIVE 0', 'not a reviewed leaf clock'),
+            ('dict set MODEL $h/storage_ext/ram/a/CLK CLOCK raw_clk', 'write clock mismatch'),
+            ('dict set MODEL $h/storage_ext/ram/a/CLK CLOCK {cpu_clk raw_clk}', 'ambiguous clock'),
+        ]:
+            with self.subTest(mutation=mutation): self.run_payload(mutation,expected)
+
+    def test_missing_ambiguous_or_wrong_capture_shape(self):
+        for mutation, expected in [
+            ('dict unset MODEL [format {%s/output_0_reg[0]} $h]', 'capture bank shape changed'),
+            ('dict set MODEL [format {%s/output_0_reg[0]} $h] REF_NAME LUT1', 'not a reviewed FF'),
+            ('dict unset MODEL [format {%s/output_0_reg[0]/D} $h]', 'capture pin/clock shape changed'),
+            ('dict set MODEL [format {%s/output_0_reg[0]/C} $h] CLOCK cpu_clk', 'capture pin/clock shape changed'),
+            (r'''rename get_cells mock_get_cells
+proc get_cells {args} {
+    set result [mock_get_cells {*}$args]
+    if {[llength $result]==1 && [string match {*output_0_reg*} [lindex $result 0]]} {return [concat $result $result]}
+    return $result
+}''', 'exact object missing/ambiguous'),
+        ]:
+            with self.subTest(mutation=mutation): self.run_payload(mutation,expected)
+
+    def test_uncovered_bit_or_missing_one_of_several_ram_paths(self):
+        for mutation, expected in [
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] STARTPOINTS {}', 'uncovered payload bit'),
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] STARTPOINTS [list [format {%s/readGray_reg[0]/Q} $h]]', 'not a reviewed leaf FF clock'),
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] TIMING_STARTPOINTS [list $h/storage_ext/ram/a/CLK]', 'missing/false-pathed RAM path'),
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] CUT 1', 'missing/false-pathed RAM path'),
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] BAD_ENDPOINT [format {%s/output_0_reg[36]/D} $h]', 'startpoint/endpoint mismatch'),
+            ('dict set MODEL [format {%s/output_0_reg[37]/D} $h] BAD_STARTPOINT $h/storage_ext/ram/WCLK', 'startpoint/endpoint mismatch'),
+        ]:
+            with self.subTest(mutation=mutation): self.run_payload(mutation,expected)
+
+    def test_ignored_bound_with_ordinary_eight_ns_path_is_not_accepted(self):
+        self.run_payload(r'''
+set IGNORE_BOUNDS 1
+for {set i 0} {$i<38} {incr i} {
+    dict set MODEL [format {%s/output_0_reg[%d]/D} $h $i] EXCEPTION {}
+    dict set MODEL [format {%s/output_0_reg[%d]/D} $h $i] REQUIREMENT 8.0
+}''', 'missing/ignored/relaxed max-delay bound', bounds=2)
+
+    def test_non_ram_launches_are_validated_with_ram_paths_still_present(self):
+        # Each negative keeps both legal RAM launches for bit 37. Coverage of
+        # the memory alone cannot make a foreign/unknown bypass acceptable.
+        add=r'''set end [format {%s/output_0_reg[37]/D} $h]
+set fanin [dict get $MODEL $end STARTPOINTS]
+'''
+        for mutation, expected in [
+            (r'''lappend fanin [format {%s/writeGray_reg[0]/C} $h]
+dict set MODEL $end STARTPOINTS $fanin''', 'foreign-domain ordinary launch'),
+            (r'''dict set MODEL [format {%s/storage_ext/readAddress_reg[0]/C} $h] CLOCK cpu_clk''', 'foreign-domain ordinary launch'),
+            (r'''lappend fanin [format {%s/readGray_reg[0]/Q} $h]
+dict set MODEL $end STARTPOINTS $fanin''', 'not a reviewed leaf FF clock'),
+            (r'''dict set MODEL external_input [dict create KIND port NAME external_input]
+lappend fanin external_input
+dict set MODEL $end STARTPOINTS $fanin''', 'unknown timing startpoint owner'),
+            (r'''dict set MODEL outside_lut [dict create KIND cell NAME outside_lut REF_NAME LUT1 IS_SEQUENTIAL 0 IS_PRIMITIVE 1]
+dict set MODEL outside_lut/O [dict create KIND pin NAME outside_lut/O CELL outside_lut REF_PIN_NAME O NET outside_net DIRECTION OUT LEAF 1 IS_LEAF 1 CLOCK raw_clk]
+lappend fanin outside_lut/O
+dict set MODEL $end STARTPOINTS $fanin''', 'not a reviewed leaf clock'),
+            (r'''dict set MODEL [format {%s/readGray_reg[0]/C} $h] IS_LEAF 0''', 'not a reviewed leaf FF clock'),
+        ]:
+            with self.subTest(mutation=mutation): self.run_payload(add+mutation,expected)
 
 
 class BindingTests(unittest.TestCase):

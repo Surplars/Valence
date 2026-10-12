@@ -1,0 +1,17 @@
+{
+  "status": "PASS_READONLY_QUERY_AUDIT_BRIDGE",
+  "source_tree": "3dfac0c63332c60c3ebe5d63b3e9c0d1fe282bb4",
+  "configuration_tests": 5,
+  "actual_backend_query_stage": true,
+  "actual_backend_canonical_stage": true,
+  "actual_adapter_canonical_stage": true,
+  "fir_comparison": {
+    "r1_sha256": "c31ed27e4ffdcc6ed40a4d129922b4b16f326dfa9fe04a09a8ad9deec5f2f6ba",
+    "r2_sha256": "c31ed27e4ffdcc6ed40a4d129922b4b16f326dfa9fe04a09a8ad9deec5f2f6ba",
+    "byte_identical": true,
+    "scope": "readonly constructor observation bridge; r1 behavioral evidence retained separately"
+  },
+  "prior_sanitized_receipt": "backend-gate-r1/receipt.json",
+  "prior_sanitized_receipt_sha256": "212d4892ab76d5188532d61d25ff62a9ba34a6e5541e8e78d6ec018cb8bec65b",
+  "runtime_scope": "R1 actual A+C 2/2 backend sanitized passed; r2 readonly bridge checked by exact FIR comparison and actual constructors. No full-core, full-board, CPU performance, NEMU or native signoff claim."
+}

@@ -1,0 +1,211 @@
+{
+  "schema": "timing-batch-native-summary-v1",
+  "status": "PASS_NATIVE_DECLARATION_CENSUS_WITH_MANUAL_CUT_REVIEW",
+  "created_utc": "2026-10-12T17:38:57.036985+00:00",
+  "input_manifest_sha256": "2ec403f3bc047cd72a7fa4606e33cdcdcc5ec3f7f317208a1351d5659cf647c1",
+  "export_receipt_sha256": "33e3c92fe93fea89c920a85b1ad91d07cc73aa2f48ff499ded1adf5993e61def",
+  "comparison_sha256": "a2392ee309b375788e23bdaafc96f3bed9c1176af66f86ef6d6733851035ac2e",
+  "manual_excerpts": {
+    "pristine/PendingVirtualStoreProof.sv": {
+      "sha256": "22af0c6cc07da00d2b996b51019e01cafdb4e7807a04d9a751796797bfd708a6",
+      "line_ranges": [
+        [
+          342,
+          387
+        ],
+        [
+          677,
+          698
+        ],
+        [
+          793,
+          796
+        ]
+      ]
+    },
+    "ac/PendingVirtualStoreProof.sv": {
+      "sha256": "607ae3220ee9821b4a650e3f1b0b278b13b34b61a1390dd220f81d870179e7fd",
+      "line_ranges": [
+        [
+          341,
+          382
+        ],
+        [
+          638,
+          702
+        ],
+        [
+          751,
+          785
+        ],
+        [
+          879,
+          882
+        ]
+      ]
+    },
+    "ac/DataTranslationAdapter.sv": {
+      "sha256": "7d62d18cf7d54a1ea8cd08c0fc77083aa52eee1fd938da780741217de9499ea6",
+      "line_ranges": [
+        [
+          424,
+          433
+        ],
+        [
+          899,
+          907
+        ],
+        [
+          1040,
+          1060
+        ],
+        [
+          1070,
+          1101
+        ],
+        [
+          1157,
+          1171
+        ],
+        [
+          1864,
+          1864
+        ],
+        [
+          1923,
+          1946
+        ]
+      ]
+    },
+    "ac/CanonicalStoreTracker.sv": {
+      "sha256": "573dc4758450c140474c327157c3927715e2a42fef89c2dc13d87674474cd458",
+      "line_ranges": [
+        [
+          35,
+          119
+        ]
+      ]
+    },
+    "ac/IntegerBackend.sv": {
+      "sha256": "5a5046519270be9e5215ad0cacf7bff8623e13f85530c6e2eaefd24008ea5021",
+      "line_ranges": [
+        [
+          3864,
+          3913
+        ],
+        [
+          4033,
+          4054
+        ],
+        [
+          11221,
+          11278
+        ]
+      ]
+    },
+    "ac/MappedMachineCore.sv": {
+      "sha256": "ad9ded1991d4a7b533c754d85c547589e4fc79dcf3a1c1b8b8e1310943bd7893",
+      "line_ranges": [
+        [
+          1257,
+          1273
+        ]
+      ]
+    },
+    "ac/TwoEntryRegisterQueue_2.sv": {
+      "sha256": "27b8cb7b390a2d3a5d3f6d67982172b66e758722bfac2bbbfbf78e66357c95c3",
+      "line_ranges": [
+        [
+          334,
+          340
+        ]
+      ]
+    },
+    "ac/RegisteredFetchPacket.sv": {
+      "sha256": "ec8b397a0c7774d7f0bb2ae423d341655b3d047eb3b21daf0e878537123aca6a",
+      "line_ranges": [
+        [
+          350,
+          419
+        ]
+      ]
+    },
+    "abc/RegisteredFetchPacket.sv": {
+      "sha256": "4b02295828649e7c0a90a893a5e8dca3bb63296a84b7fc4a2674f2b927dc6e74",
+      "line_ranges": [
+        [
+          95,
+          169
+        ],
+        [
+          228,
+          260
+        ],
+        [
+          393,
+          416
+        ],
+        [
+          475,
+          514
+        ],
+        [
+          553,
+          560
+        ]
+      ]
+    },
+    "abc/SynchronousFetch.sv": {
+      "sha256": "18307319e7ef285d8cbe4f6f57228280593beab6205bc9768b2864948d8b6402",
+      "line_ranges": [
+        [
+          527,
+          538
+        ],
+        [
+          1790,
+          1794
+        ]
+      ]
+    }
+  },
+  "all_array_instances_identical": true,
+  "array_instance_count": 118,
+  "redundant_full_token_equality_occurrences": {
+    "pristine": 64,
+    "ac": 0,
+    "abc": 0
+  },
+  "nonoverlapping_scalar_delta": {
+    "pristine_to_ac": 419,
+    "ac_to_abc": 147,
+    "pristine_to_abc": 566
+  },
+  "native_resources": {
+    "pristine": {
+      "max_rss_KiB": 296312,
+      "user_seconds": 18.311127,
+      "system_seconds": 0.21362099999999998,
+      "major_page_faults": 0,
+      "minor_page_faults": 70220
+    },
+    "ac": {
+      "max_rss_KiB": 298812,
+      "user_seconds": 18.075516,
+      "system_seconds": 0.215747,
+      "major_page_faults": 0,
+      "minor_page_faults": 70625
+    },
+    "abc": {
+      "max_rss_KiB": 292084,
+      "user_seconds": 18.196525,
+      "system_seconds": 0.25293299999999996,
+      "major_page_faults": 0,
+      "minor_page_faults": 72188
+    }
+  },
+  "scope": "Retained optimized literal matching-board GSIM native declarations and manual register cutpoints; no physical FF/LUT/STA claim.",
+  "proof_mode": "Bounded manual review; no automated combinational graph proof or hardware mutation-proof claim.",
+  "report_sha256": "ea7ee20e22dc9d5e07444ecdb9f154cce134694cba6b5df007c823cba1de8585",
+  "reviewed_excerpts_sha256": "44254f2b6de7b8f4eab1bf6c02a205f8acd2a7a80e0581132a06a4e81dd67e77"
+}

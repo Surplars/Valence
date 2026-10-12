@@ -106,7 +106,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     fetchWidth: Int = 2, stableFaultMetadata: Boolean = false, alignedFetchPmp: Boolean = false,
     rawFetchPresence: Boolean = false, parallelFetchTagLookup: Boolean = false,
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
-    independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false) extends Module {
+    independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
+    val boundedRequestFrontier: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -117,9 +118,13 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     require(!registeredWindow || compressed, "registered window requires compressed packets")
     require(!fetchPreviousPacket || registeredWindow, "previous fetch packet requires the registered window")
     require(!independentPayloadCapture || compressed, "independent payload capture requires compressed packets")
+    require(!boundedRequestFrontier || (fetchWidth == 2 && compressed && registeredWindow),
+        "bounded request frontier requires the two-wide compressed registered window")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
+        val requestFrontier = if (boundedRequestFrontier) Some(Input(UInt(64.W))) else None
+        val suppressRequest = if (boundedRequestFrontier) Some(Input(Bool())) else None
         val enable       = Input(Bool())
         val invalidate   = Input(Bool())
         val pause        = Input(Bool())
@@ -134,7 +139,9 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val instructionFaults = Output(Vec(fetchWidth, Bool()))
         val instructionPageFaults = Output(Vec(fetchWidth, Bool()))
         val instructionFaultAddresses = Output(Vec(fetchWidth, UInt(64.W)))
+        val instructionFaultOffsets = Output(Vec(fetchWidth, UInt(5.W)))
     })
+    io.instructionFaultOffsets := VecInit(Seq.fill(fetchWidth)(0.U(5.W)))
     io.instructions(0) := io.instruction0
     io.instructions(1) := io.instruction1
     if (compressed) {
@@ -315,6 +322,10 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         io.instructionPageFaults(1) := (if (stableFaultMetadata) secondPage else io.instruction1.valid && secondPage)
         io.instructionFaultAddresses(0) := firstFaultAddress
         io.instructionFaultAddresses(1) := secondFaultAddress
+        io.instructionFaultOffsets(0) := alignment.map(_.io.faultOffsets(0))
+            .getOrElse((firstFaultAddress - currentBase)(4, 0))
+        io.instructionFaultOffsets(1) := alignment.map(_.io.faultOffsets(1))
+            .getOrElse((secondFaultAddress - currentBase)(4, 0))
         if (fetchWidth == 4) {
             val laneOffset = Wire(Vec(4, UInt(5.W)))
             laneOffset(0) := firstOffset
@@ -328,6 +339,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                 io.instructionFaults(lane) := (if (stableFaultMetadata) error else io.instructions(lane).valid && error)
                 io.instructionPageFaults(lane) := (if (stableFaultMetadata) page else io.instructions(lane).valid && page)
                 io.instructionFaultAddresses(lane) := faultAddress
+                io.instructionFaultOffsets(lane) := alignment.map(_.io.faultOffsets(lane))
+                    .getOrElse((faultAddress - currentBase)(4, 0))
             }
         }
 
@@ -365,9 +378,17 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         }
         val returningTarget = returning && MuxLookup(wantedPacket, false.B)(returningMatches)
         val reply = io.memory.response.valid && pending
+        // Eager scan may query younger cached bytes, but it cannot authorize
+        // requests beyond the old unresolved token's base/base+8 envelope.
+        // This guard applies only before ownership is locked; an old locked
+        // request always drains unchanged, including across cancellation.
+        val frontierAllows = if (boundedRequestFrontier) {
+            val base = Cat(io.requestFrontier.get(63, 3), 0.U(3.W))
+            (wanted === base || wanted === (base + 8.U)(63, 0)) && !io.suppressRequest.get
+        } else true.B
         io.memory.request.valid := !reset.asBool && (locked ||
             (io.enable && !io.pause && !io.invalidate && (!pending || reply) &&
-                !cachedTarget && !returningTarget))
+                !cachedTarget && !returningTarget && frontierAllows))
         val fetchBase = if (fetchWords == 4) Cat(wanted(63, 4), 0.U(4.W)) else wanted
         io.memory.request.bits := Mux(locked, lockedBase, fetchBase)
         val allowed = Wire(Vec(fetchWords, Bool()))
@@ -390,7 +411,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             Mux(io.virtualized, ((1 << fetchWords) - 1).U, allowed.asUInt))
         io.memory.response.ready := true.B
         io.quiescent := !pending && !locked
-        when(io.memory.request.valid && !io.memory.request.ready) {
+        when(io.memory.request.valid && !io.memory.request.ready &&
+            (if (boundedRequestFrontier) !locked else true.B)) {
             locked := true.B
             lockedBase := io.memory.request.bits
             lockedContext := context
