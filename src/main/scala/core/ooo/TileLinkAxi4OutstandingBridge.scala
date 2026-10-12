@@ -19,20 +19,21 @@ import soc.ip.axi._
   * Target: one R/W/D beat per cycle on independent channels. Timing unverified.
   */
 class TileLinkAxi4OutstandingBridge(
-    tlParams: TLParams,
-    axiAddressWidth: Int,
-    axiIdWidth: Int,
-    maxBurstBeats: Int,
+    val tlParams: TLParams,
+    val axiAddressWidth: Int,
+    val axiIdWidth: Int,
+    val maxBurstBeats: Int,
     axiCache: Int,
     axiProt: Int,
     axiQos: Int,
-    axiAddressBase: BigInt,
-    axiWindowBytes: BigInt,
-    maxOutstanding: Int,
-    maxOutstandingWrites: Int = 0,
-    unorderedResponses: Boolean = false,
-    writeCollectionFlow: Boolean = false,
-    lineReadChannel: Boolean = false
+    val axiAddressBase: BigInt,
+    val axiWindowBytes: BigInt,
+    val maxOutstanding: Int,
+    val maxOutstandingWrites: Int = 0,
+    val unorderedResponses: Boolean = false,
+    val writeCollectionFlow: Boolean = false,
+    val lineReadChannel: Boolean = false,
+    val localPayloadWriteEnable: Boolean = false
 ) extends Module {
     require(maxOutstanding >= 2 && isPow2(maxOutstanding))
     require(maxOutstanding <= (1 << axiIdWidth) && maxOutstanding <= (1 << tlParams.sourceBits))
@@ -49,7 +50,7 @@ class TileLinkAxi4OutstandingBridge(
         "independent line reads require the unordered shared RAM scheduler")
     val slots = Seq.fill(maxOutstanding)(Module(new TileLinkAxi4BurstBridge(tlParams,
         axiAddressWidth, axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos,
-        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel)))
+        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, localPayloadWriteEnable)))
     val slotWidth = log2Ceil(maxOutstanding)
     val head = RegInit(0.U(slotWidth.W))
     val tail = RegInit(0.U(slotWidth.W))

@@ -45,6 +45,7 @@ def sources():
         "fpga/next/board_timing_cdc.py", "fpga/next/board-timing-cdc-profile-v1.json",
         "fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json",
         "fpga/next/timing-batch-abc-lane1-prf-profile.json",
+        "fpga/next/timing-batch-zero-cycle-cleanup-profile.json",
         *media_integration.INPUTS, *bscan_integration.INPUTS, *board_t1.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
@@ -129,6 +130,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off bounded home/line-engine dispatch bypass with queue fallback")
     ap.add_argument("--line-read-channel", action="count", default=0,
                     help="default-off independent coherent-home line reads and aggregate whole-line returns")
+    ap.add_argument("--local-payload-write-enable", action="count", default=0,
+                    help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--internal-line-grant", action="count", default=0,
                     help="default-off private whole GrantData transport; original GrantAck responsibility retained")
     ap.add_argument("--concurrent-read-store-prefetch", action="count", default=0,
@@ -189,6 +192,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off aligned fetch permission token experiment")
     ap.add_argument("--shared-lane1-owner-match", action="count", default=0,
                     help="default-off lane-1 reuse of the pure registered ROB tag equality")
+    ap.add_argument("--direct-registered-execution-operands", action="count", default=0,
+                    help="default-off removal of registered execution memory-class operand muxes")
     ap.add_argument("--direct-rank1-memory-source-ids", action="count", default=0,
                     help="default-off removal of the duplicate rank-1 owner-masked PRF address clear")
     ap.add_argument("--registered-canonical-store-event", action="count", default=0,
@@ -281,6 +286,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.line_read_channel > 1:
         ap.error("duplicate --line-read-channel flag")
     a.line_read_channel = bool(a.line_read_channel)
+    if a.local_payload_write_enable > 1:
+        ap.error("duplicate --local-payload-write-enable flag")
+    a.local_payload_write_enable = bool(a.local_payload_write_enable)
     for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
         if getattr(a, key) and "--" + key.replace("_", "-") not in raw_args:
             ap.error("use the exact --" + key.replace("_", "-") + " flag")
@@ -323,7 +331,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.tagged_store_returns > 1:
         ap.error("duplicate --tagged-store-returns flag")
     a.tagged_store_returns = bool(a.tagged_store_returns)
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
@@ -485,7 +493,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -526,6 +534,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.line_read_channel:
         profile["profile"]["line_read_channel"] = True
         profile["profile"]["name"] += "-line-read-channel"
+    if a.local_payload_write_enable:
+        profile["profile"]["local_payload_write_enable"] = True
+        profile["profile"]["name"] += "-local-payload-write-enable"
     for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
         if getattr(a, key):
             profile["profile"][key] = True
@@ -643,6 +654,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--line-transfer-dispatch-flow")
     if a.line_read_channel:
         command.append("--line-read-channel")
+    if a.local_payload_write_enable:
+        command.append("--local-payload-write-enable")
     for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
         if getattr(a, key):
             command.append("--" + key.replace("_", "-"))
@@ -714,6 +727,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--shared-lane1-owner-match")
     if a.direct_rank1_memory_source_ids:
         command.append("--direct-rank1-memory-source-ids")
+    if a.direct_registered_execution_operands:
+        command.append("--direct-registered-execution-operands")
     if a.bound_head_store_overlap:
         command.append("--bound-head-store-overlap")
     if a.pending_ready_store_bypass:
@@ -743,6 +758,7 @@ def main(argv=None, expected_profile_sha256=None):
             "registered_canonical_store_event": a.registered_canonical_store_event,
             "shared_lane1_owner_match": a.shared_lane1_owner_match,
             "direct_rank1_memory_source_ids": a.direct_rank1_memory_source_ids,
+            "direct_registered_execution_operands": a.direct_registered_execution_operands,
             "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,
             "pending_ready_store_bypass": a.pending_ready_store_bypass,

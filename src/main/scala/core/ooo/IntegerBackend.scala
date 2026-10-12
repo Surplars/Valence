@@ -2224,8 +2224,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             val stage = executionStages(lane)
             val incoming = Wire(new IntegerExecutionOperands(p))
             incoming.entry := dispatchEntry
-            incoming.left := dispatchLeft
-            incoming.right := dispatchRight
+            // Eligible memory entries are stores; enqueue excludes those stores.
+            // Thus every valid offer is non-memory. Keep the shared dispatch and
+            // store-preparation operands unchanged, including invalid held state.
+            incoming.left := (if (p.directRegisteredExecutionOperands) issueOperandValue(source1, storedLeft)
+                else dispatchLeft)
+            incoming.right := (if (p.directRegisteredExecutionOperands) issueOperandValue(source2, storedRight)
+                else dispatchRight)
             // Only legal metadata is used; tying operands to zero leaves no
             // duplicate arithmetic datapath after dead-code elimination. Share
             // the actual ALU's legality implementation instead of duplicating

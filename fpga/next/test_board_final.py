@@ -80,7 +80,8 @@ class BoardFinalTests(unittest.TestCase):
                            "cache_writeback_entries": 2, "pending_virtual_store_proof_slots": 2,
                            "pending_store_early_load_credits": 2, "ddr_bytes": 2147483648,
                            "bscan_chain": 2, "experimental_trispeed_ethernet": True,
-                           "shared_lane1_owner_match": True, "direct_rank1_memory_source_ids": True}.items():
+                           "shared_lane1_owner_match": True, "direct_rank1_memory_source_ids": True,
+                           "direct_registered_execution_operands": True, "local_payload_write_enable": True}.items():
             self.assertEqual(config[key], value, key)
 
     def test_generic_default_off_and_old_entry_rollback(self):
@@ -88,6 +89,10 @@ class BoardFinalTests(unittest.TestCase):
             path = Path(tmp) / "absent"
             default = self.preflight(path, ["--experimental-trispeed-ethernet"])
             self.assertEqual(default["native_mac_mode"], exporter.board_t1.selection(False))
+            self.assertFalse(default["configuration"].get("direct_registered_execution_operands", False))
+            self.assertNotIn("--direct-registered-execution-operands", default["command"])
+            self.assertNotIn("--local-payload-write-enable", default["command"])
+            self.assertFalse(default["configuration"].get("local_payload_write_enable", False))
             with contextlib.redirect_stdout(io.StringIO()) as stream:
                 exporter.board_t1.main(["--output", str(path)])
             old = json.loads(stream.getvalue())
@@ -96,7 +101,7 @@ class BoardFinalTests(unittest.TestCase):
             self.assertEqual(old["native_mac_mode"], exporter.board_t1.selection(True))
 
     def test_cli_rejects_cpu_mode_and_chain_overrides_before_execution(self):
-        bad = [["--direct-rank1-memory-source-ids"], ["--native-mac-local-pad-reset-release"], ["--experimental-jtag-bscan=1"],
+        bad = [["--direct-registered-execution-operands"], ["--local-payload-write-enable"], ["--direct-rank1-memory-source-ids"], ["--native-mac-local-pad-reset-release"], ["--experimental-jtag-bscan=1"],
                ["--rob-entries=64"], ["--reference"], ["--out", "other"], ["--emit=true"],
                ["--registered-memory-preparation-context"], ["--cancelled-load-response-drain"],
                ["--displaced-memory-preparation-shadow"]]
@@ -119,7 +124,7 @@ class BoardFinalTests(unittest.TestCase):
                 final.load_profile()
             original = final.load_profile()
             cpu = json.loads((HERE / original["cpu_profile"]["manifest"]).read_text())
-            for missing in ("--direct-rank1-memory-source-ids", "--shared-lane1-owner-match", "--pending-virtual-store-proof-slots=2",
+            for missing in ("--direct-registered-execution-operands", "--local-payload-write-enable", "--direct-rank1-memory-source-ids", "--shared-lane1-owner-match", "--pending-virtual-store-proof-slots=2",
                             "--pending-store-early-load-credits=2", "--experimental-jtag-bscan=2"):
                 bad_cpu = copy.deepcopy(cpu); bad_cpu["native_options"].remove(missing)
                 cpu_path = Path(tmp) / "cpu.json"; cpu_path.write_text(json.dumps(bad_cpu))
@@ -138,13 +143,9 @@ class BoardFinalTests(unittest.TestCase):
             with mock.patch.object(final, "MANIFEST", path), mock.patch.object(final, "MANIFEST_SHA256", final.sha(path)), self.assertRaisesRegex(RuntimeError, "source closure changed"):
                 final.load_profile()
             bad = copy.deepcopy(original)
-            bad["qualification_evidence"]["actual_profile"]["snapshot"]["core"]["tagBits"] = 32
+            bad["qualification_receipt"]["sha256"] = "0" * 64
             path.write_text(json.dumps(bad))
-            with mock.patch.object(final, "MANIFEST", path), mock.patch.object(final, "MANIFEST_SHA256", final.sha(path)), self.assertRaisesRegex(RuntimeError, "runtime snapshot changed"):
-                final.load_profile()
-            bad = copy.deepcopy(original); bad["qualification_evidence"]["cpu_cases"]["bare"] += 1
-            path.write_text(json.dumps(bad))
-            with mock.patch.object(final, "MANIFEST", path), mock.patch.object(final, "MANIFEST_SHA256", final.sha(path)), self.assertRaisesRegex(RuntimeError, "CPU cases changed"):
+            with mock.patch.object(final, "MANIFEST", path), mock.patch.object(final, "MANIFEST_SHA256", final.sha(path)), self.assertRaisesRegex(RuntimeError, "minimal qualification receipt changed"):
                 final.load_profile()
             spec = final.load_profile(); spec["export_profile_sha256"] = "0" * 64
             with mock.patch.object(final, "load_profile", return_value=spec), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):

@@ -10,22 +10,26 @@ import soc.ip.axi._
 class TileLinkAxi4Bridge(
     entries: Int = 8,
     maxWrites: Int = 4,
-    tlParams: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
-    axiAddressWidth: Int = 64,
-    axiIdWidth: Int = 1,
+    val tlParams: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
+    val axiAddressWidth: Int = 64,
+    val axiIdWidth: Int = 1,
     burstEnabled: Boolean = true,
-    maxBurstBeats: Int = 16,
+    val maxBurstBeats: Int = 16,
     axiCache: Int = 0,
     axiProt: Int = 0,
     axiQos: Int = 0,
-    axiAddressBase: BigInt = 0,
-    axiWindowBytes: BigInt = 0,
-    maxOutstanding: Int = 1,
-    maxOutstandingWrites: Int = 0,
-    unorderedResponses: Boolean = false,
-    writeCollectionFlow: Boolean = false,
-    lineReadChannel: Boolean = false
+    val axiAddressBase: BigInt = 0,
+    val axiWindowBytes: BigInt = 0,
+    val maxOutstanding: Int = 1,
+    val maxOutstandingWrites: Int = 0,
+    val unorderedResponses: Boolean = false,
+    val writeCollectionFlow: Boolean = false,
+    val lineReadChannel: Boolean = false,
+    val localPayloadWriteEnable: Boolean = false
 ) extends Module {
+    // Scala object reference for exact constructor inspection; no hardware state.
+    private var constructedOutstanding: Option[TileLinkAxi4OutstandingBridge] = None
+    def outstandingInstance: Option[TileLinkAxi4OutstandingBridge] = constructedOutstanding
     val io = IO(new Bundle {
         val tl  = Flipped(new TLBundle(tlParams))
         val axi = new Axi4MemoryPort(axiAddressWidth, axiIdWidth)
@@ -49,9 +53,11 @@ class TileLinkAxi4Bridge(
     if (burstEnabled && maxOutstanding > 1) {
         val bridge = Module(new TileLinkAxi4OutstandingBridge(tlParams, axiAddressWidth,
             axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
-            maxOutstanding, maxOutstandingWrites, unorderedResponses, writeCollectionFlow, lineReadChannel))
+            maxOutstanding, maxOutstandingWrites, unorderedResponses, writeCollectionFlow, lineReadChannel,
+            localPayloadWriteEnable))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
+        constructedOutstanding = Some(bridge)
         io.lineRead.foreach(_ <> bridge.io.lineRead.get)
     } else if (burstEnabled) {
         val bridge = Module(new TileLinkAxi4BurstBridge(tlParams, axiAddressWidth,

@@ -54,6 +54,7 @@ final case class FpgaNextConfig(
     ddrWriteCollectionFlow: Boolean = false,
     lineTransferDispatchFlow: Boolean = false,
     lineReadChannel: Boolean = false,
+    localPayloadWriteEnable: Boolean = false,
     ddrOutstanding: Int = 4,
     ddrWriteCredits: Int = 2,
     dataTlbWriteReadReuse: Boolean = false,
@@ -74,7 +75,8 @@ final case class FpgaNextConfig(
     alignedFetchPermissionStage: Boolean = false,
     registeredCanonicalStoreEvent: Boolean = false,
     sharedLane1OwnerMatch: Boolean = false,
-    directRank1MemorySourceIds: Boolean = false
+    directRank1MemorySourceIds: Boolean = false,
+    directRegisteredExecutionOperands: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -173,6 +175,7 @@ final case class FpgaNextConfig(
         (if (alignedFetchPermissionStage) "-aligned-fetch-permission-stage" else "") +
         (if (sharedLane1OwnerMatch) "-shared-lane1-owner-match" else "") +
         (if (directRank1MemorySourceIds) "-direct-rank1-memory-source-ids" else "") +
+        (if (directRegisteredExecutionOperands) "-direct-registered-execution-operands" else "") +
         (if (registeredCanonicalStoreEvent) "-registered-canonical-store-event" else "") +
         (if (pendingStoreEarlyLoadCredits != 1) s"-pending-store-early-load-credits$pendingStoreEarlyLoadCredits" else "") +
         (if (boundHeadStoreOverlap) "-bound-head-store-overlap" else "") +
@@ -185,6 +188,7 @@ final case class FpgaNextConfig(
         (if (ddrWriteCollectionFlow) "-ddr-write-collection-flow" else "") +
         (if (lineTransferDispatchFlow) "-line-transfer-dispatch-flow" else "") +
         (if (lineReadChannel) "-line-read-channel" else "") +
+        (if (localPayloadWriteEnable) "-local-payload-write-enable" else "") +
         (if (ddrOutstanding != 4 || ddrWriteCredits != 2) s"-ddr${ddrOutstanding}w${ddrWriteCredits}" else "") +
         (if (dataTlbWriteReadReuse) "-dtlb-write-read-reuse" else "") +
         (if (translationHitFlow) "-translation-hit-flow" else "") +
@@ -218,7 +222,7 @@ final case class FpgaNextConfig(
     val cacheWays = 2
     val ddr = DdrBridgeConfig(maxOutstanding = ddrOutstanding, maxBurstBeats = 16, axiIdWidth = 4,
         maxOutstandingWrites = ddrWriteCredits, unorderedResponses = true, writeCollectionFlow = ddrWriteCollectionFlow,
-        lineReadChannel = lineReadChannel)
+        lineReadChannel = lineReadChannel, localPayloadWriteEnable = localPayloadWriteEnable)
     val cache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
@@ -266,6 +270,7 @@ final case class FpgaNextConfig(
         alignedFetchPermissionStage = alignedFetchPermissionStage,
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
+        directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -302,6 +307,7 @@ final case class FpgaNextConfig(
         alignedFetchPermissionStage = alignedFetchPermissionStage,
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
+        directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -325,7 +331,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids",
+            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
@@ -347,6 +353,8 @@ object FpgaNextConfig {
             "--line-transfer-dispatch-flow does not accept a value")
         require(!options.exists(_.startsWith("--line-read-channel=")),
             "--line-read-channel does not accept a value")
+        require(!options.exists(_.startsWith("--local-payload-write-enable=")),
+            "--local-payload-write-enable does not accept a value")
         require(!options.exists(_.startsWith("--independent-demand-admission=")),
             "--independent-demand-admission does not accept a value")
         require(!options.exists(_.startsWith("--dtlb-write-read-reuse=")),
@@ -400,6 +408,7 @@ object FpgaNextConfig {
             alignedFetchPermissionStage = options.contains("--aligned-fetch-permission-stage"),
             sharedLane1OwnerMatch = options.contains("--shared-lane1-owner-match"),
             directRank1MemorySourceIds = options.contains("--direct-rank1-memory-source-ids"),
+            directRegisteredExecutionOperands = options.contains("--direct-registered-execution-operands"),
             registeredCanonicalStoreEvent = options.contains("--registered-canonical-store-event"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),
             pendingReadyStoreBypass = options.contains("--pending-ready-store-bypass"),
@@ -428,6 +437,7 @@ object FpgaNextConfig {
             ddrWriteCollectionFlow = options.contains("--ddr-write-collection-flow"),
             lineTransferDispatchFlow = options.contains("--line-transfer-dispatch-flow"),
             lineReadChannel = options.contains("--line-read-channel"),
+            localPayloadWriteEnable = options.contains("--local-payload-write-enable"),
             ddrOutstanding = ddrSlots, ddrWriteCredits = ddrWrites,
             dataTlbWriteReadReuse = options.contains("--dtlb-write-read-reuse"),
             translationHitFlow = options.contains("--translation-hit-flow"),

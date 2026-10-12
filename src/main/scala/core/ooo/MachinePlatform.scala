@@ -65,6 +65,9 @@ class MachinePlatform(
     dataTlbWriteReadReuse: Boolean = false,
     translationHitFlow: Boolean = false
 ) extends Module {
+    // Scala object reference for exact constructor inspection; no hardware state.
+    private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
+    def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
     require(!ddrBridge.lineReadChannel || (externalDdr && tileLinkMemory && tileLinkFetch &&
         !splitTileLinkMemory && coherentLineCache && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
@@ -751,7 +754,9 @@ class MachinePlatform(
                     maxOutstandingWrites = ddrBridge.maxOutstandingWrites, unorderedResponses = ddrBridge.unorderedResponses,
                     writeCollectionFlow = ddrBridge.writeCollectionFlow,
                     lineReadChannel = ddrBridge.lineReadChannel,
+                    localPayloadWriteEnable = ddrBridge.localPayloadWriteEnable,
                     axiAddressBase = ramBase, axiWindowBytes = ramBytes))
+                constructedDdrManager = Some(manager)
                 manager.reset := reset.asBool || hold
                 crossbar.io.banks(1) <> manager.io.tl
                 manager.io.lineRead.foreach(_ <> coherentHome.get.io.lineRead.get)

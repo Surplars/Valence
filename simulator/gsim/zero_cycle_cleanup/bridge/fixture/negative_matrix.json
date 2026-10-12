@@ -1,0 +1,182 @@
+{
+  "model": "size3",
+  "negatives": [
+    {
+      "mode": "w-data",
+      "args": [
+        "--mutate=w-data"
+      ],
+      "anchors_any": [
+        "banked write independent byte/strobe oracle mismatch"
+      ],
+      "target": "host W payload observation",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "d-data",
+      "args": [
+        "--mutate=d-data"
+      ],
+      "anchors_any": [
+        "primary independent banked playback byte oracle mismatch"
+      ],
+      "target": "host TL D payload observation",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "line-tag",
+      "args": [
+        "--mutate=line-tag"
+      ],
+      "anchors_any": [
+        "whole-line independent tag oracle mismatch"
+      ],
+      "target": "host private line response tag",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "line-data",
+      "args": [
+        "--mutate=line-data"
+      ],
+      "anchors_any": [
+        "whole-line independent byte/error oracle mismatch"
+      ],
+      "target": "host private line response data",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "bad-alignment",
+      "args": [
+        "--mutate=bad-alignment"
+      ],
+      "anchors_any": [
+        "TL-AXI address must be naturally aligned"
+      ],
+      "target": "actual first A address",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "bad-control",
+      "args": [
+        "--mutate=bad-control"
+      ],
+      "anchors_any": [
+        "TL write burst changed control fields"
+      ],
+      "target": "actual continuation A source",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "bad-full-mask",
+      "args": [
+        "--mutate=bad-full-mask"
+      ],
+      "anchors_any": [
+        "multi-beat Get/PutFullData require a full mask"
+      ],
+      "target": "actual first A full-write mask",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "bad-rid",
+      "args": [
+        "--mutate=bad-rid"
+      ],
+      "anchors_any": [
+        "AXI R response has no live read owner"
+      ],
+      "target": "actual AXI R ID",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "bad-bid",
+      "args": [
+        "--mutate=bad-bid"
+      ],
+      "anchors_any": [
+        "AXI B response has no live write owner"
+      ],
+      "target": "actual AXI B ID",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "early-rlast",
+      "args": [
+        "--mutate=early-rlast"
+      ],
+      "anchors_any": [
+        "AXI read ID or RLAST mismatch"
+      ],
+      "target": "actual AXI R LAST",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "candidate-r-data",
+      "args": [
+        "--mutate=candidate-r-data"
+      ],
+      "anchors_any": [
+        "paired retained payload mismatch",
+        "paired bridge full interface mismatch",
+        "paired full interface observer mismatch",
+        "paired payload memory observer mismatch"
+      ],
+      "target": "actual candidate-only AXI R data",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "ar-attribute",
+      "args": [
+        "--mutate=ar-attribute"
+      ],
+      "anchors_any": [
+        "valid AXI AR static attributes changed"
+      ],
+      "target": "host observed cache bit while actual AR.valid",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    },
+    {
+      "mode": "aw-attribute",
+      "args": [
+        "--mutate=aw-attribute"
+      ],
+      "anchors_any": [
+        "valid AXI AW static attributes changed"
+      ],
+      "target": "host observed prot bit while actual AW.valid",
+      "require_actual_corruption": true,
+      "require_nonzero_exit": true,
+      "forbid_sanitizer_diagnostics": true
+    }
+  ],
+  "forbid_log_patterns": [
+    "ERROR: AddressSanitizer",
+    "runtime error:",
+    "UndefinedBehaviorSanitizer"
+  ]
+}

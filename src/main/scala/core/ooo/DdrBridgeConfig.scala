@@ -17,7 +17,8 @@ final case class DdrBridgeConfig(
     maxOutstandingWrites: Int = 0,
     unorderedResponses: Boolean = false,
     writeCollectionFlow: Boolean = false,
-    lineReadChannel: Boolean = false
+    lineReadChannel: Boolean = false,
+    localPayloadWriteEnable: Boolean = false
 ) {
     require(!unorderedResponses || maxOutstanding >= 2,
         "cross-source unordered replies require at least two transaction slots")

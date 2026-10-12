@@ -11,17 +11,18 @@ import soc.ip.axi._
   * AXI IDs are fixed at zero; no coherent, atomic, or exclusive operations.
   */
 class TileLinkAxi4BurstBridge(
-    tlParams: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
-    axiAddressWidth: Int = 64,
-    axiIdWidth: Int = 1,
-    maxBurstBeats: Int = 16,
+    val tlParams: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3),
+    val axiAddressWidth: Int = 64,
+    val axiIdWidth: Int = 1,
+    val maxBurstBeats: Int = 16,
     axiCache: Int = 0,
     axiProt: Int = 0,
     axiQos: Int = 0,
-    axiAddressBase: BigInt = 0,
-    axiWindowBytes: BigInt = 0,
-    writeCollectionFlow: Boolean = false,
-    lineReadChannel: Boolean = false
+    val axiAddressBase: BigInt = 0,
+    val axiWindowBytes: BigInt = 0,
+    val writeCollectionFlow: Boolean = false,
+    val lineReadChannel: Boolean = false,
+    val localPayloadWriteEnable: Boolean = false
 ) extends Module {
     require(tlParams.dataWidth == 64 && tlParams.addrWidth >= axiAddressWidth)
     require(tlParams.sizeBits >= 3 && maxBurstBeats >= 2 && maxBurstBeats <= 256 && isPow2(maxBurstBeats))
@@ -280,9 +281,29 @@ class TileLinkAxi4BurstBridge(
         }
         if (lineReadChannel) {
             val row = if (maxBurstBeats == 8) 0.U else payloadWriteIndex >> 3
-            for (i <- 0 until 8) {
+            // Preserve bank zero's original first/continuation/read control.
+            // When enabled, the other banks are written below without the
+            // first-beat acceptance/range cone, which can only select bank zero.
+            val genericBanks = if (localPayloadWriteEnable) 0 until 1 else 0 until 8
+            for (i <- genericBanks) {
                 when(payloadWriteIndex(2, 0) === i.U) { payloadBanks(i).write(row, payloadWriteData) }
             }
         } else payload.get.write(payloadWriteIndex, payloadWriteData)
+    }
+    if (lineReadChannel && localPayloadWriteEnable) {
+        // In these states READY is unconditional. The retained cursor covers
+        // continuation/read captures; a first Put always overrides it to zero.
+        // Do not use payloadWriteIndex for bank selection: its zero override
+        // depends on the new request's acceptance and address-range checks.
+        val continuedPayloadWrite = (state === sCollectWrite && io.tl.a.valid && !writeError) ||
+            (state === sReadData && io.axi.r.valid)
+        // DATA and row addressing deliberately retain the original expressions.
+        // Only the upper-bank write-enable cone is localized by this option.
+        val row = if (maxBurstBeats == 8) 0.U else payloadWriteIndex >> 3
+        for (i <- 1 until 8) {
+            when(continuedPayloadWrite && bufferIndex(2, 0) === i.U) {
+                payloadBanks(i).write(row, payloadWriteData)
+            }
+        }
     }
 }

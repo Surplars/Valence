@@ -14,7 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 MANIFEST = HERE / "board-final-profile-v1.json"
-MANIFEST_SHA256 = "13cc1703ca1039a7709c6ef27293bcf2a041e27516669c4155dd7637a0f0aa42"
+MANIFEST_SHA256 = "cb2870243a26dc80ddb0df2eedc6fe09aa6445b179953e706ace0f6ac719a66b"
 INPUTS = ("fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json")
 
 
@@ -45,31 +45,22 @@ def load_profile():
         raise RuntimeError("qualified CPU manifest changed; review required")
     options = json.loads((HERE / name).read_text())["native_options"]
     required = {"--selected", "--experimental-trispeed-ethernet", "--experimental-jtag-bscan=2",
-                "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--data-translation-entries=16", "--lsu-entries=4",
+                "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids",
+                "--direct-registered-execution-operands", "--local-payload-write-enable", "--data-translation-entries=16", "--lsu-entries=4",
                 "--pending-virtual-store-proof-slots=2", "--pending-store-early-load-credits=2"}
-    if len(options) != cpu["native_option_count"] or len(options) != 48 or len(set(options)) != len(options) or not required.issubset(options):
+    if len(options) != cpu["native_option_count"] or len(options) != 50 or len(set(options)) != len(options) or not required.issubset(options):
         raise RuntimeError("qualified CPU options/USER2/capacities changed")
-    evidence = profile["qualification_evidence"]
-    for name in ("actual_profile", "actual_fabric"):
-        if digest(evidence[name]["snapshot"]) != evidence[name]["canonical_sha256"]:
-            raise RuntimeError("qualified runtime snapshot changed: " + name)
-    actual = evidence["actual_profile"]["snapshot"]
-    fabric = evidence["actual_fabric"]["snapshot"]
-    if len(actual["core"]) != 156 or len(actual["profile"]) != 66 or actual["core"] != fabric["cpu"] or any(actual[section][key] is not True for section in ("core", "profile") for key in ("sharedLane1OwnerMatch", "directRank1MemorySourceIds")):
-        raise RuntimeError("qualified rank1 PRF runtime constructor/profile mismatch")
-    if evidence["cpu_receipt"]["status"] != "PASS_SV39_BARE_AND_ORIGINAL_THREE_CONTROLS" or evidence["cpu_cases"] != {"sv39": 191618, "bare": 194153}:
-        raise RuntimeError("qualified rank1 PRF CPU cases changed")
-    if evidence["native_receipt"]["status"] != "PASS_FULL_RANK1_PRF_NATIVE":
-        raise RuntimeError("qualified rank1 PRF native status changed")
-    if evidence["actual_emission"]["fixture_overrides"] != {} or evidence["actual_emission"]["options"] != 48:
-        raise RuntimeError("qualified rank1 PRF actual constructor changed")
-    nemu = evidence["nemu_summary"]["snapshot"]
-    if digest(nemu) != evidence["nemu_summary"]["canonical_sha256"] or nemu["status"] != evidence["nemu_summary"]["status"] or nemu["status"] != "PASS_RANK1_SAME_OBJECT_NEMU":
-        raise RuntimeError("qualified rank1 PRF NEMU summary changed")
-    if set(nemu["cases"]) != {"hot", "compressed"} or set(nemu["negative_controls"]) != {"pc", "gpr", "memory"} or any(row["exit"] != 1 for row in nemu["negative_controls"].values()):
-        raise RuntimeError("qualified rank1 PRF NEMU cases/controls changed")
-    if any(int(row["nemu"]["reference_resynchronizations"]) != 0 for row in nemu["cases"].values()) or any(nemu["zero_work"].values()):
-        raise RuntimeError("qualified rank1 PRF NEMU object reuse changed")
+    evidence = profile["qualification_receipt"]
+    expected_path = "simulator/gsim/zero_cycle_cleanup/evidence/public-receipt.json"
+    if evidence["path"] != expected_path or sha(ROOT / expected_path) != evidence["sha256"]:
+        raise RuntimeError("minimal qualification receipt changed")
+    recorded = json.loads((ROOT / expected_path).read_text())
+    if recorded["schema"] != "valence-minimal-public-qualification-v1":
+        raise RuntimeError("minimal qualification schema changed")
+    if recorded["configuration"]["native_options"] != options or recorded["configuration"]["export_profile_sha256"] != profile["export_profile_sha256"]:
+        raise RuntimeError("recorded qualified configuration changed")
+    if recorded["recorded_qualification"]["cpu"]["inclusive_cycles"] != {"sv39": 191618, "bare": 194153} or recorded["recorded_qualification"]["physical_qualification"] is not False:
+        raise RuntimeError("recorded qualification scope changed")
     exporter = exporter_module()
     qualified_sources = {name: value for name, value in exporter.sources().items() if name not in INPUTS}
     if digest(qualified_sources) != profile["export_sources_sha256"]:

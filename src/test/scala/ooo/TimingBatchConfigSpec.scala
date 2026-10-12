@@ -54,8 +54,8 @@ class TimingBatchConfigSpec extends AnyFunSuite {
     private val off = FpgaNextConfig.fromOptions(options, defaultSelected = true)
     test("explicit A+C and A+B+C preserve every existing maxperf constructor field") {
         assert(options.size == 43)
-        assert(off.productArity == 66 && off.coreParams.productArity == 156 && off.cache.productArity == 22)
-        assert(off.productElementName(65) == "directRank1MemorySourceIds" && !off.directRank1MemorySourceIds)
+        assert(off.productArity == 68 && off.coreParams.productArity == 157 && off.cache.productArity == 22)
+        assert(off.productElementName(66) == "directRank1MemorySourceIds" && !off.directRank1MemorySourceIds)
         assert(off.coreParams.productElementName(155) == "directRank1MemorySourceIds" &&
             !off.coreParams.directRank1MemorySourceIds)
         for (generic <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected, off)) {

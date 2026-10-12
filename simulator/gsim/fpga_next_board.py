@@ -77,6 +77,8 @@ def main():
                     help="default-off bounded home/line-engine dispatch bypass")
     ap.add_argument("--line-read-channel", action="count", default=0,
                     help="default-off independent home read ingress and whole-line return")
+    ap.add_argument("--local-payload-write-enable", action="count", default=0,
+                    help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
                     help="default-off local empty response flow; retains registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
@@ -124,6 +126,8 @@ def main():
                     help="default-off aligned fetch permission token experiment")
     ap.add_argument("--shared-lane1-owner-match", action="count", default=0,
                     help="default-off lane-1 reuse of the pure registered ROB tag equality")
+    ap.add_argument("--direct-registered-execution-operands", action="count", default=0,
+                    help="default-off removal of registered execution memory-class operand muxes")
     ap.add_argument("--direct-rank1-memory-source-ids", action="count", default=0,
                     help="default-off removal of the duplicate rank-1 owner-masked PRF address clear")
     ap.add_argument("--registered-canonical-store-event", action="count", default=0,
@@ -206,6 +210,9 @@ def main():
     if args.line_read_channel > 1:
         ap.error("duplicate --line-read-channel flag")
     args.line_read_channel = bool(args.line_read_channel)
+    if args.local_payload_write_enable > 1:
+        ap.error("duplicate --local-payload-write-enable flag")
+    args.local_payload_write_enable = bool(args.local_payload_write_enable)
     for key, default in (("ddr_outstanding", 4), ("ddr_write_credits", 2)):
         values = getattr(args, key)
         if values and len(values) > 1:
@@ -235,7 +242,7 @@ def main():
         setattr(args, field, values[0] if values else None)
     if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
         if getattr(args, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(args, field, bool(getattr(args, field)))
@@ -320,6 +327,8 @@ def main():
         parameters.append("--line-transfer-dispatch-flow")
     if args.line_read_channel:
         parameters.append("--line-read-channel")
+    if args.local_payload_write_enable:
+        parameters.append("--local-payload-write-enable")
     if args.ddr_outstanding != 4:
         parameters.append("--ddr-outstanding=" + str(args.ddr_outstanding))
     if args.ddr_write_credits != 2:
@@ -400,6 +409,8 @@ def main():
         parameters.append("--shared-lane1-owner-match")
     if args.direct_rank1_memory_source_ids:
         parameters.append("--direct-rank1-memory-source-ids")
+    if args.direct_registered_execution_operands:
+        parameters.append("--direct-registered-execution-operands")
     if args.bound_head_store_overlap:
         parameters.append("--bound-head-store-overlap")
     if args.pending_ready_store_bypass:
@@ -419,6 +430,7 @@ def main():
             "registered_canonical_store_event": args.registered_canonical_store_event,
             "shared_lane1_owner_match": args.shared_lane1_owner_match,
             "direct_rank1_memory_source_ids": args.direct_rank1_memory_source_ids,
+            "direct_registered_execution_operands": args.direct_registered_execution_operands,
             "bound_head_store_overlap": args.bound_head_store_overlap,
             "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,

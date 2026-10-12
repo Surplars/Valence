@@ -1,0 +1,249 @@
+{
+  "schema": "valence-minimal-public-qualification-v1",
+  "baseline_commit": "611ab7a602d66aaa5435a9f2a4699e31146e65be",
+  "qualified_candidate_tree": "b2dfb60cfb55f227d2860160c42c841e57bf8610",
+  "verification_scope": {
+    "recorded_results": "Summarized from the previously completed full qualification. Hash and source checks do not rerun hardware or establish fresh simulation coverage.",
+    "local_checks": [
+      "minimal receipt identity and schema",
+      "necessary source fingerprints",
+      "aggregate production source closure",
+      "exact 50-option extension and product configuration",
+      "explicit MAC T1 and JTAG USER2 source/configuration preflight"
+    ],
+    "external_evidence": "References only. Complete bundles remain outside Git; no download or bundle revalidation is implied."
+  },
+  "recorded_qualification": {
+    "status": "PASS_COMBINED_ZERO_CYCLE_QUALIFICATION",
+    "cpu": {
+      "status": "PASS_SV39_BARE_AND_ORIGINAL_THREE_CONTROLS",
+      "inclusive_cycles": {
+        "sv39": 191618,
+        "bare": 194153
+      },
+      "functional_fields_per_case": 105,
+      "equal_result_sections_per_case": 12,
+      "inclusive_roi_tail_deltas": [
+        0,
+        0,
+        0
+      ],
+      "raw_axi_supply_exact": true,
+      "negative_controls": [
+        "read",
+        "memory",
+        "trap"
+      ],
+      "fresh_on_models": 1,
+      "off_models": 0,
+      "model_translation_units": 36,
+      "compiler_jobs": 1
+    },
+    "native": {
+      "status": "PASS_FULL_ZERO_CYCLE_NATIVE",
+      "module_count": 239,
+      "changed_modules": [
+        "IntegerBackend.sv",
+        "TileLinkAxi4BurstBridge.sv"
+      ],
+      "all_module_ports_identical": true,
+      "all_declared_state_identical": true,
+      "removed_operand_muxes": 4,
+      "upper_bank_write_enables_per_slot": 7,
+      "real_bridge_slots": 4
+    },
+    "nemu": {
+      "status": "PASS_ZERO_CYCLE_SAME_OBJECT_NEMU",
+      "same_cpu_object_count": 36,
+      "case_cycles": {
+        "hot": 1847,
+        "compressed": 958
+      },
+      "negative_control_exits": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      },
+      "zero_work": {
+        "dut_generations": 0,
+        "dut_object_compiles": 0,
+        "reference_builds": 0,
+        "state_resynchronizations": 0
+      }
+    },
+    "new_pipeline_cycles": 0,
+    "new_prf_ports": 0,
+    "physical_qualification": false,
+    "physical_timing": "UNMEASURED",
+    "network_concurrency_qualification": false
+  },
+  "configuration": {
+    "native_options": [
+      "--selected",
+      "--data-translation-entries=16",
+      "--registered-pmp-regions",
+      "--experimental-trispeed-ethernet",
+      "--experimental-jtag-bscan=2",
+      "--dma-line-transfers",
+      "--dma-line-entries=4",
+      "--prefetch-candidate-cycles=16",
+      "--virtual-ram-load-precheck",
+      "--lsu-entries=4",
+      "--physical-load-ingress-flow",
+      "--ddr-write-collection-flow",
+      "--line-transfer-dispatch-flow",
+      "--line-read-channel",
+      "--dtlb-write-read-reuse",
+      "--translation-hit-flow",
+      "--independent-demand-admission",
+      "--split-prefetch-tracking",
+      "--read-prefetch-dirty-retry",
+      "--read-prefetch-demand-adoption",
+      "--load-order-older-retire",
+      "--fetch-previous-packet",
+      "--prepared-store-lookahead",
+      "--store-next-line-prefetch",
+      "--store-prefetch-mru-insertion",
+      "--posted-store-merge",
+      "--posted-prefetch-coexistence",
+      "--posted-prefetch-head-offer",
+      "--canonical-virtual-store-overlap",
+      "--published-pmp-changes",
+      "--frozen-store-proof-transport",
+      "--pending-virtual-store-proof",
+      "--pending-virtual-store-proof-slots=2",
+      "--bound-head-store-overlap",
+      "--read-prefetch-store-hold",
+      "--pending-ready-store-bypass",
+      "--durable-read-prefetch-candidate",
+      "--read-prefetch-behind-store",
+      "--pending-store-early-load-credits=2",
+      "--tagged-store-returns",
+      "--internal-line-grant",
+      "--concurrent-read-store-prefetch",
+      "--memory-schedule-overlap",
+      "--registered-pending-store-query",
+      "--aligned-fetch-permission-stage",
+      "--registered-canonical-store-event",
+      "--shared-lane1-owner-match",
+      "--direct-rank1-memory-source-ids",
+      "--direct-registered-execution-operands",
+      "--local-payload-write-enable"
+    ],
+    "constructor_counts": {
+      "OooParams": 157,
+      "FpgaNextConfig": 68,
+      "DdrBridgeConfig": 8,
+      "CoherentCacheConcurrency": 22
+    },
+    "actual_product_sha256": {
+      "profile.json": "f7ff78d6f579bb8dcc42ab942883274ff26667a612075eb18196a4eddddef27e",
+      "actual-fabric.json": "8df073a5a683e2e827f6db22b6dd884791e5c03eb961fb7e7ed12d7884913ff9",
+      "options.txt": "b95bbcb6ac8b5ff08437a3cb9a1c5e4a7b97c13eb86b1708e277276d10d315f3"
+    },
+    "export_profile_sha256": "eb25a0cff0ae1dbbf084da684560e46f51a66dceb55ae53dfc430722ef2b2184",
+    "native_mac_t1": true,
+    "jtag_user_chain": 2,
+    "fixture_overrides": {}
+  },
+  "source_fingerprints": {
+    "fpga/next/export.py": "af621815283682968f4d079124edea59393a2a7b183c3a0cedf9ba608c9fb4d4",
+    "fpga/next/timing-batch-zero-cycle-cleanup-profile.json": "8b6cd33061229c7334b8e947895a866bb09323824ce84dcae864353aad98daf1",
+    "simulator/gsim/fpga_next_board.py": "265b7b976515e03ffbf92ab7eb1e694f7bec17a1bba2bd4b371a27bc874fa819",
+    "simulator/gsim/harness/bridge_payload_enable.cpp": "74b42a5e838f0c3d0da75e66b49e1ab923cd8946225338d3e0b24b1785a9ca45",
+    "simulator/gsim/harness/bridge_payload_memory.h": "bc85972eb3e4575a57235d30c72d77d3f52e73eec8764ffd5f4aa5ae446ea1df",
+    "simulator/gsim/harness/registered_execution_operand_pair.cpp": "b2bc93b0a3a3da7b66ced43dada8fc3fc3295363cd7415756d6ce620102a5149",
+    "simulator/gsim/harness/registered_execution_operands_backend.cpp": "a46320f971542ac2ee8864ab31b8eda1484a570d39cfe5507ec2cd1fb83df92f",
+    "simulator/gsim/registered_execution_operands.py": "5aab1502235b87c13be5e03af0f6498d0da65baaef6376f2b00d0bb378e35e24",
+    "simulator/gsim/registered_execution_operands_host.py": "36c0bfbb0c9abeae142263a6ccc24e4ff0271accb82f046f5bdafd9a81521ee1",
+    "simulator/gsim/zero_cycle_cleanup/bridge/fixture/instrument_pair_state.py": "c8b54318029a43bc73e7588982c65a4129b213eee058ef0788dabf2cba94c442",
+    "simulator/gsim/zero_cycle_cleanup/bridge/fixture/negative_matrix.json": "b6221dd73be800f30e7543b4c0a10ee84a96cde4e2b2fa2ed1ac6fdd409fdeb0",
+    "simulator/gsim/zero_cycle_cleanup/bridge/native_audit.py": "6d3aca74e3c229032c93b9791327510f44928f4fcb73ac451afb6a561a5afdf3",
+    "simulator/gsim/zero_cycle_cleanup/bridge/native_graph_helpers.py": "3c73a75297a4228736ad5439e2646244d9014e51fc0f86cabb34faae15fc1c8f",
+    "simulator/gsim/zero_cycle_cleanup/bridge/native_slot_audit.py": "af7f69b4d271c607169b6502511bf42be413ed5032d280f6d890eb2ee1aef2af",
+    "simulator/gsim/zero_cycle_cleanup/bridge/prepare_source.py": "6dbd1b86d0d07c515db4d5f48cba897a932471aae1153bb760ded848d113222a",
+    "simulator/gsim/zero_cycle_cleanup/bridge/run_gate.py": "96c049f690a215e0b9ee8c01ea141bddf2799a5114ba5b6e0217b256f1ec8a81",
+    "simulator/gsim/zero_cycle_cleanup/native/components/bridge_native_slot_audit.py": "af7f69b4d271c607169b6502511bf42be413ed5032d280f6d890eb2ee1aef2af",
+    "simulator/gsim/zero_cycle_cleanup/native/components/native_graph_helpers.py": "3c73a75297a4228736ad5439e2646244d9014e51fc0f86cabb34faae15fc1c8f",
+    "simulator/gsim/zero_cycle_cleanup/native/components/registered_operands_native_audit.py": "b26bf49693e947866e29562e545dd02b5311edc73a2aa9cde6e5e6bdfbf7f4c7",
+    "simulator/gsim/zero_cycle_cleanup/native/native_audit.py": "f89ca7321bc0b590dd7613ba04fc74789384f8b7a551f9269a859428807e6dc8",
+    "simulator/gsim/zero_cycle_cleanup/native/native_graph_helpers.py": "3c73a75297a4228736ad5439e2646244d9014e51fc0f86cabb34faae15fc1c8f",
+    "simulator/gsim/zero_cycle_cleanup/native/registered_operand_endpoint_audit.py": "a7e7d47dc70245ebb77ac41971731d528d1ce8f1cddb23a754d4d15cda4de27c",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "0a85b449759c7a6033429ec60848b5f36d5373005558900f09ac7f95d733ddc4",
+    "src/main/scala/core/ooo/DdrBridgeConfig.scala": "8d6532874f59255dabacc9c426ec67a03e95dd02b0bd9fabb825e920b541cd7f",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "52451079037ce67b671e445d47226ae9a1e746e46178ee1f822a22a82beaabf4",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "17e1d83e2f14315948b970dbad327cd8751a50151c0bffdfe567beaed6c7c3fd",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "130bc9ca2a95acc8e843bef43405140be865e163203e789f20cc92977528b831",
+    "src/main/scala/core/ooo/OooParams.scala": "acf2898d0cdc6bbf84e6931ef8a38f80b77bce35982619606649e2c422edaa96",
+    "src/main/scala/core/ooo/TileLinkAxi4Bridge.scala": "367d7e822fa4a9e0ea462d444c5730a4f966e7aaf4c2cf9d70d6691b7bf2d5f0",
+    "src/main/scala/core/ooo/TileLinkAxi4BurstBridge.scala": "9dea2aae85265cb99769ba2932dfe65160a1c2af9dd558681072b67eaaee63aa",
+    "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala": "38484266161fbc89236382deec0df30fcc64a6ee4d68ef8ac5e92ac00e7cab7b",
+    "src/test/scala/ooo/BridgePayloadEnablePairGsim.scala": "274e868461f14712d19fc7e7885ba0ce3d13c02f6c64cc600a1c52885c723606",
+    "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": "bebd3dd4d0ccc8125a8aa2594b6224ff4d2179e2eb2b13ab6bc7efc9a98781af",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "ed0e1a0f6af81d99a0e243ea216beeaa5bd323ee52a11a932ce7391efa7355c4",
+    "src/test/scala/ooo/LocalPayloadWriteEnableConfigSpec.scala": "0f72fd48685cfbeda9dd434d63773103b04b0b1cd455a80a499ef668292cc939",
+    "src/test/scala/ooo/MatchingFabricAudit.scala": "686f5cd219cd91cfbdd56e3bcafef854f3232c17a5cf36079ce601878621306a",
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": "3ebfedee6d2b2bb889b99ff2787ab1a5c8c7f3bb64ef542f516184d2f0aca3fc",
+    "src/test/scala/ooo/RegisteredExecutionOperandConfigSpec.scala": "e74fe202830b82e0616e422df37541f69041707ce7575dbb83a5ff4df08560dc",
+    "src/test/scala/ooo/RegisteredExecutionOperandPairGsim.scala": "b847c78cf86d5af82944b572c8b82c4ca2caa0f08b7945e9201b8c399ac23e01",
+    "src/test/scala/ooo/RegisteredExecutionOperandPairGsimMain.scala": "d00effd9ca84f8c8ce71170cfbd84e4a4c165c441f5c1d737108b7594da24cd6",
+    "src/test/scala/ooo/RegisteredExecutionOperandsBackendGsim.scala": "37ec5aa893df8df45dbc81f16697ba1d93e54d7e2444fe0eb341b090be7a3e9c",
+    "src/test/scala/ooo/RegisteredExecutionOperandsBackendGsimMain.scala": "9f41c6343f6acde578d7c6656ad9d4af7df795c648212f32871436d61235fd87",
+    "src/test/scala/ooo/TimingBatchConfigSpec.scala": "60e50994cfbd05b97fc81f9c31a8be6ee9e41d97b68fad9636c92ed46e133302",
+    "src/test/scala/ooo/ZeroCycleCleanupActualAudit.scala": "3f250a4fadbb8b3d51c5181b30648b68e72e75cc6175a76526381437c4688c79",
+    "src/test/scala/ooo/ZeroCycleCleanupConfigSpec.scala": "b377859fe9f6b43f16f9b2850756e507b688513743d0d8a68b5785d05f7a4f11"
+  },
+  "production_source_closure": {
+    "scope": [
+      "src/main/scala",
+      "src/main/resources",
+      "third_party/berkeley-hardfloat/src/main/scala",
+      "fpga/next/rtl"
+    ],
+    "file_count": 220,
+    "canonical_sha256": "ecbe308d7c6f494114a447bcf29c4b4f0b4f77c30e7f81e882db29b459c8e30c"
+  },
+  "qualified_input_closure": {
+    "cpu": {
+      "count": 1274,
+      "canonical_sha256": "805210d620a074991f48fe75cd0b89cd812b1e6097fac282bf7291dc1183678f"
+    },
+    "native": {
+      "count": 819,
+      "canonical_sha256": "379179313629a7504c9e95233949651dd18e61fa5c9ab4c8c0d9202e0ae746b8"
+    }
+  },
+  "full_receipt_sha256": {
+    "combined": "c81d3020d68bb89bc5feb0cc063291338d9a7d671c1e05caf43e2d50c65f5a31",
+    "cpu": "5196edca7387894baf1f6ca870132cf64e5e447cd0935656b64e83ce66b0949b",
+    "native": "83db5907f49656c49ad06b12534adcca4cede78f5f710ac417741dcd70f51e6a",
+    "native_comparison": "eb8c9a63459a3706930a2b90f6aae64457747f70cbf0a864c9a0b27b0aac12f6",
+    "nemu": "347791a8d2b7cf0eaf68aa7673f9b34ecb36060715f0771745245b0b9d17e40f",
+    "nemu_projection": "05bff9cd09c87212232e591017cd2cea7d7456df8cec4c59927689a51fa9690e",
+    "operand_backend": "1c7566833a471345c7963c7f9c791e7a8d9cbdae995e0ea99d799988a1c8c86c",
+    "operand_boundary": "e1860fa5fd21dc30489d3f516e05d50d2112566cc050855571ab691bdf4942e7",
+    "bridge_component": "b108ec114c74bbebe11afa7d2f20ffecd2e818b5fb367bb900a9c66b021f1ef6"
+  },
+  "external_evidence_sha256": {
+    "complete_qualification": "21f44c06c72d1e2ad57a7b6b20ac8fd4293eae170563faf639380762cfcbfdf3",
+    "qualified_model": "06a82d2d1d276d5068ddf6c655d60cb4e2e9f5b8573376d37b6fcccf2112fd3c",
+    "full_r3_source": "c709e703a1ee57576ddedb282efbc06f85ae007d1c63184ddff0a8bc6001826e"
+  },
+  "prior_failures": [
+    {
+      "stage": "initial CLI preflight",
+      "reason": "No local Git HEAD; stopped before hardware execution.",
+      "record_sha256": "b372aab0fe66a3465c1169aa732158d3c19e1f9a16ae39251eb76ae2e21d50df"
+    },
+    {
+      "stage": "initial baseline preflight",
+      "reason": "Missing immutable baseline identity; stopped before hardware execution.",
+      "record_sha256": "35221bcd7510b739ad5a2aa57b3d584eda7d8cb19f1af56dc4afc27746069f07"
+    },
+    {
+      "stage": "host contract test",
+      "reason": "Test required a present False key for an omitted OFF option; corrected source-only expectation.",
+      "record_sha256": "8a6d0c2520071202ad5d75d0f655c6fe3f7c400ad516cb3176e3dcec69f4263b"
+    }
+  ]
+}
