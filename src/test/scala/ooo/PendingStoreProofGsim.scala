@@ -189,7 +189,8 @@ object PendingStoreProofTransportGsimMain extends App {
 class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: Boolean = false,
     enabledReadyStoreBypass: Boolean = false, proofRows: Int = 1, earlyCredits: Int = 1,
     registeredQuery: Boolean = false, registeredCanonicalEvent: Boolean = false,
-    sharedLane1OwnerMatch: Boolean = false, matchedOwnerProfile: Boolean = false) extends Module {
+    sharedLane1OwnerMatch: Boolean = false, matchedOwnerProfile: Boolean = false,
+    directRank1MemorySourceIds: Boolean = false) extends Module {
     private val enabled = true
     private val overlap = true
     private val memoryEntries = 4
@@ -197,7 +198,8 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
         boundHeadStoreOverlap = enabledBoundOverlap, pendingReadyStoreBypass = enabledReadyStoreBypass,
         pendingStoreEarlyLoadCredits = earlyCredits, registeredPendingStoreQuery = registeredQuery,
         registeredCanonicalStoreEvent = registeredCanonicalEvent, sharedLane1OwnerMatch = sharedLane1OwnerMatch)
-    val p = if (matchedOwnerProfile) Lane1OwnerBackendProfile.params(sharedLane1OwnerMatch) else historicalParams
+    val p = (if (matchedOwnerProfile) Lane1OwnerBackendProfile.params(sharedLane1OwnerMatch) else historicalParams)
+        .copy(directRank1MemorySourceIds = directRank1MemorySourceIds)
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
@@ -459,14 +461,14 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
 }
 
 object PendingStoreProofBackendGsimMain extends App {
-    require(args.length >= 2 && args.length <= 10 && args.slice(1, 4).forall(Set("0", "1").contains))
+    require(args.length >= 2 && args.length <= 11 && args.slice(1, 4).forall(Set("0", "1").contains))
     require(args.slice(4, 6).forall(Set("1", "2").contains))
-    require(args.slice(6, 10).forall(Set("0", "1").contains))
+    require(args.slice(6, 11).forall(Set("0", "1").contains))
     ChiselStage.emitCHIRRTLFile({
         val dut = new PendingStoreProofBackendGsim(args(1) == "1", args.lift(2).contains("1"),
             args.lift(3).contains("1"), args.lift(4).map(_.toInt).getOrElse(1),
             args.lift(5).map(_.toInt).getOrElse(1), args.lift(6).contains("1"), args.lift(7).contains("1"),
-            args.lift(8).contains("1"), args.lift(9).contains("1"))
+            args.lift(8).contains("1"), args.lift(9).contains("1"), args.lift(10).contains("1"))
         require(dut.backend.p == dut.p && dut.backend.ledger.p == dut.p,
             "actual backend and ledger constructor products must match the requested complete profile")
         require(dut.backend.executionStages.size == 2 && dut.p.registeredIssueExecute && dut.p.parallelIssuePayload)
@@ -475,7 +477,8 @@ object PendingStoreProofBackendGsimMain extends App {
         println(s"LANE1_OWNER_MATCH shared=${dut.p.sharedLane1OwnerMatch} " +
             s"registered=${dut.p.registeredIssueExecute} rawPayload=${dut.p.parallelIssuePayload} tagBits=${dut.p.tagBits}")
         if (args.lift(9).contains("1")) {
-            require(dut.p == Lane1OwnerBackendProfile.params(args.lift(8).contains("1")))
+            require(dut.p == Lane1OwnerBackendProfile.params(args.lift(8).contains("1"))
+                .copy(directRank1MemorySourceIds = args.lift(10).contains("1")))
             PostedBoardConfiguration.writeCore(Lane1OwnerBackendProfile.abc, args.head + "/published-abc")
             PostedBoardConfiguration.writeCore(dut.backend.p, args.head)
         }

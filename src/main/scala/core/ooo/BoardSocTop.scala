@@ -54,7 +54,8 @@ object BoardSocConfig {
         backendCapacity: BackendCapacityConfig = BackendCapacityConfig(),
         postedPreparationPriority: Boolean = false, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false,
         registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
-        registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false): OooParams = {
+        registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
+        directRank1MemorySourceIds: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -73,6 +74,7 @@ object BoardSocConfig {
             registeredPendingStoreQuery = registeredPendingStoreQuery,
             alignedFetchPermissionStage = alignedFetchPermissionStage,
             sharedLane1OwnerMatch = sharedLane1OwnerMatch,
+            directRank1MemorySourceIds = directRank1MemorySourceIds,
             registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -245,7 +247,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
     registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false,
     registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
-    registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false) extends Module {
+    registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
+    directRank1MemorySourceIds: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -289,6 +292,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             registeredPendingStoreQuery = registeredPendingStoreQuery,
             alignedFetchPermissionStage = alignedFetchPermissionStage,
             sharedLane1OwnerMatch = sharedLane1OwnerMatch,
+            directRank1MemorySourceIds = directRank1MemorySourceIds,
             registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,

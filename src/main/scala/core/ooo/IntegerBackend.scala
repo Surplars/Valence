@@ -841,8 +841,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 val queryRank = p.memoryProofFrontier && rank == 1
                 val saved = valid && entry.request.store && (if (queryRank) storeAddressKnown(index)
                     else if (p.parallelMemoryPayload) (owner & storePrepared.asUInt).orR else storePrepared(index))
-                val source1 = Mux(valid, entry.renamed.source1, 0.U)
-                val source2 = Mux(valid, entry.renamed.source2, 0.U)
+                // Parallel rank owners already mask source IDs to zero when absent.
+                // Only remove rank 1's duplicate late clear; authority stays in valid.
+                val directSourceIds = p.directRank1MemorySourceIds && rank == 1
+                val source1 = if (directSourceIds) entry.renamed.source1
+                    else Mux(valid, entry.renamed.source1, 0.U)
+                val source2 = if (directSourceIds) entry.renamed.source2
+                    else Mux(valid, entry.renamed.source2, 0.U)
                 val savedAddress = if (p.parallelMemoryPayload) selected(storeAddress.toSeq) else storeAddress(index)
                 val savedData = if (p.parallelMemoryPayload) selected(storeData.toSeq) else storeData(index)
                 val left = memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
