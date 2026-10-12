@@ -18,8 +18,11 @@ final case class DdrBridgeConfig(
     unorderedResponses: Boolean = false,
     writeCollectionFlow: Boolean = false,
     lineReadChannel: Boolean = false,
-    localPayloadWriteEnable: Boolean = false
+    localPayloadWriteEnable: Boolean = false,
+    localPayloadWriteRow: Boolean = false
 ) {
+    require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
+        "local payload write rows require line banks and localized upper-bank enables")
     require(!unorderedResponses || maxOutstanding >= 2,
         "cross-source unordered replies require at least two transaction slots")
     require(!lineReadChannel || (unorderedResponses && maxOutstandingWrites > 0 && maxBurstBeats >= 8),

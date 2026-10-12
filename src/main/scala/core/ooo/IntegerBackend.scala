@@ -68,6 +68,8 @@ class HeadProfile extends Bundle {
   */
 class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false) extends Module {
+    // Read-only view of the single profile option; no separate constructor switch.
+    val shareCanonicalStoreOwnerMatch = p.sharedCanonicalStoreOwnerMatch
     require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
         "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!p.registeredIssueExecute || (p.completionWidth == 2 && p.registeredBranchRedirect &&
@@ -1048,10 +1050,14 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         lsu.io.relaxStoreOwner.get.valid := tracker.io.certificate.valid
         lsu.io.relaxStoreOwner.get.bits := tracker.io.certificate.bits.origin.token
     }
+    // Certificate.valid retains the complete indexed ownerLive check above.
+    // Allocation alone makes a row live and writes its own token index. Keep
+    // all class/live gates: invalid queue payload is unspecified.
     val certFor = (0 until p.robEntries).map { i =>
         canonicalStoreTracker.map(t => t.io.certificate.valid && memoryLive(i) &&
             issueEntries(i).request.memory && issueEntries(i).request.store && !issueEntries(i).request.atomic &&
-            issueEntries(i).renamed.token.asUInt === t.io.certificate.bits.origin.token.asUInt).getOrElse(false.B)
+            (if (shareCanonicalStoreOwnerMatch) t.io.certificate.bits.origin.token.index === i.U
+             else issueEntries(i).renamed.token.asUInt === t.io.certificate.bits.origin.token.asUInt)).getOrElse(false.B)
     }
     proofFrontier.foreach { f =>
         f.io.canonicalStores := VecInit(certFor).asUInt

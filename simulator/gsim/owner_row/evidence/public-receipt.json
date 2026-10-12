@@ -1,0 +1,300 @@
+{
+  "schema": "valence-owner-row-public-qualification-v1",
+  "baseline_commit": "3fcfaf6d63b0bfa628f51856644678fcb5639928",
+  "baseline_tree": "fdaad0fbf9d101df8ddfb2f6f8858980753dfcc1",
+  "qualified_candidate_tree": "6a4d8f4c87a314757e07b1928ce9afe6d5ac3280",
+  "verification_scope": {
+    "recorded_results": "Previously completed component, native and full CPU qualification, summarized from hash-bound external receipts.",
+    "local_checker": "Checks public receipt identity and source/configuration only; it does not replay hardware or revalidate unseen external bundles.",
+    "resources": "Native declared state and ports only. Mapped cells, area, fanout, netlist and STA are NOT_RUN.",
+    "traffic": "CPU COPY cases retain all observed stdout, AXI and supply fields. Real-manager component stress is separate coverage; CPU COPY is not a high-outstanding throughput stress."
+  },
+  "recorded_qualification": {
+    "status": "PASS_COMBINED_OWNER_ROW_QUALIFICATION",
+    "cpu": {
+      "status": "PASS_SV39_BARE_AND_ORIGINAL_THREE_CONTROLS",
+      "inclusive_cycles": {
+        "sv39": 191618,
+        "bare": 194153
+      },
+      "functional_fields_per_case": 105,
+      "equal_result_sections_per_case": 12,
+      "inclusive_roi_tail_deltas": [
+        0,
+        0,
+        0
+      ],
+      "complete_stdout_exact": true,
+      "raw_axi_supply_exact": true,
+      "negative_controls": [
+        "read",
+        "memory",
+        "trap"
+      ],
+      "fresh_on_models": 1,
+      "off_models": 0,
+      "model_translation_units": 36,
+      "compiler_jobs": 1
+    },
+    "native": {
+      "status": "PASS_FULL_OWNER_ROW_NATIVE",
+      "module_count": 239,
+      "changed_modules": [
+        "IntegerBackend.sv",
+        "TileLinkAxi4BurstBridge.sv"
+      ],
+      "all_module_ports_identical": true,
+      "all_declared_state_identical": true,
+      "removed_consumer_full_token_comparisons": 16,
+      "consumer_token_bits_before": 68,
+      "consumer_index_bits_after": 4,
+      "upper_row_connections_per_slot": 7,
+      "actual_slots": 4,
+      "bank0_data_write_enable_unchanged": true
+    },
+    "nemu": {
+      "status": "PASS_CURRENT_BOARD_NEMU",
+      "same_cpu_object_count": 36,
+      "case_cycles": {
+        "hot": 1847,
+        "compressed": 958
+      },
+      "negative_control_exits": {
+        "pc": 1,
+        "gpr": 1,
+        "memory": 1
+      },
+      "zero_work": {
+        "dut_generations": 0,
+        "dut_object_compiles": 0,
+        "reference_builds": 0,
+        "state_resynchronizations": 0
+      }
+    },
+    "components": {
+      "owner_backend_cycle_observations": 4648,
+      "owner_backend_negative_runs": 10,
+      "owner_boundary_modes": 4,
+      "owner_native_modules": 99,
+      "row_cycle_observations": 23223,
+      "row_negative_controls": 13,
+      "row_native_widths": 6
+    },
+    "new_pipeline_cycles": 0,
+    "new_prf_ports": 0,
+    "physical_qualification": false,
+    "actual_netlist": "NOT_RUN",
+    "STA": "NOT_RUN",
+    "mapped_resources": "NOT_RUN",
+    "network_concurrency_qualification": false
+  },
+  "configuration": {
+    "native_options": [
+      "--selected",
+      "--data-translation-entries=16",
+      "--registered-pmp-regions",
+      "--experimental-trispeed-ethernet",
+      "--experimental-jtag-bscan=2",
+      "--dma-line-transfers",
+      "--dma-line-entries=4",
+      "--prefetch-candidate-cycles=16",
+      "--virtual-ram-load-precheck",
+      "--lsu-entries=4",
+      "--physical-load-ingress-flow",
+      "--ddr-write-collection-flow",
+      "--line-transfer-dispatch-flow",
+      "--line-read-channel",
+      "--dtlb-write-read-reuse",
+      "--translation-hit-flow",
+      "--independent-demand-admission",
+      "--split-prefetch-tracking",
+      "--read-prefetch-dirty-retry",
+      "--read-prefetch-demand-adoption",
+      "--load-order-older-retire",
+      "--fetch-previous-packet",
+      "--prepared-store-lookahead",
+      "--store-next-line-prefetch",
+      "--store-prefetch-mru-insertion",
+      "--posted-store-merge",
+      "--posted-prefetch-coexistence",
+      "--posted-prefetch-head-offer",
+      "--canonical-virtual-store-overlap",
+      "--published-pmp-changes",
+      "--frozen-store-proof-transport",
+      "--pending-virtual-store-proof",
+      "--pending-virtual-store-proof-slots=2",
+      "--bound-head-store-overlap",
+      "--read-prefetch-store-hold",
+      "--pending-ready-store-bypass",
+      "--durable-read-prefetch-candidate",
+      "--read-prefetch-behind-store",
+      "--pending-store-early-load-credits=2",
+      "--tagged-store-returns",
+      "--internal-line-grant",
+      "--concurrent-read-store-prefetch",
+      "--memory-schedule-overlap",
+      "--registered-pending-store-query",
+      "--aligned-fetch-permission-stage",
+      "--registered-canonical-store-event",
+      "--shared-lane1-owner-match",
+      "--direct-rank1-memory-source-ids",
+      "--direct-registered-execution-operands",
+      "--local-payload-write-enable",
+      "--shared-canonical-store-owner-match",
+      "--local-payload-write-row"
+    ],
+    "constructor_counts": {
+      "OooParams": 158,
+      "FpgaNextConfig": 70,
+      "DdrBridgeConfig": 9,
+      "CoherentCacheConcurrency": 22
+    },
+    "fixture_overrides": {},
+    "actual_product_sha256": {
+      "profile.json": "27e36a2712956c203841dc073305de71c833ca5af0e75e67decc8b15901ae2bc",
+      "actual-fabric.json": "55a8f41208a24762bb195f5beaa6b549821af6e7a70c298fbb24cc25325b4e17",
+      "options.txt": "296b3fcdd61f8c494d11a156e9a38a93247bc06ef329d2c16f6fe7b0b48e7393"
+    },
+    "actual_owner_row": {
+      "canonicalVirtualStoreOverlap": true,
+      "manager": {
+        "lineReadChannel": true,
+        "localPayloadWriteEnable": true,
+        "localPayloadWriteRow": true
+      },
+      "schema": "actual-owner-row-v1",
+      "sharedCanonicalStoreOwnerMatch": true,
+      "slotCount": 4,
+      "slots": [
+        {
+          "lineReadChannel": true,
+          "localPayloadWriteEnable": true,
+          "localPayloadWriteRow": true
+        },
+        {
+          "lineReadChannel": true,
+          "localPayloadWriteEnable": true,
+          "localPayloadWriteRow": true
+        },
+        {
+          "lineReadChannel": true,
+          "localPayloadWriteEnable": true,
+          "localPayloadWriteRow": true
+        },
+        {
+          "lineReadChannel": true,
+          "localPayloadWriteEnable": true,
+          "localPayloadWriteRow": true
+        }
+      ],
+      "wrapper": {
+        "lineReadChannel": true,
+        "localPayloadWriteEnable": true,
+        "localPayloadWriteRow": true
+      }
+    },
+    "export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
+    "native_mac_t1": true,
+    "jtag_user_chain": 2
+  },
+  "source_fingerprints": {
+    "fpga/next/export.py": "75721bcf113dbcc005c88cbbdcd50bdad3d2543baab986ccfeb98842a9c1546d",
+    "fpga/next/timing-batch-owner-row-profile.json": "32063adb7dd598ea5fcd014eee71c02d599139a59bf69287598f780a35d6d923",
+    "simulator/gsim/canonical_store_owner_map.py": "8a7a747027587254cb3577f2c7fbafc4a4d56133c95b2a7e378959cd86e33ed3",
+    "simulator/gsim/fpga_next_board.py": "1791dea7306ce6db69d8adec38813f3d35ea026715e7e4ccffa9ca12e2cd248b",
+    "simulator/gsim/harness/bridge_payload_row.cpp": "6f11b4a07446146aebc3bdc619a9990fc2e7ca915d6391135f67ed2f569f9287",
+    "simulator/gsim/harness/canonical_store_owner_map.cpp": "4fe0d322668c343902e00cdc16146c10d0a0574166969f490a594f764a8dc30a",
+    "simulator/gsim/harness/canonical_store_owner_map_backend.cpp": "0426a843351dffa9e02cc24e8bd83d80ae7a30f40729d6853f4211c80fe0688f",
+    "simulator/gsim/harness/gsim_model_storage.h": "a254fb916af4041f0e850701b57592571ae3ca7a58458b94aa7058e6fcf27634",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "a9932dd66041ed1f0a72120cad1458cdf793d86f1775e2c1c6b58d6aacb8a419",
+    "src/main/scala/core/ooo/DdrBridgeConfig.scala": "e8aab8cac1a8a258f0287072a0b5fba1cd263002f8a97416d2ac712415aa72c0",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "6986badc39de13da2bff5aa869b89571801780eb35052a4c5662cc89b372e48f",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "fd16acc4dc228f78812e0aee578063a36ce84b0912945148f2c19447c5f9dbac",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "f4a4e370ad20690e037d150df729e4613ccf557a44581be68fc3890f75b63785",
+    "src/main/scala/core/ooo/OooParams.scala": "24f9c0f9487e3acb683cb4f9a4a11010b133c713a76c8d0cdd22d0eeded94c71",
+    "src/main/scala/core/ooo/TileLinkAxi4Bridge.scala": "383939c492291f1676611802b5c59d9c3a66201fd75c9af8bf06ee4c3334dddf",
+    "src/main/scala/core/ooo/TileLinkAxi4BurstBridge.scala": "98b688fa02ad4b59b7537074c9d2f0504857269923a31bda8ab215d3e1b6807b",
+    "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala": "f642b39eb681716bd0cd70c5ca77f7c705a99a18f4f827b0ae6706922d0b1580",
+    "src/test/scala/ooo/BoardSocGsimMain.scala": "5793ac07ce23ad784524fde5aae2f258327e445ea332e5324ee7ccce26fe9691",
+    "src/test/scala/ooo/BridgePayloadRowPairGsim.scala": "9e5a2356526e992cef5330c7ee2c771549aca5c1dea8d12058376fd434a61ebc",
+    "src/test/scala/ooo/CanonicalStoreOwnerMapBackendGsim.scala": "19ae349fcac450ef1f17fc3e92ecab2f2c12d6698b29f56343d4b7a47d4c42fb",
+    "src/test/scala/ooo/CanonicalStoreOwnerMapGsim.scala": "d55b6c00b31fd147495d015fb1b939ceb39a42a0670d131bcf3dacccc42d7e04",
+    "src/test/scala/ooo/CanonicalStoreOwnerMapGsimMain.scala": "5d9c87eb9a5477a2154c8b0eb8b88ac94667bc688386615fdea1583c8f590d49",
+    "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": "2b508135ff57bae6862fc367ccc4adb8f2daa75bf6061504aab0b875feb8ae60",
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "29b7fb30a405cff26e13bab31e69b71a9cdc58b1245cb653ec7d039fe7200944",
+    "src/test/scala/ooo/FpgaNextMain.scala": "b2aa4821f8141dd3b5ac9e77a8b82622d52418a203e6e483d792928cc9472cb5",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "0ff5a35da13c1ed1311ffb8cb64be2c773fc1a0ea4aeb9bbc609223d75c64e32",
+    "src/test/scala/ooo/LocalPayloadWriteRowConfigSpec.scala": "e7992bf65e22e80fe078fd2feb57b2524db71d580d92dfef250a8ead62fac8f8",
+    "src/test/scala/ooo/MatchingFabricAudit.scala": "d0a133dfbd90ab2913505a4882ecdb8a01f487ba4c697e3d0744aa75cb4b237d",
+    "src/test/scala/ooo/OwnerRowActualAudit.scala": "137985a588e66ad1e3ad6467f2b8404a9334d3bfa861365357c84d133a75d643",
+    "src/test/scala/ooo/OwnerRowConfigSpec.scala": "0220d66482303ba9599a6163f462adfcdffde0c0fe6a620203c51e842dc9b783",
+    "src/test/scala/ooo/PendingStoreProofGsim.scala": "3d167f149da1ea57b9a8a974746f5f28e52ef13a86cfb60fc0e9d2ab36ad3c91",
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": "35cd185d4b4b31442faaa74c97683ceacff3cac6f78fadc5b9d6988e2373d0a0",
+    "src/test/scala/ooo/TimingBatchConfigSpec.scala": "c9bb6e026140a01f350753882067418750c5f5107ab1eec9c53dfe16ccdc8acd",
+    "src/test/scala/ooo/ZeroCycleCleanupActualAudit.scala": "c3ca3bf5b3e0ce0d6e1f15cd5dcc93e086524f042cd385d3df44c7726b28210b",
+    "src/test/scala/ooo/ZeroCycleCleanupConfigSpec.scala": "b13e080c76076958463c8e0a22af4ed29b7a8bb65e0b901a74b1b97ddee9f99c"
+  },
+  "production_source_closure": {
+    "scope": [
+      "src/main/scala",
+      "src/main/resources",
+      "third_party/berkeley-hardfloat/src/main/scala",
+      "fpga/next/rtl"
+    ],
+    "file_count": 220,
+    "canonical_sha256": "cb26abcefed1899f41e7fe31f21452dc6222136860761fade85695f72ea41f23"
+  },
+  "qualified_scala_source_closure": {
+    "scope": [
+      "src/main/scala",
+      "src/test/scala",
+      "third_party/berkeley-hardfloat/src/main/scala"
+    ],
+    "file_count": 558,
+    "canonical_sha256": "ae8b4bf9f516921e2b4ae1c25b3e9cc2bfc19d50639a4a3405c825f7f0366fca"
+  },
+  "full_receipt_sha256": {
+    "qualification.json": "a6a3772458f469fdab79891f86b1aea6bff500f520e74386a0cb6145fa3264e1",
+    "source-integration.json": "0366c6124050f4b1e94e6abcc43e9ff3245e6170090ceefa8715d8c4dd9e268f",
+    "runner-freeze.json": "81e4e3bbd626ae0eb1a969bcec6024da4bf01645aae267e0b60d56c05a834109",
+    "config-r1/receipt.json": "dbac76fae882a1b5cd22ebd2fbc5f8f5ed251422566b620808051739a0885419",
+    "config-r2/receipt.json": "b4fee64f7e34c9dc27f6fc5c2c4a2057949db57e04bd2db2c5e9b283c021279f",
+    "full-native-r1/receipt.json": "372499fa97c0865e6d6b479afd9ce0fd3be9842c2f64ba5438196201e149c3bd",
+    "full-native-r1/comparison.json": "9ac1f8a184be22d0f71bba508ffe5689a14aafac9972e6c86bd8702644ec7678",
+    "cpu-on-r1/receipt.json": "50fa8297a7279285b2be2a180e56f6a18112f7b2745aa151964d3699571bdb9c",
+    "nemu-on-r1/receipt.json": "49f30db476c4a1002bfc1288241bf8d20d9d032b4debfcaf2ad69e175030c94a",
+    "component-fixture-bridge.json": "b8e0470ff91e9617dd8045c4c300acedbf5b45d2986e6d052411b356125cfa1c"
+  },
+  "external_evidence": {
+    "complete_qualification": {
+      "library_file_id": "libfile_859ce460e2908191935b4ea16b17c07a",
+      "bytes": 12047662,
+      "sha256": "1377fccc996c866c924b3cb7c1678b4c25229326ae3f614b28aab9860da27437"
+    },
+    "qualified_model": {
+      "library_file_id": "libfile_67f60e1593e881919430b0b3e635ccf0",
+      "bytes": 30503677,
+      "sha256": "745d4c5c67d7df153d0c972f3448444103a3d4a499c9c42d151f95ba0492d64b"
+    },
+    "owner_component": {
+      "library_file_id": "libfile_559ef7cb3cac8191a4aad20da720f5e1",
+      "bytes": 1019834,
+      "sha256": "7709a0fd3827ed9ec7a7ca592ddd72965a62f66bcf96bf5703e7b6c2f7d24dc4"
+    },
+    "row_component": {
+      "library_file_id": "libfile_16b4a496ef08819198c406ad762712d3",
+      "bytes": 1984161,
+      "sha256": "1b5d359336adac2af03d5c43c1853579985b27ac7588b9a4fd0dcef0490caa72"
+    },
+    "native_board": {
+      "library_file_id": "libfile_5b7989865670819182df6c9dfa001e2e",
+      "bytes": 2616683,
+      "sha256": "9a654250474ed8bb9c8f3e684491228a366b4735273b3289cee24c57ffd17985"
+    }
+  },
+  "prior_failures_and_limits": [
+    "The original failed config run compiled all 199 production and 341 test Scala files and passed 10 of 11 selected tests; one manifest test used a cwd-relative path. A test-only repository-root fix passed the repeat. Original FAIL receipts remain in external evidence.",
+    "The owner-map host establishes aligned zero-initialized storage before public model construction, then real reset and RAII destruction. The earlier post-construction memset version was corrected before dynamic qualification. Invalid payload gains authority only through real valid/owner gates.",
+    "Standalone component results precede the reviewed single-parameter owner forwarding migration; combined full imported Scala, native and CPU checks bind the final source. No exhaustive all-parameter behavioral claim is made."
+  ]
+}

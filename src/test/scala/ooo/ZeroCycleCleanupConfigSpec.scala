@@ -6,8 +6,8 @@ import soc.core.ooo._
 class ZeroCycleCleanupConfigSpec extends AnyFunSuite {
     test("two named default-off fields preserve all prior products and geometry") {
         val off = FpgaNextConfig.Selected
-        assert(off.productArity == 68 && off.coreParams.productArity == 157 &&
-            off.ddr.productArity == 8 && off.cache.productArity == 22)
+        assert(off.productArity == 70 && off.coreParams.productArity == 158 &&
+            off.ddr.productArity == 9 && off.cache.productArity == 22)
         assert(!off.directRegisteredExecutionOperands && !off.coreParams.directRegisteredExecutionOperands &&
             !off.localPayloadWriteEnable && !off.ddr.localPayloadWriteEnable)
         val on = FpgaNextConfig.fromOptions(Set("--selected", "--direct-registered-execution-operands",

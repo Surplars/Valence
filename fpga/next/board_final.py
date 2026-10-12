@@ -14,7 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 MANIFEST = HERE / "board-final-profile-v1.json"
-MANIFEST_SHA256 = "cb2870243a26dc80ddb0df2eedc6fe09aa6445b179953e706ace0f6ac719a66b"
+MANIFEST_SHA256 = "f5cd0e44a79463eaa3d7e1bad48f4012c8a0e7254fecfb19e48ffc9ed7c6bc66"
 INPUTS = ("fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json")
 
 
@@ -45,17 +45,17 @@ def load_profile():
         raise RuntimeError("qualified CPU manifest changed; review required")
     options = json.loads((HERE / name).read_text())["native_options"]
     required = {"--selected", "--experimental-trispeed-ethernet", "--experimental-jtag-bscan=2",
-                "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids",
+                "--shared-lane1-owner-match", "--shared-canonical-store-owner-match", "--local-payload-write-row", "--direct-rank1-memory-source-ids",
                 "--direct-registered-execution-operands", "--local-payload-write-enable", "--data-translation-entries=16", "--lsu-entries=4",
                 "--pending-virtual-store-proof-slots=2", "--pending-store-early-load-credits=2"}
-    if len(options) != cpu["native_option_count"] or len(options) != 50 or len(set(options)) != len(options) or not required.issubset(options):
+    if len(options) != cpu["native_option_count"] or len(options) != 52 or len(set(options)) != len(options) or not required.issubset(options):
         raise RuntimeError("qualified CPU options/USER2/capacities changed")
     evidence = profile["qualification_receipt"]
-    expected_path = "simulator/gsim/zero_cycle_cleanup/evidence/public-receipt.json"
+    expected_path = "simulator/gsim/owner_row/evidence/public-receipt.json"
     if evidence["path"] != expected_path or sha(ROOT / expected_path) != evidence["sha256"]:
         raise RuntimeError("minimal qualification receipt changed")
     recorded = json.loads((ROOT / expected_path).read_text())
-    if recorded["schema"] != "valence-minimal-public-qualification-v1":
+    if recorded["schema"] != "valence-owner-row-public-qualification-v1":
         raise RuntimeError("minimal qualification schema changed")
     if recorded["configuration"]["native_options"] != options or recorded["configuration"]["export_profile_sha256"] != profile["export_profile_sha256"]:
         raise RuntimeError("recorded qualified configuration changed")

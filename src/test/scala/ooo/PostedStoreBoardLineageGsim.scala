@@ -30,8 +30,8 @@ object PostedBoardConfiguration {
         Files.writeString(Paths.get(directory, "actual-core-parameters.json"), json(p) + "\n")
     }
     def write(c: FpgaNextConfig, directory: String): Unit = {
-        require(c.productArity == 68 && c.coreParams.productArity == 157 && c.cache.productArity == 22 &&
-            c.ddr.productArity == 8,
+        require(c.productArity == 70 && c.coreParams.productArity == 158 && c.cache.productArity == 22 &&
+            c.ddr.productArity == 9,
             "full tagged profile/core/cache summary has unexpected fields")
         val derived = Map[String, Any]("isaProfile" -> c.isaProfile, "issueWidth" -> c.issueWidth,
             "instructionCacheLines" -> c.instructionCacheLines, "dataCacheLines" -> c.dataCacheLines,

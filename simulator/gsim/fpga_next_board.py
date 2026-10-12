@@ -55,7 +55,7 @@ def source_inventory():
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--preflight-only", action="store_true", help="print exact profile; do not create outputs or build")
@@ -79,6 +79,10 @@ def main():
                     help="default-off independent home read ingress and whole-line return")
     ap.add_argument("--local-payload-write-enable", action="count", default=0,
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
+    ap.add_argument("--local-payload-write-row", action="count", default=0,
+                    help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--shared-canonical-store-owner-match", action="count", default=0,
+                    help="default-off canonical certificate consumer owner-map sharing")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
                     help="default-off local empty response flow; retains registered request and permission boundaries")
     ap.add_argument("--prepared-store-lookahead", action="store_true",
@@ -242,10 +246,14 @@ def main():
         setattr(args, field, values[0] if values else None)
     if args.frozen_store_proof_transport and not (args.virtual_ram_load_precheck and args.canonical_virtual_store_overlap):
         ap.error("--frozen-store-proof-transport requires virtual precheck and canonical overlap")
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
         if getattr(args, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(args, field, bool(getattr(args, field)))
+    if args.shared_canonical_store_owner_match and not args.canonical_virtual_store_overlap:
+        ap.error("--shared-canonical-store-owner-match requires --canonical-virtual-store-overlap")
+    if args.local_payload_write_row and not (args.line_read_channel and args.local_payload_write_enable):
+        ap.error("--local-payload-write-row requires --line-read-channel and --local-payload-write-enable")
     if args.registered_canonical_store_event and not args.canonical_virtual_store_overlap:
         ap.error("--registered-canonical-store-event requires --canonical-virtual-store-overlap")
     if args.registered_pending_store_query > 1:
@@ -411,6 +419,10 @@ def main():
         parameters.append("--direct-rank1-memory-source-ids")
     if args.direct_registered_execution_operands:
         parameters.append("--direct-registered-execution-operands")
+    if args.shared_canonical_store_owner_match:
+        parameters.append("--shared-canonical-store-owner-match")
+    if args.local_payload_write_row:
+        parameters.append("--local-payload-write-row")
     if args.bound_head_store_overlap:
         parameters.append("--bound-head-store-overlap")
     if args.pending_ready_store_bypass:
@@ -431,6 +443,8 @@ def main():
             "shared_lane1_owner_match": args.shared_lane1_owner_match,
             "direct_rank1_memory_source_ids": args.direct_rank1_memory_source_ids,
             "direct_registered_execution_operands": args.direct_registered_execution_operands,
+            "shared_canonical_store_owner_match": args.shared_canonical_store_owner_match,
+            "local_payload_write_row": args.local_payload_write_row,
             "bound_head_store_overlap": args.bound_head_store_overlap,
             "pending_ready_store_bypass": args.pending_ready_store_bypass,
             "pending_virtual_store_proof_slots": args.pending_virtual_store_proof_slots,

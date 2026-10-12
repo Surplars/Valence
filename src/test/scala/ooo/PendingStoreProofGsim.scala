@@ -191,7 +191,8 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
     registeredQuery: Boolean = false, registeredCanonicalEvent: Boolean = false,
     sharedLane1OwnerMatch: Boolean = false, matchedOwnerProfile: Boolean = false,
     directRank1MemorySourceIds: Boolean = false,
-    directRegisteredExecutionOperands: Boolean = false) extends Module {
+    directRegisteredExecutionOperands: Boolean = false,
+    sharedCanonicalStoreOwnerMatch: Boolean = false) extends Module {
     private val enabled = true
     private val overlap = true
     private val memoryEntries = 4
@@ -201,7 +202,8 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
         registeredCanonicalStoreEvent = registeredCanonicalEvent, sharedLane1OwnerMatch = sharedLane1OwnerMatch)
     val p = (if (matchedOwnerProfile) Lane1OwnerBackendProfile.params(sharedLane1OwnerMatch) else historicalParams)
         .copy(directRank1MemorySourceIds = directRank1MemorySourceIds,
-            directRegisteredExecutionOperands = directRegisteredExecutionOperands)
+            directRegisteredExecutionOperands = directRegisteredExecutionOperands,
+            sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch)
     val io = IO(new Bundle {
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))

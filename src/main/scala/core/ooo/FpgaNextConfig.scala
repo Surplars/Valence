@@ -76,7 +76,9 @@ final case class FpgaNextConfig(
     registeredCanonicalStoreEvent: Boolean = false,
     sharedLane1OwnerMatch: Boolean = false,
     directRank1MemorySourceIds: Boolean = false,
-    directRegisteredExecutionOperands: Boolean = false
+    directRegisteredExecutionOperands: Boolean = false,
+    sharedCanonicalStoreOwnerMatch: Boolean = false,
+    localPayloadWriteRow: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -87,6 +89,10 @@ final case class FpgaNextConfig(
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
+    require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
+        "shared canonical-store owner matching requires canonical virtual-store overlap")
+    require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
+        "local payload write rows require line banks and localized upper-bank enables")
     require(!registeredCanonicalStoreEvent || canonicalVirtualStoreOverlap,
         "registered canonical-store events require canonical virtual-store overlap")
     require(!registeredPendingStoreQuery || pendingVirtualStoreProof,
@@ -188,6 +194,8 @@ final case class FpgaNextConfig(
         (if (ddrWriteCollectionFlow) "-ddr-write-collection-flow" else "") +
         (if (lineTransferDispatchFlow) "-line-transfer-dispatch-flow" else "") +
         (if (lineReadChannel) "-line-read-channel" else "") +
+        (if (sharedCanonicalStoreOwnerMatch) "-shared-canonical-store-owner-match" else "") +
+        (if (localPayloadWriteRow) "-local-payload-write-row" else "") +
         (if (localPayloadWriteEnable) "-local-payload-write-enable" else "") +
         (if (ddrOutstanding != 4 || ddrWriteCredits != 2) s"-ddr${ddrOutstanding}w${ddrWriteCredits}" else "") +
         (if (dataTlbWriteReadReuse) "-dtlb-write-read-reuse" else "") +
@@ -222,7 +230,8 @@ final case class FpgaNextConfig(
     val cacheWays = 2
     val ddr = DdrBridgeConfig(maxOutstanding = ddrOutstanding, maxBurstBeats = 16, axiIdWidth = 4,
         maxOutstandingWrites = ddrWriteCredits, unorderedResponses = true, writeCollectionFlow = ddrWriteCollectionFlow,
-        lineReadChannel = lineReadChannel, localPayloadWriteEnable = localPayloadWriteEnable)
+        lineReadChannel = lineReadChannel, localPayloadWriteEnable = localPayloadWriteEnable,
+        localPayloadWriteRow = localPayloadWriteRow)
     val cache = CoherentCacheConcurrency(readMshrs = 2, responseEntries = 2,
         writebackEntries = 2, overlapWritebackRefill = true, nextLinePrefetch = true,
         prefetchCandidateCycles = prefetchCandidateCycles, prefetchBreakOnStore = prefetchBreakOnStore,
@@ -271,6 +280,7 @@ final case class FpgaNextConfig(
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
+        sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -308,6 +318,7 @@ final case class FpgaNextConfig(
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
+        sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -331,7 +342,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands",
+            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
@@ -438,6 +449,8 @@ object FpgaNextConfig {
             lineTransferDispatchFlow = options.contains("--line-transfer-dispatch-flow"),
             lineReadChannel = options.contains("--line-read-channel"),
             localPayloadWriteEnable = options.contains("--local-payload-write-enable"),
+            localPayloadWriteRow = options.contains("--local-payload-write-row"),
+            sharedCanonicalStoreOwnerMatch = options.contains("--shared-canonical-store-owner-match"),
             ddrOutstanding = ddrSlots, ddrWriteCredits = ddrWrites,
             dataTlbWriteReadReuse = options.contains("--dtlb-write-read-reuse"),
             translationHitFlow = options.contains("--translation-hit-flow"),

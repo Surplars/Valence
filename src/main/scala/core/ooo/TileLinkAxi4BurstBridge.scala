@@ -22,8 +22,11 @@ class TileLinkAxi4BurstBridge(
     val axiWindowBytes: BigInt = 0,
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
-    val localPayloadWriteEnable: Boolean = false
+    val localPayloadWriteEnable: Boolean = false,
+    val localPayloadWriteRow: Boolean = false
 ) extends Module {
+    require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
+        "local payload write rows require line banks and localized upper-bank enables")
     require(tlParams.dataWidth == 64 && tlParams.addrWidth >= axiAddressWidth)
     require(tlParams.sizeBits >= 3 && maxBurstBeats >= 2 && maxBurstBeats <= 256 && isPow2(maxBurstBeats))
     require((1 << tlParams.sizeBits) > log2Ceil(maxBurstBeats) + 3,
@@ -297,9 +300,11 @@ class TileLinkAxi4BurstBridge(
         // depends on the new request's acceptance and address-range checks.
         val continuedPayloadWrite = (state === sCollectWrite && io.tl.a.valid && !writeError) ||
             (state === sReadData && io.axi.r.valid)
-        // DATA and row addressing deliberately retain the original expressions.
-        // Only the upper-bank write-enable cone is localized by this option.
-        val row = if (maxBurstBeats == 8) 0.U else payloadWriteIndex >> 3
+        // continuedPayloadWrite implies collection or read state, disjoint from
+        // idle first-Put acceptance. Thus the generic zero override is inactive
+        // whenever these banks write. Localize only their row; keep DATA shared.
+        val row = if (maxBurstBeats == 8) 0.U
+            else if (localPayloadWriteRow) bufferIndex >> 3 else payloadWriteIndex >> 3
         for (i <- 1 until 8) {
             when(continuedPayloadWrite && bufferIndex(2, 0) === i.U) {
                 payloadBanks(i).write(row, payloadWriteData)

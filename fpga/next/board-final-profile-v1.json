@@ -2,15 +2,15 @@
   "schema": "valence-board-final-profile-v1",
   "status": "SOURCE_CONFIG_BOUND_NOT_PHYSICALLY_QUALIFIED",
   "cpu_profile": {
-    "manifest": "timing-batch-zero-cycle-cleanup-profile.json",
-    "sha256": "8b6cd33061229c7334b8e947895a866bb09323824ce84dcae864353aad98daf1",
-    "native_option_count": 50,
-    "published_source_commit": "611ab7a602d66aaa5435a9f2a4699e31146e65be",
-    "published_source_tree": "fe71cf8ee6083503a518314de9dba567d259c007",
-    "qualified_source_tree": "b2dfb60cfb55f227d2860160c42c841e57bf8610"
+    "manifest": "timing-batch-owner-row-profile.json",
+    "sha256": "32063adb7dd598ea5fcd014eee71c02d599139a59bf69287598f780a35d6d923",
+    "native_option_count": 52,
+    "published_base_commit": "3fcfaf6d63b0bfa628f51856644678fcb5639928",
+    "published_base_tree": "fdaad0fbf9d101df8ddfb2f6f8858980753dfcc1",
+    "qualified_source_tree": "6a4d8f4c87a314757e07b1928ce9afe6d5ac3280"
   },
-  "export_profile_sha256": "eb25a0cff0ae1dbbf084da684560e46f51a66dceb55ae53dfc430722ef2b2184",
-  "export_sources_sha256": "490fe75854b3e809c76a1a093da9a69ee2c413f4ea8219508db23557eac2c0cb",
+  "export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
+  "export_sources_sha256": "75990b312b371affabdaa086d30e2a3e72267c158178569aec610a0b5549487d",
   "native_options": [
     "--selected",
     "--data-translation-entries=16",
@@ -62,6 +62,8 @@
     "--direct-rank1-memory-source-ids",
     "--direct-registered-execution-operands",
     "--local-payload-write-enable",
+    "--shared-canonical-store-owner-match",
+    "--local-payload-write-row",
     "--native-mac-local-pad-reset-release"
   ],
   "mode": {
@@ -74,13 +76,13 @@
     "requires_explicit_synthesis_consumer": true,
     "physical_qualification": false
   },
-  "rollback_entry": "Restore complete source at 611ab7a602d66aaa5435a9f2a4699e31146e65be and use its original fpga/next/board_final.py.",
+  "rollback_entry": "Restore the complete source at 3fcfaf6d63b0bfa628f51856644678fcb5639928 and use its original fpga/next/board_final.py. The retained 50-option vector is also available for an explicit new-source OFF configuration, which is not the old source-hash-bound entry.",
   "legacy_board_t1_entry": "fpga/next/board_t1.py",
   "physical_consumer": "Source staged board/native-mac-mode.tcl and explicitly call valence_native_mac_synth_design in a separately authorized physical flow.",
   "physical_qualification": false,
   "qualification_receipt": {
-    "path": "simulator/gsim/zero_cycle_cleanup/evidence/public-receipt.json",
-    "sha256": "7c15b261bc5709123d150c4ce4c2b1afe24d43a5d50fe3f374b104d7e553f9e6",
+    "path": "simulator/gsim/owner_row/evidence/public-receipt.json",
+    "sha256": "9e3012abadb499e753a3c2d7caf7c719049dc012aed5e1cdb442300936b1eada",
     "scope": "RECORDED_FULL_QUALIFICATION_WITH_LOCAL_SOURCE_CONFIG_RECHECK_ONLY"
   }
 }

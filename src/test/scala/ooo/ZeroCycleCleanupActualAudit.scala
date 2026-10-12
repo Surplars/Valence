@@ -19,7 +19,7 @@ object ZeroCycleCleanupActualAudit {
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
         val backend = platform.core.core.core.backend
         val actualCore = platform.core.core.core.p
-        require(actualCore == expected.coreParams && actualCore.productArity == 157)
+        require(actualCore == expected.coreParams && actualCore.productArity == 158)
         require(backend.p.directRegisteredExecutionOperands == expected.directRegisteredExecutionOperands &&
             backend.p.registeredIssueExecute, "actual registered execution operand option differs")
         val wrapper = platform.ddrManagerInstance.getOrElse(

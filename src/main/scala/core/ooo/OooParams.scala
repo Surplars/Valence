@@ -164,7 +164,9 @@ case class OooParams(
     // Experimental removal of the redundant rank-1 owner-masked PRF ID clear.
     directRank1MemorySourceIds: Boolean = false,
     // Experimental removal of memory selects only at registered execution inputs.
-    directRegisteredExecutionOperands: Boolean = false
+    directRegisteredExecutionOperands: Boolean = false,
+    // Reuse the canonical producer's complete indexed owner proof at consumer rows.
+    sharedCanonicalStoreOwnerMatch: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -173,6 +175,8 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
+        "shared canonical-store owner matching requires canonical virtual-store overlap")
     require(!directRegisteredExecutionOperands || registeredIssueExecute,
         "direct registered execution operands require the registered execution boundary")
     require(!directRank1MemorySourceIds || (registeredMemoryAddress && parallelMemoryPreparation &&

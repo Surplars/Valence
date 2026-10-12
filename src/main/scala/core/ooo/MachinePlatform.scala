@@ -755,6 +755,7 @@ class MachinePlatform(
                     writeCollectionFlow = ddrBridge.writeCollectionFlow,
                     lineReadChannel = ddrBridge.lineReadChannel,
                     localPayloadWriteEnable = ddrBridge.localPayloadWriteEnable,
+                    localPayloadWriteRow = ddrBridge.localPayloadWriteRow,
                     axiAddressBase = ramBase, axiWindowBytes = ramBytes))
                 constructedDdrManager = Some(manager)
                 manager.reset := reset.asBool || hold

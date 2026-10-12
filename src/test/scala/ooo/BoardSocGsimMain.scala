@@ -44,7 +44,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     dataTlbWriteReadReuse: Boolean = false, translationHitFlow: Boolean = false,
     configurationCheck: Option[FpgaNextConfig] = None, registeredPmpRegions: Boolean = false, publishedPmpChanges: Boolean = false,
     registeredPendingStoreQuery: Boolean = false, alignedFetchPermissionStage: Boolean = false,
-    registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false) extends Module {
+    registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
+    directRank1MemorySourceIds: Boolean = false, directRegisteredExecutionOperands: Boolean = false,
+    sharedCanonicalStoreOwnerMatch: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
@@ -52,6 +54,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         alignedFetchPermissionStage == configurationCheck.get.coreParams.alignedFetchPermissionStage &&
         registeredCanonicalStoreEvent == configurationCheck.get.coreParams.registeredCanonicalStoreEvent &&
         sharedLane1OwnerMatch == configurationCheck.get.coreParams.sharedLane1OwnerMatch &&
+        directRank1MemorySourceIds == configurationCheck.get.coreParams.directRank1MemorySourceIds &&
+        directRegisteredExecutionOperands == configurationCheck.get.coreParams.directRegisteredExecutionOperands &&
+        sharedCanonicalStoreOwnerMatch == configurationCheck.get.coreParams.sharedCanonicalStoreOwnerMatch &&
         pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
         pendingStoreEarlyLoadCredits == configurationCheck.get.coreParams.pendingStoreEarlyLoadCredits &&
         boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap &&

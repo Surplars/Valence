@@ -25,8 +25,11 @@ class TileLinkAxi4Bridge(
     val unorderedResponses: Boolean = false,
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
-    val localPayloadWriteEnable: Boolean = false
+    val localPayloadWriteEnable: Boolean = false,
+    val localPayloadWriteRow: Boolean = false
 ) extends Module {
+    require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
+        "local payload write rows require line banks and localized upper-bank enables")
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedOutstanding: Option[TileLinkAxi4OutstandingBridge] = None
     def outstandingInstance: Option[TileLinkAxi4OutstandingBridge] = constructedOutstanding
@@ -54,7 +57,7 @@ class TileLinkAxi4Bridge(
         val bridge = Module(new TileLinkAxi4OutstandingBridge(tlParams, axiAddressWidth,
             axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
             maxOutstanding, maxOutstandingWrites, unorderedResponses, writeCollectionFlow, lineReadChannel,
-            localPayloadWriteEnable))
+            localPayloadWriteEnable, localPayloadWriteRow))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
         constructedOutstanding = Some(bridge)

@@ -33,8 +33,11 @@ class TileLinkAxi4OutstandingBridge(
     val unorderedResponses: Boolean = false,
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
-    val localPayloadWriteEnable: Boolean = false
+    val localPayloadWriteEnable: Boolean = false,
+    val localPayloadWriteRow: Boolean = false
 ) extends Module {
+    require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
+        "local payload write rows require line banks and localized upper-bank enables")
     require(maxOutstanding >= 2 && isPow2(maxOutstanding))
     require(maxOutstanding <= (1 << axiIdWidth) && maxOutstanding <= (1 << tlParams.sourceBits))
     val io = IO(new Bundle {
@@ -50,7 +53,7 @@ class TileLinkAxi4OutstandingBridge(
         "independent line reads require the unordered shared RAM scheduler")
     val slots = Seq.fill(maxOutstanding)(Module(new TileLinkAxi4BurstBridge(tlParams,
         axiAddressWidth, axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos,
-        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, localPayloadWriteEnable)))
+        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, localPayloadWriteEnable, localPayloadWriteRow)))
     val slotWidth = log2Ceil(maxOutstanding)
     val head = RegInit(0.U(slotWidth.W))
     val tail = RegInit(0.U(slotWidth.W))

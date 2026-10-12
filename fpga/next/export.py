@@ -46,6 +46,8 @@ def sources():
         "fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json",
         "fpga/next/timing-batch-abc-lane1-prf-profile.json",
         "fpga/next/timing-batch-zero-cycle-cleanup-profile.json",
+        "fpga/next/timing-batch-owner-row-profile.json",
+        "src/test/scala/ooo/OwnerRowActualAudit.scala",
         *media_integration.INPUTS, *bscan_integration.INPUTS, *board_t1.INPUTS)]
     # Blackbox SV/resources are functional source, never omit them from a binding.
     for folder in ("src/main/resources", "fpga/next/rtl"):
@@ -97,7 +99,7 @@ def check_wrapper_ports(wrapper, top):
 
 
 def main(argv=None, expected_profile_sha256=None):
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     ap.add_argument("--output", type=Path, required=True)
     debug = ap.add_mutually_exclusive_group()
     debug.add_argument("--experimental-jtag-stub", action="store_true",
@@ -132,6 +134,10 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off independent coherent-home line reads and aggregate whole-line returns")
     ap.add_argument("--local-payload-write-enable", action="count", default=0,
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
+    ap.add_argument("--local-payload-write-row", action="count", default=0,
+                    help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--shared-canonical-store-owner-match", action="count", default=0,
+                    help="default-off canonical certificate consumer owner-map sharing")
     ap.add_argument("--internal-line-grant", action="count", default=0,
                     help="default-off private whole GrantData transport; original GrantAck responsibility retained")
     ap.add_argument("--concurrent-read-store-prefetch", action="count", default=0,
@@ -331,10 +337,14 @@ def main(argv=None, expected_profile_sha256=None):
     if a.tagged_store_returns > 1:
         ap.error("duplicate --tagged-store-returns flag")
     a.tagged_store_returns = bool(a.tagged_store_returns)
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
+    if a.shared_canonical_store_owner_match and not a.canonical_virtual_store_overlap:
+        ap.error("--shared-canonical-store-owner-match requires --canonical-virtual-store-overlap")
+    if a.local_payload_write_row and not (a.line_read_channel and a.local_payload_write_enable):
+        ap.error("--local-payload-write-row requires --line-read-channel and --local-payload-write-enable")
     if a.registered_canonical_store_event and not a.canonical_virtual_store_overlap:
         ap.error("--registered-canonical-store-event requires --canonical-virtual-store-overlap")
     if a.registered_pending_store_query > 1:
@@ -493,7 +503,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row"):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -729,6 +739,10 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--direct-rank1-memory-source-ids")
     if a.direct_registered_execution_operands:
         command.append("--direct-registered-execution-operands")
+    if a.shared_canonical_store_owner_match:
+        command.append("--shared-canonical-store-owner-match")
+    if a.local_payload_write_row:
+        command.append("--local-payload-write-row")
     if a.bound_head_store_overlap:
         command.append("--bound-head-store-overlap")
     if a.pending_ready_store_bypass:
@@ -759,6 +773,8 @@ def main(argv=None, expected_profile_sha256=None):
             "shared_lane1_owner_match": a.shared_lane1_owner_match,
             "direct_rank1_memory_source_ids": a.direct_rank1_memory_source_ids,
             "direct_registered_execution_operands": a.direct_registered_execution_operands,
+            "shared_canonical_store_owner_match": a.shared_canonical_store_owner_match,
+            "local_payload_write_row": a.local_payload_write_row,
             "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,
             "pending_ready_store_bypass": a.pending_ready_store_bypass,
