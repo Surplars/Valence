@@ -80,26 +80,47 @@ object PlacedTimingProfileBridge {
         "maxOutstanding", "maxBurstBeats", "axiIdWidth", "maxOutstandingWrites",
         "unorderedResponses", "writeCollectionFlow", "lineReadChannel", "localPayloadWriteEnable",
         "localPayloadWriteRow")
-    val profileAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
+    private val profileAdditionsBeforeYoungerLoadSeal = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
         "registerProbeLookup", "localAddressRanges", "memoryPreparationHeadMask", "directRank0MemorySourceIds",
         "fetchReadyDataClear", "retirementSlotIdentity", "localCacheReadSelection",
         "fetchAcceptedPrefixValidation", "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady")
-    val coreAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
+    private val coreAdditionsBeforeYoungerLoadSeal = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
         "memoryPreparationHeadMask", "directRank0MemorySourceIds", "fetchReadyDataClear", "retirementSlotIdentity",
         "fetchAcceptedPrefixValidation", "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady")
     val platformAdditions = Seq("triSpeedRawClockHandoff")
+    val youngerLoadSealField = "postedYoungerLoadSealDeferral"
+    val historicalAProfileNames = publishedProfileNames ++ profileAdditionsBeforeYoungerLoadSeal
+    val historicalACoreNames = publishedCoreNames ++ coreAdditionsBeforeYoungerLoadSeal
+    val profileAdditions = (profileAdditionsBeforeYoungerLoadSeal ++ platformAdditions) :+ youngerLoadSealField
+    val coreAdditions = coreAdditionsBeforeYoungerLoadSeal :+ youngerLoadSealField
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
     def requireShape(c: FpgaNextConfig): Unit = {
-        requireNames(c, publishedProfileNames ++ profileAdditions ++ platformAdditions)
+        requireNames(c, publishedProfileNames ++ profileAdditions)
         requireNames(c.coreParams, publishedCoreNames ++ coreAdditions)
         requireNames(c.cache, cacheNames)
         requireNames(c.ddr, ddrNames)
     }
+    /** Published A's 88/172-field view; every named appended switch must be false. */
+    def historicalAFields(p: Product): Map[String, Any] = {
+        val old = p match {
+            case _: FpgaNextConfig => historicalAProfileNames
+            case _: OooParams => historicalACoreNames
+            case _ => throw new IllegalArgumentException("only exact profile/core products may be projected")
+        }
+        val tail = p match {
+            case _: FpgaNextConfig => platformAdditions :+ youngerLoadSealField
+            case _: OooParams => Seq(youngerLoadSealField)
+        }
+        requireNames(p, old ++ tail)
+        val values = p.productElementNames.zip(p.productIterator).toMap
+        require(tail.forall(n => values(n) == false), "historical A projection requires all named appended fields false")
+        old.map(n => n -> values(n)).toMap
+    }
     def publishedFields(p: Product): Map[String, Any] = {
         val (old, added) = p match {
-            case _: FpgaNextConfig => (publishedProfileNames, profileAdditions ++ platformAdditions)
+            case _: FpgaNextConfig => (publishedProfileNames, profileAdditions)
             case _: OooParams => (publishedCoreNames, coreAdditions)
             case _ => throw new IllegalArgumentException("only named profile/core products may be projected")
         }

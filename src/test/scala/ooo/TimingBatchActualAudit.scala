@@ -17,6 +17,7 @@ object TimingBatchActualAudit {
         }
     }
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
+        PlacedTimingProfileBridge.requireShape(expected)
         val mapped = platform.core
         val machine = mapped.core
         val core = machine.core
@@ -24,7 +25,8 @@ object TimingBatchActualAudit {
         val adapter = mapped.observationTranslation.getOrElse(
             throw new IllegalArgumentException("actual staged data adapter is absent"))
         val actual = core.p
-        require(actual == expected.coreParams, "emitted core differs from the complete requested profile")
+        require(actual == expected.coreParams && backend.p == actual,
+            "emitted core/backend differs from the complete requested profile")
         require(backend.registerCanonicalStoreEvent == actual.registeredCanonicalStoreEvent &&
             adapter.registerCanonicalStoreEvent == actual.registeredCanonicalStoreEvent,
             "actual canonical event producer/backend configuration differs")

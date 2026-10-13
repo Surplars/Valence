@@ -1,0 +1,57 @@
+{
+  "schema": "young-load-seal-copy-build-contract-v1",
+  "cxx_flags": [
+    "-std=c++20",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-DDDR_MODEL=1",
+    "-DDDR_MULTI_ID_MODEL=1",
+    "-DDDR_BENCHMARK_MODEL=1",
+    "-DBOARD_CPU_HZ=100000000",
+    "-DBOARD_UART_BAUD=460800",
+    "-DUART_DIVISOR=1",
+    "-DBOARD_DDR_BYTES=2147483648ULL",
+    "-DDDR_READ_CREDITS=8",
+    "-DDDR_READ_LATENCY=32",
+    "-DDDR_READ_BEAT_GAP=1",
+    "-DBOARD_CYCLE_LIMIT=2600000ULL",
+    "-DBOARD_EXPECTED_LSU_ENTRIES=4",
+    "-DREAD_PREFETCH_DIRTY_RETRY=1",
+    "-DREAD_PREFETCH_DEMAND_ADOPTION=1",
+    "-DREAD_PREFETCH_BEHIND_STORE=1",
+    "-DDURABLE_READ_PREFETCH_CANDIDATE=1",
+    "-DTAGGED_STORE_RETURNS=1",
+    "-DCONCURRENT_READ_STORE_PREFETCH=1",
+    "-DMEMORY_SCHEDULE_OVERLAP=1"
+  ],
+  "include_directories": [
+    "host",
+    "host/harness",
+    "guest",
+    "<matching-model-directory>"
+  ],
+  "translation_unit": "host/cpu_passive_bandwidth.cpp",
+  "model_objects": "36 original matching model object files; no DUT rebuild implied",
+  "runtime_arguments": {
+    "sv39": [
+      "guest/guest.bin",
+      "1",
+      "2",
+      "65536",
+      "2"
+    ],
+    "bare": [
+      "guest/guest.bin",
+      "0",
+      "2",
+      "65536",
+      "2"
+    ]
+  },
+  "working_directory": "a fresh directory for each run; host writes AXI/supply TSVs",
+  "service_law_changed": false,
+  "original_105_fields_required": true,
+  "new_cpu_models_generated_by_integration": 0
+}

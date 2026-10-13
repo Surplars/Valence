@@ -15,7 +15,7 @@ private[ooo] object MacRawHandoffEntry {
     require(!off.triSpeedRawClockHandoff && on.triSpeedRawClockHandoff)
     require(on.copy(triSpeedRawClockHandoff = false) == off,
         "only the named MAC platform field may differ from A")
-    require(on.productArity == 89 && on.coreParams.productArity == 172)
+    require(on.productArity == 90 && on.coreParams.productArity == 173)
     val originalPath = NearTermAProfile.root.resolve("fpga/next/near-term-a-before-mac-platform.json")
     val originalBytes = Files.readAllBytes(originalPath)
     require(java.security.MessageDigest.getInstance("SHA-256").digest(originalBytes)
@@ -23,7 +23,8 @@ private[ooo] object MacRawHandoffEntry {
     val offFields = off.productElementNames.zip(off.productIterator).toMap
     require(offFields("triSpeedRawClockHandoff") == false)
     val originalOff = PostedBoardConfiguration.document(off) +
-        ("profile" -> (offFields - "triSpeedRawClockHandoff"))
+        ("profile" -> PlacedTimingProfileBridge.historicalAFields(off)) +
+        ("core" -> PlacedTimingProfileBridge.historicalAFields(off.coreParams))
     require(PostedBoardConfiguration.json(originalOff) == new String(originalBytes, "UTF-8").trim,
         "all original 88 A profile and 172 core fields must be byte-equivalent when platform OFF")
     require(on.coreParams == off.coreParams && on.cache == off.cache && on.ddr == off.ddr &&
@@ -55,7 +56,7 @@ object MacRawHandoffEntryAudit {
             }
         }
         val core = board.platform.core.core.core
-        require(core.p == expected.coreParams && core.p.productArity == 172,
+        require(core.p == expected.coreParams && core.p.productArity == 173,
             "actual complete CPU constructor changed under the platform extension")
         Map("schema" -> "actual-mac-raw-handoff-platform-v1", "scope" -> "actual-constructor-only",
             "triSpeedRawClockHandoff" -> expected.triSpeedRawClockHandoff,
@@ -87,10 +88,10 @@ object MacRawHandoffProfileMain extends App {
 }
 
 class MacRawHandoffEntrySpec extends AnyFunSuite {
-    test("MAC handoff changes one platform field and zero of 172 core fields") {
+    test("MAC handoff changes one platform field and zero of 173 core fields") {
         assert(MacRawHandoffEntry.on.copy(triSpeedRawClockHandoff = false) == MacRawHandoffEntry.off)
         assert(MacRawHandoffEntry.on.coreParams == MacRawHandoffEntry.off.coreParams)
-        assert(MacRawHandoffEntry.off.productElementNames.toSeq.last == "triSpeedRawClockHandoff")
+        assert(MacRawHandoffEntry.off.productElementNames.toSeq.takeRight(2) == Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral"))
         assert(!FpgaNextConfig.Selected.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Candidate.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Reference.triSpeedRawClockHandoff)

@@ -6,7 +6,7 @@ import soc.core.ooo.FpgaNextConfig
 /** The constructor-only reporter accepts the exact native export option universe. */
 private[ooo] object FpgaNextProfileOptions {
     val allowed: Set[String] = Set("--tri-speed-raw-clock-handoff", "--rob-entries=16", "--rob-entries=32", "--rob-entries=64",
-            "--registered-pmp-regions", "--published-pmp-changes", "--ddr-write-collection-flow",
+            "--posted-younger-load-seal-deferral", "--registered-pmp-regions", "--published-pmp-changes", "--ddr-write-collection-flow",
             "--line-transfer-dispatch-flow", "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation",
             "--line-read-channel", "--local-payload-write-enable", "--split-prefetch-tracking", "--read-prefetch-dirty-retry", "--read-prefetch-demand-adoption", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",

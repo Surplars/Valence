@@ -1,0 +1,90 @@
+{
+  "schema": "young-load-seal-portable-host-closure-v1",
+  "original_host_freeze_sha256": "fedc836c41f4029a3e7e61f1b7e4639cdc7e8c8aa2b91b71f462ec3e972a2687",
+  "files": {
+    "host/adoption_ledger.h": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e",
+    "host/cpu_passive_bandwidth.cpp": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c",
+    "host/harness/board_boot.cpp": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+    "host/harness/board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "host/harness/cpu_lsu_occupancy.h": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+    "host/harness/fabric_idle_service.h": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+    "host/harness/mshr_occupancy.h": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+    "host/harness/performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "host/ledger_negative.cpp": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+    "host/passive_negative.cpp": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+    "host/passive_supply.h": "a7dfde89dd97eff211e9a42c3c37e555e705fb768ca74da0bda935ad12b4f2fd",
+    "host/posted_join_observation.h": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af",
+    "host/production_probe.h": "dd31b178c82cb8460315fcabb8f197a4f580b9683080083cecedffd6e6849b49",
+    "host/supply_ledger.h": "4ccc2842f92fbf1d3668c7eec1dd03492ecc1fa0b69a9c8ba4b9890c6b7a8bf0",
+    "host/tagged_board_oracle.h": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51",
+    "host/tagged_board_probe.h": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269",
+    "host/tagged_getter_guard.cpp": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129",
+    "host/tagged_return_negative.cpp": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa",
+    "guest/guest.bin": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94",
+    "guest/cpu_sv39_symbols.h": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d"
+  },
+  "changed_from_original_17_hosts": [
+    {
+      "path": "adoption_ledger.h",
+      "old": "93e7de6d98cc816c7ccebf19e86ff82d46a7f66d9206d469ba009fa23a12ddcf",
+      "new": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e"
+    },
+    {
+      "path": "posted_join_observation.h",
+      "old": null,
+      "new": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af"
+    },
+    {
+      "path": "supply_ledger.h",
+      "old": "91722db9a3b44a6fd8cea33c146b0bb7225830fdd09057faa2c8d3dc912f64a7",
+      "new": "4ccc2842f92fbf1d3668c7eec1dd03492ecc1fa0b69a9c8ba4b9890c6b7a8bf0"
+    }
+  ],
+  "original_host_count": 17,
+  "corrected_host_count": 18,
+  "host_only_patch_sha256": "aea34dca0409d2a2791cd9afc0675e32159e9fe2ea1bc86e8cc02b8b4d608ee5",
+  "negative_controls": [
+    {
+      "environment": {
+        "POSTED_JOIN_OBSERVATION_INJECT": "missing-newline"
+      },
+      "expected_exit": "nonzero",
+      "expected_anchor": "posted newLine observation names an already live context",
+      "trigger": "first real posted.accepted && !accepted.newLine in actual ON Bare COPY"
+    },
+    {
+      "environment": {
+        "POSTED_JOIN_OBSERVATION_INJECT": "wrong-cohort"
+      },
+      "expected_exit": "nonzero",
+      "expected_anchor": "posted join has no original bound line allocation",
+      "trigger": "first real posted.accepted && !accepted.newLine in actual ON Bare COPY"
+    },
+    {
+      "environment": {
+        "POSTED_JOIN_OBSERVATION_INJECT": "wrong-slot"
+      },
+      "expected_exit": "nonzero",
+      "expected_anchor": "posted join has no original bound line allocation",
+      "trigger": "first real posted.accepted && !accepted.newLine in actual ON Bare COPY"
+    },
+    {
+      "environment": {
+        "POSTED_JOIN_OBSERVATION_INJECT": "fake-join"
+      },
+      "expected_exit": "nonzero",
+      "expected_anchor": "posted join has no original bound line allocation",
+      "trigger": "first real posted.accepted && accepted.newLine in actual CPU workload"
+    }
+  ],
+  "original_copy_failure_preserved": true,
+  "original_failure": "ledger retired owner lacks refill/install completion",
+  "production_observation_pulse_changed": false,
+  "next_edge_scope": "pre-edge free slots stay free absent separately genuine PF allocation; original joined owner full context/serial, seven pending fields and full reservation unchanged; unrelated existing owners may retire; phase may advance; byteValid is not checked here",
+  "original_elf_sha256_not_shipped": "ad57f1649258e8d7f741fbe72c4e85b2c7b31b81c89a348dab2589c664c9d356",
+  "guest_source_paths": [
+    "simulator/gsim/payloads/cpu_sv39_bandwidth.S",
+    "simulator/gsim/payloads/cpu_hot_bandwidth.ld"
+  ],
+  "guest_generator_reference": "simulator/gsim/bound_store_prefetch_cpu.py"
+}

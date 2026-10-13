@@ -37,15 +37,8 @@ def load_profile():
     if profile['physical_option_count'] != 2 or any(profile[n] is not False for n in
             ('full_cpu_qualification', 'physical_qualification', 'historical_certificate_reused')):
         raise RuntimeError('CPU and physical option/qualification domains differ')
-    leaves = profile['production_leaf_sha256']
-    if not leaves:
-        raise RuntimeError('unfrozen near-term A production leaves')
-    changed = load_module('a_mac_platform_source_bridge', HERE / 'mac_platform_source_bridge.py').checked_sources()
-    for name, digest in leaves.items():
-        path = Path(name)
-        expected = changed[name]['new_sha256'] if name in changed else digest
-        if path.is_absolute() or '..' in path.parts or hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != expected:
-            raise RuntimeError('near-term A production leaf differs: ' + name)
+    bridge = load_module('near_term_a_source_bridge', HERE / 'young_load_seal_source_bridge.py')
+    bridge.validate_legacy_sources(ROOT, MANIFEST, profile, options)
     return profile
 
 

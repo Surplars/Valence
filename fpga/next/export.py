@@ -308,6 +308,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off prefetch in empty posted-work windows")
     ap.add_argument("--posted-store-merge", action="store_true",
                     help="default-off physical committed-store merge candidate")
+    ap.add_argument("--posted-younger-load-seal-deferral", action="count", default=0,
+                    help="default-off younger-load posted-seal deferral; requires posted stores without a proof frontier")
     ap.add_argument("--dma-line-transfers", action="store_true", help="experimental coherent 64-byte memory-copy DMA")
     ap.add_argument("--dma-line-entries", type=int, choices=(1, 2, 4, 8), default=1)
     ap.add_argument("--ddr-outstanding", type=int, choices=(4, 8), action="append")
@@ -500,6 +502,11 @@ def main(argv=None, expected_profile_sha256=None):
         ap.error("--memory-proof-frontier requires reviewed ROB64/PRF64/LSU4, DTLB16, virtual precheck, canonical overlap and older-load retirement")
     if a.canonical_virtual_store_overlap and not a.virtual_ram_load_precheck:
         ap.error("--canonical-virtual-store-overlap requires --virtual-ram-load-precheck")
+    if a.posted_younger_load_seal_deferral > 1:
+        ap.error("duplicate --posted-younger-load-seal-deferral flag")
+    a.posted_younger_load_seal_deferral = bool(a.posted_younger_load_seal_deferral)
+    if a.posted_younger_load_seal_deferral and not (a.posted_store_merge and not a.memory_proof_frontier):
+        ap.error("--posted-younger-load-seal-deferral requires --posted-store-merge without --memory-proof-frontier")
     if a.posted_preparation_priority and not (a.prepared_store_lookahead and a.posted_store_merge):
         ap.error("--posted-preparation-priority requires --prepared-store-lookahead and --posted-store-merge")
     if a.posted_prefetch_head_offer and not (a.posted_store_merge and a.posted_prefetch_coexistence):
@@ -735,6 +742,11 @@ def main(argv=None, expected_profile_sha256=None):
     profile["profile"]["jtag_backend"] = "bscan-user-v1" if a.experimental_jtag_bscan else "standalone-dtm"
     profile["profile"]["bscan_chain"] = a.experimental_jtag_bscan
     profile["profile"]["debug_module_implemented"] = False
+    # Preserve historical native manifests when the appended experiment is omitted.
+    # Actual Scala profile/core reports always retain the explicit Boolean field.
+    if a.posted_younger_load_seal_deferral:
+        profile["profile"]["posted_younger_load_seal_deferral"] = True
+        profile["profile"]["name"] += "-posted-younger-load-seal-deferral"
     if expected_profile_sha256 is not None:
         digest = hashlib.sha256(json.dumps(profile["profile"], sort_keys=True,
             separators=(",", ":")).encode()).hexdigest()
@@ -913,6 +925,8 @@ def main(argv=None, expected_profile_sha256=None):
     for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
         if getattr(a, field):
             command.append("--" + field.replace("_", "-"))
+    if a.posted_younger_load_seal_deferral:
+        command.append("--posted-younger-load-seal-deferral")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),
@@ -948,6 +962,7 @@ def main(argv=None, expected_profile_sha256=None):
             "pending_store_early_load_credits": a.pending_store_early_load_credits,
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
+            "posted_younger_load_seal_deferral": a.posted_younger_load_seal_deferral,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": a.posted_prefetch_head_offer,
             "native_mac_mode": native_mac_mode,

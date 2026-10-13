@@ -1,0 +1,224 @@
+--- original/supply_ledger.h
++++ proposal/supply_ledger.h
+@@ -6,6 +6,7 @@
+ #include "passive_supply.h"
+ #include "production_probe.h"
+ #include "adoption_ledger.h"
++#include "posted_join_observation.h"
+ #include <fstream>
+ #include <algorithm>
+ #include <vector>
+@@ -15,6 +16,7 @@
+ struct SupplyLedger {
+     PassiveSupply base;
+     AdoptionLedger adoption;
++    PostedJoinObservation postedJoin;
+     std::ofstream raw{"supply-events.tsv"}, axi{"axi-events.tsv"};
+     struct Owner { bool live=false,pf=false,store=false; uint64_t seq=0,pa=0,born=0; bool completed=false,postedBound=false,installed=false; unsigned postedSlot=0,rootSlot=0; uint64_t generation=0,rootGeneration=0,epoch=0; };
+     struct Wb { bool live=false,pf=false,store=false; uint64_t seq=0,pa=0,target=0,born=0,ownerSeq=0; unsigned mshr=0; };
+@@ -152,6 +154,8 @@
+             else {if(owners[i].live)retired(i);owners[i].live=false;}
+             if(PC(phase)[i]&&PC(postedMshr)[i])bindPosted(i,PC(postedContext$$lineAddress)[i],PC(postedContext$$owner$$slot)[i],PC(postedContext$$owner$$generation)[i],PC(postedContext$$cohortRoot$$slot)[i],PC(postedContext$$cohortRoot$$generation)[i],PC(postedContext$$epoch)[i]);
+         }
++        const bool verifiedPostedJoin=postedJoin.before(d,s,*this,region,cycle);
++        const bool demandAllocation=PF(demandAlloc)&&!verifiedPostedJoin;
+         if(PC(evictionRetiring)){unsigned i=PC(_ackIndex_T);require(wb[i].live&&PC(wbSent)[i],"ledger ACK lacks sent WB owner");auto x=wb[i];event("WB_ACK",cycle,region,i,x.seq,x.pa,x.pf,x.store,x.target,x.ownerSeq,cycle-x.born);wb[i].live=false;++acks[region];}
+         if(PF(wbCapture)){unsigned i=PF(wbCaptureSlot),m=PF(wbCaptureMshr);bool pf=PF(wbCapturePrefetch);require(i<2&&m<2&&!wb[i].live,"ledger WB capture live reuse");
+             Wb x;x.live=true;x.pf=pf;x.pa=PF(wbCaptureAddress);x.born=cycle;x.seq=++wbSerial;x.mshr=m;
+@@ -180,10 +184,11 @@
+         for(unsigned store=0;store<2;++store)if(store?PF(storeTokenConsume):PF(readTokenConsume)){
+             requireAccepted(s);require(store?PF(storeTokenValid):PF(readTokenValid),"ledger consume invalid token");event("CONSUME",cycle,region,store,store?PF(storeTokenAddress):PF(readTokenAddress),*s.pa,*s.meta);
+         }
+-        if(PF(allocated)||PF(demandAlloc)){
++        if(PF(allocated)||demandAllocation){
+             bool pf=PF(allocated);if(!pf)requireAccepted(s);require(!(pf&&PF(demandAlloc)),"ledger double allocation");unsigned i=pf?PF(allocatedSlot):PF(demandAllocSlot);require(i<2&&!owners[i].live,"ledger allocation live MSHR reuse");
+             Owner x;x.live=true;x.pf=pf;x.store=pf?bool(PF(allocatedStore)):bool(*s.meta&1);x.pa=(pf?PF(allocatedAddress):PF(demandAllocAddress))&~63ULL;x.born=cycle;x.seq=++serial;owners[i]=x;++allocs[region];event("ALLOC_DETAIL",cycle,region,x.seq,x.pa,pf?PF(allocatedIndex):PC(index));event("ALLOC",cycle,region,i,x.seq,x.pa,x.pf,x.store);
+         }
++        postedJoin.after(d,*this,region,cycle,verifiedPostedJoin);
+         // Resolve the previous accepted-read retry against the next cycle's
+         // unmodified state. This is feasibility, not an alternative execution.
+         for(auto it=retry.begin();it!=retry.end();){auto g=guard(d,it->target,false);bool otherwise=(g.mask&~(1U<<17))==0;
+@@ -209,7 +214,7 @@
+         }
+         if(s.candidate){require(s.reqFire&&s.pa.has_value(),"ledger candidate lacks accepted address");uint64_t target=(*s.pa&~63ULL)+64;event("CANDIDATE",cycle,region,target,PF(candidateStore),*s.pa);}
+         if(s.aValid)event("HOME_A",cycle,region,*s.aPa,probe.aSource(),*s.aFire);
+-        adoption.sample(d,mem,s,*this,region,cycle);
++        adoption.sample(d,mem,s,*this,region,cycle,verifiedPostedJoin);
+     }
+     void finish(uint64_t expectedCycles,uint64_t tail) {
+         require(cycles[1]==expectedCycles&&cycles[2]==tail,"ledger ROI/tail cycle boundaries");
+@@ -223,6 +228,7 @@
+         }
+         require(aa==ff+pp&&pp==pi&&cc==kk&&rr==re&&ww==we&&wa==bb,"ledger transaction conservation");
+         std::cout<<"LEDGER_PASS guard_checks="<<guardChecks<<" blocks="<<blockSerial<<" same_reads="<<retrySerial<<" axi_events="<<axiEvents<<" axi_fnv64="<<axiHash<<"\n";
++        postedJoin.finish();
+         adoption.finish();
+         raw.close();axi.close();
+     }
+--- original/adoption_ledger.h
++++ proposal/adoption_ledger.h
+@@ -78,7 +78,7 @@
+             "adoption actual CPU response missing/duplicate/early/wrong payload binding");
+         a.responded=true;a.responseCycle=cycle;++attachResponses;
+     }
+-    template<class D,class Mem,class L> void sample(D &d,Mem &mem,const PassiveSupply::Sample &s,L &l,unsigned region,uint64_t cycle) {
++    template<class D,class Mem,class L> void sample(D &d,Mem &mem,const PassiveSupply::Sample &s,L &l,unsigned region,uint64_t cycle,bool verifiedPostedJoin=false) {
+         const unsigned live=AD_PF(mshrLiveMask),attached=AD_PF(mshrDemandAttachedMask),known=AD_PF(mshrKnownErrorMask);
+         require(!(live&~3U)&&!(attached&~3U)&&!(known&~3U),"adoption B MSHR mask range");
+         // Payload arrays are indexed only by a live owner. Stale prefetch bits
+@@ -133,7 +133,7 @@
+             event(l,"ACQUIRE_REFILL",cycle,region,i,flights[i].serial,address,flights[i].pf,flights[i].store,flights[i].attach,tag.lo,tag.hi,AD_PF(refillError));
+             if(isAttached)event(l,"ATTACH_REFILL",cycle,region,flights[i].attach,i,flights[i].serial,address,ticket,tag.lo,tag.hi,AD_PF(refillError));
+         }
+-        if(AD_PF(allocated)||AD_PF(demandAlloc)){
++        if(AD_PF(allocated)||(AD_PF(demandAlloc)&&!verifiedPostedJoin)){
+             const bool pf=AD_PF(allocated);unsigned i=pf?AD_PF(allocatedSlot):AD_PF(demandAllocSlot);uint64_t pa=(pf?AD_PF(allocatedAddress):AD_PF(demandAllocAddress))&~63ULL;
+             allocated(i,++serial,pa,pf,pf?bool(AD_PF(allocatedStore)):bool(s.meta.value_or(0)&1),cycle);
+             require(i<2&&l.owners[i].seq==flights[i].serial,"adoption/supply allocation generation disagreement");
+--- /dev/null
++++ proposal/posted_join_observation.h
+@@ -0,0 +1,144 @@
++#pragma once
++#include <array>
++#include <cstdlib>
++#include <map>
++#include <string>
++#include <utility>
++#include <vector>
++
++// Host-only classification of an actual additional posted member. No DUT writes.
++// A legacy demandAlloc pulse on this event does not allocate a second MSHR.
++struct PostedJoinObservation {
++    using Token=std::pair<unsigned,uint64_t>;
++    using Context=std::array<uint64_t,7>; // slot, generation, root, rootGeneration, epoch, line, MSHR
++    using Reservation=std::array<uint64_t,6>; // MSHR, set, way, victimValid, victimDirty, victimAddress
++    using Pending=std::array<uint64_t,7>; // atomic, address, write, data, mask, virtualized, uncached
++    struct Origin {uint64_t pa=0,data=0;unsigned size=0;bool physicalHead=false;};
++    struct Member {Context c{};unsigned ticket=0;bool acked=false,join=false;};
++    struct Line {Reservation reservation{};uint64_t ownerSerial=0,accepted=0,acked=0,drained=0;bool bound=false;};
++    struct Edge {bool valid=false;unsigned freeMask=0,realAllocMask=0;Context c{};Pending pending{};uint64_t serial=0;};
++    struct Acceptance {bool valid=false,newLine=false;Token token{};Context c{};unsigned ticket=0;};
++    std::map<Token,Origin> starts;
++    std::map<Token,Member> members;
++    std::map<Context,Line> lines;
++    std::vector<Context> pendingReservations;
++    Edge edge;Acceptance acceptance;
++    uint64_t accepted=0,acked=0,drained=0,joins=0,joinAcks=0,joinDrains=0;
++    std::string injection=std::getenv("POSTED_JOIN_OBSERVATION_INJECT")?std::getenv("POSTED_JOIN_OBSERVATION_INJECT"):"";
++    bool injected=false;
++    static void require(bool v,const char*s){PassiveSupply::require(v,s);}
++    template<class D> static Context context(D&d,unsigned slot){
++#define JP(x) d.board$platform$privateCache$posted$##x
++        require(slot<2&&JP(live)[slot],"posted member context owner is not live");
++        return {JP(contexts$$owner$$slot)[slot],JP(contexts$$owner$$generation)[slot],JP(contexts$$cohortRoot$$slot)[slot],JP(contexts$$cohortRoot$$generation)[slot],JP(contexts$$epoch)[slot],JP(contexts$$lineAddress)[slot],JP(reservations$$mshr)[slot]};
++    }
++    template<class D> static Reservation reservation(D&d,unsigned slot){
++        require(slot<2&&JP(live)[slot],"posted member reservation owner is not live");
++        return {JP(reservations$$mshr)[slot],JP(reservations$$set)[slot],JP(reservations$$way)[slot],JP(reservations$$victimValid)[slot],JP(reservations$$victimDirty)[slot],JP(reservations$$victimAddress)[slot]};
++    }
++    template<class D> static Pending pending(D&d,unsigned i){
++#define JC(x) d.board$platform$privateCache$##x
++        require(i<2,"posted pending MSHR index");
++        return {JC(pending$$atomic)[i],JC(pending$$address)[i],JC(pending$$write)[i],JC(pending$$data)[i],JC(pending$$mask)[i],JC(pending$$virtualized)[i],JC(pending$$uncached)[i]};
++    }
++    template<class D,class L> static void matchLiveAllocation(D&d,L&l,const Context&c,const Reservation&r){
++        const unsigned slot=c[0],i=c[6];
++        require(slot<2&&i<2&&context(d,slot)==c&&reservation(d,slot)==r,"posted join changed full context/reservation");
++        require(JC(phase)[i]&&JC(postedMshr)[i]&&!JC(prefetchOwner)[i]&&(JC(pending$$address)[i]&~63ULL)==c[5],"posted join lacks original real live MSHR/full PA");
++        require(JC(postedContext$$owner$$slot)[i]==c[0]&&JC(postedContext$$owner$$generation)[i]==c[1]&&JC(postedContext$$cohortRoot$$slot)[i]==c[2]&&JC(postedContext$$cohortRoot$$generation)[i]==c[3]&&JC(postedContext$$epoch)[i]==c[4]&&JC(postedContext$$lineAddress)[i]==c[5],"posted join cache/MSHR full context differs");
++        Reservation cache{JC(postedReservation$$mshr)[i],JC(postedReservation$$set)[i],JC(postedReservation$$way)[i],JC(postedReservation$$victimValid)[i],JC(postedReservation$$victimDirty)[i],JC(postedReservation$$victimAddress)[i]};
++        require(cache==r&&JC(pendingIndex)[i]==r[1]+256*r[2],"posted join cache/MSHR reservation differs");
++        l.bindPosted(i,c[5],c[0],c[1],c[2],c[3],c[4]);
++        require(l.owners[i].live&&!l.owners[i].pf&&!l.owners[i].completed&&!l.owners[i].installed,"posted join names completed/non-demand owner");
++    }
++    // Called after SupplyLedger reconciles current owners, before its allocation
++    // decision. Only this full validation may produce the shared join boolean.
++    template<class D,class L> bool before(D&d,const PassiveSupply::Sample&s,L&l,unsigned region,uint64_t cycle){
++#define JT(x) d.get_cpuTagged$$##x()
++#define JF(x) d.get_cpuSupplyPrefetch$$##x()
++#define JA(x) d.board$platform$core$adapter$##x
++        acceptance={};
++        if(edge.valid){
++            unsigned live=unsigned(bool(JC(phase)[0]))|(unsigned(bool(JC(phase)[1]))<<1);
++            require(!(live&edge.freeMask&~edge.realAllocMask),"posted join fabricated a next-edge MSHR allocation");
++            require(context(d,edge.c[0])==edge.c&&l.owners[edge.c[6]].live&&l.owners[edge.c[6]].seq==edge.serial,"posted join replaced its original MSHR on next edge");
++            require(pending(d,edge.c[6])==edge.pending&&reservation(d,edge.c[0])==lines.at(edge.c).reservation,"posted join changed original pending payload/reservation on next edge");
++            edge.valid=false;
++        }
++        for(const auto&c:pendingReservations){auto&r=lines.at(c);r.reservation=reservation(d,c[0]);matchLiveAllocation(d,l,c,r.reservation);require(l.owners[c[6]].seq==r.ownerSerial,"posted newLine lost original allocation serial");r.bound=true;}
++        pendingReservations.clear();
++        if(JT(startValid)&&(JT(startFlags)&1)){
++            Token t{unsigned(d.get_backendStartIndex()),d.get_backendStartTag()};
++            Origin o{JT(startVa),JT(startData),unsigned(JT(startSize)),!(JT(startFlags)&6)&&t==Token{unsigned(d.get_backendHeadIndex()),d.get_backendHeadTag()}};
++            require(starts.emplace(t,o).second,"posted observer duplicate full-token store start");
++        }
++        if(JP(io$$acknowledged$$valid)){
++            Token t{unsigned(JP(io$$acknowledged$$bits$$token$$index)),JP(io$$acknowledged$$bits$$token$$tag)};
++            require(JT(cacheReply$$valid)&&JT(cacheReply$$ready)&&members.contains(t),"posted member ACK lacks actual cache response/member");auto&m=members.at(t);
++            Context c{JP(io$$acknowledged$$bits$$context$$owner$$slot),JP(io$$acknowledged$$bits$$context$$owner$$generation),JP(io$$acknowledged$$bits$$context$$cohortRoot$$slot),JP(io$$acknowledged$$bits$$context$$cohortRoot$$generation),JP(io$$acknowledged$$bits$$context$$epoch),JP(io$$acknowledged$$bits$$context$$lineAddress),m.c[6]};
++            require(!m.acked&&m.c==c&&m.ticket==JP(io$$acknowledged$$bits$$responseTicket)&&context(d,c[0])==c&&lines.at(c).bound&&reservation(d,c[0])==lines.at(c).reservation,"posted member ACK changed original full identity/ticket");
++            m.acked=true;++acked;++lines.at(c).acked;if(m.join){++joinAcks;l.event("POSTED_JOIN_ACK",cycle,region,t.first,t.second,c[0],c[1],c[2],c[3],c[4],c[5],c[6],m.ticket);}
++        }
++        if(JP(_io_drained_valid_T_8)){
++            unsigned h=JP(head);require(h<16,"posted member drain FIFO index");Token t{unsigned(JP(members$$token$$index)[h]),JP(members$$token$$tag)[h]};
++            require(members.contains(t),"posted member drain has no acceptance");const auto m=members.at(t);
++            Context c{JP(members$$context$$owner$$slot)[h],JP(members$$context$$owner$$generation)[h],JP(members$$context$$cohortRoot$$slot)[h],JP(members$$context$$cohortRoot$$generation)[h],JP(members$$context$$epoch)[h],JP(members$$context$$lineAddress)[h],m.c[6]};
++            require(m.acked&&m.c==c&&m.ticket==JP(members$$responseTicket)[h]&&context(d,c[0])==c&&JP(installed)[c[0]]&&reservation(d,c[0])==lines.at(c).reservation,"posted member drain lacks original ACK/install/reservation");
++            ++drained;++lines.at(c).drained;if(m.join){++joinDrains;l.event("POSTED_JOIN_DRAIN",cycle,region,t.first,t.second,c[0],c[1],c[2],c[3],c[4],c[5],c[6],m.ticket);}members.erase(t);
++        }
++        if(JP(_io_released_valid_T_8)){
++            auto c=context(d,JP(oldest));require(lines.contains(c),"posted release has no original accepted line");const auto&x=lines.at(c);
++            require(x.bound&&x.accepted==x.acked&&x.acked==x.drained&&reservation(d,c[0])==x.reservation,"posted release lost complete original members/reservation");lines.erase(c);
++        }
++        if(!JP(accepted))return false;
++        require(JT(cache$$valid)&&JT(cache$$ready)&&JT(cachePostedIntent)&&s.cacheFire&&s.reqFire&&s.pa&&s.meta&&(*s.meta&1),"posted acceptance lacks actual enq/cache/physical fire");
++        Acceptance a;a.valid=true;a.newLine=JP(_io_accepted_bits_newLine_T);a.token={unsigned(JA(checked_checked$head$$postedProof$$bits$$token$$index)),JA(checked_checked$head$$postedProof$$bits$$token$$tag)};
++        a.c={JP(_io_admission_T$$owner$$slot),JP(_io_admission_T$$owner$$generation),JP(_io_admission_T$$cohortRoot$$slot),JP(_io_admission_T$$cohortRoot$$generation),JP(_io_admission_T$$epoch),JP(_io_admission_T$$lineAddress),JP(_io_accepted_bits_reservation_T$$mshr)};a.ticket=JC(responseAllocation);
++        require(starts.contains(a.token)&&!members.contains(a.token)&&a.ticket<2&&!(JF(responseOwnedMask)&(1U<<a.ticket)),"posted member lacks unique started token/response credit");const auto&o=starts.at(a.token);
++        require(o.physicalHead&&o.pa==JT(cache$$address)&&o.pa==*s.pa&&o.data==JT(cache$$data)&&o.size==JT(cache$$size)&&JT(cache$$write)&&(o.pa&~63ULL)==a.c[5],"posted member proof detached from actual full-token head store payload");
++        // Negative controls alter only the sampled host record, and only on a
++        // genuine reachable join; no DUT input or timing law is changed.
++        if(!injected&&injection=="fake-join"&&a.newLine){a.newLine=false;injected=true;}
++        else if(!a.newLine&&!injection.empty()&&!injected){
++            if(injection=="missing-newline")a.newLine=true;
++            else if(injection=="wrong-cohort")a.c[3]^=1ULL<<63;
++            else if(injection=="wrong-slot")a.c[0]^=1;
++            else require(false,"unknown posted join observation injection");injected=true;
++        }
++        require(a.c[0]<2&&a.c[6]<2,"posted accepted context slot range");
++        if(a.newLine){
++            require(!JP(live)[a.c[0]]&&!lines.contains(a.c),"posted newLine observation names an already live context");
++            require(JF(demandAlloc)&&!JF(demandAttach)&&!JF(allocated)&&JF(demandAllocSlot)==a.c[6]&&JC(freeMshr)==a.c[6]&&!JC(phase)[a.c[6]]&&!l.owners[a.c[6]].live&&(JF(demandAllocAddress)&~63ULL)==a.c[5],"posted newLine lacks actual raw allocation/free reserved MSHR");
++            acceptance=a;return false;
++        }
++        require(JF(demandAlloc)&&!JF(demandAttach)&&JF(demandAllocAddress)==*s.pa,"posted join does not match legacy allocation observation pulse");
++        require(lines.contains(a.c)&&lines.at(a.c).bound,"posted join has no original bound line allocation");auto&line=lines.at(a.c);
++        matchLiveAllocation(d,l,a.c,line.reservation);
++        require(l.owners[a.c[6]].seq==line.ownerSerial&&!JP(sealedRun)[a.c[0]]&&!JP(refilled)[a.c[0]]&&!JP(installed)[a.c[0]]&&!(JC(_posted_io_refill_valid_T)&&JP(io$$refill$$bits$$context$$owner$$slot)==a.c[0]),"posted join crossed original allocation/refill/seal boundary");
++        acceptance=a;edge.valid=true;edge.c=a.c;edge.serial=line.ownerSerial;edge.pending=pending(d,a.c[6]);
++        edge.freeMask=unsigned(!JC(phase)[0])|(unsigned(!JC(phase)[1])<<1);
++        edge.realAllocMask=JF(allocated)?1U<<unsigned(JF(allocatedSlot)):0;
++        return true;
++    }
++    // Called after the unchanged genuine-allocation ledger arm. Record both
++    // initial and joined members; only a validated join changes observation logs.
++    template<class D,class L> void after(D&d,L&l,unsigned region,uint64_t cycle,bool verifiedJoin){
++        if(!acceptance.valid){require(!verifiedJoin,"orphan verified join");return;}
++        const auto&a=acceptance;const auto&c=a.c;require(verifiedJoin==!a.newLine,"posted join classification detached from validated event");
++        require(l.owners[c[6]].live&&!l.owners[c[6]].pf&&l.owners[c[6]].pa==c[5],"accepted posted member lost its real MSHR allocation");
++        l.bindPosted(c[6],c[5],c[0],c[1],c[2],c[3],c[4]);
++        if(a.newLine){Line line;line.ownerSerial=l.owners[c[6]].seq;require(lines.emplace(c,line).second,"posted new owner duplicates complete context");pendingReservations.push_back(c);}
++        require(members.emplace(a.token,Member{c,a.ticket,false,verifiedJoin}).second,"duplicate accepted posted full token");++accepted;++lines.at(c).accepted;
++        if(verifiedJoin){++joins;l.event("POSTED_JOIN",cycle,region,a.token.first,a.token.second,c[0],c[1],c[2],c[3],c[4],c[5],c[6],a.ticket,l.owners[c[6]].seq);}
++    }
++    void finish()const{
++        require(!edge.valid&&pendingReservations.empty()&&members.empty()&&lines.empty()&&accepted==acked&&acked==drained&&joins==joinAcks&&joinAcks==joinDrains,"posted join member ACK/drain conservation");
++        require(injection.empty()||injected,"posted join negative control never reached a real join");
++        // Intentionally no stdout: zero-join original A output remains byte-identical.
++    }
++#undef JP
++#undef JC
++#undef JT
++#undef JF
++#undef JA
++};

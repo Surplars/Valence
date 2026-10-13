@@ -26,6 +26,7 @@ object FpgaNextBoardGsim {
         translatedResponseEmptyFlow = c.translatedResponseEmptyFlow,
         dataTranslationEntries = c.dataTranslationEntries, postedStoreMerge = c.postedStoreMerge,
         postedPrefetchHeadOffer = c.postedPrefetchHeadOffer,
+        postedYoungerLoadSealDeferral = c.postedYoungerLoadSealDeferral,
         canonicalVirtualStoreOverlap = c.canonicalVirtualStoreOverlap, memoryProofFrontier = c.memoryProofFrontier,
         frozenStoreProofTransport = c.frozenStoreProofTransport, pendingVirtualStoreProof = c.pendingVirtualStoreProof,
         registeredPendingStoreQuery = c.registeredPendingStoreQuery,

@@ -193,7 +193,9 @@ case class OooParams(
     // Store next-line permission before fault and reconstruct from that checked record.
     factorCheckedNextAllowed: Boolean = false,
     // Tagged reservations are registered and keep their real LSU response owner ready.
-    localTaggedResponseReady: Boolean = false
+    localTaggedResponseReady: Boolean = false,
+    // Keep an unissued younger physical load from closing an older posted join window.
+    postedYoungerLoadSealDeferral: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -285,6 +287,8 @@ case class OooParams(
     require(!canonicalVirtualStoreOverlap || (virtualRamLoadPrecheck && bufferedRamStores &&
         registeredMemoryRequests && registeredMemoryAddress && registeredTranslationHeads && memoryEntries >= 2),
         "canonical virtual store overlap requires load precheck and registered buffered parallel memory ownership")
+    require(!postedYoungerLoadSealDeferral || (postedStoreMerge && registeredMemoryAddress && !memoryProofFrontier),
+        "younger-load seal deferral requires posted stores and the full-token staged non-frontier selector")
     require(!postedPrefetchHeadOffer || (postedStoreMerge && dataNextLinePrefetch &&
         registeredMemoryAddress && !fastBufferedStoreRetire),
         "posted PF head offer requires posted stores, PF busy, staged addresses and non-fast retirement")

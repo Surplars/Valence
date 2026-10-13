@@ -5,6 +5,7 @@ import soc.core.ooo._
 /** Read real constructed leaves; profile labels alone do not establish activation. */
 object NearTermAActualAudit {
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
+        PlacedTimingProfileBridge.requireShape(expected)
         val core = platform.core.core.core
         val p = expected.coreParams
         require(core.p == p && core.backend.p == p, "actual complete CPU constructor differs")

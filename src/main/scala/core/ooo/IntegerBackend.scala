@@ -1180,16 +1180,29 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // here would permanently prevent that store from joining once it really
         // becomes head. This exception grants no launch/proof authority; all
         // existing head/full-token/PMP checks above and below remain mandatory.
-        // Other candidates, including younger loads and virtual/IO/faulting
-        // stores, still seal accepted ownership just as before.
+        // Virtual/IO/faulting stores still seal accepted ownership just as before.
         val preparedPhysicalStore = p.preparedStoreLookahead.B && memoryChoice.valid &&
             memoryChoice.index =/= head && savedStore &&
             memoryEntry.renamed.token.index === memoryChoice.index &&
             memoryEntry.request.store && !memoryEntry.request.atomic && !virtualized &&
             ordinaryRam && !pmpCheck.io.denied && AlignedMemoryDisjoint.aligned(address, memorySize)
+        // This optional exception is only an unissued intent. The parameter contract
+        // keeps memoryChoice.valid on the existing full staged-token/pending check.
+        // A live non-head row is strictly younger in the current circular ROB window.
+        // postedLaunchAllowed still blocks this load; stores may launch only at the
+        // actual head, so no program-younger store can cross the deferred load.
+        // Keep the old intent boundary when an unready head load/atomic causes
+        // the selector to name a different, younger load.
+        val deferredYoungerLoad = if (p.postedYoungerLoadSealDeferral) {
+            PostedYoungerLoadSeal.defer(postedBusy, ledger.io.headValid, headRequest,
+                memoryChoice.valid, memoryChoice.index =/= head, memoryLive(memoryChoice.index),
+                pending(memoryChoice.index), memoryEntry.renamed.token.index === memoryChoice.index,
+                memoryEntry.request, !virtualized, ordinaryRam, !pmpCheck.io.denied,
+                AlignedMemoryDisjoint.aligned(address, memorySize))
+        } else false.B
         posted.seal := recovery.valid || ledger.io.recovering || interruptDrain ||
             reserveSystem || contextMemoryEpoch ||
-            (memoryChoice.valid && !postedEligible && !preparedPhysicalStore) ||
+            (memoryChoice.valid && !postedEligible && !preparedPhysicalStore && !deferredYoungerLoad) ||
             (ledger.io.headValid && headRequest.system)
     }
     val originalMemoryEligible = postedLaunchAllowed && pendingStoreNewOfferAllowed &&

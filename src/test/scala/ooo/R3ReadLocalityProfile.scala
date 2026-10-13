@@ -26,8 +26,10 @@ private[ooo] object R3ReadLocalityProfile {
         PlacedTimingProfileBridge.requireShape(c)
         require(!c.fetchAcceptedPrefixValidation && !c.alignedFetchSinglePage &&
             !c.factorCheckedNextAllowed && !c.localTaggedResponseReady)
-        require(!c.triSpeedRawClockHandoff && c.productArity == 89 && c.coreParams.productArity == 172 &&
+        require(!c.triSpeedRawClockHandoff && c.productArity == 90 && c.coreParams.productArity == 173 &&
             c.cache.productArity == 23 && c.ddr.productArity == 9)
+        require(PlacedTimingProfileBridge.historicalAFields(c).size == 88 &&
+            PlacedTimingProfileBridge.historicalAFields(c.coreParams).size == 172)
     }
     def requireOn(options: Seq[String], c: FpgaNextConfig): Unit = {
         FpgaNextProfileOptions.validate(options)

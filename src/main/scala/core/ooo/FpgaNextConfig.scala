@@ -97,11 +97,14 @@ final case class FpgaNextConfig(
     alignedFetchSinglePage: Boolean = false,
     factorCheckedNextAllowed: Boolean = false,
     localTaggedResponseReady: Boolean = false,
-    triSpeedRawClockHandoff: Boolean = false
+    triSpeedRawClockHandoff: Boolean = false,
+    postedYoungerLoadSealDeferral: Boolean = false
 ) {
     require(!triSpeedRawClockHandoff || experimentalTriSpeedEthernet,
         "RAW MAC handoff requires tri-speed Ethernet")
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
+    require(!postedYoungerLoadSealDeferral || (postedStoreMerge && !memoryProofFrontier),
+        "younger-load seal deferral requires posted store merging without a proof frontier")
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
         "the CPU admission batch requires exact canonical virtual-store authorization")
     require(!translationHitFlow || (virtualRamLoadPrecheck && !precheckedDataRequestFlow),
@@ -259,7 +262,8 @@ final case class FpgaNextConfig(
         (if (fetchAcceptedPrefixValidation) "-fetch-accepted-prefix-validation" else "") +
         (if (alignedFetchSinglePage) "-aligned-fetch-single-page" else "") +
         (if (factorCheckedNextAllowed) "-factor-checked-next-allowed" else "") +
-        (if (localTaggedResponseReady) "-local-tagged-response-ready" else "")
+        (if (localTaggedResponseReady) "-local-tagged-response-ready" else "") +
+        (if (postedYoungerLoadSealDeferral) "-posted-younger-load-seal-deferral" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -321,6 +325,7 @@ final case class FpgaNextConfig(
         postedPreparationPriority = postedPreparationPriority,
         preparedStoreLookahead = preparedStoreLookahead, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
+        postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -371,6 +376,7 @@ final case class FpgaNextConfig(
         preparedStoreLookahead = preparedStoreLookahead,
         dataTranslationEntries = dataTranslationEntries, postedStoreMerge = postedStoreMerge,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
+        postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -414,7 +420,7 @@ object FpgaNextConfig {
     val RegisteredPmpCandidate = Selected.copy(registeredPmpRegions = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
-        for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
+        for (flag <- Set("--posted-younger-load-seal-deferral", "--frozen-store-proof-transport", "--pending-virtual-store-proof",
             "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--memory-preparation-head-mask", "--direct-rank0-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
@@ -486,6 +492,7 @@ object FpgaNextConfig {
             publishedPmpChanges = options.contains("--published-pmp-changes"),
             dataTranslationEntries = tlbCount,
             postedStoreMerge = options.contains("--posted-store-merge"),
+            postedYoungerLoadSealDeferral = options.contains("--posted-younger-load-seal-deferral"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
             postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             canonicalVirtualStoreOverlap = options.contains("--canonical-virtual-store-overlap"),

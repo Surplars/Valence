@@ -16,6 +16,24 @@ class NearTermAConfigSpec extends AnyFunSuite {
             NearTermAProfile.originalFields(c.coreParams)
         }
     }
+    test("historical A projection removes only the explicitly false appended younger-load switch") {
+        val a = NearTermAProfile.on
+        val enabled = a.copy(postedYoungerLoadSealDeferral = true)
+        assert(PlacedTimingProfileBridge.historicalAFields(a).size == 88)
+        assert(PlacedTimingProfileBridge.historicalAFields(a.coreParams).size == 172)
+        for (p <- Seq(enabled, enabled.coreParams)) {
+            intercept[IllegalArgumentException] { PlacedTimingProfileBridge.historicalAFields(p) }
+        }
+        val rollbackEnabled = NearTermAProfile.rollback.copy(postedYoungerLoadSealDeferral = true)
+        intercept[IllegalArgumentException] { NearTermAProfile.originalFields(rollbackEnabled) }
+        intercept[IllegalArgumentException] { NearTermAProfile.originalFields(rollbackEnabled.coreParams) }
+        intercept[IllegalArgumentException] { NearTermAProfile.requireOn(NearTermAProfile.onOptions, enabled) }
+        intercept[IllegalArgumentException] {
+            NearTermAProfile.requireOn(NearTermAProfile.onOptions, a.copy(prefetchBreakOnStore = !a.prefetchBreakOnStore))
+        }
+        assert(NearTermAProfile.onOptions.size == 68 &&
+            !NearTermAProfile.onOptions.contains("--posted-younger-load-seal-deferral"))
+    }
     test("new switches retain constructor preconditions and exact public option syntax") {
         intercept[IllegalArgumentException] { OooParams(factorCheckedNextAllowed = true) }
         intercept[IllegalArgumentException] { OooParams(localTaggedResponseReady = true) }

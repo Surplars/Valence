@@ -1,6 +1,7 @@
 """Exact two-leaf current-source OFF compatibility; never a historical certificate."""
 import hashlib
 import json
+import importlib.util
 from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -31,10 +32,16 @@ def checked_sources():
         raise RuntimeError('original complete A profile snapshot differs')
     if '--tri-speed-raw-clock-handoff' in profile['native_options']:
         raise RuntimeError('the existing A entry must remain MAC handoff OFF')
+    spec = importlib.util.spec_from_file_location("mac_to_seal_source_bridge", HERE / "young_load_seal_source_bridge.py")
+    downstream = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(downstream)
+    current = {}
     for name, row in bridge['changed_sources'].items():
+        expected = downstream.current_mac_platform_digest(name, row["new_sha256"])
         if row['old_sha256'] != profile['production_leaf_sha256'][name] or \
-                hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != row['new_sha256']:
+                hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             raise RuntimeError('current MAC platform plumbing source differs: ' + name)
-    return bridge['changed_sources']
+        current[name] = {"old_sha256": row["old_sha256"], "new_sha256": expected}
+    return current
 
 

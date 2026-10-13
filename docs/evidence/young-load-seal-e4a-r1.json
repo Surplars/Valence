@@ -1,0 +1,251 @@
+{
+  "schema": "young-load-seal-e4a-source-results-v1",
+  "base_commit": "e4a823f5e08cb17042d515e1ac62b0c55e16cb78",
+  "base_tree": "957f2fffa5938172cf9cd5172fef350efd1c3f5b",
+  "source_contract": {
+    "core_fields": 173,
+    "profile_fields": 90,
+    "new_core_field": "postedYoungerLoadSealDeferral",
+    "profile_tail": [
+      "triSpeedRawClockHandoff",
+      "postedYoungerLoadSealDeferral"
+    ],
+    "production_default_enabled": false,
+    "cpu_qualification_requires": {
+      "triSpeedRawClockHandoff": false
+    },
+    "historical_a64_entries": "composed-strict-MAC-and-seal-source-bridges",
+    "historical_manifests_and_receipts_unchanged": true
+  },
+  "source_sha256": {
+    "fpga/next/board_near_term_a.py": "9bff19320fe52163e7e1d2b78ab668ae5a6e0ac1a4b56e09952f785ab97d7382",
+    "fpga/next/board_near_term_a_raw_handoff.py": "889d827851d522c46506b73108c54b19b6cb320d02f092b8c2be63d1299801c6",
+    "fpga/next/board_timing64.py": "24ecfb82390de433b5c6c2523c1546c795b9827e7ec8e5954f8ad618acffa9c9",
+    "fpga/next/export.py": "339e8cf135c2e661ae5fb07712caa18c219cd57a5a234291ad98041fd1bab0a6",
+    "fpga/next/mac_platform_source_bridge.py": "6def3bf7996acee33a73202ca1106ab706ef177bfde3fc23658ff0f34d13436f",
+    "fpga/next/test_posted_younger_load_seal_export.py": "da58f84a1dcf8274a47cf126de9c7ef0a04d21f6514bf94557d47df3679be328",
+    "fpga/next/test_young_load_seal_source_bridge.py": "0585450f3bb0fb8a04d8ea780bbcf2810a6f7f8327a573406093b3b2a1af3b87",
+    "fpga/next/young_load_seal_source_bridge.py": "9781a0fed9e8340b4b22152bc5c5a45d69dd74585d142336108cb00b809d694f",
+    "simulator/gsim/young_load_seal/FIXTURES.md": "34eaf30065f0786e419fd47cca854d25a91fb1e698c9263b762a8fb7453ab4cc",
+    "simulator/gsim/young_load_seal/directed/analyze_trace.py": "d3fc5d05ffa9792f0d67733ee052db144d0749ccb6116065494dd96d7e11df29",
+    "simulator/gsim/young_load_seal/directed/directed_host.cpp": "949a4dc5e7e193a267fad1994ec132644bc8f32361d5a0974e0ed768ddb4729f",
+    "simulator/gsim/young_load_seal/directed/guest-manifest.json": "7424bf3a94524712cd8fa45054de21764e58dadad199862f895b4bcfa068ecfa",
+    "simulator/gsim/young_load_seal/directed/guest.bin": "be7999cff8f1cb8517970d5edb56b27b372c881cfef42393293958be3da7c917",
+    "simulator/gsim/young_load_seal/directed/guest_inputs.h": "95ce62ba4942668da30f65ae7f03dff7a79071e1f77404cf3d24b423e65bdb3c",
+    "simulator/gsim/young_load_seal/directed/offline_selftest.py": "a65e3aa27122557d99ec69e2b35c8f7d3f88d235822598761d668f23223f075c",
+    "simulator/gsim/young_load_seal/directed/prepare_guest.py": "c8efd150f8fa2b9eccfa68864749f192ee0767f705b8aee1b554757ecef865a4",
+    "simulator/gsim/young_load_seal/fixture-manifest.json": "588a89a538435eb8623e75c86de598ac20fcb1b6c31b0f4880d37ba2ca1d9637",
+    "simulator/gsim/young_load_seal/guard.cpp": "f1ee21452e73232b17c57fe45f6abc7cac8d60c10887badd5e85438bc4a9e79c",
+    "simulator/gsim/young_load_seal/owner_cases.py": "da34c02b848261def3f22b0a184ea2786abb5059d6faa7527b55f03b9e548ebf",
+    "simulator/gsim/young_load_seal/posted_join_observation/build-contract.json": "8032e41bd6be4330d98b97a67a83b31ce9c89553b352fa4ff3d4613bfde3bf03",
+    "simulator/gsim/young_load_seal/posted_join_observation/guest/cpu_sv39_symbols.h": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d",
+    "simulator/gsim/young_load_seal/posted_join_observation/guest/guest.bin": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94",
+    "simulator/gsim/young_load_seal/posted_join_observation/host-manifest.json": "14216653d189746f90e6d30ff28a20104d69a9a7d6f8200f4401516e10c0a53b",
+    "simulator/gsim/young_load_seal/posted_join_observation/host-only.patch": "aea34dca0409d2a2791cd9afc0675e32159e9fe2ea1bc86e8cc02b8b4d608ee5",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/adoption_ledger.h": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/cpu_passive_bandwidth.cpp": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_boot.cpp": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_ddr_benchmark.h": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/cpu_lsu_occupancy.h": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/fabric_idle_service.h": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/mshr_occupancy.h": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/harness/performance_observer.h": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/ledger_negative.cpp": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/passive_negative.cpp": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/passive_supply.h": "a7dfde89dd97eff211e9a42c3c37e555e705fb768ca74da0bda935ad12b4f2fd",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/posted_join_observation.h": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/production_probe.h": "dd31b178c82cb8460315fcabb8f197a4f580b9683080083cecedffd6e6849b49",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/supply_ledger.h": "4ccc2842f92fbf1d3668c7eec1dd03492ecc1fa0b69a9c8ba4b9890c6b7a8bf0",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_oracle.h": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_probe.h": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_getter_guard.cpp": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129",
+    "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_return_negative.cpp": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa",
+    "simulator/gsim/young_load_seal/verify_fixtures.py": "6ba6425cc3eba79015f5394cac74a3f4de089e8c964b5a5245a8bee7e2695c3d",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "bbb1418155c8ce2a56266c3c63640d9e17a4fa9311b81628bd89049c59b080d9",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "c9c611a1dcb6e58d1e36237eceff15468ced43e75795686483636e1ca19cb925",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "172886d84f3c80d901ef69e2033de09c6d533b40c502db71466126fa431f27c6",
+    "src/main/scala/core/ooo/OooParams.scala": "8e515e86f8fc993befe5b37ddfcb91507392f1e71111e60ca438fb64685b5d81",
+    "src/main/scala/core/ooo/PostedYoungerLoadSeal.scala": "59f95a08ba98ef0a96e057dd0efd4993a8ae34b94fdb3099c8d392ebd0ec0dfe",
+    "src/test/scala/ooo/BoardSocGsimMain.scala": "d501f7b8a60be4e43c8affac7a5ccc9ce777d6d761b2937238ef33255ec7b6ae",
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "ee750aec2ff54659825f5ce5cc3848fac251db6e99e9bca1f73f67c1cb747744",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "f7707393a5ef9584c85f7f8619fb6a8720e89b70b927d1ec207fc7b51f73ec0f",
+    "src/test/scala/ooo/HeadDrainActualAudit.scala": "f5b284b0b15027481a6eac1b0502933ca75508981a170aa33c2513254a0b1013",
+    "src/test/scala/ooo/MacRawHandoffEntry.scala": "24dcb82f42cab0b6629ddad2d66371b7aec6b25985b5000965b7883a36e3627d",
+    "src/test/scala/ooo/MacRawHandoffEntryGate.scala": "321d17b8e7afe6161ab8bc8d461a8f85172e19df5be8bf32132273ffd5f43041",
+    "src/test/scala/ooo/NearTermAActualAudit.scala": "1f55c8516bb9299e52a3279e49431948660aea4189f233c1122cc5157c66791e",
+    "src/test/scala/ooo/NearTermAConfigSpec.scala": "463c933f1a3f79960d4fd958e11f7f0a3a649aae58b2895f59c64421c7af2e1c",
+    "src/test/scala/ooo/NearTermAProfile.scala": "7432b0c15c07f2f2981745abafd9a4c5f8e6311b2c39f24b9c90c09de5c06ab4",
+    "src/test/scala/ooo/PlacedTimingProfileBridge.scala": "55afcae39acd35c72e6b427b1fcd7a70a6bfe7a7badeea4c192aa15dfacf8dc0",
+    "src/test/scala/ooo/PostedYoungerLoadSealConfigSpec.scala": "b6d17c2288f4cb811f2650356393de7ccc544a8c90326357591d3146da98acb7",
+    "src/test/scala/ooo/PostedYoungerLoadSealGsim.scala": "60363ea33e03162333bc8c12fe0e1009e3e9e7e75debe24f8da2b8db62d33949",
+    "src/test/scala/ooo/R3ReadLocalityProfile.scala": "38e865044f744fb71fda7f89b86970fabe41f5d2a7abff8271ac2b592f25ca00",
+    "src/test/scala/ooo/RetirementIntentBoardConfigSpec.scala": "8ac06a4c5632a9bdd83159edb54deb8136e5b51e7f1fd018c4b7bd3af2660530",
+    "src/test/scala/ooo/TimingBatchActualAudit.scala": "cd11655562e64087b892403798d5d5081468f0a7d2260ae2109f8f877ae550e5",
+    "src/test/scala/ooo/YoungLoadSealFullCpuMain.scala": "aa06aa4a0347503491becb3aba1d914698aeafa3641bc4cc22a06f949a43a2da",
+    "src/test/scala/ooo/YoungLoadSealMergedGate.scala": "35281b5030f277141169a44615b4ea357034424b52331fbb1302e8278bf22909",
+    "src/test/scala/ooo/YoungLoadSealProfileMain.scala": "c29b23b1c96b2d69e7095b4695fcf3650466fa2fc01b27d5c0ce5409be9724e1"
+  },
+  "results": {
+    "qualified_execution": {
+      "status": "PASS_COMPONENT_DIRECTED_COPY_NEMU_PMP_ORIGINAL_LAW",
+      "base_commit": "767e7683f3d6f5bd1fee257735505b353500d2a5",
+      "source_freeze_sha256": "7dc0e869d8d190f81bc00b88bc1a4f4de8eaa187aa0e32a5c24415bec30fcde2",
+      "qualification_receipt_sha256": "ecc6e359eb8e127ff31e419a9f820474b3a8bbab750ef6a4086ecec80756ab2e",
+      "default_enabled": false,
+      "performance": {
+        "sv39": {
+          "inclusive_cycles": 191618,
+          "baseline_inclusive_cycles": 191618,
+          "inclusive_delta": 0,
+          "roi_delta": 0,
+          "tail_delta": 0,
+          "functional_fields_captured": 105,
+          "actual_join_conservation": {
+            "accepted_members": 0,
+            "real_cache_ACKs": 0,
+            "installed_member_drains": 0,
+            "regions": {
+              "0": 0,
+              "1": 0,
+              "2": 0
+            },
+            "unique_joined_full_owner_contexts": 0
+          }
+        },
+        "bare": {
+          "inclusive_cycles": 179571,
+          "baseline_inclusive_cycles": 198642,
+          "inclusive_delta": -19071,
+          "roi_delta": -19069,
+          "tail_delta": -2,
+          "functional_fields_captured": 105,
+          "actual_join_conservation": {
+            "accepted_members": 162,
+            "real_cache_ACKs": 162,
+            "installed_member_drains": 162,
+            "regions": {
+              "0": 42,
+              "1": 120,
+              "2": 0
+            },
+            "unique_joined_full_owner_contexts": 49
+          }
+        }
+      },
+      "bare_cycle_reduction_percent": 9.600688676110792,
+      "bare_payload_rate_improvement_percent": 10.620311742987454,
+      "helper_cases": 43,
+      "owner_cases": 11,
+      "owner_assertion_controls": 3,
+      "directed_off_cycles": 1801,
+      "directed_on_cycles": 1801,
+      "directed_actual_trace_controls": 16,
+      "copy_controls": {
+        "original": 3,
+        "actual_join_observation": 4
+      },
+      "same_object_runtime_cases_and_controls": 7,
+      "same_object_all_stdout_byte_parity": true,
+      "observer_overall_status": "PASS_ALL_OBSERVER_CASES_AND_CONTROLS",
+      "observer_phase_receipt_status_explanation": "Immutable observer receipt records last positive stage PASS_ON_SV39; all four cases and original3+new4 controls were individually revalidated for this overall qualification.",
+      "original_failure_preserved": true,
+      "original_failure": "ledger retired owner lacks refill/install completion",
+      "observation_correction": {
+        "production_pulse_not_changed": true,
+        "host_freeze_sha256": "fedc836c41f4029a3e7e61f1b7e4639cdc7e8c8aa2b91b71f462ec3e972a2687",
+        "original_failure_preserved": true,
+        "OFF_both_modes_complete_stdout_AXI_supply_byte_parity": true,
+        "original_responsibility_assertions_retained": true
+      }
+    },
+    "e4a_integration": {
+      "configuration_tests": 16,
+      "configuration_suites": 4,
+      "actual_construction_cases": [
+        "young-on-mac-off",
+        "young-off-mac-on"
+      ],
+      "actual_complete_core_and_backend_fields_equal": true,
+      "complete_historical_A172_88_values_equal": true,
+      "complete_tested_young_configuration_equal_after_removing_named_MAC_false": true,
+      "core_scala_files": 138,
+      "byte_identical_to_tested_young_core_scala_files": 136,
+      "platform_only_differences": {
+        "src/main/scala/core/ooo/BoardSocTop.scala": {
+          "tested_young_sha256": "07343d55cb5797c3c5b07a44c42391dffdfbba0fb5f46774f8445470f1c12dff",
+          "merged_sha256": "bbb1418155c8ce2a56266c3c63640d9e17a4fa9311b81628bd89049c59b080d9"
+        },
+        "src/main/scala/core/ooo/FpgaNextConfig.scala": {
+          "tested_young_sha256": "4df12986e537756d368384c5505fc6c311114d9099f0d88e248ec4f71ca4fa5f",
+          "merged_sha256": "c9c611a1dcb6e58d1e36237eceff15468ced43e75795686483636e1ca19cb925"
+        }
+      },
+      "MAC39_byte_unchanged": 26,
+      "MAC_shared_config_and_bridge_updates": 13,
+      "all_historical_manifests_and_receipts_unchanged": true,
+      "source_bridge_full_production_leaves": 225,
+      "new_cpu_models": 0,
+      "new_cpu_simulations": 0,
+      "python_checks": {
+        "exporter": 4,
+        "independent_exporter_baselines": 2,
+        "historical_bridges": 6,
+        "MAC_entry": 13,
+        "fixture_negative_controls": 5,
+        "directed_author_outputs_equal": 3,
+        "offline_synthetic_checker_controls": 14
+      },
+      "initial_gate_failure": "stale test-only profile arity/index 89/88; corrected to explicit combined90/89; original failed receipt preserved",
+      "final_gate_status": "PASS_MERGED_CONFIG_ACTUAL_CONSTRUCTORS"
+    },
+    "limitations": [
+      "single original phase/service law; no second law or phase sweep",
+      "CPU atomic execution not covered; real decode/guard component covers AMO/LR/SC rejection",
+      "short NEMU/PMP guests and whole-retirement-edge GPR observation, no full ISA/Linux",
+      "no tag/generation exhaustion or exhaustive CPU fault/system matrix",
+      "CHIRRTL dependency report is not mapped fanout or physical timing",
+      "later e4a MAC integration is separate source work; CPU identity requires raw-clock-handoff false",
+      "measured cycle change is not attributed one-for-one to joins or earlier seals",
+      "Integration uses source/configuration identity with MAC raw handoff false; no new CPU model or CPU execution.",
+      "Native board construction with MAC true is configuration evidence only.",
+      "Two public fixed guest binaries are 472 and 784 bytes, source-reproducible test inputs; no ELF/native model/RTL/log is shipped."
+    ]
+  },
+  "evidence_sha256": {
+    "qualified/qualification-receipt.json": "ecc6e359eb8e127ff31e419a9f820474b3a8bbab750ef6a4086ecec80756ab2e",
+    "qualified/freeze-r2/source-freeze.json": "7dc0e869d8d190f81bc00b88bc1a4f4de8eaa187aa0e32a5c24415bec30fcde2",
+    "qualified/verification/posted-join-observation-r1/host-freeze.json": "fedc836c41f4029a3e7e61f1b7e4639cdc7e8c8aa2b91b71f462ec3e972a2687",
+    "qualified/component-r1/receipt.json": "f8b36bd7141bd22792bfb2372b416684d42a312f18522589bf950db2351f1001",
+    "qualified/verification/directed/execution-r3/receipt.json": "06f7a881e383aa3c8739751b07fecb430e6bd7c29563c3befc71cf01234a8903",
+    "qualified/cpu-on-r1/structure-r2.json": "8f559fc8623829d7c02f3ae2b3686dfaa0457323f1be52c0cd795b8fb281e8c1",
+    "qualified/cpu-on-r1/receipt.json": "891fc8e7c1d9725f3beed6ff45eec5331f643e784dc74fb61e6deb9c070649b0",
+    "qualified/observer-copy-r1/receipt.json": "06b35936c637467f4ef107a50588ee86b1cd6f3f6a6f4edd6b49415596016453",
+    "qualified/verification/same-object-r1/execution-r1/receipt.json": "d301ab38ef5c1f9e2fa4391e56bf2b9e9de5aedc82bbdfe5e2fb8bb7a79f2179",
+    "qualified/legacy-entry-bridge-review-r1/repair-receipt.json": "2580d5c87a178c83380fecdd360a55ae0d72a607727fa33fe38b272376c97f52",
+    "qualified/RESULTS.md": "4f630e2ada687c9410214a31776c9cb755b4ffad90a90e62f0fc7fcbf09d3a19",
+    "qualified/observer-copy-r1/join-distribution.json": "86b67b4dc3b65e58bdb23a8243247dabd9ee0011f625340c460841fe2ea831e9",
+    "integration/scala-gate-r1/receipt.json": "5210e87deea5a486cba6179721e9bed4e6c40bf9fae7b223248d9fc244bb18ea",
+    "integration/scala-gate-r2/receipt.json": "d9802acc924c64eb4c528871d87645cf891aea209b2ff1ff949b2e7147e89283",
+    "integration/python-closure-r1/receipt.json": "4b285ebdc01180b646ff84ad08d08831a501d2f84d206bc4672400ff37ead2af",
+    "integration/source-identity.json": "bbec267210772c640e8eeb6e4172abbe1f72dbcf769d8c63f61cc7585bc70bec",
+    "integration/hardware-scala-bridge-freeze.json": "e0d5b9cf75fe832e089ef3997b11430467a69d49f3301fbde3771463ddfd71ea"
+  },
+  "recovery_artifacts": {
+    "terminal_qualification": {
+      "library_file_id": "libfile_8bc30a64ba3c8191afd94b028a7028cc",
+      "bytes": 8768986,
+      "sha256": "f9e3fda69d93f75d397d54f2a74be66f9b5e0323490e524efe6bc68e021eef15",
+      "members": 266
+    },
+    "ON36_native_model": {
+      "library_file_id": "libfile_4da0af35eadc81919b23cf398e64cf6c",
+      "bytes": 21585709,
+      "sha256": "fc4d68f5e4e4139307810b9f78fbad8c1cbdb88ad5939f41234974da4c6ec65f",
+      "status_note": "Model archive predates corrected-observer qualification; terminal archive above supplies the final results."
+    }
+  },
+  "new_mapped_execution": false,
+  "physical_qualification": false,
+  "board_hardware_tested": false,
+  "current_cpu_requalification": false
+}

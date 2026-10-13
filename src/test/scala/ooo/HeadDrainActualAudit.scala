@@ -9,6 +9,8 @@ import soc.core.ooo._
 object HeadDrainActualAudit {
     def requireShape(c: FpgaNextConfig): Unit = {
         PlacedTimingProfileBridge.requireShape(c)
+        require(c.postedYoungerLoadSealDeferral == c.coreParams.postedYoungerLoadSealDeferral,
+            "profile younger-load seal deferral was not forwarded to the core")
         require(c.retirementIntent == c.coreParams.retirementIntent,
             "profile retirement-intent flag was not forwarded to the core")
         require(c.predecodedHeadDrain == c.coreParams.predecodedHeadDrain,
