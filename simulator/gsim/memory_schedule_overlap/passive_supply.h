@@ -2,6 +2,13 @@
 #ifndef MEMORY_SCHEDULE_OVERLAP
 #define MEMORY_SCHEDULE_OVERLAP 0
 #endif
+#ifndef FUTURE_WAY_RESERVATION
+#define FUTURE_WAY_RESERVATION 0
+#endif
+#if FUTURE_WAY_RESERVATION
+static_assert(MEMORY_SCHEDULE_OVERLAP, "future-way host requires overlap profile");
+#include "future_home_ledger.h"
+#endif
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -14,6 +21,9 @@
 #define READ_PREFETCH_DIRTY_RETRY 0
 #endif
 struct PassiveSupply {
+#if FUTURE_WAY_RESERVATION
+    FutureHomeLedger home;
+#endif
     struct Sample {
         uint64_t cycle=0;
         bool reqValid=false,reqFire=false,cacheFire=false,flush=false;
@@ -38,6 +48,9 @@ struct PassiveSupply {
     static bool active(unsigned phase){require(phase<=4,"passive home phase range");return phase!=0;}
     static unsigned source(unsigned value){require(value<2,"passive home source range");return value;}
     template<class P> Sample capture(P &p) {
+#if FUTURE_WAY_RESERVATION
+        home.check(p);
+#endif
         Sample s;s.reqValid=p.reqValid();s.reqFire=p.reqFire();s.cacheFire=p.cacheFire();s.flush=p.flush();
         require(!s.reqFire||s.reqValid,"passive request fire without valid");
         require(s.reqFire==p.independentReqFire(),"passive request event aliases differ");
@@ -78,14 +91,22 @@ struct PassiveSupply {
                 const unsigned slot=p.homeDirectory(i);
                 require(slot<512&&(slot&255)==setOf(p.homePa(i)),
                     "passive transient directory slot geometry");
+#if FUTURE_WAY_RESERVATION
+                require(!reserved[slot]&&(!p.owned(slot)||home.permitsOwned(slot,p.homePa(i))),
+                    "passive transient directory reservation collision");
+#else
                 require(!reserved[slot]&&!p.owned(slot),
                     "passive transient directory reservation collision");
+#endif
                 reserved[slot]=true;
 #endif
             }
             s.sameSet=same;s.sameLine=sameLine;s.sourceBusy=busy;
 #if MEMORY_SCHEDULE_OVERLAP
             s.directoryFull=(p.owned(set)||reserved[set])&&(p.owned(set+256)||reserved[set+256]);
+#if FUTURE_WAY_RESERVATION
+            s.directoryFull=*s.directoryFull&&!home.futureAvailable(*s.aPa);
+#endif
             require(!*s.aFire||(!sameLine&&!busy&&!*s.directoryFull),
                 "passive home accepted a known blocker");
 #else
@@ -94,6 +115,9 @@ struct PassiveSupply {
 #endif
         }
         // A-ready without A-valid is intentionally not read or manufactured.
+#if FUTURE_WAY_RESERVATION
+        home.advance(p);
+#endif
         return s;
     }
     void count(const Sample &s) {
@@ -126,6 +150,9 @@ struct PassiveSupply {
         optional("a_fire_ready_when_valid",s.aFire);optional("a_pa",s.aPa);optional("transient_same_set",s.sameSet);optional("source_busy",s.sourceBusy);optional("directory_full",s.directoryFull);std::cout<<"\n";
     }
     void report(uint64_t expectedCandidates,uint64_t expectedAllocations)const{
+#if FUTURE_WAY_RESERVATION
+        home.finish();
+#endif
         require(candidates==expectedCandidates&&allocations==expectedAllocations,"passive original aggregate mismatch");
         uint64_t o=0,h=0;for(auto n:opportunityMasks)o+=n;for(auto n:homeBlockedMasks)h+=n;
         require(o==opportunities&&h+homeFire==homeValid,"passive exclusive bucket conservation");

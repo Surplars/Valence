@@ -35,8 +35,11 @@ class BoardEntryContractTests(unittest.TestCase):
     def test_executed_helpers_are_bound_and_mutations_fail(self):
         sources = exporter.sources()
         profile = final.load_profile()
+        future_module, future_bridge = final.future_source_bridge(profile)
+        historical = future_module.project(sources, future_bridge)
         for name in HELPERS:
-            self.assertEqual(sources[name], profile["source_only_entry_contract_bridge"]["newly_export_bound_helpers"][name])
+            self.assertEqual(historical[name], profile["source_only_entry_contract_bridge"]["newly_export_bound_helpers"][name])
+            self.assertEqual(sources[name], final.sha(ROOT / name))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for name in sources:

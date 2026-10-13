@@ -52,6 +52,11 @@ def sources():
         "fpga/next/timing-batch-owner-row-profile.json",
         "src/test/scala/ooo/OwnerRowActualAudit.scala",
         "src/test/scala/ooo/EagerPrefixActualAudit.scala",
+        "src/test/scala/ooo/FutureHomeActualAudit.scala",
+        "simulator/gsim/home_future_lru/source_bridge.py",
+        "simulator/gsim/home_future_lru/source-bridge.json",
+        "fpga/next/timing-batch-home-future-lru-profile.json",
+        "fpga/next/board_home_future_lru.py",
         "fpga/next/timing-batch-eager-prefix-profile.json",
         "fpga/next/board_eager_prefix.py",
         *media_integration.INPUTS, *bscan_integration.INPUTS, *board_t1.INPUTS)]
@@ -150,6 +155,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off private whole GrantData transport; original GrantAck responsibility retained")
     ap.add_argument("--concurrent-read-store-prefetch", action="count", default=0,
                     help="default-off opposite-origin prefetch coexistence within the existing two MSHRs")
+    ap.add_argument("--future-home-way-reservation", action="count", default=0,
+                    help="default-off registered dirty-C future Home way reservation; requires overlap")
     ap.add_argument("--memory-schedule-overlap", action="count", default=0,
                     help="default-off snapshot/response ownership handoff and conflict-qualified home admission")
     ap.add_argument("--translated-response-empty-flow", action="store_true",
@@ -303,7 +310,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.local_payload_write_enable > 1:
         ap.error("duplicate --local-payload-write-enable flag")
     a.local_payload_write_enable = bool(a.local_payload_write_enable)
-    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap", "future_home_way_reservation"):
         if getattr(a, key) and "--" + key.replace("_", "-") not in raw_args:
             ap.error("use the exact --" + key.replace("_", "-") + " flag")
         if getattr(a, key) > 1:
@@ -311,6 +318,8 @@ def main(argv=None, expected_profile_sha256=None):
         setattr(a, key, bool(getattr(a, key)))
     if a.concurrent_read_store_prefetch and not (a.durable_read_prefetch_candidate and a.independent_demand_admission):
         ap.error("--concurrent-read-store-prefetch requires durable read candidates and independent demand admission")
+    if a.future_home_way_reservation and not a.memory_schedule_overlap:
+        ap.error("--future-home-way-reservation requires --memory-schedule-overlap")
     if a.memory_schedule_overlap and not a.independent_demand_admission:
         ap.error("--memory-schedule-overlap requires independent demand admission")
     for key, default in (("ddr_outstanding", 4), ("ddr_write_credits", 2)):
@@ -557,7 +566,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.local_payload_write_enable:
         profile["profile"]["local_payload_write_enable"] = True
         profile["profile"]["name"] += "-local-payload-write-enable"
-    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap", "future_home_way_reservation"):
         if getattr(a, key):
             profile["profile"][key] = True
             profile["profile"]["name"] += "-" + key.replace("_", "-")
@@ -676,7 +685,7 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--line-read-channel")
     if a.local_payload_write_enable:
         command.append("--local-payload-write-enable")
-    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap"):
+    for key in ("internal_line_grant", "concurrent_read_store_prefetch", "memory_schedule_overlap", "future_home_way_reservation"):
         if getattr(a, key):
             command.append("--" + key.replace("_", "-"))
     if a.ddr_outstanding != 4:

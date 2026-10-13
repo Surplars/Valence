@@ -10,7 +10,7 @@
     "qualified_source_tree": "6a4d8f4c87a314757e07b1928ce9afe6d5ac3280"
   },
   "export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
-  "export_sources_sha256": "af66427e4b40742b4c6ade483248ef1ad1a2b69d9b3f3076aea3fcf974bd4292",
+  "export_sources_sha256": "630775d38ba975cb319bd9043cece0d573a03537e1221512af633761382b7639",
   "native_options": [
     "--selected",
     "--data-translation-entries=16",
@@ -136,5 +136,10 @@
     "optional53_cpu_rerun": false,
     "native_export_rerun": false,
     "scope": "Only exporter inventory and generic runner contract changed. Original qualification receipts and complete Scala/RTL sources remain unchanged; the newly bound helpers were already included in the tested full Scala closure."
+  },
+  "source_only_future_home_bridge": {
+    "path": "simulator/gsim/home_future_lru/source-bridge.json",
+    "sha256": "1e965bcb4e15e257fb092ae1735188d2e3cfe00a4a0995efefb75ef25fba48c9",
+    "scope": "Current source identity only; default52 options and recorded CPU evidence unchanged; no default52 CPU rerun"
   }
 }

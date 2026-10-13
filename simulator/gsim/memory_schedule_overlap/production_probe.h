@@ -76,4 +76,27 @@ template<class D> struct ProductionSupplyProbe {
     unsigned homeSource(unsigned i) {return d.board$platform$coherentHome$sources[i];}
     unsigned homeDirectory(unsigned i) {return d.board$platform$coherentHome$directory[i];}
     bool owned(unsigned i) {return d.board$platform$coherentHome$owned[i];}
+#if FUTURE_WAY_RESERVATION
+    // Accepted protocol signals only; the ledger never reads futurePaired,
+    // captureEntry, capturing, releaseBeat, releaseDirectories or NEXT state.
+    uint64_t homeResidentPa(unsigned dir) {return (uint64_t(dir<256?d.board$platform$coherentHome$tagBanks_0[dir&255]:d.board$platform$coherentHome$tagBanks_1[dir&255])<<14)|(uint64_t(dir&255)<<6);}
+    bool homeCValid() {return d.get_cpuSupplyPrefetch$$cValid();}
+    bool homeCReady() {return d.get_cpuSupplyPrefetch$$cReady();}
+    uint64_t homeCPa() {return d.board$platform$privateCache$_io_tl_c_bits_address_T;}
+    unsigned homeCSource() {return d.board$platform$privateCache$_io_tl_c_bits_source_T_2;}
+    unsigned homeCOpcode() {return d.get_cpuSupplyPrefetch$$cOpcode();}
+    unsigned homeCParam() {return d.get_cpuSupplyPrefetch$$cParam();}
+    unsigned homeCSize() {return d.get_cpuSupplyPrefetch$$cSize();}
+    uint64_t homeCData() {return d.get_cpuSupplyPrefetch$$cData();}
+    bool homeEValid() {return d.board$platform$privateCache$engine$ackQueue$_io_deq_valid_T;}
+    bool homeEFire() {return d.board$platform$privateCache$engine$ackQueue$_do_deq_T;}
+    unsigned homeESink() {return d.board$platform$privateCache$engine$io$$e$$bits$$sink;}
+    bool homeGrantValid() {return d.board$platform$coherentHome$_grantFire_io_lineGrants_0_valid_T_1;}
+    bool homeGrantFire() {return d.board$platform$coherentHome$grantFire;}
+    unsigned homeGrantEntry() {return d.board$platform$coherentHome$grantEntry;}
+    unsigned homeGrantSource() {return d.board$platform$coherentHome$io$$lineGrants$$bits$$source;}
+    bool homeGrantDenied() {return d.board$platform$coherentHome$errors[homeGrantEntry()];}
+    bool homeAckFire() {return d.board$platform$privateCache$evictionRetiring;}
+    unsigned homeAckSource() {return d.board$platform$coherentHome$_io_clients_0_d_bits_source_T;}
+#endif
 };

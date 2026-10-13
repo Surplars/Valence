@@ -25,7 +25,7 @@ object MatchingFabricAudit {
         val actualDdr = unique(p, classOf[DdrBridgeConfig])
         val actualCache = unique(cache, classOf[CoherentCacheConcurrency])
         require(actualCore == expected.coreParams && actualDdr == expected.ddr && actualCache == expected.cache)
-        require(actualCore.productArity == 159 && expected.productArity == 71 && actualCache.productArity == 22 &&
+        require(actualCore.productArity == 159 && expected.productArity == 72 && actualCache.productArity == 23 &&
             actualDdr.productArity == 9,
             "tagged board full parameter summary arity changed")
         require(actualCore.taggedStoreReturns == expected.taggedStoreReturns)
@@ -46,6 +46,7 @@ object MatchingFabricAudit {
             "zeroCycleCleanup" -> ZeroCycleCleanupActualAudit.capture(p, expected),
             "ownerRow" -> OwnerRowActualAudit.capture(p, expected),
             "eagerPrefix" -> EagerPrefixActualAudit.capture(p, expected),
+            "futureHome" -> FutureHomeActualAudit.capture(p, expected),
             "actualLsuOwners" -> p.core.core.core.backend.lsu.slots.size,
             "actualRegisterPorts" -> p.platformRouter.get.io.registers.size,
             "actualPacketRxOwners" -> p.packetDma.get.slotOwned.size,

@@ -1,0 +1,148 @@
+{
+  "schema": "valence-future-home-lru-retained-evidence-v1",
+  "qualification": "PASS_ORIGINAL_LAW_AND_SHORT_NEMU_AND_SINGLE_FIXED_SV39",
+  "original_law_inclusive_cycles": {
+    "sv39": 184438,
+    "bare": 172283
+  },
+  "fixed_law_sv39": {
+    "roi": 175977,
+    "clean_tail": 8240,
+    "total": 184217,
+    "vs_future_only": 0,
+    "bare": "NOT_RUN"
+  },
+  "native": {
+    "modules": 239,
+    "future_changed": [
+      "MixedCoherentLineHome.sv"
+    ],
+    "lru_changed": [
+      "NonBlockingCoherentLineCache.sv"
+    ],
+    "new_declared_state_or_ports": 0,
+    "mapped_resources": "NOT_RUN",
+    "STA": "NOT_RUN"
+  },
+  "default52_cpu_rerun": false,
+  "eagerFetchPrefixSelect": false,
+  "mac_dma_pressure": "NOT_RUN",
+  "physical_qualification": false,
+  "evidence_files": {
+    "qualification.json": "6dfd713f70588002be913c9615dedfcc80c66bb2dd9c0a287d94920d0ef777e0",
+    "host-bridge-r1/receipt.json": "e2568623e2ad80e83060e3d99b94a582179b6023bb5e9ffa2057b4228e40b2bf",
+    "run-r1/receipt.json": "38cf7598331f2e0ad51989808f7e187cf73d87e505185ddd841658b8b7e92901",
+    "run-r1/on/profile.json": "39c0e1eb8d3ef5e46f1c6532912f0e2f4273caa05c8efcad791f4253cf197520",
+    "run-r1/on/actual-fabric.json": "ead626fe5cbd0372ccea5a08b267b0da71e10eb511fc7ed3b56561ff64e83012",
+    "closure-qualification.json": "7651c8872a56fc1c00ecc512f63d4a8aef8f27d1c231ec0a94a5255a54b0b5de",
+    "closure-nemu-r1/receipt.json": "8e667e0ca30d1a9e6c97e94b1de6a9ed7b1ea6326e1fe8538bcdeb937e55f5af",
+    "closure-fixed-r1/receipt.json": "597da620207582ac61c2bd9a50111b9e20206555078ed008b103ac354e8be6b6"
+  },
+  "host_sources": {
+    "adoption_ledger.h": {
+      "sha256": "93e7de6d98cc816c7ccebf19e86ff82d46a7f66d9206d469ba009fa23a12ddcf",
+      "source": "simulator/gsim/tagged_store_return_board/host/adoption_ledger.h"
+    },
+    "cpu_passive_bandwidth.cpp": {
+      "source": "simulator/gsim/home_future_lru/cpu_passive_bandwidth.cpp",
+      "sha256": "5d9292cb44118c57bbe16e33491ac99a2c50624afe884f4fa9b9e14af2ee53fe"
+    },
+    "harness/board_boot.cpp": {
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/board_boot.cpp"
+    },
+    "harness/board_ddr_benchmark.h": {
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/board_ddr_benchmark.h"
+    },
+    "harness/cpu_lsu_occupancy.h": {
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/cpu_lsu_occupancy.h"
+    },
+    "harness/fabric_idle_service.h": {
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/fabric_idle_service.h"
+    },
+    "harness/mshr_occupancy.h": {
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/mshr_occupancy.h"
+    },
+    "harness/performance_observer.h": {
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/harness/performance_observer.h"
+    },
+    "ledger_negative.cpp": {
+      "sha256": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/ledger_negative.cpp"
+    },
+    "passive_negative.cpp": {
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8",
+      "source": "simulator/gsim/prefetch_demand_adoption/cpu_snapshot/passive_negative.cpp"
+    },
+    "passive_supply.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/passive_supply.h",
+      "sha256": "88f482b44d62eef3f99c68da39ce127f090e611b4c07a78ddab107fafb0bac2f"
+    },
+    "production_probe.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/production_probe.h",
+      "sha256": "f7a407b99500f75f9ccad7c73296d56cc6770d9266866303bffcbf031747293a"
+    },
+    "supply_ledger.h": {
+      "source": "simulator/gsim/home_future_lru/supply_ledger.h",
+      "sha256": "2f99107b7b4bb8712a59c71de3ac487beb0e40d427cd7d4146b2ab6090e403f3"
+    },
+    "tagged_board_oracle.h": {
+      "sha256": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51",
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_board_oracle.h"
+    },
+    "tagged_board_probe.h": {
+      "sha256": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269",
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_board_probe.h"
+    },
+    "tagged_getter_guard.cpp": {
+      "sha256": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129",
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_getter_guard.cpp"
+    },
+    "tagged_return_negative.cpp": {
+      "sha256": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa",
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_return_negative.cpp"
+    },
+    "future_home_ledger.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/future_home_ledger.h",
+      "sha256": "c6c2ddfa7a5f21c5fb778d1c04864de25ad23250166783c0148688e8efc95764"
+    },
+    "accepted_victim_policy.h": {
+      "source": "simulator/gsim/home_future_lru/accepted_victim_policy.h",
+      "sha256": "09564cff3993dd5241ff449b1b06f7e758023fb8e5b9ff31ace7a76b4cf75cdf"
+    },
+    "policy_oracle.h": {
+      "source": "simulator/gsim/store_prefetch_lru_victim/policy_oracle.h",
+      "sha256": "9b2ef06d3f0f4c76dc781bbd0e1f583b98f16b748e87b8dfe25545785617fe30"
+    }
+  },
+  "result_contract": {
+    "path": "simulator/gsim/tagged_store_return_board/result_contract.py",
+    "sha256": "0946cabe1f89f864dae1765bfaa556d067820b4a0a49e6927a6c8d6db0546702"
+  },
+  "negative_anchors": {
+    "read-negative": "CPU read data mismatch",
+    "memory-negative": "final copied/stored memory mismatch",
+    "trap-negative": "unexpected CPU trap cause",
+    "mutation-policy": "ledger candidate victim identity disagreement",
+    "mutation-history": "independent accepted-event LRU history mismatch"
+  },
+  "external_evidence": [
+    {
+      "library_file_id": "libfile_63f9ace8e96c8191939a15f9976f6ac1",
+      "filename": "future-home-lru-original-law-complete-model-r1.tar.gz",
+      "bytes": 32851832,
+      "sha256": "63b9dad02dcf31bab0782dece84fa27a8400210ab53cf42a6d9cf81d5c78a760"
+    },
+    {
+      "library_file_id": "libfile_6f5a7688a2d48191a6c45da520cc204d",
+      "filename": "future-home-lru-closing-thin-r1.tar.gz",
+      "bytes": 16398638,
+      "sha256": "0c2397862319154e9c2750a12a5af5c4487567fc8e193f3df3c458874f427b20"
+    }
+  ]
+}

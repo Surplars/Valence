@@ -22,9 +22,9 @@ class EagerPrefixConfigSpec extends AnyFunSuite {
         assert(OooParams().productArity == 159 && !OooParams().eagerFetchPrefixSelect)
         assert(OooParams().productElementName(158) == "eagerFetchPrefixSelect")
         for (c <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected, off)) {
-            assert(c.productArity == 71 && c.productElementName(70) == "eagerFetchPrefixSelect")
+            assert(c.productArity == 72 && c.productElementName(70) == "eagerFetchPrefixSelect")
             assert(!c.eagerFetchPrefixSelect && !c.coreParams.eagerFetchPrefixSelect)
-            assert(c.coreParams.productArity == 159 && c.cache.productArity == 22 && c.ddr.productArity == 9)
+            assert(c.coreParams.productArity == 159 && c.cache.productArity == 23 && c.ddr.productArity == 9)
         }
         assert(base.size == 52 && base.distinct.size == 52)
         assert(options("timing-batch-eager-prefix-profile.json") == base :+ flag)

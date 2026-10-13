@@ -7,7 +7,9 @@ import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
 /** Single-client bounded read/refill and writeback ownership tables.
   * Complete C transfers a dirty victim into the pending-writeback table before
-  * its directory slot may be reused. Write completion never clears a reused slot.
+  * its committed directory slot may be reused. An optional future reservation
+  * starts after accepted first C, but cannot Grant before complete C.
+  * Write completion never clears a reused slot.
   * One A acceptance/cycle, one D beat/cycle, M refill and W release line buffers.
   * DMA/atomic maintenance remains a drain barrier; Grant bursts retain their lock.
   * With mixedReadWrite, disjoint new refills may overlap queued dirty writebacks.
@@ -29,7 +31,8 @@ class MixedCoherentLineHome(
     val lineTransferDispatchFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
     val internalLineGrant: Boolean = false,
-    val memoryScheduleOverlap: Boolean = false
+    val memoryScheduleOverlap: Boolean = false,
+    val futureWayReservation: Boolean = false
 ) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
     require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
@@ -41,6 +44,8 @@ class MixedCoherentLineHome(
     require(Set(1, 2, 4).contains(writebackEntries))
     require(!memoryScheduleOverlap || (mixedReadWrite && acquireEntries == 2 &&
         writebackEntries == 2 && trackedWays == 2), "overlap requires exact two-way mixed ownership")
+    require(!futureWayReservation || memoryScheduleOverlap,
+        "future-way reservation requires the exact two-way overlap profile")
     require(!distinctWayRelease || (mixedReadWrite && acquireEntries == 2 &&
         writebackEntries == 2 && trackedWays == 2),
         "distinct-way release requires the original two-way mixed home profile")
@@ -78,6 +83,8 @@ class MixedCoherentLineHome(
     private def ownedSlot(address: UInt, readTags: Seq[UInt]): UInt =
         if (trackedWays == 1) waySlot(address, 0)
         else Mux(wayHit(address, 0, readTags), waySlot(address, 0), waySlot(address, 1))
+    private def directoryReserved(slot: UInt): Bool =
+        (0 until acquireEntries).map(i => active(i) && directory(i) === slot).reduce(_ || _)
     private def directoryAvailable(address: UInt, way: Int): Bool = {
         val slot = waySlot(address, way)
         !owned(slot) && (if (memoryScheduleOverlap)
@@ -151,6 +158,24 @@ class MixedCoherentLineHome(
     private val releaseBeat = Reg(UInt(3.W))
     private val captureEntry = Reg(UInt(releaseBits.W))
     private val capturing = RegInit(false.B)
+    // Only an accepted, registered dirty capture can lend its exact directory.
+    // Its old committed owner remains intact through the final accepted C beat.
+    private val captureOwner = if (futureWayReservation) Mux(capturing, captureEntry, 0.U) else 0.U
+    private val captureLive = if (futureWayReservation) capturing && releasePhases(captureOwner) === rCapture else false.B
+    private val capturedDirectory = if (futureWayReservation)
+        Mux(captureLive, releaseDirectories(captureOwner), 0.U) else 0.U(directoryBits.W)
+    private val capturedAddress = if (futureWayReservation)
+        Mux(captureLive, releaseAddresses(captureOwner), 0.U) else 0.U(64.W)
+    private val futurePaired = VecInit((0 until acquireEntries).map(i =>
+        if (futureWayReservation) active(i) && captureLive && directory(i) === capturedDirectory else false.B))
+    private def futureDirectoryAvailable(address: UInt, way: Int): Bool = {
+        val slot = waySlot(address, way)
+        // canAcquire retains the full-PA releaseSet veto, including this capture.
+        // Reuse that check rather than select/compare another full-width address.
+        if (futureWayReservation) captureLive && capturedDirectory === slot && owned(slot) &&
+            !directoryReserved(slot)
+        else false.B
+    }
     private val releaseFree = VecInit(releasePhases.map(_ === rIdle))
     private val newRelease = PriorityEncoder(releaseFree)
     private val captureSlot = Mux(capturing, captureEntry, newRelease)
@@ -229,17 +254,55 @@ class MixedCoherentLineHome(
             assert(owned(releaseDirectories(captureEntry)), "captured release lost committed directory owner")
             for (i <- 0 until acquireEntries) {
                 when(active(i)) {
-                    assert(directory(i) =/= releaseDirectories(captureEntry) &&
-                        addresses(i)(63, 6) =/= releaseAddresses(captureEntry)(63, 6),
-                        "captured release aliases a transient directory reservation")
+                    if (futureWayReservation) {
+                        assert((directory(i) =/= releaseDirectories(captureEntry) || futurePaired(i)) &&
+                            addresses(i)(63, 6) =/= releaseAddresses(captureEntry)(63, 6),
+                            "captured release aliases an unrelated transient directory reservation")
+                    } else {
+                        assert(directory(i) =/= releaseDirectories(captureEntry) &&
+                            addresses(i)(63, 6) =/= releaseAddresses(captureEntry)(63, 6),
+                            "captured release aliases a transient directory reservation")
+                    }
                 }
             }
         }
         for (i <- 0 until acquireEntries) {
             when(active(i)) {
-                // Also masks the E destination's tag bank during first-C/E:
-                // an undefined read of that unowned bank cannot create a hit.
-                assert(!owned(directory(i)), "active Acquire reserved a committed directory slot")
+                if (futureWayReservation) {
+                    // Only the exact registered capture may overlap a reservation.
+                    // waitE remains unowned during first-C/E tag-bank lookup.
+                    assert(!owned(directory(i)) || futurePaired(i),
+                        "active Acquire reserved an unrelated committed directory slot")
+                } else {
+                    // Also masks the E destination's tag bank during first-C/E:
+                    // an undefined read of that unowned bank cannot create a hit.
+                    assert(!owned(directory(i)), "active Acquire reserved a committed directory slot")
+                }
+            }
+        }
+    }
+    if (futureWayReservation) {
+        val captureMask = VecInit(releasePhases.map(_ === rCapture))
+        assert(PopCount(captureMask) === Mux(capturing, 1.U, 0.U),
+            "release capture phase lost its unique registered owner")
+        when(capturing) {
+            assert(captureEntry < writebackEntries.U && captureLive && releaseBeat =/= 0.U,
+                "future reservation requires an accepted dirty capture")
+            assert(capturedDirectory(setBits - 1, 0) === setOf(capturedAddress),
+                "captured release directory lost its saved set")
+        }
+        assert(PopCount(futurePaired) <= 1.U, "multiple Acquires reserved one future directory")
+        for (i <- 0 until acquireEntries) {
+            when(futurePaired(i)) {
+                assert(owned(capturedDirectory) && addresses(i)(63, 6) =/= capturedAddress(63, 6) &&
+                    directory(i)(setBits - 1, 0) === setOf(addresses(i)),
+                    "future reservation lost its exact distinct-line committed owner")
+                assert(phase(i) === queued || phase(i) === filling || phase(i) === grantReady,
+                    "future reservation published before dirty capture completed")
+            }
+            when(phase(i) === waitE) {
+                assert(!futurePaired(i) && !owned(directory(i)),
+                    "GrantAck wait overlaps a committed or capturing directory")
             }
         }
     }
@@ -278,6 +341,14 @@ class MixedCoherentLineHome(
     private val needsMaintenance = request.write || needsProbe
     private val sourceBusy = (0 until acquireEntries).map(i =>
         active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
+    private val normalDirectoryAvailable = if (futureWayReservation) freeDirectory(port.a.bits.address) else false.B
+    private val futureDirectory = if (futureWayReservation)
+        (0 until trackedWays).map(futureDirectoryAvailable(port.a.bits.address, _)).reduce(_ || _)
+    else false.B
+    // Keep the existing free-way priority even when a future way also matches.
+    private val selectedDirectory = if (futureWayReservation)
+        Mux(normalDirectoryAvailable, freeDirectorySlot(port.a.bits.address), capturedDirectory)
+    else 0.U(directoryBits.W)
     private val canAcquire = !io.drainRequest && !anyDmaLine && maintenance === mIdle && reads === 0.U && !directHeld &&
         ((!upperWaiting && !io.upstream.request.valid && !linePending) || preferAcquire) &&
         freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
@@ -286,7 +357,7 @@ class MixedCoherentLineHome(
         !releaseSet(port.a.bits.address) &&
         !(releaseOffer && (if (memoryScheduleOverlap) port.c.bits.address(63, 6) === port.a.bits.address(63, 6)
             else setOf(port.c.bits.address) === setOf(port.a.bits.address))) &&
-        freeDirectory(port.a.bits.address)
+        (if (futureWayReservation) normalDirectoryAvailable || futureDirectory else freeDirectory(port.a.bits.address))
     port.a.ready := canAcquire
     // Reader readiness does not affect A admission. A failed direct dispatch
     // falls back to the existing FIFO with the same reserved metadata/tag.
@@ -300,7 +371,14 @@ class MixedCoherentLineHome(
             "home accepts only an aligned unowned nToT AcquireBlock")
         addresses(allocate) := port.a.bits.address
         sources(allocate) := port.a.bits.source
-        directory(allocate) := freeDirectorySlot(port.a.bits.address)
+        if (futureWayReservation) {
+            assert(!directoryReserved(selectedDirectory) &&
+                Mux(normalDirectoryAvailable, !owned(selectedDirectory),
+                    futureDirectory && captureLive && selectedDirectory === capturedDirectory &&
+                        owned(selectedDirectory) && port.a.bits.address(63, 6) =/= capturedAddress(63, 6)),
+                "Acquire selected neither an ordinary free nor an exact future directory")
+        }
+        directory(allocate) := (if (futureWayReservation) selectedDirectory else freeDirectorySlot(port.a.bits.address))
         errors(allocate) := false.B
         phase(allocate) := Mux(directFillFire, filling, queued)
     }
@@ -575,7 +653,16 @@ class MixedCoherentLineHome(
     private val dEntry = Reg(UInt(entryBits.W))
     private val dBeat = RegInit(0.U(3.W))
     private val dTurn = RegInit(0.U(entryBits.W))
-    private val grantMask = VecInit(phase.map(_ === grantReady))
+    if (futureWayReservation) {
+        when(dLocked && !dRelease) {
+            assert(!futurePaired(dEntry), "incomplete future way seized the held Grant owner")
+        }
+    }
+    // Exclude an incomplete future way before arbitration and the held D owner.
+    // A fast refill must not lock out an eligible Grant or the old ReleaseAck.
+    private val grantMask = if (futureWayReservation)
+        VecInit((0 until acquireEntries).map(i => phase(i) === grantReady && !futurePaired(i)))
+    else VecInit(phase.map(_ === grantReady))
     private val afterTurn = VecInit((0 until acquireEntries).map(i => grantMask(i) && i.U >= dTurn))
     private val selectedGrant = Mux(afterTurn.asUInt.orR, PriorityEncoder(afterTurn), PriorityEncoder(grantMask))
     private val releaseAckMask = VecInit(releasePhases.map(_ === rAck))
@@ -621,6 +708,7 @@ class MixedCoherentLineHome(
         }
     }
     when(grantFire) {
+        if (futureWayReservation) assert(!futurePaired(grantEntry), "Grant published an incomplete future way")
         when(internalLineGrant.B || dBeat === 7.U) {
             phase(grantEntry) := waitE
             dBeat := 0.U
@@ -635,6 +723,10 @@ class MixedCoherentLineHome(
         assert(eInRange && active(eEntry), "GrantAck has no live sink")
     }
     when(port.e.fire) {
+        if (futureWayReservation) {
+            assert(!futurePaired(eEntry) && !owned(directory(eEntry)),
+                "GrantAck overlaps a committed or capturing directory")
+        }
         when(!errors(eEntry)) {
             assert(!owned(directory(eEntry)), "reserved directory slot changed before GrantAck")
             if (tagConfig.compact) assert(tagGeometry.contains(addresses(eEntry)), "home tag outside aperture")

@@ -47,8 +47,11 @@ object CoherentLineHomeModule {
         lineTransferDispatchFlow: Boolean = false,
         lineReadChannel: Boolean = false,
         internalLineGrant: Boolean = false,
-        memoryScheduleOverlap: Boolean = false
+        memoryScheduleOverlap: Boolean = false,
+        futureHomeWayReservation: Boolean = false
     ): CoherentLineHomeModule = {
+        require(!futureHomeWayReservation || memoryScheduleOverlap,
+            "future Home way reservation requires memory scheduling overlap")
         require(!memoryScheduleOverlap || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 &&
             trackedWays == 2 && mixedReadWrite), "memory scheduling requires the reviewed two-way mixed Home")
         require(!internalLineGrant || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite),
@@ -73,7 +76,7 @@ object CoherentLineHomeModule {
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
                     trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
                     dmaLineTransfers, dmaLineEntries, distinctWayRelease, lineTransferDispatchFlow, lineReadChannel,
-                    internalLineGrant, memoryScheduleOverlap))
+                    internalLineGrant, memoryScheduleOverlap, futureHomeWayReservation))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

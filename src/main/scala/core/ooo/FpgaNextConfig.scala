@@ -79,7 +79,8 @@ final case class FpgaNextConfig(
     directRegisteredExecutionOperands: Boolean = false,
     sharedCanonicalStoreOwnerMatch: Boolean = false,
     localPayloadWriteRow: Boolean = false,
-    eagerFetchPrefixSelect: Boolean = false
+    eagerFetchPrefixSelect: Boolean = false,
+    futureHomeWayReservation: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -90,6 +91,8 @@ final case class FpgaNextConfig(
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
+    require(!futureHomeWayReservation || memoryScheduleOverlap,
+        "future Home way reservation requires memory scheduling overlap")
     require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,
         "eager fetch prefix selection requires the aligned permission stage")
     require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
@@ -215,7 +218,8 @@ final case class FpgaNextConfig(
         (if (readPrefetchBehindStore) "-read-prefetch-behind-store" else "") +
         (if (internalLineGrant) "-internal-line-grant" else "") +
         (if (concurrentReadStorePrefetch) "-concurrent-read-store-prefetch" else "") +
-        (if (memoryScheduleOverlap) "-memory-schedule-overlap" else "")
+        (if (memoryScheduleOverlap) "-memory-schedule-overlap" else "") +
+        (if (futureHomeWayReservation) "-future-home-way-reservation" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -246,7 +250,7 @@ final case class FpgaNextConfig(
         readPrefetchDemandAdoption = readPrefetchDemandAdoption, readPrefetchStoreHold = readPrefetchStoreHold,
         durableReadPrefetchCandidate = durableReadPrefetchCandidate, readPrefetchBehindStore = readPrefetchBehindStore,
         internalLineGrant = internalLineGrant, concurrentReadStorePrefetch = concurrentReadStorePrefetch,
-        memoryScheduleOverlap = memoryScheduleOverlap)
+        memoryScheduleOverlap = memoryScheduleOverlap, futureHomeWayReservation = futureHomeWayReservation)
     val tags = CacheTagConfig(compact = true, bankedStorage = optimized)
     val floatingPointResources = if (optimized) FloatingPointResourceConfig.fpga else FloatingPointResourceConfig.baseline
     val storage = FpgaStorageConfig(bankedRobPayload = true, sharedStoreOperandReads = true,
@@ -351,7 +355,7 @@ object FpgaNextConfig {
             "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
-            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap")) {
+            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -473,6 +477,7 @@ object FpgaNextConfig {
             internalLineGrant = options.contains("--internal-line-grant"),
             concurrentReadStorePrefetch = options.contains("--concurrent-read-store-prefetch"),
             memoryScheduleOverlap = options.contains("--memory-schedule-overlap"),
+            futureHomeWayReservation = options.contains("--future-home-way-reservation"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),

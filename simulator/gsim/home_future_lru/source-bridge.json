@@ -1,0 +1,107 @@
+{
+  "schema": "valence-future-home-source-bridge-v1",
+  "base_commit": "b1bb5d863f7ad5b034f148b18968d19e46ace75b",
+  "base_tree": "ff415366e5d26976bcdcda59d93d91680d33d45e",
+  "default52_cpu_rerun": false,
+  "changed_sources": {
+    "src/main/scala/core/ooo/CoherentCacheConcurrency.scala": {
+      "base_sha256": "995d11a0aa3beec0966b98bc90e671953c67787d42de1c1a6e2120158d9ff84d",
+      "current_sha256": "cbbefe36c179efeea2485063716803c0b8169d1209a268c4571a3b1768e415b3"
+    },
+    "src/main/scala/core/ooo/CoherentLineHome.scala": {
+      "base_sha256": "f2f449a6a33dd5f90709ad5d3e2f5c37595a2ffc377c86f6e2c67a0c967b8288",
+      "current_sha256": "91b4d933ea79f00f8550f1708022b47f0ffbeb5561d2142e54d0c17b0b45f1b4"
+    },
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": {
+      "base_sha256": "02c62c07a1efe23f7386d76f1ee3fc70e709badb4bfae87435c976fd9e723a00",
+      "current_sha256": "b2f72232499484568c3c2a9139fc636b77752b4762b46404e8e46a813587550c"
+    },
+    "src/main/scala/core/ooo/MachinePlatform.scala": {
+      "base_sha256": "f4a4e370ad20690e037d150df729e4613ccf557a44581be68fc3890f75b63785",
+      "current_sha256": "dd50c630d8c8421a18af6d1336aa531d3bd224efb9eda3abbf51b927415b1170"
+    },
+    "src/main/scala/core/ooo/MixedCoherentLineHome.scala": {
+      "base_sha256": "8b587c538a77b564df3b0ffdaab02bd0e34405c80579bcd9e8e01f07510d8202",
+      "current_sha256": "38879fa5b9724140bc7901fd7c838a9fba60fface4d74934c2388eee945a49a8"
+    },
+    "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala": {
+      "base_sha256": "33dc056f57bf3a6cf588cd4ebde2c273323271ab34c34b4a02ed63e1715e43d7",
+      "current_sha256": "35bda120a2ae99060b6a6b134410591c25211badd01db827e0ab1e08aeb98c7e"
+    },
+    "src/test/scala/ooo/EagerPrefixConfigSpec.scala": {
+      "base_sha256": "146689f9347e3ae11dfc706ec594086f76563857c62bc0f7d4be6d2b57e0d585",
+      "current_sha256": "21bd209ba1ba586916692d2db68ceaeaca24cc95c7d8bd13820f217f15d2ec80"
+    },
+    "src/test/scala/ooo/FpgaNextMain.scala": {
+      "base_sha256": "5e30be6ae1ebd9df8662e38e788df2df24962a2576ab21fabd36588357e25107",
+      "current_sha256": "31471c9080848f41e18d3f9008c2e59aadc1e43393abe6216c8451e007f8f61b"
+    },
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": {
+      "base_sha256": "c60d11ade55487837a12369939c8e312d603f15246540bad27d002bf6a0ef343",
+      "current_sha256": "9931ef48092fb8c563447b37124117363b31e11224d17b0b6c2b28cf78883438"
+    },
+    "src/test/scala/ooo/FutureHomeActualAudit.scala": {
+      "base_sha256": null,
+      "current_sha256": "3ebc95c6b8ab2c2255d222acf2440678653d7e6e264f7e331e1d0cc3c8085676"
+    },
+    "src/test/scala/ooo/FutureHomeConfigSpec.scala": {
+      "base_sha256": null,
+      "current_sha256": "542e2a82ccb7e263d298648c01b8a8d2ad37916efa24934fc6b4bd76fc43e11a"
+    },
+    "src/test/scala/ooo/MatchingFabricAudit.scala": {
+      "base_sha256": "80cc52adb9abdbbf99e2610e4d5363b6b9ebe49eea942644737156e480f85447",
+      "current_sha256": "59f4ced5dd93a2c5fbf823f715815a619b76e1ab2e62953387fd8d936624e11e"
+    },
+    "src/test/scala/ooo/OwnerRowActualAudit.scala": {
+      "base_sha256": "f89c9fbb51a268a834b2d97c032bb4d797454c451eaf0c2ac578427e0e7c945f",
+      "current_sha256": "b57c277c2cdf7f1104d46a07c823c5afb8ab204fd75560bc149ffd015e3502db"
+    },
+    "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": {
+      "base_sha256": "308487534196eef8b22d7cf661d4a0f8be5a06653d210e6610d422c4e4230bcf",
+      "current_sha256": "a1ffb7225964cdec911527fb5f306cd20faee615f2332c18da8449c2645fa06c"
+    },
+    "fpga/next/export.py": {
+      "base_sha256": "5a342649e7917892aed64e0993d6ec2b746d17d63ad20624e44057522bf942d4",
+      "current_sha256": "97531ff56fc6e5fe4b4f56018e1779311bce7c89b30515014039449a8351ce12"
+    }
+  },
+  "closures": {
+    "production": {
+      "scope": [
+        "src/main/scala",
+        "src/main/resources",
+        "third_party/berkeley-hardfloat/src/main/scala",
+        "fpga/next/rtl"
+      ],
+      "base_file_count": 220,
+      "base_sha256": "a3bf438bf7dac208fc2351e4cc55065f7e12d0d43658d6dbcfc8a1b66740f237",
+      "current_file_count": 220,
+      "current_sha256": "df35936111b3059fb03e9a78d4e0900c27b77c51c35bb1b8fc06374673d44988"
+    },
+    "scala": {
+      "scope": [
+        "src/main/scala",
+        "src/test/scala",
+        "third_party/berkeley-hardfloat/src/main/scala"
+      ],
+      "base_file_count": 560,
+      "base_sha256": "a4cef96986dbad66936a9152f035e920376ba8b1a281da524e3b0698fa6ab3c1",
+      "current_file_count": 562,
+      "current_sha256": "25d1ba1233418d3f4c9de9929337251fd91ae6e0343520cefac57f583fcfb1f4"
+    }
+  },
+  "off_correspondence": {
+    "status": "PASS_EXPLICIT_OFF_ORIGINAL_CHIRRTL_CORRESPONDENCE",
+    "evidence_sha256": "9faf9e5ffcd6ececb4c53783976270174f6d9c7c6921eebf016bc1463cda64da",
+    "raw_native_byte_identical": false,
+    "allowed_queue_name_substitutions": 2,
+    "removed_proven_unused_false_lines": 3,
+    "mutations_rejected": [
+      "phase",
+      "grantMask",
+      "ownedWrite",
+      "futurePairedConsumer"
+    ],
+    "scope": "Home only; saved baseline CPU evidence retained, no new full-board OFF run"
+  }
+}

@@ -68,6 +68,8 @@ class MachinePlatform(
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
+    private var constructedHome: Option[CoherentLineHomeModule] = None
+    def finalHome: Option[CoherentLineHomeModule] = constructedHome
     require(!ddrBridge.lineReadChannel || (externalDdr && tileLinkMemory && tileLinkFetch &&
         !splitTileLinkMemory && coherentLineCache && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
@@ -639,7 +641,9 @@ class MachinePlatform(
                 distinctWayRelease = cacheConcurrency.distinctWayRelease,
                 lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = ddrBridge.lineReadChannel,
         internalLineGrant = cacheConcurrency.internalLineGrant,
-        memoryScheduleOverlap = cacheConcurrency.memoryScheduleOverlap)
+        memoryScheduleOverlap = cacheConcurrency.memoryScheduleOverlap,
+        futureHomeWayReservation = cacheConcurrency.futureHomeWayReservation)
+            constructedHome = Some(home)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.
             // The registered cache-local done then closes new home transactions.

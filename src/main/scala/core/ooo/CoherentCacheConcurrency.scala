@@ -14,7 +14,9 @@ case class CoherentCacheConcurrency(readMshrs: Int = 1, responseEntries: Int = 2
     readPrefetchDemandAdoption: Boolean = false, readPrefetchStoreHold: Boolean = false,
     durableReadPrefetchCandidate: Boolean = false, readPrefetchBehindStore: Boolean = false,
     internalLineGrant: Boolean = false, concurrentReadStorePrefetch: Boolean = false,
-    memoryScheduleOverlap: Boolean = false) {
+    memoryScheduleOverlap: Boolean = false, futureHomeWayReservation: Boolean = false) {
+    require(!futureHomeWayReservation || memoryScheduleOverlap,
+        "future Home way reservation requires memory scheduling overlap")
     require(!memoryScheduleOverlap || (readMshrs == 2 && responseEntries == 2 && writebackEntries == 2 &&
         overlapWritebackRefill && independentDemandAdmission),
         "memory scheduling overlap preserves the reviewed two-owner independent cache")

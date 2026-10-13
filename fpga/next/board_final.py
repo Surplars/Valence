@@ -14,7 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 MANIFEST = HERE / "board-final-profile-v1.json"
-MANIFEST_SHA256 = "462ab3d1cfb99fdbd33ccdf8da8d58265b483d930cf299d51106768275c5fee0"
+MANIFEST_SHA256 = "d3ba221f3366fd9d1f5fcd866d1efdb5a76abff8109ca52fb213d5cdc5dfa868"
 INPUTS = ("fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json")
 
 
@@ -33,8 +33,18 @@ def exporter_module():
     return value
 
 
+def future_source_bridge(profile):
+    spec = importlib.util.spec_from_file_location("future_home_source_bridge",
+        ROOT / "simulator/gsim/home_future_lru/source_bridge.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module, module.load(ROOT, profile["source_only_future_home_bridge"])
+
+
 def check_source_bridge(profile, exporter):
     """Bind only reviewed Python entry edits to immutable hardware evidence."""
+    future_module, future_bridge = future_source_bridge(profile)
+    projected = future_module.project(exporter.sources(), future_bridge)
     bridge = profile["source_only_entry_contract_bridge"]
     item = profile["source_only_optional_bridge"]["optional53_receipt"]
     if item["path"] != "simulator/gsim/eager_prefix/evidence/public-receipt.json" or sha(ROOT / item["path"]) != item["sha256"]:
@@ -51,9 +61,9 @@ def check_source_bridge(profile, exporter):
     for name, identity in changed.items():
         if (set(identity) != {"qualified_sha256", "current_sha256"} or
                 identity["qualified_sha256"] != recorded["source_fingerprints"][name] or
-                identity["current_sha256"] != sha(ROOT / name)):
+                identity["current_sha256"] != future_module.project({name: sha(ROOT / name)}, future_bridge).get(name)):
             raise RuntimeError("entry source bridge Python identity changed: " + name)
-    sources = exporter.sources()
+    sources = projected
     for name, expected in helpers.items():
         if expected != recorded["source_fingerprints"][name] or sources.get(name) != expected:
             raise RuntimeError("entry source bridge tested helper identity changed: " + name)

@@ -65,11 +65,13 @@ def read_receipt(source):
     return value
 
 
-def check_closure(source, closure, scopes):
+def check_closure(source, closure, scopes, projection=None):
     need(closure['scope'] == scopes, 'source closure scope changed')
     actual = {p.relative_to(source).as_posix(): sha(safe_file(source, p.relative_to(source).as_posix()))
               for folder in scopes for p in sorted((source / folder).rglob('*'))
               if p.is_file() and (scopes != SCALA or p.suffix == '.scala')}
+    if projection is not None:
+        actual = projection(actual)
     need(len(actual) == closure['file_count'] and digest(actual) == closure['canonical_sha256'], 'source closure bytes changed')
     return len(actual)
 
@@ -117,21 +119,24 @@ def check(source, external=None):
     fingerprints = value['source_fingerprints']
     need(len(fingerprints) == SOURCE_COUNT and digest(sorted(fingerprints)) == SOURCE_SET_SHA256, 'necessary source set changed')
     # The immutable receipt describes tested bytes. The pinned entry manifest
-    # permits only the two reviewed Python changes, never a Scala/DUT rebind.
+    # preserves the historical receipt. A separate exact future-Home source
+    # projection identifies new source; this does not rerun the historical DUT.
     spec = importlib.util.spec_from_file_location('checked_optional53', source / 'fpga/next/board_eager_prefix.py')
     entry = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(entry)
     final, profile, recorded = entry.load_profile()
     bridge = profile['source_only_entry_contract_bridge']
+    future_module, future_bridge = final.future_source_bridge(profile)
+    project = lambda values: future_module.project(values, future_bridge)
     for name, expected in fingerprints.items():
         if name in bridge['changed_python_sources']:
             identity = bridge['changed_python_sources'][name]
             need(expected == identity['qualified_sha256'], 'entry source bridge qualified fingerprint changed: ' + name)
             expected = identity['current_sha256']
-        need(re.fullmatch(r'[0-9a-f]{64}', expected) is not None and sha(safe_file(source, name)) == expected,
+        need(re.fullmatch(r'[0-9a-f]{64}', expected) is not None and project({name: sha(safe_file(source, name))}).get(name) == expected,
              'necessary source fingerprint changed: ' + name)
-    production_count = check_closure(source, value['production_source_closure'], PRODUCTION)
-    scala_count = check_closure(source, value['qualified_scala_source_closure'], SCALA)
+    production_count = check_closure(source, value['production_source_closure'], PRODUCTION, project)
+    scala_count = check_closure(source, value['qualified_scala_source_closure'], SCALA, project)
     need(sha(safe_file(source, HISTORICAL_RECEIPT)) == HISTORICAL_SHA256, 'historical52 receipt bytes changed')
     check_record(value)
     config = value['configuration']
@@ -177,6 +182,9 @@ def check(source, external=None):
             'qualified_scala_source_files': scala_count, 'default_native_option_count': 52, 'optional_native_option_count': 53,
             'physical_T1_option_count': 1, 'full_qualification_reexecuted': False, 'default52_cpu_rerun': False,
             'source_only_entry_contract_bridge': bridge['status'],
+            'source_only_future_home_bridge': 'EXACT_CURRENT_TO_B1BB_HASH_PROJECTION',
+            'current_scala_source_files': future_bridge['closures']['scala']['current_file_count'],
+            'historical_qualification_reexecuted': False,
             'source_only_changed_python_files': sorted(bridge['changed_python_sources']),
             'newly_export_bound_tested_helpers': sorted(bridge['newly_export_bound_helpers']),
             'external_bundles_hash_verified': sorted(verified),
