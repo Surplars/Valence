@@ -47,7 +47,10 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
     directRank1MemorySourceIds: Boolean = false, directRegisteredExecutionOperands: Boolean = false,
     sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false,
-    predecodedHeadDrain: Boolean = false, retirementIntent: Boolean = false) extends Module {
+    predecodedHeadDrain: Boolean = false, retirementIntent: Boolean = false,
+    fetchAddressBeforePmp: Boolean = false, queuedHeadSelection: Boolean = false,
+    alignedNextLinePmp: Boolean = false, registerProbeLookup: Boolean = false,
+    localAddressRanges: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
@@ -61,6 +64,11 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         eagerFetchPrefixSelect == configurationCheck.get.coreParams.eagerFetchPrefixSelect &&
         predecodedHeadDrain == configurationCheck.get.coreParams.predecodedHeadDrain &&
         retirementIntent == configurationCheck.get.coreParams.retirementIntent &&
+        fetchAddressBeforePmp == configurationCheck.get.coreParams.fetchAddressBeforePmp &&
+        queuedHeadSelection == configurationCheck.get.coreParams.queuedHeadSelection &&
+        alignedNextLinePmp == configurationCheck.get.coreParams.alignedNextLinePmp &&
+        registerProbeLookup == configurationCheck.get.registerProbeLookup &&
+        localAddressRanges == configurationCheck.get.localAddressRanges &&
         pendingVirtualStoreProofSlots == configurationCheck.get.coreParams.pendingVirtualStoreProofSlots &&
         pendingStoreEarlyLoadCredits == configurationCheck.get.coreParams.pendingStoreEarlyLoadCredits &&
         boundHeadStoreOverlap == configurationCheck.get.coreParams.boundHeadStoreOverlap &&

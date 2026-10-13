@@ -22,7 +22,8 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     postedPrefetchCoexistence: Boolean = false, readPrefetchStoreHold: Boolean = false,
     postedGenerationBits: Int = 64, durableReadPrefetchCandidate: Boolean = false,
     readPrefetchBehindStore: Boolean = false, concurrentReadStorePrefetch: Boolean = false,
-    memoryScheduleOverlap: Boolean = false) extends Module {
+    memoryScheduleOverlap: Boolean = false, registerProbeLookup: Boolean = false,
+    probeLookupTest: Boolean = false) extends Module {
     private val base = testBase
     private val bytes = BigInt(128 * 1024)
     private val cfg = CoherentCacheConcurrency(mshrs, responseEntries, writebacks, mixed, nextLinePrefetch = prefetch,
@@ -41,6 +42,18 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     private val coherent = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = cfg.sinkBits)
     private val memory = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
+        val probeTest = if (probeLookupTest) Some(new Bundle {
+            val source = Output(UInt(coherent.sourceBits.W))
+            val cValid = Output(Bool())
+            val cReady = Output(Bool())
+            val cOpcode = Output(UInt(3.W))
+            val cParam = Output(UInt(3.W))
+            val cSize = Output(UInt(coherent.sizeBits.W))
+            val cSource = Output(UInt(coherent.sourceBits.W))
+            val cAddress = Output(UInt(64.W))
+            val cData = Output(UInt(64.W))
+            val posted = Output(new PostedStoreCacheObservation(postedCfg.get))
+        }) else None
         val adoption = if (demandAdoptionTest) Some(new Bundle {
             val holdAcquire = Input(Bool())
             val faultMode = Input(UInt(2.W))
@@ -109,7 +122,22 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
         val probeReplyData = Output(Bool())
     })
     val tags = CacheTagConfig(compact = compactTags, bankedStorage = bankedTags)
-    val cache = CoherentLineCacheModule.build(base, bytes, lines, coherent, cacheWays, cfg, tags, postedConfig = postedCfg)
+    val cache = if (registerProbeLookup)
+        Module(new NonBlockingCoherentLineCache(base, bytes, lines, coherent, cacheWays, cfg, tags,
+            postedConfig = postedCfg, registerProbeLookup = true))
+    else CoherentLineCacheModule.build(base, bytes, lines, coherent, cacheWays, cfg, tags, postedConfig = postedCfg)
+    io.probeTest.foreach { out =>
+        out.source := cache.io.tl.b.bits.source
+        out.cValid := cache.io.tl.c.valid
+        out.cReady := cache.io.tl.c.ready
+        out.cOpcode := cache.io.tl.c.bits.opcode
+        out.cParam := cache.io.tl.c.bits.param
+        out.cSize := cache.io.tl.c.bits.size
+        out.cSource := cache.io.tl.c.bits.source
+        out.cAddress := cache.io.tl.c.bits.address
+        out.cData := cache.io.tl.c.bits.data
+        out.posted := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationPosted.get)
+    }
     io.storePfObs.foreach { out =>
         require(mshrs >= 2, "store PF observer requires nonblocking cache")
         out := BoringUtils.bore(cache.asInstanceOf[NonBlockingCoherentLineCache].observationStorePrefetch)
@@ -280,6 +308,22 @@ class CoherentCacheHomeGsim(mshrs: Int = 2, lines: Int = 512, responseEntries: I
     io.probeAddress := cache.io.tl.b.bits.address
     io.probeReplyFire := cache.io.tl.c.fire && !TLOpcode.isRelease(cache.io.tl.c.bits.opcode)
     io.probeReplyData := cache.io.tl.c.bits.opcode === TLOpcode.ProbeAckData
+}
+
+/** Paired narrow gate: real posted-enabled cache, mixed home, DMA and AXI.
+  * Only geometry is reduced; the two-MSHR/two-response/two-WB owner laws remain.
+  */
+object ProbeLookupCacheHomeGsimMain extends App {
+    require(args.length == 2 && Set("0", "1").contains(args(1)), "output directory and lookup 0|1 required")
+    ChiselStage.emitCHIRRTLFile(new CoherentCacheHomeGsim(mshrs = 2, lines = 16,
+        responseEntries = 2, compactTags = true, writebacks = 2, mixed = true,
+        axiSlots = 4, unordered = true, prefetch = true, bankedTags = true,
+        prefetchCandidateCycles = 16, storeNextLinePrefetch = true, storePrefetchMruInsertion = true,
+        splitPrefetchTracking = true, independentDemandAdmission = true, readPrefetchDirtyRetry = true,
+        readPrefetchDemandAdoption = true, demandAdoptionTest = true, postedPrefetchCoexistence = true,
+        readPrefetchStoreHold = true, durableReadPrefetchCandidate = true, readPrefetchBehindStore = true,
+        concurrentReadStorePrefetch = true, memoryScheduleOverlap = true,
+        registerProbeLookup = args(1) == "1", probeLookupTest = true), Array("--target-dir", args(0)))
 }
 
 object CoherentCacheHomeGsimMain extends App {

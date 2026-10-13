@@ -107,7 +107,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     rawFetchPresence: Boolean = false, parallelFetchTagLookup: Boolean = false,
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
     independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
-    val boundedRequestFrontier: Boolean = false) extends Module {
+    val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -120,6 +120,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     require(!independentPayloadCapture || compressed, "independent payload capture requires compressed packets")
     require(!boundedRequestFrontier || (fetchWidth == 2 && compressed && registeredWindow),
         "bounded request frontier requires the two-wide compressed registered window")
+    require(!fetchAddressBeforePmp || (boundedRequestFrontier && alignedFetchPmp),
+        "fetch address preparation requires the bounded two-wide compressed aligned-PMP frontend")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
@@ -169,6 +171,9 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val lockedContext = Reg(UInt(3.W))
         val lockedMask = Reg(UInt(fetchWords.W))
         val lockedStale = RegInit(false.B)
+        // A prepared address has not offered a transaction yet. After its first
+        // stalled offer, the existing payload registers own an irrevocable offer.
+        val maskCaptured = if (fetchAddressBeforePmp) Some(RegInit(false.B)) else None
         val returningPayload = io.memory.response.valid && pending && !pendingStale && pendingContext === context
         val returning = returningPayload && !io.invalidate
 
@@ -380,43 +385,75 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val reply = io.memory.response.valid && pending
         // Eager scan may query younger cached bytes, but it cannot authorize
         // requests beyond the old unresolved token's base/base+8 envelope.
-        // This guard applies only before ownership is locked; an old locked
-        // request always drains unchanged, including across cancellation.
+        // This guard selects an owner's address. An offer already presented to
+        // memory always drains unchanged, including across cancellation.
         val frontierAllows = if (boundedRequestFrontier) {
             val base = Cat(io.requestFrontier.get(63, 3), 0.U(3.W))
             (wanted === base || wanted === (base + 8.U)(63, 0)) && !io.suppressRequest.get
         } else true.B
-        io.memory.request.valid := !reset.asBool && (locked ||
-            (io.enable && !io.pause && !io.invalidate && (!pending || reply) &&
-                !cachedTarget && !returningTarget && frontierAllows))
+        val newRequest = io.enable && !io.pause && !io.invalidate && (!pending || reply) &&
+            !cachedTarget && !returningTarget && frontierAllows
         val fetchBase = if (fetchWords == 4) Cat(wanted(63, 4), 0.U(4.W)) else wanted
-        io.memory.request.bits := Mux(locked, lockedBase, fetchBase)
+        val cancelPrepared = if (fetchAddressBeforePmp)
+            !io.enable || io.pause || io.invalidate || io.suppressRequest.get || lockedContext =/= context
+        else false.B
+        if (fetchAddressBeforePmp) {
+            // Only the miss selector drives this address register. PMP and its
+            // mask-to-adapter path start at the captured address one cycle later.
+            // Hot cache/window supply above is unchanged; each cold owner adds
+            // one preparation cycle and still occupies the single request slot.
+            io.memory.request.valid := !reset.asBool && locked && (maskCaptured.get || !cancelPrepared)
+            io.memory.request.bits := lockedBase
+            when(!reset.asBool && !locked && newRequest) {
+                locked := true.B
+                lockedBase := fetchBase
+                lockedContext := context
+                lockedStale := false.B
+                maskCaptured.get := false.B
+            }
+            when(locked && !maskCaptured.get && cancelPrepared) {
+                locked := false.B
+                lockedStale := false.B
+            }
+            when(locked && maskCaptured.get && cancelPrepared) { lockedStale := true.B }
+            when(io.memory.request.valid && !io.memory.request.ready && !maskCaptured.get) {
+                lockedMask := io.memory.requestMask
+                maskCaptured.get := true.B
+            }
+            assert(!(locked && pending), "prepared fetch and accepted fetch cannot own the slot together")
+        } else {
+            io.memory.request.valid := !reset.asBool && (locked || newRequest)
+            io.memory.request.bits := Mux(locked, lockedBase, fetchBase)
+        }
+        val permissionBase = if (fetchAddressBeforePmp) lockedBase else fetchBase
+        val permissionContext = if (fetchAddressBeforePmp) lockedContext else context
         val allowed = Wire(Vec(fetchWords, Bool()))
         for (lane <- 0 until fetchWords) {
             val checker = Module(new PmpChecker(pmpEntries, alignedWordAccess = alignedFetchPmp))
             checker.io.state := io.pmpState
-            // An unlocked request base is aligned to the whole 8/16-byte packet.
-            // Locked requests use the previously captured mask, never this live
-            // checker result. Thus no locked-base mux or XLEN lane/end addition
-            // is needed on the new request's permission-payload path.
+            // Both profiles use a packet-aligned base without an XLEN lane/end
+            // addition. The staged profile never feeds the live miss selector
+            // into PMP, including on its first request offer.
             checker.io.address := (if (alignedFetchPmp)
-                Cat(fetchBase(63, log2Ceil(fetchWords * 4)), lane.U(log2Ceil(fetchWords).W), 0.U(2.W))
+                Cat(permissionBase(63, log2Ceil(fetchWords * 4)), lane.U(log2Ceil(fetchWords).W), 0.U(2.W))
                 else io.memory.request.bits + (4 * lane).U)
             checker.io.size := 2.U
-            checker.io.privilege := io.privilege
+            checker.io.privilege := permissionContext(1, 0)
             checker.io.access := PmpAccess.execute
             allowed(lane) := !checker.io.denied
         }
-        io.memory.requestMask := Mux(locked, lockedMask,
-            Mux(io.virtualized, ((1 << fetchWords) - 1).U, allowed.asUInt))
+        io.memory.requestMask := Mux(maskCaptured.getOrElse(locked), lockedMask,
+            Mux(permissionContext(2), ((1 << fetchWords) - 1).U, allowed.asUInt))
         io.memory.response.ready := true.B
         io.quiescent := !pending && !locked
-        when(io.memory.request.valid && !io.memory.request.ready &&
-            (if (boundedRequestFrontier) !locked else true.B)) {
-            locked := true.B
-            lockedBase := io.memory.request.bits
-            lockedContext := context
-            lockedMask := io.memory.requestMask
+        if (!fetchAddressBeforePmp) {
+            when(io.memory.request.valid && !io.memory.request.ready &&
+                (if (boundedRequestFrontier) !locked else true.B)) {
+                locked := true.B
+                lockedBase := io.memory.request.bits
+                lockedContext := context
+                lockedMask := io.memory.requestMask
+            }
         }
         when(io.invalidate) {
             for (set <- 0 until cacheSets; way <- 0 until 2) valid(set)(way) := false.B
@@ -467,8 +504,9 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             assert(!pending || reply, "compressed fetch permits one outstanding packet")
             locked := false.B
             lockedStale := false.B
+            maskCaptured.foreach(_ := false.B)
             pending := true.B
-            pendingStale := io.invalidate || lockedStale
+            pendingStale := io.invalidate || lockedStale || cancelPrepared
             pendingBase := io.memory.request.bits
             pendingBasePlusEight := (io.memory.request.bits + 8.U)(63, 0)
             for (offset <- 1 to maxPacketOffset) {

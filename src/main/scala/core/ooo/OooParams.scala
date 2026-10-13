@@ -172,7 +172,12 @@ case class OooParams(
     // Immutable drain classification captured at the existing accepted rename edge.
     predecodedHeadDrain: Boolean = false,
     // Retirement-only pre-cancel offer; never authorizes completion or execution effects.
-    retirementIntent: Boolean = false
+    retirementIntent: Boolean = false,
+    // Lock the bounded cold-fetch address one cycle before frontend PMP.
+    fetchAddressBeforePmp: Boolean = false,
+    // Local timing choices at the existing translated-request and hint boundaries.
+    queuedHeadSelection: Boolean = false,
+    alignedNextLinePmp: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -181,6 +186,14 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!queuedHeadSelection || (virtualMemoryLevels > 0 && registeredTranslationHeads),
+        "queued head selection requires registered data translation")
+    require(!alignedNextLinePmp || (virtualMemoryLevels > 0 && dataNextLinePrefetch),
+        "aligned next-line PMP requires the translated next-line authorization boundary")
+    require(!fetchAddressBeforePmp || (renameWidth == 2 && compressedInstructions && alignedFetchPmp &&
+        alignedFetchPermissionStage && machineSystem && pmpEntries == 16 && virtualMemoryLevels == 3 &&
+        registeredTranslationHeads),
+        "fetch address preparation requires the bounded two-lane Sv39 frontend and registered instruction translation")
     require(!retirementIntent || (registeredIssueExecute && parallelIssuePayload && parallelCompletionPayload &&
         registeredRobRetirement && separateBranchRetireFault && parallelRecoveryAdmission &&
         renameWidth == 2 && completionWidth == 2 && commitWidth == 2 && tagBits == 64),

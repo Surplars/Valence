@@ -45,7 +45,8 @@ private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
   */
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
-    val registerCanonicalStoreEvent: Boolean = false) extends Module {
+    val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
+    val alignedNextLinePmp: Boolean = false) extends Module {
     require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
         "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
@@ -348,9 +349,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
 
     // The optional hit source ends at the same checked register as queued work.
     // It never bypasses authorization or an older translated request.
-    val head = if (p.precheckedDataRequestFlow || translationHitFlow)
-        Mux(precheckedOffer || translationHitOffer, translated.io.enq.bits, translated.io.deq.bits)
-        else translated.io.deq.bits
+    val head = if (p.precheckedDataRequestFlow || translationHitFlow) {
+        // Both offers require an empty translated queue. When occupied, its
+        // registered valid bit selects the older record before hit/PBMT/fault
+        // qualification. When empty, only an authorized offer may consume this
+        // raw ingress record; identity/physical ingress use their own payloads.
+        // Valid/fire and every authorization gate remain unchanged below.
+        if (queuedHeadSelection) Mux(translated.io.deq.valid, translated.io.deq.bits, translated.io.enq.bits)
+        else Mux(precheckedOffer || translationHitOffer, translated.io.enq.bits, translated.io.deq.bits)
+    } else translated.io.deq.bits
     val request = head.request
     val pmp = Module(new PmpChecker(p.pmpEntries))
     pmp.io.state := io.pmpState
@@ -442,8 +449,11 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     // Authorization is captured with the checked request, including the identity
     // queue bypass. The incoming hint is always overwritten, even when disabled.
+    private var constructedNextLineAuthorization: Option[NextLineAuthorization] = None
+    def nextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
     val nextAllowed = if (p.dataNextLinePrefetch) {
-        val authorize = Module(new NextLineAuthorization(p))
+        val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp))
+        constructedNextLineAuthorization = Some(authorize)
         CpuReturnTransport.requestPayload(authorize.io.request, Mux(physicalIngressOffer, io.virtual.request.bits,
             Mux(identityOffer, incoming.bits, request)))
         authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,

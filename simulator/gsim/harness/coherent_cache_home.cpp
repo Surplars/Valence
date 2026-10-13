@@ -2,6 +2,7 @@
 #include "mshr_occupancy.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <functional>
 #include <iostream>
@@ -201,6 +202,15 @@ struct Test {
         if (observer) observer();
     }
     Test() {
+#ifdef PROBE_LOOKUP_FIXTURE
+        // Initialize the host POD before reset; the pinned GSIM initializer
+        // can leave an inactive SRAM address in its tail uninitialized.
+        std::memset(&d, 0, sizeof(d)); d.LOG_START = 1; d.activateAll();
+        d.set_io$$adoption$$holdAcquire(0);
+        d.set_io$$adoption$$faultMode(0); d.set_io$$adoption$$faultBeat(0);
+        d.set_io$$adoption$$postedProofValid(0); d.set_io$$adoption$$postedToken(0);
+        d.set_io$$adoption$$postedSeal(0); d.set_io$$adoption$$postedEndEpisode(0);
+#endif
         for (uint64_t offset = 0; offset < BOARD_DDR_BYTES; offset += 8) {
             ddr.memory[offset] = initial(base + offset); architectural[base + offset] = initial(base + offset);
         }

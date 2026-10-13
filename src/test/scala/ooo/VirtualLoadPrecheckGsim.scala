@@ -15,8 +15,11 @@ object VirtualLoadPrecheckFixture {
 }
 
 class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
-    dataTranslationEntries: Int = 8, writeReadReuse: Boolean = false, translationHitFlow: Boolean = false) extends Module {
-    val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow)
+    dataTranslationEntries: Int = 8, writeReadReuse: Boolean = false, translationHitFlow: Boolean = false,
+    hintTimingPair: Boolean = false, precheckedFlow: Boolean = false, physicalIngressFlow: Boolean = false) extends Module {
+    val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow,
+        precheckedDataRequestFlow = precheckedFlow, physicalLoadIngressFlow = physicalIngressFlow,
+        dataNextLinePrefetch = hintTimingPair, dataStoreNextLinePrefetch = hintTimingPair)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
         val physical = new DataPort
@@ -36,10 +39,15 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
         val stable = Output(Bool())
         val translationHit = Output(Bool())
         val translationWalk = Output(Bool())
+        val precheckedPass = Output(Bool())
+        val identityPass = Output(Bool())
+        val physicalIngressPass = Output(Bool())
         val idle = Output(Bool())
     })
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = translationHitFlow))
+        translationHitFlow = translationHitFlow, queuedHeadSelection = hintTimingPair,
+        alignedNextLinePmp = hintTimingPair))
+    if (hintTimingPair) TranslationHintTimingPair.attach(adapter, p, translationHitFlow)
     val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16,
         loadPeek = enabled, writeReadReuse = writeReadReuse))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
@@ -76,6 +84,9 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
     }
     io.translationHit := translation.io.tlbHit
     io.translationWalk := translation.io.walkStart
+    io.precheckedPass := BoringUtils.bore(adapter.precheckedPass)
+    io.identityPass := BoringUtils.bore(adapter.identityPass)
+    io.physicalIngressPass := BoringUtils.bore(adapter.physicalIngressPass)
     io.idle := adapter.io.idle && translation.io.idle
 }
 

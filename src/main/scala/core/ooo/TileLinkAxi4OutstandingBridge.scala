@@ -34,7 +34,8 @@ class TileLinkAxi4OutstandingBridge(
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
     val localPayloadWriteEnable: Boolean = false,
-    val localPayloadWriteRow: Boolean = false
+    val localPayloadWriteRow: Boolean = false,
+    val localAddressRanges: Boolean = false
 ) extends Module {
     require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
         "local payload write rows require line banks and localized upper-bank enables")
@@ -53,7 +54,8 @@ class TileLinkAxi4OutstandingBridge(
         "independent line reads require the unordered shared RAM scheduler")
     val slots = Seq.fill(maxOutstanding)(Module(new TileLinkAxi4BurstBridge(tlParams,
         axiAddressWidth, axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos,
-        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, localPayloadWriteEnable, localPayloadWriteRow)))
+        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, localPayloadWriteEnable,
+        localPayloadWriteRow, localAddressRanges)))
     val slotWidth = log2Ceil(maxOutstanding)
     val head = RegInit(0.U(slotWidth.W))
     val tail = RegInit(0.U(slotWidth.W))
@@ -114,12 +116,19 @@ class TileLinkAxi4OutstandingBridge(
     val lineStart = io.lineRead.map(l => Cat(l.request.bits.address(tlParams.addrWidth - 1, 6), 0.U(6.W)))
         .getOrElse(0.U(tlParams.addrWidth.W))
     val lineEnd = Cat(0.U(1.W), lineStart) + 64.U
+    // Only the incoming hazard decision uses an inclusive last byte. The
+    // retained owner end below stays exclusive and keeps its overflow bit.
+    // In particular the final XLEN line has end=2^XLEN, not wrapped zero.
+    val lineLast = Cat(lineStart(tlParams.addrWidth - 1, 6), 63.U(6.W))
     val canAllocateLine = if (lineReadChannel) {
         val l = io.lineRead.get
         val tagBusy = (0 until maxOutstanding).map(i => active(i) && lineOrigins(i) &&
             lineTags.get(i) === l.request.bits.tag).reduce(_ || _)
-        val hazard = (0 until maxOutstanding).map(i => active(i) && writes(i) &&
-            Cat(0.U(1.W), lineStart) < ends(i) && Cat(0.U(1.W), starts(i)) < lineEnd).reduce(_ || _)
+        val hazard = (0 until maxOutstanding).map { i =>
+            val beginsBeforeLineEnd = if (localAddressRanges) starts(i) <= lineLast
+                else Cat(0.U(1.W), starts(i)) < lineEnd
+            active(i) && writes(i) && Cat(0.U(1.W), lineStart) < ends(i) && beginsBeforeLineEnd
+        }.reduce(_ || _)
         !active(allocationSlot) && !tagBusy && !hazard
     } else false.B
     // One new shared owner per cycle, but an in-progress write's continuation

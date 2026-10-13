@@ -16,7 +16,8 @@ class NonBlockingCoherentLineCache(
     ways: Int = 2, concurrency: CoherentCacheConcurrency = CoherentCacheConcurrency(2),
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     postedConfig: Option[PostedStoreMergeConfig] = None,
-    returnConfig: Option[CpuReturnConfig] = None
+    returnConfig: Option[CpuReturnConfig] = None,
+    val registerProbeLookup: Boolean = false
 ) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
@@ -301,16 +302,11 @@ class NonBlockingCoherentLineCache(
     private val flushIndex = RegInit(0.U(indexBits.W))
     private val flushWaiting = RegInit(false.B)
     private val scanComplete = RegInit(false.B)
-    if (tagConfig.bankedStorage) {
-        // B has priority; demand cannot fire with BVALID and flush excludes
-        // demand. Neither BREADY nor arbitration depends on the tag result.
-        primaryTagSet := Mux(io.tl.b.fire, lineSet(io.tl.b.bits.address),
-            Mux(flushActive, flushIndex(setBits - 1, 0), lineSet(io.upstream.request.bits.address)))
-    }
     io.flushDone := flushFinished
     when(!io.flushRequest) { flushFinished := false.B }
 
-    private val pIdle :: pCapture :: pSend :: Nil = Enum(3)
+    // Lookup reuses the spare encoding in the existing two-bit probe owner.
+    private val pIdle :: pCapture :: pSend :: pLookup :: Nil = Enum(4)
     private val probeState = RegInit(pIdle)
     private val probeAddress = Reg(UInt(64.W))
     private val probeSource = Reg(UInt(params.sourceBits.W))
@@ -318,6 +314,15 @@ class NonBlockingCoherentLineCache(
     private val probeDirty = Reg(Bool())
     private val probeWords = Reg(Vec(8, UInt(64.W)))
     private val probeBeat = RegInit(0.U(3.W))
+    private val probeLookup = if (registerProbeLookup) probeState === pLookup else false.B
+    if (tagConfig.bankedStorage) {
+        // ON selects tags from retained ownership, after BREADY and B.fire.
+        // The OFF branch keeps the original acceptance-edge lookup exactly.
+        val lookupSelect = if (registerProbeLookup) probeLookup else io.tl.b.fire
+        val lookupAddress = if (registerProbeLookup) probeAddress else io.tl.b.bits.address
+        primaryTagSet := Mux(lookupSelect, lineSet(lookupAddress),
+            Mux(flushActive, flushIndex(setBits - 1, 0), lineSet(io.upstream.request.bits.address)))
+    }
     private val eIdle :: eCapture :: eSend :: eAck :: Nil = Enum(4)
     private val evictionState = RegInit(eIdle)
     // The fourth value uses the same existing two bits. Captured-miss WB duty
@@ -368,18 +373,32 @@ class NonBlockingCoherentLineCache(
         VecInit((0 until wbCount).map(i => wbLive(i) && wbAddress(i)(63, 6) === io.tl.b.bits.address(63, 6))).asUInt.orR
     io.tl.b.ready := probeState === pIdle && !probeTransient && !probeEviction
     private val probeFire = io.tl.b.fire
-    private val probeIndex = residentSlot(io.tl.b.bits.address)
-    private val actualProbeHit = (0 until ways).map(matches(io.tl.b.bits.address, _)).reduce(_ || _)
-    private val probeRead = probeFire && actualProbeHit && dirty(probeIndex)
+    private val probeLookupAddress = if (registerProbeLookup) probeAddress else io.tl.b.bits.address
+    private val probeLookupFire = if (registerProbeLookup) probeLookup else probeFire
+    private val probeIndex = residentSlot(probeLookupAddress)
+    private val actualProbeHit = (0 until ways).map(matches(probeLookupAddress, _)).reduce(_ || _)
+    private val actualProbeDirty = actualProbeHit && dirty(probeIndex)
+    private val probeRead = probeLookupFire && actualProbeDirty
     when(probeFire) {
         assert(io.tl.b.bits.opcode === TLOpcode.ProbeBlock && io.tl.b.bits.size === 6.U &&
             io.tl.b.bits.param === TLPermissions.toN, "cache expects an invalidation probe")
         probeAddress := io.tl.b.bits.address
         probeSource := io.tl.b.bits.source
+        if (registerProbeLookup) probeState := pLookup
+    }
+    when(probeLookupFire) {
         probeHit := actualProbeHit
-        probeDirty := actualProbeHit && dirty(probeIndex)
+        probeDirty := actualProbeDirty
         when(actualProbeHit) { valid(probeIndex) := false.B; dirty(probeIndex) := false.B }
-        probeState := pCapture
+        if (registerProbeLookup) {
+            // Clean/absent replies need no SRAM capture and keep their old
+            // latency. Dirty replies add the registered lookup cycle only.
+            probeState := Mux(actualProbeDirty, pCapture, pSend)
+            when(!actualProbeDirty) {
+                probeWords := 0.U.asTypeOf(probeWords)
+                probeBeat := 0.U
+            }
+        } else probeState := pCapture
     }
 
     // Eviction requests own their set from CPU acceptance. A probe can remove
@@ -406,13 +425,13 @@ class NonBlockingCoherentLineCache(
     private val directEviction = WireDefault(false.B)
     private val directEvictionIndex = WireDefault(0.U(indexBits.W))
     private val queuedEvictionRead = evictionLaneAvailable && queuedEvictWanted &&
-        valid(queuedEvictIndex) && dirty(queuedEvictIndex) && !probeFire
+        valid(queuedEvictIndex) && dirty(queuedEvictIndex) && !probeFire && !probeLookup
     private val evictMshr = Mux(directEviction, freeMshr, queuedEvictMshr)
     private val evictFromMiss = queuedMissEviction || directEviction
     private val evictIndex = Mux(directEviction, directEvictionIndex, queuedEvictIndex)
     private val evictWanted = queuedEvictWanted || directEviction
     private val postedEvict = evictFromMiss && isPosted(evictMshr)
-    private val startEviction = evictionLaneAvailable && evictWanted && valid(evictIndex) && !probeFire &&
+    private val startEviction = evictionLaneAvailable && evictWanted && valid(evictIndex) && !probeFire && !probeLookup &&
         !(postedConfig.nonEmpty.B && (wbCount == 1).B && evictionRetiring)
     private val evictionRead = startEviction && dirty(evictIndex)
     private val evictAddress = if (tagConfig.bankedStorage) {
@@ -421,7 +440,7 @@ class NonBlockingCoherentLineCache(
                 Mux(evictFromBypass, bypassVictimTag.get, wayTag(primaryTags.get, evictIndex))))
         taggedAddress(tag, evictIndex)
     } else slotAddress(evictIndex)
-    when(evictionLaneAvailable && !probeFire) {
+    when(evictionLaneAvailable && !probeFire && !probeLookup) {
         when(evictFromMiss && !valid(evictIndex)) {
             phase(evictMshr) := acquire
             for (owner <- posted) {
@@ -570,7 +589,7 @@ class NonBlockingCoherentLineCache(
         probeState === pIdle && bypassState === bIdle
     private val needsMissSlot = ordinary && !found
     private val legacyReady = responseSpace && !barrier && !flushActive && !io.flushRequest &&
-        !io.tl.b.valid && reservationSafe && (!barrierRequest || barrierSafe) &&
+        !io.tl.b.valid && !probeLookup && reservationSafe && (!barrierRequest || barrierSafe) &&
         (!writeHit || storeHitSafe) &&
         (!needsMissSlot || freeMask.asUInt.orR) && (!readHit || !queuedEvictionRead)
     // No permission hint, cpuFire, candidate allocation or fresh WB credit feeds

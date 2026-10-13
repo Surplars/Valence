@@ -18,6 +18,11 @@ class MappedMachineCore(
 ) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
+    require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
+        (p.precheckedDataRequestFlow || translationHitFlow)),
+        "queued head selection requires a real checked translation-flow source")
+    require(!p.alignedNextLinePmp || dataTranslation,
+        "aligned next-line PMP requires the actual data adapter")
     require(!translationHitFlow || (dataTranslation && stagedMemoryFabric),
         "translation hit flow requires the staged data MMU")
     require(!p.virtualRamLoadPrecheck || (dataTranslation && stagedMemoryFabric),
@@ -106,7 +111,8 @@ class MappedMachineCore(
     if (dataTranslation) {
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
             translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
-            registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+            registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
+            queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,

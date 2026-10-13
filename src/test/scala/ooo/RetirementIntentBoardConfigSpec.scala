@@ -30,9 +30,10 @@ class RetirementIntentBoardConfigSpec extends AnyFunSuite {
             .map(byte => f"${byte & 0xff}%02x").mkString
         assert(digest == "32063adb7dd598ea5fcd014eee71c02d599139a59bf69287598f780a35d6d923")
         assert(default52.size == 52 && default52.distinct.size == 52)
-        assert(off.productArity == 74 && off.productElementName(73) == "retirementIntent")
+        PlacedTimingProfileBridge.requireShape(off)
+        assert(off.productArity == 79 && off.productElementName(73) == "retirementIntent")
         assert(off.productElementName(72) == "predecodedHeadDrain")
-        assert(off.coreParams.productArity == 161 && off.coreParams.productElementName(160) == "retirementIntent")
+        assert(off.coreParams.productArity == 164 && off.coreParams.productElementName(160) == "retirementIntent")
         assert(off.coreParams.productElementName(159) == "predecodedHeadDrain")
         for (c <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.FetchCaptureCandidate,
                 FpgaNextConfig.TriSpeedCandidate, FpgaNextConfig.ControlCandidate, FpgaNextConfig.Selected,

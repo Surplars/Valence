@@ -11,6 +11,9 @@
 #include <tuple>
 #include <type_traits>
 #include <vector>
+#ifdef COHERENT_READ_MSHR_EMBED
+#include <functional>
+#endif
 #ifndef READ_MSHRS
 #define READ_MSHRS 2
 #endif
@@ -51,6 +54,17 @@ struct Test {
     unsigned cBeat = 0, cOpcode = 0, cSource = 0, lastProbeOpcode = 0, lastProbeParam = 0;
     uint64_t bypassCount = 0;
     uint64_t cAddress = 0;
+#ifdef COHERENT_READ_MSHR_EMBED
+    // Narrow raw-manager embedding: protocol stimulus and observation only.
+    // The ordinary harness retains its original manager timing and main.
+    struct Edge {
+        bool aReady, cReady, eReady, cpuReady, bValid, dValid, releaseAck;
+    };
+    std::function<void(Test &)> beforeStep;
+    std::function<void(Test &, const Edge &)> afterStep;
+    std::optional<bool> cReadyOverride, eReadyOverride;
+    uint64_t releaseAckDelay = 5;
+#endif
     static uint64_t initial(uint64_t address) { return 0x912345678abcdef0ULL ^ address * 0x100100101ULL; }
     uint64_t memory(uint64_t address) {
         backing.try_emplace(address, initial(address));
@@ -64,8 +78,13 @@ struct Test {
     }
     void tick() {
         const bool ar = forceReady || cycles % 7 != 2;
+#ifdef COHERENT_READ_MSHR_EMBED
+        const bool cr = cReadyOverride.value_or(forceReady || cycles % 11 < 7);
+        const bool er = eReadyOverride.value_or(forceReady || cycles % 5 != 1);
+#else
         const bool cr = forceReady || cycles % 11 < 7;
         const bool er = forceReady || cycles % 5 != 1;
+#endif
         const bool cpuReady = !blockCpu && (forceReady || cycles % 9 < 6);
         if (!grant && (releaseAcks.empty() || releaseAcks.front().due > cycles)) {
             for (auto it = acquires.rbegin(); it != acquires.rend(); ++it)
@@ -104,7 +123,13 @@ struct Test {
         d.set_io$$downstream$$response$$valid(downstreamValid);
         d.set_io$$downstream$$response$$bits$$data(bypassReplies.empty() ? 0 : bypassReplies.front().data);
         d.set_io$$downstream$$response$$bits$$error(0);
+#ifdef COHERENT_READ_MSHR_EMBED
+        if (beforeStep) beforeStep(*this);
+#endif
         d.step(); ++cycles;
+#ifdef COHERENT_READ_MSHR_EMBED
+        if (afterStep) afterStep(*this, Edge{ar, cr, er, cpuReady, bValid, dv, ack});
+#endif
         const auto cpu = std::make_tuple(uint64_t(d.get_io$$upstream$$response$$bits$$data()),
             bool(d.get_io$$upstream$$response$$bits$$error()), bool(d.get_io$$upstream$$response$$bits$$pageFault()));
         if (stalledCpu) check(d.get_io$$upstream$$response$$valid() && cpu == *stalledCpu, "stalled CPU response changed");
@@ -197,7 +222,12 @@ struct Test {
             if (op == 4 || op == 6 || cBeat == 7) {
                 if (op >= 6) {
                     check(source == releaseSource, "release source overlapped acquire owner");
-                    releaseAcks.push_back({cycles + 5, source}); ++releaseCount;
+#ifdef COHERENT_READ_MSHR_EMBED
+                    releaseAcks.push_back({cycles + releaseAckDelay, source});
+#else
+                    releaseAcks.push_back({cycles + 5, source});
+#endif
+                    ++releaseCount;
                     overlapReleases += !acquires.empty();
                 } else {
                     check(probing && probeAccepted && address == probeAddress && source == 7, "ProbeAck owner mismatch");
@@ -268,6 +298,7 @@ struct Test {
         until([&] { return probeDone; }, "probe deadlock");
     }
 };
+#ifndef COHERENT_READ_MSHR_EMBED
 int main(int argc, char **argv) {
     injectMismatch = argc == 2 && std::string(argv[1]) == "--inject-mismatch";
     try {
@@ -421,3 +452,4 @@ int main(int argc, char **argv) {
         return 0;
     } catch (const std::exception &e) { std::cerr << "COHERENT_READ_MSHR_FAIL " << e.what() << "\n"; return 1; }
 }
+#endif

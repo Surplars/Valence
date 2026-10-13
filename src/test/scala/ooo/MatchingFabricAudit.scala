@@ -38,7 +38,9 @@ object MatchingFabricAudit {
         require(p.dmaArbiter.get.io.clients.size == 2 && p.debugDmaArbiter.get.io.clients.size == 2)
         actual = Some(Map(
             "schema" -> "matching-board-fabric-actual-v1",
-            "productionCommit" -> "adf7059513be64c61303dd17de344ac446ab0cca",
+            "publishedSourceBaseCommit" -> "9937714cee13e26e54b8aabc4d149585af22245b",
+            "physicalComparisonCommit" -> "b1bb5d863f7ad5b034f148b18968d19e46ace75b",
+            "qualificationInherited" -> false,
             "cpu" -> actualCore, "ddr" -> actualDdr, "cache" -> actualCache,
             "timingStages" -> TimingBatchActualAudit.capture(p, expected),
             "zeroCycleCleanup" -> ZeroCycleCleanupActualAudit.capture(p, expected),
@@ -47,6 +49,7 @@ object MatchingFabricAudit {
             "futureHome" -> FutureHomeActualAudit.capture(p, expected),
             "headDrain" -> HeadDrainActualAudit.capture(p, expected),
             "retirementIntent" -> RetirementIntentActualAudit.capture(p, expected),
+            "placedTiming" -> PlacedTimingActualAudit.capture(p, expected),
             "actualLsuOwners" -> p.core.core.core.backend.lsu.slots.size,
             "actualRegisterPorts" -> p.platformRouter.get.io.registers.size,
             "actualPacketRxOwners" -> p.packetDma.get.slotOwned.size,

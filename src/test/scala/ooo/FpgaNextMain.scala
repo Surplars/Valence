@@ -21,6 +21,8 @@ object FpgaNextMain extends App {
     var actualEagerPrefix: Option[Map[String, Any]] = None
     var actualOwnerRow: Option[Map[String, Any]] = None
     var actualHeadDrain: Option[Map[String, Any]] = None
+    var actualPlacedTiming: Option[Map[String, Any]] = None
+    var actualRetirementIntent: Option[Map[String, Any]] = None
     PostedBoardConfiguration.write(config, output.toString)
     ChiselStage.emitSystemVerilogFile({
         val dut = new FpgaNextSocTop(config,
@@ -31,6 +33,8 @@ object FpgaNextMain extends App {
         actualOwnerRow = Some(OwnerRowActualAudit.capture(dut.board.platform, config))
         FutureHomeActualAudit.capture(dut.board.platform, config)
         actualHeadDrain = Some(HeadDrainActualAudit.capture(dut.board.platform, config))
+        actualRetirementIntent = Some(RetirementIntentActualAudit.capture(dut.board.platform, config))
+        actualPlacedTiming = Some(PlacedTimingActualAudit.capture(dut.board.platform, config))
         dut
     },
         Array("--target-dir", output.toString),
@@ -39,4 +43,7 @@ object FpgaNextMain extends App {
     EagerPrefixActualAudit.write(actualEagerPrefix.get, output.toString)
     OwnerRowActualAudit.write(actualOwnerRow.get, output.toString)
     HeadDrainActualAudit.write(actualHeadDrain.get, output.toString)
+    PlacedTimingActualAudit.write(actualPlacedTiming.get, output.toString)
+    Files.writeString(output.resolve("actual-retirement-intent.json"),
+        PostedBoardConfiguration.json(actualRetirementIntent.get) + "\n")
 }

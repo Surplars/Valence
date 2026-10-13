@@ -140,7 +140,8 @@ class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = tr
         dmaLineTransfers = config.dmaLineTransfers,
         dmaLineYieldCycles = config.dmaLineYieldCycles,
         dmaLineEntries = config.dmaLineEntries,
-        lineTransferDispatchFlow = config.lineTransferDispatchFlow
+        lineTransferDispatchFlow = config.lineTransferDispatchFlow,
+        registerProbeLookup = config.registerProbeLookup, localAddressRanges = config.localAddressRanges
     ))
 
     // Checks inspect the constructed instances, not just an input JSON manifest.

@@ -82,7 +82,12 @@ final case class FpgaNextConfig(
     eagerFetchPrefixSelect: Boolean = false,
     futureHomeWayReservation: Boolean = false,
     predecodedHeadDrain: Boolean = false,
-    retirementIntent: Boolean = false
+    retirementIntent: Boolean = false,
+    fetchAddressBeforePmp: Boolean = false,
+    queuedHeadSelection: Boolean = false,
+    alignedNextLinePmp: Boolean = false,
+    registerProbeLookup: Boolean = false,
+    localAddressRanges: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -95,6 +100,10 @@ final case class FpgaNextConfig(
         "FPGA-next write credits must be 1, 2 or 4 within the shared pool")
     require(!futureHomeWayReservation || memoryScheduleOverlap,
         "future Home way reservation requires memory scheduling overlap")
+    require(!queuedHeadSelection || (precheckedDataRequestFlow || translationHitFlow),
+        "queued head selection requires a checked translation-flow source")
+    require(!fetchAddressBeforePmp || alignedFetchPermissionStage,
+        "fetch address preparation requires the aligned fetch permission topology")
     require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,
         "eager fetch prefix selection requires the aligned permission stage")
     require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,
@@ -187,6 +196,11 @@ final case class FpgaNextConfig(
         (if (pendingVirtualStoreProof) s"-pending-virtual-store-proof$pendingVirtualStoreProofSlots" else "") +
         (if (registeredPendingStoreQuery) "-registered-pending-store-query" else "") +
         (if (alignedFetchPermissionStage) "-aligned-fetch-permission-stage" else "") +
+        (if (fetchAddressBeforePmp) "-fetch-address-before-pmp" else "") +
+        (if (queuedHeadSelection) "-queued-head-selection" else "") +
+        (if (alignedNextLinePmp) "-aligned-next-line-pmp" else "") +
+        (if (registerProbeLookup) "-register-probe-lookup" else "") +
+        (if (localAddressRanges) "-local-address-ranges" else "") +
         (if (sharedLane1OwnerMatch) "-shared-lane1-owner-match" else "") +
         (if (directRank1MemorySourceIds) "-direct-rank1-memory-source-ids" else "") +
         (if (directRegisteredExecutionOperands) "-direct-registered-execution-operands" else "") +
@@ -296,6 +310,8 @@ final case class FpgaNextConfig(
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
         predecodedHeadDrain = predecodedHeadDrain,
         retirementIntent = retirementIntent,
+        fetchAddressBeforePmp = fetchAddressBeforePmp,
+        queuedHeadSelection = queuedHeadSelection, alignedNextLinePmp = alignedNextLinePmp,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -337,6 +353,9 @@ final case class FpgaNextConfig(
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
         predecodedHeadDrain = predecodedHeadDrain,
         retirementIntent = retirementIntent,
+        registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges,
+        fetchAddressBeforePmp = fetchAddressBeforePmp,
+        queuedHeadSelection = queuedHeadSelection, alignedNextLinePmp = alignedNextLinePmp,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -363,7 +382,8 @@ object FpgaNextConfig {
             "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
-            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent")) {
+            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent",
+            "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -437,6 +457,11 @@ object FpgaNextConfig {
             pendingVirtualStoreProof = options.contains("--pending-virtual-store-proof"),
             registeredPendingStoreQuery = options.contains("--registered-pending-store-query"),
             alignedFetchPermissionStage = options.contains("--aligned-fetch-permission-stage"),
+            fetchAddressBeforePmp = options.contains("--fetch-address-before-pmp"),
+            queuedHeadSelection = options.contains("--queued-head-selection"),
+            alignedNextLinePmp = options.contains("--aligned-next-line-pmp"),
+            registerProbeLookup = options.contains("--register-probe-lookup"),
+            localAddressRanges = options.contains("--local-address-ranges"),
             sharedLane1OwnerMatch = options.contains("--shared-lane1-owner-match"),
             directRank1MemorySourceIds = options.contains("--direct-rank1-memory-source-ids"),
             directRegisteredExecutionOperands = options.contains("--direct-registered-execution-operands"),

@@ -63,13 +63,19 @@ class MachinePlatform(
     dataTranslationEntries: Int = 8,
     lineTransferDispatchFlow: Boolean = false,
     dataTlbWriteReadReuse: Boolean = false,
-    translationHitFlow: Boolean = false
+    translationHitFlow: Boolean = false,
+    registerProbeLookup: Boolean = false,
+    localAddressRanges: Boolean = false
 ) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
     private var constructedHome: Option[CoherentLineHomeModule] = None
     def finalHome: Option[CoherentLineHomeModule] = constructedHome
+    require(!registerProbeLookup || (coherentLineCache && cacheConcurrency.readMshrs > 1),
+        "registered probe lookup requires the real nonblocking cache")
+    require(!localAddressRanges || (externalDdr && tileLinkMemory && tileLinkFetch && !splitTileLinkMemory),
+        "local manager ranges require the external DDR burst manager")
     require(!ddrBridge.lineReadChannel || (externalDdr && tileLinkMemory && tileLinkFetch &&
         !splitTileLinkMemory && coherentLineCache && cacheConcurrency.readMshrs > 1 &&
         (cacheConcurrency.writebackEntries > 1 || cacheConcurrency.overlapWritebackRefill)),
@@ -124,6 +130,9 @@ class MachinePlatform(
     require(!p.virtualRamLoadPrecheck || (coreDataTranslation && stagedMemoryFabric),
         "virtual load precheck requires integrated data translation and staged authorization")
     require(!coreInstructionTranslation || translationService)
+    require(!p.fetchAddressBeforePmp || (coreInstructionTranslation && translationService && translationLevels == 3 &&
+        p.registeredTranslationHeads),
+        "fetch address preparation requires the direct registered Sv39 instruction adapter")
     require(!coherentLineCache || (tileLinkMemory && tileLinkFetch && !sharedReadCache))
     require(!ethernetDma || coherentLineCache,
         "network DMA requires the probed coherent CPU/DMA memory boundary")
@@ -243,12 +252,25 @@ class MachinePlatform(
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
-        boundedRequestFrontier = p.alignedFetchPermissionStage))
+        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
             virtualMemoryLevels = translationLevels, pmpEntries = 16)))
         adapter.reset := reset.asBool || hold
         adapter.io.virtual <> frontend.io.memory
+        if (p.fetchAddressBeforePmp) {
+            // No virtual-side buffer may separate these owners. Preparation
+            // starts only without an outstanding fetch or on its reply edge;
+            // because the frontend always accepts replies, the direct adapter
+            // is idle in the following offer cycle. Its live VM/privilege
+            // capture therefore coincides with the frontend permission offer.
+            // PMP/SATP/SFENCE updates additionally drain frontend.quiescent,
+            // which includes an address still awaiting its first offer.
+            when(frontend.io.memory.request.valid) {
+                assert(adapter.io.virtual.request.ready,
+                    "prepared fetch must reach the direct idle instruction adapter on its first offer")
+            }
+        }
         adapter.io.vmState := core.io.vmState.get
         adapter.io.privilege := core.io.fetchPrivilege.get
         adapter.io.pmpState := core.io.pmpState.get
@@ -411,7 +433,8 @@ class MachinePlatform(
     val privateCache = if (coherentLineCache) Some(CoherentLineCacheModule.build(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
         ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig,
-        postedConfig = postedConfig, returnConfig = p.cpuReturnConfig)) else None
+        postedConfig = postedConfig, returnConfig = p.cpuReturnConfig,
+        registerProbeLookup = registerProbeLookup)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
@@ -760,6 +783,7 @@ class MachinePlatform(
                     lineReadChannel = ddrBridge.lineReadChannel,
                     localPayloadWriteEnable = ddrBridge.localPayloadWriteEnable,
                     localPayloadWriteRow = ddrBridge.localPayloadWriteRow,
+                    localAddressRanges = localAddressRanges,
                     axiAddressBase = ramBase, axiWindowBytes = ramBytes))
                 constructedDdrManager = Some(manager)
                 manager.reset := reset.asBool || hold

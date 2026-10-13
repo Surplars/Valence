@@ -15,14 +15,17 @@ object HeadDrainTestProfile {
     require(options.size == 52 && options.distinct.size == 52)
     require(!options.contains("--future-home-way-reservation") && !options.contains("--eager-fetch-prefix-select"))
     val config: FpgaNextConfig = FpgaNextConfig.fromOptions(options.toSet, defaultSelected = false)
+    _root_.ooo.PlacedTimingProfileBridge.requireShape(config)
+    _root_.ooo.PlacedTimingProfileBridge.publishedFields(config)
+    _root_.ooo.PlacedTimingProfileBridge.publishedFields(config.coreParams)
     val off: OooParams = config.coreParams
     val on: OooParams = off.copy(predecodedHeadDrain = true)
     require(!config.futureHomeWayReservation && !off.eagerFetchPrefixSelect && !off.predecodedHeadDrain)
     require(off.robEntries == 16 && off.physicalRegs == 48 && off.tagBits == 64 && off.issueWidth == 2)
-    require(on.copy(predecodedHeadDrain = false) == off && off.productArity == 161)
+    require(on.copy(predecodedHeadDrain = false) == off && off.productArity == 164)
     require(off.productElementName(159) == "predecodedHeadDrain" &&
         off.productElementName(160) == "retirementIntent" && !off.retirementIntent && !on.retirementIntent)
-    require(config.productArity == 74 && config.productElementName(73) == "retirementIntent" &&
+    require(config.productArity == 79 && config.productElementName(73) == "retirementIntent" &&
         !config.retirementIntent)
     def writeParameters(directory: String): Unit = {
         val path = Paths.get(directory)

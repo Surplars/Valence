@@ -23,7 +23,8 @@ class TileLinkAxi4BurstBridge(
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
     val localPayloadWriteEnable: Boolean = false,
-    val localPayloadWriteRow: Boolean = false
+    val localPayloadWriteRow: Boolean = false,
+    val localAddressRanges: Boolean = false
 ) extends Module {
     require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
         "local payload write rows require line banks and localized upper-bank enables")
@@ -124,7 +125,20 @@ class TileLinkAxi4BurstBridge(
             (a.address +& byteCount) <= (axiAddressBase + axiWindowBytes).U((tlParams.addrWidth + 1).W)
         else true.B
 
-    val acceptedWindow = inWindow && fitsBuffer
+    val acceptedWindow = if (localAddressRanges && tlParams.addrWidth > 12 && axiWindowBytes > 0 &&
+        (axiAddressBase + axiWindowBytes) % 4096 == 0) {
+        // TL size describes the WHOLE transfer: 2^size bytes, not the AXI
+        // per-beat size. fitsBuffer bounds it to at most 256*8=2048 bytes.
+        // For a page-aligned exclusive limit, only the final page needs an
+        // offset+length sum. Keep arbitrary byte offsets (including malformed
+        // requests) exact; natural-alignment assertions do not justify this gate.
+        val lastPage = (axiAddressBase + axiWindowBytes) / 4096 - 1
+        val addressPage = a.address(tlParams.addrWidth - 1, 12)
+        val boundedBytes = byteCount(maxSize, 0)
+        val localEnd = pageOffset +& boundedBytes
+        fitsBuffer && a.address >= axiAddressBase.U &&
+            (addressPage < lastPage.U || (addressPage === lastPage.U && localEnd <= 4096.U))
+    } else inWindow && fitsBuffer
 
     io.tl.a.ready := state === sIdle || state === sCollectWrite
     when(io.tl.a.fire) {

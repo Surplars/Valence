@@ -23,7 +23,7 @@ class FpgaIntegerCore(p: OooParams = OooParams()) extends Module {
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
-        boundedRequestFrontier = p.alignedFetchPermissionStage))
+        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp))
     frontend.io.pc     := core.io.fetchPc
     if (p.alignedFetchPermissionStage) {
         frontend.io.requestFrontier.get := core.io.fetchRequestFrontier.get

@@ -1,10 +1,12 @@
 package ooo
 
 import chisel3._
+import chisel3.util.Cat
 import soc.core.ooo._
 import _root_.circt.stage.ChiselStage
 
-class NextLineAuthorizationGsim(storePrefetch: Boolean = false) extends Module {
+class NextLineAuthorizationGsim(storePrefetch: Boolean = false, hintTimingPair: Boolean = false,
+    pmpEntries: Int = 16) extends Module {
     val io = IO(new Bundle {
         val request = Input(new DataRequest)
         val privilege = Input(UInt(2.W))
@@ -44,6 +46,8 @@ class NextLineAuthorizationGsim(storePrefetch: Boolean = false) extends Module {
         val allowed = Output(Bool())
         val topAllowed = Output(Bool())
         val address = Output(UInt(64.W))
+        val lineDenied = Output(Bool())
+        val referenceLineDenied = Output(Bool())
     })
     val state = Wire(new PmpState)
     state.cfg(0) := io.cfg0
@@ -79,12 +83,12 @@ class NextLineAuthorizationGsim(storePrefetch: Boolean = false) extends Module {
     state.cfg(15) := io.cfg15
     state.addr(15) := io.pmpAddress15
     PmpState.decodeRegions(state)
-    val p = OooParams(machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3,
+    val p = OooParams(machineSystem = true, pmpEntries = pmpEntries, virtualMemoryLevels = 3,
         speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 131072,
         dataNextLinePrefetch = true, dataStoreNextLinePrefetch = storePrefetch)
-    val normal = Module(new NextLineAuthorization(p))
+    val normal = Module(new NextLineAuthorization(p, alignedLinePmp = hintTimingPair))
     val top = Module(new NextLineAuthorization(p.copy(speculativeRamBase = (BigInt(1) << 64) - 8192,
-        speculativeRamBytes = 8192)))
+        speculativeRamBytes = 8192), alignedLinePmp = hintTimingPair))
     Seq(normal, top).foreach { m =>
         m.io.request := io.request
         m.io.privilege := io.privilege
@@ -94,6 +98,33 @@ class NextLineAuthorizationGsim(storePrefetch: Boolean = false) extends Module {
     io.allowed := normal.io.allowed
     io.topAllowed := top.io.allowed
     io.address := normal.io.address
+    io.lineDenied := false.B
+    io.referenceLineDenied := false.B
+    if (hintTimingPair) {
+        val referenceNormal = Module(new NextLineAuthorization(p))
+        val referenceTop = Module(new NextLineAuthorization(p.copy(
+            speculativeRamBase = (BigInt(1) << 64) - 8192, speculativeRamBytes = 8192)))
+        for ((candidate, reference) <- Seq(normal -> referenceNormal, top -> referenceTop)) {
+            reference.io.request := io.request
+            reference.io.privilege := io.privilege
+            reference.io.pmpState := state
+            reference.io.fault := io.fault
+            assert(candidate.io.allowed === reference.io.allowed && candidate.io.address === reference.io.address,
+                "whole-line hint authorization parity")
+        }
+        val generic = Module(new PmpChecker(pmpEntries))
+        val line = Module(new PmpChecker(pmpEntries, alignedLineAccess = true))
+        for (checker <- Seq(generic, line)) {
+            checker.io.address := Cat(io.request.address(63, 6), 0.U(6.W))
+            checker.io.size := 6.U
+            checker.io.access := PmpAccess.read
+            checker.io.privilege := io.privilege
+            checker.io.state := state
+        }
+        io.lineDenied := line.io.denied
+        io.referenceLineDenied := generic.io.denied
+        assert(line.io.denied === generic.io.denied, "aligned line versus generic PMP parity")
+    }
 }
 object NextLineAuthorizationGsimMain extends App {
     require(args.lift(1).forall(Set("0", "1").contains))

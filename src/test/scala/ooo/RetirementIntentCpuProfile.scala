@@ -22,13 +22,9 @@ private[ooo] object RetirementIntentCpuProfile {
     private val snapshot = root.resolve("fpga/next/timing-batch-head-drain-default52.json")
     require(sha(Files.readAllBytes(snapshot)) == "87edfc04e59fce76873b83c236d694bc10a503497ba0a9e06534cf91327b9622")
     private val frozen = Files.readString(snapshot).trim
-    private def strip(p: Product): Map[String, Any] = {
-        val values = p.productElementNames.zip(p.productIterator).toMap
-        require(values.get("retirementIntent").contains(false), "only the named false addition may be projected")
-        values - "retirementIntent"
-    }
     private val bridged = PostedBoardConfiguration.document(off) ++ Map(
-        "profile" -> strip(off), "core" -> strip(off.coreParams))
+        "profile" -> PlacedTimingProfileBridge.headDrainSnapshotFields(off),
+        "core" -> PlacedTimingProfileBridge.headDrainSnapshotFields(off.coreParams))
     require(PostedBoardConfiguration.json(bridged) == frozen, "complete immutable default52 product differs")
     require(on.copy(retirementIntent = false) == off && on.coreParams.copy(retirementIntent = false) == off.coreParams)
     def requireExact(c: FpgaNextConfig): Unit = {

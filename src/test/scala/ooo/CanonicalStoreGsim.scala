@@ -52,8 +52,9 @@ class CanonicalStoreTrackerGsim extends Module {
 }
 
 /** Real write translation, page walk, physical PMP and checked-queue certificate producer. */
-class CanonicalStoreAdapterGsim(translationHitFlow: Boolean = false) extends Module {
-    val p = CanonicalStoreFixture.params()
+class CanonicalStoreAdapterGsim(translationHitFlow: Boolean = false, hintTimingPair: Boolean = false) extends Module {
+    val p = CanonicalStoreFixture.params().copy(dataNextLinePrefetch = hintTimingPair,
+        dataStoreNextLinePrefetch = hintTimingPair)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
         val physical = new DataPort
@@ -78,7 +79,9 @@ class CanonicalStoreAdapterGsim(translationHitFlow: Boolean = false) extends Mod
         val idle = Output(Bool())
     })
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = translationHitFlow))
+        translationHitFlow = translationHitFlow, queuedHeadSelection = hintTimingPair,
+        alignedNextLinePmp = hintTimingPair))
+    if (hintTimingPair) TranslationHintTimingPair.attach(adapter, p, translationHitFlow)
     val translation = Module(new SvTranslationService(3, 8, 16, loadPeek = true))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg

@@ -39,6 +39,9 @@ def sources():
         "src/test/scala/ooo/FpgaNextMain.scala",
         "src/test/scala/ooo/FpgaNextProfileMain.scala",
         "src/test/scala/ooo/HeadDrainActualAudit.scala",
+        "src/test/scala/ooo/PlacedTimingProfileBridge.scala",
+        "src/test/scala/ooo/PlacedTimingActualAudit.scala",
+        "src/test/scala/ooo/RetirementIntentActualAudit.scala",
         "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
         "src/test/scala/ooo/TimingBatchActualAudit.scala",
         "fpga/next/baseline.json", "fpga/next/export.py",
@@ -149,6 +152,18 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--local-payload-write-row", action="count", default=0,
                     help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--retirement-intent", action="count", default=0,
+                    help="default-off pre-cancel retirement offer; keeps execution qualification")
+    ap.add_argument("--fetch-address-before-pmp", action="count", default=0,
+                    help="default-off bounded cold-fetch address register before frontend PMP")
+    ap.add_argument("--queued-head-selection", action="count", default=0,
+                    help="default-off registered translated-queue occupancy payload selection")
+    ap.add_argument("--aligned-next-line-pmp", action="count", default=0,
+                    help="default-off exact aligned 64-byte next-line PMP end construction")
+    ap.add_argument("--register-probe-lookup", action="count", default=0,
+                    help="default-off one-cycle registered nonblocking-cache probe lookup")
+    ap.add_argument("--local-address-ranges", action="count", default=0,
+                    help="default-off exact local DDR manager range predicates")
     ap.add_argument("--predecoded-head-drain", action="count", default=0,
                     help="default-off immutable accepted-row fetch-drain class; preserves head ownership")
     ap.add_argument("--eager-fetch-prefix-select", action="count", default=0,
@@ -358,10 +373,14 @@ def main(argv=None, expected_profile_sha256=None):
     if a.tagged_store_returns > 1:
         ap.error("duplicate --tagged-store-returns flag")
     a.tagged_store_returns = bool(a.tagged_store_returns)
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain", "retirement_intent", "fetch_address_before_pmp", "queued_head_selection", "aligned_next_line_pmp", "register_probe_lookup", "local_address_ranges"):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
+    if a.fetch_address_before_pmp and not a.aligned_fetch_permission_stage:
+        ap.error("--fetch-address-before-pmp requires --aligned-fetch-permission-stage")
+    if a.queued_head_selection and not (a.prechecked_data_flow or a.translation_hit_flow):
+        ap.error("--queued-head-selection requires --prechecked-data-flow or --translation-hit-flow")
     if a.eager_fetch_prefix_select and not a.aligned_fetch_permission_stage:
         ap.error("--eager-fetch-prefix-select requires --aligned-fetch-permission-stage")
     if a.shared_canonical_store_owner_match and not a.canonical_virtual_store_overlap:
@@ -526,7 +545,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain", "retirement_intent", "fetch_address_before_pmp", "queued_head_selection", "aligned_next_line_pmp", "register_probe_lookup", "local_address_ranges"):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -766,6 +785,18 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--eager-fetch-prefix-select")
     if a.predecoded_head_drain:
         command.append("--predecoded-head-drain")
+    if a.retirement_intent:
+        command.append("--retirement-intent")
+    if a.fetch_address_before_pmp:
+        command.append("--fetch-address-before-pmp")
+    if a.queued_head_selection:
+        command.append("--queued-head-selection")
+    if a.aligned_next_line_pmp:
+        command.append("--aligned-next-line-pmp")
+    if a.register_probe_lookup:
+        command.append("--register-probe-lookup")
+    if a.local_address_ranges:
+        command.append("--local-address-ranges")
     if a.shared_canonical_store_owner_match:
         command.append("--shared-canonical-store-owner-match")
     if a.local_payload_write_row:
@@ -803,6 +834,12 @@ def main(argv=None, expected_profile_sha256=None):
             "shared_canonical_store_owner_match": a.shared_canonical_store_owner_match,
             "eager_fetch_prefix_select": a.eager_fetch_prefix_select,
             "predecoded_head_drain": a.predecoded_head_drain,
+            "retirement_intent": a.retirement_intent,
+            "fetch_address_before_pmp": a.fetch_address_before_pmp,
+            "queued_head_selection": a.queued_head_selection,
+            "aligned_next_line_pmp": a.aligned_next_line_pmp,
+            "register_probe_lookup": a.register_probe_lookup,
+            "local_address_ranges": a.local_address_ranges,
             "local_payload_write_row": a.local_payload_write_row,
             "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,

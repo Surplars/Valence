@@ -8,8 +8,9 @@ import soc.core.ooo._
 /** Exact old/new adapter pair. The independent host supplies original owners and delayed translations.
   * The high RAM aperture checks full PA transport beyond 32 bits. No shadow state affects the DUT.
   */
-class TranslatedFrozenProofGsim extends Module {
-    val p = PendingStoreProofFixture.params(enabled = false).copy(speculativeRamBase = BigInt("180010000", 16))
+class TranslatedFrozenProofGsim(hintTimingPair: Boolean = false) extends Module {
+    val p = PendingStoreProofFixture.params(enabled = false).copy(speculativeRamBase = BigInt("180010000", 16),
+        dataNextLinePrefetch = hintTimingPair, dataStoreNextLinePrefetch = hintTimingPair)
     val io = IO(new Bundle {
         val upstream = Flipped(new DataPort)
         val origin = Input(Valid(new CanonicalStoreOrigin(p)))
@@ -24,8 +25,10 @@ class TranslatedFrozenProofGsim extends Module {
         val checked = Output(Valid(new CanonicalStoreCertificate(p)))
         val idle = Output(Bool())
     })
-    val compact = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
-    val original = Module(new ReferenceDataTranslationAdapter(p, registerCheckedRequests = true))
+    val compact = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        translationHitFlow = hintTimingPair, queuedHeadSelection = hintTimingPair, alignedNextLinePmp = hintTimingPair))
+    val original = Module(new ReferenceDataTranslationAdapter(p, registerCheckedRequests = true,
+        translationHitFlow = hintTimingPair))
     val pmp = PendingStoreProofFixture.pmp(io.pmpCfg, ((BigInt(1) << 54) - 1).U(54.W))
     for (dut <- Seq(compact.io, original.io)) {
         dut.virtual.request.valid := io.upstream.request.valid

@@ -43,9 +43,9 @@ object PmpAccess {
   * A matching entry is the first one overlapping any byte, and must cover every byte.
   */
 class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
-    naturalAlignedAccess: Boolean = false) extends Module {
+    naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false) extends Module {
     require(Set(0, 8, 16).contains(entries))
-    require(!alignedWordAccess || !naturalAlignedAccess)
+    require(Seq(alignedWordAccess, naturalAlignedAccess, alignedLineAccess).count(identity) <= 1)
     val io = IO(new Bundle {
         val state     = Input(new PmpState)
         val address   = Input(UInt(64.W))
@@ -64,6 +64,10 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         assert(io.size <= 3.U && (io.address(2, 0) & alignmentMask) === 0.U,
             "natural PMP checker requires an aligned access of at most eight bytes")
     }
+    if (alignedLineAccess) {
+        assert(io.size === 6.U && io.address(5, 0) === 0.U,
+            "aligned line PMP checker requires a 64-byte aligned 64-byte access")
+    }
     if (entries == 0) {
         io.denied := false.B
     } else {
@@ -77,6 +81,9 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         // simply the same upper address bits with low bits 11. Keep ALL 65 bits
         // and the exact first-overlap/whole-range/locked-M permission algorithm.
         val end = if (alignedWordAccess) Cat(0.U(1.W), io.address(63, 2), 3.U(2.W))
+            // This fixed domain cannot carry out of XLEN, including the last
+            // aligned line. Preserve all 65 bits and the generic permission rules.
+            else if (alignedLineAccess) Cat(0.U(1.W), io.address(63, 6), 63.U(6.W))
             else if (naturalAlignedAccess) start | lastOffset
             else start + lastOffset
         val overlap = Wire(Vec(entries, Bool()))

@@ -26,8 +26,11 @@ class TileLinkAxi4Bridge(
     val writeCollectionFlow: Boolean = false,
     val lineReadChannel: Boolean = false,
     val localPayloadWriteEnable: Boolean = false,
-    val localPayloadWriteRow: Boolean = false
+    val localPayloadWriteRow: Boolean = false,
+    val localAddressRanges: Boolean = false
 ) extends Module {
+    require(!localAddressRanges || burstEnabled,
+        "local address ranges require a burst-capable DDR manager")
     require(!localPayloadWriteRow || (lineReadChannel && localPayloadWriteEnable),
         "local payload write rows require line banks and localized upper-bank enables")
     // Scala object reference for exact constructor inspection; no hardware state.
@@ -57,7 +60,7 @@ class TileLinkAxi4Bridge(
         val bridge = Module(new TileLinkAxi4OutstandingBridge(tlParams, axiAddressWidth,
             axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
             maxOutstanding, maxOutstandingWrites, unorderedResponses, writeCollectionFlow, lineReadChannel,
-            localPayloadWriteEnable, localPayloadWriteRow))
+            localPayloadWriteEnable, localPayloadWriteRow, localAddressRanges))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
         constructedOutstanding = Some(bridge)
@@ -65,7 +68,7 @@ class TileLinkAxi4Bridge(
     } else if (burstEnabled) {
         val bridge = Module(new TileLinkAxi4BurstBridge(tlParams, axiAddressWidth,
             axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos, axiAddressBase, axiWindowBytes,
-            writeCollectionFlow))
+            writeCollectionFlow, localAddressRanges = localAddressRanges))
         io.tl <> bridge.io.tl
         io.axi <> bridge.io.axi
     } else {
