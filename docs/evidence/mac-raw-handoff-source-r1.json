@@ -1,0 +1,128 @@
+{
+  "schema": "mac-raw-handoff-source-results-v1",
+  "base_commit": "767e7683f3d6f5bd1fee257735505b353500d2a5",
+  "base_tree": "27d5fbd1c8d7863be9194020cf1db42a20c94751",
+  "source_contract": {
+    "core_fields": 172,
+    "profile_fields": 89,
+    "platform_added_field": "triSpeedRawClockHandoff",
+    "production_default_enabled": false,
+    "explicit_entry": "fpga/next/board_near_term_a_raw_handoff.py",
+    "historical_a64_entries": "strict-exact-current-source-off-bridge",
+    "historical_manifests_and_receipts_unchanged": true
+  },
+  "source_sha256": {
+    "fpga/next/board_near_term_a.py": "a5b9ab6dc923b3d0c1e342adeeeb50284cdb921e87e0a72cd8f0dc263b2f81e8",
+    "fpga/next/board_near_term_a_raw_handoff.py": "6ff24766376d283bdac2dc9277ea814c9aadc0afc682cebe0b144600d7a52bf9",
+    "fpga/next/board_timing64.py": "c9eb6c74b7d1870b7e0d480e0d0746d48903fdf9a02c458961c8bbddd420d0da",
+    "fpga/next/export.py": "17f18ef261f9e169f50dc40994236fb85dacd4fb28efddae616714dd975c94cf",
+    "fpga/next/mac_platform_source_bridge.py": "1b077276f38acd66676bff7b7d4c042281d7729bd2fb74c7e5bb62d18c27eef5",
+    "fpga/next/near-term-a-before-mac-platform.json": "71150576981a2622c9458ba8a359b7112e4f04d3af5ef0b46fa1e1fcf860cf69",
+    "fpga/next/near-term-a-mac-platform-compat.json": "f10777286e078763bf9957d9c3da38ba54775768ce5531e98f54c42adbbf70e9",
+    "fpga/next/near-term-a-raw-handoff-profile.json": "a5c2b4c9d18d61bbc44059d8a65be115f8f82b9f78d520e5c20209fb85a4cd86",
+    "fpga/next/raw_handoff/MAPPED_FIELD_CONTRACT.md": "a605c302d85e93c8033d2a52a7d1b009cd8160fee2a275e32afc70685f969d42",
+    "fpga/next/raw_handoff/admission_tests.py": "4113f0f0628a82abfe6875e4012cf7f911e00e125b594867300a3a2829714602",
+    "fpga/next/raw_handoff/audit_raw_handoff.tcl": "d1de2c9342939bd181acffee17aff433220d383b9f9e8bf04a658e50b6e91a85",
+    "fpga/next/raw_handoff/host_tests.py": "83f002f8f2e1665e83fea34e6d5e8883bef1ca0d1b23bbb406160457680d3ff1",
+    "fpga/next/raw_handoff/source_expected.json": "047ede09dc5af02f3bda7a007ea777fb50ec5b05e01663560e7072b8682a7363",
+    "fpga/next/raw_handoff/typed_host_mock.tcl": "96553009289ad03b20574b64a9e9fbbcc068360dc358509046b13853923c5018",
+    "fpga/next/raw_handoff/verify_binding.py": "5611b3d97280c0e5cb2ff6674de2b970e374ac4fad835d7346b8cb1cf5ae9eed",
+    "fpga/next/tests/mac_raw_handoff/BUFGCE.sv": "ec59d62d86a7ef4f039689f9a5bb5cccfc79d05ee913c293dff4e82f77a2432f",
+    "fpga/next/tests/mac_raw_handoff/audit_simulation_bridge.py": "f5a3dc4b1e93e7a535371af91df9b1e1f985b4e85819617e0d6876faf4df2be5",
+    "fpga/next/tests/mac_raw_handoff/mac_handoff_tb.sv": "4a422f94077c15fde9fc82a90185ee0eb7e3764517f1d0ff2207fcdd4f31d26b",
+    "fpga/next/tests/mac_raw_handoff/mac_ports.svh": "cd3db0ab386eba4176a4ae365d2a8f55802b252e48de5abb6a5c7263767df9f0",
+    "fpga/next/tests/mac_raw_handoff/prepare_native.py": "0023e3be4b9c9e834738b1f8a7a5bd3301f2ac800914a01f239dcc88b3d62d61",
+    "fpga/next/tests/mac_raw_handoff/run_component.py": "771206010a25057e1dce38aed99d028d822c907a87b3548f1a87fba470aaea1b",
+    "fpga/next/tests/test_mac_raw_handoff_entry.py": "bbf0f198624373e3671b5aafa9b6ec1ee4471a9d2d0a6789727065ea576c568f",
+    "src/main/resources/ethernet/ValenceMacRawFallingSample.sv": "f761f11da10f19211c6d46863f973560bdc3a0b7e34480fbc7f0bec84beac630",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "55dc9bb7724532f6d235e114c21324771b64d16c60d68ffec082d24ebfb107ba",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "18bc78f275ea8d742f6c33621a2991e80a21377517d8adcbaa6da1dd19b4c4ab",
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": "72baf3c5611e81ba63f7d206804a53dc572ba2a80ba0845984bf2f1bb0322b72",
+    "src/main/scala/ip/ethernet/MacRawHandoff.scala": "e557103067193c1282cb76ba49cab46497ab9bf862b0294bb55b10b6f4e5df3c",
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": "7eb389466b29d6b12fb1b8a7f7848c3acb73eab78512af5e08f004905c5650b8",
+    "src/test/scala/ip/MacRawHandoffBaseline.scala": "8ce2499483f6248db00b1b75db71cff59b23d0469fd58c26f4de58c9283e1203",
+    "src/test/scala/ip/MacRawHandoffRtl.scala": "57b5fe88967bf6c3950f06c575a557f0d3bd7178dc6ae049db83594f376d00c4",
+    "src/test/scala/ooo/FpgaNextMain.scala": "5726d05b42fdbbbb3a998b38eb1f08fc498b1b58a4ceb679a68133c0f63794fe",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "09a5f3c4f775d63cf853784f88f8b356243658de19f3ecdc6e019b7fcfe49a2a",
+    "src/test/scala/ooo/MacRawHandoffEntry.scala": "83d9fc27db26b41c87c3ce30f73bd3543ad4851399c06ce8f5edbb5e8381be49",
+    "src/test/scala/ooo/MacRawHandoffEntryGate.scala": "60dbcb6e1fca90bae053c093021f8e358c3d42c00427beed19aba3f77e37255f",
+    "src/test/scala/ooo/NearTermAProfile.scala": "c090ed693466b969b92217c26e2e2be26729836fcec8430bbd4cea29d6eabb0e",
+    "src/test/scala/ooo/PlacedTimingProfileBridge.scala": "299b8b1e28f3386374b0a49813b0500de23ed86161c520b9d6fe34ab46979bd6",
+    "src/test/scala/ooo/R3ReadLocalityProfile.scala": "2222b76ae78fb4799800898115b5b9b646b8e8ef3781e6e77ed20bcfc0a9e733"
+  },
+  "results": {
+    "component": {
+      "status": "PASS_FOCUSED_NATIVE_MAC_LIFECYCLE",
+      "lifecycle_cases": 35,
+      "behavioral_negative_controls": 4,
+      "clock_structure_negative_controls": 2,
+      "original_default_off_native_files_identical": 44,
+      "added_scalar_bits": 23,
+      "rx_added_enabled_cycles": 1,
+      "rx_initiation_interval": 1,
+      "tx_added_cycles": 0,
+      "repeated_after_portable_repackaging": false
+    },
+    "entry": {
+      "status": "PASS_MAC_ENTRY_HOST_CONSTRUCTION",
+      "scala_cases": 5,
+      "python_cases": 13,
+      "actual_complete_board_chirrtl": true,
+      "actual_bank_native_modes": [
+        "off",
+        "on"
+      ],
+      "all_172_cpu_names_order_values_equal": true,
+      "actual_constructor_profile_fields": 89,
+      "component_to_bank_bridge": "reviewed native module-name/unused-port/constant-expression differences; actual handoff connection blocks unchanged",
+      "python_exporter_external_execution": "stubbed; resource/filelist admission only"
+    },
+    "portable_harness": {
+      "status": "PASS_PREPARATION_AND_BRIDGE_ONLY",
+      "original_fixture_leaves_identical": 5,
+      "behavior_mutation_edge_audit_body": "identical after explicit executable-path substitution",
+      "lifecycle_rerun": false
+    },
+    "mapped_tool_host": {
+      "status": "HOST_GATE_PASS_PHYSICAL_UNMEASURED",
+      "python_admission_cases": 23,
+      "typed_tcl_cases": 46,
+      "final_subset_cases": 4,
+      "final_subset_is_additional_case_runs_not_unique_coverage": true,
+      "exact_graph_minmax_call_triples_checked": 150,
+      "clear_endpoints_checked": 23,
+      "actual_mapped_design_executed": false,
+      "bundles": "synthetic source/export/checkpoint admission fixtures",
+      "typed_objects": "opaque host mocks; actual Vivado behavior unverified",
+      "retained_earlier_failures": "mock trace overhead timeouts; original NaN mock failed before checker; corrected checker-specific NaN rejected in final subset"
+    }
+  },
+  "evidence_sha256": {
+    "component-terminal-receipt.json": "7ffb960c4c5174874259f29800826af9999f1247d13b63b6af2476e2d3bf216f",
+    "entry-gate-receipt.json": "f3ae8e6e974de686e58e6b8844188d3db1680ace8898e8e991c4fc6ebab36b65",
+    "independent-entry-check.json": "7bdb8fdab165f47fa772129015aac9a4f6a238cee52142701d269dc015ee8797",
+    "portable-bridge-check.json": "1ca530d7efdc3cf3b9170970263b3f54307dfc8500ea635a34e15341452ed0a7",
+    "mapped-host-combined-receipt.json": "2cfb2d1cfbf288034d90e67f0ebe19c94050ba43e83d5da2482868d6f8263722",
+    "mapped-admission-receipt.json": "f3d35b8e3e81155eaf4831d8ecfaf1ac8e64abef5ca7223de4475290ba3f4a86",
+    "mapped-typed-host-receipt.json": "06f2807991e977b2cb94b75a54526c5067b68e2bd0744d4b79171f50b6deb50f",
+    "mapped-typed-host-final-receipt.json": "17c43215ec439485b3e9841421b64a68b52e34982473f91643c81f54d4a7e9aa"
+  },
+  "recovery_artifacts": [
+    {
+      "name": "Valence-near-term-a-source-cas-r1.tar.gz",
+      "library_file_id": "libfile_c52f0dcd17c481919fba9d5bcc646c24",
+      "bytes": 8169190,
+      "sha256": "40865648236c186badd708ca6f445a0b17689dfc994f419914daebf7b5ffc4ce"
+    },
+    {
+      "name": "mac-raw-hold-repair-r1-component.tar.gz",
+      "library_file_id": "libfile_1277b8a9423881918dae6b957b84e8cb",
+      "bytes": 277252,
+      "sha256": "b591a77793d74ade96e7eeaa00b789f208cfef57f6b8440baadc04ac85d9f6e0"
+    }
+  ],
+  "new_mapped_execution": false,
+  "physical_qualification": false,
+  "board_hardware_tested": false,
+  "current_cpu_requalification": false
+}

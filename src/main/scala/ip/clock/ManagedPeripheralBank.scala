@@ -13,8 +13,10 @@ import soc.ip.dma.NetworkDmaConfig
 class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
-    triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1) extends RawModule {
+    triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
+    val triSpeedRawClockHandoff: Boolean = false) extends RawModule {
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
+    require(!triSpeedRawClockHandoff || triSpeedEthernet)
     require(config.resources.size == 7 && config.gateableMask == 0x68)
     require(config.resources(1).nominalHz == cpuHz && config.resources(3).nominalHz == uartHz)
     val sourceClock = IO(Input(Clock()))
@@ -67,9 +69,14 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uartTx := uart.tx
     uartIrq := uart.irq
     uartClock := uart.managedClock
+    // Scala-only constructed-instance witness; no RTL port, state or name change.
+    private var builtTriSpeedMac: Option[TriSpeedManagedGmac] = None
+    def instantiatedTriSpeedMac: Option[TriSpeedManagedGmac] = builtTriSpeedMac
     if (triSpeedEthernet) {
         val gmac = Module(new TriSpeedManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
-            networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots))
+            networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots,
+            rawClockHandoff = triSpeedRawClockHandoff))
+        builtTriSpeedMac = Some(gmac)
         gmac.sourceClock := sourceClock
         gmac.rawTxClock := rawTxClock
         gmac.rawRxClock := rawRxClock

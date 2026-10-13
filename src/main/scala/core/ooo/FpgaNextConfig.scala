@@ -96,8 +96,11 @@ final case class FpgaNextConfig(
     fetchAcceptedPrefixValidation: Boolean = false,
     alignedFetchSinglePage: Boolean = false,
     factorCheckedNextAllowed: Boolean = false,
-    localTaggedResponseReady: Boolean = false
+    localTaggedResponseReady: Boolean = false,
+    triSpeedRawClockHandoff: Boolean = false
 ) {
+    require(!triSpeedRawClockHandoff || experimentalTriSpeedEthernet,
+        "RAW MAC handoff requires tri-speed Ethernet")
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
         "the CPU admission batch requires exact canonical virtual-store authorization")
@@ -224,6 +227,7 @@ final case class FpgaNextConfig(
         (if (pendingReadyStoreBypass) "-pending-ready-store-bypass" else "") +
         (if (taggedStoreReturns) "-tagged-store-returns" else "") +
         (if (experimentalTriSpeedEthernet) "-experimental-trispeed" else "") +
+        (if (triSpeedRawClockHandoff) "-mac-raw-handoff" else "") +
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
         (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "") +
@@ -355,6 +359,7 @@ final case class FpgaNextConfig(
         fpgaStorage = storage, virtualRamLoadPrecheck = virtualRamLoadPrecheck,
         floatingPointResources = floatingPointResources, independentFetchPayloadCapture = independentFetchPayloadCapture,
         triSpeedEthernet = experimentalTriSpeedEthernet, triSpeedTxFrameSlots = triSpeedTxFrameSlots,
+        triSpeedRawClockHandoff = triSpeedRawClockHandoff,
         ownerLocalIssueReady = ownerLocalIssueReady, sharedFetchPmpRelations = sharedFetchPmpRelations,
         registeredPmpRegions = registeredPmpRegions, publishedPmpChanges = publishedPmpChanges,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
@@ -414,7 +419,8 @@ object FpgaNextConfig {
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent",
-            "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges", "--fetch-accepted-prefix-validation", "--aligned-fetch-single-page", "--factor-checked-next-allowed", "--local-tagged-response-ready")) {
+            "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges", "--fetch-accepted-prefix-validation", "--aligned-fetch-single-page", "--factor-checked-next-allowed", "--local-tagged-response-ready",
+            "--tri-speed-raw-clock-handoff")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -555,6 +561,7 @@ object FpgaNextConfig {
             futureHomeWayReservation = options.contains("--future-home-way-reservation"),
             virtualRamLoadPrecheck = options.contains("--virtual-ram-load-precheck"),
             experimentalTriSpeedEthernet = options.contains("--experimental-trispeed-ethernet"),
+            triSpeedRawClockHandoff = options.contains("--tri-speed-raw-clock-handoff"),
             independentFetchPayloadCapture = base.independentFetchPayloadCapture || options.contains("--independent-fetch-payload-capture"),
             ownerLocalIssueReady = base.ownerLocalIssueReady || options.contains("--owner-local-issue-ready"),
             sharedFetchPmpRelations = base.sharedFetchPmpRelations || options.contains("--shared-fetch-pmp-relations"),

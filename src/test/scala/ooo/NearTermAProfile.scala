@@ -33,7 +33,7 @@ private[ooo] object NearTermAProfile {
         on.floatingPointResources == rollback.floatingPointResources)
     for (c <- Seq(rollback, on)) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(c.productArity == 88 && c.coreParams.productArity == 172 &&
+        require(!c.triSpeedRawClockHandoff && c.productArity == 89 && c.coreParams.productArity == 172 &&
             c.cache.productArity == 23 && c.ddr.productArity == 9)
     }
     def originalFields(p: Product): Map[String, Any] = {
@@ -42,7 +42,13 @@ private[ooo] object NearTermAProfile {
             case _: OooParams => originalCoreNames
             case _ => throw new IllegalArgumentException("only the exact profile/core products may be projected")
         }
-        require(p.productElementNames.toSeq == original ++ fields, "original field names or order changed")
+        val platform = p match {
+            case c: FpgaNextConfig =>
+                require(!c.triSpeedRawClockHandoff, "ON MAC platform field cannot be projected into historical A")
+                PlacedTimingProfileBridge.platformAdditions
+            case _ => Seq.empty[String]
+        }
+        require(p.productElementNames.toSeq == original ++ fields ++ platform, "original field names or order changed")
         val values = p.productElementNames.zip(p.productIterator).toMap
         require(fields.forall(n => values(n) == false), "only these four named false fields may be projected")
         original.map(n => n -> values(n)).toMap

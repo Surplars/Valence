@@ -40,9 +40,11 @@ def load_profile():
     leaves = profile['production_leaf_sha256']
     if not leaves:
         raise RuntimeError('unfrozen near-term A production leaves')
+    changed = load_module('a_mac_platform_source_bridge', HERE / 'mac_platform_source_bridge.py').checked_sources()
     for name, digest in leaves.items():
         path = Path(name)
-        if path.is_absolute() or '..' in path.parts or hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != digest:
+        expected = changed[name]['new_sha256'] if name in changed else digest
+        if path.is_absolute() or '..' in path.parts or hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != expected:
             raise RuntimeError('near-term A production leaf differs: ' + name)
     return profile
 

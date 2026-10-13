@@ -17,7 +17,8 @@ import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
   */
 class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     mediaHz: Int = 125000000, hardwareClocks: Boolean = true,
-    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default, txFrameSlots: Int = 1) extends RawModule {
+    networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default, txFrameSlots: Int = 1,
+    val rawClockHandoff: Boolean = false) extends RawModule {
     require(txFrameSlots == 1 || txFrameSlots == 2, "tri-speed TX supports one or two frame banks")
     require(mediaHz == 125000000, "tri-speed TX uses a continuous 125 MHz reference")
     val sourceClock = IO(Input(Clock()))
@@ -173,7 +174,17 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         frameSlots = networkDmaConfig.macRxSlots, rateAdaptation = true, diagnostics = true)) }
     tx.io.frame <> txFifo.destination
     rxFifo.source <> rx.io.frame
-    tx.io.byteStep.get := encode.io.byteStep
+    // Default-off timing boundary: RX gains one managed edge; TX keeps the
+    // encoder's original byte epoch. Both source samples run while gates stop.
+    val rawHandoff = if (rawClockHandoff) Some(Module(new MacRawHandoff)) else None
+    rawHandoff.foreach { handoff =>
+        handoff.rawClock := rawTxClock
+        handoff.rawReset := rawTxRelease.resetOut
+        handoff.rxClock := rxManaged
+        handoff.rxReset := rxRelease.resetOut
+        handoff.rawTxByteStep := encode.io.byteStep
+    }
+    tx.io.byteStep.get := rawHandoff.map(_.txByteStep).getOrElse(encode.io.byteStep)
     tx.io.abort.get := txAbort
     rx.io.abort.get := rxAbort
     encode.io.datapathIdle := !tx.io.busy && txFifo.destinationIdle
@@ -305,10 +316,15 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     ingress.active := physicalIngress.valid
     ingress.quiesce := control(1).quiesce
     ingress.isolate := control(1).isolate
-    rx.io.gmiiData := ingress.delayed(7, 0)
-    rx.io.gmiiError := ingress.delayed(8)
-    rx.io.gmiiValid := ingress.delayed(9)
-    rx.io.byteStep.get := ingress.delayed(10)
+    rawHandoff.foreach { handoff => handoff.rawRxPayload := ingress.delayed }
+    val rxIngressPayload = rawHandoff.map(_.rxPayload).getOrElse(ingress.delayed)
+    // Valid denotes pending capture work; idle byteStep/data residue is not an
+    // occupied stream slot. Existing ingress.empty and parser owners still apply.
+    val rxIngressPending = rawHandoff.map(_.rxPending).getOrElse(false.B)
+    rx.io.gmiiData := rxIngressPayload(7, 0)
+    rx.io.gmiiError := rxIngressPayload(8)
+    rx.io.gmiiValid := rxIngressPayload(9)
+    rx.io.byteStep.get := rxIngressPayload(10)
     // Launch these return levels from fixed raw TX, which keeps running when
     // recovered RXC or either managed gate stops. A sample delays both polarities;
     // owner/admission handshakes, not this delay alone, establish safe draining.
@@ -348,7 +364,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     localIdle(0) := txDrain && !tx.io.busy && txFifo.destinationIdle && txStats.sourceIdle &&
         !txConfig.destination.valid
     localIdle(1) := rxDrain && !rx.io.busy && rxFifo.sourceIdle && rxStats.sourceIdle &&
-        !rxConfig.destination.valid && ingress.empty && rxDiagnostics.sourceIdle
+        !rxConfig.destination.valid && ingress.empty && !rxIngressPending && rxDiagnostics.sourceIdle
     for ((domainClock, n) <- Seq(txManaged, rxManaged).zipWithIndex) {
         val agent = Module(new PeripheralQuiesceAck)
         agent.domainClock := domainClock

@@ -52,9 +52,16 @@ def load_profile():
     leaves = profile['production_leaf_sha256']
     if len(leaves) != 11:
         raise RuntimeError('expected the eleven reviewed production leaves')
+    spec = importlib.util.spec_from_file_location('timing64_mac_platform_bridge', HERE / 'mac_platform_source_bridge.py')
+    bridge = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bridge)
+    changed = bridge.checked_sources()
     for name, digest in leaves.items():
+        if name in changed and changed[name]['old_sha256'] != digest:
+            raise RuntimeError('timing64 platform bridge old source differs: ' + name)
+        expected = changed[name]['new_sha256'] if name in changed else digest
         if not name.startswith('src/main/scala/core/ooo/') or '..' in Path(name).parts or \
-                hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != digest:
+                hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             raise RuntimeError('timing64 changed production leaf differs: ' + name)
     return options
 

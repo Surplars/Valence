@@ -87,18 +87,19 @@ object PlacedTimingProfileBridge {
     val coreAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
         "memoryPreparationHeadMask", "directRank0MemorySourceIds", "fetchReadyDataClear", "retirementSlotIdentity",
         "fetchAcceptedPrefixValidation", "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady")
+    val platformAdditions = Seq("triSpeedRawClockHandoff")
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
     def requireShape(c: FpgaNextConfig): Unit = {
-        requireNames(c, publishedProfileNames ++ profileAdditions)
+        requireNames(c, publishedProfileNames ++ profileAdditions ++ platformAdditions)
         requireNames(c.coreParams, publishedCoreNames ++ coreAdditions)
         requireNames(c.cache, cacheNames)
         requireNames(c.ddr, ddrNames)
     }
     def publishedFields(p: Product): Map[String, Any] = {
         val (old, added) = p match {
-            case _: FpgaNextConfig => (publishedProfileNames, profileAdditions)
+            case _: FpgaNextConfig => (publishedProfileNames, profileAdditions ++ platformAdditions)
             case _: OooParams => (publishedCoreNames, coreAdditions)
             case _ => throw new IllegalArgumentException("only named profile/core products may be projected")
         }

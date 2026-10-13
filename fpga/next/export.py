@@ -85,6 +85,12 @@ def sources():
         "src/test/scala/ooo/NearTermAProfile.scala", "src/test/scala/ooo/NearTermAActualAudit.scala",
         "src/test/scala/ooo/NearTermAProfileMain.scala", "src/test/scala/ooo/NearTermAFullCpuMain.scala",
         "src/test/scala/ooo/NearTermAConfigSpec.scala",
+        "src/test/scala/ooo/MacRawHandoffEntry.scala",
+        "fpga/next/board_near_term_a_raw_handoff.py",
+        "fpga/next/near-term-a-raw-handoff-profile.json",
+        "fpga/next/near-term-a-mac-platform-compat.json",
+        "fpga/next/mac_platform_source_bridge.py",
+        "fpga/next/near-term-a-before-mac-platform.json",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
         "fpga/next/performance-profile.json", "fpga/next/board_profile.py",
@@ -164,6 +170,8 @@ def main(argv=None, expected_profile_sha256=None):
                        help="boot-owned RAM download through standalone soft TAP; no hart debug")
     debug.add_argument("--experimental-jtag-bscan", type=int, choices=(1, 2, 3, 4),
                        help="boot-owned RAM download through explicitly allocated FPGA USER chain")
+    ap.add_argument("--tri-speed-raw-clock-handoff", action="count", default=0,
+                    help="default-off related-clock MAC tuple/step handoff; requires tri-speed")
     ap.add_argument("--experimental-trispeed-ethernet", action="store_true",
                     help="emit logic-qualified tri-speed media; native clocks/pads/CDC remain unqualified")
     ap.add_argument(board_t1.FLAG, action="count", default=0,
@@ -314,6 +322,11 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
+    if a.tri_speed_raw_clock_handoff > 1:
+        ap.error("duplicate --tri-speed-raw-clock-handoff")
+    if a.tri_speed_raw_clock_handoff and not a.experimental_trispeed_ethernet:
+        ap.error("--tri-speed-raw-clock-handoff requires --experimental-trispeed-ethernet")
+    a.tri_speed_raw_clock_handoff = bool(a.tri_speed_raw_clock_handoff)
     for field, flag in (("native_mac_local_pad_reset_release", board_t1.FLAG),
                         ("native_mac_register_selected_half", board_t1.SELECTED_FLAG)):
         count = getattr(a, field)
@@ -643,6 +656,11 @@ def main(argv=None, expected_profile_sha256=None):
         profile["profile"]["name"] += "-canonical-virtual-store-overlap"
     profile["profile"]["experimental_trispeed_ethernet"] = a.experimental_trispeed_ethernet
     profile["profile"]["tri_speed_tx_frame_slots"] = 2 if a.experimental_trispeed_ethernet else 1
+    # OFF keeps every historical Python profile byte unchanged. New Scala
+    # constructor reports include the explicit default-false platform field.
+    if a.tri_speed_raw_clock_handoff:
+        profile["profile"]["tri_speed_raw_clock_handoff"] = True
+        profile["profile"]["name"] += "-mac-raw-handoff"
     if a.experimental_trispeed_ethernet:
         profile["profile"]["name"] += "-experimental-trispeed"
     profile["profile"]["dma_line_transfers"] = a.dma_line_transfers
@@ -747,6 +765,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--registered-pmp-regions")
     if a.experimental_trispeed_ethernet:
         command.append("--experimental-trispeed-ethernet")
+    if a.tri_speed_raw_clock_handoff:
+        command.append("--tri-speed-raw-clock-handoff")
     if a.independent_fetch_payload_capture:
         command.append("--independent-fetch-payload-capture")
     if a.experimental_jtag_stub:
@@ -936,6 +956,7 @@ def main(argv=None, expected_profile_sha256=None):
         return
     output.mkdir(parents=True)
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
+        "tri_speed_raw_clock_handoff": a.tri_speed_raw_clock_handoff,
         "baseline_source_commit": profile["source_commit"], "git_head": head,
         "source_sha256": before, "profile": profile["profile"],
         "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
@@ -967,10 +988,12 @@ def main(argv=None, expected_profile_sha256=None):
             a.experimental_jtag_stub or a.experimental_jtag_ram or a.experimental_jtag_bscan else [])
         if a.experimental_jtag_bscan:
             resources.append("ValenceBscanDebugPort.sv")
+        if a.tri_speed_raw_clock_handoff:
+            resources.append("ValenceMacRawFallingSample.sv")
         for name in resources:
             resource = rtl / name
             if not resource.is_file():
-                raise RuntimeError("enabled debug resource missing from export: " + name)
+                raise RuntimeError("enabled resource missing from export: " + name)
             if resource.name not in listed:
                 listed.append(resource.name)
         if a.experimental_jtag_bscan or a.experimental_trispeed_ethernet:

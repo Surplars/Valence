@@ -250,6 +250,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     floatingPointResources: FloatingPointResourceConfig = FloatingPointResourceConfig.baseline,
     independentFetchPayloadCapture: Boolean = false,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
+    val triSpeedRawClockHandoff: Boolean = false,
     ownerLocalIssueReady: Boolean = false, sharedFetchPmpRelations: Boolean = false,
     bankedInstructionData: Boolean = false, jtagRamDownload: Boolean = false,
     dmaLineTransfers: Boolean = false, dmaLineYieldCycles: Int = 0, dmaLineEntries: Int = 1,
@@ -285,6 +286,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedEthernet || managedPeripherals, "tri-speed media requires managed peripherals")
+    require(!triSpeedRawClockHandoff || triSpeedEthernet, "RAW MAC handoff requires tri-speed Ethernet")
     require(dataCacheLines >= 4 && dataCacheLines <= 512 && isPow2(dataCacheLines),
         "board data cache lines must be a power of two in 4..512")
     require(instructionLineCacheLines >= 4 && instructionLineCacheLines <= 512 && isPow2(instructionLineCacheLines),
@@ -434,7 +436,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     val nativeBank = if (managedPeripherals) {
         val bank = Module(new soc.ip.clock.ManagedPeripheralBank(cmuConfig.get, socClockHz,
             peripheralClockHz, uartBaud, networkDmaConfig = networkDmaConfig, triSpeedEthernet = triSpeedEthernet,
-            triSpeedTxFrameSlots = triSpeedTxFrameSlots))
+            triSpeedTxFrameSlots = triSpeedTxFrameSlots, triSpeedRawClockHandoff = triSpeedRawClockHandoff))
         bank.sourceClock := clock
         bank.alwaysOnClock := io.alwaysOnClock.get
         bank.rawUartClock := io.peripheralClock.get
