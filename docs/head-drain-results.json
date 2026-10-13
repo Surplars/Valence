@@ -1,0 +1,138 @@
+{
+  "schema": "head-drain-public-results-v1",
+  "published_base": {
+    "commit": "e1a13a871e4071597401a0507c1ab5eb20274354",
+    "tree": "b8eb208ce38deecc7962df7dd5cae7129d209b8f"
+  },
+  "tested_production_sources": {
+    "src/main/scala/core/ooo/OooParams.scala": "567646c5f081d86d502718515045e611d9b77ca87d7a04188eb1b6d0e5e243a6",
+    "src/main/scala/core/ooo/HeadDrainClass.scala": "c2a55d971503193cf1765ab740b1b33e0e71afc23e8555ef8ab69a985fce6286",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "40e86eccfbab7848f428c47e9d734bee72fa8bdf785cd689831b7ed22ae4a9b6",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "fc7537d1cdf9d0e529560dae0f018902301a5f899caeba6c015b85b69f29b151",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "3256a89413c53f210f6b834bce8bbfacb9ae332ccfeb59951fc7134406636c8f"
+  },
+  "default": "OFF",
+  "only_simulated_full_cpu_combination": "original default52 + predecodedHeadDrain",
+  "optional_future_home_lru54_and_eager_in_tested_profile": false,
+  "narrow": {
+    "independent_decode_vectors": 366590,
+    "decode_comparisons": 1466360,
+    "rejected_decode_mutations": 21,
+    "paired_cycles": 321,
+    "accepted_renames": 203,
+    "dual_accepts": 86,
+    "live_full_token_row_checks": 249,
+    "actual_internal_kills": 2,
+    "stale_positive_mask_checks": 2,
+    "row_reuses": 148,
+    "concurrent_retire_allocate_edges": 78,
+    "rejected_pair_mutations": 2,
+    "sanitizers": "ASan and UBSan clean"
+  },
+  "native": {
+    "total_modules": 97,
+    "byte_identical_other_modules": 96,
+    "prior_register_bits_unchanged": 7462,
+    "added_declared_register_bits": 16,
+    "new_storage": "16 rows x 1 bit",
+    "new_combinational_cost": "Two incoming rename decoders and one indexed bit lookup",
+    "consumer_cut": "drainFetch uses existing headPending and saved class; head instruction read remains for other consumers",
+    "physical_resource_or_timing_result": false
+  },
+  "whole_cpu": {
+    "sv39_inclusive_cycles": 191618,
+    "bare_inclusive_cycles": 194153,
+    "roi_tail_inclusive_cycle_deltas": 0,
+    "complete_stdout_and_supply_axi_traces": "literal byte equality in both modes",
+    "fields_captured_per_mode": 105,
+    "original_negative_controls": [
+      "read",
+      "memory",
+      "trap"
+    ],
+    "new_on_models": 1,
+    "new_off_models": 0,
+    "on_generated_model_translation_units": 37,
+    "off_retained_generated_model_translation_units": 36,
+    "sanitizers": "ASan and UBSan clean",
+    "profile_sha256": "7bb1b2007444bc3911190c08ec425e8cd825e75c53f408b3d1eb04505e05dafc",
+    "fir_sha256": "a7eeaca647faa3ae7308b63c18a394e233361b05983eea072d1e88f9f46bcbb1",
+    "result_stdout_sha256": {
+      "sv39": "0487de9b0e8b95c55d2eba9bbe925c215603f6b9d366da8acaf5597c71989b07",
+      "bare": "a44eefe98090803ac63d54d656d0308cbe9ddb584f2e79f44b7da4221f1a49da"
+    },
+    "raw_trace_sha256": {
+      "sv39": {
+        "supply-events.tsv": "3eb6fe97ec19596b18b590a375746026a58bc382c3bad030c72e572e1339d0b3",
+        "axi-events.tsv": "934baa2fbb11101039e9a7b4bfe3c6499b9219682f79eda6d6324db94450055c"
+      },
+      "bare": {
+        "supply-events.tsv": "f4efea16254a864f294b58a067863eb8305ea4ee948e908c9ee117340c44f468",
+        "axi-events.tsv": "45928a0a78133054a138f5135cd589c3e70cdd9d491cbdd99bf263e43a604edf"
+      }
+    }
+  },
+  "same_object_nemu": {
+    "hot_cycles": 1847,
+    "compressed_cycles": 958,
+    "positive_stdout": "literal byte equality against retained default52",
+    "original_negative_controls": [
+      "pc",
+      "gpr",
+      "memory"
+    ],
+    "existing_objects_reused": 37,
+    "new_dut_emissions": 0,
+    "new_dut_object_compiles": 0,
+    "reference_state_resynchronizations": 0,
+    "reference_commit": "c00b6dd17fd6f9d196750af0babba167d271d1fe",
+    "scope": "Two short physical integer M-mode cases; all GPRs at complete retire-edge boundaries and final RAM",
+    "sanitizers": "ASan and UBSan clean",
+    "result_stdout_sha256": {
+      "hot": "8c899e4b89ee65dc616fd52f5db02401c1784455b2f7b31ef3c17ea99b19ccb7",
+      "compressed": "626b7b0ce15d3c9467fb90256b01d1772efce4b62d420d45b8afb66c5c91d080"
+    }
+  },
+  "qualification_limits": [
+    "Only default52 plus the head-drain flag was simulated as a whole CPU.",
+    "Future-home/LRU54 plus the flag has no whole-CPU qualification.",
+    "No new ISA legality filtering; classification preserves existing broad decode.",
+    "No synthesis, implementation timing, Fmax, or speedup claim.",
+    "The instruction RAM read port and downstream reserve/proof/LSU/start feedback remain."
+  ],
+  "public_source_entry_validation": {
+    "status": "PASS",
+    "scope": "Source/CLI/constructor compatibility; prior CPU run identities remain separate",
+    "all_scala_imports_compiled": {
+      "production_sources": 200,
+      "test_sources": 351
+    },
+    "focused_scala_tests_passed": 6,
+    "python_strict_cli_tests_passed": 4,
+    "future_home_lru54_plus_head_drain": "Complete parameter rollback passed; hardware UNTESTED",
+    "generic_constructor": "Actual backend parameters and 16 one-bit rows checked during CHIRRTL elaboration",
+    "generic_on_fir_sha256": "962fc4a5e5784f1f5de5bbdae82513be0b372fcc89ee3d85c9cf928dc099236f",
+    "tested_on_fir_sha256": "a7eeaca647faa3ae7308b63c18a394e233361b05983eea072d1e88f9f46bcbb1",
+    "raw_fir_byte_equal": false,
+    "exact_sourceinfo_only_differences": {
+      "src/test/scala/ooo/BoardSocGsimMain.scala": {
+        "line_delta": -1,
+        "column_delta": 0,
+        "matched_lines": 9932
+      },
+      "src/test/scala/ooo/MatchingManagedBoard.scala": {
+        "line_delta": -1,
+        "column_delta": 0,
+        "matched_lines": 528
+      }
+    },
+    "functional_ir_nodes_ports_state_equal": true,
+    "generic_bridge_sha256": "57aff68bec46028a16e66ae54d99394c642e9e1498412c1eb69704c2097971b9",
+    "result_log_sha256": {
+      "final-scala-compile.log": "98c0dec0d3387b8b84319f1b2ed2c4764d39c8d8529b3511b4b9529103c859af",
+      "final-scala-focused.log": "94507617db45d3440e97dcd3d9f568114977384653c0e9254930e9ca4c0a334b",
+      "final-python-cli.log": "e6a3ea33f0b29ff1b78e5e76bc1d0e744e96cdfa5475f55bfa41893faaa7a3dd",
+      "final-generic-constructor.log": "bfb7e48aa70f9d3b93ea1fa7632a4cceeed2469e6adae7ebc3e982bf85455a87"
+    }
+  }
+}

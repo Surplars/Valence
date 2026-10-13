@@ -37,6 +37,8 @@ def sources():
              for p in (ROOT / folder).rglob("*.scala")]
     files += [ROOT / name for name in ("build.mill", ".mill-version",
         "src/test/scala/ooo/FpgaNextMain.scala",
+        "src/test/scala/ooo/FpgaNextProfileMain.scala",
+        "src/test/scala/ooo/HeadDrainActualAudit.scala",
         "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
         "src/test/scala/ooo/TimingBatchActualAudit.scala",
         "fpga/next/baseline.json", "fpga/next/export.py",
@@ -147,6 +149,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off upper payload-bank write-enable localization; no added state or latency")
     ap.add_argument("--local-payload-write-row", action="count", default=0,
                     help="default-off upper payload-bank row localization; requires line reads and local enables")
+    ap.add_argument("--predecoded-head-drain", action="count", default=0,
+                    help="default-off immutable accepted-row fetch-drain class; preserves head ownership")
     ap.add_argument("--eager-fetch-prefix-select", action="count", default=0,
                     help="default-off direct accepted-prefix selection within the aligned permission phase")
     ap.add_argument("--shared-canonical-store-owner-match", action="count", default=0,
@@ -354,7 +358,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.tagged_store_returns > 1:
         ap.error("duplicate --tagged-store-returns flag")
     a.tagged_store_returns = bool(a.tagged_store_returns)
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain"):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
@@ -522,7 +526,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1:
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
-    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select"):
+    for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain"):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -760,6 +764,8 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--direct-registered-execution-operands")
     if a.eager_fetch_prefix_select:
         command.append("--eager-fetch-prefix-select")
+    if a.predecoded_head_drain:
+        command.append("--predecoded-head-drain")
     if a.shared_canonical_store_owner_match:
         command.append("--shared-canonical-store-owner-match")
     if a.local_payload_write_row:
@@ -796,6 +802,7 @@ def main(argv=None, expected_profile_sha256=None):
             "direct_registered_execution_operands": a.direct_registered_execution_operands,
             "shared_canonical_store_owner_match": a.shared_canonical_store_owner_match,
             "eager_fetch_prefix_select": a.eager_fetch_prefix_select,
+            "predecoded_head_drain": a.predecoded_head_drain,
             "local_payload_write_row": a.local_payload_write_row,
             "tagged_store_returns": a.tagged_store_returns,
             "bound_head_store_overlap": a.bound_head_store_overlap,

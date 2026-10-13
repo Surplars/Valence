@@ -413,6 +413,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         limit.bits.tag := orderCheckTag.get
     }
     val queue         = Reg(Vec(p.robEntries, new IntegerIssueEntry(p)))
+    // Stale rows need no clear: the unchanged pending/system head gate owns
+    // validity, and accepted allocation overwrites the bit with its payload.
+    val headDrainClasses = if (p.predecodedHeadDrain) Some(Reg(Vec(p.robEntries, Bool()))) else None
     // Allocation is the only queue writer and targets renamed.token.index. Rows
     // never move: a live row's index is its slot for its entire generation. Keep
     // the full tag in storage and reconstruct only that fixed index BEFORE every
@@ -1723,7 +1726,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             headPending && (sfence || satpWrite)
         } else false.B
         val fenceIHead = headPending && headInst(6, 0) === "h0f".U && headInst(14, 12) === 1.U
-        val drainFetch = pmpHead || returnHead || vmHead || fenceIHead
+        val drainFetch = if (p.predecodedHeadDrain) headPending && headDrainClasses.get(head)
+            else pmpHead || returnHead || vmHead || fenceIHead
         if (p.pmpEntries > 0) {
             val barrierActive = RegInit(false.B)
             io.pauseFetch.get := drainFetch || barrierActive
@@ -2590,6 +2594,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 queue(renamed.bits.token.index).renamed.token.index := 0.U
             }
             queue(renamed.bits.token.index).request := io.allocate(lane).bits
+            headDrainClasses.foreach { classes =>
+                val offered = io.allocate(lane).bits
+                classes(renamed.bits.token.index) := HeadDrainClass(
+                    offered.rename.instruction, offered.expandedInstruction, p)
+            }
             if (p.bankedIssuePayload) {
                 ImmutableIssuePayload.insert(queue(renamed.bits.token.index).request,
                     0.U.asTypeOf(new ImmutableIssuePayload))

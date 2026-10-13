@@ -11,7 +11,7 @@ import java.nio.file.{Files, Paths}
 /** Complete constructor products, including every OooParams flag, not a label. */
 object PostedBoardConfiguration {
     private def quote(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-    private def json(value: Any): String = value match {
+    def json(value: Any): String = value match {
         case null => "null"
         case text: String => quote(text)
         case bool: Boolean => bool.toString
@@ -29,10 +29,8 @@ object PostedBoardConfiguration {
         Files.createDirectories(Paths.get(directory))
         Files.writeString(Paths.get(directory, "actual-core-parameters.json"), json(p) + "\n")
     }
-    def write(c: FpgaNextConfig, directory: String): Unit = {
-        require(c.productArity == 72 && c.coreParams.productArity == 159 && c.cache.productArity == 23 &&
-            c.ddr.productArity == 9,
-            "full tagged profile/core/cache summary has unexpected fields")
+    def document(c: FpgaNextConfig): Map[String, Any] = {
+        HeadDrainActualAudit.requireShape(c)
         val derived = Map[String, Any]("isaProfile" -> c.isaProfile, "issueWidth" -> c.issueWidth,
             "instructionCacheLines" -> c.instructionCacheLines, "dataCacheLines" -> c.dataCacheLines,
             "cacheWays" -> c.cacheWays, "cacheLineBytes" -> c.cacheLineBytes,
@@ -47,8 +45,11 @@ object PostedBoardConfiguration {
             "core" -> c.coreParams, "cache" -> c.cache, "ddr" -> c.ddr, "storage" -> c.storage,
             "tags" -> c.tags, "floatingPointResources" -> c.floatingPointResources,
             "network" -> c.network, "derived" -> derived)
+        document
+    }
+    def write(c: FpgaNextConfig, directory: String): Unit = {
         Files.createDirectories(Paths.get(directory))
-        Files.writeString(Paths.get(directory, "profile.json"), json(document) + "\n")
+        Files.writeString(Paths.get(directory, "profile.json"), json(document(c)) + "\n")
     }
 }
 

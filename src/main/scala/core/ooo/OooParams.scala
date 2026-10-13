@@ -168,7 +168,9 @@ case class OooParams(
     // Reuse the canonical producer's complete indexed owner proof at consumer rows.
     sharedCanonicalStoreOwnerMatch: Boolean = false,
     // Optional direct prefix choice within the existing aligned permission stage.
-    eagerFetchPrefixSelect: Boolean = false
+    eagerFetchPrefixSelect: Boolean = false,
+    // Immutable drain classification captured at the existing accepted rename edge.
+    predecodedHeadDrain: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -177,6 +179,8 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!predecodedHeadDrain || machineSystem,
+        "predecoded head drain requires the machine system consumer")
     require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,
         "eager fetch prefix selection requires the aligned permission stage")
     require(!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap,

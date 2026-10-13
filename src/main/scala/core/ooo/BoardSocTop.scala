@@ -57,7 +57,8 @@ object BoardSocConfig {
         registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
         directRank1MemorySourceIds: Boolean = false,
         directRegisteredExecutionOperands: Boolean = false,
-        sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false): OooParams = {
+        sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false,
+        predecodedHeadDrain: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -80,6 +81,7 @@ object BoardSocConfig {
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,
+            predecodedHeadDrain = predecodedHeadDrain,
             registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -255,7 +257,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
     registeredCanonicalStoreEvent: Boolean = false, sharedLane1OwnerMatch: Boolean = false,
     directRank1MemorySourceIds: Boolean = false,
         directRegisteredExecutionOperands: Boolean = false,
-        sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false) extends Module {
+        sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false,
+        predecodedHeadDrain: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -303,6 +306,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,
+            predecodedHeadDrain = predecodedHeadDrain,
             registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
             pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
             pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,

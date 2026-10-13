@@ -80,7 +80,8 @@ final case class FpgaNextConfig(
     sharedCanonicalStoreOwnerMatch: Boolean = false,
     localPayloadWriteRow: Boolean = false,
     eagerFetchPrefixSelect: Boolean = false,
-    futureHomeWayReservation: Boolean = false
+    futureHomeWayReservation: Boolean = false,
+    predecodedHeadDrain: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -219,7 +220,8 @@ final case class FpgaNextConfig(
         (if (internalLineGrant) "-internal-line-grant" else "") +
         (if (concurrentReadStorePrefetch) "-concurrent-read-store-prefetch" else "") +
         (if (memoryScheduleOverlap) "-memory-schedule-overlap" else "") +
-        (if (futureHomeWayReservation) "-future-home-way-reservation" else "")
+        (if (futureHomeWayReservation) "-future-home-way-reservation" else "") +
+        (if (predecodedHeadDrain) "-predecoded-head-drain" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -290,6 +292,7 @@ final case class FpgaNextConfig(
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
+        predecodedHeadDrain = predecodedHeadDrain,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -329,6 +332,7 @@ final case class FpgaNextConfig(
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
+        predecodedHeadDrain = predecodedHeadDrain,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
@@ -355,7 +359,7 @@ object FpgaNextConfig {
             "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
-            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation")) {
+            "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -464,6 +468,7 @@ object FpgaNextConfig {
             localPayloadWriteRow = options.contains("--local-payload-write-row"),
             sharedCanonicalStoreOwnerMatch = options.contains("--shared-canonical-store-owner-match"),
             eagerFetchPrefixSelect = options.contains("--eager-fetch-prefix-select"),
+            predecodedHeadDrain = options.contains("--predecoded-head-drain"),
             ddrOutstanding = ddrSlots, ddrWriteCredits = ddrWrites,
             dataTlbWriteReadReuse = options.contains("--dtlb-write-read-reuse"),
             translationHitFlow = options.contains("--translation-hit-flow"),
