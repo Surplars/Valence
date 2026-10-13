@@ -32,6 +32,7 @@ OUTPUTS = (['upstream.request.ready', 'upstream.response.valid'] + ['upstream.re
                                       ('cancelled', EVENT), ('fallback', FALLBACK), ('fallbackAck', FALLBACK)]), []) +
            ['failed', 'mshrMask', 'postedMask', 'responseMask', 'responseCompleteMask', 'wbMask',
             'lineWrite', 'lineWritePosted', 'lineWriteAddress'] +
+           ['readSelectionWbCapture', 'readSelectionWbDirect', 'readSelectionWbDirty', 'readSelectionQueuedWanted'] +
            ['refillWord' + str(i) for i in range(8)] + ['installWord' + str(i) for i in range(8)])
 
 
@@ -44,6 +45,7 @@ def emit_driver(path):
     getters = '\n'.join('std::cout << ",\\"' + n + '\\":" << uint64_t(d.' + method('get_', n) + '());' for n in OUTPUTS)
     Path(path).write_text('''#include "PostedStoreCacheGsim.h"
 #include <cstdint>
+#include <new>
 #include <functional>
 #include <iostream>
 #include <sstream>
@@ -51,7 +53,10 @@ def emit_driver(path):
 #include <string>
 #include <unordered_map>
 int main() { try {
- SPostedStoreCacheGsim d;
+ // Deterministic object storage before the public GSIM constructor. No
+ // generated member is modified during runtime. Both caches share this reset.
+ alignas(SPostedStoreCacheGsim) static unsigned char storage[sizeof(SPostedStoreCacheGsim)]{};
+ auto& d = *::new (static_cast<void*>(storage)) SPostedStoreCacheGsim;
  std::unordered_map<std::string, std::function<void(uint64_t)>> setters;
 SETTERS
  for (auto& [name, set] : setters) { (void)name; set(0); }

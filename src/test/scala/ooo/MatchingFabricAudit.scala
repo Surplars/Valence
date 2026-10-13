@@ -50,6 +50,7 @@ object MatchingFabricAudit {
             "headDrain" -> HeadDrainActualAudit.capture(p, expected),
             "retirementIntent" -> RetirementIntentActualAudit.capture(p, expected),
             "placedTiming" -> PlacedTimingActualAudit.capture(p, expected),
+            "memoryPreparationLocality" -> MemoryPreparationLocalityActualAudit.capture(p, expected),
             "actualLsuOwners" -> p.core.core.core.backend.lsu.slots.size,
             "actualRegisterPorts" -> p.platformRouter.get.io.registers.size,
             "actualPacketRxOwners" -> p.packetDma.get.slotOwned.size,

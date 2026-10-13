@@ -21,7 +21,12 @@ class HeadSystemRecoveryPort(p: OooParams) extends Bundle {
   * writes and wakeups use the same liveness decision as the ROB. Tags never silently wrap: exhaustion blocks allocation
   * until reset, which requires all external producers to have been reset/drained too.
   */
-class RenameRob(val p: OooParams = OooParams()) extends Module {
+class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Boolean = false) extends Module {
+    require(retirementSlotIdentity == p.retirementSlotIdentity,
+        "ledger retirement-slot identity must use its unified OooParams flag")
+    require(!retirementSlotIdentity || (p.retirementIntent && p.registeredRobRetirement &&
+        p.completionWidth == 2 && p.commitWidth == 2 && p.robEntries == 16 && p.tagBits == 64),
+        "retirement-slot identity qualification is restricted to the exact two-wide ROB16/tag64 intent profile")
     val io = IO(new Bundle {
         val allocate           = Input(Vec(p.renameWidth, Valid(new RenameRequest)))
         // Raw expanded rd is payload only; valid/writesRd retain all authorization.
@@ -265,9 +270,33 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         // A non-faulting completion may retire at the head without a register handoff
         // through entries(index).done. The accepted token check also rejects stale or
         // recovery-path results before they can affect retirement.
-        val finishing = (0 until p.completionWidth).map(i =>
-            retirementAccepted(i) && io.complete(i).bits.token.index === index &&
-                !io.sameCycleFault.map(_(i)).getOrElse(io.complete(i).bits.exception))
+        val finishing = (0 until p.completionWidth).map { i =>
+            val completion = io.complete(i)
+            val fault = io.sameCycleFault.map(_(i)).getOrElse(completion.bits.exception)
+            // In the local mode the original global retirementAccepted remains
+            // an assertion reference, not a head-specialized admission value.
+            val reference = retirementAccepted(i) && completion.bits.token.index === index && !fault
+            if (retirementSlotIdentity) {
+                val offers = io.retirementIntentValid.get
+                // Earlier raw offers suppress duplicates even when faulting or
+                // ineligible for same-cycle retirement. Preserve all tag bits.
+                val duplicateOffer = (0 until i).map(k =>
+                    offers(k) && io.complete(k).bits.token.asUInt === completion.bits.token.asUInt)
+                    .foldLeft(false.B)(_ || _)
+                val ownerMatches = completion.bits.token.index === index &&
+                    completion.bits.token.tag === entry.tag
+                val slotAccepted = lane.U < count && offers(i) && ownerMatches &&
+                    !entry.done && !duplicateOffer
+                val local = slotAccepted && !fault
+                assert(local === reference,
+                    "retirement-slot finishing must equal the original global-owner finishing predicate")
+                when(!recoveryCycle) {
+                    assert(slotAccepted === (io.completionAccepted(i) && completion.bits.token.index === index),
+                        "retirement-slot admission equals actual admission only at its matching slot without recovery")
+                }
+                local
+            } else reference
+        }
         // A selected control-flow result can complete now while its commit waits
         // for the ROB entry registers; non-control results retain the fast path.
         val retiringNow = (0 until p.completionWidth).map(i =>

@@ -17,7 +17,8 @@ class NonBlockingCoherentLineCache(
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     postedConfig: Option[PostedStoreMergeConfig] = None,
     returnConfig: Option[CpuReturnConfig] = None,
-    val registerProbeLookup: Boolean = false
+    val registerProbeLookup: Boolean = false,
+    val localReadSelection: Boolean = false
 ) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
@@ -756,7 +757,22 @@ class NonBlockingCoherentLineCache(
         when(request.write) { dirty(index) := true.B }
     }
 
-    private val readIndex = Mux(probeRead, probeIndex, Mux(evictionRead, evictIndex, index))
+    // A newly accepted direct eviction reads the same resident index as an
+    // ordinary hit. It cannot coexist with queued work, so that late acceptance
+    // need not select the wide SRAM address. Keep the single-WB posted-retire
+    // veto identical to startEviction; read enables and all writes remain owned
+    // by the original accepted transactions below.
+    private val queuedReadSelection = queuedEvictionRead &&
+        !(postedConfig.nonEmpty.B && (wbCount == 1).B && evictionRetiring)
+    private val readIndex = if (localReadSelection)
+        Mux(probeRead, probeIndex, Mux(queuedReadSelection, queuedEvictIndex, index))
+    else Mux(probeRead, probeIndex, Mux(evictionRead, evictIndex, index))
+    if (localReadSelection) {
+        assert(!directEviction || !queuedEvictWanted,
+            "direct and queued eviction ownership are mutually exclusive")
+        assert(readIndex === Mux(probeRead, probeIndex, Mux(evictionRead, evictIndex, index)),
+            "local SRAM address selection preserves the original complete priority")
+    }
     private val readEnables = VecInit((0 until 8).map(bank => probeRead || evictionRead ||
         (hitRead && request.address(5, 3) === bank.U)))
     private val readWords = VecInit((0 until 8).map { bank =>
@@ -885,8 +901,16 @@ class NonBlockingCoherentLineCache(
     private val postedInstallAddress = posted.map(_.io.install.bits.context.lineAddress).getOrElse(0.U(64.W))
     private val postedInstallData = posted.map(_.io.install.bits.data).getOrElse(0.U(512.W))
     for (owner <- posted) {
-        owner.io.install.ready := !refill && !storeWrite &&
-            !(readEnables.asUInt.orR && readIndex === postedInstallIndex)
+        // Compare each pre-edge owner index before the final read grant. The
+        // exact probe > queued eviction > current-request priority is retained;
+        // no invalid read or denied CPU offer can create an SRAM exclusion.
+        val installCollision = if (localReadSelection) {
+            val indexCollision = Mux(probeRead, probeIndex === postedInstallIndex,
+                Mux(queuedReadSelection, queuedEvictIndex === postedInstallIndex,
+                    index === postedInstallIndex))
+            readEnables.asUInt.orR && indexCollision
+        } else readEnables.asUInt.orR && readIndex === postedInstallIndex
+        owner.io.install.ready := !refill && !storeWrite && !installCollision
         when(owner.io.install.fire) {
             val m = owner.io.install.bits.reservation.mshr
             assert(isPosted(m) && phase(m) === fill && !postedInstalled.get(m) &&

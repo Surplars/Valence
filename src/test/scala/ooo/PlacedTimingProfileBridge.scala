@@ -81,8 +81,10 @@ object PlacedTimingProfileBridge {
         "unorderedResponses", "writeCollectionFlow", "lineReadChannel", "localPayloadWriteEnable",
         "localPayloadWriteRow")
     val profileAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
-        "registerProbeLookup", "localAddressRanges")
-    val coreAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp")
+        "registerProbeLookup", "localAddressRanges", "memoryPreparationHeadMask", "directRank0MemorySourceIds",
+        "fetchReadyDataClear", "retirementSlotIdentity", "localCacheReadSelection")
+    val coreAdditions = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
+        "memoryPreparationHeadMask", "directRank0MemorySourceIds", "fetchReadyDataClear", "retirementSlotIdentity")
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")

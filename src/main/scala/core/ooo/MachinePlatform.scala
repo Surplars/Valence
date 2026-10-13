@@ -65,13 +65,16 @@ class MachinePlatform(
     dataTlbWriteReadReuse: Boolean = false,
     translationHitFlow: Boolean = false,
     registerProbeLookup: Boolean = false,
-    localAddressRanges: Boolean = false
+    localAddressRanges: Boolean = false,
+    localCacheReadSelection: Boolean = false
 ) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
     private var constructedHome: Option[CoherentLineHomeModule] = None
     def finalHome: Option[CoherentLineHomeModule] = constructedHome
+    require(!localCacheReadSelection || (coherentLineCache && cacheConcurrency.readMshrs > 1),
+        "local SRAM read selection requires the actual nonblocking cache")
     require(!registerProbeLookup || (coherentLineCache && cacheConcurrency.readMshrs > 1),
         "registered probe lookup requires the real nonblocking cache")
     require(!localAddressRanges || (externalDdr && tileLinkMemory && tileLinkFetch && !splitTileLinkMemory),
@@ -434,7 +437,7 @@ class MachinePlatform(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
         ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig,
         postedConfig = postedConfig, returnConfig = p.cpuReturnConfig,
-        registerProbeLookup = registerProbeLookup)) else None
+        registerProbeLookup = registerProbeLookup, localReadSelection = localCacheReadSelection)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B

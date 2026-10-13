@@ -28,6 +28,35 @@ board_t1 = importlib.util.module_from_spec(_t1_spec)
 _t1_spec.loader.exec_module(board_t1)
 
 
+
+LOCALITY_FLAGS = ("fetch_ready_data_clear", "memory_preparation_head_mask",
+                  "direct_rank0_memory_source_ids", "retirement_slot_identity", "local_cache_read_selection")
+
+
+def check_locality_topology(enabled, core, *, coherent_line_cache, read_mshrs):
+    """Mirror the five Scala leaf requirements, without selecting hardware defaults."""
+    requirements = {
+        "fetch_ready_data_clear": (core["registeredTranslationHeads"],
+            "registered instruction translation heads"),
+        "memory_preparation_head_mask": (core["registeredIssueHeadMask"] and
+            core["registeredMemoryAddress"] and core["parallelMemoryPreparation"],
+            "registered head/address and parallel memory preparation"),
+        "direct_rank0_memory_source_ids": (core["registeredMemoryAddress"] and
+            core["parallelMemoryPreparation"] and core["parallelMemoryPayload"] and
+            core["compactMemoryOperandSelect"] and not core["memoryProofFrontier"],
+            "compact parallel owner-masked preparation without a proof frontier"),
+        "retirement_slot_identity": (core["retirementIntent"] and core["registeredRobRetirement"] and
+            core["completionWidth"] == 2 and core["commitWidth"] == 2 and
+            core["robEntries"] == 16 and core["tagBits"] == 64,
+            "retirement intent with registered two-wide ROB16/full-tag retirement"),
+        "local_cache_read_selection": (coherent_line_cache and read_mshrs > 1,
+            "the actual nonblocking coherent cache"),
+    }
+    for field, (valid, reason) in requirements.items():
+        if enabled[field] and not valid:
+            raise ValueError("--" + field.replace("_", "-") + " requires " + reason)
+
+
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -41,10 +70,13 @@ def sources():
         "src/test/scala/ooo/HeadDrainActualAudit.scala",
         "src/test/scala/ooo/PlacedTimingProfileBridge.scala",
         "src/test/scala/ooo/PlacedTimingActualAudit.scala",
+        "src/test/scala/ooo/MemoryPreparationLocalityActualAudit.scala",
+        "src/test/scala/ooo/ZeroCycleCleanupActualAudit.scala",
         "src/test/scala/ooo/RetirementIntentActualAudit.scala",
         "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
         "src/test/scala/ooo/TimingBatchActualAudit.scala",
         "fpga/next/baseline.json", "fpga/next/export.py",
+        "fpga/next/board_timing64.py", "fpga/next/timing-batch-locality64-profile.json",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
         "fpga/next/performance-profile.json", "fpga/next/board_profile.py",
@@ -160,6 +192,9 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off registered translated-queue occupancy payload selection")
     ap.add_argument("--aligned-next-line-pmp", action="count", default=0,
                     help="default-off exact aligned 64-byte next-line PMP end construction")
+    for field in LOCALITY_FLAGS:
+        ap.add_argument("--" + field.replace("_", "-"), action="count", default=0,
+                        help="explicit default-off timing locality option; Scala topology requirements apply")
     ap.add_argument("--register-probe-lookup", action="count", default=0,
                     help="default-off one-cycle registered nonblocking-cache probe lookup")
     ap.add_argument("--local-address-ranges", action="count", default=0,
@@ -377,6 +412,28 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
+    for field in LOCALITY_FLAGS:
+        flag = "--" + field.replace("_", "-")
+        if getattr(a, field) > 1:
+            ap.error("duplicate " + flag)
+        if getattr(a, field) and flag not in raw_args:
+            ap.error("use the exact " + flag + " flag")
+        setattr(a, field, bool(getattr(a, field)))
+    # FpgaNextConfig fixes staged-fetch-turnover[-mlp4], two issue/full tags,
+    # and the two-MSHR coherent cache for reference/storage/selected alike.
+    # BoardSocConfig.timingParams supplies these registered preparation stages.
+    # Only the exposed ROB capacity, intent and frontier choices vary here.
+    try:
+        check_locality_topology({field: getattr(a, field) for field in LOCALITY_FLAGS}, {
+            "registeredTranslationHeads": True, "registeredIssueHeadMask": True,
+            "registeredMemoryAddress": True, "parallelMemoryPreparation": True,
+            "parallelMemoryPayload": True, "compactMemoryOperandSelect": True,
+            "registeredRobRetirement": True, "completionWidth": 2, "commitWidth": 2,
+            "tagBits": 64, "robEntries": a.rob_entries if a.rob_entries is not None else 16,
+            "retirementIntent": a.retirement_intent, "memoryProofFrontier": a.memory_proof_frontier,
+        }, coherent_line_cache=True, read_mshrs=2)
+    except ValueError as error:
+        ap.error(str(error))
     if a.fetch_address_before_pmp and not a.aligned_fetch_permission_stage:
         ap.error("--fetch-address-before-pmp requires --aligned-fetch-permission-stage")
     if a.queued_head_selection and not (a.prechecked_data_flow or a.translation_hit_flow):
@@ -546,6 +603,10 @@ def main(argv=None, expected_profile_sha256=None):
         profile["profile"]["pending_store_early_load_credits"] = a.pending_store_early_load_credits
         profile["profile"]["name"] += f"-pending-store-early-load-credits{a.pending_store_early_load_credits}"
     for field in ("aligned_fetch_permission_stage", "registered_canonical_store_event", "shared_lane1_owner_match", "direct_rank1_memory_source_ids", "direct_registered_execution_operands", "shared_canonical_store_owner_match", "local_payload_write_row", "eager_fetch_prefix_select", "predecoded_head_drain", "retirement_intent", "fetch_address_before_pmp", "queued_head_selection", "aligned_next_line_pmp", "register_probe_lookup", "local_address_ranges"):
+        if getattr(a, field):
+            profile["profile"][field] = True
+            profile["profile"]["name"] += "-" + field.replace("_", "-")
+    for field in LOCALITY_FLAGS:
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -813,6 +874,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1 or any(
             option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args):
         command.append(f"--pending-store-early-load-credits={a.pending_store_early_load_credits}")
+    for field in LOCALITY_FLAGS:
+        if getattr(a, field):
+            command.append("--" + field.replace("_", "-"))
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_files": len(before), "output": str(output),

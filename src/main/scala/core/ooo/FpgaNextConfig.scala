@@ -87,7 +87,12 @@ final case class FpgaNextConfig(
     queuedHeadSelection: Boolean = false,
     alignedNextLinePmp: Boolean = false,
     registerProbeLookup: Boolean = false,
-    localAddressRanges: Boolean = false
+    localAddressRanges: Boolean = false,
+    memoryPreparationHeadMask: Boolean = false,
+    directRank0MemorySourceIds: Boolean = false,
+    fetchReadyDataClear: Boolean = false,
+    retirementSlotIdentity: Boolean = false,
+    localCacheReadSelection: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -202,6 +207,11 @@ final case class FpgaNextConfig(
         (if (registerProbeLookup) "-register-probe-lookup" else "") +
         (if (localAddressRanges) "-local-address-ranges" else "") +
         (if (sharedLane1OwnerMatch) "-shared-lane1-owner-match" else "") +
+        (if (memoryPreparationHeadMask) "-memory-preparation-head-mask" else "") +
+        (if (directRank0MemorySourceIds) "-direct-rank0-memory-source-ids" else "") +
+        (if (fetchReadyDataClear) "-fetch-ready-data-clear" else "") +
+        (if (retirementSlotIdentity) "-retirement-slot-identity" else "") +
+        (if (localCacheReadSelection) "-local-cache-read-selection" else "") +
         (if (directRank1MemorySourceIds) "-direct-rank1-memory-source-ids" else "") +
         (if (directRegisteredExecutionOperands) "-direct-registered-execution-operands" else "") +
         (if (registeredCanonicalStoreEvent) "-registered-canonical-store-event" else "") +
@@ -305,6 +315,10 @@ final case class FpgaNextConfig(
         alignedFetchPermissionStage = alignedFetchPermissionStage,
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
+        memoryPreparationHeadMask = memoryPreparationHeadMask,
+        directRank0MemorySourceIds = directRank0MemorySourceIds,
+        fetchReadyDataClear = fetchReadyDataClear,
+        retirementSlotIdentity = retirementSlotIdentity,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -348,12 +362,17 @@ final case class FpgaNextConfig(
         alignedFetchPermissionStage = alignedFetchPermissionStage,
         sharedLane1OwnerMatch = sharedLane1OwnerMatch,
         directRank1MemorySourceIds = directRank1MemorySourceIds,
+        memoryPreparationHeadMask = memoryPreparationHeadMask,
+        directRank0MemorySourceIds = directRank0MemorySourceIds,
+        fetchReadyDataClear = fetchReadyDataClear,
+        retirementSlotIdentity = retirementSlotIdentity,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
         predecodedHeadDrain = predecodedHeadDrain,
         retirementIntent = retirementIntent,
         registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges,
+        localCacheReadSelection = localCacheReadSelection,
         fetchAddressBeforePmp = fetchAddressBeforePmp,
         queuedHeadSelection = queuedHeadSelection, alignedNextLinePmp = alignedNextLinePmp,
         registeredCanonicalStoreEvent = registeredCanonicalStoreEvent,
@@ -379,7 +398,7 @@ object FpgaNextConfig {
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
         for (flag <- Set("--frozen-store-proof-transport", "--pending-virtual-store-proof",
-            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
+            "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--memory-preparation-head-mask", "--direct-rank0-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent",
@@ -464,6 +483,11 @@ object FpgaNextConfig {
             localAddressRanges = options.contains("--local-address-ranges"),
             sharedLane1OwnerMatch = options.contains("--shared-lane1-owner-match"),
             directRank1MemorySourceIds = options.contains("--direct-rank1-memory-source-ids"),
+            memoryPreparationHeadMask = options.contains("--memory-preparation-head-mask"),
+            directRank0MemorySourceIds = options.contains("--direct-rank0-memory-source-ids"),
+            fetchReadyDataClear = options.contains("--fetch-ready-data-clear"),
+            retirementSlotIdentity = options.contains("--retirement-slot-identity"),
+            localCacheReadSelection = options.contains("--local-cache-read-selection"),
             directRegisteredExecutionOperands = options.contains("--direct-registered-execution-operands"),
             registeredCanonicalStoreEvent = options.contains("--registered-canonical-store-event"),
             boundHeadStoreOverlap = options.contains("--bound-head-store-overlap"),

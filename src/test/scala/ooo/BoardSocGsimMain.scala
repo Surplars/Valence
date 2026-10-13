@@ -50,7 +50,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     predecodedHeadDrain: Boolean = false, retirementIntent: Boolean = false,
     fetchAddressBeforePmp: Boolean = false, queuedHeadSelection: Boolean = false,
     alignedNextLinePmp: Boolean = false, registerProbeLookup: Boolean = false,
-    localAddressRanges: Boolean = false) extends Module {
+    localAddressRanges: Boolean = false, memoryPreparationHeadMask: Boolean = false,
+    directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
+    retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
@@ -59,6 +61,11 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         registeredCanonicalStoreEvent == configurationCheck.get.coreParams.registeredCanonicalStoreEvent &&
         sharedLane1OwnerMatch == configurationCheck.get.coreParams.sharedLane1OwnerMatch &&
         directRank1MemorySourceIds == configurationCheck.get.coreParams.directRank1MemorySourceIds &&
+        memoryPreparationHeadMask == configurationCheck.get.coreParams.memoryPreparationHeadMask &&
+        directRank0MemorySourceIds == configurationCheck.get.coreParams.directRank0MemorySourceIds &&
+        fetchReadyDataClear == configurationCheck.get.coreParams.fetchReadyDataClear &&
+        retirementSlotIdentity == configurationCheck.get.coreParams.retirementSlotIdentity &&
+        localCacheReadSelection == configurationCheck.get.localCacheReadSelection &&
         directRegisteredExecutionOperands == configurationCheck.get.coreParams.directRegisteredExecutionOperands &&
         sharedCanonicalStoreOwnerMatch == configurationCheck.get.coreParams.sharedCanonicalStoreOwnerMatch &&
         eagerFetchPrefixSelect == configurationCheck.get.coreParams.eagerFetchPrefixSelect &&

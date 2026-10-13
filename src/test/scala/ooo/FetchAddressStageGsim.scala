@@ -7,7 +7,8 @@ import java.nio.file.{Files, Paths}
 import soc.core.ooo._
 
 /** Small real frontend/adapter fixture. The optional reservoir is only for the independent ISA regression. */
-class FetchAddressStageGsim(staged: Boolean, architectural: Boolean = false) extends Module {
+class FetchAddressStageGsim(staged: Boolean, architectural: Boolean = false,
+    compareReadyClear: Boolean = false) extends Module {
     private val root = Iterator.iterate(Paths.get("").toAbsolutePath)(_.getParent)
         .takeWhile(_ != null).find(p => Files.isRegularFile(p.resolve("build.mill"))).get
     private val profile = Files.readString(root.resolve("fpga/next/timing-batch-owner-row-profile.json"))
@@ -111,6 +112,7 @@ class FetchAddressStageGsim(staged: Boolean, architectural: Boolean = false) ext
     io.fault0 := frontend.io.instructionFaultAddresses(0)
     io.fault1 := frontend.io.instructionFaultAddresses(1)
     io.arch0 := 0.U.asTypeOf(io.arch0)
+    if (compareReadyClear) FetchReadyDataClearComparison(adapter, p)
     if (architectural) {
         // These are the real default52 permission and reservoir modules, with the
         // same connections as IntegerCore's aligned-permission path. No backend.
@@ -150,5 +152,5 @@ class FetchAddressStageGsim(staged: Boolean, architectural: Boolean = false) ext
 
 object FetchAddressStageGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new FetchAddressStageGsim(args.contains("--staged"),
-        args.contains("--architectural")), Array("--target-dir", args.head))
+        args.contains("--architectural"), args.contains("--compare-ready-clear")), Array("--target-dir", args.head))
 }

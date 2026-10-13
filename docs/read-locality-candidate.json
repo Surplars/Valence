@@ -1,0 +1,146 @@
+{
+  "schema": "valence-read-locality-candidate-v1",
+  "status": "PASS_BOUNDED_FUNCTIONAL_AND_NATIVE_ZERO_STATE",
+  "scope": "Five default-off controls; exact78559 plus five explicit options; original phase0 and fixed workloads only.",
+  "base_commit": "785e3db558fb594816cc65e9e244e0a97eb282bd",
+  "new_default_off_fields": [
+    "fetchReadyDataClear",
+    "memoryPreparationHeadMask",
+    "directRank0MemorySourceIds",
+    "retirementSlotIdentity",
+    "localCacheReadSelection"
+  ],
+  "explicit_options": {
+    "retained": 59,
+    "candidate": 64,
+    "default_board": 52,
+    "default_board_changed": false
+  },
+  "qualification": {
+    "scala_compile": {
+      "production_files": 201,
+      "test_files": 384
+    },
+    "targeted_config_tests": 19,
+    "targeted_config_suites": 6,
+    "component_families": 4,
+    "native_modules": 290,
+    "native_added_state_bits": 0,
+    "copy": {
+      "sv39": {
+        "inclusive_cycles": 191618,
+        "baseline_inclusive_cycles": 191618,
+        "inclusive_delta": 0,
+        "roi_delta": 0,
+        "tail_delta": 0,
+        "strict105_and_all_metrics_equal": true,
+        "complete_stdout_byte_parity": true,
+        "raw_trace_byte_parity": true
+      },
+      "bare": {
+        "inclusive_cycles": 198642,
+        "baseline_inclusive_cycles": 198642,
+        "inclusive_delta": 0,
+        "roi_delta": 0,
+        "tail_delta": 0,
+        "strict105_and_all_metrics_equal": true,
+        "complete_stdout_byte_parity": true,
+        "raw_trace_byte_parity": true
+      }
+    },
+    "copy_original_negatives": [
+      "read",
+      "memory",
+      "trap"
+    ],
+    "same_model_objects": 36,
+    "nemu_cycles": {
+      "hot": 1883,
+      "compressed": 967
+    },
+    "nemu_original_negatives": [
+      "pc",
+      "gpr",
+      "memory"
+    ],
+    "nemu_counters_stdout_equal": true,
+    "pmp_guests": [
+      "short",
+      "word"
+    ],
+    "pmp_traps_stdout_equal": true,
+    "source_only_export_test_groups": 8
+  },
+  "source_identity": {
+    "qualified_source_sha256": "10bf96512a49a4a7d536ccb0dda1694da24a0c132d50cfdad9261eed8cdac950",
+    "qualified_production_sha256": "ec84b305abb3ca2a7cd734893c11808024ab1a83097b8484f3780dc35911011f",
+    "terminal_qualification_sha256": "2ea5ea4635f0f8f29bf51e5e92dff162485b2a82dbfcaba5eb1d729ecc072607",
+    "native_structure_sha256": "bebfe7783a2d5d874b720b9b71e9c76f86989001ddb4315651f9637618ac24ce",
+    "export_overlay": "Python entry/parser/source binding only; no qualified Scala or host change and no new hardware execution."
+  },
+  "physical_qualification": "NOT_RUN",
+  "limits": [
+    "Not formal equivalence, a full regression, or a mapped resource/Fmax result.",
+    "COPY parity is limited to the original phase0 64-KiB/two-repetition Sv39 and Bare cases, retaining the existing785 Bare cost.",
+    "NEMU covers only the two original short physical integer M-mode inputs.",
+    "No throughput improvement, routed timing or board result.",
+    "The new source-only export entry does not inherit historical mapped/library certificates."
+  ],
+  "source_files": {
+    "docs/read-locality-candidate.md": "2e18491b5d0911dfff694314eb37b559029992b5464c37baa0ffd810a4560642",
+    "fpga/next/board_timing64.py": "320fde6a4a27568fd4ce562b9aefc14fee6b71f01e7556489b9975b14e24fd01",
+    "fpga/next/export.py": "857a657858139c32b750d7fb5436d9e3d601029a4c44f252f6ad157cee5e7d8a",
+    "fpga/next/retirement-slot-actual59-core.json": "c75c67e8308fe8c30593a691a5101ed2bdf549dd19ca5129b76a07f2af2ccef4",
+    "fpga/next/test_timing64_export.py": "31c8d7328b647f0cd7f93ae7a057eb66fd54699e5bb21ec1090de2f9e96ceebe",
+    "fpga/next/timing-batch-locality64-profile.json": "3263cc1b4b8830f489fe65fd012676775104324e201a42c807e7c5e763852850",
+    "simulator/gsim/harness/address_locality_pair.cpp": "3973bb9f58b81c4dba2b9c8066d1d43bf1af9cc32c514460701fd11319d1d4e0",
+    "simulator/gsim/harness/fetch_ready_data_clear.cpp": "a7f44ed2dfb2e0d82f4ad4ecbe160bab8888a4a820801bce28c3926fa5edce8d",
+    "simulator/gsim/harness/retirement_slot_pair.cpp": "930f8ade499eb6f97cf9e82688f247cb813697a830b1eb4af99d68a85e4ac8dc",
+    "simulator/gsim/harness/retirement_slot_rob_oracle.h": "332448237eec88addf17b53e67a907dafeddc06836cd3a46f455f4c093a323dd",
+    "simulator/gsim/posted_cache_rebuild/fixture.py": "667d93e6369ef404b0837ed702cb3de0e133ba348051592e48f0d0971b88c03c",
+    "simulator/gsim/posted_cache_rebuild/ports.py": "a8fdf122460ed43dd8e041d6b087af6dbe675c214e1fee23e07c715e77c0123a",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "100559357fe4aefd4dec5f5d55ff2e319d428a62ef8e6e1e8813448094ff64bd",
+    "src/main/scala/core/ooo/CoherentCacheConcurrency.scala": "6fbd21cf278456486ca472545c1c3f5cd85fecc362495a129ee0ac3146cfbe8f",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "aea8c1a0e456479c4c68e35a2349bbf07712aed77a07a053e0c5e620060f5a0f",
+    "src/main/scala/core/ooo/InstructionTranslationAdapter.scala": "4f40bfa6bdbffcbd7c8972831edccc9663294e1dd99064833626598b34f928aa",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "44fc08c7d905e9fb960f21645538e2eb29cce3630cdee009d03460bd93d83e9b",
+    "src/main/scala/core/ooo/IntegerCore.scala": "5c402cab0fd995b4e9ba369423f1429265e404f7c2e65df2a4af494f80e6e246",
+    "src/main/scala/core/ooo/MachinePlatform.scala": "d4f7e2c9be5ed427c9d733346b140d70ff9159d22db15905ca9baabd54393b7e",
+    "src/main/scala/core/ooo/MemoryPreparationLocality.scala": "7857a0b231545820e584e8b5997ec383ae012ebec9bb5f9cdb1a883d50800066",
+    "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala": "63fb77425165eb1a2ec599115ce68cf604fb745f028ae6462ef6cda4a1112bf3",
+    "src/main/scala/core/ooo/OooParams.scala": "9c5fef28eaf62e7f52c8ae11cd20719c6152297ca51023983c514f99397945ad",
+    "src/main/scala/core/ooo/RenameRob.scala": "22c3f154514689ece738cea80eb002c87ff5898894e31709c8a2f1506d25c1c2",
+    "src/test/scala/ooo/AddressLocalityConfigSpec.scala": "f1f3c2151b2e262b4302af76c6b280737264f95e2cb45ce3b29dfd9e1eabafab",
+    "src/test/scala/ooo/AddressLocalityNativeMain.scala": "088884624d4c322fd97b66e398a92d87cf646f0ec765485befee44fa443a8f71",
+    "src/test/scala/ooo/AddressLocalityPairGsim.scala": "bdb552c9703cf4feaa35c0e7a84a9b40a9fd8087c239f8b9eca3c2eb8843dc18",
+    "src/test/scala/ooo/AddressLocalityPairGsimMain.scala": "533dd5758c27e500ebec5659ef74e35998d42581557c167f7ccc85c89837b5f1",
+    "src/test/scala/ooo/BoardSocGsimMain.scala": "e741d7f23825a1f1b3ed83325d0f6668d3a66cafbd6e5fdd2c1cdf7857cde7db",
+    "src/test/scala/ooo/CacheReadSelectionPair.scala": "1a51121f008a4a3267cf09463481e220546ad97a7e77a40672511063328b8269",
+    "src/test/scala/ooo/FetchAddressStageGsim.scala": "6456c0f6467005fbc809208dafaeab2f0b382424812fe829c28a83e9e9aefe0e",
+    "src/test/scala/ooo/FetchReadyDataClearComparison.scala": "d521b175b7833433b1d4c5c1c724c779443bc940c8278883c6d08507c2416a3c",
+    "src/test/scala/ooo/FetchReadyDataClearSpec.scala": "caae39dc0c46d0028504d5385340724f137c1622ddafdff74f3466748fc70ce0",
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "f8aa3eaa0093b8bdd1866fba337ba1968da2d5a3c8b3dcdb3cd43a9683b24b57",
+    "src/test/scala/ooo/FpgaNextMain.scala": "b1faec45a97bba796f0de1ad18533d8f55ad4d9ffd392b59218c6fe10e009a05",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "d856648482b9e0966c74db9f63a6aa74667af22afbd04e16e3f0a87eea83f518",
+    "src/test/scala/ooo/HeadDrainClassGsim.scala": "81e548fe1da2e1cad5fe8bd3d4ac4721a8662a8e03255e8a584792bd797ad747",
+    "src/test/scala/ooo/HeadDrainClassSpec.scala": "95fa71a308d8486bb9168daf0d2db5c118405c6b75d0b86c0b774621977d69a1",
+    "src/test/scala/ooo/InstructionPermissionGsim.scala": "f74d01ccf324c0dd5ee16547b4748625db3b601f509e9f1d4f6f1d4b080e997a",
+    "src/test/scala/ooo/MatchingFabricAudit.scala": "04564cd555e869100478e6b90bf54273de07cf3f177ce29f3c40fe4f724aa104",
+    "src/test/scala/ooo/MatchingManagedBoard.scala": "10243cb7ae0f7f4dec050200d5d7cb36627ed4acee3e685e73055eaabaa8b4ce",
+    "src/test/scala/ooo/MemoryPreparationLocalityActualAudit.scala": "3db935c2c8dc8c8c30704c16989dfa1b7cb6315e7e0931313b2b0e3d049d1865",
+    "src/test/scala/ooo/PlacedTimingActualAudit.scala": "0ed777e3e6c012ff4eb02d8c8c630f315eb43ce63524a42938476f14d35f50f7",
+    "src/test/scala/ooo/PlacedTimingConfigSpec.scala": "8b982faa357875915537c6d93fe9a1b46c7e29be6844f3c758ff4238d271ab50",
+    "src/test/scala/ooo/PlacedTimingProfileBridge.scala": "fa0f20a558a8b6dc712a58b36be0c880625987e525c676ef23a404061b18618a",
+    "src/test/scala/ooo/PostedStoreCacheGsim.scala": "3c0b4bd12efd5ffd689516d9e44af0f5d02b958f565fbbe6cf1cced00abdc4f0",
+    "src/test/scala/ooo/R3ReadLocalityFullCpuMain.scala": "3285783527180c68443dd8c351049fd5820c805590da78bd255c2a633b8e66ee",
+    "src/test/scala/ooo/R3ReadLocalityProfile.scala": "1cb6764b6c96a1f8215658da5340da5f5a5e3bb90c29444fa298ea06b8dd147a",
+    "src/test/scala/ooo/R3ReadLocalityProfileMain.scala": "fcc18d9dc14b02fc629b140c76ecda069b500009526a4d9ae95345071c791479",
+    "src/test/scala/ooo/RetirementIntentBoardConfigSpec.scala": "c8dc90fcc32a5da133802953cc2e3d46ebcf745b967adcec9bb149dcdf11e546",
+    "src/test/scala/ooo/RetirementSlotNativeMain.scala": "f4ea0174e59daa224f8b50f1bd7cf3b9d1fa6489a63616438a54d7b98d3d2296",
+    "src/test/scala/ooo/RetirementSlotPairGsim.scala": "c5996305bfc33dbb86fe529d75ff9c7d8a17c61cb829288cee6c51ce34f3cff9",
+    "src/test/scala/ooo/RetirementSlotPairGsimMain.scala": "e2e3bd4f02651b77d9ccec360a65f754169ba8e933fd77fd50f8acb0e8f7c3e1",
+    "src/test/scala/ooo/RetirementSlotProfile.scala": "7994b80238b76bbefc03496e6b93b612e1a323605d1994ab6087f7ee0ef6478e",
+    "src/test/scala/ooo/RetirementSlotRobGsim.scala": "15bccdf10934d43692cf07ffe3048edd038be199db4f3a59c8dcc21c530b57fe",
+    "src/test/scala/ooo/RetirementSlotSpec.scala": "69b77d5f623d4e45b1f141d083719df0458a095225657d205d2a2bc565184d64"
+  }
+}

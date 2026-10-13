@@ -108,7 +108,10 @@ object CoherentLineCacheModule {
     def build(base: BigInt, bytes: BigInt, lines: Int, params: TLParams, ways: Int,
         concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
         postedConfig: Option[PostedStoreMergeConfig] = None,
-        returnConfig: Option[CpuReturnConfig] = None, registerProbeLookup: Boolean = false): CoherentLineCacheModule = {
+        returnConfig: Option[CpuReturnConfig] = None, registerProbeLookup: Boolean = false,
+        localReadSelection: Boolean = false): CoherentLineCacheModule = {
+        require(!localReadSelection || concurrency.readMshrs > 1,
+            "local read selection requires the nonblocking cache constructor")
         require(!registerProbeLookup || concurrency.readMshrs > 1,
             "registered probe lookup requires the nonblocking cache constructor")
         require(returnConfig.isEmpty || (concurrency.readMshrs == 2 && concurrency.responseEntries == 2),
@@ -119,6 +122,6 @@ object CoherentLineCacheModule {
             "posted integration requires explicit ON and original two-MSHR cache"))
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))
         else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig,
-            postedConfig, returnConfig, registerProbeLookup))
+            postedConfig, returnConfig, registerProbeLookup, localReadSelection))
     }
 }

@@ -6,7 +6,7 @@ import soc.core.ooo._
 
 class HeadDrainClassSpec extends AnyFunSuite {
     test("head-drain is appended default off and changes only the explicit core field") {
-        assert(OooParams().productArity == 164 && OooParams().productElementName(159) == "predecodedHeadDrain")
+        assert(OooParams().productArity == 168 && OooParams().productElementName(159) == "predecodedHeadDrain")
         assert(OooParams().productElementName(160) == "retirementIntent" && !OooParams().retirementIntent)
         assert(!OooParams().predecodedHeadDrain)
         assert(HeadDrainTestProfile.on.copy(predecodedHeadDrain = false) == HeadDrainTestProfile.off)

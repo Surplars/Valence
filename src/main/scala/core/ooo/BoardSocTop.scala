@@ -60,7 +60,9 @@ object BoardSocConfig {
         sharedCanonicalStoreOwnerMatch: Boolean = false, eagerFetchPrefixSelect: Boolean = false,
         predecodedHeadDrain: Boolean = false, retirementIntent: Boolean = false,
         fetchAddressBeforePmp: Boolean = false, queuedHeadSelection: Boolean = false,
-        alignedNextLinePmp: Boolean = false): OooParams = {
+        alignedNextLinePmp: Boolean = false, memoryPreparationHeadMask: Boolean = false,
+        directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
+        retirementSlotIdentity: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -80,6 +82,10 @@ object BoardSocConfig {
             alignedFetchPermissionStage = alignedFetchPermissionStage,
             sharedLane1OwnerMatch = sharedLane1OwnerMatch,
             directRank1MemorySourceIds = directRank1MemorySourceIds,
+            memoryPreparationHeadMask = memoryPreparationHeadMask,
+            directRank0MemorySourceIds = directRank0MemorySourceIds,
+            fetchReadyDataClear = fetchReadyDataClear,
+            retirementSlotIdentity = retirementSlotIdentity,
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -266,7 +272,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         predecodedHeadDrain: Boolean = false, retirementIntent: Boolean = false,
         fetchAddressBeforePmp: Boolean = false, queuedHeadSelection: Boolean = false,
         alignedNextLinePmp: Boolean = false, registerProbeLookup: Boolean = false,
-        localAddressRanges: Boolean = false) extends Module {
+        localAddressRanges: Boolean = false, memoryPreparationHeadMask: Boolean = false,
+        directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
+        retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -311,6 +319,10 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             alignedFetchPermissionStage = alignedFetchPermissionStage,
             sharedLane1OwnerMatch = sharedLane1OwnerMatch,
             directRank1MemorySourceIds = directRank1MemorySourceIds,
+            memoryPreparationHeadMask = memoryPreparationHeadMask,
+            directRank0MemorySourceIds = directRank0MemorySourceIds,
+            fetchReadyDataClear = fetchReadyDataClear,
+            retirementSlotIdentity = retirementSlotIdentity,
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -400,7 +412,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
         lineTransferDispatchFlow = lineTransferDispatchFlow,
-        registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges))
+        registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges,
+        localCacheReadSelection = localCacheReadSelection))
     jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
     jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }

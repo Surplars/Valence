@@ -183,6 +183,21 @@ class Cache:
         values.update(updates)
         a = self.raw(**values)
         s = self.state
+        if a['readSelectionWbCapture']:
+            self.count['capture_direct' if a['readSelectionWbDirect'] else 'capture_queued'] += 1
+            if a['readSelectionWbDirty']:
+                self.count['capture_direct_dirty' if a['readSelectionWbDirect'] else 'capture_queued_dirty'] += 1
+        if s['tl.d.valid'] and a['tl.d.ready'] and s['tl.d.bits.opcode'] == 6 and a['readSelectionQueuedWanted']:
+            self.count['release_ack_with_queued'] += 1
+            if self.enabled and self.wb_entries == 1:
+                require(not a['readSelectionWbCapture'], 'single-WB posted retirement veto missing')
+                self.count['wb1_retirement_veto'] += 1
+        for channel, valid, ready in [('a', a['tl.a.valid'], s['tl.a.ready']),
+                                       ('c', a['tl.c.valid'], s['tl.c.ready']),
+                                       ('d', s['tl.d.valid'], a['tl.d.ready']),
+                                       ('e', a['tl.e.valid'], s['tl.e.ready']),
+                                       ('cpu', a['upstream.response.valid'], s['upstream.response.ready'])]:
+            if valid and not ready: self.count['held_' + channel] += 1
         if self.enabled:
             if self.model.busy():
                 require(a['posted.busy'], 'accepted cache responsibility disappeared')
@@ -615,6 +630,46 @@ def dirty_fallback_tail(t, context_negative=False):
     require(t.count['fallback'] == 2, 'new fallback did not progress after actual old drain')
 
 
+
+def dirty_read_selection(t, posted=None):
+    posted = t.enabled if posted is None else posted
+    # Fill both ways in two sets; oldest ways are dirty victims. Ordinary read
+    # misses directly capture victims; posted misses queue their reservations.
+    for address in (4160, 4224):
+        t.send(address, write=True, value=0xAABB0000 + address); t.idle()
+        t.send(address + 512); t.idle()
+    t.hold_ack = True
+    t.hold_c = True
+    t.send(5184, write=posted, value=0xCCDD, proof=posted)
+    t.until(lambda: bool(t.last['tl.c.valid']), 'held dirty victim C offer')
+    for _ in range(5): t.tick()
+    t.send(5248, write=posted, value=0xEEFF, proof=posted)
+    # The invalid current CPU address names a different set on the retirement
+    # edge. It must not silently substitute for the queued victim owner.
+    t.state['upstream.request.bits.address'] = 4096
+    t.hold_c = False
+    t.until(lambda: bool(t.release_acks), 'first dirty C complete')
+    for _ in range(5): t.tick()
+    if t.wb_entries == 1:
+        require(t.last['readSelectionQueuedWanted'], 'second dirty victim must await original WB1 owner')
+    t.hold_ack = False
+    t.idle()
+    require(t.count['capture_queued_dirty'] >= (2 if posted else 1), 'queued dirty read selection not exercised')
+    if t.wb_entries == 1:
+        require(t.count['wb1_retirement_veto'] > 0, 'posted WB1 retirement veto edge not exercised')
+    if not posted:
+        require(t.count['capture_direct_dirty'] > 0, 'direct dirty read selection not exercised')
+    t.read_line(5184); t.read_line(5248)
+    t.hold_e = True
+    t.send(5376)
+    t.until(lambda: bool(t.last['tl.e.valid']), 'held E offer')
+    for _ in range(4): t.tick()
+    t.hold_e = False
+    t.idle()
+    t.start_probe(5184); t.finish_probe()
+    t.flush()
+
+
 def off_legacy(t):
     for i in range(3): t.send(4160 + i * 8, write=True, value=0xAA + i, proof=True)
     t.idle(); t.read_line(4160); t.flush()
@@ -659,19 +714,20 @@ def main():
     args = ap.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     if not args.enabled:
-        cases = [('off-legacy-sram-flush', off_legacy)]
+        cases = [('off-legacy-sram-flush', off_legacy), ('legacy-dirty-selection', dirty_read_selection)]
     elif args.generation_bits == 2:
         cases = [('generation2-real-fallback', tiny_generation), ('dirty-fallback-WB-tail', dirty_fallback_tail)]
     elif args.wb_entries == 1:
         # No C-last overlap exists in this original WB1 configuration.
-        cases = [('wb1-basic-merge', merge_reuse)]
+        cases = [('wb1-basic-merge', merge_reuse), ('wb1-dirty-retirement-selection', dirty_read_selection)]
     else:
         cases = [('merge-response-reuse', merge_reuse), ('two-line-reordered', reordered),
                  ('credit-held-to-legacy-hit', credit_late_hit), ('before-A-probe-DMA', pre_a_mutation),
                  ('after-install-held-ACK-probe-DMA', post_install_probe), ('after-E-probe', probe_after_e),
                  ('clean-victim-overlap', lambda t: victim(t, False)), ('dirty-victim-overlap', lambda t: victim(t, True)),
                  ('probe-cancels-victim', cancel_victim), ('flush-live-owner', flush_busy),
-                 ('explicit-episode-boundary', episode_boundary)]
+                 ('explicit-episode-boundary', episode_boundary), ('posted-dirty-selection', dirty_read_selection),
+                 ('legacy-direct-dirty-selection', lambda t: dirty_read_selection(t, False))]
     results = []
     def progress():
         (args.output / 'progress.json').write_text(json.dumps({'status': 'RUNNING', 'cases': results}, indent=2) + '\n')

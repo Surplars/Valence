@@ -9,7 +9,7 @@ import soc.core.ooo._
   * responses come from the independent software fixture, not a DUT TLB.
   */
 class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
-    turnover: Boolean = false, identity: Boolean = false) extends Module {
+    turnover: Boolean = false, identity: Boolean = false, compareReadyClear: Boolean = false) extends Module {
     require(Set(2, 4).contains(words))
     val io = IO(new Bundle {
         val virtualValid = Input(Bool())
@@ -56,6 +56,7 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
         val physicalPages = Input(UInt(4.W))
         val physicalResponseReady = Output(Bool())
         val idle = Output(Bool())
+        val readyClearIdleDifference = Output(Bool())
     })
     val p = OooParams(renameWidth = words, commitWidth = words, completionWidth = words,
         compressedInstructions = words == 4 || aligned, machineSystem = true,
@@ -116,10 +117,12 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
     adapter.io.physical.responsePageFault := io.physicalPages(words - 1, 0)
     io.physicalResponseReady := adapter.io.physical.response.ready
     io.idle := adapter.io.idle
+    io.readyClearIdleDifference := (if (compareReadyClear) FetchReadyDataClearComparison(adapter, p) else false.B)
 }
 
 object InstructionPermissionGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new InstructionPermissionGsim(args(1).toInt,
         args.drop(2).contains("retimed"), args.drop(2).contains("aligned"),
-        args.drop(2).contains("turnover"), args.drop(2).contains("identity")), Array("--target-dir", args.head))
+        args.drop(2).contains("turnover"), args.drop(2).contains("identity"),
+        args.drop(2).contains("compare-ready-clear")), Array("--target-dir", args.head))
 }

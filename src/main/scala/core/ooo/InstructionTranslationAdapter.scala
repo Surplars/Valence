@@ -6,7 +6,7 @@ import chisel3.util._
 /** Translates a fetch packet before the physical instruction port. Four-word packets are 16-byte aligned and fit
   * in one translation page; the two-word path retains precise handling of a packet crossing a page boundary.
   */
-class InstructionTranslationAdapter(p: OooParams) extends Module {
+class InstructionTranslationAdapter(val p: OooParams) extends Module {
     require(p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
@@ -73,7 +73,7 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
             allowed := 0.U
             errors := (if (packetWords == 4) ~io.virtual.requestMask else 0.U)
             pageFaults := 0.U
-            data := 0.U
+            if (!p.fetchReadyDataClear) data := 0.U
             if (p.fetchIdentityTranslation) {
                 // Capture the architectural identity case with the request's
                 // context. PMP still runs in the existing registered send stage;
@@ -86,6 +86,15 @@ class InstructionTranslationAdapter(p: OooParams) extends Module {
                 state := translateFirst
             }
             issued := false.B
+        }
+
+        if (p.fetchReadyDataClear) {
+            // READY names idle ownership or a reply consumed on this edge. A
+            // held reply and all translating/sending/waiting owners retain data.
+            // Every accepted new request still initializes the full payload on
+            // its original edge, including zero-mask and second-word-only faults.
+            // Keep incoming VALID/correction out of the wide synchronous clear.
+            when(io.virtual.request.ready) { data := 0.U }
         }
 
         val translating = state === translateFirst || state === translateSecond

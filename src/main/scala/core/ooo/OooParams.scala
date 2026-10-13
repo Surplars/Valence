@@ -177,7 +177,15 @@ case class OooParams(
     fetchAddressBeforePmp: Boolean = false,
     // Local timing choices at the existing translated-request and hint boundaries.
     queuedHeadSelection: Boolean = false,
-    alignedNextLinePmp: Boolean = false
+    alignedNextLinePmp: Boolean = false,
+    // Reuse the existing same-edge ROB head mask for memory preparation only.
+    memoryPreparationHeadMask: Boolean = false,
+    // The empty parallel rank-0 owner already produces zero physical source IDs.
+    directRank0MemorySourceIds: Boolean = false,
+    // Local available-owner initialization of inactive instruction reply data.
+    fetchReadyDataClear: Boolean = false,
+    // Head-slot-only retirement identity; actual completion admission stays original.
+    retirementSlotIdentity: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -185,6 +193,17 @@ case class OooParams(
         virtualMemoryLevels > 0 && (virtualRamLoadPrecheck || postedStoreMerge)
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
+
+    require(!retirementSlotIdentity || (retirementIntent && registeredRobRetirement &&
+        completionWidth == 2 && commitWidth == 2 && robEntries == 16 && tagBits == 64),
+        "retirement-slot identity requires the qualified ROB16 full-tag intent profile")
+    require(!fetchReadyDataClear || registeredTranslationHeads,
+        "ready-only fetch data initialization requires registered instruction translation heads")
+    require(!memoryPreparationHeadMask || (registeredIssueHeadMask && registeredMemoryAddress &&
+        parallelMemoryPreparation), "memory preparation head mask requires the registered head and parallel preparation")
+    require(!directRank0MemorySourceIds || (registeredMemoryAddress && parallelMemoryPreparation &&
+        parallelMemoryPayload && compactMemoryOperandSelect && !memoryProofFrontier),
+        "direct rank-0 memory source IDs require compact parallel owner-masked preparation without a proof frontier")
 
     require(!queuedHeadSelection || (virtualMemoryLevels > 0 && registeredTranslationHeads),
         "queued head selection requires registered data translation")

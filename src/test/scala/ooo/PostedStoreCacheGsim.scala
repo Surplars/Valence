@@ -10,7 +10,9 @@ import soc.core.ooo._
 /** Actual private cache/engine/SRAM, synthetic external manager and authority premises.
   * This wrapper does not establish a real CPU proof or home-reachable schedule.
   */
-class PostedStoreCacheGsim(enabled: Boolean, generationBits: Int = 64, wbEntries: Int = 2) extends Module {
+class PostedStoreCacheGsim(enabled: Boolean, generationBits: Int = 64, wbEntries: Int = 2,
+    localReadSelection: Boolean = false, pairReadSelection: Boolean = false,
+    registerProbeLookup: Boolean = false) extends Module {
     private val concurrency = CoherentCacheConcurrency(2, 2, wbEntries,
         overlapWritebackRefill = wbEntries > 1, nextLinePrefetch = true, storeNextLinePrefetch = true)
     private val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = concurrency.sourceBits,
@@ -25,6 +27,10 @@ class PostedStoreCacheGsim(enabled: Boolean, generationBits: Int = 64, wbEntries
         val posted = new PostedStoreCachePort(c)
         val flushRequest = Input(Bool())
         val flushDone = Output(Bool())
+        val readSelectionWbCapture = Output(Bool())
+        val readSelectionWbDirect = Output(Bool())
+        val readSelectionWbDirty = Output(Bool())
+        val readSelectionQueuedWanted = Output(Bool())
         val hit = Output(Bool())
         val miss = Output(Bool())
         val prefetchBusy = Output(Bool())
@@ -65,7 +71,11 @@ class PostedStoreCacheGsim(enabled: Boolean, generationBits: Int = 64, wbEntries
     val cache = Module(new NonBlockingCoherentLineCache(base = 4096, bytes = 4096, lines = 16,
         params = params, ways = 2, concurrency = concurrency,
         tagConfig = CacheTagConfig(compact = true, bankedStorage = true),
-        postedConfig = if (enabled) Some(c) else None))
+        postedConfig = if (enabled) Some(c) else None, registerProbeLookup = registerProbeLookup,
+        localReadSelection = localReadSelection))
+    if (pairReadSelection) CacheReadSelectionPair.attach(cache, 4096, 4096, 16, params, 2,
+        concurrency, CacheTagConfig(compact = true, bankedStorage = true),
+        if (enabled) Some(c) else None, registerProbeLookup)
     io.upstream <> cache.io.upstream
     io.downstream <> cache.io.downstream
     io.tl <> cache.io.tl
@@ -79,6 +89,11 @@ class PostedStoreCacheGsim(enabled: Boolean, generationBits: Int = 64, wbEntries
     val observation = if (enabled) BoringUtils.bore(cache.observationPosted.get)
         else 0.U.asTypeOf(new PostedStoreCacheObservation(c))
     val line = BoringUtils.bore(cache.observationLineWrite)
+    val selection = BoringUtils.bore(cache.observationStorePrefetch)
+    io.readSelectionWbCapture := selection.wbCapture
+    io.readSelectionWbDirect := selection.wbCaptureDirect
+    io.readSelectionWbDirty := selection.wbCaptureDirty
+    io.readSelectionQueuedWanted := selection.queuedEvictWanted
     io.accepted := observation.accepted
     io.acknowledged := observation.acknowledged
     io.acquired := observation.acquired
@@ -119,4 +134,11 @@ object PostedStoreCacheGsimMain extends App {
     require(args.length == 4 && Set("0", "1").contains(args(1)))
     ChiselStage.emitCHIRRTLFile(new PostedStoreCacheGsim(args(1) == "1", args(2).toInt, args(3).toInt),
         Array("--target-dir", args.head))
+}
+
+object CacheReadSelectionGsimMain extends App {
+    require(args.length == 7 && args.drop(1).forall(x => x.forall(_.isDigit)))
+    ChiselStage.emitCHIRRTLFile(new PostedStoreCacheGsim(args(1) == "1", args(6).toInt, args(2).toInt,
+        localReadSelection = args(3) == "1", pairReadSelection = args(4) == "1",
+        registerProbeLookup = args(5) == "1"), Array("--target-dir", args.head))
 }

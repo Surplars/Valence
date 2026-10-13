@@ -12,6 +12,14 @@ object PlacedTimingActualAudit {
         require(platform.core.core.core.p == expected.coreParams,
             "actual core differs from the complete placed-timing profile")
         val frontend = platform.frontend
+        val fetchAdapter = platform.fetchAdapter.getOrElse(
+            throw new IllegalArgumentException("actual instruction translation adapter absent"))
+        val expectedFetchParams = expected.coreParams.copy(machineSystem = true,
+            virtualMemoryLevels = 3, pmpEntries = 16)
+        require(fetchAdapter.p == expectedFetchParams,
+            "actual complete fetch-adapter params differ from the expected three platform overrides")
+        require(fetchAdapter.p.fetchReadyDataClear == expected.fetchReadyDataClear,
+            "actual fetch adapter did not receive ready-only data initialization")
         val adapter = platform.core.observationTranslation.getOrElse(
             throw new IllegalArgumentException("actual data translation adapter was not constructed"))
         val hint = adapter.nextLineAuthorizationInstance.getOrElse(
@@ -32,6 +40,13 @@ object PlacedTimingActualAudit {
         require(hint.alignedLinePmp == expected.alignedNextLinePmp &&
             hint.checker.alignedLineAccess == expected.alignedNextLinePmp,
             "actual hint module or nested PMP checker did not receive the aligned-line flag")
+        val backend = platform.core.core.core.backend
+        require(backend.retirementSlotIdentity == expected.retirementSlotIdentity &&
+            backend.ledger.retirementSlotIdentity == expected.retirementSlotIdentity &&
+            backend.ledger.p == expected.coreParams,
+            "actual backend and ledger retirement-slot parameters differ")
+        require(cache.localReadSelection == expected.localCacheReadSelection,
+            "actual private cache did not receive localized read selection")
         require(cache.registerProbeLookup == expected.registerProbeLookup,
             "actual nonblocking cache did not receive the registered probe flag")
         require(wrapper.localAddressRanges == expected.localAddressRanges &&
@@ -42,6 +57,10 @@ object PlacedTimingActualAudit {
         Map("schema" -> "actual-placed-timing-v1", "scope" -> "actual-constructor-only",
             "frontendClass" -> frontend.getClass.getName,
             "fetchAddressBeforePmp" -> frontend.fetchAddressBeforePmp,
+            "fetchReadyDataClear" -> fetchAdapter.p.fetchReadyDataClear,
+            "retirementSlotIdentityBackend" -> backend.retirementSlotIdentity,
+            "retirementSlotIdentityLedger" -> backend.ledger.retirementSlotIdentity,
+            "localCacheReadSelection" -> cache.localReadSelection,
             "adapterClass" -> adapter.getClass.getName, "queuedHeadSelection" -> adapter.queuedHeadSelection,
             "alignedNextLinePmp" -> adapter.alignedNextLinePmp,
             "hintClass" -> hint.getClass.getName, "hintAlignedLinePmp" -> hint.alignedLinePmp,
@@ -54,6 +73,7 @@ object PlacedTimingActualAudit {
             "slotLocalAddressRanges" -> manager.slots.map(_.localAddressRanges),
             "headDrain" -> HeadDrainActualAudit.capture(platform, expected),
             "retirementIntent" -> RetirementIntentActualAudit.capture(platform, expected),
+            "memoryPreparationLocality" -> MemoryPreparationLocalityActualAudit.capture(platform, expected),
             "dynamicQualificationInherited" -> false, "physicalQualification" -> false)
     }
     def write(actual: Map[String, Any], directory: String): Unit = {

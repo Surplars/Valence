@@ -27,8 +27,9 @@ class PlacedTimingConfigSpec extends AnyFunSuite {
         val component = PlacedTimingProfile.component
         val on = PlacedTimingProfile.on
         for (c <- Seq(component, on)) PlacedTimingProfile.requireExact(c)
-        val timingProfile = PlacedTimingProfileBridge.profileAdditions.map(_ -> true).toMap
-        val timingCore = PlacedTimingProfileBridge.coreAdditions.map(_ -> true).toMap
+        val timingProfile = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp",
+            "registerProbeLookup", "localAddressRanges").map(_ -> true).toMap
+        val timingCore = Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp").map(_ -> true).toMap
         assert(changes(off, component) == timingProfile)
         assert(changes(off.coreParams, component.coreParams) == timingCore)
         val existing = Map("predecodedHeadDrain" -> true, "retirementIntent" -> true)

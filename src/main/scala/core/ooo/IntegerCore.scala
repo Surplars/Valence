@@ -74,7 +74,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         val mulDivMultiCancel           = Output(Bool())
     })
     val backend = Module(new IntegerBackend(p, canonicalHandoff,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
+        retirementSlotIdentity = p.retirementSlotIdentity))
     if (p.machineSystem) {
         io.imsic.get <> backend.io.imsic.get
         io.fenceIFlush.get := backend.io.fenceIFlush.get

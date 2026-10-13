@@ -23,6 +23,7 @@ object FpgaNextMain extends App {
     var actualHeadDrain: Option[Map[String, Any]] = None
     var actualPlacedTiming: Option[Map[String, Any]] = None
     var actualRetirementIntent: Option[Map[String, Any]] = None
+    var actualMemoryPreparationLocality: Option[Map[String, Any]] = None
     PostedBoardConfiguration.write(config, output.toString)
     ChiselStage.emitSystemVerilogFile({
         val dut = new FpgaNextSocTop(config,
@@ -35,6 +36,7 @@ object FpgaNextMain extends App {
         actualHeadDrain = Some(HeadDrainActualAudit.capture(dut.board.platform, config))
         actualRetirementIntent = Some(RetirementIntentActualAudit.capture(dut.board.platform, config))
         actualPlacedTiming = Some(PlacedTimingActualAudit.capture(dut.board.platform, config))
+        actualMemoryPreparationLocality = Some(MemoryPreparationLocalityActualAudit.capture(dut.board.platform, config))
         dut
     },
         Array("--target-dir", output.toString),
@@ -46,4 +48,6 @@ object FpgaNextMain extends App {
     PlacedTimingActualAudit.write(actualPlacedTiming.get, output.toString)
     Files.writeString(output.resolve("actual-retirement-intent.json"),
         PostedBoardConfiguration.json(actualRetirementIntent.get) + "\n")
+    Files.writeString(output.resolve("actual-memory-preparation-locality.json"),
+        PostedBoardConfiguration.json(actualMemoryPreparationLocality.get) + "\n")
 }

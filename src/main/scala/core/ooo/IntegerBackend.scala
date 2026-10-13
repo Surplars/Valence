@@ -67,7 +67,9 @@ class HeadProfile extends Bundle {
   * this standalone bring-up interface, not an ISA reset claim.
   */
 class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
-    val registerCanonicalStoreEvent: Boolean = false) extends Module {
+    val registerCanonicalStoreEvent: Boolean = false, val retirementSlotIdentity: Boolean = false) extends Module {
+    require(retirementSlotIdentity == p.retirementSlotIdentity,
+        "backend retirement-slot identity must use its unified OooParams flag")
     // Read-only view of the single profile option; no separate constructor switch.
     val shareCanonicalStoreOwnerMatch = p.sharedCanonicalStoreOwnerMatch
     require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
@@ -132,7 +134,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val mulDivConcurrent            = Output(Bool())
         val mulDivMultiCancel           = Output(Bool())
     })
-    val ledger          = Module(new RenameRob(p))
+    val ledger          = Module(new RenameRob(p, retirementSlotIdentity = retirementSlotIdentity))
     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
     ledger.io.rawRequests.foreach(_ := io.rawRequests.get)
     ledger.io.fetchFaultMask.foreach(_ := io.fetchFaultMask.get)
@@ -513,6 +515,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         boundary.io.commits := acceptedCommits
         Some(boundary.io.afterHead)
     } else None
+    val memoryPreparationHeadOwner = if (p.memoryPreparationHeadMask)
+        Some(MemoryPreparationLocality.headOwner(issueHeadMask.get)) else None
+    val memoryPreparationDirectSourceRanks = Seq(p.directRank0MemorySourceIds, p.directRank1MemorySourceIds)
+    def memoryPreparationAtHead(slot: Int): Bool =
+        memoryPreparationHeadOwner.map(_(slot)).getOrElse(slot.U === head)
     val headRequest = readIssue(head, "head", ImmutableIssuePayload.head).request
     val headRenamed = issueEntries(head).renamed
     // A completed load has its result in the LSU register before the completion arbiter writes
@@ -764,8 +771,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val sourcesReady = ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
             (!(entry.request.store || entry.request.atomic) ||
                 ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)))
-        c.valid := pending(i) && entry.request.memory && (!entry.request.store || i.U === head) &&
-            !(directStoreReserve && i.U === head) &&
+        c.valid := pending(i) && entry.request.memory && (!entry.request.store || memoryPreparationAtHead(i)) &&
+            !(directStoreReserve && memoryPreparationAtHead(i)) &&
             !(if (p.registeredMemoryAddress && !p.parallelMemoryPreparation)
                 memoryIssued && i.U === stagedMemoryIndex.get else false.B) &&
             (storePrepared(i) || sourcesReady)
@@ -786,7 +793,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             val preparationMask = if (p.preparedStoreLookahead) {
                 val preparedStoreMask = VecInit((0 until p.robEntries).map { i =>
                     val entry = issueEntries(i)
-                    pending(i) && memoryLive(i) && i.U =/= head &&
+                    pending(i) && memoryLive(i) && !memoryPreparationAtHead(i) &&
                         entry.renamed.token.index === i.U &&
                         entry.request.memory && entry.request.store && !entry.request.atomic &&
                         !entry.request.system && !entry.request.mulDiv &&
@@ -847,12 +854,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 val saved = valid && entry.request.store && (if (queryRank) storeAddressKnown(index)
                     else if (p.parallelMemoryPayload) (owner & storePrepared.asUInt).orR else storePrepared(index))
                 // Parallel rank owners already mask source IDs to zero when absent.
-                // Only remove rank 1's duplicate late clear; authority stays in valid.
-                val directSourceIds = p.directRank1MemorySourceIds && rank == 1
-                val source1 = if (directSourceIds) entry.renamed.source1
-                    else Mux(valid, entry.renamed.source1, 0.U)
-                val source2 = if (directSourceIds) entry.renamed.source2
-                    else Mux(valid, entry.renamed.source2, 0.U)
+                // Each direct flag removes only that rank's redundant ID clear.
+                // Full owner/readiness and final launch authority stay unchanged.
+                val directSourceIds = memoryPreparationDirectSourceRanks(rank)
+                val source1 = MemoryPreparationLocality.sourceId(entry.renamed.source1, valid, directSourceIds)
+                val source2 = MemoryPreparationLocality.sourceId(entry.renamed.source2, valid, directSourceIds)
                 val savedAddress = if (p.parallelMemoryPayload) selected(storeAddress.toSeq) else storeAddress(index)
                 val savedData = if (p.parallelMemoryPayload) selected(storeData.toSeq) else storeData(index)
                 val left = memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
