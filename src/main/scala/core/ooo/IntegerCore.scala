@@ -152,7 +152,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         if (p.alignedFetchPermissionStage) {
             packet.io.phaseInput.get.faultOffsets := io.instructionFaultOffsets.get
             packet.io.phaseInput.get.denied := permission.map(_.io.candidateDenied)
-                .getOrElse(VecInit(Seq.fill(2 * p.renameWidth - 1)(false.B)))
+                .getOrElse(VecInit(Seq.fill(2 * p.renameWidth)(false.B)))
             io.fetchRequestFrontier.get := packet.io.requestFrontier.get
             io.suppressFetchRequest.get := packet.io.suppressRequest.get
         }
@@ -172,14 +172,12 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             packet.io.supply(lane).bits.pageFault := io.instructionPageFaults(lane)
             val suppliedFaultAddress = io.instructionFaultAddresses
                 .map(_(lane)).getOrElse(packet.io.fetchPc + (4 * lane).U)
-            // The aligner's fault address is meaningful only when it actually
-            // reports a fault. A cached/raw PMP-only denial must name this
-            // instruction, not the aligner's unused second-half fallback (+2).
-            // Real second-half access/page faults retain their precise address.
+            // Preserve transport/page-fault metadata. A local PMP-only denial
+            // names the first denied required parcel, which may be PC + 2.
             packet.io.supply(lane).bits.faultAddress := (if (p.alignedFetchPermissionStage) 0.U else
                 permission.map { checks =>
                     Mux(checks.io.denied(lane) && !io.instructionFaults(lane) && !io.instructionPageFaults(lane),
-                        checks.io.addresses(lane), suppliedFaultAddress)
+                        checks.io.faultAddresses(lane), suppliedFaultAddress)
                 }.getOrElse(suppliedFaultAddress))
             // The reservoir generates the real PC and raw successor from its
             // registered cursor and raw lengths, independent of decode.
@@ -264,7 +262,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     acceptedOffsets(0) := 0.U(packetOffsetBits.W)
     val packetPmp = if (p.parallelPacketPmp && p.pmpEntries > 0 && !p.capturedFetchPermission) {
         val checks = Module(new PacketFetchPmp(p.pmpEntries, p.renameWidth, p.wordSpanPacketPmp,
-            p.balancedPacketPmp, p.sharedFetchPmpRelations))
+            p.balancedPacketPmp, p.sharedFetchPmpRelations, parcelChecks = true))
         checks.io.base := pc
         checks.io.state := backend.io.pmpState.get
         checks.io.privilege := backend.io.fetchPrivilege.get
@@ -293,18 +291,21 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         }
         val lanePc = lanePcs(lane)
         val successorPc = packetPc(laneOffsets(lane) + laneBytes(lane))
-        val pmpDenied = if (p.capturedFetchPermission) false.B else packetPmp.map { checks =>
-            MuxLookup(laneOffsets(lane), checks.io.denied(0))(
-                checks.io.denied.zipWithIndex.map { case (denied, offset) => (2 * offset).U -> denied })
+        val (firstPmpDenied, secondPmpDenied) = if (p.capturedFetchPermission) (false.B, false.B)
+        else packetPmp.map { checks =>
+            def deniedAt(offset: UInt): Bool = MuxLookup(offset, checks.io.denied(0))(
+                checks.io.denied.zipWithIndex.map { case (denied, n) => (2 * n).U -> denied })
+            (deniedAt(laneOffsets(lane)), deniedAt(laneOffsets(lane) + 2.U))
         }.getOrElse {
-            val pmp = Module(new PmpChecker(p.pmpEntries))
-            pmp.io.state := (if (p.machineSystem) backend.io.pmpState.get else 0.U.asTypeOf(new PmpState))
-            pmp.io.address := lanePc
-            pmp.io.size := 2.U
-            pmp.io.privilege := (if (p.machineSystem) backend.io.fetchPrivilege.get else 3.U)
-            pmp.io.access := PmpAccess.execute
-            pmp.io.denied
+            // Generic/scalar admission uses the same parcel contract, including
+            // configurations without the registered or parallel frontend.
+            val checks = Module(new PacketFetchPmp(p.pmpEntries, 1, parcelChecks = true))
+            checks.io.state := (if (p.machineSystem) backend.io.pmpState.get else 0.U.asTypeOf(new PmpState))
+            checks.io.base := lanePc
+            checks.io.privilege := (if (p.machineSystem) backend.io.fetchPrivilege.get else 3.U)
+            (checks.io.denied(0), checks.io.denied(1))
         }
+        val pmpDenied = firstPmpDenied || (!compressed && secondPmpDenied)
         val virtualizedFetch = if (p.virtualMemoryLevels > 0)
             backend.io.vmState.get.satp(63, 60) =/= 0.U && backend.io.fetchPrivilege.get =/= 3.U
         else false.B
@@ -416,7 +417,10 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         faultRequest.operation := 15.U
         faultRequest.fetchFault := true.B
         faultRequest.fetchPageFault := instructionPageFaults(lane)
-        faultRequest.fetchTval := (if (p.compressedInstructions) instructionFaultAddresses(lane) else lanePc)
+        val suppliedFetchTval = if (p.compressedInstructions) instructionFaultAddresses(lane) else lanePc
+        faultRequest.fetchTval := Mux(pmpDenied && !virtualizedFetch &&
+            !instructionFaults(lane) && !instructionPageFaults(lane),
+            Mux(firstPmpDenied, lanePc, packetPc(laneOffsets(lane) + 2.U)), suppliedFetchTval)
         backend.io.allocate(lane).valid := instructions(lane).valid && !io.exception.valid && !earlierPrediction
         backend.io.allocate(lane).bits  := Mux(fetchFault, faultRequest, decode.io.decoded)
         backend.io.rawRequests.foreach { raw =>

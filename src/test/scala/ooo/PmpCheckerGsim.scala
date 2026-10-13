@@ -3,7 +3,7 @@ package ooo
 import chisel3._
 import chisel3.util.{Cat, MuxLookup}
 import _root_.circt.stage.ChiselStage
-import soc.core.ooo.{FetchPacketPermission, PacketFetchPmp, PmpChecker, PmpState}
+import soc.core.ooo.{PacketFetchPmp, PmpChecker, PmpState}
 
 class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, wordSpan: Boolean = false,
     balanced: Boolean = false, rawPrefix: Boolean = false, naturalAligned: Boolean = false,
@@ -106,17 +106,17 @@ class PmpCheckerGsim(alignedWord: Boolean = false, packet: Boolean = false, word
         io.denied := Mux(io.size <= 3.U && (io.address(2, 0) & mask) === 0.U,
             natural.io.denied, checker.io.denied)
     } else if (rawPrefix) {
-        val permission = Module(new FetchPacketPermission(16, 2, wordSpan, balanced, sharedRelations))
+        // This legacy generic-PMP fixture intentionally checks four-byte
+        // operations. Variable-length instruction authorization has a separate
+        // independent oracle in FetchFaultPrecisionGsim.
+        val checks = Module(new PacketFetchPmp(16, 2, wordSpan, balanced, sharedRelations))
         val offset = Mux(io.address(4), 4.U(3.W), Mux(io.address(3), 2.U(3.W), 0.U(3.W)))
-        permission.io.base := io.address - offset
-        permission.io.state := state
-        permission.io.privilege := io.privilege
-        permission.io.virtualized := false.B
-        permission.io.instructionLow(0) := Mux(offset === 2.U, 0.U, 3.U)
-        permission.io.instructionLow(1) := 3.U
-        io.checkedAddress := Mux(offset === 0.U, permission.io.addresses(0), permission.io.addresses(1))
+        checks.io.base := io.address - offset
+        checks.io.state := state
+        checks.io.privilege := io.privilege
+        io.checkedAddress := checks.io.base + offset
         io.denied := Mux(io.size === 2.U && io.access === 2.U,
-            Mux(offset === 0.U, permission.io.denied(0), permission.io.denied(1)), checker.io.denied)
+            checks.io.denied(offset >> 1), checker.io.denied)
     } else if (packet) {
         val checks = Module(new PacketFetchPmp(16, packetWidth, wordSpan, balancedComparisons = balanced, sharedRelations = sharedRelations))
         // Exercise every lane offset against the existing independent byte-range

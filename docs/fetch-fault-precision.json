@@ -1,0 +1,72 @@
+{
+  "schema": "fetch-fault-precision-public-receipt-v1",
+  "scope": "Unconditional architectural correction to instruction parcel PMP checks and precise fetch fault addresses. This is separate from optional timing changes.",
+  "base_commit": "9937714cee13e26e54b8aabc4d149585af22245b",
+  "behavior": [
+    "An executable NA4 word admits C.NOP at PC 0x80000002 when both instruction bytes are allowed.",
+    "A 32-bit instruction at PC 0x80000002 whose second parcel is denied retains instruction PC 0x80000002 and fault address 0x80000004.",
+    "Adjacent independently allowed NA4 words admit the spanning 32-bit instruction."
+  ],
+  "qualification": {
+    "real_frontend_permission_reservoir": "PASS for aligned and nonaligned captured paths, ASan/UBSan and native FIR lowering",
+    "cases_per_frontend_model": 39,
+    "independent_parcel_combinations_per_frontend_model": 320,
+    "accepted_and_returned_owners_per_frontend_model": 99,
+    "parcel_width_1_checks": 174512,
+    "parcel_width_2_checks": 349024,
+    "random_16_entry_pmp_tables_per_parcel_model": 6000,
+    "independent_oracle": "128-bit byte intervals; TOR, NA4, NAPOT, priority, locked/unlocked M mode, region and XLEN boundaries; unchanged four-byte primitive checked alongside each parcel vector",
+    "negative_controls": "Two tval mutations and two parcel-oracle mutations rejected",
+    "scala": "Production and test compilation passed; eight selected tests passed before a separately reproduced historical preset expectation failure",
+    "preset_expectation_bridge": "One pure constructor test compiled and passed against both the published993 and final combined164-field parameter classpaths after adding already-enabled registeredIssueHeadMask and unconditionalMemoryPayloadCapture to its expectation. This is an existing test omission, not PMP behavior.",
+    "complete_cpu_precise_trap": {
+      "status": "PASS",
+      "model_scope": "Combined explicit seven-flag ON model, same completed CPU objects as fixed COPY gate; not PMP-only whole-CPU",
+      "short": {
+        "mcause": 1,
+        "mepc": "0x80200104",
+        "mtval": "0x80200104",
+        "target_retired": 1
+      },
+      "word": {
+        "mcause": 1,
+        "mepc": "0x80200102",
+        "mtval": "0x80200104",
+        "target_retired": 0
+      },
+      "cycles_per_guest": 1401,
+      "observability": "Public valid trap/commit outputs plus machine-handler CSR mailbox; accepted AXI owners drained"
+    },
+    "full_cpu_nemu": "Two original short physical integer M-mode NEMU cases pass on the combined ON model, with original PC/GPR/memory negative controls; no PMP-only whole-CPU run",
+    "portable_runner": "Exact reusable component wrappers/hosts and CPU host/guest sources included; environment-specific runner remains separate"
+  },
+  "limits": [
+    "Component dynamic coverage includes real reservoir metadata; two combined-ON guests additionally cover retirement/trap CSRs.",
+    "Noncaptured parallel and scalar IntegerCore consumers were compiled and source-audited, without a separate whole-CPU dynamic run.",
+    "Original NA4 failures and unsuccessful test attempts remain preserved separately; no original oracle expectation was weakened.",
+    "No board, frequency, mapped area, physical timing or hardware-throughput result."
+  ],
+  "physical_qualification": "NOT_RUN",
+  "reproduce": [
+    "mill -i IonSoC.test.testOnly ooo.SharedFetchPmpSpec ooo.RegisteredPmpRegionsSpec ooo.FetchFeedbackTimingSpec",
+    "Frontend emitter: ooo.FetchFaultPrecisionGsimMain OUTPUT [--unaligned]; host simulator/gsim/harness/fetch_fault_precision.cpp; negative --inject-tval",
+    "Parcel emitter: ooo.FetchParcelPmpGsimMain OUTPUT WIDTH with WIDTH 1 and 2; host simulator/gsim/harness/fetch_parcel_pmp.cpp compiled with PACKET_WIDTH; negative --inject-parcel"
+  ],
+  "status": "PASS_COMPONENT_AND_COMBINED_PRECISE_TRAP",
+  "source_files": {
+    "docs/fetch-fault-precision.md": "b842bbba868c5708d5df9b277b29a74c1b2d3be20bb1558e679e262f6c78ec46",
+    "simulator/gsim/fetch_fault_precision_cpu/guest.S": "1915107db534af2cbfa3467d7109f246539a46ad0317f92b4367c62bf906f8a8",
+    "simulator/gsim/fetch_fault_precision_cpu/guest.ld": "2cfe49e3b32898376c4888b6901c1a71bc12d68ea8f4dce2dfae0aa2d535ca46",
+    "simulator/gsim/fetch_fault_precision_cpu/host.cpp": "36b691501fe0577811cf8991c5cc86b2d07d6153d2f78c167790ca132d7a93eb",
+    "simulator/gsim/harness/fetch_fault_precision.cpp": "02b1078631da121a131f859d7d40d393066d327b7b0805f461b347d7031350da",
+    "simulator/gsim/harness/fetch_parcel_pmp.cpp": "11097cd54ea69972bd5e56cbdd217730cccb2789b280950cfc3e4a0bf4a42469",
+    "src/main/scala/core/ooo/FetchPacketPermission.scala": "f4e15be5cf6326eb0fe06dde149ea93256ab664eb7631b0dae832d3a4cd35981",
+    "src/main/scala/core/ooo/IntegerCore.scala": "e25872a9adac3e9e2c75c7bbb571d51142d1c1d36bc5a839a80eebe2f341cd1f",
+    "src/main/scala/core/ooo/PacketFetchPmp.scala": "602d44a5885c592cdb1f1fb607faf5e230d96f821673e8256b5b8b35be7bb5fd",
+    "src/main/scala/core/ooo/RegisteredFetchPacket.scala": "fa3785518ced2f1b1d8d38e5a002b7fd267ff95c212a6accab519cce77c01e08",
+    "src/test/scala/ooo/FetchFaultPrecisionGsim.scala": "a62436708ae9018d134ae09f99b938e757f622dc8724cfdcf1aeb922ed4c9e59",
+    "src/test/scala/ooo/FetchFeedbackTimingSpec.scala": "1a3ddd6aa26c37e09852e6b9b7a0c7577232f8a41840c00dd4cfbee1e9b317d4",
+    "src/test/scala/ooo/FetchParcelPmpGsim.scala": "5b919868202848d33ff08554c38cb8de74315fb3b2a44667bd5f5657254ee600",
+    "src/test/scala/ooo/PmpCheckerGsim.scala": "f17dc97d29e1faf95fd32d5dd10c1a054abe1fd965fb9eee0b66bd6739476726"
+  }
+}

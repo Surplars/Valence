@@ -30,7 +30,7 @@ class RawFetchValidation extends Bundle {
 /** A-phase metadata, before length-selected PMP and raw successor prediction. */
 class FetchPhaseInput(width: Int) extends Bundle {
     val faultOffsets = Vec(width, UInt(5.W))
-    val denied = Vec(2 * width - 1, Bool())
+    val denied = Vec(2 * width, Bool())
 }
 
 /** One compact aligned token. Presence is held separately as resettable state. */
@@ -40,7 +40,7 @@ class FetchPhaseToken(width: Int) extends Bundle {
     val accessFaults = Vec(width, Bool())
     val pageFaults = Vec(width, Bool())
     val faultOffsets = Vec(width, UInt(5.W))
-    val denied = Vec(2 * width - 1, Bool())
+    val denied = Vec(2 * width, Bool())
 }
 
 class FetchPhaseStatus(width: Int) extends Bundle {
@@ -113,7 +113,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     val correctionPc = if (splitCursor) Some(Reg(UInt(64.W))) else None
     val correctionPending = if (splitCursor) Some(RegInit(false.B)) else None
     val supplyPc = if (splitCursor) Mux(correctionPending.get, correctionPc.get, rawCursor) else rawCursor
-    // The token contains 145 payload bits at width two, plus two presence bits.
+    // The token contains 146 payload bits at width two, plus two presence bits.
     // PMP candidate facts and aligned transport metadata cross the same edge.
     val token = if (alignedPermissionStage) Some(Reg(new FetchPhaseToken(width))) else None
     val tokenPresent = if (alignedPermissionStage) Some(RegInit(0.U(width.W))) else None
@@ -240,11 +240,15 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         if (alignedPermissionStage) {
             // Select the captured candidates only after the boundary. This
             // prevents PMP and live alignment from entering rawTaken/scan CE.
-            val denied = MuxLookup(byteOffsets(lane), token.get.denied(0))(
-                token.get.denied.zipWithIndex.map { case (value, offset) => (2 * offset).U -> value })
+            def deniedAt(offset: UInt): Bool = MuxLookup(offset, token.get.denied(0))(
+                token.get.denied.zipWithIndex.map { case (value, n) => (2 * n).U -> value })
+            val firstDenied = deniedAt(byteOffsets(lane))
+            val secondDenied = !short && deniedAt(byteOffsets(lane) + 2.U)
+            val denied = firstDenied || secondDenied
             resolutionSupply(lane).bits.accessFault := token.get.accessFaults(lane) || denied
             when(denied && !token.get.accessFaults(lane) && !token.get.pageFaults(lane)) {
-                resolutionSupply(lane).bits.faultAddress := rawPcs(lane)
+                resolutionSupply(lane).bits.faultAddress :=
+                    Mux(firstDenied, rawPcs(lane), rawPc(byteOffsets(lane) + 2.U))
             }
         }
         val successor = rawPc(byteOffsets(lane + 1))

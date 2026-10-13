@@ -4,19 +4,25 @@ import chisel3._
 import chisel3.util._
 
 /** Evaluate every possible instruction start before late compressed-length selection.
-  * Combinational, no state or extra fetch cycle. Each address is XLEN-wrapped,
-  * then the original four-byte PMP overlap/coverage/priority check is applied.
-  * Virtual-fetch bypass and instruction-fault authorization remain in the core.
+  * Combinational, no state or extra fetch cycle. The default retains the
+  * independently tested four-byte access primitive. Instruction consumers use
+  * parcelChecks to check all 2 * width halfwords, including the final second
+  * parcel. Each parcel address wraps independently at XLEN. For aligned PCs,
+  * PMP's four-byte region granularity makes a parcel check equivalent to the
+  * corresponding decomposed aligned-word fetch operation. Virtual bypass and
+  * instruction-length selection remain in the consumer.
   */
 class PacketFetchPmp(entries: Int, width: Int, wordSpan: Boolean = false,
-    balancedComparisons: Boolean = false, sharedRelations: Boolean = false) extends Module {
+    balancedComparisons: Boolean = false, sharedRelations: Boolean = false,
+    parcelChecks: Boolean = false) extends Module {
     require(width >= 1)
     require(!sharedRelations || (wordSpan && width < 256), "shared word relations require bounded word-span checks")
+    private val candidates = if (parcelChecks) 2 * width else 2 * width - 1
     val io = IO(new Bundle {
         val base = Input(UInt(64.W))
         val state = Input(new PmpState)
         val privilege = Input(UInt(2.W))
-        val denied = Output(Vec(2 * width - 1, Bool()))
+        val denied = Output(Vec(candidates, Bool()))
     })
     if (wordSpan) {
         require(Set(0, 8, 16).contains(entries))
@@ -39,12 +45,12 @@ class PacketFetchPmp(entries: Int, width: Int, wordSpan: Boolean = false,
             val wordLeEnd = (0 until entries).map(i => nearby.map(_.compare(io.state.regionEnd(i)(63, 2)).map(_._2))
                 .getOrElse(words.map(word => le(word(61, 0), io.state.regionEnd(i)(63, 2)))))
             val carries = words.map(_(62))
-            for (offset <- 0 until 2 * width - 1) {
+            for (offset <- 0 until candidates) {
                 val byteLow = io.base(1, 0) +& (2 * offset).U
                 val startIndex = byteLow >> 2
-                val endIndex = (byteLow +& 3.U) >> 2
+                val endIndex = (byteLow +& (if (parcelChecks) 1 else 3).U) >> 2
                 // The start PC wraps first. Retain the end carry ONLY if this
-                // individual four-byte access crosses XLEN, not when an earlier
+                // individual access crosses XLEN, not when an earlier
                 // packet offset already wrapped the start address.
                 val endHigh = select(endIndex, carries) && !select(startIndex, carries)
                 val facts = (0 until entries).map { i =>
@@ -64,10 +70,10 @@ class PacketFetchPmp(entries: Int, width: Int, wordSpan: Boolean = false,
                 io.denied(offset) := Mux(first._1, first._2, io.privilege =/= 3.U)
             }
         }
-    } else for (offset <- 0 until 2 * width - 1) {
+    } else for (offset <- 0 until candidates) {
         val checker = Module(new PmpChecker(entries))
         checker.io.address := io.base + (2 * offset).U
-        checker.io.size := 2.U
+        checker.io.size := (if (parcelChecks) 1 else 2).U
         checker.io.access := PmpAccess.execute
         checker.io.state := io.state
         checker.io.privilege := io.privilege

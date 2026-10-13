@@ -4,9 +4,10 @@ import chisel3._
 import chisel3.util._
 
 /** Raw supply authorization before the existing reservoir capture edge.
-  * Combinational, width instructions/cycle; no extra stage or credit. Each
-  * four-byte execute check retains the historical XLEN wrap/first-overlap rule,
-  * even for a compressed instruction. Virtual fetch is authorized by the
+  * Combinational, width instructions/cycle; no extra stage or credit. Check
+  * the first instruction parcel, plus the second only for a 32-bit instruction.
+  * PMP checks each decomposed word independently; first-parcel denial wins.
+  * Virtual fetch is authorized by the
   * existing physical translation adapter, not by PMP on the virtual cursor.
   * The consumer must invalidate all captured permissions after a context/PMP
   * change. The ROB-head PMP/SATP/xRET barriers and every trap redirect already
@@ -24,23 +25,30 @@ class FetchPacketPermission(entries: Int, width: Int, wordSpan: Boolean, balance
         // Candidate permissions do not depend on the live instruction lengths.
         // A staged consumer captures these with the aligned bytes and selects
         // the actual instruction starts after the register boundary.
-        val candidateDenied = Output(Vec(2 * width - 1, Bool()))
+        val candidateDenied = Output(Vec(2 * width, Bool()))
+        val faultAddresses = Output(Vec(width, UInt(64.W)))
         val addresses = Output(Vec(width, UInt(64.W)))
     })
-    val checks = Module(new PacketFetchPmp(entries, width, wordSpan, balanced, sharedRelations))
+    val checks = Module(new PacketFetchPmp(entries, width, wordSpan, balanced, sharedRelations,
+        parcelChecks = true))
     checks.io.base := io.base
     checks.io.state := io.state
     checks.io.privilege := io.privilege
-    for (offset <- 0 until 2 * width - 1) {
+    for (offset <- 0 until 2 * width) {
         io.candidateDenied(offset) := !io.virtualized && checks.io.denied(offset)
     }
     val offsets = Wire(Vec(width, UInt(log2Ceil(2 * width + 1).W)))
-    val addresses = (0 until 2 * width - 1).map(offset => offset.U -> (io.base + (2 * offset).U))
+    val addresses = (0 until 2 * width).map(offset => offset.U -> (io.base + (2 * offset).U))
     for (lane <- 0 until width) {
         offsets(lane) := (if (lane == 0) 0.U else
             offsets(lane - 1) + Mux(io.instructionLow(lane - 1) === 3.U, 2.U, 1.U))
-        io.denied(lane) := !io.virtualized && MuxLookup(offsets(lane), checks.io.denied(0))(
-            checks.io.denied.zipWithIndex.map { case (denied, offset) => offset.U -> denied })
+        def deniedAt(offset: UInt): Bool = MuxLookup(offset, checks.io.denied(0))(
+            checks.io.denied.zipWithIndex.map { case (denied, n) => n.U -> denied })
+        val firstDenied = deniedAt(offsets(lane))
+        val secondDenied = io.instructionLow(lane) === 3.U && deniedAt(offsets(lane) + 1.U)
+        io.denied(lane) := !io.virtualized && (firstDenied || secondDenied)
         io.addresses(lane) := MuxLookup(offsets(lane), io.base)(addresses)
+        // Select precomputed PCs; no carry chain follows late permission selection.
+        io.faultAddresses(lane) := MuxLookup(offsets(lane) + Mux(firstDenied, 0.U, 1.U), io.base)(addresses)
     }
 }

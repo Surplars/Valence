@@ -9,7 +9,7 @@ class FetchFeedbackTimingSpec extends AnyFunSuite {
         val before = BoardSocConfig.timingParams("staged-ethernet")
         val next = BoardSocConfig.timingParams("staged-fetch-feedback")
         assert(next == before.copy(capturedFetchPermission = true, splitFetchCursor = true,
-            registeredFetchWindow = true))
+            registeredFetchWindow = true, registeredIssueHeadMask = true, unconditionalMemoryPayloadCapture = true))
         assert(next.renameWidth == 2 && next.commitWidth == 2 && !next.fpEnabled)
         assert(!OooParams().capturedFetchPermission && !OooParams().splitFetchCursor &&
             !OooParams().registeredFetchWindow)
