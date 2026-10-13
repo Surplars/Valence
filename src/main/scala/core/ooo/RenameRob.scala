@@ -36,6 +36,10 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         val renamed            = Output(Vec(p.renameWidth, Valid(new RenamedInstruction(p))))
         val complete           = Input(Vec(p.completionWidth, Valid(new BackendCompletion(p))))
         val sameCycleRetire    = Input(Vec(p.completionWidth, Bool()))
+        // Raw selected producer offer before execution cancellation. It carries
+        // no authority for ROB writes, PRF wake/data, redirects or deallocation.
+        val retirementIntentValid = if (p.retirementIntent)
+            Some(Input(Vec(p.completionWidth, Bool()))) else None
         // A producer may omit faults only for results forbidden from same-cycle
         // retirement. Full completion.exception still updates the ROB unchanged.
         val sameCycleFault = if (p.separateBranchRetireFault)
@@ -202,6 +206,7 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         entries(io.complete(1).bits.token.index).tag === io.complete(1).bits.token.tag) else None
     io.lane1OwnerMatch.foreach(_ := lane1OwnerMatch.get)
 
+    val retirementAccepted = Wire(Vec(p.completionWidth, Bool()))
     // Completions for instructions on a discarded path cannot write a newly reused PRF entry.
     for (lane <- 0 until p.completionWidth) {
         val completion = io.complete(lane)
@@ -217,6 +222,23 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
             !entries(completion.bits.token.index).done && !duplicate && !acceptHeadTrap &&
             Mux(acceptHeadSystem, completion.bits.token.index === head, ordinarySurvives)
         io.completionAccepted(lane) := accepted
+        retirementAccepted(lane) := (if (p.retirementIntent) {
+            val offers = io.retirementIntentValid.get
+            // Earlier fault/branch offers suppress a duplicate even when that
+            // earlier result cannot retire. Never use retire eligibility here.
+            val duplicateOffer = (0 until lane).map(i =>
+                offers(i) && io.complete(i).bits.token.asUInt === completion.bits.token.asUInt)
+                .foldLeft(false.B)(_ || _)
+            offers(lane) && completionLive && !entries(completion.bits.token.index).done && !duplicateOffer
+        } else accepted)
+        if (p.retirementIntent) {
+            when(!recoveryCycle) {
+                assert(io.retirementIntentValid.get(lane) === completion.valid,
+                    "retirement offer must equal actual selected completion without recovery")
+                assert(retirementAccepted(lane) === accepted,
+                    "retirement-only admission must equal actual admission without recovery")
+            }
+        }
         io.sameCycleFault.foreach { faults =>
             when(accepted && io.sameCycleRetire(lane)) {
                 assert(faults(lane) === completion.bits.exception,
@@ -244,7 +266,7 @@ class RenameRob(val p: OooParams = OooParams()) extends Module {
         // through entries(index).done. The accepted token check also rejects stale or
         // recovery-path results before they can affect retirement.
         val finishing = (0 until p.completionWidth).map(i =>
-            io.completionAccepted(i) && io.complete(i).bits.token.index === index &&
+            retirementAccepted(i) && io.complete(i).bits.token.index === index &&
                 !io.sameCycleFault.map(_(i)).getOrElse(io.complete(i).bits.exception))
         // A selected control-flow result can complete now while its commit waits
         // for the ROB entry registers; non-control results retain the fast path.

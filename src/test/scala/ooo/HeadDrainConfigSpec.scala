@@ -34,8 +34,14 @@ class HeadDrainConfigSpec extends AnyFunSuite {
         val snapshot = root.resolve("fpga/next/timing-batch-head-drain-default52.json")
         assert(sha(Files.readAllBytes(snapshot)) ==
             "87edfc04e59fce76873b83c236d694bc10a503497ba0a9e06534cf91327b9622")
-        assert(PostedBoardConfiguration.json(PostedBoardConfiguration.document(off)) ==
-            Files.readString(snapshot).trim)
+        def withoutRetirementIntent(value: Product): Map[String, Any] = {
+            val all = fields(value)
+            assert(all.get("retirementIntent").contains(false))
+            all - "retirementIntent"
+        }
+        val bridged = PostedBoardConfiguration.document(off) ++ Map(
+            "profile" -> withoutRetirementIntent(off), "core" -> withoutRetirementIntent(off.coreParams))
+        assert(PostedBoardConfiguration.json(bridged) == Files.readString(snapshot).trim)
         for (c <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.FetchCaptureCandidate,
                 FpgaNextConfig.TriSpeedCandidate, FpgaNextConfig.ControlCandidate, FpgaNextConfig.Selected,
                 FpgaNextConfig.RegisteredPmpCandidate, off)) {

@@ -36,6 +36,7 @@ object FpgaNextBoardGsim {
         sharedCanonicalStoreOwnerMatch = c.sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = c.eagerFetchPrefixSelect,
         predecodedHeadDrain = c.predecodedHeadDrain,
+        retirementIntent = c.retirementIntent,
         registeredCanonicalStoreEvent = c.registeredCanonicalStoreEvent,
         pendingVirtualStoreProofSlots = c.pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = c.pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = c.boundHeadStoreOverlap,

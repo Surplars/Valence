@@ -1,0 +1,83 @@
+{
+  "schema": "retirement-intent-public-source-v1",
+  "base_commit": "cf8ec67d604561185b896e73fdac1e30e7d4efa2",
+  "base_tree": "cdc4aeb77dc5a67e05c0a9b80348dc142f853f3a",
+  "source_files": {
+    "src/main/scala/core/ooo/BoardSocTop.scala": "54cc359c946cfc9162e5cd167d953e3b23a513cb7e01cb6384426f936486822b",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "bad36edae28d6ccabd256c9a909ede447c4fdb4aa16948226396050582865207",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "4d0f1bd52621e38c19fd7c4be00544a23cba956448804adce92c14eb5419834a",
+    "src/main/scala/core/ooo/OooParams.scala": "39f05a882ed5df16a0c485341839c0d8393ef00adbccfb4472e722c0fe3e20ae",
+    "src/main/scala/core/ooo/RenameRob.scala": "a798cdb13528a641574cb07197d1ed6d8a9544e3edb4fe6b3a7ca86cd351356a",
+    "src/test/scala/ooo/BoardSocGsimMain.scala": "c8eedd36c94ec619ed5ca8b2b712fb0da5fd4dd9479301c74e8f7198238365d6",
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": "b4dae26757ec5380691ada1eb304bf54837da422b266b3f2685add884bac901e",
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": "63e08e151766fa24686989bb7745aef78ed6a76e5cc226308af87da8fedb8a7b",
+    "src/test/scala/ooo/HeadDrainActualAudit.scala": "9046898007a3ebf1f18d29d7e531e1e10077b199b8b35e8bdf5c100ed0d965b4",
+    "src/test/scala/ooo/MatchingFabricAudit.scala": "e381369b81e0c2c0f2e4340189d5c7f8efced6a664dbea9be051e19018fc3137",
+    "src/test/scala/ooo/RetirementIntentActualAudit.scala": "d347e21f852802d91fdc0c1f7c66d6402cedbe4ace7fee9aa406344ac442638c",
+    "src/test/scala/ooo/RetirementIntentBoardConfigSpec.scala": "40d29b3b31307515e83f002859b4fb16083e0f1b0f2d9c5113a879941cc59ee6",
+    "src/test/scala/ooo/RetirementIntentCpuProfile.scala": "58b548af5b14946229c845d286f4c25a56a0fcd18d128d8cbfe354329d228df4",
+    "src/test/scala/ooo/RetirementIntentFullCpuMain.scala": "f9eba77a93284a27301af3407bd0c5683b085884b4513dde0ca8abb3e4905305",
+    "src/test/scala/ooo/HeadDrainClassGsim.scala": "7d5d174e8a8716ce76dfa4c4d2b74e3f476def0e1cf3f3132c084ee5f7e2a382",
+    "src/test/scala/ooo/HeadDrainClassSpec.scala": "e8ddd1704052f784e801faf436bc46d692c8917dacf2d28357a4733b0664003a",
+    "src/test/scala/ooo/HeadDrainConfigSpec.scala": "347f8244e361745a387ce8817d75ac53d383365bbfd72d830f793797f8d6ac05",
+    "simulator/gsim/head_drain_class.py": "da18db7bd0afb75821393c6df7acbe29abdfd07871bd9a462d7fa8fdaef0a858"
+  },
+  "documentation": {
+    "docs/retirement-intent.md": "c3bb7b3432e0bb5106109aae5c90e87d410cfddaaa16e71958bf80fc1f8d5a4d"
+  },
+  "qualified_profile": {
+    "base_manifest": "fpga/next/timing-batch-owner-row-profile.json",
+    "base_option_count": 52,
+    "sole_added_option": "--retirement-intent",
+    "ordinary_default": false,
+    "predecodedHeadDrain": false,
+    "futureHomeWayReservation": false,
+    "storePrefetchLruVictim": false
+  },
+  "results": {
+    "focused_config_tests": 5,
+    "on_model_translation_units": 36,
+    "sv39_cycles": 191618,
+    "bare_cycles": 194153,
+    "original_functional_fields": 105,
+    "all_sections_equal": true,
+    "literal_stdout_supply_axi_equal": true,
+    "cpu_negative_controls": [
+      "read",
+      "memory",
+      "trap"
+    ],
+    "same_object_nemu_cycles": {
+      "hot": 1847,
+      "compressed": 958
+    },
+    "nemu_negative_controls": [
+      "pc",
+      "gpr",
+      "memory"
+    ],
+    "cpu_receipt_sha256": "ce159c86a6c564805aa33b917be313275afc38db4d01bb25350a0e983ac438c1",
+    "byte_parity_receipt_sha256": "72520d9ee28024153d1b5c721ebf4b9bb8203c15cdde9f03d029bbf6bf439f1a",
+    "nemu_receipt_sha256": "255f251e12777c084e097d3b837ee5c32d05674489fe63b70d5993e684a6c3df"
+  },
+  "not_qualified": [
+    "future-home/LRU/head-drain combinations",
+    "generic Python board export entry",
+    "synthesis",
+    "routed timing",
+    "Fmax",
+    "Linux",
+    "board",
+    "all legal parameter combinations"
+  ],
+  "compatibility_bridge": {
+    "scala_tests": 11,
+    "python_cli_tests": 4,
+    "explicit_false_field": "retirementIntent",
+    "all_160_prior_pair_parameters_equal": true,
+    "cpu_on_raw_fir_byte_identical": true,
+    "paired_ir": "exact after two verified module-local direct aliases, validated source locations, and two literal assertion diagnostic line changes",
+    "receipt_sha256": "7830d6c1fda45cc60a848d9fbb6820eabe34d7bb3f187d7874d38783342438d7",
+    "new_model_compiles": 0
+  }
+}

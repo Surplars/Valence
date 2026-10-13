@@ -170,7 +170,9 @@ case class OooParams(
     // Optional direct prefix choice within the existing aligned permission stage.
     eagerFetchPrefixSelect: Boolean = false,
     // Immutable drain classification captured at the existing accepted rename edge.
-    predecodedHeadDrain: Boolean = false
+    predecodedHeadDrain: Boolean = false,
+    // Retirement-only pre-cancel offer; never authorizes completion or execution effects.
+    retirementIntent: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -179,6 +181,10 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!retirementIntent || (registeredIssueExecute && parallelIssuePayload && parallelCompletionPayload &&
+        registeredRobRetirement && separateBranchRetireFault && parallelRecoveryAdmission &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 && tagBits == 64),
+        "retirement intent requires the registered two-lane default52 retirement topology and full 64-bit tags")
     require(!predecodedHeadDrain || machineSystem,
         "predecoded head drain requires the machine system consumer")
     require(!eagerFetchPrefixSelect || alignedFetchPermissionStage,

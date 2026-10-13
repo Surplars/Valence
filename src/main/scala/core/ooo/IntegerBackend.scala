@@ -1812,6 +1812,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val selected        = Wire(Vec(p.completionWidth, Valid(UInt(p.robBits.W))))
     val dispatched      = Wire(Vec(p.completionWidth, Valid(UInt(p.robBits.W))))
     val executionEnqueued = WireDefault(VecInit(Seq.fill(p.completionWidth)(false.B)))
+    val executionRetirementOffer = if (p.retirementIntent)
+        Some(Wire(Vec(p.completionWidth, Bool()))) else None
     val prepared        = Wire(Vec(p.completionWidth, Bool()))
     val preparedOwners = Wire(Vec(p.completionWidth, UInt(p.robEntries.W)))
     val newResolutions  = Wire(Vec(p.completionWidth, Valid(new FrontendRedirect(p))))
@@ -1851,6 +1853,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)
         stage.io.deq.ready := (if (lane == 0) branchResultPortFree else true.B) &&
             (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none)
+        executionRetirementOffer.foreach(_(lane) := stage.io.occupied && ownerMatches && stage.io.deq.ready)
         when(stage.io.occupied) {
             assert(!stale,
                 "an occupied execution slot owns its unchanged ROB token until consumption or same-edge cancellation")
@@ -1963,8 +1966,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     io.invalidateFetch := systemInvalidate && systemRedirectMatches
     systemComplete.ready := !lsu.io.complete.valid && !mCompleteValid && ledger.io.completionAccepted(0)
     for (lane <- 0 until p.completionWidth) {
-        val selectedBranch = selected(lane).valid &&
-            issueEntries(selected(lane).bits).request.controlFlow =/= ControlFlow.none
+        val selectedBranch = if (p.retirementIntent)
+            executionRetirementOffer.get(lane) &&
+                executingOperands(lane).entry.request.controlFlow =/= ControlFlow.none
+        else selected(lane).valid && issueEntries(selected(lane).bits).request.controlFlow =/= ControlFlow.none
         val nonAluResult = if (lane == 0)
             lsu.io.complete.valid || mCompleteValid || systemComplete.valid else false.B
         val heldBranchResult = if (lane == 0) branchRedirectReady else false.B
@@ -2371,32 +2376,41 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         else choice.valid && !prepareStore && (!newResolutions(lane).valid ||
             (io.redirect.valid && io.redirect.bits.token.asUInt === entry.renamed.token.asUInt)))
         ledger.io.complete(lane).bits := completion(lane)
+        // This is an offer, not permission to retire: branch and fault offers
+        // still suppress duplicate lanes. Existing class/fault inputs qualify
+        // retirement independently. No completion or writeback uses this bit.
+        ledger.io.retirementIntentValid.foreach(_(lane) := executionRetirementOffer.get(lane) && !prepareStore)
         if (lane == 0) {
             if (p.registeredBranchRedirect && !p.precompleteMispredictedBranch) {
                 when(branchRedirectReady) {
                     ledger.io.complete(lane).valid :=
                         branchRedirectMatches
+                    ledger.io.retirementIntentValid.foreach(_(lane) := branchRedirectMatches)
                     if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := branchResult }
                     retireFault := branchResult.exception
                 }
             }
             when(systemComplete.valid) {
                 ledger.io.complete(lane).valid := !systemRedirect || systemRedirectMatches
+                ledger.io.retirementIntentValid.foreach(_(lane) := !systemRedirect || systemRedirectMatches)
                 if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := systemComplete.bits }
                 retireFault := systemComplete.bits.exception
             }
             when(multiplier.io.complete.valid) {
                 ledger.io.complete(lane).valid := true.B
+                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
                 if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := multiplier.io.complete.bits }
                 retireFault := multiplier.io.complete.bits.exception
             }
             when(mulDiv.io.complete.valid) {
                 ledger.io.complete(lane).valid := true.B
+                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
                 if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := mulDiv.io.complete.bits }
                 retireFault := mulDiv.io.complete.bits.exception
             }
             when(lsu.io.complete.valid) {
                 ledger.io.complete(lane).valid := true.B
+                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
                 if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := lsu.io.complete.bits }
                 retireFault := lsu.io.complete.bits.exception
             }

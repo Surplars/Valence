@@ -46,6 +46,7 @@ object MatchingFabricAudit {
             "eagerPrefix" -> EagerPrefixActualAudit.capture(p, expected),
             "futureHome" -> FutureHomeActualAudit.capture(p, expected),
             "headDrain" -> HeadDrainActualAudit.capture(p, expected),
+            "retirementIntent" -> RetirementIntentActualAudit.capture(p, expected),
             "actualLsuOwners" -> p.core.core.core.backend.lsu.slots.size,
             "actualRegisterPorts" -> p.platformRouter.get.io.registers.size,
             "actualPacketRxOwners" -> p.packetDma.get.slotOwned.size,
@@ -103,5 +104,6 @@ object MatchingFabricAudit {
     def write(directory: String): Unit = {
         require(actual.nonEmpty, "the actual matching envelope was not constructed")
         Files.writeString(Paths.get(directory, "actual-fabric.json"), json(actual.get) + "\n")
+        PostedBoardConfiguration.writeCore(actual.get("cpu").asInstanceOf[OooParams], directory)
     }
 }

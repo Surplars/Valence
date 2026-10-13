@@ -47,6 +47,13 @@ def validate_source(root):
 
 run.validate_source = validate_source
 
+def legacy_core_fields(actual):
+    """Project only the explicit appended false field for the preserved160-field gate."""
+    assert len(actual) == 161 and actual.get('retirementIntent') is False
+    legacy = {name: value for name, value in actual.items() if name != 'retirementIntent'}
+    assert len(legacy) == 160
+    return legacy
+
 def main():
     run.main()
     if '--preflight-only' in sys.argv:
@@ -66,7 +73,9 @@ def main():
         if 'pair' in receipt['models'] and sys.argv[1] in ('emit', 'generate', 'sanitized'):
             off = json.loads((out / 'pair/actual-core-off.json').read_text())
             on = json.loads((out / 'pair/actual-core-on.json').read_text())
-            assert len(off) == len(on) == 160 and not off['predecodedHeadDrain']
+            legacy_off, legacy_on = legacy_core_fields(off), legacy_core_fields(on)
+            assert not legacy_off['predecodedHeadDrain']
+            assert {**legacy_off, 'predecodedHeadDrain': True} == legacy_on
             assert {**off, 'predecodedHeadDrain': True} == on
             profile = json.loads((run.ROOT / 'fpga/next/timing-batch-owner-row-profile.json').read_text())
             assert (out / 'pair/native-options.txt').read_text().splitlines() == profile['native_options']

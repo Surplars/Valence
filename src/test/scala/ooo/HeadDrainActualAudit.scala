@@ -8,10 +8,14 @@ import soc.core.ooo._
   */
 object HeadDrainActualAudit {
     def requireShape(c: FpgaNextConfig): Unit = {
-        require(c.productArity == 73 && c.productElementName(72) == "predecodedHeadDrain" &&
-            c.coreParams.productArity == 160 && c.coreParams.productElementName(159) == "predecodedHeadDrain" &&
+        require(c.productArity == 74 && c.productElementName(72) == "predecodedHeadDrain" &&
+            c.productElementName(73) == "retirementIntent" &&
+            c.coreParams.productArity == 161 && c.coreParams.productElementName(159) == "predecodedHeadDrain" &&
+            c.coreParams.productElementName(160) == "retirementIntent" &&
             c.cache.productArity == 23 && c.ddr.productArity == 9,
             "current profile/core/cache/DDR shape changed; review complete products")
+        require(c.retirementIntent == c.coreParams.retirementIntent,
+            "profile retirement-intent flag was not forwarded to the core")
         require(c.predecodedHeadDrain == c.coreParams.predecodedHeadDrain,
             "profile head-drain flag was not forwarded to the core")
     }
