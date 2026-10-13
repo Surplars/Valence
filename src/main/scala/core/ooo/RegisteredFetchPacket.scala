@@ -72,12 +72,14 @@ class FetchPhaseStatus(width: Int) extends Bundle {
 class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
     bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false,
-    val eagerPrefixSelect: Boolean = false) extends Module {
+    val eagerPrefixSelect: Boolean = false, val acceptedPrefixValidation: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
     require(!alignedPermissionStage || (width == 2 && compressed && splitCursor),
         "aligned permission phase requires two compressed lanes and split cursor")
     require(!eagerPrefixSelect || alignedPermissionStage,
         "direct eager prefix selection requires the aligned permission phase")
+    require(!acceptedPrefixValidation || (parallelValidation && width == 2),
+        "accepted-prefix validation requires the qualified two-lane parallel-validation caller")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64))
     require(Set(8, 16, 32).contains(hintEntries))
     private val capacity = 2 * width
@@ -307,6 +309,12 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         }
     }
     val consumed = PopCount(io.consume)
+    if (acceptedPrefixValidation) {
+        // IntegerCore drives both inputs from the very same accepted rename lanes.
+        // This is checked at the real module boundary, not assumed from a profile.
+        assert(io.expectedNext.valid === io.consume.asUInt.orR,
+            "specialized fetch validation must name exactly an accepted nonempty prefix")
+    }
     // Raw offers can be observed while a redirect wins. Flush has last state
     // priority, so they cannot occupy a slot or advance the next supply PC.
     val captured = PopCount(capturePrefix.drop(1))
@@ -354,7 +362,9 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
             consumed === lanes.U && Mux(validation.predicts,
                 observed =/= validation.predictedPc, observed =/= validation.sequentialPc)
         }
-        candidates.reduce(_ || _) || (consumed === 0.U && firstSuccessor =/= io.expectedNext.bits)
+        val acceptedMismatch = candidates.reduce(_ || _)
+        if (acceptedPrefixValidation) acceptedMismatch
+        else acceptedMismatch || (consumed === 0.U && firstSuccessor =/= io.expectedNext.bits)
     } else firstSuccessor =/= io.expectedNext.bits
     val wrongPath = io.expectedNext.valid && mismatch
     // invalidate retains its historical hint-only meaning here. Real core
@@ -445,6 +455,16 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     }
     when(cancel) {
         count := 0.U
+    }
+    if (acceptedPrefixValidation) {
+        when(cancel) {
+            assert(!io.captured.asUInt.orR, "correction must cancel all same-edge captures")
+            assert(io.nextFetchPc === Mux(io.flush.valid, io.flush.bits, io.expectedNext.bits),
+                "flush must retain priority over accepted-prefix correction")
+        }
+        when(!io.consume.asUInt.orR) {
+            assert(!wrongPath, "zero accepted lanes cannot trigger specialized path validation")
+        }
     }
     io.fetchPc := supplyPc
     io.occupancy := count

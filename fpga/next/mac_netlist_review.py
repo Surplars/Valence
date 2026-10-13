@@ -7,6 +7,7 @@ also called by the generated Tcl immediately before opening the checkpoint.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import shutil
@@ -157,6 +158,10 @@ def prepare_job(export, checkpoint, provenance, job, rate):
     script = '# Prepared only; run separately under authorized Vivado on this host.\n'
     script += 'exec ' + ' '.join(tcl(x) for x in (sys.executable, helper, 'verify-job', job / 'job.json')) + '\n'
     script += 'open_checkpoint ' + tcl(checkpoint) + '\n'
+    script += 'source ' + tcl(export / 'board/native-mac-mode.tcl') + '\n'
+    script += 'if {$::tcl_platform(platform) eq "unix"} {valence_native_mac_configure_python native [list ' + tcl(sys.executable) + ']} elseif {![dict exists $::valence_mac_session::config mode]} {error {Configure the verified Windows WSL Python route before sourcing this collector}}\n'
+    script += 'set role_report [valence_native_mac_assert_mode]\n'
+    script += 'set role_file [open ' + tcl(job / 'mapped-roles.txt') + ' {WRONLY CREAT EXCL}]\nputs $role_file $role_report\nclose $role_file\n'
     script += 'source ' + tcl(export / 'board/mac-netlist-binding.tcl') + '\n'
     script += 'source ' + tcl(export / 'board/audit_mac_netlist.tcl') + '\n'
     script += 'dict set VALENCE_MAC_BINDING checkpoint_sha256 ' + tcl(data['checkpoint_sha256']) + '\n'
@@ -182,6 +187,18 @@ def validate_provenance(export, checkpoint, provenance, rate, receipt):
         for name, digest in proof[category].items():
             if sha(safe_child(provenance.parent, name)) != digest:
                 raise RuntimeError('Implementation provenance artifact drift: ' + name)
+    summary = receipt.get('native_mac_mode')
+    if summary is None:
+        raise RuntimeError('Checkpoint provenance omits the current two-generic MAC mode')
+    helper_path = export/'board/native_mac_contract.py'
+    spec = importlib.util.spec_from_file_location('bound_mac_mode_verifier', helper_path)
+    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    helper.verify(export)
+    helper.consumer_receipt(export, checkpoint)
+    required_mode = {'native_mac_mode_sha256': sha(export/'board/native-mac-mode.json'),
+                     'native_mac_consumer_sha256': sha(Path(str(checkpoint)+'.mac.json'))}
+    if any(proof.get(key) != value for key, value in required_mode.items()):
+        raise RuntimeError('Checkpoint provenance omits or changes the fresh mode/consumer/semantic gate')
     required = ('trispeed_board_constraints.tcl', 'native-gmac-cdc-constraints.tcl',
                 'cdc_constraints.tcl', 'mac_registered_level_constraints.tcl')
     if not {sha(export / 'board' / name) for name in required}.issubset(set(proof['constraint_files_sha256'].values())):

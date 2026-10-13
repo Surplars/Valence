@@ -7,6 +7,7 @@ import io
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -26,6 +27,11 @@ t1 = exporter.board_t1
 
 
 class BoardT1Tests(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(exporter.subprocess, "check_output", return_value="8e9a36c18a699e8b64830a97bb197f9fc52458bf\n")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def preflight(self, options, path):
         stream = io.StringIO()
         with contextlib.redirect_stdout(stream):
@@ -33,7 +39,7 @@ class BoardT1Tests(unittest.TestCase):
         self.assertFalse(path.exists())
         return json.loads(stream.getvalue())
 
-    def emit_mock(self, output, mode, bscan=False):
+    def emit_mock(self, output, mode, bscan=False, selected=False):
         wrapper = (HERE/"soc_top_fpga_next_ddr.sv").read_text()
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True)
         def emit(command, **kwargs):
@@ -48,6 +54,7 @@ class BoardT1Tests(unittest.TestCase):
             return subprocess.CompletedProcess(command, 0)
         options = ["--output", str(output), "--emit", "--experimental-trispeed-ethernet"]
         if mode: options.append(t1.FLAG)
+        if selected: options.append(t1.SELECTED_FLAG)
         if bscan: options.extend(["--experimental-jtag-bscan", "2"])
         with mock.patch.object(exporter.subprocess, "run", side_effect=emit), \
                 mock.patch.object(exporter.subprocess, "check_output", return_value=head), \
@@ -101,7 +108,7 @@ class BoardT1Tests(unittest.TestCase):
                     out = Path(tmp)/"export"
                     receipt = self.emit_mock(out, mode, bscan)
                     report = t1.verify(out)
-                    self.assertEqual(report["generics"], {t1.PARAMETER:int(mode)})
+                    self.assertEqual(report["generics"], {t1.PARAMETER:int(mode), t1.SELECTED_PARAMETER:0})
                     self.assertFalse(report["synthesis_consumer_executed"])
                     self.assertFalse(report["mapped_topology_checked"])
                     self.assertFalse(receipt["physical_qualification"])
@@ -126,11 +133,13 @@ class BoardT1Tests(unittest.TestCase):
         for mode in (False, True):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp); script = root/"native-mac-mode.tcl"; script.write_text(t1.consumer_tcl(mode))
-                (root/"trispeed_quarter_constraints.tcl").write_text('proc valence_trispeed_quarter_audit {root expected} {puts "AUDIT $root $expected"}\n')
-                text = 'set calls {}\nproc synth_design {args} {global calls; lappend calls $args}\n'
+                shutil.copy2(HERE/t1.SESSION, root/t1.SESSION)
+                (root/t1.AUDIT).write_text('namespace eval valence_mac_roles {}\nproc valence_mac_roles::audit {root expected selected} {puts "AUDIT $root $expected $selected"}\n')
+                text = 'proc current_design {args} {return LIVE_MOCK}\nproc get_property {key object} {return MOCK}\nset calls {}\nproc synth_design {args} {global calls; lappend calls $args}\n'
                 text += 'source {'+str(script)+'}\nif {[llength $calls] != 0} {error {implicit synthesis}}\n'
+                text += 'proc valence_native_mac_verify_export {} {return 0000000000000000000000000000000000000000000000000000000000000000}\n'
                 text += 'valence_native_mac_synth_design -part xczu15eg-ffvb1156-2-i\n'
-                text += f'if {{[lindex $calls 0] ne {{-top {t1.TOP} -generic {t1.PARAMETER}={int(mode)} -part xczu15eg-ffvb1156-2-i}}}} {{error {{wrong generic}}}}\n'
+                text += f'if {{[lindex $calls 0] ne {{-top {t1.TOP} -generic {{{t1.PARAMETER}={int(mode)} {t1.SELECTED_PARAMETER}=0}} -part xczu15eg-ffvb1156-2-i}}}} {{error {{wrong generic}}}}\n'
                 for args in ['-top other', '-to other', '-t other', '-generic X=1', '-gen X=1',
                              '-ge X=1', '-g X=1', '-top=other']:
                     text += 'if {![catch {valence_native_mac_synth_design '+args+'}]} {error {override allowed}}\n'

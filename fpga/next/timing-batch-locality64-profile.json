@@ -79,16 +79,16 @@
   "full_cpu_qualification": false,
   "physical_qualification": false,
   "production_leaf_sha256": {
-    "src/main/scala/core/ooo/BoardSocTop.scala": "100559357fe4aefd4dec5f5d55ff2e319d428a62ef8e6e1e8813448094ff64bd",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "62c49f684c5f495ab0ddc52d034d24a7de51a4f1e4572739b9733640d2ee6b01",
     "src/main/scala/core/ooo/CoherentCacheConcurrency.scala": "6fbd21cf278456486ca472545c1c3f5cd85fecc362495a129ee0ac3146cfbe8f",
-    "src/main/scala/core/ooo/FpgaNextConfig.scala": "aea8c1a0e456479c4c68e35a2349bbf07712aed77a07a053e0c5e620060f5a0f",
-    "src/main/scala/core/ooo/InstructionTranslationAdapter.scala": "4f40bfa6bdbffcbd7c8972831edccc9663294e1dd99064833626598b34f928aa",
-    "src/main/scala/core/ooo/IntegerBackend.scala": "44fc08c7d905e9fb960f21645538e2eb29cce3630cdee009d03460bd93d83e9b",
-    "src/main/scala/core/ooo/IntegerCore.scala": "5c402cab0fd995b4e9ba369423f1429265e404f7c2e65df2a4af494f80e6e246",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "59f527d313fee7f46526c315a6a9b319a14d601d9878ff5f0c05896267594db1",
+    "src/main/scala/core/ooo/InstructionTranslationAdapter.scala": "6a0d5a4d3f40722e8fb0a083d1fbf2a670ca923afa51fb230d041ba5eaa1be6c",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "d14a5a7ab4b8e547a0209ffb2eade6c58ca66a01196ada9c27f58c72934b45c8",
+    "src/main/scala/core/ooo/IntegerCore.scala": "33ec6d8ff9be9a48a68a4703e851d5ba9cbceb79b863ab8a8105085aaa4c0d23",
     "src/main/scala/core/ooo/MachinePlatform.scala": "d4f7e2c9be5ed427c9d733346b140d70ff9159d22db15905ca9baabd54393b7e",
     "src/main/scala/core/ooo/MemoryPreparationLocality.scala": "7857a0b231545820e584e8b5997ec383ae012ebec9bb5f9cdb1a883d50800066",
     "src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala": "63fb77425165eb1a2ec599115ce68cf604fb745f028ae6462ef6cda4a1112bf3",
-    "src/main/scala/core/ooo/OooParams.scala": "9c5fef28eaf62e7f52c8ae11cd20719c6152297ca51023983c514f99397945ad",
+    "src/main/scala/core/ooo/OooParams.scala": "2b2879dc5f440a3239fd7aab0c0a490881b0b45eeb8d0eaee46b49d5aa45488c",
     "src/main/scala/core/ooo/RenameRob.scala": "22c3f154514689ece738cea80eb002c87ff5898894e31709c8a2f1506d25c1c2"
   },
   "production_binding_scope": "Eleven changed production leaves; complete current source closure is recorded by export.py at export time.",
@@ -97,5 +97,18 @@
   "historical_mapped_library_certificate": {
     "identity_prefix": "cda7",
     "reused_for_new_rtl": false
+  },
+  "integrated_source_rollback": {
+    "base_commit": "8e9a36c18a699e8b64830a97bb197f9fc52458bf",
+    "original_entry_sha256": "3263cc1b4b8830f489fe65fd012676775104324e201a42c807e7c5e763852850",
+    "new_cpu_fields_all_false": [
+      "fetchAcceptedPrefixValidation",
+      "alignedFetchSinglePage",
+      "factorCheckedNextAllowed",
+      "localTaggedResponseReady"
+    ],
+    "old_core_fields_unchanged": 168,
+    "original_source_tree_reused": false,
+    "qualification_inherited": false
   }
 }

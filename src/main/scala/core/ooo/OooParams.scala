@@ -185,7 +185,15 @@ case class OooParams(
     // Local available-owner initialization of inactive instruction reply data.
     fetchReadyDataClear: Boolean = false,
     // Head-slot-only retirement identity; actual completion admission stays original.
-    retirementSlotIdentity: Boolean = false
+    retirementSlotIdentity: Boolean = false,
+    // IntegerCore validates exactly the prefix consumed by its accepted rename lanes.
+    fetchAcceptedPrefixValidation: Boolean = false,
+    // A two-word, eight-byte-aligned instruction packet cannot span translation pages.
+    alignedFetchSinglePage: Boolean = false,
+    // Store next-line permission before fault and reconstruct from that checked record.
+    factorCheckedNextAllowed: Boolean = false,
+    // Tagged reservations are registered and keep their real LSU response owner ready.
+    localTaggedResponseReady: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -194,6 +202,15 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!factorCheckedNextAllowed || dataNextLinePrefetch,
+        "checked hint factoring requires enabled next-line prefetch")
+    require(!localTaggedResponseReady || taggedStoreReturns,
+        "local response readiness requires registered, nonreused tagged LSU reservations")
+    require(!fetchAcceptedPrefixValidation || (registeredFetchPacket && parallelFetchValidation && renameWidth == 2),
+        "accepted-prefix fetch validation requires the two-lane registered parallel-validation caller")
+    require(!alignedFetchSinglePage || (registeredTranslationHeads && alignedFetchPmp &&
+        compressedInstructions && renameWidth == 2),
+        "single-page fetch specialization requires registered, aligned two-word compressed instruction requests")
     require(!retirementSlotIdentity || (retirementIntent && registeredRobRetirement &&
         completionWidth == 2 && commitWidth == 2 && robEntries == 16 && tagBits == 64),
         "retirement-slot identity requires the qualified ROB16 full-tag intent profile")

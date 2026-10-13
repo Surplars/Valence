@@ -24,7 +24,9 @@ private[ooo] object R3ReadLocalityProfile {
     require(on.cache == off.cache && on.ddr == off.ddr, "cache/DDR resource products must remain identical")
     for (c <- Seq(off, on)) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(c.productArity == 84 && c.coreParams.productArity == 168 &&
+        require(!c.fetchAcceptedPrefixValidation && !c.alignedFetchSinglePage &&
+            !c.factorCheckedNextAllowed && !c.localTaggedResponseReady)
+        require(c.productArity == 88 && c.coreParams.productArity == 172 &&
             c.cache.productArity == 23 && c.ddr.productArity == 9)
     }
     def requireOn(options: Seq[String], c: FpgaNextConfig): Unit = {

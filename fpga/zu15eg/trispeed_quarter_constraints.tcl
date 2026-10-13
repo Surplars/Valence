@@ -7,6 +7,19 @@ source [file join [file dirname [info script]] native_quarter_clock_constraints.
 # Auto keeps the default board recipe compatible with either source parameter;
 # it still audits the detected circuit and never adds a reset exception.
 proc valence_trispeed_quarter_audit {hier {localResetRelease auto}} {
+    if {![info exists ::valence_native_mac_mode::selected]} {
+        error "Source the bound native-mac-mode.tcl before granting any pad exception"
+    }
+    if {$localResetRelease ne "auto" && $localResetRelease != $::valence_native_mac_mode::t1} {
+        error "Reset mode conflicts with the bound synthesis contract"
+    }
+    valence_native_mac_assert_mode $hier
+    # Fresh semantic role proof is mandatory for both modes. The ON proof has
+    # no fixed twelve-register condition. It returns only the actual five lanes.
+    return $::valence_mac_roles::last_lanes
+}
+# Retained for diagnostic comparison only; never called by the timing recipe.
+proc valence_trispeed_quarter_legacy_diagnostic {hier {localResetRelease auto}} {
     set clock [get_cells -quiet $hier/tx_clock_ddr]
     set lanes [get_cells -quiet "$hier/transmit*.data_ddr"]
     if {[llength $clock]!=1 || [llength $lanes]!=5} {error "Require six real tri-speed ODDR cells"}
@@ -111,7 +124,8 @@ proc valence_trispeed_quarter_tx_constraints {hier mbps {localResetRelease auto}
         default {error "Use one explicit10/100/1000 STA scenario"}
     }
     if {[llength [get_clocks -quiet phy_tx_capture]]} {error "Do not overwrite a legacy/existing capture clock"}
-    set source [get_pins -quiet $hier/tx_clock_ddr/CLK]
+    set sourceName $::valence_mac_roles::last_clock/CLK
+    set source [get_pins -quiet $sourceName]
     set txc [get_ports -quiet eth_txc]
     set outputs [get_ports -quiet {eth_txd[*] eth_tx_ctl}]
     if {[llength $source]!=1 || [llength $txc]!=1 || [llength $outputs]!=5} {error "Missing real TX pin/source endpoints"}
@@ -127,9 +141,9 @@ proc valence_trispeed_quarter_tx_constraints {hier mbps {localResetRelease auto}
     # Only the physically impossible falling DATA-output transition is removed,
     # after proving all five D0/D4 pairs are identical in the actual netlist.
     # Internal D/clock/reset, all rising data paths and all CDC buses stay timed.
-    set padClock [get_clocks -of_objects $source]
+    set padClock [get_clocks -of_objects [get_pins -quiet $sourceName]]
     foreach c $lanes {
-        set oq [get_pins -of_objects $c -filter {REF_PIN_NAME == OQ}]
+        set oq [get_pins -of_objects [get_cells -quiet $c] -filter {REF_PIN_NAME == OQ}]
         if {[llength $oq]!=1} {error "Missing actual pad-only OQ exception endpoint"}
         set_false_path -fall_from $padClock -through $oq -to $outputs
     }

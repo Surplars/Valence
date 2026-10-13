@@ -62,7 +62,9 @@ object BoardSocConfig {
         fetchAddressBeforePmp: Boolean = false, queuedHeadSelection: Boolean = false,
         alignedNextLinePmp: Boolean = false, memoryPreparationHeadMask: Boolean = false,
         directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
-        retirementSlotIdentity: Boolean = false): OooParams = {
+        retirementSlotIdentity: Boolean = false,
+        fetchAcceptedPrefixValidation: Boolean = false, alignedFetchSinglePage: Boolean = false,
+        factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -86,6 +88,8 @@ object BoardSocConfig {
             directRank0MemorySourceIds = directRank0MemorySourceIds,
             fetchReadyDataClear = fetchReadyDataClear,
             retirementSlotIdentity = retirementSlotIdentity,
+            fetchAcceptedPrefixValidation = fetchAcceptedPrefixValidation, alignedFetchSinglePage = alignedFetchSinglePage,
+            factorCheckedNextAllowed = factorCheckedNextAllowed, localTaggedResponseReady = localTaggedResponseReady,
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -274,7 +278,9 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         alignedNextLinePmp: Boolean = false, registerProbeLookup: Boolean = false,
         localAddressRanges: Boolean = false, memoryPreparationHeadMask: Boolean = false,
         directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
-        retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false) extends Module {
+        retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false,
+        fetchAcceptedPrefixValidation: Boolean = false, alignedFetchSinglePage: Boolean = false,
+        factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -323,6 +329,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
             directRank0MemorySourceIds = directRank0MemorySourceIds,
             fetchReadyDataClear = fetchReadyDataClear,
             retirementSlotIdentity = retirementSlotIdentity,
+            fetchAcceptedPrefixValidation = fetchAcceptedPrefixValidation, alignedFetchSinglePage = alignedFetchSinglePage,
+            factorCheckedNextAllowed = factorCheckedNextAllowed, localTaggedResponseReady = localTaggedResponseReady,
             directRegisteredExecutionOperands = directRegisteredExecutionOperands,
             sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
             eagerFetchPrefixSelect = eagerFetchPrefixSelect,

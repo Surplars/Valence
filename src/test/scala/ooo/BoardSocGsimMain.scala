@@ -52,7 +52,9 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     alignedNextLinePmp: Boolean = false, registerProbeLookup: Boolean = false,
     localAddressRanges: Boolean = false, memoryPreparationHeadMask: Boolean = false,
     directRank0MemorySourceIds: Boolean = false, fetchReadyDataClear: Boolean = false,
-    retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false) extends Module {
+    retirementSlotIdentity: Boolean = false, localCacheReadSelection: Boolean = false,
+    fetchAcceptedPrefixValidation: Boolean = false, alignedFetchSinglePage: Boolean = false,
+    factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     require(frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&
@@ -66,6 +68,10 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         fetchReadyDataClear == configurationCheck.get.coreParams.fetchReadyDataClear &&
         retirementSlotIdentity == configurationCheck.get.coreParams.retirementSlotIdentity &&
         localCacheReadSelection == configurationCheck.get.localCacheReadSelection &&
+        fetchAcceptedPrefixValidation == configurationCheck.get.coreParams.fetchAcceptedPrefixValidation &&
+        alignedFetchSinglePage == configurationCheck.get.coreParams.alignedFetchSinglePage &&
+        factorCheckedNextAllowed == configurationCheck.get.coreParams.factorCheckedNextAllowed &&
+        localTaggedResponseReady == configurationCheck.get.coreParams.localTaggedResponseReady &&
         directRegisteredExecutionOperands == configurationCheck.get.coreParams.directRegisteredExecutionOperands &&
         sharedCanonicalStoreOwnerMatch == configurationCheck.get.coreParams.sharedCanonicalStoreOwnerMatch &&
         eagerFetchPrefixSelect == configurationCheck.get.coreParams.eagerFetchPrefixSelect &&

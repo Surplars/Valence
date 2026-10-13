@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mac_netlist_review as review
 import media_integration as media
 import export as exporter
+import board_t1 as mode
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
@@ -356,13 +357,18 @@ class BindingTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.base=Path(self.tmp.name);self.export=self.base/'export';(self.export/'board').mkdir(parents=True)
-        (self.export/'board/soc_top_fpga_next_ddr.sv').write_text('// synthetic mock board\n')
+        shutil.copy2(HERE/"soc_top_fpga_next_ddr.sv", self.export/"board/soc_top_fpga_next_ddr.sv")
         (self.export/'rtl').mkdir();(self.export/'rtl/top.sv').write_text('// synthetic not emitted\n')
         (self.export/'synthesis-files.f').write_text('rtl/top.sv\n')
         staged=media.stage(ROOT,self.export)
         self.receipt={'status':'PASS_RTL_EXPORT_ONLY','source_sha256':exporter.sources(),
             'tri_speed_native_integration':staged,'rtl_sha256':{'rtl/top.sv':review.sha(self.export/'rtl/top.sv')},
             'synthesis_filelist_sha256':review.sha(self.export/'synthesis-files.f')}
+        self.receipt['native_mac_mode'] = mode.stage(ROOT,self.export,True,True)
+        wrapper='board/soc_top_fpga_next_ddr.sv'
+        self.receipt['board_wrapper']={'media':'experimental-trispeed','path':wrapper,
+            'source':'fpga/next/soc_top_fpga_next_ddr.sv','sha256':review.sha(self.export/wrapper),
+            'source_sha256':review.sha(HERE/'soc_top_fpga_next_ddr.sv')}
         review.dump(self.export/'receipt.json',self.receipt)
 
     def test_source_closure_and_stage(self):
@@ -398,6 +404,15 @@ class BindingTests(unittest.TestCase):
             'checkpoint_sha256':review.sha(checkpoint),'rate_mbps':1000,'source_sha256':self.receipt['source_sha256'],
             'rtl_sha256':self.receipt['rtl_sha256'],'implementation_log_sha256':{'mock.log':review.sha(log)},
             'constraint_files_sha256':constraint_files}
+        observations={'schema':'valence-native-mac-consumer-v2','actual_synthesis_executed':'1','stage':'synth',
+            'top':mode.TOP,'t1':'1','selected_half':'1','tool':'SYNTHETIC','part':'SYNTHETIC',
+            'export_session_identity':mode.session_identity(self.export),'session_generation':'1',
+            'invocation':f'-top {mode.TOP} -generic {{{mode.PARAMETER}=1 {mode.SELECTED_PARAMETER}=1}} -part SYNTHETIC',
+            'audit':'PASS_MAC_ROLE_SEMANTICS t1=1 selected_half=1 synthetic_fixture_only=1'}
+        Path(str(checkpoint)+'.mac.tsv').write_text(''.join(key+'\t'+value.encode().hex()+'\n' for key,value in observations.items()))
+        mode.consumer_receipt(self.export,checkpoint,seal=True)
+        data['native_mac_mode_sha256']=review.sha(self.export/'board/native-mac-mode.json')
+        data['native_mac_consumer_sha256']=review.sha(Path(str(checkpoint)+'.mac.json'))
         proof=self.base/'mock-provenance.json';review.dump(proof,data)
         return checkpoint,proof,data
 
@@ -423,6 +438,18 @@ class BindingTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'omits current packet'):review.prepare_job(self.export,checkpoint,proof,self.base/'job',1000)
         review.dump(proof,data);(self.base/'mock.log').write_text('changed\n')
         with self.assertRaisesRegex(RuntimeError,'provenance artifact drift'):review.prepare_job(self.export,checkpoint,proof,self.base/'job',1000)
+
+    def test_missing_mode_consumer_or_semantic_gate_rejected(self):
+        checkpoint,proof,data=self.proof()
+        for key in ('native_mac_mode_sha256','native_mac_consumer_sha256'):
+            bad=dict(data);del bad[key];review.dump(proof,bad)
+            with self.assertRaisesRegex(RuntimeError,'fresh mode/consumer/semantic gate'):
+                review.prepare_job(self.export,checkpoint,proof,self.base/'job',1000)
+        review.dump(proof,data)
+        record=Path(str(checkpoint)+'.mac.tsv')
+        record.write_text(''.join(line+'\n' for line in record.read_text().splitlines() if not line.startswith('audit\t')))
+        with self.assertRaisesRegex(RuntimeError,'semantic audit'):
+            review.prepare_job(self.export,checkpoint,proof,self.base/'job',1000)
 
     def test_tcl_values_do_not_execute(self):
         dangerous='a[error INJECTED]$x"\\{}\n;error bad'

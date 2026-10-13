@@ -138,7 +138,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
     ledger.io.rawRequests.foreach(_ := io.rawRequests.get)
     ledger.io.fetchFaultMask.foreach(_ := io.fetchFaultMask.get)
-    val lsu             = Module(new ParallelLoadStoreUnit(p, canonicalHandoff))
+    val lsu             = Module(new ParallelLoadStoreUnit(p, canonicalHandoff,
+        localTaggedResponseReady = p.localTaggedResponseReady))
     val mulDiv          = Module(new MultiplyDivide(p, divisionOnly = true))
     val multiplier      = Module(new PipelinedMultiply(p))
     val systemUnit      = if (p.machineSystem) Some(Module(new MachineSystemUnit(p))) else None

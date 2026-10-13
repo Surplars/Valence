@@ -9,7 +9,7 @@ class RetirementSlotSpec extends AnyFunSuite {
         val off = RetirementSlotTestProfile.off
         val on = RetirementSlotTestProfile.on
         RetirementSlotProfile.requirePair(off, on)
-        assert(off.productArity == 168 && off.retirementIntent && off.predecodedHeadDrain)
+        assert(off.productArity == 172 && off.retirementIntent && off.predecodedHeadDrain)
         assert(RetirementSlotProfile.original164(off).size == 164)
         assert(PlacedTimingProfile.candidateOptions.size == 59)
         val defaults = OooParams()
@@ -19,7 +19,9 @@ class RetirementSlotSpec extends AnyFunSuite {
     test("historical projection rejects every named enabled addition") {
         val p = RetirementSlotTestProfile.off
         for (changed <- Seq(p.copy(memoryPreparationHeadMask = true), p.copy(directRank0MemorySourceIds = true),
-            p.copy(fetchReadyDataClear = true), p.copy(retirementSlotIdentity = true))) {
+            p.copy(fetchReadyDataClear = true), p.copy(retirementSlotIdentity = true),
+            p.copy(fetchAcceptedPrefixValidation = true), p.copy(alignedFetchSinglePage = true),
+            p.copy(factorCheckedNextAllowed = true), p.copy(localTaggedResponseReady = true))) {
             intercept[IllegalArgumentException] { RetirementSlotProfile.original164(changed) }
         }
     }

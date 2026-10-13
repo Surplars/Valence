@@ -112,7 +112,8 @@ class MappedMachineCore(
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
             translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
             registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-            queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp))
+            queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
+            factorCheckedNextAllowed = p.factorCheckedNextAllowed))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,

@@ -7,7 +7,8 @@ import soc.core.ooo._
 /** Named append-only bridge to actual785; dynamic qualification is recorded separately. */
 object RetirementSlotProfile {
     val addedCoreNames = Seq("memoryPreparationHeadMask", "directRank0MemorySourceIds",
-        "fetchReadyDataClear", "retirementSlotIdentity")
+        "fetchReadyDataClear", "retirementSlotIdentity", "fetchAcceptedPrefixValidation",
+        "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady")
     val actual59CoreNames = PlacedTimingProfileBridge.publishedCoreNames ++
         Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp")
     val config = PlacedTimingProfile.on
@@ -22,17 +23,17 @@ object RetirementSlotProfile {
 
     def original164(defaultFalse: OooParams): Map[String, Any] = {
         require(defaultFalse.productElementNames.toSeq == actual59CoreNames ++ addedCoreNames,
-            "only the four named appended core fields may bridge actual785")
+            "only the eight named appended core fields may bridge actual785")
         val fields = defaultFalse.productElementNames.zip(defaultFalse.productIterator).toMap
         require(addedCoreNames.forall(name => fields(name) == false),
-            "all four named additions must be false before historical projection")
+            "all eight named additions must be false before historical projection")
         val original = actual59CoreNames.map(name => name -> fields(name)).toMap
         require(PostedBoardConfiguration.json(original) == Files.readString(frozen).trim,
             "one or more original164 core values differ from actual785")
         original
     }
     original164(p)
-    require(p.productArity == 168 && p.retirementIntent && p.predecodedHeadDrain && p.tagBits == 64)
+    require(p.productArity == 172 && p.retirementIntent && p.predecodedHeadDrain && p.tagBits == 64)
     require(p.robEntries == 16 && p.physicalRegs == 48 && p.commitWidth == 2 && p.completionWidth == 2)
 
     def requirePair(off: OooParams, on: OooParams): Unit = {

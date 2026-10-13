@@ -6,7 +6,15 @@ import chisel3.util._
 /** Bounded RAM read concurrency. Replies are ordered by default, or matched to
   * nonreused slot reservations by the optional CPU return protocol.
   */
-class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) extends Module {
+class ParallelLoadStoreUnit(
+    p: OooParams,
+    canonicalHandoff: Boolean = false,
+    val localTaggedResponseReady: Boolean = false
+) extends Module {
+    require(localTaggedResponseReady == p.localTaggedResponseReady,
+        "tagged readiness constructor must use the unified OooParams flag")
+    require(!localTaggedResponseReady || p.taggedStoreReturns,
+        "local response readiness requires registered, nonreused tagged LSU reservations")
     require(!canonicalHandoff || (p.canonicalVirtualStoreOverlap && p.virtualRamLoadPrecheck))
     private val indexBits = math.max(1, log2Ceil(p.memoryEntries))
     val io                = IO(new Bundle {
@@ -189,6 +197,18 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
             owners.io.count := PopCount(pending)
             when(owners.io.enq.fire) { pending(owners.io.enq.bits) := true.B }
             when(io.memory.response.fire) { pending(slot) := false.B }
+            if (localTaggedResponseReady) {
+                for (i <- 0 until p.memoryEntries) {
+                    when(pending(i)) {
+                        // LoadStoreUnit's public phase encoding is idle/request/response/done.
+                        // Cancellation retains this response responsibility until its real fire.
+                        assert(slots(i).io.phase === 2.U,
+                            "a pending tagged reservation retains a response-state LSU owner")
+                        assert(slots(i).io.memory.response.ready,
+                            "registered tagged owner is always ready for its actual response")
+                    }
+                }
+            }
             when(io.memory.response.valid) {
                 val entering = io.memory.request.fire && requests.io.chosen === slot
                 assert(config.integer(handle) && (pending(slot) || entering),
@@ -242,9 +262,12 @@ class ParallelLoadStoreUnit(p: OooParams, canonicalHandoff: Boolean = false) ext
         lockedIndex := requests.io.chosen
     }
     when(io.memory.request.fire) { locked := false.B }
-    io.memory.response.ready := owners.io.deq.valid && Mux1H(
+    // Tagged ownership cannot flow through request acceptance: pending is registered.
+    // Its owner therefore waits in response state until this exact response fires.
+    // The ordered flow-through topology retains the original slot-ready selection.
+    io.memory.response.ready := owners.io.deq.valid && (if (localTaggedResponseReady) true.B else Mux1H(
         (0 until p.memoryEntries).map(i => (owners.io.deq.bits === i.U) -> slots(i).io.memory.response.ready)
-    )
+    ))
     owners.io.deq.ready := io.memory.response.fire
     for ((slot, i) <- slots.zipWithIndex) {
         slot.io.memory.response.valid := io.memory.response.valid && owners.io.deq.valid && owners.io.deq.bits === i.U

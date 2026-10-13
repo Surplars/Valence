@@ -93,6 +93,7 @@ def stage(root, output):
     (board / "require_trispeed.tcl").write_text(
         "# Run on a fresh matched synthesized board, after package-only XDC.\n"
         "# This scoped gate is not complete board/CDC/RDC/routed signoff.\n"
+        "source [file join [file dirname [info script]] native-mac-mode.tcl]\n"
         "if {![info exists VALENCE_TRISPEED_MBPS]} {error {Set VALENCE_TRISPEED_MBPS to 10, 100 or 1000}}\n"
         "source [file join [file dirname [info script]] trispeed_board_constraints.tcl]\n"
         "valence_trispeed_board_constraints $VALENCE_TRISPEED_MBPS\n"

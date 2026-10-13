@@ -31,23 +31,40 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         val state = RegInit(idle)
         val issued = RegInit(false.B)
         val virtualPc = Reg(UInt(64.W))
-        val secondVirtualPc = Reg(UInt(64.W))
+        val secondVirtualPc = if (p.alignedFetchSinglePage) None else Some(Reg(UInt(64.W)))
         val requested = Reg(UInt(packetWords.W))
         val satp = Reg(UInt(64.W))
         val sum = Reg(Bool())
         val mxr = Reg(Bool())
         val privilege = Reg(UInt(2.W))
         val firstPhysical = Reg(UInt(64.W))
-        val secondPhysical = Reg(UInt(64.W))
-        val secondPageFault = RegInit(false.B)
-        val secondAccessFault = RegInit(false.B)
+        val secondPhysical = if (p.alignedFetchSinglePage) None else Some(Reg(UInt(64.W)))
+        val secondPageFault = if (p.alignedFetchSinglePage) None else Some(RegInit(false.B))
+        val secondAccessFault = if (p.alignedFetchSinglePage) None else Some(RegInit(false.B))
         val permissionCaptured = RegInit(false.B)
         val allowed = Reg(UInt(packetWords.W))
         val errors = Reg(UInt(packetWords.W))
         val pageFaults = Reg(UInt(packetWords.W))
         val data = Reg(UInt((32 * packetWords).W))
-        val crosses = if (packetWords == 2) virtualPc(11, 0) === 4092.U && requested(1) else false.B
+        val crosses = if (packetWords == 2 && !p.alignedFetchSinglePage)
+            virtualPc(11, 0) === 4092.U && requested(1) else false.B
         val alignedPacket = p.alignedFetchPmp && p.compressedInstructions
+
+        if (p.alignedFetchSinglePage) {
+            // The frontend constructs packet bases by clearing bits 2:0, including
+            // the packet at page offset 4088. A 32-bit instruction at offset 4094
+            // is assembled upstream from two independently translated packets.
+            when(io.virtual.request.valid) {
+                assert(io.virtual.request.bits(2, 0) === 0.U,
+                    "single-page fetch offers must be eight-byte aligned")
+            }
+            when(state =/= idle) {
+                assert(virtualPc(2, 0) === 0.U,
+                    "single-page fetch ownership must retain an aligned request")
+                assert(state =/= translateSecond && state =/= sendSecond && state =/= waitSecond,
+                    "an aligned fetch owner must never enter a second-page phase")
+            }
+        }
 
         // Only a committed reply handshake may replace the single owner. The
         // old response remains registered and unchanged until that edge.
@@ -61,14 +78,14 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
             virtualPc := io.virtual.request.bits
             // The generic cross-page path still needs modulo64 +4, but this
             // carry completes at request capture, before the TLB lookup.
-            secondVirtualPc := io.virtual.request.bits + 4.U
+            secondVirtualPc.foreach(_ := io.virtual.request.bits + 4.U)
             requested := io.virtual.requestMask
             satp := io.vmState.satp
             sum := io.vmState.sum
             mxr := io.vmState.mxr
             privilege := io.privilege
-            secondPageFault := false.B
-            secondAccessFault := false.B
+            secondPageFault.foreach(_ := false.B)
+            secondAccessFault.foreach(_ := false.B)
             permissionCaptured := false.B
             allowed := 0.U
             errors := (if (packetWords == 4) ~io.virtual.requestMask else 0.U)
@@ -80,7 +97,7 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
                 // live CSR changes cannot change the captured address or mode.
                 val identity = io.privilege === 3.U || io.vmState.satp(63, 60) === 0.U
                 firstPhysical := io.virtual.request.bits
-                secondPhysical := io.virtual.request.bits + 4.U
+                secondPhysical.foreach(_ := io.virtual.request.bits + 4.U)
                 state := Mux(identity, Mux(io.virtual.requestMask.orR, sendFirst, reply), translateFirst)
             } else {
                 state := translateFirst
@@ -97,10 +114,11 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
             when(io.virtual.request.ready) { data := 0.U }
         }
 
-        val translating = state === translateFirst || state === translateSecond
-        val second = state === translateSecond
+        val second = if (p.alignedFetchSinglePage) false.B else state === translateSecond
+        val translating = state === translateFirst || second
         io.translation.request.valid := translating && !issued
-        io.translation.request.bits.virtualAddress := Mux(second, secondVirtualPc, virtualPc)
+        io.translation.request.bits.virtualAddress :=
+            secondVirtualPc.map(pc => Mux(second, pc, virtualPc)).getOrElse(virtualPc)
         io.translation.request.bits.rootPpn := satp(43, 0)
         io.translation.request.bits.asid := satp(59, 44)
         io.translation.request.bits.mode := satp(63, 60)
@@ -122,9 +140,9 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
                 }
             }
             when(second) {
-                secondPhysical := response.physicalAddress
-                secondPageFault := response.pageFault
-                secondAccessFault := response.accessFault
+                secondPhysical.foreach(_ := response.physicalAddress)
+                secondPageFault.foreach(_ := response.pageFault)
+                secondAccessFault.foreach(_ := response.accessFault)
                 // Even when page two faults, permission for page one's saved
                 // PA still decides whether its requested word may be sent.
                 state := sendFirst
@@ -149,8 +167,8 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
             val samePageAddress = if (alignedPacket)
                 Cat(firstPhysical(63, log2Ceil(4 * packetWords)), word.U(log2Ceil(packetWords).W), 0.U(2.W))
             else firstPhysical + (4 * word).U
-            val wordAddress = if (packetWords == 2 && word == 1)
-                Mux(crosses, secondPhysical, samePageAddress) else samePageAddress
+            val wordAddress = if (packetWords == 2 && word == 1 && !p.alignedFetchSinglePage)
+                Mux(crosses, secondPhysical.get, samePageAddress) else samePageAddress
             val checker = Module(new PmpChecker(p.pmpEntries, alignedWordAccess = alignedPacket))
             checker.io.state := io.pmpState
             // Low bits are defined even when these PA registers are inactive;
@@ -166,12 +184,14 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         val checkedPages = Wire(UInt(packetWords.W))
         if (packetWords == 2) {
             val firstAllowed = requested(0) && !denied(0)
-            val secondFault = crosses && (secondPageFault || secondAccessFault)
+            val secondPage = secondPageFault.getOrElse(false.B)
+            val secondAccess = secondAccessFault.getOrElse(false.B)
+            val secondFault = crosses && (secondPage || secondAccess)
             val secondAllowed = requested(1) && !secondFault && !denied(1)
             checkedAllowed := Cat(secondAllowed, firstAllowed)
-            checkedErrors := Cat(requested(1) && !(crosses && secondPageFault) &&
-                ((crosses && secondAccessFault) || denied(1)), requested(0) && denied(0))
-            checkedPages := Cat(crosses && secondPageFault, false.B)
+            checkedErrors := Cat(requested(1) && !(crosses && secondPage) &&
+                ((crosses && secondAccess) || denied(1)), requested(0) && denied(0))
+            checkedPages := Cat(crosses && secondPage, false.B)
         } else {
             checkedAllowed := requested & ~denied.asUInt
             checkedErrors := ~checkedAllowed
@@ -179,12 +199,16 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         }
         val activeAllowed = Mux(permissionCaptured, allowed, checkedAllowed)
         val secondOnly = crosses && !activeAllowed(0)
-        val sendingSecond = state === sendSecond || (state === sendFirst && secondOnly)
+        val sendingSecond = if (p.alignedFetchSinglePage) false.B
+            else state === sendSecond || (state === sendFirst && secondOnly)
         val firstMask = if (packetWords == 2) Mux(crosses, Cat(false.B, activeAllowed(0)), activeAllowed)
             else activeAllowed
         val offerMask = Mux(sendingSecond, 1.U(packetWords.W), firstMask)
-        io.physical.request.valid := (state === sendFirst || state === sendSecond) && activeAllowed.orR
-        io.physical.request.bits := Mux(sendingSecond, secondPhysical, firstPhysical)
+        val sending = if (p.alignedFetchSinglePage) state === sendFirst
+            else state === sendFirst || state === sendSecond
+        io.physical.request.valid := sending && activeAllowed.orR
+        io.physical.request.bits :=
+            secondPhysical.map(address => Mux(sendingSecond, address, firstPhysical)).getOrElse(firstPhysical)
         io.physical.requestMask := offerMask
         when(state === sendFirst && !permissionCaptured) {
             permissionCaptured := true.B
@@ -196,9 +220,10 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         when(io.physical.request.fire) {
             state := Mux(sendingSecond, waitSecond, waitFirst)
         }
-        io.physical.response.ready := state === waitFirst || state === waitSecond
+        val waitingSecond = if (p.alignedFetchSinglePage) false.B else state === waitSecond
+        io.physical.response.ready := state === waitFirst || waitingSecond
         when(io.physical.response.fire) {
-            when(state === waitSecond) {
+            when(waitingSecond) {
                 data := Cat(io.physical.response.bits(31, 0), data(31, 0))
                 errors := errors | (io.physical.responseError(0) << 1)
                 pageFaults := pageFaults | (io.physical.responsePageFault(0) << 1)

@@ -46,7 +46,11 @@ private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
-    val alignedNextLinePmp: Boolean = false) extends Module {
+    val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false) extends Module {
+    require(factorCheckedNextAllowed == p.factorCheckedNextAllowed,
+        "checked hint constructor must use the unified OooParams flag")
+    require(!factorCheckedNextAllowed || (registerCheckedRequests && p.dataNextLinePrefetch),
+        "checked hint factoring requires the non-flow checked queue and enabled next-line prefetch")
     require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
         "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
@@ -397,6 +401,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size))
     // Snapshot the request and fault decision before downstream grants.
     // Fault placeholders remain ordered but never issue physical requests.
+    // Both checked implementations are non-flow: hint permission and fault always
+    // cross the same register edge before optional reconstruction at dequeue.
     val checked: Option[QueueIO[CheckedDataRequest]] = if (registerCheckedRequests)
         Some(if (p.registeredTranslationHeads)
             Module(new TwoEntryRegisterQueue(new CheckedDataRequest(p))).suggestName("checked").io
@@ -449,6 +455,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
     // Authorization is captured with the checked request, including the identity
     // queue bypass. The incoming hint is always overwritten, even when disabled.
+    // Factoring stores permission before the current-request fault in the existing
+    // hint bit; that same record already carries the fault used at dequeue.
     private var constructedNextLineAuthorization: Option[NextLineAuthorization] = None
     def nextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
     val nextAllowed = if (p.dataNextLinePrefetch) {
@@ -459,7 +467,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
             Mux(identityOffer, context.dataPrivilege, head.privilege))
         authorize.io.pmpState := io.pmpState
-        authorize.io.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
+        authorize.io.fault := (if (factorCheckedNextAllowed) false.B
+            else Mux(identityOffer || physicalIngressOffer, false.B, fault))
         authorize.io.allowed
     } else false.B
     checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)
@@ -574,8 +583,13 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // No authorization metadata escapes into the cache, MMIO fabric or page-walk arbiter.
     io.physical.request.bits.precheckedLoad := false.B
     io.physical.request.bits.translationEpoch := 0.U
+    // Reconstruct with the captured fault only. The later physicalStale gate did
+    // not participate in the old captured hint and must not change its value.
     io.physical.request.bits.prefetchNextAllowed := (if (p.dataNextLinePrefetch)
-        checked.map(_.deq.bits.request.prefetchNextAllowed).getOrElse(nextAllowed) else false.B)
+        checked.map { stage =>
+            val allowed = stage.deq.bits.request.prefetchNextAllowed
+            if (factorCheckedNextAllowed) allowed && !stage.deq.bits.fault else allowed
+        }.getOrElse(nextAllowed) else false.B)
     owners.io.enq.valid := physicalValid && physicalReady
     owners.io.enq.bits.fault := physicalFault
     owners.io.enq.bits.pageFault := physicalPageFault

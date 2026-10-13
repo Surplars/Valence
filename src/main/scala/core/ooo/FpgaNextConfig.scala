@@ -92,7 +92,11 @@ final case class FpgaNextConfig(
     directRank0MemorySourceIds: Boolean = false,
     fetchReadyDataClear: Boolean = false,
     retirementSlotIdentity: Boolean = false,
-    localCacheReadSelection: Boolean = false
+    localCacheReadSelection: Boolean = false,
+    fetchAcceptedPrefixValidation: Boolean = false,
+    alignedFetchSinglePage: Boolean = false,
+    factorCheckedNextAllowed: Boolean = false,
+    localTaggedResponseReady: Boolean = false
 ) {
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
@@ -247,7 +251,11 @@ final case class FpgaNextConfig(
         (if (memoryScheduleOverlap) "-memory-schedule-overlap" else "") +
         (if (futureHomeWayReservation) "-future-home-way-reservation" else "") +
         (if (predecodedHeadDrain) "-predecoded-head-drain" else "") +
-        (if (retirementIntent) "-retirement-intent" else "")
+        (if (retirementIntent) "-retirement-intent" else "") +
+        (if (fetchAcceptedPrefixValidation) "-fetch-accepted-prefix-validation" else "") +
+        (if (alignedFetchSinglePage) "-aligned-fetch-single-page" else "") +
+        (if (factorCheckedNextAllowed) "-factor-checked-next-allowed" else "") +
+        (if (localTaggedResponseReady) "-local-tagged-response-ready" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -319,6 +327,8 @@ final case class FpgaNextConfig(
         directRank0MemorySourceIds = directRank0MemorySourceIds,
         fetchReadyDataClear = fetchReadyDataClear,
         retirementSlotIdentity = retirementSlotIdentity,
+        fetchAcceptedPrefixValidation = fetchAcceptedPrefixValidation, alignedFetchSinglePage = alignedFetchSinglePage,
+        factorCheckedNextAllowed = factorCheckedNextAllowed, localTaggedResponseReady = localTaggedResponseReady,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -366,6 +376,8 @@ final case class FpgaNextConfig(
         directRank0MemorySourceIds = directRank0MemorySourceIds,
         fetchReadyDataClear = fetchReadyDataClear,
         retirementSlotIdentity = retirementSlotIdentity,
+        fetchAcceptedPrefixValidation = fetchAcceptedPrefixValidation, alignedFetchSinglePage = alignedFetchSinglePage,
+        factorCheckedNextAllowed = factorCheckedNextAllowed, localTaggedResponseReady = localTaggedResponseReady,
         directRegisteredExecutionOperands = directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = eagerFetchPrefixSelect,
@@ -402,7 +414,7 @@ object FpgaNextConfig {
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent",
-            "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges")) {
+            "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges", "--fetch-accepted-prefix-validation", "--aligned-fetch-single-page", "--factor-checked-next-allowed", "--local-tagged-response-ready")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -487,6 +499,10 @@ object FpgaNextConfig {
             directRank0MemorySourceIds = options.contains("--direct-rank0-memory-source-ids"),
             fetchReadyDataClear = options.contains("--fetch-ready-data-clear"),
             retirementSlotIdentity = options.contains("--retirement-slot-identity"),
+            fetchAcceptedPrefixValidation = options.contains("--fetch-accepted-prefix-validation"),
+            alignedFetchSinglePage = options.contains("--aligned-fetch-single-page"),
+            factorCheckedNextAllowed = options.contains("--factor-checked-next-allowed"),
+            localTaggedResponseReady = options.contains("--local-tagged-response-ready"),
             localCacheReadSelection = options.contains("--local-cache-read-selection"),
             directRegisteredExecutionOperands = options.contains("--direct-registered-execution-operands"),
             registeredCanonicalStoreEvent = options.contains("--registered-canonical-store-event"),

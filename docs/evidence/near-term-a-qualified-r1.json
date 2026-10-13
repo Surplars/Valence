@@ -1,0 +1,281 @@
+{
+  "schema": "near-term-a-compact-qualification-v1",
+  "base_commit": "8e9a36c18a699e8b64830a97bb197f9fc52458bf",
+  "base_tree": "d498b36d8da24d06e9143428a0b7c042c88dff66",
+  "cpu_status": "PASS_STRICT_EXACT64_COPY_NEMU_PMP_AND_ACTUAL_NATIVE_MODULE_AUDIT",
+  "cpu_qualification_sha256": "3ab8537c4b01602df5bba8ca205d91219600ac6d24eb545ea3970be541585cf9",
+  "cpu_source_freeze_sha256": "9b4671eafc415900ffb10089d0cb007c1ff56fafcedaef243beb54627d81169e",
+  "native_audit_sha256": "a8b6792f69a4e77c41be33f2dcfdf81d668fcf8a2087e506fcea6c1a03ab07fd",
+  "native_parser_binding_sha256": "c1e72fb9c304c1de92a39ddd659771ef9816431c41f2c4a76bcb8d822c12501d",
+  "baseline_cpu_receipt_sha256": "a7d893a7b7fe3bd8a701aa0728002a574e4b38ca829c6a094042100c229a703e",
+  "new_default_off_fields": [
+    "fetchAcceptedPrefixValidation",
+    "alignedFetchSinglePage",
+    "factorCheckedNextAllowed",
+    "localTaggedResponseReady"
+  ],
+  "retained_options": 64,
+  "candidate_options": 68,
+  "constructor_arities": {
+    "core": 172,
+    "profile": 88,
+    "cache": 23,
+    "ddr": 9
+  },
+  "copy": {
+    "sv39": {
+      "inclusive_cycles": 191618,
+      "baseline_inclusive_cycles": 191618,
+      "inclusive_delta": 0,
+      "roi_delta": 0,
+      "tail_delta": 0,
+      "strict105_and_all_metrics_equal": true,
+      "complete_stdout_byte_parity": true,
+      "raw_trace_byte_parity": true
+    },
+    "bare": {
+      "inclusive_cycles": 198642,
+      "baseline_inclusive_cycles": 198642,
+      "inclusive_delta": 0,
+      "roi_delta": 0,
+      "tail_delta": 0,
+      "strict105_and_all_metrics_equal": true,
+      "complete_stdout_byte_parity": true,
+      "raw_trace_byte_parity": true
+    }
+  },
+  "copy_negatives": {
+    "status": "PASS",
+    "original_only": [
+      "read",
+      "memory",
+      "trap"
+    ]
+  },
+  "same_object_cases": {
+    "hot": {
+      "guest_sha256": "0111fa1a14051f2c909974e6d09786621ac20c0ecbbc86d11072f62b869df8c3",
+      "nemu": {
+        "guest_pc_checks": "108",
+        "boot_pc_checks": "5",
+        "guest_retire_edges": "81",
+        "dual_retire_edges": "27",
+        "guest_gpr_edges": "81",
+        "boot_gpr_edges": "3",
+        "gpr_value_checks": "2688",
+        "final_memory_bytes": "4194368",
+        "guest_pc_trace": "1706468337379855559",
+        "reference_resynchronizations": "0",
+        "gpr_boundary": "post_entire_retire_edge",
+        "independent_lane_intermediate_gpr": "0",
+        "speculative_requests_stepped": "0"
+      },
+      "control": {
+        "compressed_retired": "0",
+        "branches_retired": "5",
+        "taken_branches": "0",
+        "nonsequential_next_pcs": "4"
+      },
+      "completion": {
+        "kind": "hot",
+        "correctness_only": "1",
+        "dma_idle": "1",
+        "cycles": "1883"
+      }
+    },
+    "compressed": {
+      "guest_sha256": "3a7ec09c504ba3f2502885d3336886d51bd205ad366690f728dbd113e913b88d",
+      "nemu": {
+        "guest_pc_checks": "24",
+        "boot_pc_checks": "5",
+        "guest_retire_edges": "18",
+        "dual_retire_edges": "6",
+        "guest_gpr_edges": "18",
+        "boot_gpr_edges": "3",
+        "gpr_value_checks": "672",
+        "final_memory_bytes": "4194368",
+        "guest_pc_trace": "2170529770114698145",
+        "reference_resynchronizations": "0",
+        "gpr_boundary": "post_entire_retire_edge",
+        "independent_lane_intermediate_gpr": "0",
+        "speculative_requests_stepped": "0"
+      },
+      "control": {
+        "compressed_retired": "6",
+        "branches_retired": "3",
+        "taken_branches": "2",
+        "nonsequential_next_pcs": "4"
+      },
+      "completion": {
+        "kind": "compressed",
+        "correctness_only": "1",
+        "dma_idle": "1",
+        "cycles": "967"
+      }
+    },
+    "pmp-short": {
+      "stdout_sha256": "297342dfb4ba2eb7ed92e2a491701e016c6e55e24c219969900ae9a64cf9e43a",
+      "trap_pc": 2149581060,
+      "mtval": 2149581060,
+      "mcause": 1,
+      "target_retired": 1
+    },
+    "pmp-word": {
+      "stdout_sha256": "7d57919ffcdfbd220f5ac43762117de09452ad31b915e06be17f1d7d1fbf32af",
+      "trap_pc": 2149581058,
+      "mtval": 2149581060,
+      "mcause": 1,
+      "target_retired": 0
+    }
+  },
+  "nemu_negatives": {
+    "pc": {
+      "exit": 1,
+      "anchor": "NEMU PC mismatch"
+    },
+    "gpr": {
+      "exit": 1,
+      "anchor": "NEMU GPR mismatch"
+    },
+    "memory": {
+      "exit": 1,
+      "anchor": "NEMU memory mismatch"
+    }
+  },
+  "work_scope": {
+    "new_successful_cpu_emissions": 1,
+    "new_dut_generations": 1,
+    "new_dut_model_objects": 36,
+    "new_off_builds": 0,
+    "compiler_jobs": 1,
+    "same_object_host_links": 2,
+    "new_guest_builds": 0,
+    "same_object_zero_work": {
+      "dut_generations": 0,
+      "dut_object_compiles": 0,
+      "reference_builds": 0,
+      "state_resynchronizations": 0
+    }
+  },
+  "full_scala_source_compile": {
+    "production_sources": 201,
+    "test_sources": 389,
+    "hardfloat_sources": 18,
+    "affected_suites": 7,
+    "affected_tests": 21,
+    "full_historical_test_suite_qualified": false
+  },
+  "combined_native": {
+    "modules": 290,
+    "changed_modules": [
+      "DataTranslationAdapter",
+      "InstructionTranslationAdapter",
+      "LoadStoreUnit",
+      "NextLineAuthorization",
+      "ParallelLoadStoreUnit",
+      "RegisteredFetchPacket"
+    ],
+    "removed_fetch_state_bits": 130,
+    "new_state_bits": 0,
+    "permitted_internal_port_deletions": [
+      "LoadStoreUnit.io_memory_response_ready",
+      "NextLineAuthorization.io_fault"
+    ]
+  },
+  "production_sha256": {
+    "fpga/next/soc_top_fpga_next_ddr.sv": "5d40ba7a8b2a7b8ef2feced2d6c3db135470703170e58c5c12c2f7cc4b39556d",
+    "fpga/zu15eg/native_rgmii_trispeed_quarter.sv": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc",
+    "src/main/scala/core/ooo/BoardSocTop.scala": "62c49f684c5f495ab0ddc52d034d24a7de51a4f1e4572739b9733640d2ee6b01",
+    "src/main/scala/core/ooo/DataTranslationAdapter.scala": "88412548cd5138f32d9e4d28bfcf3d3b509917cfff2f3223daa4369be6bf26f2",
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": "59f527d313fee7f46526c315a6a9b319a14d601d9878ff5f0c05896267594db1",
+    "src/main/scala/core/ooo/InstructionTranslationAdapter.scala": "6a0d5a4d3f40722e8fb0a083d1fbf2a670ca923afa51fb230d041ba5eaa1be6c",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "d14a5a7ab4b8e547a0209ffb2eade6c58ca66a01196ada9c27f58c72934b45c8",
+    "src/main/scala/core/ooo/IntegerCore.scala": "33ec6d8ff9be9a48a68a4703e851d5ba9cbceb79b863ab8a8105085aaa4c0d23",
+    "src/main/scala/core/ooo/MappedMachineCore.scala": "80c4d0b2dbeae6e20d769907d53e4ff7401ecc9606a950ed85e32f8e7d1f9a24",
+    "src/main/scala/core/ooo/OooParams.scala": "2b2879dc5f440a3239fd7aab0c0a490881b0b45eeb8d0eaee46b49d5aa45488c",
+    "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": "b01d27cc181ba87cf17f728727c62eed849a70ba10a96d6695ee4035e607ddad",
+    "src/main/scala/core/ooo/RegisteredFetchPacket.scala": "38be88f194c3e6a1d324c008f3ee34b443f23b7ae1ef1c1d9a8c0d6a7142ff0f"
+  },
+  "component_reproduction": "Replay original independently frozen component sources/hosts, not their constructor ON fixtures copied unchanged into the integrated tree. DTA/LSU integrated constructors additionally require their named OooParams flags. Combined CPU source is qualified by the source-bound single ON model and strict old-value projection.",
+  "mac_bridge_status": "PASS_INDEPENDENT_REVIEW_AND_HOST_ONLY_GATES",
+  "mac_physical_qualification": false,
+  "held_alu_B_included": false,
+  "manager_route_window_included": false,
+  "physical_entry_generics": {
+    "exact64_rollback": {
+      "NATIVE_MAC_LOCAL_PAD_RESET_RELEASE": 1,
+      "NATIVE_MAC_REGISTER_SELECTED_HALF": 0
+    },
+    "near_term_A": {
+      "NATIVE_MAC_LOCAL_PAD_RESET_RELEASE": 1,
+      "NATIVE_MAC_REGISTER_SELECTED_HALF": 1
+    }
+  },
+  "recovery_packages": {
+    "checked_hint": {
+      "library_file_id": "libfile_d6719c798eb88191b8a12ff755b6c44b",
+      "bytes": 18113898,
+      "sha256": "5121919de0941bea3822059201c9b30af00b256757cba74f5c4a4205ea2fb61c"
+    },
+    "tagged_response": {
+      "library_file_id": "libfile_e7013938508c81918abbc4f6d4209a1e",
+      "bytes": 11642398,
+      "sha256": "89c45be73a74663ca045e0dd6c51e94e2d71edc5416a1d6d0c04d25c4841f619"
+    },
+    "fetch": {
+      "library_file_id": "libfile_fd8ed7fe85048191932be07af47a758e",
+      "bytes": 14028570,
+      "sha256": "e8bbac74b7d27cd9578ca9bd4b317d4971050a679b4cbefad33555fc757e08cb"
+    },
+    "selected_half": {
+      "library_file_id": "libfile_3fc3ba46ecd0819191849b9d8097e760",
+      "bytes": 883903,
+      "sha256": "720fd33ae19e78d726d8a6ed9cc8d6b595c3c3d0232014755b466ff5b1e1cc81"
+    },
+    "qualified_cpu": {
+      "library_file_id": "libfile_581d3ce1f0948191a302d1cb6bc639c0",
+      "bytes": 41240585,
+      "sha256": "bb1b2da003dbab09d497a8173aa33c11b7fc9626b32008f2679808493bb38a80"
+    }
+  },
+  "qualified_component_input_sha256": {
+    "src/main/scala/core/ooo/DataTranslationAdapter.scala": "6f88de894f01b3d70a7b30d311492c2e5fec31f98e149fae36d3566f5406e4dc",
+    "src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": "01ebf49e4ec49620f79369ad968aaba212b512c19d62a09730a7d99b3da6819a",
+    "src/main/scala/core/ooo/InstructionTranslationAdapter.scala": "6a0d5a4d3f40722e8fb0a083d1fbf2a670ca923afa51fb230d041ba5eaa1be6c",
+    "src/main/scala/core/ooo/IntegerCore.scala": "33ec6d8ff9be9a48a68a4703e851d5ba9cbceb79b863ab8a8105085aaa4c0d23",
+    "src/main/scala/core/ooo/OooParams.scala": "63a29d9456adddf51e42551c24c2b35fd58416a015fa26cfb466035d595d9a4e",
+    "src/main/scala/core/ooo/RegisteredFetchPacket.scala": "38be88f194c3e6a1d324c008f3ee34b443f23b7ae1ef1c1d9a8c0d6a7142ff0f",
+    "fpga/next/soc_top_fpga_next_ddr.sv": "5d40ba7a8b2a7b8ef2feced2d6c3db135470703170e58c5c12c2f7cc4b39556d",
+    "fpga/zu15eg/native_rgmii_trispeed_quarter.sv": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc"
+  },
+  "mac_bridge": {
+    "worker_manifest_sha256": "b96ab290a932d1ac3f77a66c839e99a6d3879adfc1bb170e7f64028e1076e13d",
+    "tool_sha256": {
+      "fpga/next/board_t1.py": "4e3bde8556e3a7404bc45342d64d9fd806196db393977387a49d445f48e8424f",
+      "fpga/next/export.py": "6d45f3c03b64056a922a02f89e326319662baf4f253505ccca3f1a188ba3eb3f",
+      "fpga/next/mac_netlist_review.py": "5aa3b56b13e83c5ea9815c0c262541b6f7bc02bd51bc2af8534c4ea2c2792b98",
+      "fpga/next/media_integration.py": "9a953690be577c9d484a66b5c3f1d7e8977147f34334958f263304184abb39d7",
+      "fpga/next/native_mac_roles.tcl": "6e0c33570a154b97ec09dfaf710c865cb738f0fc8fbe94f7ebc72d1ee9d7c300",
+      "fpga/next/native_mac_session.tcl": "3e8bff2acdcf4ab0eb6d048a8b581d89fffe95e2255514ff10d518abcdf3075a",
+      "fpga/next/test_board_t1.py": "f7a52d7aec2eb63b9ac35445e26c10b683b0e962f3086ae2da0afa63044e03d9",
+      "fpga/next/test_mac_netlist_review.py": "057be2f04a644f85e0140b815e94366f1cbc95aab08667267eb4c3dffe94b88c",
+      "fpga/zu15eg/trispeed_quarter_constraints.tcl": "447052e8eab367da87975ee4431068d9cf38f72d44a16a912264a14ce4986051"
+    },
+    "host_tests": {
+      "bridge_session_typed_roles": 21,
+      "collector_binding": 9,
+      "exact64": 7,
+      "historical_AB_skipped": 1
+    },
+    "actual_synthesis_executed": false,
+    "mapped_live_gate_executed": false,
+    "windows_live_execution": false,
+    "physical_qualification": false,
+    "source_control_lemma_fixture_vectors": 16,
+    "reviewed_fixes": [
+      "exact retained grounded/disconnected fall role and all connected segment consumers",
+      "explicit WSL paths and stderr/exit handling",
+      "exact export identity and design lifecycle session consumption"
+    ]
+  }
+}

@@ -29,6 +29,9 @@ _t1_spec.loader.exec_module(board_t1)
 
 
 
+NEARTERM_A_FLAGS = ("fetch_accepted_prefix_validation", "aligned_fetch_single_page",
+                    "factor_checked_next_allowed", "local_tagged_response_ready")
+
 LOCALITY_FLAGS = ("fetch_ready_data_clear", "memory_preparation_head_mask",
                   "direct_rank0_memory_source_ids", "retirement_slot_identity", "local_cache_read_selection")
 
@@ -77,6 +80,11 @@ def sources():
         "src/test/scala/ooo/TimingBatchActualAudit.scala",
         "fpga/next/baseline.json", "fpga/next/export.py",
         "fpga/next/board_timing64.py", "fpga/next/timing-batch-locality64-profile.json",
+        "fpga/next/board_near_term_a.py", "fpga/next/near-term-a-profile.json",
+        "fpga/next/near-term-a-original-profile.json",
+        "src/test/scala/ooo/NearTermAProfile.scala", "src/test/scala/ooo/NearTermAActualAudit.scala",
+        "src/test/scala/ooo/NearTermAProfileMain.scala", "src/test/scala/ooo/NearTermAFullCpuMain.scala",
+        "src/test/scala/ooo/NearTermAConfigSpec.scala",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
         "fpga/next/performance-profile.json", "fpga/next/board_profile.py",
@@ -160,6 +168,8 @@ def main(argv=None, expected_profile_sha256=None):
                     help="emit logic-qualified tri-speed media; native clocks/pads/CDC remain unqualified")
     ap.add_argument(board_t1.FLAG, action="count", default=0,
                     help="explicit default-off physical-top reset mode; requires tri-speed and a bound synthesis consumer")
+    ap.add_argument(board_t1.SELECTED_FLAG, action="count", default=0,
+                    help="explicit default-off selected-half physical MAC mode; requires native tri-speed")
     choice = ap.add_mutually_exclusive_group()
     choice.add_argument("--reference", action="store_true", help="emit register-topology control with common correctness fixes")
     choice.add_argument("--storage-candidate", action="store_true", help="emit the earlier storage-only candidate for ablation")
@@ -192,7 +202,7 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off registered translated-queue occupancy payload selection")
     ap.add_argument("--aligned-next-line-pmp", action="count", default=0,
                     help="default-off exact aligned 64-byte next-line PMP end construction")
-    for field in LOCALITY_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
         ap.add_argument("--" + field.replace("_", "-"), action="count", default=0,
                         help="explicit default-off timing locality option; Scala topology requirements apply")
     ap.add_argument("--register-probe-lookup", action="count", default=0,
@@ -304,14 +314,18 @@ def main(argv=None, expected_profile_sha256=None):
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
-    if a.native_mac_local_pad_reset_release > 1:
-        ap.error("duplicate " + board_t1.FLAG)
-    if a.native_mac_local_pad_reset_release and board_t1.FLAG not in raw_args:
-        ap.error("use the exact " + board_t1.FLAG + " flag")
-    a.native_mac_local_pad_reset_release = bool(a.native_mac_local_pad_reset_release)
-    if a.native_mac_local_pad_reset_release and not a.experimental_trispeed_ethernet:
-        ap.error(board_t1.FLAG + " requires --experimental-trispeed-ethernet")
-    native_mac_mode = board_t1.selection(a.native_mac_local_pad_reset_release) if a.experimental_trispeed_ethernet else None
+    for field, flag in (("native_mac_local_pad_reset_release", board_t1.FLAG),
+                        ("native_mac_register_selected_half", board_t1.SELECTED_FLAG)):
+        count = getattr(a, field)
+        if count > 1:
+            ap.error("duplicate " + flag)
+        if count and flag not in raw_args:
+            ap.error("use the exact " + flag + " flag")
+        if count and not a.experimental_trispeed_ethernet:
+            ap.error(flag + " requires --experimental-trispeed-ethernet")
+        setattr(a, field, bool(count))
+    native_mac_mode = board_t1.selection(a.native_mac_local_pad_reset_release,
+        a.native_mac_register_selected_half) if a.experimental_trispeed_ethernet else None
     if sum(option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args) > 1:
         ap.error("duplicate --pending-store-early-load-credits capacity")
     if a.pending_store_early_load_credits != 1 and not a.pending_virtual_store_proof:
@@ -412,7 +426,7 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
-    for field in LOCALITY_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
         flag = "--" + field.replace("_", "-")
         if getattr(a, field) > 1:
             ap.error("duplicate " + flag)
@@ -434,6 +448,8 @@ def main(argv=None, expected_profile_sha256=None):
         }, coherent_line_cache=True, read_mshrs=2)
     except ValueError as error:
         ap.error(str(error))
+    if a.local_tagged_response_ready and not a.tagged_store_returns:
+        ap.error("--local-tagged-response-ready requires --tagged-store-returns")
     if a.fetch_address_before_pmp and not a.aligned_fetch_permission_stage:
         ap.error("--fetch-address-before-pmp requires --aligned-fetch-permission-stage")
     if a.queued_head_selection and not (a.prechecked_data_flow or a.translation_hit_flow):
@@ -606,7 +622,7 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
-    for field in LOCALITY_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -874,7 +890,7 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1 or any(
             option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args):
         command.append(f"--pending-store-early-load-credits={a.pending_store_early_load_credits}")
-    for field in LOCALITY_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
         if getattr(a, field):
             command.append("--" + field.replace("_", "-"))
     if not a.emit:
@@ -983,7 +999,6 @@ def main(argv=None, expected_profile_sha256=None):
                 "named_ports_checked": connected_ports, "qualified": False}
             if a.experimental_trispeed_ethernet:
                 receipt["tri_speed_native_integration"] = media_integration.stage(ROOT, output)
-                receipt["native_mac_mode"] = board_t1.stage(ROOT, output, a.native_mac_local_pad_reset_release)
         if a.experimental_jtag_bscan:
             guard = output / "board/check_jtag_chain.tcl"
             guard.write_text((HERE / "check_jtag_chain.tcl").read_text())
@@ -1005,6 +1020,9 @@ def main(argv=None, expected_profile_sha256=None):
         (output / "synthesis-files.f").write_text("".join("rtl/" + name + "\n" for name in listed))
         receipt["synthesis_filelist_sha256"] = sha(output / "synthesis-files.f")
         receipt["rtl_sha256"] = inventory
+        if a.experimental_trispeed_ethernet:
+            receipt["native_mac_mode"] = board_t1.stage(ROOT, output,
+                a.native_mac_local_pad_reset_release, a.native_mac_register_selected_half)
         receipt["status"] = "PASS_RTL_EXPORT_ONLY"
         receipt["limitations"] = ["No FPGA synthesis, routed timing, CDC or board qualification",
             "External DDR, clock, UART/GMAC domain and PHY wrappers still require matched board integration",

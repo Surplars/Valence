@@ -74,6 +74,7 @@ object PlacedTimingActualAudit {
             "headDrain" -> HeadDrainActualAudit.capture(platform, expected),
             "retirementIntent" -> RetirementIntentActualAudit.capture(platform, expected),
             "memoryPreparationLocality" -> MemoryPreparationLocalityActualAudit.capture(platform, expected),
+            "nearTermA" -> NearTermAActualAudit.capture(platform, expected),
             "dynamicQualificationInherited" -> false, "physicalQualification" -> false)
     }
     def write(actual: Map[String, Any], directory: String): Unit = {

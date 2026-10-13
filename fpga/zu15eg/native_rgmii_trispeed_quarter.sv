@@ -8,7 +8,8 @@
 // This new logic is NOT physically qualified merely because its1G ancestor was.
 module native_rgmii_trispeed_quarter #(
     parameter RX_DATA_DELAY_PS = 1100,
-    parameter LOCAL_PAD_RESET_RELEASE = 0
+    parameter LOCAL_PAD_RESET_RELEASE = 0,
+    parameter REGISTER_SELECTED_HALF = 0
 )(
     input wire tx_clock, tx_pad_clock, tx_pad_reset, rx_clock, tx_reset, rx_reset,
     input wire delay_clock, delay_reset,
@@ -55,9 +56,16 @@ module native_rgmii_trispeed_quarter #(
         end else if(!phase_high) begin
             low_symbol<=tx_rise; high_symbol<=tx_fall;
             low_clock<=txc_rise; high_clock<=txc_fall;
+        end else if(REGISTER_SELECTED_HALF) begin
+            // In selected-half mode low_* is the final PAD output register.
+            // The saved high half crosses one complete falling-edge period.
+            low_symbol<=high_symbol;
+            low_clock<=high_clock;
         end
-    wire [4:0] symbol=phase_high ? high_symbol : low_symbol;
-    wire clock_symbol=phase_high ? high_clock : low_clock;
+    // ODDRE1 captures both D1 and D2 at the positive PAD edge. Moving this
+    // selection before the final falling-edge register preserves that sample.
+    wire [4:0] symbol=REGISTER_SELECTED_HALF ? low_symbol : (phase_high ? high_symbol : low_symbol);
+    wire clock_symbol=REGISTER_SELECTED_HALF ? low_clock : (phase_high ? high_clock : low_clock);
     always @(posedge tx_pad_clock or posedge serializer_reset)
         if(serializer_reset) previous_clock<=1'b0;
         else previous_clock<=clock_symbol;

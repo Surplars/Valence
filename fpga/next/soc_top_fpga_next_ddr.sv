@@ -6,7 +6,8 @@
 // JTAG reservation pins deliberately have no package assignments here.
 module soc_top_fpga_next_ddr #(
     // Source-only T1 experiment; default preserves the common RAW125 release.
-    parameter NATIVE_MAC_LOCAL_PAD_RESET_RELEASE = 0
+    parameter NATIVE_MAC_LOCAL_PAD_RESET_RELEASE = 0,
+    parameter NATIVE_MAC_REGISTER_SELECTED_HALF = 0
 )(
     input wire jtag_tck, jtag_tms, jtag_tdi, jtag_trst_n, jtag_debug_por_n,
     output wire jtag_tdo, jtag_tdo_oe,
@@ -102,7 +103,8 @@ module soc_top_fpga_next_ddr #(
     wire [4:0] rgmii_rx_rise, rgmii_rx_fall, rgmii_tx_rise, rgmii_tx_fall;
     wire rgmii_txc_rise, rgmii_txc_fall;
     native_rgmii_trispeed_quarter #(.RX_DATA_DELAY_PS(1100),
-        .LOCAL_PAD_RESET_RELEASE(NATIVE_MAC_LOCAL_PAD_RESET_RELEASE)) u_rgmii (
+        .LOCAL_PAD_RESET_RELEASE(NATIVE_MAC_LOCAL_PAD_RESET_RELEASE),
+        .REGISTER_SELECTED_HALF(NATIVE_MAC_REGISTER_SELECTED_HALF)) u_rgmii (
         .delay_clock(clk_delay), .delay_reset(delay_reset), .delay_ready(delay_ready),
         .tx_clock(clk_tx), .tx_pad_clock(clk_tx_pad), .tx_pad_reset(tx_reset_pad),
         .tx_reset(tx_reset_raw), .rx_clock(clk_rx), .rx_reset(rx_reset_pipe[2]),
