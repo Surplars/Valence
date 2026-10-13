@@ -10,7 +10,7 @@
     "qualified_source_tree": "6a4d8f4c87a314757e07b1928ce9afe6d5ac3280"
   },
   "export_profile_sha256": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
-  "export_sources_sha256": "2104ab0a1593af37c681d0178ef334b3aa07cad1cde079920b852cc1237ec8ea",
+  "export_sources_sha256": "af66427e4b40742b4c6ade483248ef1ad1a2b69d9b3f3076aea3fcf974bd4292",
   "native_options": [
     "--selected",
     "--data-translation-entries=16",
@@ -98,5 +98,43 @@
     },
     "default52_native_raw_byte_identical": false,
     "default52_native_exact_residual_identical": true
+  },
+  "source_only_entry_contract_bridge": {
+    "schema": "valence-board-entry-source-bridge-v1",
+    "status": "SOURCE_ONLY_ENTRY_CONTRACT_REBIND",
+    "published_base_commit": "76c9ad2cde852cf5cd6a7083aa59c741672c707a",
+    "published_base_tree": "d90e96a43e60edb42eba0a4631d40a6a6846b245",
+    "changed_python_sources": {
+      "fpga/next/export.py": {
+        "qualified_sha256": "1e06c3eeacff6f75d64c06313ed03bb1aadac413cb9e470abdd7cf6e53f286a8",
+        "current_sha256": "5a342649e7917892aed64e0993d6ec2b746d17d63ad20624e44057522bf942d4"
+      },
+      "simulator/gsim/fpga_next_board.py": {
+        "qualified_sha256": "e5da4882f273b668e96221ebe943ab686aa841cba198aeb829dc14b7aff51f78",
+        "current_sha256": "15ab70bd1ac311dad64db1ef917f09151d2911eaf82165698199a665886dff56"
+      }
+    },
+    "newly_export_bound_helpers": {
+      "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": "308487534196eef8b22d7cf661d4a0f8be5a06653d210e6610d422c4e4230bcf",
+      "src/test/scala/ooo/TimingBatchActualAudit.scala": "29731c8a619b10f63a7b3b49177499692f329a38f4dbf68f8238e78432e933cd"
+    },
+    "qualified_scala_source_closure": {
+      "scope": [
+        "src/main/scala",
+        "src/test/scala",
+        "third_party/berkeley-hardfloat/src/main/scala"
+      ],
+      "file_count": 560,
+      "canonical_sha256": "a4cef96986dbad66936a9152f035e920376ba8b1a281da524e3b0698fa6ab3c1"
+    },
+    "export_profile_sha256": {
+      "default52": "e38ce43888ad5c8007a51e9e75355067caab22dc7c717a22859b020f620363de",
+      "optional53": "4e561be22f6590f2e8a739b9d07d1edbb1041021dd5de6ba97d43ee356e293dd"
+    },
+    "full_qualification_reexecuted": false,
+    "default52_cpu_rerun": false,
+    "optional53_cpu_rerun": false,
+    "native_export_rerun": false,
+    "scope": "Only exporter inventory and generic runner contract changed. Original qualification receipts and complete Scala/RTL sources remain unchanged; the newly bound helpers were already included in the tested full Scala closure."
   }
 }

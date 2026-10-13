@@ -36,7 +36,10 @@ def sources():
     files = [p for folder in ("src/main/scala", "third_party/berkeley-hardfloat/src/main/scala")
              for p in (ROOT / folder).rglob("*.scala")]
     files += [ROOT / name for name in ("build.mill", ".mill-version",
-        "src/test/scala/ooo/FpgaNextMain.scala", "fpga/next/baseline.json", "fpga/next/export.py",
+        "src/test/scala/ooo/FpgaNextMain.scala",
+        "src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
+        "src/test/scala/ooo/TimingBatchActualAudit.scala",
+        "fpga/next/baseline.json", "fpga/next/export.py",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
         "fpga/next/performance-profile.json", "fpga/next/board_profile.py",

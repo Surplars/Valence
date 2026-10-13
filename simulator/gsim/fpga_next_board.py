@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""One source-frozen FPGA-next board model for short RV64GC and DDR checks.
+"""Historical FPGA-next board planner; current source permits preflight only.
+
+The generic emitter cannot express the required matching-board assembly. Use
+ooo.CpuMatchingBoardProfileGsimMain with an exact reviewed native option vector;
+see fpga/next/README.md. Existing parser plans are not executable board profiles.
 
 Does not run Linux, native GMAC/PHY, Vivado, or a full GSIM regression. All model
 objects are reusable only inside this exact source/profile checkpoint. Baseline
@@ -23,6 +27,15 @@ from backend_capacity_geometry import verify_backend_capacity
 from posted_cpu.verify_model import verify_posted_model
 from build_virtual_load_core import build as build_virtual_guest
 from virtual_load_board import parse as parse_virtual_metrics
+
+EXECUTION_UNSUPPORTED = (
+    "generic board execution is unsupported by the current MatchingManagedBoard contract: "
+    "ooo.FpgaNextBoardGsimMain cannot express the required tri-speed/USER2 assembly. "
+    "Use ooo.CpuMatchingBoardProfileGsimMain with the exact reviewed default52 or optional53 "
+    "native option vector (fpga/next/README.md). For native RTL use fpga/next/board_final.py "
+    "or fpga/next/board_eager_prefix.py. --preflight-only validates a historical source plan only; "
+    "it does not qualify an executable board configuration."
+)
 
 
 def sha(path):
@@ -58,7 +71,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--resume", action="store_true")
-    ap.add_argument("--preflight-only", action="store_true", help="print exact profile; do not create outputs or build")
+    ap.add_argument("--preflight-only", action="store_true", help="print a non-executable historical source plan; no outputs or build")
     ap.add_argument("--variant", choices=("reference", "candidate", "selected"), default="reference")
     ap.add_argument("--lsu-entries", type=int, choices=(2, 4), default=2)
     ap.add_argument("--rob-entries", type=int, choices=(16, 32, 64), action="append",
@@ -487,8 +500,11 @@ def main():
             "guest_suite": ["rv64gc"] if args.smoke_only else ["rv64gc", "steady", "independent-lines", "virtual-context"] +
                 (["mixed-store16", "mixed-store64"] if args.mixed_store_stream else [])}
     if args.preflight_only:
-        print(json.dumps({"status": "PREFLIGHT_ONLY", "plan": plan, "output": str(out)}, indent=2))
+        print(json.dumps({"status": "PREFLIGHT_ONLY", "execution_supported": False,
+                          "execution_blocker": EXECUTION_UNSUPPORTED,
+                          "plan": plan, "output": str(out)}, indent=2))
         return
+    ap.error(EXECUTION_UNSUPPORTED)
     out.mkdir(parents=True, exist_ok=True)
     model, fw = out / "model", out / "firmware"
     model.mkdir(exist_ok=True)

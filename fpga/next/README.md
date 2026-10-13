@@ -1,5 +1,10 @@
 # Valence FPGA-next
 
+Current default52 and optional53 entry contracts are documented in
+[Current board entries](#current-board-entries). Older performance examples below
+retain their recorded historical scope; the generic GSIM runner now supports
+source preflight only.
+
 The explicit next timing/CDC candidate is `board_timing_cdc.py`, documented in
 [the complete board contract](../../docs/fpga-next/timing-cdc-combined-v1.md).
 Its combined constructor/native/CPU gates passed; vendor/physical CDC, routed
@@ -57,26 +62,62 @@ DMA descriptor layouts remain compatible except explicitly capability-gated
 media extensions. No ISA subset, cache-capacity reduction or relaxed timing
 constraint is used to create a resource improvement.
 
-## Build the selected project
+## Current board entries
 
-Reuse the approved existing tool cache; generated models belong to this checkout.
+See the [GSIM entry boundary](../../simulator/gsim/board_entry_contract.md).
+
+The current native entries are default52 and explicit optional53. Both preserve
+tri-speed MAC, BSCAN USER2 and the separate physical MAC T1 setting. Their default
+mode checks source/configuration only; add `--emit` to export native RTL without
+running synthesis or physical qualification:
+
+```bash
+python3 -B fpga/next/board_final.py --output build/fpga-next/final52-FRESH
+python3 -B fpga/next/board_eager_prefix.py --output build/fpga-next/optional53-FRESH
+```
+
+For the matching CPU/fabric GSIM assembly, the supported emitter is
+`ooo.CpuMatchingBoardProfileGsimMain` with the exact reviewed native option vector.
+This example emits a default52 model; select the eager-prefix manifest explicitly
+for optional53. It does not compile a GSIM binary or run CPU tests:
 
 ```bash
 export VALENCE_CLOUD_ENV=/path/to/verified/Valence/simulator/build/cloud-env
 export VALENCE_GSIM_SOURCE=/path/to/verified/Valence/simulator/build/gsim-src
 source scripts/cloud/env.sh
-python3 -B simulator/gsim/fpga_next_board.py --tag selected-v2 --variant selected
-python3 -B fpga/next/export.py --output build/fpga-next/selected-rtl --emit
+python3 -B - <<'PY'
+import json
+import subprocess
+from pathlib import Path
+manifest = Path('fpga/next/timing-batch-owner-row-profile.json')
+# For optional53: fpga/next/timing-batch-eager-prefix-profile.json
+options = json.loads(manifest.read_text())['native_options']
+subprocess.run(['mill', '-i', '-j', '1', 'IonSoC.test.runMain',
+                'ooo.CpuMatchingBoardProfileGsimMain',
+                'build/gsim/matching-final52-FRESH/model', *options], check=True)
+PY
 ```
 
-The native exporter and `FpgaNextSocTop` default to `FpgaNextConfig.Selected`.
-`--storage-candidate` on the exporter / `--variant candidate` on the board runner
-select the earlier storage-only control. `--reference` / `--variant reference`
-select a register-topology control with common correctness fixes. The immutable
-historical baseline is its recorded Git revision, not a label on a newer build.
+The matching assembly requires explicit selected topology, tri-speed media,
+USER2 and the reviewed capacities. MAC T1 belongs to the native physical wrapper;
+do not append its flag to this GSIM emitter. Native PHY/TAP clocks and physical
+qualification remain outside the CPU/fabric model.
 
-Use fresh output directories. `--resume` is allowed only for identical frozen
-inputs/profile and revalidates recorded artifacts before reuse. Do not substitute
+`simulator/gsim/fpga_next_board.py` calls the historical
+`ooo.FpgaNextBoardGsimMain`, whose option set cannot express this matching assembly.
+Execution, including `--resume`, now fails before creating output directories,
+building firmware or invoking an emitter. Its `--preflight-only` mode remains a
+parser/source-plan check and explicitly reports `execution_supported: false`.
+It is not an executable board profile, and its historical callers cannot create
+new models from the current source. Replay historical models only against their
+exact original source/profile and retained evidence.
+
+The two newly bound exporter helpers and the narrow Python entry changes are
+recorded in the source-only bridge in `board-final-profile-v1.json`. Both original
+public qualification receipts and every tested Scala/RTL byte are retained.
+This repair adds no CPU, native-export, NEMU or physical qualification result.
+
+Use fresh output directories and the approved tool cache. Do not substitute
 Verilator or treat GSIM as an independently clocked native PHY/TAP simulator.
 
 ## Architecture changes
@@ -168,7 +209,7 @@ destination store. The existing first-clean-way policy and LRU insertion remain
 unchanged; retention makes that behavior active in this workload.
 
 ```bash
-python3 -B simulator/gsim/fpga_next_board.py --tag read-oriented --variant selected --prefetch-candidate-cycles 3
+python3 -B simulator/gsim/fpga_next_board.py --preflight-only --tag read-oriented --variant selected --prefetch-candidate-cycles 3
 python3 -B fpga/next/export.py --output build/fpga-next/read-oriented-rtl --prefetch-candidate-cycles 3 --emit
 ```
 
@@ -219,7 +260,7 @@ byte-identical default/read RTL versus earlier qualified exports; store-history
 clear changes only the data-cache module and adds no register or memory capacity.
 
 ```bash
-python3 -B simulator/gsim/fpga_next_board.py --tag copy-policy --variant selected --prefetch-candidate-cycles 3 --prefetch-break-on-store --mixed-store-stream
+python3 -B simulator/gsim/fpga_next_board.py --preflight-only --tag copy-policy --variant selected --prefetch-candidate-cycles 3 --prefetch-break-on-store --mixed-store-stream
 python3 -B fpga/next/export.py --output build/fpga-next/copy-policy-rtl --prefetch-candidate-cycles 3 --prefetch-break-on-store --emit
 ```
 
@@ -334,8 +375,9 @@ Compact checked-in JSON alone is not a substitute for those vector/model files.
 
 The runners have different prerequisites:
 
-- `fpga_next_board.py` rebuilds the current board model and all four guests from
-  tracked sources. `rob_ledger_qualification.py` also builds its paired models.
+- `fpga_next_board.py` retains historical source-plan preflight only; execution
+  fails before building. Use the exact matching-profile emitter described in
+  [Current board entries](#current-board-entries) for a new board model.
 - `issue_frontend_storage.py --phase core` needs an explicitly built pinned NEMU
   reference and its receipt. This is an independent ISA reference, not a saved
   DUT executable.

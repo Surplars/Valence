@@ -14,7 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 MANIFEST = HERE / "board-final-profile-v1.json"
-MANIFEST_SHA256 = "4a3cdda058f99a660520bb1711992ac5354ef1662d81debd186b47281628bafe"
+MANIFEST_SHA256 = "462ab3d1cfb99fdbd33ccdf8da8d58265b483d930cf299d51106768275c5fee0"
 INPUTS = ("fpga/next/board_final.py", "fpga/next/board-final-profile-v1.json")
 
 
@@ -31,6 +31,40 @@ def exporter_module():
     value = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(value)
     return value
+
+
+def check_source_bridge(profile, exporter):
+    """Bind only reviewed Python entry edits to immutable hardware evidence."""
+    bridge = profile["source_only_entry_contract_bridge"]
+    item = profile["source_only_optional_bridge"]["optional53_receipt"]
+    if item["path"] != "simulator/gsim/eager_prefix/evidence/public-receipt.json" or sha(ROOT / item["path"]) != item["sha256"]:
+        raise RuntimeError("entry source bridge qualification receipt changed")
+    recorded = json.loads((ROOT / item["path"]).read_text())
+    changed = bridge["changed_python_sources"]
+    helpers = bridge["newly_export_bound_helpers"]
+    if (bridge["schema"] != "valence-board-entry-source-bridge-v1" or
+            bridge["status"] != "SOURCE_ONLY_ENTRY_CONTRACT_REBIND" or
+            set(changed) != {"fpga/next/export.py", "simulator/gsim/fpga_next_board.py"} or
+            set(helpers) != {"src/test/scala/ooo/PostedStoreBoardLineageGsim.scala",
+                             "src/test/scala/ooo/TimingBatchActualAudit.scala"}):
+        raise RuntimeError("entry source bridge scope changed")
+    for name, identity in changed.items():
+        if (set(identity) != {"qualified_sha256", "current_sha256"} or
+                identity["qualified_sha256"] != recorded["source_fingerprints"][name] or
+                identity["current_sha256"] != sha(ROOT / name)):
+            raise RuntimeError("entry source bridge Python identity changed: " + name)
+    sources = exporter.sources()
+    for name, expected in helpers.items():
+        if expected != recorded["source_fingerprints"][name] or sources.get(name) != expected:
+            raise RuntimeError("entry source bridge tested helper identity changed: " + name)
+    if (bridge["qualified_scala_source_closure"] != recorded["qualified_scala_source_closure"] or
+            bridge["export_profile_sha256"] != {
+                "default52": profile["export_profile_sha256"],
+                "optional53": recorded["configuration"]["export_profile_sha256"]} or
+            any(bridge[key] is not False for key in (
+                "full_qualification_reexecuted", "default52_cpu_rerun", "optional53_cpu_rerun", "native_export_rerun"))):
+        raise RuntimeError("entry source bridge qualification/configuration scope changed")
+    return bridge
 
 
 def load_profile():
@@ -67,6 +101,7 @@ def load_profile():
         raise RuntimeError("final board reviewed export source closure changed")
     if profile["native_options"] != [*options, exporter.board_t1.FLAG] or profile["mode"] != exporter.board_t1.selection(True):
         raise RuntimeError("final board options/T1 mode changed")
+    check_source_bridge(profile, exporter)
     return profile
 
 

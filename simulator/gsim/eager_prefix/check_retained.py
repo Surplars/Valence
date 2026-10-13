@@ -116,7 +116,18 @@ def check(source, external=None):
     value = read_receipt(source)
     fingerprints = value['source_fingerprints']
     need(len(fingerprints) == SOURCE_COUNT and digest(sorted(fingerprints)) == SOURCE_SET_SHA256, 'necessary source set changed')
+    # The immutable receipt describes tested bytes. The pinned entry manifest
+    # permits only the two reviewed Python changes, never a Scala/DUT rebind.
+    spec = importlib.util.spec_from_file_location('checked_optional53', source / 'fpga/next/board_eager_prefix.py')
+    entry = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(entry)
+    final, profile, recorded = entry.load_profile()
+    bridge = profile['source_only_entry_contract_bridge']
     for name, expected in fingerprints.items():
+        if name in bridge['changed_python_sources']:
+            identity = bridge['changed_python_sources'][name]
+            need(expected == identity['qualified_sha256'], 'entry source bridge qualified fingerprint changed: ' + name)
+            expected = identity['current_sha256']
         need(re.fullmatch(r'[0-9a-f]{64}', expected) is not None and sha(safe_file(source, name)) == expected,
              'necessary source fingerprint changed: ' + name)
     production_count = check_closure(source, value['production_source_closure'], PRODUCTION)
@@ -135,10 +146,6 @@ def check(source, external=None):
     for name in ('OooParams.scala', 'FpgaNextConfig.scala'):
         need(re.search(r'eagerFetchPrefixSelect:\s*Boolean\s*=\s*false', safe_file(source, 'src/main/scala/core/ooo/' + name).read_text()) is not None,
              'generic default changed')
-    spec = importlib.util.spec_from_file_location('checked_optional53', source / 'fpga/next/board_eager_prefix.py')
-    entry = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(entry)
-    final, profile, recorded = entry.load_profile()
     need(entry.RECEIPT_SHA256 == RECEIPT_SHA256 and recorded == value, 'entry public receipt binding changed')
     need(profile['qualification_receipt']['sha256'] == HISTORICAL_SHA256 and profile['native_options'] == base + ['--native-mac-local-pad-reset-release'],
          'default52 options/receipt changed')
@@ -169,6 +176,9 @@ def check(source, external=None):
             'locally_checked_source_fingerprints': len(fingerprints), 'production_source_files': production_count,
             'qualified_scala_source_files': scala_count, 'default_native_option_count': 52, 'optional_native_option_count': 53,
             'physical_T1_option_count': 1, 'full_qualification_reexecuted': False, 'default52_cpu_rerun': False,
+            'source_only_entry_contract_bridge': bridge['status'],
+            'source_only_changed_python_files': sorted(bridge['changed_python_sources']),
+            'newly_export_bound_tested_helpers': sorted(bridge['newly_export_bound_helpers']),
             'external_bundles_hash_verified': sorted(verified),
             'external_unverified_references': sorted(set(value['external_evidence']) - set(verified)),
             'synthesis_consumer_executed': False, 'physical_qualification': False}
