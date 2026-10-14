@@ -308,6 +308,7 @@ int main(int argc, char **argv) {
                   << " resident_bank_packets=" << CACHE_LINES * (PACKET_WORDS == 4 ? 7 : 8)
                   << " resident_bank_cycles=" << residentBankCycles << " twoWay=1 lruVictim=1 "
                      "burstBeats=8 invalidate=1 inflightInvalidate=1 heldRefill=1 lateError=1 pmpFallback=1\n";
+        return 0; // Also valid when included under a renamed test entry.
     } catch (const std::exception &error) {
         std::cerr << "GSIM instruction line cache: FAIL " << error.what() << '\n';
         return 1;

@@ -70,6 +70,13 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         // old response remains registered and unchanged until that edge.
         io.virtual.request.ready := state === idle ||
             (if (p.fetchReplyTurnover) state === reply && io.virtual.response.ready else false.B)
+        if (p.fetchIdentityTranslation && p.alignedFetchSinglePage) {
+            // READY names an idle owner or the old reply consumed on this edge.
+            // Capturing an unoffered address changes only dead payload; actual
+            // owner/context/permission state still requires the original FIRE.
+            // The translation-response capture below retains final priority.
+            when(io.virtual.request.ready) { firstPhysical := io.virtual.request.bits }
+        }
         when(io.virtual.request.fire) {
             if (packetWords == 4 || alignedPacket) {
                 assert(io.virtual.request.bits(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
@@ -96,7 +103,7 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
                 // context. PMP still runs in the existing registered send stage;
                 // live CSR changes cannot change the captured address or mode.
                 val identity = io.privilege === 3.U || io.vmState.satp(63, 60) === 0.U
-                firstPhysical := io.virtual.request.bits
+                if (!p.alignedFetchSinglePage) firstPhysical := io.virtual.request.bits
                 secondPhysical.foreach(_ := io.virtual.request.bits + 4.U)
                 state := Mux(identity, Mux(io.virtual.requestMask.orR, sendFirst, reply), translateFirst)
             } else {
@@ -207,8 +214,13 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         val sending = if (p.alignedFetchSinglePage) state === sendFirst
             else state === sendFirst || state === sendSecond
         io.physical.request.valid := sending && activeAllowed.orR
-        io.physical.request.bits :=
-            secondPhysical.map(address => Mux(sendingSecond, address, firstPhysical)).getOrElse(firstPhysical)
+        // This existing specialization only emits successful eight-byte packet
+        // bases. Expose that invariant as wires, so downstream partial-word mask
+        // selection cannot create a fictitious carry into the upper PA bits.
+        // Failed translations never authorize a physical request.
+        io.physical.request.bits := (if (p.alignedFetchSinglePage)
+            Cat(firstPhysical(63, 3), 0.U(3.W))
+        else secondPhysical.map(address => Mux(sendingSecond, address, firstPhysical)).getOrElse(firstPhysical))
         io.physical.requestMask := offerMask
         when(state === sendFirst && !permissionCaptured) {
             permissionCaptured := true.B

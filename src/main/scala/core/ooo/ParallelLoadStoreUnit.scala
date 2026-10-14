@@ -9,8 +9,12 @@ import chisel3.util._
 class ParallelLoadStoreUnit(
     p: OooParams,
     canonicalHandoff: Boolean = false,
-    val localTaggedResponseReady: Boolean = false
+    val localTaggedResponseReady: Boolean = false,
+    val candidateLoadPreparation: Boolean = false
 ) extends Module {
+    def this(p: OooParams, handoff: Boolean, localReady: Boolean) = this(p, handoff, localReady, false)
+    require(!candidateLoadPreparation || (p.pendingVirtualStoreProof && !p.memoryProofFrontier),
+        "candidate load admission requires the final-flush-protected pending-proof topology")
     require(localTaggedResponseReady == p.localTaggedResponseReady,
         "tagged readiness constructor must use the unified OooParams flag")
     require(!localTaggedResponseReady || p.taggedStoreReturns,
@@ -32,6 +36,11 @@ class ParallelLoadStoreUnit(
         })))) else None
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
+        val candidateAdmission = if (candidateLoadPreparation) Some(Input(new Bundle {
+            val precheckedLoad = Bool()
+            val parallel = Bool()
+        })) else None
+        val candidateIssueAvailable = if (candidateLoadPreparation) Some(Output(Bool())) else None
         val boundHeadStoreOverlapQualified = if (p.boundHeadStoreOverlap) Some(Input(Bool())) else None
         // Assertion/test witness only; never feeds reservation or ownership.
         val boundHeadStoreOverlapAccepted = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
@@ -57,7 +66,7 @@ class ParallelLoadStoreUnit(
         val forwarded      = Output(Bool())
         val forwardStore   = Output(Valid(new StoreForward(p)))
     })
-    val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p)))
+    val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p, responseStateOnly = localTaggedResponseReady)))
     val parallel   = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
     val requestAccepted = if (p.canonicalVirtualStoreOverlap)
         Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
@@ -133,21 +142,25 @@ class ParallelLoadStoreUnit(
     val empty         = VecInit(slots.map(s => !s.io.busy))
     val ordinaryPrechecked = io.start.bits.precheckedLoad && io.start.bits.virtualized &&
         !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid
-    val exemptSerial = (0 until p.memoryEntries).map { i =>
-        io.relaxStoreOwner.map(owner => owner.valid && ordinaryPrechecked && io.parallel &&
+    // Match the retained store owner once; strict and candidate views differ only
+    // in two Boolean qualifications, never in the wide owner comparison.
+    val exemptOwner = (0 until p.memoryEntries).map { i =>
+        io.relaxStoreOwner.map(owner => owner.valid &&
             slots(i).io.busy && !parallel(i) && requestAccepted.get(i) && certifiedStoreClass.get(i) &&
             owner.bits.asUInt === slots(i).io.owner.asUInt).getOrElse(false.B)
     }
+    val exemptSerial = exemptOwner.map(_ && ordinaryPrechecked && io.parallel)
     // A certified store may be waiting for completion arbitration while another
     // physical slot is empty. Its exact registered authorization already permits
     // this prechecked load; do not force it to replace the blocked completion.
     // Never feed completion READY or cancellation into the reservation selector.
     val handoffOffer = if (canonicalHandoff) empty.asUInt.orR && exemptSerial.reduce(_ || _) else false.B
-    val boundHeadStoreOverlapOffer = io.boundHeadStoreOverlapQualified.map { qualified =>
-        qualified && !io.parallel && empty.asUInt.orR && io.busy &&
+    val boundHeadStoreOverlapCommon = io.boundHeadStoreOverlapQualified.map { qualified =>
+        qualified && empty.asUInt.orR && io.busy &&
             (0 until p.memoryEntries).map(i => !slots(i).io.busy ||
                 (parallel(i) && slots(i).io.savedLoadDisjointFromFrozenStart.get)).reduce(_ && _)
     }.getOrElse(false.B)
+    val boundHeadStoreOverlapOffer = boundHeadStoreOverlapCommon && !io.parallel
     val emptyChoice = PriorityEncoder(empty)
     val baseChosen = Mux(handoffOffer, emptyChoice,
         Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
@@ -165,6 +178,33 @@ class ParallelLoadStoreUnit(
     io.start.ready    := io.issueAvailable && Mux1H(
         (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
     )
+    // Preserve all strict public readiness/profiling values. Only the private
+    // new-start gate uses the candidate view; the caller must make both views
+    // identical whenever it authorizes start.valid. Existing requests and old
+    // responses never depend on this private choice.
+    val (admissionAvailable, admissionChosen) = if (candidateLoadPreparation) {
+        val candidate = io.candidateAdmission.get
+        val ordinary = candidate.precheckedLoad && io.start.bits.virtualized &&
+            !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid
+        val exempt = exemptOwner.map(_ && ordinary && candidate.parallel)
+        val handoff = if (canonicalHandoff) empty.asUInt.orR && exempt.reduce(_ || _) else false.B
+        val base = Mux(handoff, emptyChoice,
+            Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+        val boundOffer = boundHeadStoreOverlapCommon && !candidate.parallel
+        val selected = Mux(boundOffer, emptyChoice, base)
+        val others = (0 until p.memoryEntries).map(i => base === i.U || !slots(i).io.busy).reduce(_ && _)
+        val noSerial = (0 until p.memoryEntries).map(i => !slots(i).io.busy || parallel(i) ||
+            (completion.io.out.valid && base === i.U) || exempt(i)).reduce(_ && _)
+        val capacity = (available && noSerial && (candidate.parallel || others)) || boundOffer
+        io.candidateIssueAvailable.get := capacity
+        when(io.start.valid) {
+            assert(candidate.precheckedLoad === io.start.bits.precheckedLoad && candidate.parallel === io.parallel,
+                "candidate admission may differ only when final permission blocks a new start")
+            assert(capacity === io.issueAvailable && selected === chosen,
+                "authorized candidate admission retains exact strict capacity and slot selection")
+        }
+        (capacity, selected)
+    } else (io.issueAvailable, chosen)
     when(observationCanonicalHandoff) {
         assert(ordinaryPrechecked && io.parallel && empty(chosen),
             "authorized handoff must use an empty slot without completing or replacing the store")
@@ -189,7 +229,7 @@ class ParallelLoadStoreUnit(
         accepted.bits := chosen
     }
     for ((slot, i) <- slots.zipWithIndex) {
-        slot.io.start.valid := io.start.valid && io.issueAvailable && chosen === i.U
+        slot.io.start.valid := io.start.valid && admissionAvailable && admissionChosen === i.U
         slot.io.start.bits  := io.start.bits
         when(slot.io.start.fire) { parallel(i) := io.parallel }
         requestAccepted.foreach { accepted =>
@@ -205,6 +245,11 @@ class ParallelLoadStoreUnit(
                 assert(io.relaxStoreOwner.get.bits.asUInt === slot.io.owner.asUInt)
             }
         }
+    }
+
+    if (candidateLoadPreparation) {
+        assert(VecInit(slots.map(_.io.start.fire)).asUInt.orR === io.start.fire,
+            "candidate slot capture must equal the unchanged public parent handshake")
     }
 
     // Hold arbitration under request backpressure, even if a new slot becomes eligible meanwhile.

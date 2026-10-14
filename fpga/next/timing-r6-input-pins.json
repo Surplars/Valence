@@ -1,0 +1,15 @@
+{
+  "schema": "r6-input-pins-v1",
+  "candidate": "r6-publication-lsu-fetch-exact73",
+  "release_state": "CANDIDATE_READY_FOR_REVIEW",
+  "source_files": 3207,
+  "parameter_contract_sha256": "fc66ccb6e878d8d480c7c52ace4e512f55e06228c9995df63713c29db1e28ab7",
+  "evidence": {
+    "qualification.json": "3185793ee5b696deb61eb03bde5e64c8d1ba4f00a2adbfe31cf3f5b86c96c1cb",
+    "source-freeze.json": "5512658f79298eff2c90b3054e9beaa261cf74905a1f6d6d457122f06fe5bbda",
+    "build/compile.json": "0a91be76baa84af372433d5ca16ef1e500a4dcaa97905d294f458b8c0b9de8a5",
+    "native-emission-r1.json": "5e2baa1d3585d77935a397ab8f3a204c8c035350f17e1793fd2e9289a50c8674",
+    "native-comparison-r1.json": "9d5ea372efa00fc767c018f6944eddbdc86d3749aedbc0329df6b9cd1f4f3c6d",
+    "qualification-supplement-r1.json": "ed957b3be5f44cc58c4d70270c8b82d784f2957de27e2d8ad69b3c3324ef3eb4"
+  }
+}

@@ -365,6 +365,21 @@ class InstructionLineCache(
     val chooseFallback = Mux(lockedA, lockedFallback, useFallbackA)
     io.tl.a.valid := Mux(chooseFallback, fallback.io.tl.a.valid, fill.io.tl.a.valid)
     io.tl.a.bits := Mux(chooseFallback, fallback.io.tl.a.bits, fill.io.tl.a.bits)
+    if (!prefetchEnabled && packetWords == 2) {
+        // Without speculative fills, a demand owner cannot offer fallback A
+        // until its line transaction has completed (including an error retry).
+        // The fill engine's registered send queue therefore selects address
+        // data before live PMP/mask decides admission. Keep arbitration, valid,
+        // ready, source namespace and the existing held-route lock unchanged.
+        val ownedAddress = Mux(fill.io.tl.a.valid, fill.io.tl.a.bits.address, fallback.io.tl.a.bits.address)
+        io.tl.a.bits.address := ownedAddress
+        assert(!(fill.io.tl.a.valid && fallback.io.tl.a.valid),
+            "non-prefetch instruction owners cannot offer fill and fallback together")
+        when(io.tl.a.valid) {
+            assert(ownedAddress === Mux(chooseFallback, fallback.io.tl.a.bits.address, fill.io.tl.a.bits.address),
+                "early instruction address selection must preserve every valid A offer")
+        }
+    }
     when(chooseFallback) { io.tl.a.bits.source := fallback.io.tl.a.bits.source | 4.U }
     fallback.io.tl.a.ready := io.tl.a.ready && chooseFallback
     fill.io.tl.a.ready := io.tl.a.ready && !chooseFallback

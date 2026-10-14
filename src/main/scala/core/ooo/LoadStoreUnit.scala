@@ -65,7 +65,13 @@ class MemoryOperation(p: OooParams) extends Bundle {
 /** Single-outstanding LSU with cancellable, side-effect-free RAM reads. See docs/bare-core-ipc.md for cycle/side-effect
   * contract.
   */
-class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module {
+class LoadStoreUnit(
+    p: OooParams,
+    registerStart: Boolean = false,
+    val responseStateOnly: Boolean = false
+) extends Module {
+    require(!responseStateOnly || (p.taggedStoreReturns && p.localTaggedResponseReady && !registerStart),
+        "response-state-only LSU requires its registered tagged Parallel owner")
     val io = IO(new Bundle {
         // State-only reservation hint; start.ready additionally authorizes replacement of the old result.
         val issueAvailable = Output(Bool())
@@ -201,8 +207,19 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
                 "frozen virtual-store proof cannot grant posted-store authority"))
         }
     }
-    io.memory.response.ready        := state === response ||
-        (state === request && io.memory.request.ready) || startRequest
+    // The tagged parent delivers VALID only for an existing registered pending
+    // owner. Request acceptance creates that reservation at the clock edge, so
+    // neither a new start nor request-state issue can receive an immediate reply.
+    io.memory.response.ready := (if (responseStateOnly) state === response else
+        state === response || (state === request && io.memory.request.ready) || startRequest)
+    if (responseStateOnly) {
+        when(io.memory.response.valid) {
+            assert(state === response,
+                "response-state-only LSU received a reply without its saved response owner")
+            assert(!io.start.fire && !io.memory.request.fire,
+                "saved tagged response cannot coincide with this slot's new owner or request")
+        }
+    }
     when(io.memory.request.fire) { state := response }
     def loadValue(beat: UInt, address: UInt, size: UInt, unsigned: Bool): UInt = {
         val shifted = beat >> Cat(address(2, 0), 0.U(3.W))
@@ -221,7 +238,8 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     io.fastLoadPreview.bits := result
     io.fastLoadPreview.bits.data := loaded
     io.fastLoadPreview.bits.exception := false.B
-    when(io.memory.response.fire && !startRequest) {
+    val savedResponseFire = if (responseStateOnly) io.memory.response.fire else io.memory.response.fire && !startRequest
+    when(savedResponseFire) {
         result.data      := Mux(operation.atomic, io.memory.response.bits.data, Mux(operation.store, 0.U, loaded))
         result.exception := io.memory.response.bits.error || io.memory.response.bits.pageFault
         val writeAccess = operation.store || (operation.atomic && operation.atomicOp =/= 2.U)
@@ -276,19 +294,22 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
             0.U
         )
         state := Mux(misaligned || atomicFault || io.start.bits.accessDenied || io.start.bits.forward.valid,
-            done, if (registerStart) request else Mux(io.memory.response.fire,
-                Mux(io.fastStoreRetire, idle, done),
+            done, if (registerStart) request else if (responseStateOnly)
+                Mux(io.memory.request.fire, response, request)
+            else Mux(io.memory.response.fire, Mux(io.fastStoreRetire, idle, done),
                 Mux(io.memory.request.fire, response, request)))
-        when(io.memory.response.fire) {
-            val immediate = io.memory.response.bits
-            result.data := Mux(io.start.bits.atomic, immediate.data,
-                Mux(io.start.bits.store, 0.U,
-                    loadValue(immediate.data, io.start.bits.address, io.start.bits.size, io.start.bits.unsigned)))
-            result.exception := immediate.error || immediate.pageFault
-            val writeAccess = io.start.bits.store || (io.start.bits.atomic && io.start.bits.atomicOp =/= 2.U)
-            result.cause := Mux(immediate.pageFault,
-                Mux(writeAccess, MCause.StorePageFault, MCause.LoadPageFault),
-                Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
+        if (!responseStateOnly) {
+            when(io.memory.response.fire) {
+                val immediate = io.memory.response.bits
+                result.data := Mux(io.start.bits.atomic, immediate.data,
+                    Mux(io.start.bits.store, 0.U,
+                        loadValue(immediate.data, io.start.bits.address, io.start.bits.size, io.start.bits.unsigned)))
+                result.exception := immediate.error || immediate.pageFault
+                val writeAccess = io.start.bits.store || (io.start.bits.atomic && io.start.bits.atomicOp =/= 2.U)
+                result.cause := Mux(immediate.pageFault,
+                    Mux(writeAccess, MCause.StorePageFault, MCause.LoadPageFault),
+                    Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
+            }
         }
         when(io.fastStoreRetire) {
             assert(!registerStart.B, "registered LSU cannot retire a new store in its capture cycle")
@@ -302,10 +323,10 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
             // This writer has the same final priority as new result ownership.
             // A new owner's cancellation state is clear, independent of the old owner.
             val staticException = misaligned || atomicFault || io.start.bits.accessDenied
-            val finalException = Mux(io.memory.response.fire,
+            val finalException = if (responseStateOnly) staticException else Mux(io.memory.response.fire,
                 io.memory.response.bits.error || io.memory.response.bits.pageFault, staticException)
-            val finalDone = staticException || io.start.bits.forward.valid ||
-                (!registerStart.B && io.memory.response.fire)
+            val finalDone = if (responseStateOnly) staticException || io.start.bits.forward.valid else
+                staticException || io.start.bits.forward.valid || (!registerStart.B && io.memory.response.fire)
             capture := !io.start.bits.store && !io.start.bits.atomic && finalDone && !finalException &&
                 !io.fastStoreRetire
         }

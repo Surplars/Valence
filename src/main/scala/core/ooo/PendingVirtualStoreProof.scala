@@ -17,10 +17,12 @@ class PendingStoreProofOwner(p: OooParams) extends Bundle {
   * The optional registered query adds one selection-to-query boundary. Proof storage
   * grants no memory ownership; bound rows survive until exact actual-store capture or kill.
   */
-class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean) extends Module {
+class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
+    val exposeLoadPreparedCandidate: Boolean) extends Module {
     // Keep the original unstaged constructor for production users and compiled fixtures.
     // The explicit switch retains the unstaged query path for isolated A/B qualification.
-    def this(p: OooParams) = this(p, false)
+    def this(p: OooParams) = this(p, false, false)
+    def this(p: OooParams, registerQuery: Boolean) = this(p, registerQuery, false)
     require(p.pendingVirtualStoreProof)
     private val rows = p.pendingVirtualStoreProofSlots
     private val rowBits = math.max(1, log2Ceil(rows))
@@ -33,6 +35,8 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean) extends
         val flushQueries = Input(Bool())
         val loadCandidate = Input(Valid(new VirtualRamLoadCandidate(p)))
         val loadPrepared = Output(Valid(new VirtualRamLoadCertificate(p)))
+        // Candidate only: final admission must still reject flushQueries. No new storage.
+        val loadPreparedCandidateValid = if (exposeLoadPreparedCandidate) Some(Output(Bool())) else None
         val precheck = new VirtualLoadPrecheckPort
         val pmpState = Input(new PmpState)
         val privilege = Input(UInt(2.W))
@@ -226,8 +230,9 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean) extends
         io.clearOwners(load.token.index) || (io.consume.valid && io.consume.bits.asUInt === load.token.asUInt)))) {
         loadValid := false.B
     }
-    io.loadPrepared.valid := loadValid && epochStable && load.epoch === io.precheck.epoch &&
-        !io.flushQueries
+    val loadPreparedIntrinsicValid = loadValid && epochStable && load.epoch === io.precheck.epoch
+    io.loadPrepared.valid := loadPreparedIntrinsicValid && !io.flushQueries
+    io.loadPreparedCandidateValid.foreach(_ := loadPreparedIntrinsicValid)
     io.loadPrepared.bits := load
     when(cancelQueries) { translatedValid := false.B }
     for (r <- 0 until rows) {

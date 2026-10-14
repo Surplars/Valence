@@ -423,9 +423,12 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         }
         rawCursor := scanNext
         when(tokenTransfer) { tokenPresent.get := 0.U }
-        when(scanPrefix(1)) {
+        when(scanPrefix(1)) { tokenPresent.get := VecInit(scanPrefix.drop(1)).asUInt }
+        // Credit, not alignment/presence, controls replacement of dead token
+        // payload. A stalled valid token has tokenReady=false and still holds
+        // every field. Presence and correction priority remain unchanged.
+        when(scanPrefix(0)) {
             token.get.pc := supplyPc
-            tokenPresent.get := VecInit(scanPrefix.drop(1)).asUInt
             for (lane <- 0 until width) {
                 token.get.instructions(lane) := io.supply(lane).bits.instruction
                 token.get.accessFaults(lane) := io.supply(lane).bits.accessFault

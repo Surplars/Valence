@@ -114,9 +114,12 @@ class InstructionTileLinkBridge(
     val completedGood = Mux(odd, Mux(d1Fire, !dError, beatGood(1)), Mux(d0Fire, !dError, beatGood(0)))
     val completedInRom = alignedInRom(completedAddress)
     val bypassHit = lastD && completedGood && completedInRom && completedAddress === startAligned
-    val rawCacheHit = startFull && startOdd && startInRom &&
-        (bypassHit || (cacheValid && cacheAddress === startAligned))
-    startCacheHit := Mux(startLocked, lockedHit, rawCacheHit)
+    val cacheEligible = startInRom && (bypassHit || (cacheValid && cacheAddress === startAligned))
+    val rawCacheHit = startFull && startOdd && cacheEligible
+    // A locked A offer retains its PC/mask, and lockedHit was captured with
+    // these same full/odd qualifications. Keep the immutable hit/data snapshot,
+    // while exposing the aligned-packet constant to the wide address selector.
+    startCacheHit := startFull && startOdd && Mux(startLocked, lockedHit, cacheEligible)
     startCacheData := Mux(startLocked, lockedData, Mux(bypassHit, completedData, cacheData))
     io.fetch.response.valid := heldResponse || lastD
     io.fetch.response.bits := Mux(heldResponse, heldData, assembled)
