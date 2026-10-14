@@ -250,12 +250,19 @@ class MachinePlatform(
         dataTranslation = coreDataTranslation, stagedMemoryFabric = stagedMemoryFabric,
         bufferTranslatedResponses = bufferTranslatedResponses, translationHitFlow = translationHitFlow,
         canonicalHandoff = cacheConcurrency.independentDemandAdmission && p.canonicalVirtualStoreOverlap))
+    // The compact-key representation is enabled only for the qualified board fetch domain.
+    val qualifiedCompactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&
+        p.compressedInstructions && p.stableFetchFaultMetadata && p.alignedFetchPmp && p.rawFetchPresence &&
+        p.parallelFetchTagLookup && p.parallelFetchAlignment && p.registeredFetchWindow &&
+        p.independentFetchPayloadCapture && p.fetchPreviousPacket && p.alignedFetchPermissionStage &&
+        p.fetchAddressBeforePmp
     val frontend   = Module(new SynchronousFetch(16, p.compressedInstructions, p.frontendCacheSets,
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
-        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp))
+        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
+        compactCacheKeys = qualifiedCompactFetchKeys))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
             virtualMemoryLevels = translationLevels, pmpEntries = 16)))

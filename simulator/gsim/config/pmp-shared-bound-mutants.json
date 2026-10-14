@@ -1,0 +1,44 @@
+[
+  {
+    "mode": 1,
+    "name": "drop-cover",
+    "old": "covers(i) := between &&\n                    (!lowerEqual || firstByte >= lowerByte) && (!upperEqual || lastByte <= upperByte)",
+    "new": "covers(i) := true.B",
+    "source_sha256": "36399d038f46d2eb933f450ed12cb7bd11ef7147bf84032f3e8fb4c82129bbcf"
+  },
+  {
+    "mode": 2,
+    "name": "drop-bound64",
+    "old": "io.state.regionLow(i)(64, shift)",
+    "new": "io.state.regionLow(i)(63, shift)",
+    "source_sha256": "77a83a33733ebe002cc22f15e1f95fef2f905cd530e4a8bade8dff2e3f85789f"
+  },
+  {
+    "mode": 3,
+    "name": "lower-cover-end",
+    "old": "covers(i) := between &&\n                    (!lowerEqual || firstByte >= lowerByte)",
+    "new": "covers(i) := between &&\n                    (!lowerEqual || lastByte >= lowerByte)",
+    "source_sha256": "ba26d763504a85e990ed67ec61263120576c48d54e326e0ee382c40bf29f8a8d"
+  },
+  {
+    "mode": 4,
+    "name": "upper-cover-start",
+    "old": "covers(i) := between &&\n                    (!lowerEqual || firstByte >= lowerByte) && (!upperEqual || lastByte <= upperByte)",
+    "new": "covers(i) := between &&\n                    (!lowerEqual || firstByte >= lowerByte) && (!upperEqual || firstByte <= upperByte)",
+    "source_sha256": "1c7e4be8beacc04c5e8c1d4a6807872f9fd3059dafe3f4a18280d52a7634c54f"
+  },
+  {
+    "mode": 5,
+    "name": "reverse-priority",
+    "old": "val earlier = if (i == 0) false.B else VecInit(overlap.take(i)).asUInt.orR",
+    "new": "val earlier = if (i == entries - 1) false.B else VecInit(overlap.drop(i + 1)).asUInt.orR",
+    "source_sha256": "bd1f71cb628ad2de24cea2cff4ad1cd5aa9d4886287833dc3cfe6d2c876f39bf"
+  },
+  {
+    "mode": 6,
+    "name": "unconditional-low",
+    "old": "(!lowerEqual || lastByte >= lowerByte)",
+    "new": "(lastByte >= lowerByte)",
+    "source_sha256": "3d2a9c634d51f0bd412c21eb803ffcc69bf3d8a42e40a99d232e12539e5cef80"
+  }
+]

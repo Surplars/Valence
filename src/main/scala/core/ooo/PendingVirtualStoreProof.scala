@@ -181,7 +181,7 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     when(storeGrant) { state(storeRow) := inflight }
     val checkedSize = Mux(translatedValid, translated.payload.size(1, 0), 0.U)
     val alignmentMask = MuxLookup(checkedSize, 7.U(3.W))(Seq(0.U -> 0.U, 1.U -> 1.U, 2.U -> 3.U))
-    val pmp = Module(new PmpChecker(p.pmpEntries, naturalAlignedAccess = true))
+    val pmp = Module(new PmpChecker(p.pmpEntries, naturalAlignedAccess = true, sharedAlignedBounds = true))
     pmp.io.state := io.pmpState
     pmp.io.privilege := io.privilege
     pmp.io.address := Cat(translated.payload.physicalAddress(63, 3),

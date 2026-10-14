@@ -134,7 +134,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val mulDivConcurrent            = Output(Bool())
         val mulDivMultiCancel           = Output(Bool())
     })
-    val ledger          = Module(new RenameRob(p, retirementSlotIdentity = retirementSlotIdentity))
+    // Enable only the complete paired ROB domain; generic clients retain the old storage.
+    val qualifiedBankedCompletionPayload = p.robEntries == 16 && p.tagBits == 64 && p.recoveryWidth == 4 &&
+        p.renameWidth == 2 && p.completionWidth == 2 && p.commitWidth == 2 && p.physicalRegs == 48 &&
+        p.retirementSlotIdentity && p.retirementIntent && p.registeredRobRetirement &&
+        p.parallelRecoveryAdmission && p.fastHeadTrapRecovery && p.fastHeadSystemRecovery
+    val ledger = Module(new RenameRob(p, retirementSlotIdentity = retirementSlotIdentity,
+        bankedCompletionPayload = qualifiedBankedCompletionPayload))
     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
     ledger.io.rawRequests.foreach(_ := io.rawRequests.get)
     ledger.io.fetchFaultMask.foreach(_ := io.fetchFaultMask.get)

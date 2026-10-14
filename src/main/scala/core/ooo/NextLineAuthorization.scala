@@ -23,7 +23,8 @@ class NextLineAuthorization(p: OooParams, val alignedLinePmp: Boolean = false) e
     val nextIndex = io.request.address(11, 6) + 1.U(6.W)
     val next = Cat(io.request.address(63, 12), nextIndex, 0.U(6.W))
     val last = Cat(0.U(1.W), next(63, 6), 63.U(6.W))
-    val checker = Module(new PmpChecker(p.pmpEntries, alignedLineAccess = alignedLinePmp))
+    val checker = Module(new PmpChecker(p.pmpEntries, alignedLineAccess = alignedLinePmp,
+        sharedAlignedBounds = alignedLinePmp))
     checker.io.state := io.pmpState
     checker.io.address := next
     checker.io.size := 6.U(3.W)

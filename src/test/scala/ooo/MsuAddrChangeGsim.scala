@@ -1,0 +1,180 @@
+package ooo
+
+import chisel3._
+import chisel3.util._
+import chisel3.util.experimental.BoringUtils
+import _root_.circt.stage.ChiselStage
+import soc.core.ooo._
+
+class MsuAddrChangeObservedEntry extends Bundle {
+    val cfg = UInt(8.W)
+    val addr = UInt(54.W)
+    val low = UInt(64.W)
+    val lowHigh = Bool()
+    val end = UInt(64.W)
+    val endHigh = Bool()
+    val active = Bool()
+}
+class MsuAddrChangeObservedState extends Bundle {
+    val entry0 = new MsuAddrChangeObservedEntry
+    val entry1 = new MsuAddrChangeObservedEntry
+    val entry2 = new MsuAddrChangeObservedEntry
+    val entry3 = new MsuAddrChangeObservedEntry
+    val entry4 = new MsuAddrChangeObservedEntry
+    val entry5 = new MsuAddrChangeObservedEntry
+    val entry6 = new MsuAddrChangeObservedEntry
+    val entry7 = new MsuAddrChangeObservedEntry
+    val entry8 = new MsuAddrChangeObservedEntry
+    val entry9 = new MsuAddrChangeObservedEntry
+    val entry10 = new MsuAddrChangeObservedEntry
+    val entry11 = new MsuAddrChangeObservedEntry
+    val entry12 = new MsuAddrChangeObservedEntry
+    val entry13 = new MsuAddrChangeObservedEntry
+    val entry14 = new MsuAddrChangeObservedEntry
+    val entry15 = new MsuAddrChangeObservedEntry
+    def entries: Seq[MsuAddrChangeObservedEntry] = Seq(entry0, entry1, entry2, entry3, entry4, entry5, entry6, entry7, entry8, entry9, entry10, entry11, entry12, entry13, entry14, entry15)
+}
+
+/** The production CSR unit, driven through its irrevocable SystemRequest port.
+  * No replacement CSR decoding, state injection, or system-state peeking.
+  */
+class MsuAddrChangeGsim(entries: Int = 16, registered: Boolean = false, boundaryMode: String = "none") extends Module {
+    require(Set("none", "precheck", "posted", "both").contains(boundaryMode))
+    private val withBoundary = boundaryMode != "none"
+    private val p = OooParams(machineSystem = true, pmpEntries = entries,
+        publishedPmpChanges = withBoundary, virtualRamLoadPrecheck = Set("precheck", "both").contains(boundaryMode),
+        postedStoreMerge = Set("posted", "both").contains(boundaryMode),
+        bufferedRamStores = Set("posted", "both").contains(boundaryMode),
+        registeredMemoryAddress = withBoundary, memoryEntries = 2,
+        speculativeRamBase = BigInt("80000000", 16), speculativeRamBytes = 65536,
+        registeredPmpRegions = registered, virtualMemoryLevels = if (entries > 0) 3 else 0)
+    val io = IO(new Bundle {
+        val boundary = if (withBoundary) Some(new PmpChangeBoundaryPort) else None
+        val start = Input(Bool())
+        val instruction = Input(UInt(32.W))
+        val operand = Input(UInt(64.W))
+        val pc = Input(UInt(64.W))
+        val token = Input(UInt(64.W))
+        val ready = Output(Bool())
+        val completeReady = Input(Bool())
+        val complete = Output(Bool())
+        val result = Output(new SystemResult(p))
+        val trap = Input(Bool())
+        val trapPc = Input(UInt(64.W))
+        val trapCause = Input(UInt(64.W))
+        val trapReady = Output(Bool())
+        val vmFlushReady = Input(Bool())
+        val vmFlush = Output(Bool())
+        val fenceIReady = Input(Bool())
+        val fenceI = Output(Bool())
+        val fetchPrivilege = Output(UInt(2.W))
+        val dataPrivilege = Output(UInt(2.W))
+        val satp = Output(UInt(64.W))
+        val snapshot = Output(new MsuAddrChangeObservedState)
+        val address = Input(UInt(64.W))
+        val size = Input(UInt(3.W))
+        val access = Input(UInt(2.W))
+        val denied = Output(Bool())
+        val fetchDenied = Output(Bool())
+    })
+    val system = Module(new MachineSystemUnit(p))
+    val selectedAddress = BoringUtils.bore(system.address)
+    val selectedRead = BoringUtils.bore(system.readValue)
+    for (i <- 0 until entries) {
+        when(selectedAddress === (0x3b0 + i).U) {
+            assert(selectedRead === Cat(0.U(10.W), system.io.pmpState.addr(i)),
+                "selected pmpaddr raw54 read identity independent of legalCsr")
+        }
+    }
+
+    if (withBoundary) {
+        val pair = Module(new PmpChangeBoundary(p))
+        pair.io.test <> io.boundary.get
+        pair.io.pmp := system.io.pmpState
+        pair.io.vm := system.io.vmState.get
+        pair.io.rawChanged := system.io.pmpRawChanged.get
+        // Wrong alternatives are observable mutation controls only; the correct
+        // input above is the actual public registered producer output.
+        pair.io.early := BoringUtils.bore(system.pmpRawChangeWrite.get)
+        val executeWrite = BoringUtils.bore(system.state) === 1.U &&
+            BoringUtils.bore(system.csr) && BoringUtils.bore(system.legalCsr) && BoringUtils.bore(system.write)
+        pair.io.permission := RegNext(executeWrite && BoringUtils.bore(system.pmpPermissionsChange), false.B)
+        val address = BoringUtils.bore(system.address)
+        val pmpWrite = address === "h3a0".U || address === "h3a2".U ||
+            (address >= "h3b0".U && address < (0x3b0 + entries).U)
+        pair.io.writeEnable := RegNext(executeWrite && pmpWrite, false.B)
+    }
+    system.io.start.valid := io.start
+    system.io.start.bits.token.index := 0.U
+    system.io.start.bits.token.tag := io.token
+    system.io.start.bits.pc := io.pc
+    system.io.start.bits.instruction := io.instruction
+    system.io.start.bits.operand := io.operand
+    io.ready := system.io.start.ready
+    system.io.complete.ready := io.completeReady
+    io.complete := system.io.complete.valid
+    io.result := system.io.complete.bits
+    system.io.imsic.request.ready := true.B
+    system.io.imsic.response.valid := false.B
+    system.io.imsic.response.bits := 0.U.asTypeOf(system.io.imsic.response.bits)
+    system.io.trap.valid := io.trap
+    system.io.trap.bits := 0.U.asTypeOf(system.io.trap.bits)
+    system.io.trap.bits.pc := io.trapPc
+    system.io.trap.bits.cause := io.trapCause
+    io.trapReady := system.io.trapReady
+    system.io.externalInterrupt := false.B
+    system.io.supervisorExternalInterrupt := false.B
+    system.io.timerInterrupt := false.B
+    system.io.timeValue := 0.U
+    system.io.vmFlushReady.foreach(_ := io.vmFlushReady)
+    io.vmFlush := system.io.vmFlush.getOrElse(false.B)
+    io.satp := system.io.vmState.map(_.satp).getOrElse(0.U)
+    system.io.fenceIFlushReady := io.fenceIReady
+    io.fenceI := system.io.fenceIFlush
+    io.fetchPrivilege := system.io.fetchPrivilege
+    io.dataPrivilege := system.io.dataPrivilege
+    for ((observed, i) <- io.snapshot.entries.zipWithIndex) {
+        observed.cfg := system.io.pmpState.cfg(i)
+        observed.addr := system.io.pmpState.addr(i)
+        observed.low := system.io.pmpState.regionLow(i)(63, 0)
+        observed.lowHigh := system.io.pmpState.regionLow(i)(64)
+        observed.end := system.io.pmpState.regionEnd(i)(63, 0)
+        observed.endHigh := system.io.pmpState.regionEnd(i)(64)
+        observed.active := system.io.pmpState.regionActive(i)
+    }
+    for (lane <- 0 until 2) {
+        val word = Module(new PmpChecker(entries, alignedWordAccess = true, decodedWordGranularity = true))
+        val original = Module(new R6PmpCheckerReference(entries))
+        val address = Cat(io.address(63, 3), lane.U(1.W), 0.U(2.W))
+        word.io.state := system.io.pmpState; original.io.state := system.io.pmpState
+        word.io.address := address; original.io.address := address
+        word.io.size := 2.U; original.io.size := 2.U
+        word.io.privilege := system.io.dataPrivilege; original.io.privilege := system.io.dataPrivilege
+        word.io.access := io.access; original.io.access := io.access
+        assert(word.io.denied === original.io.denied,
+            "actual CSR producer atomic update word permission mismatch")
+    }
+    val dataCheck = Module(new PmpChecker(entries))
+    dataCheck.io.state := system.io.pmpState
+    dataCheck.io.address := io.address
+    dataCheck.io.size := io.size
+    dataCheck.io.access := io.access
+    dataCheck.io.privilege := system.io.dataPrivilege
+    io.denied := dataCheck.io.denied
+    val fetchCheck = Module(new PmpChecker(entries))
+    fetchCheck.io.state := system.io.pmpState
+    fetchCheck.io.address := io.address
+    fetchCheck.io.size := io.size
+    fetchCheck.io.access := PmpAccess.execute
+    fetchCheck.io.privilege := system.io.fetchPrivilege
+    io.fetchDenied := fetchCheck.io.denied
+}
+
+object MsuAddrChangeGsimMain extends App {
+    require(args.nonEmpty)
+    val entries = args.find(_.startsWith("entries=")).map(_.stripPrefix("entries=").toInt).getOrElse(16)
+    val boundary = args.find(_.startsWith("boundary=")).map(_.stripPrefix("boundary=")).getOrElse("none")
+    require(args.drop(1).forall(a => a == "registered" || a == s"entries=$entries" || a == s"boundary=$boundary"))
+    ChiselStage.emitCHIRRTLFile(new MsuAddrChangeGsim(entries, args.contains("registered"), boundary),
+        Array("--target-dir", args.head))
+}

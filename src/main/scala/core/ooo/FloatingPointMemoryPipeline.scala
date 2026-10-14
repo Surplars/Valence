@@ -63,7 +63,7 @@ class FloatingPointMemoryPipeline(p: OooParams) extends Module {
     // Align only the checker's address so naturally aligned accesses use exact
     // end = start | (length-1), without a 65-bit carry chain or XLEN wrap.
     val alignmentMask = Mux(prepared.size === 2.U, 3.U(3.W), 7.U(3.W))
-    val pmp = Module(new PmpChecker(p.pmpEntries, naturalAlignedAccess = true))
+    val pmp = Module(new PmpChecker(p.pmpEntries, naturalAlignedAccess = true, sharedAlignedBounds = true))
     pmp.io.state := io.pmpState
     pmp.io.address := Cat(prepared.address(63, 3), prepared.address(2, 0) & ~alignmentMask)
     // Valid/cancel never select size or any address bits. Idle contents do not

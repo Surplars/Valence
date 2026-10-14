@@ -167,8 +167,13 @@ def main():
         assert set(found) == set(wanted), 'missing guest symbols'
         (output / 'backend_system_reserve_symbols.h').write_text(''.join(
             f'#define {wanted[name]} 0x{address}ULL\n' for name, address in found.items()))
+        # Compile outside the source harness directory: quoted includes must resolve
+        # against the verified service snapshot, not an unverified sibling host.
+        linked_host = output / 'backend_system_reserve.cpp'
+        linked_host.write_bytes(host.read_bytes())
+        assert sha(linked_host) == sha(host)
         run('host-link', [args.cxx, *flags, '-I' + str(output), '-I' + str(model), '-I' + str(host_root),
-                          '-I' + str(host_root / 'harness'), host, *objects, '-o', output / 'run'])
+                          '-I' + str(host_root / 'harness'), linked_host, *objects, '-o', output / 'run'])
         run('positive', [output / 'run', output / 'guest.bin'], anchors=[
             'ACTUAL_RESERVE_RETAINED_CERTIFICATE ', 'other_F=0 bind_rise=0', 'ACTUAL_BACKEND_RESERVE_PASS '])
         run('leaked-permit', [output / 'run', output / 'guest.bin', '--leaked-permit'], 1,

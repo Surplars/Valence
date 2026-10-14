@@ -107,7 +107,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     rawFetchPresence: Boolean = false, parallelFetchTagLookup: Boolean = false,
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
     independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
-    val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false) extends Module {
+    val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false,
+    val compactCacheKeys: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -122,6 +123,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         "bounded request frontier requires the two-wide compressed registered window")
     require(!fetchAddressBeforePmp || (boundedRequestFrontier && alignedFetchPmp),
         "fetch address preparation requires the bounded two-wide compressed aligned-PMP frontend")
+    require(!compactCacheKeys || (compressed && fetchWidth == 2 && parallelFetchTagLookup && cacheSets >= 4),
+        "compact cache keys require the two-wide compressed parallel-lookup domain with at least four sets")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
@@ -149,11 +152,16 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     if (compressed) {
         val indexHigh = log2Ceil(cacheSets) + 2
         val valid = RegInit(VecInit(Seq.fill(cacheSets)(VecInit(Seq.fill(2)(false.B)))))
-        val bases = Reg(Vec(cacheSets, Vec(2, UInt(64.W))))
+        val compactKeys = if (compactCacheKeys) Some(Module(new CompactFetchCacheKeys(cacheSets))) else None
+        compactKeys.foreach { keys => keys.io.write := 0.U.asTypeOf(keys.io.write) }
+        val bases = compactKeys.map(keys => VecInit((0 until cacheSets).map(set =>
+            VecInit((0 until 2).map(way => keys.io.keys(0)(set * 2 + way))))))
+            .getOrElse(Reg(Vec(cacheSets, Vec(2, UInt(64.W)))))
         // Fill-time keys for queries at currentBase + 8/16/24. These retain all
         // 64 address bits; only the short set index advances on the read path.
         val maxPacketOffset = if (registeredWindow && fetchWidth == 4) 4 else 3
-        val shiftedBases = (1 to maxPacketOffset).map(_ => Reg(Vec(cacheSets, Vec(2, UInt(64.W)))))
+        val shiftedBases = if (compactCacheKeys) Seq.empty else
+            (1 to maxPacketOffset).map(_ => Reg(Vec(cacheSets, Vec(2, UInt(64.W)))))
         val contexts = Reg(Vec(cacheSets, Vec(2, UInt(3.W))))
         val words = Reg(Vec(cacheSets, Vec(2, UInt(64.W))))
         val errors = Reg(Vec(cacheSets, Vec(2, UInt(2.W))))
@@ -180,8 +188,11 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         def packetIndex(base: UInt, packetOffset: Int): UInt =
             if (packetOffset == 0) base(indexHigh, 3)
             else (base(indexHigh, 3) + packetOffset.U)(log2Ceil(cacheSets) - 1, 0)
-        def cacheKeys(packetOffset: Int) =
-            if (packetOffset == 0) bases else shiftedBases(packetOffset - 1)
+        def cacheKeys(packetOffset: Int) = compactKeys.map { keys =>
+            require(packetOffset <= 2, "compact fetch keys retain exactly the three live two-wide queries")
+            VecInit((0 until cacheSets).map(set =>
+                VecInit((0 until 2).map(way => keys.io.keys(packetOffset)(set * 2 + way)))))
+        }.getOrElse(if (packetOffset == 0) bases else shiftedBases(packetOffset - 1))
         def cacheHits(base: UInt, packetOffset: Int = 0): (Bool, Bool) = if (parallelFetchTagLookup) {
             val lookup = Module(new ParallelFetchTagLookup(cacheSets, packetOffset))
             lookup.io.address := base
@@ -475,11 +486,18 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                 val victim = Mux(protect0, true.B, Mux(protect1, false.B,
                     Mux(!valid(index)(0), false.B, Mux(!valid(index)(1), true.B, replace(index)))))
                 def capturePayload(): Unit = {
-                    bases(index)(victim.asUInt) := packetBase
-                    for (offset <- 1 to maxPacketOffset) {
-                        // A 16-byte response's second packet is +8 from its
-                        // owner. Shifted owner keys already contain every key.
-                        shiftedBases(offset - 1)(index)(victim.asUInt) := pendingKeys(offset - packet)
+                    if (compactCacheKeys) {
+                        compactKeys.get.io.write.valid := true.B
+                        compactKeys.get.io.write.bits.address := packetBase
+                        compactKeys.get.io.write.bits.way := victim
+                        compactKeys.get.io.write.bits.minusTwoHigh := pendingKeys(2)(63, indexHigh + 1)
+                    } else {
+                        bases(index)(victim.asUInt) := packetBase
+                        for (offset <- 1 to maxPacketOffset) {
+                            // A 16-byte response's second packet is +8 from its
+                            // owner. Shifted owner keys already contain every key.
+                            shiftedBases(offset - 1)(index)(victim.asUInt) := pendingKeys(offset - packet)
+                        }
                     }
                     contexts(index)(victim.asUInt) := pendingContext
                     words(index)(victim.asUInt) := io.memory.response.bits(64 * packet + 63, 64 * packet)

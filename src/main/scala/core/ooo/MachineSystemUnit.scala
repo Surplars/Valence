@@ -306,6 +306,8 @@ class MachineSystemUnit(p: OooParams) extends Module {
     // Share each filtered, lock-qualified local comparison between fetch
     // permission invalidation and exact raw-image change publication. OFF-mode
     // address writes change the raw image even when no permission changes.
+    // readValue is the exact selected raw pmpaddr for every pmpaddr CSR hit.
+    val selectedPmpAddrChanged = readValue(53, 0) =/= newValue(53, 0)
     val pmpChanges = (0 until p.pmpEntries).map { i =>
         val cfgAddress = if (i < 8) "h3a0".U else "h3a2".U
         val raw = newValue(8 * (i % 8) + 7, 8 * (i % 8))
@@ -314,7 +316,7 @@ class MachineSystemUnit(p: OooParams) extends Module {
         val nextTorLocked = if (i + 1 < p.pmpEntries) nextTor && pmpCfg(i + 1)(7) else false.B
         val cfgChanged = address === cfgAddress && !pmpCfg(i)(7) && nextCfg =/= pmpCfg(i)
         val addrChanged = address === (0x3b0 + i).U && !pmpCfg(i)(7) && !nextTorLocked &&
-            pmpAddr(i) =/= newValue(53, 0)
+            selectedPmpAddrChanged
         (cfgChanged, addrChanged, pmpCfg(i)(4, 3) =/= 0.U || nextTor)
     }
     val pmpPermissionsChange = if (p.pmpEntries > 0)

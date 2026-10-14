@@ -1,62 +1,44 @@
 #!/usr/bin/env python3
-"""Standalone FP component gate. Build dependencies with the repository's pinned build first."""
-import argparse, hashlib, json, os, re, shutil, subprocess, sys
+"""Focused FIR -> GSIM -> independent C++ FP gates; no CPU build or RTL simulator."""
+import argparse,hashlib,json,os,shutil,subprocess,sys,time
 from pathlib import Path
-p=argparse.ArgumentParser(description=__doc__)
-p.add_argument('gate',choices=['convert','misc','tag64']);p.add_argument('--out',required=True,type=Path)
-p.add_argument('--classpath',help='Fresh same-checkout production, HardFloat, Scala compiler/runtime and Chisel jars, OS path separator delimited')
-p.add_argument('--plugin',type=Path,help='Pinned Chisel Scala compiler plugin jar')
-p.add_argument('--java',default='java');p.add_argument('--firtool',default='firtool');p.add_argument('--iverilog',default='iverilog');p.add_argument('--vvp',default='vvp')
-p.add_argument('--reuse-rtl',type=Path,help='Explicit already-qualified RTL directory; skips Scala compilation/emission, hashes all reused RTL')
-p.add_argument('--vectors',type=Path,help='Explicit existing deterministic vector file; otherwise regenerate')
-p.add_argument('--negative',action='store_true',help='Run candidate-only generated-copy mutation controls after positive test')
-a=p.parse_args();here=Path(__file__).resolve().parent;out=a.out.resolve();out.mkdir(parents=True,exist_ok=False)
-receipt={'gate':a.gate,'status':'RUNNING','full_cpu':False,'synthesis':False,'reuse_rtl':bool(a.reuse_rtl),'commands':[]};sha=lambda x:hashlib.sha256(x.read_bytes()).hexdigest()
-def run(cmd,name,negative=False,needle=''):
- r=subprocess.run(list(map(str,cmd)),capture_output=True,text=True,env=os.environ,timeout=240);s=r.stdout+r.stderr;(out/(name+'.log')).write_text(s);receipt['commands'].append({'argv':list(map(str,cmd)),'returncode':r.returncode,'log':name+'.log'})
- if negative:
-  assert r.returncode!=0 and needle in s and 'ORACLE_BASELINE_MISMATCH' not in s,s
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('gate',choices=['convert','misc','tag64']);p.add_argument('--out',type=Path,required=True);p.add_argument('--classpath',required=True,help='Pinned Scala/compiler/Chisel, current production and HardFloat classpath');p.add_argument('--plugin',type=Path,required=True);p.add_argument('--java',default='java');p.add_argument('--gsim',default='gsim');p.add_argument('--cxx',default='clang++');p.add_argument('--vectors',type=Path);p.add_argument('--negative',action='store_true');p.add_argument('--shared-source',type=Path,help='Same-checkout FloatingPointToIntegerShared.scala for source negatives');a=p.parse_args();here=Path(__file__).resolve().parent;out=a.out.resolve();out.mkdir(parents=True,exist_ok=False);sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();R={'status':'RUNNING','simulator':'GSIM','full_cpu':False,'synthesis':False,'gate':a.gate,'commands':[]}
+def run(cmd,log,negative=False,marker=''):
+ t=time.time();r=subprocess.run(list(map(str,cmd)),capture_output=True,text=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},timeout=300);s=r.stdout+r.stderr;log.write_text(s);R['commands'].append({'argv':list(map(str,cmd)),'returncode':r.returncode,'seconds':time.time()-t,'log':str(log.relative_to(out)),'sha256':sha(log)})
+ assert not any(x in s for x in ['ERROR: AddressSanitizer','UndefinedBehaviorSanitizer','runtime error:']),s
+ if negative:assert r.returncode!=0 and marker in s and 'ORACLE_BASELINE_MISMATCH' not in s,s
  else:assert r.returncode==0,s
  return s
 try:
- fixture=here/'tag64' if a.gate=='tag64' else here
- tb=fixture/('convert_tb.sv' if a.gate=='convert' else 'misc_tb.sv');top='convert_tb' if a.gate=='convert' else 'misc_tb'
- sources=[here/'ConvertHarness.scala'] if a.gate=='convert' else [here/'FloatingPointMiscBaseline.scala',fixture/'MiscHarness.scala']
- if a.reuse_rtl:rtl=a.reuse_rtl.resolve();assert rtl.is_dir()
- else:
-  assert a.classpath and a.plugin,'--classpath and --plugin required unless --reuse-rtl is explicit'
-  classes=out/'classes';classes.mkdir();rtl=out/'rtl';rtl.mkdir()
-  run([a.java,'-Xmx2g','-XX:ActiveProcessorCount=2','-cp',a.classpath,'scala.tools.nsc.Main','-language:reflectiveCalls','-Xplugin:'+str(a.plugin.resolve()),'-classpath',a.classpath,'-d',classes,*sources],'scala')
-  ft=shutil.which(a.firtool) or a.firtool;assert Path(ft).is_file(),'firtool executable unavailable';os.environ['CHISEL_FIRTOOL_PATH']=str(Path(ft).resolve().parent)
-  run([a.java,'-Xmx2g','-XX:ActiveProcessorCount=2','-cp',str(classes)+os.pathsep+a.classpath,'soc.core.ooo.'+('ConvertEmit' if a.gate=='convert' else 'MiscEmit'),rtl],'emit')
-  if a.gate=='convert':rtl=rtl/'harness'
- sv=sorted(rtl.glob('*.sv'));assert sv,'no RTL files';receipt['rtl_sha256']={x.name:sha(x) for x in sv}
  vectors=None
  if a.gate!='tag64':
   vectors=a.vectors.resolve() if a.vectors else out/'vectors/tests/vectors.txt'
-  if not a.vectors:run([sys.executable,here/'make_vectors.py',out/'vectors'],'vectors')
-  assert vectors.is_file();receipt['vectors_sha256']=sha(vectors)
- def simulate(files,label,negative=False,needle=''):
-  binary=out/(label+'.vvp');run([a.iverilog,'-g2012','-s',top,'-o',binary,*files,tb],label+'-compile')
-  return run([a.vvp,binary]+(['+vectors='+str(vectors)] if vectors else []),label,negative,needle)
- print(simulate(sv,'positive'))
+  if not a.vectors:run([sys.executable,here/'make_vectors.py',out/'vectors'],out/'vectors.log')
+  assert vectors.is_file();R['vectors_sha256']=sha(vectors)
+ top='FpConvertGsim' if a.gate=='convert' else 'FpMiscGsim';sources=[here/(top+'.scala')]
+ if a.gate!='convert':sources+=[here/'FloatingPointMiscBaseline.scala']
+ R['test_sources']={x.name:sha(x) for x in [*sources,here/('convert.cpp' if a.gate=='convert' else 'misc.cpp'),here/'make_vectors.py']}
+ kinds=['positive']
  if a.negative:
-  assert a.gate!='misc','Use convert and tag64 negative gates; misc16 has no additional mutation'
-  mutations=['truncate_without_clip','nx_not_suppressed'] if a.gate=='convert' else ['truncate_tag64']
-  for mutation in mutations:
-   d=out/mutation;d.mkdir();changes=0
-   for f in sv:
-    s=f.read_text();old=s
-    if a.gate=='convert' and f.name.startswith('FloatingPointToIntegerShared_'):
-     if mutation=='truncate_without_clip':s,n=re.subn(r'assign io_out32 =.*?;','assign io_out32 = _wide_io_out[31:0];',s,flags=re.S);assert n==1
-     else:target='~invalid32 & _wide_io_intExceptionFlags[0]';assert s.count(target)==1;s=s.replace(target,'_wide_io_intExceptionFlags[0]')
-    elif mutation=='truncate_tag64' and f.name=='MiscHarness.sv':
-     target='.io_request_bits_command_token_tag     (io_token)';assert s.count(target)==4;s=s.replace(target,".io_request_bits_command_token_tag     ({48'b0,io_token[15:0]})",2)
-    if old!=s:changes+=1
-    (d/f.name).write_text(s)
-   assert changes==(2 if a.gate=='convert' else 1),'emitter pattern changed; review mutation instead of weakening it'
-   simulate(sorted(d.glob('*.sv')),mutation,True,'CANDIDATE_MISMATCH' if a.gate=='convert' else 'OWNER_CHANGED')
- receipt['status']='PASS_COMPONENT_REUSED_RTL' if a.reuse_rtl else 'PASS_FRESH_COMPONENT'
- receipt['fixtures_sha256']={str(x.relative_to(here)):sha(x) for x in [*sources,tb,here/'make_vectors.py']}
-except Exception as e:receipt.update(status='FAIL',error=str(e));raise
-finally:(out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+  assert a.gate!='misc','Negatives are convert and tag64 only'
+  kinds+=['truncate_without_clip','nx_not_suppressed'] if a.gate=='convert' else ['truncate_tag64']
+ for kind in kinds:
+  d=out/kind;d.mkdir();classes=d/'classes';classes.mkdir();src=list(sources)
+  if kind!='positive':
+   if a.gate=='convert':
+    original=(a.shared_source or here.parents[1]/'src/main/scala/core/ooo/FloatingPointToIntegerShared.scala').resolve();s=original.read_text()
+    old,new=('io.out32 := Mux(invalid32,clipped32,wide.io.out(31,0))','io.out32 := wide.io.out(31,0)') if kind=='truncate_without_clip' else ('!invalid32 && wide.io.intExceptionFlags(0)','wide.io.intExceptionFlags(0)');assert s.count(old)==1
+    mutant=d/'FloatingPointToIntegerShared.scala';mutant.write_text(s.replace(old,new));src.append(mutant)
+   else:
+    original=here/'FpMiscGsim.scala';s=original.read_text();old='u.request.bits.command.token.tag:=io.token';new='u.request.bits.command.token.tag:=(if(isCandidate) io.token(15,0) else io.token)';assert s.count(old)==1
+    mutant=d/'FpMiscGsim.scala';mutant.write_text(s.replace(old,new));src[0]=mutant
+   (d/'mutation.json').write_text(json.dumps({'original_sha256':sha(original),'mutant_sha256':sha(mutant),'old':old,'new':new,'replacement_count':1,'original_oracle_unchanged':True},indent=2))
+  run([a.java,'-Xmx3g','-XX:ActiveProcessorCount=2','-cp',a.classpath,'scala.tools.nsc.Main','-language:reflectiveCalls','-Xplugin:'+str(a.plugin.resolve()),'-classpath',a.classpath,'-d',classes,*src],d/'scala.log')
+  run([a.java,'-Xmx3g','-XX:ActiveProcessorCount=2','-cp',str(classes)+os.pathsep+a.classpath,'soc.core.ooo.'+top+'Main',d]+([] if a.gate=='convert' else ['64' if a.gate=='tag64' else '16']),d/'emit.log')
+  run([a.gsim,'--threads=1','--dir='+str(d),d/(top+'.fir')],d/'generate.log')
+  run([a.cxx,'-std=c++20','-O1','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all','-DTAG_BITS='+('64' if a.gate=='tag64' else '16'),'-I'+str(d),*sorted(d.glob(top+'[0-9]*.cpp')),here/('convert.cpp' if a.gate=='convert' else 'misc.cpp'),'-ldl','-o',d/'run'],d/'cxx.log')
+  s=run([d/'run']+([vectors] if vectors else []),d/'result.log',kind!='positive','CANDIDATE_MISMATCH' if a.gate=='convert' else 'MISC_BASELINE_MISMATCH');print(kind,s.strip(),flush=True)
+ R['status']='PASS_GSIM_COMPONENT_ONLY'
+except Exception as e:R.update(status='FAIL',error=str(e));raise
+finally:
+ R['artifacts']={str(x.relative_to(out)):sha(x) for x in out.rglob('*') if x.is_file() and x.name!='run' and x.suffix!='.class'};(out/'receipt.json').write_text(json.dumps(R,indent=2)+'\n')

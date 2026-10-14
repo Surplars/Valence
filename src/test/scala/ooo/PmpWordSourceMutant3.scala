@@ -7,10 +7,16 @@ import chisel3.util._
   */
 class PmpWordSourceMutant3(entries: Int = 16, alignedWordAccess: Boolean = false,
     naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false,
-    val decodedWordGranularity: Boolean = false) extends Module {
+    val decodedWordGranularity: Boolean = false,
+    val sharedAlignedBounds: Boolean = false) extends Module {
     // Preserve the original constructor for existing compiled/default callers.
     def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean, alignedLineAccess: Boolean) =
-        this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, false)
+        this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, false, false)
+    def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean,
+        alignedLineAccess: Boolean, decodedWordGranularity: Boolean) =
+        this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, decodedWordGranularity, false)
+    require(!sharedAlignedBounds || naturalAlignedAccess || alignedLineAccess,
+        "shared PMP bounds require a naturally aligned access or aligned line")
     require(!decodedWordGranularity || alignedWordAccess,
         "decoded word PMP requires the fixed aligned four-byte access domain")
     require(Set(0, 8, 16).contains(entries))
@@ -55,6 +61,10 @@ class PmpWordSourceMutant3(entries: Int = 16, alignedWordAccess: Boolean = false
             else if (alignedLineAccess) Cat(0.U(1.W), io.address(63, 6), 63.U(6.W))
             else if (naturalAlignedAccess) start | lastOffset
             else start + lastOffset
+        if (sharedAlignedBounds) {
+            val shift = if (alignedLineAccess) 6 else 3
+            assert(start(64, shift) === end(64, shift), "shared PMP endpoint high bits differ")
+        }
         val overlap = Wire(Vec(entries, Bool()))
         val covers  = Wire(Vec(entries, Bool()))
         val allowed = Wire(Vec(entries, Bool()))
@@ -73,6 +83,26 @@ class PmpWordSourceMutant3(entries: Int = 16, alignedWordAccess: Boolean = false
                 overlap(i) := io.state.regionActive(i) && word >= io.state.regionLow(i)(64, 2) &&
                     word <= io.state.regionEnd(i)(64, 2)
                 covers(i) := true.B
+            } else if (sharedAlignedBounds) {
+                // Both endpoints remain in one fixed 8-byte/64-byte block.
+                // Compare each complete high bound once; retain the low-byte
+                // tests separately for overlap and coverage. This is exact even
+                // for non-granule-aligned or reversed decoded test regions.
+                val shift = if (alignedLineAccess) 6 else 3
+                val high = start(64, shift)
+                val lowerHigh = io.state.regionLow(i)(64, shift)
+                val upperHigh = io.state.regionEnd(i)(64, shift)
+                val lowerEqual = high === lowerHigh
+                val upperEqual = high === upperHigh
+                val between = high >= lowerHigh && high <= upperHigh
+                val firstByte = start(shift - 1, 0)
+                val lastByte = end(shift - 1, 0)
+                val lowerByte = io.state.regionLow(i)(shift - 1, 0)
+                val upperByte = io.state.regionEnd(i)(shift - 1, 0)
+                overlap(i) := io.state.regionActive(i) && between &&
+                    (!lowerEqual || lastByte >= lowerByte) && (!upperEqual || firstByte <= upperByte)
+                covers(i) := between &&
+                    (!lowerEqual || firstByte >= lowerByte) && (!upperEqual || lastByte <= upperByte)
             } else {
                 overlap(i) := io.state.regionActive(i) && start <= io.state.regionEnd(i) &&
                     end >= io.state.regionLow(i)

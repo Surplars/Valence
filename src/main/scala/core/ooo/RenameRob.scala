@@ -21,7 +21,11 @@ class HeadSystemRecoveryPort(p: OooParams) extends Bundle {
   * writes and wakeups use the same liveness decision as the ROB. Tags never silently wrap: exhaustion blocks allocation
   * until reset, which requires all external producers to have been reset/drained too.
   */
-class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Boolean = false) extends Module {
+class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Boolean = false,
+    val bankedCompletionPayload: Boolean = false) extends Module {
+    require(!bankedCompletionPayload || (p.completionWidth == 2 && p.commitWidth == 2 &&
+        p.robEntries >= 4 && isPow2(p.robEntries)),
+        "banked completion payload requires two writers, two consecutive readers and a power-of-two ROB")
     require(retirementSlotIdentity == p.retirementSlotIdentity,
         "ledger retirement-slot identity must use its unified OooParams flag")
     require(!retirementSlotIdentity || (p.retirementIntent && p.registeredRobRetirement &&
@@ -99,6 +103,18 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
     val exhausted  = RegInit(false.B)
     val recovering = RegInit(false.B)
     val keepCount  = RegInit(0.U(p.countBits.W))
+
+    val completionPayload = if (bankedCompletionPayload)
+        Some(Module(new WriterBankedRobCompletionPayload(p.robEntries))) else None
+    completionPayload.foreach { payload =>
+        payload.io.head := head
+        for (lane <- 0 until 2) {
+            payload.io.write(lane).valid := io.completionAccepted(lane)
+            payload.io.write(lane).bits.index := io.complete(lane).bits.token.index
+            payload.io.write(lane).bits.nextPc := io.complete(lane).bits.nextPc
+            payload.io.write(lane).bits.tval := io.complete(lane).bits.tval
+        }
+    }
 
     val allocationPayload = if (p.bankedRobPayload) Some(Module(new BankedRobPayload(p.robEntries))) else None
     allocationPayload.foreach { payload =>
@@ -253,10 +269,10 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         when(accepted) {
             entries(completion.bits.token.index).done      := true.B
             entries(completion.bits.token.index).data      := completion.bits.data
-            entries(completion.bits.token.index).nextPc    := completion.bits.nextPc
+            if (!bankedCompletionPayload) entries(completion.bits.token.index).nextPc := completion.bits.nextPc
             entries(completion.bits.token.index).exception := completion.bits.exception
             entries(completion.bits.token.index).cause     := completion.bits.cause
-            entries(completion.bits.token.index).tval      := completion.bits.tval
+            if (!bankedCompletionPayload) entries(completion.bits.token.index).tval := completion.bits.tval
         }
     }
 
@@ -322,7 +338,9 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         io.commit(lane).bits.data        := Mux(entry.done, entry.data,
             Mux(fastHeadNow, io.fastHeadRetire.bits.data,
                 Mux1H(retiringNow.zip(io.complete.map(_.bits.data)))))
-        io.commit(lane).bits.nextPc      := Mux(entry.done, entry.nextPc,
+        val storedNextPc = completionPayload.map(payload =>
+            Mux(entry.done, payload.io.nextPc(lane), 0.U(64.W))).getOrElse(entry.nextPc)
+        io.commit(lane).bits.nextPc      := Mux(entry.done, storedNextPc,
             Mux(fastHeadNow, io.fastHeadRetire.bits.nextPc,
                 Mux1H(retiringNow.zip(io.complete.map(_.bits.nextPc)))))
         when(valid && entry.writesRd) {
@@ -343,7 +361,8 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
     io.headException.bits.token.tag   := entries(head).tag
     io.headException.bits.pc          := headPc
     io.headException.bits.cause       := entries(head).cause
-    io.headException.bits.tval        := entries(head).tval
+    io.headException.bits.tval        := completionPayload.map(payload =>
+        Mux(entries(head).done, payload.io.headTval, 0.U(64.W))).getOrElse(entries(head).tval)
 
     // Combinational mapping/free-list stages provide same-packet RAW and WAW forwarding.
     // Explicit element connections avoid GSIM splitArray's bulk-connect/dynamic-write limitation.

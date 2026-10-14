@@ -145,6 +145,22 @@ class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false, boun
         assert(word.io.denied === original.io.denied,
             "actual CSR producer atomic update word permission mismatch")
     }
+    for (line <- Seq(false, true)) {
+        val checkedSize = if (line) 6.U(3.W) else Cat(0.U(1.W), io.size(1, 0))
+        val mask = if (line) 63.U(64.W) else MuxLookup(checkedSize, 7.U(64.W))(
+            Seq(0.U -> 0.U(64.W), 1.U -> 1.U(64.W), 2.U -> 3.U(64.W)))
+        val address = io.address & ~mask
+        val candidate = Module(new PmpChecker(entries, naturalAlignedAccess = !line,
+            alignedLineAccess = line, sharedAlignedBounds = true))
+        val original = Module(new R6PmpCheckerReference(entries))
+        candidate.io.state := system.io.pmpState; original.io.state := system.io.pmpState
+        candidate.io.address := address; original.io.address := address
+        candidate.io.size := checkedSize; original.io.size := checkedSize
+        candidate.io.privilege := system.io.dataPrivilege; original.io.privilege := system.io.dataPrivilege
+        candidate.io.access := io.access; original.io.access := io.access
+        assert(candidate.io.denied === original.io.denied,
+            "actual CSR shared high-bound consumer differs from byte reference")
+    }
     val dataCheck = Module(new PmpChecker(entries))
     dataCheck.io.state := system.io.pmpState
     dataCheck.io.address := io.address

@@ -1,0 +1,20 @@
+{
+  "schema": "rob-fetch-public-leaves-v1",
+  "groups": {
+    "rob": {
+      "simulator/gsim/rob_completion_payload/retirement_slot_rob_oracle.h": "332448237eec88addf17b53e67a907dafeddc06836cd3a46f455f4c093a323dd",
+      "simulator/gsim/rob_completion_payload/rob_completion_payload.cpp": "6f04069a39641b00a40fc92479c9cdf38881633dcebee7a55b01f7bf10c662fb",
+      "simulator/gsim/rob_completion_payload/rob_completion_payload_oracle.h": "070662bfb049724cc5a194b455c02497ce8db16843b5eaf8ffaa2ec7e31f2870",
+      "simulator/gsim/rob_completion_payload/rob_payload_ram_oracle.h": "7a06444c889df2ad52a4ed72a46ec501ee225a30d67033ec4f869bce50a46549",
+      "src/test/scala/ooo/RobCompletionPayloadGsim.scala": "348ef03c7043a1a7416edb3611c8a2b8ae9d0c495ce2756f411908e85b50bf77"
+    },
+    "fetch": {
+      "simulator/gsim/compact_fetch_keys/compact_fetch_cache_keys.cpp": "814f098e9586b6fa32e91ec748c2e7d872d1be103d1277ee827bcb6960b81579",
+      "simulator/gsim/compact_fetch_keys/compact_fetch_frontend.cpp": "bed763fc29021829a92720c15a1b39c56310bdb62841622176a404fd6a75fe5f",
+      "simulator/gsim/compact_fetch_keys/compact_fetch_frontend_oracle.h": "efcc61b35f3cddd89ecc3029a64857f390a6e123e4a400479258183891533b2f",
+      "src/test/scala/ooo/CompactFetchCacheKeysGsim.scala": "756af94f60199c728bab7131fb509501b91471d7481dde8ce6d554651346ce0f",
+      "src/test/scala/ooo/CompactFetchFrontendGsim.scala": "d96199416b7b3d6e25ddc01b138de27712446d4c2d10b085851284996bb82735",
+      "src/test/scala/ooo/FrozenSynchronousFetchBeforeCompactKeys.scala": "8393b6ee9d5cd82c72c7f54f7c867b76ace90e1e5e88ba89ebbfbc8fb0dec844"
+    }
+  }
+}
