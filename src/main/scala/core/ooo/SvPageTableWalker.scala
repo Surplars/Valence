@@ -57,7 +57,7 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
     val vpn     = Wire(Vec(maxLevels, UInt(9.W)))
     for (i <- 0 until maxLevels) { vpn(i) := walk.virtualAddress(12 + 9 * i + 8, 12 + 9 * i) }
     val pteAddress = Cat(table, 0.U(12.W)) + (vpn(level(log2Ceil(maxLevels) - 1, 0)) << 3)
-    val pmp = Module(new PmpChecker(pmpEntries))
+    val pmp = Module(new PmpChecker(pmpEntries, naturalAlignedAccess = true, sharedAlignedBounds = true))
     pmp.io.state     := io.pmpState
     pmp.io.address   := pteAddress
     pmp.io.size      := 3.U

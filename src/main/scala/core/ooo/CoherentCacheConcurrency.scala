@@ -120,8 +120,30 @@ object CoherentLineCacheModule {
             "posted/prefetch coexistence requires an enabled posted owner")
         postedConfig.foreach(c => require(c.enabled && concurrency.readMshrs == 2,
             "posted integration requires explicit ON and original two-MSHR cache"))
+        // Keep the new write-data representation confined to the reviewed board domain.
+        // The tagged-return and full-aperture integration is checked by the combined CPU gate.
+        val reviewedWriteDataConcurrency = CoherentCacheConcurrency(
+            readMshrs = 2, responseEntries = 2, writebackEntries = 2,
+            overlapWritebackRefill = true, nextLinePrefetch = true, prefetchCandidateCycles = 16,
+            storeNextLinePrefetch = true, storePrefetchMruInsertion = true,
+            postedPrefetchCoexistence = true, independentDemandAdmission = true,
+            splitPrefetchTracking = true, readPrefetchDirtyRetry = true,
+            readPrefetchDemandAdoption = true, readPrefetchStoreHold = true,
+            durableReadPrefetchCandidate = true, readPrefetchBehindStore = true,
+            internalLineGrant = true, concurrentReadStorePrefetch = true, memoryScheduleOverlap = true)
+        val qualifiedSharedWriteData = base == BoardSocConfig.ramBase && bytes == BigInt(2) * 1024 * 1024 * 1024 &&
+            lines == 512 && ways == 2 &&
+            concurrency == reviewedWriteDataConcurrency && tagConfig.compact && tagConfig.bankedStorage &&
+            params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits == 3 && params.sinkBits == 1 &&
+            registerProbeLookup && localReadSelection &&
+            postedConfig.exists(c => c.enabled && c.tokenTagBits == 64 && c.tokenIndexBits == 4 &&
+                c.generationBits == 64 && c.epochBits == 32 && c.cacheSets == 256 && c.cacheWays == 2 &&
+                c.readMshrs == 2 && c.responseEntries == 2 && c.writebackEntries == 2 &&
+                c.guaranteedBase == base && c.guaranteedBytes == bytes) &&
+            returnConfig.contains(CpuReturnConfig(4, 2, true))
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))
         else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig,
-            postedConfig, returnConfig, registerProbeLookup, localReadSelection))
+            postedConfig, returnConfig, registerProbeLookup, localReadSelection,
+            shareStoreWriteData = qualifiedSharedWriteData))
     }
 }

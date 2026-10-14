@@ -81,7 +81,7 @@ class InstructionLineCache(
     private val demandTags = tagBanks.map(banks => VecInit(banks.map(_.read(requestSet))))
     private val inRam = requestLine >= ramBase.U &&
         (requestLine +& 63.U) < (ramBase + ramBytes).U(65.W)
-    private val pmp = Module(new PmpChecker(16))
+    private val pmp = Module(new PmpChecker(16, alignedLineAccess = true, sharedAlignedBounds = true))
     pmp.io.state := io.pmpState
     pmp.io.address := requestLine
     pmp.io.size := 6.U

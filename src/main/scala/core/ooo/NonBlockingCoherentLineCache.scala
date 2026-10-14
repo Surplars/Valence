@@ -18,7 +18,8 @@ class NonBlockingCoherentLineCache(
     postedConfig: Option[PostedStoreMergeConfig] = None,
     returnConfig: Option[CpuReturnConfig] = None,
     val registerProbeLookup: Boolean = false,
-    val localReadSelection: Boolean = false
+    val localReadSelection: Boolean = false,
+    val shareStoreWriteData: Boolean = false
 ) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
@@ -931,6 +932,11 @@ class NonBlockingCoherentLineCache(
         }
     }
     prefetchRefillPending := engine.io.response.valid
+    // Miss-store and hit-store supply the same eight byte lanes. Select those
+    // 64 bits once before distributing them across the eight SRAM word banks.
+    // Every original write address, enable and byte mask remains unchanged.
+    private val sharedStoreWriteData = if (shareStoreWriteData)
+        Some(Mux(refill, fillRequest.data, request.data)) else None
     for (bank <- 0 until 8) {
         val oldWord = engine.io.response.bits.data(64 * bank + 63, 64 * bank)
         val word = Mux(fillRequest.write && fillRequest.address(5, 3) === bank.U,
@@ -938,7 +944,17 @@ class NonBlockingCoherentLineCache(
         val hitWrite = storeWrite && request.address(5, 3) === bank.U
         val lineWrite = (refill && !engine.io.response.bits.error) || postedInstall
         val writeIndex = Mux(postedInstall, postedInstallIndex, Mux(refill, fillIndex, index))
-        val writeWord = Mux(postedInstall, postedInstallData(64 * bank + 63, 64 * bank),
+        val writeWord = if (shareStoreWriteData) {
+            Cat((7 to 0 by -1).map { byte =>
+                val mergeStoreByte = fillRequest.write && fillRequest.address(5, 3) === bank.U &&
+                    fillRequest.mask(byte)
+                val selectStoreByte = !postedInstall && (!refill || mergeStoreByte)
+                val lineByte = Mux(postedInstall,
+                    postedInstallData(64 * bank + 8 * byte + 7, 64 * bank + 8 * byte),
+                    engine.io.response.bits.data(64 * bank + 8 * byte + 7, 64 * bank + 8 * byte))
+                Mux(selectStoreByte, sharedStoreWriteData.get(8 * byte + 7, 8 * byte), lineByte)
+            })
+        } else Mux(postedInstall, postedInstallData(64 * bank + 63, 64 * bank),
             Mux(refill, word, request.data))
         when(readEnables(bank) && (lineWrite || hitWrite)) {
             assert(readIndex =/= writeIndex, "undefined same-address SRAM read/write collision")
