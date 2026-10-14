@@ -93,11 +93,13 @@ def check_resident_memory_topology(enabled, core):
         raise ValueError("--resident-memory-payload-reuse requires the bounded ROB16/PRF48 full-tag staged-memory profile")
 
 
-def check_resident_memory_actual(enabled, resolved, actual):
+def check_resident_memory_actual(enabled, resolved, actual, *, source_bridge=None):
     """Check actual constructor readback, complete products, names and types."""
     spec = importlib.util.spec_from_file_location("resident_actual_bridge", HERE / "resident_memory_source_bridge.py")
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
+    if source_bridge is not None:
+        bridge = source_bridge
     contract = bridge.checked_sources()
     expected_keys = {"schema", "scope", "residentMemoryPayloadReuse", "residentMemoryStartAllowed",
                      "residentSelectorCount", "ordinarySelectorCount", "residentSelectorClasses",
@@ -168,6 +170,10 @@ def sources():
         "fpga/next/held_alu_source_bridge.py", "fpga/next/held-alu-source-compat.json",
         "fpga/next/board_held_alu.py", "fpga/next/held-alu-profile.json",
         "fpga/next/resident_memory_source_bridge.py", "fpga/next/resident-memory-source-compat.json",
+        "fpga/next/board_combined_cpu.py", "fpga/next/combined-cpu-profile.json",
+        "fpga/next/test_combined_cpu_entry.py",
+        "src/test/scala/ooo/CombinedCpuFeaturesMain.scala",
+        "docs/combined-cpu-native-entry.md",
         "fpga/next/board_resident_memory.py", "fpga/next/resident-memory-profile.json",
         "src/test/scala/ooo/ResidentMemoryIntegrationProfile.scala",
         "src/test/scala/ooo/ResidentMemoryIntegrationActualAudit.scala",
@@ -249,7 +255,20 @@ def check_wrapper_ports(wrapper, top):
     return len(connected)
 
 
-def main(argv=None, expected_profile_sha256=None):
+def main(argv=None, expected_profile_sha256=None, *, named_entry=None):
+    if named_entry not in (None, "combined-young-resident-held-r1", "combined-timing-ready-raw73-r1"):
+        raise ValueError("unknown strict named native entry")
+    combined_entry = None
+    timing_bridge = None
+    if named_entry == "combined-timing-ready-raw73-r1":
+        spec = importlib.util.spec_from_file_location("timing_source_bridge", HERE / "timing_ready73_source_bridge.py")
+        timing_bridge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(timing_bridge)
+    def current_sources():
+        if timing_bridge is None:
+            return sources()
+        contract = timing_bridge.checked_sources()
+        return {**contract["current_source_sha256"], **{name: sha(ROOT / name) for name in contract["self_excluded"]}}
     ap = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     ap.add_argument("--output", type=Path, required=True)
     debug = ap.add_mutually_exclusive_group()
@@ -411,8 +430,15 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off authorized LSU handoff and full-way cache demand admission")
     ap.add_argument("--dma-line-yield-cycles", type=int, choices=(0, 4, 8, 16, 32, 64), default=0)
     ap.add_argument("--prefetch-candidate-cycles", type=int, choices=(1, 3, 16), default=1)
+    ap.add_argument("--registered-load-result-ready", action="count", default=0)
+    ap.add_argument("--frozen-store-checked-flow", action="count", default=0)
     raw_args = sys.argv[1:] if argv is None else list(argv)
     a = ap.parse_args(raw_args)
+    for field in ("registered_load_result_ready", "frozen_store_checked_flow"):
+        count = getattr(a, field)
+        if count and (timing_bridge is None or count != 1 or "--" + field.replace("_", "-") not in raw_args):
+            ap.error("timing flags require the exact named timing entry")
+        setattr(a, field, bool(count))
     if a.tri_speed_raw_clock_handoff > 1:
         ap.error("duplicate --tri-speed-raw-clock-handoff")
     if a.tri_speed_raw_clock_handoff and not a.experimental_trispeed_ethernet:
@@ -873,7 +899,7 @@ def main(argv=None, expected_profile_sha256=None):
             separators=(",", ":")).encode()).hexdigest()
         if digest != expected_profile_sha256:
             ap.error("performance preset full profile changed; requalification required")
-    before = sources()
+    before = current_sources()
     source_identity = None
     try:
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
@@ -886,7 +912,7 @@ def main(argv=None, expected_profile_sha256=None):
         spec = importlib.util.spec_from_file_location("resident_memory_snapshot_bridge", HERE / "resident_memory_source_bridge.py")
         bridge = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bridge)
-        source_identity = bridge.checked_sources()["source_identity"]
+        source_identity = (timing_bridge or bridge).checked_sources()["source_identity"]
         head = None
     output = a.output.resolve()
     if output.exists():
@@ -1061,6 +1087,17 @@ def main(argv=None, expected_profile_sha256=None):
         command.append("--posted-younger-load-seal-deferral")
     if a.resident_memory_payload_reuse:
         command.append("--resident-memory-payload-reuse")
+    for field in ("registered_load_result_ready", "frozen_store_checked_flow"):
+        if getattr(a, field):
+            command.append("--" + field.replace("_", "-"))
+            profile["profile"][field] = True
+    if named_entry is not None:
+        filename = "board_timing_ready73.py" if timing_bridge is not None else "board_combined_cpu.py"
+        spec = importlib.util.spec_from_file_location("combined_cpu_named_entry", HERE / filename)
+        combined_entry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(combined_entry)
+        command = combined_entry.bind_native_command(command, raw_args, a.output, a.emit)
+        profile["profile"]["name"] = named_entry
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_identity": source_identity, "source_files": len(before), "output": str(output),
@@ -1113,6 +1150,8 @@ def main(argv=None, expected_profile_sha256=None):
         "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
         "native_mac_mode": native_mac_mode,
         "command": command, "synthesis": False, "physical_qualification": False}
+    if named_entry is not None:
+        receipt["named_entry"] = named_entry
     try:
         started = time.monotonic()
         with (output / "elaborate.log").open("w") as stream:
@@ -1130,8 +1169,16 @@ def main(argv=None, expected_profile_sha256=None):
             if json.dumps(actual[leaf], sort_keys=True, allow_nan=False) != json.dumps(resolved["core"], sort_keys=True, allow_nan=False):
                 raise RuntimeError("complete actual held ALU leaf product differs: " + leaf)
         resident_actual = json.loads((rtl / "actual-resident-memory.json").read_text())
-        check_resident_memory_actual(a.resident_memory_payload_reuse, resolved, resident_actual)
-        if before != sources():
+        check_resident_memory_actual(a.resident_memory_payload_reuse, resolved, resident_actual, source_bridge=timing_bridge)
+        if combined_entry is not None:
+            combined_entry.validate_native_output(rtl)
+            receipt["complete_combined_constructor_verified"] = True
+            if timing_bridge is not None:
+                receipt["complete_timing_constructor_verified"] = True
+                receipt["timing_profile_sha256"] = combined_entry.PROFILE_SHA256
+                receipt["cpu_qualification"] = combined_entry.load_profile()["qualification"]["CPU"]
+                receipt["cpu_qualification_sha256"] = combined_entry.load_profile()["qualification"]["final73_cpu_qualification_sha256"]
+        if before != current_sources():
             raise RuntimeError("source changed during export")
         inventory = {p.relative_to(output).as_posix(): sha(p) for p in sorted(rtl.rglob("*")) if p.is_file()}
         if not inventory or not any(name.endswith(".sv") for name in inventory):
@@ -1195,7 +1242,7 @@ def main(argv=None, expected_profile_sha256=None):
                 "sha256": sha(required), "guard_sha256": sha(guard), "status": "NOT_RUN_NO_VIVADO",
                 "must_pass_before_implementation_or_bitstream": True}
             receipt["bscan_timing_candidate"] = bscan_integration.stage(ROOT, output, a.experimental_jtag_bscan)
-        if before != sources():
+        if before != current_sources():
             raise RuntimeError("source changed during board integration staging")
         for name in listed:
             item = Path(name)

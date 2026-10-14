@@ -43,6 +43,8 @@ object FpgaNextBoardGsim {
         localTaggedResponseReady = c.localTaggedResponseReady,
         heldAluIssueForwarding = c.heldAluIssueForwarding,
         residentMemoryPayloadReuse = c.residentMemoryPayloadReuse,
+        registeredLoadResultReady = c.registeredLoadResultReady,
+        frozenStoreCheckedFlow = c.frozenStoreCheckedFlow,
         directRegisteredExecutionOperands = c.directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = c.sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = c.eagerFetchPrefixSelect,

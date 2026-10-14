@@ -12,7 +12,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 COMPAT = HERE / 'resident-memory-source-compat.json'
-COMPAT_SHA256 = '6b6d9f20f5a0ccc4178481ba1041363fc5be0db48126dc5be787e2335e7bfbcc'
+COMPAT_SHA256 = 'b3390f431f984beddce3ee978f07ed15e3bebe773e210cc909a7b132712dc535'
 FIELD = 'residentMemoryPayloadReuse'
 FLAG = '--resident-memory-payload-reuse'
 BASE_TREE = 'f3dcb88dd4adb981b5cabe605610f8187aaaa0eb'

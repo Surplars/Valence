@@ -47,6 +47,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
     val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false) extends Module {
+    require(!p.frozenStoreCheckedFlow || registerCheckedRequests,
+        "frozen checked flow retains the non-flow checked authorization register")
     require(factorCheckedNextAllowed == p.factorCheckedNextAllowed,
         "checked hint constructor must use the unified OooParams flag")
     require(!factorCheckedNextAllowed || (registerCheckedRequests && p.dataNextLinePrefetch),
@@ -235,6 +237,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             !incomingProof.map(_.valid).getOrElse(false.B)
     } else false.B
     val canAccept = !waiting && translated.io.enq.ready
+    // The accepted bound write already carries its PA, but no completion authority.
+    // Keep real translated credit for a spill; downstream READY never reaches ingress.
+    val frozenCheckedOffer = if (p.frozenStoreCheckedFlow)
+        incoming.valid && frozenPresent && frozenIngressAllowed && canAccept && !translated.io.deq.valid
+    else false.B
+    val frozenCheckedPass = WireDefault(false.B)
     val identityOffer = if (p.identityDataRequestFlow)
         incoming.valid && !active && !incoming.bits.precheckedLoad && !frozenPresent &&
             canAccept && !translated.io.deq.valid else false.B
@@ -291,7 +299,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else false.B
     val translationHitPass = WireDefault(false.B)
     translated.io.enq.valid := ((!waiting && incoming.valid && !active && !identityPass && !precheckedPass) ||
-        translatedReply) && !translationHitPass
+        translatedReply) && !translationHitPass && !frozenCheckedPass
     val original = Mux(waiting, savedRequest, incoming.bits)
     val frozenSource = !waiting && frozenPresent
     translated.io.enq.bits := 0.U.asTypeOf(new TranslatedDataRequest(p))
@@ -322,9 +330,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
                 context.dataPrivilege === 3.U || context.satp(63, 60) === 0.U))
     if (p.frozenStoreProofEnabled) {
         when(incoming.fire && frozenPresent) {
-            assert(translated.io.enq.fire && !io.translation.request.fire && !waiting &&
-                !identityPass && !precheckedPass && !physicalIngressPass,
-                "frozen store transfers once into translated storage without demand retranslation or flow bypass")
+            if (p.frozenStoreCheckedFlow) {
+                assert((translated.io.enq.fire ^ frozenCheckedPass) && !io.translation.request.fire && !waiting &&
+                    !identityPass && !precheckedPass && !physicalIngressPass && !translationHitPass,
+                    "frozen store transfers exactly once into translated storage or checked authorization")
+            } else {
+                assert(translated.io.enq.fire && !io.translation.request.fire && !waiting &&
+                    !identityPass && !precheckedPass && !physicalIngressPass,
+                    "frozen store transfers once into translated storage without demand retranslation or flow bypass")
+            }
             assert(translated.io.enq.bits.frozenStorePresent.get,
                 "registered ingress retains frozen provenance")
             when(frozenIngressAllowed) {
@@ -353,14 +367,14 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
 
     // The optional hit source ends at the same checked register as queued work.
     // It never bypasses authorization or an older translated request.
-    val head = if (p.precheckedDataRequestFlow || translationHitFlow) {
-        // Both offers require an empty translated queue. When occupied, its
+    val head = if (p.precheckedDataRequestFlow || translationHitFlow || p.frozenStoreCheckedFlow) {
+        // These offers require an empty translated queue. When occupied, its
         // registered valid bit selects the older record before hit/PBMT/fault
         // qualification. When empty, only an authorized offer may consume this
         // raw ingress record; identity/physical ingress use their own payloads.
         // Valid/fire and every authorization gate remain unchanged below.
         if (queuedHeadSelection) Mux(translated.io.deq.valid, translated.io.deq.bits, translated.io.enq.bits)
-        else Mux(precheckedOffer || translationHitOffer, translated.io.enq.bits, translated.io.deq.bits)
+        else Mux(precheckedOffer || translationHitOffer || frozenCheckedOffer, translated.io.enq.bits, translated.io.deq.bits)
     } else translated.io.deq.bits
     val request = head.request
     val pmp = Module(new PmpChecker(p.pmpEntries))
@@ -409,13 +423,14 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else Module(new Queue(new CheckedDataRequest(p), 2, pipe = false, flow = false)).suggestName("checked").io)
     else None
     checked.foreach { stage =>
-        if (p.identityDataRequestFlow || p.precheckedDataRequestFlow || p.physicalLoadIngressFlow || translationHitFlow) {
-            // Empty-FIFO pass-through only for an already-physical request.
+        if (p.identityDataRequestFlow || p.precheckedDataRequestFlow || p.physicalLoadIngressFlow ||
+            translationHitFlow || p.frozenStoreCheckedFlow) {
+            // Empty-FIFO pass-through retains the same final checked authorization.
             // If checked stalls, the identical offer spills into translated,
             // preserving held payload and capacity without a ready path from
             // the external physical port. Older translated work always wins.
             stage.enq.valid := translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
-                translationHitOffer
+                translationHitOffer || frozenCheckedOffer
             stage.enq.bits.request := Mux(physicalIngressOffer, io.virtual.request.bits,
                 Mux(identityOffer, incoming.bits, request))
             stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
@@ -424,6 +439,19 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             precheckedPass := precheckedOffer && stage.enq.ready
             physicalIngressPass := physicalIngressOffer && stage.enq.ready
             translationHitPass := translationHitOffer && stage.enq.ready
+            frozenCheckedPass := frozenCheckedOffer && stage.enq.ready
+            when(frozenCheckedPass) {
+                assert(incoming.fire && stage.enq.fire && !translated.io.enq.fire &&
+                    !translated.io.deq.valid && !waiting && frozenPresent && frozenIngressAllowed && !active &&
+                    !io.translation.request.fire && !identityPass && !precheckedPass &&
+                    !physicalIngressPass && !translationHitPass &&
+                    head.asUInt === translated.io.enq.bits.asUInt,
+                    "bound frozen store transfers once through the original checked authorization boundary")
+            }
+            when(frozenCheckedOffer && !stage.enq.ready) {
+                assert(incoming.fire && translated.io.enq.fire && !frozenCheckedPass,
+                    "blocked frozen checked offer spills once using existing translated credit")
+            }
             when(translationHitPass) {
                 assert(incoming.fire && io.translation.request.fire && io.translation.response.fire &&
                     stage.enq.fire && !translated.io.enq.fire && !translated.io.deq.valid &&
@@ -501,7 +529,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val origin = head.canonicalStoreOrigin.get
         val virtualAddress = head.originalVirtualAddress.get
         val certificate = Wire(Valid(new CanonicalStoreCertificate(p)))
-        val fromTranslated = (translated.io.deq.valid || translationHitOffer) &&
+        val fromTranslated = (translated.io.deq.valid || translationHitOffer || frozenCheckedPass) &&
             !identityOffer && !precheckedOffer && !physicalIngressOffer
         val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
             !request.precheckedLoad && !request.uncached && head.checkPhysical
@@ -542,7 +570,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val expectedCheckedRequest = WireDefault(request)
         expectedCheckedRequest.prefetchNextAllowed := nextAllowed
         when(certificate.valid) {
-            assert((translated.io.deq.fire || translationHitPass) &&
+            assert((translated.io.deq.fire || translationHitPass || frozenCheckedPass) &&
                 stage.enq.bits.request.asUInt === expectedCheckedRequest.asUInt,
                 "canonical store certificate belongs to the exact checked request acceptance")
             assert(!head.pageFault && !head.accessFault && !stage.enq.bits.pageFault &&

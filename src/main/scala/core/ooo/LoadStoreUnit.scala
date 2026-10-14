@@ -69,6 +69,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     val io = IO(new Bundle {
         // State-only reservation hint; start.ready additionally authorizes replacement of the old result.
         val issueAvailable = Output(Bool())
+        val successfulLoadResultCapture = if (p.registeredLoadResultReady) Some(Output(Bool())) else None
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
@@ -94,6 +95,7 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
     val result                                     = Reg(new BackendCompletion(p))
     val cancelled                                  = RegInit(false.B)
     val discard                                    = cancelled || io.cancel
+    io.successfulLoadResultCapture.foreach(_ := false.B)
     io.owner     := operation.token
     io.discarded := state === done && discard
     when(io.cancel && state =/= idle) {
@@ -227,12 +229,18 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
             Mux(writeAccess, MCause.StorePageFault, MCause.LoadPageFault),
             Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
         state := Mux(io.fastLoadRetire, idle, done)
+        io.successfulLoadResultCapture.foreach(_ := !operation.store && !operation.atomic &&
+            !discard && !io.memory.response.bits.error && !io.memory.response.bits.pageFault &&
+            !io.fastLoadRetire)
     }
     when(io.fastLoadRetire) {
         assert(io.fastLoadPreview.valid && io.memory.response.fire,
             "fast load retirement requires a successful existing load response")
     }
-    when(io.complete.fire || (state === done && discard)) { state := idle }
+    when(io.complete.fire || (state === done && discard)) {
+        state := idle
+        io.successfulLoadResultCapture.foreach(_ := false.B)
+    }
     // New ownership wins over freeing the result accepted in the same cycle.
     when(io.start.fire) {
         when(io.start.bits.precheckedLoad) {
@@ -289,6 +297,17 @@ class LoadStoreUnit(p: OooParams, registerStart: Boolean = false) extends Module
                 !io.memory.response.bits.pageFault && !misaligned && !atomicFault &&
                 !io.start.bits.accessDenied,
                 "fast store retirement requires a successful same-cycle buffered response")
+        }
+        io.successfulLoadResultCapture.foreach { capture =>
+            // This writer has the same final priority as new result ownership.
+            // A new owner's cancellation state is clear, independent of the old owner.
+            val staticException = misaligned || atomicFault || io.start.bits.accessDenied
+            val finalException = Mux(io.memory.response.fire,
+                io.memory.response.bits.error || io.memory.response.bits.pageFault, staticException)
+            val finalDone = staticException || io.start.bits.forward.valid ||
+                (!registerStart.B && io.memory.response.fire)
+            capture := !io.start.bits.store && !io.start.bits.atomic && finalDone && !finalException &&
+                !io.fastStoreRetire
         }
         assert(!io.start.bits.forward.valid || (!io.start.bits.store && !io.start.bits.atomic))
 

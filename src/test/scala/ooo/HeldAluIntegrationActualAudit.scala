@@ -16,7 +16,7 @@ object HeldAluIntegrationActualAudit {
             "complete core/backend/ledger constructor parameters must be identical")
         require(backend.p.heldAluIssueForwarding == expected.heldAluIssueForwarding)
         PlacedTimingProfileBridge.requireShape(expected)
-        require(core.p.productArity == 175 && expected.productArity == 92)
+        require(core.p.productArity == 177 && expected.productArity == 94)
         require(backend.executionStages.size == (if (p.registeredIssueExecute) p.completionWidth else 0))
         if (p.heldAluIssueForwarding) {
             require(backend.executionStages.size == 2 && p.renameWidth == 2 && p.commitWidth == 2 &&

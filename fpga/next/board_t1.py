@@ -264,7 +264,13 @@ def source_control_lemma(output):
                 "rtl/TriSpeedManagedGmac.sv": "4d1f5c7f520f1cff5fe2a45bc510a9d269448f7e9e285450c2c8936cc7bf043e",
                 "board/native_rgmii_trispeed_quarter.sv": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc"}
     actual = {name: sha(output/name) for name in required if (output/name).is_file()}
-    proved = actual == required
+    # Exact complete forms only: never mix independent per-file allowlists.
+    # The RAW73 parent keeps the complete encoder/control forwarding identical;
+    # both encoder controls share D/clock/reset/enable and selected-state induction.
+    raw73 = {"rtl/TriSpeedRgmiiTx.sv": "6374714496e0b23b174ac542027eefc59370c13cd5a0eb85de9af58e77af79a7",
+             "rtl/TriSpeedManagedGmac.sv": "5be26d593e5462db4028983ab63e7ffe3b0e58bc1e133242629b2e945c1c3d9b",
+             "board/native_rgmii_trispeed_quarter.sv": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc"}
+    proved = any(actual == form for form in (required, raw73))
     # In the complete admitted encoder, both control D bits are the same
     # automatic scalar enable, with the same positive clock, reset and zero
     # state. The physical adapter has reset low=high=0. Given equal encoder

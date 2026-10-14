@@ -17,6 +17,7 @@ object FpgaNextMain extends App {
     val output = Path.of(args(0)).toAbsolutePath
     require(!Files.exists(output), "FPGA-next export requires a fresh directory")
     Files.createDirectories(output)
+    var actualTimingClosure: Option[Map[String, Any]] = None
     var actualHeldAlu: Option[Map[String, Any]] = None
     var actualResidentMemory: Option[Map[String, Any]] = None
     var actualMacHandoff: Option[Map[String, Any]] = None
@@ -32,6 +33,7 @@ object FpgaNextMain extends App {
         val dut = new FpgaNextSocTop(config,
             JtagDebugParams(enabled = options.contains("--experimental-jtag-stub") || options.contains("--experimental-jtag-ram"),
                 externalDmi = options.contains("--experimental-jtag-ram")), bscanChain = bscanChain)
+        actualTimingClosure = Some(TimingClosureActualAudit.capture(dut.board.platform, config))
         actualHeldAlu = Some(HeldAluIntegrationActualAudit.capture(dut.board.platform, config))
         actualResidentMemory = Some(ResidentMemoryIntegrationActualAudit.capture(dut.board.platform, config))
         actualMacHandoff = Some(MacRawHandoffEntryAudit.capture(dut.board, config))
@@ -47,6 +49,8 @@ object FpgaNextMain extends App {
     },
         Array("--target-dir", output.toString),
         Array("--strip-debug-info", "--disable-all-randomization", "--default-layer-specialization=disable"))
+    Files.writeString(output.resolve("actual-timing-closure.json"),
+        PostedBoardConfiguration.json(actualTimingClosure.get) + "\n")
     Files.writeString(output.resolve("actual-mac-raw-handoff.json"),
         PostedBoardConfiguration.json(actualMacHandoff.get) + "\n")
     Files.writeString(output.resolve("actual-held-alu-forwarding.json"),

@@ -23,7 +23,7 @@ object ResidentMemoryIntegrationActualAudit {
         val p = expected.coreParams
         require(core.p == p && backend.p == p && backend.ledger.p == p,
             "complete core/backend/ledger constructor parameters must be identical")
-        require(p.productArity == 175 && expected.productArity == 92)
+        require(p.productArity == 177 && expected.productArity == 94)
         require(backend.p.residentMemoryPayloadReuse == expected.residentMemoryPayloadReuse &&
             backend.residentMemoryStartAllowed.nonEmpty == p.residentMemoryPayloadReuse,
             "actual resident memory switch or start guard differs from requested constructor")

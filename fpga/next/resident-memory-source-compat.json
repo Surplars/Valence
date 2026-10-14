@@ -1103,9 +1103,9 @@
       "reviewed_delta": "Keep delegated/direct exact64 profile/options and validate original leaves through the explicit resident source layer."
     },
     "fpga/next/export.py": {
-      "new_sha256": "5a02902137f8163c4083c75c53934fd8a8ba1a3cc62dc6593d9b21725c3a04ab",
       "old_sha256": "e7f980191b9dab8507e43f50b7a74fbe18f61fd7dd49c0cb7f0940bfb2e05401",
-      "reviewed_delta": "Add exact default-off resident CLI, mirror resolved OooParams topology, forward native option, bind resident sources and require complete typed actual-constructor audit readback; route frozen snapshot identity through resident closure. Native command preserves every old option in order and appends resident after the Younger flag."
+      "new_sha256": "aabe1a4d87e5ab0ddd2c5f14ca221dc52ad810628f1ae8a7d140a6e12833ceed",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
     },
     "fpga/next/resident-memory-profile.json": {
       "new_sha256": "cf29616dd9b2abb75e6072afc6ef302373dbd68deecf2a78adf3f8a727bdbde0",
@@ -1326,6 +1326,31 @@
       "new_sha256": "4ea702507142ca0814f635625e8d4a8e1bda8c194b85115d89a417dff2c766d5",
       "old_sha256": "2f512c8ced487046b2880183cf435538f824a93dec13034ad3bab48bf2dba52a",
       "reviewed_delta": "Extend corrected r2 mergedYoung173/90 bridge with named literal-false resident after held, retaining exact old ordered fields/values and actual current metadata."
+    },
+    "fpga/next/board_combined_cpu.py": {
+      "old_sha256": null,
+      "new_sha256": "c2c3c6cd8e53c98e0cc4d5b39683229760a304acca0262d41f746751f6d41b30",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
+    },
+    "fpga/next/combined-cpu-profile.json": {
+      "old_sha256": null,
+      "new_sha256": "5f515773787a45a6fba0854a0bdf040938b0caba7322ff90bc179de5661226ab",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
+    },
+    "fpga/next/test_combined_cpu_entry.py": {
+      "old_sha256": null,
+      "new_sha256": "8cadc07fc94f2e2a0246cdf40c54ecd6dfb5d2cb96f850e774276cbe5573e456",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
+    },
+    "src/test/scala/ooo/CombinedCpuFeaturesMain.scala": {
+      "old_sha256": null,
+      "new_sha256": "646cf2a7367dea23df1f1a8b81e99bec24b31c24244f186fe8e974443766c059",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
+    },
+    "docs/combined-cpu-native-entry.md": {
+      "old_sha256": null,
+      "new_sha256": "ad1339a64bd64ca00ac7e33464382eb7bfbd5c9d5eb94e39f2fd31e8c8369ba8",
+      "reviewed_delta": "Strict named Young69 + resident + held native entry preparation; complete tested175/92 constructor and ordered71 options, raw MAC OFF; no production or old profile/projection changes."
     }
   },
   "core_tail": [
@@ -2969,7 +2994,7 @@
   "self_excluded_helper_review": "Losslessly derive complete immutable-base and current-source maps from the pinned held contract plus reviewed deltas; retain full inventory/hash/type/order/false-projection checks.",
   "source_identity": {
     "base_tree": "f3dcb88dd4adb981b5cabe605610f8187aaaa0eb",
-    "closure_sha256": "322984af330ea8728772ca5562f88b30ae18efb3936d9c4b4272af3017e505c2",
+    "closure_sha256": "04d3dfc3db8b36b723f1178e17707a3ceff856294a9b9b233ef7622a65018e00",
     "kind": "corrected-held-alu-plus-resident-source-only",
     "self_excluded": [
       "fpga/next/resident-memory-source-compat.json",

@@ -1,5 +1,7 @@
 # 当前性能与证据边界
 
+Current timing candidate: [ready/raw73 selection, measured74 regression and qualification limits](timing-closure-candidate-20261014.md). The new named entry keeps frozen checked flow OFF; historical entries and results below retain their original scope.
+
 2026-10-12 后续：[三链调度与所有权交接](memory-schedule-overlap.md)。固定双发射／两个MSHR，
 Sv39 COPY含flush61.7925→63.6055MiB/s（+2.9340%），Bare57.9382→63.2201（+9.1163%）。
 新调度默认OFF，短功能与同板对照通过；Sv39同时R/W仍0，串行瓶颈未彻底解决。

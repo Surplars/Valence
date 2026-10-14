@@ -118,18 +118,29 @@ class FaultAwareAllocationReady(p: OooParams) extends Module {
         val physical = Input(UInt(p.physicalRegs.W))
         val wake = Input(Vec(p.completionWidth + 1, Valid(UInt(p.physBits.W))))
         val reserve = Input(Vec(2, Valid(UInt(p.physBits.W))))
+        val allocationExecutionClass = if (p.registeredLoadResultReady) Some(Input(Vec(2, Bool()))) else None
+        val heldLoads = if (p.registeredLoadResultReady)
+            Some(Input(Vec(p.memoryEntries, Valid(UInt(p.physBits.W))))) else None
+        val publishedLoads = if (p.registeredLoadResultReady)
+            Some(Input(Vec(p.memoryEntries, Valid(UInt(p.physBits.W))))) else None
         val ready1 = Output(Vec(2, Bool()))
         val ready2 = Output(Vec(2, Bool()))
     })
-    def next(index: UInt): Bool = {
+    def next(index: UInt, execution: Bool = false.B): Bool = {
         val current = (0 until p.physicalRegs).map(r => index === r.U && io.physical(r)).reduce(_ || _)
         val waking = io.wake.map(w => w.valid && w.bits === index).reduce(_ || _)
         val reserving = io.reserve.map(r => r.valid && r.bits === index).reduce(_ || _)
-        (current || waking) && !reserving
+        if (p.registeredLoadResultReady) {
+            val stable = io.heldLoads.get.map(h => h.valid && h.bits === index).reduce(_ || _)
+            val publishing = io.publishedLoads.get.map(h => h.valid && h.bits === index).reduce(_ || _)
+            (current || waking || (execution && (stable || publishing))) && !reserving
+        } else (current || waking) && !reserving
     }
     val zeroReady = next(0.U(p.physBits.W))
-    val ready1 = io.sources.map(_.map(s => next(s.source1)))
-    val ready2 = io.sources.map(_.map(s => next(s.source2)))
+    val ready1 = io.sources.zipWithIndex.map { case (sources, lane) =>
+        sources.map(s => next(s.source1, io.allocationExecutionClass.map(_(lane)).getOrElse(false.B))) }
+    val ready2 = io.sources.zipWithIndex.map { case (sources, lane) =>
+        sources.map(s => next(s.source2, io.allocationExecutionClass.map(_(lane)).getOrElse(false.B))) }
     io.ready1(0) := Mux(io.faults(0), zeroReady, ready1(0)(0))
     io.ready2(0) := Mux(io.faults(0), zeroReady, ready2(0)(0))
     io.ready1(1) := Mux(io.faults(1), zeroReady, Mux(io.faults(0), ready1(1)(1), ready1(1)(0)))

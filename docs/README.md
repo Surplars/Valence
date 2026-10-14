@@ -1,5 +1,7 @@
 # Valence 文档导航
 
+Current timing candidate: [ready/raw73 selection, measured74 regression and qualification limits](timing-closure-candidate-20261014.md). The new named entry keeps frozen checked flow OFF; historical entries and results below retain their original scope.
+
 [下一完整 timing/CDC 板版](fpga-next/timing-cdc-combined-v1.md) 已通过实际构造、native 导出与同负载 CPU 对照；物理 CDC/STA、vendor 与上板门仍未完成。独立默认关闭选项、旧板版回退和原始失败证据保留。
 
 Read-prefetch demand adoption 的独立默认关闭源码备份、Bare/Sv39 实测收益与额外读流量、原始失败门和 native 限制见 [实验记录](experiments/read-prefetch-demand-adoption.md)；下一统一板版须组合资格通过后显式启用。

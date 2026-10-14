@@ -56,7 +56,7 @@ object MacRawHandoffEntryAudit {
             }
         }
         val core = board.platform.core.core.core
-        require(core.p == expected.coreParams && core.p.productArity == 175,
+        require(core.p == expected.coreParams && core.p.productArity == 177 && expected.productArity == 94,
             "actual complete CPU constructor changed under the platform extension")
         Map("schema" -> "actual-mac-raw-handoff-platform-v1", "scope" -> "actual-constructor-only",
             "triSpeedRawClockHandoff" -> expected.triSpeedRawClockHandoff,

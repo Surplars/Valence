@@ -100,7 +100,9 @@ final case class FpgaNextConfig(
     triSpeedRawClockHandoff: Boolean = false,
     postedYoungerLoadSealDeferral: Boolean = false,
     heldAluIssueForwarding: Boolean = false,
-    residentMemoryPayloadReuse: Boolean = false
+    residentMemoryPayloadReuse: Boolean = false,
+    registeredLoadResultReady: Boolean = false,
+    frozenStoreCheckedFlow: Boolean = false
 ) {
     require(!triSpeedRawClockHandoff || experimentalTriSpeedEthernet,
         "RAW MAC handoff requires tri-speed Ethernet")
@@ -267,7 +269,9 @@ final case class FpgaNextConfig(
         (if (localTaggedResponseReady) "-local-tagged-response-ready" else "") +
         (if (postedYoungerLoadSealDeferral) "-posted-younger-load-seal-deferral" else "") +
         (if (heldAluIssueForwarding) "-held-alu-issue-forwarding" else "") +
-        (if (residentMemoryPayloadReuse) "-resident-memory-payload-reuse" else "")
+        (if (residentMemoryPayloadReuse) "-resident-memory-payload-reuse" else "") +
+        (if (registeredLoadResultReady) "-registered-load-result-ready" else "") +
+        (if (frozenStoreCheckedFlow) "-frozen-store-checked-flow" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -332,6 +336,8 @@ final case class FpgaNextConfig(
         postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         heldAluIssueForwarding = heldAluIssueForwarding,
         residentMemoryPayloadReuse = residentMemoryPayloadReuse,
+        registeredLoadResultReady = registeredLoadResultReady,
+        frozenStoreCheckedFlow = frozenStoreCheckedFlow,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -385,6 +391,8 @@ final case class FpgaNextConfig(
         postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         heldAluIssueForwarding = heldAluIssueForwarding,
         residentMemoryPayloadReuse = residentMemoryPayloadReuse,
+        registeredLoadResultReady = registeredLoadResultReady,
+        frozenStoreCheckedFlow = frozenStoreCheckedFlow,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -507,6 +515,8 @@ object FpgaNextConfig {
             postedYoungerLoadSealDeferral = options.contains("--posted-younger-load-seal-deferral"),
             heldAluIssueForwarding = options.contains("--held-alu-issue-forwarding"),
             residentMemoryPayloadReuse = options.contains("--resident-memory-payload-reuse"),
+            registeredLoadResultReady = options.contains("--registered-load-result-ready"),
+            frozenStoreCheckedFlow = options.contains("--frozen-store-checked-flow"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
             postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             canonicalVirtualStoreOverlap = options.contains("--canonical-virtual-store-overlap"),

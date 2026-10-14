@@ -57,10 +57,15 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false,
     postedYoungerLoadSealDeferral: Boolean = false,
     heldAluIssueForwarding: Boolean = false,
-    residentMemoryPayloadReuse: Boolean = false) extends Module {
+    residentMemoryPayloadReuse: Boolean = false,
+    registeredLoadResultReady: Boolean = false,
+    frozenStoreCheckedFlow: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     HeldAluIntegrationActualAudit.requireArgument(configurationCheck.get, heldAluIssueForwarding)
     ResidentMemoryIntegrationActualAudit.requireArgument(configurationCheck.get, residentMemoryPayloadReuse)
+    require(registeredLoadResultReady == configurationCheck.get.coreParams.registeredLoadResultReady &&
+        frozenStoreCheckedFlow == configurationCheck.get.coreParams.frozenStoreCheckedFlow,
+        "both timing-closure arguments must match the complete actual board configuration")
     require(postedYoungerLoadSealDeferral == configurationCheck.get.coreParams.postedYoungerLoadSealDeferral &&
         frozenStoreProofTransport == configurationCheck.get.coreParams.frozenStoreProofTransport &&
         pendingVirtualStoreProof == configurationCheck.get.coreParams.pendingVirtualStoreProof &&

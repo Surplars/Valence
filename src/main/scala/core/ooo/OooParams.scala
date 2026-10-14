@@ -199,7 +199,11 @@ case class OooParams(
     // Stable held ordinary-ALU data may feed the next authorized operand capture.
     heldAluIssueForwarding: Boolean = false,
     // Experimental reuse of the existing staged memory payload; no new operand stage.
-    residentMemoryPayloadReuse: Boolean = false
+    residentMemoryPayloadReuse: Boolean = false,
+    // Experimental ordinary-row mirror of stable successful LSU result availability.
+    registeredLoadResultReady: Boolean = false,
+    // Bound virtual stores retain final checked authorization while skipping an empty FIFO.
+    frozenStoreCheckedFlow: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -208,6 +212,10 @@ case class OooParams(
 
     def frozenStoreProofEnabled: Boolean = memoryProofFrontier || frozenStoreProofTransport
 
+    require(!frozenStoreCheckedFlow || (pendingVirtualStoreProof && frozenStoreProofTransport &&
+        canonicalVirtualStoreOverlap && registeredCanonicalStoreEvent && registeredTranslationHeads &&
+        virtualRamLoadPrecheck && !memoryProofFrontier),
+        "frozen checked flow requires the registered pending-proof and canonical-event contract")
     require(!factorCheckedNextAllowed || dataNextLinePrefetch,
         "checked hint factoring requires enabled next-line prefetch")
     require(!localTaggedResponseReady || taggedStoreReturns,
@@ -231,6 +239,14 @@ case class OooParams(
         !moveAlias && !loadCompletionBypass && !mulWordPreviewBypass && !memoryProofFrontier &&
         !fastBufferedStoreRetire && !fastHeadLoadRetire),
         "resident memory payload reuse requires the bounded ROB16/PRF48 full-tag staged-memory profile")
+    require(!registeredLoadResultReady || (heldAluIssueForwarding && ownerLocalOperandReady &&
+        ownerLocalIssueReady && registeredIssueExecute && registeredLoadIssueForwarding &&
+        parallelIssuePayload && parallelIssueRanks && parallelPrfReadyUpdates && lvtPhysicalRegisterFile &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 &&
+        robEntries == 16 && physicalRegs == 48 && tagBits == 64 && memoryEntries == 4 &&
+        !moveAlias && !loadCompletionBypass && !mulWordPreviewBypass &&
+        !fastHeadLoadRetire && !fastBufferedStoreRetire),
+        "registered load-result readiness requires the bounded full-tag B1 owner-local topology")
     require(!directRank0MemorySourceIds || (registeredMemoryAddress && parallelMemoryPreparation &&
         parallelMemoryPayload && compactMemoryOperandSelect && !memoryProofFrontier),
         "direct rank-0 memory source IDs require compact parallel owner-masked preparation without a proof frontier")

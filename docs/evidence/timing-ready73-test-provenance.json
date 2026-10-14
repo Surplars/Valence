@@ -1,0 +1,84 @@
+{
+  "schema": "timing-ready73-public-test-provenance-v1",
+  "files": [
+    {
+      "path": "src/test/scala/ooo/LoadReadyP1Params.scala",
+      "original_sha256": "ecbfbc9b9adbafb91d4f6a6f1c593ad882b8025c6e6a0f6657b540364b58d9df",
+      "current_sha256": "ecbfbc9b9adbafb91d4f6a6f1c593ad882b8025c6e6a0f6657b540364b58d9df",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyP1ConfigSpec.scala",
+      "original_sha256": "df5d24d1cb1dd96d9f472cc10c4d13d980f782c3c9c97c990207c06771f7bcd0",
+      "current_sha256": "df5d24d1cb1dd96d9f472cc10c4d13d980f782c3c9c97c990207c06771f7bcd0",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyProtocolGsim.scala",
+      "original_sha256": "697b1fe2d5791e197cb06fe8611460085f952d31634005adfaa03977e81ab385",
+      "current_sha256": "697b1fe2d5791e197cb06fe8611460085f952d31634005adfaa03977e81ab385",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyDirectGsim.scala",
+      "original_sha256": "82761adabdd1aefed5f9a6e48876be950d454f3534c52c2f0db1ebed3b2035fc",
+      "current_sha256": "82761adabdd1aefed5f9a6e48876be950d454f3534c52c2f0db1ebed3b2035fc",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "simulator/gsim/harness/load_ready_protocol.cpp",
+      "original_sha256": "0b5c7009ec9d4f7649d2a53d6af9b5790b6688ec5b29912fcf45e93cf61a92d9",
+      "current_sha256": "0b5c7009ec9d4f7649d2a53d6af9b5790b6688ec5b29912fcf45e93cf61a92d9",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "simulator/gsim/harness/load_ready_direct.cpp",
+      "original_sha256": "0637a6963628f21828f320afa0035d66fffaa0d5c9d2b63d86c14edbf6ff84bf",
+      "current_sha256": "0637a6963628f21828f320afa0035d66fffaa0d5c9d2b63d86c14edbf6ff84bf",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyBackendBaseGsim.scala",
+      "original_sha256": "2525b4fab744614a38d20ae12a51c0cb5d00e22faa9652f5d2786affcb41d09f",
+      "current_sha256": "2525b4fab744614a38d20ae12a51c0cb5d00e22faa9652f5d2786affcb41d09f",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyBackendGsim.scala",
+      "original_sha256": "daf404fe89b38c3e0f52cc8d4570e88784339c8534f002c3b77cbf4dde023669",
+      "current_sha256": "daf404fe89b38c3e0f52cc8d4570e88784339c8534f002c3b77cbf4dde023669",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/LoadReadyBackendConfigSpec.scala",
+      "original_sha256": "c64ed8bada4a642e1416408ab2b67ad536249492dcf11fc331901d3a32b08cf5",
+      "current_sha256": "eb03265efe94b8f19bd8a9b4496609167b86b6a5968d1635301244d7b134c702",
+      "adaptation": "arity177 and explicit frozen=false on both sides; no behavioral rerun implied"
+    },
+    {
+      "path": "simulator/gsim/harness/load_ready_backend.cpp",
+      "original_sha256": "d3ac3d7cc2b9129d99176b14bc73c55df2b82bd99c7e05c07e41621d248e8cbc",
+      "current_sha256": "d3ac3d7cc2b9129d99176b14bc73c55df2b82bd99c7e05c07e41621d248e8cbc",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/FrozenCheckedFlowGsim.scala",
+      "original_sha256": "6e1453b7867a6e0e50f57cec0ec923303a389f5c2f580663426a73d90d9c738e",
+      "current_sha256": "6e1453b7867a6e0e50f57cec0ec923303a389f5c2f580663426a73d90d9c738e",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "src/test/scala/ooo/FrozenCheckedFlowConfigSpec.scala",
+      "original_sha256": "2ed37202bfcd558c0b885ad7ab84c1b5bfa36f8d1ff5144a443b204e4d999044",
+      "current_sha256": "2ed37202bfcd558c0b885ad7ab84c1b5bfa36f8d1ff5144a443b204e4d999044",
+      "adaptation": "byte-identical imported fixture/host"
+    },
+    {
+      "path": "simulator/gsim/harness/frozen_checked_flow.cpp",
+      "original_sha256": "09fd8aeb4ba55853abf4b5ca1950802eb79d07368239fd44538bc0da44f10ccd",
+      "current_sha256": "09fd8aeb4ba55853abf4b5ca1950802eb79d07368239fd44538bc0da44f10ccd",
+      "adaptation": "byte-identical imported fixture/host"
+    }
+  ],
+  "scope": "source provenance; historical behavioral witnesses remain bounded; current schema adaptation is not behavioral requalification"
+}

@@ -54,6 +54,10 @@ object MatchingFabricAudit {
             "nearTermA" -> NearTermAActualAudit.capture(p, expected),
             "heldAluIssueForwarding" -> HeldAluIntegrationActualAudit.capture(p, expected),
             "residentMemoryPayloadReuse" -> ResidentMemoryIntegrationActualAudit.capture(p, expected),
+            "timingClosure" -> TimingClosureActualAudit.capture(p, expected),
+            "nativeRawHandoffRequested" -> expected.triSpeedRawClockHandoff,
+            "rawMediaImplementedInGsim" -> false,
+            "phyQualified" -> false,
             "actualLsuOwners" -> p.core.core.core.backend.lsu.slots.size,
             "actualRegisterPorts" -> p.platformRouter.get.io.registers.size,
             "actualPacketRxOwners" -> p.packetDma.get.slotOwned.size,
@@ -112,6 +116,8 @@ object MatchingFabricAudit {
         require(actual.nonEmpty, "the actual matching envelope was not constructed")
         Files.writeString(Paths.get(directory, "actual-fabric.json"), json(actual.get) + "\n")
         PostedBoardConfiguration.writeCore(actual.get("cpu").asInstanceOf[OooParams], directory)
+        Files.writeString(Paths.get(directory, "actual-timing-closure.json"),
+            json(actual.get("timingClosure")) + "\n")
         Files.writeString(Paths.get(directory, "actual-resident-memory.json"),
             json(actual.get("residentMemoryPayloadReuse")) + "\n")
     }

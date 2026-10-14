@@ -473,6 +473,15 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
         operands
     }
+    def executionReadyClass(request: IntegerRequest): Bool = !request.memory && !request.mulDiv && !request.system
+    val heldLoadDestinations = if (p.registeredLoadResultReady) Some(Wire(Vec(p.memoryEntries,
+        Valid(UInt(p.physBits.W))))) else None
+    heldLoadDestinations.foreach { destinations =>
+        for (slot <- 0 until p.memoryEntries) {
+            destinations(slot).valid := lsu.io.heldLoadValue.get(slot).valid
+            destinations(slot).bits := lsu.io.heldLoadValue.get(slot).bits.destination
+        }
+    }
     val ownerReady = if (p.ownerLocalOperandReady)
         Some(Module(new OwnerOperandReady(p, precomputedAllocationReady = p.tentativeRenameSources))) else None
     ownerReady.foreach { mirror =>
@@ -480,6 +489,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         mirror.io.active := pending.asUInt
         mirror.io.wake := readyUpdate.get.io.wake
         mirror.io.reserve := readyUpdate.get.io.reserve
+        if (p.registeredLoadResultReady) {
+            mirror.io.executionClass.get := VecInit(issueEntries.map(e => executionReadyClass(e.request)))
+            mirror.io.allocationExecutionClass.get := VecInit(io.allocate.map(a => executionReadyClass(a.bits)))
+            mirror.io.heldLoads.get := heldLoadDestinations.get
+            mirror.io.publishedLoads.get := lsu.io.loadResultPublish.get
+        }
         if (p.tentativeRenameSources) {
             // These candidate ID reads start before PMP/fault selection. Keep
             // the original accepted wake/reserve events, then select Booleans.
@@ -489,6 +504,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             initialization.io.physical := ready.asUInt
             initialization.io.wake := readyUpdate.get.io.wake
             initialization.io.reserve := readyUpdate.get.io.reserve
+            if (p.registeredLoadResultReady) {
+                initialization.io.allocationExecutionClass.get := mirror.io.allocationExecutionClass.get
+                initialization.io.heldLoads.get := heldLoadDestinations.get
+                initialization.io.publishedLoads.get := lsu.io.loadResultPublish.get
+            }
             mirror.io.allocationReady1.get := initialization.io.ready1
             mirror.io.allocationReady2.get := initialization.io.ready2
         }
@@ -563,11 +583,17 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     // checks below, not feedback into speculative wake/ranking.
     def loadIssueHit(index: UInt): Bool = loadIssueWake.valid && loadIssueWake.bits === index
     def issueOperandReady(index: UInt, localReady: Option[Bool] = None): Bool =
-        IssueOperandReadiness(index, localReady.getOrElse(operandReady(index)), loadIssueWake, executionWake.toSeq)
+        IssueOperandReadiness(index, localReady.getOrElse(operandReady(index)),
+            (if (p.registeredLoadResultReady) 0.U.asTypeOf(Valid(UInt(p.physBits.W))) else loadIssueWake),
+            executionWake.toSeq)
     def issueOperandValue(index: UInt, stored: UInt): UInt = {
         val hits = executionWake.map(wake => wake.valid && wake.bits === index)
-        Mux(loadIssueHit(index), lsu.io.complete.bits.data,
-            Mux(hits.reduce(_ || _), Mux1H(hits.zip(executionData)), stored))
+        val nonLoad = Mux(hits.reduce(_ || _), Mux1H(hits.zip(executionData)), stored)
+        if (p.registeredLoadResultReady) {
+            val held = lsu.io.heldLoadValue.get
+            val loadHits = held.map(h => h.valid && h.bits.destination === index)
+            Mux(loadHits.reduce(_ || _), Mux1H(loadHits.zip(held.map(_.bits.data))), nonLoad)
+        } else Mux(loadIssueHit(index), lsu.io.complete.bits.data, nonLoad)
     }
     if (p.registeredLoadIssueForwarding) {
         // Invalid completion payload is unspecified (including its index). A when
@@ -585,6 +611,31 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             for (wake <- executionWake) {
                 assert(!(wake.valid && wake.bits === loadIssueWake.bits),
                     "ALU and load promises cannot own the same physical destination")
+            }
+        }
+    }
+    if (p.registeredLoadResultReady) {
+        for (slot <- 0 until p.memoryEntries) {
+            val holder = lsu.io.heldLoadValue.get(slot)
+            val token = lsu.io.owner(slot)
+            val index = Mux(holder.valid, token.index, 0.U)
+            when(holder.valid) {
+                assert(lsu.io.phase(slot) === 3.U && memoryLive(index) &&
+                    issueEntries(index).renamed.token.asUInt === token.asUInt &&
+                    issueEntries(index).request.memory && !issueEntries(index).request.store &&
+                    !issueEntries(index).request.atomic && issueEntries(index).renamed.writesRd &&
+                    issueEntries(index).renamed.destination === holder.bits.destination &&
+                    holder.bits.destination =/= 0.U,
+                    "raw held load value must retain its live full-token memory owner and exact destination")
+                for (other <- 0 until slot) {
+                    assert(!lsu.io.heldLoadValue.get(other).valid ||
+                        lsu.io.heldLoadValue.get(other).bits.destination =/= holder.bits.destination,
+                        "raw successful load holders must have unique physical destinations")
+                }
+                for (wake <- executionWake) {
+                    assert(!wake.valid || wake.bits =/= holder.bits.destination,
+                        "every raw held load destination must be distinct from all ALU promises")
+                }
             }
         }
     }
@@ -2386,6 +2437,32 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                         "a surviving captured consumer cannot depend on a cancelled load producer")
                 }
             }
+            if (p.registeredLoadResultReady) {
+                for ((source, used, value) <- Seq(
+                    (source1, !dispatchEntry.request.usePc, incoming.left),
+                    (source2, !dispatchEntry.request.useImmediate, incoming.right))) {
+                    val hits = lsu.io.heldLoadValue.get.map(h => h.valid && h.bits.destination === source)
+                    when(stage.io.enq.fire && used && hits.reduce(_ || _)) {
+                        assert(PopCount(hits) === 1.U,
+                            "a captured source must name one successful held load")
+                        for (slot <- 0 until p.memoryEntries) {
+                            val holder = lsu.io.heldLoadValue.get(slot)
+                            val token = lsu.io.owner(slot)
+                            val index = Mux(hits(slot), token.index, 0.U)
+                            when(hits(slot)) {
+                                assert(!killed(index) && !killed(dispatchChoice.index) &&
+                                    value === holder.bits.data,
+                                    "captured held-load source must survive recovery and preserve its exact old data")
+                                when(lsu.io.complete.valid && lsu.io.complete.bits.token.asUInt === token.asUInt) {
+                                    assert(ledger.io.completionAccepted(0) &&
+                                        !ledger.io.complete(0).bits.exception,
+                                        "a selected held-load producer captured this edge must actually complete")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             executionEnqueued(lane) := stage.io.enq.fire
             when(stage.io.enq.fire) { pending(dispatchChoice.index) := false.B }
             entry := executingOperands(lane).entry
@@ -2760,6 +2837,47 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         readyUpdate.foreach { update =>
             update.io.reserve(lane).valid := renamed.valid && renamed.bits.writesRd && !renamed.bits.moveAlias
             update.io.reserve(lane).bits := renamed.bits.destination
+        }
+    }
+    if (p.registeredLoadResultReady) {
+        for (slot <- 0 until p.memoryEntries) {
+            val holder = lsu.io.heldLoadValue.get(slot)
+            val token = lsu.io.owner(slot)
+            val draining = holder.valid && lsu.io.complete.fire &&
+                lsu.io.complete.bits.token.asUInt === token.asUInt
+            val oldDependants = (0 until p.robEntries).map { row =>
+                val entry = issueEntries(row)
+                val overwritten = ledger.io.renamed.map(r => r.valid && r.bits.token.index === row.U).reduce(_ || _)
+                val captured = (0 until p.completionWidth).map(lane => executionEnqueued(lane) &&
+                    dispatched(lane).bits === row.U).reduce(_ || _)
+                val completed = (0 until p.completionWidth).map(lane => ledger.io.completionAccepted(lane) &&
+                    ledger.io.complete(lane).bits.token.asUInt === entry.renamed.token.asUInt).reduce(_ || _)
+                pending(row) && executionReadyClass(entry.request) && !killed(row) && !overwritten &&
+                    !captured && !completed && (entry.renamed.source1 === holder.bits.destination ||
+                        entry.renamed.source2 === holder.bits.destination)
+            }.reduce(_ || _)
+            val newDependants = (0 until p.renameWidth).map { lane =>
+                val renamed = ledger.io.renamed(lane)
+                renamed.valid && executionReadyClass(io.allocate(lane).bits) &&
+                    (renamed.bits.source1 === holder.bits.destination || renamed.bits.source2 === holder.bits.destination)
+            }.reduce(_ || _)
+            val capturingDependants = (0 until p.completionWidth).map { lane =>
+                val incoming = executionStages(lane).io.enq.bits.asTypeOf(new IntegerExecutionOperands(p))
+                executionEnqueued(lane) &&
+                    ((!incoming.entry.request.usePc && incoming.entry.renamed.source1 === holder.bits.destination) ||
+                        (!incoming.entry.request.useImmediate && incoming.entry.renamed.source2 === holder.bits.destination))
+            }.reduce(_ || _)
+            val reserved = readyUpdate.get.io.reserve.map(r =>
+                r.valid && r.bits === holder.bits.destination).reduce(_ || _)
+            when(draining && (oldDependants || newDependants || capturingDependants)) {
+                assert(ledger.io.completionAccepted(0) && !ledger.io.complete(0).bits.exception &&
+                    ledger.io.complete(0).bits.token.asUInt === token.asUInt &&
+                    physicalWrites.get(0).valid && physicalWrites.get(0).bits.address === holder.bits.destination &&
+                    physicalWrites.get(0).bits.data === holder.bits.data &&
+                    readyUpdate.get.io.wake(0).valid && readyUpdate.get.io.wake(0).bits === holder.bits.destination &&
+                    !reserved,
+                    "a drained held load needed by the next pending population must atomically write its exact PRF value")
+            }
         }
     }
     if (p.bankedIssuePayload) {

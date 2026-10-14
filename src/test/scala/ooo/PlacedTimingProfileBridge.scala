@@ -102,11 +102,41 @@ object PlacedTimingProfileBridge {
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
+    val timingClosureFields = Seq("registeredLoadResultReady", "frozenStoreCheckedFlow")
+    val currentProfileNames = publishedProfileNames ++ profileAdditions ++ timingClosureFields
+    val currentCoreNames = publishedCoreNames ++ coreAdditions ++ timingClosureFields
+    private def requireTypedProduct(p: Product, expected: Seq[String], reference: Product): Unit = {
+        requireNames(p, expected)
+        requireNames(reference, expected)
+        require(p.productElementNames.zip(p.productIterator.zip(reference.productIterator)).forall {
+            case (name, (actual, original)) =>
+                if (p.isInstanceOf[FpgaNextConfig] && (name == "robEntries" || name == "physicalRegs")) {
+                    (actual, original) match {
+                        case (a: Option[_], b: Option[_]) =>
+                            a.forall(_.isInstanceOf[Int]) && b.forall(_.isInstanceOf[Int])
+                        case _ => false
+                    }
+                } else actual != null && original != null && actual.getClass == original.getClass
+        }, "complete product value types changed")
+    }
     def requireShape(c: FpgaNextConfig): Unit = {
-        requireNames(c, publishedProfileNames ++ profileAdditions)
-        requireNames(c.coreParams, publishedCoreNames ++ coreAdditions)
+        requireTypedProduct(c, currentProfileNames, FpgaNextConfig())
+        requireTypedProduct(c.coreParams, currentCoreNames, OooParams())
         requireNames(c.cache, cacheNames)
         requireNames(c.ddr, ddrNames)
+    }
+    /** Only the exact two false additions may be removed for the retained175/92 baseline. */
+    def priorTimingClosureFields(p: Product): Map[String, Any] = {
+        val old = p match {
+            case _: FpgaNextConfig => publishedProfileNames ++ profileAdditions
+            case _: OooParams => publishedCoreNames ++ coreAdditions
+            case _ => throw new IllegalArgumentException("only full current core/profile products may be compared")
+        }
+        requireNames(p, old ++ timingClosureFields)
+        val values = p.productElementNames.zip(p.productIterator).toMap
+        require(timingClosureFields.forall(n => literalFalse(values(n))),
+            "retained timing baseline comparison requires both named new fields literally false")
+        old.map(n => n -> values(n)).toMap
     }
     /** Published A's 88/172-field view; every named appended switch must be false. */
     def historicalAFields(p: Product): Map[String, Any] = {

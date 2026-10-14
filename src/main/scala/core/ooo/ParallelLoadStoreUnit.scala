@@ -24,6 +24,12 @@ class ParallelLoadStoreUnit(
             Some(Input(Valid(UInt(p.physBits.W)))) else None
         val completedIssueDestination = if (p.registeredLoadIssueForwarding)
             Some(Output(Valid(UInt(p.physBits.W)))) else None
+        val loadResultPublish = if (p.registeredLoadResultReady)
+            Some(Output(Vec(p.memoryEntries, Valid(UInt(p.physBits.W))))) else None
+        val heldLoadValue = if (p.registeredLoadResultReady) Some(Output(Vec(p.memoryEntries, Valid(new Bundle {
+            val destination = UInt(p.physBits.W)
+            val data = UInt(64.W)
+        })))) else None
         val parallel       = Input(Bool())
         val issueAvailable = Output(Bool())
         val boundHeadStoreOverlapQualified = if (p.boundHeadStoreOverlap) Some(Input(Bool())) else None
@@ -77,6 +83,18 @@ class ParallelLoadStoreUnit(
                 owners(i).valid := io.issueDestination.get.valid && io.issueDestination.get.bits =/= 0.U &&
                     !io.start.bits.store && !io.start.bits.atomic
                 owners(i).bits := io.issueDestination.get.bits
+            }
+        }
+        if (p.registeredLoadResultReady) {
+            for ((slot, i) <- slots.zipWithIndex) {
+                val publishingDestination = Mux(slot.io.start.fire, io.issueDestination.get, owners(i))
+                io.loadResultPublish.get(i).valid := slot.io.successfulLoadResultCapture.get &&
+                    publishingDestination.valid && publishingDestination.bits =/= 0.U
+                io.loadResultPublish.get(i).bits := publishingDestination.bits
+                io.heldLoadValue.get(i).valid := slot.io.complete.valid &&
+                    !slot.io.complete.bits.exception && owners(i).valid
+                io.heldLoadValue.get(i).bits.destination := owners(i).bits
+                io.heldLoadValue.get(i).bits.data := slot.io.complete.bits.data
             }
         }
         // Both completion and sideband use the same existing arbiter selection.
