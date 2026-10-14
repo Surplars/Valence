@@ -1,0 +1,202 @@
+[
+  {
+    "id": 0,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "41e0000000000000",
+    "expected": "000000007fffffff",
+    "fflags": 16,
+    "reason": "positive signed overflow"
+  },
+  {
+    "id": 1,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "41e0000000000000",
+    "expected": "ffffffff80000000",
+    "fflags": 0,
+    "reason": "unsigned bit31 must sign extend"
+  },
+  {
+    "id": 2,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "c1e0000000000000",
+    "expected": "ffffffff80000000",
+    "fflags": 0,
+    "reason": "negative signed endpoint exact"
+  },
+  {
+    "id": 3,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rtz",
+    "bits": "c1e0000000200000",
+    "expected": "ffffffff80000000",
+    "fflags": 16,
+    "reason": "negative signed overflow"
+  },
+  {
+    "id": 4,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rtz",
+    "bits": "bfd0000000000000",
+    "expected": "0000000000000000",
+    "fflags": 1,
+    "reason": "negative fraction rounds zero"
+  },
+  {
+    "id": 5,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rdn",
+    "bits": "bfd0000000000000",
+    "expected": "0000000000000000",
+    "fflags": 16,
+    "reason": "negative fraction rounds below unsigned range"
+  },
+  {
+    "id": 6,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "bff0000000000000",
+    "expected": "0000000000000000",
+    "fflags": 16,
+    "reason": "negative unsigned integer"
+  },
+  {
+    "id": 7,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rtz",
+    "bits": "41dfffffffe00000",
+    "expected": "000000007fffffff",
+    "fflags": 1,
+    "reason": "signed last half rounds down"
+  },
+  {
+    "id": 8,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "41dfffffffe00000",
+    "expected": "000000007fffffff",
+    "fflags": 16,
+    "reason": "signed last half rounds outside; NV suppresses NX"
+  },
+  {
+    "id": 9,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "41efffffffe00000",
+    "expected": "ffffffffffffffff",
+    "fflags": 0,
+    "reason": "unsigned endpoint exact"
+  },
+  {
+    "id": 10,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "41effffffff00000",
+    "expected": "ffffffffffffffff",
+    "fflags": 16,
+    "reason": "unsigned last half rounds outside"
+  },
+  {
+    "id": 11,
+    "format": "d",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "fff8000000000001",
+    "expected": "ffffffffffffffff",
+    "fflags": 16,
+    "reason": "negative quiet NaN clips positive"
+  },
+  {
+    "id": 12,
+    "format": "d",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "41dfffffffffffef",
+    "expected": "000000007fffffff",
+    "fflags": 16,
+    "reason": "nonzero discarded bits narrow overflow suppresses NX"
+  },
+  {
+    "id": 13,
+    "format": "s",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "4f000000",
+    "expected": "000000007fffffff",
+    "fflags": 16,
+    "reason": "single positive signed overflow"
+  },
+  {
+    "id": 14,
+    "format": "s",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "4f000000",
+    "expected": "ffffffff80000000",
+    "fflags": 0,
+    "reason": "single unsigned sign extension"
+  },
+  {
+    "id": 15,
+    "format": "s",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "cf000000",
+    "expected": "ffffffff80000000",
+    "fflags": 0,
+    "reason": "single negative endpoint"
+  },
+  {
+    "id": 16,
+    "format": "s",
+    "operation": "wu",
+    "rounding": "rtz",
+    "bits": "be800000",
+    "expected": "0000000000000000",
+    "fflags": 1,
+    "reason": "single negative fraction zero"
+  },
+  {
+    "id": 17,
+    "format": "s",
+    "operation": "wu",
+    "rounding": "rdn",
+    "bits": "be800000",
+    "expected": "0000000000000000",
+    "fflags": 16,
+    "reason": "single negative fraction invalid"
+  },
+  {
+    "id": 18,
+    "format": "s",
+    "operation": "w",
+    "rounding": "rne",
+    "bits": "7f800000",
+    "expected": "000000007fffffff",
+    "fflags": 16,
+    "reason": "single positive infinity"
+  },
+  {
+    "id": 19,
+    "format": "s",
+    "operation": "wu",
+    "rounding": "rne",
+    "bits": "ffc00001",
+    "expected": "ffffffffffffffff",
+    "fflags": 16,
+    "reason": "single negative quiet NaN"
+  }
+]

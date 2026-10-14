@@ -76,7 +76,11 @@ object CoherentLineHomeModule {
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
                     trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
                     dmaLineTransfers, dmaLineEntries, distinctWayRelease, lineTransferDispatchFlow, lineReadChannel,
-                    internalLineGrant, memoryScheduleOverlap, futureHomeWayReservation))
+                    internalLineGrant, memoryScheduleOverlap, futureHomeWayReservation,
+                    sharedLookupMatch = memoryScheduleOverlap && trackedLines == 512 && trackedWays == 2 &&
+                        acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite && dmaLineTransfers &&
+                        dmaLineEntries == 4 && tagConfig.bankedStorage && !futureHomeWayReservation &&
+                        lineTransferDispatchFlow && lineReadChannel && internalLineGrant))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

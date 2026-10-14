@@ -43,7 +43,13 @@ object PmpAccess {
   * A matching entry is the first one overlapping any byte, and must cover every byte.
   */
 class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
-    naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false) extends Module {
+    naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false,
+    val decodedWordGranularity: Boolean = false) extends Module {
+    // Preserve the original constructor for existing compiled/default callers.
+    def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean, alignedLineAccess: Boolean) =
+        this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, false)
+    require(!decodedWordGranularity || alignedWordAccess,
+        "decoded word PMP requires the fixed aligned four-byte access domain")
     require(Set(0, 8, 16).contains(entries))
     require(Seq(alignedWordAccess, naturalAlignedAccess, alignedLineAccess).count(identity) <= 1)
     val io = IO(new Bundle {
@@ -91,9 +97,24 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         val allowed = Wire(Vec(entries, Bool()))
         for (i <- 0 until entries) {
             val cfg  = io.state.cfg(i)
-            overlap(i) := io.state.regionActive(i) && start <= io.state.regionEnd(i) &&
-                end >= io.state.regionLow(i)
-            covers(i) := start >= io.state.regionLow(i) && end <= io.state.regionEnd(i)
+            if (decodedWordGranularity) {
+                // PmpState.decodeRegions (including the registered producer) defines
+                // every active region in complete four-byte granules. An aligned
+                // four-byte request overlaps iff the entire request is covered.
+                // Keep bit 64 in both bounds: high addresses never alias low PA.
+                when(io.state.regionActive(i)) {
+                    assert(io.state.regionLow(i)(1, 0) === 0.U && io.state.regionEnd(i)(1, 0) === 3.U,
+                        "word PMP requires complete decoded four-byte region granules")
+                }
+                val word = Cat(0.U(1.W), io.address(63, 2))
+                overlap(i) := io.state.regionActive(i) && word >= io.state.regionLow(i)(64, 2) &&
+                    word <= io.state.regionEnd(i)(64, 2)
+                covers(i) := true.B
+            } else {
+                overlap(i) := io.state.regionActive(i) && start <= io.state.regionEnd(i) &&
+                    end >= io.state.regionLow(i)
+                covers(i) := start >= io.state.regionLow(i) && end <= io.state.regionEnd(i)
+            }
             val permission = MuxLookup(io.access, false.B)(Seq(
                 PmpAccess.read      -> cfg(0),
                 PmpAccess.write     -> cfg(1),

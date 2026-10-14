@@ -176,7 +176,8 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
             else firstPhysical + (4 * word).U
             val wordAddress = if (packetWords == 2 && word == 1 && !p.alignedFetchSinglePage)
                 Mux(crosses, secondPhysical.get, samePageAddress) else samePageAddress
-            val checker = Module(new PmpChecker(p.pmpEntries, alignedWordAccess = alignedPacket))
+            val checker = Module(new PmpChecker(p.pmpEntries, alignedWordAccess = alignedPacket,
+                decodedWordGranularity = alignedPacket))
             checker.io.state := io.pmpState
             // Low bits are defined even when these PA registers are inactive;
             // the live translation capture above proves the exact transform.

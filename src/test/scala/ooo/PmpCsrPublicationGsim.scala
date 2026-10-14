@@ -133,6 +133,18 @@ class PmpCsrPublicationGsim(entries: Int = 16, registered: Boolean = false, boun
         observed.endHigh := system.io.pmpState.regionEnd(i)(64)
         observed.active := system.io.pmpState.regionActive(i)
     }
+    for (lane <- 0 until 2) {
+        val word = Module(new PmpChecker(entries, alignedWordAccess = true, decodedWordGranularity = true))
+        val original = Module(new R6PmpCheckerReference(entries))
+        val address = Cat(io.address(63, 3), lane.U(1.W), 0.U(2.W))
+        word.io.state := system.io.pmpState; original.io.state := system.io.pmpState
+        word.io.address := address; original.io.address := address
+        word.io.size := 2.U; original.io.size := 2.U
+        word.io.privilege := system.io.dataPrivilege; original.io.privilege := system.io.dataPrivilege
+        word.io.access := io.access; original.io.access := io.access
+        assert(word.io.denied === original.io.denied,
+            "actual CSR producer atomic update word permission mismatch")
+    }
     val dataCheck = Module(new PmpChecker(entries))
     dataCheck.io.state := system.io.pmpState
     dataCheck.io.address := io.address

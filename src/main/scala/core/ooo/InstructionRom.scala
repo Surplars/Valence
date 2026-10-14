@@ -429,7 +429,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val permissionContext = if (fetchAddressBeforePmp) lockedContext else context
         val allowed = Wire(Vec(fetchWords, Bool()))
         for (lane <- 0 until fetchWords) {
-            val checker = Module(new PmpChecker(pmpEntries, alignedWordAccess = alignedFetchPmp))
+            val checker = Module(new PmpChecker(pmpEntries, alignedWordAccess = alignedFetchPmp,
+                decodedWordGranularity = alignedFetchPmp))
             checker.io.state := io.pmpState
             // Both profiles use a packet-aligned base without an XLEN lane/end
             // addition. The staged profile never feeds the live miss selector

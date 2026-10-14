@@ -32,8 +32,12 @@ class MixedCoherentLineHome(
     val lineReadChannel: Boolean = false,
     val internalLineGrant: Boolean = false,
     val memoryScheduleOverlap: Boolean = false,
-    val futureWayReservation: Boolean = false
+    val futureWayReservation: Boolean = false,
+    val sharedLookupMatch: Boolean = false
 ) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
+    require(!sharedLookupMatch || (trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 &&
+        writebackEntries == 2 && mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 &&
+        tagConfig.bankedStorage && !futureWayReservation), "shared lookup requires qualified directory geometry")
     require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
@@ -64,7 +68,7 @@ class MixedCoherentLineHome(
     // those bits again. Keep ownership metadata separately resettable.
     private val tagGeometry = tagConfig.geometry(base, bytes, 6 + setBits)
     private val tagBanks = Seq.fill(trackedWays)(Mem(trackedLines / trackedWays, UInt(tagGeometry.tagBits.W)))
-    private val tagLookupAddress = WireDefault(io.upstream.request.bits.address)
+    private val tagLookupAddress = WireDefault(UInt(64.W), io.upstream.request.bits.address)
     // Two functional read clients remain independent: a first Release C beat
     // and the live upstream / saved maintenance lookup. A third read serves
     // only the independent Acquire admission assertion; synthesis must prove
@@ -324,6 +328,19 @@ class MixedCoherentLineHome(
     // A.ready/fire or Release priority in this functional tag-address path.
     tagLookupAddress := Mux(maintenance === mProbeSend || maintenance === mLineHazard, access.address,
         Mux(selectLine, io.dmaLine.map(_.request.bits.address).getOrElse(0.U), io.upstream.request.bits.address))
+    // All users below consume this pre-existing lookup port only when their
+    // address is selected. Release and Acquire keep their independent queries.
+    private val selectedLookupHits = if (sharedLookupMatch)
+        Some((0 until trackedWays).map(wayHit(tagLookupAddress, _, lookupTags))) else None
+    private val selectedLookupOwned = selectedLookupHits.map(_.reduce(_ || _))
+    private val selectedLookupSlot = selectedLookupHits.map { hits =>
+        if (trackedWays == 1) waySlot(tagLookupAddress, 0)
+        else Mux(hits(0), waySlot(tagLookupAddress, 0), waySlot(tagLookupAddress, 1))
+    }
+    private def functionalLookupOwned(address: UInt): Bool =
+        selectedLookupOwned.getOrElse(lineOwned(address, lookupTags))
+    private def functionalLookupSlot(address: UInt): UInt =
+        selectedLookupSlot.getOrElse(ownedSlot(address, lookupTags))
     private val maintenanceDirectory = Reg(UInt(directoryBits.W))
     private val maintenanceData = Reg(UInt(512.W))
     private val reads = RegInit(0.U(4.W))
@@ -337,7 +354,7 @@ class MixedCoherentLineHome(
     when(io.upstream.request.valid || linePending) { upperWaiting := true.B }
     when(io.upstream.request.fire || (!io.upstream.request.valid && !linePending)) { upperWaiting := false.B }
     private val request = io.upstream.request.bits
-    private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && lineOwned(request.address, lookupTags)
+    private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && functionalLookupOwned(request.address)
     private val needsMaintenance = request.write || needsProbe
     private val sourceBusy = (0 until acquireEntries).map(i =>
         active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
@@ -410,7 +427,7 @@ class MixedCoherentLineHome(
         assert(!anyAcquire && reads === 0.U && !releaseBusy, "maintenance crossed active acquire/release")
         access := request
         if (dmaLineTransfers) lineAccess := false.B
-        maintenanceDirectory := ownedSlot(request.address, lookupTags)
+        maintenanceDirectory := functionalLookupSlot(request.address)
         maintenance := Mux(needsProbe, mProbeSend, mAccessSend)
     }
     when(maintenance === mAccessSend && io.downstream.request.fire) { maintenance := mAccessWait }
@@ -420,7 +437,7 @@ class MixedCoherentLineHome(
     port.b <> probe.io.probe
     // A not-yet-issued probe can disappear only before entering the engine.
     // An issued probe completes after any racing voluntary ReleaseAck.
-    private val probeStillOwned = lineOwned(access.address, lookupTags)
+    private val probeStillOwned = functionalLookupOwned(access.address)
     probe.io.request.valid := maintenance === mProbeSend && probeStillOwned && !releaseOffer && !releaseBusy
     probe.io.request.bits.address := Cat(access.address(63, 6), 0.U(6.W))
     probe.io.request.bits.tag := 0.U
@@ -502,8 +519,8 @@ class MixedCoherentLineHome(
             lineWriteData.get := line.request.bits.data
             lineError.get := false.B
             lineAccess := true.B
-            maintenanceDirectory := ownedSlot(line.request.bits.address, lookupTags)
-            maintenance := Mux(lineOwned(line.request.bits.address, lookupTags), mProbeSend,
+            maintenanceDirectory := functionalLookupSlot(line.request.bits.address)
+            maintenance := Mux(functionalLookupOwned(line.request.bits.address), mProbeSend,
                 Mux(line.request.bits.write, mLineWriteSend, mLineReadSend))
             preferLine := false.B
             preferAcquire := true.B
@@ -569,7 +586,7 @@ class MixedCoherentLineHome(
                 // between accepted line metadata and the transfer engine.
                 val incomingConflict = (0 until dmaLineEntries).map(i => ownedLines(i) &&
                     lineAddresses(i)(63, 6) === line.request.bits.address(63, 6)).reduce(_ || _)
-                val incomingOwned = lineOwned(line.request.bits.address, lookupTags)
+                val incomingOwned = functionalLookupOwned(line.request.bits.address)
                 maintenance := Mux(incomingConflict || incomingOwned, mLineHazard,
                     Mux(line.request.bits.write, mLineWriteSend, mLineReadSend))
             } else maintenance := mLineHazard
@@ -580,8 +597,8 @@ class MixedCoherentLineHome(
         val olderSameLine = (0 until dmaLineEntries).map(i => ownedLines(i) && accessTag =/= i.U &&
             lineAddresses(i)(63, 6) === access.address(63, 6)).reduce(_ || _)
         when(maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer) {
-            maintenanceDirectory := ownedSlot(access.address, lookupTags)
-            maintenance := Mux(lineOwned(access.address, lookupTags), mProbeSend, accessSend)
+            maintenanceDirectory := functionalLookupSlot(access.address)
+            maintenance := Mux(functionalLookupOwned(access.address), mProbeSend, accessSend)
         }
         when(maintenance === mLineReadSend) {
             assert(!fillQueue.io.deq.valid && !anyAcquire && ownedLines(accessTag),

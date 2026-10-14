@@ -1,0 +1,44 @@
+[
+  {
+    "mode": 1,
+    "name": "high_address",
+    "old": "val word = Cat(0.U(1.W), io.address(63, 2))",
+    "new": "val word = Cat(0.U(32.W), io.address(32, 2))",
+    "source_sha256": "377cf1f93c7e37ec49d322df8f6310ed9845aa6dca8a158130c041ee79ddc692"
+  },
+  {
+    "mode": 2,
+    "name": "priority",
+    "old": "val earlier = if (i == 0) false.B else VecInit(overlap.take(i)).asUInt.orR",
+    "new": "val earlier = if (i == entries - 1) false.B else VecInit(overlap.drop(i + 1)).asUInt.orR",
+    "source_sha256": "f73ea44f2c9a0707556f6f1a513cae7d898cf4aa22f3bf163c551caf8dc7ce1d"
+  },
+  {
+    "mode": 3,
+    "name": "lock",
+    "old": "io.privilege === 3.U && !cfg(7) || permission",
+    "new": "io.privilege === 3.U || permission",
+    "source_sha256": "ff6006b5bb79aba470e222e620c2cad7680634e2234cf31ca19f554dcadd408b"
+  },
+  {
+    "mode": 4,
+    "name": "write_permission",
+    "old": "PmpAccess.write     -> cfg(1)",
+    "new": "PmpAccess.write     -> cfg(0)",
+    "source_sha256": "768709d8c12053e2d3a385dfc1e05c6ba9609bd6bcc753b1ed5a4e7ef5d6cd03"
+  },
+  {
+    "mode": 5,
+    "name": "inactive",
+    "old": "overlap(i) := io.state.regionActive(i) && word >=",
+    "new": "overlap(i) := true.B && word >=",
+    "source_sha256": "675cfa7f0100ccb581ca6e4a87eb13455347961c03017a4f7959f564a8d1c913"
+  },
+  {
+    "mode": 6,
+    "name": "high_region",
+    "old": "io.state.regionLow(i)(64, 2)",
+    "new": "io.state.regionLow(i)(32, 2)",
+    "source_sha256": "45452bff2d9150f34d67db932e2c973d1721007db9a89b18f884956038d2f3a3"
+  }
+]

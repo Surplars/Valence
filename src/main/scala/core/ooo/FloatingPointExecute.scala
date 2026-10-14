@@ -90,14 +90,13 @@ class FloatingPointMisc(p: OooParams, double: Boolean, c: FloatingPointConfig) e
         val ieee = fNFromRecFN(e, s, fromInt.io.out)
         choose(FloatingPointDecode.fromInteger(inst), if (double) ieee else FloatingPointBits.boxSingle(ieee),
             fromInt.io.exceptionFlags)
-        val to32 = Module(new RecFNToIN(e, s, 32))
-        val to64 = Module(new RecFNToIN(e, s, 64))
-        for (unit <- Seq(to32, to64)) {
-            unit.io.in := recA; unit.io.signedOut := !unsigned
-            unit.io.roundingMode := input.rounding
-        }
-        val intFlags = Mux(long, to64.io.intExceptionFlags, to32.io.intExceptionFlags)
-        choose(FloatingPointDecode.toInteger(inst), Mux(long, to64.io.out, Cat(Fill(32, to32.io.out(31)), to32.io.out)),
+        val toInteger = Module(new FloatingPointToIntegerShared(e, s))
+        toInteger.io.in := recA
+        toInteger.io.signedOut := !unsigned
+        toInteger.io.roundingMode := input.rounding
+        val intFlags = Mux(long, toInteger.io.flags64, toInteger.io.flags32)
+        choose(FloatingPointDecode.toInteger(inst), Mux(long, toInteger.io.out64,
+            Cat(Fill(32, toInteger.io.out32(31)), toInteger.io.out32)),
             Cat(intFlags(2) || intFlags(1), 0.U(3.W), intFlags(0)))
         if (c.d) {
             val inE = if (double) 8 else 11
