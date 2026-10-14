@@ -7,8 +7,18 @@ import chisel3.util._
   * Slots are reserved on acceptance, including the input stage; cancellation and
   * token checks still apply to every reservation. Contract: docs/rv64m.md.
   */
-class PipelinedMultiply(p: OooParams) extends Module {
+class PipelinedMultiply(p: OooParams, boundedSlotIdentity: Boolean = false) extends Module {
     val capacity = 8
+    // Acceptance at E0 writes MULW at E(1 + inputDelay), full multiply at
+    // E(5 + inputDelay). This pipeline has no stall input: valid advances on
+    // every clock. Tail advances at most once per edge and only on acceptance.
+    // Therefore the next allocation of a slot is E8 or later, strictly after
+    // its last arithmetic write. Cancel/pop never rewind tail; reset clears
+    // all in-flight valids together with allocation state. Keep full tokens in
+    // the result reservations and on every externally visible completion.
+    private val lastArithmeticWriteOffset = 5 + (if (p.registeredMulDivOperands) 1 else 0)
+    require(!boundedSlotIdentity || capacity > lastArithmeticWriteOffset,
+        "bounded slot identity requires nonstalling arithmetic to finish strictly before slot reuse")
     val io       = IO(new Bundle {
         val start    = Flipped(Decoupled(new MultiplyDivideRequest(p)))
         val complete = Decoupled(new BackendCompletion(p))
@@ -54,20 +64,21 @@ class PipelinedMultiply(p: OooParams) extends Module {
     // Do not put PRF owner selection and a DSP multiply in the same cycle.
     // Capture AFTER the original handshake: pending clears and slot accounting
     // are unchanged. A cancelled reservation may traverse the arithmetic, but
-    // cannot write a reused result slot without the original token tag match.
+    // cannot reach a reused result slot: bounded identity uses the strict lifetime
+    // proof above; the default implementation retains the original tag match.
     val arithmeticFire = if (p.registeredMulDivOperands) RegNext(io.start.fire, false.B) else io.start.fire
     val operands = if (p.registeredMulDivOperands) RegEnable(io.start.bits, io.start.fire) else io.start.bits
     val arithmeticSlot = if (p.registeredMulDivOperands) RegEnable(tail, io.start.fire) else tail
     val valid      = RegInit(VecInit(Seq.fill(5)(false.B)))
     val slots      = Reg(Vec(5, UInt(3.W)))
-    val tags       = Reg(Vec(5, UInt(p.tagBits.W)))
+    val tags       = if (boundedSlotIdentity) None else Some(Reg(Vec(5, UInt(p.tagBits.W))))
     val correction = Reg(Vec(5, UInt(64.W)))
     val high       = Reg(Vec(5, Bool()))
     val word       = Reg(Vec(5, Bool()))
     valid(0) := arithmeticFire
     when(arithmeticFire) {
         slots(0) := arithmeticSlot
-        tags(0)  := operands.token.tag
+        tags.foreach(_(0) := operands.token.tag)
         val signedA = operands.operation === 1.U || operands.operation === 2.U
         val signedB = operands.operation === 1.U
         correction(0) := Mux(signedA && operands.left(63), operands.right, 0.U) +
@@ -79,7 +90,7 @@ class PipelinedMultiply(p: OooParams) extends Module {
         valid(i) := valid(i - 1)
         when(valid(i - 1)) {
             slots(i)      := slots(i - 1)
-            tags(i)       := tags(i - 1)
+            tags.foreach(t => t(i) := t(i - 1))
             correction(i) := correction(i - 1)
             high(i)       := high(i - 1)
             word(i)       := word(i - 1)
@@ -109,10 +120,10 @@ class PipelinedMultiply(p: OooParams) extends Module {
     // Registered partial products can wake a dependent operation before the result-slot write.
     // Cancellation is enforced at the ROB boundary; do not feed redirect-dependent cancel into this path.
     io.wordPreview.valid := valid(0) && word(0) && live(wordSlot) &&
-        entries(wordSlot).token.tag === tags(0)
+        tags.map(t => entries(wordSlot).token.tag === t(0)).getOrElse(true.B)
     io.wordPreview.bits := entries(wordSlot)
     io.wordPreview.bits.data := Cat(Fill(32, wordLow(31)), wordLow(31, 0))
-    when(valid(0) && word(0) && live(wordSlot) && entries(wordSlot).token.tag === tags(0)) {
+    when(valid(0) && word(0) && live(wordSlot) && tags.map(t => entries(wordSlot).token.tag === t(0)).getOrElse(true.B)) {
         entries(wordSlot).data := Cat(Fill(32, wordLow(31)), wordLow(31, 0))
         done(wordSlot)         := true.B
     }
@@ -126,7 +137,7 @@ class PipelinedMultiply(p: OooParams) extends Module {
     val slot   = Mux(valid(4), slots(4), 0.U)
     val upper  = product(127, 64) - correction(4)
     val result = Mux(high(4), upper, product(63, 0))
-    when(valid(4) && !word(4) && live(slot) && entries(slot).token.tag === tags(4)) {
+    when(valid(4) && !word(4) && live(slot) && tags.map(t => entries(slot).token.tag === t(4)).getOrElse(true.B)) {
         entries(slot).data := result
         done(slot)         := true.B
     }

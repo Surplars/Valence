@@ -1,0 +1,11 @@
+--- a/src/main/scala/core/ooo/PipelinedMultiply.scala
++++ b/src/main/scala/core/ooo/PipelinedMultiply.scala
+@@ -77,7 +77,7 @@
+     val word       = Reg(Vec(5, Bool()))
+     valid(0) := arithmeticFire
+     when(arithmeticFire) {
+-        slots(0) := arithmeticSlot
++        slots(0) := arithmeticSlot + 1.U
+         tags.foreach(_(0) := operands.token.tag)
+         val signedA = operands.operation === 1.U || operands.operation === 2.U
+         val signedB = operands.operation === 1.U
