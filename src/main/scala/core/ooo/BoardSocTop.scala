@@ -66,7 +66,8 @@ object BoardSocConfig {
         fetchAcceptedPrefixValidation: Boolean = false, alignedFetchSinglePage: Boolean = false,
         factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false,
         postedYoungerLoadSealDeferral: Boolean = false,
-        heldAluIssueForwarding: Boolean = false): OooParams = {
+        heldAluIssueForwarding: Boolean = false,
+        residentMemoryPayloadReuse: Boolean = false): OooParams = {
         require(ddrMemoryBytes >= 4096 && ddrMemoryBytes <= (BigInt(1) << 31) && isPow2(ddrMemoryBytes))
         require(isaProfiles.contains(isa), s"Unknown board ISA profile: $isa")
         val fp = isa match {
@@ -116,7 +117,9 @@ object BoardSocConfig {
             registeredPmpRegions = registeredPmpRegions, publishedPmpChanges = publishedPmpChanges,
             pmpEntries = 16, virtualMemoryLevels = 3,
             speculativeRamBytes = if (externalDdr) ddrMemoryBytes else ramBytes,
-            floatingPoint = fp.copy(resources = floatingPointResources), advertiseFloatingPoint = fp.f))
+            floatingPoint = fp.copy(resources = floatingPointResources), advertiseFloatingPoint = fp.f)).copy(
+            // Validate the resident guard only after LVT/storage configuration is complete.
+            residentMemoryPayloadReuse = residentMemoryPayloadReuse)
     }
     // Keep L1 response data flow-through; register physical owner metadata separately.
     val timingProfile = "early-issue"
@@ -287,7 +290,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         fetchAcceptedPrefixValidation: Boolean = false, alignedFetchSinglePage: Boolean = false,
         factorCheckedNextAllowed: Boolean = false, localTaggedResponseReady: Boolean = false,
         postedYoungerLoadSealDeferral: Boolean = false,
-        heldAluIssueForwarding: Boolean = false) extends Module {
+        heldAluIssueForwarding: Boolean = false,
+        residentMemoryPayloadReuse: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -329,6 +333,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         postedPrefetchHeadOffer = postedPrefetchHeadOffer, postedPreparationPriority = postedPreparationPriority,
         postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
             heldAluIssueForwarding = heldAluIssueForwarding,
+            residentMemoryPayloadReuse = residentMemoryPayloadReuse,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
             frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
             registeredPendingStoreQuery = registeredPendingStoreQuery,

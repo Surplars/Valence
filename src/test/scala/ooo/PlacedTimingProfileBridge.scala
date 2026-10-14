@@ -90,10 +90,15 @@ object PlacedTimingProfileBridge {
     val platformAdditions = Seq("triSpeedRawClockHandoff")
     val youngerLoadSealField = "postedYoungerLoadSealDeferral"
     val heldAluField = "heldAluIssueForwarding"
+    val residentMemoryField = "residentMemoryPayloadReuse"
+    def literalFalse(value: Any): Boolean = value match {
+        case b: Boolean => !b
+        case _ => false
+    }
     val historicalAProfileNames = publishedProfileNames ++ profileAdditionsBeforeYoungerLoadSeal
     val historicalACoreNames = publishedCoreNames ++ coreAdditionsBeforeYoungerLoadSeal
-    val profileAdditions = (profileAdditionsBeforeYoungerLoadSeal ++ platformAdditions) :+ youngerLoadSealField :+ heldAluField
-    val coreAdditions = coreAdditionsBeforeYoungerLoadSeal :+ youngerLoadSealField :+ heldAluField
+    val profileAdditions = (profileAdditionsBeforeYoungerLoadSeal ++ platformAdditions) :+ youngerLoadSealField :+ heldAluField :+ residentMemoryField
+    val coreAdditions = coreAdditionsBeforeYoungerLoadSeal :+ youngerLoadSealField :+ heldAluField :+ residentMemoryField
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
@@ -111,12 +116,12 @@ object PlacedTimingProfileBridge {
             case _ => throw new IllegalArgumentException("only exact profile/core products may be projected")
         }
         val tail = p match {
-            case _: FpgaNextConfig => platformAdditions :+ youngerLoadSealField :+ heldAluField
-            case _: OooParams => Seq(youngerLoadSealField, heldAluField)
+            case _: FpgaNextConfig => platformAdditions :+ youngerLoadSealField :+ heldAluField :+ residentMemoryField
+            case _: OooParams => Seq(youngerLoadSealField, heldAluField, residentMemoryField)
         }
         requireNames(p, old ++ tail)
         val values = p.productElementNames.zip(p.productIterator).toMap
-        require(tail.forall(n => values(n) == false), "historical A projection requires all named appended fields false")
+        require(tail.forall(n => literalFalse(values(n))), "historical A projection requires all named appended fields false")
         old.map(n => n -> values(n)).toMap
     }
     def publishedFields(p: Product): Map[String, Any] = {
@@ -127,12 +132,12 @@ object PlacedTimingProfileBridge {
         }
         requireNames(p, old ++ added)
         val values = p.productElementNames.zip(p.productIterator).toMap
-        require(added.forall(n => values(n) == false), "only explicit default-false additions may be projected")
+        require(added.forall(n => literalFalse(values(n))), "only explicit default-false additions may be projected")
         old.map(n => n -> values(n)).toMap
     }
     def headDrainSnapshotFields(p: Product): Map[String, Any] = {
         val values = publishedFields(p)
-        require(values("retirementIntent") == false, "snapshot predates default-false retirement intent")
+        require(literalFalse(values("retirementIntent")), "snapshot predates default-false retirement intent")
         values - "retirementIntent"
     }
 }

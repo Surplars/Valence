@@ -52,7 +52,7 @@ def load_profile():
     leaves = profile['production_leaf_sha256']
     if len(leaves) != 11:
         raise RuntimeError('expected the eleven reviewed production leaves')
-    spec = importlib.util.spec_from_file_location('timing64_held_alu_bridge', HERE / 'held_alu_source_bridge.py')
+    spec = importlib.util.spec_from_file_location('timing64_resident_memory_bridge', HERE / 'resident_memory_source_bridge.py')
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
     bridge.validate_historical_sources(MANIFEST, leaves)

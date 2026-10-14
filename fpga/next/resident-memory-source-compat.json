@@ -1,0 +1,2979 @@
+{
+  "artifact_components": [
+    ".git",
+    "out",
+    "build",
+    "__pycache__"
+  ],
+  "base_core_fields": [
+    {
+      "name": "renameWidth",
+      "type": "Int"
+    },
+    {
+      "name": "commitWidth",
+      "type": "Int"
+    },
+    {
+      "name": "completionWidth",
+      "type": "Int"
+    },
+    {
+      "name": "robEntries",
+      "type": "Int"
+    },
+    {
+      "name": "physicalRegs",
+      "type": "Int"
+    },
+    {
+      "name": "tagBits",
+      "type": "Int"
+    },
+    {
+      "name": "speculativeRamBase",
+      "type": "BigInt"
+    },
+    {
+      "name": "speculativeRamBytes",
+      "type": "BigInt"
+    },
+    {
+      "name": "memoryEntries",
+      "type": "Int"
+    },
+    {
+      "name": "branchPredictorEntries",
+      "type": "Int"
+    },
+    {
+      "name": "bufferedRamStores",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLocalStoreResponses",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredImsicInterrupts",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMemoryRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "taggedStoreReturns",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredStoreResponseOwners",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredBranchRedirect",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMemoryAddress",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredRobRetirement",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLoadReplay",
+      "type": "Boolean"
+    },
+    {
+      "name": "loadOrderOlderRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRenameAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "stableFetchFaultMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "precompleteMispredictedBranch",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRankedOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "pcDerivedReturnLinks",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRenameDestinations",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPrfReadyUpdates",
+      "type": "Boolean"
+    },
+    {
+      "name": "stablePredictionMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "balancedBranchCompare",
+      "type": "Boolean"
+    },
+    {
+      "name": "separateBranchRetireFault",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelReturnStackControl",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRedirectCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryPreparation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelIssuePayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "rawFetchPresence",
+      "type": "Boolean"
+    },
+    {
+      "name": "oneHotPhysicalOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredTranslatedResponses",
+      "type": "Boolean"
+    },
+    {
+      "name": "translatedResponseEmptyFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "directMemoryResponse",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchAddresses",
+      "type": "Boolean"
+    },
+    {
+      "name": "prefixTileLinkDecode",
+      "type": "Boolean"
+    },
+    {
+      "name": "rawTileLinkResponseMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "bufferedRomReplies",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPredictionQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRecoveryAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRedirectTokens",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelIssueRanks",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAluResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelCompletionPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchTagLookup",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFrontendControl",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAuipcQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPredictionSources",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAddressSums",
+      "type": "Boolean"
+    },
+    {
+      "name": "bufferedFetchRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchAlignment",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelDecodeLegality",
+      "type": "Boolean"
+    },
+    {
+      "name": "flowThroughFetchRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMinMaxResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelBitLegality",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRenameRanks",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMinMaxWordResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelArchitecturalDestinations",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAluWordResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelHomeQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFabricBoundary",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredTranslationHeads",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReplyTurnover",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchIdentityTranslation",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPredictionTraining",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredIssueExecute",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFetchPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "wordSpanPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchHintEntries",
+      "type": "Int"
+    },
+    {
+      "name": "balancedPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "compactMemoryOperandSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryAddressSum",
+      "type": "Boolean"
+    },
+    {
+      "name": "capturedFetchPermission",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPermissionStage",
+      "type": "Boolean"
+    },
+    {
+      "name": "splitFetchCursor",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFetchWindow",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadTrapRecovery",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadSystemRecovery",
+      "type": "Boolean"
+    },
+    {
+      "name": "tentativeRenameSources",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedPhysicalSourceDecode",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalOperandReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyStorePreparation",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMulDivDispatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMulDivOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredIssueHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "unconditionalMemoryPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRecoveryIssueBlock",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastBufferedStoreRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadLoadRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "loadCompletionBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLoadIssueForwarding",
+      "type": "Boolean"
+    },
+    {
+      "name": "mulWordPreviewBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "moveAlias",
+      "type": "Boolean"
+    },
+    {
+      "name": "flowTileLinkResponse",
+      "type": "Boolean"
+    },
+    {
+      "name": "storeBufferEntries",
+      "type": "Int"
+    },
+    {
+      "name": "machineSystem",
+      "type": "Boolean"
+    },
+    {
+      "name": "experimentalFloatingPoint",
+      "type": "Boolean"
+    },
+    {
+      "name": "floatingPoint",
+      "type": "FloatingPointConfig"
+    },
+    {
+      "name": "advertiseFloatingPoint",
+      "type": "Boolean"
+    },
+    {
+      "name": "atomicMemory",
+      "type": "Boolean"
+    },
+    {
+      "name": "pmpEntries",
+      "type": "Int"
+    },
+    {
+      "name": "virtualMemoryLevels",
+      "type": "Int"
+    },
+    {
+      "name": "compressedInstructions",
+      "type": "Boolean"
+    },
+    {
+      "name": "instructionCacheSets",
+      "type": "Int"
+    },
+    {
+      "name": "returnStackEntries",
+      "type": "Int"
+    },
+    {
+      "name": "indirectTargetEntries",
+      "type": "Int"
+    },
+    {
+      "name": "recoveryWidth",
+      "type": "Int"
+    },
+    {
+      "name": "identityDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "precheckedDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "physicalLoadIngressFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedRobPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedStoreOperandReads",
+      "type": "Boolean"
+    },
+    {
+      "name": "lvtPhysicalRegisterFile",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataStoreNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "virtualRamLoadPrecheck",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedIssuePayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedFetchHints",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalIssueReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedFetchPmpRelations",
+      "type": "Boolean"
+    },
+    {
+      "name": "shareProtectedHeadPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchPreviousPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "preparedStoreLookahead",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedStoreMerge",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchHeadOffer",
+      "type": "Boolean"
+    },
+    {
+      "name": "canonicalVirtualStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofFrontier",
+      "type": "Boolean"
+    },
+    {
+      "name": "frozenStoreProofTransport",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProof",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProofSlots",
+      "type": "Int"
+    },
+    {
+      "name": "pendingStoreEarlyLoadCredits",
+      "type": "Int"
+    },
+    {
+      "name": "boundHeadStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingReadyStoreBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofRows",
+      "type": "Int"
+    },
+    {
+      "name": "memoryProofCacheSets",
+      "type": "Int"
+    },
+    {
+      "name": "postedPreparationPriority",
+      "type": "Boolean"
+    },
+    {
+      "name": "reconstructIssueTokenIndex",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedMemoryAddressState",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPmpRegions",
+      "type": "Boolean"
+    },
+    {
+      "name": "publishedPmpChanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPendingStoreQuery",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredCanonicalStoreEvent",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedLane1OwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank1MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRegisteredExecutionOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedCanonicalStoreOwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "eagerFetchPrefixSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "predecodedHeadDrain",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementIntent",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAddressBeforePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "queuedHeadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedNextLinePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryPreparationHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank0MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReadyDataClear",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementSlotIdentity",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAcceptedPrefixValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchSinglePage",
+      "type": "Boolean"
+    },
+    {
+      "name": "factorCheckedNextAllowed",
+      "type": "Boolean"
+    },
+    {
+      "name": "localTaggedResponseReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedYoungerLoadSealDeferral",
+      "type": "Boolean"
+    },
+    {
+      "name": "heldAluIssueForwarding",
+      "type": "Boolean"
+    }
+  ],
+  "base_profile_fields": [
+    {
+      "name": "virtualRamLoadPrecheck",
+      "type": "Boolean"
+    },
+    {
+      "name": "optimized",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "experimentalTriSpeedEthernet",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalIssueReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedFetchPmpRelations",
+      "type": "Boolean"
+    },
+    {
+      "name": "shareProtectedHeadPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedInstructionData",
+      "type": "Boolean"
+    },
+    {
+      "name": "prefetchCandidateCycles",
+      "type": "Int"
+    },
+    {
+      "name": "prefetchBreakOnStore",
+      "type": "Boolean"
+    },
+    {
+      "name": "storeNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "storePrefetchMruInsertion",
+      "type": "Boolean"
+    },
+    {
+      "name": "dmaLineTransfers",
+      "type": "Boolean"
+    },
+    {
+      "name": "dmaLineYieldCycles",
+      "type": "Int"
+    },
+    {
+      "name": "dmaLineEntries",
+      "type": "Int"
+    },
+    {
+      "name": "precheckedDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "physicalLoadIngressFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "translatedResponseEmptyFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lsuEntries",
+      "type": "Int"
+    },
+    {
+      "name": "loadOrderOlderRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchPreviousPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "preparedStoreLookahead",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataTranslationEntries",
+      "type": "Int"
+    },
+    {
+      "name": "postedStoreMerge",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchCoexistence",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchHeadOffer",
+      "type": "Boolean"
+    },
+    {
+      "name": "canonicalVirtualStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofFrontier",
+      "type": "Boolean"
+    },
+    {
+      "name": "frozenStoreProofTransport",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProof",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProofSlots",
+      "type": "Int"
+    },
+    {
+      "name": "pendingStoreEarlyLoadCredits",
+      "type": "Int"
+    },
+    {
+      "name": "boundHeadStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingReadyStoreBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "taggedStoreReturns",
+      "type": "Boolean"
+    },
+    {
+      "name": "robEntries",
+      "type": "Option[Int]"
+    },
+    {
+      "name": "physicalRegs",
+      "type": "Option[Int]"
+    },
+    {
+      "name": "storePrefetchLruVictim",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPreparationPriority",
+      "type": "Boolean"
+    },
+    {
+      "name": "reconstructIssueTokenIndex",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedMemoryAddressState",
+      "type": "Boolean"
+    },
+    {
+      "name": "distinctWayRelease",
+      "type": "Boolean"
+    },
+    {
+      "name": "ddrWriteCollectionFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lineTransferDispatchFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lineReadChannel",
+      "type": "Boolean"
+    },
+    {
+      "name": "localPayloadWriteEnable",
+      "type": "Boolean"
+    },
+    {
+      "name": "ddrOutstanding",
+      "type": "Int"
+    },
+    {
+      "name": "ddrWriteCredits",
+      "type": "Int"
+    },
+    {
+      "name": "dataTlbWriteReadReuse",
+      "type": "Boolean"
+    },
+    {
+      "name": "translationHitFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentDemandAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "splitPrefetchTracking",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchDirtyRetry",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchDemandAdoption",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPmpRegions",
+      "type": "Boolean"
+    },
+    {
+      "name": "publishedPmpChanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchStoreHold",
+      "type": "Boolean"
+    },
+    {
+      "name": "durableReadPrefetchCandidate",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchBehindStore",
+      "type": "Boolean"
+    },
+    {
+      "name": "internalLineGrant",
+      "type": "Boolean"
+    },
+    {
+      "name": "concurrentReadStorePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryScheduleOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPendingStoreQuery",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPermissionStage",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredCanonicalStoreEvent",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedLane1OwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank1MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRegisteredExecutionOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedCanonicalStoreOwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "localPayloadWriteRow",
+      "type": "Boolean"
+    },
+    {
+      "name": "eagerFetchPrefixSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "futureHomeWayReservation",
+      "type": "Boolean"
+    },
+    {
+      "name": "predecodedHeadDrain",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementIntent",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAddressBeforePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "queuedHeadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedNextLinePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "registerProbeLookup",
+      "type": "Boolean"
+    },
+    {
+      "name": "localAddressRanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryPreparationHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank0MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReadyDataClear",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementSlotIdentity",
+      "type": "Boolean"
+    },
+    {
+      "name": "localCacheReadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAcceptedPrefixValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchSinglePage",
+      "type": "Boolean"
+    },
+    {
+      "name": "factorCheckedNextAllowed",
+      "type": "Boolean"
+    },
+    {
+      "name": "localTaggedResponseReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "triSpeedRawClockHandoff",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedYoungerLoadSealDeferral",
+      "type": "Boolean"
+    },
+    {
+      "name": "heldAluIssueForwarding",
+      "type": "Boolean"
+    }
+  ],
+  "base_source_closure_sha256": "029c1f492e5da2c58c8b0134ac0d81b2224b224af93f8c490a0ce127f330ce6f",
+  "base_tree": "f3dcb88dd4adb981b5cabe605610f8187aaaa0eb",
+  "changed_sources": {
+    "docs/ooo-core-plan.md": {
+      "new_sha256": "d1fbe3ab81f7601242efce6aa1e157f61a4833a526d990f76b723e4a05664a5b",
+      "old_sha256": "615d696fa87de87760a0a2e365977e090149e197f1b66d7a64c00372e436dd3c",
+      "reviewed_delta": "Add a short link to bounded default-off resident memory qualification and limits."
+    },
+    "fpga/next/board_held_alu.py": {
+      "new_sha256": "9418675fb5d41851e1747e390a3dc69118f08908bb22dd212dbbdad0face3554",
+      "old_sha256": "a27f81025c25bdc7732c3e475a44530866fdcef51b6f67858328803d07563254",
+      "reviewed_delta": "Keep immutable held-ALU B profile/options; require the exact frozen field lists followed only by resident Boolean, using the resident closure."
+    },
+    "fpga/next/board_near_term_a.py": {
+      "new_sha256": "9d8f624fcc42c9647ffd48dcee74b61c527caa5690c3dd68c98423120fdce72d",
+      "old_sha256": "3d8de011def6b767df35320ed76833f97a82984b54405ffa34a58fa5ae658244",
+      "reviewed_delta": "Keep immutable A68 profile/options and validate original leaves through the explicit resident source layer."
+    },
+    "fpga/next/board_near_term_a_raw_handoff.py": {
+      "new_sha256": "50c282ec92278d7ea656e25460afb24f4ec7c8bb55631940058aac15e13360fb",
+      "old_sha256": "8c20d308875a0b9ef1099e30df52b03cf05c652660f2d51d13175321aea02123",
+      "reviewed_delta": "Keep independent raw-MAC historical profile/options and validate original leaves through the resident source layer."
+    },
+    "fpga/next/board_resident_memory.py": {
+      "new_sha256": "424d35af86e522d2efe5098b304e918c1f1e8c6b942cf690dd6fbf3bfac50764",
+      "old_sha256": null,
+      "reviewed_delta": "New validation-default source-only public entry for exact retained Young69 options plus one resident flag; held/raw remain false and qualification remains false."
+    },
+    "fpga/next/board_timing64.py": {
+      "new_sha256": "8330244d2bf7eff52a8c24122a6e8279f6c4384b0021c9501a8029c9788f6290",
+      "old_sha256": "c4e6c1abb52791dfc6e54692670dfeae555381af6424453ab2c16b004c70002a",
+      "reviewed_delta": "Keep delegated/direct exact64 profile/options and validate original leaves through the explicit resident source layer."
+    },
+    "fpga/next/export.py": {
+      "new_sha256": "5a02902137f8163c4083c75c53934fd8a8ba1a3cc62dc6593d9b21725c3a04ab",
+      "old_sha256": "e7f980191b9dab8507e43f50b7a74fbe18f61fd7dd49c0cb7f0940bfb2e05401",
+      "reviewed_delta": "Add exact default-off resident CLI, mirror resolved OooParams topology, forward native option, bind resident sources and require complete typed actual-constructor audit readback; route frozen snapshot identity through resident closure. Native command preserves every old option in order and appends resident after the Younger flag."
+    },
+    "fpga/next/resident-memory-profile.json": {
+      "new_sha256": "cf29616dd9b2abb75e6072afc6ef302373dbd68deecf2a78adf3f8a727bdbde0",
+      "old_sha256": null,
+      "reviewed_delta": "New source-only immutable preparation entry freezes exact Young69-to-resident70 options, current175/92 field order, and measured retained Young173/89 profile/order digests."
+    },
+    "fpga/next/test_resident_memory_entry.py": {
+      "new_sha256": "97d08a111f26115fd1ce0a178b52690d8728448963fc4792f42961f996a7cd9f",
+      "old_sha256": null,
+      "reviewed_delta": "Preserve all original entry negatives and add compact-map reconstruction/rejection checks; fixture contract comes from the fully validated loader."
+    },
+    "fpga/next/test_young_load_seal_source_bridge.py": {
+      "new_sha256": "d01e8d40d0389fa8fc24ac7e980d50ba667fa21b5373327a14e77298658628af",
+      "old_sha256": "6337e0ec367fb86e5a217a2ebe7fae9ead262741aa233d83f69202813def68df",
+      "reviewed_delta": "Preserve all historical compatibility controls; load the expanded resident closure through its pinned checked loader."
+    },
+    "fpga/next/tests/test_mac_raw_handoff_entry.py": {
+      "new_sha256": "e5bf3446798312415f10a698a21b30613dab8c6be8e4f46ab5756943dd472b7e",
+      "old_sha256": "6990bdcaa093f6a472f47f321ad97771bfba2353a8a21fb972f23b63db145f53",
+      "reviewed_delta": "Update mock constructor fixtures with resident=false and complete resident audit; test current resident manifest drift while retaining raw resource negatives. Covered by the retained focused entry qualification."
+    },
+    "fpga/next/young_load_seal_source_bridge.py": {
+      "new_sha256": "1d782f9004bee691d6c69a6a33bd75839e296d218fca8d9da64fb4cf44ac64e2",
+      "old_sha256": "d56260c2fd7afffb1890ab63a95be50c9646704975d21f3c17605e438bd33033",
+      "reviewed_delta": "Compose frozen bb85 Young ancestry through the verified corrected held base plus resident closure; require literal-false named resident removal alongside held for the merged Young view."
+    },
+    "simulator/gsim/README.md": {
+      "new_sha256": "08d5c65caa0ff94378ab24b18fef51b7f0d0cebf7f8bfbd0c4afe8f6a7888b7d",
+      "old_sha256": "41cd6e9b34e0b419fbe1b1b98a03404e7699bb93e8cadd62bcadae061b195c15",
+      "reviewed_delta": "Add a short link to bounded default-off resident memory qualification and limits."
+    },
+    "simulator/gsim/harness/resident_memory_entry.cpp": {
+      "new_sha256": "bacb4645dfd90aa1d1bc57fc135422a45f5ae82d2806d83a8402387de6dcf035",
+      "old_sha256": null,
+      "reviewed_delta": "Carry the separately qualified component fixture byte-for-byte; independent host/oracle and exact profile remain unchanged."
+    },
+    "simulator/gsim/harness/resident_memory_pair.cpp": {
+      "new_sha256": "9b56f0b1f34561b5a08ac954f4480adc5f4e79817a9b9c71d64add4de2b7d017",
+      "old_sha256": null,
+      "reviewed_delta": "Carry the separately qualified component fixture byte-for-byte; independent host/oracle and exact profile remain unchanged."
+    },
+    "simulator/gsim/resident_memory_integration/README.md": {
+      "new_sha256": "d86648d986d0ec1a2a23b46f9e098ba98bdc1ddf37e0b3e38c9c980e7588b805",
+      "old_sha256": null,
+      "reviewed_delta": "Record bounded completed component/entry/whole-CPU results, exact proof recovery identities, portable focused entry points and explicit performance/physical limits."
+    },
+    "simulator/gsim/resident_memory_integration/reference-young69-field-order.json": {
+      "new_sha256": "5dbfc47d8a8490e99da18c36915964b0f0ded73a8d31d9bb99744750c0d1048f",
+      "old_sha256": null,
+      "reviewed_delta": "Complete173/89 historical ordered names extracted from the same retained Young Scala source and pinned independently from sorted JSON."
+    },
+    "simulator/gsim/resident_memory_integration/reference-young69.json": {
+      "new_sha256": "d251587fae19feb796e00f8e80b9cd25649d564f006c221b54f8ab08b9fbfc83",
+      "old_sha256": null,
+      "reviewed_delta": "Byte-exact copy of qualified retained young-load-seal-r1/cpu-on-r1/on/profile.json (historical173/89); not a new constructor output."
+    },
+    "src/main/scala/core/ooo/BoardSocTop.scala": {
+      "new_sha256": "04b189eac205db02570f5fe43e084ff68f8faae33bfa4281c904bd2abd171b0f",
+      "old_sha256": "964bcdb3d608d6ecb9208ee8c991b15f20135e6bf4c5a650ae015a5fe1f18393",
+      "reviewed_delta": "Append default-false resident arguments; propagate through actual board and activate only after unchanged timing/capacity/FPGA-storage configuration so the unchanged LVT guard checks the complete product."
+    },
+    "src/main/scala/core/ooo/FpgaNextConfig.scala": {
+      "new_sha256": "149a4b75542b8638ff82d0f199f310e12eda9a46a21cb98798e78b1e4df364b0",
+      "old_sha256": "47e37fcd6b0f4880838bb0b22195b24ecd87afa525513f24006e393bb0b39341",
+      "reviewed_delta": "Append default-false resident profile field, exact CLI/suffix and explicit coreParams/managedBoard propagation without preset changes."
+    },
+    "src/main/scala/core/ooo/IntegerBackend.scala": {
+      "new_sha256": "7dd257480e70c27a4acd76c121c9ee6b59ea9b0290145fec8d826ed687eec7e6",
+      "old_sha256": "ade6a4a4a06cc1eaf149553c0fef1dcaca95cde012c3138f39e364d13d7eaa08",
+      "reviewed_delta": "Exact frozen resident backend plus the corrected B source's unchanged isolated held-ALU wake hunk; no other mechanism change."
+    },
+    "src/main/scala/core/ooo/OooParams.scala": {
+      "new_sha256": "af208139c66f70912a2b15492a4c525fc1c65c185c9669ed2d5e44f3e990fa7a",
+      "old_sha256": "b14100551f04ad5b3e4b36b114d2ce667e16ad34902111fb3264a5d46724e61c",
+      "reviewed_delta": "Append resident Boolean after held ALU; copy the approved resident topology guard verbatim and preserve B field/guard and every prior field/type/order."
+    },
+    "src/main/scala/core/ooo/ResidentMemoryPreparationSelector.scala": {
+      "new_sha256": "dd5804b6d047609f0bfffb49a1760415efd6df88d480eeffa0a023108740f714",
+      "old_sha256": null,
+      "reviewed_delta": "Copy the approved frozen combinational resident selector byte-for-byte."
+    },
+    "src/test/scala/ooo/BoardSocGsimMain.scala": {
+      "new_sha256": "6b5cde67b1237619952407be496ef0c8a74348d2ada315261cd8bade1f5d95a6",
+      "old_sha256": "575a8fb65cc63931574325f439c336c105b7a5dada38630a0ed1105b3848725f",
+      "reviewed_delta": "Append resident argument and fail closed on a mismatch against the complete requested configuration before board construction."
+    },
+    "src/test/scala/ooo/FpgaNextBoardGsimMain.scala": {
+      "new_sha256": "adab65e19c62b802db7dad160e8d099c01a90031f0c0ebd1faca26059dfae303",
+      "old_sha256": "3f42cb1a2f2a9ae3659911f9964fbef9d6ba8566b44c718a1904bdb1c138930f",
+      "reviewed_delta": "Pass resident explicitly from the unified profile through the shared GSIM builder."
+    },
+    "src/test/scala/ooo/FpgaNextMain.scala": {
+      "new_sha256": "f4d724a23754662250e7130a399b2e82b65444c49aa8f8bd0d2b3f9492a39501",
+      "old_sha256": "00962f65ddc27d3da7a5aa8ea051ded2e2f3a76ea76c623241e079fc3d5917a4",
+      "reviewed_delta": "Capture actual resident core/backend/ledger and selector audit during the same native construction; write its separate complete audit JSON."
+    },
+    "src/test/scala/ooo/FpgaNextProfileMain.scala": {
+      "new_sha256": "6ac630a5de2caec3056017c4eee31b5fe6c343132fe065f43f3500845e712bbc",
+      "old_sha256": "2aa8ab05831c690599dbffb4572c2c203a5a296065153019a872708ce16f1092",
+      "reviewed_delta": "Allow only the exact new resident flag under existing duplicate/unknown/value rejection."
+    },
+    "src/test/scala/ooo/HeadDrainActualAudit.scala": {
+      "new_sha256": "a21558f56da48c1e4988e61437e1e15a60919df8721120a633ce0b284492440d",
+      "old_sha256": "f5b284b0b15027481a6eac1b0502933ca75508981a170aa33c2513254a0b1013",
+      "reviewed_delta": "Require new profile resident flag agrees with the complete core parameters before reporting."
+    },
+    "src/test/scala/ooo/HeadDrainClassGsim.scala": {
+      "new_sha256": "ec905910b096ad6f4042447ea6fc3d06386cd924c17f913a832071ae2cdba8c3",
+      "old_sha256": "3354b5ead0221e50b6d82af67f60273d9ed061a806f81e70e7007386fa7ec0dd",
+      "reviewed_delta": "Update only current source product counts175/92; historical indices and mechanism remain fixed."
+    },
+    "src/test/scala/ooo/HeadDrainClassSpec.scala": {
+      "new_sha256": "f8d1d4417a0f3293fd6fa3e4e574785c8d69d146574bda7efdb0581ab1f2d110",
+      "old_sha256": "45acc914796fd6d0ea130ba61bb0c6fc6ec79dcc100138af5427c39f37900218",
+      "reviewed_delta": "Update only the current175-field assertion; original head-drain index159 remains fixed."
+    },
+    "src/test/scala/ooo/HeldAluIntegrationActualAudit.scala": {
+      "new_sha256": "06727d5a053c89174fd6f70e5c28644a7ba4c487f7029ce716ca98d6d70263f9",
+      "old_sha256": "f25adbbea64a2ff91ff260700809b4f9abed0678728da889a9993b83e151ee94",
+      "reviewed_delta": "Require complete new source field shape175/92 while preserving held-ALU actual constructor checks."
+    },
+    "src/test/scala/ooo/HeldAluIntegrationProfile.scala": {
+      "new_sha256": "536b680ff56cc6e2364268560fd9d51d83624a023a2cdc0e783c5c0332a32884",
+      "old_sha256": "1b7ef9aaef4ddd69642a43ce30957581aef5fef8a8b11c600e61da69653e640c",
+      "reviewed_delta": "Append named literal-false resident to historical A projection; preserve B68/69 option vectors and false-resident entry, with current175/92 metadata."
+    },
+    "src/test/scala/ooo/MacRawHandoffEntry.scala": {
+      "new_sha256": "550bfaa277a1c6306d7c47648f09172302d662d306a606ae0b0e4e84de5bfff0",
+      "old_sha256": "48c8182ab8bb21865a21f059bc5191078ae98f2d56d502f8c32e1f5f8852b329",
+      "reviewed_delta": "Extend current source counts/tail with resident=false, preserve complete MAC-only/core invariance and literal-false projection."
+    },
+    "src/test/scala/ooo/MatchingFabricAudit.scala": {
+      "new_sha256": "732b62cde10e11743f011efa5bb7bb36f7f92799ae3294058e847a748ea9fd65",
+      "old_sha256": "dccc43b4170e32615ec4d52e56e8f29c1b1b9aef7439e7e7dfdafcc51f8bf6f6",
+      "reviewed_delta": "Add actual resident full-product/selector audit to the same matching-board construction and write actual-resident-memory.json."
+    },
+    "src/test/scala/ooo/NearTermAProfile.scala": {
+      "new_sha256": "80b28fe51f4c7c324fd5cc8c9e0cce2209d3941570b6d75621093d7644ff1c08",
+      "old_sha256": "8caa1eef43a7f284ed5b248089513912b8e06314c9e9a9e212669c803550a65c",
+      "reviewed_delta": "Keep exact64/A68 options and full old JSON pins; extend named literal-false compatibility tails and current175/92 reporting."
+    },
+    "src/test/scala/ooo/PlacedTimingProfileBridge.scala": {
+      "new_sha256": "28d75af8fb78df49af63dbb5e0ce67fc7f339452a94f0fc3d5a266ec8e7e7531",
+      "old_sha256": "5289404749656cb878d017d058d81b3212de9938178a396608a916aa6ff749f0",
+      "reviewed_delta": "Append only named resident field to exact current shapes and historical false tails; use explicit Boolean pattern matching for literal false."
+    },
+    "src/test/scala/ooo/PostedYoungerLoadSealConfigSpec.scala": {
+      "new_sha256": "ad59a57c23359ba7f930053623444012876231e01fcbb405ca9f4093dcb8af2b",
+      "old_sha256": "9c7ae20717e16844ca0337a7d0e8556e5bfd8d2cc2dcffb608ca8ef478f6fc18",
+      "reviewed_delta": "Update current175/92 schema and held+resident false-only projection fixtures while preserving historical Young true flag and all original controls."
+    },
+    "src/test/scala/ooo/R3ReadLocalityProfile.scala": {
+      "new_sha256": "b0a6f67f30f4095067f34ddd23f7f0a8758f78e7921fca561cfcdd22c17ab3bc",
+      "old_sha256": "e42bfc260c1c7a373abc89e5a78132b45d751289cb26ab9c862e8af525b17d3f",
+      "reviewed_delta": "Require resident=false on the existing unchanged locality option vectors and update only current source175/92 counts."
+    },
+    "src/test/scala/ooo/ResidentMemoryBackendNative.scala": {
+      "new_sha256": "2a98a58f7b1596a02b33791a98f41669769ce9ac4c82d7047b890b009f617a27",
+      "old_sha256": null,
+      "reviewed_delta": "Carry the separately qualified component fixture byte-for-byte; independent host/oracle and exact profile remain unchanged."
+    },
+    "src/test/scala/ooo/ResidentMemoryEntryGsim.scala": {
+      "new_sha256": "0dbbf39e70c6ddabc5037920efba18b7b8a052512ecd1625051af53163000922",
+      "old_sha256": null,
+      "reviewed_delta": "Carry the separately qualified component fixture byte-for-byte; independent host/oracle and exact profile remain unchanged."
+    },
+    "src/test/scala/ooo/ResidentMemoryIntegrationActualAudit.scala": {
+      "new_sha256": "cbbc576f7925c66687549fee2c30636f96ff734af39fcb4fbf71d94b56bd37c4",
+      "old_sha256": null,
+      "reviewed_delta": "New read-only actual-instance audit: full core/backend/ledger p equality, strict shape, unchanged topology, existing guard and constructed resident/ordinary selector counts; no production state/ports/taps."
+    },
+    "src/test/scala/ooo/ResidentMemoryIntegrationConfigSpec.scala": {
+      "new_sha256": "545b81c95732506736ea27fce39e5f0843c22520689d39cdfd5a0ebb1a703c03",
+      "old_sha256": null,
+      "reviewed_delta": "Six new pure constructor/metadata tests for exact70 options, complete reference/delta, final-LVT forwarding, guard predicates, CLI/mismatch rejection and strict typed/name/order/nested projections; no elaboration."
+    },
+    "src/test/scala/ooo/ResidentMemoryIntegrationConstructorMain.scala": {
+      "new_sha256": "b5ffa5012b0e2b00b5b00aaf02a0b56e9561ec50c6b4b87140ea9ccec04c20d7",
+      "old_sha256": null,
+      "reviewed_delta": "Minimal native Board in-memory ON/OFF constructor gate; complete p, real selector, final LVT and existing held/raw audits; no GSIM/firtool/model/simulation."
+    },
+    "src/test/scala/ooo/ResidentMemoryIntegrationFullCpuMain.scala": {
+      "new_sha256": "21a6576df79984c65013caa01ccfd3c5a385fd7b4db729fc157baae985894d3c",
+      "old_sha256": null,
+      "reviewed_delta": "Prepared exact retained Young69+resident ON-only emission entry with same-hierarchy actual audit; used by the preserved one-model whole-CPU gate."
+    },
+    "src/test/scala/ooo/ResidentMemoryIntegrationProfile.scala": {
+      "new_sha256": "6a0581b43285b0693a73f502085132aacf57d4f56ebb783b01dbdcdb1ba64d9b",
+      "old_sha256": null,
+      "reviewed_delta": "New exact retained69/70 profile, complete175/92 pair delta, pinned measuredYoung173/89 complete JSON/order projection and pure constructor reporter; no new qualification."
+    },
+    "src/test/scala/ooo/ResidentMemoryPairGsim.scala": {
+      "new_sha256": "0f94a50a04d8629c8bafa2f934b406afae1bde222f32e3e99fe87c59c44106b4",
+      "old_sha256": null,
+      "reviewed_delta": "Carry the separately qualified component fixture byte-for-byte; independent host/oracle and exact profile remain unchanged."
+    },
+    "src/test/scala/ooo/RetirementIntentBoardConfigSpec.scala": {
+      "new_sha256": "f3ae59e293fec045e6358834afb78f0a8eaee6cfc7c26f433e3dd01d4a1f556f",
+      "old_sha256": "0af644d8d2aa5e132c498c78a12661e0311d6fd93b9594a016fb8db740c935a7",
+      "reviewed_delta": "Update only current source175/92 product assertions; all original field indices remain unchanged."
+    },
+    "src/test/scala/ooo/RetirementSlotProfile.scala": {
+      "new_sha256": "87eb8384161a5a21bf313e923e280a3485137f49212f7199b92540df400d8022",
+      "old_sha256": "76c0208121e5b997dea6ba8a4063e19c4e5c7ac48bf8923080d0c46a1725097f",
+      "reviewed_delta": "Append resident to named literal-false eleven-field tail; preserve every frozen original164 value/hash and report current175 fields."
+    },
+    "src/test/scala/ooo/RetirementSlotSpec.scala": {
+      "new_sha256": "74cd16da56f01e7cc40ca9c04c3161249e9097cc8f10458d6308aef0fe57ab84",
+      "old_sha256": "e2774e00bcbeddf627d9eb0e0a004bb8c3d73bdcd6cfb6e4cd2885973526eeb7",
+      "reviewed_delta": "Update only current source175-field assertion."
+    },
+    "src/test/scala/ooo/YoungLoadSealFullCpuMain.scala": {
+      "new_sha256": "ba382b5bf569d2d53f07949062b42f3250fa2d9123df6815f60b4d5ad5959ac7",
+      "old_sha256": "4d30b574c89fdd697155e00ddda7ccd1248421f348e0a335b20c50c23b09329f",
+      "reviewed_delta": "Retain corrected r2 bridge/entry; newly emitted current-source metadata explicitly records resident=false."
+    },
+    "src/test/scala/ooo/YoungLoadSealSourceBridge.scala": {
+      "new_sha256": "4ea702507142ca0814f635625e8d4a8e1bda8c194b85115d89a417dff2c766d5",
+      "old_sha256": "2f512c8ced487046b2880183cf435538f824a93dec13034ad3bab48bf2dba52a",
+      "reviewed_delta": "Extend corrected r2 mergedYoung173/90 bridge with named literal-false resident after held, retaining exact old ordered fields/values and actual current metadata."
+    }
+  },
+  "core_tail": [
+    "postedYoungerLoadSealDeferral",
+    "heldAluIssueForwarding",
+    "residentMemoryPayloadReuse"
+  ],
+  "current_core_fields": [
+    {
+      "name": "renameWidth",
+      "type": "Int"
+    },
+    {
+      "name": "commitWidth",
+      "type": "Int"
+    },
+    {
+      "name": "completionWidth",
+      "type": "Int"
+    },
+    {
+      "name": "robEntries",
+      "type": "Int"
+    },
+    {
+      "name": "physicalRegs",
+      "type": "Int"
+    },
+    {
+      "name": "tagBits",
+      "type": "Int"
+    },
+    {
+      "name": "speculativeRamBase",
+      "type": "BigInt"
+    },
+    {
+      "name": "speculativeRamBytes",
+      "type": "BigInt"
+    },
+    {
+      "name": "memoryEntries",
+      "type": "Int"
+    },
+    {
+      "name": "branchPredictorEntries",
+      "type": "Int"
+    },
+    {
+      "name": "bufferedRamStores",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLocalStoreResponses",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredImsicInterrupts",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMemoryRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "taggedStoreReturns",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredStoreResponseOwners",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredBranchRedirect",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMemoryAddress",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredRobRetirement",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLoadReplay",
+      "type": "Boolean"
+    },
+    {
+      "name": "loadOrderOlderRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRenameAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "stableFetchFaultMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "precompleteMispredictedBranch",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRankedOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "pcDerivedReturnLinks",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRenameDestinations",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPrfReadyUpdates",
+      "type": "Boolean"
+    },
+    {
+      "name": "stablePredictionMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "balancedBranchCompare",
+      "type": "Boolean"
+    },
+    {
+      "name": "separateBranchRetireFault",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelReturnStackControl",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRedirectCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryPreparation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelIssuePayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "rawFetchPresence",
+      "type": "Boolean"
+    },
+    {
+      "name": "oneHotPhysicalOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredTranslatedResponses",
+      "type": "Boolean"
+    },
+    {
+      "name": "translatedResponseEmptyFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "directMemoryResponse",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchAddresses",
+      "type": "Boolean"
+    },
+    {
+      "name": "prefixTileLinkDecode",
+      "type": "Boolean"
+    },
+    {
+      "name": "rawTileLinkResponseMetadata",
+      "type": "Boolean"
+    },
+    {
+      "name": "bufferedRomReplies",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPredictionQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRecoveryAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRedirectTokens",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelIssueRanks",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAluResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelCompletionPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchTagLookup",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFrontendControl",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAuipcQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPredictionSources",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAddressSums",
+      "type": "Boolean"
+    },
+    {
+      "name": "bufferedFetchRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchAlignment",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelDecodeLegality",
+      "type": "Boolean"
+    },
+    {
+      "name": "flowThroughFetchRequests",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMinMaxResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelBitLegality",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelRenameRanks",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMinMaxWordResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelArchitecturalDestinations",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelAluWordResults",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelHomeQualification",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFabricBoundary",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredTranslationHeads",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReplyTurnover",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchIdentityTranslation",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPredictionTraining",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredIssueExecute",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFetchPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "wordSpanPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelFetchValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchHintEntries",
+      "type": "Int"
+    },
+    {
+      "name": "balancedPacketPmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "compactMemoryOperandSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMemoryAddressSum",
+      "type": "Boolean"
+    },
+    {
+      "name": "capturedFetchPermission",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPermissionStage",
+      "type": "Boolean"
+    },
+    {
+      "name": "splitFetchCursor",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredFetchWindow",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadTrapRecovery",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadSystemRecovery",
+      "type": "Boolean"
+    },
+    {
+      "name": "tentativeRenameSources",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedPhysicalSourceDecode",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalOperandReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyStorePreparation",
+      "type": "Boolean"
+    },
+    {
+      "name": "parallelMulDivDispatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredMulDivOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredIssueHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "unconditionalMemoryPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "earlyRecoveryIssueBlock",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastBufferedStoreRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "fastHeadLoadRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "loadCompletionBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredLoadIssueForwarding",
+      "type": "Boolean"
+    },
+    {
+      "name": "mulWordPreviewBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "moveAlias",
+      "type": "Boolean"
+    },
+    {
+      "name": "flowTileLinkResponse",
+      "type": "Boolean"
+    },
+    {
+      "name": "storeBufferEntries",
+      "type": "Int"
+    },
+    {
+      "name": "machineSystem",
+      "type": "Boolean"
+    },
+    {
+      "name": "experimentalFloatingPoint",
+      "type": "Boolean"
+    },
+    {
+      "name": "floatingPoint",
+      "type": "FloatingPointConfig"
+    },
+    {
+      "name": "advertiseFloatingPoint",
+      "type": "Boolean"
+    },
+    {
+      "name": "atomicMemory",
+      "type": "Boolean"
+    },
+    {
+      "name": "pmpEntries",
+      "type": "Int"
+    },
+    {
+      "name": "virtualMemoryLevels",
+      "type": "Int"
+    },
+    {
+      "name": "compressedInstructions",
+      "type": "Boolean"
+    },
+    {
+      "name": "instructionCacheSets",
+      "type": "Int"
+    },
+    {
+      "name": "returnStackEntries",
+      "type": "Int"
+    },
+    {
+      "name": "indirectTargetEntries",
+      "type": "Int"
+    },
+    {
+      "name": "recoveryWidth",
+      "type": "Int"
+    },
+    {
+      "name": "identityDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "precheckedDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "physicalLoadIngressFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedRobPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedStoreOperandReads",
+      "type": "Boolean"
+    },
+    {
+      "name": "lvtPhysicalRegisterFile",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataStoreNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "virtualRamLoadPrecheck",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedIssuePayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedFetchHints",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalIssueReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedFetchPmpRelations",
+      "type": "Boolean"
+    },
+    {
+      "name": "shareProtectedHeadPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchPreviousPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "preparedStoreLookahead",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedStoreMerge",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchHeadOffer",
+      "type": "Boolean"
+    },
+    {
+      "name": "canonicalVirtualStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofFrontier",
+      "type": "Boolean"
+    },
+    {
+      "name": "frozenStoreProofTransport",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProof",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProofSlots",
+      "type": "Int"
+    },
+    {
+      "name": "pendingStoreEarlyLoadCredits",
+      "type": "Int"
+    },
+    {
+      "name": "boundHeadStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingReadyStoreBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofRows",
+      "type": "Int"
+    },
+    {
+      "name": "memoryProofCacheSets",
+      "type": "Int"
+    },
+    {
+      "name": "postedPreparationPriority",
+      "type": "Boolean"
+    },
+    {
+      "name": "reconstructIssueTokenIndex",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedMemoryAddressState",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPmpRegions",
+      "type": "Boolean"
+    },
+    {
+      "name": "publishedPmpChanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPendingStoreQuery",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredCanonicalStoreEvent",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedLane1OwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank1MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRegisteredExecutionOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedCanonicalStoreOwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "eagerFetchPrefixSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "predecodedHeadDrain",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementIntent",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAddressBeforePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "queuedHeadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedNextLinePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryPreparationHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank0MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReadyDataClear",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementSlotIdentity",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAcceptedPrefixValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchSinglePage",
+      "type": "Boolean"
+    },
+    {
+      "name": "factorCheckedNextAllowed",
+      "type": "Boolean"
+    },
+    {
+      "name": "localTaggedResponseReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedYoungerLoadSealDeferral",
+      "type": "Boolean"
+    },
+    {
+      "name": "heldAluIssueForwarding",
+      "type": "Boolean"
+    },
+    {
+      "name": "residentMemoryPayloadReuse",
+      "type": "Boolean"
+    }
+  ],
+  "current_core_names": [
+    "renameWidth",
+    "commitWidth",
+    "completionWidth",
+    "robEntries",
+    "physicalRegs",
+    "tagBits",
+    "speculativeRamBase",
+    "speculativeRamBytes",
+    "memoryEntries",
+    "branchPredictorEntries",
+    "bufferedRamStores",
+    "registeredLocalStoreResponses",
+    "registeredImsicInterrupts",
+    "registeredMemoryRequests",
+    "taggedStoreReturns",
+    "registeredStoreResponseOwners",
+    "registeredBranchRedirect",
+    "registeredMemoryAddress",
+    "registeredRobRetirement",
+    "registeredLoadReplay",
+    "loadOrderOlderRetire",
+    "parallelRenameAdmission",
+    "stableFetchFaultMetadata",
+    "precompleteMispredictedBranch",
+    "earlyRankedOperands",
+    "pcDerivedReturnLinks",
+    "earlyRenameDestinations",
+    "parallelPrfReadyUpdates",
+    "stablePredictionMetadata",
+    "balancedBranchCompare",
+    "separateBranchRetireFault",
+    "parallelReturnStackControl",
+    "earlyRedirectCapture",
+    "parallelMemoryPreparation",
+    "alignedFetchPmp",
+    "parallelIssuePayload",
+    "rawFetchPresence",
+    "oneHotPhysicalOperands",
+    "registeredTranslatedResponses",
+    "translatedResponseEmptyFlow",
+    "directMemoryResponse",
+    "parallelFetchAddresses",
+    "prefixTileLinkDecode",
+    "rawTileLinkResponseMetadata",
+    "bufferedRomReplies",
+    "parallelPredictionQualification",
+    "parallelRecoveryAdmission",
+    "parallelRedirectTokens",
+    "parallelIssueRanks",
+    "parallelAluResults",
+    "parallelCompletionPayload",
+    "parallelFetchTagLookup",
+    "parallelFrontendControl",
+    "parallelAuipcQualification",
+    "parallelPredictionSources",
+    "parallelAddressSums",
+    "bufferedFetchRequests",
+    "parallelFetchAlignment",
+    "parallelDecodeLegality",
+    "flowThroughFetchRequests",
+    "parallelMinMaxResults",
+    "parallelBitLegality",
+    "parallelRenameRanks",
+    "parallelMinMaxWordResults",
+    "parallelArchitecturalDestinations",
+    "parallelAluWordResults",
+    "independentFetchCapture",
+    "parallelHomeQualification",
+    "registeredFabricBoundary",
+    "registeredTranslationHeads",
+    "fetchReplyTurnover",
+    "fetchIdentityTranslation",
+    "registeredPredictionTraining",
+    "parallelMemoryPayload",
+    "parallelPacketPmp",
+    "registeredIssueExecute",
+    "registeredFetchPacket",
+    "wordSpanPacketPmp",
+    "parallelFetchValidation",
+    "fetchHintEntries",
+    "balancedPacketPmp",
+    "compactMemoryOperandSelect",
+    "parallelMemoryAddressSum",
+    "capturedFetchPermission",
+    "alignedFetchPermissionStage",
+    "splitFetchCursor",
+    "registeredFetchWindow",
+    "fastHeadTrapRecovery",
+    "fastHeadSystemRecovery",
+    "tentativeRenameSources",
+    "sharedPhysicalSourceDecode",
+    "ownerLocalOperandReady",
+    "earlyStorePreparation",
+    "parallelMulDivDispatch",
+    "registeredMulDivOperands",
+    "registeredIssueHeadMask",
+    "unconditionalMemoryPayloadCapture",
+    "earlyRecoveryIssueBlock",
+    "fastBufferedStoreRetire",
+    "fastHeadLoadRetire",
+    "loadCompletionBypass",
+    "registeredLoadIssueForwarding",
+    "mulWordPreviewBypass",
+    "moveAlias",
+    "flowTileLinkResponse",
+    "storeBufferEntries",
+    "machineSystem",
+    "experimentalFloatingPoint",
+    "floatingPoint",
+    "advertiseFloatingPoint",
+    "atomicMemory",
+    "pmpEntries",
+    "virtualMemoryLevels",
+    "compressedInstructions",
+    "instructionCacheSets",
+    "returnStackEntries",
+    "indirectTargetEntries",
+    "recoveryWidth",
+    "identityDataRequestFlow",
+    "precheckedDataRequestFlow",
+    "physicalLoadIngressFlow",
+    "bankedRobPayload",
+    "sharedStoreOperandReads",
+    "lvtPhysicalRegisterFile",
+    "dataNextLinePrefetch",
+    "dataStoreNextLinePrefetch",
+    "virtualRamLoadPrecheck",
+    "bankedIssuePayload",
+    "bankedFetchHints",
+    "independentFetchPayloadCapture",
+    "ownerLocalIssueReady",
+    "sharedFetchPmpRelations",
+    "shareProtectedHeadPayload",
+    "fetchPreviousPacket",
+    "preparedStoreLookahead",
+    "postedStoreMerge",
+    "postedPrefetchHeadOffer",
+    "canonicalVirtualStoreOverlap",
+    "memoryProofFrontier",
+    "frozenStoreProofTransport",
+    "pendingVirtualStoreProof",
+    "pendingVirtualStoreProofSlots",
+    "pendingStoreEarlyLoadCredits",
+    "boundHeadStoreOverlap",
+    "pendingReadyStoreBypass",
+    "memoryProofRows",
+    "memoryProofCacheSets",
+    "postedPreparationPriority",
+    "reconstructIssueTokenIndex",
+    "sharedMemoryAddressState",
+    "registeredPmpRegions",
+    "publishedPmpChanges",
+    "registeredPendingStoreQuery",
+    "registeredCanonicalStoreEvent",
+    "sharedLane1OwnerMatch",
+    "directRank1MemorySourceIds",
+    "directRegisteredExecutionOperands",
+    "sharedCanonicalStoreOwnerMatch",
+    "eagerFetchPrefixSelect",
+    "predecodedHeadDrain",
+    "retirementIntent",
+    "fetchAddressBeforePmp",
+    "queuedHeadSelection",
+    "alignedNextLinePmp",
+    "memoryPreparationHeadMask",
+    "directRank0MemorySourceIds",
+    "fetchReadyDataClear",
+    "retirementSlotIdentity",
+    "fetchAcceptedPrefixValidation",
+    "alignedFetchSinglePage",
+    "factorCheckedNextAllowed",
+    "localTaggedResponseReady",
+    "postedYoungerLoadSealDeferral",
+    "heldAluIssueForwarding",
+    "residentMemoryPayloadReuse"
+  ],
+  "current_profile_fields": [
+    {
+      "name": "virtualRamLoadPrecheck",
+      "type": "Boolean"
+    },
+    {
+      "name": "optimized",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentFetchPayloadCapture",
+      "type": "Boolean"
+    },
+    {
+      "name": "experimentalTriSpeedEthernet",
+      "type": "Boolean"
+    },
+    {
+      "name": "ownerLocalIssueReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedFetchPmpRelations",
+      "type": "Boolean"
+    },
+    {
+      "name": "shareProtectedHeadPayload",
+      "type": "Boolean"
+    },
+    {
+      "name": "bankedInstructionData",
+      "type": "Boolean"
+    },
+    {
+      "name": "prefetchCandidateCycles",
+      "type": "Int"
+    },
+    {
+      "name": "prefetchBreakOnStore",
+      "type": "Boolean"
+    },
+    {
+      "name": "storeNextLinePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "storePrefetchMruInsertion",
+      "type": "Boolean"
+    },
+    {
+      "name": "dmaLineTransfers",
+      "type": "Boolean"
+    },
+    {
+      "name": "dmaLineYieldCycles",
+      "type": "Int"
+    },
+    {
+      "name": "dmaLineEntries",
+      "type": "Int"
+    },
+    {
+      "name": "precheckedDataRequestFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "physicalLoadIngressFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "translatedResponseEmptyFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lsuEntries",
+      "type": "Int"
+    },
+    {
+      "name": "loadOrderOlderRetire",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchPreviousPacket",
+      "type": "Boolean"
+    },
+    {
+      "name": "preparedStoreLookahead",
+      "type": "Boolean"
+    },
+    {
+      "name": "dataTranslationEntries",
+      "type": "Int"
+    },
+    {
+      "name": "postedStoreMerge",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchCoexistence",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPrefetchHeadOffer",
+      "type": "Boolean"
+    },
+    {
+      "name": "canonicalVirtualStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryProofFrontier",
+      "type": "Boolean"
+    },
+    {
+      "name": "frozenStoreProofTransport",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProof",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingVirtualStoreProofSlots",
+      "type": "Int"
+    },
+    {
+      "name": "pendingStoreEarlyLoadCredits",
+      "type": "Int"
+    },
+    {
+      "name": "boundHeadStoreOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "pendingReadyStoreBypass",
+      "type": "Boolean"
+    },
+    {
+      "name": "taggedStoreReturns",
+      "type": "Boolean"
+    },
+    {
+      "name": "robEntries",
+      "type": "Option[Int]"
+    },
+    {
+      "name": "physicalRegs",
+      "type": "Option[Int]"
+    },
+    {
+      "name": "storePrefetchLruVictim",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedPreparationPriority",
+      "type": "Boolean"
+    },
+    {
+      "name": "reconstructIssueTokenIndex",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedMemoryAddressState",
+      "type": "Boolean"
+    },
+    {
+      "name": "distinctWayRelease",
+      "type": "Boolean"
+    },
+    {
+      "name": "ddrWriteCollectionFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lineTransferDispatchFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "lineReadChannel",
+      "type": "Boolean"
+    },
+    {
+      "name": "localPayloadWriteEnable",
+      "type": "Boolean"
+    },
+    {
+      "name": "ddrOutstanding",
+      "type": "Int"
+    },
+    {
+      "name": "ddrWriteCredits",
+      "type": "Int"
+    },
+    {
+      "name": "dataTlbWriteReadReuse",
+      "type": "Boolean"
+    },
+    {
+      "name": "translationHitFlow",
+      "type": "Boolean"
+    },
+    {
+      "name": "independentDemandAdmission",
+      "type": "Boolean"
+    },
+    {
+      "name": "splitPrefetchTracking",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchDirtyRetry",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchDemandAdoption",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPmpRegions",
+      "type": "Boolean"
+    },
+    {
+      "name": "publishedPmpChanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchStoreHold",
+      "type": "Boolean"
+    },
+    {
+      "name": "durableReadPrefetchCandidate",
+      "type": "Boolean"
+    },
+    {
+      "name": "readPrefetchBehindStore",
+      "type": "Boolean"
+    },
+    {
+      "name": "internalLineGrant",
+      "type": "Boolean"
+    },
+    {
+      "name": "concurrentReadStorePrefetch",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryScheduleOverlap",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredPendingStoreQuery",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchPermissionStage",
+      "type": "Boolean"
+    },
+    {
+      "name": "registeredCanonicalStoreEvent",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedLane1OwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank1MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRegisteredExecutionOperands",
+      "type": "Boolean"
+    },
+    {
+      "name": "sharedCanonicalStoreOwnerMatch",
+      "type": "Boolean"
+    },
+    {
+      "name": "localPayloadWriteRow",
+      "type": "Boolean"
+    },
+    {
+      "name": "eagerFetchPrefixSelect",
+      "type": "Boolean"
+    },
+    {
+      "name": "futureHomeWayReservation",
+      "type": "Boolean"
+    },
+    {
+      "name": "predecodedHeadDrain",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementIntent",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAddressBeforePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "queuedHeadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedNextLinePmp",
+      "type": "Boolean"
+    },
+    {
+      "name": "registerProbeLookup",
+      "type": "Boolean"
+    },
+    {
+      "name": "localAddressRanges",
+      "type": "Boolean"
+    },
+    {
+      "name": "memoryPreparationHeadMask",
+      "type": "Boolean"
+    },
+    {
+      "name": "directRank0MemorySourceIds",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchReadyDataClear",
+      "type": "Boolean"
+    },
+    {
+      "name": "retirementSlotIdentity",
+      "type": "Boolean"
+    },
+    {
+      "name": "localCacheReadSelection",
+      "type": "Boolean"
+    },
+    {
+      "name": "fetchAcceptedPrefixValidation",
+      "type": "Boolean"
+    },
+    {
+      "name": "alignedFetchSinglePage",
+      "type": "Boolean"
+    },
+    {
+      "name": "factorCheckedNextAllowed",
+      "type": "Boolean"
+    },
+    {
+      "name": "localTaggedResponseReady",
+      "type": "Boolean"
+    },
+    {
+      "name": "triSpeedRawClockHandoff",
+      "type": "Boolean"
+    },
+    {
+      "name": "postedYoungerLoadSealDeferral",
+      "type": "Boolean"
+    },
+    {
+      "name": "heldAluIssueForwarding",
+      "type": "Boolean"
+    },
+    {
+      "name": "residentMemoryPayloadReuse",
+      "type": "Boolean"
+    }
+  ],
+  "current_profile_names": [
+    "virtualRamLoadPrecheck",
+    "optimized",
+    "independentFetchPayloadCapture",
+    "experimentalTriSpeedEthernet",
+    "ownerLocalIssueReady",
+    "sharedFetchPmpRelations",
+    "shareProtectedHeadPayload",
+    "bankedInstructionData",
+    "prefetchCandidateCycles",
+    "prefetchBreakOnStore",
+    "storeNextLinePrefetch",
+    "storePrefetchMruInsertion",
+    "dmaLineTransfers",
+    "dmaLineYieldCycles",
+    "dmaLineEntries",
+    "precheckedDataRequestFlow",
+    "physicalLoadIngressFlow",
+    "translatedResponseEmptyFlow",
+    "lsuEntries",
+    "loadOrderOlderRetire",
+    "fetchPreviousPacket",
+    "preparedStoreLookahead",
+    "dataTranslationEntries",
+    "postedStoreMerge",
+    "postedPrefetchCoexistence",
+    "postedPrefetchHeadOffer",
+    "canonicalVirtualStoreOverlap",
+    "memoryProofFrontier",
+    "frozenStoreProofTransport",
+    "pendingVirtualStoreProof",
+    "pendingVirtualStoreProofSlots",
+    "pendingStoreEarlyLoadCredits",
+    "boundHeadStoreOverlap",
+    "pendingReadyStoreBypass",
+    "taggedStoreReturns",
+    "robEntries",
+    "physicalRegs",
+    "storePrefetchLruVictim",
+    "postedPreparationPriority",
+    "reconstructIssueTokenIndex",
+    "sharedMemoryAddressState",
+    "distinctWayRelease",
+    "ddrWriteCollectionFlow",
+    "lineTransferDispatchFlow",
+    "lineReadChannel",
+    "localPayloadWriteEnable",
+    "ddrOutstanding",
+    "ddrWriteCredits",
+    "dataTlbWriteReadReuse",
+    "translationHitFlow",
+    "independentDemandAdmission",
+    "splitPrefetchTracking",
+    "readPrefetchDirtyRetry",
+    "readPrefetchDemandAdoption",
+    "registeredPmpRegions",
+    "publishedPmpChanges",
+    "readPrefetchStoreHold",
+    "durableReadPrefetchCandidate",
+    "readPrefetchBehindStore",
+    "internalLineGrant",
+    "concurrentReadStorePrefetch",
+    "memoryScheduleOverlap",
+    "registeredPendingStoreQuery",
+    "alignedFetchPermissionStage",
+    "registeredCanonicalStoreEvent",
+    "sharedLane1OwnerMatch",
+    "directRank1MemorySourceIds",
+    "directRegisteredExecutionOperands",
+    "sharedCanonicalStoreOwnerMatch",
+    "localPayloadWriteRow",
+    "eagerFetchPrefixSelect",
+    "futureHomeWayReservation",
+    "predecodedHeadDrain",
+    "retirementIntent",
+    "fetchAddressBeforePmp",
+    "queuedHeadSelection",
+    "alignedNextLinePmp",
+    "registerProbeLookup",
+    "localAddressRanges",
+    "memoryPreparationHeadMask",
+    "directRank0MemorySourceIds",
+    "fetchReadyDataClear",
+    "retirementSlotIdentity",
+    "localCacheReadSelection",
+    "fetchAcceptedPrefixValidation",
+    "alignedFetchSinglePage",
+    "factorCheckedNextAllowed",
+    "localTaggedResponseReady",
+    "triSpeedRawClockHandoff",
+    "postedYoungerLoadSealDeferral",
+    "heldAluIssueForwarding",
+    "residentMemoryPayloadReuse"
+  ],
+  "dynamic_qualification": false,
+  "held_manifest_sha256": "8455122022f9df8105c2530c3d076ed70df2f5a7e9ea69846ddb9d5354449b7c",
+  "physical_qualification": false,
+  "profile_tail": [
+    "triSpeedRawClockHandoff",
+    "postedYoungerLoadSealDeferral",
+    "heldAluIssueForwarding",
+    "residentMemoryPayloadReuse"
+  ],
+  "reference": {
+    "execution_release": false,
+    "field_names": {
+      "core": [
+        "renameWidth",
+        "commitWidth",
+        "completionWidth",
+        "robEntries",
+        "physicalRegs",
+        "tagBits",
+        "speculativeRamBase",
+        "speculativeRamBytes",
+        "memoryEntries",
+        "branchPredictorEntries",
+        "bufferedRamStores",
+        "registeredLocalStoreResponses",
+        "registeredImsicInterrupts",
+        "registeredMemoryRequests",
+        "taggedStoreReturns",
+        "registeredStoreResponseOwners",
+        "registeredBranchRedirect",
+        "registeredMemoryAddress",
+        "registeredRobRetirement",
+        "registeredLoadReplay",
+        "loadOrderOlderRetire",
+        "parallelRenameAdmission",
+        "stableFetchFaultMetadata",
+        "precompleteMispredictedBranch",
+        "earlyRankedOperands",
+        "pcDerivedReturnLinks",
+        "earlyRenameDestinations",
+        "parallelPrfReadyUpdates",
+        "stablePredictionMetadata",
+        "balancedBranchCompare",
+        "separateBranchRetireFault",
+        "parallelReturnStackControl",
+        "earlyRedirectCapture",
+        "parallelMemoryPreparation",
+        "alignedFetchPmp",
+        "parallelIssuePayload",
+        "rawFetchPresence",
+        "oneHotPhysicalOperands",
+        "registeredTranslatedResponses",
+        "translatedResponseEmptyFlow",
+        "directMemoryResponse",
+        "parallelFetchAddresses",
+        "prefixTileLinkDecode",
+        "rawTileLinkResponseMetadata",
+        "bufferedRomReplies",
+        "parallelPredictionQualification",
+        "parallelRecoveryAdmission",
+        "parallelRedirectTokens",
+        "parallelIssueRanks",
+        "parallelAluResults",
+        "parallelCompletionPayload",
+        "parallelFetchTagLookup",
+        "parallelFrontendControl",
+        "parallelAuipcQualification",
+        "parallelPredictionSources",
+        "parallelAddressSums",
+        "bufferedFetchRequests",
+        "parallelFetchAlignment",
+        "parallelDecodeLegality",
+        "flowThroughFetchRequests",
+        "parallelMinMaxResults",
+        "parallelBitLegality",
+        "parallelRenameRanks",
+        "parallelMinMaxWordResults",
+        "parallelArchitecturalDestinations",
+        "parallelAluWordResults",
+        "independentFetchCapture",
+        "parallelHomeQualification",
+        "registeredFabricBoundary",
+        "registeredTranslationHeads",
+        "fetchReplyTurnover",
+        "fetchIdentityTranslation",
+        "registeredPredictionTraining",
+        "parallelMemoryPayload",
+        "parallelPacketPmp",
+        "registeredIssueExecute",
+        "registeredFetchPacket",
+        "wordSpanPacketPmp",
+        "parallelFetchValidation",
+        "fetchHintEntries",
+        "balancedPacketPmp",
+        "compactMemoryOperandSelect",
+        "parallelMemoryAddressSum",
+        "capturedFetchPermission",
+        "alignedFetchPermissionStage",
+        "splitFetchCursor",
+        "registeredFetchWindow",
+        "fastHeadTrapRecovery",
+        "fastHeadSystemRecovery",
+        "tentativeRenameSources",
+        "sharedPhysicalSourceDecode",
+        "ownerLocalOperandReady",
+        "earlyStorePreparation",
+        "parallelMulDivDispatch",
+        "registeredMulDivOperands",
+        "registeredIssueHeadMask",
+        "unconditionalMemoryPayloadCapture",
+        "earlyRecoveryIssueBlock",
+        "fastBufferedStoreRetire",
+        "fastHeadLoadRetire",
+        "loadCompletionBypass",
+        "registeredLoadIssueForwarding",
+        "mulWordPreviewBypass",
+        "moveAlias",
+        "flowTileLinkResponse",
+        "storeBufferEntries",
+        "machineSystem",
+        "experimentalFloatingPoint",
+        "floatingPoint",
+        "advertiseFloatingPoint",
+        "atomicMemory",
+        "pmpEntries",
+        "virtualMemoryLevels",
+        "compressedInstructions",
+        "instructionCacheSets",
+        "returnStackEntries",
+        "indirectTargetEntries",
+        "recoveryWidth",
+        "identityDataRequestFlow",
+        "precheckedDataRequestFlow",
+        "physicalLoadIngressFlow",
+        "bankedRobPayload",
+        "sharedStoreOperandReads",
+        "lvtPhysicalRegisterFile",
+        "dataNextLinePrefetch",
+        "dataStoreNextLinePrefetch",
+        "virtualRamLoadPrecheck",
+        "bankedIssuePayload",
+        "bankedFetchHints",
+        "independentFetchPayloadCapture",
+        "ownerLocalIssueReady",
+        "sharedFetchPmpRelations",
+        "shareProtectedHeadPayload",
+        "fetchPreviousPacket",
+        "preparedStoreLookahead",
+        "postedStoreMerge",
+        "postedPrefetchHeadOffer",
+        "canonicalVirtualStoreOverlap",
+        "memoryProofFrontier",
+        "frozenStoreProofTransport",
+        "pendingVirtualStoreProof",
+        "pendingVirtualStoreProofSlots",
+        "pendingStoreEarlyLoadCredits",
+        "boundHeadStoreOverlap",
+        "pendingReadyStoreBypass",
+        "memoryProofRows",
+        "memoryProofCacheSets",
+        "postedPreparationPriority",
+        "reconstructIssueTokenIndex",
+        "sharedMemoryAddressState",
+        "registeredPmpRegions",
+        "publishedPmpChanges",
+        "registeredPendingStoreQuery",
+        "registeredCanonicalStoreEvent",
+        "sharedLane1OwnerMatch",
+        "directRank1MemorySourceIds",
+        "directRegisteredExecutionOperands",
+        "sharedCanonicalStoreOwnerMatch",
+        "eagerFetchPrefixSelect",
+        "predecodedHeadDrain",
+        "retirementIntent",
+        "fetchAddressBeforePmp",
+        "queuedHeadSelection",
+        "alignedNextLinePmp",
+        "memoryPreparationHeadMask",
+        "directRank0MemorySourceIds",
+        "fetchReadyDataClear",
+        "retirementSlotIdentity",
+        "fetchAcceptedPrefixValidation",
+        "alignedFetchSinglePage",
+        "factorCheckedNextAllowed",
+        "localTaggedResponseReady",
+        "postedYoungerLoadSealDeferral"
+      ],
+      "profile": [
+        "virtualRamLoadPrecheck",
+        "optimized",
+        "independentFetchPayloadCapture",
+        "experimentalTriSpeedEthernet",
+        "ownerLocalIssueReady",
+        "sharedFetchPmpRelations",
+        "shareProtectedHeadPayload",
+        "bankedInstructionData",
+        "prefetchCandidateCycles",
+        "prefetchBreakOnStore",
+        "storeNextLinePrefetch",
+        "storePrefetchMruInsertion",
+        "dmaLineTransfers",
+        "dmaLineYieldCycles",
+        "dmaLineEntries",
+        "precheckedDataRequestFlow",
+        "physicalLoadIngressFlow",
+        "translatedResponseEmptyFlow",
+        "lsuEntries",
+        "loadOrderOlderRetire",
+        "fetchPreviousPacket",
+        "preparedStoreLookahead",
+        "dataTranslationEntries",
+        "postedStoreMerge",
+        "postedPrefetchCoexistence",
+        "postedPrefetchHeadOffer",
+        "canonicalVirtualStoreOverlap",
+        "memoryProofFrontier",
+        "frozenStoreProofTransport",
+        "pendingVirtualStoreProof",
+        "pendingVirtualStoreProofSlots",
+        "pendingStoreEarlyLoadCredits",
+        "boundHeadStoreOverlap",
+        "pendingReadyStoreBypass",
+        "taggedStoreReturns",
+        "robEntries",
+        "physicalRegs",
+        "storePrefetchLruVictim",
+        "postedPreparationPriority",
+        "reconstructIssueTokenIndex",
+        "sharedMemoryAddressState",
+        "distinctWayRelease",
+        "ddrWriteCollectionFlow",
+        "lineTransferDispatchFlow",
+        "lineReadChannel",
+        "localPayloadWriteEnable",
+        "ddrOutstanding",
+        "ddrWriteCredits",
+        "dataTlbWriteReadReuse",
+        "translationHitFlow",
+        "independentDemandAdmission",
+        "splitPrefetchTracking",
+        "readPrefetchDirtyRetry",
+        "readPrefetchDemandAdoption",
+        "registeredPmpRegions",
+        "publishedPmpChanges",
+        "readPrefetchStoreHold",
+        "durableReadPrefetchCandidate",
+        "readPrefetchBehindStore",
+        "internalLineGrant",
+        "concurrentReadStorePrefetch",
+        "memoryScheduleOverlap",
+        "registeredPendingStoreQuery",
+        "alignedFetchPermissionStage",
+        "registeredCanonicalStoreEvent",
+        "sharedLane1OwnerMatch",
+        "directRank1MemorySourceIds",
+        "directRegisteredExecutionOperands",
+        "sharedCanonicalStoreOwnerMatch",
+        "localPayloadWriteRow",
+        "eagerFetchPrefixSelect",
+        "futureHomeWayReservation",
+        "predecodedHeadDrain",
+        "retirementIntent",
+        "fetchAddressBeforePmp",
+        "queuedHeadSelection",
+        "alignedNextLinePmp",
+        "registerProbeLookup",
+        "localAddressRanges",
+        "memoryPreparationHeadMask",
+        "directRank0MemorySourceIds",
+        "fetchReadyDataClear",
+        "retirementSlotIdentity",
+        "localCacheReadSelection",
+        "fetchAcceptedPrefixValidation",
+        "alignedFetchSinglePage",
+        "factorCheckedNextAllowed",
+        "localTaggedResponseReady",
+        "postedYoungerLoadSealDeferral"
+      ]
+    },
+    "field_order_file": "simulator/gsim/resident_memory_integration/reference-young69-field-order.json",
+    "field_order_sha256": "5dbfc47d8a8490e99da18c36915964b0f0ded73a8d31d9bb99744750c0d1048f",
+    "name": "qualified-retained-young69",
+    "profile_file": "simulator/gsim/resident_memory_integration/reference-young69.json",
+    "profile_sha256": "d251587fae19feb796e00f8e80b9cd25649d564f006c221b54f8ab08b9fbfc83"
+  },
+  "schema": "resident-memory-false-source-compat-v2",
+  "self_excluded": [
+    "fpga/next/resident-memory-source-compat.json",
+    "fpga/next/resident_memory_source_bridge.py"
+  ],
+  "self_excluded_helper_review": "Losslessly derive complete immutable-base and current-source maps from the pinned held contract plus reviewed deltas; retain full inventory/hash/type/order/false-projection checks.",
+  "source_identity": {
+    "base_tree": "f3dcb88dd4adb981b5cabe605610f8187aaaa0eb",
+    "closure_sha256": "322984af330ea8728772ca5562f88b30ae18efb3936d9c4b4272af3017e505c2",
+    "kind": "corrected-held-alu-plus-resident-source-only",
+    "self_excluded": [
+      "fpga/next/resident-memory-source-compat.json",
+      "fpga/next/resident_memory_source_bridge.py"
+    ]
+  }
+}

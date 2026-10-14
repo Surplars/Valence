@@ -9,7 +9,7 @@ class RetirementSlotSpec extends AnyFunSuite {
         val off = RetirementSlotTestProfile.off
         val on = RetirementSlotTestProfile.on
         RetirementSlotProfile.requirePair(off, on)
-        assert(off.productArity == 174 && off.retirementIntent && off.predecodedHeadDrain)
+        assert(off.productArity == 175 && off.retirementIntent && off.predecodedHeadDrain)
         assert(RetirementSlotProfile.original164(off).size == 164)
         assert(PlacedTimingProfile.candidateOptions.size == 59)
         val defaults = OooParams()

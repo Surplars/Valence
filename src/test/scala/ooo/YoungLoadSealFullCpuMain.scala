@@ -21,7 +21,7 @@ object YoungLoadSealFullCpuMain extends App {
         "oldCoreFields" -> 172, "oldProfileFields" -> 88, "oldOptions" -> 68,
         "newCoreFields" -> c.coreParams.productArity, "newProfileFields" -> c.productArity, "newOptions" -> 69,
         "publishedYoungCoreFields" -> 173, "publishedYoungProfileFields" -> 90,
-        "heldAluIssueForwarding" -> false,
+        "heldAluIssueForwarding" -> false, "residentMemoryPayloadReuse" -> false,
         "platformOnlyField" -> "triSpeedRawClockHandoff", "triSpeedRawClockHandoff" -> false,
         "newDefaultFalseField" -> "postedYoungerLoadSealDeferral",
         "headLoadAndAtomicBoundaryPreserved" -> true,

@@ -15,13 +15,13 @@ private[ooo] object MacRawHandoffEntry {
     require(!off.triSpeedRawClockHandoff && on.triSpeedRawClockHandoff)
     require(on.copy(triSpeedRawClockHandoff = false) == off,
         "only the named MAC platform field may differ from A")
-    require(on.productArity == 91 && on.coreParams.productArity == 174)
+    require(on.productArity == 92 && on.coreParams.productArity == 175)
     val originalPath = NearTermAProfile.root.resolve("fpga/next/near-term-a-before-mac-platform.json")
     val originalBytes = Files.readAllBytes(originalPath)
     require(java.security.MessageDigest.getInstance("SHA-256").digest(originalBytes)
         .map(b => f"${b & 0xff}%02x").mkString == "71150576981a2622c9458ba8a359b7112e4f04d3af5ef0b46fa1e1fcf860cf69", "original complete A profile changed")
     val offFields = off.productElementNames.zip(off.productIterator).toMap
-    require(offFields("triSpeedRawClockHandoff") == false)
+    require(PlacedTimingProfileBridge.literalFalse(offFields("triSpeedRawClockHandoff")))
     val originalOff = PostedBoardConfiguration.document(off) +
         ("profile" -> PlacedTimingProfileBridge.historicalAFields(off)) +
         ("core" -> PlacedTimingProfileBridge.historicalAFields(off.coreParams))
@@ -56,7 +56,7 @@ object MacRawHandoffEntryAudit {
             }
         }
         val core = board.platform.core.core.core
-        require(core.p == expected.coreParams && core.p.productArity == 174,
+        require(core.p == expected.coreParams && core.p.productArity == 175,
             "actual complete CPU constructor changed under the platform extension")
         Map("schema" -> "actual-mac-raw-handoff-platform-v1", "scope" -> "actual-constructor-only",
             "triSpeedRawClockHandoff" -> expected.triSpeedRawClockHandoff,
@@ -88,10 +88,10 @@ object MacRawHandoffProfileMain extends App {
 }
 
 class MacRawHandoffEntrySpec extends AnyFunSuite {
-    test("MAC handoff changes one platform field and zero of 173 core fields") {
+    test("MAC handoff changes one platform field and zero of 175 current core fields") {
         assert(MacRawHandoffEntry.on.copy(triSpeedRawClockHandoff = false) == MacRawHandoffEntry.off)
         assert(MacRawHandoffEntry.on.coreParams == MacRawHandoffEntry.off.coreParams)
-        assert(MacRawHandoffEntry.off.productElementNames.toSeq.takeRight(3) == Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding"))
+        assert(MacRawHandoffEntry.off.productElementNames.toSeq.takeRight(4) == Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding", "residentMemoryPayloadReuse"))
         assert(!FpgaNextConfig.Selected.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Candidate.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Reference.triSpeedRawClockHandoff)

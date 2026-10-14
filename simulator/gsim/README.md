@@ -2736,3 +2736,7 @@ contracts and qualification limits: about 0.5% throughput under each separate
 Sv39 service law, zero Bare benefit, native retained declared state +66 bits,
 and no mapped PPA/STA claim. The portable board wrapper itself has not run a DUT;
 its command/body bridge binds the previously tested model and host.
+
+## Default-off resident memory reuse (2026-10-13)
+
+The bounded Young69+resident run preserves all COPY105 results and byte-exact traffic at 179,571 Bare / 191,618 Sv39 cycles, with same-object NEMU and PMP checks. The native backend has memory reads 4→2 and fresh AGUs 2→1 with no added state. No cycle speedup or physical resource/timing claim is made. See [scope, proof identity and focused reproduction](resident_memory_integration/README.md).

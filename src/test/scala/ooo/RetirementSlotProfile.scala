@@ -8,7 +8,7 @@ import soc.core.ooo._
 object RetirementSlotProfile {
     val addedCoreNames = Seq("memoryPreparationHeadMask", "directRank0MemorySourceIds",
         "fetchReadyDataClear", "retirementSlotIdentity", "fetchAcceptedPrefixValidation",
-        "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding")
+        "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding", "residentMemoryPayloadReuse")
     val actual59CoreNames = PlacedTimingProfileBridge.publishedCoreNames ++
         Seq("fetchAddressBeforePmp", "queuedHeadSelection", "alignedNextLinePmp")
     val config = PlacedTimingProfile.on
@@ -23,17 +23,17 @@ object RetirementSlotProfile {
 
     def original164(defaultFalse: OooParams): Map[String, Any] = {
         require(defaultFalse.productElementNames.toSeq == actual59CoreNames ++ addedCoreNames,
-            "only the ten named appended core fields may bridge actual785")
+            "only the eleven named appended core fields may bridge actual785")
         val fields = defaultFalse.productElementNames.zip(defaultFalse.productIterator).toMap
-        require(addedCoreNames.forall(name => fields(name) == false),
-            "all ten named additions must be false before historical projection")
+        require(addedCoreNames.forall(name => PlacedTimingProfileBridge.literalFalse(fields(name))),
+            "all eleven named additions must be false before historical projection")
         val original = actual59CoreNames.map(name => name -> fields(name)).toMap
         require(PostedBoardConfiguration.json(original) == Files.readString(frozen).trim,
             "one or more original164 core values differ from actual785")
         original
     }
     original164(p)
-    require(p.productArity == 174 && p.retirementIntent && p.predecodedHeadDrain && p.tagBits == 64)
+    require(p.productArity == 175 && p.retirementIntent && p.predecodedHeadDrain && p.tagBits == 64)
     require(p.robEntries == 16 && p.physicalRegs == 48 && p.commitWidth == 2 && p.completionWidth == 2)
 
     def requirePair(off: OooParams, on: OooParams): Unit = {

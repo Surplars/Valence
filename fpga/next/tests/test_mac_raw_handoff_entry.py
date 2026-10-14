@@ -43,12 +43,23 @@ def emitted(on,missing=False):
    profile=json.loads((HERE/'near-term-a-before-mac-platform.json').read_text())
    profile['core']['postedYoungerLoadSealDeferral']=False
    profile['core']['heldAluIssueForwarding']=False
+   profile['core']['residentMemoryPayloadReuse']=False
    profile['profile']['triSpeedRawClockHandoff']=on
    profile['profile']['postedYoungerLoadSealDeferral']=False
    profile['profile']['heldAluIssueForwarding']=False
+   profile['profile']['residentMemoryPayloadReuse']=False
    (rtl/'profile.json').write_text(json.dumps(profile))
    (rtl/'actual-held-alu-forwarding.json').write_text(json.dumps({
        'heldAluIssueForwarding':False,'core':profile['core'],'backend':profile['core'],'ledger':profile['core']}))
+   resident=json.loads((HERE/'resident-memory-source-compat.json').read_text())
+   (rtl/'actual-resident-memory.json').write_text(json.dumps({
+       'schema':'actual-resident-memory-integration-v1','scope':'actual-constructor-only',
+       'residentMemoryPayloadReuse':False,'residentMemoryStartAllowed':False,
+       'residentSelectorCount':0,'ordinarySelectorCount':1,'residentSelectorClasses':[],
+       'core':profile['core'],'backend':profile['core'],'ledger':profile['core'],
+       'coreNames':resident['current_core_names'],'profileNames':resident['current_profile_names'],
+       'coreFields':175,'profileFields':92,'executionStages':2,'memoryEntries':4,
+       'dynamicQualification':False,'physicalQualification':False}))
    if on and not missing:(rtl/'ValenceMacRawFallingSample.sv').write_bytes((ROOT/'src/main/resources/ethernet/ValenceMacRawFallingSample.sv').read_bytes())
    return type('Result',(),{'returncode':0})()
   with patch.object(export.subprocess,'check_output',return_value='767e7683f3d6f5bd1fee257735505b353500d2a5\n'),patch.object(export.subprocess,'run',side_effect=fake_run),patch.object(export,'check_wrapper_ports',return_value=['STUB_NOT_PORT_QUALIFICATION']),patch.object(export.media_integration,'stage',return_value={'scope':'STUB'}),patch.object(export.board_t1,'stage',return_value={'scope':'STUB'}),patch.object(export.bscan_integration,'stage',return_value={'scope':'STUB'}),contextlib.redirect_stdout(io.StringIO()):
@@ -66,7 +77,7 @@ class ChangedLeafHash:
 with patch.object(hashlib,'sha256',side_effect=lambda data:ChangedLeafHash() if data==config_bytes else real_sha(data)):
  rejected(new.load_profile)
 checks.append('new_source_hash_drift_rejected')
-bridge=load('held_alu_source_bridge'); real=bridge.hashlib.sha256
+bridge=load('resident_memory_source_bridge'); real=bridge.hashlib.sha256
 class BadHash:
  def hexdigest(self):return '0'*64
 with patch.object(bridge.hashlib,'sha256',return_value=BadHash()):rejected(bridge.checked_sources)

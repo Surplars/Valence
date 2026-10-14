@@ -33,6 +33,7 @@ NEARTERM_A_FLAGS = ("fetch_accepted_prefix_validation", "aligned_fetch_single_pa
                     "factor_checked_next_allowed", "local_tagged_response_ready")
 
 HELD_ALU_FLAGS = ("held_alu_issue_forwarding",)
+RESIDENT_MEMORY_FLAGS = ("resident_memory_payload_reuse",)
 
 LOCALITY_FLAGS = ("fetch_ready_data_clear", "memory_preparation_head_mask",
                   "direct_rank0_memory_source_ids", "retirement_slot_identity", "local_cache_read_selection")
@@ -75,6 +76,65 @@ def check_held_alu_topology(enabled, core):
         raise ValueError("--held-alu-issue-forwarding requires full-tag ROB16/PRF48 two-lane registered ranked topology")
 
 
+def check_resident_memory_topology(enabled, core):
+    """Mirror the exact frozen OooParams guard on the resolved core product."""
+    positive = ("registeredMemoryAddress", "parallelMemoryPreparation", "parallelMemoryPayload",
+                "compactMemoryOperandSelect", "parallelMemoryAddressSum", "lvtPhysicalRegisterFile",
+                "ownerLocalOperandReady", "registeredIssueExecute")
+    negative = ("moveAlias", "loadCompletionBypass", "mulWordPreviewBypass", "memoryProofFrontier",
+                "fastBufferedStoreRetire", "fastHeadLoadRetire")
+    sizes = {"robEntries": 16, "physicalRegs": 48, "tagBits": 64, "renameWidth": 2,
+             "completionWidth": 2, "commitWidth": 2, "memoryEntries": 4}
+    if type(enabled) is not bool:
+        raise ValueError("resident memory selection must be a Boolean")
+    if enabled and not (all(core[x] is True for x in positive) and
+                        all(core[x] is False for x in negative) and
+                        all(type(core[x]) is int and core[x] == n for x, n in sizes.items())):
+        raise ValueError("--resident-memory-payload-reuse requires the bounded ROB16/PRF48 full-tag staged-memory profile")
+
+
+def check_resident_memory_actual(enabled, resolved, actual):
+    """Check actual constructor readback, complete products, names and types."""
+    spec = importlib.util.spec_from_file_location("resident_actual_bridge", HERE / "resident_memory_source_bridge.py")
+    bridge = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bridge)
+    contract = bridge.checked_sources()
+    expected_keys = {"schema", "scope", "residentMemoryPayloadReuse", "residentMemoryStartAllowed",
+                     "residentSelectorCount", "ordinarySelectorCount", "residentSelectorClasses",
+                     "core", "backend", "ledger", "coreNames", "profileNames", "coreFields", "profileFields",
+                     "executionStages", "memoryEntries", "dynamicQualification", "physicalQualification"}
+    if set(actual) != expected_keys:
+        raise RuntimeError("actual resident memory audit keys differ")
+    if actual["schema"] != "actual-resident-memory-integration-v1" or actual["scope"] != "actual-constructor-only" or \
+            actual["residentMemoryPayloadReuse"] is not enabled or \
+            actual["residentMemoryStartAllowed"] is not enabled or \
+            actual["dynamicQualification"] is not False or actual["physicalQualification"] is not False:
+        raise RuntimeError("actual resident memory constructor identity differs from explicit option")
+    for kind in ("core", "profile"):
+        names = contract["current_" + kind + "_names"]
+        if actual[kind + "Names"] != names or set(resolved[kind]) != set(names) or \
+                type(actual[kind + "Fields"]) is not int or actual[kind + "Fields"] != len(names) or \
+                resolved[kind]["residentMemoryPayloadReuse"] is not enabled:
+            raise RuntimeError("actual resident memory complete product names/order/value differs: " + kind)
+    for kind in ("core", "profile"):
+        bridge.validate_parameter_types(resolved[kind], kind, contract)
+    check_resident_memory_topology(enabled, resolved["core"])
+    for leaf in ("core", "backend", "ledger"):
+        if bridge.canonical(actual[leaf]) != bridge.canonical(resolved["core"]):
+            raise RuntimeError("complete actual resident memory leaf product differs: " + leaf)
+    expected_classes = ["soc.core.ooo.ResidentMemoryPreparationSelector"] if enabled else []
+    ordinary = int(resolved["core"]["registeredMemoryAddress"] and resolved["core"]["parallelMemoryPreparation"] and not enabled)
+    if actual["residentSelectorClasses"] != expected_classes:
+        raise RuntimeError("actual resident memory selector classes differ")
+    for key, expected in (("residentSelectorCount", int(enabled)), ("ordinarySelectorCount", ordinary)):
+        if type(actual[key]) is not int or actual[key] != expected:
+            raise RuntimeError("actual resident memory selector count differs: " + key)
+    expected_stages = resolved["core"]["completionWidth"] if resolved["core"]["registeredIssueExecute"] else 0
+    for key, expected in (("executionStages", expected_stages), ("memoryEntries", resolved["core"]["memoryEntries"])):
+        if type(actual[key]) is not int or actual[key] != expected:
+            raise RuntimeError("actual resident memory topology differs: " + key)
+
+
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -107,6 +167,14 @@ def sources():
         "fpga/next/mac_platform_source_bridge.py",
         "fpga/next/held_alu_source_bridge.py", "fpga/next/held-alu-source-compat.json",
         "fpga/next/board_held_alu.py", "fpga/next/held-alu-profile.json",
+        "fpga/next/resident_memory_source_bridge.py", "fpga/next/resident-memory-source-compat.json",
+        "fpga/next/board_resident_memory.py", "fpga/next/resident-memory-profile.json",
+        "src/test/scala/ooo/ResidentMemoryIntegrationProfile.scala",
+        "src/test/scala/ooo/ResidentMemoryIntegrationActualAudit.scala",
+        "src/test/scala/ooo/ResidentMemoryIntegrationFullCpuMain.scala",
+        "src/test/scala/ooo/ResidentMemoryIntegrationConfigSpec.scala",
+        "simulator/gsim/resident_memory_integration/reference-young69.json",
+        "simulator/gsim/resident_memory_integration/reference-young69-field-order.json",
         "src/test/scala/ooo/HeldAluIntegrationProfile.scala",
         "src/test/scala/ooo/HeldAluIntegrationActualAudit.scala",
         "src/test/scala/ooo/HeldAluIntegrationFullCpuMain.scala",
@@ -231,7 +299,7 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off registered translated-queue occupancy payload selection")
     ap.add_argument("--aligned-next-line-pmp", action="count", default=0,
                     help="default-off exact aligned 64-byte next-line PMP end construction")
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS + RESIDENT_MEMORY_FLAGS:
         ap.add_argument("--" + field.replace("_", "-"), action="count", default=0,
                         help="explicit default-off timing locality option; Scala topology requirements apply")
     ap.add_argument("--register-probe-lookup", action="count", default=0,
@@ -462,7 +530,7 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS + RESIDENT_MEMORY_FLAGS:
         flag = "--" + field.replace("_", "-")
         if getattr(a, field) > 1:
             ap.error("duplicate " + flag)
@@ -492,6 +560,24 @@ def main(argv=None, expected_profile_sha256=None):
             "robEntries": a.rob_entries if a.rob_entries is not None else 16,
             "physicalRegs": a.physical_regs if a.physical_regs is not None else 48,
             "moveAlias": False, "loadCompletionBypass": False, "mulWordPreviewBypass": False,
+        })
+    except ValueError as error:
+        ap.error(str(error))
+    try:
+        # These stages are fixed by the selected/reference FpgaNextConfig builder;
+        # all exposed capacities and the proof-frontier switch stay explicit.
+        # The exact guard runs again on actual resolved core readback after emit.
+        check_resident_memory_topology(a.resident_memory_payload_reuse, {
+            "registeredMemoryAddress": True, "parallelMemoryPreparation": True,
+            "parallelMemoryPayload": True, "compactMemoryOperandSelect": True,
+            "parallelMemoryAddressSum": True, "lvtPhysicalRegisterFile": True,
+            "ownerLocalOperandReady": True, "registeredIssueExecute": True,
+            "robEntries": a.rob_entries if a.rob_entries is not None else 16,
+            "physicalRegs": a.physical_regs if a.physical_regs is not None else 48,
+            "tagBits": 64, "renameWidth": 2, "completionWidth": 2, "commitWidth": 2,
+            "memoryEntries": a.lsu_entries, "memoryProofFrontier": a.memory_proof_frontier,
+            "moveAlias": False, "loadCompletionBypass": False, "mulWordPreviewBypass": False,
+            "fastBufferedStoreRetire": False, "fastHeadLoadRetire": False,
         })
     except ValueError as error:
         ap.error(str(error))
@@ -779,6 +865,9 @@ def main(argv=None, expected_profile_sha256=None):
     if a.posted_younger_load_seal_deferral:
         profile["profile"]["posted_younger_load_seal_deferral"] = True
         profile["profile"]["name"] += "-posted-younger-load-seal-deferral"
+    if a.resident_memory_payload_reuse:
+        profile["profile"]["resident_memory_payload_reuse"] = True
+        profile["profile"]["name"] += "-resident-memory-payload-reuse"
     if expected_profile_sha256 is not None:
         digest = hashlib.sha256(json.dumps(profile["profile"], sort_keys=True,
             separators=(",", ":")).encode()).hexdigest()
@@ -794,7 +883,7 @@ def main(argv=None, expected_profile_sha256=None):
     except subprocess.CalledProcessError:
         # An isolated frozen source copy has no Git checkout. Authenticate its
         # complete closure; never report the parent commit as its current HEAD.
-        spec = importlib.util.spec_from_file_location("held_alu_snapshot_bridge", HERE / "held_alu_source_bridge.py")
+        spec = importlib.util.spec_from_file_location("resident_memory_snapshot_bridge", HERE / "resident_memory_source_bridge.py")
         bridge = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bridge)
         source_identity = bridge.checked_sources()["source_identity"]
@@ -970,6 +1059,8 @@ def main(argv=None, expected_profile_sha256=None):
             command.append("--" + field.replace("_", "-"))
     if a.posted_younger_load_seal_deferral:
         command.append("--posted-younger-load-seal-deferral")
+    if a.resident_memory_payload_reuse:
+        command.append("--resident-memory-payload-reuse")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
             "git_head": head, "source_identity": source_identity, "source_files": len(before), "output": str(output),
@@ -1006,6 +1097,7 @@ def main(argv=None, expected_profile_sha256=None):
             "translated_response_empty_flow": a.translated_response_empty_flow,
             "posted_store_merge": a.posted_store_merge,
             "posted_younger_load_seal_deferral": a.posted_younger_load_seal_deferral,
+            "resident_memory_payload_reuse": a.resident_memory_payload_reuse,
             "posted_prefetch_coexistence": a.posted_prefetch_coexistence,
             "posted_prefetch_head_offer": a.posted_prefetch_head_offer,
             "native_mac_mode": native_mac_mode,
@@ -1015,6 +1107,7 @@ def main(argv=None, expected_profile_sha256=None):
     output.mkdir(parents=True)
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "tri_speed_raw_clock_handoff": a.tri_speed_raw_clock_handoff,
+        "resident_memory_payload_reuse": a.resident_memory_payload_reuse,
         "baseline_source_commit": profile["source_commit"], "git_head": head, "source_identity": source_identity,
         "source_sha256": before, "profile": profile["profile"],
         "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
@@ -1034,8 +1127,10 @@ def main(argv=None, expected_profile_sha256=None):
             raise RuntimeError("actual held ALU constructor differs from explicit option")
         check_held_alu_topology(a.held_alu_issue_forwarding, resolved["core"])
         for leaf in ("core", "backend", "ledger"):
-            if actual[leaf] != resolved["core"]:
+            if json.dumps(actual[leaf], sort_keys=True, allow_nan=False) != json.dumps(resolved["core"], sort_keys=True, allow_nan=False):
                 raise RuntimeError("complete actual held ALU leaf product differs: " + leaf)
+        resident_actual = json.loads((rtl / "actual-resident-memory.json").read_text())
+        check_resident_memory_actual(a.resident_memory_payload_reuse, resolved, resident_actual)
         if before != sources():
             raise RuntimeError("source changed during export")
         inventory = {p.relative_to(output).as_posix(): sha(p) for p in sorted(rtl.rglob("*")) if p.is_file()}

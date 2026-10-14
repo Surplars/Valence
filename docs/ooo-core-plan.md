@@ -2041,3 +2041,7 @@ standalone hold control, corrected fixture history and native declaration census
 The explicit optional board entry preserves generic false defaults and the exact
 published PMP rollback profile. Compact CPU parity, native declaration accounting and final constructor/native
 bridges pass within the recorded scope; no physical qualification is inferred.
+
+## Default-off resident memory reuse (2026-10-13)
+
+The bounded Young69+resident run preserves all COPY105 results and byte-exact traffic at 179,571 Bare / 191,618 Sv39 cycles, with same-object NEMU and PMP checks. The native backend has memory reads 4→2 and fresh AGUs 2→1 with no added state. No cycle speedup or physical resource/timing claim is made. See [scope, proof identity and focused reproduction](../simulator/gsim/resident_memory_integration/README.md).

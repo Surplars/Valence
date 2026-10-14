@@ -40,7 +40,7 @@ def load_profile():
     leaves = profile['production_leaf_sha256']
     if not leaves:
         raise RuntimeError('unfrozen near-term A production leaves')
-    bridge = load_module('a_held_alu_source_bridge', HERE / 'held_alu_source_bridge.py')
+    bridge = load_module('a_resident_memory_source_bridge', HERE / 'resident_memory_source_bridge.py')
     bridge.validate_historical_sources(MANIFEST, leaves)
     return profile
 

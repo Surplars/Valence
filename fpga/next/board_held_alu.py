@@ -16,7 +16,7 @@ def load(name, filename):
 
 
 def load_profile():
-    bridge = load('held_alu_bridge', 'held_alu_source_bridge.py')
+    bridge = load('held_alu_resident_bridge', 'resident_memory_source_bridge.py')
     closure = bridge.checked_sources()
     base = load('held_alu_a', 'board_near_term_a.py').load_profile()
     profile = json.loads((HERE / 'held-alu-profile.json').read_text())
@@ -24,8 +24,8 @@ def load_profile():
     if profile['schema'] != 'held-alu-integration-entry-v1' or \
             profile['native_options'] != options or len(set(options)) != 69 or \
             profile['physical_options'] != base['physical_options'] or \
-            profile['core_fields'] != closure['current_core_names'] or \
-            profile['profile_fields'] != closure['current_profile_names'] or \
+            profile['core_fields'] + [bridge.FIELD] != closure['current_core_names'] or \
+            profile['profile_fields'] + [bridge.FIELD] != closure['current_profile_names'] or \
             profile['physical_raw_handoff'] is not False or \
             profile['dynamic_qualification'] is not False or profile['physical_qualification'] is not False:
         raise RuntimeError('explicit B1 entry differs from source-bound A68 plus one CPU option')

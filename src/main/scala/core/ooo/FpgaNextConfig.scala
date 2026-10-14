@@ -99,7 +99,8 @@ final case class FpgaNextConfig(
     localTaggedResponseReady: Boolean = false,
     triSpeedRawClockHandoff: Boolean = false,
     postedYoungerLoadSealDeferral: Boolean = false,
-    heldAluIssueForwarding: Boolean = false
+    heldAluIssueForwarding: Boolean = false,
+    residentMemoryPayloadReuse: Boolean = false
 ) {
     require(!triSpeedRawClockHandoff || experimentalTriSpeedEthernet,
         "RAW MAC handoff requires tri-speed Ethernet")
@@ -265,7 +266,8 @@ final case class FpgaNextConfig(
         (if (factorCheckedNextAllowed) "-factor-checked-next-allowed" else "") +
         (if (localTaggedResponseReady) "-local-tagged-response-ready" else "") +
         (if (postedYoungerLoadSealDeferral) "-posted-younger-load-seal-deferral" else "") +
-        (if (heldAluIssueForwarding) "-held-alu-issue-forwarding" else "")
+        (if (heldAluIssueForwarding) "-held-alu-issue-forwarding" else "") +
+        (if (residentMemoryPayloadReuse) "-resident-memory-payload-reuse" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -329,6 +331,7 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         heldAluIssueForwarding = heldAluIssueForwarding,
+        residentMemoryPayloadReuse = residentMemoryPayloadReuse,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -381,6 +384,7 @@ final case class FpgaNextConfig(
         postedPrefetchHeadOffer = postedPrefetchHeadOffer,
         postedYoungerLoadSealDeferral = postedYoungerLoadSealDeferral,
         heldAluIssueForwarding = heldAluIssueForwarding,
+        residentMemoryPayloadReuse = residentMemoryPayloadReuse,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -430,9 +434,11 @@ object FpgaNextConfig {
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
             "--internal-line-grant", "--concurrent-read-store-prefetch", "--memory-schedule-overlap", "--future-home-way-reservation", "--predecoded-head-drain", "--retirement-intent",
             "--fetch-address-before-pmp", "--queued-head-selection", "--aligned-next-line-pmp", "--register-probe-lookup", "--local-address-ranges", "--fetch-accepted-prefix-validation", "--aligned-fetch-single-page", "--factor-checked-next-allowed", "--local-tagged-response-ready",
-            "--tri-speed-raw-clock-handoff", "--held-alu-issue-forwarding")) {
+            "--tri-speed-raw-clock-handoff", "--held-alu-issue-forwarding", "--resident-memory-payload-reuse")) {
             require(!options.exists(_.startsWith(flag + "=")), s"$flag does not accept a value")
         }
+        require(!options.exists(o => o.startsWith("--resident") && o != "--resident-memory-payload-reuse"),
+            "only exact --resident-memory-payload-reuse is accepted")
         require(!options.exists(o => o.startsWith("--held-alu") && o != "--held-alu-issue-forwarding"),
             "held ALU forwarding requires the exact non-valued option")
         require(!options.exists(_.startsWith("--published-pmp-changes=")),
@@ -500,6 +506,7 @@ object FpgaNextConfig {
             postedStoreMerge = options.contains("--posted-store-merge"),
             postedYoungerLoadSealDeferral = options.contains("--posted-younger-load-seal-deferral"),
             heldAluIssueForwarding = options.contains("--held-alu-issue-forwarding"),
+            residentMemoryPayloadReuse = options.contains("--resident-memory-payload-reuse"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
             postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             canonicalVirtualStoreOverlap = options.contains("--canonical-virtual-store-overlap"),

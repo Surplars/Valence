@@ -31,10 +31,13 @@ class HistoricalSourceBridgeTests(unittest.TestCase):
         cls.bridge = module('tested_seal_source_bridge', HERE / 'young_load_seal_source_bridge.py')
         cls.a = module('tested_seal_a_entry', HERE / 'board_near_term_a.py')
         cls.r3 = module('tested_seal_r3_entry', HERE / 'board_timing64.py')
-        cls.held = module('tested_young_held_bridge', HERE / 'held_alu_source_bridge.py')
+        cls.held = module('tested_young_resident_bridge', HERE / 'resident_memory_source_bridge.py')
         cls.mac = module('tested_young_mac_bridge', HERE / 'mac_platform_source_bridge.py')
         # Literal source-only expected fixtures, never actual constructor evidence.
         cls.contract = json.loads((HERE / 'held-alu-source-compat.json').read_text())
+        resident = cls.held.checked_sources()
+        for key in ('current_source_sha256', 'current_core_names', 'current_profile_names'):
+            cls.contract[key] = resident[key]
         cls.original_a = json.loads((HERE / 'near-term-a-before-mac-platform.json').read_text())
         cls.manifests = {name: (HERE / name).read_bytes() for name in cls.bridge.MANIFEST_SHA256}
         cls.manifests['near-term-a-raw-handoff-profile.json'] = (HERE / 'near-term-a-raw-handoff-profile.json').read_bytes()
@@ -160,9 +163,11 @@ class HistoricalSourceBridgeTests(unittest.TestCase):
         value = copy.deepcopy(self.original_a)
         value['core']['postedYoungerLoadSealDeferral'] = young
         value['core']['heldAluIssueForwarding'] = False
+        value['core']['residentMemoryPayloadReuse'] = False
         value['profile']['triSpeedRawClockHandoff'] = raw
         value['profile']['postedYoungerLoadSealDeferral'] = young
         value['profile']['heldAluIssueForwarding'] = False
+        value['profile']['residentMemoryPayloadReuse'] = False
         return value
 
     def project_young_fixture(self, document, core_names=None, profile_names=None, **switches):
@@ -185,6 +190,7 @@ class HistoricalSourceBridgeTests(unittest.TestCase):
                         ('profile', ['triSpeedRawClockHandoff', 'postedYoungerLoadSealDeferral'])):
                     self.assertEqual(list(projected[kind]), self.contract['historical_a_' + kind + '_names'] + tail)
                     del before[kind]['heldAluIssueForwarding']
+                    del before[kind]['residentMemoryPayloadReuse']
                 self.assertEqual(projected, before)
                 self.assertEqual((len(projected['core']), len(projected['profile'])), (173, 90))
 

@@ -14,8 +14,8 @@ private[ooo] object HeldAluIntegrationProfile {
     val on = FpgaNextConfig.fromOptions(onOptions.toSet, defaultSelected = false)
     val historicalCoreNames = NearTermAProfile.originalCoreNames ++ NearTermAProfile.fields
     val historicalProfileNames = NearTermAProfile.originalProfileNames ++ NearTermAProfile.fields
-    val coreTail = Seq("postedYoungerLoadSealDeferral", "heldAluIssueForwarding")
-    val profileTail = Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding")
+    val coreTail = Seq("postedYoungerLoadSealDeferral", "heldAluIssueForwarding", "residentMemoryPayloadReuse")
+    val profileTail = Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding", "residentMemoryPayloadReuse")
     require(offOptions.size == 68 && onOptions.size == 69 && onOptions.distinct.size == 69)
     Seq(offOptions, onOptions).foreach(FpgaNextProfileOptions.validate)
     require(on.copy(heldAluIssueForwarding = false) == off)
@@ -24,8 +24,8 @@ private[ooo] object HeldAluIntegrationProfile {
         on.tags == off.tags && on.network == off.network && on.floatingPointResources == off.floatingPointResources)
     for (c <- Seq(off, on)) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(c.productArity == 91 && c.coreParams.productArity == 174)
-        require(!c.triSpeedRawClockHandoff && !c.postedYoungerLoadSealDeferral && c.fetchAcceptedPrefixValidation && c.alignedFetchSinglePage &&
+        require(c.productArity == 92 && c.coreParams.productArity == 175)
+        require(!c.residentMemoryPayloadReuse && !c.triSpeedRawClockHandoff && !c.postedYoungerLoadSealDeferral && c.fetchAcceptedPrefixValidation && c.alignedFetchSinglePage &&
             c.factorCheckedNextAllowed && c.localTaggedResponseReady)
     }
     require(!off.heldAluIssueForwarding && on.heldAluIssueForwarding)
@@ -38,7 +38,7 @@ private[ooo] object HeldAluIntegrationProfile {
         }
         require(p.productElementNames.toSeq == original ++ tail, "complete product names/order differ")
         val values = p.productElementNames.zip(p.productIterator).toMap
-        require(tail.forall(n => values(n) == false), "every named compatibility field must be Boolean false")
+        require(tail.forall(n => PlacedTimingProfileBridge.literalFalse(values(n))), "every named compatibility field must be Boolean false")
         original.map(n => n -> values(n)).toMap
     }
     val originalBytes = Files.readAllBytes(NearTermAProfile.root.resolve("fpga/next/near-term-a-before-mac-platform.json"))
@@ -70,7 +70,7 @@ private[ooo] object HeldAluIntegrationProfile {
         "baseHardwareScalaBridgeSha256" -> "e0d5b9cf75fe832e089ef3997b11430467a69d49f3301fbde3771463ddfd71ea", "sourceBaseTree" -> sourceBaseTree,
         "historicalACommit" -> "767e7683f3d6f5bd1fee257735505b353500d2a5", "historicalCoreFields" -> 172, "historicalProfileFields" -> 88,
         "baseCoreFields" -> 173, "baseProfileFields" -> 90,
-        "currentCoreFields" -> 174, "currentProfileFields" -> 91,
+        "currentCoreFields" -> 175, "currentProfileFields" -> 92,
         "coreCompatibilityTail" -> coreTail, "profileCompatibilityTail" -> profileTail,
         "newCpuField" -> "heldAluIssueForwarding", "offOptionCount" -> 68, "onOptionCount" -> 69,
         "allFourAFlagsRemainTrue" -> true, "physicalMacHandoff" -> false,

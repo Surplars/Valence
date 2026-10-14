@@ -31,7 +31,7 @@ def load_profile():
     for key in ('historical_certificate_reused', 'physical_qualification', 'full_cpu_run_required'):
         if profile[key] is not False:
             raise RuntimeError('unapproved qualification or execution claim: ' + key)
-    spec = importlib.util.spec_from_file_location('raw_mac_held_alu_bridge', HERE / 'held_alu_source_bridge.py')
+    spec = importlib.util.spec_from_file_location('raw_mac_resident_memory_bridge', HERE / 'resident_memory_source_bridge.py')
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
     bridge.validate_historical_sources(MANIFEST, profile['production_leaf_sha256'])

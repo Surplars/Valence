@@ -4,11 +4,12 @@ import java.nio.file.{Files, Paths}
 import soc.core.ooo._
 
 /** Exact source compatibility with the published Young 173/90 products.
-  * Only the named Boolean-false held field is projected; no execution qualification is inherited.
+  * Only the named Boolean-false held and resident fields are projected; no execution qualification is inherited.
   */
 object YoungLoadSealSourceBridge {
     val flag = "--posted-younger-load-seal-deferral"
     val heldField = "heldAluIssueForwarding"
+    val compatibilityFields = Seq(heldField, "residentMemoryPayloadReuse")
     val historicalCoreNames = PlacedTimingProfileBridge.historicalACoreNames :+ "postedYoungerLoadSealDeferral"
     val historicalProfileNames = PlacedTimingProfileBridge.historicalAProfileNames ++
         Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral")
@@ -18,10 +19,10 @@ object YoungLoadSealSourceBridge {
             case _: OooParams => historicalCoreNames
             case _ => throw new IllegalArgumentException("only exact Young profile/core products may be projected")
         }
-        require(p.productElementNames.toSeq == old :+ heldField, "complete Young product names/order changed")
+        require(p.productElementNames.toSeq == old ++ compatibilityFields, "complete Young product names/order changed")
         val values = p.productElementNames.zip(p.productIterator).toMap
-        require(values(heldField) match { case value: Boolean => !value; case _ => false },
-            "historical Young projection requires named Boolean-false heldAluIssueForwarding")
+        require(compatibilityFields.forall(n => PlacedTimingProfileBridge.literalFalse(values(n))),
+            "historical Young projection requires named Boolean-false held and resident fields")
         old.map(name => name -> values(name)).toMap
     }
     def requireCompatible(c: FpgaNextConfig): Unit = {
@@ -53,7 +54,8 @@ object YoungLoadSealSourceBridge {
             "schema" -> "young-held-false-source-bridge-v1", "publishedYoungCommit" ->
                 "bb85d08bda18121b1b848fbbbd004af50f2cc504", "oldCoreFields" -> 173, "oldProfileFields" -> 90,
             "currentCoreFields" -> c.coreParams.productArity, "currentProfileFields" -> c.productArity,
-            "projectedDefaultFalseField" -> heldField, "heldAluIssueForwarding" -> false,
+            "projectedDefaultFalseFields" -> compatibilityFields, "heldAluIssueForwarding" -> false,
+            "residentMemoryPayloadReuse" -> false,
             "coreFieldOrder" -> c.coreParams.productElementNames.toSeq,
             "profileFieldOrder" -> c.productElementNames.toSeq,
             "historicalCoreFieldOrder" -> historicalCoreNames, "historicalProfileFieldOrder" -> historicalProfileNames,

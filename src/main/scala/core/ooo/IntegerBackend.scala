@@ -721,6 +721,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     // RAM/PMP/byte-lane decoders. Reset keeps invalid GSIM shift operands defined.
     val stagedMemorySize = if (p.registeredMemoryAddress) Some(RegInit(0.U(2.W))) else None
     val memoryIssued = WireDefault(false.B)
+    val residentMemoryStartAllowed = if (p.residentMemoryPayloadReuse) Some(WireDefault(false.B)) else None
     val proofFrontier = if (p.memoryProofFrontier) Some(Module(new MemoryProofFrontier(p))) else None
     val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p, p.registeredPendingStoreQuery))) else None
     val pendingStoreCredit = if (p.pendingVirtualStoreProof) Some(Module(new PendingStoreEarlyLoadCredit(p))) else None
@@ -785,8 +786,6 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val memoryChoice = Wire(new Candidate)
     if (p.registeredMemoryAddress) {
         if (p.parallelMemoryPreparation) {
-            val planner = Module(new MemoryPreparationSelector(p, parallelRanks = p.parallelMemoryPayload,
-                predecodedHead = p.registeredIssueHeadMask))
             val originalMemoryMask = VecInit(memoryCandidates.map(_.valid)).asUInt
             // Reconstructed default-off experiment: prefill the existing stage only
             // when the original candidate pool is empty BEFORE issued-owner exclusion.
@@ -821,79 +820,162 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     Mux(postedPreparationWindow, originalMemoryMask | preparedStoreMask, originalPreparationMask)
                 } else Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)
             } else originalMemoryMask
-            // This selects payload preparation only. Existing full-token/head/PMP,
-            // interrupt and recovery checks below still authorize every LSU start.
-            planner.io.eligible := preparationMask
-            planner.io.head := head
-            planner.io.headMask.foreach(_ := issueHeadMask.get)
-            planner.io.issued := memoryIssued
-            planner.io.issuedIndex := (if (p.memoryProofFrontier) lsu.io.start.bits.token.index else stagedMemoryIndex.get)
-            // Only LSU preparation uses the compact binary source selection.
-            // Rank owners choose two small source IDs, not 48 x 16 match masks;
-            // store/M-D/ALU ports and late grant exclusion remain independent.
-            val memoryOperands = if (p.parallelMemoryPayload && !p.compactMemoryOperandSelect)
-                Some(independentPhysicalOperands()) else None
-            memoryOperands.foreach { operands =>
-                operands.io.owners(0) := planner.io.firstOwner
-                operands.io.owners(1) := planner.io.secondOwner
-                if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
-                for (slot <- 0 until p.robEntries) {
-                    operands.io.source1(slot) := issueEntries(slot).renamed.source1
-                    operands.io.source2(slot) := issueEntries(slot).renamed.source2
-                }
-            }
-            val secondValid = proofFrontier.map(_.io.queryOwner.valid).getOrElse(planner.io.secondValid)
-            val secondIndex = proofFrontier.map(_.io.queryOwner.bits).getOrElse(planner.io.secondIndex)
-            val candidates = Seq((planner.io.firstValid, planner.io.firstIndex),
-                (secondValid, secondIndex)).zipWithIndex.map { case ((valid, index), rank) =>
-                val owner = if (rank == 0) planner.io.firstOwner else
-                    (if (p.memoryProofFrontier) UIntToOH(index, p.robEntries) else planner.io.secondOwner)
+            if (p.residentMemoryPayloadReuse) {
+                val residentIndex = stagedMemoryIndex.get
+                val residentToken = stagedMemoryToken.get
+                val residentEntry = issueEntries(residentIndex)
+                // Liveness is independent of E: an accepted S can be absent from
+                // the new preparation pool. Only reuse additionally needs E.
+                val residentLive = stagedMemoryValid.get && pending(residentIndex) &&
+                    residentToken.index === residentIndex &&
+                    residentEntry.renamed.token.asUInt === residentToken.asUInt
+                residentMemoryStartAllowed.get := residentLive &&
+                    lsu.io.start.bits.token.asUInt === residentToken.asUInt
+                val planner = Module(new ResidentMemoryPreparationSelector(p,
+                    predecodedHead = p.registeredIssueHeadMask))
+                planner.io.eligible := preparationMask
+                planner.io.head := head
+                planner.io.headMask.foreach(_ := issueHeadMask.get)
+                planner.io.resident.valid := residentLive
+                planner.io.resident.bits := residentIndex
+                planner.io.issued := memoryIssued
+                val owner = planner.io.freshOwner
                 def selected(payloads: Seq[UInt]): UInt = CircularIssueSelector.selectPayload(owner, payloads)
-                val entry = readIssue(index, s"memoryPreparation$rank", Set("immediate"),
-                    if (p.parallelMemoryPayload) Some(owner) else None)
-                val queryRank = p.memoryProofFrontier && rank == 1
-                val saved = valid && entry.request.store && (if (queryRank) storeAddressKnown(index)
-                    else if (p.parallelMemoryPayload) (owner & storePrepared.asUInt).orR else storePrepared(index))
-                // Parallel rank owners already mask source IDs to zero when absent.
-                // Each direct flag removes only that rank's redundant ID clear.
-                // Full owner/readiness and final launch authority stay unchanged.
-                val directSourceIds = memoryPreparationDirectSourceRanks(rank)
-                val source1 = MemoryPreparationLocality.sourceId(entry.renamed.source1, valid, directSourceIds)
-                val source2 = MemoryPreparationLocality.sourceId(entry.renamed.source2, valid, directSourceIds)
-                val savedAddress = if (p.parallelMemoryPayload) selected(storeAddress.toSeq) else storeAddress(index)
-                val savedData = if (p.parallelMemoryPayload) selected(storeData.toSeq) else storeData(index)
-                val left = memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
-                val right = if (queryRank) 0.U(64.W)
-                    else memoryOperands.map(_.io.right(rank)).getOrElse(operandValue(source2))
-                val summed = if (p.parallelMemoryAddressSum)
-                    TimingArithmetic.add64(left, entry.request.immediate) else left + entry.request.immediate
-                val address = Mux(saved, savedAddress, summed)
-                val data = Mux(saved, savedData, right)
-                if (queryRank) {
-                    proofFrontier.get.io.query.token := entry.renamed.token
-                    proofFrontier.get.io.query.address := address
-                    proofFrontier.get.io.query.size := entry.request.memorySize
-                    proofFrontier.get.io.query.write := entry.request.store
+                val freshEntry = readIssue(planner.io.freshIndex, "memoryPreparationFresh", Set("immediate"),
+                    Some(owner))
+                val source1 = MemoryPreparationLocality.sourceId(freshEntry.renamed.source1,
+                    planner.io.freshValid, p.directRank0MemorySourceIds)
+                val source2 = MemoryPreparationLocality.sourceId(freshEntry.renamed.source2,
+                    planner.io.freshValid, p.directRank0MemorySourceIds)
+                val saved = planner.io.freshValid && freshEntry.request.store && (owner & storePrepared.asUInt).orR
+                val freshAddress = Mux(saved, selected(storeAddress.toSeq),
+                    TimingArithmetic.add64(operandValue(source1), freshEntry.request.immediate))
+                val freshData = Mux(saved, selected(storeData.toSeq), operandValue(source2))
+                val preparedValid = planner.io.selectedValid
+                stagedMemoryValid.get := preparedValid
+                when(preparedValid) { stagedMemoryIndex.get := planner.io.selectedIndex }
+                when(preparedValid || p.unconditionalMemoryPayloadCapture.B) {
+                    stagedMemoryToken.get := Mux(planner.io.useResident, residentToken, freshEntry.renamed.token)
+                    stagedMemoryAddress.get := Mux(planner.io.useResident, stagedMemoryAddress.get, freshAddress)
+                    stagedMemoryData.get := Mux(planner.io.useResident, stagedMemoryData.get, freshData)
+                    stagedMemorySize.get := Mux(planner.io.useResident, stagedMemorySize.get,
+                        freshEntry.request.memorySize)
                 }
-                if (p.memoryProofFrontier && rank == 0) { stagedMemoryMetadata.get := entry }
-                (entry.renamed.token, address, data, entry.request.memorySize)
-            }
-            // The late start.fire only selects fully computed payloads. It must
-            // not choose a PRF port or enter the 64-bit effective-address adder.
-            val preparedValid = if (p.memoryProofFrontier) planner.io.firstValid &&
-                !(memoryIssued && planner.io.firstIndex === lsu.io.start.bits.token.index) &&
-                !proofOwnerClear(planner.io.firstIndex) else planner.io.selectedValid
-            val preparedIndex = if (p.memoryProofFrontier) planner.io.firstIndex else planner.io.selectedIndex
-            val useSecond = if (p.memoryProofFrontier) false.B else planner.io.useSecond
-            stagedMemoryValid.get := preparedValid
-            when(preparedValid) { stagedMemoryIndex.get := preparedIndex }
-            // Invalid payloads cannot authorize a request: valid, owner token,
-            // and pending still gate every use. Avoid a late 64-bit clock enable.
-            when(preparedValid || p.unconditionalMemoryPayloadCapture.B) {
-                stagedMemoryToken.get := Mux(useSecond, candidates(1)._1, candidates(0)._1)
-                stagedMemoryAddress.get := Mux(useSecond, candidates(1)._2, candidates(0)._2)
-                stagedMemoryData.get := Mux(useSecond, candidates(1)._3, candidates(0)._3)
-                stagedMemorySize.get := Mux(useSecond, candidates(1)._4, candidates(0)._4)
+                // Invariant witnesses use existing IDs/events/registers only.
+                // Calling readPhysical/operandValue/readIssue here would add a
+                // hidden observation read and invalidate the 14 -> 12 contract.
+                when(memoryIssued) {
+                    assert(residentLive && lsu.io.start.bits.token.asUInt === residentToken.asUInt,
+                        "resident reuse permits only an exact live staged full-token memory start")
+                }
+                when(residentLive) {
+                    assert(stagedMemorySize.get === residentEntry.request.memorySize,
+                        "resident transfer size must remain immutable for its full token")
+                    when(residentEntry.request.store && storePrepared(residentIndex)) {
+                        assert(stagedMemoryAddress.get === storeAddress(residentIndex) &&
+                            stagedMemoryData.get === storeData(residentIndex),
+                            "same-token prepared-store transition must preserve resident VA and data")
+                    }
+                }
+                val rawNeeded = residentLive && !killed(residentIndex) &&
+                    !(residentEntry.request.store && storePrepared(residentIndex))
+                val rawSource1 = Mux(rawNeeded, residentEntry.renamed.source1, 0.U)
+                val rawSource2 = Mux(rawNeeded, residentEntry.renamed.source2, 0.U)
+                val needsData = residentEntry.request.store || residentEntry.request.atomic
+                when(rawNeeded) {
+                    assert(rawSource1 < p.physicalRegs.U && rawSource2 < p.physicalRegs.U,
+                        "live resident sources must remain inside the physical register file")
+                    assert(ready(rawSource1) && (!needsData || ready(rawSource2)),
+                        "resident raw operands must have been captured from registered-ready sources")
+                    def overlaps(address: UInt): Bool =
+                        (rawSource1 =/= 0.U && address === rawSource1) ||
+                            (needsData && rawSource2 =/= 0.U && address === rawSource2)
+                    for (reserve <- readyUpdate.get.io.reserve) {
+                        assert(!reserve.valid || !overlaps(reserve.bits),
+                            "a surviving pending resident source cannot be reallocated")
+                    }
+                    for (write <- physicalWrites.get) {
+                        assert(!write.valid || !overlaps(write.bits.address),
+                            "a registered-ready resident raw source cannot receive another accepted write")
+                    }
+                }
+            } else {
+                val planner = Module(new MemoryPreparationSelector(p, parallelRanks = p.parallelMemoryPayload,
+                    predecodedHead = p.registeredIssueHeadMask))
+                // This selects payload preparation only. Existing full-token/head/PMP,
+                // interrupt and recovery checks below still authorize every LSU start.
+                planner.io.eligible := preparationMask
+                planner.io.head := head
+                planner.io.headMask.foreach(_ := issueHeadMask.get)
+                planner.io.issued := memoryIssued
+                planner.io.issuedIndex := (if (p.memoryProofFrontier) lsu.io.start.bits.token.index else stagedMemoryIndex.get)
+                // Only LSU preparation uses the compact binary source selection.
+                // Rank owners choose two small source IDs, not 48 x 16 match masks;
+                // store/M-D/ALU ports and late grant exclusion remain independent.
+                val memoryOperands = if (p.parallelMemoryPayload && !p.compactMemoryOperandSelect)
+                    Some(independentPhysicalOperands()) else None
+                memoryOperands.foreach { operands =>
+                    operands.io.owners(0) := planner.io.firstOwner
+                    operands.io.owners(1) := planner.io.secondOwner
+                    if (!p.lvtPhysicalRegisterFile) operands.io.values := values.get
+                    for (slot <- 0 until p.robEntries) {
+                        operands.io.source1(slot) := issueEntries(slot).renamed.source1
+                        operands.io.source2(slot) := issueEntries(slot).renamed.source2
+                    }
+                }
+                val secondValid = proofFrontier.map(_.io.queryOwner.valid).getOrElse(planner.io.secondValid)
+                val secondIndex = proofFrontier.map(_.io.queryOwner.bits).getOrElse(planner.io.secondIndex)
+                val candidates = Seq((planner.io.firstValid, planner.io.firstIndex),
+                    (secondValid, secondIndex)).zipWithIndex.map { case ((valid, index), rank) =>
+                    val owner = if (rank == 0) planner.io.firstOwner else
+                        (if (p.memoryProofFrontier) UIntToOH(index, p.robEntries) else planner.io.secondOwner)
+                    def selected(payloads: Seq[UInt]): UInt = CircularIssueSelector.selectPayload(owner, payloads)
+                    val entry = readIssue(index, s"memoryPreparation$rank", Set("immediate"),
+                        if (p.parallelMemoryPayload) Some(owner) else None)
+                    val queryRank = p.memoryProofFrontier && rank == 1
+                    val saved = valid && entry.request.store && (if (queryRank) storeAddressKnown(index)
+                        else if (p.parallelMemoryPayload) (owner & storePrepared.asUInt).orR else storePrepared(index))
+                    // Parallel rank owners already mask source IDs to zero when absent.
+                    // Each direct flag removes only that rank's redundant ID clear.
+                    // Full owner/readiness and final launch authority stay unchanged.
+                    val directSourceIds = memoryPreparationDirectSourceRanks(rank)
+                    val source1 = MemoryPreparationLocality.sourceId(entry.renamed.source1, valid, directSourceIds)
+                    val source2 = MemoryPreparationLocality.sourceId(entry.renamed.source2, valid, directSourceIds)
+                    val savedAddress = if (p.parallelMemoryPayload) selected(storeAddress.toSeq) else storeAddress(index)
+                    val savedData = if (p.parallelMemoryPayload) selected(storeData.toSeq) else storeData(index)
+                    val left = memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
+                    val right = if (queryRank) 0.U(64.W)
+                        else memoryOperands.map(_.io.right(rank)).getOrElse(operandValue(source2))
+                    val summed = if (p.parallelMemoryAddressSum)
+                        TimingArithmetic.add64(left, entry.request.immediate) else left + entry.request.immediate
+                    val address = Mux(saved, savedAddress, summed)
+                    val data = Mux(saved, savedData, right)
+                    if (queryRank) {
+                        proofFrontier.get.io.query.token := entry.renamed.token
+                        proofFrontier.get.io.query.address := address
+                        proofFrontier.get.io.query.size := entry.request.memorySize
+                        proofFrontier.get.io.query.write := entry.request.store
+                    }
+                    if (p.memoryProofFrontier && rank == 0) { stagedMemoryMetadata.get := entry }
+                    (entry.renamed.token, address, data, entry.request.memorySize)
+                }
+                // The late start.fire only selects fully computed payloads. It must
+                // not choose a PRF port or enter the 64-bit effective-address adder.
+                val preparedValid = if (p.memoryProofFrontier) planner.io.firstValid &&
+                    !(memoryIssued && planner.io.firstIndex === lsu.io.start.bits.token.index) &&
+                    !proofOwnerClear(planner.io.firstIndex) else planner.io.selectedValid
+                val preparedIndex = if (p.memoryProofFrontier) planner.io.firstIndex else planner.io.selectedIndex
+                val useSecond = if (p.memoryProofFrontier) false.B else planner.io.useSecond
+                stagedMemoryValid.get := preparedValid
+                when(preparedValid) { stagedMemoryIndex.get := preparedIndex }
+                // Invalid payloads cannot authorize a request: valid, owner token,
+                // and pending still gate every use. Avoid a late 64-bit clock enable.
+                when(preparedValid || p.unconditionalMemoryPayloadCapture.B) {
+                    stagedMemoryToken.get := Mux(useSecond, candidates(1)._1, candidates(0)._1)
+                    stagedMemoryAddress.get := Mux(useSecond, candidates(1)._2, candidates(0)._2)
+                    stagedMemoryData.get := Mux(useSecond, candidates(1)._3, candidates(0)._3)
+                    stagedMemorySize.get := Mux(useSecond, candidates(1)._4, candidates(0)._4)
+                }
             }
         } else {
             val preparation = readIssue(memoryPrechoice.index, "memoryPreparation", Set("immediate"))
@@ -1288,10 +1370,21 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         (actualMemoryEntry.renamed.token.asUInt === Mux(frontierChoice,
             proofFrontier.map(_.io.frontier.bits.token).getOrElse(memoryEntry.renamed.token), memoryEntry.renamed.token).asUInt &&
             pending(actualMemoryIndex) && !proofOwnerClear(actualMemoryIndex))
-        else true.B
+        else if (p.residentMemoryPayloadReuse) residentMemoryStartAllowed.get else true.B
     lsu.io.start.valid := reserveMemory && actualOwnerMatches &&
         !(if (p.earlyRecoveryIssueBlock) earlyRecoveryIssueBlock else ledger.io.recoveryAccepted) &&
         !(if (p.earlyRecoveryIssueBlock) ledger.io.pendingException.valid else ledger.io.headException.valid)
+    if (p.residentMemoryPayloadReuse) {
+        // Independent of the new guard: it must never suppress a start that
+        // the original non-frontier admission law would offer.
+        val originalMemoryStart = reserveMemory &&
+            !(if (p.earlyRecoveryIssueBlock) earlyRecoveryIssueBlock else ledger.io.recoveryAccepted) &&
+            !(if (p.earlyRecoveryIssueBlock) ledger.io.pendingException.valid else ledger.io.headException.valid)
+        when(originalMemoryStart) {
+            assert(residentMemoryStartAllowed.get,
+                "resident full-token guard must preserve every original memory start offer")
+        }
+    }
     memoryIssued                   := lsu.io.start.fire
     io.headProfile.storePrepared := ledger.io.headValid && headRequest.store && storePrepared(head)
     io.headProfile.memoryStarting := directStoreFire || (lsu.io.start.fire && actualMemoryIndex === head)
@@ -2626,6 +2719,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     for (lane <- 0 until p.renameWidth) {
         val renamed = ledger.io.renamed(lane)
         when(renamed.valid) {
+            if (p.residentMemoryPayloadReuse) {
+                val offered = io.allocate(lane).bits
+                when(offered.memory && !offered.store && !offered.atomic) {
+                    assert(offered.rename.rs2 === 0.U && renamed.bits.source2 === 0.U,
+                        "resident reuse rejects accepted noncanonical ordinary-load source2")
+                }
+            }
             queue(renamed.bits.token.index).renamed := renamed.bits
             if (p.reconstructIssueTokenIndex) {
                 // Like the banked immutable payload below, this unused field is

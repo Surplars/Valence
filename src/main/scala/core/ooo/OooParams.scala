@@ -197,7 +197,9 @@ case class OooParams(
     // Keep an unissued younger physical load from closing an older posted join window.
     postedYoungerLoadSealDeferral: Boolean = false,
     // Stable held ordinary-ALU data may feed the next authorized operand capture.
-    heldAluIssueForwarding: Boolean = false
+    heldAluIssueForwarding: Boolean = false,
+    // Experimental reuse of the existing staged memory payload; no new operand stage.
+    residentMemoryPayloadReuse: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -222,6 +224,13 @@ case class OooParams(
         "ready-only fetch data initialization requires registered instruction translation heads")
     require(!memoryPreparationHeadMask || (registeredIssueHeadMask && registeredMemoryAddress &&
         parallelMemoryPreparation), "memory preparation head mask requires the registered head and parallel preparation")
+    require(!residentMemoryPayloadReuse || (robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 && memoryEntries == 4 &&
+        registeredMemoryAddress && parallelMemoryPreparation && parallelMemoryPayload && compactMemoryOperandSelect &&
+        parallelMemoryAddressSum && lvtPhysicalRegisterFile && ownerLocalOperandReady && registeredIssueExecute &&
+        !moveAlias && !loadCompletionBypass && !mulWordPreviewBypass && !memoryProofFrontier &&
+        !fastBufferedStoreRetire && !fastHeadLoadRetire),
+        "resident memory payload reuse requires the bounded ROB16/PRF48 full-tag staged-memory profile")
     require(!directRank0MemorySourceIds || (registeredMemoryAddress && parallelMemoryPreparation &&
         parallelMemoryPayload && compactMemoryOperandSelect && !memoryProofFrontier),
         "direct rank-0 memory source IDs require compact parallel owner-masked preparation without a proof frontier")

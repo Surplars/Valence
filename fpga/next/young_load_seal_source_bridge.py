@@ -59,14 +59,15 @@ def production_tree_sha256(root):
 def checked_young_base(root, manifest_path=None, leaves=None):
     """Authenticate current closure and the complete immutable Young source base."""
     root = Path(root).resolve()
-    path = root / 'fpga/next/held_alu_source_bridge.py'
-    spec = importlib.util.spec_from_file_location('young_to_held_alu_source_bridge', path)
+    path = root / 'fpga/next/resident_memory_source_bridge.py'
+    spec = importlib.util.spec_from_file_location('young_to_resident_memory_source_bridge', path)
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
     if bridge.ROOT != root:
-        raise RuntimeError('held ALU source bridge root differs')
-    contract = (bridge.checked_sources() if manifest_path is None else
-                bridge.validate_historical_sources(Path(manifest_path).resolve(), leaves))
+        raise RuntimeError('resident memory source bridge root differs')
+    if manifest_path is not None:
+        bridge.validate_historical_sources(Path(manifest_path).resolve(), leaves)
+    contract = bridge.checked_young_contract()
     production = {name: digest for name, digest in contract['base_source_sha256'].items()
                   if any(name.startswith(folder + '/') for folder in PRODUCTION_ROOTS)}
     if sha256(json.dumps(production, sort_keys=True, separators=(',', ':')).encode()) != PRODUCTION_TREE_SHA256:
@@ -115,7 +116,7 @@ def validate_legacy_sources(root, manifest_path, profile, options):
     return {'schema': 'young-load-seal-e4a-historical-source-bridge-v1',
             'triSpeedRawClockHandoff': False,
             'postedYoungerLoadSealDeferral': False, 'qualificationInherited': False,
-            'heldAluIssueForwarding': False,
+            'heldAluIssueForwarding': False, 'residentMemoryPayloadReuse': False,
             'fullCpuQualification': False, 'physicalQualification': False}
 
 
@@ -199,7 +200,7 @@ def validate_mac_raw_contract(root, manifest_path, profile):
 
 def historical_young_document(root, document, core_names, profile_names, *,
                               younger_load_seal_deferral=False, raw_clock_handoff=False):
-    """Project only exact named Boolean held=false to the complete old Young view.
+    """Project named Boolean held=false and resident=false to old merged Young.
 
     Names must come from the same constructed products as the document. Expected
     raw/seal choices are explicit Booleans; all other original values are fixed.
@@ -224,12 +225,14 @@ def historical_young_document(root, document, core_names, profile_names, *,
             ('profile', profile_names, ['triSpeedRawClockHandoff', 'postedYoungerLoadSealDeferral'])):
         old_names = contract['historical_a_' + kind + '_names'] + young_tail
         values = current[kind]
-        if names != old_names + [held] or set(expected[kind]) != set(old_names):
+        if names != old_names + [held, 'residentMemoryPayloadReuse'] or set(expected[kind]) != set(old_names):
             raise RuntimeError('unknown, misplaced or reordered Young compatibility tail')
         if set(values) != set(names):
             raise RuntimeError('missing or extra constructed Young field: ' + kind)
         if values[held] is not False:
             raise RuntimeError('Young projection requires named Boolean held ALU false: ' + kind)
+        if values['residentMemoryPayloadReuse'] is not False:
+            raise RuntimeError('Young projection requires named Boolean resident memory false: ' + kind)
         current[kind] = {name: values[name] for name in old_names}
     if canonical_json(current) != canonical_json(expected):
         raise RuntimeError('one or more original Young complete scalar/nested values changed')
