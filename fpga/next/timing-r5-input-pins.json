@@ -1,0 +1,13 @@
+{
+  "schema": "r5-physical-input-pins-v1",
+  "candidate": "timing-r5-structural-ready73-r1",
+  "baseline_commit": "3a61f1840651ac88fc604bed614ded9ed371fda5",
+  "source_freeze_sha256": "d1b0eb81cda925c81a358238b29e1cae39d2e3e098690309941d252e66b86eee",
+  "compile_receipt_sha256": "7c920299e9dba211d95f181ad8d3e30dde6fd62c1b459985bbcc145b36638c9e",
+  "native_receipt_sha256": "f8779b25a1ca02d5d016eb9c9cd94702ba68262514bb80e5c4c318461dfdc1b6",
+  "parameter_contract_sha256": "fc66ccb6e878d8d480c7c52ace4e512f55e06228c9995df63713c29db1e28ab7",
+  "source_files": 3184,
+  "physical_qualification": false,
+  "historical_qualification_inherited": false,
+  "qualification_sha256": "4502062309c79386679326182aaba42988268c76dc8ddbcfd17192bd1f7a33cf"
+}

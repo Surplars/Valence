@@ -42,7 +42,13 @@ class OwnerBankedPhysicalRegisterFile(entries: Int, readPorts: Int, writePorts: 
     }
     for (port <- 0 until readPorts) {
         val inRange = io.address(port) < entries.U
-        val safeAddress = Mux(inRange, io.address(port), 0.U)
+        // A compact depth is larger than half of its address space. Invalid
+        // addresses can therefore alias the lower half by clearing ONLY the
+        // high bit. Keep low address bits independent of the range comparator;
+        // the output guard below still makes every invalid read exactly zero.
+        // Power-of-two depths have no invalid address in this port's width.
+        val safeAddress = if (isPow2(entries)) io.address(port) else
+            Cat(io.address(port)(addressBits - 1) && inRange, io.address(port)(addressBits - 2, 0))
         val data0 = banks(0).read(safeAddress)
         val data1 = banks(1).read(safeAddress)
         io.data(port) := Mux(inRange && safeAddress =/= 0.U && initialized(safeAddress),

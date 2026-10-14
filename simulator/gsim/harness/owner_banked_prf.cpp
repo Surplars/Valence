@@ -21,6 +21,7 @@ int main(int argc, char** argv) { try {
     const unsigned mask = (1u << width) - 1;
     std::mt19937_64 random(0x72616d6f776e6572ULL);
     uint64_t checks = 0, collisions = 0, zeroWrites = 0, disabledPoison = 0, resets = 0;
+    uint64_t invalidReads = 0, populatedAliasChecks = 0;
     auto tick = [&](bool reset, bool v0, unsigned a0, uint64_t w0,
                     bool v1, unsigned a1, uint64_t w1, std::array<unsigned,4> reads) {
         d.set_reset(reset); d.set_io$$valid0(v0); d.set_io$$valid1(v1);
@@ -35,6 +36,7 @@ int main(int argc, char** argv) { try {
             if (inject && collisions && reads[0] > 0 && reads[0] < PHYSICAL_REGS && expected[reads[0]] != 0) actual[0] ^= 1;
             for (unsigned p=0;p<4;++p) {
                 const auto want = reads[p] < PHYSICAL_REGS ? expected[reads[p]] : 0;
+                invalidReads += reads[p] >= PHYSICAL_REGS;
                 if (actual[p] != want || legacy[p] != want)
                     throw std::runtime_error("PRF independent data oracle mismatch");
             }
@@ -66,6 +68,18 @@ int main(int argc, char** argv) { try {
         for (unsigned i=0;i<8;++i)
             tick(false,i%2==0,a,random(),i%2==1,a,random(),{a,a,0,a});
     }
+    // Every compact invalid address aliases a lower-half real RAM row inside
+    // the implementation. Populate each alias from BOTH write banks and prove
+    // invalid reads remain zero before/after those writes, without write-through.
+    for (unsigned a=PHYSICAL_REGS;a<=mask;++a) {
+        const unsigned alias = a & (mask >> 1);
+        for (unsigned lane=0;lane<2;++lane) {
+            const uint64_t word = 0xd15ea5e000000000ULL | (uint64_t(lane) << 16) | a;
+            tick(false,lane==0,alias,word,lane==1,alias,word,{a,alias,0,mask});
+            tick(false,false,mask,0,false,mask,0,{a,alias,0,mask});
+            ++populatedAliasChecks;
+        }
+    }
     for (unsigned n=0;n<16000;++n) {
         const unsigned a0=random()%PHYSICAL_REGS, a1=n%5 ? random()%PHYSICAL_REGS:a0;
         const bool v0=n%7!=0, v1=n%11!=0;
@@ -73,10 +87,12 @@ int main(int argc, char** argv) { try {
         tick(n%701==0,v0,v0?a0:mask,random(),v1,v1?a1:mask,random(),read);
     }
     tick(false,false,mask,0,false,mask,0,{0,1,2,3});
-    if (!collisions || !zeroWrites || resets<3 || checks<10000 || (mask>=PHYSICAL_REGS && !disabledPoison))
+    if (!collisions || !zeroWrites || resets<3 || checks<10000 ||
+        (mask>=PHYSICAL_REGS && (!disabledPoison || !invalidReads || populatedAliasChecks != 2*(mask+1-PHYSICAL_REGS))))
         throw std::runtime_error("PRF directed coverage missing");
     std::cout << "PASS_PRF_DATA entries=" << PHYSICAL_REGS << " checks=" << checks
               << " collisions=" << collisions << " zeroWrites=" << zeroWrites
-              << " disabledPoison=" << disabledPoison << " resets=" << resets << '\n';
+              << " disabledPoison=" << disabledPoison << " resets=" << resets
+              << " invalidReads=" << invalidReads << " populatedAliasChecks=" << populatedAliasChecks << '\n';
     return 0;
 } catch (const std::exception& e) { std::cerr<<e.what()<<'\n'; return 1; } }

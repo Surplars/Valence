@@ -35,3 +35,18 @@ object PendingStoreProofRobMapping {
         }
     }
 }
+
+/** Select data by registered bound-row identity, never by late proof validity.
+  * PendingVirtualStoreProof admits an index only when absent from all non-free
+  * rows, and its later record writes retain that index. Thus bound rows have
+  * distinct indices, including cycles that clear/consume a previous owner.
+  * The caller must retain its full-token/descriptor/valid authorization. When
+  * that authorization is false, this payload deliberately has no zeroing mux.
+  */
+object BoundStoreProofPayload {
+    def select(bound: UInt, records: Seq[MemoryAddressProof], ownerIndex: UInt): MemoryAddressProof = {
+        require(Set(1, 2).contains(records.length))
+        if (records.length == 1) records.head
+        else Mux(bound(0) && records.head.token.index === ownerIndex, records.head, records(1))
+    }
+}

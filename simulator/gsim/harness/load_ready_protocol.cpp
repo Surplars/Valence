@@ -162,6 +162,14 @@ public:
         }
         inject("incoming-publication",mutation=="incoming-publication"&&enabled&&pub&&[&]{for(unsigned l=0;l<2;++l)if(in.alloc[l].valid&&(ar1&(1U<<l))&&pubMatch(in.alloc[l].source[0][0])&&!(physical&(1ULL<<in.alloc[l].source[0][0]))){o.ar1&=~(1U<<l);return true;}return false;}(),[]{});
         inject("reserve-loses",mutation=="reserve-loses"&&[&]{for(unsigned l=0;l<2;++l)if(in.alloc[l].valid&&in.alloc[l].source[0][0]&&reserve(in.alloc[l].source[0][0])&&!(ar1&(1U<<l))&&(bool(physical&(1ULL<<in.alloc[l].source[0][0]))||wake(in.alloc[l].source[0][0])||(enabled&&in.alloc[l].execution&&(heldMatch(in.alloc[l].source[0][0])||pubMatch(in.alloc[l].source[0][0]))))){o.ar1|=1U<<l;return true;}return false;}(),[]{});
+        if(enabled&&pub&&!in.alloc[0].valid&&!in.alloc[1].valid) {
+            const unsigned classes=unsigned(in.alloc[0].execution)|(unsigned(in.alloc[1].execution)<<1);
+            const unsigned reservations=unsigned(bool(in.reserve[0]))|(unsigned(bool(in.reserve[1]))<<1);
+            ++count["publish_matrix_"+std::to_string(in.faults)+"_"+std::to_string(classes)+"_"+std::to_string(reservations)];
+        }
+        inject("fault-publication-ready",enabled&&pub&&!in.alloc[1].valid&&in.faults==1&&
+            in.alloc[1].execution&&(ar1&2)&&pubMatch(in.alloc[1].source[1][0])&&
+            !(physical&(1ULL<<in.alloc[1].source[1][0])),[&]{o.ar1^=2;});
         check(o.ar1==ar1&&o.ar2==ar2,"fault-selected allocation next readiness");
         for(auto&r:rows)if(r.active){r.r1=(r.r1||wake(r.s1)||(enabled&&r.execution&&pubMatch(r.s1)))&&!reserve(r.s1);r.r2=(r.r2||wake(r.s2)||(enabled&&r.execution&&pubMatch(r.s2)))&&!reserve(r.s2);}
         for(unsigned l=0;l<2;++l){auto&a=in.alloc[l];if(a.valid){auto&r=rows[a.row];unsigned alt=l==1&&bool(in.faults&1);r.active=true;r.execution=a.execution;r.s1=(in.faults&(1U<<l))?0:a.source[alt][0];r.s2=(in.faults&(1U<<l))?0:a.source[alt][1];r.r1=ar1&(1U<<l);r.r2=ar2&(1U<<l);}}
@@ -172,7 +180,7 @@ public:
     }
     void wait(unsigned n){while(n--)tick();}
     void drain(){for(unsigned n=0;n<8;++n){In in;in.sinkReady=true;tick(in);}}
-    void done(){tick();check(owed.empty(),"terminal response debt remains");for(const auto&s:slots)check(s.phase==0,"terminal slot remains live");for(const auto*k:{"start","replace","forwarded","static_fault","request","response","owned_request_response","direct_start_response","response_fault","cancelled_response","publication","multi_publication","held_occupancy_0","held_occupancy_1","held_occupancy_2","held_occupancy_3","held_occupancy_4","held_stall","active_both_source_mirror","ignored_source_mirror","incoming_reserved","fault_alternative","class_reuse","write"})check(count[k]>0,std::string("NOT_REACHED ")+k);if(enabled)for(const auto*k:{"incoming_holder","incoming_publication","helper_only_publication_reserve","fault_mask_0","fault_mask_1","fault_mask_2","fault_mask_3"})check(count[k]>0,std::string("NOT_REACHED ")+k);for(const auto&[k,v]:count)std::cout<<"COVER "<<k<<"="<<v<<"\n";check(!injected,"negative returned without oracle rejection");if(!mutation.empty())throw std::runtime_error("NOT_REACHED negative="+mutation);std::cout<<"PASS_LOAD_READY_PROTOCOL enabled="<<enabled<<" cycles="<<cycle<<"\n";}
+    void done(){tick();check(owed.empty(),"terminal response debt remains");for(const auto&s:slots)check(s.phase==0,"terminal slot remains live");for(const auto*k:{"start","replace","forwarded","static_fault","request","response","owned_request_response","direct_start_response","response_fault","cancelled_response","publication","multi_publication","held_occupancy_0","held_occupancy_1","held_occupancy_2","held_occupancy_3","held_occupancy_4","held_stall","active_both_source_mirror","ignored_source_mirror","incoming_reserved","fault_alternative","class_reuse","write"})check(count[k]>0,std::string("NOT_REACHED ")+k);if(enabled)for(const auto*k:{"incoming_holder","incoming_publication","helper_only_publication_reserve","fault_mask_0","fault_mask_1","fault_mask_2","fault_mask_3"})check(count[k]>0,std::string("NOT_REACHED ")+k);if(enabled)for(unsigned mask=0;mask<4;++mask)for(unsigned classes=0;classes<4;++classes)for(unsigned reservations=0;reservations<4;++reservations)check(count["publish_matrix_"+std::to_string(mask)+"_"+std::to_string(classes)+"_"+std::to_string(reservations)]>0,"NOT_REACHED same-edge publish/fault/class/reserve matrix");for(const auto&[k,v]:count)std::cout<<"COVER "<<k<<"="<<v<<"\n";check(!injected,"negative returned without oracle rejection");if(!mutation.empty())throw std::runtime_error("NOT_REACHED negative="+mutation);std::cout<<"PASS_LOAD_READY_PROTOCOL enabled="<<enabled<<" cycles="<<cycle<<"\n";}
 };
 Allocation alloc(unsigned row,unsigned s1,unsigned s2,bool execution=true){Allocation a;a.valid=true;a.row=row;a.execution=execution;a.source[0]={s1,s2};a.source[1]={s2,s1};return a;}
 void cases(Bench&b){
@@ -216,6 +224,17 @@ void cases(Bench&b){
     // No active dependency or accepted allocation: only FaultAware's raw candidates observe the collision.
     b.clearRows();auto probe=b.op(46);probe->forward=true;in={};in.start=probe;in.reserve[0]=46;
     in.alloc={alloc(0,46,46),alloc(0,46,0)};in.alloc[0].valid=false;in.alloc[1].valid=false;b.tick(in);b.drain();
+    // Actual same-edge forwarded publication probes all raw initialization alternatives.
+    // This is a component priority matrix: no active row or accepted allocation is
+    // fabricated when a publisher's physical name is simultaneously reserved.
+    for(unsigned mask=0;mask<4;++mask)for(unsigned classes=0;classes<4;++classes)for(unsigned reservations=0;reservations<4;++reservations){
+        b.clearRows();in={};in.reserve[0]=46;in.reserve[1]=45;b.tick(in);
+        auto matrix=b.op(46);matrix->forward=true;in={};in.start=matrix;in.faults=mask;
+        in.alloc={alloc(0,46,45,bool(classes&1)),alloc(0,45,46,bool(classes&2))};
+        in.alloc[0].valid=false;in.alloc[1].valid=false;in.alloc[1].source[1]={46,45};
+        if(reservations&1)in.reserve[0]=46;if(reservations&2)in.reserve[1]=45;
+        b.tick(in);b.drain();
+    }
     b.done();
 }
 }

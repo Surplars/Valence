@@ -87,8 +87,22 @@ class ParallelLoadStoreUnit(
         }
         if (p.registeredLoadResultReady) {
             for ((slot, i) <- slots.zipWithIndex) {
-                val publishingDestination = Mux(slot.io.start.fire, io.issueDestination.get, owners(i))
-                io.loadResultPublish.get(i).valid := slot.io.successfulLoadResultCapture.get &&
+                // A registered tagged reservation can deliver only to a response-state
+                // owner. Its successful result does not depend on another slot's new
+                // request arbitration. Forwarded starts are the only new-owner result.
+                val capture = if (localTaggedResponseReady) {
+                    val responseCapture = slot.io.fastLoadPreview.valid && !slot.io.fastLoadRetire
+                    val forwardedCapture = slot.io.forwarded && !slot.io.start.bits.store &&
+                        !slot.io.start.bits.atomic && !slot.io.fastStoreRetire
+                    responseCapture || forwardedCapture
+                } else slot.io.successfulLoadResultCapture.get
+                // On a valid publication the saved response owner and accepted new
+                // owner are mutually exclusive. Select their IDs from registered phase,
+                // before the final event validity, rather than from late start.fire.
+                val publishingDestination = if (localTaggedResponseReady)
+                    Mux(slot.io.phase === 2.U, owners(i), io.issueDestination.get)
+                else Mux(slot.io.start.fire, io.issueDestination.get, owners(i))
+                io.loadResultPublish.get(i).valid := capture &&
                     publishingDestination.valid && publishingDestination.bits =/= 0.U
                 io.loadResultPublish.get(i).bits := publishingDestination.bits
                 io.heldLoadValue.get(i).valid := slot.io.complete.valid &&
@@ -134,15 +148,20 @@ class ParallelLoadStoreUnit(
             (0 until p.memoryEntries).map(i => !slots(i).io.busy ||
                 (parallel(i) && slots(i).io.savedLoadDisjointFromFrozenStart.get)).reduce(_ && _)
     }.getOrElse(false.B)
-    val chosen = Mux(handoffOffer || boundHeadStoreOverlapOffer, PriorityEncoder(empty),
-        Mux(completion.io.out.valid, completion.io.chosen, PriorityEncoder(empty)))
+    val emptyChoice = PriorityEncoder(empty)
+    val baseChosen = Mux(handoffOffer, emptyChoice,
+        Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+    val chosen = Mux(boundHeadStoreOverlapOffer, emptyChoice, baseChosen)
     val available = completion.io.out.valid || empty.asUInt.orR
-    val othersIdle = (0 until p.memoryEntries).map(i => chosen === i.U || !slots(i).io.busy).reduce(_ && _)
+    val othersIdle = (0 until p.memoryEntries).map(i => baseChosen === i.U || !slots(i).io.busy).reduce(_ && _)
     val observationCanonicalHandoff = WireDefault(io.start.fire && handoffOffer)
     val noOtherSerial = (0 until p.memoryEntries)
-        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && chosen === i.U) || exemptSerial(i))
+        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && baseChosen === i.U) || exemptSerial(i))
         .reduce(_ && _)
-    io.issueAvailable := available && noOtherSerial && (io.parallel || othersIdle || boundHeadStoreOverlapOffer)
+    // The bound-store offer already proves an empty slot and that every live
+    // co-owner is parallel. It therefore implies available and noOtherSerial.
+    val baseIssueAvailable = available && noOtherSerial && (io.parallel || othersIdle)
+    io.issueAvailable := baseIssueAvailable || boundHeadStoreOverlapOffer
     io.start.ready    := io.issueAvailable && Mux1H(
         (0 until p.memoryEntries).map(i => (chosen === i.U) -> slots(i).io.start.ready)
     )

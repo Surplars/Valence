@@ -25,19 +25,25 @@ class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = 
     })
     val residentOwner = Mux(io.resident.valid, UIntToOH(io.resident.bits, p.robEntries), 0.U)
     val fresh = Module(new CircularIssueSelector(p, parallelRanks = true, predecodedHead = predecodedHead))
-    fresh.io.eligible := io.eligible & ~residentOwner
+    // Rank the unmodified pool before the late resident full-token decision.
+    // Removing at most one owner changes its oldest choice only when that
+    // owner was first. The already parallel second rank is sufficient then.
+    // This retains one fresh payload/PRF read group, with no new state/cycle.
+    fresh.io.eligible := io.eligible
     fresh.io.head := io.head
     fresh.io.headMask.foreach(_ := io.headMask.get)
-    io.freshValid := fresh.io.firstValid
-    io.freshIndex := fresh.io.firstIndex
-    io.freshOwner := fresh.io.first
+    val firstIsResident = (fresh.io.first & residentOwner).orR
+    val freshOwner = Mux(firstIsResident, fresh.io.second, fresh.io.first)
+    io.freshValid := Mux(firstIsResident, fresh.io.secondValid, fresh.io.firstValid)
+    io.freshIndex := OHToUInt(freshOwner)
+    io.freshOwner := freshOwner
     val residentEligible = io.resident.valid && (residentOwner & io.eligible).orR
     val residentAge = io.resident.bits - io.head
-    val freshAge = fresh.io.firstIndex - io.head
+    val freshAge = io.freshIndex - io.head
     io.useResident := residentEligible && !io.issued &&
-        (!fresh.io.firstValid || residentAge < freshAge)
-    io.selectedValid := (residentEligible && !io.issued) || fresh.io.firstValid
-    io.selectedIndex := Mux(io.useResident, io.resident.bits, fresh.io.firstIndex)
+        (!io.freshValid || residentAge < freshAge)
+    io.selectedValid := (residentEligible && !io.issued) || io.freshValid
+    io.selectedIndex := Mux(io.useResident, io.resident.bits, io.freshIndex)
     when(io.issued) {
         assert(io.resident.valid, "accepted memory start must name the caller's exact live resident")
     }

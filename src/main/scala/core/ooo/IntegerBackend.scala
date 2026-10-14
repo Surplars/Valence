@@ -1251,7 +1251,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val matches = VecInit((0 until p.pendingVirtualStoreProofSlots).map(r => bank.io.bound(r) &&
             bank.io.proofs(r).valid && bank.io.proofs(r).bits.token.asUInt === memoryEntry.renamed.token.asUInt &&
             bank.io.proofs(r).bits.payload.address === address && bank.io.proofs(r).bits.payload.size === memorySize))
-        pendingStoreSelected := Mux1H(matches, bank.io.proofs.map(_.bits))
+        // Bound row identities are registered and unique in the proof bank.
+        // Select immutable payload before late owner/epoch revalidation; the
+        // original full-token/VA/size matches remain the only authorization.
+        pendingStoreSelected := BoundStoreProofPayload.select(bank.io.bound,
+            bank.io.proofs.map(_.bits).toSeq, memoryEntry.renamed.token.index)
         if (p.boundHeadStoreOverlap) {
             assert(PopCount(matches) <= 1.U, "at most one bound proof may name the exact staged store")
         }

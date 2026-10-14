@@ -126,23 +126,38 @@ class FaultAwareAllocationReady(p: OooParams) extends Module {
         val ready1 = Output(Vec(2, Bool()))
         val ready2 = Output(Vec(2, Bool()))
     })
-    def next(index: UInt, execution: Bool = false.B): Bool = {
+    def reserving(index: UInt): Bool =
+        io.reserve.map(r => r.valid && r.bits === index).reduce(_ || _)
+    def baseNext(index: UInt, execution: Bool = false.B): Bool = {
         val current = (0 until p.physicalRegs).map(r => index === r.U && io.physical(r)).reduce(_ || _)
         val waking = io.wake.map(w => w.valid && w.bits === index).reduce(_ || _)
-        val reserving = io.reserve.map(r => r.valid && r.bits === index).reduce(_ || _)
         if (p.registeredLoadResultReady) {
             val stable = io.heldLoads.get.map(h => h.valid && h.bits === index).reduce(_ || _)
-            val publishing = io.publishedLoads.get.map(h => h.valid && h.bits === index).reduce(_ || _)
-            (current || waking || (execution && (stable || publishing))) && !reserving
-        } else (current || waking) && !reserving
+            (current || waking || (execution && stable)) && !reserving(index)
+        } else (current || waking) && !reserving(index)
     }
-    val zeroReady = next(0.U(p.physBits.W))
-    val ready1 = io.sources.zipWithIndex.map { case (sources, lane) =>
-        sources.map(s => next(s.source1, io.allocationExecutionClass.map(_(lane)).getOrElse(false.B))) }
-    val ready2 = io.sources.zipWithIndex.map { case (sources, lane) =>
-        sources.map(s => next(s.source2, io.allocationExecutionClass.map(_(lane)).getOrElse(false.B))) }
-    io.ready1(0) := Mux(io.faults(0), zeroReady, ready1(0)(0))
-    io.ready2(0) := Mux(io.faults(0), zeroReady, ready2(0)(0))
-    io.ready1(1) := Mux(io.faults(1), zeroReady, Mux(io.faults(0), ready1(1)(1), ready1(1)(0)))
-    io.ready2(1) := Mux(io.faults(1), zeroReady, Mux(io.faults(0), ready2(1)(1), ready2(1)(0)))
+    val zeroReady = baseNext(0.U(p.physBits.W))
+    def selected(lane: Int, candidates: Seq[Bool], zero: Bool): Bool = {
+        if (lane == 0) Mux(io.faults(0), zero, candidates(0))
+        else Mux(io.faults(1), zero, Mux(io.faults(0), candidates(1), candidates(0)))
+    }
+    def allocated(lane: Int, indices: Seq[UInt]): Bool = {
+        val execution = io.allocationExecutionClass.map(_(lane)).getOrElse(false.B)
+        val base = selected(lane, indices.map(index => baseNext(index, execution)), zeroReady)
+        if (p.registeredLoadResultReady) {
+            // Match candidate IDs and apply class, reserve priority and fault choice
+            // before late publication validity. Keep the same-edge incoming-row wake;
+            // faulted lanes use zeroReady and cannot gain an execution-only publication.
+            val publishing = io.publishedLoads.get.map { load =>
+                val candidates = indices.map(index =>
+                    execution && !reserving(index) && load.bits === index)
+                load.valid && selected(lane, candidates, false.B)
+            }.reduce(_ || _)
+            base || publishing
+        } else base
+    }
+    for (lane <- 0 until p.renameWidth) {
+        io.ready1(lane) := allocated(lane, io.sources(lane).map(_.source1).toSeq)
+        io.ready2(lane) := allocated(lane, io.sources(lane).map(_.source2).toSeq)
+    }
 }
