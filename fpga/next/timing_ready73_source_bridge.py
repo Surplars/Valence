@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-COMPAT_SHA256 = '647bed421537a8745d03170528d3280edece8c31d86cf7b1f3f69dc1803f61bc'
+COMPAT_SHA256 = '88a430c43f25b150da70d449384045794561fb7de41ac18d0375abc884348356'
 SELF_EXCLUDED = ['fpga/next/timing_ready73_source_bridge.py', 'fpga/next/timing-ready73-source-compat.json']
 
 def canonical(value):

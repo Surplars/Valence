@@ -59,9 +59,19 @@ proc valence_trispeed_clock_reset_audit {bank mbps} {
         error "Tri-speed RX must not use the fixed-frequency legacy RX MMCM"
     }
     set rxBuffer [get_cells -quiet rx_clock_buffer]
-    if {[llength $rxBuffer]!=1 || [get_property REF_NAME $rxBuffer] ne "BUFG"} {
-        error "Missing direct recovered-clock BUFG"
-    }
+    if {[llength $rxBuffer]!=1 || [get_property NAME $rxBuffer] ne "rx_clock_buffer"} {error "Missing exact recovered-clock buffer"}
+    set ref [get_property REF_NAME $rxBuffer]
+    if {$ref eq "BUFGCE"} {
+        # Vivado may map an ungated BUFG to BUFGCE. Prove actual CE and pin
+        # polarities; absent properties are not evidence of non-inversion.
+        foreach pin {I CE} {
+            set actual [get_pins -quiet rx_clock_buffer/$pin]
+            if {[llength $actual]!=1 || [get_property NAME $actual] ne "rx_clock_buffer/$pin" ||
+                [get_property IS_INVERTED $actual] ni {0 FALSE false 1'b0}} {error "Unproved recovered-clock buffer polarity: $pin"}
+        }
+        set ce [get_nets -quiet -of_objects [get_pins -quiet rx_clock_buffer/CE]]
+        if {[llength $ce]!=1 || [get_property TYPE $ce] ne "POWER"} {error "Recovered-clock BUFGCE is gated"}
+    } elseif {$ref ne "BUFG"} {error "Unexpected recovered-clock primitive: $ref"}
     set roots [all_fanin -flat -startpoints_only -to [get_pins rx_clock_buffer/I]]
     if {[llength $roots]!=1 || $roots ne [get_ports eth_rxc]} {
         error "Recovered RX clock is not driven directly from the physical RXC pad"

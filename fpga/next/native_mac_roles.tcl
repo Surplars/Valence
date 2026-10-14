@@ -103,8 +103,47 @@ proc valence_mac_roles::prove {c phase rise high kind} {
         if {[next $c $a] != $expected} {error "Mapped $kind transition equation differs: $c vector=$v"}
     }
 }
-proc valence_mac_roles::clocks {hier} {
-    foreach {pin period} [list $hier/tx_pad_clock 4.0 $hier/tx_clock 8.0] {
+# RAW is witnessed at live sequential loads, never an unused adapter input.
+# require_raw_handoff is explicit for the ready73 diagnostic; historical RAW-OFF
+# callers retain the default but still require the live encoder clock witness.
+proc valence_mac_roles::clocks {hier {require_raw_handoff 0}} {
+    if {$require_raw_handoff ni {0 1}} {error "Explicit RAW handoff Boolean required"}
+    set encoder u_soc/board/nativeBank/gmac/encode
+    set rise [format {%s/tx_rise[4]} $hier]
+    set q [driver $rise]
+    if {[property get_pins $q REF_PIN_NAME] ne "Q" ||
+        [string first "$encoder/" $q]!=0} {error "RAW control witness is not live encoder FF Q"}
+    set witness [file dirname $q]
+    set rawpin $witness/C
+    set rawnet [net $rawpin]
+    set rawreset [net $encoder/reset]
+    ff $witness 0 0 $rawnet $rawreset
+    # In the bound gmiiError=0 export, synthesis may merge heldEnable and equal
+    # control FFs with a dynamic CE. This clock witness does not constrain CE.
+    if {![same $rise [format {%s/io_rise[4]} $encoder]] ||
+        ![same $encoder/clock $rawpin]} {error "RAW live encoder witness chain mismatch"}
+    set cells [get_cells -quiet -hier -filter {IS_PRIMITIVE == 1}]
+    if {![llength $cells]} {error "No mapped primitive cells"}
+    set encoder_ffs {}; set samples {}
+    set falling u_soc/board/nativeBank/gmac/rawHandoff/falling
+    foreach c [get_property NAME $cells] {
+        if {[string first "$encoder/" $c]!=0 && [string first "$falling/" $c]!=0} {continue}
+        set ref [property get_cells $c REF_NAME]
+        if {[string first "$encoder/" $c]==0 && [string match FD* $ref]} {
+            if {![same $c/C $rawpin] || ![bit [property get_pins $c/C IS_INVERTED] 0]} {
+                error "Encoder FF differs from live RAW clock: $c"
+            }
+            lappend encoder_ffs $c
+        }
+        if {[string first "$falling/" $c]==0 && [string match FD* $ref]} {
+            ff $c 1 0 $rawnet $rawreset
+            if {![constant $c/CE 1]} {error "RAW falling sample CE is not constant one: $c"}
+            lappend samples $c
+        }
+    }
+    if {$witness ni $encoder_ffs} {error "Missing live encoder FF"}
+    if {$require_raw_handoff && ![llength $samples]} {error "Missing required RAW falling sample FFs"}
+    foreach {pin period} [list $hier/tx_pad_clock 4.0 $rawpin 8.0] {
         if {[llength [get_clocks -quiet -of_objects [get_pins -quiet $pin]]] != 1 ||
             abs([get_property PERIOD [get_clocks -quiet -of_objects [get_pins -quiet $pin]]]-$period)>0.001} {
             error "Unconstrained/wrong actual PAD/RAW clock: $pin"
@@ -112,9 +151,14 @@ proc valence_mac_roles::clocks {hier} {
     }
     if {[llength [get_clocks -quiet -of_objects [get_pins -quiet [file dirname [driver $hier/tx_pad_clock]]/I]]]!=1 ||
         abs([get_property PERIOD [get_clocks -quiet -of_objects [get_pins -quiet [file dirname [driver $hier/tx_pad_clock]]/I]]]-2.0)>0.001} {error "PAD/RAW source is not the common REF500 clock"}
-    set pad [file dirname [driver $hier/tx_pad_clock]]; set raw [file dirname [driver $hier/tx_clock]]
+    set pad [file dirname [driver $hier/tx_pad_clock]]; set raw [file dirname [driver $rawpin]]
     foreach {c ratio} [list $pad 2 $raw 4] {
-        if {[property get_cells $c REF_NAME] ne "BUFGCE_DIV" || [property get_cells $c BUFGCE_DIVIDE]!=$ratio || ![constant $c/CE 1]} {error "Unproved actual PAD/RAW divider"}
+        if {[property get_pins [driver $c/O] REF_PIN_NAME] ne "O" || [driver $c/O] ne "$c/O" || [property get_cells $c REF_NAME] ne "BUFGCE_DIV" || [property get_cells $c BUFGCE_DIVIDE]!=$ratio || ![constant $c/CE 1]} {error "Unproved actual PAD/RAW divider"}
+    }
+    foreach c [list $pad $raw] {
+        foreach pin {I CE CLR} {
+            if {![bit [property get_pins $c/$pin IS_INVERTED] 0]} {error "Inverted PAD/RAW divider input: $c/$pin"}
+        }
     }
     if {![same $pad/I $raw/I] || ![same $pad/CLR $raw/CLR]} {error "PAD/RAW do not share source and reset epoch"}
     foreach {c period fall} [list $pad 4.0 2.0 $raw 8.0 4.0] {
@@ -122,6 +166,7 @@ proc valence_mac_roles::clocks {hier} {
         lassign [get_property WAVEFORM [get_clocks -quiet -of_objects [get_pins -quiet $c/O]]] r f
         if {abs($r)>0.001 || abs($f-$fall)>0.001} {error "PAD/RAW epoch waveform mismatch"}
     }
+    return [dict create raw_pin $rawpin raw_divider $raw pad_divider $pad witness $witness encoder_ffs $encoder_ffs falling_samples $samples falling_sample_count [llength $samples] required $require_raw_handoff]
 }
 # Classify only the exact retained hierarchical control input. Failed queries
 # are not disconnection evidence. A shared global GND may have unrelated loads;
@@ -147,11 +192,11 @@ proc valence_mac_roles::control_fall {hier rise fall} {
     return ground
 }
 
-proc valence_mac_roles::audit {hier t1 selected} {
+proc valence_mac_roles::audit {hier t1 selected {require_raw_handoff 0}} {
     variable coneFacts
     set coneFacts {}
     if {$t1 ni {0 1} || $selected ni {0 1}} {error "Explicit bound two-Boolean mode required"}
-    clocks $hier
+    set raw_clock_facts [clocks $hier $require_raw_handoff]
     set clock [net $hier/tx_pad_clock]
     # Boundary output roles are source-bound. Internal mapped names are observed.
     set outputs [list {*}[lmap i {0 1 2 3} {format {%s/rgmii_tx_data[%d]} $hier $i}] $hier/rgmii_tx_control $hier/rgmii_tx_clock]
@@ -202,7 +247,7 @@ proc valence_mac_roles::audit {hier t1 selected} {
             # rechecked complete encoder/parent + selected RTL source lemma
             # permits this quotient; require the live upstream mapped chain.
             set encoder u_soc/board/nativeBank/gmac/encode
-            if {![same $rise [format {%s/io_rise[4]} $encoder]] || ![same $encoder/clock $hier/tx_clock]} {error "Source control lemma mapped encoder chain mismatch"}
+            if {![same $rise [format {%s/io_rise[4]} $encoder]] || ![same $encoder/clock [dict get $raw_clock_facts raw_pin]]} {error "Source control lemma mapped encoder chain mismatch"}
             set upstream [qff $rise 0 0 [net $encoder/clock] [net $encoder/reset]]
             set fallShape [control_fall $hier $rise $fall]
             if {$fallShape ni {same_net ground disconnected}} {error "Unproved control-fall shape"}
@@ -244,5 +289,5 @@ proc valence_mac_roles::audit {hier t1 selected} {
     }
     set ::valence_mac_roles::last_clock $txc
     set ::valence_mac_roles::last_lanes $lanes
-    return "PASS_MAC_ROLE_SEMANTICS t1=$t1 selected_half=$selected roles={$roles} phase={$phase} previous={$previous} arcs={$arcs} combinational_cones={$coneFacts} timing_qualified=0 exception_coverage=not_checked exception_permission=0"
+    return "PASS_MAC_ROLE_SEMANTICS t1=$t1 selected_half=$selected raw_clock_facts={$raw_clock_facts} roles={$roles} phase={$phase} previous={$previous} arcs={$arcs} combinational_cones={$coneFacts} timing_qualified=0 exception_coverage=not_checked exception_permission=0"
 }

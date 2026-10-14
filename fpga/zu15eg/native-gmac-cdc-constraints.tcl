@@ -29,10 +29,29 @@ proc valence_fifo_payload::one {command name} {
     }
     return $objects
 }
+# Tcl list/dict operations can lose Vivado collection typing. Re-resolve the
+# exact escaped names and verify the entire set before every collection boundary.
+proc valence_fifo_payload::objects {command names} {
+    set expected [lsort -unique $names]
+    if {![llength $expected]} {error "Empty exact object collection"}
+    set patterns [lmap name $expected {format {^%s$} [quote $name]}]
+    set found [$command -quiet -hierarchical -regexp $patterns]
+    if {[llength $found]!=[llength $expected] || [lsort [get_property NAME $found]] ne $expected} {
+        error "Exact object collection changed: $names"
+    }
+    return $found
+}
 proc valence_fifo_payload::clock {pin} {
     set clocks [get_clocks -quiet -of_objects $pin]
     if {[llength $clocks]!=1} {error "FIFO missing/ambiguous clock: $pin"}
     return [get_property NAME $clocks]
+}
+# Typed pins only; the cache belongs to one collect call, never a design stage.
+proc valence_fifo_payload::clock_of {pin cacheName} {
+    upvar 1 $cacheName cache
+    set name [get_property NAME $pin]
+    if {![dict exists $cache $name]} {dict set cache $name [clock $pin]}
+    return [dict get $cache $name]
 }
 proc valence_fifo_payload::collect {hier {width 38}} {
     if {$width!=38} {error "FIFO payload contract requires 38 bits: $hier"}
@@ -40,13 +59,18 @@ proc valence_fifo_payload::collect {hier {width 38}} {
     append pattern {\[[0-9]+\]$}
     set captures [get_cells -quiet -hierarchical -regexp $pattern]
     if {[llength $captures]!=$width} {error "FIFO capture bank shape changed: $hier"}
-    set source [clock [one get_pins $hier/sourceClock]]
-    set target [clock [one get_pins $hier/destinationClock]]
+    set captureNames [get_property NAME $captures]
+    set expectedCaptures {}
+    for {set bit 0} {$bit<$width} {incr bit} {lappend expectedCaptures [format {%s/output_0_reg[%d]} $hier $bit]}
+    if {[lsort $captureNames] ne [lsort $expectedCaptures]} {error "FIFO exact capture bank differs: $hier"}
+    set clockCache {}
+    set source [clock_of [one get_pins $hier/sourceClock] clockCache]
+    set target [clock_of [one get_pins $hier/destinationClock] clockCache]
     set by_end [dict create]; set ordinary_by_end [dict create]
     set ends {}; set starts {}; set ordered {}
     for {set bit 0} {$bit<$width} {incr bit} {
         set name [format {%s/output_0_reg[%d]} $hier $bit]
-        set cell [one get_cells $name]
+        set cell [lindex $captures [lsearch -exact $captureNames $name]]
         if {[get_property IS_SEQUENTIAL $cell] ni {1 TRUE true} ||
             [get_property REF_NAME $cell] ni {FDRE FDSE FDCE FDPE}} {
             error "FIFO capture is not a reviewed FF: $name"
@@ -57,7 +81,7 @@ proc valence_fifo_payload::collect {hier {width 38}} {
             [get_property NAME $end] ne "$name/D" ||
             [get_property NAME $cp] ne "$name/C" ||
             [get_property IS_LEAF $end] ni {1 TRUE true} ||
-            [get_property DIRECTION $end] ne "IN" || [clock $cp] ne $target} {
+            [get_property DIRECTION $end] ne "IN" || [clock_of $cp clockCache] ne $target} {
             error "FIFO capture pin/clock shape changed: $name"
         }
         set launches {}; set ordinary {}
@@ -79,7 +103,7 @@ proc valence_fifo_payload::collect {hier {width 38}} {
                     "[get_property NAME $ram]/C" ne $pname} {
                     error "FIFO ordinary launch is not a reviewed leaf FF clock: $pname"
                 }
-                if {[clock $pin] ne $target} {error "FIFO foreign-domain ordinary launch: $pname"}
+                if {[clock_of $pin clockCache] ne $target} {error "FIFO foreign-domain ordinary launch: $pname"}
                 lappend ordinary $pin
                 continue
             }
@@ -91,7 +115,7 @@ proc valence_fifo_payload::collect {hier {width 38}} {
                 [get_property IS_PRIMITIVE $ram] ni {1 TRUE true}} {
                 error "FIFO RAM startpoint is not a reviewed leaf clock: $pname"
             }
-            if {[clock $pin] ne $source} {error "FIFO RAM write clock mismatch: $pname"}
+            if {[clock_of $pin clockCache] ne $source} {error "FIFO RAM write clock mismatch: $pname"}
             if {[lsearch -exact $launches $pin]>=0} {error "FIFO duplicate RAM startpoint: $pname"}
             lappend launches $pin
             if {[lsearch -exact $starts $pin]<0} {lappend starts $pin}
@@ -103,49 +127,79 @@ proc valence_fifo_payload::collect {hier {width 38}} {
     }
     return [dict create starts $starts ends $ends captures $ordered by_end $by_end ordinary_by_end $ordinary_by_end]
 }
-proc valence_fifo_payload::check_paths {scope {budget {}}} {
-    set numeric {^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$}
-    set checked 0
-    foreach end [dict get $scope ends] {
-        set ename [get_property NAME $end]
-        foreach start [dict get $scope by_end $ename] {
-            set sname [get_property NAME $start]
-            set paths [get_timing_paths -quiet -from $start -to $end -delay_type max -max_paths 1 -nworst 1]
-            if {[llength $paths]!=1} {error "FIFO missing/false-pathed RAM path: $sname -> $ename"}
-            set path [lindex $paths 0]
-            if {[get_property STARTPOINT_PIN $path] ne $sname || [get_property ENDPOINT_PIN $path] ne $ename} {
-                error "FIFO timing startpoint/endpoint mismatch: $sname -> $ename"
-            }
-            if {$budget ne ""} {
-                set requirement [get_property REQUIREMENT $path]
-                set exception [get_property EXCEPTION $path]
-                # An ordinary 8 ns clock requirement is not proof that the
-                # requested max-delay exception is active. Fail on empty or
-                # unrecognized exception types, including a silently ignored
-                # constraint. Exact datapath-only/skew coverage still requires
-                # the Vivado exception and bus-skew reports in the audit.
-                set kind [string tolower [string map {_ {} - {} { } {}} $exception]]
-                if {![regexp $numeric $requirement] || $requirement<=0 ||
-                    $requirement>$budget+0.001 || ![string match maxdelay* $kind]} {
-                    error "FIFO missing/ignored/relaxed max-delay bound: $sname -> $ename requirement=$requirement exception=$exception"
-                }
-            }
-            incr checked
+proc valence_fifo_payload::checked_pair {path expected budget} {
+    set sname [get_property STARTPOINT_PIN $path]
+    set ename [get_property ENDPOINT_PIN $path]
+    set pair [list $sname $ename]
+    if {![dict exists $expected $pair]} {error "FIFO unexpected timing pair: $sname -> $ename"}
+    if {$budget ne ""} {
+        set requirement [get_property REQUIREMENT $path]
+        set exception [get_property EXCEPTION $path]
+        set numeric {^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$}
+        set kind [string tolower [string map {_ {} - {} { } {}} $exception]]
+        if {![regexp $numeric $requirement] || $requirement<=0 ||
+            $requirement>$budget+0.001 || ![string match maxdelay* $kind]} {
+            error "FIFO missing/ignored/relaxed max-delay bound: $sname -> $ename requirement=$requirement exception=$exception"
         }
     }
-    return $checked
+    return $pair
+}
+proc valence_fifo_payload::check_paths {scope {budget {}} {starts {}} {ends {}}} {
+    set begun [::clock milliseconds]
+    if {$starts eq ""} {set starts [objects get_pins [dict get $scope starts]]}
+    if {$ends eq ""} {set ends [objects get_pins [dict get $scope ends]]}
+    set snames [get_property NAME $starts]; set enames [get_property NAME $ends]
+    if {[lsort $snames] ne [lsort -unique [dict get $scope starts]] ||
+        [lsort $enames] ne [lsort -unique [dict get $scope ends]]} {error "FIFO typed scope differs"}
+    set expected {}; set observed {}; set queries 1
+    foreach ename [dict get $scope ends] {
+        foreach sname [dict get $scope by_end $ename] {
+            if {$sname ni $snames} {error "FIFO launch outside exact scope"}
+            dict set expected [list $sname $ename] 1
+        }
+    }
+    puts "FIFO_PATHS_BEGIN starts=[llength $starts] ends=[llength $ends] pairs=[dict size $expected] budget=$budget"
+    flush stdout
+    set paths [get_timing_paths -quiet -from $starts -to $ends -delay_type max -max_paths [llength $ends] -nworst 1]
+    foreach path $paths {dict set observed [checked_pair $path $expected $budget] 1}
+    puts "FIFO_BATCH_DONE covered=[dict size $observed] missing=[expr {[dict size $expected]-[dict size $observed]}] elapsed_ms=[expr {[::clock milliseconds]-$begun}]"
+    flush stdout
+    # Batch worst paths need not cover every legal RAM launch. Query ONLY the
+    # missing exact pairs. Typed objects come from the original collections,
+    # never another full-design regex lookup, and no cache crosses this call.
+    dict for {pair ignored} $expected {
+        if {[dict exists $observed $pair]} {continue}
+        lassign $pair sname ename
+        set start [lindex $starts [lsearch -exact $snames $sname]]
+        set end [lindex $ends [lsearch -exact $enames $ename]]
+        set paths [get_timing_paths -quiet -from $start -to $end -delay_type max -max_paths 1 -nworst 1]
+        incr queries
+        if {[llength $paths]!=1 || [checked_pair [lindex $paths 0] $expected $budget] ne $pair} {
+            error "FIFO missing/false-pathed RAM path: $sname -> $ename"
+        }
+        dict set observed $pair 1
+    }
+    if {[lsort [dict keys $observed]] ne [lsort [dict keys $expected]]} {error "FIFO incomplete exact pair coverage"}
+    puts "FIFO_PATHS_DONE pairs=[dict size $observed] queries=$queries elapsed_ms=[expr {[::clock milliseconds]-$begun}] budget=$budget"
+    flush stdout
+    return [dict size $observed]
 }
 proc valence_fifo_payload_constraints {hier budget} {
     if {![string is double -strict $budget] || $budget<=0 || $budget==Inf} {
         error "FIFO finite positive payload budget required: $hier"
     }
+    set begun [clock milliseconds]
+    puts "FIFO_COLLECT_BEGIN $hier"; flush stdout
     set scope [valence_fifo_payload::collect $hier]
-    # Validate every leaf-to-bit path before creating either exception.
-    valence_fifo_payload::check_paths $scope
-    set starts [dict get $scope starts]; set ends [dict get $scope ends]
+    puts "FIFO_COLLECT_DONE $hier elapsed_ms=[expr {[clock milliseconds]-$begun}]"; flush stdout
+    # Resolve collections once in this gate, then retain typed objects through
+    # pre/post path checking and both unchanged constraints.
+    set starts [valence_fifo_payload::objects get_pins [dict get $scope starts]]
+    set ends [valence_fifo_payload::objects get_pins [dict get $scope ends]]
+    valence_fifo_payload::check_paths $scope {} $starts $ends
     set_max_delay -datapath_only $budget -from $starts -to $ends
     set_bus_skew $budget -from $starts -to $ends
-    set paths [valence_fifo_payload::check_paths $scope $budget]
+    set paths [valence_fifo_payload::check_paths $scope $budget $starts $ends]
     puts "NATIVE_GMAC_RAM_BOUNDED $hier starts=[llength $starts] ends=[llength $ends] paths=$paths budget=$budget EXCEPTION_AND_SKEW_REVIEW_REQUIRED"
 }
 proc valence_native_gmac_cdc_constraints {root budget} {

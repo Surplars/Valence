@@ -53,12 +53,12 @@ proc valence_mac::names {objects} {
 }
 proc valence_mac::quote {text} {return [regsub -all {[][{}().+*?^$\|\\]} $text {\\&}]}
 proc valence_mac::cells {pattern} {return [get_cells -quiet -hierarchical -regexp $pattern]}
-proc valence_mac::pins {objects ref} {return [get_pins -of_objects $objects -filter "REF_PIN_NAME == $ref"]}
+proc valence_mac::pins {objects ref} {return [get_pins -of_objects [valence_fifo_payload::objects get_cells $objects] -filter "REF_PIN_NAME == $ref"]}
 proc valence_mac::drivers {pin} {
-    return [names [get_pins -quiet -leaf -of_objects [get_nets -segments -of_objects $pin] -filter {DIRECTION == OUT}]]
+    return [names [get_pins -quiet -leaf -of_objects [get_nets -segments -of_objects [one get_pins $pin]] -filter {DIRECTION == OUT}]]
 }
 proc valence_mac::loads {pin} {
-    return [names [get_pins -quiet -leaf -of_objects [get_nets -segments -of_objects $pin] -filter {DIRECTION == IN}]]
+    return [names [get_pins -quiet -leaf -of_objects [get_nets -segments -of_objects [one get_pins $pin]] -filter {DIRECTION == IN}]]
 }
 proc valence_mac::same_net {a b} {
     set aa [get_nets -segments -of_objects [one get_pins $a]]
@@ -74,18 +74,18 @@ proc valence_mac::clock {pin} {
 proc valence_mac::ff {cell domain reset_value reset_net {async 0}} {
     variable clocks
     set obj [one get_cells $cell]
-    if {[get_property IS_SEQUENTIAL $obj] ni {1 TRUE true}} {error "MAC launch is not sequential: $cell"}
+    if {[get_property IS_SEQUENTIAL $obj] ni {1 TRUE true 1'b1}} {error "MAC launch is not sequential: $cell"}
     set expected [expr {$reset_value ? "FDPE" : "FDCE"}]
     if {[get_property REF_NAME $obj] ne $expected} {error "MAC reset primitive/polarity requires review: $cell expected $expected"}
     set init [string tolower [get_property INIT $obj]]
     if {$init ni [expr {$reset_value ? {1 1'h1 1'b1} : {0 1'h0 1'b0}}]} {error "MAC INIT/reset value mismatch: $cell"}
     if {[clock $cell/C] ne [dict get $clocks $domain]} {error "MAC wrong register clock: $cell"}
-    if {[get_property IS_C_INVERTED $obj] ni {0 FALSE false}} {error "MAC inverted register clock: $cell"}
+    if {[get_property IS_INVERTED [one get_pins $cell/C]] ni {0 FALSE false 1'b0}} {error "MAC inverted register clock: $cell"}
     set rp [expr {$reset_value ? "PRE" : "CLR"}]
-    if {[get_property IS_${rp}_INVERTED $obj] ni {0 FALSE false}} {error "MAC inverted asynchronous reset: $cell"}
+    if {[get_property IS_INVERTED [one get_pins $cell/$rp]] ni {0 FALSE false 1'b0}} {error "MAC inverted asynchronous reset: $cell"}
     same_net $cell/$rp $reset_net
     if {[llength [drivers $cell/$rp]]!=1} {error "MAC asynchronous reset does not have one leaf driver: $cell"}
-    if {$async && [get_property ASYNC_REG $obj] ni {1 TRUE true}} {error "MAC missing ASYNC_REG: $cell"}
+    if {$async && [get_property ASYNC_REG $obj] ni {1 TRUE true 1'b1}} {error "MAC missing ASYNC_REG: $cell"}
     if {$async} {
         set ce [get_nets -of_objects [one get_pins $cell/CE]]
         if {[llength $ce]!=1 || [get_property TYPE $ce] ne "POWER"} {error "MAC synchronizer CE must be always enabled: $cell"}
@@ -131,11 +131,13 @@ proc valence_mac::level {path launch source target source_reset target_reset} {
 proc valence_mac::timed {label starts ends budget {skew 0} {hold 0}} {
     variable facts; variable out
     if {![llength $starts] || ![llength $ends]} {error "MAC empty timing scope: $label"}
+    set starts [valence_fifo_payload::objects get_pins $starts]
+    set ends [valence_fifo_payload::objects get_pins $ends]
     # One query per exact endpoint avoids the old count-only duplicate coverage
     # mistake. Check every returned endpoint identity and finite requirement.
     foreach end $ends {
         foreach type [expr {$hold ? {max min} : {max}}] {
-            set paths [get_timing_paths -quiet -from $starts -to $end -delay_type $type -max_paths 1 -nworst 1]
+            set paths [get_timing_paths -quiet -from $starts -to [one get_pins $end] -delay_type $type -max_paths 1 -nworst 1]
             if {[llength $paths]!=1} {error "MAC missing/false-pathed $type path: $label -> $end"}
             set p [lindex $paths 0]
             if {[get_property ENDPOINT_PIN $p] ne $end} {error "MAC timing endpoint mismatch: $label"}
@@ -218,7 +220,7 @@ proc valence_mac::collect {contract binding output mbps} {
         set tx_seen 0
         foreach start $starts {
             set c [get_cells -quiet -of_objects $start]
-            if {[llength $c]!=1 || [get_property IS_SEQUENTIAL $c] ni {1 TRUE true}} {error "MAC unreviewed idle-source fanin: $start"}
+            if {[llength $c]!=1 || [get_property IS_SEQUENTIAL $c] ni {1 TRUE true 1'b1}} {error "MAC unreviewed idle-source fanin: $start"}
             if {[string first $root/tx/ [get_property NAME $c]]==0} {set tx_seen 1}
             set clkpin [one get_pins [get_property NAME $c]/C]
             if {[clock $clkpin] ne [dict get $clocks raw_tx]} {error "MAC idle-source fanin is not related raw/managed TX"}
@@ -314,7 +316,7 @@ proc valence_mac::mailbox {path width from to} {
     foreach reg {valid token} {ff $h/${reg}_reg mailbox_destination 0 $dr}
     set held [bank $h/held_reg $width]; set captured [bank $h/captured_reg $width]
     foreach reg [concat $held $captured] {
-        if {[get_property IS_SEQUENTIAL [get_cells $reg]] ni {1 TRUE true} || ![string match FD* [get_property REF_NAME [get_cells $reg]]]} {error "MAC held/captured bundle must be real FFs: $reg"}
+        if {[get_property IS_SEQUENTIAL [get_cells $reg]] ni {1 TRUE true 1'b1} || ![string match FD* [get_property REF_NAME [get_cells $reg]]]} {error "MAC held/captured bundle must be real FFs: $reg"}
     }
     foreach reg $held {if {[clock $reg/C] ne $src} {error "MAC held bundle source clock mismatch: $path"}}
     foreach reg $captured launch $held {

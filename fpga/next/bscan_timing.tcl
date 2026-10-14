@@ -8,7 +8,16 @@ proc valence_bscan_one {kind name} {
     if {$name eq "" || [regexp {[\*\?]} $name]} {error "Exact BSCAN object required"}
     set objects [${kind} -quiet $name]
     if {[llength $objects] != 1} {error "Missing/ambiguous BSCAN object: $name"}
-    return [lindex $objects 0]
+    return [${kind} -quiet $name]
+}
+# Reconstitute exact object collections after Tcl list assembly.
+proc valence_bscan_objects {kind names} {
+ set expected [lsort -unique $names]
+ if {![llength $expected] || [llength $expected]!=[llength $names]} {error {Empty/duplicate BSCAN exact collection}}
+ foreach name $expected {if {$name eq "" || [regexp {[\*\?]} $name]} {error {BSCAN refuses wildcard objects}}}
+ set found [$kind -quiet $expected]
+ if {[llength $found]!=[llength $expected] || [lsort [get_property NAME $found]] ne $expected} {error {BSCAN exact typed collection differs}}
+ return [$kind -quiet $expected]
 }
 proc valence_bscan_bank {engine tail count {sync 0}} {
     if {$engine eq "" || [regexp {[\*\?\[\]]} $engine]} {error "Exact BSCAN engine required"}
@@ -19,9 +28,9 @@ proc valence_bscan_bank {engine tail count {sync 0}} {
         set name [expr {$count == 1 ? "${engine}/${tail}_reg" : [format {%s/%s_reg[%d]} $engine $tail $i]}]
         set cell [valence_bscan_one get_cells $name]
         if {[lsearch -exact $cells $cell] < 0} {error "BSCAN bank index mismatch: $name"}
-        if {$sync && [get_property ASYNC_REG $cell] ni {TRUE true 1}} {error "Missing ASYNC_REG: $cell"}
+        if {$sync && [get_property ASYNC_REG [valence_bscan_one get_cells $cell]] ni {TRUE true 1}} {error "Missing ASYNC_REG: $cell"}
     }
-    return $cells
+    return [get_cells -quiet -hierarchical -regexp [format {^%s_reg(\[[0-9]+\])?$} $root]]
 }
 proc valence_bscan_pin {cell pin} {return [valence_bscan_one get_pins $cell/$pin]}
 proc valence_bscan_net_pins {pin direction} {
@@ -40,7 +49,7 @@ proc valence_bscan_release {engine tail inverted expected_clock} {
     set clock {}; set assertion {}; set previous {}; set async_pins {}
     for {set i 0} {$i < 3} {incr i} {
         set cell [valence_bscan_one get_cells [format {%s/%s_reg[%d]} $engine $tail $i]]
-        if {[get_property REF_NAME $cell] ne "FDCE" ||
+        if {[get_property REF_NAME [valence_bscan_one get_cells $cell]] ne "FDCE" ||
             [get_property IS_INVERTED [valence_bscan_pin $cell C]] != $inverted} {error "BSCAN release type/edge mismatch: $cell"}
         set clock_pin [valence_bscan_pin $cell C]
         if {[get_clocks -quiet -of_objects $clock_pin] ne [list $expected_clock]} {
@@ -52,8 +61,8 @@ proc valence_bscan_release {engine tail inverted expected_clock} {
         if {$c ne $clock || $r ne $assertion} {error "BSCAN release clock/assertion mismatch: $cell"}
         set d [valence_bscan_driver [valence_bscan_pin $cell D]]
         if {$i == 0} {
-            set constant [get_cells -quiet -of_objects $d]
-            if {[llength $constant] != 1 || [get_property REF_NAME $constant] ne "VCC"} {
+            set constant [get_cells -quiet -of_objects [valence_bscan_one get_pins $d]]
+            if {[llength $constant] != 1 || [get_property REF_NAME [valence_bscan_one get_cells $constant]] ne "VCC"} {
                 error "BSCAN release must start with constant one: $cell"
             }
         } else {
@@ -67,7 +76,7 @@ proc valence_bscan_release {engine tail inverted expected_clock} {
     }
     # Only the 3 checked synchronizer CLR pins; never functional reset sinks,
     # D/Q paths, update_seen, qualifier data, or the UPDATE bank's D/CE pins.
-    set_false_path -to $async_pins
+    set_false_path -to [valence_bscan_objects get_pins $async_pins]
     puts "BSCAN_RESET_RELEASE tail=$tail edge_inverted=$inverted clr=$async_pins"
 }
 proc valence_bscan_qualifiers {primitive engine} {
@@ -89,7 +98,7 @@ proc valence_bscan_qualifiers {primitive engine} {
         if {[get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_tck}} {
             error "BSCAN qualifier clock domain mismatch: $cell"
         }
-        if {[get_property REF_NAME $cell] ne "FDCE" || [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0} {
+        if {[get_property REF_NAME [valence_bscan_one get_cells $cell]] ne "FDCE" || [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0} {
             error "BSCAN qualifier must remain a positive-TCK resettable register: $cell"
         }
     }
@@ -121,7 +130,7 @@ proc valence_bscan_phase_handoff {engine} {
         set bank [valence_bscan_bank $engine $tail $count]
         lappend handoff_cells {*}$bank
         foreach cell $bank {
-            if {[get_property REF_NAME $cell] ne "FDCE" ||
+            if {[get_property REF_NAME [valence_bscan_one get_cells $cell]] ne "FDCE" ||
                 [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0 ||
                 [get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_tck}} {
                 error "BSCAN handoff must remain positive TCK: $cell"
@@ -153,14 +162,14 @@ proc valence_bscan_phase_handoff {engine} {
         lappend shift_cells {*}[valence_bscan_bank $engine $tail $count]
     }
     foreach cell $shift_cells {
-        if {[get_property REF_NAME $cell] ne "FDCE" ||
+        if {[get_property REF_NAME [valence_bscan_one get_cells $cell]] ne "FDCE" ||
             [get_property IS_INVERTED [valence_bscan_pin $cell C]] != 0 ||
             [get_clocks -quiet -of_objects [valence_bscan_pin $cell C]] ne {valence_bscan_drck}} {
             error "BSCAN shift storage must remain positive DRCK: $cell"
         }
     }
     set hard_reset [valence_bscan_bank $engine hard_reset 1]
-    if {[get_property REF_NAME $hard_reset] ne "FDCE" ||
+    if {[get_property REF_NAME [valence_bscan_one get_cells $hard_reset]] ne "FDCE" ||
         [get_property IS_INVERTED [valence_bscan_pin $hard_reset C]] != 1 ||
         [get_clocks -quiet -of_objects [valence_bscan_pin $hard_reset C]] ne {valence_bscan_tck}} {
         error "BSCAN hard reset must remain negative TCK"
@@ -188,7 +197,7 @@ proc valence_bscan_fault_phase {engine} {
     set sample [valence_bscan_bank $engine fault_sample 1]
     set raw [valence_bscan_bank $engine update_overrun 1]
     set sticky [valence_bscan_bank $engine protocol_error 1]
-    if {[get_property REF_NAME $sample] ne "FDCE" ||
+    if {[get_property REF_NAME [valence_bscan_one get_cells $sample]] ne "FDCE" ||
         [get_property IS_INVERTED [valence_bscan_pin $sample C]] != 0 ||
         [get_clocks -quiet -of_objects [valence_bscan_pin $sample C]] ne {valence_bscan_tck}} {
         error "BSCAN fault sample must remain positive TCK"
@@ -197,8 +206,8 @@ proc valence_bscan_fault_phase {engine} {
         error "BSCAN fault sample input must be direct UPDATE overrun"
     }
     set enable_driver [valence_bscan_driver [valence_bscan_pin $sample CE]]
-    set enable_cell [get_cells -quiet -of_objects $enable_driver]
-    if {[llength $enable_cell] != 1 || [get_property REF_NAME $enable_cell] ne "VCC"} {
+    set enable_cell [get_cells -quiet -of_objects [valence_bscan_one get_pins $enable_driver]]
+    if {[llength $enable_cell] != 1 || [get_property REF_NAME [valence_bscan_one get_cells $enable_cell]] ne "VCC"} {
         error "BSCAN fault sample must capture every positive TCK"
     }
     set expected [format {%s/source_release_reg[2]/C} $engine]
