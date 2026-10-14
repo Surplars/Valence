@@ -195,7 +195,9 @@ case class OooParams(
     // Tagged reservations are registered and keep their real LSU response owner ready.
     localTaggedResponseReady: Boolean = false,
     // Keep an unissued younger physical load from closing an older posted join window.
-    postedYoungerLoadSealDeferral: Boolean = false
+    postedYoungerLoadSealDeferral: Boolean = false,
+    // Stable held ordinary-ALU data may feed the next authorized operand capture.
+    heldAluIssueForwarding: Boolean = false
 ) {
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
@@ -456,6 +458,12 @@ case class OooParams(
         precompleteMispredictedBranch && registeredRobRetirement && !fastBufferedStoreRetire &&
         !fastHeadLoadRetire && !moveAlias),
         "operand execution stages require the two-slot non-aliased registered redirect/retirement contract")
+    require(!heldAluIssueForwarding || (registeredIssueExecute && registeredLoadIssueForwarding &&
+        parallelIssuePayload && parallelIssueRanks && parallelRecoveryAdmission &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 &&
+        robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
+        !moveAlias && !loadCompletionBypass && !mulWordPreviewBypass),
+        "held ALU forwarding requires the full-tag ROB16/PRF48 two-lane registered ranked topology")
     require(!registeredLoadIssueForwarding || (registeredIssueExecute && !loadCompletionBypass),
         "load issue forwarding requires registered operand capture and excludes broad load bypass")
     require(!registeredFetchPacket || renameWidth <= 4,

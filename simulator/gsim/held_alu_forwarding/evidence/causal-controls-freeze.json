@@ -1,0 +1,13 @@
+{
+  "guest_freeze_sha256": "ae21643c1f18e6df7bce21921e52623ed3f3a97b4de4bd3d5854967108817196",
+  "host_binary_sha256": "35f0ad104b222228ef9c5767b1944822fd2b26977038ca212a82e24a2c628645",
+  "runner_sha256": "2c21720a47009ff7f9f6dddc8d14ba3407a11e1198454ab249d53a3fb89dbdb1",
+  "controls": {
+    "value": "INDEPENDENT_COMPLETION_VALUE",
+    "owner": "INDEPENDENT_FULL_TOKEN_COMPLETION_ADMISSION"
+  },
+  "bounds": {
+    "cycles": 30000,
+    "seconds": 120
+  }
+}

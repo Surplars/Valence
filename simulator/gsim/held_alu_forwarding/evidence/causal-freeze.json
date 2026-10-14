@@ -1,0 +1,46 @@
+{
+  "schema": "b1-single-causal-guest-correction-v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "original_guest_sha256": "878ad62bccf6eb23f9e3b54c41ab7debfd4781ef442648858ca1c621403f390c",
+  "guest_sha256": "fa67bf239f31ee1392f4cd2d68382718ea869a6fca001fc8f637f51110141447",
+  "original_input_sha256": "5a2dc5430e02b4d9b1a5f21b1825616d6f3dbf3b24e99638ff0ef5569058d866",
+  "input_sha256": "68e66f3d9700b31f0be030f0af8cd31fb7e692118d2cc80747a7e2f2193962c3",
+  "instruction_changes": [
+    {
+      "pc": "0x8020006c",
+      "before": "0x1138493",
+      "after": "0x1110493",
+      "rs1_before": 7,
+      "rs1_after": 2
+    },
+    {
+      "pc": "0x80200070",
+      "before": "0x10040513",
+      "after": "0x10010513",
+      "rs1_before": 8,
+      "rs1_after": 2
+    }
+  ],
+  "seed_change": {
+    "address": "0x80400000",
+    "before": "0x10203040",
+    "after": "0x80400000"
+  },
+  "name_change_only_for_result_identity": true,
+  "unchanged": "All other guest bytes, PCs, service laws, response timings, expected signatures/sentinel, bounds, host checkers, models and objects",
+  "cycles": 30000,
+  "timeout_seconds": 120,
+  "mode_order": [
+    "off",
+    "on"
+  ],
+  "attempts_per_mode": 1,
+  "expected_minimal_witness": "P0 captured as second-ready ALU at first real load completion; C1 captures held P0 during next actual load completion. No guarantee of P0 still held at C1 acceptance or descendant starts.",
+  "all_stronger_witnesses_remain_required_for_qualification": true,
+  "files": {
+    "guest.bin": "fa67bf239f31ee1392f4cd2d68382718ea869a6fca001fc8f637f51110141447",
+    "input.txt": "68e66f3d9700b31f0be030f0af8cd31fb7e692118d2cc80747a7e2f2193962c3",
+    "prepare.py": "9cd92ce9e9327d3c4637fdd61fdf1695dd236a079fdc138bc25bcafabf4c8b56",
+    "run.py": "6ffc89259e75404b32331a4648790bbb8baf4c5500d04c254e0eb2547f3650d0"
+  }
+}

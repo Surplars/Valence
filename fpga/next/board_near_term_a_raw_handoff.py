@@ -31,15 +31,10 @@ def load_profile():
     for key in ('historical_certificate_reused', 'physical_qualification', 'full_cpu_run_required'):
         if profile[key] is not False:
             raise RuntimeError('unapproved qualification or execution claim: ' + key)
-    spec = importlib.util.spec_from_file_location('mac_raw_seal_source_bridge', HERE / 'young_load_seal_source_bridge.py')
+    spec = importlib.util.spec_from_file_location('raw_mac_held_alu_bridge', HERE / 'held_alu_source_bridge.py')
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
-    bridge.validate_mac_raw_contract(ROOT, MANIFEST, profile)
-    for name, digest in profile['production_leaf_sha256'].items():
-        expected_digest = bridge.mac_raw_source_digest(name, digest)
-        path = Path(name)
-        if path.is_absolute() or '..' in path.parts or sha(ROOT / path) != expected_digest:
-            raise RuntimeError('source-bound MAC entry leaf differs: ' + name)
+    bridge.validate_historical_sources(MANIFEST, profile['production_leaf_sha256'])
     return profile
 
 

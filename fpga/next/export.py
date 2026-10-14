@@ -32,6 +32,8 @@ _t1_spec.loader.exec_module(board_t1)
 NEARTERM_A_FLAGS = ("fetch_accepted_prefix_validation", "aligned_fetch_single_page",
                     "factor_checked_next_allowed", "local_tagged_response_ready")
 
+HELD_ALU_FLAGS = ("held_alu_issue_forwarding",)
+
 LOCALITY_FLAGS = ("fetch_ready_data_clear", "memory_preparation_head_mask",
                   "direct_rank0_memory_source_ids", "retirement_slot_identity", "local_cache_read_selection")
 
@@ -58,6 +60,19 @@ def check_locality_topology(enabled, core, *, coherent_line_cache, read_mshrs):
     for field, (valid, reason) in requirements.items():
         if enabled[field] and not valid:
             raise ValueError("--" + field.replace("_", "-") + " requires " + reason)
+
+
+def check_held_alu_topology(enabled, core):
+    """Exact OooParams guard; no option-derived activation inference."""
+    positive = ("registeredIssueExecute", "registeredLoadIssueForwarding", "parallelIssuePayload",
+                "parallelIssueRanks", "parallelRecoveryAdmission")
+    negative = ("moveAlias", "loadCompletionBypass", "mulWordPreviewBypass")
+    sizes = {"renameWidth": 2, "completionWidth": 2, "commitWidth": 2,
+             "robEntries": 16, "physicalRegs": 48, "tagBits": 64}
+    if enabled and not (all(core[x] is True for x in positive) and
+                        all(core[x] is False for x in negative) and
+                        all(type(core[x]) is int and core[x] == n for x, n in sizes.items())):
+        raise ValueError("--held-alu-issue-forwarding requires full-tag ROB16/PRF48 two-lane registered ranked topology")
 
 
 def sha(path):
@@ -90,6 +105,12 @@ def sources():
         "fpga/next/near-term-a-raw-handoff-profile.json",
         "fpga/next/near-term-a-mac-platform-compat.json",
         "fpga/next/mac_platform_source_bridge.py",
+        "fpga/next/held_alu_source_bridge.py", "fpga/next/held-alu-source-compat.json",
+        "fpga/next/board_held_alu.py", "fpga/next/held-alu-profile.json",
+        "src/test/scala/ooo/HeldAluIntegrationProfile.scala",
+        "src/test/scala/ooo/HeldAluIntegrationActualAudit.scala",
+        "src/test/scala/ooo/HeldAluIntegrationFullCpuMain.scala",
+        "src/test/scala/ooo/HeldAluIntegrationConfigSpec.scala",
         "fpga/next/near-term-a-before-mac-platform.json",
         "fpga/next/soc_top_fpga_next_ddr.sv", "fpga/zu15eg/soc_top_gmac_ddr.sv", "fpga/next/check_jtag_chain.tcl",
         "fpga/next/media_integration.py", "fpga/next/performance.py",
@@ -210,7 +231,7 @@ def main(argv=None, expected_profile_sha256=None):
                     help="default-off registered translated-queue occupancy payload selection")
     ap.add_argument("--aligned-next-line-pmp", action="count", default=0,
                     help="default-off exact aligned 64-byte next-line PMP end construction")
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
         ap.add_argument("--" + field.replace("_", "-"), action="count", default=0,
                         help="explicit default-off timing locality option; Scala topology requirements apply")
     ap.add_argument("--register-probe-lookup", action="count", default=0,
@@ -441,7 +462,7 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field) > 1:
             ap.error("duplicate --" + field.replace("_", "-") + " flag")
         setattr(a, field, bool(getattr(a, field)))
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
         flag = "--" + field.replace("_", "-")
         if getattr(a, field) > 1:
             ap.error("duplicate " + flag)
@@ -461,6 +482,17 @@ def main(argv=None, expected_profile_sha256=None):
             "tagBits": 64, "robEntries": a.rob_entries if a.rob_entries is not None else 16,
             "retirementIntent": a.retirement_intent, "memoryProofFrontier": a.memory_proof_frontier,
         }, coherent_line_cache=True, read_mshrs=2)
+    except ValueError as error:
+        ap.error(str(error))
+    try:
+        check_held_alu_topology(a.held_alu_issue_forwarding, {
+            "registeredIssueExecute": True, "registeredLoadIssueForwarding": True,
+            "parallelIssuePayload": True, "parallelIssueRanks": True, "parallelRecoveryAdmission": True,
+            "renameWidth": 2, "completionWidth": 2, "commitWidth": 2, "tagBits": 64,
+            "robEntries": a.rob_entries if a.rob_entries is not None else 16,
+            "physicalRegs": a.physical_regs if a.physical_regs is not None else 48,
+            "moveAlias": False, "loadCompletionBypass": False, "mulWordPreviewBypass": False,
+        })
     except ValueError as error:
         ap.error(str(error))
     if a.local_tagged_response_ready and not a.tagged_store_returns:
@@ -642,7 +674,7 @@ def main(argv=None, expected_profile_sha256=None):
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
         if getattr(a, field):
             profile["profile"][field] = True
             profile["profile"]["name"] += "-" + field.replace("_", "-")
@@ -753,9 +785,20 @@ def main(argv=None, expected_profile_sha256=None):
         if digest != expected_profile_sha256:
             ap.error("performance preset full profile changed; requalification required")
     before = sources()
-    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", head):
-        raise RuntimeError("unresolved source revision")
+    source_identity = None
+    try:
+        head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                       text=True, stderr=subprocess.PIPE).strip()
+        if not re.fullmatch(r"[0-9a-f]{40}", head):
+            raise RuntimeError("unresolved source revision")
+    except subprocess.CalledProcessError:
+        # An isolated frozen source copy has no Git checkout. Authenticate its
+        # complete closure; never report the parent commit as its current HEAD.
+        spec = importlib.util.spec_from_file_location("held_alu_snapshot_bridge", HERE / "held_alu_source_bridge.py")
+        bridge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bridge)
+        source_identity = bridge.checked_sources()["source_identity"]
+        head = None
     output = a.output.resolve()
     if output.exists():
         raise RuntimeError("refusing existing export output: " + str(output))
@@ -922,14 +965,14 @@ def main(argv=None, expected_profile_sha256=None):
     if a.pending_store_early_load_credits != 1 or any(
             option.split("=", 1)[0] == "--pending-store-early-load-credits" for option in raw_args):
         command.append(f"--pending-store-early-load-credits={a.pending_store_early_load_credits}")
-    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS:
+    for field in LOCALITY_FLAGS + NEARTERM_A_FLAGS + HELD_ALU_FLAGS:
         if getattr(a, field):
             command.append("--" + field.replace("_", "-"))
     if a.posted_younger_load_seal_deferral:
         command.append("--posted-younger-load-seal-deferral")
     if not a.emit:
         print(json.dumps({"status": "PREFLIGHT_ONLY", "profile": profile["profile"]["name"],
-            "git_head": head, "source_files": len(before), "output": str(output),
+            "git_head": head, "source_identity": source_identity, "source_files": len(before), "output": str(output),
             "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
             "data_translation_entries": a.data_translation_entries,
             "instruction_translation_entries": 8, "pte_cache_entries": 4,
@@ -972,7 +1015,7 @@ def main(argv=None, expected_profile_sha256=None):
     output.mkdir(parents=True)
     receipt = {"schema": "valence-fpga-next-export-v1", "status": "RUNNING",
         "tri_speed_raw_clock_handoff": a.tri_speed_raw_clock_handoff,
-        "baseline_source_commit": profile["source_commit"], "git_head": head,
+        "baseline_source_commit": profile["source_commit"], "git_head": head, "source_identity": source_identity,
         "source_sha256": before, "profile": profile["profile"],
         "virtual_ram_load_precheck": a.virtual_ram_load_precheck,
         "native_mac_mode": native_mac_mode,
@@ -985,6 +1028,14 @@ def main(argv=None, expected_profile_sha256=None):
         receipt["exit"] = result.returncode
         if result.returncode:
             raise RuntimeError("RTL export failed; see " + str(output / "elaborate.log"))
+        resolved = json.loads((rtl / "profile.json").read_text())
+        actual = json.loads((rtl / "actual-held-alu-forwarding.json").read_text())
+        if resolved["core"]["heldAluIssueForwarding"] is not a.held_alu_issue_forwarding or                 resolved["profile"]["heldAluIssueForwarding"] is not a.held_alu_issue_forwarding or                 actual["heldAluIssueForwarding"] is not a.held_alu_issue_forwarding:
+            raise RuntimeError("actual held ALU constructor differs from explicit option")
+        check_held_alu_topology(a.held_alu_issue_forwarding, resolved["core"])
+        for leaf in ("core", "backend", "ledger"):
+            if actual[leaf] != resolved["core"]:
+                raise RuntimeError("complete actual held ALU leaf product differs: " + leaf)
         if before != sources():
             raise RuntimeError("source changed during export")
         inventory = {p.relative_to(output).as_posix(): sha(p) for p in sorted(rtl.rglob("*")) if p.is_file()}

@@ -17,6 +17,7 @@ object FpgaNextMain extends App {
     val output = Path.of(args(0)).toAbsolutePath
     require(!Files.exists(output), "FPGA-next export requires a fresh directory")
     Files.createDirectories(output)
+    var actualHeldAlu: Option[Map[String, Any]] = None
     var actualMacHandoff: Option[Map[String, Any]] = None
     var actualTiming: Option[Map[String, Any]] = None
     var actualEagerPrefix: Option[Map[String, Any]] = None
@@ -30,6 +31,7 @@ object FpgaNextMain extends App {
         val dut = new FpgaNextSocTop(config,
             JtagDebugParams(enabled = options.contains("--experimental-jtag-stub") || options.contains("--experimental-jtag-ram"),
                 externalDmi = options.contains("--experimental-jtag-ram")), bscanChain = bscanChain)
+        actualHeldAlu = Some(HeldAluIntegrationActualAudit.capture(dut.board.platform, config))
         actualMacHandoff = Some(MacRawHandoffEntryAudit.capture(dut.board, config))
         actualTiming = Some(TimingBatchActualAudit.capture(dut.board.platform, config))
         actualEagerPrefix = Some(EagerPrefixActualAudit.capture(dut.board.platform, config))
@@ -45,6 +47,8 @@ object FpgaNextMain extends App {
         Array("--strip-debug-info", "--disable-all-randomization", "--default-layer-specialization=disable"))
     Files.writeString(output.resolve("actual-mac-raw-handoff.json"),
         PostedBoardConfiguration.json(actualMacHandoff.get) + "\n")
+    Files.writeString(output.resolve("actual-held-alu-forwarding.json"),
+        PostedBoardConfiguration.json(actualHeldAlu.get) + "\n")
     TimingBatchActualAudit.write(actualTiming.get, output.toString)
     EagerPrefixActualAudit.write(actualEagerPrefix.get, output.toString)
     OwnerRowActualAudit.write(actualOwnerRow.get, output.toString)

@@ -33,7 +33,7 @@ private[ooo] object NearTermAProfile {
         on.floatingPointResources == rollback.floatingPointResources)
     for (c <- Seq(rollback, on)) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(!c.triSpeedRawClockHandoff && c.productArity == 90 && c.coreParams.productArity == 173 &&
+        require(!c.triSpeedRawClockHandoff && !c.heldAluIssueForwarding && c.productArity == 91 && c.coreParams.productArity == 174 &&
             c.cache.productArity == 23 && c.ddr.productArity == 9)
         require(PlacedTimingProfileBridge.historicalAFields(c).size == 88 &&
             PlacedTimingProfileBridge.historicalAFields(c.coreParams).size == 172)
@@ -63,7 +63,10 @@ private[ooo] object NearTermAProfile {
     }
     val sourceBridge = Map("schema" -> "near-term-a-source-bridge-v1", "baseCommit" -> baseCommit,
         "baseTree" -> "d498b36d8da24d06e9143428a0b7c042c88dff66", "rollbackCpuOptions" -> 64,
-        "candidateCpuOptions" -> 68, "originalCoreFields" -> 168, "candidateCoreFields" -> 172,
+        "candidateCpuOptions" -> 68, "originalCoreFields" -> 168, "candidateCoreFields" -> 174,
+        "currentProfileFields" -> 91, "historicalACoreFields" -> 172, "historicalAProfileFields" -> 88,
+        "compatibilityCoreTail" -> Seq("postedYoungerLoadSealDeferral", "heldAluIssueForwarding"),
+        "compatibilityProfileTail" -> Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding"),
         "newDefaultOffFields" -> fields, "originalProfileSha256" -> "787e1cd167a447b2215a642449d0ebb169e24ccc1ea83ba33f3f79a8372740a5",
         "physicalMacGenericsSeparate" -> true, "qualificationInherited" -> false, "physicalQualification" -> false)
 }

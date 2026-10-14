@@ -1,0 +1,6 @@
+{
+  "first_failure_raw_log_sha256": "6aefa414306b169a96f7530b01633d76c98d8bcc5915f50fe81eaadcfc065454",
+  "correction_diff_sha256": "d8393cc562e41a1dbb2630d21f1f992e32a3c0a3e9959e53e80ecec2999243a1",
+  "reason": "Host expected page fault flags2; authoritative adapter error=true,pageFault=true packs exact flags3.",
+  "applicability": "Local page-fault response predicate changed from2to3; second change only prints cycle/token/flags on failure. D1-D3 do not take this local page-fault response path, so prior passing receipts remain applicable without rerun."
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "held-alu-retained-gate-references-v1",
+  "historical_runner_sha256": "0f8bb12f449a6a05db390019c755bd005999cee9e048dcbc593979910c0b147f",
+  "historical_final_audit": "evidence/same-object-final-audit.json",
+  "historical_final_audit_sha256": "1b009930485fc1a4567dff324f18a9d2331dfff9b65bd766eba819815271d1fc",
+  "gate_sources": {
+    "../harness/board_hot_nemu/reference.h": "06e192eb8918b40554fc24ed99504ee2b86d132e1558588a974dffec47a18508",
+    "../harness/board_hot_nemu/board_nemu_observer.h": "0648eab4d14adad6a98a08b1d84d0f9fc45cc8ee974dc6833d76609a0c468aac",
+    "../cpu_flow_board_nemu.py": "88ce84cb8349f1070b19377bfd49d585228803eadcb5ea1f439a59cba8228b57",
+    "../cpu_flow_data_pmp.py": "d6b0efd9d3e2a15d61e8d1039ec10986948e99c4356a75a2708cb3d6a45d98e1"
+  },
+  "scope": "Original same-object hot/compressed NEMU, pc/gpr/memory negative rejection, precise short/word PMP. Original host guest oracle bytes, CSR and mailbox assertions preserved; no replacement by bounded observer.",
+  "replay_status": "REFERENCE_ONLY_NOT_REEXECUTED_FOR_PUBLICATION"
+}

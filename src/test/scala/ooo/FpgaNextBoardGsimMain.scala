@@ -41,6 +41,7 @@ object FpgaNextBoardGsim {
         alignedFetchSinglePage = c.alignedFetchSinglePage,
         factorCheckedNextAllowed = c.factorCheckedNextAllowed,
         localTaggedResponseReady = c.localTaggedResponseReady,
+        heldAluIssueForwarding = c.heldAluIssueForwarding,
         directRegisteredExecutionOperands = c.directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = c.sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = c.eagerFetchPrefixSelect,

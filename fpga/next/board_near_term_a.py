@@ -37,8 +37,11 @@ def load_profile():
     if profile['physical_option_count'] != 2 or any(profile[n] is not False for n in
             ('full_cpu_qualification', 'physical_qualification', 'historical_certificate_reused')):
         raise RuntimeError('CPU and physical option/qualification domains differ')
-    bridge = load_module('near_term_a_source_bridge', HERE / 'young_load_seal_source_bridge.py')
-    bridge.validate_legacy_sources(ROOT, MANIFEST, profile, options)
+    leaves = profile['production_leaf_sha256']
+    if not leaves:
+        raise RuntimeError('unfrozen near-term A production leaves')
+    bridge = load_module('a_held_alu_source_bridge', HERE / 'held_alu_source_bridge.py')
+    bridge.validate_historical_sources(MANIFEST, leaves)
     return profile
 
 

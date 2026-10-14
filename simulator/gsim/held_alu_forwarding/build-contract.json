@@ -1,0 +1,90 @@
+{
+  "schema": "held-alu-bounded-host-build-v1",
+  "flags": [
+    "-std=c++20",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-DDDR_MODEL=1",
+    "-DDDR_MULTI_ID_MODEL=1",
+    "-DDDR_BENCHMARK_MODEL=1",
+    "-DBOARD_CPU_HZ=100000000",
+    "-DBOARD_UART_BAUD=460800",
+    "-DUART_DIVISOR=1",
+    "-DBOARD_DDR_BYTES=2147483648ULL",
+    "-DDDR_READ_CREDITS=8",
+    "-DDDR_READ_LATENCY=32",
+    "-DDDR_READ_BEAT_GAP=1",
+    "-DBOARD_CYCLE_LIMIT=30000ULL",
+    "-DBOARD_EXPECTED_LSU_ENTRIES=4",
+    "-DREAD_PREFETCH_DIRTY_RETRY=1",
+    "-DREAD_PREFETCH_DEMAND_ADOPTION=1",
+    "-DREAD_PREFETCH_BEHIND_STORE=1",
+    "-DDURABLE_READ_PREFETCH_CANDIDATE=1",
+    "-DTAGGED_STORE_RETURNS=1",
+    "-DCONCURRENT_READ_STORE_PREFETCH=1",
+    "-DMEMORY_SCHEDULE_OVERLAP=1",
+    "-Werror=shift-count-overflow",
+    "-Werror=shift-count-negative"
+  ],
+  "historical_model_identity": {
+    "off": {
+      "header_sha256": "1608a66357621c0c0c2365a63ca046ec32a841ffa7677530846097bde2e204f6",
+      "fir_sha256": "e7555fa1142620ea91e84888fa6069b37416bb5224a8cc45dc4d575454bbe30e"
+    },
+    "on": {
+      "header_sha256": "01e03070668159515283b03f9aa1e7e6865d563719b8710846840499b7885e78",
+      "fir_sha256": "652e4e4f80ac09d9277efa8ac24071303d2e4d8f60f18493ff4d4cd1d60b2c86"
+    }
+  },
+  "model_object_names": [
+    "BoardSocGsim0.o",
+    "BoardSocGsim1.o",
+    "BoardSocGsim2.o",
+    "BoardSocGsim3.o",
+    "BoardSocGsim4.o",
+    "BoardSocGsim5.o",
+    "BoardSocGsim6.o",
+    "BoardSocGsim7.o",
+    "BoardSocGsim8.o",
+    "BoardSocGsim9.o",
+    "BoardSocGsim10.o",
+    "BoardSocGsim11.o",
+    "BoardSocGsim12.o",
+    "BoardSocGsim13.o",
+    "BoardSocGsim14.o",
+    "BoardSocGsim15.o",
+    "BoardSocGsim16.o",
+    "BoardSocGsim17.o",
+    "BoardSocGsim18.o",
+    "BoardSocGsim19.o",
+    "BoardSocGsim20.o",
+    "BoardSocGsim21.o",
+    "BoardSocGsim22.o",
+    "BoardSocGsim23.o",
+    "BoardSocGsim24.o",
+    "BoardSocGsim25.o",
+    "BoardSocGsim26.o",
+    "BoardSocGsim27.o",
+    "BoardSocGsim28.o",
+    "BoardSocGsim29.o",
+    "BoardSocGsim30.o",
+    "BoardSocGsim31.o",
+    "BoardSocGsim32.o",
+    "BoardSocGsim33.o",
+    "BoardSocGsim34.o",
+    "BoardSocGsim35.o"
+  ],
+  "scope": {
+    "A68": true,
+    "held_alu": "off_or_on",
+    "young_load_seal": false,
+    "raw_mac": false
+  },
+  "build": "One observer host translation unit linked to 36 existing matching model objects; no model compiler invocation.",
+  "bounds": {
+    "cycles": 30000,
+    "seconds": 120
+  }
+}

@@ -15,7 +15,7 @@ private[ooo] object MacRawHandoffEntry {
     require(!off.triSpeedRawClockHandoff && on.triSpeedRawClockHandoff)
     require(on.copy(triSpeedRawClockHandoff = false) == off,
         "only the named MAC platform field may differ from A")
-    require(on.productArity == 90 && on.coreParams.productArity == 173)
+    require(on.productArity == 91 && on.coreParams.productArity == 174)
     val originalPath = NearTermAProfile.root.resolve("fpga/next/near-term-a-before-mac-platform.json")
     val originalBytes = Files.readAllBytes(originalPath)
     require(java.security.MessageDigest.getInstance("SHA-256").digest(originalBytes)
@@ -56,7 +56,7 @@ object MacRawHandoffEntryAudit {
             }
         }
         val core = board.platform.core.core.core
-        require(core.p == expected.coreParams && core.p.productArity == 173,
+        require(core.p == expected.coreParams && core.p.productArity == 174,
             "actual complete CPU constructor changed under the platform extension")
         Map("schema" -> "actual-mac-raw-handoff-platform-v1", "scope" -> "actual-constructor-only",
             "triSpeedRawClockHandoff" -> expected.triSpeedRawClockHandoff,
@@ -91,7 +91,7 @@ class MacRawHandoffEntrySpec extends AnyFunSuite {
     test("MAC handoff changes one platform field and zero of 173 core fields") {
         assert(MacRawHandoffEntry.on.copy(triSpeedRawClockHandoff = false) == MacRawHandoffEntry.off)
         assert(MacRawHandoffEntry.on.coreParams == MacRawHandoffEntry.off.coreParams)
-        assert(MacRawHandoffEntry.off.productElementNames.toSeq.takeRight(2) == Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral"))
+        assert(MacRawHandoffEntry.off.productElementNames.toSeq.takeRight(3) == Seq("triSpeedRawClockHandoff", "postedYoungerLoadSealDeferral", "heldAluIssueForwarding"))
         assert(!FpgaNextConfig.Selected.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Candidate.triSpeedRawClockHandoff)
         assert(!FpgaNextConfig.Reference.triSpeedRawClockHandoff)

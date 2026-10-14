@@ -1,0 +1,126 @@
+{
+  "schema": "held-alu-portable-final-projection-v1",
+  "status": "FUNCTIONAL_PASS_REAL_HELD_CAPTURE_PROVEN_STRONGER_QUALIFICATION_INCOMPLETE",
+  "qualified": false,
+  "frozen_original_schedule": {
+    "result": "evidence/results.json",
+    "sha256": "7a49db0fed5a0a4cdcdfd0bb7fefd4dec6dba1b76db91428f2817fc00adfc774",
+    "functional_passes": 22
+  },
+  "passive_diagnosis": {
+    "result": "evidence/results.json",
+    "sha256": "21a758e4a3aa13a1196831210cb29f2bf0f3f2184ebae1334c5917a41abc1dbd",
+    "recordings": 2
+  },
+  "single_causal_guest": {
+    "freeze": "evidence/causal-freeze.json",
+    "freeze_sha256": "ae21643c1f18e6df7bce21921e52623ed3f3a97b4de4bd3d5854967108817196",
+    "guest_sha256": "fa67bf239f31ee1392f4cd2d68382718ea869a6fca001fc8f637f51110141447",
+    "input_sha256": "68e66f3d9700b31f0be030f0af8cd31fb7e692118d2cc80747a7e2f2193962c3",
+    "off_result_sha256": "d61532b7c8057ea99fd3fbac959e88ccf7d1c29735bf6ff82eb5c927e752a831",
+    "on_result_sha256": "81484fa87241bb8d568e33e390cb4370f2bd8735b2399ecfc139bbda49c0edda",
+    "off": {
+      "name": "D1-bare-p0-x2-gated",
+      "enabled": 0,
+      "cycles": 1558,
+      "retired": 49,
+      "architectural_hash": "6359470064314231515",
+      "observations": {
+        "actual_virtual_lsu_starts": 0,
+        "consume_refill": 6,
+        "context_flush_events": 2,
+        "exact_P0_C1_prf_reuse_before_reply": 0,
+        "exact_P0_C1_rob_reuse_before_reply": 0,
+        "expected_faults": 0,
+        "held_captures": 0,
+        "integer_replies": 15,
+        "integer_requests": 15,
+        "killed_owners": 29,
+        "mixed_load_alu": 0,
+        "occupied_stall_cycles": 1,
+        "pmp_change_events": 3,
+        "recoveries": 5
+      },
+      "coverage_verdict": "REQUIRES_FAMILY_AGGREGATION"
+    },
+    "on": {
+      "name": "D1-bare-p0-x2-gated",
+      "enabled": 1,
+      "cycles": 1558,
+      "retired": 49,
+      "architectural_hash": "6359470064314231515",
+      "observations": {
+        "M_after_held_C1": 1,
+        "actual_virtual_lsu_starts": 0,
+        "consume_refill": 6,
+        "context_flush_events": 2,
+        "exact_P0_C1_prf_reuse_before_reply": 0,
+        "exact_P0_C1_rob_reuse_before_reply": 0,
+        "expected_faults": 0,
+        "held_C1_accepted": 1,
+        "held_capture_selected_lsu": 1,
+        "held_captures": 1,
+        "held_left": 1,
+        "integer_replies": 15,
+        "integer_requests": 15,
+        "killed_owners": 29,
+        "load_after_held_C1": 1,
+        "mixed_load_alu": 0,
+        "occupied_stall_cycles": 1,
+        "pmp_change_events": 3,
+        "recoveries": 5,
+        "store_after_held_C1": 1
+      },
+      "coverage_verdict": "REQUIRES_FAMILY_AGGREGATION"
+    },
+    "causal_edges": "evidence/causal-causal-edges.json",
+    "causal_edges_sha256": "a6d0a17e4c608b1d0bba8c5f3ce0c9c4d12791ba9e02ecf7c85271a51dab5de6"
+  },
+  "total_qualification_functional_passes": 24,
+  "diagnostic_repeat_passes": 2,
+  "negative_controls": {
+    "PASS_EXPECTED_REJECTION": [
+      "replacement",
+      "trap",
+      "stale_response",
+      "value",
+      "owner"
+    ],
+    "NOT_REACHED": [
+      "priority",
+      "kill"
+    ],
+    "new_controls_freeze_sha256": "c500c330aaa3b8f02761eb594ee9c31e1f9c88a8bc85db89f5fe911b53b24ade"
+  },
+  "proven_new_causal_witnesses": [
+    "real occupied lane0 old P0 full token14:49 remains stable/backpressured at780",
+    "C1 full token15:50 captures P0 value at780 while registered P0 destination is not ready",
+    "C1 accepted at781 with independent value/full-token PRF checks",
+    "real descendant multiplier782, LSU783 and store-preparation grant use registered C1 value after P0 drain"
+  ],
+  "remaining_missing_witnesses": [
+    "C1 acceptance while exact P0 still backpressured",
+    "descendant LSU/M/store grants while exact P0 still backpressured",
+    "same-edge held P0/C1 cancellation and killed-descendant drain association",
+    "held captures against multiplier/divider/system completion competition",
+    "mixed load/ALU captured priority event"
+  ],
+  "bounds": {
+    "cycles": 30000,
+    "timeout_seconds": 120
+  },
+  "no_additional_guest_or_timing_sweep": true,
+  "new_dut_model_compilations": 0,
+  "first_schema_failure_preserved": true,
+  "original_final_combined_sha256": "5ab6363f6e1c0487f115a095c96a50068f6e6ce1f1a9c2e23552a7ccee3de9df",
+  "projection": "Historical evidence summary; external paths replaced by included portable results. Original hashes remain archival provenance, not hashes of this projection.",
+  "scope": {
+    "A68": true,
+    "held_alu": true,
+    "young_load_seal": false,
+    "raw_mac": false,
+    "joint_on": "UNMEASURED",
+    "default": "OFF",
+    "qualification": "EXPERIMENTAL"
+  }
+}

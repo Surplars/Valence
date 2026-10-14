@@ -11,6 +11,8 @@ class NearTermAConfigSpec extends AnyFunSuite {
         assert(NearTermAProfile.originalFields(off.coreParams).size == 168)
         intercept[IllegalArgumentException] { NearTermAProfile.originalFields(on) }
         intercept[IllegalArgumentException] { NearTermAProfile.originalFields(on.coreParams) }
+        intercept[IllegalArgumentException] { NearTermAProfile.originalFields(off.copy(heldAluIssueForwarding = true)) }
+        intercept[IllegalArgumentException] { NearTermAProfile.originalFields(off.coreParams.copy(heldAluIssueForwarding = true)) }
         for (c <- Seq(FpgaNextConfig.Reference, FpgaNextConfig.Candidate, FpgaNextConfig.Selected, off)) {
             NearTermAProfile.originalFields(c)
             NearTermAProfile.originalFields(c.coreParams)

@@ -10,12 +10,12 @@ object YoungLoadSealMergedGate extends App {
     val out = Paths.get(args(0)).toAbsolutePath
     require(!Files.exists(out))
     Files.createDirectories(out)
-    val young = NearTermAProfile.on.copy(postedYoungerLoadSealDeferral = true)
+    val young = YoungLoadSealSourceBridge.candidate(NearTermAProfile.onOptions :+ YoungLoadSealSourceBridge.flag)
     val raw = MacRawHandoffEntry.on
     val cases = Seq("young-on-mac-off" -> young, "young-off-mac-on" -> raw)
     for ((label, c) <- cases) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(c.productArity == 90 && c.coreParams.productArity == 173)
+        YoungLoadSealSourceBridge.requireCompatible(c)
         var observed: Option[Map[String, Any]] = None
         ChiselStage.elaborate {
             val dut = new FpgaNextSocTop(c, bscanChain = 2)
@@ -35,14 +35,17 @@ object YoungLoadSealMergedGate extends App {
         }
         require(observed.isDefined)
         PostedBoardConfiguration.write(c, out.resolve(label).toString)
+        YoungLoadSealSourceBridge.write(c, out.resolve(label).toString)
         Files.writeString(out.resolve(label + ".json"), PostedBoardConfiguration.json(observed.get) + "\n")
     }
     for ((label, c) <- Seq("off" -> NearTermAProfile.on, "on" -> young)) {
         PostedBoardConfiguration.write(c, out.resolve("profile-" + label).toString)
+        YoungLoadSealSourceBridge.write(c, out.resolve("profile-" + label).toString)
     }
     val old = PostedBoardConfiguration.document(NearTermAProfile.on) ++ Map(
         "profile" -> PlacedTimingProfileBridge.historicalAFields(NearTermAProfile.on),
         "core" -> PlacedTimingProfileBridge.historicalAFields(NearTermAProfile.on.coreParams))
     Files.writeString(out.resolve("published-a-projection.json"), PostedBoardConfiguration.json(old) + "\n")
-    println("PASS_MERGED_ACTUAL_CONSTRUCTORS core=173 profile=90 no-model-no-simulation")
+    println(s"PASS_MERGED_ACTUAL_CONSTRUCTORS core=${young.coreParams.productArity} profile=${young.productArity} " +
+        "projected-core=173 projected-profile=90 held=false no-model-no-simulation")
 }

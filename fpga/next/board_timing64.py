@@ -49,10 +49,13 @@ def load_profile():
         raise RuntimeError('source-only entry cannot inherit RTL/CPU/physical qualification')
     if profile['historical_mapped_library_certificate'] != {'identity_prefix': 'cda7', 'reused_for_new_rtl': False}:
         raise RuntimeError('historical mapped/library certificate cannot qualify the new RTL')
-    spec = importlib.util.spec_from_file_location('timing64_source_bridge', HERE / 'young_load_seal_source_bridge.py')
+    leaves = profile['production_leaf_sha256']
+    if len(leaves) != 11:
+        raise RuntimeError('expected the eleven reviewed production leaves')
+    spec = importlib.util.spec_from_file_location('timing64_held_alu_bridge', HERE / 'held_alu_source_bridge.py')
     bridge = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bridge)
-    bridge.validate_legacy_sources(ROOT, MANIFEST, profile, options)
+    bridge.validate_historical_sources(MANIFEST, leaves)
     return options
 
 

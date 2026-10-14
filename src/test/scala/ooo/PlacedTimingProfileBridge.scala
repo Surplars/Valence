@@ -89,10 +89,11 @@ object PlacedTimingProfileBridge {
         "fetchAcceptedPrefixValidation", "alignedFetchSinglePage", "factorCheckedNextAllowed", "localTaggedResponseReady")
     val platformAdditions = Seq("triSpeedRawClockHandoff")
     val youngerLoadSealField = "postedYoungerLoadSealDeferral"
+    val heldAluField = "heldAluIssueForwarding"
     val historicalAProfileNames = publishedProfileNames ++ profileAdditionsBeforeYoungerLoadSeal
     val historicalACoreNames = publishedCoreNames ++ coreAdditionsBeforeYoungerLoadSeal
-    val profileAdditions = (profileAdditionsBeforeYoungerLoadSeal ++ platformAdditions) :+ youngerLoadSealField
-    val coreAdditions = coreAdditionsBeforeYoungerLoadSeal :+ youngerLoadSealField
+    val profileAdditions = (profileAdditionsBeforeYoungerLoadSeal ++ platformAdditions) :+ youngerLoadSealField :+ heldAluField
+    val coreAdditions = coreAdditionsBeforeYoungerLoadSeal :+ youngerLoadSealField :+ heldAluField
     private def names(p: Product): Seq[String] = p.productElementNames.toSeq
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
@@ -110,8 +111,8 @@ object PlacedTimingProfileBridge {
             case _ => throw new IllegalArgumentException("only exact profile/core products may be projected")
         }
         val tail = p match {
-            case _: FpgaNextConfig => platformAdditions :+ youngerLoadSealField
-            case _: OooParams => Seq(youngerLoadSealField)
+            case _: FpgaNextConfig => platformAdditions :+ youngerLoadSealField :+ heldAluField
+            case _: OooParams => Seq(youngerLoadSealField, heldAluField)
         }
         requireNames(p, old ++ tail)
         val values = p.productElementNames.zip(p.productIterator).toMap

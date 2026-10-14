@@ -1,0 +1,155 @@
+{
+  "schema": "b1-short-six-family-schedule-v1",
+  "declared_before_execution": true,
+  "status": "FROZEN_NOT_RUN",
+  "cycles_per_reset": 30000,
+  "timeout_seconds_per_reset": 120,
+  "mode_order": [
+    "off",
+    "on"
+  ],
+  "case_order": [
+    "D1-bare-p0",
+    "D2-bare-p0",
+    "D3behind-bare-p0",
+    "D3head-bare-p0",
+    "D4-sv39-p0",
+    "D5load-bare-p0",
+    "D5store-bare-p0",
+    "D6mul-bare-p0",
+    "D6div-bare-p0",
+    "D6csr-bare-p0",
+    "D6serial-bare"
+  ],
+  "families": [
+    {
+      "family": "D1",
+      "cases": [
+        "D1-bare-p0"
+      ],
+      "required_positive_observations": [
+        "held_captures",
+        "C1_accepted_while_exact_P0_held",
+        "load_while_exact_P0_held",
+        "M_while_exact_P0_held",
+        "store_while_exact_P0_held"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "family": "D2",
+      "cases": [
+        "D2-bare-p0"
+      ],
+      "required_positive_observations": [
+        "same_edge_P0_C1_cancel",
+        "killed_response_drains",
+        "exact_P0_C1_rob_reuse_before_reply",
+        "exact_P0_C1_prf_reuse_before_reply"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "family": "D3",
+      "cases": [
+        "D3behind-bare-p0",
+        "D3head-bare-p0"
+      ],
+      "required_positive_observations": [
+        "expected_faults"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "family": "D4",
+      "cases": [
+        "D4-sv39-p0"
+      ],
+      "required_positive_observations": [
+        "expected_faults",
+        "actual_virtual_lsu_starts",
+        "context_flush_events"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "family": "D5",
+      "cases": [
+        "D5load-bare-p0",
+        "D5store-bare-p0"
+      ],
+      "required_positive_observations": [
+        "expected_faults",
+        "pmp_change_events"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "family": "D6",
+      "cases": [
+        "D6mul-bare-p0",
+        "D6div-bare-p0",
+        "D6csr-bare-p0",
+        "D6serial-bare"
+      ],
+      "required_positive_observations": [
+        "held_capture_selected_multiplier",
+        "held_capture_selected_divider",
+        "held_capture_selected_system"
+      ],
+      "status": "NOT_RUN"
+    }
+  ],
+  "negative_controls": [
+    {
+      "mutation": "value",
+      "case": "D1-bare-p0",
+      "diagnostic": "INDEPENDENT_COMPLETION_VALUE",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "owner",
+      "case": "D1-bare-p0",
+      "diagnostic": "INDEPENDENT_FULL_TOKEN_COMPLETION_ADMISSION",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "replacement",
+      "case": "D1-bare-p0",
+      "diagnostic": "OLD_VALUE_REFILL_OPERAND",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "priority",
+      "case": "D1-bare-p0",
+      "diagnostic": "SELECTED_LOAD_PRIORITY_OPERAND",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "kill",
+      "case": "D2-bare-p0",
+      "diagnostic": "INDEPENDENT_FULL_TOKEN_COMPLETION_ADMISSION",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "trap",
+      "case": "D3head-bare-p0",
+      "diagnostic": "trap",
+      "mode": "on",
+      "status": "NOT_RUN"
+    },
+    {
+      "mutation": "stale_response",
+      "case": "D2-bare-p0",
+      "diagnostic": "UNKNOWN_FULL_TOKEN",
+      "mode": "on",
+      "status": "NOT_RUN"
+    }
+  ],
+  "policy": "Run D1 OFF then ON first, then the remaining listed cases in this fixed order. Aggregate coverage only within each family. A missing event is NOT_REACHED; it is never PASS and does not authorize a phase search. No other 69-case or phase matrix is required by this schedule. Controls are fixed before results; unreached mutations remain NOT_REACHED."
+}

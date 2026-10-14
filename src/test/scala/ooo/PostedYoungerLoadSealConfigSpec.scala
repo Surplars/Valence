@@ -16,7 +16,7 @@ class PostedYoungerLoadSealConfigSpec extends AnyFunSuite {
         FpgaNextProfileOptions.validate(options)
         val on = FpgaNextConfig.fromOptions(options.toSet, defaultSelected = false)
         assert(options.size == 69 && options.dropRight(1) == NearTermAProfile.onOptions)
-        assert(on.productArity == 90 && on.coreParams.productArity == 173)
+        assert(on.productArity == 91 && on.coreParams.productArity == 174)
         PlacedTimingProfileBridge.requireShape(on)
         assert(on.productElementName(88) == "triSpeedRawClockHandoff")
         assert(!on.triSpeedRawClockHandoff)
@@ -34,6 +34,28 @@ class PostedYoungerLoadSealConfigSpec extends AnyFunSuite {
             PostedBoardConfiguration.document(off))
         assert(on.productElementName(79) == off.productElementName(79) &&
             on.coreParams.productElementName(164) == off.coreParams.productElementName(164))
+    }
+
+    test("published Young entries project only the complete named Boolean-false held field") {
+        val off = NearTermAProfile.on
+        val on = YoungLoadSealSourceBridge.candidate(NearTermAProfile.onOptions :+ flag)
+        for (c <- Seq(off, on, MacRawHandoffEntry.on)) {
+            YoungLoadSealSourceBridge.requireCompatible(c)
+            for (p <- Seq(c, c.coreParams)) {
+                val projected = YoungLoadSealSourceBridge.historicalFields(p)
+                assert(projected == fields(p).filterNot(_._1 == "heldAluIssueForwarding"))
+                assert(!projected.contains("heldAluIssueForwarding"))
+                assert(projected("postedYoungerLoadSealDeferral") == c.postedYoungerLoadSealDeferral)
+            }
+            assert(YoungLoadSealSourceBridge.historicalFields(c)("triSpeedRawClockHandoff") == c.triSpeedRawClockHandoff)
+        }
+        intercept[IllegalArgumentException] { YoungLoadSealSourceBridge.historicalFields(HeldAluIntegrationProfile.on) }
+        intercept[IllegalArgumentException] { YoungLoadSealSourceBridge.historicalFields(HeldAluIntegrationProfile.on.coreParams) }
+        intercept[IllegalArgumentException] { YoungLoadSealSourceBridge.historicalFields(off.cache) }
+        intercept[IllegalArgumentException] { YoungLoadSealSourceBridge.candidate(NearTermAProfile.onOptions.reverse :+ flag) }
+        intercept[IllegalArgumentException] {
+            YoungLoadSealSourceBridge.candidate(NearTermAProfile.onOptions ++ Seq(flag, "--held-alu-issue-forwarding"))
+        }
     }
 
     test("every retained preset and historical A view keeps the appended option false") {

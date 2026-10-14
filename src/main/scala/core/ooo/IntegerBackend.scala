@@ -2337,8 +2337,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             // would reconnect recovery -> wake -> rank -> PRF -> store address.
             // Actual completion and all next-owner captures retain current kill.
             val stage = executionStages(lane)
-            executionWake(lane).valid := stage.io.occupied && stage.io.deq.ready &&
-                executingOperands(lane).forwardable
+            // The opt-in lane-0 promise describes its stable OLD ordinary-ALU value,
+            // including a writeback-port stall. It never consumes/replaces that owner
+            // or authorizes ROB/PRF effects. Current consumer kill remains at enq.
+            // Lane 1 and the default-OFF expression remain the original contract.
+            executionWake(lane).valid := (if (p.heldAluIssueForwarding && lane == 0)
+                stage.io.occupied && executingOperands(lane).forwardable
+            else stage.io.occupied && stage.io.deq.ready && executingOperands(lane).forwardable)
             executionWake(lane).bits := entry.renamed.destination
             executionData(lane) := alu.io.result
             when(stage.io.occupied) {

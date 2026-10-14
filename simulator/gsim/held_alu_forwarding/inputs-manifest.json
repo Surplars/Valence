@@ -1,0 +1,67 @@
+{
+  "schema": "held-alu-generated-input-digests-v1",
+  "selected_original_cases": [
+    "D1-bare-p0",
+    "D2-bare-p0",
+    "D3behind-bare-p0",
+    "D3head-bare-p0",
+    "D4-sv39-p0",
+    "D5load-bare-p0",
+    "D5store-bare-p0",
+    "D6mul-bare-p0",
+    "D6div-bare-p0",
+    "D6csr-bare-p0",
+    "D6serial-bare"
+  ],
+  "inputs": {
+    "D1-bare-p0": {
+      "sha256": "5a2dc5430e02b4d9b1a5f21b1825616d6f3dbf3b24e99638ff0ef5569058d866",
+      "bytes": 43182
+    },
+    "D2-bare-p0": {
+      "sha256": "7547808026fad3e3026a5e6a60656a5b6bc459101be165c69f5c1cd55bd41746",
+      "bytes": 43177
+    },
+    "D3behind-bare-p0": {
+      "sha256": "f9cd3696c99ed387323553daec981ca52134f46ffc3539998dd51e510c3c7dad",
+      "bytes": 43234
+    },
+    "D3head-bare-p0": {
+      "sha256": "3a966048fd67f11577a832c65bad457a90b8c605362c31387c4bb915f59ec6bb",
+      "bytes": 43230
+    },
+    "D4-sv39-p0": {
+      "sha256": "d5ffec78a326c006be6d3584f9c862234fce764aaf0e1408f155826aa136c6fa",
+      "bytes": 125173
+    },
+    "D5load-bare-p0": {
+      "sha256": "6e1acb6581d97abe760a47fd553b6ca78239a8a9b03ed2f19af4539d44769d49",
+      "bytes": 43135
+    },
+    "D5store-bare-p0": {
+      "sha256": "4b94832603d1e06eeacd6715bbf19eff95b85f967d258fe9ed6967b2246634c4",
+      "bytes": 43137
+    },
+    "D6mul-bare-p0": {
+      "sha256": "2ce6f289eb8e6763d2e9ef6fe0234103be54cfdbabfbf5a1329508cc8cbfbb9f",
+      "bytes": 43098
+    },
+    "D6div-bare-p0": {
+      "sha256": "eff422e0782f19fc6bd5dde8ff251b10f20068d365cc067da2492e097a3212f4",
+      "bytes": 43098
+    },
+    "D6csr-bare-p0": {
+      "sha256": "555b4c715b87b5f5964362ff7d6491142e89c0c05adfe63f02d74445c5c3f36d",
+      "bytes": 43098
+    },
+    "D6serial-bare": {
+      "sha256": "c3337ab364b82a1f7ee45583be0ccbc45601c7ca026a60044399dbbbb39195a9",
+      "bytes": 83978
+    },
+    "D1-bare-p0-x2-gated": {
+      "sha256": "68e66f3d9700b31f0be030f0af8cd31fb7e692118d2cc80747a7e2f2193962c3",
+      "bytes": 43191
+    }
+  },
+  "symbols_sha256": "cf8d34cd9c147a43bee56924bb8fd270b1855462f6d1bde988d07ed6d1fdc604"
+}

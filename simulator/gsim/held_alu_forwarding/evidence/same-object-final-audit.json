@@ -1,0 +1,43 @@
+{
+  "schema": "held-alu-same-object-final-audit-v1",
+  "status": "PASS_COMPLETE_A_BYTE_COUNTER_ORACLE_PARITY",
+  "receipt_sha256": "0cce5ec34946c73bbf8492f037bcf866e9f723439b5b3bd6001458649e182da7",
+  "model_binding_sha256": "26be776ca2d6d5aabd95bbe9a5f65755b333c8c030eaf5c4da535bdd735f36d3",
+  "source_freeze_sha256": "8025373a74451e95f3192d35f3a067f41bf048086f8be051a451a30f53a3ab06",
+  "full_stdout_byte_parity": {
+    "hot": true,
+    "compressed": true,
+    "negative-pc": true,
+    "negative-gpr": true,
+    "negative-memory": true,
+    "pmp-short": true,
+    "pmp-word": true
+  },
+  "all_original_nemu_counters_including_retirement_grouping_exact": true,
+  "all_original_pmp_csr_and_mailbox_assertions_unchanged": true,
+  "cycles": {
+    "hot": 1883,
+    "compressed": 967,
+    "pmp-short": 1401,
+    "pmp-word": 1401
+  },
+  "timing_normalization_was_needed": false,
+  "additional_counter_exceptions_needed": false,
+  "original_host_translation_units_compiled": 2,
+  "model_objects_reused": 36,
+  "zero_work": {
+    "dut_generations": 0,
+    "dut_object_compiles": 0,
+    "reference_builds": 0,
+    "state_resynchronizations": 0
+  },
+  "new_guest_builds": 0,
+  "physical_qualification": false,
+  "resources": {
+    "child_wall_seconds_sum": 9.162318822011002,
+    "child_user_seconds_sum": 8.579111,
+    "child_system_seconds_sum": 0.49887699999999996,
+    "peak_child_max_rss_KiB": 191328
+  },
+  "audit_script_sha256": "4ee30f5cf6a321142ed360453ee68103b16631e45657d8e2dfc83363e85c0875"
+}

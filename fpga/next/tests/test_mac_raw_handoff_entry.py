@@ -39,6 +39,16 @@ def emitted(on,missing=False):
   out=Path(t)/'out'; rtl=out/'rtl'
   def fake_run(command,**kwargs):
    rtl.mkdir();(rtl/'ValenceJtagDebugPort.sv').write_text('module ValenceJtagDebugPort; endmodule\n');(rtl/'ValenceBscanDebugPort.sv').write_text('module ValenceBscanDebugPort; endmodule\n');(rtl/'FpgaNextSocTop.sv').write_text('module FpgaNextSocTop; endmodule\n');(rtl/'filelist.f').write_text('FpgaNextSocTop.sv\n')
+   # These literal constructor fixtures test exporter admission only; no DUT is emitted.
+   profile=json.loads((HERE/'near-term-a-before-mac-platform.json').read_text())
+   profile['core']['postedYoungerLoadSealDeferral']=False
+   profile['core']['heldAluIssueForwarding']=False
+   profile['profile']['triSpeedRawClockHandoff']=on
+   profile['profile']['postedYoungerLoadSealDeferral']=False
+   profile['profile']['heldAluIssueForwarding']=False
+   (rtl/'profile.json').write_text(json.dumps(profile))
+   (rtl/'actual-held-alu-forwarding.json').write_text(json.dumps({
+       'heldAluIssueForwarding':False,'core':profile['core'],'backend':profile['core'],'ledger':profile['core']}))
    if on and not missing:(rtl/'ValenceMacRawFallingSample.sv').write_bytes((ROOT/'src/main/resources/ethernet/ValenceMacRawFallingSample.sv').read_bytes())
    return type('Result',(),{'returncode':0})()
   with patch.object(export.subprocess,'check_output',return_value='767e7683f3d6f5bd1fee257735505b353500d2a5\n'),patch.object(export.subprocess,'run',side_effect=fake_run),patch.object(export,'check_wrapper_ports',return_value=['STUB_NOT_PORT_QUALIFICATION']),patch.object(export.media_integration,'stage',return_value={'scope':'STUB'}),patch.object(export.board_t1,'stage',return_value={'scope':'STUB'}),patch.object(export.bscan_integration,'stage',return_value={'scope':'STUB'}),contextlib.redirect_stdout(io.StringIO()):
@@ -49,11 +59,14 @@ emitted(False);checks.append('OFF_resource_absent_stubbed_emit')
 emitted(True);checks.append('ON_resource_required_and_listed_stubbed_emit')
 rejected(lambda:emitted(True,True));checks.append('ON_missing_resource_rejected')
 # Bind source failure by overriding only module SHA reader, not candidate files.
-original_sha=new.sha
-with patch.object(new,'sha',side_effect=lambda p:'0'*64 if str(p).endswith('FpgaNextConfig.scala') else original_sha(p)):
+real_sha=hashlib.sha256
+config_bytes=(ROOT/'src/main/scala/core/ooo/FpgaNextConfig.scala').read_bytes()
+class ChangedLeafHash:
+ def hexdigest(self):return '0'*64
+with patch.object(hashlib,'sha256',side_effect=lambda data:ChangedLeafHash() if data==config_bytes else real_sha(data)):
  rejected(new.load_profile)
 checks.append('new_source_hash_drift_rejected')
-bridge=load('mac_platform_source_bridge'); real=bridge.hashlib.sha256
+bridge=load('held_alu_source_bridge'); real=bridge.hashlib.sha256
 class BadHash:
  def hexdigest(self):return '0'*64
 with patch.object(bridge.hashlib,'sha256',return_value=BadHash()):rejected(bridge.checked_sources)

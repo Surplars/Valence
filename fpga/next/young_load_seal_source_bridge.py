@@ -1,8 +1,9 @@
-"""Strict source bridge for historical OFF entries on the frozen seal candidate.
+"""Strict source bridge from the frozen seal candidate to the held-ALU source.
 
 These bindings preserve original manifests and option vectors. They establish
 source identity only, never inherited component, CPU, or physical qualification.
-The complete production tree binding includes leaves absent from old manifests.
+The original seal production binding remains immutable. The held-ALU bridge
+authenticates every current leaf and its exact transition from that binding.
 """
 import hashlib
 import json
@@ -45,10 +46,32 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def canonical_json(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
 def production_tree_sha256(root):
     files = {path.relative_to(root).as_posix(): sha256(path.read_bytes())
              for folder in PRODUCTION_ROOTS for path in (root / folder).rglob('*') if path.is_file()}
     return sha256(json.dumps(files, sort_keys=True, separators=(',', ':')).encode())
+
+
+def checked_young_base(root, manifest_path=None, leaves=None):
+    """Authenticate current closure and the complete immutable Young source base."""
+    root = Path(root).resolve()
+    path = root / 'fpga/next/held_alu_source_bridge.py'
+    spec = importlib.util.spec_from_file_location('young_to_held_alu_source_bridge', path)
+    bridge = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bridge)
+    if bridge.ROOT != root:
+        raise RuntimeError('held ALU source bridge root differs')
+    contract = (bridge.checked_sources() if manifest_path is None else
+                bridge.validate_historical_sources(Path(manifest_path).resolve(), leaves))
+    production = {name: digest for name, digest in contract['base_source_sha256'].items()
+                  if any(name.startswith(folder + '/') for folder in PRODUCTION_ROOTS)}
+    if sha256(json.dumps(production, sort_keys=True, separators=(',', ':')).encode()) != PRODUCTION_TREE_SHA256:
+        raise RuntimeError('frozen complete Young production source tree differs')
+    return contract
 
 
 def validate_legacy_sources(root, manifest_path, profile, options):
@@ -59,7 +82,8 @@ def validate_legacy_sources(root, manifest_path, profile, options):
         raise RuntimeError('historical entry requires younger-load seal deferral false')
     expected_manifest = MANIFEST_SHA256.get(manifest_path.name)
     blob = manifest_path.read_bytes()
-    if expected_manifest is None or sha256(blob) != expected_manifest or json.loads(blob) != profile:
+    if expected_manifest is None or sha256(blob) != expected_manifest or \
+            canonical_json(json.loads(blob)) != canonical_json(profile):
         raise RuntimeError('original historical manifest identity or digest differs')
     expected_options = profile.get('native_options')
     if expected_options is None:
@@ -72,33 +96,26 @@ def validate_legacy_sources(root, manifest_path, profile, options):
     for name, (old_digest, new_digest) in REPLACEMENTS.items():
         if leaves[name] != old_digest or old_digest == new_digest:
             raise RuntimeError('source replacement old digest differs from the original manifest: ' + name)
-    mac = load_mac_bridge(root).checked_sources()
-    if set(mac) != set(MAC_PLATFORM_REPLACEMENTS):
-        raise RuntimeError("MAC platform bridge replacement set differs")
-    for name, row in mac.items():
-        if (row["old_sha256"], row["new_sha256"]) != REPLACEMENTS.get(name):
-            raise RuntimeError("MAC and younger-load bridge composition differs: " + name)
+    contract = checked_young_base(root, manifest_path, leaves)
     replaced = set()
     for name, old_digest in leaves.items():
         path = Path(name)
         if path.is_absolute() or '..' in path.parts:
             raise RuntimeError('unsafe historical production leaf: ' + name)
-        actual = sha256((root / path).read_bytes())
         expected = REPLACEMENTS[name][1] if name in REPLACEMENTS else old_digest
-        if actual != expected:
+        if contract['base_source_sha256'].get(name) != expected:
             raise RuntimeError('historical source bridge production leaf differs: ' + name)
-        if actual != old_digest:
+        if expected != old_digest:
             replaced.add(name)
     if replaced != set(REPLACEMENTS):
         raise RuntimeError('actual source replacement set differs')
     for name, digest in ADDED_LEAVES.items():
-        if sha256((root / name).read_bytes()) != digest:
+        if contract['base_source_sha256'].get(name) != digest:
             raise RuntimeError('historical source bridge added leaf differs: ' + name)
-    if production_tree_sha256(root) != PRODUCTION_TREE_SHA256:
-        raise RuntimeError('frozen complete production source tree differs')
     return {'schema': 'young-load-seal-e4a-historical-source-bridge-v1',
             'triSpeedRawClockHandoff': False,
             'postedYoungerLoadSealDeferral': False, 'qualificationInherited': False,
+            'heldAluIssueForwarding': False,
             'fullCpuQualification': False, 'physicalQualification': False}
 
 
@@ -149,26 +166,71 @@ def load_mac_bridge(root):
 def current_mac_platform_digest(name, historical_mac_digest):
     if name not in MAC_PLATFORM_REPLACEMENTS or MAC_PLATFORM_REPLACEMENTS[name][0] != historical_mac_digest:
         raise RuntimeError('exact historical MAC platform digest differs: ' + name)
-    return MAC_PLATFORM_REPLACEMENTS[name][1]
+    contract = checked_young_base(Path(__file__).resolve().parents[2])
+    if contract['base_source_sha256'].get(name) != MAC_PLATFORM_REPLACEMENTS[name][1]:
+        raise RuntimeError('exact Young MAC platform digest differs: ' + name)
+    return contract['current_source_sha256'][name]
 
 def mac_raw_source_digest(name, historical_mac_digest):
-    if name not in MAC_RAW_REPLACEMENTS:
-        return historical_mac_digest
-    old, current = MAC_RAW_REPLACEMENTS[name]
+    old, young = MAC_RAW_REPLACEMENTS.get(name, (historical_mac_digest, historical_mac_digest))
     if old != historical_mac_digest:
         raise RuntimeError('exact historical raw entry digest differs: ' + name)
-    return current
+    contract = checked_young_base(Path(__file__).resolve().parents[2])
+    if contract['base_source_sha256'].get(name) != young:
+        raise RuntimeError('exact Young raw entry digest differs: ' + name)
+    return contract['current_source_sha256'][name]
 
 def validate_mac_raw_contract(root, manifest_path, profile):
     path = Path(manifest_path)
     if path.name != 'near-term-a-raw-handoff-profile.json' or sha256(path.read_bytes()) != MAC_RAW_MANIFEST_SHA256:
         raise RuntimeError('original MAC raw entry manifest identity differs')
-    if json.loads(path.read_bytes()) != profile:
+    if canonical_json(json.loads(path.read_bytes())) != canonical_json(profile):
         raise RuntimeError('original MAC raw entry manifest values differ')
     if any(o == FLAG or o.startswith(FLAG + '=') for o in profile['native_options']):
         raise RuntimeError('historical MAC raw entry requires younger-load seal deferral false')
     if not set(MAC_RAW_REPLACEMENTS).issubset(profile['production_leaf_sha256']):
         raise RuntimeError('MAC raw entry source replacement set differs')
-    load_mac_bridge(root).checked_sources()
-    if production_tree_sha256(Path(root)) != PRODUCTION_TREE_SHA256:
-        raise RuntimeError('frozen complete production source tree differs')
+    contract = checked_young_base(root, path, profile['production_leaf_sha256'])
+    for name, historical in profile['production_leaf_sha256'].items():
+        old, young = MAC_RAW_REPLACEMENTS.get(name, (historical, historical))
+        if historical != old or contract['base_source_sha256'].get(name) != young:
+            raise RuntimeError('exact historical raw entry source composition differs: ' + name)
+
+
+def historical_young_document(root, document, core_names, profile_names, *,
+                              younger_load_seal_deferral=False, raw_clock_handoff=False):
+    """Project only exact named Boolean held=false to the complete old Young view.
+
+    Names must come from the same constructed products as the document. Expected
+    raw/seal choices are explicit Booleans; all other original values are fixed.
+    This source/configuration check does not inherit execution qualification.
+    """
+    contract = checked_young_base(root)
+    if type(younger_load_seal_deferral) is not bool or type(raw_clock_handoff) is not bool:
+        raise RuntimeError('Young reference switches must be exact Booleans')
+    if core_names != contract['current_core_names'] or profile_names != contract['current_profile_names']:
+        raise RuntimeError('constructed complete product names/order changed')
+    original = json.loads((Path(root) / 'fpga/next/near-term-a-before-mac-platform.json').read_text())
+    expected = json.loads(json.dumps(original))
+    expected['core']['postedYoungerLoadSealDeferral'] = younger_load_seal_deferral
+    expected['profile']['triSpeedRawClockHandoff'] = raw_clock_handoff
+    expected['profile']['postedYoungerLoadSealDeferral'] = younger_load_seal_deferral
+    current = json.loads(json.dumps(document, allow_nan=False))
+    if set(current) != set(expected):
+        raise RuntimeError('complete Young document keys differ')
+    held = 'heldAluIssueForwarding'
+    for kind, names, young_tail in (
+            ('core', core_names, ['postedYoungerLoadSealDeferral']),
+            ('profile', profile_names, ['triSpeedRawClockHandoff', 'postedYoungerLoadSealDeferral'])):
+        old_names = contract['historical_a_' + kind + '_names'] + young_tail
+        values = current[kind]
+        if names != old_names + [held] or set(expected[kind]) != set(old_names):
+            raise RuntimeError('unknown, misplaced or reordered Young compatibility tail')
+        if set(values) != set(names):
+            raise RuntimeError('missing or extra constructed Young field: ' + kind)
+        if values[held] is not False:
+            raise RuntimeError('Young projection requires named Boolean held ALU false: ' + kind)
+        current[kind] = {name: values[name] for name in old_names}
+    if canonical_json(current) != canonical_json(expected):
+        raise RuntimeError('one or more original Young complete scalar/nested values changed')
+    return current

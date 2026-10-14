@@ -24,10 +24,10 @@ object HeadDrainTestProfile {
     val on: OooParams = off.copy(predecodedHeadDrain = true)
     require(!config.futureHomeWayReservation && !off.eagerFetchPrefixSelect && !off.predecodedHeadDrain)
     require(off.robEntries == 16 && off.physicalRegs == 48 && off.tagBits == 64 && off.issueWidth == 2)
-    require(on.copy(predecodedHeadDrain = false) == off && off.productArity == 172)
+    require(on.copy(predecodedHeadDrain = false) == off && off.productArity == 174)
     require(off.productElementName(159) == "predecodedHeadDrain" &&
         off.productElementName(160) == "retirementIntent" && !off.retirementIntent && !on.retirementIntent)
-    require(config.productArity == 88 && config.productElementName(73) == "retirementIntent" &&
+    require(config.productArity == 91 && config.productElementName(73) == "retirementIntent" &&
         !config.retirementIntent)
     def writeParameters(directory: String): Unit = {
         val path = Paths.get(directory)

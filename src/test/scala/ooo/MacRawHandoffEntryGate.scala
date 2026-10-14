@@ -15,7 +15,7 @@ object MacRawHandoffBoardGateMain extends App {
   },Array("--target-dir",out.toString))
   Files.writeString(out.resolve("actual-mac-raw-handoff.json"),PostedBoardConfiguration.json(actual.get)+"\n")
   PostedBoardConfiguration.write(config,out.resolve("configuration").toString)
-  println("PASS_ACTUAL_FULL_BOARD_CHIRRTL profile=90 core=173 handoff=true")
+  println(s"PASS_ACTUAL_FULL_BOARD_CHIRRTL profile=${config.productArity} core=${config.coreParams.productArity} handoff=true")
 }
 object MacRawHandoffBankGateMain extends App {
   val out=Paths.get(args(0)).toAbsolutePath
