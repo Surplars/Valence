@@ -31,11 +31,12 @@ object TimingClosureActualAudit {
         ids.collect { case m: chisel3.experimental.BaseModule => m }.toSeq
     }
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
+        ProfileAbi77.requireLive(expected)
         PlacedTimingProfileBridge.requireShape(expected)
         val core = platform.core.core.core
         val backend = core.backend
         val p = expected.coreParams
-        require(p.productArity == 177 && expected.productArity == 94)
+        require(p.productArity == 178 && expected.productArity == 95)
         require(expected.registeredLoadResultReady == p.registeredLoadResultReady &&
             expected.frozenStoreCheckedFlow == p.frozenStoreCheckedFlow)
         require(core.p == p && backend.p == p && backend.ledger.p == p)

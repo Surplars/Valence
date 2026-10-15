@@ -102,8 +102,13 @@ final case class FpgaNextConfig(
     heldAluIssueForwarding: Boolean = false,
     residentMemoryPayloadReuse: Boolean = false,
     registeredLoadResultReady: Boolean = false,
-    frozenStoreCheckedFlow: Boolean = false
+    frozenStoreCheckedFlow: Boolean = false,
+    pendingReadyStoreQuery: Boolean = false
 ) {
+    require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
+        registeredPendingStoreQuery && memoryPreparationHeadMask &&
+        Set(2, 3).contains(pendingVirtualStoreProofSlots) && pendingStoreEarlyLoadCredits == 2),
+        "ready non-head query requires the bounded registered two/three-proof, two-credit profile")
     require(!triSpeedRawClockHandoff || experimentalTriSpeedEthernet,
         "RAW MAC handoff requires tri-speed Ethernet")
     val backendCapacity = BackendCapacityConfig(robEntries, physicalRegs)
@@ -137,7 +142,11 @@ final case class FpgaNextConfig(
         "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
-    require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
+    require(Set(1, 2, 3).contains(pendingVirtualStoreProofSlots),
+        "pending virtual-store proofs use one, two or three bounded slots")
+    require(pendingVirtualStoreProofSlots != 3 || (pendingReadyStoreQuery &&
+        pendingStoreEarlyLoadCredits == 2),
+        "third proof row is isolated to the registered ready-query profile with two early-load credits")
     require(Set(1, 2).contains(pendingStoreEarlyLoadCredits), "pending-store early loads use one or two credits")
     require(pendingStoreEarlyLoadCredits == 1 || pendingVirtualStoreProof,
         "additional early-load responsibility requires pending-store proofs")
@@ -271,7 +280,8 @@ final case class FpgaNextConfig(
         (if (heldAluIssueForwarding) "-held-alu-issue-forwarding" else "") +
         (if (residentMemoryPayloadReuse) "-resident-memory-payload-reuse" else "") +
         (if (registeredLoadResultReady) "-registered-load-result-ready" else "") +
-        (if (frozenStoreCheckedFlow) "-frozen-store-checked-flow" else "")
+        (if (frozenStoreCheckedFlow) "-frozen-store-checked-flow" else "") +
+        (if (pendingReadyStoreQuery) "-pending-ready-store-query" else "")
     val interfaceVersion = 1
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
@@ -338,6 +348,7 @@ final case class FpgaNextConfig(
         residentMemoryPayloadReuse = residentMemoryPayloadReuse,
         registeredLoadResultReady = registeredLoadResultReady,
         frozenStoreCheckedFlow = frozenStoreCheckedFlow,
+        pendingReadyStoreQuery = pendingReadyStoreQuery,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -393,6 +404,7 @@ final case class FpgaNextConfig(
         residentMemoryPayloadReuse = residentMemoryPayloadReuse,
         registeredLoadResultReady = registeredLoadResultReady,
         frozenStoreCheckedFlow = frozenStoreCheckedFlow,
+        pendingReadyStoreQuery = pendingReadyStoreQuery,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -517,6 +529,7 @@ object FpgaNextConfig {
             residentMemoryPayloadReuse = options.contains("--resident-memory-payload-reuse"),
             registeredLoadResultReady = options.contains("--registered-load-result-ready"),
             frozenStoreCheckedFlow = options.contains("--frozen-store-checked-flow"),
+            pendingReadyStoreQuery = options.contains("--pending-ready-store-query"),
             postedPrefetchCoexistence = options.contains("--posted-prefetch-coexistence"),
             postedPrefetchHeadOffer = options.contains("--posted-prefetch-head-offer"),
             canonicalVirtualStoreOverlap = options.contains("--canonical-virtual-store-overlap"),

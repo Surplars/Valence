@@ -1,0 +1,130 @@
+{
+  "schema": "shared-lru76-portable-host-v1",
+  "inputs": {
+    "future_home_ledger.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/future_home_ledger.h",
+      "sha256": "c6c2ddfa7a5f21c5fb778d1c04864de25ad23250166783c0148688e8efc95764"
+    },
+    "production_probe.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/production_probe.h",
+      "sha256": "f7a407b99500f75f9ccad7c73296d56cc6770d9266866303bffcbf031747293a"
+    },
+    "posted_join_observation.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/posted_join_observation.h",
+      "sha256": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af"
+    },
+    "supply_ledger.h": {
+      "source": "simulator/gsim/shared_lru76/host/supply_ledger.h",
+      "sha256": "730db7bc3113f2285eb85ab5b369da9b120c8a1bb469b047ed7e51c1b6bd5f30"
+    },
+    "passive_supply.h": {
+      "source": "simulator/gsim/shared_lru76/host/passive_supply.h",
+      "sha256": "2514c6a68c6f2b8aa7ac080710c25df2b763b1da008cae3e08893ca1cf97d822"
+    },
+    "adoption_ledger.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/adoption_ledger.h",
+      "sha256": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e"
+    },
+    "ledger_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/ledger_negative.cpp",
+      "sha256": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135"
+    },
+    "cpu_passive_bandwidth.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/cpu_passive_bandwidth.cpp",
+      "sha256": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c"
+    },
+    "tagged_board_probe.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_probe.h",
+      "sha256": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269"
+    },
+    "tagged_board_oracle.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_oracle.h",
+      "sha256": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51"
+    },
+    "tagged_return_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_return_negative.cpp",
+      "sha256": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa"
+    },
+    "passive_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/passive_negative.cpp",
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8"
+    },
+    "tagged_getter_guard.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_getter_guard.cpp",
+      "sha256": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129"
+    },
+    "harness/board_ddr_benchmark.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_ddr_benchmark.h",
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e"
+    },
+    "harness/mshr_occupancy.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/mshr_occupancy.h",
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb"
+    },
+    "harness/board_boot.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_boot.cpp",
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533"
+    },
+    "harness/cpu_lsu_occupancy.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/cpu_lsu_occupancy.h",
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646"
+    },
+    "harness/performance_observer.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/performance_observer.h",
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7"
+    },
+    "harness/fabric_idle_service.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/fabric_idle_service.h",
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326"
+    }
+  },
+  "original_supply_ledger": {
+    "source": "simulator/gsim/young_load_seal/posted_join_observation/host/supply_ledger.h",
+    "sha256": "4ccc2842f92fbf1d3668c7eec1dd03492ecc1fa0b69a9c8ba4b9890c6b7a8bf0"
+  },
+  "policy_sources": {
+    "policy_test.cpp": "9350d5a5b627e0570f2c562ccbd81f30e3077722f4033f1fdf480f16f2683ce4",
+    "mock.h": "e52f6aabee31d8d0f38f508e9c140513469d51a974c64b19691459b4c85b6326",
+    "policy_oracle.h": "9b2ef06d3f0f4c76dc781bbd0e1f583b98f16b748e87b8dfe25545785617fe30"
+  },
+  "required_dependency": "corrected74 four-file package after086ca3ac1637f2fac6e325efdf81573de7494dc2",
+  "store_prefetch_lru_victim_macro": 1,
+  "guest_inputs": {
+    "guest.bin": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/guest/guest.bin",
+      "sha256": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94"
+    },
+    "cpu_sv39_symbols.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/guest/cpu_sv39_symbols.h",
+      "sha256": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d"
+    }
+  },
+  "host_flags": [
+    "-std=c++20",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-DDDR_MODEL=1",
+    "-DDDR_MULTI_ID_MODEL=1",
+    "-DDDR_BENCHMARK_MODEL=1",
+    "-DBOARD_CPU_HZ=100000000",
+    "-DBOARD_UART_BAUD=460800",
+    "-DUART_DIVISOR=1",
+    "-DBOARD_DDR_BYTES=2147483648ULL",
+    "-DDDR_READ_CREDITS=8",
+    "-DDDR_READ_LATENCY=32",
+    "-DDDR_READ_BEAT_GAP=1",
+    "-DBOARD_CYCLE_LIMIT=2600000ULL",
+    "-DBOARD_EXPECTED_LSU_ENTRIES=4",
+    "-DREAD_PREFETCH_DIRTY_RETRY=1",
+    "-DREAD_PREFETCH_DEMAND_ADOPTION=1",
+    "-DREAD_PREFETCH_BEHIND_STORE=1",
+    "-DDURABLE_READ_PREFETCH_CANDIDATE=1",
+    "-DTAGGED_STORE_RETURNS=1",
+    "-DCONCURRENT_READ_STORE_PREFETCH=1",
+    "-DMEMORY_SCHEDULE_OVERLAP=1",
+    "-DFUTURE_WAY_RESERVATION=1",
+    "-DSTORE_PREFETCH_LRU_VICTIM=1"
+  ]
+}

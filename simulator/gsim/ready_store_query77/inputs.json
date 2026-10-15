@@ -1,0 +1,399 @@
+{
+  "schema": "ready-store-query77-source-staging-v1",
+  "scope": "Exact source staging with explicit config/emission/generation interfaces; complete fullCPU runtime reproduction pending guest/reference/binding review.",
+  "host_inputs": {
+    "future_home_ledger.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/future_home_ledger.h",
+      "sha256": "c6c2ddfa7a5f21c5fb778d1c04864de25ad23250166783c0148688e8efc95764"
+    },
+    "production_probe.h": {
+      "source": "simulator/gsim/memory_schedule_overlap/production_probe.h",
+      "sha256": "f7a407b99500f75f9ccad7c73296d56cc6770d9266866303bffcbf031747293a"
+    },
+    "posted_join_observation.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/posted_join_observation.h",
+      "sha256": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af"
+    },
+    "supply_ledger.h": {
+      "source": "simulator/gsim/shared_lru76/host/supply_ledger.h",
+      "sha256": "730db7bc3113f2285eb85ab5b369da9b120c8a1bb469b047ed7e51c1b6bd5f30"
+    },
+    "passive_supply.h": {
+      "source": "simulator/gsim/shared_lru76/host/passive_supply.h",
+      "sha256": "2514c6a68c6f2b8aa7ac080710c25df2b763b1da008cae3e08893ca1cf97d822"
+    },
+    "adoption_ledger.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/adoption_ledger.h",
+      "sha256": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e"
+    },
+    "ledger_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/ledger_negative.cpp",
+      "sha256": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135"
+    },
+    "cpu_passive_bandwidth.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/cpu_passive_bandwidth.cpp",
+      "sha256": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c"
+    },
+    "tagged_board_probe.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_probe.h",
+      "sha256": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269"
+    },
+    "tagged_board_oracle.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_board_oracle.h",
+      "sha256": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51"
+    },
+    "tagged_return_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_return_negative.cpp",
+      "sha256": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa"
+    },
+    "passive_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/passive_negative.cpp",
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8"
+    },
+    "tagged_getter_guard.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/tagged_getter_guard.cpp",
+      "sha256": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129"
+    },
+    "harness/board_ddr_benchmark.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_ddr_benchmark.h",
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e"
+    },
+    "harness/mshr_occupancy.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/mshr_occupancy.h",
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb"
+    },
+    "harness/board_boot.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_boot.cpp",
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+      "staged_sha256": "bff0db238b5fccda3bfc389c006177a6e8faa8939dec1153175c6d5763b1a206",
+      "transform": "reviewed-deterministic-init"
+    },
+    "harness/cpu_lsu_occupancy.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/cpu_lsu_occupancy.h",
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646"
+    },
+    "harness/performance_observer.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/performance_observer.h",
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7"
+    },
+    "harness/fabric_idle_service.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/fabric_idle_service.h",
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326"
+    }
+  },
+  "matched_repository_inputs": {
+    "pmp/host.cpp": {
+      "source": "simulator/gsim/fetch_fault_precision_cpu/host.cpp",
+      "sha256": "36b691501fe0577811cf8991c5cc86b2d07d6153d2f78c167790ca132d7a93eb"
+    },
+    "held/trace_events.h": {
+      "source": "simulator/gsim/held_alu_forwarding/trace_events.h",
+      "sha256": "d7a4286448672859e55582196ebe87a7d0a62d9db8cd4476f91acb17e61b46d9"
+    },
+    "held/events.h": {
+      "source": "simulator/gsim/held_alu_forwarding/events.h",
+      "sha256": "5deb9322e5e56f2eb05033475228d28127aa9d9de8960a159228e6ebc022273d"
+    },
+    "held/scenario.h": {
+      "source": "simulator/gsim/held_alu_forwarding/scenario.h",
+      "sha256": "3194b65fd83eb843f41aa7258cfb885713e0ca7cdb3d2e8a4a472b7915714240"
+    },
+    "held/architecture_oracle.h": {
+      "source": "simulator/gsim/held_alu_forwarding/architecture_oracle.h",
+      "sha256": "af846d5f89a1e7e56d95f3ae4d40aca7e3606d050c0c1657d5c7fc67f612b83c"
+    },
+    "held/directed_trace_host.cpp": {
+      "source": "simulator/gsim/held_alu_forwarding/directed_trace_host.cpp",
+      "sha256": "906334b6c1f5f0cf4dbfb782aa05130d7efcbd17a63e19151529093b69b1748d"
+    },
+    "held/held_observer.h": {
+      "source": "simulator/gsim/held_alu_forwarding/held_observer.h",
+      "sha256": "347bdd02197dff45d2b38af6d6ce8e931d020f9accce48d277661c50db4ad12b"
+    },
+    "held/directed_tagged_probe.h": {
+      "source": "simulator/gsim/held_alu_forwarding/directed_tagged_probe.h",
+      "sha256": "a7182d06552891f0f2bc2ece332f80769b1462e0f7c13b8d4f16fa04f45cf97f"
+    },
+    "nemu/host/reference.h": {
+      "source": "simulator/gsim/harness/board_hot_nemu/reference.h",
+      "sha256": "06e192eb8918b40554fc24ed99504ee2b86d132e1558588a974dffec47a18508"
+    },
+    "nemu/host/current_board_nemu.cpp": {
+      "source": "simulator/gsim/ready_store_query77/nemu/host/current_board_nemu.cpp",
+      "sha256": "92717f66cd76db4f91781183cd38c7ce4c1ad86d3830c9f0a2516f835ce60536"
+    },
+    "nemu/host/board_nemu_observer.h": {
+      "source": "simulator/gsim/ready_store_query77/nemu/host/board_nemu_observer.h",
+      "sha256": "3e0653ea0aa4c6b9eb60fc60d282b5ecc4efbc3c99d9d026f77c2955542b46d2"
+    },
+    "held/binding_memory_generate.py": {
+      "source": "simulator/gsim/ready_store_query77/held/binding_memory_generate.py",
+      "sha256": "cf27fac3612d53d06c9a25db665f26cb97e3d3bbb248f09c7ad8607badf39f83"
+    },
+    "held/binding_memory_core_generate.py": {
+      "source": "simulator/gsim/ready_store_query77/held/binding_memory_core_generate.py",
+      "sha256": "04a54e6612e6ecba78f21a787cc6c447fad58f30ffeca5a6cac5284e4eb30a6b"
+    },
+    "nemu/compressed_call_return.py": {
+      "source": "simulator/gsim/ready_store_query77/nemu/compressed_call_return.py",
+      "sha256": "4f2db7f6f4db5fc18dff272d922e2c411bebe570de560983c77426569058b0d7"
+    }
+  },
+  "unresolved_qualified_inputs": [],
+  "repository_generator_identities": {
+    "simulator/gsim/build_cpu_hot_bandwidth.py": "942279f8f42b43555c9ba8528b6003e282b38ffe8256482b6fbd6623993f1d43",
+    "simulator/gsim/held_alu_forwarding/prepare_inputs.py": "50fa095904e052f9dca60ddca3a681ced65babaab1be499d050a842660cfde16",
+    "simulator/gsim/held_alu_forwarding/directed_inputs.py": "654e561415d9dcf1a64ebe100334adf45b49de190552011f84160b776e3b17af",
+    "simulator/gsim/held_alu_forwarding/binding_memory_generate.py": "7583c866f3ad4211113c04ecf9fffa98b9ae45d7abcb6bd1f00076688663cdaf",
+    "simulator/gsim/held_alu_forwarding/binding_memory_core_generate.py": "8323129b20d12a13341a846a0632a7614d763923b02eeebc329a0e37b21e89cd",
+    "simulator/gsim/held_alu_forwarding/provenance.json": "de2efafaa7285a7da7774f11870730d87159b742b5a7970e22245e36720b0e6f",
+    "simulator/gsim/held_alu_forwarding/inputs-manifest.json": "237731d9a4adef76720a8606f1d854b75491d9c6b0a3174b6796a42e370d7991",
+    "simulator/gsim/payloads/cpu_flow_data_pmp.S": "58409a4e9b9e40cb2065d3376d369910b4095a70d73f7502c64059bded39f4e7",
+    "simulator/gsim/payloads/cpu_hot_bandwidth.ld": "2cfe49e3b32898376c4888b6901c1a71bc12d68ea8f4dce2dfae0aa2d535ca46",
+    "simulator/gsim/fetch_fault_precision_cpu/guest.S": "1915107db534af2cbfa3467d7109f246539a46ad0317f92b4367c62bf906f8a8",
+    "simulator/gsim/fetch_fault_precision_cpu/guest.ld": "2cfe49e3b32898376c4888b6901c1a71bc12d68ea8f4dce2dfae0aa2d535ca46",
+    "simulator/gsim/cpu_sv39_bandwidth.py": "eb00e6405fe58a6146275529f6792cfd89cf5baccfa9822afac957dfea10516e",
+    "simulator/gsim/payloads/cpu_sv39_bandwidth.S": "a848bd50b7f05f3c52d3c99bc371867680da2b8a66e4f920468a36191a67b548",
+    "simulator/gsim/payloads/cpu_hot_bandwidth.S": "eb0465d7b09f098afd77aa908cd3580add178e7e8b4e098ce1fa012f08fddbb4"
+  },
+  "guest_expected_identities": {
+    "guest.bin": {
+      "sha256": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94",
+      "recipe": "copy"
+    },
+    "cpu_sv39_symbols.h": {
+      "sha256": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d",
+      "recipe": "copy"
+    }
+  },
+  "host_flags": [
+    "-std=c++20",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-DDDR_MODEL=1",
+    "-DDDR_MULTI_ID_MODEL=1",
+    "-DDDR_BENCHMARK_MODEL=1",
+    "-DBOARD_CPU_HZ=100000000",
+    "-DBOARD_UART_BAUD=460800",
+    "-DUART_DIVISOR=1",
+    "-DBOARD_DDR_BYTES=2147483648ULL",
+    "-DDDR_READ_CREDITS=8",
+    "-DDDR_READ_LATENCY=32",
+    "-DDDR_READ_BEAT_GAP=1",
+    "-DBOARD_CYCLE_LIMIT=2600000ULL",
+    "-DBOARD_EXPECTED_LSU_ENTRIES=4",
+    "-DREAD_PREFETCH_DIRTY_RETRY=1",
+    "-DREAD_PREFETCH_DEMAND_ADOPTION=1",
+    "-DREAD_PREFETCH_BEHIND_STORE=1",
+    "-DDURABLE_READ_PREFETCH_CANDIDATE=1",
+    "-DTAGGED_STORE_RETURNS=1",
+    "-DCONCURRENT_READ_STORE_PREFETCH=1",
+    "-DMEMORY_SCHEDULE_OVERLAP=1",
+    "-DFUTURE_WAY_RESERVATION=1",
+    "-DSTORE_PREFETCH_LRU_VICTIM=1"
+  ],
+  "component_inputs": {
+    "ready_store_query77_backend.cpp": "c599a7566e2b2483b1c8762f1f07ed9fff910227c3c19aea1ab151c4e699bda7",
+    "ready_store_query77_reference.h": "cb4b9889de1a04722aa0a65675161f353acd5f72152401128a4bf1462559406f"
+  },
+  "initialization": {
+    "common_before": "f05568b7f40a162a13f0135e1d5acb0cdd146e76b1c92689e304be159cded66f",
+    "common_after": "f29bdc69cf391d12251aa140dd1a7f374bc48948df139380ec5369add120a34b",
+    "qualified_posted_before": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+    "qualified_posted_after": "bff0db238b5fccda3bfc389c006177a6e8faa8939dec1153175c6d5763b1a206",
+    "note": "Only initialization hunk shared; common harness does not acquire FabricIdleService."
+  },
+  "limits": [
+    "Source/input recipes complete; no generator has been executed in the packaging phase.",
+    "FullCPU runtime remains blocked until guest bytes, independent NEMU .so identity, fresh semantic bindings, tool compilation and exact include depfiles are reviewed.",
+    "Current77 OFF is not historical76. Matched17 cases require separately supplied and identified historical76 and77 model inputs."
+  ],
+  "source_adapters": {
+    "nemu/host/current_board_nemu.cpp": {
+      "qualified_sha256": "92717f66cd76db4f91781183cd38c7ce4c1ad86d3830c9f0a2516f835ce60536",
+      "packaged_sha256": "92717f66cd76db4f91781183cd38c7ce4c1ad86d3830c9f0a2516f835ce60536",
+      "changes": "Byte-identical qualified source."
+    },
+    "nemu/host/board_nemu_observer.h": {
+      "qualified_sha256": "3e0653ea0aa4c6b9eb60fc60d282b5ecc4efbc3c99d9d026f77c2955542b46d2",
+      "packaged_sha256": "3e0653ea0aa4c6b9eb60fc60d282b5ecc4efbc3c99d9d026f77c2955542b46d2",
+      "changes": "Byte-identical qualified source."
+    },
+    "held/binding_memory_generate.py": {
+      "qualified_sha256": "08f019b54029d632d9acea6959a2df0f08df407058700be74e74ac7a54658834",
+      "packaged_sha256": "cf27fac3612d53d06c9a25db665f26cb97e3d3bbb248f09c7ad8607badf39f83",
+      "changes": "Explicit model and output arguments only; semantic binding logic unchanged."
+    },
+    "held/binding_memory_core_generate.py": {
+      "qualified_sha256": "7b3f0b79eed9604beb398ebbd3f52bb3cec5b59d3d83dd4276e297bc6c06b332",
+      "packaged_sha256": "04a54e6612e6ecba78f21a787cc6c447fad58f30ffeca5a6cac5284e4eb30a6b",
+      "changes": "Explicit model and output arguments only; semantic binding logic unchanged."
+    },
+    "nemu/compressed_call_return.py": {
+      "qualified_sha256": "c45ffbdb889c01448d8a970b4df2cd142dd97a6b7770539f286d34ae14c479e4",
+      "packaged_sha256": "4f2db7f6f4db5fc18dff272d922e2c411bebe570de560983c77426569058b0d7",
+      "changes": "Only CLI output selection; emit body and instruction constants unchanged."
+    }
+  },
+  "guest_generation": {
+    "pmp": {
+      "source": "simulator/gsim/fetch_fault_precision_cpu",
+      "qualified_generator_sha256": "eedac50f847422c5a5350051e4e4f7631af21dbd90d46b5edd7803ef429ae41c",
+      "expected_bins": {
+        "short": "6ffc4f159b1630c459246a7616599758eba8533425c890f7ac8a406897fe8715",
+        "word": "3901bf3eb267c6fe562d008b92d8a7451b00d25944df92e96392aa128661bc71"
+      },
+      "expected_symbols_sha256": "87791addddd38122a71f6cc84e5a1b2e381600a4e9fcdd08594aa8aff7250faf",
+      "status": "Source-matched guest-only adapter; not executed in packaging phase."
+    },
+    "copy": {
+      "source": "simulator/gsim/payloads/cpu_sv39_bandwidth.S",
+      "linker": "simulator/gsim/payloads/cpu_hot_bandwidth.ld",
+      "recipe_source": "simulator/gsim/cpu_sv39_bandwidth.py",
+      "expected_bin_sha256": "775fed4ecceb615b7ce6bd71b784f2e080700c936039a48f6611e2b5bf94af94",
+      "expected_symbols_sha256": "7fad7ba92444b816e41eab60352741af3142a773d14d79f62d6f1b70450d690d",
+      "status": "Guest-only command law extracted without model/tool setup coupling; unexecuted."
+    },
+    "held": {
+      "source": "simulator/gsim/held_alu_forwarding/prepare_inputs.py",
+      "guest_selection": "corrected.bin",
+      "control_selection": "D1-bare-p0-x2-gated",
+      "expected_guest_sha256": "fa67bf239f31ee1392f4cd2d68382718ea869a6fca001fc8f637f51110141447",
+      "expected_control_sha256": "68e66f3d9700b31f0be030f0af8cd31fb7e692118d2cc80747a7e2f2193962c3",
+      "status": "Reuse generated_guests/generated_controls without DUT/model execution; checks remain unexecuted."
+    },
+    "nemu": {
+      "source": "simulator/gsim/payloads/cpu_hot_bandwidth.S",
+      "linker": "simulator/gsim/payloads/cpu_hot_bandwidth.ld",
+      "defines": [
+        "HOT_BYTES=64",
+        "HOT_OP=2",
+        "HOT_REPS=1"
+      ],
+      "expected_hot_sha256": "0111fa1a14051f2c909974e6d09786621ac20c0ecbbc86d11072f62b869df8c3",
+      "expected_compressed_sha256": "3a7ec09c504ba3f2502885d3336886d51bd205ad366690f728dbd113e913b88d",
+      "compressed_done": 2149580854,
+      "reference_sha256": "c7c91e002909228a897657362603908c40a9ab28cbff694b77a578d4e588092f",
+      "reference_requirement": "Caller must supply independent NEMU .so path; exact qualified hash required, never copied or rebuilt.",
+      "status": "All guest sources mapped; byte checks and reference check remain unexecuted."
+    }
+  },
+  "held_inputs": {
+    "trace_events.h": {
+      "source": "simulator/gsim/held_alu_forwarding/trace_events.h",
+      "sha256": "d7a4286448672859e55582196ebe87a7d0a62d9db8cd4476f91acb17e61b46d9"
+    },
+    "events.h": {
+      "source": "simulator/gsim/held_alu_forwarding/events.h",
+      "sha256": "5deb9322e5e56f2eb05033475228d28127aa9d9de8960a159228e6ebc022273d"
+    },
+    "scenario.h": {
+      "source": "simulator/gsim/held_alu_forwarding/scenario.h",
+      "sha256": "3194b65fd83eb843f41aa7258cfb885713e0ca7cdb3d2e8a4a472b7915714240"
+    },
+    "architecture_oracle.h": {
+      "source": "simulator/gsim/held_alu_forwarding/architecture_oracle.h",
+      "sha256": "af846d5f89a1e7e56d95f3ae4d40aca7e3606d050c0c1657d5c7fc67f612b83c"
+    },
+    "directed_trace_host.cpp": {
+      "source": "simulator/gsim/held_alu_forwarding/directed_trace_host.cpp",
+      "sha256": "906334b6c1f5f0cf4dbfb782aa05130d7efcbd17a63e19151529093b69b1748d"
+    },
+    "held_observer.h": {
+      "source": "simulator/gsim/held_alu_forwarding/held_observer.h",
+      "sha256": "347bdd02197dff45d2b38af6d6ce8e931d020f9accce48d277661c50db4ad12b"
+    },
+    "directed_tagged_probe.h": {
+      "source": "simulator/gsim/held_alu_forwarding/directed_tagged_probe.h",
+      "sha256": "a7182d06552891f0f2bc2ece332f80769b1462e0f7c13b8d4f16fa04f45cf97f"
+    },
+    "host/production_probe.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/production_probe.h",
+      "sha256": "dd31b178c82cb8460315fcabb8f197a4f580b9683080083cecedffd6e6849b49"
+    },
+    "host/posted_join_observation.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/posted_join_observation.h",
+      "sha256": "89a76f16eff4abd9d42d8b53db93aff97200d20a3a5f603bcb1b2bd7986dc4af"
+    },
+    "host/supply_ledger.h": {
+      "source": "simulator/gsim/shared_lru76/host/supply_ledger.h",
+      "sha256": "730db7bc3113f2285eb85ab5b369da9b120c8a1bb469b047ed7e51c1b6bd5f30"
+    },
+    "host/passive_supply.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/passive_supply.h",
+      "sha256": "a7dfde89dd97eff211e9a42c3c37e555e705fb768ca74da0bda935ad12b4f2fd"
+    },
+    "host/adoption_ledger.h": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/adoption_ledger.h",
+      "sha256": "56dcdac317773fa4325039d82e669d0f22ec664798beaf94ce2a2cb29577515e"
+    },
+    "host/ledger_negative.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/ledger_negative.cpp",
+      "sha256": "35944b614698eb90ad47255d5586b77d1c5751cb325046c4dabfbda67fbfc135"
+    },
+    "host/cpu_passive_bandwidth.cpp": {
+      "source": "simulator/gsim/tagged_store_return_board/host/cpu_passive_bandwidth.cpp",
+      "sha256": "0dcbbf38de157e965e84ca0c555c7d95ae742290c10c1034139bee8a3a112d3c"
+    },
+    "host/tagged_board_probe.h": {
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_board_probe.h",
+      "sha256": "0204c1535c4b2ed567a0f4c1c86e974cebf6a9f419d7704a04b8581b9c2aa269"
+    },
+    "host/tagged_board_oracle.h": {
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_board_oracle.h",
+      "sha256": "ad9c033dfccc0c07729cc0dafd5f6c394d9699b876d0377831d3fc701c217c51"
+    },
+    "host/tagged_return_negative.cpp": {
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_return_negative.cpp",
+      "sha256": "16796de0ec7b8c993a78e5e82a37a01abdd6e0edbff6dbc0b816d49ff2f2defa"
+    },
+    "host/passive_negative.cpp": {
+      "source": "simulator/gsim/read_prefetch_dirty_retry/cpu_snapshot/passive_negative.cpp",
+      "sha256": "9540c6841b3ac5f515f6abcc782d6fffe0e55d83e85af5231885be6d083115c8"
+    },
+    "host/tagged_getter_guard.cpp": {
+      "source": "simulator/gsim/tagged_store_return_board/host/tagged_getter_guard.cpp",
+      "sha256": "c707cd1e6f995121f29c85ebdad0234cd56c64ffe8a22d5ff2d9f41f2fd2b129"
+    },
+    "host/harness/board_ddr_benchmark.h": {
+      "source": "simulator/gsim/harness/board_ddr_benchmark.h",
+      "sha256": "56af3a1b063b039a0406825c9d56b503464fb5cab8376174ab6ef659f1e6a31e"
+    },
+    "host/harness/mshr_occupancy.h": {
+      "source": "simulator/gsim/harness/mshr_occupancy.h",
+      "sha256": "17c4175d7d50c52f32f2f0577da792b1a5a68d9ed57b109f926ff38963faecdb"
+    },
+    "host/harness/board_boot.cpp": {
+      "source": "simulator/gsim/young_load_seal/posted_join_observation/host/harness/board_boot.cpp",
+      "sha256": "9126a1dfb46a0ef8cc26b4505a2160053ad9ecad53a65aeabe124a66b086a533",
+      "staged_sha256": "bff0db238b5fccda3bfc389c006177a6e8faa8939dec1153175c6d5763b1a206",
+      "transform": "reviewed-deterministic-init"
+    },
+    "host/harness/cpu_lsu_occupancy.h": {
+      "source": "simulator/gsim/harness/cpu_lsu_occupancy.h",
+      "sha256": "b05363ce2e353a97ec86f9f54764164f3bdff52fcceed9a3af0d03e7aa777646"
+    },
+    "host/harness/performance_observer.h": {
+      "source": "simulator/gsim/harness/performance_observer.h",
+      "sha256": "b6f01a3b7087a81300ca19d362ab87bec641f72349ec5a54572dec25e0ca2da7"
+    },
+    "host/harness/fabric_idle_service.h": {
+      "source": "simulator/gsim/read_prefetch_dirty_retry/cpu_snapshot/harness/fabric_idle_service.h",
+      "sha256": "f4e369c5531b807bb4d1b5e5e7d8f2470f7621a031baa2d0a622f3f0de73f326"
+    }
+  },
+  "include_topology": {
+    "copy": "one staged host/ root; quoted harness/board_boot.cpp resolves there",
+    "held": "one staged held/ root with exact host/ subtree; fresh binding_memory_on.h and binding_memory_core_on.h must be generated into held/ before build",
+    "nemu": "one staged nemu/host/ plus only staged host/harness and model include directories; qualified host includes board_boot.cpp",
+    "pmp": "one staged pmp/ plus staged host/ and host/harness; regenerated pmp_trap_symbols.h belongs in pmp/"
+  },
+  "component_provenance": {
+    "initial_fixture_host_sha256": "b110eaa9070bc4c888907f62935224728b115eb3617ba453682445687f72a8d8",
+    "qualified_scheduling_repair_host_sha256": "c599a7566e2b2483b1c8762f1f07ed9fff910227c3c19aea1ab151c4e699bda7",
+    "unchanged_oracle_sha256": "cb4b9889de1a04722aa0a65675161f353acd5f72152401128a4bf1462559406f",
+    "independent_qualification_receipt_sha256": "57913d9d57c57ec9290b95e1d0773da57c8276aea151ba1e25b0f9a3665690d0"
+  }
+}

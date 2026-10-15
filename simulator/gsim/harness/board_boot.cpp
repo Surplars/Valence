@@ -1,6 +1,8 @@
 #include "BoardSocGsim.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
+#include <type_traits>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -238,6 +240,14 @@ struct Test {
     void idle(unsigned count) { while (count--) tick(); }
     explicit Test(const Bytes &rom, void (*initialObserver)(SBoardSocGsim &, void *) = nullptr,
                   void *initialContext = nullptr) {
+        // GSIM uses a uint32_t element count as a byte count in its constructor.
+        // Restore deterministic zero initialization without changing generated code.
+        static_assert(std::is_trivially_copyable_v<SBoardSocGsim>);
+        std::memset(dut.get(), 0, sizeof(*dut));
+        dut->cycles = 0;
+        dut->LOG_START = 1;
+        dut->LOG_END = 0;
+        dut->activateAll();
         observer = initialObserver;
         observerContext = initialContext;
         check(!rom.empty() && rom.size() <= 128 * 1024, "boot ROM image size");

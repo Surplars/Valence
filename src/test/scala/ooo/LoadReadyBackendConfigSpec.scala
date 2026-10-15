@@ -1,5 +1,6 @@
 package soc.core.ooo
 import org.scalatest.funsuite.AnyFunSuite
+import _root_.ooo.ProfileAbi77
 import soc.core.ooo._
 class LoadReadyBackendConfigSpec extends AnyFunSuite {
     test("single named opt-in field and full bounded prerequisite product") {
@@ -9,7 +10,8 @@ class LoadReadyBackendConfigSpec extends AnyFunSuite {
         assert(on.copy(registeredLoadResultReady = false) == off)
         assert(off.productElementNames.zip(off.productIterator).toMap.keySet ==
             on.productElementNames.zip(on.productIterator).toMap.keySet)
-        assert(off.productArity == on.productArity && off.productArity == 177
+        ProfileAbi77.requireLive(off); ProfileAbi77.requireLive(on)
+        assert(off.productArity == on.productArity && off.productArity == 178
         )
         assert(!off.frozenStoreCheckedFlow && !on.frozenStoreCheckedFlow)
         assert(off.heldAluIssueForwarding && on.heldAluIssueForwarding)

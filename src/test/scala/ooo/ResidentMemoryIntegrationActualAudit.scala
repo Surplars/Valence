@@ -17,13 +17,14 @@ object ResidentMemoryIntegrationActualAudit {
             "resident memory argument differs from actual matching-board configuration")
 
     def capture(platform: MachinePlatform, expected: FpgaNextConfig): Map[String, Any] = {
+        ProfileAbi77.requireLive(expected)
         PlacedTimingProfileBridge.requireShape(expected)
         val core = platform.core.core.core
         val backend = core.backend
         val p = expected.coreParams
         require(core.p == p && backend.p == p && backend.ledger.p == p,
             "complete core/backend/ledger constructor parameters must be identical")
-        require(p.productArity == 177 && expected.productArity == 94)
+        require(p.productArity == 178 && expected.productArity == 95)
         require(backend.p.residentMemoryPayloadReuse == expected.residentMemoryPayloadReuse &&
             backend.residentMemoryStartAllowed.nonEmpty == p.residentMemoryPayloadReuse,
             "actual resident memory switch or start guard differs from requested constructor")

@@ -109,7 +109,8 @@ object CoherentLineCacheModule {
         concurrency: CoherentCacheConcurrency, tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
         postedConfig: Option[PostedStoreMergeConfig] = None,
         returnConfig: Option[CpuReturnConfig] = None, registerProbeLookup: Boolean = false,
-        localReadSelection: Boolean = false): CoherentLineCacheModule = {
+        localReadSelection: Boolean = false,
+        allowSharedFutureLruWriteData: Boolean = false): CoherentLineCacheModule = {
         require(!localReadSelection || concurrency.readMshrs > 1,
             "local read selection requires the nonblocking cache constructor")
         require(!registerProbeLookup || concurrency.readMshrs > 1,
@@ -133,7 +134,11 @@ object CoherentLineCacheModule {
             internalLineGrant = true, concurrentReadStorePrefetch = true, memoryScheduleOverlap = true)
         val qualifiedSharedWriteData = base == BoardSocConfig.ramBase && bytes == BigInt(2) * 1024 * 1024 * 1024 &&
             lines == 512 && ways == 2 &&
-            concurrency == reviewedWriteDataConcurrency && tagConfig.compact && tagConfig.bankedStorage &&
+            (concurrency == reviewedWriteDataConcurrency ||
+                (allowSharedFutureLruWriteData && concurrency.futureHomeWayReservation &&
+                    concurrency.storePrefetchLruVictim &&
+                    concurrency.copy(futureHomeWayReservation = false, storePrefetchLruVictim = false) ==
+                        reviewedWriteDataConcurrency)) && tagConfig.compact && tagConfig.bankedStorage &&
             params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits == 3 && params.sinkBits == 1 &&
             registerProbeLookup && localReadSelection &&
             postedConfig.exists(c => c.enabled && c.tokenTagBits == 64 && c.tokenIndexBits == 4 &&

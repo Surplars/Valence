@@ -745,3 +745,15 @@ gsim-fp-memory-test:
 GSIM_GMAC_READY_TAG ?= 20261004
 gsim-gmac-ready-test:
 	python3 simulator/gsim/gmac_ready.py --tag $(GSIM_GMAC_READY_TAG)
+
+# Opt-in query77 source staging / explicit emission. No broad target dependencies.
+QUERY77_OUT ?= build/gsim/ready-store-query77
+QUERY77_STAGE ?= config
+QUERY77_ARGS ?=
+.PHONY: query77-stage-sources query77-plan query77-execute
+query77-stage-sources:
+	python3 -B simulator/gsim/ready_store_query77/prepare.py --output $(QUERY77_OUT)
+query77-plan:
+	python3 -B simulator/gsim/ready_store_query77/run.py $(QUERY77_STAGE) --output $(QUERY77_OUT) $(QUERY77_ARGS)
+query77-execute:
+	python3 -B simulator/gsim/ready_store_query77/run.py $(QUERY77_STAGE) --output $(QUERY77_OUT) $(QUERY77_ARGS) --execute

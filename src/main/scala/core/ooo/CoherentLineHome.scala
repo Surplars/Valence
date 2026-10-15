@@ -48,8 +48,14 @@ object CoherentLineHomeModule {
         lineReadChannel: Boolean = false,
         internalLineGrant: Boolean = false,
         memoryScheduleOverlap: Boolean = false,
-        futureHomeWayReservation: Boolean = false
+        futureHomeWayReservation: Boolean = false,
+        allowSharedFutureLookup: Boolean = false
     ): CoherentLineHomeModule = {
+        require(!allowSharedFutureLookup || (futureHomeWayReservation && memoryScheduleOverlap &&
+            trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 && writebackEntries == 2 &&
+            mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 && tagConfig.bankedStorage &&
+            lineTransferDispatchFlow && lineReadChannel && internalLineGrant),
+            "shared future lookup opt-in requires the qualified exact Home geometry")
         require(!futureHomeWayReservation || memoryScheduleOverlap,
             "future Home way reservation requires memory scheduling overlap")
         require(!memoryScheduleOverlap || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 &&
@@ -79,7 +85,7 @@ object CoherentLineHomeModule {
                     internalLineGrant, memoryScheduleOverlap, futureHomeWayReservation,
                     sharedLookupMatch = memoryScheduleOverlap && trackedLines == 512 && trackedWays == 2 &&
                         acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite && dmaLineTransfers &&
-                        dmaLineEntries == 4 && tagConfig.bankedStorage && !futureHomeWayReservation &&
+                        dmaLineEntries == 4 && tagConfig.bankedStorage && (!futureHomeWayReservation || allowSharedFutureLookup) &&
                         lineTransferDispatchFlow && lineReadChannel && internalLineGrant))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))

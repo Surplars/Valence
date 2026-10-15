@@ -38,6 +38,7 @@ private[ooo] object MacRawHandoffEntry {
   */
 object MacRawHandoffEntryAudit {
     def capture(board: BoardSocTop, expected: FpgaNextConfig): Map[String, Any] = {
+        ProfileAbi77.requireLive(expected)
         require(board.triSpeedRawClockHandoff == expected.triSpeedRawClockHandoff,
             "actual BoardSocTop lost the RAW MAC handoff parameter")
         val bank = board.nativeBank.getOrElse(throw new IllegalArgumentException("managed bank missing"))
@@ -56,7 +57,7 @@ object MacRawHandoffEntryAudit {
             }
         }
         val core = board.platform.core.core.core
-        require(core.p == expected.coreParams && core.p.productArity == 177 && expected.productArity == 94,
+        require(core.p == expected.coreParams && core.p.productArity == 178 && expected.productArity == 95,
             "actual complete CPU constructor changed under the platform extension")
         Map("schema" -> "actual-mac-raw-handoff-platform-v1", "scope" -> "actual-constructor-only",
             "triSpeedRawClockHandoff" -> expected.triSpeedRawClockHandoff,

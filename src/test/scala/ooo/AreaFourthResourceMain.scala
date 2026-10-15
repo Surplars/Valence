@@ -20,11 +20,12 @@ object AreaFourthResourceProfile {
     require(on == base.on.copy(sharedMemoryAddressState = true))
     require(on.coreParams == base.on.coreParams.copy(sharedMemoryAddressState = true))
     require(on.storage == base.on.storage.copy(sharedMemoryAddressState = true))
-    require(on.productArity == 94 && on.coreParams.productArity == 177)
+    ProfileAbi77.requireHistorical(on)
+    require(ProfileAbi77.retained(on).size == 94 && ProfileAbi77.retained(on.coreParams).size == 177)
     require(on.productElementNames.toSeq == base.on.productElementNames.toSeq &&
         on.coreParams.productElementNames.toSeq == base.on.coreParams.productElementNames.toSeq)
-    require(on.productElementNames.toSeq == contract("profile_fields").arr.map(_.str).toSeq &&
-        on.coreParams.productElementNames.toSeq == contract("core_fields").arr.map(_.str).toSeq)
+    require(ProfileAbi77.retainedNames(on) == contract("profile_fields").arr.map(_.str).toSeq &&
+        ProfileAbi77.retainedNames(on.coreParams) == contract("core_fields").arr.map(_.str).toSeq)
     require(on.cache == base.on.cache && on.ddr == base.on.ddr && on.network == base.on.network)
     require(contract("physical_options") == base.contract("physical_options"))
     require(on.issueWidth == 2 && on.coreParams.robEntries == 16 && on.coreParams.physicalRegs == 48 &&
@@ -43,13 +44,14 @@ object AreaFourthResourceProfile {
     def expected(key: String): ujson.Value = transform(base.expected("on", key))
     def requireOptions(actual: Seq[String]): Unit = require(actual == options)
     def write(out: Path): Unit = {
-        PostedBoardConfiguration.write(on, out.toString)
+        ProfileAbi77.writeProfile(on, out)
         Files.writeString(out.resolve("options.txt"), options.mkString("", "\n", "\n"))
-        Files.writeString(out.resolve("actual-product-field-order.json"), PostedBoardConfiguration.json(Map(
-            "core" -> on.coreParams.productElementNames.toSeq, "profile" -> on.productElementNames.toSeq)) + "\n")
+        ProfileAbi77.writeFieldOrder(on, out)
     }
-    def requireFabric(out: Path): Unit =
+    def requireFabric(out: Path): Unit = {
+        ProfileAbi77.normalizeMatching(out, expected("fabric"), on)
         require(ujson.read(Files.readString(out.resolve("actual-fabric.json"))) == expected("fabric"))
+    }
 }
 
 /** New constructor witnesses only, with no DUT observation ports or state. */
@@ -119,6 +121,7 @@ object AreaFourthResourceNativeMain extends App {
     val out = Paths.get(args(0)).toAbsolutePath
     require(!Files.exists(out), "fresh native output required")
     FpgaNextMain.main(args)
+    ProfileAbi77.normalizeNative(out, p.contract("on_profile"), p.expected("timing_audit"), p.expected("existing_audits"), p.on)
     def read(name: String): ujson.Value = ujson.read(Files.readString(out.resolve(name)))
     require(read("profile.json") == p.contract("on_profile"))
     require(read("actual-timing-closure.json") == p.expected("timing_audit"))

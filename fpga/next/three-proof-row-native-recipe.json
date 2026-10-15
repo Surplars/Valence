@@ -1,0 +1,389 @@
+{
+  "schema": "three-proof-row-native-portable-recipe-v1",
+  "status": "EXPLICIT_SOURCE_RECIPE_WITH_SEPARATE_EXECUTION_EVIDENCE",
+  "identity": "qualified77-three-proof-rows-two-credits-native-r1",
+  "base_commit": "8f6b6678e73d21eb1009af62c18a33216adbc505",
+  "base_tree": "238b23f77d2ddd5e5dc6250ffb340b67bf055355",
+  "configuration": {
+    "source": "src/test/scala/ooo/ThreeProofRowNativeProfile.scala",
+    "constructor": "ooo.ThreeProofRowNativeProfile.config",
+    "explicit_profile_fields": 95,
+    "core_fields": 178,
+    "profile_values": {
+      "alignedFetchPermissionStage": true,
+      "alignedFetchSinglePage": true,
+      "alignedNextLinePmp": true,
+      "bankedInstructionData": true,
+      "boundHeadStoreOverlap": true,
+      "canonicalVirtualStoreOverlap": true,
+      "concurrentReadStorePrefetch": true,
+      "dataTlbWriteReadReuse": true,
+      "dataTranslationEntries": 16,
+      "ddrOutstanding": 4,
+      "ddrWriteCollectionFlow": true,
+      "ddrWriteCredits": 2,
+      "directRank0MemorySourceIds": true,
+      "directRank1MemorySourceIds": true,
+      "directRegisteredExecutionOperands": true,
+      "distinctWayRelease": false,
+      "dmaLineEntries": 4,
+      "dmaLineTransfers": true,
+      "dmaLineYieldCycles": 0,
+      "durableReadPrefetchCandidate": true,
+      "eagerFetchPrefixSelect": false,
+      "experimentalTriSpeedEthernet": true,
+      "factorCheckedNextAllowed": true,
+      "fetchAcceptedPrefixValidation": true,
+      "fetchAddressBeforePmp": true,
+      "fetchPreviousPacket": true,
+      "fetchReadyDataClear": true,
+      "frozenStoreCheckedFlow": false,
+      "frozenStoreProofTransport": true,
+      "futureHomeWayReservation": true,
+      "heldAluIssueForwarding": true,
+      "independentDemandAdmission": true,
+      "independentFetchPayloadCapture": true,
+      "internalLineGrant": true,
+      "lineReadChannel": true,
+      "lineTransferDispatchFlow": true,
+      "loadOrderOlderRetire": true,
+      "localAddressRanges": true,
+      "localCacheReadSelection": true,
+      "localPayloadWriteEnable": true,
+      "localPayloadWriteRow": true,
+      "localTaggedResponseReady": true,
+      "lsuEntries": 4,
+      "memoryPreparationHeadMask": true,
+      "memoryProofFrontier": false,
+      "memoryScheduleOverlap": true,
+      "optimized": true,
+      "ownerLocalIssueReady": true,
+      "pendingReadyStoreBypass": true,
+      "pendingReadyStoreQuery": true,
+      "pendingStoreEarlyLoadCredits": 2,
+      "pendingVirtualStoreProof": true,
+      "pendingVirtualStoreProofSlots": 3,
+      "physicalLoadIngressFlow": true,
+      "physicalRegs": null,
+      "postedPrefetchCoexistence": true,
+      "postedPrefetchHeadOffer": true,
+      "postedPreparationPriority": false,
+      "postedStoreMerge": true,
+      "postedYoungerLoadSealDeferral": true,
+      "precheckedDataRequestFlow": false,
+      "predecodedHeadDrain": true,
+      "prefetchBreakOnStore": false,
+      "prefetchCandidateCycles": 16,
+      "preparedStoreLookahead": true,
+      "publishedPmpChanges": true,
+      "queuedHeadSelection": true,
+      "readPrefetchBehindStore": true,
+      "readPrefetchDemandAdoption": true,
+      "readPrefetchDirtyRetry": true,
+      "readPrefetchStoreHold": true,
+      "reconstructIssueTokenIndex": false,
+      "registerProbeLookup": true,
+      "registeredCanonicalStoreEvent": true,
+      "registeredLoadResultReady": true,
+      "registeredPendingStoreQuery": true,
+      "registeredPmpRegions": true,
+      "residentMemoryPayloadReuse": true,
+      "retirementIntent": true,
+      "retirementSlotIdentity": true,
+      "robEntries": null,
+      "shareProtectedHeadPayload": true,
+      "sharedCanonicalStoreOwnerMatch": true,
+      "sharedFetchPmpRelations": true,
+      "sharedLane1OwnerMatch": true,
+      "sharedMemoryAddressState": true,
+      "splitPrefetchTracking": true,
+      "storeNextLinePrefetch": true,
+      "storePrefetchLruVictim": true,
+      "storePrefetchMruInsertion": true,
+      "taggedStoreReturns": true,
+      "translatedResponseEmptyFlow": false,
+      "translationHitFlow": true,
+      "triSpeedRawClockHandoff": true,
+      "virtualRamLoadPrecheck": true
+    },
+    "complete_profile_reference": "fpga/next/three-proof-row-native-reference/profile.json",
+    "core_reference": "fpga/next/three-proof-row-native-reference/actual-core-parameters.json",
+    "field_order_reference": "fpga/next/three-proof-row-native-reference/actual-product-field-order.json",
+    "proof_rows": 3,
+    "early_load_credits": 2,
+    "lsu_owners": 4,
+    "option_list_used": false,
+    "hidden_overrides": false
+  },
+  "reference_directory": "fpga/next/three-proof-row-native-reference",
+  "reference_files": {
+    "profile.json": {
+      "sha256": "3018c4ca89dc3ee9b041f6a386335a40554f7a128c4d617a5980b631b509d57d",
+      "bytes": 10368
+    },
+    "actual-core-parameters.json": {
+      "sha256": "01eaeb92254a9cfdd7594e19f4b507d5bb435c2b5548a8833678ae1cbbe23665",
+      "bytes": 5551
+    },
+    "actual-product-field-order.json": {
+      "sha256": "d9610fe5f85af6f53eed617da190090133630266041a84f6b21b5538036f60e7",
+      "bytes": 6804
+    },
+    "actual-fabric.json": {
+      "sha256": "2c3f266330b083ece1dd45a51395e8bbe42ed4d1653234ee8b470fbe79a8ec61",
+      "bytes": 125388
+    },
+    "actual-three-proof-row-cpu.json": {
+      "sha256": "a9e2178f62a9cfb12ce7f2d2cd79a1ad451be5e651d1fea869a557fb426963b1",
+      "bytes": 8203
+    }
+  },
+  "toolchain": {
+    "java_major": 21,
+    "scala": "2.13.17",
+    "chisel": "7.3.0",
+    "firtool": "1.135.0",
+    "mill_version_source": ".mill-version",
+    "dependency_declarations": "build.mill"
+  },
+  "pure_configuration_entry": {
+    "main": "ooo.ThreeProofRowNativeConfigMain",
+    "arguments": [
+      "fpga/next/three-proof-row-native-reference"
+    ],
+    "cwd": "repository root",
+    "constructs_hardware": false
+  },
+  "native_export_entry": {
+    "main": "ooo.ThreeProofRowNativeMain",
+    "arguments": [
+      "<fresh-absolute-native-output>",
+      "<repository-root>/fpga/next/three-proof-row-native-reference"
+    ],
+    "cwd": "repository root",
+    "configuration_arguments": [],
+    "fresh_output_required": true,
+    "chisel_options": [
+      "--strip-debug-info",
+      "--disable-all-randomization",
+      "--default-layer-specialization=disable"
+    ],
+    "constructor": "ooo.ThreeProofRowNativeProfile.construct",
+    "top": "FpgaNextSocTop",
+    "reference_comparison": "all 178 core values, all 95 profile values, exact product order, complete derived document, actual common fabric and actual proof rows"
+  },
+  "native_boundaries": {
+    "standalone_tap": false,
+    "bscan_enabled": true,
+    "bscan_chain": 2,
+    "ram_loader": true,
+    "native_tri_speed_mac": true,
+    "raw_clock_handoff": true,
+    "tx_frame_slots": 2,
+    "dmi_address_bits": 7
+  },
+  "physical_contract": {
+    "status": "NOT_STAGED_OR_QUALIFIED",
+    "top": "soc_top_fpga_next_ddr",
+    "cpu_hz": 100000000,
+    "aon_hz": 50000000,
+    "uart_hz": 50000000,
+    "ddr_ui_hz": 250000000,
+    "required_explicit_generics": {
+      "NATIVE_MAC_LOCAL_PAD_RESET_RELEASE": 1,
+      "NATIVE_MAC_REGISTER_SELECTED_HALF": 1
+    },
+    "warning": "Wrapper defaults are zero. The native Scala export does not apply physical wrapper generics. Do not run an older board73/94-profile launcher with this candidate."
+  },
+  "resource_emission_contract": {
+    "accepted_transformation": "emitted bytes equal the exact accepted_prefix_utf8 bytes plus original resource bytes with precisely one final LF removed",
+    "post_export_inventory": "Separate read-only finalizer/result review required; native top success alone does not mean board/physical qualification.",
+    "accepted_prefix_utf8": "// Generated by CIRCT firtool-1.135.0\n",
+    "accepted_prefix_bytes": 38
+  },
+  "portable_validation_limits": [
+    "The current bounded gate reuses source-identical qualified production/HardFloat classes and compiles only changed test adapters plus explicit native entries.",
+    "No fresh full-repository Mill test compilation is established by this gate.",
+    "No native export rerun or fullCPU rerun is included.",
+    "No one-command portable native/physical launcher is claimed. This contract fixes every native parameter and input; a clean-build source closure remains a separate bounded validation before making that stronger claim."
+  ],
+  "excluded": [
+    "Route B 179/96 and all head-proof forwarding experiments",
+    "generated RTL/model/object/class files",
+    "Vivado synthesis/place/route/bitstream",
+    "Git operations and publication"
+  ],
+  "local_physical_preflight": {
+    "status": "READ_ONLY_PREFLIGHT_FACTS_FROM_VERIFIED_LOCAL_TASK_NOT_PHYSICAL_QUALIFICATION",
+    "verified_local_thread": "01a13dc0-0f41-753e-8a60-ec559960d007",
+    "target_part": "xczu15eg-ffvb1156-2-i",
+    "vivado_launcher": "E:\\Xilinx\\2025.1\\Vivado\\bin\\vivado.bat",
+    "observed_windows_free_gib": 22.7,
+    "observed_heavy_vivado_processes": false,
+    "recheck_disk_and_processes_before_launch": true,
+    "protected_worktrees": [
+      {
+        "path": "/home/openion/Valence",
+        "dev_commit_prefix": "1e90af9",
+        "modified_files": 7,
+        "untracked_files": 1,
+        "policy": "DO_NOT_TOUCH"
+      },
+      {
+        "identity": "inorder worktree",
+        "status": "heavily dirty",
+        "policy": "DO_NOT_TOUCH"
+      }
+    ],
+    "candidate_directory_policy": "Create a new independent candidate directory. Do not reset, clean, switch, overlay, or build in either dirty worktree.",
+    "existing_reference_directory": "/mnt/e/VM/Share/Valence-rtl/Valence-final52-b1bb5d8-20261013-r1",
+    "available_reference_inputs": [
+      "board/board_ddr.xdc",
+      "pl_ddr4_pins.xdc",
+      "ip-build/board_ip.xpr",
+      "ROM/clock/CDC XCI referenced by board_ip.xpr",
+      "mig/ZU15EG.srcs/sources_1/ip/ddr4_0/ddr4_0.xci"
+    ],
+    "observed_reference_widths": {
+      "ddr4_physical_bits": 32,
+      "axi_bits": 64
+    },
+    "observed_reference_clocks_hz": {
+      "cpu": 100000000,
+      "aon": 50000000,
+      "mac": 125000000
+    },
+    "firmware_blocker": {
+      "final52_firmware_directory_present": false,
+      "rom_xci_reference": "firmware/bootrom.coe",
+      "older_available_directory": "/mnt/e/VM/Share/Valence-rtl/Valence-maxperf-1e90af9-20261012-r1/firmware",
+      "older_available_types": [
+        "coe",
+        "bin",
+        "elf",
+        "even",
+        "odd",
+        "contract"
+      ],
+      "required_before_ip_regeneration": "Explicitly select final ROM/firmware and verify exact hashes and its contract. Do not choose older ROM merely because files exist.",
+      "identified_older_rom": {
+        "bin_sha256": "ee7c2e5fb86d50dad55df532aeb7ccb1d0b91cb37b0b7042d03b446eee362d79",
+        "bin_bytes": 67280,
+        "coe_sha256": "ca0c9a52825208dc93d16e38a6f43a83e3c997b3e425d7cabe8828da23b0b61b",
+        "old_contract": {
+          "cpu_hz": 100000000,
+          "uart_baud": 460800,
+          "ddr_bytes": 2147483648,
+          "jtag_ram_enabled": true,
+          "rom_base_hex": "0x80000000",
+          "rom_limit_exclusive_hex": "0x80020000",
+          "rom_bytes": 131072
+        },
+        "selected_for_current_candidate": false,
+        "current_compatibility_proven": false
+      }
+    },
+    "old_place_scripts_trusted": false,
+    "old_place_script_reason": "Scripts bind an older hierarchy; prior MAC-topology check failed. They are not a verified current physical recipe.",
+    "required_explicit_generics": {
+      "NATIVE_MAC_LOCAL_PAD_RESET_RELEASE": 1,
+      "NATIVE_MAC_REGISTER_SELECTED_HALF": 1
+    },
+    "authorization_effect": "No new execution scope. This source delivery and its pure-config gate do not authorize physical launch or IP regeneration.",
+    "old_ip_inventory": {
+      "matched_artifact_count": 309,
+      "all_hashes_match_old_inventory": true,
+      "compatibility_with_current_export_proven": false,
+      "meaning": "Integrity of old artifacts only; does not establish current ROM/IP/RTL compatibility."
+    },
+    "current_native_rom_interface": {
+      "evidence": "Independently reviewed current native export InstructionRom.sv",
+      "evidence_sha256": "8220ede79cee2e461f894aadbccb1f1aee00fe42ac6850d6d070c37ed9bbbae9",
+      "memory_ip": "blk_mem_gen_0",
+      "ports": 2,
+      "data_bits_per_port": 32,
+      "word_address_bits": 15,
+      "rom_base_hex": "0x80000000",
+      "rom_limit_exclusive_hex": "0x80020000",
+      "rom_bytes": 131072,
+      "actual_contents": "EXTERNAL_NOT_DEFINED_BY_NATIVE_RTL_EXPORT",
+      "required_next_binding": "Explicit final ROM choice with bin/COE hashes and compatible firmware contract before IP regeneration."
+    },
+    "wrapper_requirement": {
+      "historical_final52_wrapper_usable": false,
+      "historical_reason": "Only one physical generic; cannot satisfy current dual-generic contract.",
+      "required_repository_source": "fpga/next/soc_top_fpga_next_ddr.sv",
+      "required_source_sha256": "5d40ba7a8b2a7b8ef2feced2d6c3db135470703170e58c5c12c2f7cc4b39556d",
+      "required_explicit_generics": {
+        "NATIVE_MAC_LOCAL_PAD_RESET_RELEASE": 1,
+        "NATIVE_MAC_REGISTER_SELECTED_HALF": 1
+      }
+    },
+    "known_obsolete_script_assumptions": [
+      {
+        "path": "scripts/discover_roots.tcl",
+        "assumption": "FpgaNextSocTop hierarchy discovery must be checked against the newly synthesized candidate."
+      },
+      {
+        "path": "run_place",
+        "lines": [
+          38
+        ],
+        "assumption": "Old GMAC hierarchy."
+      },
+      {
+        "path": "board_controls",
+        "lines": [
+          60,
+          69,
+          111
+        ],
+        "assumption": "Old GMAC hierarchy."
+      },
+      {
+        "path": "final_board_inventory",
+        "lines": [
+          4,
+          22
+        ],
+        "assumption": "Old GMAC hierarchy."
+      },
+      {
+        "path": "rom_init_snapshot",
+        "lines": [
+          3
+        ],
+        "assumption": "Old ROM hierarchy."
+      },
+      {
+        "path": "trispeed_quarter_constraints",
+        "lines": [
+          62,
+          63,
+          64,
+          65
+        ],
+        "assumption": "Expected12 registers but observed11; a new selected-half register topology contract is required, not a count-only edit."
+      }
+    ],
+    "hierarchy_policy": "Use a new independent staging directory and newly synthesized hierarchy. Never copy historical implementation/hierarchy-roots.tcl. Validate current selected-half register topology, exact bindings and clocks before applying constraints."
+  },
+  "scoped_portable_validation": {
+    "status": "PASS_INDEPENDENT_SCOPED_PORTABLE_COMPILE_AND_PURE_CONFIG_REVIEW",
+    "validated_source_manifest_sha256": "8c17572da490a853d96a8aff180f8d453ab2b6f68a371f18ccc552fabae03cf6",
+    "execution_receipt_sha256": "ceac7b935f7267c4de804bf1e2c2b6d4d3d21a753bcefae9f7a3ff60722085a7",
+    "independent_result_review_sha256": "a94419ae768640a1c860de6823752c1702d57b238e5e1d93668e87327c51c33c",
+    "fresh_test_sources": 11,
+    "production_classes_reused_after_complete_source_equality": true,
+    "core_fields": 178,
+    "profile_fields": 95,
+    "complete_values_order_and_derived_document_equal": true,
+    "R3_configuration_negatives": 17,
+    "historical_projection_negatives": 2,
+    "r2_changes": "Only delivery documentation and this recipe metadata changed after the reviewed run. All70 other payload files, including the eleven compiled source files and five references, remain byte-identical.",
+    "native_export_rerun": false,
+    "fresh_clean_build": false,
+    "fullcpu_rerun": false,
+    "physical_qualification": false
+  }
+}

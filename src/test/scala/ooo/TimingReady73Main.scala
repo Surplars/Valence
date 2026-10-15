@@ -47,9 +47,10 @@ object TimingReady73Profile {
     require(contract("physical_options") == baseline("physical_options"), "approved native physical options changed")
     for ((side, c) <- Seq(("off", off), ("on", on))) {
         PlacedTimingProfileBridge.requireShape(c)
-        require(c.productArity == 94 && c.coreParams.productArity == 177)
-        require(c.productElementNames.toSeq == contract("profile_fields").arr.map(_.str).toSeq)
-        require(c.coreParams.productElementNames.toSeq == contract("core_fields").arr.map(_.str).toSeq)
+        ProfileAbi77.requireHistorical(c)
+        require(ProfileAbi77.retained(c).size == 94 && ProfileAbi77.retained(c.coreParams).size == 177)
+        require(ProfileAbi77.retainedNames(c) == contract("profile_fields").arr.map(_.str).toSeq)
+        require(ProfileAbi77.retainedNames(c.coreParams) == contract("core_fields").arr.map(_.str).toSeq)
         require(document(c) == contract(side + "_profile"), "all complete typed/nested configuration values differ")
         require(c.cpuHz == 100000000 && c.issueWidth == 2 && c.coreParams.robEntries == 16 && c.coreParams.physicalRegs == 48 &&
             c.lsuEntries == 4 && c.coreParams.tagBits == 64 && c.postedYoungerLoadSealDeferral &&
@@ -67,7 +68,7 @@ object TimingReady73Profile {
         require(!c.coreParams.registeredLoadResultReady && !c.coreParams.frozenStoreCheckedFlow)
     }
     def document(c: FpgaNextConfig): ujson.Value =
-        ujson.read(PostedBoardConfiguration.json(PostedBoardConfiguration.document(c)))
+        ProfileAbi77.document(c)
     def requireSide(side: String, options: Seq[String], c: FpgaNextConfig): Unit = {
         val pair = side match {
             case "off" => (offOptions, off)
@@ -80,11 +81,9 @@ object TimingReady73Profile {
     def write(side: String, directory: Path): Unit = {
         val (c, options) = if (side == "off") (off, offOptions) else (on, onOptions)
         requireSide(side, options, c)
-        PostedBoardConfiguration.write(c, directory.toString)
+        ProfileAbi77.writeProfile(c, directory)
         Files.writeString(directory.resolve("options.txt"), options.mkString("", "\n", "\n"))
-        Files.writeString(directory.resolve("actual-product-field-order.json"), PostedBoardConfiguration.json(Map(
-            "core" -> c.coreParams.productElementNames.toSeq,
-            "profile" -> c.productElementNames.toSeq)) + "\n")
+        ProfileAbi77.writeFieldOrder(c, directory)
     }
     /** Local product references are expanded before exact complete-document comparison. */
     def expected(side: String, key: String): ujson.Value = {
@@ -100,9 +99,11 @@ object TimingReady73Profile {
         expand(contract(side + "_" + key))
     }
     def requireActual(side: String, actual: Map[String, Any], key: String): Unit =
-        require(ujson.read(PostedBoardConfiguration.json(actual)) == expected(side, key),
+        require(ProfileAbi77.report(ujson.read(PostedBoardConfiguration.json(actual)), expected(side, key),
+            if (key == "existing_audits") "existing" else "timing", if (side == "on") on else off) == expected(side, key),
             "complete actual constructor document differs: " + side + "/" + key)
     def requireFabric(side: String, directory: Path): Unit = {
+        ProfileAbi77.normalizeMatching(directory, expected(side, "fabric"), if (side == "on") on else off)
         val actual = ujson.read(Files.readString(directory.resolve("actual-fabric.json")))
         require(actual == expected(side, "fabric"), "complete actual fabric document differs")
         require(actual("rawMediaImplementedInGsim").bool == false && actual("cdcQualified").bool == false &&
@@ -167,6 +168,8 @@ object TimingReady73ConstructorMain extends App {
             PostedBoardConfiguration.json(actual.get) + "\n")
         Files.writeString(directory.resolve("actual-timing-closure.json"),
             PostedBoardConfiguration.json(closure.get) + "\n")
+        ProfileAbi77.normalizeFile(directory.resolve("actual-native-constructors.json"), p.expected(side, "existing_audits"), "existing", c)
+        ProfileAbi77.normalizeFile(directory.resolve("actual-timing-closure.json"), p.expected(side, "timing_audit"), "timing", c)
         ChiselStage.elaborate { FpgaNextBoardGsim.build(c, verifyConfiguration = true) }
         val matching = directory.resolve("matching")
         Files.createDirectories(matching)
@@ -185,6 +188,7 @@ object TimingReady73NativeMain extends App {
     val out = Paths.get(args(0)).toAbsolutePath
     require(!Files.exists(out), "fresh native output required")
     FpgaNextMain.main(args)
+    ProfileAbi77.normalizeNative(out, p.contract("on_profile"), p.expected("on", "timing_audit"), p.expected("on", "existing_audits"), c)
     def read(name: String): ujson.Value = ujson.read(Files.readString(out.resolve(name)))
     require(read("profile.json") == p.contract("on_profile"))
     require(read("actual-timing-closure.json") == p.expected("on", "timing_audit"))

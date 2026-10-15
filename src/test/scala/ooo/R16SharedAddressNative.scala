@@ -8,7 +8,8 @@ import soc.core.ooo._
 /** Component-only native census. All ordinary backend ports remain public. */
 class R16SharedAddressNative(shared: Boolean) extends Module {
     val p = TimingReady73Profile.on.coreParams.copy(sharedMemoryAddressState = shared)
-    require(p.productArity == 177 && p.robEntries == 16 && p.physicalRegs == 48 &&
+    ProfileAbi77.requireLive(p)
+    require(!p.pendingReadyStoreQuery && p.productArity == 178 && p.robEntries == 16 && p.physicalRegs == 48 &&
         p.issueWidth == 2 && p.tagBits == 64 && !p.reconstructIssueTokenIndex && !p.memoryProofFrontier)
     val backend = Module(new IntegerBackend(p,
         registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,

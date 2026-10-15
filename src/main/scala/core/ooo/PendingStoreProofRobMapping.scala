@@ -45,8 +45,25 @@ object PendingStoreProofRobMapping {
   */
 object BoundStoreProofPayload {
     def select(bound: UInt, records: Seq[MemoryAddressProof], ownerIndex: UInt): MemoryAddressProof = {
-        require(Set(1, 2).contains(records.length))
+        require(Set(1, 2, 3).contains(records.length))
         if (records.length == 1) records.head
-        else Mux(bound(0) && records.head.token.index === ownerIndex, records.head, records(1))
+        else if (records.length == 2)
+            Mux(bound(0) && records.head.token.index === ownerIndex, records.head, records(1))
+        else {
+            require(bound.getWidth == 3)
+            // Assertion-only uniqueness checks: never gate payload or authorization.
+            for (a <- 0 until 3; b <- 0 until a) {
+                when(bound(a) && bound(b)) {
+                    assert(records(a).token.index =/= records(b).token.index,
+                        "bound proof rows must have distinct owner indices")
+                }
+            }
+            val hit0 = bound(0) && records(0).token.index === ownerIndex
+            val hit1 = bound(1) && records(1).token.index === ownerIndex
+            // Priority masking preserves deterministic fallback even in a negative fixture.
+            // Full-token/VA/size/epoch permission remains outside this raw payload selector.
+            val select = Seq(hit0, !hit0 && hit1, !hit0 && !hit1)
+            Mux1H(select, records)
+        }
     }
 }

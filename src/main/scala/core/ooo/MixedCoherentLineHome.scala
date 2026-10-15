@@ -37,7 +37,10 @@ class MixedCoherentLineHome(
 ) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
     require(!sharedLookupMatch || (trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 &&
         writebackEntries == 2 && mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 &&
-        tagConfig.bankedStorage && !futureWayReservation), "shared lookup requires qualified directory geometry")
+        tagConfig.bankedStorage), "shared lookup requires qualified directory geometry")
+    require(!(sharedLookupMatch && futureWayReservation) ||
+        (memoryScheduleOverlap && lineTransferDispatchFlow && lineReadChannel && internalLineGrant),
+        "combined shared/future lookup requires the isolated overlap/line-transport profile")
     require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))

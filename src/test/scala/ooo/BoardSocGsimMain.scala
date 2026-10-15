@@ -59,7 +59,11 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     heldAluIssueForwarding: Boolean = false,
     residentMemoryPayloadReuse: Boolean = false,
     registeredLoadResultReady: Boolean = false,
-    frozenStoreCheckedFlow: Boolean = false) extends Module {
+    frozenStoreCheckedFlow: Boolean = false,
+    pendingReadyStoreQuery: Boolean = false) extends Module {
+    require(configurationCheck.nonEmpty &&
+        pendingReadyStoreQuery == configurationCheck.get.coreParams.pendingReadyStoreQuery,
+        "ready-store query argument must match actual constructor configuration")
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     HeldAluIntegrationActualAudit.requireArgument(configurationCheck.get, heldAluIssueForwarding)
     ResidentMemoryIntegrationActualAudit.requireArgument(configurationCheck.get, residentMemoryPayloadReuse)

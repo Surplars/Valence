@@ -444,7 +444,9 @@ class MachinePlatform(
         base = ramBase, bytes = ramBytes, lines = privateCacheLines, params = coherentParams,
         ways = coherentLineCacheWays, concurrency = cacheConcurrency, tagConfig = tagConfig,
         postedConfig = postedConfig, returnConfig = p.cpuReturnConfig,
-        registerProbeLookup = registerProbeLookup, localReadSelection = localCacheReadSelection)) else None
+        registerProbeLookup = registerProbeLookup, localReadSelection = localCacheReadSelection,
+        allowSharedFutureLruWriteData = p.sharedMemoryAddressState &&
+            cacheConcurrency.futureHomeWayReservation && cacheConcurrency.storePrefetchLruVictim)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
@@ -675,7 +677,8 @@ class MachinePlatform(
                 lineTransferDispatchFlow = lineTransferDispatchFlow, lineReadChannel = ddrBridge.lineReadChannel,
         internalLineGrant = cacheConcurrency.internalLineGrant,
         memoryScheduleOverlap = cacheConcurrency.memoryScheduleOverlap,
-        futureHomeWayReservation = cacheConcurrency.futureHomeWayReservation)
+        futureHomeWayReservation = cacheConcurrency.futureHomeWayReservation,
+        allowSharedFutureLookup = p.sharedMemoryAddressState && cacheConcurrency.futureHomeWayReservation)
             constructedHome = Some(home)
             home.reset := reset.asBool || hold
             // Phase one drains cache MSHRs/bypasses/releases with normal admission.

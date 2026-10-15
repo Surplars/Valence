@@ -203,8 +203,14 @@ case class OooParams(
     // Experimental ordinary-row mirror of stable successful LSU result availability.
     registeredLoadResultReady: Boolean = false,
     // Bound virtual stores retain final checked authorization while skipping an empty FIFO.
-    frozenStoreCheckedFlow: Boolean = false
+    frozenStoreCheckedFlow: Boolean = false,
+    // Optional query policy only; no additional proof or accepted-owner capacity.
+    pendingReadyStoreQuery: Boolean = false
 ) {
+    require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
+        registeredPendingStoreQuery && memoryPreparationHeadMask &&
+        Set(2, 3).contains(pendingVirtualStoreProofSlots) && pendingStoreEarlyLoadCredits == 2),
+        "ready non-head store query requires the bounded registered two/three-proof, two-credit profile")
     // The event has meaning only at the integrated VM authorization boundary.
     // Other profiles retain no publication state or sideband, even if requested.
     def pmpChangePublicationEnabled: Boolean = publishedPmpChanges && machineSystem && pmpEntries > 0 &&
@@ -285,7 +291,11 @@ case class OooParams(
         "ready pending-store bypass requires bound head-store overlap")
     require(!boundHeadStoreOverlap || pendingVirtualStoreProof,
         "bound head-store overlap requires the independent pending-store proof profile")
-    require(Set(1, 2).contains(pendingVirtualStoreProofSlots), "pending virtual-store proofs use one or two slots")
+    require(Set(1, 2, 3).contains(pendingVirtualStoreProofSlots),
+        "pending virtual-store proofs use one, two or three bounded slots")
+    require(pendingVirtualStoreProofSlots != 3 || (pendingReadyStoreQuery &&
+        pendingStoreEarlyLoadCredits == 2),
+        "third proof row is isolated to the registered ready-query profile with two early-load credits")
     require(Set(1, 2).contains(pendingStoreEarlyLoadCredits), "pending-store early loads use one or two credits")
     require(pendingStoreEarlyLoadCredits == 1 || pendingVirtualStoreProof,
         "additional early-load responsibility requires pending-store proofs")

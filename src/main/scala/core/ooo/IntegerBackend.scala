@@ -1131,7 +1131,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 pending(i), memoryLive(i), storeAddressKnown(i), storeAddress(i), storeByteLanes(i), i)
         }
         bank.io.queryEligible := VecInit((0 until p.robEntries).map { i =>
-            bank.io.loadCandidate.valid && ages(i) < memoryChoice.age && !pendingStoreDataReady(i)
+            // Admission remains unchanged. Only acquire a missing write proof for
+            // a ready NONHEAD store already permitted by the final bypass policy.
+            // Reuse the current registered-head decode; never prioritize a ready head.
+            val queryDataPolicy = !pendingStoreDataReady(i) ||
+                (if (p.pendingReadyStoreQuery && p.pendingReadyStoreBypass) !memoryPreparationAtHead(i) else false.B)
+            bank.io.loadCandidate.valid && ages(i) < memoryChoice.age && queryDataPolicy
         }).asUInt
     }
     val originalLoadPrepared = loadPreparation.map(_.io.prepared)

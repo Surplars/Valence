@@ -11,7 +11,7 @@ class PendingStoreProofOwner(p: OooParams) extends Bundle {
     val mask = UInt(8.W)
 }
 
-/** One/two retained write certificates, sharing one hit-only query and one registered PMP
+/** One/two/three bounded retained write certificates, sharing one hit-only query and one registered PMP
   * checker with the original load preparation. Target: one query/cycle, load/store fairness
   * within two available selection cycles and two query-to-proof register boundaries.
   * The optional registered query adds one selection-to-query boundary. Proof storage
@@ -25,6 +25,7 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     def this(p: OooParams, registerQuery: Boolean) = this(p, registerQuery, false)
     require(p.pendingVirtualStoreProof)
     private val rows = p.pendingVirtualStoreProofSlots
+    require(rows != 3 || registerQuery, "third proof row requires the actual registered query implementation")
     private val rowBits = math.max(1, log2Ceil(rows))
     val io = IO(new Bundle {
         val head = Input(UInt(p.robBits.W))
@@ -85,6 +86,15 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     val mayQuery = epochStable && !io.pause && !io.flushQueries
     val admission = mayQuery && queryMask.orR && empty.orR
     val admittedRow = PriorityEncoder(empty)
+    if (rows == 3) {
+        when(admission) { assert(admittedRow < rows.U, "admitted proof row index must be valid") }
+        for (a <- 0 until rows; b <- 0 until a) {
+            when(state(a) =/= free && state(b) =/= free) {
+                assert(records(a).token.index =/= records(b).token.index,
+                    "nonfree proof rows must have distinct owner indices")
+            }
+        }
+    }
     // Eviction is a separate edge. Never replace a queued, inflight, or bound proof.
     val evictable = (0 until rows).map(r => state(r) === proved && !bound(r) &&
         (records(r).token.index - io.head) > (admitIndex - io.head))
@@ -93,6 +103,9 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
             Mux(a._1 && (!b._1 || a._3 > b._3), a._2, b._2),
             Mux(a._1 && (!b._1 || a._3 > b._3), a._3, b._3)) }._2
     val evict = mayQuery && queryMask.orR && !empty.orR && evictable.reduce(_ || _)
+    if (rows == 3) {
+        when(evict) { assert(victim < rows.U, "evicted proof row index must be valid") }
+    }
     when(admission) {
         val owner = io.owners(admitIndex).bits
         state(admittedRow) := queued
@@ -134,6 +147,11 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         val selectedStore = RegInit(false.B)
         val selectedRow = Reg(UInt(rowBits.W))
         val descriptor = Reg(new MemoryAddressProof(p))
+        if (rows == 3) {
+            when(selectedValid && selectedStore) {
+                assert(selectedRow < rows.U, "selected store row encoding3 is not an owner")
+            }
+        }
         selectedValid := (storeGrant || loadGrant) &&
             !io.clearOwners(selected.token.index) && !consumed(selected)
         when(storeGrant || loadGrant) {
@@ -145,8 +163,13 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         // must not enter request.valid or its payload: they invalidate the result,
         // after the side-effect-free translation lookup. Context cancellation is
         // separate and also frees every unbound inflight row.
-        queryValid := selectedValid && epochStable && !io.flushQueries &&
-            descriptor.epoch === io.precheck.epoch
+        if (rows == 3) {
+            queryValid := selectedValid && epochStable && !io.flushQueries &&
+                descriptor.epoch === io.precheck.epoch && (!selectedStore || selectedRow < rows.U)
+        } else {
+            queryValid := selectedValid && epochStable && !io.flushQueries &&
+                descriptor.epoch === io.precheck.epoch
+        }
         queryStore := selectedStore
         queryRow := selectedRow
         query := descriptor
@@ -155,6 +178,11 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         queryStore := storeGrant
         queryRow := storeRow
         query := selected
+    }
+    if (rows == 3) {
+        when(queryValid && queryStore) {
+            assert(queryRow < rows.U, "query store row encoding3 is not an owner")
+        }
     }
     io.precheck.request.valid := queryValid
     io.precheck.request.bits.address := query.payload.address
@@ -165,9 +193,23 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     val translatedRow = Reg(UInt(rowBits.W))
     val translated = Reg(new MemoryAddressProof(p))
     val translatedNormal = RegInit(false.B)
-    val queryOwnerLive = !io.clearOwners(query.token.index) && !consumed(query) &&
-        (!queryStore || (state(queryRow) === inflight && sameDescriptor(records(queryRow), query) &&
-            rowOwnerMatches(queryRow)))
+    if (rows == 3) {
+        when(translatedValid && translatedStore) {
+            assert(translatedRow < rows.U, "translated store row encoding3 is not an owner")
+        }
+    }
+    // Three-row unused encoding is clamped only for raw array access; the original
+    // index-valid guard independently denies authority. One/two-row elaborations are unchanged.
+    val safeQueryRow = if (rows == 3) Mux(queryRow < rows.U, queryRow, 0.U) else queryRow
+    val safeTranslatedRow = if (rows == 3)
+        Mux(translatedRow < rows.U, translatedRow, 0.U) else translatedRow
+    val queryOwnerLive = if (rows == 3)
+        !io.clearOwners(query.token.index) && !consumed(query) &&
+            (!queryStore || (queryRow < rows.U && state(safeQueryRow) === inflight &&
+                sameDescriptor(records(safeQueryRow), query) && rowOwnerMatches(safeQueryRow)))
+        else !io.clearOwners(query.token.index) && !consumed(query) &&
+            (!queryStore || (state(queryRow) === inflight && sameDescriptor(records(queryRow), query) &&
+                rowOwnerMatches(queryRow)))
     translatedValid := io.precheck.request.valid && (if (registerQuery) queryOwnerLive else true.B)
     when(io.precheck.request.valid) {
         translatedStore := queryStore
@@ -199,19 +241,24 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     // Clear/consume may free and later reuse a row while an old descriptor drains.
     // Only the same still-live inflight owner has the immutable-record invariant;
     // the functional result guard independently checks its complete descriptor.
-    val translatedRowLive = state(translatedRow) === inflight &&
-        records(translatedRow).token.asUInt === translated.token.asUInt &&
-        records(translatedRow).epoch === translated.epoch && rowOwnerMatches(translatedRow) &&
-        !io.clearOwners(translated.token.index) && !consumed(translated)
+    val translatedRowLive = if (rows == 3)
+        translatedRow < rows.U && state(safeTranslatedRow) === inflight &&
+            records(safeTranslatedRow).token.asUInt === translated.token.asUInt &&
+            records(safeTranslatedRow).epoch === translated.epoch && rowOwnerMatches(safeTranslatedRow) &&
+            !io.clearOwners(translated.token.index) && !consumed(translated)
+        else state(translatedRow) === inflight &&
+            records(translatedRow).token.asUInt === translated.token.asUInt &&
+            records(translatedRow).epoch === translated.epoch && rowOwnerMatches(translatedRow) &&
+            !io.clearOwners(translated.token.index) && !consumed(translated)
     when(translatedValid && translatedStore && translatedRowLive) {
-        assert(sameDescriptor(records(translatedRow), translated),
+        assert(sameDescriptor(records(safeTranslatedRow), translated),
             "a granted pending-store row preserves its exact owner descriptor through translation")
     }
     val storeResult = freshResult && translatedStore && translatedRowLive &&
-        sameDescriptor(records(translatedRow), translated)
+        sameDescriptor(records(safeTranslatedRow), translated)
     when(storeResult) {
-        state(translatedRow) := Mux(allowed, proved, free)
-        when(allowed) { records(translatedRow) := translated }
+        state(safeTranslatedRow) := Mux(allowed, proved, free)
+        when(allowed) { records(safeTranslatedRow) := translated }
     }
     val loadValid = RegInit(false.B)
     val load = Reg(new VirtualRamLoadCertificate(p))

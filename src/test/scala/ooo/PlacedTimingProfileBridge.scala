@@ -103,8 +103,15 @@ object PlacedTimingProfileBridge {
     private def requireNames(p: Product, expected: Seq[String]): Unit =
         require(names(p) == expected, "complete product field names/order changed")
     val timingClosureFields = Seq("registeredLoadResultReady", "frozenStoreCheckedFlow")
-    val currentProfileNames = publishedProfileNames ++ profileAdditions ++ timingClosureFields
-    val currentCoreNames = publishedCoreNames ++ coreAdditions ++ timingClosureFields
+    val retainedProfileNames = publishedProfileNames ++ profileAdditions ++ timingClosureFields
+    val retainedCoreNames = publishedCoreNames ++ coreAdditions ++ timingClosureFields
+    private val frozen76 = ujson.read(java.nio.file.Files.readString(
+        java.nio.file.Paths.get("fpga/next/shared-lru76-profile.json")))
+    require(retainedProfileNames.size == 94 && retainedCoreNames.size == 177)
+    require(retainedProfileNames == frozen76("profile_fields").arr.map(_.str).toSeq)
+    require(retainedCoreNames == frozen76("core_fields").arr.map(_.str).toSeq)
+    val currentProfileNames = retainedProfileNames :+ "pendingReadyStoreQuery"
+    val currentCoreNames = retainedCoreNames :+ "pendingReadyStoreQuery"
     private def requireTypedProduct(p: Product, expected: Seq[String], reference: Product): Unit = {
         requireNames(p, expected)
         requireNames(reference, expected)
@@ -120,6 +127,9 @@ object PlacedTimingProfileBridge {
         }, "complete product value types changed")
     }
     def requireShape(c: FpgaNextConfig): Unit = {
+        ProfileAbi77.requireLive(c)
+        require(!FpgaNextConfig().pendingReadyStoreQuery && !OooParams().pendingReadyStoreQuery)
+        require(c.pendingReadyStoreQuery == c.coreParams.pendingReadyStoreQuery)
         requireTypedProduct(c, currentProfileNames, FpgaNextConfig())
         requireTypedProduct(c.coreParams, currentCoreNames, OooParams())
         requireNames(c.cache, cacheNames)
@@ -132,8 +142,8 @@ object PlacedTimingProfileBridge {
             case _: OooParams => publishedCoreNames ++ coreAdditions
             case _ => throw new IllegalArgumentException("only full current core/profile products may be compared")
         }
-        requireNames(p, old ++ timingClosureFields)
-        val values = p.productElementNames.zip(p.productIterator).toMap
+        require(ProfileAbi77.retainedNames(p) == old ++ timingClosureFields)
+        val values = ProfileAbi77.retained(p)
         require(timingClosureFields.forall(n => literalFalse(values(n))),
             "retained timing baseline comparison requires both named new fields literally false")
         old.map(n => n -> values(n)).toMap
