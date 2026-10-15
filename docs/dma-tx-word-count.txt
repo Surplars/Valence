@@ -1,0 +1,56 @@
+TX word count registration — 2026-10-15
+
+EthernetPacketDma now captures the validated number of eight-byte TX reads on
+the same edge as legacy START or posted launch. Posted launch uses the incoming
+q.io.launch.bits.length, never the previous txLength register. txSent and
+txReceived reuse this count. No request stage, address change, credit change,
+queue, MMIO ABI change, or launch-cycle delay was introduced.
+
+The existing outer legal gate rejects legacy TX writes while busy or while
+posted mode is enabled. Posted descriptors remain owned and validated before
+launch. The full64 MMIO registers and original65-bit rounded length/66-bit
+address-range validation remain unchanged. Illegal legacy START stays idle/error;
+illegal posted POST acquires no owner. The count register is reset0 and written
+only on a valid launch (the legacy valid predicate and queued posted contract).
+Supported maxFrame64..16384 gives4..12 count bits,9 at default2048. This is a
+register-bit estimate, not measured mapped FF/LUT or timing. The old round-up
+expression was sliced; do not describe it as a proven full64-bit mapped adder.
+
+Focused acceptance uses the existing ethernet_packet_dma.cpp byte/MMIO/credit/
+stalled-offer oracle. Its default behavior is retained; configurable host RAM
+base/size, uint64 length arguments and response accounting allow the new matrix.
+Both arms use identical tests. Baseline production is pinned to4ef2f3d, while
+the candidate differs in exactly EthernetPacketDma.scala among production Scala.
+Per arm:19 models,505 direct scenarios,4 unchanged DmaPacketStopGsim cases,
+original default-geometry oracle with posted0 and4, and4 expected byte/owner
+negative failures. All cycle/request/response/stall/STOP overlap metrics match.
+There is no tested cycle or accepted-duty cost; this is not a universal temporal
+proof or line-rate/physical performance claim. Credits tested=4, posted slots0/4.
+
+Lengths1..9,M-1,M, all nine geometries, exact upper RAM bound and >32-bit RAM
+base are covered. Illegal0/M+1/highbit/allones/unaligned/upper-overrun/overflow/
+below-range descriptors produce zero memory or stream effects. Consecutive
+posted/legacy work, final-beat hold, read errors/restart and production STOP/
+coherent copy ordering use independent host bytes and software generations.
+
+The saved lowered graph for default2048/posted4 shows baseline txLength through
+two round-up nodes to memory.request.valid. Candidate instead reaches the
+txWordCount REG_SRC boundary, with txLength absent from that same-cycle cone.
+This scoped structural check is not mapped carry count, PPA, or timing proof.
+Evidence hashes and representative metrics: dma-tx-word-count-qualification.json.
+Full evidence: build/gsim/dma-tx-word-count-20261015-r4/receipt.json.
+Previous failed test/reuse attempts are retained and classified there; no DUT
+oracle was weakened. The fixed GSIM was neither rebuilt nor modified.
+
+Reproduction: create a separate baseline checkout at4ef2f3d; copy this candidate's
+src/test/scala/ip/DmaTxWordCountGsim.scala and both packet oracle CPP files into
+the same relative baseline paths. Keep baseline production files unchanged.
+Then use a fresh output path:
+  python3 -B simulator/gsim/dma_tx_word_count.py --baseline-root BASELINE --output FRESH_OUTPUT --gsim /home/openion/Valence/simulator/build/gsim-src/build/gsim/gsim
+The optional --reuse-baseline validates exact source/log/FIR/binary hashes and
+the prior successful Scala-receipt chain; it never silently reuses changed RTL.
+Use dma_tx_word_count_cone.py on the two retained default graph directories,
+with --source-receipt FRESH_OUTPUT/receipt.json and a fresh --output audit path.
+
+The concurrent C1 physical run stays frozen at4ef2f3d. No DMA Vivado, route/bit,
+TwoEntryRegisterQueue, broad regression, or changes to sequential-core inputs.

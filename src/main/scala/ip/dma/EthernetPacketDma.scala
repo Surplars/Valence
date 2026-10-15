@@ -111,7 +111,10 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val txSent = RegInit(0.U(countBits.W))
     val txReceived = RegInit(0.U(countBits.W))
     val txLocked = RegInit(false.B)
-    val txWordCount = ((txLength + 7.U) >> 3)(countBits - 1, 0)
+    // Both descriptor launch paths validate length before the first read.
+    // Capture the bounded count on that same edge; no request stage is added.
+    val txWordCount = RegInit(0.U(countBits.W))
+    def roundedTxWords(length: UInt): UInt = ((length +& 7.U) >> 3)(countBits - 1, 0)
     tx.request.valid := txState === txFill && (txLocked || !txFailed) &&
         txSent < txWordCount && txSent - txReceived < memoryCredits.U
     tx.request.bits.address := txAddress + (txSent << 3)
@@ -293,6 +296,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         when(q.io.consumeDone) { txDone := false.B; txFailed := false.B }
         when(q.io.launch.valid) {
             txAddress := q.io.launch.bits.address; txLength := q.io.launch.bits.length
+            txWordCount := roundedTxWords(q.io.launch.bits.length)
             txState := txFill; txDone := false.B; txFailed := false.B
             txSent := 0.U; txReceived := 0.U; txLocked := false.B; txBytes := 0.U
         }
@@ -349,6 +353,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
                 when(r.data(1)) { txDone := false.B; txFailed := false.B }
                 when(r.data(0)) {
                     val valid = descriptorLegal(txAddress, txLength)
+                    when(valid) { txWordCount := roundedTxWords(txLength) }
                     txState := Mux(valid, txFill, txIdle); txDone := !valid; txFailed := !valid
                     txSent := 0.U; txReceived := 0.U; txLocked := false.B
                 }

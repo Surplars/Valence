@@ -1,0 +1,195 @@
+{
+  "status": "PASS_MINIMAL_TX_WORD_COUNT_FOCUSED_AB",
+  "base_commit": "4ef2f3dc4f629dbd4319c7f47500b127f2cea3de",
+  "production_change": "one bounded TX count register captured on validated legacy START and posted launch",
+  "production_sha256": {
+    "src/main/scala/ip/dma/EthernetPacketDma.scala": "c87ab1633988c967a5f682e828df5337ed1f2a7ea65806343457fc291a49ec70"
+  },
+  "test_tool_sha256": {
+    "src/test/scala/ip/DmaTxWordCountGsim.scala": "85eec2db479cd960c3b8ea025cbfa2699b48a232e9281cac3af0ee9f24ec5b5d",
+    "simulator/gsim/harness/ethernet_packet_dma.cpp": "65dce051c4d7fdebc59462d4d122f90d7df7fc137962c47257fa27f6b526dd43",
+    "simulator/gsim/harness/dma_tx_word_count.cpp": "8b246ecd4378d90ea28f14c1cab018af6b5a290059a28dc3923f2eeadc89fe6c",
+    "simulator/gsim/dma_tx_word_count.py": "582746e7566aa3dd9a84e87943ff184a5fae5c24e672cebbe7b9e9634e53a5f6",
+    "simulator/gsim/dma_tx_word_count_cone.py": "7b149a06150a89c0d0600c0ee95f3a1f4bacfe372fbec46955cceedccc07c9a7"
+  },
+  "comparison": {
+    "exact_metrics_equal": true,
+    "matrix_models_per_arm": 19,
+    "direct_scenarios_per_arm": 505,
+    "stop_scenarios_per_arm": 4,
+    "byte_and_stop_negatives_per_arm": 4,
+    "new_count_bits_by_max_frame": {
+      "64": 4,
+      "128": 5,
+      "256": 6,
+      "512": 7,
+      "1024": 8,
+      "2048": 9,
+      "4096": 10,
+      "8192": 11,
+      "16384": 12
+    },
+    "default_new_register_bits": 9,
+    "mapped_area_timing": "NOT_MEASURED; register-bit estimate only"
+  },
+  "receipt": {
+    "path": "/home/openion/Valence-dma-tx-wordcount-20261015/build/gsim/dma-tx-word-count-20261015-r4/receipt.json",
+    "sha256": "5878a540f492d4c5a739d593108a3399258704eab79c7b4ed180f43de6fcd160"
+  },
+  "cone_audit": {
+    "path": "/home/openion/Valence-dma-tx-wordcount-20261015/build/gsim/dma-tx-word-count-20261015-r4/request-cone-audit.json",
+    "sha256": "bcb1d95d4e659b4a6fd9a5858d71f2a1fa236ed6d7ff74aef4551e21903fd172",
+    "target": "io$$memory$$request$$valid",
+    "baseline": {
+      "pre_alias_sha256": "691476672aa4f7e6b2eea08c65e29da38e4217fd6197a7e0ac8471248d097e66",
+      "graph_sha256": "9ebc259c6a795de1e96ab43960102078b9591b7b5598507ec1e865ac9713ebcb",
+      "fir_sha256": "d0dd8ed8310c73145ecc4e815986f4da3171c4cd2cfd23b391cf3c245a0a3f7a",
+      "target": "io$$memory$$request$$valid",
+      "ancestor_count": 39,
+      "register_boundary": "NODE_REG_SRC",
+      "txLength_in_request_cone": true,
+      "txWordCount_register_in_request_cone": false,
+      "txLength_path": [
+        "txLength",
+        "_txWordCount_T",
+        "_txWordCount_T_2",
+        "_arbiter_io_clients_0_request_valid_T_4",
+        "_arbiter_io_clients_0_request_valid_T_5",
+        "_arbiter_io_clients_0_request_valid_T_9",
+        "arbiter$_io_memory_request_valid_T",
+        "arbiter$_io_memory_request_valid_T_1",
+        "io$$memory$$request$$valid"
+      ],
+      "txWordCount_path": []
+    },
+    "candidate": {
+      "pre_alias_sha256": "bf687b7398b2028f95d2c9604436d0b5edb900277ad85f5231282573f64fcdd4",
+      "graph_sha256": "766d6eacfc9491d3ca9ebb507a0a8d002a631d3da0680d75b2f39ae4b6ec9230",
+      "fir_sha256": "9a265a1cbe041e1d05ea66b817431131bff810a4fb0fa1a05821b544988e77f7",
+      "target": "io$$memory$$request$$valid",
+      "ancestor_count": 37,
+      "register_boundary": "NODE_REG_SRC",
+      "txLength_in_request_cone": false,
+      "txWordCount_register_in_request_cone": true,
+      "txLength_path": [],
+      "txWordCount_path": [
+        "txWordCount",
+        "_arbiter_io_clients_0_request_valid_T_4",
+        "_arbiter_io_clients_0_request_valid_T_5",
+        "_arbiter_io_clients_0_request_valid_T_9",
+        "arbiter$_io_memory_request_valid_T",
+        "arbiter$_io_memory_request_valid_T_1",
+        "io$$memory$$request$$valid"
+      ]
+    }
+  },
+  "tested_geometries": [
+    64,
+    128,
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+    16384
+  ],
+  "posted_slots": [
+    0,
+    4
+  ],
+  "memory_credits": 4,
+  "memory": {
+    "bytes": 65536,
+    "ordinary_base": "0x80200000",
+    "high_base": "0x100200000"
+  },
+  "independent_coverage": [
+    "lengths1..9,M-1,M",
+    "exact upper rounded-memory bound",
+    "consecutive legacy and posted",
+    "posted to legacy restart",
+    "final beat backpressure",
+    "legacy and posted read error/restart",
+    "invalid0,M+1,highbit,allones,unaligned,upper-overrun,address-overflow,below-range",
+    "full64 MMIO and above32bit address",
+    "zero illegal memory/stream effects",
+    "original packet DMA oracle default geometry posted0/4",
+    "four real packet STOP/coherent copy cases",
+    "8 expected byte/owner mutation failures"
+  ],
+  "default_metrics": {
+    "baseline": {
+      "m2048-p0": [
+        "TX_WORD_COUNT_METRICS case=legacy-1 cycles=65 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=8",
+        "TX_WORD_COUNT_METRICS case=legacy-8 cycles=72 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-9 cycles=79 requests=2 responses=2 reads=2 writes=0 peak=2 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-2047 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=841",
+        "TX_WORD_COUNT_METRICS case=legacy-2048 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=846",
+        "TX_WORD_COUNT_METRICS case=legacy-consecutive cycles=5546 requests=516 responses=516 reads=516 writes=0 peak=4 stalls=1631",
+        "TX_WORD_COUNT_METRICS case=final-backpressure cycles=98 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=41",
+        "TX_WORD_COUNT_METRICS case=legacy-error-restart cycles=121 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=11"
+      ],
+      "m2048-p4": [
+        "TX_WORD_COUNT_METRICS case=legacy-1 cycles=65 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=8",
+        "TX_WORD_COUNT_METRICS case=legacy-8 cycles=72 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-9 cycles=79 requests=2 responses=2 reads=2 writes=0 peak=2 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-2047 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=841",
+        "TX_WORD_COUNT_METRICS case=legacy-2048 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=846",
+        "TX_WORD_COUNT_METRICS case=legacy-consecutive cycles=5546 requests=516 responses=516 reads=516 writes=0 peak=4 stalls=1631",
+        "TX_WORD_COUNT_METRICS case=final-backpressure cycles=98 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=41",
+        "TX_WORD_COUNT_METRICS case=legacy-error-restart cycles=121 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=11",
+        "TX_WORD_COUNT_METRICS case=posted-varied-legacy-restart cycles=6127 requests=524 responses=524 reads=524 writes=0 peak=4 stalls=1814",
+        "TX_WORD_COUNT_METRICS case=posted-error-restart cycles=156 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=12"
+      ]
+    },
+    "candidate": {
+      "m2048-p0": [
+        "TX_WORD_COUNT_METRICS case=legacy-1 cycles=65 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=8",
+        "TX_WORD_COUNT_METRICS case=legacy-8 cycles=72 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-9 cycles=79 requests=2 responses=2 reads=2 writes=0 peak=2 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-2047 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=841",
+        "TX_WORD_COUNT_METRICS case=legacy-2048 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=846",
+        "TX_WORD_COUNT_METRICS case=legacy-consecutive cycles=5546 requests=516 responses=516 reads=516 writes=0 peak=4 stalls=1631",
+        "TX_WORD_COUNT_METRICS case=final-backpressure cycles=98 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=41",
+        "TX_WORD_COUNT_METRICS case=legacy-error-restart cycles=121 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=11"
+      ],
+      "m2048-p4": [
+        "TX_WORD_COUNT_METRICS case=legacy-1 cycles=65 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=8",
+        "TX_WORD_COUNT_METRICS case=legacy-8 cycles=72 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-9 cycles=79 requests=2 responses=2 reads=2 writes=0 peak=2 stalls=15",
+        "TX_WORD_COUNT_METRICS case=legacy-2047 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=841",
+        "TX_WORD_COUNT_METRICS case=legacy-2048 cycles=2725 requests=256 responses=256 reads=256 writes=0 peak=4 stalls=846",
+        "TX_WORD_COUNT_METRICS case=legacy-consecutive cycles=5546 requests=516 responses=516 reads=516 writes=0 peak=4 stalls=1631",
+        "TX_WORD_COUNT_METRICS case=final-backpressure cycles=98 requests=1 responses=1 reads=1 writes=0 peak=1 stalls=41",
+        "TX_WORD_COUNT_METRICS case=legacy-error-restart cycles=121 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=11",
+        "TX_WORD_COUNT_METRICS case=posted-varied-legacy-restart cycles=6127 requests=524 responses=524 reads=524 writes=0 peak=4 stalls=1814",
+        "TX_WORD_COUNT_METRICS case=posted-error-restart cycles=156 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=12"
+      ]
+    }
+  },
+  "stop_metrics": [
+    "PACKET_LINE_CASE kind=tx stop_window=0 generations=2 scalar_requests=21 line_requests=1024 overlap_cycles=10223 line_with_packet=22 held_scalar_cycles=9631 held_scalar_after_stop=9613 dirty_probe_beats=32 cycles=80222",
+    "PACKET_LINE_CASE kind=tx stop_window=1 generations=2 scalar_requests=21 line_requests=1024 overlap_cycles=10220 line_with_packet=22 held_scalar_cycles=9628 held_scalar_after_stop=9128 dirty_probe_beats=32 cycles=80222",
+    "PACKET_LINE_CASE kind=tx stop_window=2 generations=2 scalar_requests=21 line_requests=1024 overlap_cycles=2602 line_with_packet=23 held_scalar_cycles=2329 held_scalar_after_stop=831 dirty_probe_beats=32 cycles=72552",
+    "PACKET_LINE_CASE kind=rx generations=2 scalar_requests=4 line_requests=1024 overlap_cycles=705 line_with_packet=4 late_b_hold_cycles=66 held_scalar_cycles=524 held_scalar_after_stop=376 dirty_probe_beats=24 cycles=64965"
+  ],
+  "negative_exits": {
+    "baseline-byte-negative": 1,
+    "baseline-stop-negative-tx-byte": 1,
+    "baseline-stop-negative-rx-byte": 1,
+    "baseline-stop-negative-stale-owner": 1,
+    "candidate-byte-negative": 1,
+    "candidate-stop-negative-tx-byte": 1,
+    "candidate-stop-negative-rx-byte": 1,
+    "candidate-stop-negative-stale-owner": 1
+  },
+  "prior_runs_preserved": {
+    "r1": "baseline correctly rejected overlapping posted test ranges; test corrected to disjoint M-byte ranges",
+    "r2": "all baseline positives passed and TX negative exited1; new runner used an inaccurate diagnostic anchor",
+    "r3": "reuse preflight did not follow the earlier successful Scala receipt chain; no hardware test executed",
+    "r4": "hash-verified unchanged baseline positive logs/FIR/binaries reused; all negatives rechecked; full candidate arm passed"
+  },
+  "physical_C1_unchanged": "E:/VM/Share/Valence-rtl/Valence-c1-4ef2f3d-20261015-r1 remains pinned to4ef2f3d",
+  "limitations": "No mapped FF/LUT/Fmax claim; no whole CPU/PHY/CDC/Linux test or new Vivado. Count4..12 register bits only;9 default. No TwoEntryRegisterQueue implemented."
+}

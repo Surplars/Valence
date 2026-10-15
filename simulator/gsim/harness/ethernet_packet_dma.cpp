@@ -34,7 +34,13 @@ using DmaModel = SEthernetPacketDma;
 #define S(n,v) d.set_io$$##n(v)
 #define G(n) d.get_io$$##n()
 static void check(bool v, const char *m) { if (!v) throw std::runtime_error(m); }
-static constexpr uint64_t ram = 0x80200000ULL, regs = 0x10002000ULL;
+#ifndef DMA_RAM_BASE
+#define DMA_RAM_BASE 0x80200000ULL
+#endif
+#ifndef DMA_HOST_MEMORY_BYTES
+#define DMA_HOST_MEMORY_BYTES 8192
+#endif
+static constexpr uint64_t ram = DMA_RAM_BASE, regs = 0x10002000ULL;
 struct Beat { uint32_t data; unsigned keep; bool last; };
 struct Reply { unsigned due; uint64_t address, data; unsigned mask; bool write, error; };
 struct Test {
@@ -42,7 +48,7 @@ struct Test {
     #ifdef DCACHE_CAPACITY
     static constexpr size_t memoryBytes = std::max(8192, DCACHE_CAPACITY * 128);
 #else
-    static constexpr size_t memoryBytes = 8192;
+    static constexpr size_t memoryBytes = DMA_HOST_MEMORY_BYTES;
 #endif
     std::array<uint8_t,memoryBytes> memory{};
     std::deque<Reply> replies;
@@ -50,7 +56,7 @@ struct Test {
     std::vector<uint8_t> dataOut;
     std::vector<Beat> controls;
     std::mt19937 rng;
-    unsigned cycle=0, requests=0, reads=0, writes=0, peak=0, latency=9;
+    unsigned cycle=0, requests=0, responses=0, reads=0, writes=0, peak=0, latency=9;
     unsigned dataDelay=0, statusDelay=0, dataAccepted=0, statusAccepted=0;
     unsigned txStalls=0, memoryStalls=0;
     int failRead=-1, failWrite=-1;
@@ -91,7 +97,7 @@ struct Test {
         S(rxStatus$$bits$$data,sb.data); S(rxStatus$$bits$$keep,sb.keep); S(rxStatus$$bits$$last,sb.last);
         d.step(); ++cycle;
         if(valid && G(memory$$response$$ready)) {
-            auto r=replies.front(); replies.pop_front();
+            auto r=replies.front(); replies.pop_front(); ++responses;
             if(r.write && !r.error) for(unsigned b=0;b<8;++b)
                 if(r.mask&(1U<<b)) memory.at(r.address-ram+b)=r.data>>(8*b);
         }
@@ -155,7 +161,7 @@ struct Test {
         S(control$$response$$ready,1); tick(); S(control$$response$$ready,0);
         return result;
     }
-    void startTx(uint64_t address,unsigned length) {
+    void startTx(uint64_t address,uint64_t length) {
         access(16,true,address); access(24,true,length); access(32,true,3);
     }
 #ifdef COHERENT_DMA

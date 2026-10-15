@@ -2855,3 +2855,10 @@ model reuse; new independent test classes do not replace any model source.
 Across baseline/shadow/quiesce/cleanup, 0 new functional state and the same 514
 fixture register declarations. C1 LUT/FF/Fmax remain unmeasured. No Vivado,
 route, bit, default promotion, or external push was performed for C1.
+
+
+Focused TX word-count registration acceptance: `dma_tx_word_count.py` compares
+an independent4ef2f3d baseline with the candidate using the existing packet byte
+oracle and DmaPacketStopGsim only. See `docs/dma-tx-word-count.txt` for the exact
+matrix, reproducible baseline preparation and retained qualification hashes.
+This does not run Vivado, full regression, CPU execution, PHY or CDC acceptance.
