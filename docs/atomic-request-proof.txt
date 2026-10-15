@@ -1,0 +1,70 @@
+Atomic request/proof FIFO candidate - 2026-10-15
+
+IntegerBackend now transports each registered DataRequest and its optional
+Valid(PostedStoreProof) in one atomic Queue entry. It retains four entries in
+the selected three-row profile, pipe=false, flow=false and useSyncReadMem=false.
+Every request enters, including loads and proof.valid=false requests. Queue
+ready follows request capacity; downstream pop is the existing StoreBuffer
+upstream.request handshake, not external memory fire or response/local ACK.
+Full+pop does not accept a new item; empty+push does not bypass the register.
+Proof output valid is deq.valid && storedProof.valid, including downstream stalls.
+Proof flags are transported unchanged: no early legacyPostedAccepted/finalChecked.
+
+The complete typed DataRequest includes p.dataReturnHandleBits; neither direction
+uses CpuReturnTransport.requestPayload (which omits the return handle). With
+posted proof OFF, RegisteredRequestQueue wraps the original request-only Queue.
+The passive observationRequests reference now points to this actual production
+module and retains .io.enq/.deq/.count. No second queue or observation state exists.
+
+Canonical-origin and frozen-proof sidecars remain separate and retain the exact
+old enq.fire/deq.fire wiring and alignment/ready assertions. From the canonical
+sidecar block onward IntegerBackend is text-identical to22bbd0db, preserving the
+empty size=0 guard, response direct connection, fastStore bypass and authorization
+assertions. Recovery/quiesce do not flush accepted requests: LSU owns the response
+at enqueue, and cancelled speculative reads must drain their actual responses.
+
+Focused verification has two parts, with the fixed existing GSIM binary:
+1. AtomicRequestProofGsim simultaneously runs the frozen old request/proof FIFO
+   wiring and the production candidate, checking cycle-ready/valid/count and all
+   valid request/proof bits. Real CanonicalStoreOrigin/FrozenStoreProof sidecars
+   are tested on both arms even if a profile disables one. A separate C++ deque
+   checks order, capacity, return handles, token, permission and sidecar cookies.
+   It covers16k deterministic randomized cycles, all four slots, pointer wraps,
+   alternating invalid/valid proofs, same-index different tag/epoch, held head,
+   full pop without replacement, empty push without bypass, live flush/quiesce
+   observation,64 consecutive enqueue/dequeues, and a global-reset discard.
+   Token/permission observation mutations fail the independent oracle. These are
+   oracle negative controls, not a claim the FIFO validates authorization itself.
+   Both posted-proof ON and a legal OFF parameter combination are simulated.
+2. Source-pinned22bbd0db versus candidate both run the existing real exact-profile
+   backend lifecycle fixture/oracle: frozen PTE/bound stores, precise oldest-store
+   late fault, selective kill with surviving store, full kill and true response
+   credit drain. All four cycle/retirement/accepted/physical/response/credit metrics
+   match. Both arms reject the existing erroneous-retirement negative control.
+   This is focused backend ownership qualification, not whole-CPU/board signoff.
+
+Reproduce (fresh output directories; no Vivado):
+python3 simulator/gsim/atomic_request_proof.py --output build/gsim/atomic-fifo-NEW --gsim FIXED_GSIM
+python3 simulator/gsim/atomic_request_proof_backend.py --baseline-root CLEAN_22BBD0DB_WORKTREE --output build/gsim/atomic-backend-NEW --gsim FIXED_GSIM
+Receipts hash all Scala inputs, relevant drivers, fixed simulator, logs and commands.
+Generated FIR/C++/binaries/logs stay under ignored build; qualification JSON records
+the selected results and receipt hashes. R2's illegal OFF config failure is retained;
+the final r3 fixture disables only dependent posted-only options in its OFF arm.
+
+Raw control-state inference: removes one2-bit enqueue pointer, one2-bit dequeue
+pointer and one maybe_full bit, five control bits total. Payload capacity unchanged.
+FIR declarations confirm the two original queues versus one atomic queue each have
+these five control bits. This is not a mapped FF/LUT or timing result. The head-to-
+LSU request-valid cone remains, and canonical/frozen sidecar WE may become critical.
+No throughput, capacity or publication-cycle cost occurred in the tested cases;
+universal equivalence and physical improvement are not claimed. Await independent
+source review before any new physical run. Frozen22bbd0db positive-setup DCP remains.
+
+ROM hash correction (no ROM modified): decode existing COE and interleave existing
+even/odd hex in memory, compare their131072 bytes and the original execution recipe.
+Raw67280-byte SHA256:
+ee7c2e5fb86d50dad55df532aeb7ccb1d0b91cb37b0b7042d03b446eee362d79
+Padded131072-byte SHA256, verified from original files and manifest:
+0d03f41230ed458e133d9503acba36edb34689f5aaa6cafd41ea2f81ec5879fd
+Previous chat handoff had a transcription error. No ROM regeneration/replacement,
+boot qualification, RGMII constraint/delay change, synthesis, route or bit generation.

@@ -253,7 +253,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val fastStoreRequest = WireDefault(0.U.asTypeOf(new DataRequest))
     val fastStoreValid = WireDefault(false.B)
     // Elaboration-only references for passive test-wrapper observation; no hardware or ports.
-    var observationRequests: Option[Queue[DataRequest]] = None
+    var observationRequests: Option[RegisteredRequestQueue] = None
     var observationStores: Option[StoreBuffer] = None
     if (p.bufferedRamStores) {
         val stores = Module(new StoreBuffer(p))
@@ -261,18 +261,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         if (p.registeredMemoryRequests) {
             // The LSU owns the response as soon as its request enters this ordered,
             // non-flow queue. A cancelled speculative read still drains normally.
-            val requests = Module(new Queue(new DataRequest(p.dataReturnHandleBits), p.memoryEntries, pipe = false, flow = false))
+            val requests = Module(new RegisteredRequestQueue(p))
             observationRequests = Some(requests)
             requests.io.enq <> lsu.io.memory.request
-            p.postedProofConfig.foreach { c =>
-                val proofQueue = Module(new Queue(Valid(new PostedStoreProof(c)), p.memoryEntries, pipe = false, flow = false))
-                proofQueue.io.enq.valid := requests.io.enq.fire
-                proofQueue.io.enq.bits := lsu.io.postedProof.get
-                proofQueue.io.deq.ready := requests.io.deq.fire
-                stores.io.upstreamProof.get := proofQueue.io.deq.bits
-                stores.io.upstreamProof.get.valid := requests.io.deq.valid && proofQueue.io.deq.bits.valid
-                assert(proofQueue.io.deq.valid === requests.io.deq.valid, "request FIFO and proof capture share every transfer")
-                when(requests.io.enq.fire) { assert(proofQueue.io.enq.ready) }
+            p.postedProofConfig.foreach { _ =>
+                requests.proofIn.get := lsu.io.postedProof.get
+                stores.io.upstreamProof.get := requests.proofOut.get
             }
             if (p.canonicalVirtualStoreOverlap) {
                 val origins = Module(new Queue(Valid(new CanonicalStoreOrigin(p)), p.memoryEntries,
