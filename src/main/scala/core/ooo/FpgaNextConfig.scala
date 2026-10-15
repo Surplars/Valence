@@ -374,7 +374,7 @@ final case class FpgaNextConfig(
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity)
 
-    def managedBoard(jtagRamDownload: Boolean = false): BoardSocTop = new BoardSocTop(
+    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,
         instructionPrefetch = instructionPrefetch, isaProfile = isaProfile,
@@ -431,7 +431,8 @@ final case class FpgaNextConfig(
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity, lineTransferDispatchFlow = lineTransferDispatchFlow,
-        dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow)
+        dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow,
+        preselectRedirectTokenMatches = preselectRedirectTokenMatches)
 }
 
 object FpgaNextConfig {

@@ -15,7 +15,8 @@ class MappedMachineCore(
     bufferTranslatedResponses: Boolean = false,
     translationHitFlow: Boolean = false,
     canonicalHandoff: Boolean = false
-) extends Module {
+,
+    preselectRedirectTokenMatches: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
@@ -88,7 +89,8 @@ class MappedMachineCore(
     )
     require(!p.taggedStoreReturns || (stagedMemoryFabric && dataTranslation && bufferTranslatedResponses),
         "tagged CPU returns require checked translation and both registered response credits")
-    val core  = Module(new MachineCore(p, imsicParams, canonicalHandoff))
+    val core  = Module(new MachineCore(p, imsicParams, canonicalHandoff,
+        preselectRedirectTokenMatches = preselectRedirectTokenMatches))
     val aplic = Module(new Aplic(aplicParams, hasChild = true,
         childMsiBase = imsicParams.supervisorBase))
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,

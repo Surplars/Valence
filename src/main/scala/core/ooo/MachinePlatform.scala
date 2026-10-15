@@ -67,7 +67,8 @@ class MachinePlatform(
     registerProbeLookup: Boolean = false,
     localAddressRanges: Boolean = false,
     localCacheReadSelection: Boolean = false
-) extends Module {
+,
+    preselectRedirectTokenMatches: Boolean = false) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -249,7 +250,8 @@ class MachinePlatform(
         pmpEntries = 16, virtualMemoryLevels = if (translationService) translationLevels else 0),
         dataTranslation = coreDataTranslation, stagedMemoryFabric = stagedMemoryFabric,
         bufferTranslatedResponses = bufferTranslatedResponses, translationHitFlow = translationHitFlow,
-        canonicalHandoff = cacheConcurrency.independentDemandAdmission && p.canonicalVirtualStoreOverlap))
+        canonicalHandoff = cacheConcurrency.independentDemandAdmission && p.canonicalVirtualStoreOverlap,
+        preselectRedirectTokenMatches = preselectRedirectTokenMatches))
     // The compact-key representation is enabled only for the qualified board fetch domain.
     val qualifiedCompactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&
         p.compressedInstructions && p.stableFetchFaultMetadata && p.alignedFetchPmp && p.rawFetchPresence &&
