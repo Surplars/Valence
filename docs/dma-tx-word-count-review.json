@@ -1,0 +1,102 @@
+{
+  "status": "PASS_DMA_REVIEW_GAPS_AND_REUSE_GUARDS",
+  "base_commit": "22bbd0dbd833b976315d2b5c485db659bddc8d69",
+  "production_change": false,
+  "prior_identity": {
+    "status": "PASS_PRE_EDIT_REUSE_IDENTITY",
+    "gsim_sha256": "579618561c7d4463d1d1f8a5c529a36860452e57e069abdbe128c94ac5873dc3",
+    "baseline_commit": "4ef2f3dc4f629dbd4319c7f47500b127f2cea3de",
+    "receipt_sha256": "5878a540f492d4c5a739d593108a3399258704eab79c7b4ed180f43de6fcd160",
+    "source_sets_and_hashes_symmetric": true,
+    "note": "Historical receipt predates baseline_commit field; actual baseline HEAD and every recorded source hash verified before test edits."
+  },
+  "supplemental_receipt": {
+    "path": "/home/openion/Valence-dma-tx-wordcount-20261015/build/gsim/dma-tx-word-count-review-20261015-r2/receipt.json",
+    "sha256": "18012fe4f78a87ec090ebdcff7b68846fd5fd202d03e0629afb50a8199389194"
+  },
+  "positives_per_arm": 15,
+  "driver_negatives_per_arm": 8,
+  "receipt_guard_negatives": 8,
+  "exact_ab_metrics": true,
+  "scope": "saved default M2048 posted0/4 models; test drivers only; no emission/full matrix/STOP rerun/Vivado",
+  "metrics": {
+    "baseline": {
+      "m2048-p0": [
+        "TX_WORD_COUNT_METRICS case=busy-fill-16 cycles=177 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=51",
+        "TX_WORD_COUNT_METRICS case=busy-fill-24 cycles=191 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=63",
+        "TX_WORD_COUNT_METRICS case=busy-fill-32 cycles=198 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-16 cycles=195 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-24 cycles=190 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=57",
+        "TX_WORD_COUNT_METRICS case=busy-stream-32 cycles=188 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=59"
+      ],
+      "m2048-p4": [
+        "TX_WORD_COUNT_METRICS case=busy-fill-16 cycles=177 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=51",
+        "TX_WORD_COUNT_METRICS case=busy-fill-24 cycles=191 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=63",
+        "TX_WORD_COUNT_METRICS case=busy-fill-32 cycles=198 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-16 cycles=195 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-24 cycles=190 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=57",
+        "TX_WORD_COUNT_METRICS case=busy-stream-32 cycles=188 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=59",
+        "TX_WORD_COUNT_METRICS case=posted-varied-legacy-restart cycles=6127 requests=524 responses=524 reads=524 writes=0 peak=4 stalls=1814",
+        "TX_WORD_COUNT_METRICS case=posted-error-restart cycles=156 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=12",
+        "TX_WORD_COUNT_METRICS case=posted-invalid-nine cycles=286 requests=0 responses=0 reads=0 writes=0 peak=0 stalls=0"
+      ]
+    },
+    "candidate": {
+      "m2048-p0": [
+        "TX_WORD_COUNT_METRICS case=busy-fill-16 cycles=177 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=51",
+        "TX_WORD_COUNT_METRICS case=busy-fill-24 cycles=191 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=63",
+        "TX_WORD_COUNT_METRICS case=busy-fill-32 cycles=198 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-16 cycles=195 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-24 cycles=190 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=57",
+        "TX_WORD_COUNT_METRICS case=busy-stream-32 cycles=188 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=59"
+      ],
+      "m2048-p4": [
+        "TX_WORD_COUNT_METRICS case=busy-fill-16 cycles=177 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=51",
+        "TX_WORD_COUNT_METRICS case=busy-fill-24 cycles=191 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=63",
+        "TX_WORD_COUNT_METRICS case=busy-fill-32 cycles=198 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-16 cycles=195 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=64",
+        "TX_WORD_COUNT_METRICS case=busy-stream-24 cycles=190 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=57",
+        "TX_WORD_COUNT_METRICS case=busy-stream-32 cycles=188 requests=5 responses=5 reads=5 writes=0 peak=3 stalls=59",
+        "TX_WORD_COUNT_METRICS case=posted-varied-legacy-restart cycles=6127 requests=524 responses=524 reads=524 writes=0 peak=4 stalls=1814",
+        "TX_WORD_COUNT_METRICS case=posted-error-restart cycles=156 requests=6 responses=6 reads=6 writes=0 peak=4 stalls=12",
+        "TX_WORD_COUNT_METRICS case=posted-invalid-nine cycles=286 requests=0 responses=0 reads=0 writes=0 peak=0 stalls=0"
+      ]
+    }
+  },
+  "negative_exits": {
+    "guard-simulator": 1,
+    "guard-baseline-head": 1,
+    "guard-receipt-commit": 1,
+    "guard-reuse-added-source": 1,
+    "guard-reuse-missing-source": 1,
+    "guard-reuse-changed-hash": 1,
+    "guard-pair-extra-candidate": 1,
+    "guard-pair-extra-baseline": 1,
+    "baseline-m2048-p0-negative-busy-address": 1,
+    "baseline-m2048-p0-negative-busy-length": 1,
+    "baseline-m2048-p0-negative-busy-start": 1,
+    "baseline-m2048-p4-negative-busy-address": 1,
+    "baseline-m2048-p4-negative-busy-length": 1,
+    "baseline-m2048-p4-negative-busy-start": 1,
+    "baseline-m2048-p4-negative-boundary": 1,
+    "baseline-m2048-p4-negative-controls": 1,
+    "candidate-m2048-p0-negative-busy-address": 1,
+    "candidate-m2048-p0-negative-busy-length": 1,
+    "candidate-m2048-p0-negative-busy-start": 1,
+    "candidate-m2048-p4-negative-busy-address": 1,
+    "candidate-m2048-p4-negative-busy-length": 1,
+    "candidate-m2048-p4-negative-busy-start": 1,
+    "candidate-m2048-p4-negative-boundary": 1,
+    "candidate-m2048-p4-negative-controls": 1
+  },
+  "test_source_sha256": {
+    "simulator/gsim/dma_tx_word_count.py": "d960573405960b105b8c7f32b98f1f28c4e9eb629268c63a8c9fadfb9839b136",
+    "simulator/gsim/harness/dma_tx_word_count.cpp": "15d933d202ba1e3b939bdb952ff1684a1b9816f849408c182a87cd4421403a9e",
+    "simulator/gsim/harness/ethernet_packet_dma.cpp": "65dce051c4d7fdebc59462d4d122f90d7df7fc137962c47257fa27f6b526dd43",
+    "src/main/scala/ip/dma/EthernetPacketDma.scala": "c87ab1633988c967a5f682e828df5337ed1f2a7ea65806343457fc291a49ec70",
+    "simulator/gsim/dma_tx_word_count_review.py": "c139c83ca53676f34dcaeccc2e5de4cb42d95e70afca736be87d328e7083fa25"
+  },
+  "prior_failed_attempt": "review-r1 forged fixture accidentally shared Python dict references; rejected before any model compile. Preserved; review-r2 passed.",
+  "physical_C1": "Frozen4ef2f3d completed placed; no DMA PPA, route or bit run.",
+  "final_entrypoint_checks": "Syntax,9actual guard probes, symmetric saved-model Scala/oracle identity and4FIR/qualified binary hashes passed; no additional simulation."
+}

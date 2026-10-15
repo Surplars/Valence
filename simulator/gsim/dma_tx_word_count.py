@@ -4,6 +4,19 @@ import argparse,hashlib,json,os,re,shutil,subprocess,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+BASELINE_COMMIT='4ef2f3dc4f629dbd4319c7f47500b127f2cea3de'
+def validate_source_pair(frozen):
+ assert set(frozen)=={'baseline','candidate'},'unexpected source arms'
+ assert set(frozen['baseline'])==set(frozen['candidate']),'asymmetric source file sets'
+ differing=[n for n,h in frozen['baseline'].items() if h!=frozen['candidate'][n]]
+ assert differing==['src/main/scala/ip/dma/EthernetPacketDma.scala'],differing
+ return differing
+def validate_reuse(reused,frozen,gsim_sha256,baseline_commit):
+ assert baseline_commit==BASELINE_COMMIT,'baseline HEAD is not the pinned commit'
+ assert reused.get('baseline_commit',BASELINE_COMMIT)==BASELINE_COMMIT,'receipt baseline commit mismatch'
+ assert reused['gsim_sha256']==gsim_sha256,'reused simulator hash mismatch'
+ # Equality checks both path sets and hashes, including the C++ byte oracle.
+ assert reused['source_inputs']==frozen,'reused source sets or hashes changed'
 def main():
  ap=argparse.ArgumentParser(description=__doc__)
  ap.add_argument('--baseline-root',type=Path,required=True)
@@ -20,22 +33,26 @@ def main():
  def inputs(root):
   return {str(p.relative_to(root)):sha(p) for p in [*root.glob('src/**/*.scala'),*[root/n for n in extra]]}
  frozen={arm:inputs(root) for arm,root in roots.items()}
- differing=[n for n,h in frozen['baseline'].items() if h!=frozen['candidate'].get(n)]
- assert differing==['src/main/scala/ip/dma/EthernetPacketDma.scala'],differing
+ baseline_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=base,text=True).strip()
+ assert baseline_commit==BASELINE_COMMIT,'baseline HEAD is not the pinned commit'
+ differing=validate_source_pair(frozen)
  assert subprocess.check_output(['git','diff','--name-only','--','src/main/scala'],cwd=base,text=True)==''
- receipt=dict(status='RUNNING',source_inputs=frozen,source_production_difference=differing,
+ receipt=dict(status='RUNNING',baseline_commit=baseline_commit,source_inputs=frozen,source_production_difference=differing,
   gsim_sha256=sha(a.gsim),runner_sha256=sha(Path(__file__)),commands=[],arms={},comparison={},
   scope='direct DMA and existing four-case packet STOP/coherent copy fixture only; no whole CPU, PHY, CDC, Linux or physical qualification',
   physical_results=False)
  reused=None
  if a.reuse_baseline:
   reused=json.loads((a.reuse_baseline/'receipt.json').read_text())
+  validate_reuse(reused,frozen,receipt['gsim_sha256'],baseline_commit)
   for arm in roots:
    assert {n:h for n,h in reused['source_inputs'][arm].items() if n.startswith('src/')}=={
     n:h for n,h in frozen[arm].items() if n.startswith('src/')},'RTL or fixture changed; cannot reuse'
   ancestor=reused;ancestor_path=a.reuse_baseline/'receipt.json';chain=[]
   for _ in range(8):
    chain.append(dict(path=str(ancestor_path),sha256=sha(ancestor_path)))
+   assert ancestor['gsim_sha256']==receipt['gsim_sha256'],'ancestor simulator hash mismatch'
+   assert ancestor.get('baseline_commit',BASELINE_COMMIT)==BASELINE_COMMIT,'ancestor baseline commit mismatch'
    for arm in roots:
     assert {n:h for n,h in ancestor['source_inputs'][arm].items() if n.startswith('src/')}=={
      n:h for n,h in frozen[arm].items() if n.startswith('src/')}

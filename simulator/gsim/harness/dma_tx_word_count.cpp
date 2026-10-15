@@ -9,6 +9,7 @@
 
 static unsigned cases=0;
 static bool corrupt=false;
+static std::string mutation;
 static void report(const std::string&name,const Test&t) {
     check(t.requests==t.responses,"focused accepted request/response leak");
     std::cout<<"TX_WORD_COUNT_METRICS case="<<name<<" cycles="<<t.cycle
@@ -44,7 +45,7 @@ static void post(Test&t,uint64_t address,uint64_t length,bool error=false) {
 static void posted() {
     Test t(778);t.multiTx=true;t.access(240,true,1);
     const std::vector<unsigned> lengths={1,2,3,4,5,6,7,8,9,DMA_MAX_FRAME-1,DMA_MAX_FRAME};
-    std::vector<uint8_t> expected;unsigned words=0,frames=0;
+    std::vector<uint8_t> expected;unsigned words=0,frames=0,frameBytes=0;
     for(unsigned batch=0;batch<lengths.size();batch+=TX_POSTED_SLOTS) {
         unsigned count=std::min<unsigned>(TX_POSTED_SLOTS,lengths.size()-batch);
         for(unsigned i=0;i<count;++i) {
@@ -58,7 +59,11 @@ static void posted() {
         for(unsigned i=0;i<count;++i) {
             unsigned n=lengths[batch+i],offset=DMA_MAX_FRAME*i;
             check(t.access(224)==ram+offset&&t.access(232)==n,"posted exact owner/length mismatch");
-            ++frames;check(t.txFrameEnds.size()>=frames,"posted frame boundary missing");
+            ++frames;frameBytes+=n;
+            check(t.txFrameEnds.size()>=frames,"posted frame boundary missing");
+            unsigned observed=t.txFrameEnds.at(frames-1);
+            if(mutation=="boundary"&&frames==1)++observed;
+            check(observed==frameBytes,"posted exact TLAST byte offset mismatch");
             t.access(240,true,8);
         }
     }
@@ -82,12 +87,52 @@ static void posted() {
         {0xfffffffffffffff8ULL,16},{ram-8,8},{ram+DMA_RAM_BYTES,1}}) {
         post(bad,a,n,true);for(unsigned i=0;i<9;++i)bad.tick();++id;
     }
-    check(id==9&&bad.requests==0&&bad.memory==initial&&bad.dataOut.empty(),"illegal posted descriptor side effects");
+    if(mutation=="controls")bad.controls.push_back({0xa0000000U,15,false});
+    check(id==9&&bad.requests==0&&bad.memory==initial&&bad.dataOut.empty()&&bad.controls.empty(),"illegal posted descriptor side effects");
     bad.access(240,true,2);report("posted-invalid-nine",bad);
 }
 #endif
-int main(int argc,char**)try {
-    corrupt=argc>1;
+static void busyWrites() {
+    for(bool stream:{false,true})for(unsigned offset:{16U,24U,32U}) {
+        Test t(501+offset+stream);const uint64_t a=ram+128;const unsigned n=17;
+        auto initial=t.memory;t.holdMemoryRequest=!stream;t.holdTxData=stream;
+        t.startTx(a,n);
+        if(stream) {
+            unsigned limit=t.cycle+50000;
+            while(!t.G(txData$$valid)){t.tick();check(t.cycle<limit,"active stream witness timeout");}
+        }
+        check(t.access(40)&1,"legacy active-write witness not busy");
+        t.access(offset,true,offset==16?ram+512:offset==24?9:3,true);
+        auto address=t.access(16),length=t.access(24),status=t.access(40);
+        if(mutation=="busy-address"&&offset==16)address^=8;
+        if(mutation=="busy-length"&&offset==24)length^=1;
+        if(mutation=="busy-start"&&offset==32)status=2;
+        check(address==a&&length==n&&(status&1),"busy legacy descriptor/status changed");
+        check(t.dataOut.empty()&&t.reads==(stream?3:0),"busy legacy read/stream count changed");
+        t.holdMemoryRequest=false;t.holdTxData=false;t.finish(false,false,true,false);bytes(t,a,n);
+        check(t.reads==3&&t.requests==3&&t.responses==3&&t.memory==initial,"busy legacy descriptor transfer changed");
+        t.controls.clear();t.dataOut.clear();
+        t.startTx(ram+512,9);t.finish(false,false,true,false);bytes(t,ram+512,9);
+        check(t.reads==5&&t.responses==5&&t.memory==initial,"busy legacy changed-length restart mismatch");
+        report(std::string("busy-")+(stream?"stream-":"fill-")+std::to_string(offset),t);
+    }
+}
+int main(int argc,char**argv)try {
+    bool review=false;
+    for(int i=1;i<argc;++i) {
+        std::string arg=argv[i];
+        if(arg=="--review-gaps")review=true;
+        else if(arg=="--corrupt-expected")corrupt=true;
+        else if(arg.rfind("--mutate=",0)==0)mutation=arg.substr(9);
+        else throw std::runtime_error("unknown focused argument");
+    }
+    if(review) {
+        busyWrites();
+#if TX_POSTED_SLOTS > 0
+        posted();
+#endif
+        std::cout<<"TX_WORD_COUNT_REVIEW_GAPS_PASS cases="<<cases<<'\n';return 0;
+    }
     for(unsigned n:{1U,2U,3U,4U,5U,6U,7U,8U,9U,unsigned(DMA_MAX_FRAME-1),unsigned(DMA_MAX_FRAME)})legacy(n,false);
     legacy(DMA_MAX_FRAME,true);legacy(9,true);
     unsigned id=0;

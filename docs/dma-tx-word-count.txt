@@ -54,3 +54,29 @@ with --source-receipt FRESH_OUTPUT/receipt.json and a fresh --output audit path.
 
 The concurrent C1 physical run stays frozen at4ef2f3d. No DMA Vivado, route/bit,
 TwoEntryRegisterQueue, broad regression, or changes to sequential-core inputs.
+
+Review follow-up (test-only; preserves production commit22bbd0db)
+The focused driver now offers --review-gaps. In both fill and held-stream TX
+states it independently attempts legacy address, length and START writes,
+expects MMIO errors, verifies unchanged active address/length/busy status,
+read count and bytes, then restarts with another address and a different length.
+Posted tests compare every TLAST to the exact cumulative expected byte offset;
+invalid POST now also requires an empty TX control stream.
+
+Supplemental evidence: dma-tx-word-count-review.json. Saved default M2048,
+posted0/4 models only:15 positive scenarios and8 expected driver failures per
+arm, identical A/B metrics, plus8 forged-receipt rejections. No full matrix or
+STOP rerun. The original19-model evidence remains historical and unchanged.
+Mutation switches corrupt observations immediately before their assertions;
+they demonstrate assertion sensitivity, not injected hardware defect coverage.
+
+--reuse-baseline now pins actual baseline HEAD to4ef2f3d, checks simulator hash
+through the successful Scala receipt ancestry, and checks symmetric source sets
+and hashes, including C++ oracles. New receipts record baseline_commit. Older
+receipts without this field are accepted only against the pinned checkout and
+exact current source set/hashes; the old receipt is never rewritten. Current
+GSIM, baseline commit and complete source sets were verified equal before edits.
+
+Reproduce only the supplemental default-model checks with a fresh output:
+python3 -B simulator/gsim/dma_tx_word_count_review.py --baseline-root BASELINE --prior build/gsim/dma-tx-word-count-20261015-r4 --output FRESH_OUTPUT --gsim FIXED_GSIM
+The prior output and any reused predecessor model directories must be retained.
