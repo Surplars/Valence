@@ -18,7 +18,7 @@ class PendingStoreProofOwner(p: OooParams) extends Bundle {
   * grants no memory ownership; bound rows survive until exact actual-store capture or kill.
   */
 class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
-    val exposeLoadPreparedCandidate: Boolean) extends Module {
+    val exposeLoadPreparedCandidate: Boolean, val checkBindPlanning: Boolean = false) extends Module {
     // Keep the original unstaged constructor for production users and compiled fixtures.
     // The explicit switch retains the unstaged query path for isolated A/B qualification.
     def this(p: OooParams) = this(p, false, false)
@@ -105,6 +105,12 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     val evict = mayQuery && queryMask.orR && !empty.orR && evictable.reduce(_ || _)
     if (rows == 3) {
         when(evict) { assert(victim < rows.U, "evicted proof row index must be valid") }
+    }
+    if (checkBindPlanning) {
+        when(io.bind.orR) {
+            assert(!admission && !evict,
+                "actual relied-row binding excludes simultaneous missing-store query admission or eviction")
+        }
     }
     when(admission) {
         val owner = io.owners(admitIndex).bits

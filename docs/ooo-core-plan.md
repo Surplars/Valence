@@ -2054,3 +2054,7 @@ raw full-token comparisons precede late acceptance, with no added state or cycle
 Defaults and core/profile field layout stay fixed. Matched decoded-backend cycles
 are unchanged; FPGA resources/timing and board qualification remain unverified.
 C1/C2 lifecycle/witness retiming is not implemented.
+
+C1 shadow: exact early-bind mask/token/slot miter passed the short 3-row backend
+and control scenarios with no cycle/traffic change; default off, no functional
+bind/start change or C1 physical result. See docs/c1-proof-control-review.txt.

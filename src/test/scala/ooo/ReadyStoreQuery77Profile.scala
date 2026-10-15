@@ -65,12 +65,13 @@ object ReadyStoreQuery77BackendFactory {
             "registerCanonicalStoreEvent" -> p.registeredCanonicalStoreEvent,
             "retirementSlotIdentity" -> p.retirementSlotIdentity)
     }
-    def create(profile: FpgaNextConfig, preselectRedirectTokenMatches: Boolean = false): IntegerBackend = {
+    def create(profile: FpgaNextConfig, preselectRedirectTokenMatches: Boolean = false,
+        shadowEarlyProofBind: Boolean = false): IntegerBackend = {
         val args = arguments(profile)
         new IntegerBackend(profile.coreParams, canonicalHandoff = args("canonicalHandoff"),
             registerCanonicalStoreEvent = args("registerCanonicalStoreEvent"),
             retirementSlotIdentity = args("retirementSlotIdentity"),
-            preselectRedirectTokenMatches = preselectRedirectTokenMatches)
+            preselectRedirectTokenMatches = preselectRedirectTokenMatches, shadowEarlyProofBind = shadowEarlyProofBind)
     }
 }
 

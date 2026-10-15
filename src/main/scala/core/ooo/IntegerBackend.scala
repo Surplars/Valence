@@ -68,7 +68,11 @@ class HeadProfile extends Bundle {
   */
 class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val retirementSlotIdentity: Boolean = false,
-    val preselectRedirectTokenMatches: Boolean = false) extends Module {
+    val preselectRedirectTokenMatches: Boolean = false,
+    val shadowEarlyProofBind: Boolean = false) extends Module {
+    require(!shadowEarlyProofBind || (p.pendingVirtualStoreProof && p.residentMemoryPayloadReuse &&
+        p.registeredLoadResultReady && p.localTaggedResponseReady && p.earlyRecoveryIssueBlock &&
+        !p.memoryProofFrontier && p.issueWidth == 2), "shadow bind requires the exact resident proof topology")
     require(!preselectRedirectTokenMatches || p.parallelRedirectTokens,
         "preselected redirect comparisons require the existing parallel redirect contract")
     require(retirementSlotIdentity == p.retirementSlotIdentity,
@@ -153,7 +157,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.registeredLoadResultReady && p.localTaggedResponseReady
     val lsu             = Module(new ParallelLoadStoreUnit(p, canonicalHandoff,
         localTaggedResponseReady = p.localTaggedResponseReady,
-        candidateLoadPreparation = splitLoadPreparedAdmission))
+        candidateLoadPreparation = splitLoadPreparedAdmission, observeOrdinaryLoadCapacity = shadowEarlyProofBind))
     val mulDiv          = Module(new MultiplyDivide(p, divisionOnly = true))
     // Candidate only: integration qualification is separate from component proof.
     // Preserve legacy profiles and the default-OFF module constructor.
@@ -168,6 +172,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val systemRedirect  = WireDefault(false.B)
     val systemInvalidate = WireDefault(false.B)
     val reserveSystem   = WireDefault(false.B)
+    val proofHeadSystemPending = WireDefault(false.B)
+    val shadowProofBindMask = WireDefault(0.U(p.pendingVirtualStoreProofSlots.W))
+    val shadowProofBindOffer = WireDefault(false.B)
     val systemStart     = WireDefault(false.B)
     val systemProtected = RegInit(false.B)
     // pending(head) clears at start, before CSR execution updates the context.
@@ -794,7 +801,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val residentMemoryStartAllowed = if (p.residentMemoryPayloadReuse) Some(WireDefault(false.B)) else None
     val proofFrontier = if (p.memoryProofFrontier) Some(Module(new MemoryProofFrontier(p))) else None
     val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p,
-        p.registeredPendingStoreQuery, exposeLoadPreparedCandidate = splitLoadPreparedAdmission))) else None
+        p.registeredPendingStoreQuery, exposeLoadPreparedCandidate = splitLoadPreparedAdmission,
+        checkBindPlanning = shadowEarlyProofBind))) else None
     val pendingStoreCredit = if (p.pendingVirtualStoreProof) Some(Module(new PendingStoreEarlyLoadCredit(p))) else None
     val pendingStoreRelied = WireDefault(0.U(p.pendingVirtualStoreProofSlots.W))
     val frontierChoice = WireDefault(false.B)
@@ -1930,6 +1938,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         unit.io.fenceIFlushReady := io.fenceIFlushReady.get
         interruptDrain                      := unit.io.interruptPending && !systemProtected
         val headPending = pending(head) && issueEntries(head).request.system
+        proofHeadSystemPending := headPending
         val headInst = Mux(p.compressedInstructions.B &&
             headRequest.rename.instruction(1, 0) =/= 3.U,
             headRequest.expandedInstruction, headRequest.rename.instruction)
@@ -2147,6 +2156,48 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         port.local.valid := localCandidate.valid && !headSystemRequest
         port.local.bits.token := localCandidate.bits.token
         port.local.bits.inclusive := localInclusive
+    }
+    if (shadowEarlyProofBind) {
+        val bank = pendingStoreProof.get
+        val capacity = lsu.io.ordinaryLoadCapacity.get
+        // Ordinary parallel LOAD specialization; no actual start/acceptance or
+        // reserveSystem/headTrapRequest feeds this independent shadow offer.
+        val rawRecoveryVeto = recovery.valid || headSystemRequest || branchCandidate.valid ||
+            loadReplay.valid || (if (p.registeredLoadReplay) replayPendingValid.get else false.B)
+        val owner = stagedMemoryIndex.get
+        val exactResident = stagedMemoryValid.get && pending(owner) && owner === memoryChoice.index &&
+            stagedMemoryToken.get.asUInt === memoryEntry.renamed.token.asUInt
+        val ordinary = memoryEntry.request.memory && !memoryEntry.request.store &&
+            !memoryEntry.request.atomic && !memoryEntry.request.system && !memoryEntry.request.mulDiv &&
+            !memoryEntry.request.fetchFault && !memoryEntry.request.fetchPageFault && !forwarding
+        val offer = candidatePrecheckedLoad && ordinary && memoryChoice.valid && exactResident &&
+            memoryChoice.index =/= head && pendingStoreOlder.orR && pendingStoreOfferPolicy &&
+            !postedBusy && !interruptDrain && !proofHeadSystemPending && !olderSystem &&
+            !fpMemoryEpoch && !contextMemoryEpoch && !ledger.io.recovering && io.commitEnable &&
+            !candidateBlockedByStore && !rawRecoveryVeto && !ledger.io.pendingException.valid &&
+            capacity.available
+        shadowProofBindOffer := offer
+        shadowProofBindMask := VecInit(bank.io.proofs.map { proof =>
+            val index = proof.bits.token.index
+            offer && proof.valid && pending(index) && memoryLive(index) &&
+                issueEntries(index).request.store && (index - head) < memoryChoice.age
+        }).asUInt
+        val actual = Mux(lsu.io.start.fire && !lsu.io.start.bits.store &&
+            lsu.io.start.bits.precheckedLoad, pendingStoreRelied, 0.U)
+        assert(shadowProofBindMask === actual,
+            "shadow ordinary LOAD bind row mask must equal real capture in both directions")
+        assert(lsu.io.complete.ready, "shadow ordinary LOAD capacity requires the always-ready completion sink")
+        assert(!reserveSystem || proofHeadSystemPending, "system reservation implies current pending system head")
+        when(shadowProofBindMask.orR) {
+            assert(offer && lsu.io.start.fire && lsu.io.parallel &&
+                lsu.io.start.bits.token.asUInt === memoryEntry.renamed.token.asUInt,
+                "shadow bind must preserve the complete captured load token")
+            assert(capacity.slot === capacity.actualSlot,
+                "shadow bind must preserve exact physical capture slot")
+        }
+        when(proofHeadSystemPending) {
+            assert(!lsu.io.start.fire, "pending system head excludes new integer memory capture")
+        }
     }
     val externalWins = ledger.io.parallelRecovery.map(_.externalWins).getOrElse(
         ledger.io.recoveryProbeAccepted && (!localCandidate.valid ||

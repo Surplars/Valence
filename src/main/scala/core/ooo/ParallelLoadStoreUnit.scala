@@ -10,7 +10,8 @@ class ParallelLoadStoreUnit(
     p: OooParams,
     canonicalHandoff: Boolean = false,
     val localTaggedResponseReady: Boolean = false,
-    val candidateLoadPreparation: Boolean = false
+    val candidateLoadPreparation: Boolean = false,
+    val observeOrdinaryLoadCapacity: Boolean = false
 ) extends Module {
     def this(p: OooParams, handoff: Boolean, localReady: Boolean) = this(p, handoff, localReady, false)
     require(!candidateLoadPreparation || (p.pendingVirtualStoreProof && !p.memoryProofFrontier),
@@ -41,6 +42,11 @@ class ParallelLoadStoreUnit(
             val parallel = Bool()
         })) else None
         val candidateIssueAvailable = if (candidateLoadPreparation) Some(Output(Bool())) else None
+        val ordinaryLoadCapacity = if (observeOrdinaryLoadCapacity) Some(Output(new Bundle {
+            val available = Bool()
+            val slot = UInt(indexBits.W)
+            val actualSlot = UInt(indexBits.W)
+        })) else None
         val boundHeadStoreOverlapQualified = if (p.boundHeadStoreOverlap) Some(Input(Bool())) else None
         // Assertion/test witness only; never feeds reservation or ownership.
         val boundHeadStoreOverlapAccepted = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
@@ -205,6 +211,21 @@ class ParallelLoadStoreUnit(
         }
         (capacity, selected)
     } else (io.issueAvailable, chosen)
+    io.ordinaryLoadCapacity.foreach { out =>
+        // Constants: parallel=true, ordinaryPrechecked=true, bound-store-offer=false.
+        val handoff = if (canonicalHandoff) empty.asUInt.orR && exemptOwner.reduce(_ || _) else false.B
+        val selected = Mux(handoff, emptyChoice,
+            Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+        val noSerial = (0 until p.memoryEntries).map(i => !slots(i).io.busy || parallel(i) ||
+            (completion.io.out.valid && selected === i.U) || exemptOwner(i)).reduce(_ && _)
+        out.available := available && noSerial
+        out.slot := selected
+        out.actualSlot := chosen
+        when(io.start.fire && ordinaryPrechecked && io.parallel) {
+            assert(out.available === io.issueAvailable && selected === chosen,
+                "dedicated ordinary LOAD capacity and slot equal strict capture")
+        }
+    }
     when(observationCanonicalHandoff) {
         assert(ordinaryPrechecked && io.parallel && empty(chosen),
             "authorized handoff must use an empty slot without completing or replacing the store")

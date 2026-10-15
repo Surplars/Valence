@@ -11,7 +11,8 @@ import soc.core.ooo._
   * Direct ordered tagged physical responder, no cache/Home/board qualification.
   */
 class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
-    preselectRedirectTokenMatches: Boolean = false) extends Module {
+    preselectRedirectTokenMatches: Boolean = false, shadowEarlyProofBind: Boolean = false,
+    proofControlInputs: Boolean = false) extends Module {
     require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
     val profile = if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
         else ReadyStoreQuery77Profile.select(queryEnabled)
@@ -29,6 +30,22 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     require(p.taggedStoreReturns && p.postedStoreMerge && p.pmpChangePublicationEnabled)
     require(p.speculativeRamBase == BigInt("80200000", 16) && p.speculativeRamBytes == BigInt("80000000", 16))
     val io = IO(new Bundle {
+        val control = if (proofControlInputs) Some(Input(new Bundle {
+            val prefetchBusy = Bool()
+            val timerInterrupt = Bool()
+            val externalInterrupt = Bool()
+            val holdFetch = Bool()
+        })) else None
+        val shadow = if (proofControlInputs) Some(Output(new Bundle {
+            val mask = UInt(proofRows.W)
+            val actualMask = UInt(proofRows.W)
+            val offer = Bool()
+            val systemPending = Bool()
+            val reserveSystem = Bool()
+            val irqDrain = Bool()
+            val evict = Bool()
+            val slot = UInt(2.W)
+        })) else None
         val instruction0 = Input(Valid(UInt(32.W)))
         val instruction1 = Input(Valid(UInt(32.W)))
         val pc0 = Input(UInt(64.W))
@@ -145,7 +162,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     val allocate1 = decoded(1)
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
-    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches))
+    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind))
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)
@@ -165,7 +182,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
         ports(1) := allocate1.bits.rename
     }
     backend.io.fetchFaultMask.foreach(_ := 0.U)
-    backend.io.externalPrefetchBusy.foreach(_ := false.B)
+    backend.io.externalPrefetchBusy.foreach(_ := io.control.map(_.prefetchBusy).getOrElse(false.B))
     backend.io.allocate(0) := allocate0
     backend.io.allocate(1) := allocate1
     backend.io.commitEnable := io.commitEnable
@@ -174,12 +191,12 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     backend.io.imsic.get.request.ready := true.B
     backend.io.imsic.get.response.valid := false.B
     backend.io.imsic.get.response.bits := 0.U.asTypeOf(backend.io.imsic.get.response.bits)
-    backend.io.externalInterrupt.get := false.B
+    backend.io.externalInterrupt.get := io.control.map(_.externalInterrupt).getOrElse(false.B)
     backend.io.supervisorExternalInterrupt.get := false.B
-    backend.io.timerInterrupt.get := false.B
+    backend.io.timerInterrupt.get := io.control.map(_.timerInterrupt).getOrElse(false.B)
     backend.io.timeValue.get := 0.U
     backend.io.emptyPc.get := 0.U
-    backend.io.fetchQuiescent.get := true.B
+    backend.io.fetchQuiescent.get := !io.control.map(_.holdFetch).getOrElse(false.B)
     backend.io.fenceIFlushReady.get := true.B
     val flush = backend.io.vmFlush.get && adapter.io.idle && translation.io.idle
     backend.io.vmFlushReady.get := adapter.io.idle && translation.io.idle
@@ -283,6 +300,16 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     io.probeOwnerValid := VecInit(bank.io.owners.map(o => BoringUtils.bore(o.valid)))(io.probeIndex)
     io.probeOlder := VecInit(backend.ages.map(a => BoringUtils.bore(a)))(io.probeIndex) <
         BoringUtils.bore(backend.memoryChoice.age)
+    io.shadow.foreach { s =>
+        s.mask := BoringUtils.bore(backend.shadowProofBindMask)
+        s.offer := BoringUtils.bore(backend.shadowProofBindOffer)
+        s.actualMask := BoringUtils.bore(backend.pendingStoreProof.get.io.bind)
+        s.systemPending := BoringUtils.bore(backend.proofHeadSystemPending)
+        s.reserveSystem := BoringUtils.bore(backend.reserveSystem)
+        s.irqDrain := BoringUtils.bore(backend.interruptDrain)
+        s.evict := BoringUtils.bore(backend.pendingStoreProof.get.evict)
+        s.slot := backend.lsu.io.ordinaryLoadCapacity.map(c => BoringUtils.bore(c.slot)).getOrElse(0.U)
+    }
     io.probeAtHead := BoringUtils.bore(backend.memoryPreparationHeadOwner.get).apply(io.probeIndex)
     io.probeDataReady := VecInit(backend.pendingStoreDataReady.map(BoringUtils.bore(_)))(io.probeIndex)
     io.probePending := BoringUtils.bore(backend.pending).apply(io.probeIndex)

@@ -2746,3 +2746,24 @@ its command/body bridge binds the previously tested model and host.
 ## Default-off resident memory reuse (2026-10-13)
 
 The bounded Young69+resident run preserves all COPY105 results and byte-exact traffic at 179,571 Bare / 191,618 Sv39 cycles, with same-object NEMU and PMP checks. The native backend has memory reads 4→2 and fresh AGUs 2→1 with no added state. No cycle speedup or physical resource/timing claim is made. See [scope, proof identity and focused reproduction](resident_memory_integration/README.md).
+
+C1 early-bind shadow qualification (2026-10-15)
+
+Explicit default-OFF backend/LSU observation options add no functional storage or
+bind/start changes. The exact 178/95, proof3/credit2/LSU4 resident backend
+compares complete relied-row masks every cycle, full token and physical slot,
+and asserts its always-ready completion contract. Use an existing pinned GSIM:
+python3 -B simulator/gsim/proof_control.py --output build/gsim/C1_UNIQUE --gsim /path/to/existing/gsim --jobs 2
+
+Evidence c1-shadow-20261015-r3: baseline/shadow pass 8 ready/PMP/fault cases,
+4 lifecycle cases and 4 control cases (PF busy, fetch drain/SATP redirect replay,
+commit stall, timer IRQ drain with accepted early reads). Measured cycles and
+accepted/physical/response counts match. ASan/UBSan enabled. Bad data and
+retirement negative controls rejected. Raw FIR register declarations match.
+The earlier r1/r2 failures are retained: the expanded driver needed exact system
+redirect cancellation/replay and a scene-entry redirect-count snapshot. DUT
+assertions and original memory/fault oracles were not weakened.
+
+This is bounded simulation coverage, not proof of every three-row subset or
+generic-backpressure clients, a complete C1 cut, or physical performance.
+The source review lists additional required capacity and bank collision tests.

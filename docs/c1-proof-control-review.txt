@@ -1,0 +1,415 @@
+C1 control decoupling review — 2026-10-15
+
+Status: SOURCE ANALYSIS / REVIEW CANDIDATE ONLY. No C1 RTL, GSIM, or physical
+run has been performed. Running C0 inputs remain frozen at
+ee3bed51d60d605e897cd2868859aaeb7705276e, based on published C0 1e5576e.
+Scope: current resident-memory profile; issue2, ROB16, tag64, proof3, credit2,
+LSU4, core178/profile95. memoryProofFrontier is OFF. Legacy/frontier users
+must retain their current behavior unless separately qualified.
+
+1. Immediate verdict on the zero-state proof-bank quiesce candidate
+
+Define Q from the EXISTING current-head predicate:
+    Q = pending(head) && issueEntries(head).request.system
+Use Q ONLY instead of reserveSystem in pendingStoreProof.pause and
+pendingStoreProof.flushQueries (IntegerBackend.scala:1114-1117). Keep every
+other input term, all architectural system drain/start/trap rules, LSU
+permission, bind/consume protocol, credit ownership and full-token checks.
+Make it an explicit default-OFF constructor option; do not add config fields.
+
+The syntactic implication reserveSystem => Q holds at :1932,1966-1970:
+reserveSystem contains headPending as a conjunction. If Q adds headValid,
+that extra implication needs a separate pending-owner/head-valid invariant;
+using the original predicate avoids silently assuming it.
+
+Q has no current-cycle memoryBusy input. It can stop inert proof preparation
+earlier while the system head waits for operands, commitEnable, start credit,
+fetch drain, or accepted memory drain. This removes memoryBusy from THESE TWO
+PORT DEFINITIONS with ZERO new state. No event queue is needed for this step.
+
+It is NOT a complete cache-to-proof-CE cut. The actual OFF worst path reaches
+ledger/io_commit_1_valid, then pendingStoreProof/io_clearOwners[5], then row
+selection/eviction/bound logic, ending state_1_reg[1]/CE. Replacing pause and
+flush does not touch that observed path. Further bind/consume paths also remain.
+Do not advertise whole-cone removal or a frequency gain for this change.
+
+2. Exact conditions needed for architectural equivalence of Q
+
+A. Q implies no NEW ordinary integer LSU capture in this active profile.
+   For a strictly younger memory candidate, olderSystem (:1352-1357) includes
+   the pending system head (age0), so :1401 rejects it. For a head candidate,
+   prove that memory candidate construction excludes request.system, including
+   FP-memory/system encodings and the registered resident owner. An older
+   candidate cannot exist before a valid ROB head. Assert the full predicate
+   Q => !lsu.start.fire, not merely a selector-local approximation. Do not
+   assume it for other profiles or invalid owner snapshots.
+B. Proof preparation is inert: no DataPort request, page-table memory request,
+   credit reservation, LSU owner, commit or fault may be created by Q or by its
+   suppression of the hit-only peek. Existing accepted LSU work must drain
+   normally while Q is high. Observe actual requests/responses and credits.
+C. Whenever the system actually starts, the baseline reserveSystem flush would
+   invalidate every unbound result that the candidate discarded earlier.
+   Prove alternate exits too: IRQ, head trap, external inclusive/exclusive
+   recovery, repeated keep=1 system recovery, commit disabled, and head change.
+   A certificate discarded earlier may not be required by a surviving owner
+   before that corresponding baseline invalidation. This is the key temporal
+   premise; reserveSystem=>Q alone is insufficient.
+D. Existing bound rows remain pinned. PendingVirtualStoreProof:296-304 frees
+   cancelled/epoch-old/evicted rows only when !bound, while exact consume or an
+   authorized owner loss can release them. Q must not broaden ownerGone,
+   alter proof epoch, or release a bound row on a mere speculative pause.
+   At actual STORE capture, transfer its obligation to the frozen store owner;
+   never hold it for all dependent loads and never cancel accepted LSU owners.
+E. Same-edge Q and bind/consume must be independently checked. With A, a real
+   new bind/consume cannot occur under Q. Previously accepted responses may
+   still occur. Artificial bank tests must also show bound rows survive Q and
+   must reject an illegal bind during flush rather than weakening assertions.
+F. Current PMP/VM epoch, raw external translation flush, privilege, owner
+   token/VA/size/mask and ready-head policy remain authoritative. Do not stage
+   only stable or allowed and do not turn a preproof into issue permission.
+G. No exact-cycle proof-state equivalence is expected: Q deliberately discards
+   inert queued/inflight/unbound results earlier. Compare architectural traces,
+   accepted traffic, accepted-owner lifetimes and cycle/throughput cost instead.
+
+No reachable architectural counterexample has been established by this source
+inspection. Conditions A/C and the simultaneous-event cases are NOT yet proved.
+The component counterexample to overly broad equivalence is immediate: set
+Q=1, reserveSystem=0, a queued unbound row and an available hit-only query.
+Baseline may advance it; candidate pauses/flushes it. Thus neither bank-cycle
+equivalence nor zero performance cost follows just from Q's implication.
+
+3. Complete current control-boundary inventory (source ee3bed5)
+
+memoryBusy (:222) = integerMemoryBusy || postedBusy || externalPrefetchBusy.
+The cache prefetch/MSHR/writeback phase feeds externalPrefetchBusy through the
+platform/core wrappers. Keep the architectural drain equation unchanged.
+
+Path A — direct speculative scheduling/cancellation:
+memoryBusy -> reserveSystem (:1966-1970) -> bank.pause/flush (:1114-1117).
+Within PendingVirtualStoreProof:
+  pause -> mayQuery -> admission/storeGrant/loadGrant/evict -> state, records,
+  preferStore, selectedValid/descriptor capture;
+  flush -> cancelQueries/freshResult/queryValid -> translatedValid/loadValid,
+  storeResult publication and unbound-row cleanup.
+Q is the proposed complete boundary change for this pair of control ports.
+
+Path B — accepted architectural recovery/commit/allocation:
+memoryBusy -> safeTrap (:2000) -> automaticTrap/headTrapRequest -> ledger
+accepted recovery/killed or recoveryCycle -> commit and rename acceptance ->
+proofOwnerClear (:803-806) -> bank.clearOwners (:1113).
+There is also accepted-system/C0 comparison/retirement-intent feedback into
+commit. C0 cuts accepted-control -> 68-bit selected-payload equality only.
+clearOwners currently affects admission eligibility, queued query selection,
+selectedValid, queryOwnerLive/translatedValid, translatedRowLive/storeResult,
+load capture/cleanup, ownerCleared, bind assertion and row state/bound cleanup.
+Q alone leaves ALL of these clearOwners dependencies intact.
+
+Path C — load-certificate feedback to binding:
+reserveSystem -> flush -> loadPrepared.valid -> precheckedLoad ->
+pendingStoreBypass (:1266) -> pendingStoreRelied (:1287) -> bank.bind (:1128).
+The splitLoadPreparedAdmission candidate already omits flush in the reserve
+candidate, but pendingStoreRelied still uses the STRICT precheckedLoad law.
+Do not mistake the existing candidate-valid split for removal of this path.
+
+Path D — actual capture feedback:
+reserveSystem -> originalMemoryEligible (:1401) -> reserveMemory ->
+lsu.start.valid/fire (:1484-1498) -> bank.bind / bank.consume (:1126-1129).
+raw earlyRecoveryIssueBlock (:2139) also contains headTrapRequest (busy-dependent)
+and headSystemRequest. Even though pendingException/interruptDrain and
+olderSystem may logically dominate these cases, synthesis need not discover
+that implication. Measure the actual cone; do not claim it disappeared.
+
+Path E — registered context and external authorization boundaries:
+systemProtected/contextMemoryEpoch/fpMemoryEpoch are registered ownership
+boundaries (:172-181), not current busy bypasses. Keep them. In this integrated
+profile MachineSystemUnit:104 publishes pmpRawChanged through RegNext.
+DataTranslationAdapter:126-131 registers stable and epoch but ALSO retains
+the current precheckFlush veto. MachinePlatform:606,609,630 drives it from
+external translationFlush || (core.vmFlush && ready). Do not remove this raw
+context veto or infer it is safe merely because a stable register exists.
+
+Path F — owner-local issue-to-proof path, a separate optimization target:
+bank.ownerMatches dynamically reads the current indexed owner and checks full
+68-bit token, VA, size, mask. It drives liveRows and local cleanup. It does not
+become redundant after Q or delayed lifecycle events. The index-only ROB mapping
+is safe ONLY because proof.valid already contains the full current owner check.
+
+Inactive ports: MemoryProofFrontier's pause/flush/clear wiring (:818-822) and
+VirtualRamLoadPreparation.flush (:1103) are different elaboration branches.
+Do not change them as incidental edits to the active-bank experiment.
+
+4. If a FULL cache-to-bank-state cut is later required
+
+The smallest coherent boundary is a set of changes, not one delayed clear bit:
+(i) Q for the two speculative stop ports;
+(ii) cause-specific lifecycle events captured BEFORE row matching/reduction;
+(iii) remove or factor any remaining busy-dependent bind/consume permission
+feedback, with exact same-cycle final permission preserved;
+(iv) retain raw recovery/context veto at the real authority boundary and prove
+that inert stale storage cannot issue, bind or publish usable authority.
+
+For (ii), commit events identify OLD full tokens; rename events identify NEW
+replacement tokens and clear a row at that index only when the old row token
+differs, or explicitly snapshot the old token. consume identifies the exact
+real-capture token. Never register an index-only clear. Apply matching after
+the register and deny reuse from anticipated clears; admission uses pre-edge
+free rows. New allocation must not be cleared by an old event.
+
+For accepted recovery, either preserve a proved row-lifetime/owner-generation
+law with captured boundary/head, or capture row-token/nonfree identity so a
+deferred age/boundary decision cannot clear a reused row. A captured boundary
+without old head (or an equivalent invariant) is not a complete payload.
+
+State estimates are alternative DESIGN BUDGETS, not synthesized resources:
+  Q-only candidate: 0 bits.
+  Earlier compact C1 estimate: 452..484 bits, CONDITIONAL on lifetime laws and
+    event encoding; not a validated drop-in queue.
+  Explicit conservative design: 5 event slots x (68 token+valid)=345 bits;
+    recovery token68+old-head4+inclusive+valid+clear-all=75;
+    context epoch32+valid+cancel-unbound=34;
+    3 shared row identity snapshots x (68 token+nonfree)=207;
+    total 661 bits, before any additional necessary descriptor/incarnation
+    or bind-offer staging. Snapshots are captured unconditionally by slot,
+    not selected using a late per-row clear. This budget alone does NOT solve
+    (iii). If its lifetime premise fails, enlarge/redesign it and re-review.
+
+For (iii), first test algebraic domination of head-system/trap controls by
+earlier current-owner/raw-intent vetoes; do not alter architectural system
+start/drain acceptance. If retaining original LSU permission, accept that its
+bind/consume CE path remains and label the result a partial cut. A delayed
+bind needs a separately proved pin reservation: without it an unbound row can
+be evicted before delayed binding. Do not introduce an unqualified RegNext.
+
+Simultaneous-event law, required before implementation:
+  - Accepted cancellation/replacement/real consume invalidates only its exact
+    old owner; it dominates old-result publication and old-owner binding.
+  - Raw recovery or context veto denies new authority on the CURRENT edge;
+    architectural recovery priority remains the ledger's existing rule.
+  - Ledger priority remains head trap, then accepted head system unless an
+    authorized external head tie wins, then its existing ordinary arbiter.
+    Repeated nonaccepted system requests are not new accepted events.
+  - An earlier pending event cannot clear a newly allocated row/owner.
+  - Same-edge bind versus eviction needs an explicit winner and independent
+    check. Existing eviction tests pre-edge !bound; do not assume that newly
+    asserted bind automatically excludes eviction. Either prohibit the overlap
+    with a proved offer law or make binding pin the exact row on that edge.
+  - A surviving bound STORE cannot be dropped on epoch change or lack of proof
+    owner match. Descriptor immutability must be asserted independently;
+    ownerGone alone is not proof of authorized cancellation.
+
+5. Minimum directed verification before a Q-only RTL candidate can be accepted
+
+Reuse the pinned GSIM and existing generated-model strategy. No full suite,
+toolchain rebuild, new Vivado or parameter/schema changes are needed now.
+
+1) Active-backend paired baseline/candidate, exact 178/95 profile. Assert
+   reserveSystem=>Q and Q=>no NEW integer LSU capture/bind/consume. Include all
+   registered resident/head transitions, circular-head wrap and tag bit63.
+2) Head system waits separately for source, commitEnable, unit readiness,
+   fetch quiescence and externalPrefetchBusy. Toggle busy in both directions
+   while all 3 proof rows cover queued/inflight/proved combinations. End with
+   actual start, external head-inclusive/exclusive recovery, or IRQ/trap.
+   Check eventual discarded certificates and survival rules independently.
+3) Construct a surviving bound row while Q rises: immutable token/VA/PA/mask,
+   no eviction/retranslation or credit release. Real exact STORE capture must
+   transfer frozen PA even if PTE changes; older late fault cancels precisely.
+4) Same-edge query result, Q, clear, bind, consume, commit2 and rename2; bind
+   against eviction; same index/new full token; row reuse with stale query.
+   Negative mutations must reject dropping bound rows, missing flush, and
+   substituting request for acceptance. Keep all existing assertions.
+5) Head trap vs system vs external tie, repeated keep=1 request, local branch
+   and load replay, empty trap, IRQ arrival/withdrawal, pending exception,
+   commit stall and back-to-back head changes. Architectural trace/order and
+   request count must match; no killed load gains a credit or retires.
+6) PMP raw publication, consecutive PMP writes, SFENCE/SATP/MPRV/privilege,
+   external translation flush on the same edge as candidate/result, denied or
+   stale reply, VA alias and MMIO/AMO exclusion. Q cannot change authorization.
+7) Compare accepted traffic, cycles, proof/credit/LSU occupancy and query duty
+   during long system waits and saturated mixed memory. Report any recovery or
+   first-offer cost; do not infer speedup from simulator wall time.
+
+Additional tests for event staging are mandatory only if that separate design
+is implemented: concurrent event slots without loss, delayed cleanup containment,
+ABA/full-tag wrap negatives, epoch rollover policy, no premature free-row reuse,
+post-register matching placement and an independent immutable-owner oracle.
+
+Structural acceptance after any later authorized physical comparison:
+Inspect all bank state/records/bound/query/load-certificate D/CE cones and both
+sides of new registers. Q must remove busy dependence from its two ports;
+FULL-cut claims additionally require no remaining accepted-control/bind/consume
+bypass into those endpoints. Keep issue-token->LSU and routed timing separate.
+Default remains OFF unless simulation and same-stage physical evidence justify
+otherwise. This review makes no implementation or performance claim.
+
+6. Review update: zero-new-state complete candidate (not yet implemented)
+
+The later proposal replaces event staging with EXISTING registered owner
+state, and adds an independent exact early ordinary-LOAD bind offer. It is a
+plausible smaller design than section 4's event queue. The event-queue budgets
+above are alternatives, NOT a requirement for this candidate.
+
+6.1 Store lifetime argument and its precise scope
+
+PendingStoreProofRobOwner.connect requires pending && memoryLive &&
+addressKnown, exact indexed full token, and ordinary STORE class. After a real
+LSU start, IntegerBackend:1727 clears that owner's pending at the edge. Killed
+owners clear pending/memoryLive at :705 onward. Rename publishes a new full
+token at :2903 onward. Therefore the existing row ownerMatches is false in
+the following cycle after one of those events, without same-cycle accepted
+kill/commit/rename/consume going into the bank. Row storage may free one edge
+later, while row proof.valid already becomes false from current ownerMatches.
+
+For a retained STORE certificate, ALU operand enqueue at :2542 is not itself
+a counterexample: those stages assert non-memory class at :2550. Store address
+preparation is excluded from ordinary ROB completion at :2642-2647. Still add
+an independent STORE lifetime assertion: any loss/change of its pending owner
+must be exact actual STORE capture with frozen obligation transfer, authorized
+kill/replacement, or another explicitly identified architectural termination.
+A descriptor mismatch alone must not silently justify releasing a bound row.
+
+Remove late clear/consume not just from final cleanup, but from every store-row
+admission, queued selection, selectedValid, queryOwnerLive, translatedRowLive,
+result publication and bind guard. Current full owner/descriptor/epoch checks
+must remain. A killed/consumed descriptor may be captured into inert storage
+on that edge; after the edge it must have no authority. Bind/real start is
+blocked on the original current recovery/context boundary. Never borrow a row
+being cleared: only pre-edge free rows admit. Test the delayed presentOwners
+occupancy and requery cost; 0 new state is not 0 cycle/area cost.
+
+6.2 A missing part of a store-only edit: the load certificate
+
+The bank also uses clearOwners/consume in load selection/result capture and
+loadValid cleanup (PendingVirtualStoreProof:156,207,266-278). Retaining these
+keeps accepted-control -> loadValid D/CE paths, even if store state CE is cut.
+The intrinsic/candidate valid output still reads loadValid, so the existing
+flush-valid split does not solve its register input cone.
+
+Do not simply keep a never-expiring old load certificate and assume a 64-bit
+token can never be reused. For a zero-new-state implementation, one possible
+local lifetime guard is the EXISTING registered resident load candidate:
+invalidate the stored certificate when its exact current load candidate is
+absent or full token/VA/size does not match; gate a newly arriving certificate
+with the corresponding incoming descriptor-to-current-candidate check. A
+result for a different candidate remains inert or is discarded/requeried.
+No new state is needed, but this changes retention behavior and must be measured.
+
+Next-state priority matters: appending `when(!oldStoredMatch) {loadValid:=false}`
+after fresh-result capture can erase a GOOD first result because the OLD record
+does not match yet. Define incoming-result validation and old-record invalidation
+separately. Prove current resident/full-token/epoch/PMP checks at final authority,
+including same-edge kill/consume, and keep the legacy bank behavior off-switch.
+This is a design option, not an implemented or proven load-certificate rule.
+
+6.3 Specialized ordinary parallel LOAD capacity
+
+ParallelLoadStoreUnit:185-204's generic candidate capacity contains boundOffer
+(:193), which depends on boundHeadStoreOverlapCommon and live start payload's
+frozen/canonical-store epoch. It is unsuitable as the independent bind source.
+For this dedicated use, fix parallel=true, ordinaryPrechecked=true and
+boundStoreOffer=false AT ELABORATION. Retain exact registered serial-store
+exemption (full relaxStoreOwner token, requestAccepted, certifiedStoreClass),
+completion selection, handoff-to-empty-slot and cancelled-slot exclusion.
+
+Algebraic specialization of the current selector:
+  exempt_i = relaxStoreOwner.valid && busy_i && !parallel_i &&
+             requestAccepted_i && certifiedStoreClass_i && fullOwnerMatch_i
+  handoff = canonicalHandoff && anyEmpty && anyExempt
+  selected = handoff ? firstEmpty : completionValid ? completionChosen : firstEmpty
+  capacity = (completionValid || anyEmpty) &&
+             AND_i(!busy_i || parallel_i ||
+                   (completionValid && selected==i) || exempt_i)
+No bound-store offer or othersIdle term survives in the specialized formula.
+Do not replace it with merely anyEmpty or any nonserial slot. Real slot
+selection must match as well as the Boolean capacity.
+
+A concrete GENERAL-component counterexample: no empty slots, selected slot
+done/not-cancelled, completion valid but completion output READY=0. The formula
+reports capacity, while LoadStoreUnit:146 has start.ready=0. Binding on that
+capacity alone would pin a row for an unaccepted load. Current IntegerBackend
+:1805 sets lsu.complete.ready=true and :1605 asserts committed offers are
+always captured. These are explicit integration restrictions, not a general
+Decoupled law. Add a negative stalled-completion fixture and reject the candidate
+outside this topology. Preserve chosen slot equality and parent/child fire equality.
+
+CanonicalStoreTracker.certificate.valid (:118-119) reads registered tracking,
+current ownerLive/stable and epoch; it does NOT directly contain invalidate.
+Thus retain the exact current exemption where lawful. Its invalidate still
+updates tracker state next edge; do not bypass ownerLive or stable to gain capacity.
+
+6.4 Exact early bind law, not a prediction or reservation
+
+Construct an independent ordinary nonhead prechecked-LOAD offer from the current
+registered resident descriptor/certificate, all required valid disjoint rows,
+current head/readiness policy, 2-credit availability, specialized capacity and
+the existing architectural commit/context/recovery vetoes. Exclude forward,
+AMO/MMIO, stores and a head load not using the pending-store bypass. It must
+use the same full load token/epoch/PA/size/mask as real capture. Do not register
+credit.available, reuse a stale head stamp or bind on a pending request alone.
+
+Every cycle assert the COMPLETE ROW MASK equality:
+  earlyBindMask == (real lsu.start.fire && ordinary pending-store-bypass load
+                   ? independently recomputed exact relied-row mask : 0)
+Also assert exact load token, selected physical slot, credit reserve/consume
+and all child start.fire agree. Check both directions, including capacity=0,
+mask=0, head transitions and recovery. This is stronger than `bind=>someStart`.
+Keep actual credit ownership tied to real capture, with no new reservation.
+
+Do not use generic earlyRecoveryIssueBlock unchanged if claiming its busy cone
+is absent: it includes headTrapRequest, which comes from safeTrap/memoryBusy.
+Derive a proof-specific raw veto from independent external/local/replay/system
+requests plus existing pendingException and interruptDrain. Under a valid
+ordinary load offer, !pendingException && !interruptDrain must imply no
+automatic head trap, and !headPendingSystem must imply !reserveSystem. Prove
+these implications; preserve protected-FP/IRQ behavior (raw interruptPending
+alone is stronger than interruptDrain while systemProtected and can change duty).
+Raw context/translation flush remains a current-edge veto. The architectural
+ledger arbitration and system start/drain stay untouched.
+
+6.5 Same-edge bind/evict: useful conditional proof, not assumed away
+
+In the current active backend, a true early bypass requires a live proved row
+for EVERY older pending STORE. The bank query mask targets those same older
+eligible stores missing from presentOwners. If both sets use exactly the SAME
+current load candidate and no policy exception exists, bind implies queryMask=0,
+therefore no admission/eviction on that edge. This can avoid extra pin state.
+Prove this with an independent all-older-store oracle and assert it explicitly.
+
+A standalone bank can easily be driven with bind on an unbound proved victim
+and a separate missing older store query. Its existing eviction sees pre-edge
+!bound and later cleanup overrides bind. This is a valid COMPONENT overlap,
+not yet an established reachable backend counterexample. If the proposed
+early offer changes query candidate timing, or the above set equality fails,
+the overlap becomes unsafe. Either retain/prove exclusion or explicitly make
+same-edge binding pin that exact row; do not suppress the check.
+
+6.6 Required extra focused cases for this combined candidate
+
+- Kill/store-capture/rename on each proof state; one-cycle stale storage with
+  immediately false proof authority; actual STORE frozen obligation transfer;
+  old/new tag and descriptor ABA negatives, simultaneous cleanup+admission.
+- Same-cycle good fresh load result with an old mismatching certificate;
+  resident switch/return, result arriving after capture/kill, no further query,
+  head wrap, current owner absent, and epoch/PMP/raw flush transitions.
+- Dedicated capacity vs real ready/chosen/fire for four full LSU slots, one
+  completing slot, blocked completion negative, certified serial STORE plus
+  free slot handoff, cancelled/error completion and all exemption mismatches.
+- Exact early row-mask equality on every cycle; all 7 nonempty 3-row subsets,
+  missing/queued/inflight older store, zero mask, ready head policy, credit2
+  exhaustion/release and same-edge responses, raw IRQ during protected FP.
+- Bind/evict exclusion under identical and deliberately mismatched query/load
+  candidates; ensure negative stimuli trip an assertion rather than silently
+  freeing the relied row. No architectural oracle may reuse DUT offer helpers.
+- Structural cone audit must inspect ALL bank state/query/load/bound/records
+  D/CE and the dedicated capacity inputs. Zero added registers is not evidence
+  that late control has disappeared. Measure requery/reclamation cycles and
+  actual same-stage physical area/timing before any performance claim.
+
+Verdict: no reachable full-profile architectural counterexample established
+yet, but the three headline edits alone are underspecified. The loadValid
+lifetime/next-state rule, early raw recovery veto, exact capacity/slot contract
+and bind-vs-query set law are necessary review gates. This remains a default-OFF
+candidate design, not proven equivalence, implemented RTL or a completed cut.
+
+
+RECEIVED CONTRACT RECONCILIATION
+The independent d5a04946 contract is a proposal, not a PASS. Current implementation base ee3bed5 changes source line numbers: actual store capture clears pending at IntegerBackend:1727; headPending at1932; reserveSystem1966-1970; headTrapRequest2017; raw recovery2139; canonical tracker output118-119. Existing state-owner reclaim, an explicit currentPendingLoadMask/full-token view, exact independent early-bind mask and specialized parallel ordinary capacity are the preferred ZERO-NEW-STATE design. The event-queue section is an alternative only. The load-certificate current owner view should use all queue tokens even when store-only owner.valid is false, and next-state priority is context cancel > fresh matching-current-owner load result > old-owner/epoch invalidation > hold. Raw invalid load accesses must use record validity to clamp indexing, never qualified output valid (which would make a loop). Strict/candidate load validity must include the same current-owner check. Before functional enable, shadow assertions must compare every-cycle row masks in both directions plus carried token/VA/PA/size/epoch and exact admission slot; completion ready remains constantly true. Bind planning must assert original unmasked queryMask==0 and !evict on nonzero bind. Do not mask away a conflict or normalize a failed timing/performance test. All remaining sections and negative cases of this review remain required. No C1 physical benefit is claimed.
