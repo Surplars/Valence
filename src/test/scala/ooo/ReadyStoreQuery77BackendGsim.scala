@@ -10,19 +10,21 @@ import soc.core.ooo._
 /** Exact candidate77 core params, actual decoded backend and translation.
   * Direct ordered tagged physical responder, no cache/Home/board qualification.
   */
-class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean) extends Module {
-    val profile = ReadyStoreQuery77Profile.select(queryEnabled)
+class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
+    preselectRedirectTokenMatches: Boolean = false) extends Module {
+    require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
+    val profile = if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
+        else ReadyStoreQuery77Profile.select(queryEnabled)
     val p = profile.coreParams
     private val enabled = true
     private val overlap = true
     private val enabledProof = true
-    private val proofRows = 2
     private val earlyCredits = 2
     private val memoryEntries = 4
     require(p.productArity == 178 && profile.productArity == 95)
     require(p.pendingReadyStoreQuery == queryEnabled && p.pendingReadyStoreBypass)
     require(p.registeredPendingStoreQuery && p.memoryPreparationHeadMask && p.registeredIssueHeadMask)
-    require(p.pendingVirtualStoreProofSlots == 2 && p.pendingStoreEarlyLoadCredits == 2)
+    require(p.pendingVirtualStoreProofSlots == proofRows && p.pendingStoreEarlyLoadCredits == 2)
     require(p.robEntries == 16 && p.physicalRegs == 48 && p.memoryEntries == 4 && p.tagBits == 64)
     require(p.taggedStoreReturns && p.postedStoreMerge && p.pmpChangePublicationEnabled)
     require(p.speculativeRamBase == BigInt("80200000", 16) && p.speculativeRamBytes == BigInt("80000000", 16))
@@ -56,7 +58,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean) extends Module {
         val probeToken = Output(new RobToken(p))
         val proof = Output(Valid(new MemoryAddressProof(p)))
         val proofSecond = Output(Valid(new MemoryAddressProof(p)))
-        val proofBoundMask = Output(UInt(2.W))
+        val proofBoundMask = Output(UInt(proofRows.W))
         val creditActiveMask = Output(UInt(2.W))
         val creditReservedMask = Output(UInt(2.W))
         val creditOwnerSecond = Output(new RobToken(p))
@@ -143,7 +145,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean) extends Module {
     val allocate1 = decoded(1)
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
-    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile))
+    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches))
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)
@@ -258,7 +260,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean) extends Module {
         io.proofBoundMask := BoringUtils.bore(backend.pendingStoreProof.get.io.bound)
         io.creditReservedMask := BoringUtils.bore(backend.pendingStoreCredit.get.io.reserved).asUInt
         io.creditActiveMask := BoringUtils.bore(backend.pendingStoreCredit.get.io.active).asUInt
-        if (proofRows == 2) io.proofSecond := BoringUtils.bore(backend.pendingStoreProof.get.io.proofs(1))
+        if (proofRows >= 2) io.proofSecond := BoringUtils.bore(backend.pendingStoreProof.get.io.proofs(1))
         if (earlyCredits == 2) io.creditOwnerSecond := BoringUtils.bore(backend.pendingStoreCredit.get.io.owner(1))
         io.creditActive := BoringUtils.bore(backend.pendingStoreCredit.get.io.active(0))
         io.creditOwner := BoringUtils.bore(backend.pendingStoreCredit.get.io.owner(0))

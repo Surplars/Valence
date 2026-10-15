@@ -63,8 +63,10 @@ measured chain intact. Keep architectural trap/redirect/retirement timing intact
 
 **A. Separate proof storage cleanup from current-cycle permission.**
 
-Capture owner lifecycle events at the edge as full-token events, with cause,
-proof row/incarnation and descriptor/epoch identity where needed. Apply them
+Capture owner lifecycle events at the edge with explicit cause-specific
+semantics: commit/consume identify the old full token, while rename identifies
+a replacement (same index, different new token) or explicitly snapshots the old
+owner. Retain row/incarnation and descriptor/epoch identity where needed. Apply them
 locally to proof bookkeeping on the following edge. Do not feed global
 accepted-commit/rename/kill masks into every proof-row CE and query-result guard.
 This deliberately delays free-row availability by at most one cycle, not
@@ -82,17 +84,21 @@ veto and stage that transaction; do not remove the guard for timing convenience.
 
 Admission uses pre-edge free rows; it must not borrow a row merely because a
 clear is expected later that cycle. Bound rows are pinned until exact actual
-store capture or an architecturally authorized cancellation; epoch change
+STORE capture or an architecturally authorized cancellation; epoch change
 cannot silently discard a surviving bound-store obligation. Define deterministic
 simultaneous event priority and test it; preserve clear/cancel dominance over
 result publication and binding even if the storage update moves by one edge.
 
 **B. Stage selected permission evidence, not an unqualified Boolean.**
 
-Compute owner/VA/size/mask matches, older-store coverage and disjointness in
-parallel with selection/address preparation. Capture the selected load's full
-token, VA/PA/size/mask, epoch, PMP/privilege identity, relied row identities and
-their complete store descriptors at the existing boundary. The downstream LSU
+Compute raw owner/VA/size/mask matches and older-store coverage in parallel
+where operands already exist. Descriptor capture and certificate capture are
+different boundaries: the load query starts from an already registered resident
+address, and its PA/PMP certificate arrives only after query/translation/PMP.
+A later witness register may therefore add a first-offer cycle. Specify its
+earliest valid edge before implementing C2; do not assume the existing fresh
+address register can capture a certificate that does not yet exist. A complete
+witness retains token, VA/PA/size/mask, epoch, PMP/privilege and relied row identity. The downstream LSU
 offer consumes that registered witness rather than recomputing a three-row by
 all-ROB wide owner match plus global policy on its start path.
 
@@ -110,7 +116,9 @@ The smallest candidate retains that contract: a staged witness alone reserves
 neither a credit nor memory ownership. While held, it is inert; if a referenced
 row is evicted/reused or its current head/readiness policy changes, reject/retry
 the witness. At actual start, atomically revalidate, bind relied rows and consume
-one exact credit. Pin bound rows for the entire accepted dependent-load lifetime.
+one exact credit. At exact STORE capture, release the proof row and transfer its obligation to
+the frozen actual-store owner, as the current implementation does. There is no
+dependent-load reference count; do not retain a row until all early loads finish.
 Do not stage a Boolean credit.available or rely on a saved head decode.
 
 Only if an independently justified elastic offer buffer is later introduced
@@ -239,3 +247,44 @@ Throughput/correctness gates for any eventual implementation:
   A smaller area estimate or an extra register is not evidence of timing benefit;
   verify the old common prefix is absent and no equally long veto/ready path was
   created. No RTL change or such evaluation has been performed by this patch.
+
+
+## Independent review gates before any later C1/C2 implementation
+
+This change implements C0 only, default off. Preserve the actual frontend payload
+mux, ledger arbitration and all lifecycle/permission decisions. C0 uses
+headSystemAccepted, never headSystemRequest. A high-priority valid trap must
+suppress lower matches even when its own full token mismatches. Repeated keep=1
+system requests without new acceptance cannot authorize a match. The directed
+fixture and independent select-payload-then-compare oracle cover these cases,
+all 64 tag bits and arbitrary invalid payloads. C0 removes only the late accepted
+system -> token mux -> equality segment, not the entire cache/proof CE chain.
+
+The following findings amend the earlier design estimates; they are unresolved
+implementation gates, not new behavior enabled by this patch:
+
+- Rename events carry the NEW token. They cannot use commit/consume's exact-token
+  cleanup rule. Define replacement semantics (same index, different token), or
+  capture the old owner before overwrite. Test missed old cleanup and accidental
+  new-owner cleanup separately. C1's earlier bit budget may grow when this payload
+  is specified; it is not an implementation-approved count.
+- Backend pause/flushQueries (:1111-1114) also contain reserveSystem, whose
+  !memoryBusy test (:1963-1968) reaches query admission, result cancellation and
+  row release. Registering lifecycle clears alone does not eliminate these
+  parallel cache-originating cones. Audit each path before choosing a cut.
+- The load query begins from an already registered resident address and then
+  traverses query, translation and PMP boundaries. Its first certificate does
+  not exist before the first fresh-address capture. C2 must state the earliest
+  witness-valid edge and measure first-offer latency; register reuse is not a
+  proof of zero latency. Preserve ready-head serial fallback throughout.
+- A newly decoupled first bind may collide with eviction selected using old
+  bound=false. Prove it unreachable or veto that eviction/define priority at
+  actual start. Test same-row bind+evict and result+bind+consume+kill explicitly.
+- stable is registered; same-edge authorizationChanged is separately rejected
+  through staleAuthorization. Saved epoch equality plus stable is insufficient.
+  Keep contextMemoryEpoch, reserveSystem and immediate raw recovery veto.
+- Current proof-row lifetime ends at exact STORE capture, with frozen actual-store
+  ownership carrying the obligation thereafter. There is no early-load refcount.
+  Any row-reference optimization must independently prove full token, VA, size,
+  mask and epoch immutability while bound before that capture or authorized kill.
+  ownerGone detecting a mismatch is cleanup behavior, not proof of immutability.

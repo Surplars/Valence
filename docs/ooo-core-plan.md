@@ -2045,3 +2045,12 @@ bridges pass within the recorded scope; no physical qualification is inferred.
 ## Default-off resident memory reuse (2026-10-13)
 
 The bounded Young69+resident run preserves all COPY105 results and byte-exact traffic at 179,571 Bare / 191,618 Sv39 cycles, with same-object NEMU and PMP checks. The native backend has memory reads 4→2 and fresh AGUs 2→1 with no added state. No cycle speedup or physical resource/timing claim is made. See [scope, proof identity and focused reproduction](../simulator/gsim/resident_memory_integration/README.md).
+
+
+## C0 redirect comparison candidate (default off)
+
+[Source change, state/throughput contract and focused evidence](preselected-redirect-token-matches.md):
+raw full-token comparisons precede late acceptance, with no added state or cycle.
+Defaults and core/profile field layout stay fixed. Matched decoded-backend cycles
+are unchanged; FPGA resources/timing and board qualification remain unverified.
+C1/C2 lifecycle/witness retiming is not implemented.

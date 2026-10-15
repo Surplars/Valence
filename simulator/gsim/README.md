@@ -1,5 +1,11 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-10-15 C0 默认关闭的 raw redirect-token 比较前移：
+python3 -B simulator/gsim/preselected_redirect.py --output build/gsim/preselected-redirect-UNIQUE_TAG --gsim $GSIM --cxx clang++-19 --jobs 2。
+core178/profile95 与三行/两信用配置不变；50186比较例及同配置后端12场景通过，周期变化0%。
+仅证明 accepted-system→payload mux→equality 局部结构切断，新增状态0；未测新FPGA资源/时序，默认不启用。
+[完整结果与限制](../../docs/preselected-redirect-token-matches.md)。
+
 2026-10-12 后续三链批量优化：`GSIM_CXX=clang++-19 python3 -B
 simulator/gsim/memory_schedule_overlap.py --output build/gsim/memory-schedule-overlap-UNIQUE_TAG --jobs 2`。
 固定双发射/MSHR2，相对前批Sv39/Bare COPY含flush+2.9340%/+9.1163%；

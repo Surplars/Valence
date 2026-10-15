@@ -67,7 +67,10 @@ class HeadProfile extends Bundle {
   * this standalone bring-up interface, not an ISA reset claim.
   */
 class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
-    val registerCanonicalStoreEvent: Boolean = false, val retirementSlotIdentity: Boolean = false) extends Module {
+    val registerCanonicalStoreEvent: Boolean = false, val retirementSlotIdentity: Boolean = false,
+    val preselectRedirectTokenMatches: Boolean = false) extends Module {
+    require(!preselectRedirectTokenMatches || p.parallelRedirectTokens,
+        "preselected redirect comparisons require the existing parallel redirect contract")
     require(retirementSlotIdentity == p.retirementSlotIdentity,
         "backend retirement-slot identity must use its unified OooParams flag")
     // Read-only view of the single profile option; no separate constructor switch.
@@ -2170,7 +2173,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         io.redirect.bits.pc     := trapEvent.pc
         io.redirect.bits.target := trapTarget
     }
-    val redirectTokens = if (p.parallelRedirectTokens) Some(Module(new RedirectTokenQualification(p))) else None
+    val redirectTokens = if (p.parallelRedirectTokens && !preselectRedirectTokenMatches)
+        Some(Module(new RedirectTokenQualification(p))) else None
     redirectTokens.foreach { check =>
         check.io.local.valid := localRedirectAccepted
         check.io.local.bits := localRedirect.token
@@ -2179,9 +2183,24 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         check.io.queries(0) := systemComplete.bits.token
         check.io.queries(1) := branchRedirect.token
     }
-    val systemRedirectMatches = redirectTokens.map(_.io.matches(0)).getOrElse(
+    val preselectedRedirectTokens = if (preselectRedirectTokenMatches)
+        Some(Module(new PreselectedRedirectTokenQualification(p))) else None
+    preselectedRedirectTokens.foreach { check =>
+        // Raw payload comparisons precede late acceptance; keep exact accepted priority.
+        check.io.localToken := localCandidate.bits.token
+        check.io.systemToken := systemCandidate.token
+        check.io.trapToken := trapEvent.token
+        check.io.localAccepted := ordinaryLocalRedirectAccepted
+        check.io.systemAccepted := headSystemAccepted
+        check.io.trapAccepted := trapRedirectAccepted
+        check.io.queries(0) := systemComplete.bits.token
+        check.io.queries(1) := branchRedirect.token
+    }
+    val systemRedirectMatches = preselectedRedirectTokens.map(_.io.matches(0))
+        .orElse(redirectTokens.map(_.io.matches(0))).getOrElse(
         io.redirect.valid && io.redirect.bits.token.asUInt === systemComplete.bits.token.asUInt)
-    val branchRedirectMatches = redirectTokens.map(_.io.matches(1)).getOrElse(
+    val branchRedirectMatches = preselectedRedirectTokens.map(_.io.matches(1))
+        .orElse(redirectTokens.map(_.io.matches(1))).getOrElse(
         io.redirect.valid && io.redirect.bits.token.asUInt === branchRedirect.token.asUInt)
     io.invalidateFetch := systemInvalidate && systemRedirectMatches
     systemComplete.ready := !lsu.io.complete.valid && !mCompleteValid && ledger.io.completionAccepted(0)
