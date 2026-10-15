@@ -448,3 +448,56 @@ conflict negative, all 3-row masks; emitted functional cone audit, additional
 saturation/reclamation coverage and independent bound descriptor-lifetime checks.
 Current backend coverage has evict=0, so it proves observed bind/query exclusion
 only in these traces. These gaps are not reported as PASS or physical benefit.
+
+FINAL FOCUSED QUALIFICATION UPDATE — 2026-10-15
+
+The previously listed capacity/loadValid/bind-evict/cone gaps are now covered by
+the following reproducible focused checks. See c1-proof-control-qualification.json
+for receipt hashes, exact exit codes and scope. This supersedes earlier PENDING
+labels for these checks; it does not claim complete temporal or board proof.
+
+Component command (fresh output, existing fixed GSIM):
+  python3 -B simulator/gsim/proof_control_components.py --output build/gsim/C1_COMPONENTS_UNIQUE --gsim "$GSIM"
+Real LSU: completion backpressure produces capacity=1/ready=0, then the same
+physical slot accepts replacement with completion ready. Bank: fresh different
+owner beats old invalidation (collision witnessed); stale incoming preserves a
+current record; context cancellation dominates; all 7 nonempty row masks bind;
+actual eviction and high-tag-bit reuse succeed. These are 14 positive scenarios
+in 2 processes. Three separate negatives reject observer-dropped fresh result
+(exit1), illegal bind/query/evict collision (SIGABRT), and illegal surviving bound
+epoch change (SIGABRT). DUT assertions remain unchanged.
+
+The initial component failures are preserved in r1-r3: a C++ input-port getter,
+pre-edge owner visibility after fourth capture, and an observer that expected B
+before B arrived while A was still legally valid. Diagnostics verified complete
+old/new payloads. Only driver sampling was corrected; production Scala did not
+change after f57bde2. No illegal stimulus was reclassified as a legal PASS.
+
+Cone command, after emitting/dumping baseline and cleanup (both actual symbolic
+backend IOs, and separately the adapter/translation backend fixture):
+  python3 -B simulator/gsim/proof_control_cone.py --baseline "$BASELINE_GRAPH_DIR" --candidate "$CLEANUP_GRAPH_DIR" --output "$FRESH_RECEIPT" --source-root . --source-receipt build/gsim/c1-lifecycle-20261015-r1/receipt.json
+Graph generator: existing GSIM --threads=1 --dump-json --dump-assign-tree
+  --dump-stages=AfterSplitNodes,AliasAnalysis --dir=FRESH_DIR INPUT.fir
+All 41 bank register-field next-state nodes (including all array elements in
+their assignment trees, state/bound/records/selectedValid/translatedValid/loadValid)
+were traversed backwards, including data/conditional/hold inputs. Traversal stops
+at NODE_REG_SRC. Both scopes have zero hits for reserveSystem, headTrapRequest,
+accepted clear, actual start/fire, generic capacity, generic bound-store branch,
+and prefetch busy. Both old baselines hit all 7, and an injected forbidden edge
+is rejected. All 208 production Scala hashes match the validated model source.
+This is a functional combinational graph audit, not mapped STA or temporal proof.
+
+Actual config command:
+  mill -i -j 2 IonSoC.test.runMain ooo.ThreeProofRowNativeConfigMain fpga/next/three-proof-row-native-reference
+The 178/95 identity is preserved; 17 invalid combinations and 2 historical inputs
+are rejected. C0PhysicalNativeMain exports with C0 flag0 and flag1, while all C1
+flags default false, each match every one of the frozen C0's 292 SV files BYTE
+FOR BYTE. No C0 source/input/constraint/ROM was changed.
+
+After audit, the unchanged-source cleanup model reran ready8 + lifecycle4 +
+controls4 with exact original cycle/traffic metrics, plus frozen-PA corruption
+negative (exit1). All prior emission Scala source hashes were verified before
+model reuse; new independent test classes do not replace any model source.
+Across baseline/shadow/quiesce/cleanup, 0 new functional state and the same 514
+fixture register declarations. C1 LUT/FF/Fmax remain unmeasured. No Vivado,
+route, bit, default promotion, or external push was performed for C1.

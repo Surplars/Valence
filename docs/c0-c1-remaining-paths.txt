@@ -1,0 +1,38 @@
+C0 remaining path classification — frozen ee3bed5, Vivado2025.1 CPU100/16threads
+
+1) Head -> proof CE: -0.322ns, 40 levels, logic2.639ns/route7.231ns, data9.870ns.
+head_reg[1]_rep__2 -> ledger/recoveryAdmission accepted -> recoveryAccepted ->
+preselectedRedirectTokens localAccepted/matches -> retirementIntent -> commit1
+-> pendingStoreProof/io_clearOwners[13] -> row/bound selection -> state0 CE.
+This measured accepted-control-to-clearOwners suffix is explicitly C1's target.
+The functional graph audit removes that reentry. Head-dependent age, proof-owner
+comparison, query arbitration and local eviction still exist; no C1 placed WNS
+or claim that every head path disappears is justified without measurement.
+
+2) DMA -> bridge RAM: -0.322ns, 34 levels (8 CARRY8), logic2.413ns/route7.490ns,
+data9.903ns. packetDma/txLength[5] -> controlIndex/request valid/write -> packet
+arbiter -> dmaArbiter -> debugDmaArbiter -> lanes/shared -> coherentHome address
+-> manager/bridge line selection/TL ready -> slot2 payloadBanks RAM WE.
+This is separate from the CPU proof-bank cone. C1 does not change this chain.
+A future coherent DMA/fabric address+admission boundary analysis must preserve
+request/response order, buffering, capacity and accepted-transfer duty; no
+speculative edit or repeated implementation is part of this classification.
+
+3) RGMII hold: eth_rxd[3] -> IDELAYE3/IDDRE1.D, -0.483ns, 3 levels,
+logic1.429ns/route0.030ns. phy_rx_launch fall6ns versus phy_rx fall4ns (8ns period),
+input delay-1.050ns, clock skew2.622ns and uncertainty0.125ns. This is a PHY I/O
+min-delay/clock relationship, independent of CPU proof logic. Review verified
+PHY min timing, selected native delay mode/taps and actual clock/I/O placement
+in a separately authorized timing closure step. Do not waive it or change
+constraints just to hide the violation. C1 provides no fix for this hold path.
+
+Worst40 ON report: 6 head->proof paths and 34 DMA->bridge RAM paths. Old
+cache/issue-token paths are absent from this limited list; that is not proof
+they disappeared or have positive slack. OFF worst40: cache18, issue-token19,
+issue-operation3. Delays are placed estimates, not routed signoff.
+
+OFF->ON placed: LUT195203->193076, FF98254->98241, WNS-.505->-.322ns,
+TNS-499.323->-599.622ns, WHS-.303->-.483ns, THS-50.918->-46.671ns.
+BRAM75x36+1x18/DSP33 unchanged. Mixed tradeoff, no default promotion.
+Both have 48 Critical CDC findings and remaining I/O delay review. ROM/MAC/
+USER2 gates passed; setup/hold/CDC are not qualified. No route/bit was run.

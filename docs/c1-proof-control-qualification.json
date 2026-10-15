@@ -1,0 +1,278 @@
+{
+  "status": "PASS_FOCUSED_C1_COMPONENTS_FUNCTIONAL_CONES_AND_AFFECTED_REGRESSION",
+  "production_commits": [
+    "485f3f15d29a8df9b402cd950f87b3acacd28528",
+    "f57bde2904ec51415b2bf28e8458a352ac283fc8"
+  ],
+  "base_commit": "ee3bed51d60d605e897cd2868859aaeb7705276e",
+  "default_off_native_exports": {
+    "off": 292,
+    "on": 292,
+    "byte_equal_to_frozen_C0": true
+  },
+  "functional_state_bits_added": 0,
+  "backend_fixture_FIR_register_declarations": {
+    "baseline": 514,
+    "shadow": 514,
+    "quiesce": 514,
+    "cleanup": 514
+  },
+  "FPGA_LUT_FF_timing_for_C1": "NOT_MEASURED_NO_VIVADO",
+  "matched_backend_cases": {
+    "ready": 8,
+    "lifecycle": 4,
+    "controls": 4,
+    "modes": [
+      "baseline",
+      "shadow",
+      "quiesce",
+      "cleanup"
+    ],
+    "initial_qualification_case_executions": 80,
+    "post_audit_case_executions": 16,
+    "cycle_and_accepted_physical_response_changes": 0,
+    "scope": "these short exact-profile traces only"
+  },
+  "components": {
+    "capacity_scenarios": 2,
+    "bank_scenarios": 12,
+    "bank_bind_subsets": 7,
+    "positive_process_exit": 0,
+    "negatives": {
+      "lost_fresh_load_observer": 1,
+      "illegal_bind_query_eviction": -6,
+      "surviving_bound_epoch_change": -6
+    }
+  },
+  "oracle_negatives": {
+    "initial_data_retirement_executions": 10,
+    "post_audit_frozen_PA_exit": 1
+  },
+  "cone_audits": {
+    "fixture_cone": {
+      "targets": 41,
+      "production_sources_checked": 208,
+      "forbidden_hits": {
+        "reserveSystem": [],
+        "headTrapRequest": [],
+        "accepted_clear": [],
+        "actual_start": [],
+        "generic_capacity": [],
+        "generic_bound_store": [],
+        "prefetch_busy": []
+      },
+      "baseline_detects_all_7_categories": true,
+      "injected_edge_rejected": true,
+      "raw_inputs": [
+        "io$$commitEnable",
+        "io$$control$$externalInterrupt",
+        "io$$control$$timerInterrupt",
+        "io$$recover$$valid"
+      ]
+    },
+    "symbolic_cone": {
+      "targets": 41,
+      "production_sources_checked": 208,
+      "forbidden_hits": {
+        "reserveSystem": [],
+        "headTrapRequest": [],
+        "accepted_clear": [],
+        "actual_start": [],
+        "generic_capacity": [],
+        "generic_bound_store": [],
+        "prefetch_busy": []
+      },
+      "baseline_detects_all_7_categories": true,
+      "injected_edge_rejected": true,
+      "raw_inputs": [
+        "io$$commitEnable",
+        "io$$externalInterrupt",
+        "io$$loadPrecheck$$epoch",
+        "io$$loadPrecheck$$response$$bits$$epoch",
+        "io$$loadPrecheck$$response$$bits$$pbmt",
+        "io$$loadPrecheck$$response$$bits$$physicalAddress",
+        "io$$loadPrecheck$$response$$valid",
+        "io$$loadPrecheck$$stable",
+        "io$$posted$$externalBusy",
+        "io$$recover$$valid",
+        "io$$supervisorExternalInterrupt",
+        "io$$timerInterrupt"
+      ]
+    }
+  },
+  "receipts": {
+    "shadow": {
+      "path": "build/gsim/c1-shadow-20261015-r3/receipt.json",
+      "sha256": "863a1d92869a21da8e698763910b9581ced60b8c7bd81c0b5f7721da9849bf67",
+      "status": "PASS_FOCUSED_PROOF_CONTROL"
+    },
+    "lifecycle": {
+      "path": "build/gsim/c1-lifecycle-20261015-r1/receipt.json",
+      "sha256": "e16e38877c403ea62e7a4a83552256ee47278a352a77beb6af64fe3ca735f89f",
+      "status": "PASS_FOCUSED_PROOF_CONTROL"
+    },
+    "components": {
+      "path": "build/gsim/c1-components-20261015-final/receipt.json",
+      "sha256": "f83d660c3433daefd08fabb4cc977c4f2b4178c84f4afc5a4a6f1fd03f8beaf3",
+      "status": "PASS_C1_CAPACITY_AND_BANK_COMPONENTS"
+    },
+    "post_audit": {
+      "path": "build/gsim/c1-post-audit-regression-20261015-r1/receipt.json",
+      "sha256": "8570a3bbfe90b49c5554a7618c8e6f7d7abe159213f171272eff9a0ae6a05c6a",
+      "status": "PASS_POST_AUDIT_AFFECTED_BACKEND_REGRESSION"
+    },
+    "exports": {
+      "path": "build/gsim/c1-final-audits-20261015-r1/receipt.json",
+      "sha256": "4e41dfe8c4ecad1018a30539dcf2e5eb7ee09673036927dc7a939b6abf37ee45",
+      "status": "EXPORTS_AND_SYMBOLIC_GRAPHS_COMPLETE_REQUIRES_AUDIT"
+    },
+    "fixture_cone": {
+      "path": "build/gsim/c1-cone-audit-r1/functional-audit.json",
+      "sha256": "6a427a878ff01d32d6fb598097d6e220b225fd3ec05cf614d76386a94128f139",
+      "status": "PASS_SCOPED_FUNCTIONAL_CONE_AUDIT"
+    },
+    "symbolic_cone": {
+      "path": "build/gsim/c1-final-audits-20261015-r1/symbolic-functional-audit.json",
+      "sha256": "42074e03b087b7b31a18ed186001490bdccd6dbf62201647dac327a240acf93f",
+      "status": "PASS_SCOPED_FUNCTIONAL_CONE_AUDIT"
+    }
+  },
+  "component_commands": [
+    {
+      "label": "capacity-emit",
+      "exit": 0,
+      "seconds": 2.819,
+      "sha256": "e1417196a283082b66951cd67f1148a85cb8acea988a6e89659047b2dfba349a"
+    },
+    {
+      "label": "capacity-generate",
+      "exit": 0,
+      "seconds": 0.214,
+      "sha256": "36a97f72444afb36a5d2384d4b6700981477054b8ad7a99df5bfe5e3fbbb59be"
+    },
+    {
+      "label": "capacity-compile-0",
+      "exit": 0,
+      "seconds": 2.82,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "capacity-compile-1",
+      "exit": 0,
+      "seconds": 0.415,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "capacity-link",
+      "exit": 0,
+      "seconds": 0.615,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "capacity-positive",
+      "exit": 0,
+      "seconds": 0.004,
+      "sha256": "ff9ae6e71dc06b7fc7ab195608feeb3c66a5e9b47b322342c7532ea45d56704f"
+    },
+    {
+      "label": "bank-emit",
+      "exit": 0,
+      "seconds": 2.719,
+      "sha256": "87d3a608b3d9ac68ed1f9d2c8e34ed8f08ed19baf2d0ab27b86dbfd73a36bc49"
+    },
+    {
+      "label": "bank-generate",
+      "exit": 0,
+      "seconds": 0.064,
+      "sha256": "120e0a14df32b844ff170434dd286fa2dbf49eccb5b1867c4c15b6c2c2e26a5b"
+    },
+    {
+      "label": "bank-compile-0",
+      "exit": 0,
+      "seconds": 0.765,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "bank-link",
+      "exit": 0,
+      "seconds": 0.615,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "bank-positive",
+      "exit": 0,
+      "seconds": 0.004,
+      "sha256": "10a84d5fc4691756b99c513d8c67b41d5f0aa8acfe69bed83dd62123d8eeda51"
+    },
+    {
+      "label": "bank-load-oracle-negative",
+      "exit": 1,
+      "seconds": 0.004,
+      "sha256": "b7ba790614709db046590821c1acc438a291af792828d59a91a9ba916078f5df"
+    },
+    {
+      "label": "bank-bind-evict-negative",
+      "exit": -6,
+      "seconds": 0.008,
+      "sha256": "45d37e6d28657e8c97815d99e47f960ffc3f22f6bbc9d16d8ce6d46e3292567c"
+    },
+    {
+      "label": "bank-bound-epoch-negative",
+      "exit": -6,
+      "seconds": 0.004,
+      "sha256": "ca74d34f95a838ce261b80f74e4c201b30d91c98b506d5148cf3688b3cf296b1"
+    }
+  ],
+  "post_audit_commands": [
+    {
+      "label": "ready",
+      "command": [
+        "/home/openion/Valence-c1-shadow-20261015/build/gsim/c1-lifecycle-20261015-r1/cleanup/ready",
+        "on"
+      ],
+      "exit": 0,
+      "seconds": 0.114,
+      "log_sha256": "bdfba7dc7b85f82e402ef421a6fb42d4e68e7ff46eeb5dba16d664d87c2daaba",
+      "binary_sha256": "1e5d7e8de84512313c32c20ba93f718b6bff46573c98136314d3d64534518e5b"
+    },
+    {
+      "label": "lifecycle",
+      "command": [
+        "/home/openion/Valence-c1-shadow-20261015/build/gsim/c1-lifecycle-20261015-r1/cleanup/lifecycle"
+      ],
+      "exit": 0,
+      "seconds": 0.065,
+      "log_sha256": "75b481312e093b6e3b02733034bf0e9c68b39b0ad691dc0b45654791eeb9dfee",
+      "binary_sha256": "be77ed823343a6f47726d814fa891df09cc05f314cd7c2f67943135a8d8d61c6"
+    },
+    {
+      "label": "controls",
+      "command": [
+        "/home/openion/Valence-c1-shadow-20261015/build/gsim/c1-lifecycle-20261015-r1/cleanup/controls"
+      ],
+      "exit": 0,
+      "seconds": 0.065,
+      "log_sha256": "941ca22f9c28779e536ee5d4f3d71b567f360978d86f305d789a14d01a6bf2f4",
+      "binary_sha256": "3c1bf68fec14c04bca221a347a700d630a66a071be0205f3185ee2b6d75dea59"
+    },
+    {
+      "label": "frozen-pa-negative",
+      "command": [
+        "/home/openion/Valence-c1-shadow-20261015/build/gsim/c1-lifecycle-20261015-r1/cleanup/ready",
+        "on",
+        "--mutate-frozen-pa"
+      ],
+      "exit": 1,
+      "seconds": 0.016,
+      "log_sha256": "e433547d769dc54c0e4be62b677525c59d5a975a7a214cc02c9c145a83b409ac",
+      "binary_sha256": "1e5d7e8de84512313c32c20ba93f718b6bff46573c98136314d3d64534518e5b"
+    }
+  ],
+  "C0_comparison_sha256": "aa30e243e5ce9bfee2b0b2f0aadcb9b8d7f4a3cd5493ba70c9dad7b3f83997f1",
+  "limitations": [
+    "bounded tests and a single-cycle emitted functional graph audit, not a formal temporal proof",
+    "no C1 mapped resources or timing, routed timing, CDC/RDC or board qualification",
+    "query/reclamation behavior changes; no claim of zero overhead outside observed traces",
+    "same-edge bind/query collision is rejected, not silently masked"
+  ]
+}

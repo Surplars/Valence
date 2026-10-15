@@ -2063,3 +2063,11 @@ C1 default-OFF quiesce and owner-state cleanup now pass the same short resident
 backend cases with 0 measured cycle/traffic change and no new functional state.
 Capacity/backpressure and isolated bank collision tests plus full functional-cone
 inspection remain pending; no C1 physical result. See c1-proof-control-review.txt.
+
+C1 focused completion update: real capacity/backpressure and bank collision/eviction
+negatives now pass, both fixture and all-symbolic backend functional-cone audits
+cover all 41 bank next-state fields, and C1 default-OFF native exports match both
+frozen C0 arms byte-for-byte. Actual configuration and the affected 16 backend
+cases were rerun; no cycle/traffic change in those traces. See
+docs/c1-proof-control-qualification.json and docs/c0-c1-remaining-paths.txt.
+No C1 mapped timing/area, route, CDC/RDC or board qualification is claimed.
