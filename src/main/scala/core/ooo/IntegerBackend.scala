@@ -152,7 +152,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         localTaggedResponseReady = p.localTaggedResponseReady,
         candidateLoadPreparation = splitLoadPreparedAdmission))
     val mulDiv          = Module(new MultiplyDivide(p, divisionOnly = true))
-    val multiplier      = Module(new PipelinedMultiply(p))
+    // Candidate only: integration qualification is separate from component proof.
+    // Preserve legacy profiles and the default-OFF module constructor.
+    private val boundedMultiplierSlotIdentity = p.robEntries == 16 && p.physicalRegs == 48 &&
+        p.tagBits == 64 && p.renameWidth == 2 && p.completionWidth == 2 && p.commitWidth == 2 &&
+        p.registeredMulDivOperands && p.sharedMemoryAddressState
+    val multiplier      = Module(new PipelinedMultiply(p, boundedSlotIdentity = boundedMultiplierSlotIdentity))
     val systemUnit      = if (p.machineSystem) Some(Module(new MachineSystemUnit(p))) else None
     val pmpState        = WireDefault(0.U.asTypeOf(new PmpState))
     val dataPrivilege   = WireDefault(3.U(2.W))
