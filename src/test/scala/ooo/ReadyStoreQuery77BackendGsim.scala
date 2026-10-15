@@ -33,6 +33,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     val io = IO(new Bundle {
         val control = if (proofControlInputs) Some(Input(new Bundle {
             val prefetchBusy = Bool()
+            val blockNew = Bool()
             val timerInterrupt = Bool()
             val externalInterrupt = Bool()
             val holdFetch = Bool()
@@ -220,7 +221,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     transport.externalBusy := false.B
     posted.externalBusy := false.B
     posted.contextEpoch := transport.contextEpoch
-    posted.blockNew := transport.contextChanging
+    posted.blockNew := transport.contextChanging || io.control.map(_.blockNew).getOrElse(false.B)
     transport.aggregateDrained := !backend.io.memoryBusy && adapter.io.idle &&
         !posted.busy && !posted.starting && !posted.requestProof.valid
     assert(!transport.requestProof.valid, "virtual-only component must not create posted cache authority")

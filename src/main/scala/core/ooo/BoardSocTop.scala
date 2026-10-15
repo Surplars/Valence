@@ -305,7 +305,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         registeredLoadResultReady: Boolean = false,
         frozenStoreCheckedFlow: Boolean = false,
         pendingReadyStoreQuery: Boolean = false,
-    preselectRedirectTokenMatches: Boolean = false) extends Module {
+    preselectRedirectTokenMatches: Boolean = false,
+    proofBankControlDecoupling: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -454,7 +455,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         lineTransferDispatchFlow = lineTransferDispatchFlow,
         registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges,
         localCacheReadSelection = localCacheReadSelection,
-        preselectRedirectTokenMatches = preselectRedirectTokenMatches))
+        preselectRedirectTokenMatches = preselectRedirectTokenMatches,
+        proofBankControlDecoupling = proofBankControlDecoupling))
     jtagDmi.foreach { port => platform.io.jtagDmi.get <> port }
     jtagLinkUp.foreach { up => platform.io.jtagLinkUp.get := up }
     io.ethernetStreams.foreach { streams => streams <> platform.io.ethernetStreams.get }

@@ -4,6 +4,15 @@ import chisel3._
 import chisel3.util._
 import soc.isa.MCause
 
+/** Static scope of the early proof-control factorization; no new hardware state. */
+object ProofControlContract {
+    def requireSupported(p: OooParams): Unit = {
+        require(p.fastHeadTrapRecovery && p.fastHeadSystemRecovery &&
+            p.parallelRecoveryAdmission && p.earlyRecoveryIssueBlock,
+            "proof control requires fast head trap and system recovery with parallel/raw recovery admission")
+    }
+}
+
 /** Decoded operation input, not an instruction decoder. Immediate is already extended to XLEN. */
 class IntegerRequest extends Bundle {
     val predictedNextPc = Valid(UInt(64.W))
@@ -72,6 +81,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val shadowEarlyProofBind: Boolean = false,
     val proofBankQuiesceIntent: Boolean = false,
     val proofBankOwnerCleanup: Boolean = false) extends Module {
+    if (shadowEarlyProofBind || proofBankQuiesceIntent || proofBankOwnerCleanup)
+        ProofControlContract.requireSupported(p)
     require(!proofBankOwnerCleanup || (proofBankQuiesceIntent && shadowEarlyProofBind),
         "owner-state cleanup requires qualified early bind and early quiesce")
     require(!(proofBankQuiesceIntent || proofBankOwnerCleanup) || (p.pendingVirtualStoreProof &&
@@ -2189,10 +2200,16 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             !memoryEntry.request.fetchFault && !memoryEntry.request.fetchPageFault && !forwarding
         val offer = candidatePrecheckedLoad && ordinary && memoryChoice.valid && exactResident &&
             memoryChoice.index =/= head && pendingStoreOlder.orR && pendingStoreOfferPolicy &&
-            !postedBusy && !interruptDrain && !proofHeadSystemPending && !olderSystem &&
+            !postedBusy && !blockPostedStart && !interruptDrain && !proofHeadSystemPending && !olderSystem &&
             !fpMemoryEpoch && !contextMemoryEpoch && !ledger.io.recovering && io.commitEnable &&
             !candidateBlockedByStore && !rawRecoveryVeto && !ledger.io.pendingException.valid &&
             capacity.available
+        when(offer) {
+            // Prechecked virtual loads cannot share the bare physical direct-store reservation.
+            // Keep this as a witness, not a late control dependency in the offer.
+            assert(virtualized && !directStoreReserve,
+                "ordinary virtual proof bind is disjoint from bare direct-store reservation")
+        }
         shadowProofBindOffer := offer
         shadowProofBindMask := VecInit(bank.io.proofs.map { proof =>
             val index = proof.bits.token.index

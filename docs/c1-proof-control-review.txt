@@ -501,3 +501,65 @@ model reuse; new independent test classes do not replace any model source.
 Across baseline/shadow/quiesce/cleanup, 0 new functional state and the same 514
 fixture register declarations. C1 LUT/FF/Fmax remain unmeasured. No Vivado,
 route, bit, default promotion, or external push was performed for C1.
+
+
+REVIEW REPAIR QUALIFICATION — 2026-10-15 (supersedes earlier current-status claims)
+
+The earlier qualified batch omitted !blockPostedStart in its independent early
+bind offer. A backend-interface test with blockNew=1 and postedBusy=0 reproduced
+a false shadow bind (exit -6, full captured-load-token assertion). The original
+failed runner and a separate confirmed-counterexample.json remain preserved.
+This is a real missing factor, not an oracle/sampling defect. The old cone audit
+proved absence of named dependencies only; it could not establish equivalence
+of the factored Boolean offer. No whole-board reachability claim is made.
+
+Repair: add !blockPostedStart; require fastHeadTrapRecovery,
+fastHeadSystemRecovery, parallelRecoveryAdmission and earlyRecoveryIssueBlock
+for every C1 mode. Two explicit fast-head negative configuration checks pass.
+fastBufferedStoreRetire remains excluded by existing resident/proof contracts.
+An assertion witnesses that ordinary virtual offers cannot overlap the bare
+direct-store reservation. It is not a functional late-control input.
+
+proofBankControlDecoupling is a default-false constructor argument forwarded
+from FpgaNextSocTop through all wrappers to all three IntegerBackend C1 flags.
+C1PhysicalNativeMain inspects the actual constructed backend, bank and LSU;
+it checks C0 qualification-module correspondence and the emitted bank interface.
+Both C1-OFF exports still match all 292 frozen C0 SV files byte for byte with
+C0 flag OFF and ON respectively. Actual C1-ON changes only IntegerBackend.sv,
+PendingVirtualStoreProof.sv and ParallelLoadStoreUnit.sv (still 292 files).
+
+Fresh ASan/UBSan exact-profile regression: baseline/shadow/quiesce/cleanup each
+pass ready8 + lifecycle4 + controls4 + independent blockNew1 =17 scenarios,
+68 positive executions total. All cycle, retire, accepted, physical and response
+metrics match baseline. Eight data/retirement negative executions exit1 as
+expected. The blockNew test holds the independent veto eight ticks, rejects
+new request/credit/bind, releases it, then observes both store/load retire.
+All four modes retain 514 fixture FIR register declarations; zero new state.
+
+Both fresh symbolic-backend and adapter/translation-fixture graph audits cover
+the same 41 bank register-field/array NEXT nodes, data/conditional/hold inputs,
+stopping at REG_SRC. All seven forbidden groups are empty. Both real baselines
+detect all seven; both injected prefetch-busy edges are rejected. The 208
+production Scala hashes match the new backend regression receipt. Old audit
+hashes remain historical; current hashes are in c1-review-fix-qualification.json.
+
+Evidence root: build/gsim/c1-review-fix-20261015-r1.
+Full preparation recipe: preparation-recipe.json within that root. It fixes
+CPU100/AON50/UART50/DDRUI250, xczu15eg-ffvb1156-2-i, proof3/credits2/LSU4,
+core178/profile95, C0=true/C1=true, USER2 chain2 RAM loader, standalone TAP off,
+the frozen C0 ROM/IP/XDC hashes, and 16 threads for a future physical run.
+Both physical MAC generics are REQUIRED=1; native elaboration APPLIED=false.
+The fixed ROM is timing-only, not boot-qualified. CPU halt/step is not provided.
+No Vivado, route, bit, default promotion, push, old-r5 restart, or changes to C0
+frozen inputs/sequential-core worktrees occurred. Physical run awaits review.
+
+Reproduce after selecting fresh output directories (no overwrites):
+  mill -i -j 2 IonSoC.test.runMain ooo.ProofControlContractMain
+  mill -i -j 2 IonSoC.test.runMain ooo.ThreeProofRowNativeConfigMain fpga/next/three-proof-row-native-reference
+  mill -i -j 2 IonSoC.test.runMain ooo.C1PhysicalNativeMain FRESH_ON fpga/next/three-proof-row-native-reference 1 1
+  mill -i -j 2 IonSoC.test.runMain ooo.C1PhysicalNativeMain FRESH_OFF fpga/next/three-proof-row-native-reference 0 1
+  python3 -B simulator/gsim/proof_control.py --output FRESH_TEST --modes baseline shadow quiesce cleanup --gsim /home/openion/Valence/simulator/build/gsim-src/build/gsim/gsim --jobs 2
+Use ProofControlConeMain FRESH_GRAPH baseline|cleanup for all-symbolic backend;
+use corresponding backend-regression mode FIR for the fixture scope. Dump both
+AfterSplitNodes and AliasAnalysis with pinned GSIM; invoke proof_control_cone.py
+against the corresponding fresh backend receipt as documented above.

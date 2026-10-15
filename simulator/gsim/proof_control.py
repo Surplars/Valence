@@ -18,6 +18,7 @@ def main():
     inputs={p.relative_to(ROOT).as_posix():sha(p) for p in ROOT.glob('src/**/*.scala')}
     for name in ['simulator/gsim/proof_control.py','simulator/gsim/harness/proof_control_scenarios.cpp',
                  'simulator/gsim/harness/preselected_redirect_lifecycle.cpp',
+                 'simulator/gsim/harness/proof_control_block_new.cpp',
                  'simulator/gsim/ready_store_query77/ready_store_query77_backend.cpp',
                  'simulator/gsim/ready_store_query77/ready_store_query77_reference.h']:
         inputs[name]=sha(ROOT/name)
@@ -95,6 +96,8 @@ def main():
             '#include "ready_store_query77_backend.cpp"','#include "observed_backend.cpp"'))
         scenario=out/'proof_control_scenarios.cpp'
         scenario.write_text((ROOT/'simulator/gsim/harness/proof_control_scenarios.cpp').read_text())
+        block=out/'proof_control_block_new.cpp'
+        block.write_text((ROOT/'simulator/gsim/harness/proof_control_block_new.cpp').read_text())
         metrics={}
         for mode in a.modes:
             directory=out/mode
@@ -128,7 +131,7 @@ def main():
                 assert obj.exists();objs.append(obj)
             assert objs
             logs={}
-            for label,driver,args in [('ready',host,['on']),('lifecycle',life,[]),('controls',scenario,[])]:
+            for label,driver,args in [('ready',host,['on']),('lifecycle',life,[]),('controls',scenario,[]),('block-new',block,[])]:
                 binary=directory/label
                 run(mode+'-'+label+'-link',['clang++-19',*flags,driver,*objs,'-ldl','-o',binary])
                 logs[label]=run(mode+'-'+label,[binary,*args])

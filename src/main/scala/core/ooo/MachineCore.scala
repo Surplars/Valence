@@ -10,7 +10,8 @@ import soc.ip.interrupt.{Imsic, ImsicParams}
   */
 class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams(),
     canonicalHandoff: Boolean = false,
-    preselectRedirectTokenMatches: Boolean = false) extends Module {
+    preselectRedirectTokenMatches: Boolean = false,
+    proofBankControlDecoupling: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
@@ -56,7 +57,8 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         val memoryBusy      = Output(Bool())
     })
     val core  = Module(new IntegerCore(p.copy(machineSystem = true), canonicalHandoff = canonicalHandoff,
-        preselectRedirectTokenMatches = preselectRedirectTokenMatches))
+        preselectRedirectTokenMatches = preselectRedirectTokenMatches,
+        proofBankControlDecoupling = proofBankControlDecoupling))
     val imsic = Module(new Imsic(imsicParams))
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse
