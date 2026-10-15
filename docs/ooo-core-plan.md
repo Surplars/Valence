@@ -2058,3 +2058,8 @@ C1/C2 lifecycle/witness retiming is not implemented.
 C1 shadow: exact early-bind mask/token/slot miter passed the short 3-row backend
 and control scenarios with no cycle/traffic change; default off, no functional
 bind/start change or C1 physical result. See docs/c1-proof-control-review.txt.
+
+C1 default-OFF quiesce and owner-state cleanup now pass the same short resident
+backend cases with 0 measured cycle/traffic change and no new functional state.
+Capacity/backpressure and isolated bank collision tests plus full functional-cone
+inspection remain pending; no C1 physical result. See c1-proof-control-review.txt.

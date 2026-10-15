@@ -18,7 +18,7 @@ class PendingStoreProofOwner(p: OooParams) extends Bundle {
   * grants no memory ownership; bound rows survive until exact actual-store capture or kill.
   */
 class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
-    val exposeLoadPreparedCandidate: Boolean, val checkBindPlanning: Boolean = false) extends Module {
+    val exposeLoadPreparedCandidate: Boolean, val checkBindPlanning: Boolean = false, val ownerStateCleanup: Boolean = false) extends Module {
     // Keep the original unstaged constructor for production users and compiled fixtures.
     // The explicit switch retains the unstaged query path for isolated A/B qualification.
     def this(p: OooParams) = this(p, false, false)
@@ -32,6 +32,7 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         val owners = Input(Vec(p.robEntries, Valid(new PendingStoreProofOwner(p))))
         val queryEligible = Input(UInt(p.robEntries.W)) // Required older stores of the selected blocked load only.
         val clearOwners = Input(UInt(p.robEntries.W))
+        val currentPendingLoadMask = if (ownerStateCleanup) Some(Input(UInt(p.robEntries.W))) else None
         val pause = Input(Bool())
         val flushQueries = Input(Bool())
         val loadCandidate = Input(Valid(new VirtualRamLoadCandidate(p)))
@@ -48,6 +49,12 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         val reservedCount = Output(UInt(2.W))
         val provedCount = Output(UInt(2.W))
     })
+    private val effectiveOwnerClear = if (ownerStateCleanup) 0.U(p.robEntries.W) else io.clearOwners
+    def loadOwnerLive(token: RobToken, recordValid: Bool): Bool = {
+        val index = Mux(recordValid, token.index, 0.U)
+        recordValid && io.currentPendingLoadMask.get(index) &&
+            io.owners(index).bits.token.asUInt === token.asUInt
+    }
     val free :: queued :: inflight :: proved :: Nil = Enum(4)
     val state = RegInit(VecInit(Seq.fill(rows)(free)))
     val records = Reg(Vec(rows, new MemoryAddressProof(p)))
@@ -62,14 +69,14 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
             owner.bits.address === proof.payload.address && owner.bits.size === proof.payload.size &&
             owner.bits.mask === proof.payload.mask && proof.payload.write
     }
-    def consumed(proof: MemoryAddressProof): Bool =
+    def consumed(proof: MemoryAddressProof): Bool = if (ownerStateCleanup) false.B else
         io.consume.valid && io.consume.bits.asUInt === proof.token.asUInt
     def sameDescriptor(a: MemoryAddressProof, b: MemoryAddressProof): Bool =
         a.token.asUInt === b.token.asUInt && a.epoch === b.epoch &&
             a.payload.address === b.payload.address && a.payload.size === b.payload.size &&
             a.payload.mask === b.payload.mask && a.payload.write === b.payload.write
     val rowOwnerMatches = VecInit(records.map(ownerMatches))
-    def ownerCleared(row: Int): Bool = io.clearOwners(records(row).token.index) ||
+    def ownerCleared(row: Int): Bool = effectiveOwnerClear(records(row).token.index) ||
         !rowOwnerMatches(row) || consumed(records(row))
     val epochStable = io.precheck.stable
     val cancelQueries = io.flushQueries || !epochStable
@@ -79,7 +86,7 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         UIntToOH(records(r).token.index, p.robEntries), 0.U(p.robEntries.W))).reduce(_ | _)
     val eligible = VecInit(io.owners.zipWithIndex.map { case (owner, i) =>
         owner.valid && owner.bits.token.index === i.U
-    }).asUInt & ~io.clearOwners
+    }).asUInt & ~effectiveOwnerClear
     val queryMask = eligible & io.queryEligible & ~presentOwners
     val admitIndex = oldest(queryMask)
     val empty = VecInit(state.map(_ === free)).asUInt
@@ -108,8 +115,8 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     }
     if (checkBindPlanning) {
         when(io.bind.orR) {
-            assert(!admission && !evict,
-                "actual relied-row binding excludes simultaneous missing-store query admission or eviction")
+            assert(!queryMask.orR && !admission && !evict,
+                "actual relied-row binding excludes unmasked missing-store queries, admission and eviction")
         }
     }
     when(admission) {
@@ -159,7 +166,7 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
             }
         }
         selectedValid := (storeGrant || loadGrant) &&
-            !io.clearOwners(selected.token.index) && !consumed(selected)
+            !effectiveOwnerClear(selected.token.index) && !consumed(selected)
         when(storeGrant || loadGrant) {
             selectedStore := storeGrant
             selectedRow := storeRow
@@ -210,13 +217,15 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     val safeTranslatedRow = if (rows == 3)
         Mux(translatedRow < rows.U, translatedRow, 0.U) else translatedRow
     val queryOwnerLive = if (rows == 3)
-        !io.clearOwners(query.token.index) && !consumed(query) &&
+        !effectiveOwnerClear(query.token.index) && !consumed(query) &&
             (!queryStore || (queryRow < rows.U && state(safeQueryRow) === inflight &&
                 sameDescriptor(records(safeQueryRow), query) && rowOwnerMatches(safeQueryRow)))
-        else !io.clearOwners(query.token.index) && !consumed(query) &&
+        else !effectiveOwnerClear(query.token.index) && !consumed(query) &&
             (!queryStore || (state(queryRow) === inflight && sameDescriptor(records(queryRow), query) &&
                 rowOwnerMatches(queryRow)))
-    translatedValid := io.precheck.request.valid && (if (registerQuery) queryOwnerLive else true.B)
+    val currentQueryOwnerLive = if (ownerStateCleanup)
+        queryOwnerLive && (queryStore || loadOwnerLive(query.token, queryValid)) else queryOwnerLive
+    translatedValid := io.precheck.request.valid && (if (registerQuery) currentQueryOwnerLive else true.B)
     when(io.precheck.request.valid) {
         translatedStore := queryStore
         translatedRow := queryRow
@@ -251,11 +260,11 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
         translatedRow < rows.U && state(safeTranslatedRow) === inflight &&
             records(safeTranslatedRow).token.asUInt === translated.token.asUInt &&
             records(safeTranslatedRow).epoch === translated.epoch && rowOwnerMatches(safeTranslatedRow) &&
-            !io.clearOwners(translated.token.index) && !consumed(translated)
+            !effectiveOwnerClear(translated.token.index) && !consumed(translated)
         else state(translatedRow) === inflight &&
             records(translatedRow).token.asUInt === translated.token.asUInt &&
             records(translatedRow).epoch === translated.epoch && rowOwnerMatches(translatedRow) &&
-            !io.clearOwners(translated.token.index) && !consumed(translated)
+            !effectiveOwnerClear(translated.token.index) && !consumed(translated)
     when(translatedValid && translatedStore && translatedRowLive) {
         assert(sameDescriptor(records(safeTranslatedRow), translated),
             "a granted pending-store row preserves its exact owner descriptor through translation")
@@ -270,20 +279,40 @@ class PendingVirtualStoreProof(p: OooParams, val registerQuery: Boolean,
     val load = Reg(new VirtualRamLoadCertificate(p))
     // A store grant/bubble does not erase a matching load proof. Only another
     // load result or explicit context/owner invalidation replaces this record.
-    when(freshResult && !translatedStore && !io.clearOwners(translated.token.index) && !consumed(translated)) {
-        loadValid := true.B
-        load.token := translated.token
-        load.address := translated.payload.address
-        load.size := translated.payload.size(1, 0)
-        load.physicalAddress := translated.payload.physicalAddress
-        load.epoch := translated.epoch
-        load.allowed := allowed
+    val retainedLoadOwnerLive = if (ownerStateCleanup) loadOwnerLive(load.token, loadValid) else true.B
+    if (ownerStateCleanup) {
+        val incomingLive = freshResult && !translatedStore && loadOwnerLive(translated.token, translatedValid)
+        // A fresh different live owner wins over OLD-record invalidation; a stale
+        // incoming result never overwrites a retained current-owner certificate.
+        when(cancelQueries) {
+            loadValid := false.B
+        }.elsewhen(incomingLive) {
+            loadValid := true.B
+            load.token := translated.token
+            load.address := translated.payload.address
+            load.size := translated.payload.size(1, 0)
+            load.physicalAddress := translated.payload.physicalAddress
+            load.epoch := translated.epoch
+            load.allowed := allowed
+        }.elsewhen(loadValid && (!retainedLoadOwnerLive || load.epoch =/= io.precheck.epoch)) {
+            loadValid := false.B
+        }
+    } else {
+        when(freshResult && !translatedStore && !effectiveOwnerClear(translated.token.index) && !consumed(translated)) {
+            loadValid := true.B
+            load.token := translated.token
+            load.address := translated.payload.address
+            load.size := translated.payload.size(1, 0)
+            load.physicalAddress := translated.payload.physicalAddress
+            load.epoch := translated.epoch
+            load.allowed := allowed
+        }
+        when(cancelQueries || (loadValid && (load.epoch =/= io.precheck.epoch ||
+            effectiveOwnerClear(load.token.index) || (io.consume.valid && io.consume.bits.asUInt === load.token.asUInt)))) {
+            loadValid := false.B
+        }
     }
-    when(cancelQueries || (loadValid && (load.epoch =/= io.precheck.epoch ||
-        io.clearOwners(load.token.index) || (io.consume.valid && io.consume.bits.asUInt === load.token.asUInt)))) {
-        loadValid := false.B
-    }
-    val loadPreparedIntrinsicValid = loadValid && epochStable && load.epoch === io.precheck.epoch
+    val loadPreparedIntrinsicValid = loadValid && epochStable && load.epoch === io.precheck.epoch && retainedLoadOwnerLive
     io.loadPrepared.valid := loadPreparedIntrinsicValid && !io.flushQueries
     io.loadPreparedCandidateValid.foreach(_ := loadPreparedIntrinsicValid)
     io.loadPrepared.bits := load

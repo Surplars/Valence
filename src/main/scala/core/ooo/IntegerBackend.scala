@@ -69,7 +69,15 @@ class HeadProfile extends Bundle {
 class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val retirementSlotIdentity: Boolean = false,
     val preselectRedirectTokenMatches: Boolean = false,
-    val shadowEarlyProofBind: Boolean = false) extends Module {
+    val shadowEarlyProofBind: Boolean = false,
+    val proofBankQuiesceIntent: Boolean = false,
+    val proofBankOwnerCleanup: Boolean = false) extends Module {
+    require(!proofBankOwnerCleanup || (proofBankQuiesceIntent && shadowEarlyProofBind),
+        "owner-state cleanup requires qualified early bind and early quiesce")
+    require(!(proofBankQuiesceIntent || proofBankOwnerCleanup) || (p.pendingVirtualStoreProof &&
+        p.residentMemoryPayloadReuse && !p.memoryProofFrontier && p.robEntries == 16 && p.tagBits == 64 &&
+        p.pendingVirtualStoreProofSlots == 3 && p.pendingStoreEarlyLoadCredits == 2 && p.memoryEntries == 4),
+        "proof cleanup experiment is restricted to the reviewed three-row resident integration")
     require(!shadowEarlyProofBind || (p.pendingVirtualStoreProof && p.residentMemoryPayloadReuse &&
         p.registeredLoadResultReady && p.localTaggedResponseReady && p.earlyRecoveryIssueBlock &&
         !p.memoryProofFrontier && p.issueWidth == 2), "shadow bind requires the exact resident proof topology")
@@ -802,7 +810,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val proofFrontier = if (p.memoryProofFrontier) Some(Module(new MemoryProofFrontier(p))) else None
     val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p,
         p.registeredPendingStoreQuery, exposeLoadPreparedCandidate = splitLoadPreparedAdmission,
-        checkBindPlanning = shadowEarlyProofBind))) else None
+        checkBindPlanning = shadowEarlyProofBind, ownerStateCleanup = proofBankOwnerCleanup))) else None
     val pendingStoreCredit = if (p.pendingVirtualStoreProof) Some(Module(new PendingStoreEarlyLoadCredit(p))) else None
     val pendingStoreRelied = WireDefault(0.U(p.pendingVirtualStoreProofSlots.W))
     val frontierChoice = WireDefault(false.B)
@@ -1118,11 +1126,19 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     }
     pendingStoreProof.foreach { bank =>
         bank.io.head := head
-        bank.io.clearOwners := proofOwnerClear
-        bank.io.pause := interruptDrain || reserveSystem || contextMemoryEpoch || fpMemoryEpoch ||
+        bank.io.clearOwners := (if (proofBankOwnerCleanup) 0.U else proofOwnerClear)
+        bank.io.currentPendingLoadMask.foreach { mask =>
+            mask := VecInit((0 until p.robEntries).map { i =>
+                val request = issueEntries(i).request
+                pending(i) && memoryLive(i) && request.memory && !request.store && !request.atomic &&
+                    !request.system && !request.mulDiv && !request.fetchFault && !request.fetchPageFault
+            }).asUInt
+        }
+        val quiesce = if (proofBankQuiesceIntent) proofHeadSystemPending else reserveSystem
+        bank.io.pause := interruptDrain || quiesce || contextMemoryEpoch || fpMemoryEpoch ||
             ledger.io.recovering || !virtualized
         bank.io.flushQueries := ledger.io.recovering || contextMemoryEpoch ||
-            interruptDrain || reserveSystem
+            interruptDrain || quiesce
         bank.io.loadCandidate.valid := memoryChoice.valid && virtualized &&
             !memoryEntry.request.store && !memoryEntry.request.atomic
         bank.io.loadCandidate.bits.token := memoryEntry.renamed.token
@@ -1131,10 +1147,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         bank.io.pmpState := pmpState
         bank.io.privilege := dataPrivilege
         bank.io.precheck <> io.loadPrecheck.get
-        bank.io.consume.valid := lsu.io.start.fire
+        bank.io.consume.valid := (if (proofBankOwnerCleanup) false.B else lsu.io.start.fire)
         bank.io.consume.bits := lsu.io.start.bits.token
-        bank.io.bind := Mux(lsu.io.start.valid && !lsu.io.start.bits.store &&
-            lsu.io.start.bits.precheckedLoad, pendingStoreRelied, 0.U)
+        bank.io.bind := (if (proofBankOwnerCleanup) shadowProofBindMask else
+            Mux(lsu.io.start.valid && !lsu.io.start.bits.store &&
+                lsu.io.start.bits.precheckedLoad, pendingStoreRelied, 0.U))
         for (i <- 0 until p.robEntries) {
             val entry = issueEntries(i)
             val owner = bank.io.owners(i)
@@ -2194,6 +2211,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 "shadow bind must preserve the complete captured load token")
             assert(capacity.slot === capacity.actualSlot,
                 "shadow bind must preserve exact physical capture slot")
+            assert(lsu.io.start.bits.address === address && lsu.io.start.bits.physicalAddress === selectedPhysicalAddress &&
+                lsu.io.start.bits.size === memorySize && lsu.io.start.bits.translationEpoch === selectedTranslationEpoch,
+                "early bind retains the actual captured VA PA size and authorization epoch")
         }
         when(proofHeadSystemPending) {
             assert(!lsu.io.start.fire, "pending system head excludes new integer memory capture")

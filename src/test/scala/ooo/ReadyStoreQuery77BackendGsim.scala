@@ -12,7 +12,8 @@ import soc.core.ooo._
   */
 class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     preselectRedirectTokenMatches: Boolean = false, shadowEarlyProofBind: Boolean = false,
-    proofControlInputs: Boolean = false) extends Module {
+    proofControlInputs: Boolean = false, proofBankQuiesceIntent: Boolean = false,
+    proofBankOwnerCleanup: Boolean = false) extends Module {
     require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
     val profile = if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
         else ReadyStoreQuery77Profile.select(queryEnabled)
@@ -162,7 +163,8 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     val allocate1 = decoded(1)
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
-    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind))
+    val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind,
+        proofBankQuiesceIntent, proofBankOwnerCleanup))
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)

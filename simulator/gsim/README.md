@@ -2767,3 +2767,38 @@ assertions and original memory/fault oracles were not weakened.
 This is bounded simulation coverage, not proof of every three-row subset or
 generic-backpressure clients, a complete C1 cut, or physical performance.
 The source review lists additional required capacity and bank collision tests.
+
+IMPLEMENTATION UPDATE — default-OFF owner-state candidate, 2026-10-15
+
+The earlier SOURCE-ONLY status describes the original review, not this update.
+Independent worktree: Valence-c1-shadow-20261015. C0 frozen inputs were not edited.
+Shadow-only step is local commit 485f3f15d29a8df9b402cd950f87b3acacd28528.
+The next candidate adds separate default-false proofBankQuiesceIntent and
+proofBankOwnerCleanup constructor arguments without changing 178/95 schemas.
+Cleanup requires quiesce plus qualified shadow, uses current owner registers
+and the explicit 16-bit pending-load/full-token view, removes bank functional
+clear/consume feedback, and drives bind from the shadow-equivalent early mask.
+Load next-state priority is context cancel > fresh matching owner > old invalid
+owner/epoch > hold. Strict/candidate load validity includes current owner.
+Added functional state: 0 bits by source inspection; all three exact-profile FIRs
+contain the same 514 register declarations. Added combinational owner selection,
+comparison and dedicated capacity logic remains physically unmeasured.
+
+Receipt: c1-lifecycle-20261015-r1/receipt.json
+SHA256: e16e38877c403ea62e7a4a83552256ee47278a352a77beb6af64fe3ca735f89f
+baseline, quiesce-only and cleanup each pass the 8 ready/PMP/fault, 4 lifecycle
+and 4 control cases with identical measured cycles and accepted/physical/reply
+counts. Shadow row-mask/full-token/VA/PA/size/epoch/slot assertions remain active
+for both experimental modes. Data/retirement negative controls rejected.
+In the three long head-system waits, baseline query counts 83/82/83 become
+5/4/5 for quiesce and 8/7/8 for cleanup; accepted traffic/cycles are unchanged.
+IRQ drain coverage remains 188 cycles. Requery duty changes are real, not
+normalized away. There is no C1 synthesis/place/route/board performance claim.
+
+Still required before declaring complete qualification: dedicated generic
+completion-backpressure capacity counterexample; isolated loadValid new/old
+owner collision and stale-result retention checks; explicit isolated bind/evict
+conflict negative, all 3-row masks; emitted functional cone audit, additional
+saturation/reclamation coverage and independent bound descriptor-lifetime checks.
+Current backend coverage has evict=0, so it proves observed bind/query exclusion
+only in these traces. These gaps are not reported as PASS or physical benefit.

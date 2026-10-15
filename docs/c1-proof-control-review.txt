@@ -413,3 +413,38 @@ candidate design, not proven equivalence, implemented RTL or a completed cut.
 
 RECEIVED CONTRACT RECONCILIATION
 The independent d5a04946 contract is a proposal, not a PASS. Current implementation base ee3bed5 changes source line numbers: actual store capture clears pending at IntegerBackend:1727; headPending at1932; reserveSystem1966-1970; headTrapRequest2017; raw recovery2139; canonical tracker output118-119. Existing state-owner reclaim, an explicit currentPendingLoadMask/full-token view, exact independent early-bind mask and specialized parallel ordinary capacity are the preferred ZERO-NEW-STATE design. The event-queue section is an alternative only. The load-certificate current owner view should use all queue tokens even when store-only owner.valid is false, and next-state priority is context cancel > fresh matching-current-owner load result > old-owner/epoch invalidation > hold. Raw invalid load accesses must use record validity to clamp indexing, never qualified output valid (which would make a loop). Strict/candidate load validity must include the same current-owner check. Before functional enable, shadow assertions must compare every-cycle row masks in both directions plus carried token/VA/PA/size/epoch and exact admission slot; completion ready remains constantly true. Bind planning must assert original unmasked queryMask==0 and !evict on nonzero bind. Do not mask away a conflict or normalize a failed timing/performance test. All remaining sections and negative cases of this review remain required. No C1 physical benefit is claimed.
+
+IMPLEMENTATION UPDATE — default-OFF owner-state candidate, 2026-10-15
+
+The earlier SOURCE-ONLY status describes the original review, not this update.
+Independent worktree: Valence-c1-shadow-20261015. C0 frozen inputs were not edited.
+Shadow-only step is local commit 485f3f15d29a8df9b402cd950f87b3acacd28528.
+The next candidate adds separate default-false proofBankQuiesceIntent and
+proofBankOwnerCleanup constructor arguments without changing 178/95 schemas.
+Cleanup requires quiesce plus qualified shadow, uses current owner registers
+and the explicit 16-bit pending-load/full-token view, removes bank functional
+clear/consume feedback, and drives bind from the shadow-equivalent early mask.
+Load next-state priority is context cancel > fresh matching owner > old invalid
+owner/epoch > hold. Strict/candidate load validity includes current owner.
+Added functional state: 0 bits by source inspection; all three exact-profile FIRs
+contain the same 514 register declarations. Added combinational owner selection,
+comparison and dedicated capacity logic remains physically unmeasured.
+
+Receipt: c1-lifecycle-20261015-r1/receipt.json
+SHA256: e16e38877c403ea62e7a4a83552256ee47278a352a77beb6af64fe3ca735f89f
+baseline, quiesce-only and cleanup each pass the 8 ready/PMP/fault, 4 lifecycle
+and 4 control cases with identical measured cycles and accepted/physical/reply
+counts. Shadow row-mask/full-token/VA/PA/size/epoch/slot assertions remain active
+for both experimental modes. Data/retirement negative controls rejected.
+In the three long head-system waits, baseline query counts 83/82/83 become
+5/4/5 for quiesce and 8/7/8 for cleanup; accepted traffic/cycles are unchanged.
+IRQ drain coverage remains 188 cycles. Requery duty changes are real, not
+normalized away. There is no C1 synthesis/place/route/board performance claim.
+
+Still required before declaring complete qualification: dedicated generic
+completion-backpressure capacity counterexample; isolated loadValid new/old
+owner collision and stale-result retention checks; explicit isolated bind/evict
+conflict negative, all 3-row masks; emitted functional cone audit, additional
+saturation/reclamation coverage and independent bound descriptor-lifetime checks.
+Current backend coverage has evict=0, so it proves observed bind/query exclusion
+only in these traces. These gaps are not reported as PASS or physical benefit.
