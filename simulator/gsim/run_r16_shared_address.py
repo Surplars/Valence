@@ -279,7 +279,7 @@ def build(args, data):
         for side in ("off", "on"):
             target = args.out / side
             command = [java, "-Xmx4g", "-XX:ActiveProcessorCount=2", "-Dchisel.project.root=" + str(args.repo_root),
-                       "-cp", cp, "soc.core.ooo.R16SharedAddressGsimMain", target, side]
+                       "-cp", cp, data.get("emitter", "soc.core.ooo.R16SharedAddressGsimMain"), target, side]
             code, _, row = launch(command, args.repo_root, args.out / ("emit-" + side + ".log"), args.timeout)
             receipt["commands"].append(row)
             need(code == 0 and read(target / "actual-core.json") == data["actualCore"][side],

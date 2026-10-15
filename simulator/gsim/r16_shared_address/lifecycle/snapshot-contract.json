@@ -1,0 +1,1715 @@
+{
+  "fields": 244,
+  "serialized_words": 276,
+  "outputs": [
+    {
+      "output": "io_mulDivMultiCancel",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_mulDivConcurrent",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_mulDivBlocked",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_mulDivOverlap",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_mulDivCancelled",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_loadIssueForwarded_0",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_loadIssueForwarded_1",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_memoryForwarded",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_memoryDiscarded",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_issueCount",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_memoryBusy",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_canonicalStore_requestFrozenProof_bits_mask",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestFrozenProof_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestFrozenProof_bits_size",
+      "declared_width": 3,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestFrozenProof_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestFrozenProof_bits_physicalAddress",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestFrozenProof_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestFrozenProof_bits_address",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestFrozenProof_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestFrozenProof_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_canonicalStore_requestOrigin_bits_epoch",
+      "declared_width": 32,
+      "accessor_type": "uint32_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestOrigin_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestOrigin_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestOrigin_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestOrigin_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_canonicalStore_requestOrigin_valid"
+    },
+    {
+      "output": "io_canonicalStore_requestOrigin_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_posted_seal",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_posted_starting",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_posted_busy",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_posted_requestProof_bits_finalChecked",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_legacyPostedAccepted",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_integerOrigin",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_originalPhysical",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_physicalPmpAllowed",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_headAuthorized",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_size",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_mask",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_address",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_epoch",
+      "declared_width": 32,
+      "accessor_type": "uint32_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_posted_requestProof_valid"
+    },
+    {
+      "output": "io_posted_requestProof_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_loadPrecheck_request_bits_write",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_loadPrecheck_request_valid"
+    },
+    {
+      "output": "io_loadPrecheck_request_bits_size",
+      "declared_width": 3,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_loadPrecheck_request_valid"
+    },
+    {
+      "output": "io_loadPrecheck_request_bits_address",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_loadPrecheck_request_valid"
+    },
+    {
+      "output": "io_loadPrecheck_request_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_memory_response_ready",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_memory_request_bits_uncached",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_prefetchNextAllowed",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_translationEpoch",
+      "declared_width": 32,
+      "accessor_type": "uint32_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_precheckedLoad",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_virtualized",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_mask",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_size",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_write",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_address",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_atomicOp",
+      "declared_width": 5,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_atomic",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_bits_returnHandle",
+      "declared_width": 3,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_memory_request_valid"
+    },
+    {
+      "output": "io_memory_request_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_invalidateFetch",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_redirect_bits_target",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_redirect_valid"
+    },
+    {
+      "output": "io_redirect_bits_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_redirect_valid"
+    },
+    {
+      "output": "io_redirect_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_redirect_valid"
+    },
+    {
+      "output": "io_redirect_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_redirect_valid"
+    },
+    {
+      "output": "io_redirect_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_committedValue",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_headException_bits_tval",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headException_valid"
+    },
+    {
+      "output": "io_headException_bits_cause",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headException_valid"
+    },
+    {
+      "output": "io_headException_bits_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headException_valid"
+    },
+    {
+      "output": "io_headException_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headException_valid"
+    },
+    {
+      "output": "io_headException_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headException_valid"
+    },
+    {
+      "output": "io_headException_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_issued_0_bits_tval",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_cause",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_exception",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_nextPc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_0_valid"
+    },
+    {
+      "output": "io_issued_0_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_issued_1_bits_tval",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_cause",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_exception",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_nextPc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_issued_1_valid"
+    },
+    {
+      "output": "io_issued_1_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_headProfile_candidateLoadBlockedByUnknownStore",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_candidateLoadBlockedByStore",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_candidateLoadPc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memoryRequestStallCause",
+      "declared_width": 3,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memoryRequestSelected",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memorySlotAvailable",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memoryStarting",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_storePrepared",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memoryCompletionBlocked",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memoryPhase",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_memory",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_operandsReady",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_queued",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_done",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_headProfile_valid"
+    },
+    {
+      "output": "io_headProfile_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_occupancy",
+      "declared_width": 5,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_recovering",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_recoveryAccepted",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_commit_0_bits_nextPc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_writesRd",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_destination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_rd",
+      "declared_width": 5,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_instruction",
+      "declared_width": 32,
+      "accessor_type": "uint32_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_0_valid"
+    },
+    {
+      "output": "io_commit_0_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_commit_1_bits_nextPc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_writesRd",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_destination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_rd",
+      "declared_width": 5,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_instruction",
+      "declared_width": 32,
+      "accessor_type": "uint32_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_commit_1_valid"
+    },
+    {
+      "output": "io_commit_1_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_renamed_0_bits_moveAlias",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_writesRd",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_oldDestination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_destination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_source2",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_source1",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_0_valid"
+    },
+    {
+      "output": "io_renamed_0_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_renamed_1_bits_moveAlias",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_writesRd",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_oldDestination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_destination",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_source2",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_source1",
+      "declared_width": 6,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_renamed_1_valid"
+    },
+    {
+      "output": "io_renamed_1_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_fenceIFlush",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_vmFlush",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_vmState_dataPrivilege",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_vmState_mxr",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_vmState_sum",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_vmState_satp",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pauseFetch",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_fetchPrivilege",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpRawChanged",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_0",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_1",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_2",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_3",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_4",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_5",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_6",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_7",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_8",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_9",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_10",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_11",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_12",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_13",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_14",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionActive_15",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_0",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_1",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_2",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_3",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_4",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_5",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_6",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_7",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_8",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_9",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_10",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_11",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_12",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_13",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_14",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionEnd_15",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_0",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_1",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_2",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_3",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_4",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_5",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_6",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_7",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_8",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_9",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_10",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_11",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_12",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_13",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_14",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_regionLow_15",
+      "declared_width": 65,
+      "accessor_type": "unsigned _BitInt(128)",
+      "serialized_words": 2,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_0",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_1",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_2",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_3",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_4",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_5",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_6",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_7",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_8",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_9",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_10",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_11",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_12",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_13",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_14",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_addr_15",
+      "declared_width": 54,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_0",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_1",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_2",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_3",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_4",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_5",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_6",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_7",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_8",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_9",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_10",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_11",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_12",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_13",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_14",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_pmpState_cfg_15",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_trap_bits_tval",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_trap_valid"
+    },
+    {
+      "output": "io_trap_bits_cause",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_trap_valid"
+    },
+    {
+      "output": "io_trap_bits_pc",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_trap_valid"
+    },
+    {
+      "output": "io_trap_bits_token_tag",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_trap_valid"
+    },
+    {
+      "output": "io_trap_bits_token_index",
+      "declared_width": 4,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_trap_valid"
+    },
+    {
+      "output": "io_trap_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_imsic_response_ready",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    },
+    {
+      "output": "io_imsic_request_bits_data",
+      "declared_width": 64,
+      "accessor_type": "uint64_t",
+      "serialized_words": 1,
+      "valid_gate": "io_imsic_request_valid"
+    },
+    {
+      "output": "io_imsic_request_bits_operation",
+      "declared_width": 2,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_imsic_request_valid"
+    },
+    {
+      "output": "io_imsic_request_bits_topei",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_imsic_request_valid"
+    },
+    {
+      "output": "io_imsic_request_bits_selector",
+      "declared_width": 12,
+      "accessor_type": "uint16_t",
+      "serialized_words": 1,
+      "valid_gate": "io_imsic_request_valid"
+    },
+    {
+      "output": "io_imsic_request_bits_file",
+      "declared_width": 8,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": "io_imsic_request_valid"
+    },
+    {
+      "output": "io_imsic_request_valid",
+      "declared_width": 1,
+      "accessor_type": "uint8_t",
+      "serialized_words": 1,
+      "valid_gate": null
+    }
+  ],
+  "scope": "All actual declared bits serialized; wide outputs emit separate low/high 64-bit words before any narrowing. Only original Valid/head-valid payload masking retained."
+}

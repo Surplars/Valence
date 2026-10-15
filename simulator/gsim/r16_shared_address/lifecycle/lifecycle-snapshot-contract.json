@@ -1,0 +1,732 @@
+{
+  "outputs": [
+    {
+      "output": "lookupReply$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "lookupReply$$bits$$physicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lookupReply$$valid"
+    },
+    {
+      "output": "lookupReply$$bits$$pbmt",
+      "accessor_type": "uint8_t",
+      "valid_gate": "lookupReply$$valid"
+    },
+    {
+      "output": "lookupReply$$bits$$epoch",
+      "accessor_type": "uint32_t",
+      "valid_gate": "lookupReply$$valid"
+    },
+    {
+      "output": "proof0$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "proof0$$bits$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$epoch",
+      "accessor_type": "uint32_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$payload$$address",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$payload$$physicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$payload$$write",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$payload$$size",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof0$$bits$$payload$$mask",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof0$$valid"
+    },
+    {
+      "output": "proof1$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "proof1$$bits$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$epoch",
+      "accessor_type": "uint32_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$payload$$address",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$payload$$physicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$payload$$write",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$payload$$size",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proof1$$bits$$payload$$mask",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proof1$$valid"
+    },
+    {
+      "output": "proofBound",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "proofBind",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "proofConsume$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "proofConsume$$bits$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "proofConsume$$valid"
+    },
+    {
+      "output": "proofConsume$$bits$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "proofConsume$$valid"
+    },
+    {
+      "output": "proofRelied",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "boundMatches",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "creditReserve$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "creditReserve$$bits$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "creditReserve$$valid"
+    },
+    {
+      "output": "creditReserve$$bits$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "creditReserve$$valid"
+    },
+    {
+      "output": "creditConsume$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "creditConsume$$bits$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "creditConsume$$valid"
+    },
+    {
+      "output": "creditConsume$$bits$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "creditConsume$$valid"
+    },
+    {
+      "output": "startPayload$$forward$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$forward$$bits",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$pc",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$address",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$atomic",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$atomicOp",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$store",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$size",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$unsigned",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$accessDenied",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$virtualized",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$precheckedLoad",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$physicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$translationEpoch",
+      "accessor_type": "uint32_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$epoch",
+      "accessor_type": "uint32_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$address",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$mask",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$size",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$headAuthorized",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$physicalPmpAllowed",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$originalPhysical",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$integerOrigin",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$legacyPostedAccepted",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$postedProof$$bits$$finalChecked",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$canonicalStoreEpoch$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$canonicalStoreEpoch$$bits",
+      "accessor_type": "uint32_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$frozenStoreProof$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$frozenStoreProof$$bits$$address",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$frozenStoreProof$$bits$$physicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$frozenStoreProof$$bits$$size",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "startPayload$$frozenStoreProof$$bits$$mask",
+      "accessor_type": "uint8_t",
+      "valid_gate": "observation$$startFire"
+    },
+    {
+      "output": "lsuCompletion$$ready",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "lsuCompletion$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "lsuCompletion$$bits$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$nextPc",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$exception",
+      "accessor_type": "uint8_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$cause",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuCompletion$$bits$$tval",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuCompletion$$valid"
+    },
+    {
+      "output": "lsuPreview$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "lsuPreview$$bits$$token$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$token$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$nextPc",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$exception",
+      "accessor_type": "uint8_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$cause",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuPreview$$bits$$tval",
+      "accessor_type": "uint64_t",
+      "valid_gate": "lsuPreview$$valid"
+    },
+    {
+      "output": "lsuDiscarded",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "requestOwner$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "requestOwner$$bits$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": "requestOwner$$valid"
+    },
+    {
+      "output": "requestOwner$$bits$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": "requestOwner$$valid"
+    },
+    {
+      "output": "slotLive0",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner0$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner0$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotCancel0",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish0$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish0$$bits",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotPublish0$$valid"
+    },
+    {
+      "output": "slotHeld0$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotHeld0$$bits$$destination",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotHeld0$$valid"
+    },
+    {
+      "output": "slotHeld0$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "slotHeld0$$valid"
+    },
+    {
+      "output": "slotLive1",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner1$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner1$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotCancel1",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish1$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish1$$bits",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotPublish1$$valid"
+    },
+    {
+      "output": "slotHeld1$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotHeld1$$bits$$destination",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotHeld1$$valid"
+    },
+    {
+      "output": "slotHeld1$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "slotHeld1$$valid"
+    },
+    {
+      "output": "slotLive2",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner2$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner2$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotCancel2",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish2$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish2$$bits",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotPublish2$$valid"
+    },
+    {
+      "output": "slotHeld2$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotHeld2$$bits$$destination",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotHeld2$$valid"
+    },
+    {
+      "output": "slotHeld2$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "slotHeld2$$valid"
+    },
+    {
+      "output": "slotLive3",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner3$$index",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotOwner3$$tag",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotCancel3",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish3$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotPublish3$$bits",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotPublish3$$valid"
+    },
+    {
+      "output": "slotHeld3$$valid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "slotHeld3$$bits$$destination",
+      "accessor_type": "uint8_t",
+      "valid_gate": "slotHeld3$$valid"
+    },
+    {
+      "output": "slotHeld3$$bits$$data",
+      "accessor_type": "uint64_t",
+      "valid_gate": "slotHeld3$$valid"
+    },
+    {
+      "output": "observation$$loadWrite",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$startFire",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$startStore",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$startAtomic",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$actualIndex",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$actualTag",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$canonicalAddress",
+      "accessor_type": "uint64_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$canonicalLanes",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$killed",
+      "accessor_type": "uint16_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$live",
+      "accessor_type": "uint16_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$pending",
+      "accessor_type": "uint16_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$known",
+      "accessor_type": "uint16_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$canonical",
+      "accessor_type": "uint16_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$replayValid",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    },
+    {
+      "output": "observation$$replayIndex",
+      "accessor_type": "uint8_t",
+      "valid_gate": null
+    }
+  ],
+  "excluded": [
+    "OFF/ON implementation-specific store writer masks"
+  ]
+}

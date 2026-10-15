@@ -25,7 +25,7 @@ def source_closure(repo, data):
     hf = {str(p.relative_to(repo)) for p in (repo / "third_party/berkeley-hardfloat/src/main/scala").rglob("*.scala")}
     gate.need(hf == {n for n in data["freshCompileInputs"] if n.endswith(".scala")}, "HardFloat source closure changed")
     return {**data["sources"], **data["freshCompileInputs"],
-            gate.NATIVE: data["publicInputs"][gate.NATIVE], gate.FIXTURE: data["publicInputs"][gate.FIXTURE]}
+            **{name: data["publicInputs"][name] for name in data.get("publicTestInputs", (gate.NATIVE, gate.FIXTURE))}}
 
 
 def jar_entry(path, data):
@@ -128,7 +128,7 @@ def compile_sources(args, data):
         gate.need(code == 0 and re.search(r'version "21[.\"]', version), "repository flow requires JDK 21")
         plugin = next(p for p in jars if p.name == "chisel-plugin_2.13.17-7.3.0.jar")
         tests = [gate.local(args.repo_root, n) for n in data["sources"] if n.startswith("src/test/scala/")]
-        tests += [gate.local(gate.PUBLIC_ROOT, n) for n in (gate.NATIVE, gate.FIXTURE)]
+        tests += [gate.local(gate.PUBLIC_ROOT, n) for n in data.get("publicTestInputs", (gate.NATIVE, gate.FIXTURE))]
         phases = [("hardfloat", [gate.local(args.repo_root, n) for n in data["freshCompileInputs"] if n.endswith(".scala")], jars),
                   ("main", [gate.local(args.repo_root, n) for n in data["sources"] if n.startswith("src/main/scala/")],
                    [args.out / "classes-hardfloat", *jars]),
