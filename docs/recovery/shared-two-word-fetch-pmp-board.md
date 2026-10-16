@@ -95,5 +95,44 @@ The negatives inject observer mismatches, not production-source mutations.
 
 The receipt binds source hashes, the repaired binary, compiler, input board
 export, generated FIR/C++/headers, executable and logs. This closes only the bounded instruction-translation-adapter gap.
-`SynchronousFetch` enabled behavior, full-board/CPU execution and physical
-qualification remain unverified. No main GSIM installation is replaced.
+At this adapter-check stage, `SynchronousFetch` enabled behavior remained open;
+the separate bounded frontend check below addresses it. Full-board/CPU execution
+and physical qualification remain unverified. No main GSIM installation is replaced.
+
+## Short configured SynchronousFetch dynamic check
+
+`SharedTwoWordFetchFrontendGsimMain` pairs real OFF/ON `SynchronousFetch`
+instances using the current native frontend tuple: 16 sets, two words, registered
+window, address-before-PMP, and qualified compact keys. The complete core/profile
+values and field order match the experimental board export. All 16 actual retained
+frontend constructor fields are read back and checked; only the shared-PMP flag
+differs. This checks configuration binding, not execution of the exported board.
+
+```
+python3 simulator/gsim/shared_two_word_fetch_frontend.py \
+  --tag FRESH_TAG --gsim /absolute/path/to/repaired/gsim \
+  --board-export /absolute/path/to/on/experiment.json
+```
+
+The bounded run passed 18,717 cycles: 11,563 valid instructions, 2,742 requests,
+1,273 stalled-request cycles, 182 stale replies, 1,300 concurrent fill/hit cycles,
+1,296 reply/new-preparation turnovers, 885 PMP-denied masks, 2,112 straddles,
+3,501 access faults and 588 page faults. All 16 sets, both ways and all three
+query offsets were covered. It also observed 364 revocable and 153 irrevocable
+preparation-cancellation witness cycles, 150 context changes, 148 invalidations
+and two reset epochs. Cancellation counters count qualifying cycles, not unique
+canceled owners. Cold/hot cache, permission/context changes, full64 wrap addresses,
+backpressure and actual enable/pause/invalidate/suppress cancellation inputs use
+the existing independent full64 cache/owner/PMP oracle.
+
+Complete deterministic OFF/ON IO equality and the independent valid-transaction
+oracle passed under ASan/UBSan. The two negatives are observer injections, not
+production-source mutants. Invalid payload is compared only for implementation
+equivalence. One raw PMP entry is active in this fixture; broader state coverage
+remains the separate helper proof. Whole-interface reset explicitly discards the
+external response obligation; no late-reply cancellation protocol is invented.
+
+The receipt binds production/test sources, the input board export, the isolated
+repaired GSIM binary, all generated FIR/C++/headers, executable and logs. Its scope
+is this bounded configured frontend pair. The separate adapter pair and frontend
+pair do not establish combined full-board/CPU behavior or physical qualification.

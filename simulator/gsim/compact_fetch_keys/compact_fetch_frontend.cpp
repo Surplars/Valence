@@ -1,4 +1,11 @@
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+#include "SharedTwoWordFetchFrontendGsim.h"
+#define SCompactFetchFrontendGsim SSharedTwoWordFetchFrontendGsim
+#include <cstring>
+#include <type_traits>
+#else
 #include "CompactFetchFrontendGsim.h"
+#endif
 #include "compact_fetch_frontend_oracle.h"
 #include <algorithm>
 #include <iomanip>
@@ -7,6 +14,9 @@
 #include <sstream>
 #include <vector>
 using namespace independent;
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+static bool injectOracle = false, injectPair = false;
+#endif
 static void check(bool ok, const std::string &message) { if (!ok) throw std::runtime_error(message); }
 static uint64_t mix(uint64_t x) { x ^= x >> 30; x *= UINT64_C(0xbf58476d1ce4e5b9); x ^= x >> 27;
     x *= UINT64_C(0x94d049bb133111eb); return x ^ (x >> 31); }
@@ -28,7 +38,15 @@ struct Driver {
     uint64_t serial = 0;
     unsigned latency = 1;
     Output last;
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+    unsigned prepareCancels = 0, irrevocableCancels = 0;
+#endif
     Driver() {
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+        static_assert(std::is_trivially_copyable_v<SCompactFetchFrontendGsim>);
+        std::memset(&dut, 0, sizeof(dut)); dut.LOG_START = 1; dut.activateAll();
+        dut.set_io$$pairMismatch(injectPair);
+#endif
         in.enable = false; in.pause = true; apply(); dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
         in.enable = true; in.pause = false;
     }
@@ -58,7 +76,11 @@ struct Driver {
         check(bool(dut.get_io$$quiescent()) == expected.quiescent, where("quiescent"));
         if (expected.request) {
             check(dut.get_io$$requestAddress() == expected.address, where("request address"));
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+            check((dut.get_io$$requestMask() ^ unsigned(injectOracle)) == expected.mask, where("request PMP mask"));
+#else
             check(dut.get_io$$requestMask() == expected.mask, where("request PMP mask"));
+#endif
         }
         const bool valid[] = {bool(dut.get_io$$lane0$$valid()), bool(dut.get_io$$lane1$$valid())};
         const uint32_t bits[] = {dut.get_io$$lane0$$bits(), dut.get_io$$lane1$$bits()};
@@ -73,6 +95,10 @@ struct Driver {
             check(bool((dut.get_io$$pages() >> lane) & 1) == want.page, where("valid page fault"));
             check(faults[lane] == want.fault && offsets[lane] == want.offset, where("valid fault address/offset"));
         }
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+        prepareCancels += model.locked && !model.maskCaptured && expected.cancelPrepared;
+        irrevocableCancels += model.locked && model.maskCaptured && expected.cancelPrepared;
+#endif
         model.advance(in, expected);
         if (in.response) memory.busy = false;
         if (expected.request && in.ready) {
@@ -134,9 +160,30 @@ struct Driver {
         in.enable = true; checkResidentOffsets();
     }
 };
-int main() {
+int main(int argc, char **argv) {
     try {
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+        check(argc == 1 || (argc == 2 && (std::string(argv[1]) == "--inject-oracle-mismatch" ||
+            std::string(argv[1]) == "--inject-pair-mismatch")), "unknown argument");
+        injectOracle = argc == 2 && std::string(argv[1]) == "--inject-oracle-mismatch";
+        injectPair = argc == 2 && std::string(argv[1]) == "--inject-pair-mismatch";
+#endif
         Driver d;
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+        // Explicitly cancel a revocable preparation before its mask is captured.
+        d.move(UINT64_C(0x80040000));
+        check(d.model.locked && !d.model.maskCaptured, "preparation witness absent");
+        d.in.suppress = true; d.tick();
+        check(!d.model.locked && !d.memory.busy && d.prepareCancels, "preparation cancel failed");
+        d.in.suppress = false; d.move(UINT64_C(0x80041000), 2);
+        check(d.memory.busy && d.model.pending, "reset outstanding owner witness absent");
+        // Whole-interface reset discards this epoch's owner and external response obligation.
+        // No tagged late-response/cancel contract is invented.
+        d.dut.set_reset(1); d.dut.step(); d.dut.step();
+        d.model = Model{}; d.memory = {}; d.serial = 0; d.in = Input{};
+        d.in.enable = false; d.in.pause = true; d.dut.set_reset(0); d.tick();
+        check(d.last.quiescent && !d.last.request, "reset retained abandoned fetch owner");
+#endif
         // Fill every way at every native set. Adjacent-prefetch fills are allowed, independently modelled.
         const uint64_t stride = uint64_t(Sets) * 8;
         for (uint64_t root : {UINT64_C(0x80000000), UINT64_C(0x80000000) + stride,
@@ -204,6 +251,14 @@ int main() {
                   << " stale=" << c.staleResponses << " fill_hit=" << c.fillWithHit << " turnover=" << c.turnover
                   << " prepare_turnover=" << c.prepareTurnover << " faults=" << c.faults << " pages=" << c.pageFaults << " straddles=" << c.straddles
                   << " pmp_denied=" << c.pmpDenied << " wrapped_queries=" << c.wrappedQueries
+#ifdef SHARED_TWO_WORD_FRONTEND_PAIR
+                  << " all_set_way_offsets=1 real_off_on_full_io_peer=1 full64_independent_oracle=1\n";
+        check(d.prepareCancels && d.irrevocableCancels, "missing prepare/irrevocable cancellation coverage");
+        std::cout << "SHARED_TWO_WORD_FRONTEND_PAIR_PASS prepare_cancels=" << d.prepareCancels
+                  << " irrevocable_cancels=" << d.irrevocableCancels << " context_changes=" << c.contextChanges
+                  << " invalidations=" << c.invalidations << " reset_epochs=2\n";
+#else
                   << " all_set_way_offsets=1 frozen_cycle_peer=1 full64_independent_oracle=1\n";
+#endif
     } catch (const std::exception &e) { std::cerr << "COMPACT_FETCH_FRONTEND_FAIL " << e.what() << '\n'; return 1; }
 }
