@@ -1,0 +1,173 @@
+{
+  "schema": "resident-rank-priority-v1",
+  "status": "PASS_COMPONENT_ONLY",
+  "scope": "Actual combinational selector, independent ordered-walk GSIM, production registered-head boundary, exact output SAT equivalence, matched actual-selector mapping",
+  "productionDefault": true,
+  "profileFieldsAdded": 0,
+  "stateBitsAdded": 0,
+  "readPortsAdded": 0,
+  "capacityDelta": 0,
+  "latencyDelta": 0,
+  "initiationInterval": 1,
+  "selectorChecks": 1157664,
+  "registeredHeadChecks": 65536,
+  "registeredHeadWraps": 4101,
+  "formal": {
+    "positive": "PASS",
+    "objective": "io_equivalent == 1; all 27 packed output bits, both head modes, previous priority and previous topology",
+    "assumptions": "Head-mask derived directly from arbitrary 4-bit head. No other SAT constraints. Full-token validity calculated from arbitrary inputs.",
+    "negativeInvertedObjective": "REJECTED",
+    "negativeCandidateBitMutation": "REJECTED",
+    "verificationLayers": "Only simulation assertions/bind files disabled; explicit output miter remains.",
+    "scope": "Combinational ROB16 SAT only; registered-head reset/wrap integration checked by GSIM and production invariant inspection, not sequential SAT."
+  },
+  "mapping": {
+    "default": {
+      "old": {
+        "family": "xcup",
+        "lutCount": 387,
+        "cells": {
+          "LUT6": 199,
+          "MUXF7": 167,
+          "MUXF8": 77,
+          "LUT2": 62,
+          "LUT4": 63,
+          "MUXF9": 10,
+          "LUT3": 30,
+          "LUT5": 33,
+          "CARRY4": 2
+        },
+        "longestCellPath": 22
+      },
+      "new": {
+        "family": "xcup",
+        "lutCount": 398,
+        "cells": {
+          "LUT4": 63,
+          "LUT6": 209,
+          "MUXF7": 158,
+          "MUXF8": 72,
+          "MUXF9": 17,
+          "LUT3": 47,
+          "LUT2": 48,
+          "LUT5": 31
+        },
+        "longestCellPath": 18
+      }
+    },
+    "lut6": {
+      "old": {
+        "family": "xcup",
+        "lutCount": 301,
+        "cells": {
+          "LUT4": 54,
+          "LUT5": 45,
+          "LUT6": 66,
+          "LUT2": 82,
+          "LUT3": 54,
+          "CARRY4": 2
+        },
+        "longestCellPath": 12
+      },
+      "new": {
+        "family": "xcup",
+        "lutCount": 287,
+        "cells": {
+          "LUT3": 37,
+          "LUT5": 36,
+          "LUT4": 75,
+          "LUT6": 70,
+          "LUT2": 69
+        },
+        "longestCellPath": 7
+      }
+    }
+  },
+  "source_sha256": {
+    "src/main/scala/core/ooo/ResidentMemoryPreparationSelector.scala": "65ee917306dd0fc52d2c97a290b78146e8e3ce4b69615ef068816236bc82228e",
+    "src/main/scala/core/ooo/CircularIssueSelector.scala": "59498679ce21c9baed0a8dcfca6bfc5e9c31914d25254da5952b79f14f08ea47",
+    "src/main/scala/core/ooo/RegisteredRobHeadMask.scala": "34098dc7d4c42ca936b8e6a1ee86c65443e4e9ff312a500ad2ab9e184d286921",
+    "src/main/scala/core/ooo/IntegerBackend.scala": "fb0a82a6778d0403f788dd2f3e82a42d8369508d1ba2fa7f9f951aa8f38dd471",
+    "src/main/scala/core/ooo/OooParams.scala": "5c8ad7e7d19a3b9a6c6fccb35abdfc7fbb9fb54a1f63535720fa69c5a943291c",
+    "src/test/scala/ooo/ResidentLateExclusionGsim.scala": "e558133eb8886ae10e603bbf5c3e74e11fad2f3de6e860c223b7ad0ff4a7b55a",
+    "src/test/scala/ooo/RegisteredHeadSelectionGsim.scala": "78cbf47d00e31332cd39b0708d75041a8310d6f24d08604a5ef37b2c4c430b80",
+    "simulator/gsim/harness/resident_late_exclusion.cpp": "43265b5755e4b454bf96dac50b6edcd3e77ab36e014a9dba7fba60586645b385",
+    "simulator/gsim/harness/registered_head_selection.cpp": "3c097ce68bd668d7cc20cd0f2766cdf791ad3e50fa1993733287de9afff46030"
+  },
+  "tools": {
+    "gsim_sha256": "f00067c6158db342927ad0d746109ad745298fd4ebe9707fd951998069587116",
+    "yosys": "0.52 fee39a3284c90249e1d9684cf6944ffbbcbb8f90",
+    "firtool": "1.135.0",
+    "sv2v": "0.0.13"
+  },
+  "physicalTiming": "unverified",
+  "wholeCpuPerformance": "not measured; combinational selector decisions and cycle behavior preserved",
+  "historicalReport": "223453b placed report is historical and estimated-route, not current-design timing",
+  "artifacts": {
+    "head/RegisteredHeadSelectionGsim.fir": "bf44a56fbed4aaecb74a532d0b9a963f041425a6deb6bef8db9c396a39722ee8",
+    "head/RegisteredHeadSelectionGsim.h": "2114529ccfb0e4851bc6a998642b7f2daa262fb9081bb7874c48b0c6ac96e03e",
+    "head/RegisteredHeadSelectionGsim0.cpp": "9f73be0cdf6e06ee187d6344368e6d327bbfda235d298f1b0da66b4aa5f52945",
+    "head/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "head/generate.log": "c4c66d08510615ed41aae33d01f920d4e43800c672318c648b5c34d41d6563c9",
+    "head/negative-oracle.log": "12966cdd8269ac25e3c737ea9c778d0787487d9bb5657b55728f8ec68e80c631",
+    "head/run": "842831bde61e56a4277ad1ab361d1c4817af2f3b441b988c5fbb7d5604b27ad3",
+    "head/test.log": "65793ee96474e7622f77d0ba50653f4bdbdb478817051eda0e2388a4e4d6cda3",
+    "new/CircularIssueSelector.sv": "926423632a23de2031d01f5534a66492c5e5391a8013449fb0837ce8537e8659",
+    "new/ResidentMemoryPreparationSelector.sv": "6d5ee3db28412c4722e48c6153b36cfc5892fb7ebd867ac602458dda8bfa90f8",
+    "new/design.v": "062eca892383e7024080f60642e7a6c91f817acaa8f21a200ddcfa8ccb8de66e",
+    "new/mapped-xcup-default.json": "2b626b24f1c97542a61af88f590b6f1d87e06fa4b12a01fb72f0db4e17dd185b",
+    "new/mapped-xcup-lut6.json": "c8d20fc4d3c83596c14aa50d88818b3ffd832aa08539c302dd6179284d536f02",
+    "new/mapping-xcup-default.log": "97bd3e0d40c4cb73772568b9f2960a3869c5ab0d32d2a2f06a9c230898dd8ff8",
+    "new/mapping-xcup-lut6.log": "d6e2cb43df2236bdbb81c2bceffca0f0243ca8e3dc3f0cad2a61cf797ba14966",
+    "new/sv2v.log": "062eca892383e7024080f60642e7a6c91f817acaa8f21a200ddcfa8ccb8de66e",
+    "old/CircularIssueSelector.sv": "926423632a23de2031d01f5534a66492c5e5391a8013449fb0837ce8537e8659",
+    "old/ResidentMemoryPreparationSelector.sv": "9af9799672ff27e4f65a96c8172653c2570f2274e21fd4141249b80aa9e45b82",
+    "old/design.v": "7b49503dc1d9cb615a9315f7af10e01dbbdd8d11a8e65a2e744def3acc1388a3",
+    "old/mapped-xcup-default.json": "a44665b9944acccb853ffc8f49346f75f4eeee07bf55a1b7e5f59f4c5b31720d",
+    "old/mapped-xcup-lut6.json": "e47a09614b03b218add1df6fba986326161fc9ac2e4eb2cc0c840bb4f69057d4",
+    "old/mapping-xcup-default.log": "7e4476f23139dc6df6fc53adc63c0653e42ead5bda05d240128acb6943452f99",
+    "old/mapping-xcup-lut6.log": "30ad3c8c88e8ab6b5b86421e0899c2d7b55138a0915bf92e44e4fa6547246be5",
+    "old/sv2v.log": "7b49503dc1d9cb615a9315f7af10e01dbbdd8d11a8e65a2e744def3acc1388a3",
+    "selector/ResidentLateExclusionGsim.fir": "1adc149146dcc5537df37b6be3b7e9862fab7e227ce018f3adcf821618bb6773",
+    "selector/ResidentLateExclusionGsim.h": "2455cb3f313a1d6929b2b4dbd68679e929a461e8f7a4048d89f4860b2c1bccd9",
+    "selector/ResidentLateExclusionGsim0.cpp": "abf4c342ec51fb030c224a3bcd50736b02a056482f3a1442ec43eab48d9f5ea3",
+    "selector/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "selector/design-mutated.v": "00bd3b46491ba79a8a6ee1d6b9cfae6b543753f921aa45cabd6c6e2c526aec51",
+    "selector/design.sv": "13d6d58d8a17a83f40eecae317faf9b9c25e54eeafae18df178c9f1c0f8930e6",
+    "selector/design.v": "9d1345245f69a7334d8b1f98a66f58d7414962daa96f03ded59b21e8a6ab4e42",
+    "selector/firtool.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "selector/formal-mutated.log": "aeab915b442b37968762a207c8708f8f63b756504f132dd8488c3c159cfcab01",
+    "selector/formal-negative.log": "05f551b27c810a6963412c259bd5e3cdb92fdd35704a389be5e3289d96aabc02",
+    "selector/formal.log": "cc92bd9c4cd661f91aa61587140f44f4a4abfff5d679f564d3b6e88d079985de",
+    "selector/generate.log": "4fb35f65967e66cb43407d2f0285275563dc8ada57179ca0e607223ea6f7c315",
+    "selector/negative-oracle.log": "06fd45cf5b841905d62dead3f9ae6f39588c2f098bad5e93c87d3a6b8e3ece1b",
+    "selector/negative-owner.log": "1a00dd335a817cee9da1318805ab6e8fa7d8c94aacd77927fec7d9e967af4656",
+    "selector/run": "bc7db567a22f05fec6d4e2156060447b3e1f4916d64f45dd776008b08ad80cab",
+    "selector/sv2v.log": "9d1345245f69a7334d8b1f98a66f58d7414962daa96f03ded59b21e8a6ab4e42",
+    "selector/test.log": "d83a25ed0b8e17aac7de16da1918ff96125ef57877231f9a35f0acdb7202ad3d"
+  },
+  "replay": {
+    "directory": "build/gsim/resident-rank-priority-r4",
+    "status": "PASS_RESIDENT_RANK_PRIORITY_END_TO_END",
+    "portableRunner": "simulator/gsim/resident_rank_priority/run.py",
+    "runner_sha256": "e0bd9f34272e11095c5c509a9516201a287597a3f071fd113f8e4da51c79a6de",
+    "receipt_sha256": "e91ca8b6511810d72cba142ff264cf503fe3ca1d726f148b68726c8ec4b67785",
+    "reuseInputBinding": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-recovery/build/gsim/resident-rank-priority-r2",
+      "receipt_sha256": "0aaf8d15f6abeaebeece08cf882f36013142a06025b831bf534c4f9989392239"
+    },
+    "hashGuardNegative": {
+      "status": "REJECTED_BEFORE_EXECUTION",
+      "receipt": "build/gsim/resident-rank-priority-guard-rejection/receipt.json",
+      "sha256": "6b4f1a9b714f54c3258389e645b5f40a4629d47aeac591fb83d9ae4bc6443ed6"
+    },
+    "priorFailuresPreserved": [
+      "build/gsim/resident-rank-priority-r1/checks.log",
+      "build/gsim/resident-rank-priority-r3/receipt.json"
+    ]
+  },
+  "sharedCompileLog": {
+    "path": "build/gsim/resident-rank-priority-r1/shared-compile.log",
+    "sha256": "d461cd7c2b652391dc783069cf32032302be7c5f83469b25f2df67b714c8da98"
+  }
+}

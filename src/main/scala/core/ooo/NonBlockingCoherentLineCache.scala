@@ -20,8 +20,12 @@ class NonBlockingCoherentLineCache(
     val registerProbeLookup: Boolean = false,
     val localReadSelection: Boolean = false,
     val shareStoreWriteData: Boolean = false,
-    val splitCacheableBounds: Boolean = false
+    val splitCacheableBounds: Boolean = false,
+    val disjointEvictionStoreOverlap: Boolean = false
 ) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
+    require(!disjointEvictionStoreOverlap ||
+        (concurrency.independentDemandAdmission && concurrency.memoryScheduleOverlap),
+        "disjoint store/victim overlap requires full-way reservation and split victim scheduling")
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(Set(1, 2).contains(ways) && lines / ways >= 2)
@@ -588,9 +592,13 @@ class NonBlockingCoherentLineCache(
     // snapshot, ticket or maintenance ownership when a disjoint store is admitted.
     private val independentStoreHit = concurrency.independentDemandAdmission.B &&
         !prefetchRefillPending &&
-        (if (concurrency.memoryScheduleOverlap) !queuedEvictionRead else !queuedEvictWanted) && reservationSafe
+        (if (disjointEvictionStoreOverlap) !queuedEvictionRead || queuedEvictIndex =/= index
+         else if (concurrency.memoryScheduleOverlap) !queuedEvictionRead else !queuedEvictWanted) && reservationSafe
     private val storeHitSafe = ((mshrEmpty && wbEmpty) || prefetchOnlyHit || independentStoreHit) &&
-        (evictionState === eIdle || (concurrency.memoryScheduleOverlap.B && evictionState === eSend)) &&
+        // Capture consumes the previous edge's SRAM read result. A store writes
+        // a distinct resident way and does not create a new read-result owner.
+        (evictionState === eIdle || (concurrency.memoryScheduleOverlap.B && evictionState === eSend) ||
+            (disjointEvictionStoreOverlap.B && evictionState === eCapture)) &&
         probeState === pIdle && bypassState === bIdle
     private val barrierSafe = responseEmpty && mshrEmpty && wbEmpty && evictionState === eIdle &&
         probeState === pIdle && bypassState === bIdle

@@ -49,6 +49,24 @@ class RegisteredHeadSelectionGsim extends Module {
     memory.io.issuedIndex := io.issuedIndex
     io.memoryValid := memory.io.selectedValid
     io.memoryIndex := memory.io.selectedIndex
+    // Exercise both resident priority equations through the actual registered
+    // boundary and same-edge head update, including reset, holds and wraparound.
+    val residentPriorities = Seq(false, true).map { rankPriority =>
+        val resident = Module(new ResidentMemoryPreparationSelector(p, predecodedHead = true,
+            rankResidentPriority = rankPriority))
+        resident.io.head := head
+        resident.io.headMask.get := boundary.io.afterHead
+        resident.io.eligible := io.eligible
+        resident.io.resident.valid := true.B
+        resident.io.resident.bits := io.issuedIndex
+        resident.io.issued := io.issued
+        Cat(resident.io.selectedIndex, resident.io.selectedValid, resident.io.useResident,
+            resident.io.freshIndex, resident.io.freshValid, resident.io.freshOwner)
+    }
+    assert(boundary.io.afterHead === VecInit((0 until p.robEntries).map(i => i.U >= head)).asUInt,
+        "resident priority proof must use the actual current registered head boundary")
+    assert(residentPriorities(0) === residentPriorities(1),
+        "resident rank priority must preserve every cycle of the registered-head selector")
     val md = Module(new SplitMulDivSelector(p, predecodedHead = true))
     md.io.head := head
     md.io.headMask.get := boundary.io.afterHead

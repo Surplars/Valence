@@ -9,7 +9,8 @@ import chisel3.util._
   * Fresh source selection never depends on issued; late issued exclusion selects
   * between already available resident/fresh payloads at the existing register.
   */
-class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = false) extends Module {
+class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = false,
+    rankResidentPriority: Boolean = true) extends Module {
     val io = IO(new Bundle {
         val eligible = Input(UInt(p.robEntries.W))
         val head = Input(UInt(p.robBits.W))
@@ -38,10 +39,19 @@ class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = 
     io.freshIndex := OHToUInt(freshOwner)
     io.freshOwner := freshOwner
     val residentEligible = io.resident.valid && (residentOwner & io.eligible).orR
-    val residentAge = io.resident.bits - io.head
-    val freshAge = io.freshIndex - io.head
-    io.useResident := residentEligible && !io.issued &&
-        (!io.freshValid || residentAge < freshAge)
+    // The eligible resident precedes every fresh owner exactly when it is the
+    // first unmodified circular rank. This also covers the sole-owner case;
+    // an empty pool or invalid/ineligible resident cannot set firstIsResident.
+    // Reuse the one-hot result instead of encoding both ages and comparing.
+    // Keep the previous equations selectable for an exact actual-module proof.
+    if (rankResidentPriority) {
+        io.useResident := firstIsResident && !io.issued
+    } else {
+        val residentAge = io.resident.bits - io.head
+        val freshAge = io.freshIndex - io.head
+        io.useResident := residentEligible && !io.issued &&
+            (!io.freshValid || residentAge < freshAge)
+    }
     io.selectedValid := (residentEligible && !io.issued) || io.freshValid
     io.selectedIndex := Mux(io.useResident, io.resident.bits, io.freshIndex)
     when(io.issued) {

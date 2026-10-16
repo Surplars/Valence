@@ -25,11 +25,14 @@ class ResidentLateExclusionGsim extends Module {
         val candidate = Output(UInt(27.W))
         val binaryHead = Output(UInt(27.W))
         val previous = Output(UInt(27.W))
+        val previousPriority = Output(UInt(27.W))
+        val equivalent = Output(Bool())
     })
     val headMask = VecInit((0 until 16).map(i => i.U >= io.head)).asUInt
     val live = io.residentPresent && io.pending && io.savedIndex === io.resident && io.savedTag === io.rowTag
-    val candidate = Seq(false, true).map { predecoded =>
-        val dut = Module(new ResidentMemoryPreparationSelector(p, predecodedHead = predecoded))
+    val candidate = Seq((false, true), (true, true), (true, false)).map { case (predecoded, rankPriority) =>
+        val dut = Module(new ResidentMemoryPreparationSelector(p, predecodedHead = predecoded,
+            rankResidentPriority = rankPriority))
         dut.io.eligible := io.eligible
         dut.io.head := io.head
         dut.io.headMask.foreach(_ := headMask)
@@ -41,6 +44,9 @@ class ResidentLateExclusionGsim extends Module {
     }
     io.binaryHead := candidate(0)
     io.candidate := candidate(1)
+    io.previousPriority := candidate(2)
+    io.equivalent := candidate(0) === candidate(1) && candidate(1) === candidate(2) &&
+        candidate(1) === io.previous
 
     // Frozen pre-change component equations; this path does not call the DUT.
     val residentOwner = Mux(live, UIntToOH(io.resident, 16), 0.U)
@@ -59,4 +65,12 @@ class ResidentLateExclusionGsim extends Module {
 
 object ResidentLateExclusionGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new ResidentLateExclusionGsim, Array("--target-dir", args.head))
+}
+
+/** Same production selector, changing only the proven priority equation. */
+object ResidentPriorityAreaMain extends App {
+    ChiselStage.emitSystemVerilogFile(
+        new ResidentMemoryPreparationSelector(OooParams(robEntries = 16, physicalRegs = 48, tagBits = 64),
+            predecodedHead = true, rankResidentPriority = args(1).toBoolean),
+        Array("--target-dir", args.head), firtoolOpts = Array("--disable-all-randomization", "--strip-debug-info"))
 }

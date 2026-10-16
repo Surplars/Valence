@@ -36,7 +36,8 @@ int main(int argc, char** argv) { try {
             (fresh < 0 ? 0U : (uint32_t(fresh) << 17) | (1U << 16) | (1U << fresh));
         uint32_t actual = dut.get_io$$candidate();
         if (inject && checks == 0) actual ^= 1;
-        if (actual != expected || dut.get_io$$binaryHead() != expected || dut.get_io$$previous() != expected)
+        if (actual != expected || dut.get_io$$binaryHead() != expected || dut.get_io$$previous() != expected ||
+            dut.get_io$$previousPriority() != expected || !dut.get_io$$equivalent())
             throw std::runtime_error("resident late exclusion independent oracle mismatch");
         ++checks; liveChecks += live; staleChecks += present && !live; issuedChecks += issued;
         firstResident += live && first >= 0 && unsigned(first) == resident;
