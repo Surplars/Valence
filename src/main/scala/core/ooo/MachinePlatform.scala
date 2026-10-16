@@ -69,7 +69,7 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -256,6 +256,7 @@ class MachinePlatform(
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         registerNextLineDecision = registerNextLineDecision))
     // The compact-key representation is enabled only for the qualified board fetch domain.
     val qualifiedCompactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&

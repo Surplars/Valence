@@ -8,7 +8,7 @@ object FpgaNextBoardGsim {
     def build(c: FpgaNextConfig, lineageProbes: Boolean = false, verifyConfiguration: Boolean = false,
         sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false,
         proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false,
-        factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false): BoardSocGsim = new BoardSocGsim(
+        factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false): BoardSocGsim = new BoardSocGsim(
         externalDdr = true, clockHz = c.cpuHz, timingProfile = c.timingProfile,
         uartBaud = c.uartBaud, dataCacheWays = c.cacheWays, issueWidth = c.issueWidth,
         instructionPrefetch = c.instructionPrefetch, isaProfile = c.isaProfile,
@@ -71,6 +71,7 @@ object FpgaNextBoardGsim {
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         registerNextLineDecision = registerNextLineDecision,
         combinedTimingR1Audit = combinedTimingR1Audit)
 }

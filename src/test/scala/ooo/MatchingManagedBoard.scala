@@ -82,7 +82,7 @@ class MatchingBoardServices extends Bundle {
 class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = true,
     val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false,
     val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false,
-    val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
+    val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
     require(config.experimentalTriSpeedEthernet && jtagRamDownload,
         "this final assembly requires tri-speed GMAC and the real JTAG RAM loader")
     private val p = config.coreParams
@@ -150,6 +150,7 @@ class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = tr
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         registerNextLineDecision = registerNextLineDecision
     ))
 

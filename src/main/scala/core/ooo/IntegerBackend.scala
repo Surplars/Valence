@@ -83,7 +83,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val proofBankOwnerCleanup: Boolean = false,
     val factorPreparedStorePool: Boolean = false, val projectedRequestHead: Boolean = false,
     val registeredMemoryPreparationDescriptor: Boolean = false,
-    val backendNaturalAlignedPmp: Boolean = false) extends Module {
+    val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    require(!earlyLoadPreparationDescriptor || (registeredMemoryPreparationDescriptor &&
+        p.ownerLocalOperandReady && p.parallelPrfReadyUpdates && p.lvtPhysicalRegisterFile),
+        "early load descriptor requires the existing registered descriptor and owner-ready PRF contract")
     require(!registeredMemoryPreparationDescriptor || (factorPreparedStorePool &&
         p.residentMemoryPayloadReuse && p.preparedStoreLookahead && !p.postedPreparationPriority &&
         p.registeredIssueHeadMask && p.bankedIssuePayload && p.unconditionalMemoryPayloadCapture),
@@ -941,7 +944,18 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                         residentEntry.renamed.token.asUInt === residentToken.asUInt
                     residentMemoryStartAllowed.get := residentLive &&
                         lsu.io.start.bits.token.asUInt === residentToken.asUInt
-                    val planner = Module(new MemoryPreparationDescriptorSelector(p))
+                    // Only metadata reservation may precede registered operand readiness.
+                    // Do not widen originalMemoryMask: stores retain the exact fallback rule.
+                    val waitingLoads = if (earlyLoadPreparationDescriptor) VecInit((0 until p.robEntries).map { i =>
+                        val entry = issueEntries(i)
+                        pending(i) && memoryLive(i) && entry.renamed.token.index === i.U &&
+                            entry.request.memory && !entry.request.store && !entry.request.atomic &&
+                            !entry.request.system && !entry.request.mulDiv && !entry.request.fetchFault &&
+                            !entry.request.fetchPageFault && entry.request.operation === IntegerOp.add &&
+                            entry.request.controlFlow === ControlFlow.none && !ownerReady.get.io.ready1(i)
+                    }).asUInt else 0.U(p.robEntries.W)
+                    val planner = Module(new MemoryPreparationDescriptorSelector(p, earlyLoadPreparationDescriptor))
+                    planner.io.waitingLoads.foreach(_ := waitingLoads)
                     planner.io.eligible := preparationMask
                     planner.io.enabled := preparationPoolEnabled
                     planner.io.head := head
@@ -964,7 +978,20 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     val transfer = planner.io.transfer && !clear && !killed(descriptorIndex)
                     val keepDescriptor = planner.io.keepDescriptor && !clear && !killed(descriptorIndex)
                     val keepResident = planner.io.keepResident && !clear && !killed(residentIndex)
-                    descriptorValid := capture || keepDescriptor
+                    if (earlyLoadPreparationDescriptor) {
+                        // Every killed owner comes from an accepted ledger recovery,
+                        // already included in clear. This caller implication is proved
+                        // on the actual native cone and retained as a live assertion.
+                        // Keep the distinct kill guards on capture/transfer/payload.
+                        assert(!killed.asUInt.orR || clear,
+                            "descriptor owner cancellation must imply its common clear")
+                        val nextDescriptorValid = planner.io.nextDescriptorValid.get && !clear
+                        assert(nextDescriptorValid === (capture || keepDescriptor),
+                            "factored descriptor validity must preserve caller cancellation")
+                        descriptorValid := nextDescriptorValid
+                    } else {
+                        descriptorValid := capture || keepDescriptor
+                    }
                     when(capture) {
                         descriptor.token := fresh.renamed.token
                         descriptor.source1 := fresh.renamed.source1
@@ -1000,17 +1027,23 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                         assert(residentIndex =/= descriptorIndex,
                             "resident and descriptor cannot reserve the same live ROB owner")
                     }
+                    if (earlyLoadPreparationDescriptor) {
+                        when(transfer) {
+                            assert(ownerReady.get.io.ready1(descriptorIndex) || descriptor.saved,
+                                "descriptor transfer requires registered-ready operands")
+                        }
+                    }
                     when(memoryIssued) {
                         assert(residentLive && lsu.io.start.bits.token.asUInt === residentToken.asUInt,
                             "descriptor pipeline can launch only the exact live resident token")
                     }
                     def sourceLifetime(token: RobToken, source1: UInt, source2: UInt, saved: Bool,
-                        live: Bool): Unit = {
+                        live: Bool, waitingLoad: Bool = false.B): Unit = {
                         val entry = issueEntries(token.index)
                         val needsData = entry.request.store || entry.request.atomic
                         def overlaps(address: UInt): Bool = (source1 =/= 0.U && address === source1) ||
                             (needsData && source2 =/= 0.U && address === source2)
-                        val check = Module(new PreparationSourceLifetimeCheck)
+                        val check = Module(new PreparationSourceLifetimeCheck(earlyLoadPreparationDescriptor))
                         check.io.active := live && !saved && !killed(token.index)
                         check.io.mappingMatches := source1 === entry.renamed.source1 &&
                             source2 === entry.renamed.source2
@@ -1020,11 +1053,23 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                             r.valid && overlaps(r.bits)).reduce(_ || _)
                         check.io.written := physicalWrites.get.map(w =>
                             w.valid && overlaps(w.bits.address)).reduce(_ || _)
+                        check.io.waitingLoad.foreach(_ := waitingLoad)
+                        check.io.acceptedProducerWrite.foreach { accepted =>
+                            // Physical writes and wakes have already passed full producer-token,
+                            // nonexception completion acceptance. No current wake feeds selection.
+                            accepted := physicalWrites.get.zip(readyUpdate.get.io.wake.take(p.completionWidth)).map {
+                                case (write, wake) => write.valid && write.bits.address === source1 &&
+                                    wake.valid && wake.bits === source1
+                            }.reduce(_ || _)
+                            when(check.io.active && waitingLoad) {
+                                assert(!needsData && !saved, "only raw ordinary loads may wait in descriptor")
+                            }
+                        }
                     }
                     sourceLifetime(descriptor.token, descriptor.source1, descriptor.source2,
-                        descriptor.saved, descriptorLive)
+                        descriptor.saved, descriptorLive, waitingLoads(descriptorIndex))
                     sourceLifetime(fresh.renamed.token, fresh.renamed.source1, fresh.renamed.source2,
-                        freshSaved, capture)
+                        freshSaved, capture, waitingLoads(planner.io.freshIndex))
                     sourceLifetime(residentToken, residentEntry.renamed.source1, residentEntry.renamed.source2,
                         residentEntry.request.store && storePrepared(residentIndex), residentLive)
                     when(descriptorLive && !killed(descriptorIndex)) {

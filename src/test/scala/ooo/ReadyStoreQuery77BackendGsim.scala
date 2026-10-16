@@ -15,7 +15,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     proofControlInputs: Boolean = false, proofBankQuiesceIntent: Boolean = false,
     proofBankOwnerCleanup: Boolean = false, factorPreparedStorePool: Boolean = false,
     currentProfile: Option[FpgaNextConfig] = None, projectedRequestHead: Boolean = false,
-    registeredMemoryPreparationDescriptor: Boolean = false) extends Module {
+    registeredMemoryPreparationDescriptor: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false) extends Module {
     require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
     val profile = currentProfile.getOrElse(if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
         else ReadyStoreQuery77Profile.select(queryEnabled))
@@ -179,7 +179,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
     val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind,
-        proofBankQuiesceIntent, proofBankOwnerCleanup, factorPreparedStorePool, projectedRequestHead, registeredMemoryPreparationDescriptor))
+        proofBankQuiesceIntent, proofBankOwnerCleanup, factorPreparedStorePool, projectedRequestHead, registeredMemoryPreparationDescriptor, earlyLoadPreparationDescriptor))
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)

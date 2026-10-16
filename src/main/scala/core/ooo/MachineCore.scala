@@ -11,7 +11,7 @@ import soc.ip.interrupt.{Imsic, ImsicParams}
 class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams(),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
@@ -60,7 +60,8 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
-        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp))
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor))
     val imsic = Module(new Imsic(imsicParams))
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse
