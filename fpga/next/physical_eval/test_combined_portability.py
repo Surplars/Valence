@@ -1,13 +1,49 @@
 """Pure mock syntax/subprocess tests: no WSL, Vivado, native RTL, or hardware run."""
 import copy
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 import sys
 import tempfile
 import tkinter
 import unittest
-from combined_contract import validate_constraint_text, validate_validator_revision
+from combined_contract import checked_files, info, validate_constraint_text, validate_validator_revision
+from input_contract import relative_input
 
 HERE = Path(__file__).resolve().parent
+
+
+class ManifestPathTests(unittest.TestCase):
+    def test_posix_manifest_names_are_independent_of_windows_spelling(self):
+        name = 'firmware/bootrom.bin'
+        self.assertNotEqual(str(PureWindowsPath(name)), name)
+        self.assertEqual(PurePosixPath(name).as_posix(), name)
+        with tempfile.TemporaryDirectory(prefix='mock-manifest-') as directory:
+            root = Path(directory)
+            path = root/'firmware'/'bootrom.bin'
+            path.parent.mkdir(); path.write_bytes(b'mock')
+            checked_files(root, {name: info(path)})
+            self.assertEqual(relative_input(root, name), path.resolve())
+        windows_root = PureWindowsPath('C:/mock/input')
+        windows_file = windows_root/PurePosixPath(name)
+        self.assertEqual(windows_file.relative_to(windows_root).as_posix(), name)
+
+    def test_nonportable_manifest_paths_fail_closed(self):
+        for name in ('../escape', 'firmware/../escape', '/absolute', '//server/share',
+                     r'firmware\bootrom.bin', r'\\server\share', 'C:/file', 'C:file',
+                     './firmware/bootrom.bin', 'firmware//bootrom.bin', 'firmware/', ''):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                checked_files(Path(tempfile.gettempdir()), {name: {}})
+
+    def test_resolved_symlink_escape_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix='mock-escape-') as directory:
+            root = Path(directory)/'root'; root.mkdir()
+            outside = Path(directory)/'outside'; outside.mkdir()
+            (outside/'file').write_bytes(b'mock')
+            try:
+                (root/'link').symlink_to(outside, target_is_directory=True)
+            except OSError as error:
+                self.skipTest('Symlink creation unavailable: '+str(error))
+            with self.assertRaisesRegex(ValueError, 'escapes its root'):
+                checked_files(root, {'link/file': info(outside/'file')})
 
 
 class ConstraintCommentTests(unittest.TestCase):

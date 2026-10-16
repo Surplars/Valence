@@ -3,7 +3,7 @@
 This contract deliberately does not call or modify the historical native gate.
 Every accepted export must originate in emit_combined.py's fresh-source wrapper.
 """
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import hashlib
 import json
 import re
@@ -55,7 +55,7 @@ def write(path, value):
 def checked_files(root, entries):
     require(isinstance(entries, dict) and bool(entries), 'Empty file inventory')
     for name, expected in entries.items():
-        require(isinstance(name, str) and name and str(Path(name)) == name, 'Noncanonical file path')
+        require(isinstance(name, str) and name and PurePosixPath(name).as_posix() == name, 'Noncanonical file path')
         path = relative_input(root, name)
         require(path.is_file() and not (Path(root)/name).is_symlink(), 'Missing/symlink input: ' + name)
         require(expected == info(path), 'File bytes/hash mismatch: ' + name)
@@ -103,7 +103,7 @@ def validate_native(root, closure, toolchain):
     require(inventory['schema'] == 'combined-bandwidth-rtl-inventory-v1', 'Wrong inventory schema')
     checked_files(root, inventory['files'])
     emitted = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p.suffix in ('.sv', '.v')}
-    listed = {name for name in inventory['files'] if Path(name).suffix in ('.sv', '.v')}
+    listed = {name for name in inventory['files'] if PurePosixPath(name).suffix in ('.sv', '.v')}
     require(emitted == listed and 'FpgaNextSocTop.sv' in listed, 'Missing/extra RTL inventory')
     require('filelist.f' in inventory['files'], 'Unsealed synthesis filelist')
     filelist = [x.strip() for x in (root/'filelist.f').read_text().splitlines() if x.strip() and not x.startswith('#')]
@@ -230,11 +230,11 @@ def validate_ip(root, inventory, padded, run, ownership=None):
     require(set(IP_FILES) <= set(inventory), 'Missing required four XCI/MIF/two XDC inputs')
     for name in inventory:
         require(name.startswith(('ip-build/', 'mig/')) or name in IP_FILES, 'Unexpected IP input: ' + name)
-        if Path(name).suffix.lower() in ('.dcp', '.edf', '.edif'):
+        if PurePosixPath(name).suffix.lower() in ('.dcp', '.edf', '.edif'):
             validate_ip_asset(root, name, inventory, ownership or {})
     checked_files(root, inventory)
     for name in inventory:
-        if Path(name).suffix.lower() in ('.xdc', '.tcl'):
+        if PurePosixPath(name).suffix.lower() in ('.xdc', '.tcl'):
             text = relative_input(root, name).read_text()
             validate_constraint_text(text, name)
     mif = relative_input(root, IP_FILES[4]).read_text().split()
@@ -242,7 +242,7 @@ def validate_ip(root, inventory, padded, run, ownership=None):
     require(b''.join(int(x, 2).to_bytes(4, 'little') for x in mif) == padded, 'MIF differs from selected ROM')
     config = read(relative_input(root, IP_FILES[0]))['ip_inst']['parameters']['component_parameters']
     coe = config['Coe_File'][0]['value']
-    require(not Path(coe).is_absolute() and '\\' not in coe and ':' not in coe, 'Nonportable ROM COE binding')
+    require(not PurePosixPath(coe).is_absolute() and '\\' not in coe and ':' not in coe, 'Nonportable ROM COE binding')
     require((Path(run)/IP_FILES[0]).parent.joinpath(coe).resolve() == Path(run).resolve()/'firmware/bootrom.coe',
             'ROM XCI must bind this staged COE')
     return inventory
@@ -256,8 +256,8 @@ def validate_ip_asset(root, name, inventory, ownership):
     owner = ownership[name]
     xci = owner.get('xci')
     require(xci in IP_FILES[:4], 'Unknown asset XCI owner: '+name)
-    ip = Path(xci).stem
-    require(ip in Path(name).parts[:-1] and Path(name).stem == ip and
+    ip = PurePosixPath(xci).stem
+    require(ip in PurePosixPath(name).parts[:-1] and PurePosixPath(name).stem == ip and
             name.split('/')[0] == xci.split('/')[0], 'Wrong IP asset directory/top: '+name)
     require(owner.get('xciSha256') == inventory[xci]['sha256'], 'Stale IP asset XCI binding')
     require(owner.get('top') == ip and owner.get('part') == 'xczu15eg-ffvb1156-2-i', 'Wrong IP top/part owner')
