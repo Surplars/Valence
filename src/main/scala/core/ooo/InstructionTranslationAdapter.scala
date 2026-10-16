@@ -6,7 +6,7 @@ import chisel3.util._
 /** Translates a fetch packet before the physical instruction port. Four-word packets are 16-byte aligned and fit
   * in one translation page; the two-word path retains precise handling of a packet crossing a page boundary.
   */
-class InstructionTranslationAdapter(val p: OooParams) extends Module {
+class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
     require(p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
@@ -170,7 +170,14 @@ class InstructionTranslationAdapter(val p: OooParams) extends Module {
         }
 
         val denied = Wire(Vec(packetWords, Bool()))
-        for (word <- 0 until packetWords) {
+        if (sharedTwoWordFetchPmp && p.pmpEntries == 16 && packetWords == 2 &&
+            alignedPacket && p.alignedFetchSinglePage) {
+            val checker = Module(new SharedTwoWordFetchPmp)
+            checker.io.base := Cat(firstPhysical(63, 3), 0.U(3.W))
+            checker.io.state := io.pmpState
+            checker.io.privilege := privilege
+            denied := checker.io.denied
+        } else for (word <- 0 until packetWords) {
             val samePageAddress = if (alignedPacket)
                 Cat(firstPhysical(63, log2Ceil(4 * packetWords)), word.U(log2Ceil(packetWords).W), 0.U(2.W))
             else firstPhysical + (4 * word).U

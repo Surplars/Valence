@@ -19,7 +19,8 @@ class NonBlockingCoherentLineCache(
     returnConfig: Option[CpuReturnConfig] = None,
     val registerProbeLookup: Boolean = false,
     val localReadSelection: Boolean = false,
-    val shareStoreWriteData: Boolean = false
+    val shareStoreWriteData: Boolean = false,
+    val splitCacheableBounds: Boolean = false
 ) extends CoherentLineCacheModule(params, postedConfig, returnConfig, concurrency.internalLineGrant) {
     require(Set(2, 4).contains(concurrency.readMshrs))
     require(lines >= 4 && lines <= 512 && isPow2(lines))
@@ -511,8 +512,12 @@ class NonBlockingCoherentLineCache(
         Mux(!valid(first), first, Mux(!valid(second), second,
             Cat(replacement.get(lineSet(request.address)), lineSet(request.address))))
     }
-    private val cacheable = request.address >= base.U(65.W) &&
-        (request.address +& (1.U(64.W) << request.size)) <= (base + bytes).U(65.W)
+    private val cacheable = if (splitCacheableBounds) {
+        FixedApertureRange(request.address, request.size, base, bytes)
+    } else {
+        request.address >= base.U(65.W) &&
+            (request.address +& (1.U(64.W) << request.size)) <= (base + bytes).U(65.W)
+    }
     private val ordinary = cacheable && !request.atomic && !request.virtualized && !request.uncached
     private val bypass = !ordinary
     private val readHit = ordinary && found && !request.write

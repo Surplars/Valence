@@ -10,7 +10,7 @@ def main():
  a=ap.parse_args();o=a.output.resolve();o.mkdir(parents=True,exist_ok=False);os.nice(10)
  inputs={str(p.relative_to(ROOT)):sha(p) for p in ROOT.glob('src/**/*.scala')}
  for p in [Path(__file__),ROOT/'simulator/gsim/harness/atomic_request_proof.cpp']:inputs[str(p.relative_to(ROOT))]=sha(p)
- env={**os.environ,'JAVA_TOOL_OPTIONS':'-XX:ActiveProcessorCount=2','ASAN_OPTIONS':'detect_leaks=0','UBSAN_OPTIONS':'halt_on_error=1'}
+ env={**os.environ,'JAVA_TOOL_OPTIONS':os.environ.get('JAVA_TOOL_OPTIONS','')+' -XX:ActiveProcessorCount=2','ASAN_OPTIONS':'detect_leaks=0','UBSAN_OPTIONS':'halt_on_error=1'}
  receipt=dict(status='RUNNING',source_inputs=inputs,gsim_sha256=sha(a.gsim),commands=[])
  def save():(o/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
  def run(label,cmd,negative=None):
@@ -36,6 +36,8 @@ def main():
   receipt['positive']=run('positive',[binary])
   run('stale-token-negative',[binary,'stale-token'],'independent stale token oracle mismatch')
   run('permission-negative',[binary,'permission'],'independent permission oracle mismatch')
+  run('canonical-negative',[binary,'canonical'],'independent canonical oracle mismatch')
+  run('frozen-negative',[binary,'frozen'],'independent frozen oracle mismatch')
   receipt['status']='PASS_ATOMIC_FIFO_AB_HOST_ORACLE';save()
  except BaseException as e:
   receipt.update(status='FAILED_PRESERVE_EVIDENCE',failure=str(e));save();raise

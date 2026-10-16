@@ -1,0 +1,44 @@
+{
+  "status": "reconstructed candidate; not byte-identical recovery",
+  "upstream_repository": "https://github.com/OpenXiangShan/gsim.git",
+  "upstream_revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+  "binary_sha256": "f00067c6158db342927ad0d746109ad745298fd4ebe9707fd951998069587116",
+  "patch_sha256": "bc8fcccc32779dfc2e0a314187f8acaf4d94a56a51111cca6c4d59117173cc16",
+  "focused_executions": [
+    "RecoveryInit normal PASS",
+    "RecoveryInit RANDOMIZE_INIT PASS",
+    "RecoveryVec normal PASS",
+    "RecoveryVec RANDOMIZE_INIT PASS",
+    "RecoverySignedWideVec normal PASS",
+    "RecoverySignedWideVec RANDOMIZE_INIT PASS"
+  ],
+  "upstream_emit_pass": [
+    "array-narrowing",
+    "cat-eq-constant",
+    "dshr-overshift",
+    "dynamic-vector-index",
+    "repro-usefulreset",
+    "signed-constant-slice",
+    "signed-node-shr"
+  ],
+  "upstream_runtime_pass": [
+    "array-narrowing",
+    "cat-eq-constant",
+    "dshr-overshift",
+    "dynamic-vector-index",
+    "signed-constant-slice",
+    "signed-node-shr"
+  ],
+  "sanitizers": "AddressSanitizer + UndefinedBehaviorSanitizer, -fno-sanitize-recover=all; ASAN_OPTIONS=detect_leaks=0 due to executor ptrace limitation",
+  "negative_control": "pristine pin emits narrow width=3 and init byte-zero test aborts exit134",
+  "boundaries": [
+    "No full hardware acceptance",
+    "No Verilator",
+    "No push or commit",
+    "No claim to reproduce former eight-fixture/47-command certificate",
+    "No main GSIM binary replacement",
+    "Archive local only until saved off executor"
+  ],
+  "additional_fixture_coverage": "Signed9-bit Vec, negative constant Vec explicit physical unsigned cast,129-bit logical Vec in192-bit physical lane storage",
+  "intermediate_defect": "Earlier candidate failed signed negative constant list-initialization; final patch adds explicit storage-type cast and all focused fixtures rerun"
+}

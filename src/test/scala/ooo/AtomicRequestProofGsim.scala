@@ -6,7 +6,7 @@ import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
 /** Frozen 22bbd0db FIFO wiring versus the production candidate, plus an external
-  * host deque oracle. Both unchanged sidecars follow fire, including invalid proof.
+  * host deque oracle. Canonical and frozen sidecars use the candidate atomic entry.
   */
 class AtomicRequestProofGsim extends Module {
     val p = ThreeProofRowNativeProfile.config.coreParams
@@ -30,6 +30,8 @@ class AtomicRequestProofGsim extends Module {
         val outFlags = Output(UInt(6.W))
         val outOrigin = Output(UInt(64.W))
         val outFrozen = Output(UInt(64.W))
+        val outOriginValid = Output(Bool())
+        val outFrozenValid = Output(Bool())
     })
     // flush/quiesce are observations only: original FIFO has neither clear nor
     // admission control. Upstream owns admission; already accepted owners drain.
@@ -64,6 +66,15 @@ class AtomicRequestProofGsim extends Module {
     proof.bits.legacyPostedAccepted := io.flags(4)
     proof.bits.finalChecked := io.flags(5)
 
+    // Independent sidecar validity and nonzero upper payload bits exercise full
+    // token/epoch/physical-address transport, including posted-invalid requests.
+    val originInput = Wire(Valid(new CanonicalStoreOrigin(p)))
+    originInput.valid := io.id(2)
+    originInput.bits := Cat(io.id ^ "h13579bdf2468ace0".U, io.id).asTypeOf(originInput.bits)
+    val frozenInput = Wire(Valid(new FrozenStoreProof))
+    frozenInput.valid := io.id(3)
+    frozenInput.bits := Cat(io.id ^ "hfedcba9876543210".U, ~io.id, ~io.id).asTypeOf(frozenInput.bits)
+
     val legacy = Module(new Queue(new DataRequest(p.dataReturnHandleBits), 4, pipe = false, flow = false))
     val oldProof = Module(new Queue(Valid(new PostedStoreProof(c)), 4, pipe = false, flow = false))
     legacy.io.enq.valid := io.valid
@@ -80,12 +91,16 @@ class AtomicRequestProofGsim extends Module {
     candidate.io.enq.bits := request
     candidate.io.deq.ready := io.ready
     candidate.proofIn.get := proof
+    candidate.canonicalOriginIn.get := originInput
+    candidate.frozenProofIn.get := frozenInput
     val noProof = Module(new RegisteredRequestQueue(p.copy(postedStoreMerge = false,
         postedYoungerLoadSealDeferral = false, postedPrefetchHeadOffer = false,
         postedPreparationPriority = false)))
     noProof.io.enq.valid := io.valid
     noProof.io.enq.bits := request
     noProof.io.deq.ready := io.ready
+    noProof.canonicalOriginIn.get := originInput
+    noProof.frozenProofIn.get := frozenInput
     assert(noProof.io.enq.ready === legacy.io.enq.ready && noProof.io.deq.valid === legacy.io.deq.valid)
     assert(noProof.io.count === legacy.io.count)
     when(legacy.io.deq.valid) { assert(noProof.io.deq.bits.asUInt === legacy.io.deq.bits.asUInt) }
@@ -97,18 +112,16 @@ class AtomicRequestProofGsim extends Module {
         assert(candidate.proofOut.get.asUInt === oldProof.io.deq.bits.asUInt, "A/B full saved proof")
     }
     assert(!candidate.proofOut.get.valid || candidate.io.deq.valid, "no early permission publish")
-    // Exact production sidecar types and fire wiring on both arms. Test them even
-    // when a profile would elaborate one OFF, without enabling new production modes.
+    // Frozen pre-consolidation sidecars remain the reference only. The candidate
+    // outputs below come from its real single atomic FIFO, never shadow queues.
     def sidecars(q: QueueIO[DataRequest]): (UInt, UInt) = {
         val origin = Module(new Queue(Valid(new CanonicalStoreOrigin(p)), 4, pipe = false, flow = false))
         val frozen = Module(new Queue(Valid(new FrozenStoreProof), 4, pipe = false, flow = false))
         origin.io.enq.valid := q.enq.fire
-        origin.io.enq.bits.bits := io.id.asTypeOf(origin.io.enq.bits.bits)
-        origin.io.enq.bits.valid := io.id(2)
+        origin.io.enq.bits := originInput
         origin.io.deq.ready := q.deq.fire
         frozen.io.enq.valid := q.enq.fire
-        frozen.io.enq.bits.bits := (~io.id).asTypeOf(frozen.io.enq.bits.bits)
-        frozen.io.enq.bits.valid := io.id(3)
+        frozen.io.enq.bits := frozenInput
         frozen.io.deq.ready := q.deq.fire
         assert(origin.io.deq.valid === q.deq.valid, "canonical sidecar transfer alignment")
         assert(frozen.io.deq.valid === q.deq.valid, "frozen sidecar transfer alignment")
@@ -116,9 +129,11 @@ class AtomicRequestProofGsim extends Module {
         (origin.io.deq.bits.asUInt, frozen.io.deq.bits.asUInt)
     }
     val oldSide = sidecars(legacy.io)
-    val newSide = sidecars(candidate.io)
+    val newSide = (candidate.canonicalOriginOut.get.asUInt, candidate.frozenProofOut.get.asUInt)
     when(candidate.io.deq.valid) {
         assert(oldSide._1 === newSide._1 && oldSide._2 === newSide._2, "A/B both full sidecar payloads")
+        assert(noProof.canonicalOriginOut.get.asUInt === oldSide._1, "posted-OFF canonical full payload")
+        assert(noProof.frozenProofOut.get.asUInt === oldSide._2, "posted-OFF frozen full payload")
     }
     io.enqReady := candidate.io.enq.ready
     io.deqValid := candidate.io.deq.valid
@@ -133,6 +148,10 @@ class AtomicRequestProofGsim extends Module {
         candidate.proofOut.get.bits.headAuthorized)
     io.outOrigin := newSide._1
     io.outFrozen := newSide._2
+    io.outOriginValid := candidate.canonicalOriginOut.get.valid
+    io.outFrozenValid := candidate.frozenProofOut.get.valid
+    assert(!io.outOriginValid || candidate.io.deq.valid, "no empty canonical publish")
+    assert(!io.outFrozenValid || candidate.io.deq.valid, "no empty frozen publish")
 }
 
 object AtomicRequestProofGsimMain extends App {

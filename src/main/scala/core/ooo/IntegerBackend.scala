@@ -269,27 +269,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 stores.io.upstreamProof.get := requests.proofOut.get
             }
             if (p.canonicalVirtualStoreOverlap) {
-                val origins = Module(new Queue(Valid(new CanonicalStoreOrigin(p)), p.memoryEntries,
-                    pipe = false, flow = false))
-                origins.io.enq.valid := requests.io.enq.fire
-                origins.io.enq.bits := lsu.io.canonicalStoreOrigin.get
-                origins.io.deq.ready := requests.io.deq.fire
-                stores.io.upstreamCanonicalStoreOrigin.get := origins.io.deq.bits
-                stores.io.upstreamCanonicalStoreOrigin.get.valid := requests.io.deq.valid && origins.io.deq.bits.valid
-                assert(origins.io.deq.valid === requests.io.deq.valid,
-                    "canonical origin FIFO shares every registered request transfer")
-                when(requests.io.enq.fire) { assert(origins.io.enq.ready) }
+                requests.canonicalOriginIn.get := lsu.io.canonicalStoreOrigin.get
+                stores.io.upstreamCanonicalStoreOrigin.get := requests.canonicalOriginOut.get
             }
             if (p.frozenStoreProofEnabled) {
-                val frozen = Module(new Queue(Valid(new FrozenStoreProof), p.memoryEntries, pipe = false, flow = false))
-                frozen.io.enq.valid := requests.io.enq.fire
-                frozen.io.enq.bits := lsu.io.frozenStoreProof.get
-                frozen.io.deq.ready := requests.io.deq.fire
-                stores.io.upstreamFrozenStoreProof.get := frozen.io.deq.bits
-                stores.io.upstreamFrozenStoreProof.get.valid := requests.io.deq.valid && frozen.io.deq.bits.valid
-                assert(frozen.io.deq.valid === requests.io.deq.valid,
-                    "frozen store tuple shares every original DataRequest transfer")
-                when(requests.io.enq.fire) { assert(frozen.io.enq.ready) }
+                requests.frozenProofIn.get := lsu.io.frozenStoreProof.get
+                stores.io.upstreamFrozenStoreProof.get := requests.frozenProofOut.get
             }
             stores.io.upstream.request <> requests.io.deq
             // Queue storage is undefined while empty. Keep only the size/shift

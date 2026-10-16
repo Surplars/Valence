@@ -123,3 +123,40 @@ class PmpFetchWordSpan(entries: Int, balancedComparisons: Boolean = false) exten
         io.denied := Mux(first._1, first._2, io.privilege =/= 3.U)
     }
 }
+
+/** Two aligned words in one eight-byte packet. Shares only the packet-high
+  * comparisons; lane membership, first-entry priority and permissions stay
+  * independent. Combinational, with no added latency or storage. Decoded bounds
+  * retain all 65 bits, including test states outside the 56-bit physical domain.
+  */
+class SharedTwoWordFetchPmp extends Module {
+    val io = IO(new Bundle {
+        val base = Input(UInt(64.W))
+        val state = Input(new PmpState)
+        val privilege = Input(UInt(2.W))
+        val denied = Output(Vec(2, Bool()))
+    })
+    assert(io.base(2, 0) === 0.U, "shared fetch PMP requires an eight-byte aligned packet")
+    val high = Cat(0.U(1.W), io.base(63, 3))
+    val relations = (0 until 16).map { i =>
+        when(io.state.regionActive(i)) {
+            assert(io.state.regionLow(i)(1, 0) === 0.U && io.state.regionEnd(i)(1, 0) === 3.U,
+                "word PMP requires complete decoded four-byte region granules")
+        }
+        val low = io.state.regionLow(i)(64, 3)
+        val end = io.state.regionEnd(i)(64, 3)
+        (high > low, high === low, high < end, high === end)
+    }
+    for (lane <- 0 until 2) {
+        val facts = (0 until 16).map { i =>
+            val (above, atLow, below, atEnd) = relations(i)
+            val lower = above || (atLow && (if (lane == 0) !io.state.regionLow(i)(2) else true.B))
+            val upper = below || (atEnd && (if (lane == 0) true.B else io.state.regionEnd(i)(2)))
+            val hit = io.state.regionActive(i) && lower && upper
+            val allowed = (io.privilege === 3.U && !io.state.cfg(i)(7)) || io.state.cfg(i)(2)
+            (hit, !allowed)
+        }
+        val first = PmpFetchPriority.first(facts)
+        io.denied(lane) := Mux(first._1, first._2, io.privilege =/= 3.U)
+    }
+}

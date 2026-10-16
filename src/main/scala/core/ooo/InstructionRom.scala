@@ -108,7 +108,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
     independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
     val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false,
-    val compactCacheKeys: Boolean = false) extends Module {
+    val compactCacheKeys: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -439,7 +439,13 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val permissionBase = if (fetchAddressBeforePmp) lockedBase else fetchBase
         val permissionContext = if (fetchAddressBeforePmp) lockedContext else context
         val allowed = Wire(Vec(fetchWords, Bool()))
-        for (lane <- 0 until fetchWords) {
+        if (sharedTwoWordFetchPmp && pmpEntries == 16 && fetchWords == 2 && alignedFetchPmp) {
+            val checker = Module(new SharedTwoWordFetchPmp)
+            checker.io.base := Cat(permissionBase(63, 3), 0.U(3.W))
+            checker.io.state := io.pmpState
+            checker.io.privilege := permissionContext(1, 0)
+            for (lane <- 0 until 2) allowed(lane) := !checker.io.denied(lane)
+        } else for (lane <- 0 until fetchWords) {
             val checker = Module(new PmpChecker(pmpEntries, alignedWordAccess = alignedFetchPmp,
                 decodedWordGranularity = alignedFetchPmp))
             checker.io.state := io.pmpState

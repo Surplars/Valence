@@ -1,0 +1,188 @@
+diff --git a/src/cppEmitter.cpp b/src/cppEmitter.cpp
+index 0e05e86..a9b2b00 100644
+--- a/src/cppEmitter.cpp
++++ b/src/cppEmitter.cpp
+@@ -163,6 +163,8 @@ FILE* graph::genHeaderStart() {
+   includeLib(header, "cstring", true);
+   includeLib(header, "map", true);
+   includeLib(header, "cstdarg", true);
++  includeLib(header, "cstddef", true);
++  includeLib(header, "type_traits", true);
+   newLine(header);
+ 
+   fprintf(header, "\n// User configuration\n");
+@@ -210,12 +212,50 @@ FILE* graph::genHeaderStart() {
+   return header;
+ }
+ 
++// Public Vec ABI matches the padded physical backing array. Logical lanes alone
++// participate in setter comparison/copy; padding never drives activation.
++static std::string interfaceDimensions(Node* node) {
++  std::string dims;
++  for (int dim : node->dimension) dims += format("[%d]", upperPower2(dim));
++  return dims;
++}
++
++static std::string constantArrayInitializer(Node* node, size_t dimension) {
++  if (dimension == node->dimension.size()) {
++    // Signed constants are represented in unsigned physical storage. An explicit
++    // conversion preserves the bits without C++ list-initialization narrowing.
++    return format("static_cast<%s>(%s)", widthUType(node->width).c_str(), node->computeInfo->valStr.c_str());
++  }
++  std::string value = "{";
++  for (int i = 0; i < node->dimension[dimension]; ++i) {
++    if (i) value += ", ";
++    value += constantArrayInitializer(node, dimension + 1);
++  }
++  return value + "}"; // omitted padding lanes are value-initialized to zero
++}
++
+ void graph::genInterfaceInput(Node* input) {
+-  /* set by string */
+-  emitFuncDecl(0, "void S%s::set_%s(%s val) {\n", name.c_str(), input->name.c_str(), widthUType(input->width).c_str());
+-  emitBodyLock(1, "if (%s != val) { \n", input->name.c_str());
+-  emitBodyLock(2, "%s = val;\n", input->name.c_str());
+-  /* update nodes in the same superNode */
++  const bool array = !input->dimension.empty();
++  if (array) {
++    emitFuncDecl(0, "void S%s::set_%s(const %s (&val)%s) {\n", name.c_str(), input->name.c_str(), widthUType(input->width).c_str(), interfaceDimensions(input).c_str());
++    emitBodyLock(1, "bool changed = false;\n");
++    std::string suffix;
++    int indent = 1;
++    for (size_t i = 0; i < input->dimension.size(); ++i) {
++      emitBodyLock(indent++, "for (size_t i%zu = 0; i%zu < %d; ++i%zu) {\n", i, i, input->dimension[i], i);
++      suffix += format("[i%zu]", i);
++    }
++    emitBodyLock(indent, "if (this->%s%s != val%s) {\n", input->name.c_str(), suffix.c_str(), suffix.c_str());
++    emitBodyLock(indent + 1, "this->%s%s = val%s;\n", input->name.c_str(), suffix.c_str(), suffix.c_str());
++    emitBodyLock(indent + 1, "changed = true;\n");
++    emitBodyLock(indent, "}\n");
++    for (size_t i = 0; i < input->dimension.size(); ++i) emitBodyLock(--indent, "}\n");
++    emitBodyLock(1, "if (changed) {\n");
++  } else {
++    emitFuncDecl(0, "void S%s::set_%s(%s val) {\n", name.c_str(), input->name.c_str(), widthUType(input->width).c_str());
++    emitBodyLock(1, "if (this->%s != val) { \n", input->name.c_str());
++    emitBodyLock(2, "this->%s = val;\n", input->name.c_str());
++  }
+   std::set<int> allNext;
+   for (Node* next : input->next) {
+     if (next->super->cppId >= 0) allNext.insert(next->super->cppId);
+@@ -230,11 +270,22 @@ void graph::genInterfaceInput(Node* input) {
+ }
+ 
+ void graph::genInterfaceOutput(Node* output) {
+-  emitFuncDecl(0, "%s S%s::get_%s() {\n"
+-               "  return %s;\n"
+-               "}\n",
+-               widthUType(output->width).c_str(), name.c_str(),
+-               output->name.c_str(), output->status == CONSTANT_NODE ? output->computeInfo->valStr.c_str() : output->name.c_str());
++  if (!output->dimension.empty()) {
++    emitFuncDecl(0, "const %s (&S%s::get_%s() const)%s {\n", widthUType(output->width).c_str(), name.c_str(), output->name.c_str(), interfaceDimensions(output).c_str());
++    if (output->status == CONSTANT_NODE) {
++      emitBodyLock(1, "static const %s value%s = %s;\n", widthUType(output->width).c_str(), interfaceDimensions(output).c_str(), constantArrayInitializer(output, 0).c_str());
++      emitBodyLock(1, "return value;\n");
++    } else {
++      emitBodyLock(1, "return this->%s;\n", output->name.c_str());
++    }
++    emitBodyLock(0, "}\n");
++  } else {
++    emitFuncDecl(0, "%s S%s::get_%s() {\n"
++                 "  return %s;\n"
++                 "}\n",
++                 widthUType(output->width).c_str(), name.c_str(),
++                 output->name.c_str(), output->status == CONSTANT_NODE ? output->computeInfo->valStr.c_str() : ("this->" + output->name).c_str());
++  }
+ }
+ 
+ void graph::genHeaderEnd(FILE* fp) {
+@@ -345,14 +396,14 @@ void graph::genNodeDef(FILE* fp, Node* node) {
+     (((w < 64) && (w != 8 && w != 16 && w != 32 && w != 64)) || ((w > 64) && (w % 32 != 0)));
+   if (needInitMask) {
+     if (node->dimension.empty()) {
+-      emitBodyLock(1, "%s &= %s;\n", node->name.c_str(), bitMask(w).c_str());
++      emitBodyLock(1, "this->%s &= %s;\n", node->name.c_str(), bitMask(w).c_str());
+     } else {
+       int indent = 1;
+       int dims = node->dimension.size();
+       for (int i = 0; i < dims; i ++) {
+         emitBodyLock(indent ++, "for (int i%d = 0; i%d < %d; i%d ++) {\n", i, i, node->dimension[i], i);
+       }
+-      emitBodyLock(indent, "%s", node->name.c_str());
++      emitBodyLock(indent, "this->%s", node->name.c_str());
+       for (int i = 0; i < dims; i ++) { emitBodyLock(0, "[i%d]", i); }
+       emitBodyLock(0, "&= %s;\n", bitMask(w).c_str());
+       for (int i = 0; i < dims; i ++) { emitBodyLock(-- indent, "}\n"); }
+@@ -364,7 +415,7 @@ void graph::genNodeDef(FILE* fp, Node* node) {
+     Assert(!node->isArray() && node->width <= BASIC_WIDTH, "%s is treated as reset (isArray: %d width: %d)", node->name.c_str(), node->isArray(), node->width);
+     fprintf(fp, "%s %s;\n", widthUType(node->width).c_str(), RESET_NAME(node).c_str());
+     if (needInitMask) {
+-      emitBodyLock(1, "%s = %s & %s;\n", RESET_NAME(node).c_str(), RESET_NAME(node).c_str(), bitMask(w).c_str());
++      emitBodyLock(1, "this->%s = this->%s & %s;\n", RESET_NAME(node).c_str(), RESET_NAME(node).c_str(), bitMask(w).c_str());
+     }
+   }
+ }
+@@ -861,10 +912,16 @@ void graph::cppEmitter() {
+   }
+   emitBodyLock(1, "for (int i = 0; i < %d; i ++) validActive[i] = 0;\n", superId);
+ #endif
++  emitBodyLock(1, "static_assert(std::is_standard_layout<S%s>::value, \"state initialization requires standard layout\");\n", name.c_str());
++  emitBodyLock(1, "auto *stateBegin = reinterpret_cast<unsigned char *>(this) + offsetof(S%s, _var_start);\n", name.c_str());
++  emitBodyLock(1, "constexpr size_t stateBytes = offsetof(S%s, _var_end) - offsetof(S%s, _var_start);\n", name.c_str(), name.c_str());
+   emitBodyLock(0, "#ifdef RANDOMIZE_INIT\n"
+                "  srand((unsigned int)time(NULL));\n"
+-               "  for (uint32_t *p = &_var_start; p != &_var_end; p ++) {\n"
+-               "    *p = rand();\n"
++               "  for (size_t offset = 0; offset < stateBytes;) {\n"
++               "    uint32_t value = rand();\n"
++               "    size_t bytes = stateBytes - offset < sizeof(value) ? stateBytes - offset : sizeof(value);\n"
++               "    memcpy(stateBegin + offset, &value, bytes);\n"
++               "    offset += bytes;\n"
+                "  }\n"
+                "// mask out the bits out of the width range\n");
+ 
+@@ -884,10 +941,10 @@ void graph::cppEmitter() {
+   fprintf(header, "uint32_t _var_end;\n");
+ 
+   emitBodyLock(0, "// initialize registers with reset value 0 to overwrite the rand() results\n" );
+-  emitBodyLock(1, "memset(&_var_start, 0, &_var_end - &_var_start);\n");
++  emitBodyLock(1, "memset(stateBegin, 0, stateBytes);\n");
+ 
+   emitBodyLock(0, "#else\n" // RANDOMIZE_INIT
+-               "  memset(&_var_start, 0, &_var_end - &_var_start);\n"
++               "  memset(stateBegin, 0, stateBytes);\n"
+                "#endif\n");
+ 
+   fprintf(header, "S%s();\n", name.c_str());
+@@ -903,11 +960,17 @@ void graph::cppEmitter() {
+ 
+    /* input/output interface */
+   for (Node* node : input) {
+-    fprintf(header, "void set_%s(%s val);\n", node->name.c_str(), widthUType(node->width).c_str());
++    if (node->dimension.empty())
++      fprintf(header, "void set_%s(%s val);\n", node->name.c_str(), widthUType(node->width).c_str());
++    else
++      fprintf(header, "void set_%s(const %s (&val)%s);\n", node->name.c_str(), widthUType(node->width).c_str(), interfaceDimensions(node).c_str());
+     genInterfaceInput(node);
+   }
+   for (Node* node : output) {
+-    fprintf(header, "%s get_%s();\n", widthUType(node->width).c_str(), node->name.c_str());
++    if (node->dimension.empty())
++      fprintf(header, "%s get_%s();\n", widthUType(node->width).c_str(), node->name.c_str());
++    else
++      fprintf(header, "const %s (&get_%s() const)%s;\n", widthUType(node->width).c_str(), node->name.c_str(), interfaceDimensions(node).c_str());
+     genInterfaceOutput(node);
+   }
+ 
+diff --git a/src/usedBits.cpp b/src/usedBits.cpp
+index 6cfdf0b..0c2ed53 100644
+--- a/src/usedBits.cpp
++++ b/src/usedBits.cpp
+@@ -152,6 +152,8 @@ void graph::usedBits() {
+   for (Node* special : specialNodes) checkNodes.push_back(special);
+   for (Node* reg : regsrc) checkNodes.push_back(reg->getDst());
+   for (Node* out : output) checkNodes.push_back(out);
++  // Top-level inputs are externally visible; preserve their declared ABI width.
++  for (Node* in : input) checkNodes.push_back(in);
+   for (Node* mem : memory) { // all memory input
+     for (Node* port : mem->member) {
+       if (port->type == NODE_READER) checkNodes.push_back(port);

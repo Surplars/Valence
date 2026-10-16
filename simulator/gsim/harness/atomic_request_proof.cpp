@@ -20,6 +20,8 @@ int main(int argc,char**argv)try{
   check(d.get_io$$deqValid()==outValid,"independent non-flow publish mismatch");
   check(d.get_io$$count()==expected.size(),"independent occupancy mismatch");
   check(!d.get_io$$outProofValid() || outValid,"permission published while empty");
+  check(!d.get_io$$outOriginValid() || outValid,"canonical published while empty");
+  check(!d.get_io$$outFrozenValid() || outValid,"frozen published while empty");
   if(outValid){
    auto e=expected.front();uint64_t tag=d.get_io$$outTag();unsigned f=d.get_io$$outFlags();
    if(mutation=="stale-token")tag^=1;
@@ -29,7 +31,13 @@ int main(int argc,char**argv)try{
    check(d.get_io$$outProofValid()==e.proof,"false-proof load skipped or permission changed");
    check(tag==(e.id^0xdecaf123456789abULL),"independent stale token oracle mismatch");
    check(f==e.flags,"independent permission oracle mismatch");
-   check(d.get_io$$outOrigin()==e.id && d.get_io$$outFrozen()==~e.id,"independent sidecar payload alignment mismatch");
+   uint64_t origin=d.get_io$$outOrigin(),frozen=d.get_io$$outFrozen();
+   if(mutation=="canonical")origin^=1;
+   if(mutation=="frozen")frozen^=1;
+   check(origin==e.id,"independent canonical oracle mismatch");
+   check(frozen==~e.id,"independent frozen oracle mismatch");
+   check(d.get_io$$outOriginValid()==bool(e.id&4),"independent canonical valid mismatch");
+   check(d.get_io$$outFrozenValid()==bool(e.id&8),"independent frozen valid mismatch");
   }
   full+=!inReady;stalled+=outValid&&!ready;simultaneous+=valid&&inReady&&ready&&outValid;
   flushLive+=flush&&outValid;quiesceLive+=quiesce&&outValid;
