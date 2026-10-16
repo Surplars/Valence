@@ -1,0 +1,223 @@
+#include "PrearbiterBoundaryGsim.h"
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <stdexcept>
+#include <string_view>
+
+#ifndef PREARBITER_BOUNDARY
+#define PREARBITER_BOUNDARY 0
+#endif
+
+#ifndef LINE_DISPATCH_FLOW
+#define LINE_DISPATCH_FLOW 0
+#endif
+
+static void check(bool condition, const char *message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
+static uint64_t lineWord(uint64_t address, unsigned beat) {
+    return 0x243f6a8885a308d3ULL ^ (address * 0x100000001b3ULL) ^
+           (uint64_t(beat + 1) * 0x0102040810204081ULL);
+}
+
+static void drive(SPrearbiterBoundaryGsim &dut, bool request, uint64_t address, unsigned tag,
+                  bool aReady, bool responseReady, bool dValid = false, unsigned source = 0,
+                  bool denied = false) {
+    dut.set_io$$contender$$valid(0);
+    dut.set_io$$contenderReply$$ready(1);
+    dut.set_io$$request$$valid(request);
+    dut.set_io$$request$$bits$$address(address);
+    dut.set_io$$request$$bits$$tag(tag);
+    dut.set_io$$word0(lineWord(address, 0));
+    dut.set_io$$word1(lineWord(address, 1));
+    dut.set_io$$word2(lineWord(address, 2));
+    dut.set_io$$word3(lineWord(address, 3));
+    dut.set_io$$word4(lineWord(address, 4));
+    dut.set_io$$word5(lineWord(address, 5));
+    dut.set_io$$word6(lineWord(address, 6));
+    dut.set_io$$word7(lineWord(address, 7));
+    dut.set_io$$response$$ready(responseReady);
+    dut.set_io$$tl$$a$$ready(aReady);
+    dut.set_io$$tl$$d$$valid(dValid);
+    dut.set_io$$tl$$d$$bits$$opcode(0); // AccessAck
+    dut.set_io$$tl$$d$$bits$$param(0);
+    dut.set_io$$tl$$d$$bits$$size(6);
+    dut.set_io$$tl$$d$$bits$$source(source);
+    dut.set_io$$tl$$d$$bits$$sink(0);
+    dut.set_io$$tl$$d$$bits$$denied(denied);
+    dut.set_io$$tl$$d$$bits$$data(0);
+    dut.set_io$$tl$$d$$bits$$corrupt(0);
+    dut.set_io$$tl$$b$$valid(0);
+    dut.set_io$$tl$$c$$ready(1);
+    dut.set_io$$tl$$e$$ready(1);
+}
+
+int main(int argc, char **argv) { try {
+    const bool inject = argc == 2 && std::string_view(argv[1]) == "--inject-mismatch";
+    SPrearbiterBoundaryGsim dut;
+    constexpr uint64_t base = 0x80010000ULL;
+    drive(dut, false, 0, 0, false, false);
+    dut.set_reset(1);
+    dut.step();
+    dut.step();
+    dut.set_reset(0);
+
+    // Backend robustness: invalid FIFO storage is architecturally unobservable.
+    // Poison only the empty queue, then prove idle/backpressure remains quiet.
+    // Real enqueues must overwrite each owner before that owner can be consumed.
+    for (auto &slot : dut.write$sendQueue$ram) slot = 0xff;
+    for (unsigned idle = 0; idle < 8; ++idle) {
+        drive(dut, false, 0, 0, idle & 1, idle & 1);
+        dut.step();
+        check(!dut.get_io$$tl$$a$$valid() && !dut.get_io$$response$$valid(),
+              "empty poisoned queue emitted a transaction");
+    }
+
+    std::array<unsigned, 4> sourceForRequest{};
+    std::array<bool, 4> seenSource{};
+    unsigned requests = 0, aBeats = 0, heldA = 0, firstOffer = 99;
+    for (unsigned cycle = 0; cycle < 120 && (requests < 4 || aBeats < 32); ++cycle) {
+        const bool ready = cycle % 3 != 1;
+        drive(dut, requests < 4, base + 64 * requests, 0x30 + requests, ready, false);
+        dut.step();
+        check(!dut.get_io$$tl$$c$$valid() && !dut.get_io$$tl$$e$$valid(),
+              "line write unexpectedly emitted a coherence message");
+        if (requests < 4 && dut.get_io$$request$$ready()) ++requests;
+        if (dut.get_io$$tl$$a$$valid()) {
+            if (firstOffer == 99) firstOffer = cycle;
+            const unsigned index = aBeats / 8, beat = aBeats % 8;
+            const unsigned source = dut.get_io$$tl$$a$$bits$$source();
+            check(index < 4 && source >= 8 && source < 12 &&
+                  dut.get_io$$tl$$a$$bits$$opcode() == 0 &&
+                  dut.get_io$$tl$$a$$bits$$size() == 6 &&
+                  dut.get_io$$tl$$a$$bits$$mask() == 255 &&
+                  dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
+                  dut.get_io$$tl$$a$$bits$$data() == (lineWord(base + 64 * index, beat) ^
+                      uint64_t(inject && aBeats == 0)),
+                  "line write oracle mismatch: A source, address, beat order or data");
+            if (beat == 0 && ready) {
+                check(!seenSource[source & 7], "line write reused a live source");
+                seenSource[source & 7] = true;
+                sourceForRequest[index] = source;
+            } else if (beat != 0) {
+                check(sourceForRequest[index] == source, "line write A source changed within burst");
+            }
+            if (ready) ++aBeats;
+            else ++heldA;
+        }
+    }
+    check(requests == 4 && aBeats == 32 && heldA > 0,
+          "four line writes did not issue under A backpressure");
+    check(firstOffer == (LINE_DISPATCH_FLOW ? 1U : 2U) + PREARBITER_BOUNDARY, "line write dispatch latency contract changed");
+    std::cout << "LINE_WRITE_DISPATCH first_a_offer=" << firstOffer << "\n";
+    drive(dut, true, base + 256, 0x34, true, false);
+    dut.step();
+    check(!dut.get_io$$request$$ready(), "fifth line write overcommitted slots");
+
+    for (unsigned index : {3U, 1U, 2U, 0U}) {
+        drive(dut, false, 0, 0, true, false, true, sourceForRequest[index], index == 2);
+        dut.step();
+        check(dut.get_io$$tl$$d$$ready(), "line write stalled a pending D acknowledgement");
+        if (index != 3) check(dut.get_io$$response$$valid() &&
+            dut.get_io$$response$$bits$$tag() == 0x33 && !dut.get_io$$response$$bits$$error(),
+            "lower completion replaced a stalled line write owner");
+    }
+    for (unsigned cycle = 0; cycle < 3; ++cycle) {
+        drive(dut, false, 0, 0, true, false);
+        dut.step();
+        check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x33 &&
+              !dut.get_io$$response$$bits$$error(), "backpressured line write result changed");
+    }
+    for (unsigned index : {3U, 0U, 1U, 2U}) {
+        drive(dut, false, 0, 0, true, true);
+        dut.step();
+        check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x30 + index &&
+              bool(dut.get_io$$response$$bits$$error()) == (index == 2),
+              "line write response tag or denied mismatch");
+    }
+
+    bool accepted = false;
+    unsigned reusedBeats = 0;
+    for (unsigned cycle = 0; cycle < 20 && (!accepted || reusedBeats < 8); ++cycle) {
+        const bool immediateAck = accepted && reusedBeats == 7;
+        drive(dut, !accepted, base + 256, 0x34, true, false,
+              immediateAck, sourceForRequest[0]);
+        dut.step();
+        if (!accepted && dut.get_io$$request$$ready()) accepted = true;
+        if (dut.get_io$$tl$$a$$valid()) {
+            check(dut.get_io$$tl$$a$$bits$$source() == sourceForRequest[0] &&
+                  dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 256, reusedBeats),
+                  "reused line write slot issued wrong beat");
+            ++reusedBeats;
+        }
+        if (immediateAck)
+            check(dut.get_io$$tl$$d$$ready(), "same-cycle final A/D acknowledgement stalled");
+    }
+    check(accepted && reusedBeats == 8, "line write slot was not reused");
+    drive(dut, false, 0, 0, true, true);
+    dut.step();
+    check(dut.get_io$$response$$valid() && dut.get_io$$response$$bits$$tag() == 0x34 &&
+          !dut.get_io$$response$$bits$$error(), "reused line write result mismatch");
+    // Independent II=1 contract: with A ready and queued owners, no bubble
+    // between any of the 32 beats. Return each ack with its final accepted A,
+    // including when the next active burst takes ownership on the same edge.
+    drive(dut, false, 0, 0, true, false);
+    dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    requests = 0; aBeats = 0; bool streaming = false;
+    for (unsigned cycle = 0; cycle < 50 && aBeats < 32; ++cycle) {
+        const unsigned index = aBeats / 8, beat = aBeats % 8;
+        const bool ack = streaming && beat == 7;
+        drive(dut, requests < 4, base + 64 * requests, 0x50 + requests, true, false,
+              ack, sourceForRequest[index]);
+        dut.step();
+        if (requests < 4 && dut.get_io$$request$$ready()) ++requests;
+        if (streaming) check(dut.get_io$$tl$$a$$valid(), "line write II=1 contract inserted a bubble");
+        if (dut.get_io$$tl$$a$$valid()) {
+            streaming = true;
+            const unsigned source = dut.get_io$$tl$$a$$bits$$source();
+            if (beat == 0) sourceForRequest[index] = source;
+            check(source == sourceForRequest[index] &&
+                  dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
+                  dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 64 * index, beat),
+                  "line write streaming owner/data mismatch");
+            if (ack) check(dut.get_io$$tl$$d$$ready(), "line write adjacent burst final ack stalled");
+            ++aBeats;
+        }
+    }
+    check(requests == 4 && aBeats == 32, "line write streaming did not drain four bursts");
+    // A new input owner arrives exactly on last A, with no pre-existing queued
+    // successor. Flow must load the registered successor without a burst gap.
+    drive(dut, false, 0, 0, true, false);
+    dut.set_reset(1); dut.step(); dut.step(); dut.set_reset(0);
+    requests = 0; aBeats = 0; streaming = false;
+    unsigned bubbles = 0;
+    std::array<unsigned, 2> lateSources{};
+    for (unsigned cycle = 0; cycle < 40 && aBeats < 16; ++cycle) {
+        const unsigned index = aBeats / 8, beat = aBeats % 8;
+        const bool request = requests < 2 && (requests == 0 || aBeats == 7);
+        const bool ack = streaming && beat == 7;
+        drive(dut, request, base + 64 * requests, 0x70 + requests, true, false,
+              ack, lateSources[index]);
+        dut.step();
+        if (request && dut.get_io$$request$$ready()) ++requests;
+        if (streaming && !dut.get_io$$tl$$a$$valid()) ++bubbles;
+        if (dut.get_io$$tl$$a$$valid()) {
+            streaming = true;
+            const unsigned source = dut.get_io$$tl$$a$$bits$$source();
+            if (!beat) lateSources[index] = source;
+            check(source == lateSources[index] && dut.get_io$$tl$$a$$bits$$address() == base + 64 * index &&
+                dut.get_io$$tl$$a$$bits$$data() == lineWord(base + 64 * index, beat),
+                "late line write handoff owner/payload mismatch");
+            if (ack) check(dut.get_io$$tl$$d$$ready(), "late handoff withdrew final A/D owner");
+            ++aBeats;
+        }
+    }
+    check(requests == 2 && aBeats == 16 && bubbles == (PREARBITER_BOUNDARY ? 1U : (LINE_DISPATCH_FLOW ? 0U : 1U)),
+        "late line write handoff dispatch bubble contract changed");
+    std::cout << "LINE_WRITE_LATE_HANDOFF bubbles=" << bubbles << "\n";
+    std::cout << "GSIM TileLink line write: PASS fourInflight burstLock outOfOrderAck denied reuse II1 adjacentFinalAck" << '\n';
+    return 0;
+} catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+}

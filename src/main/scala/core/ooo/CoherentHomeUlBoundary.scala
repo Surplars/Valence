@@ -5,13 +5,19 @@ import soc.bus.tilelink.TLBundle
 
 /** Grant sinks belong only to the cache/home TL-C link. The home's backing
   * traffic is TL-UL: preserve the legacy one-bit fabric sink without truncating
-  * a meaningful GrantAck. A/D payloads remain direct; unused E is explicitly0.
+  * a meaningful GrantAck. Optional A buffering has two non-flow-through slots with occupancy-only
+  * input ready. D stays direct; source allocation and burst locking remain in
+  * the adjacent writer/arbiter. Unused E is explicitly zero.
   */
 object CoherentHomeUlBoundary {
-    def connect(home: TLBundle, fabric: TLBundle): Unit = {
+    def connect(home: TLBundle, fabric: TLBundle, registerRequests: Boolean = false): Unit = {
         require(home.a.bits.source.getWidth == fabric.a.bits.source.getWidth)
         require(home.d.bits.sink.getWidth >= fabric.d.bits.sink.getWidth)
-        fabric.a <> home.a
+        if (registerRequests) {
+            val requests = Module(new soc.ip.bus.TwoEntryRegisterQueue(chiselTypeOf(fabric.a.bits))).suggestName("homeRequests")
+            requests.io.enq <> home.a
+            fabric.a <> requests.io.deq
+        } else fabric.a <> home.a
         home.b <> fabric.b
         fabric.c <> home.c
         home.d <> fabric.d

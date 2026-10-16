@@ -18,11 +18,12 @@ class RegisteredRequestQueueConfigSpec extends AnyFunSuite {
             canonical <- Seq(false, true)
             frozen <- Seq(false, true) if !frozen || canonical
             tagged <- Seq(false, true)
+            mode <- Seq(0, 1, 2)
         } {
             val p = params(posted, canonical, frozen, tagged)
             assert(p.memoryEntries == 4)
             val rtl = ChiselStage.emitCHIRRTL {
-                val dut = new RegisteredRequestQueue(p)
+                val dut = new RegisteredRequestQueue(p, mirroredHead = mode == 1, projectedHead = mode == 2)
                 val entry = dut.entries.io.enq.bits
                 assert(entry.postedProof.nonEmpty == posted)
                 assert(entry.canonicalStoreOrigin.nonEmpty == canonical)

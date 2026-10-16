@@ -32,7 +32,8 @@ private[ooo] class TranslationResponseOwner extends Bundle {
     val precheckedLoad = Bool()
 }
 
-private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
+private[ooo] class CheckedDataRequest(p: OooParams, classifyNextLine: Boolean = false) extends Bundle {
+    val nextLineDecision = if (classifyNextLine) Some(new PmpDecisionSummary(p.pmpEntries)) else None
     val request = new DataRequest(p.dataReturnHandleBits)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
     val fault = Bool()
@@ -46,7 +47,10 @@ private[ooo] class CheckedDataRequest(p: OooParams) extends Bundle {
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
-    val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false) extends Module {
+    val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false,
+    val registerNextLineDecision: Boolean = false) extends Module {
+    require(!registerNextLineDecision || (registerCheckedRequests && p.dataNextLinePrefetch && alignedNextLinePmp),
+        "next-line classification requires the existing checked register and aligned line permission")
     require(!p.frozenStoreCheckedFlow || registerCheckedRequests,
         "frozen checked flow retains the non-flow checked authorization register")
     require(factorCheckedNextAllowed == p.factorCheckedNextAllowed,
@@ -419,8 +423,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // cross the same register edge before optional reconstruction at dequeue.
     val checked: Option[QueueIO[CheckedDataRequest]] = if (registerCheckedRequests)
         Some(if (p.registeredTranslationHeads)
-            Module(new TwoEntryRegisterQueue(new CheckedDataRequest(p))).suggestName("checked").io
-        else Module(new Queue(new CheckedDataRequest(p), 2, pipe = false, flow = false)).suggestName("checked").io)
+            Module(new TwoEntryRegisterQueue(new CheckedDataRequest(p, registerNextLineDecision))).suggestName("checked").io
+        else Module(new Queue(new CheckedDataRequest(p, registerNextLineDecision), 2, pipe = false, flow = false)).suggestName("checked").io)
     else None
     checked.foreach { stage =>
         if (p.identityDataRequestFlow || p.precheckedDataRequestFlow || p.physicalLoadIngressFlow ||
@@ -488,7 +492,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     private var constructedNextLineAuthorization: Option[NextLineAuthorization] = None
     def nextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
     val nextAllowed = if (p.dataNextLinePrefetch) {
-        val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp))
+        val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp,
+            exportDecision = registerNextLineDecision))
         constructedNextLineAuthorization = Some(authorize)
         CpuReturnTransport.requestPayload(authorize.io.request, Mux(physicalIngressOffer, io.virtual.request.bits,
             Mux(identityOffer, incoming.bits, request)))
@@ -497,7 +502,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         authorize.io.pmpState := io.pmpState
         authorize.io.fault := (if (factorCheckedNextAllowed) false.B
             else Mux(identityOffer || physicalIngressOffer, false.B, fault))
-        authorize.io.allowed
+        if (registerNextLineDecision) {
+            checked.get.enq.bits.nextLineDecision.get := authorize.decision.get
+            authorize.eligible.get
+        } else authorize.io.allowed
     } else false.B
     checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)
     p.postedProofConfig.foreach { _ =>
@@ -615,7 +623,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // not participate in the old captured hint and must not change its value.
     io.physical.request.bits.prefetchNextAllowed := (if (p.dataNextLinePrefetch)
         checked.map { stage =>
-            val allowed = stage.deq.bits.request.prefetchNextAllowed
+            val base = stage.deq.bits.request.prefetchNextAllowed
+            val allowed = if (registerNextLineDecision)
+                base && !PmpDecisionSummary.denied(stage.deq.bits.nextLineDecision.get) else base
             if (factorCheckedNextAllowed) allowed && !stage.deq.bits.fault else allowed
         }.getOrElse(nextAllowed) else false.B)
     owners.io.enq.valid := physicalValid && physicalReady

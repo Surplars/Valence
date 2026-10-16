@@ -9,7 +9,7 @@ import chisel3.util._
   * same PTE read/PBMT context throughout this 4KiB subpage. The adapter supplies
   * its captured effective privilege; this check independently qualifies PMP.
   */
-class NextLineAuthorization(p: OooParams, val alignedLinePmp: Boolean = false) extends Module {
+class NextLineAuthorization(p: OooParams, val alignedLinePmp: Boolean = false, val exportDecision: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val request = Input(new DataRequest)
         val privilege = Input(UInt(2.W))
@@ -18,13 +18,15 @@ class NextLineAuthorization(p: OooParams, val alignedLinePmp: Boolean = false) e
         val allowed = Output(Bool())
         val address = Output(UInt(64.W))
     })
+    val decision = if (exportDecision) Some(IO(Output(new PmpDecisionSummary(p.pmpEntries)))) else None
+    val eligible = if (exportDecision) Some(IO(Output(Bool()))) else None
     // Refuse a page crossing before forming a page-local increment. This
     // avoids an XLEN carry chain in the additional checked metadata path.
     val nextIndex = io.request.address(11, 6) + 1.U(6.W)
     val next = Cat(io.request.address(63, 12), nextIndex, 0.U(6.W))
     val last = Cat(0.U(1.W), next(63, 6), 63.U(6.W))
     val checker = Module(new PmpChecker(p.pmpEntries, alignedLineAccess = alignedLinePmp,
-        sharedAlignedBounds = alignedLinePmp))
+        sharedAlignedBounds = alignedLinePmp, exportDecision = exportDecision))
     checker.io.state := io.pmpState
     checker.io.address := next
     checker.io.size := 6.U(3.W)
@@ -42,9 +44,12 @@ class NextLineAuthorization(p: OooParams, val alignedLinePmp: Boolean = false) e
             io.request.mask === (byteMask << io.request.address(2, 0))(7, 0)
     } else false.B
     io.address := next
-    io.allowed := !io.fault && (!io.request.write || storeShape) && !io.request.atomic && !io.request.uncached &&
+    val baseEligible = !io.fault && (!io.request.write || storeShape) && !io.request.atomic && !io.request.uncached &&
         !io.request.virtualized && SpeculativeRamRange.contains(p, io.request.address, io.request.size) &&
         io.request.address(11, 6) =/= 63.U &&
         next >= p.speculativeRamBase.U(65.W) &&
-        last < (p.speculativeRamBase + p.speculativeRamBytes).U(65.W) && !checker.io.denied
+        last < (p.speculativeRamBase + p.speculativeRamBytes).U(65.W)
+    io.allowed := baseEligible && !checker.io.denied
+    eligible.foreach(_ := baseEligible)
+    decision.foreach(_ := checker.decision.get)
 }

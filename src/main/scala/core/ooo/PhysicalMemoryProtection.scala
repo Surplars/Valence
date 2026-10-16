@@ -39,13 +39,32 @@ object PmpAccess {
     val readWrite = 3.U(2.W)
 }
 
+/** Acceptance-time decision inputs; never reinterpret using later PMP/privilege. */
+class PmpDecisionSummary(val entries: Int) extends Bundle {
+    val hit = UInt(math.max(1, entries).W)
+    val deny = UInt(math.max(1, entries).W)
+    val defaultDeny = Bool()
+}
+object PmpDecisionSummary {
+    def denied(summary: PmpDecisionSummary): Bool = {
+        if (summary.entries == 0) false.B
+        else {
+            val firstDenied = (0 until summary.entries).map { i =>
+                val earlier = if (i == 0) false.B else summary.hit(i - 1, 0).orR
+                summary.hit(i) && !earlier && summary.deny(i)
+            }
+            VecInit(firstDenied).asUInt.orR || (!summary.hit.orR && summary.defaultDeny)
+        }
+    }
+}
+
 /** Parallel range comparison followed by a priority encoder; no serial sixteen-entry decision chain.
   * A matching entry is the first one overlapping any byte, and must cover every byte.
   */
 class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
     naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false,
     val decodedWordGranularity: Boolean = false,
-    val sharedAlignedBounds: Boolean = false) extends Module {
+    val sharedAlignedBounds: Boolean = false, val exportDecision: Boolean = false) extends Module {
     // Preserve the original constructor for existing compiled/default callers.
     def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean, alignedLineAccess: Boolean) =
         this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, false, false)
@@ -66,6 +85,7 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         val access    = Input(UInt(2.W))
         val denied    = Output(Bool())
     })
+    val decision = if (exportDecision) Some(IO(Output(new PmpDecisionSummary(entries)))) else None
     if (alignedWordAccess) {
         assert(io.size === 2.U && io.address(1, 0) === 0.U,
             "aligned word PMP checker requires a four-byte aligned four-byte access")
@@ -82,6 +102,7 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
     }
     if (entries == 0) {
         io.denied := false.B
+        decision.foreach { d => d.hit := 0.U; d.deny := 0.U; d.defaultDeny := false.B }
     } else {
         val start = Cat(0.U(1.W), io.address)
         // Decode length-1 before extending it. A dynamic 65-bit shift followed
@@ -152,6 +173,11 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
                 PmpAccess.readWrite -> (cfg(0) && cfg(1))
             ))
             allowed(i) := io.privilege === 3.U && !cfg(7) || permission
+        }
+        decision.foreach { d =>
+            d.hit := overlap.asUInt
+            d.deny := VecInit((0 until entries).map(i => overlap(i) && (!covers(i) || !allowed(i)))).asUInt
+            d.defaultDeny := io.privilege =/= 3.U
         }
         val hit = overlap.asUInt.orR
         val first = Wire(Vec(entries, Bool()))

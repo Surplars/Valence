@@ -79,7 +79,10 @@ class MatchingBoardServices extends Bundle {
   * existing passive CPU probes and independent C++ oracles stay unchanged.
   * Only native ROM storage and the documented physical/CDC services differ.
   */
-class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = true) extends Module {
+class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = true,
+    val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false,
+    val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false,
+    val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
     require(config.experimentalTriSpeedEthernet && jtagRamDownload,
         "this final assembly requires tri-speed GMAC and the real JTAG RAM loader")
     private val p = config.coreParams
@@ -142,7 +145,12 @@ class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = tr
         dmaLineEntries = config.dmaLineEntries,
         lineTransferDispatchFlow = config.lineTransferDispatchFlow,
         registerProbeLookup = config.registerProbeLookup, localAddressRanges = config.localAddressRanges,
-        localCacheReadSelection = config.localCacheReadSelection
+        localCacheReadSelection = config.localCacheReadSelection,
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp, disjointEvictionStoreOverlap = disjointEvictionStoreOverlap,
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        registerNextLineDecision = registerNextLineDecision
     ))
 
     // Checks inspect the constructed instances, not just an input JSON manifest.
@@ -300,5 +308,8 @@ class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = tr
             }
         }
     }
-    MatchingFabricAudit.capture(this, config)
+    if (combinedTimingR1Audit && registeredMemoryPreparationDescriptor)
+        CombinedTimingRepairR1FabricAudit.capture(this, config)
+    else if (combinedTimingR1Audit) CombinedTimingR1FabricAudit.capture(this, config)
+    else MatchingFabricAudit.capture(this, config)
 }

@@ -17,7 +17,7 @@ class MappedMachineCore(
     canonicalHandoff: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
@@ -92,7 +92,9 @@ class MappedMachineCore(
         "tagged CPU returns require checked translation and both registered response credits")
     val core  = Module(new MachineCore(p, imsicParams, canonicalHandoff,
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
-        proofBankControlDecoupling = proofBankControlDecoupling))
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp))
     val aplic = Module(new Aplic(aplicParams, hasChild = true,
         childMsiBase = imsicParams.supervisorBase))
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,
@@ -117,7 +119,8 @@ class MappedMachineCore(
             translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
             registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
             queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-            factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+            factorCheckedNextAllowed = p.factorCheckedNextAllowed,
+            registerNextLineDecision = registerNextLineDecision))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,

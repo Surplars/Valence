@@ -10,7 +10,8 @@ import chisel3.util.experimental.BoringUtils
 object TranslationHintTimingPair {
     def attach(candidate: DataTranslationAdapter, p: OooParams, translationHitFlow: Boolean): Unit = {
         val reference = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-            translationHitFlow = translationHitFlow, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+            translationHitFlow = translationHitFlow, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
+            factorCheckedNextAllowed = p.factorCheckedNextAllowed))
         val a = candidate.io
         val b = reference.io
         b.virtual.request.valid := a.virtual.request.valid
@@ -69,10 +70,19 @@ object TranslationHintTimingPair {
         assert(BoringUtils.bore(candidate.checked.get.enq.ready) ===
             BoringUtils.bore(reference.checked.get.enq.ready), "checked ready parity")
         when(checkedValid) {
-            assert(BoringUtils.bore(candidate.checked.get.enq.bits).asUInt ===
-                BoringUtils.bore(reference.checked.get.enq.bits).asUInt, "checked offered record parity")
+            val c = BoringUtils.bore(candidate.checked.get.enq.bits)
+            val r = BoringUtils.bore(reference.checked.get.enq.bits)
+            if (candidate.registerNextLineDecision) {
+                val normalized = Wire(new CheckedDataRequest(p))
+                normalized.request := c.request
+                normalized.request.prefetchNextAllowed := c.request.prefetchNextAllowed &&
+                    !PmpDecisionSummary.denied(c.nextLineDecision.get)
+                normalized.fault := c.fault; normalized.pageFault := c.pageFault
+                normalized.postedProof.foreach(_ := c.postedProof.get)
+                assert(normalized.asUInt === r.asUInt, "classified checked offered authority parity")
+            } else assert(c.asUInt === r.asUInt, "checked offered record parity")
         }
-        assert(BoringUtils.bore(candidate.translationHitOffer) === BoringUtils.bore(reference.translationHitOffer) &&
+        if (translationHitFlow) assert(BoringUtils.bore(candidate.translationHitOffer) === BoringUtils.bore(reference.translationHitOffer) &&
             BoringUtils.bore(candidate.translationHitPass) === BoringUtils.bore(reference.translationHitPass),
             "same-cycle hit offer/fire parity")
         assert(BoringUtils.bore(candidate.precheckedPass) === BoringUtils.bore(reference.precheckedPass) &&

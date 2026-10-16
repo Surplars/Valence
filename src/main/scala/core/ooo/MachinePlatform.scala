@@ -69,7 +69,7 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -253,7 +253,10 @@ class MachinePlatform(
         bufferTranslatedResponses = bufferTranslatedResponses, translationHitFlow = translationHitFlow,
         canonicalHandoff = cacheConcurrency.independentDemandAdmission && p.canonicalVirtualStoreOverlap,
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
-        proofBankControlDecoupling = proofBankControlDecoupling))
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        registerNextLineDecision = registerNextLineDecision))
     // The compact-key representation is enabled only for the qualified board fetch domain.
     val qualifiedCompactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&
         p.compressedInstructions && p.stableFetchFaultMetadata && p.alignedFetchPmp && p.rawFetchPresence &&
@@ -773,7 +776,10 @@ class MachinePlatform(
                         rawRequestMetadata = p.registeredFabricBoundary))
                     arbiter.reset := reset.asBool || hold
                     bridge.io.tl <> arbiter.io.masters(0)
-                    CoherentHomeUlBoundary.connect(home.io.line, arbiter.io.masters(1))
+                    withReset(reset.asBool || hold) {
+                        CoherentHomeUlBoundary.connect(home.io.line, arbiter.io.masters(1),
+                            registerRequests = p.registeredHomeRequestBoundary)
+                    }
                     crossbar.io.masters(0) <> fabricMaster(arbiter.io.manager)
                 case None => crossbar.io.masters(0) <> fabricMaster(bridge.io.tl)
             }

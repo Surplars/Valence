@@ -73,6 +73,7 @@ case class OooParams(
     independentFetchCapture: Boolean = false,
     parallelHomeQualification: Boolean = false,
     registeredFabricBoundary: Boolean = false,
+    registeredHomeRequestBoundary: Boolean = false,
     registeredTranslationHeads: Boolean = false,
     fetchReplyTurnover: Boolean = false,
     fetchIdentityTranslation: Boolean = false,

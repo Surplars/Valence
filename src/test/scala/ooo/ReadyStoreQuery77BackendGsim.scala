@@ -13,17 +13,20 @@ import soc.core.ooo._
 class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     preselectRedirectTokenMatches: Boolean = false, shadowEarlyProofBind: Boolean = false,
     proofControlInputs: Boolean = false, proofBankQuiesceIntent: Boolean = false,
-    proofBankOwnerCleanup: Boolean = false) extends Module {
+    proofBankOwnerCleanup: Boolean = false, factorPreparedStorePool: Boolean = false,
+    currentProfile: Option[FpgaNextConfig] = None, projectedRequestHead: Boolean = false,
+    registeredMemoryPreparationDescriptor: Boolean = false) extends Module {
     require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
-    val profile = if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
-        else ReadyStoreQuery77Profile.select(queryEnabled)
+    val profile = currentProfile.getOrElse(if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
+        else ReadyStoreQuery77Profile.select(queryEnabled))
     val p = profile.coreParams
     private val enabled = true
     private val overlap = true
     private val enabledProof = true
     private val earlyCredits = 2
     private val memoryEntries = 4
-    require(p.productArity == 178 && profile.productArity == 95)
+    require(if (currentProfile.nonEmpty) p.productArity == 179 && profile.productArity == 96
+        else p.productArity == 178 && profile.productArity == 95)
     require(p.pendingReadyStoreQuery == queryEnabled && p.pendingReadyStoreBypass)
     require(p.registeredPendingStoreQuery && p.memoryPreparationHeadMask && p.registeredIssueHeadMask)
     require(p.pendingVirtualStoreProofSlots == proofRows && p.pendingStoreEarlyLoadCredits == 2)
@@ -54,6 +57,17 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
         val pc1 = Input(UInt(64.W))
         val decoded0 = Output(new IntegerRequest)
         val decoded1 = Output(new IntegerRequest)
+        val poolBare = Output(Bool())
+        val poolOriginalMask = Output(UInt(16.W))
+        val descriptorValid = Output(Bool())
+        val descriptorToken = Output(new RobToken(p))
+        val descriptorSaved = Output(Bool())
+        val poolStageValid = Output(Bool())
+        val poolStageToken = Output(new RobToken(p))
+        val poolStageAddress = Output(UInt(64.W))
+        val poolStageIndex = Output(UInt(p.robBits.W))
+        val poolStageData = Output(UInt(64.W))
+        val poolStageSize = Output(UInt(2.W))
         val probeIndex = Input(UInt(4.W))
         val actualQueryEnabled = Output(Bool())
         val actualHead = Output(UInt(4.W))
@@ -165,7 +179,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
     val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind,
-        proofBankQuiesceIntent, proofBankOwnerCleanup))
+        proofBankQuiesceIntent, proofBankOwnerCleanup, factorPreparedStorePool, projectedRequestHead, registeredMemoryPreparationDescriptor))
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)
@@ -299,6 +313,19 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     io.queryPaused := BoringUtils.bore(bank.io.pause) || BoringUtils.bore(bank.io.flushQueries)
     io.queryStable := BoringUtils.bore(bank.io.precheck.stable)
     io.creditAvailable := BoringUtils.bore(backend.pendingStoreCredit.get.io.available)
+    // Passive coverage only. Independent host instruction/byte oracle remains authoritative.
+    io.poolBare := !BoringUtils.bore(backend.virtualized)
+    io.poolOriginalMask := VecInit(backend.memoryCandidates.map(c => BoringUtils.bore(c.valid))).asUInt
+    io.descriptorValid := backend.preparationDescriptorValid.map(BoringUtils.bore(_)).getOrElse(false.B)
+    io.descriptorToken := backend.preparationDescriptor.map(d => BoringUtils.bore(d.token))
+        .getOrElse(0.U.asTypeOf(new RobToken(p)))
+    io.descriptorSaved := backend.preparationDescriptor.map(d => BoringUtils.bore(d.saved)).getOrElse(false.B)
+    io.poolStageValid := BoringUtils.bore(backend.stagedMemoryValid.get)
+    io.poolStageToken := BoringUtils.bore(backend.stagedMemoryToken.get)
+    io.poolStageAddress := BoringUtils.bore(backend.stagedMemoryAddress.get)
+    io.poolStageIndex := BoringUtils.bore(backend.stagedMemoryIndex.get)
+    io.poolStageData := BoringUtils.bore(backend.stagedMemoryData.get)
+    io.poolStageSize := BoringUtils.bore(backend.stagedMemorySize.get)
     io.probeAddressKnown := VecInit(backend.storeAddressKnown.map(BoringUtils.bore(_)))(io.probeIndex)
     io.probeOwnerValid := VecInit(bank.io.owners.map(o => BoringUtils.bore(o.valid)))(io.probeIndex)
     io.probeOlder := VecInit(backend.ages.map(a => BoringUtils.bore(a)))(io.probeIndex) <

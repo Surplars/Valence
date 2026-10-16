@@ -2,6 +2,7 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
+import soc.ip.bus.MirroredHeadQueue
 
 /** One entry owns the complete request and every enabled request-synchronous sidecar.
   * Each optional Valid is independent: canonical/frozen ownership does not require posted authority.
@@ -22,7 +23,7 @@ class RegisteredRequestEntry(p: OooParams) extends Bundle {
   * response owner. Acceptance and downstream authorization gates remain outside;
   * cancelled speculative reads still drain their physical responses normally.
   */
-class RegisteredRequestQueue(p: OooParams) extends Module {
+class RegisteredRequestQueue(p: OooParams, val mirroredHead: Boolean = false, val projectedHead: Boolean = false) extends Module {
     val io = IO(new QueueIO(new DataRequest(p.dataReturnHandleBits), p.memoryEntries))
     val proofIn = p.postedProofConfig.map(c => IO(Input(Valid(new PostedStoreProof(c)))))
     val proofOut = p.postedProofConfig.map(c => IO(Output(Valid(new PostedStoreProof(c)))))
@@ -33,8 +34,14 @@ class RegisteredRequestQueue(p: OooParams) extends Module {
     val frozenProofIn = if (p.frozenStoreProofEnabled) Some(IO(Input(Valid(new FrozenStoreProof)))) else None
     val frozenProofOut = if (p.frozenStoreProofEnabled) Some(IO(Output(Valid(new FrozenStoreProof)))) else None
 
-    val entries = Module(new Queue(new RegisteredRequestEntry(p), p.memoryEntries,
-        pipe = false, flow = false, useSyncReadMem = false))
+    require(!(mirroredHead && projectedHead))
+    private val record = new RegisteredRequestEntry(p)
+    private val requestBits = (record.getWidth - record.request.getWidth until record.getWidth)
+    private val projection = requestBits ++ record.frozenStoreProof.toSeq.map(_.getWidth - 1)
+    val entries = new CpuReturnTransport.Owners(if (mirroredHead || projectedHead)
+        Module(new MirroredHeadQueue(new RegisteredRequestEntry(p), p.memoryEntries, if (projectedHead) projection else Seq.empty)).suggestName("entries").io
+    else Module(new Queue(new RegisteredRequestEntry(p), p.memoryEntries,
+        pipe = false, flow = false, useSyncReadMem = false)).suggestName("entries").io)
     entries.io.enq.valid := io.enq.valid
     entries.io.enq.bits.request := io.enq.bits
     entries.io.enq.bits.postedProof.foreach(_ := proofIn.get)

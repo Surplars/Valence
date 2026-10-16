@@ -10,9 +10,11 @@ import chisel3.util._
   * between already available resident/fresh payloads at the existing register.
   */
 class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = false,
-    val rankResidentPriority: Boolean = true) extends Module {
+    val rankResidentPriority: Boolean = true, val latePoolEnable: Boolean = false,
+    val directSelectedRank: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val eligible = Input(UInt(p.robEntries.W))
+        val poolEnabled = if (latePoolEnable) Some(Input(Bool())) else None
         val head = Input(UInt(p.robBits.W))
         val headMask = if (predecodedHead) Some(Input(UInt(p.robEntries.W))) else None
         val resident = Flipped(Valid(UInt(p.robBits.W)))
@@ -33,12 +35,19 @@ class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = 
     fresh.io.eligible := io.eligible
     fresh.io.head := io.head
     fresh.io.headMask.foreach(_ := io.headMask.get)
-    val firstIsResident = (fresh.io.first & residentOwner).orR
-    val freshOwner = Mux(firstIsResident, fresh.io.second, fresh.io.first)
-    io.freshValid := Mux(firstIsResident, fresh.io.secondValid, fresh.io.firstValid)
+    // A disabled fallback pool must be indistinguishable from an empty pool
+    // before any owner can select issue payload or physical register sources.
+    val enabled = io.poolEnabled.getOrElse(true.B)
+    val first = fresh.io.first & Fill(p.robEntries, enabled)
+    val second = fresh.io.second & Fill(p.robEntries, enabled)
+    val firstValid = fresh.io.firstValid && enabled
+    val secondValid = fresh.io.secondValid && enabled
+    val firstIsResident = (first & residentOwner).orR
+    val freshOwner = Mux(firstIsResident, second, first)
+    io.freshValid := Mux(firstIsResident, secondValid, firstValid)
     io.freshIndex := OHToUInt(freshOwner)
     io.freshOwner := freshOwner
-    val residentEligible = io.resident.valid && (residentOwner & io.eligible).orR
+    val residentEligible = enabled && io.resident.valid && (residentOwner & io.eligible).orR
     // The eligible resident precedes every fresh owner exactly when it is the
     // first unmodified circular rank. This also covers the sole-owner case;
     // an empty pool or invalid/ineligible resident cannot set firstIsResident.
@@ -52,8 +61,25 @@ class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = 
         io.useResident := residentEligible && !io.issued &&
             (!io.freshValid || residentAge < freshAge)
     }
-    io.selectedValid := (residentEligible && !io.issued) || io.freshValid
-    io.selectedIndex := Mux(io.useResident, io.resident.bits, io.freshIndex)
+    if (directSelectedRank) {
+        // The selected owner is the oldest eligible rank, except when that
+        // rank is the exact issued resident. Encoding the selected one-hot
+        // rank avoids a second tag-dependent resident/fresh binary-index mux.
+        val consumeFirst = io.issued && firstIsResident
+        val selectedOwner = Mux(consumeFirst, second, first)
+        io.selectedValid := Mux(consumeFirst, secondValid, firstValid)
+        io.selectedIndex := OHToUInt(selectedOwner)
+    } else {
+        io.selectedValid := (residentEligible && !io.issued) || io.freshValid
+        io.selectedIndex := Mux(io.useResident, io.resident.bits, io.freshIndex)
+    }
+    when(!enabled) {
+        assert(first === 0.U && second === 0.U && !firstValid && !secondValid && !residentEligible,
+            "disabled preparation pool must remove both ranks and resident eligibility")
+        assert(io.freshOwner === 0.U && io.freshIndex === 0.U && !io.freshValid &&
+            !io.useResident && !io.selectedValid && io.selectedIndex === 0.U,
+            "disabled preparation pool cannot expose a phantom payload owner")
+    }
     when(io.issued) {
         assert(io.resident.valid, "accepted memory start must name the caller's exact live resident")
     }

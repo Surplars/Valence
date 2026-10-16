@@ -60,9 +60,13 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     residentMemoryPayloadReuse: Boolean = false,
     registeredLoadResultReady: Boolean = false,
     frozenStoreCheckedFlow: Boolean = false,
-    pendingReadyStoreQuery: Boolean = false) extends Module {
+    pendingReadyStoreQuery: Boolean = false, registeredHomeRequestBoundary: Boolean = false,
+    val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false,
+    val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false,
+    val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
     require(configurationCheck.nonEmpty &&
-        pendingReadyStoreQuery == configurationCheck.get.coreParams.pendingReadyStoreQuery,
+        pendingReadyStoreQuery == configurationCheck.get.coreParams.pendingReadyStoreQuery &&
+        registeredHomeRequestBoundary == configurationCheck.get.coreParams.registeredHomeRequestBoundary,
         "ready-store query argument must match actual constructor configuration")
     require(configurationCheck.nonEmpty, "matching board requires explicit actual configuration checks")
     HeldAluIntegrationActualAudit.requireArgument(configurationCheck.get, heldAluIssueForwarding)
@@ -107,7 +111,14 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         "PMP raw change flag differs from the actual matching-board configuration")
     require(registeredPmpRegions == configurationCheck.get.coreParams.registeredPmpRegions,
         "PMP publication flag differs from the actual matching-board configuration")
-    private val board = Module(new MatchingManagedBoard(configurationCheck.get, jtagRamDownload = true))
+    private val board = Module(new MatchingManagedBoard(configurationCheck.get, jtagRamDownload = true,
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp, disjointEvictionStoreOverlap = disjointEvictionStoreOverlap,
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        registerNextLineDecision = registerNextLineDecision,
+        combinedTimingR1Audit = combinedTimingR1Audit))
+    def observedPlatform: soc.core.ooo.MachinePlatform = board.platform
     val service = IO(chiselTypeOf(board.service))
     service <> board.service
     configurationCheck.foreach { expected =>

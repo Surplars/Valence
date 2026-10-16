@@ -17,7 +17,7 @@ import soc.isa.Compressed
 class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("80000000", 16),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false) extends Module {
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
     val io = IO(new Bundle {
         val imsic                       = if (p.machineSystem) Some(new MachineCsrPort) else None
@@ -81,7 +81,9 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
         shadowEarlyProofBind = proofBankControlDecoupling,
         proofBankQuiesceIntent = proofBankControlDecoupling,
-        proofBankOwnerCleanup = proofBankControlDecoupling))
+        proofBankOwnerCleanup = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp))
     if (p.machineSystem) {
         io.imsic.get <> backend.io.imsic.get
         io.fenceIFlush.get := backend.io.fenceIFlush.get

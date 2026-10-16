@@ -16,7 +16,8 @@ object VirtualLoadPrecheckFixture {
 
 class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
     dataTranslationEntries: Int = 8, writeReadReuse: Boolean = false, translationHitFlow: Boolean = false,
-    hintTimingPair: Boolean = false, precheckedFlow: Boolean = false, physicalIngressFlow: Boolean = false) extends Module {
+    hintTimingPair: Boolean = false, precheckedFlow: Boolean = false, physicalIngressFlow: Boolean = false,
+    classifyNextLine: Boolean = false) extends Module {
     val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow,
         precheckedDataRequestFlow = precheckedFlow, physicalLoadIngressFlow = physicalIngressFlow,
         dataNextLinePrefetch = hintTimingPair, dataStoreNextLinePrefetch = hintTimingPair)
@@ -46,7 +47,7 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
     })
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
         translationHitFlow = translationHitFlow, queuedHeadSelection = hintTimingPair,
-        alignedNextLinePmp = hintTimingPair))
+        alignedNextLinePmp = hintTimingPair, registerNextLineDecision = classifyNextLine))
     if (hintTimingPair) TranslationHintTimingPair.attach(adapter, p, translationHitFlow)
     val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16,
         loadPeek = enabled, writeReadReuse = writeReadReuse))
@@ -267,4 +268,16 @@ class VirtualRamPreparationGsim extends Module {
 
 object VirtualRamPreparationGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new VirtualRamPreparationGsim, Array("--target-dir", args.head))
+}
+
+object ClassifiedNextLineAdapterGsimMain extends App {
+    ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true, identityFlow = true,
+        hintTimingPair = true, precheckedFlow = true, physicalIngressFlow = true, classifyNextLine = true),
+        Array("--target-dir", args.head))
+}
+
+object ClassifiedNextLineHitAdapterGsimMain extends App {
+    ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true, identityFlow = true,
+        hintTimingPair = true, translationHitFlow = true, physicalIngressFlow = true, classifyNextLine = true),
+        Array("--target-dir", args.head))
 }

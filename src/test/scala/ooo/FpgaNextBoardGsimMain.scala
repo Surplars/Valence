@@ -5,7 +5,10 @@ import soc.core.ooo.FpgaNextConfig
 
 /** Shared by the CLI emitter and the actual ON/OFF elaboration test. */
 object FpgaNextBoardGsim {
-    def build(c: FpgaNextConfig, lineageProbes: Boolean = false, verifyConfiguration: Boolean = false): BoardSocGsim = new BoardSocGsim(
+    def build(c: FpgaNextConfig, lineageProbes: Boolean = false, verifyConfiguration: Boolean = false,
+        sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false,
+        proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false,
+        factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false): BoardSocGsim = new BoardSocGsim(
         externalDdr = true, clockHz = c.cpuHz, timingProfile = c.timingProfile,
         uartBaud = c.uartBaud, dataCacheWays = c.cacheWays, issueWidth = c.issueWidth,
         instructionPrefetch = c.instructionPrefetch, isaProfile = c.isaProfile,
@@ -46,6 +49,7 @@ object FpgaNextBoardGsim {
         registeredLoadResultReady = c.registeredLoadResultReady,
         frozenStoreCheckedFlow = c.frozenStoreCheckedFlow,
         pendingReadyStoreQuery = c.pendingReadyStoreQuery,
+        registeredHomeRequestBoundary = c.registeredHomeRequestBoundary,
         directRegisteredExecutionOperands = c.directRegisteredExecutionOperands,
         sharedCanonicalStoreOwnerMatch = c.sharedCanonicalStoreOwnerMatch,
         eagerFetchPrefixSelect = c.eagerFetchPrefixSelect,
@@ -62,7 +66,13 @@ object FpgaNextBoardGsim {
         dataTlbWriteReadReuse = c.dataTlbWriteReadReuse,
         translationHitFlow = c.translationHitFlow,
         lineageProfile = if (lineageProbes) Some(c) else None,
-        configurationCheck = if (verifyConfiguration) Some(c) else None)
+        configurationCheck = if (verifyConfiguration) Some(c) else None,
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp, disjointEvictionStoreOverlap = disjointEvictionStoreOverlap,
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        registerNextLineDecision = registerNextLineDecision,
+        combinedTimingR1Audit = combinedTimingR1Audit)
 }
 
 /** Same fixed CPU/cache/fabric profile as the native export, without clock-domain peripherals. */

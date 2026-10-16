@@ -103,7 +103,8 @@ final case class FpgaNextConfig(
     residentMemoryPayloadReuse: Boolean = false,
     registeredLoadResultReady: Boolean = false,
     frozenStoreCheckedFlow: Boolean = false,
-    pendingReadyStoreQuery: Boolean = false
+    pendingReadyStoreQuery: Boolean = false,
+    registeredHomeRequestBoundary: Boolean = false
 ) {
     require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
         registeredPendingStoreQuery && memoryPreparationHeadMask &&
@@ -349,6 +350,7 @@ final case class FpgaNextConfig(
         registeredLoadResultReady = registeredLoadResultReady,
         frozenStoreCheckedFlow = frozenStoreCheckedFlow,
         pendingReadyStoreQuery = pendingReadyStoreQuery,
+        registeredHomeRequestBoundary = registeredHomeRequestBoundary,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -374,7 +376,7 @@ final case class FpgaNextConfig(
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity)
 
-    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false): BoardSocTop = new BoardSocTop(
+    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,
         instructionPrefetch = instructionPrefetch, isaProfile = isaProfile,
@@ -405,6 +407,7 @@ final case class FpgaNextConfig(
         registeredLoadResultReady = registeredLoadResultReady,
         frozenStoreCheckedFlow = frozenStoreCheckedFlow,
         pendingReadyStoreQuery = pendingReadyStoreQuery,
+        registeredHomeRequestBoundary = registeredHomeRequestBoundary,
         canonicalVirtualStoreOverlap = canonicalVirtualStoreOverlap, memoryProofFrontier = memoryProofFrontier,
         frozenStoreProofTransport = frozenStoreProofTransport, pendingVirtualStoreProof = pendingVirtualStoreProof,
         registeredPendingStoreQuery = registeredPendingStoreQuery,
@@ -434,6 +437,9 @@ final case class FpgaNextConfig(
         dataTlbWriteReadReuse = dataTlbWriteReadReuse, translationHitFlow = translationHitFlow,
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
         proofBankControlDecoupling = proofBankControlDecoupling,
+        projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
+        registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
+        registerNextLineDecision = registerNextLineDecision,
         sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
         disjointEvictionStoreOverlap = disjointEvictionStoreOverlap)
 }
