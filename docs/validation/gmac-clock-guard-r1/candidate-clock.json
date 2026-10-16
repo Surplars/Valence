@@ -1,0 +1,22 @@
+{
+  "candidate": {
+    "exit_code": 0,
+    "stdout": "NAPI_CLOCK_DRIVER_PASS cases=13 budget0=1 exact_budget=1 deadline_boundary=1 empty_rx=1 tx_only=1 fault=1 ifdown=1 irq_rearm=1\n",
+    "expected_failure": false
+  },
+  "budget0_clock": {
+    "exit_code": -6,
+    "stdout": "",
+    "expected_failure": true
+  },
+  "full_budget_clock": {
+    "exit_code": -6,
+    "stdout": "",
+    "expected_failure": true
+  },
+  "missing_deadline": {
+    "exit_code": -6,
+    "stdout": "",
+    "expected_failure": true
+  }
+}

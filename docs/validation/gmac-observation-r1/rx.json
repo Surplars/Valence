@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "scope": "Actual driver RX/NAPI/IRQ/config/ifdown bodies with independent numeric MMIO.\n\nNo kernel, RTL, or board execution claim. Kernel allocation/scheduling are stubs;\nall queue ownership, register ordering, copies and policy calls are real source.\n",
+  "driver_sha256": "24ad32552635ac3a6a9e02e2695a9b2c6b5aa0ce8eb82a10d36511b10e851587",
+  "queue_header_sha256": "dc8f2851800ee1221677d859efa6f7df18a49e33ae7c065bed63007ffb9ec446",
+  "compiler": "cc",
+  "summary": "POSTED_RX_DRIVER_MMIO_PASS ownership=1 copy_before_pop=1 fifo=1 budget=1 irq_rearm=1 dropped_irq=1 full_queue=1 reset_stop_fault=1 ifdown_pinned=1 legacy=1\ncases=49\n"
+}

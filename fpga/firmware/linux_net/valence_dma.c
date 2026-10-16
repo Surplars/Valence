@@ -266,6 +266,11 @@ struct vbench {
 	unsigned int iterations;
 	enum dmaengine_tx_result result;
 	bool faulted;
+	/* Diagnostics only: serialized by lock; no transfer/ownership changes. */
+	u64 run_sequence;
+	const char *last_stage, *last_reason;
+	int last_errno, last_cookie, last_result;
+	unsigned int last_iteration;
 };
 
 static void vb_done(void *context, const struct dmaengine_result *result)
@@ -282,9 +287,12 @@ static ssize_t benchmark_show(struct device *dev, struct device_attribute *attr,
 	ssize_t n;
 
 	mutex_lock(&p->lock);
-	n = sysfs_emit(buf, "bytes=%llu iterations=%u elapsed_ns=%llu payload_bytes_per_sec=%llu logical_rw_bytes_per_sec=%llu verified=%u faulted=%u timing=dmaengine_submit_to_callback\n",
+	n = sysfs_emit(buf, "bytes=%llu iterations=%u elapsed_ns=%llu payload_bytes_per_sec=%llu logical_rw_bytes_per_sec=%llu verified=%u faulted=%u timing=dmaengine_submit_to_callback run_sequence=%llu last_stage=%s last_reason=%s last_errno=%d last_cookie=%d last_result=%d last_iteration=%u\n",
 		p->bytes, p->iterations, p->ns, p->rate, p->rate * 2,
-		!!p->rate && !p->faulted, p->faulted);
+		!!p->rate && !p->faulted, p->faulted, p->run_sequence,
+		p->last_stage ? p->last_stage : "never",
+		p->last_reason ? p->last_reason : "none", p->last_errno,
+		p->last_cookie, p->last_result, p->last_iteration);
 	mutex_unlock(&p->lock);
 	return n;
 }
@@ -297,11 +305,23 @@ static ssize_t benchmark_store(struct device *dev, struct device_attribute *attr
 	int ret = 0;
 
 	if (sscanf(buf, "%u %u %c", &bytes, &iterations, &extra) != 2 ||
-	    bytes < 8 || bytes > 8 * 1024 * 1024 || bytes & 7 || !iterations || iterations > 64)
+	    bytes < 8 || bytes > 8 * 1024 * 1024 || bytes & 7 || !iterations || iterations > 64) {
+		dev_err(dev, "benchmark rejected stage=parse errno=%d; last-run fields unchanged\n", -EINVAL);
 		return -EINVAL;
-	if (!mutex_trylock(&p->lock))
+	}
+	if (!mutex_trylock(&p->lock)) {
+		dev_err(dev, "benchmark rejected stage=lock errno=%d; last-run fields unchanged\n", -EBUSY);
 		return -EBUSY;
+	}
+	p->run_sequence++;
+	p->last_stage = "fault_check";
+	p->last_reason = "none";
+	p->last_errno = 0;
+	p->last_cookie = 0;
+	p->last_result = -1;
+	p->last_iteration = 0;
 	if (p->faulted) {
+		p->last_reason = "fault_latched";
 		ret = -EIO;
 		goto unlock;
 	}
@@ -309,17 +329,21 @@ static ssize_t benchmark_store(struct device *dev, struct device_attribute *attr
 	p->ns = 0;
 	p->bytes = bytes;
 	p->iterations = iterations;
+	p->last_stage = "request_chan";
 	p->chan = dma_request_chan(dev, "copy");
 	if (IS_ERR(p->chan)) {
+		p->last_reason = "channel_request";
 		ret = PTR_ERR(p->chan);
 		p->chan = NULL;
 		goto unlock;
 	}
 	dma_dev = dmaengine_get_dma_device(p->chan);
 	p->allocation = bytes;
+	p->last_stage = "allocate";
 	p->source = dma_alloc_coherent(dma_dev, bytes, &p->src_dma, GFP_KERNEL);
 	p->destination = dma_alloc_coherent(dma_dev, bytes, &p->dst_dma, GFP_KERNEL);
 	if (!p->source || !p->destination) {
+		p->last_reason = !p->source ? "source_allocation" : "destination_allocation";
 		ret = -ENOMEM;
 		goto free_buffers;
 	}
@@ -328,29 +352,42 @@ static ssize_t benchmark_store(struct device *dev, struct device_attribute *attr
 		dma_cookie_t cookie;
 		u64 started;
 
+		p->last_iteration = i + 1;
+		p->last_cookie = 0;
+		p->last_result = -1;
+		p->last_stage = "fill";
 		memset(p->source, 0xa5 ^ i, bytes);
 		memset(p->destination, 0x5a ^ i, bytes);
 		dma_wmb();
 		reinit_completion(&p->done);
+		p->last_stage = "prepare";
 		tx = dmaengine_prep_dma_memcpy(p->chan, p->dst_dma, p->src_dma, bytes,
 					      DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 		if (!tx) {
+			p->last_reason = "prepare_rejected";
 			ret = -EINVAL;
 			goto free_buffers;
 		}
 		tx->callback_result = vb_done;
 		tx->callback_param = p; /* persistent, including after timeout */
+		p->last_stage = "submit";
 		started = ktime_get_ns();
 		cookie = dmaengine_submit(tx);
+		p->last_cookie = cookie;
 		if (dma_submit_error(cookie)) {
+			p->last_reason = "submit_error";
 			ret = dma_submit_error(cookie);
 			goto free_buffers;
 		}
+		p->last_stage = "issue";
 		dma_async_issue_pending(p->chan);
+		p->last_stage = "wait";
 		if (!wait_for_completion_timeout(&p->done, msecs_to_jiffies(10000))) {
+			p->last_reason = "timeout_stopped";
 			ret = -ETIMEDOUT;
 			if (dmaengine_terminate_sync(p->chan)) {
 				p->faulted = true;
+				p->last_reason = "timeout_pinned";
 				dev_err(dev, "timeout: active DMA/channel/buffers pinned; RESET REQUIRED\n");
 				goto unlock;
 			}
@@ -358,7 +395,15 @@ static ssize_t benchmark_store(struct device *dev, struct device_attribute *attr
 		}
 		p->ns += p->finished - started;
 		dma_rmb();
-		if (p->result != DMA_TRANS_NOERROR || memcmp(p->source, p->destination, bytes)) {
+		p->last_stage = "verify";
+		p->last_result = p->result;
+		if (p->result != DMA_TRANS_NOERROR) {
+			p->last_reason = "completion_result";
+			ret = -EIO;
+			goto free_buffers;
+		}
+		if (memcmp(p->source, p->destination, bytes)) {
+			p->last_reason = "data_mismatch";
 			ret = -EIO;
 			goto free_buffers;
 		}
@@ -366,6 +411,8 @@ static ssize_t benchmark_store(struct device *dev, struct device_attribute *attr
 	}
 	if (p->ns)
 		p->rate = div64_u64((u64)bytes * iterations * NSEC_PER_SEC, p->ns);
+	p->last_stage = "complete";
+	p->last_reason = "pass";
 	dev_info(dev, "DMA memcpy PASS %u x %u bytes, %llu payload B/s; CPU fill/verify excluded\n",
 		 iterations, bytes, p->rate);
 free_buffers:
@@ -378,6 +425,11 @@ free_buffers:
 	dma_release_channel(p->chan);
 	p->chan = NULL;
 unlock:
+	p->last_errno = ret;
+	if (ret)
+		dev_err(dev, "benchmark run=%llu stage=%s reason=%s errno=%d iteration=%u cookie=%d result=%d faulted=%u\n",
+			p->run_sequence, p->last_stage, p->last_reason, ret,
+			p->last_iteration, p->last_cookie, p->last_result, p->faulted);
 	mutex_unlock(&p->lock);
 	return ret ? ret : count;
 }

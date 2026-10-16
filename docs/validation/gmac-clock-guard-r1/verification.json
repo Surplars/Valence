@@ -1,0 +1,9 @@
+{
+  "base_sha": "f4ae99478a678d3b9d4931533eb1bb94975553cb",
+  "driver_sha256": "8ceb16a5904deaf492429234f6caf169c227c3738007b313b03014f1024fcba3",
+  "original_tests_before_stub_fix": "RX and TX compile failed: missing managed PHY stub members/decoder/carrier API",
+  "baseline_after_stub_fix": "RX49 TX33 pass",
+  "candidate": "RX49 TX33 clock13 and 3 rejected mutations pass; 10 unittest cases pass",
+  "kernel_compile": "not run",
+  "board_results": "not measured"
+}

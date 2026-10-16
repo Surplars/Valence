@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "scope": "Actual TX/RX/NAPI/IRQ driver bodies with independent numeric TX MMIO oracle.\nNo kernel build, scheduler, hardware, board throughput, or permanent lost-IRQ recovery claim.\n",
+  "summary": "POSTED_TX_DRIVER_MMIO_PASS selected_pool=1 copy_before_post=1 fifo=1 batch_wake=1 full_busy_keeps_skb=1 tx_only_budget=1 irq_rearm=1 reset_stop_pinned=1 ifdown_pinned=1 legacy=1\ncases=33\n",
+  "negative_payload_oracle": true,
+  "driver_sha256": "8ceb16a5904deaf492429234f6caf169c227c3738007b313b03014f1024fcba3",
+  "tx_header_sha256": "4e54e4346826ba8f3f0ea29826a67834f425c1b3dcaf67fb5f62e02251768d9c",
+  "harness_sha256": "590360d89481fc79a9b705dc39f5f36235e6fa7f0eda9e69d7c78d60b6b42d82"
+}

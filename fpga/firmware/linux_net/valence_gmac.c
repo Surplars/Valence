@@ -94,6 +94,9 @@ struct vgmac {
 	u64 ram_base, ram_bytes;
 	unsigned int tx_length;
 	u64 interrupts, napi_polls, rx_work, empty_polls;
+	u64 poll_budget_zero, poll_rx_budget_exit, poll_rx_time_exit;
+	u64 tx_reclaimed, tx_poll_no_owner, tx_poll_pending_no_completion;
+	u64 tx_full_stops, tx_poll_wakes, rx_alloc_fail;
 	bool running, address_set, configured, tx_pending, faulted;
 	bool managed_phy;
 	unsigned int link_speed, media_stats_count;
@@ -310,15 +313,20 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 {
 	struct vgmac *p = container_of(napi, struct vgmac, napi);
 	struct net_device *ndev = p->ndev;
-	u64 deadline = ktime_get_ns() + VG_NAPI_TIME_NS;
+	/* TX-only calls do not enter RX or use its deadline. */
+	u64 deadline = budget ? ktime_get_ns() + VG_NAPI_TIME_NS : 0;
 	u64 tx, rx, bytes;
 	int work = 0;
 	bool active;
 
 	p->napi_polls++;
+	if (!budget) p->poll_budget_zero++;
 	spin_lock_bh(&p->lock);
 	active = vg_irq_allowed(p->running, p->configured, p->faulted);
-	/* Do not read an idle TX engine. TX completion is independent of RX budget. */
+	/* Posted status also validates idle ownership; never skip its fault check.
+	 * TX completion is independent of RX budget. */
+	if (active && (p->posted_tx ? !p->tx_ring.posted : !p->tx_pending))
+		p->tx_poll_no_owner++;
 	if (active && p->posted_tx) {
 		unsigned int completed;
 		for (completed = 0; completed < p->tx_slots; ++completed) {
@@ -326,15 +334,21 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 			int available = vgt_peek(&p->tx_ring, &c);
 			if (available <= 0) {
 				if (available < 0) vg_queue_fault(p);
+				else if (!completed && p->tx_ring.posted)
+					p->tx_poll_pending_no_completion++;
 				break;
 			}
 			if (c.error) ndev->stats.tx_errors++;
 			else { ndev->stats.tx_packets++; ndev->stats.tx_bytes += c.bytes; }
 			if (vgt_release(&p->tx_ring, c.slot)) { vg_queue_fault(p); break; }
+			p->tx_reclaimed++;
 		}
 		if (completed > p->tx_max_batch) p->tx_max_batch = completed;
 		p->tx_pending = p->tx_ring.posted != 0;
-		if (vg_tx_space(p) && netif_carrier_ok(ndev) && !p->faulted) netif_wake_queue(ndev);
+		if (vg_tx_space(p) && netif_carrier_ok(ndev) && !p->faulted) {
+			if (netif_queue_stopped(ndev)) p->tx_poll_wakes++;
+			netif_wake_queue(ndev);
+		}
 	} else if (active && p->tx_pending) {
 		tx = vg_read(p->dma, D_TX_STATUS);
 		if ((tx & D_DONE) && !(tx & D_BUSY)) {
@@ -347,8 +361,13 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 			}
 			vg_write(p->dma, D_TX_COMMAND, 2);
 			p->tx_pending = false;
-			if (netif_carrier_ok(ndev) && !p->faulted)
+			p->tx_reclaimed++;
+			if (netif_carrier_ok(ndev) && !p->faulted) {
+				if (netif_queue_stopped(ndev)) p->tx_poll_wakes++;
 				netif_wake_queue(ndev);
+			}
+		} else {
+			p->tx_poll_pending_no_completion++;
 		}
 	}
 	spin_unlock_bh(&p->lock);
@@ -396,6 +415,7 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 				ndev->stats.rx_bytes += bytes;
 			} else {
 				ndev->stats.rx_dropped++;
+				p->rx_alloc_fail++;
 			}
 		}
 		/* Copy/error handling precedes POP; no DMA owner can race skb reads. */
@@ -410,8 +430,15 @@ static int vg_napi_poll(struct napi_struct *napi, int budget)
 		p->rx_work++;
 		if (skb)
 			napi_gro_receive(napi, skb);
-		if (vgq_poll_yield(work, budget, ktime_get_ns(), deadline))
+		/* The packet budget already yields; avoid an unused clock read. */
+		if (work >= budget) {
+			p->poll_rx_budget_exit++;
+			return budget;
+		}
+		if (vgq_poll_yield(work, budget, ktime_get_ns(), deadline)) {
+			p->poll_rx_time_exit++;
 			return budget; /* Leave IRQ masked; core budget yields to other tasks. */
+		}
 	}
 	if (!work)
 		p->empty_polls++;
@@ -451,8 +478,12 @@ static netdev_tx_t vg_xmit(struct sk_buff *skb, struct net_device *ndev)
 	if (p->posted_tx) {
 		if (vgt_post(&p->tx_ring, slot, skb->len)) vg_queue_fault(p);
 		p->tx_pending = p->tx_ring.posted != 0;
-		if (!vg_tx_space(p)) netif_stop_queue(ndev);
+		if (!vg_tx_space(p)) {
+			if (!netif_queue_stopped(ndev)) p->tx_full_stops++;
+			netif_stop_queue(ndev);
+		}
 	} else {
+		if (!netif_queue_stopped(ndev)) p->tx_full_stops++;
 		netif_stop_queue(ndev);
 		p->tx_pending = true; p->tx_length = skb->len;
 		dma_wmb();
@@ -625,7 +656,7 @@ static ssize_t napi_status_show(struct device *dev, struct device_attribute *att
 	struct net_device *ndev = dev_get_drvdata(dev);
 	struct vgmac *p = netdev_priv(ndev);
 
-	return sysfs_emit(buf, "irq=%d interrupts=%llu napi_polls=%llu rx_work=%llu empty_polls=%llu running=%u configured=%u faulted=%u rx_mode=%s rx_slots=%u rx_dma_bytes=%u posted_owned=%u rx_max_batch=%u rx_completion_peak=%u mac_rx_slots=%u dma_memory_credits=%u tx_mode=%s tx_slots=%u tx_dma_bytes=%u tx_owned=%u tx_max_batch=%u tx_completion_peak=%u\n",
+	return sysfs_emit(buf, "irq=%d interrupts=%llu napi_polls=%llu rx_work=%llu empty_polls=%llu running=%u configured=%u faulted=%u rx_mode=%s rx_slots=%u rx_dma_bytes=%u posted_owned=%u rx_max_batch=%u rx_completion_peak=%u mac_rx_slots=%u dma_memory_credits=%u tx_mode=%s tx_slots=%u tx_dma_bytes=%u tx_owned=%u tx_max_batch=%u tx_completion_peak=%u poll_budget_zero=%llu poll_rx_budget_exit=%llu poll_rx_time_exit=%llu tx_reclaimed=%llu tx_poll_no_owner=%llu tx_poll_pending_no_completion=%llu tx_full_stops=%llu tx_poll_wakes=%llu rx_alloc_fail=%llu\n",
 			  p->irq, READ_ONCE(p->interrupts), READ_ONCE(p->napi_polls),
 			  READ_ONCE(p->rx_work), READ_ONCE(p->empty_polls), READ_ONCE(p->running),
 			  READ_ONCE(p->configured), READ_ONCE(p->faulted),
@@ -635,7 +666,10 @@ static ssize_t napi_status_show(struct device *dev, struct device_attribute *att
                           p->mac_rx_slots, p->dma_credits, p->posted_tx ? "posted" : "legacy",
                           p->tx_slots, p->tx_slots * FRAME_BYTES,
                           p->posted_tx ? vgq_count(READ_ONCE(p->tx_ring.owned)) : READ_ONCE(p->tx_pending),
-                          READ_ONCE(p->tx_max_batch), READ_ONCE(p->tx_ring.completion_high_water));
+                          READ_ONCE(p->tx_max_batch), READ_ONCE(p->tx_ring.completion_high_water),
+			  READ_ONCE(p->poll_budget_zero), READ_ONCE(p->poll_rx_budget_exit), READ_ONCE(p->poll_rx_time_exit),
+			  READ_ONCE(p->tx_reclaimed), READ_ONCE(p->tx_poll_no_owner), READ_ONCE(p->tx_poll_pending_no_completion),
+			  READ_ONCE(p->tx_full_stops), READ_ONCE(p->tx_poll_wakes), READ_ONCE(p->rx_alloc_fail));
 }
 static DEVICE_ATTR_RO(napi_status);
 static struct attribute *vg_attrs[] = { &dev_attr_napi_status.attr, NULL };

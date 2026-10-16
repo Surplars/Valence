@@ -75,7 +75,7 @@ and limited to 16 MiB. No disk or remote service is required.
 and monotonic logs. The first diagnostic firmware deliberately uses loglevel=8 and a
 1 MiB log buffer so populate_rootfs start/end are visible. This adds UART logging cost.
 The source kernel and RTL remain unchanged. `mem-bench 32 3` measures aligned CPU-visible
-streaming bandwidth and `dma-bench 8388608 4` measures the independent DMA path. Neither
+streaming bandwidth and `dma-bench 1048576 4` measures the independent DMA path. Neither
 is MIG peak bandwidth; COPY logical R+W is not a count of physical AXI bytes. Benchmarks
 are manual only. Static checks/QEMU package setup are not a board runtime claim.
 
@@ -116,3 +116,15 @@ and preserve its state file. Supply each exact former seed root through
 installs no tools, changes no host ownership, and is not a privileged chroot.
 Do not ship its `.valence-build-tools` directory. The packed audit checks actual
 cpio device metadata and ownership, not the host filesystem's fake-root view.
+
+
+DMA bring-up starts with `dma-bench 131072 1` (128KiB) or
+`dma-bench 1048576 1` (1MiB). The script defaults to 1MiB x 4.
+Each run allocates two private contiguous coherent buffers. In the V4
+4KiB-page, max-order-10 configuration without CMA, the ordinary direct allocator
+cannot allocate an 8MiB buffer (order 11); this is independent of total free RAM.
+A smaller test is a separate payload-size result, not an equivalent 8MiB score.
+Explicit byte/iteration arguments are passed unchanged: no clipping, chunking,
+retry, or fallback. Allocation may still fail below the maximum under pressure.
+The wrapper uses external `/usr/bin/printf` (coreutils) to retain the actual
+write-error message, then exits on failure before reading/reporting throughput.

@@ -1,0 +1,30 @@
+{
+  "driver_sha256": "24ad32552635ac3a6a9e02e2695a9b2c6b5aa0ce8eb82a10d36511b10e851587",
+  "results": {
+    "candidate": {
+      "exit_code": 0,
+      "stdout": "NAPI_COUNTERS_DRIVER_PASS cases=22 exact_mmio=1 exclusive_exits=1 full_stop_transition=1 wake_stopped_only=1 fault_ifdown=1 sysfs_export=1\n",
+      "expected_failure": false
+    },
+    "double_exit": {
+      "exit_code": -6,
+      "stdout": "",
+      "expected_failure": true
+    },
+    "wake_attempts": {
+      "exit_code": -6,
+      "stdout": "",
+      "expected_failure": true
+    },
+    "fake_idle_pending": {
+      "exit_code": -6,
+      "stdout": "",
+      "expected_failure": true
+    },
+    "missing_full_stop": {
+      "exit_code": -6,
+      "stdout": "",
+      "expected_failure": true
+    }
+  }
+}

@@ -17,7 +17,7 @@ echo '=== RAM and network ==='
 free -m
 ip address show dev eth0
 cat /proc/net/dev
-echo 'Manual tests: mem-bench 32 3; dma-bench 8388608 4; fpu-test'
+echo 'Manual tests: mem-bench 32 3; dma-bench 1048576 4; fpu-test'
 echo 'These tests are not run during boot. CPU/DMA bandwidth is not MIG peak bandwidth.'
 echo '=== UART V4 startup observations (not a boot gate) ==='
 cat /run/valence/uart-startup.log /run/valence/uart-warning 2>/dev/null || :

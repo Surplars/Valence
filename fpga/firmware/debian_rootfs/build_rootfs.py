@@ -20,7 +20,7 @@ from run import run
 
 KEY_URL = ('https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/'
            'debian-archive-keyring_2025.1_all.deb')
-PACKAGES = ('ca-certificates', 'iproute2', 'iputils-ping', 'procps', 'ifupdown',
+PACKAGES = ('coreutils', 'ca-certificates', 'iproute2', 'iputils-ping', 'procps', 'ifupdown',
             'kmod', 'util-linux', 'login', 'ethtool', 'iperf3', 'strace',
             'tcpdump', 'net-tools')
 LEGACY_LABEL = 'Valence Debian 13 riscv64 minbase, RAM-only serial bring-up, no automatic GMAC'
@@ -192,6 +192,8 @@ def pack(args, output):
         copy(ROOT / 'simulator/build' / relative, rootfs / 'usr/share/doc/valence' / name, 0o644)
     for name in ('net-status', 'boot-time'):
         copy(HERE.parent / 'linux_net' / name, rootfs / 'usr/local/sbin' / name, 0o755)
+    if not (rootfs / 'usr/bin/printf').is_file() or not os.access(rootfs / 'usr/bin/printf', os.X_OK):
+        raise RuntimeError('DMA benchmark requires executable Debian coreutils /usr/bin/printf')
     copy(HERE / 'dma-bench', rootfs / 'usr/local/sbin/dma-bench', 0o755)
     for source, target, mode in (('init', 'init', 0o755), ('interfaces', 'etc/network/interfaces', 0o644),
             ('valence-net-up', 'usr/local/sbin/valence-net-up', 0o755),

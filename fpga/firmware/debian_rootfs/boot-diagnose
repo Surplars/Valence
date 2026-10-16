@@ -19,5 +19,5 @@ systemctl --no-pager status serial-getty@hvc0.service valence-platform.service n
 echo '=== recent monotonic journal ==='
 journalctl -b -o short-monotonic --no-pager -n 50
 echo 'Manual CPU bandwidth: mem-bench 32 3 (working set > cache; not MIG peak)'
-echo 'Manual independent DMA path: dma-bench 8388608 4 (PASS + MiB/s required)'
+echo 'Manual independent DMA path: dma-bench 1048576 4 (PASS + MiB/s required)'
 echo 'No clocks, DMA, network state or memory outside this process were changed.'
