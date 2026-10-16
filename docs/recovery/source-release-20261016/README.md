@@ -24,7 +24,7 @@ ROM is the verified67280-byte image SHA256 ee7c2e5fb86d50dad55df532aeb7ccb1d0b91
 
 The frozen50cb batch passed six focused board cases and five negative controls. Relative to the saved full-C1 reference, Sv39 write cycles increased11.984% and copy cycles8.579%; those costs are not hidden by timing improvement. No full Linux regression or on-board boot is claimed.
 
-First routed result was WNS−0.096ns/TNS−5.717ns with123 CPU setup failures; hold/recovery/removal were positive. The parent subsequently reported a single authorized post-route phys_opt run14:18:14–14:33:50, final DCP SHA25623a4edd50f0c4852f89ffb549f5ba9d2c51dc2019f546479b1dbe538ce102743, final14:35 summary WNS+0.006ns/TNS0/WHS+0.010ns/THS0, zero setup/hold failures and256283 fully routed nets. These final values are **local reported, pending artifact review** at preparation of this source candidate. Bit generation is separately authorized locally; no bitstream is included or claimed generated here.
+First routed result was WNS−0.096ns/TNS−5.717ns with123 CPU setup failures; hold/recovery/removal were positive. The parent subsequently reported a single authorized post-route phys_opt run14:18:14–14:33:50, final DCP SHA25623a4edd50f0c4852f89ffb549f5ba9d2c51dc2019f546479b1dbe538ce102743, final14:35 summary WNS+0.006ns/TNS0/WHS+0.010ns/THS0, zero setup/hold failures and256283 fully routed nets. The final1000Mbps timing summary was subsequently read from the supplied postroute artifact and confirms these values;100/10Mbps final checks and bit generation were still pending at that snapshot. Bit generation is separately authorized locally; no bitstream is included or claimed generated here.
 
 ## Publication boundary
 
