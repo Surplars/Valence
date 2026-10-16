@@ -22,6 +22,8 @@ file mkdir $out
 cd $out
 r3_apply_threads place_begin
 source [file join $root scripts r3_common.tcl]
+# Keep sealed legacy helper bytes untouched; use source-correct bound evaluation.
+proc r3_source_bound {path} {combined_source_bound $path}
 if {[catch {
     open_checkpoint [file join $root synthesis post_synth_unconstrained.dcp]
     r3_discover

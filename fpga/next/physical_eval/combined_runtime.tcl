@@ -56,3 +56,20 @@ proc combined_project_inputs {root} {
     puts [combined_python $root combined_project_inputs.py [list [combined_root_path $root] \
         [combined_root_path $listing] [combined_root_path $::env(XILINX_VIVADO)]]]
 }
+
+# Evaluate hierarchy-bound bytes with the original sealed script's source context.
+# Nested source commands then retain normal Tcl info script behavior; restore it
+# even when the bound script returns an error. The transformed bytes stay logged.
+proc combined_source_bound {path} {
+    set path [file normalize $path]
+    set f [open $path];set body [read $f];close $f
+    set pairs [list u_soc/board/nativeBank/gmac $::V_GMAC_ROOT u_soc/board/nativeBank $::V_BANK_ROOT u_soc/board/platform/rom $::V_ROM_ROOT u_soc $::V_SOC_ROOT u_rgmii $::V_RGMII_ROOT]
+    set actual [string map $pairs $body]
+    set f [open [file join [pwd] bound-[file tail $path]] w]
+    puts -nonewline $f $actual;close $f
+    set previous [info script]
+    info script $path
+    set code [catch {uplevel #0 $actual} result options]
+    info script $previous
+    return -options $options $result
+}
