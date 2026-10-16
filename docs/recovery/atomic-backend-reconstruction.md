@@ -53,10 +53,16 @@ The first run compiled/generated the baseline model and all 18 model objects, th
 
 Successful receipt SHA-256: `191bfaefc3ef7f9df753588efcad563b60b1e13f9f08e75bb792ddc9cf5c2036`. Receipts/generated models remain local run artifacts; this document does not claim they are shipped with the repository. The runner's optional `--reuse-run` accepts a terminal failed run only after checking pinned commits, executable identity, source inventories and unchanged observer.
 
-Unclosed coverage:
+Coverage not supplied by this A/B run (the later directed test below is separate evidence):
 
 - **Zero real FIFO stall and zero queued-cancel cycles**: this integrated run does not qualify cancellation of an owner while still queued or held at that FIFO boundary.
 - **Zero posted-valid enqueues**: virtual-only traffic has no posted-cache authority. Posted-cache merge/ACK behavior is untested here.
 - Resident cancellation and real physical-response/credit draining were observed; they do not substitute for the missing queued-cancel case.
 - No cache/Home integration, executing board, Linux, timing, synthesis, PPA or full-regression claim.
 - The original `atomic_request_proof_backend.py` guards and original independent oracle remain unchanged.
+
+## Subsequent directed queued-cancellation test
+
+A separate test-only external ready/valid interposer, pinned to `d69f4cd2d1e3160853ae22904b795ea9a4c704de`, subsequently exercised the missing real FIFO stall/queued-cancel case. At cycle 530 it observed two queued entries, matching queued/cancelled handle masks of 3, 61 stalled cycles, one queued-cancel cycle, and zero pre-release physical requests/replies or returned credits. Exact resident LSU tokens and the full FIFO metadata ledger were retained. After twelve additional held cycles and release, exactly two requests/replies and two credits drained; final totals were 599 cycles and 74 stalled cycles.
+
+The retained-handle negative control corrupts a host observation, not RTL. The initial run's one-cycle-too-early registered-counter observation failure was preserved; the successful retry freshly compiled the corrected host and hash-linked the unchanged interposer model/objects. This directed candidate result is not an additional A/B run and does not qualify posted-cache merge/ACK or stalled valid store-proof traffic. See [queued-cancel reproduction, provenance and limits](queued-cancel-integration.md).
