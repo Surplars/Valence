@@ -189,6 +189,43 @@ def validate_rom(root, manifest, raw_hash, padded_hash):
     return padded
 
 
+def tcl_without_standalone_comments(text):
+    """Drop only full-line comments at Tcl-proven complete-command boundaries.
+
+    info complete parses syntax only, never evaluates the input. Quoted/braced/
+    bracket bodies and backslash continuations remain byte-for-byte for scanning.
+    """
+    import tkinter
+    interpreter = tkinter.Tcl()
+    prefix, result = '', []
+    continued = False
+    for line in text.splitlines(keepends=True):
+        standalone = not continued and bool(int(interpreter.call('info', 'complete', prefix)))
+        if standalone and line.lstrip().startswith('#'):
+            result.append('\n' if line.endswith('\n') else '')
+        else:
+            result.append(line)
+        prefix += line
+        body = line.rstrip('\r\n')
+        continued = (len(body) - len(body.rstrip('\\'))) % 2 == 1
+    return ''.join(result)
+
+
+def validate_constraint_text(text, name):
+    require(not re.search(r'(?m)(?:^|[;\s\[])(source|read_\w+|exec|open|load)\s',
+                          tcl_without_standalone_comments(text)),
+            'External-loading command in IP/XDC input requires explicit closure review: '+name)
+
+
+def validate_validator_revision(source, validator):
+    """Keep RTL/source identity fixed while separately binding reviewed staging code."""
+    require(source['gitlinks'] == validator['gitlinks'], 'Validator checkout changed source gitlinks')
+    for name in set(source['files']) | set(validator['files']):
+        if not name.startswith('fpga/next/physical_eval/'):
+            require(source['files'].get(name) == validator['files'].get(name),
+                    'Validator revision changed non-staging source: '+name)
+
+
 def validate_ip(root, inventory, padded, run, ownership=None):
     require(set(IP_FILES) <= set(inventory), 'Missing required four XCI/MIF/two XDC inputs')
     for name in inventory:
@@ -199,8 +236,7 @@ def validate_ip(root, inventory, padded, run, ownership=None):
     for name in inventory:
         if Path(name).suffix.lower() in ('.xdc', '.tcl'):
             text = relative_input(root, name).read_text()
-            require(not re.search(r'(?m)(?:^|[;\s\[])(source|read_\w+|exec|open|load)\s', text),
-                    'External-loading command in IP/XDC input requires explicit closure review: '+name)
+            validate_constraint_text(text, name)
     mif = relative_input(root, IP_FILES[4]).read_text().split()
     require(len(mif) == 32768 and all(re.fullmatch('[01]{32}', x) for x in mif), 'Unsupported MIF format')
     require(b''.join(int(x, 2).to_bytes(4, 'little') for x in mif) == padded, 'MIF differs from selected ROM')

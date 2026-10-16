@@ -132,3 +132,24 @@ address/feedback launches under a 3.333 ns budget; the failing bus was physical
 RX ingress payload, while its Gray-pointer checks had positive slack. Current
 shared helpers select reviewed RAM leaf launches separately. These source and
 constraint differences do not establish updated routed setup/hold/skew closure.
+
+## Validator-only corrections with a preserved native export
+
+A staging-only correction does not require relabeling or regenerating unchanged
+native RTL. Keep `--source-root` at the export's original clean commit and keep
+`--commit` equal to that original commit (for the current native export:
+`3554932ea0b1136ba9b41257385df0c1e8c5ff5c`). Run `prepare_combined.py` from a
+separate clean checkout containing the reviewed validator correction and pass
+its exact `--validator-commit`. The two closures must be identical outside
+`fpga/next/physical_eval/`, including gitlinks. The new package records both
+`sourceClosure` and `validatorClosure`; the original native receipts remain
+byte-identical. This exception changes the staging validator identity only and
+cannot admit changed hardware, build inputs, resources, or board integration.
+
+Only full-line XDC/Tcl comments at syntax-proven complete command boundaries are
+ignored by the external-loading scan. Quoted/bracketed and backslash-continued
+content stays subject to the conservative scan. No input Tcl is evaluated.
+Candidate runtime subprocess calls retain raw stderr in separate binary logs and
+record exit status. Successful WSL warnings do not contaminate JSON stdout;
+nonzero subprocess exits still abort. Logs live under the external run root.
+Run `python3 -B test_combined_portability.py` for these focused mock regressions.

@@ -12,7 +12,7 @@ import subprocess
 import sys
 from input_contract import positive_threads, tcl_config, relative_input
 from combined_contract import (SCHEMA, FLAGS, ROM_FILES, checked_files, info, read, require,
-                               sha, source_closure, validate_ip, validate_native, validate_rom, write)
+                               sha, source_closure, validate_ip, validate_native, validate_rom, validate_validator_revision, write)
 
 HERE = Path(__file__).resolve().parent
 
@@ -24,6 +24,7 @@ def arguments():
         parser.add_argument('--'+name, required=True, type=Path)
     for name in ('commit', 'rom-sha256', 'padded-sha256', 'vivado-version'):
         parser.add_argument('--'+name, required=True)
+    parser.add_argument('--validator-commit', help='Exact clean validator checkout commit when executing newer staging code against preserved source')
     parser.add_argument('--ip-ownership', type=Path, help='Required XCI ownership records for any OOC DCP/EDIF assets')
     parser.add_argument('--threads', type=positive_threads, default=4)
     parser.add_argument('--part', default='xczu15eg-ffvb1156-2-i', choices=['xczu15eg-ffvb1156-2-i'])
@@ -48,8 +49,11 @@ def main(args):
                                     ('source_root', 'run_root', 'native_root', 'rom_root', 'ip_root'))
     require(not run.exists() and run != source and source not in run.parents and run not in source.parents,
             'Require fresh external run root')
-    require(HERE == source/'fpga/next/physical_eval', 'Execute the candidate scripts from the selected source checkout')
     closure = source_closure(source)
+    validator_root = HERE.parent.parent.parent
+    validator = source_closure(validator_root)
+    require(validator['commit'] == (args.validator_commit or args.commit), 'Exact validator commit required')
+    validate_validator_revision(closure, validator)
     require(closure['commit'] == args.commit, 'Wrong source commit')
     toolchain = read(args.toolchain_manifest)
     for name in ('mill', 'firtool', 'java', 'python'):
@@ -127,12 +131,13 @@ def main(args):
     (run/'physical-config.tcl').write_text(tcl_config(settings))
     shutil.copytree(HERE, run/'scripts', ignore=shutil.ignore_patterns('__pycache__', 'test_*'))
     require(source_closure(source) == closure, 'Source changed during staging')
+    require(source_closure(validator_root) == validator, 'Validator changed during staging')
     validate_native(run/'native', closure, toolchain)
     preflight = subprocess.run([sys.executable, '-B', str(run/'scripts/preflight.py'), str(run)],
                               capture_output=True, text=True, check=True)
     (run/'evidence/static-preflight.txt').write_text(preflight.stdout)
     write(run/'evidence/combined-inputs.json', dict(schema=SCHEMA, status='PREPARED_NOT_PHYSICALLY_QUALIFIED',
-        featureFlags=FLAGS, sourceClosure=closure, emissionToolchain=toolchain, vivadoVersion=args.vivado_version,
+        featureFlags=FLAGS, sourceClosure=closure, validatorClosure=validator, emissionToolchain=toolchain, vivadoVersion=args.vivado_version,
         actualAuditSha256=sha(native/'actual-combined-native.json'), nativeSvCount=sum(
             name.endswith('.sv') for name in audited['inventory']['files']), resourceResults=resource_results,
         modeVerification=mode_verified, romManifest=rom_manifest, ipManifest=inventory, ipOwnership=ownership,

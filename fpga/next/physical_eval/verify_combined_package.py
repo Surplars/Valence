@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 from combined_contract import (SCHEMA, checked_files, read, require, validate_ip,
-                               validate_native, validate_rom)
+                               validate_native, validate_rom, validate_validator_revision)
 
 
 def verify(root, vivado_version):
@@ -18,6 +18,7 @@ def verify(root, vivado_version):
     contract = read(root/'evidence/combined-inputs.json')
     require(contract['schema'] == SCHEMA and contract['physicalQualification'] is False, 'Wrong candidate contract')
     require(contract['vivadoVersion'] == vivado_version, 'Unexpected actual Vivado version')
+    validate_validator_revision(contract['sourceClosure'], contract['validatorClosure'])
     validate_native(root/'native', contract['sourceClosure'], contract['emissionToolchain'])
     padded = validate_rom(root/'firmware', contract['romManifest'], contract['romSha256'], contract['paddedSha256'])
     validate_ip(root, contract['ipManifest'], padded, root, contract['ipOwnership'])
