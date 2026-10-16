@@ -45,8 +45,10 @@ object SvTranslationService {
   * privilege. Optional successful-write data permission subsumption never grants writes from a read or execution
   * from data access. Superpage hits reconstruct the new VA offset. I/D walkers can miss concurrently.
   */
-class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int = 16,
-    loadPeek: Boolean = false, writeReadReuse: Boolean = false) extends Module {
+class SvTranslationService(val maxLevels: Int = 4, val entries: Int = 8, pmpEntries: Int = 16,
+    val loadPeek: Boolean = false, val writeReadReuse: Boolean = false, val missCacheEntries: Int = 0) extends Module {
+    require(Set(0, 32, 64, 128).contains(missCacheEntries),
+        "miss cache entries must be 0, 32, 64 or 128 (two ways)")
     private val enableLoadPeek = loadPeek
     require(Set(3, 4, 5).contains(maxLevels))
     private val entryIndexBits = SvTranslationService.indexBits(entries)
@@ -66,7 +68,10 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     io.memory <> walker.io.memory
     val tlb  = RegInit(VecInit(Seq.fill(entries)(0.U.asTypeOf(new SvTlbEntry))))
     val next = RegInit(0.U(entryIndexBits.W))
-    val idle :: walking :: replying :: Nil = Enum(3)
+    val states = Enum(if (missCacheEntries > 0) 5 else 3)
+    val idle = states(0)
+    val walking = states(1)
+    val replying = states(2)
     val state = RegInit(idle)
     val saved = Reg(new SvTranslationRequest)
     val savedResponse = Reg(new SvTranslationResponse)
@@ -118,6 +123,11 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
             (query.virtualAddress & offsetMask)
         (query.mode =/= 0.U && query.privilege =/= 3.U && hits.asUInt.orR, response)
     }
+    // Opt-in miss-only inclusive cache. Its synchronous memory and comparator are
+    // absent from both original demand-hit and hit-only peek lookup cones.
+    val missCacheFill = WireDefault(false.B)
+    val missCacheResponse = WireDefault(0.U.asTypeOf(new SvTranslationResponse))
+    val missCacheProbe = WireDefault(false.B)
     val (hit, cachedResponse) = lookup(request)
     val fast = !activeMode || hit
     val fastResponse = WireDefault(0.U.asTypeOf(new SvTranslationResponse))
@@ -143,7 +153,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     io.idle := state === idle && !walker.io.complete.valid
     when(io.client.request.fire && !fast) {
         saved := request
-        state := walking
+        state := Mux(missCacheProbe, states.last, walking)
     }
     walker.io.start.valid := state === walking
     walker.io.start.bits.virtualAddress := saved.virtualAddress
@@ -156,10 +166,82 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
     io.walkStart := walker.io.start.fire
     io.pteRead := walker.io.memory.request.fire
     walker.io.complete.ready := state === walking
+    if (missCacheEntries > 0) {
+        val probe0 = states(4)
+        val probe1 = states(3)
+        val sets = missCacheEntries / 2
+        val setBits = log2Ceil(sets)
+        val cache = SyncReadMem(missCacheEntries, new SvTlbEntry)
+        val valid = RegInit(VecInit(Seq.fill(missCacheEntries)(false.B)))
+        val victim = RegInit(VecInit(Seq.fill(sets)(false.B)))
+        val firstHit = RegInit(false.B)
+        val firstMatch = RegInit(false.B)
+        val firstResponse = Reg(new SvTranslationResponse)
+        val fillIndex = Reg(UInt((setBits + 1).W))
+        val group = saved.virtualAddress(11 + setBits, 12)
+        val firstIndex = Cat(false.B, group)
+        val secondIndex = Cat(true.B, group)
+        missCacheProbe := request.mode === 8.U && request.privilege =/= 3.U
+        val launch = io.client.request.fire && !fast && missCacheProbe
+        val readEnable = launch || state === probe0
+        val readIndex = Mux(launch, Cat(false.B, request.virtualAddress(11 + setBits, 12)), secondIndex)
+        val row = cache.read(readIndex, readEnable)
+        val candidate = WireDefault(row)
+        candidate.valid := Mux(state === probe0, valid(firstIndex), valid(secondIndex))
+        val matches = samePage(candidate, saved)
+        val priorWrite = candidate.request.access === PmpAccess.write ||
+            candidate.request.access === PmpAccess.readWrite
+        val dataAccess = saved.access === PmpAccess.read || saved.access === PmpAccess.write ||
+            saved.access === PmpAccess.readWrite
+        val allowed = candidate.request.access === saved.access ||
+            (if (writeReadReuse) priorWrite && dataAccess else false.B)
+        val found = matches && allowed
+        val response = WireDefault(candidate.response)
+        response.physicalAddress := Cat(candidate.response.physicalAddress(63, 12), saved.virtualAddress(11, 0))
+        when(state === probe0) {
+            firstHit := found
+            firstMatch := matches
+            firstResponse := response
+            state := probe1
+        }
+        when(state === probe1) {
+            val selected = Mux(firstMatch, firstIndex, Mux(matches, secondIndex,
+                Mux(!valid(firstIndex), firstIndex, Mux(!valid(secondIndex), secondIndex,
+                    Cat(victim(group), group)))))
+            fillIndex := selected
+            when(firstHit || found) {
+                missCacheFill := true.B
+                missCacheResponse := Mux(firstHit, firstResponse, response)
+                savedResponse := missCacheResponse
+                state := replying
+            }.otherwise { state := walking }
+        }
+        when(walker.io.complete.fire && !walker.io.complete.bits.pageFault &&
+            !walker.io.complete.bits.accessFault && saved.mode === 8.U &&
+            walker.io.complete.bits.level === 0.U && !walker.io.complete.bits.napot) {
+            val entry = Wire(new SvTlbEntry)
+            entry.valid := true.B
+            entry.request := saved
+            entry.response := walker.io.complete.bits
+            assert(!readEnable, "miss-cache synchronous read and write cannot overlap")
+            cache.write(fillIndex, entry)
+            valid(fillIndex) := true.B
+            victim(group) := !fillIndex(setBits)
+        }
+        when(io.flush) {
+            for (i <- 0 until missCacheEntries) { valid(i) := false.B }
+        }
+    }
     when(walker.io.complete.fire) {
         savedResponse := walker.io.complete.bits
         state := replying
-        when(!walker.io.complete.bits.pageFault && !walker.io.complete.bits.accessFault) {
+    }
+    val fillResponse = Wire(new SvTranslationResponse)
+    fillResponse := walker.io.complete.bits
+    when(missCacheFill) { fillResponse := missCacheResponse }
+    assert(!(walker.io.complete.fire && missCacheFill), "PTW and miss-cache cannot reply to one request together")
+    when(walker.io.complete.fire || missCacheFill) {
+        when(!fillResponse.pageFault && !fillResponse.accessFault) {
             // Upgrade the already matching read entry after a successful
             // write walk instead of consuming a second entry for that page.
             // Failed walks never insert/upgrade. Only the exact saved context
@@ -169,7 +251,7 @@ class SvTranslationService(maxLevels: Int = 4, entries: Int = 8, pmpEntries: Int
             val insert = Mux(reuse, PriorityEncoder(matching), next)
             tlb(insert).valid := true.B
             tlb(insert).request := saved
-            tlb(insert).response := walker.io.complete.bits
+            tlb(insert).response := fillResponse
             when(!reuse) { next := next + 1.U }
             if (writeReadReuse) {
                 for (i <- 0 until entries) {

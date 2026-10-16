@@ -307,7 +307,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         frozenStoreCheckedFlow: Boolean = false,
         pendingReadyStoreQuery: Boolean = false, registeredHomeRequestBoundary: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -461,7 +461,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
-        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor, dataTlbMissCacheEntries = dataTlbMissCacheEntries,
         registerNextLineDecision = registerNextLineDecision,
         sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
         disjointEvictionStoreOverlap = disjointEvictionStoreOverlap))

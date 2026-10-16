@@ -1,0 +1,222 @@
+{
+  "status": "PASS",
+  "base_head": "77cd6dc6ffbd450848050bd456ce6505613d4a1f",
+  "production_compile_sources": 214,
+  "test_compile_sources": 547,
+  "MachinePlatform_guard_hash": "c4e983ebc09ea823ab28cb1c412f19d0f81a0ab9941e89aea9bccdbd367335d4",
+  "arms": [
+    {
+      "arm": "audit-gsim-0",
+      "results": [
+        {
+          "guardTranslation": false,
+          "guardCapacity": 32,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 64,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 128,
+          "rejected": true
+        },
+        {
+          "guardTranslation": true,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "native": false,
+          "capacity": 0,
+          "I1": 8,
+          "I2": 0,
+          "D1": 16,
+          "D2": 0,
+          "earlyFalseAt": [
+            "BoardSocGsim",
+            "MatchingManagedBoard",
+            "MachinePlatform",
+            "MappedMachineCore",
+            "MachineCore",
+            "IntegerCore",
+            "IntegerBackend"
+          ],
+          "capacityForwardedAt": [
+            "BoardSocGsim",
+            "MatchingManagedBoard",
+            "MachinePlatform"
+          ]
+        }
+      ],
+      "fir_sha256": "67fc9b639c057046a6d3fa96cad56660dd5bd6fb3c5d584493f93e7f066fd79b"
+    },
+    {
+      "arm": "audit-gsim-64",
+      "results": [
+        {
+          "guardTranslation": false,
+          "guardCapacity": 32,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 64,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 128,
+          "rejected": true
+        },
+        {
+          "guardTranslation": true,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "native": false,
+          "capacity": 64,
+          "I1": 8,
+          "I2": 0,
+          "D1": 16,
+          "D2": 64,
+          "earlyFalseAt": [
+            "BoardSocGsim",
+            "MatchingManagedBoard",
+            "MachinePlatform",
+            "MappedMachineCore",
+            "MachineCore",
+            "IntegerCore",
+            "IntegerBackend"
+          ],
+          "capacityForwardedAt": [
+            "BoardSocGsim",
+            "MatchingManagedBoard",
+            "MachinePlatform"
+          ]
+        }
+      ],
+      "fir_sha256": "761548c08f9a8818961b4793764b8efe6004235255a026ce2dfa2ad803a4e291"
+    },
+    {
+      "arm": "audit-native-0",
+      "results": [
+        {
+          "guardTranslation": false,
+          "guardCapacity": 32,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 64,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 128,
+          "rejected": true
+        },
+        {
+          "guardTranslation": true,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "native": true,
+          "capacity": 0,
+          "I1": 8,
+          "I2": 0,
+          "D1": 16,
+          "D2": 0,
+          "earlyFalseAt": [
+            "FpgaNextSocTop",
+            "BoardSocTop",
+            "MachinePlatform",
+            "MappedMachineCore",
+            "MachineCore",
+            "IntegerCore",
+            "IntegerBackend"
+          ],
+          "capacityForwardedAt": [
+            "FpgaNextSocTop",
+            "BoardSocTop",
+            "MachinePlatform"
+          ]
+        }
+      ],
+      "fir_sha256": "f9a42470d79b20a6a222bad769daa8c4ca4764a0ed19f1aa0f84083cd797a62e"
+    },
+    {
+      "arm": "audit-native-64",
+      "results": [
+        {
+          "guardTranslation": false,
+          "guardCapacity": 32,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 64,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 128,
+          "rejected": true
+        },
+        {
+          "guardTranslation": true,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "guardTranslation": false,
+          "guardCapacity": 16,
+          "rejected": true
+        },
+        {
+          "native": true,
+          "capacity": 64,
+          "I1": 8,
+          "I2": 0,
+          "D1": 16,
+          "D2": 64,
+          "earlyFalseAt": [
+            "FpgaNextSocTop",
+            "BoardSocTop",
+            "MachinePlatform",
+            "MappedMachineCore",
+            "MachineCore",
+            "IntegerCore",
+            "IntegerBackend"
+          ],
+          "capacityForwardedAt": [
+            "FpgaNextSocTop",
+            "BoardSocTop",
+            "MachinePlatform"
+          ]
+        }
+      ],
+      "fir_sha256": "caacfa3cd848e4d0a9be266a361d4cf29e7b4614e02df5620bfa8232e798501b"
+    }
+  ],
+  "scope": "Compile/elaboration/actual hierarchy only; no combined-on behavior, new GSIM model, or physical timing qualification"
+}

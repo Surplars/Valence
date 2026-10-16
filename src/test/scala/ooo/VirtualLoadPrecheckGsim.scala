@@ -11,13 +11,13 @@ object VirtualLoadPrecheckFixture {
     def params(enabled: Boolean): OooParams = BoardSocConfig.timingParams("staged-load-issue").copy(
         machineSystem = true, pmpEntries = 16, virtualMemoryLevels = 3,
         virtualRamLoadPrecheck = enabled,
-        speculativeRamBase = BigInt("80010000", 16), speculativeRamBytes = 65536)
+        speculativeRamBase = BigInt("80000000", 16), speculativeRamBytes = 4194304)
 }
 
 class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
     dataTranslationEntries: Int = 8, writeReadReuse: Boolean = false, translationHitFlow: Boolean = false,
     hintTimingPair: Boolean = false, precheckedFlow: Boolean = false, physicalIngressFlow: Boolean = false,
-    classifyNextLine: Boolean = false) extends Module {
+    classifyNextLine: Boolean = false, missCacheEntries: Int = 0) extends Module {
     val p = VirtualLoadPrecheckFixture.params(enabled).copy(identityDataRequestFlow = identityFlow,
         precheckedDataRequestFlow = precheckedFlow, physicalLoadIngressFlow = physicalIngressFlow,
         dataNextLinePrefetch = hintTimingPair, dataStoreNextLinePrefetch = hintTimingPair)
@@ -50,7 +50,7 @@ class VirtualLoadPrecheckGsim(enabled: Boolean, identityFlow: Boolean = false,
         alignedNextLinePmp = hintTimingPair, registerNextLineDecision = classifyNextLine))
     if (hintTimingPair) TranslationHintTimingPair.attach(adapter, p, translationHitFlow)
     val translation = Module(new SvTranslationService(3, dataTranslationEntries, 16,
-        loadPeek = enabled, writeReadReuse = writeReadReuse))
+        loadPeek = enabled, writeReadReuse = writeReadReuse, missCacheEntries = missCacheEntries))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))
     pmp.cfg(0) := io.pmpCfg
     pmp.addr(0) := io.pmpAddress
@@ -279,5 +279,12 @@ object ClassifiedNextLineAdapterGsimMain extends App {
 object ClassifiedNextLineHitAdapterGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true, identityFlow = true,
         hintTimingPair = true, translationHitFlow = true, physicalIngressFlow = true, classifyNextLine = true),
+        Array("--target-dir", args.head))
+}
+
+object DataTlbMissCacheGsimMain extends App {
+    require(args.length == 2)
+    ChiselStage.emitCHIRRTLFile(new VirtualLoadPrecheckGsim(true,
+        dataTranslationEntries = 16, writeReadReuse = true, missCacheEntries = args(1).toInt),
         Array("--target-dir", args.head))
 }

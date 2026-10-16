@@ -69,7 +69,11 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0) extends Module {
+    require(Set(0, 32, 64, 128).contains(dataTlbMissCacheEntries),
+        "data TLB miss cache entries must be 0, 32, 64, or 128")
+    require(dataTlbMissCacheEntries == 0 || translationService,
+        "data TLB miss cache requires translationService")
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -603,7 +607,8 @@ class MachinePlatform(
         val walkers = (0 until 2).map(i => Module(new SvTranslationService(translationLevels,
             entries = if (i == 1) dataTranslationEntries else 8,
             loadPeek = p.virtualRamLoadPrecheck && i == 1,
-            writeReadReuse = dataTlbWriteReadReuse && i == 1)))
+            writeReadReuse = dataTlbWriteReadReuse && i == 1,
+            missCacheEntries = if (i == 1) dataTlbMissCacheEntries else 0)))
         val adapters = Seq.fill(2)(Module(new SvPteDataBridge(pteCacheEntries)))
         val walkerArbiter = Module(new SharedDataArbiter)
         // OrderedTileLinkBridge cannot return a newly accepted DataPort request

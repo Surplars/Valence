@@ -63,7 +63,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
     pendingReadyStoreQuery: Boolean = false, registeredHomeRequestBoundary: Boolean = false,
     val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false,
     val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false,
-    val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0) extends Module {
     require(configurationCheck.nonEmpty &&
         pendingReadyStoreQuery == configurationCheck.get.coreParams.pendingReadyStoreQuery &&
         registeredHomeRequestBoundary == configurationCheck.get.coreParams.registeredHomeRequestBoundary,
@@ -116,7 +116,7 @@ class BoardSocGsim(externalDdr: Boolean = false, clockHz: Int = 40000000,
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
-        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor, dataTlbMissCacheEntries = dataTlbMissCacheEntries,
         registerNextLineDecision = registerNextLineDecision,
         combinedTimingR1Audit = combinedTimingR1Audit))
     def observedPlatform: soc.core.ooo.MachinePlatform = board.platform
