@@ -38,6 +38,49 @@ TFTP final ACK confirms transport only; UART VDON confirms RAM CRC only.
 Neither host message proves the image ran. Host upload and final verification
 wait are reported separately without changing wire protocol.
 
+### Network transfer versus final RAM verification
+
+The BootROM network auto-boot path uses an explicit transport-only pending
+result after header/stream CRC, final ACK/dally and DMA shutdown. It prints
+`NETWORK TRANSFER COMPLETE; PENDING RAM VERIFY`. No inner network RAM scan or
+cache preparation is performed on this path. The existing final progress-bar
+verification still checks metadata/range, stops writers, performs flush/sweep
+and independently reads the entire RAM image. Only success promotes pending
+metadata to a trusted one-shot launch record and prints `NETWORK IMAGE VERIFIED`.
+Corruption after download, cancellation, invalid metadata or busy DMA denies
+launch. JTAG's independent epoch-claim flow is unchanged.
+
+The generic `nb_tftp` and `board_netboot` APIs retain their original verified
+success contract. The new explicitly named pending APIs return
+`NB_DOWNLOAD_PENDING` (2), never verified success (1); their expected CRC is
+from the checked stream and must not be treated as a RAM-readback receipt.
+This source change requires a newly built and qualified ROM to take effect;
+it does not change an already programmed bitstream. Host tests do not establish
+physical DDR behavior or boot-time savings. This change has not yet been
+cross-compiled into a new ROM or tested on the board; the current bit is unchanged.
+
+### Host TFTP pacing and rejected requests
+
+The BootROM server `netboot_host.py serve` keeps its conservative default
+`--packet-delay-us 100`. An explicit `--packet-delay-us 0` disables its pacing
+sleeps, including retransmissions; negative and non-finite values are rejected.
+Window1 never uses pacing sleeps. For example, with a matching checked image:
+
+```sh
+python netboot_host.py serve valence.vld --memory ddr2g --bind 192.168.137.1 --board 192.168.137.30 --packet-delay-us 0
+```
+
+This changes host pacing only, not the image, ROM, CRC, wire format, window
+negotiation or retry policy. Zero pacing can increase burst arrival pressure;
+check retransmissions, final EOF acknowledgment and board CRC/launch results.
+No throughput or board qualification is implied by the host unit tests.
+Rejected RRQs now print `TFTP REQUEST_REJECTED` with a bounded, escaped requested
+filename and a parse or filename-mismatch reason. The wire response remains
+ERROR1 `file unavailable`. Local paths, image contents and raw packets are not
+included in that diagnostic. Old option-unaware host scripts can reject a valid
+option-bearing RRQ even when `valence.vld` exists; use the matching current host
+script rather than changing the checked image.
+
 The clock/memory instructions below describe historical board profiles.
 
 The board has 128 KiB BRAM ROM at `0x80000000`. The legacy Board40 profile

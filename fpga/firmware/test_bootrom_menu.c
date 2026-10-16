@@ -13,26 +13,39 @@
 #include "bootrom.c"
 static unsigned char memory[8192],input[16384],output[262144];
 static unsigned input_n,input_at,output_n,runs,diagnostics,quiet_calls,net_calls;
+static unsigned final_prepares;
 static int busy,netbad,corrupt_after_net,dma_busy,probe_char,external_takeover,external_network_started;
 static uint32_t expected_crc;
 static jmp_buf done;
 uint8_t *boot_test_ram(void){return memory;}
 uint64_t boot_test_now(void){static uint64_t t;return ++t;}
 int boot_test_getc(uint64_t budget){if(!budget){int c=probe_char;probe_char=0;return c?c:-1;}if(input_at==input_n){if(menu_binary)return -1;longjmp(done,1);}return input[input_at++];}
-void boot_test_putc(uint8_t c){assert(output_n<sizeof output);output[output_n++]=c;}
+void boot_test_putc(uint8_t c){
+ assert(output_n<sizeof output);output[output_n++]=c;
+ static const char pending[]="NETWORK TRANSFER COMPLETE; PENDING RAM VERIFY\r\n";
+ static const char verified[]="NETWORK IMAGE VERIFIED\r\n";
+ if(output_n>=sizeof(pending)-1&&!memcmp(output+output_n-(sizeof(pending)-1),pending,sizeof(pending)-1))
+  assert(image_valid==IMAGE_PENDING_RAM_VERIFY&&!final_prepares);
+ if(output_n>=sizeof(verified)-1&&!memcmp(output+output_n-(sizeof(verified)-1),verified,sizeof(verified)-1))
+  assert(image_valid==1&&final_prepares==1);
+}
 static uint32_t oracle(const uint8_t *p,unsigned n){uint32_t c=~0U;while(n--){c^=*p++;for(unsigned b=0;b<8;b++)c=(c>>1)^((c&1)?0xedb88320U:0);}return ~c;}
 int board_netboot(uint32_t *entry,uint32_t *length){++net_calls;if(netbad)return 0;*entry=RAM_BASE;*length=16;for(unsigned i=0;i<16;i++)memory[i]=(uint8_t)(i*17+3);expected_crc=oracle(memory,16);if(corrupt_after_net)memory[5]^=1;return 1;}
 uint32_t board_netboot_verified_crc(void){return expected_crc;}
+int board_netboot_pending(uint32_t *entry,uint32_t *length,uint32_t *expected) {
+    if(!board_netboot(entry,length))return 0;
+    *expected=board_netboot_verified_crc();return NB_DOWNLOAD_PENDING;
+}
 int board_netboot_quiet(void){assert(!external_network_started);++quiet_calls;return !busy;}
 int board_netboot_command(void){return 0;}
 void board_netboot_jump(uint32_t e,uint32_t n){assert(e==RAM_BASE&&n==16);}
 void run_image(uintptr_t e){assert(e==RAM_BASE);assert(external_state_untrusted);++runs;if(external_takeover)external_network_started=1;}
 int monitor_memory_dma_idle(void){return !dma_busy;}
 int firmware_ram_dma_idle(void){return !dma_busy;}
-int firmware_ram_prepare(uint64_t *f,uint64_t *s){*f=1;*s=2;return !dma_busy;}
+int firmware_ram_prepare(uint64_t *f,uint64_t *s){++final_prepares;*f=1;*s=2;return !dma_busy;}
 void monitor_run_diagnostic(unsigned op,unsigned len){assert(!busy&&!dma_busy);assert(op=='C'||op=='b'||op=='m'||op=='t'||op=='u');assert(len==0||len==16);++diagnostics;}
 static int has(const char *s){for(unsigned i=0;i+strlen(s)<=output_n;i++)if(!memcmp(output+i,s,strlen(s)))return 1;return 0;}
-static void reset(void){input_n=input_at=output_n=runs=diagnostics=quiet_calls=net_calls=0;busy=netbad=corrupt_after_net=dma_busy=probe_char=external_takeover=external_network_started=0;external_state_untrusted=0;image_valid=image_entry=image_length=image_crc=image_record_crc=image_network=menu_ansi=0;menu_pending=0;uart_prefetched=-1;menu_color=1;menu_selected=menu_escape=menu_escape_bytes=menu_last_cr=menu_escape_timedout=menu_screen=menu_binary=menu_log_pending=0;menu_result="Choose a download; verified images start automatically.";menu_progress_at=0;memset(memory,0,sizeof memory);}
+static void reset(void){final_prepares=0;input_n=input_at=output_n=runs=diagnostics=quiet_calls=net_calls=0;busy=netbad=corrupt_after_net=dma_busy=probe_char=external_takeover=external_network_started=0;external_state_untrusted=0;image_valid=image_entry=image_length=image_crc=image_record_crc=image_network=menu_ansi=0;menu_pending=0;uart_prefetched=-1;menu_color=1;menu_selected=menu_escape=menu_escape_bytes=menu_last_cr=menu_escape_timedout=menu_screen=menu_binary=menu_log_pending=0;menu_result="Choose a download; verified images start automatically.";menu_progress_at=0;memset(memory,0,sizeof memory);}
 static void commands(const char *s){input_n=strlen(s);memcpy(input,s,input_n);if(!setjmp(done))boot_main();}
 static void add32(uint32_t v){for(unsigned b=0;b<4;b++)input[input_n++]=(uint8_t)(v>>(b*8));}
 static void uart_session(void){uint8_t bytes[16];for(unsigned i=0;i<16;i++)bytes[i]=(uint8_t)i;input[input_n++]='d';unsigned start=input_n;add32(0x31444c56);add32(1);add32(RAM_BASE);add32(RAM_BASE);add32(16);add32(oracle(bytes,16));add32(256);add32(0);add32(oracle(input+start,32));add32(0x41544144);add32(0);add32(16);add32(oracle(bytes,16));memcpy(input+input_n,bytes,16);input_n+=16;}
@@ -41,10 +54,10 @@ static void run_commands(void){if(!setjmp(done))boot_main();}
 int main(int argc,char **argv){unsigned cases=0;
  if(argc>1){reset();menu_ansi=1;menu_color=1;show_menu();if(!strcmp(argv[1],"--snapshot")){fwrite(output,1,output_n,stdout);return 0;}return 2;}
  reset();commands("h");assert(!net_calls&&!runs&&has("Valence BootROM"));++cases;
- reset();commands("n");assert(net_calls==1&&!image_valid&&runs==1&&has("NETWORK IMAGE VERIFIED")&&has("AUTOBOOT")&&has("APP RETURN"));++cases;
+ reset();commands("n");assert(final_prepares==1&&has("PENDING RAM VERIFY")&&net_calls==1&&!image_valid&&runs==1&&has("NETWORK IMAGE VERIFIED")&&has("AUTOBOOT")&&has("APP RETURN"));++cases;
  reset();commands("nvrg4");assert(runs==1&&has("RAM IMAGE VERIFIED")&&has("EXTERNAL STATE LOCKED"));++cases;
  reset();commands("1");assert(runs==1);++cases;
- reset();corrupt_after_net=1;commands("nvr");assert(!runs&&!image_valid&&has("RAM CRC FAIL")&&!has("AUTOBOOT"));++cases;
+ reset();corrupt_after_net=1;commands("nvr");assert(final_prepares==1&&!runs&&!image_valid&&has("RAM CRC FAIL")&&!has("NETWORK IMAGE VERIFIED")&&!has("AUTOBOOT"));++cases;
  reset();commands("rg4");assert(!runs&&has("Manual launch removed"));++cases;
  reset();busy=1;seed_image();commands("ndt");assert(!runs&&!net_calls&&!diagnostics&&!image_valid&&has("DMA BUSY"));++cases;
  reset();dma_busy=1;seed_image();commands("ndt");assert(!runs&&!net_calls&&!diagnostics&&!image_valid&&has("MEMORY DMA BUSY"));++cases;
@@ -93,6 +106,16 @@ int main(int argc,char **argv){unsigned cases=0;
  reset();commands("u9");assert(diagnostics==2&&!runs&&!external_state_untrusted);++cases;
  reset();busy=1;commands("u9");assert(!diagnostics&&has("DMA BUSY"));++cases;
  reset();dma_busy=1;commands("u9");assert(!diagnostics&&has("MEMORY DMA BUSY"));++cases;
+ reset();assert(network_download());assert(image_valid==IMAGE_PENDING_RAM_VERIFY&&!final_prepares&&!has("NETWORK IMAGE VERIFIED"));
+ assert(image_record_crc==image_record_sum());image_record_crc^=1;launch_downloaded_image();
+ assert(!runs&&!image_valid&&!final_prepares&&has("NO TRUSTED IMAGE"));
+ reset();assert(network_download());image_network=0;image_record_crc=image_record_sum();launch_downloaded_image();
+ assert(!runs&&!image_valid&&!final_prepares);
+ reset();assert(network_download());memory[5]^=1;launch_downloaded_image();
+ assert(!runs&&!image_valid&&final_prepares==1&&!has("NETWORK IMAGE VERIFIED"));
+ reset();assert(network_download());dma_busy=1;launch_downloaded_image();
+ assert(!runs&&!image_valid&&!final_prepares&&has("MEMORY DMA BUSY"));
+ puts("BOOTROM_MENU_PENDING_PASS cases=4 metadata_tamper=1 wrong_origin=1 ram_tamper=1 dma_busy=1");
  reset();commands("h");assert(has("u/9  S-mode Bare / Sv39 MMU bandwidth")&&MENU_COUNT<=10);++cases;
  printf("BOOTROM_MENU_PASS cases=%u autostart=1 no_manual_run=1 metadata_crc=1 busy_invalidates=1 binary_no_ansi=1 diagnostic_dispatch_only=1\n",cases);return 0;
 }

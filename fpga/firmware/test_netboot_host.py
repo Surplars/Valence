@@ -370,10 +370,83 @@ class Tests(unittest.TestCase):
         self.assertAlmostEqual(stats.pacing_seconds, sum(sleeps))
         self.assertIn("pacing=", stats.summary())
         self.assertIn("other=0.000000s", stats.summary())
-        for delay in (0, -1, float("nan"), float("inf")):
+        for delay in (-1, float("nan"), float("inf"), -float("inf")):
             with self.subTest(delay=delay), self.assertRaises(ValueError):
                 host.transfer(sock, ("192.168.137.30", 49152), io.BytesIO(b"data"),
                               blksize=1024, windowsize=4, inter_packet_seconds=delay)
+
+    def test_explicit_zero_and_positive_pacing_preserve_wire_and_stats(self):
+        peer = ("192.168.137.30", 49152)
+        for window in (1, 4):
+            for dropped in ((), (2,)):
+                runs = []
+                for delay in (0, 0.0001):
+                    with self.subTest(window=window, dropped=dropped, delay=delay):
+                        clock, sleeps, packets = FakeClock(), [], []
+                        class RecordedSocket(WindowSocket):
+                            def sendto(self, data, peer):
+                                packets.append(data)
+                                super().sendto(data, peer)
+                        sock = RecordedSocket(windowsize=window, drop_data=dropped, clock=clock)
+                        stats = host.TransferStats()
+                        def sleep(seconds):
+                            sleeps.append(seconds)
+                            clock.advance(seconds)
+                        payload = bytes(range(256)) * 32 + b"end"
+                        sent = host.transfer(sock, peer, io.BytesIO(payload), blksize=1024,
+                            windowsize=window, stats=stats, clock=clock,
+                            inter_packet_seconds=delay, sleeper=sleep)
+                        self.assertEqual(sent, len(payload))
+                        self.assertEqual(stats.bytes_acked, len(payload))
+                        self.assertTrue(stats.eof_acked)
+                        self.assertEqual(stats.data_packets, len(packets))
+                        self.assertAlmostEqual(stats.pacing_seconds, sum(sleeps))
+                        if not delay or window == 1:
+                            self.assertEqual(sleeps, [])
+                            self.assertEqual(stats.pacing_seconds, 0)
+                        else:
+                            self.assertTrue(sleeps)
+                        runs.append((packets[:], stats.retransmits, stats.timeouts))
+                self.assertEqual(runs[0], runs[1])
+
+    def test_server_rejection_diagnostics_and_zero_delay(self):
+        class ContextSocket(FakeSocket):
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def bind(self, address):
+                pass
+        with tempfile.TemporaryDirectory() as directory:
+            source, packed = Path(directory) / "app.bin", Path(directory) / "valence.vld"
+            source.write_bytes(b"data")
+            host.pack(source, packed)
+            listener, session = ContextSocket(), ContextSocket()
+            peer = ("192.168.137.30", 49152)
+            listener.replies = [
+                (b"\0\1wrong.vld\0octet\0", peer),
+                (b"\0\1bad\x1b[2J\0octet\0", peer),
+                (b"\0\1valence.vld\0octet\0windowsize\x004\0WINDOWSIZE\x002\0", peer),
+                (b"\0\1valence.vld\0octet\0", peer)]
+            output = io.StringIO()
+            with patch.object(host.socket, "socket", side_effect=[listener, session]), \
+                    patch.object(host.sys, "stdout", output):
+                host.serve(packed, "192.168.137.1", once=True, show_progress=False,
+                           packet_delay_us=0)
+            log = output.getvalue()
+            self.assertEqual(log.count("TFTP REQUEST_REJECTED"), 3)
+            self.assertIn("filename=b'wrong.vld'", log)
+            self.assertIn("filename does not match served file", log)
+            self.assertIn("disallowed/path characters", log)
+            self.assertIn("duplicate option", log)
+            self.assertNotIn("\x1b", log)
+            self.assertNotIn(directory, log)
+            self.assertEqual(listener.sent, [b"\0\5\0\1file unavailable\0"] * 3)
+            self.assertIn("packet_delay_us=0", log)
+            self.assertIn("bytes_acked=40", log)
+        for delay in (-1, float("nan"), float("inf"), -float("inf")):
+            with self.subTest(delay=delay), self.assertRaises(ValueError):
+                host.serve("unused.vld", "192.168.137.1", packet_delay_us=delay)
 
     def test_window_rollover_with_gap_zero_ack_and_short_eof(self):
         length = 65536 * 1024 + 37

@@ -378,7 +378,36 @@ static void prepare_tests() {
     check(bad.stats.failure==NB_RAM_PREPARE_FAILED,"prepare failure mislabeled CRC/send");
     std::cout<<"BOOTROM_RAM_PREPARE_PROTOCOL_PASS cases=2 after_fixed_final_ack=1 crc_timing_separate=1\n";
 }
+static void pending_tests() {
+    unsigned cases=0;
+    for(int fault: {0, 25, 28}) {
+        Server s(8192,fault);
+        s.ops.prepare_verify=[](void*) -> int { check(false,"pending transport called RAM prepare");return -1; };
+        s.ops.verify=[](void*,uint32_t,uint32_t) -> int { check(false,"pending transport called RAM verifier");return -1; };
+        uint32_t entry=0xdeadbeef,length=0xfeedbeef,wanted=0;
+        int result=nb_tftp_pending(&s.ops,"valence.vld",&entry,&length,&wanted);
+        if(!fault) {
+            check(result==NB_DOWNLOAD_PENDING && result!=1,"pending result confused with verified");
+            check(entry==s.ops.base && length==s.ram.size() && wanted==crc(s.ram.data(),s.ram.size()),"pending metadata");
+            check(s.stats.final_ack_ticks>=2*s.ops.hz && s.stats.verify_ticks==0,"pending skips only RAM CRC, not final ACK");
+            check(s.phases==std::vector<nb_stage>{NB_ARP,NB_RX,NB_STREAM_CRC},"pending claimed RAM verify phase");
+        } else check(result==0 && entry==0xdeadbeef && length==0xfeedbeef && !wanted,"failed pending published metadata");
+        ++cases;
+    }
+    for(bool cancel: {false,true}) {
+        WindowServer s(8192,1024,4);
+        s.stop_at_final=cancel;
+        s.ops.verify=[](void*,uint32_t,uint32_t) -> int { check(false,"pending window called verifier");return -1; };
+        uint32_t entry=0xdeadbeef,length=0xfeedbeef,wanted=0;
+        int result=nb_tftp_pending(&s.ops,"valence.vld",&entry,&length,&wanted);
+        if(cancel) check(result==0 && entry==0xdeadbeef && length==0xfeedbeef && !wanted,"pending final ACK cancel published");
+        else check(result==NB_DOWNLOAD_PENDING && s.stats.block_size==1024 && s.stats.window_size==4 && !s.stats.verify_ticks,"pending window contract");
+        ++cases;
+    }
+    std::cout<<"BOOTROM_TFTP_PENDING_PASS cases="<<cases<<" verified_api_unchanged=1 no_ram_callback=1 final_ack=1\n";
+}
 int main() {
+    pending_tests();
     prepare_tests(); try {
     unsigned cases=0;
     for(unsigned bytes:{4U,440U,476U,477U,988U,989U,4096U,65536U,33553920U,66348740U}) {

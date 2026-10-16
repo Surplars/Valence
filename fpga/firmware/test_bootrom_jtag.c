@@ -163,6 +163,10 @@ void run_image(uintptr_t entry) {
     ++runs;
 }
 #ifdef BOARD_NETBOOT
+int board_netboot_pending(uint32_t *entry,uint32_t *length,uint32_t *expected) {
+    if(!board_netboot(entry,length))return 0;
+    *expected=board_netboot_verified_crc();return NB_DOWNLOAD_PENDING;
+}
 int board_netboot_quiet(void) { ++net_quiets; assert(!external_state_untrusted); return !network_busy; }
 int board_netboot(uint32_t *e, uint32_t *n) { (void)e; (void)n; ++net_downloads; return 0; }
 int board_netboot_command(void) { return 0; }

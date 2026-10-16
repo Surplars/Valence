@@ -132,6 +132,45 @@ def parse_request(packet, max_blksize=MAX_BLKSIZE, max_windowsize=DEFAULT_WINDOW
     return TftpRequest(name, blksize, windowsize, tuple(options))
 
 
+def rejection_reason(packet):
+    """Explain parse_request rejection; the unchanged engine remains authoritative."""
+    if len(packet) > 512:
+        return 'RRQ exceeds 512-byte request bound'
+    if not packet.startswith(b'\0\1'):
+        return 'not a read request (opcode must be RRQ=1)'
+    fields = packet[2:].split(b'\0')
+    if len(fields) < 3 or len(fields) % 2 != 1 or fields[-1]:
+        return 'malformed RRQ fields, missing NUL, or unpaired option'
+    if fields[1].lower() != b'octet':
+        return 'mode must be octet'
+    try:
+        name = fields[0].decode('ascii')
+    except UnicodeDecodeError:
+        return 'filename is not ASCII'
+    allowed = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-'
+    if not name or len(name) > 127 or any(c not in allowed for c in name):
+        return 'filename is empty, too long, or contains disallowed/path characters'
+    seen = set()
+    for index in range(2, len(fields) - 1, 2):
+        key, value = fields[index].lower(), fields[index + 1]
+        if not key or not value:
+            return 'empty option name or value'
+        if key in seen:
+            return 'duplicate option: ' + repr(key[:32])
+        if any(c < 33 or c > 126 for c in key + value):
+            return 'non-printable option name or value'
+        seen.add(key)
+        if key in (b'blksize', b'windowsize'):
+            if len(value) > 5 or not value.isdigit():
+                return 'invalid numeric option: ' + repr(key[:32])
+            value = int(value)
+            if key == b'blksize' and not 512 <= value <= 65464:
+                return 'blksize outside supported request range 512..65464'
+            if key == b'windowsize' and not 1 <= value <= 65535:
+                return 'windowsize outside range 1..65535'
+    return 'request rejected by the TFTP parser'
+
+
 def request(packet):
     """Compatibility helper returning the filename of a valid RRQ."""
     parsed = parse_request(packet)
@@ -235,13 +274,14 @@ def transfer(sock, peer, source, retry_seconds=1, retries=10, progress=None, sta
     Retries bound each DATA packet's total sends, including gap recovery.
     Multi-packet windows are paced conservatively (100 us by default); sleeper
     and clock can be injected together for deterministic timing tests.
+    An explicit zero delay disables pacing, including on retransmissions.
     """
     if blksize not in (512, 1024) or not 1 <= windowsize <= MAX_WINDOWSIZE:
         raise ValueError("invalid TFTP transfer sizes")
     if not math.isfinite(retry_seconds) or retry_seconds <= 0 or retries < 1:
         raise ValueError("TFTP timeout and retry count must be positive")
-    if not math.isfinite(inter_packet_seconds) or inter_packet_seconds <= 0:
-        raise ValueError("TFTP inter-packet delay must be finite and positive")
+    if not math.isfinite(inter_packet_seconds) or inter_packet_seconds < 0:
+        raise ValueError("TFTP inter-packet delay must be finite and nonnegative")
     sleeper = time.sleep if sleeper is None else sleeper
     stats = TransferStats() if stats is None else stats
     stats.blksize, stats.windowsize = blksize, windowsize
@@ -329,7 +369,7 @@ def _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock
         if any(item[2] >= retries for item in pending):
             raise TimeoutError(f"no board ACK for block {pending[0][0] & 0xffff}, completed={total}")
         for item in pending:
-            if windowsize > 1 and last_send is not None:
+            if inter_packet_seconds > 0 and windowsize > 1 and last_send is not None:
                 pause = last_send + inter_packet_seconds - clock()
                 if pause > 0:
                     started = clock()
@@ -384,8 +424,8 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
           max_blksize=MAX_BLKSIZE, max_windowsize=DEFAULT_WINDOWSIZE,
           packet_delay_us=DEFAULT_PACKET_DELAY_US):
     image = Path(image).resolve()
-    if not math.isfinite(packet_delay_us) or packet_delay_us <= 0:
-        raise ValueError("TFTP packet delay must be finite and positive")
+    if not math.isfinite(packet_delay_us) or packet_delay_us < 0:
+        raise ValueError("TFTP packet delay must be finite and nonnegative")
     size = validate(image, limit)
     ipaddress.IPv4Address(bind)
     ipaddress.IPv4Address(board)
@@ -402,6 +442,12 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
                 continue
             requested = parse_request(packet, max_blksize, max_windowsize)
             if requested is None or requested.name != image.name:
+                # Bounded repr prevents terminal-control/log injection. Do not dump
+                # raw packets, option values, local paths, or image contents.
+                name = packet[2:].split(b"\0", 1)[0][:128] if packet.startswith(b"\0\1") else b""
+                reason = rejection_reason(packet) if requested is None else "filename does not match served file"
+                print(f"TFTP REQUEST_REJECTED filename={name!r} reason={reason!r}; "
+                      "ERROR 1 file unavailable", flush=True)
                 listener.sendto(b"\x00\x05\x00\x01file unavailable\x00", peer)
                 continue
             started = time.monotonic()
@@ -452,7 +498,7 @@ def main():
     p.add_argument("--max-windowsize", type=int, choices=range(1, MAX_WINDOWSIZE + 1), default=DEFAULT_WINDOWSIZE,
                    help="maximum negotiated DATA blocks per window (default: 4); legacy uses 1")
     p.add_argument("--packet-delay-us", type=float, default=DEFAULT_PACKET_DELAY_US,
-                   help="positive minimum spacing between DATA in multi-block windows (default: 100 us)")
+                   help="minimum spacing between DATA in multi-block windows; 0 disables pacing (default: 100 us)")
     p.add_argument("--memory", choices=LIMITS, default="ddr")
     args = parser.parse_args()
     if args.action == "pack":

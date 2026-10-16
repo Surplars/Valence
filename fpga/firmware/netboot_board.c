@@ -537,7 +537,7 @@ void board_netboot_jump(uint32_t entry,uint32_t length) {
     text("NB stage=jump"); hexfield("entry",entry); field("length",length);
     field("tick",now(0)); text("\r\n");
 }
-int board_netboot(uint32_t *entry,uint32_t *length) {
+static int board_netboot_receive(uint32_t *entry,uint32_t *length,uint32_t *pending_crc) {
     stats=(struct nb_stats){0}; pending_command=0; ram_crc_valid=0; failure_reported=0;
     init_ticks=drain_ticks=mac_stop_ticks=transfer_ticks=0; ram_flush_ticks=ram_sweep_ticks=ram_readback_ticks=0; drained_frames=0;
 #if NETBOOT_POSTED_RX
@@ -563,9 +563,12 @@ int board_netboot(uint32_t *entry,uint32_t *length) {
     };
     uint32_t verified_entry=0, verified_length=0;
     uint64_t transfer_start=now(0);
-    int good=nb_tftp(&ops,NETBOOT_FILE,&verified_entry,&verified_length);
+    uint32_t expected_crc=0;
+    int good=pending_crc ? nb_tftp_pending(&ops,NETBOOT_FILE,&verified_entry,&verified_length,&expected_crc) :
+        nb_tftp(&ops,NETBOOT_FILE,&verified_entry,&verified_length);
     transfer_ticks=now(0)-transfer_start;
-    if(good) ended(ram_readback_ticks);
+    if(good==1) ended(ram_readback_ticks);
+    else if(good==NB_DOWNLOAD_PENDING) ended(stats.crc_ticks);
     else if(!failure_reported) {
         current_stage=stats.stage;
         static const char *const reasons[]={"none","send","uart_or_rx_abort","retry_limit",
@@ -575,7 +578,18 @@ int board_netboot(uint32_t *entry,uint32_t *length) {
     int quiet=board_netboot_quiet(); summary();
     if(good && abort_uart()) { text("NB cancel before_jump\r\n"); good=0; }
     if(!quiet || !good) return 0;
-    *entry=verified_entry; *length=verified_length; return 1;
+    *entry=verified_entry; *length=verified_length;
+    if(pending_crc) { *pending_crc=expected_crc; return NB_DOWNLOAD_PENDING; }
+    return 1;
+}
+
+int board_netboot(uint32_t *entry,uint32_t *length) {
+    return board_netboot_receive(entry,length,0);
+}
+int board_netboot_pending(uint32_t *entry,uint32_t *length,uint32_t *expected_crc) {
+    if(!expected_crc)return 0;
+    *expected_crc=0;
+    return board_netboot_receive(entry,length,expected_crc);
 }
 
 uint32_t board_netboot_verified_crc(void) { return ram_crc_valid ? ram_crc : 0; }

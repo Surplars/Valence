@@ -7,11 +7,14 @@
 #include <string.h>
 #include "netboot.h"
 static int board_protocol(struct nb_ops *,const char *,uint32_t *,uint32_t *);
+static int board_protocol_pending(struct nb_ops *,const char *,uint32_t *,uint32_t *,uint32_t *);
+#define nb_tftp_pending board_protocol_pending
 #define nb_tftp board_protocol
 #include "netboot_board.c"
 int firmware_ram_dma_idle(void){return 1;}
 int firmware_ram_prepare(uint64_t *f,uint64_t *s){*f=1;*s=2;return 1;}
 #undef nb_tftp
+#undef nb_tftp_pending
 
 static uint8_t actual_ram[8192];
 uint8_t *nb_test_ram(void) { return actual_ram; }
@@ -42,6 +45,11 @@ static int board_protocol(struct nb_ops *ops,const char *file,uint32_t *entry,ui
     *entry=RAM_BASE; *length=16;
     if(hw.fail_after_verified) hw.stuck_producer=1;
     return 1; /* separately tested protocol; this injects only its terminal result */
+}
+static int board_protocol_pending(struct nb_ops *ops,const char *file,uint32_t *entry,uint32_t *length,uint32_t *expected) {
+    if(!hw.verified)return nb_tftp_pending(ops,file,entry,length,expected);
+    if(!board_protocol(ops,file,entry,length))return 0;
+    *expected=0x12345678U;return NB_DOWNLOAD_PENDING;
 }
 static void queue_complete(unsigned error) {
     assert(hw.queue_active>=0);
@@ -449,6 +457,18 @@ int main(void) {
             actual_ram[offsets[i]]^=1; ++cases;
         }
     }
+    uint32_t pending_entry=123,pending_length=456,pending_crc=0;
+    reset_hw();hw.verified=1;
+    assert(board_netboot_pending(&pending_entry,&pending_length,&pending_crc)==NB_DOWNLOAD_PENDING);
+    assert(pending_entry==RAM_BASE&&pending_length==16&&pending_crc==0x12345678U);
+    assert(!active&&!armed&&!posted_mode&&!ram_crc_valid&&!ram_readback_ticks&&!ram_flush_ticks&&!ram_sweep_ticks);
+    assert(!strstr(hw.log,"NB stage=ram_crc")&&!strstr(hw.log,"NB stage=ram_prepare"));
+    reset_hw();hw.verified=1;hw.fail_after_verified=1;pending_entry=123;pending_length=456;pending_crc=7;
+    assert(!board_netboot_pending(&pending_entry,&pending_length,&pending_crc));
+    assert(pending_entry==123&&pending_length==456&&!pending_crc);
+    reset_hw();hw.next_uart='d';pending_crc=7;
+    assert(!board_netboot_pending(&pending_entry,&pending_length,&pending_crc)&&!pending_crc);
+    puts("BOOTROM_PENDING_DRAIN_PASS cases=3 no_ram_prepare_or_crc=1 drain_failure_denies=1 cancel_denies=1");
     unsigned queued=posted_cases();
     unsigned stores=store_cases();
     printf("BOOTROM_STORE_ALIGN_PASS cases=%u source_alignments=8 destination_alignments=8 lengths=0..64 canaries=1\n",stores);

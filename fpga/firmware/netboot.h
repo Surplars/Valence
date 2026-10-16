@@ -54,6 +54,13 @@ struct nb_ops {
 };
 uint32_t nb_crc_update(uint32_t, const uint8_t *, unsigned);
 int nb_tftp(struct nb_ops *, const char *, uint32_t *, uint32_t *);
+/* Transport-only success is deliberately distinct from verified success (1).
+ * The expected CRC comes from the checked header/stream, NOT a RAM readback.
+ * Caller must drain all DMA writers and perform final RAM verification before
+ * committing launch authority. Existing nb_tftp/board_netboot stay verified. */
+#define NB_DOWNLOAD_PENDING 2
+int nb_tftp_pending(struct nb_ops *, const char *, uint32_t *, uint32_t *, uint32_t *);
+int board_netboot_pending(uint32_t *, uint32_t *, uint32_t *);
 int board_netboot(uint32_t *, uint32_t *);
 int board_netboot_quiet(void);
 uint32_t board_netboot_verified_crc(void);

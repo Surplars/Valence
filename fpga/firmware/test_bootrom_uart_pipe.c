@@ -31,6 +31,10 @@ int monitor_memory_dma_idle(void){return 1;}
 void monitor_run_diagnostic(unsigned c,unsigned n){(void)c;(void)n;abort();}
 int board_netboot(uint32_t *e,uint32_t *n){(void)e;(void)n;return 0;}
 uint32_t board_netboot_verified_crc(void){return 0;}
+int board_netboot_pending(uint32_t *entry,uint32_t *length,uint32_t *expected) {
+    if(!board_netboot(entry,length))return 0;
+    *expected=board_netboot_verified_crc();return NB_DOWNLOAD_PENDING;
+}
 int board_netboot_quiet(void){return 1;}
 int board_netboot_command(void){return 0;}
 void board_netboot_jump(uint32_t e,uint32_t n){assert(e==RAM_BASE&&n==769);}

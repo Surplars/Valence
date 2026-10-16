@@ -318,6 +318,7 @@ static void jtag_download(void) {
 }
 #endif
 
+#define IMAGE_PENDING_RAM_VERIFY 2U
 #ifndef BOOT_MENU
 static uint32_t legacy_record_sum(void) {
     uint32_t record[4]={image_entry,image_length,legacy_crc,image_network};
@@ -328,7 +329,8 @@ static void legacy_commit(uint32_t expected) {
 }
 static int legacy_verify_run(void) {
     if(external_state_untrusted){image_valid=0;external_state_message();return 0;}
-    if(image_valid!=1 || !image_length || image_length>IMAGE_LIMIT ||
+    if((image_valid!=1 && image_valid!=IMAGE_PENDING_RAM_VERIFY) ||
+       (image_valid==IMAGE_PENDING_RAM_VERIFY && image_network!=1) || !image_length || image_length>IMAGE_LIMIT ||
        image_entry<RAM_BASE || (uint64_t)image_entry>=RAM_BASE+image_length ||
        (image_entry&3) || legacy_record_crc!=legacy_record_sum()) {
         image_valid=0;puts_uart("IMAGE RECORD FAIL\r\n");return 0;
@@ -345,6 +347,7 @@ static int legacy_verify_run(void) {
     }
     uart_stage("run_crc",cycles()-start,image_length);
     if((crc^~0U)!=legacy_crc){image_valid=0;puts_uart("RAM CRC FAIL\r\n");return 0;}
+    image_valid=1; /* Final RAM readback promotes pending metadata to trusted. */
     return 1;
 }
 #endif
@@ -367,7 +370,8 @@ static int monitor_quiet(void) {
 static int verify_image(void) {
     if(external_state_untrusted){image_valid=0;external_state_message();return 0;}
     if(!monitor_quiet()){image_valid=0;return 0;}
-    if(image_valid!=1 || !image_length || image_length>IMAGE_LIMIT ||
+    if((image_valid!=1 && image_valid!=IMAGE_PENDING_RAM_VERIFY) ||
+       (image_valid==IMAGE_PENDING_RAM_VERIFY && image_network!=1) || !image_length || image_length>IMAGE_LIMIT ||
        image_entry<RAM_BASE || (uint64_t)image_entry>=RAM_BASE+image_length ||
        (image_entry&3) || image_record_crc!=image_record_sum()) {
         image_valid=0;puts_uart("NO TRUSTED IMAGE\r\n");return 0;
@@ -388,6 +392,7 @@ static int verify_image(void) {
 
     }
     if((crc^~0U)!=image_crc) {image_valid=0;puts_uart("RAM CRC FAIL\r\n");return 0;}
+    image_valid=1; /* Final RAM readback promotes pending metadata to trusted. */
     puts_uart("VERIFY crc_ticks=0x");hex64(cycles()-crc_start);puts_uart("\r\nRAM IMAGE VERIFIED\r\n");return 1;
 }
 static void monitor_info(void) {
@@ -562,20 +567,25 @@ static int network_download(void) {
     if(!firmware_ram_dma_idle()){puts_uart("MEMORY DMA BUSY; RESET REQUIRED\r\n");return 0;}
     if(!board_netboot_quiet()){puts_uart("DMA BUSY; RESET REQUIRED\r\n");return 0;}
     puts_uart("network boot (TFTP); d=UART recovery\r\n");
-    if (board_netboot(&image_entry, &image_length)) {
+    uint32_t expected_crc=0;
+    if (board_netboot_pending(&image_entry, &image_length, &expected_crc)==NB_DOWNLOAD_PENDING) {
+        /* A checked stream is not yet a trusted RAM image. Seal metadata now,
+         * but only the final progress-bar readback may grant launch authority. */
         #ifdef BOOT_MENU
-        commit_image(board_netboot_verified_crc());
+        image_crc=expected_crc; image_record_crc=image_record_sum();
 #else
-        legacy_commit(board_netboot_verified_crc());
+        legacy_crc=expected_crc; legacy_record_crc=legacy_record_sum();
 #endif
-        puts_uart("NETWORK IMAGE VERIFIED\r\n");
+        image_valid=IMAGE_PENDING_RAM_VERIFY;
+        puts_uart("NETWORK TRANSFER COMPLETE; PENDING RAM VERIFY\r\n");
         return 1;
     }
     puts_uart("network boot unavailable/failed; UART recovery\r\n");
     return 0;
 }
 #endif
-/* Only an immediately successful download can call this helper. The commit is
+/* Only an immediately successful download can call this helper. A network
+ * download carries pending metadata, not launch authority. The final commit is
  * consumed before the jump, and every failed final check invalidates it. */
 static void launch_downloaded_image(void) {
 #ifdef BOOT_MENU
@@ -586,6 +596,7 @@ static void launch_downloaded_image(void) {
 #ifdef BOARD_NETBOOT
     if(!board_netboot_quiet()){image_valid=0;tui_result("DMA busy; board reset required.");puts_uart("DMA BUSY; RESET REQUIRED\r\n");return;}
 #endif
+    if(image_network)puts_uart("NETWORK IMAGE VERIFIED\r\n");
     /* Finish all checks before announcing auto-boot. No manual launch token. */
 #ifdef BOOT_MENU
     menu_binary=0;

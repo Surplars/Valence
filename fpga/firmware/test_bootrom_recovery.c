@@ -42,6 +42,10 @@ int board_netboot(uint32_t *entry,uint32_t *length) {
     return 1;
 }
 uint32_t board_netboot_verified_crc(void){return network_crc;}
+int board_netboot_pending(uint32_t *entry,uint32_t *length,uint32_t *expected) {
+    if(!board_netboot(entry,length))return 0;
+    *expected=board_netboot_verified_crc();return NB_DOWNLOAD_PENDING;
+}
 int board_netboot_quiet(void) { assert(!external_network_started); ++quiet_calls; return !unsafe || quiet_calls<deny_quiet_from; }
 int board_netboot_command(void) { int c=pending; pending=0; return c; }
 void board_netboot_jump(uint32_t entry,uint32_t length) { assert(entry==RAM_BASE && length==test_length); ++jumps; }
@@ -124,10 +128,10 @@ int main(void) {
     assert(run_loop()==2&&ran==1&&external_state_untrusted&&external_network_started&&!image_valid&&contains("EXTERNAL STATE LOCKED"));++cases;
     test_length=16;reset_test();network_success=1;
     int result=setjmp(escaped);if(!result)boot_main();
-    assert(result==1&&ran==1&&jumps==1&&!image_valid&&contains("AUTOBOOT"));++cases;
+    assert(result==1&&ran==1&&jumps==1&&!image_valid&&contains("PENDING RAM VERIFY")&&contains("NETWORK IMAGE VERIFIED")&&contains("AUTOBOOT"));++cases;
     reset_test();network_success=network_corrupt=1;
     result=setjmp(escaped);if(!result)boot_main();
-    assert(result==2&&!ran&&!jumps&&!image_valid&&contains("RAM CRC FAIL")&&!contains("AUTOBOOT"));++cases;
+    assert(result==2&&!ran&&!jumps&&!image_valid&&contains("RAM CRC FAIL")&&!contains("NETWORK IMAGE VERIFIED")&&!contains("AUTOBOOT"));++cases;
     printf("BOOTROM_UART_RECOVERY_PASS cases=%u netfail_uart_run=1 cancel_uart_run=1 verified_run=1 busy_blocks_run=1 stream_crc_negative=1 ram_crc_negative=1 rtl_proof=0\n",cases);
     return 0;
 }

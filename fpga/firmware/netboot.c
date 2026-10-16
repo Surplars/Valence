@@ -200,7 +200,8 @@ static int final_ack(struct nb_ops *o,const uint8_t peer[6],uint16_t port,
     if(o->stats) o->stats->final_ack_ticks=o->now(o->context)-start;
     return 1;
 }
-int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) {
+static int nb_tftp_receive(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length,
+                           uint32_t *pending_crc) {
     if((o->request_blksize && (o->request_blksize<512 || o->request_blksize>NB_TFTP_BLOCK_MAX)) ||
        o->request_windowsize>NB_TFTP_WINDOW_MAX) return fail(o,NB_BAD_OPTIONS);
     uint8_t peer[6]={0};
@@ -307,6 +308,12 @@ int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) 
                     sent=o->now(o->context); retries=0;
                     if(data<block_size) {
                         if(!final_ack(o,peer,port,file,previous,data)) return 0;
+                        if(pending_crc) {
+                            /* Explicit transport-only handoff; never call a dummy
+                             * verifier or claim that RAM has been read back. */
+                            *entry=target; *length=size; *pending_crc=wanted;
+                            return NB_DOWNLOAD_PENDING;
+                        }
                         if(o->prepare_verify) {
                             stage(o,NB_RAM_PREPARE);
                             int prepared=o->prepare_verify(o->context);
@@ -334,4 +341,14 @@ bad:
         tftp_error(o,peer,locked?port:from,0);
         return 0;
     }
+}
+
+int nb_tftp(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length) {
+    return nb_tftp_receive(o,file,entry,length,0);
+}
+int nb_tftp_pending(struct nb_ops *o,const char *file,uint32_t *entry,uint32_t *length,
+                    uint32_t *expected_crc) {
+    if(!expected_crc) return fail(o,NB_BAD_HEADER);
+    *expected_crc=0;
+    return nb_tftp_receive(o,file,entry,length,expected_crc);
 }
