@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Build two tiny actual-ROM CRC controls for one shared BoardSoc model."""
-import hashlib,json,pathlib,subprocess,sys,zlib
+"""Build selected tiny actual-ROM CRC controls for one shared BoardSoc model."""
+import argparse,hashlib,json,pathlib,subprocess,sys,zlib
 src=pathlib.Path(__file__).resolve().parent
-out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True)
+ap=argparse.ArgumentParser();ap.add_argument('out');ap.add_argument('--modes',nargs='+',type=int,choices=(0,1,2,3),default=[0,1]);args=ap.parse_args()
+out=pathlib.Path(args.out).resolve();out.mkdir(parents=True,exist_ok=True)
 manifest={'scope':'ROM CRC target-cycle controls; not a host-speed benchmark','mailbox':0x80600000,'source':0x80400000,'destination':0x80420000,'rows':16,'row_u64':['mode','alignment','warm','stream_ticks','ram_ticks','stream_crc','ram_crc','length'],'cold_policy':'64KiB read sweep, one 8-byte word per 64-byte line; 32KiB-cache eviction pressure, no hardware cache-miss claim','length':1024,'expected_crc':[zlib.crc32(bytes((i*73+(i>>3)+19)&255 for i in range(a,a+1024))) for a in range(8)],'artifacts':{}}
 flags=['-march=rv64im_zicsr_zifencei','-mabi=lp64','-mcmodel=medany','-mno-relax','-msmall-data-limit=0','-Os','-ffreestanding','-fno-builtin','-fno-stack-protector','-nostdlib','-nostartfiles','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-Wl,--defsym=BOARD_RAM_BYTES=2147483648','-Wl,--defsym=BOARD_MONITOR_BASE=4294934528',f'-T{src / "bootrom.ld"}']
-for mode in (0,1):
+for mode in args.modes:
  stem=out/f'crc-mode{mode}';elf=stem.with_suffix('.elf');binary=stem.with_suffix('.bin')
  cmd=['riscv64-unknown-elf-gcc',*flags,f'-DFIRMWARE_CRC_MODE={mode}',*(str(src/p) for p in ('start.S','crc_bench.c','crc32.c')),'-o',str(elf)]
  subprocess.run(cmd,check=True);subprocess.run(['riscv64-unknown-elf-objcopy','-O','binary',str(elf),str(binary)],check=True)

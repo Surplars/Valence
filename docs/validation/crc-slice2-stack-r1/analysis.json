@@ -1,0 +1,798 @@
+{
+  "qualification": "static conservative frame-sum envelope, all protocol callback alternatives included; tail-call frames intentionally overcounted",
+  "frames": {
+    "firmware_ram_dma_idle": 0,
+    "firmware_ram_prepare": 32,
+    "uart_init": 0,
+    "putc_uart": 0,
+    "puts_uart": 16,
+    "hex64": 48,
+    "uart_stage": 32,
+    "uart_crc_failure": 48,
+    "getc_timeout": 0,
+    "receive": 48,
+    "external_state_message": 0,
+    "get32": 0,
+    "put32": 16,
+    "tui_number": 48,
+    "tui_at": 16,
+    "tui_line": 48,
+    "tui_leave": 16,
+    "show_menu": 48,
+    "jtag_reset_required": 16,
+    "jtag_close_and_drain": 32,
+    "jtag_failure": 16,
+    "jtag_snapshot_valid": 0,
+    "reply": 32,
+    "abort_transfer": 32,
+    "image_record_sum": 32,
+    "monitor_info": 32,
+    "monitor_quiet": 16,
+    "tui_progress": 64,
+    "verify_image": 112,
+    "launch_downloaded_image": 16,
+    "boot_loop": 224,
+    "monitor_external_state_untrusted": 0,
+    "boot_main": 16,
+    "boot_recover": 32,
+    "say": 0,
+    "monitor_memory_dma_idle": 0,
+    "monitor_run_diagnostic": 48,
+    "firmware_crc_update": 0,
+    "be32": 0,
+    "le32": 0,
+    "sum16": 0,
+    "checksum": 0,
+    "stage": 0,
+    "receive_for": 48,
+    "send_frame": 48,
+    "option": 16,
+    "option_name": 0,
+    "equal.constprop": 0,
+    "udp_receive.constprop": 80,
+    "copy.constprop": 0,
+    "udp_send": 64,
+    "tftp_send": 48,
+    "tftp_error": 0,
+    "arp_send": 80,
+    "arp_receive": 64,
+    "nb_tftp_receive": 288,
+    "nb_crc_update": 0,
+    "nb_tftp": 0,
+    "nb_tftp_pending": 0,
+    "now": 0,
+    "uart_put": 0,
+    "text": 16,
+    "field": 64,
+    "hexfield": 48,
+    "begin": 16,
+    "ended": 32,
+    "wait_bits": 0,
+    "abort_uart": 0,
+    "arm_rx": 0,
+    "post_rx": 0,
+    "release_borrowed_rx": 16,
+    "complete_posted_rx": 32,
+    "mdio": 32,
+    "send": 16,
+    "recv": 32,
+    "store": 0,
+    "protocol_stage": 16,
+    "summary": 16,
+    "verify": 80,
+    "received_frame": 0,
+    "failed.isra": 96,
+    "firmware_ram_prepare.constprop": 0,
+    "memcpy": 0,
+    "memset": 0,
+    "board_netboot_command": 0,
+    "board_netboot_quiet": 64,
+    "prepare_verify": 16,
+    "board_netboot_receive": 288,
+    "board_netboot_jump": 32,
+    "board_netboot": 0,
+    "board_netboot_pending": 0,
+    "board_netboot_verified_crc": 0,
+    "board_netboot_info": 16,
+    "_start": 0,
+    "boot_trap": 0,
+    "run_image": 128
+  },
+  "qualifiers": {
+    "firmware_ram_dma_idle": "static",
+    "firmware_ram_prepare": "static",
+    "uart_init": "static",
+    "putc_uart": "static",
+    "puts_uart": "static",
+    "hex64": "static",
+    "uart_stage": "static",
+    "uart_crc_failure": "static",
+    "getc_timeout": "static",
+    "receive": "static",
+    "external_state_message": "static",
+    "get32": "static",
+    "put32": "static",
+    "tui_number": "static",
+    "tui_at": "static",
+    "tui_line": "static",
+    "tui_leave": "static",
+    "show_menu": "static",
+    "jtag_reset_required": "static",
+    "jtag_close_and_drain": "static",
+    "jtag_failure": "static",
+    "jtag_snapshot_valid": "static",
+    "reply": "static",
+    "abort_transfer": "static",
+    "image_record_sum": "static",
+    "monitor_info": "static",
+    "monitor_quiet": "static",
+    "tui_progress": "static",
+    "verify_image": "static",
+    "launch_downloaded_image": "static",
+    "boot_loop": "static",
+    "monitor_external_state_untrusted": "static",
+    "boot_main": "static",
+    "boot_recover": "static",
+    "say": "static",
+    "monitor_memory_dma_idle": "static",
+    "monitor_run_diagnostic": "static",
+    "firmware_crc_update": "static",
+    "be32": "static",
+    "le32": "static",
+    "sum16": "static",
+    "checksum": "static",
+    "stage": "static",
+    "receive_for": "static",
+    "send_frame": "static",
+    "option": "static",
+    "option_name": "static",
+    "equal.constprop": "static",
+    "udp_receive.constprop": "static",
+    "copy.constprop": "static",
+    "udp_send": "static",
+    "tftp_send": "static",
+    "tftp_error": "static",
+    "arp_send": "static",
+    "arp_receive": "static",
+    "nb_tftp_receive": "static",
+    "nb_crc_update": "static",
+    "nb_tftp": "static",
+    "nb_tftp_pending": "static",
+    "now": "static",
+    "uart_put": "static",
+    "text": "static",
+    "field": "static",
+    "hexfield": "static",
+    "begin": "static",
+    "ended": "static",
+    "wait_bits": "static",
+    "abort_uart": "static",
+    "arm_rx": "static",
+    "post_rx": "static",
+    "release_borrowed_rx": "static",
+    "complete_posted_rx": "static",
+    "mdio": "static",
+    "send": "static",
+    "recv": "static",
+    "store": "static",
+    "protocol_stage": "static",
+    "summary": "static",
+    "verify": "static",
+    "received_frame": "static",
+    "failed.isra": "static",
+    "firmware_ram_prepare.constprop": "static",
+    "memcpy": "static",
+    "memset": "static",
+    "board_netboot_command": "static",
+    "board_netboot_quiet": "static",
+    "prepare_verify": "static",
+    "board_netboot_receive": "static",
+    "board_netboot_jump": "static",
+    "board_netboot": "static",
+    "board_netboot_pending": "static",
+    "board_netboot_verified_crc": "static",
+    "board_netboot_info": "static"
+  },
+  "edges": {
+    "_start": [
+      "boot_main"
+    ],
+    "boot_trap": [
+      "boot_recover"
+    ],
+    "run_image": [],
+    "firmware_ram_dma_idle": [],
+    "firmware_ram_prepare": [
+      "firmware_ram_dma_idle"
+    ],
+    "uart_init": [],
+    "putc_uart": [],
+    "puts_uart": [
+      "putc_uart"
+    ],
+    "hex64": [
+      "putc_uart"
+    ],
+    "uart_stage": [
+      "hex64",
+      "puts_uart"
+    ],
+    "uart_crc_failure": [
+      "hex64",
+      "puts_uart"
+    ],
+    "getc_timeout": [],
+    "receive": [
+      "getc_timeout"
+    ],
+    "external_state_message": [
+      "puts_uart"
+    ],
+    "get32": [],
+    "put32": [
+      "putc_uart"
+    ],
+    "tui_number": [
+      "putc_uart"
+    ],
+    "tui_at": [
+      "puts_uart",
+      "tui_number"
+    ],
+    "tui_line": [
+      "putc_uart"
+    ],
+    "tui_leave": [
+      "puts_uart",
+      "tui_at"
+    ],
+    "show_menu": [
+      "external_state_message",
+      "puts_uart",
+      "tui_at",
+      "tui_line"
+    ],
+    "jtag_reset_required": [
+      "getc_timeout",
+      "puts_uart"
+    ],
+    "jtag_close_and_drain": [
+      "getc_timeout",
+      "jtag_reset_required"
+    ],
+    "jtag_failure": [
+      "jtag_close_and_drain",
+      "puts_uart"
+    ],
+    "jtag_snapshot_valid": [],
+    "reply": [
+      "put32",
+      "puts_uart"
+    ],
+    "abort_transfer": [
+      "getc_timeout",
+      "puts_uart",
+      "reply"
+    ],
+    "image_record_sum": [
+      "firmware_crc_update"
+    ],
+    "monitor_info": [
+      "board_netboot_info",
+      "external_state_message",
+      "hex64",
+      "puts_uart"
+    ],
+    "monitor_quiet": [
+      "board_netboot_quiet",
+      "monitor_memory_dma_idle",
+      "puts_uart"
+    ],
+    "tui_progress": [
+      "putc_uart",
+      "puts_uart",
+      "tui_number"
+    ],
+    "verify_image": [
+      "external_state_message",
+      "firmware_crc_update",
+      "firmware_ram_prepare",
+      "getc_timeout",
+      "hex64",
+      "image_record_sum",
+      "monitor_quiet",
+      "puts_uart",
+      "tui_progress"
+    ],
+    "launch_downloaded_image": [
+      "board_netboot_jump",
+      "board_netboot_quiet",
+      "hex64",
+      "puts_uart",
+      "run_image",
+      "tui_leave",
+      "uart_init",
+      "verify_image"
+    ],
+    "boot_loop": [
+      "abort_transfer",
+      "board_netboot_command",
+      "board_netboot_pending",
+      "board_netboot_quiet",
+      "external_state_message",
+      "firmware_crc_update",
+      "firmware_ram_dma_idle",
+      "firmware_ram_prepare",
+      "get32",
+      "getc_timeout",
+      "hex64",
+      "image_record_sum",
+      "jtag_close_and_drain",
+      "jtag_failure",
+      "jtag_reset_required",
+      "jtag_snapshot_valid",
+      "launch_downloaded_image",
+      "monitor_info",
+      "monitor_quiet",
+      "monitor_run_diagnostic",
+      "put32",
+      "puts_uart",
+      "receive",
+      "reply",
+      "run_image",
+      "show_menu",
+      "tui_at",
+      "tui_leave",
+      "tui_line",
+      "tui_progress",
+      "uart_crc_failure",
+      "uart_init",
+      "uart_stage",
+      "verify_image"
+    ],
+    "monitor_external_state_untrusted": [],
+    "boot_main": [
+      "boot_loop",
+      "puts_uart",
+      "show_menu",
+      "uart_init"
+    ],
+    "boot_recover": [
+      "boot_loop",
+      "hex64",
+      "jtag_reset_required",
+      "puts_uart",
+      "tui_leave",
+      "uart_init"
+    ],
+    "firmware_crc_update": [],
+    "say": [],
+    "monitor_memory_dma_idle": [],
+    "monitor_run_diagnostic": [
+      "monitor_external_state_untrusted",
+      "monitor_memory_dma_idle",
+      "run_image",
+      "say"
+    ],
+    "be32": [],
+    "le32": [],
+    "sum16": [],
+    "checksum": [],
+    "stage": [
+      "now",
+      "prepare_verify",
+      "protocol_stage",
+      "received_frame",
+      "recv",
+      "send",
+      "store",
+      "verify"
+    ],
+    "receive_for": [
+      "now",
+      "prepare_verify",
+      "protocol_stage",
+      "received_frame",
+      "recv",
+      "send",
+      "store",
+      "verify"
+    ],
+    "send_frame": [
+      "now",
+      "prepare_verify",
+      "protocol_stage",
+      "received_frame",
+      "recv",
+      "send",
+      "store",
+      "verify"
+    ],
+    "option": [],
+    "option_name": [],
+    "equal.constprop": [],
+    "udp_receive.constprop": [
+      "be32",
+      "checksum",
+      "equal.constprop",
+      "sum16"
+    ],
+    "copy.constprop": [],
+    "udp_send": [
+      "checksum",
+      "copy.constprop",
+      "send_frame",
+      "sum16"
+    ],
+    "tftp_send": [
+      "option",
+      "udp_send"
+    ],
+    "tftp_error": [
+      "udp_send"
+    ],
+    "arp_send": [
+      "copy.constprop",
+      "send_frame"
+    ],
+    "arp_receive": [
+      "arp_send",
+      "be32",
+      "copy.constprop",
+      "equal.constprop"
+    ],
+    "nb_tftp_receive": [
+      "arp_receive",
+      "arp_send",
+      "firmware_crc_update",
+      "le32",
+      "now",
+      "option_name",
+      "prepare_verify",
+      "protocol_stage",
+      "receive_for",
+      "received_frame",
+      "recv",
+      "send",
+      "stage",
+      "store",
+      "tftp_error",
+      "tftp_send",
+      "udp_receive.constprop",
+      "verify"
+    ],
+    "nb_crc_update": [
+      "firmware_crc_update"
+    ],
+    "nb_tftp": [
+      "nb_tftp_receive"
+    ],
+    "nb_tftp_pending": [
+      "nb_tftp_receive"
+    ],
+    "now": [],
+    "uart_put": [],
+    "text": [
+      "uart_put"
+    ],
+    "field": [
+      "text",
+      "uart_put"
+    ],
+    "hexfield": [
+      "text",
+      "uart_put"
+    ],
+    "begin": [
+      "text"
+    ],
+    "ended": [
+      "field",
+      "text"
+    ],
+    "wait_bits": [],
+    "abort_uart": [],
+    "arm_rx": [],
+    "post_rx": [],
+    "release_borrowed_rx": [
+      "post_rx"
+    ],
+    "complete_posted_rx": [
+      "post_rx"
+    ],
+    "mdio": [
+      "wait_bits"
+    ],
+    "send": [
+      "wait_bits"
+    ],
+    "recv": [
+      "abort_uart",
+      "arm_rx",
+      "complete_posted_rx",
+      "release_borrowed_rx"
+    ],
+    "store": [],
+    "protocol_stage": [
+      "begin",
+      "ended"
+    ],
+    "summary": [
+      "field",
+      "text"
+    ],
+    "verify": [
+      "abort_uart",
+      "nb_crc_update"
+    ],
+    "received_frame": [],
+    "failed.isra": [
+      "field",
+      "hexfield",
+      "text"
+    ],
+    "firmware_ram_prepare.constprop": [],
+    "memset": [],
+    "board_netboot_command": [],
+    "board_netboot_quiet": [
+      "arm_rx",
+      "begin",
+      "complete_posted_rx",
+      "ended",
+      "failed.isra",
+      "release_borrowed_rx",
+      "wait_bits"
+    ],
+    "prepare_verify": [
+      "begin",
+      "board_netboot_quiet",
+      "ended",
+      "failed.isra",
+      "firmware_ram_prepare.constprop"
+    ],
+    "board_netboot_receive": [
+      "abort_uart",
+      "begin",
+      "board_netboot_quiet",
+      "ended",
+      "failed.isra",
+      "field",
+      "mdio",
+      "memset",
+      "nb_tftp",
+      "nb_tftp_pending",
+      "post_rx",
+      "summary",
+      "text",
+      "wait_bits"
+    ],
+    "board_netboot_jump": [
+      "field",
+      "hexfield",
+      "text"
+    ],
+    "board_netboot_pending": [
+      "board_netboot_receive"
+    ],
+    "board_netboot_info": [
+      "hexfield",
+      "text"
+    ]
+  },
+  "indirect_sites": {
+    "run_image": [
+      "80000154:\t000280e7          \tjalr\tt0"
+    ],
+    "boot_loop": [
+      "80001a30:\t00078067          \tjr\ta5",
+      "80001ad8:\t00078067          \tjr\ta5",
+      "80001b8c:\t00078067          \tjr\ta5"
+    ],
+    "stage": [
+      "80002bb0:\t00078067          \tjr\ta5"
+    ],
+    "receive_for": [
+      "80002be8:\t000780e7          \tjalr\ta5",
+      "80002bfc:\t000780e7          \tjalr\ta5",
+      "80002c14:\t000780e7          \tjalr\ta5",
+      "80002c2c:\t000780e7          \tjalr\ta5"
+    ],
+    "send_frame": [
+      "80002cec:\t000780e7          \tjalr\ta5",
+      "80002d00:\t000780e7          \tjalr\ta5",
+      "80002d18:\t000780e7          \tjalr\ta5"
+    ],
+    "nb_tftp_receive": [
+      "80003840:\t000780e7          \tjalr\ta5",
+      "800038f8:\t000780e7          \tjalr\ta5",
+      "800039e0:\t000780e7          \tjalr\ta5",
+      "80003a40:\t000780e7          \tjalr\ta5",
+      "80003a58:\t000780e7          \tjalr\ta5",
+      "80003ab4:\t000780e7          \tjalr\ta5",
+      "80003d74:\t000780e7          \tjalr\ta5",
+      "80004000:\t000780e7          \tjalr\ta5",
+      "80004028:\t000780e7          \tjalr\ta5",
+      "80004044:\t000780e7          \tjalr\ta5",
+      "800040b0:\t000780e7          \tjalr\ta5",
+      "8000412c:\t000780e7          \tjalr\ta5",
+      "800041bc:\t000780e7          \tjalr\ta5",
+      "800041dc:\t000780e7          \tjalr\ta5",
+      "800041f8:\t000780e7          \tjalr\ta5",
+      "80004238:\t000780e7          \tjalr\ta5",
+      "8000430c:\t000780e7          \tjalr\ta5",
+      "8000436c:\t000780e7          \tjalr\ta5",
+      "800043b4:\t000780e7          \tjalr\ta5",
+      "800043cc:\t000780e7          \tjalr\ta5",
+      "800043e4:\t000780e7          \tjalr\ta5"
+    ]
+  },
+  "callback_overapproximation": [
+    "now",
+    "send",
+    "recv",
+    "store",
+    "verify",
+    "protocol_stage",
+    "received_frame",
+    "prepare_verify"
+  ],
+  "bounds": {
+    "_start": {
+      "bytes": 1264,
+      "path": [
+        "_start",
+        "boot_main",
+        "boot_loop",
+        "board_netboot_pending",
+        "board_netboot_receive",
+        "nb_tftp_pending",
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "boot_main": {
+      "bytes": 1264,
+      "path": [
+        "boot_main",
+        "boot_loop",
+        "board_netboot_pending",
+        "board_netboot_receive",
+        "nb_tftp_pending",
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "boot_recover": {
+      "bytes": 1280,
+      "path": [
+        "boot_recover",
+        "boot_loop",
+        "board_netboot_pending",
+        "board_netboot_receive",
+        "nb_tftp_pending",
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "boot_loop": {
+      "bytes": 1248,
+      "path": [
+        "boot_loop",
+        "board_netboot_pending",
+        "board_netboot_receive",
+        "nb_tftp_pending",
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "board_netboot_pending": {
+      "bytes": 1024,
+      "path": [
+        "board_netboot_pending",
+        "board_netboot_receive",
+        "nb_tftp_pending",
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "nb_tftp_receive": {
+      "bytes": 736,
+      "path": [
+        "nb_tftp_receive",
+        "arp_receive",
+        "arp_send",
+        "send_frame",
+        "prepare_verify",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "verify": {
+      "bytes": 80,
+      "path": [
+        "verify",
+        "abort_uart"
+      ]
+    },
+    "verify_image": {
+      "bytes": 368,
+      "path": [
+        "verify_image",
+        "monitor_quiet",
+        "board_netboot_quiet",
+        "failed.isra",
+        "field",
+        "text",
+        "uart_put"
+      ]
+    },
+    "tui_progress": {
+      "bytes": 112,
+      "path": [
+        "tui_progress",
+        "tui_number",
+        "putc_uart"
+      ]
+    },
+    "firmware_crc_update": {
+      "bytes": 0,
+      "path": [
+        "firmware_crc_update"
+      ]
+    },
+    "monitor_run_diagnostic": {
+      "bytes": 176,
+      "path": [
+        "monitor_run_diagnostic",
+        "run_image"
+      ]
+    }
+  },
+  "rom_sha256": "d7cbab6e9f9639aac3ebab2c5be6d1a202ab15cd888c103dec5349a6720b1082",
+  "stack_limit": 8192,
+  "budget_pass": true,
+  "assembly_boundary": "run_image saves128 bytes then switches sp to __app_stack_top; payload/diagnostic execution excluded; boot_trap resets sp before recovery"
+}

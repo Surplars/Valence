@@ -19,13 +19,13 @@ uint32_t legacy(uint32_t c,const uint8_t *p,unsigned n) {
 '''
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument("--mode",choices=("nibble","byte","slice4"),default="nibble");args=ap.parse_args()
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument("--mode",choices=("nibble","byte","slice4","slice2"),default="nibble");args=ap.parse_args()
     rng = random.Random(0x43524332)
     cases = 0
     with tempfile.TemporaryDirectory(prefix="valence-crc-") as temp:
         root = Path(temp)
         (root / "oracle.c").write_text(ORACLE)
-        subprocess.run([os.environ.get("CC", "cc"), "-O2", "-shared", "-fPIC", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice4=2)[args.mode]}",
+        subprocess.run([os.environ.get("CC", "cc"), "-O2", "-shared", "-fPIC", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice4=2,slice2=3)[args.mode]}",
                         str(SOURCE / "crc32.c"), str(root / "oracle.c"),
                         "-o", str(root / "crc.so")], check=True)
         lib = ctypes.CDLL(str(root / "crc.so"))
@@ -47,7 +47,9 @@ def main():
             assert c == raw
             # Arbitrary raw accumulator preserves chunk and unfinalized convention.
             seed = rng.getrandbits(32)
-            assert lib.firmware_crc_update(seed, addr, len(data)) == lib.legacy(seed, addr, len(data))
+            seeded = lib.firmware_crc_update(seed, addr, len(data))
+            assert seeded == lib.legacy(seed, addr, len(data))
+            assert seeded ^ 0xffffffff == zlib.crc32(data, seed ^ 0xffffffff)
             cases += 1
         check(b'123456789', 0)
         assert zlib.crc32(b'123456789') == 0xcbf43926

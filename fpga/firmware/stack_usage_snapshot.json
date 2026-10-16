@@ -1,0 +1,12 @@
+{
+  "rom_sha256": "d7cbab6e9f9639aac3ebab2c5be6d1a202ab15cd888c103dec5349a6720b1082",
+  "normalization": "Only absolute source prefix before /fpga/firmware/ and ELF filename line are removed; code, frames, qualifiers and source line numbers remain bound.",
+  "normalized_metadata_sha256": {
+    "disasm.txt": "37ee18bffbb85f754553aa310851b6f5d552ed9b5a2c1f93e95e45167698f782",
+    "bootrom.elf-bootrom.su": "8bf27052c05e36dc6b8f591b182a6297e25e1586b2e332a72d635cab043ae8e4",
+    "bootrom.elf-monitor_diag.su": "2031bbe42f16b5f14305215a30dcbac5124650c3d44f992f820d61e05b53da0f",
+    "bootrom.elf-crc32.su": "18d120ca12c5717d91b4775e80b12ba30ae319d0a40864f598342824574b9bf8",
+    "bootrom.elf-netboot.su": "d14c80e252a2b456532aaa7b5c7f2854fe54936f8cf08fe8b6167413ee382202",
+    "bootrom.elf-netboot_board.su": "2f0df646e8e4cd97331ea010c35ae73024b86f0b754e3bb5a00e04251be9f56b"
+  }
+}

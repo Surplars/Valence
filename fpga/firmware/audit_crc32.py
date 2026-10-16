@@ -38,9 +38,9 @@ def main():
             c=n
             for _ in range(8): c=(c>>1)^(0xedb88320 if c&1 else 0)
             values.append(c)
-        if mode=='slice4':
+        if mode in ('slice4','slice2'):
             first=values[:];previous=values[:]
-            for _ in range(3):
+            for _ in range(3 if mode=='slice4' else 1):
                 previous=[(v>>8)^first[v&255] for v in previous];values.extend(previous)
     expected = struct.pack('<'+str(len(values))+'I', *values)
     load = syms['__data_load'] + start - syms['__data_start']
@@ -48,8 +48,8 @@ def main():
     assert data.count(expected) == 1 and len(data) <= 131072
     dis = run('objdump', '-d')
     helper = re.search(r'<firmware_crc_update>:\n(.*?)(?=\n\n|\Z)', dis, re.S).group(1)
-    assert len(re.findall(r'\blbu\s', helper)) == (5 if mode=='slice4' else 1)
-    assert len(re.findall(r'\blw(?:u)?\s', helper)) == dict(nibble=2,byte=1,slice4=5)[mode]
+    assert len(re.findall(r'\blbu\s', helper)) == dict(nibble=1,byte=1,slice4=5,slice2=3)[mode]
+    assert len(re.findall(r'\blw(?:u)?\s', helper)) == dict(nibble=2,byte=1,slice4=5,slice2=3)[mode]
     # Register/address dataflow and _start copy are reviewed in saved disassembly.
     report = dict(status='passed', crc_mode=mode, table_bytes=table_bytes, table_vma=hex(start), table_lma=hex(load),
                   globals_bytes=syms['__bss_end']-syms['__app_stack_top'],

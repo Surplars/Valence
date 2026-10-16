@@ -1,0 +1,9 @@
+{
+  "command": [
+    "/workspace/scratch/41e4a649bb60/crc-slice2-evaluation-r1/run",
+    "/workspace/scratch/41e4a649bb60/crc-slice2-evaluation-r1/guests/crc-mode3.bin",
+    "3"
+  ],
+  "exit": 0,
+  "wall_seconds": 238.20464849472046
+}

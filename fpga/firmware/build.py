@@ -33,8 +33,8 @@ def main():
     parser.add_argument("--plain-terminal", action="store_true", help="start boot menu without ANSI; a toggles at runtime")
     parser.add_argument("--jtag-download", action="store_true",
                         help="opt-in j command for cooperative JTAG RAM download; requires matching downloader RTL, host COMMIT verifies and executes")
-    parser.add_argument("--crc-mode", choices=("nibble", "byte", "slice4"), default="nibble",
-                        help="shared RAM CRC table:64/1024/4096 bytes; linker enforces global/stack budget")
+    parser.add_argument("--crc-mode", choices=("nibble", "byte", "slice4", "slice2"), default="nibble",
+                        help="shared RAM CRC table:64/1024/4096/2048 bytes; linker enforces global/stack budget")
     parser.add_argument("--uart-divisor", type=int, default=1)
     parser.add_argument("--uart-reference-hz", type=int,
                         help="16550 baud-generator reference, NOT CPU or raw peripheral clock")
@@ -97,7 +97,7 @@ def main():
             parser.error(f"missing tool: {tool}")
     flags = ["-march=rv64im_zicsr_zifencei", "-mabi=lp64", "-mcmodel=medany",
              "-mno-relax", "-msmall-data-limit=0", "-Os", "-ffreestanding",
-             "-fno-builtin", "-fno-stack-protector", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice4=2)[args.crc_mode]}", "-ffunction-sections",
+             "-fno-builtin", "-fno-stack-protector", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice4=2,slice2=3)[args.crc_mode]}", "-ffunction-sections",
              "-fdata-sections", "-nostdlib", "-nostartfiles", "-Wall", "-Wextra",
              "-Werror", "-Wl,--gc-sections", "-Wl,--no-relax"]
     layout = MemoryLayout(args.ddr_bytes if args.ddr else 1024 * 1024)
@@ -153,7 +153,7 @@ def main():
         tui_progress_during_uart_binary=False,
         tui_progress_during_network_rx=False,
         jtag_download_launch="host_commit_then_ram_crc_then_epoch_claim" if args.jtag_download else None,
-        crc_mode=args.crc_mode, crc_table_bytes=dict(nibble=64,byte=1024,slice4=4096)[args.crc_mode],
+        crc_mode=args.crc_mode, crc_table_bytes=dict(nibble=64,byte=1024,slice4=4096,slice2=2048)[args.crc_mode],
         netboot_borrowed_rx=args.netboot_posted_rx,
         timebase_source="BoardSocTop.timerTick=true; MachineTimer.timeValue -> TIME CSR",
         netboot_rx_stop_abi=2 if args.netboot else None,

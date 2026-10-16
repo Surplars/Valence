@@ -1,0 +1,1 @@
+CRC32_EQUIVALENCE_PASS mode=slice2 cases=323 full_payload_length=76564168 wire_length=76564204 alignments=8 epochs=2 oracle=legacy_bitwise+python_zlib host_timing_claim=0

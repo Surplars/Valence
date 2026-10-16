@@ -1,0 +1,17 @@
+[
+  {
+    "mutation": "rom-drift",
+    "exit": 1,
+    "last_error": "AssertionError: unqualified ROM: redo assembly/callback/jump-table review"
+  },
+  {
+    "mutation": "dynamic-frame",
+    "exit": 1,
+    "last_error": "AssertionError: {'now': 'static', 'uart_put': 'static', 'text': 'static', 'field': 'static', 'hexfield': 'static', 'begin': 'static', 'ended': 'static', 'wait_bits': 'static', 'abort_uart': 'static', 'arm_rx': 'static', 'post_rx': 'static', 'release_borrowed_rx': 'static', 'complete_posted_rx': 'static', 'mdio': 'static', 'send': 'static', 'recv': 'static', 'store': 'static', 'protocol_stage': 'static', 'summary': 'static', 'verify': 'static', 'received_frame': 'static', 'failed.isra': 'static', 'firmware_ram_prepare.constprop': 'static', 'memcpy': 'static', 'memset': 'static', 'board_netboot_command': 'static', 'board_netboot_quiet': 'static', 'prepare_verify': 'static', 'board_netboot_receive': 'static', 'board_netboot_jump': 'static', 'board_netboot': 'static', 'board_netboot_pending': 'static', 'board_netboot_verified_crc': 'static', 'board_netboot_info': 'static', 'be32': 'static', 'le32': 'static', 'sum16': 'static', 'checksum': 'static', 'stage': 'static', 'receive_for': 'static', 'send_frame': 'static', 'option': 'static', 'option_name': 'static', 'equal.constprop': 'static', 'udp_receive.constprop': 'static', 'copy.constprop': 'static', 'udp_send': 'static', 'tftp_send': 'static', 'tftp_error': 'static', 'arp_send': 'static', 'arp_receive': 'static', 'nb_tftp_receive': 'static', 'nb_crc_update': 'static', 'nb_tftp': 'static', 'nb_tftp_pending': 'static', 'firmware_crc_update': 'dynamic', 'say': 'static', 'monitor_memory_dma_idle': 'static', 'monitor_run_diagnostic': 'static', 'firmware_ram_dma_idle': 'static', 'firmware_ram_prepare': 'static', 'uart_init': 'static', 'putc_uart': 'static', 'puts_uart': 'static', 'hex64': 'static', 'uart_stage': 'static', 'uart_crc_failure': 'static', 'getc_timeout': 'static', 'receive': 'static', 'external_state_message': 'static', 'get32': 'static', 'put32': 'static', 'tui_number': 'static', 'tui_at': 'static', 'tui_line': 'static', 'tui_leave': 'static', 'show_menu': 'static', 'jtag_reset_required': 'static', 'jtag_close_and_drain': 'static', 'jtag_failure': 'static', 'jtag_snapshot_valid': 'static', 'reply': 'static', 'abort_transfer': 'static', 'image_record_sum': 'static', 'monitor_info': 'static', 'monitor_quiet': 'static', 'tui_progress': 'static', 'verify_image': 'static', 'launch_downloaded_image': 'static', 'boot_loop': 'static', 'monitor_external_state_untrusted': 'static', 'boot_main': 'static', 'boot_recover': 'static'}"
+  },
+  {
+    "mutation": "missing-frame",
+    "exit": 1,
+    "last_error": "AssertionError: {'firmware_crc_update'}"
+  }
+]

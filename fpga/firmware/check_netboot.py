@@ -25,7 +25,7 @@ def command(argv, log):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--crc-mode", choices=("nibble","byte"), default="byte")
+    parser.add_argument("--crc-mode", choices=("nibble","byte","slice2"), default="byte")
     args = parser.parse_args()
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -48,13 +48,13 @@ def main():
     try:
         command([sys.executable, SOURCE / "test_crc32.py", "--mode", args.crc_mode], output / "crc-equivalence.log")
         command(["clang-19", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined",
-                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={0 if args.crc_mode=='nibble' else 1}", "-Wall", "-Wextra", "-Werror", "-c",
+                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice2=3)[args.crc_mode]}", "-Wall", "-Wextra", "-Werror", "-c",
                  SOURCE / "netboot.c", "-o", output / "netboot.o"], output / "compile-c.log")
         command(["clang-19", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined",
-                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={0 if args.crc_mode=='nibble' else 1}", "-Wall", "-Wextra", "-Werror", "-c",
+                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice2=3)[args.crc_mode]}", "-Wall", "-Wextra", "-Werror", "-c",
                  SOURCE / "crc32.c", "-o", output / "crc32.o"], output / "compile-crc.log")
         command(["clang++-19", "-std=c++20", "-O1", "-g", "-fsanitize=address,undefined",
-                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={0 if args.crc_mode=='nibble' else 1}", "-Wall", "-Wextra", "-Werror",
+                 "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice2=3)[args.crc_mode]}", "-Wall", "-Wextra", "-Werror",
                  SOURCE / "test_netboot.cpp", output / "netboot.o", output / "crc32.o", "-o", output / "test-netboot"],
                 output / "compile-tests.log")
         command([output / "test-netboot"], output / "protocol-tests.log")
@@ -68,7 +68,7 @@ def main():
         for test, witness, extra in (("test_netboot_board", "BOOTROM_MMIO_ORDER_PASS cases=32", [SOURCE / "netboot.c"]),
                                      ("test_bootrom_recovery", "BOOTROM_UART_RECOVERY_PASS cases=27", [])):
             command(["clang-19", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined",
-                     "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={0 if args.crc_mode=='nibble' else 1}", "-Wall", "-Wextra", "-Werror",
+                     "-fno-sanitize-recover=all", f"-DFIRMWARE_CRC_MODE={dict(nibble=0,byte=1,slice2=3)[args.crc_mode]}", "-Wall", "-Wextra", "-Werror",
                      SOURCE / (test + ".c"), *extra, output / "crc32.o", "-o", output / test], output / (test + "-compile.log"))
             command([output / test], output / (test + ".log"))
             if witness not in (output / (test + ".log")).read_text():

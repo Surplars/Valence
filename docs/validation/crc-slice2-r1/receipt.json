@@ -1,0 +1,95 @@
+{
+  "base_local_commit": "77cd6dc6ffbd450848050bd456ce6505613d4a1f",
+  "base_remote_commit": "80d37a56c22e78a2441687b6ce6b105a4b803396",
+  "base_tree": "0cb1acc095e055b8c6c09ffbf53531253cfb84de",
+  "compiler": "riscv64-unknown-elf-gcc (14.2.0+19) 14.2.0",
+  "crc_code_bytes": 180,
+  "table_bytes": 2048,
+  "code_plus_table_bytes": 2228,
+  "full_build_argv": [
+    "python3",
+    "Valence-crc-slice2-r1/fpga/firmware/build.py",
+    "--out",
+    "crc-slice2-evaluation-r1/full",
+    "--crc-mode",
+    "slice2",
+    "--boot-menu",
+    "--netboot",
+    "--netboot-posted-rx",
+    "--jtag-download",
+    "--ddr",
+    "--ddr-bytes",
+    "0x80000000",
+    "--cpu-hz",
+    "100000000",
+    "--uart-reference-hz",
+    "7372800",
+    "--uart-baud",
+    "460800"
+  ],
+  "full_audit": {
+    "status": "passed",
+    "crc_mode": "slice2",
+    "table_bytes": 2048,
+    "table_vma": "0xffff8000",
+    "table_lma": "0x800103f8",
+    "globals_bytes": 7872,
+    "reserved_stack_bytes": 8192,
+    "rom_bytes": 68616,
+    "target_execution": false,
+    "instruction_dataflow": "manual disassembly review required"
+  },
+  "sources_sha256": {
+    "crc32.c": "dd2c907c9857744e74a6685b41298d2bc996121331c003c87aab78f1208f9900",
+    "bootrom.ld": "320ea6268f1952b8a9513e6af3ebc9871e517aee62ef782db8ba8987c9f6eeb6",
+    "build.py": "594e5d791e25771869c0bffe7782702d2ab420bd6f62e8333133709ffdd78a78",
+    "audit_crc32.py": "b30a2905f4c53bd06bb6add355661c33f941b640ed9eac260b4108852bf7ef92",
+    "start.S": "28d9405ec257046dff28a21dd56f5ff0ac9dc39ef342f224bc8759f393729322",
+    "crc_bench.c": "d9217843bb55711c5090f1865a47f76f42ffc312aedff170d5928cf82e339b5a"
+  },
+  "bench_adapter_sha256": "62157e72c6bc0ba18fde280207d259920d7d9daa31638fb9cf0f75033bec0fbb",
+  "bounds_command": [
+    "python3",
+    "Valence-crc-slice2-r1/fpga/firmware/test_crc32_bounds.py"
+  ],
+  "equivalence_commands": [
+    [
+      "python3",
+      "Valence-crc-slice2-r1/fpga/firmware/test_crc32.py",
+      "--mode",
+      "nibble"
+    ],
+    [
+      "python3",
+      "Valence-crc-slice2-r1/fpga/firmware/test_crc32.py",
+      "--mode",
+      "byte"
+    ],
+    [
+      "python3",
+      "Valence-crc-slice2-r1/fpga/firmware/test_crc32.py",
+      "--mode",
+      "slice4"
+    ],
+    [
+      "python3",
+      "Valence-crc-slice2-r1/fpga/firmware/test_crc32.py",
+      "--mode",
+      "slice2"
+    ]
+  ],
+  "full_build_environment_PATH_prefix": "/workspace/scratch/41e4a649bb60/Valence-recovery/simulator/build/cloud-env/sysroot/usr/bin",
+  "bounds_tests_current_sha256": {
+    "test_crc32.py": "de2fecd5bbbce33baa908c19c168a660e439cfdd82147ab914f63e7a9e97259f",
+    "test_crc32_bounds.c": "1aeb76f7afc9cea6ef5a2aae926fb1d8b4e3095fa10962efbb231a55da7ac148",
+    "test_crc32_bounds.py": "55e70fe08d3659dedaa8e9a0f27410be7bbabcd6da50376b21955ab7a5533541"
+  },
+  "coremark_source_md5": {
+    "core_list_join.c": "9007fe7861b60ee6f210d156b62974c8",
+    "core_main.c": "4a9e6dadce1ac3866381021fbe843fc9",
+    "core_matrix.c": "5fa21a0f7c3964167c9691db531ca652",
+    "core_state.c": "fb49e7605c125306575a83f14f5798ac",
+    "core_util.c": "45540ba2145adea1ec7ea2c72a1fbbcb",
+    "coremark.h": "b0ec69b6c8e75853d06accb3b1bcf534"
+  }
+}

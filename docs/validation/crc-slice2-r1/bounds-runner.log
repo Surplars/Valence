@@ -1,0 +1,1 @@
+[{"name": "slice2", "exit": 0, "expected_success": true}, {"name": "wrong-table", "exit": -6, "expected_success": false}, {"name": "tail-overread", "exit": 1, "expected_success": false}]

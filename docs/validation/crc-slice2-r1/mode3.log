@@ -1,0 +1,34 @@
+CRC_PROGRESS row=0 cycle=236238
+CRC_PROGRESS row=1 cycle=381684
+CRC_PROGRESS row=2 cycle=527186
+CRC_PROGRESS row=3 cycle=672673
+CRC_PROGRESS row=4 cycle=818078
+CRC_PROGRESS row=5 cycle=963482
+CRC_PROGRESS row=6 cycle=1108887
+CRC_PROGRESS row=7 cycle=1254366
+CRC_PROGRESS row=8 cycle=1363086
+CRC_PROGRESS row=9 cycle=1472907
+CRC_PROGRESS row=10 cycle=1582757
+CRC_PROGRESS row=11 cycle=1692420
+CRC_PROGRESS row=12 cycle=1802263
+CRC_PROGRESS row=13 cycle=1912122
+CRC_PROGRESS row=14 cycle=2021978
+CRC_PROGRESS row=15 cycle=2131839
+CRC_ROW mode=3 alignment=0 warm=0 length=1024 stream_ticks=11299 ram_ticks=11363 stream_crc=540047691 ram_crc=540047691 stream_marker_cycles=11295 ram_marker_cycles=11352 stream_cache_miss=48 ram_cache_miss=48
+CRC_ROW mode=3 alignment=1 warm=0 length=1024 stream_ticks=11231 ram_ticks=11293 stream_crc=3036651986 ram_crc=3036651986 stream_marker_cycles=11227 ram_marker_cycles=11282 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=2 warm=0 length=1024 stream_ticks=11272 ram_ticks=11335 stream_crc=1541101806 ram_crc=1541101806 stream_marker_cycles=11268 ram_marker_cycles=11324 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=3 warm=0 length=1024 stream_ticks=11271 ram_ticks=11334 stream_crc=222897590 ram_crc=222897590 stream_marker_cycles=11267 ram_marker_cycles=11323 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=4 warm=0 length=1024 stream_ticks=11230 ram_ticks=11293 stream_crc=3365146482 ram_crc=3365146482 stream_marker_cycles=11226 ram_marker_cycles=11282 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=5 warm=0 length=1024 stream_ticks=11231 ram_ticks=11293 stream_crc=2839285066 ram_crc=2839285066 stream_marker_cycles=11227 ram_marker_cycles=11282 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=6 warm=0 length=1024 stream_ticks=11231 ram_ticks=11292 stream_crc=886896730 ram_crc=886896730 stream_marker_cycles=11227 ram_marker_cycles=11281 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=7 warm=0 length=1024 stream_ticks=11268 ram_ticks=11332 stream_crc=123327657 ram_crc=123327657 stream_marker_cycles=11264 ram_marker_cycles=11321 stream_cache_miss=49 ram_cache_miss=49
+CRC_ROW mode=3 alignment=0 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=540047691 ram_crc=540047691 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=1 warm=1 length=1024 stream_ticks=9254 ram_ticks=9259 stream_crc=3036651986 ram_crc=3036651986 stream_marker_cycles=9250 ram_marker_cycles=9250 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=2 warm=1 length=1024 stream_ticks=9254 ram_ticks=9259 stream_crc=1541101806 ram_crc=1541101806 stream_marker_cycles=9250 ram_marker_cycles=9250 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=3 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=222897590 ram_crc=222897590 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=4 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=3365146482 ram_crc=3365146482 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=5 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=2839285066 ram_crc=2839285066 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=6 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=886896730 ram_crc=886896730 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+CRC_ROW mode=3 alignment=7 warm=1 length=1024 stream_ticks=9254 ram_ticks=9260 stream_crc=123327657 ram_crc=123327657 stream_marker_cycles=9250 ram_marker_cycles=9251 stream_cache_miss=0 ram_cache_miss=0
+FABRIC_IDLE_PASS service_latency=6 samples=2132720 mailbox0_accepted=1 mailbox0_acked=1 mailbox0_held_cycles=0 mailbox1_accepted=1 mailbox1_acked=1 mailbox1_held_cycles=0 mailbox2_accepted=0 mailbox2_acked=0 mailbox2_held_cycles=0 mailbox3_accepted=0 mailbox3_acked=0 mailbox3_held_cycles=0 mailbox4_accepted=1 mailbox4_acked=1 mailbox4_held_cycles=1 unexpected_mmio_dma_jtag_frame=0
+CRC_FULLCPU_PASS mode=3 rows=16 table_bytes=2048 table_ram=4294934528 cycles=2132720 rom_bytes=3568

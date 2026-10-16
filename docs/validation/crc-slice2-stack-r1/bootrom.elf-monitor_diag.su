@@ -1,0 +1,3 @@
+/workspace/scratch/41e4a649bb60/Valence-crc-slice2-r1/fpga/firmware/monitor_diag.c:7:13:say	0	static
+/workspace/scratch/41e4a649bb60/Valence-crc-slice2-r1/fpga/firmware/monitor_diag.c:8:5:monitor_memory_dma_idle	0	static
+/workspace/scratch/41e4a649bb60/Valence-crc-slice2-r1/fpga/firmware/monitor_diag.c:9:6:monitor_run_diagnostic	48	static

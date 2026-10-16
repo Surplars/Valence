@@ -1,0 +1,47 @@
+[
+  {
+    "case": "rom-drift",
+    "rejected": true,
+    "gate": "binding"
+  },
+  {
+    "case": "metadata-drift",
+    "rejected": true,
+    "gate": "binding"
+  },
+  {
+    "case": "dynamic-frame",
+    "rejected": true,
+    "gate": "semantic"
+  },
+  {
+    "case": "missing-frame",
+    "rejected": true,
+    "gate": "semantic"
+  },
+  {
+    "case": "budget-exact",
+    "rejected": false,
+    "expected_pass": true
+  },
+  {
+    "case": "budget-over",
+    "rejected": true,
+    "gate": "semantic"
+  },
+  {
+    "case": "self-jal",
+    "rejected": true,
+    "gate": "semantic"
+  },
+  {
+    "case": "self-jalr",
+    "rejected": true,
+    "gate": "semantic"
+  },
+  {
+    "case": "internal-jump",
+    "rejected": false,
+    "expected_pass": true
+  }
+]

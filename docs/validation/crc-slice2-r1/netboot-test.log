@@ -1,0 +1,5 @@
+BOOTROM_TFTP_PENDING_PASS cases=5 verified_api_unchanged=1 no_ram_callback=1 final_ack=1
+BOOTROM_RAM_PREPARE_PROTOCOL_PASS cases=2 after_fixed_final_ack=1 crc_timing_separate=1
+BOOTROM_TFTP_HOST_PASS cases=34 full_wire_length=66348776 block_rollover=1 stream_crc=1 actual_ram_crc=1 duplicate=1 timeouts=1 malformed=1
+BOOTROM_CURRENT_IMAGE_PASS payload=76564168 wire=76564204 borrowed=1 stream_crc=1 ram_crc=1
+BOOTROM_TFTP_WINDOW_PASS cases=99 window4=1 block1024=1 oack=1 crc_exactly_once=1 final_ack_deadline=1 wrap=1 fallback=1
