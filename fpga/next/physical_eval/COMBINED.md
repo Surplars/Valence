@@ -16,13 +16,13 @@ Nothing inherits earlier simulation, boot, CDC, timing, or board qualification.
 ## Fresh export, once final sources are committed
 
 `python3 -B emit_combined.py --help` lists required explicit source/output paths,
-full commit, Mill/firtool/Java executable paths and exact trimmed version outputs.
+full commit, Mill/firtool/Java executable paths, actual Mill distribution path, and exact version outputs (JVM option echo lines are excluded).
 The source checkout must be clean, including untracked files, and the output
 must be new and outside the checkout. Execute the wrapper from that same source
 checkout. It runs only `IonSoC.test.runMain ooo.CombinedBandwidthNativeMain OUT
 native`, with pinned firtool directory and Java home; it never runs a simulator
 or Vivado. It hashes the complete tracked file closure before and after emission,
-checks tool executable bytes before/after, and seals all output files. Gitlinks
+checks launcher, actual Mill distribution, and tool executable bytes before/after, and seals all output files. Supported Mill selection is a standalone distribution or the reviewed adjacent `mill-dist` launcher. Mill must report the explicitly selected Java home; the version probes and emission use that same JDK/firtool environment. Recorded options are allowlisted/redacted; proxy endpoints, credentials, and JVM option echoes are not retained in version receipts. Gitlinks
 are separately recorded. Build/dependency version declarations are bound through
 the build source files. System shared-library bytes are not independently pinned.
 
@@ -103,6 +103,7 @@ this flow. Timing/CDC findings always require review; no timing closure is claim
 ## Tests
 
 - `python3 -B test_tools.py`: unchanged legacy boundary tests and all Tcl syntax.
+- `python3 -B test_combined_emitter.py`: launcher/distribution byte binding, changed distribution with unchanged launcher, and option-echo/environment redaction.
 - `python3 -B test_combined_contract.py`: synthetic-only contract/source/ROM/IP
   ownership/stage-binding negatives, wrong flags, stale receipts, missing/extra
   RTL, changed source/toolchain, swapped DCP, and absent external inputs.
@@ -121,3 +122,13 @@ retains the existing tri-speed MAC; it does not fix or qualify those failures.
 Passing source/packaging or synthesis checks is not MAC I/O/CDC signoff. Do not
 claim board/bit readiness without the relevant routed setup/hold and bus-skew
 checks under unchanged PHY/PCB budgets.
+
+Read-only follow-up identified the report as the old uncommitted in-order build
+`orbital-i1-board-zu15eg-20261016-r2`, not this candidate. Its top explicitly used
+RX_DATA_DELAY_PS=0, whereas the current tri-speed top uses 1100 ps. External RX
+input bounds remained +/-1.050 ns with a 2 ns virtual launch displacement.
+Its FIFO skew check mixed source-domain RAM launches with destination-domain
+address/feedback launches under a 3.333 ns budget; the failing bus was physical
+RX ingress payload, while its Gray-pointer checks had positive slack. Current
+shared helpers select reviewed RAM leaf launches separately. These source and
+constraint differences do not establish updated routed setup/hold/skew closure.

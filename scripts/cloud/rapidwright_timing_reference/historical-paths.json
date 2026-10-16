@@ -1,0 +1,15 @@
+[
+  {
+    "label": "reset",
+    "source": "u_rgmii/pad_release.pad_release_reset_reg/C",
+    "destination": "u_rgmii/previous_clock_reg/CLR",
+    "logic_arcs": 1
+  },
+  {
+    "label": "cpu",
+    "source": "u_soc/board/platform/core/core/core/backend/systemUnit/privilege_reg[1]/C",
+    "destination": "u_soc/board/platform/core/core/core/backend/stagedMemoryAddress_reg[47]/D",
+    "logic_arcs": 29,
+    "report_block_sha256": "19acb7fb924c2d3b1166e94307fb6658c28d1c42053792a9a917d4f809d3e292"
+  }
+]
