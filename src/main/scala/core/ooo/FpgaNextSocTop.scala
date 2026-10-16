@@ -10,7 +10,7 @@ import soc.ip.debug.{JtagDebugParams, JtagDebugReservation, BscanRamTransport}
   * never architectural halt/debug; native multi-clock qualification is pending.
   */
 class FpgaNextSocTop(config: FpgaNextConfig = FpgaNextConfig.Selected,
-    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
+    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false) extends Module {
     require(bscanChain >= 0 && bscanChain <= 4)
     require(bscanChain == 0 || !debug.enabled, "Select standalone TAP or FPGA USER transport, not both")
     private val ramDownload = debug.externalDmi || bscanChain != 0
@@ -18,7 +18,8 @@ class FpgaNextSocTop(config: FpgaNextConfig = FpgaNextConfig.Selected,
     val board = Module(config.managedBoard(jtagRamDownload = ramDownload,
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
         proofBankControlDecoupling = proofBankControlDecoupling,
-        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp))
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
+        disjointEvictionStoreOverlap = disjointEvictionStoreOverlap))
     val io = IO(chiselTypeOf(board.io))
     io <> board.io
     val jtag = IO(new Bundle {

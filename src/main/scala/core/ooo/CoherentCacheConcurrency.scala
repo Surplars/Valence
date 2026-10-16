@@ -110,7 +110,10 @@ object CoherentLineCacheModule {
         postedConfig: Option[PostedStoreMergeConfig] = None,
         returnConfig: Option[CpuReturnConfig] = None, registerProbeLookup: Boolean = false,
         localReadSelection: Boolean = false,
-        allowSharedFutureLruWriteData: Boolean = false): CoherentLineCacheModule = {
+        allowSharedFutureLruWriteData: Boolean = false,
+        disjointEvictionStoreOverlap: Boolean = false): CoherentLineCacheModule = {
+        require(!disjointEvictionStoreOverlap || concurrency.readMshrs > 1,
+            "disjoint eviction/store overlap requires the nonblocking cache constructor")
         require(!localReadSelection || concurrency.readMshrs > 1,
             "local read selection requires the nonblocking cache constructor")
         require(!registerProbeLookup || concurrency.readMshrs > 1,
@@ -149,6 +152,7 @@ object CoherentLineCacheModule {
         if (concurrency.readMshrs == 1) Module(new CoherentLineCache(base, bytes, lines, params, ways, concurrency.responseEntries, tagConfig))
         else Module(new NonBlockingCoherentLineCache(base, bytes, lines, params, ways, concurrency, tagConfig,
             postedConfig, returnConfig, registerProbeLookup, localReadSelection,
-            shareStoreWriteData = qualifiedSharedWriteData))
+            shareStoreWriteData = qualifiedSharedWriteData,
+            disjointEvictionStoreOverlap = disjointEvictionStoreOverlap))
     }
 }

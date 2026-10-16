@@ -10,7 +10,7 @@ import chisel3.util._
   * between already available resident/fresh payloads at the existing register.
   */
 class ResidentMemoryPreparationSelector(p: OooParams, predecodedHead: Boolean = false,
-    rankResidentPriority: Boolean = true) extends Module {
+    val rankResidentPriority: Boolean = true) extends Module {
     val io = IO(new Bundle {
         val eligible = Input(UInt(p.robEntries.W))
         val head = Input(UInt(p.robBits.W))

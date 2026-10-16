@@ -69,7 +69,7 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -451,7 +451,8 @@ class MachinePlatform(
         postedConfig = postedConfig, returnConfig = p.cpuReturnConfig,
         registerProbeLookup = registerProbeLookup, localReadSelection = localCacheReadSelection,
         allowSharedFutureLruWriteData = p.sharedMemoryAddressState &&
-            cacheConcurrency.futureHomeWayReservation && cacheConcurrency.storePrefetchLruVictim)) else None
+            cacheConcurrency.futureHomeWayReservation && cacheConcurrency.storePrefetchLruVictim,
+        disjointEvictionStoreOverlap = disjointEvictionStoreOverlap)) else None
     if (dmaLineTransfers) shared.io.dmaLine.get <> dma.io.line.get
     shared.io.clearReservation          := core.io.trap.valid
     shared.io.dma.request.bits.atomic   := false.B
