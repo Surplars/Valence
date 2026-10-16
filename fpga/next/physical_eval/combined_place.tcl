@@ -1,10 +1,19 @@
-if {$argc != 2} {error "usage: combined_place.tcl CANDIDATE_ROOT FRESH_RUN_NAME"}
+if {$argc != 2 && $argc != 5} {error "usage: combined_place.tcl CANDIDATE_ROOT FRESH_RUN_NAME ?VALIDATOR_ROOT VALIDATOR_COMMIT RECOVERY_JSON?"}
 set root [file normalize [lindex $argv 0]]
 set name [lindex $argv 1]
 if {![regexp {^[a-zA-Z0-9_-]+$} $name]} {error "Invalid run basename"}
 source [file join $root scripts runtime.tcl]
 r3_load_config $root
-source [file join $root scripts combined_runtime.tcl]
+# When recovering an old stage, this reviewed source-local runtime routes only
+# stage receipt calls to the explicitly selected validator; package inputs stay sealed.
+source [file join [file dirname [info script]] combined_runtime.tcl]
+set ::combined_runtime_root $root
+if {$argc == 5} {
+    set ::combined_recovery_validator [file normalize [lindex $argv 2]]
+    if {[file normalize [info script]] ne [file join $::combined_recovery_validator fpga next physical_eval combined_place.tcl]} {error "Recovery placement must execute source-local"}
+    set ::combined_recovery_options [list --validator-root [combined_root_path $::combined_recovery_validator] \
+        --validator-commit [lindex $argv 3] --recovery [combined_root_path [lindex $argv 4]]]
+}
 combined_gate $root
 puts [combined_python $root combined_stage_receipt.py [list [combined_root_path $root] --vivado-version [version -short] --check-synthesis]]
 set out [file join $root $name]

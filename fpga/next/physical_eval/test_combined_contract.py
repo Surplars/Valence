@@ -184,6 +184,8 @@ class MockStageTests(unittest.TestCase):
         self.stage = self.root/'synthesis'; self.stage.mkdir()
         (self.stage/'post_synth_unconstrained.dcp').write_text('MOCK CHECKPOINT A')
         (self.stage/'stage-result.txt').write_text('MOCK COMPLETE MARKER')
+        for name in ('utilization.rpt', 'ip_status.rpt', 'rom-init.tsv'):
+            (self.stage/name).write_text('MOCK REPORT')
         self.identity = dict(mock=True, sourceCommit='a'*40)
         seal(self.root, 'synthesis', self.identity)
 
