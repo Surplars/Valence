@@ -10,14 +10,15 @@ import soc.ip.debug.{JtagDebugParams, JtagDebugReservation, BscanRamTransport}
   * never architectural halt/debug; native multi-clock qualification is pending.
   */
 class FpgaNextSocTop(config: FpgaNextConfig = FpgaNextConfig.Selected,
-    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false) extends Module {
+    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
     require(bscanChain >= 0 && bscanChain <= 4)
     require(bscanChain == 0 || !debug.enabled, "Select standalone TAP or FPGA USER transport, not both")
     private val ramDownload = debug.externalDmi || bscanChain != 0
     require(!debug.externalDmi || debug.addressBits == 7, "RAM loader uses seven DMI address bits")
     val board = Module(config.managedBoard(jtagRamDownload = ramDownload,
         preselectRedirectTokenMatches = preselectRedirectTokenMatches,
-        proofBankControlDecoupling = proofBankControlDecoupling))
+        proofBankControlDecoupling = proofBankControlDecoupling,
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp))
     val io = IO(chiselTypeOf(board.io))
     io <> board.io
     val jtag = IO(new Bundle {

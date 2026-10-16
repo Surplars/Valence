@@ -69,7 +69,7 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
     // Scala object reference for exact constructor inspection; no hardware state.
     private var constructedDdrManager: Option[TileLinkAxi4Bridge] = None
     def ddrManagerInstance: Option[TileLinkAxi4Bridge] = constructedDdrManager
@@ -266,10 +266,11 @@ class MachinePlatform(
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
         boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
-        compactCacheKeys = qualifiedCompactFetchKeys))
+        compactCacheKeys = qualifiedCompactFetchKeys, sharedTwoWordFetchPmp = sharedTwoWordFetchPmp))
     val fetchAdapter = if (coreInstructionTranslation) {
         val adapter = Module(new InstructionTranslationAdapter(p.copy(machineSystem = true,
-            virtualMemoryLevels = translationLevels, pmpEntries = 16)))
+            virtualMemoryLevels = translationLevels, pmpEntries = 16),
+            sharedTwoWordFetchPmp = sharedTwoWordFetchPmp))
         adapter.reset := reset.asBool || hold
         adapter.io.virtual <> frontend.io.memory
         if (p.fetchAddressBeforePmp) {

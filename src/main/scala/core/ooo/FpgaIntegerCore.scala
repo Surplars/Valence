@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 /** FPGA-oriented synchronous instruction memory boundary; data memory remains an external ordered port. */
-class FpgaIntegerCore(p: OooParams = OooParams()) extends Module {
+class FpgaIntegerCore(p: OooParams = OooParams(), val sharedTwoWordFetchPmp: Boolean = false) extends Module {
     require(Set(2, 4).contains(p.renameWidth))
     require(p.virtualMemoryLevels == 0, "FPGA standalone wrapper has no translation service")
     private val fetchWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
@@ -23,7 +23,8 @@ class FpgaIntegerCore(p: OooParams = OooParams()) extends Module {
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
-        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp))
+        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
+        sharedTwoWordFetchPmp = sharedTwoWordFetchPmp))
     frontend.io.pc     := core.io.fetchPc
     if (p.alignedFetchPermissionStage) {
         frontend.io.requestFrontier.get := core.io.fetchRequestFrontier.get
