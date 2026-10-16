@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import tkinter
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -65,6 +66,32 @@ class MockRomGraphTests(unittest.TestCase):
         self.assertTrue(report['all_live_ram_accounted'])
         self.assertIn('temporal read behavior', report['unverified'])
 
+    def test_empty_generic_ram_init_placeholder_is_normalized(self):
+        with self.graph.open('a') as stream: stream.write('PROP\tram\tINIT\t\n')
+        result = self.run_decoder()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_nonempty_generic_ram_init_rejected(self):
+        for value in ("1'b0", ' ', '0'):
+            original = self.graph.read_text()
+            self.graph.write_text(original+'PROP\tram\tINIT\t'+value+'\n')
+            result = self.run_decoder()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('nonempty_RAM_generic_INIT', result.stderr)
+            self.graph.write_text(original)
+
+    def test_missing_init_and_parity_properties_still_rejected(self):
+        original = self.graph.read_text()
+        for key in ('INIT_00', 'INITP_00'):
+            self.graph.write_text(original.replace(f'PROP\tram\t{key}\t{self.props[key]}\n', '')+'PROP\tram\tINIT\t\n')
+            self.assertNotEqual(self.run_decoder().returncode, 0)
+
+    def test_other_property_mismatch_still_rejected(self):
+        self.graph.write_text(self.graph.read_text()+'PROP\tram\tINIT\t\nPROP\tram\tUNEXPECTED\t\n')
+        result = self.run_decoder()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('dump_graph_RAM_properties', result.stderr)
+
     def test_missing_output_bit_rejected(self):
         self.graph.write_text(self.graph.read_text().replace('PORT\tdouta[0]\tOUT\touta0\n', ''))
         self.assertNotEqual(self.run_decoder().returncode, 0)
@@ -93,6 +120,23 @@ class MockRomGraphTests(unittest.TestCase):
     def test_unsupported_extra_ram_rejected(self):
         with self.graph.open('a') as stream: stream.write('CELL\textra\tRAMB18E2\n')
         self.assertNotEqual(self.run_decoder().returncode, 0)
+
+
+class RecoveryDecoderRoutingTests(unittest.TestCase):
+    def test_only_explicit_recovery_routes_decoder_to_validator(self):
+        tcl = tkinter.Tcl()
+        tcl.eval((HERE/'combined_runtime.tcl').read_text())
+        tcl.eval('proc combined_exec {command} {return $command}')
+        tcl.eval('set ::r3_config [dict create python_mode native python_command python]')
+        plain = tcl.call('combined_python', '/mock/package', 'verify_combined_rom_graph.py', ('input',))
+        self.assertEqual(plain[2], '/mock/package/scripts/verify_combined_rom_graph.py')
+        tcl.call('set', '::combined_recovery_validator', '/mock/validator')
+        tcl.call('set', '::combined_recovery_options', ('--recovery', '/mock/recovery.json'))
+        routed = tcl.call('combined_python', '/mock/package', 'verify_combined_rom_graph.py', ('input',))
+        self.assertEqual(routed[2], '/mock/validator/fpga/next/physical_eval/verify_combined_rom_graph.py')
+        self.assertEqual(routed[3:], ('input',))
+        gate = tcl.call('combined_python', '/mock/package', 'verify_combined_package.py', ('input',))
+        self.assertEqual(gate[2], '/mock/package/scripts/verify_combined_package.py')
 
 
 if __name__ == '__main__':

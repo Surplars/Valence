@@ -19,9 +19,11 @@ proc combined_exec {command} {
 # Separate candidate identity gate. No project or tool run is started by sourcing.
 proc combined_python {root script arguments} {
     set scriptPath [file join $root scripts $script]
-    if {$script eq "combined_stage_receipt.py" && [info exists ::combined_recovery_options]} {
+    if {[info exists ::combined_recovery_options] && $script in {combined_stage_receipt.py verify_combined_rom_graph.py}} {
         set scriptPath [file join $::combined_recovery_validator fpga next physical_eval $script]
-        set arguments [concat $arguments $::combined_recovery_options]
+        if {$script eq "combined_stage_receipt.py"} {
+            set arguments [concat $arguments $::combined_recovery_options]
+        }
     }
     if {[dict get $::r3_config python_mode] eq "native"} {
         return [combined_exec [list {*}[dict get $::r3_config python_command] -B $scriptPath {*}$arguments]]

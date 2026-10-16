@@ -72,7 +72,13 @@ for name, cell in cells.items():
     assert re.fullmatch(r'LUT[1-6]|INV|MUXF[789]|FDRE|FDCE|FDSE|FDPE|RAMB36E2|VCC|GND', cell['ref']), ('unsupported_ROM_inventory', name, cell['ref'])
 for name, cell in dumped.items():
     assert cell['ref'] == 'RAMB36E2'
-    assert cell['props'] == cells[name]['props'], ('dump_graph_RAM_properties', name)
+    # Vivado exposes an empty generic INIT on RAMB36E2 in list_property;
+    # the dedicated RAM dump contains only INIT_xx/INITP_xx data properties.
+    # Normalize only that empty placeholder. Nonempty generic INIT is unsupported.
+    def ram_properties(props):
+        assert 'INIT' not in props or props['INIT'] == '', ('nonempty_RAM_generic_INIT', name)
+        return {key: value for key, value in props.items() if key != 'INIT'}
+    assert ram_properties(cell['props']) == ram_properties(cells[name]['props']), ('dump_graph_RAM_properties', name)
 for side in ('a', 'b'):
     for name in [f'addr{side}[{i}]' for i in range(15)] + [f'en{side}', f'clk{side}']:
         assert ports[name][0] == 'IN', ('input_port_direction', name)
