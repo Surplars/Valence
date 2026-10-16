@@ -9,7 +9,8 @@ import soc.core.ooo._
   * responses come from the independent software fixture, not a DUT TLB.
   */
 class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
-    turnover: Boolean = false, identity: Boolean = false, compareReadyClear: Boolean = false) extends Module {
+    turnover: Boolean = false, identity: Boolean = false, compareReadyClear: Boolean = false,
+    exactParams: Option[OooParams] = None, compareSharedTwoWord: Boolean = false) extends Module {
     require(Set(2, 4).contains(words))
     val io = IO(new Bundle {
         val virtualValid = Input(Bool())
@@ -57,15 +58,17 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
         val physicalResponseReady = Output(Bool())
         val idle = Output(Bool())
         val readyClearIdleDifference = Output(Bool())
+        val pairMismatch = if (compareSharedTwoWord) Some(Input(Bool())) else None
     })
-    val p = OooParams(renameWidth = words, commitWidth = words, completionWidth = words,
+    val p = exactParams.getOrElse(OooParams(renameWidth = words, commitWidth = words, completionWidth = words,
         compressedInstructions = words == 4 || aligned, machineSystem = true,
         pmpEntries = 16, virtualMemoryLevels = 4, alignedFetchPmp = aligned,
         bufferedFetchRequests = retimed, flowThroughFetchRequests = retimed,
         independentFetchCapture = retimed, parallelHomeQualification = retimed,
         registeredFabricBoundary = retimed, registeredTranslatedResponses = retimed,
         registeredTranslationHeads = retimed, fetchReplyTurnover = turnover,
-        fetchIdentityTranslation = identity)
+        fetchIdentityTranslation = identity))
+    require(p.renameWidth == words)
     val adapter = Module(new InstructionTranslationAdapter(p))
     adapter.io.virtual.request.valid := io.virtualValid
     adapter.io.virtual.request.bits := io.virtualPc
@@ -118,6 +121,8 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
     io.physicalResponseReady := adapter.io.physical.response.ready
     io.idle := adapter.io.idle
     io.readyClearIdleDifference := (if (compareReadyClear) FetchReadyDataClearComparison(adapter, p) else false.B)
+    val pairedAdapter = if (compareSharedTwoWord)
+        Some(SharedTwoWordFetchAdapterComparison(adapter, p, io.pairMismatch.get)) else None
 }
 
 object InstructionPermissionGsimMain extends App {

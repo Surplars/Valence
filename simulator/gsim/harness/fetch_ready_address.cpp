@@ -4,6 +4,9 @@
 #include "instruction_permission.cpp"
 #undef main
 #include <deque>
+#ifdef SHARED_TWO_WORD_PAIR
+#include <cstring>
+#endif
 #ifndef FETCH_REPLY_TURNOVER
 #define FETCH_REPLY_TURNOVER 0
 #endif
@@ -96,9 +99,14 @@ static void permissions(SInstructionPermissionGsim& d, const Case& c) {
     d.set_io$$cfg0(c.cfg[0]); d.set_io$$cfg1(c.cfg[1]);
     d.set_io$$addr0(c.addr[0]); d.set_io$$addr1(c.addr[1]);
 }
-static void run(bool negative) {
+static void run(bool negative, bool pairMismatch = false) {
     static_assert(PACKET_WORDS == 2, "short stream covers production two-word adapter");
     SInstructionPermissionGsim d;
+#ifdef SHARED_TWO_WORD_PAIR
+    // Define only simulation initialization of unowned payload, not an architectural guarantee.
+    std::memset(&d, 0, sizeof(d)); d.LOG_START = 1; d.activateAll();
+    d.set_io$$pairMismatch(pairMismatch);
+#endif
     d.set_io$$virtualValid(0); d.set_io$$virtualResponseReady(0);
     d.set_io$$translationReady(0); d.set_io$$translationResponseValid(0);
     d.set_io$$translationPhysical(0); d.set_io$$translationPage(0); d.set_io$$translationError(0);
@@ -239,7 +247,11 @@ static void run(bool negative) {
     check(responseHolds >= 3 * count && physicalHolds && churn && contextChurn, "stream backpressure coverage missing");
     check(FETCH_REPLY_TURNOVER ? simultaneous == count - 1 : simultaneous == 0,
         "simultaneous old-reply/new-owner witness differs from selected feature");
+#ifdef SHARED_TWO_WORD_PAIR
+    check(inactiveDifferences == 0 && invalidPoison && unownedRepliesRejected == 4,
+#else
     check(inactiveDifferences && invalidPoison && unownedRepliesRejected == 4,
+#endif
         "ready-PA idle divergence/invalid-poison/unowned reply witnesses missing");
     check(invalidUnaligned && faultPoisonReplies && alignedPhysicalOffers, "aligned-PA poison coverage missing");
     check(translationAccessOnly && translationPageAndAccess && physicalErrorReplies && physicalPageReplies,
@@ -258,8 +270,17 @@ static void run(bool negative) {
 }
 }
 int main(int argc, char** argv) { try {
+#ifdef SHARED_TWO_WORD_PAIR
+    check(argc == 1 || (argc == 2 && (std::string_view(argv[1]) == "--inject-mismatch" ||
+        std::string_view(argv[1]) == "--inject-pair-mismatch")), "unknown stream argument");
+    stream::run(argc == 2 && std::string_view(argv[1]) == "--inject-mismatch",
+        argc == 2 && std::string_view(argv[1]) == "--inject-pair-mismatch");
+    std::cout << "SHARED_TWO_WORD_ADAPTER_PAIR_PASS full_bits_each_cycle=1 board_config=178/95\n";
+#else
     check(argc == 1 || (argc == 2 && std::string_view(argv[1]) == "--inject-mismatch"), "unknown stream argument");
-    stream::run(argc == 2); return 0;
+    stream::run(argc == 2);
+#endif
+    return 0;
 } catch (const std::exception& error) {
     std::cerr << "GSIM instruction permission stream: FAIL " << error.what() << '\n'; return 1;
 } }

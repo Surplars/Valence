@@ -44,8 +44,56 @@ all hardware IR remains in the comparison. Raw hashes are also retained.
 
 ## Limits
 
-This is a constructor and complete-CHIRRTL check. It is not enabled-caller
-behavioral qualification, CPU execution, board testing, synthesis, timing, or
-physical qualification. No Verilog or physical recipe is emitted. The separate
+The board export itself is a constructor and complete-CHIRRTL check. It is not
+enabled-caller behavioral qualification, CPU execution, board testing, synthesis,
+timing, or physical qualification. The separate bounded adapter check below has
+its own narrower evidence. No Verilog or physical recipe is emitted. The separate
 component proof retains the baseline's 56-bit physical maximum-NAPOT contract;
 an unbounded byte oracle would differ above that domain for all-ones raw54 NAPOT.
+
+## Short configured instruction-adapter dynamic check
+
+The separate `SharedTwoWordFetchAdapterGsimMain` now uses the complete current
+178-field core configuration from `ThreeProofRowNativeProfile`, checking its
+values, the 95-field profile, and both field orders against the experimental
+board export. It selects the effective adapter tuple from the current native
+caller definition: p.copy(machineSystem=true, virtualMemoryLevels=3, pmpEntries=16).
+After construction, it records and checks both actual adapter parameter products,
+option flags and two-word port widths against that tuple. This is a configuration
+binding check; it does not run the exported board. It pairs real `InstructionTranslationAdapter` instances with the
+option OFF and ON under identical input signals. Neither instance drives the
+other's translation or memory responses.
+
+Run with the isolated reviewed repaired GSIM binary (SHA-256
+`f00067c6158db342927ad0d746109ad745298fd4ebe9707fd951998069587116`):
+
+```
+python3 simulator/gsim/shared_two_word_fetch_adapter.py \
+  --tag FRESH_TAG --gsim /absolute/path/to/repaired/gsim \
+  --board-export /absolute/path/to/on/experiment.json
+```
+
+The first bounded run passed: 20 owners accepted and retired, 19 simultaneous
+old-reply/new-request handshakes, 12 translations, 12 physical transactions,
+60 held-reply cycles, 31 held-request cycles, 120 live-PMP churn cycles,
+182 live-context churn cycles, two reset epochs, and four idle unowned replies
+rejected. Translation access-only/page faults and physical error/page metadata
+were independently checked. ASan/UBSan and both observer-negative controls passed.
+
+Every complete OFF/ON adapter IO bit is compared each cycle, including invalid
+payload bits under deterministic simulation initialization. This is implementation
+equivalence, not a claim that invalid payload has architectural meaning. The
+independent byte-PMP and memory/owner oracle checks only offered/owned transactions.
+The reused stream enables two raw PMP entries (TOR/NA4); the remaining fourteen
+are OFF. The separate component proof covers wider PMP state combinations.
+
+The adapter has no cancellation port. The test discards an accepted owner with
+whole-interface reset and rejects stale/unowned replies while idle; it does not
+invent a tagged cancellation or late-reply contract. Live CSR churn is adversarial
+isolation stimulus, not permission to violate the architectural drain requirement.
+The negatives inject observer mismatches, not production-source mutations.
+
+The receipt binds source hashes, the repaired binary, compiler, input board
+export, generated FIR/C++/headers, executable and logs. This closes only the bounded instruction-translation-adapter gap.
+`SynchronousFetch` enabled behavior, full-board/CPU execution and physical
+qualification remain unverified. No main GSIM installation is replaced.
