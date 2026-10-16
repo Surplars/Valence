@@ -60,7 +60,9 @@ def restore(out, smoke):
     jar = downloads / 'rapidwright-2025.1.3-standalone-lin64.jar'
     with zipfile.ZipFile(jar) as z:
         # Do not unpack bundled unrelated devices or invoke the jar's installer.
-        for name in ('LICENSE', 'LICENSE.TXT', 'data/parts.db', 'data/unisim_data.dat'):
+        for name in ('LICENSE', 'LICENSE.TXT', 'data/parts.db', 'data/unisim_data.dat',
+                     'timing/ultrascaleplus/intersite_delay_terms.txt',
+                     'timing/ultrascaleplus/intrasite_delay_terms.txt'):
             dest = rw / name
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(z.read(name))
@@ -76,7 +78,7 @@ export RAPIDWRIGHT_JAR="${_PRESCREEN_ROOT}/downloads/rapidwright-2025.1.3-standa
 unset _PRESCREEN_ROOT
 ''')
     receipt = {'status': 'TOOLS_PREPARED', 'artifacts': LOCK['artifacts'],
-               'part': 'xczu15eg-ffvb1156-2-i', 'scope': 'Tool smoke only, not actual DCP or timing qualification'}
+               'part': 'xczu15eg-ffvb1156-2-i', 'scope': 'Device and timing-model initialization smoke only, not actual DCP or timing qualification'}
     if smoke:
         env = {**os.environ, 'RAPIDWRIGHT_PATH': str(rw),
                'PATH': str(out / 'sysroot/usr/bin') + os.pathsep + os.environ.get('PATH', '')}
@@ -95,6 +97,8 @@ unset _PRESCREEN_ROOT
             run([java_bin('java'), '-Xmx2g', '-cp', str(jar) + os.pathsep + str(out),
                  'RapidWrightSmoke', 'device'], stdout=log, stderr=subprocess.STDOUT, env=env)
         receipt['status'] = 'PASS_TOOL_SMOKES_ONLY'
+        receipt['checks'] = ['sv2v conversion', 'Yosys SAT', 'Yosys ABC',
+                             'exact ZU15EG device', 'TimingModel.build with SmallDelayModel']
     (out / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(f"{receipt['status']}: source {out / 'env.sh'}")
 

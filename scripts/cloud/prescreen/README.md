@@ -45,7 +45,13 @@ in Git.
 
 `--smoke` performs sv2v conversion, a Yosys SAT proof of a tiny XOR circuit, a
 Yosys/ABC synthesis smoke, and an exact-part RapidWright database load for
-`xczu15eg-ffvb1156-2-i` (435 rows, 455 columns). Logs and a receipt stay in the
+`xczu15eg-ffvb1156-2-i` (435 rows, 455 columns), followed by `TimingModel.build()`
+and an assertion that its intra-site model is `SmallDelayModel`. Only two timing
+term files (about 357 KiB total) are extracted from the already hash-locked jar:
+`timing/ultrascaleplus/intersite_delay_terms.txt` and
+`timing/ultrascaleplus/intrasite_delay_terms.txt`. No new network fetch is needed.
+The recovered initialization passed with reference tile `INT_X24Y180`.
+Logs and a receipt stay in the
 ignored output directory. Each rerun archives prior logs and receipt under
 `history/run-NNNN`, sets the current receipt to RUNNING before changing artifacts,
 and records FAILED_PRESERVE_EVIDENCE on failure. A previous PASS cannot qualify a
@@ -55,10 +61,10 @@ this lifecycle. The fresh cloud recovery reproduced these checks.
 `RapidWrightSmoke.java` calls `FileTools.setOverrideDataFileDownload(true)` and
 `Design.setAutoGenerateReadableEdif(false)` before accessing the part/device.
 Reuse both guards in every prescreen program. The installer unpacks only the
-small common part/primitive data and the explicitly pinned ZU15EG database; it
+small common part/primitive data, two timing-term files, and the explicitly pinned ZU15EG database; it
 never runs RapidWright's general-purpose installer or data downloader.
 
-These tests establish tool readiness only. They do not prove an actual DCP can
+These tests establish tool and timing-model initialization readiness only. They do not calculate design WNS/TNS. They do not prove an actual DCP can
 be read or routed, establish FPGA resources/timing, replace Vivado signoff, or
 qualify board operation. Run the project's short, affected formal/behavioral
 checks separately; do not automatically run full design synthesis or regressions.

@@ -1,6 +1,8 @@
 import com.xilinx.rapidwright.util.FileTools;
 import com.xilinx.rapidwright.device.*;
 import com.xilinx.rapidwright.design.Design;
+import com.xilinx.rapidwright.timing.TimingModel;
+import com.xilinx.rapidwright.timing.SmallDelayModel;
 public class RapidWrightSmoke {
   public static void main(String[] args) {
     FileTools.setOverrideDataFileDownload(true);
@@ -15,6 +17,14 @@ public class RapidWrightSmoke {
       if (!d.getName().equals("xczu15eg") || d.getRows()!=435 || d.getColumns()!=455)
         throw new RuntimeException("Unexpected device name or geometry");
       System.out.println("DEVICE_LOAD_PASS name="+d.getName()+" rows="+d.getRows()+" cols="+d.getColumns());
+      TimingModel timing = new TimingModel(d);
+      timing.build();
+      if (!(timing.getDelayModel() instanceof SmallDelayModel) || timing.getRefIntTile()==null)
+        throw new RuntimeException("Timing model initialization incomplete");
+      if (!FileTools.overrideDataFileDownload() || Design.isAutoGenerateReadableEdif())
+        throw new RuntimeException("Unexpected automatic data/Vivado enablement");
+      System.out.println("TIMING_MODEL_INIT_PASS delayModel="+timing.getDelayModel().getClass().getSimpleName()
+          +" referenceTile="+timing.getRefIntTile().getName()+" noDcpOrTimingQualification=true");
     }
   }
 }
