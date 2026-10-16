@@ -88,6 +88,14 @@ class MockContractTests(unittest.TestCase):
         self.reseal_mock()
         with self.assertRaises(ValueError): self.validate()
 
+    def test_string_inventory_size_rejected(self):
+        inventory = read(self.native/'rtl-inventory.json')
+        inventory['files']['FpgaNextSocTop.sv']['bytes'] = str(inventory['files']['FpgaNextSocTop.sv']['bytes'])
+        put(self.native/'rtl-inventory.json', inventory)
+        self.reseal_mock()
+        with self.assertRaisesRegex(ValueError, 'bytes/hash mismatch'):
+            self.validate()
+
     def test_stale_audit_receipt(self):
         with (self.native/'actual-combined-native.json').open('a') as f: f.write(' ')
         with self.assertRaisesRegex(ValueError, 'Stale actual'): self.validate()

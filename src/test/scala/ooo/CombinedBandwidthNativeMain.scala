@@ -6,6 +6,16 @@ import java.security.MessageDigest
 import scala.jdk.CollectionConverters._
 import soc.core.ooo.FpgaNextSocTop
 
+/** File sizes must remain JSON numbers without IEEE-754 rounding or Long-to-string encoding. */
+object CombinedBandwidthInventoryJson {
+    def bytes(size: Long): ujson.Num = {
+        require(size >= 0 && size < (1L << 53), "inventory byte size must be nonnegative and below 2^53")
+        val number = size.toDouble
+        require(number.toLong == size, "inventory byte size must be exactly representable")
+        ujson.Num(number)
+    }
+}
+
 /** Fresh, independently named experimental native export, without inherited qualification.
   * Native mode emits complete SystemVerilog and black-box resources. CHIRRTL modes
   * support a source-location-only default/OFF equivalence check and actual ON audit.
@@ -54,7 +64,7 @@ object CombinedBandwidthNativeMain extends App {
         finally stream.close()
     val inventory = ujson.Obj("schema" -> "combined-bandwidth-rtl-inventory-v1", "files" -> ujson.Obj.from(
         generated.map(path => out.relativize(path).toString -> ujson.Obj(
-            "sha256" -> fileHash(path), "bytes" -> Files.size(path)))))
+            "sha256" -> fileHash(path), "bytes" -> CombinedBandwidthInventoryJson.bytes(Files.size(path))))))
     Files.writeString(out.resolve("rtl-inventory.json"), inventory.render(indent = 2) + "\n")
     Files.writeString(out.resolve("actual-combined-native.json"), PostedBoardConfiguration.json(actual) + "\n")
     PostedBoardConfiguration.write(c, out.toString)
