@@ -1,0 +1,114 @@
+{
+  "files": [
+    {
+      "path": "MATCHED_RESULTS.json",
+      "bytes": 4276,
+      "sha256": "6278d09d6804fd2a60458726bc324f23a264221b4f82e7c0432e92bf2cc3c245"
+    },
+    {
+      "path": "OFF_BOOLEAN_EQUIVALENCE.json",
+      "bytes": 1749,
+      "sha256": "d5e2d72f9324d9a48bb0b72d4775864ce0ebc472d7528deda06fcaa6ba3a07bc"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5297,
+      "sha256": "01ec6fa77eba21c2da2c759fb75bd9282b266d1fe50350829bc5810f76b5fd33"
+    },
+    {
+      "path": "compact/B1PostedStoreMerge.scala",
+      "bytes": 27408,
+      "sha256": "f0e546789c73c48bd49bb7311c520290c9789df841ef33484defc12d4da83fe2"
+    },
+    {
+      "path": "compact/EXPECTED_ON_CONFIGURATION.json",
+      "bytes": 2775,
+      "sha256": "78061609a1c348f28faac8afca09cc45719e165f22ff8f2d741d1ef5f0f4a606"
+    },
+    {
+      "path": "compact/FullLineCacheGsim.scala",
+      "bytes": 17628,
+      "sha256": "b4fa9ca1dd4cb561e1004c14db349d5caded0c95d6ae77d2c5426dd815ed84ce"
+    },
+    {
+      "path": "compact/FullLineNonBlockingCoherentLineCache.scala",
+      "bytes": 115381,
+      "sha256": "d127f196d10f3f0a66ce2cab20d53f57a955f94eb2f1416fc5b3dc4a8b152c4d"
+    },
+    {
+      "path": "host/advanced_cases.py",
+      "bytes": 26660,
+      "sha256": "940af4dfd9a395f01f03660133bc8dae430866a055a6421961f373cf67ced393"
+    },
+    {
+      "path": "host/cases.py",
+      "bytes": 19167,
+      "sha256": "95bccbd2c7322d868335fbcd1dd20c81d640936f1a6f92bae3fcace55f000c33"
+    },
+    {
+      "path": "host/driver.cpp",
+      "bytes": 44497,
+      "sha256": "dad03ffa32a55848324cb90f0434f741661cb7b1581de80546cb94ce3c63b66b"
+    },
+    {
+      "path": "host/memory.py",
+      "bytes": 4309,
+      "sha256": "0ea2356640772cd82cfef62f64e380d66f42235505cc09b30c2e3b5cd52945ba"
+    },
+    {
+      "path": "host/trace_parity.py",
+      "bytes": 2350,
+      "sha256": "8ccedd99f0de7845f3df03a9f2417ad199cd063429cdcba073e2b825184b1421"
+    },
+    {
+      "path": "r1/B1PostedStoreMerge.scala",
+      "bytes": 24894,
+      "sha256": "a6b8873f714d1da81d32a86a3b3349e82cfcc324f667d2ab208ba3d19c644834"
+    },
+    {
+      "path": "r1/EXPECTED_OFF_CONFIGURATION.json",
+      "bytes": 2747,
+      "sha256": "02fab299480f0003c4fed2906555d90499fb1b9a3ab16cd429e878a78421be70"
+    },
+    {
+      "path": "r1/EXPECTED_ON_CONFIGURATION.json",
+      "bytes": 2745,
+      "sha256": "f5bbcac5d597c7706b14c336b9d0c13e39b424c2ac1952b62e730e5911cdb15c"
+    },
+    {
+      "path": "r1/FullLineCacheGsim.scala",
+      "bytes": 17494,
+      "sha256": "a3ac25c7f9c9149ba2cdcc99e570b52f98dc862575cd41e2679155b6d0a74512"
+    },
+    {
+      "path": "r1/FullLineNonBlockingCoherentLineCache.scala",
+      "bytes": 115271,
+      "sha256": "dc6c5eb89b0216de3879ab96b75326ddbb2ceea563e4500d6817269f5413de50"
+    },
+    {
+      "path": "reports/ADVANCED_RESULTS.md",
+      "bytes": 2686,
+      "sha256": "3ea77f36b4b649214f85190c993f56d8b8c5b0221b05634e68744a9bdbf24f28"
+    },
+    {
+      "path": "reports/INITIAL_RESULTS.md",
+      "bytes": 2308,
+      "sha256": "2eb16911a6deb3eaeffd9998746300ce56b16ddf2cacb1cfa280f696ed3a9aab"
+    },
+    {
+      "path": "shared/B1PostedFullLinePolicy.scala",
+      "bytes": 2964,
+      "sha256": "bf63631da2163cb666c8ea3cb8ae9eaf23cf0a996a363a3995722299f1fb35b4"
+    },
+    {
+      "path": "shared/DEFAULT_OFF_SOURCE_RESTORATION.patch",
+      "bytes": 2394,
+      "sha256": "594cd1e5ab750431b1a0327568fe84342b5ddb50fa0dcde4a7bc86d1af6501f0"
+    },
+    {
+      "path": "shared/FullLineMixedCoherentLineHome.scala",
+      "bytes": 51049,
+      "sha256": "d4320938b1d159f41ba1157b7d1dbecce0b23aac178bf539a9683a8c4518c613"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+--- qualified-B1-Home
++++ exact-false-branch-Home
+@@ -406,8 +406,10 @@
+     // Reader readiness does not affect A admission. A failed direct dispatch
+     // falls back to the existing FIFO with the same reserved metadata/tag.
+     private val incomingPermission = permissionOnlyAllocation.B && port.a.bits.opcode === TLOpcode.AcquirePerm
+-    directFillOffer := port.a.fire && !incomingPermission && !fillQueue.io.deq.valid && readDispatchAllowed
+-    fillQueue.io.enq.valid := port.a.fire && !incomingPermission && !directFillFire
++    directFillOffer := (if (permissionOnlyAllocation) port.a.fire && !incomingPermission && !fillQueue.io.deq.valid && readDispatchAllowed
++        else port.a.fire && !fillQueue.io.deq.valid && readDispatchAllowed)
++    fillQueue.io.enq.valid := (if (permissionOnlyAllocation) port.a.fire && !incomingPermission && !directFillFire
++        else port.a.fire && !directFillFire)
+     fillQueue.io.enq.bits := allocate
+     when(port.a.fire) {
+         assert((port.a.bits.opcode === TLOpcode.AcquireBlock || incomingPermission) && port.a.bits.param === TLPermissions.nToT &&
+@@ -426,7 +428,8 @@
+         directory(allocate) := (if (futureWayReservation) selectedDirectory else freeDirectorySlot(port.a.bits.address))
+         errors(allocate) := false.B
+         if (permissionOnlyAllocation) permissionOnly(allocate) := incomingPermission
+-        phase(allocate) := Mux(incomingPermission, grantReady, Mux(directFillFire, filling, queued))
++        phase(allocate) := (if (permissionOnlyAllocation) Mux(incomingPermission, grantReady, Mux(directFillFire, filling, queued))
++            else Mux(directFillFire, filling, queued))
+     }
+     private val lineAdmissionOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
+         (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+@@ -742,7 +745,7 @@
+         when((port.d.valid || grant.valid) && !dLocked) {
+             dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease
+         }
+-        grant.fire || (port.d.fire && !sendRelease)
++        if (permissionOnlyAllocation) grant.fire || (port.d.fire && !sendRelease) else grant.fire
+     } else {
+         when(port.d.valid && !dLocked) { dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease }
+         port.d.fire && !sendRelease
