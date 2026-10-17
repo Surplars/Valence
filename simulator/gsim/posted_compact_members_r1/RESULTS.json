@@ -1,0 +1,63 @@
+{
+  "scope": "same8-set owner,2owners,16members,gen64,epoch32,timeout256,identicalONports,xcup logical mapping",
+  "original_cases": 32,
+  "directed_cases": 8,
+  "same_cycle_public_samples": 1041,
+  "default_off_sv_sha256": "b1ee80f0f1188d75d330506e50506340aa57d02f6207dab2469eff05a7b3778b",
+  "baseline_cells": {
+    "lut": 7143,
+    "ff": 6589,
+    "bram": 0,
+    "ram_cells": 0,
+    "cell_histogram": {
+      "$scopeinfo": 2,
+      "CARRY4": 56,
+      "FDRE": 6589,
+      "INV": 19,
+      "LUT2": 880,
+      "LUT3": 1468,
+      "LUT4": 1583,
+      "LUT5": 586,
+      "LUT6": 2626
+    },
+    "log_sha256": "4a4f482973f99f9fa714b261329089476f985eb33d4a729d4e650a1e826177e3"
+  },
+  "compact_cells": {
+    "lut": 6654,
+    "ff": 4109,
+    "ram_cells": 0,
+    "cell_histogram": {
+      "$scopeinfo": 2,
+      "CARRY4": 56,
+      "FDRE": 4109,
+      "INV": 19,
+      "LUT2": 894,
+      "LUT3": 1642,
+      "LUT4": 1718,
+      "LUT5": 589,
+      "LUT6": 1811
+    }
+  },
+  "delta": {
+    "lut": {
+      "absolute": -489,
+      "percent": -6.8458630827383455
+    },
+    "ff": {
+      "absolute": -2480,
+      "percent": -37.63848838974047
+    }
+  },
+  "preabc_delta": {
+    "sequential_cells": -2480,
+    "mux_cells": -2170,
+    "other_cell_counts_equal": true
+  },
+  "timing_or_depth_metric": null,
+  "tool_sha256": {
+    "firtool": "c2e1ac4d88be9579313c8a33ea3c8643db7d1840c78a4593dc05395171e25051",
+    "sv2v": "b80a8ac6212aa72a196d9d6129cda35f16dbfa799ec61848c46321f845b6b635",
+    "yosys": "0e2b5c8f3ba616fa9ac5b05830e86181577ebf60d99401c10993885ff656e3ab",
+    "abc": "c078b63884b8b615e56a9defe506478df10be8e02b1abd870d7d10678ce83753"
+  }
+}
