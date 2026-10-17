@@ -138,7 +138,7 @@ struct Test {
         if(dataOffered&&G(rxData$$ready)) { dataIn.pop_front(); dataOffered=false; ++dataAccepted; }
         if(statusOffered&&G(rxStatus$$ready)) { statusIn.pop_front(); statusOffered=false; ++statusAccepted; }
     }
-    uint64_t access(unsigned offset,bool write=false,uint64_t value=0,bool error=false,
+    uint64_t access(uint64_t offset,bool write=false,uint64_t value=0,bool error=false,
         unsigned size=3,unsigned mask=255) {
         S(control$$request$$bits$$address,regs+offset); S(control$$request$$bits$$write,write);
         S(control$$request$$bits$$data,value); S(control$$request$$bits$$size,size);
@@ -155,7 +155,7 @@ struct Test {
         S(control$$response$$ready,1); tick(); S(control$$response$$ready,0);
         return result;
     }
-    void startTx(uint64_t address,unsigned length) {
+    void startTx(uint64_t address,uint64_t length) {
         access(16,true,address); access(24,true,length); access(32,true,3);
     }
 #ifdef COHERENT_DMA
@@ -171,7 +171,7 @@ struct Test {
         S(cpu$$response$$ready,1); tick(); S(cpu$$response$$ready,0); return result;
     }
 #endif
-    void armRx(uint64_t address,unsigned capacity) {
+    void armRx(uint64_t address,uint64_t capacity) {
         access(48,true,address); access(56,true,capacity); access(64,true,3);
     }
     void supply(unsigned length,unsigned mode=0) {
@@ -195,6 +195,40 @@ struct Test {
     }
 };
 int main(int argc,char**) { try {
+    // Exact full-width register window and simple field-write enables.
+    // Invalid address/size/mask writes must not mutate any descriptor field.
+    {
+        Test q(1919);
+        for(uint64_t offset:{16,24,48,56}) {
+            const uint64_t value=0x9182abcd60000000ULL+offset;
+            q.access(offset,true,value);
+            for(uint64_t alias:{UINT64_C(256),UINT64_C(0xffffffffffffff00),
+                               UINT64_C(0x100000000),UINT64_C(0x8000000000000000)}) {
+                q.access(offset+alias,true,~value,true);
+                check(q.access(offset)==value,"invalid MMIO alias changed descriptor field");
+            }
+            q.access(offset,true,~value,true,2);
+            q.access(offset,true,~value,true,3,15);
+            check(q.access(offset)==value,"invalid MMIO size/mask changed descriptor field");
+        }
+        check(q.requests==0,"descriptor field write issued memory");
+        std::cout<<"ETHERNET_DMA_MMIO_DECODE_PASS full64_aliases_size_mask_no_side_effect=1\n";
+    }
+    {
+        // STOP is independent of an invalid unposted descriptor, but cannot
+        // accept a bad size/mask/data or a high-address alias of its register.
+        Test q(2020);q.requireCompleteRx=false;q.access(184,true,1);
+        q.access(160,true,UINT64_MAX);q.access(168,true,UINT64_MAX);
+        q.access(144,true,0,true);
+        q.access(144,true,1,true,2);
+        q.access(144,true,1,true,3,15);
+        q.access(UINT64_C(0x100000090),true,1,true);
+        check(!(q.access(192)&(1U<<17)),"invalid RX_STOP changed queue state");
+        q.access(144,true,1);
+        check(q.access(192)&(1U<<17),"valid RX_STOP depended on unrelated POST descriptor");
+        check(q.requests==0,"RX_STOP issued memory without a posted owner");
+        std::cout<<"ETHERNET_DMA_LOCAL_STOP_PASS invalid_post_independent=1 invalid_stop_no_effect=1\n";
+    }
 #if TX_POSTED_SLOTS > 0 && !defined(COHERENT_DMA)
     // Independent FIFO/byte oracle. No RTL queue state defines expected data.
     for(unsigned seed:{5U,331U}) {
@@ -546,7 +580,9 @@ int main(int argc,char**) { try {
         Test r(71); r.failWrite=index; r.armRx(ram+256,128); r.supply(128); r.finish(false,true,false,true); ++cases;
     }
     for(auto descriptor:{std::array<uint64_t,2>{ram+1,64},{ram,0},{ram,2049},
-        {ram+DMA_RAM_BYTES-8,9},{0xfffffffffffffff8ULL,16},{0x80010000ULL,64}}) {
+        {ram+DMA_RAM_BYTES-8,9},{0xfffffffffffffff8ULL,16},{0x80010000ULL,64},
+        {ram,(UINT64_C(1)<<32)|8},{ram,(UINT64_C(1)<<63)|8},
+        {ram+(UINT64_C(1)<<40),8},{ram,UINT64_MAX}}) {
         Test t(83); t.startTx(descriptor[0],descriptor[1]); t.finish(true,false,true,false);
         t.armRx(descriptor[0],descriptor[1]); t.finish(false,true,false,true);
         check(t.requests==0,"invalid descriptor had memory side effects"); ++cases;

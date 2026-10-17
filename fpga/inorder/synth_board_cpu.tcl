@@ -1,0 +1,106 @@
+# One fresh REAL-board synthesis only. Keep existing clocks/IP/RTL; never route or write_bitstream.
+if {$argc != 1} {error "usage: synth_board_cpu.tcl FRESH_STAGED_BOARD_ROOT"}
+set root [file normalize [lindex $argv 0]]
+if {![string match */orbital-i1-cpu300-board-* $root] ||
+    ![file isfile [file join $root board-manifest.json]]} {
+    error "Explicit isolated staged board required"
+}
+set reports [file join $root synthesis-reports]
+if {[file exists $reports]} {error "Preserve previous synthesis evidence"}
+file mkdir $reports
+set_param general.maxThreads 8
+open_project [file join $root project i1_board.xpr]
+if {[string tolower [get_property PART [current_project]]] ne "xczu15eg-ffvb1156-2-i"} {
+    error "Wrong physical FPGA part"
+}
+foreach name {ddr4_0 clk_wiz_i1 axi_clock_converter_i1} {
+    set ip [get_ips -quiet $name]
+    if {[llength $ip] != 1 ||
+        [get_property PROGRESS [get_runs [format "%s_synth_1" $name]]] ne "100%"} {
+        error "Exact completed IP required: $name"
+    }
+    set file [file normalize [get_property IP_FILE $ip]]
+    if {[string first [string tolower [file join $root project]] [string tolower $file]] != 0} {
+        error "IP must belong to the isolated copied project: $file"
+    }
+}
+foreach file [get_files -all] {
+    set path [string map {\\ /} [get_property NAME $file]]
+    if {[string first "$root/rtl/" $path] == 0 || [string first "$root/board/" $path] == 0} {
+        remove_files $file
+    }
+}
+add_files -norecurse [glob [file join $root rtl *.sv]]
+add_files -norecurse [file join $root board soc_top_i1_cpu_ddr.sv]
+add_files -norecurse [file join $root rtl bootrom.hex]
+set_property FILE_TYPE {Memory Initialization Files} [get_files */bootrom.hex]
+add_files -fileset constrs_1 -norecurse [list [file join $root board board_ddr.xdc] \
+    [file join $root board pl_ddr4_pins.xdc] [file join $root board phy_disabled.xdc]]
+set_property top soc_top_i1_cpu_ddr [get_filesets sources_1]
+set synth [get_runs synth_1]
+set runDir [file normalize [get_property DIRECTORY $synth]]
+if {[string first [string tolower [file join $root project i1_board.runs]] \
+        [string tolower $runDir]] != 0} {
+    error "Refuse to reset a run outside this isolated candidate"
+}
+reset_runs synth_1
+set_property AUTO_INCREMENTAL_CHECKPOINT 0 $synth
+set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none $synth
+set_property STEPS.SYNTH_DESIGN.TCL.PRE [file join $root scripts prepare_board_mem.tcl] $synth
+update_compile_order -fileset sources_1
+launch_runs synth_1 -jobs 2
+wait_on_run synth_1
+if {[get_property PROGRESS $synth] ne "100%"} {error "Fresh CPU/SoC synthesis failed"}
+open_run synth_1
+# Same real MMCM/clock roots, DDR AXI clock converter, CDC and USER2 boundaries
+# as the routed-board flow. No OOC clocks and no target-frequency relaxation.
+source [file join $root scripts board_cpu_constraints.tcl]
+report_timing_summary -delay_type min_max -report_unconstrained -file [file join $reports timing_summary.rpt]
+foreach delay {max min} {
+    report_timing -delay_type $delay -max_paths 60 -input_pins \
+        -file [file join $reports [format "paths_%s.rpt" $delay]]
+}
+report_utilization -file [file join $reports utilization_flat.rpt]
+report_utilization -hierarchical -file [file join $reports utilization.rpt]
+report_clocks -file [file join $reports clocks.rpt]
+report_clock_interaction -file [file join $reports clock_interaction.rpt]
+report_cdc -details -file [file join $reports cdc.rpt]
+report_bus_skew -warn_on_violation -file [file join $reports bus_skew.rpt]
+report_drc -file [file join $reports drc.rpt]
+report_exceptions -coverage -file [file join $reports exceptions.rpt]
+check_timing -verbose -file [file join $reports check_timing.rpt]
+report_io -file [file join $reports io.rpt]
+set f [open [file join $reports domains.tsv] w]
+puts $f "domain\tclock\tperiod_ns\tdelay\tslack_ns\tstartpoint\tendpoint"
+foreach {domain pin} {CPU300 u_soc/io_clockIn DDR_UI250 u_axi_cdc/m_axi_aclk
+                     AON50 u_soc/io_alwaysOnClock UART50 UART_STORAGE_CLOCK} {
+    if {$domain eq "UART50"} {
+        set cells [get_cells -hier -filter {IS_SEQUENTIAL && NAME =~ u_soc/bank/uart/uart/*}]
+        if {[llength $cells] < 10} {error "Actual UART storage missing"}
+        set c [get_clocks -of_objects [get_pins -of_objects $cells -filter {REF_PIN_NAME == C}]]
+        if {[llength $c] != 1 || abs([get_property PERIOD $c] - 20.0) > 0.002} {
+            error "Actual UART storage clock is not UART50"
+        }
+    } else {
+        set c [get_clocks -of_objects [get_pins $pin]]
+    }
+    if {[llength $c] != 1} {error "Missing actual clock: $domain"}
+    foreach delay {max min} {
+        set path [get_timing_paths -from $c -to $c -delay_type $delay -max_paths 1]
+        if {[llength $path] != 1} {error "Missing domain timing path: $domain $delay"}
+        puts $f "$domain\t[get_property NAME $c]\t[get_property PERIOD $c]\t$delay\t[get_property SLACK $path]\t[get_property STARTPOINT_PIN $path]\t[get_property ENDPOINT_PIN $path]"
+        report_timing -from $c -to $c -delay_type $delay -max_paths 30 \
+            -file [file join $reports [format "%s_%s.rpt" $domain $delay]]
+    }
+}
+close $f
+write_checkpoint [file join $reports real_board_post_synth.dcp]
+write_xdc [file join $reports effective_constraints.xdc]
+set setup [get_property SLACK [get_timing_paths -delay_type max -max_paths 1]]
+set hold [get_property SLACK [get_timing_paths -delay_type min -max_paths 1]]
+set f [open [file join $reports stage-result.txt] w]
+puts $f "REAL_BOARD CPU300 UI250 AON50 UART50 I32KiB D32KiB FD Sv39 PLIC CMU USER2_65 MAC_ABSENT"
+puts $f "WNS=$setup WHS=$hold STATUS=SYNTHESIS_ONLY_ESTIMATED_NOT_ROUTED NO_BIT_GENERATED"
+close $f
+puts "I1_CPU_BOARD_SYNTHESIS_ONLY_DONE WNS=$setup WHS=$hold ACTUAL_MIG_AXI_CDC_IP NO_IMPLEMENTATION_NO_BIT"
+close_project

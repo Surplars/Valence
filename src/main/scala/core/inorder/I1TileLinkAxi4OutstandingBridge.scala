@@ -1,0 +1,420 @@
+// Independent I1 bus adapter, copied from TileLinkAxi4OutstandingBridge.scala; no CPU/OoO state/control.
+package soc.core.inorder
+
+import chisel3._
+import chisel3.util._
+import soc.bus.tilelink._
+import soc.ip.axi._
+
+/** Shared bounded transaction slots with FIFO TL D completion by default.
+  * maxOutstandingWrites=0 preserves the original exclusive-write fence.
+  * A positive write limit enables ordinary-RAM reads and writes to disjoint
+  * eight-byte-rounded physical intervals. RAW/WAR/WAW overlaps wait for full
+  * TL retirement. Each slot retains AXI ID and TL source until its final D.
+  * AW and complete W bursts follow matching bounded owner FIFOs (AXI4 W has
+  * no ID). Their heads advance independently, so later AW can overlap older W.
+  * B can complete in any ID order; no payload capacity is added.
+  * Complete R bursts are buffered before D so late errors remain aggregate.
+  * This is not MMIO/AMO reordering and does not relax upstream barriers.
+  * Optional unorderedResponses fairly selects completed slots and locks whole D messages.
+  * Target: one R/W/D beat per cycle on independent channels. Timing unverified.
+  */
+class I1TileLinkAxi4OutstandingBridge(
+    tlParams: TLParams,
+    axiAddressWidth: Int,
+    axiIdWidth: Int,
+    maxBurstBeats: Int,
+    axiCache: Int,
+    axiProt: Int,
+    axiQos: Int,
+    axiAddressBase: BigInt,
+    axiWindowBytes: BigInt,
+    maxOutstanding: Int,
+    maxOutstandingWrites: Int = 0,
+    unorderedResponses: Boolean = false,
+    writeCollectionFlow: Boolean = false,
+    lineReadChannel: Boolean = false,
+    parallelAdmission: Boolean = false,
+    registeredPreflight: Boolean = false
+) extends Module {
+    require(!registeredPreflight || parallelAdmission)
+    require(maxOutstanding >= 2 && isPow2(maxOutstanding))
+    require(maxOutstanding <= (1 << axiIdWidth) && maxOutstanding <= (1 << tlParams.sourceBits))
+    val io = IO(new Bundle {
+        val tl = Flipped(new TLBundle(tlParams))
+        val axi = new Axi4MemoryPort(axiAddressWidth, axiIdWidth)
+        val ordinaryPreflight = if (registeredPreflight) Some(Input(new I1AxiPreflight(axiAddressWidth))) else None
+        val linePreflight = if (registeredPreflight && lineReadChannel)
+            Some(Input(new I1AxiPreflight(axiAddressWidth))) else None
+        val lineRead = if (lineReadChannel)
+            Some(Flipped(new soc.ip.tilelink.LineReadMemoryPort(tlParams.addrWidth))) else None
+    })
+    require(maxOutstandingWrites >= 0 && maxOutstandingWrites <= maxOutstanding)
+    require(maxOutstandingWrites == 0 || axiWindowBytes > 0)
+    require(!lineReadChannel || (unorderedResponses && maxOutstandingWrites > 0 &&
+        axiWindowBytes > 0 && maxBurstBeats >= 8),
+        "independent line reads require the unordered shared RAM scheduler")
+    val slots = Seq.fill(maxOutstanding)(Module(new I1TileLinkAxi4BurstBridge(tlParams,
+        axiAddressWidth, axiIdWidth, maxBurstBeats, axiCache, axiProt, axiQos,
+        axiAddressBase, axiWindowBytes, writeCollectionFlow, lineReadChannel, parallelAdmission)))
+    val slotWidth = log2Ceil(maxOutstanding)
+    val head = RegInit(0.U(slotWidth.W))
+    val tail = RegInit(0.U(slotWidth.W))
+    val active = RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))
+    val allocationSlot = if (unorderedResponses) {
+        val free = VecInit(active.map(!_))
+        val afterTail = VecInit((0 until maxOutstanding).map(i => free(i) && i.U >= tail))
+        Mux(afterTail.asUInt.orR, PriorityEncoder(afterTail), PriorityEncoder(free))
+    } else tail
+    val exclusiveWriteSlot = if (unorderedResponses && maxOutstandingWrites == 0) Some(RegInit(0.U(slotWidth.W))) else None
+    val sources = Reg(Vec(maxOutstanding, UInt(tlParams.sourceBits.W)))
+    val lineOrigins = if (lineReadChannel)
+        RegInit(VecInit(Seq.fill(maxOutstanding)(false.B))) else VecInit(Seq.fill(maxOutstanding)(false.B))
+    val lineTags = if (lineReadChannel) Some(Reg(Vec(maxOutstanding, UInt(8.W)))) else None
+    val preferLine = if (lineReadChannel) Some(RegInit(false.B)) else None
+    val writeActive = RegInit(false.B)
+    val collecting = RegInit(false.B)
+    val collectSlot = Reg(UInt(slotWidth.W))
+    val beatWidth = I1TileLinkTransferBeatCount.width(tlParams)
+    val collectRemaining = Reg(UInt(beatWidth.W))
+    val replyRemaining = Reg(Vec(maxOutstanding, UInt(beatWidth.W)))
+    val a = io.tl.a.bits
+    val isWrite = a.opcode =/= TLOpcode.Get
+    val requestBeats = I1TileLinkTransferBeatCount(a.size, tlParams)
+    val sourceBusy = VecInit((0 until maxOutstanding).map(i => active(i) && !lineOrigins(i) &&
+        sources(i) === a.source)).asUInt.orR
+    // TL messages are naturally aligned power-of-two intervals. Subword
+    // accesses conservatively own their eight-byte lane. Two such intervals
+    // overlap iff they share the prefix at the larger size; no XLEN+1 end
+    // addition, variable-byte-count addition or chained XLEN comparisons.
+    val writes = RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))
+    // Valid translated RAM intervals cannot alias within the bounded AXI window.
+    // Retain only its physical lane bits; denied/oversized owners serialize
+    // conservatively rather than building an XLEN hazard comparator.
+    val intervalWidth = if (parallelAdmission) axiAddressWidth else tlParams.addrWidth
+    val starts = Reg(Vec(maxOutstanding, UInt(intervalWidth.W)))
+    val rangeQualified = if (parallelAdmission) Some(Reg(Vec(maxOutstanding, Bool()))) else None
+    val rawProof = I1AxiPreflight(a, axiAddressWidth, axiAddressBase, axiWindowBytes, maxBurstBeats)
+    val acceptedRawProof = io.ordinaryPreflight.getOrElse(rawProof)
+    val rawRangeQualified = acceptedRawProof.window && a.size <= (log2Ceil(maxBurstBeats) + 3).U
+    val rangeSizes = Reg(Vec(maxOutstanding, UInt(tlParams.sizeBits.W)))
+    val requestStart = Cat(a.address(tlParams.addrWidth - 1, 3), 0.U(3.W))
+    val requestRangeSize = Mux(a.size < 3.U, 3.U, a.size)
+    def intervalOverlap(left: UInt, leftSize: UInt, right: UInt, rightSize: UInt): Bool = {
+        val maximum = Mux(leftSize > rightSize, leftSize, rightSize)
+        if (parallelAdmission) {
+            // One shared XOR/prefix, not N overlapping XLEN comparisons then
+            // a size mux. Bits above every encodable size are always compared.
+            val width = left.getWidth
+            val fixed = math.min((1 << tlParams.sizeBits) - 1, width)
+            val sameHigh = if (fixed == width) true.B
+                else I1TimingMath.equal(left(width - 1, fixed), right(width - 1, fixed), groupBits = 3)
+            val differing = left ^ right
+            val variableConflict = (3 until fixed).map(bit => maximum <= bit.U && differing(bit))
+            maximum >= 3.U && sameHigh &&
+                !VecInit(variableConflict).asUInt.orR
+        } else Mux1H((3 until (1 << tlParams.sizeBits)).map(n =>
+            (maximum === n.U) -> (left(tlParams.addrWidth - 1, n) === right(tlParams.addrWidth - 1, n))))
+    }
+    val overlaps = VecInit((0 until maxOutstanding).map(i => active(i) &&
+        (writes(i) || isWrite) &&
+        (if (parallelAdmission) !rawRangeQualified || !rangeQualified.get(i) ||
+            intervalOverlap(requestStart(intervalWidth - 1, 0), requestRangeSize, starts(i), rangeSizes(i))
+        else intervalOverlap(requestStart, requestRangeSize, starts(i), rangeSizes(i))))).asUInt.orR
+    val writeCount = PopCount(VecInit((0 until maxOutstanding).map(i => active(i) && writes(i))))
+    // At most maxOutstandingWrites write owners are live. Independent token
+    // queues let AW preparation run ahead of W while preserving the same order.
+    val writeAddressOrder = if (maxOutstandingWrites > 0)
+        Some(Module(new Queue(UInt(slotWidth.W), maxOutstandingWrites, pipe = false, flow = false))) else None
+    val writeDataOrder = if (maxOutstandingWrites > 0)
+        Some(Module(new Queue(UInt(slotWidth.W), maxOutstandingWrites, pipe = false, flow = false))) else None
+    val addressPending = if (maxOutstandingWrites > 0)
+        Some(RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))) else None
+    val dataPending = if (maxOutstandingWrites > 0)
+        Some(RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))) else None
+    // A denied younger write must not retire/reuse its slot while a token still
+    // waits behind older traffic. Valid writes have already shed both tokens
+    // before B; this qualification adds no valid-write completion latency.
+    val dispatchRetired = VecInit((0 until maxOutstanding).map(i =>
+        if (maxOutstandingWrites > 0) !writes(i) || (!addressPending.get(i) && !dataPending.get(i)) else true.B))
+    val canAllocate = !active(allocationSlot) && !sourceBusy && (if (maxOutstandingWrites == 0)
+        !writeActive && (!isWrite || !active.asUInt.orR)
+        else !overlaps && (!isWrite || (writeCount < maxOutstandingWrites.U &&
+            writeAddressOrder.get.io.enq.ready && writeDataOrder.get.io.enq.ready)))
+    val lineStart = io.lineRead.map(l => Cat(l.request.bits.address(tlParams.addrWidth - 1, 6), 0.U(6.W)))
+        .getOrElse(0.U(tlParams.addrWidth.W))
+    val rawWindow = if (parallelAdmission) acceptedRawProof.window else false.B
+    val lineWindow = if (parallelAdmission && lineReadChannel)
+        io.linePreflight.map(_.window).getOrElse(I1AddressWindow.contains(lineStart, axiAddressBase, axiWindowBytes))
+        else false.B
+    def translateRaw(address: UInt): UInt =
+        address(axiAddressWidth - 1, 0) -
+            (axiAddressBase & ((BigInt(1) << axiAddressWidth) - 1)).U(axiAddressWidth.W)
+    val rawAxiAddress = if (parallelAdmission) acceptedRawProof.axiAddress else 0.U(axiAddressWidth.W)
+    val lineAxiAddress = if (parallelAdmission)
+        io.linePreflight.map(_.axiAddress).getOrElse(translateRaw(lineStart)) else 0.U(axiAddressWidth.W)
+    val linePhases = io.linePreflight.map(_.initialPhases).getOrElse(
+        Cat(0.U(2.W), !lineWindow, lineWindow, false.B))
+    if (registeredPreflight) {
+        when(io.tl.a.valid && !collecting && !reset.asBool) {
+            assert(acceptedRawProof.asUInt === rawProof.asUInt, "registered ordinary AXI preflight lost its head owner")
+        }
+        io.lineRead.foreach { l =>
+            when(l.request.valid && !reset.asBool) {
+                assert(lineWindow === I1AddressWindow.contains(lineStart, axiAddressBase, axiWindowBytes) &&
+                    lineAxiAddress === translateRaw(lineStart), "registered line preflight lost its head owner")
+            }
+        }
+    }
+    val canAllocateLine = if (lineReadChannel) {
+        val l = io.lineRead.get
+        val tagBusy = (0 until maxOutstanding).map(i => active(i) && lineOrigins(i) &&
+            lineTags.get(i) === l.request.bits.tag).reduce(_ || _)
+        val hazard = (0 until maxOutstanding).map(i => active(i) && writes(i) &&
+            (if (parallelAdmission) !lineWindow || !rangeQualified.get(i) ||
+                intervalOverlap(lineStart(intervalWidth - 1, 0), 6.U, starts(i), rangeSizes(i))
+            else intervalOverlap(lineStart, 6.U, starts(i), rangeSizes(i)))).reduce(_ || _)
+        !active(allocationSlot) && !tagBusy && !hazard
+    } else false.B
+    // One new shared owner per cycle, but an in-progress write's continuation
+    // need not block a read allocated into a different free lane on that edge.
+    // Eligibility is computed independently: a blocked write cannot head-of-line
+    // block a disjoint read. Same-address contenders still serialize globally.
+    val chooseLine = io.lineRead.map(l => l.request.valid && canAllocateLine &&
+        (collecting || !io.tl.a.valid || !canAllocate || preferLine.get)).getOrElse(false.B)
+    io.lineRead.foreach(_.request.ready := chooseLine && VecInit(slots.map(_.io.tl.a.ready))(allocationSlot))
+    val lineAccepted = io.lineRead.map(_.request.fire).getOrElse(false.B)
+    Seq(writeAddressOrder, writeDataOrder).flatten.foreach { q =>
+        q.io.enq.valid := io.tl.a.fire && !collecting && isWrite
+        q.io.enq.bits := allocationSlot
+    }
+    val selected = Mux(collecting, collectSlot, allocationSlot)
+    val allowA = collecting || (canAllocate && !chooseLine)
+    io.tl.a.ready := allowA && VecInit(slots.map(_.io.tl.a.ready))(selected)
+    io.tl.b.valid := false.B
+    io.tl.b.bits := 0.U.asTypeOf(io.tl.b.bits)
+    io.tl.c.ready := false.B
+    io.tl.e.ready := false.B
+    assert(!io.tl.c.valid && !io.tl.e.valid, "TL-AXI boundary does not support coherence")
+
+    val replySlot = if (unorderedResponses) {
+        val readyMask = VecInit((0 until maxOutstanding).map(i => active(i) && !lineOrigins(i) &&
+            slots(i).io.tl.d.valid && dispatchRetired(i)))
+        val turn = RegInit(0.U(slotWidth.W))
+        val afterTurn = VecInit((0 until maxOutstanding).map(i => readyMask(i) && i.U >= turn))
+        val chosen = Mux(afterTurn.asUInt.orR, PriorityEncoder(afterTurn), PriorityEncoder(readyMask))
+        val locked = RegInit(false.B)
+        val held = Reg(UInt(slotWidth.W))
+        val selectedReply = Mux(locked, held, chosen)
+        // Lock at the first offer, including a stalled first beat. Never
+        // interleave beats or withdraw a selected complete transaction.
+        when(io.tl.d.valid && !locked) { locked := true.B; held := selectedReply }
+        when(io.tl.d.fire && replyRemaining(selectedReply) === 1.U) {
+            locked := false.B
+            turn := selectedReply + 1.U
+        }
+        selectedReply
+    } else head
+    io.tl.d.valid := active(replySlot) && !lineOrigins(replySlot) && dispatchRetired(replySlot) &&
+        VecInit(slots.map(_.io.tl.d.valid))(replySlot)
+    io.tl.d.bits := VecInit(slots.map(_.io.tl.d.bits))(replySlot)
+    when(io.tl.d.fire) {
+        replyRemaining(replySlot) := replyRemaining(replySlot) - 1.U
+        when(replyRemaining(replySlot) === 1.U) {
+            active(replySlot) := false.B
+            if (!unorderedResponses) head := head + 1.U
+            writeActive := false.B
+        }
+    }
+    when(io.tl.a.fire && collecting) {
+        collectRemaining := collectRemaining - 1.U
+        when(collectRemaining === 1.U) { collecting := false.B }
+    }
+    when(io.tl.a.fire && !collecting) {
+        if (lineReadChannel) { lineOrigins(allocationSlot) := false.B; preferLine.get := true.B }
+        active(allocationSlot) := true.B
+        sources(allocationSlot) := a.source
+        writes(allocationSlot) := isWrite
+        addressPending.foreach(_(allocationSlot) := isWrite)
+        dataPending.foreach(_(allocationSlot) := isWrite)
+        starts(allocationSlot) := requestStart(intervalWidth - 1, 0)
+        rangeQualified.foreach(_(allocationSlot) := rawRangeQualified)
+        rangeSizes(allocationSlot) := requestRangeSize
+        replyRemaining(allocationSlot) := Mux(isWrite, 1.U, requestBeats)
+        if (unorderedResponses) tail := allocationSlot + 1.U else tail := tail + 1.U
+        when(isWrite) {
+            writeActive := true.B
+            exclusiveWriteSlot.foreach(_ := allocationSlot)
+            collecting := requestBeats > 1.U
+            collectSlot := allocationSlot
+            collectRemaining := requestBeats - 1.U
+        }
+    }
+    val lineReplySlot = WireDefault(0.U(slotWidth.W))
+    io.lineRead.foreach { l =>
+        when(lineAccepted) {
+            assert(l.request.bits.address(5, 0) === 0.U, "independent line read must be 64-byte aligned")
+            assert(!(io.tl.a.fire && !collecting), "two new owners borrowed the same shared slot")
+            active(allocationSlot) := true.B
+            lineOrigins(allocationSlot) := true.B
+            lineTags.get(allocationSlot) := l.request.bits.tag
+            sources(allocationSlot) := 0.U
+            writes(allocationSlot) := false.B
+            addressPending.get(allocationSlot) := false.B
+            dataPending.get(allocationSlot) := false.B
+            starts(allocationSlot) := lineStart(intervalWidth - 1, 0)
+            rangeQualified.foreach(_(allocationSlot) := lineWindow)
+            rangeSizes(allocationSlot) := 6.U
+            replyRemaining(allocationSlot) := 1.U
+            tail := allocationSlot + 1.U
+            preferLine.get := false.B
+        }
+        val readyMask = VecInit((0 until maxOutstanding).map(i => active(i) && lineOrigins(i) && slots(i).io.tl.d.valid))
+        val turn = RegInit(0.U(slotWidth.W))
+        val afterTurn = VecInit((0 until maxOutstanding).map(i => readyMask(i) && i.U >= turn))
+        val chosen = Mux(afterTurn.asUInt.orR, PriorityEncoder(afterTurn), PriorityEncoder(readyMask))
+        val locked = RegInit(false.B)
+        val held = Reg(UInt(slotWidth.W))
+        lineReplySlot := Mux(locked, held, chosen)
+        l.response.valid := active(lineReplySlot) && lineOrigins(lineReplySlot) &&
+            VecInit(slots.map(_.io.tl.d.valid))(lineReplySlot)
+        val error = VecInit(slots.map(s => s.io.tl.d.bits.denied || s.io.tl.d.bits.corrupt))(lineReplySlot)
+        l.response.bits.tag := lineTags.get(lineReplySlot)
+        l.response.bits.error := error
+        l.response.bits.data := Mux(error, 0.U, VecInit(slots.map(_.io.lineData.get))(lineReplySlot))
+        when(l.response.valid && !locked) { locked := true.B; held := lineReplySlot }
+        when(l.response.fire) {
+            assert(replyRemaining(lineReplySlot) === 1.U && !writes(lineReplySlot),
+                "whole-line response lost its retained shared owner")
+            active(lineReplySlot) := false.B
+            replyRemaining(lineReplySlot) := 0.U
+            locked := false.B
+            turn := lineReplySlot + 1.U
+        }
+    }
+
+    val arArb = Module(new RRArbiter(new Axi4Address(axiAddressWidth, axiIdWidth), maxOutstanding))
+    val awOffer = Wire(Decoupled(new Axi4Address(axiAddressWidth, axiIdWidth)))
+    // Registered skid queues prevent arbitration changes from changing a stalled AXI payload.
+    io.axi.ar <> Queue(arArb.io.out, 2)
+    io.axi.aw <> Queue(awOffer, 2)
+    val arIssued = RegInit(VecInit(Seq.fill(maxOutstanding)(false.B)))
+    when(io.axi.ar.fire) { arIssued(io.axi.ar.bits.id(slotWidth - 1, 0)) := true.B }
+    when(io.axi.r.fire && io.axi.r.bits.last) {
+        arIssued(io.axi.r.bits.id(slotWidth - 1, 0)) := false.B
+    }
+    val rInRange = io.axi.r.bits.id < maxOutstanding.U
+    val bInRange = io.axi.b.bits.id < maxOutstanding.U
+    val rSlot = io.axi.r.bits.id(slotWidth - 1, 0)
+    val bSlot = io.axi.b.bits.id(slotWidth - 1, 0)
+    val readIssued = arIssued(rSlot) || (io.axi.ar.fire && io.axi.ar.bits.id === io.axi.r.bits.id)
+    // RVALID may legally accompany AR acceptance, but RREADY waits for the
+    // registered AR-issued credit. That first beat stays held for one edge.
+    // Steady bursts still take one beat/cycle; queue DPRA -> AR.fire is no
+    // longer part of per-lane R capture enables. The separate assertion below
+    // still accepts zero-latency offers and rejects every unowned response.
+    io.axi.r.ready := rInRange && active(rSlot) && arIssued(rSlot) &&
+        VecInit(slots.map(_.io.axi.r.ready))(rSlot)
+    io.axi.b.ready := bInRange && active(bSlot) && VecInit(slots.map(_.io.axi.b.ready))(bSlot)
+    when(io.axi.r.valid) {
+        assert(rInRange && active(rSlot) && readIssued && VecInit(slots.map(_.io.axi.r.ready))(rSlot),
+            "AXI R response has no live read owner")
+    }
+    when(io.axi.b.valid) {
+        assert(bInRange && active(bSlot) && VecInit(slots.map(_.io.axi.b.ready))(bSlot),
+            "AXI B response has no live write owner")
+    }
+    // AXI4 W has no ID. Matching token FIFO order associates each complete W
+    // burst with its AW, whether address or data wins the handshake race.
+    val writeOwner = WireDefault(exclusiveWriteSlot.getOrElse(head))
+    val writeOffer = WireDefault(writeActive)
+    val addressOwner = WireDefault(exclusiveWriteSlot.getOrElse(head))
+    val addressOffer = WireDefault(writeActive)
+    if (unorderedResponses && maxOutstandingWrites == 0) {
+        when(writeOffer) { assert(active(writeOwner) && writes(writeOwner), "exclusive write lost its allocated owner") }
+    }
+    writeAddressOrder.foreach { q =>
+        addressOwner := Mux(q.io.deq.valid, q.io.deq.bits, 0.U)
+        addressOffer := q.io.deq.valid
+        val localDone = VecInit(slots.map(_.io.tl.d.valid))(addressOwner)
+        q.io.deq.ready := awOffer.fire || localDone
+        when(q.io.deq.fire) { addressPending.get(addressOwner) := false.B }
+        when(q.io.deq.valid) {
+            assert(active(addressOwner) && writes(addressOwner) && addressPending.get(addressOwner),
+                "write address FIFO lost its live owner")
+        }
+    }
+    writeDataOrder.foreach { q =>
+        writeOwner := Mux(q.io.deq.valid, q.io.deq.bits, 0.U)
+        writeOffer := q.io.deq.valid
+        val localDone = VecInit(slots.map(_.io.tl.d.valid))(writeOwner)
+        q.io.deq.ready := (io.axi.w.fire && io.axi.w.bits.last) || localDone
+        when(q.io.deq.fire) { dataPending.get(writeOwner) := false.B }
+        when(q.io.deq.valid) {
+            assert(active(writeOwner) && writes(writeOwner) && dataPending.get(writeOwner),
+                "write data FIFO lost its live owner")
+        }
+    }
+    // Static per-channel decode replaces redundant arbitration. The existing
+    // registered AW skid queue isolates external backpressure and payloads.
+    val writeOwnerOH = VecInit((0 until maxOutstanding).map(i => writeOffer && writeOwner === i.U))
+    val addressOwnerOH = VecInit((0 until maxOutstanding).map(i => addressOffer && addressOwner === i.U))
+    awOffer.valid := VecInit((0 until maxOutstanding).map(i =>
+        addressOwnerOH(i) && slots(i).io.axi.aw.valid)).asUInt.orR
+    awOffer.bits := Mux1H(addressOwnerOH, slots.map(_.io.axi.aw.bits))
+    awOffer.bits.id := addressOwner
+    // These are constructor constants in every lane. Keep them static even
+    // when no owner is offered, avoiding needless mux/queue payload state.
+    awOffer.bits.burst := 1.U
+    awOffer.bits.lock := false.B
+    awOffer.bits.cache := axiCache.U
+    awOffer.bits.prot := axiProt.U
+    awOffer.bits.qos := axiQos.U
+    io.axi.w.valid := writeOffer && VecInit(slots.map(_.io.axi.w.valid))(writeOwner)
+    io.axi.w.bits := VecInit(slots.map(_.io.axi.w.bits))(writeOwner)
+    for ((slot, i) <- slots.zipWithIndex) {
+        val lineSelected = chooseLine && allocationSlot === i.U
+        slot.io.tl.a.valid := (io.tl.a.valid && allowA && selected === i.U) || lineSelected
+        slot.io.tl.a.bits := io.tl.a.bits
+        slot.io.admissionWindow.foreach(_ := Mux(lineSelected, lineWindow, rawWindow))
+        slot.io.admissionAxiAddress.foreach(_ := Mux(lineSelected, lineAxiAddress, rawAxiAddress))
+        slot.io.admissionPhases.foreach(_ := Mux(lineSelected, linePhases, acceptedRawProof.initialPhases))
+        io.lineRead.foreach { l =>
+            when(lineSelected) {
+                slot.io.tl.a.bits := 0.U.asTypeOf(slot.io.tl.a.bits)
+                slot.io.tl.a.bits.opcode := TLOpcode.Get
+                slot.io.tl.a.bits.size := 6.U
+                slot.io.tl.a.bits.address := l.request.bits.address
+                slot.io.tl.a.bits.mask := "hff".U
+            }
+            // A synthetic line Get has NO write payload. Do not let its
+            // allocation/hazard arbitration zero the ordinary A data bus:
+            // that otherwise propagates a wide address compare into every
+            // payload-bank D mux. Read data only arrives through real AXI R.
+            // All authorization, opcode/address/mask and capture enables
+            // above are unchanged, including simultaneous write continuation.
+            slot.io.tl.a.bits.data := io.tl.a.bits.data
+            slot.io.writePayload.get.valid := io.tl.a.valid
+            slot.io.writePayload.get.bits := Cat(io.tl.a.bits.mask, io.tl.a.bits.data)
+            slot.io.lineMode.get := active(i) && lineOrigins(i)
+        }
+        slot.io.tl.b.ready := false.B
+        slot.io.tl.c.valid := false.B
+        slot.io.tl.c.bits := 0.U.asTypeOf(slot.io.tl.c.bits)
+        slot.io.tl.e.valid := false.B
+        slot.io.tl.e.bits := 0.U.asTypeOf(slot.io.tl.e.bits)
+        slot.io.tl.d.ready := Mux(lineOrigins(i),
+            io.lineRead.map(l => l.response.ready && l.response.valid && lineReplySlot === i.U).getOrElse(false.B),
+            io.tl.d.ready && active(i) && dispatchRetired(i) && replySlot === i.U)
+        arArb.io.in(i) <> slot.io.axi.ar
+        arArb.io.in(i).bits.id := i.U
+        slot.io.axi.aw.ready := awOffer.ready && addressOwnerOH(i)
+        slot.io.axi.w.ready := io.axi.w.ready && writeOwnerOH(i)
+        slot.io.axi.r.valid := io.axi.r.valid && rInRange && rSlot === i.U && active(i) && arIssued(i)
+        slot.io.axi.r.bits := io.axi.r.bits
+        slot.io.axi.r.bits.id := 0.U // lane engine's local ID; external ID owns routing
+        slot.io.axi.b.valid := io.axi.b.valid && bInRange && bSlot === i.U && active(i)
+        slot.io.axi.b.bits := io.axi.b.bits
+        slot.io.axi.b.bits.id := 0.U
+    }
+}

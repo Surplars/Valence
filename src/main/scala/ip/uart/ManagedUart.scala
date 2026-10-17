@@ -12,7 +12,9 @@ import soc.ip.clock._
   * replacement gate or independent-clock/physical timing qualification.
   */
 class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50000000,
-    baud: Int = 460800, hardwareClocks: Boolean = true) extends RawModule {
+    baud: Int = 460800, hardwareClocks: Boolean = true,
+    balancedRawClock: Boolean = false) extends RawModule {
+    require(!balancedRawClock || hardwareClocks)
     val sourceClock = IO(Input(Clock()))
     val rawClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
@@ -26,9 +28,17 @@ class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50
     val cpuRelease = Module(new CdcResetRelease)
     cpuRelease.clockIn := sourceClock
     cpuRelease.asyncReset := commonReset
+    // Parallel always-running and gated BUFGCEs, NOT cascaded BUFGs. Raw
+    // ingress/CE control and retained UART state get matched clock-tree depth.
+    val captureClock = if (balancedRawClock) {
+        val keepRunning = Module(new ContinuousClockBuffer)
+        keepRunning.rawClock := rawClock
+        keepRunning.runningClock
+    } else rawClock
     val gatedClock = if (hardwareClocks) {
-        val gate = Module(new ManagedClockBuffer)
+        val gate = Module(new ManagedClockBuffer(independentControlClock = balancedRawClock))
         gate.rawClock := rawClock
+        gate.controlClock.foreach(_ := captureClock)
         gate.commonReset := commonReset
         gate.enable := control.clockEnable
         gate.managedClock
@@ -45,13 +55,13 @@ class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50
     proxy.io.isolate := ManagedPeripheralSupport.level(control.isolate, sourceClock, cpuRelease.resetOut)
     proxy.io.downstreamIdle := bridge.sourceIdle
     val ingress = Module(new PeripheralWakeDelay(1, ManagedPeripheralSupport.wakeDelay(rawHz, cpuHz, aonHz), 1))
-    ingress.rawClock := rawClock
+    ingress.rawClock := captureClock
     ingress.commonReset := commonReset
     // Synchronize the asynchronous pad BEFORE the always-on delay line.
     val rawRelease = Module(new CdcResetRelease)
-    rawRelease.clockIn := rawClock
+    rawRelease.clockIn := captureClock
     rawRelease.asyncReset := commonReset
-    val sampledRx = withClockAndReset(rawClock, rawRelease.resetOut) {
+    val sampledRx = withClockAndReset(captureClock, rawRelease.resetOut) {
         val meta = RegNext(rx, true.B)
         val synced = RegNext(meta, true.B)
         addAttribute(meta, "ASYNC_REG = \"TRUE\"")

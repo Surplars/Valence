@@ -10,7 +10,7 @@ import soc.bus.tilelink.{TLBundle, TLParams}
   */
 class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
     rawResponseMetadata: Boolean = false, dispatchFlow: Boolean = false,
-    lineReadChannel: Boolean = false)
+    lineReadChannel: Boolean = false, isolatedWriteLaunch: Boolean = false, serializedWrites: Boolean = false)
     extends Module {
     require(params.sourceBits <= 6)
     require(!lineReadChannel || tagBits <= 8)
@@ -22,7 +22,8 @@ class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagB
         val tl = new TLBundle(params.copy(sourceBits = params.sourceBits + 1))
         val lineRead = if (lineReadChannel) Some(new LineReadMemoryPort(params.addrWidth)) else None
     })
-    val writer = Module(new TileLinkLineWriteEngine(params, entries, tagBits, dispatchFlow))
+    val writer = if (serializedWrites) Module(new TileLinkSerializedLineWriteEngine(params, tagBits))
+        else Module(new TileLinkLineWriteEngine(params, entries, tagBits, dispatchFlow, isolatedWriteLaunch))
     writer.io.request <> io.writeRequest
     io.writeResponse <> writer.io.response
     if (lineReadChannel) {

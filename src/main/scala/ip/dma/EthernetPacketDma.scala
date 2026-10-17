@@ -20,7 +20,8 @@ class EthernetAxisWord extends Bundle {
   */
 class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     ramBase: BigInt = BigInt("80200000", 16), ramBytes: BigInt = BigInt(512) * 1024 * 1024,
-    maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0) extends Module {
+    maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0,
+    boundedDescriptorChecks: Boolean = false) extends Module {
     require(base >= 0 && base % 256 == 0 && base + 256 <= (BigInt(1) << 64))
     require(ramBase >= 0 && ramBase % 8 == 0 && ramBytes >= maxFrameBytes && ramBytes % 8 == 0 &&
         ramBase + ramBytes <= (BigInt(1) << 64))
@@ -237,7 +238,12 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     // and completion overwrite are rejected. W1C acknowledgements precede starts.
     val replies = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))
     val r = io.control.request.bits
-    val offset = r.address - base.U
+    // The window is exactly256B and aligned by construction. In the bounded
+    // FPGA profile, high-bit equality and the byte offset are independent;
+    // no XLEN subtraction/borrow chain precedes descriptor register enables.
+    val offset = if (boundedDescriptorChecks) r.address(7, 0) else r.address - base.U
+    val windowHit = if (boundedDescriptorChecks) r.address(63, 8) === (base >> 8).U(56.W)
+        else r.address >= base.U && r.address < (base + 256).U(65.W)
     // Additive ABI: 0x90 RX_STOP=1; 0x98 bit 0 advertises safe RX stop.
     // Accepted memory requests are NEVER cancelled. A partly captured frame is
     // drained to both stream boundaries, then discarded without new DDR writes.
@@ -253,12 +259,16 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         offset === 184.U || offset === 216.U
     val queueEmpty = !rxBusy && !rxDone && !queueActive && ownedCount === 0.U
     val overlapsOwned = (0 until rxSlots).map { i =>
-        slotOwned(i) && postAddress < (queuedAddress(i) +& queuedCapacity(i)) &&
-            queuedAddress(i) < (postAddress +& postCapacity)
+        // Full-width legality is checked independently. Once legal, only the
+        // configured aperture/frame bits can contribute to overlap arithmetic.
+        val postStart = if (boundedDescriptorChecks) postAddress(queuedAddressBits - 1, 0) else postAddress
+        val postLength = if (boundedDescriptorChecks) postCapacity(queuedCapacityBits - 1, 0) else postCapacity
+        slotOwned(i) && postStart < (queuedAddress(i) +& queuedCapacity(i)) &&
+            queuedAddress(i) < (postStart +& postLength)
     }.reduce(_ || _)
     val writable = offset === 8.U || txWrite || rxWrite || rxStop || queueWrite || txQueueKnown
-    val legal = r.address >= base.U && r.address < (base + 256).U(65.W) && (known || txQueueKnown) &&
-        r.size === 3.U && r.byteEnable === 255.U &&
+    val basicLegal = windowHit && (known || txQueueKnown) && r.size === 3.U && r.byteEnable === 255.U
+    val legal = basicLegal &&
         (!r.write || (writable && (!txWrite || (!txBusy && !txQueueEnabled)) && (!rxWrite || (!rxBusy && !queueEnabled)) &&
             !(offset === 32.U && r.data(0) && txDone && !r.data(1)) &&
             !(offset === 64.U && r.data(0) && rxDone && !r.data(1)) &&
@@ -299,9 +309,34 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     }
 
     def descriptorLegal(address: UInt, length: UInt): Bool = {
-        val rounded = (length +& 7.U) & ~7.U(65.W)
-        address(2, 0) === 0.U && address >= ramBase.U(65.W) && length =/= 0.U &&
-            length <= maxFrameBytes.U && (address +& rounded) <= (ramBase + ramBytes).U(66.W)
+        if (boundedDescriptorChecks) {
+            val words = length(queuedCapacityBits - 1, 3) +& length(2, 0).orR.asUInt
+            val endWord = address(queuedAddressBits - 1, 3) +& words
+            val highClear = if (queuedAddressBits == 64) true.B else !address(63, queuedAddressBits).orR
+            highClear && address(2, 0) === 0.U && address >= ramBase.U(65.W) &&
+                length =/= 0.U && length <= maxFrameBytes.U &&
+                endWord <= ((ramBase + ramBytes) >> 3).U
+        } else {
+            val rounded = (length +& 7.U) & ~7.U(65.W)
+            address(2, 0) === 0.U && address >= ramBase.U(65.W) && length =/= 0.U &&
+                length <= maxFrameBytes.U && (address +& rounded) <= (ramBase + ramBytes).U(66.W)
+        }
+    }
+    if (boundedDescriptorChecks) {
+        // Simple descriptor-field writes do NOT depend on an unrelated POST
+        // overlap/end-address proof. That proof still gates POST and its
+        // response. Full ABI addresses/data are retained, including invalid
+        // descriptor values which START must reject without memory effects.
+        when(io.control.request.fire && basicLegal && r.write) {
+            when(!txBusy && !txQueueEnabled) {
+                when(offset === 16.U) { txAddress := r.data }
+                when(offset === 24.U) { txLength := r.data }
+            }
+            when(!rxBusy && !queueEnabled) {
+                when(offset === 48.U) { rxAddress := r.data }
+                when(offset === 56.U) { rxCapacity := r.data }
+            }
+        }
     }
     when(io.control.request.fire && legal && r.write) {
         switch(offset) {
@@ -341,10 +376,10 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
                 }
             }
             is(8.U) { irqEnable := r.data(1, 0) }
-            is(16.U) { txAddress := r.data }
-            is(24.U) { txLength := r.data }
-            is(48.U) { rxAddress := r.data }
-            is(56.U) { rxCapacity := r.data }
+            is(16.U) { if (!boundedDescriptorChecks) txAddress := r.data }
+            is(24.U) { if (!boundedDescriptorChecks) txLength := r.data }
+            is(48.U) { if (!boundedDescriptorChecks) rxAddress := r.data }
+            is(56.U) { if (!boundedDescriptorChecks) rxCapacity := r.data }
             is(32.U) {
                 when(r.data(1)) { txDone := false.B; txFailed := false.B }
                 when(r.data(0)) {
@@ -377,7 +412,15 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         rxFailed := false.B
     }
     // Stop wins over launches in the very cycle its MMIO write is accepted.
-    val stopping = queueStopped || (io.control.request.fire && legal && r.write && rxStop)
+    // RX_STOP has no POST overlap/end-address condition. Keep unrelated live
+    // descriptor arithmetic out of the automatic RX launch/register enables.
+    val acceptedStop = io.control.request.fire && r.write && rxStop &&
+        (if (boundedDescriptorChecks) basicLegal && r.data === 1.U else legal)
+    val stopping = queueStopped || acceptedStop
+    if (boundedDescriptorChecks) {
+        assert(acceptedStop === (io.control.request.fire && legal && r.write && rxStop),
+            "local RX_STOP validation changed accepted control semantics")
+    }
     when(queueEnabled && !queueActive && !rxBusy && !rxDone && pendingCount =/= 0.U) {
         consumePending := true.B
         launchIndex := (if (rxSlots == 1) 0.U else launchIndex + 1.U)

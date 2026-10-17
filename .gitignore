@@ -151,6 +151,8 @@ local.properties
 *.i*86
 *.x86_64
 *.hex
+# Reproducible text source asset: default I1 block-ROM initialization, not a build payload.
+!/src/main/resources/inorder/bootrom.hex
 
 # Debug files
 *.dSYM/

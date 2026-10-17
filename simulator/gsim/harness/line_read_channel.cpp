@@ -18,6 +18,10 @@ static void check(bool ok,const char* message){if(!ok)throw std::runtime_error(m
 #ifndef LINE_WRITE_CREDITS
 #define LINE_WRITE_CREDITS 2
 #endif
+#ifndef LINE_MAX_BURST_BEATS
+#define LINE_MAX_BURST_BEATS 16
+#endif
+static constexpr unsigned bulkSize = LINE_MAX_BURST_BEATS == 8 ? 6 : 7;
 #include "dma_pipeline_ddr.h"
 static constexpr uint64_t base=0x80200000ULL;
 static std::string mutation;
@@ -158,7 +162,26 @@ struct Test {
         unsigned writes=0;for(auto&[tag,c]:primary)writes+=c.write;check(writes<=LINE_WRITE_CREDITS,"two-ingress write quota overflow");
         memory.sample(d);++cycles;
     }
-    void until(const std::function<bool()>&done,const char*message){auto limit=cycles+12000;while(!done()){tick();check(cycles<limit,message);}}
+    void until(const std::function<bool()>&done,const char*message){
+        // Four-slot upstream finished192 mixed owners inside12000 cycles;
+        // two slots legally take longer under the SAME bounded service law.
+        // Scale only the finite traffic budget; keep the original no-progress
+        // bound and every byte/owner/error/backpressure oracle intact.
+        const uint64_t work=primaryQueue.size()+lineQueue.size()+primary.size()+lines.size()+1;
+        auto limit=cycles+std::max<uint64_t>(12000,512*work),lastProgress=cycles;
+        uint64_t progress=0;
+        while(!done()){
+            tick();
+            const auto now=memory.rBytes+memory.wBytes+memory.bCount+primaryResults+lineResults;
+            if(now!=progress){lastProgress=cycles;progress=now;}
+            if(cycles>=limit||cycles-lastProgress>=12000)std::cerr<<"LINE_TIMEOUT cycles="<<cycles<<" idle="<<cycles-lastProgress
+                <<" accepted="<<primaryRequests<<','<<lineRequests<<" returned="<<primaryResults<<','<<lineResults
+                <<" queued="<<primaryQueue.size()<<','<<lineQueue.size()<<" live="<<primary.size()<<','<<lines.size()
+                <<" AXI_R="<<memory.rBytes<<" AXI_W="<<memory.wBytes<<" AXI_B="<<memory.bCount<<'\n';
+            check(cycles<limit,message);
+            check(cycles-lastProgress<12000,"two-ingress no-progress deadlock");
+        }
+    }
     void drain(){until([&]{return primaryQueue.empty()&&lineQueue.empty()&&primary.empty()&&lines.empty();},"two-ingress drain deadlock");check(retainedIds.empty()&&memory.reads.empty()&&memory.writes.empty()&&memory.replies.empty(),"retirement left AXI owner behind");check(memory.memory==oracle&&memory.high==high,"independent final memory mismatch");}
 };
 int main(int argc,char**argv){try{
@@ -200,10 +223,11 @@ int main(int argc,char**argv){try{
     }
     {
         Test t;t.memory.denyRead=64;t.lineQueue.push_back(Test::read(225,base+64));t.lineQueue.push_back(Test::read(226,base+DMA_RAM_BYTES-64));
-        t.lineQueue.push_back(Test::read(227,base+DMA_RAM_BYTES));t.primaryQueue.push_back(Test::write(5,base+0x40000,7));t.drain();
-        t.primaryQueue.push_back(Test::read(6,base+0x40000,7));t.drain();
+        t.lineQueue.push_back(Test::read(227,base+DMA_RAM_BYTES));t.primaryQueue.push_back(Test::write(5,base+0x40000,bulkSize));t.drain();
+        t.primaryQueue.push_back(Test::read(6,base+0x40000,bulkSize));t.drain();
         for(unsigned mask=0;mask<256;++mask){t.primaryQueue.push_back(Test::write(7,base+0x60000,3,mask));t.drain();}
-        std::cout<<"LINE_CHANNEL RAW_WAR_retained=1 late_error_zero_line=1 high_physical_address=1 rejected_window=1 banked_16beat=1 partial_masks=256\n";
+        std::cout<<"LINE_CHANNEL RAW_WAR_retained=1 late_error_zero_line=1 high_physical_address=1 rejected_window=1 banked_max_beats="
+                 <<LINE_MAX_BURST_BEATS<<" partial_masks=256\n";
     }
     {
         Test t;t.gappedProducer=true;t.pauseAW=true;t.pauseW=true;t.primaryQueue.push_back(Test::write(8,base+0x40000));
@@ -213,7 +237,7 @@ int main(int argc,char**argv){try{
     }
     {
         Test t;t.memory.reversePairs=true;t.randomHolds=true;
-        for(unsigned i=0;i<96;++i){t.lineQueue.push_back(Test::read(i,base+64*i));t.primaryQueue.push_back(i%2?Test::read(i%16,base+0x40000+128*i,7):Test::write(i%16,base+0x40000+128*i,7));}
+        for(unsigned i=0;i<96;++i){t.lineQueue.push_back(Test::read(i,base+64*i));t.primaryQueue.push_back(i%2?Test::read(i%16,base+0x40000+128*i,bulkSize):Test::write(i%16,base+0x40000+128*i,bulkSize));}
         t.drain();check(t.primaryRequests==96&&t.lineRequests==96,"stress lost accepted origin");
         std::cout<<"LINE_CHANNEL concurrent_stress=192 reordered_AXI=1 stable_stalls=1\n";
     }

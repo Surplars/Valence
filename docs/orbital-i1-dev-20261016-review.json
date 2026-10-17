@@ -1,0 +1,59 @@
+{
+  "status": "READ_ONLY_SOURCE_REVIEW_NO_HARDWARE_IMPORT",
+  "review_file": "docs/orbital-i1-dev-20261016-review.txt",
+  "remote": "git@github.com:Surplars/Valence.git",
+  "fetched_dev": "ca887740f2f375ef68a275e87cf9135262ebfa7f",
+  "hw_release": "a265bc2d7a4666becf6f1327cd4507224d016150",
+  "i1_head_unchanged": "1e90af966c15d871d2544469174acba78473113b",
+  "sources": {
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": {
+      "sha256": "7eb389466b29d6b12fb1b8a7f7848c3acb73eab78512af5e08f004905c5650b8",
+      "bytes": 22638
+    },
+    "src/main/scala/ip/ethernet/MacRawHandoff.scala": {
+      "sha256": "e557103067193c1282cb76ba49cab46497ab9bf862b0294bb55b10b6f4e5df3c",
+      "bytes": 1863
+    },
+    "src/main/scala/ip/dma/EthernetPacketDma.scala": {
+      "sha256": "c87ab1633988c967a5f682e828df5337ed1f2a7ea65806343457fc291a49ec70",
+      "bytes": 22375
+    },
+    "src/main/scala/core/ooo/MixedCoherentLineHome.scala": {
+      "sha256": "5a984e1f148b4c1c8b8245e62e2b1e65833213003b9b8e4a7b326d4482bd0304",
+      "bytes": 48702
+    },
+    "src/main/scala/core/ooo/TileLinkAxi4BurstBridge.scala": {
+      "sha256": "9b01304c9770a01cf862db20f6b862e1032728c54aa7b53c244904b870462d98",
+      "bytes": 16909
+    },
+    "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala": {
+      "sha256": "bf4176fe6d026f0c34c537f6d512f480843a5066b6529035a7665f1f7827b4a3",
+      "bytes": 20288
+    },
+    "fpga/zu15eg/combined_network_candidate/README.md": {
+      "sha256": "1b2828f53fd8739a58a958ee2366382bc0911c11604e103f88a0eb550d169d77",
+      "bytes": 4317
+    },
+    "fpga/zu15eg/combined_network_candidate/export_board.py": {
+      "sha256": "7ddc3978f9a706e0640e251ff9cb53d3fe38b1c4bfaa9b864ec5e8b447c978ae",
+      "bytes": 7161
+    },
+    "fpga/zu15eg/native_rgmii_trispeed_quarter.sv": {
+      "sha256": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc",
+      "bytes": 5576
+    },
+    "fpga/zu15eg/rx_capture_candidate/native_rx_falling_pair.sv": {
+      "sha256": "a3064b2723e3a327837781bb876c000691c55faed55a3da3af71121631290b98",
+      "bytes": 924
+    },
+    "fpga/zu15eg/pad_reset_candidate/native_gmac_pad_reset_clock.sv": {
+      "sha256": "f3279cef105320fd59db93ba9bd66003fd28686c370b1406bffdfa50fcbf20d5",
+      "bytes": 2387
+    }
+  },
+  "core_or_shared_source_changed_by_review": false,
+  "merge_performed": false,
+  "dev_tests_executed": false,
+  "dev_dcp_independently_queried": false,
+  "dev_timing_does_not_qualify_i1_cpu300": true
+}

@@ -1,5 +1,22 @@
 # Valence 文档导航
 
+## Orbital-I1：独立参数化顺序核（dev2）
+
+- [架构、参数与完整阶段记录](orbital-i1.md)：与 Orbital-A1 乱序核、legacy 历史核分开。
+- [源码与构建边界](layout.md)、[GSIM 入口](../simulator/gsim/inorder/README.md)、[FPGA 整板入口](../fpga/inorder/README.md)。
+- 当前显式测试配置：fpga8、RV64IMAFDC、M/S/U、PMP/Sv39、PLIC、I/D 各32KiB、
+  两个 DDR 槽位；新实验开关默认关闭，未自动替换平台默认值。
+- 最新 batch37：29 项受影响短检查、17 项参数测试通过；CoreMark 短测 ROI
+  647379→646056 拍（约+0.20%），CRC/退休轨迹一致，不是正式持续时间评分。
+  六组标准 Bare/Sv39 流式带宽与 batch36 相同；D-cache 单缺失生命周期仍需重构。
+- 300MHz 尚未签核。旧 r11 路由 WNS −0.007ns 不是新版时序结果；
+  当前未生成新版 bit。USER2 板上65位扫描与66位拒绝已做实际双 TAP 验证。
+- 历史小报告、验收收据及源码快照保存在 WSL 独立归档：
+  `/home/openion/Valence-inorder-evidence/pre-dev2-20261017-r1`。
+  完整 `build/`、`out/` 和 Vivado 工程/缓存不进源码提交。
+
+## Orbital-A1 / VL100 及通用平台
+
 [下一完整 timing/CDC 板版](fpga-next/timing-cdc-combined-v1.md) 已通过实际构造、native 导出与同负载 CPU 对照；物理 CDC/STA、vendor 与上板门仍未完成。独立默认关闭选项、旧板版回退和原始失败证据保留。
 
 Read-prefetch demand adoption 的独立默认关闭源码备份、Bare/Sv39 实测收益与额外读流量、原始失败门和 native 限制见 [实验记录](experiments/read-prefetch-demand-adoption.md)；下一统一板版须组合资格通过后显式启用。
