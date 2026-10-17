@@ -1,0 +1,20 @@
+{
+  "q": {
+    "younger": 684,
+    "older": 64
+  },
+  "s": {
+    "younger": 620,
+    "older": 64,
+    "absent": 64
+  },
+  "joint": {
+    "('Y', 'Y')": 556,
+    "('O', 'Y')": 64,
+    "('Y', 'O')": 64,
+    "('Y', 'none')": 64
+  },
+  "eligible_empty": 0,
+  "q_eligible": 748,
+  "s_eligible": 684
+}

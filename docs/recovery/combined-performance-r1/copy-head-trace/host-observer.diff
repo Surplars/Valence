@@ -1,0 +1,27 @@
+--- mmu-l2-fullcpu-50cb-r1/host/cpu_passive_bandwidth_l2.cpp
++++ combined-performance-candidate-r1/copy-trace/cpu_copy_trace.cpp
+@@ -18,7 +18,9 @@
+ // Full CPU execution only: no DataPort injection, no forced memory holds.
+ // Fixed AXI service comes from board_ddr_benchmark.h on every compared run.
+ static constexpr uint64_t src=0x80400000, dst=0x81400000, control=0x80600000;
++#include "copy_trace.h"
+ struct Observer {
++    CopyTrace copyTrace;
+     unsigned previousDTranslationState=0;
+     uint64_t dWalkEntries=0,dL2Hits=0,roiDWalkEntries=0,roiDL2Hits=0;
+     SupplyLedger supply;
+@@ -64,6 +66,7 @@
+             check(done!=0,"trap before measured program completed");
+         }
+ #if TAGGED_STORE_RETURNS
++        copyTrace.sample(d,test->cycles,active,tagged);
+         tagged.sample(d,test->cycles);
+ #endif
+         const uint64_t raw=d.get_dataPathEvents();
+@@ -261,5 +264,6 @@
+         <<" independent_misses="<<o.independentMisses<<" independent_store_hits="<<o.independentStoreHits;
+     for(unsigned i=0;i<24;++i)std::cout<<" event"<<i<<"="<<o.events[i];
+     std::cout<<"\nCPU_SV39_PASS checked_replies="<<o.checkedReplies<<" checksum="<<expectedChecksum<<"\n";
++    o.copyTrace.report();
+     return 0;
+ }catch(const std::exception&e){std::cerr<<"CPU_SV39_FAIL "<<e.what()<<"\n";return 1;}}

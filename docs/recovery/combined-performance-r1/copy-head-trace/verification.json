@@ -1,0 +1,33 @@
+{
+  "status": "PASS_WITH_POSTRUN_DOCUMENTATION_GUARD_FAILURE",
+  "simulation_exit": 0,
+  "wrapper_exit": 1,
+  "source_commit_now": "422951039439a42a55999264324cabfcdfc4a86f",
+  "all_original_source_bytes_identical": true,
+  "all_model_artifacts_identical": true,
+  "added_documentation_sha256": {
+    "docs/recovery/combined-performance-r1/REPORT.md": "3430586b9d5ec7b317e62161407475e6c8d4cba7f9c2f0993017508fd3ecd313",
+    "docs/recovery/combined-performance-r1/paired-summary.json": "a1127300ce027cc305c4d7fbfb1e7e7b4afd2d04f07bd0ab0d9e7c8f63a8547d",
+    "docs/recovery/combined-performance-r1/qualification-followup.json": "65adb39d2d6150e3d4bef2da23964a1136a9d9ac521b0e8edf2bc06199884e9f"
+  },
+  "original_stdout_exact_before_wrapper_traceback": true,
+  "original_pair_csv_identical": true,
+  "dut_builds": 0,
+  "workload_runs": 1,
+  "full_token_wait_samples": 780,
+  "artifact_sha256": {
+    "copy_trace.h": "13fa33bcab6457151f62a9a95a35dc84844464e43e2a6fcce5bee0169fd4b55e",
+    "cpu_copy_trace.cpp": "d6f895bbaf3b6e5398732daa3f0fab4076d02d3458a1c7ab02cb95f0a9393057",
+    "waiting.csv": "8148f5027f1de375869821e8421850f48a93407a34cd2ec9d15d91386cab99c7",
+    "copy-pairs.csv": "17c99e132ee2cc3e59b14318d7d09ba1ef7438ea6229e6cddbfe01b36641842e",
+    "wait-results.json": "488c434d95d7625bdfac580214616d182027f996fbac00c7369785e402164adb",
+    "run-r1.log": "554e44fb9e5af3faa7ee98ba2458c8f2de3ddd438b98d5e1680b4ef2c72c4f84",
+    "inputs.json": "f14e7fff69ec2115cd69fd23f0df79ea17ad2b65e351710ca69076a667f411d7",
+    "link.json": "09154473b79afdc1e45d157c65fb25106e7df112ba45a7612722a42ca7cb1ae8",
+    "REPORT.md": "b86b9a36028c52081ac39e35736aa4c31d94aced70ee94ab66896ceada1bc58c",
+    "owner-age-results.json": "1be0f34e5ebb0ae0a073d48a306bbaa77f17d18004696188184438932eac2e92",
+    "analyze_wait.py": "cc9d26cbaf42acfca3411311ebf47287fe7b55d748d694c527278d8631c372cd",
+    "fallback-opportunities-summary.json": "acdd00b02a0e1277b42e2131ad411655955bc17578226901fee5b5aa691cc9a8",
+    "host-observer.diff": "7f136df8ae1ff0d56202ccb9b50b01d60ea36d2e47472f172c1deed44d33d9d3"
+  }
+}
