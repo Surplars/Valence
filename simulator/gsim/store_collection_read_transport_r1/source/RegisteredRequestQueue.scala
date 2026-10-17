@@ -1,0 +1,73 @@
+package soc.core.ooo
+
+import chisel3._
+import chisel3.util._
+import soc.ip.bus.MirroredHeadQueue
+
+/** One entry owns the complete request and every enabled request-synchronous sidecar.
+  * Each optional Valid is independent: canonical/frozen ownership does not require posted authority.
+  * Keep the native types intact, including return handles, full tokens, epochs and permissions.
+  */
+class RegisteredRequestEntry(p: OooParams) extends Bundle {
+    val request = new DataRequest(p.dataReturnHandleBits)
+    val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
+    val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
+    // Keep frozenStoreProof last: the projected-head valid-bit offset relies on it.
+    val collectionHeadRead = if (p.postedCollectionReadProgress) Some(Bool()) else None
+    val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Valid(new FrozenStoreProof)) else None
+}
+
+/** Request and all CPU proofs cross the same existing FIFO boundary atomically.
+  * Capacity/latency/ready are exactly Queue(pipe=false, flow=false): no bypass,
+  * no full dequeue-to-enqueue ready path, and one transfer per cycle after fill.
+  * Capacity remains p.memoryEntries (four in the target profile), with one shared
+  * pointer pair and handshake. Flush/quiesce do not erase an already accepted LSU
+  * response owner. Acceptance and downstream authorization gates remain outside;
+  * cancelled speculative reads still drain their physical responses normally.
+  */
+class RegisteredRequestQueue(p: OooParams, val mirroredHead: Boolean = false, val projectedHead: Boolean = false) extends Module {
+    val io = IO(new QueueIO(new DataRequest(p.dataReturnHandleBits), p.memoryEntries))
+    val collectionReadIn = if (p.postedCollectionReadProgress) Some(IO(Input(Bool()))) else None
+    val collectionReadOut = if (p.postedCollectionReadProgress) Some(IO(Output(Bool()))) else None
+    val proofIn = p.postedProofConfig.map(c => IO(Input(Valid(new PostedStoreProof(c)))))
+    val proofOut = p.postedProofConfig.map(c => IO(Output(Valid(new PostedStoreProof(c)))))
+    val canonicalOriginIn = if (p.canonicalVirtualStoreOverlap)
+        Some(IO(Input(Valid(new CanonicalStoreOrigin(p))))) else None
+    val canonicalOriginOut = if (p.canonicalVirtualStoreOverlap)
+        Some(IO(Output(Valid(new CanonicalStoreOrigin(p))))) else None
+    val frozenProofIn = if (p.frozenStoreProofEnabled) Some(IO(Input(Valid(new FrozenStoreProof)))) else None
+    val frozenProofOut = if (p.frozenStoreProofEnabled) Some(IO(Output(Valid(new FrozenStoreProof)))) else None
+
+    require(!(mirroredHead && projectedHead))
+    private val record = new RegisteredRequestEntry(p)
+    private val requestBits = (record.getWidth - record.request.getWidth until record.getWidth)
+    private val projection = requestBits ++ record.frozenStoreProof.toSeq.map(_.getWidth - 1)
+    val entries = new CpuReturnTransport.Owners(if (mirroredHead || projectedHead)
+        Module(new MirroredHeadQueue(new RegisteredRequestEntry(p), p.memoryEntries, if (projectedHead) projection else Seq.empty)).suggestName("entries").io
+    else Module(new Queue(new RegisteredRequestEntry(p), p.memoryEntries,
+        pipe = false, flow = false, useSyncReadMem = false)).suggestName("entries").io)
+    entries.io.enq.valid := io.enq.valid
+    entries.io.enq.bits.request := io.enq.bits
+    entries.io.enq.bits.collectionHeadRead.foreach(_ := collectionReadIn.get)
+    collectionReadOut.foreach(_ := entries.io.deq.valid && entries.io.deq.bits.collectionHeadRead.get)
+    entries.io.enq.bits.postedProof.foreach(_ := proofIn.get)
+    entries.io.enq.bits.canonicalStoreOrigin.foreach(_ := canonicalOriginIn.get)
+    entries.io.enq.bits.frozenStoreProof.foreach(_ := frozenProofIn.get)
+    io.enq.ready := entries.io.enq.ready
+    io.deq.valid := entries.io.deq.valid
+    io.deq.bits := entries.io.deq.bits.request
+    entries.io.deq.ready := io.deq.ready
+    io.count := entries.io.count
+    proofOut.foreach { proof =>
+        proof := entries.io.deq.bits.postedProof.get
+        proof.valid := entries.io.deq.valid && entries.io.deq.bits.postedProof.get.valid
+    }
+    canonicalOriginOut.foreach { origin =>
+        origin := entries.io.deq.bits.canonicalStoreOrigin.get
+        origin.valid := entries.io.deq.valid && entries.io.deq.bits.canonicalStoreOrigin.get.valid
+    }
+    frozenProofOut.foreach { proof =>
+        proof := entries.io.deq.bits.frozenStoreProof.get
+        proof.valid := entries.io.deq.valid && entries.io.deq.bits.frozenStoreProof.get.valid
+    }
+}
