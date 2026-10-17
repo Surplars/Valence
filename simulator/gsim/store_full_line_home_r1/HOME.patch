@@ -1,0 +1,107 @@
+--- mmu-miss-cache-50cb-r1/source/src/main/scala/core/ooo/MixedCoherentLineHome.scala	2026-10-16 02:30:13.000000000 -0700
++++ store-full-line-home-r1/source/FullLineMixedCoherentLineHome.scala	2026-10-17 09:11:04.366375502 -0700
+@@ -14,7 +14,7 @@
+   * DMA/atomic maintenance remains a drain barrier; Grant bursts retain their lock.
+   * With mixedReadWrite, disjoint new refills may overlap queued dirty writebacks.
+   */
+-class MixedCoherentLineHome(
++class FullLineMixedCoherentLineHome(
+     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3, sinkBits = 2),
+     base: BigInt = BigInt("80010000", 16),
+     bytes: BigInt = 8192,
+@@ -33,7 +33,8 @@
+     val internalLineGrant: Boolean = false,
+     val memoryScheduleOverlap: Boolean = false,
+     val futureWayReservation: Boolean = false,
+-    val sharedLookupMatch: Boolean = false
++    val sharedLookupMatch: Boolean = false,
++    val permissionOnlyAllocation: Boolean = false
+ ) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
+     require(!sharedLookupMatch || (trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 &&
+         writebackEntries == 2 && mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 &&
+@@ -111,6 +112,9 @@
+     private val directory = Reg(Vec(acquireEntries, UInt(directoryBits.W)))
+     private val data = Reg(Vec(acquireEntries, Vec(8, UInt(64.W))))
+     private val errors = Reg(Vec(acquireEntries, Bool()))
++    // Frozen at A acceptance; no additional line payload storage.
++    private val permissionOnly = if (permissionOnlyAllocation) Reg(Vec(acquireEntries, Bool()))
++        else WireDefault(VecInit(Seq.fill(acquireEntries)(false.B)))
+     private val active = VecInit(phase.map(_ =/= free))
+     private val anyAcquire = active.asUInt.orR
+     private def transientSet(address: UInt): Bool =
+@@ -381,14 +385,15 @@
+     port.a.ready := canAcquire
+     // Reader readiness does not affect A admission. A failed direct dispatch
+     // falls back to the existing FIFO with the same reserved metadata/tag.
+-    directFillOffer := port.a.fire && !fillQueue.io.deq.valid && readDispatchAllowed
+-    fillQueue.io.enq.valid := port.a.fire && !directFillFire
++    private val incomingPermission = permissionOnlyAllocation.B && port.a.bits.opcode === TLOpcode.AcquirePerm
++    directFillOffer := port.a.fire && !incomingPermission && !fillQueue.io.deq.valid && readDispatchAllowed
++    fillQueue.io.enq.valid := port.a.fire && !incomingPermission && !directFillFire
+     fillQueue.io.enq.bits := allocate
+     when(port.a.fire) {
+-        assert(port.a.bits.opcode === TLOpcode.AcquireBlock && port.a.bits.param === TLPermissions.nToT &&
++        assert((port.a.bits.opcode === TLOpcode.AcquireBlock || incomingPermission) && port.a.bits.param === TLPermissions.nToT &&
+             port.a.bits.size === 6.U && port.a.bits.address(5, 0) === 0.U &&
+             inRam(port.a.bits.address) && !lineOwned(port.a.bits.address, acquireTags) && !port.a.bits.corrupt,
+-            "home accepts only an aligned unowned nToT AcquireBlock")
++            "home accepts only an aligned unowned nToT AcquireBlock or enabled AcquirePerm")
+         addresses(allocate) := port.a.bits.address
+         sources(allocate) := port.a.bits.source
+         if (futureWayReservation) {
+@@ -400,7 +405,8 @@
+         }
+         directory(allocate) := (if (futureWayReservation) selectedDirectory else freeDirectorySlot(port.a.bits.address))
+         errors(allocate) := false.B
+-        phase(allocate) := Mux(directFillFire, filling, queued)
++        if (permissionOnlyAllocation) permissionOnly(allocate) := incomingPermission
++        phase(allocate) := Mux(incomingPermission, grantReady, Mux(directFillFire, filling, queued))
+     }
+     private val lineAdmissionOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
+         (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+@@ -692,20 +698,21 @@
+     private val grantEntry = Mux(dLocked, dEntry, selectedGrant)
+     port.d.valid := Mux(sendRelease, releaseAckMask(ackRelease), grantMask(grantEntry))
+     port.d.bits := 0.U.asTypeOf(port.d.bits)
+-    port.d.bits.opcode := Mux(sendRelease, TLOpcode.ReleaseAck, TLOpcode.GrantData)
++    port.d.bits.opcode := Mux(sendRelease, TLOpcode.ReleaseAck, Mux(permissionOnly(grantEntry), TLOpcode.Grant, TLOpcode.GrantData))
+     port.d.bits.param := Mux(sendRelease, 0.U, TLPermissions.toT)
+     port.d.bits.size := 6.U
+     port.d.bits.source := Mux(sendRelease, releaseSources(ackRelease), sources(grantEntry))
+     port.d.bits.sink := Mux(sendRelease, 0.U, grantEntry)
+     port.d.bits.denied := !sendRelease && errors(grantEntry)
+-    port.d.bits.corrupt := !sendRelease && errors(grantEntry)
+-    port.d.bits.data := Mux(sendRelease || errors(grantEntry), 0.U, data(grantEntry)(dBeat))
++    port.d.bits.corrupt := !sendRelease && !permissionOnly(grantEntry) && errors(grantEntry)
++    port.d.bits.data := Mux(sendRelease || permissionOnly(grantEntry) || errors(grantEntry), 0.U, data(grantEntry)(dBeat))
+     private val grantFire = if (internalLineGrant) {
+         val grant = io.lineGrants.get(0)
+         // Preserve the shared arbitration/held-owner cut. ReleaseAck stays on
+-        // standard D; a data Grant uses exactly one of the two transports.
+-        port.d.valid := sendRelease && releaseAckMask(ackRelease)
+-        grant.valid := !sendRelease && grantMask(grantEntry)
++        // standard D, as does a permission-only Grant. Data uses only lineGrant.
++        port.d.valid := Mux(sendRelease, releaseAckMask(ackRelease),
++            grantMask(grantEntry) && permissionOnly(grantEntry))
++        grant.valid := !sendRelease && grantMask(grantEntry) && !permissionOnly(grantEntry)
+         grant.bits.source := sources(grantEntry)
+         grant.bits.sink := grantEntry
+         grant.bits.cap := TLPermissions.toT
+@@ -715,7 +722,7 @@
+         when((port.d.valid || grant.valid) && !dLocked) {
+             dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease
+         }
+-        grant.fire
++        grant.fire || (port.d.fire && !sendRelease)
+     } else {
+         when(port.d.valid && !dLocked) { dLocked := true.B; dRelease := sendRelease; dEntry := grantEntry; heldRelease := ackRelease }
+         port.d.fire && !sendRelease
+@@ -729,7 +736,7 @@
+     }
+     when(grantFire) {
+         if (futureWayReservation) assert(!futurePaired(grantEntry), "Grant published an incomplete future way")
+-        when(internalLineGrant.B || dBeat === 7.U) {
++        when(permissionOnly(grantEntry) || internalLineGrant.B || dBeat === 7.U) {
+             phase(grantEntry) := waitE
+             dBeat := 0.U
+             dTurn := grantEntry + 1.U
