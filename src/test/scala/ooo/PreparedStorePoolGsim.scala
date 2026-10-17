@@ -82,3 +82,101 @@ object PreparedStorePoolAreaMain extends App {
     ChiselStage.emitSystemVerilogFile(new PreparedStorePoolSelector(args(1).toBoolean, postedPriority = false),
         Array("--target-dir", args.head), firtoolOpts = Array("--disable-all-randomization", "--strip-debug-info"))
 }
+
+/** Full production virtual qualification, before any prepared mask abstraction. */
+class VirtualStoreOperandQualification extends Module {
+    val io = IO(new Bundle {
+        val flags = Input(UInt(15.W))
+        val operation = Input(UInt(6.W))
+        val control = Input(UInt(4.W))
+        val virtualOperands = Output(Bool())
+        val off = Output(Bool())
+        val on = Output(Bool())
+    })
+    val f = io.flags
+    val request = WireDefault(0.U.asTypeOf(new IntegerRequest))
+    request.memory := f(4); request.store := f(5); request.atomic := f(6)
+    request.system := f(7); request.mulDiv := f(8)
+    request.fetchFault := f(9); request.fetchPageFault := f(10)
+    request.operation := io.operation; request.controlFlow := io.control
+    val virtualOperands = PreparedStorePool.virtualOperands(f(0), f(1), f(2), f(3), request,
+        f(11), f(12), f(14))
+    // Frozen old qualification, including the physical Bare range requirement.
+    val bareOperands = f(0) && f(1) && !f(2) && f(3) &&
+        request.memory && request.store && !request.atomic && !request.system && !request.mulDiv &&
+        request.controlFlow === ControlFlow.none && request.operation === IntegerOp.add &&
+        !request.fetchFault && !request.fetchPageFault && f(11) && f(12) && f(13)
+    io.virtualOperands := virtualOperands
+    io.off := bareOperands && !f(14)
+    io.on := Mux(f(14), virtualOperands, bareOperands)
+}
+
+/** The real production pool plus the real Q/S planner, with full-tag owner inputs. */
+class VirtualStoreOperandPoolGsim extends Module {
+    private val p = CombinedTimingRepairR1Profile.config(true).coreParams
+    val io = IO(new Bundle {
+        val flags = Input(UInt(15.W))
+        val operation = Input(UInt(6.W))
+        val control = Input(UInt(4.W))
+        val original = Input(UInt(16.W))
+        val prepared = Input(UInt(16.W))
+        val head = Input(UInt(4.W))
+        val resident = Input(UInt(4.W))
+        val descriptor = Input(UInt(4.W))
+        val residentPresent = Input(Bool())
+        val descriptorPresent = Input(Bool())
+        val residentPending = Input(Bool())
+        val descriptorPending = Input(Bool())
+        val residentSavedIndex = Input(UInt(4.W))
+        val descriptorSavedIndex = Input(UInt(4.W))
+        val residentSavedTag = Input(UInt(64.W))
+        val descriptorSavedTag = Input(UInt(64.W))
+        val residentRowTag = Input(UInt(64.W))
+        val descriptorRowTag = Input(UInt(64.W))
+        val residentKilled = Input(Bool())
+        val descriptorKilled = Input(Bool())
+        val freshKilled = Input(Bool())
+        val clear = Input(Bool())
+        val issued = Input(Bool())
+        val qualification = Output(UInt(3.W))
+        val off = Output(UInt(25.W))
+        val on = Output(UInt(25.W))
+    })
+    val qualification = Module(new VirtualStoreOperandQualification)
+    qualification.io.flags := io.flags
+    qualification.io.operation := io.operation
+    qualification.io.control := io.control
+    io.qualification := Cat(qualification.io.on, qualification.io.off, qualification.io.virtualOperands)
+    def arm(enabled: Boolean): UInt = {
+        val qualified = if (enabled) qualification.io.on else qualification.io.off
+        val pool = PreparedStorePool.fallback(io.original, io.prepared & Fill(16, qualified),
+            (if (enabled) true.B else !io.flags(14)), lateEnable = true)
+        val planner = Module(new MemoryPreparationDescriptorSelector(p))
+        planner.io.eligible := pool._1
+        planner.io.enabled := pool._2
+        planner.io.head := io.head
+        planner.io.headMask := VecInit((0 until 16).map(i => i.U >= io.head)).asUInt
+        planner.io.resident.valid := io.residentPresent && io.residentPending &&
+            io.residentSavedIndex === io.resident && io.residentSavedTag === io.residentRowTag
+        planner.io.resident.bits := io.resident
+        planner.io.descriptor.valid := io.descriptorPresent && io.descriptorPending &&
+            io.descriptorSavedIndex === io.descriptor && io.descriptorSavedTag === io.descriptorRowTag
+        planner.io.descriptor.bits := io.descriptor
+        planner.io.issued := io.issued
+        // Existing caller kill/clear gates, after ranking; these do not make a new candidate.
+        Cat(planner.io.keepDescriptor && !io.clear && !io.descriptorKilled,
+            planner.io.keepResident && !io.clear && !io.residentKilled,
+            planner.io.transfer && !io.clear && !io.descriptorKilled,
+            planner.io.capture && !io.clear && !io.freshKilled,
+            planner.io.freshValid, planner.io.freshIndex, planner.io.freshOwner)
+    }
+    io.off := arm(false)
+    io.on := arm(true)
+}
+object VirtualStoreOperandPoolGsimMain extends App {
+    ChiselStage.emitCHIRRTLFile(new VirtualStoreOperandPoolGsim, Array("--target-dir", args(0)))
+}
+object VirtualStoreOperandQualificationVerilogMain extends App {
+    ChiselStage.emitSystemVerilogFile(new VirtualStoreOperandQualification, Array("--target-dir", args(0)),
+        firtoolOpts = Array("--disable-all-randomization", "--strip-debug-info"))
+}

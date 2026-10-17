@@ -1,0 +1,97 @@
+{
+  "status": "OFF_GRAPH_CLOSED_RESOURCE_SCREEN_COMPLETE_TIMING_UNQUALIFIED",
+  "review_date_utc": "2026-10-17",
+  "qualified_source_commit": "9b5cf10ef7fbcf27846e5b64a5ccb3ea473f87f2",
+  "production_source_changed": false,
+  "rebuild_or_new_mapping_run": false,
+  "source_emission_verification": {
+    "sealed_source_files": 3762,
+    "source_mismatches": [],
+    "native_emission_mismatches": [],
+    "snapshot_sha256": "3d9fe04111218921dee5284c085d04060f1fe629cbd46d16afcb7d85c48c8734",
+    "release_sha256": "8753f486bc017b97b45671c5a3f8d88afb7f3e22c2c0cbdba67a073aa53a40aa"
+  },
+  "integrated_artifact_verification": {
+    "artifact_count": 663,
+    "mismatches": []
+  },
+  "off": {
+    "status": "PASS_EXACT_ASSERT_STRIPPED_GENERIC_CONNECTIVITY",
+    "module_count": 291,
+    "inputs": {
+      "/workspace/scratch/41e4a649bb60/combined-timing-repair-integrated-r1/repair-on-hierarchy.json": "364bfa71ec187b7208ac5e08e1a4db92bcef0562854594a148c55cce2b1c5548",
+      "/workspace/scratch/41e4a649bb60/banked-store-integrated-screen-r1/native-off-hierarchy.json": "5eff44b42e2d7953f92446dfba4bba1b9d244b01be80ae0cc54523e3a9b491b0"
+    },
+    "method": "Same production assertion-stripped nonflattened generic conversion; compare every module port, all cell types/parameters/directions and exact connection bit ids, memory geometry/attributes and initial values. Ignore only generated cell instance names and src metadata. No alpha-renaming, Boolean simplification or input assumptions in comparator.",
+    "edge_mutation_rejected": true,
+    "limits": [
+      "This is generic hardware graph equality, not raw FIR equality or routed timing equality.",
+      "Assertions are stripped by production lowering; assertion ordering/source diagnostics are not compared.",
+      "No ON equivalence claim; ON intentionally changes behavior/timing.",
+      "Shared vendor blackbox behavior is inherited, while their connection graphs and parameters are compared."
+    ]
+  },
+  "off_receipt_byte_identical_after_rerun": true,
+  "mapped_analysis_reproduction": {
+    "native-off": {
+      "rerun_sha256": "8aef425ebf308a77ab8ad54e67947ba5389751cbe0bd20bc1a1b9acc51641114",
+      "original_sha256": "8aef425ebf308a77ab8ad54e67947ba5389751cbe0bd20bc1a1b9acc51641114"
+    },
+    "native-on": {
+      "rerun_sha256": "f97442439769fed763eb0e4bf1a0b21452a2dad144f60d55b956a5a920a275c9",
+      "original_sha256": "f97442439769fed763eb0e4bf1a0b21452a2dad144f60d55b956a5a920a275c9"
+    }
+  },
+  "mapping_summary": {
+    "status": "RESOURCE_SCREEN_COMPLETE_MAPPED_DEPTH_REGRESSION",
+    "scope": "Matched actual four-feature payload/Q-state envelope only",
+    "results": {
+      "OFF": {
+        "logic_LUT": 19536,
+        "LUTRAM_allocated_LUT_sites": 0,
+        "total_allocated_LUT": 19536,
+        "FF": 1090,
+        "BRAM": 0
+      },
+      "ON": {
+        "logic_LUT": 17538,
+        "LUTRAM_allocated_LUT_sites": 80,
+        "total_allocated_LUT": 17618,
+        "FF": 82,
+        "BRAM": 0
+      }
+    },
+    "delta_ON_minus_OFF": {
+      "logic_LUT": -1998,
+      "LUTRAM_allocated_LUT_sites": 80,
+      "total_allocated_LUT": -1918,
+      "FF": -1008,
+      "BRAM": 0
+    },
+    "mapped_LUT_level_regression": 3,
+    "timing_PASS": false,
+    "routed_timing_qualified": false,
+    "whole_backend_resource_claim": false
+  },
+  "evidence_sha256": {
+    "combined-performance-candidate-r1/source-snapshot.json": "3d9fe04111218921dee5284c085d04060f1fe629cbd46d16afcb7d85c48c8734",
+    "combined-performance-candidate-r1/native-emission-release.json": "8753f486bc017b97b45671c5a3f8d88afb7f3e22c2c0cbdba67a073aa53a40aa",
+    "combined-performance-candidate-r1/off-independent-review/exact_connectivity.py": "ad4c18d700a321bfdff63c15ffc0b071159284d84d759931d6427863a3730b3d",
+    "combined-performance-candidate-r1/off-independent-review/exact-connectivity.json": "de48d5322f80f687b8e7c40c6331ab63da50097a30c28c0fc12de15d2172209f",
+    "banked-store-integrated-screen-r1/artifact-sha256.json": "ac625df618fe8ee381f0b99d9b342daae85754a9d253983578cadd0577b74785",
+    "banked-store-integrated-screen-r1/mapping-receipt.json": "9a0332db8fb4837df48e9489c598d02fc04f36cd70d5a98568d0dce4ffe5ad5c",
+    "banked-store-integrated-screen-r1/aligned-interface-receipt.json": "6a7c646df76391905a884ffb13047bbd270fbb8e9ad838888d09e32ced6c0789",
+    "banked-store-integrated-screen-r1/analyze_payload_map.py": "3f1d650201dc228d0dfa67c552e235611a3f6be1d23ab12af1b92f0d1c514554",
+    "banked-store-integrated-screen-r1/mapped-path-bindings.json": "dcff4538db1865d579bcbe921fcde0f2421b5d7a75289a3a1ade258e305a8983",
+    "banked-store-integrated-screen-r1/native-off-mapped-analysis.json": "8aef425ebf308a77ab8ad54e67947ba5389751cbe0bd20bc1a1b9acc51641114",
+    "banked-store-integrated-screen-r1/native-on-mapped-analysis.json": "f97442439769fed763eb0e4bf1a0b21452a2dad144f60d55b956a5a920a275c9",
+    "banked-store-integrated-screen-r1/native-off-control-ancestry.json": "cc0e100b8201d7df842aaa78d573063a5dadd927b85dc4cae2a1c46f915f0de5",
+    "banked-store-integrated-screen-r1/native-on-control-ancestry.json": "6a8cba274bfa0027cece3672e09d8a92400e04d2a4d0bfbf28480224ddf17995",
+    "banked-store-integrated-screen-r1/RESULTS.md": "6f7b394a1961cd17ed07c2468e5f83609d580114581546214d106703db880ca3",
+    "banked-store-integrated-screen-r1/INDEPENDENT-REVIEW.md": "c5eea2e7dcce247aff534a28f3a08cd045d5436d3d210d7d73176c40ef5cc8b7"
+  },
+  "remaining": [
+    "Whole-candidate physical/routed timing and actual board qualification; +3 mapped LUT-level regression is not a STA result."
+  ],
+  "scope_warning": "Independent CRC/cache/PMP experiments are excluded from this measured candidate; source integration does not transfer hardware qualification."
+}

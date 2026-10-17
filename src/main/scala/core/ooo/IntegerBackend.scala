@@ -83,10 +83,16 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val proofBankOwnerCleanup: Boolean = false,
     val factorPreparedStorePool: Boolean = false, val projectedRequestHead: Boolean = false,
     val registeredMemoryPreparationDescriptor: Boolean = false,
-    val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
     require(!earlyLoadPreparationDescriptor || (registeredMemoryPreparationDescriptor &&
         p.ownerLocalOperandReady && p.parallelPrfReadyUpdates && p.lvtPhysicalRegisterFile),
         "early load descriptor requires the existing registered descriptor and owner-ready PRF contract")
+    VirtualStoreOperandLookaheadContract.requireSupported(p, virtualStoreOperandLookahead,
+        factorPreparedStorePool, registeredMemoryPreparationDescriptor)
+    require(!bankedStoreData || (registeredMemoryPreparationDescriptor && p.earlyStorePreparation &&
+        p.parallelMemoryPreparation && p.registeredMemoryAddress && !p.memoryProofFrontier &&
+        p.completionWidth == 2 && p.issueWidth == 2 && isPow2(p.robEntries)),
+        "banked store data requires the two-writer registered descriptor preparation topology")
     require(!registeredMemoryPreparationDescriptor || (factorPreparedStorePool &&
         p.residentMemoryPayloadReuse && p.preparedStoreLookahead && !p.postedPreparationPriority &&
         p.registeredIssueHeadMask && p.bankedIssuePayload && p.unconditionalMemoryPayloadCapture),
@@ -430,7 +436,16 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val storeAddress   = Reg(Vec(p.robEntries, UInt(64.W)))
     val storeByteLanes = Reg(Vec(p.robEntries, UInt(8.W)))
     val storeSafeRange = Reg(Vec(p.robEntries, Bool()))
+    // OFF: original payload. ON: independent assertion-only golden, unchanged writers.
+    // All functional ON consumers below use the RAM; assertion-layer removal must
+    // eliminate this shadow, without adding extra RAM read ports for invariants.
     val storeData      = Reg(Vec(p.robEntries, UInt(64.W)))
+    val storeDataRam = if (bankedStoreData) Some(Module(new WriterBankedStoreData(p.robEntries, 2))) else None
+    storeDataRam.foreach { ram =>
+        ram.io.write := 0.U.asTypeOf(ram.io.write)
+        ram.io.address := 0.U.asTypeOf(ram.io.address)
+        ram.io.enable := VecInit(Seq.fill(2)(true.B))
+    }
     // A row has one immutable operation class for its live ROB generation.
     // Stores retain their full prepared VA; ordinary loads retain only the
     // canonical beat and byte lanes consumed by replay. All existing validity,
@@ -783,7 +798,14 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     fastStoreValid := fastStoreCandidate && !ledger.io.recoveryAccepted && !ledger.io.headException.valid
     fastStoreRequest.address := fastAddress
     fastStoreRequest.size := fastSize
-    fastStoreRequest.data := storeData(head) << Cat(fastAddress(2, 0), 0.U(3.W))
+    val fastStoreData = storeDataRam.map { ram =>
+        ram.io.address(0) := head
+        when(ledger.io.headValid && pending(head) && headRequest.memory && headRequest.store && storePrepared(head)) {
+            assert(ram.io.data(0) === storeData(head), "banked head data must match the original prepared store")
+        }
+        ram.io.data(0)
+    }.getOrElse(storeData(head))
+    fastStoreRequest.data := fastStoreData << Cat(fastAddress(2, 0), 0.U(3.W))
     fastStoreRequest.mask := byteLanes(fastSize, fastAddress)
     fastStoreRequest.write := true.B
     fastProof.foreach { proof =>
@@ -921,8 +943,20 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     // No P-only priority, saved owner, new rank/port, or launch/ready/seal feedback.
                     Mux(postedPreparationWindow, originalMemoryMask | preparedStoreMask, originalPreparationMask)
                 } else {
-                    val pool = PreparedStorePool.fallback(originalMemoryMask, rawPreparedStoreMask,
-                        !virtualized, latePreparedPool)
+                    // Effective VA/data only, never PA, permission, ownership or an early response.
+                    // The exact Bare eligibility expression above is deliberately unchanged.
+                    val fallbackMask = if (virtualStoreOperandLookahead) {
+                        val virtualOperands = VecInit((0 until p.robEntries).map { i =>
+                            val entry = issueEntries(i)
+                            PreparedStorePool.virtualOperands(pending(i), memoryLive(i), memoryPreparationAtHead(i),
+                                entry.renamed.token.index === i.U, entry.request,
+                                storePrepared(i), storeAddressKnown(i), virtualized)
+                        }).asUInt
+                        Mux(virtualized, virtualOperands, rawPreparedStoreMask)
+                    } else rawPreparedStoreMask
+                    val preparationEnabled = if (virtualStoreOperandLookahead) true.B else !virtualized
+                    val pool = PreparedStorePool.fallback(originalMemoryMask, fallbackMask,
+                        preparationEnabled, latePreparedPool)
                     preparationPoolEnabled := pool._2
                     pool._1
                 }
@@ -1000,7 +1034,17 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                         descriptor.size := fresh.request.memorySize
                         descriptor.saved := freshSaved
                         descriptor.savedAddress := selected(storeAddress.toSeq)
-                        descriptor.savedData := selected(storeData.toSeq)
+                        descriptor.savedData := storeDataRam.map(_.io.data(1)).getOrElse(selected(storeData.toSeq))
+                    }
+                    storeDataRam.foreach { ram =>
+                        ram.io.address(1) := planner.io.freshIndex
+                        ram.io.enable(1) := planner.io.freshOwner.orR
+                        assert(PopCount(planner.io.freshOwner) <= 1.U,
+                            "banked preparation read requires the existing onehot fresh owner")
+                        when(capture && freshSaved) {
+                            assert(ram.io.data(1) === selected(storeData.toSeq),
+                                "banked fresh data must match the original prepared store")
+                        }
                     }
                     // Exactly the previous two preparation operand ports, now addressed by registered IDs.
                     // Valid qualification here is registered, not a late permission/kill chain.
@@ -3018,6 +3062,17 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             (preparedAddresses(rank)(2, 0) & mask) === 0.U &&
                 SpeculativeRamRange.contains(p, preparedAddresses(rank), captured(rank).size)
         }
+        val storeDataWriteOwners = if (bankedStoreData)
+            Some(WireDefault(0.U.asTypeOf(Vec(2, Vec(p.robEntries, Bool()))))) else None
+        storeDataRam.foreach { ram =>
+            for (rank <- 0 until 2) {
+                ram.io.write(rank).valid := storeDataWriteOwners.get(rank).asUInt.orR
+                ram.io.write(rank).bits.index := captured(rank).token.index
+                ram.io.write(rank).bits.data := captured(rank).data
+                assert(PopCount(storeDataWriteOwners.get(rank)) <= 1.U,
+                    "one preparation rank writes at most one full-owner store data row")
+            }
+        }
         for (slot <- 0 until p.robEntries; rank <- 0 until 2) {
             when(grants(slot) && owners(rank)(slot)) {
                 assert(payloads(rank).token.asUInt === issueEntries(slot).renamed.token.asUInt,
@@ -3035,6 +3090,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 when(operand.dataReady) {
                     storePrepared(slot) := true.B
                     storeData(slot) := operand.data
+                    storeDataWriteOwners.foreach(_(rank)(slot) := true.B)
+                    if (bankedStoreData) {
+                        assert(operand.token.index === slot.U,
+                            "RAM write address must equal the original authorized store row")
+                    }
                 }
             }
         }

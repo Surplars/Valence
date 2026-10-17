@@ -376,7 +376,7 @@ final case class FpgaNextConfig(
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity)
 
-    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0): BoardSocTop = new BoardSocTop(
+    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,
         instructionPrefetch = instructionPrefetch, isaProfile = isaProfile,
@@ -440,6 +440,8 @@ final case class FpgaNextConfig(
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor, dataTlbMissCacheEntries = dataTlbMissCacheEntries,
+        virtualStoreOperandLookahead = virtualStoreOperandLookahead,
+        bankedStoreData = bankedStoreData,
         registerNextLineDecision = registerNextLineDecision,
         sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
         disjointEvictionStoreOverlap = disjointEvictionStoreOverlap)

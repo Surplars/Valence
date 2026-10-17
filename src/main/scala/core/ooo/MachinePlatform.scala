@@ -69,7 +69,7 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
     require(Set(0, 32, 64, 128).contains(dataTlbMissCacheEntries),
         "data TLB miss cache entries must be 0, 32, 64, or 128")
     require(dataTlbMissCacheEntries == 0 || translationService,
@@ -261,6 +261,8 @@ class MachinePlatform(
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
+        virtualStoreOperandLookahead = virtualStoreOperandLookahead,
+        bankedStoreData = bankedStoreData,
         registerNextLineDecision = registerNextLineDecision))
     // The compact-key representation is enabled only for the qualified board fetch domain.
     val qualifiedCompactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&

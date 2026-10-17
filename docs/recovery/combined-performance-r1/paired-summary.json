@@ -1,0 +1,158 @@
+{
+  "status": "PASS_SCOPED_FUNCTIONAL_PERFORMANCE_DIAGNOSTICS",
+  "baseline": "50cb0c5d4b17318904d6cf818ad23829821d5d93",
+  "integration_base": "e2237bd0725ea6a73703f4d75c95eb826b51fef8",
+  "candidate_flags": {
+    "earlyLoadPreparationDescriptor": true,
+    "dataTlbMissCacheEntries": 64,
+    "virtualStoreOperandLookahead": true,
+    "bankedStoreData": true
+  },
+  "library_defaults": {
+    "earlyLoadPreparationDescriptor": false,
+    "dataTlbMissCacheEntries": 0,
+    "virtualStoreOperandLookahead": false,
+    "bankedStoreData": false
+  },
+  "cpu_hz": 100000000,
+  "instruction_l1_tlb_entries": 8,
+  "data_l1_tlb_entries": 16,
+  "physical_prf_read_ports": 12,
+  "issue_payload_read_groups": 8,
+  "descriptor_bits": 276,
+  "positive_executions": 15,
+  "expected_oracle_rejections": 6,
+  "results": [
+    {
+      "case": "warm-store-bare",
+      "baseline_cycles": 32881,
+      "candidate_cycles": 32881,
+      "stores": 8192,
+      "bytes": 65536,
+      "candidate_commit_to_next_start_median": 2
+    },
+    {
+      "case": "warm-store-sv39-4k",
+      "baseline_cycles": 81945,
+      "candidate_cycles": 65561,
+      "stores": 8192,
+      "bytes": 65536,
+      "candidate_commit_to_next_start_median": 2
+    },
+    {
+      "case": "warm-store-sv39-2m",
+      "baseline_cycles": 81945,
+      "candidate_cycles": 65561,
+      "stores": 8192,
+      "bytes": 65536,
+      "candidate_commit_to_next_start_median": 2
+    },
+    {
+      "case": "hot-dependent",
+      "baseline_cycles": 4096,
+      "candidate_cycles": 3584,
+      "loads": 512
+    },
+    {
+      "case": "hot-independent",
+      "baseline_cycles": 762,
+      "candidate_cycles": 762,
+      "loads": 512
+    },
+    {
+      "case": "stream-read16",
+      "baseline_cycles": 74093,
+      "candidate_cycles": 74093,
+      "l2_only_cycles": 74093,
+      "bytes_per_stream": 65536,
+      "repetitions": 2
+    },
+    {
+      "case": "stream-copy16",
+      "baseline_cycles": 175018,
+      "candidate_cycles": 172018,
+      "l2_only_cycles": 172020,
+      "bytes_per_stream": 65536,
+      "repetitions": 2
+    },
+    {
+      "case": "coremark-fixed-one-iteration",
+      "baseline_cycles": 579036,
+      "candidate_cycles": 569969,
+      "five_crc_equal": true,
+      "guest_sha256": "f4cd50daea59f402f40c25302d22c5b05b3429517088bf647ec8cca6345cb88d",
+      "formal_score": false
+    },
+    {
+      "case": "page-set-read-16",
+      "baseline_cycles": 12052,
+      "candidate_cycles": 12052,
+      "repetitions": 128,
+      "candidate_roi_walks": 0,
+      "candidate_roi_l2_hits": 0
+    },
+    {
+      "case": "page-set-read-17",
+      "baseline_cycles": 131716,
+      "candidate_cycles": 28934,
+      "repetitions": 128,
+      "candidate_roi_walks": 0,
+      "candidate_roi_l2_hits": 2176
+    },
+    {
+      "case": "page-set-read-32",
+      "baseline_cycles": 247300,
+      "candidate_cycles": 53894,
+      "repetitions": 128,
+      "candidate_roi_walks": 0,
+      "candidate_roi_l2_hits": 4096
+    }
+  ],
+  "context_permission": {
+    "context": {
+      "pass_lines": [
+        "NATIVE_CONTEXT_DATA_PASS cycles=12755 probes=3 writes=2 walks=96 checked_replies=103 sfence=1 satp_root_asid=1",
+        "NATIVE_L2_CONTEXT_PASS cycles=12755 target_l2_hits=1,1,1 walks=96 checked_replies=103 sfence=1 satp_root_asid=1 permission_atomic=NOT_COVERED"
+      ],
+      "log_sha256": "85335bdcbcfdd904f7170a251c01d411778ae04416bbff4517037ff0a5d6a138"
+    },
+    "permission-sum": {
+      "pass_lines": [
+        "NATIVE_PERMISSION_DATA_PASS case=0 cycles=5104 trap=1 target_reads=2 writes=1 checked_replies=34",
+        "NATIVE_L2_PERMISSION_PASS case=0 target_l2_hits=1"
+      ],
+      "log_sha256": "15d38d7fa40a160d232266b12d39e9f9ad5f28672554a3418318f5f1f286075c"
+    },
+    "permission-mxr": {
+      "pass_lines": [
+        "NATIVE_PERMISSION_DATA_PASS case=1 cycles=5104 trap=1 target_reads=2 writes=1 checked_replies=34",
+        "NATIVE_L2_PERMISSION_PASS case=1 target_l2_hits=1"
+      ],
+      "log_sha256": "ba8ff783f3f16b8b7cc55d9e073acecd03a087e115f71b4982d29debdd7025d7"
+    },
+    "permission-pmp": {
+      "pass_lines": [
+        "NATIVE_PERMISSION_DATA_PASS case=2 cycles=5284 trap=1 target_reads=2 writes=1 checked_replies=34",
+        "NATIVE_L2_PERMISSION_PASS case=2 target_l2_hits=1"
+      ],
+      "log_sha256": "1ba3c9f1ffa441aeb56b6d64118ee6214509d6d38276ba054da2e82ff9ec3415"
+    }
+  },
+  "pending": [
+    "combined OFF hardware equivalence closure",
+    "integrated banked payload resource and read-address/data/control mapping",
+    "routed physical timing and board qualification"
+  ],
+  "source_snapshot_sha256": "3d9fe04111218921dee5284c085d04060f1fe629cbd46d16afcb7d85c48c8734",
+  "native_emission_release_sha256": "8753f486bc017b97b45671c5a3f8d88afb7f3e22c2c0cbdba67a073aa53a40aa",
+  "model_artifacts_manifest_sha256": "1f4bf3bcd3503728079313ecb09a7821f9392b98980928ea820eae2c8e2159a5",
+  "paired_report_sha256": {
+    "warm-comparison.json": "90b5a29a267521777a954b85d7d003fa4f506245c78bad1fc74ecb0b2fc1c9b1",
+    "stream-comparison.json": "66f3c2c0146e985a0bff281536318e6a76fa028c7b610cccfb1842de3ea942fc",
+    "hot-dependent.json": "9af617dd1a1415c5766c257e266a541812f7ab75c1c4498f3aeb344c3858dd26",
+    "hot-independent.json": "14650c848592d1374451f6aca9c093b8a0e3a53915d3031f29b72e7f60e140ee",
+    "coremark-comparison.json": "b3b659b170b74f4ccb2d34f86856623d685a80c47e64153bcc14a07e55c6a660",
+    "mmu-comparison.json": "ccc09eff2b87951ac68ebbf48f4060d607f376957515dec0d3f049da1711de5e",
+    "mmu-negative-results.json": "a44877274fc667a254bd25cefb204901849ff56ee47046951605663cd7caac6c"
+  }
+}

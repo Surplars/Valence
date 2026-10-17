@@ -68,7 +68,7 @@ object ReadyStoreQuery77BackendFactory {
     def create(profile: FpgaNextConfig, preselectRedirectTokenMatches: Boolean = false,
         shadowEarlyProofBind: Boolean = false, proofBankQuiesceIntent: Boolean = false,
         proofBankOwnerCleanup: Boolean = false, factorPreparedStorePool: Boolean = false,
-        projectedRequestHead: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false): IntegerBackend = {
+        projectedRequestHead: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): IntegerBackend = {
         val args = arguments(profile)
         new IntegerBackend(profile.coreParams, canonicalHandoff = args("canonicalHandoff"),
             registerCanonicalStoreEvent = args("registerCanonicalStoreEvent"),
@@ -77,7 +77,8 @@ object ReadyStoreQuery77BackendFactory {
             proofBankQuiesceIntent = proofBankQuiesceIntent, proofBankOwnerCleanup = proofBankOwnerCleanup,
             factorPreparedStorePool = factorPreparedStorePool, projectedRequestHead = projectedRequestHead,
             registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor,
-            earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor)
+            earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
+            backendNaturalAlignedPmp = backendNaturalAlignedPmp, virtualStoreOperandLookahead = virtualStoreOperandLookahead, bankedStoreData = bankedStoreData)
     }
 }
 

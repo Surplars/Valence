@@ -66,6 +66,7 @@ struct Bench {
     std::set<Token> expectedCredits,seenEarly;
     unsigned twoProofCycles=0,twoBoundCycles=0,twoCreditCycles=0,b2IdleStarts=0,maxNeededProofs=0,readyHeadSpareCycles=0;
     std::optional<Token> secondStore,thirdLoad;
+    unsigned expectedStoreFaultCause=7;
     bool faultStore=false,faultLoad=false,commitEnable=true,injectData=false,injectRetire=false;
     bool injectFrozenPa=false,injectLocalAck=false,injectLoadError=false,injectStoreError=false;
     unsigned overlappedStarts=0,checkedStores=0,corruptions=0,recoveryEdges=0,recoveryWithLiveRead=0;
@@ -432,7 +433,7 @@ struct Bench {
             check(entries.count(t)&&!entries.at(t).killed,"completion for nonexistent/killed full token"); \
             auto &e=entries.at(t);check(completionTokens.insert(t).second,"duplicate completion");e.completed=true;e.complete=cycle; \
             if(e.memory)check(bool(dut.get_io$$issued##N##$$bits$$exception())==e.fault && \
-                (!e.fault || (dut.get_io$$issued##N##$$bits$$cause()==(e.store?7:5) && dut.get_io$$issued##N##$$bits$$tval()==e.address)), \
+                (!e.fault || (dut.get_io$$issued##N##$$bits$$cause()==(e.store?expectedStoreFaultCause:5) && dut.get_io$$issued##N##$$bits$$tval()==e.address)), \
                 "physical error lost exact completion cause/original VA"); \
             if(e.writes&&!e.fault)check(dut.get_io$$issued##N##$$bits$$data()==e.expected,"independent execution data mismatch"); \
         }
@@ -482,7 +483,7 @@ struct Bench {
                     dut.get_io$$trap$$bits$$tval()==0 && !dut.get_io$$lsuStart(),
                     "independent timer IRQ precise owner/cause/launch mismatch");
             } else {
-                check(t==live.front()&&e.fault&&dut.get_io$$trap$$bits$$cause()==(e.store?7:5)&&dut.get_io$$trap$$bits$$tval()==e.address,
+                check(t==live.front()&&e.fault&&dut.get_io$$trap$$bits$$cause()==(e.store?expectedStoreFaultCause:5)&&dut.get_io$$trap$$bits$$tval()==e.address,
                     "late memory fault lost exact owner/cause/original VA");
             }
             for(auto k:live){entries.at(k).killed=true;++killCount;}live.clear();predicted=architectural;++traps;

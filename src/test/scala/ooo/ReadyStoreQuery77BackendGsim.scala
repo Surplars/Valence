@@ -15,7 +15,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     proofControlInputs: Boolean = false, proofBankQuiesceIntent: Boolean = false,
     proofBankOwnerCleanup: Boolean = false, factorPreparedStorePool: Boolean = false,
     currentProfile: Option[FpgaNextConfig] = None, projectedRequestHead: Boolean = false,
-    registeredMemoryPreparationDescriptor: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    registeredMemoryPreparationDescriptor: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false) extends Module {
     require(Set(2, 3).contains(proofRows) && (proofRows != 3 || queryEnabled))
     val profile = currentProfile.getOrElse(if (proofRows == 3) ThreeProofRowCandidateProfile.candidate
         else ReadyStoreQuery77Profile.select(queryEnabled))
@@ -57,6 +57,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
         val pc1 = Input(UInt(64.W))
         val decoded0 = Output(new IntegerRequest)
         val decoded1 = Output(new IntegerRequest)
+        val storeDataWriteMask = Output(UInt(2.W))
         val poolBare = Output(Bool())
         val poolOriginalMask = Output(UInt(16.W))
         val descriptorValid = Output(Bool())
@@ -179,7 +180,8 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
     io.decoded0 := allocate0.bits
     io.decoded1 := allocate1.bits
     val backend = Module(ReadyStoreQuery77BackendFactory.create(profile, preselectRedirectTokenMatches, shadowEarlyProofBind,
-        proofBankQuiesceIntent, proofBankOwnerCleanup, factorPreparedStorePool, projectedRequestHead, registeredMemoryPreparationDescriptor, earlyLoadPreparationDescriptor))
+        proofBankQuiesceIntent, proofBankOwnerCleanup, factorPreparedStorePool, projectedRequestHead, registeredMemoryPreparationDescriptor, earlyLoadPreparationDescriptor, backendNaturalAlignedPmp, virtualStoreOperandLookahead, bankedStoreData))
+    io.storeDataWriteMask := backend.storeDataRam.map(r => VecInit(r.io.write.map(w => BoringUtils.bore(w.valid))).asUInt).getOrElse(0.U)
     require(backend.p == p && backend.ledger.p == p)
     require(backend.registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent &&
         backend.retirementSlotIdentity == p.retirementSlotIdentity)

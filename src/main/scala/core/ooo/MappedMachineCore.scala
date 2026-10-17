@@ -17,7 +17,7 @@ class MappedMachineCore(
     canonicalHandoff: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
@@ -95,7 +95,9 @@ class MappedMachineCore(
         proofBankControlDecoupling = proofBankControlDecoupling,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
-        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor))
+        earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
+        virtualStoreOperandLookahead = virtualStoreOperandLookahead,
+        bankedStoreData = bankedStoreData))
     val aplic = Module(new Aplic(aplicParams, hasChild = true,
         childMsiBase = imsicParams.supervisorBase))
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,

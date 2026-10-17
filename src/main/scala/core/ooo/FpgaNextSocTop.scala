@@ -10,7 +10,7 @@ import soc.ip.debug.{JtagDebugParams, JtagDebugReservation, BscanRamTransport}
   * never architectural halt/debug; native multi-clock qualification is pending.
   */
 class FpgaNextSocTop(config: FpgaNextConfig = FpgaNextConfig.Selected,
-    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0) extends Module {
+    debug: JtagDebugParams = JtagDebugParams(), bscanChain: Int = 0, preselectRedirectTokenMatches: Boolean = false, val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
     require(bscanChain >= 0 && bscanChain <= 4)
     require(bscanChain == 0 || !debug.enabled, "Select standalone TAP or FPGA USER transport, not both")
     private val ramDownload = debug.externalDmi || bscanChain != 0
@@ -21,6 +21,8 @@ class FpgaNextSocTop(config: FpgaNextConfig = FpgaNextConfig.Selected,
         projectedRequestHead = projectedRequestHead, factorPreparedStorePool = factorPreparedStorePool,
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor, dataTlbMissCacheEntries = dataTlbMissCacheEntries,
+        virtualStoreOperandLookahead = virtualStoreOperandLookahead,
+        bankedStoreData = bankedStoreData,
         registerNextLineDecision = registerNextLineDecision,
         sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
         disjointEvictionStoreOverlap = disjointEvictionStoreOverlap))
