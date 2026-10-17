@@ -16,8 +16,8 @@ from control_depth import inspect as inspect_control_depth
 ROOT = Path(__file__).resolve().parents[3]
 SOURCES = [
     'src/main/scala/core/ooo/' + name + '.scala' for name in
-    ('ResidentMemoryPreparationSelector', 'CircularIssueSelector', 'PreparedStorePool',
-     'IntegerBackend', 'OooParams')
+    ('lsu/ResidentMemoryPreparationSelector', 'issue/CircularIssueSelector', 'lsu/PreparedStorePool',
+     'integration/IntegerBackend', 'config/OooParams')
 ] + ['src/test/scala/ooo/PreparedStorePoolGsim.scala', 'simulator/gsim/harness/prepared_store_pool.cpp']
 INPUTS = ['pair/PreparedStorePoolGsim.fir'] + [
     f'{variant}/{module}.sv' for variant in ('old', 'new')

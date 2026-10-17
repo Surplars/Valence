@@ -22,17 +22,17 @@ MUTATIONS = {
         'destination + (writesSent << 3), nextSource)',
         '--smoke', 'DMA independent destination byte oracle mismatch'),
     'reply-tag-swap': (
-        'src/main/scala/core/ooo/MixedCoherentLineHome.scala',
+        'src/main/scala/core/ooo/cache/MixedCoherentLineHome.scala',
         'line.response.bits.tag := Mux(chooseWrite, writeTag, readTag)',
         'line.response.bits.tag := Mux(chooseWrite, writeTag, readTag) ^ 1.U',
         '--smoke', 'protocol line read independent byte oracle mismatch'),
     'skip-line-hazard': (
-        'src/main/scala/core/ooo/MixedCoherentLineHome.scala',
+        'src/main/scala/core/ooo/cache/MixedCoherentLineHome.scala',
         'maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer',
         'maintenance === mLineHazard && !releaseBusy && !releaseOffer',
         '--protocol-only', 'younger same-address transport crossed retained owner'),
     'truncate-write-tag': (
-        'src/main/scala/core/ooo/MixedCoherentLineHome.scala',
+        'src/main/scala/core/ooo/cache/MixedCoherentLineHome.scala',
         '(writebackEntries + 1).U(writeTagBits.W) + accessTag',
         '(writebackEntries + 1).U + accessTag',
         '--smoke', 'DMA write tag overlaps release/probe tag class'),

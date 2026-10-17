@@ -7,27 +7,27 @@ from pathlib import Path
 
 CASES = {
     "wrong-writer-map": {
-        "file": "src/main/scala/core/ooo/WriterBankedRobCompletionPayload.scala",
+        "file": "src/main/scala/core/ooo/retire/WriterBankedRobCompletionPayload.scala",
         "old": "latestWriter(io.write(writer).bits.index) := (writer == 1).B",
         "new": "latestWriter(io.write(writer).bits.index) := (writer == 0).B",
         "mode": "rob", "failure": "RAW_PAYLOAD_RAM entries=4",
         "arguments": ["--payload-only"],
     },
     "missing-allocation-zero": {
-        "file": "src/main/scala/core/ooo/RenameRob.scala",
+        "file": "src/main/scala/core/ooo/retire/RenameRob.scala",
         "old": "Mux(entries(head).done, payload.io.headTval, 0.U(64.W))",
         "new": "payload.io.headTval",
         "mode": "rob", "failure": "ROB_COMPLETION_PAYLOAD phase=writer-map-and-allocation-zero",
         "arguments": ["--payload-only"],
     },
     "wrong-boundary-borrow": {
-        "file": "src/main/scala/core/ooo/CompactFetchCacheKeys.scala",
+        "file": "src/main/scala/core/ooo/frontend/CompactFetchCacheKeys.scala",
         "old": "val high = if (set < offset) boundaryHigh(set)(way) else bases(set)(way)(63, highLow)",
         "new": "val high = if (set < offset && !(set == 1 && offset == 2)) boundaryHigh(set)(way) else bases(set)(way)(63, highLow)",
         "mode": "keys", "failure": "COMPACT_KEYS_FULL64_ORACLE", "arguments": [],
     },
     "stale-capture-enabled": {
-        "file": "src/main/scala/core/ooo/InstructionRom.scala",
+        "file": "src/main/scala/core/ooo/platform/memory/InstructionRom.scala",
         "old": "when(!pendingStale) { capturePayload() }",
         "new": "when(true.B) { capturePayload() }",
         "mode": "native", "failure": "compact fetch keys paired",

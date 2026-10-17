@@ -119,7 +119,7 @@ def main():
         for p in [directory / "run", directory / "MachineCoreGsim.fir",
                   directory / "MachineCoreGsim.h", *directory.glob("MachineCoreGsim[0-9]*.cpp")]:
             artifacts[str(p.relative_to(common.ROOT))] = digest(p)
-    paths = list((common.ROOT / "src/main/scala/core/ooo").glob("*.scala"))
+    paths = list((common.ROOT / "src/main/scala/core/ooo").rglob("*.scala"))
     paths += list((common.ROOT / "third_party/berkeley-hardfloat/src/main/scala").glob("*.scala"))
     paths += [common.ROOT / p for p in ["build.mill", "src/test/scala/ooo/FloatingPointCpuGsim.scala",
               "src/test/scala/ooo/MachineCoreGsim.scala", "src/test/scala/ooo/OooParamsSpec.scala",

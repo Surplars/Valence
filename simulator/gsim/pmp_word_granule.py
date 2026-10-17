@@ -12,7 +12,7 @@ import run as common
 def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def verify_sources():
-    production=(common.ROOT/'src/main/scala/core/ooo/PhysicalMemoryProtection.scala').read_text()
+    production=(common.ROOT/'src/main/scala/core/ooo/mmu/PhysicalMemoryProtection.scala').read_text()
     prefix='package soc.core.ooo\nimport chisel3._\nimport chisel3.util._\n\n'
     body=prefix+production[production.index('/** Parallel range'):]
     mutations=json.loads((common.HERE/'config/pmp-word-source-mutants.json').read_text())

@@ -15,7 +15,7 @@ def sha(path):
 
 
 def verify_sources():
-    production = (common.ROOT / 'src/main/scala/core/ooo/PhysicalMemoryProtection.scala').read_text()
+    production = (common.ROOT / 'src/main/scala/core/ooo/mmu/PhysicalMemoryProtection.scala').read_text()
     prefix = 'package soc.core.ooo\nimport chisel3._\nimport chisel3.util._\n\n'
     body = prefix + production[production.index('/** Parallel range'):]
     mutations = json.loads((common.HERE / 'config/pmp-shared-bound-mutants.json').read_text())

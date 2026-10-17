@@ -55,7 +55,8 @@ GSIM 的 NEMU 差分流程保留独立来源，不因移除旧 Scala 依赖而�
 ## 放置规则
 
 - 新独立 IP 放 `src/main/scala/ip`，通过明确接口连接，不依赖旧全局配置。
-- 核心和当前平台放 `core/ooo`；CPU、SoC 组装及适配器暂以类名区分，不为目录美观批量改包名。
+- 核心和当前平台放 `core/ooo`，按 frontend/decode/rename/issue/execute/retire/lsu/cache/mmu/platform 等职责分目录；
+  Scala 包名仍保留 `soc.core.ooo`。SoC 复用候选不等同于 OoO 专用模块，详见 [本轮布局与迁移清单](ooo-layout.md)。
 - ISA 标准常量放 `isa`，旧核控制表位于 `legacy/hardware/src/main/scala/core/pipeline/decode`。
 - 当前 GSIM 驱动、程序、锁定配置分别放 `harness`、`payloads`、`config`。
 - 当前板级固件、驱动/设备树模板及下载器保留在 `fpga/firmware`，不是历史资产。

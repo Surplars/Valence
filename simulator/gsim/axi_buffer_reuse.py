@@ -21,8 +21,8 @@ HARNESS = common.HERE / "harness/tilelink_axi4_buffer_reuse.cpp"
 HARNESS_DEPENDENCIES = (HARNESS, common.HERE / "harness/tilelink_axi4_mixed_channels.cpp", Path(__file__))
 TOP = "TileLinkAxi4Bridge"
 ALLOWED_RTL_DIFFERENCES = {
-    "src/main/scala/core/ooo/TileLinkAxi4BurstBridge.scala",
-    "src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala",
+    "src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+    "src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala",
 }
 
 

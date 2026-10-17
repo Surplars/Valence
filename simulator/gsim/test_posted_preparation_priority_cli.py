@@ -68,8 +68,8 @@ class PostedPreparationPriorityCliTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
     def test_launch_seal_payload_and_prepared_store_qualification_are_unchanged(self):
-        name = 'src/main/scala/core/ooo/IntegerBackend.scala'
-        old = subprocess.check_output(['git', 'show', BASE + ':' + name], cwd=ROOT, text=True)
+        name = 'src/main/scala/core/ooo/integration/IntegerBackend.scala'
+        old = subprocess.check_output(['git', 'show', BASE + ':src/main/scala/core/ooo/IntegerBackend.scala'], cwd=ROOT, text=True)
         current = (ROOT / name).read_text()
         before = '                }).asUInt\n                Mux(originalMemoryMask.orR, originalMemoryMask, preparedStoreMask)'
         self.assertEqual(old.split(before)[0], current.split('                }).asUInt\n                if (p.postedPreparationPriority)')[0])
@@ -77,8 +77,9 @@ class PostedPreparationPriorityCliTests(unittest.TestCase):
         self.assertEqual(old.split(boundary)[1], current.split(boundary)[1])
         # These modules own accepted transactions, PMP checks, ACK/fault handling and selector ranks.
         for name in ('PostedStoreMerge', 'PostedStoreCpu', 'ParallelLoadStoreUnit', 'MemoryPreparationSelector'):
-            path = 'src/main/scala/core/ooo/' + name + '.scala'
-            reference = subprocess.check_output(['git', 'show', BASE + ':' + path], cwd=ROOT)
+            path = 'src/main/scala/core/ooo/lsu/' + name + '.scala'
+            historical_path = 'src/main/scala/core/ooo/' + name + '.scala'
+            reference = subprocess.check_output(['git', 'show', BASE + ':' + historical_path], cwd=ROOT)
             self.assertEqual(hashlib.sha256(reference).digest(), hashlib.sha256((ROOT / path).read_bytes()).digest())
 
 

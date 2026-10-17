@@ -42,7 +42,7 @@ class Contract(unittest.TestCase):
                 self.assertTrue(accepted(new, new, True))
 
     def test_no_raw_queue_reads_remain(self):
-        source = (ROOT / 'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+        source = (ROOT / 'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
         references = [line.strip() for line in source.splitlines()
                       if not line.lstrip().startswith('//') and re.search(r'\bqueue[.(]', line)]
         self.assertEqual(references, [

@@ -27,10 +27,10 @@ def main():
     else:
         gsim, cxx = common.setup(False)
     sources = [common.ROOT / p for p in (
-        'src/main/scala/core/ooo/PacketFetchPmp.scala',
-        'src/main/scala/core/ooo/PhysicalMemoryProtection.scala',
-        'src/main/scala/core/ooo/InstructionTranslationAdapter.scala',
-        'src/main/scala/core/ooo/InstructionRom.scala',
+        'src/main/scala/core/ooo/frontend/PacketFetchPmp.scala',
+        'src/main/scala/core/ooo/mmu/PhysicalMemoryProtection.scala',
+        'src/main/scala/core/ooo/mmu/InstructionTranslationAdapter.scala',
+        'src/main/scala/core/ooo/platform/memory/InstructionRom.scala',
         'src/test/scala/ooo/SharedTwoWordFetchPmpGsim.scala',
         'src/test/scala/ooo/SharedTwoWordFetchPmpSpec.scala',
         'simulator/gsim/harness/shared_two_word_fetch_pmp.cpp',

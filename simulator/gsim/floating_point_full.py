@@ -60,7 +60,7 @@ def main():
         if digest(common.ROOT / "third_party/berkeley-hardfloat/src/main/scala" / name) != sha:
             raise RuntimeError("Vendored source mismatch: " + name)
     sources = [common.ROOT / "build.mill", common.ROOT / "src/main/scala/isa/Compressed.scala"]
-    sources += sorted((common.ROOT / "src/main/scala/core/ooo").glob("*.scala"))
+    sources += sorted((common.ROOT / "src/main/scala/core/ooo").rglob("*.scala"))
     sources += sorted((common.ROOT / "third_party/berkeley-hardfloat/src/main/scala").glob("*.scala"))
     sources += sorted((common.ROOT / "src/test/scala/ooo").glob("FloatingPoint*.scala"))
     sources += sorted((common.HERE / "harness").glob("floating_point*.cpp"))

@@ -22,7 +22,7 @@ negative = subprocess.run([str(output / "run"), "--inject-mismatch"],
 (output / "negative.log").write_text(negative.stdout + negative.stderr)
 if negative.returncode != 1 or "FP oracle mismatch" not in negative.stderr:
     raise RuntimeError("Negative control did not fail for the intended oracle mismatch")
-inputs = [common.ROOT / "src/main/scala/core/ooo/FloatingPointState.scala",
+inputs = [common.ROOT / "src/main/scala/core/ooo/system/FloatingPointState.scala",
           common.ROOT / "src/test/scala/ooo/FloatingPointStateGsim.scala",
           common.HERE / "harness/floating_point_state.cpp"]
 (output / "receipt.json").write_text(json.dumps({"status": "PASS", "gsim_revision": revision,

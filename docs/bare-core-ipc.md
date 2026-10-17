@@ -71,7 +71,7 @@ make gsim-ipc           # 只跑默认配置 IPC，输出 build/gsim/ipc.json �
 
 ## 已实现的硬件边界
 
-- `src/main/scala/core/ooo/OooParams.scala`：后端参数和边界约束。
+- `src/main/scala/core/ooo/config/OooParams.scala`：后端参数和边界约束。
 - `BackendTypes.scala`：重命名请求、物理映射、完成、提交、恢复及异常接口。
 - `RenameRob.scala`：投机/已提交映射、物理寄存器身份分配、ROB、提交和反向回滚。
 - `IntegerAlu.scala`：64 位加减、逻辑、移位、有符号/无符号比较及加减/移位 W 变体。

@@ -34,12 +34,12 @@ class Lane1OwnerMatchCliTests(unittest.TestCase):
                     ['--tag', 'lane1-owner-bad', '--preflight-only', *flags], False)
 
     def test_pure_query_and_final_prf_scope(self):
-        rob = (ROOT/'src/main/scala/core/ooo/RenameRob.scala').read_text()
+        rob = (ROOT/'src/main/scala/core/ooo/retire/RenameRob.scala').read_text()
         query = rob.split('\n    val lane1OwnerMatch = if ', 1)[1].split('\n\n', 1)[0]
         self.assertIn('entries(io.complete(1).bits.token.index).tag === io.complete(1).bits.token.tag', query)
         for forbidden in ('valid', 'count', 'head', 'done', 'accepted', 'Reg(', 'RegInit('):
             self.assertNotIn(forbidden, query)
-        backend = (ROOT/'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+        backend = (ROOT/'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
         self.assertIn('if (p.sharedLane1OwnerMatch && lane == 1) ledger.io.lane1OwnerMatch.get', backend)
         self.assertIn('stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)', backend)
         self.assertIn('assert(queueOwnerMatches === ownerMatches,', backend)

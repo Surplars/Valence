@@ -35,8 +35,8 @@ class Rank1PrfAddressCliTests(unittest.TestCase):
         for name in ('timing-batch-abc-profile.json','timing-batch-abc-lane1-owner-profile.json'):
             old=json.loads((root/'fpga/next'/name).read_text())
             self.assertNotIn(FLAG,old['native_options'])
-        source=(root/'src/main/scala/core/ooo/OooParams.scala').read_text()
+        source=(root/'src/main/scala/core/ooo/config/OooParams.scala').read_text()
         self.assertIn('directRank1MemorySourceIds: Boolean = false',source)
         self.assertIn('p.directRank1MemorySourceIds && rank == 1',
-            (root/'src/main/scala/core/ooo/IntegerBackend.scala').read_text())
+            (root/'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text())
 if __name__=='__main__': unittest.main()

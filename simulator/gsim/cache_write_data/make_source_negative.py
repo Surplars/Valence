@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-LEAF = ROOT / 'src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala'
+LEAF = ROOT / 'src/main/scala/core/ooo/cache/NonBlockingCoherentLineCache.scala'
 MUTATIONS = {
  'miss-uses-live-request': (
   '        Some(Mux(refill, fillRequest.data, request.data)) else None',

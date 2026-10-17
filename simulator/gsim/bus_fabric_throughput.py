@@ -35,7 +35,7 @@ def main():
             old=json.loads((args.baseline/"receipt.json").read_text());assert old["status"]=="PASS"
             changed=sorted(k for k in old["source_sha256"].keys()|report["source_sha256"].keys()
                 if old["source_sha256"].get(k)!=report["source_sha256"].get(k))
-            assert changed==["src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala"],changed
+            assert changed==["src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala"],changed
             pairs=[]
             for a,b in zip(old["metrics"],report["metrics"]):
                 if "cycles" not in a:continue

@@ -72,7 +72,7 @@ def host_equivalence():
 def source_audit(layout):
     facts = {}
     for name in ('NonBlockingCoherentLineHome', 'MixedCoherentLineHome'):
-        text = (common.ROOT / f'src/main/scala/core/ooo/{name}.scala').read_text()
+        text = (common.ROOT / f'src/main/scala/core/ooo/cache/{name}.scala').read_text()
         if layout == 'banked':
             anchors = ['tagConfig.geometry(base, bytes, 6 + setBits)',
                 'Seq.fill(trackedWays)(Mem(trackedLines / trackedWays, UInt(tagGeometry.tagBits.W)))',

@@ -39,8 +39,8 @@ def main():
     for case in cases:
         if (BUILD / case['name']).exists():
             raise RuntimeError('Output exists: ' + str(BUILD / case['name']))
-    source_paths = [Path(__file__), ROOT / 'src/main/scala/core/ooo/InstructionLineCache.scala',
-                    ROOT / 'src/main/scala/core/ooo/InstructionTileLinkBridge.scala',
+    source_paths = [Path(__file__), ROOT / 'src/main/scala/core/ooo/cache/InstructionLineCache.scala',
+                    ROOT / 'src/main/scala/core/ooo/platform/bus/InstructionTileLinkBridge.scala',
                     ROOT / 'src/main/scala/ip/tilelink/TileLinkLineFillEngine.scala',
                     ROOT / 'src/test/scala/ooo/InstructionLineCacheGsim.scala',
                     ROOT / 'simulator/gsim/harness/instruction_line_cache.cpp']

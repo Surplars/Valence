@@ -100,7 +100,7 @@ def main():
             assert old["status"] == "PASS"
             differences = sorted(k for k in old["source_sha256"].keys() | report["source_sha256"].keys()
                                  if old["source_sha256"].get(k) != report["source_sha256"].get(k))
-            assert differences == ["src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala"], differences
+            assert differences == ["src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala"], differences
             prior = old["cases"]["s4-w2-u1"]["metrics"]
             after = report["cases"]["s4-w2-u1"]["metrics"]
             assert len(prior) == len(after)

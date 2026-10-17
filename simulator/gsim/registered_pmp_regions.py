@@ -58,7 +58,7 @@ def mutate(out, gsim, cxx, name, old, new):
     directory = out / ("mutant-" + name)
     classes = directory / "classes"
     classes.mkdir(parents=True)
-    source = common.ROOT / "src/main/scala/core/ooo/MachineSystemUnit.scala"
+    source = common.ROOT / "src/main/scala/core/ooo/system/MachineSystemUnit.scala"
     original = source.read_text()
     if original.count(old) != 1:
         raise RuntimeError("mutation anchor drift: " + name)

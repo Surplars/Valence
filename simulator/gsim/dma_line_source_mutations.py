@@ -32,7 +32,7 @@ MUTATIONS = {
         '        when(state === lWriteWait) { writesDone := writesDone + 8.U; state := lIdle }\n        when(lineBusy) {',
         '--one-line', 'DMA completion retained line owner'),
     'skip-probe': (
-        'src/main/scala/core/ooo/MixedCoherentLineHome.scala',
+        'src/main/scala/core/ooo/cache/MixedCoherentLineHome.scala',
         'maintenance := Mux(lineOwned(line.request.bits.address, lookupTags), mProbeSend,',
         'maintenance := Mux(false.B, mProbeSend,',
         '', 'CPU independent byte oracle mismatch'),

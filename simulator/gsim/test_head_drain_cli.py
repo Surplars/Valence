@@ -88,11 +88,11 @@ class HeadDrainCliTests(unittest.TestCase):
 
     def test_new_logic_and_native_actual_audit_are_in_export_source_fingerprint(self):
         actual = export.sources()
-        for name in ('src/main/scala/core/ooo/HeadDrainClass.scala',
-                     'src/main/scala/core/ooo/IntegerBackend.scala',
-                     'src/main/scala/core/ooo/OooParams.scala',
-                     'src/main/scala/core/ooo/FpgaNextConfig.scala',
-                     'src/main/scala/core/ooo/BoardSocTop.scala',
+        for name in ('src/main/scala/core/ooo/retire/HeadDrainClass.scala',
+                     'src/main/scala/core/ooo/integration/IntegerBackend.scala',
+                     'src/main/scala/core/ooo/config/OooParams.scala',
+                     'src/main/scala/core/ooo/config/FpgaNextConfig.scala',
+                     'src/main/scala/core/ooo/platform/BoardSocTop.scala',
                      'src/test/scala/ooo/FpgaNextProfileMain.scala',
                      'src/test/scala/ooo/HeadDrainActualAudit.scala'):
             self.assertEqual(actual[name], hashlib.sha256((ROOT / name).read_bytes()).hexdigest())

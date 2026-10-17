@@ -14,6 +14,8 @@ FLAGS = ['--registered-pending-store-query', '--aligned-fetch-permission-stage',
          '--registered-canonical-store-event']
 FIELDS = ['registeredPendingStoreQuery', 'alignedFetchPermissionStage', 'registeredCanonicalStoreEvent']
 ROOT = common.ROOT
+SOURCE_DIRS = {'DataTranslationAdapter': 'mmu', 'IntegerBackend': 'integration',
+               'MachineCore': 'integration', 'MappedMachineCore': 'integration'}
 
 class TimingBatchCliTests(unittest.TestCase):
     call = common.WriteCollectionCliTests.call
@@ -70,7 +72,7 @@ class TimingBatchCliTests(unittest.TestCase):
             self.assertFalse(Path(tmp, 'absent').exists())
 
     def test_frozen_bank_and_final_complete_field_counts(self):
-        bank = ROOT/'src/main/scala/core/ooo/PendingVirtualStoreProof.scala'
+        bank = ROOT/'src/main/scala/core/ooo/lsu/PendingVirtualStoreProof.scala'
         source = bank.read_text()
         self.assertEqual(source.count('p: OooParams, val registerQuery: Boolean'), 1)
         qualified = source.replace('p: OooParams, val registerQuery: Boolean',
@@ -78,7 +80,7 @@ class TimingBatchCliTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(qualified.encode()).hexdigest(),
             'a489d9bd803730f584ef9c65f15e113276aed38a9f87bb0d0776f42d5b6eb2ce')
         for kind, count in [('OooParams',155), ('FpgaNextConfig',65)]:
-            text = (ROOT/f'src/main/scala/core/ooo/{kind}.scala').read_text()
+            text = (ROOT/f'src/main/scala/core/ooo/config/{kind}.scala').read_text()
             ctor = text.split('case class '+kind+'(',1)[1].split('\n) {',1)[0]
             fields = re.findall(r'^\s*(\w+):',ctor,re.M)
             self.assertEqual(len(fields), count)
@@ -86,9 +88,9 @@ class TimingBatchCliTests(unittest.TestCase):
                 self.assertIn(field+': Boolean = false', ctor)
         for name in ('DataTranslationAdapter','IntegerBackend'):
             self.assertIn('require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,',
-                (ROOT/f'src/main/scala/core/ooo/{name}.scala').read_text())
+                (ROOT/'src/main/scala/core/ooo'/SOURCE_DIRS[name]/(name+'.scala')).read_text())
         for name in ('MachineCore','MappedMachineCore'):
-            text = (ROOT/f'src/main/scala/core/ooo/{name}.scala').read_text()
+            text = (ROOT/'src/main/scala/core/ooo'/SOURCE_DIRS[name]/(name+'.scala')).read_text()
             for binding in ('core.io.instructionFaultOffsets.get := io.instructionFaultOffsets.get',
                 'io.fetchRequestFrontier.get := core.io.fetchRequestFrontier.get',
                 'io.suppressFetchRequest.get := core.io.suppressFetchRequest.get'):

@@ -48,7 +48,7 @@ def main():
         if a.resume_units:
             prior = json.loads(a.resume_units.read_text())
             changed = {name for name, value in prior["source_sha256"].items() if before.get(name) != value}
-            allowed = {str(Path(__file__).relative_to(common.ROOT)), "src/main/scala/core/ooo/RegisteredFetchPacket.scala"}
+            allowed = {str(Path(__file__).relative_to(common.ROOT)), "src/main/scala/core/ooo/frontend/RegisteredFetchPacket.scala"}
             if (prior["status"] != "FAILED" or set(before) != set(prior["source_sha256"]) or
                     not changed <= allowed or prior.get("failure") != "independent oracle failed to reject injected corruption"):
                 raise RuntimeError("Not a runner/fetch-only repair; isolated model reuse refused")

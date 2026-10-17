@@ -346,10 +346,10 @@ ROM 本身没有写端口，但“内容不会被修改”不等于“CPU 一定
 
 维护本文时优先核对以下源码，而非复制旧测试的硬编码地址：
 
-- [BoardSocConfig/BoardSocTop](../src/main/scala/core/ooo/BoardSocTop.scala)：板级参数、时钟 tick、顶层连接。
-- [MachinePlatform](../src/main/scala/core/ooo/MachinePlatform.scala)：外设实例、译码窗口、RAM 路由与中断源。
-- [MappedMachineCore](../src/main/scala/core/ooo/MappedMachineCore.scala) / [MachineCore](../src/main/scala/core/ooo/MachineCore.scala)：APLIC 与内部 MSI 连接。
-- [MachineSystemUnit](../src/main/scala/core/ooo/MachineSystemUnit.scala)：CSR、特权态、Sstc 与中断。
+- [BoardSocConfig/BoardSocTop](../src/main/scala/core/ooo/platform/BoardSocTop.scala)：板级参数、时钟 tick、顶层连接。
+- [MachinePlatform](../src/main/scala/core/ooo/platform/MachinePlatform.scala)：外设实例、译码窗口、RAM 路由与中断源。
+- [MappedMachineCore](../src/main/scala/core/ooo/integration/MappedMachineCore.scala) / [MachineCore](../src/main/scala/core/ooo/integration/MachineCore.scala)：APLIC 与内部 MSI 连接。
+- [MachineSystemUnit](../src/main/scala/core/ooo/system/MachineSystemUnit.scala)：CSR、特权态、Sstc 与中断。
 - [板级工程配置](../fpga/zu15eg/README.md) / [固件链接脚本](../fpga/firmware/bootrom.ld)：IP、时钟和软件预留 RAM。
 
 ### 2026-10-01 缓存候选与已发布版本的区别

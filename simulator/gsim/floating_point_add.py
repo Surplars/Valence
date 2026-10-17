@@ -72,8 +72,8 @@ for name, main, top, harness, negative_reason in [
 inputs = [common.ROOT / "build.mill", common.HERE / "floating_point_add.py",
           common.HERE / "run.py", common.HERE / "config/floating-point-dependencies.json"]
 inputs += list((common.ROOT / "third_party/berkeley-hardfloat/src/main/scala").glob("*.scala"))
-inputs += [common.ROOT / p for p in ["src/main/scala/core/ooo/OooParams.scala",
-    "src/main/scala/core/ooo/FloatingPointState.scala", "src/main/scala/core/ooo/FloatingPointAdd.scala",
+inputs += [common.ROOT / p for p in ["src/main/scala/core/ooo/config/OooParams.scala",
+    "src/main/scala/core/ooo/system/FloatingPointState.scala", "src/main/scala/core/ooo/execute/fp/FloatingPointAdd.scala",
     "src/test/scala/ooo/FloatingPointStateGsim.scala", "src/test/scala/ooo/FloatingPointAddGsim.scala"]]
 inputs += [common.HERE / "harness" / p for p in ["floating_point_vectors.cpp", "floating_point_add.cpp", "floating_point_add_state.cpp"]]
 (output / "receipt.json").write_text(json.dumps({"status": "PASS", "gsim_revision": revision,

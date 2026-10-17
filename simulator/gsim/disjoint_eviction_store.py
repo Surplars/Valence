@@ -188,7 +188,7 @@ def main():
                     'OFF unexpectedly accepted victim overlap')
         result.update(metrics=metrics, trace=trace)
         results.append(result)
-    paths=[Path(__file__).resolve(), ROOT/'src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala',
+    paths=[Path(__file__).resolve(), ROOT/'src/main/scala/core/ooo/cache/NonBlockingCoherentLineCache.scala',
            ROOT/'src/test/scala/ooo/DisjointEvictionStoreGsim.scala',
            ROOT/'src/test/scala/ooo/ThreeProofRowNativeProfile.scala',
            ROOT/'simulator/gsim/posted_cache_rebuild/fixture.py',

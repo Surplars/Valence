@@ -33,8 +33,8 @@ run.EXTRA_INPUTS += ['simulator/gsim/canonical_store_owner_map.py',
 
 
 def validate(root):
-    production = (root / 'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
-    params = (root / 'src/main/scala/core/ooo/OooParams.scala').read_text()
+    production = (root / 'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
+    params = (root / 'src/main/scala/core/ooo/config/OooParams.scala').read_text()
     assert params.count('sharedCanonicalStoreOwnerMatch: Boolean = false') == 1
     assert '!sharedCanonicalStoreOwnerMatch || canonicalVirtualStoreOverlap' in params
     assert production.count('val shareCanonicalStoreOwnerMatch = p.sharedCanonicalStoreOwnerMatch') == 1

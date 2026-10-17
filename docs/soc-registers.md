@@ -417,12 +417,12 @@ APLIC source 号和 IMSIC EIID
 
 地址、连线、寄存器副作用以以下源文件为依据；本页是静态实现审计，不增加硬件验证声明。
 
-- [BoardSocTop.scala](../src/main/scala/core/ooo/BoardSocTop.scala)：40 MHz、板级 RAM、tick 和外部源绑值。
-- [MachinePlatform.scala](../src/main/scala/core/ooo/MachinePlatform.scala)：timer/UART/DMA 窗口与 IRQ 合并，DMA 默认参数实例化。
-- [MappedMachineCore.scala](../src/main/scala/core/ooo/MappedMachineCore.scala)、[MachineCore.scala](../src/main/scala/core/ooo/MachineCore.scala)：M/S APLIC、内部 MSI 与 CSR 连接。
-- [CoreRegisterRouter.scala](../src/main/scala/core/ooo/CoreRegisterRouter.scala)、[RegisterPort.scala](../src/main/scala/ip/bus/RegisterPort.scala)：宽度、数据 lane 与错误传递。
+- [BoardSocTop.scala](../src/main/scala/core/ooo/platform/BoardSocTop.scala)：40 MHz、板级 RAM、tick 和外部源绑值。
+- [MachinePlatform.scala](../src/main/scala/core/ooo/platform/MachinePlatform.scala)：timer/UART/DMA 窗口与 IRQ 合并，DMA 默认参数实例化。
+- [MappedMachineCore.scala](../src/main/scala/core/ooo/integration/MappedMachineCore.scala)、[MachineCore.scala](../src/main/scala/core/ooo/integration/MachineCore.scala)：M/S APLIC、内部 MSI 与 CSR 连接。
+- [CoreRegisterRouter.scala](../src/main/scala/core/ooo/platform/bus/CoreRegisterRouter.scala)、[RegisterPort.scala](../src/main/scala/ip/bus/RegisterPort.scala)：宽度、数据 lane 与错误传递。
 - [UartConsole.scala](../src/main/scala/ip/uart/UartConsole.scala)、[MachineTimer.scala](../src/main/scala/ip/timer/MachineTimer.scala)、[MemoryCopyDma.scala](../src/main/scala/ip/dma/MemoryCopyDma.scala)：外设寄存器定义。
-- [Aplic.scala](../src/main/scala/ip/interrupt/Aplic.scala)、[Imsic.scala](../src/main/scala/ip/interrupt/Imsic.scala)、[MachineSystemUnit.scala](../src/main/scala/core/ooo/MachineSystemUnit.scala)：AIA 与 CSR 状态。
+- [Aplic.scala](../src/main/scala/ip/interrupt/Aplic.scala)、[Imsic.scala](../src/main/scala/ip/interrupt/Imsic.scala)、[MachineSystemUnit.scala](../src/main/scala/core/ooo/system/MachineSystemUnit.scala)：AIA 与 CSR 状态。
 
 各模块文档保留原 GSIM 验收记录；这些记录不等于 Linux/OpenSBI 驱动兼容、物理板启动或
 40 MHz 布线后时序签核。当前板级流程见 [ZU15EG 入口](../fpga/zu15eg/README.md)。

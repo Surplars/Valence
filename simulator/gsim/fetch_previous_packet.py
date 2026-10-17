@@ -24,8 +24,8 @@ def main():
     out = common.BUILD / ("fetch-previous-packet-" + args.tag)
     out.mkdir(parents=True, exist_ok=False)
     sources = [common.ROOT / name for name in (
-        "src/main/scala/core/ooo/RegisteredFetchWindow.scala",
-        "src/main/scala/core/ooo/ParallelFetchAlignment.scala",
+        "src/main/scala/core/ooo/frontend/RegisteredFetchWindow.scala",
+        "src/main/scala/core/ooo/frontend/ParallelFetchAlignment.scala",
         "src/test/scala/ooo/RegisteredFetchWindowGsim.scala",
         "simulator/gsim/harness/registered_fetch_window.cpp",
         "simulator/gsim/fetch_previous_packet.py", "simulator/gsim/run.py", "build.mill")]

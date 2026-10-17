@@ -1,0 +1,1185 @@
+[
+  {
+    "path": "AGENTS.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "5"
+  },
+  {
+    "path": "README.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "62"
+  },
+  {
+    "path": "docs/README.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "18"
+  },
+  {
+    "path": "docs/area-third-resource-validation.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "34"
+  },
+  {
+    "path": "docs/atomic-request-proof-qualification.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 4,
+    "reference_line_ranges": "6-7, 262-263"
+  },
+  {
+    "path": "docs/bare-core-ipc.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "74"
+  },
+  {
+    "path": "docs/c1-review-fix-qualification.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 143,
+    "reference_line_ranges": "8-150"
+  },
+  {
+    "path": "docs/cloud-recovery-20261016.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 2,
+    "reference_line_ranges": "100-101"
+  },
+  {
+    "path": "docs/debug/evidence/hart-contract/receipt.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 16,
+    "reference_line_ranges": "44-51, 62-69"
+  },
+  {
+    "path": "docs/debug/evidence/ram-download/cpu-smoke/receipt.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 123,
+    "reference_line_ranges": "30-152"
+  },
+  {
+    "path": "docs/debug/evidence/ram-download/gsim-endpoint.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "7"
+  },
+  {
+    "path": "docs/debug/evidence/ram-download/selected-bscan-export.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 123,
+    "reference_line_ranges": "17-139"
+  },
+  {
+    "path": "docs/evidence/fpga-cache-tags-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "434-547"
+  },
+  {
+    "path": "docs/evidence/fpga-fetch-payload-capture-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "5-118"
+  },
+  {
+    "path": "docs/evidence/fpga-instruction-data-address-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "5-118"
+  },
+  {
+    "path": "docs/evidence/fpga-instruction-data-packing-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "5-118"
+  },
+  {
+    "path": "docs/evidence/fpga-instruction-held-hit-defect-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "5-118"
+  },
+  {
+    "path": "docs/evidence/fpga-instruction-hit-stability-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 228,
+    "reference_line_ranges": "5-118, 469-582"
+  },
+  {
+    "path": "docs/evidence/fpga-prefetch-board-attribution-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 246,
+    "reference_line_ranges": "64-186, 635-757"
+  },
+  {
+    "path": "docs/evidence/fpga-prefetch-candidate-lifetime-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "5-118"
+  },
+  {
+    "path": "docs/evidence/fpga-prefetch-store-history-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 230,
+    "reference_line_ranges": "14-127, 604-717, 973-974"
+  },
+  {
+    "path": "docs/evidence/held-alu-forwarding-r1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 8,
+    "reference_line_ranges": "209-212, 255-258"
+  },
+  {
+    "path": "docs/evidence/mac-raw-handoff-source-r1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 2,
+    "reference_line_ranges": "38-39"
+  },
+  {
+    "path": "docs/evidence/near-term-a-qualified-r1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 16,
+    "reference_line_ranges": "188-197, 242-247"
+  },
+  {
+    "path": "docs/evidence/young-load-seal-e4a-r1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 7,
+    "reference_line_ranges": "64-68, 174, 178"
+  },
+  {
+    "path": "docs/experiments/bound-store-prefetch-evidence-v1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 16,
+    "reference_line_ranges": "255, 262, 269, 276, 283, 290, 297, 304, 311, 318, 325, 332, 588, 676, 779, 800"
+  },
+  {
+    "path": "docs/experiments/durable-read-prefetch-evidence-v1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 6,
+    "reference_line_ranges": "30-35"
+  },
+  {
+    "path": "docs/experiments/read-prefetch-dirty-retry-evidence.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 3,
+    "reference_line_ranges": "634, 639, 644"
+  },
+  {
+    "path": "docs/experiments/registered-pmp-regions-evidence.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 4,
+    "reference_line_ranges": "6-9"
+  },
+  {
+    "path": "docs/experiments/timing-cdc-integration-source-v1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "16, 23, 30, 37, 44"
+  },
+  {
+    "path": "docs/fetch-fault-precision.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 4,
+    "reference_line_ranges": "63-66"
+  },
+  {
+    "path": "docs/head-drain-results.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "8-12"
+  },
+  {
+    "path": "docs/isa-reuse.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "53"
+  },
+  {
+    "path": "docs/layout.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "11, 58"
+  },
+  {
+    "path": "docs/placed-timing-candidate.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 15,
+    "reference_line_ranges": "121-135"
+  },
+  {
+    "path": "docs/posted-performance-preset.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "23"
+  },
+  {
+    "path": "docs/posted-store-merge-rebuild-plan.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 2,
+    "reference_line_ranges": "37, 41"
+  },
+  {
+    "path": "docs/read-locality-candidate.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "102-112"
+  },
+  {
+    "path": "docs/recovery/dtlb-miss-cache-r1/results.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 10,
+    "reference_line_ranges": "651-655, 663-667"
+  },
+  {
+    "path": "docs/retirement-intent-source-hashes.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "6-10"
+  },
+  {
+    "path": "docs/soc-datasheet.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 4,
+    "reference_line_ranges": "349-352"
+  },
+  {
+    "path": "docs/soc-registers.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 5,
+    "reference_line_ranges": "420-423, 425"
+  },
+  {
+    "path": "docs/timing-r6-validation.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "7"
+  },
+  {
+    "path": "docs/timing-resource-batch-20261012.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 2,
+    "reference_line_ranges": "18, 20"
+  },
+  {
+    "path": "docs/translated-response-empty-flow-evidence.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 2,
+    "reference_line_ranges": "309-310"
+  },
+  {
+    "path": "fpga/audit-clock-management.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 2,
+    "reference_line_ranges": "88-89"
+  },
+  {
+    "path": "fpga/audit-gmac-ready.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "65"
+  },
+  {
+    "path": "fpga/audit-managed-peripherals.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "43"
+  },
+  {
+    "path": "fpga/next/evidence/base-integrated-631fd68.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 121,
+    "reference_line_ranges": "47-167"
+  },
+  {
+    "path": "fpga/next/evidence/fetch-capture-integrated-54c4924.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 6,
+    "reference_line_ranges": "21, 25, 29, 33, 37, 41"
+  },
+  {
+    "path": "fpga/next/evidence/inherited-module-mapping-20261008.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 23,
+    "reference_line_ranges": "13, 17, 21, 25, 61, 65, 69, 73, 104, 135, 139, 143, 147, 151, 155, 159, 186, 190, 194, 198, 202, 206, 210"
+  },
+  {
+    "path": "fpga/next/evidence/mac-jtag-native-integration.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 123,
+    "reference_line_ranges": "30-152"
+  },
+  {
+    "path": "fpga/next/evidence/rob-full64-recheck.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 15,
+    "reference_line_ranges": "10, 16, 22, 28, 34, 40, 46, 66, 71, 76, 81, 86, 91, 96, 101"
+  },
+  {
+    "path": "fpga/next/held-alu-source-compat.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 351,
+    "reference_line_ranges": "2467-2605, 3097, 3137, 3142, 3299, 3302, 3304, 3307, 3309, 3312, 3314, 3317, 6208-6346, 7116, 7121, 7126, 7131, 7136, 7141, 7146, 7151, 7156, 7161, 7170-7179, 7235, 7240, 7245, 7250, 7255, 7260, 7265, 7270, 7275, 7280, 7342-7351, 7366, 7371, 7376, 7381, 7386, 7391, 7396, 7401, 7406, 7411, 7416, 7423-7433"
+  },
+  {
+    "path": "fpga/next/held_alu_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "68"
+  },
+  {
+    "path": "fpga/next/mac_platform_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "19"
+  },
+  {
+    "path": "fpga/next/module-matrix.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 20,
+    "reference_line_ranges": "8, 16, 23, 31, 39, 47, 59, 72, 85, 98, 142, 151, 160, 170, 177, 184, 191, 198, 206, 220"
+  },
+  {
+    "path": "fpga/next/near-term-a-mac-platform-compat.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 2,
+    "reference_line_ranges": "83, 87"
+  },
+  {
+    "path": "fpga/next/near-term-a-profile.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 10,
+    "reference_line_ranges": "160-169"
+  },
+  {
+    "path": "fpga/next/near-term-a-raw-handoff-profile.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 10,
+    "reference_line_ranges": "101-110"
+  },
+  {
+    "path": "fpga/next/raw_handoff/source_expected.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 2,
+    "reference_line_ranges": "18-19"
+  },
+  {
+    "path": "fpga/next/resident-memory-source-compat.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "1165, 1170, 1175, 1180, 1185"
+  },
+  {
+    "path": "fpga/next/resident_memory_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "122"
+  },
+  {
+    "path": "fpga/next/test_resident_memory_entry.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "284"
+  },
+  {
+    "path": "fpga/next/test_timing_r6_entry.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "52"
+  },
+  {
+    "path": "fpga/next/test_young_load_seal_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 7,
+    "reference_line_ranges": "95, 118, 124, 141-144"
+  },
+  {
+    "path": "fpga/next/tests/test_mac_raw_handoff_entry.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "74"
+  },
+  {
+    "path": "fpga/next/timing-batch-locality64-profile.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "82-92"
+  },
+  {
+    "path": "fpga/next/timing-ready73-source-compat.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 9,
+    "reference_line_ranges": "120, 124, 128, 132, 136, 140, 144, 148, 152"
+  },
+  {
+    "path": "fpga/next/timing_ready73_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "53"
+  },
+  {
+    "path": "fpga/next/young_load_seal_source_bridge.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 11,
+    "reference_line_ranges": "21, 24, 27, 30, 35, 126, 128, 141, 143, 145, 147"
+  },
+  {
+    "path": "fpga/zu15eg/audit_native_board_inputs.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 3,
+    "reference_line_ranges": "35-37"
+  },
+  {
+    "path": "fpga/zu15eg/concurrency_validation/EXPORT-RECEIPT.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 226,
+    "reference_line_ranges": "25-137, 502-614"
+  },
+  {
+    "path": "fpga/zu15eg/concurrency_validation/integrated-source-sha256.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 114,
+    "reference_line_ranges": "3-116"
+  },
+  {
+    "path": "fpga/zu15eg/release_inputs.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 2,
+    "reference_line_ranges": "134-135"
+  },
+  {
+    "path": "fpga/zu15eg/stage_netboot_candidate.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "30"
+  },
+  {
+    "path": "fpga/zu15eg/stage_netboot_drain.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "94"
+  },
+  {
+    "path": "fpga/zu15eg/test_current_candidate_release.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 2,
+    "reference_line_ranges": "54, 137"
+  },
+  {
+    "path": "simulator/gsim/README.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "531"
+  },
+  {
+    "path": "simulator/gsim/atomic_request_proof_backend.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "22"
+  },
+  {
+    "path": "simulator/gsim/axi_buffer_reuse.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "24-25"
+  },
+  {
+    "path": "simulator/gsim/bound_store_prefetch/frozen-reference-v1.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "6"
+  },
+  {
+    "path": "simulator/gsim/bus_fabric_throughput.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "38"
+  },
+  {
+    "path": "simulator/gsim/cache_write_data/make_source_negative.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "14"
+  },
+  {
+    "path": "simulator/gsim/canonical_store_owner_map.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "36-37"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/backend-r1-receipt-extract.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "270-280"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/components-r1-receipt-extract.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "48-58"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/components-r2-receipt-extract.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "498-508"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/official-entry-result.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "11-21"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/production-freeze-r1.sha256",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "1-11"
+  },
+  {
+    "path": "simulator/gsim/canonical_virtual_store/evidence/source-identities.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 11,
+    "reference_line_ranges": "11-21"
+  },
+  {
+    "path": "simulator/gsim/cpu_hot_bandwidth.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 2,
+    "reference_line_ranges": "110-111"
+  },
+  {
+    "path": "simulator/gsim/cpu_hot_bandwidth_recover.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 2,
+    "reference_line_ranges": "52-53"
+  },
+  {
+    "path": "simulator/gsim/data_cache_finalize.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "62"
+  },
+  {
+    "path": "simulator/gsim/data_path_ownership.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "44"
+  },
+  {
+    "path": "simulator/gsim/disjoint_eviction_store.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "191"
+  },
+  {
+    "path": "simulator/gsim/dma_line_source_mutations.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "35"
+  },
+  {
+    "path": "simulator/gsim/dma_overlap_source_mutations.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 3,
+    "reference_line_ranges": "25, 30, 35"
+  },
+  {
+    "path": "simulator/gsim/dual_proof_credit_qualification.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 4,
+    "reference_line_ranges": "7-10"
+  },
+  {
+    "path": "simulator/gsim/eager_prefix/check_retained.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "152"
+  },
+  {
+    "path": "simulator/gsim/eager_prefix/evidence/public-receipt.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "191-195"
+  },
+  {
+    "path": "simulator/gsim/ethernet_dma.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 4,
+    "reference_line_ranges": "61-64"
+  },
+  {
+    "path": "simulator/gsim/fetch_previous_packet.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "27-28"
+  },
+  {
+    "path": "simulator/gsim/fixtures/fetch_context_qualification_v1/source_lock.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 246,
+    "reference_line_ranges": "59-181, 538-660"
+  },
+  {
+    "path": "simulator/gsim/fixtures/fetch_prefix_dma_pmp_v1/source_lock.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 246,
+    "reference_line_ranges": "81-203, 552-674"
+  },
+  {
+    "path": "simulator/gsim/fixtures/mul_owner_lifetime/wrong-slot.patch",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 2,
+    "reference_line_ranges": "1-2"
+  },
+  {
+    "path": "simulator/gsim/fixtures/prepared_store_reconstructed/test_policy.py",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "101"
+  },
+  {
+    "path": "simulator/gsim/fixtures/prepared_store_reconstructed/test_selection.py",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "90"
+  },
+  {
+    "path": "simulator/gsim/floating_point_add.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "75-76"
+  },
+  {
+    "path": "simulator/gsim/floating_point_cpu.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "56"
+  },
+  {
+    "path": "simulator/gsim/floating_point_full.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "63"
+  },
+  {
+    "path": "simulator/gsim/floating_point_memory.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "122"
+  },
+  {
+    "path": "simulator/gsim/floating_point_state.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "25"
+  },
+  {
+    "path": "simulator/gsim/head_drain_class.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "37-38"
+  },
+  {
+    "path": "simulator/gsim/home_future_lru/source-bridge.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "7, 11, 15, 19, 23"
+  },
+  {
+    "path": "simulator/gsim/home_tag_ram.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "75"
+  },
+  {
+    "path": "simulator/gsim/instruction_cache_geometry.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "42-43"
+  },
+  {
+    "path": "simulator/gsim/jtag_ram_loader.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "8"
+  },
+  {
+    "path": "simulator/gsim/make_rob_fetch_source_mutant.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 4,
+    "reference_line_ranges": "10, 17, 24, 30"
+  },
+  {
+    "path": "simulator/gsim/memory_state_reuse/source-inputs.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 8,
+    "reference_line_ranges": "622-623, 631-632, 640-641, 649-650"
+  },
+  {
+    "path": "simulator/gsim/memory_state_reuse/test_contract.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "45"
+  },
+  {
+    "path": "simulator/gsim/memory_state_reuse/verify_default_off_source.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "23"
+  },
+  {
+    "path": "simulator/gsim/mirrored_request_queue.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "11"
+  },
+  {
+    "path": "simulator/gsim/mshr_occupancy.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "7"
+  },
+  {
+    "path": "simulator/gsim/owner_row/check_retained.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "106"
+  },
+  {
+    "path": "simulator/gsim/owner_row/evidence/public-receipt.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 9,
+    "reference_line_ranges": "209-217"
+  },
+  {
+    "path": "simulator/gsim/pmp_shared_bounds.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "18"
+  },
+  {
+    "path": "simulator/gsim/pmp_word_granule.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "15"
+  },
+  {
+    "path": "simulator/gsim/posted_frozen_overlap_provenance_test.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "31"
+  },
+  {
+    "path": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-focused-r1/build_generic_off_bridge.py",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "11"
+  },
+  {
+    "path": "simulator/gsim/posted_preparation_priority/source_snapshots/posted-preparation-priority-native-r1/prepare_checks.py",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 3,
+    "reference_line_ranges": "9, 19-20"
+  },
+  {
+    "path": "simulator/gsim/prefetch_demand_adoption_exclusions.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "38"
+  },
+  {
+    "path": "simulator/gsim/prefetch_store_history.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "97"
+  },
+  {
+    "path": "simulator/gsim/prepare_pending_store_rob_mapping_cache.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 4,
+    "reference_line_ranges": "14-15, 24, 28"
+  },
+  {
+    "path": "simulator/gsim/prepared_store_pool/run.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "18"
+  },
+  {
+    "path": "simulator/gsim/prf_address_clear.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "44"
+  },
+  {
+    "path": "simulator/gsim/protected_head_contract_recheck.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "23"
+  },
+  {
+    "path": "simulator/gsim/r16_shared_address/README.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "14"
+  },
+  {
+    "path": "simulator/gsim/r16_shared_address/lifecycle/README.md",
+    "role": "documentation_review_current_vs_historical",
+    "disposition": "preserved_historical_report_or_unaffected_directory_reference",
+    "reference_count": 1,
+    "reference_line_ranges": "88"
+  },
+  {
+    "path": "simulator/gsim/r16_shared_address/lifecycle/qualified_inputs.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 3,
+    "reference_line_ranges": "556, 572-573"
+  },
+  {
+    "path": "simulator/gsim/r16_shared_address/qualified_inputs.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 692,
+    "reference_line_ranges": "442, 632-1164, 1920-1924, 1930-1938, 2310, 2357, 3135-3276"
+  },
+  {
+    "path": "simulator/gsim/recovered_atomic_backend.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "57"
+  },
+  {
+    "path": "simulator/gsim/registered_execution_operands.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "30"
+  },
+  {
+    "path": "simulator/gsim/registered_pmp_regions.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "61"
+  },
+  {
+    "path": "simulator/gsim/resident_rank_priority/qualification.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 5,
+    "reference_line_ranges": "87-91"
+  },
+  {
+    "path": "simulator/gsim/resident_rank_priority/run.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "16"
+  },
+  {
+    "path": "simulator/gsim/rob_fetch_qualified_models.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 284,
+    "reference_line_ranges": "75, 246, 377, 468, 536-675, 750-889"
+  },
+  {
+    "path": "simulator/gsim/run_r16_lifecycle.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "unchanged_test_source_or_package_classpath_reference",
+    "reference_count": 2,
+    "reference_line_ranges": "23, 37"
+  },
+  {
+    "path": "simulator/gsim/run_r16_shared_address.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "unchanged_test_source_or_package_classpath_reference",
+    "reference_count": 2,
+    "reference_line_ranges": "24, 111"
+  },
+  {
+    "path": "simulator/gsim/rv64gc_path_batch.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "51"
+  },
+  {
+    "path": "simulator/gsim/shared_fetch_pmp.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "105"
+  },
+  {
+    "path": "simulator/gsim/shared_two_word_fetch_pmp.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 4,
+    "reference_line_ranges": "30-33"
+  },
+  {
+    "path": "simulator/gsim/tagged_store_return_board.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 1,
+    "reference_line_ranges": "63"
+  },
+  {
+    "path": "simulator/gsim/tagged_store_return_board/contract.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 134,
+    "reference_line_ranges": "4310-4443"
+  },
+  {
+    "path": "simulator/gsim/tagged_store_return_board/qualification.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 17,
+    "reference_line_ranges": "133-149"
+  },
+  {
+    "path": "simulator/gsim/test_head_drain_cli.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 5,
+    "reference_line_ranges": "91-95"
+  },
+  {
+    "path": "simulator/gsim/test_lane1_owner_match_cli.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "37, 42"
+  },
+  {
+    "path": "simulator/gsim/test_posted_preparation_priority_cli.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "71, 80"
+  },
+  {
+    "path": "simulator/gsim/test_prf_address_clear_cli.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 2,
+    "reference_line_ranges": "38, 41"
+  },
+  {
+    "path": "simulator/gsim/test_r16_shared_address.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "unchanged_test_source_or_package_classpath_reference",
+    "reference_count": 4,
+    "reference_line_ranges": "72, 95, 104, 236"
+  },
+  {
+    "path": "simulator/gsim/test_timing_batch_cli.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 4,
+    "reference_line_ranges": "73, 81, 89, 91"
+  },
+  {
+    "path": "simulator/gsim/third_resource_components.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "36"
+  },
+  {
+    "path": "simulator/gsim/timing_batch_review/combined-source-r2.patch",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 52,
+    "reference_line_ranges": "1619-1620, 1629, 1633, 1904, 1912, 1920, 1922, 2699, 2701-2702, 2745, 2747-2748, 2799, 2801-2802, 2823, 2825-2826, 2843, 2845-2846, 2918, 2920-2921, 3005, 3007-3008, 3099, 3101-3102, 3174, 3176-3177, 3201, 3203-3204, 3227, 3229-3230, 3264, 3266-3267, 3309, 3313, 3352, 3354-3355, 3505, 3507-3508"
+  },
+  {
+    "path": "simulator/gsim/timing_batch_review/components.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 1,
+    "reference_line_ranges": "53"
+  },
+  {
+    "path": "simulator/gsim/timing_batch_review/source.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 15,
+    "reference_line_ranges": "40-54"
+  },
+  {
+    "path": "simulator/gsim/write_pipeline.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "103"
+  },
+  {
+    "path": "simulator/gsim/zero_cycle_cleanup/check_retained.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "preserved_exact_historical_source_receipt_or_snapshot_contract",
+    "reference_count": 3,
+    "reference_line_ranges": "83-85"
+  },
+  {
+    "path": "simulator/gsim/zero_cycle_cleanup/evidence/public-receipt.json",
+    "role": "historical_or_frozen_preserve",
+    "disposition": "preserved_frozen_or_historical_source_binding",
+    "reference_count": 9,
+    "reference_line_ranges": "172-180"
+  },
+  {
+    "path": "tests/fp-convert-gate/run.py",
+    "role": "script_review_each_read_vs_historical_key",
+    "disposition": "current_references_updated; historical_keys_retained_where_applicable",
+    "reference_count": 1,
+    "reference_line_ranges": "29"
+  }
+]

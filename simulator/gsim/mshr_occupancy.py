@@ -4,7 +4,7 @@ from pathlib import Path
 
 def validate(root, header, entries, prefix):
     root=Path(root);header=Path(header).read_text() if isinstance(header,Path) else header
-    source=root/'src/main/scala/core/ooo'
+    source=root/'src/main/scala/core/ooo/cache'
     if entries>1:
         text=(source/'NonBlockingCoherentLineCache.scala').read_text()
         assert re.search(r'free\s*::\s*evictWait\s*::\s*acquire\s*::\s*fill\s*::\s*result\s*::\s*Nil\s*=\s*Enum\(5\)',text),'unknown nonblocking phase enum'

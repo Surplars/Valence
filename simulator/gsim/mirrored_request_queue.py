@@ -8,7 +8,7 @@ def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--gsim',type=Path,required=True);ap.add_argument('--tag',required=True);a=ap.parse_args()
     out=common.BUILD/a.tag;out.mkdir(parents=True,exist_ok=False)
-    files=[common.ROOT/p for p in ('src/main/scala/ip/bus/MirroredHeadQueue.scala','src/main/scala/core/ooo/RegisteredRequestQueue.scala','src/test/scala/ooo/MirroredRequestQueueGsim.scala','simulator/gsim/harness/mirrored_request_queue.cpp','simulator/gsim/mirrored_request_queue.py')]
+    files=[common.ROOT/p for p in ('src/main/scala/ip/bus/MirroredHeadQueue.scala','src/main/scala/core/ooo/platform/bus/RegisteredRequestQueue.scala','src/test/scala/ooo/MirroredRequestQueueGsim.scala','simulator/gsim/harness/mirrored_request_queue.cpp','simulator/gsim/mirrored_request_queue.py')]
     files += sorted((common.ROOT/"src").rglob("*.scala")) + [common.HERE/"run.py", common.HERE/"config/toolchain.json"]
     before={str(p.relative_to(common.ROOT)):sha(p) for p in files};cxx,_=common.compiler();results=[]
     for depth in (2,3,4,5,16):

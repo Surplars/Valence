@@ -20,7 +20,7 @@ def replace_span(source, start, end, replacement=''):
 
 
 def verify():
-    source = (ROOT / 'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+    source = (ROOT / 'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
     result = replace_span(source, '    // A row has one immutable operation class', '    val orderCheckValid',
                           '    val loadBeat      = Reg(Vec(p.robEntries, UInt(61.W)))\n'
                           '    val loadLanes     = Reg(Vec(p.robEntries, UInt(8.W)))\n')

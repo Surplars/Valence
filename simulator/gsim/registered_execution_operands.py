@@ -27,7 +27,7 @@ run.EXTRA_INPUTS += ['simulator/gsim/registered_execution_operands.py','simulato
 
 def validate_source(root):
     observer.validate(root)
-    source=(root/'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+    source=(root/'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
     assert source.count('if (p.directRegisteredExecutionOperands)')==2
     assert source.count('incoming.left := (if (p.directRegisteredExecutionOperands) issueOperandValue(source1, storedLeft)')==1
     assert source.count('incoming.right := (if (p.directRegisteredExecutionOperands) issueOperandValue(source2, storedRight)')==1

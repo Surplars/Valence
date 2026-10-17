@@ -5,7 +5,7 @@ import run as common
 
 def main():
     sources=[common.ROOT/'src/main/scala/ip/debug/JtagRamLoader.scala',
-             common.ROOT/'src/main/scala/core/ooo/DmaRegisterDataAdapter.scala',
+             common.ROOT/'src/main/scala/core/ooo/platform/bus/DmaRegisterDataAdapter.scala',
              common.ROOT/'src/test/scala/debug/JtagRamLoaderSpec.scala',
              common.ROOT/'src/test/scala/debug/JtagDmaLaneGsimMain.scala',
              common.HERE/'harness/jtag_ram_loader.cpp',common.HERE/'harness/jtag_dma_lane.cpp']

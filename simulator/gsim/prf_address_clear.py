@@ -41,7 +41,7 @@ run.EXTRA_INPUTS += ['simulator/gsim/prf_address_clear.py', 'fpga/next/timing-ba
 
 def validate_source(root):
     previous.validate_source(root)
-    source = (root/'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+    source = (root/'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
     assert source.count('val directSourceIds = p.directRank1MemorySourceIds && rank == 1') == 1
     assert 'val source1 = if (directSourceIds) entry.renamed.source1' in source
     assert 'val source2 = if (directSourceIds) entry.renamed.source2' in source

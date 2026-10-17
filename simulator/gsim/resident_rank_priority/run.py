@@ -14,8 +14,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SOURCES = [
     'src/main/scala/core/ooo/' + name + '.scala' for name in
-    ('ResidentMemoryPreparationSelector', 'CircularIssueSelector', 'RegisteredRobHeadMask',
-     'IntegerBackend', 'OooParams')
+    ('lsu/ResidentMemoryPreparationSelector', 'issue/CircularIssueSelector', 'retire/RegisteredRobHeadMask',
+     'integration/IntegerBackend', 'config/OooParams')
 ] + [
     'src/test/scala/ooo/ResidentLateExclusionGsim.scala',
     'src/test/scala/ooo/RegisteredHeadSelectionGsim.scala',

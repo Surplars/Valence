@@ -53,7 +53,7 @@ for mode in ["disabled", "enabled"]:
     regressions.append({"mode": mode, "positive_exit": 0, "negative_exit": 1,
                         "log": str((directory / "test.log").relative_to(common.ROOT))})
 
-paths = list((common.ROOT / "src/main/scala/core/ooo").glob("*.scala"))
+paths = list((common.ROOT / "src/main/scala/core/ooo").rglob("*.scala"))
 paths += list((common.ROOT / "third_party/berkeley-hardfloat/src/main/scala").glob("*.scala"))
 paths += [common.ROOT / p for p in ["build.mill", "src/test/scala/ooo/FloatingPointCpuGsim.scala",
           "src/test/scala/ooo/MachineCoreGsim.scala"]]

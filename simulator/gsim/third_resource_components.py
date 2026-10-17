@@ -33,7 +33,7 @@ def main():
         sys.path.insert(0, str(common.HERE / 'cache_write_data'))
         from make_source_negative import MUTATIONS
         old, new, _ = MUTATIONS[a.negative]
-        text = (common.ROOT / 'src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala').read_text()
+        text = (common.ROOT / 'src/main/scala/core/ooo/cache/NonBlockingCoherentLineCache.scala').read_text()
         if text.count(new) != 1 or old in text:
             p.error('requested exact source mutant is absent; see validation document')
     if not a.build_run:

@@ -26,7 +26,7 @@ try:
   d=out/kind;d.mkdir();classes=d/'classes';classes.mkdir();src=list(sources)
   if kind!='positive':
    if a.gate=='convert':
-    original=(a.shared_source or here.parents[1]/'src/main/scala/core/ooo/FloatingPointToIntegerShared.scala').resolve();s=original.read_text()
+    original=(a.shared_source or here.parents[1]/'src/main/scala/core/ooo/execute/fp/FloatingPointToIntegerShared.scala').resolve();s=original.read_text()
     old,new=('io.out32 := Mux(invalid32,clipped32,wide.io.out(31,0))','io.out32 := wide.io.out(31,0)') if kind=='truncate_without_clip' else ('!invalid32 && wide.io.intExceptionFlags(0)','wide.io.intExceptionFlags(0)');assert s.count(old)==1
     mutant=d/'FloatingPointToIntegerShared.scala';mutant.write_text(s.replace(old,new));src.append(mutant)
    else:

@@ -102,7 +102,8 @@ def main():
              'nearby_word_relations.cpp',('8','2'),{'WORD_WIDTH':8,'MAX_OFFSET':2},'independent nearby-word ordering mismatch')]
         for name,filename,old,new,emitter,top,harness,parameters,defines,anchor in mutation_cases:
             directory=out/('mutant-'+name);directory.mkdir();classes=directory/'classes';classes.mkdir()
-            source=(common.ROOT/'src/main/scala/core/ooo'/filename).read_text()
+            source_dir = {'PacketFetchPmp.scala': 'frontend', 'NearbyWordRelations.scala': 'lsu'}[filename]
+            source=(common.ROOT/'src/main/scala/core/ooo'/source_dir/filename).read_text()
             if source.count(old)!=1:raise RuntimeError('mutation anchor drift: '+name)
             mutated=directory/filename;mutated.write_text(source.replace(old,new))
             common.run([java,'-cp',compiler_cp,'scala.tools.nsc.Main','-classpath',cp,'-Xplugin:'+plugin,

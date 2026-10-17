@@ -34,8 +34,8 @@ run.EXTRA_INPUTS += [
 ]
 
 def validate_source(root):
-    p = (root / 'src/main/scala/core/ooo/OooParams.scala').read_text()
-    b = (root / 'src/main/scala/core/ooo/IntegerBackend.scala').read_text()
+    p = (root / 'src/main/scala/core/ooo/config/OooParams.scala').read_text()
+    b = (root / 'src/main/scala/core/ooo/integration/IntegerBackend.scala').read_text()
     assert 'predecodedHeadDrain: Boolean = false' in p
     assert b.count('classes(renamed.bits.token.index) := HeadDrainClass(') == 1
     assert 'val drainFetch = if (p.predecodedHeadDrain) headPending && headDrainClasses.get(head)' in b
