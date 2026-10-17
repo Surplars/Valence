@@ -1,0 +1,66 @@
+{
+  "source/IntegerBackend.scala": {
+    "bytes": 211940,
+    "sha256": "8e33b490b81e3f758a46339ac7e6d70b342608d66d7d5aeae6ff4a0b93346ec2"
+  },
+  "source/IntegerCore.scala": {
+    "bytes": 31779,
+    "sha256": "d159812b5fff2790910b244eec929a974c03f43670d097b88be66d2c454844be"
+  },
+  "source/MachineCore.scala": {
+    "bytes": 7347,
+    "sha256": "7798b2e26eb3db1bea52f33dcc9e5205a4a61492f31699d675da80a2c9b947d3"
+  },
+  "source/MappedMachineCore.scala": {
+    "bytes": 15255,
+    "sha256": "1bfdd66f1492b62e88e7a62b1dff36f17757bb2b8b3b2bd39ceb748e93f7383a"
+  },
+  "fixtures/CollectionReadBackendGsim.scala": {
+    "bytes": 4584,
+    "sha256": "25a15ad78b672adcce8698fde366c2a5e1a7edaa8fe1b87d6ec7cf7bbea173fc"
+  },
+  "fixtures/CollectionReadProfileJson.scala": {
+    "bytes": 1006,
+    "sha256": "7a2af4834fdc60db823d6c8aa45c387fa1a5eb09cde16b3ba3de6b87b87c89bd"
+  },
+  "fixtures/CollectionReadProfileV2.scala": {
+    "bytes": 5458,
+    "sha256": "c73bc6434251f45c31b4277f8cdaca312416a1885bcaf85345f3cda1bbb680e0"
+  },
+  "host-backend/cases.py": {
+    "bytes": 10862,
+    "sha256": "b2a09fdb67e3643994022c279137b7a89c90972fb74262e3ccb61ff65dffcf95"
+  },
+  "host-backend/decoded.py": {
+    "bytes": 4700,
+    "sha256": "2d1a17f8cd74a6ad77b0000124ddce21230c91605c869ce78cfef79f4df75279"
+  },
+  "host-backend/driver.cpp": {
+    "bytes": 62243,
+    "sha256": "ffed31e2cf3bac008228a1eb1e3adf1aef9e88abeb530b936c34b15804d77539"
+  },
+  "host-backend/gen_driver.py": {
+    "bytes": 10196,
+    "sha256": "d2a3cd4dd7c80707e1f0f42ff231c9d8537956a89b2136bf65379f4b73695163"
+  },
+  "host-backend/oracle.py": {
+    "bytes": 21155,
+    "sha256": "a8bd59fdaf2c2b48d9d14994b0ccf7c78c77cb0ddaff77c653838ec6d6847de9"
+  },
+  "host-backend/ports.py": {
+    "bytes": 591,
+    "sha256": "48bc54e8565d2fa233816e3e718ac3b8b9e8cbf05c63205ef407f77f08253c44"
+  },
+  "host-backend/SCHEMA.json": {
+    "bytes": 17974,
+    "sha256": "5fba1da1ffb07a21354738884380670f14cac159b0535136a7abed659231c2f9"
+  },
+  "host-backend-controls/replay.py": {
+    "bytes": 12793,
+    "sha256": "5fd23f2bef2836f65b6866046031f2877ad4425bfc3e7c5206f8c2f3f4948fb8"
+  },
+  "host-backend-controls/replay-r2.py": {
+    "bytes": 13487,
+    "sha256": "f839608915bdd35e8773b45cd50a0f79f71ac894a96b4ae46c0c8c5903d8a884"
+  }
+}
