@@ -109,6 +109,27 @@ class FiveStagePmp(p: FiveStageConfig, registerComparisons: Boolean = false) ext
         val selectedGrant = VecInit(winners.zipWithIndex.map { case (win, i) =>
             win && granted(i)
         }).asUInt.orR
-        io.allow := checkedRange && (selectedGrant || (!matched.orR && checkedMachine))
+        val legacyAllow = checkedRange && (selectedGrant || (!matched.orR && checkedMachine))
+        if (splitRelations && p.pmpEntries > 4) {
+            // Local first-match reduction, then priority between bounded
+            // groups. A late range relation no longer fans through every
+            // higher-numbered entry's global winner mask. Preserve partial
+            // first-match rejection and the no-match M-mode rule exactly.
+            val groups = (0 until p.pmpEntries).grouped(4).map { indices =>
+                val any = VecInit(indices.map(matched(_))).asUInt.orR
+                val grant = indices.zipWithIndex.map { case (entry, local) =>
+                    matched(entry) && granted(entry) &&
+                        !VecInit(indices.take(local).map(matched(_)) :+ false.B).asUInt.orR
+                }.reduce(_ || _)
+                (any, grant)
+            }.toSeq
+            val permitted = groups.reverse.foldLeft(checkedMachine) { case (fallback, (any, grant)) =>
+                grant || (!any && fallback)
+            }
+            io.allow := checkedRange && permitted
+            when(!reset.asBool) {
+                assert(io.allow === legacyAllow, "grouped PMP priority changed the first matching region")
+            }
+        } else io.allow := legacyAllow
     }
 }

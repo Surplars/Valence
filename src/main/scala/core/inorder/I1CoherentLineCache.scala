@@ -368,6 +368,21 @@ class I1CoherentLineCache(
                 Mux(flushRead, flushIndex, index)), enabled).asUInt
         }
     })
+    // Probe capture has its OWN retained B owner. It must not inherit the
+    // CPU's live tag/victim selection through a shared readRow mux. For a
+    // victim, resolve collision forwarding independently in BOTH physical
+    // ways first; the late selected way then crosses only the final mux.
+    // Same SRAMs, capture edges and payload registers; no extra line slot.
+    private def maintenanceWords(row: UInt): Vec[UInt] = VecInit((0 until 8).map { bank =>
+        val perWay = (0 until 2).map { way =>
+            forwardCollision(wayReadWords.get(bank)(way), bank.U,
+                Cat(way.U(1.W), row(setBits - 1, 0)))
+        }
+        Mux(row(indexBits - 1), perWay(1), perWay(0))
+    })
+    private val probeReadWords = if (parallelWayReads) maintenanceWords(probeSlot.get) else readWords
+    private val victimReadWords = if (parallelWayReads)
+        maintenanceWords(Mux(flushActive, flushIndex, pendingIndex)) else readWords
     private val cpuReadRaw = if (parallelWayReads) {
         // Select the word independently in each way, THEN choose the owner.
         // Do not distribute late tag/way selection through eight word muxes.
@@ -452,6 +467,23 @@ class I1CoherentLineCache(
     // reply live under B/C backpressure; queued hit replies stay behind a miss.
     io.upstream.response.valid := (queuedReply && readResponses.io.deq.valid) || missReply ||
         (bypassReply && io.downstream.response.valid)
+    if (retimedOrderedClassify) {
+        // Combine registered phase/occupancy before the late two-way hit
+        // result. Do not serialize tag -> enqueue VALID -> FIFO flow VALID
+        // -> response-kind mux. The same queue still owns stored responses.
+        val legacyValid = (queuedReply && readResponses.io.deq.valid) || missReply ||
+            (bypassReply && io.downstream.response.valid)
+        val storedOrKnownHit = queuedReply && (!readResponses.empty ||
+            (readPending && !classifyPending.get))
+        val classifyingHit = queuedReply && readPending && classifyPending.get && !pendingBypass
+        io.upstream.response.valid := storedOrKnownHit ||
+            (classifyingHit && classifiedWays.orR) || missReply ||
+            (bypassReply && io.downstream.response.valid)
+        when(!reset.asBool) {
+            assert(io.upstream.response.valid === legacyValid,
+                "parallel cache response admission changed stored/flow/miss/bypass ownership")
+        }
+    }
     io.upstream.response.bits := Mux(missReply, missResult,
         Mux(bypassReply, io.downstream.response.bits, readResponses.io.deq.bits))
     if (parallelOrderedControl) {
@@ -617,7 +649,11 @@ class I1CoherentLineCache(
         if (controlTimingCuts && !retimedOrderedClassify) when(!flushActive) {
             clearVictim := true.B
         }
-        for (i <- 0 until 8) { victimWords(i) := readWords(i) }
+        for (i <- 0 until 8) { victimWords(i) := victimReadWords(i) }
+        if (parallelWayReads) when(!reset.asBool) {
+            assert(victimReadWords.asUInt === readWords.asUInt,
+                "local victim capture changed selected SRAM/forwarded bytes")
+        }
         releaseBeat := 0.U
         legacyNextState := evictSend
     }
@@ -822,7 +858,11 @@ class I1CoherentLineCache(
         // No CPU or second B can enter until ProbeAck. Invalidate here,
         // before C is offered, not through live B tag/qualification at fire.
         if (controlTimingCuts) clearProbe := probeHit
-        for (i <- 0 until 8) { probeWords(i) := readWords(i) }
+        for (i <- 0 until 8) { probeWords(i) := probeReadWords(i) }
+        if (parallelWayReads) when(!reset.asBool) {
+            assert(probeReadWords.asUInt === readWords.asUInt,
+                "local probe capture changed selected SRAM/forwarded bytes")
+        }
         probeBeat := 0.U
         legacyNextState := probeSend
     }

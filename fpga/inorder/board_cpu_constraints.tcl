@@ -71,10 +71,10 @@ if {![regsub {([/.])user_scan$} $primitive {\1transport} engine]} {
     error "USER2 transport sibling changed"
 }
 set cpu [i1_board_clock u_soc/io_clockIn [expr {10.0/3.0}]]
-# Strengthen only CPU->CPU HOLD by 50ps. No setup relaxation, false path,
+# Strengthen only CPU->CPU HOLD by 80ps. No setup relaxation, false path,
 # clock-frequency change, or blanket CDC exemption. Final slack includes it.
-set_clock_uncertainty -from $cpu -to $cpu -hold 0.050
-puts "I1_CPU_INTRACLOCK_HOLD_GUARD_NS=0.050"
+set_clock_uncertainty -from $cpu -to $cpu -hold 0.080
+puts "I1_CPU_INTRACLOCK_HOLD_GUARD_NS=0.080"
 valence_apply_bscan_timing $primitive $engine [get_property NAME $cpu] \
     zu15eg-user2-tck50-halfcycle-i1-v2
 valence_assert_jtag_chain 2 $primitive

@@ -77,9 +77,27 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     }.reduce(_ || _)
     // Resolve bank-local permission/direction in parallel; do not first
     // select the whole Entry, then compare its tag, then choose the target.
-    io.nextPc := Mux1H(Seq((!takeTarget && shortSequential) -> plusTwo,
+    val legacyNextPc = Mux1H(Seq((!takeTarget && shortSequential) -> plusTwo,
         (!takeTarget && !shortSequential) -> plusFour) ++
         takeTargets.zip(lookups.map(_.target)))
+    if (p.fpgaTimingCuts) {
+        // Each shallow bank resolves tag/direction/length LOCALLY. The
+        // PC-derived bank select is early and independent of the RAM reply;
+        // no global OR-of-hit/direction fans back through all XLEN PC bits.
+        // Entry count, RAM bits, training and combinational latency stay put.
+        val localNext = lookups.zipWithIndex.map { case (entry, b) =>
+            val localHit = valid((b + 1) * bankRows - 1, b * bankRows)(row(lookupIndex)) &&
+                I1TimingMath.equal(entry.tag, tag(io.pc))
+            val taken = localHit && entry.controlFlow && (!entry.conditional || entry.counter(1))
+            Mux(taken, entry.target, Mux(p.withC.B && localHit && entry.compressed, plusTwo, plusFour))
+        }
+        io.nextPc := Mux1H(localNext.zipWithIndex.map { case (next, b) =>
+            (bank(lookupIndex) === b.U) -> next
+        })
+        when(!reset.asBool) {
+            assert(io.nextPc === legacyNextPc, "bank-local prediction changed exact next PC")
+        }
+    } else io.nextPc := legacyNextPc
     val trainingIndex = index(io.train.bits.pc)
     val trainingEntry = Mux1H(entries.zipWithIndex.map { case (memory, b) =>
         (bank(trainingIndex) === b.U) -> memory.read(row(trainingIndex))

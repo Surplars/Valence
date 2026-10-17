@@ -46,7 +46,7 @@ set_property STEPS.OPT_DESIGN.TCL.PRE [file join $root scripts board_cpu_constra
 set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
 set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
-set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
+set_property STEPS.PHYS_OPT_DESIGN.TCL.POST [file join $root scripts save_board_physopt.tcl] [get_runs impl_1]
 update_compile_order -fileset sources_1
 launch_runs synth_1 -jobs 2
 wait_on_run synth_1
@@ -55,10 +55,19 @@ open_run synth_1
 report_utilization -hierarchical -file [file join $reports post_synth_utilization.rpt]
 write_checkpoint [file join $reports real_board_post_synth.dcp]
 close_design
-launch_runs impl_1 -to_step route_design -jobs 1
+launch_runs impl_1 -to_step phys_opt_design -jobs 1
 wait_on_run impl_1
-if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} {error "Fresh board implementation failed"}
-open_run impl_1
+set implStatus [get_property STATUS [get_runs impl_1]]
+if {![file isfile [file join $reports real_board_post_place_physopt.dcp]] ||
+        [regexp -nocase {error|fail} $implStatus]} {
+    error "Fresh board physical optimization failed: $implStatus"
+}
+close_project
+open_checkpoint [file join $reports real_board_post_place_physopt.dcp]
+puts "I1_BOARD_ROUTE_STRATEGY TIMING_DRIVEN_DEFAULT_NO_PSIR ORIGINAL_CLOCKS_NO_EXCEPTIONS_CHANGED"
+# Match the completed batch38 route; avoid its crashed Leaf ClockOpt stage.
+# This does NOT select Quick/non-timing-driven routing or relax constraints.
+route_design -no_psir -timing_summary
 write_checkpoint [file join $reports real_board_routed.dcp]
 report_timing_summary -delay_type min_max -report_unconstrained -file [file join $reports timing_summary.rpt]
 foreach delay {max min} {
@@ -102,6 +111,8 @@ foreach {domain pin} {CPU300 u_soc/io_clockIn DDR_UI250 u_axi_cdc/m_axi_aclk
     }
 }
 close $f
+source [file join $root scripts audit_board_reset_cdc.tcl]
+i1_audit_board_reset_cdc $reports
 set setup [get_property SLACK [get_timing_paths -delay_type max -max_paths 1]]
 set hold [get_property SLACK [get_timing_paths -delay_type min -max_paths 1]]
 set f [open [file join $reports stage-result.txt] w]
@@ -109,4 +120,4 @@ puts $f "REAL_BOARD CPU300 UI250 AON50 UART50 I32KiB D32KiB FD Sv39 PLIC CMU USE
 puts $f "WNS=$setup WHS=$hold STATUS=ROUTED_REQUIRES_REPORT_REVIEW NO_BIT_GENERATED"
 close $f
 puts "I1_CPU_BOARD_ROUTED WNS=$setup WHS=$hold CPU300 ACTUAL_MIG_AXI_CDC_IP"
-close_project
+close_design

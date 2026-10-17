@@ -47,11 +47,31 @@ object I1TimingMath {
     }
 
     /** Native carry-select halves; same combinational result and owner edge. */
-    def add(left: UInt, right: UInt, subtract: Bool = false.B): UInt = {
+    def add(left: UInt, right: UInt, subtract: Bool = false.B, chunkBits: Int = 32): UInt = {
         require(left.getWidth == right.getWidth)
+        require(Set(16, 32).contains(chunkBits))
         val width = left.getWidth
         val b = right ^ Fill(width, subtract)
-        if (width > 32) {
+        if (width > 32 && chunkBits == 16) {
+            // Four independent native 16-bit sums with block lookahead.
+            // No carry propagates across a whole 32-bit half after the EX
+            // operand mux, and no incrementer follows a completed sum.
+            val chunks = (0 until width by 16).map { low =>
+                val high = math.min(width - 1, low + 15)
+                val aPart = left(high, low); val bPart = b(high, low)
+                val partWidth = high - low + 1
+                val sum = aPart +& bPart
+                val plusOne = ~((~aPart +& ~bPart)(partWidth - 1, 0))
+                (sum(partWidth - 1, 0), plusOne, sum(partWidth), (aPart ^ bPart).andR)
+            }
+            val result = chunks.indices.map { i =>
+                val carry = (0 until i).map { j =>
+                    chunks(j)._3 && chunks.slice(j + 1, i).map(_._4).foldLeft(true.B)(_ && _)
+                }.foldLeft(subtract && chunks.take(i).map(_._4).foldLeft(true.B)(_ && _))(_ || _)
+                Mux(carry, chunks(i)._2, chunks(i)._1)
+            }
+            Cat(result.reverse)
+        } else if (width > 32) {
             val low = left(31, 0) +& b(31, 0) + subtract
             val upperA = left(width - 1, 32); val upperB = b(width - 1, 32)
             val upperWidth = width - 32

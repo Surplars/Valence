@@ -116,7 +116,8 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     if (p.withSv39 || p.pmpEntries > 0) {
         val splitInstruction = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation && p.tlbEntries <= 8
         val it = Module(new FiveStageAddressTranslation(p, instruction = true,
-            parallelInstructionCandidates = splitInstruction))
+            parallelInstructionCandidates = splitInstruction,
+            registeredInstructionReturn = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation))
         val dt = Module(new FiveStageAddressTranslation(p, instruction = false,
             parallelDataCandidates = core.io.dataCandidates.isDefined))
         for (translator <- Seq(it, dt)) {

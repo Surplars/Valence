@@ -33,7 +33,7 @@ struct Test {
         bool write=false, noAllocate=false, atomic=false;
     } offeredRequest;
     std::optional<std::array<uint64_t, 3>> heldResponse;
-    uint64_t cycle = 0, cases = 0, walks = 0, requests = 0, hits = 0;
+    uint64_t cycle = 0, cases = 0, walks = 0, requests = 0, hits = 0, preparedPayloadCycles = 0;
     uint64_t top = 0x90000000, injectAddress = ~0ULL;
     unsigned privilege = 1, dataPrivilege = 1, pmpConfig = 15; bool sum = false, mxr = false;
     uint64_t satp = (8ULL << 60) | (ROOT >> 12);
@@ -270,7 +270,14 @@ struct Test {
         expectedPhysicalAddress=newPa; readAhead=true; d.set_io$$request$$valid(1);
         bool handed=false, oldReply=false;
         for (unsigned n=0; n<150 && !oldReply; ++n) {
+            const bool waiting=kind==0 && !handed && physical && cycle+1<physical->due;
             step(false);
+            if(waiting){
+                need(d.get_io$$physicalRequest$$bits$$address()==newPa &&
+                    !d.get_io$$physicalRequest$$bits$$noAllocate(),
+                    "next physical payload depends on old reply admission");
+                ++preparedPayloadCycles;
+            }
             if (d.get_io$$request$$ready()) {
                 need(kind==0 && !handed,"unsafe/error/unproven read handoff admitted");
                 handed=true; d.set_io$$request$$valid(0);
@@ -308,7 +315,9 @@ int main(int argc, char **argv) { try {
     Test t; bool mutate = argc > 1 && std::string(argv[1]) == "--wrong-page";
 #ifdef I1_DATA_REPLY_HANDOFF
     for (unsigned kind=0; kind<6; ++kind) t.handoff(kind);
-    std::cout << "MMU_HANDOFF_PASS accepted=1 blocked=5 held_reply_cycles=12\n";
+    need(t.preparedPayloadCycles>0,"missing reply-independent prepared address witness");
+    std::cout << "MMU_HANDOFF_PASS accepted=1 blocked=5 held_reply_cycles=12 prepared_payload_cycles="
+              << t.preparedPayloadCycles << '\n';
 #endif
     t.wrongPma = argc > 1 && std::string(argv[1]) == "--wrong-pma";
     t.tables(); t.transact(VA, false, false, mutate ? std::optional<Expected>{Expected{0, true, true}} : std::nullopt);

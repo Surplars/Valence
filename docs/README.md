@@ -6,13 +6,52 @@
 - [源码与构建边界](layout.md)、[GSIM 入口](../simulator/gsim/inorder/README.md)、[FPGA 整板入口](../fpga/inorder/README.md)。
 - 当前显式测试配置：fpga8、RV64IMAFDC、M/S/U、PMP/Sv39、PLIC、I/D 各32KiB、
   两个 DDR 槽位；新实验开关默认关闭，未自动替换平台默认值。
-- 最新 batch37：29 项受影响短检查、17 项参数测试通过；CoreMark 短测 ROI
-  647379→646056 拍（约+0.20%），CRC/退休轨迹一致，不是正式持续时间评分。
-  六组标准 Bare/Sv39 流式带宽与 batch36 相同；D-cache 单缺失生命周期仍需重构。
-- 300MHz 尚未签核。旧 r11 路由 WNS −0.007ns 不是新版时序结果；
-  当前未生成新版 bit。USER2 板上65位扫描与66位拒绝已做实际双 TAP 验证。
+- 最新 batch40：切除注册式取指器不可能发生的IT同拍回接依赖；分离对齐器载荷
+  捕获与晚到VALID，展平缓存命中回复，PMP分组优先级、EX短进位选择一起优化。
+  49项短检查、13项性能门、17项参数测试通过；六组吞吐和CoreMark逐字段不变，
+  6999寄存器/89内存声明完全相同。CPU hold保护从50ps加严到80ps，
+  多时钟域、32+32KiB和槽位不变。dev2-r4整板路由及一次后路由优化完成：
+  CPU300 setup 0.000ns（MET）/hold +0.010ns，setup/hold/脉宽失败端点均为0。
+  这是贴线STA通过，并非充足setup裕量或上板验证。DDR250 +0.358/+0.010ns，
+  AON/UART50 +0.619/+0.040ns。整板93788 LUT、55189寄存器、BRAM62.5、DSP31。
+  原9项CDC Critical端点完全不变，结构/功能释放审计通过但仍非完整CDC签核。
+  2026-10-17 20:14已按用户要求从该路由DCP生成bit，未重做实现；
+  USER2/65位修复已包含，MAC未接，UART460800，上板运行及JTAG下载仍待实测。
+  bit路径、哈希与清理归档见[本轮交付](orbital-i1.md#batch40-bit-delivery-and-cleanup)。
+- 上一批 batch39：DT按真实TLB源并行授权、按物理证明页并行判定缓存窗口；
+  probe独立所有者捕获、victim逐way前递；BTB按bank局部选择下一PC。
+  37项受影响短检查、13项性能门、17项参数测试通过；六组Bare/Sv39与短O3
+  CoreMark逐字段等同batch38。寄存器与内存声明逐条不变，无新增槽位或流水级。
+  dev2-r3已完成真实整板路由及一次后路由优化：300MHz WNS −0.017ns、
+  TNS −0.418ns/70端点，hold +0.003ns；相比batch38的−0.316ns明显改善，仍未达标。
+  已专项回读：D元数据WE +0.021ns、probe捕获 +0.402ns、victim捕获 +0.280ns、
+  PC自反馈 +0.006ns；最坏链仍为I-cache victim标签→PC准入CE。
+  整板93624 LUT、55121寄存器、
+  BRAM62.5、DSP31；DDR UI250、AON/UART50的setup/hold均为正。
+  9项原有复位CDC Critical端点不变，三级同步结构和7条功能释放时序已审计；
+  另2条仅同步器复位分支保留原例外，不算CDC全签核。未生成bit、未提交。
+- 上一批 batch38：Home 目录集中单写口、DT 下一地址准备与回复准入解耦；
+  29 项受影响短检查、17 项参数测试通过。六组 Bare/Sv39 流量与 batch37 逐字段一致，
+  O3 CoreMark ROI 保持646056拍，CRC/退休轨迹一致，不是正式持续时间评分。
+  目录六读口叶模块实际映射为700 LUT（576 LUTRAM）、0 FF；不是整板资源统计。
+- batch38 已集中进入真实整板实现：同综合口径总 LUT 156094→93883，
+  FF 74921→54457；Home 74067→11379 LUT，目录各582 LUT/0 FF。
+  完整 MIG/AXI CDC IP 已计入；BRAM62.5、DSP31保持不变。
+- 以下为batch38及更早的未通过历史记录，不是当前batch40结果。旧r11路由
+  WNS −0.007ns不是新版时序结果；
+  batch37 整板综合 WNS −3.089ns 属于修复前。batch38 已完成恢复路由：
+  CPU300 setup −0.316ns /hold +0.010ns，仍未达标；未生成 bit。
+  最终整板92982 LUT、55150寄存器、BRAM62.5、DSP31；MIG/AXI CDC计入，MAC未接。
+  DDR UI250、AON/UART50的setup/hold均为正；9项原有复位CDC Critical仍待审计。
+  Explore在末尾时钟优化崩溃，最终数据来自同一物理优化DCP的时序驱动-no_psir恢复，
+  不是Explore完成结果，时钟/RTL/约束未变。详见架构记录最新章节。
+  USER2 板上65位扫描与66位拒绝已做实际双 TAP 验证。
 - 历史小报告、验收收据及源码快照保存在 WSL 独立归档：
   `/home/openion/Valence-inorder-evidence/pre-dev2-20261017-r1`。
+  本批另存`/home/openion/Valence-inorder-evidence/batch39-board-routed-20261017-r1`；
+  机器可读结果为dev2-r3/physical-review.json，原始收据及整板清单未覆盖。
+  最新batch40归档为`/home/openion/Valence-inorder-evidence/batch40-board-routed-20261017-r1`，
+  机器可读结果为dev2-r4/physical-review.json，最终路由在dev2-r4/postroute-r1/。
   完整 `build/`、`out/` 和 Vivado 工程/缓存不进源码提交。
 
 ## Orbital-A1 / VL100 及通用平台

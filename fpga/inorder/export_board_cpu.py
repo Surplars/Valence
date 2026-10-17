@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from export_network import memory_style, parallel_instruction_bindings, sha
-from board_short_proof import BANDWIDTH37, validate_bandwidth37
+from board_short_proof import (BANDWIDTH37, BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, BANDWIDTH_PROFILES,
+    validate_bandwidth37, validate_bandwidth38, validate_bandwidth39, validate_bandwidth40)
 
 
 def without_mac(text):
@@ -54,7 +55,7 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
         ap.error("fresh affected short PASS required; no stopped/failed receipt override")
     if r["status"] in ("PASS_I1_CPU_TIMING27_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING28_AFFECTED_SHORT_ONLY",
@@ -64,7 +65,7 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37) and (
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES) and (
             not r.get("performance_gates") or not all(r["performance_gates"].values())):
         ap.error("CoreMark recovery and stream performance gates must all pass")
     if r["status"] == "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY":
@@ -123,8 +124,10 @@ def main():
         if sha(ROOT / "third_party/berkeley-hardfloat/src/main/scala" / name) != digest:
             ap.error("pinned third-party HardFloat source drift: " + name)
     bandwidth_proof = None
-    if r["status"] == BANDWIDTH37:
-        flags, bandwidth_proof = validate_bandwidth37(r, args.receipt, ROOT)
+    if r["status"] in BANDWIDTH_PROFILES:
+        validate = {BANDWIDTH37: validate_bandwidth37, BANDWIDTH38: validate_bandwidth38,
+                    BANDWIDTH39: validate_bandwidth39, BANDWIDTH40: validate_bandwidth40}[r["status"]]
+        flags, bandwidth_proof = validate(r, args.receipt, ROOT)
     else:
         flags = r["cpu_flags"]["cpu-coherent"]
     for flag in ("--icache=32768", "--dcache=32768", "--soc-clock-hz=300000000",
@@ -138,7 +141,7 @@ def main():
     rtl = out / "rtl"; rtl.mkdir()
     selected = [x for x in flags if x != "--soc-no-bootrom"] + [
         "--soc-managed-uart", "--soc-jtag", "--soc-user-chain=2"]
-    if r["status"] in ("PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+    if r["status"] in ("PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
         selected += ["--soc-jtag-scan-bits=65"]
     with (out / "export.log").open("w") as log:
         subprocess.run(["mill", "-i", "OrbitalI1.test.runMain", "inorder.I1PeripheralFpgaShellMain",
@@ -167,7 +170,7 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
             if p.name == "I1FloatingPointExecute.sv":
                 text, count = re.subn(
                     r"(?m)^([ \t]*)(wire[^\n;]*\bcapturePayloadEnable\b[^\n;]*;)",
@@ -188,7 +191,7 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
             translation = re.fullmatch(r"FiveStageAddressTranslation(?:_\d+)?\.sv", p.name)
             cache = re.fullmatch(r"I1CoherentLineCache(?:_\d+)?\.sv", p.name)
             if translation or cache:
@@ -216,14 +219,20 @@ def main():
         if match:
             width, depth = int(match[2]) + 1, int(match[3]) + 1
             style = memory_style(p.name, width, depth, bindings)
-            if r["status"] == BANDWIDTH37 and p.stem.startswith("entries_32x"):
+            if r["status"] in (BANDWIDTH38, BANDWIDTH39, BANDWIDTH40) and p.stem.startswith("directoryBanks"):
+                from check_directory_writer import inspect_leaf
+                geometry = inspect_leaf(text)
+                if (geometry["read_ports"] != 6 or
+                        sha(p) != bandwidth_proof["directory_raw_leaf_sha256"]):
+                    raise RuntimeError("actual board directory differs from short-tested LUTRAM leaf")
+            if r["status"] in BANDWIDTH_PROFILES and p.stem.startswith("entries_32x"):
                 if (width, depth) != (125, 32):
                     raise RuntimeError("banked125-bit/32-row BTB leaf geometry changed")
                 style = "distributed"
             if p.stem.startswith("fetchClassBanks"):
                 if not (r["status"] in ("PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                         "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37) and width == 64 and depth == 256):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES) and width == 64 and depth == 256):
                     raise RuntimeError("unexpected cached parcel metadata RAM geometry")
                 style = "distributed"
             if style:
@@ -244,13 +253,13 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37) and len(fanout_annotations) != 2:
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES) and len(fanout_annotations) != 2:
         raise RuntimeError("required explicit CPU300 local-fanout hints missing")
     if r["status"] in ("PASS_I1_CPU_TIMING30_AFFECTED_SHORT_ONLY", "PASS_I1_CPU_TIMING31_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37) and (
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES) and (
             len(controller_annotations) != 4 or len(misc_completion_annotations) != 2):
         raise RuntimeError("required onehot/FPU completion bindings missing")
     for name in bindings:
@@ -265,7 +274,7 @@ def main():
                        "PASS_I1_CPU_TIMING32_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
         modules = {item["module"] for items in bindings.values() for item in items}
         instances = sum(len(items) for items in bindings.values())
         if len(modules) != 2 or instances != 32:
@@ -273,7 +282,7 @@ def main():
     elif not any(x["style"] == "block" and x["depth"] == 512 and n.startswith("data")
                  for n, x in annotations.items()):
         raise RuntimeError("32KiB D-cache SRAM binding missing")
-    if r["status"] == BANDWIDTH37 and not any(n.startswith("entries_32x") and
+    if r["status"] in BANDWIDTH_PROFILES and not any(n.startswith("entries_32x") and
             a["style"] == "distributed" and a["width"] == 125 and a["depth"] == 32
             for n, a in annotations.items()):
         raise RuntimeError("same-capacity four-bank BTB distributed RAM binding missing")
@@ -298,7 +307,7 @@ def main():
         "set_property DRIVE 8 [get_ports eth_reset_gate]\n")
     scripts = out / "scripts"; scripts.mkdir()
     for name in ("build_board_cpu.tcl", "synth_board_cpu.tcl", "board_cpu_constraints.tcl", "prepare_board_mem.tcl",
-                 "bscan_timing_i1.tcl"):
+                 "bscan_timing_i1.tcl", "audit_board_reset_cdc.tcl", "save_board_physopt.tcl"):
         shutil.copy2(HERE / name, scripts / name)
     # Reuse only pure helper definitions, not the old MAC-specific invocation.
     old_constraints = (HERE / "board_constraints.tcl").read_text()
@@ -334,15 +343,15 @@ def main():
                 for name, x in annotations.items())):
         ap.error("exact batch33 checks105/performance18 and real distributed parcel RAM required")
     if r["status"] in ("PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
-                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", BANDWIDTH37):
+                       "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
         required_inputs = ("simulator/gsim/harness/line_read_preflight.cpp",
             "simulator/gsim/harness/five_stage_increment.cpp",
             "simulator/gsim/harness/five_stage_jtag_timing.cpp",
             "src/main/scala/core/inorder/I1JtagRamLoader.scala")
-        expected_checks = 29 if r["status"] == BANDWIDTH37 else (
+        expected_checks = 49 if r["status"] == BANDWIDTH40 else 37 if r["status"] == BANDWIDTH39 else 29 if r["status"] in BANDWIDTH_PROFILES else (
             24 if r["status"] == "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY" else 127)
         if (len(r.get("checks", {})) != expected_checks or
-                len(r.get("performance_gates", {})) != (13 if r["status"] == BANDWIDTH37 else 18) or
+                len(r.get("performance_gates", {})) != (13 if r["status"] in BANDWIDTH_PROFILES else 18) or
                 "--cache-fetch-predecode" not in flags or "--indexed-data-proofs" not in flags or
                 any(p not in r["source_sha256"] for p in required_inputs) or
                 not (rtl / "I1JtagRamLoader.sv").is_file() or
@@ -399,6 +408,8 @@ def main():
         "ddr_bytes": 2147483648, "axi_data_bits": 64, "uart_baud": 460800,
         "jtag_update_equivalence": jtag_equivalence, "bandwidth_short_proof": bandwidth_proof,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+        "git_worktree_dirty": bool(subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()),
         "flags": selected, "source_sha256": {**r["source_sha256"], **supplemental},
         "supplemental_source_proof": supplemental_proof,
         "short_receipt": str(args.receipt.resolve()), "short_receipt_sha256": sha(args.receipt),
@@ -408,10 +419,11 @@ def main():
         "physical_fanout_annotations": fanout_annotations,
         "controller_annotations": controller_annotations,
         "misc_completion_annotations": misc_completion_annotations,
-        "cpu_extra_intraclock_hold_guard_ns": 0.050,
+        "cpu_extra_intraclock_hold_guard_ns": 0.080,
         "source_resources": {str(p.relative_to(ROOT)): sha(p) for p in HERE.glob("*")
-            if p.is_file() and p.name in ("export_board_cpu.py", "board_short_proof.py",
-                "build_board_cpu.tcl", "synth_board_cpu.tcl",
+            if p.is_file() and p.name in ("export_board_cpu.py", "board_short_proof.py", "check_directory_writer.py",
+                "build_board_cpu.tcl", "synth_board_cpu.tcl", "audit_board_reset_cdc.tcl", "save_board_physopt.tcl",
+                "audit_batch39_short.py", "audit_batch40_short.py",
                 "board_cpu_constraints.tcl", "soc_top_i1_network_ddr.sv", "board_constraints.tcl")},
         "files_sha256": {str(p.relative_to(out)): sha(p) for folder in (rtl, board, scripts)
             for p in folder.rglob("*") if p.is_file()},

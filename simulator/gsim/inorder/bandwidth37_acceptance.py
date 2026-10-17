@@ -18,26 +18,31 @@ from coherent_network_acceptance import qualification_sources
 from soc_acceptance import sha
 
 
-def main():
+def main(batch=37):
+    if batch not in (37, 38, 39, 40):
+        raise ValueError("explicit affected-short profile required")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--components-only", action="store_true")
     ap.add_argument("--reuse-components", type=Path)
     ap.add_argument("--reuse-compiles", type=Path,
         help="only exact fresh FIR and hashed object/header files; every check re-executes")
-    ap.add_argument("--baseline", type=Path, default=ROOT /
-        "build/gsim/i1-bandwidth36-20261017-r4/receipt.json")
+    ap.add_argument("--baseline", type=Path, default=ROOT / (
+        "build/gsim/i1-bandwidth36-20261017-r4/receipt.json" if batch == 37 else
+        "build/gsim/i1-bandwidth37-20261017-r8/receipt.json" if batch == 38 else
+        "build/gsim/i1-bandwidth38-20261017-r1/receipt.json" if batch == 39 else
+        "build/gsim/i1-bandwidth39-20261017-r1/receipt.json"))
     args = ap.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.tag):
         ap.error("safe unique tag required")
-    out = ROOT / "build/gsim" / ("i1-bandwidth37-" + args.tag)
+    out = ROOT / "build/gsim" / ("i1-bandwidth" + str(batch) + "-" + args.tag)
     out.mkdir(exist_ok=False)
     baseline = json.loads(args.baseline.read_text())
-    if baseline["status"] != "PASS_I1_BANDWIDTH36_AFFECTED_SHORT_ONLY":
+    if baseline["status"] != "PASS_I1_BANDWIDTH" + str(batch - 1) + "_AFFECTED_SHORT_ONLY":
         raise RuntimeError("exact previous short PASS receipt required")
     frozen = qualification_sources()
-    flags = baseline["cpu_flags"] + [
-        "--coherent-read-overlap", "--data-reply-handoff"]
+    flags = baseline["cpu_flags"] + ([
+        "--coherent-read-overlap", "--data-reply-handoff"] if batch == 37 else [])
     receipt = {"status": "RUNNING", "checks": {}, "source_sha256": frozen,
         "baseline": str(args.baseline), "baseline_sha256": sha(args.baseline),
         "cpu_flags": flags, "cache_bytes_each": 32768, "ddr_slots": 2, "write_slots": 1,
@@ -68,19 +73,19 @@ def main():
         common.run(["mill", "-i", "OrbitalI1.test.testOnly", "inorder.FiveStageConfigSpec"],
             log=out / "scala.log")
 
-        def link(directory, top, driver, binary="run", defines=()):
+        def link(directory, top, driver, binary="run", defines=(), width=64):
             common.run([cxx, "-std=c++20", "-O1", "-fsanitize=address,undefined",
-                "-fno-sanitize-recover=all", "-DDUT_XLEN=64", "-I" + str(directory),
+                "-fno-sanitize-recover=all", "-DDUT_XLEN=" + str(width), "-I" + str(directory),
                 *defines, *sorted(directory.glob(top + "[0-9]*.o")),
                 ROOT / "simulator/gsim/harness" / driver, "-o", directory / binary],
                 log=directory / (binary + "-link.log"), timeout=900)
 
-        def model(name, entry, top, driver, options=(), defines=()):
+        def model(name, entry, top, driver, options=(), defines=(), width=64):
             directory = out / name
             directory.mkdir()
             print("BUILD", name, flush=True)
             common.run(["mill", "-i", "OrbitalI1.test.runMain", "inorder." + entry,
-                directory, 64, *options], log=directory / "elaborate.log")
+                directory, width, *options], log=directory / "elaborate.log")
             fir = directory / (top + ".fir")
             previous = args.reuse_compiles.parent / name if compiled else None
             if previous and (previous / fir.name).is_file() and \
@@ -96,7 +101,7 @@ def main():
                 receipt.setdefault("exact_compile_reuse", {})[name] = {
                     "receipt": str(args.reuse_compiles), "fresh_fir_sha256": sha(fir),
                     "checks_reused": False}
-                link(directory, top, driver, defines=defines)
+                link(directory, top, driver, defines=defines, width=width)
                 return directory
             original = fir.read_text()
             normalized, count = re.subn(
@@ -115,7 +120,7 @@ def main():
                     log=directory / (source.stem + "-compile.log"), timeout=900)
             with ThreadPoolExecutor(max_workers=2) as pool:
                 list(pool.map(compile_one, sorted(directory.glob(top + "[0-9]*.cpp"))))
-            link(directory, top, driver, defines=defines)
+            link(directory, top, driver, defines=defines, width=width)
             return directory
 
         def check(name, directory, argv=(), negative=None, binary="run"):
@@ -136,13 +141,42 @@ def main():
 
         if args.reuse_components:
             prior = json.loads(args.reuse_components.read_text())
-            if prior["status"] != "PASS_I1_BANDWIDTH37_COMPONENTS_ONLY" or \
+            if prior["status"] != "PASS_I1_BANDWIDTH" + str(batch) + "_COMPONENTS_ONLY" or \
                     prior["source_sha256"] != frozen or prior["tools"] != receipt["tools"]:
                 raise RuntimeError("exact source/tool-bound component receipt required")
             receipt["checks"].update(prior["checks"])
             receipt["component_evidence"] = {"path": str(args.reuse_components),
                 "sha256": sha(args.reuse_components), "rerun": False}
         else:
+            if batch == 40:
+                for width in (32, 64):
+                    for staged in (False, True):
+                        name = "pmp-" + str(width) + ("-registered" if staged else "-direct")
+                        pmp = model(name, "I1PmpTimingMain", "I1PmpTimingFixture",
+                            "five_stage_pmp_timing.cpp", ["--staged"] if staged else [],
+                            ["-DI1_PMP_REGISTERED=1"] if staged else [], width=width)
+                        check(name, pmp, negative=(["--wrong-permission"],
+                            "independent PMP full-interval/priority oracle"))
+                        if staged and "held_input_noise_checks=768" not in receipt["checks"][name]:
+                            raise RuntimeError("missing held PMP capture/noise coverage")
+                    name = "execute-" + str(width)
+                    execute = model(name, "FiveStageExecuteDatapathMain", "I1ExecuteDatapathFixture",
+                        "five_stage_execute_datapath.cpp", ["--pipeline=fpga8", "--timing-cuts"],
+                        ["-DDUT_TIMING_CUTS=1"], width=width)
+                    check(name, execute, negative=(["--wrong-result"],
+                        "independent EX operand/ALU/result oracle"))
+            if batch >= 39:
+                predictor = model("predictor-c", "FiveStagePredictorMain", "FiveStageBranchPredictor",
+                    "five_stage_predictor_c.cpp",
+                    ["--c", "--pipeline=fpga8", "--timing-cuts", "--predictor=128"])
+                check("predictor-c", predictor, negative=(["--wrong-target"],
+                    "independent C folded BTB full-PC/length/target oracle"))
+                for capacity in (256, 32768):
+                    name = "write-commit-" + str(capacity)
+                    commit = model(name, "I1DataCacheCommitMain", "I1DataCacheCommitFixture",
+                        "five_stage_cache_write_commit.cpp", ["--cache-bytes=" + str(capacity)])
+                    check(name, commit, negative=(["--wrong-forward"],
+                        "independent masked store/read collision oracle"))
             home = model("home-read-pair", "I1HomeReadPairMain", "I1HomeReadPairFixture",
                 "five_stage_home_read_pair.cpp")
             check("home-read-pair", home,
@@ -154,6 +188,14 @@ def main():
                 ["-DI1_DATA_REPLY_HANDOFF", "-DI1_SPLIT_DATA_CANDIDATES"])
             check("mmu-handoff", mmu,
                 negative=(["--wrong-page"], "independent Sv39/PMP/page-vs-access fault oracle"))
+            if batch >= 39:
+                shifted = model("mmu-shifted", "FiveStageTranslationMain", "FiveStageTranslationHarness",
+                    "five_stage_translation.cpp", ["--fast-data-translation", "--timing-cuts",
+                        "--atomic", "--overlap-data-retirement", "--direct-fast-data-issue",
+                        "--indexed-data-proofs", "--split-data-candidates", "--data-reply-handoff",
+                        "--window=shifted"], ["-DI1_DATA_REPLY_HANDOFF", "-DI1_SPLIT_DATA_CANDIDATES"])
+                check("mmu-shifted", shifted,
+                    negative=(["--wrong-page"], "independent Sv39/PMP/page-vs-access fault oracle"))
             for capacity, overlap in ((256, False), (256, True), (32768, True)):
                 name = "pair-" + str(capacity) + ("-overlap" if overlap else "-serial")
                 options = ["--cuts", "--two-way", "--bandwidth", "--ordered-admission",
@@ -170,9 +212,12 @@ def main():
                 check(name + "-stream", directory,
                     negative=(["--wrong-stream"], "independent ordinary cohort byte/order oracle"))
         if args.components_only:
-            receipt["status"] = "PASS_I1_BANDWIDTH37_COMPONENTS_ONLY"
+            receipt["status"] = "PASS_I1_BANDWIDTH" + str(batch) + "_COMPONENTS_ONLY"
         else:
-            prior_vectors = Path(json.loads(Path(baseline["baseline"]).read_text())["reference"])
+            vector_owner = baseline
+            while "reference" not in vector_owner:
+                vector_owner = json.loads(Path(vector_owner["baseline"]).read_text())
+            prior_vectors = Path(vector_owner["reference"])
             vectors = json.loads(prior_vectors.read_text())
             def payload(name):
                 path = prior_vectors.parent / name
@@ -232,7 +277,7 @@ def main():
                             item["new"][metric] <= item["old"][metric]
             if not all(receipt["performance_gates"].values()):
                 raise RuntimeError("performance candidate regressed; preserve failed receipt")
-            receipt["status"] = "PASS_I1_BANDWIDTH37_AFFECTED_SHORT_ONLY"
+            receipt["status"] = "PASS_I1_BANDWIDTH" + str(batch) + "_AFFECTED_SHORT_ONLY"
         if qualification_sources() != frozen:
             raise RuntimeError("source drift during acceptance")
     except BaseException as error:

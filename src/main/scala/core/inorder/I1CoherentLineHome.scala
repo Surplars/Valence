@@ -460,15 +460,9 @@ class I1CoherentLineHome(
             }
             val installIndex = if (parallelQualification) acquireSlot.get
                 else lineIndex(acquireAddress, maintenance = true)
-            if (parallelQualification) { installOwner := true.B; primaryInstall := true.B }
+            primaryInstall := true.B
+            if (parallelQualification) { installOwner := true.B }
             else owned(installIndex) := true.B
-            for (way <- 0 until trackedWays) {
-                when(directoryWay(installIndex) === way.U) {
-                    directoryBanks(way).write(
-                        if (parallelQualification) installIndex(ownerSetBits - 1, 0) else directorySet,
-                        Cat(directoryTag(acquireAddress), acquireClient))
-                }
-            }
         }
         state := Mux(detachedRelease && !(releaseAckPending.getOrElse(false.B) &&
             client(releaseClient).d.fire), lineWriteWait, idle)
@@ -524,12 +518,6 @@ class I1CoherentLineHome(
             pairedRead.get := false.B; pairedAck.get := false.B
             when(!releaseParam(0)) {
                 secondInstall := true.B; installOwner := true.B
-                for (way <- 0 until trackedWays) {
-                    when(directoryWay(releaseSlot.get) === way.U) {
-                        directoryBanks(way).write(releaseSlot.get(ownerSetBits - 1, 0),
-                            Cat(directoryTag(lineAddress), releaseClient))
-                    }
-                }
             }
         }
         when(secondReadLive) {
@@ -537,6 +525,29 @@ class I1CoherentLineHome(
                 state =/= probeSend && state =/= probeWait && state =/= releaseReceive,
                 "paired read aliases the existing release/probe context")
         }
+    }
+
+    // E arbitration above already retains a competing secondary GrantAck.
+    // Describe that arbitration BEFORE the Mem operation: two mutually
+    // exclusive Scala .write calls still create two RTL write ports and
+    // expand this multi-read directory into FFs/muxes on FPGA. Keep exactly
+    // one physical writer per bank, with no queue, extra cycle or new owner.
+    private val installIndex = if (parallelQualification)
+        Mux(secondInstall, releaseSlot.get, acquireSlot.get)
+        else lineIndex(acquireAddress, maintenance = true)
+    private val installSet = if (parallelQualification) installIndex(ownerSetBits - 1, 0)
+        else directorySet
+    private val installWord = Mux(secondInstall,
+        Cat(directoryTag(lineAddress), releaseClient),
+        Cat(directoryTag(acquireAddress), acquireClient))
+    for (way <- 0 until trackedWays) {
+        when((primaryInstall || secondInstall) && directoryWay(installIndex) === way.U) {
+            directoryBanks(way).write(installSet, installWord)
+        }
+    }
+    when(!reset.asBool) {
+        assert(!(primaryInstall && secondInstall),
+            "single directory writer requires retained secondary GrantAck arbitration")
     }
 
     probeEngine.io.request.valid := state === probeSend && !releaseAny

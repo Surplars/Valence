@@ -17,7 +17,7 @@ int main(int argc,char**argv){try{
     S(a0$$valid,0);S(a1$$valid,0);S(e0$$valid,0);S(e1$$valid,0);
     S(g0$$ready,0);S(g1$$ready,0);S(read$$ready,0);S(responseValid,0);S(inspect,0);
     d.set_reset(1);d.step();d.step();d.set_reset(0);
-    unsigned pairs=0,errors=0,grantStalls=0,eStalls=0,reverse=0;
+    unsigned pairs=0,errors=0,grantStalls=0,eStalls=0,reverse=0,ackConflicts=0,secondaryFirst=0;
     for(unsigned n=0;n<24;++n){
         const uint64_t base=0x80010000ULL+n*128;
         const std::array<unsigned,2> source{n%7,(n+3)%7};
@@ -48,7 +48,9 @@ int main(int argc,char**argv){try{
             const unsigned inspect=granted[first]?1-first:first;
             S(inspect,inspect);
             const bool ackEnable=granted[0]&&granted[1]&&cycle>=60;
-            S(e0$$valid,ackEnable&&!acked[0]);S(e1$$valid,ackEnable&&!acked[1]);
+            const bool e0=ackEnable&&!acked[0]&&(n%3!=1||acked[1]);
+            const bool e1=ackEnable&&!acked[1]&&(n%3!=2||acked[0]);
+            S(e0$$valid,e0);S(e1$$valid,e1);
             S(e0$$bits$$sink,0);S(e1$$bits$$sink,1);
             // Actual A arbitration starts at client 0; tag/sink 0 is primary.
             const bool responseOffered=respond&&!(returned[first]&&!granted[first]);
@@ -84,9 +86,14 @@ int main(int argc,char**argv){try{
                     "independent paired Home eight-word/error/source oracle");
                 if(grantReady)granted[inspect]=true;else ++grantStalls;
             }
+            if(e0&&e1&&!error[0]&&!error[1]){
+                need(G(e0$$ready)&&!G(e1$$ready),"single directory writer lost primary E priority");
+                ++ackConflicts;
+            }
             if(ackEnable){
-                if(!acked[0]&&G(e0$$ready))acked[0]=true;
-                if(!acked[1]&&G(e1$$ready))acked[1]=true;
+                if(e1&&G(e1$$ready)&&!acked[0])++secondaryFirst;
+                if(e0&&G(e0$$ready))acked[0]=true;
+                if(e1&&G(e1$$ready))acked[1]=true;
             }else if(granted[0]||granted[1])++eStalls;
         }
         need(acked[0]&&acked[1],"paired Home read/error/E bounded completion");
@@ -94,7 +101,9 @@ int main(int argc,char**argv){try{
         need(G(drained),"Home retained a read context after both real E handshakes");
         ++pairs;errors+=error[0]+error[1];reverse+=(first==1);
     }
+    need(ackConflicts>=4&&secondaryFirst>=8,"directory writer arbitration/order coverage missing");
     std::cout<<"I1_HOME_READ_PAIR_PASS pairs="<<pairs<<" errors="<<errors<<" reverse="<<reverse
-        <<" grant_stalls="<<grantStalls<<" e_stalls="<<eStalls<<"\n";
+        <<" grant_stalls="<<grantStalls<<" e_stalls="<<eStalls
+        <<" ack_conflicts="<<ackConflicts<<" secondary_first="<<secondaryFirst<<"\n";
     return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

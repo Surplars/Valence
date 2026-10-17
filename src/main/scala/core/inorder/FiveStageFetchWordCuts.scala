@@ -99,9 +99,12 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         stale := io.invalidate
         when(reuse) { acceptFirst(word, wordClasses.getOrElse(0.U(8.W)), io.request.bits, false.B, false.B) }
     }
-    when(io.memoryResponse.fire) {
+    // Only the registered reply phase exposes result/firstHalf. Prepare the
+    // existing payload registers throughout their retained wait phase; the
+    // real response edge still alone advances ownership and validates data.
+    // Cache tag/response VALID therefore does not enable every result bit.
+    when(in(firstWait) || in(secondWait)) {
         val data = io.memoryResponse.bits
-        val address = Mux(in(secondWait), secondPc, pc)
         when(in(firstWait)) {
             acceptFirst(data.data, returnedClasses, pc, data.error, data.pageFault)
         }.otherwise {
@@ -115,6 +118,10 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
             result.pageFault := data.pageFault
             result.secondHalfFault := true.B
         }
+    }
+    when(io.memoryResponse.fire) {
+        val data = io.memoryResponse.bits
+        val address = Mux(in(secondWait), secondPc, pc)
         // Error, a partial-word PMP grant or killed context never fills reuse.
         wordValid := !data.error && data.fetchSpan && !stale && !io.invalidate
         when(!data.error && data.fetchSpan && !stale && !io.invalidate) {

@@ -1,10 +1,19 @@
 # OpenIon Orbital-I1: FPGA-first parameterized in-order core
 
-Branch: `feat/orbital-i1-five-stage`. Worktree: `/home/openion/Valence-inorder`.
+Working branch: `dev2` (organized baseline `e0415d2`; original feature branch retained).
+Worktree: `/home/openion/Valence-inorder`.
 Base: `1e90af966c15d871d2544469174acba78473113b`. The existing OoO core,
 `/home/openion/Valence`, and dot's separate worktrees are not switched or overwritten.
 This is new current hardware under `src/main/scala/core/inorder`, not resurrection of
 `legacy/hardware` and not an OoO backend with renamed stages.
+
+Latest physical status (batch40,2026-10-17): the real no-MAC board with
+MIG/AXI CDC, CPU300/UI250/AON50/UART50 andI/D32KiB has completed routed STA
+withWNS0.000ns(MET),TNS0,WHS+0.010ns underan80ps CPU hold guard. Setup is
+borderline, not comfortable margin. Existing nine reset CDC Criticals and
+documented I/O boundary exceptions remain; this is not full CDC/board signoff.
+No bit generated. Historical foundation status below is chronological; see
+the final batch40 section andits immutable short/physical evidence.
 
 ## Contract and honest status
 
@@ -6615,3 +6624,527 @@ No new Vivado, bit, board test, commit or push.300MHz setup/hold/CDC and physica
 resource cost remain unqualified for batch36/37. The strict board exporter
 still needs explicit current receipt-schema/new-flag support before any future
 physical run; do not bypass it or reuse the old r11 timing as current signoff.
+
+## 2026-10-17 batch38: one physical directory writer and reply-independent DT payload
+
+Short receipt: `build/gsim/i1-bandwidth38-20261017-r1/receipt.json`,
+`PASS_I1_BANDWIDTH38_AFFECTED_SHORT_ONLY`: 29 checks, 13 performance gates,
+17 Scala configuration cases. The 28 FPGA-tool unit tests also pass.
+This is a resource-mapping/control-path repair, NOT another bandwidth gain.
+
+The same-stage whole-board synthesis comparison exposed a genuine regression:
+batch35/r11 89,330 LUT versus batch37/dev2 156,094 LUT. Home alone changed
+9,217 ->74,067 LUT. Four directory banks acquired a second independent RTL
+write port, despite logically exclusive GrantAck arbitration; they ceased to
+infer LUTRAM and each became 16,348 LUT /5,120 FF. This was not cache growth,
+FPU growth, or merely comparing synthesis against routing. An RTL-only +7-bit
+state inventory did not account for that physical memory-inference failure.
+
+Home now selects the install row/tag/client BEFORE one Mem.write per bank.
+Existing primary-E priority retains a competing secondary E; an errored
+primary can still acknowledge alongside the successful secondary. There is
+no new queue, delayed directory owner, extra cycle, state bit or payload RAM.
+The existing two read contexts still issue both backing reads before either
+return. Four E conflicts, eight explicitly secondary-first schedules, reverse
+returns, twelve memory errors and grant/E backpressure are independently
+checked. The raw secondary_first counter is10 because it also counts two
+same-edge acknowledgements with an errored primary. The old serial option
+and 256B/32KiB pair configurations pass too.
+
+DT now prepares the offered address/data/mask/noAllocate from the current
+registered phase, independently of physical-response valid/ready/error and
+requestSlot. Only VALID/ownership remains gated by actual completion and
+full permission proof. send/fastHold keep their saved sticky owner. The
+reported D-cache reply -> DT slot -> next PA -> cache classification cone is
+therefore cut at its payload mux, without removing same-edge read handoff.
+The MMU checks 475 cases, one safe handoff/five unsafe rejections and twelve
+held-reply cycles. A new prepared-payload witness passes two waiting cycles;
+the exact old GSIM object rejects this witness with
+`next physical payload depends on old reply admission`.
+
+All SIX frozen 8KiB/64KiB Bare/Sv39 cases have exactly the batch37 timed/total
+cycles, retired counts, AXI requests/beats and overlap counters, including
+read-floor80/write-floor79. The preceding batch37 table remains current.
+O3 CoreMark remains ROI646056 /345517 instructions (IPC0.5348097), total687500,
+retired367211, CRC59156, trace7b173819116883a2, AXI reads255/writes0. C/A/AMO
+and32 F/D precise-context cases pass. No official duration-qualified score.
+
+The generated CPU FIR retains 6,999 register declarations and four directory
+banks; directory write ports fall eight ->four. No original OoO, shared IP,
+clock/CDC source, cache capacity or transaction-slot parameter changed.
+Experimental switches keep their existing default-off behavior.
+
+Isolated RAM proof: `fpga/inorder/check_directory_writer.py` accepts only a
+source/hash-bound complete batch38 PASS, emits the exact tested CPU FIR and
+requires a 256x20 six-read/one-write leaf. One Vivado2025.1 leaf-only synthesis
+at XCZU15EG-2 maps it to700 LUT (576 distributed-memory LUT +124 logic), zero
+FF and no BRAM. Evidence:
+`E:/VM/Share/Valence-rtl/orbital-i1-directory38-20261017-r1/`.
+The primitive-counts raw number includes hierarchical RAM cell objects; use
+the utilization report's576 memory LUT as the physical resource count.
+Do not multiply this isolated all-six-outputs result into an asserted final
+whole-board count: integration may trim unused ports or optimize logic.
+
+No new CPU/full-board synthesis, route, bit, commit or push. 300MHz setup,
+hold and CDC remain pending concentrated implementation. The old −3.089ns
+report belongs to pre-fix batch37, not a measured batch38 result. The strict
+board exporter still requires explicit batch38 schema/audit registration
+before a future full-board export; never substitute the old batch37 receipt.
+
+### Physical follow-up started 2026-10-17 15:39 Asia/Shanghai
+
+The subsequent user continuation registered a DISTINCT batch38 strict export
+schema. 32 tool tests pass. It binds the exact baseline, named performance
+gates, allowed source changes, zero added state/capacity, actual leaf inference
+proof and actual USER2/65 scan proofs. The generated real-board directory leaf
+is byte-identical to the separately checked leaf; all older physical hints,
+per-way BRAM, JTAG resources and clock/CDC checks remain enabled.
+
+Candidate: `E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261017-dev2-r2`.
+One fresh full-board synthesis/place/route, no bit and no further RTL edits.
+Same-stage linked real-IP synthesis versus pre-fix dev2-r1:
+
+|Resource|Before|After|
+|---|---:|---:|
+|Whole-board LUT|156094|93883|
+|Whole-board FF|74921|54457|
+|Home LUT|74067|11379|
+|Each directory bank LUT /FF|16348 /5120|582 /0|
+|BRAM36 equivalent /DSP|62.5 /31|62.5 /31|
+
+MIG12272 LUT and AXI CDC422 LUT are included and unchanged. This is actual
+whole-board synthesis, not a fourfold extrapolation of the isolated700-LUT
+leaf; integration trims unused ports. Route timing and final placed resource
+counts are still pending and must not be substituted by these synthesis data.
+
+### Batch38 routed follow-up completed 2026-10-17 16:44 Asia/Shanghai
+
+The RTL remained frozen throughout. The original implementation process
+disappeared after writing its placed DCP, with no logged failure reason.
+Recovery reused that exact placement (SHA256
+`52276bb18ed11314d26240a2c08fae4cabf808216ee826eef3e13b0b75bfab0b`),
+completed Explore physical optimization and saved
+`reports/real_board_post_place_physopt.dcp` (SHA256
+`ea1ab51128c7a1b1095c3410d2765c52c0657cf4af50e2fa5c020a092ff8ea26`).
+Explore routing reached zero unrouted/partial nets, then the process exited
+at `Phase11.1.1 Leaf ClockOpt Init`, creating zero-byte hs_err log/dump files.
+There is no usable stack trace; the root cause is not established. Its
+intermediate WNS-0.185/WHS+0.010 is NOT final STA or a completed Explore result.
+
+One bounded recovery used the saved post-physopt DCP with the installed,
+documented `route_design -no_psir -timing_summary` command. This is default
+timing-driven routing with router-integrated physical synthesis disabled,
+NOT Quick/non-timing-driven routing. Completed placement/physical optimization
+were reused; synthesis, placement, GSIM and RTL edits were not repeated.
+No frequency, setup/hold/CDC exception or50ps CPU hold guard was relaxed.
+This strategy difference is part of the result, not hidden as an Explore PASS.
+
+Final actual routed STA (`dev2-r2/reports/timing_summary.rpt`):
+
+|Domain|Frequency|Setup WNS ns|Hold WHS ns|
+|---|---:|---:|---:|
+|CPU|300MHz|-0.316|+0.010|
+|DDR UI|250MHz|+0.244|+0.011|
+|AON|50MHz|+1.798|+0.027|
+|UART storage (same AON clock)|50MHz|+1.798|+0.027|
+
+Overall TNS-172.500ns /2140 failing setup endpoints; THS0 /zero failing hold
+endpoints; WPWS+0.081ns /zero failing pulse-width endpoints. All137530
+routable nets are fully routed, routing errors0. Final resources:92982 LUT
+(27.25%),55150 CLB registers (55149 FF +one AND/OR register),62.5 BRAM36
+equivalents,31 DSP,zero URAM. Home is11514 LUT /3783 registers; each directory
+bank remains582 LUT, including480 LUTRAM, withzero FF. Use the SAME-STAGE
+synthesis comparison above for the39.9% LUT reduction; do not compare pre-fix
+synthesis directly against this routed total as a controlled percentage.
+
+The worst path is `core/addrPacket_address_reg[13]` through DT physical address
+qualification, `readHandoff_middle`/VALID admission and the D-cache metadata
+queue enqueue to `metadata/ram_ext/.../RAMA/WE`:10 LUT levels,3.307ns data
+delay (0.927ns logic +2.380ns routing). Reply-dependent payload selection was
+removed, but authorized request-VALID/enqueue control is still a long cone.
+Other top60 reported families: D-cache probe/victim capture-0.280/-0.278ns,
+PC prediction feedback-0.261ns, IT/PMP state admission-0.260ns, Home/line
+request admission-0.234ns. These are observations, not additional RTL fixes.
+
+`check_timing` reportszero no_clock/unconstrained internal endpoints,zero
+combinational loops. Remaining port notices: button_n/sys_rst_n without
+input_delay, MIG c0_ddr4_reset_n without output_delay, partial uart_rxd
+input_delay (pad synchronizer max-delay boundary). These still require
+boundary review, not broad false paths. Bus-skew report has no violations
+(minimum reported slack+2.336ns). DRC has41 warnings,zero errors/critical:
+DSP pipeline recommendations,three LUT equation-term warnings andone
+no-routable-load warning. CDC has3 CDC-10 +6 CDC-11 Critical, all reset
+boundaries, with EXACTLY the same source/destination pairs as pre-fix dev2-r1;
+377 CDC-15 CE-controlled data warnings remain. No new waiver or CDC signoff.
+
+At completion384 source,373 exported-file,8 proof-tool and32 reused-IP hashes
+were rechecked withzero mismatches. The branch remains dev2 at e0415d2 with
+uncommitted batch38 changes; original OoO/shared IP and architectural slot
+counts are unchanged. Six Bare/Sv39 and short O3 CoreMark results remain
+bit-for-bit equal to the frozen short baseline, not a new throughput gain.
+
+Result: RESOURCE REGRESSION FIXED, AFFECTED SHORT PASS, ROUTED300MHz SETUP FAIL,
+HOLD PASS, CDC/BOUNDARIES NOT SIGNED OFF. No bit, board test, commit or push.
+Reports and recovery provenance are retained in dev2-r2/reports/ and archived
+outside the source tree at
+`/home/openion/Valence-inorder-evidence/batch38-board-routed-20261017-r1`.
+
+## 2026-10-17 batch39: parallel authorization and local capture/PC feedback
+
+Receipt: `build/gsim/i1-bandwidth39-20261017-r1/receipt.json`, SHA256
+`796807ab81e73989278355c71046d41ffcca337a6790d5690d890efff0d47cd2`.
+PASS_I1_BANDWIDTH39_AFFECTED_SHORT_ONLY:37 affected checks,13 performance gates,
+17 Scala parameter tests;35 FPGA-tool unit tests. No full regression or Linux
+simulation. `audit_batch39_short.py` rechecks385 source/141 artifact hashes,
+the immutable batch38 baseline, all six stream dictionaries and short O3
+CoreMark. Exact register declarations remain6999 and memory declarations89;
+directory writers remain4. No new pipeline edge, owner, MSHR or payload RAM.
+
+One combined hardware batch, with no OoO/shared IP/clock/reset RTL edits:
+
+- DT predecodes real TLB source read/write permissions before proof-owner
+  selection. Existing owner bindings, full VPN tags, A/D, SUM/MXR and privilege
+  checks remain live. For a page-aligned cache window, each existing physical
+  proof page computes its window Boolean before VPN selection; read handoff
+  no longer waits for selected full PA assembly and a subsequent window
+  comparison. Non-page-aligned windows retain exact PA qualification. Bare
+  candidates also qualify their windows in parallel. Runtime equality checks
+  compare the resulting cacheability with the exact original PA window.
+- Probe data capture uses its retained B slot directly, not a shared row mux
+  containing the CPU's late pending tag/victim decision. Victim collision
+  forwarding is resolved independently in each physical way before final way
+  selection. Existing SRAM read/capture edges and payload banks remain;
+  independent byte oracles plus old-expression assertions check both paths.
+- Each existing BTB bank resolves target/direction/compressed fallback locally;
+  the early PC-derived bank select chooses the result. Global OR-of-bank hit
+  no longer explicitly feeds every next-PC bit. Entry count/RAM geometry,
+  index/tag policy, training and combinational prediction semantics are kept;
+  the exact old next-PC expression remains a simulation assertion.
+
+New focused checks:18258 predictor cycles with full128 aligned/compressed
+slots, carry/wrap, aliases, training and FENCE.I;428 masked transactions at
+256B and32KiB each,112 read collisions,8 probe and8 victim/bypass collisions;
+two475-case MMU runs, including a non-page-aligned window. Wrong-target,
+wrong-forward and wrong-page independent negatives must reject. Existing
+paired Home reverse returns, errors, backpressure, two-client coherence,
+C/A boundaries and32 F/D precise-context cases remain enabled.
+
+All six measured streams are exactly equal to batch38, including80-cycle
+read/79-cycle write service floors. CoreMark ROI646056 cycles/345517
+instructions, total687500 cycles/367211 retired, CRC59156 and trace
+7b173819116883a2 are also exactly equal. This is timing restructuring with
+NO measured IPC/bandwidth loss, not a new throughput gain or formal score.
+
+Reset review queries the actual batch38 routed DCP without another
+implementation: `dev2-r2/reset-audit-batch39-r1/`. All nine Critical targets
+are the first asynchronous control of a three-stage ASYNC_REG chain;
+internal D->Q links are direct and clocks consistent. Seven functional
+release branches have positive recovery/removal slack. UART gate/raw-RX
+release branches feed only downstream synchronizer reset pins under existing
+exceptions; their infinite/empty slack is NOT counted as a timing PASS.
+Cold common-reset, stopped-clock and mailbox behavior reuse the source- and
+artifact-rechecked balanced BUFGCE proof at
+`build/fpga/i1-network32-timing24-synth-20261015-r1/managed-clock-proof/`;
+USER2 reuses the unchanged real serial-TAP/protocol proofs. No new waiver,
+unilateral hot-reset support or broad CDC signoff is claimed. The new routed
+board will repeat per-instance structure and functional release timing audit.
+
+Strict exporter now accepts a distinct batch39 schema and the exact four
+changed source files plus its new runner. Current board directory leaf must
+still match the proven batch38 single-writer LUTRAM bytes; only that unchanged
+leaf's mapping is reused, never the old CPU implementation.
+
+Fresh no-MAC full-board candidate:
+`E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261017-dev2-r3`.
+Implementation started17:20:21 Asia/Shanghai. CPU300/DDR UI250/AON-UART50,
+32+32KiB, two read slots/one write slot, F/D and USER2/65 remain unchanged.
+One fresh synthesis/place/Explore phys_opt is followed by a saved checkpoint
+and timing-driven `route_design -no_psir -timing_summary`, matching the
+completed batch38 strategy and avoiding its crashed router clock-opt stage.
+No timing exceptions/frequency are relaxed. Implementation results follow;
+the staged manifest and short audit remain immutable pre-physical records.
+
+### batch39 completed real-board implementation and one post-route pass
+
+Fresh synth/place/Explore phys_opt/default timing-driven route completed
+18:00:39 Asia/Shanghai. One bounded post-route ExploreWithHoldFix followed by
+`route_design -preserve -no_psir -timing_summary` completed18:08:56. It reuses
+ONLY this batch's completed routed DCP, with no RTL, clock, exception, place
+or synthesis restart. Initial and post-route evidence are both retained.
+
+| Actual routed stage | CPU300 WNS ns | TNS ns | Failing setup endpoints | CPU hold ns |
+| --- | ---: | ---: | ---: | ---: |
+| batch38 dev2-r2 | -0.316 | -172.500 | 2140 | +0.010 |
+| batch39 initial route, reports/ | -0.072 | -1.152 | 92 | +0.010 |
+| batch39 one post-route pass, postroute-r1/ | -0.017 | -0.418 | 70 | +0.003 |
+
+300MHz remains NOT MET. The final worst path is I-cache victimTags_0[6] ->
+offerPc[50]/CE,13 LUT levels,3.154ns data delay (0.943ns logic/2.211ns route).
+Initial DT fastWriteTag -> atomic state deficit improved during physical
+optimization; the new worst path does not imply all other families pass.
+Read-only same-constraint DCP queries in `dev2-r3/path-review-r2/paths.tsv`
+check the full target endpoint collections, not merely the top60 report:
+
+| Requested path family | batch38 ns | batch39 final ns |
+| --- | ---: | ---: |
+| D-cache metadata write enable, all9 WE pins | -0.316 | +0.021 |
+| D-cache probe payload capture, all D/CE pins | -0.280 | +0.402 |
+| D-cache victim payload capture, all D/CE pins | -0.278 | +0.280 |
+| offerPc -> offerPc self-feedback, D/CE | -0.260 | +0.006 |
+| Any source -> offerPc admission, D/CE | -0.260 | -0.017 |
+| DT -> atomic state admission, D/CE | -0.251 | +0.023 |
+
+Thus the requested metadata/probe/victim andpure PC self-feedback families
+are positive under the current constraints, butPC admission from I-cache
+is still negative. PC andmetadata positive slack are also small. Queryr1
+stopped on an incorrect D-cache instance path; its partial evidence is kept,
+andqueryr2 uses the actual `/coherent/cache/` payload hierarchy. Neither query
+changes implementation, clocks or exceptions; there was no new synth/route.
+
+Remaining reported negatives include I-cache/native return -> aligner,
+CSR snapshot -> PC, IT/PMP -> bareFastValid and EX ALU result control.
+Positive hold is only3ps; do not describe this as comfortable timing margin.
+
+DDR UI250 remains setup+0.165/hold+0.010ns; AON/UART50 remains+2.477/+0.019ns.
+Pulse-width slack+0.081ns; no hold or pulse-width failing endpoints.
+Final full-board resources93624 LUT (27.43%),55121 CLB registers (55120 FF
+plus one AND/OR),BRAM62.5,DSP31. Relative to batch38 final route this is
++642 LUT (+0.69%) and-29 registers; logical register declarations remain
+EXACTLY6999 and memory declarations89. Same-stage linked synthesis is
+94407LUT/54475registers vs93883/54457 previously, not to be confused with
+post-route totals. Home final11772LUT/3788FF; each directory bank remains
+582LUT including480LUTRAM andzeroFF. Predictor1334LUT including480LUTRAM,
+128FF. The single-writer directory/resource fix is retained.
+
+All137383 routable nets are fully routed withzero routing errors. DRC has
+40 Warning instances,zero Error/Critical: DSP pipelining recommendations,
+three LUT-equation warnings andone no-routable-load warning. All20 reported
+bus-skew checks pass; minimum reported slack+2.467ns. No-clock,
+unconstrained-internal, multiple/generated-clock and combinational/latch
+loop counts arezero. Existing board boundary exceptions remain explicit:
+button_n/sys_rst_n lack input_delay, c0_ddr4_reset_n lacks output_delay,
+uart_rxd has partial input_delay. No broad false path was added.
+
+The final routed CDC report retains EXACTLY the same nine Critical
+source/destination pairs (three CDC-10,six CDC-11) and377 CDC-15 warnings.
+Per-instance reset audit verifies allnine three-stage ASYNC_REG chains,
+same destination clocks anddirect Q->D links. Seven branches with functional
+reset loads have positive max/min recovery/removal slack; the smallest
+functional removal slack is+0.110ns. Gate/raw-RX branches have ONLY
+synchronizer reset loads under pre-existing exceptions, explicitly marked
+SYNC_RESET_ONLY_EXISTING_EXCEPTION_REVIEW, not inferred PASS from empty
+slack. Structure/release audit does not waive Criticals, qualify unilateral
+hot reset, or assert broad CDC signoff. Historical balanced BUFGCE/mailbox
+andactual serial-TAP tests remain source/artifact-checked andunchanged.
+
+Final provenance recheck:385 source hashes,379 exported RTL/board/script
+hashes,11 exporter/build/audit resource hashes and32 copied IP hashes all
+match; allthree board XDC files equal batch38, andthe strict37-check receipt
+still validates. Original OoO/shared RTL, multiclock topology,32+32KiB,
+two DDR read/one write slot,64-bit AXI,2GiB DDR andUSER2/65 are unchanged.
+No MAC/general DMA was added. No bit, board qualification, commit or push.
+Machine-readable physical review: `dev2-r3/physical-review.json` (separate
+from the immutable staged board manifest). Small reports, receipts, logs,
+tools andsource snapshots are archived outside the repository at
+`/home/openion/Valence-inorder-evidence/batch39-board-routed-20261017-r1`;
+large DCP/IP caches remain in the original E: candidate, not in source control.
+
+## 2026-10-17 batch40: remove impossible IT turnover and shorten return/PMP/EX logic
+
+This batch targets the actual batch39 routed negative paths, not a cache/slot
+increase. The original OoO core, multiclock topology, fpga8 profile, I/D32KiB,
+DDR two-read/one-write slots and Home directory RAM interface remain unchanged.
+
+- The registered C parcel aligner cannot offer a new word request while it is
+  ready to consume an old word response. Its integrated IT now excludes that
+  impossible same-edge turnover from request READY, removing old I-cache VALID
+  from the PC admission feedback. A live assertion checks the contract; the
+  generic translator keeps its original turnover capability by default.
+- Parcel payload capture depends on its existing first/second-wait ownership,
+  not late response VALID. Reply visibility, word-reuse validity and state
+  transitions still require the actual handshake. No pipeline edge is added.
+- Registered coherent-cache hit VALID is factored directly from stored reply,
+  known hit and late-classifying hit terms. The old expression is independently
+  retained as a cycle-by-cycle equivalence assertion, without new storage.
+- Staged PMP uses local four-entry priority groups with global lower-index
+  priority; exact legacy grant equivalence is asserted. Partial overlap and
+  locked M-mode restrictions are retained, rather than permission bypasses.
+- The FPGA ALU uses independently computed 16-bit carry alternatives and
+  lookahead selection. Other timing math keeps its previous default chunking;
+  RV32 remains native. No new registers, RAM, queue slots or retirement delay.
+
+CPU-to-CPU hold uncertainty is increased from0.050 to0.080ns. This is30ps
+additional guard, not a relaxed clock or false path. Final hold numbers must
+be reported together with this changed guard; no placement success is implied.
+
+Short qualification PASS: `build/gsim/i1-bandwidth40-20261017-r1/receipt.json`,
+SHA256 `8a5d659d40cc5f60277ac6fff9e0da2839e64d4ce958dd720f84350181bdb22f`.
+All49 checks,13 same-workload performance gates and17 Scala cases pass.
+PMP direct/staged RV32/64 each check65536 queries; each staged case also
+checks768 held-input-noise cases. Execute RV32/64 each check44128 cases.
+All corresponding injected-error controls reject. Six Bare/Sv39 stream
+records and O3 CoreMark match batch39 field-for-field: ROI646056 ticks,
+345517 ROI instructions, total687500 cycles/367211 retired; no formal score.
+
+Strict `audit_batch40_short.py` rehashes386 sources/210 artifacts. Exact6999
+register and89 memory declarations are unchanged, withfour directory write
+ports andzero added payload RAM. Actual single-writer LUTRAM leaf identity,
+JTAG andbalanced reset proofs are retained, not replaced by behavioral tests.
+The38 FPGA tooling unit tests pass, including complete batch40 negative-test
+and state/performance/schema guards. No source or flow changes after PASS.
+
+Fresh full-board candidate staged after this complete audit:
+`E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261017-dev2-r4`.
+Only MIG/Clock Wizard/AXI CDC IP are reused; CPU/SoC synthesis is fresh.
+Physical qualification remains pending; batch39 reports do not qualify this RTL.
+
+Fresh synthesis completed19:25:33 CST, withzero Error/Critical Warning.
+Linked actual-board post-synthesis usage is94594 LUT,54480 registers,
+BRAM62.5,DSP31; against batch39 at the SAME linked stage this is+187LUT
+(+0.20%) and+5registers. Home remains11379LUT/3773FF andeach ofitsfour
+directory banks582LUT (480LUTRAM)/zeroFF. Synthesis mapping differences
+are not additional architectural state and not final routed resource totals.
+Full implementation started19:26:31 CST; no second synthesis was launched.
+An initial command-line argument-order error exited before opening the
+project or starting synthesis; its original vivado.log/jou are retained.
+
+Initial complete route finished19:55:07 CST: WNS-0.100ns/TNS-1.480ns,
+47 setup-failing endpoints, WHS+0.010ns withthe80ps hold guard, zero hold
+or pulse-width failures (WPWS+0.081ns). Worst path is addrPacket_address[26]
+toD-cache metadata RAM WE,11LUT levels/2.942ns data delay (70.9% routing).
+DDR UI250 is+0.358/+0.010ns; AON/UART50 is+0.619/+0.040ns.
+Initial routed resource totals93785LUT/55189registers/BRAM62.5/DSP31.
+This result still FAILS300MHz; the earlier+0.009ns pre-route estimate is
+not signoff. One bounded ExploreWithHoldFix pass starts fromthiscompleted
+routed DCP, followed bypreserving route with-no_psir; no synth/place/RTL,
+clock orconstraint change. Base reports remain untouched underreports/.
+
+### batch40 final routed result: setup/hold PASS, borderline setup margin
+
+The bounded post-route pass finished20:00:58 CST. The final selected result
+is `dev2-r4/postroute-r1/real_board_routed.dcp`, SHA256
+`e6b5cb3fd23cc28d1c6fae8a2a02f6621e01172e979b1dcf6dc66356bb82ccb0`.
+The original route SHA256 is
+`23c09629c5fe982b542a3acfad614cee5c57f68bb15e7b8627b7beda419f179d`.
+No new synthesis, placement, RTL, clocks or exceptions were applied inthispass.
+
+| Actual routed domain | Setup slack ns | Hold slack ns |
+| --- | ---: | ---: |
+| CPU300 | 0.000(MET) | +0.010 |
+| DDR UI250 | +0.358 | +0.010 |
+| AON/UART50 | +0.619 | +0.040 |
+
+Global TNS/THS/TPWS arezero; setup/hold/pulse failing endpoints allzero,
+WPWS+0.081ns. CPU hold already includes80ps extrauncertainty (previously50ps).
+The worst setup is ownershipCut head-address feedback toitsCE,10logic levels,
+3.069ns datapath (73.9% routing). CPU minimum hold is DSP tile-product to
+row accumulation. A0.000ns MET result meets theconstraints but givesalmost
+no additional setup margin; neither higher Fmax nor board stability is claimed.
+
+Final full-board resources:93788LUT(27.48%),55189registers(55188FF+oneAND/OR),
+62.5BRAM,31DSP. Relative tobatch39 finalroute:+164LUT(+0.18%),+68registers;
+the exact architectural FIR register/memory declarations remain unchanged.
+Home11776LUT/3779FF; fourdirectory banks eachretain480LUTRAM/zeroFF
+(total LUT582,581,581,582). Predictor1316LUT including480LUTRAM,128FF.
+
+All137741 routable nets arefullyrouted,zero routing errors. DRC40warnings,
+zero Error/Critical. All20bus-skew checks pass(min+2.127ns). No-clock,
+unconstrained-internal,multiple/generated-clock andloop counts remainzero.
+The existing no-input-delay reset pins, MIG reset output andpartial UART
+input-delay exceptions remain explicit, not a blanket I/O timing qualification.
+
+CDC Critical exactsource/destination pairs matchbatch39:threeCDC-10,sixCDC-11;
+377CDC-15 warnings. Allnine3-stage ASYNC_REG/directchains checked. Seven
+functional reset-release branches havepositive recovery/removal slack(min
+functional removal+0.200ns); two synchronizer-only branches retainexisting
+exceptions andarenotassigned artificial PASS. No CDC waiver,new clock,
+unilateral-hot-reset qualification or broad CDC signoff was added.
+
+Read-only same-period DCP queries in`dev2-r4/path-review-postroute-r1/`
+compare thecomplete endpoint families, not only a handpicked formerworstbit:
+
+| Path family | batch39 ns | batch40 ns |
+| --- | ---: | ---: |
+| PC all admission D/CE | -0.017 | +0.006 |
+| Aligner result D/CE | -0.015 | +0.019 |
+| IT PMP -> bare fast valid | -0.012 | +0.143 |
+| EX result D/CE | -0.011 | +0.002 |
+| PC self-feedback | +0.006 | +0.048 |
+| DT metadata WE | +0.021 | +0.038 |
+| D probe capture | +0.402 | +0.329 |
+| D victim capture | +0.280 | +0.198 |
+| DT -> atomic admission | +0.023 | +0.157 |
+
+Not every positive path improved; probe/victim slack decreased but stays
+positive. PC admission andEX remain near thelimit. The new global worst
+ownershipCut feedback isoutside these nine queriedfamilies andisexplicitly
+included inthe fullglobalSTA. No extra physical experiment followed PASS.
+
+Machine-readable result: `dev2-r4/physical-review.json`, separate fromthe
+immutable staged manifest andshortreceipt. Provenance closure rechecks386
+source files,210 shortartifacts,379 exported files,12 toolresources and32
+IPfiles; thethree board pin/XDC files equalbatch39. Small reports,receipts,
+logs,scripts andsource snapshots arearchived outside theworktree at
+`/home/openion/Valence-inorder-evidence/batch40-board-routed-20261017-r1`.
+Large DCP/IP/compiled caches stay inoriginal outputs. No bit,commit,push or
+original OoO change. Next hardware acceptance isboard testing plus explicit
+closure ofremaining CDC/boundary reviews, not anunconditionalproductionclaim.
+
+### batch40 bit delivery and cleanup
+
+On the user's subsequent request, bit generation completed at
+2026-10-17 20:14:41 CST from the accepted `postroute-r1/real_board_routed.dcp`.
+No RTL, clocks, constraints, synthesis, placement or routing were changed.
+Vivado write_bitstream finished with zero errors or critical warnings.
+
+Delivery root:
+`E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261017-dev2-r4`.
+The bit is
+`bitstream/orbital_i1_rv64gc_cpu300_i32k_d32k_uart460800_jtag65_nomac.bit`
+(28,700,920 bytes), SHA256
+`9ac868f6cfa25bdcc1d544f7496e4564a09d5384d5891cf33a17a5a4d7a1632d`.
+`bitstream/delivery.json` records bit, DCP and proof hashes, configuration and
+cleanup results. Frozen `board-manifest.json` and `physical-review.json` retain
+their earlier pre-bit fields; the new delivery record reports the later step.
+
+The candidate keeps CPU300 / DDR UI250 / AON+UART50 MHz, I/D32KiB, RV64GC,
+Sv39, PLIC, CMU, actual MIG and AXI CDC, and DDR2GiB. UART is460800 baud.
+It includes the USER2 scan-length fix: board65 clocks accepted,66 rejected,
+generic default64 unchanged. Actual dual-TAP RTL simulation has12 passing
+cases and the protocol proof has3 cases. This is not a real-board JTAG-download
+qualification. No MAC, network DMA or general DMA is in this candidate; the
+PHY stays reset and Ethernet/network boot are unavailable.
+
+Routed WNS remains0.000ns MET and WHS+0.010ns, with zero failing setup/hold
+endpoints. Setup is borderline, not comfortable margin. The9 documented
+existing CDC critical findings are not waived. Hardware runtime and full
+CDC/boundary signoff still need their own acceptance; bit generation alone
+does not close those gates. Bare/Sv39 and O3 CoreMark remain the batch40 short
+comparison results, not newly measured board performance.
+
+After the GUI was saved and closed,31 obsolete WSL project/temporary
+directories and18 old I1 Windows output directories were removed only after
+archive-content verification and a second source-content check. Archives:
+`/home/openion/Valence-inorder-evidence/cleanup-20261017-bit40-r1`.
+
+- `wsl-old-candidates.tar.gz`: all files/symlink targets, including dirty files
+  and standalone Git objects; SHA256
+  `b6cf3603c2c4a08e1d3b9e21ce898bfd928fc360e19fd880596c0cd39c999ec0`.
+- `windows-old-candidates.tar.gz`:12,880 RTL/report/script/configuration and
+  other retained entries; SHA256
+  `485e7a10e634346c4b5b85ed546321435dd8cbba4ee6ae1633f2fd7800efdea6`.
+  The1,037 omitted regenerable entries include old DCPs and simulation caches;
+  these are not recoverable from the archive and must be regenerated.
+- Scope manifests record exact paths, content hashes and Git/worktree metadata.
+  `RECOVERY.txt` explains worktree recovery without restoring stale .git pointers.
+
+Current `Valence-inorder`, its build/proof closure, original `Valence` with its
+dirty changes, dev2-r4, directly referenced dev2-r3/directory38, current evidence,
+and existing OoO firmware/JTAG tools were retained. All386 source hashes,
+210 short artifacts,379 exported files,12 source resources and32 IP files
+were rechecked after cleanup; the3 board pin/XDC files still match the baseline.
+The cleanup removed10,932,102,719 bytes of old files while retaining
+1,776,973,809 bytes in compressed archives (excluding small manifests).
+No WSL VHDX compaction was performed. Source publication to `dev2` excludes
+bit/DCP, generated RTL, build/out and local evidence archives; original OoO
+source and the `dev`/`main` branch tips are not part of this publication.

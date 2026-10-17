@@ -9,12 +9,15 @@ import chisel3.util._
   * ASIDLEN=0; SFENCE globally invalidates (legal over-fence). Svade faults on clear A/D, no unsafe PTE RMW.
   */
 class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
-    parallelInstructionCandidates: Boolean = false, parallelDataCandidates: Boolean = false) extends Module {
+    parallelInstructionCandidates: Boolean = false, parallelDataCandidates: Boolean = false,
+    registeredInstructionReturn: Boolean = false) extends Module {
     require(p.xlen == 64 || !p.withSv39)
     require(!parallelInstructionCandidates ||
         (instruction && p.fpgaTimingCuts && p.fastInstructionTranslation && p.tlbEntries <= 8))
     require(!parallelDataCandidates ||
         (!instruction && p.fpgaTimingCuts && p.fastDataTranslation && p.tlbEntries <= 8))
+    require(!registeredInstructionReturn || (instruction && p.fpgaTimingCuts && p.withC &&
+        p.fastInstructionTranslation))
     val io = IO(new Bundle {
         val request = Flipped(Decoupled(new FiveStageDataRequest(p)))
         val response = Decoupled(new FiveStageDataResponse(p))
@@ -108,7 +111,8 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
     val fullPageAllow = WireDefault(false.B)
     val fullPageWriteAllow = WireDefault(false.B)
     val fastNoAllocate = WireDefault(false.B)
-    val fastCacheable = WireDefault(false.B)
+    val fastCacheable = WireDefault(if (instruction) false.B else
+        I1AddressWindow.contains(io.request.bits.address, p.cacheableBase, p.cacheableBytes))
     val authorizedCacheable = if (instruction && p.fpgaTimingCuts) Some(Reg(Bool())) else None
     val pageAlignedWindow = p.cacheableBase % 4096 == 0 && p.cacheableBytes % 4096 == 0
     val bareFastCacheable = if (instruction && p.fpgaTimingCuts && fastEnabled) Some(Reg(Bool())) else None
@@ -186,6 +190,8 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             }
             fastEligible := currentBare && dataSelect(prepared.map(_.asUInt)).asBool
             fastPa := dataSelect(dataCandidates.map(_.address))
+            fastCacheable := dataSelect(dataCandidates.map(request =>
+                I1AddressWindow.contains(request.address, p.cacheableBase, p.cacheableBytes).asUInt)).asBool
             fastNoAllocate := io.request.bits.noAllocate ||
                 (io.request.bits.write && !unrestrictedMachine && !bareWriteReadable.get)
         } else if (!instruction) {
@@ -271,7 +277,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             2.U -> !io.request.bits.address(1, 0).orR, 3.U -> !io.request.bits.address(2, 0).orR))
         in(receive) && io.physical.response.fire && !io.physical.response.bits.error &&
             !io.physical.response.bits.pageFault && fastEligible &&
-            I1AddressWindow.contains(fastPa, p.cacheableBase, p.cacheableBytes) &&
+            fastCacheable &&
             !fastNoAllocate && !io.invalidate && !io.request.bits.write &&
             !io.request.bits.atomic && aligned
     } else false.B
@@ -536,6 +542,19 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                     // Both EXISTING ADDR/MEM addresses are prepared in
                     // parallel. Late backend occupancy chooses only the
                     // boolean/PA result; it does not precede a TLB index mux.
+                    // Predecode permissions per real TLB source before the
+                    // proof-owner mux. A late read/write decision must not
+                    // select a source, then flags, then permission logic.
+                    val sourceRead = VecInit((0 until p.tlbEntries).map { source =>
+                        val flags = permissions(source)
+                        val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4) || io.context.sum)
+                        valid(source) && (flags(1) || (io.context.mxr && flags(3))) && user && flags(6)
+                    })
+                    val sourceWrite = VecInit((0 until p.tlbEntries).map { source =>
+                        val flags = permissions(source)
+                        val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4) || io.context.sum)
+                        valid(source) && flags(2) && user && flags(6) && flags(7)
+                    })
                     val prepared = dataCandidates.map { request =>
                         val v = request.address(38, 12)
                         val dominant = superHit(v)
@@ -548,22 +567,32 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                         val needsRead = !request.write ||
                             (request.atomic && request.atomicOperation =/= 3.U)
                         val grants = rows.zipWithIndex.map { case (row, i) =>
-                            val source = if (indexedDataProof)
-                                Mux(request.write, dataWriteOwner.get(i), dataReadOwner.get(i)) else i.U
-                            val flags = permissions(source)
+                            val readSource = if (indexedDataProof) dataReadOwner.get(i) else i.U
+                            val writeSource = if (indexedDataProof) dataWriteOwner.get(i) else i.U
                             val read = fastPage.get(i) && equal(fastReadTag.get(i), v)
                             val write = fastWritePage.get(i) && equal(fastWriteTag.get(i), v) &&
                                 (!needsRead || fastWriteReadable.get(i))
-                            val rwx = Mux(request.write, flags(2), flags(1) || (io.context.mxr && flags(3)))
-                            val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4) || io.context.sum)
-                            row && valid(source) && Mux(request.write, write, read) &&
-                                rwx && user && flags(6) && (!request.write || flags(7))
+                            row && Mux(request.write, write && sourceWrite(writeSource),
+                                read && sourceRead(readSource))
                         }
                         val canonical = equal(request.address(63, 39), Fill(25, request.address(38)))
                         val physicalPage = Mux1H(rows.zipWithIndex.map { case (row, i) =>
                             row -> Mux(request.write, fastWritePhysicalPage.get(i), fastReadPhysicalPage.get(i))
                         })
                         val readable = Mux1H(rows.zip(fastWriteReadable.get.asBools))
+                        // The board window is page aligned. Compare each
+                        // EXISTING physical proof page in parallel, before
+                        // its VPN-index selection, not after PA assembly.
+                        // Non-page-aligned parameterizations keep exact PA
+                        // qualification rather than widening their window.
+                        val cacheable = if (pageAlignedWindow) Mux1H(rows.zipWithIndex.map { case (row, i) =>
+                            val read = I1AddressWindow.contains((fastReadPhysicalPage.get(i) << 12).pad(p.xlen),
+                                p.cacheableBase, p.cacheableBytes)
+                            val write = I1AddressWindow.contains((fastWritePhysicalPage.get(i) << 12).pad(p.xlen),
+                                p.cacheableBase, p.cacheableBytes)
+                            row -> Mux(request.write, write, read)
+                        }) else I1AddressWindow.contains(Cat(physicalPage, request.address(11, 0)),
+                            p.cacheableBase, p.cacheableBytes)
                         if (indexedDataProof) when(io.request.valid && canonical && grants.reduce(_ || _) &&
                             !reset.asBool) {
                             val source = Mux(request.write, dataWriteOwner.get(leafIndex),
@@ -577,16 +606,18 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                                 "dominant superpage failed to invalidate a data leaf proof")
                         }
                         (canonical && grants.reduce(_ || _), Cat(physicalPage, request.address(11, 0)),
-                            request.noAllocate || (request.write && !readable))
+                            request.noAllocate || (request.write && !readable), cacheable)
                     }
                     fastEligible := dataSelect(prepared.map(_._1.asUInt)).asBool
                     fastPa := dataSelect(prepared.map(_._2))
                     fastNoAllocate := dataSelect(prepared.map(_._3.asUInt)).asBool
+                    fastCacheable := dataSelect(prepared.map(_._4.asUInt)).asBool
                 } else {
                     fastPa := Cat(Mux(io.request.bits.write, fastWritePhysicalPage.get(fi),
                         fastReadPhysicalPage.get(fi)), io.request.bits.address(11, 0))
                     fastNoAllocate := io.request.bits.noAllocate ||
                         (io.request.bits.write && !fastWriteReadable.get(fi))
+                    fastCacheable := I1AddressWindow.contains(fastPa, p.cacheableBase, p.cacheableBytes)
                 }
             }
             when(authorizationReady && !savedBare && context.satp(63, 60) === 8.U &&
@@ -745,8 +776,17 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                 io.physical.response.ready := io.response.ready
                 when(io.physical.response.fire) { nextState := idle }
             }
-            val slot = in(idle) ||
-                (in(receive) && io.physical.response.valid && io.response.ready)
+            // The registered parcel aligner never presents a new memory
+            // request while accepting a word reply. Its next request starts
+            // after this owner has already retired. Exclude that impossible
+            // same-edge turnover from READY, cutting cache tag/return -> PC
+            // admission without changing any actual request edge or slot.
+            val slot = in(idle) || (!registeredInstructionReturn.B &&
+                in(receive) && io.physical.response.valid && io.response.ready)
+            if (registeredInstructionReturn) when(!reset.asBool) {
+                assert(!(io.request.valid && io.response.ready),
+                    "registered parcel requester overlapped a new offer with word return readiness")
+            }
             // Payload is computed from the offered virtual address BEFORE the
             // old physical response arrives. Only VALID/admission depends on
             // slot turnover. Otherwise reply -> slot -> PA mux -> tag RAM ->
@@ -801,10 +841,17 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                 // stays occupancy-only. A stalled physical offer captures the
                 // exact same saved/context/PA/noAllocate into ordinary send.
                 // There is still one owner, never a posted response.
-                when(requestSlot) {
+                // The next scalar payload is prepared independently of the
+                // current reply's VALID/READY/error. Only ownership/VALID may
+                // depend on requestSlot. Otherwise D-cache hit -> readHandoff
+                // -> PA select -> cache classification forms a 21-level loop.
+                // Registered send/fastHold keep their sticky saved payload.
+                when(in(idle) || in(reply) || in(receive)) {
                     io.physical.request.bits := io.request.bits
                     io.physical.request.bits.address := fastPa
                     io.physical.request.bits.noAllocate := fastNoAllocate
+                }
+                when(requestSlot) {
                     io.physical.request.valid := io.request.valid && fastEligible &&
                         !io.invalidate && directScalar
                 }
@@ -849,6 +896,10 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         }
     }
     when(!reset.asBool) {
+        if (!instruction && fastEnabled) when(io.request.valid && fastEligible) {
+            assert(fastCacheable === I1AddressWindow.contains(fastPa, p.cacheableBase, p.cacheableBytes),
+                "parallel data proof window changed exact physical cacheability")
+        }
         io.readAhead.foreach { ahead =>
             when(ahead && io.request.fire) {
                 assert(readHandoff,

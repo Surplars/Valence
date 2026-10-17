@@ -14,7 +14,7 @@ class FiveStageAlu(xlen: Int, timingCuts: Boolean = false) extends Module {
         val result = Output(UInt(xlen.W))
     })
     val sub = io.operation === FiveStageAluOp.subtract
-    val sum = if (timingCuts) I1TimingMath.add(io.left, io.right, sub)
+    val sum = if (timingCuts) I1TimingMath.add(io.left, io.right, sub, chunkBits = 16)
         else io.left + Mux(sub, ~io.right, io.right) + sub
     if (timingCuts) {
         val leftward = io.operation === FiveStageAluOp.shiftLeft
