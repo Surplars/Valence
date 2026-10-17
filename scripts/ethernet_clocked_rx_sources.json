@@ -1,0 +1,20 @@
+{
+  "scope": "Frozen tested MAC125MHz -> unchanged production CDC16 -> DMA100MHz, network-only Icarus exception; CPU remains GSIM",
+  "source_sha256": {
+    "src/main/scala/ip/bus/RegisterPort.scala": "02b1aa841ad461ddc9eba87a2f31b32f6d05e49541be33ac64ccbfc2f3013733",
+    "src/main/scala/ip/bus/RegisterArbiter.scala": "e7d3aa201c951db38de7c518197e3f296144d0bf524bf0e0f1b65379e8528287",
+    "src/main/scala/ip/dma/EthernetTxDescriptorQueue.scala": "d012a4e9c4c90ee5f82bb9342e54ed4b1e00c67e9f562073f42a53eaee595c17",
+    "src/main/scala/ip/dma/EthernetPacketDma.scala": "1769c0bc1d13c4dd59b24ff30d20c3643f421afcaebfa4337abb0b7a6307ee68",
+    "src/main/scala/ip/dma/NetworkDmaConfig.scala": "a29d286bafbc2e640d583cc24247c5c595a59f478a339488dbc3a4bc89a06ab3",
+    "src/main/scala/ip/ethernet/MdioClause22.scala": "40294abe46e7c2b5669448045c70a3710621918831626f5574e7af592125dc3c",
+    "src/main/scala/ip/ethernet/EthernetPort.scala": "99afa6742bfc409b1f55729f539928782c512c806c8913aed832b6eb7979007d",
+    "src/main/scala/ip/ethernet/EthernetCrc32.scala": "eaeecaa745bd753973c7b5a8018d3c3d581ccd385293c03f1683901ba3182a84",
+    "src/main/scala/ip/ethernet/GmiiFrameRx.scala": "a26bc3b67736601b158a135d0488238e547826cf0bcc09f9e1e035e3c15d6781",
+    "src/main/scala/ip/ethernet/EthernetDmaFrameAdapter.scala": "6a6027b75efe2d9c1bdef73975cf1a166e5e8bdce15fb9c64c45026746cb134c",
+    "src/main/scala/ip/bus/ClockDomainCrossing.scala": "1f4bc2b23bb7bd2111be268ba89c1bf80c4c87e92c3f05724c3669e3279908a2",
+    "src/main/scala/ip/bus/CdcDataChannels.scala": "9a59fb681537913cf2787a8b0335565d974991a93467e6140a19f4178695c5bd",
+    "src/main/scala/ip/ethernet/EthernetClockCrossing.scala": "525286500cd18f7002be28b27ad9ef2f9ae0ff7d9db1aa97658f6c2bcd5a06d0",
+    "src/test/scala/ip/EthernetClockedRx.scala": "45bcecbc2ca25dca5d1831ece1541fa0a70d2b6f565f79b07e1062eb9df7412c",
+    "simulator/gsim/harness/ethernet_clocked_rx_tb.sv": "0a6b984d71ba45f1193f68b0e873c89203357ec91b811371976a3fed6a9f3ad2"
+  }
+}

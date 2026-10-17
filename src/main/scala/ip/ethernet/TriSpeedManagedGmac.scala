@@ -171,7 +171,8 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         else Module(new QueuedGmiiFrameTx(networkDmaConfig.maxFrameBytes, txFrameSlots))
     }
     val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx(maxFrameBytes = networkDmaConfig.maxFrameBytes, admissionStop = true,
-        frameSlots = networkDmaConfig.macRxSlots, rateAdaptation = true, diagnostics = true)) }
+        frameSlots = networkDmaConfig.macRxSlots, rateAdaptation = true, diagnostics = true,
+        readPrefetch = networkDmaConfig.macRxReadPrefetch)) }
     tx.io.frame <> txFifo.destination
     rxFifo.source <> rx.io.frame
     // Default-off timing boundary: RX gains one managed edge; TX keeps the

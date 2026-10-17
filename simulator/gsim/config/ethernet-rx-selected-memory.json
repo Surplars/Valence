@@ -1,0 +1,285 @@
+{
+  "schema": "selected-memory-profile-ethernet-standalone-v1",
+  "anchors_sha256": {
+    "actual-profile-parameters.json": "ac9c2fa6d1f03c29833f415c5ac08a5bfe69eccae3d458486889e6050acc4918",
+    "actual-core-parameters.json": "a5e8c7e1dcb74ef3939e4d3309c50d536b6cbbcb73be139b1e2e1e45a2c29b5f",
+    "actual-combined-timing-repair.json": "021337c167932f98059ad81085229471066965ab276e60c926006c31373965a5"
+  },
+  "selected_original_clocks_hz": {
+    "aon": 50000000,
+    "cpu": 100000000,
+    "ddrUi": 250000000,
+    "uart": 50000000
+  },
+  "fixture_common_clock_hz": 125000000,
+  "cache_constructor_field_count": 23,
+  "cache_constructor_coverage": "All 23 constructor fields match the selected geometry; earlier prose count 24 was corrected.",
+  "cache": {
+    "concurrentReadStorePrefetch": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "distinctWayRelease": {
+      "selected": false,
+      "fixture": false,
+      "equal": true
+    },
+    "durableReadPrefetchCandidate": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "futureHomeWayReservation": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "independentDemandAdmission": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "internalLineGrant": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "memoryScheduleOverlap": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "nextLinePrefetch": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "overlapWritebackRefill": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "postedPrefetchCoexistence": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "prefetchBreakOnStore": {
+      "selected": false,
+      "fixture": false,
+      "equal": true
+    },
+    "prefetchCandidateCycles": {
+      "selected": 16,
+      "fixture": 16,
+      "equal": true
+    },
+    "readMshrs": {
+      "selected": 2,
+      "fixture": 2,
+      "equal": true
+    },
+    "readPrefetchBehindStore": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "readPrefetchDemandAdoption": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "readPrefetchDirtyRetry": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "readPrefetchStoreHold": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "responseEntries": {
+      "selected": 2,
+      "fixture": 2,
+      "equal": true
+    },
+    "splitPrefetchTracking": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "storeNextLinePrefetch": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "storePrefetchLruVictim": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "storePrefetchMruInsertion": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "writebackEntries": {
+      "selected": 2,
+      "fixture": 2,
+      "equal": true
+    }
+  },
+  "cache_geometry": {
+    "base": 2149580800,
+    "bytes": 2147483648,
+    "lines": 512,
+    "ways": 2,
+    "tag_compact": true,
+    "tag_banked": true
+  },
+  "cache_additional": {
+    "posted_enabled": true,
+    "tokenTagBits": 64,
+    "tokenIndexBits": 4,
+    "generationBits": 64,
+    "epochBits": 32,
+    "cacheSets": 256,
+    "cpuReturnConfig": [
+      4,
+      2,
+      true
+    ],
+    "registerProbeLookup": true,
+    "localReadSelection": true,
+    "allowSharedFutureLruWriteData": true,
+    "disjointEvictionStoreOverlap": true
+  },
+  "home": {
+    "trackedLines": 512,
+    "trackedWays": 2,
+    "acquireEntries": 2,
+    "writebackEntries": 2,
+    "mixedReadWrite": true,
+    "dmaLineEntries": 4,
+    "rawResponseMetadata": true,
+    "parallelQualification": true,
+    "distinctWayRelease": false,
+    "lineTransferDispatchFlow": true,
+    "lineReadChannel": true,
+    "internalLineGrant": true,
+    "memoryScheduleOverlap": true,
+    "futureHomeWayReservation": true,
+    "allowSharedFutureLookup": true,
+    "sharedLookupMatch": true
+  },
+  "ddr": {
+    "axiIdWidth": {
+      "selected": 4,
+      "fixture": 4,
+      "equal": true
+    },
+    "lineReadChannel": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "localPayloadWriteEnable": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "localPayloadWriteRow": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "maxBurstBeats": {
+      "selected": 16,
+      "fixture": 16,
+      "equal": true
+    },
+    "maxOutstanding": {
+      "selected": 4,
+      "fixture": 4,
+      "equal": true
+    },
+    "maxOutstandingWrites": {
+      "selected": 2,
+      "fixture": 2,
+      "equal": true
+    },
+    "unorderedResponses": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    },
+    "writeCollectionFlow": {
+      "selected": true,
+      "fixture": true,
+      "equal": true
+    }
+  },
+  "ddr_additional": {
+    "axiAddressWidth": 32,
+    "localAddressRanges": true,
+    "tlSourceBits": 5
+  },
+  "ordered_bridge": {
+    "entries": 8,
+    "tlAddressWidth": 64,
+    "tlDataWidth": 64,
+    "tlSourceBits": 3,
+    "orderedWriteBankBase": 2149580800,
+    "orderedWriteBankBytes": 0,
+    "orderedWrites": true,
+    "orderedMixedAccesses": true,
+    "allowWriteErrors": true,
+    "allowPartialWrites": true,
+    "flowHeadResponse": false
+  },
+  "fabric": {
+    "tlAddressWidth": 64,
+    "tlDataWidth": 64,
+    "coherentSourceBits": 3,
+    "coherentSinkBits": 1,
+    "scalarHomeArbiterInputSourceBits": 3,
+    "scalarHomeArbiterOutputSourceBits": 4,
+    "idle_debug_register_arbiter": true,
+    "idle_walker_system_arbiter": true,
+    "registeredPhysicalResponseOwners": true,
+    "registeredDataRequestHead": true,
+    "rawRequestMetadata": true,
+    "rawResponseMetadata": true,
+    "registeredHomeRequestBoundary": true,
+    "registeredFabricBoundary": true,
+    "crossbarPresent": true,
+    "crossbarSourceBits": 4,
+    "crossbarManagerSourceBits": 5,
+    "prefixAddressDecode": true,
+    "romBase": 2147483648,
+    "romWindowBytes": 2097152,
+    "ramBytes": 2147483648
+  },
+  "copy": {
+    "lineTransfers": true,
+    "lineEntries": 4,
+    "lineYieldCycles": 0,
+    "requestValid": false
+  },
+  "packet": {
+    "rxSlots": 4,
+    "memoryCredits": 4,
+    "txSlots": 4,
+    "maxFrameBytes": 2048
+  },
+  "inactive_or_omitted": [
+    "CPU core and instruction traffic",
+    "MMU walkers and JTAG-loader traffic (their shared arbiters retained with inactive inputs)",
+    "ROM execution (bank is asserted inactive)",
+    "CPU proof authority and prefetch permission forced false",
+    "PHY and actual clock crossings"
+  ],
+  "hardware_source_sha256": "d0b5450ef482df143cb78447b153988a1d8f35a5ff2d58582a5d155abaae4c5b"
+}

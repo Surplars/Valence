@@ -360,7 +360,7 @@ class MachinePlatform(
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
         postedRxSlots = networkDmaConfig.postedRxSlots, memoryCredits = networkDmaConfig.memoryCredits,
-        postedTxSlots = networkDmaConfig.postedTxSlots))) else None
+        postedTxSlots = networkDmaConfig.postedTxSlots, rxWritePrefetch = networkDmaConfig.rxWritePrefetch))) else None
     packetDma.foreach { network =>
         io.ethernetStreams.get.txData <> network.io.txData
         io.ethernetStreams.get.txControl <> network.io.txControl

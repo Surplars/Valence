@@ -11,7 +11,7 @@ import chisel3.util._
   * No VLAN tag removal, pause negotiation, multicast table, PHY or CDC here.
   */
 class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, frameSlots: Int = 4,
-    rateAdaptation: Boolean = false, diagnostics: Boolean = false) extends Module {
+    rateAdaptation: Boolean = false, diagnostics: Boolean = false, readPrefetch: Boolean = false) extends Module {
     require(maxFrameBytes >= 64 && maxFrameBytes <= 16384 && isPow2(maxFrameBytes))
     require(frameSlots >= 1 && frameSlots <= 16 && isPow2(frameSlots))
     val io = IO(new Bundle {
@@ -78,29 +78,80 @@ class GmiiFrameRx(maxFrameBytes: Int = 2048, admissionStop: Boolean = false, fra
     val address = Reg(UInt(48.W))
     val promiscuous = RegInit(false.B)
     val broadcastEnable = RegInit(false.B)
-    val idle :: load :: waitRead :: offer :: Nil = Enum(4)
-    val outputState = RegInit(idle)
-    val length = RegInit(0.U(lengthBits.W))
-    val outputIndex = RegInit(0.U(indexBits.W))
-    val outputWord = Reg(UInt(32.W))
-    val outputRead = buffer.read(if (frameSlots == 1) outputIndex else Cat(consumer, outputIndex), outputState === load)
-    when(outputState === idle && occupied =/= 0.U) {
-        length := lengths(consumer)
-        outputIndex := 0.U
-        outputState := load
-    }
-    when(outputState === load) { outputState := waitRead }
-    when(outputState === waitRead) { outputWord := outputRead; outputState := offer }
-    val remaining = length - (outputIndex << 2)
-    io.frame.valid := outputState === offer
-    io.frame.bits.data := outputWord
-    io.frame.bits.keep := Mux(remaining >= 4.U, 15.U,
-        ((1.U(5.W) << remaining(1, 0)) - 1.U)(3, 0))
-    io.frame.bits.last := remaining <= 4.U
-    io.frame.bits.bad := false.B
-    when(io.frame.fire) {
-        when(io.frame.bits.last) { outputState := idle; release := true.B }
-            .otherwise { outputIndex := outputIndex + 1.U; outputState := load }
+    // Observation only; optimized away unless a fixture observes this wire.
+    val readPrefetchPending = WireDefault(false.B)
+    val readPrefetchOccupancy = WireDefault(0.U(2.W))
+    if (readPrefetch) {
+        // Reserve a queue entry before issuing each synchronous read. The RAM
+        // result is valid only in the following cycle, even if output stalls.
+        val words = Module(new Queue(new EthernetFrameBeat(4), 2, pipe = true, flow = false))
+        readPrefetchOccupancy := words.io.count
+        val active = RegInit(false.B)
+        val length = RegInit(0.U(lengthBits.W))
+        val fetchIndex = RegInit(0.U(indexBits.W))
+        val readsDone = RegInit(false.B)
+        val pending = RegInit(false.B)
+        readPrefetchPending := pending
+        val pendingKeep = Reg(UInt(4.W))
+        val pendingLast = Reg(Bool())
+        io.frame <> words.io.deq
+        val reserved = words.io.count +& pending.asUInt
+        val issue = active && !readsDone && (reserved < 2.U || io.frame.fire)
+        val readWord = buffer.read(if (frameSlots == 1) fetchIndex else Cat(consumer, fetchIndex), issue)
+        val remaining = length - (fetchIndex << 2)
+        pending := issue
+        when(issue) {
+            pendingKeep := Mux(remaining >= 4.U, 15.U,
+                ((1.U(5.W) << remaining(1, 0)) - 1.U)(3, 0))
+            pendingLast := remaining <= 4.U
+            when(remaining <= 4.U) { readsDone := true.B }
+                .otherwise { fetchIndex := fetchIndex + 1.U }
+        }
+        words.io.enq.valid := pending
+        words.io.enq.bits.data := readWord
+        words.io.enq.bits.keep := pendingKeep
+        words.io.enq.bits.last := pendingLast
+        words.io.enq.bits.bad := false.B
+        assert(reserved <= 2.U)
+        assert(!pending || words.io.enq.ready)
+        when(!active && occupied =/= 0.U) {
+            length := lengths(consumer)
+            fetchIndex := 0.U
+            readsDone := false.B
+            active := true.B
+        }
+        when(io.frame.fire && io.frame.bits.last) {
+            // Prefetch never releases storage: a stalled final beat still owns
+            // its bank, and no reads or queued words from this frame remain.
+            assert(readsDone && !pending && words.io.count === 1.U)
+            active := false.B
+            release := true.B
+        }
+    } else {
+        val idle :: load :: waitRead :: offer :: Nil = Enum(4)
+        val outputState = RegInit(idle)
+        val length = RegInit(0.U(lengthBits.W))
+        val outputIndex = RegInit(0.U(indexBits.W))
+        val outputWord = Reg(UInt(32.W))
+        val outputRead = buffer.read(if (frameSlots == 1) outputIndex else Cat(consumer, outputIndex), outputState === load)
+        when(outputState === idle && occupied =/= 0.U) {
+            length := lengths(consumer)
+            outputIndex := 0.U
+            outputState := load
+        }
+        when(outputState === load) { outputState := waitRead }
+        when(outputState === waitRead) { outputWord := outputRead; outputState := offer }
+        val remaining = length - (outputIndex << 2)
+        io.frame.valid := outputState === offer
+        io.frame.bits.data := outputWord
+        io.frame.bits.keep := Mux(remaining >= 4.U, 15.U,
+            ((1.U(5.W) << remaining(1, 0)) - 1.U)(3, 0))
+        io.frame.bits.last := remaining <= 4.U
+        io.frame.bits.bad := false.B
+        when(io.frame.fire) {
+            when(io.frame.bits.last) { outputState := idle; release := true.B }
+                .otherwise { outputIndex := outputIndex + 1.U; outputState := load }
+        }
     }
     io.busy := state =/= search || occupied =/= 0.U
     // Discarding an unadmitted physical frame owns no payload. Its endless

@@ -120,7 +120,7 @@ class ManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     adapter.io.rxFrame <> rxFifo.destination
     val tx = withClockAndReset(txManaged, txRelease.resetOut) { Module(new GmiiFrameTx(networkDmaConfig.maxFrameBytes)) }
     val rx = withClockAndReset(rxManaged, rxRelease.resetOut) { Module(new GmiiFrameRx(maxFrameBytes = networkDmaConfig.maxFrameBytes, admissionStop = true,
-        frameSlots = networkDmaConfig.macRxSlots)) }
+        frameSlots = networkDmaConfig.macRxSlots, readPrefetch = networkDmaConfig.macRxReadPrefetch)) }
     tx.io.frame <> txFifo.destination
     rxFifo.source <> rx.io.frame
     val txConfig = Module(new EthernetConfigClockBridge)

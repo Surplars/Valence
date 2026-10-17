@@ -20,7 +20,8 @@ class EthernetAxisWord extends Bundle {
   */
 class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     ramBase: BigInt = BigInt("80200000", 16), ramBytes: BigInt = BigInt(512) * 1024 * 1024,
-    maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0) extends Module {
+    maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0,
+    rxWritePrefetch: Boolean = false) extends Module {
     require(base >= 0 && base % 256 == 0 && base + 256 <= (BigInt(1) << 64))
     require(ramBase >= 0 && ramBase % 8 == 0 && ramBytes >= maxFrameBytes && ramBytes % 8 == 0 &&
         ramBase + ramBytes <= (BigInt(1) << 64))
@@ -205,36 +206,103 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val rxIssued = RegInit(0.U(countBits.W))
     val rxReplied = RegInit(0.U(countBits.W))
     val rxStoreIndex = RegInit(0.U(indexBits.W))
+    val rxPrefetchPending = WireDefault(false.B)
+    val rxPrefetchOccupancy = WireDefault(0.U(3.W))
     val rxWord = Reg(UInt(64.W))
-    val rxRead = rxBuffer.read(rxStoreIndex, rxState === rxLoad && !rxFailed)
-    val rxRemaining = rxBytes - (rxStoreIndex << 3)
-    val rxMask = Mux(rxRemaining >= 8.U, 255.U,
-        ((1.U(9.W) << rxRemaining(2, 0)) - 1.U)(7, 0))
-    rx.request.valid := rxState === rxOffer && rxIssued - rxReplied < memoryCredits.U
-    rx.request.bits.address := rxAddress + (rxStoreIndex << 3)
-    rx.request.bits.write := true.B
-    rx.request.bits.size := 3.U
-    rx.request.bits.data := rxWord
-    rx.request.bits.byteEnable := rxMask
-    rx.response.ready := rxState =/= rxIdle && rxState =/= rxCollect
-    when(rx.response.fire) {
-        rxReplied := rxReplied + 1.U
-        when(rx.response.bits.error) { rxFailed := true.B }
+    if (!rxWritePrefetch) {
+        val rxRead = rxBuffer.read(rxStoreIndex, rxState === rxLoad && !rxFailed)
+        val rxRemaining = rxBytes - (rxStoreIndex << 3)
+        val rxMask = Mux(rxRemaining >= 8.U, 255.U,
+            ((1.U(9.W) << rxRemaining(2, 0)) - 1.U)(7, 0))
+        rx.request.valid := rxState === rxOffer && rxIssued - rxReplied < memoryCredits.U
+        rx.request.bits.address := rxAddress + (rxStoreIndex << 3)
+        rx.request.bits.write := true.B
+        rx.request.bits.size := 3.U
+        rx.request.bits.data := rxWord
+        rx.request.bits.byteEnable := rxMask
+        rx.response.ready := rxState =/= rxIdle && rxState =/= rxCollect
+        when(rx.response.fire) {
+            rxReplied := rxReplied + 1.U
+            when(rx.response.bits.error) { rxFailed := true.B }
+        }
+        when(rxState === rxCollect && rxDataDone && rxStatusDone) {
+            val frameBad = rxFailed || rxBytes === 0.U || statusWords(5)(15, 0) =/= rxBytes ||
+                !statusWords(3)(6) || statusWords(3)(7) || statusWords(3)(8)
+            when(frameBad) { rxState := rxIdle; rxDone := true.B; rxFailed := true.B }
+                .otherwise { rxState := rxLoad }
+        }
+        when(rxState === rxLoad) { rxState := Mux(rxFailed, rxDrain, rxWait) }
+        when(rxState === rxWait) { rxWord := rxRead; rxState := Mux(rxFailed, rxDrain, rxOffer) }
+        when(rx.request.fire) {
+            rxIssued := rxIssued + 1.U
+            when(rxFailed || rxRemaining <= 8.U) { rxState := rxDrain }
+                .otherwise { rxStoreIndex := rxStoreIndex + 1.U; rxState := rxLoad }
+        }
+        when(rxState === rxDrain && rxIssued === rxReplied) { rxState := rxIdle; rxDone := true.B }
+    } else {
+        val rxRemaining = rxBytes - (rxStoreIndex << 3)
+        val rxMask = Mux(rxRemaining >= 8.U, 255.U,
+            ((1.U(9.W) << rxRemaining(2, 0)) - 1.U)(7, 0))
+        rx.request.bits.address := rxAddress + (rxStoreIndex << 3)
+        rx.request.bits.write := true.B
+        rx.request.bits.size := 3.U
+        rx.request.bits.byteEnable := rxMask
+        // The synchronous read return owns a reserved queue entry. Never rely
+        // on current downstream ready to make room for a next-cycle return.
+        val storing = rxState === rxLoad || rxState === rxOffer
+        val fetched = RegInit(0.U(countBits.W))
+        val readPending = RegInit(false.B)
+        val offerHeld = RegInit(false.B)
+        val prefetched = withReset(reset.asBool || !storing) {
+            Module(new Queue(UInt(64.W), 4, pipe = true, flow = false))
+        }
+        rxPrefetchOccupancy := prefetched.io.count
+        val wordCount = (rxBytes +& 7.U) >> 3
+        val readIssue = storing && !rxFailed && fetched < wordCount &&
+            prefetched.io.count +& readPending.asUInt < 4.U
+        val readData = rxBuffer.read(fetched(indexBits - 1, 0), readIssue)
+        rxPrefetchPending := readPending
+        readPending := readIssue
+        when(readIssue) { fetched := fetched + 1.U }
+        when(!storing) { fetched := 0.U; readPending := false.B }
+        prefetched.io.enq.valid := readPending && storing
+        prefetched.io.enq.bits := readData
+        assert(!prefetched.io.enq.valid || prefetched.io.enq.ready)
+        when(storing) {
+            assert(prefetched.io.count +& readPending.asUInt <= 4.U)
+            assert(fetched >= rxIssued)
+            assert(fetched - rxIssued === prefetched.io.count +& readPending.asUInt)
+        }
+        // An offered word is irrevocable even when STOP/error arrives while
+        // the scalar arbiter or memory holds ready low. Other prefetched words
+        // are local only and may be discarded on entry to rxDrain.
+        rx.request.valid := rxState === rxOffer && prefetched.io.deq.valid &&
+            rxIssued - rxReplied < memoryCredits.U && (!rxFailed || offerHeld)
+        rx.request.bits.data := prefetched.io.deq.bits
+        prefetched.io.deq.ready := rx.request.fire
+        when(rx.request.valid && !rx.request.ready) { offerHeld := true.B }
+        when(rx.request.fire || !storing) { offerHeld := false.B }
+        when(rxState === rxLoad) { rxState := Mux(rxFailed, rxDrain, rxOffer) }
+        when(rxState === rxOffer && rxFailed && !offerHeld) { rxState := rxDrain }
+        assert(!offerHeld || rx.request.valid)
+        rx.response.ready := rxState =/= rxIdle && rxState =/= rxCollect
+        when(rx.response.fire) {
+            rxReplied := rxReplied + 1.U
+            when(rx.response.bits.error) { rxFailed := true.B }
+        }
+        when(rxState === rxCollect && rxDataDone && rxStatusDone) {
+            val frameBad = rxFailed || rxBytes === 0.U || statusWords(5)(15, 0) =/= rxBytes ||
+                !statusWords(3)(6) || statusWords(3)(7) || statusWords(3)(8)
+            when(frameBad) { rxState := rxIdle; rxDone := true.B; rxFailed := true.B }
+                .otherwise { rxState := rxLoad }
+        }
+        when(rx.request.fire) {
+            rxIssued := rxIssued + 1.U
+            when(rxFailed || rxRemaining <= 8.U) { rxState := rxDrain }
+                .otherwise { rxStoreIndex := rxStoreIndex + 1.U; rxState := rxOffer }
+        }
+        when(rxState === rxDrain && rxIssued === rxReplied) { rxState := rxIdle; rxDone := true.B }
     }
-    when(rxState === rxCollect && rxDataDone && rxStatusDone) {
-        val frameBad = rxFailed || rxBytes === 0.U || statusWords(5)(15, 0) =/= rxBytes ||
-            !statusWords(3)(6) || statusWords(3)(7) || statusWords(3)(8)
-        when(frameBad) { rxState := rxIdle; rxDone := true.B; rxFailed := true.B }
-            .otherwise { rxState := rxLoad }
-    }
-    when(rxState === rxLoad) { rxState := Mux(rxFailed, rxDrain, rxWait) }
-    when(rxState === rxWait) { rxWord := rxRead; rxState := Mux(rxFailed, rxDrain, rxOffer) }
-    when(rx.request.fire) {
-        rxIssued := rxIssued + 1.U
-        when(rxFailed || rxRemaining <= 8.U) { rxState := rxDrain }
-            .otherwise { rxStoreIndex := rxStoreIndex + 1.U; rxState := rxLoad }
-    }
-    when(rxState === rxDrain && rxIssued === rxReplied) { rxState := rxIdle; rxDone := true.B }
 
     // Register ABI V1. Full-width accesses only; descriptor mutation while active
     // and completion overwrite are rejected. W1C acknowledgements precede starts.
