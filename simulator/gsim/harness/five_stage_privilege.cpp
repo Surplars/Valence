@@ -98,11 +98,20 @@ int main(int argc, char **argv) { try {
     t.trap(11); t.write(0x304, 0xaaa); t.d.set_io$$supervisorExternalIrq(1); t.d.step();
     need(!t.d.get_io$$irqPending(), "delegated IRQ escaped into M");
     t.mode(1); need(!t.d.get_io$$irqPending(), "SIE=0 did not mask S IRQ");
-    t.write(0x100, 2); need(t.d.get_io$$irqPending() && t.d.get_io$$irqCause() == (1ULL << 63 | 9),
+    t.write(0x100, 2);
+#ifdef I1_CSR_REGISTERED_IRQ
+    need(!t.d.get_io$$irqPending(), "CSR edge must invalidate the old registered IRQ snapshot");
+    t.d.step(); // The existing fpgaTimingCuts profile captures the NEW enable here.
+#endif
+    need(t.d.get_io$$irqPending() && t.d.get_io$$irqCause() == (1ULL << 63 | 9),
         "S external IRQ priority/enable");
     need(t.trap(1ULL << 63 | 9) == 0x80400024, "vectored S interrupt address");
     t.d.set_io$$supervisorExternalIrq(0); t.d.step();
     t.write(0x100, 0); t.sret(); t.d.set_io$$supervisorExternalIrq(1); t.d.step();
+#ifdef I1_CSR_REGISTERED_IRQ
+    need(!t.d.get_io$$irqPending(), "external IRQ appeared before its registered sampling edge");
+    t.d.step();
+#endif
     need(t.d.get_io$$irqPending(), "S global IE incorrectly gated IRQ from U");
     t.d.set_io$$supervisorExternalIrq(0); t.trap(11);
     t.write(0x300, (1ULL << 20) | (1ULL << 21) | (1ULL << 22) | (1ULL << 11));
@@ -122,6 +131,26 @@ int main(int argc, char **argv) { try {
     t.write(0x344, t.d.get_io$$readDataForWrite() | 32);
     t.d.set_io$$supervisorExternalIrq(0);
     need(t.read(0x344) == 32, "CSRRS mip latched external SEIP as software pending");
+    // Independent unsigned BASE+4*cause oracle, including carry out of bit 5
+    // and full XLEN wrap. Sample without taking the trap so delegation uses
+    // the intended M/S/U mode throughout every cause/mode combination.
+    uint64_t vectorChecks=0;
+    for (uint64_t base : {0ULL, 0x8000003cULL, 0x80400ffcULL, 0xffffffffffffffe0ULL}) {
+        for (unsigned mode=0; mode<2; ++mode) for (unsigned priv : {3U,1U,0U}) {
+            t.reset();
+            const uint64_t sbase=base^0x10000ULL;
+            t.write(0x305, base|mode); t.write(0x105, sbase|mode);
+            t.write(0x302, 0xb3ff); t.write(0x303, 0x222);
+            if (priv!=3) t.mode(priv);
+            for (unsigned interrupt=0; interrupt<2; ++interrupt) for (unsigned id=0; id<16; ++id) {
+                t.d.set_io$$trapValid(0); t.d.set_io$$trapCause((uint64_t(interrupt)<<63)|id); t.d.step();
+                const bool delegated=priv!=3 && ((interrupt?0x222:0xb3ff)>>id&1);
+                const uint64_t expected=(delegated?sbase:base)+(interrupt && mode?4ULL*id:0);
+                need(t.d.get_io$$vector()==expected, "independent trap vector carry/wrap/delegation oracle");
+                ++vectorChecks;
+            }
+        }
+    }
     t.reset(); std::mt19937_64 random(0x5355504d50);
     uint64_t pmpChecks = 0;
     for (unsigned batch = 0; batch < 40; ++batch) {
@@ -147,6 +176,7 @@ int main(int argc, char **argv) { try {
         }
     }
     std::cout << "FIVE_STAGE_PRIVILEGE_PASS csr_checks=" << t.checks << " pmp_checks=" << pmpChecks
+        << " vector_carry_checks=" << vectorChecks
         << " M_S_U_delegation_xret_MPRV_counter_TVM_TSR_TW_PMP_lock_priority_bounds=PASS\n";
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }

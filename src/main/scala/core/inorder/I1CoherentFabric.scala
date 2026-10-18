@@ -57,7 +57,7 @@ class I1CoherentFabric(p: FiveStageSocConfig, simulationRomInit: Boolean = false
     atomic.io.cpu <> cpu.io.memory; atomic.io.dma <> devices.io.memory
     atomic.io.clearReservation := io.clearReservation
     if (p.fabricTimingCuts) {
-        val ownershipCut = Module(new I1RegisteredDataBoundary)
+        val ownershipCut = Module(new I1RegisteredDataBoundary(preparePayload = p.core.coherentControlCuts))
         ownershipCut.io.upstream <> atomic.io.memory
         home.io.upstream <> ownershipCut.io.downstream
     } else home.io.upstream <> atomic.io.memory
@@ -73,7 +73,10 @@ class I1CoherentFabric(p: FiveStageSocConfig, simulationRomInit: Boolean = false
     if (p.fabricTimingCuts) {
         // Break the ordinary return-order mux -> Home -> atomic owner -> CPU
         // owner -> D-MMU cone. The coherent hit/refill path does not cross it.
-        val ordinaryCut = Module(new I1RegisteredDataBoundary)
+        // Home permission/directory lookup owns VALID, not every payload FF.
+        // Prepare only empty/vacated slots using the existing queue contract;
+        // no posted ACK, borrowed credit, extra slot or changed acceptance edge.
+        val ordinaryCut = Module(new I1RegisteredDataBoundary(preparePayload = p.core.coherentControlCuts))
         ordinaryCut.io.upstream <> home.io.downstream
         ordinary.io.data <> ordinaryCut.io.downstream
     } else ordinary.io.data <> home.io.downstream

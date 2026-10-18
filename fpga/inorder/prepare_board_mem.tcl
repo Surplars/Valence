@@ -3,6 +3,15 @@ set root [file normalize [file join [file dirname [info script]] ..]]
 set source [file join $root rtl bootrom.hex]
 set target [file join [pwd] bootrom.hex]
 if {![file isfile $source]} {error "Missing actual I1 ROM initialization"}
+# Vivado calls this hook in a fresh in-memory child project before adding
+# sources. Rebind the macro there as well as in the owning board fileset.
+source [file join $root scripts configure_board_mem.tcl]
+i1_configure_board_mem
+if {[lsearch -exact [get_property VERILOG_DEFINE [get_filesets sources_1]] ENABLE_INITIAL_MEM_] < 0} {
+    error "BootROM readmemh disabled: missing ENABLE_INITIAL_MEM_ synthesis macro"
+}
+source [file join $root scripts audit_board_bootrom.tcl]
+i1_rom_words $source
 if {[file exists $target]} {
     set f [open $source]; set expected [read $f]; close $f
     set f [open $target]; set actual [read $f]; close $f

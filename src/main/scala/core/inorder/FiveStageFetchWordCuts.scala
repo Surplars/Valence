@@ -71,33 +71,52 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     val memorySplit = needsSecond(io.memoryResponse.bits.data, returnedClasses, pcLane,
         io.memoryResponse.bits.fetchSpan, io.memoryResponse.bits.error)
     val reuseSplit = needsSecond(word, wordClasses.getOrElse(0.U(8.W)), reuseLane, true.B, false.B)
-    def acceptFirst(data: UInt, classes: UInt, address: UInt, error: Bool, pageFault: Bool): Unit = {
+    def firstParcel(data: UInt, classes: UInt, selectedLane: UInt): (UInt, Bool, UInt) = {
         // Decode fixed halfword windows BEFORE selecting the parcel. Avoid
         // SRAM -> 64-bit byte barrel -> length decode -> instruction mux.
         // The existing aligned-PC contract permits halfword, not byte, lanes.
         val lanes = (0 until p.xlen / 8 by 2).map { offset =>
             val shifted = (data >> (8 * offset)).pad(32)
             val compressed = if (p.cacheFetchPredecode) classes(4 + offset / 2) else shifted(1, 0) =/= 3.U
-            val selected = address(offsetBits - 1, 1) === (offset / 2).U
+            val selected = selectedLane(offset / 2)
             val standard = if (p.cacheFetchPredecode) classes(offset / 2)
                 else shifted(1, 0).andR && !shifted(4, 2).andR
-            val instruction = Mux(standard, shifted(31, 0), shifted(15, 0).pad(32))
-            (selected, instruction, compressed, shifted(15, 0))
+            (selected, standard, compressed, shifted(15, 0), shifted(31, 16))
         }
         val compressed = Mux1H(lanes.map(v => v._1 -> v._3))
-        result.instruction := Mux1H(lanes.map(v => v._1 -> v._2))
+        val lower = Mux1H(lanes.map(v => v._1 -> v._4))
+        val upper = Mux1H(lanes.map(v => (v._1 && v._2) -> v._5))
+        (Cat(upper, lower), compressed, lower)
+    }
+    def secondParcel(data: UInt): UInt = {
+        val nextLane = Cat(pcLane(lanesPerWord - 2, 0), pcLane(lanesPerWord - 1))
+        Mux1H((0 until p.xlen / 8 by 2).map { offset =>
+            nextLane(offset / 2) -> data(8 * offset + 15, 8 * offset)
+        })
+    }
+    def acceptFirst(data: UInt, classes: UInt, selectedLane: UInt, error: Bool, pageFault: Bool): Unit = {
+        val (instruction, compressed, _) = firstParcel(data, classes, selectedLane)
+        // Retained as a cycle-by-cycle oracle. Synthesis drops this shadow
+        // instruction register, not the actual response/permission registers.
+        result.instruction := instruction
         result.compressed := compressed && !error
         result.error := error
         result.pageFault := pageFault
         result.secondHalfFault := false.B
-        firstHalf := Mux1H(lanes.map(v => v._1 -> v._4))
     }
+    // Re-time alignment across the EXISTING word register. BRAM returns now
+    // capture raw data first; the same next-cycle reply aligns registered data.
+    // No extra parcel owner, edge, cache access or instruction bubble.
+    val registeredFirst = firstParcel(word, wordClasses.getOrElse(0.U(8.W)), pcLane)
+    io.response.bits.instruction := Mux(result.secondHalfFault,
+        Cat(secondParcel(word), firstHalf), registeredFirst._1)
+    when(in(secondSend)) { firstHalf := registeredFirst._3 }
     when(io.request.fire) {
         pc := io.request.bits
         pcLane := reuseLane
-        secondPc := io.request.bits + 2.U
+        secondPc := I1TimingMath.incrementPowerOfTwo(io.request.bits, 1, 8)
         stale := io.invalidate
-        when(reuse) { acceptFirst(word, wordClasses.getOrElse(0.U(8.W)), io.request.bits, false.B, false.B) }
+        when(reuse) { acceptFirst(word, wordClasses.getOrElse(0.U(8.W)), reuseLane, false.B, false.B) }
     }
     // Only the registered reply phase exposes result/firstHalf. Prepare the
     // existing payload registers throughout their retained wait phase; the
@@ -105,13 +124,14 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     // Cache tag/response VALID therefore does not enable every result bit.
     when(in(firstWait) || in(secondWait)) {
         val data = io.memoryResponse.bits
+        // A wait phase owns this existing word storage. Prepare even before
+        // VALID, but ONLY the real response edge advances phase/wordValid.
+        word := data.data
+        wordClasses.foreach(_ := returnedClasses)
         when(in(firstWait)) {
-            acceptFirst(data.data, returnedClasses, pc, data.error, data.pageFault)
+            acceptFirst(data.data, returnedClasses, pcLane, data.error, data.pageFault)
         }.otherwise {
-            val half = Mux1H((0 until p.xlen / 8 by 2).map { offset =>
-                (secondPc(offsetBits - 1, 1) === (offset / 2).U) ->
-                    data.data(8 * offset + 15, 8 * offset)
-            })
+            val half = secondParcel(data.data)
             result.instruction := Cat(half, firstHalf)
             result.compressed := false.B
             result.error := data.error
@@ -125,8 +145,6 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         // Error, a partial-word PMP grant or killed context never fills reuse.
         wordValid := !data.error && data.fetchSpan && !stale && !io.invalidate
         when(!data.error && data.fetchSpan && !stale && !io.invalidate) {
-            word := data.data
-            wordClasses.foreach(_ := returnedClasses)
             wordAddress := address(p.xlen - 1, offsetBits)
         }
     }
@@ -145,6 +163,10 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         (firstReturned && !memorySplit) || secondReturned || (reused && !reuseSplit)
     when(io.invalidate) { wordValid := false.B; stale := true.B }
     when(!reset.asBool) {
+        when(io.response.valid) {
+            assert(io.response.bits.instruction === result.instruction,
+                "raw-word retiming changed the authorized parcel response")
+        }
         if (p.cacheFetchPredecode) when(io.memoryResponse.fire && !io.memoryResponse.bits.error) {
             assert(returnedClasses === I1InstructionPredecode.classify(io.memoryResponse.bits.data),
                 "aligner parcel metadata has no matching instruction word")

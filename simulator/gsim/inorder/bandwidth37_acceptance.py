@@ -19,7 +19,7 @@ from soc_acceptance import sha
 
 
 def main(batch=37):
-    if batch not in (37, 38, 39, 40):
+    if batch not in (37, 38, 39, 40, 41, 42, 43, 44):
         raise ValueError("explicit affected-short profile required")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--tag", required=True)
@@ -31,7 +31,11 @@ def main(batch=37):
         "build/gsim/i1-bandwidth36-20261017-r4/receipt.json" if batch == 37 else
         "build/gsim/i1-bandwidth37-20261017-r8/receipt.json" if batch == 38 else
         "build/gsim/i1-bandwidth38-20261017-r1/receipt.json" if batch == 39 else
-        "build/gsim/i1-bandwidth39-20261017-r1/receipt.json"))
+        "build/gsim/i1-bandwidth39-20261017-r1/receipt.json" if batch == 40 else
+        "build/gsim/i1-bandwidth40-20261017-r1/receipt.json" if batch == 41 else
+        "build/gsim/i1-bandwidth41-20261018-r3/receipt.json" if batch == 42 else
+        "build/gsim/i1-bandwidth42-20261018-r2/receipt.json" if batch == 43 else
+        "build/gsim/i1-bandwidth43-20261018-r3/receipt.json"))
     args = ap.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.tag):
         ap.error("safe unique tag required")
@@ -148,7 +152,28 @@ def main(batch=37):
             receipt["component_evidence"] = {"path": str(args.reuse_components),
                 "sha256": sha(args.reuse_components), "rerun": False}
         else:
-            if batch == 40:
+            if batch >= 41:
+                for entries in (() if batch >= 42 else (2, 4, 8)):
+                    name = "metadata-" + str(entries)
+                    metadata = model(name, "I1PreparedMetadataMain", "I1PreparedMetadataFixture",
+                        "five_stage_prepared_metadata.cpp", ["--entries=" + str(entries)],
+                        ["-DI1_METADATA_ENTRIES=" + str(entries)])
+                    check(name, metadata, negative=(["--wrong-lane"],
+                        "independent metadata accepted-lane oracle"))
+                for cuts in ((True,) if batch >= 42 else (False, True)):
+                    suffix = "-cuts" if cuts else "-direct"
+                    options = ["--timing-cuts"] if cuts else []
+                    jtag = model("jtag" + suffix, "I1JtagTimingMain", "I1JtagTimingFixture",
+                        "five_stage_jtag_timing.cpp", options)
+                    check("jtag" + suffix, jtag, negative=(["--corrupt-readback"],
+                        "independent RAM readback oracle mismatch"))
+                    if batch < 42 or batch >= 44:
+                        csr = model("csr" + suffix, "FiveStagePrivilegeMain", "FiveStagePrivilegeHarness",
+                            "five_stage_privilege.cpp", options,
+                            ["-DI1_CSR_REGISTERED_IRQ"] if cuts else [])
+                        check("csr" + suffix, csr, negative=(["--wrong-delegation"],
+                            "independent delegated vector oracle"))
+            if batch >= 40 and batch < 42:
                 for width in (32, 64):
                     for staged in (False, True):
                         name = "pmp-" + str(width) + ("-registered" if staged else "-direct")
@@ -171,24 +196,40 @@ def main(batch=37):
                     ["--c", "--pipeline=fpga8", "--timing-cuts", "--predictor=128"])
                 check("predictor-c", predictor, negative=(["--wrong-target"],
                     "independent C folded BTB full-PC/length/target oracle"))
-                for capacity in (256, 32768):
+                for capacity in (() if batch >= 42 else (256, 32768)):
                     name = "write-commit-" + str(capacity)
                     commit = model(name, "I1DataCacheCommitMain", "I1DataCacheCommitFixture",
                         "five_stage_cache_write_commit.cpp", ["--cache-bytes=" + str(capacity)])
                     check(name, commit, negative=(["--wrong-forward"],
                         "independent masked store/read collision oracle"))
+            if batch >= 43:
+                for width in (32, 64):
+                    for predecode in ((False,) if width == 32 else (False, True)):
+                        name = "parcels-" + str(width) + ("-predecode" if predecode else "-raw")
+                        parcel = model(name, "I1FetchParcelTimingMain", "I1FetchParcelTimingFixture",
+                            "five_stage_fetch_aligner.cpp", ["--timing-cuts"] +
+                            (["--predecode"] if predecode else []),
+                            ["-DI1_TIMING_CUTS=1", "-DI1_SCALAR_PARCEL_FIXTURE=1"] +
+                            (["-DI1_CACHED_PARCEL_PREDECODE=1"] if predecode else []), width=width)
+                        check(name, parcel, negative=(["--wrong-parcel"], "independent C parcel byte oracle"))
+            if batch >= 44:
+                prepared = model("prepared-payload", "I1PreparedRegisterQueueMain", "I1PreparedRegisterQueueFixture",
+                    "five_stage_prepared_register.cpp")
+                check("prepared-payload", prepared,
+                    negative=(["--wrong-payload"], "independent prepared payload byte/order oracle"))
             home = model("home-read-pair", "I1HomeReadPairMain", "I1HomeReadPairFixture",
                 "five_stage_home_read_pair.cpp")
             check("home-read-pair", home,
                 negative=(["--wrong-word"], "independent paired Home eight-word/error/source oracle"))
-            mmu = model("mmu", "FiveStageTranslationMain", "FiveStageTranslationHarness",
-                "five_stage_translation.cpp", ["--fast-data-translation", "--timing-cuts",
-                    "--atomic", "--overlap-data-retirement", "--direct-fast-data-issue",
-                    "--indexed-data-proofs", "--split-data-candidates", "--data-reply-handoff"],
-                ["-DI1_DATA_REPLY_HANDOFF", "-DI1_SPLIT_DATA_CANDIDATES"])
-            check("mmu-handoff", mmu,
-                negative=(["--wrong-page"], "independent Sv39/PMP/page-vs-access fault oracle"))
-            if batch >= 39:
+            if batch < 42:
+                mmu = model("mmu", "FiveStageTranslationMain", "FiveStageTranslationHarness",
+                    "five_stage_translation.cpp", ["--fast-data-translation", "--timing-cuts",
+                        "--atomic", "--overlap-data-retirement", "--direct-fast-data-issue",
+                        "--indexed-data-proofs", "--split-data-candidates", "--data-reply-handoff"],
+                    ["-DI1_DATA_REPLY_HANDOFF", "-DI1_SPLIT_DATA_CANDIDATES"])
+                check("mmu-handoff", mmu,
+                    negative=(["--wrong-page"], "independent Sv39/PMP/page-vs-access fault oracle"))
+            if batch >= 39 and batch < 42:
                 shifted = model("mmu-shifted", "FiveStageTranslationMain", "FiveStageTranslationHarness",
                     "five_stage_translation.cpp", ["--fast-data-translation", "--timing-cuts",
                         "--atomic", "--overlap-data-retirement", "--direct-fast-data-issue",
@@ -196,7 +237,8 @@ def main(batch=37):
                         "--window=shifted"], ["-DI1_DATA_REPLY_HANDOFF", "-DI1_SPLIT_DATA_CANDIDATES"])
                 check("mmu-shifted", shifted,
                     negative=(["--wrong-page"], "independent Sv39/PMP/page-vs-access fault oracle"))
-            for capacity, overlap in ((256, False), (256, True), (32768, True)):
+            pair_cases = ((256, True), (32768, True)) if batch >= 42 else ((256, False), (256, True), (32768, True))
+            for capacity, overlap in pair_cases:
                 name = "pair-" + str(capacity) + ("-overlap" if overlap else "-serial")
                 options = ["--cuts", "--two-way", "--bandwidth", "--ordered-admission",
                     "--cache-bytes=" + str(capacity), "--line-grants", "--miss-turnover", "--writeback-overlap"]
@@ -240,8 +282,28 @@ def main(batch=37):
                     key = "cpu-coherent-" + ("64k-" if large else "") + mode + \
                         ("-latency80" if delay != 3 else "")
                     tasks.append((key, argv))
-            for key, argv in tasks:
-                check(key, directory, argv)
+            def stream_task(task):
+                key, argv = task
+                common.run([directory / "run", *argv], env=env,
+                    log=directory / (key + ".log"), timeout=300)
+                return key, (directory / (key + ".log")).read_text().strip()
+            # Independent models/processes, deterministic cycle service law.
+            # Only the main thread writes the receipt, preserving source and
+            # artifact binding while reducing wall time on the 16-core host.
+            if batch >= 42:
+                receipt["parallel_stream_jobs"] = 3
+                with ThreadPoolExecutor(max_workers=3) as pool:
+                    stream_results = list(pool.map(stream_task, tasks))
+            else:
+                stream_results = []
+                for task in tasks:
+                    key, argv = task
+                    check(key, directory, argv)
+                    stream_results.append((key, receipt["checks"][key]))
+            for key, value in stream_results:
+                receipt["checks"][key] = value
+                if batch >= 42:
+                    print(value, flush=True)
                 current = json.loads(receipt["checks"][key].split(" ", 1)[1])
                 old = baseline["stream_comparison"][key]["new"]
                 if current["bytes"] != old["bytes"]:

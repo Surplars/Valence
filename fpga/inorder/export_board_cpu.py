@@ -14,8 +14,30 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from export_network import memory_style, parallel_instruction_bindings, sha
-from board_short_proof import (BANDWIDTH37, BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, BANDWIDTH_PROFILES,
-    validate_bandwidth37, validate_bandwidth38, validate_bandwidth39, validate_bandwidth40)
+from board_short_proof import (BANDWIDTH37, BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, BANDWIDTH41, BANDWIDTH42, BANDWIDTH43, BANDWIDTH44,
+    BANDWIDTH_PROFILES, validate_bandwidth37, validate_bandwidth38, validate_bandwidth39, validate_bandwidth40,
+    validate_bandwidth41, validate_bandwidth42, validate_bandwidth43, validate_bandwidth44)
+
+
+def validate_bootrom_proof(path, selected):
+    from check_bootrom_boot import simulation_flags
+    proof = json.loads(path.read_text())
+    if (proof.get("status") != "PASS_I1_BOOTROM_UART_SHORT" or
+            proof.get("board_flags") != selected or
+            proof.get("simulation_flags") != simulation_flags(selected) or
+            proof.get("rom_sha256") != sha(ROOT / "src/main/resources/inorder/bootrom.hex") or
+            set(proof.get("checks", {})) != {"real_cpu_uart", "wrong-banner", "empty-rom"} or
+            "I1_BOOTROM_UART_PASS" not in proof["checks"]["real_cpu_uart"] or
+            any(proof["checks"][name] != "PASS_EXPECTED_REJECTION" for name in ("wrong-banner", "empty-rom"))):
+        raise RuntimeError("exact BootROM UART positive/negative proof required before board synthesis")
+    for name, digest in proof["source_sha256"].items():
+        if sha(ROOT / name) != digest:
+            raise RuntimeError("BootROM proof source/oracle drift: " + name)
+    for name, digest in proof["artifact_sha256"].items():
+        if sha(path.parent / name) != digest:
+            raise RuntimeError("BootROM proof artifact drift: " + name)
+    return {"receipt": str(path.resolve()), "sha256": sha(path), "rom_sha256": proof["rom_sha256"],
+            "scope": proof["scope"], "checks": proof["checks"], "actual_netlist_init_gate_required": True}
 
 
 def without_mac(text):
@@ -44,6 +66,8 @@ def main():
     ap.add_argument("--receipt", required=True, type=Path)
     ap.add_argument("--output", required=True, type=Path)
     ap.add_argument("--ip-reference", required=True, type=Path)
+    ap.add_argument("--bootrom-receipt", required=True, type=Path,
+        help="fresh actual CPU BootROM/UART proof; no bypass for a synthesized board")
     args = ap.parse_args()
     r = json.loads(args.receipt.read_text())
     if r["status"] not in ("PASS_I1_CPU_TIMING26_AFFECTED_SHORT_ONLY",
@@ -126,7 +150,9 @@ def main():
     bandwidth_proof = None
     if r["status"] in BANDWIDTH_PROFILES:
         validate = {BANDWIDTH37: validate_bandwidth37, BANDWIDTH38: validate_bandwidth38,
-                    BANDWIDTH39: validate_bandwidth39, BANDWIDTH40: validate_bandwidth40}[r["status"]]
+                    BANDWIDTH39: validate_bandwidth39, BANDWIDTH40: validate_bandwidth40,
+                    BANDWIDTH41: validate_bandwidth41, BANDWIDTH42: validate_bandwidth42,
+                    BANDWIDTH43: validate_bandwidth43, BANDWIDTH44: validate_bandwidth44}[r["status"]]
         flags, bandwidth_proof = validate(r, args.receipt, ROOT)
     else:
         flags = r["cpu_flags"]["cpu-coherent"]
@@ -137,12 +163,13 @@ def main():
     out = args.output.resolve()
     if out.parent != Path("/mnt/e/VM/Share/Valence-rtl") or not out.name.startswith("orbital-i1-cpu300-board-"):
         ap.error("explicit fresh isolated board directory required")
-    out.mkdir(exist_ok=False)
-    rtl = out / "rtl"; rtl.mkdir()
     selected = [x for x in flags if x != "--soc-no-bootrom"] + [
         "--soc-managed-uart", "--soc-jtag", "--soc-user-chain=2"]
     if r["status"] in ("PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES):
         selected += ["--soc-jtag-scan-bits=65"]
+    bootrom_proof = validate_bootrom_proof(args.bootrom_receipt, selected)
+    out.mkdir(exist_ok=False)
+    rtl = out / "rtl"; rtl.mkdir()
     with (out / "export.log").open("w") as log:
         subprocess.run(["mill", "-i", "OrbitalI1.test.runMain", "inorder.I1PeripheralFpgaShellMain",
             str(rtl), "64", *selected], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -164,6 +191,14 @@ def main():
     rom_bindings = 0
     for p in rtl.glob("*.sv"):
         text = p.read_text()
+        if r["status"] in (BANDWIDTH42, BANDWIDTH43, BANDWIDTH44) and p.name == "I1CoherentLineHome.sv":
+            signal = "state" if r["status"] == BANDWIDTH42 else "stateStorage"
+            text, count = re.subn(r"(?m)^([ \t]*)(reg\s+\[12:0\]\s+" + signal + r"\s*;)",
+                r'\1(* EXTRACT_ENABLE = "no", FSM_ENCODING = "none" *)' + "\n" + r"\1\2", text)
+            if count != 1:
+                raise RuntimeError("explicit one-hot Home phase register missing")
+            misc_completion_annotations[p.name] = {"signal":signal, "state_bits":13,
+                "extract_enable":False, "fsm_encoding":"none"}
         if r["status"] in ("PASS_I1_CPU_TIMING29_AFFECTED_SHORT_ONLY",
                            "PASS_I1_CPU_TIMING30_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING31_AFFECTED_SHORT_ONLY",
@@ -219,7 +254,7 @@ def main():
         if match:
             width, depth = int(match[2]) + 1, int(match[3]) + 1
             style = memory_style(p.name, width, depth, bindings)
-            if r["status"] in (BANDWIDTH38, BANDWIDTH39, BANDWIDTH40) and p.stem.startswith("directoryBanks"):
+            if r["status"] in (BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, BANDWIDTH41, BANDWIDTH42, BANDWIDTH43, BANDWIDTH44) and p.stem.startswith("directoryBanks"):
                 from check_directory_writer import inspect_leaf
                 geometry = inspect_leaf(text)
                 if (geometry["read_ports"] != 6 or
@@ -260,7 +295,8 @@ def main():
                        "PASS_I1_CPU_TIMING33_AFFECTED_SHORT_ONLY",
                        "PASS_I1_CPU_TIMING34_AFFECTED_SHORT_ONLY",
                        "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY", *BANDWIDTH_PROFILES) and (
-            len(controller_annotations) != 4 or len(misc_completion_annotations) != 2):
+            len(controller_annotations) != 4 or
+            len(misc_completion_annotations) != (3 if r["status"] in (BANDWIDTH42, BANDWIDTH43, BANDWIDTH44) else 2)):
         raise RuntimeError("required onehot/FPU completion bindings missing")
     for name in bindings:
         a = annotations.get(name, {})
@@ -307,7 +343,8 @@ def main():
         "set_property DRIVE 8 [get_ports eth_reset_gate]\n")
     scripts = out / "scripts"; scripts.mkdir()
     for name in ("build_board_cpu.tcl", "synth_board_cpu.tcl", "board_cpu_constraints.tcl", "prepare_board_mem.tcl",
-                 "bscan_timing_i1.tcl", "audit_board_reset_cdc.tcl", "save_board_physopt.tcl"):
+                 "bscan_timing_i1.tcl", "audit_board_reset_cdc.tcl", "save_board_physopt.tcl",
+                 "configure_board_mem.tcl", "audit_board_bootrom.tcl", "report_board_cpu_targets.tcl"):
         shutil.copy2(HERE / name, scripts / name)
     # Reuse only pure helper definitions, not the old MAC-specific invocation.
     old_constraints = (HERE / "board_constraints.tcl").read_text()
@@ -348,7 +385,7 @@ def main():
             "simulator/gsim/harness/five_stage_increment.cpp",
             "simulator/gsim/harness/five_stage_jtag_timing.cpp",
             "src/main/scala/core/inorder/I1JtagRamLoader.scala")
-        expected_checks = 49 if r["status"] == BANDWIDTH40 else 37 if r["status"] == BANDWIDTH39 else 29 if r["status"] in BANDWIDTH_PROFILES else (
+        expected_checks = 37 if r["status"] == BANDWIDTH44 else 33 if r["status"] == BANDWIDTH43 else 27 if r["status"] == BANDWIDTH42 else 63 if r["status"] == BANDWIDTH41 else 49 if r["status"] == BANDWIDTH40 else 37 if r["status"] == BANDWIDTH39 else 29 if r["status"] in BANDWIDTH_PROFILES else (
             24 if r["status"] == "PASS_I1_JTAG_CHAIN35_AFFECTED_SHORT_ONLY" else 127)
         if (len(r.get("checks", {})) != expected_checks or
                 len(r.get("performance_gates", {})) != (13 if r["status"] in BANDWIDTH_PROFILES else 18) or
@@ -407,6 +444,7 @@ def main():
         "uart_hz": 50000000, "aon_hz": 50000000, "ddr_ui_hz": 250000000,
         "ddr_bytes": 2147483648, "axi_data_bits": 64, "uart_baud": 460800,
         "jtag_update_equivalence": jtag_equivalence, "bandwidth_short_proof": bandwidth_proof,
+        "bootrom_short_proof": bootrom_proof, "synthesis_verilog_defines": ["ENABLE_INITIAL_MEM_"],
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         "git_worktree_dirty": bool(subprocess.check_output(
             ["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()),
@@ -423,7 +461,13 @@ def main():
         "source_resources": {str(p.relative_to(ROOT)): sha(p) for p in HERE.glob("*")
             if p.is_file() and p.name in ("export_board_cpu.py", "board_short_proof.py", "check_directory_writer.py",
                 "build_board_cpu.tcl", "synth_board_cpu.tcl", "audit_board_reset_cdc.tcl", "save_board_physopt.tcl",
-                "audit_batch39_short.py", "audit_batch40_short.py",
+                "prepare_board_mem.tcl", "configure_board_mem.tcl", "audit_board_bootrom.tcl", "check_bootrom_boot.py",
+                "report_board_cpu_targets.tcl",
+                "audit_batch39_short.py", "audit_batch40_short.py", "audit_batch41_short.py",
+                "audit_board41_stage.py", "audit_batch42_short.py", "audit_board42_stage.py",
+                "audit_batch43_short.py", "audit_board43_stage.py", "audit_batch44_short.py",
+                "audit_board44_stage.py", "collect_board_candidate.py",
+                "write_board_bit.tcl", "collect_bootrom_delivery.py",
                 "board_cpu_constraints.tcl", "soc_top_i1_network_ddr.sv", "board_constraints.tcl")},
         "files_sha256": {str(p.relative_to(out)): sha(p) for folder in (rtl, board, scripts)
             for p in folder.rglob("*") if p.is_file()},

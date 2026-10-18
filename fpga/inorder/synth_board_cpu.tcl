@@ -37,6 +37,8 @@ set_property FILE_TYPE {Memory Initialization Files} [get_files */bootrom.hex]
 add_files -fileset constrs_1 -norecurse [list [file join $root board board_ddr.xdc] \
     [file join $root board pl_ddr4_pins.xdc] [file join $root board phy_disabled.xdc]]
 set_property top soc_top_i1_cpu_ddr [get_filesets sources_1]
+source [file join $root scripts configure_board_mem.tcl]
+i1_configure_board_mem
 set synth [get_runs synth_1]
 set runDir [file normalize [get_property DIRECTORY $synth]]
 if {[string first [string tolower [file join $root project i1_board.runs]] \
@@ -52,6 +54,8 @@ launch_runs synth_1 -jobs 2
 wait_on_run synth_1
 if {[get_property PROGRESS $synth] ne "100%"} {error "Fresh CPU/SoC synthesis failed"}
 open_run synth_1
+source [file join $root scripts audit_board_bootrom.tcl]
+i1_audit_bootrom [file join $root rtl bootrom.hex] [file join $reports bootrom_post_synth.txt]
 # Same real MMCM/clock roots, DDR AXI clock converter, CDC and USER2 boundaries
 # as the routed-board flow. No OOC clocks and no target-frequency relaxation.
 source [file join $root scripts board_cpu_constraints.tcl]

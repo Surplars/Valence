@@ -1,8 +1,9 @@
 import copy
 import unittest
-from board_short_proof import (BANDWIDTH37, BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, REQUIRED_FLAGS,
+from board_short_proof import (BANDWIDTH37, BANDWIDTH38, BANDWIDTH39, BANDWIDTH40, BANDWIDTH41, BANDWIDTH42, BANDWIDTH43, BANDWIDTH44, REQUIRED_FLAGS,
     bandwidth37_flags, bandwidth38_flags, bandwidth38_audit, bandwidth39_flags, bandwidth39_audit,
-    bandwidth40_flags, bandwidth40_audit)
+    bandwidth40_flags, bandwidth40_audit, bandwidth41_flags, bandwidth41_audit,
+    bandwidth42_flags, bandwidth42_audit, bandwidth43_flags, bandwidth43_audit, bandwidth44_flags, bandwidth44_audit)
 
 
 def fixture():
@@ -177,6 +178,154 @@ class Batch40ProofTest(unittest.TestCase):
                            ("multiclock_changed", True), ("directory_write_ports", 8)):
             bad = dict(audit); bad[key] = value
             with self.subTest(key=key), self.assertRaises(ValueError): bandwidth40_audit(r, bad, "digest")
+
+
+class Batch41ProofTest(unittest.TestCase):
+    def fixture(self):
+        r, audit = Batch40ProofTest().fixture()
+        r["status"] = BANDWIDTH41
+        for name in ("metadata-2", "metadata-4", "metadata-8", "jtag-direct", "jtag-cuts",
+                     "csr-direct", "csr-cuts"):
+            r["checks"].update({name: "PASS", name+"-negative": "PASS_EXPECTED_ORACLE_REJECTION"})
+        audit.update(status="PASS_BATCH41_SHORT_NO_REGRESSION_PHYSICAL_PENDING", checks=63,
+                     register_structure_equal_after_fifo_renames=True, memory_declarations=89)
+        return r, audit
+
+    def test_distinct_complete_profile(self):
+        r, audit = self.fixture()
+        self.assertEqual(len(r["checks"]), 63)
+        bandwidth41_audit(r, audit, "digest")
+        with self.assertRaises(ValueError): bandwidth40_flags(r)
+        with self.assertRaises(ValueError): bandwidth41_flags(Batch40ProofTest().fixture()[0])
+
+    def test_new_negative_controls_cannot_be_omitted(self):
+        r, _ = self.fixture()
+        for name in ("metadata-2", "metadata-4", "metadata-8", "jtag-direct", "jtag-cuts",
+                     "csr-direct", "csr-cuts"):
+            bad = copy.deepcopy(r); del bad["checks"][name+"-negative"]
+            with self.subTest(name=name), self.assertRaises(ValueError): bandwidth41_flags(bad)
+
+    def test_capacity_state_and_performance_gates(self):
+        r, audit = self.fixture()
+        for key, value in (("register_structure_equal_after_fifo_renames", False),
+                ("memory_structure_equal", False), ("identical_stream_cases", 5),
+                ("coremark_identical", False), ("multiclock_changed", True),
+                ("directory_write_ports", 8), ("physical_qualified", True)):
+            bad = dict(audit); bad[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError): bandwidth41_audit(r, bad, "digest")
+        r["performance_gates"]["coremark"] = False
+        with self.assertRaises(ValueError): bandwidth41_flags(r)
+
+
+class Batch42ProofTest(unittest.TestCase):
+    def fixture(self):
+        r, audit = Batch41ProofTest().fixture()
+        keep = {"precise-privilege", "precise-privilege-negative", "ca", "ca-boundary", "fd-context",
+                "coremark-o3", "coremark-o3-negative"}
+        for name in ("jtag-cuts", "predictor-c", "home-read-pair"):
+            keep.update((name,name+"-negative"))
+        for name in ("pair-256-overlap", "pair-32768-overlap"):
+            keep.update((name,name+"-negative",name+"-stream",name+"-stream-negative"))
+        keep.update(k for k in r["checks"] if k.startswith("cpu-coherent-"))
+        r.update(status=BANDWIDTH42, parallel_stream_jobs=3, checks={k:r["checks"][k] for k in keep})
+        audit.update(status="PASS_BATCH42_SHORT_NO_REGRESSION_PHYSICAL_PENDING",checks=27,
+            register_structure_equal_after_home_encoding=True,home_encoding_control_bit_growth=18)
+        return r,audit
+
+    def test_affected_scope_and_named_gates(self):
+        r,audit = self.fixture()
+        self.assertEqual(len(r["checks"]),27)
+        bandwidth42_audit(r,audit,"digest")
+        with self.assertRaises(ValueError): bandwidth41_flags(r)
+        r["performance_gates"]["unrelated"] = r["performance_gates"].pop("coremark")
+        with self.assertRaises(ValueError): bandwidth42_flags(r)
+
+    def test_each_affected_negative_control_required(self):
+        r,_ = self.fixture()
+        for name in ("jtag-cuts-negative", "predictor-c-negative", "home-read-pair-negative",
+                     "pair-32768-overlap-negative", "coremark-o3-negative"):
+            bad = copy.deepcopy(r); del bad["checks"][name]
+            with self.subTest(name=name), self.assertRaises(ValueError): bandwidth42_flags(bad)
+
+    def test_only_encoding_growth_and_no_performance_loss(self):
+        r,audit = self.fixture()
+        for key,value in (("home_encoding_control_bit_growth",19), ("register_declarations_after",7000),
+                ("memory_structure_equal",False), ("register_structure_equal_after_home_encoding",False),
+                ("directory_write_ports",8), ("identical_stream_cases",5), ("coremark_identical",False)):
+            bad = dict(audit); bad[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError): bandwidth42_audit(r,bad,"digest")
+        r["performance_gates"]["coremark"] = False
+        with self.assertRaises(ValueError): bandwidth42_flags(r)
+
+
+class Batch43ProofTest(unittest.TestCase):
+    def fixture(self):
+        r, audit = Batch42ProofTest().fixture()
+        r["status"] = BANDWIDTH43
+        for name in ("parcels-32-raw", "parcels-64-raw", "parcels-64-predecode"):
+            r["checks"].update({name:"PASS", name+"-negative":"PASS_EXPECTED_ORACLE_REJECTION"})
+        audit.update(status="PASS_BATCH43_SHORT_NO_REGRESSION_PHYSICAL_PENDING", checks=33,
+            register_structure_equal_after_home_rename=True, new_control_state_bits=0)
+        return r, audit
+
+    def test_supported_parcel_profiles_and_negative_controls_required(self):
+        r, audit = self.fixture()
+        self.assertEqual(len(r["checks"]), 33)
+        bandwidth43_audit(r, audit, "digest")
+        with self.assertRaises(ValueError): bandwidth42_flags(r)
+        for name in ("parcels-32-raw-negative", "parcels-64-raw", "parcels-64-predecode-negative"):
+            bad = copy.deepcopy(r); del bad["checks"][name]
+            with self.subTest(name=name), self.assertRaises(ValueError): bandwidth43_flags(bad)
+
+    def test_zero_growth_and_no_weakened_performance(self):
+        r, audit = self.fixture()
+        for key, value in (("new_control_state_bits", 1), ("new_payload_ram_bits", 64),
+                ("register_structure_equal_after_home_rename", False), ("memory_structure_equal", False),
+                ("identical_stream_cases", 5), ("coremark_identical", False), ("directory_write_ports", 8)):
+            bad = dict(audit); bad[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError): bandwidth43_audit(r, bad, "digest")
+        r["performance_gates"]["coremark"] = False
+        with self.assertRaises(ValueError): bandwidth43_flags(r)
+
+    def test_named_throughput_gates_not_just_count(self):
+        r, _ = self.fixture()
+        r["performance_gates"]["unrelated"] = r["performance_gates"].pop("coremark")
+        with self.assertRaises(ValueError): bandwidth43_flags(r)
+
+
+class Batch44ProofTest(unittest.TestCase):
+    def fixture(self):
+        r, audit = Batch43ProofTest().fixture()
+        r["status"] = BANDWIDTH44
+        for name in ("csr-cuts", "prepared-payload"):
+            r["checks"].update({name:"PASS", name+"-negative":"PASS_EXPECTED_ORACLE_REJECTION"})
+        audit.update(status="PASS_BATCH44_SHORT_NO_REGRESSION_PHYSICAL_PENDING", checks=37,
+            register_structure_equal=True)
+        return r, audit
+
+    def test_queue_and_vector_proofs_required(self):
+        r, audit = self.fixture()
+        self.assertEqual(len(r["checks"]), 37)
+        bandwidth44_audit(r, audit, "digest")
+        with self.assertRaises(ValueError): bandwidth43_flags(r)
+        for name in ("csr-cuts", "csr-cuts-negative", "prepared-payload", "prepared-payload-negative"):
+            bad = copy.deepcopy(r); del bad["checks"][name]
+            with self.subTest(name=name), self.assertRaises(ValueError): bandwidth44_flags(bad)
+
+    def test_no_latency_capacity_or_memory_regression(self):
+        r, audit = self.fixture()
+        for key, value in (("register_structure_equal", False), ("new_control_state_bits", 1),
+                ("new_payload_ram_bits", 64), ("identical_stream_cases", 5),
+                ("coremark_identical", False), ("memory_structure_equal", False), ("directory_write_ports", 8)):
+            bad = dict(audit); bad[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError): bandwidth44_audit(r, bad, "digest")
+        r["performance_gates"]["coremark"] = False
+        with self.assertRaises(ValueError): bandwidth44_flags(r)
+
+    def test_named_performance_gates(self):
+        r, _ = self.fixture()
+        r["performance_gates"]["unrelated"] = r["performance_gates"].pop("coremark")
+        with self.assertRaises(ValueError): bandwidth44_flags(r)
 
 
 if __name__ == "__main__":

@@ -12,6 +12,17 @@ class FiveStageBranchTraining(val p: FiveStageConfig) extends Bundle {
     val compressed = Bool()
 }
 
+/** Scalar leaves also keep the pinned GSIM top-level C++ getters well typed. */
+class FiveStagePredictionValues(xlen: Int, banks: Int) extends Bundle {
+    val plusTwo = UInt(xlen.W)
+    val plusFour = UInt(xlen.W)
+    val target0 = UInt(xlen.W)
+    val target1 = if (banks >= 2) Some(UInt(xlen.W)) else None
+    val target2 = if (banks >= 3) Some(UInt(xlen.W)) else None
+    val target3 = if (banks >= 4) Some(UInt(xlen.W)) else None
+    def all: Seq[UInt] = Seq(plusTwo, plusFour, target0) ++ Seq(target1, target2, target3).flatten
+}
+
 /** Tagged BTB + saturating bimodal direction counter, explicitly small distributed RAM.
   * No speculative training, payload reset, RAS or hidden architectural pipeline stage.
   * Lookup is combinational; the fetch owner captures its prediction at request acceptance.
@@ -19,12 +30,16 @@ class FiveStageBranchTraining(val p: FiveStageConfig) extends Bundle {
   */
 class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     require(p.branchPredictorEntries > 0)
+    val bankCount = if (p.fpgaTimingCuts) math.min(4, p.branchPredictorEntries / 2) else 1
     val io = IO(new Bundle {
         val pc = Input(UInt(p.xlen.W))
         val nextPc = Output(UInt(p.xlen.W))
         val hit = Output(Bool())
         val train = Flipped(Valid(new FiveStageBranchTraining(p)))
         val invalidate = Input(Bool())
+        val candidateMask = if (p.fpgaTimingCuts) Some(Output(UInt((bankCount + 2).W))) else None
+        val candidateValues = if (p.fpgaTimingCuts)
+            Some(Output(new FiveStagePredictionValues(p.xlen, bankCount))) else None
     })
     val indexBits = log2Ceil(p.branchPredictorEntries)
     val alignmentBits = if (p.withC) 1 else 2
@@ -40,7 +55,6 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     // Same entries and RAM bits. In FPGA mode the upper index selects four
     // shallow banks AFTER their parallel reads, rather than steering a deep
     // 128-row RAM mux before tag/length/direction and the PC feedback mux.
-    val bankCount = if (p.fpgaTimingCuts) math.min(4, p.branchPredictorEntries / 2) else 1
     val bankRows = p.branchPredictorEntries / bankCount
     val rowBits = log2Ceil(bankRows)
     val entries = Seq.fill(bankCount)(Mem(bankRows, new Entry))
@@ -66,8 +80,8 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     io.hit := hits.reduce(_ || _)
     // Prepare both fixed increments before RAM hit/length arrives. No late
     // variable addend/carry-in through a full XLEN PC feedback chain.
-    val plusTwo = if (p.fpgaTimingCuts) I1TimingMath.incrementPowerOfTwo(io.pc, 1) else io.pc + 2.U
-    val plusFour = if (p.fpgaTimingCuts) I1TimingMath.incrementPowerOfTwo(io.pc, 2) else io.pc + 4.U
+    val plusTwo = if (p.fpgaTimingCuts) I1TimingMath.incrementPowerOfTwo(io.pc, 1, 8) else io.pc + 2.U
+    val plusFour = if (p.fpgaTimingCuts) I1TimingMath.incrementPowerOfTwo(io.pc, 2, 8) else io.pc + 4.U
     val takeTargets = lookups.zip(hits).map { case (entry, hit) =>
         hit && entry.controlFlow && (!entry.conditional || entry.counter(1))
     }
@@ -81,20 +95,25 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
         (!takeTarget && !shortSequential) -> plusFour) ++
         takeTargets.zip(lookups.map(_.target)))
     if (p.fpgaTimingCuts) {
-        // Each shallow bank resolves tag/direction/length LOCALLY. The
-        // PC-derived bank select is early and independent of the RAM reply;
-        // no global OR-of-hit/direction fans back through all XLEN PC bits.
-        // Entry count, RAM bits, training and combinational latency stay put.
-        val localNext = lookups.zipWithIndex.map { case (entry, b) =>
-            val localHit = valid((b + 1) * bankRows - 1, b * bankRows)(row(lookupIndex)) &&
-                I1TimingMath.equal(entry.tag, tag(io.pc))
-            val taken = localHit && entry.controlFlow && (!entry.conditional || entry.counter(1))
-            Mux(taken, entry.target, Mux(p.withC.B && localHit && entry.compressed, plusTwo, plusFour))
+        // Keep the mutually exclusive alternatives separate through the
+        // core's redirect/kill selection. A predictor result must not cross
+        // another XLEN priority mux after its tag/length/target reduction.
+        val masks = Seq(!takeTarget && shortSequential, !takeTarget && !shortSequential) ++ takeTargets
+        val values = Seq(plusTwo, plusFour) ++ lookups.map(_.target)
+        io.candidateMask.get := VecInit(masks).asUInt
+        io.candidateValues.get.all.zip(values).foreach { case (out, value) => out := value }
+        // The default PC is unconditional. Each bank supplies only its XOR
+        // correction, qualified by its OWN hit. No all-banks taken reduction
+        // then inverted default mask lies after the late tag comparison.
+        val corrections = lookups.zip(hits).map { case (entry, hit) =>
+            val target = entry.controlFlow && (!entry.conditional || entry.counter(1))
+            val short = p.withC.B && entry.compressed
+            val changed = Mux(target, entry.target, plusTwo) ^ plusFour
+            changed & Fill(p.xlen, hit && (target || short))
         }
-        io.nextPc := Mux1H(localNext.zipWithIndex.map { case (next, b) =>
-            (bank(lookupIndex) === b.U) -> next
-        })
+        io.nextPc := plusFour ^ corrections.reduce(_ | _)
         when(!reset.asBool) {
+            assert(PopCount(VecInit(masks)) === 1.U, "prediction alternatives must be exclusive")
             assert(io.nextPc === legacyNextPc, "bank-local prediction changed exact next PC")
         }
     } else io.nextPc := legacyNextPc

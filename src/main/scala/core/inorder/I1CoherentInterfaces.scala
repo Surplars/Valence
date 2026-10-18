@@ -155,22 +155,23 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
     cache.io.upstream.request.bits.uncached := r.noAllocate
     // Cache hit-under-miss replies remain in order. Keep the atomic lane
     // metadata with every accepted native owner, not a live request bus.
-    val metadata = Module(new Queue(UInt(4.W), 4, pipe = false, flow = false))
-    metadata.io.enq.valid := io.request.fire
-    metadata.io.enq.bits := Cat(r.atomic && r.atomicOperation =/= 3.U, r.address(2, 0))
-    assert(!metadata.io.enq.valid || metadata.io.enq.ready, "coherent native metadata overflow")
-    io.response.valid := cache.io.upstream.response.valid && metadata.io.deq.valid
+    val metadata = if (p.coherentControlCuts) Module(new I1PreparedMetadataQueue(4, 4)).io
+        else Module(new Queue(UInt(4.W), 4, pipe = false, flow = false)).io
+    metadata.enq.valid := io.request.fire
+    metadata.enq.bits := Cat(r.atomic && r.atomicOperation =/= 3.U, r.address(2, 0))
+    assert(!metadata.enq.valid || metadata.enq.ready, "coherent native metadata overflow")
+    io.response.valid := cache.io.upstream.response.valid && metadata.deq.valid
     io.response.bits := 0.U.asTypeOf(new FiveStageDataResponse(p))
-    val shiftAtomicReply = metadata.io.deq.bits(3)
-    val atomicReplyShift = Cat(metadata.io.deq.bits(2, 0), 0.U(3.W))
+    val shiftAtomicReply = metadata.deq.bits(3)
+    val atomicReplyShift = Cat(metadata.deq.bits(2, 0), 0.U(3.W))
     io.response.bits.data := (if (p.coherentControlCuts) cache.io.upstream.response.bits.data else
         Mux(shiftAtomicReply, cache.io.upstream.response.bits.data << atomicReplyShift,
             cache.io.upstream.response.bits.data))
     io.response.bits.error := cache.io.upstream.response.bits.error
     io.response.bits.pageFault := cache.io.upstream.response.bits.pageFault
     io.response.bits.parcelClasses.foreach(_ := (if (readOnly) cache.io.fetchClasses else 0.U))
-    cache.io.upstream.response.ready := io.response.ready && metadata.io.deq.valid
-    metadata.io.deq.ready := io.response.fire
+    cache.io.upstream.response.ready := io.response.ready && metadata.deq.valid
+    metadata.deq.ready := io.response.fire
     io.tl <> cache.io.tl; io.uncached <> cache.io.downstream
     if (p.coherentControlCuts) {
         // Atomics are always native/bypass. Format their payload BEFORE the
@@ -179,7 +180,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
         cache.io.downstream.response.bits.data := Mux(shiftAtomicReply,
             io.uncached.response.bits.data << atomicReplyShift, io.uncached.response.bits.data)
         when(cache.io.downstream.response.fire) {
-            assert(metadata.io.deq.valid, "native atomic reply lost its accepted lane owner")
+            assert(metadata.deq.valid, "native atomic reply lost its accepted lane owner")
         }
     }
     io.hit := cache.io.hit; io.miss := cache.io.miss

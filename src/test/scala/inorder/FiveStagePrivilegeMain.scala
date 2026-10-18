@@ -6,8 +6,9 @@ import _root_.circt.stage.ChiselStage
 import soc.core.inorder._
 
 /** Scalar GSIM adapter; architectural configuration is not inferred by the software oracle. */
-class FiveStagePrivilegeHarness extends Module {
-    val p = FiveStageConfig(withUser = true, withSupervisor = true, withSv39 = true, pmpEntries = 4)
+class FiveStagePrivilegeHarness(timingCuts: Boolean = false) extends Module {
+    val p = FiveStageConfig(withUser = true, withSupervisor = true, withSv39 = true, pmpEntries = 4,
+        fpgaTimingCuts = timingCuts, pipelineProfile = if (timingCuts) "fpga8" else "compact5")
     val io = IO(new Bundle {
         val readAddress = Input(UInt(12.W)); val readData = Output(UInt(64.W)); val readLegal = Output(Bool())
         val readDataForWrite = Output(UInt(64.W))
@@ -107,7 +108,8 @@ class FiveStageTranslationHarness(instruction: Boolean = false, fastData: Boolea
 }
 
 object FiveStagePrivilegeMain extends App {
-    ChiselStage.emitCHIRRTLFile(new FiveStagePrivilegeHarness, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new FiveStagePrivilegeHarness(args.contains("--timing-cuts")),
+        Array("--target-dir", args.head))
 }
 object FiveStageTranslationMain extends App {
     ChiselStage.emitCHIRRTLFile(new FiveStageTranslationHarness(args.contains("--instruction"),

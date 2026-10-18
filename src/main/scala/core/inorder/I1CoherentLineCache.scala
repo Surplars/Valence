@@ -415,11 +415,14 @@ class I1CoherentLineCache(
         (maintaining(fill) && !refillResultPending) || maintaining(missResponse) ||
         in(bypassSend) || maintaining(bypassResponse) || maintaining(flushScan)
     private val probing = maintaining(probeCapture) || maintaining(probeSend)
-    private val bypassReply = maintaining(bypassResponse) || (probing && probeResume === bypassResponse)
-    private val missReply = maintaining(missResponse) || (probing && probeResume === missResponse)
-    private val queuedReply = maintaining(idle) || (probing && probeResume === idle)
+    if (parallelOrderedControl) when(probing && !reset.asBool) {
+        assert(PopCount(probeResume) === 1.U, "probe resume lost its one-hot response owner")
+    }
+    private val bypassReply = maintaining(bypassResponse) || (probing && phaseIs(probeResume, bypassResponse))
+    private val missReply = maintaining(missResponse) || (probing && phaseIs(probeResume, missResponse))
+    private val queuedReply = maintaining(idle) || (probing && phaseIs(probeResume, idle))
     private val retainedBypassSending = in(bypassSend) ||
-        (controlTimingCuts.B && probing && probeResume === bypassSend)
+        (controlTimingCuts.B && probing && phaseIs(probeResume, bypassSend))
     val hitUnderMiss = (in(acquire) || maintaining(fill)) && readHit &&
         index =/= pendingIndex && readCapacity
     // IF has one ordered physical requester. Accept any next address only
@@ -516,9 +519,24 @@ class I1CoherentLineCache(
                 Seq(missResult.data, io.downstream.response.bits.data, readResponses.stored.data,
                     cpuReadRaw, forwardData.getOrElse(0.U(64.W))).map(_(byte * 8 + 7, byte * 8)))
         })
-        io.upstream.response.bits.data := data
+        if (orderedReadOnly && parallelWayReads && retimedOrderedClassify) {
+            // Read-only payload needs the matching WAY, not the complete
+            // permission/valid/cacheability decision. A speculative value
+            // while response.valid is low has no consumer. The unchanged
+            // valid path still authorizes every actual response.
+            val words = (0 until 2).map(way => Mux1H(hitWordSelect.get,
+                VecInit((0 until 8).map(bank => wayReadWords.get(bank)(way)))))
+            val wayZeroTag = classifyValid.get(0) &&
+                I1TimingMath.equal(victimTags.get(0), lineTag(pending.address))
+            val liveWord = Mux(wayZeroTag, words(0), words(1))
+            val cached = Mux(readResponses.empty, liveWord, readResponses.stored.data)
+            io.upstream.response.bits.data := Mux(missReply, missResult.data,
+                Mux(bypassReply, io.downstream.response.bits.data, cached))
+        } else io.upstream.response.bits.data := data
         when(io.upstream.response.valid && !reset.asBool) {
             assert(data === original, "fused cache return changed its owned byte/forwarding result")
+            assert(io.upstream.response.bits.data === original,
+                "prepared read-only cache payload changed an authorized word")
         }
     }
     io.hit := cpuFire && ordinary && found
@@ -790,7 +808,9 @@ class I1CoherentLineCache(
         }
         val classReplies = Module(new Queue(UInt(8.W), responseEntries, pipe = false, flow = true))
         classReplies.io.enq.valid := readResponses.io.enq.valid
-        classReplies.io.enq.bits := Mux1H(classifiedWays, preparedClasses)
+        classReplies.io.enq.bits := (if (orderedReadOnly && parallelWayReads && retimedOrderedClassify)
+            Mux(classifyValid.get(0) && I1TimingMath.equal(victimTags.get(0), lineTag(pending.address)),
+                preparedClasses(0), preparedClasses(1)) else Mux1H(classifiedWays, preparedClasses))
         classReplies.io.deq.ready := readResponses.io.deq.ready
         when(!reset.asBool) {
             assert(classReplies.io.deq.valid === readResponses.io.deq.valid &&
@@ -868,7 +888,7 @@ class I1CoherentLineCache(
     }
     private val probeReplyConsumed = probing && (bypassReply || missReply) && io.upstream.response.fire
     private val probeBypassAccepted = controlTimingCuts.B && probing &&
-        probeResume === bypassSend && io.downstream.request.fire
+        phaseIs(probeResume, bypassSend) && io.downstream.request.fire
     if (controlTimingCuts) {
         val legacyProbeResume = Reg(UInt(state.getWidth.W))
         when(io.tl.b.fire) {

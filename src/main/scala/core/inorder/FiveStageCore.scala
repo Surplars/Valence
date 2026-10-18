@@ -656,13 +656,23 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         exRedirect := exFire && takeBranch && !instructionFault && !branchMisaligned
     }
     io.branchMispredict := exRedirect
-    retirementRedirectPc := Mux(wbFlush, Mux(wbPacket.fault, csr.io.trapPc,
-        Mux(wbPacket.control.mret, csr.io.returnPc,
-            Mux(wbPacket.control.sret, csr.io.supervisorReturnPc, wbPacket.nextPc))),
-        csr.io.trapPc)
-    redirectPc := (if (p.fpgaTimingCuts)
-        Mux(olderFlush, retirementRedirectPc, addressPrepared.nextPc)
-        else Mux(wbFlush, retirementRedirectPc, Mux(irqCommit, csr.io.trapPc, exNextPc)))
+    if (p.fpgaTimingCuts) {
+        val retire = wbFlush && !wbPacket.fault
+        val masks = Seq(!retire, retire && wbPacket.control.mret,
+            retire && !wbPacket.control.mret && wbPacket.control.sret,
+            retire && !wbPacket.control.mret && !wbPacket.control.sret)
+        val values = Seq(csr.io.trapPc, csr.io.returnPc, csr.io.supervisorReturnPc, wbPacket.nextPc)
+        retirementRedirectPc := I1ExecuteDatapath.operand(masks, values)
+        val branch = addrPacket.branchTaken && !addrPacket.fault
+        redirectPc := I1ExecuteDatapath.operand(masks.map(_ && olderFlush) ++
+            Seq(!olderFlush && branch, !olderFlush && !branch),
+            values ++ Seq(addrPacket.branchTarget, addrPacket.nextPc))
+    } else {
+        retirementRedirectPc := Mux(wbFlush, Mux(wbPacket.fault, csr.io.trapPc,
+            Mux(wbPacket.control.mret, csr.io.returnPc,
+                Mux(wbPacket.control.sret, csr.io.supervisorReturnPc, wbPacket.nextPc))), csr.io.trapPc)
+        redirectPc := Mux(wbFlush, retirementRedirectPc, Mux(irqCommit, csr.io.trapPc, exNextPc))
+    }
     when(exValid && !exFire) { heldLeft := rs1; heldRight := rs2; operandHeld := true.B }
     val executed = WireDefault(0.U.asTypeOf(new FiveStageCompletion(p)))
     executed.instruction := exPacket.instruction; executed.control := c
@@ -835,7 +845,13 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     val pendingPc = Reg(UInt(p.xlen.W))
     val pendingPrediction = Reg(UInt(p.xlen.W))
     val pendingKilled = RegInit(false.B)
-    val predictedNext = WireDefault(offerPc + 4.U)
+    val predictedNext = WireDefault(if (p.fpgaTimingCuts)
+        I1TimingMath.incrementPowerOfTwo(offerPc, 2) else offerPc + 4.U)
+    val predictionCount = if (p.fpgaTimingCuts && p.branchPredictorEntries > 0)
+        math.min(4, p.branchPredictorEntries / 2) + 2 else 1
+    val predictionValues = WireDefault(VecInit(Seq.fill(predictionCount)(0.U(p.xlen.W))))
+    val predictionMask = WireDefault(1.U(predictionCount.W))
+    predictionValues(0) := predictedNext
     if (p.branchPredictorEntries > 0) {
         val predictor = Module(new FiveStageBranchPredictor(p))
         predictor.io.pc := offerPc
@@ -848,6 +864,10 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         predictor.io.train.bits.target := wbPacket.branchTarget
         predictor.io.train.bits.compressed := wbPacket.instruction.compressed
         predictedNext := predictor.io.nextPc
+        if (p.fpgaTimingCuts) {
+            predictionValues := VecInit(predictor.io.candidateValues.get.all)
+            predictionMask := predictor.io.candidateMask.get
+        }
     }
     val responseSpace = pendingKilled || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
     io.instructionResponse.ready := pending && responseSpace
@@ -867,20 +887,44 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         }
     }
     when(!offerValid && !csr.io.irqPending && !flush) {
-        offerValid := true.B; offerPc := desiredPc; offerKilled := false.B
+        offerValid := true.B; offerKilled := false.B
+        if (!p.fpgaTimingCuts) offerPc := desiredPc
     }
     when(io.instructionRequest.fire) {
         pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush
         pendingPrediction := predictedNext
         offerValid := !csr.io.irqPending; offerKilled := false.B
-        offerPc := Mux(offerKilled, desiredPc, predictedNext)
-        when(!offerKilled) { desiredPc := predictedNext }
+        if (!p.fpgaTimingCuts) {
+            offerPc := Mux(offerKilled, desiredPc, predictedNext)
+            when(!offerKilled) { desiredPc := predictedNext }
+        }
     }
     when(flush) {
-        ifValid := false.B; idValid := false.B; desiredPc := redirectPc
+        ifValid := false.B; idValid := false.B
+        if (!p.fpgaTimingCuts) desiredPc := redirectPc
         when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
         when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
-            .otherwise { offerValid := true.B; offerPc := redirectPc; offerKilled := false.B }
+            .otherwise {
+                offerValid := true.B; offerKilled := false.B
+                if (!p.fpgaTimingCuts) offerPc := redirectPc
+            }
+    }
+    if (p.fpgaTimingCuts) {
+        // Prepare data independently of the late IT/cache acceptance.
+        // The real handshake only enables the existing registers: feeding
+        // FIRE into every candidate mask reintroduced permission -> READY
+        // -> wide payload mux -> hold mux on the PC feedback path.
+        val predict = io.instructionRequest.fire && !offerKilled && !flush
+        val resume = !flush && ((!offerValid && !csr.io.irqPending) ||
+            (io.instructionRequest.fire && offerKilled))
+        val redirect = flush && (!offerValid || io.instructionRequest.fire)
+        when(predict || resume || redirect) {
+            offerPc := Mux(flush, redirectPc,
+                Mux(offerKilled || !offerValid, desiredPc, predictedNext))
+        }
+        when(predict || flush) {
+            desiredPc := Mux(flush, redirectPc, predictedNext)
+        }
     }
     when(backendFlush) { exValid := false.B; mulDivSent := false.B; operandHeld := false.B }
     if (p.withF) when(backendFlush) { fpSent := false.B }

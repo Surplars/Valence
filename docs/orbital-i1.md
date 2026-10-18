@@ -1,5 +1,126 @@
 # OpenIon Orbital-I1: FPGA-first parameterized in-order core
 
+**Batch44 routed STA pass and bit generated, 2026-10-18:** re-time parcel alignment across the existing
+raw-word register, prepare only unowned fabric payload slots, and compute trap
+vector upper carry candidates before late cause/delegation. No new pipeline edge,
+owner, RAM or queue slot. All37 affected checks and13 performance gates pass;
+six real-CPU streams, CoreMark ROI646056 /345517 instructions, trace and CRC are
+identical. Audit rehashes395 sources/136 artifacts;6999 register declarations,
+89 memories and four directory writers are unchanged.52 tool tests pass.
+New independent queue stress and768 vector carry/wrap checks supplement the parcel
+oracles. Fresh real-CPU BootROM/UART and exact synthesized/routed4096-byte ROM pass.
+One full-board implementation and one bounded postroute attempt achieve **CPU300
+WNS0.000ns, TNS0, WHS+0.007ns, pulse+0.081ns**: setup is at the limit, not generous
+margin. DDR UI250 setup/hold+0.454/+0.010ns; AON/UART50+2.478/+0.024ns.
+All136473 routable nets route without errors and all20 bus-skew checks pass
+(minimum+2.512ns). Same nine reset CDC Critical endpoints, structural audit only;
+no full CDC signoff is claimed. Final resources92908 LUT/
+55016 FF/63.5 BRAM36 equivalents/31 DSP. No original OoO, shared IP, clocks or slots changed.
+
+Retimed endpoint STA separately checks actual storage rather than the removed shadow
+instruction register: BRAM-to-word+0.107ns, word-to-IF instruction+1.678ns,
+word-to-firstHalf+1.828ns. Home phase+0.198ns, PC+0.006ns, JTAG+0.045ns.
+Bit: `E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261018-batch44-r1/bitstream/
+orbital_i1_rv64gc_cpu300_i32k_d32k_uart460800_jtag65_nomac_bootrom.bit`.
+SHA256 `bb974f17ec03bd5d51eb5df56bc858beb7a5e9051cffedcce4b4c95fe2c0aea7`.
+Evidence there: `batch44-result.json`, `bitstream/delivery.json`, `postroute-r1/`,
+`retimed-path-audit/`, and `source-batch44-frozen.tar.gz`. UART460800/8N1/no flow control;
+reset should print `Valence Orbital-I1 BootROM V0.1`, then wait for JTAG. MAC absent;
+F/D, Sv39, TL-C and fixed USER2 65-bit transport remain enabled.
+
+**Subsequent user-reported board smoke:** CAP0x564c0101 / STATUS0x00000021;
+the109-byte JTAG binary readback CRC0xe2925e20 passed, COMMIT was accepted and
+UART program output appeared. This qualifies that reported download/launch smoke,
+not Linux, long-term board stability or full CDC signoff. Immutable delivery JSON
+retains its original pre-board-test status. The external host helper
+`valence_wait_claimed` failed on a missing `committed_generation` variable and
+is not claimed fixed; it does not perform the launch. Current image/link/entry
+requirements and the64MiB JTAG aperture are documented in
+`fpga/inorder/README.md`. Generated RTL, bit, DCP and build caches remain outside Git.
+
+**Batch43 final outcome, 2026-10-18:** the PC payload
+no longer includes late request FIRE in every candidate mask; bank-local XOR
+corrections avoid global default-PC qualification. Home uses native ownership
+selection and local per-phase equations checked against the previous transition
+priority every cycle. Read-only cache payload and parcel selection are prepared
+independently of response authorization, without changing any handshake or edge.
+All33 affected checks,13 performance gates and49 tool tests pass. Six real-CPU
+Bare/Sv39 streams, O3 CoreMark ROI646056 /345517 instructions (IPC0.5348), trace
+and CRC are unchanged. Source/storage audit:392 sources,115 artifacts,6999
+register declarations,89 memories, four single-write directory banks, zero new
+control or payload state. Fresh real-CPU BootROM/UART and its negative controls
+pass. CPU300/UI250/AON50/UART50, I/D32KiB and original OoO/shared IP remain unchanged.
+One fresh full-board route and one bounded postroute attempt finish at
+**WNS-0.059ns, TNS-5.477ns, WHS+0.009ns**, resources92756 LUT/55090 FF/
+63.5 BRAM36 equivalents/31 DSP. This improves on batch42 but still fails CPU300;
+no bit. DDR250 and AON/UART50 pass, all20 bus-skew checks pass, the same nine
+reset CDC Critical endpoints remain (no full CDC signoff). Synthesized and routed
+ROM4096 bytes match exactly. Final evidence: `E:/VM/Share/Valence-rtl/
+orbital-i1-cpu300-board-20261018-batch43-r1/batch43-result.json` and `postroute-r1/`.
+Sources were archived there as `source-batch43-pre44.tar.gz` before batch44 edits.
+
+**Previous batch42 outcome, 2026-10-18:** Home one-hot/control ownership reads,
+prediction/redirect candidate selection, cache probe-resume decoding and JTAG
+error preparation were changed together. CPU300/UI250/AON50/UART50, I/D32KiB,
+existing transaction slots and original OoO/shared IP sources remain unchanged.
+All 27 affected short checks and 13 performance gates pass. The six real-CPU
+Bare/Sv39 streams, retired trace, CRC and O3 CoreMark ROI remain cycle-identical;
+ROI IPC is345517/646056=0.5348, not a formal CoreMark score.
+Fresh BootROM/UART and exact synthesized/routed4096-byte ROM checks pass.
+However the fresh full-board route regresses to **WNS -0.379ns, TNS -163.774ns /
+1695 endpoints, WHS +0.009ns, pulse +0.081ns**. Resources:95004 LUT/55299 FF/
+63.5 BRAM36 equivalents/31 DSP. **No new bit; this is not a qualified300MHz board.**
+JTAG sbError improves to+0.025ns, but PC request, Home state and fetch alignment
+remain-0.376/-0.277/-0.253ns respectively. The overall worst endpoint is desiredPc
+at-0.379ns. The short-model equivalence did not imply better physical timing.
+DDR250 and AON/UART50 pass; all140200 nets route without errors and all20
+bus-skew checks pass. The same nine reset CDC Critical endpoints remain;
+structural checks are retained, without claiming full CDC signoff or board testing.
+Evidence: `E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261018-batch42-r1/`,
+especially `batch42-result.json`, `reports/paths_max.rpt` and the six targeted
+reports listed in `reports/target_timing.tsv`. No unbounded physical retry was run.
+See `fpga/inorder/README.md` for the complete comparison and exact proof inputs.
+
+**Previous batch41 outcome, 2026-10-18:** the new Home probe preparation and
+free-tail metadata FIFO preserve CPU300/UI250/AON50/UART50, I/D32KiB and existing
+slots. All 63 affected short checks and 13 performance gates pass; six real-CPU
+Bare/Sv39 cases and O3 CoreMark match the previous results exactly (ROI646056 cycles,
+not a formal score). The fresh CPU BootROM/UART proof and both physical RAMB content
+gates pass. One full-board implementation and one bounded post-route attempt finish
+at **WNS -0.103ns, TNS -4.219ns /137 endpoints, WHS +0.010ns, pulse +0.081ns**.
+Resources:94088 LUT/55125 FF/63.5 BRAM36 equivalents/31 DSP. No new bit is generated.
+Targeted final-DCP STA confirms Home probeAddress +0.995ns, metadata RAM WE +1.986ns,
+and PMP upper bounds +0.177ns; the remaining worst paths are Home admission/state,
+I-cache return/alignment and the predicted-PC loop. JTAG sbError remains -0.041ns.
+DDR250 and AON/UART50 pass; all137145 routable nets are routed without errors.
+The nine existing reset CDC Critical endpoints remain unchanged; no new exceptions
+and no full CDC or board qualification are claimed. Original OoO sources are untouched.
+Evidence: `E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261018-batch41-r1/`,
+especially `batch41-result.json`, `postroute-r1/` and `target-audit/`.
+See `fpga/inorder/README.md` for the complete comparison and frozen proof inputs.
+
+**2026-10-17 BootROM delivery correction:** the dev2-r4 bit's no-output failure
+was traced to the board synthesis flow omitting `ENABLE_INITIAL_MEM_`. Its final
+DCP has no ROM BRAM and disconnected ROM data outputs. The routed figures below
+are historical evidence for that defective netlist, NOT qualification of a board
+with working BootROM. Preserve the old bit/DCP for diagnosis. The repair keeps
+CPU300/UI250/AON50/UART50, I/D32KiB and all CPU RTL unchanged. New gates require
+real-CPU GSIM boot/UART decode plus exact post-synthesis/post-route RAMB INIT and
+address/data mapping comparison. A new bit requires fresh physical qualification;
+see `fpga/inorder/README.md` for the corrected entry and bounded evidence.
+
+**Repair result, 2026-10-17:** real-CPU GSIM BootROM/UART and exact 4096-byte
+post-synthesis/post-route RAMB checks PASS. Fresh full-board implementation plus
+one bounded post-route optimization finished at CPU300 WNS **-0.116 ns**, TNS
+-12.386 ns / 251 failing setup endpoints, hold +0.010 ns, pulse width +0.081 ns.
+DDR UI250 and AON/UART50 setup/hold pass. Resources: 94750 LUT, 55618 FF,
+63.5 BRAM36 equivalents, 31 DSP. The nine baseline reset CDC Critical endpoints
+remain unchanged; this is not complete CDC signoff. **No new bit generated.**
+The 136 exported RTL files, clocks, I/D32KiB and original OoO core are unchanged.
+Evidence: `E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261017-bootrom-r1/`,
+especially `repair-result.json` and `postroute-r1/`; the historical results below
+do not supersede this repair outcome.
+
 Working branch: `dev2` (organized baseline `e0415d2`; original feature branch retained).
 Worktree: `/home/openion/Valence-inorder`.
 Base: `1e90af966c15d871d2544469174acba78473113b`. The existing OoO core,
@@ -7,7 +128,7 @@ Base: `1e90af966c15d871d2544469174acba78473113b`. The existing OoO core,
 This is new current hardware under `src/main/scala/core/inorder`, not resurrection of
 `legacy/hardware` and not an OoO backend with renamed stages.
 
-Latest physical status (batch40,2026-10-17): the real no-MAC board with
+Historical defective-ROM physical status (batch40,2026-10-17): the no-MAC board with
 MIG/AXI CDC, CPU300/UI250/AON50/UART50 andI/D32KiB has completed routed STA
 withWNS0.000ns(MET),TNS0,WHS+0.010ns underan80ps CPU hold guard. Setup is
 borderline, not comfortable margin. Existing nine reset CDC Criticals and

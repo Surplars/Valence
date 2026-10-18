@@ -41,8 +41,8 @@ class I1CoherentLineHome(
     private def client(index: UInt): TLBundle = if (nClients == 1) io.clients(0) else io.clients(index)
     private val clientBits = math.max(1, log2Ceil(nClients))
     private val Seq(idle, probeSend, probeWait, accessSend, accessWait, fillSend, fillWait,
-        grant, grantAck, releaseReceive, lineWriteSend, lineWriteWait, releaseAck) = Enum(13)
-    private val state = RegInit(idle)
+        grant, grantAck, releaseReceive, lineWriteSend, lineWriteWait, releaseAck) = homeStates
+    private val stateStorage = RegInit(idle); private val state = WireDefault(UInt(idle.getWidth.W), stateStorage)
     private val resume = Reg(UInt(state.getWidth.W))
     private val reads = RegInit(0.U(4.W))
     // Reuse the existing outstanding counter for same-direction cohorts.
@@ -78,7 +78,7 @@ class I1CoherentLineHome(
     private val releaseAckPending = if (writebackOverlap) Some(RegInit(false.B)) else None
     private val detachedRelease = releaseWritePending.getOrElse(false.B) || releaseAckPending.getOrElse(false.B)
     private val releaseDPhase = if (writebackOverlap)
-        state === releaseAck || releaseAckPending.get else state === releaseAck
+        in(releaseAck) || releaseAckPending.get else in(releaseAck)
     private val ownerEntries = if (trackedLines == 0) (bytes / 64).toInt else trackedLines
     private val owned = RegInit(VecInit(Seq.fill(ownerEntries)(false.B)))
     // Resolved rows extend the EXISTING serialized transaction contexts.
@@ -158,16 +158,16 @@ class I1CoherentLineHome(
     private val releaseAny = releaseValid.asUInt.orR
     private val releaseSelect = Wire(UInt(clientBits.W))
     releaseSelect := PriorityEncoder(releaseValid)
-    private val cSelect = Mux(state === releaseReceive, releaseClient,
+    private val cSelect = Mux(in(releaseReceive), releaseClient,
         Mux(releaseAny, releaseSelect, probeClient))
     private val clientC = client(cSelect).c
 
     // Only the selected transaction consumes the directory output. A held
     // ordinary offer cannot be preempted; voluntary releases may preempt a
     // probe. Every consuming edge asserts the selected RAM-address invariant.
-    maintenanceAddress := Mux(state === grantAck, acquireAddress,
-        Mux(state === lineWriteWait, lineAddress,
-            Mux(state === probeSend || state === probeWait, Mux(releaseAny, clientC.bits.address, probeAddress),
+    maintenanceAddress := Mux(in(grantAck), acquireAddress,
+        Mux(in(lineWriteWait), lineAddress,
+            Mux(in(probeSend) || in(probeWait), Mux(releaseAny, clientC.bits.address, probeAddress),
                 Mux(releaseAny, clientC.bits.address, Mux(aAny, client(aSelect).a.bits.address,
                     io.upstream.request.bits.address)))))
     // Foreground admission is not driven by the Home FSM or by C selection.
@@ -180,9 +180,13 @@ class I1CoherentLineHome(
             if (trackedWays == 1) set else Cat(way.U(log2Ceil(trackedWays).W), set)
         }
     }
+    // Native indexed selection permits the FPGA's local MUX resources.
+    // The previous expanded AND/OR ownership decoder increased placement
+    // spread and LUT cost. Capacity and reset semantics are identical.
+    private def wayOwned(address: UInt, way: Int): Bool = owned(directorySlots(address)(way))
     private def directoryMatches(address: UInt, maintenance: Boolean = false): Seq[Bool] =
         directorySlots(address).zipWithIndex.map { case (i, way) =>
-            tagGeometry.qualifies(address) && owned(i) &&
+            tagGeometry.qualifies(address) && wayOwned(address, way) &&
                 (if (trackedLines == 0) true.B
                  else (if (maintenance) maintenanceWords else directoryWords)(way)(
                      directoryTagBits + clientBits - 1, clientBits) === directoryTag(address))
@@ -192,7 +196,7 @@ class I1CoherentLineHome(
         if (trackedWays == 1) set
         else {
             val matched = VecInit(hits)
-            val empty = VecInit(directorySlots(address).map(i => !owned(i)))
+            val empty = VecInit((0 until trackedWays).map(way => !wayOwned(address, way)))
             val selected = Mux(matched.asUInt.orR, PriorityEncoder(matched),
                 Mux(empty.asUInt.orR, PriorityEncoder(empty), (trackedWays - 1).U))
             Cat(selected, set)
@@ -212,7 +216,7 @@ class I1CoherentLineHome(
     private val acquireMatches = if (parallelQualification)
         io.clients.zipWithIndex.map { case (c, i) =>
             directorySlots(c.a.bits.address).zipWithIndex.map { case (slot, way) =>
-                tagGeometry.qualifies(c.a.bits.address) && owned(slot) &&
+                tagGeometry.qualifies(c.a.bits.address) && wayOwned(c.a.bits.address, way) &&
                     (if (trackedLines == 0) true.B else acquireWords.get(i)(way)(
                         directoryTagBits + clientBits - 1, clientBits) === directoryTag(c.a.bits.address))
             }
@@ -229,13 +233,13 @@ class I1CoherentLineHome(
             indexFromMatches(io.clients(i).a.bits.address, acquireMatches(i))))) else None
     private val selectedAcquireSpace = if (parallelQualification)
         Some(Mux1H((0 until nClients).map { i =>
-            val empty = directorySlots(io.clients(i).a.bits.address).map(slot => !owned(slot)).reduce(_ || _)
+            val empty = (0 until trackedWays).map(way => !wayOwned(io.clients(i).a.bits.address, way)).reduce(_ || _)
             (aSelect === i.U) -> (acquireMatches(i).reduce(_ || _) || empty)
         })) else None
     private val selectedReleaseIndex = if (parallelQualification) {
         val indices = io.clients.zipWithIndex.map { case (c, i) =>
             val hits = directorySlots(c.c.bits.address).zipWithIndex.map { case (slot, way) =>
-                tagGeometry.qualifies(c.c.bits.address) && owned(slot) &&
+                tagGeometry.qualifies(c.c.bits.address) && wayOwned(c.c.bits.address, way) &&
                     (if (trackedLines == 0) true.B else releaseWords.get(i)(way)(
                         directoryTagBits + clientBits - 1, clientBits) === directoryTag(c.c.bits.address))
             }
@@ -247,6 +251,20 @@ class I1CoherentLineHome(
         if (parallelQualification) HomeRamRange.contains(address, params.addrWidth, base, bytes)
         else address >= base.U(65.W) && address < (base + bytes).U(65.W)
     private val request = io.upstream.request.bits
+    if (parallelQualification) when(in(idle)) {
+        // The probe context is unowned in idle. Prepare its payload BEFORE
+        // aperture/tag/ordinary-admission qualification; only the unchanged
+        // accepted request below can enter probeSend and expose these bits.
+        // A later Acquire has priority over an ordinary request, exactly as
+        // READY arbitration does. Releases may delay/preempt, not consume,
+        // this unowned context. No new stage or Home transaction is added.
+        val a = client(aSelect).a.bits
+        probeAddress := Mux(aAny, a.address, Cat(request.address(63, 6), 0.U(6.W)))
+        probeClient := Mux(aAny, selectedAcquireOwner, lineOwner(request.address))
+        probeSlot.get := Mux(aAny, selectedAcquireIndex.get, lineIndex(request.address))
+        probeForAcquire := aAny
+        access := request
+    }
     // An ordinary read is offered combinationally to the downstream TL bridge.
     // Once stalled, it cannot be preempted by a later Acquire or voluntary C
     // release: the shared TL arbiter may already have locked this A producer.
@@ -254,9 +272,9 @@ class I1CoherentLineHome(
     // The upstream request FIFO retains its head/payload until the same fire.
     private val directReadHeld = RegInit(false.B)
     when(directReadHeld) { directoryAddress := io.upstream.request.bits.address }
-    io.drainDone := state === idle && reads === 0.U && !directReadHeld && !releaseAny && !secondReadLive
+    io.drainDone := in(idle) && reads === 0.U && !directReadHeld && !releaseAny && !secondReadLive
     private val releaseAllowed = reads === 0.U && !directReadHeld && !detachedRelease && !secondReadLive &&
-        (state === idle || state === probeSend || state === probeWait)
+        (in(idle) || in(probeSend) || in(probeWait))
     private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) &&
         lineOwned(request.address)
     private val upperWrite = io.upstream.request.valid && request.write
@@ -264,23 +282,23 @@ class I1CoherentLineHome(
     private val stagedAccess = (upperWrite && !pipelineWrite) || needsProbe
     private val cohortAllowed = if (ordinaryWritePipeline)
         reads === 0.U || cohortWrite.get === request.write else true.B
-    private val directRead = state === idle && !secondReadLive && io.upstream.request.valid && !stagedAccess &&
+    private val directRead = in(idle) && !secondReadLive && io.upstream.request.valid && !stagedAccess &&
         cohortAllowed && (directReadHeld || (!io.drainRequest && !aAny && !releaseAny))
 
-    io.downstream.request.valid := directRead || state === accessSend
-    io.downstream.request.bits := Mux(state === accessSend, access, request)
-    io.upstream.request.ready := state === idle && !secondReadLive &&
+    io.downstream.request.valid := directRead || in(accessSend)
+    io.downstream.request.bits := Mux(in(accessSend), access, request)
+    io.upstream.request.ready := in(idle) && !secondReadLive &&
         (directReadHeld || (!io.drainRequest && !aAny && !releaseAny)) &&
         Mux(stagedAccess, reads === 0.U, cohortAllowed && io.downstream.request.ready)
-    io.upstream.response.valid := Mux(state === accessWait, io.downstream.response.valid,
-        state === idle && reads =/= 0.U && io.downstream.response.valid)
+    io.upstream.response.valid := Mux(in(accessWait), io.downstream.response.valid,
+        in(idle) && reads =/= 0.U && io.downstream.response.valid)
     io.upstream.response.bits := io.downstream.response.bits
     io.downstream.response.ready := io.upstream.response.ready &&
-        (state === accessWait || (state === idle && reads =/= 0.U))
+        (in(accessWait) || (in(idle) && reads =/= 0.U))
     when(directRead && !io.downstream.request.ready) { directReadHeld := true.B }
     when(directRead && io.downstream.request.fire) { directReadHeld := false.B }
     when(directReadHeld) {
-        assert(state === idle && io.upstream.request.valid && !stagedAccess && cohortAllowed,
+        assert(in(idle) && io.upstream.request.valid && !stagedAccess && cohortAllowed,
             "a stalled home direct read must retain its request until acceptance")
     }
     private val directFire = io.upstream.request.fire && !stagedAccess
@@ -291,22 +309,23 @@ class I1CoherentLineHome(
         }
     }
     when(directFire =/=
-        (state === idle && io.upstream.response.fire)) {
+        (in(idle) && io.upstream.response.fire)) {
         reads := Mux(directFire, reads + 1.U, reads - 1.U)
     }
-    when(state === idle && io.upstream.request.fire && stagedAccess) {
+    when(in(idle) && io.upstream.request.fire && stagedAccess) {
         checkLookup(request.address)
-        access := request
+        if (!parallelQualification) access := request
         when(needsProbe) {
-            probeAddress := Cat(request.address(63, 6), 0.U(6.W))
-            probeClient := lineOwner(request.address)
-            probeSlot.foreach(_ := lineIndex(request.address))
-            probeForAcquire := false.B
+            if (!parallelQualification) {
+                probeAddress := Cat(request.address(63, 6), 0.U(6.W))
+                probeClient := lineOwner(request.address)
+                probeForAcquire := false.B
+            }
         }
         state := Mux(needsProbe, probeSend, accessSend)
     }
-    when(state === accessSend && io.downstream.request.fire) { state := accessWait }
-    when(state === accessWait && io.upstream.response.fire) { state := idle }
+    when(in(accessSend) && io.downstream.request.fire) { state := accessWait }
+    when(in(accessWait) && io.upstream.response.fire) { state := idle }
 
     // A second DDR owner may read only a DIFFERENT, currently unowned line
     // with an existing empty directory row. Never overlap probes, ordinary
@@ -316,18 +335,18 @@ class I1CoherentLineHome(
     overlapQualified.foreach { proofs =>
         for (i <- 0 until nClients) {
             val c = io.clients(i)
-            val empty = directorySlots(c.a.bits.address).map(s => !owned(s)).reduce(_ || _)
+            val empty = (0 until trackedWays).map(way => !wayOwned(c.a.bits.address, way)).reduce(_ || _)
             val chosen = indexFromMatches(c.a.bits.address, acquireMatches(i))
             // No new request owner. A stalled TL A head is sticky; prepare a
             // one-bit authorization during the existing write-response wait,
             // rather than directory tag/empty/alias -> A READY in one cycle.
-            proofs(i) := state === lineWriteWait && c.a.valid && !c.a.ready &&
+            proofs(i) := in(lineWriteWait) && c.a.valid && !c.a.ready &&
                 !acquireMatches(i).reduce(_ || _) && empty && chosen =/= releaseSlot.get &&
                 c.a.bits.address(params.addrWidth - 1, 6) =/= lineAddress(params.addrWidth - 1, 6)
         }
     }
-    private val overlapAcquire = writebackOverlap.B && state === lineWriteWait &&
-        releaseOrigin && resume === idle && detachedRelease &&
+    private val overlapAcquire = writebackOverlap.B && in(lineWriteWait) &&
+        releaseOrigin && phaseIs(resume, idle) && detachedRelease &&
         overlapQualified.map(bits => Mux1H((0 until nClients).map(i =>
             (aSelect === i.U) -> bits(i)))).getOrElse(false.B)
     private val readQualified = if (readOverlap)
@@ -335,28 +354,35 @@ class I1CoherentLineHome(
     readQualified.foreach { proofs =>
         for (i <- 0 until nClients) {
             val a = io.clients(i).a
-            val empty = directorySlots(a.bits.address).map(s => !owned(s)).reduce(_ || _)
+            val empty = (0 until trackedWays).map(way => !wayOwned(a.bits.address, way)).reduce(_ || _)
             val row = indexFromMatches(a.bits.address, acquireMatches(i))
-            proofs(i) := state === fillWait && !secondReadLive && !detachedRelease &&
+            proofs(i) := in(fillWait) && !secondReadLive && !detachedRelease &&
                 a.valid && !a.ready && acquireClient =/= i.U &&
                 !acquireMatches(i).reduce(_ || _) && empty && row =/= acquireSlot.get &&
                 a.bits.address(params.addrWidth - 1, 6) =/= acquireAddress(params.addrWidth - 1, 6)
         }
     }
-    private val secondAcquire = readOverlap.B && state === fillWait && !secondReadLive &&
+    private val secondAcquire = readOverlap.B && in(fillWait) && !secondReadLive &&
         !detachedRelease &&
         readQualified.map(v => Mux1H((0 until nClients).map(i => (aSelect === i.U) -> v(i))))
             .getOrElse(false.B)
     for (i <- 0 until nClients) {
         io.clients(i).a.ready := !io.drainRequest && !secondReadLive &&
-            (state === idle || overlapAcquire || secondAcquire) &&
+            (in(idle) || overlapAcquire || secondAcquire) &&
             reads === 0.U && !releaseAny && !directReadHeld &&
             aSelect === i.U
     }
     val selectedAcquire = client(aSelect).a.bits
     val secondAcquireFire = aAny && client(aSelect).a.fire && secondAcquire
     val acquireFire = aAny && client(aSelect).a.fire && !secondAcquire
-    val immediateFill = acquireFire && !selectedAcquireOwned
+    val acquiredOwned = if (parallelQualification)
+        (0 until nClients).map(i => io.clients(i).a.fire && !secondAcquire &&
+            acquireMatches(i).reduce(_ || _)).reduce(_ || _)
+        else acquireFire && selectedAcquireOwned
+    val immediateFill = if (parallelQualification)
+        (0 until nClients).map(i => io.clients(i).a.fire && !secondAcquire &&
+            !acquireMatches(i).reduce(_ || _)).reduce(_ || _)
+        else acquireFire && !selectedAcquireOwned
     when(acquireFire) {
         val a = selectedAcquire
         if (!parallelQualification) checkLookup(a.address)
@@ -366,7 +392,7 @@ class I1CoherentLineHome(
             a.address(5, 0) === 0.U && inRam(a.address) &&
             (!selectedAcquireOwned || selectedAcquireOwner =/= aSelect),
             "home accepts an aligned nToT AcquireBlock from a non-owner")
-        if (writebackOverlap) when(state === lineWriteWait) {
+        if (writebackOverlap) when(in(lineWriteWait)) {
             assert(writebackOverlap.B && !selectedAcquireOwned && selectedAcquireSpace.get &&
                 selectedAcquireIndex.get =/= releaseSlot.get &&
                 a.address(params.addrWidth - 1, 6) =/= lineAddress(params.addrWidth - 1, 6),
@@ -378,22 +404,25 @@ class I1CoherentLineHome(
         acquireSlot.foreach(_ := selectedAcquireIndex.get)
         acquireHadSpace.foreach(_ := selectedAcquireSpace.get)
         when(selectedAcquireOwned) {
-            probeAddress := a.address
-            probeClient := selectedAcquireOwner
-            probeSlot.foreach(_ := selectedAcquireIndex.get)
-            probeForAcquire := true.B
+            if (parallelQualification) {
+                assert(in(idle), "owned Acquire must reserve the idle probe context")
+            } else {
+                probeAddress := a.address
+                probeClient := selectedAcquireOwner
+                probeForAcquire := true.B
+            }
             state := probeSend
         }.otherwise { state := Mux(lineTransfer.io.readRequest.ready, fillWait, fillSend) }
     }
     // A no-probe Acquire can reserve the line reader in its acceptance cycle.
     // If the reader is full, fillSend keeps the registered address stable until it opens.
     private val secondSend = secondAcquireFire || pairedSend.getOrElse(false.B)
-    lineTransfer.io.readRequest.valid := state === fillSend || immediateFill || secondSend
+    lineTransfer.io.readRequest.valid := in(fillSend) || immediateFill || secondSend
     lineTransfer.io.readRequest.bits.address := Mux(pairedSend.getOrElse(false.B), lineAddress,
-        Mux(state === fillSend, acquireAddress, selectedAcquire.address))
+        Mux(in(fillSend), acquireAddress, selectedAcquire.address))
     lineTransfer.io.readRequest.bits.tag := Mux(secondSend, 1.U, 0.U)
     when(lineTransfer.io.readRequest.fire && !secondSend) { state := fillWait }
-    lineTransfer.io.readResponse.ready := state === fillWait &&
+    lineTransfer.io.readResponse.ready := in(fillWait) &&
         (!readOverlap.B || lineTransfer.io.readResponse.bits.tag === 0.U)
     when(lineTransfer.io.readResponse.fire && (!readOverlap.B || lineTransfer.io.readResponse.bits.tag === 0.U)) {
         for (i <- 0 until 8) {
@@ -405,7 +434,7 @@ class I1CoherentLineHome(
     }
     private val dClient = Mux(releaseDPhase, releaseClient, acquireClient)
     for (i <- 0 until nClients) {
-        io.clients(i).d.valid := ((!internalLineGrant.B && state === grant) ||
+        io.clients(i).d.valid := ((!internalLineGrant.B && in(grant)) ||
             releaseDPhase) && dClient === i.U
         io.clients(i).d.bits := 0.U.asTypeOf(io.clients(i).d.bits)
         io.clients(i).d.bits.opcode := Mux(releaseDPhase, TLOpcode.ReleaseAck, TLOpcode.GrantData)
@@ -413,17 +442,17 @@ class I1CoherentLineHome(
         io.clients(i).d.bits.size := 6.U
         io.clients(i).d.bits.source := Mux(releaseDPhase, releaseSource, acquireSource)
         io.clients(i).d.bits.sink := 0.U
-        io.clients(i).d.bits.denied := !releaseDPhase && state === grant && lineError
+        io.clients(i).d.bits.denied := !releaseDPhase && in(grant) && lineError
         io.clients(i).d.bits.data := lineData(beat)
-        io.clients(i).d.bits.corrupt := !releaseDPhase && state === grant && lineError
+        io.clients(i).d.bits.corrupt := !releaseDPhase && in(grant) && lineError
     }
-    when(client(dClient).d.fire && state === grant && !releaseDPhase) {
+    when(client(dClient).d.fire && in(grant) && !releaseDPhase) {
         beat := beat + 1.U
         when(beat === 7.U) { state := grantAck }
     }
     io.lineGrants.foreach { grants =>
         for (i <- 0 until nClients) {
-            grants(i).valid := state === grant && acquireClient === i.U
+            grants(i).valid := in(grant) && acquireClient === i.U
             grants(i).bits.source := acquireSource
             grants(i).bits.sink := 0.U
             grants(i).bits.cap := TLPermissions.toT
@@ -432,8 +461,8 @@ class I1CoherentLineHome(
             // Reuse the existing checked lineData bank. No extra response
             // payload, owner, source or sink; only the private transport widens.
             grants(i).bits.data := lineData.asUInt
-            when(state === grant && acquireClient === i.U && grants(i).fire) { state := grantAck }
-            when(state === grant && acquireClient === i.U && grants(i).valid) {
+            when(in(grant) && acquireClient === i.U && grants(i).fire) { state := grantAck }
+            when(in(grant) && acquireClient === i.U && grants(i).valid) {
                 assert((!io.clients(i).d.valid ||
                     io.clients(i).d.bits.opcode === TLOpcode.ReleaseAck) && beat === 0.U,
                     "private line grant overlapped or followed a legacy D beat")
@@ -441,9 +470,9 @@ class I1CoherentLineHome(
         }
     }
     for (i <- 0 until nClients) {
-        io.clients(i).e.ready := state === grantAck && acquireClient === i.U
+        io.clients(i).e.ready := in(grantAck) && acquireClient === i.U
     }
-    when(state === grantAck && client(acquireClient).e.fire) {
+    when(in(grantAck) && client(acquireClient).e.fire) {
         checkLookup(acquireAddress, maintenance = true)
         assert(client(acquireClient).e.bits.sink === 0.U, "line home GrantAck sink mismatch")
         when(!lineError) {
@@ -469,7 +498,7 @@ class I1CoherentLineHome(
     }
     if (readOverlap) {
         when(lineTransfer.io.readResponse.valid && !reset.asBool) {
-            assert((lineTransfer.io.readResponse.bits.tag === 0.U && state === fillWait) ||
+            assert((lineTransfer.io.readResponse.bits.tag === 0.U && in(fillWait)) ||
                 (lineTransfer.io.readResponse.bits.tag === 1.U && secondReadLive && !pairedAck.get),
                 "whole-line read reply has no matching primary/borrowed Home owner")
         }
@@ -505,7 +534,7 @@ class I1CoherentLineHome(
             // One tag-bank write per edge. Both clients may keep E asserted;
             // the primary installation wins and the second E is retained.
             when(secondReadLive && pairedAck.get && releaseClient === i.U) {
-                io.clients(i).e.ready := !(state === grantAck && !lineError &&
+                io.clients(i).e.ready := !(in(grantAck) && !lineError &&
                     client(acquireClient).e.valid)
             }
         }
@@ -522,7 +551,7 @@ class I1CoherentLineHome(
         }
         when(secondReadLive) {
             assert(!detachedRelease && !releaseAllowed && !releaseDPhase &&
-                state =/= probeSend && state =/= probeWait && state =/= releaseReceive,
+                !in(probeSend) && !in(probeWait) && !in(releaseReceive),
                 "paired read aliases the existing release/probe context")
         }
     }
@@ -550,11 +579,11 @@ class I1CoherentLineHome(
             "single directory writer requires retained secondary GrantAck arbitration")
     }
 
-    probeEngine.io.request.valid := state === probeSend && !releaseAny
+    probeEngine.io.request.valid := in(probeSend) && !releaseAny
     probeEngine.io.request.bits.address := probeAddress
     probeEngine.io.request.bits.tag := 0.U
     when(probeEngine.io.request.fire) { state := probeWait }
-    probeEngine.io.response.ready := state === probeWait && !releaseAny
+    probeEngine.io.response.ready := in(probeWait) && !releaseAny
     when(probeEngine.io.response.fire) {
         checkLookup(probeAddress, maintenance = true)
         assert(!probeEngine.io.response.bits.corrupt, "dirty probe data must not be corrupt")
@@ -579,9 +608,9 @@ class I1CoherentLineHome(
     probeEngine.io.ack.bits := clientC.bits
     for (i <- 0 until nClients) {
         io.clients(i).c.ready := cSelect === i.U &&
-            Mux(isRelease, releaseAllowed || state === releaseReceive, probeEngine.io.ack.ready)
+            Mux(isRelease, releaseAllowed || in(releaseReceive), probeEngine.io.ack.ready)
     }
-    when(clientC.fire && isRelease && state =/= releaseReceive) {
+    when(clientC.fire && isRelease && !in(releaseReceive)) {
         checkLookup(clientC.bits.address, maintenance = true)
         assert(releaseAllowed && clientC.bits.size === 6.U &&
             clientC.bits.address(5, 0) === 0.U && inRam(clientC.bits.address) &&
@@ -601,7 +630,7 @@ class I1CoherentLineHome(
         lineAddress := clientC.bits.address
         lineData(0) := clientC.bits.data
         beat := 1.U
-        resume := state
+        resume := stateStorage
         when(clientC.bits.opcode === TLOpcode.ReleaseData) {
             state := releaseReceive
         }.otherwise {
@@ -609,7 +638,7 @@ class I1CoherentLineHome(
             state := releaseAck
         }
     }
-    when(clientC.fire && state === releaseReceive) {
+    when(clientC.fire && in(releaseReceive)) {
         assert(clientC.bits.opcode === TLOpcode.ReleaseData &&
             clientC.bits.address === lineAddress &&
             clientC.bits.source === releaseSource &&
@@ -623,12 +652,12 @@ class I1CoherentLineHome(
             state := lineWriteSend
         }.otherwise { beat := beat + 1.U }
     }
-    lineTransfer.io.writeRequest.valid := state === lineWriteSend
+    lineTransfer.io.writeRequest.valid := in(lineWriteSend)
     lineTransfer.io.writeRequest.bits.address := lineAddress
     lineTransfer.io.writeRequest.bits.data := lineData.asUInt
     lineTransfer.io.writeRequest.bits.tag := 0.U
     when(lineTransfer.io.writeRequest.fire) { state := lineWriteWait }
-    lineTransfer.io.writeResponse.ready := state === lineWriteWait || releaseWritePending.getOrElse(false.B)
+    lineTransfer.io.writeResponse.ready := in(lineWriteWait) || releaseWritePending.getOrElse(false.B)
     when(lineTransfer.io.writeResponse.fire) {
         // A detached voluntary write uses its already resolved releaseSlot,
         // not the maintenance RAM port now serving the independent Acquire.
@@ -654,13 +683,13 @@ class I1CoherentLineHome(
         when(lineTransfer.io.writeRequest.fire && releaseOrigin) { releaseWritePending.get := true.B }
         when(releaseAckPending.get && client(releaseClient).d.fire) {
             releaseAckPending.get := false.B
-            when(state === lineWriteWait && !acquireFire) { state := resume }
+            when(in(lineWriteWait) && !acquireFire) { state := resume }
         }
-        when(state === releaseAck && client(releaseClient).d.fire) { state := resume }
+        when(in(releaseAck) && client(releaseClient).d.fire) { state := resume }
         when(detachedRelease) {
             assert(releaseOrigin, "detached writeback lost its original voluntary release")
         }
-    } else when(state === releaseAck && client(releaseClient).d.fire) { state := resume }
+    } else when(in(releaseAck) && client(releaseClient).d.fire) { state := resume }
     if (parallelQualification) {
         // Clear the captured release row during the EXISTING Ack phase.
         // No A/ordinary request can enter before it completes; a preempted
@@ -678,5 +707,79 @@ class I1CoherentLineHome(
                 (clearReleasedOwner && releaseSlot.get === row.U)
             when(install || clear) { owned(row) := install && !clear }
         }
+    }
+    // Explicit local phase bits remove binary state decode/encoding from
+    // already late directory decisions. Resume retains the same one owner.
+    private def homeStates: Seq[UInt] = if (parallelQualification)
+        (0 until 13).map(i => (BigInt(1) << i).U(13.W)) else Enum(13)
+    private def phaseIs(value: UInt, phase: UInt): Bool = if (parallelQualification)
+        value(phase.litValue.bitLength - 1) else value === phase
+    private def in(phase: UInt): Bool = phaseIs(stateStorage, phase)
+    stateStorage := state
+    if (parallelQualification) {
+        // Each phase has ONLY its own hold/exit controls. In particular a
+        // late owned/tag result may select probe vs fill, but cannot flow
+        // through every unrelated writeback/release priority mux afterwards.
+        // 'state' above retains the original priority equations as an oracle;
+        // no additional register or transition edge is introduced.
+        val ordinaryStart = in(idle) && io.upstream.request.fire && stagedAccess
+        val releaseStart = clientC.fire && isRelease && !in(releaseReceive)
+        val probeReturned = probeEngine.io.response.fire
+        val probeData = probeReturned && probeEngine.io.response.bits.hasData
+        val probeClean = probeReturned && !probeEngine.io.response.bits.hasData
+        val primaryReturned = lineTransfer.io.readResponse.fire &&
+            (!readOverlap.B || lineTransfer.io.readResponse.bits.tag === 0.U)
+        val grantDone = if (internalLineGrant)
+            io.lineGrants.get(acquireClient).fire && in(grant)
+            else client(dClient).d.fire && in(grant) && !releaseDPhase && beat === 7.U
+        val installed = in(grantAck) && client(acquireClient).e.fire
+        val receiveDone = in(releaseReceive) && clientC.fire && beat === 7.U
+        val writerSent = in(lineWriteSend) && lineTransfer.io.writeRequest.ready
+        val writerReturned = lineTransfer.io.writeResponse.fire
+        val probeWritten = writerReturned && !releaseOrigin
+        val releasedWritten = writerReturned && releaseOrigin && !writebackOverlap.B
+        val pendingAckDone = releaseAckPending.getOrElse(false.B) && client(releaseClient).d.fire
+        val resumeDone = (in(releaseAck) && client(releaseClient).d.fire) ||
+            (writebackOverlap.B && in(lineWriteWait) && !acquireFire && pendingAckDone)
+        val returnTo = (phase: UInt) => resumeDone && phaseIs(resume, phase)
+        val waitForRelease = installed && detachedRelease && !pendingAckDone
+        val next = Seq(
+            (in(idle) && !ordinaryStart && !acquireFire && !releaseStart) ||
+                (in(accessWait) && io.upstream.response.fire) ||
+                (installed && !waitForRelease) || returnTo(idle),
+            (in(probeSend) && !probeEngine.io.request.fire && !releaseStart) ||
+                (ordinaryStart && needsProbe) || acquiredOwned || returnTo(probeSend),
+            (in(probeWait) && !probeReturned && !releaseStart) ||
+                probeEngine.io.request.fire || returnTo(probeWait),
+            (in(accessSend) && !io.downstream.request.ready) ||
+                (ordinaryStart && !needsProbe) || (probeClean && !probeForAcquire) ||
+                (probeWritten && !probeForAcquire),
+            (in(accessWait) && !io.upstream.response.fire) ||
+                (in(accessSend) && io.downstream.request.ready),
+            (in(fillSend) && !lineTransfer.io.readRequest.ready) ||
+                (immediateFill && !lineTransfer.io.readRequest.ready) ||
+                (probeClean && probeForAcquire),
+            (in(fillWait) && !primaryReturned) ||
+                ((in(fillSend) || immediateFill) && lineTransfer.io.readRequest.ready),
+            (in(grant) && !grantDone) || primaryReturned || (probeWritten && probeForAcquire),
+            (in(grantAck) && !installed) || grantDone,
+            (in(releaseReceive) && !receiveDone) ||
+                (releaseStart && clientC.bits.opcode === TLOpcode.ReleaseData),
+            (in(lineWriteSend) && !lineTransfer.io.writeRequest.ready) || receiveDone || probeData,
+            (in(lineWriteWait) && !acquireFire && !probeWritten && !releasedWritten && !resumeDone) ||
+                writerSent || waitForRelease,
+            (in(releaseAck) && !resumeDone) || releasedWritten ||
+                (releaseStart && clientC.bits.opcode =/= TLOpcode.ReleaseData))
+        val parallelNext = VecInit(next).asUInt
+        stateStorage := parallelNext
+        when(!reset.asBool) {
+            assert(parallelNext === state, "local Home phase equations changed transition priority")
+            assert(acquiredOwned === (acquireFire && selectedAcquireOwned) &&
+                immediateFill === (acquireFire && !selectedAcquireOwned),
+                "bank-local Home admission lost the selected real A handshake")
+        }
+    }
+    if (parallelQualification) when(!reset.asBool) {
+        assert(PopCount(stateStorage) === 1.U, "Home phase lost its single transaction owner")
     }
 }

@@ -85,12 +85,15 @@ class I1JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
 
     // Trigger while error latched is a no-op, as for SBA. Busy access is sticky.
     def startMemory(write: Bool, at: UInt, value: UInt): Unit = {
-        when(busy) { busyError := true.B }
+        when(busy) { if (!timingCuts) busyError := true.B }
         .elsewhen(sbError === 0.U && !busyError) {
-            when(!armed || committed || claimed || !io.linkUp) { sbError := 7.U }
-            .elsewhen(access =/= 2.U) { sbError := 4.U }
-            .elsewhen(at(1, 0) =/= 0.U) { sbError := 3.U }
-            .elsewhen(at < ramBase.U || (at +& 4.U) > ramEnd.U(33.W)) { sbError := 2.U }
+            when(!armed || committed || claimed || !io.linkUp) { if (!timingCuts) sbError := 7.U }
+            .elsewhen(access =/= 2.U) { if (!timingCuts) sbError := 4.U }
+            .elsewhen(at(1, 0) =/= 0.U) { if (!timingCuts) sbError := 3.U }
+            .elsewhen(if (timingCuts) !I1AddressWindow.contains(at, ramBase, ramEnd - ramBase)
+                else at < ramBase.U || (at +& 4.U) > ramEnd.U(33.W)) {
+                if (!timingCuts) sbError := 2.U
+            }
             .otherwise {
                 offered := true.B; ticks := 0.U; timedOut := false.B
                 pending.address := at; pending.write := write; pending.size := 2.U
@@ -109,13 +112,18 @@ class I1JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
     io.control.response.bits.error := controlError
     when(io.control.response.fire) { controlValid := false.B }
     val c = io.control.request.bits
-    val offset = c.address - controlBase.U
+    // Aligned constant windows need only an equality tree and low offset
+    // bits, not a 64-bit subtract/compare before every loader control CE.
+    val offset = if (timingCuts && controlBase % 64 == 0) c.address(5, 0)
+        else c.address - controlBase.U
     val command = c.data(31, 0)
     val openLegal = command === 1.U && c.data(63, 32) === 0.U && !busy && !claimed && io.linkUp
     val closeLegal = command === 2.U && c.data(63, 32) === 0.U && !claimed
     val claimLegal = command === 3.U && c.data(63, 32) === generation && committed && !busy &&
         !fault && !claimed && io.linkUp
-    val controlLegal = c.address >= controlBase.U && c.address < (controlBase + 64).U &&
+    val inControl = if (timingCuts) I1AddressWindow.contains(c.address, controlBase, 64)
+        else c.address >= controlBase.U && c.address < (controlBase + 64).U
+    val controlLegal = inControl &&
         offset(2, 0) === 0.U && c.size === 3.U && c.byteEnable === 255.U &&
         (!c.write || (offset === 8.U && (openLegal || closeLegal || claimLegal)))
     when(io.control.request.fire) {
@@ -150,24 +158,52 @@ class I1JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
     val logicalEnd = ramBase.U(33.W) +& length
     val metadataLegal = length =/= 0.U && (ramBase.U(34.W) + roundedLength) <= ramEnd.U(34.W) &&
         entry(1, 0) === 0.U && entry >= ramBase.U && entry < logicalEnd
+    // Decode error data from the retained DMI payload and local state before
+    // the transport's falling-edge link/VALID permission arrives. Only the
+    // final scalar write enable depends on acceptance. Link-down still bars
+    // every request immediately; no link-up register or extra DMI edge.
+    val configClear = write && r.address === "h38".U && !busy
+    val addressAccess = r.address === "h39".U
+    val dataAccess = r.address === "h3c".U
+    val memoryTrigger = (addressAccess && write && readOnAddress) ||
+        (dataAccess && (write || (read && readOnData)))
+    val memoryAddress = Mux(addressAccess, r.data, address)
+    val invalidSession = !armed || committed || claimed
+    val invalidSize = access =/= 2.U
+    val invalidAlignment = memoryAddress(1, 0) =/= 0.U
+    val invalidWindow = !I1AddressWindow.contains(memoryAddress, ramBase, ramEnd - ramBase)
+    val memoryError = memoryTrigger && !busy && sbError === 0.U && !busyError &&
+        (invalidSession || invalidSize || invalidAlignment || invalidWindow)
+    val memoryErrorCode = Mux(invalidSession, 7.U, Mux(invalidSize, 4.U,
+        Mux(invalidAlignment, 3.U, 2.U)))
     when(io.dmi.request.fire) {
         responseValid := true.B; response.status := 0.U; response.data := 0.U
         when(!(read || write)) { response.status := 2.U }
         .otherwise {
+            if (timingCuts) {
+                when(configClear || memoryError) {
+                    sbError := Mux(configClear, sbError & ~r.data(14, 12), memoryErrorCode)
+                }
+                when(configClear || ((addressAccess || dataAccess) && busy)) {
+                    busyError := Mux(busy, true.B, busyError && !r.data(22))
+                }
+            }
             switch(r.address) {
                 is("h10".U) { when(write && r.data =/= 0.U) { response.status := 2.U } }
                 is("h11".U) { when(write) { response.status := 2.U } } // version=0, no DM
                 is("h38".U) {
                     when(read) { response.data := sbcs }
                     .elsewhen(!busy) {
-                        busyError := busyError && !r.data(22)
-                        sbError := sbError & ~r.data(14, 12)
+                        if (!timingCuts) {
+                            busyError := busyError && !r.data(22)
+                            sbError := sbError & ~r.data(14, 12)
+                        }
                         readOnAddress := r.data(20); access := r.data(19, 17)
                         autoIncrement := r.data(16); readOnData := r.data(15)
                     }
                 }
                 is("h39".U) {
-                    when(busy) { busyError := true.B }
+                    when(busy) { if (!timingCuts) busyError := true.B }
                     .elsewhen(read) { response.data := address }
                     .otherwise {
                         addressWord.load := true.B
@@ -175,7 +211,7 @@ class I1JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
                     }
                 }
                 is("h3c".U) {
-                    when(busy) { busyError := true.B }
+                    when(busy) { if (!timingCuts) busyError := true.B }
                     .elsewhen(read) {
                         response.data := data
                         when(readOnData) { startMemory(false.B, address, 0.U) }

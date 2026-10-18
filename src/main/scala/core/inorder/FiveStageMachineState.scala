@@ -179,8 +179,26 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
     val delegated = p.withSupervisor.B && privilege =/= 3.U &&
         Mux(io.trap.bits.cause(p.xlen - 1), mideleg(trapId), medeleg(trapId))
     val vector = Mux(delegated, stvec, mtvec)
-    io.trapPc := Cat(vector(p.xlen - 1, 2), 0.U(2.W)) +
+    val architecturalTrapPc = Cat(vector(p.xlen - 1, 2), 0.U(2.W)) +
         Mux(io.trap.bits.cause(p.xlen - 1) && vector(1, 0) === 1.U, trapId << 2, 0.U)
+    if (p.fpgaTimingCuts) {
+        def preparedVector(value: UInt): UInt = {
+            // Only the low four BASE words can depend on the late cause.
+            // Prepare the upper carry candidate from the CSR alone, before
+            // delegation/cause selection; never start an XLEN carry chain
+            // after MEM's trap/IRQ qualifier. Preserve modulo-XLEN overflow.
+            val low = value(5, 2) +& trapId
+            val high = value(p.xlen - 1, 6)
+            val highPlusOne = I1TimingMath.incrementPowerOfTwo(high, 0, 8)
+            val indexed = Cat(Mux(low(4), highPlusOne, high), low(3, 0), 0.U(2.W))
+            Mux(io.trap.bits.cause(p.xlen - 1) && value(1, 0) === 1.U,
+                indexed, Cat(value(p.xlen - 1, 2), 0.U(2.W)))
+        }
+        io.trapPc := Mux(delegated, preparedVector(stvec), preparedVector(mtvec))
+        when(!reset.asBool) {
+            assert(io.trapPc === architecturalTrapPc, "prepared trap vector changed BASE/cause/delegation")
+        }
+    } else io.trapPc := architecturalTrapPc
     io.returnPc := mepc; io.supervisorReturnPc := sepc
     io.mretLegal := privilege === 3.U
     io.sretLegal := p.withSupervisor.B && privilege >= 1.U && !(privilege === 1.U && tsr)
@@ -346,11 +364,15 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
     val napotMask = Cat(prefix, 7.U(3.W))
     val pmpNormalData = (rawPmpData << 2).pad(p.physicalBits + 1)
     val napotLowerData = pmpNormalData & ~napotMask
-    val napotUpperData = (pmpNormalData | napotMask) +& 1.U
+    val napotUpperData = if (p.fpgaTimingCuts)
+        I1TimingMath.incrementPowerOfTwo((pmpNormalData | napotMask).pad(p.physicalBits + 2), 0)
+        else (pmpNormalData | napotMask) +& 1.U
     val napotUpperClipped = Mux(napotUpperData(p.physicalBits + 1, p.physicalBits).orR,
         (BigInt(1) << p.physicalBits).U((p.physicalBits + 1).W),
         napotUpperData(p.physicalBits, 0))
-    val na4UpperData = (rawPmpData +& 1.U) << 2
+    val na4UpperData = (if (p.fpgaTimingCuts)
+        I1TimingMath.incrementPowerOfTwo(rawPmpData.pad(p.physicalBits - 1), 0)
+        else rawPmpData +& 1.U) << 2
     for (i <- 0 until p.pmpEntries) {
         val nextTorLocked = if (i + 1 < p.pmpEntries)
             pmpConfig(i + 1)(7) && pmpConfig(i + 1)(4, 3) === 1.U else false.B

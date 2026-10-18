@@ -34,6 +34,8 @@ set_property FILE_TYPE {Memory Initialization Files} [get_files */bootrom.hex]
 add_files -fileset constrs_1 -norecurse [list [file join $root board board_ddr.xdc] \
     [file join $root board pl_ddr4_pins.xdc] [file join $root board phy_disabled.xdc]]
 set_property top soc_top_i1_cpu_ddr [get_filesets sources_1]
+source [file join $root scripts configure_board_mem.tcl]
+i1_configure_board_mem
 set synth [get_runs synth_1]
 set runDir [file normalize [get_property DIRECTORY $synth]]
 if {[string first [string tolower [file join $root project i1_board.runs]] \
@@ -52,6 +54,8 @@ launch_runs synth_1 -jobs 2
 wait_on_run synth_1
 if {[get_property PROGRESS $synth] ne "100%"} {error "Fresh CPU/SoC synthesis failed"}
 open_run synth_1
+source [file join $root scripts audit_board_bootrom.tcl]
+i1_audit_bootrom [file join $root rtl bootrom.hex] [file join $reports bootrom_post_synth.txt]
 report_utilization -hierarchical -file [file join $reports post_synth_utilization.rpt]
 write_checkpoint [file join $reports real_board_post_synth.dcp]
 close_design
@@ -68,6 +72,7 @@ puts "I1_BOARD_ROUTE_STRATEGY TIMING_DRIVEN_DEFAULT_NO_PSIR ORIGINAL_CLOCKS_NO_E
 # Match the completed batch38 route; avoid its crashed Leaf ClockOpt stage.
 # This does NOT select Quick/non-timing-driven routing or relax constraints.
 route_design -no_psir -timing_summary
+i1_audit_bootrom [file join $root rtl bootrom.hex] [file join $reports bootrom_post_route.txt]
 write_checkpoint [file join $reports real_board_routed.dcp]
 report_timing_summary -delay_type min_max -report_unconstrained -file [file join $reports timing_summary.rpt]
 foreach delay {max min} {
@@ -111,6 +116,8 @@ foreach {domain pin} {CPU300 u_soc/io_clockIn DDR_UI250 u_axi_cdc/m_axi_aclk
     }
 }
 close $f
+source [file join $root scripts report_board_cpu_targets.tcl]
+i1_board_cpu_target_paths $reports
 source [file join $root scripts audit_board_reset_cdc.tcl]
 i1_audit_board_reset_cdc $reports
 set setup [get_property SLACK [get_timing_paths -delay_type max -max_paths 1]]
