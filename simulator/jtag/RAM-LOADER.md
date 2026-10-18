@@ -11,6 +11,31 @@ The entry ABI is the ROM's bare-binary `run_image` path: M mode, `a0 = a1 = 0`,
 with the ROM's `fence.i` before entry. This is not a Linux/OpenSBI/DTB boot ABI.
 A raw Linux `Image` should not be assumed bootable through this interface.
 
+## Fast host upgrade (2026-10-18)
+
+The default is now `valence_download_and_run FILE ENTRY fast`; append `safe` to
+retain the original per-word addressing/scan behavior. Both retain complete
+readback, error polling, generation checks and one-shot COMMIT. See
+`README-FAST.txt` for current I1 auto-armed BootROM, hot-load instructions,
+progress/segment times, limits and the safe comparison command. No new bit or
+RTL is needed; current I1 TCK STA is20MHz, not a qualification of50MHz.
+
+Fast mode checks optional SBA controls before RAM access, uses auto-increment
+writes and chunk-bounded read-on-data verification, disabling read side effects
+before each final word. A mismatch drains at most one in-chunk read; failed
+drain is uncertain, not permission to retry. USER IR/DONE state is reused only
+inside the synchronous command and released on every exit. The submission's
+old capture is rechecked; no request is queued on an unchecked BUSY result.
+There is no persistent IR assumption between console commands.
+
+The updated checks run under actual OpenOCD0.12 Jim as well as stock Tcl8.6,
+without adapter config/init. The original44 direct and121 BSCAN cases remain,
+supplemented by boundary/drain/lease tests and48 real I1 SBA GSIM cases. The
+29,296-byte same-mode census goes from132637 IR+132637 DR to14 IR+59368 DR
+(77.6% fewer scan commands); this is NOT a measured board speedup. Evidence is
+`build/jtag/fast-loader-20261018-r3/receipt.json`. The historical conservative
+cost tables and old environment notes below refer to the original implementation.
+
 ## Select the actual transport
 
 - `openocd-ram-loader.cfg`: direct Valence DTM TAP, IR length 5, IDCODE instruction
@@ -104,9 +129,10 @@ not evidence of a physical adapter/OpenOCD run in this change.
   `0xffffffff`, standard `123456789` check `0xcbf43926`.
 - SBA uses `sbcs` `0x38`, `sbaddress0` `0x39`, `sbdata0` `0x3c`. It requires SBA
   version 1, 32-bit addresses, and only 32-bit access support. Every memory
-  operation is followed by bounded busy/error polling. Write mode disables
-  read side effects; verification uses read-on-address, with read-on-data and
-  autoincrement disabled so the last read cannot accidentally access beyond RAM.
+  operation has bounded busy/error polling. Safe mode disables read-on-data and
+  autoincrement. Fast mode enables only the explicitly checked controls and
+  disables read-on-data before the last word of each authorized chunk; it never
+  starts a read beyond the padded image or RAM window.
 - Host memory access requires ARMED and LINK_UP, with no cancelled/fault/claimed
   state. Generation and status are checked before/after each chunk and before
   each metadata write. The original generation is written to `0x49`; COMMIT

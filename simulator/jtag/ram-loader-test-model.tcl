@@ -4,7 +4,7 @@
 # irscan/drscan/runtest mocks, including independently scheduled bus completion.
 source [file join [file dirname [info script]] ram-loader.tcl]
 namespace eval model {}
-proc model::reset {} {
+proc ::model::reset {} {
     variable state
     catch {unset state}
     array set state {
@@ -19,11 +19,14 @@ proc model::reset {} {
         fail_address -1 fail_op -1 fail_status 2 commit_fail 0 commit_timeout 0
         abort_hold_busy 0 force_claim 0 cap_override 0x20000404
         scan_fault 0 nop_count 0 commit_claim 0 rearm_at_commit 0 bus_error_kind none ir_scans 0 dr_scans 0 shifted_bits 0 idle_tck 0
+        bus_increment 0 autoincrement_supported 1 readondata_supported 1
+        gen_after_reads -1 stall_after_reads -1
     }
     variable memory; catch {unset memory}; array set memory {}
     variable metadata; catch {unset metadata}; array set metadata {}
     variable requests; set requests {}
     variable scans; set scans {}
+    variable transactions; set transactions {}
     set ::valence_ram::backend direct
     set ::valence_ram::uncertain 0
     set ::valence_ram::initialized 0
@@ -32,18 +35,22 @@ proc model::reset {} {
     set ::valence_ram::sb_polls 6
     set ::valence_ram::claim_polls 6
     set ::valence_ram::chunk_words 2
+    set ::valence_ram::download_active 0
+    set ::valence_ram::progress_last -1
 }
-proc model::bus_start {kind value} {
-    variable state
+proc ::model::bus_start {kind value} {
+    variable state; variable transactions
     if {$state(sb_busy)} {set state(sb_busyerror) 1; return}
     if {$state(sb_error) || $state(sb_busyerror)} {return}
     if {!($state(status) & 1) || ($state(status) & 0x56)} {set state(sb_error) 2; return}
     set address $state(sb_address)
+    lappend transactions [list $kind $address]
     if {$address < $state(base) || $address > $state(end)-4 || ($address & 3)} {set state(sb_error) 2; return}
     set state(bus_kind) $kind; set state(bus_address) $address; set state(bus_data) $value
+    set state(bus_increment) [expr {($state(sb_control) & 0x10000) != 0}]
     set state(sb_busy) 1; set state(sb_remaining) $state(sb_delay)
 }
-proc model::bus_tick {} {
+proc ::model::bus_tick {} {
     variable state; variable memory
     if {!$state(sb_busy)} {return}
     if {$state(sb_remaining) > 0} {incr state(sb_remaining) -1; return}
@@ -57,10 +64,13 @@ proc model::bus_tick {} {
         incr state(reads)
         if {[info exists memory($address)]} {set state(sb_data) $memory($address)} else {set state(sb_data) 0}
         if {$address == $state(corrupt_address)} {set state(sb_data) [expr {$state(sb_data) ^ 0x100}]}
+        if {$state(gen_after_reads) == $state(reads)} {incr state(epoch)}
+        if {$state(stall_after_reads) == $state(reads)} {set state(sb_delay) 10000}
     }
+    if {$state(bus_increment)} {set state(sb_address) [expr {($address + 4) & 0xffffffff}]}
     set state(bus_kind) none; set state(sb_busy) 0
 }
-proc model::access {op address data} {
+proc ::model::access {op address data} {
     variable state; variable memory; variable metadata; variable requests
     lappend requests [list $op $address $data]
     if {$address == $state(fail_address) && ($state(fail_op) < 0 || $op == $state(fail_op))} {return [list $state(fail_status) 0]}
@@ -100,6 +110,8 @@ proc model::access {op address data} {
             if {$data & 0x400000} {set state(sb_busyerror) 0}
             if {$data & 0x7000} {set state(sb_error) 0}
             set state(sb_control) [expr {$data & 0x1f8000}]
+            if {!$state(autoincrement_supported)} {set state(sb_control) [expr {$state(sb_control) & ~0x10000}]}
+            if {!$state(readondata_supported)} {set state(sb_control) [expr {$state(sb_control) & ~0x8000}]}
         }
         57 {
             set state(sb_address) $data
@@ -131,12 +143,12 @@ proc model::access {op address data} {
 }
 proc irscan {tap instruction args} {
     if {$tap != "valence.dtm"} {error "Wrong TAP"}
-    incr model::state(ir_scans)
-    incr model::state(shifted_bits) 5
-    set model::state(ir) [expr {$instruction + 0}]
+    incr ::model::state(ir_scans)
+    incr ::model::state(shifted_bits) 5
+    set ::model::state(ir) [expr {$instruction + 0}]
 }
 proc runtest {cycles} {
-    upvar #0 model::state s
+    upvar #0 ::model::state s
     incr s(idle_tck) $cycles
     if {$cycles <= 0} {error "Nonpositive idle cycles"}
     if {$s(pending)} {
@@ -151,10 +163,10 @@ proc runtest {cycles} {
     }
 }
 proc drscan {tap args} {
-    upvar #0 model::state s
+    upvar #0 ::model::state s
     incr s(dr_scans)
     foreach {bits value} $args {incr s(shifted_bits) $bits}
-    lappend model::scans [list $s(ir) $args]
+    lappend ::model::scans [list $s(ir) $args]
     if {$s(scan_fault)} {error "Injected adapter I/O failure"}
     if {$s(ir) == 1} {
         if {[llength $args] != 2 || [lindex $args 0] != 32} {error "Wrong ID scan width"}
@@ -178,7 +190,7 @@ proc drscan {tap args} {
     if {$op == 0} {incr s(nop_count)}
     if {$op == 1 || $op == 2} {
         if {!$s(pending) && !$s(sticky) && !$s(result_status)} {
-            lassign [model::access $op $address $data] s(response_status) s(response_data)
+            lassign [::model::access $op $address $data] s(response_status) s(response_data)
             set s(response_address) $address; set s(pending) 1; set s(remaining) $s(delay)
             if {$s(commit_timeout) && $op == 2 && $address == 66 && $data == 2} {set s(remaining) 1000000000}
         } else {set s(sticky) 3}
@@ -195,7 +207,7 @@ proc fails {script pattern} {
     return $message
 }
 proc test {name body} {
-    model::reset
+    ::model::reset
     set ::messages {}
     if {[catch {uplevel 1 $body} message opts]} {
         puts stderr "FAIL $name: $message"
@@ -204,8 +216,9 @@ proc test {name body} {
     } else {puts "PASS $name"; incr ::passed}
 }
 set passed 0; set failed 0
-set work [file normalize [file join /tmp valence-ram-loader-test-[pid]]]
+set work [file join /tmp valence-ram-loader-test-[pid]]
 file mkdir $work
+set work [file normalize $work]
 proc image_file {hexbytes} {
     set file [file join $::work image.bin]
     set channel [open $file wb]; puts -nonewline $channel [binary format H* $hexbytes]; close $channel
@@ -215,5 +228,5 @@ proc image_file {hexbytes} {
 proc finish {label} {
     file delete -force $::work
     puts "$label: $::passed passed, $::failed failed (independent Tcl mocks; no real OpenOCD/adapter run)"
-    if {$::failed} {exit 1}
+    if {$::failed} {error "$label failed"}
 }

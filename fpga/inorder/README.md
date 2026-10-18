@@ -3,6 +3,20 @@
 本目录只保留板级源码/工具，不存放导出的 RTL、Vivado 工程、DCP 或 bit。
 完整架构、每批性能/时序和未完成门禁见 [工程记录](../../docs/orbital-i1.md)。
 
+## 板上诊断菜单（固件，不修改bit）
+
+源码在`diagnostics/`，构建命令为`python3 fpga/inorder/diagnostics/build.py --output <新目录>`。
+当前交付`E:/VM/Share/Valence-rtl/i1-diagnostics-cpu300-o3-20261018-r1/`，
+加载`i1_diag_menu_cpu300_o3.bin`到`0x80200000`，串口460800；细节见包内`README.txt`。
+包括未修改官方算法的O3 CoreMark（自动校准≥10秒及单次CRC冒烟分开）、
+同一S-mode循环的Bare/Sv39非恒等4KiB页READ/WRITE/标量COPY/8路展开COPY、缓存工作集和大流量测试。
+实际cycle/time/instret/IPC可读；CPU路径吞吐不冒充MIG峰值，普通fence不刷D-cache脏尾。
+本版无MAC的I1没有通用memcpy DMA或AXI利用率计数器，菜单明确报告缺失，不访问旧DMA地址。
+复用冻结batch44模型的短GSIM通过：完整数据、两次S返回、一次预期缺页、五项CoreMark CRC、
+错误checksum拒绝及真实53字节460800 UART启动输出。证据`build/gsim/i1-menu-20261018-r1/receipt.json`。
+仅验证一轮CoreMark及菜单启动，不是正式跑分、完整菜单RX交互或物理UART CDC/上板成功证明；
+不重新综合、不改变硬件时序结论。用户上板先按`s`，再按`c`收集正式分数。
+
 ## batch44：300MHz整板约束STA通过，bit已生成，用户确认JTAG小程序运行
 
 I-cache返回先写入已有word寄存器，次拍reply在寄存数据上完成对齐；firstHalf利用已有
