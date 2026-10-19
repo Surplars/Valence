@@ -14,7 +14,10 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
-    val triSpeedRawClockHandoff: Boolean = false) extends RawModule {
+    val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false) extends RawModule {
+    require(!balancedRawClocks || (hardwareClocks && triSpeedEthernet))
+    require(!(triSpeedRawClockHandoff && balancedRawClocks),
+        "RAW MAC handoff with balanced raw clocks needs dedicated MAC lifecycle/CDC qualification")
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedRawClockHandoff || triSpeedEthernet)
     require(config.resources.size == 7 && config.gateableMask == 0x68)
@@ -59,7 +62,8 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     cmu.registers <> cmuRegisters
     cmuIrq := cmu.irq
     for (n <- Seq(0, 1, 2, 4)) { cmu.resources(n).ack := false.B; cmu.resources(n).wake := false.B }
-    val uart = Module(new ManagedUart(cpuHz, uartHz, config.alwaysOnHz, baud, hardwareClocks))
+    val uart = Module(new ManagedUart(cpuHz, uartHz, config.alwaysOnHz, baud, hardwareClocks,
+        balancedRawClock = balancedRawClocks))
     uart.sourceClock := sourceClock
     uart.rawClock := rawUartClock
     uart.commonReset := commonReset
@@ -75,7 +79,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     if (triSpeedEthernet) {
         val gmac = Module(new TriSpeedManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
             networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots,
-            rawClockHandoff = triSpeedRawClockHandoff))
+            rawClockHandoff = triSpeedRawClockHandoff, balancedRawClock = balancedRawClocks))
         builtTriSpeedMac = Some(gmac)
         gmac.sourceClock := sourceClock
         gmac.rawTxClock := rawTxClock

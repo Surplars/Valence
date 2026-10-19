@@ -4,16 +4,41 @@
 namespace eval valence_ram {
     variable user_ir -1
     variable fpga_id -1
+    variable bscan_leased 0
+    variable bscan_lease_key {}
+    variable bscan_last_reply {}
 }
 if {[info exists VALENCE_RAM_USER_IR]} {set valence_ram::user_ir $VALENCE_RAM_USER_IR}
 if {[info exists VALENCE_RAM_FPGA_IDCODE]} {set valence_ram::fpga_id $VALENCE_RAM_FPGA_IDCODE}
 source [file join [file dirname [info script]] ram-loader-xczu15eg.tcl]
 
+proc valence_ram::bscan_key {} {
+    variable tap; variable user_ir; variable fpga_part; variable fpga_irlen
+    variable jtag_chain; variable fpga_id; variable fpga_id_mask
+    return [list $tap $user_ir $fpga_part $fpga_irlen $jtag_chain $fpga_id $fpga_id_mask]
+}
+proc valence_ram::bscan_begin {} {
+    validate_xczu15eg_configuration
+    variable bscan_leased; variable bscan_lease_key; variable bscan_last_reply
+    variable tap; variable user_ir
+    if {$bscan_leased} {error "Nested USER scan lease is forbidden"}
+    irscan $tap $user_ir
+    set bscan_lease_key [bscan_key]
+    set bscan_last_reply {}
+    set bscan_leased 1
+}
+proc valence_ram::bscan_end {} {
+    variable bscan_leased; variable bscan_lease_key; variable bscan_last_reply
+    set bscan_leased 0; set bscan_lease_key {}; set bscan_last_reply {}
+}
 proc valence_ram::bscan_scan {op address data} {
     validate_xczu15eg_configuration
     variable tap
     variable user_ir
-    irscan $tap $user_ir
+    variable bscan_leased; variable bscan_lease_key
+    if {$bscan_leased} {
+        if {[bscan_key] ne $bscan_lease_key} {error "USER configuration changed during scan lease; no request replay"}
+    } else {irscan $tap $user_ir}
     # Fixed 64-bit custom USER DR, LSB first, split into <=32-bit fields:
     # op2, data32, address7, flags3, version4, magic16. Input flags must be zero.
     set fields [drscan $tap 2 $op 32 [hex $data] 7 [hex $address] 3 0 4 1 16 0x5642]
@@ -42,14 +67,23 @@ proc valence_ram::bscan_collect {context {idle_only 0}} {
     error "$context: USER response timeout; outcome uncertain, no request replay; bus ownership may persist"
 }
 proc valence_ram::bscan_transfer {op address data} {
+    variable bscan_leased; variable bscan_last_reply
     set context [format "USER op=%d address=0x%02x" $op $address]
-    set ready [bscan_scan 0 0 0]
-    if {[lindex $ready 3] & 6} {error "$context: USER transport not ready; no request submitted"}
+    set expected $bscan_last_reply
+    set bscan_last_reply {}
+    if {!$bscan_leased || ![llength $expected]} {
+        set ready [bscan_scan 0 0 0]
+        if {[lindex $ready 3] & 6} {error "$context: USER transport not ready; no request submitted"}
+    }
     # Submission returns the previous capture. Do not mistake it for a response.
-    bscan_scan $op $address $data
+    set previous [bscan_scan $op $address $data]
+    if {$bscan_leased && [llength $expected] && $previous ne $expected} {
+        error "$context: previous USER result changed during scan lease; acceptance uncertain; no request replay"
+    }
     set reply [bscan_collect $context]
     if {[lindex $reply 0] != 0} {error "$context: DMI failed (status [lindex $reply 0]); no request replay"}
     if {[lindex $reply 2] != $address} {error "$context: response address mismatch; outcome uncertain; no request replay"}
+    if {$bscan_leased} {set bscan_last_reply $reply}
     return [lindex $reply 1]
 }
 proc valence_ram::bscan_start {} {

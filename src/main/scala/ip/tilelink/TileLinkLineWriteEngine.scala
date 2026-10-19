@@ -15,6 +15,69 @@ class LineWriteResponse(tagBits: Int) extends Bundle {
     val error = Bool()
 }
 
+abstract class TileLinkLineWriteEngineModule(params: TLParams, tagBits: Int) extends Module {
+    val io = IO(new Bundle {
+        val request  = Flipped(Decoupled(new LineWriteRequest(params.addrWidth, tagBits)))
+        val response = Decoupled(new LineWriteResponse(tagBits))
+        val tl       = new TLBundle(params)
+    })
+}
+
+/** A serialized Home already owns the line until the real write response.
+  * Keep one active payload, not two unused queued copies plus an active copy.
+  * This is NOT a posted acknowledgment and is not selected for generic DMA.
+  */
+class TileLinkSerializedLineWriteEngine(params: TLParams, tagBits: Int = 8)
+    extends TileLinkLineWriteEngineModule(params, tagBits) {
+    require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sourceBits >= 1)
+    private val idle :: send :: waitAck :: complete :: Nil = Enum(4)
+    private val state = RegInit(idle)
+    private val address = Reg(UInt(params.addrWidth.W))
+    private val words = Reg(Vec(8, UInt(64.W)))
+    private val data = Reg(UInt(64.W))
+    private val tag = Reg(UInt(tagBits.W))
+    private val beat = RegInit(0.U(3.W))
+    private val error = RegInit(false.B)
+    io.request.ready := state === idle
+    when(io.request.fire) {
+        assert(io.request.bits.address(5, 0) === 0.U, "serialized line write address must be aligned")
+        address := io.request.bits.address
+        for (i <- 0 until 8) { words(i) := io.request.bits.data(64 * i + 63, 64 * i) }
+        data := io.request.bits.data(63, 0)
+        tag := io.request.bits.tag
+        beat := 0.U
+        error := false.B
+        state := send
+    }
+    io.tl.a.valid := state === send
+    io.tl.a.bits := 0.U.asTypeOf(io.tl.a.bits)
+    io.tl.a.bits.opcode := TLOpcode.PutFullData
+    io.tl.a.bits.size := 6.U
+    io.tl.a.bits.address := address
+    io.tl.a.bits.mask := 255.U
+    io.tl.a.bits.data := data
+    when(io.tl.a.fire) {
+        when(beat === 7.U) { state := waitAck }
+            .otherwise { beat := beat + 1.U; data := words((beat + 1.U)(2, 0)) }
+    }
+    io.tl.d.ready := state === send || state === waitAck
+    when(io.tl.d.valid) {
+        assert(io.tl.d.bits.source === 0.U && io.tl.d.bits.opcode === TLOpcode.AccessAck &&
+            io.tl.d.bits.size === 6.U, "serialized line response control/source mismatch")
+        assert(state === waitAck || (state === send && io.tl.a.fire && beat === 7.U),
+            "serialized line acknowledged before its last accepted A beat")
+    }
+    when(io.tl.d.fire) {
+        error := io.tl.d.bits.denied || io.tl.d.bits.corrupt
+        state := complete
+    }
+    io.response.valid := state === complete
+    io.response.bits.tag := tag
+    io.response.bits.error := error
+    when(io.response.fire) { state := idle }
+    TLBundle.tieoffMasterCoherence(io.tl)
+}
+
 /** Four independent 64-byte TL-UH PutFullData transactions by default. Each A burst holds the
   * channel until all eight beats are accepted, while D acknowledgements may return out of order.
   * A registered active-line owner and beat payload separate queue selection from the fabric.
@@ -22,16 +85,11 @@ class LineWriteResponse(tagBits: Int) extends Bundle {
   * This writes backing memory; a TL-C cache eviction requires ReleaseData and a coherent home.
   */
 class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
-    dispatchFlow: Boolean = false) extends Module {
+    dispatchFlow: Boolean = false, isolatedLaunch: Boolean = false)
+    extends TileLinkLineWriteEngineModule(params, tagBits) {
     require(params.dataWidth == 64 && params.addrWidth >= 7 && params.sizeBits >= 3)
     require(entries >= 2 && entries <= 8 && isPow2(entries))
     require(params.sourceBits >= log2Ceil(entries) && tagBits >= 1)
-
-    val io = IO(new Bundle {
-        val request  = Flipped(Decoupled(new LineWriteRequest(params.addrWidth, tagBits)))
-        val response = Decoupled(new LineWriteResponse(tagBits))
-        val tl       = new TLBundle(params)
-    })
 
     private val free :: send :: receive :: complete :: Nil = Enum(4)
     private val slotBits = log2Ceil(entries)
@@ -51,7 +109,10 @@ class TileLinkLineWriteEngine(params: TLParams = TLParams(), entries: Int = 4, t
     val freeMask = VecInit((0 until entries).map(i => phase(i) === free))
     val freeSlot = PriorityEncoder(freeMask)
     io.request.ready := freeMask.asUInt.orR && sendQueue.io.enq.ready
-    val launchReady = !active || (io.tl.a.fire && beat === 7.U)
+    // A serialized coherent Home cannot have a second line ready while this
+    // burst owns A. Its launch CE must not depend on a remote last-beat READY.
+    // Generic multi-owner clients retain final-edge consume-and-replace.
+    val launchReady = if (isolatedLaunch) !active else !active || (io.tl.a.fire && beat === 7.U)
     // Skip only an empty scheduler, not the registered active payload boundary.
     // This also permits a new captured owner on the old burst's final edge.
     val directLaunch = if (dispatchFlow)

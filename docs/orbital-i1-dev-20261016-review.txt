@@ -1,0 +1,146 @@
+I1 review of GitHub dev MAC and fabric changes — 2026-10-16
+================================================================
+
+Scope / identity
+---------------
+Read-only source comparison requested by user. git fetch origin dev only;
+NO merge/pull/cherry-pick/checkout, no HW edits, no imported qualification.
+Remote: git@github.com:Surplars/Valence.git
+Fetched dev: ca887740f2f375ef68a275e87cf9135262ebfa7f.
+Latest HW release: a265bc2d7a4666becf6f1327cd4507224d016150.
+I1 branch HEAD/local dev remain 1e90af966c15d871d2544469174acba78473113b.
+Compare against actual DIRTY I1 files, not HEAD alone. Existing local shared
+IP edits are preserved. Original /home/openion/Valence worktree untouched.
+
+Keep CPU300 / DDR UI250 / AON50 / UART50, I/D32KiB two-way, existing owner
+and queue capacities. MAC remains OFF in the current real-board candidate.
+TL->AXI runs in CPU300 BEFORE AXI clock converter; dev's CPU100 result does
+not qualify it at300. No separate faster fabric clock is introduced.
+
+Decision matrix
+---------------
+1. EthernetPacketDma TX count capture — good future port
+   dev22bbd0d captures roundedTxWords at valid legacy START and posted launch.
+   The posted path uses incoming descriptor length, not previous txLength.
+   No new request stage, owner, credit, MMIO ABI or launch delay.
+   Current I1 local DMA already has boundedDescriptorChecks but still has
+   combinational txWordCount. These are independent changes: retain bounded
+   validation, full64 descriptor values, overflow/illegal checks and STOP.
+   MAC/DMA are absent from current r8; this cannot improve current CPU300 STA.
+   Do not overwrite shared DMA and accidentally discard local bounded checks.
+   Before enable: focused odd/boundary/high-address/posted/held-stream/error
+   and accepted-but-not-ready STOP tests, then new timing at actual CPU clock.
+
+2. Burst bridge upper payload bank write enable/row — best near-term bus port
+   dev localPayloadWriteEnable/localPayloadWriteRow isolate banks1..7 from
+   first-Put acceptance. First Put can ONLY write bank0. Continuing A/R writes
+   use retained phase/cursor, with unconditional local READY in those phases.
+   I1 already prepares first unowned word and raw72-bit payload; HOWEVER all
+   eight banks still use generic payloadWriteIndex/row under payloadWrite.
+   Thus the upper-bank control localization is NOT fully present.
+   Port its principle into PRIVATE I1TileLinkAxi4BurstBridge under FPGA opt-in,
+   not OoO bridge wholesale. I1 has one-hot phases, separate early-W cursor,
+   writePayload ownership assertions and queued preflight absent from dev.
+   Preserve every A/R/W/D edge, byte mask, denied-drain, RLAST and write credit.
+   Expected benefit is timing/placement, NOT guaranteed bandwidth increase.
+
+3. Incoming line inclusive-last / local address range checks — already adapted
+   dev removes lineStart+64 from incoming overlap by using inclusive lineLast.
+   It retains exclusive end with overflow for actual owners.
+   I1 batch33 already uses qualified compact AXI-offset intervals, full physical
+   window proof, conservative serialization for unqualified requests, and
+   registered origin-bound preflight inside EXISTING A/line queues.
+   Do not replace it with a less-proven truncation, or add another queue.
+   dev's last-page offset+length guard handles arbitrary offsets; I1's aligned
+   window proof depends on its independent natural-alignment assertions and
+   size bounds. These are different contracts, not interchangeable snippets.
+
+4. Home UL two-entry request cut — boundary principle already present
+   dev CoherentHomeUlBoundary.registerRequests isolates READY via two-entry
+   non-flow-through queue. I1 already has several explicit ownership/native/TL
+   boundaries, including existing A2/D2 and line2 before TL->AXI.
+   Blindly adding another two entries adds latency/owners and violates scope.
+   Audit end-to-end dependency first; no new depth based solely on this diff.
+
+5. Future Home reservation / shared tag lookup — not drop-in
+   dev MixedCoherentLineHome exact enable: nClients1, trackedLines512/ways2,
+   acquireEntries2, writebackEntries2, DMA line entries4, banked tags,
+   overlap + dispatch-flow + line channel + internal whole-line grant.
+   I1 actual Home: I and D are two distinct TL-C clients; directory1024/ways4
+   at32KiB+32KiB, one serial Acquire/Release/line payload context. DDR bridge
+   slots2 does NOT imply two independently active Home Acquire contexts.
+   dev admits a distinct new line after registered first dirty-C capture,
+   lends only that exact future way, and blocks Grant until old C completes.
+   Adapting it needs a separate two-client ownership redesign and proof of
+   probe/Release/E ordering; cannot retain interface by tying off a client.
+   Borrow the reservation-before-publication rule, not its parameter guards.
+   Functional tag-match sharing may reduce LUT, but cannot merge independent
+   I/D/release lookup addresses into one functional port.
+
+6. Disjoint victim-capture / resident-store overlap and store-prefetch LRU
+   dev candidates depend on NonBlockingCoherentLineCache's independent demand
+   admission, separate victim schedule, two MSHRs/response/writeback rows and
+   posted-store identity. I1 uses a different ordered cache state model.
+   Same-index read/write exclusions, real port priority, ownership and
+   probe/flush barriers MUST remain. There is no safe flag-only reuse.
+   Inspect existing SRAM idle opportunities before adding another owner/port.
+   Published small-component 67->65 accepted-store cycles is not CPU/DDR data.
+   LRU76 at100MHz reports Bare72.183 / Sv3967.773MiB/s inclusive COPY with its
+   own 128KiB payload/service profile; not an apples-to-apples I1 benchmark.
+
+7. MAC rawClockHandoff — future selected candidate, not balancedRawClock
+   dev MacRawHandoff: raw falling-edge12-bit capture, then managed RX rising
+   register11 bits; TX keeps original byte epoch; RX adds one enabled cycle,
+   initiation interval1. rxPending participates in quiesce/drain.
+   I1 dirty TriSpeedManagedGmac has independent balancedRawClock using sibling
+   continuous/gated clock buffers. It has NOT got rawClockHandoff.
+   Both change topology/latency differently. Reconcile named parameters,
+   raw/managed clock ownership, common reset and gate/drain before composing.
+   CPU-side CDC timing must be requalified at300MHz; preserve all three rates.
+
+8. Board PAD-domain reset + RX sibling/falling-pair — useful later, no overlay
+   dev combined_network_candidate composes two disjoint baseline-relative
+   adapters, with T1/selected serializer1/1. It binds original76-port OoO board.
+   I1 wrapper is not that pinned board; exporter must be adapted and inventory
+   regenerated. Do not apply its output over a sealed I1 board export.
+   Original PHY pins, PCB delays and RTL8211F TX/RX delay ownership stay real.
+   RX sibling and raw/managed clocks are related: keep both half-cycle
+   setup/hold, recovery/removal/pulse and10/100/1000 scenarios timed.
+   No async grouping/false-path workaround for phase-related clock paths.
+
+Timing and performance evidence boundaries
+------------------------------------------
+dev source-release README reports a100MHz post-route phys_opt result:
+WNS+0.006 / TNS0 / WHS+0.010 / THS0. This review read SOURCE/DOCUMENTS,
+not a newly independently queried final dev DCP, ROM or bitstream.
+Its saved snapshot still listed100/10 timing and bit as pending; do not infer
+their completion from captured launch scripts. Those scripts contain external
+sealed-package/IP paths and must NOT be executed wholesale in I1.
+
+The same HW release explicitly reports Sv39 WRITE+11.984% cycles,
+COPY+8.579% cycles vs full-C1. Timing repair is not automatically performance
+optimization. Retain I1 matched CoreMark and six Bare/Sv39 stream oracles,
+latency law, bytes and traffic, and reject unexplained performance regressions.
+
+Current I1 r8 result (independent of dev review)
+---------------------------------------------
+Routed WNS-0.161 / TNS-38.361 /872 setup failures;
+hold+0.010 / THS0; CPU300 fails, NO BIT.
+DDR UI250 setup+0.460; AON/UART50 setup+2.099.
+Final87625LUT /55310FF /62.5BRAM /31DSP.
+105 short checks and18 gates PASS; exact CoreMark/six-stream preservation.
+Known reset CDC criticals remain unsigned; no waivers.
+Reports:
+E:/VM/Share/Valence-rtl/orbital-i1-cpu300-board-20261016-r8/reports/
+batch33-route-audit.json and batch33-review.json.
+
+Next combined batch, NOT YET IMPLEMENTED by this review
+------------------------------------------------------
+Prioritize measured PC+2/+4 predictor carry, DT physical proof indexing to
+D-BRAM address, IT/cache admission and JTAG metadata half-cycle. Combine the
+private upper-bank localization from item2 with those changes; preserve fixed
+capacity, request/response ownership and cycle-visible performance.
+Keep MAC OFF until CPU300 and reset/CDC are honestly qualified. Then stage
+the reviewed DMA count and combined MAC boundary work as a distinct candidate
+with fresh multi-rate/half-cycle verification, not inherited100MHz signoff.
+

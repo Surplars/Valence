@@ -78,11 +78,13 @@ object EthernetDmaCoherenceGsimMain extends App {
         args.lift(2).map(_.toInt).getOrElse(0)), Array("--target-dir", args.head))
 }
 
+// Explicit bounded/default cross-product for the shared DMA integration oracle.
 object EthernetPacketDmaGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new EthernetPacketDma(ramBytes = args.lift(3).map(BigInt(_)).getOrElse(BigInt(8192)),
         postedRxSlots = args.lift(1).map(_.toInt).getOrElse(4),
         memoryCredits = args.lift(2).map(_.toInt).getOrElse(4),
-        postedTxSlots = args.lift(4).map(_.toInt).getOrElse(0)), Array("--target-dir", args.head))
+        postedTxSlots = args.lift(4).map(_.toInt).getOrElse(0),
+        boundedDescriptorChecks = args.contains("--bounded-descriptor-checks")), Array("--target-dir", args.head))
 }
 
 object EthernetPacketDmaRtlMain extends App {

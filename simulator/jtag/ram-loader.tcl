@@ -1,7 +1,13 @@
 # Valence RAM loader, run by OpenOCD's Jim Tcl interpreter. No riscv target.
 # Raw JTAG fields follow https://openocd.org/doc/html/JTAG-Commands.html.
 # Source this file; then explicitly call valence_download_and_run FILE ENTRY.
-# The CPU must already be parked in the ROM's UART 'j' download mode.
+# The CPU must already be parked in BootROM download mode (I1 auto-arms JTAG).
+if {[info exists ::valence_ram::download_active] && [set ::valence_ram::download_active]} {
+    error "Cannot reload loader during an active download"
+}
+if {[info exists ::valence_ram::uncertain] && [set ::valence_ram::uncertain]} {
+    error "Cannot reload an uncertain transport; resolve drain/reset and restart OpenOCD, do not clear uncertainty by sourcing"
+}
 namespace eval valence_ram {
     variable backend direct
     variable tap valence.dtm
@@ -15,6 +21,9 @@ namespace eval valence_ram {
     variable uncertain 0
     variable committed_generation -1
     variable expected_base 0x80200000
+    variable download_active 0
+    variable progress_interval_ms 1000
+    variable progress_last -1
 }
 if {[info exists VALENCE_RAM_BACKEND]} {set valence_ram::backend $VALENCE_RAM_BACKEND}
 if {[info exists VALENCE_RAM_TAP]} {set valence_ram::tap $VALENCE_RAM_TAP}
@@ -171,7 +180,7 @@ proc valence_ram::session {generation} {
     set status [rd 0x41]
     if {$observed != $generation} {error "Download generation changed ($generation -> $observed); no further writes permitted"}
     if {!($status & 0x20)} {error "Download link is down; session is invalid"}
-    if {!($status & 1) || ($status & 0x56)} {error "ROM is not ARMED for this download (STATUS=[hex $status]); type j at the ROM prompt"}
+    if {!($status & 1) || ($status & 0x56)} {error "ROM is not ARMED for this download (STATUS=[hex $status]); return to ROM download mode (I1 board reset; legacy UART j)"}
     if {$status & 8} {error "Download session is BUSY; no further host access issued"}
     return $status
 }
@@ -235,17 +244,57 @@ proc valence_ram::now {} {
     if {[catch {clock milliseconds} value]} {return -1}
     return $value
 }
-proc valence_ram::download {filename entry} {
+proc valence_ram::rate {bytes elapsed} {
+    if {$elapsed <= 0} {return "n/a"}
+    set hundredths [expr {$bytes * 100000 / ($elapsed * 1024)}]
+    return [format "%d.%02d KiB/s" [expr {$hundredths / 100}] [expr {$hundredths % 100}]]
+}
+proc valence_ram::progress {phase done total started {force 0}} {
+    variable progress_interval_ms; variable progress_last
+    set stamp [now]
+    if {!$force && ($stamp < 0 || ($progress_last >= 0 && $stamp - $progress_last < $progress_interval_ms))} {return}
+    set progress_last $stamp
+    set elapsed [expr {$stamp - $started}]
+    set eta "n/a"
+    if {$done > 0 && $elapsed > 0 && $started >= 0} {
+        set eta [format "%ds" [expr {($total - $done) * $elapsed / ($done * 1000)}]]
+    }
+    set parts [expr {$done * 20 / $total}]
+    set tenths [expr {$done * 1000 / $total}]
+    set speed [expr {$started >= 0 ? [rate $done $elapsed] : "n/a"}]
+    say [format {%s [%s%s] %3d.%d%% %d/%d bytes %s ETA=%s} $phase \
+        [string repeat # $parts] [string repeat - [expr {20 - $parts}]] \
+        [expr {$tenths / 10}] [expr {$tenths % 10}] $done $total $speed $eta]
+}
+proc valence_ram::download {filename entry {mode fast}} {
+    variable download_active
+    if {$mode ne "fast" && $mode ne "safe"} {error "Download mode must be fast or safe"}
+    if {$download_active} {error "Nested download is forbidden"}
+    set download_active 1
+    set code [catch {download_body $filename $entry $mode} result]
+    # A lease never survives the synchronous command, including all failures.
+    if {[llength [info commands ::valence_ram::bscan_end]]} {bscan_end}
+    set download_active 0
+    if {$code} {error $result}
+    return $result
+}
+proc valence_ram::download_body {filename entry mode} {
     variable expected_base
     variable chunk_words
-    variable committed_generation
-    set committed_generation -1
+    variable backend
+    set ::valence_ram::committed_generation -1
     set entry [u32 $entry entry]
     set length [file size $filename]
     if {$length <= 0} {error "Image is empty"}
     if {$length > 0xffffffff} {error "Image length exceeds 32 bits"}
     if {$entry & 3} {error "Entry must be 4-byte aligned"}
     start
+    if {$mode eq "fast" && $backend eq "bscan"} {
+        if {![llength [info commands ::valence_ram::bscan_begin]]} {
+            error "Fast download requires the updated BSCAN backend; source both scripts or use safe mode"
+        }
+        bscan_begin
+    }
     set generation [rd 0x46]
     session $generation
     set base [rd 0x47]
@@ -258,6 +307,17 @@ proc valence_ram::download {filename entry} {
     if {(($sbcs >> 29) & 7) != 1 || (($sbcs >> 5) & 127) != 32 || ($sbcs & 31) != 4} {
         error "Unsupported SBCS [hex $sbcs]; require v1, 32-bit address, 32-bit access only"
     }
+    set access32 [expr {2 << 17}]
+    set auto32 [expr {$access32 | (1 << 16)}]
+    if {$mode eq "fast"} {
+        # Probe optional WARL controls before touching RAM; no fallback/replay.
+        set features [expr {$auto32 | (1 << 20) | (1 << 15)}]
+        wr 0x38 $features
+        set observed [sb_wait]
+        if {($observed & 0x1f8000) != $features} {
+            error "Streaming SBA controls unavailable; no RAM transfer issued; use safe mode"
+        }
+    }
     set channel [open $filename rb]
     set rc [catch {read $channel} bytes]
     close $channel
@@ -265,32 +325,62 @@ proc valence_ram::download {filename entry} {
     if {[byte_count $bytes] != $length} {error "Image changed length while reading"}
     set crc [crc32 $bytes]
     set started [now]
-    # Disable read side effects and autoincrement. Each accepted write launches
-    # exactly one 32-bit SBA transaction and is followed by bounded busy polling.
     session $generation
-    wr 0x38 [expr {2 << 17}]
+    if {$mode eq "fast"} {wr 0x38 $auto32} else {wr 0x38 $access32}
+    progress WRITE 0 $padded $started 1
     for {set offset 0} {$offset < $padded} {incr offset 4} {
-        if {($offset % ($chunk_words * 4)) == 0} {session $generation}
-        wr 0x39 [expr {$base + $offset}]
+        set boundary [expr {($offset % ($chunk_words * 4)) == 0}]
+        if {$boundary} {session $generation}
+        if {$mode eq "safe" || $boundary} {wr 0x39 [expr {$base + $offset}]}
         wr 0x3c [word $bytes $offset]
         sb_wait
-        if {(($offset + 4) % ($chunk_words * 4)) == 0 || $offset + 4 == $padded} {session $generation}
+        if {(($offset + 4) % ($chunk_words * 4)) == 0 || $offset + 4 == $padded} {
+            session $generation
+            progress WRITE [expr {$offset + 4}] $padded $started [expr {$offset + 4 == $padded}]
+        }
     }
-    # A separate complete readback pass compares every byte including zero pad.
-    # readonaddr=1, readondata=0, autoincrement=0 prevents speculative extra reads.
+    set written [now]
+    progress VERIFY 0 $padded $written 1
+    # Full readback is retained. Fast read-ahead is confined to THIS checked
+    # chunk; disable read-on-data BEFORE its last word, including aperture end.
     session $generation
-    wr 0x38 [expr {(2 << 17) | (1 << 20)}]
+    if {$mode eq "safe"} {wr 0x38 [expr {$access32 | (1 << 20)}]}
     for {set offset 0} {$offset < $padded} {incr offset 4} {
-        if {($offset % ($chunk_words * 4)) == 0} {session $generation}
-        wr 0x39 [expr {$base + $offset}]
+        set boundary [expr {($offset % ($chunk_words * 4)) == 0}]
+        set last [expr {(($offset + 4) % ($chunk_words * 4)) == 0 || $offset + 4 == $padded}]
+        if {$boundary} {
+            session $generation
+            if {$mode eq "fast"} {
+                set more [expr {$offset + 4 < $padded && $chunk_words > 1}]
+                wr 0x38 [expr {$auto32 | (1 << 20) | ($more << 15)}]
+                wr 0x39 [expr {$base + $offset}]
+            }
+        }
+        if {$mode eq "safe"} {wr 0x39 [expr {$base + $offset}]}
         sb_wait
+        if {$mode eq "fast" && $last} {wr 0x38 $auto32}
         set actual [rd 0x3c]
         set wanted [word $bytes $offset]
-        if {$actual != $wanted} {error "Readback mismatch at [hex [expr {$base + $offset}]]: expected [hex $wanted], got [hex $actual]; COMMIT not sent"}
-        if {(($offset + 4) % ($chunk_words * 4)) == 0 || $offset + 4 == $padded} {session $generation}
+        if {$actual != $wanted} {
+            set message "Readback mismatch at [hex [expr {$base + $offset}]]: expected [hex $wanted], got [hex $actual]; COMMIT not sent"
+            if {$mode eq "fast" && !$last} {
+                # Reading this word has launched AT MOST one in-range read.
+                # Drain it before disabling side effects; never write SBCS busy.
+                if {[catch {sb_wait; wr 0x38 $access32} problem]} {
+                    set ::valence_ram::uncertain 1
+                    append message "; pending read drain failed: $problem; inspect/reset, no replay"
+                }
+            }
+            error $message
+        }
+        if {$last} {
+            session $generation
+            progress VERIFY [expr {$offset + 4}] $padded $written [expr {$offset + 4 == $padded}]
+        }
     }
+    set verified [now]
     session $generation
-    wr 0x38 [expr {2 << 17}]
+    wr 0x38 $access32
     # Validate session again before EACH metadata write and final irreversible
     # request, so reset/re-arm between checks cannot silently commit a new epoch.
     foreach {address value} [list 0x49 $generation 0x43 $entry 0x44 $length 0x45 $crc] {
@@ -300,7 +390,7 @@ proc valence_ram::download {filename entry} {
     session $generation
     wr 0x42 2
     # Do not retry COMMIT, even if its observation is ambiguous or times out.
-    set committed_generation $generation
+    set ::valence_ram::committed_generation $generation
     set observed [rd 0x46]
     set status [rd 0x41]
     if {$observed != $generation || ($status & 0x14) || !($status & 0x42)} {
@@ -309,14 +399,21 @@ proc valence_ram::download {filename entry} {
     set elapsed [expr {[now] - $started}]
     if {$started >= 0 && $elapsed >= 0} {set timing ", $elapsed ms"} else {set timing ""; set elapsed -1}
     say "Verified $length bytes (CRC32 [hex $crc]$timing); COMMIT accepted. ROM performs its own CRC and launch. Guest execution is not confirmed."
-    return [list state commit_accepted bytes $length padded_bytes $padded crc32 [hex $crc] generation $generation elapsed_ms $elapsed]
+    set write_ms -1; set verify_ms -1; set metadata_ms -1
+    if {$started >= 0 && $elapsed >= 0} {
+        set write_ms [expr {$written - $started}]
+        set verify_ms [expr {$verified - $written}]
+        set metadata_ms [expr {[now] - $verified}]
+        say "Mode=$mode WRITE=${write_ms}ms VERIFY=${verify_ms}ms COMMIT=${metadata_ms}ms effective=[rate $length $elapsed] (payload / write+verify+commit)"
+    }
+    return [list state commit_accepted bytes $length padded_bytes $padded crc32 [hex $crc] generation $generation elapsed_ms $elapsed mode $mode write_ms $write_ms verify_ms $verify_ms metadata_ms $metadata_ms]
 }
-proc valence_download_and_run {filename entry} {return [valence_ram::download $filename $entry]}
+proc valence_download_and_run {filename entry {mode fast}} {return [valence_ram::download $filename $entry $mode]}
 
 proc valence_wait_claimed {} {
-    set generation $valence_ram::committed_generation
+    set generation [set ::valence_ram::committed_generation]
     if {$generation < 0} {error "No COMMIT was issued by this loader"}
-    for {set attempt 0} {$attempt < $valence_ram::claim_polls} {incr attempt} {
+    for {set attempt 0} {$attempt < [set ::valence_ram::claim_polls]} {incr attempt} {
         set observed [valence_ram::rd 0x46]
         set status [valence_ram::rd 0x41]
         if {$observed != $generation || ($status & 0x14)} {error "ROM launch cancelled or failed (generation=$observed STATUS=[valence_ram::hex $status])"}
@@ -335,12 +432,12 @@ proc valence_abort {} {
     set status [valence_ram::rd 0x41]
     if {$status & 0x40} {error "ROM already CLAIMED launch; ABORT cannot undo it. Full reset is required for another download"}
     valence_ram::wr 0x42 1
-    for {set attempt 0} {$attempt < $valence_ram::sb_polls} {incr attempt} {
+    for {set attempt 0} {$attempt < [set ::valence_ram::sb_polls]} {incr attempt} {
         set status [valence_ram::rd 0x41]
         if {$status & 0x40} {error "ROM CLAIM raced ABORT; launch cannot be undone"}
         if {!($status & 8)} {
             if {!($status & 4)} {error "ABORT sent once but cancellation was not observed; inspect reset/drain state"}
-            set valence_ram::committed_generation -1
+            set ::valence_ram::committed_generation -1
             valence_ram::say "ABORT confirmed; no outstanding loader bus transfer reported. Type j at the ROM prompt for a new session."
             return [list state cancelled status [valence_ram::hex $status]]
         }

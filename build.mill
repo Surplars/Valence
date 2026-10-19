@@ -66,6 +66,51 @@ object `IonSoC` extends CommonNS {
 
 }
 
+// Isolated new FPGA five-stage core. Reuses selected CPU-independent bus/IP files,
+// but no dependency on the OoO CPU, legacy or difftest. Optional F/D uses pinned HardFloat arithmetic.
+// The same sources remain visible to IonSoC for eventual optional SoC integration.
+object OrbitalI1 extends CommonNS {
+    override def moduleDir = pwd
+    override def moduleDeps = super.moduleDeps ++ Seq(HardFloatLib)
+    override def sources = Task.Sources(pwd / "src/main/scala/core/inorder", pwd / "src/main/scala/isa",
+        pwd / "src/main/scala/bus/tilelink", pwd / "src/main/scala/ip/bus/RegisterPort.scala",
+        pwd / "src/main/scala/ip/bus/ClockDomainCrossing.scala",
+        pwd / "src/main/scala/ip/bus/CdcDataChannels.scala",
+        pwd / "src/main/scala/ip/bus/PeripheralClockControl.scala",
+        pwd / "src/main/scala/ip/bus/RegisterArbiter.scala",
+        pwd / "src/main/scala/ip/bus/TwoEntryRegisterQueue.scala",
+        pwd / "src/main/scala/ip/clock",
+        pwd / "src/main/scala/ip/ethernet",
+        pwd / "src/main/scala/ip/dma",
+        pwd / "src/main/scala/ip/uart/ManagedUart.scala",
+        pwd / "src/main/scala/ip/memory/AtomicMemory.scala",
+        pwd / "src/main/scala/ip/interrupt/Plic.scala",
+        pwd / "src/main/scala/ip/debug/JtagDebugReservation.scala",
+        pwd / "src/main/scala/ip/debug/JtagRamLoader.scala",
+        pwd / "src/main/scala/ip/debug/BscanRamTransport.scala",
+        pwd / "src/main/scala/ip/uart/UartConsole.scala", pwd / "src/main/scala/ip/timer/MachineTimer.scala",
+        pwd / "src/main/scala/ip/axi/Axi4MemoryPort.scala",
+        pwd / "src/main/scala/ip/tilelink/TwoMasterTileLinkArbiter.scala",
+        pwd / "src/main/scala/ip/tilelink/LineReadMemoryPort.scala",
+        pwd / "src/main/scala/ip/tilelink/LineGrant.scala",
+        pwd / "src/main/scala/ip/tilelink/RegisteredTileLinkBoundary.scala",
+        pwd / "src/main/scala/ip/tilelink/TileLinkLineAcquireEngine.scala",
+        pwd / "src/main/scala/ip/tilelink/TileLinkLineProbeEngine.scala",
+        pwd / "src/main/scala/ip/tilelink/TileLinkLineTransfer.scala",
+        pwd / "src/main/scala/ip/tilelink/TileLinkLineWriteEngine.scala",
+        pwd / "src/main/scala/core/ooo/config/CacheTagConfig.scala",
+        pwd / "src/main/scala/core/ooo/cache/ParallelHomeQualification.scala",
+        pwd / "src/main/scala/ip/tilelink/TileLinkLineFillEngine.scala",
+        pwd / "src/main/scala/core/ooo/platform/bus/TileLinkTransferBeatCount.scala",
+        pwd / "src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+        pwd / "src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala")
+    override def scalacOptions = Seq("-language:reflectiveCalls", "-deprecation", "-feature")
+    object test extends SbtTests with TestModule.ScalaTest {
+        override def sources = Task.Sources(pwd / "src/test/scala/inorder")
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+}
+
 // Explicit compatibility module. This does not re-enable retired ChiselSim
 // suites in legacy/tests or make the historical core a correctness oracle.
 object LegacySoC extends CommonNS {

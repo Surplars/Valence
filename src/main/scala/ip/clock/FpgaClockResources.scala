@@ -18,16 +18,26 @@ private class GlitchlessClockBuffer extends BlackBox(Map("CE_TYPE" -> StringPara
   * clock, which must keep oscillating while its managed output is stopped.
   * This never resets MMCM/MIG or changes their rate. Common cold reset only.
   */
-class ManagedClockBuffer extends RawModule {
+class ContinuousClockBuffer extends RawModule {
     val rawClock = IO(Input(Clock()))
+    val runningClock = IO(Output(Clock()))
+    private val buffer = Module(new GlitchlessClockBuffer)
+    buffer.io.I := rawClock
+    buffer.io.CE := true.B
+    runningClock := buffer.io.O
+}
+
+class ManagedClockBuffer(independentControlClock: Boolean = false) extends RawModule {
+    val rawClock = IO(Input(Clock()))
+    val controlClock = if (independentControlClock) Some(IO(Input(Clock()))) else None
     val commonReset = IO(Input(AsyncReset()))
     val enable = IO(Input(Bool()))
     val managedClock = IO(Output(Clock()))
     val release = Module(new CdcResetRelease)
-    release.clockIn := rawClock
+    release.clockIn := controlClock.getOrElse(rawClock)
     release.asyncReset := commonReset
     val command = Module(new CdcLevel)
-    command.clockIn := rawClock
+    command.clockIn := controlClock.getOrElse(rawClock)
     command.resetIn := release.resetOut
     command.levelIn := enable
     private val buffer = Module(new GlitchlessClockBuffer)

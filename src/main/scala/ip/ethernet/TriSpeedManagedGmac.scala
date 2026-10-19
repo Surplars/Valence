@@ -18,7 +18,10 @@ import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
 class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     mediaHz: Int = 125000000, hardwareClocks: Boolean = true,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default, txFrameSlots: Int = 1,
-    val rawClockHandoff: Boolean = false) extends RawModule {
+    val rawClockHandoff: Boolean = false, balancedRawClock: Boolean = false) extends RawModule {
+    require(!balancedRawClock || hardwareClocks)
+    require(!(rawClockHandoff && balancedRawClock),
+        "RAW MAC handoff with balanced raw clocks needs dedicated MAC lifecycle/CDC qualification")
     require(txFrameSlots == 1 || txFrameSlots == 2, "tri-speed TX supports one or two frame banks")
     require(mediaHz == 125000000, "tri-speed TX uses a continuous 125 MHz reference")
     val sourceClock = IO(Input(Clock()))
@@ -54,6 +57,13 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     val cpuRelease = Module(new CdcResetRelease)
     cpuRelease.clockIn := sourceClock
     cpuRelease.asyncReset := commonReset
+    // Fixed raw TX capture/encoder and managed RX/TX are parallel buffered
+    // leaves of the SAME clock input. No extra cascade on the raw clock.
+    val continuousTxClock = if (balancedRawClock) {
+        val keepRunning = Module(new ContinuousClockBuffer)
+        keepRunning.rawClock := rawTxClock
+        keepRunning.runningClock
+    } else rawTxClock
     val phy = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         Module(new Rtl8211fPhyManager(cpuHz, startupCycles = cpuHz / 20, pollCycles = cpuHz / 10))
     }
@@ -71,8 +81,9 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     linkUp := media.io.linkUp
     mediaPending := media.io.pending
     def gated(raw: Clock, index: Int): Clock = if (hardwareClocks) {
-        val gate = Module(new ManagedClockBuffer)
+        val gate = Module(new ManagedClockBuffer(independentControlClock = balancedRawClock))
         gate.rawClock := raw
+        gate.controlClock.foreach(_ := continuousTxClock)
         gate.commonReset := commonReset
         gate.enable := control(index).clockEnable
         gate.managedClock
@@ -90,17 +101,17 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rxRelease.clockIn := rxManaged
     rxRelease.asyncReset := commonReset
     val rawTxRelease = Module(new CdcResetRelease)
-    rawTxRelease.clockIn := rawTxClock
+    rawTxRelease.clockIn := continuousTxClock
     rawTxRelease.asyncReset := commonReset
     val rawRxRelease = Module(new CdcResetRelease)
     rawRxRelease.clockIn := rawRxClock
     rawRxRelease.asyncReset := commonReset
-    val encode = withClockAndReset(rawTxClock, rawTxRelease.resetOut) { Module(new TriSpeedRgmiiTx) }
+    val encode = withClockAndReset(continuousTxClock, rawTxRelease.resetOut) { Module(new TriSpeedRgmiiTx) }
     val decode = withClockAndReset(rawRxClock, rawRxRelease.resetOut) { Module(new TriSpeedRgmiiRx) }
     val txRate = Module(new CdcMailbox(2))
     val rxRate = Module(new CdcMailbox(2))
     txRate.sourceClock := sourceClock
-    txRate.destinationClock := rawTxClock
+    txRate.destinationClock := continuousTxClock
     txRate.commonReset := commonReset
     rxRate.sourceClock := sourceClock
     rxRate.destinationClock := rawRxClock
@@ -130,7 +141,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     decode.io.fall := rawRgmiiRxFall
     val physicalIngress = Module(new EthernetPhysicalIngress(64))
     physicalIngress.sourceClock := rawRxClock
-    physicalIngress.destinationClock := rawTxClock
+    physicalIngress.destinationClock := continuousTxClock
     physicalIngress.commonReset := (commonReset.asBool || media.io.ingressReset).asAsyncReset
     physicalIngress.sourceData := decode.io.gmiiData
     physicalIngress.sourceValid := decode.io.gmiiValid
@@ -178,7 +189,8 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     // encoder's original byte epoch. Both source samples run while gates stop.
     val rawHandoff = if (rawClockHandoff) Some(Module(new MacRawHandoff)) else None
     rawHandoff.foreach { handoff =>
-        handoff.rawClock := rawTxClock
+        // Sample on the same continuous leaf as the encoder, ingress and reset release.
+        handoff.rawClock := continuousTxClock
         handoff.rawReset := rawTxRelease.resetOut
         handoff.rxClock := rxManaged
         handoff.rxReset := rxRelease.resetOut
@@ -310,7 +322,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rx.io.macAddress := rxImage.macAddress
     val ingress = Module(new PeripheralWakeDelay(11,
         ManagedPeripheralSupport.wakeDelay(mediaHz, cpuHz, aonHz)))
-    ingress.rawClock := rawTxClock
+    ingress.rawClock := continuousTxClock
     ingress.commonReset := commonReset
     ingress.payload := Cat(physicalIngress.byteStep, physicalIngress.valid, physicalIngress.error, physicalIngress.data)
     ingress.active := physicalIngress.valid
@@ -328,12 +340,12 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     // Launch these return levels from fixed raw TX, which keeps running when
     // recovered RXC or either managed gate stops. A sample delays both polarities;
     // owner/admission handshakes, not this delay alone, establish safe draining.
-    val ingressEmptySource = withClockAndReset(rawTxClock, rawTxRelease.resetOut) {
+    val ingressEmptySource = withClockAndReset(continuousTxClock, rawTxRelease.resetOut) {
         RegNext(ingress.empty, false.B)
     }
     // txManaged is a phase-related gated derivative of rawTxClock. Keep these
     // source-to-register paths timed; they are not asynchronous false paths.
-    val txWireDrainedSource = withClockAndReset(rawTxClock, rawTxRelease.resetOut) {
+    val txWireDrainedSource = withClockAndReset(continuousTxClock, rawTxRelease.resetOut) {
         RegNext(!tx.io.busy && txFifo.destinationIdle && encode.io.idle, false.B)
     }
     val ingressEmpty = ManagedPeripheralSupport.level(ingressEmptySource, sourceClock, cpuRelease.resetOut)

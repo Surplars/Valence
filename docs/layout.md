@@ -9,6 +9,7 @@ Valence/
 ├── build.mill               唯一受支持的 Scala 构建入口
 ├── src/
 │   ├── main/scala/core/ooo/  Orbital-A1、VL100 组装与核心侧适配
+│   ├── main/scala/core/inorder/  独立 Orbital-I1 参数化顺序核及其私有 SoC 适配
 │   ├── main/scala/ip/        可复用总线、时钟、UART、DMA、GMAC 等 IP
 │   ├── main/scala/isa/       公共 ISA 编码/架构常量
 │   ├── main/scala/bus/tilelink/TileLink.scala  公共 TL 类型
@@ -17,11 +18,13 @@ Valence/
 ├── simulator/gsim/
 │   ├── run.py, targets.mk    GSIM 流程与 Make 入口
 │   ├── harness/             独立 C++ 检查/参考及模型驱动
+│   ├── inorder/             Orbital-I1 定向流程、汇编与链接脚本
 │   ├── payloads/            当前验证程序、链接脚本
 │   └── config/              工具版本锁及参考模型配置
 ├── fpga/
 │   ├── firmware/            BootROM、下载工具、软件/BSP 构建源码
 │   ├── zu15eg/              板级 RTL、XDC、集成/签核脚本及说明
+│   ├── inorder/             Orbital-I1 板级导出、约束与验证工具
 │   └── *.tcl, *.py, *.bat   可复用模块时序、CDC 和审计工具
 ├── docs/                    当前合同及按日期保留的研究/验收记录
 ├── legacy/
@@ -39,6 +42,8 @@ Valence/
 ## 构建依赖
 
 `IonSoC` 从根目录 `src` 编译当前硬件，依赖 `HardFloatLib`，不依赖旧核或 Scala `DifftestLib`。
+`OrbitalI1` 显式选择 `core/inorder` 和必要共享 IP/ISA/总线辅助文件，测试仅来自
+`src/test/scala/inorder`；默认 `IonSoC` 不自动切换为 I1。源码共享不代表实例化乱序 CPU。
 GSIM 的 NEMU 差分流程保留独立来源，不因移除旧 Scala 依赖而移除。
 `LegacySoC` 从 `legacy/hardware/src` 编译，依赖 `IonSoC` 中的公共定义以及旧 `DifftestLib`；
 方向为历史模块依赖当前公共定义，不存在当前模块反向依赖历史硬件。
@@ -48,15 +53,17 @@ GSIM 的 NEMU 差分流程保留独立来源，不因移除旧 Scala 依赖而�
 | `IonSoC` / `.test` | 146 | 152 | 当前默认构建与定向 GSIM |
 | `LegacySoC` / `.test` | 51 | 3 | 显式历史兼容构建/纯展开检查 |
 
-上表是整理当日的快照，不是固定容量或测试用例数。两模块源码集合完全不重叠，
+上表是2026-10-07历史快照，不包含后来的 `OrbitalI1`，不是当前固定文件数或测试用例数。活动与历史模块源码集合完全不重叠，
 退役 `legacy/tests` 不加入任何模块。
 共享定义由依赖复用，不复制源码、建立软链接或维持两份 TileLink/ISA 定义。
 
 ## 放置规则
 
 - 新独立 IP 放 `src/main/scala/ip`，通过明确接口连接，不依赖旧全局配置。
-- 核心和当前平台放 `core/ooo`，按 frontend/decode/rename/issue/execute/retire/lsu/cache/mmu/platform 等职责分目录；
+- Orbital-A1 和当前乱序平台放 `core/ooo`，按 frontend/decode/rename/issue/execute/retire/lsu/cache/mmu/platform 等职责分目录；
   Scala 包名仍保留 `soc.core.ooo`。SoC 复用候选不等同于 OoO 专用模块，详见 [本轮布局与迁移清单](ooo-layout.md)。
+- Orbital-I1 及私有适配放 `core/inorder`。CPU、SoC 组装及适配器以类名区分，
+  不为目录美观批量改包名；旧顺序核仅在 `legacy/hardware`。
 - ISA 标准常量放 `isa`，旧核控制表位于 `legacy/hardware/src/main/scala/core/pipeline/decode`。
 - 当前 GSIM 驱动、程序、锁定配置分别放 `harness`、`payloads`、`config`。
 - 当前板级固件、驱动/设备树模板及下载器保留在 `fpga/firmware`，不是历史资产。
