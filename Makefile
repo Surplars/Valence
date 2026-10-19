@@ -7,12 +7,55 @@ PAYLOAD_DIR := simulator/build/payload
 .PHONY: help compile test test-scala regress sim-verilog legacy-compile legacy-elaboration legacy-rtl payload clean
 help:
 	@echo "Active GSIM: make compile | test-scala | gsim-smoke | gsim-backend-test | gsim-integer-test | gsim-core-test | test"
+	@echo "Functional bring-up first: make bringup-plan; make bringup-test BRINGUP_PROFILE=<name> BRINGUP_OUT=<fresh-dir> BRINGUP_ARGS='<explicit tools>'"
+	@echo "Opt-in two-clock transport only: make cpu-fabric-cdc-rtl | cpu-fabric-cdc-test (see simulator/cdc/README.md)"
+	@echo "Actual I1 independent-clock short boot: make i1-independent-boot-guest | i1-independent-boot-rtl | i1-independent-boot-test (explicit profile required)"
 	@echo "Arcilator Windows pilot: make arcilator-smoke-export"
 	@echo "Historical module only: make legacy-compile | legacy-elaboration | legacy-rtl"
 	@echo "make test (or regress): Scala parameter/elaboration checks, then the full GSIM suite with NEMU differential checks"
 
 compile:
 	$(MILL) -i IonSoC.compile
+
+# Named functional profiles only. A plan does not run hardware or select a timing candidate.
+.PHONY: bringup-plan bringup-test
+bringup-plan:
+	@python3 -B simulator/gsim/bringup.py --plan
+
+bringup-test:
+	@test -n "$(BRINGUP_PROFILE)" || (echo "Set BRINGUP_PROFILE explicitly; see make bringup-plan"; exit 1)
+	@test -n "$(BRINGUP_OUT)" || (echo "Set a fresh BRINGUP_OUT directory"; exit 1)
+	python3 -B simulator/gsim/bringup.py --run "$(BRINGUP_PROFILE)" --output "$(BRINGUP_OUT)" $(BRINGUP_ARGS)
+
+# Independent-edge digital CDC component check; it does not attach either CPU or select a board profile.
+.PHONY: cpu-fabric-cdc-rtl cpu-fabric-cdc-test
+cpu-fabric-cdc-rtl:
+	@test -n "$(CPU_FABRIC_CDC_RTL)" || (echo "Set a fresh CPU_FABRIC_CDC_RTL directory"; exit 1)
+	@test ! -e "$(CPU_FABRIC_CDC_RTL)" || (echo "Refusing to overwrite CPU_FABRIC_CDC_RTL"; exit 1)
+	@test "$(CPU_FABRIC_CDC_STORAGE)" = baseline -o "$(CPU_FABRIC_CDC_STORAGE)" = held || (echo "Set CPU_FABRIC_CDC_STORAGE=held (II1) or baseline (comparison only)"; exit 1)
+	$(MILL) -i IonSoC.test.runMain ip.TileLinkClockDomainBoundaryMain "$(CPU_FABRIC_CDC_RTL)" "$(CPU_FABRIC_CDC_STORAGE)"
+
+cpu-fabric-cdc-test:
+	@test -n "$(CPU_FABRIC_CDC_RTL)" -a -n "$(CPU_FABRIC_CDC_OUT)" || (echo "Set CPU_FABRIC_CDC_RTL and fresh CPU_FABRIC_CDC_OUT"; exit 1)
+	@test "$(CPU_FABRIC_CDC_STORAGE)" = baseline -o "$(CPU_FABRIC_CDC_STORAGE)" = held || (echo "Select CPU_FABRIC_CDC_STORAGE explicitly"; exit 1)
+	python3 -B simulator/cdc/test_tilelink_boundary.py "$(CPU_FABRIC_CDC_RTL)" "$(CPU_FABRIC_CDC_OUT)" --storage "$(CPU_FABRIC_CDC_STORAGE)" $(CPU_FABRIC_CDC_ARGS)
+
+# Bounded native independent-edge exception. No board profile or reduced fixture is implicit.
+.PHONY: i1-independent-boot-guest i1-independent-boot-rtl i1-independent-boot-test
+i1-independent-boot-guest:
+	@test -n "$(I1_CDC_GUEST)" -a -n "$(I1_CDC_CROSS_PREFIX)" || (echo "Set fresh I1_CDC_GUEST and explicit I1_CDC_CROSS_PREFIX"; exit 1)
+	python3 -B simulator/cdc/test_i1_independent_boot.py "$(I1_CDC_GUEST)" --prepare-only --cross-prefix "$(I1_CDC_CROSS_PREFIX)"
+
+i1-independent-boot-rtl:
+	@test -n "$(I1_CDC_RTL)" -a -n "$(I1_CDC_ROM)" || (echo "Set fresh I1_CDC_RTL and checked I1_CDC_ROM"; exit 1)
+	@test "$(I1_CDC_MODE)" = single -o "$(I1_CDC_MODE)" = independent || (echo "Set I1_CDC_MODE=single or independent"; exit 1)
+	@test "$(I1_CDC_PROFILE)" = test-only -o "$(I1_CDC_PROFILE)" = full-cpu || (echo "Set I1_CDC_PROFILE=test-only or full-cpu; neither is a board release"; exit 1)
+	$(MILL) -i IonSoC.test.runMain inorder.I1IndependentClockSocMain "$(I1_CDC_RTL)" "$(I1_CDC_MODE)" "$(I1_CDC_PROFILE)" "$(I1_CDC_ROM)"
+
+i1-independent-boot-test:
+	@test -n "$(I1_CDC_OUT)" -a -n "$(I1_CDC_GUEST)" -a -n "$(I1_CDC_SINGLE_RTL)" -a -n "$(I1_CDC_INDEPENDENT_RTL)" || (echo "Set fresh I1_CDC_OUT, I1_CDC_GUEST and both I1_CDC_*_RTL paths"; exit 1)
+	@test "$(I1_CDC_PROFILE)" = test-only -o "$(I1_CDC_PROFILE)" = full-cpu || (echo "Select I1_CDC_PROFILE explicitly"; exit 1)
+	python3 -B simulator/cdc/test_i1_independent_boot.py "$(I1_CDC_OUT)" --guest-dir "$(I1_CDC_GUEST)" --single-rtl "$(I1_CDC_SINGLE_RTL)" --independent-rtl "$(I1_CDC_INDEPENDENT_RTL)" --profile "$(I1_CDC_PROFILE)" $(I1_CDC_TEST_ARGS)
 
 test-scala:
 	$(MILL) -i IonSoC.test

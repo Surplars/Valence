@@ -295,6 +295,33 @@ class FiveStageConfigSpec extends AnyFlatSpec with Matchers {
         intercept[IllegalArgumentException] { p.copy(fastDataTranslation = false) }
         intercept[IllegalArgumentException] { p.copy(withSv39 = false) }
     }
+    it should "keep larger prepared TLB proof banks explicit and preserve source-owned data proofs" in {
+        FiveStageConfig().bankedTlbProofs shouldBe false
+        FiveStageConfig(tlbEntries = 16).preparedTranslationProofs shouldBe false
+        for (entries <- Seq(16, 32)) {
+            val p = FiveStageArguments.config(Array("out", "64", "--sv39", "--pipeline=fpga8",
+                "--timing-cuts", "--fast-data-translation", "--indexed-data-proofs",
+                "--banked-tlb-proofs", s"--tlb=$entries"))
+            p.bankedTlbProofs shouldBe true
+            p.preparedTranslationProofs shouldBe true
+            p.tlbEntries shouldBe entries
+            intercept[IllegalArgumentException] { p.copy(bankedTlbProofs = false) }
+            intercept[IllegalArgumentException] { p.copy(indexedDataProofs = false) }
+            intercept[IllegalArgumentException] { p.copy(fpgaTimingCuts = false) }
+            intercept[IllegalArgumentException] { p.copy(withSv39 = false) }
+            intercept[IllegalArgumentException] { p.copy(tlbEntries = 8) }
+        }
+    }
+    it should "keep IMSIC explicit and require the implemented RV64 M/S files" in {
+        FiveStageConfig().withAia shouldBe false
+        FiveStageConfig().externalFenceICompletion shouldBe false
+        val p = FiveStageArguments.config(Array("out", "64", "--supervisor", "--aia"))
+        p.withAia shouldBe true
+        p.isa.contains("h") shouldBe false
+        intercept[IllegalArgumentException] { FiveStageConfig(withAia = true) }
+        intercept[IllegalArgumentException] { p.copy(xlen = 32) }
+        intercept[IllegalArgumentException] { p.copy(withSupervisor = false) }
+    }
     it should "parameterize C/A without advertising floating point or changing stages" in {
         val p = FiveStageArguments.config(Array("out", "64", "--c", "--a", "--sv39", "--pmp=4"))
         p.isa shouldBe "rv64imac_zicsr_zifencei_svade"

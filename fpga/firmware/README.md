@@ -429,3 +429,63 @@ remeasured after rebuilding. After boot, BusyBox ash shows `valence#`; use
 Rootfs is volatile RAM only; no network or persistent block device is enabled.
 The console uses SBI DBCN/hvc0 polling, not qualified Linux AIA/UART IRQ support.
 The image manifest distinguishes GSIM testing from actual board validation.
+
+## Common I1/A1 platform clock contract
+
+The common platform uses one full 128 KiB-capacity TUI/netboot/JTAG ROM image
+for both CPU tiles. Build it once; copy exactly the same COE/HEX/BIN into both
+hardware profiles:
+
+```sh
+python3 fpga/firmware/build.py --common-platform --boot-menu --netboot \
+  --netboot-posted-rx --jtag-download --crc-mode slice2 --ddr \
+  --ddr-bytes 0x80000000 --uart-reference-hz 7372800 --uart-baud 460800 \
+  --out build/fpga/common-rom
+```
+
+`--common-platform` fixes `TIMEBASE_HZ`, fabric and DDR UI contracts at
+250,000,000 Hz. It never embeds a CPU-specific frequency or CPU name in the
+ROM or its separately linked diagnostic blob. CPU metadata is read from the
+existing CMU V1 at `0x10080000`, resource 1, frequency offset `0x148`. The
+nominal CPU rates are 300 MHz for I1 and 100 MHz for A1. Resource 2 (`TIME`,
+frequency `0x188`) also describes the shared fabric; resource 4 (`DDR_UI`,
+frequency `0x208`) describes the UI. The seven existing indices are unchanged.
+CMU nominal rates are configuration metadata, not measured frequencies or
+physical timing qualification. A missing/invalid CPU metadata response yields
+zero (unknown); firmware never guesses the CPU implementation from MHz.
+
+All `rdtime` intervals, timeout budgets, CRC/TFTP timing, bandwidth conversion
+and CoreMark calibration/validation use `TIMEBASE_HZ`. CPU frequency is only
+used for CPU metadata. Timeouts multiply in 64 bits; tick-to-time conversion
+avoids overflowing `ticks * units`, and bandwidth avoids an overflowing
+`elapsed * MiB` denominator. UART still uses its independently checked 7.3728
+MHz baud reference and divisor 1 for 460800 baud.
+
+Historical single-clock builds retain their default frequency. New independent
+clock builds can explicitly pass `--cpu-hz`, `--timebase-hz`, `--fabric-hz` and
+`--ddr-ui-hz`; the standalone CoreMark builder retains `--clock-hz` as its CPU
+option and also supports `--common-platform`. These arguments declare the
+hardware contract; they do not change clocks or establish timing closure.
+
+Linux/OpenSBI payload discovery is separate from this shared ROM. The Linux
+builder accepts explicit `--cpu-kind i1|a1` plus independent `--timebase-hz`.
+For common profiles, select `--common-platform --cpu-kind i1 --cpu-hz 300000000`
+or `--common-platform --cpu-kind a1 --cpu-hz 100000000`. `/cpus/timebase-frequency`
+is 250 MHz in both; CPU `clock-frequency`, project-local CPU `compatible`
+(`openion,valence-i1` / `openion,orbital-a1`, both retaining `riscv`) and manifest
+issue width (1 / 2) match the explicit tile. ISA capability still requires an
+explicit `--isa`; CPU identity is not inferred from frequency and no marchid is
+fabricated. This change does not itself build or qualify Linux or change its
+existing default memory layout.
+
+Bounded proof using already available tools and pinned sources:
+
+```sh
+python3 fpga/firmware/check_shared_clocks.py --out build/shared-clocks --build-rom
+```
+
+This runs sanitizer-backed host menu/CMU/arithmetic tests and official CoreMark
+CRC/strict-duration checks. It builds the complete ROM twice with different
+CPU input hints and compares every BIN/COE/HEX byte and diagnostic blob; this
+is reproducibility evidence for one shared image, not two profile binaries.
+It does not run a hardware simulator, Linux, Vivado, or board tests.

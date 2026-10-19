@@ -20,7 +20,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     paths = [source / name for name in (
         "bootrom.c", "boot_tui.h", "jtag_download.h", "crc32.c", "crc32.h", "board_memory.h",
-        "ram_verify.h", "test_bootrom_jtag.c", "test_bootrom_menu.c",
+        "ram_verify.h", "board_clocks.h", "valence_cmu.h", "test_bootrom_jtag.c", "test_bootrom_menu.c",
         "test_bootrom_recovery.c", "test_uart_only_pending.c", "check_jtag_download.py")]
     def hashes():
         return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}

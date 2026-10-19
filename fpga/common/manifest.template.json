@@ -1,0 +1,31 @@
+{
+  "schema": "valence-common-local-v1",
+  "note": "INCOMPLETE TEMPLATE: the common wrapper and producers exist, but no frozen selected RTL/MIG/firmware/test receipt or physical result is supplied here. Do not substitute an old I1 no-MAC or A1 CPU100 profile.",
+  "configuration": {
+    "cpu": null,
+    "top": null,
+    "part": "xczu15eg-ffvb1156-2-i",
+    "abi": 1,
+    "interrupt_abi": "aia",
+    "rom_base": 2147483648,
+    "rom_bytes": 131072,
+    "clocks_hz": {"cpu": null, "fabric": null, "timebase": null, "ddr_ui": null, "uart": null, "aon": null},
+    "features": {"mac": null, "network_dma": null}
+  },
+  "threads": 8,
+  "source_roots": ["src/main/scala", "src/main/resources", "src/test/scala/platform", "fpga/common"],
+  "inputs": {},
+  "roles": {
+    "rtl_filelist": null, "firmware_contract": null, "functional_receipt": null,
+    "rom": null, "board_audit_script": null, "constraints": [], "ip": []
+  },
+  "stages": {
+    "simulation": {"script": null, "outputs": []},
+    "synthesis": {"script": null, "outputs": []},
+    "implementation": {"script": null, "outputs": ["routed.dcp"]}
+  },
+  "signoff": {
+    "bus_skew_checks": null,
+    "clock_pins": {"cpu": null, "fabric": null, "timebase": null, "ddr_ui": null, "uart": null, "aon": null}
+  }
+}

@@ -95,7 +95,7 @@ static uint64_t queue_status(void) {
         ((uint64_t)hw.queue_stopped<<17);
 }
 static void step(void) {
-    ++hw.tick;
+    hw.tick += (uint64_t)TIMEBASE_HZ / 1000; /* One modeled millisecond per step. */
     if(hw.delay && !hw.stuck_producer) --hw.delay;
     if(hw.queue_enabled) { queue_step(); return; }
     if((hw.rx&1) && hw.frames && !hw.delay && !hw.stuck_producer) {

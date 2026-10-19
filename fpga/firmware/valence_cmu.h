@@ -17,7 +17,23 @@ enum valence_cmu_offset {
 enum valence_cmu_resource { CMU_AON=0, CMU_CPU=1, CMU_TIME=2, CMU_UART=3,
     CMU_DDR_UI=4, CMU_GMAC_TX=5, CMU_GMAC_RX=6, CMU_FIRST_MANAGED=7 };
 static inline uint64_t valence_cmu_read(unsigned offset) {
+#ifdef VALENCE_CMU_TEST
+    extern uint64_t valence_cmu_test_read(unsigned);
+    return valence_cmu_test_read(offset);
+#else
     return *(volatile uint64_t *)(uintptr_t)(VALENCE_CMU_BASE+offset);
+#endif
+}
+/* Shared-platform fabric uses TIME (resource 2); indices remain ABI V1. */
+#define CMU_FABRIC CMU_TIME
+static inline uint64_t valence_cmu_nominal_hz(unsigned resource) {
+    if (resource >= 16 || valence_cmu_read(CMU_ID_VERSION) != VALENCE_CMU_ID) return 0;
+    unsigned count = (unsigned)(valence_cmu_read(CMU_CAPABILITIES) >> 16) & 0xffffU;
+    if (resource >= count || !(valence_cmu_read(CMU_PRESENT) & (UINT64_C(1) << resource))) return 0;
+    unsigned base = 0x100U + resource * 0x40U;
+    if (valence_cmu_read(base) != resource || !(valence_cmu_read(base + 0x10U) & 1)) return 0;
+    uint64_t hz = valence_cmu_read(base + 0x08U);
+    return hz <= UINT32_MAX ? hz : 0;
 }
 static inline void valence_cmu_write(unsigned offset, uint64_t value) {
     __asm__ volatile("fence iorw, iorw" ::: "memory");

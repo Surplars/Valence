@@ -19,7 +19,7 @@ int coremark_main(void){assert(0);return 0;}
 int mmu_diagnostic(void){assert(0);return 1;}
 volatile uint64_t *diagnostic_test_a(void){return source;}
 volatile uint64_t *diagnostic_test_b(void){return destination;}
-uint64_t diagnostic_test_tick(void){return ++ticks;}
+uint64_t diagnostic_test_tick(void){return ticks+=(uint64_t)TIMEBASE_HZ/1000;}
 void diagnostic_test_flush(void){++flushes;}
 int ee_printf(const char *fmt,...){va_list ap;va_start(ap,fmt);int n=vsnprintf(text+text_n,sizeof text-text_n,fmt,ap);va_end(ap);assert(n>=0&&(unsigned)n<sizeof text-text_n);text_n+=(unsigned)n;return n;}
 uint64_t diagnostic_test_read(unsigned r){assert(r==4);++reads;return regs[r];}
@@ -33,7 +33,7 @@ int main(void){unsigned cases=0;
  reset(0);assert(cpu_bandwidth(1));assert(strstr(text,"CPU_BANDWIDTH_PASS"));++cases;
  reset(0);assert(cpu_bandwidth(0));assert(strstr(text,"read_over_cache")&&strstr(text,"read_cache_hot"));++cases;
  for(unsigned quick=0;quick<2;quick++){reset(0);assert(dma_bandwidth(quick));assert(starts==1&&clears==1&&flushes==2);assert(strstr(text,"MEMORY_DMA_PASS"));++cases;}
- for(unsigned f=1;f<=4;f++){reset(f);assert(!dma_bandwidth(1));assert(starts==1&&clears==0);assert(!strstr(text,"MEMORY_DMA_PASS"));if(f==3){assert(regs[4]&1);unsigned old=starts;assert(!dma_bandwidth(1)&&starts==old);}++cases;}
+ for(unsigned f=1;f<=4;f++){reset(f);assert(!dma_bandwidth(1));assert(starts==1&&clears==0);assert(!strstr(text,"MEMORY_DMA_PASS"));if(f==3){assert(regs[4]&1);assert(reads==2002);unsigned old=starts;assert(!dma_bandwidth(1)&&starts==old);}++cases;}
  reset(0);regs[4]=1;assert(!dma_bandwidth(1)&&starts==0&&flushes==0);++cases;
  reset(0);diagnostic_test_drop_write=1;assert(!cpu_bandwidth(1)&&strstr(text,"CPU WRITE FAIL"));++cases;
  reset(0);diagnostic_test_drop_read=1;assert(!cpu_bandwidth(1)&&strstr(text,"CPU READ FAIL"));++cases;

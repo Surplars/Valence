@@ -4,7 +4,9 @@ import chisel3._
 import chisel3.util._
 
 /** Optional caches wrap IF/MEM handshakes; named CPU pipeline profiles remain independently selectable. */
-class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolean = false) extends Module {
+class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolean = false,
+    acknowledgedDataInvalidate: Boolean = false) extends Module {
+    require(!acknowledgedDataInvalidate || (externalDataInvalidate && p.coherentCaches))
     val io = IO(new Bundle {
         val instructionMemory = new FiveStageBurstPort(p)
         val dataMemory = new FiveStageBurstPort(p)
@@ -15,6 +17,11 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
             Flipped(Decoupled(new soc.ip.tilelink.LineGrant(
                 soc.bus.tilelink.TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)))))) else None
         val clearCoherentReservation = if (p.coherentCaches) Some(Output(Bool())) else None
+        // CPU-clock register transactions; platform crossings require the shared CDC adapter.
+        val msi = if (p.withAia) Some(Flipped(new soc.ip.bus.RegisterPort)) else None
+        val fenceIFlush = if (p.externalFenceICompletion) Some(Output(Bool())) else None
+        val fenceIFlushReady = if (p.externalFenceICompletion) Some(Input(Bool())) else None
+        val fenceIFetchDrained = if (p.externalFenceICompletion) Some(Output(Bool())) else None
         val retire = Valid(new FiveStageRetire(p))
         val trapTaken = Output(Bool())
         val trapPc = Output(UInt(p.xlen.W))
@@ -25,6 +32,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val softwareIrq = Input(Bool())
         val supervisorExternalIrq = if (p.withSupervisor) Some(Input(Bool())) else None
         val invalidateData = if (externalDataInvalidate) Some(Input(Bool())) else None
+        val invalidateDataDone = if (acknowledgedDataInvalidate) Some(Output(Bool())) else None
         val invalidateReservation = if (p.withA) Some(Input(Bool())) else None
         val cycles = Output(UInt(64.W))
         val instructions = Output(UInt(64.W))
@@ -43,10 +51,22 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val dataRequestOffered = Output(Bool())
     })
     val core = Module(new FiveStageCore(p))
+    io.fenceIFlush.foreach(_ := core.io.fenceIFlush.get)
+    io.fenceIFetchDrained.foreach(_ := core.io.fenceIFetchDrained.get)
+    core.io.fenceIFlushReady.foreach(_ := io.fenceIFlushReady.get)
+    val imsic = if (p.withAia) Some(Module(new soc.ip.interrupt.Imsic(
+        soc.ip.interrupt.ImsicParams(identities = 127, guestFiles = 0)))) else None
+    imsic.foreach { unit =>
+        unit.io.mmio <> io.msi.get
+        unit.io.csrRequest <> core.io.aia.get.request
+        core.io.aia.get.response <> unit.io.csrResponse
+    }
     val useInstructionPma = p.fpgaTimingCuts && (p.withSv39 || p.pmpEntries > 0)
     val icache = Module(new FiveStageWordCache(p, p.instructionCacheBytes, allowHitReplacement = true,
         trustedReadOnlyCacheability = useInstructionPma))
-    val dcache = Module(new FiveStageWordCache(p, p.dataCacheBytes))
+    val dcache = Module(new FiveStageWordCache(p, p.dataCacheBytes,
+        reportMaintenance = acknowledgedDataInvalidate))
+    io.invalidateDataDone.foreach(_ := dcache.io.invalidateDone.get)
     if (p.coherentCaches) {
         for ((cache, i) <- Seq(icache, dcache).zipWithIndex) {
             io.coherent.get(i) <> cache.io.coherence.get
@@ -114,7 +134,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         dcache.io.request <> physicalDataRequest; physicalDataResponse <> dcache.io.response
     }
     if (p.withSv39 || p.pmpEntries > 0) {
-        val splitInstruction = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation && p.tlbEntries <= 8
+        val splitInstruction = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation && p.preparedTranslationProofs
         val it = Module(new FiveStageAddressTranslation(p, instruction = true,
             parallelInstructionCandidates = splitInstruction,
             registeredInstructionReturn = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation))
@@ -181,9 +201,10 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         fetchResponse.bits.fetchSpan := true.B
         physicalDataRequest <> core.io.dataRequest; core.io.dataResponse <> physicalDataResponse
     }
-    core.io.time := io.time; core.io.externalIrq := io.externalIrq
+    core.io.time := io.time; core.io.externalIrq := io.externalIrq || imsic.map(_.io.interrupts(0)).getOrElse(false.B)
     core.io.timerIrq := io.timerIrq; core.io.softwareIrq := io.softwareIrq
-    core.io.supervisorExternalIrq.foreach(_ := io.supervisorExternalIrq.get)
+    core.io.supervisorExternalIrq.foreach(_ := io.supervisorExternalIrq.get ||
+        imsic.map(_.io.interrupts(1)).getOrElse(false.B))
     io.retire := core.io.retire; io.cycles := core.io.cycles; io.instructions := core.io.instructions
     io.trapTaken := core.io.trapTaken; io.trapPc := core.io.trapPc; io.trapCause := core.io.trapCause
     io.stageValid := core.io.stageValid; io.branchMispredict := core.io.branchMispredict

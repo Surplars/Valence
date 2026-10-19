@@ -16,10 +16,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         val instructionResponse = Flipped(Decoupled(new FiveStageFetchResponse))
         val dataRequest = Decoupled(new FiveStageDataRequest(p))
         val dataResponse = Flipped(Decoupled(new FiveStageDataResponse(p)))
-        val dataCandidates = if (p.fpgaTimingCuts && p.fastDataTranslation && p.tlbEntries <= 8)
+        val dataCandidates = if (p.fpgaTimingCuts && p.fastDataTranslation && p.preparedTranslationProofs)
             Some(Output(Vec(2, new FiveStageDataRequest(p)))) else None
         val dataCandidateEarly = dataCandidates.map(_ => Output(Bool()))
         val dataReadAhead = if (p.dataReplyHandoff) Some(Output(Bool())) else None
+        val aia = if (p.withAia) Some(new I1AiaCsrPort) else None
+        val fenceIFlush = if (p.externalFenceICompletion) Some(Output(Bool())) else None
+        val fenceIFlushReady = if (p.externalFenceICompletion) Some(Input(Bool())) else None
+        val fenceIFetchDrained = if (p.externalFenceICompletion) Some(Output(Bool())) else None
         val retire = Valid(new FiveStageRetire(p))
         val time = Input(UInt(64.W))
         val externalIrq = Input(Bool())
@@ -61,6 +65,18 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     private val exPacket = Reg(new FiveStageExecutePacket(p))
     private val memPacket = Reg(new FiveStageCompletion(p))
     private val wbPacket = Reg(new FiveStageCompletion(p))
+    private val aiaSent = if (p.withAia) Some(RegInit(false.B)) else None
+    private val aiaDone = if (p.withAia) Some(RegInit(false.B)) else None
+    private val wbAia = if (p.withAia) wbPacket.control.csr && I1Aia.indirect(wbPacket.control.csrAddress)
+        else false.B
+    private val wbAiaWait = if (p.withAia) wbValid && wbAia && !wbPacket.fault && !aiaDone.get else false.B
+    private val fenceIFetchDrained = WireDefault(true.B)
+    private val wbFenceI = if (p.externalFenceICompletion)
+        wbValid && !wbPacket.fault && wbPacket.control.fenceI else false.B
+    private val wbFenceIWait = if (p.externalFenceICompletion)
+        wbFenceI && (!io.fenceIFlushReady.get || !fenceIFetchDrained) else false.B
+    private val wbHold = wbAiaWait || wbFenceIWait
+    private val wbCommit = if (p.withAia || p.externalFenceICompletion) wbValid && !wbHold else wbValid
     private val rrPacket = if (p.registerReadStage) Reg(new FiveStageExecutePacket(p))
         else WireDefault(0.U.asTypeOf(new FiveStageExecutePacket(p)))
     private val addrPacket = if (p.addressStage) Reg(new FiveStageCompletion(p))
@@ -110,7 +126,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     csr.io.supervisorExternalIrq := io.supervisorExternalIrq.getOrElse(false.B)
     io.translation := csr.io.context; io.pmp := csr.io.pmp
     io.invalidateTranslation := (if (p.fpgaTimingCuts)
-        wbValid && !wbPacket.fault && wbPacket.translationInvalidate.get else csr.io.invalidateTranslation)
+        wbCommit && !wbPacket.fault && wbPacket.translationInvalidate.get else csr.io.invalidateTranslation)
     io.cycles := csr.io.cycles; io.instructions := csr.io.instructions
     val stages = Seq(ifValid, idValid) ++ (if (p.registerReadStage) Seq(rrValid) else Nil) ++
         Seq(exValid) ++ (if (p.addressStage) Seq(addrValid) else Nil) ++ Seq(memValid) ++
@@ -119,7 +135,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     def needsRecovery(packet: FiveStageCompletion): Bool =
         packet.fault || packet.control.mret || packet.control.sret ||
             packet.control.sfence || packet.control.fenceI || packet.contextBarrier.get
-    val wbFlush = if (p.fpgaTimingCuts) wbRecovery.get else wbValid && (
+    val wbFlush = if (p.fpgaTimingCuts) wbRecovery.get && !wbHold else wbCommit && (
         wbPacket.fault || wbPacket.control.mret || wbPacket.control.sret ||
         wbPacket.control.sfence || wbPacket.control.fenceI ||
         csr.io.contextBarrier)
@@ -137,7 +153,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     val backendFlush = activeRecovery || exRedirect
 
     // WB is the only architectural side-effect point. The retire interface has no backpressure.
-    io.retire.valid := wbValid
+    io.retire.valid := wbCommit
     io.retire.bits.pc := wbPacket.instruction.pc
     io.retire.bits.instruction := wbPacket.instruction.instruction
     io.retire.bits.nextPc := wbPacket.nextPc
@@ -151,37 +167,83 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         commit := wbPacket.floating.get
         commit.write := wbPacket.floating.get.write && !wbPacket.fault
     }
-    rf.io.writeEnable := wbValid && !wbPacket.fault && wbPacket.control.writesRd
+    rf.io.writeEnable := wbCommit && !wbPacket.fault && wbPacket.control.writesRd
     rf.io.rd := wbPacket.control.rd; rf.io.writeData := wbPacket.result
     fpr.foreach { registers =>
-        registers.io.writeEnable := wbValid && !wbPacket.fault && wbPacket.floating.get.write
+        registers.io.writeEnable := wbCommit && !wbPacket.fault && wbPacket.floating.get.write
         registers.io.rd := wbPacket.control.rd
         registers.io.writeData := wbPacket.floating.get.data(p.flen - 1, 0)
     }
-    csr.io.fpRetire := wbValid && !wbPacket.fault && wbPacket.control.floating
+    csr.io.fpRetire := wbCommit && !wbPacket.fault && wbPacket.control.floating
     csr.io.fpFlags := wbPacket.floating.map(_.flags).getOrElse(0.U(5.W))
-    csr.io.retire := wbValid && !wbPacket.fault
-    csr.io.write.valid := wbValid && !wbPacket.fault && wbPacket.csrWrite
+    csr.io.retire := wbCommit && !wbPacket.fault
+    csr.io.write.valid := wbCommit && !wbPacket.fault && wbPacket.csrWrite && !wbAia
     csr.io.write.bits.address := wbPacket.control.csrAddress
     csr.io.write.bits.data := wbPacket.csrData
-    csr.io.mret := wbValid && !wbPacket.fault && wbPacket.control.mret
-    csr.io.sret := wbValid && !wbPacket.fault && wbPacket.control.sret
-    csr.io.sfence := wbValid && !wbPacket.fault && wbPacket.control.sfence
-    csr.io.trap.valid := (wbValid && wbPacket.fault) || irqCommit
+    csr.io.mret := wbCommit && !wbPacket.fault && wbPacket.control.mret
+    csr.io.sret := wbCommit && !wbPacket.fault && wbPacket.control.sret
+    csr.io.sfence := wbCommit && !wbPacket.fault && wbPacket.control.sfence
+    csr.io.trap.valid := (wbCommit && wbPacket.fault) || irqCommit
     csr.io.trap.bits.pc := Mux(irqCommit, architecturalNextPc, wbPacket.instruction.pc)
     csr.io.trap.bits.cause := Mux(irqCommit, csr.io.irqCause, wbPacket.cause)
     csr.io.trap.bits.tval := Mux(irqCommit, 0.U, wbPacket.tval)
     io.trapTaken := csr.io.trap.valid
     io.trapPc := csr.io.trap.bits.pc
     io.trapCause := csr.io.trap.bits.cause
-    io.invalidateInstructionCache := wbValid && !wbPacket.fault && wbPacket.control.fenceI
-    when(wbValid && !wbPacket.fault) { architecturalNextPc := wbPacket.nextPc }
+    io.invalidateInstructionCache := wbCommit && !wbPacket.fault && wbPacket.control.fenceI
+    when(wbCommit && !wbPacket.fault) { architecturalNextPc := wbPacket.nextPc }
     // Architectural IRQ resume never needs a speculative branch target.
     // Do not leave its register mux connected to EX recovery and rely on
     // synthesis proving mutually exclusive nested conditions.
     when(olderFlush) { architecturalNextPc := (if (p.fpgaTimingCuts) retirementRedirectPc else redirectPc) }
-    wbValid := false.B
-    wbRecovery.foreach(_ := false.B)
+    wbValid := wbHold
+    wbRecovery.foreach { recovery => when(!wbHold) { recovery := false.B } }
+    if (p.externalFenceICompletion) {
+        // The platform owns dirty-data publication and downstream drain/epoch completion.
+        // Keep this serial owner until that real completion, then emit the existing single
+        // I-cache invalidation/retirement redirect. No guessed timeout or local-ready shortcut.
+        io.fenceIFlush.get := wbFenceI
+        io.fenceIFetchDrained.get := fenceIFetchDrained
+        when(io.fenceIFlush.get) {
+            assert(!rrValid && !exValid && !addrValid && !memValid && !cmpValid,
+                "FENCE.I maintenance overlaps another backend owner")
+        }
+    }
+    if (p.withAia) {
+        val port = io.aia.get
+        // Serial admission drained all older instructions before EX. Holding this WB owner
+        // blocks IRQ commit and younger serial admission until its response is recorded.
+        port.request.valid := wbAiaWait && !aiaSent.get
+        port.request.bits.file := Mux(wbPacket.control.csrAddress(9), 0.U, 1.U)
+        port.request.bits.selector := Mux(wbPacket.control.csrAddress(9),
+            csr.io.aiaSelectors.get(0), csr.io.aiaSelectors.get(1))
+        port.request.bits.topei := wbPacket.control.csrAddress(3, 0) === 12.U
+        // rs1=x0 suppresses CSRRS/CSRRC writes, including topei claim. A nonzero
+        // source register containing zero still conveys architectural write intent.
+        port.request.bits.operation := Mux(wbPacket.csrWrite, wbPacket.control.funct3(1, 0), 0.U)
+        port.request.bits.data := wbPacket.csrData
+        port.response.ready := wbAiaWait && aiaSent.get
+        when(port.request.fire) { aiaSent.get := true.B }
+        when(port.response.fire) {
+            aiaDone.get := true.B
+            wbPacket.result := port.response.bits.data
+            when(port.response.bits.error) {
+                wbPacket.fault := true.B
+                wbPacket.cause := 2.U
+                wbPacket.tval := wbPacket.instruction.instruction.pad(p.xlen)
+                wbRecovery.foreach(_ := true.B)
+            }
+        }
+        when(wbCommit) { aiaSent.get := false.B; aiaDone.get := false.B }
+        when(wbValid && wbAia) {
+            assert(!rrValid && !exValid && !addrValid && !memValid && !cmpValid,
+                "IMSIC WB transaction overlaps another backend owner")
+        }
+        assert(!port.request.fire || (!olderFlush && !wbPacket.fault && wbPacket.control.serial),
+            "IMSIC side effect lacks precise serial WB authority")
+        assert(!port.response.valid || (wbValid && wbAia && aiaSent.get && !aiaDone.get),
+            "IMSIC response has no committed WB owner")
+    }
 
     // The cut profile captured memoryResult (including access errors) at the
     // MEM/CMP edge. Do not decode the raw response a second time in capacity.
@@ -348,7 +410,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     def memMatch(address: UInt, used: Bool): Bool = memValid &&
         (p.fpgaTimingCuts.B || !memPacket.fault) &&
         memPacket.control.writesRd && memPacket.control.rd =/= 0.U && used && memPacket.control.rd === address
-    def wbMatch(address: UInt, used: Bool): Bool = wbValid && !wbPacket.fault &&
+    def wbMatch(address: UInt, used: Bool): Bool = wbCommit && !wbPacket.fault &&
         wbPacket.control.writesRd && wbPacket.control.rd =/= 0.U && used && wbPacket.control.rd === address
     def addressMatch(address: UInt, used: Bool): Bool = addrValid &&
         (p.fpgaTimingCuts.B || !addressPrepared.fault) &&
@@ -688,7 +750,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         Mux(c.mret, csr.io.returnPc, Mux(c.sret, csr.io.supervisorReturnPc, sequentialPc)) else exNextPc)
     executed.branchTaken := takeBranch; executed.branchTarget := target
     executed.fault := exFault; executed.cause := exCause; executed.tval := exTval
-    executed.csrWrite := csrWrite; executed.csrData := csrData
+    executed.csrWrite := csrWrite
+    executed.csrData := (if (p.withAia) Mux(I1Aia.indirect(c.csrAddress), csrSource, csrData) else csrData)
     val changesMap = c.csrAddress === "h180".U || p.pmpEntries.U =/= 0.U &&
         c.csrAddress >= "h3a0".U && c.csrAddress <= "h3bf".U
     executed.contextBarrier.foreach(_ := csrWrite &&
@@ -729,7 +792,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     val idCapacity = if (p.fpgaTimingCuts) I1ExecuteDatapath.backendCapacity(
         rrValid, exValid, addrValid, memValid, memComplete, executeLocalReady, backendProgress)
         else issueReady
-    val frontPermission = !activeRecovery && !csr.io.irqPending
+    val frontPermission = !activeRecovery && !csr.io.irqPending && !wbFenceI
     val idFire = idValid && idCapacity && idLocalPermission && frontPermission
     val idRounding = Mux(decodedControl.funct3 === 7.U, csr.io.fpRounding, decodedControl.funct3)
     val idNumericalLegal = I1ExecuteDatapath.numericalLegal(idPacket.fetchError, decodedControl.legal,
@@ -856,7 +919,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         val predictor = Module(new FiveStageBranchPredictor(p))
         predictor.io.pc := offerPc
         predictor.io.invalidate := io.invalidateInstructionCache
-        predictor.io.train.valid := wbValid && !wbPacket.fault
+        predictor.io.train.valid := wbCommit && !wbPacket.fault
         predictor.io.train.bits.pc := wbPacket.instruction.pc
         predictor.io.train.bits.controlFlow := wbPacket.control.branch || wbPacket.control.jump
         predictor.io.train.bits.conditional := wbPacket.control.branch
@@ -869,14 +932,15 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
             predictionMask := predictor.io.candidateMask.get
         }
     }
-    val responseSpace = pendingKilled || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
+    if (p.externalFenceICompletion) fenceIFetchDrained := !offerValid && !pending
+    val responseSpace = pendingKilled || wbFenceI || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
     io.instructionResponse.ready := pending && responseSpace
     io.instructionRequest.valid := offerValid && (if (p.fpgaTimingCuts)
         !pending || (io.instructionResponse.valid && responseSpace) else !pending || io.instructionResponse.fire)
     io.instructionRequest.bits := offerPc
     when(io.instructionResponse.fire) {
         pending := false.B
-        when(!pendingKilled && !flush) {
+        when(!pendingKilled && !flush && !wbFenceI) {
             ifValid := true.B; ifPacket.pc := pendingPc
             ifPacket.instruction := io.instructionResponse.bits.instruction
             ifPacket.fetchError := io.instructionResponse.bits.error
@@ -886,18 +950,25 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
             ifPacket.predictedNextPc := (if (p.branchPredictorEntries > 0 || p.withC) pendingPrediction else 0.U)
         }
     }
-    when(!offerValid && !csr.io.irqPending && !flush) {
+    when(!offerValid && !csr.io.irqPending && !flush && !wbFenceI) {
         offerValid := true.B; offerKilled := false.B
         if (!p.fpgaTimingCuts) offerPc := desiredPc
     }
     when(io.instructionRequest.fire) {
-        pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush
+        pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush || wbFenceI
         pendingPrediction := predictedNext
-        offerValid := !csr.io.irqPending; offerKilled := false.B
+        offerValid := !csr.io.irqPending && !wbFenceI; offerKilled := false.B
         if (!p.fpgaTimingCuts) {
             offerPc := Mux(offerKilled, desiredPc, predictedNext)
             when(!offerKilled) { desiredPc := predictedNext }
         }
+    }
+    if (p.externalFenceICompletion) when(wbFenceI) {
+        // Preserve every already-offered request until accepted, then drain its killed
+        // reply even with full IF/ID. No new offer may keep PTW/cache maintenance alive.
+        ifValid := false.B; idValid := false.B
+        when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
+        when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
     }
     when(flush) {
         ifValid := false.B; idValid := false.B
@@ -914,8 +985,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         // The real handshake only enables the existing registers: feeding
         // FIRE into every candidate mask reintroduced permission -> READY
         // -> wide payload mux -> hold mux on the PC feedback path.
-        val predict = io.instructionRequest.fire && !offerKilled && !flush
-        val resume = !flush && ((!offerValid && !csr.io.irqPending) ||
+        val predict = io.instructionRequest.fire && !offerKilled && !flush && !wbFenceI
+        val resume = !flush && !wbFenceI && ((!offerValid && !csr.io.irqPending) ||
             (io.instructionRequest.fire && offerKilled))
         val redirect = flush && (!offerValid || io.instructionRequest.fire)
         when(predict || resume || redirect) {
@@ -960,7 +1031,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
                 "flattened EX capacity differs from exact owner transfer")
             assert(ifFire === (ifValid && (!idValid || idFire) && frontPermission),
                 "lookahead IF capacity differs from exact owner transfer")
-            assert(io.instructionResponse.ready === (pending && (pendingKilled || !ifValid || ifFire)),
+            assert(io.instructionResponse.ready === (pending && (pendingKilled || wbFenceI || !ifValid || ifFire)),
                 "lookahead fetch reply capacity mismatch")
             assert(io.instructionRequest.valid === (offerValid && (!pending || io.instructionResponse.fire)),
                 "lookahead fetch request slot mismatch")

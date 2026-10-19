@@ -186,7 +186,8 @@ class TileLinkInstructionRomAdapter(
     words: Int,
     base: BigInt = BigInt("80000000", 16),
     params: TLParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4),
-    bufferedReplies: Boolean = false
+    bufferedReplies: Boolean = false,
+    completeReadBeat: Boolean = false
 ) extends Module {
     require(words >= 4 && isPow2(words) && base >= 0 && base % 8 == 0)
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 1 && params.sizeBits >= 2)
@@ -210,7 +211,11 @@ class TileLinkInstructionRomAdapter(
     val a = io.tl.a.bits
     io.rom.request.valid := io.tl.a.valid && metadata.io.enq.ready
     io.rom.request.bits := Cat(a.address(63, 3), 0.U(3.W))
-    io.rom.requestMask := Mux(a.size === 3.U, 3.U, Mux(a.address(2), 2.U, 1.U))
+    // Some instruction clients independently authorize reuse of the complete
+    // containing beat. Fill both physical banks for those clients without
+    // changing the TL request extent or its requested-word error semantics.
+    io.rom.requestMask := (if (completeReadBeat) 3.U else
+        Mux(a.size === 3.U, 3.U, Mux(a.address(2), 2.U, 1.U)))
     io.tl.a.ready := metadata.io.enq.ready && io.rom.request.ready
     metadata.io.enq.valid := io.tl.a.fire
     metadata.io.enq.bits.source := a.source

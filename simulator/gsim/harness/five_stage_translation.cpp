@@ -14,6 +14,11 @@ static constexpr bool INSTRUCTION = true;
 #else
 static constexpr bool INSTRUCTION = false;
 #endif
+#ifndef I1_TLB_ENTRIES
+#define I1_TLB_ENTRIES 8
+#endif
+static constexpr unsigned TLB_ENTRIES = I1_TLB_ENTRIES;
+static unsigned tlbBits() { unsigned bits=0; for(unsigned n=TLB_ENTRIES;n>1;n>>=1) ++bits; return bits; }
 static uint64_t pte(uint64_t pa, unsigned flags) { return (pa >> 12 << 10) | flags; }
 static uint64_t pattern(uint64_t pa) { return (pa & ~7ULL) * 0x9e3779b97f4a7c15ULL ^ 0xc0011234abcdfed0ULL; }
 struct Expected { uint64_t pa = 0; bool error = false, page = false; };
@@ -392,35 +397,37 @@ int main(int argc, char **argv) { try {
         t.transact(0x1080030030ULL, true); t.transact(0x80030038, true);
     }
 #ifdef I1_INDEXED_DATA_PROOFS
-    // Same eight permission slots, indexed by FULL virtual-page hash rather
+    // Same configured permission slots, indexed by FULL virtual-page hash rather
     // than the shared superpage TLB owner. Read/write proofs stay separate.
     t.tables(); t.top=0x200000000ULL;
     t.memory[ROOT+8]=pte(0x80000000ULL,0xc7);
     t.memory[ROOT+16]=pte(0xc0000000ULL,0xc7);
-    for(unsigned page=0;page<8;++page) {
+    for(unsigned page=0;page<TLB_ENTRIES;++page) {
         t.transact(VA+page*4096);t.transact(VA+page*4096+8,true);
     }
     const auto indexedHits=t.hits, indexedWalks=t.walks;
-    for(unsigned page=0;page<8;++page) {
+    for(unsigned page=0;page<TLB_ENTRIES;++page) {
         t.transact(VA+page*4096+16);t.transact(VA+page*4096+24,true);
     }
     const bool wrongIndexed=argc>1&&std::string(argv[1])=="--wrong-indexed-count";
-    need(t.hits>=indexedHits+(wrongIndexed?1000000:16)&&t.walks==indexedWalks,
+    need(t.hits>=indexedHits+(wrongIndexed?1000000:2*TLB_ENTRIES)&&t.walks==indexedWalks,
          "independent indexed data superpage proof reuse oracle");
     t.memory[ROOT+8]=pte(0x100000000ULL,0xc7);
     t.transact(0x80001000ULL); // replace the REAL shared row0 first
-    for(unsigned page=0;page<8;++page) {
+    for(unsigned page=0;page<TLB_ENTRIES;++page) {
         t.transact(VA+page*4096);t.transact(VA+page*4096+8,true);
     }
     // Leaf row replacement must invalidate BOTH proof classes bound to that
     // source, not whichever virtual proof index equals the source number.
     t.tables();t.top=0x200000000ULL;
-    for(unsigned i=0;i<8;++i) {
-        const unsigned page=(i<<3)|(i^1);
-        t.memory[L0+page*8]=pte(0x100100000ULL+i*4096,0xc7);
+    for(unsigned i=0;i<TLB_ENTRIES;++i) {
+        const unsigned page=(i<<tlbBits())|(i^1);
+        const uint64_t leafTable=L0+(page/512)*4096;
+        t.memory[L1+(page/512)*8]=pte(leafTable,1);
+        t.memory[leafTable+(page%512)*8]=pte(0x100100000ULL+i*4096,0xc7);
     }
-    for(unsigned i=0;i<8;++i) {
-        const unsigned page=(i<<3)|(i^1);
+    for(unsigned i=0;i<TLB_ENTRIES;++i) {
+        const unsigned page=(i<<tlbBits())|(i^1);
         t.transact(VA+page*4096);t.transact(VA+page*4096+8,true);
     }
     t.memory[L0+8]=pte(0x100500000ULL,0xc7);
@@ -430,7 +437,8 @@ int main(int argc, char **argv) { try {
     t.transact(VA+4096);t.transact(VA+4096+8,true);
     t.memory[ROOT+8]=pte(0x80000000ULL,0xc7);
     t.transact(VA+8192);t.transact(VA+4096);t.transact(VA+4096+8,true);
-    std::cout<<"I1_INDEXED_DATA_PROOF_REPLACEMENT_PASS proofs=8 read_write_owner_eviction=1 dominant_superpage=1 no_extra_TLB_rows=1\n";
+    std::cout<<"I1_INDEXED_DATA_PROOF_REPLACEMENT_PASS proofs="<<TLB_ENTRIES
+        <<" read_write_owner_eviction=1 dominant_superpage=1 no_extra_TLB_rows=1\n";
 #endif
 #ifdef I1_INSTRUCTION_PMA
     t.tables(); t.transact(VA); t.transact(VA + 4, false, false, {}, -1, true);
@@ -446,26 +454,29 @@ int main(int argc, char **argv) { try {
     t.tables(); t.top = 0x200000000ULL;
     t.memory[ROOT + 8] = pte(0x80000000ULL, 0xcf);
     t.memory[ROOT + 16] = pte(0xc0000000ULL, 0xcf);
-    for (unsigned page = 0; page < 4; ++page) {
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) {
         t.transact(VA + page * 4096); t.transact(VA + page * 4096 + 4);
     }
     t.memory[ROOT + 8] = pte(0x100000000ULL, 0xcf);
     t.transact(0x80001000ULL);
-    for (unsigned page = 0; page < 4; ++page) {
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) {
         t.transact(VA + page * 4096); t.transact(VA + page * 4096 + 4);
     }
-    // Eight different leaves share the existing hashed TLB/proof index1.
+    // Different leaves share the configured hashed TLB/proof index1.
     t.tables();
-    for (unsigned i = 0; i < 8; ++i) {
-        const unsigned page = (i << 3) | (i ^ 1);
-        t.memory[L0 + page * 8] = pte(0x80210000ULL + i * 4096, 0xcf);
+    for (unsigned i = 0; i < TLB_ENTRIES; ++i) {
+        const unsigned page = (i << tlbBits()) | (i ^ 1);
+        const uint64_t leafTable = L0 + (page / 512) * 4096;
+        t.memory[L1 + (page / 512) * 8] = pte(leafTable, 1);
+        t.memory[leafTable + (page % 512) * 8] = pte(0x80210000ULL + i * 4096, 0xcf);
     }
-    for (unsigned i = 0; i < 8; ++i) {
-        const unsigned page = (i << 3) | (i ^ 1);
+    for (unsigned i = 0; i < TLB_ENTRIES; ++i) {
+        const unsigned page = (i << tlbBits()) | (i ^ 1);
         t.transact(VA + page * 4096); t.transact(VA + page * 4096 + 4);
     }
     t.transact(VA + 4096);
-    std::cout << "I1_INDEXED_IF_PROOF_REPLACEMENT_PASS source_owner_eviction=1 hashed_collisions=8 no_extra_TLB_rows=1\n";
+    std::cout << "I1_INDEXED_IF_PROOF_REPLACEMENT_PASS source_owner_eviction=1 hashed_collisions="
+        << TLB_ENTRIES << " no_extra_TLB_rows=1\n";
     // Raw fixture mode1 is not Sv39 and cannot publish a virtual proof.
     t.tables(); t.transact(VA); t.satp = (1ULL << 60) | (ROOT >> 12);
     t.transact(VA); t.satp = (8ULL << 60) | (ROOT >> 12); t.transact(VA + 4);
@@ -519,6 +530,49 @@ int main(int argc, char **argv) { try {
         };
         measure(true); measure(false);
     }
+    // Evict every NONZERO source row, including sources in upper banks.
+    // A 1024-page stride preserves every tested XOR hash. Change the old
+    // page table only after its owner is demonstrably replaced; no stale
+    // read/write or instruction proof may survive and reuse the old PA.
+    for (unsigned source = 1; source < TLB_ENTRIES; ++source) {
+        t.tables();
+        const unsigned other = source + 1024;
+        t.memory[L0 + source * 8] = pte(0x80040000ULL + source * 4096, 0xcf);
+        t.memory[L1 + (other / 512) * 8] = pte(L0 + 8192, 1);
+        t.memory[L0 + 8192 + (other % 512) * 8] = pte(0x80100000ULL + source * 4096, 0xcf);
+        t.transact(VA + source * 4096);
+        if (!INSTRUCTION) t.transact(VA + source * 4096 + 8, true);
+        t.transact(VA + other * 4096);
+        if (!INSTRUCTION) t.transact(VA + other * 4096 + 8, true);
+        t.memory[L0 + source * 8] = pte(0x80200000ULL + source * 4096, 0xcf);
+        t.transact(VA + source * 4096);
+        if (!INSTRUCTION) t.transact(VA + source * 4096 + 8, true);
+    }
+    std::cout << "I1_ALL_NONZERO_SOURCE_REPLACEMENT_PASS rows=" << TLB_ENTRIES - 1 << '\n';
+    // Exercise copied permissions in EVERY proof bank after warming, without
+    // invalidating on SUM/MXR/privilege changes. Those are live request inputs.
+    // PMP changes, in contrast, carry the existing CSR invalidation contract.
+    t.tables(); t.sum = t.mxr = true;
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) {
+        const unsigned flags = INSTRUCTION ? (page % 2 ? 0xdf : 0xcf) :
+            (page % 4 == 0 ? 0xc7 : page % 4 == 1 ? 0xd7 : page % 4 == 2 ? 0xc9 : 0xd9);
+        t.memory[L0 + page * 8] = pte(0x80040000ULL + page * 4096, flags);
+    }
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) {
+        if (INSTRUCTION) t.privilege = t.dataPrivilege = page % 2 ? 0 : 1;
+        t.transact(VA + page * 4096); t.transact(VA + page * 4096 + 8);
+    }
+    t.privilege = t.dataPrivilege = 1; t.sum = t.mxr = false;
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) t.transact(VA + page * 4096 + 16);
+    t.privilege = t.dataPrivilege = 0; t.mxr = true;
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) t.transact(VA + page * 4096 + 24);
+    t.privilege = t.dataPrivilege = 1; t.sum = t.mxr = true;
+    t.pmpConfig = INSTRUCTION ? 0x8b : 0x8c; t.invalidate();
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) t.transact(VA + page * 4096 + 32);
+    t.pmpConfig = 15; t.invalidate();
+    for (unsigned page = 0; page < TLB_ENTRIES; ++page) t.transact(VA + page * 4096 + 40);
+    std::cout << "I1_PROOF_BANK_PERMISSION_EPOCH_PASS entries=" << TLB_ENTRIES
+              << " live_privilege_SUM_MXR=1 PMP_revoke_restore=1\n";
 #ifdef I1_RETIREMENT_OVERLAP
     // Keep the next offer asserted while an old REGISTERED response is
     // stalled. The independent oracle sees accepted owners, not DUT state.

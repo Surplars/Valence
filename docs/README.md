@@ -1,6 +1,13 @@
 # Valence 文档导航
 
-Current Orbital-A1 timing candidate: [ready/raw73 selection, measured74 regression and qualification limits](timing-closure-candidate-20261014.md). The new named entry keeps frozen checked flow OFF; historical entries and results below retain their original scope.
+## 先跑通的功能基线
+
+[命名启动入口与验收顺序](../simulator/gsim/BRINGUP.md)：先复位/ROM、UART 或 tohost、RAM，再中断基本链。
+`make bringup-plan` 只列出真实入口、阻断项和证据范围；实际测试须显式选择配置。
+历史 bit、当前源码的功能检查、物理时序签核分别记录，未运行项不能算通过。
+最终可替换 CPU 的公共平台必须显式启用独立 CPU/fabric 时钟；新增异步传输组件并不表示两个 SoC 已接通该平台。
+
+性能实验单列：[Orbital-A1 ready/raw73、measured74 与资格限制](timing-closure-candidate-20261014.md)。这些候选不由功能基线入口自动选择；历史记录保留原有范围。
 
 ## Orbital-I1：独立参数化顺序核（dev2）
 

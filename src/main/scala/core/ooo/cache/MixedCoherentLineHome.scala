@@ -2,10 +2,42 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
-import soc.bus.tilelink.{TLParams, TLOpcode, TLPermissions}
+import soc.bus.tilelink.{TLBundle, TLParams, TLOpcode, TLPermissions}
 import soc.ip.tilelink.{TileLinkLineProbeEngine, TileLinkLineTransfer}
 
-/** Single-client bounded read/refill and writeback ownership tables.
+/** Reset-defined two-client arbitration for Home A and E. The same selected
+  * client controls payload, valid, and ready, including the first post-reset
+  * client-1-only transfer. A stalled offer retains its source until acceptance.
+  * No registered data stage or transaction-credit restriction is introduced.
+  */
+class ResettableHomeClientArbiter[T <: Data](gen: T, nClients: Int = 2) extends Module {
+    require(nClients == 2)
+    val io = IO(new ArbiterIO(gen, nClients))
+    private val turn = RegInit(0.U(1.W))
+    private val held = RegInit(false.B)
+    private val heldClient = Reg(UInt(1.W))
+    private val offered = Mux(io.in(0).valid && io.in(1).valid, turn, io.in(1).valid.asUInt)
+    private val selected = Mux(held, heldClient, offered)
+    io.chosen := selected
+    io.out.valid := io.in(selected).valid
+    io.out.bits := io.in(selected).bits
+    for (i <- 0 until nClients) io.in(i).ready := io.out.ready && selected === i.U
+    when(io.out.valid && !io.out.ready && !held) {
+        held := true.B
+        heldClient := selected
+    }
+    when(io.out.fire) {
+        turn := ~selected
+        held := false.B
+    }
+    when(held) {
+        assert(io.in(heldClient).valid, "Home arbitration source withdrew a held offer")
+    }
+    assert(PopCount(VecInit(io.in.map(_.fire))) === io.out.fire.asUInt,
+        "Home arbitration input/output acceptance differs")
+}
+
+/** Bounded read/refill and writeback ownership tables with client-local sources.
   * Complete C transfers a dirty victim into the pending-writeback table before
   * its committed directory slot may be reused. An optional future reservation
   * starts after accepted first C, but cannot Grant before complete C.
@@ -33,8 +65,12 @@ class MixedCoherentLineHome(
     val internalLineGrant: Boolean = false,
     val memoryScheduleOverlap: Boolean = false,
     val futureWayReservation: Boolean = false,
-    val sharedLookupMatch: Boolean = false
-) extends CoherentLineHomeModule(params, 1, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
+    val sharedLookupMatch: Boolean = false,
+    val nClients: Int = 1
+) extends CoherentLineHomeModule(params, nClients, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
+    require(nClients >= 1 && nClients <= 2)
+    require(nClients == 1 || (!memoryScheduleOverlap && !futureWayReservation && !sharedLookupMatch &&
+        !distinctWayRelease), "multi-client Home uses the generic ownership path")
     require(!sharedLookupMatch || (trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 &&
         writebackEntries == 2 && mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 &&
         tagConfig.bankedStorage), "shared lookup requires qualified directory geometry")
@@ -46,7 +82,7 @@ class MixedCoherentLineHome(
     require(Set(2, 4).contains(acquireEntries) && params.sinkBits >= log2Ceil(acquireEntries))
     require(bytes >= 64 && isPow2(bytes) && base % 64 == 0 && base + bytes <= (BigInt(1) << 64))
     require(trackedLines >= 4 && isPow2(trackedLines) && trackedLines <= bytes / 64)
-    require(Set(1, 2).contains(trackedWays) && trackedLines / trackedWays >= acquireEntries,
+    require(Set(1, 2, 4).contains(trackedWays) && trackedLines / trackedWays >= acquireEntries,
         "each Acquire entry needs an independently reservable directory set")
     require(Set(1, 2, 4).contains(writebackEntries))
     require(!memoryScheduleOverlap || (mixedReadWrite && acquireEntries == 2 &&
@@ -60,13 +96,52 @@ class MixedCoherentLineHome(
     private val writeTagBits = math.max(log2Ceil(acquireEntries + (if (dmaLineTransfers) dmaLineEntries else 0)),
         log2Ceil(writebackEntries + (if (dmaLineTransfers) dmaLineEntries + 1 else 1)))
     private val releaseBits = math.max(1, log2Ceil(writebackEntries))
-    private val port = io.clients(0)
+    private val clientBits = math.max(1, log2Ceil(nClients))
+    private val aClient = WireDefault(0.U(clientBits.W))
+    private val cClient = WireDefault(0.U(clientBits.W))
+    private val eClient = WireDefault(0.U(clientBits.W))
+    private val bClient = WireDefault(0.U(clientBits.W))
+    private val dClient = WireDefault(0.U(clientBits.W))
+    private val cLocked = WireDefault(false.B)
+    private val cHeldClient = Reg(UInt(clientBits.W))
+    private val port = if (nClients == 1) io.clients(0) else Wire(new TLBundle(params))
+    if (nClients > 1) {
+        val aArbiter = Module(new ResettableHomeClientArbiter(chiselTypeOf(port.a.bits), nClients))
+        val eArbiter = Module(new ResettableHomeClientArbiter(chiselTypeOf(port.e.bits), nClients))
+        for (i <- 0 until nClients) {
+            aArbiter.io.in(i) <> io.clients(i).a
+            eArbiter.io.in(i) <> io.clients(i).e
+            io.clients(i).b.valid := port.b.valid && bClient === i.U
+            io.clients(i).b.bits := port.b.bits
+            io.clients(i).d.valid := port.d.valid && dClient === i.U
+            io.clients(i).d.bits := port.d.bits
+            io.clients(i).c.ready := port.c.ready && cClient === i.U
+        }
+        port.a.valid := aArbiter.io.out.valid
+        port.a.bits := aArbiter.io.out.bits
+        aArbiter.io.out.ready := port.a.ready
+        aClient := aArbiter.io.chosen
+        port.e.valid := eArbiter.io.out.valid
+        port.e.bits := eArbiter.io.out.bits
+        eArbiter.io.out.ready := port.e.ready
+        eClient := eArbiter.io.chosen
+        val releases = VecInit(io.clients.map(c => c.c.valid && TLOpcode.isRelease(c.c.bits.opcode)))
+        val cValid = VecInit(io.clients.map(_.c.valid))
+        cClient := Mux(cLocked, cHeldClient,
+            Mux(releases.asUInt.orR, PriorityEncoder(releases), PriorityEncoder(cValid)))
+        port.c.valid := io.clients(cClient).c.valid
+        port.c.bits := io.clients(cClient).c.bits
+        port.b.ready := io.clients(bClient).b.ready
+        port.d.ready := io.clients(dClient).d.ready
+    }
+    when(port.c.fire) { cHeldClient := cClient }
     private val entryBits = log2Ceil(acquireEntries)
     private val directoryBits = log2Ceil(trackedLines)
     private val setBits = log2Ceil(trackedLines / trackedWays)
     private def setOf(address: UInt): UInt = address(5 + setBits, 6)
     private def inRam(address: UInt): Bool = address >= base.U(65.W) && address < (base + bytes).U(65.W)
     private val owned = RegInit(VecInit(Seq.fill(trackedLines)(false.B)))
+    private val ownerClients = Reg(Vec(trackedLines, UInt(clientBits.W)))
     // The directory index already identifies the set; tags need not store
     // those bits again. Keep ownership metadata separately resettable.
     private val tagGeometry = tagConfig.geometry(base, bytes, 6 + setBits)
@@ -74,13 +149,14 @@ class MixedCoherentLineHome(
     private val tagLookupAddress = WireDefault(UInt(64.W), io.upstream.request.bits.address)
     // Two functional read clients remain independent: a first Release C beat
     // and the live upstream / saved maintenance lookup. A third read serves
-    // only the independent Acquire admission assertion; synthesis must prove
-    // that verification-only cone is pruned before claiming two RAM copies.
+    // the independent Acquire admission assertion in the single-client profile.
+    // Multi-client admission also uses it to find a competing committed owner;
+    // that opt-in profile therefore makes no two-tag-read-port resource claim.
     private val lookupTags = tagBanks.map(_.read(setOf(tagLookupAddress)))
     private val releaseTags = tagBanks.map(_.read(setOf(port.c.bits.address)))
     private val acquireTags = tagBanks.map(_.read(setOf(port.a.bits.address)))
     private def waySlot(address: UInt, way: Int): UInt =
-        if (trackedWays == 1) setOf(address) else Cat(way.U(1.W), setOf(address))
+        if (trackedWays == 1) setOf(address) else Cat(way.U(log2Ceil(trackedWays).W), setOf(address))
     private def wayHit(address: UInt, way: Int, readTags: Seq[UInt]): Bool = {
         val slot = waySlot(address, way)
         tagGeometry.qualifies(address) && owned(slot) && readTags(way) === tagGeometry.tag(address)
@@ -89,12 +165,13 @@ class MixedCoherentLineHome(
         (0 until trackedWays).map(wayHit(address, _, readTags)).reduce(_ || _)
     private def ownedSlot(address: UInt, readTags: Seq[UInt]): UInt =
         if (trackedWays == 1) waySlot(address, 0)
-        else Mux(wayHit(address, 0, readTags), waySlot(address, 0), waySlot(address, 1))
+        else if (trackedWays == 2) Mux(wayHit(address, 0, readTags), waySlot(address, 0), waySlot(address, 1))
+        else Cat(PriorityEncoder(VecInit((0 until trackedWays).map(wayHit(address, _, readTags)))), setOf(address))
     private def directoryReserved(slot: UInt): Bool =
         (0 until acquireEntries).map(i => active(i) && directory(i) === slot).reduce(_ || _)
     private def directoryAvailable(address: UInt, way: Int): Bool = {
         val slot = waySlot(address, way)
-        !owned(slot) && (if (memoryScheduleOverlap)
+        !owned(slot) && (if (memoryScheduleOverlap || nClients > 1)
             !(0 until acquireEntries).map(i => active(i) && directory(i) === slot).reduce(_ || _)
         else true.B)
     }
@@ -102,12 +179,14 @@ class MixedCoherentLineHome(
         (0 until trackedWays).map(directoryAvailable(address, _)).reduce(_ || _)
     private def freeDirectorySlot(address: UInt): UInt =
         if (trackedWays == 1) waySlot(address, 0)
-        else Mux(directoryAvailable(address, 0), waySlot(address, 0), waySlot(address, 1))
+        else if (trackedWays == 2) Mux(directoryAvailable(address, 0), waySlot(address, 0), waySlot(address, 1))
+        else Cat(PriorityEncoder(VecInit((0 until trackedWays).map(directoryAvailable(address, _)))), setOf(address))
 
-    private val free :: queued :: filling :: grantReady :: waitE :: Nil = Enum(5)
+    private val free :: queued :: filling :: grantReady :: waitE :: probing :: Nil = Enum(6)
     private val phase = RegInit(VecInit(Seq.fill(acquireEntries)(free)))
     private val addresses = Reg(Vec(acquireEntries, UInt(64.W)))
     private val sources = Reg(Vec(acquireEntries, UInt(params.sourceBits.W)))
+    private val clients = Reg(Vec(acquireEntries, UInt(clientBits.W)))
     private val directory = Reg(Vec(acquireEntries, UInt(directoryBits.W)))
     private val data = Reg(Vec(acquireEntries, Vec(8, UInt(64.W))))
     private val errors = Reg(Vec(acquireEntries, Bool()))
@@ -160,6 +239,7 @@ class MixedCoherentLineHome(
     private val releasePhases = RegInit(VecInit(Seq.fill(writebackEntries)(rIdle)))
     private val releaseAddresses = Reg(Vec(writebackEntries, UInt(64.W)))
     private val releaseSources = Reg(Vec(writebackEntries, UInt(params.sourceBits.W)))
+    private val releaseClients = Reg(Vec(writebackEntries, UInt(clientBits.W)))
     private val releaseDirectories = Reg(Vec(writebackEntries, UInt(directoryBits.W)))
     private val releaseData = Reg(Vec(writebackEntries, Vec(8, UInt(64.W))))
     private val releaseBeat = Reg(UInt(3.W))
@@ -197,7 +277,7 @@ class MixedCoherentLineHome(
     private val probeCBeat = RegInit(0.U(3.W))
     private val probeCSource = Reg(UInt(params.sourceBits.W))
     private val releaseSourceBusy = (0 until writebackEntries).map(i =>
-        releasePhases(i) =/= rIdle && releaseSources(i) === port.c.bits.source).reduce(_ || _)
+        releasePhases(i) =/= rIdle && releaseSources(i) === port.c.bits.source && releaseClients(i) === cClient).reduce(_ || _)
     // A remains set-serialized through E. Only a complete dirty victim may
     // start C beside a distinct transient line; its committed directory owner
     // is checked below, outside C.ready's functional tag-read cone.
@@ -205,8 +285,14 @@ class MixedCoherentLineHome(
         port.c.bits.opcode === TLOpcode.ReleaseData && !(0 until acquireEntries).map(i =>
             active(i) && addresses(i)(63, 6) === port.c.bits.address(63, 6)).reduce(_ || _)
     else false.B
+    // A competing Acquire reserves the old slot while its owner may race the
+    // probe with a voluntary Release. That C must be allowed to make progress.
+    private val racingRelease = if (nClients > 1) (0 until acquireEntries).map(i =>
+        phase(i) === probing && addresses(i)(63, 6) === port.c.bits.address(63, 6)).reduce(_ || _)
+    else false.B
+    cLocked := capturing || probeCActive
     private val releaseReady = !probeCActive && (capturing ||
-        (releaseFree.asUInt.orR && (!transientSet(port.c.bits.address) || distinctRelease) &&
+        (releaseFree.asUInt.orR && (!transientSet(port.c.bits.address) || distinctRelease || racingRelease) &&
             !releaseSet(port.c.bits.address) && !releaseSourceBusy))
     private val releaseQueue = Module(new Queue(UInt(releaseBits.W), writebackEntries))
     releaseQueue.io.enq.valid := port.c.fire && isRelease &&
@@ -220,7 +306,9 @@ class MixedCoherentLineHome(
             "invalid release size/permission/corruption")
         when(!capturing) {
             assert(inRam(port.c.bits.address) && port.c.bits.address(5, 0) === 0.U &&
-                lineOwned(port.c.bits.address, releaseTags), "release has no committed directory owner")
+                lineOwned(port.c.bits.address, releaseTags) &&
+                ownerClients(ownedSlot(port.c.bits.address, releaseTags)) === cClient,
+                "release has no matching committed client owner")
             if (distinctWayRelease || memoryScheduleOverlap) {
                 for (i <- 0 until acquireEntries) {
                     when(active(i)) {
@@ -233,6 +321,7 @@ class MixedCoherentLineHome(
             captureEntry := newRelease
             releaseAddresses(newRelease) := port.c.bits.address
             releaseSources(newRelease) := port.c.bits.source
+            releaseClients(newRelease) := cClient
             releaseDirectories(newRelease) := ownedSlot(port.c.bits.address, releaseTags)
             releaseData(newRelease)(0) := port.c.bits.data
             releaseBeat := 1.U
@@ -241,7 +330,8 @@ class MixedCoherentLineHome(
             }.otherwise { owned(ownedSlot(port.c.bits.address, releaseTags)) := false.B; releasePhases(newRelease) := rAck }
         }.otherwise {
             assert(releasePhase === rCapture && port.c.bits.opcode === TLOpcode.ReleaseData &&
-                port.c.bits.address === releaseAddresses(captureSlot) && port.c.bits.source === releaseSources(captureSlot),
+                port.c.bits.address === releaseAddresses(captureSlot) && port.c.bits.source === releaseSources(captureSlot) &&
+                cClient === releaseClients(captureSlot),
                 "release burst changed address/source/opcode")
             releaseData(captureSlot)(releaseBeat) := port.c.bits.data
             when(releaseBeat === 7.U) {
@@ -317,16 +407,20 @@ class MixedCoherentLineHome(
     // Ordinary direct reads retain the old ordered downstream protocol. A pending
     // upstream request prevents an endless Acquire stream from starving DMA.
     private val Seq(mIdle, mProbeSend, mProbeWait, mWriteSend, mWriteWait, mAccessSend, mAccessWait,
-        mLineReadSend, mLineReadWait, mLineWriteSend, mLineWriteWait, mLineResponse, mLineHazard) = Enum(13)
+        mLineReadSend, mLineReadWait, mLineWriteSend, mLineWriteWait, mLineResponse, mLineHazard, mAcquireQueue) = Enum(14)
     private val maintenance = RegInit(mIdle)
     private val access = Reg(new DataRequest)
+    private val maintenanceForAcquire = RegInit(false.B)
+    private val maintenanceAcquire = Reg(UInt(entryBits.W))
+    private val maintenanceClient = Reg(UInt(clientBits.W))
     private val lineAccess = if (dmaLineTransfers) RegInit(false.B) else WireDefault(false.B)
     private val lineWriteData = if (dmaLineTransfers) Some(Reg(UInt(512.W))) else None
     private val lineError = if (dmaLineTransfers) Some(RegInit(false.B)) else None
     private val linePending = io.dmaLine.map(_.request.valid).getOrElse(false.B)
     private val selectLine = WireDefault(false.B)
     private val anyDmaLine = WireDefault(false.B)
-    private val accessSend = Mux(lineAccess, Mux(access.write, mLineWriteSend, mLineReadSend), mAccessSend)
+    private val accessSend = Mux(maintenanceForAcquire, mAcquireQueue,
+        Mux(lineAccess, Mux(access.write, mLineWriteSend, mLineReadSend), mAccessSend))
     // Both selection and ownership come from registered state. Never insert
     // A.ready/fire or Release priority in this functional tag-address path.
     tagLookupAddress := Mux(maintenance === mProbeSend || maintenance === mLineHazard, access.address,
@@ -338,7 +432,8 @@ class MixedCoherentLineHome(
     private val selectedLookupOwned = selectedLookupHits.map(_.reduce(_ || _))
     private val selectedLookupSlot = selectedLookupHits.map { hits =>
         if (trackedWays == 1) waySlot(tagLookupAddress, 0)
-        else Mux(hits(0), waySlot(tagLookupAddress, 0), waySlot(tagLookupAddress, 1))
+        else if (trackedWays == 2) Mux(hits(0), waySlot(tagLookupAddress, 0), waySlot(tagLookupAddress, 1))
+        else Cat(PriorityEncoder(VecInit(hits)), setOf(tagLookupAddress))
     }
     private def functionalLookupOwned(address: UInt): Bool =
         selectedLookupOwned.getOrElse(lineOwned(address, lookupTags))
@@ -360,7 +455,7 @@ class MixedCoherentLineHome(
     private val needsProbe = !io.upstreamRequestCpu && inRam(request.address) && functionalLookupOwned(request.address)
     private val needsMaintenance = request.write || needsProbe
     private val sourceBusy = (0 until acquireEntries).map(i =>
-        active(i) && sources(i) === port.a.bits.source).reduce(_ || _)
+        active(i) && sources(i) === port.a.bits.source && clients(i) === aClient).reduce(_ || _)
     private val normalDirectoryAvailable = if (futureWayReservation) freeDirectory(port.a.bits.address) else false.B
     private val futureDirectory = if (futureWayReservation)
         (0 until trackedWays).map(futureDirectoryAvailable(port.a.bits.address, _)).reduce(_ || _)
@@ -369,6 +464,8 @@ class MixedCoherentLineHome(
     private val selectedDirectory = if (futureWayReservation)
         Mux(normalDirectoryAvailable, freeDirectorySlot(port.a.bits.address), capturedDirectory)
     else 0.U(directoryBits.W)
+    private val acquireOwned = if (nClients > 1) lineOwned(port.a.bits.address, acquireTags) else false.B
+    private val acquireDirectory = if (nClients > 1) ownedSlot(port.a.bits.address, acquireTags) else 0.U
     private val canAcquire = !io.drainRequest && !anyDmaLine && maintenance === mIdle && reads === 0.U && !directHeld &&
         ((!upperWaiting && !io.upstream.request.valid && !linePending) || preferAcquire) &&
         freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
@@ -377,20 +474,22 @@ class MixedCoherentLineHome(
         !releaseSet(port.a.bits.address) &&
         !(releaseOffer && (if (memoryScheduleOverlap) port.c.bits.address(63, 6) === port.a.bits.address(63, 6)
             else setOf(port.c.bits.address) === setOf(port.a.bits.address))) &&
-        (if (futureWayReservation) normalDirectoryAvailable || futureDirectory else freeDirectory(port.a.bits.address))
+        (acquireOwned || (if (futureWayReservation) normalDirectoryAvailable || futureDirectory
+            else freeDirectory(port.a.bits.address)))
     port.a.ready := canAcquire
     // Reader readiness does not affect A admission. A failed direct dispatch
     // falls back to the existing FIFO with the same reserved metadata/tag.
-    directFillOffer := port.a.fire && !fillQueue.io.deq.valid && readDispatchAllowed
-    fillQueue.io.enq.valid := port.a.fire && !directFillFire
+    directFillOffer := port.a.fire && !acquireOwned && !fillQueue.io.deq.valid && readDispatchAllowed
+    fillQueue.io.enq.valid := port.a.fire && !acquireOwned && !directFillFire
     fillQueue.io.enq.bits := allocate
     when(port.a.fire) {
         assert(port.a.bits.opcode === TLOpcode.AcquireBlock && port.a.bits.param === TLPermissions.nToT &&
             port.a.bits.size === 6.U && port.a.bits.address(5, 0) === 0.U &&
-            inRam(port.a.bits.address) && !lineOwned(port.a.bits.address, acquireTags) && !port.a.bits.corrupt,
-            "home accepts only an aligned unowned nToT AcquireBlock")
+            inRam(port.a.bits.address) && ((nClients > 1).B || !lineOwned(port.a.bits.address, acquireTags)) &&
+            !port.a.bits.corrupt, "home accepts only an aligned nToT AcquireBlock")
         addresses(allocate) := port.a.bits.address
         sources(allocate) := port.a.bits.source
+        clients(allocate) := aClient
         if (futureWayReservation) {
             assert(!directoryReserved(selectedDirectory) &&
                 Mux(normalDirectoryAvailable, !owned(selectedDirectory),
@@ -398,9 +497,31 @@ class MixedCoherentLineHome(
                         owned(selectedDirectory) && port.a.bits.address(63, 6) =/= capturedAddress(63, 6)),
                 "Acquire selected neither an ordinary free nor an exact future directory")
         }
-        directory(allocate) := (if (futureWayReservation) selectedDirectory else freeDirectorySlot(port.a.bits.address))
+        directory(allocate) := Mux(acquireOwned, acquireDirectory,
+            (if (futureWayReservation) selectedDirectory else freeDirectorySlot(port.a.bits.address)))
         errors(allocate) := false.B
-        phase(allocate) := Mux(directFillFire, filling, queued)
+        phase(allocate) := Mux(acquireOwned, probing, Mux(directFillFire, filling, queued))
+        when(acquireOwned) {
+            access := 0.U.asTypeOf(new DataRequest)
+            access.address := port.a.bits.address
+            maintenanceDirectory := acquireDirectory
+            maintenanceClient := ownerClients(acquireDirectory)
+            maintenanceForAcquire := true.B
+            maintenanceAcquire := allocate
+            maintenance := mProbeSend
+            if (dmaLineTransfers) lineAccess := false.B
+        }
+    }
+    when(maintenance === mAcquireQueue) {
+        assert(phase(maintenanceAcquire) === probing && !owned(directory(maintenanceAcquire)),
+            "probe completion lost the reserved Acquire or old owner")
+        fillQueue.io.enq.valid := true.B
+        fillQueue.io.enq.bits := maintenanceAcquire
+        when(fillQueue.io.enq.fire) {
+            phase(maintenanceAcquire) := queued
+            maintenance := mIdle
+            maintenanceForAcquire := false.B
+        }
     }
     private val lineAdmissionOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
         (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
@@ -429,6 +550,8 @@ class MixedCoherentLineHome(
     when(io.upstream.request.fire && needsMaintenance) {
         assert(!anyAcquire && reads === 0.U && !releaseBusy, "maintenance crossed active acquire/release")
         access := request
+        maintenanceForAcquire := false.B
+        maintenanceClient := ownerClients(functionalLookupSlot(request.address))
         if (dmaLineTransfers) lineAccess := false.B
         maintenanceDirectory := functionalLookupSlot(request.address)
         maintenance := Mux(needsProbe, mProbeSend, mAccessSend)
@@ -438,6 +561,7 @@ class MixedCoherentLineHome(
 
     private val probe = Module(new TileLinkLineProbeEngine(params, entries = 2, tagBits = 1))
     port.b <> probe.io.probe
+    bClient := maintenanceClient
     // A not-yet-issued probe can disappear only before entering the engine.
     // An issued probe completes after any racing voluntary ReleaseAck.
     private val probeStillOwned = functionalLookupOwned(access.address)
@@ -446,11 +570,11 @@ class MixedCoherentLineHome(
     probe.io.request.bits.tag := 0.U
     when(maintenance === mProbeSend && !probeStillOwned && !releaseBusy) { maintenance := accessSend }
     when(probe.io.request.fire) { maintenance := mProbeWait }
-    probe.io.ack.valid := port.c.valid && !isRelease && !capturing
+    probe.io.ack.valid := port.c.valid && !isRelease && !capturing && cClient === maintenanceClient
     probe.io.ack.bits := port.c.bits
-    port.c.ready := Mux(isRelease, releaseReady, !capturing && probe.io.ack.ready)
+    port.c.ready := Mux(isRelease, releaseReady, !capturing && probe.io.ack.ready && cClient === maintenanceClient)
     when(port.c.valid && probeCActive) {
-        assert(port.c.bits.opcode === TLOpcode.ProbeAckData && port.c.bits.source === probeCSource,
+        assert(port.c.bits.opcode === TLOpcode.ProbeAckData && port.c.bits.source === probeCSource && cClient === cHeldClient,
             "C message interleaved a probe-data burst")
     }
     when(port.c.fire && !isRelease && port.c.bits.opcode === TLOpcode.ProbeAckData) {
@@ -523,6 +647,8 @@ class MixedCoherentLineHome(
             lineError.get := false.B
             lineAccess := true.B
             maintenanceDirectory := functionalLookupSlot(line.request.bits.address)
+            maintenanceClient := ownerClients(functionalLookupSlot(line.request.bits.address))
+            maintenanceForAcquire := false.B
             maintenance := Mux(functionalLookupOwned(line.request.bits.address), mProbeSend,
                 Mux(line.request.bits.write, mLineWriteSend, mLineReadSend))
             preferLine := false.B
@@ -601,6 +727,8 @@ class MixedCoherentLineHome(
             lineAddresses(i)(63, 6) === access.address(63, 6)).reduce(_ || _)
         when(maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer) {
             maintenanceDirectory := functionalLookupSlot(access.address)
+            maintenanceClient := ownerClients(functionalLookupSlot(access.address))
+            maintenanceForAcquire := false.B
             maintenance := Mux(functionalLookupOwned(access.address), mProbeSend, accessSend)
         }
         when(maintenance === mLineReadSend) {
@@ -668,6 +796,9 @@ class MixedCoherentLineHome(
             "home write result has an unknown full tag")
     }
 
+    private val independentLineGrant = internalLineGrant && nClients > 1
+    private val lineGrantLocked = if (independentLineGrant) RegInit(false.B) else WireDefault(false.B)
+    private val lineGrantEntry = if (independentLineGrant) Reg(UInt(entryBits.W)) else WireDefault(0.U(entryBits.W))
     private val dLocked = RegInit(false.B)
     private val dRelease = Reg(Bool())
     private val dEntry = Reg(UInt(entryBits.W))
@@ -688,8 +819,11 @@ class MixedCoherentLineHome(
     private val releaseAckMask = VecInit(releasePhases.map(_ === rAck))
     private val heldRelease = Reg(UInt(releaseBits.W))
     private val ackRelease = Mux(dLocked, heldRelease, PriorityEncoder(releaseAckMask))
-    private val sendRelease = Mux(dLocked, dRelease, releaseAckMask.asUInt.orR)
-    private val grantEntry = Mux(dLocked, dEntry, selectedGrant)
+    private val sendRelease = if (independentLineGrant) true.B
+        else Mux(dLocked, dRelease, releaseAckMask.asUInt.orR)
+    private val grantEntry = if (independentLineGrant) Mux(lineGrantLocked, lineGrantEntry, selectedGrant)
+        else Mux(dLocked, dEntry, selectedGrant)
+    dClient := Mux(sendRelease, releaseClients(ackRelease), clients(grantEntry))
     port.d.valid := Mux(sendRelease, releaseAckMask(ackRelease), grantMask(grantEntry))
     port.d.bits := 0.U.asTypeOf(port.d.bits)
     port.d.bits.opcode := Mux(sendRelease, TLOpcode.ReleaseAck, TLOpcode.GrantData)
@@ -700,7 +834,26 @@ class MixedCoherentLineHome(
     port.d.bits.denied := !sendRelease && errors(grantEntry)
     port.d.bits.corrupt := !sendRelease && errors(grantEntry)
     port.d.bits.data := Mux(sendRelease || errors(grantEntry), 0.U, data(grantEntry)(dBeat))
-    private val grantFire = if (internalLineGrant) {
+    private val grantFire = if (independentLineGrant) {
+        // Whole-line Grant and standard D ReleaseAck are separate channels.
+        // Each locks its own owner so a held Grant cannot block a racing Release.
+        for (i <- 0 until nClients) {
+            val grant = io.lineGrants.get(i)
+            grant.valid := grantMask(grantEntry) && clients(grantEntry) === i.U
+            grant.bits.source := sources(grantEntry)
+            grant.bits.sink := grantEntry
+            grant.bits.cap := TLPermissions.toT
+            grant.bits.denied := errors(grantEntry)
+            grant.bits.corrupt := errors(grantEntry)
+            grant.bits.data := Mux(errors(grantEntry), 0.U, data(grantEntry).asUInt)
+        }
+        when(grantMask(grantEntry) && !lineGrantLocked) {
+            lineGrantLocked := true.B
+            lineGrantEntry := grantEntry
+        }
+        when(port.d.valid && !dLocked) { dLocked := true.B; heldRelease := ackRelease }
+        io.lineGrants.get.map(_.fire).reduce(_ || _)
+    } else if (internalLineGrant) {
         val grant = io.lineGrants.get(0)
         // Preserve the shared arbitration/held-owner cut. ReleaseAck stays on
         // standard D; a data Grant uses exactly one of the two transports.
@@ -733,14 +886,14 @@ class MixedCoherentLineHome(
             phase(grantEntry) := waitE
             dBeat := 0.U
             dTurn := grantEntry + 1.U
-            dLocked := false.B
+            if (independentLineGrant) lineGrantLocked := false.B else dLocked := false.B
         }.otherwise { dBeat := dBeat + 1.U }
     }
     private val eInRange = port.e.bits.sink < acquireEntries.U
     private val eEntry = port.e.bits.sink(entryBits - 1, 0)
-    port.e.ready := eInRange && phase(eEntry) === waitE
+    port.e.ready := eInRange && phase(eEntry) === waitE && clients(eEntry) === eClient
     when(port.e.valid) {
-        assert(eInRange && active(eEntry), "GrantAck has no live sink")
+        assert(eInRange && active(eEntry) && clients(eEntry) === eClient, "GrantAck has no live sink or matching client")
     }
     when(port.e.fire) {
         if (futureWayReservation) {
@@ -753,18 +906,31 @@ class MixedCoherentLineHome(
             assert(directory(eEntry)(setBits - 1, 0) === setOf(addresses(eEntry)),
                 "GrantAck directory index lost its reserved set")
             for (way <- 0 until trackedWays) {
-                val selectedWay = if (trackedWays == 1) true.B else directory(eEntry)(directoryBits - 1) === way.U
+                val selectedWay = if (trackedWays == 1) true.B else directory(eEntry)(directoryBits - 1, setBits) === way.U
                 when(selectedWay) {
                     tagBanks(way).write(directory(eEntry)(setBits - 1, 0), tagGeometry.tag(addresses(eEntry)))
                 }
             }
             owned(directory(eEntry)) := true.B
+            ownerClients(directory(eEntry)) := eClient
         }
         phase(eEntry) := free
     }
+    if (nClients > 1) {
+        for (i <- 0 until acquireEntries) {
+            when(active(i) && owned(directory(i))) {
+                assert(phase(i) === probing && maintenanceForAcquire && maintenanceAcquire === i.U,
+                    "live Acquire aliases an unrelated committed directory owner")
+            }
+        }
+        when(maintenanceForAcquire) {
+            assert(phase(maintenanceAcquire) === probing,
+                "Acquire probe context outlived its reserved owner")
+        }
+    }
     for (i <- 0 until acquireEntries; j <- i + 1 until acquireEntries) {
         when(active(i) && active(j)) {
-            assert(sources(i) =/= sources(j), "duplicate live Acquire source")
+            assert(clients(i) =/= clients(j) || sources(i) =/= sources(j), "duplicate live Acquire client/source")
             if (memoryScheduleOverlap) {
                 assert(addresses(i)(63, 6) =/= addresses(j)(63, 6), "duplicate transient physical line")
             } else assert(setOf(addresses(i)) =/= setOf(addresses(j)), "overlapping transient cache sets")

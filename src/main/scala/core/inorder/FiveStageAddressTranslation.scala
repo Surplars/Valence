@@ -13,9 +13,9 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
     registeredInstructionReturn: Boolean = false) extends Module {
     require(p.xlen == 64 || !p.withSv39)
     require(!parallelInstructionCandidates ||
-        (instruction && p.fpgaTimingCuts && p.fastInstructionTranslation && p.tlbEntries <= 8))
+        (instruction && p.fpgaTimingCuts && p.fastInstructionTranslation && p.preparedTranslationProofs))
     require(!parallelDataCandidates ||
-        (!instruction && p.fpgaTimingCuts && p.fastDataTranslation && p.tlbEntries <= 8))
+        (!instruction && p.fpgaTimingCuts && p.fastDataTranslation && p.preparedTranslationProofs))
     require(!registeredInstructionReturn || (instruction && p.fpgaTimingCuts && p.withC &&
         p.fastInstructionTranslation))
     val io = IO(new Bundle {
@@ -399,13 +399,21 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             Some(Reg(Vec(p.tlbEntries, UInt((p.physicalBits - 12).W)))) else None
         val fastInstructionCacheable = if (fastEnabled && instruction && p.fpgaTimingCuts)
             Some(Reg(Vec(p.tlbEntries, Bool()))) else None
-        val indexedInstructionProof = fastEnabled && instruction && p.fpgaTimingCuts && p.tlbEntries <= 8
+        val indexedInstructionProof = fastEnabled && instruction && p.fpgaTimingCuts && p.preparedTranslationProofs
         val indexedDataProof = fastEnabled && !instruction && p.indexedDataProofs
         // Bind the SAME read/write full-page proof slots to their real TLB
         // owners. Only the VPN index selects a physical payload; tag/superpage
         // permission controls admission, never the D-cache SRAM address.
         val dataReadOwner = if (indexedDataProof) Some(Reg(Vec(p.tlbEntries, UInt(indexBits.W)))) else None
         val dataWriteOwner = if (indexedDataProof) Some(Reg(Vec(p.tlbEntries, UInt(indexBits.W)))) else None
+        // Bank-local permission preparation copies only the owning entry's
+        // flags into its existing full-page proof. Ownership still comes from
+        // the source row and its replacement/invalidation mask. Dynamic
+        // privilege/SUM/MXR are checked on every offer, never cached as a grant.
+        val dataReadProofFlags = if (indexedDataProof && p.bankedTlbProofs)
+            Some(Reg(Vec(p.tlbEntries, UInt(8.W)))) else None
+        val dataWriteProofFlags = if (indexedDataProof && p.bankedTlbProofs)
+            Some(Reg(Vec(p.tlbEntries, UInt(8.W)))) else None
         // Re-index the EXISTING full-page proof slots, not new TLB entries.
         // The source row binding invalidates proofs on replacement; a new
         // row0 mapping invalidates all proof slots because it may dominate
@@ -421,6 +429,27 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             Some(Reg(Vec(p.tlbEntries, UInt((p.physicalBits - 12).W)))) else None
         val vpn = saved.address(38, 12)
         def smallIndex(v: UInt): UInt = v(indexBits - 1, 0) ^ v(2 * indexBits - 1, indexBits)
+        // With bank mode explicitly selected, all PA/permission payloads are
+        // prepared in <=8-row groups. Only completed group results see the
+        // high index. No tag, source permission, or candidate-owner decision
+        // enters the PA selection cone. The default <=8 implementation is
+        // unchanged; the 16/32 generic fallback remains available flag-off.
+        def bankSelect(index: UInt, values: Seq[UInt]): UInt = {
+            require(p.bankedTlbProofs && values.size == p.tlbEntries)
+            val localIndex = index(2, 0)
+            val bankIndex = index(indexBits - 1, 3)
+            val localRows = (0 until 8).map(i => localIndex === i.U)
+            val banks = values.grouped(8).toSeq.zipWithIndex.map { case (group, bank) =>
+                val selected = WireDefault(Mux1H(localRows.zip(group)))
+                selected.suggestName(s"proofBank${bank}Payload")
+                selected
+            }
+            Mux1H(banks.zipWithIndex.map { case (value, bank) => (bankIndex === bank.U) -> value })
+        }
+        def proofSelect(index: UInt, rows: Seq[Bool], values: Seq[UInt]): UInt =
+            if (p.bankedTlbProofs) bankSelect(index, values) else Mux1H(rows.zip(values))
+        def proofGranted(index: UInt, grants: Seq[Bool]): Bool =
+            if (p.bankedTlbProofs) bankSelect(index, grants.map(_.asUInt)).asBool else grants.reduce(_ || _)
         def superHit(v: UInt): Bool = valid(0) && (
             (levels(0) === 2.U && equal(tags(0)(26, 18), v(26, 18))) ||
             (levels(0) === 1.U && equal(tags(0)(26, 9), v(26, 9))))
@@ -487,7 +516,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                     valid(fi) && entryMatch && pagePermission &&
                     requestedRwx && fp(6) && (!io.request.bits.write || fp(7)) && userFast
                 if (instruction && p.fpgaTimingCuts) {
-                    if (p.tlbEntries <= 8) {
+                    if (p.preparedTranslationProofs) {
                         // No full tag match may precede the I-cache RAM address.
                         // Existing proof capacity stays tlbEntries; source bindings
                         // and replacement invalidation retain real TLB authority.
@@ -497,23 +526,24 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                             val rows = (0 until p.tlbEntries).map(i => proofIndex === i.U)
                             val grants = rows.zipWithIndex.map { case (row, i) =>
                                 val source = instructionProofOwner.get(i)
-                                val hit = row && fastPage.get(i) && valid(source) &&
+                                val hit = (if (p.bankedTlbProofs) true.B else row) && fastPage.get(i) &&
+                                    (if (p.bankedTlbProofs) true.B else valid(source)) &&
                                     equal(instructionProofTags.get(i), vpn)
                                 val flags = instructionProofFlags.get(i)
                                 val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4))
                                 hit && flags(3) && flags(6) && user
                             }
-                            val eligible = address(63, 39) === Fill(25, address(38)) && grants.reduce(_ || _)
-                            val physical = Cat(Mux1H(rows.zip(fastReadPhysicalPage.get.toSeq)), address(11, 0))
+                            val eligible = address(63, 39) === Fill(25, address(38)) && proofGranted(proofIndex, grants)
+                            val physical = Cat(proofSelect(proofIndex, rows, fastReadPhysicalPage.get.toSeq), address(11, 0))
                             val cacheable = if (pageAlignedWindow)
-                                Mux1H(rows.zip(fastInstructionCacheable.get.toSeq))
+                                proofSelect(proofIndex, rows, fastInstructionCacheable.get.toSeq.map(_.asUInt)).asBool
                                 else I1AddressWindow.contains(physical, p.cacheableBase, p.cacheableBytes)
                             when(io.request.valid && eligible && !reset.asBool) {
                                 val source = instructionProofOwner.get(proofIndex)
                                 val sourcePhysical = Cat(ppns(source), address(11, 0)) |
                                     Mux(levels(source) === 2.U, address(29, 12) << 12,
                                         Mux(levels(source) === 1.U, address(20, 12) << 12, 0.U))
-                                assert(physical === sourcePhysical &&
+                                assert(valid(source) && physical === sourcePhysical &&
                                     instructionProofFlags.get(proofIndex) === permissions(source),
                                     "indexed instruction proof lost its live TLB mapping/permissions")
                                 assert(source === 0.U || !superHit(vpn),
@@ -572,40 +602,56 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                             val read = fastPage.get(i) && equal(fastReadTag.get(i), v)
                             val write = fastWritePage.get(i) && equal(fastWriteTag.get(i), v) &&
                                 (!needsRead || fastWriteReadable.get(i))
-                            row && Mux(request.write, write && sourceWrite(writeSource),
-                                read && sourceRead(readSource))
+                            val readAllowed = if (p.bankedTlbProofs) {
+                                val flags = dataReadProofFlags.get(i)
+                                val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4) || io.context.sum)
+                                (flags(1) || (io.context.mxr && flags(3))) && user && flags(6)
+                            } else sourceRead(readSource)
+                            val writeAllowed = if (p.bankedTlbProofs) {
+                                val flags = dataWriteProofFlags.get(i)
+                                val user = Mux(currentPrivilege === 0.U, flags(4), !flags(4) || io.context.sum)
+                                flags(2) && user && flags(6) && flags(7)
+                            } else sourceWrite(writeSource)
+                            (if (p.bankedTlbProofs) true.B else row) &&
+                                Mux(request.write, write && writeAllowed, read && readAllowed)
                         }
                         val canonical = equal(request.address(63, 39), Fill(25, request.address(38)))
-                        val physicalPage = Mux1H(rows.zipWithIndex.map { case (row, i) =>
-                            row -> Mux(request.write, fastWritePhysicalPage.get(i), fastReadPhysicalPage.get(i))
+                        val physicalPage = proofSelect(leafIndex, rows, (0 until p.tlbEntries).map { i =>
+                            Mux(request.write, fastWritePhysicalPage.get(i), fastReadPhysicalPage.get(i))
                         })
-                        val readable = Mux1H(rows.zip(fastWriteReadable.get.asBools))
+                        val readable = proofSelect(leafIndex, rows, fastWriteReadable.get.asBools.map(_.asUInt)).asBool
                         // The board window is page aligned. Compare each
                         // EXISTING physical proof page in parallel, before
                         // its VPN-index selection, not after PA assembly.
                         // Non-page-aligned parameterizations keep exact PA
                         // qualification rather than widening their window.
-                        val cacheable = if (pageAlignedWindow) Mux1H(rows.zipWithIndex.map { case (row, i) =>
+                        val cacheable = if (pageAlignedWindow) proofSelect(leafIndex, rows, (0 until p.tlbEntries).map { i =>
                             val read = I1AddressWindow.contains((fastReadPhysicalPage.get(i) << 12).pad(p.xlen),
                                 p.cacheableBase, p.cacheableBytes)
                             val write = I1AddressWindow.contains((fastWritePhysicalPage.get(i) << 12).pad(p.xlen),
                                 p.cacheableBase, p.cacheableBytes)
-                            row -> Mux(request.write, write, read)
-                        }) else I1AddressWindow.contains(Cat(physicalPage, request.address(11, 0)),
+                            Mux(request.write, write, read).asUInt
+                        }).asBool else I1AddressWindow.contains(Cat(physicalPage, request.address(11, 0)),
                             p.cacheableBase, p.cacheableBytes)
-                        if (indexedDataProof) when(io.request.valid && canonical && grants.reduce(_ || _) &&
+                        if (indexedDataProof) when(io.request.valid && canonical && proofGranted(leafIndex, grants) &&
                             !reset.asBool) {
                             val source = Mux(request.write, dataWriteOwner.get(leafIndex),
                                 dataReadOwner.get(leafIndex))
                             val originalPhysical = Cat(ppns(source), request.address(11, 0)) |
                                 Mux(levels(source) === 2.U, request.address(29, 12) << 12,
                                     Mux(levels(source) === 1.U, request.address(20, 12) << 12, 0.U))
-                            assert(Cat(physicalPage, request.address(11, 0)) === originalPhysical,
+                            assert(valid(source) && Cat(physicalPage, request.address(11, 0)) === originalPhysical,
                                 "indexed data proof lost its live physical TLB mapping")
+                            if (p.bankedTlbProofs) {
+                                val flags = Mux(request.write, dataWriteProofFlags.get(leafIndex),
+                                    dataReadProofFlags.get(leafIndex))
+                                assert(flags === permissions(source),
+                                    "banked data proof lost its live source permissions")
+                            }
                             assert(source === 0.U || !superHit(v),
                                 "dominant superpage failed to invalidate a data leaf proof")
                         }
-                        (canonical && grants.reduce(_ || _), Cat(physicalPage, request.address(11, 0)),
+                        (canonical && proofGranted(leafIndex, grants), Cat(physicalPage, request.address(11, 0)),
                             request.noAllocate || (request.write && !readable), cacheable)
                     }
                     fastEligible := dataSelect(prepared.map(_._1.asUInt)).asBool
@@ -643,6 +689,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                         fastWriteTag.get(proofIndex) := vpn
                         fastWritePhysicalPage.get(proofIndex) := pa(p.physicalBits - 1, 12)
                         dataWriteOwner.foreach(_(proofIndex) := index)
+                        dataWriteProofFlags.foreach(_(proofIndex) := permissions(index))
                         fastWritePage.get := Mux(fullPageWriteAllow,
                             fastWritePage.get | proofMask, fastWritePage.get & ~proofMask)
                         fastWriteReadable.get := Mux(fullPageAllow,
@@ -651,6 +698,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                         fastReadTag.get(proofIndex) := vpn
                         fastReadPhysicalPage.get(proofIndex) := pa(p.physicalBits - 1, 12)
                         dataReadOwner.foreach(_(proofIndex) := index)
+                        dataReadProofFlags.foreach(_(proofIndex) := permissions(index))
                         fastPage.get := Mux(fullPageAllow, fastPage.get | proofMask, fastPage.get & ~proofMask)
                     }
                 }

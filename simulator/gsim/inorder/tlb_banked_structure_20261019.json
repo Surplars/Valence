@@ -1,0 +1,109 @@
+{
+  "physical_timing_qualified": false,
+  "rows": [
+    {
+      "owner": "instruction",
+      "entries": 4,
+      "banked": false,
+      "lut6": 1305,
+      "ff_bits": 1028,
+      "max_lut_levels": 9,
+      "candidate_address_to_pa": 5,
+      "late_candidate_select_to_pa": 3,
+      "proof_pa_q_to_pa": 4,
+      "candidate_address_to_grant": 6,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "data",
+      "entries": 4,
+      "banked": false,
+      "lut6": 1971,
+      "ff_bits": 1270,
+      "max_lut_levels": 9,
+      "candidate_address_to_pa": 7,
+      "late_candidate_select_to_pa": 6,
+      "proof_pa_q_to_pa": 6,
+      "candidate_address_to_grant": 7,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "instruction",
+      "entries": 8,
+      "banked": false,
+      "lut6": 1630,
+      "ff_bits": 1500,
+      "max_lut_levels": 10,
+      "candidate_address_to_pa": 6,
+      "late_candidate_select_to_pa": 5,
+      "proof_pa_q_to_pa": 5,
+      "candidate_address_to_grant": 7,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "data",
+      "entries": 8,
+      "banked": false,
+      "lut6": 2336,
+      "ff_bits": 1962,
+      "max_lut_levels": 10,
+      "candidate_address_to_pa": 10,
+      "late_candidate_select_to_pa": 8,
+      "proof_pa_q_to_pa": 9,
+      "candidate_address_to_grant": 7,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "instruction",
+      "entries": 16,
+      "banked": true,
+      "lut6": 2353,
+      "ff_bits": 2452,
+      "max_lut_levels": 10,
+      "candidate_address_to_pa": 7,
+      "late_candidate_select_to_pa": 3,
+      "proof_pa_q_to_pa": 6,
+      "candidate_address_to_grant": 7,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "data",
+      "entries": 16,
+      "banked": true,
+      "lut6": 3607,
+      "ff_bits": 3490,
+      "max_lut_levels": 10,
+      "candidate_address_to_pa": 10,
+      "late_candidate_select_to_pa": 4,
+      "proof_pa_q_to_pa": 9,
+      "candidate_address_to_grant": 8,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "instruction",
+      "entries": 32,
+      "banked": true,
+      "lut6": 4844,
+      "ff_bits": 4372,
+      "max_lut_levels": 11,
+      "candidate_address_to_pa": 8,
+      "late_candidate_select_to_pa": 4,
+      "proof_pa_q_to_pa": 7,
+      "candidate_address_to_grant": 8,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    },
+    {
+      "owner": "data",
+      "entries": 32,
+      "banked": true,
+      "lut6": 6516,
+      "ff_bits": 6450,
+      "max_lut_levels": 10,
+      "candidate_address_to_pa": 10,
+      "late_candidate_select_to_pa": 4,
+      "proof_pa_q_to_pa": 9,
+      "candidate_address_to_grant": 8,
+      "note": "Generic ABC LUT6 combinational graph; register Q roots. Excludes routing, fanout, device carry/RAM and clock delay."
+    }
+  ]
+}

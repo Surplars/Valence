@@ -21,7 +21,7 @@ class FiveStageTranslationContext(p: FiveStageConfig) extends Bundle {
 }
 
 /** Optional M/S/U state. Only WB changes architectural state; serial CSR/xRET/SFENCE owners drain
-  * older instructions. Optional RV64 F/D; no H/AIA/Sstc. UXL/SXL are fixed, ASIDLEN=0, Sv39 uses Svade.
+  * older instructions. Optional RV64 F/D and M/S IMSIC; no H/Sstc. UXL/SXL are fixed, ASIDLEN=0, Sv39 uses Svade.
   */
 class FiveStageMachineState(p: FiveStageConfig) extends Module {
     val io = IO(new Bundle {
@@ -29,6 +29,7 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
         val readData = Output(UInt(p.xlen.W))
         val readLegal = Output(Bool())
         val readDataForWrite = Output(UInt(p.xlen.W))
+        val aiaSelectors = if (p.withAia) Some(Output(Vec(2, UInt(12.W)))) else None
         val write = Flipped(Valid(new Bundle {
             val address = UInt(12.W)
             val data = UInt(p.xlen.W)
@@ -55,6 +56,8 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
         val fpRetire = Input(Bool()); val fpFlags = Input(UInt(5.W))
         val fpEnabled = Output(Bool()); val fpRounding = Output(UInt(3.W))
     })
+    val aiaSelectors = if (p.withAia) Some(RegInit(VecInit(Seq.fill(2)(0.U(12.W))))) else None
+    io.aiaSelectors.foreach(_ := aiaSelectors.get)
     val lower = p.withUser || p.withSupervisor
     val fs = if (p.withF) RegInit(0.U(2.W)) else 0.U(2.W)
     val frm = if (p.withF) RegInit(0.U(3.W)) else 0.U(3.W)
@@ -250,7 +253,12 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
             0x100.U -> (mstatus & sstatusMask.U(p.xlen.W)), 0x104.U -> (mie & mideleg).pad(p.xlen),
             0x105.U -> stvec, 0x106.U -> scounteren.pad(p.xlen), 0x140.U -> sscratch, 0x141.U -> sepc,
             0x142.U -> scause, 0x143.U -> stval, 0x144.U -> (mip & mideleg).pad(p.xlen), 0x180.U -> satp)
-        else Nil) ++ pmpPairs ++ (if (p.xlen == 32) Seq(0xb80.U -> cycles(63, 32),
+        else Nil) ++ (if (p.withAia) Seq(
+            0x350.U -> aiaSelectors.get(0).pad(p.xlen), 0x150.U -> aiaSelectors.get(1).pad(p.xlen),
+            // Indirect data is supplied by the sole committed WB transaction, never by EX.
+            0x351.U -> 0.U(p.xlen.W), 0x151.U -> 0.U(p.xlen.W),
+            0x35c.U -> 0.U(p.xlen.W), 0x15c.U -> 0.U(p.xlen.W)) else Nil) ++
+        pmpPairs ++ (if (p.xlen == 32) Seq(0xb80.U -> cycles(63, 32),
             0xb82.U -> instructions(63, 32), 0xc80.U -> cycles(63, 32),
             0xc81.U -> io.time(63, 32), 0xc82.U -> instructions(63, 32)) else Nil)
     val counter = io.readAddress >= "hc00".U && io.readAddress <= "hc02".U ||
@@ -278,6 +286,10 @@ class FiveStageMachineState(p: FiveStageConfig) extends Module {
     io.invalidateTranslation := io.sfence || (io.write.valid && mapWrite)
     when(io.write.valid) {
         val data = io.write.bits.data
+        if (p.withAia) {
+            when(io.write.bits.address === "h350".U) { aiaSelectors.get(0) := data(11, 0) }
+            when(io.write.bits.address === "h150".U) { aiaSelectors.get(1) := data(11, 0) }
+        }
         if (p.withF) {
             when(io.write.bits.address === "h300".U || (p.withSupervisor.B && io.write.bits.address === "h100".U)) {
                 fs := data(14, 13)

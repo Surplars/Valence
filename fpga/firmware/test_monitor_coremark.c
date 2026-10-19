@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "coremark.h"
+#include "board_clocks.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +20,9 @@ int main(void){seed4_volatile=1;coremark_main();
  fwrite(output,1,used,stdout);
  core_portable port;portable_init(&port,0,0);ee_printf("seedcrc : 0x%04x\n",0xe9f5);ee_printf("[%d]crclist : 0x%04x\n",0,0xe715);ee_printf("[%d]crcmatrix : 0x%04x\n",0,0x1fd7);ee_printf("[%d]crcstate : 0x%04x\n",0,0x8e3a);portable_fini(&port);assert(strstr(output,"COREMARK_SHORT_CRC_FAIL"));
  unsigned cases=0;
- const uint64_t durations[]={9999,10000,10001,10001,10001,10001};
+ const uint64_t threshold=UINT64_C(10)*TIMEBASE_HZ;
+ const uint64_t durations[]={threshold-1,threshold,threshold+1,threshold+1,threshold+1,threshold+1};
+ assert(time_in_secs((CORE_TICKS)TIMEBASE_HZ)==1.0);
  for(unsigned scenario=0;scenario<6;++scenario){
   used=0;memset(output,0,sizeof output);diagnostic_short=0;portable_init(&port,0,0);
   test_step=durations[scenario];start_time();stop_time();

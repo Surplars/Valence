@@ -1,3 +1,7 @@
+#ifndef CPU_HZ
+#define CPU_HZ 40000000ULL
+#endif
+#include "board_clocks.h"
 #include <stdint.h>
 #include <stddef.h>
 #include "crc32.h"
@@ -7,9 +11,6 @@
 
 #ifndef UART_DIVISOR
 #define UART_DIVISOR 1
-#endif
-#ifndef CPU_HZ
-#define CPU_HZ 40000000ULL
 #endif
 
 #include "board_memory.h"
@@ -63,7 +64,7 @@ static uint64_t cycles(void) {
     return boot_test_now();
 #else
     uint64_t n;
-    /* Board timerTick is one per clock; this core exposes time, not cycle CSR. */
+    /* Board timerTick advances in the timebase/fabric domain, not the CPU domain. */
     __asm__ volatile ("rdtime %0" : "=r"(n) :: "memory");
     return n;
 #endif
@@ -109,7 +110,7 @@ static void hex64(uint64_t n) {
 
 static void uart_stage(const char *stage,uint64_t ticks,uint32_t length) {
     puts_uart("UART stage="); puts_uart(stage); puts_uart(" ticks=0x"); hex64(ticks);
-    puts_uart(" length=0x"); hex64(length); puts_uart(" timebase_hz=0x"); hex64(CPU_HZ);
+    puts_uart(" length=0x"); hex64(length); puts_uart(" timebase_hz=0x"); hex64(TIMEBASE_HZ);
     puts_uart("\r\n");
 }
 static void uart_crc_failure(const char *stage,uint32_t length,uint32_t expected,uint32_t actual) {
@@ -139,7 +140,7 @@ static int getc_timeout(uint64_t budget) {
 static int receive(uint8_t *p, unsigned n) {
     for (unsigned i = 0; i < n; ++i) {
         int c=uart_prefetched;uart_prefetched=-1;
-        if(c<0)c=getc_timeout(CPU_HZ * 3);
+        if(c<0)c=getc_timeout(board_seconds_to_ticks(3));
         if (c < 0) return 0;
         p[i] = (uint8_t)c;
     }
@@ -147,7 +148,7 @@ static int receive(uint8_t *p, unsigned n) {
 }
 
 static void drain_rx(void) {
-    while (getc_timeout(CPU_HZ / 20) >= 0) {}
+    while (getc_timeout(TIMEBASE_HZ / 20) >= 0) {}
 }
 
 static void external_state_message(void) {
@@ -179,7 +180,7 @@ static void jtag_reset_required(void) {
     puts_uart("JTAG OWNERSHIP UNKNOWN; BOARD RESET REQUIRED\r\n");
     /* Do not return to the parser, touch image memory, or retry MMIO after a
      * command fault. The hardware may still own an unaccepted/accepted write. */
-    for (;;) (void)getc_timeout(CPU_HZ);
+    for (;;) (void)getc_timeout(TIMEBASE_HZ);
 }
 static void jtag_close_and_drain(void) {
     jtag_write(JTAG_COMMAND, JTAG_CLOSE);
@@ -192,7 +193,7 @@ static void jtag_close_and_drain(void) {
             return;
         }
         (void)getc_timeout(0);
-    } while (cycles() - start < CPU_HZ * 2);
+    } while (cycles() - start < board_seconds_to_ticks(2));
     jtag_reset_required();
 }
 static void jtag_failure(const char *reason) {
@@ -245,7 +246,7 @@ static void jtag_download(void) {
     jtag_write(JTAG_COMMAND, JTAG_OPEN);
     puts_uart("JTAG WAIT; host COMMIT requests verify and execute; Ctrl-C aborts\r\n");
     for (;;) {
-        int key = getc_timeout(CPU_HZ / 1000);
+        int key = getc_timeout(TIMEBASE_HZ / 1000);
         if (key == 3 || key == 27) {
 #ifdef BOOT_MENU
             if(key==27)menu_pending=27;
@@ -397,7 +398,15 @@ static int verify_image(void) {
 }
 static void monitor_info(void) {
     if(external_state_untrusted)external_state_message();
-    puts_uart("FW clock_hz=0x");hex64(CPU_HZ);
+    puts_uart("FW clock_hz=0x");hex64(CPU_CLOCK_HZ);
+    puts_uart(" cpu_clock_hz=0x");hex64(CPU_CLOCK_HZ);
+    puts_uart(" timebase_hz=0x");hex64(TIMEBASE_HZ);
+    puts_uart(" fabric_hz=0x");hex64(FABRIC_CLOCK_HZ);
+    puts_uart(" ddr_ui_hz=0x");hex64(DDR_UI_CLOCK_HZ);
+#if BOARD_CMU_CLOCKS
+    puts_uart(" cpu_clock_source=CMU_nominal cpu_identity=unspecified");
+    puts_uart(" cmu_timebase_hz=0x");hex64(valence_cmu_nominal_hz(CMU_TIME));
+#endif
     puts_uart(" RAM_bytes=0x");hex64(BOARD_RAM_BYTES);
     puts_uart(" image_limit=0x");hex64(IMAGE_LIMIT);
     puts_uart(" diag_base=0x");hex64(DIAG_BASE);
@@ -445,7 +454,7 @@ static int download(void) {
 #ifdef BOOT_MENU
     /* Enter on a CRLF terminal must not prefix the binary header with LF.
      * Preserve a non-LF byte if the sender already queued its first byte. */
-    if(menu_last_cr){int c=getc_timeout(CPU_HZ/5);menu_last_cr=0;if(c>=0&&c!='\n')uart_prefetched=c;}
+    if(menu_last_cr){int c=getc_timeout(TIMEBASE_HZ/5);menu_last_cr=0;if(c>=0&&c!='\n')uart_prefetched=c;}
 #endif
     puts_uart("VLOAD1\r\n");
     if(!receive(header,1)){abort_transfer(HEADER_SEQ,TIMEOUT);return 0;}
@@ -637,7 +646,7 @@ static void boot_loop(void) {
 #ifdef BOARD_NETBOOT
             if(!c)c=board_netboot_command();
 #endif
-            if(!c)c=getc_timeout(CPU_HZ/20);
+            if(!c)c=getc_timeout(TIMEBASE_HZ/20);
 #ifdef BOOT_MENU
             c=menu_key(c,cycles());
             if(c==MENU_UP||c==MENU_DOWN){

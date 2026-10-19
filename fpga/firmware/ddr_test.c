@@ -1,9 +1,10 @@
-#include <stdint.h>
-#include <stddef.h>
-
 #ifndef CPU_HZ
 #define CPU_HZ 50000000ULL
 #endif
+#include "board_clocks.h"
+#include <stdint.h>
+#include <stddef.h>
+
 #define DDR_BASE 0x80200000UL
 #define TEST_FIRST 0x80400000UL
 #define TEST_END 0xa01f8000UL /* Exclusive: app stack + BootROM occupy the last 32 KiB. */
@@ -194,12 +195,12 @@ static void run_test(char command) {
     uint64_t elapsed = ticks() - start;
     text(command == 's' ? "DDR SMOKE " : command == 'q' ? "DDR QUICK " : "DDR FULL ");
     text(aborted ? "ABORTED" : ok && !errors ? "PASS" : "FAIL");
-    text(" errors="); decimal(errors); text(" elapsed_ms="); decimal(elapsed / (CPU_HZ / 1000));
+    text(" errors="); decimal(errors); text(" elapsed_ms="); decimal(board_ticks_to_units(elapsed, 1000));
     text("\r\n");
 }
 int main(void) {
     text("\r\nValence DDR test V0.1 - 512 MiB aperture, CPU ");
-    decimal(CPU_HZ / 1000000ULL); text(" MHz\r\n");
+    decimal(CPU_CLOCK_HZ / 1000000ULL); text(" MHz\r\n");
     text("Destructive tests; program low 2 MiB and top 32 KiB reserved.\r\n");
     text("UART "); decimal(UART_BAUD); text(" 8N1; uses Valence FENCE.I writeback.\r\n");
     run_test('s');

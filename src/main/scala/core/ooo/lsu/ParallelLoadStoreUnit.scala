@@ -2,6 +2,7 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
+import soc.ip.bus.ResetDefinedRRArbiter
 
 /** Bounded RAM read concurrency. Replies are ordered by default, or matched to
   * nonreused slot reservations by the optional CPU return protocol.
@@ -78,7 +79,7 @@ class ParallelLoadStoreUnit(
         Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
     val certifiedStoreClass = if (p.canonicalVirtualStoreOverlap)
         Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
-    val completion = Module(new RRArbiter(new BackendCompletion(p), p.memoryEntries))
+    val completion = Module(new ResetDefinedRRArbiter(new BackendCompletion(p), p.memoryEntries))
     for ((slot, i) <- slots.zipWithIndex) {
         completion.io.in(i) <> slot.io.complete
         slot.io.cancel := io.cancel(i)
@@ -274,7 +275,7 @@ class ParallelLoadStoreUnit(
     }
 
     // Hold arbitration under request backpressure, even if a new slot becomes eligible meanwhile.
-    val requests    = Module(new RRArbiter(new DataRequest, p.memoryEntries))
+    val requests    = Module(new ResetDefinedRRArbiter(new DataRequest, p.memoryEntries))
     val locked      = RegInit(false.B)
     val lockedIndex = Reg(UInt(indexBits.W))
     for ((slot, i) <- slots.zipWithIndex) {

@@ -1,3 +1,7 @@
+#ifndef CPU_HZ
+#define CPU_HZ 50000000ULL
+#endif
+#include "board_clocks.h"
 /* CPU-visible DDR benchmark for the signed DDR50 / 115200 FIFO-UART bit.
  * Volatile prevents compiler removal, NOT cache bypass. FENCE.I writeback is
  * Valence-specific. UART, initialization and verification are outside timing.
@@ -5,9 +9,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifndef CPU_HZ
-#define CPU_HZ 50000000ULL
-#endif
 #ifndef UART_BAUD
 #define UART_BAUD 115200U
 #endif
@@ -69,7 +70,7 @@ static int key(void) {
 #endif
 }
 /* Fence orders memory operations; the compiler memory clobber also bounds them.
- * This board increments time once per CPU cycle; cycle/instret are unavailable.
+ * TIMEBASE_HZ describes rdtime; CPU cycles and retired instructions are separate.
  */
 static uint64_t ordered_ticks(void) {
 #ifdef DDR_BENCH_HOST_TEST
@@ -138,14 +139,14 @@ static int verify(const volatile uint64_t *p, size_t words) {
 }
 static uint64_t rate_milli_mib(uint64_t bytes, uint64_t elapsed) {
     /* Bounded to <=8 MiB per reported streaming result; no 128-bit runtime needed. */
-    return elapsed ? bytes * CPU_HZ * 1000 / (elapsed * 1048576ULL) : 0;
+    return board_milli_mib_per_second(bytes, elapsed);
 }
 static int report(const char *name, uint64_t bytes, uint64_t elapsed, int ok,
                   int copy) {
     if (!elapsed) { ++errors; ok = 0; }
     text(name); text(" bytes="); decimal(bytes);
     text(" ticks="); decimal(elapsed);
-    text(" ms="); fixed3(elapsed * 1000000ULL / CPU_HZ);
+    text(" ms="); fixed3(board_ticks_to_units(elapsed, 1000000));
     text(" MiB/s="); fixed3(rate_milli_mib(bytes, elapsed));
     if (copy) {
         text(" logical_R+W_MiB/s="); fixed3(rate_milli_mib(bytes * 2, elapsed));
@@ -234,7 +235,8 @@ static int chase(size_t bytes) {
     text("CHASE working_set="); decimal(bytes);
     text(" hops="); decimal(hops); text(" ticks="); decimal(elapsed);
     text(" ticks/hop="); fixed3(elapsed * 1000 / hops);
-    text(" ns/hop="); fixed3((elapsed * 1000000000ULL / CPU_HZ) * 1000 / hops);
+    uint64_t elapsed_ns = board_ticks_to_units(elapsed, 1000000000);
+    text(" ns/hop="); fixed3(elapsed_ns / hops * 1000 + (elapsed_ns % hops) * 1000 / hops);
     text(ok ? " PASS\r\n" : " FAIL\r\n");
     return ok;
 }
@@ -312,14 +314,14 @@ static void locality(void) {
 #endif
 
 int main(void) {
-    text("\r\nValence DDR benchmark V0.1 - CPU "); decimal(CPU_HZ / 1000000);
+    text("\r\nValence DDR benchmark V0.1 - CPU "); decimal(CPU_CLOCK_HZ / 1000000);
     text(" MHz, UART "); decimal(UART_BAUD); text(" 8N1\r\n");
 #ifdef DDR_BENCH_LOCALITY
     text("CPU-visible coherent write-back L1, capacity under test, 64B lines.\r\n");
 #else
     text("CPU-visible path, 2KiB write-back L1, 64B lines; NOT MIG peak bandwidth.\r\n");
 #endif
-    text("rdtime clock="); decimal(CPU_HZ); text(" Hz; no UART in timed regions.\r\n");
+    text("rdtime clock="); decimal(TIMEBASE_HZ); text(" Hz; no UART in timed regions.\r\n");
     text("Destructive buffers: 0x80400000/0x81400040/0x83000000, up to 8MiB each.\r\n");
     text("COPY reports payload and logical R+W, not actual AXI bytes.\r\n");
     text("Auto 4KiB smoke only; use q/b for representative streaming results.\r\n");

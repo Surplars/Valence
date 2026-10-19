@@ -2,6 +2,7 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
+import soc.ip.bus.ResetDefinedRRArbiter
 import soc.bus.tilelink._
 import soc.ip.axi._
 
@@ -246,7 +247,7 @@ class TileLinkAxi4OutstandingBridge(
         }
     }
 
-    val arArb = Module(new RRArbiter(new Axi4Address(axiAddressWidth, axiIdWidth), maxOutstanding))
+    val arArb = Module(new ResetDefinedRRArbiter(new Axi4Address(axiAddressWidth, axiIdWidth), maxOutstanding))
     val awOffer = Wire(Decoupled(new Axi4Address(axiAddressWidth, axiIdWidth)))
     // Registered skid queues prevent arbitration changes from changing a stalled AXI payload.
     io.axi.ar <> Queue(arArb.io.out, 2)

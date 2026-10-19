@@ -14,7 +14,8 @@ object FiveStageArguments {
             "--fast-data-translation", "--overlap-data-retirement", "--read-only-data-retirement", "--coherent-caches",
             "--coherent-control-cuts", "--coherent-bandwidth", "--coherent-whole-line", "--direct-fast-data-issue",
             "--cache-fetch-predecode", "--indexed-data-proofs", "--coherent-line-grants", "--coherent-miss-turnover",
-            "--coherent-writeback-overlap", "--coherent-read-overlap", "--data-reply-handoff")
+            "--coherent-writeback-overlap", "--coherent-read-overlap", "--data-reply-handoff", "--banked-tlb-proofs", "--aia",
+            "--external-fence-i-completion")
         require(args.drop(2).forall(a => allowed(a) || a.matches("--(icache|dcache|line|predictor|pmp|tlb|coherent-ways)=[0-9]+") ||
             a.matches("--pipeline=(compact5|balanced7|fpga8)")),
             "unknown option")
@@ -35,6 +36,8 @@ object FiveStageArguments {
             overlapWriteLookup = args.contains("--overlap-write-lookup"),
             withUser = args.contains("--user") || args.contains("--supervisor") || args.contains("--sv39"),
             withSupervisor = args.contains("--supervisor") || args.contains("--sv39"),
+            withAia = args.contains("--aia"),
+            externalFenceICompletion = args.contains("--external-fence-i-completion"),
             withSv39 = args.contains("--sv39"), pmpEntries = value("--pmp", 0), tlbEntries = value("--tlb", 4),
             fastInstructionTranslation = !args.contains("--no-fast-instruction-translation"),
             withC = args.contains("--c"), withA = args.contains("--a"),
@@ -51,6 +54,7 @@ object FiveStageArguments {
             coherentWholeLine = args.contains("--coherent-whole-line"),
             cacheFetchPredecode = args.contains("--cache-fetch-predecode"),
             indexedDataProofs = args.contains("--indexed-data-proofs"),
+            bankedTlbProofs = args.contains("--banked-tlb-proofs"),
             coherentLineGrants = args.contains("--coherent-line-grants"),
             coherentMissTurnover = args.contains("--coherent-miss-turnover"),
             coherentWritebackOverlap = args.contains("--coherent-writeback-overlap"),

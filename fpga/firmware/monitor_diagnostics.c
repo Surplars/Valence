@@ -1,3 +1,4 @@
+#include "board_clocks.h"
 /* Separate -O3 RAM-resident kernels. Monitor/ownership driver remains -Os. */
 #include <stdint.h>
 #include "board_memory.h"
@@ -36,7 +37,7 @@ static uint64_t pattern(unsigned i){return 0x935b76124aedc087ULL ^ ((uint64_t)i*
 static int verify(unsigned words,unsigned target){for(unsigned i=0;i<words;i++)if((target?B[i]:A[i])!=pattern(i))return 0;return 1;}
 static void report(const char *kind,unsigned bytes,uint64_t elapsed,uint64_t tail){
  if(diagnostic_short){ee_printf("SELFTEST %s bytes=%lu ticks=%lu flush_tail=%lu\n",kind,(unsigned long)bytes,(unsigned long)elapsed,(unsigned long)tail);return;}
- ee_printf("BW %s bytes=%lu ticks=%lu flush_tail=%lu clock_hz=%lu milli_MiB_s=%lu\n",kind,(unsigned long)bytes,(unsigned long)elapsed,(unsigned long)tail,(unsigned long)CPU_HZ,(unsigned long)(elapsed?((uint64_t)bytes*CPU_HZ*1000ULL/elapsed)/1048576ULL:0));
+ ee_printf("BW %s bytes=%lu ticks=%lu flush_tail=%lu timebase_hz=%lu milli_MiB_s=%lu\n",kind,(unsigned long)bytes,(unsigned long)elapsed,(unsigned long)tail,(unsigned long)TIMEBASE_HZ,(unsigned long)board_milli_mib_per_second(bytes,elapsed));
 }
 static uint64_t read_sum(unsigned words) {
     uint64_t sum=0;
@@ -86,7 +87,7 @@ static int dma_bandwidth(unsigned quick){
  io_fence();
  uint64_t start=tick();dma_write(3,3);
  uint64_t status;
- do {status=dma_read(4);if(tick()-start>CPU_HZ*2ULL){ee_printf("DMA TIMEOUT; buffers pinned, RESET REQUIRED\n");return 0;}}while(status&1);
+ do {status=dma_read(4);if(tick()-start>board_seconds_to_ticks(2)){ee_printf("DMA TIMEOUT; buffers pinned, RESET REQUIRED\n");return 0;}}while(status&1);
  io_fence();uint64_t end=tick();
  if((status&6)!=2){ee_printf("DMA ERROR status=%lu\n",(unsigned long)status);return 0;}
  flush();uint64_t settled=tick();
@@ -96,7 +97,7 @@ static int dma_bandwidth(unsigned quick){
 }
 int main(void){
  unsigned op=*(volatile uint64_t *)(DIAG_BASE+0x7ff00UL);
- ee_printf("DIAG code=RAM flags=-O3 ISA=rv64im_zicsr_zifencei clock_hz=%lu\n",(unsigned long)CPU_HZ);
+ ee_printf("DIAG code=RAM flags=-O3 ISA=rv64im_zicsr_zifencei cpu_clock_hz=%lu timebase_hz=%lu\n",(unsigned long)CPU_CLOCK_HZ,(unsigned long)TIMEBASE_HZ);
  if(op=='c'||op=='C'){
   diagnostic_short=0;seed4_volatile=0;
   ee_printf("COREMARK FORMAL automatic; measured >10s and all CRCs required\n");

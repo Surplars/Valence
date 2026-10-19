@@ -1,3 +1,4 @@
+#include "board_clocks.h"
 /* Boot-only, real S-mode Bare/Sv39 comparison. No printing or MMIO in the ROI. */
 #include <stddef.h>
 #include <stdint.h>
@@ -172,7 +173,7 @@ static int selfcheck(struct mmu_run *r,volatile uint64_t *t){
 int mmu_diagnostic(void){
     volatile uint64_t *a=(volatile uint64_t *)MMU_A,*b=(volatile uint64_t *)MMU_B,*t=(volatile uint64_t *)MMU_TABLE_BASE;
     struct mmu_run r;
-    ee_printf("MMU_DIAG S-mode Bare vs Sv39; same kernel/physical buffers; rdtime_hz=%lu\n",(unsigned long)CPU_HZ);
+    ee_printf("MMU_DIAG S-mode Bare vs Sv39; same kernel/physical buffers; rdtime_hz=%lu\n",(unsigned long)TIMEBASE_HZ);
     ee_printf("MMU_SCOPE software timing only; no TLB miss counters; data A/D preset; sweep line offsets avoid same-set alias\n");
     if(!selfcheck(&r,t)){ee_printf("MMU SELFTEST FAIL cause=%lu tval=%lx\n",(unsigned long)r.cause,(unsigned long)r.tval);return 1;}
     for(unsigned mode=0;mode<3;mode++)for(unsigned test=0;test<6;test++)for(unsigned op=0;op<3;op++){
@@ -188,7 +189,7 @@ int mmu_diagnostic(void){
         ee_printf("MMU_BW mode=%s kind=%s op=%s pages_per_stream=%lu passes=%lu payload_bytes=%lu ticks=%lu flush_tail=%lu milli_MiB_s=%lu verified=1\n",
             mode==0?"S-Bare":mode==1?"Sv39-4K":"Sv39-2M",pages?"page_sweep":test?"128K_stream":"8K_warmed",
             op==0?"READ":op==1?"WRITE":"COPY",(unsigned long)(pages?pages:test?32:2),(unsigned long)r.passes,(unsigned long)bytes,
-            (unsigned long)r.ticks,(unsigned long)r.tail,(unsigned long)(r.ticks?bytes*CPU_HZ*1000ULL/r.ticks/1048576ULL:0));
+            (unsigned long)r.ticks,(unsigned long)r.tail,(unsigned long)board_milli_mib_per_second(bytes,r.ticks));
     }
     ee_printf("MMU_BANDWIDTH_PASS cases=54 data_verified=1 context_restored=1 copy_payload_not_double_bus=1\n");return 0;
 }

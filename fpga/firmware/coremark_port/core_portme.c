@@ -1,3 +1,7 @@
+#ifndef CPU_HZ
+#define CPU_HZ 40000000ULL
+#endif
+#include "../board_clocks.h"
 #include "coremark.h"
 #include "core_portme.h"
 
@@ -7,9 +11,6 @@
 #define COREMARK_ITERATIONS 0
 #endif
 
-#ifndef CPU_HZ
-#define CPU_HZ 40000000ULL
-#endif
 #define UART ((volatile uint8_t *)0x10000000UL)
 
 volatile ee_s32 seed1_volatile = 0;
@@ -28,7 +29,7 @@ static CORETIMETYPE timer_tick(void) {
     return diagnostic_port_test_tick();
 #else
     CORETIMETYPE tick;
-    /* Board rdtime advances once per CPU clock, including inside downloaded apps. */
+    /* rdtime advances at TIMEBASE_HZ, independently of CPU clock frequency. */
     __asm__ volatile ("rdtime %0" : "=r"(tick));
     return tick;
 #endif
@@ -38,7 +39,7 @@ void start_time(void) { start_tick = timer_tick(); }
 void stop_time(void) { elapsed_ticks = timer_tick() - start_tick; }
 CORE_TICKS get_time(void) { return elapsed_ticks; }
 secs_ret time_in_secs(CORE_TICKS ticks) {
-    return (secs_ret)ticks / (secs_ret)CPU_HZ;
+    return (secs_ret)ticks / (secs_ret)TIMEBASE_HZ;
 }
 
 static void uart_putc(char c) {
@@ -136,7 +137,7 @@ int ee_printf(const char *fmt, ...) {
         unsigned value=(unsigned)va_arg(check,int);va_end(check);
         short_crc_seen|=bit;if(value!=wanted)short_crc_bad=1;}
     if(!diagnostic_short&&starts(fmt,"Correct operation validated")){
-        formal_validated=elapsed_ticks>CPU_HZ*10ULL&&short_crc_seen==15&&!short_crc_bad;
+        formal_validated=elapsed_ticks>board_seconds_to_ticks(10)&&short_crc_seen==15&&!short_crc_bad;
         if(!formal_validated)return emit_string("COREMARK FORMAL INVALID: measured time must exceed 10s and all CRCs pass\n");
     }
     if(!diagnostic_short&&starts(fmt,"CoreMark 1.0")&&!formal_validated){formal_score_suppressed=1;return 0;}
@@ -204,6 +205,8 @@ void portable_init(core_portable *p, int *argc, char *argv[]) {
     short_crc_seen=short_crc_bad=formal_validated=formal_score_suppressed=0;
     ee_printf("COUNTERS mcycle=unavailable minstret=unavailable IPC=unavailable; rdtime is timebase only\n");
 #endif
+    ee_printf("CLOCKS cpu_clock_hz=%lu timebase_hz=%lu; CPU rate is nominal metadata\n",
+              (unsigned long)CPU_CLOCK_HZ, (unsigned long)TIMEBASE_HZ);
     ee_printf("VALENCE CoreMark 2K started; calibration and run may take a while.\n");
 }
 
@@ -213,7 +216,7 @@ void portable_fini(core_portable *p) {
     if(diagnostic_short)ee_printf(short_crc_seen==15&&!short_crc_bad?
         "COREMARK_SHORT_CRC_PASS standard2000=1 score=none\n":
         "COREMARK_SHORT_CRC_FAIL\n");
-    else ee_printf(formal_validated&&elapsed_ticks>CPU_HZ*10ULL&&short_crc_seen==15&&!short_crc_bad?
+    else ee_printf(formal_validated&&elapsed_ticks>board_seconds_to_ticks(10)&&short_crc_seen==15&&!short_crc_bad?
         "COREMARK_FORMAL_PASS measured_gt10s=1 standard2000=1 crc=all\n":
         "COREMARK_FORMAL_FAIL duration_or_crc_invalid; no valid score\n");
 #endif

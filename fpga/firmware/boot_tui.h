@@ -94,7 +94,7 @@ static void tui_selection(unsigned previous) {
 static int menu_key(int c,uint64_t now) {
     /* Explicit recovery from a damaged/unclosed terminal control string. */
     if(c==3){menu_escape=menu_escape_bytes=menu_escape_timedout=0;return MENU_ESC;}
-    if(menu_escape && !menu_escape_timedout && now-menu_escape_at>=CPU_HZ/5){
+    if(menu_escape && !menu_escape_timedout && now-menu_escape_at>=TIMEBASE_HZ/5){
         if(menu_escape==1)menu_escape=0;
         else if(menu_escape==2||menu_escape==3)menu_escape=4;
         /* Incomplete CSI/control strings remain discard-only until terminated.
@@ -137,7 +137,7 @@ static void tui_progress(unsigned complete,unsigned total) {
     uint64_t now=cycles();
     /* One short line per second, independent of payload block/packet count.
      * Called only after DMA is quiet, never from the network receive loop. */
-    if(complete<total && now-menu_progress_at<CPU_HZ)return;
+    if(complete<total && now-menu_progress_at<TIMEBASE_HZ)return;
     menu_progress_at=now;
     puts_uart("\rVerify RAM [");unsigned bars=(unsigned)((uint64_t)complete*24/total);
     for(unsigned i=0;i<24;++i)putc_uart(i<bars?'#':'-');

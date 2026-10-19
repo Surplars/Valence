@@ -2,6 +2,7 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
+import soc.ip.bus.ResetDefinedRRArbiter
 import soc.ip.tilelink.LineWriteRequest
 
 /** Retain queued write origins, with an explicit idle single-origin allocation.
@@ -13,7 +14,7 @@ class CoherentWriteDispatch(addressBits: Int, tagBits: Int) extends Module {
         val in = Flipped(Vec(2, Decoupled(new LineWriteRequest(addressBits, tagBits))))
         val out = Decoupled(new LineWriteRequest(addressBits, tagBits))
     })
-    private val arbiter = Module(new RRArbiter(new LineWriteRequest(addressBits, tagBits), 2))
+    private val arbiter = Module(new ResetDefinedRRArbiter(new LineWriteRequest(addressBits, tagBits), 2))
     private val queue = Module(new Queue(new LineWriteRequest(addressBits, tagBits), 2,
         pipe = false, flow = false))
     for (i <- 0 until 2) { arbiter.io.in(i) <> io.in(i) }

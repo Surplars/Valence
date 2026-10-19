@@ -57,10 +57,10 @@ int main(void) {
         free(dst);
         free(src);
     }
-    assert(rate_milli_mib(1048576, 50000000) == 1000); /* 1 MiB in 1 second */
-    assert(rate_milli_mib(8388608, 25000000) == 16000);
-    assert(rate_milli_mib(1048576, 100000000) == 500);
-    assert(rate_milli_mib(0, 50000000) == 0);
+    assert(rate_milli_mib(1048576, TIMEBASE_HZ) == 1000); /* 1 MiB in 1 second */
+    assert(rate_milli_mib(8388608, TIMEBASE_HZ / 2) == 16000);
+    assert(rate_milli_mib(1048576, (uint64_t)TIMEBASE_HZ * 2) == 500);
+    assert(rate_milli_mib(0, TIMEBASE_HZ) == 0);
     assert(rate_milli_mib(1048576, 0) == 0);
     fixed3(12034);
     assert(strcmp(output, "12.034") == 0);

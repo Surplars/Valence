@@ -51,13 +51,14 @@ class FiveStageTranslationHarness(instruction: Boolean = false, fastData: Boolea
     timingCuts: Boolean = false, atomic: Boolean = false, window: String = "aligned",
     tlb: Int = 4, fastInstruction: Boolean = true, overlapRetirement: Boolean = false,
     splitCandidates: Boolean = false, splitDataCandidates: Boolean = false, directData: Boolean = false,
-    indexedDataProofs: Boolean = false, replyHandoff: Boolean = false) extends Module {
+    indexedDataProofs: Boolean = false, replyHandoff: Boolean = false,
+    bankedTlbProofs: Boolean = false) extends Module {
     require(Set("aligned", "shifted", "board").contains(window))
     val p = FiveStageConfig(withUser = true, withSupervisor = true, withSv39 = true, pmpEntries = 4,
         withA = atomic, pipelineProfile = if (timingCuts) "fpga8" else "compact5",
         fpgaTimingCuts = timingCuts, fastDataTranslation = fastData, tlbEntries = tlb,
         directFastDataIssue = directData, indexedDataProofs = indexedDataProofs,
-        dataReplyHandoff = replyHandoff,
+        dataReplyHandoff = replyHandoff, bankedTlbProofs = bankedTlbProofs,
         fastInstructionTranslation = fastInstruction,
         earlyMemoryIssue = overlapRetirement, overlapDataRetirement = overlapRetirement,
         cacheableBase = BigInt(if (window == "shifted") "80000040" else
@@ -119,6 +120,6 @@ object FiveStageTranslationMain extends App {
         !args.contains("--no-fast-instruction"), args.contains("--overlap-data-retirement"),
         args.contains("--split-candidates"), args.contains("--split-data-candidates"),
         args.contains("--direct-fast-data-issue"), args.contains("--indexed-data-proofs"),
-        args.contains("--data-reply-handoff")),
+        args.contains("--data-reply-handoff"), args.contains("--banked-tlb-proofs")),
         Array("--target-dir", args.head))
 }

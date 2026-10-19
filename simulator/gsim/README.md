@@ -2862,3 +2862,14 @@ an independent4ef2f3d baseline with the candidate using the existing packet byte
 oracle and DmaPacketStopGsim only. See `docs/dma-tx-word-count.txt` for the exact
 matrix, reproducible baseline preparation and retained qualification hashes.
 This does not run Vivado, full regression, CPU execution, PHY or CDC acceptance.
+
+### Opt-in two-client common Home
+
+`common_home_clients.py` is the bounded full-geometry (1024 lines / 4 ways / 256 sets)
+M2/W2 protocol gate for the shared I/D Home, using two independent host clients and a
+write-response-committed memory oracle. It checks local source namespaces, dirty handoff,
+racing Release/Probe, four-way reuse, held Grant/reverse E, true M2+W2 overlap, and drain.
+The separate `common_home_compatibility.py` gate reuses the existing single-client
+512-line oracle and exact optimized frozen-shadow protocol test. Both require explicitly
+selected installed GSIM/compiler tools and their qualification receipt; neither runs a
+CPU/board model or claims physical performance. See `docs/common-coherence-home.md`.

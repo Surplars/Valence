@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "default_action": "plan",
+  "profiles": {
+    "i1-compact-rom": {
+      "status": "executable_fixture",
+      "functional_status": "requires fresh receipt for the selected source and tool inputs",
+      "main": "inorder.FiveStageSocGsimMain",
+      "top": "FiveStageSoc",
+      "xlen": 64,
+      "flags": [
+        "--no-m",
+        "--icache=0",
+        "--dcache=0",
+        "--predictor=0",
+        "--pipeline=compact5",
+        "--soc-ddr-one"
+      ],
+      "fixture": "Single-clock Orbital-I1 RV64I/Zicsr/Zifencei compact5 SoC, one DDR bridge slot, no caches or predictor, 4 KiB ROM, UART loopback, machine timer and PLIC; sparse host AXI memory covers the 2 GiB address window.",
+      "driver": "simulator/gsim/harness/five_stage_soc.cpp",
+      "payload": "simulator/gsim/inorder/soc_smoke.S",
+      "linker": "simulator/gsim/inorder/soc_link.ld",
+      "rom": "src/main/resources/inorder/bootrom.hex",
+      "checks": [
+        "clock-lock/reset gating",
+        "DDR calibration gating",
+        "ROM retirement and DDR entry",
+        "RAM read/write, byte lanes and 2 GiB last word",
+        "UART loopback through PLIC source 3 claim/complete",
+        "MSIP, MTIP and precise MRET",
+        "denied MMIO load and AXI R/B access faults",
+        "independent --inject DDR corruption rejection"
+      ],
+      "not_covered": [
+        "OoO execution",
+        "independent CPU/fabric clocks or CDC",
+        "JTAG",
+        "Linux",
+        "NEMU differential checking",
+        "batch44 timing/performance",
+        "300 MHz",
+        "FPGA placement/routing or board validation"
+      ]
+    },
+    "ooo-board-rom": {
+      "status": "blocked",
+      "main": "ooo.BoardSocGsimMain",
+      "driver": "simulator/gsim/harness/board_boot.cpp",
+      "blockers": [
+        "BoardSocGsim requires non-empty configurationCheck; the legacy BoardSocGsimMain does not supply it.",
+        "The legacy board_boot.cpp expects Valence Bootrom V0.1 and manual g; current firmware uses V0.2 AUTOBOOT and return-lock."
+      ],
+      "next_step": "Add a separately reviewed thin wrapper for an explicit actual OoO baseline configuration and a matching current-protocol oracle. Do not weaken configuration checks or enable a performance candidate."
+    },
+    "ooo-local-rom": {
+      "status": "executable_fixture",
+      "functional_status": "requires fresh receipt for the selected source and tool inputs",
+      "flow": "ooo_local_rom",
+      "main": "ooo.BaselineBoardGsimMain",
+      "mill_module": "IonSoC",
+      "top": "BaselineBoardGsim",
+      "wrapper": "src/test/scala/ooo/BaselineBoardGsimMain.scala",
+      "driver": "simulator/gsim/harness/baseline_board_boot.cpp",
+      "firmware_builder": "fpga/firmware/build.py",
+      "fixture": "Single-clock Orbital-A1 early-issue two-wide RV64IMAC functional baseline, CPU 40 MHz, 128 KiB ROM, 1 MiB local RAM, virtual 1.5 Mbaud UART with divisor 1 and 24 MHz baud-generator reference; no DDR.",
+      "cpu_hz": 40000000,
+      "uart_baud": 1500000,
+      "uart_divisor": 1,
+      "uart_reference_hz": 24000000,
+      "rom_bytes": 131072,
+      "ram_bytes": 1048576,
+      "cycle_limit": 30000000,
+      "registered_interrupts": true,
+      "irq_chain_status": "NOT COVERED",
+      "checks": [
+        "reset ROM V0.2 banner and instruction-byte retirement oracle",
+        "independent UART VLD1/DATA/CRC framing",
+        "whole-image bad CRC rejection without unverified execution",
+        "chunk CRC retry and downloaded RAM byte shadow",
+        "AUTOBOOT sample application and actual RAM instruction retirement",
+        "APP RETURN requires reset; further download and manual launch remain locked",
+        "hardware reset followed by fresh AUTOBOOT",
+        "byte/halfword/word/doubleword guest loads and physical RAM signature"
+      ],
+      "not_covered": [
+        "IRQ delivery chain",
+        "DDR",
+        "independent CPU/fabric clocks or CDC",
+        "JTAG",
+        "Linux",
+        "NEMU differential checking",
+        "frequency/timing qualification",
+        "physical board validation"
+      ]
+    }
+  },
+  "current_candidate": {
+    "base_revision": "f1013f21",
+    "physical_requalified": false,
+    "note": "Neither the public merged source nor this functional-bringup candidate inherits physical qualification from a historical bit."
+  },
+  "historical_evidence": [
+    {
+      "name": "I1 batch44 no-MAC",
+      "source": "fpga/inorder/README.md",
+      "status": "historical record only; not rerun here",
+      "cpu_mhz": 300,
+      "ddr_ui_mhz": 250,
+      "aon_mhz": 50,
+      "uart_clock_mhz": 50,
+      "uart_baud": 460800,
+      "instruction_cache_bytes": 32768,
+      "data_cache_bytes": 32768,
+      "ddr_slots": 2,
+      "jtag_user_chain": 2,
+      "jtag_scan_bits": 65,
+      "bit_sha256": "bb974f17ec03bd5d51eb5df56bc858beb7a5e9051cffedcce4b4c95fe2c0aea7",
+      "setup_wns_ns": 0.0,
+      "hold_ns": 0.007,
+      "reset_cdc_critical_count": 9,
+      "board_evidence": "User-reported JTAG small-program readback, commit and UART execution only; no Linux, long-term stability or full CDC qualification.",
+      "current_candidate_physical_requalified": false
+    },
+    {
+      "name": "OoO netboot-drain-r1",
+      "date": "2026-10-07",
+      "source": "fpga/zu15eg/README.md",
+      "status": "historical generated bit and reported STA only; not rerun here",
+      "cpu_mhz": 100,
+      "isa": "RV64GC",
+      "ddr_bytes": 2147483648,
+      "uart_baud": 460800,
+      "setup_wns_ns": 0.001,
+      "hold_ns": 0.009,
+      "board_evidence": "Current board boot/ROM-to-OpenSBI-to-Linux handoff and stability remain unverified.",
+      "current_candidate_physical_requalified": false
+    },
+    {
+      "name": "Older DDR50 board feedback",
+      "source": "fpga/zu15eg/README.md",
+      "status": "historical board feedback; current-task bit identity unverified",
+      "cpu_mhz": 50,
+      "bit_identity_verified_in_this_task": false,
+      "board_evidence": "The historical README includes rejected-download-header feedback. No newly generated artifact is declared board-passed from this record."
+    }
+  ],
+  "experimental_entries": [
+    {
+      "name": "fpga-next-default52",
+      "entrypoint": "fpga/next/board_final.py",
+      "cpu_native_option_count": 52,
+      "source_declared_status": "SOURCE_CONFIG_BOUND_NOT_PHYSICALLY_QUALIFIED",
+      "default_action": "source/configuration preflight; native export requires --emit",
+      "current_task_execution": "NOT RUN",
+      "selected_by_bringup": false,
+      "physical_qualified": false
+    },
+    {
+      "name": "matching-board-full-candidate",
+      "entrypoint": "ooo.CpuMatchingBoardProfileGsimMain",
+      "source": "src/test/scala/ooo/CpuMatchingBoardProfileGsimMain.scala",
+      "status": "EXPLICIT_COMPLETE_CANDIDATE_CONFIGURATION_REQUIRED",
+      "required_inputs": [
+        "fresh output directory",
+        "exactly one topology: --selected, --reference or --candidate",
+        "complete compatible board-profile options",
+        "--experimental-trispeed-ethernet",
+        "--experimental-jtag-bscan=2",
+        "explicit native-physical-service models from the caller"
+      ],
+      "scope": "Full-population CPU/fabric candidate; assembly JSON is not evidence of BSCAN/CDC primitive simulation.",
+      "current_task_execution": "NOT RUN",
+      "selected_by_bringup": false,
+      "physical_qualified": false
+    },
+    {
+      "name": "current-soc-ooc-timing",
+      "entrypoint": "ooo.CurrentSocTimingMain",
+      "source": "src/test/scala/ooo/CurrentSocTimingMain.scala",
+      "status": "OOC_TIMING_FIXTURE_NOT_BOOT",
+      "scope": "SystemVerilog timing fixture, optionally compact with named structural switches; no functional BootROM/board acceptance.",
+      "current_task_execution": "NOT RUN",
+      "selected_by_bringup": false,
+      "physical_qualified": false
+    }
+  ],
+  "independent_clock_entries": [
+    {
+      "name": "i1-independent-short-boot",
+      "entrypoint": "simulator/cdc/test_i1_independent_boot.py",
+      "emitter": "inorder.I1IndependentClockSocMain",
+      "make_target": "i1-independent-boot-test",
+      "required_profile": [
+        "test-only",
+        "full-cpu"
+      ],
+      "default_profile": null,
+      "status": "explicit native independent-edge acceptance; fresh passing receipt required",
+      "test_only_geometry": {
+        "instruction_cache_bytes": 2048,
+        "data_cache_bytes": 2048
+      },
+      "full_cpu_geometry": {
+        "instruction_cache_bytes": 32768,
+        "data_cache_bytes": 32768
+      },
+      "independent_clock_required": true,
+      "transport": "HeldResponseCdcDataFifo depth16, separate A/B/C/D/E and LineGrant",
+      "complete_board_status": "BLOCKED: JTAG maintenance CDC, managed UART/CMU and board constraints/qualification",
+      "physical_qualified": false,
+      "selected_by_gsim_bringup": false
+    }
+  ]
+}

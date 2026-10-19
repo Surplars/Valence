@@ -1,0 +1,91 @@
+{
+  "status": "PASS_RESET_REPAIR_AFFECTED_CPU_REGRESSIONS_BOTH_PROFILES",
+  "baseline": "df9821cd8be30898bf289a06350dd49d5ad65b66",
+  "compile_receipt_sha256": "c180abaded76bcfd4fc2ae7df7ecaa7ef0ed658cee273df36f5065db4c3a15a4",
+  "native_receipt_sha256": "69c6baadcaf8d895012b254bd561e03a0c0934aaa6ce56b2320332be21bd7b13",
+  "source_sha256": {
+    "/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/common-reset-arbitration-r2/src/main/scala/ip/bus/ResetDefinedRRArbiter.scala": "11ff0130830ad948c63d6201164b63c244c998ab91be070541298708f65703d1",
+    "/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/common-reset-arbitration-r2/src/test/scala/platform/CommonResetArbiterMain.scala": "756e5f3ed180e7cd60100cd6324312259522223d7f0286ff8ed49de94e854a12",
+    "/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/common-reset-arbitration-r2/simulator/gsim/common/reset_arbitration_native.py": "5b4c44067f79c9103ea2a2ac12be99f57c388e28ab7eb00312194134f6750831"
+  },
+  "logs": {
+    "fixed-2-run.log": {
+      "sha256": "e2b062d87bb8d6b103add613c2acf2ca5897340acb36d1adb4ba6acbc0e004a5",
+      "text": "RESET_RR_NATIVE_PASS n=2 known=0 checks=310 fire=202\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/fixed-2/tb.sv:61: $finish called at 3556000 (1ps)\n"
+    },
+    "fixed-3-run.log": {
+      "sha256": "db65cb29d6eb3b459b07de4f7156d6bd895c2ba964cdab321caca892b4c5454f",
+      "text": "RESET_RR_NATIVE_PASS n=3 known=0 checks=360 fire=275\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/fixed-3/tb.sv:61: $finish called at 4566000 (1ps)\n"
+    },
+    "fixed-4-run.log": {
+      "sha256": "53b0d7ebd094c03022dc2c0961303eeecb09821d67ce92e83d99da22f80c4a17",
+      "text": "RESET_RR_NATIVE_PASS n=4 known=0 checks=458 fire=384\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/fixed-4/tb.sv:61: $finish called at 6776000 (1ps)\n"
+    },
+    "legacy-2-run.log": {
+      "sha256": "39d56fad1455a3592f04622c445b25aed798d6b40f7c8e8dea65cf579d1b7ae7",
+      "text": "RESET_RR_NATIVE_PASS n=2 known=1 checks=6 fire=6\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/legacy-2/tb.sv:61: $finish called at 276000 (1ps)\n"
+    },
+    "legacy-3-run.log": {
+      "sha256": "ffbdb4bab07e35442aefe27baa3312752ea794cbbfed647e4fd3b1bcae6d35b5",
+      "text": "RESET_RR_NATIVE_PASS n=3 known=1 checks=21 fire=21\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/legacy-3/tb.sv:61: $finish called at 876000 (1ps)\n"
+    },
+    "legacy-4-run.log": {
+      "sha256": "e547ff5b27fc7e78384de5066e0ec14799c5d396ce8ba60961aac4725b5efbb8",
+      "text": "RESET_RR_NATIVE_PASS n=4 known=1 checks=60 fire=60\n/workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/legacy-4/tb.sv:61: $finish called at 2436000 (1ps)\n"
+    },
+    "legacy-3-first-nonzero-negative.log": {
+      "sha256": "bb9c5d68fd47c34c90d63e8fd91a538311ba3a47a9846d3756081d2ab3ae86da",
+      "text": "FATAL: /workspace/scratch/41e4a649bb60/valence-dev2-integration-20261019-r1/evidence/common-reset-selection-native-r4/legacy-3/tb.sv:27: RESET_RR_FOUR_STATE_ACCEPTANCE_ORACLE n=          3 source=          1 ready=x chosen=01\n       Time: 41000  Scope: tb.step\n"
+    }
+  },
+  "hardware_compiled_commit": "c7c54336f730fe24a719cdda4ff8f84856ababa0",
+  "physical_qualified": false,
+  "full_rom_rerun_after_repair": false,
+  "current_checks": {
+    "both_original_short_boots": {
+      "receipt": "common-reset-original-short-boot-regression-r1.json",
+      "sha256": "ff4f2807fbdedf65fba55d4146d814b5bd87bdc85ce321b71ab41009158660c5",
+      "status": "PASS_CANDIDATE_ORIGINAL_SHORT_BOOT_REGRESSION_BOTH_CPUS"
+    },
+    "i1_same_perf_guest": {
+      "receipt": "common-reset-i1-perf-r1/receipt.json",
+      "sha256": "0cdb91851f00e487989c933072ddf03f470fe2d0fc76f14f16133e3e39b66400",
+      "status": "PASS_COMMON_CPU_NATIVE_CANDIDATE_SYNTHETIC_PERF_OBSERVATION"
+    },
+    "a1_same_perf_guest_and_pattern_negative": {
+      "receipt": "common-reset-a1-perf-r1/receipt.json",
+      "sha256": "1b9596da7cd5e44397bbdf59d36f084098d1aa556658d6f18e5ab48fb5b7f695",
+      "status": "PASS_COMMON_CPU_NATIVE_CANDIDATE_SYNTHETIC_PERF_OBSERVATION"
+    },
+    "actual_module_structure": {
+      "receipt": "common-reset-arbiter-cost-r1/receipt.json",
+      "sha256": "6a97748b6551658ef77b2a8d85fc75c99b396e545d8e70e73f9d331e1c569538",
+      "status": "PASS_BOUNDED_ACTUAL_MODULE_STRUCTURAL_AUDIT_NO_PHYSICAL_SIGNOFF"
+    }
+  },
+  "structural_scope": {
+    "sum_ff": [
+      7,
+      7
+    ],
+    "sum_lut": [
+      1303,
+      1300
+    ],
+    "sum_muxf": [
+      102,
+      102
+    ],
+    "overall_module_max_layers_before_and_after": [
+      1,
+      3,
+      2,
+      1,
+      1
+    ],
+    "axi_ar_local_regression": "ready[0/1] input and FFQ paths 1->2 layers; input->out_valid 1->2, new FFQ->out_valid/CE two layers. No physical timing claim.",
+    "report_sha256": "d7efbbf0c9a03164b2bfe7b20de56bf753a91b1bb7112f940eeec150b20e2c28"
+  },
+  "performance_scope": "ROM-executed synthetic end-to-end guest; I1 ROM instructions are uncached. Not a pure L1 or peak CPU/fabric benchmark. I1 complete window fields unchanged versus df9821c. A1 same exposing guest now passes with two read and two write owners observed in separate phases.",
+  "prior_evidence": "Full-ROM banner, unchanged Home/MSI protocols and board-boundary source checks retain original commit/test scope. They are not recast as new repair runs."
+}

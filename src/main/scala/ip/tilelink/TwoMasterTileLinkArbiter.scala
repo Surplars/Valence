@@ -78,7 +78,10 @@ class TwoMasterTileLinkArbiter(params: TLParams = TLParams(addrWidth = 64, dataW
             when(aRemaining === 1.U) { aBurst := false.B }
                 .otherwise { aRemaining := aRemaining - 1.U }
         }.otherwise {
-            assert(!occupied(selected)(source), "Two-master TileLink source reused before response")
+            // Query the same selected bit as UInt so enabled verification also
+            // lowers without a nested packed-array mux on native simulators.
+            assert(!Mux(selected, occupied(1).asUInt, occupied(0).asUInt)(source),
+                "Two-master TileLink source reused before response")
             occupied(selected)(source) := true.B
             val beats = TLBurst.beats(a.size, params)
             when(TLBurst.hasDataOnA(a.opcode) && beats > 1.U) {

@@ -2,6 +2,7 @@ package soc.ip.tilelink
 
 import chisel3._
 import chisel3.util._
+import soc.ip.bus.ResetDefinedRRArbiter
 import soc.bus.tilelink._
 
 /** TL-UL address router for two adjacent RAM banks. D may return from either bank first. */
@@ -118,7 +119,7 @@ class TwoBankTileLinkRouter(
         }
     }
 
-    val replies = Module(new RRArbiter(new TLBundleD(params), 3))
+    val replies = Module(new ResetDefinedRRArbiter(new TLBundleD(params), 3))
     for (i <- 0 until 2) {
         val source = if (rawResponseMetadata) io.banks(i).d.bits.source
             else Mux(io.banks(i).d.valid, io.banks(i).d.bits.source, 0.U)

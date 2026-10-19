@@ -4,27 +4,9 @@ import chisel3._
 import chisel3.util._
 import soc.isa.MCause
 
-class DataRequest(returnHandleBits: Int = 0) extends Bundle {
-    val returnHandle = if (returnHandleBits > 0) Some(UInt(returnHandleBits.W)) else None
-    val atomic   = Bool()
-    val atomicOp = UInt(5.W)
-    val address  = UInt(64.W) // Effective byte address, not aligned down.
-    val write    = Bool()
-    val size     = UInt(2.W)  // log2(bytes)
-    val data     = UInt(64.W) // Ordinary stores use aligned beat lanes; atomic rs2 is right-justified.
-    val mask     = UInt(8.W)
-    val virtualized = Bool() // Address has not yet been translated; only the core's VM adapter consumes it.
-    val precheckedLoad = Bool() // Frozen PA from the hit-only virtual-load authorization path.
-    val translationEpoch = UInt(32.W) // Consumed and cleared at the physical authorization adapter.
-    val prefetchNextAllowed = Bool() // Full next-line permission captured by the physical authorization adapter.
-    val uncached = Bool() // Physical access must bypass the private cache (for example, PBMT NC/IO).
-}
-class DataResponse(returnHandleBits: Int = 0) extends Bundle {
-    val returnHandle = if (returnHandleBits > 0) Some(UInt(returnHandleBits.W)) else None
-    val data  = UInt(64.W) // Ordinary loads return a beat; atomics return the complete XLEN result.
-    val error = Bool()     // An errored write must have no memory side effect.
-    val pageFault = Bool() // An address-translation fault, distinct from a physical access error.
-}
+// Keep the public CPU-local type names while sharing the exact wire format.
+class DataRequest(returnHandleBits: Int = 0) extends soc.ip.memory.NativeMemoryRequest(returnHandleBits)
+class DataResponse(returnHandleBits: Int = 0) extends soc.ip.memory.NativeMemoryResponse(returnHandleBits)
 
 /** Each accepted request produces exactly one actual response. The default untagged port requires request order.
   * A configured CPU return handle permits only the qualified completed-store exception; every consumer must recognize

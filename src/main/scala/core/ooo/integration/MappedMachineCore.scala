@@ -2,8 +2,8 @@ package soc.core.ooo
 
 import chisel3._
 import chisel3.util._
-import soc.ip.interrupt.{Aplic, AplicParams, ImsicParams}
-import soc.ip.bus.TwoMasterRegisterArbiter
+import soc.ip.interrupt.{AplicParams, ImsicParams}
+import soc.platform.CommonInterruptFabric
 
 /** Software-configured APLIC on the CPU data address space. See docs/core-mmio.md. */
 class MappedMachineCore(
@@ -17,7 +17,8 @@ class MappedMachineCore(
     canonicalHandoff: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false,
+    externalInterruptFabric: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
@@ -72,6 +73,7 @@ class MappedMachineCore(
         val memory          = new DataPort(p.dataReturnHandleBits)
         val posted = p.postedProofConfig.map(c => Flipped(new PostedStoreCachePort(c)))
         val sources         = Input(UInt(aplicParams.sources.W))
+        val externalMsi = if (externalInterruptFabric) Some(Flipped(new soc.ip.bus.RegisterPort)) else None
         val msiError        = Output(Bool())
         val externalPending = Output(UInt(imsicParams.files.W))
         val inspectRegister = Input(UInt(5.W))
@@ -98,22 +100,18 @@ class MappedMachineCore(
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         virtualStoreOperandLookahead = virtualStoreOperandLookahead,
         bankedStoreData = bankedStoreData))
-    val aplic = Module(new Aplic(aplicParams, hasChild = true,
-        childMsiBase = imsicParams.supervisorBase))
+    val interrupts = if (!externalInterruptFabric) Some(Module(new CommonInterruptFabric(aplicParams, imsicParams))) else None
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,
         msiBase = imsicParams.supervisorBase)
-    val supervisorAplic = Module(new Aplic(supervisorParams, hasParent = true))
-    val msiArbiter = Module(new TwoMasterRegisterArbiter)
-    msiArbiter.io.masters(0) <> aplic.io.msi
-    msiArbiter.io.masters(1) <> supervisorAplic.io.msi
-    core.io.msi <> msiArbiter.io.downstream
-    val router = if (!stagedMemoryFabric) Some(Module(new CoreRegisterRouter(aplicParams.base))) else None
-    val supervisorRouter = if (!stagedMemoryFabric)
+    core.io.msi <> io.externalMsi.getOrElse(interrupts.get.io.msi)
+    val router = if (!externalInterruptFabric && !stagedMemoryFabric) Some(Module(new CoreRegisterRouter(aplicParams.base))) else None
+    val supervisorRouter = if (!externalInterruptFabric && !stagedMemoryFabric)
         Some(Module(new CoreRegisterRouter(supervisorParams.base))) else None
-    val parallelRouter = if (stagedMemoryFabric) Some(Module(new ParallelRegisterRouter(Seq(
+    val parallelRouter = if (!externalInterruptFabric && stagedMemoryFabric) Some(Module(new ParallelRegisterRouter(Seq(
         (aplicParams.base, BigInt(16384)), (supervisorParams.base, BigInt(16384))
     ), bypassMemoryShift = p.directMemoryResponse, returnConfig = p.cpuReturnConfig))) else None
-    val mappedUpstream = parallelRouter.map(_.io.upstream).getOrElse(router.get.io.upstream)
+    val mappedUpstream = if (externalInterruptFabric) io.memory
+        else parallelRouter.map(_.io.upstream).getOrElse(router.get.io.upstream)
     // Elaboration-only references for passive board-wrapper lineage observation.
     var observationTranslation: Option[DataTranslationAdapter] = None
     var observationResponses: Option[DataResponseBuffer] = None
@@ -183,21 +181,19 @@ class MappedMachineCore(
     } else {
         mappedUpstream <> core.io.memory
     }
-    parallelRouter match {
+    if (!externalInterruptFabric) parallelRouter match {
         case Some(fabric) =>
-            fabric.io.registers(0) <> aplic.io.mmio
-            fabric.io.registers(1) <> supervisorAplic.io.mmio
+            fabric.io.registers(0) <> interrupts.get.io.machineRegisters
+            fabric.io.registers(1) <> interrupts.get.io.supervisorRegisters
             io.memory <> fabric.io.memory
         case None =>
-            router.get.io.registers <> aplic.io.mmio
+            router.get.io.registers <> interrupts.get.io.machineRegisters
             supervisorRouter.get.io.upstream <> router.get.io.memory
-            supervisorRouter.get.io.registers <> supervisorAplic.io.mmio
+            supervisorRouter.get.io.registers <> interrupts.get.io.supervisorRegisters
             io.memory <> supervisorRouter.get.io.memory
     }
-    aplic.io.sources        := io.sources
-    supervisorAplic.io.sources := aplic.io.childSources
-    supervisorAplic.io.parentEnabled.get := aplic.io.childEnabled
-    io.msiError             := aplic.io.msiError || supervisorAplic.io.msiError
+    interrupts.foreach(_.io.sources := io.sources)
+    io.msiError := interrupts.map(_.io.msiError).getOrElse(false.B)
     core.io.timerInterrupt  := io.timerInterrupt
     core.io.timeValue       := io.timeValue
     io.fenceIFlush := core.io.fenceIFlush

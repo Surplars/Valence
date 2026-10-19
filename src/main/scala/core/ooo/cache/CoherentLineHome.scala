@@ -60,7 +60,7 @@ object CoherentLineHomeModule {
             "future Home way reservation requires memory scheduling overlap")
         require(!memoryScheduleOverlap || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 &&
             trackedWays == 2 && mixedReadWrite), "memory scheduling requires the reviewed two-way mixed Home")
-        require(!internalLineGrant || (nClients == 1 && acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite),
+        require(!internalLineGrant || (Set(1, 2).contains(nClients) && acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite),
             "whole Grant requires the reviewed mixed two-owner Home")
         require(!dmaLineTransfers || (acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
             "line DMA requires the bounded mixed coherence home")
@@ -76,8 +76,10 @@ object CoherentLineHomeModule {
         if (acquireEntries == 1) Module(new CoherentLineHome(params, base, bytes, nClients,
             trackedLines, trackedWays, rawResponseMetadata, parallelQualification, tagConfig))
         else {
-            require(nClients == 1 && trackedLines > 0,
-                "bounded concurrent home currently requires one client and an explicit directory capacity")
+            require(Set(1, 2).contains(nClients) && trackedLines > 0,
+                "bounded concurrent home requires one or two clients and an explicit directory capacity")
+            require(nClients == 1 || (mixedReadWrite && writebackEntries > 1),
+                "multiple clients require independent mixed read/write ownership tables")
             if (writebackEntries > 1 || mixedReadWrite)
                 Module(new MixedCoherentLineHome(params, base, bytes, trackedLines,
                     trackedWays, acquireEntries, rawResponseMetadata, tagConfig, writebackEntries, mixedReadWrite,
@@ -86,7 +88,7 @@ object CoherentLineHomeModule {
                     sharedLookupMatch = memoryScheduleOverlap && trackedLines == 512 && trackedWays == 2 &&
                         acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite && dmaLineTransfers &&
                         dmaLineEntries == 4 && tagConfig.bankedStorage && (!futureHomeWayReservation || allowSharedFutureLookup) &&
-                        lineTransferDispatchFlow && lineReadChannel && internalLineGrant))
+                        lineTransferDispatchFlow && lineReadChannel && internalLineGrant, nClients = nClients))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

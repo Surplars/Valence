@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "simulator/gsim"))
 from run import OPENSBI_LOCK, opensbi_setup, run  # noqa: E402
 import linux_boot  # noqa: E402
 from memory_layout import MemoryLayout
+from clock_config import add_clock_arguments, resolve_clocks, MIN_HZ, MAX_HZ
 
 LOAD = 0x80200000
 KERNEL = 0x80400000
@@ -29,27 +30,35 @@ MONITOR = RAM_END - 0x4000
 CONFIG_VERSION = 3
 
 
-def board_dts(isa, cpu_hz, uart_baud, memory_bytes=0x20000000):
+def board_dts(isa, cpu_hz, uart_baud, memory_bytes=0x20000000, *,
+              timebase_hz=None, fabric_hz=None, cpu_kind="a1"):
     """Generate discovery for the explicitly selected RTL, never infer F/D."""
     if isa not in ("rv64imac", "rv64gc"):
         raise RuntimeError("Unsupported Linux ISA profile: " + isa)
-    if not 6000000 <= cpu_hz <= 200000000 or not 0 < uart_baud <= cpu_hz // 16:
-        raise RuntimeError("Invalid CPU / UART profile")
+    timebase_hz = cpu_hz if timebase_hz is None else timebase_hz
+    fabric_hz = timebase_hz if fabric_hz is None else fabric_hz
+    if (cpu_kind not in ("i1", "a1") or
+            any(not MIN_HZ <= hz <= MAX_HZ for hz in (cpu_hz, timebase_hz, fabric_hz)) or
+            not 0 < uart_baud <= fabric_hz // 16):
+        raise RuntimeError("Invalid CPU / timebase / fabric / UART profile")
+    cpu_name = {"a1": "Orbital-A1", "i1": "Orbital I1"}[cpu_kind]
+    # Project-local software identifiers, not architectural marchid values.
+    cpu_compatible = {"a1": "openion,orbital-a1", "i1": "openion,valence-i1"}[cpu_kind]
     text = (HERE / "linux-ddr50.dts").read_text()
     layout = MemoryLayout(memory_bytes)
     replacements = {
         'riscv,isa = "rv64imac_zicsr_zifencei";':
             'riscv,isa = "' + ("rv64imafdc" if isa == "rv64gc" else "rv64imac") + '_zicsr_zifencei";',
-        "timebase-frequency = <50000000>;": f"timebase-frequency = <{cpu_hz}>;",
+        "timebase-frequency = <50000000>;": f"timebase-frequency = <{timebase_hz}>;",
         'stdout-path = "serial0:115200n8";': f'stdout-path = "serial0:{uart_baud}n8";',
         "clock-frequency = <1843200>;": f"clock-frequency = <{uart_baud * 16}>;",
         "current-speed = <115200>;": f"current-speed = <{uart_baud}>;",
         'model = "Valence ZU15EG PL DDR50 single-hart";':
-            f'model = "OpenIon Valence VL100 / Orbital-A1 / {isa} {cpu_hz // 1000000}MHz";',
+            f'model = "OpenIon Valence VL100 / {cpu_name} / {isa} {cpu_hz // 1000000}MHz";',
         'compatible = "openion,valence-ddr50";':
             'compatible = "openion,valence-vl100", "openion,valence-ddr50";',
         'compatible = "riscv";':
-            'compatible = "openion,orbital-a1", "riscv";',
+            f'compatible = "{cpu_compatible}", "riscv";\n            clock-frequency = <{cpu_hz}>;',
         'reg = <0x0 0x80200000 0x0 0x20000000>;':
             f'reg = <0x0 0x80200000 0x0 0x{memory_bytes:x}>;',
         'monitor@a01fc000': f'monitor@{layout.monitor:x}',
@@ -189,7 +198,9 @@ def build(args):
     marker = output / "source.json"
     identity = {"linux_revision": revision, "opensbi_revision": OPENSBI_LOCK["revision"],
                 "rootfs": args.rootfs, "isa_profile": args.isa,
-                "cpu_hz": args.cpu_hz, "uart_baud": args.uart_baud}
+                "cpu_hz": args.cpu_hz, "cpu_kind": args.cpu_kind,
+                "timebase_hz": args.clocks.timebase_hz, "fabric_hz": args.clocks.fabric_hz,
+                "ddr_ui_hz": args.clocks.ddr_ui_hz, "uart_baud": args.uart_baud}
     if marker.exists() and json.loads(marker.read_text()) != identity:
         raise RuntimeError("Source revision changed; select a new --out directory")
     marker.write_text(json.dumps(identity, indent=2) + "\n")
@@ -266,7 +277,9 @@ def build(args):
     dtc = kernel_out / "scripts/dtc/dtc"
     dtb = output / "valence-ddr50.dtb"
     dts = output / "valence-board.dts"
-    dts.write_text(board_dts(args.isa, args.cpu_hz, args.uart_baud))
+    dts.write_text(board_dts(args.isa, args.cpu_hz, args.uart_baud,
+                              timebase_hz=args.clocks.timebase_hz, fabric_hz=args.clocks.fabric_hz,
+                              cpu_kind=args.cpu_kind))
     run([dtc, "-I", "dts", "-O", "dtb", "-o", dtb, dts])
     if dtb.stat().st_size + 8192 > 0x10000:
         raise RuntimeError("DTB exceeds reserved relocation slot")
@@ -299,7 +312,7 @@ def build(args):
         "cpu_hz": args.cpu_hz, "uart_baud": args.uart_baud, "uart_reference_hz": args.uart_baud * 16,
         "riscv_isa": "rv64imafdc_zicsr_zifencei" if args.isa == "rv64gc" else "rv64imac_zicsr_zifencei",
         "kernel_fpu": args.isa == "rv64gc", "linux_fp_context_verified": False,
-        "issue_width": 2, "ram_base": hex(LOAD), "ram_bytes": 0x20000000,
+        "issue_width": 1 if args.cpu_kind == "i1" else 2, "ram_base": hex(LOAD), "ram_bytes": 0x20000000,
         "entry": hex(LOAD), "kernel_entry": hex(KERNEL), "dtb_relocation": hex(DTB),
         "kernel_runtime_bytes": runtime_size, "static_firmware_end": hex(symbols["_fw_end"]),
         "payload_alignment_padding_bytes": payload_padding,
@@ -323,15 +336,24 @@ def main():
     parser.add_argument("--rootfs", choices=("busybox", "minimal"), default="busybox")
     parser.add_argument("--isa", choices=("rv64imac", "rv64gc"), default="rv64imac",
                         help="must match BoardSocMain ISA profile; GC enables Linux FPU context handling")
-    parser.add_argument("--cpu-hz", type=int, default=50000000)
+    add_clock_arguments(parser, 50000000)
+    parser.add_argument("--cpu-kind", choices=("i1", "a1"), default="a1",
+                        help="explicit hardware CPU identity; never inferred from frequency")
     parser.add_argument("--uart-baud", type=int, default=115200)
     parser.add_argument("--userland", type=Path, default=ROOT / "build/fpga/linux-userland")
     parser.add_argument("--jobs", type=int, default=min(os.cpu_count() or 8, 16))
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be positive")
-    if not 6000000 <= args.cpu_hz <= 200000000 or not 0 < args.uart_baud <= args.cpu_hz // 16:
-        parser.error("invalid CPU frequency / UART baud profile")
+    try:
+        args.clocks = resolve_clocks(args)
+        if args.common_platform and args.cpu_hz != {"i1": 300000000, "a1": 100000000}[args.cpu_kind]:
+            raise ValueError("common Linux payload requires I1 CPU=300MHz or A1 CPU=100MHz")
+        board_dts(args.isa, args.cpu_hz, args.uart_baud,
+                  timebase_hz=args.clocks.timebase_hz, fabric_hz=args.clocks.fabric_hz,
+                  cpu_kind=args.cpu_kind)
+    except (ValueError, RuntimeError) as error:
+        parser.error(str(error))
     build(args)
 
 

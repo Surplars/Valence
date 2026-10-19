@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 import shutil
 import subprocess
+from clock_config import add_clock_arguments, resolve_clocks
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -13,15 +14,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "build/fpga/ddr-bench-50m")
     parser.add_argument("--prefix", default="riscv64-unknown-elf-")
-    parser.add_argument("--cpu-hz", type=int, default=50_000_000)
+    add_clock_arguments(parser, 50_000_000)
     parser.add_argument("--baud", type=int, default=115200,
                         help="Inherited BootROM baud, banner only; does not reconfigure UART")
     parser.add_argument("--locality", action="store_true", help="Bounded 1/2/4/8 KiB cache locality variant")
     args = parser.parse_args()
-    if not 6_000_000 <= args.cpu_hz <= 200_000_000:
-        parser.error("CPU clock must be in 6..200 MHz")
-    if args.baud <= 0 or args.baud * 16 > args.cpu_hz:
-        parser.error("UART reference (16*baud) must fit the CPU clock")
+    try:
+        clocks = resolve_clocks(args)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.baud <= 0 or args.baud * 16 > clocks.fabric_hz:
+        parser.error("UART reference (16*baud) must fit the peripheral/fabric clock")
     for tool in ("gcc", "objcopy", "size", "objdump"):
         if not shutil.which(args.prefix + tool):
             parser.error(f"missing tool: {args.prefix + tool}")
@@ -34,7 +37,7 @@ def main():
         "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
         "-ffunction-sections", "-fdata-sections", "-nostdlib", "-nostartfiles",
         "-Wall", "-Wextra", "-Werror", "-Wl,--gc-sections", "-Wl,--no-relax",
-        f"-DCPU_HZ={args.cpu_hz}ULL", f"-DUART_BAUD={args.baud}U",
+        *clocks.flags(), f"-DUART_BAUD={args.baud}U",
         *(["-DDDR_BENCH_LOCALITY=1"] if args.locality else []),
         "-Wl,--defsym=BOARD_RAM_BYTES=536870912",
         "-Wl,--defsym=DDR_TEST_PROGRAM_LIMIT=0x80400000",
@@ -50,7 +53,7 @@ def main():
     with (output / "ddr_bench.dis").open("w") as stream:
         subprocess.run([args.prefix + "objdump", "-d", str(elf)], stdout=stream, check=True)
     print(f"Outputs: {output}")
-    print(f"Target: {args.cpu_hz} Hz / inherited {args.baud} baud; {image.stat().st_size} bytes")
+    print(f"Target: {clocks.timebase_hz} timebase Hz / inherited {args.baud} baud; {image.stat().st_size} bytes")
     print("RAM app only; do not regenerate/program the bitstream.")
 
 

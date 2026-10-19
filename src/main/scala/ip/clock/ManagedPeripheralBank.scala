@@ -14,7 +14,11 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     uartHz: Int = 50000000, baud: Int = 460800, hardwareClocks: Boolean = true,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
-    val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false) extends RawModule {
+    val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false,
+    sourceClockHz: Int = 0) extends RawModule {
+    // CPU metadata and the actual MMIO/control source domain are independent.
+    require(sourceClockHz >= 0)
+    private val busHz = if (sourceClockHz > 0) sourceClockHz else cpuHz
     require(!balancedRawClocks || (hardwareClocks && triSpeedEthernet))
     require(!(triSpeedRawClockHandoff && balancedRawClocks),
         "RAW MAC handoff with balanced raw clocks needs dedicated MAC lifecycle/CDC qualification")
@@ -62,7 +66,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     cmu.registers <> cmuRegisters
     cmuIrq := cmu.irq
     for (n <- Seq(0, 1, 2, 4)) { cmu.resources(n).ack := false.B; cmu.resources(n).wake := false.B }
-    val uart = Module(new ManagedUart(cpuHz, uartHz, config.alwaysOnHz, baud, hardwareClocks,
+    val uart = Module(new ManagedUart(busHz, uartHz, config.alwaysOnHz, baud, hardwareClocks,
         balancedRawClock = balancedRawClocks))
     uart.sourceClock := sourceClock
     uart.rawClock := rawUartClock
@@ -77,7 +81,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     private var builtTriSpeedMac: Option[TriSpeedManagedGmac] = None
     def instantiatedTriSpeedMac: Option[TriSpeedManagedGmac] = builtTriSpeedMac
     if (triSpeedEthernet) {
-        val gmac = Module(new TriSpeedManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+        val gmac = Module(new TriSpeedManagedGmac(busHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
             networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots,
             rawClockHandoff = triSpeedRawClockHandoff, balancedRawClock = balancedRawClocks))
         builtTriSpeedMac = Some(gmac)
@@ -111,7 +115,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
         txClock := gmac.txClock
         rxClock := gmac.rxClock
     } else {
-        val gmac = Module(new ManagedGmac(cpuHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+        val gmac = Module(new ManagedGmac(busHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
             networkDmaConfig = networkDmaConfig))
         gmac.sourceClock := sourceClock
         gmac.rawTxClock := rawTxClock

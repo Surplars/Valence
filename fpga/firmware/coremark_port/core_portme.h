@@ -20,7 +20,7 @@
 #endif
 #define COMPILER_FLAGS COREMARK_COMPILER_FLAGS
 #ifndef MEM_LOCATION
-#define MEM_LOCATION "code and data in 1 MiB on-chip UltraRAM at 40 MHz"
+#define MEM_LOCATION "code and data in 1 MiB on-chip UltraRAM; clocks reported separately"
 #endif
 
 typedef int16_t ee_s16;

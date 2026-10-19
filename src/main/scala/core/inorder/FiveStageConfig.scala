@@ -48,7 +48,10 @@ case class FiveStageConfig(
     coherentMissTurnover: Boolean = false,
     coherentWritebackOverlap: Boolean = false,
     coherentReadOverlap: Boolean = false,
-    dataReplyHandoff: Boolean = false
+    dataReplyHandoff: Boolean = false,
+    bankedTlbProofs: Boolean = false,
+    withAia: Boolean = false,
+    externalFenceICompletion: Boolean = false
 ) {
     require(Set(32, 64).contains(xlen), "XLEN must be 32 or 64")
     require(Set(1, 2).contains(coherentCacheWays))
@@ -74,8 +77,15 @@ case class FiveStageConfig(
         "dual-client TL-C uses equal RV64 I/D caches, 64-byte lines, at least two sets")
     require(!cacheFetchPredecode || (withC && coherentCaches && coherentControlCuts && coherentCacheWays == 2),
         "cached parcel predecode requires C, two-way coherent caches and explicit FPGA cuts")
-    require(!indexedDataProofs || (withSv39 && fpgaTimingCuts && fastDataTranslation && tlbEntries <= 8),
+    require(!indexedDataProofs || (withSv39 && fpgaTimingCuts && fastDataTranslation && preparedTranslationProofs),
         "indexed data proofs require Sv39, bounded fast data authorization and FPGA timing mode")
+    require(!bankedTlbProofs || (withSv39 && fpgaTimingCuts && Set(16, 32).contains(tlbEntries)),
+        "banked TLB proofs require explicit 16/32-entry Sv39 FPGA timing mode")
+    require(!bankedTlbProofs || !fastDataTranslation || indexedDataProofs,
+        "banked fast data translation retains indexed source-owned read/write proofs")
+    // Capacity is explicit. This flag extends the prepared <=8-row path with
+    // two/four local banks; it does not add an owner, PTW or request slot.
+    def preparedTranslationProofs: Boolean = tlbEntries <= 8 || bankedTlbProofs
     require(!withD || withF, "D requires F")
     require(!withF || xlen == 64, "initial independent F/D integration supports RV64 only")
     val flen: Int = if (withD) 64 else 32
@@ -91,6 +101,7 @@ case class FiveStageConfig(
         "data retirement overlap requires early issue, FPGA cuts and a registered translation/protection reply")
     require(!readOnlyDataRetirement || overlapDataRetirement, "read-only retirement requires explicit overlap enable")
     require(!withSupervisor || withUser, "S requires U")
+    require(!withAia || (withSupervisor && xlen == 64), "I1 IMSIC requires RV64 S/U")
     require(!withSv39 || (withSupervisor && xlen == 64), "Sv39 requires RV64 S/U")
     require(Set(0, 4, 8, 16).contains(pmpEntries), "PMP has 0/4/8/16 writable regions")
     val physicalBits: Int = if (physicalAddressBits == 0) math.min(xlen, 36) else physicalAddressBits

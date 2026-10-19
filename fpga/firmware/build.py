@@ -8,6 +8,7 @@ import ipaddress
 import hashlib
 import json
 from memory_layout import MemoryLayout
+from clock_config import add_clock_arguments, resolve_clocks
 
 ROM_BYTES = 128 * 1024
 
@@ -52,7 +53,7 @@ def main():
     parser.add_argument("--netboot-server", default="192.168.137.1")
     parser.add_argument("--netboot-file", default="valence.vld")
     parser.add_argument("--prefix", default="riscv64-unknown-elf-")
-    parser.add_argument("--cpu-hz", type=int, default=40_000_000)
+    add_clock_arguments(parser, 40_000_000)
     args = parser.parse_args()
     if args.plain_terminal and not args.boot_menu:
         parser.error("--plain-terminal requires --boot-menu")
@@ -86,8 +87,10 @@ def main():
                 args.uart_reference_hz != 16 * args.uart_baud * args.uart_divisor):
             parser.error("UART contract mismatch: baud = reference_hz / (16 * divisor); "
                          "ManagedUart 460800 uses reference 7372800 and divisor 1, not 7")
-    if not 6_000_000 <= args.cpu_hz <= 200_000_000:
-        parser.error("CPU clock must be in 6..200 MHz")
+    try:
+        clocks = resolve_clocks(args)
+    except ValueError as error:
+        parser.error(str(error))
     source = Path(__file__).resolve().parent
     output = (args.out or source.parents[1] / "build/fpga/firmware").resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -105,7 +108,7 @@ def main():
     diagnostic_blob = None
     if args.boot_menu:
         from build_monitor_diag import build as build_diagnostic
-        diagnostic_blob=build_diagnostic(source,output,args.prefix,args.cpu_hz,ram_bytes,layout.monitor)
+        diagnostic_blob=build_diagnostic(source,output,args.prefix,args.cpu_hz,ram_bytes,layout.monitor,clocks=clocks)
         flags.extend(["-DBOOT_MENU=1", f"-DBOOT_TUI_DEFAULT={int(not args.plain_terminal)}"])
     for name, inputs, linker in (
         ("bootrom", ("start.S", "bootrom.c", "crc32.c"), "bootrom.ld"),
@@ -124,8 +127,7 @@ def main():
             inputs = (*inputs, "netboot.c", "netboot_board.c")
         if args.jtag_download and name == "bootrom":
             net_flags.append("-DBOARD_JTAG_DOWNLOAD=1")
-        command = [gcc, *flags, *net_flags, f"-DUART_DIVISOR={args.uart_divisor}", f"-DCPU_HZ={args.cpu_hz}ULL",
-                   f"-DBOARD_CLOCK_MHZ={args.cpu_hz // 1_000_000}",
+        command = [gcc, *flags, *net_flags, f"-DUART_DIVISOR={args.uart_divisor}", *clocks.flags(),
                    *(["-DBOARD_DDR=1"] if args.ddr else []),
                    f"-DBOARD_RAM_BYTES={ram_bytes}UL",
                    f"-DBOARD_MONITOR_BASE={layout.monitor}UL",
@@ -141,7 +143,7 @@ def main():
     memory_images(data, output)
     (output / "bootrom-contract.json").write_text(json.dumps(dict(
         schema=1, external_return_policy="reset_required_unknown_peripheral_ownership", hardware_mcycle_minstret_available=False, ram_verify_cache_capacity_max=32768, ram_verify_cache_ways=[1,2], ram_verify_line_bytes=64, ram_verify_sweep_bytes=65536, ram_verify_sweep_passes=2, ram_verify_two_stage_flush=True, boot_menu=args.boot_menu, image_limit=layout.image_limit-(0x80000 if args.boot_menu else 0),
-        diagnostic_boot_scratch_bytes=0x80000 if args.boot_menu else 0, cpu_hz=args.cpu_hz, timebase_hz=args.cpu_hz,
+        diagnostic_boot_scratch_bytes=0x80000 if args.boot_menu else 0, **clocks.metadata(),
         jtag_download=args.jtag_download,
         jtag_download_mmio_base=0x10003000 if args.jtag_download else None,
         jtag_download_autostart=args.jtag_download,
@@ -155,7 +157,7 @@ def main():
         jtag_download_launch="host_commit_then_ram_crc_then_epoch_claim" if args.jtag_download else None,
         crc_mode=args.crc_mode, crc_table_bytes=dict(nibble=64,byte=1024,slice4=4096,slice2=2048)[args.crc_mode],
         netboot_borrowed_rx=args.netboot_posted_rx,
-        timebase_source="BoardSocTop.timerTick=true; MachineTimer.timeValue -> TIME CSR",
+        timebase_source="MachineTimer.timeValue -> TIME CSR; ticks in configured timebase domain",
         netboot_rx_stop_abi=2 if args.netboot else None,
         netboot_posted_rx=args.netboot_posted_rx,
         netboot_request_blksize=args.netboot_block_bytes if args.netboot_posted_rx else None,

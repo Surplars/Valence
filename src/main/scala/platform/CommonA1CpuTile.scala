@@ -1,0 +1,210 @@
+package soc.platform
+
+import chisel3._
+import chisel3.util._
+import soc.core.ooo._
+import soc.bus.tilelink._
+
+/** CPU-domain extraction of the public Selected A1 profile. All private frontend,
+  * MMU/PMP, register/retirement state and L1s remain here. No ROM, timer, APLIC,
+  * DMA, Home or DDR manager is instantiated in this tile. The first common
+  * profile explicitly adds the existing whole-line return capability only.
+  * External download maintenance remains unaccepted until its halt/flush owner
+  * is connected; CPU-issued FENCE.I already uses a real fabric drain epoch.
+  */
+class CommonA1CpuTile(
+    config: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true),
+    boundary: CommonCpuTilePortParams = CommonCpuTilePortParams()
+) extends Module {
+    private val p = config.coreParams
+    private val cacheConfig = config.cache
+    require(config.issueWidth == 2 && config.isaProfile == "rv64gc")
+    require(config.instructionCacheLines == 512 && config.dataCacheLines == 512 && config.cacheWays == 2)
+    require(cacheConfig.readMshrs == 2 && cacheConfig.responseEntries == 2 && cacheConfig.writebackEntries == 2)
+    require(config.internalLineGrant && boundary.coherent.sinkBits == cacheConfig.sinkBits)
+    require(p.dataReturnHandleBits == 0 && p.postedProofConfig.isEmpty,
+        "first extraction accepts public Selected, not unpublished tagged/posted CPU candidates")
+    private val staged = BoardSocConfig.usesStagedMemoryFabric(config.timingProfile, p)
+    require(staged, "common A1 extraction keeps the checked registered physical boundary")
+    val io = IO(new Bundle {
+        val bus = new CommonCpuTilePort(boundary)
+        val hold = Input(Bool())
+        val inspectRegister = Input(UInt(5.W))
+        val committedValue = Output(UInt(64.W))
+        val commit = Output(Vec(p.commitWidth, Valid(new CommitRecord(p))))
+        val trap = Output(Valid(new HeadException(p)))
+        val fetchPc = Output(UInt(64.W))
+        val memoryBusy = Output(Bool())
+        val tlbHit = Output(Vec(2, Bool()))
+        val pteRead = Output(Vec(2, Bool()))
+    })
+    val core = Module(new MappedMachineCore(p, dataTranslation = true, stagedMemoryFabric = true,
+        bufferTranslatedResponses = true, translationHitFlow = config.translationHitFlow,
+        canonicalHandoff = cacheConfig.independentDemandAdmission && p.canonicalVirtualStoreOverlap,
+        externalInterruptFabric = true))
+    val compactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&
+        p.compressedInstructions && p.stableFetchFaultMetadata && p.alignedFetchPmp && p.rawFetchPresence &&
+        p.parallelFetchTagLookup && p.parallelFetchAlignment && p.registeredFetchWindow &&
+        p.independentFetchPayloadCapture && p.fetchPreviousPacket && p.alignedFetchPermissionStage &&
+        p.fetchAddressBeforePmp
+    val frontend = Module(new SynchronousFetch(16, p.compressedInstructions, p.frontendCacheSets,
+        p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
+        rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
+        parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
+        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
+        boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
+        compactCacheKeys = compactFetchKeys))
+    val fetchAdapter = Module(new InstructionTranslationAdapter(p))
+    fetchAdapter.io.virtual <> frontend.io.memory
+    fetchAdapter.io.vmState := core.io.vmState.get
+    fetchAdapter.io.privilege := core.io.fetchPrivilege.get
+    fetchAdapter.io.pmpState := core.io.pmpState.get
+    if (p.fetchAddressBeforePmp) when(frontend.io.memory.request.valid) {
+        assert(fetchAdapter.io.virtual.request.ready, "prepared fetch lost its direct translation owner")
+    }
+    val physicalFetch = if (p.bufferedFetchRequests) {
+        val requests = Module(new InstructionRequestBuffer(fetchAdapter.io.physical.packetWords,
+            p.flowThroughFetchRequests, p.independentFetchCapture))
+        requests.io.upstream <> fetchAdapter.io.physical
+        requests.io.downstream
+    } else fetchAdapter.io.physical
+    val fetchCache = Module(new InstructionLineCache(boundary.instruction,
+        ramBase = config.ramBase, ramBytes = config.ddrBytes, romBytes = CommonPlatformAbi.romBytes,
+        lines = config.instructionCacheLines, packetWords = 2,
+        prefetchEnabled = false, // public two-word frontend already owns its fetch window
+        bankedData = config.bankedInstructionData,
+        parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = config.tags))
+    fetchCache.io.fetch <> physicalFetch
+    fetchCache.io.pmpState := core.io.pmpState.get
+    fetchCache.io.privilege := core.io.fetchPrivilege.get
+    fetchCache.io.invalidate := core.io.invalidateFetch
+    io.bus.instructionFetch <> fetchCache.io.tl
+
+    val selection = Module(new CommonPrivateMemoryRouter(config.ramBase, config.ddrBytes))
+    selection.io.cpu <> core.io.memory
+    val cache = CoherentLineCacheModule.build(base = config.ramBase, bytes = config.ddrBytes,
+        lines = config.dataCacheLines, params = boundary.coherent, ways = config.cacheWays,
+        concurrency = cacheConfig, tagConfig = config.tags,
+        registerProbeLookup = config.registerProbeLookup, localReadSelection = config.localCacheReadSelection,
+        allowSharedFutureLruWriteData = p.sharedMemoryAddressState && cacheConfig.futureHomeWayReservation &&
+            cacheConfig.storePrefetchLruVictim)
+    cache.io.upstream <> selection.io.cache
+    io.bus.coherent(1) <> cache.io.tl
+    cache.io.lineGrant.get <> io.bus.lineGrant(1)
+    io.bus.coherent(0).a.valid := false.B
+    io.bus.coherent(0).a.bits := 0.U.asTypeOf(io.bus.coherent(0).a.bits)
+    io.bus.coherent(0).b.ready := false.B
+    io.bus.coherent(0).c.valid := false.B
+    io.bus.coherent(0).c.bits := 0.U.asTypeOf(io.bus.coherent(0).c.bits)
+    io.bus.coherent(0).d.ready := false.B
+    io.bus.coherent(0).e.valid := false.B
+    io.bus.coherent(0).e.bits := 0.U.asTypeOf(io.bus.coherent(0).e.bits)
+    io.bus.lineGrant(0).ready := false.B
+    assert(!io.bus.coherent(0).b.valid && !io.bus.coherent(0).d.valid && !io.bus.lineGrant(0).valid,
+        "fabric addressed an inactive A1 coherent I-client")
+    if (p.dataNextLinePrefetch) {
+        core.io.externalPrefetchBusy.get := cache.io.prefetchBusy
+        when(cache.io.upstream.request.fire && cache.io.upstream.request.bits.prefetchNextAllowed) {
+            assert(core.io.memoryBusy, "A1 prefetch lost the original CPU memory owner")
+        }
+    }
+
+    val walkers = (0 until 2).map(i => Module(new SvTranslationService(3,
+        entries = if (i == 1) config.dataTranslationEntries else 8,
+        loadPeek = p.virtualRamLoadPrecheck && i == 1,
+        writeReadReuse = config.dataTlbWriteReadReuse && i == 1)))
+    val pte = Seq.fill(2)(Module(new SvPteDataBridge(4)))
+    val walkArbiter = Module(new SharedDataArbiter)
+    val memoryArbiter = Module(new SharedDataArbiter(registerResponseOwners = true))
+    val walkIdle = VecInit((0 until 2).map(i => walkers(i).io.idle && pte(i).io.idle)).asUInt.andR
+    val flush = core.io.vmFlush.get && walkIdle
+    for (i <- 0 until 2) {
+        walkers(i).io.flush := flush
+        walkers(i).io.pmpState := core.io.pmpState.get
+        pte(i).io.flush := flush
+        pte(i).io.walk <> walkers(i).io.memory
+        walkArbiter.io.clients(i) <> pte(i).io.data
+        io.tlbHit(i) := walkers(i).io.tlbHit
+        io.pteRead(i) := pte(i).io.physicalRead
+    }
+    walkers(0).io.client <> fetchAdapter.io.translation
+    walkers(1).io.client <> core.io.translation.get
+    if (p.virtualRamLoadPrecheck) {
+        walkers(1).io.loadPeek.get <> core.io.translationPeek.get
+        core.io.precheckFlush.get := flush
+    }
+    core.io.vmFlushReady.get := walkIdle
+    memoryArbiter.io.clients(0) <> cache.io.downstream
+    memoryArbiter.io.clients(1) <> walkArbiter.io.memory
+    val requests = Module(new DataRequestBuffer(registerHead = p.registeredFabricBoundary))
+    requests.io.upstream <> memoryArbiter.io.memory
+    requests.io.requestCpu := memoryArbiter.io.memoryRequestClient0
+    val direct = Module(new CommonNativeOwnerAdapter(boundary, carriesClear = false))
+    val physical = Module(new CommonNativeOwnerAdapter(boundary, carriesClear = true))
+    direct.io.native <> selection.io.uncached
+    direct.io.needsCoherenceLookup := true.B
+    direct.io.clearReservation := false.B
+    physical.io.native <> requests.io.downstream
+    physical.io.needsCoherenceLookup := !requests.io.downstreamRequestCpu
+    physical.io.clearReservation := core.io.trap.valid
+    io.bus.scalar(0) <> direct.io.transport
+    io.bus.scalar(1) <> physical.io.transport
+
+    // Existing two-phase FENCE.I ordering: private dirty writeback first,
+    // then shared Home/DDR plus transport ownership, then fetch invalidation.
+    val epoch = RegInit(0.U(boundary.maintenanceEpochBits.W))
+    val fenceSeen = RegInit(false.B)
+    val requestSent = RegInit(false.B)
+    val fabricDone = RegInit(false.B)
+    when(core.io.fenceIFlush && !fenceSeen) { epoch := epoch + 1.U; fenceSeen := true.B }
+    when(!core.io.fenceIFlush) { fenceSeen := false.B; requestSent := false.B; fabricDone := false.B }
+    cache.io.flushRequest := core.io.fenceIFlush
+    val fetchIdle = frontend.io.quiescent && fetchAdapter.io.idle && fetchCache.io.idle
+    val privateIdle = selection.io.idle && direct.io.idle && physical.io.idle && requests.io.idle && walkIdle
+    io.bus.maintenanceStatus.valid := core.io.fenceIFlush && fenceSeen && cache.io.flushDone &&
+        privateIdle && fetchIdle && !requestSent
+    io.bus.maintenanceStatus.bits.epoch := epoch
+    io.bus.maintenanceStatus.bits.privateOwnersDrained := privateIdle
+    io.bus.maintenanceStatus.bits.dirtyWritebackCompleted := cache.io.flushDone
+    io.bus.maintenanceStatus.bits.fetchQuiescent := fetchIdle
+    io.bus.maintenanceStatus.bits.invalidationsCompleted := false.B
+    when(io.bus.maintenanceStatus.fire) { requestSent := true.B }
+    io.bus.fabricDrainedEpoch.ready := requestSent && !fabricDone
+    when(io.bus.fabricDrainedEpoch.fire) {
+        assert(io.bus.fabricDrainedEpoch.bits === epoch, "A1 accepted a stale fabric drain epoch")
+        fabricDone := true.B
+    }
+    core.io.fenceIFlushReady := cache.io.flushDone && fabricDone
+    io.bus.maintenance.ready := false.B // no early or fabricated external-download acknowledgement
+
+    frontend.io.pc := core.io.fetchPc
+    if (p.alignedFetchPermissionStage) {
+        frontend.io.requestFrontier.get := core.io.fetchRequestFrontier.get
+        frontend.io.suppressRequest.get := core.io.suppressFetchRequest.get
+        core.io.instructionFaultOffsets.get := frontend.io.instructionFaultOffsets
+    }
+    frontend.io.enable := !io.hold
+    frontend.io.invalidate := core.io.invalidateFetch
+    frontend.io.pause := core.io.pauseFetch.get
+    frontend.io.pmpState := core.io.pmpState.get
+    frontend.io.privilege := core.io.fetchPrivilege.get
+    frontend.io.virtualized := core.io.vmState.get.satp(63, 60) =/= 0.U && core.io.fetchPrivilege.get =/= 3.U
+    core.io.fetchQuiescent.get := fetchIdle
+    core.io.instructions := frontend.io.instructions
+    core.io.instructionFaults := frontend.io.instructionFaults
+    core.io.instructionPageFaults := frontend.io.instructionPageFaults
+    core.io.instructionFaultAddresses.foreach(_ := frontend.io.instructionFaultAddresses)
+    core.io.commitEnable := !io.hold
+    core.io.sources := 0.U
+    core.io.externalMsi.get <> io.bus.msi
+    core.io.timerInterrupt := io.bus.timerInterrupt
+    core.io.timeValue := io.bus.timeSnapshot
+    // ABI 1 exposes no MSIP array; neither tile may invent an extra MMIO device.
+    assert(!io.bus.softwareInterrupt, "A1 ABI 1 has no machine software interrupt source")
+    core.io.inspectRegister := io.inspectRegister
+    io.commit := core.io.commit
+    io.trap := core.io.trap
+    io.fetchPc := core.io.fetchPc
+    io.committedValue := core.io.committedValue
+    io.memoryBusy := core.io.memoryBusy
+}

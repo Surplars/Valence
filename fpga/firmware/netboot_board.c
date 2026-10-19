@@ -1,3 +1,7 @@
+#ifndef CPU_HZ
+#define CPU_HZ 100000000ULL
+#endif
+#include "board_clocks.h"
 #include "netboot.h"
 #include "valence_gmac.h"
 #include "ethernet_dma.h"
@@ -13,9 +17,7 @@
 #ifndef NETBOOT_RX_SLOTS
 #define NETBOOT_RX_SLOTS 4U
 #endif
-#ifndef CPU_HZ
-#define CPU_HZ 100000000ULL
-#endif
+
 #ifndef BOARD_RAM_BYTES
 #define BOARD_RAM_BYTES (512UL*1024*1024)
 #endif
@@ -101,7 +103,7 @@ void *memset(void *to,int value,size_t n) {
 }
 static uint64_t now(void *unused) {
     /* BoardSocTop.timerTick=true; MachineTimer.timeValue feeds the TIME CSR.
-     * This is CPU_HZ ticks/second on this fixed-clock board, not retired cycles. */
+     * This is TIMEBASE_HZ ticks/second, independent of CPU and retired cycles. */
     (void)unused; uint64_t value; __asm__ volatile("rdtime %0":"=r"(value) :: "memory"); return value;
 }
 static void fence(void) { __asm__ volatile("fence iorw,iorw" ::: "memory"); }
@@ -259,7 +261,7 @@ static int stop_posted_rx(void) {
         uint64_t status=read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS);
         if(!queue_owned(status)) break;
         if(((status>>8)&255) && complete_posted_rx(0,0)<0) valid=0;
-        if(now(0)-start>=CPU_HZ/5) return 0;
+        if(now(0)-start>=TIMEBASE_HZ/5) return 0;
     }
     write64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL,0);
     if((read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL)&1) ||
@@ -278,7 +280,7 @@ static int stop_rx(void) {
 #endif
     if(read64(DMA_BASE,0x48)&1) {
         write64(DMA_BASE,0x90,1);
-        if(!wait_bits(DMA_BASE,0x48,1,0,CPU_HZ/5)) return 0;
+        if(!wait_bits(DMA_BASE,0x48,1,0,TIMEBASE_HZ/5)) return 0;
     }
     write64(DMA_BASE,0x40,2); armed=0; return 1;
 }
@@ -315,26 +317,26 @@ int board_netboot_quiet(void) {
                 arm_rx(); /* completed frames are discarded only in reserved scratch */
             }
         }
-        if(now(0)-start>=CPU_HZ/5) return failed("producer_drain_timeout");
+        if(now(0)-start>=TIMEBASE_HZ/5) return failed("producer_drain_timeout");
     }
     if(!stop_rx()) return failed("rx_dma_stop_timeout");
-    if(!wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return failed("tx_dma_timeout");
-    if(!wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return failed("mac_tail_timeout");
+    if(!wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5)) return failed("tx_dma_timeout");
+    if(!wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return failed("mac_tail_timeout");
     drain_ticks+=now(0)-stage_start; ended(now(0)-stage_start);
     begin(NB_MAC_STOP);
     /* Admission is closed and all busy tails are gone: CONTROL cannot race a
      * newly admitted frame, and no FIFO/reset/clock-gate shortcut is involved. */
     write64(MAC_BASE,VGMAC_CONTROL,0);
     if(read64(MAC_BASE,VGMAC_CONTROL)!=0 ||
-       !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return failed("mac_disable_timeout");
+       !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return failed("mac_disable_timeout");
     write64(DMA_BASE,0x20,2); fence(); active=0; armed=0;
     mac_stop_ticks+=now(0)-stage_start; ended(now(0)-stage_start); return 1;
 }
 static int mdio(unsigned reg,int write,unsigned value) {
-    if(!wait_bits(MAC_BASE,0x80,1,0,CPU_HZ/50)) return -1;
+    if(!wait_bits(MAC_BASE,0x80,1,0,TIMEBASE_HZ/50)) return -1;
     write64(MAC_BASE,0x78,value | ((uint64_t)write<<16) | (1UL<<17) |
             (1UL<<18) | ((uint64_t)reg<<23)); /* board PHY address 1 */
-    if(!wait_bits(MAC_BASE,0x80,3,2,CPU_HZ/50)) return -1;
+    if(!wait_bits(MAC_BASE,0x80,3,2,TIMEBASE_HZ/50)) return -1;
     uint64_t result=read64(MAC_BASE,0x88);
     return result&(1UL<<16)?-1:(int)(result&65535);
 }
@@ -370,7 +372,7 @@ static int initialize(void) {
         if(abort_uart()) return 0;
         high=mdio(2,0,0); low=mdio(3,0,0);
         if(high>=0 && low>=0 && (((unsigned)high<<16 | (unsigned)low)&0xfffffff0U)==0x001cc910U) break;
-    } while(now(0)-start<CPU_HZ*2);
+    } while(now(0)-start<board_seconds_to_ticks(2));
     if(high<0 || low<0 || (((unsigned)high<<16 | (unsigned)low)&0xfffffff0U)!=0x001cc910U) return 0;
     if(mdio(31,1,0xd08)<0) return 0;
     int tx=mdio(0x11,0,0), rx=mdio(0x15,0,0), safe=0;
@@ -401,26 +403,26 @@ static int initialize(void) {
         if(ready) {
             write64(MAC_BASE,0x18,0x0256414c0001ULL);
             if(read64(MAC_BASE,0x18)!=0x0256414c0001ULL ||
-               !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return 0;
+               !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return 0;
 #if NETBOOT_POSTED_RX
             /* Post the whole receive window before reopening MAC admission. */
             if(posted_available && !start_posted_rx()) return 0;
 #endif
             write64(MAC_BASE,0x10,11); /* TX/RX + broadcast, no promiscuous mode */
-            if(read64(MAC_BASE,0x10)!=11 || !wait_bits(MAC_BASE,0x28,6,0,CPU_HZ/5)) return 0;
+            if(read64(MAC_BASE,0x10)!=11 || !wait_bits(MAC_BASE,0x28,6,0,TIMEBASE_HZ/5)) return 0;
             write64(MAC_BASE,VGMAC_RX_STOP,0);
             return !(read64(MAC_BASE,VGMAC_RX_STOP)&VGMAC_RX_STOP_REQUEST) &&
-                wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5);
+                wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5);
         }
-    } while(now(0)-start<CPU_HZ*8);
+    } while(now(0)-start<board_seconds_to_ticks(8));
     return 0;
 }
 static int send(void *unused,unsigned length) {
     (void)unused;
-    if(!active || !length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return -1;
+    if(!active || !length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5)) return -1;
     write64(DMA_BASE,0x10,(uintptr_t)tx_frame); write64(DMA_BASE,0x18,length);
     write64(DMA_BASE,0x20,3);
-    if(!wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5) || (read64(DMA_BASE,0x28)&6)!=2) return -1;
+    if(!wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5) || (read64(DMA_BASE,0x28)&6)!=2) return -1;
     write64(DMA_BASE,0x20,2); return 0;
 }
 static int recv(void *unused,uint64_t budget) {
@@ -517,7 +519,7 @@ static void protocol_stage(void *unused,enum nb_stage value) {
     begin(value);
 }
 static void summary(void) {
-    text("NB totals"); field("timebase_hz",CPU_HZ); field("init_ticks",init_ticks); field("transfer_ticks",transfer_ticks);
+    text("NB totals"); field("timebase_hz",TIMEBASE_HZ); field("init_ticks",init_ticks); field("transfer_ticks",transfer_ticks);
     field("rx_wait_ticks",stats.rx_ticks); field("copy_ticks",stats.copy_ticks);
     field("stream_crc_ticks",stats.crc_ticks); field("tx_ack_ticks",stats.tx_ticks);
     field("ram_crc_ticks",ram_readback_ticks); field("ram_flush_ticks",ram_flush_ticks); field("ram_sweep_ticks",ram_sweep_ticks); field("verify_callback_ticks",stats.verify_ticks); field("drain_ticks",drain_ticks);
@@ -543,7 +545,7 @@ static int board_netboot_receive(uint32_t *entry,uint32_t *length,uint32_t *pend
 #if NETBOOT_POSTED_RX
     posted_used=0; posted_frames=posted_drops=0; posted_copy_ticks=0;
 #endif
-    begin(NB_INIT); text("NB time_source=rdtime"); field("timebase_hz",CPU_HZ); text("\r\n");
+    begin(NB_INIT); text("NB time_source=rdtime"); field("timebase_hz",TIMEBASE_HZ); text("\r\n");
     uint64_t init_start=now(0);
     if(!initialize()) {
         init_ticks=now(0)-init_start;
@@ -553,7 +555,7 @@ static int board_netboot_receive(uint32_t *entry,uint32_t *length,uint32_t *pend
     init_ticks=now(0)-init_start; ended(init_ticks);
     struct nb_ops ops={ .context=0,.tx=tx_frame,.rx=rx_frame,
         .mac={2,0x56,0x41,0x4c,0,1},.ip=NETBOOT_IP,.server_ip=NETBOOT_SERVER,
-        .base=RAM_BASE,.limit=IMAGE_LIMIT,.hz=CPU_HZ,
+        .base=RAM_BASE,.limit=IMAGE_LIMIT,.hz=TIMEBASE_HZ,
         .now=now,.send=send,.recv=recv,.store=store,.verify=verify,
         .stats=&stats,.stage=protocol_stage,.received_frame=received_frame,.prepare_verify=prepare_verify
 #if NETBOOT_POSTED_RX

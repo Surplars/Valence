@@ -8,16 +8,8 @@ import soc.ip.bus.TwoEntryRegisterQueue
 /** Physical beat lanes, except atomic operands/results are right-justified.
   * No dependency on OoO decode, ROB, LSU or architectural control.
   */
-class I1DataRequest extends Bundle {
-    val atomic = Bool(); val atomicOp = UInt(5.W)
-    val address = UInt(64.W); val write = Bool(); val size = UInt(2.W)
-    val data = UInt(64.W); val mask = UInt(8.W)
-    val virtualized = Bool(); val precheckedLoad = Bool()
-    val translationEpoch = UInt(32.W); val prefetchNextAllowed = Bool(); val uncached = Bool()
-}
-class I1DataResponse extends Bundle {
-    val data = UInt(64.W); val error = Bool(); val pageFault = Bool()
-}
+class I1DataRequest extends soc.ip.memory.NativeMemoryRequest()
+class I1DataResponse extends soc.ip.memory.NativeMemoryResponse()
 class I1DataPort extends Bundle {
     val request = Decoupled(new I1DataRequest)
     val response = Flipped(Decoupled(new I1DataResponse))
@@ -109,13 +101,14 @@ class I1RegisteredCoherentBoundary(params: TLParams) extends Module {
   * execute at the shared CPU/DMA exclusion point, AFTER translation/PMP.
   */
 class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = false,
-    trustedReadOnlyCacheability: Boolean = false) extends Module {
+    trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false) extends Module {
     require(p.xlen == 64 && p.cacheLineBytes == 64 && bytes >= 128)
     val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
         val request = Flipped(Decoupled(new FiveStageDataRequest(p)))
         val response = Decoupled(new FiveStageDataResponse(p))
         val invalidate = Input(Bool()); val hit = Output(Bool()); val miss = Output(Bool())
+        val invalidateDone = if (reportMaintenance) Some(Output(Bool())) else None
         val tl = new TLBundle(params); val uncached = new I1DataPort
         val lineGrant = if (p.coherentLineGrants)
             Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
@@ -137,6 +130,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
     when(io.invalidate) { maintenance := true.B }
     when(cache.io.flushDone && !io.invalidate) { maintenance := false.B }
     cache.io.flushRequest := maintenance || io.invalidate
+    io.invalidateDone.foreach(_ := cache.io.flushDone && maintenance)
     val r = io.request.bits
     cache.io.upstream.request.valid := io.request.valid
     io.request.ready := cache.io.upstream.request.ready

@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 import shutil
 import subprocess
+from clock_config import add_clock_arguments, resolve_clocks
 
 
 def main():
@@ -11,11 +12,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=source.parents[1] / "build/fpga/ddr-test")
     parser.add_argument("--prefix", default="riscv64-unknown-elf-")
-    parser.add_argument("--cpu-hz", type=int, default=50_000_000)
+    add_clock_arguments(parser, 50_000_000)
     parser.add_argument("--baud", type=int, default=1_500_000)
     args = parser.parse_args()
-    if not 6_000_000 <= args.cpu_hz <= 200_000_000:
-        parser.error("CPU clock must be in 6..200 MHz")
+    try:
+        clocks = resolve_clocks(args)
+    except ValueError as error:
+        parser.error(str(error))
     if args.baud not in (115200, 1500000):
         parser.error("UART baud must be 115200 or 1500000")
     output = args.out.resolve()
@@ -29,7 +32,7 @@ def main():
                     "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
                     "-ffunction-sections", "-fdata-sections", "-nostdlib", "-nostartfiles",
                     "-Wall", "-Wextra", "-Werror", "-Wl,--gc-sections", "-Wl,--no-relax",
-                    f"-DCPU_HZ={args.cpu_hz}ULL", f"-DUART_BAUD={args.baud}U",
+                    *clocks.flags(), f"-DUART_BAUD={args.baud}U",
                     "-Wl,--defsym=BOARD_RAM_BYTES=536870912",
                     f"-T{source / 'sample_app.ld'}",
                     "-Wl,--defsym=DDR_TEST_PROGRAM_LIMIT=0x80400000",
