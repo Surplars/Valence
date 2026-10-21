@@ -152,6 +152,7 @@ def main():
     parser.add_argument('--rtl-dir', type=Path)
     parser.add_argument('--profile', choices=['i1','a1'])
     parser.add_argument('--emission-receipt', type=Path)
+    parser.add_argument('--clock-profile', choices=['production','boot50-static','performance300-static'], default='production')
     parser.add_argument('--conversion-receipt', type=Path,
                         help='required provenance for standards-lowered SV; original emitted files stay unchanged')
     parser.add_argument('--classes-dir', action='append', type=Path)
@@ -162,6 +163,7 @@ def main():
     parser.add_argument('--iverilog', default=os.environ.get('IVERILOG','iverilog'))
     parser.add_argument('--vvp', default=os.environ.get('VVP','vvp'))
     parser.add_argument('--timeout', type=int, default=600)
+    parser.add_argument('--timeout-reason', help='explicit provenance for a changed wall-clock resource budget')
     parser.add_argument('--maxcycles', type=int, default=1000000)
     parser.add_argument('--negative', choices=['uart','drop-b','drop-read'], action='append', default=[])
     args = parser.parse_args()
@@ -209,8 +211,17 @@ def main():
         'romBytes':131072,'instructionCacheBytes':32768,'dataCacheBytes':32768,
         'ddrSlots':4,'ddrWriteSlots':2,'independentCpuFabricClocks':True,
         'cacheWays':2,'homeLines':1024,'homeWays':4,'homeAcquireEntries':2,'homeWritebackEntries':2,
-        'heldFifo':'HeldResponseCdcDataFifo','fifoDepth':16,'fabricClockHz':250000000,
+        'heldFifo':'HeldResponseCdcDataFifo','fifoDepth':16,
+        'fabricClockHz':50000000 if args.clock_profile=='boot50-static' else 250000000,
         'uartHz':50000000,'uartBaud':460800,'triSpeedEthernet':True,'triSpeedTxFrameSlots':2}
+    independent = args.clock_profile != 'production'
+    cpu_hz = (50000000 if args.clock_profile=='boot50-static' else
+              300000000 if args.profile=='i1' else 100000000)
+    required.update(clockProfile=args.clock_profile, independentFixedDomains=independent,
+                    clockTopology='independent-fixed-v1' if independent else 'legacy-ui-fabric',
+                    cpuClockHz=cpu_hz, timebaseHz="250000000", ddrUiHz=250000000, aonHz=50000000)
+    if args.clock_profile=='performance300-static' and args.profile!='i1':
+        parser.error('performance300-static is reviewed only for I1')
     for key,value in required.items():
         if manifest.get(key) != value:
             parser.error(f'emission manifest mismatch: {key}: {manifest.get(key)!r} != {value!r}')
@@ -246,7 +257,7 @@ def main():
     if args.profile=='a1' and manifest.get('issueWidth')!=2:
         parser.error('public Selected A1 issue width 2 is required')
     frozen=source_hashes()
-    record=dict(status='RUNNING', profile=args.profile, source_sha256=frozen, classes_sha256=classes,
+    record=dict(status='RUNNING', profile=args.profile, clock_profile=args.clock_profile, source_sha256=frozen, classes_sha256=classes,
         rtl_sha256=actual_rtl, emission_receipt=manifest,
         conversion_receipt=conversion,
         conversion_receipt_sha256=sha(args.conversion_receipt) if conversion else None,
@@ -254,13 +265,20 @@ def main():
         tools=hash_tools(toolpaths['iverilog'],toolpaths['vvp']),
         guest_receipt=str(guest_dir/'guest-receipt.json'), guest_receipt_sha256=sha(guest_dir/'guest-receipt.json'),
         commands=[],results=[],checks={},
-        scope='full-capacity common platform, actual independent CPU/fabric/raw clocks, ROM program port, managed UART, AXI DDR, timer, APLIC MSI, dirty FENCE.I refetch',
+        resource_limits={'per_command_wall_seconds':args.timeout,'cpu_cycle_bound':args.maxcycles,
+            'wall_budget_reason':args.timeout_reason or ('standard bounded short run' if args.timeout==600 else 'explicit caller override')},
+        scope='full-capacity common platform, actual emitted CPU/fabric/DDR/timebase/debug/raw clock topology, ROM program port, managed UART, AXI DDR, timer, APLIC MSI, dirty FENCE.I refetch',
         native_exception='existing pinned GSIM step() has no independent-edge support; project GSIM baseline unchanged',
         preserved={'rom_bytes':131072,'icache_bytes':32768,'dcache_bytes':32768,'ddr_slots':4,'ddr_write_slots':2,
             'axi_id_bits':4,'i1_tlb_entries':16,'a1_issue_width':2,'a1_read_mshrs':2,'a1_writebacks':2},
-        clocks={'cpu_half_ps':1667 if args.profile=='i1' else 5000,'fabric_half_ps':2000,
+        clocks={'cpu_half_ps':round(500000000000/cpu_hz),
+            'fabric_half_ps':round(500000000000/required['fabricClockHz']),
+            'ddr_half_ps':2000,'timebase_half_ps':2000,'debug_half_ps':2000 if independent else None,
+            'ddr_phase_ps':557 if independent else 731,'timebase_phase_ps':947 if independent else 731,
+            'debug_phase_ps':1327 if independent else None,'independent_fixed_domains':independent,
             'aon_half_ps':10000,'uart_half_ps':10000,'tx_half_ps':4000,'rx_half_ps':4000,'phase_ps':731},
         axi_host_model={'read_owners':16,'aw_owners':16,'w_beats':128,'b_owners':16,
+            'clock':'ddrClock' if independent else 'fabricClock','minimum_ar_wait_edges':2,
             'independent_aw_w':True,'delayed_b_completion':True,'out_of_order_read_selection':True,
             'ram_windows':[['0x00000000','0x0003ffff'],['0x7fdf8000','0x7fdfffff']]},
         cold_initialization='full ROM port programming under asserted common reset with only fabric clock; all clocks start before reset release and remain continuously running thereafter',
@@ -296,14 +314,14 @@ def main():
             if not args.reuse_receipt:
                 raise RuntimeError('reuse requires original compile receipt')
             prior=json.loads(args.reuse_receipt.read_text())
-            if prior['rtl_sha256']!=record['rtl_sha256'] or prior['artifact_sha256'].get('run.vvp')!=sha(binary):
+            if prior.get('clock_profile')!=args.clock_profile or prior['rtl_sha256']!=record['rtl_sha256'] or prior['artifact_sha256'].get('run.vvp')!=sha(binary):
                 raise RuntimeError('reused native binary does not match original RTL/compile receipt')
             if prior['artifact_sha256'].get('cpu_boot_tb.sv')!=sha(HERE/'cpu_boot_tb.sv'):
                 raise RuntimeError('reused native binary testbench changed')
             record['reused_vvp']={'path':str(binary),'sha256':sha(binary)}
         else:
-            execute([toolpaths['iverilog'],'-g2012','-DSTOP_COND=1','-DASSERT_VERBOSE_COND=1','-s','cpu_boot_tb','-o',binary,*files,HERE/'cpu_boot_tb.sv'],'compile.log')
-        clocks=['+cpu_half='+str(record['clocks']['cpu_half_ps']),'+phase_ps=731','+maxcycles='+str(args.maxcycles)]
+            execute([toolpaths['iverilog'],*(['-DCOMMON_INDEPENDENT_FIXED_DOMAINS'] if independent else []),'-g2012','-DSTOP_COND=1','-DASSERT_VERBOSE_COND=1','-s','cpu_boot_tb','-o',binary,*files,HERE/'cpu_boot_tb.sv'],'compile.log')
+        clocks=['+cpu_half='+str(record['clocks']['cpu_half_ps']),'+fabric_half='+str(record['clocks']['fabric_half_ps']),'+phase_ps=731','+maxcycles='+str(args.maxcycles)]
         sym=guest['symbols']
         guest_args=['+rom_hex='+str(guest_dir/'guest.hex'),*clocks,*[
             '+pc_'+arg+'='+format(sym[name],'x') for arg,name in [('fail','boot_fail'),('done','boot_done'),

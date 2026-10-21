@@ -1,0 +1,11 @@
+COMMON_BOOT_UART index=0 value=43
+COMMON_BOOT_UART index=1 value=4f
+COMMON_BOOT_UART index=2 value=4d
+COMMON_BOOT_UART index=3 value=4d
+COMMON_BOOT_UART index=4 value=4f
+COMMON_BOOT_UART index=5 value=4e
+COMMON_BOOT_UART index=6 value=0d
+COMMON_BOOT_UART index=7 value=0a
+COMMON_BOOT_METRICS cpu_edges=52185 fabric_edges=76349 retired=5331 rom_retired=5327 uart_bytes=8 reads=11 writes=9 b_completed=9 code_b_completed=2 read_beats=88 write_beats=72 max_parallel_reads=1 max_pending_b=1 ar_stalls=33 aw_stalls=3 w_stalls=24 fences=3 timer=1 msi=1 old_fetch=1 new_fetch=1 time_changes=7248
+COMMON_CPU_BOOT_NATIVE_PASS cpu_half_ps=1667 fabric_half_ps=2000 phase_ps=731 ddr_edges=43577
+/workspace/scratch/41e4a649bb60/Valence-native-eada605/simulator/gsim/common/cpu_boot_tb.sv:484: $finish called at 305396731 (1ps)

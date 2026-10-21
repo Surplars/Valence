@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence-native-eada605/simulator/gsim/common/cpu_boot_tb.sv:459: COMMON_BOOT_UART_BANNER_ORACLE index=0 got=43 expected=42
+       Time: 153535470  Scope: cpu_boot_tb

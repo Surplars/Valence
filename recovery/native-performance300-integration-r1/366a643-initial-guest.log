@@ -1,0 +1,10 @@
+COMMON_BOOT_UART index=0 value=43
+COMMON_BOOT_UART index=1 value=4f
+COMMON_BOOT_UART index=2 value=4d
+COMMON_BOOT_UART index=3 value=4d
+COMMON_BOOT_UART index=4 value=4f
+COMMON_BOOT_UART index=5 value=4e
+COMMON_BOOT_UART index=6 value=0d
+COMMON_BOOT_UART index=7 value=0a
+FATAL: /workspace/scratch/41e4a649bb60/Valence-native-frozen/simulator/gsim/common/cpu_boot_tb.sv:471: COMMON_BOOT_COVERAGE_ORACLE time=7248 reads=11 writes=9 b=9 ar_stalls=0 bursts=11
+       Time: 305396731  Scope: cpu_boot_tb

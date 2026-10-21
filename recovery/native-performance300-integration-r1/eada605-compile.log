@@ -1,0 +1,51 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41207 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41207 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41207 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41207 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.compile
+build.mill-68] compile compiling 1 Scala source to out/mill-build/compile.dest/classes ...
+build.mill-68] done compiling
+140] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+144] HardFloatLib.compile compiling 18 Scala sources to out/HardFloatLib/compile.dest/classes ...
+144] done compiling
+148] IonSoC.compile compiling 301 Scala sources to out/IonSoC/compile.dest/classes ...
+147/151] mill IonSoC.test.compile 60s
+148] IonSoC.compile 25s
+148] [warn] src/main/scala/core/inorder/FiveStageBoot.scala:46:52
+148]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed, "rom_style = \"block\"")))
+148]                                                    ^^^^^^^^^^^^^^^^^^^
+148] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+148] 
+148] [warn] src/main/scala/core/inorder/FiveStageBranchPredictor.scala:61:52
+148]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+148]                                                    ^^^^^^^^^^^^^^^^^^^
+148] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+148] 
+148] [warn] src/main/scala/core/inorder/FiveStageWordCache.scala:172:56
+148]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+148]                                                        ^^^^^^^^^^^^^^^^^^^
+148] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+148] 
+148] [warn] src/main/scala/core/inorder/SynchronousFloatingRegisterFile.scala:14:56
+148]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+148]                                                        ^^^^^^^^^^^^^^^^^^^
+148] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+148] 
+148] [warn] src/main/scala/core/inorder/SynchronousRegisterFile.scala:16:56
+148]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+148]                                                        ^^^^^^^^^^^^^^^^^^^
+148] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+148] 
+148] [warn] 5 warnings found
+148] done compiling
+151] IonSoC.test.compile compiling 614 Scala sources to out/IonSoC/test/compile.dest/classes ...
+150/151] mill IonSoC.test.compile 120s
+151] IonSoC.test.compile 12s
+151] [warn] src/test/scala/ooo/ThreeProofRowNativeActualAudit.scala:138:43
+151]         require(expectedFabric.obj.keySet -- allCommon.keySet == cpuOnlyKeys,
+151]                                           ^^
+151] method -- in trait SetOps is deprecated (since 2.13.0): Consider requiring an immutable Set
+151] 
+150/151] mill IonSoC.test.compile 180s
+151] IonSoC.test.compile 72s
+151] [warn] one warning found
+151] done compiling
+151/151, SUCCESS] mill IonSoC.test.compile 181s

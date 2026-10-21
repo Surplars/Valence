@@ -1,0 +1,11 @@
+{
+  "old_sv_count": 249,
+  "new_sv_count": 249,
+  "unchanged_sv_count": 248,
+  "changed_sv": [
+    "FiveStageCore.sv"
+  ],
+  "added_sv": [],
+  "removed_sv": [],
+  "scope": "Comparison only; new executable and actual tests were independently rebuilt and run."
+}

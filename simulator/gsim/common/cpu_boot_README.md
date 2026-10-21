@@ -118,3 +118,39 @@ byte-copy/BSS startup throughput showed its 900-second wall bound was
 insufficient. Passing revision 2 used an explicitly approved 2400-second bound.
 All earlier ROM-width, reset-initialization and uninitialized-arbiter failures
 remain preserved as regression evidence.
+
+## Independent fixed-domain profiles
+
+Select `--clock-profile performance300-static` for the I1 CPU300/fabric250
+candidate, or `--clock-profile boot50-static` for CPU50/fabric50. The explicit
+selection must match the emission manifest, including topology and CPU/fabric,
+TIME250, DDR250 and AON50 frequencies. The legacy `production` topology remains
+available only with its matching manifest. No previous receipt qualifies a new
+profile or source closure.
+
+For fixed-domain exports the testbench connects all three independent inputs:
+DDR250, TIME250 and debug250 (the board's UI clock rate, not AON50). Each has a
+separate phase offset. The AXI host samples/drives on DDR edges, and its delays,
+backpressure masks and latency counts use DDR edges, not fabric edges. ROM
+programming and its fabric edge counter remain in the fabric domain. This
+checks digital crossings at the requested rates, not physical clock phase,
+metastability, or board equivalence. JTAG/DMI traffic remains outside this boot
+fixture's coverage even though its clock is connected.
+
+The unchanged guest, UART decoder, DDR signatures, timer/MSI checks, real B
+completion/FENCE.I ordering and optional negative controls remain required.
+Use a separate frozen source worktree and emission output while other hardware
+work is in progress. The default compile/run wall limit remains 600 seconds;
+production banner runs may explicitly select the previously approved 2400
+seconds, never silently extend a failed bound.
+
+The DDR host now holds each AR for at least two sampled DDR edges before
+applying its periodic ready mask. This guarantees actual AR backpressure instead
+of relying on phase coincidence. The unchanged final `ar_stalls > 0` oracle
+rejected the first independent-clock run with the old masks; that failed receipt
+is not counted as functional acceptance. AW/W and delayed R/B service laws remain.
+
+Each receipt records the wall-clock budget and HDL CPU-cycle bound separately.
+Use `--timeout-reason` to record the reason for an explicitly approved resource
+budget change; changing wall time does not relax guest, cycle, banner, or DUT
+conditions, and never changes the status of earlier bounded-incomplete evidence.

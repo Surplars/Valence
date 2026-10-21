@@ -3,6 +3,15 @@
 // This test does not qualify metastability, clock gating, routed timing or FPGA boot.
 module cpu_boot_tb;
   reg cpuClock=0,fabricClock=0,alwaysOnClock=0,rawUartClock=0,rawTxClock=0,rawRxClock=0;
+  `ifdef COMMON_INDEPENDENT_FIXED_DOMAINS
+  reg ddrClock=0,timebaseClock=0,debugClock=0;
+  initial begin wait(domains_started); #557; forever #2000 ddrClock=~ddrClock; end
+  initial begin wait(domains_started); #947; forever #2000 timebaseClock=~timebaseClock; end
+  // Board debug input is the 250 MHz UI clock rate, not AON50.
+  initial begin wait(domains_started); #1327; forever #2000 debugClock=~debugClock; end
+`else
+  wire ddrClock=fabricClock;
+`endif
   reg commonColdReset=0;
   // Explicit physical cold-reset edge also reaches initially stopped gated domains.
   initial begin wait(configured); #1; commonColdReset=1; end
@@ -12,6 +21,7 @@ module cpu_boot_tb;
   reg [63:0] pc_fail=0,pc_done=0,pc_fence_first=0,pc_fence_modified=0,pc_fence_final=0;
   initial begin
     if($value$plusargs("cpu_half=%d",cpu_half)) begin end
+    if($value$plusargs("fabric_half=%d",fabric_half)) begin end
     if($value$plusargs("phase_ps=%d",phase_ps)) begin end
     if($value$plusargs("maxcycles=%d",maxcycles)) begin end
     if($value$plusargs("pc_fail=%h",pc_fail)) begin end
@@ -23,7 +33,7 @@ module cpu_boot_tb;
     bad_drop_response=$test$plusargs("bad_drop_response");
     bad_drop_b=$test$plusargs("bad_drop_b"); bad_uart=$test$plusargs("bad_uart");
     if(!$value$plusargs("rom_hex=%s",rom_hex)) $fatal(1,"COMMON_BOOT_ROM_INPUT_ORACLE");
-    if(cpu_half<=0 || phase_ps<=0) $fatal(1,"COMMON_BOOT_INDEPENDENT_CLOCK_ORACLE");
+    if(cpu_half<=0 || fabric_half<=0 || phase_ps<=0) $fatal(1,"COMMON_BOOT_INDEPENDENT_CLOCK_ORACLE");
     configured=1;
   end
   initial begin wait(configured && domains_started); forever #(cpu_half) cpuClock=~cpuClock; end
@@ -64,6 +74,9 @@ module cpu_boot_tb;
   reg io_ddrAxi_r_bits_last=0;
   CommonMachinePlatform dut(
     .cpuClock(cpuClock),
+`ifdef COMMON_INDEPENDENT_FIXED_DOMAINS
+    .ddrClock(ddrClock), .timebaseClock(timebaseClock), .debugClock(debugClock),
+`endif
     .fabricClock(fabricClock),
     .alwaysOnClock(alwaysOnClock),
     .rawUartClock(rawUartClock),
@@ -215,8 +228,9 @@ module cpu_boot_tb;
   reg [63:0] w_data[0:127]; reg [7:0] w_mask[0:127]; reg w_last[0:127];
   integer b_id[0:15],b_due[0:15]; reg [31:0] b_addr[0:15]; reg b_error[0:15];
   integer aw_head=0,aw_tail=0,aw_count=0,w_head=0,w_tail=0,w_count=0,b_head=0,b_tail=0,b_count=0;
-  integer sending=-1,fabric_edges=0,cpu_edges=0,read_count=0,write_count=0,read_beats=0,write_beats=0;
+  integer sending=-1,ddr_edges=0,fabric_edges=0,cpu_edges=0,read_count=0,write_count=0,read_beats=0,write_beats=0;
   integer line_bursts=0,max_parallel_reads=0,overlap_cycles=0,ar_stalls=0,aw_stalls=0,w_stalls=0;
+  integer ar_wait_edges=0;
   integer r_errors=0,b_errors=0,max_read_latency=0,read_latency_sum=0;
   integer b_completed=0,code_b_completed=0,max_pending_b=0;
   integer rd_accepted[0:15];
@@ -234,20 +248,22 @@ module cpu_boot_tb;
   wire [72:0] w_payload={io_ddrAxi_w_bits_data,io_ddrAxi_w_bits_strb,io_ddrAxi_w_bits_last};
   initial for(model_i=0;model_i<16;model_i=model_i+1) begin rd_used[model_i]=0; wr_id_used[model_i]=0; end
 
-  always @(negedge fabricClock) begin
+  always @(posedge fabricClock) fabric_edges=fabric_edges+1;
+  always @(negedge ddrClock) begin
     if(commonColdReset) begin
       io_ddrAxi_ar_ready=0;io_ddrAxi_aw_ready=0;io_ddrAxi_w_ready=0;
       io_ddrAxi_r_valid=0;io_ddrAxi_b_valid=0;
     end else begin
       
-      // Different independent periodic masks guarantee deterministic backpressure.
-      io_ddrAxi_ar_ready=(fabric_edges%5!=1 && fabric_edges%5!=2);
-      io_ddrAxi_aw_ready=(fabric_edges%7!=2 && fabric_edges%7!=3);
-      io_ddrAxi_w_ready=(fabric_edges%4!=1);
+      // Hold every AR for two observed DDR edges before the periodic mask.
+      // Periodic masks alone can miss all requests after a CDC phase change.
+      io_ddrAxi_ar_ready=(ar_wait_edges>=2 && ddr_edges%5!=1 && ddr_edges%5!=2);
+      io_ddrAxi_aw_ready=(ddr_edges%7!=2 && ddr_edges%7!=3);
+      io_ddrAxi_w_ready=(ddr_edges%4!=1);
       if(sending<0) begin
         best_ticket=-1;
         for(model_i=0;model_i<16;model_i=model_i+1)
-          if(rd_used[model_i] && rd_due[model_i]<=fabric_edges && rd_ticket[model_i]>best_ticket &&
+          if(rd_used[model_i] && rd_due[model_i]<=ddr_edges && rd_ticket[model_i]>best_ticket &&
              !(bad_drop_response && rd_ticket[model_i]==0)) begin
             sending=model_i; best_ticket=rd_ticket[model_i];
           end
@@ -260,20 +276,22 @@ module cpu_boot_tb;
         io_ddrAxi_r_bits_last=(rd_beat[sending]==rd_len[sending]);
         io_ddrAxi_r_bits_resp=0;
       end
-      io_ddrAxi_b_valid=(b_count>0 && b_due[b_head]<=fabric_edges);
+      io_ddrAxi_b_valid=(b_count>0 && b_due[b_head]<=ddr_edges);
       if(b_count>0) begin io_ddrAxi_b_bits_id=b_id[b_head]; io_ddrAxi_b_bits_resp=b_error[b_head]?2:0; end
     end
   end
 
-  always @(posedge fabricClock) begin
-    fabric_edges=fabric_edges+1;
+  always @(posedge ddrClock) begin
+    ddr_edges=ddr_edges+1;
     if(!commonColdReset) begin
-      if(io_bootEnable && fabric_edges%50000==0) $display("COMMON_BOOT_PROGRESS fabric_edges=%0d cpu_edges=%0d retired=%0d rom_retired=%0d uart_bytes=%0d reads=%0d writes=%0d done=%0d",fabric_edges,cpu_edges,retired,rom_retired,uart_count,read_count,write_count,guest_done);
+      if(io_bootEnable && ddr_edges%50000==0) $display("COMMON_BOOT_PROGRESS ddr_edges=%0d cpu_edges=%0d retired=%0d rom_retired=%0d uart_bytes=%0d reads=%0d writes=%0d done=%0d",ddr_edges,cpu_edges,retired,rom_retired,uart_count,read_count,write_count,guest_done);
       if(!io_ddrReady && (io_ddrAxi_ar_valid || io_ddrAxi_aw_valid || io_ddrAxi_w_valid))
         $fatal(1,"COMMON_BOOT_CALIBRATION_ORACLE");
       if(ar_held && (!io_ddrAxi_ar_valid || ar_payload!==held_ar)) $fatal(1,"COMMON_BOOT_AR_HOLD_ORACLE");
       if(aw_held && (!io_ddrAxi_aw_valid || aw_payload!==held_aw)) $fatal(1,"COMMON_BOOT_AW_HOLD_ORACLE");
       if(w_held && (!io_ddrAxi_w_valid || w_payload!==held_w)) $fatal(1,"COMMON_BOOT_W_HOLD_ORACLE");
+      if(io_ddrAxi_ar_valid && io_ddrAxi_ar_ready) ar_wait_edges=0;
+      else if(io_ddrAxi_ar_valid) ar_wait_edges=ar_wait_edges+1;
       ar_held=io_ddrAxi_ar_valid && !io_ddrAxi_ar_ready; held_ar=ar_payload; ar_stalls=ar_stalls+ar_held;
       aw_held=io_ddrAxi_aw_valid && !io_ddrAxi_aw_ready; held_aw=aw_payload; aw_stalls=aw_stalls+aw_held;
       w_held=io_ddrAxi_w_valid && !io_ddrAxi_w_ready; held_w=w_payload; w_stalls=w_stalls+w_held;
@@ -281,8 +299,8 @@ module cpu_boot_tb;
       if(io_ddrAxi_r_valid && io_ddrAxi_r_ready) begin
         read_beats=read_beats+1; r_errors=r_errors+(io_ddrAxi_r_bits_resp!=0);
         if(rd_beat[sending]==rd_len[sending]) begin
-          read_latency_sum=read_latency_sum+fabric_edges-rd_accepted[sending];
-          if(fabric_edges-rd_accepted[sending]>max_read_latency) max_read_latency=fabric_edges-rd_accepted[sending];
+          read_latency_sum=read_latency_sum+ddr_edges-rd_accepted[sending];
+          if(ddr_edges-rd_accepted[sending]>max_read_latency) max_read_latency=ddr_edges-rd_accepted[sending];
           rd_used[sending]=0; sending=-1;
         end else rd_beat[sending]=rd_beat[sending]+1;
       end
@@ -303,7 +321,7 @@ module cpu_boot_tb;
           if(rd_used[model_i] && rd_id[model_i]==io_ddrAxi_ar_bits_id) $fatal(1,"COMMON_BOOT_READ_OWNER_REUSE_ORACLE");
         rd_used[slot]=1;rd_addr[slot]=io_ddrAxi_ar_bits_addr;rd_id[slot]=io_ddrAxi_ar_bits_id;
         rd_len[slot]=io_ddrAxi_ar_bits_len;rd_size[slot]=io_ddrAxi_ar_bits_size;rd_beat[slot]=0;
-        rd_due[slot]=fabric_edges+3+(read_count*7)%13;rd_ticket[slot]=read_count;rd_accepted[slot]=fabric_edges;
+        rd_due[slot]=ddr_edges+3+(read_count*7)%13;rd_ticket[slot]=read_count;rd_accepted[slot]=ddr_edges;
         read_count=read_count+1;line_bursts=line_bursts+(io_ddrAxi_ar_bits_len!=0);
       end
       if(io_ddrAxi_aw_valid && io_ddrAxi_aw_ready) begin
@@ -327,7 +345,7 @@ module cpu_boot_tb;
           memory_write(target_addr,w_data[w_head],w_mask[w_head]);
           w_head=(w_head+1)%128;w_count=w_count-1;
         end
-        b_id[b_tail]=aw_id[aw_head];b_due[b_tail]=fabric_edges+23+(write_count*3)%31;
+        b_id[b_tail]=aw_id[aw_head];b_due[b_tail]=ddr_edges+23+(write_count*3)%31;
         b_error[b_tail]=0; b_addr[b_tail]=aw_addr[aw_head];
         if(bad_drop_b && aw_addr[aw_head]==32'h4000) b_due[b_tail]=2147483647;
         b_tail=(b_tail+1)%16;b_count=b_count+1;aw_head=(aw_head+1)%16;aw_count=aw_count-1;
@@ -462,7 +480,7 @@ module cpu_boot_tb;
       if(memory_read(32'h11000+8*final_i)!==64'h123456789abcdef0+final_i)
         $fatal(1,"COMMON_BOOT_DIRTY_DDR_DATA_ORACLE index=%0d",final_i);
     $display("COMMON_BOOT_METRICS cpu_edges=%0d fabric_edges=%0d retired=%0d rom_retired=%0d uart_bytes=%0d reads=%0d writes=%0d b_completed=%0d code_b_completed=%0d read_beats=%0d write_beats=%0d max_parallel_reads=%0d max_pending_b=%0d ar_stalls=%0d aw_stalls=%0d w_stalls=%0d fences=%0d timer=%0d msi=%0d old_fetch=%0d new_fetch=%0d time_changes=%0d",cpu_edges,fabric_edges,retired,rom_retired,uart_count,read_count,write_count,b_completed,code_b_completed,read_beats,write_beats,max_parallel_reads,max_pending_b,ar_stalls,aw_stalls,w_stalls,fences,mtip,meip,old_code_fetch,new_code_fetch,time_changes);
-    $display("COMMON_CPU_BOOT_NATIVE_PASS cpu_half_ps=%0d fabric_half_ps=%0d phase_ps=%0d",cpu_half,fabric_half,phase_ps);
+    $display("COMMON_CPU_BOOT_NATIVE_PASS cpu_half_ps=%0d fabric_half_ps=%0d phase_ps=%0d ddr_edges=%0d",cpu_half,fabric_half,phase_ps,ddr_edges);
     $finish;
   end
 endmodule

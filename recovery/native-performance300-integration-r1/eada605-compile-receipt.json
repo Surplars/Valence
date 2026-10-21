@@ -1,0 +1,17 @@
+{
+  "returncode": 0,
+  "seconds": 184.4627551030062,
+  "maxrss_kib": 2771624,
+  "minimum_free_bytes": 29989408768,
+  "timed_out": false,
+  "disk_floor_breached": false,
+  "process_group_killed": false,
+  "exit": 0,
+  "command": [
+    "mill",
+    "-i",
+    "IonSoC.test.compile"
+  ],
+  "source_commit": "eada605956c65e24f0d15380a28243e1f6953281",
+  "log_sha256": "a0dc3f18cfd9b5242019ba178a05e2831c7429c8a821d8c92205f01334f82545"
+}

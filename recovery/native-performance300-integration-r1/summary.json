@@ -1,0 +1,118 @@
+{
+  "schema": "native-independent-clock-scoped-evidence-v1",
+  "status": "PASS_NATIVE_I1_PERFORMANCE300_GUEST_NEGATIVES_AND_FIRMWARE_BANNER",
+  "source_commit": "eada605956c65e24f0d15380a28243e1f6953281",
+  "profile": "performance300-static",
+  "native_simulator": "Icarus 12.0 / VVP; not GSIM",
+  "checks": {
+    "compile.log": "PASS",
+    "guest.log": "PASS",
+    "uart.log": "PASS_NEGATIVE_REJECTED",
+    "drop-b.log": "PASS_NEGATIVE_REJECTED",
+    "drop-read.log": "PASS_NEGATIVE_REJECTED"
+  },
+  "guest_results": [
+    {
+      "returncode": 0,
+      "seconds": 11.729730361003021,
+      "maxrss_kib": 357580,
+      "minimum_free_bytes": 29943443456,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "compile.log"
+    },
+    {
+      "returncode": 0,
+      "seconds": 207.77053608799906,
+      "maxrss_kib": 107508,
+      "minimum_free_bytes": 29943357440,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "guest.log"
+    },
+    {
+      "returncode": 1,
+      "seconds": 41.3355996600003,
+      "maxrss_kib": 107668,
+      "minimum_free_bytes": 29943345152,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "uart.log"
+    },
+    {
+      "returncode": 1,
+      "seconds": 388.4699530930011,
+      "maxrss_kib": 107772,
+      "minimum_free_bytes": 29943324672,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "drop-b.log"
+    },
+    {
+      "returncode": 1,
+      "seconds": 379.9393992320038,
+      "maxrss_kib": 107752,
+      "minimum_free_bytes": 29943230464,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "drop-read.log"
+    }
+  ],
+  "banner_results": [
+    {
+      "returncode": 0,
+      "seconds": 2669.3214763200012,
+      "maxrss_kib": 107624,
+      "minimum_free_bytes": 29938122752,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false,
+      "log": "firmware.log"
+    }
+  ],
+  "banner_resource_limits": {
+    "per_command_wall_seconds": 3600,
+    "cpu_cycle_bound": 1000000,
+    "wall_budget_reason": "Explicitly authorized 2026-10-21 new-production run: frozen 366a643 2400-second run reached 45/53 exact UART bytes with continuous retirement after unmodified 2064-byte data copy and 5760-byte BSS initialization. Increase wall resource budget only; original failed receipt retained; CPU-cycle bound, clocks, ROM, guest, and all 53-byte completion conditions unchanged."
+  },
+  "banner_exact_bytes": 53,
+  "banner_exact_text": "Valence Bootrom V0.2 | verified downloads auto-boot\r\n",
+  "production_rom_sha256": "9b7b73d044f0c6a457f5ed7c3ae2f332aa3b076d26ddf65bef577fe24278e80d",
+  "guest_receipt_sha256": "805a5bb8de0fcc32f0afc6a901aa2ec533302e757474766da9985867b4e27a4c",
+  "banner_receipt_sha256": "0d47bf781c9e58c1d58216f28f1194cc3dfacae2056ea06abeafffb5e87aff5d",
+  "emission_receipt_sha256": "3fd8308d6bd1d5f3ea8610db060da518f3bac016ba979d31fd3524588916be05",
+  "independently_rechecked_hash_entries": 19760,
+  "current_main_head_at_verification": "a574139d323df02dd75c0dc907020aa94b08ca14",
+  "current_main_production_or_platform_test_differences": [],
+  "clock_rates_hz": {
+    "cpu_requested": 300000000,
+    "cpu_rounded_actual": 299940011.9976005,
+    "fabric": 250000000,
+    "ddr": 250000000,
+    "timebase": 250000000,
+    "debug": 250000000,
+    "aon": 50000000,
+    "uart": 50000000
+  },
+  "qualification": {
+    "native_guest": true,
+    "three_negative_controls": true,
+    "firmware_banner": true,
+    "common_platform_affected_short": false,
+    "physical_timing": false,
+    "board_boot": false,
+    "linux_boot": false
+  },
+  "limits": [
+    "Only exact eada605 production source closure; future production changes require newly bound testing.",
+    "All 53 bytes passed under explicitly approved 3600-second wall budget; old 366a643 2400-second incomplete/FAIL evidence remains unchanged.",
+    "No clock/DUT/capacity/guest/oracle relaxation. DDR AXI host runs in DDR clock domain with per-request actual AR backpressure.",
+    "This is integrated boot-level digital evidence, not packet/JTAG/reset/CMU exhaustive coverage or a fabricated formal aggregate acceptance."
+  ],
+  "published_receipt_format": "Exact guest receipt gzip plus lossless banner delta; verify.py rechecks both original byte hashes and published logs. Historical receipts summarized without huge repeated maps, original raw files unchanged in frozen worktree."
+}

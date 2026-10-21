@@ -1,0 +1,23 @@
+{
+  "returncode": 0,
+  "seconds": 24.32204463499511,
+  "maxrss_kib": 1021744,
+  "minimum_free_bytes": 29980086272,
+  "timed_out": false,
+  "disk_floor_breached": false,
+  "process_group_killed": false,
+  "exit": 0,
+  "command": [
+    "mill",
+    "-i",
+    "IonSoC.test.runMain",
+    "platform.CommonMachinePlatformMain",
+    "/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/rtl",
+    "i1",
+    "--programmable",
+    "--clock-profile=performance300-static",
+    "--compile-receipt=/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/compile-receipt.json"
+  ],
+  "source_commit": "eada605956c65e24f0d15380a28243e1f6953281",
+  "log_sha256": "dc06f83cb6f349068f6e0132651f7dba0f727653865d012475a405db049ce7c0"
+}

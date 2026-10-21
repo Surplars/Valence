@@ -1,0 +1,96 @@
+{
+  "schema": "lossless-top-level-receipt-delta-v1",
+  "base_uncompressed_sha256": "805a5bb8de0fcc32f0afc6a901aa2ec533302e757474766da9985867b4e27a4c",
+  "reconstructed_sha256": "0d47bf781c9e58c1d58216f28f1194cc3dfacae2056ea06abeafffb5e87aff5d",
+  "key_order": [
+    "status",
+    "profile",
+    "clock_profile",
+    "source_sha256",
+    "classes_sha256",
+    "rtl_sha256",
+    "emission_receipt",
+    "conversion_receipt",
+    "conversion_receipt_sha256",
+    "emission_receipt_path",
+    "emission_receipt_sha256",
+    "tools",
+    "guest_receipt",
+    "guest_receipt_sha256",
+    "commands",
+    "results",
+    "checks",
+    "resource_limits",
+    "scope",
+    "native_exception",
+    "preserved",
+    "clocks",
+    "axi_host_model",
+    "cold_initialization",
+    "vendor_primitive_model",
+    "physical_qualified",
+    "board_equivalent",
+    "unsupported",
+    "reused_vvp",
+    "production_firmware",
+    "artifact_sha256"
+  ],
+  "values": {
+    "status": "PASS_COMMON_CPU_NATIVE_FIRMWARE_BANNER",
+    "commands": [
+      [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/guest-negatives-r1/run.vvp",
+        "+firmware_mode",
+        "+rom_hex=/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/banner-r1/firmware.hex",
+        "+cpu_half=1667",
+        "+fabric_half=2000",
+        "+phase_ps=731",
+        "+maxcycles=1000000"
+      ]
+    ],
+    "results": [
+      {
+        "returncode": 0,
+        "seconds": 2669.3214763200012,
+        "maxrss_kib": 107624,
+        "minimum_free_bytes": 29938122752,
+        "timed_out": false,
+        "disk_floor_breached": false,
+        "process_group_killed": false,
+        "log": "firmware.log"
+      }
+    ],
+    "checks": {
+      "firmware.log": "PASS"
+    },
+    "resource_limits": {
+      "per_command_wall_seconds": 3600,
+      "cpu_cycle_bound": 1000000,
+      "wall_budget_reason": "Explicitly authorized 2026-10-21 new-production run: frozen 366a643 2400-second run reached 45/53 exact UART bytes with continuous retirement after unmodified 2064-byte data copy and 5760-byte BSS initialization. Increase wall resource budget only; original failed receipt retained; CPU-cycle bound, clocks, ROM, guest, and all 53-byte completion conditions unchanged."
+    },
+    "reused_vvp": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/guest-negatives-r1/run.vvp",
+      "sha256": "8563538df4831b89e3db231648c911de2e70a998f2af986110c9e4177f280395"
+    },
+    "production_firmware": {
+      "path": "/workspace/scratch/41e4a649bb60/Valence-native-eada605/out/native-performance/bootrom.bin",
+      "sha256": "9b7b73d044f0c6a457f5ed7c3ae2f332aa3b076d26ddf65bef577fe24278e80d",
+      "bytes": 69568,
+      "padded_rom": {
+        "words": 32768,
+        "bytes": 131072,
+        "sha256": "f8e1102a25af35e8b2b57afdc055c7070b85f648b2bbcd203448455396b83c48"
+      }
+    },
+    "artifact_sha256": {
+      "firmware.hex": "f8e1102a25af35e8b2b57afdc055c7070b85f648b2bbcd203448455396b83c48",
+      "firmware.log": "ff37c438eacf5f7b0eaf97b9f4816e26b3a964ca3cf24e939e489a192d955574",
+      "cpu_boot_native.py": "00d39e3b9545a1b78415528456853dc1b76fb39328efa71c4ec7edb170695208",
+      "cpu_boot.ld": "ad0a7b9b2cae201e89855d38ed16ecf65abfcf77fd9558b33812074645d2da38",
+      "cpu_boot_tb.sv": "9f893cc2e2b7c923ed602ffa1bf3f5aa67b8626c81433a5980365c07376d4d50",
+      "cpu_boot.S": "284c22728916467e11444a23877fd25843bd9c28b3bc1794df6e7bc4afa3247b"
+    }
+  }
+}
