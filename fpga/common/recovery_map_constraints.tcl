@@ -166,6 +166,23 @@ puts "PREPARATION_TOOL [version -short]"
 open_checkpoint $target
 puts "FRESH_MAPPING_TARGET $target"
 if {[catch {
+ if {[llength $argv]!=6} {error {Required original IP implementation-constraint inventory missing}}
+ source [file normalize [lindex $argv 5]]
+ foreach row $recovery_ip_xdc {
+  lassign $row path ref cells order
+  set options {}
+  if {$ref ne {}} {
+   set instances [get_cells -quiet -hier -filter "REF_NAME == $ref"]
+   if {![llength $instances]} {error "Original IP constraint reference absent: $ref"}
+   foreach instance $instances {
+    if {$cells ne {} && ![llength [get_cells -quiet [get_property NAME $instance]/$cells]]} {error "Original IP constraint child absent: $instance/$cells"}
+   }
+   lappend options -ref $ref
+   if {$cells ne {}} {lappend options -cells $cells}
+  }
+  puts "RESTORE_ORIGINAL_IP_XDC order=$order ref=$ref cells=$cells path=$path"
+  read_xdc {*}$options $path
+ }
  board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
  check_timing -verbose -file post-synth-coverage.rpt
  report_clocks -file post-synth-clocks.rpt

@@ -17,7 +17,11 @@ if {[catch {
   read_checkpoint -cell [get_property NAME $cell] $dcp
  }
  set remaining [get_cells -quiet -hier -filter {IS_BLACKBOX == TRUE}]
- if {[llength $remaining]!=1 || [get_property REF_NAME $remaining] ne {dbg_hub}} {error "Expected only the previously diagnosed dbg_hub: [get_property NAME $remaining]"}
+ write_checkpoint linked-with-debug-blackbox.dcp
+ puts "REMAINING_BLACKBOX name=[get_property NAME $remaining] ref=[get_property REF_NAME $remaining]"
+ # Vivado's inserted debug hub has a customized reference name. Match the
+ # single previously diagnosed exact instance; read_checkpoint checks ports.
+ if {[llength $remaining]!=1 || [get_property NAME $remaining] ne {dbg_hub} || [get_property REF_NAME $remaining] ne {dbg_hub_CV}} {error "Expected exact diagnosed dbg_hub/dbg_hub_CV: [get_property NAME $remaining]"}
  puts "LINK_EXISTING dbg_hub [get_property NAME $remaining]"
  read_checkpoint -cell [get_property NAME $remaining] $extra
  set remaining [get_cells -quiet -hier -filter {IS_BLACKBOX == TRUE}]

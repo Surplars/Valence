@@ -104,3 +104,19 @@ INIT-zero FDCE functional state, arbitrary external/release inputs, supported
 LUT truth tables, no payload RAM, constant/disconnected data and invariant-zero
 valid qualify. Its LUT controls pass; fresh-netlist acceptance is still pending.
 No added blanket exception or old signoff is used.
+
+The second link run saved `linked-unqualified.dcp` with zero remaining blackboxes,
+including the exact inserted `dbg_hub` / `dbg_hub_CV` instance. Its clock-contract
+gate then correctly failed: no clocks were defined after raw OOC DCP insertion.
+This is an unqualified netlist, not a successful full synthesis flow. A read-only
+inspection of the original project recovered its actual 13-file implementation
+constraint order (9 EARLY, 2 board NORMAL, 2 LATE). The inventory builder records
+scope and SHA256, excludes OOC-only files, and verifies board text against current
+source, allowing newline differences. Fresh mapping must restore these exact
+constraints before official board entries; it rejects missing scopes. No guessed
+clock or timing budget substitutes for the original IP constraints.
+
+The zero-state proof controls now include accepting disabled INIT-zero state and
+rejecting arbitrary enabled D, INIT-one state, payload RAM, arbitrary output valid,
+unknown INIT and falsely correlated LUT unknowns. These controls pass; real-netlist
+proof remains pending until the mapping log explicitly certifies each lane.
