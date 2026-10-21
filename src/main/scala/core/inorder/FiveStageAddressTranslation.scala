@@ -40,6 +40,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             Some(Input(Vec(2, new FiveStageDataRequest(p)))) else None
         val dataCandidateEarly = if (parallelDataCandidates) Some(Input(Bool())) else None
         val readAhead = if (p.dataReplyHandoff && !instruction) Some(Input(Bool())) else None
+        val ordinaryStoreAccepted = if (!instruction) Some(Output(Bool())) else None
     })
     val Seq(idle, lookup, authorize, walkAuthorize, walkSend, walkReceive, walkCheck,
         send, receive, reply, fastHold, authorizeCheck, walkAuthorizeCheck) =
@@ -285,6 +286,17 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         (p.overlapDataRetirement.B && !instruction.B && in(reply) && io.response.ready)
     val requestSlot = Mux(io.readAhead.getOrElse(false.B), readHandoff, normalSlot)
     io.request.ready := requestSlot
+    io.ordinaryStoreAccepted.foreach { accepted =>
+        // A handoff is read-only. Factor the exact ordinary-store acceptance
+        // locally so its reservation-clear event never traverses readHandoff's
+        // address/permission proof. Request READY and every acceptance edge stay unchanged.
+        accepted := io.request.valid && io.request.bits.write && !io.request.bits.atomic &&
+            !io.readAhead.getOrElse(false.B) && normalSlot
+        when(!reset.asBool) {
+            assert(accepted === (io.request.fire && io.request.bits.write && !io.request.bits.atomic),
+                "factored ordinary-store admission changed accepted store ownership")
+        }
+    }
     io.response.valid := resultPending.getOrElse(in(reply))
     io.response.bits := result
     localFaultZero.foreach(zero => io.response.bits.data := Mux(zero, 0.U, result.data))

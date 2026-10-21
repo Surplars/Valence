@@ -241,12 +241,11 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     // and completion overwrite are rejected. W1C acknowledgements precede starts.
     val replies = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))
     val r = io.control.request.bits
-    // The window is exactly256B and aligned by construction. In the bounded
-    // FPGA profile, high-bit equality and the byte offset are independent;
+    // The window is exactly256B and aligned by construction. High-bit
+    // equality and the byte offset are independent in every profile;
     // no XLEN subtraction/borrow chain precedes descriptor register enables.
-    val offset = if (boundedDescriptorChecks) r.address(7, 0) else r.address - base.U
-    val windowHit = if (boundedDescriptorChecks) r.address(63, 8) === (base >> 8).U(56.W)
-        else r.address >= base.U && r.address < (base + 256).U(65.W)
+    val offset = r.address(7, 0)
+    val windowHit = r.address(63, 8) === (base >> 8).U(56.W)
     // Additive ABI: 0x90 RX_STOP=1; 0x98 bit 0 advertises safe RX stop.
     // Accepted memory requests are NEVER cancelled. A partly captured frame is
     // drained to both stream boundaries, then discarded without new DDR writes.
@@ -419,13 +418,10 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     // Stop wins over launches in the very cycle its MMIO write is accepted.
     // RX_STOP has no POST overlap/end-address condition. Keep unrelated live
     // descriptor arithmetic out of the automatic RX launch/register enables.
-    val acceptedStop = io.control.request.fire && r.write && rxStop &&
-        (if (boundedDescriptorChecks) basicLegal && r.data === 1.U else legal)
+    val acceptedStop = io.control.request.fire && r.write && rxStop && basicLegal && r.data === 1.U
     val stopping = queueStopped || acceptedStop
-    if (boundedDescriptorChecks) {
-        assert(acceptedStop === (io.control.request.fire && legal && r.write && rxStop),
-            "local RX_STOP validation changed accepted control semantics")
-    }
+    assert(acceptedStop === (io.control.request.fire && legal && r.write && rxStop),
+        "local RX_STOP validation changed accepted control semantics")
     when(queueEnabled && !queueActive && !rxBusy && !rxDone && pendingCount =/= 0.U) {
         consumePending := true.B
         launchIndex := (if (rxSlots == 1) 0.U else launchIndex + 1.U)

@@ -67,6 +67,8 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     val dcache = Module(new FiveStageWordCache(p, p.dataCacheBytes,
         reportMaintenance = acknowledgedDataInvalidate))
     io.invalidateDataDone.foreach(_ := dcache.io.invalidateDone.get)
+    val acceptedOrdinaryStore = WireDefault(core.io.dataRequest.fire &&
+        core.io.dataRequest.bits.write && !core.io.dataRequest.bits.atomic)
     if (p.coherentCaches) {
         for ((cache, i) <- Seq(icache, dcache).zipWithIndex) {
             io.coherent.get(i) <> cache.io.coherence.get
@@ -75,7 +77,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         }
         io.clearCoherentReservation.get := core.io.clearReservation || io.invalidateData.getOrElse(false.B) ||
             io.invalidateReservation.getOrElse(false.B) ||
-            (core.io.dataRequest.fire && core.io.dataRequest.bits.write && !core.io.dataRequest.bits.atomic) ||
+            acceptedOrdinaryStore ||
             icache.io.coherence.get.b.fire || dcache.io.coherence.get.b.fire
     }
     private val fetchUpper = RegEnable(core.io.instructionRequest.bits(2), core.io.instructionRequest.fire)
@@ -146,6 +148,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         }
         it.io.request <> fetchRequest; fetchResponse <> it.io.response
         dt.io.request <> core.io.dataRequest; core.io.dataResponse <> dt.io.response
+        acceptedOrdinaryStore := dt.io.ordinaryStoreAccepted.get
         dt.io.dataCandidates.foreach(_ := core.io.dataCandidates.get)
         dt.io.dataCandidateEarly.foreach(_ := core.io.dataCandidateEarly.get)
         dt.io.readAhead.foreach(_ := core.io.dataReadAhead.get)
