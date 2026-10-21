@@ -1,0 +1,69 @@
+{
+  "scope": "Run the existing independent RX-stop ledger against fresh emitted RTL in Icarus.\n\nReal mailbox/barrier/FIFO; frame/status owners are surrogates. No physical signoff.\n",
+  "inputs": {
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/CdcDataFifo.sv": "f8b069d672ae86f6df53b73e6728bb0460f65bb8c159a2e452972324e824ee24",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/CdcMailbox.sv": "815aa8bb141743821b8f94a8c875581da8634b55e5395ecb4421c50a8e83164c",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/EthernetFrameClockBridge.sv": "fe8078e15fa7a4abb622a3ac85e759ff8ecb8c768bf55595c1e576d123fd771f",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/EthernetRxAdmissionStop.sv": "6bd957914460a7bc03639b6991ab0db27f4e8710fd26c6e5177379f4dae4e157",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/GmacRxAdmissionStopCdcTop.sv": "4db5235ed03eabc65241dfcc79b798a32365cda7d642e9ba10e64aa41d51ee98",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/rxstop-rtl-final/storage_4x38.sv": "15eb2399cfbf2751f78de03681ff3e16872551c8f13d37f70900e6b6acb02ad1",
+    "/workspace/scratch/41e4a649bb60/Valence/fpga/zu15eg/rx_admission_stop_cdc_tb.sv": "e16b0b5ccac0b27755fd45729903f2e381544e0a726dc96d56c4b4de0e6f85e7"
+  },
+  "sources": {
+    "src/main/scala/ip/bus/CdcDataChannels.scala": "9a59fb681537913cf2787a8b0335565d974991a93467e6140a19f4178695c5bd",
+    "src/main/scala/ip/bus/ClockDomainCrossing.scala": "1f4bc2b23bb7bd2111be268ba89c1bf80c4c87e92c3f05724c3669e3279908a2",
+    "src/main/scala/ip/ethernet/EthernetClockCrossing.scala": "525286500cd18f7002be28b27ad9ef2f9ae0ff7d9db1aa97658f6c2bcd5a06d0",
+    "src/main/scala/ip/ethernet/EthernetPort.scala": "99afa6742bfc409b1f55729f539928782c512c806c8913aed832b6eb7979007d",
+    "src/main/scala/ip/ethernet/EthernetRxAdmissionStop.scala": "2720bddeba49f266320f53c6c2805471d538447c093131676918a355abc0cf84",
+    "src/test/scala/ip/GmacRxAdmissionStopCdc.scala": "35b5600e3155ccfdd15b200afbe7a84d5686828bcb70c0075170c16d32f462eb",
+    "src/test/scala/ip/RegisteredStatusBoundaryMain.scala": "deae313745a023584f29bd9043f694b1d460799848d0be80fd7d6e8875f2107c",
+    "simulator/cdc/test_rx_stop_iverilog.py": "77cfc9128b7f575daa7890139e7fa1adebc575ecbd77b63fcf499f2d08af3958",
+    "simulator/cdc/test_tilelink_boundary.py": "305f44b7c826e13c08c24b503dc6cca2f7b94d640b88af522f67c744c7cf45ac",
+    "build.mill": "153c3e0f2e4a2151ea30bc3ae0b777288c2e4a6d62f66661d868c2aa5010c75e"
+  },
+  "tools": {
+    "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df"
+  },
+  "runs": {
+    "baseline": {
+      "returncode": 0,
+      "seconds": 0.06387042300048051,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793341440,
+      "process_group_killed": false
+    },
+    "payload": {
+      "returncode": 1,
+      "seconds": 0.02709589600272011,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793337344,
+      "process_group_killed": false
+    },
+    "drain": {
+      "returncode": 1,
+      "seconds": 0.020854957001574803,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793333248,
+      "process_group_killed": false
+    }
+  },
+  "compile": {
+    "returncode": 0,
+    "seconds": 0.021111265996296424,
+    "maxrss_kib": 12544,
+    "timed_out": false,
+    "disk_floor_breached": false,
+    "minimum_free_bytes": 29793345536,
+    "process_group_killed": false
+  },
+  "status": "PASS_RX_STOP_ICARUS_WITH_TWO_MONITOR_NEGATIVE_CONTROLS"
+}

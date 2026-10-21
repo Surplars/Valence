@@ -1,0 +1,57 @@
+{
+  "scope": "standalone opt-in status helper only; no default integration or physical signoff",
+  "inputs": {
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/status-rtl-final/CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/status-rtl-final/CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cdc-reset-review/status-rtl-final/RegisteredStatusClockBoundary.sv": "d14fc765acdf77bd8fd6405d1efdce673f16233980efadabb4cdc3e9578b3418",
+    "/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/registered_status_tb.sv": "ac79b839fa37824d6b708cb85621f89310ca85b1581a7ae2f1958a93995df419"
+  },
+  "sources": {
+    "src/main/scala/ip/bus/RegisteredStatusClockBoundary.scala": "a305a769d083518adc60ccff0bea9f23e849408b9fdf9b913ae63d95f21332d2",
+    "src/main/scala/ip/bus/ClockDomainCrossing.scala": "1f4bc2b23bb7bd2111be268ba89c1bf80c4c87e92c3f05724c3669e3279908a2",
+    "src/test/scala/ip/RegisteredStatusBoundaryMain.scala": "deae313745a023584f29bd9043f694b1d460799848d0be80fd7d6e8875f2107c"
+  },
+  "tools": {
+    "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df"
+  },
+  "runs": {
+    "0": {
+      "returncode": 0,
+      "seconds": 0.020815625997784082,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793669120,
+      "process_group_killed": false
+    },
+    "1": {
+      "returncode": 1,
+      "seconds": 0.020924726995872334,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793665024,
+      "process_group_killed": false
+    },
+    "2": {
+      "returncode": 1,
+      "seconds": 0.020821849997446407,
+      "maxrss_kib": 12544,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "minimum_free_bytes": 29793660928,
+      "process_group_killed": false
+    }
+  },
+  "compile": {
+    "returncode": 0,
+    "seconds": 0.021044669003458694,
+    "maxrss_kib": 12544,
+    "timed_out": false,
+    "disk_floor_breached": false,
+    "minimum_free_bytes": 29793673216,
+    "process_group_killed": false
+  },
+  "status": "PASS_WITH_TWO_MONITOR_NEGATIVE_CONTROLS"
+}
