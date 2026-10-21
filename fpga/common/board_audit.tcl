@@ -289,12 +289,24 @@ proc common_board::io {} {
         }
     } finally {close $facts}
 }
+proc common_board::reset_io_cdc {} {
+    # Run each independent proof even when another fails. In particular a reset
+    # error must not hide missing/overridden Gray max-delay constraints.
+    set failures {}
+    foreach check {resets io cdc} {
+        if {[catch {common_board::$check} reason]} {
+            dict set failures $check $reason
+            puts "COMMON_BOARD_INDEPENDENT_AUDIT_BLOCKED $check $reason"
+        } else {puts "COMMON_BOARD_INDEPENDENT_AUDIT_PASS $check"}
+    }
+    if {[dict size $failures]} {error "COMMON_BOARD independent reset/io/cdc failures: $failures"}
+}
 proc common_board::run {} {
     global valence
     variable critical
     foreach key {root out profile_sha256 dcp_sha256} {if {![info exists valence($key)]} {error "COMMON_BOARD missing $key binding"}}
     set checks {}; set errors {}
-    foreach {check commands} {rom_content_and_mapping {common_board::rom} cpu_selection {common_board::cpu} reset_cdc {common_board::resets; common_board::io; common_board::cdc}} {
+    foreach {check commands} {rom_content_and_mapping {common_board::rom} cpu_selection {common_board::cpu} reset_cdc {common_board::reset_io_cdc}} {
         if {[catch {eval $commands} result]} {dict set checks $check BLOCKED; dict set errors $check $result} else {dict set checks $check PASS}
     }
     set status [expr {[dict size $errors] ? "BLOCKED" : "PASS"}]

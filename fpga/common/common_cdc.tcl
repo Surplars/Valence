@@ -77,7 +77,7 @@ proc common_cdc::budget {source target} {
     if {![string is double -strict $a] || ![string is double -strict $b] || $a<=0 || $b<=0} {error "COMMON_CDC invalid clock period"}
     return [expr {min($a,$b)}]
 }
-proc common_cdc::gray {fifo direction} {
+proc common_cdc::gray {fifo direction {inactive_payload 0}} {
     # Match the actual HeldResponse ABI. Captured credit is NOT readGray.
     lassign [dict get {write {writeGray writeBinary destinationClock sourceClock} captured {capturedGray capturedBinary sourceClock destinationClock}} $direction] gray binary targetPin sourcePin
     set src [clock $fifo/$sourcePin]; set dst [clock $fifo/$targetPin]
@@ -86,6 +86,16 @@ proc common_cdc::gray {fifo direction} {
     set starts {}; set ends {}
     for {set i 0} {$i<5} {incr i} {
         set a [lindex $first $i]; set b [lindex $second $i]; pair $a $b $dst
+        if {$inactive_payload && ![catch {constant $a/D 0}]} {
+            foreach c [list $a $b] {
+                if {[get_property INIT [one get_cells $c]] ni {0 1'b0}} {
+                    error "COMMON_CDC constant Gray stage lacks zero INIT $c"
+                }
+            }
+            lappend ::common_cdc::constant_stage0_endpoints $a/D
+            puts "COMMON_CDC_LITERAL_ZERO_GRAY $a/D INIT_ZERO_FDCE_PAIR NO_TRANSITIONS_NO_EXCEPTION"
+            continue
+        }
         set driver [drivers $a/D]
         set allowed [list [format {%s/%s_reg[%d]/Q} $fifo $gray $i]]
         # Vivado can merge binary/Gray MSB, but no other bit may be substituted.
@@ -95,7 +105,35 @@ proc common_cdc::gray {fifo direction} {
         ff $launch $src
         lappend starts $launch/C; lappend ends $a/D
     }
+    if {![llength $starts]} {return {}}
     return [dict create label $fifo/$gray starts $starts ends $ends second $second budget [budget $src $dst] skew 1]
+}
+proc common_cdc::inactive_gray {fifo direction} {
+    # Payload inactivity does not remove physical Gray paths from STA. Only an
+    # absent receiver bank (both stages) or a proved literal-zero FDCE pair can
+    # omit a path. Retained register-driven Gray bits keep the ordinary budget.
+    set stem [dict get {write writeGray captured capturedGray} $direction]
+    set pattern [format {^%s/%sSync(_stage0)?_reg(\[[0-9]+\])?$} [quote $fifo] $stem]
+    set receivers [get_cells -quiet -hierarchical -regexp $pattern]
+    if {![llength $receivers]} {
+        # Absence of expected names cannot hide renamed/replicated receiver FFs.
+        # The caller already proved inactive payload/state; additionally require
+        # every surviving sequential cell to belong to the known control ABI.
+        foreach c [get_cells -quiet -hier -filter "IS_PRIMITIVE == TRUE && NAME =~ $fifo/*"] {
+            set name [get_property NAME $c];set ref [get_property REF_NAME $c]
+            if {![string match FD* $ref]} {continue}
+            if {[regexp {/(sourceRelease|destinationRelease)/release_0_reg\[[0-2]\]$} $name]} {continue}
+            set tail [string range $name [expr {[string length $fifo]+1}] end]
+            if {![regexp {^(writeBinary|writeGray|capturedBinary|capturedGray|capturedGraySync(_stage0)?|writeGraySync(_stage0)?|issueBinary|heldAddress)_reg\[[0-4]\]$|^(pending|valid|full)_reg$} $tail]} {
+                error "COMMON_CDC unknown retained state prevents Gray absence proof $name"
+            }
+        }
+        puts "COMMON_CDC_INACTIVE_GRAY_RECEIVERS_ABSENT $fifo/$stem NO_PHYSICAL_ENDPOINTS_NO_EXCEPTION"
+        return {}
+    }
+    # gray enforces the entire exact five-bit/two-stage shape. A partial or
+    # renamed physical bank is not accepted as optimized-away constant state.
+    return [gray $fifo $direction 1]
 }
 proc common_cdc::level {path} {
     set stages [bank $path/stages_reg 2]; lassign $stages first second
@@ -312,11 +350,16 @@ proc common_cdc::collect {{root u_soc/crossing}} {
         error "COMMON_CDC logical census changed/optimized: Held=[llength $held]/26 mailbox=$mailboxes legacy=$unknown; require reviewed constant-lane proof"
     }
     set ::common_cdc::inactive_scopes {}
+    set ::common_cdc::constant_stage0_endpoints {}
     set failures {}
     foreach h [lsort $held] {
         if {[catch {
             if {[inactive $h] || [common_zero::prove $h]} {
-                lappend ::common_cdc::inactive_scopes $h;puts "COMMON_CDC_PROVEN_INACTIVE $h"
+                lappend ::common_cdc::inactive_scopes $h;puts "COMMON_CDC_PROVEN_INACTIVE_PAYLOAD $h"
+                foreach d {write captured} {
+                    set scope [inactive_gray $h $d]
+                    if {$scope ne {}} {lappend scopes $scope}
+                }
             } else {
                 foreach d {write captured} {lappend scopes [gray $h $d]}
                 if {![payload_absent $h]} {lappend scopes [payload $h]}
@@ -331,6 +374,7 @@ proc common_cdc::collect {{root u_soc/crossing}} {
                 set result "$original; constant proof: $inactive_result"
             } elseif {$inactive_result} {
                 lappend ::common_cdc::inactive_scopes $h
+                lappend ::common_cdc::constant_stage0_endpoints [format {%s/stages_reg[0]/D} $h]
                 continue
             }
             lappend failures [list scalar $h reason $result]
@@ -343,13 +387,10 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     lappend scopes [mailbox [lindex $mailboxes 0]]
     # Every retained stage0 bank must be covered, including future new channels.
     set covered {}; foreach s $scopes {foreach p [dict get $s ends] {lappend covered $p}}
-    set ::common_cdc::constant_stage0_endpoints {}
     foreach c [get_cells -quiet -hier -filter {ASYNC_REG == TRUE}] {
         set n [get_property NAME $c]
         if {[string first $root/ $n]==0 && [regexp {(Sync_stage0_reg\[[0-9]+\]|stages_reg\[0\])$} $n] && [lsearch -exact $covered $n/D]<0} {
-            set constant_scope 0
-            foreach h $::common_cdc::inactive_scopes {if {[string first $h/ $n]==0} {set constant_scope 1;break}}
-            if {$constant_scope} {lappend ::common_cdc::constant_stage0_endpoints $n/D;continue}
+            if {[lsearch -exact $::common_cdc::constant_stage0_endpoints $n/D]>=0} {continue}
             error "COMMON_CDC unreviewed first-stage endpoint $n"
         }
     }
