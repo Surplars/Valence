@@ -16,6 +16,7 @@ class CommonA1CpuTile(
     config: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true),
     boundary: CommonCpuTilePortParams = CommonCpuTilePortParams()
 ) extends Module {
+    require(!boundary.runtimeMaintenance, "A1 runtime clock-maintenance endpoint is not implemented")
     private val p = config.coreParams
     private val cacheConfig = config.cache
     require(config.issueWidth == 2 && config.isaProfile == "rv64gc")

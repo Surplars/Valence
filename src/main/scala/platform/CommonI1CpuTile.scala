@@ -19,6 +19,8 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
         // status is deliberately not connected to a complete CMU drain ACK.
         val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
         val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
+        // Local epoch readiness only; not an AON clock-gating permission.
+        val runtimeHeld = if (boundary.runtimeMaintenance) Some(Valid(UInt(boundary.maintenanceEpochBits.W))) else None
         val bus = new CommonCpuTilePort(boundary)
         val retire = Valid(new FiveStageRetire(p))
         val trapTaken = Output(Bool())
@@ -29,8 +31,10 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
         val maintenancePending = Output(Bool())
     })
     val tile = Module(new FiveStageCachedCore(p, externalDataInvalidate = true,
-        acknowledgedDataInvalidate = true, externalQuiesce = externalQuiesce))
-    tile.io.quiesceRequest.foreach(_ := io.quiesceRequest.get)
+        acknowledgedDataInvalidate = true, externalQuiesce = externalQuiesce || boundary.runtimeMaintenance,
+        runtimeMaintenance = boundary.runtimeMaintenance))
+    val runtimeStop = if (boundary.runtimeMaintenance) Some(WireDefault(false.B)) else None
+    tile.io.quiesceRequest.foreach(_ := io.quiesceRequest.getOrElse(false.B) || runtimeStop.getOrElse(false.B))
     io.architecturalStopped.foreach(_ := tile.io.architecturalStopped.get)
     for (port <- Seq(tile.io.instructionMemory, tile.io.dataMemory)) {
         port.request.ready := false.B
@@ -94,15 +98,82 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
     io.bus.maintenanceStatus.bits.dirtyWritebackCompleted := flushDone
     io.bus.maintenanceStatus.bits.fetchQuiescent := tile.io.fenceIFetchDrained.get
     io.bus.maintenanceStatus.bits.invalidationsCompleted := false.B
-    when(io.bus.maintenanceStatus.fire) { sent := true.B }
+    when(io.bus.maintenanceStatus.fire && (if (boundary.runtimeMaintenance) request else true.B)) { sent := true.B }
     io.bus.fabricDrainedEpoch.ready := sent && !acknowledged
-    when(io.bus.fabricDrainedEpoch.fire) {
+    when(io.bus.fabricDrainedEpoch.fire && (if (boundary.runtimeMaintenance) request else true.B)) {
         assert(io.bus.fabricDrainedEpoch.bits === epoch, "I1 accepted a stale Home drain epoch")
         acknowledged := true.B
     }
     tile.io.fenceIFlushReady.get := request && flushDone && acknowledged
-    io.bus.maintenance.ready := false.B // external download halt requires its own precise boundary
-    io.maintenancePending := request
+    if (boundary.runtimeMaintenance) {
+        val runtimeActive = RegInit(false.B)
+        val runtimeEpoch = Reg(UInt(boundary.maintenanceEpochBits.W))
+        val runtimeFlushIssued = RegInit(false.B)
+        val runtimeFlushDone = RegInit(0.U(2.W))
+        val runtimeOffer = RegInit(false.B)
+        val runtimeSent = RegInit(false.B)
+        val runtimeAcknowledged = RegInit(false.B)
+        val lastEpoch = Reg(UInt(boundary.maintenanceEpochBits.W))
+        val lastValid = RegInit(false.B)
+        val command = io.bus.maintenance
+        command.ready := !runtimeActive && !request && !active &&
+            !(lastValid && command.bits.epoch === lastEpoch)
+        when(command.fire) {
+            assert(!command.bits.invalidateInstructions && !command.bits.invalidateTranslations,
+                "runtime rate halt does not implement architectural invalidation commands")
+            runtimeActive := true.B
+            runtimeEpoch := command.bits.epoch
+            lastEpoch := command.bits.epoch; lastValid := true.B
+            runtimeFlushIssued := false.B; runtimeFlushDone := 0.U
+            runtimeOffer := false.B; runtimeSent := false.B; runtimeAcknowledged := false.B
+        }
+        runtimeStop.get := runtimeActive
+        val stopped = tile.io.architecturalStopped.get
+        val privateIdle = tile.io.privateCachesQuiescent.get && nativeIdle
+        val flushPulse = runtimeActive && stopped && !runtimeFlushIssued
+        tile.io.runtimeFlush.get := flushPulse
+        when(flushPulse) { runtimeFlushIssued := true.B }
+        when(runtimeActive && runtimeFlushIssued) {
+            runtimeFlushDone := runtimeFlushDone | tile.io.runtimeFlushDone.get
+        }
+        val privateDrained = runtimeActive && stopped && runtimeFlushDone.andR && privateIdle
+        // Capture one drain observation into a held message. Later accepted
+        // probes stay live and remain covered by fabric's true obligation counts.
+        when(privateDrained) { runtimeOffer := true.B }
+        // An older FENCE.I drains normally before architecturalStopped can rise.
+        // Runtime status is offered only afterward, never replacing an older epoch.
+        when(runtimeActive && stopped) {
+            io.bus.maintenanceStatus.valid := runtimeOffer && !runtimeSent
+            io.bus.maintenanceStatus.bits.epoch := runtimeEpoch
+            io.bus.maintenanceStatus.bits.privateOwnersDrained := true.B
+            io.bus.maintenanceStatus.bits.dirtyWritebackCompleted := runtimeFlushDone.andR
+            io.bus.maintenanceStatus.bits.fetchQuiescent := stopped
+            io.bus.maintenanceStatus.bits.invalidationsCompleted := false.B
+            io.bus.fabricDrainedEpoch.ready := runtimeSent && !runtimeAcknowledged &&
+                io.bus.fabricDrainedEpoch.bits === runtimeEpoch
+        }
+        io.bus.maintenanceStatus.bits.holdUntilResume.get := runtimeActive && stopped
+        when(runtimeActive && stopped && io.bus.maintenanceStatus.fire) { runtimeSent := true.B }
+        when(runtimeActive && stopped && io.bus.fabricDrainedEpoch.fire) {
+            runtimeAcknowledged := true.B
+        }
+        val resume = io.bus.maintenanceResume.get
+        resume.ready := privateDrained && runtimeAcknowledged && resume.bits === runtimeEpoch
+        when(resume.fire) {
+            runtimeActive := false.B
+            runtimeFlushIssued := false.B; runtimeFlushDone := 0.U
+            runtimeOffer := false.B; runtimeSent := false.B; runtimeAcknowledged := false.B
+        }
+        io.runtimeHeld.get.valid := privateDrained && runtimeAcknowledged
+        io.runtimeHeld.get.bits := runtimeEpoch
+        when(io.runtimeHeld.get.valid) {
+            assert(stopped && !io.retire.valid, "held runtime epoch retired architectural work")
+        }
+        io.maintenancePending := request || runtimeActive
+    } else {
+        io.bus.maintenance.ready := false.B // runtime endpoint absent in default production
+        io.maintenancePending := request
+    }
     io.retire := tile.io.retire
     io.trapTaken := tile.io.trapTaken; io.trapPc := tile.io.trapPc; io.trapCause := tile.io.trapCause
     io.cycles := tile.io.cycles; io.instructions := tile.io.instructions

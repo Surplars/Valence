@@ -18,7 +18,8 @@ case class CommonCpuTilePortParams(
     homeAcquireEntries: Int = 2,
     homeWritebackEntries: Int = 2,
     scalarOwnerBits: Int = 4,
-    maintenanceEpochBits: Int = 8
+    maintenanceEpochBits: Int = 8,
+    runtimeMaintenance: Boolean = false
 ) {
     require(coherent.addrWidth == 64 && coherent.dataWidth == 64 && coherent.sourceBits >= 3)
     require(homeAcquireEntries >= 2 && homeWritebackEntries >= 2)
@@ -61,7 +62,8 @@ class CommonTileScalarPort(p: CommonCpuTilePortParams) extends Bundle {
   * Fabric completion additionally requires all crossing owners/held replies,
   * probes, GrantAck sinks, DMA and downstream responses; only then may the tile
   * invalidate fetch state and acknowledge this epoch. Cold reset cancels all
-  * owners in both domains. Warm reset/clock gating remains unsupported.
+  * owners in both domains. Optional runtime hold/resume names the external
+  * epoch without claiming a full clock-gate acknowledgement. Warm reset is unsupported.
   */
 class CommonTileMaintenanceCommand(p: CommonCpuTilePortParams) extends Bundle {
     val epoch = UInt(p.maintenanceEpochBits.W)
@@ -74,6 +76,8 @@ class CommonTileMaintenanceStatus(p: CommonCpuTilePortParams) extends Bundle {
     val dirtyWritebackCompleted = Bool()
     val fetchQuiescent = Bool()
     val invalidationsCompleted = Bool()
+    // Only an externally prepared epoch may retain Home admission after completion.
+    val holdUntilResume = if (p.runtimeMaintenance) Some(Bool()) else None
 }
 
 /** CPU-facing side. A selected tile implements this contract; the public fabric
@@ -94,4 +98,6 @@ class CommonCpuTilePort(p: CommonCpuTilePortParams) extends Bundle {
     val maintenance = Flipped(Decoupled(new CommonTileMaintenanceCommand(p)))
     val maintenanceStatus = Decoupled(new CommonTileMaintenanceStatus(p))
     val fabricDrainedEpoch = Flipped(Decoupled(UInt(p.maintenanceEpochBits.W)))
+    val maintenanceResume = if (p.runtimeMaintenance)
+        Some(Flipped(Decoupled(UInt(p.maintenanceEpochBits.W)))) else None
 }

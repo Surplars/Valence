@@ -83,6 +83,7 @@ class CommonCpuClockBoundary(p: CommonCpuTilePortParams = CommonCpuTilePortParam
     forward(fabric.maintenance, cpu.maintenance, toFabric = false)
     forward(cpu.maintenanceStatus, fabric.maintenanceStatus, toFabric = true)
     forward(fabric.fabricDrainedEpoch, cpu.fabricDrainedEpoch, toFabric = false)
+    if (p.runtimeMaintenance) forward(fabric.maintenanceResume.get, cpu.maintenanceResume.get, toFabric = false)
     cpu.timerInterrupt := level(fabric.timerInterrupt, inCpu = true)
     cpu.softwareInterrupt := level(fabric.softwareInterrupt, inCpu = true)
 

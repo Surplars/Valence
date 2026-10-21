@@ -12,6 +12,7 @@
 static void check(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 struct Driver {
     FabricDut dut;
+    std::string runtimeNegative;
     struct Read { uint64_t address; unsigned id, beats, beat, size, due; };
     struct Write { uint64_t address; unsigned id, beats, beat, size; };
     struct Reply { unsigned id, due; uint64_t data=0; };
@@ -33,6 +34,11 @@ struct Driver {
 
     Driver() {
         dut.set_io$$transportCpuEmptySynchronized(1); dut.set_io$$fabricTransportEmpty(1);
+#ifdef RUNTIME_MAINTENANCE
+        dut.set_io$$runtimeResume$$valid(0); dut.set_io$$runtimeResume$$bits(0);
+        dut.set_io$$tile$$maintenanceResume$$ready(0);
+        dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(0);
+#endif
         dut.set_io$$externalMaintenance$$valid(0); dut.set_io$$externalMaintenance$$bits$$epoch(0);
         dut.set_io$$externalMaintenance$$bits$$invalidateInstructions(0);
         dut.set_io$$externalMaintenance$$bits$$invalidateTranslations(0);
@@ -260,6 +266,27 @@ struct Driver {
         ++romReads; if(size<3) ++romSubwordReads; if(denied) ++romDenied;
     }
     void fence(unsigned tag) {
+#ifdef RUNTIME_MAINTENANCE
+        if(tag==37) {
+            // External prepare races an older architectural FENCE.I. The
+            // ordinary epoch must finish without consuming external epoch 38.
+            dut.set_io$$tile$$maintenance$$ready(1);
+            dut.set_io$$externalMaintenance$$bits$$epoch(38);
+            dut.set_io$$externalMaintenance$$valid(1);
+            do {tick();} while(!dut.get_io$$externalMaintenance$$ready());
+            dut.set_io$$externalMaintenance$$valid(0);
+            dut.set_io$$tile$$maintenance$$ready(0);
+        }
+        if(tag==38) {
+            dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(1);
+            dut.set_io$$runtimeResume$$bits(tag); tick();
+            check(!dut.get_io$$runtimeResume$$ready(), "early resume was ready before completion");
+            if(runtimeNegative=="--early-resume") {
+                dut.set_io$$runtimeResume$$bits(tag); dut.set_io$$runtimeResume$$valid(1);
+                tick(); throw std::runtime_error("early resume assertion did not fire");
+            }
+        }
+#endif
         dut.set_io$$tile$$maintenanceStatus$$bits$$epoch(tag); dut.set_io$$tile$$maintenanceStatus$$valid(1);
         do {tick();} while(!dut.get_io$$tile$$maintenanceStatus$$ready());
         dut.set_io$$tile$$maintenanceStatus$$valid(0);
@@ -334,7 +361,58 @@ struct Driver {
         holdB=false; do {tick();} while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
         check(dut.get_io$$tile$$fabricDrainedEpoch$$bits()==38,"stale drain epoch replayed");
         dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); tick(); dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); ++maintenance;
+#ifdef RUNTIME_MAINTENANCE
+        // Completion consumption must not reopen Home or regenerate completion.
+        idle(12);
+        check(dut.get_io$$runtimeHeld$$valid() && dut.get_io$$runtimeHeld$$bits()==38 &&
+              dut.get_io$$maintenancePending(), "runtime completion released the epoch barrier");
+        check(!dut.get_io$$tile$$fabricDrainedEpoch$$valid(), "runtime completion replayed");
+        // A newer Acquire must park at Home, without acquiring an owner.
+        dut.set_io$$tile$$coherent_1$$a$$valid(1);
+        for(unsigned i=0;i<12;++i) {
+            tick(); check(!dut.get_io$$tile$$coherent_1$$a$$ready(), "held Home accepted a newer Acquire");
+            check(dut.get_io$$runtimeHeld$$valid(), "runtime hold vanished without resume");
+        }
+        // Keep the parked Decoupled offer stable until actual acceptance.
+        dut.set_io$$runtimeResume$$bits(37); tick();
+        check(!dut.get_io$$runtimeResume$$ready() && dut.get_io$$runtimeHeld$$valid(),
+              "stale resume epoch could release the barrier");
+        dut.set_io$$runtimeResume$$bits(runtimeNegative=="--wrong-resume" ? 37 : 38);
+        dut.set_io$$runtimeResume$$valid(1); tick();
+        if(runtimeNegative=="--wrong-resume") throw std::runtime_error("wrong resume assertion did not fire");
+        check(dut.get_io$$runtimeResume$$ready(), "matching runtime resume was not accepted");
+        dut.set_io$$runtimeResume$$valid(0);
+        do {tick();} while(!dut.get_io$$tile$$coherent_1$$a$$ready());
+        dut.set_io$$tile$$coherent_1$$a$$valid(0);
+        while(grants!=3 || ePending) tick();
+        idle(8);
+        check(!dut.get_io$$runtimeHeld$$valid() && !dut.get_io$$maintenancePending(),
+              "matching resume did not release the barrier");
+        check(dut.get_io$$tile$$maintenanceResume$$valid() &&
+              dut.get_io$$tile$$maintenanceResume$$bits()==38, "tile resume owner was not held");
+        check(!dut.get_io$$externalMaintenance$$ready() && !dut.get_io$$tile$$maintenanceStatus$$ready(),
+              "new maintenance crossed queued tile resume");
+        check(!dut.get_io$$runtimeResume$$ready(), "duplicate resume could be accepted");
+        if(runtimeNegative=="--duplicate-resume") {
+            dut.set_io$$runtimeResume$$valid(1); tick();
+            throw std::runtime_error("duplicate resume assertion did not fire");
+        }
+        dut.set_io$$tile$$maintenanceResume$$ready(1); tick();
+        dut.set_io$$tile$$maintenanceResume$$ready(0); idle(2);
+        check(!dut.get_io$$tile$$maintenanceResume$$valid(), "tile resume replayed");
+        dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(0);
+#endif
         for(unsigned i=0;i<8;++i) expect(i&1,ramBase+0x6000+i*8,dirtyBase+i);
+#ifdef RUNTIME_MAINTENANCE
+        // A normal FENCE still auto-releases after the runtime epoch.
+        fence(39); do {tick();} while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
+        check(dut.get_io$$tile$$fabricDrainedEpoch$$bits()==39, "post-runtime epoch mismatch");
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); tick();
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); idle(2);
+        check(!dut.get_io$$maintenancePending() && !dut.get_io$$runtimeHeld$$valid(),
+              "ordinary FENCE inherited runtime hold");
+        std::cout<<"RUNTIME_EPOCH_HOLD_PASS held=1 acquire_blocked=1 explicit_resume=1 fence_after=1\n";
+#endif
         idle(8); check(dut.get_io$$allObligationsIdle(),"fabric retained an accepted obligation");
         check(axiWrites==axiB && reads.empty() && writes.empty() && writeReplies.empty(),"DDR real response ledger mismatch");
         std::cout<<"COMMON_MACHINE_FABRIC_PASS cycles="<<cycles<<" scalar="<<scalarReplies<<" rom="<<romReads
@@ -345,6 +423,6 @@ struct Driver {
     }
 };
 int main(int argc,char**argv) {
-    try { auto d=std::make_unique<Driver>(); d->inject=argc>1 && std::string(argv[1])=="--inject-mismatch"; d->run(); }
+    try { auto d=std::make_unique<Driver>(); d->inject=argc>1 && std::string(argv[1])=="--inject-mismatch"; d->runtimeNegative=argc>1 ? argv[1] : ""; d->run(); }
     catch(const std::exception& e) { std::cerr<<e.what()<<"\n"; return 1; }
 }

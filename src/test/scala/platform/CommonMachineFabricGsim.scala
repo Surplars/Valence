@@ -5,7 +5,7 @@ import chisel3._
 import chisel3.util._
 import soc.bus.tilelink._
 import soc.core.ooo.{InstructionRom, TileLinkInstructionRomAdapter}
-import soc.platform.{CommonMachineFabric, CommonPlatformFeatures}
+import soc.platform.{CommonMachineFabric, CommonPlatformFeatures, CommonCpuTilePortParams}
 
 /** Fabric-only native/MMIO/DDR test: real 128 KiB ROM and production 1024x4
   * Home/4-slot/2-write DDR. External managed peripherals are test endpoints.
@@ -15,6 +15,17 @@ object CommonMachineFabricGsimMain extends App {
     require(args.length == 1, "explicit fresh output directory required")
     require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
     ChiselStage.emitCHIRRTLFile(new CommonMachineFabric(
+        features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
+            jtagDownload = true, clockManagement = true),
+        programmable = true), Array("--target-dir", args(0)))
+}
+
+/** Same production fabric and DDR ledger, with explicit runtime epoch hold enabled. */
+object CommonMachineFabricRuntimeGsimMain extends App {
+    require(args.length == 1, "explicit fresh output directory required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabric(
+        boundary = CommonCpuTilePortParams(runtimeMaintenance = true),
         features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
             jtagDownload = true, clockManagement = true),
         programmable = true), Array("--target-dir", args(0)))
@@ -52,4 +63,44 @@ object CommonInstructionRomContractGsimMain extends App {
     require(args.length == 1, "explicit fresh output directory required")
     require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
     ChiselStage.emitCHIRRTLFile(new CommonInstructionRomContractGsim, Array("--target-dir", args(0)))
+}
+
+/** Test-only scalar top ports avoid the pinned simulator's retained-Vec accessor
+  * limitation. Every leaf wires directly to the unchanged production fabric.
+  */
+class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
+    import chisel3.reflect.DataMirror
+    import chisel3.ActualDirection
+    override val elements = scala.collection.immutable.ListMap(fields.map { case (name, data) =>
+        val leaf = DataMirror.directionOf(data) match {
+            case ActualDirection.Input => Input(chiselTypeOf(data))
+            case ActualDirection.Output => Output(chiselTypeOf(data))
+            case other => throw new IllegalArgumentException(s"unexpected fabric leaf direction $other")
+        }
+        name -> leaf
+    }: _*)
+}
+class CommonMachineFabricFlatGsim(runtime: Boolean) extends Module {
+    val fabric = Module(new CommonMachineFabric(
+        boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime),
+        features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
+            jtagDownload = true, clockManagement = true), programmable = true))
+    private def leaves(data: Data, prefix: String): Seq[(String, Data)] = data match {
+        case record: Record => record.elements.toSeq.flatMap { case (name, value) =>
+            leaves(value, if (prefix.isEmpty) name else prefix + "__" + name)
+        }
+        case vector: Vec[_] => vector.zipWithIndex.flatMap { case (value, index) =>
+            leaves(value, prefix + "_" + index)
+        }.toSeq
+        case leaf => Seq(prefix -> leaf)
+    }
+    private val fields = leaves(fabric.io, "")
+    val io = IO(new CommonFabricFlatPort(fields))
+    fields.foreach { case (name, leaf) => io.elements(name) <> leaf }
+}
+object CommonMachineFabricFlatGsimMain extends App {
+    require(args.length == 2, "fresh output directory and runtime flag required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(args(1).toBoolean),
+        Array("--target-dir", args(0)))
 }

@@ -116,6 +116,11 @@ class CommonMachineFabric(
         val fabricTransportEmpty = Input(Bool())
         val externalMaintenance = Flipped(Decoupled(new CommonTileMaintenanceCommand(boundary)))
         val externalMaintenanceStatus = Output(Valid(new CommonTileMaintenanceStatus(boundary)))
+        val runtimeResume = if (boundary.runtimeMaintenance)
+            Some(Flipped(Decoupled(UInt(boundary.maintenanceEpochBits.W)))) else None
+        // Fabric completion was enqueued; this is not a CPU clock-gate acknowledgement.
+        val runtimeHeld = if (boundary.runtimeMaintenance)
+            Some(Output(Valid(UInt(boundary.maintenanceEpochBits.W)))) else None
         val peripheralClock = if (peripheralClockHz > 0 && !externalUart) Some(Input(Clock())) else None
         val ethernetRegisters = if (features.ethernetControl) Some(new RegisterPort) else None
         val clockManagementRegisters = if (features.clockManagement) Some(new RegisterPort) else None
@@ -154,13 +159,29 @@ class CommonMachineFabric(
         }))) else None
     })
     io.ready := io.ddrReady.getOrElse(true.B)
-    io.tile.maintenance <> io.externalMaintenance
 
     val pending = RegInit(false.B)
     val epoch = Reg(UInt(boundary.maintenanceEpochBits.W))
     val completionHeld = RegInit(false.B)
     val drainStarted = RegInit(false.B)
-    io.tile.maintenanceStatus.ready := !pending
+    val externalOwned = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
+    val externalEpoch = if (boundary.runtimeMaintenance) Some(Reg(UInt(boundary.maintenanceEpochBits.W))) else None
+    val holdUntilResume = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
+    val completionConsumed = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
+    val resumeQueued = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
+    val externalOpen = if (boundary.runtimeMaintenance)
+        !pending && !externalOwned.get && !resumeQueued.get && !io.tile.maintenanceStatus.valid
+    else true.B
+    io.tile.maintenance.valid := io.externalMaintenance.valid && externalOpen
+    io.tile.maintenance.bits := io.externalMaintenance.bits
+    io.externalMaintenance.ready := io.tile.maintenance.ready && externalOpen
+    if (boundary.runtimeMaintenance) {
+        when(io.externalMaintenance.fire) {
+            externalOwned.get := true.B
+            externalEpoch.get := io.externalMaintenance.bits.epoch
+        }
+    }
+    io.tile.maintenanceStatus.ready := !pending && !resumeQueued.getOrElse(false.B)
     io.externalMaintenanceStatus.valid := io.tile.maintenanceStatus.fire
     io.externalMaintenanceStatus.bits := io.tile.maintenanceStatus.bits
     when(io.tile.maintenanceStatus.fire) {
@@ -169,6 +190,16 @@ class CommonMachineFabric(
             "fabric drain began before matching tile-private flush and fetch quiescence")
         pending := true.B
         epoch := status.epoch
+        if (boundary.runtimeMaintenance) {
+            holdUntilResume.get := status.holdUntilResume.get
+            when(status.holdUntilResume.get) {
+                assert(externalOwned.get && status.epoch === externalEpoch.get,
+                    "runtime hold has no matching external maintenance owner")
+            }
+            // An older architectural FENCE.I may finish after an external
+            // prepare was accepted. Its ordinary epoch drains independently;
+            // external ownership survives until the later held epoch resumes.
+        }
     }
     io.maintenancePending := pending
     val scalar = Module(new CommonFabricScalarArbiter(boundary))
@@ -415,7 +446,8 @@ class CommonMachineFabric(
     // so its combinational emptiness must never feed drainRequest directly.
     // The captured producer-empty observation separates older accepted work
     // from later autonomous DMA offers. Those future offers remain unaccepted
-    // behind the Home barrier until this epoch is consumed.
+    // behind the Home barrier until this epoch is consumed, or until explicit
+    // matching resume for an opt-in externally owned runtime epoch.
     when(pending && producersDrained && !drainStarted) { drainStarted := true.B }
     home.io.drainRequest := pending && drainStarted
     io.homeDrained := home.io.drainDone
@@ -424,13 +456,39 @@ class CommonMachineFabric(
     val producerEpochIdle = Mux(pending, drainStarted && acceptedOwnersIdle, producersDrained)
     io.allObligationsIdle := producerEpochIdle && home.io.drainDone && romIdle && ramIdle &&
         managerExtraIdle && interruptIdle
-    when(pending && io.allObligationsIdle && !completionHeld) { completionHeld := true.B }
+    when(pending && io.allObligationsIdle && !completionHeld && !completionConsumed.getOrElse(false.B)) { completionHeld := true.B }
     io.tile.fabricDrainedEpoch.valid := completionHeld
     io.tile.fabricDrainedEpoch.bits := epoch
     when(io.tile.fabricDrainedEpoch.fire) {
-        pending := false.B; completionHeld := false.B; drainStarted := false.B
+        completionHeld := false.B
+        when(holdUntilResume.getOrElse(false.B)) {
+            completionConsumed.foreach(_ := true.B)
+        }.otherwise {
+            pending := false.B; drainStarted := false.B
+        }
     }
-    when(pending && io.allObligationsIdle && !completionHeld) {
+    if (boundary.runtimeMaintenance) {
+        val resume = io.runtimeResume.get
+        val held = pending && holdUntilResume.get && completionConsumed.get
+        io.runtimeHeld.get.valid := held
+        io.runtimeHeld.get.bits := epoch
+        resume.ready := held && resume.bits === epoch && !resumeQueued.get
+        when(resume.valid) {
+            assert(held && resume.bits === epoch && !resumeQueued.get,
+                "runtime resume is early, duplicate, or has a stale epoch")
+        }
+        when(resume.fire) {
+            pending := false.B; drainStarted := false.B
+            completionConsumed.get := false.B; holdUntilResume.get := false.B
+            resumeQueued.get := true.B
+        }
+        io.tile.maintenanceResume.get.valid := resumeQueued.get
+        io.tile.maintenanceResume.get.bits := epoch
+        when(io.tile.maintenanceResume.get.fire) {
+            resumeQueued.get := false.B; externalOwned.get := false.B
+        }
+    }
+    when(pending && io.allObligationsIdle && !completionHeld && !completionConsumed.getOrElse(false.B)) {
         assert(home.io.drainRequest && home.io.drainDone,
             "maintenance epoch acknowledged before actual Home completion")
     }

@@ -5,11 +5,16 @@ import chisel3.util._
 
 /** Optional caches wrap IF/MEM handshakes; named CPU pipeline profiles remain independently selectable. */
 class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolean = false,
-    acknowledgedDataInvalidate: Boolean = false, externalQuiesce: Boolean = false) extends Module {
+    acknowledgedDataInvalidate: Boolean = false, externalQuiesce: Boolean = false,
+    runtimeMaintenance: Boolean = false) extends Module {
+    require(!runtimeMaintenance || (externalQuiesce && p.coherentCaches))
     require(!acknowledgedDataInvalidate || (externalDataInvalidate && p.coherentCaches))
     val io = IO(new Bundle {
         val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
         val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
+        val runtimeFlush = if (runtimeMaintenance) Some(Input(Bool())) else None
+        val runtimeFlushDone = if (runtimeMaintenance) Some(Output(UInt(2.W))) else None
+        val privateCachesQuiescent = if (runtimeMaintenance) Some(Output(Bool())) else None
         val instructionMemory = new FiveStageBurstPort(p)
         val dataMemory = new FiveStageBurstPort(p)
         val coherent = if (p.coherentCaches) Some(Vec(2, new soc.bus.tilelink.TLBundle(
@@ -67,10 +72,19 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     }
     val useInstructionPma = p.fpgaTimingCuts && (p.withSv39 || p.pmpEntries > 0)
     val icache = Module(new FiveStageWordCache(p, p.instructionCacheBytes, allowHitReplacement = true,
-        trustedReadOnlyCacheability = useInstructionPma))
+        trustedReadOnlyCacheability = useInstructionPma,
+        reportMaintenance = runtimeMaintenance, reportQuiescence = runtimeMaintenance))
     val dcache = Module(new FiveStageWordCache(p, p.dataCacheBytes,
-        reportMaintenance = acknowledgedDataInvalidate))
+        reportMaintenance = acknowledgedDataInvalidate || runtimeMaintenance,
+        reportQuiescence = runtimeMaintenance))
     io.invalidateDataDone.foreach(_ := dcache.io.invalidateDone.get)
+    private val privateArbitrationIdle = if (runtimeMaintenance) Some(WireDefault(true.B)) else None
+    io.runtimeFlushDone.foreach(_ := Cat(dcache.io.invalidateDone.get, icache.io.invalidateDone.get))
+    io.privateCachesQuiescent.foreach(_ := icache.io.quiescent.get && dcache.io.quiescent.get &&
+        privateArbitrationIdle.get)
+    if (runtimeMaintenance) when(io.runtimeFlush.get) {
+        assert(core.io.architecturalStopped.get, "runtime cache flush began before precise core stop")
+    }
     val acceptedOrdinaryStore = WireDefault(core.io.dataRequest.fire &&
         core.io.dataRequest.bits.write && !core.io.dataRequest.bits.atomic)
     if (p.coherentCaches) {
@@ -81,13 +95,15 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         }
         io.clearCoherentReservation.get := core.io.clearReservation || io.invalidateData.getOrElse(false.B) ||
             io.invalidateReservation.getOrElse(false.B) ||
-            acceptedOrdinaryStore ||
+            io.runtimeFlush.getOrElse(false.B) || acceptedOrdinaryStore ||
             icache.io.coherence.get.b.fire || dcache.io.coherence.get.b.fire
     }
     private val fetchUpper = RegEnable(core.io.instructionRequest.bits(2), core.io.instructionRequest.fire)
     io.instructionMemory <> icache.io.memory; io.dataMemory <> dcache.io.memory
-    icache.io.invalidate := core.io.invalidateInstructionCache
-    dcache.io.invalidate := io.invalidateData.getOrElse(false.B)
+    icache.io.invalidate := (if (runtimeMaintenance) core.io.invalidateInstructionCache || io.runtimeFlush.get
+        else core.io.invalidateInstructionCache)
+    dcache.io.invalidate := (if (runtimeMaintenance) io.invalidateData.getOrElse(false.B) || io.runtimeFlush.get
+        else io.invalidateData.getOrElse(false.B))
     val fetchRequest = Wire(Decoupled(new FiveStageDataRequest(p)))
     val fetchResponse = Wire(Decoupled(new FiveStageDataResponse(p)))
     val fetchCandidates = Wire(Vec(2, UInt(p.xlen.W)))
@@ -166,6 +182,8 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val ports = Seq(dt.io.physical, dt.io.walk, it.io.walk)
         val active = RegInit(false.B); val owner = Reg(UInt(2.W))
         val offered = RegInit(false.B); val heldGrant = Reg(UInt(2.W))
+        privateArbitrationIdle.foreach(_ := !active && !offered &&
+            !ports.map(_.request.valid).reduce(_ || _) && !ports.map(_.response.valid).reduce(_ || _))
         val roundRobin = RegInit(0.U(2.W))
         val available = ports.map(_.request.valid)
         val choice = if (p.fpgaTimingCuts && p.coherentBandwidth) {
