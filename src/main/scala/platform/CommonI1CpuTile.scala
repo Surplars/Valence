@@ -9,11 +9,16 @@ import soc.core.inorder._
   * DDR responses before the original core invalidates fetch state and retires.
   */
 class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
-    boundary: CommonCpuTilePortParams = CommonCpuTilePortParams()) extends Module {
+    boundary: CommonCpuTilePortParams = CommonCpuTilePortParams(),
+    externalQuiesce: Boolean = false) extends Module {
     require(p.xlen == 64 && p.withAia && p.externalFenceICompletion && p.coherentLineGrants)
     require(p.instructionCacheBytes == 32768 && p.dataCacheBytes == 32768 && p.coherentCacheWays == 2)
     require(p.tlbEntries >= 16 && p.bankedTlbProofs && p.indexedDataProofs)
     val io = IO(new Bundle {
+        // Architectural stop only. Coherent probes/responses remain live; this
+        // status is deliberately not connected to a complete CMU drain ACK.
+        val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
+        val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
         val bus = new CommonCpuTilePort(boundary)
         val retire = Valid(new FiveStageRetire(p))
         val trapTaken = Output(Bool())
@@ -24,7 +29,9 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
         val maintenancePending = Output(Bool())
     })
     val tile = Module(new FiveStageCachedCore(p, externalDataInvalidate = true,
-        acknowledgedDataInvalidate = true))
+        acknowledgedDataInvalidate = true, externalQuiesce = externalQuiesce))
+    tile.io.quiesceRequest.foreach(_ := io.quiesceRequest.get)
+    io.architecturalStopped.foreach(_ := tile.io.architecturalStopped.get)
     for (port <- Seq(tile.io.instructionMemory, tile.io.dataMemory)) {
         port.request.ready := false.B
         port.response.valid := false.B

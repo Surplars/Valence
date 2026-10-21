@@ -5,9 +5,11 @@ import chisel3.util._
 
 /** Optional caches wrap IF/MEM handshakes; named CPU pipeline profiles remain independently selectable. */
 class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolean = false,
-    acknowledgedDataInvalidate: Boolean = false) extends Module {
+    acknowledgedDataInvalidate: Boolean = false, externalQuiesce: Boolean = false) extends Module {
     require(!acknowledgedDataInvalidate || (externalDataInvalidate && p.coherentCaches))
     val io = IO(new Bundle {
+        val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
+        val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
         val instructionMemory = new FiveStageBurstPort(p)
         val dataMemory = new FiveStageBurstPort(p)
         val coherent = if (p.coherentCaches) Some(Vec(2, new soc.bus.tilelink.TLBundle(
@@ -50,7 +52,9 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val dataRequestAccepted = Output(Bool())
         val dataRequestOffered = Output(Bool())
     })
-    val core = Module(new FiveStageCore(p))
+    val core = Module(new FiveStageCore(p, externalQuiesce = externalQuiesce))
+    core.io.quiesceRequest.foreach(_ := io.quiesceRequest.get)
+    io.architecturalStopped.foreach(_ := core.io.architecturalStopped.get)
     io.fenceIFlush.foreach(_ := core.io.fenceIFlush.get)
     io.fenceIFetchDrained.foreach(_ := core.io.fenceIFetchDrained.get)
     core.io.fenceIFlushReady.foreach(_ := io.fenceIFlushReady.get)

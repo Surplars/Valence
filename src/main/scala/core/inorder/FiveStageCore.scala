@@ -10,8 +10,10 @@ import chisel3.util._
   * Never route raw responses/extension through the EX carry logic.
   * An older CMP fault stops younger irreversible memory effects before it reaches architectural WB.
   */
-class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
+class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
+        val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
         val instructionRequest = Decoupled(UInt(p.xlen.W))
         val instructionResponse = Flipped(Decoupled(new FiveStageFetchResponse))
         val dataRequest = Decoupled(new FiveStageDataRequest(p))
@@ -50,6 +52,12 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         val dataRequestAccepted = Output(Bool())
         val dataRequestOffered = Output(Bool())
     })
+    // Optional four-phase architectural stop, NOT cache/Home/DDR or clock-gate acknowledgement.
+    // The requester must hold request through stopped, then deassert to resume.
+    private val quiesceRequest = io.quiesceRequest.getOrElse(false.B)
+    private val quiescePrevious = if (externalQuiesce) RegNext(quiesceRequest, false.B) else false.B
+    private val quiesceBlocking = quiesceRequest || quiescePrevious
+    private val quiesceRelease = quiescePrevious && !quiesceRequest
     private val ifValid = RegInit(false.B)
     private val idValid = RegInit(false.B)
     private val exValid = RegInit(false.B)
@@ -139,7 +147,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         wbPacket.fault || wbPacket.control.mret || wbPacket.control.sret ||
         wbPacket.control.sfence || wbPacket.control.fenceI ||
         csr.io.contextBarrier)
-    val irqCommit = csr.io.irqPending && !rrValid && !exValid && !addrValid && !memValid && !cmpValid && !wbValid
+    val irqCommit = !quiesceBlocking && csr.io.irqPending && !rrValid && !exValid && !addrValid && !memValid && !cmpValid && !wbValid
     val olderFlush = wbFlush || irqCommit
     // IRQ commit requires every backend owner to be empty. An active stage
     // therefore needs only WB recovery as its older cancellation condition.
@@ -195,7 +203,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     // Architectural IRQ resume never needs a speculative branch target.
     // Do not leave its register mux connected to EX recovery and rely on
     // synthesis proving mutually exclusive nested conditions.
-    when(olderFlush) { architecturalNextPc := (if (p.fpgaTimingCuts) retirementRedirectPc else redirectPc) }
+    when(olderFlush) {
+        // The optional restart path needs an exact architectural selection.
+        // Do not use the legacy grouped one-hot helper here: its singleton
+        // final group can elide the selector and OR a stale sequential PC.
+        architecturalNextPc := (if (externalQuiesce)
+            Mux(wbFlush, Mux(wbPacket.fault, csr.io.trapPc,
+                Mux(wbPacket.control.mret, csr.io.returnPc,
+                    Mux(wbPacket.control.sret, csr.io.supervisorReturnPc, wbPacket.nextPc))), csr.io.trapPc)
+            else if (p.fpgaTimingCuts) retirementRedirectPc else redirectPc)
+    }
     wbValid := wbHold
     wbRecovery.foreach { recovery => when(!wbHold) { recovery := false.B } }
     if (p.externalFenceICompletion) {
@@ -792,7 +809,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
     val idCapacity = if (p.fpgaTimingCuts) I1ExecuteDatapath.backendCapacity(
         rrValid, exValid, addrValid, memValid, memComplete, executeLocalReady, backendProgress)
         else issueReady
-    val frontPermission = !activeRecovery && !csr.io.irqPending && !wbFenceI
+    val frontPermission = !quiesceBlocking && !activeRecovery && !csr.io.irqPending && !wbFenceI
     val idFire = idValid && idCapacity && idLocalPermission && frontPermission
     val idRounding = Mux(decodedControl.funct3 === 7.U, csr.io.fpRounding, decodedControl.funct3)
     val idNumericalLegal = I1ExecuteDatapath.numericalLegal(idPacket.fetchError, decodedControl.legal,
@@ -933,14 +950,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         }
     }
     if (p.externalFenceICompletion) fenceIFetchDrained := !offerValid && !pending
-    val responseSpace = pendingKilled || wbFenceI || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
+    val responseSpace = if (externalQuiesce)
+        pendingKilled || wbFenceI || quiesceBlocking || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
+        else pendingKilled || wbFenceI || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
     io.instructionResponse.ready := pending && responseSpace
     io.instructionRequest.valid := offerValid && (if (p.fpgaTimingCuts)
         !pending || (io.instructionResponse.valid && responseSpace) else !pending || io.instructionResponse.fire)
     io.instructionRequest.bits := offerPc
     when(io.instructionResponse.fire) {
         pending := false.B
-        when(!pendingKilled && !flush && !wbFenceI) {
+        when(!pendingKilled && !flush && !wbFenceI && !quiesceBlocking) {
             ifValid := true.B; ifPacket.pc := pendingPc
             ifPacket.instruction := io.instructionResponse.bits.instruction
             ifPacket.fetchError := io.instructionResponse.bits.error
@@ -950,14 +969,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
             ifPacket.predictedNextPc := (if (p.branchPredictorEntries > 0 || p.withC) pendingPrediction else 0.U)
         }
     }
-    when(!offerValid && !csr.io.irqPending && !flush && !wbFenceI) {
+    when(!offerValid && !csr.io.irqPending && !flush && !wbFenceI && !quiesceBlocking) {
         offerValid := true.B; offerKilled := false.B
         if (!p.fpgaTimingCuts) offerPc := desiredPc
     }
     when(io.instructionRequest.fire) {
-        pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush || wbFenceI
+        pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush || wbFenceI || quiesceBlocking
         pendingPrediction := predictedNext
-        offerValid := !csr.io.irqPending && !wbFenceI; offerKilled := false.B
+        offerValid := !csr.io.irqPending && !wbFenceI && !quiesceBlocking; offerKilled := false.B
         if (!p.fpgaTimingCuts) {
             offerPc := Mux(offerKilled, desiredPc, predictedNext)
             when(!offerKilled) { desiredPc := predictedNext }
@@ -985,8 +1004,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         // The real handshake only enables the existing registers: feeding
         // FIRE into every candidate mask reintroduced permission -> READY
         // -> wide payload mux -> hold mux on the PC feedback path.
-        val predict = io.instructionRequest.fire && !offerKilled && !flush && !wbFenceI
-        val resume = !flush && !wbFenceI && ((!offerValid && !csr.io.irqPending) ||
+        val predict = io.instructionRequest.fire && !offerKilled && !flush && !wbFenceI && !quiesceBlocking
+        val resume = !flush && !wbFenceI && !quiesceBlocking && ((!offerValid && !csr.io.irqPending) ||
             (io.instructionRequest.fire && offerKilled))
         val redirect = flush && (!offerValid || io.instructionRequest.fire)
         when(predict || resume || redirect) {
@@ -995,6 +1014,32 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
         }
         when(predict || flush) {
             desiredPc := Mux(flush, redirectPc, predictedNext)
+        }
+    }
+    if (externalQuiesce) {
+        // Cut only unexecuted IF/ID work. Already offered requests remain stable;
+        // accepted fetch replies are consumed as killed, while every backend
+        // owner continues to its original completion/retirement or recovery.
+        when(quiesceBlocking) {
+            ifValid := false.B; idValid := false.B
+            when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
+            when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
+            when(!offerValid || io.instructionRequest.fire) { offerValid := false.B }
+        }
+        val stopped = quiesceRequest && !stages.reduce(_ || _) && !offerValid && !pending &&
+            !wbRecovery.getOrElse(false.B)
+        io.architecturalStopped.get := stopped
+        val stoppedPrevious = RegNext(stopped, false.B)
+        when(quiesceRelease) {
+            assert(stoppedPrevious, "external quiesce request withdrawn before architectural stop")
+            // Include the last retired branch/trap/xRET recovery, not the stale
+            // speculative desired PC. The release edge itself admits no work.
+            offerValid := true.B; offerKilled := false.B
+            offerPc := architecturalNextPc; desiredPc := architecturalNextPc
+        }
+        when(stopped) {
+            assert(!io.retire.valid && !io.trapTaken && !io.dataRequest.valid && !io.instructionRequest.valid,
+                "architectural side effect or request while stopped")
         }
     }
     when(backendFlush) { exValid := false.B; mulDivSent := false.B; operandHeld := false.B }
@@ -1031,7 +1076,9 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig()) extends Module {
                 "flattened EX capacity differs from exact owner transfer")
             assert(ifFire === (ifValid && (!idValid || idFire) && frontPermission),
                 "lookahead IF capacity differs from exact owner transfer")
-            assert(io.instructionResponse.ready === (pending && (pendingKilled || wbFenceI || !ifValid || ifFire)),
+            assert(io.instructionResponse.ready === (pending && (if (externalQuiesce)
+                pendingKilled || wbFenceI || quiesceBlocking || !ifValid || ifFire
+                else pendingKilled || wbFenceI || !ifValid || ifFire)),
                 "lookahead fetch reply capacity mismatch")
             assert(io.instructionRequest.valid === (offerValid && (!pending || io.instructionResponse.fire)),
                 "lookahead fetch request slot mismatch")
