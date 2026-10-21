@@ -13,13 +13,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag", default="focused")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--default-core", action="store_true")
     args = parser.parse_args()
     if not args.tag.replace("-", "").replace("_", "").isalnum():
         parser.error("tag must contain only letters, digits, hyphens, or underscores")
-    name = "i1-external-quiesce-" + args.tag
+    name = ("i1-default-core-trap-" if args.default_core else "i1-external-quiesce-") + args.tag
+    mode_args = ("--default-core",) if args.default_core else ()
     if args.dry_run:
         print(json.dumps({"name": name, "top": "I1ExternalQuiesceHarness", "clock": "single",
-                          "scope": "real fpga8 CPU architectural stop only", "negative": "--wrong-retire"}))
+                          "scope": "real fpga8 CPU default trap/IRQ" if args.default_core else "real fpga8 CPU architectural stop only",
+                          "negative": "--wrong-retire"}))
         return
     output = common.BUILD / name
     output.mkdir(parents=True, exist_ok=True)
@@ -32,16 +35,17 @@ def main():
     def hashes():
         return {str(path.relative_to(common.ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in paths}
-    report = {"status": "RUNNING", "source_sha256": hashes(),
+    report = {"status": "RUNNING", "source_sha256": hashes(), "default_core": args.default_core,
               "scope": "CPU architectural stop/resume only; no cache/fabric drain, CDC, PLL or physical timing claim"}
     try:
         gsim, cxx = common.setup(False)
         common.test(gsim, cxx, name, "inorder.I1ExternalQuiesceMain", "I1ExternalQuiesceHarness",
-                    "i1_external_quiesce.cpp", defines={}, timeout=180)
+                    "i1_external_quiesce.cpp", parameters=mode_args, runtime_args=mode_args, defines={}, timeout=180)
         log = (output / "test.log").read_text()
-        if "I1_EXTERNAL_QUIESCE_PASS" not in log:
+        marker = "I1_DEFAULT_CORE_TRAP_PASS" if args.default_core else "I1_EXTERNAL_QUIESCE_PASS"
+        if marker not in log:
             raise RuntimeError("positive test omitted completion marker")
-        result = subprocess.run([output / "run", "--wrong-retire"], capture_output=True, text=True,
+        result = subprocess.run([output / "run", *mode_args, "--wrong-retire"], capture_output=True, text=True,
                                 timeout=30, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
         negative = result.stdout + result.stderr
         (output / "wrong-retire.log").write_text(negative)

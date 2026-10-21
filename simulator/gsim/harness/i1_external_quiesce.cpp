@@ -9,8 +9,9 @@
 #include <string>
 
 // Independent raw ISA words and explicit architectural ledger. No DUT control/decode constants.
-static bool trace = false;
+static bool trace = false, defaultCore = false;
 constexpr uint64_t BASE = 0x80000000ULL, DATA = BASE + 0x2000, HANDLER = BASE + 0x100;
+constexpr uint64_t S_ENTRY = BASE + 0x80, S_HANDLER = BASE + 0x180;
 static void check(bool value, const std::string &why) { if (!value) throw std::runtime_error(why); }
 static uint32_t ri(unsigned op, unsigned rd, unsigned f, unsigned rs, int imm) {
     return (uint32_t(imm) & 4095) << 20 | rs << 15 | f << 12 | rd << 7 | op;
@@ -28,7 +29,7 @@ struct Program {
     std::map<uint64_t, uint32_t> code;
     std::deque<Entry> expected;
     uint64_t here = BASE, tail = 0;
-    bool irq = false;
+    bool irq = false, delegated = false;
     void emit(uint32_t ins, unsigned rd = 0, uint64_t value = 0) {
         code[here] = ins;
         expected.push_back({here, here + 4, value, 0, 0, ins, rd, false});
@@ -73,6 +74,40 @@ static Program interruptProgram() {
     p.finish(); p.code[HANDLER] = 0x30200073;
     return p;
 }
+// Delegate a supervisor ECALL, then raise a machine interrupt before any S handler retirement.
+// The machine trap's MEPC must be S_HANDLER, not S_HANDLER OR the ECALL's stale sequential PC.
+static Program delegatedExceptionInterrupt() {
+    Program p; p.irq = true; p.delegated = true;
+    p.emit(ri(0x13, 7, 0, 0, 8), 7, 8);
+    p.emit(ri(0x73, 0, 1, 7, 0x304));             // mie.MSIE
+    p.emit(ri(0x13, 7, 0, 0, 512), 7, 512);
+    p.emit(ri(0x73, 0, 1, 7, 0x302));             // medeleg[9]
+    uint64_t pc = p.here;
+    p.emit(0x00000597, 11, pc);                   // auipc x11,0
+    p.emit(ri(0x13, 11, 0, 11, S_HANDLER - pc), 11, S_HANDLER);
+    p.emit(ri(0x73, 0, 1, 11, 0x105));            // stvec
+    pc = p.here;
+    p.emit(0x00000617, 12, pc);                   // auipc x12,0
+    p.emit(ri(0x13, 12, 0, 12, S_ENTRY - pc), 12, S_ENTRY);
+    p.emit(ri(0x73, 0, 1, 12, 0x341));            // mepc
+    p.emit(ri(0x13, 7, 0, 0, 1), 7, 1);
+    p.emit(ri(0x13, 7, 1, 7, 11), 7, 2048);
+    p.emit(ri(0x73, 0, 1, 7, 0x300));             // mstatus.MPP=S
+    p.emit(0x30200073); p.expected.back().next = S_ENTRY;
+    p.here = S_ENTRY;
+    p.emit(ri(0x13, 1, 0, 0, 17), 1, 17);
+    const uint64_t ecall = p.here;
+    p.emit(0x00000073); p.expected.back().trap = true; p.expected.back().cause = 9;
+    const uint64_t resume = p.here;
+    p.here = S_HANDLER;
+    p.emit(ri(0x73, 10, 2, 0, 0x141), 10, ecall); // sepc
+    p.emit(ri(0x13, 10, 0, 10, 4), 10, resume);
+    p.emit(ri(0x73, 0, 1, 10, 0x141));
+    p.emit(0x10200073); p.expected.back().next = resume;
+    p.here = resume; p.finish();
+    p.code[HANDLER] = 0x30200073;
+    return p;
+}
 struct Pending { unsigned due; uint64_t data; };
 struct MemoryOffer {
     uint64_t address, data;
@@ -82,15 +117,15 @@ struct MemoryOffer {
 };
 struct Coverage {
     unsigned cases = 0, stopped = 0, restarts = 0, heldOffer = 0, pendingFetch = 0, pendingData = 0;
-    unsigned mulDiv = 0, fence = 0, branch = 0, trap = 0, mret = 0, irq = 0, cycles = 0;
+    unsigned mulDiv = 0, fence = 0, branch = 0, trap = 0, mret = 0, sret = 0, irq = 0, cycles = 0;
     void add(const Coverage &b) {
         cases += b.cases; stopped += b.stopped; restarts += b.restarts; heldOffer += b.heldOffer; pendingFetch += b.pendingFetch;
         pendingData += b.pendingData; mulDiv += b.mulDiv; fence += b.fence; branch += b.branch;
-        trap += b.trap; mret += b.mret; irq += b.irq; cycles += b.cycles;
+        trap += b.trap; mret += b.mret; sret += b.sret; irq += b.irq; cycles += b.cycles;
     }
 };
 static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopCount = 1) {
-    std::cout << "CASE " << (p.irq ? "pending-irq" : "arithmetic") << " stop=" << stopAt << " repeats=" << stopCount << '\n';
+    std::cout << "CASE " << (p.delegated ? "delegated-exception-machine-irq" : p.irq ? "pending-irq" : "arithmetic") << " stop=" << stopAt << " repeats=" << stopCount << '\n';
     SI1ExternalQuiesceHarness d;
     d.set_reset(1); d.set_io$$quiesceRequest(0); d.set_io$$softwareIrq(0);
     d.set_io$$instructionRequest$$ready(0); d.set_io$$instructionResponse$$valid(0);
@@ -118,7 +153,10 @@ static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopC
             released = false; afterResume = false; stoppedCycles = 0; ++requestNumber;
         }
         // IRQ case deliberately requests stop while a real long-latency backend owner exists.
-        if (p.irq && !requested && d.get_io$$stallMulDiv()) { requested = true; ++requestNumber; }
+        if (p.irq && d.get_io$$stallMulDiv()) {
+            if (defaultCore) irqAsserted = true;
+            else if (!requested) { requested = true; ++requestNumber; }
+        }
         if (stoppedCycles >= 6 && !released) { released = true; ++cov.restarts; }
         const bool halt = requested && !released;
         const bool fv = fetch && fetch->due <= cycle, dv = data && data->due <= cycle;
@@ -144,6 +182,10 @@ static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopC
             << d.get_io$$retire$$bits$$pc() << ":" << d.get_io$$retire$$bits$$nextPc()
             << " trap=" << unsigned(d.get_io$$trapTaken()) << ":" << d.get_io$$trapPc() << ":" << d.get_io$$trapCause() << std::dec << '\n';
         require(d.get_io$$instructions() == successful, "independent successful-retirement count");
+        if (defaultCore) {
+            require(!halt && !d.get_io$$architecturalStopped(), "default core exposed a stop operation");
+            if (p.irq && irqAsserted && !irqServiced && d.get_io$$stallMulDiv()) ++cov.mulDiv;
+        }
         if (halt) {
             cov.pendingFetch += bool(fetch); cov.pendingData += bool(data);
             cov.mulDiv += bool(d.get_io$$stallMulDiv()); cov.fence += bool(d.get_io$$fenceValid());
@@ -166,20 +208,22 @@ static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopC
         }
         if (d.get_io$$trapTaken()) {
             if (d.get_io$$trapCause() >> 63) {
-                require(p.irq && irqAsserted && !halt && released && !irqServiced,
+                require(p.irq && irqAsserted && !halt && (defaultCore || released) && !irqServiced,
                     "IRQ committed during stop or without pending interrupt");
-                require(!p.expected.empty(), "interrupt arrived after terminal program");
+                const uint64_t resume = p.expected.empty() ? p.tail : p.expected.front().pc;
                 require(d.get_io$$trapCause() == (uint64_t(1) << 63 | 3) &&
-                    d.get_io$$trapPc() == p.expected.front().pc, "IRQ precise architectural resume PC/cause");
-                const uint64_t resume = p.expected.front().pc;
+                    d.get_io$$trapPc() == resume, "IRQ precise architectural resume PC/cause expected=" +
+                    std::to_string(resume) + " actual=" + std::to_string(d.get_io$$trapPc()));
+                if (p.delegated) require(resume == S_HANDLER, "machine IRQ did not precede supervisor handler retirement");
                 p.expected.push_front({HANDLER, resume, 0, 0, 0, 0x30200073, 0, false});
                 irqServiced = true; ++irqCount; ++cov.irq;
             } else {
                 require(!p.expected.empty() && p.expected.front().trap && d.get_io$$retire$$valid(),
                     "unexpected or unowned synchronous trap");
-                require(d.get_io$$trapPc() == p.expected.front().pc && d.get_io$$trapCause() == 11,
+                require(d.get_io$$trapPc() == p.expected.front().pc && d.get_io$$trapCause() == p.expected.front().cause,
                     "independent synchronous trap PC/cause");
-                if (halt) ++cov.trap;
+                if (p.delegated) irqAsserted = true;
+                if (halt || defaultCore) ++cov.trap;
             }
         }
         if (d.get_io$$retire$$valid()) {
@@ -202,7 +246,8 @@ static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopC
                 ++successful;
             }
             if (e.ins == 0x0000100f) { require(fenceWait >= 13, "missing delayed FENCE.I hold"); ++fenceRetired; }
-            if (halt && e.ins == 0x30200073) ++cov.mret;
+            if ((halt || defaultCore) && e.ins == 0x30200073) ++cov.mret;
+            if (defaultCore && e.ins == 0x10200073) ++cov.sret;
             if (!p.expected.empty()) p.expected.pop_front();
             ++retired;
             if (released) afterResume = true;
@@ -247,20 +292,40 @@ static Coverage run(Program p, int stopAt, bool negative = false, unsigned stopC
             data = Pending{cycle + 17, old}; ++accepted;
         }
         const bool programDone = p.expected.empty();
-        if (programDone && (stopAt < 0 && !p.irq || requested && released && afterResume && requestNumber == stopCount)) {
+        if (programDone && ((stopAt < 0 && !p.irq) || (defaultCore && p.irq && irqServiced) ||
+            (requested && released && afterResume && requestNumber == stopCount))) {
             require(p.irq ? irqCount == 1 : accepted == 3 && replied == 3 && memory == 70 && fenceRetired == 1,
                 "final memory/IRQ/FENCE exactly-once totals");
             finished = true; break;
         }
     }
     require(finished, "finite retirement/drain/resume sequence timed out");
-    if (stopAt >= 0 || p.irq) require(cov.stopped >= 6 * stopCount && cov.restarts == stopCount && released && afterResume,
+    if (!defaultCore && (stopAt >= 0 || p.irq)) require(cov.stopped >= 6 * stopCount && cov.restarts == stopCount && released && afterResume,
         "four-phase request/stop/hold/release/resumed-retirement was not exercised");
     return cov;
 }
 int main(int argc, char **argv) try {
     std::cout << std::unitbuf;
-    for (int i = 1; i < argc; ++i) if (std::string(argv[i]) == "--trace") trace = true;
+    bool negative = false;
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--trace") trace = true;
+        if (arg == "--default-core") defaultCore = true;
+        if (arg == "--wrong-retire") negative = true;
+    }
+    if (defaultCore) {
+        Coverage total; total.add(run(arithmetic(), -1, negative)); total.add(run(interruptProgram(), -1));
+        check(total.stopped == 0 && total.restarts == 0 && total.irq == 1 && total.mulDiv && total.trap && total.mret >= 2,
+            "default core IRQ/MDU/trap/MRET coverage missing");
+        const auto nested = run(delegatedExceptionInterrupt(), -1);
+        check(nested.irq == 1 && nested.trap == 1 && nested.mret == 2 && nested.sret == 1,
+            "delegated S trap/machine IRQ/MRET/SRET coverage missing");
+        total.add(nested);
+        std::cout << "I1_DEFAULT_CORE_TRAP_PASS cases=" << total.cases << " irq=" << total.irq
+            << " irq_pending_divide=" << total.mulDiv << " exceptions=" << total.trap << " mret=" << total.mret
+            << " sret=" << total.sret << '\n';
+        return 0;
+    }
     if (argc >= 2 && std::string(argv[1]).starts_with("--stop=")) {
         run(arithmetic(), std::stoi(std::string(argv[1]).substr(7))); return 0;
     }
@@ -268,7 +333,6 @@ int main(int argc, char **argv) try {
         auto repeated = run(arithmetic(), 0, false, 4);
         std::cout << "I1_REPEATED_QUIESCE_PASS restarts=" << repeated.restarts << '\n'; return 0;
     }
-    const bool negative = argc == 2 && std::string(argv[1]) == "--wrong-retire";
     const auto baseline = run(arithmetic(), -1, negative);
     Coverage total; total.add(baseline);
     // Every pre-completion edge of the unhalted trace is a separate deterministic stop experiment.

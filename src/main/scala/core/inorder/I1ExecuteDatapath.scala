@@ -31,7 +31,12 @@ object I1ExecuteDatapath {
         require(masks.size == values.size && masks.nonEmpty)
         // Three source pairs fit one six-input LUT payload group. Keep the
         // near/far reduction explicit instead of a six-way priority mux.
-        masks.zip(values).grouped(3).map(group => Mux1H(group)).reduce(_ | _)
+        masks.zip(values).grouped(3).map { group =>
+            // Mux1H on a singleton elides its selector. Keep the last group's
+            // mask when the arity is 1 mod 3, including the all-zero case.
+            if (group.size == 1) Mux(group.head._1, group.head._2, 0.U)
+            else Mux1H(group)
+        }.reduce(_ | _)
     }
 
     // Merge PC/immediate qualification BEFORE the one-hot payload reduction,
