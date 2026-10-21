@@ -19,12 +19,14 @@ case class CommonCpuTilePortParams(
     homeWritebackEntries: Int = 2,
     scalarOwnerBits: Int = 4,
     maintenanceEpochBits: Int = 8,
-    runtimeMaintenance: Boolean = false
+    runtimeMaintenance: Boolean = false,
+    runtimeCancellation: Boolean = false
 ) {
     require(coherent.addrWidth == 64 && coherent.dataWidth == 64 && coherent.sourceBits >= 3)
     require(homeAcquireEntries >= 2 && homeWritebackEntries >= 2)
     require((BigInt(1) << coherent.sinkBits) >= homeAcquireEntries)
     require(scalarOwnerBits >= 2 && maintenanceEpochBits >= 2)
+    require(!runtimeCancellation || runtimeMaintenance)
     val coherentClients = 2
     val scalarPorts = 2
     val lineBytes = 64
@@ -80,6 +82,14 @@ class CommonTileMaintenanceStatus(p: CommonCpuTilePortParams) extends Bundle {
     val holdUntilResume = if (p.runtimeMaintenance) Some(Bool()) else None
 }
 
+/** Terminal proof for an externally owned runtime epoch. This reports actual
+  * drain and tile release, not a clock-open or clock-manager acknowledgement.
+  */
+class CommonRuntimeCompletion(p: CommonCpuTilePortParams) extends Bundle {
+    val epoch = UInt(p.maintenanceEpochBits.W)
+    val canceled = Bool()
+}
+
 /** CPU-facing side. A selected tile implements this contract; the public fabric
   * is instantiated once, outside the CPU profile switch. CDC is a separate
   * explicit Held-II1 boundary. Bundles do not establish CDC/drain correctness.
@@ -100,4 +110,6 @@ class CommonCpuTilePort(p: CommonCpuTilePortParams) extends Bundle {
     val fabricDrainedEpoch = Flipped(Decoupled(UInt(p.maintenanceEpochBits.W)))
     val maintenanceResume = if (p.runtimeMaintenance)
         Some(Flipped(Decoupled(UInt(p.maintenanceEpochBits.W)))) else None
+    val maintenanceResumed = if (p.runtimeCancellation)
+        Some(Decoupled(UInt(p.maintenanceEpochBits.W))) else None
 }

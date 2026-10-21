@@ -118,6 +118,10 @@ class CommonMachineFabric(
         val externalMaintenanceStatus = Output(Valid(new CommonTileMaintenanceStatus(boundary)))
         val runtimeResume = if (boundary.runtimeMaintenance)
             Some(Flipped(Decoupled(UInt(boundary.maintenanceEpochBits.W)))) else None
+        val runtimeCancel = if (boundary.runtimeCancellation)
+            Some(Flipped(Decoupled(UInt(boundary.maintenanceEpochBits.W)))) else None
+        val runtimeComplete = if (boundary.runtimeCancellation)
+            Some(Decoupled(new CommonRuntimeCompletion(boundary))) else None
         // Fabric completion was enqueued; this is not a CPU clock-gate acknowledgement.
         val runtimeHeld = if (boundary.runtimeMaintenance)
             Some(Output(Valid(UInt(boundary.maintenanceEpochBits.W)))) else None
@@ -169,6 +173,9 @@ class CommonMachineFabric(
     val holdUntilResume = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
     val completionConsumed = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
     val resumeQueued = if (boundary.runtimeMaintenance) Some(RegInit(false.B)) else None
+    val cancelRequested = if (boundary.runtimeCancellation) Some(RegInit(false.B)) else None
+    val releaseStarted = if (boundary.runtimeCancellation) Some(RegInit(false.B)) else None
+    val terminalHeld = if (boundary.runtimeCancellation) Some(RegInit(false.B)) else None
     val externalOpen = if (boundary.runtimeMaintenance)
         !pending && !externalOwned.get && !resumeQueued.get && !io.tile.maintenanceStatus.valid
     else true.B
@@ -470,22 +477,69 @@ class CommonMachineFabric(
     if (boundary.runtimeMaintenance) {
         val resume = io.runtimeResume.get
         val held = pending && holdUntilResume.get && completionConsumed.get
-        io.runtimeHeld.get.valid := held
+        io.runtimeHeld.get.valid := held && !releaseStarted.getOrElse(false.B)
         io.runtimeHeld.get.bits := epoch
-        resume.ready := held && resume.bits === epoch && !resumeQueued.get
-        when(resume.valid) {
-            assert(held && resume.bits === epoch && !resumeQueued.get,
-                "runtime resume is early, duplicate, or has a stale epoch")
-        }
-        when(resume.fire) {
-            pending := false.B; drainStarted := false.B
-            completionConsumed.get := false.B; holdUntilResume.get := false.B
-            resumeQueued.get := true.B
-        }
-        io.tile.maintenanceResume.get.valid := resumeQueued.get
-        io.tile.maintenanceResume.get.bits := epoch
-        when(io.tile.maintenanceResume.get.fire) {
-            resumeQueued.get := false.B; externalOwned.get := false.B
+        if (boundary.runtimeCancellation) {
+            val cancel = io.runtimeCancel.get
+            val complete = io.runtimeComplete.get
+            val resumed = io.tile.maintenanceResumed.get
+            // Cancellation never revokes an accepted traffic owner. It can be
+            // remembered before tile status, even while an older ordinary
+            // FENCE drains, but release still waits for this runtime epoch's
+            // actual fabric completion to be consumed.
+            cancel.ready := externalOwned.get && cancel.bits === externalEpoch.get &&
+                !cancelRequested.get && !releaseStarted.get
+            when(cancel.fire) { cancelRequested.get := true.B }
+            val releasable = held && externalOwned.get && epoch === externalEpoch.get && !releaseStarted.get
+            // Only a matching accepted cancel arbitrates against resume. A
+            // stale cancel offer must not backpressure a valid normal resume.
+            resume.ready := releasable && resume.bits === externalEpoch.get &&
+                !cancelRequested.get && !cancel.fire
+            when(resume.valid) {
+                assert(releasable && resume.bits === externalEpoch.get,
+                    "runtime resume is early, duplicate, or has a stale epoch")
+            }
+            when(releasable && (cancelRequested.get || cancel.fire || resume.fire)) {
+                releaseStarted.get := true.B
+                resumeQueued.get := true.B
+            }
+            io.tile.maintenanceResume.get.valid := resumeQueued.get
+            io.tile.maintenanceResume.get.bits := externalEpoch.get
+            when(io.tile.maintenanceResume.get.fire) { resumeQueued.get := false.B }
+            // Home stays closed until the tile has consumed resume and sent
+            // its held acknowledgement after real CPU edges with quiesce low.
+            resumed.ready := releaseStarted.get && !resumeQueued.get && !terminalHeld.get &&
+                resumed.bits === externalEpoch.get
+            when(resumed.fire) {
+                pending := false.B; drainStarted := false.B
+                completionConsumed.get := false.B; holdUntilResume.get := false.B
+                terminalHeld.get := true.B
+            }
+            complete.valid := terminalHeld.get
+            complete.bits.epoch := externalEpoch.get
+            complete.bits.canceled := cancelRequested.get
+            when(complete.fire) {
+                terminalHeld.get := false.B
+                externalOwned.get := false.B
+                cancelRequested.get := false.B
+                releaseStarted.get := false.B
+            }
+        } else {
+            resume.ready := held && resume.bits === epoch && !resumeQueued.get
+            when(resume.valid) {
+                assert(held && resume.bits === epoch && !resumeQueued.get,
+                    "runtime resume is early, duplicate, or has a stale epoch")
+            }
+            when(resume.fire) {
+                pending := false.B; drainStarted := false.B
+                completionConsumed.get := false.B; holdUntilResume.get := false.B
+                resumeQueued.get := true.B
+            }
+            io.tile.maintenanceResume.get.valid := resumeQueued.get
+            io.tile.maintenanceResume.get.bits := epoch
+            when(io.tile.maintenanceResume.get.fire) {
+                resumeQueued.get := false.B; externalOwned.get := false.B
+            }
         }
     }
     when(pending && io.allObligationsIdle && !completionHeld && !completionConsumed.getOrElse(false.B)) {

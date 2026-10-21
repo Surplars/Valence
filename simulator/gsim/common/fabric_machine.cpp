@@ -27,6 +27,9 @@ struct Driver {
     bool holdB=false, inject=false, probeActive=false, ePending=false, privateDirty=false;
     bool holdProbe=false, probeClearEnabled=false, autoClearRequested=false, autoClearAccepted=false;
     unsigned postStatusClears=0;
+#ifdef RUNTIME_CANCELLATION
+    unsigned runtimePrepares=0, runtimeCancels=0, runtimeResumes=0, tileResumes=0, tileResumed=0, terminals=0;
+#endif
     unsigned probeBeat=0, probeSource=0, eSink=0;
     uint64_t probeAddress=0;
     static constexpr uint64_t ramBase=0x80200000ULL;
@@ -38,6 +41,11 @@ struct Driver {
         dut.set_io$$runtimeResume$$valid(0); dut.set_io$$runtimeResume$$bits(0);
         dut.set_io$$tile$$maintenanceResume$$ready(0);
         dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(0);
+#endif
+#ifdef RUNTIME_CANCELLATION
+        dut.set_io$$runtimeCancel$$valid(0); dut.set_io$$runtimeCancel$$bits(0);
+        dut.set_io$$runtimeComplete$$ready(0);
+        dut.set_io$$tile$$maintenanceResumed$$valid(0); dut.set_io$$tile$$maintenanceResumed$$bits(0);
 #endif
         dut.set_io$$externalMaintenance$$valid(0); dut.set_io$$externalMaintenance$$bits$$epoch(0);
         dut.set_io$$externalMaintenance$$bits$$invalidateInstructions(0);
@@ -276,6 +284,9 @@ struct Driver {
             do {tick();} while(!dut.get_io$$externalMaintenance$$ready());
             dut.set_io$$externalMaintenance$$valid(0);
             dut.set_io$$tile$$maintenance$$ready(0);
+#ifdef RUNTIME_CANCELLATION
+            ++runtimePrepares;
+#endif
         }
         if(tag==38) {
             dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(1);
@@ -291,6 +302,162 @@ struct Driver {
         do {tick();} while(!dut.get_io$$tile$$maintenanceStatus$$ready());
         dut.set_io$$tile$$maintenanceStatus$$valid(0);
     }
+#ifdef RUNTIME_CANCELLATION
+    void rejectCancel(unsigned tag) {
+        dut.set_io$$runtimeCancel$$bits(tag); dut.set_io$$runtimeCancel$$valid(1);
+        for(unsigned i=0;i<4;++i) { tick(); check(!dut.get_io$$runtimeCancel$$ready(), "invalid cancel was accepted"); }
+        dut.set_io$$runtimeCancel$$valid(0);
+    }
+    void acceptCancel(unsigned tag) {
+        dut.set_io$$runtimeCancel$$bits(tag); dut.set_io$$runtimeCancel$$valid(1);
+        tick(); check(dut.get_io$$runtimeCancel$$ready(), "matching cancel was not accepted");
+        dut.set_io$$runtimeCancel$$valid(0); ++runtimeCancels;
+    }
+    void prepareRuntime(unsigned tag) {
+        dut.set_io$$tile$$maintenance$$ready(1);
+        dut.set_io$$externalMaintenance$$bits$$epoch(tag); dut.set_io$$externalMaintenance$$valid(1);
+        do {tick();} while(!dut.get_io$$externalMaintenance$$ready());
+        dut.set_io$$externalMaintenance$$valid(0); dut.set_io$$tile$$maintenance$$ready(0); ++runtimePrepares;
+        rejectCancel(tag-1);
+        check(!dut.get_io$$tile$$maintenanceResume$$valid() && !dut.get_io$$runtimeComplete$$valid(),
+              "stale cancel altered a new runtime owner");
+    }
+    void submitStatus(unsigned tag, bool hold) {
+        dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(hold);
+        dut.set_io$$tile$$maintenanceStatus$$bits$$epoch(tag); dut.set_io$$tile$$maintenanceStatus$$valid(1);
+        do {tick();} while(!dut.get_io$$tile$$maintenanceStatus$$ready());
+        dut.set_io$$tile$$maintenanceStatus$$valid(0);
+    }
+    void consumeDrain(unsigned tag) {
+        do {tick();} while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
+        check(dut.get_io$$tile$$fabricDrainedEpoch$$bits()==tag, "runtime drain epoch mismatch");
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); tick();
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(0);
+    }
+    void finishRuntimeRelease(unsigned tag, bool canceled, bool parkedAcquire=false) {
+        do {tick();} while(!dut.get_io$$tile$$maintenanceResume$$valid());
+        for(unsigned i=0;i<10;++i) {
+            tick();
+            check(dut.get_io$$tile$$maintenanceResume$$valid() &&
+                  dut.get_io$$tile$$maintenanceResume$$bits()==tag, "held tile resume changed");
+            check(dut.get_io$$maintenancePending() && !dut.get_io$$runtimeHeld$$valid() &&
+                  !dut.get_io$$runtimeComplete$$valid(), "release queue opened Home or fabricated terminal");
+            if(parkedAcquire) check(!dut.get_io$$tile$$coherent_1$$a$$ready(), "Home opened before tile resumed");
+        }
+        rejectCancel(tag); rejectCancel(tag-1);
+        if(runtimeNegative=="--duplicate-resume") {
+            dut.set_io$$runtimeResume$$bits(tag); dut.set_io$$runtimeResume$$valid(1); tick();
+            throw std::runtime_error("duplicate resume assertion did not fire");
+        }
+        dut.set_io$$tile$$maintenanceResume$$ready(1); tick();
+        check(dut.get_io$$tile$$maintenanceResume$$valid(), "tile resume handshake disappeared"); ++tileResumes;
+        dut.set_io$$tile$$maintenanceResume$$ready(0);
+        for(unsigned i=0;i<8;++i) {
+            tick(); check(dut.get_io$$maintenancePending() && !dut.get_io$$runtimeComplete$$valid() &&
+                          !dut.get_io$$tile$$maintenanceResume$$valid(), "resume dequeue released Home or replayed");
+            if(parkedAcquire) check(!dut.get_io$$tile$$coherent_1$$a$$ready(), "Home opened before resumed ACK");
+        }
+        // A delayed or stale acknowledgement cannot release the external owner.
+        dut.set_io$$tile$$maintenanceResumed$$bits(tag-1); dut.set_io$$tile$$maintenanceResumed$$valid(1);
+        tick(); check(!dut.get_io$$tile$$maintenanceResumed$$ready() && !dut.get_io$$runtimeComplete$$valid(),
+                      "stale resumed ACK released runtime owner");
+        dut.set_io$$tile$$maintenanceResumed$$bits(tag); tick();
+        check(dut.get_io$$tile$$maintenanceResumed$$ready(), "matching resumed ACK was not accepted"); ++tileResumed;
+        dut.set_io$$tile$$maintenanceResumed$$valid(0);
+        if(parkedAcquire) {
+            do {tick();} while(!dut.get_io$$tile$$coherent_1$$a$$ready());
+            dut.set_io$$tile$$coherent_1$$a$$valid(0);
+            while(grants!=3 || ePending) tick();
+        }
+        do {tick();} while(!dut.get_io$$runtimeComplete$$valid());
+        // Even after CPU release, a new external prepare must wait for terminal
+        // consumption. Ordinary FENCE status, unlike prepare, may still drain.
+        dut.set_io$$tile$$maintenance$$ready(1);
+        dut.set_io$$externalMaintenance$$bits$$epoch(tag+1); dut.set_io$$externalMaintenance$$valid(1);
+        for(unsigned i=0;i<12;++i) {
+            tick();
+            check(dut.get_io$$runtimeComplete$$valid() && dut.get_io$$runtimeComplete$$bits$$epoch()==tag &&
+                  bool(dut.get_io$$runtimeComplete$$bits$$canceled())==canceled, "terminal changed under backpressure");
+            check(!dut.get_io$$externalMaintenance$$ready() && !dut.get_io$$tile$$maintenance$$valid(),
+                  "new prepare crossed unconsumed terminal");
+            check(!dut.get_io$$maintenancePending() && !dut.get_io$$runtimeHeld$$valid(),
+                  "resumed epoch still held Home");
+        }
+        dut.set_io$$externalMaintenance$$valid(0); dut.set_io$$tile$$maintenance$$ready(0);
+        if(tag==50) {
+            submitStatus(91, false); consumeDrain(91); idle(3);
+            check(dut.get_io$$runtimeComplete$$valid() && dut.get_io$$runtimeComplete$$bits$$epoch()==tag &&
+                  bool(dut.get_io$$runtimeComplete$$bits$$canceled())==canceled,
+                  "ordinary FENCE corrupted held runtime terminal");
+        }
+        rejectCancel(tag);
+        dut.set_io$$runtimeComplete$$ready(1); tick();
+        check(dut.get_io$$runtimeComplete$$valid(), "terminal handshake disappeared"); ++terminals;
+        dut.set_io$$runtimeComplete$$ready(0); idle(3);
+        check(!dut.get_io$$runtimeComplete$$valid() && !dut.get_io$$tile$$maintenanceResume$$valid(),
+              "runtime terminal or tile resume replayed");
+        rejectCancel(tag);
+        dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(0);
+        // Real scalar traffic continues with its owner, response and data intact.
+        access(0,ramBase+0x7000,true,0xabc00000ULL+tag); expect(1,ramBase+0x7000,0xabc00000ULL+tag);
+    }
+    void cancellationCases() {
+        rejectCancel(50); // idle: no matching external owner yet.
+        prepareRuntime(50); acceptCancel(50); rejectCancel(50);
+        submitStatus(50, false); consumeDrain(50); idle(6);
+        check(!dut.get_io$$tile$$maintenanceResume$$valid() && !dut.get_io$$runtimeComplete$$valid(),
+              "early cancel released an older ordinary FENCE instead of runtime owner");
+        submitStatus(50, true); consumeDrain(50); finishRuntimeRelease(50, true);
+
+        // A real accepted DMA write and its final AXI B response are retained.
+        prepareRuntime(51);
+        access(0,0x10001000,true,ramBase+0x4000); access(0,0x10001008,true,ramBase+0x8000);
+        access(0,0x10001010,true,64); holdB=true; access(0,0x10001018,true,1);
+        submitStatus(51, true);
+        while(writeReplies.empty()) tick();
+        acceptCancel(51); rejectCancel(51);
+        for(unsigned i=0;i<40;++i) {
+            tick(); check(!dut.get_io$$tile$$fabricDrainedEpoch$$valid() &&
+                          !dut.get_io$$tile$$maintenanceResume$$valid() && !dut.get_io$$runtimeComplete$$valid(),
+                          "cancel fabricated success while AXI B owner remained stalled");
+        }
+        check(axiWrites>axiB && !writeReplies.empty(), "cancel erased the real stalled DDR owner");
+        holdB=false; consumeDrain(51); finishRuntimeRelease(51, true);
+        for(unsigned i=0;i<8;++i) expect(i&1,ramBase+0x8000+i*8,0x1234567800000000ULL+i);
+
+        // Cancel on the same edge as the real fabric completion handshake;
+        // prior completionConsumed is still false, so release cannot go early.
+        prepareRuntime(52); submitStatus(52, true);
+        do {tick();} while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); acceptCancel(52);
+        check(!dut.get_io$$tile$$maintenanceResume$$valid() && !dut.get_io$$runtimeComplete$$valid(),
+              "same-edge cancel bypassed real drain consumption");
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); finishRuntimeRelease(52, true);
+
+        prepareRuntime(53); submitStatus(53, true); consumeDrain(53); idle(3);
+        dut.set_io$$runtimeResume$$bits(53); dut.set_io$$runtimeResume$$valid(1);
+        acceptCancel(53);
+        check(!dut.get_io$$runtimeResume$$ready(), "simultaneous cancel did not win over normal resume");
+        dut.set_io$$runtimeResume$$valid(0); finishRuntimeRelease(53, true);
+
+        prepareRuntime(54); submitStatus(54, true); consumeDrain(54); idle(3);
+        dut.set_io$$runtimeCancel$$bits(53); dut.set_io$$runtimeCancel$$valid(1);
+        dut.set_io$$runtimeResume$$bits(54); dut.set_io$$runtimeResume$$valid(1); tick();
+        check(!dut.get_io$$runtimeCancel$$ready() && dut.get_io$$runtimeResume$$ready(),
+              "wrong cancel blocked valid normal resume"); ++runtimeResumes;
+        dut.set_io$$runtimeCancel$$valid(0); dut.set_io$$runtimeResume$$valid(0); finishRuntimeRelease(54, false);
+
+        prepareRuntime(55); submitStatus(55, true); consumeDrain(55); idle(8);
+        check(dut.get_io$$runtimeHeld$$valid() && dut.get_io$$runtimeHeld$$bits()==55, "held cancel fixture not held");
+        acceptCancel(55); finishRuntimeRelease(55, true);
+        check(runtimePrepares==7 && runtimeCancels==5 && runtimeResumes==2 && tileResumes==7 &&
+              tileResumed==7 && terminals==7, "runtime cancellation exact-count ledger mismatch");
+        std::cout<<"RUNTIME_CANCELLATION_PASS prepares="<<runtimePrepares<<" cancels="<<runtimeCancels
+                 <<" normal_resumes="<<runtimeResumes<<" tile_resumes="<<tileResumes<<" resumed_acks="<<tileResumed
+                 <<" terminals="<<terminals<<" older_fence=1 equal_numeric_epoch=1 actual_ddr_stall=1 simultaneous=1 terminal_backpressure=1"
+                 <<" terminal_fence=1 stale_duplicate_reject=1 resumed_traffic=1\n";
+    }
+#endif
     void run() {
         program(0,0x11223344); program(1,0x55667788); program(32766,0xdecafbad); program(32767,0x89abcdef);
         fetch(0x80000000,0x5566778811223344ULL,15); fetch(0x8001fff8,0x89abcdefdecafbadULL,9);
@@ -382,6 +549,10 @@ struct Driver {
         if(runtimeNegative=="--wrong-resume") throw std::runtime_error("wrong resume assertion did not fire");
         check(dut.get_io$$runtimeResume$$ready(), "matching runtime resume was not accepted");
         dut.set_io$$runtimeResume$$valid(0);
+#ifdef RUNTIME_CANCELLATION
+        ++runtimeResumes;
+        finishRuntimeRelease(38, false, true);
+#else
         do {tick();} while(!dut.get_io$$tile$$coherent_1$$a$$ready());
         dut.set_io$$tile$$coherent_1$$a$$valid(0);
         while(grants!=3 || ePending) tick();
@@ -400,6 +571,7 @@ struct Driver {
         dut.set_io$$tile$$maintenanceResume$$ready(1); tick();
         dut.set_io$$tile$$maintenanceResume$$ready(0); idle(2);
         check(!dut.get_io$$tile$$maintenanceResume$$valid(), "tile resume replayed");
+#endif
         dut.set_io$$tile$$maintenanceStatus$$bits$$holdUntilResume(0);
 #endif
         for(unsigned i=0;i<8;++i) expect(i&1,ramBase+0x6000+i*8,dirtyBase+i);
@@ -412,6 +584,9 @@ struct Driver {
         check(!dut.get_io$$maintenancePending() && !dut.get_io$$runtimeHeld$$valid(),
               "ordinary FENCE inherited runtime hold");
         std::cout<<"RUNTIME_EPOCH_HOLD_PASS held=1 acquire_blocked=1 explicit_resume=1 fence_after=1\n";
+#endif
+#ifdef RUNTIME_CANCELLATION
+        cancellationCases();
 #endif
         idle(8); check(dut.get_io$$allObligationsIdle(),"fabric retained an accepted obligation");
         check(axiWrites==axiB && reads.empty() && writes.empty() && writeReplies.empty(),"DDR real response ledger mismatch");

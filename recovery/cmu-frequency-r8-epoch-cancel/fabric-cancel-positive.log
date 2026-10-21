@@ -1,0 +1,3 @@
+RUNTIME_EPOCH_HOLD_PASS held=1 acquire_blocked=1 explicit_resume=1 fence_after=1
+RUNTIME_CANCELLATION_PASS prepares=7 cancels=5 normal_resumes=2 tile_resumes=7 resumed_acks=7 terminals=7 older_fence=1 equal_numeric_epoch=1 actual_ddr_stall=1 simultaneous=1 terminal_backpressure=1 terminal_fence=1 stale_duplicate_reject=1 resumed_traffic=1
+COMMON_MACHINE_FABRIC_PASS cycles=2360 scalar=81 rom=11 rom_subword=8 rom_denied=2 axi_reads=62 axi_writes=42 axi_b=42 registers=3 msi=1 probes=2 grants=3 clear=2 epochs=2 dma_words=16 post_status_clear=1

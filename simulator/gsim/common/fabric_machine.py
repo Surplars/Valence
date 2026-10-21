@@ -25,9 +25,11 @@ def main():
     parser.add_argument("--java")
     parser.add_argument("--java-classpath-file", type=Path)
     parser.add_argument("--runtime-maintenance", action="store_true")
+    parser.add_argument("--runtime-cancellation", action="store_true")
     parser.add_argument("--cloud-tools", action="store_true",
                         help="use clean pinned repository GSIM and coordinated Mill emitter")
     args = parser.parse_args()
+    args.runtime_maintenance = args.runtime_maintenance or args.runtime_cancellation
     out = args.out.resolve()
     require(not out.exists(), "fresh output directory required")
     out.mkdir(parents=True)
@@ -39,7 +41,9 @@ def main():
         (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
     try:
-        main_class = "platform.CommonMachineFabricRuntimeGsimMain" if args.runtime_maintenance else "platform.CommonMachineFabricGsimMain"
+        main_class = ("platform.CommonMachineFabricCancellationGsimMain" if args.runtime_cancellation else
+                      "platform.CommonMachineFabricRuntimeGsimMain" if args.runtime_maintenance else
+                      "platform.CommonMachineFabricGsimMain")
         top = "CommonMachineFabricFlatGsim" if args.cloud_tools else "CommonMachineFabric"
         if args.cloud_tools:
             main_class = "platform.CommonMachineFabricFlatGsimMain"
@@ -76,7 +80,7 @@ def main():
         model = out / "model"
         if args.cloud_tools:
             guard.run("emit", ["mill", "-i", "IonSoC.test.runMain", main_class, model,
-                               str(args.runtime_maintenance).lower()], timeout=180)
+                               str(args.runtime_maintenance).lower(), str(args.runtime_cancellation).lower()], timeout=180)
         else:
             guard.run("emit", [java, "-Xmx2g", "-XX:ActiveProcessorCount=2", "-cp", cp,
                                main_class, model], timeout=180)
@@ -121,12 +125,16 @@ def main():
         (model / "fabric_machine_vec_api.h").write_text("\n".join(facade) + "\n")
         run = model / "run"
         guard.run("compile", [cxx, "-std=c++20", "-O1", "-fsanitize=address,undefined",
-                              "-fno-sanitize-recover=all", *(["-DRUNTIME_MAINTENANCE"] if args.runtime_maintenance else []), "-I" + str(model), *units,
+                              "-fno-sanitize-recover=all", *(["-DRUNTIME_MAINTENANCE"] if args.runtime_maintenance else []),
+                              *(["-DRUNTIME_CANCELLATION"] if args.runtime_cancellation else []),
+                              "-I" + str(model), *units,
                               HERE / "common/fabric_machine.cpp", "-o", run], timeout=600)
         env = {**os.environ, "ASAN_OPTIONS": "detect_leaks=0", "UBSAN_OPTIONS": "halt_on_error=1"}
         positive = guard.run("positive", [run], env=env)
         require("COMMON_MACHINE_FABRIC_PASS " in positive and "epochs=2 dma_words=16 post_status_clear=1" in positive,
                 "shared machine fabric oracle completion missing")
+        if args.runtime_cancellation:
+            require("RUNTIME_CANCELLATION_PASS" in positive, "runtime cancellation oracle missing")
         if args.runtime_maintenance:
             require("RUNTIME_EPOCH_HOLD_PASS" in positive, "runtime epoch hold oracle missing")
             # Normalize assertion abort/exit status, but require the exact DUT

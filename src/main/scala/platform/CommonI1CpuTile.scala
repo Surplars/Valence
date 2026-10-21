@@ -107,6 +107,7 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
     tile.io.fenceIFlushReady.get := request && flushDone && acknowledged
     if (boundary.runtimeMaintenance) {
         val runtimeActive = RegInit(false.B)
+        val releasePending = if (boundary.runtimeCancellation) Some(RegInit(false.B)) else None
         val runtimeEpoch = Reg(UInt(boundary.maintenanceEpochBits.W))
         val runtimeFlushIssued = RegInit(false.B)
         val runtimeFlushDone = RegInit(0.U(2.W))
@@ -116,7 +117,7 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
         val lastEpoch = Reg(UInt(boundary.maintenanceEpochBits.W))
         val lastValid = RegInit(false.B)
         val command = io.bus.maintenance
-        command.ready := !runtimeActive && !request && !active &&
+        command.ready := !runtimeActive && !releasePending.getOrElse(false.B) && !request && !active &&
             !(lastValid && command.bits.epoch === lastEpoch)
         when(command.fire) {
             assert(!command.bits.invalidateInstructions && !command.bits.invalidateTranslations,
@@ -164,12 +165,39 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
             runtimeFlushIssued := false.B; runtimeFlushDone := 0.U
             runtimeOffer := false.B; runtimeSent := false.B; runtimeAcknowledged := false.B
         }
+        if (boundary.runtimeCancellation) {
+            val releaseEdges = RegInit(0.U(2.W))
+            val released = RegInit(false.B)
+            val response = io.bus.maintenanceResumed.get
+            response.valid := releasePending.get && released
+            response.bits := runtimeEpoch
+            when(resume.fire) {
+                releasePending.get := true.B
+                releaseEdges := 0.U
+                released := false.B
+            }
+            // A falling stopped flag is combinational, not CPU progress proof.
+            // Wait two real local edges after the aggregate request falls: the
+            // first executes the core's release bubble, the second follows it.
+            when(releasePending.get && !released) {
+                when(tile.io.quiesceRequest.get) { releaseEdges := 0.U }
+                    .otherwise {
+                        when(releaseEdges === 1.U) { released := true.B }
+                            .otherwise { releaseEdges := releaseEdges + 1.U }
+                    }
+            }
+            when(response.fire) {
+                releasePending.get := false.B
+                releaseEdges := 0.U
+                released := false.B
+            }
+        }
         io.runtimeHeld.get.valid := privateDrained && runtimeAcknowledged
         io.runtimeHeld.get.bits := runtimeEpoch
         when(io.runtimeHeld.get.valid) {
             assert(stopped && !io.retire.valid, "held runtime epoch retired architectural work")
         }
-        io.maintenancePending := request || runtimeActive
+        io.maintenancePending := request || runtimeActive || releasePending.getOrElse(false.B)
     } else {
         io.bus.maintenance.ready := false.B // runtime endpoint absent in default production
         io.maintenancePending := request

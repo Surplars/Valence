@@ -31,6 +31,17 @@ object CommonMachineFabricRuntimeGsimMain extends App {
         programmable = true), Array("--target-dir", args(0)))
 }
 
+/** Runtime cancellation retains the external owner through terminal consumption. */
+object CommonMachineFabricCancellationGsimMain extends App {
+    require(args.length == 1, "explicit fresh output directory required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabric(
+        boundary = CommonCpuTilePortParams(runtimeMaintenance = true, runtimeCancellation = true),
+        features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
+            jtagDownload = true, clockManagement = true),
+        programmable = true), Array("--target-dir", args(0)))
+}
+
 /** Compare the unchanged default narrow-bank contract with complete-beat
   * reads. Permission extent and TL metadata remain the original narrow Get.
   */
@@ -80,9 +91,9 @@ class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
         name -> leaf
     }: _*)
 }
-class CommonMachineFabricFlatGsim(runtime: Boolean) extends Module {
+class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false) extends Module {
     val fabric = Module(new CommonMachineFabric(
-        boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime),
+        boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime, runtimeCancellation = cancellation),
         features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
             jtagDownload = true, clockManagement = true), programmable = true))
     private def leaves(data: Data, prefix: String): Seq[(String, Data)] = data match {
@@ -99,8 +110,8 @@ class CommonMachineFabricFlatGsim(runtime: Boolean) extends Module {
     fields.foreach { case (name, leaf) => io.elements(name) <> leaf }
 }
 object CommonMachineFabricFlatGsimMain extends App {
-    require(args.length == 2, "fresh output directory and runtime flag required")
+    require(args.length == 2 || args.length == 3, "fresh output directory, runtime and optional cancellation flags required")
     require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
-    ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(args(1).toBoolean),
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(args(1).toBoolean, args.length == 3 && args(2).toBoolean),
         Array("--target-dir", args(0)))
 }
