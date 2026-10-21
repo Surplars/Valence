@@ -308,8 +308,11 @@ if {[catch {
  set alias_pin [get_pins -quiet u_soc/rawUartClock]
  if {[llength $alias_pin]==1 && ![llength [get_clocks -quiet -of_objects $alias_pin]]} {
   set alias_nets [get_nets -quiet -segments -of_objects $alias_pin]
-  if {![llength $alias_nets] || [lsort -unique [get_property TYPE $alias_nets]] ne {GROUND}} {error {Unclocked raw-UART input is not the proved constant specialization}}
-  puts {UNUSED_RAW_UART_INPUT_SPECIALIZED_GND_FUNCTIONAL_UART_CLOCK_VERIFIED_20NS}
+  if {![llength $alias_nets]} {
+   puts {UNUSED_RAW_UART_BOUNDARY_PORT_FULLY_DISCONNECTED_FUNCTIONAL_UART_CLOCK_VERIFIED_20NS}
+  } elseif {[lsort -unique [get_property TYPE $alias_nets]] eq {GROUND}} {
+   puts {UNUSED_RAW_UART_INPUT_SPECIALIZED_GND_FUNCTIONAL_UART_CLOCK_VERIFIED_20NS}
+  } else {error {Unclocked raw-UART boundary input retains a nonconstant connected net}}
  }
  source [file join $valence(root) fpga common debug_hub_clock.tcl]
  common_restore_debug_hub_clock zu15eg-existing-user1-debug-hub-tck50ns
@@ -318,6 +321,7 @@ if {[catch {
   board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
  } else {
   source [file join $valence(root) fpga common skew_scope.tcl]
+  source [file join $valence(root) fpga common common_cdc.tcl]
   puts "RESUME_EXISTING_PHYSICAL_STAGE $valence(resume_stage) NO_SYNTH_NO_OPT_REPLAY"
  }
  check_timing -verbose -file post-synth-coverage.rpt

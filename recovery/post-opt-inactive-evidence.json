@@ -1407,5 +1407,6 @@
     ]
   ],
   "tests": "LUT truth-table checks and induction positive/negative controls passed; retained arbitrary input accepted only with complete zero-state proof; live D/nonzero INIT/RAM/observable valid rejected",
-  "physical_implementation": "Same open design now resumes official post_opt; place/route pending"
+  "physical_implementation": "r11 official post_opt/diagnostic implementation pending",
+  "resume_startup": "r9 confirmed disconnected rawUartClock input and all real clock periods; guard now accepts only disconnected or literal GND. r10 exposed missing standalone common helpers; load order corrected and tested. r11 resumes same RAW_OPT, no opt replay."
 }
