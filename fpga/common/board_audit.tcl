@@ -160,23 +160,69 @@ proc common_board::payloads {} {
         foreach h $::common_cdc::inactive_scopes {puts $f [list PROVEN_INACTIVE $h]}
     } finally {close $f}
 }
+proc common_board::cdc_report {text} {
+    # The retained Vivado 2025.2 report uses ID / Severity / Count / Description.
+    # Keep the prior pipe-table column order too, but require a complete summary
+    # header/body boundary. Detail rows are never a summary or counted twice.
+    set state title; set format {}; set seen {}; set totals [dict create Critical 0 Warning 0 Info 0]
+    foreach raw [split $text \n] {
+        set line [string trim $raw]
+        switch -- $state {
+            title {
+                if {$line eq "CDC Report"} {set state header}
+                continue
+            }
+            header {
+                if {$line eq ""} {continue}
+                if {[regexp {^ID\s+Severity\s+Count\s+Description$} $line]} {
+                    set format plain; set state separator; continue
+                }
+                if {[regexp {^\|\s*ID\s*\|\s*Severity\s*\|\s*Description\s*\|\s*Count\s*\|$} $line]} {
+                    set format pipe; set state separator; continue
+                }
+                # A pipe table may have its top border before the header.
+                if {[regexp {^\+[-]+\+[-]+\+[-]+\+[-]+\+$} $line]} {continue}
+            }
+            separator {
+                if {($format eq "plain" && [regexp {^-+\s+-+\s+-+\s+-+$} $line]) ||
+                    ($format eq "pipe" && [regexp {^\+[-]+\+[-]+\+[-]+\+[-]+\+$} $line])} {
+                    set state rows; continue
+                }
+            }
+            rows {
+                if {[dict size $seen] && (($format eq "plain" && $line eq "") ||
+                    ($format eq "pipe" && [regexp {^\+[-]+\+[-]+\+[-]+\+[-]+\+$} $line]))} {
+                    set state details; continue
+                }
+                set matched 0
+                if {$format eq "plain"} {
+                    set matched [regexp {^(CDC-[0-9]+)\s+(Critical|Warning|Info)\s+(0|[1-9][0-9]*)\s+([^|]+)$} $line -> id severity count description]
+                } else {
+                    set matched [regexp {^\|\s*(CDC-[0-9]+)\s*\|\s*(Critical|Warning|Info)\s*\|([^|]+)\|\s*(0|[1-9][0-9]*)\s*\|$} $line -> id severity description count]
+                }
+                if {$matched && [string trim $description] ne "" && ![dict exists $seen $id]} {
+                    dict set seen $id 1; dict incr totals $severity $count; continue
+                }
+            }
+            details {
+                if {$line eq ""} {continue}
+                if {[regexp {^Source Clock:\s+\S.*$} $line]} {return $totals}
+            }
+        }
+        error "COMMON_CDC unsupported report_cdc summary ($state): $line; cannot prove critical count"
+    }
+    error "COMMON_CDC unsupported report_cdc summary (missing/truncated $state); cannot prove critical count"
+}
 proc common_board::cdc {} {
     global valence
     variable critical
+    set critical null
     set scopes [common_cdc::collect]
     common_cdc::audit_timing $scopes $valence(out)
     payloads
     report_cdc -details -file [file join $valence(out) board-cdc.rpt]
     set f [open [file join $valence(out) board-cdc.rpt]]; set text [read $f]; close $f
-    # Accept only the known summary table: rule ID | severity | description | count.
-    # Detail-row counting or absence of the word Critical is not a zero proof.
-    set rows 0; set critical 0
-    foreach line [split $text \n] {
-        if {[regexp {^\s*\|\s*CDC-[0-9]+\s*\|\s*(Critical|Warning|Info)\s*\|[^|]*\|\s*([0-9]+)\s*\|\s*$} $line -> severity count]} {
-            incr rows; if {$severity eq "Critical"} {incr critical $count}
-        }
-    }
-    if {!$rows} {set critical null; error "COMMON_CDC unsupported report_cdc summary; cannot prove critical count"}
+    set critical [dict get [cdc_report $text] Critical]
     if {$critical} {error "COMMON_CDC $critical unreviewed Critical crossings; no implicit reset/data waiver"}
     # Validate exact bus endpoints and budgets, not just total count of MET rows.
     set f [open [file join $valence(out) common-bus-skew.rpt]]; set text [read $f]; close $f
