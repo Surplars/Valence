@@ -1,0 +1,18 @@
+
+****** xsim v2025.2 (64-bit)
+  **** SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
+  **** IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+  **** SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+  **** Start of session at: Wed Oct 21 19:14:48 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/dci/xsim_script.tcl
+# xsim {dci} -autoloadwcfg -runall -onerror quit
+Time resolution is 1 ps
+run -all
+Fatal: DCI released without reset/LOCKED handshake
+Time: 8530 ns  Iteration: 1  Process: /common_dci_startup_tb/Always20_14  Scope: common_dci_startup_tb  File: C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/fpga/common/dci_startup_tb.sv Line: 22
+$finish called at time : 8530 ns
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Oct 21 19:14:50 2026...

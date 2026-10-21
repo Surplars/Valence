@@ -1,0 +1,36 @@
+
+****** xsim v2025.2 (64-bit)
+  **** SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
+  **** IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+  **** SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+  **** Start of session at: Wed Oct 21 19:16:09 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/dci/xsim_script.tcl
+# xsim {dci} -autoloadwcfg -tclbatch {inspect.tcl}
+Time resolution is 1 ps
+source inspect.tcl
+## run all
+Fatal: DCI released without reset/LOCKED handshake
+Time: 8530 ns  Iteration: 1  Process: /common_dci_startup_tb/Always20_14  Scope: common_dci_startup_tb  File: C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/fpga/common/dci_startup_tb.sv Line: 22
+$finish called at time : 8530 ns
+## foreach n {ready cold_reset dut/eos dut/locked dut/reset_dci dut/reset_acknowledged dut/completed dut/phase dut/pending dut/pulse_age dut/startup_release dut/lock_samples dut/ready_release dut/inhibit} {
+##  if {[catch {get_value /common_dci_startup_tb/$n} v]} {puts "STATE $n ERROR=$v"} else {puts "STATE $n=$v"}
+## }
+STATE ready=1
+STATE cold_reset=0
+STATE dut/eos=1
+STATE dut/locked=0
+STATE dut/reset_dci=0
+STATE dut/reset_acknowledged=1
+STATE dut/completed=1
+STATE dut/phase=10
+STATE dut/pending=0
+STATE dut/pulse_age=111
+STATE dut/startup_release=000
+STATE dut/lock_samples=111
+STATE dut/ready_release=000
+STATE dut/inhibit=0
+## quit
+INFO: [Common 17-206] Exiting xsim at Wed Oct 21 19:16:11 2026...
