@@ -385,5 +385,5 @@
     "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\query-console.log": "f5e6e945df9b84a14fcac6df20d30b04becd1bd99777426d90afcf83a7a7e8bd",
     "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-roots.tcllist": "879c3dfbccc1cd15cd07ac5d18681fe113b593d1fa937604de668b88ba74e8cd"
   },
-  "bus_skew_na_followup": "Both active observable 1-bit payload lanes; no inactive proof. Two NA entries also existed in baseline. Max-delay applicability and single-path skew interpretation pending bounded follow-up, not signoff PASS."
+  "bus_skew_na_followup": "Resolved by timing-batch-r2-single-bit-skew.json: active1bit, actual3.333ns maxdelay paths verified, no interbit skew comparison"
 }

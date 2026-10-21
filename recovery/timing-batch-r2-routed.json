@@ -2864,7 +2864,13 @@
     ],
     "na_is_not_a_numeric_pass": true,
     "na_active_payload": true,
-    "na_maxdelay_proof_pending": true
+    "na_maxdelay_proof_pending": false,
+    "na_classification": "Active one-bit payloads; inter-bit skew not applicable, real max-delay bounds verified",
+    "na_worst_maxdelay_slack_ns": [
+      2.86,
+      2.594
+    ],
+    "exact_verification": "timing-batch-r2-single-bit-skew.json"
   },
   "comparison": {
     "baseline_commit": "013396e8fe2b03d92791952514f0e26244f910ff",
@@ -3014,7 +3020,6 @@
     "21 async-reset CDC Critical remain unqualified",
     "DCIRST-1 44 warnings require board-signoff resolution",
     "Raw inter-domain Gray STA retained; inactive proof classification separate from active speedup",
-    "Two bus-skew NA rows also present in baseline; not numeric PASS",
     "No bitstream or hardware verification"
   ],
   "immutable_inputs_unchanged": true,

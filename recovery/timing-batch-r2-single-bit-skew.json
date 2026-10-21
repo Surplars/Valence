@@ -1,0 +1,93 @@
+{
+  "status": "ACTIVE_SINGLE_BIT_PAYLOAD_MAX_DELAY_VERIFIED",
+  "query_exit": {
+    "exit_code": 0,
+    "utc": "2026-10-21T08:03:17.2937300Z"
+  },
+  "routed_dcp_sha256_unchanged": "69aec185f64dea8931db5fde7d8bab51e9dc544ac8832d318cb13b414ba55da5",
+  "na_is_new": false,
+  "baseline_summary_numeric_rows": 84,
+  "baseline_na_rows": 2,
+  "current_summary_numeric_rows": 84,
+  "current_na_rows": 2,
+  "classification": "Single logical payload bit per scope: no distinct bits for a bus-skew comparison. Actual RAM clock-to-capture timing paths exist and retain their 3.333ns max-delay-datapath-only budget with positive slack. NA is not an inactive waiver or missing max-delay path.",
+  "earlier_reporting_correction": "Earlier no-skew-violation wording referred only to 84 numeric rows; the two NA rows existed in baseline too and are now separately verified. No constraints or clocks changed.",
+  "paths": [
+    {
+      "scope": "u_soc/crossing/crossing_1/empty_fifo_4",
+      "payload_bits": "1",
+      "source": "u_soc/crossing/crossing_1/empty_fifo_4/storage_ext/Memory_reg_0_15_0_0/DP/CLK",
+      "destination": "u_soc/crossing/crossing_1/empty_fifo_4/output_0_reg/D",
+      "source_primitive": "RAMD32",
+      "source_clocks": "clk_out1_clk_wiz_common",
+      "capture_clocks": "mmcm_clkout0",
+      "timing_paths": "4",
+      "measurements": [
+        {
+          "requirement": 3.333,
+          "slack": 2.86,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 2.86,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 3.047,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 3.047,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        }
+      ],
+      "minimum_slack_ns": 2.86
+    },
+    {
+      "scope": "u_soc/crossing/crossing_2/empty_fifo_4",
+      "payload_bits": "1",
+      "source": "u_soc/crossing/crossing_2/empty_fifo_4/storage_ext/Memory_reg_0_15_0_0/DP/CLK",
+      "destination": "u_soc/crossing/crossing_2/empty_fifo_4/output_0_reg/D",
+      "source_primitive": "RAMD32",
+      "source_clocks": "clk_out1_clk_wiz_common",
+      "capture_clocks": "mmcm_clkout0",
+      "timing_paths": "4",
+      "measurements": [
+        {
+          "requirement": 3.333,
+          "slack": 2.594,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 2.594,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 2.856,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        },
+        {
+          "requirement": 3.333,
+          "slack": 2.856,
+          "exception": "MaxDelay Path 3.333ns -datapath_only"
+        }
+      ],
+      "minimum_slack_ns": 2.594
+    }
+  ],
+  "critical_warning_count": 0,
+  "hashes": {
+    "recovery\\query-routed-single-bit-skew.tcl": "637816f4b51436bc354089451a3bb29191cb0c6fa07350fd25346e4c7431b2e1",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\single-bit-skew-audit-r1\\exact-paths.tcllist": "19562fb650f53506a10d2e96c77631163c62c7662a6ce1a04f2b703cf4e72658",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\single-bit-skew-audit-r1\\query-console.log": "07b2cac2499ac679e11596ad3df69cdde652f47284aba6f04867f2c703341cb9",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\single-bit-skew-audit-r1\\query-exit.json": "bb6087649275dedd4430a5a7dbac5c29948bc0fdc5043bf32842418cf7e79397",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\single-bit-skew-audit-r1\\crossing_1-max-delay.rpt": "22d4f612a258f569566d91ccd9b307fab0310d5beefde7cccb3c0a7afc7ddeab",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\single-bit-skew-audit-r1\\crossing_2-max-delay.rpt": "0be48c28c3358844637a3eeb6db7848a98de7aee0619724067b2f890cbf7e5e0"
+  },
+  "full_board_signoff": false
+}
