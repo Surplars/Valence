@@ -1,0 +1,129 @@
+{
+  "status": "INACTIVE_REACHABLE_STATE_MODEL_RESIDUAL_CLASSIFICATION_WITH_STAGE_LIMIT",
+  "date_utc": "2026-10-21",
+  "frozen_candidate": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1",
+  "read_scope": "Only requested inactive-lane-evidence.tcllist, bus-skew-scope.json, implementation-vivado.log and current common CDC/zero-state helpers; no Vivado or netlist queries, no RTL or constraint edits",
+  "hashes": {
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1\\inactive-lane-evidence.tcllist": "34e177a9314d7b58758d85a341826b1f2cd69e752229ef9e311d3c381e26f99e",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1\\bus-skew-scope.json": "75a203aaa6933b9697b33363b1012bf7dc02fd9cd4dad9b00aac1c5c3b397cfc",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1\\implementation-vivado.log": "28afd47dcc73b5d684541c2ed159b5a30c0bdde7d9a1bfb6a174d670ddd9c120",
+    "recovery-r1\\fpga\\common\\common_cdc.tcl": "69b2be7719ec83abcf2d636c3ac5321911f7d1a088b6213b77a120c9cb37a82e",
+    "recovery-r1\\fpga\\common\\inactive_zero_state.tcl": "7660ad503d0f56c435535dda2f3f4c6fb4357d2ce1d952a062993e7e06f2fa28"
+  },
+  "profile_sha256": "80e29e6eb99b7e2e65c7b802249dd262ff707cfc8420c9767ab87bb9732d268d",
+  "evidence_phase": "recovery_r1_actual_post_opt_diagnostic",
+  "classification": {
+    "global_worst": "Default STA clock-relation failure on retained state that passed a post-opt no-transition proof. It is a reachable-state/model residual, not measured accepted-transfer throughput or CPU/fabric synchronous Fmax.",
+    "fabric_to_cpu_negative": "Same post-opt no-transition classification for crossing/empty_fifo_4; no inference from absent payload alone.",
+    "timing_status": "Reported routed violations remain present. This review does not clear STA, authorize exceptions, change scope, or establish routed signoff.",
+    "performance_accounting": "Removing, excluding, or retiming these paths must not be counted as RTL throughput improvement. Report genuine live synchronous and accepted-transfer changes separately."
+  },
+  "exact_inactive_scopes": [
+    {
+      "scope": "u_soc/crossing/fifo_8",
+      "functional_ff": 36,
+      "source_valid_before_opt": "LITERAL_ZERO",
+      "source_valid_post_opt": "RETAINED_ARBITRARY",
+      "destination_valid_unconnected": true,
+      "payload_ports": 0,
+      "role": "Reported global-worst inactive crossing",
+      "path": {
+        "requirement_ns": 0.667,
+        "destination": "u_soc/crossing/fifo_8/capturedGraySync_stage0_reg[4]/D",
+        "datapath_ns": 0.253,
+        "source": "u_soc/crossing/fifo_8/capturedGray_reg[4]/C",
+        "metric_provenance": "Parent frozen routed report summary; detailed timing report deliberately not reread in this restricted task",
+        "slack_ns": -2.524
+      }
+    },
+    {
+      "scope": "u_soc/crossing/crossing/empty_fifo_4",
+      "functional_ff": 36,
+      "source_valid_before_opt": "LITERAL_ZERO",
+      "source_valid_post_opt": "RETAINED_ARBITRARY",
+      "destination_valid_unconnected": true,
+      "payload_ports": 1,
+      "role": "Reported fabric-to-CPU negative crossing",
+      "path": {
+        "requirement_ns": 0.667,
+        "destination": "u_soc/crossing/crossing/empty_fifo_4/capturedGraySync_stage0_reg[1]/D",
+        "datapath_ns": 5.063,
+        "source": "u_soc/crossing/crossing/empty_fifo_4/capturedGray_reg[1]/C",
+        "metric_provenance": "Parent supplied exact frozen routed first path; no additional timing query",
+        "slack_ns": -1.486
+      }
+    },
+    {
+      "scope": "u_soc/crossing/crossing/empty_fifo",
+      "functional_ff": 36,
+      "source_valid_before_opt": "ABSENT_ARBITRARY",
+      "source_valid_post_opt": "ABSENT_ARBITRARY",
+      "destination_valid_unconnected": false,
+      "payload_ports": 150,
+      "role": "Detailed per-cell evidence witness; no additional negative path assigned"
+    },
+    {
+      "scope": "u_soc/crossing/crossing/empty_fifo_1",
+      "functional_ff": 36,
+      "source_valid_before_opt": "ABSENT_ARBITRARY",
+      "source_valid_post_opt": "ABSENT_ARBITRARY",
+      "destination_valid_unconnected": true,
+      "payload_ports": 150,
+      "role": "Other logged inactive lane; no negative-path match invented"
+    },
+    {
+      "scope": "u_soc/crossing/crossing/empty_fifo_2",
+      "functional_ff": 36,
+      "source_valid_before_opt": "ABSENT_ARBITRARY",
+      "source_valid_post_opt": "ABSENT_ARBITRARY",
+      "destination_valid_unconnected": true,
+      "payload_ports": 0,
+      "role": "Other logged inactive lane; no negative-path match invented"
+    }
+  ],
+  "proof_contract": {
+    "reset": "Functional FDCE asynchronous clear writes only0; an asserted clear cannot create a one transition. Six sourceRelease/destinationRelease release_0_reg[0..2] FDPE state bits are excluded from the zero-state set and treated arbitrary throughout combinational evaluation, not assumed released or stable.",
+    "observability": "Every connected destination_bits port must be literal0; disconnected or optimized-away bits have no consumer. Every connected destination_valid must evaluate invariant0; absent/unconnected valid is unobservable. Missing source_valid/payload/valid alone never establishes inactivity. DestinationIdle/sourceIdle outputs are not separately certified constant by this helper; they may depend on arbitrary release state.",
+    "unknowns": "All external driver cells, non-local inputs and release outputs evaluate X. LUT INIT truth tables enumerate every row consistent with known inputs; a result is constant only when all feasible rows agree. Combinational recursion is marked X, never assumed0.",
+    "base": "Every non-release functional state cell in each candidate lane is FDCE with INIT exactly 1'b0, and its C pin resolves to one of that lane sourceClock/destinationClock. No unsupported RAM, URAM, other FF primitive, or unsupported combinational primitive may survive.",
+    "D_support": "Local functional FF Q, GND/VCC and LUT1..LUT6 INIT form the supported cone. Unique input drivers and nonfloating nets are mandatory. A successful log certifies all36 functional FF CE/D checks under this induction, including the capturedGray launch and both synchronizer stages.",
+    "state_step": "Under the simultaneous induction hypothesis that all functional state Q=0, evaluate each CE through supported constant/LUT logic. If CE is provably0 the FDCE holds0 for arbitrary D; otherwise D must evaluate provably0. Thus every enabled clock transition preserves0 under arbitrary interleaving of source/destination clock edges.",
+    "transition_rationale": "INIT0 establishes Q0; FDCE hold/load/clear preserveQ0; therefore capturedGray_reg[4] and capturedGraySync_stage0_reg[4] cannot exhibit functional data transitions in the proved model. Likewise empty_fifo_4 capturedGray bit1 remains0. STA nevertheless analyzes generic sequential launch/capture arcs with its0.667ns clock relation and clock insertion/skew terms; reported slack is not inferred from datapath minus requirement alone."
+  },
+  "evidence": {
+    "log_synthesis_fifo8_line": 429,
+    "detailed_cell_witness": "inactive-lane-evidence.tcllist is a dump ONLY of u_soc/crossing/crossing/empty_fifo, not fifo8 or empty_fifo_4. It records 36 functional FDCE INIT0 cells, 6 FDPE release cells INIT1, grounded writeGraySync_stage0 D, direct capturedGray→stage0→stage1 support, disconnected150bit payload and connected destination_valid. The exact per-cell D-driver/LUT INIT witness for fifo8/empty_fifo_4 is not exported in this file; their certificate is the successful helper log.",
+    "bus_skew_scope_entries_total": 82,
+    "log_postopt_fifo8_line": 1023,
+    "log_physopt_completed_line": 1887,
+    "log_first_coverage_line": 453,
+    "inactive_lane_entries_in_bounded_bus_scope": 0,
+    "postopt_inactive_lane_count": 5,
+    "negative_controls": "Log rejects live fifo7 and fifo9 at writeBinary_reg[0] as noninvariant; payload_absent proof still requires their Gray scopes. Thus zero payload is explicitly insufficient and live lanes retain bounds.",
+    "log_opt_completed_line": 816,
+    "constant_stage0_endpoints": 51,
+    "absence_explanation": "common_cdc::collect records successfully inactive lanes and does not emit their gray/payload bounded scopes; it applies no false path or clock group for inactivity. Existing generic STA arcs therefore remain reportable.",
+    "log_postopt_coverage_line": 1047,
+    "functional_state_per_lane": 36
+  },
+  "stage_qualification": {
+    "proved": "Successful synthesized and actual post-opt netlist induction in the frozen run; post-opt source_valid explicitly treated arbitrary for fifo8 and empty_fifo_4.",
+    "helper_linkage": "Current helper semantics were read and hashed. This restricted evidence does not independently link those current file hashes to immutable build-input hashes; exact historical invocation is evidenced by matching successful log markers.",
+    "carry_forward": "Native physical optimization is expected to preserve logical behavior, supporting a model-residual interpretation; that expectation is not a new formal proof of the routed netlist.",
+    "not_independently_proved": "No routed induction/census rerun in permitted evidence. Later native phys_opt_design may move or replicate logic; log specifically reports fifo8 capturedGray/stage0 physical optimization."
+  },
+  "limits": [
+    "Assumes FPGA configuration honors retained INIT0 and standard FDCE clear semantics; not a proof under SEU, forced scan/debug state, or arbitrary corrupted state",
+    "Two-state constant-state induction does not qualify reset deassertion recovery/removal, analog metastability, clock integrity or board behavior",
+    "No per-cell routed witness or post-physopt census was generated; no claim of new routed formal acceptance",
+    "No exceptions or constraints were added or proposed for automatic application",
+    "All21 existing reset CDC critical findings remain unqualified; inactive-data proof does not discharge PRE/CLR/reset CDC reports",
+    "No new negative family or timing metrics inferred for the other three logged inactive lanes"
+  ],
+  "actions_performed": [
+    "Read permitted frozen evidence and helper code",
+    "Write only recovery/timing-batch-inactive-review.json"
+  ],
+  "blockers": [],
+  "remaining_work": "Parent may use this bounded classification to prioritize measured live throughput paths while retaining raw global timing and all reset/CDC qualification limits."
+}

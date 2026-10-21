@@ -29,13 +29,14 @@ module store_clear_admission_tb;
     replyValue=a^64'hc65b31a2de4f9087;
   endfunction
   task automatic fail(input string reason);
-    begin $display("STORE_CLEAR_FAIL cycle=%0d %s",cycles,reason);$fatal(1,"store admission scoreboard mismatch");$finish;end
+    begin $display("STORE_CLEAR_FAIL cycle=%0d %s owners=%0d/%0d native=%0d/%0d av/ar=%b/%b nv=%b nrv/nrr=%b/%b address=%h",cycles,reason,er,ew,mr,mw,av,ar,nv,nrv,nrr,address);$fatal(1,"store admission scoreboard mismatch");$finish;end
   endtask
   task automatic tick;
     reg expectedAccepted;
     begin
       @(posedge clock);cycles=cycles+1;
       if(!reset)begin
+        if(cycles>=23&&cycles<=28)$display("DT_TRACE c=%0d state=%h pmp=%b cap=%b pa=%h size=%h range=%b sz=%b machine=%b fast=%b",cycles,dut.dt.stateStorage,dut.dt._pmp_io_allow,dut.dt.pmp.io_capture,dut.dt.pmp.io_address,dut.dt.pmp.io_size,dut.dt.pmp.inRange_r,dut.dt.pmp.sizeAllowed,dut.dt.pmp.checkedMachine,dut.dt.fastEligible);
         afire=av&&ar;dfire=dv&&dr;nfire=nv&&nready;nrfire=nrv&&nrr;
         expectedAccepted=afire&&write&&!atomic;
         if(bad&&cycles==12)begin expectedAccepted=!expectedAccepted;$display("ORACLE_NEGATIVE_REJECT armed");end
@@ -95,10 +96,12 @@ module store_clear_admission_tb;
     transaction(64'h80000018,0,0,1);drain();
     privilege=3;write=1;atomic=0;readahead=1;av=1;
     repeat(7)tick();av=0;readahead=0;
-    // Warm a same-page proof, then replace a native read on its genuine response edge.
-    transaction(64'h80000020,0,0,3);
+    // The production common profile's cacheable RAM starts at 0x80200000.
+    // The earlier 0x800000xx accesses intentionally cover non-cacheable traffic.
+    // Handoff requires a cacheable next read on the genuine response edge.
+    transaction(64'h80200020,0,0,3);
     while(mr==mw)begin service();tick();end
-    av=1;address=64'h80000028;write=0;atomic=0;readahead=1;
+    av=1;address=64'h80200028;write=0;atomic=0;readahead=1;
     service();tick();
     if(!afire)fail("proven same-page read handoff was not exercised");
     av=0;readahead=0;drain();
@@ -106,7 +109,7 @@ module store_clear_admission_tb;
       r=$random(seed);dr=(r&1)!=0;nready=(r&2)!=0;invalidate=(r&255)==12;early=(r&4)!=0;
       if(!av||afire)begin
         av=(r&24)!=0;write=(r&32)!=0;atomic=(r&64)!=0;atomicop=0;
-        address=64'h80000000+((r>>8)&511)*8;data={$random(seed),$random(seed)};
+        address=64'h80200000+((r>>8)&511)*8;data={$random(seed),$random(seed)};
         privilege=3;readahead=0;noalloc=(r&128)!=0;
         if((r&1023)==17)address=64'h1000000000;
       end

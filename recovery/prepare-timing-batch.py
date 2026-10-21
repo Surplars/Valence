@@ -50,7 +50,7 @@ rtl_line = 'set recovery(rtl) [list ' + ' '.join(tcl(x) for x in rtl) + ']'
 config = config.replace(line, rtl_line)
 config = re.sub(r'^set recovery\(output\) .*$', 'set recovery(output) ' + tcl(a.output), config, flags=re.M)
 receipt = dict(old)
-receipt.update(name='recovery-timing-batch-r1', production_source_commit=a.source_commit,
+receipt.update(name=a.output.name, production_source_commit=a.source_commit,
                emission_profile_sha256=sha(a.rtl / 'emission-profile.json'),
                rtl_sha256={str(x.resolve()): sha(x) for x in rtl},
                ip_regenerated=False, physical_qualified=False, place_route_permitted=False,

@@ -371,3 +371,5 @@ hs_err_pid*
 .claude/
 legacy/simulator/firmware/*
 !legacy/simulator/firmware/ionsoc.dts
+# Historical test oracle materialized reproducibly from the recorded Git commit.
+src/test/scala/inorder/generated-store-baseline/

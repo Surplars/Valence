@@ -1,0 +1,8 @@
+{
+  "scope": "affected packetDMA and I1 configuration/elaboration checks",
+  "utc": "2026-10-21T06:43:51.6654598Z",
+  "source_commit": "38ab4f1aa38f36ddbdae78fc01a2c0d21d019e9e",
+  "exit": 0,
+  "fixture_entry_recompile_exit": 0,
+  "paired_native_tests": "validation-store-clear-admission-batch.json"
+}

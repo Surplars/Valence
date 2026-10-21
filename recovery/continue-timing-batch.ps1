@@ -2,7 +2,8 @@ param(
  [Parameter(Mandatory=$true)][string]$BuildDirectory,
  [Parameter(Mandatory=$true)][int]$SynthesisProcessId,
  [Parameter(Mandatory=$true)][string]$SourceCommit,
- [Parameter(Mandatory=$true)][string]$ProfileSha256
+ [Parameter(Mandatory=$true)][string]$ProfileSha256,
+ [Parameter(Mandatory=$true)][string]$RtlDirectory
 )
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
@@ -32,7 +33,7 @@ $state.preparation_commit=(& 'D:\TOOLS\ENV\Git\cmd\git.exe' -C $repo rev-parse H
 $state.emission_profile_sha256=$ProfileSha256
 $state.synthesis_directory=$build
 $state.synthesis_pid=$null
-$state.current_rtl=Join-Path $repo 'out/recovery-timing-batch-r1-production'
+$state.current_rtl=(Resolve-Path -LiteralPath $RtlDirectory).Path
 $state.linked_checkpoint=$checkpoint
 $state.linked_checkpoint_sha256=$checkpointHash
 $state.resume_checkpoint=$checkpoint

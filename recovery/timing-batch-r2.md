@@ -1,4 +1,4 @@
-Status: unvalidated source candidate; native directed fixtures being prepared. No new synthesis or implementation has started.
+Status: CPU and packetDMA directed native fixtures PASS; production source 38ab4f1. Physical validation pending.
 
 Baseline: f6f04c4 production RTL, routed DCP a5567bf8c99bfa09098bc4653d1c9bf7e795be1233f16501237839ec27a95cd1; CPU300/fabric250. Preserve all baseline reports and constraints. No added pipeline cycles.
 
@@ -10,3 +10,5 @@ The CPU measured path is addrPacket_address[19] → prepared translation grants/
 Bounded500-path sampling supports those priorities: CPU addrPacket address source264paths/-547.483ns; fabric FIFO2 valid source448paths/-1011.311ns, including packetDMA225targets. These are sampled subtotals, not full-design TNS coverage. Exact collection and limitations are in timing-batch-root-review.json.
 
 The inactive FIFO8 Gray crossing is a separate reachability/model classification; changing its report would not count as an active-logic speedup. Preserve active CDC budgets and the 21 unresolved reset CDC Critical entries. No arbitrary false paths, clock reduction, bitstream or board download.
+
+Historical f6 and candidate using identical production lowering/TB/seed both PASS:4061cycles,743requests=743responses,193stores,196reads,354atomics,3faults,7store-readAhead blocked cycles,1read handoff,656blocked reply cycles,740native requests,18invalidations. Both negative oracles rejected. Default-lowering PMP X reproduced on historical source; production lowering and true cacheable RAM 0x80200000 fix fixture issues without changing production behavior or weakening fault/drain assertions. See validation-store-clear-admission-batch.json. DMA PASS1234cycles,355requests=responses,12memory completions; negative oracle rejected.

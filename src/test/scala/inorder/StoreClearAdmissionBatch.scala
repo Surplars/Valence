@@ -65,7 +65,11 @@ class StoreClearAdmissionBatch extends Module {
 }
 
 object StoreClearAdmissionBatchMain extends App {
+    require(args.length == 1 || (args.length == 2 && Set("--production-lowering", "--default-lowering")(args(1))))
+    // Match the native production exporter; retain the old mode only to reproduce its X regression.
+    val lowering = if (args.length == 2 && args(1) == "--default-lowering") Array.empty[String]
+        else Array("--lowering-options=disallowLocalVariables,disallowPackedArrays")
     ChiselStage.emitSystemVerilogFile(new StoreClearAdmissionBatch,
         Array("--target-dir", args.head),
-        firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=disable"))
+        firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=disable") ++ lowering)
 }

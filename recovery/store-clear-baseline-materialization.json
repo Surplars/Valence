@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68",
+  "historical_source": "src/main/scala/core/inorder/FiveStageAddressTranslation.scala",
+  "historical_source_sha256": "715f13eb14195f0b1852df8a2e74cc538cd01e03060b1e97eb43feb9f3b7186c",
+  "fixture_template_sha256": "8f7711afbc7cb784313c239902d7d445aa9c11471251e10b329f0980763f4848",
+  "generated_files_sha256": {
+    "src\\test\\scala\\inorder\\generated-store-baseline\\BaselineFiveStageAddressTranslation.scala": "894eacc8de58407ea13099fe9bd098dcbbe6ca577980e456f7930c54445b3a0d",
+    "src\\test\\scala\\inorder\\generated-store-baseline\\StoreClearAdmissionBaseline.scala": "f7c6f54bec2f95354e340a39b2da81ed49bf84aabd785697780400034cbe0569"
+  },
+  "same_tb_seed_and_timeout": true,
+  "production_unchanged": true,
+  "transformations": [
+    "Class name only in historical DT",
+    "Top desiredName preserved for identical SystemVerilog testbench",
+    "Observe original accepted-store equation; no feedback or control added"
+  ]
+}

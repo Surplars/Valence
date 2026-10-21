@@ -1,0 +1,127 @@
+{
+  "status": "INCOMPLETE_BLOCKED_COLD_PMP_CAPTURE_X_BASELINE_COMPARISON_PENDING",
+  "utc": "2026-10-21T06:50:07.595340+00:00",
+  "actual_dut": "FiveStageAddressTranslation CommonCpuProfile.I1.i1",
+  "seed": "5a64123a",
+  "fault_request_address": "0x1000000000",
+  "physical_address_bits": 36,
+  "timeout_not_increased": true,
+  "fault_not_removed": true,
+  "production_source_behavior_changed_by_reviewer": false,
+  "event_equivalence_failure_observed": false,
+  "completed_before_fault": {
+    "accepted_requests": 3,
+    "responses": 3,
+    "native_requests": 3,
+    "native_responses": 3,
+    "types": [
+      "ordinary read",
+      "ordinary store",
+      "atomic"
+    ]
+  },
+  "first_x_trace": [
+    "DT_TRACE c=23 state=0001 pmp=x cap=0 pa=0000000080000010 size=3 range=x sz=x machine=x fast=0",
+    "DT_TRACE c=24 state=0002 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+    "DT_TRACE c=25 state=0004 pmp=x cap=1 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+    "DT_TRACE c=26 state=0800 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+    "DT_TRACE c=27 state=0XX0 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+    "DT_TRACE c=28 state=0X0X pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0"
+  ],
+  "failure": [
+    "STORE_CLEAR_FAIL cycle=124 drain stalled owners=3/4 native=3/3 av/ar=0/x nv=0 nrv/nrr=0/x address=0000001000000000"
+  ],
+  "hypothesis_only": "Generated conditional capture block contains automatic local logic declarations; native simulator frontend handling is unproven until same-source baseline and production-lowering comparison. No claim of production regression.",
+  "sha256": {
+    "src/main/scala/core/inorder/FiveStageAddressTranslation.scala": "5081845ec283ee0c5c8c113a3d4d8b2ed2bfa5f874ef00a0186ba80e57b63c10",
+    "src/main/scala/core/inorder/FiveStageCachedCore.scala": "9085180a6f177a54a93a91ca4dbcafbdcc275675c54428139a8df851a5d153b5",
+    "src/test/scala/inorder/StoreClearAdmissionBatch.scala": "0be2f3077d1fa00bb35a2d256a3b30cc549c94ecf4322688e57c6b0f18a8e8bb",
+    "recovery/store-clear-admission-tb.sv": "9c860a833588dde96c2d0b281e0fa285e475834c15c2ac772072b1a98274594e",
+    "recovery/run-store-clear-admission-xsim.ps1": "55db039d27f0d2e1f774e2f38bad0daddc85d32ef22e8376ae5af49a3db63fab",
+    "out/timing-batch-r2-store-fixture/FiveStageAddressTranslation.sv": "eec418e01223e0bd1c49d06c286b5011b56e9e98c7b043ac51fc4b69542be32f",
+    "out/timing-batch-r2-store-fixture/FiveStagePmp.sv": "0f2d2e2031bbba30c54534d5b2fe436535f8b3182bab008833e61978e6b0b283",
+    "out\\timing-batch-r2-store-xsim-r4\\positive-console.log": "8e8642414174c09090633a8313abb4bcea43d316ac5b94ac995e443aad639fd1"
+  },
+  "retained_output_directories": [
+    "out/timing-batch-r2-store-xsim-r1",
+    "out/timing-batch-r2-store-xsim-r2",
+    "out/timing-batch-r2-store-xsim-r3",
+    "out/timing-batch-r2-store-xsim-r4"
+  ],
+  "final_acceptance": false,
+  "historical_comparison": {
+    "baseline_commit": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68",
+    "same_tb_seed_timeout": true,
+    "default_baseline_same_failure": "PMP capture cycle25 known inputs, registers X at26, state X at27, drain timeout124; matches candidate r4",
+    "production_lowering_both": "PMP known at26, correct range fault reply; both stop at same handoff-fixture assertion cycle47",
+    "cause_scope": "Default fixture lowering caused PMP X in both historical and candidate; no CPU source regression observed. Remaining handoff stimulus failure also historical; not yet validated PASS.",
+    "production_behavior_changed": false,
+    "test_logs": {
+      "out\\timing-batch-r2-store-baseline-default-xsim\\positive-console.log": {
+        "sha256": "1a2181b559c5ce755c10cdf0b0961aa900dc8ee36f17ec7b276d0bd6496f8075",
+        "tail": [
+          "Time resolution is 1 ps",
+          "source run.tcl",
+          "## run all",
+          "DT_TRACE c=23 state=0001 pmp=x cap=0 pa=0000000080000010 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=24 state=0002 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=25 state=0004 pmp=x cap=1 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=26 state=0800 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=27 state=0XX0 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=28 state=0X0X pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "STORE_CLEAR_FAIL cycle=124 drain stalled owners=3/4 native=3/3 av/ar=0/x nv=0 nrv/nrr=0/x address=0000001000000000",
+          "Fatal: store admission scoreboard mismatch",
+          "Time: 1240 ns  Iteration: 0  Process: /store_clear_admission_tb/fail  Scope: store_clear_admission_tb.fail  File: C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/recovery/store-clear-admission-tb.sv Line: 32",
+          "$finish called at time : 1240 ns",
+          "## quit",
+          "INFO: [Common 17-206] Exiting xsim at Wed Oct 21 14:57:13 2026..."
+        ]
+      },
+      "out\\timing-batch-r2-store-baseline-production-xsim\\positive-console.log": {
+        "sha256": "cc3f378e3fbc681ce2b7d73863e7ecd1d9a73528e91e9a9889ee1df0fcf41493",
+        "tail": [
+          "Time resolution is 1 ps",
+          "source run.tcl",
+          "## run all",
+          "DT_TRACE c=23 state=0001 pmp=x cap=0 pa=0000000080000010 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=24 state=0002 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=25 state=0004 pmp=x cap=1 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=26 state=0800 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "DT_TRACE c=27 state=0200 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "DT_TRACE c=28 state=0001 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "STORE_CLEAR_FAIL cycle=47 proven same-page read handoff was not exercised owners=5/6 native=4/4 av/ar=1/0 nv=0 nrv/nrr=0/0 address=0000000080000028",
+          "Fatal: store admission scoreboard mismatch",
+          "Time: 470 ns  Iteration: 0  Process: /store_clear_admission_tb/fail  Scope: store_clear_admission_tb.fail  File: C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/recovery/store-clear-admission-tb.sv Line: 32",
+          "$finish called at time : 470 ns",
+          "## quit",
+          "INFO: [Common 17-206] Exiting xsim at Wed Oct 21 14:57:14 2026..."
+        ]
+      },
+      "out\\timing-batch-r2-store-production-xsim\\positive-console.log": {
+        "sha256": "5a9e6fd30166b88e9307649a412e1c5f3efe41efff943e606f4ecce32d814c2e",
+        "tail": [
+          "Time resolution is 1 ps",
+          "source run.tcl",
+          "## run all",
+          "DT_TRACE c=23 state=0001 pmp=x cap=0 pa=0000000080000010 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=24 state=0002 pmp=x cap=0 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=25 state=0004 pmp=x cap=1 pa=0000001000000000 size=3 range=x sz=x machine=x fast=0",
+          "DT_TRACE c=26 state=0800 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "DT_TRACE c=27 state=0200 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "DT_TRACE c=28 state=0001 pmp=0 cap=0 pa=0000001000000000 size=3 range=0 sz=1 machine=1 fast=0",
+          "STORE_CLEAR_FAIL cycle=47 proven same-page read handoff was not exercised owners=5/6 native=4/4 av/ar=1/0 nv=0 nrv/nrr=0/0 address=0000000080000028",
+          "Fatal: store admission scoreboard mismatch",
+          "Time: 470 ns  Iteration: 0  Process: /store_clear_admission_tb/fail  Scope: store_clear_admission_tb.fail  File: C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/recovery/store-clear-admission-tb.sv Line: 32",
+          "$finish called at time : 470 ns",
+          "## quit",
+          "INFO: [Common 17-206] Exiting xsim at Wed Oct 21 14:57:12 2026..."
+        ]
+      }
+    }
+  },
+  "resolution": {
+    "result": "Both baseline/candidate PASS 4061cycles with identical counters",
+    "receipt": "validation-store-clear-admission-batch.json",
+    "cause": "Fixture lowering plus noncacheable handoff address; no production behavior repair needed"
+  }
+}
