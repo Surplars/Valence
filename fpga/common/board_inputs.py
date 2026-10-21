@@ -67,6 +67,49 @@ def port_check(rtl, wrapper, production=True, low=False):
     return {'ports': len(ports), 'connections': len(connections)}
 
 
+def emission_path_map(records):
+    """Parse host paths without rewriting/hash-normalizing the emission JSON."""
+    normalized = {}; seen = set()
+    for original, digest in records.items():
+        gate.require(isinstance(original, str), 'emission path must be a string')
+        path = original.replace('\\', '/')
+        windows = bool(re.match(r'^[A-Za-z]:/', path))
+        gate.require(windows or path.startswith('/'), 'absolute emitted path required')
+        gate.require(not any(part in ('.', '..') for part in path.split('/')), 'unsafe emitted path components')
+        key = path.casefold() if windows else path
+        gate.require(key not in seen, 'duplicate normalized emission path')
+        seen.add(key); normalized[path] = digest
+    return normalized
+
+
+def emitted_artifacts(records):
+    normalized = emission_path_map(records)
+    tops = [p for p in normalized if p.endswith('/CommonMachinePlatform.sv')]
+    gate.require(len(tops) == 1, 'unique emitted common top required')
+    prefix = tops[0][:-len('CommonMachinePlatform.sv')]
+    windows = bool(re.match(r'^[A-Za-z]:/', prefix))
+    result = {}; seen = set()
+    for path, digest in normalized.items():
+        gate.require((path.casefold() if windows else path).startswith(prefix.casefold() if windows else prefix),
+                     'emission artifact escaped output directory')
+        relative = gate.relative(path[len(prefix):]).as_posix()
+        gate.require(relative.casefold() not in seen, 'duplicate emitted relative artifact')
+        seen.add(relative.casefold()); result[relative] = digest
+    return result
+
+
+def emitted_sources(records):
+    result = {}
+    for absolute, digest in emission_path_map(records).items():
+        for marker in ('src/main/scala/', 'src/test/scala/platform/'):
+            if ('/' + marker) in absolute:
+                name = marker + absolute.rsplit('/' + marker, 1)[1]
+                gate.relative(name)
+                gate.require(name not in result, 'duplicate emitted source identity')
+                result[name] = digest
+    return result
+
+
 def emission(root, m):
     path = m['roles'].get('emission_profile')
     gate.require(path in m['inputs'], 'missing frozen production emission profile')
@@ -87,22 +130,14 @@ def emission(root, m):
         gate.require(meta.get('clockTopology') == 'independent-fixed-v1' and
                      meta.get('clockProfilePurpose') == 'high-frequency-timing-target',
                      'missing performance independent topology contract')
-    source_hashes = {}
-    for absolute, value in meta.get('sources', {}).items():
-        for marker in ('src/main/scala/', 'src/test/scala/platform/'):
-            if ('/' + marker) in absolute:
-                name = marker + absolute.split('/' + marker, 1)[1]
-                gate.require(m['inputs'].get(name) == value, 'stale emitted source: ' + name)
-                source_hashes[name] = value
+    source_hashes = emitted_sources(meta.get('sources', {}))
+    for name, value in source_hashes.items():
+        gate.require(m['inputs'].get(name) == value, 'stale emitted source: ' + name)
     wanted = {name for name in m['inputs'] if name.startswith(('src/main/scala/', 'src/test/scala/platform/')) and name.endswith('.scala')}
     gate.require(set(source_hashes) == wanted, 'emission source closure incomplete')
-    top = [name for name in meta.get('artifacts', {}) if name.endswith('/CommonMachinePlatform.sv')]
-    gate.require(len(top) == 1, 'unique emitted common top required')
-    prefix = top[0][:-len('CommonMachinePlatform.sv')]
     base = gate.relative(path).parent
-    for absolute, value in meta['artifacts'].items():
-        gate.require(absolute.startswith(prefix), 'emission artifact escaped output directory')
-        relative = (base / absolute[len(prefix):]).as_posix()
+    for relative_name, value in emitted_artifacts(meta.get('artifacts', {})).items():
+        relative = (base / relative_name).as_posix()
         gate.require(m['inputs'].get(relative) == value, 'emitted artifact hash mismatch: ' + relative)
     # Complete emitted encoder+parent form, reviewed together with the public
     # pad source. Both control registers have the same clock/reset/zero state

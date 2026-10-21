@@ -84,6 +84,29 @@ class BoardInputs(unittest.TestCase):
         self.assertEqual(producer.gate.reviewed_board_clocks('a1')['cpu'], 100000000)
         self.assertEqual(producer.gate.reviewed_board_clocks('i1','boot50-static')['fabric'], 50000000)
 
+    def test_emission_paths_accept_windows_and_posix_without_mutation(self):
+        import hashlib
+        for root in ('/tmp/emit', 'C:\\build\\emit'):
+            sep = '\\' if root.startswith('C:') else '/'
+            artifacts = {root+sep+'CommonMachinePlatform.sv':'top-hash',
+                         root+sep+'verification'+sep+'Assert.sv':'assert-hash'}
+            original = json.dumps(artifacts).encode()
+            expected = {'CommonMachinePlatform.sv':'top-hash','verification/Assert.sv':'assert-hash'}
+            self.assertEqual(board_inputs.emitted_artifacts(artifacts), expected)
+            self.assertEqual(hashlib.sha256(original).hexdigest(), hashlib.sha256(json.dumps(artifacts).encode()).hexdigest())
+            sources = {root+sep+sep.join(('src','main','scala','Top.scala')):'source-hash'}
+            self.assertEqual(board_inputs.emitted_sources(sources), {'src/main/scala/Top.scala':'source-hash'})
+
+    def test_emission_duplicate_top_alias_and_escape_rejected(self):
+        top = 'C:\\emit\\CommonMachinePlatform.sv'
+        for other in ('C:/emit/CommonMachinePlatform.sv', 'c:/EMIT/CommonMachinePlatform.sv',
+                      'C:/other/CommonMachinePlatform.sv', 'C:/emit/../outside.sv',
+                      'C:/emit-sibling/outside.sv'):
+            with self.assertRaises(ValueError): board_inputs.emitted_artifacts({top:'a',other:'b'})
+        with self.assertRaises(ValueError): board_inputs.emitted_artifacts({'C:emit/CommonMachinePlatform.sv':'a'})
+        with self.assertRaises(ValueError): board_inputs.emitted_artifacts({'/tmp/a/CommonMachinePlatform.sv':'a','/tmp/b/CommonMachinePlatform.sv':'b'})
+        with self.assertRaises(ValueError): board_inputs.emitted_sources({'C:/a/src/main/scala/T.scala':'a','D:/b/src/main/scala/T.scala':'a'})
+
     def test_bit_is_blocked_before_scenario_code(self):
         script = (HERE / 'signoff.tcl').read_text()
         self.assertLess(script.index('rename write_bitstream'), script.index('source $valence(media_scenarios)'))
