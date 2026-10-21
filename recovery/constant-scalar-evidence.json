@@ -157,5 +157,6 @@
     "nonzero_or_unknown_INIT_rejected",
     "invalid_pair_rejected"
   ],
-  "implementation": "r4 continues in the same open design; physical results pending"
+  "implementation": "r4 census completed; continuation design NAME guard failed before opt; r5 directly reuses same checkpoint without census or synthesis; native constant proof and physical results pending",
+  "r4_continuation_blocker": "Unexpected open design: NAME property was incorrectly assumed equal to RTL top. Follow-up guard validates unique current design, real part and boundary cell."
 }

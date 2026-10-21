@@ -1,5 +1,6 @@
 # Called only by inspect-scalars-and-continue.tcl, in the same open design.
-if {[get_property NAME [current_design]] ne {soc_top_common_ddr}} {error {Unexpected open design}}
+if {[llength [current_design -quiet]]!=1 || [get_property PART [current_design]] ne {xczu15eg-ffvb1156-2-i}} {error {Unexpected open design or target part}}
+if {[llength [get_cells -quiet u_soc/crossing]]!=1} {error {Expected common platform boundary missing}}
 set argv [list $repo $out $target $profile 1 REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT DIAGNOSTIC_IMPLEMENT_NO_BIT]
 set f [open [file join $repo fpga common recovery_map_constraints.tcl]]
 set code [read $f];close $f
