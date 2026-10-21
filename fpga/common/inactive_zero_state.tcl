@@ -55,7 +55,15 @@ proc common_zero::prove {fifo} {
     set memo {};set state {};set root $fifo
     set cell [common_cdc::one get_cells $fifo]
     set src [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME == source_valid}]
-    if {[llength $src]>1 || ([llength $src] && [catch {common_cdc::constant [get_property NAME $src] 0}])} {return [reject $fifo source_not_literal_zero]}
+    if {[llength $src]>1} {return [reject $fifo ambiguous_source_valid]}
+    # A retained boundary port may become disconnected/nonliteral after opt.
+    # Do not assume its value. Full state induction below treats all external
+    # inputs as arbitrary, proving inactivity independently of source_valid.
+    set source_class ABSENT_ARBITRARY
+    if {[llength $src]} {
+        set source_class RETAINED_ARBITRARY
+        if {![catch {common_cdc::constant [get_property NAME $src] 0}]} {set source_class LITERAL_ZERO}
+    }
     set valid [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME == destination_valid}]
     if {[llength $valid]>1} {return [reject $fifo ambiguous_valid]}
     set bits [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME =~ destination_bits*}]
@@ -93,6 +101,6 @@ proc common_zero::prove {fifo} {
     set valid_unconnected 1
     if {[llength $valid]} {set valid_unconnected [expr {![llength [get_nets -quiet -segments -of_objects $valid]]}]}
     if {!$valid_unconnected && [input [get_property NAME $valid]] ne {0}} {return [reject $fifo valid_not_invariant_zero]}
-    puts "COMMON_CDC_INDUCTIVE_ZERO_STATE fifo=$fifo functional_ff=[dict size $state] external_inputs_arbitrary=1 release_state_arbitrary=1 destination_valid_unconnected=$valid_unconnected payload_ports=[llength $bits]"
+    puts "COMMON_CDC_INDUCTIVE_ZERO_STATE fifo=$fifo functional_ff=[dict size $state] source_valid=$source_class external_inputs_arbitrary=1 release_state_arbitrary=1 destination_valid_unconnected=$valid_unconnected payload_ports=[llength $bits]"
     return 1
 }

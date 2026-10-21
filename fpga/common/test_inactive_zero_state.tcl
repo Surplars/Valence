@@ -23,6 +23,7 @@ set ::fixture_valid fifo/state/Q
 set ::fixture_valid_disconnected 0
 set ::fixture_valid_absent 0
 set ::fixture_payload_absent 0
+set ::fixture_source_present 0
 proc get_cells {args} {
  if {[lsearch -exact $args -filter]>=0} {return fifo/state}
  if {[lsearch -exact $args -of_objects]>=0} {return [file dirname [lindex $args end]]}
@@ -41,7 +42,7 @@ proc get_pins {args} {
  set f [lsearch -exact $args -filter]
  if {$f>=0} {
   set query [lindex $args [expr {$f+1}]]
-  if {$query eq {REF_PIN_NAME == source_valid}} {return {}}
+  if {$query eq {REF_PIN_NAME == source_valid}} {if {$::fixture_source_present} {return fifo/source_valid};return {}}
   if {$query eq {REF_PIN_NAME == destination_valid}} {if {$::fixture_valid_absent} {return {}};return fifo/destination_valid}
   if {$query eq {REF_PIN_NAME =~ destination_bits*}} {if {$::fixture_payload_absent} {return {}};return fifo/destination_bits0}
   if {$query eq {DIRECTION == OUT}} {
@@ -62,8 +63,11 @@ proc get_nets {args} {
  }
 }
 assert {[common_zero::prove fifo]==1} {disabled INIT-zero state not proved}
+set ::fixture_source_present 1
+assert {[common_zero::prove fifo]==1} {arbitrary retained input rejected despite full invariant-zero proof}
 set ::fixture_ce SIGNAL
 assert {[common_zero::prove fifo]==0} {arbitrary enabled D accepted}
+set ::fixture_source_present 0
 set ::fixture_ce GROUND
 set ::fixture_init {1'b1}
 assert {[common_zero::prove fifo]==0} {INIT-one state accepted}

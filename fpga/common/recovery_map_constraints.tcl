@@ -235,7 +235,11 @@ proc board_prep::entry {path install} {
  if {$command ne {} || !$installed} {error {Formal entry parse or cache-install anchor differs}}
 }
 puts "PREPARATION_TOOL [version -short]"
-open_checkpoint $target
+if {[info exists ::board_prep_existing_target] && $::board_prep_existing_target eq $target} {
+ if {[llength [current_design -quiet]]!=1 || [get_property PART [current_design]] ne {xczu15eg-ffvb1156-2-i}} {error {Unexpected existing diagnostic design}}
+ puts {REUSE_CURRENT_HASH_RECORDED_DESIGN_NO_DCP_REOPEN}
+ unset ::board_prep_existing_target
+} else {open_checkpoint $target}
 puts "FRESH_MAPPING_TARGET $target"
 if {[catch {
  # Restore the physical integration contract before applying scoped vendor XDC.
