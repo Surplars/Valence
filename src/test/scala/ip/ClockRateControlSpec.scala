@@ -3,6 +3,7 @@ package ip
 import _root_.circt.stage.ChiselStage
 import org.scalatest.funsuite.AnyFunSuite
 import soc.ip.clock._
+import soc.platform.CommonCpuProfile
 
 /** Synthetic evidence flags ONLY for the component oracle, never production rates. */
 object ClockRateFixtureParams {
@@ -28,6 +29,23 @@ class ClockRateControlSpec extends AnyFunSuite {
         assert(fir.contains("CdcMailbox") && fir.contains("sourceRetired"))
         assert(!fir.contains("MMCME4_ADV") && !fir.contains("CommonMachinePlatform"))
     }
+    test("real managed bank routes legacy and rate pages without changing legacy resource ownership") {
+        val profile = CommonCpuProfile.I1
+        val fir = ChiselStage.emitCHIRRTL(new ManagedPeripheralBank(profile.cmu, profile.cpuHz,
+            profile.uartHz, profile.uartBaud, hardwareClocks = true, triSpeedEthernet = true,
+            triSpeedTxFrameSlots = 2, sourceClockHz = profile.fabricHz,
+            rateDomains = Some(Seq(ClockRateParams(), ClockRateParams(maximumHz = 150000000)))))
+        assert(fir.contains("ClockRateRegisterRouter") && fir.contains("ClockRateManagementBoundary"))
+        assert(fir.contains("ClockManagementBoundary") && profile.cmu.gateableMask == 0x68)
+    }
+}
+
+object ClockRateCmuIntegratedMain extends App {
+    require(args.length == 1)
+    ChiselStage.emitSystemVerilogFile(new ClockManagementWithRatesBoundary(CommonCpuProfile.I1.cmu,
+        Seq(ClockRateFixtureParams.cpu, ClockRateFixtureParams.fabric)),
+        Array("--target-dir", args(0)), firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info",
+            "-default-layer-specialization=disable", "--lowering-options=disallowLocalVariables,disallowPackedArrays"))
 }
 
 object ClockRateComponentMain extends App {

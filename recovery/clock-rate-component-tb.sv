@@ -1,4 +1,7 @@
 `timescale 1ns/1ps
+`ifndef CLOCK_RATE_DUT
+`define CLOCK_RATE_DUT ClockRateManagementBoundary
+`endif
 // Behavioral endpoint/backend oracle only. No production ACK ties or vendor-clock qualification.
 `define ENDPOINT(N) \
  reg present``N=1,locked``N=1,manualReady``N=1; \
@@ -79,7 +82,13 @@ module clock_rate_component_tb;
  reg [63:0] reqAddress=0,reqData=0;
  reg [2:0] reqSize=3;reg [7:0] reqMask=255;
  wire reqReady,respValid,respError;wire [63:0] respData;
- ClockRateManagementBoundary dut(.sourceClock(sourceClock),.alwaysOnClock(aon),.commonReset(reset),
+ `CLOCK_RATE_DUT dut(.sourceClock(sourceClock),.alwaysOnClock(aon),.commonReset(reset),
+`ifdef CLOCK_RATE_LEGACY_PAGE
+  .resources_0_ack(1'b0),.resources_0_wake(1'b0),.resources_1_ack(1'b0),.resources_1_wake(1'b0),
+  .resources_2_ack(1'b0),.resources_2_wake(1'b0),.resources_3_ack(1'b0),.resources_3_wake(1'b0),
+  .resources_4_ack(1'b0),.resources_4_wake(1'b0),.resources_5_ack(1'b0),.resources_5_wake(1'b0),
+  .resources_6_ack(1'b0),.resources_6_wake(1'b0),
+`endif
   .registers_request_valid(reqValid),.registers_request_ready(reqReady),
   .registers_request_bits_address(reqAddress),.registers_request_bits_write(reqWrite),
   .registers_request_bits_data(reqData),.registers_request_bits_size(reqSize),.registers_request_bits_byteEnable(reqMask),
@@ -123,10 +132,10 @@ module clock_rate_component_tb;
   end
  endtask
  task automatic access(input bit wr,input integer bank,input integer offset,input [63:0] data,
-  input bit expectedError,input integer holdCycles,input integer sizeArg=3,input [7:0] maskArg=255);
+  input bit expectedError,input integer holdCycles,input integer sizeArg=3,input [7:0] maskArg=255,input bit legacyPage=0);
   integer timeout,k;reg [63:0] savedData;reg savedError;
   begin
-   @(negedge sourceClock);reqValid=1;reqWrite=wr;reqAddress=64'h10080800+bank*128+offset;
+   @(negedge sourceClock);reqValid=1;reqWrite=wr;reqAddress=(legacyPage?64'h10080000:64'h10080800)+bank*128+offset;
    reqData=data;reqSize=sizeArg;reqMask=maskArg;respReady=0;timeout=0;
    do begin @(posedge sourceClock);timeout=timeout+1;if(timeout>80)fail("MMIO request not accepted");end while(reqReady!==1'b1);
    @(negedge sourceClock);reqValid=0;timeout=0;
@@ -139,6 +148,14 @@ module clock_rate_component_tb;
    @(negedge sourceClock);respReady=0;cases=cases+1;
   end
  endtask
+ task automatic pushRead(input [63:0] address);
+  integer timeout;
+  begin
+   @(negedge sourceClock);reqValid=1;reqWrite=0;reqAddress=address;reqData=0;reqSize=3;reqMask=255;respReady=0;
+   timeout=0;do begin @(posedge sourceClock);timeout=timeout+1;if(timeout>80)fail("pipelined read admission");end while(reqReady!==1'b1);
+   @(negedge sourceClock);reqValid=0;
+  end
+ endtask
  task automatic readEqual(input integer bank,input integer offset,input [63:0] value);
   begin access(0,bank,offset,0,0,0);if(lastRead!==value)fail("MMIO read value");end
  endtask
@@ -146,13 +163,33 @@ module clock_rate_component_tb;
  initial begin
   // Target clocks start stopped. Give their owner models a real async reset
   // edge, rather than relying on a time-zero declaration initialization event.
-  bad=$test$plusargs("BAD_ORACLE");#1;reset=1;repeat(8)@(negedge aon);reset=0;
+  bad=$test$plusargs("BAD_ORACLE");present0=0;present1=0;#1;reset=1;repeat(8)@(negedge aon);reset=0;
+  repeat(70)@(negedge aon);
+  if(errors0!==0||errors1!==0||valid0!==0||valid1!==0||programs0!=0||programs1!=0)
+   fail("absent backend manufactured an actual rate, programming command or timeout fault");
+  present0=1;present1=1;
   timeout=0;while(busy0!==1'b0||busy1!==1'b0)begin @(negedge aon);timeout=timeout+1;if(timeout>80)fail("cold boot50 progress");end
   if(actual0!==50000000||actual1!==50000000||valid0!==1'b1||valid1!==1'b1)fail("cold default frequency");checking=1;
   readEqual(0,8,50000000);readEqual(1,8,50000000);
+`ifdef CLOCK_RATE_LEGACY_PAGE
+  access(0,0,0,0,0,0,3,255,1);if(lastRead!==64'h56434d5500010001)fail("legacy CMU identity");
+  access(0,0,24,0,0,0,3,255,1);if(lastRead!==64'h68)fail("legacy protected resources changed");
+  access(0,0,328,0,0,0,3,255,1);if(lastRead!==300000000)fail("legacy nominal CPU metadata changed");
+  access(0,0,392,0,0,0,3,255,1);if(lastRead!==250000000)fail("legacy fixed timebase metadata changed");
+  access(1,0,32,2,1,0,3,255,1);access(0,0,32,0,0,0,3,255,1);
+  if(lastRead!==0)fail("legacy CPU STOP protection lost");
+  // Concurrent legacy and new-page owners, one stalled global reply stream.
+  pushRead(64'h10080000);pushRead(64'h10080808);
+  timeout=0;while(respValid!==1'b1)begin @(negedge sourceClock);timeout=timeout+1;if(timeout>80)fail("mixed first reply");end
+  repeat(3)begin @(negedge sourceClock);if(respError!==0||respData!==64'h56434d5500010001)fail("legacy/rate reply order or stability");end
+  respReady=1;@(posedge sourceClock);cases=cases+1;@(negedge sourceClock);respReady=0;
+  timeout=0;while(respValid!==1'b1)begin @(negedge sourceClock);timeout=timeout+1;if(timeout>80)fail("mixed second reply");end
+  if(respError!==0||respData!==50000000)fail("mixed rate reply owner");
+  respReady=1;@(posedge sourceClock);cases=cases+1;@(negedge sourceClock);respReady=0;
+`endif
   access(1,0,0,51000000,1,0);access(1,0,0,175000000,1,0);
   access(1,0,8,100000000,1,0);access(1,0,0,100000000,1,0,2,15);
-  present1=0;access(1,1,0,100000000,1,0);present1=1;
+  present1=0;access(1,1,0,100000000,1,0);readEqual(1,8,0);present1=1;
   access(1,0,48,3,0,0);readEqual(0,56,175000000);readEqual(0,64,3);
   access(1,0,24,1023,0,0);readEqual(0,24,0);
   // Four independently outstanding owner classes. Complete them one at a time.

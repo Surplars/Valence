@@ -1,0 +1,155 @@
+{
+  "stage": "cmu-frequency-r2-decoder-integration",
+  "parent_commit": "4b50f1872000b4982d5056b56d47c81ea7d1c843",
+  "utc": "2026-10-21T10:45:23.849860+00:00",
+  "scala_tests": {
+    "suite": "ip.ClockRateControlSpec",
+    "passed": 3,
+    "failed": 0,
+    "log_sha256": "a7a822f60a0ebf50165ea9f61408d2c82e3f2f6a891a3cfc4abe116c7cf28296"
+  },
+  "sources": {
+    "src/main/scala/ip/clock/ClockRateRegisterRouter.scala": "27223a0a7eeeb3e8e3946772a44912f2784fae31dedae396121d831c3335f360",
+    "src/main/scala/ip/clock/ClockRateControl.scala": "2cacf2f081b6c9f34a975248b2f9f531a381c21af2f4c566e9ef8df6e6d760f5",
+    "src/main/scala/ip/clock/ClockRateManagement.scala": "423c629bc5df1be9c3f7dba9a65c63adab596aa2cacc6cb06128c8bb4d64f16d",
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": "e0e34d0aa8faabd81153576b214ef083da0c4b9ff2226fab7b1db9d1c639b2c3",
+    "src/main/scala/platform/CommonMachinePlatform.scala": "aa7cd4db15d81d642110cac672773ecf5ab56b43cf2276ddd56ad7a22836368b",
+    "src/test/scala/ip/ClockRateControlSpec.scala": "effa50e8e5f3c0cf25e2f132f6563e7c5d3134a5c7c6c3559c2b5bd4891de670",
+    "recovery/clock-rate-component-tb.sv": "1a3766c5efd32d3273650b0f1e984eb52de0e6fbbf38c2c109fc6f20422f98e0",
+    "recovery/run-clock-rate-component-xsim.ps1": "2b95d93815e61a4ad32f040c196eab98a1c2271f776d5639dedc3683f48dea40"
+  },
+  "generated_rtl": {
+    "component-fixture": {
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcMailbox.sv": "74cbe6fb60df7bfaa069f93310cf9f5239fe511bc4a2bfee8c8683c2a1413089",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "ClockRateControl.sv": "82a37ee72955f4e8af9516fab64071f6db806b07031aada04ef868f14407d77c",
+      "ClockRateControl_1.sv": "2989fd00dc55a7f50908654500203cc75e5bd692aa8aa3d05239497a81299bcc",
+      "ClockRateManagement.sv": "d30783108e1f7d37fe2c8bcd244792adfbc2bb765198caa56362023c0338f2f0",
+      "ClockRateManagementBoundary.sv": "f6c59fd1eba1694778f0e8b462e0114fe58f8766042db693ecc77ca2ab041fec",
+      "Queue4_ClockRateReply.sv": "cb768e794fb8d209d24be04b38c1fa2a832000e5c12121070b67a35b1d52c497",
+      "ram_4x67.sv": "b7e8f76308a4247cbf48e682d524129bd08ef9cb96b380e615b8ced06c8d1329",
+      "RegisterClockDomainBridge.sv": "35060bf69787ecb8ffdb7c39b03c563cd54ff36e267cfc47c8368033ffd396fa"
+    },
+    "cmu-integrated-fixture": {
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcMailbox.sv": "74cbe6fb60df7bfaa069f93310cf9f5239fe511bc4a2bfee8c8683c2a1413089",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "ClockManagementBoundary.sv": "c8e1c7b593229bb788708f2cc710a063d5c585469fcfbec7e4bf08f69eb1d0b8",
+      "ClockManagementUnit.sv": "a26ae89e45c586142b15b86556e6a00631e5dae426e1dfd009aa9b55202cfada",
+      "ClockManagementWithRatesBoundary.sv": "3b112ba35608dbdde856ddc149c4e576678b2c8deaa0cfc73349262de71ea0b6",
+      "ClockRateControl.sv": "82a37ee72955f4e8af9516fab64071f6db806b07031aada04ef868f14407d77c",
+      "ClockRateControl_1.sv": "2989fd00dc55a7f50908654500203cc75e5bd692aa8aa3d05239497a81299bcc",
+      "ClockRateManagement.sv": "d30783108e1f7d37fe2c8bcd244792adfbc2bb765198caa56362023c0338f2f0",
+      "ClockRateManagementBoundary.sv": "87bbab2ab5a24637da18d1020c1da62af3e6bd47f6efc4dda221b5cdf2a91586",
+      "ClockRateRegisterRouter.sv": "8ab761dac289ecff0e8ce691977008f5d56d9052fcc5fe56e9de05e4354be055",
+      "PeripheralClockControl.sv": "70b36ba4d8f9a70b2caa978edcfe0e7da8f6dad99e3c765dfcb8a35fc1e23af1",
+      "Queue4_Bool.sv": "f8d43833000eafa9deb52284379c0c2f672693d578f2893d9c28e364950c225a",
+      "Queue4_ClockRateReply.sv": "cb768e794fb8d209d24be04b38c1fa2a832000e5c12121070b67a35b1d52c497",
+      "Queue4_RegisterResponse.sv": "ec08b709db9a1bd9eab176ebe0ce28b47721b27b157a1cfd9871a04c16dfbc7b",
+      "ram_4x1.sv": "aec0e74330dd13f95a68ade6aaae6cde16ee819e15f171f7aafe953c1aa867f9",
+      "ram_4x65.sv": "a509eee709208ab58bcd6908916f060032416dd597bde6fba40abb3139fe53dc",
+      "ram_4x67.sv": "b7e8f76308a4247cbf48e682d524129bd08ef9cb96b380e615b8ced06c8d1329",
+      "RegisterClockDomainBridge.sv": "35060bf69787ecb8ffdb7c39b03c563cd54ff36e267cfc47c8368033ffd396fa"
+    }
+  },
+  "native": {
+    "component-xsim-r1": {
+      "result": {
+        "result": "PASS",
+        "simulator": "native Vivado2025.2 xsim",
+        "dut": "actual ClockRateManagementBoundary and AON controllers",
+        "backend": "behavioral model, not vendor DRP or production quiesce integration",
+        "negative_oracle": "REJECTED",
+        "synthetic_qualification_flags": true,
+        "legacy_cmu_page_integrated": false,
+        "production_clock_backend_connected": false,
+        "physical_signoff": false,
+        "utc": "2026-10-21T10:43:53.3168667Z",
+        "aon_cycles": 764,
+        "mmio": 24,
+        "replies": 24,
+        "cases": 24,
+        "stopped": 237,
+        "stalled": 8,
+        "cpu_programs": 10,
+        "cpu_fallbacks": 4,
+        "fabric_programs": 1,
+        "owners": 15,
+        "completed_owners": 15
+      },
+      "files": {
+        "out\\cmu-frequency-r2\\component-xsim-r1\\compile.log": "af43fab58dea33d7896d9959bb53ac9bedeaf236f4b91925522d583ea24a2c55",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\cycle-result.json": "ce715d1116b5072651b8e38c5ca834b483a06955b34e2d1f1b6853ca818f7c9c",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\elaborate.log": "8c32458b50141855a9a7b098e11dbb50a3fa51e909ae3956f389cfa72952b633",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\negative-console.log": "677e766b903d7d988532cf8163628c22c5070191aec4a4178ed959696da51c37",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\negative-xsim.log": "d44a010c80e1f812305f80b581efacd125643f6fd66c552cc5edbca259c26557",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\positive-console.log": "521f0a17601eb2b5b409e6f0bb915ad9c4dc4f4b6ee408ed9762f44cd9d7be80",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\positive-xsim.log": "32bafb71556bac2a32852e8e3c5125a67d0a49f43f6612b68a6e4762dde549e7",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\run.tcl": "a9e98324ed94498ba523e8c29fea27a3a604350229cf693d1d594f7045f656e4",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\sources.f": "3940c88430195de63f614f7556b6379a64de268c1207842542a10c4b7acc33ad",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\xelab.log": "dfc1a650cef8ce602b4bb5546793f6e0ef0b5b7687314f7d612f32328d541eb7",
+        "out\\cmu-frequency-r2\\component-xsim-r1\\xvlog.log": "c041b3e2f84bd3c95b0ef53b7129c8b694a385f3e04a6d981d787b5ca77cc9b4"
+      }
+    },
+    "cmu-integrated-xsim-r2": {
+      "result": {
+        "result": "PASS",
+        "simulator": "native Vivado2025.2 xsim",
+        "dut": "actual ClockRateManagementBoundary and AON controllers",
+        "backend": "behavioral model, not vendor DRP or production quiesce integration",
+        "negative_oracle": "REJECTED",
+        "synthetic_qualification_flags": true,
+        "legacy_cmu_page_integrated": true,
+        "production_clock_backend_connected": false,
+        "physical_signoff": false,
+        "utc": "2026-10-21T10:44:36.1694705Z",
+        "aon_cycles": 846,
+        "mmio": 32,
+        "replies": 32,
+        "cases": 32,
+        "stopped": 237,
+        "stalled": 8,
+        "cpu_programs": 10,
+        "cpu_fallbacks": 4,
+        "fabric_programs": 1,
+        "owners": 15,
+        "completed_owners": 15
+      },
+      "files": {
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\clock-rate-integrated-tb.sv": "bd7f7e8ae128e6c17e64b6164b1eba6878d98c8cca098e4121e61d07166830df",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\compile.log": "50420edf3b2686f3f52ba8983dca363770c72b78020b9fdde385007bf22d51e1",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\cycle-result.json": "d7061977b28d0a2dd51b5c6cd70c418a78119a712a44ec4bc63dc197dd41a0a8",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\elaborate.log": "39547f048febeded2fb2e3b1bf0355add837cbec754d8fb56f200c4490fc9bea",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\negative-console.log": "610f0f8322537e02435392999706a041d736d90709f02cec94aae9c311915142",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\negative-xsim.log": "684a2744e352bf46de82537f62c141ec005f8d9a1a10a6894105e4785c23b32c",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\positive-console.log": "0ac821fc84f20413852d6afac9dc383d4d0c13bc1728f302c63462850b93bde9",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\positive-xsim.log": "5234a0ecc76c62148f9d3e0d9d224d7081a745d14a8ad83bcac081ccfaf5a9ac",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\run.tcl": "a9e98324ed94498ba523e8c29fea27a3a604350229cf693d1d594f7045f656e4",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\sources.f": "3b906e695d5fc3069fc0c5b16136673dd893dd741d86fc489f1003162662423f",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\xelab.log": "93d9ca045864990570c98bc7edb5e8339113eb3bde3a979a13b6fd8c88db54f6",
+        "out\\cmu-frequency-r2\\cmu-integrated-xsim-r2\\xvlog.log": "ca4d6675590d7fdf1a53fc2170198a1c09536f309d80f5468c89e161e5eb8a7d"
+      }
+    }
+  },
+  "failed_preserved_attempt": {
+    "path": "out/cmu-frequency-r2/cmu-integrated-xsim-r1",
+    "reason": "Windows batch macro argument interpreted as filename; fixed runner writes local preprocessor wrapper; no RTL change"
+  },
+  "production_connected": [
+    "CommonMachinePlatform -> ManagedPeripheralBank optional rate decoder",
+    "ordered source-domain owner router",
+    "existing legacy CMU and new AON rate boundary"
+  ],
+  "not_connected": [
+    "real CPU/fabric owner/drain endpoints",
+    "clock gate/lock/progress feedback",
+    "MMCM DRP backend",
+    "fabric-DDR AXI CDC",
+    "fixed timebase separation"
+  ],
+  "production_backend_present": false,
+  "production_qualified_points": [],
+  "production_clock_rates_unchanged": true,
+  "physical_signoff": false
+}

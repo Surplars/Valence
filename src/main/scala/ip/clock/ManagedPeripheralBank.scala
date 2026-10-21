@@ -15,9 +15,10 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
     val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false,
-    sourceClockHz: Int = 0) extends RawModule {
+    sourceClockHz: Int = 0, rateDomains: Option[Seq[ClockRateParams]] = None) extends RawModule {
     // CPU metadata and the actual MMIO/control source domain are independent.
     require(sourceClockHz >= 0)
+    require(rateDomains.forall(_.size == 2))
     private val busHz = if (sourceClockHz > 0) sourceClockHz else cpuHz
     require(!balancedRawClocks || (hardwareClocks && triSpeedEthernet))
     require(!(triSpeedRawClockHandoff && balancedRawClocks),
@@ -59,11 +60,29 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     val enabled = IO(Output(UInt(7.W)))
     val quiesce = IO(Output(UInt(7.W)))
     val isolate = IO(Output(UInt(7.W)))
+    val rateEndpoints = rateDomains.map(_ => IO(Vec(2, new ClockRateEndpoint)))
+    val rateStatus = rateDomains.map(_ => IO(Output(Vec(2, new ClockRateStatus))))
     val cmu = Module(new ClockManagementBoundary(config))
     cmu.sourceClock := sourceClock
     cmu.alwaysOnClock := alwaysOnClock
     cmu.commonReset := commonReset
-    cmu.registers <> cmuRegisters
+    rateDomains match {
+        case None => cmu.registers <> cmuRegisters
+        case Some(params) =>
+            val release = Module(new CdcResetRelease)
+            release.clockIn := sourceClock; release.asyncReset := commonReset
+            val router = withClockAndReset(sourceClock, release.resetOut) {
+                Module(new ClockRateRegisterRouter(config.base + 0x800))
+            }
+            val rateCmu = Module(new ClockRateManagementBoundary(params, config.base + 0x800))
+            rateCmu.sourceClock := sourceClock; rateCmu.alwaysOnClock := alwaysOnClock
+            rateCmu.commonReset := commonReset
+            router.io.upstream <> cmuRegisters
+            cmu.registers <> router.io.legacy
+            rateCmu.registers <> router.io.rates
+            rateEndpoints.get <> rateCmu.endpoints
+            rateStatus.get := rateCmu.status
+    }
     cmuIrq := cmu.irq
     for (n <- Seq(0, 1, 2, 4)) { cmu.resources(n).ack := false.B; cmu.resources(n).wake := false.B }
     val uart = Module(new ManagedUart(busHz, uartHz, config.alwaysOnHz, baud, hardwareClocks,

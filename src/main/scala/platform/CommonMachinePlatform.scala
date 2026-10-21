@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import soc.ip.axi.Axi4MemoryPort
 import soc.ip.bus.CdcResetRelease
-import soc.ip.clock.ManagedPeripheralBank
+import soc.ip.clock.{ClockRateParams, ManagedPeripheralBank}
 import soc.ip.debug.DebugDmiPort
 
 class CommonRetireTrace extends Bundle {
@@ -100,10 +100,23 @@ class CommonMachinePlatform(
     val peripherals = Module(new ManagedPeripheralBank(profile.cmu, profile.cpuHz, profile.uartHz,
         profile.uartBaud, hardwareClocks, networkDmaConfig = profile.fpga.network,
         triSpeedEthernet = true, triSpeedTxFrameSlots = 2,
-        sourceClockHz = profile.fabricHz))
+        sourceClockHz = profile.fabricHz, rateDomains = Some(Seq(
+            ClockRateParams(), ClockRateParams(maximumHz = 150000000L)))))
     peripherals.sourceClock := fabricClock; peripherals.alwaysOnClock := alwaysOnClock
     peripherals.rawUartClock := rawUartClock; peripherals.rawTxClock := rawTxClock
     peripherals.rawRxClock := rawRxClock; peripherals.commonReset := commonColdReset
+    // Production CMU extension is discoverable, but no clock backend or real
+    // CPU/fabric quiesce endpoint is connected yet. Explicit absence rejects
+    // every rate write; it must not turn a test ACK into a live clock command.
+    peripherals.rateEndpoints.get.foreach { endpoint =>
+        endpoint.present := false.B
+        endpoint.drainAcks := 0.U
+        endpoint.gateClosed := false.B; endpoint.gateOpen := false.B
+        endpoint.locked := false.B; endpoint.resumed := false.B
+        endpoint.program.ready := false.B
+        endpoint.result.valid := false.B
+        endpoint.result.bits := 0.U.asTypeOf(endpoint.result.bits)
+    }
     peripherals.cmuRegisters <> fabric.io.clockManagementRegisters.get
     peripherals.uartRegisters <> fabric.io.externalUartRegisters.get
     peripherals.gmacRegisters <> fabric.io.ethernetRegisters.get

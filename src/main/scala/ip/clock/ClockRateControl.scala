@@ -80,10 +80,10 @@ class ClockRateControl(p: ClockRateParams) extends Module {
     errors := (errors & ~io.clearErrors) | events.asUInt.pad(32)
     val exists = p.points.map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
     val allowed = p.points.filter(_.allowed).map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
-    io.requestError := Mux(state =/= idle, (1 << ClockRateError.Busy).U,
+    io.requestError := Mux(!io.endpoint.present, (1 << ClockRateError.BackendAbsent).U,
+        Mux(state =/= idle, (1 << ClockRateError.Busy).U,
         Mux(!exists, (1 << ClockRateError.Unsupported).U,
-            Mux(!allowed, (1 << ClockRateError.Unverified).U,
-                Mux(!io.endpoint.present, (1 << ClockRateError.BackendAbsent).U, 0.U))))
+            Mux(!allowed, (1 << ClockRateError.Unverified).U, 0.U))))
     when(io.submit.valid) {
         request := io.submit.bits
         for (bit <- 0 to ClockRateError.BackendAbsent) {
@@ -142,7 +142,7 @@ class ClockRateControl(p: ClockRateParams) extends Module {
         stable := Mux(io.endpoint.present && io.endpoint.locked, stable + 1.U, 0.U)
         when(io.endpoint.present && io.endpoint.locked && stable === (p.stableCycles - 1).U) {
             actual := target; next := opening
-        }.elsewhen(expired) { recover(ClockRateError.LockTimeout) }
+        }.elsewhen(expired && io.endpoint.present) { recover(ClockRateError.LockTimeout) }
     }
     when(state === opening) {
         when(io.endpoint.gateOpen && io.endpoint.locked) { next := resuming }
@@ -157,11 +157,13 @@ class ClockRateControl(p: ClockRateParams) extends Module {
             transactionFailed := true.B; next := failed
         }
     }
-    when(state =/= next || state === idle || state === waitReply) { timer := 0.U; stable := 0.U }
+    when(state =/= next || state === idle || state === waitReply || (booting && !io.endpoint.present)) {
+        timer := 0.U; stable := 0.U
+    }
         .otherwise { when(timer < p.timeoutCycles.U) { timer := timer + 1.U } }
     io.requestedHz := request; io.targetHz := target; io.actualHz := actual
     io.actualValid := (state === idle || state === waitReply || state === draining ||
-        (state === resuming && !everGated)) && io.endpoint.locked && io.endpoint.gateOpen
+        (state === resuming && !everGated)) && io.endpoint.present && io.endpoint.locked && io.endpoint.gateOpen
     io.busy := state =/= idle; io.state := state; io.errors := errors
     io.completed := completed; io.lastSuccess := success
     when(!reset.asBool) {

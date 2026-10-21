@@ -1,18 +1,24 @@
 param(
  [Parameter(Mandatory=$true)][string]$VivadoBin,
  [Parameter(Mandatory=$true)][string]$DutDir,
- [Parameter(Mandatory=$true)][string]$Fixture
+ [Parameter(Mandatory=$true)][string]$Fixture,
+ [switch]$Integrated
 )
 $ErrorActionPreference='Stop'
 $dutPath=(Resolve-Path -LiteralPath $DutDir).Path
 $benchPath=Join-Path $PSScriptRoot 'clock-rate-component-tb.sv'
-if(!(Test-Path -LiteralPath (Join-Path $dutPath 'ClockRateManagementBoundary.sv'))){throw 'Emit ClockRateComponentMain first'}
+$top=if($Integrated){'ClockManagementWithRatesBoundary'}else{'ClockRateManagementBoundary'}
+if(!(Test-Path -LiteralPath (Join-Path $dutPath ($top+'.sv')))){throw 'Emit selected rate fixture first'}
 if(Test-Path -LiteralPath $Fixture){throw 'Preserve previous evidence; choose a fresh fixture directory'}
 New-Item -ItemType Directory -Path $Fixture | Out-Null
 Push-Location -LiteralPath (Resolve-Path -LiteralPath $Fixture).Path
 try {
  $sources=@(Get-ChildItem -LiteralPath $dutPath -Filter '*.sv' -File | Sort-Object Name | ForEach-Object {'"'+$_.FullName.Replace('\','/')+'"'})
- $sources+=('"'+$benchPath.Replace('\','/')+'"')
+ if($Integrated){
+  $localBench=Join-Path (Get-Location).Path 'clock-rate-integrated-tb.sv'
+  ('`define CLOCK_RATE_DUT ClockManagementWithRatesBoundary'+"`n"+'`define CLOCK_RATE_LEGACY_PAGE'+"`n"+(Get-Content -LiteralPath $benchPath -Raw)) | Set-Content -LiteralPath $localBench
+  $sources+=('"'+$localBench.Replace('\','/')+'"')
+ }else{ $sources+=('"'+$benchPath.Replace('\','/')+'"') }
  $sources | Set-Content sources.f
  "run all`nquit" | Set-Content run.tcl
  & (Join-Path $VivadoBin 'xvlog.bat') --sv -f sources.f *> compile.log
@@ -28,7 +34,7 @@ try {
  $summary=[regex]::Match($positive,'RATE_COMPONENT_PASS[^\r\n]+').Value
  $result=[ordered]@{result='PASS';simulator='native Vivado2025.2 xsim';dut='actual ClockRateManagementBoundary and AON controllers';
   backend='behavioral model, not vendor DRP or production quiesce integration';negative_oracle='REJECTED';
-  synthetic_qualification_flags=$true;production_platform_connected=$false;physical_signoff=$false;
+  synthetic_qualification_flags=$true;legacy_cmu_page_integrated=[bool]$Integrated;production_clock_backend_connected=$false;physical_signoff=$false;
   utc=[DateTime]::UtcNow.ToString('o')}
  foreach($m in [regex]::Matches($summary,'(\w+)=(\d+)')){$result[$m.Groups[1].Value]=[int]$m.Groups[2].Value}
  $result | ConvertTo-Json | Set-Content cycle-result.json

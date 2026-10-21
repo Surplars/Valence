@@ -85,7 +85,7 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
             c.io.endpoint.gateOpen, c.io.endpoint.gateClosed, c.io.endpoint.locked,
             c.io.endpoint.isolate, c.io.endpoint.quiesce, c.io.endpoint.clockEnable, c.io.actualValid, c.io.busy)
         readData(n) := MuxLookup(offset, 0.U(64.W))(Seq(
-            0.U -> c.io.requestedHz.pad(64), 1.U -> c.io.actualHz.pad(64), 2.U -> status.pad(64),
+            0.U -> c.io.requestedHz.pad(64), 1.U -> Mux(c.io.actualValid, c.io.actualHz.pad(64), 0.U), 2.U -> status.pad(64),
             3.U -> c.io.errors.pad(64), 4.U -> c.io.targetHz.pad(64), 5.U -> domains(n).bootHz.U(64.W),
             6.U -> index(n).pad(64), 7.U -> pointHz, 8.U -> pointFlags, 9.U -> domains(n).timeoutCycles.U(64.W),
             10.U -> c.io.completed.pad(64), 11.U -> c.io.state.pad(64), 12.U -> domains(n).maximumHz.U(64.W),
