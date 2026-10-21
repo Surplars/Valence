@@ -10,7 +10,7 @@ import unittest
 
 HERE = Path(__file__).parent
 EXPECTED = {'diagnostic.tcl': 2, 'producer_common.tcl': 2,
-            'synthesize.tcl': 1, 'resume_diagnostic.tcl': 1, 'board_audit.tcl': 1, 'simulate.tcl': 1, 'signoff.tcl': 1}
+            'resume_cached_post_opt.tcl': 1, 'synthesize.tcl': 1, 'resume_diagnostic.tcl': 1, 'board_audit.tcl': 1, 'simulate.tcl': 1, 'signoff.tcl': 1}
 
 
 class PythonIsolationTests(unittest.TestCase):
