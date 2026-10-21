@@ -1,0 +1,32 @@
+{
+  "counts": {
+    "SIGNAL": 1944,
+    "UNCONNECTED": 1111
+  },
+  "alias_count": 2,
+  "aliases": [
+    {
+      "bit": "u_soc/crossing/crossing_1/empty_fifo_4/destination_bits",
+      "drivers": [
+        "u_soc/crossing/crossing_1/empty_fifo_4/output_0_reg/Q"
+      ],
+      "ref": "FDRE"
+    },
+    {
+      "bit": "u_soc/crossing/crossing_2/empty_fifo_4/destination_bits",
+      "drivers": [
+        "u_soc/crossing/crossing_2/empty_fifo_4/output_0_reg/Q"
+      ],
+      "ref": "FDRE"
+    }
+  ],
+  "source_commit": "76c7d983c08caca4610b9399b1d446fd262ab2c4",
+  "linked_dcp_sha256": "d784761defde61dd7f8d30b3e1e4c48ea76c72286d82211177d2a13637f26cda",
+  "lanes": 26,
+  "missing_example": {
+    "port": "u_soc/crossing/crossing_1/empty_fifo/destination_bits[0]",
+    "kind": "UNCONNECTED",
+    "replacement_capture": null
+  },
+  "scope": "Actual output-driver census only; complete native payload/RAM/clock proof follows"
+}

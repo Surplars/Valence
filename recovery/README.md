@@ -196,3 +196,17 @@ unknown IO roles or nonzero clock coverage fail. Final board signoff and all res
 protocol review remain separate; no bit or download exists in this entry. This
 new diagnostic mode is prepared and parser/negative controls pass, but its native
 implementation run has not yet completed.
+
+
+One batch inspected all26 Held lanes in the frozen new netlist:1944 real FF-driven
+outputs,1111 genuinely unconnected outputs, and two scalar1-bit output registers.
+The missing indexed output0 was an unconnected port, not a functional wiring gap
+or a renamed active FF. The collector now records unconnected outputs, follows the
+actual owned Q driver for live outputs (including scalar form), and preserves the
+same per-bit RAM/source-clock/read-address proof and min-period payload budget.
+Entirely nonobservable payloads additionally require no live source-data consumer,
+no RAM/payload storage, and a complete local control-state census. Gray constraints
+remain mandatory. Unknown storage/state/source-data consumers still reject.
+All lane failures are now collected in one read-only pass, before any CDC exception
+is applied, preventing one failed old name from hiding other lane discrepancies.
+See held-output-mapping-evidence.json. Native implementation remains pending.

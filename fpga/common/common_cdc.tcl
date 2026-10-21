@@ -155,10 +155,20 @@ proc common_cdc::payload_absent {h} {
     # storage, with a complete local control-state census, remove payload scopes.
     set cell [one get_cells $h]
     if {![string match HeldResponseCdcDataFifo* [get_property REF_NAME $cell]]} {return 0}
-    foreach prefix {source_bits destination_bits} {
-        if {[llength [get_pins -quiet -of_objects $cell -filter "REF_PIN_NAME =~ $prefix*"]]} {return 0}
+    set destination_bits [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME =~ destination_bits*}]
+    foreach bit $destination_bits {
+        set nets [get_nets -quiet -segments -of_objects $bit]
+        if {![llength $nets]} {continue}
+        if {[catch {constant [get_property NAME $bit] 0}] && [catch {constant [get_property NAME $bit] 1}]} {return 0}
     }
-    if {[llength [get_cells -quiet -hier -filter "NAME =~ $h/storage_ext*"]]} {return 0}
+    set source_bits [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME =~ source_bits*}]
+    if {[llength $source_bits]} {
+        set dynamic {}
+        foreach n [get_nets -quiet -segments -of_objects $source_bits] {
+            if {[get_property TYPE $n] ni {GROUND POWER}} {lappend dynamic $n}
+        }
+        if {[llength $dynamic] && [llength [get_pins -quiet -leaf -of_objects $dynamic -filter "DIRECTION == IN && NAME =~ $h/*"]]} {return 0}
+    }
     set src [clock $h/sourceClock];set dst [clock $h/destinationClock];set count 0
     foreach c [get_cells -quiet -hier -filter "IS_PRIMITIVE == TRUE && NAME =~ $h/*"] {
         set name [get_property NAME $c];set ref [get_property REF_NAME $c]
@@ -177,7 +187,7 @@ proc common_cdc::payload_absent {h} {
         } elseif {$ref ni {GND VCC CARRY4 CARRY8 MUXF7 MUXF8 MUXF9} && ![regexp {^LUT[1-6]$} $ref]} {return 0}
     }
     if {!$count} {return 0}
-    puts "COMMON_PAYLOAD_ABSENT_PROVED fifo=$h no_source_bits=1 no_destination_bits=1 no_storage=1 control_ff=$count GRAY_SCOPES_STILL_REQUIRED"
+    puts "COMMON_PAYLOAD_ABSENT_PROVED fifo=$h no_live_source_data_load=1 no_observable_destination_data=1 no_payload_storage=1 control_ff=$count GRAY_SCOPES_STILL_REQUIRED"
     return 1
 }
 proc common_cdc::payload {h} {
@@ -193,13 +203,17 @@ proc common_cdc::payload {h} {
     one get_cells $h/pending_reg; bank $h/heldAddress_reg 4
     set bits [get_pins -of_objects [one get_cells $h] -filter {REF_PIN_NAME =~ destination_bits*}]
     if {![llength $bits]} {error "COMMON_PAYLOAD missing destination port $h"}
-    set starts {}; set ends {}; set by_end {}; set ordinary_by_end {}; set constant_bits {}
+    set starts {}; set ends {}; set by_end {}; set ordinary_by_end {}; set constant_bits {};set unused_bits {}
     foreach bit $bits {
         set bn [get_property REF_PIN_NAME $bit]
-        if {![regexp {^destination_bits\[([0-9]+)\]$} $bn -> i]} {error "COMMON_PAYLOAD unsupported bit name $bn"}
+        if {$bn eq {destination_bits} && [llength $bits]==1} {set i 0
+        } elseif {![regexp {^destination_bits\[([0-9]+)\]$} $bn -> i]} {error "COMMON_PAYLOAD unsupported bit name $bn"}
         set pn [get_property NAME $bit]
+        if {![llength [get_nets -quiet -segments -of_objects $bit]]} {lappend unused_bits $i;continue}
         if {![catch {constant $pn 0}] || ![catch {constant $pn 1}]} {lappend constant_bits $i; continue}
-        set capture [format {%s/output_0_reg[%d]} $h $i]; ff $capture $dst
+        set driver [drivers $pn]
+        if {[llength $driver]!=1 || ![regexp {^(.*)/Q$} [lindex $driver 0] -> capture] || [string first $h/output_0_reg $capture]!=0} {error "COMMON_PAYLOAD missing owned output FF driver $pn: $driver"}
+        ff $capture $dst
         if {[drivers $pn] ne [list $capture/Q]} {error "COMMON_PAYLOAD output is not held matching bit $pn"}
         set end $capture/D; set ramStarts {}; set ordinary {}
         foreach launch [all_fanin -flat -startpoints_only -to [one get_pins $end]] {
@@ -218,7 +232,8 @@ proc common_cdc::payload {h} {
         lappend ends $end; dict set by_end $end [lsort -unique $ramStarts]; dict set ordinary_by_end $end [lsort -unique $ordinary]
     }
     if {![llength $ends]} {error "COMMON_PAYLOAD active FIFO has no proved nonconstant storage $h"}
-    return [dict create label $h/payload starts [lsort -unique $starts] ends $ends second {} budget [budget $src $dst] skew 1 by_end $by_end ordinary_by_end $ordinary_by_end constant_bits $constant_bits]
+    puts "COMMON_PAYLOAD_ACTUAL_OUTPUTS fifo=$h asynchronous_capture_count=[llength [lsort -unique $ends]] unconnected_bits=[llength $unused_bits] constant_bits=[llength $constant_bits]"
+    return [dict create label $h/payload starts [lsort -unique $starts] ends [lsort -unique $ends] second {} budget [budget $src $dst] skew 1 by_end $by_end ordinary_by_end $ordinary_by_end constant_bits $constant_bits unused_bits $unused_bits]
 }
 proc common_cdc::inactive {fifo} {
     # An omitted source port is allowed only on a specialized preserved module
@@ -257,11 +272,18 @@ proc common_cdc::collect {{root u_soc/crossing}} {
         error "COMMON_CDC logical census changed/optimized: Held=[llength $held]/26 mailbox=$mailboxes legacy=$unknown; require reviewed constant-lane proof"
     }
     set ::common_cdc::inactive_scopes {}
+    set failures {}
     foreach h [lsort $held] {
-        if {[inactive $h] || [common_zero::prove $h]} {lappend ::common_cdc::inactive_scopes $h; puts "COMMON_CDC_PROVEN_INACTIVE $h"; continue}
-        foreach d {write captured} {lappend scopes [gray $h $d]}
-        if {![payload_absent $h]} {lappend scopes [payload $h]}
+        if {[catch {
+            if {[inactive $h] || [common_zero::prove $h]} {
+                lappend ::common_cdc::inactive_scopes $h;puts "COMMON_CDC_PROVEN_INACTIVE $h"
+            } else {
+                foreach d {write captured} {lappend scopes [gray $h $d]}
+                if {![payload_absent $h]} {lappend scopes [payload $h]}
+            }
+        } reason]} {lappend failures [list lane $h reason $reason];puts "COMMON_CDC_LANE_BLOCKED $h $reason"}
     }
+    if {[llength $failures]} {error "COMMON_CDC incomplete lane mappings: $failures"}
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
     foreach h [lsort $levels] {lappend scopes [level $h]}
     exported_idle_source $root cpuEmptyInFabric [clock $root/cpuClock] $root/cpuRelease/resetOut
