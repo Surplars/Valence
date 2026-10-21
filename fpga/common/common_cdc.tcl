@@ -105,6 +105,20 @@ proc common_cdc::level {path} {
     if {![llength $starts]} {error "COMMON_CDC empty scalar launch $path"}
     return [dict create label $path starts [lsort -unique $starts] ends [list $first/D] second [list $second] budget [lindex [lsort -real $periods] 0] skew 0]
 }
+proc common_cdc::constant_zero_level {path} {
+    # A literal zero with two INIT=0, clear-to-zero destination FFs cannot
+    # transition, even when reset release is arbitrary. No timing exception.
+    set stages [bank $path/stages_reg 2];lassign $stages first second
+    if {[catch {constant $first/D 0}]} {return 0}
+    set dst [clock $first/C];pair $first $second $dst
+    foreach c $stages {
+        if {[get_property INIT [one get_cells $c]] ni {0 1'b0}} {
+            error "COMMON_CDC constant-zero scalar has nonzero/unknown INIT: $c"
+        }
+    }
+    puts "COMMON_CDC_CONSTANT_ZERO_LEVEL $path clock=$dst INIT=0 FDCE_clear_zero=1 NO_TRANSITIONS_NO_EXCEPTION"
+    return 1
+}
 proc common_cdc::registered_level_source {path source_clock source_reset} {
     set first [format {%s/stages_reg[0]/D} $path]
     set direct [drivers $first]
@@ -304,9 +318,21 @@ proc common_cdc::collect {{root u_soc/crossing}} {
             }
         } reason]} {lappend failures [list lane $h reason $reason];puts "COMMON_CDC_LANE_BLOCKED $h $reason"}
     }
-    if {[llength $failures]} {error "COMMON_CDC incomplete lane mappings: $failures"}
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
-    foreach h [lsort $levels] {lappend scopes [level $h]}
+    foreach h [lsort $levels] {
+        if {[catch {level $h} result]} {
+            set original $result
+            if {[catch {constant_zero_level $h} inactive_result]} {
+                set result "$original; constant proof: $inactive_result"
+            } elseif {$inactive_result} {
+                lappend ::common_cdc::inactive_scopes $h
+                continue
+            }
+            lappend failures [list scalar $h reason $result]
+            puts "COMMON_CDC_SCALAR_BLOCKED $h $result"
+        } else {lappend scopes $result}
+    }
+    if {[llength $failures]} {error "COMMON_CDC incomplete lane/scalar mappings: $failures"}
     exported_idle_source $root cpuEmptyInFabric [clock $root/cpuClock] $root/cpuRelease/resetOut
     exported_idle_source $root fabricEmptyInCpu [clock $root/fabricClock] $root/fabricRelease/resetOut
     lappend scopes [mailbox [lindex $mailboxes 0]]

@@ -1,0 +1,161 @@
+{
+  "diagnostic_only": true,
+  "source_commit": "76c7d983c08caca4610b9399b1d446fd262ab2c4",
+  "scalar_count": 13,
+  "native_census": [
+    [
+      "scalar",
+      "u_soc/crossing/cpuEmptyInFabric_crossing",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/cpuEmptyInFabric_crossing starts u_soc/crossing/cpuEmptySource_reg/C ends {{u_soc/crossing/cpuEmptyInFabric_crossing/stages_reg[0]/D}} second {{u_soc/crossing/cpuEmptyInFabric_crossing/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/cpuLinkReady_crossing",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/cpuLinkReady_crossing starts {{u_soc/crossing/fabricRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/cpuLinkReady_crossing/stages_reg[0]/D}} second {{u_soc/crossing/cpuLinkReady_crossing/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing",
+      "status",
+      "1",
+      "result",
+      "COMMON_CDC empty scalar launch u_soc/crossing/cpu_softwareInterrupt_crossing"
+    ],
+    [
+      "first_pin",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/stages_reg[0]/D",
+      "net_types",
+      "GROUND",
+      "drivers",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/GND/G"
+    ],
+    [
+      "first_pin",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/stages_reg[0]/CE",
+      "net_types",
+      "POWER",
+      "drivers",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/VCC/P"
+    ],
+    [
+      "first_pin",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/stages_reg[0]/CLR",
+      "net_types",
+      "SIGNAL",
+      "drivers",
+      "{u_soc/crossing/cpuRelease/release_0_reg[2]/Q}"
+    ],
+    [
+      "first_pin",
+      "u_soc/crossing/cpu_softwareInterrupt_crossing/stages_reg[0]/C",
+      "net_types",
+      "GLOBAL_CLOCK",
+      "drivers",
+      "u_clk_wiz/inst/clkout1_buf/O"
+    ],
+    [
+      "first_ref",
+      "FDCE",
+      "first_init",
+      "1'b0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/cpu_timerInterrupt_crossing",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/cpu_timerInterrupt_crossing starts u_soc/fabric/timer/io_irq_REG_reg/C ends {{u_soc/crossing/cpu_timerInterrupt_crossing/stages_reg[0]/D}} second {{u_soc/crossing/cpu_timerInterrupt_crossing/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/fabricLinkReady_crossing",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/fabricLinkReady_crossing starts {{u_soc/crossing/cpuRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/fabricLinkReady_crossing/stages_reg[0]/D}} second {{u_soc/crossing/fabricLinkReady_crossing/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing/cpuReleasedInFabric",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing/cpuReleasedInFabric starts {{u_soc/crossing/crossing/cpuRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing/cpuReleasedInFabric/stages_reg[0]/D}} second {{u_soc/crossing/crossing/cpuReleasedInFabric/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing/fabricReleasedInCpu",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing/fabricReleasedInCpu starts {{u_soc/crossing/crossing/fabricRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing/fabricReleasedInCpu/stages_reg[0]/D}} second {{u_soc/crossing/crossing/fabricReleasedInCpu/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing_1/cpuReleasedInFabric",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing_1/cpuReleasedInFabric starts {{u_soc/crossing/crossing_1/cpuRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing_1/cpuReleasedInFabric/stages_reg[0]/D}} second {{u_soc/crossing/crossing_1/cpuReleasedInFabric/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing_1/fabricReleasedInCpu",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing_1/fabricReleasedInCpu starts {{u_soc/crossing/crossing_1/fabricRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing_1/fabricReleasedInCpu/stages_reg[0]/D}} second {{u_soc/crossing/crossing_1/fabricReleasedInCpu/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing_2/cpuReleasedInFabric",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing_2/cpuReleasedInFabric starts {{u_soc/crossing/crossing_2/cpuRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing_2/cpuReleasedInFabric/stages_reg[0]/D}} second {{u_soc/crossing/crossing_2/cpuReleasedInFabric/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/crossing_2/fabricReleasedInCpu",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/crossing_2/fabricReleasedInCpu starts {{u_soc/crossing/crossing_2/fabricRelease/release_0_reg[2]/C}} ends {{u_soc/crossing/crossing_2/fabricReleasedInCpu/stages_reg[0]/D}} second {{u_soc/crossing/crossing_2/fabricReleasedInCpu/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/time_0/ackSync",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/time_0/ackSync starts u_soc/crossing/time_0/ackToggle_reg/C ends {{u_soc/crossing/time_0/ackSync/stages_reg[0]/D}} second {{u_soc/crossing/time_0/ackSync/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "scalar",
+      "u_soc/crossing/time_0/requestSync",
+      "status",
+      "0",
+      "result",
+      "label u_soc/crossing/time_0/requestSync starts u_soc/crossing/time_0/requestToggle_reg/C ends {{u_soc/crossing/time_0/requestSync/stages_reg[0]/D}} second {{u_soc/crossing/time_0/requestSync/stages_reg[1]}} budget 3.333 skew 0"
+    ],
+    [
+      "all_scalar_failures",
+      "{u_soc/crossing/cpu_softwareInterrupt_crossing {COMMON_CDC empty scalar launch u_soc/crossing/cpu_softwareInterrupt_crossing}}"
+    ]
+  ],
+  "tests": [
+    "literal_zero_positive",
+    "dynamic_input_rejected",
+    "literal_one_rejected",
+    "nonzero_or_unknown_INIT_rejected",
+    "invalid_pair_rejected"
+  ],
+  "implementation": "r4 continues in the same open design; physical results pending"
+}
