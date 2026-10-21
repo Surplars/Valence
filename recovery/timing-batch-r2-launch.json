@@ -1,0 +1,28 @@
+{
+  "status": "SYNTHESIS_RUNNING_NOT_PHYSICALLY_VERIFIED",
+  "source_commit": "dd814d96c86f81c3e43ca343c85330f7edf038b6",
+  "profile_sha256": "cb1f4f8ecab63b5fda3d1fb28b1d4091f79b0c547b658bd6e2eeb304380dbb99",
+  "inputs": 237,
+  "build_directory": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2",
+  "synthesis_wrapper_pid": 48540,
+  "synthesis_session": 21099,
+  "automatic_continuation_session": 16424,
+  "functional_validation": [
+    "validation-packet-dma-control-batch.json",
+    "validation-store-clear-admission-batch.json"
+  ],
+  "baseline_routed_commit": "013396e8fe2b03d92791952514f0e26244f910ff",
+  "baseline_dcp_sha256": "a5567bf8c99bfa09098bc4653d1c9bf7e795be1233f16501237839ec27a95cd1",
+  "no_bitstream": true,
+  "cpu_mhz": 300,
+  "fabric_mhz": 250,
+  "utc": "2026-10-21T07:10:16.611200+00:00",
+  "sha256": {
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\synthesis-inputs.json": "98392003634079b0edcb04b2297dec0eb9e7ce699060d3297f8b36d79aefe238",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\synthesis-config.tcl": "d75d221a88d2c9d0e677b402389292d61e72554496a5477ecb78afb28ac4a4b1",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\synthesis-launch.json": "4ec414dba76705ea720a35c6b177e1b25f0c28cfecaa4be51f5cd85588043b6b",
+    "fpga\\common\\recovery_synthesize.tcl": "f2c0e85f20389703df708489207b49da72c4dbdd8da4761d6de9dbed1dd26df8",
+    "recovery\\continue-timing-batch.ps1": "937aead4c4adbf7acd812303129f0c398881442932ff3d09e22511017cbf8dce",
+    "recovery\\query-routed-timing-roots.tcl": "eda3b8b0c9c4ce3d14946484b6a11d2b3fcc59e55ee4b99ad0f9bdd6ab310208"
+  }
+}

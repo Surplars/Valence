@@ -32,6 +32,8 @@ if {[catch {
  }
  set rows {}
  foreach {name source destination} {
+  cpu_store_clear {u_soc/cpu/tile/core/addrPacket_address_reg[19]/C} {u_soc/crossing/fifo_4/writeBinary_reg[1]/D}
+  dma_rx_issued {u_soc/crossing/fifo_2/valid_reg/C} {u_soc/fabric/packetDma/rxIssued_reg[6]/CE}
   imsic_threshold {u_soc/cpu/tile/imsic/pending_0_0_reg[38]/C} {u_soc/cpu/tile/imsic/threshold_0_reg[4]/CE}
   fabric_ready {u_soc/crossing/fifo_2/destinationRelease/release_0_reg[2]/C} {u_soc/crossing/fifo_4/capturedBinary_reg[3]/CE}
   dcache_result {u_soc/cpu/tile/dcache/coherent/cache/hitBank_reg[0]/C} {u_soc/cpu/tile/dt/result_data_reg[47]/D}
