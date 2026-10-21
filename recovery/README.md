@@ -133,3 +133,20 @@ calibration MicroBlaze/LMB instances. Original XDCs are adapted to these exact
 instances and their existing U0 children; hierarchy is not fabricated. See
 `ip-scope-adaptation-evidence.json` and `validation-fresh-mapping-first.json`.
 The following mapping run remains explicitly unqualified until all gates pass.
+
+The next diagnostic passed management in both formal entries and proved the first
+two inactive lanes. CommonCDC remained blocked at the third instruction lane,
+whose emitted specialized module has no payload ports. The updated proof handles
+absent payload ports only while retaining no-RAM, full INIT-zero state induction
+and invariant-zero/unobserved valid requirements; live-state negative controls
+still reject. Real-netlist acceptance of that update is pending.
+
+Remaining coverage was 479 no-clock pins / 1179 internal endpoints, all in the
+imported debug hub. The retained original routed-DCP XDC already declares that
+exact USER1 BSCANE2 INTERNAL_TCK at50ns. `debug_hub_clock.tcl` restores that source
+only after exact primitive/unique-chain ownership checks, without path exceptions.
+Its provenance is in `debug-hub-clock-reference.json`; the following run is pending.
+An intermediate explicit clock-contract check stopped at the top raw-UART alias;
+the updated query checks actual connected net segments when the hierarchical pin
+has no direct clock object. It never creates a substitute UART clock.
+Diagnostic post_opt-entry execution does not imply opt_design has run.

@@ -21,6 +21,7 @@ set ::fixture_init {1'b0}
 set ::fixture_ref FDCE
 set ::fixture_valid fifo/state/Q
 set ::fixture_valid_disconnected 0
+set ::fixture_payload_absent 0
 proc get_cells {args} {
  if {[lsearch -exact $args -filter]>=0} {return fifo/state}
  if {[lsearch -exact $args -of_objects]>=0} {return [file dirname [lindex $args end]]}
@@ -41,7 +42,7 @@ proc get_pins {args} {
   set query [lindex $args [expr {$f+1}]]
   if {$query eq {REF_PIN_NAME == source_valid}} {return {}}
   if {$query eq {REF_PIN_NAME == destination_valid}} {return fifo/destination_valid}
-  if {$query eq {REF_PIN_NAME =~ destination_bits*}} {return fifo/destination_bits0}
+  if {$query eq {REF_PIN_NAME =~ destination_bits*}} {if {$::fixture_payload_absent} {return {}};return fifo/destination_bits0}
   if {$query eq {DIRECTION == OUT}} {
    set net [lindex $args [expr {[lsearch -exact $args -of_objects]+1}]]
    if {$net eq {valid_net}} {return $::fixture_valid}
@@ -75,4 +76,11 @@ set ::fixture_valid_disconnected 1
 assert {[common_zero::prove fifo]==1} {unobserved valid with invariant-zero state rejected}
 set ::fixture_ce SIGNAL
 assert {[common_zero::prove fifo]==0} {unobserved valid incorrectly waived live functional state}
+set ::fixture_ce GROUND
+set ::fixture_valid_disconnected 0
+set ::fixture_valid fifo/state/Q
+set ::fixture_payload_absent 1
+assert {[common_zero::prove fifo]==1} {absent payload with zero state/valid rejected}
+set ::fixture_ce SIGNAL
+assert {[common_zero::prove fifo]==0} {absent payload incorrectly waived live state}
 puts INACTIVE_ZERO_INDUCTION_POSITIVE_AND_NEGATIVE_CONTROLS_PASS_NOT_NETLIST_QUALIFIED

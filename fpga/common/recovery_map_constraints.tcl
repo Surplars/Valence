@@ -172,6 +172,10 @@ open_checkpoint $target
 puts "FRESH_MAPPING_TARGET $target"
 if {[catch {
  if {[llength $argv]!=6} {error {Required original IP implementation-constraint inventory missing}}
+ if {[lindex $argv 5] eq {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT}} {
+  if {[file tail $target] ne {ip-restored-unqualified.dcp}} {error {Wrong restored-IP checkpoint name}}
+  puts {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT_NO_IP_REPLAY}
+ } else {
  source [file normalize [lindex $argv 5]]
  foreach row $recovery_ip_xdc {
   lassign $row path ref cells order
@@ -201,6 +205,19 @@ if {[catch {
   read_xdc {*}$options $path
  }
  board_prep_save_checkpoint ip-restored-unqualified.dcp
+ }
+ foreach {pin expected} {u_soc/cpuClock 3.333 u_soc/fabricClock 4.0 u_soc/rawUartClock 20.0 u_soc/alwaysOnClock 20.0 u_ddr/c0_ddr4_ui_clk 4.0} {
+  set p [get_pins -quiet $pin]
+  if {[llength $p]!=1} {error "Restored actual clock pin absent/ambiguous: $pin"}
+  set c [get_clocks -quiet -of_objects $p]
+  if {![llength $c]} {set c [get_clocks -quiet -of_objects [get_nets -quiet -segments -of_objects $p]]}
+  if {[llength $c]!=1} {error "Restored actual clock absent/ambiguous at $pin count=[llength $c]"}
+  if {abs([get_property PERIOD $c]-$expected)>0.002} {error "Restored actual clock differs at $pin actual=[get_property PERIOD $c] expected=$expected"}
+  puts "ACTUAL_CLOCK_CONTRACT pin=$pin name=[get_property NAME $c] period=[get_property PERIOD $c]"
+ }
+ source [file join $valence(root) fpga common debug_hub_clock.tcl]
+ common_restore_debug_hub_clock zu15eg-existing-user1-debug-hub-tck50ns
+ report_io -file restored-io.rpt
  board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
  check_timing -verbose -file post-synth-coverage.rpt
  report_clocks -file post-synth-clocks.rpt
