@@ -1,0 +1,4 @@
+Production shared BootROM, uploaded unchanged as explicitly approved test dependency.
+Bytes: 69568
+SHA256: 9b7b73d044f0c6a457f5ed7c3ae2f332aa3b076d26ddf65bef577fe24278e80d
+This is the original unpadded firmware, not a bitstream or vendor IP. No new boot/board acceptance is implied.
