@@ -20,13 +20,15 @@ case class CommonCpuTilePortParams(
     scalarOwnerBits: Int = 4,
     maintenanceEpochBits: Int = 8,
     runtimeMaintenance: Boolean = false,
-    runtimeCancellation: Boolean = false
+    runtimeCancellation: Boolean = false,
+    runtimeInterruptHold: Boolean = false
 ) {
     require(coherent.addrWidth == 64 && coherent.dataWidth == 64 && coherent.sourceBits >= 3)
     require(homeAcquireEntries >= 2 && homeWritebackEntries >= 2)
     require((BigInt(1) << coherent.sinkBits) >= homeAcquireEntries)
     require(scalarOwnerBits >= 2 && maintenanceEpochBits >= 2)
     require(!runtimeCancellation || runtimeMaintenance)
+    require(!runtimeInterruptHold || runtimeCancellation)
     val coherentClients = 2
     val scalarPorts = 2
     val lineBytes = 64

@@ -21,7 +21,7 @@ module i1_runtime_epoch_tb;
     .io_cancel_valid(cancel_valid),.io_cancel_bits(cancel_bits),.io_cancel_ready(cancel_ready),
     .io_complete_valid(complete_valid),.io_complete_ready(complete_ready),
     .io_complete_bits_epoch(complete_epoch),.io_complete_bits_canceled(complete_canceled),
-    .io_externalStop(externalStop),.io_holdReleaseAck(holdReleaseAck),.io_holdCompletion(holdCompletion),
+    .io_sources(64'b0),.io_holdMsiReply(1'b0),.io_externalStop(externalStop),.io_holdReleaseAck(holdReleaseAck),.io_holdCompletion(holdCompletion),
     .io_releaseAckBlocked(releaseAckBlocked),.io_completionBlocked(completionBlocked),
     .io_tileHeld_valid(tileHeld_valid),.io_tileHeld_bits(tileHeld_bits),
     .io_fabricHeld_valid(fabricHeld_valid),.io_fabricHeld_bits(fabricHeld_bits),

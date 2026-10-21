@@ -223,7 +223,19 @@ class CommonMachineFabric(
     io.tile.softwareInterrupt := false.B // Existing MachineTimer has no software-interrupt register.
     io.tile.timeSnapshot := io.externalTimeSnapshot.getOrElse(timer.get.io.timeValue)
     val interrupts = Module(new CommonInterruptFabric())
-    io.tile.msi <> interrupts.io.msi
+    // Freeze new MSI admission from accepted external prepare through terminal
+    // consumption. A same-edge admission is an older accepted owner and drains.
+    // Pending APLIC events (including its outgoing queue) are never cleared.
+    val msiAdmissionIdle = if (boundary.runtimeInterruptHold) {
+        val msiAdmission = Module(new soc.ip.interrupt.MsiAdmissionBarrier)
+        msiAdmission.io.stop := externalOwned.get
+        msiAdmission.io.source <> interrupts.io.msi
+        io.tile.msi <> msiAdmission.io.destination
+        msiAdmission.io.idle
+    } else {
+        io.tile.msi <> interrupts.io.msi
+        true.B
+    }
     io.msiError := interrupts.io.msiError
 
     val uartCdc = if (peripheralClockHz > 0 && !externalUart) {
@@ -446,7 +458,8 @@ class CommonMachineFabric(
         sharedOwners === 0.U && bridgeOwners === 0.U &&
         !atomic.io.memory.request.valid && !atomic.io.memory.response.valid &&
         !bridge.io.data.request.valid && !bridge.io.data.response.valid
-    val interruptIdle = msiOwners === 0.U && !io.tile.msi.request.valid && !io.tile.msi.response.valid
+    val interruptIdle = msiOwners === 0.U && !io.tile.msi.request.valid && !io.tile.msi.response.valid &&
+        msiAdmissionIdle
     val transportsIdle = io.transportCpuEmptySynchronized && io.fabricTransportEmpty
     val producersDrained = nativeIdle && coherentIdleAll && fetchIdle && dmaIdle && transportsIdle
     // Register the transition: Home request-valid is itself admission-gated,

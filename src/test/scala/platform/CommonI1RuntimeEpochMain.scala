@@ -10,7 +10,8 @@ import soc.core.inorder.FiveStageRetire
   * No clock-gating, independent-clock CDC, DRP or FPGA timing qualification.
   */
 class CommonI1RuntimeEpochFixture extends Module {
-    val boundary = CommonCpuTilePortParams(runtimeMaintenance = true, runtimeCancellation = true)
+    val boundary = CommonCpuTilePortParams(runtimeMaintenance = true, runtimeCancellation = true,
+        runtimeInterruptHold = true)
     val p = CommonCpuProfile.I1.i1
     val io = IO(new Bundle {
         val start = Input(Bool())
@@ -20,6 +21,14 @@ class CommonI1RuntimeEpochFixture extends Module {
         val cancel = Flipped(Decoupled(UInt(8.W)))
         val complete = Decoupled(new CommonRuntimeCompletion(boundary))
         val externalStop = Input(Bool())
+        val sources = Input(UInt(64.W))
+        val holdMsiReply = Input(Bool())
+        val msiReplyBlocked = Output(Bool())
+        val msiAccepted = Output(UInt(32.W))
+        val msiReplied = Output(UInt(32.W))
+        val msiAccepted11 = Output(UInt(32.W))
+        val msiAccepted12 = Output(UInt(32.W))
+        val msiAccepted13 = Output(UInt(32.W))
         val holdReleaseAck = Input(Bool())
         val holdCompletion = Input(Bool())
         val releaseAckBlocked = Output(Bool())
@@ -43,6 +52,25 @@ class CommonI1RuntimeEpochFixture extends Module {
         externalDdr = false, romWords = 64, programmable = true, externalUart = false,
         ramResponseDelay = 7))
     fabric.io.tile <> tile.io.bus
+    // Independent test backpressure keeps a real accepted IMSIC reply owned.
+    fabric.io.tile.msi.response.valid := tile.io.bus.msi.response.valid && !io.holdMsiReply
+    tile.io.bus.msi.response.ready := fabric.io.tile.msi.response.ready && !io.holdMsiReply
+    io.msiReplyBlocked := tile.io.bus.msi.response.valid && io.holdMsiReply
+    val msiAccepted = RegInit(0.U(32.W))
+    val msiReplied = RegInit(0.U(32.W))
+    val msiIdentities = RegInit(VecInit(Seq.fill(3)(0.U(32.W))))
+    when(tile.io.bus.msi.request.fire) {
+        msiAccepted := msiAccepted + 1.U
+        for (i <- 0 until 3) {
+            when(tile.io.bus.msi.request.bits.data === (11 + i).U) {
+                msiIdentities(i) := msiIdentities(i) + 1.U
+            }
+        }
+    }
+    when(fabric.io.tile.msi.response.fire) { msiReplied := msiReplied + 1.U }
+    io.msiAccepted := msiAccepted; io.msiReplied := msiReplied
+    io.msiAccepted11 := msiIdentities(0); io.msiAccepted12 := msiIdentities(1); io.msiAccepted13 := msiIdentities(2)
+    assert(!fabric.io.msiError, "real MSI completion returned an error")
     // Test-only transparent backpressure on actual ReleaseAck and epoch replies.
     // Payload and accepted ownership are untouched; no response is manufactured.
     val releaseAckBlocked = (0 until boundary.coherentClients).map { i =>
@@ -75,7 +103,7 @@ class CommonI1RuntimeEpochFixture extends Module {
     io.trap := tile.io.trapTaken
     io.fabricIdle := fabric.io.allObligationsIdle
     fabric.io.timerTick := false.B
-    fabric.io.sources := 0.U
+    fabric.io.sources := io.sources(CommonPlatformAbi.interruptSources - 1, 0)
     fabric.io.uartRx := true.B
     val releases = RegInit(0.U(32.W))
     val acquires = RegInit(0.U(32.W))

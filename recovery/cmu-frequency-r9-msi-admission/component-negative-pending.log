@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/harness/msi_admission_barrier.sv:18: IMSIC architectural pending oracle mismatch cycle=116 accepted=1 issued=1 consumed=0
+       Time: 1226000  Scope: tb.check
