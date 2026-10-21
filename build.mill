@@ -1,4 +1,5 @@
 //| mvnDeps: ["org.chipsalliance:firtool-resolver_2.13:2.0.1"]
+//| mill-jvm-version: system
 
 import mill.*, scalalib.*
 

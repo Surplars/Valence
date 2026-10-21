@@ -1,0 +1,31 @@
+{
+  "status": "PASS_SOURCE_IDLE_EQUATIONS_AND_STRUCTURE",
+  "base_commit": "ba0842568dc74d261264e0f7b84c0cc221671469",
+  "persisted_base": "a49a28b1296d216770573f4b08585a24e1d2dfbe",
+  "source_sha256": {
+    "build.mill": "153c3e0f2e4a2151ea30bc3ae0b777288c2e4a6d62f66661d868c2aa5010c75e",
+    "src/main/scala/platform/CommonCpuClockBoundary.scala": "308480c5490e3c7932b34136fc297265a473d8867fc7593ca2e94de18c26b201",
+    "src/test/scala/platform/TransportEmptyAnnouncementSpec.scala": "c196dfc8c5a98160aab4bf8517a962985eaba0683128ca534e34e2b5dcdd66dd",
+    "fpga/common/common_cdc.tcl": "8fbf5c879d34b5254736e6222ef067e2e39392dcada4498de8aa1437e8f9542c",
+    "fpga/common/test_common_cdc.tcl": "056b5425e49bc33dd745dc19adf31e6760162cb28256df42b6ece9e8b5eef8a4"
+  },
+  "test_log_sha256": "f7e32f0ece31e1cfd319f1d7bad5ad45b3ac00143010a9503ea03e166a0a06cf",
+  "test_exit": {
+    "exit_code": 0,
+    "utc": "2026-10-21T01:05:44.5422178Z",
+    "hardware_simulation": false,
+    "implementation_started": false
+  },
+  "suites": [
+    "platform.TransportEmptyAnnouncementSpec",
+    "platform.CommonPlatformBoundarySpec",
+    "ip.TileLinkClockDomainBoundarySpec"
+  ],
+  "offer_combinations_per_direction": 8192,
+  "emitted_cone_valuations_total": 32768,
+  "tcl_negative_controls": "PASS_combinational_and_multiple_idle_drivers_rejected",
+  "hardware_simulation": false,
+  "physical_qualification": false,
+  "old_r2_or_r6_results_inherited": false,
+  "full_board_preparation": "BLOCKED_at_old_DCP_inactive_lane_proof"
+}

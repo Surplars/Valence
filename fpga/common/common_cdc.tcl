@@ -104,6 +104,24 @@ proc common_cdc::level {path} {
     if {![llength $starts]} {error "COMMON_CDC empty scalar launch $path"}
     return [dict create label $path starts [lsort -unique $starts] ends [list $first/D] second [list $second] budget [lindex [lsort -real $periods] 0] skew 0]
 }
+proc common_cdc::registered_level_source {path source_clock source_reset} {
+    set first [format {%s/stages_reg[0]/D} $path]
+    set direct [drivers $first]
+    if {[llength $direct]!=1 || ![regexp {^(.*)/Q$} [lindex $direct 0] -> launch]} {
+        error "COMMON_CDC idle announcement requires one direct source FF Q: $path"
+    }
+    ff $launch $source_clock
+    set cell [one get_cells $launch]
+    if {[get_property REF_NAME $cell] ne "FDCE" || [get_property INIT $cell] ni {0 1'b0}} {
+        error "COMMON_CDC idle announcement must be a reset-low source FF: $path"
+    }
+    constant $launch/CE 1
+    same_net $launch/CLR $source_reset
+    if {[loads $launch/Q] ne [list $first]} {
+        error "COMMON_CDC idle source Q must feed only its first synchronizer stage: $path"
+    }
+    puts "COMMON_EMPTY_SOURCE_REGISTERED $path launch=$launch clock=$source_clock NO_CDC_WAIVER"
+}
 proc common_cdc::mailbox {h} {
     set src [clock $h/sourceClock]; set dst [clock $h/destinationClock]
     set starts {}; set ends {}; set held [bank $h/held_reg 64]; set captured [bank $h/captured_reg 64]
@@ -198,6 +216,8 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     }
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
     foreach h [lsort $levels] {lappend scopes [level $h]}
+    registered_level_source $root/cpuEmptyInFabric_crossing [clock $root/cpuClock] $root/cpuRelease/resetOut
+    registered_level_source $root/fabricEmptyInCpu_crossing [clock $root/fabricClock] $root/fabricRelease/resetOut
     lappend scopes [mailbox [lindex $mailboxes 0]]
     # Every retained stage0 bank must be covered, including future new channels.
     set covered {}; foreach s $scopes {foreach p [dict get $s ends] {lappend covered $p}}

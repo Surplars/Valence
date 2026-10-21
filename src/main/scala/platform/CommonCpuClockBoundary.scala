@@ -40,6 +40,8 @@ class CommonCpuClockBoundary(p: CommonCpuTilePortParams = CommonCpuTilePortParam
     cpuLinkReady := !cpuRelease.resetOut.asBool && level(!fabricRelease.resetOut.asBool, inCpu = true)
     fabricLinkReady := !fabricRelease.resetOut.asBool && level(!cpuRelease.resetOut.asBool, inCpu = false)
     private val empties = scala.collection.mutable.ArrayBuffer.empty[(Bool, Bool)]
+    private val cpuOutboundOffers = scala.collection.mutable.ArrayBuffer.empty[Bool]
+    private val fabricOutboundOffers = scala.collection.mutable.ArrayBuffer.empty[Bool]
     private def forward[T <: Data](input: DecoupledIO[T], output: DecoupledIO[T], toFabric: Boolean): Unit = {
         val fifo = Module(new HeldResponseCdcDataFifo(input.bits.getWidth, depth))
         fifo.sourceClock := (if (toFabric) cpuClock else fabricClock)
@@ -53,6 +55,7 @@ class CommonCpuClockBoundary(p: CommonCpuTilePortParams = CommonCpuTilePortParam
         output.valid := fifo.destination.valid && destinationReady
         output.bits := fifo.destination.bits.asTypeOf(output.bits)
         fifo.destination.ready := output.ready && destinationReady
+        if (toFabric) cpuOutboundOffers += input.valid else fabricOutboundOffers += input.valid
         empties += (if (toFabric) (fifo.sourceIdle, fifo.destinationIdle)
             else (fifo.destinationIdle, fifo.sourceIdle))
     }
@@ -62,6 +65,8 @@ class CommonCpuClockBoundary(p: CommonCpuTilePortParams = CommonCpuTilePortParam
         crossing.cpuClock := cpuClock; crossing.fabricClock := fabricClock
         crossing.commonColdReset := commonColdReset
         crossing.cpu <> input; output <> crossing.fabric
+        cpuOutboundOffers ++= Seq(input.a.valid, input.c.valid, input.e.valid)
+        fabricOutboundOffers ++= Seq(output.b.valid, output.d.valid)
         empties += ((crossing.cpuTransportEmpty, crossing.fabricTransportEmpty))
     }
     coherent(cpu.instructionFetch, fabric.instructionFetch, p.instruction)
@@ -96,6 +101,23 @@ class CommonCpuClockBoundary(p: CommonCpuTilePortParams = CommonCpuTilePortParam
     }
     cpuTransportEmpty := cpuLinkReady && empties.map(_._1).reduce(_ && _)
     fabricTransportEmpty := fabricLinkReady && empties.map(_._2).reduce(_ && _)
-    cpuEmptyInFabric := level(cpuTransportEmpty, inCpu = false)
-    fabricEmptyInCpu := level(fabricTransportEmpty, inCpu = true)
+    // Keep the local empty/owner/drain observations unchanged. Only the level
+    // exported across clocks is registered in its source domain. Include raw
+    // offers, even while stalled: an enqueue on an initially-empty FIFO must
+    // cancel the announcement on that same source edge, before pointer-empty
+    // changes become visible. Periodic time snapshots remain excluded as above.
+    private val cpuOutboundValid = cpuOutboundOffers.reduce(_ || _)
+    private val fabricOutboundValid = fabricOutboundOffers.reduce(_ || _)
+    private val cpuEmptySource = withClockAndReset(cpuClock, cpuRelease.resetOut) {
+        val announced = RegInit(false.B)
+        announced := cpuTransportEmpty && !cpuOutboundValid
+        announced
+    }
+    private val fabricEmptySource = withClockAndReset(fabricClock, fabricRelease.resetOut) {
+        val announced = RegInit(false.B)
+        announced := fabricTransportEmpty && !fabricOutboundValid
+        announced
+    }
+    cpuEmptyInFabric := level(cpuEmptySource, inCpu = false)
+    fabricEmptyInCpu := level(fabricEmptySource, inCpu = true)
 }
