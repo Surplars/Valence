@@ -10,10 +10,12 @@ set valence(diagnostic_families) [expr {[llength $argv]>4 && [lindex $argv 4] eq
 set ::board_prep_failures {}
 cd $valence(out)
 set_param general.maxThreads 8
-foreach cmd {synth_design opt_design place_design route_design write_bitstream write_checkpoint upgrade_ip generate_target} {
+foreach cmd {synth_design opt_design place_design route_design write_bitstream upgrade_ip generate_target} {
  rename $cmd forbidden_$cmd
  proc $cmd {args} {error {BOARD_CONSTRAINT_PREPARATION_ONLY}}
 }
+rename write_checkpoint board_prep_save_checkpoint
+proc write_checkpoint {args} {error {BOARD_CONSTRAINT_DIAGNOSTIC_NO_QUALIFIED_CHECKPOINT}}
 proc common_json {s} {return "\"[string map [list \\ \\\\ \" \\\" \n \\n \r \\r \t \\t] $s]\""}
 proc common_log {name text} {set f [open [file join $::valence(out) $name] w];puts $f $text;close $f}
 namespace eval board_prep {}
@@ -44,8 +46,11 @@ proc board_prep::objects {kind names} {
    if {![dict exists $pins $name]} {
     # Rare launch/reset objects outside the cached boundary: direct full-name
     # lookup, never a -hier traversal. Preserve exact NAME equality.
-    set literal [regsub -all {[][{}().+*?^$|\\]} $name {\\&}]
-    set o [get_pins -quiet $literal]
+    set slash [string last / $name]
+    set owner [string range $name 0 [expr {$slash-1}]]
+    set tail [string range $name [expr {$slash+1}] end]
+    if {![dict exists $cells $owner]} {error "Missing exact cached pin owner $owner"}
+    set o [get_pins -quiet -of_objects [dict get $cells $owner] -filter "REF_PIN_NAME == $tail"]
     if {[llength $o]!=1 || [get_property NAME $o] ne $name} {error "Missing exact formal pin $name"}
     dict set pins $name [lindex $o 0]
    }
@@ -173,16 +178,29 @@ if {[catch {
   set options {}
   if {$ref ne {}} {
    set instances [get_cells -quiet -hier -filter "REF_NAME == $ref"]
-   if {![llength $instances]} {error "Original IP constraint reference absent: $ref"}
+   set adapted 0
+   if {![llength $instances]} {
+    set alternatives [get_cells -quiet -hier -filter "ORIG_REF_NAME == $ref"]
+    if {[llength $alternatives]!=1} {error "Original IP reference absent/ambiguous, including ORIG_REF_NAME: $ref"}
+    set instances $alternatives;set adapted 1
+    puts "IP_SCOPE_ADAPTED original_ref=$ref actual_ref=[get_property REF_NAME $instances] actual_instance=[get_property NAME $instances] evidence=exact_unique_ORIG_REF_NAME"
+   }
    foreach instance $instances {
     if {$cells ne {} && ![llength [get_cells -quiet [get_property NAME $instance]/$cells]]} {error "Original IP constraint child absent: $instance/$cells"}
    }
-   lappend options -ref $ref
-   if {$cells ne {}} {lappend options -cells $cells}
+   if {$adapted} {
+    set target_instance [get_property NAME $instances]
+    if {$cells ne {}} {append target_instance / $cells}
+    lappend options -cells $target_instance
+   } else {
+    lappend options -ref $ref
+    if {$cells ne {}} {lappend options -cells $cells}
+   }
   }
   puts "RESTORE_ORIGINAL_IP_XDC order=$order ref=$ref cells=$cells path=$path"
   read_xdc {*}$options $path
  }
+ board_prep_save_checkpoint ip-restored-unqualified.dcp
  board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
  check_timing -verbose -file post-synth-coverage.rpt
  report_clocks -file post-synth-clocks.rpt

@@ -1,0 +1,30 @@
+{
+  "production_source_commit": "28e2abd0b0a9b893de62ff49a25b1ce0d3694ead",
+  "new_linked_dcp_sha256": "66d8f67d8315c89a6c74771224be83bbc2ed0be6de111e4676075f5afdf36c48",
+  "status": "BLOCKED_DIAGNOSTIC_ONLY",
+  "observed_clocks_ns": {
+    "cpu": 3.333,
+    "fabric_ddr_ui": 4.0,
+    "uart_aon": 20.0,
+    "rgmii_rx": 8.0,
+    "user2_tck": 50.0
+  },
+  "clock_report_sha256": "1deee992cd2b245c3b70430730294af525bbafa76fe8eda21c9eac20cb070d20",
+  "media_and_bscan_entries_executed": true,
+  "inductive_zero_state_proved": [
+    {
+      "fifo": "u_soc/crossing/crossing/empty_fifo",
+      "functional_ff": 36,
+      "external_inputs": "arbitrary",
+      "reset_release_state": "arbitrary"
+    }
+  ],
+  "remaining_at_this_run": [
+    "original scoped IP REF_NAME renamed with exact unique ORIG_REF_NAME matches",
+    "disconnected output valid on next candidate (no inactivity waiver without state proof)",
+    "uncached management reset array pin query failed"
+  ],
+  "fixes_in_following_candidate": "ORIG_REF exact instance adaptation; state induction retained for disconnected valid; exact cached owner pin lookup",
+  "following_candidate_status": "RUNNING_NOT_QUALIFIED",
+  "physical_signoff": false
+}

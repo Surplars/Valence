@@ -24,6 +24,13 @@ proc ::board_prep::lane_evidence {} {}
 ::board_prep::install_cache_helpers
 ''')
 assert t.call('common_cdc::one','get_pins','foo/C')=='foo/C'
+t.eval('proc get_pins {args} {if {$args ne {-quiet -of_objects foo -filter {REF_PIN_NAME == D}}} {error "not exact-owner lookup"}; return foo/D}')
+assert t.call('common_cdc::one','get_pins','foo/D')=='foo/D'
+try:
+    t.call('common_cdc::one','get_pins','absent/D')
+    raise AssertionError('missing owner accepted')
+except tkinter.TclError:
+    pass
 assert len(t.splitlist(t.call('common_cdc::bank','foo',2)))==2
 assert t.call('info','default','::common_cdc::collect','root','default')==1
 assert t.getvar('default')=='u_soc/crossing'

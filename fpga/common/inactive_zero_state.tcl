@@ -85,7 +85,8 @@ proc common_zero::prove {fifo} {
         set ce [input $n/CE]
         if {$ce ne {0} && [input $n/D] ne {0}} {return 0}
     }
-    if {[input [get_property NAME $valid]] ne {0}} {return 0}
-    puts "COMMON_CDC_INDUCTIVE_ZERO_STATE fifo=$fifo functional_ff=[dict size $state] external_inputs_arbitrary=1 release_state_arbitrary=1"
+    set valid_unconnected [expr {![llength [get_nets -quiet -segments -of_objects $valid]]}]
+    if {!$valid_unconnected && [input [get_property NAME $valid]] ne {0}} {return 0}
+    puts "COMMON_CDC_INDUCTIVE_ZERO_STATE fifo=$fifo functional_ff=[dict size $state] external_inputs_arbitrary=1 release_state_arbitrary=1 destination_valid_unconnected=$valid_unconnected"
     return 1
 }

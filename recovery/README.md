@@ -120,3 +120,16 @@ The zero-state proof controls now include accepting disabled INIT-zero state and
 rejecting arbitrary enabled D, INIT-one state, payload RAM, arbitrary output valid,
 unknown INIT and falsely correlated LUT unknowns. These controls pass; real-netlist
 proof remains pending until the mapping log explicitly certifies each lane.
+
+
+Fresh mapping restored actual clocks (CPU3.333ns, fabric/UI4ns, UART/AON20ns) and
+executed media/BSCAN entries. The first instruction FIFO passed zero-state induction
+for all 36 functional FFs with arbitrary external and reset-release values. This
+does not qualify the other lanes. The next disconnected valid output and an exact
+management reset array-pin lookup blocked that run; fixes retain the full state
+proof and use the already cached exact owner cell, with positive/negative controls.
+Five renamed vendor references have unique ORIG_REF_NAME matches to real DDR
+calibration MicroBlaze/LMB instances. Original XDCs are adapted to these exact
+instances and their existing U0 children; hierarchy is not fabricated. See
+`ip-scope-adaptation-evidence.json` and `validation-fresh-mapping-first.json`.
+The following mapping run remains explicitly unqualified until all gates pass.

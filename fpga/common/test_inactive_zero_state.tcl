@@ -20,6 +20,7 @@ set ::fixture_ce GROUND
 set ::fixture_init {1'b0}
 set ::fixture_ref FDCE
 set ::fixture_valid fifo/state/Q
+set ::fixture_valid_disconnected 0
 proc get_cells {args} {
  if {[lsearch -exact $args -filter]>=0} {return fifo/state}
  if {[lsearch -exact $args -of_objects]>=0} {return [file dirname [lindex $args end]]}
@@ -52,7 +53,7 @@ proc get_pins {args} {
 proc get_nets {args} {
  switch [lindex $args end] {
   fifo/destination_bits0 {return {}}
-  fifo/destination_valid {return valid_net}
+  fifo/destination_valid {if {$::fixture_valid_disconnected} {return {}};return valid_net}
   fifo/state/CE {return ce_net}
   fifo/state/D {return arbitrary_d_net}
   default {error "unexpected net query $args"}
@@ -70,4 +71,8 @@ assert {[common_zero::prove fifo]==0} {payload RAM accepted}
 set ::fixture_ref FDCE
 set ::fixture_valid external/Q
 assert {[common_zero::prove fifo]==0} {arbitrary output valid accepted}
+set ::fixture_valid_disconnected 1
+assert {[common_zero::prove fifo]==1} {unobserved valid with invariant-zero state rejected}
+set ::fixture_ce SIGNAL
+assert {[common_zero::prove fifo]==0} {unobserved valid incorrectly waived live functional state}
 puts INACTIVE_ZERO_INDUCTION_POSITIVE_AND_NEGATIVE_CONTROLS_PASS_NOT_NETLIST_QUALIFIED

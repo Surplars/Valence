@@ -1,0 +1,52 @@
+[
+  {
+    "original_ref": "bd_9054_dlmb_0",
+    "matches": [
+      {
+        "path": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/dlmb",
+        "current_ref": "ddr4_0_bd_9054_dlmb_0"
+      }
+    ],
+    "candidate_count": 3770
+  },
+  {
+    "original_ref": "bd_9054_ilmb_0",
+    "matches": [
+      {
+        "path": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/ilmb",
+        "current_ref": "ddr4_0_bd_9054_ilmb_0"
+      }
+    ],
+    "candidate_count": 3770
+  },
+  {
+    "original_ref": "bd_9054_iomodule_0_0",
+    "matches": [
+      {
+        "path": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/iomodule_0",
+        "current_ref": "ddr4_0_bd_9054_iomodule_0_0"
+      }
+    ],
+    "candidate_count": 3770
+  },
+  {
+    "original_ref": "bd_9054_microblaze_I_0",
+    "matches": [
+      {
+        "path": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/microblaze_I",
+        "current_ref": "ddr4_0_bd_9054_microblaze_I_0"
+      }
+    ],
+    "candidate_count": 3770
+  },
+  {
+    "original_ref": "bd_9054_rst_0_0",
+    "matches": [
+      {
+        "path": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/rst_0",
+        "current_ref": "ddr4_0_bd_9054_rst_0_0"
+      }
+    ],
+    "candidate_count": 3770
+  }
+]
