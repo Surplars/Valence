@@ -52,6 +52,24 @@ class BoardInputs(unittest.TestCase):
         self.assertIn('.sys_rst(mig_reset)', shell)
         self.assertIn('common_dci_startup_tb COMMON_DCI_STARTUP_PASS', (HERE / 'simulate.tcl').read_text())
         self.assertIn('dci-run.log', (HERE / 'freeze.py').read_text())
+        self.assertIn('dci_short-run.log', (HERE / 'freeze.py').read_text())
+        self.assertIn('pulse_age == 3\'d7', helper)
+        self.assertNotIn('posedge local_reset)', helper)
+        self.assertIn('Timing[[:space:]]+Violation', (HERE / 'simulate.tcl').read_text())
+
+    def test_native_log_rejects_vendor_timing_error_even_with_pass(self):
+        script = (HERE / 'simulate.tcl').read_text()
+        import re
+        pattern = re.search(r'regexp -nocase \{(Timing.*)\} \$log', script)[1]
+        tcl = 'set pattern {' + pattern + '}\n'
+        for log in ('COMMON_DCI_STARTUP_PASS\nTiming Violation Error : RST pulse',
+                    'COMMON_DCI_STARTUP_PASS\nERROR: failure',
+                    'COMMON_DCI_STARTUP_PASS\n FATAL: failure'):
+            tcl += 'if {![regexp -nocase $pattern {' + log + '}]} {exit 2}\n'
+        tcl += 'if {[regexp -nocase $pattern {COMMON_DCI_STARTUP_PASS}]} {exit 3}\nputs OK\n'
+        result = subprocess.run(['tclsh'], input=tcl, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'OK')
 
     def test_bit_is_blocked_before_scenario_code(self):
         script = (HERE / 'signoff.tcl').read_text()

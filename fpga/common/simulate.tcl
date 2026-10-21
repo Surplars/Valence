@@ -29,6 +29,7 @@ foreach {name top marker reject parameters} {
     jtag_downstream i1_dual_tap_tb {PASS I1_DUAL_TAP} {} {SYS_HALF_PS=2000 DAP_UPSTREAM=0}
     jtag_bad64 i1_dual_tap_tb {} CHAIN_CAPABILITY_ORACLE {SYS_HALF_PS=2000 DUT_SCAN_BITS=64}
     dci common_dci_startup_tb COMMON_DCI_STARTUP_PASS {} {}
+    dci_short common_dci_short_pulse_tb {} {Timing Violation Error} {}
     quarter common_trispeed_pad_tb TRISPEED_QUARTER_PAD_BEHAVIOR_PASS {} {}
 } {
     set command [list $executable(xelab) $top glbl -L unisims_ver -L unimacro_ver -debug typical -mt $valence(threads) -s $name]
@@ -41,9 +42,9 @@ foreach {name top marker reject parameters} {
     set failed [catch {exec {*}$command > $logpath 2>@1} result]
     set f [open $logpath]; set log [read $f]; close $f
     if {$reject eq ""} {
-        if {$failed || [string first $marker $log] < 0 || [regexp -nocase {(^|\n)(FATAL|ERROR):} $log]} {error "Boundary simulation failed: $name"}
+        if {$failed || [string first $marker $log] < 0 || [regexp -nocase {Timing[[:space:]]+Violation|(^|[[:space:]])(FATAL|ERROR)(:|[[:space:]])} $log]} {error "Boundary simulation failed: $name"}
     } elseif {[string first $reject $log] < 0 || [string first {PASS I1_DUAL_TAP} $log] >= 0} {
-        error "Negative control did not reject the 64-bit mismatch for the expected reason"
+        error "Negative control did not produce the expected rejection: $name"
     }
 }
 common_log xelab-invocations.txt [join $xelab_commands \n]

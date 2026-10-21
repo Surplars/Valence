@@ -1,0 +1,43 @@
+{
+  "stage": "cmu-frequency-r3-native-retry",
+  "base_commit": "4dd308a1ae70f0b000c0ad02ef9877783024d746",
+  "reported_native_failures": {
+    "source": "out/native-cdc-d1bc53f-r1/native-failure-receipt.json on local executor",
+    "axi": "offerIndex used before declaration; positive/negative not executed",
+    "timer_debug": "Windows launcher/parameter invocation failed before DUT simulation",
+    "dci": "Vendor model reported 100ns pulse violations despite prior PASS marker; rejected as acceptance"
+  },
+  "fixes": [
+    "AXI offerIndex declared before task",
+    "Windows .bat selection and individually quoted batch arguments",
+    "DCIRESET both high and low held at least eight CFGMCLK cycles, cold reset queues retry rather than truncating pulse",
+    "Native DCI classifier rejects timing violations even with PASS; required deliberate short-pulse negative test",
+    "Composed production DMI boundary/JtagRamLoader owner-retention fixture added"
+  ],
+  "tests": {
+    "windows_invocation_passed": 5,
+    "board_python_passed": 40,
+    "axi_static_declaration_and_runner_checks": "PASS",
+    "composed_loader_fixture_compile_and_sv_emit": "PASS",
+    "new_native_execution": "NOT_RUN"
+  },
+  "sources": {
+    "fpga/common/README.md": "dc2dd5c28c04d3b0611e7739759586224130af18827f5425a0429de676510f1e",
+    "fpga/common/dci_startup_tb.sv": "d173a74df00d93bde14f45596f18776ffacd410bfedf05f21d383d18c9ea783b",
+    "fpga/common/freeze.py": "7192f1047974042f582a0d1324ac96cccd73da7e8ab9f835b5ca7950bedf4d59",
+    "fpga/common/native_dci_startup.sv": "63927effc09820eda79b852251463e3d0ae6cbbbdc7a8e435baee1e18a0e75c3",
+    "fpga/common/simulate.tcl": "339c3a3207a3e5db99c533c9fdd94c32a50004b43da16eb6c8f5d903f75dbba4",
+    "fpga/common/test_board_inputs.py": "53b07a9234ee9e0931de6cd8da62ae973998751a2088616d62a8739187efd782",
+    "recovery/axi-cdc-channels-tb.sv": "c44fb6716fdadf5c3ab234bc2bfd02b12c60f891aed5cb6befe55c77c37a9f96",
+    "simulator/cdc/run_fixed_time_debug_xsim.py": "ec574345d11b43654d691c717f0392b9faccea8acfb5d918b8c770204f1265c6",
+    "simulator/cdc/JTAG_LOADER_LINK_OWNER.md": "15ce11c600f840080a2ac0f1c9a9f0d410f55ed38e04d2495467eb3aee517051",
+    "simulator/cdc/jtag_loader_link_owner_tb.sv": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41",
+    "simulator/cdc/run_jtag_loader_link_owner_xsim.py": "6f2b63d88742fce2b3caf2082d0d96da9f171b2518c6cf0d73bac0047054fec4",
+    "simulator/cdc/test_xsim_invocation.py": "99043a22fbb1fb0f1c4567f92d0264994e565030e4dee0011817f7e8599c929b",
+    "simulator/cdc/xsim_invocation.py": "c57b241991cadb27df9cf0a0ee3daa187a6b7c867db917fb2a31eb7c6a820270",
+    "src/test/scala/debug/JtagLoaderLinkOwnerNative.scala": "88e5f554c91f72e126645d87e8835f7bbdc279ca1300dec9990807eeea106978"
+  },
+  "physical_signoff": false,
+  "board_verified": false,
+  "runtime_clock_backend_present": false
+}

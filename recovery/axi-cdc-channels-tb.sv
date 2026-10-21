@@ -18,7 +18,7 @@ Axi4CdcFixture dut(.fabricClock(fabricClock),.ddrClock(ddrClock),.commonColdRese
 reg [79:0] expected[0:4][0:2047];
 reg [79:0] held[0:4], actual, value;
 reg [4:0] stalled=0;
-integer sent[0:4],received[0:4],width[0:4];
+integer sent[0:4],received[0:4],width[0:4],offerIndex[0:4];
 integer t,n,phase,stalls=0,blocked=0,abandoned=0,stopped=0;
 reg nf,nd,riseF,riseD,srcEdge,dstEdge,allDone,bad,injected=0;
 reg [63:0] randomState=64'h729abd8e13465fed;
@@ -100,5 +100,4 @@ initial begin
  end
  $fatal(1,"AXI_CDC_FAIL timeout");
 end
-integer offerIndex[0:4];
 endmodule

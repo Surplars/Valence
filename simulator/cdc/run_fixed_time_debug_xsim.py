@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from xsim_invocation import invocation, resolve_tool
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -36,23 +37,14 @@ def main():
                 parameter=parameter, half=half, marker=marker,
                 sources=[dict(path=str(s), sha256=hashlib.sha256(s.read_bytes()).hexdigest()) for s in sources],
                 status='PREPARED_NOT_RUN'))
-    manifest = dict(status='PREPARED_NOT_RUN', scope='native independent edges only; not physical CDC/STA/board acceptance', cases=cases)
+    runner_sources = [Path(__file__).resolve(), Path(__file__).with_name('xsim_invocation.py').resolve()]
+    manifest = dict(runner_sources=[dict(path=str(s), sha256=hashlib.sha256(s.read_bytes()).hexdigest()) for s in runner_sources], status='PREPARED_NOT_RUN', scope='native independent edges only; not physical CDC/STA/board acceptance', cases=cases)
     manifest_path = output / 'manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
     if not a.run:
         print(manifest_path)
         return
-    def tool(name):
-        if a.tool_dir:
-            for suffix in ('', '.bat', '.exe'):
-                path = a.tool_dir / (name + suffix)
-                if path.exists():
-                    return str(path.resolve())
-        found = shutil.which(name)
-        if not found:
-            raise RuntimeError('installed XSIM tool not found: ' + name)
-        return found
-    xvlog, xelab, xsim = (tool(t) for t in ('xvlog', 'xelab', 'xsim'))
+    xvlog, xelab, xsim = (resolve_tool(t, a.tool_dir) for t in ('xvlog', 'xelab', 'xsim'))
     try:
         for case in cases:
             work = output / case['name']
@@ -65,7 +57,7 @@ def main():
             ]
             combined = ''
             for i, command in enumerate(commands):
-                result = subprocess.run(command, cwd=work, text=True, stdout=subprocess.PIPE,
+                result = subprocess.run(invocation(command), cwd=work, text=True, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT, timeout=180)
                 (work / ('step' + str(i) + '.log')).write_text(result.stdout)
                 combined += result.stdout

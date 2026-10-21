@@ -52,7 +52,7 @@ def freeze(a):
     m = dict(schema=gate.SCHEMA, configuration=config, threads=a.threads, source_roots=list(gate.ROOTS),
              producer=dict(schema='common-board-producer-v1', simulation_suite='common-physical-boundaries-v1', media_rates_mbps=[10, 100, 1000]),
              roles=roles, stages={
-                 'simulation': dict(script='fpga/common/simulate.tcl', outputs=['smoke-result.txt', 'jtag_upstream-run.log', 'jtag_downstream-run.log', 'jtag_bad64-run.log', 'quarter-run.log', 'dci-run.log', 'xelab-invocations.txt', 'xsim-invocations.txt']),
+                 'simulation': dict(script='fpga/common/simulate.tcl', outputs=['smoke-result.txt', 'jtag_upstream-run.log', 'jtag_downstream-run.log', 'jtag_bad64-run.log', 'quarter-run.log', 'dci-run.log', 'dci_short-run.log', 'xelab-invocations.txt', 'xsim-invocations.txt']),
                  'synthesis': dict(script='fpga/common/synthesize.tcl', outputs=['synthesized.dcp', 'utilization.rpt', 'bus-skew-scope.json', 'ip-synthesis.json']),
                  'implementation': dict(script='fpga/common/implement.tcl', outputs=['routed.dcp', 'utilization.rpt', 'bus-skew-scope.json'])},
              signoff=dict(bus_skew_checks='mapped-scope', clock_pins=dict(cpu='u_soc/cpuClock', fabric='u_soc/fabricClock',

@@ -233,11 +233,13 @@ not claim error injection through an input absent from the production design.
 
 The r2 diagnostic contains 44 DCIRST-1 warnings and zero DCIRESET cells.
 `native_dci_startup.sv` now owns one STARTUPE3 and one DCIRESET. It waits for
-EOS on the independent configuration oscillator, asserts RST, observes LOCKED
-low through three samples, releases RST, then waits for synchronized LOCKED
-high. Those samples implement the acknowledgement synchronizer, not a claimed
-vendor pulse-width minimum. The primitive guide gives no numerical RST width;
-installed UNISIM and actual device checks remain mandatory.
+EOS on the independent configuration oscillator, asserts RST for at least eight CFGMCLK cycles, observes LOCKED low, releases
+RST, and preserves at least eight low cycles before any next assertion.
+Vivado 2025.2 installed UNISIM DCIRESET.v lines48–52 require both pulse levels
+to last at least100ns: the initial handshake-only version failed this check.
+Eight cycles at the DS925 maximum57.5MHz provide at least139.13ns. A reset
+during an active pulse queues a retry instead of truncating it. Native UNISIM
+and physical checks remain mandatory; a printed PASS alone is insufficient.
 
 MIG sys_rst stays asserted until DCI ready. No MIG UI clock, UI reset or DDR
 calibration signal enters the DCI sequencer, so DCI-to-MIG startup has no
@@ -250,7 +252,10 @@ installed UNISIM primitives and requires `dci-run.log`. Before accepting this
 repair locally, require its post-EOS/cold-reset handshake PASS, one mapped
 DCIRESET at `dci_startup/dci`, zero DCIRST-1 on the new DCP, a valid MIG sys_rst
 release, successful DDR calibration, and unchanged full reset/CDC signoff.
-Cloud source tests are not substitute evidence. No fixed delay is used as a
+The native suite includes deliberately short high/low pulse rejection, cold
+retrigger during both levels, and LOCKED-loss inhibition. Any Timing Violation
+Error or ERROR/FATAL in the positive log fails acceptance, even with exit0
+and a PASS marker. Cloud source tests are not substitute evidence. No fixed delay is used as a
 proxy for LOCKED, and no DRC severity is downgraded.
 
 Official references:
