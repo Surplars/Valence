@@ -37,6 +37,10 @@ if {[catch {
  }
  set remaining [get_cells -quiet -hier -filter {IS_BLACKBOX == TRUE}]
  if {[llength $remaining]} {error "Additional IP products required; remaining blackboxes: [get_property NAME $remaining]"}
+ # Plain vendor synth stubs do not register the IP-owned physical IO contract.
+ # Reproduce the original routed topology before exporting the linked design.
+ source [file join $recovery(repo) fpga common recovery_mig_io_contract.tcl]
+ recovery_mig_io::apply
  write_checkpoint synthesized-unqualified.dcp
  report_utilization -file synthesis-utilization.rpt
  report_clocks -file synthesis-clocks.rpt

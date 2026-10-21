@@ -1,0 +1,1483 @@
+{
+  "source": "native original routed/new checkpoint comparison",
+  "old_route_sha256": "257c50d509384e7555b2ecc441a63fab8060fbd7d76ae040a799e3578893c674",
+  "new_linked_sha256": "d784761defde61dd7f8d30b3e1e4c48ea76c72286d82211177d2a13637f26cda",
+  "physical_ports": 73,
+  "all_package_pins_match": true,
+  "standard_mismatches": [
+    [
+      "c0_ddr4_adr[16]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[15]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[14]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[13]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[12]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[11]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[10]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[9]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[8]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[7]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[6]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[5]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[4]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[3]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[2]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[1]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_adr[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_ba[1]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_ba[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_bg[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_ck_c[0]",
+      "DIFF_SSTL12_DCI",
+      "DIFF_HSTL_I_18"
+    ],
+    [
+      "c0_ddr4_ck_t[0]",
+      "DIFF_SSTL12_DCI",
+      "DIFF_HSTL_I_18"
+    ],
+    [
+      "c0_ddr4_cke[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_cs_n[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_odt[0]",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_act_n",
+      "SSTL12_DCI",
+      "LVCMOS18"
+    ],
+    [
+      "c0_ddr4_reset_n",
+      "LVCMOS12",
+      "LVCMOS18"
+    ]
+  ],
+  "comparison": {
+    "original_routed": {
+      "ports": {
+        "clk_in1_p": {
+          "package_pin": "AL8",
+          "iostandard": "DIFF_SSTL12",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_P DIFFINBUF IN}"
+        },
+        "clk_in1_n": {
+          "package_pin": "AL7",
+          "iostandard": "DIFF_SSTL12",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_N DIFFINBUF IN}"
+        },
+        "c0_ddr4_adr[16]": {
+          "package_pin": "AP11",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[15]": {
+          "package_pin": "AP6",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[14]": {
+          "package_pin": "AJ9",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[13]": {
+          "package_pin": "AP8",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[12]": {
+          "package_pin": "AP4",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[11]": {
+          "package_pin": "AM8",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[3].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[10]": {
+          "package_pin": "AM6",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[9]": {
+          "package_pin": "AP10",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[8]": {
+          "package_pin": "AK7",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[7]": {
+          "package_pin": "AN8",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[0].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[6]": {
+          "package_pin": "AM10",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[5]": {
+          "package_pin": "AP7",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[4]": {
+          "package_pin": "AK8",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[3]": {
+          "package_pin": "AP5",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[2]": {
+          "package_pin": "AN7",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[1]": {
+          "package_pin": "AN6",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[0]": {
+          "package_pin": "AN9",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_ba[1]": {
+          "package_pin": "AP9",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_ba[0]": {
+          "package_pin": "AJ10",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_bg[0]": {
+          "package_pin": "AL10",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_ck_c[0]": {
+          "package_pin": "AL5",
+          "iostandard": "DIFF_SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/N/O} OBUF OUT}"
+        },
+        "c0_ddr4_ck_t[0]": {
+          "package_pin": "AL6",
+          "iostandard": "DIFF_SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/P/O} OBUF OUT}"
+        },
+        "c0_ddr4_cke[0]": {
+          "package_pin": "AK10",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_cs_n[0]": {
+          "package_pin": "AN4",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_dm_dbi_n[3]": {
+          "package_pin": "AE10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[2]": {
+          "package_pin": "AH7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[1]": {
+          "package_pin": "AE5",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[0]": {
+          "package_pin": "AH2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[31]": {
+          "package_pin": "AD10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[30]": {
+          "package_pin": "AF12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[29]": {
+          "package_pin": "AG10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[28]": {
+          "package_pin": "AH12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[27]": {
+          "package_pin": "AE9",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[26]": {
+          "package_pin": "AH11",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[25]": {
+          "package_pin": "AG9",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[24]": {
+          "package_pin": "AE12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[23]": {
+          "package_pin": "AG6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[22]": {
+          "package_pin": "AH8",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[21]": {
+          "package_pin": "AE7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[20]": {
+          "package_pin": "AD7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[19]": {
+          "package_pin": "AF7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[18]": {
+          "package_pin": "AF6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[17]": {
+          "package_pin": "AG8",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[16]": {
+          "package_pin": "AD6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[15]": {
+          "package_pin": "AJ4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[14]": {
+          "package_pin": "AF3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[13]": {
+          "package_pin": "AG5",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[12]": {
+          "package_pin": "AE4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[11]": {
+          "package_pin": "AG4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[10]": {
+          "package_pin": "AD4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[9]": {
+          "package_pin": "AH4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[8]": {
+          "package_pin": "AE3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[7]": {
+          "package_pin": "AF1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[6]": {
+          "package_pin": "AE1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[5]": {
+          "package_pin": "AH3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[4]": {
+          "package_pin": "AD2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[3]": {
+          "package_pin": "AF2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[2]": {
+          "package_pin": "AD1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[1]": {
+          "package_pin": "AG3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[0]": {
+          "package_pin": "AE2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dqs_c[3]": {
+          "package_pin": "AG11",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[2]": {
+          "package_pin": "AF8",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[1]": {
+          "package_pin": "AJ5",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[0]": {
+          "package_pin": "AJ1",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[3]": {
+          "package_pin": "AF11",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[2]": {
+          "package_pin": "AE8",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[1]": {
+          "package_pin": "AJ6",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[0]": {
+          "package_pin": "AH1",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_odt[0]": {
+          "package_pin": "AK9",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_act_n": {
+          "package_pin": "AM9",
+          "iostandard": "SSTL12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "c0_ddr4_reset_n": {
+          "package_pin": "AM5",
+          "iostandard": "LVCMOS12",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/OBUF_reset_n/O OBUF OUT}"
+        }
+      },
+      "mig": {
+        "u_ddr/c0_ddr4_act_n": {
+          "direct_top_ports": "c0_ddr4_act_n",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[0]": {
+          "direct_top_ports": "c0_ddr4_adr[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[10]": {
+          "direct_top_ports": "c0_ddr4_adr[10]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[11]": {
+          "direct_top_ports": "c0_ddr4_adr[11]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[3].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[12]": {
+          "direct_top_ports": "c0_ddr4_adr[12]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[13]": {
+          "direct_top_ports": "c0_ddr4_adr[13]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[14]": {
+          "direct_top_ports": "c0_ddr4_adr[14]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[15]": {
+          "direct_top_ports": "c0_ddr4_adr[15]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[16]": {
+          "direct_top_ports": "c0_ddr4_adr[16]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[1]": {
+          "direct_top_ports": "c0_ddr4_adr[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[2]": {
+          "direct_top_ports": "c0_ddr4_adr[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[3]": {
+          "direct_top_ports": "c0_ddr4_adr[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[4]": {
+          "direct_top_ports": "c0_ddr4_adr[4]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[5]": {
+          "direct_top_ports": "c0_ddr4_adr[5]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[6]": {
+          "direct_top_ports": "c0_ddr4_adr[6]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[7]": {
+          "direct_top_ports": "c0_ddr4_adr[7]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[0].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[8]": {
+          "direct_top_ports": "c0_ddr4_adr[8]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[9]": {
+          "direct_top_ports": "c0_ddr4_adr[9]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ba[0]": {
+          "direct_top_ports": "c0_ddr4_ba[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ba[1]": {
+          "direct_top_ports": "c0_ddr4_ba[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_bg[0]": {
+          "direct_top_ports": "c0_ddr4_bg[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ck_c[0]": {
+          "direct_top_ports": "c0_ddr4_ck_c[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/N/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ck_t[0]": {
+          "direct_top_ports": "c0_ddr4_ck_t[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/P/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_cke[0]": {
+          "direct_top_ports": "c0_ddr4_cke[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_cs_n[0]": {
+          "direct_top_ports": "c0_ddr4_cs_n[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[0]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[1]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[2]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[3]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[0]": {
+          "direct_top_ports": "c0_ddr4_dq[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[10]": {
+          "direct_top_ports": "c0_ddr4_dq[10]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[11]": {
+          "direct_top_ports": "c0_ddr4_dq[11]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[12]": {
+          "direct_top_ports": "c0_ddr4_dq[12]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[13]": {
+          "direct_top_ports": "c0_ddr4_dq[13]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[14]": {
+          "direct_top_ports": "c0_ddr4_dq[14]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[15]": {
+          "direct_top_ports": "c0_ddr4_dq[15]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[16]": {
+          "direct_top_ports": "c0_ddr4_dq[16]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[17]": {
+          "direct_top_ports": "c0_ddr4_dq[17]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[18]": {
+          "direct_top_ports": "c0_ddr4_dq[18]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[19]": {
+          "direct_top_ports": "c0_ddr4_dq[19]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[1]": {
+          "direct_top_ports": "c0_ddr4_dq[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[20]": {
+          "direct_top_ports": "c0_ddr4_dq[20]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[21]": {
+          "direct_top_ports": "c0_ddr4_dq[21]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[22]": {
+          "direct_top_ports": "c0_ddr4_dq[22]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[23]": {
+          "direct_top_ports": "c0_ddr4_dq[23]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[24]": {
+          "direct_top_ports": "c0_ddr4_dq[24]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[25]": {
+          "direct_top_ports": "c0_ddr4_dq[25]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[26]": {
+          "direct_top_ports": "c0_ddr4_dq[26]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[27]": {
+          "direct_top_ports": "c0_ddr4_dq[27]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[28]": {
+          "direct_top_ports": "c0_ddr4_dq[28]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[29]": {
+          "direct_top_ports": "c0_ddr4_dq[29]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[2]": {
+          "direct_top_ports": "c0_ddr4_dq[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[30]": {
+          "direct_top_ports": "c0_ddr4_dq[30]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[31]": {
+          "direct_top_ports": "c0_ddr4_dq[31]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[3]": {
+          "direct_top_ports": "c0_ddr4_dq[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[4]": {
+          "direct_top_ports": "c0_ddr4_dq[4]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[5]": {
+          "direct_top_ports": "c0_ddr4_dq[5]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[6]": {
+          "direct_top_ports": "c0_ddr4_dq[6]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[7]": {
+          "direct_top_ports": "c0_ddr4_dq[7]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[8]": {
+          "direct_top_ports": "c0_ddr4_dq[8]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[9]": {
+          "direct_top_ports": "c0_ddr4_dq[9]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[0]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[1]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[2]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[3]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[0]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[1]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[2]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[3]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_odt[0]": {
+          "direct_top_ports": "c0_ddr4_odt[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_reset_n": {
+          "direct_top_ports": "c0_ddr4_reset_n",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/OBUF_reset_n/O OBUF OUT}"
+        },
+        "u_ddr/c0_sys_clk_n": {
+          "direct_top_ports": "clk_in1_n",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_N DIFFINBUF IN}"
+        },
+        "u_ddr/c0_sys_clk_p": {
+          "direct_top_ports": "clk_in1_p",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_P DIFFINBUF IN}"
+        }
+      }
+    },
+    "new": {
+      "ports": {
+        "clk_in1_p": {
+          "package_pin": "AL8",
+          "iostandard": "DIFF_SSTL12",
+          "leaf_endpoints": "{clk_in1_p_IBUF_inst/INBUF_INST/PAD INBUF IN}"
+        },
+        "clk_in1_n": {
+          "package_pin": "AL7",
+          "iostandard": "DIFF_SSTL12",
+          "leaf_endpoints": "{clk_in1_n_IBUF_inst/INBUF_INST/PAD INBUF IN}"
+        },
+        "c0_ddr4_adr[16]": {
+          "package_pin": "AP11",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[16]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[15]": {
+          "package_pin": "AP6",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[15]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[14]": {
+          "package_pin": "AJ9",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[14]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[13]": {
+          "package_pin": "AP8",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[13]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[12]": {
+          "package_pin": "AP4",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[12]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[11]": {
+          "package_pin": "AM8",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[11]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[10]": {
+          "package_pin": "AM6",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[10]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[9]": {
+          "package_pin": "AP10",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[9]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[8]": {
+          "package_pin": "AK7",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[8]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[7]": {
+          "package_pin": "AN8",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[7]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[6]": {
+          "package_pin": "AM10",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[6]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[5]": {
+          "package_pin": "AP7",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[5]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[4]": {
+          "package_pin": "AK8",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[4]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[3]": {
+          "package_pin": "AP5",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[3]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[2]": {
+          "package_pin": "AN7",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[2]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[1]": {
+          "package_pin": "AN6",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[1]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_adr[0]": {
+          "package_pin": "AN9",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_ba[1]": {
+          "package_pin": "AP9",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_ba_OBUF[1]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_ba[0]": {
+          "package_pin": "AJ10",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_ba_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_bg[0]": {
+          "package_pin": "AL10",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_bg_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_ck_c[0]": {
+          "package_pin": "AL5",
+          "iostandard": "DIFF_HSTL_I_18",
+          "leaf_endpoints": "{{c0_ddr4_ck_c_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_ck_t[0]": {
+          "package_pin": "AL6",
+          "iostandard": "DIFF_HSTL_I_18",
+          "leaf_endpoints": "{{c0_ddr4_ck_t_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_cke[0]": {
+          "package_pin": "AK10",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_cke_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_cs_n[0]": {
+          "package_pin": "AN4",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_cs_n_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_dm_dbi_n[3]": {
+          "package_pin": "AE10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[2]": {
+          "package_pin": "AH7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[1]": {
+          "package_pin": "AE5",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dm_dbi_n[0]": {
+          "package_pin": "AH2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[31]": {
+          "package_pin": "AD10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[30]": {
+          "package_pin": "AF12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[29]": {
+          "package_pin": "AG10",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[28]": {
+          "package_pin": "AH12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[27]": {
+          "package_pin": "AE9",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[26]": {
+          "package_pin": "AH11",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[25]": {
+          "package_pin": "AG9",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[24]": {
+          "package_pin": "AE12",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[23]": {
+          "package_pin": "AG6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[22]": {
+          "package_pin": "AH8",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[21]": {
+          "package_pin": "AE7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[20]": {
+          "package_pin": "AD7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[19]": {
+          "package_pin": "AF7",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[18]": {
+          "package_pin": "AF6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[17]": {
+          "package_pin": "AG8",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[16]": {
+          "package_pin": "AD6",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[15]": {
+          "package_pin": "AJ4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[14]": {
+          "package_pin": "AF3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[13]": {
+          "package_pin": "AG5",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[12]": {
+          "package_pin": "AE4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[11]": {
+          "package_pin": "AG4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[10]": {
+          "package_pin": "AD4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[9]": {
+          "package_pin": "AH4",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[8]": {
+          "package_pin": "AE3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[7]": {
+          "package_pin": "AF1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[6]": {
+          "package_pin": "AE1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[5]": {
+          "package_pin": "AH3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[4]": {
+          "package_pin": "AD2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[3]": {
+          "package_pin": "AF2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[2]": {
+          "package_pin": "AD1",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[1]": {
+          "package_pin": "AG3",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dq[0]": {
+          "package_pin": "AE2",
+          "iostandard": "POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "c0_ddr4_dqs_c[3]": {
+          "package_pin": "AG11",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[2]": {
+          "package_pin": "AF8",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[1]": {
+          "package_pin": "AJ5",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_c[0]": {
+          "package_pin": "AJ1",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[3]": {
+          "package_pin": "AF11",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[2]": {
+          "package_pin": "AE8",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[1]": {
+          "package_pin": "AJ6",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_dqs_t[0]": {
+          "package_pin": "AH1",
+          "iostandard": "DIFF_POD12_DCI",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "c0_ddr4_odt[0]": {
+          "package_pin": "AK9",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{{c0_ddr4_odt_OBUF[0]_inst/O} OBUF OUT}"
+        },
+        "c0_ddr4_act_n": {
+          "package_pin": "AM9",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{c0_ddr4_act_n_OBUF_inst/O OBUF OUT}"
+        },
+        "c0_ddr4_reset_n": {
+          "package_pin": "AM5",
+          "iostandard": "LVCMOS18",
+          "leaf_endpoints": "{c0_ddr4_reset_n_OBUF_inst/O OBUF OUT}"
+        }
+      },
+      "mig": {
+        "u_ddr/c0_ddr4_act_n": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{c0_ddr4_act_n_OBUF_inst/I OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[0].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[10]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[10]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[11]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[11]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[12]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[12]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[3].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[13]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[13]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[14]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[14]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[15]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[15]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[16]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[16]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[1]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[1]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[2]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[2]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[3]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[3]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[3].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[4]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[4]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[5]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[5]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[6]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[6]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[10].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[7]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[7]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[11].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[8]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[8]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[12].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_adr[9]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_adr_OBUF[9]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ba[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_ba_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ba[1]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_ba_OBUF[1]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_bg[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_bg_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[10].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_ck_c[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_ck_c_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS/OB} OBUFDS OUT}"
+        },
+        "u_ddr/c0_ddr4_ck_t[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_ck_t_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS/O} OBUFDS OUT}"
+        },
+        "u_ddr/c0_ddr4_cke[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_cke_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[12].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_cs_n[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_cs_n_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[11].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[0]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[1]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[2]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dm_dbi_n[3]": {
+          "direct_top_ports": "c0_ddr4_dm_dbi_n[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[0]": {
+          "direct_top_ports": "c0_ddr4_dq[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[10]": {
+          "direct_top_ports": "c0_ddr4_dq[10]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[11]": {
+          "direct_top_ports": "c0_ddr4_dq[11]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[12]": {
+          "direct_top_ports": "c0_ddr4_dq[12]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[13]": {
+          "direct_top_ports": "c0_ddr4_dq[13]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[14]": {
+          "direct_top_ports": "c0_ddr4_dq[14]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[15]": {
+          "direct_top_ports": "c0_ddr4_dq[15]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[16]": {
+          "direct_top_ports": "c0_ddr4_dq[16]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[17]": {
+          "direct_top_ports": "c0_ddr4_dq[17]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[18]": {
+          "direct_top_ports": "c0_ddr4_dq[18]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[19]": {
+          "direct_top_ports": "c0_ddr4_dq[19]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[1]": {
+          "direct_top_ports": "c0_ddr4_dq[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[20]": {
+          "direct_top_ports": "c0_ddr4_dq[20]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[21]": {
+          "direct_top_ports": "c0_ddr4_dq[21]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[22]": {
+          "direct_top_ports": "c0_ddr4_dq[22]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[23]": {
+          "direct_top_ports": "c0_ddr4_dq[23]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[24]": {
+          "direct_top_ports": "c0_ddr4_dq[24]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[25]": {
+          "direct_top_ports": "c0_ddr4_dq[25]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[26]": {
+          "direct_top_ports": "c0_ddr4_dq[26]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[27]": {
+          "direct_top_ports": "c0_ddr4_dq[27]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[28]": {
+          "direct_top_ports": "c0_ddr4_dq[28]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[29]": {
+          "direct_top_ports": "c0_ddr4_dq[29]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[2]": {
+          "direct_top_ports": "c0_ddr4_dq[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[30]": {
+          "direct_top_ports": "c0_ddr4_dq[30]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[31]": {
+          "direct_top_ports": "c0_ddr4_dq[31]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[3]": {
+          "direct_top_ports": "c0_ddr4_dq[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[4]": {
+          "direct_top_ports": "c0_ddr4_dq[4]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[5]": {
+          "direct_top_ports": "c0_ddr4_dq[5]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[6]": {
+          "direct_top_ports": "c0_ddr4_dq[6]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[7]": {
+          "direct_top_ports": "c0_ddr4_dq[7]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[8]": {
+          "direct_top_ports": "c0_ddr4_dq[8]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dq[9]": {
+          "direct_top_ports": "c0_ddr4_dq[9]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O} OBUFT_DCIEN OUT} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD} INBUF IN}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[0]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[1]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[2]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_c[3]": {
+          "direct_top_ports": "c0_ddr4_dqs_c[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[0]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[0]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[1]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[1]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[3].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[2]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[2]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_dqs_t[3]": {
+          "direct_top_ports": "c0_ddr4_dqs_t[3]",
+          "leaf_endpoints": "{{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P} DIFFINBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O} OBUFT OUT}"
+        },
+        "u_ddr/c0_ddr4_odt[0]": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{{c0_ddr4_odt_OBUF[0]_inst/I} OBUF IN} {{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O} OBUF OUT}"
+        },
+        "u_ddr/c0_ddr4_reset_n": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{c0_ddr4_reset_n_OBUF_inst/I OBUF IN} {u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/OBUF_reset_n/O OBUF OUT}"
+        },
+        "u_ddr/c0_sys_clk_n": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_N DIFFINBUF IN} {clk_in1_n_IBUF_inst/IBUFCTRL_INST/O IBUFCTRL OUT}"
+        },
+        "u_ddr/c0_sys_clk_p": {
+          "direct_top_ports": "",
+          "leaf_endpoints": "{u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/diff_input_clk.u_ibufg_sys_clk/DIFFINBUF_INST/DIFF_IN_P DIFFINBUF IN} {clk_in1_p_IBUF_inst/IBUFCTRL_INST/O IBUFCTRL OUT}"
+        }
+      }
+    }
+  },
+  "diagnostic_only": true,
+  "repair_validation": "Native r7: 29 exact duplicate buffers removed; all 73 direct physical mappings and pin/IOSTANDARD match original. r8 opt_design passed MIG core phase and reached Constant propagation; route pending.",
+  "repaired_checkpoint_sha256": "D3F1DE5C531EB3D40432FA2290AA401942DD2BF23A861FFE4CA62F01E1151C6C",
+  "implementation": "r8 native opt_design started after full constraints/IO gate; routed timing pending",
+  "root_cause": "Plain synth_stub plus read_checkpoint inserted top IO buffers in addition to IP-owned physical buffers; recovery synthesis/link/map now enforce exact original physical contract",
+  "cleanup": [
+    "Removed obsolete interactive scalar census/continuation scripts from Git-active paths",
+    "CURRENT.ps1 delegates to one checked canonical entry; full scope proofs retained",
+    "Post-opt/placed stage resume branches added; native resume validation pending"
+  ],
+  "integrated_repair_script_sha256": "02A2D90C09CE3D36F7E9FAAB241E0BDC3177699CB806BF9BE3817321E6D12462"
+}

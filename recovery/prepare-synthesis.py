@@ -69,6 +69,9 @@ receipt={'name':'recovery-r1-source-idle','production_source_commit':a.source_co
          'readonly_stub_sha256':{str(stub):hashlib.sha256(stub.read_bytes()).hexdigest() for name,source,stub in ip_inputs},
          'rtl_sha256':{str(f):hashlib.sha256(f.read_bytes()).hexdigest() for f in rtl},
          'constraints_sha256':{str(f):hashlib.sha256(f.read_bytes()).hexdigest() for f in constraints},
+         'integration_scripts_sha256':{str(repo/f):hashlib.sha256((repo/f).read_bytes()).hexdigest() for f in (
+             'fpga/common/recovery_synthesize.tcl','fpga/common/recovery_link_ip.tcl',
+             'fpga/common/recovery_mig_io_contract.tcl','recovery/mig-io-reference.tcl')},
          'ip_regenerated':False,'physical_qualified':False,'place_route_permitted':False}
 if a.debug_hub_dcp:
     receipt['copied_files'][str(dest/'ip/dbg_hub.dcp')]=hashlib.sha256(a.debug_hub_dcp.read_bytes()).hexdigest()

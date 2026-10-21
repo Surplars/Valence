@@ -1,8 +1,9 @@
 # The retained original routed-DCP constraint declares this existing USER1
 # INTERNAL_TCK at 50ns. Restore only that exact source; do not waive hub paths.
+set ::common_debug_hub_clock_directory [file dirname [file normalize [info script]]]
 proc common_restore_debug_hub_clock {profile} {
  if {$profile ne {zu15eg-existing-user1-debug-hub-tck50ns}} {error {Explicit original debug-hub clock profile required}}
- source [file join [file dirname [info script]] .. next check_jtag_chain.tcl]
+ source [file join $::common_debug_hub_clock_directory .. next check_jtag_chain.tcl]
  set name dbg_hub/inst/BSCANID.u_xsdbm_id/SWITCH_N_EXT_BSCAN.bscan_inst/SERIES7_BSCAN.bscan_inst
  set cell [get_cells -quiet $name]
  if {[llength $cell]!=1 || [get_property REF_NAME $cell] ne {BSCANE2}} {error {Original exact debug-hub BSCANE2 absent}}

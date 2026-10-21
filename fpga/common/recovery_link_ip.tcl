@@ -26,6 +26,8 @@ if {[catch {
  read_checkpoint -cell [get_property NAME $remaining] $extra
  set remaining [get_cells -quiet -hier -filter {IS_BLACKBOX == TRUE}]
  if {[llength $remaining]} {error "Remaining blackboxes: [get_property NAME $remaining]"}
+ source [file join $recovery(repo) fpga common recovery_mig_io_contract.tcl]
+ recovery_mig_io::apply
  write_checkpoint linked-unqualified.dcp
  report_clocks -file linked-clocks.rpt
  check_timing -verbose -file linked-coverage.rpt

@@ -7,7 +7,10 @@ set valence(profile_sha256) [lindex $argv 3]
 set valence(control_lemma) 1
 set valence(phase) recovery_r1_post_synth_diagnostic
 set valence(diagnostic_families) [expr {[llength $argv]>4 && [lindex $argv 4] eq {1}}]
-set valence(diagnostic_implementation) [expr {[llength $argv]==7 && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
+set valence(diagnostic_implementation) [expr {[llength $argv] in {7 8} && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
+set valence(resume_stage) RESTORED
+if {[llength $argv]==8} {set valence(resume_stage) [lindex $argv 7]}
+if {$valence(resume_stage) ni {RESTORED POST_OPT PLACED}} {error {Unknown diagnostic checkpoint stage}}
 set ::board_prep_failures {}
 cd $valence(out)
 set_param general.maxThreads 8
@@ -235,11 +238,17 @@ puts "PREPARATION_TOOL [version -short]"
 open_checkpoint $target
 puts "FRESH_MAPPING_TARGET $target"
 if {[catch {
- if {[llength $argv] ni {6 7}} {error {Required original IP implementation-constraint inventory missing}}
+ # Restore the physical integration contract before applying scoped vendor XDC.
+ # Already-repaired checkpoints are idempotent; unknown bridges fail closed.
+ source [file join $valence(root) fpga common recovery_mig_io_contract.tcl]
+ set mig_io_repairs [recovery_mig_io::apply]
+ if {[llength $argv] ni {6 7 8}} {error {Required original IP implementation-constraint inventory missing}}
  if {[lindex $argv 5] eq {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT}} {
-  if {[file tail $target] ne {ip-restored-unqualified.dcp}} {error {Wrong restored-IP checkpoint name}}
+  set expected_name [dict get {RESTORED ip-restored-unqualified.dcp POST_OPT post-opt-constrained-diagnostic.dcp PLACED placed-diagnostic.dcp} $valence(resume_stage)]
+  if {[file tail $target] ne $expected_name} {error {Wrong checkpoint name for declared stage}}
   puts {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT_NO_IP_REPLAY}
  } else {
+ if {$valence(resume_stage) ne {RESTORED}} {error {Later-stage resume cannot replay the IP inventory}}
  source [file normalize [lindex $argv 5]]
  foreach row $recovery_ip_xdc {
   lassign $row path ref cells order
@@ -270,6 +279,7 @@ if {[catch {
  }
  board_prep_save_checkpoint ip-restored-unqualified.dcp
  }
+ recovery_mig_io::verify_electrical
  update_timing
  report_clocks -file restored-clocks-before-media.rpt
  # Check the real functional UART clock. Synthesis specializes its redundant
@@ -300,18 +310,25 @@ if {[catch {
  source [file join $valence(root) fpga common debug_hub_clock.tcl]
  common_restore_debug_hub_clock zu15eg-existing-user1-debug-hub-tck50ns
  report_io -file restored-io.rpt
- board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
+ if {$valence(resume_stage) eq {RESTORED}} {
+  board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1
+ } else {
+  source [file join $valence(root) fpga common skew_scope.tcl]
+  puts "RESUME_EXISTING_PHYSICAL_STAGE $valence(resume_stage) NO_SYNTH_NO_OPT_REPLAY"
+ }
  check_timing -verbose -file post-synth-coverage.rpt
  report_clocks -file post-synth-clocks.rpt
  write_xdc -force post-synth-memory-constraints.xdc
  if {$valence(diagnostic_implementation)} {
   if {[llength $::board_prep_failures]} {error {Incomplete actual CDC constraints; diagnostic optimization blocked}}
   board_prep::diagnostic_gate post-synth-coverage.rpt
-  board_prep_save_checkpoint post-synth-constrained-diagnostic.dcp
-  report_drc -ruledeck opt_checks -file diagnostic-preopt-drc.rpt
-  if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native opt DRC errors; see diagnostic-preopt-drc.rpt}}
-  puts {DIAGNOSTIC_START_OPT_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
-  opt_design
+  if {$valence(resume_stage) eq {RESTORED}} {
+   board_prep_save_checkpoint post-synth-constrained-diagnostic.dcp
+   report_drc -ruledeck opt_checks -file diagnostic-preopt-drc.rpt
+   if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native opt DRC errors; see diagnostic-preopt-drc.rpt}}
+   puts {DIAGNOSTIC_START_OPT_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
+   opt_design
+  }
   set valence(phase) recovery_r1_actual_post_opt_diagnostic
  } else {set valence(phase) recovery_r1_post_opt_entry_diagnostic_without_opt}
  board_prep::entry [file join $valence(root) fpga common post_opt.tcl] 0
@@ -325,9 +342,11 @@ if {[catch {
   board_prep_save_checkpoint post-opt-constrained-diagnostic.dcp
   report_drc -file diagnostic-preplace-drc.rpt
   if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native pre-place DRC errors; see diagnostic-preplace-drc.rpt}}
-  puts {DIAGNOSTIC_START_PLACE_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
-  place_design
-  board_prep_save_checkpoint placed-diagnostic.dcp
+  if {$valence(resume_stage) ne {PLACED}} {
+   puts {DIAGNOSTIC_START_PLACE_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
+   place_design
+   board_prep_save_checkpoint placed-diagnostic.dcp
+  }
   phys_opt_design
   puts {DIAGNOSTIC_START_ROUTE_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
   route_design
