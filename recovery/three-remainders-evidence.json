@@ -1,0 +1,35 @@
+{
+  "source_commit": "76c7d983c08caca4610b9399b1d446fd262ab2c4",
+  "linked_dcp_sha256": "d784761defde61dd7f8d30b3e1e4c48ea76c72286d82211177d2a13637f26cda",
+  "coherent_c_field": "destination_bits[130] = TL-C source[1], packed source[131:129]",
+  "captures": [
+    {
+      "lane": "crossing_1",
+      "type": "FDRE",
+      "clock": "mmcm_clkout0",
+      "period_ns": 4.0,
+      "D": "GROUND",
+      "R": "GROUND",
+      "CE_driver": "output_0[140]_i_1/O"
+    },
+    {
+      "lane": "crossing_2",
+      "type": "FDRE",
+      "clock": "mmcm_clkout0",
+      "period_ns": 4.0,
+      "D": "GROUND",
+      "R": "GROUND",
+      "CE_driver": "output_0[140]_i_1/O"
+    }
+  ],
+  "acceptance_rule": "Literal D, destination clock, same CE as an independently proved RAM data capture; keep ordinary CE/reset timing, no asynchronous data exception for this literal",
+  "fifo_8": {
+    "role": "fabric-to-CPU maintenance",
+    "source_valid_driver": "u_soc/crossing/GND/G",
+    "destination_valid_port": "absent",
+    "payload_ports": 0,
+    "functional_fdce": 36,
+    "inductive_zero_state_actual_netlist": "PASS with arbitrary external and release state; not inferred solely from GND"
+  },
+  "native_continued_implementation": "PENDING"
+}

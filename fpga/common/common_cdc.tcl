@@ -190,6 +190,17 @@ proc common_cdc::payload_absent {h} {
     puts "COMMON_PAYLOAD_ABSENT_PROVED fifo=$h no_live_source_data_load=1 no_observable_destination_data=1 no_payload_storage=1 control_ff=$count GRAY_SCOPES_STILL_REQUIRED"
     return 1
 }
+proc common_cdc::captured_constant {capture destination_clock ram_capture} {
+    # A locally latched literal is not an asynchronous RAM data launch. Keep its
+    # clock/CE timing ordinary; require the same capture event as proved RAM data.
+    ff $capture $destination_clock
+    set value -1
+    foreach bit {0 1} {if {![catch {constant $capture/D $bit}]} {set value $bit;break}}
+    if {$value<0} {error "COMMON_PAYLOAD unproved non-RAM data source $capture"}
+    same_net $capture/CE $ram_capture/CE
+    puts "COMMON_PAYLOAD_LOCAL_CONSTANT capture=$capture literal_D=$value clock=$destination_clock CE_matches=$ram_capture NO_TIMING_EXCEPTION"
+    return $value
+}
 proc common_cdc::payload {h} {
     # The emitted SyncReadMem has destination-clock registered read address;
     # its distributed RAM write clocks are real sequential startpoints. Never
@@ -203,7 +214,7 @@ proc common_cdc::payload {h} {
     one get_cells $h/pending_reg; bank $h/heldAddress_reg 4
     set bits [get_pins -of_objects [one get_cells $h] -filter {REF_PIN_NAME =~ destination_bits*}]
     if {![llength $bits]} {error "COMMON_PAYLOAD missing destination port $h"}
-    set starts {}; set ends {}; set by_end {}; set ordinary_by_end {}; set constant_bits {};set unused_bits {}
+    set starts {}; set ends {}; set by_end {}; set ordinary_by_end {}; set constant_bits {};set unused_bits {};set local_constants {}
     foreach bit $bits {
         set bn [get_property REF_PIN_NAME $bit]
         if {$bn eq {destination_bits} && [llength $bits]==1} {set i 0
@@ -228,12 +239,22 @@ proc common_cdc::payload {h} {
                 lappend ramStarts $ln; lappend starts $ln
             } else {error "COMMON_PAYLOAD unsupported mapped RAM/launch $ln ($ref)"}
         }
-        if {![llength $ramStarts]} {error "COMMON_PAYLOAD no true RAM storage for $pn"}
+        if {![llength $ramStarts]} {
+            # This is only accepted below after literal D and matching real-data
+            # capture CE are proved. A missing RAM never skips dynamic data.
+            lappend local_constants [list $i $capture]
+            continue
+        }
         lappend ends $end; dict set by_end $end [lsort -unique $ramStarts]; dict set ordinary_by_end $end [lsort -unique $ordinary]
     }
     if {![llength $ends]} {error "COMMON_PAYLOAD active FIFO has no proved nonconstant storage $h"}
+    set reference [file dirname [lindex $ends 0]]
+    foreach row $local_constants {
+        lassign $row i capture
+        captured_constant $capture $dst $reference
+    }
     puts "COMMON_PAYLOAD_ACTUAL_OUTPUTS fifo=$h asynchronous_capture_count=[llength [lsort -unique $ends]] unconnected_bits=[llength $unused_bits] constant_bits=[llength $constant_bits]"
-    return [dict create label $h/payload starts [lsort -unique $starts] ends [lsort -unique $ends] second {} budget [budget $src $dst] skew 1 by_end $by_end ordinary_by_end $ordinary_by_end constant_bits $constant_bits unused_bits $unused_bits]
+    return [dict create label $h/payload starts [lsort -unique $starts] ends [lsort -unique $ends] second {} budget [budget $src $dst] skew 1 by_end $by_end ordinary_by_end $ordinary_by_end constant_bits $constant_bits unused_bits $unused_bits local_constants $local_constants]
 }
 proc common_cdc::inactive {fifo} {
     # An omitted source port is allowed only on a specialized preserved module
@@ -291,12 +312,17 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     lappend scopes [mailbox [lindex $mailboxes 0]]
     # Every retained stage0 bank must be covered, including future new channels.
     set covered {}; foreach s $scopes {foreach p [dict get $s ends] {lappend covered $p}}
+    set ::common_cdc::constant_stage0_endpoints {}
     foreach c [get_cells -quiet -hier -filter {ASYNC_REG == TRUE}] {
         set n [get_property NAME $c]
         if {[string first $root/ $n]==0 && [regexp {(Sync_stage0_reg\[[0-9]+\]|stages_reg\[0\])$} $n] && [lsearch -exact $covered $n/D]<0} {
+            set constant_scope 0
+            foreach h $::common_cdc::inactive_scopes {if {[string first $h/ $n]==0} {set constant_scope 1;break}}
+            if {$constant_scope} {lappend ::common_cdc::constant_stage0_endpoints $n/D;continue}
             error "COMMON_CDC unreviewed first-stage endpoint $n"
         }
     }
+    puts "COMMON_CDC_CONSTANT_STAGE0_PROOF_COVERAGE endpoints=[llength $::common_cdc::constant_stage0_endpoints] NO_TRANSITIONS_NO_EXCEPTION"
     return $scopes
 }
 proc common_cdc::constrain {{root u_soc/crossing}} {

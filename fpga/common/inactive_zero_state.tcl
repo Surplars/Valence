@@ -57,7 +57,7 @@ proc common_zero::prove {fifo} {
     set src [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME == source_valid}]
     if {[llength $src]>1 || ([llength $src] && [catch {common_cdc::constant [get_property NAME $src] 0}])} {return [reject $fifo source_not_literal_zero]}
     set valid [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME == destination_valid}]
-    if {[llength $valid]!=1} {return [reject $fifo missing_or_ambiguous_valid]}
+    if {[llength $valid]>1} {return [reject $fifo ambiguous_valid]}
     set bits [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME =~ destination_bits*}]
     # An optimized-away payload port has no consumer. Absence alone proves
     # nothing: the RAM exclusion, full state induction and valid proof below
@@ -88,7 +88,10 @@ proc common_zero::prove {fifo} {
         set ce [input $n/CE]
         if {$ce ne {0} && [input $n/D] ne {0}} {return [reject $fifo noninvariant_state_$n]}
     }
-    set valid_unconnected [expr {![llength [get_nets -quiet -segments -of_objects $valid]]}]
+    # A fully optimized-away valid output is unobservable, but is never an
+    # inactivity certificate alone: every functional state bit was proved above.
+    set valid_unconnected 1
+    if {[llength $valid]} {set valid_unconnected [expr {![llength [get_nets -quiet -segments -of_objects $valid]]}]}
     if {!$valid_unconnected && [input [get_property NAME $valid]] ne {0}} {return [reject $fifo valid_not_invariant_zero]}
     puts "COMMON_CDC_INDUCTIVE_ZERO_STATE fifo=$fifo functional_ff=[dict size $state] external_inputs_arbitrary=1 release_state_arbitrary=1 destination_valid_unconnected=$valid_unconnected payload_ports=[llength $bits]"
     return 1

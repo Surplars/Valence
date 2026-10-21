@@ -210,3 +210,16 @@ remain mandatory. Unknown storage/state/source-data consumers still reject.
 All lane failures are now collected in one read-only pass, before any CDC exception
 is applied, preventing one failed old name from hiding other lane discrepancies.
 See held-output-mapping-evidence.json. Native implementation remains pending.
+
+
+The remaining two C source[1] bits are destination-clock FDREs with literal GND D
+and R, enabled by the local payload capture. Their rule now requires literal D,
+the actual destination clock and CE equality with independently proved RAM data;
+only true asynchronous RAM payload arcs retain the unchanged min-period budget.
+Dynamic non-RAM data, wrong clocks or different capture events reject.
+The maintenance fifo8 has literal-zero source_valid, no valid/data outputs and
+passes actual36-FF zero-state induction. An absent valid port alone is insufficient;
+all state/no-RAM/source conditions still apply. Retained stage0 endpoints under
+these exact proved-constant lanes are recorded as no-transition certificates,
+without applying an exception. Other first-stage endpoints must still be bounded.
+See three-remainders-evidence.json. The next native diagnostic run is pending.
