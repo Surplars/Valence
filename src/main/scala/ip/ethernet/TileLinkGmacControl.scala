@@ -60,13 +60,13 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
     val reservedLegal = (maskedData & ~allowedBits) === 0.U
     val selected = Wire(Vec(config.ports.size, Bool()))
     val portLegal = Wire(Vec(config.ports.size, Bool()))
-    val portReady = Wire(Vec(config.ports.size, Bool()))
+    val mdioReady = Wire(Vec(config.ports.size, Bool()))
     val readValues = Wire(Vec(config.ports.size, UInt(64.W)))
     val irqs = Wire(Vec(config.ports.size, Bool()))
     for (n <- config.ports.indices) {
         val port = io.ports(n)
-        selected(n) := a.address >= (config.base + n * 4096).U &&
-            a.address < (config.base + (n + 1) * 4096).U(65.W)
+        // GmacParams guarantees aligned, non-overflowing 4KiB windows.
+        selected(n) := a.address(63, 12) === ((config.base >> 12) + n).U(52.W)
         val control = RegInit(8.U(64.W))
         val macAddress = RegInit(0.U(64.W))
         val pending = RegInit(0.U(7.W))
@@ -92,7 +92,7 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
         portLegal(n) := selected(n) && protocolLegal && known &&
             (!put || (writable && reservedLegal && commandLegal &&
                 !(configuration && a.mask.orR && (port.txBusy || port.rxBusy))))
-        portReady(n) := !mdioStart || mdioCommand.ready
+        mdioReady(n) := mdioCommand.ready
         val accepted = io.tl.a.fire && portLegal(n) && put
         val ack = Mux(accepted && offset === 0x30.U, maskedData(6, 0), 0.U(7.W))
         val events = Cat(mdioResponse.fire, port.events)
@@ -170,7 +170,14 @@ class TileLinkGmacControl(config: GmacParams = GmacParams(),
                 Cat(rxStopRequest.get && port.rxStopDrained.get, rxStopRequest.get)) else Seq.empty))
     }
     val legal = portLegal.asUInt.orR
-    io.tl.a.ready := replies.io.enq.ready && (!legal || Mux1H(selected, portReady))
+    // Only a legal complete MDIO launch needs downstream command credit.
+    // Spell out that narrow contract instead of feeding every register's
+    // reserved-bit/configuration legality cone back through the fabric ready.
+    // Denied commands still consume only reply credit, exactly as before.
+    val needsMdioCredit = selected.asUInt.orR && put && offset === 0x78.U && a.data(17) &&
+        a.size === 3.U && a.mask === 255.U && a.address(2, 0) === 0.U &&
+        a.param === 0.U && !a.corrupt && !a.data(63, 28).orR
+    io.tl.a.ready := replies.io.enq.ready && (!needsMdioCredit || Mux1H(selected, mdioReady))
     replies.io.enq.valid := io.tl.a.fire
     replies.io.enq.bits := 0.U.asTypeOf(replies.io.enq.bits)
     val dataResponse = read || a.opcode === TLOpcode.ArithmeticData || a.opcode === TLOpcode.LogicalData

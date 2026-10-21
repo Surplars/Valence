@@ -100,15 +100,20 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
     }
     csrResponses.io.enq.bits.data  := Mux(csrError, 0.U, csrReadValue)
     csrResponses.io.enq.bits.error := csrError
-    val updated = MuxLookup(csr.operation, csrReadValue)(
-        Seq(1.U -> csr.data, 2.U -> (csrReadValue | csr.data), 3.U -> (csrReadValue & ~csr.data))
+    // Accepted writes target one bank. Use that bank's old value directly:
+    // the shared read/response mux (including TOPEI priority selection) must
+    // not feed unrelated banks' write data or threshold legality/enable.
+    def modify(old: UInt): UInt = MuxLookup(csr.operation, old.pad(64))(
+        Seq(1.U -> csr.data, 2.U -> (old.pad(64) | csr.data), 3.U -> (old.pad(64) & ~csr.data))
     )
     val csrWrite = io.csrRequest.fire && !csrError && csr.operation =/= 0.U
     for (f <- 0 until p.files) {
         val writing = csrWrite && csr.file === f.U
-        when(writing && !csr.topei && csr.selector === "h70".U) { delivery(f) := updated(0) }
-        when(writing && !csr.topei && csr.selector === "h72".U && updated <= p.identities.U) {
-            threshold(f) := updated(10, 0)
+        when(writing && !csr.topei && csr.selector === "h70".U) { delivery(f) := modify(delivery(f).asUInt)(0) }
+        val thresholdValue = modify(threshold(f))
+        val thresholdLegal = !thresholdValue(63, 11).orR && thresholdValue(10, 0) <= p.identities.U(11.W)
+        when(writing && !csr.topei && csr.selector === "h72".U && thresholdLegal) {
+            threshold(f) := thresholdValue(10, 0)
         }
         for (g <- 0 until p.groups) {
             val validMask    = (if (g == 0) (BigInt(1) << 64) - 2 else (BigInt(1) << 64) - 1).U(64.W)
@@ -118,9 +123,9 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
             val incoming     = msi && fileIndex === f.U && msiData(10, 6) === g.U
             val incomingMask = Mux(incoming, UIntToOH(msiData(5, 0), 64), 0.U(64.W))
             // CSR operation precedes concurrent MSI: a claim cannot erase a newly arriving interrupt.
-            pending(f)(g) := ((Mux(pendingWrite, updated, pending(f)(g)) & ~claimMask) | incomingMask) & validMask
+            pending(f)(g) := ((Mux(pendingWrite, modify(pending(f)(g)), pending(f)(g)) & ~claimMask) | incomingMask) & validMask
             when(writing && !csr.topei && csr.selector === (0xc0 + 2 * g).U) {
-                enabled(f)(g) := updated & validMask
+                enabled(f)(g) := modify(enabled(f)(g)) & validMask
             }
         }
     }
