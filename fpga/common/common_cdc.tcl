@@ -149,6 +149,37 @@ proc common_cdc::mailbox {h} {
     }
     return [dict create label $h/held_payload starts $starts ends $ends second {} budget [budget $src $dst] skew 1]
 }
+proc common_cdc::payload_absent {h} {
+    # Valid-only specialization: pointer/handshake state remains active and its
+    # Gray constraints are still mandatory. Only an entirely absent data ABI and
+    # storage, with a complete local control-state census, remove payload scopes.
+    set cell [one get_cells $h]
+    if {![string match HeldResponseCdcDataFifo* [get_property REF_NAME $cell]]} {return 0}
+    foreach prefix {source_bits destination_bits} {
+        if {[llength [get_pins -quiet -of_objects $cell -filter "REF_PIN_NAME =~ $prefix*"]]} {return 0}
+    }
+    if {[llength [get_cells -quiet -hier -filter "NAME =~ $h/storage_ext*"]]} {return 0}
+    set src [clock $h/sourceClock];set dst [clock $h/destinationClock];set count 0
+    foreach c [get_cells -quiet -hier -filter "IS_PRIMITIVE == TRUE && NAME =~ $h/*"] {
+        set name [get_property NAME $c];set ref [get_property REF_NAME $c]
+        if {[regexp {/(sourceRelease|destinationRelease)/release_0_reg\[[0-2]\]$} $name]} {
+            if {$ref ne {FDPE}} {return 0}
+            continue
+        }
+        if {$ref eq {FDCE}} {
+            set tail [string range $name [expr {[string length $h]+1}] end]
+            if {![regexp {^(writeBinary|writeGray|capturedBinary|capturedGray|capturedGraySync(_stage0)?|writeGraySync(_stage0)?|issueBinary|heldAddress)_reg\[[0-4]\]$|^(pending|valid)_reg$} $tail]} {return 0}
+            set expected $dst
+            if {[regexp {^(writeBinary|writeGray|capturedGraySync(_stage0)?)_reg} $tail]} {set expected $src}
+            ff $name $expected
+            if {[get_property INIT $c] ne {1'b0}} {return 0}
+            incr count
+        } elseif {$ref ni {GND VCC CARRY4 CARRY8 MUXF7 MUXF8 MUXF9} && ![regexp {^LUT[1-6]$} $ref]} {return 0}
+    }
+    if {!$count} {return 0}
+    puts "COMMON_PAYLOAD_ABSENT_PROVED fifo=$h no_source_bits=1 no_destination_bits=1 no_storage=1 control_ff=$count GRAY_SCOPES_STILL_REQUIRED"
+    return 1
+}
 proc common_cdc::payload {h} {
     # The emitted SyncReadMem has destination-clock registered read address;
     # its distributed RAM write clocks are real sequential startpoints. Never
@@ -229,7 +260,7 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     foreach h [lsort $held] {
         if {[inactive $h] || [common_zero::prove $h]} {lappend ::common_cdc::inactive_scopes $h; puts "COMMON_CDC_PROVEN_INACTIVE $h"; continue}
         foreach d {write captured} {lappend scopes [gray $h $d]}
-        lappend scopes [payload $h]
+        if {![payload_absent $h]} {lappend scopes [payload $h]}
     }
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
     foreach h [lsort $levels] {lappend scopes [level $h]}

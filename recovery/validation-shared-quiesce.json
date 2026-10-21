@@ -1,0 +1,37 @@
+{
+  "physical_signoff": false,
+  "raw_wake_while_stopped": true,
+  "stopped_ack_retention": true,
+  "exact_payload_delay_cycles": 64,
+  "negative_oracle": "REJECTED",
+  "whole_mac_acceptance": false,
+  "result": "PASS",
+  "raw_period_ps": 8000,
+  "cold_reset_while_stopped": true,
+  "quiesce_phase_ps": 719,
+  "utc": "2026-10-21T02:40:42.7679776Z",
+  "two_actual_managed_progress_stages": true,
+  "positive_evidence": "SHARED_QUIESCE_CYCLE_PASS payloads=1 raw_edges=100 managed_edges=80",
+  "negative_evidence": "ORACLE_NEGATIVE_REJECT",
+  "production_rtl_regenerated": false,
+  "new_synthesis_started": false,
+  "fresh_cdc_report_passed": false,
+  "source_hashes": {
+    "src/main/scala/ip/bus/PeripheralClockControl.scala": "d64f1bed93c12ba40120cd25c24e5654feb7c69c88731c305b31b60973428b05",
+    "src/main/scala/ip/clock/ManagedPeripheralSupport.scala": "99c7b915001ad9acc06cfa1b61f5c907ebc7baae60e9b650d214763ae29f9178",
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": "db365377d092fa1329d9a0cae7193dde8a3a37e79d06b45fc7dfe3d412a21e86"
+  },
+  "fixture_input_hashes": {
+    "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+    "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+    "PeripheralQuiesceAck.sv": "688fe0e5b0f1232a2fa9982b7eb55882658df2840364b03f900a39be9783dd74",
+    "PeripheralWakeDelay.sv": "9e0ec8c198c8e062b104a19c6f2633c109a7b7594bf0d70ca8ef7b44eccdd4ba",
+    "SharedQuiesceFixture.sv": "1491749c940b1686168b80bce1e6aa745496dafba002c23485479787dbfda9ff"
+  },
+  "bench_sha256": "f56b264c0761238570ea3aa700398a4a1721c4100e857f3c8f1e624f1ee327cf",
+  "source_checks": {
+    "production_compile": "PASS",
+    "SharedQuiesceSpec": "PASS 2 tests after module-parser correction",
+    "other_affected_suites": "ManagedPeripheralsSpec/CommonPlatformBoundarySpec/TransportEmptyAnnouncementSpec passed; first combined command exit1 was SharedQuiesceSpec parser failure, retained"
+  }
+}

@@ -28,7 +28,8 @@ object ManagedPeripheralSupport {
   * The complete active/data/error waveform is retained until wake finishes.
   * Never close the RAW source or feed it from the managed clock output.
   */
-class PeripheralWakeDelay(width: Int, cycles: Int, inactive: BigInt = 0) extends RawModule {
+class PeripheralWakeDelay(width: Int, cycles: Int, inactive: BigInt = 0,
+    synchronousQuiesce: Boolean = false) extends RawModule {
     require(width > 0 && cycles >= 32 && cycles <= 1024 && isPow2(cycles))
     val rawClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
@@ -42,7 +43,10 @@ class PeripheralWakeDelay(width: Int, cycles: Int, inactive: BigInt = 0) extends
     val release = Module(new CdcResetRelease)
     release.clockIn := rawClock
     release.asyncReset := commonReset
-    val q = ManagedPeripheralSupport.level(quiesce, rawClock, release.resetOut)
+    // Only callers with a shared raw-domain synchronizer may opt in. The raw
+    // ingress keeps observing quiesce and new activity while a managed gate stops.
+    val q = if (synchronousQuiesce) quiesce
+        else ManagedPeripheralSupport.level(quiesce, rawClock, release.resetOut)
     val iso = ManagedPeripheralSupport.level(isolate, rawClock, release.resetOut)
     withClockAndReset(rawClock, release.resetOut) {
         val activity = RegInit(0.U(cycles.W))

@@ -150,3 +150,30 @@ An intermediate explicit clock-contract check stopped at the top raw-UART alias;
 the updated query checks actual connected net segments when the hierarchical pin
 has no direct clock object. It never creates a substitute UART clock.
 Diagnostic post_opt-entry execution does not imply opt_design has run.
+
+
+Mapping r7 reached 24 clock objects, no_clock=0 and internal unconstrained=0.
+The raw-UART top input is actually specialized to GND; UART50 is checked at its
+functional uart/uart/clock endpoint, together with real AON50 and MIG UI250.
+Three instruction lanes passed full zero-state induction. The next active
+valid-only instruction response lane has no data ports/storage; a new absence
+proof retains its complete Gray scopes and checks every remaining control FF.
+That proof's positive/negative controls pass; mapping r8 is still diagnostic.
+
+The old-netlist CDC report retains 23 Critical rows: 21 asynchronous reset
+assertion rows (not yet formally signed off), and two quiesce launch-fanout rows
+at the managed RX agent and always-running ingress. Their roles cannot simply
+share a stopped-domain synchronizer. The source repair synchronizes quiesce once
+in the running raw parent, feeds ingress directly, and retains two ordinary timed
+managed-domain progress stages plus ACK. Default unrelated asynchronous agents
+keep their original crossing. ACK remains high while stopped even if raw quiesce
+clears; source/target reset and owner/drain behavior remain.
+
+Production Scala compile, affected structural suites and native actual-component
+cycle tests pass. The cycle fixture checks stopped ACK retention, raw activity wake,
+64-cycle complete payload delay, two real managed request-progress edges, cold
+reset while stopped, and a rejecting bad oracle. This is not full MAC traffic or
+new-netlist CDC/STA acceptance. See validation-shared-quiesce.json. New production
+RTL generation, MAC complete-form review and synthesis are still pending. The
+preparation helper now binds its explicitly supplied commit to Git HEAD and can
+reuse the existing fourth debug-hub DCP without regenerating IP.

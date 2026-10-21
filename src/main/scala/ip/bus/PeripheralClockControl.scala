@@ -82,7 +82,7 @@ class PeripheralClockControl(timeoutCycles: Int = 1024, idleCycles: Int = 3) ext
   * Its ACK is held high while stopped, allowing the always-on policy to wake
   * the clock and observe real destination progress before releasing isolation.
   */
-class PeripheralQuiesceAck extends RawModule {
+class PeripheralQuiesceAck(synchronousQuiesce: Boolean = false) extends RawModule {
     val domainClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
     val quiesce = IO(Input(Bool()))
@@ -92,10 +92,22 @@ class PeripheralQuiesceAck extends RawModule {
     val release = Module(new CdcResetRelease)
     release.clockIn := domainClock
     release.asyncReset := commonReset
-    val request = Module(new CdcLevel)
-    request.clockIn := domainClock
-    request.resetIn := release.resetOut
-    request.levelIn := quiesce
-    stopAdmission := request.levelOut
-    ack := withClockAndReset(domainClock, release.resetOut) { RegNext(request.levelOut && idle, false.B) }
+    // The opt-in form accepts a level already synchronized to the running raw
+    // parent of this gated clock. Retain two LOCAL progress stages and the ACK
+    // register: a stopped domain must never lower ACK without real clock edges.
+    // These related-clock paths are ordinary timed paths, not ASYNC_REG cuts.
+    val request = if (synchronousQuiesce) {
+        withClockAndReset(domainClock, release.resetOut) {
+            RegNext(RegNext(quiesce, false.B), false.B)
+        }
+    } else {
+        val crossing = Module(new CdcLevel)
+        crossing.suggestName("request")
+        crossing.clockIn := domainClock
+        crossing.resetIn := release.resetOut
+        crossing.levelIn := quiesce
+        crossing.levelOut
+    }
+    stopAdmission := request
+    ack := withClockAndReset(domainClock, release.resetOut) { RegNext(request && idle, false.B) }
 }

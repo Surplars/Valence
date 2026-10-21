@@ -1,12 +1,18 @@
 """Stage exactly three existing IP DCPs; leave old project and IP untouched."""
 from pathlib import Path
-import argparse, hashlib, json, shutil, subprocess, sys
+import argparse, hashlib, json, re, shutil, subprocess, sys
 
 p=argparse.ArgumentParser()
 for name in ('project-source','emission','destination'):
     p.add_argument('--'+name,required=True,type=Path)
+p.add_argument('--source-commit',required=True)
+p.add_argument('--git-executable',required=True,type=Path)
+p.add_argument('--debug-hub-dcp',type=Path)
 a=p.parse_args()
 repo=Path(__file__).resolve().parents[1]
+assert re.fullmatch('[0-9a-f]{40}',a.source_commit)
+assert subprocess.check_output([str(a.git_executable),'rev-parse','HEAD'],cwd=repo,text=True).strip()==a.source_commit
+subprocess.run([str(a.git_executable),'diff','--quiet','HEAD','--','src/main/scala','src/main/resources','src/test/scala/platform','build.mill'],cwd=repo,check=True)
 old=a.project_source.resolve(); emission=a.emission.resolve(); dest=a.destination.resolve()
 assert old.is_dir() and (old/'common_board.xpr').is_file()
 assert not dest.exists(), 'Preserve any prior build directory'
@@ -37,6 +43,10 @@ for name,source,stub in ip_inputs:
     copied=dest/'ip'/(name+'.dcp')
     shutil.copy2(source,copied)
     assert hashlib.sha256(source.read_bytes()).digest()==hashlib.sha256(copied.read_bytes()).digest()
+if a.debug_hub_dcp:
+    assert a.debug_hub_dcp.is_file()
+    shutil.copy2(a.debug_hub_dcp,dest/'ip/dbg_hub.dcp')
+    assert hashlib.sha256(a.debug_hub_dcp.read_bytes()).digest()==hashlib.sha256((dest/'ip/dbg_hub.dcp').read_bytes()).digest()
 def q(value):
     s=str(value).replace('\\','/')
     assert not any(c in s for c in '{}\r\n')
@@ -50,7 +60,9 @@ config='\n'.join([
     'set recovery(rtl) [list '+' '.join(q(f) for f in rtl)+']',
     'set recovery(xdc) [list '+' '.join(q(f) for f in constraints)+']'])+'\n'
 (dest/'synthesis-config.tcl').write_text(config)
-receipt={'name':'recovery-r1-source-idle','production_source_commit':'28e2abd0b0a9b893de62ff49a25b1ce0d3694ead',
+if a.debug_hub_dcp:
+    with (dest/'synthesis-config.tcl').open('a') as f:f.write('set recovery(debug_hub_dcp) '+q(dest/'ip/dbg_hub.dcp')+'\n')
+receipt={'name':'recovery-r1-source-idle','production_source_commit':a.source_commit,
          'emission_profile_sha256':hashlib.sha256((emission/'emission-profile.json').read_bytes()).hexdigest(),
          'configuration':expected,'timebaseHz':250000000,'readonly_ip_project_source':str(old),
          'copied_files':{str(dest/'ip'/(name+'.dcp')):hashlib.sha256(source.read_bytes()).hexdigest() for name,source,stub in ip_inputs},
@@ -58,6 +70,8 @@ receipt={'name':'recovery-r1-source-idle','production_source_commit':'28e2abd0b0
          'rtl_sha256':{str(f):hashlib.sha256(f.read_bytes()).hexdigest() for f in rtl},
          'constraints_sha256':{str(f):hashlib.sha256(f.read_bytes()).hexdigest() for f in constraints},
          'ip_regenerated':False,'physical_qualified':False,'place_route_permitted':False}
+if a.debug_hub_dcp:
+    receipt['copied_files'][str(dest/'ip/dbg_hub.dcp')]=hashlib.sha256(a.debug_hub_dcp.read_bytes()).hexdigest()
 (dest/'synthesis-inputs.json').write_text(json.dumps(receipt,indent=2)+'\n')
-print(json.dumps({'prepared':str(dest),'rtl_sources':len(rtl),'cached_ip_checkpoints_verified':3,
+print(json.dumps({'prepared':str(dest),'rtl_sources':len(rtl),'cached_ip_checkpoints_verified':len(receipt['copied_files']),
                   'source_commit':receipt['production_source_commit'],'place_route_permitted':False},indent=2))

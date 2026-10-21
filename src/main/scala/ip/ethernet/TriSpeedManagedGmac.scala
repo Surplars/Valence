@@ -320,13 +320,19 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rx.io.promiscuous := rxImage.promiscuous
     rx.io.broadcastEnable := rxImage.broadcastEnable
     rx.io.macAddress := rxImage.macAddress
+    // Synchronize this AON request once in the always-running raw parent.
+    // Independent raw/managed synchronizers can observe different request epochs.
+    // The managed ACK still requires two actual managed edges and its ACK stage;
+    // all raw-to-managed paths remain timed by their proved fixed125 clock family.
+    val rxQuiesceRaw = ManagedPeripheralSupport.level(control(1).quiesce,
+        continuousTxClock, rawTxRelease.resetOut)
     val ingress = Module(new PeripheralWakeDelay(11,
-        ManagedPeripheralSupport.wakeDelay(mediaHz, cpuHz, aonHz)))
+        ManagedPeripheralSupport.wakeDelay(mediaHz, cpuHz, aonHz), synchronousQuiesce = true))
     ingress.rawClock := continuousTxClock
     ingress.commonReset := commonReset
     ingress.payload := Cat(physicalIngress.byteStep, physicalIngress.valid, physicalIngress.error, physicalIngress.data)
     ingress.active := physicalIngress.valid
-    ingress.quiesce := control(1).quiesce
+    ingress.quiesce := rxQuiesceRaw
     ingress.isolate := control(1).isolate
     rawHandoff.foreach { handoff => handoff.rawRxPayload := ingress.delayed }
     val rxIngressPayload = rawHandoff.map(_.rxPayload).getOrElse(ingress.delayed)
@@ -378,10 +384,10 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     localIdle(1) := rxDrain && !rx.io.busy && rxFifo.sourceIdle && rxStats.sourceIdle &&
         !rxConfig.destination.valid && ingress.empty && !rxIngressPending && rxDiagnostics.sourceIdle
     for ((domainClock, n) <- Seq(txManaged, rxManaged).zipWithIndex) {
-        val agent = Module(new PeripheralQuiesceAck)
+        val agent = Module(new PeripheralQuiesceAck(synchronousQuiesce = n == 1))
         agent.domainClock := domainClock
         agent.commonReset := commonReset
-        agent.quiesce := control(n).quiesce
+        agent.quiesce := (if (n == 1) rxQuiesceRaw else control(n).quiesce)
         agent.idle := localIdle(n)
         control(n).ack := agent.ack
     }

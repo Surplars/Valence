@@ -206,14 +206,32 @@ if {[catch {
  }
  board_prep_save_checkpoint ip-restored-unqualified.dcp
  }
- foreach {pin expected} {u_soc/cpuClock 3.333 u_soc/fabricClock 4.0 u_soc/rawUartClock 20.0 u_soc/alwaysOnClock 20.0 u_ddr/c0_ddr4_ui_clk 4.0} {
+ update_timing
+ report_clocks -file restored-clocks-before-media.rpt
+ # Check the real functional UART clock. Synthesis specializes its redundant
+ # top rawUartClock input to GND; it is not a functional clock endpoint.
+ foreach {pin expected} {u_soc/cpuClock 3.333 u_soc/fabricClock 4.0 u_soc/peripherals/uart/uart/clock 20.0 u_soc/alwaysOnClock 20.0 u_ddr/c0_ddr4_ui_clk 4.0} {
   set p [get_pins -quiet $pin]
   if {[llength $p]!=1} {error "Restored actual clock pin absent/ambiguous: $pin"}
   set c [get_clocks -quiet -of_objects $p]
   if {![llength $c]} {set c [get_clocks -quiet -of_objects [get_nets -quiet -segments -of_objects $p]]}
-  if {[llength $c]!=1} {error "Restored actual clock absent/ambiguous at $pin count=[llength $c]"}
+  if {[llength $c]!=1} {
+   set nets [get_nets -quiet -segments -of_objects $p]
+   set drivers [get_pins -quiet -leaf -of_objects $nets -filter {DIRECTION == OUT}]
+   set clock_evidence [list pin $pin clock_count [llength $c]]
+   if {[llength $nets]} {lappend clock_evidence nets [get_property NAME $nets] types [get_property TYPE $nets]}
+   if {[llength $drivers]} {lappend clock_evidence drivers [get_property NAME $drivers]}
+   common_log missing-clock-evidence.tcllist $clock_evidence
+   error "Restored actual clock absent/ambiguous at $pin count=[llength $c]"
+  }
   if {abs([get_property PERIOD $c]-$expected)>0.002} {error "Restored actual clock differs at $pin actual=[get_property PERIOD $c] expected=$expected"}
   puts "ACTUAL_CLOCK_CONTRACT pin=$pin name=[get_property NAME $c] period=[get_property PERIOD $c]"
+ }
+ set alias_pin [get_pins -quiet u_soc/rawUartClock]
+ if {[llength $alias_pin]==1 && ![llength [get_clocks -quiet -of_objects $alias_pin]]} {
+  set alias_nets [get_nets -quiet -segments -of_objects $alias_pin]
+  if {![llength $alias_nets] || [lsort -unique [get_property TYPE $alias_nets]] ne {GROUND}} {error {Unclocked raw-UART input is not the proved constant specialization}}
+  puts {UNUSED_RAW_UART_INPUT_SPECIALIZED_GND_FUNCTIONAL_UART_CLOCK_VERIFIED_20NS}
  }
  source [file join $valence(root) fpga common debug_hub_clock.tcl]
  common_restore_debug_hub_clock zu15eg-existing-user1-debug-hub-tck50ns
