@@ -592,16 +592,32 @@ proc common_cdc::driven_clock {pin source expected period} {
     }
 }
 proc common_cdc::clock_alias {pin active expected} {
-    one get_pins $pin
-    set clocks [get_clocks -quiet -of_objects [one get_pins $pin]]
+    set aliases {u_soc/timebaseClock u_soc/fixedTimer/timebaseClock u_soc/debugClock u_soc/debugCrossing/sourceClock}
+    if {![dict exists $aliases $pin] || [dict get $aliases $pin] ne $active} {
+        error "COMMON_CDC unreviewed redundant clock alias $pin -> $active"
+    }
+    set object [one get_pins $pin]
+    if {[get_property DIRECTION $object] ne {IN}} {error "COMMON_CDC redundant alias is not an input $pin"}
+    # Even a standalone call cannot approve a dead alias without its precise
+    # live child clock, period, physical net and unique UI-buffer driver proof.
+    driven_clock $active u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O $expected 4.0
+    set clocks [get_clocks -quiet -of_objects $object]
     if {[llength $clocks]} {
         expect_clock $pin $expected 4.0
         same_net $pin $active
     } else {
-        # Only the observed exact literal-zero specialization is permitted.
-        # Missing, disconnected, POWER or dynamic unclocked aliases are errors.
-        constant $pin 0
-        puts "COMMON_CDC_REDUNDANT_CLOCK_ALIAS_GND $pin ACTIVE_ANCHOR=$active NO_EXCEPTION"
+        set nets [get_nets -quiet -segments -of_objects $object]
+        if {[llength $nets]} {
+            # Synthesized redundant aliases are literal GND, never dynamic or POWER.
+            constant $pin 0
+            puts "COMMON_CDC_REDUNDANT_CLOCK_ALIAS_GND $pin ACTIVE_ANCHOR=$active NO_EXCEPTION"
+        } else {
+            # opt_design can remove that GND connection. Only these two exact
+            # input aliases may be disconnected; there must be no residual sink.
+            set endpoints [all_fanout -quiet -flat -endpoints_only -from $object]
+            if {[llength $endpoints]} {error "COMMON_CDC disconnected alias retains fanout $pin: $endpoints"}
+            puts "COMMON_CDC_REDUNDANT_CLOCK_ALIAS_DISCONNECTED $pin NO_NET_NO_CLOCK_NO_FANOUT ACTIVE_ANCHOR=$active NO_EXCEPTION"
+        }
     }
 }
 proc common_cdc::static_clock_anchors {soc timer debug} {
