@@ -2,7 +2,8 @@ source [file join [file dirname [info script]] common_cdc.tcl]
 proc assert {condition text} {if {![uplevel 1 [list expr $condition]]} {error $text}}
 proc common_cdc::one {kind name} {return $name}
 proc common_cdc::clock {pin} {return [expr {[string match */sourceClock $pin] ? "src" : "dst"}]}
-proc common_cdc::ff {name clock args} {if {$clock ne {dst}} {error {wrong test control clock}}}
+proc common_cdc::ff {name clock args} {if {$clock ne $::control_clock} {error {wrong test control clock}}}
+set ::control_clock dst
 set ::has_bits 0;set ::has_storage 0;set ::ref FDCE;set ::state fifo/valid_reg
 proc get_pins {args} {if {$::has_bits} {return fifo/destination_bits0};return {}}
 proc get_cells {args} {
@@ -25,4 +26,8 @@ set ::has_storage 0;set ::ref RAM32M
 assert {[common_cdc::payload_absent fifo]==0} {payload RAM accepted}
 set ::ref FDCE;set ::state fifo/data_reg
 assert {[common_cdc::payload_absent fifo]==0} {unreviewed functional state accepted}
+set ::state fifo/full_reg;set ::control_clock src
+assert {[common_cdc::payload_absent fifo]==1} {source-domain full flag rejected}
+set ::control_clock dst
+assert {[catch {common_cdc::payload_absent fifo}]} {full flag with wrong clock accepted}
 puts COMMON_PAYLOAD_ABSENCE_CONTROLS_PASS_GRAY_PROOF_SEPARATELY_REQUIRED

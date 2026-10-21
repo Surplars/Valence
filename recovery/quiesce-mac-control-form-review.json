@@ -1,0 +1,11 @@
+{
+  "source_commit": "76c7d983c08caca4610b9399b1d446fd262ab2c4",
+  "old_parent_sha256": "6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302",
+  "new_parent_sha256": "84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691",
+  "encoder_sha256": "80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731",
+  "complete_encoder_instance_identical": true,
+  "complete_encoder_instance_sha256": "e0e1ec735536567a3459a7c2699f145109ff349899fc36c56a8747c7573af1ee",
+  "parent_diff_review": "Only added shared RX quiesce synchronizer, ingress quiesce source, RX agent specialization/source; complete encoder clock/reset/input/output instance unchanged",
+  "unchanged_pad_sha256": "32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc",
+  "scope": "Control equality source lemma only; fresh mapped role/clock/transition proofs and STA remain required"
+}

@@ -168,9 +168,9 @@ proc common_cdc::payload_absent {h} {
         }
         if {$ref eq {FDCE}} {
             set tail [string range $name [expr {[string length $h]+1}] end]
-            if {![regexp {^(writeBinary|writeGray|capturedBinary|capturedGray|capturedGraySync(_stage0)?|writeGraySync(_stage0)?|issueBinary|heldAddress)_reg\[[0-4]\]$|^(pending|valid)_reg$} $tail]} {return 0}
+            if {![regexp {^(writeBinary|writeGray|capturedBinary|capturedGray|capturedGraySync(_stage0)?|writeGraySync(_stage0)?|issueBinary|heldAddress)_reg\[[0-4]\]$|^(pending|valid|full)_reg$} $tail]} {return 0}
             set expected $dst
-            if {[regexp {^(writeBinary|writeGray|capturedGraySync(_stage0)?)_reg} $tail]} {set expected $src}
+            if {[regexp {^(writeBinary|writeGray|capturedGraySync(_stage0)?|full)_reg} $tail]} {set expected $src}
             ff $name $expected
             if {[get_property INIT $c] ne {1'b0}} {return 0}
             incr count

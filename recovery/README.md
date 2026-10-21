@@ -177,3 +177,22 @@ new-netlist CDC/STA acceptance. See validation-shared-quiesce.json. New producti
 RTL generation, MAC complete-form review and synthesis are still pending. The
 preparation helper now binds its explicitly supplied commit to Git HEAD and can
 reuse the existing fourth debug-hub DCP without regenerating IP.
+
+
+Production RTL for source76c7d983 was regenerated (237 inputs), and its single new
+synthesis/link run completed successfully with four unchanged IP DCPs. The complete
+TX encoder and its parent instance are unchanged; the additional admitted complete
+parent hash is bound to quiesce-mac-control-form-review.json, with mapped proofs
+still required. A focused actual primitive census found the valid-only FIFO's
+source-domain full_reg; the absence proof now includes that exact control flag,
+with a wrong-clock negative control. No payload/Gray exception is weakened.
+
+The explicit DIAGNOSTIC_IMPLEMENT_NO_BIT mode runs the real formal entries around
+opt_design and then place/phys_opt/route only with zero no_clock/internal gaps,
+complete reviewed scopes and runnable native implementation DRC. It preserves all
+CDC reports and asynchronous IO/reset review status. Known asynchronous serial
+pads retain positive explicit max-delay and direct two-stage structure checks;
+unknown IO roles or nonzero clock coverage fail. Final board signoff and all reset
+protocol review remain separate; no bit or download exists in this entry. This
+new diagnostic mode is prepared and parser/negative controls pass, but its native
+implementation run has not yet completed.

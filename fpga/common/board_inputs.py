@@ -90,10 +90,14 @@ def emission(root, m):
     # pad source. Both control registers have the same clock/reset/zero state
     # and identical enable D on every edge; parent forwards them unchanged.
     # Equal low/high control state is inductive for reset and both phase values.
-    admitted = {'TriSpeedRgmiiTx.sv': '80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731',
-                'TriSpeedManagedGmac.sv': '6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302'}
+    # The quiesce repair's complete encoder instance (all clocks/resets/data and
+    # outputs) is byte-identical; only RX quiesce distribution changed. Review
+    # receipt: recovery/quiesce-mac-control-form-review.json. No arbitrary form.
+    admitted = {'TriSpeedRgmiiTx.sv': ('80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731',),
+                'TriSpeedManagedGmac.sv': ('6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302',
+                                         '84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691')}
     for name, expected in admitted.items():
-        gate.require(m['inputs'].get((base / name).as_posix()) == expected, 'unreviewed common MAC control equality form: ' + name)
+        gate.require(m['inputs'].get((base / name).as_posix()) in expected, 'unreviewed common MAC control equality form: ' + name)
     gate.require(m['inputs'].get('fpga/zu15eg/native_rgmii_trispeed_quarter.sv') ==
                  '32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc', 'unreviewed common MAC pad source')
     for reset in (0, 1):

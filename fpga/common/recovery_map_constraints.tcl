@@ -7,10 +7,12 @@ set valence(profile_sha256) [lindex $argv 3]
 set valence(control_lemma) 1
 set valence(phase) recovery_r1_post_synth_diagnostic
 set valence(diagnostic_families) [expr {[llength $argv]>4 && [lindex $argv 4] eq {1}}]
+set valence(diagnostic_implementation) [expr {[llength $argv]==7 && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
 set ::board_prep_failures {}
 cd $valence(out)
 set_param general.maxThreads 8
-foreach cmd {synth_design opt_design place_design route_design write_bitstream upgrade_ip generate_target} {
+foreach cmd {synth_design opt_design place_design phys_opt_design route_design write_bitstream upgrade_ip generate_target} {
+ if {$valence(diagnostic_implementation) && $cmd in {opt_design place_design phys_opt_design route_design}} {continue}
  rename $cmd forbidden_$cmd
  proc $cmd {args} {error {BOARD_CONSTRAINT_PREPARATION_ONLY}}
 }
@@ -19,6 +21,68 @@ proc write_checkpoint {args} {error {BOARD_CONSTRAINT_DIAGNOSTIC_NO_QUALIFIED_CH
 proc common_json {s} {return "\"[string map [list \\ \\\\ \" \\\" \n \\n \r \\r \t \\t] $s]\""}
 proc common_log {name text} {set f [open [file join $::valence(out) $name] w];puts $f $text;close $f}
 namespace eval board_prep {}
+proc board_prep::diagnostic_gate {coverage} {
+ set f [open $coverage];set text [read $f];close $f
+ foreach key {no_clock unconstrained_internal_endpoints multiple_clock generated_clocks loops latch_loops constant_clock} {
+  set pattern [format {checking %s \(([0-9]+)\)} $key]
+  set values [regexp -all -inline $pattern $text]
+  if {![llength $values]} {error "Unknown check_timing format: $key"}
+  foreach {whole count} $values {if {$count!=0} {error "Diagnostic implementation blocked: $key=$count"}}
+ }
+ # External serial inputs are asynchronous: retain the real pad-to-first max
+ # bounds and report the tool's max-only classification. No invented min delay.
+ foreach {port endpoint budget second} {uart_rxd u_soc/peripherals/uart/sampledRx_meta_reg/D 20.0 u_soc/peripherals/uart/sampledRx_reg eth_mdio {u_soc/peripherals/gmac/mdio_io_mdioIn_sync/stages_reg[0]/D} 10.0 {u_soc/peripherals/gmac/mdio_io_mdioIn_sync/stages_reg[1]}} {
+  set first [string range $endpoint 0 end-2]
+  set clock [common_cdc::clock $first/C]
+  common_cdc::ff $first $clock 1;common_cdc::ff $second $clock 1
+  if {[common_cdc::drivers $second/D] ne [list $first/Q] || [common_cdc::loads $first/Q] ne [list $second/D]} {error "Non-direct async IO synchronizer $port"}
+  set paths [get_timing_paths -quiet -from [get_ports $port] -to [common_cdc::one get_pins $endpoint] -delay_type max -max_paths 1]
+  if {[llength $paths]!=1} {error "Missing actual async serial input bound $port"}
+  set req [get_property REQUIREMENT $paths]
+  if {![string is double -strict $req] || $req<=0 || $req>$budget+0.001} {error "Wrong actual async input bound $port"}
+  set exception [string tolower [string map {_ {} - {} { } {}} [get_property EXCEPTION $paths]]]
+  if {![string match maxdelay* $exception]} {error "Async input does not have an explicit max-delay bound: $port"}
+ }
+ set active {};set bodies {};set counts {}
+ foreach line [split $text \n] {
+  if {[regexp {checking\s+(no_input_delay|partial_input_delay|no_output_delay|partial_output_delay)\s+\(([0-9]+)\)} $line -> key count]} {
+   set active $key;dict set bodies $key {};dict set counts $key $count
+  } elseif {[regexp {^[0-9]+\. checking } $line]} {set active {}
+  } elseif {$active ne {}} {dict append bodies $active "$line\n"}
+ }
+ set f [open diagnostic-io-classification.tcllist w]
+ try {
+  foreach {key allowed} {no_input_delay {button_n sys_rst_n} partial_input_delay {uart_rxd eth_mdio} no_output_delay {c0_ddr4_reset_n eth_txc} partial_output_delay {}} {
+   if {![dict exists $counts $key]} {error "Missing diagnostic IO category $key"}
+   set found {}
+   foreach port [get_property NAME [get_ports]] {
+    if {[regexp -line "^[common_cdc::quote $port]$" [dict get $bodies $key]]} {lappend found $port}
+   }
+   if {[llength $found]!=[dict get $counts $key]} {error "Incomplete diagnostic IO listing $key"}
+   foreach port $found {if {$port ni $allowed} {error "Unreviewed diagnostic IO category $key: $port"}}
+   puts $f [list category $key actual_ports $found qualification DIAGNOSTIC_ONLY_FINAL_IO_REVIEW_PENDING]
+  }
+ } finally {close $f}
+ set clock [get_clocks -quiet -of_objects [get_ports eth_txc]]
+ if {[llength $clock]!=1 || [get_property NAME $clock] ne {phy_tx_capture}} {error {Missing actual forwarded RGMII capture clock}}
+ set top [get_nets -quiet -segments -of_objects [get_ports c0_ddr4_reset_n]]
+ set mig [get_nets -quiet -segments -of_objects [get_pins u_ddr/c0_ddr4_reset_n]]
+ set same 0;foreach n $mig {if {[lsearch -exact $top $n]>=0} {set same 1}}
+ if {!$same} {
+  # A normal top-level OBUF may separate the logical MIG output from its pad.
+  # Prove that exact single buffer, rather than accepting arbitrary board logic.
+  set driver [get_pins -quiet -leaf -of_objects $top -filter {DIRECTION == OUT}]
+  if {[llength $driver]==1 && [get_property REF_PIN_NAME $driver] eq {O}} {
+   set owner [get_cells -of_objects $driver]
+   if {[llength $owner]==1 && [get_property REF_NAME $owner] eq {OBUF}} {
+    set input [get_pins -of_objects $owner -filter {REF_PIN_NAME == I}]
+    foreach n [get_nets -quiet -segments -of_objects $input] {if {[lsearch -exact $mig $n]>=0} {set same 1}}
+   }
+  }
+ }
+ if {!$same} {error {DDR reset output is not the original MIG output}}
+ puts {DIAGNOSTIC_CLOCK_AND_IO_BINDINGS_READY_FINAL_RESET_IO_CDC_SIGNOFF_PENDING}
+}
 proc board_prep::cache {} {
  variable cells;variable pins;variable banks
  set cells {};set pins {};set banks {};set selected {}
@@ -171,7 +235,7 @@ puts "PREPARATION_TOOL [version -short]"
 open_checkpoint $target
 puts "FRESH_MAPPING_TARGET $target"
 if {[catch {
- if {[llength $argv]!=6} {error {Required original IP implementation-constraint inventory missing}}
+ if {[llength $argv] ni {6 7}} {error {Required original IP implementation-constraint inventory missing}}
  if {[lindex $argv 5] eq {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT}} {
   if {[file tail $target] ne {ip-restored-unqualified.dcp}} {error {Wrong restored-IP checkpoint name}}
   puts {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT_NO_IP_REPLAY}
@@ -240,12 +304,56 @@ if {[catch {
  check_timing -verbose -file post-synth-coverage.rpt
  report_clocks -file post-synth-clocks.rpt
  write_xdc -force post-synth-memory-constraints.xdc
- set valence(phase) recovery_r1_post_opt_entry_diagnostic_without_opt
+ if {$valence(diagnostic_implementation)} {
+  if {[llength $::board_prep_failures]} {error {Incomplete actual CDC constraints; diagnostic optimization blocked}}
+  board_prep::diagnostic_gate post-synth-coverage.rpt
+  board_prep_save_checkpoint post-synth-constrained-diagnostic.dcp
+  report_drc -ruledeck opt_checks -file diagnostic-preopt-drc.rpt
+  if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native opt DRC errors; see diagnostic-preopt-drc.rpt}}
+  puts {DIAGNOSTIC_START_OPT_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
+  opt_design
+  set valence(phase) recovery_r1_actual_post_opt_diagnostic
+ } else {set valence(phase) recovery_r1_post_opt_entry_diagnostic_without_opt}
  board_prep::entry [file join $valence(root) fpga common post_opt.tcl] 0
  check_timing -verbose -file post-opt-coverage.rpt
  report_clocks -file post-opt-clocks.rpt
  report_cdc -details -file post-opt-cdc.rpt
  write_xdc -force post-opt-memory-constraints.xdc
+ if {$valence(diagnostic_implementation)} {
+  if {[llength $::board_prep_failures]} {error {Incomplete actual post-opt CDC constraints}}
+  board_prep::diagnostic_gate post-opt-coverage.rpt
+  board_prep_save_checkpoint post-opt-constrained-diagnostic.dcp
+  report_drc -file diagnostic-preplace-drc.rpt
+  if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native pre-place DRC errors; see diagnostic-preplace-drc.rpt}}
+  puts {DIAGNOSTIC_START_PLACE_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
+  place_design
+  board_prep_save_checkpoint placed-diagnostic.dcp
+  phys_opt_design
+  puts {DIAGNOSTIC_START_ROUTE_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
+  route_design
+  board_prep_save_checkpoint routed-diagnostic-unqualified.dcp
+  report_timing_summary -delay_type min_max -report_unconstrained -file diagnostic-timing.rpt
+  report_utilization -file diagnostic-utilization.rpt
+  report_route_status -file diagnostic-route.rpt
+  report_bus_skew -delay_type min_max -file diagnostic-bus-skew.rpt
+  report_cdc -details -file diagnostic-cdc.rpt
+  report_drc -file diagnostic-drc.rpt
+  check_timing -verbose -file diagnostic-coverage.rpt
+  foreach {domain pin} {cpu u_soc/cpuClock fabric u_soc/fabricClock uart u_soc/peripherals/uart/uart/clock} {
+   set clock [get_clocks -of_objects [get_pins $pin]]
+   report_timing -from $clock -to $clock -delay_type max -max_paths 10 -file diagnostic-$domain-setup.rpt
+   report_timing -from $clock -to $clock -delay_type min -max_paths 10 -file diagnostic-$domain-hold.rpt
+  }
+  set qsource [common_cdc::one get_pins {u_soc/peripherals/gmac/rxQuiesceRaw_sync/stages_reg[1]/C}]
+  set qtarget [common_cdc::one get_pins u_soc/peripherals/gmac/agent_1/request_REG_reg/D]
+  foreach kind {max min} {
+   set path [get_timing_paths -quiet -from $qsource -to $qtarget -delay_type $kind -max_paths 1]
+   if {[llength $path]!=1} {error "Missing normal shared-quiesce $kind timing path"}
+   puts "QUIESCE_NORMAL_STA kind=$kind requirement=[get_property REQUIREMENT $path] slack=[get_property SLACK $path] exception=[get_property EXCEPTION $path]"
+   report_timing -from $qsource -to $qtarget -delay_type $kind -max_paths 5 -file diagnostic-shared-quiesce-$kind.rpt
+  }
+  puts {DIAGNOSTIC_ROUTE_REPORTS_SAVED_NOT_BOARD_SIGNOFF_NO_BITSTREAM};flush stdout
+ }
 } reason options]} {
  common_log failure.txt "$reason\n[dict get $options -errorinfo]"
  puts "FORMAL_PREPARATION_BLOCKED $reason"
