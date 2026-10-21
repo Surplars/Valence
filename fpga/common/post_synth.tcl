@@ -8,7 +8,7 @@ source [file join $valence(root) fpga inorder bscan_timing_i1.tcl]
 common_media_apply 1000
 common_media_cdc
 set debugPin u_soc/fabricClock
-if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-static"} {set debugPin u_soc/debugClock}
+if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static}} {set debugPin u_soc/debugClock}
 set fabric [get_clocks -quiet -of_objects [get_pins -quiet $debugPin]]
 if {[llength $fabric] != 1} {error "Missing actual debug transport clock"}
 valence_apply_bscan_timing u_debug/enabled.user_scan u_debug/enabled.transport [get_property NAME $fabric] zu15eg-user2-tck50-halfcycle-i1-v2

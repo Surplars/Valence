@@ -24,11 +24,11 @@ set_property -dict [list CONFIG.PRIM_SOURCE No_buffer CONFIG.PRIM_IN_FREQ 250.00
     CONFIG.CLKOUT2_USED true CONFIG.CLKOUT2_REQUESTED_OUT_FREQ 50.000 CONFIG.CLKOUT2_DRIVES BUFG \
     CONFIG.USE_RESET true CONFIG.USE_LOCKED true CONFIG.USE_DYN_RECONFIG false] [get_ips clk_wiz_common]
 # Never import/reuse the frozen CPU300 clock DCP for the low-clock candidate.
-# A static third output separates fabric50 from the unchanged UI/time/debug250.
-if {$valence(clock_profile) eq "boot50-static"} {
+# A static third output separates selected fabric50/250 from fixed UI/time/debug250.
+if {$valence(clock_profile) in {boot50-static performance300-static}} {
     set_property -dict [list CONFIG.NUM_OUT_CLKS 3 CONFIG.CLKOUT3_USED true \
-        CONFIG.CLKOUT3_REQUESTED_OUT_FREQ 50.000 CONFIG.CLKOUT3_DRIVES BUFG] [get_ips clk_wiz_common]
-    set_property verilog_define {VALENCE_BOOT50_STATIC} [current_fileset]
+        CONFIG.CLKOUT3_REQUESTED_OUT_FREQ [expr {$valence(hz_fabric)/1.0e6}] CONFIG.CLKOUT3_DRIVES BUFG] [get_ips clk_wiz_common]
+    set_property verilog_define {VALENCE_INDEPENDENT_FIXED_DOMAINS} [current_fileset]
 }
 create_ip -name blk_mem_gen -vendor xilinx.com -library ip -version 8.4 -module_name blk_mem_gen_0
 set_property -dict [list \
@@ -65,12 +65,32 @@ foreach run $runs {
 }
 common_log ip-synthesis.json "\{[join $ipEvidence ,]\}"
 foreach source [common_files rtl_filelist] {
-    if {$valence(clock_profile) eq "boot50-static"} {
-        read_verilog -sv -define VALENCE_BOOT50_STATIC $source
+    if {$valence(clock_profile) in {boot50-static performance300-static}} {
+        read_verilog -sv -define VALENCE_INDEPENDENT_FIXED_DOMAINS $source
     } else {read_verilog -sv $source}
 }
 foreach xdc $valence(constraints) {read_xdc $xdc}
 common_design_step synth_design -top $valence(top) -part $valence(part) -flatten_hierarchy none
+# Verify actual elaborated generated clock objects, never just requested CONFIG.
+set clockOutputs [list clk_out1 $valence(hz_cpu) clk_out2 $valence(hz_aon)]
+if {$valence(clock_profile) in {boot50-static performance300-static}} {
+    lappend clockOutputs clk_out3 $valence(hz_fabric)
+}
+set clockEvidence {}
+foreach {output expectedHz} $clockOutputs {
+    set pin [get_pins -quiet u_clk_wiz/$output]
+    if {[llength $pin] != 1} {error "Missing actual Clock Wizard output $output"}
+    set clocks [get_clocks -quiet -of_objects $pin]
+    if {[llength $clocks] != 1} {error "Missing/ambiguous generated output clock $output"}
+    if {[get_property IS_GENERATED $clocks] ni {1 true TRUE}} {error "Clock Wizard output is not a generated clock: $output"}
+    set period [get_property PERIOD $clocks]
+    if {![string is double -strict $period] || $period <= 0 || abs($period-1.0e9/$expectedHz)>0.002} {
+        error "Generated Clock Wizard frequency differs: $output period=$period expected_hz=$expectedHz"
+    }
+    lappend clockEvidence "$output clock=[get_property NAME $clocks] actual_period_ns=$period expected_hz=$expectedHz master=[get_property MASTER_CLOCK $clocks] source_pins=[get_property SOURCE_PINS $clocks]"
+}
+common_log clock-output-checks.txt [join $clockEvidence \n]
+report_clocks -file generated-clocks.rpt
 # Actual mapped hierarchy checks and bounded crossings precede checkpoint export.
 source $valence(post_synth_constraints)
 write_checkpoint synthesized.dcp

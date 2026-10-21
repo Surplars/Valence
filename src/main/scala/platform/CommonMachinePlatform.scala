@@ -38,8 +38,9 @@ class CommonMachinePlatform(
         "a fabric frequency different from fixed DDR UI requires the complete AXI boundary")
     require(independentTimebaseClock || profile.fabricHz == profile.clocks.timebaseHz,
         "a fabric frequency different from fixed timebase requires the timer boundary")
-    require(!profile.independentFixedDomains || independentDebugClock,
-        "the fixed-UI debug clock requires the complete DMI boundary")
+    require(!profile.independentFixedDomains ||
+        (independentDdrClock && independentTimebaseClock && independentDebugClock),
+        "the independent fixed-domain profile requires DDR, timer and DMI boundaries even at equal rates")
     val cpuClock = IO(Input(Clock()))
     val fabricClock = IO(Input(Clock()))
     val alwaysOnClock = IO(Input(Clock()))

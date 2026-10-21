@@ -352,11 +352,11 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     if {$root eq {u_soc/crossing}} {
         set profile production
         if {[info exists ::valence(clock_profile)]} {set profile $::valence(clock_profile)}
-        if {$profile ni {production boot50-static}} {error "COMMON_CDC unreviewed clock profile $profile"}
-        if {$profile eq {boot50-static}} {
-            lappend scopes {*}[collect_boot50 u_soc u_soc/fixedTimer u_soc/debugCrossing]
+        if {$profile ni {production boot50-static performance300-static}} {error "COMMON_CDC unreviewed clock profile $profile"}
+        if {$profile in {boot50-static performance300-static}} {
+            lappend scopes {*}[collect_static u_soc u_soc/fixedTimer u_soc/debugCrossing $profile]
         } elseif {[llength [get_pins -quiet u_soc/ddrClock]] || [llength [get_cells -quiet u_soc/ddrCrossing]]} {
-            error "COMMON_CDC independent DDR boundary requires explicit boot50-static profile"
+            error "COMMON_CDC independent DDR boundary requires explicit static topology profile"
         }
     }
     return $scopes
@@ -411,7 +411,7 @@ proc common_cdc::audit_timing {scopes output} {
             }
         }
     } finally {close $f}
-    report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) eq {boot50-static} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+    report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) in {boot50-static performance300-static} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
 }
 
 # Additional opt-in static boot boundary map. This is a fail-closed mapped-netlist
@@ -510,15 +510,24 @@ proc common_cdc::new_stage_coverage {roots scopes} {
     }
 }
 proc common_cdc::collect_boot50 {soc timer debug} {
+    return [collect_static $soc $timer $debug boot50-static]
+}
+proc common_cdc::collect_static {soc timer debug {profile boot50-static}} {
+    if {$profile ni {boot50-static performance300-static}} {error "COMMON_CDC unreviewed static profile $profile"}
+    set performance [expr {$profile eq {performance300-static}}]
     set cpu [clock $soc/cpuClock];set fabric [clock $soc/fabricClock]
     set fixed [clock $soc/ddrClock];set aon [clock $soc/alwaysOnClock]
-    expect_clock $soc/cpuClock $cpu 20.0
-    expect_clock $soc/fabricClock $fabric 20.0
+    expect_clock $soc/cpuClock $cpu [expr {$performance ? 1000.0/300 : 20.0}]
+    expect_clock $soc/fabricClock $fabric [expr {$performance ? 4.0 : 20.0}]
     expect_clock $soc/ddrClock $fixed 4.0
     expect_clock $soc/timebaseClock $fixed 4.0
     expect_clock $soc/debugClock $fixed 4.0
     expect_clock $soc/alwaysOnClock $aon 20.0
-    if {$cpu eq $fabric || $fabric eq $fixed} {error "COMMON_CDC boot domains unexpectedly collapsed"}
+    if {$cpu eq $fabric || $fabric eq $fixed} {
+        error "COMMON_CDC static profile clock identities disagree: $profile"
+    }
+    distinct_net $soc/cpuClock $soc/fabricClock
+    distinct_net $soc/fabricClock $soc/ddrClock
     set ddr $soc/ddrCrossing
     foreach root [list $ddr $timer $debug] {one get_cells $root}
     set lanes {};foreach suffix {{} _1 _2 _3 _4} {lappend lanes $ddr/empty_fifo$suffix}
@@ -557,6 +566,15 @@ proc common_cdc::collect_boot50 {soc timer debug} {
     expect_clock [format {%s/fabricDdrReady_ddrReadySync/stages_reg[0]/C} $soc] $fabric
     lappend result [level $soc/fabricDdrReady_ddrReadySync]
     new_stage_coverage [list $ddr $timer $debug $soc/fabricDdrReady_ddrReadySync] $result
-    puts "COMMON_CDC_BOOT50_MAPPED scopes=[llength $result] NATIVE_TIMING_VALIDATION_STILL_REQUIRED"
+    puts "COMMON_CDC_STATIC_MAPPED profile=$profile scopes=[llength $result] NATIVE_TIMING_VALIDATION_STILL_REQUIRED"
     return $result
+}
+
+proc common_cdc::distinct_net {a b} {
+    set aa [get_nets -quiet -segments -of_objects [one get_pins $a]]
+    set bb [get_nets -quiet -segments -of_objects [one get_pins $b]]
+    if {![llength $aa] || ![llength $bb]} {error "COMMON_CDC missing physical clock net $a $b"}
+    foreach n $aa {
+        if {[lsearch -exact $bb $n]>=0} {error "COMMON_CDC physical clock nets collapsed $a $b"}
+    }
 }

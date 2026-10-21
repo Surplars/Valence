@@ -1,0 +1,61 @@
+{
+  "stage": "cmu-frequency-r4-performance",
+  "base_commit": "29ed6d1af9d999440ae20b278d5d18c1b39b27ed",
+  "profile": "performance300-static",
+  "cpu": "i1",
+  "clocks_hz": {
+    "cpu": 300000000,
+    "fabric": 250000000,
+    "timebase": 250000000,
+    "ddr_ui": 250000000,
+    "aon": 50000000,
+    "uart": 50000000
+  },
+  "topology": "independent-fixed-v1",
+  "runtime_frequency_switching": false,
+  "tests": {
+    "scala_profile_and_abi": {
+      "passed": 18,
+      "failed": 0
+    },
+    "actual_full_i1_production_sv_emit": "PASS",
+    "native_xsim": {
+      "source_commit": "86830fe259566c6869b2d2d44b7f8715fbf01388",
+      "receipt": "recovery/native-validation-86830fe/receipt.json",
+      "axi_transport": "PASS_WITH_NEGATIVE",
+      "fixed_timer_dmi_loader": "PASS_WITH_NEGATIVES",
+      "dci": "FAIL_handshake_after_forced_lock_loss",
+      "whole_new_profile": "NOT_RUN"
+    },
+    "physical_timing": "NOT_RUN",
+    "board": "NOT_RUN",
+    "board_python_passed": 41,
+    "tcl_helper_suites_passed": 9,
+    "actual_port_binding": {
+      "ports": 123,
+      "connections": 80
+    },
+    "dci_testbench_race_repair": "opposite-edge injection, unchanged handshake oracle and 1ns deadline; native rerun pending"
+  },
+  "emission_manifest_sha256": "6f33ebaa2726eec74936b85a935ad62868479489c3c603ccd498cc7efcd43577",
+  "important_limits": [
+    "boot50 remains separate static board candidate, not high-frequency signoff",
+    "old production differs in CDC topology",
+    "actual frequency-dependent constants and metadata differ, not byte-identical RTL",
+    "runtime drain/gates/MMCM DRP/relock backend remains disconnected"
+  ],
+  "emitted_boundary_comparison": {
+    "Axi4ClockDomainBoundary.sv": {
+      "boot50_byte_identical": true,
+      "performance_sha256": "2f277ba43a344a995e70395b470e55589e445a858f4c8a9b54602bc525920290"
+    },
+    "FixedTimebaseBoundary.sv": {
+      "boot50_byte_identical": true,
+      "performance_sha256": "78eaf453bbad42281fb8db3744178c1c802ca028382dfd6376fe92390471060d"
+    },
+    "DebugDmiClockBoundary.sv": {
+      "boot50_byte_identical": true,
+      "performance_sha256": "b9315a0b3e2471aa9fb397cd3ac56581aa585397330ae2f67b428a00d959fcb0"
+    }
+  }
+}

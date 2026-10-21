@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 // Shared board shell. CPU300 (I1) / CPU100 (A1) is selected at export/IP creation.
-// Default fabric uses MIG UI250. VALENCE_BOOT50_STATIC selects separate fabric50;
+// Default fabric uses MIG UI250. VALENCE_INDEPENDENT_FIXED_DOMAINS selects a separate fabric output;
 // DDR, timebase and debug stay on UI250. This is NOT runtime DRP support.
 // MAC125/PAD250/REF500 share the public quarter-clock divider reset epoch.
 // Source candidate only: mapped CDC/ROM, three-speed timing and board are unverified.
@@ -39,12 +39,12 @@ module soc_top_common_ddr (
     wire ui_aresetn = ~ui_reset_pipe[2];
 
     wire clk_fabric;
-`ifndef VALENCE_BOOT50_STATIC
+`ifndef VALENCE_INDEPENDENT_FIXED_DOMAINS
     assign clk_fabric = ui_clk;
 `endif
     clk_wiz_common u_clk_wiz (
         .clk_in1(ui_clk), .clk_out1(clk_soc), .clk_out2(clk_aon),
-`ifdef VALENCE_BOOT50_STATIC
+`ifdef VALENCE_INDEPENDENT_FIXED_DOMAINS
         .clk_out3(clk_fabric),
 `endif
         .reset(board_reset | ui_reset), .locked(cpu_locked)
@@ -174,7 +174,7 @@ module soc_top_common_ddr (
         .dmi_rsp_status(dmi_rsp_status), .dmi_rsp_data(dmi_rsp_data));
     CommonMachinePlatform u_soc (
         .cpuClock(clk_soc), .fabricClock(clk_fabric), .alwaysOnClock(clk_aon),
-`ifdef VALENCE_BOOT50_STATIC
+`ifdef VALENCE_INDEPENDENT_FIXED_DOMAINS
         .ddrClock(ui_clk), .timebaseClock(ui_clk), .debugClock(ui_clk),
 `endif
         .rawUartClock(clk_aon), .rawTxClock(clk_tx), .rawRxClock(clk_rx),

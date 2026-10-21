@@ -41,7 +41,7 @@ SIM_RTL = (
 
 def selected_shell(wrapper, low):
     # Only this reviewed switch is accepted. Do not ignore arbitrary preprocessor logic.
-    pattern = r'`(ifdef|ifndef) VALENCE_BOOT50_STATIC\n(.*?)`endif'
+    pattern = r'`(ifdef|ifndef) VALENCE_INDEPENDENT_FIXED_DOMAINS\n(.*?)`endif'
     return re.sub(pattern, lambda m: m[2] if (m[1] == 'ifdef') == low else '', wrapper, flags=re.S)
 
 
@@ -80,9 +80,13 @@ def emission(root, m):
         gate.require(meta.get(key) == value and type(meta.get(key)) is type(value), 'wrong production emission contract: ' + key)
     gate.require(str(meta.get('timebaseHz')) == str(clocks['timebase']), 'wrong emission timebase')
     profile = c.get('clock_profile', 'production')
-    if profile == 'boot50-static':
+    if profile in ('boot50-static', 'performance300-static'):
         gate.require(meta.get('clockProfile') == profile and meta.get('independentFixedDomains') is True
                      and meta.get('runtimeClockReconfiguration') is False, 'missing static independent-domain emission contract')
+    if profile == 'performance300-static':
+        gate.require(meta.get('clockTopology') == 'independent-fixed-v1' and
+                     meta.get('clockProfilePurpose') == 'high-frequency-timing-target',
+                     'missing performance independent topology contract')
     source_hashes = {}
     for absolute, value in meta.get('sources', {}).items():
         for marker in ('src/main/scala/', 'src/test/scala/platform/'):
@@ -122,4 +126,4 @@ def emission(root, m):
                     high = 0 if reset else prior if phase else source
                     gate.require(low == high, 'common control reset/phase induction failed')
     return port_check(gate.file_at(root, (base / 'CommonMachinePlatform.sv').as_posix()).read_text(),
-                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text(), low=profile == 'boot50-static')
+                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text(), low=profile in ('boot50-static', 'performance300-static'))

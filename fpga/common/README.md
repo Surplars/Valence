@@ -43,7 +43,7 @@ retain their full CPU/cache/peripheral geometry. CPU50/fabric250 is not this
 candidate. The profile is a timing target, not routed timing or board evidence.
 
 The exporter enables the DDR AXI, TIME and DMI CDC boundaries. The shell is
-compiled with `VALENCE_BOOT50_STATIC` only for that frozen profile. The producer
+compiled with `VALENCE_INDEPENDENT_FIXED_DOMAINS` only for that frozen profile. The producer
 creates a fresh Clocking Wizard 6.0 with three static BUFG outputs (50/50/50 MHz)
 from MIG UI250; it does not reuse a CPU300 clock XCI/DCP. Runtime DRP remains
 unsupported: reconfiguring this shared CPU/fabric/AON source would disturb AON
@@ -263,3 +263,19 @@ Official references:
 - https://docs.amd.com/r/2025.2-English/ug974-vivado-ultrascale-libraries/STARTUPE3
 - https://docs.amd.com/r/en-US/ug570-ultrascale-configuration/Start-up-Sequence-Step-8
 - https://docs.amd.com/r/en-US/ds925-zynq-ultrascale-plus/Configuration-Switching-Characteristics
+
+## Explicit high-frequency target: performance300-static
+
+`--clock-profile=performance300-static` is I1-only CPU300/fabric250/TIME250,
+DDR UI250, AON/UART50. It retains the same independent-fixed-v1 DDR/time/debug
+transport topology as boot50, with a fresh third Clock Wizard output at250MHz.
+This fabric clock is NOT the MIG UI clock net, even though their nominal rates
+match. The shell uses VALENCE_INDEPENDENT_FIXED_DOMAINS for both new profiles;
+legacy production and boot50 remain unchanged frequency choices.
+
+This profile is a high-frequency timing target, not a successful board or STA
+claim. Metadata must identify both independent-fixed-v1 and
+high-frequency-timing-target. Native synthesis checks the actual generated
+clock objects at Clock Wizard output pins against every selected target and
+saves clock-output-checks.txt; matching requested CONFIG values alone cannot
+pass. All existing physical/reset/CDC gates still apply.

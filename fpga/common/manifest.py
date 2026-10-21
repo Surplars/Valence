@@ -98,7 +98,8 @@ def output_at(root, value):
 
 def reviewed_board_clocks(cpu, profile='production'):
     require(cpu in ('i1', 'a1'), 'unreviewed CPU')
-    require(profile in ('production', 'boot50-static'), 'unreviewed board clock profile')
+    require(profile in ('production', 'boot50-static', 'performance300-static'), 'unreviewed board clock profile')
+    require(profile != 'performance300-static' or cpu == 'i1', 'performance300-static is I1-only')
     low = profile == 'boot50-static'
     return dict(cpu=50000000 if low else 300000000 if cpu == 'i1' else 100000000,
                 fabric=50000000 if low else 250000000, timebase=250000000,
@@ -116,8 +117,8 @@ def configuration(config):
     require(set(clocks) == set(CLOCKS) and all(type(v) is int and 0 < v <= 1_000_000_000
                                             for v in clocks.values()), 'explicit positive domain frequencies required')
     profile = config.get('clock_profile', 'production')
-    require(profile in ('production', 'boot50-static'), 'unreviewed board clock profile')
-    if profile == 'boot50-static':
+    require(profile in ('production', 'boot50-static', 'performance300-static'), 'unreviewed board clock profile')
+    if profile in ('boot50-static', 'performance300-static'):
         require(clocks == reviewed_board_clocks(config['cpu'], profile), 'unreviewed static low-clock topology')
     else:
         require(clocks['timebase'] == clocks['fabric'], 'production timebase must equal fabric clock')

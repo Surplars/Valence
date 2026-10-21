@@ -9,7 +9,7 @@ source [file join $valence(root) fpga inorder bscan_timing_i1.tcl]
 valence_native_mac_assert_mode u_rgmii
 common_media_cdc
 set debugPin u_soc/fabricClock
-if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-static"} {set debugPin u_soc/debugClock}
+if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static}} {set debugPin u_soc/debugClock}
 set fabric [get_clocks -quiet -of_objects [get_pins -quiet $debugPin]]
 if {[llength $fabric] != 1} {error "Missing actual debug transport clock"}
 valence_reapply_bscan_cdc u_debug/enabled.user_scan u_debug/enabled.transport [get_property NAME $fabric]

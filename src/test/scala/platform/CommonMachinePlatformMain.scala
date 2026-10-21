@@ -68,6 +68,9 @@ object CommonMachinePlatformMain extends App {
         "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
         "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> false,
         "independentFixedDomains" -> profile.independentFixedDomains,
+        "clockTopology" -> (if (profile.independentFixedDomains) "independent-fixed-v1" else "legacy-ui-fabric"),
+        "clockProfilePurpose" -> (if (profile.clockProfile == "performance300-static") "high-frequency-timing-target"
+            else if (profile.clockProfile == "boot50-static") "low-frequency-board-candidate" else "legacy-production"),
         "abi" -> 1, "romBytes" -> CommonPlatformAbi.romBytes,
         "programmableRom" -> programmable, "vivadoMemories" -> vivado,
         "hardwareClocks" -> true, "independentCpuFabricClocks" -> true,

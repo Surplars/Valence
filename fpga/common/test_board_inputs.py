@@ -32,8 +32,12 @@ class BoardInputs(unittest.TestCase):
         self.assertIn('create_ip -name clk_wiz', script)
         self.assertIn('CONFIG.USE_DYN_RECONFIG false', script)
         self.assertIn('CONFIG.NUM_OUT_CLKS 3', script)
-        self.assertIn('CONFIG.CLKOUT3_REQUESTED_OUT_FREQ 50.000', script)
-        self.assertIn('read_verilog -sv -define VALENCE_BOOT50_STATIC', script)
+        self.assertIn('CONFIG.CLKOUT3_REQUESTED_OUT_FREQ [expr {$valence(hz_fabric)/1.0e6}]', script)
+        self.assertIn('get_property PERIOD $clocks', script)
+        self.assertIn('clock-output-checks.txt', script)
+        self.assertIn('get_property IS_GENERATED $clocks', script)
+        self.assertIn('generated-clocks.rpt', (HERE / 'freeze.py').read_text())
+        self.assertIn('read_verilog -sv -define VALENCE_INDEPENDENT_FIXED_DOMAINS', script)
         for name in ('post_synth.tcl', 'post_opt.tcl'):
             self.assertIn('set debugPin u_soc/debugClock', (HERE / name).read_text())
         audit = (HERE / 'board_audit.tcl').read_text()
@@ -70,6 +74,15 @@ class BoardInputs(unittest.TestCase):
         result = subprocess.run(['tclsh'], input=tcl, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), 'OK')
+
+    def test_performance_profile_is_explicit_i1_and_preserves_all_fixed_rates(self):
+        expected = dict(cpu=300000000,fabric=250000000,timebase=250000000,
+                        ddr_ui=250000000,uart=50000000,aon=50000000)
+        self.assertEqual(producer.gate.reviewed_board_clocks('i1','performance300-static'), expected)
+        with self.assertRaises(ValueError): producer.gate.reviewed_board_clocks('a1','performance300-static')
+        self.assertEqual(producer.gate.reviewed_board_clocks('i1')['cpu'], 300000000)
+        self.assertEqual(producer.gate.reviewed_board_clocks('a1')['cpu'], 100000000)
+        self.assertEqual(producer.gate.reviewed_board_clocks('i1','boot50-static')['fabric'], 50000000)
 
     def test_bit_is_blocked_before_scenario_code(self):
         script = (HERE / 'signoff.tcl').read_text()
@@ -130,6 +143,13 @@ class BoardInputs(unittest.TestCase):
                 for key in ('cpu','fabric','timebase','ddr_ui','uart','aon'):
                     bad=copy.deepcopy(low);bad['configuration']['clocks_hz'][key]+=1000000
                     with self.assertRaises(ValueError): producer.validate(root,bad)
+                performance=copy.deepcopy(m);performance['configuration']['clock_profile']='performance300-static'
+                producer.validate(root,performance)
+                for key in ('cpu','fabric','timebase','ddr_ui','uart','aon'):
+                    bad=copy.deepcopy(performance);bad['configuration']['clocks_hz'][key]+=1000000
+                    with self.assertRaises(ValueError): producer.validate(root,bad)
+                bad=copy.deepcopy(performance);bad['configuration']['cpu']='a1'
+                with self.assertRaises(ValueError): producer.validate(root,bad)
                 bad=copy.deepcopy(low);bad['configuration'].pop('clock_profile')
                 with self.assertRaises(ValueError): producer.validate(root,bad)
                 bad=copy.deepcopy(m);bad['configuration']['features']['mac']=False

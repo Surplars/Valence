@@ -46,11 +46,21 @@ module common_dci_startup_tb;
         #40 cold_reset = 1'b0;
         wait (requests == 6);
         wait (ready === 1'b1);
+        // ready rises from a posedge CFGMCLK NBA update. Injecting a force in
+        // that same active region races the unmodified posedge-ready checker.
+        // Drive at the opposite edge instead, AFTER verifying the genuine
+        // pre-injection state. The asynchronous inhibit deadline stays 1 ns.
+        @(negedge dut.cfg_clock);
+        if (ready !== 1'b1 || dut.locked !== 1'b1 || dut.inhibit !== 1'b0)
+            $fatal(1,"DCI pre-injection ready/LOCKED state invalid");
         // Inject loss only at the DUT status net, not a replacement primitive.
         force dut.locked = 1'b0;
         #1 if (ready !== 1'b0) $fatal(1,"LOCKED loss did not inhibit ready");
         #100 release dut.locked;
         wait (ready === 1'b1);
+        @(negedge dut.cfg_clock);
+        if (ready !== 1'b1 || dut.locked !== 1'b1 || dut.inhibit !== 1'b0)
+            $fatal(1,"DCI failed stable recovery after LOCKED loss");
         $display("COMMON_DCI_STARTUP_PASS VENDOR_UNISIM=1 BOARD=0");
         $finish;
     end

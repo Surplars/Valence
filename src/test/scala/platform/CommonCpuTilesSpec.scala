@@ -28,6 +28,27 @@ class CommonCpuTilesSpec extends AnyFunSuite {
         assert(CommonCpuProfile.named("a1").cpuHz == 100000000)
         intercept[IllegalArgumentException] { CommonCpuProfile.named("i1", "unreviewed") }
     }
+    test("performance300 keeps new CDC topology at unchanged high frequency targets") {
+        val p = CommonCpuProfile.named("i1", "performance300-static")
+        val boot = CommonCpuProfile.I1Boot50
+        assert(p.cpuHz == 300000000 && p.fabricHz == 250000000)
+        assert(p.independentFixedDomains && boot.independentFixedDomains)
+        assert(!CommonCpuProfile.I1.independentFixedDomains)
+        assert(p.clocks.timebaseHz == 250000000 && p.ddrUiHz == 250000000)
+        assert(p.aonHz == 50000000 && p.uartHz == 50000000)
+        assert(p.i1 == boot.i1 && p.fpga == boot.fpga && p.boundary == boot.boundary)
+        assert(p.cmu.resources(1).nominalHz == 300000000)
+        intercept[IllegalArgumentException] {
+            ChiselStage.emitCHIRRTL(new CommonMachinePlatform(p, independentDebugClock = true))
+        }
+        intercept[IllegalArgumentException] { CommonCpuProfile.named("a1", "performance300-static") }
+        intercept[IllegalArgumentException] {
+            CommonCpuProfile("i1", boot.clocks, "performance300-static")
+        }
+        intercept[IllegalArgumentException] {
+            CommonCpuProfile("i1", p.clocks, "boot50-static")
+        }
+    }
     test("A1 tile contains private CPU and caches without duplicate platform peripherals") {
         val rtl = ChiselStage.emitCHIRRTL(new CommonA1CpuTile())
         assert(rtl.contains("module CommonA1CpuTile"))

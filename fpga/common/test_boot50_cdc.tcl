@@ -53,7 +53,7 @@ assert {[string match {*register payload bypass*} $why]} {wrong bypass diagnosti
 puts BOOT50_REGISTER_ABI_MAPPING_AND_BYPASS_TEST_PASS
 # Dry-run collection verifies all live channel directions and expected 32 scopes.
 # Endpoint proofs above remain separate; this mock is never netlist evidence.
-foreach name {one expect_clock exact_modules gray payload level mailbox_width register_payload new_stage_coverage} {
+foreach name {one expect_clock exact_modules gray payload level mailbox_width register_payload new_stage_coverage distinct_net} {
     rename common_cdc::$name common_cdc::tested_$name
 }
 proc common_cdc::one args {}
@@ -63,7 +63,8 @@ proc common_cdc::clock pin {
 set ::clockChecks {}
 proc common_cdc::expect_clock {pin expected args} {dict set ::clockChecks $pin $expected}
 proc common_cdc::exact_modules args {}
-proc common_cdc::gray {h direction} {return [list label $h/$direction]}
+proc common_cdc::distinct_net args {}
+proc common_cdc::gray {h direction args} {return [list label $h/$direction]}
 proc common_cdc::payload h {return [list label $h/payload]}
 proc common_cdc::level h {return [list label $h]}
 proc common_cdc::mailbox_width {h width source destination} {return [list label $h width $width]}

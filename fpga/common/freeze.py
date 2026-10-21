@@ -53,10 +53,10 @@ def freeze(a):
              producer=dict(schema='common-board-producer-v1', simulation_suite='common-physical-boundaries-v1', media_rates_mbps=[10, 100, 1000]),
              roles=roles, stages={
                  'simulation': dict(script='fpga/common/simulate.tcl', outputs=['smoke-result.txt', 'jtag_upstream-run.log', 'jtag_downstream-run.log', 'jtag_bad64-run.log', 'quarter-run.log', 'dci-run.log', 'dci_short-run.log', 'xelab-invocations.txt', 'xsim-invocations.txt']),
-                 'synthesis': dict(script='fpga/common/synthesize.tcl', outputs=['synthesized.dcp', 'utilization.rpt', 'bus-skew-scope.json', 'ip-synthesis.json']),
+                 'synthesis': dict(script='fpga/common/synthesize.tcl', outputs=['synthesized.dcp', 'utilization.rpt', 'bus-skew-scope.json', 'ip-synthesis.json', 'clock-output-checks.txt', 'generated-clocks.rpt']),
                  'implementation': dict(script='fpga/common/implement.tcl', outputs=['routed.dcp', 'utilization.rpt', 'bus-skew-scope.json'])},
              signoff=dict(bus_skew_checks='mapped-scope', clock_pins=dict(cpu='u_soc/cpuClock', fabric='u_soc/fabricClock',
-                 timebase='u_soc/timebaseClock' if profile == 'boot50-static' else 'u_soc/fabricClock', ddr_ui='u_ddr/c0_ddr4_ui_clk', uart='u_soc/rawUartClock', aon='u_soc/alwaysOnClock')))
+                 timebase='u_soc/timebaseClock' if profile in ('boot50-static', 'performance300-static') else 'u_soc/fabricClock', ddr_ui='u_ddr/c0_ddr4_ui_clk', uart='u_soc/rawUartClock', aon='u_soc/alwaysOnClock')))
     files = set(emitted + rtl + sim + list(board_inputs.PUBLIC_INPUTS))
     for value in roles.values(): files.update(value if isinstance(value, list) else [value])
     files.update(gate.firmware_inputs(root, gate.read(root / a.firmware_contract)))

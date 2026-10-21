@@ -10,10 +10,13 @@ import soc.ip.clock.{ClockResource, CmuParams}
   */
 case class CommonCpuProfile(kind: String, clocks: CommonClockConfig, clockProfile: String = "production") {
     require(Set("i1", "a1").contains(kind))
-    require(Set("production", "boot50-static").contains(clockProfile))
-    val independentFixedDomains = clockProfile == "boot50-static"
-    require(!independentFixedDomains || clocks == CommonClockConfig(50000000, 50000000, 250000000),
+    require(Set("production", "boot50-static", "performance300-static").contains(clockProfile))
+    val independentFixedDomains = clockProfile != "production"
+    require(clockProfile != "boot50-static" || clocks == CommonClockConfig(50000000, 50000000, 250000000),
         "boot50-static requires CPU50/fabric50/TIME250")
+    require(clockProfile != "performance300-static" ||
+        (kind == "i1" && clocks == CommonClockConfig(300000000, 250000000, 250000000)),
+        "performance300-static requires I1 CPU300/fabric250/TIME250")
     val fabricHz = clocks.fabricClockHz.toInt
     val cpuHz = clocks.clockFrequencyHz.toInt
     val aonHz = 50000000
@@ -49,10 +52,16 @@ case class CommonCpuProfile(kind: String, clocks: CommonClockConfig, clockProfil
 object CommonCpuProfile {
     val I1 = CommonCpuProfile("i1", CommonClockConfig(300000000, 250000000, 250000000))
     val A1 = CommonCpuProfile("a1", CommonClockConfig(100000000, 250000000, 250000000))
+    val I1Performance300 = CommonCpuProfile("i1", CommonClockConfig(300000000, 250000000, 250000000),
+        "performance300-static")
     val I1Boot50 = CommonCpuProfile("i1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
     val A1Boot50 = CommonCpuProfile("a1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
     def named(kind: String, clockProfile: String = "production"): CommonCpuProfile = {
-        require(Set("production", "boot50-static").contains(clockProfile), "unreviewed clock profile")
+        require(Set("production", "boot50-static", "performance300-static").contains(clockProfile), "unreviewed clock profile")
+        if (clockProfile == "performance300-static") {
+            require(kind == "i1", "performance300-static is reviewed only for I1")
+            return I1Performance300
+        }
         if (clockProfile == "boot50-static") return kind match {
             case "i1" => I1Boot50
             case "a1" => A1Boot50
