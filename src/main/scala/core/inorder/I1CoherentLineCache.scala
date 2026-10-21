@@ -33,8 +33,9 @@ class I1CoherentLineCache(
     controlTimingCuts: Boolean = false, orderedReadOnly: Boolean = false,
     orderedDataAdmission: Boolean = false, trustedReadOnlyCacheability: Boolean = false,
     fetchPredecode: Boolean = false, internalLineGrant: Boolean = false,
-    missTurnover: Boolean = false, writebackOverlap: Boolean = false
-) extends I1CoherentLineCacheModule(params, trustedReadOnlyCacheability, internalLineGrant) {
+    missTurnover: Boolean = false, writebackOverlap: Boolean = false,
+    reportQuiescence: Boolean = false
+) extends I1CoherentLineCacheModule(params, trustedReadOnlyCacheability, internalLineGrant, reportQuiescence) {
     require(!missTurnover || (controlTimingCuts && orderedDataAdmission && ways == 2))
     require(!fetchPredecode || (orderedReadOnly && controlTimingCuts && ways == 2))
     require(!orderedReadOnly || controlTimingCuts)
@@ -1016,4 +1017,19 @@ class I1CoherentLineCache(
                 "ordered native bypass must use the retained authorized owner")
         }
     }
+    // Stop-safe owner observation only; never changes protocol admission. A
+    // completed flush is sticky and does not exclude a newly accepted probe.
+    // The sole acquire owner stays in acquire/fill (or probeResume thereof)
+    // until the engine's response, which follows the actual E handshake.
+    // The forwarding shadow still commits dirty metadata and must also drain.
+    io.quiescent.foreach(_ := phaseIs(stateStorage, idle) && in(idle) &&
+        !classifyPending.getOrElse(false.B) && !readPending && !storePending &&
+        !forwardValid.getOrElse(false.B) && readResponses.io.count === 0.U &&
+        !flushActive && !(io.flushRequest && !flushFinished) &&
+        !overlapIssued.getOrElse(false.B) && !engine.io.response.valid &&
+        !io.upstream.request.valid && !io.upstream.response.valid &&
+        !io.downstream.request.valid && !io.downstream.response.valid &&
+        !io.tl.a.valid && !io.tl.b.valid && !io.tl.c.valid && !io.tl.d.valid && !io.tl.e.valid &&
+        !io.lineGrant.map(_.valid).getOrElse(false.B))
+
 }

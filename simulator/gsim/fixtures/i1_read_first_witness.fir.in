@@ -1,0 +1,13 @@
+FIRRTL version 4.2.0
+circuit I1ReadFirstWitness :
+  module I1ReadFirstWitness :
+    input clock : Clock
+    input write : UInt<1>
+    input data : UInt<64>
+    output result : UInt<64>
+    smem memory : UInt<64>[2], old
+    read mport rd = memory[UInt<1>(0)], clock
+    connect result, rd
+    when write :
+      write mport wr = memory[UInt<1>(0)], clock
+      connect wr, data

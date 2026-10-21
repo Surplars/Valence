@@ -41,7 +41,9 @@ class FiveStageBurstPort(val p: FiveStageConfig) extends Bundle {
   * Noncoherent prototype: external DMA writes need software/platform invalidation before use.
   */
 class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement: Boolean = false,
-    trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false) extends Module {
+    trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false,
+    reportQuiescence: Boolean = false) extends Module {
+    require(!reportQuiescence || p.coherentCaches, "quiescence observation requires coherent caches")
     require(!reportMaintenance || p.coherentCaches, "maintenance completion requires real coherent flush")
     require(bytes == 0 || (bytes >= 2 * p.cacheLineBytes && bytes <= 65536 && (bytes & (bytes - 1)) == 0))
     val io = IO(new Bundle {
@@ -50,6 +52,7 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         val memory = new FiveStageBurstPort(p)
         val invalidate = Input(Bool())
         val invalidateDone = if (reportMaintenance) Some(Output(Bool())) else None
+        val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
         // Private IF authorization boundary, not a software/TileLink hint.
         val readCacheable = if (trustedReadOnlyCacheability) Some(Input(Bool())) else None
         val hit = Output(Bool())
@@ -66,11 +69,12 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         val coherent = Module(new I1CoherentWordCache(p, bytes,
             readOnly = p.coherentControlCuts && allowHitReplacement,
             trustedReadOnlyCacheability = p.coherentControlCuts && trustedReadOnlyCacheability,
-            reportMaintenance = reportMaintenance))
+            reportMaintenance = reportMaintenance, reportQuiescence = reportQuiescence))
         coherent.io.request <> io.request
         io.response <> coherent.io.response
         coherent.io.invalidate := io.invalidate
         io.invalidateDone.foreach(_ := coherent.io.invalidateDone.get)
+        io.quiescent.foreach(_ := coherent.io.quiescent.get)
         coherent.io.readCacheable.foreach(_ := io.readCacheable.get)
         io.coherence.get <> coherent.io.tl
         coherent.io.lineGrant.foreach(_ <> io.lineGrant.get)

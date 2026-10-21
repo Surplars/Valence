@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "source_sha256": {
+    "src/main/scala/core/inorder/I1CoherentInterfaces.scala": "a1c27de0e40ebff68dd1c0dfab52c5efa88bbd3227b0b7ca35b158a284771fdc",
+    "src/main/scala/core/inorder/I1CoherentLineCache.scala": "88222f0a0e7263bc24e3d0bad4fa99457d4660cf1b334127981451222cb97c3a",
+    "src/main/scala/core/inorder/FiveStageWordCache.scala": "2fc89a4baa022fb00e8365f3a786031c9af2d1c2d9b3d4f7ed17f2c128265df3",
+    "src/main/scala/core/inorder/I1FlowResponseQueue.scala": "540778c75b4b35ce0f274a042e860d36c2d7069c6d060c3d00e060e990ac82c2",
+    "src/main/scala/core/inorder/I1TimingMath.scala": "a3c5754d58e201b82909ccf4683e51e6f8296f9f40badc5008ca5c96651bf18c",
+    "src/main/scala/core/inorder/I1ExecuteDatapath.scala": "603fdef1e29601a545a412d4c91128e64481c69df150cb33d674c8afce243dba",
+    "src/main/scala/ip/tilelink/TileLinkLineAcquireEngine.scala": "c7e9d1bcd75b75f440ec2197d6a51a4e72a2469047dedcb46da938f6b4f84e63",
+    "src/test/scala/inorder/I1CacheQuiescenceMain.scala": "7fd6f86cd0c559b8da39b5e4b9cfb720ec2cea6e5036c8f1e0ae548853693484",
+    "simulator/gsim/harness/i1_cache_quiescence.cpp": "d5dd25cf9558035e6cd439853ee4ae95582be21f5790f4f4dd765949c0e42974",
+    "simulator/gsim/run.py": "fd55b6e26f076585d292de47ecfe8b38c278d76e69fc1eec9c57192a23969188",
+    "simulator/gsim/config/toolchain.json": "803299f2f92f458868d656c5f33d29ba1625621410c70b30b84588c0610529c8",
+    "simulator/gsim/i1_cache_quiescence.py": "184b1c46cb5fb7d695c93f693e33c4763a1fbf1c368612c80acf305356a3a514",
+    "simulator/gsim/fixtures/i1_read_first_witness.fir.in": "de6a2804272295e29a3210792e6c1cb1d57de074ea65449721f6919f67a2c6f0",
+    "simulator/gsim/harness/i1_read_first_witness.cpp": "b7a607f87ca07a7d8f31053b297ac486cc7734a9e5e214804a92717ffb4b73b2"
+  },
+  "scope": "Private cache only; no system drain, CDC, PLL or physical timing claim",
+  "ruw_source_evidence": {
+    "parser/syntax.y:220": "SMem datatype Ruw keeps the explicit token; old spelling has no comma",
+    "src/AST2Graph.cpp:787-808": "memory extraInfo retains Ruw policy",
+    "src/AST2Graph.cpp:1608-1621": "new schedules the read after writes; old schedules it before writes",
+    "src/Node.cpp:234": "non-new readwriter activates its next-cycle evaluation",
+    "source_sha256": {
+      "parser/syntax.y": "3a663fa8424574bf9f16a766b491721231a0aec455abc291b7995a92b38e8210",
+      "src/AST2Graph.cpp": "4ddeadab152cc4133c0220f251ce3d77ffe677ed95bc4dfacddcfc313a2ec062",
+      "src/Node.cpp": "149b1a8b55891ed01bf2f3bf031acb014cf8b176be3928e0ef419eaff2c2ed73"
+    }
+  },
+  "read_first_semantics": {
+    "status": "PASS",
+    "collisions": 32,
+    "negative": "REJECTED",
+    "original_sha256": "de6a2804272295e29a3210792e6c1cb1d57de074ea65449721f6919f67a2c6f0",
+    "adapted_sha256": "aafc14527a476d8faaaae4ad8a436827be7ad9b4cbd96742bbd3fa9e29a2895a"
+  },
+  "ruw_comma_compatibility": {
+    "count": 16,
+    "policy": "old preserved",
+    "original_sha256": "bd93a352db01cf2edbae07afc838a2acd516047ebb129f6be278078fc5c88712",
+    "adapted_sha256": "bbd84cd8005071eca0cb89ebffff5bec6d7de96881ccbbf53f089e9d3d0c5f7f"
+  },
+  "positive_log": "I1_CACHE_QUIESCENCE_PASS partial=12 e=12 reply=12 release=12 probe=12 native=12\n",
+  "wrong_owner_oracles": "REJECTED"
+}

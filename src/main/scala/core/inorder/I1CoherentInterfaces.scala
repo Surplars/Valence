@@ -34,13 +34,15 @@ class I1PrefetchEvents extends Bundle {
     val missOwners = UInt(3.W); val releaseOwners = UInt(3.W)
 }
 abstract class I1CoherentLineCacheModule(params: TLParams,
-    trustedReadOnlyCacheability: Boolean = false, internalLineGrant: Boolean = false) extends Module {
+    trustedReadOnlyCacheability: Boolean = false, internalLineGrant: Boolean = false,
+    reportQuiescence: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val upstream = Flipped(new I1DataPort); val downstream = new I1DataPort
         val tl = new TLBundle(params)
         val lineGrant = if (internalLineGrant)
             Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
         val flushRequest = Input(Bool()); val flushDone = Output(Bool())
+        val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
         val prefetchBusy = Output(Bool()); val prefetch = Output(new I1PrefetchEvents)
         val hit = Output(Bool()); val miss = Output(Bool()); val profile = Output(new I1CoherentCacheProfile)
         val readCacheable = if (trustedReadOnlyCacheability) Some(Input(Bool())) else None
@@ -101,7 +103,8 @@ class I1RegisteredCoherentBoundary(params: TLParams) extends Module {
   * execute at the shared CPU/DMA exclusion point, AFTER translation/PMP.
   */
 class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = false,
-    trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false) extends Module {
+    trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false,
+    reportQuiescence: Boolean = false) extends Module {
     require(p.xlen == 64 && p.cacheLineBytes == 64 && bytes >= 128)
     val params = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     val io = IO(new Bundle {
@@ -109,6 +112,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
         val response = Decoupled(new FiveStageDataResponse(p))
         val invalidate = Input(Bool()); val hit = Output(Bool()); val miss = Output(Bool())
         val invalidateDone = if (reportMaintenance) Some(Output(Bool())) else None
+        val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
         val tl = new TLBundle(params); val uncached = new I1DataPort
         val lineGrant = if (p.coherentLineGrants)
             Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
@@ -123,7 +127,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
         fetchPredecode = readOnly && p.cacheFetchPredecode,
         internalLineGrant = p.coherentLineGrants,
         missTurnover = !readOnly && p.coherentMissTurnover,
-        writebackOverlap = p.coherentWritebackOverlap))
+        writebackOverlap = p.coherentWritebackOverlap, reportQuiescence = reportQuiescence))
     cache.io.lineGrant.foreach(_ <> io.lineGrant.get)
     cache.io.readCacheable.foreach(_ := io.readCacheable.get)
     val maintenance = RegInit(false.B)
@@ -166,6 +170,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
     io.response.bits.parcelClasses.foreach(_ := (if (readOnly) cache.io.fetchClasses else 0.U))
     cache.io.upstream.response.ready := io.response.ready && metadata.deq.valid
     metadata.deq.ready := io.response.fire
+    io.quiescent.foreach(_ := cache.io.quiescent.get && metadata.count === 0.U)
     io.tl <> cache.io.tl; io.uncached <> cache.io.downstream
     if (p.coherentControlCuts) {
         // Atomics are always native/bypass. Format their payload BEFORE the
