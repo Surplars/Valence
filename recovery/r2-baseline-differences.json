@@ -1,0 +1,156 @@
+[
+  {
+    "path": "src/main/scala/core/inorder/FiveStageAddressTranslation.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/core/inorder/FiveStageCachedCore.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/core/ooo/platform/bus/ParallelRegisterRouter.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/ip/ethernet/TileLinkGmacControl.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/ip/interrupt/Imsic.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/ip/tilelink/TileLinkLineWriteEngine.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/main/scala/platform/CommonMachineFabric.scala",
+    "category": "production",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/inorder/FiveStagePrivilegeMain.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/ip/GmacReadyBaseline.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/ip/GmacReadyEquivalence.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/ip/GmacReadyMatrix.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/ooo/TileLinkLineWriteGsim.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/platform/RouterDispatchEndpointsGsim.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/platform/RouterDispatchSpec.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "src/test/scala/platform/ScalarRegisterCutGsim.scala",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/gmac_ready_equivalence.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/tilelink_gmac_control_trace.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/router_dispatch_endpoints.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/line_write.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/scalar_register_cut.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": false,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/harness/imsic.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  },
+  {
+    "path": "simulator/gsim/common/fabric_machine.cpp",
+    "category": "tests_or_harness",
+    "persisted_git_matches_r2_baseline": false,
+    "persisted_git_matches_prior_local": true,
+    "normalized_lf_matches_baseline": false
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "name": "recovery-r1",
+  "persisted_base_commit": "a49a28b1296d216770573f4b08585a24e1d2dfbe",
+  "persisted_base_branch": "integration/common-cpu-platform-20261019-r3",
+  "r2_package_sha256": "2d5beda4ebdb4d1332e59eacfb615cc71bfb1ae27edb648f63333d6f47432bca",
+  "r2_production_sv_modules_verified": 232,
+  "r2_source_baseline_files": 2263,
+  "r2_source_baseline_differences": {
+    "production_files": 7,
+    "tests_and_harness_files": 15
+  },
+  "r2_source_reproduction": "NOT_ESTABLISHED_MISSING_PRIOR_SOURCE_DELTAS",
+  "selected_recovery_source": "Unmodified persisted base commit; no speculative r1/r2 source overlays",
+  "original_r2_retained": true,
+  "lost_r6_reconstructed": false,
+  "claims_inherited_from_lost_r6": false,
+  "physical_qualified": false
+}
