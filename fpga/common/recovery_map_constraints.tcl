@@ -10,7 +10,7 @@ set valence(diagnostic_families) [expr {[llength $argv]>4 && [lindex $argv 4] eq
 set valence(diagnostic_implementation) [expr {[llength $argv] in {7 8} && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
 set valence(resume_stage) RESTORED
 if {[llength $argv]==8} {set valence(resume_stage) [lindex $argv 7]}
-if {$valence(resume_stage) ni {RESTORED POST_OPT PLACED}} {error {Unknown diagnostic checkpoint stage}}
+if {$valence(resume_stage) ni {RESTORED RAW_OPT POST_OPT PLACED}} {error {Unknown diagnostic checkpoint stage}}
 set ::board_prep_failures {}
 cd $valence(out)
 set_param general.maxThreads 8
@@ -244,7 +244,7 @@ if {[catch {
  set mig_io_repairs [recovery_mig_io::apply]
  if {[llength $argv] ni {6 7 8}} {error {Required original IP implementation-constraint inventory missing}}
  if {[lindex $argv 5] eq {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT}} {
-  set expected_name [dict get {RESTORED ip-restored-unqualified.dcp POST_OPT post-opt-constrained-diagnostic.dcp PLACED placed-diagnostic.dcp} $valence(resume_stage)]
+  set expected_name [dict get {RESTORED ip-restored-unqualified.dcp RAW_OPT optimized-unqualified.dcp POST_OPT post-opt-constrained-diagnostic.dcp PLACED placed-diagnostic.dcp} $valence(resume_stage)]
   if {[file tail $target] ne $expected_name} {error {Wrong checkpoint name for declared stage}}
   puts {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT_NO_IP_REPLAY}
  } else {
@@ -328,6 +328,8 @@ if {[catch {
    if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {error {Native opt DRC errors; see diagnostic-preopt-drc.rpt}}
    puts {DIAGNOSTIC_START_OPT_DESIGN_FINAL_SIGNOFF_PENDING};flush stdout
    opt_design
+   # Preserve successful optimization even if fresh post_opt proof rejects.
+   board_prep_save_checkpoint optimized-unqualified.dcp
   }
   set valence(phase) recovery_r1_actual_post_opt_diagnostic
  } else {set valence(phase) recovery_r1_post_opt_entry_diagnostic_without_opt}

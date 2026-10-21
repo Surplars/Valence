@@ -1,7 +1,7 @@
 param(
  [ValidateSet('Status','RunDiagnostic')][string]$Mode='Status',
  [string]$OutputDirectory,
- [ValidateSet('RESTORED','POST_OPT','PLACED')][string]$Stage='RESTORED',
+ [ValidateSet('RESTORED','RAW_OPT','POST_OPT','PLACED')][string]$Stage='RESTORED',
  [string]$Checkpoint,
  [string]$CheckpointSha256,
  [string]$StatusFile=(Join-Path $PSScriptRoot '../../CURRENT/STATUS.json')
@@ -23,7 +23,7 @@ $expectedHash=$state.resume_checkpoint_sha256
 if($Checkpoint){$target=$Checkpoint;$expectedHash=$CheckpointSha256}
 if(-not $target -or -not $expectedHash){throw 'No hash-verified resume checkpoint recorded.'}
 if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $expectedHash){throw 'Resume checkpoint SHA256 mismatch.'}
-$expectedName=@{RESTORED='ip-restored-unqualified.dcp';POST_OPT='post-opt-constrained-diagnostic.dcp';PLACED='placed-diagnostic.dcp'}[$Stage]
+$expectedName=@{RESTORED='ip-restored-unqualified.dcp';RAW_OPT='optimized-unqualified.dcp';POST_OPT='post-opt-constrained-diagnostic.dcp';PLACED='placed-diagnostic.dcp'}[$Stage]
 if((Split-Path -Leaf $target) -ne $expectedName){throw 'Checkpoint filename does not match declared stage.'}
 if(-not (Test-Path -LiteralPath $state.vivado)){throw 'Recorded native Vivado executable unavailable.'}
 if(Test-Path -LiteralPath $OutputDirectory){throw 'Output already exists; retain it and choose a fresh directory.'}

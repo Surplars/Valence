@@ -10,7 +10,8 @@ opt/place/phys_opt/route. No synthesis, IP regeneration, bitstream or programmin
 Outputs retain original logs, exit receipts and stage checkpoints. Exit zero is
 diagnostic completion, not signoff.
 
-Explicit `-Stage POST_OPT` or `-Stage PLACED`, together with `-Checkpoint` and
+Successful opt is saved immediately as `optimized-unqualified.dcp`, before the
+post_opt proof gate. Explicit `-Stage RAW_OPT`, `POST_OPT` or `PLACED`, with `-Checkpoint` and
 `-CheckpointSha256`, resumes the corresponding checkpoint without repeating earlier
 physical steps. Clocks, IO bindings, formal post_opt mapping and native DRC are
 checked again. Those branches have syntax checks; native execution is pending
