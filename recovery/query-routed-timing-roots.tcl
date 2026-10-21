@@ -27,7 +27,7 @@ if {[catch {
   if {[llength $c]!=1 || abs([get_property PERIOD $c]-$period)>0.002} {error "Actual clock differs for $role"}
   # Bounded endpoint sampling, not a full hierarchy/pin census.
   set paths [get_timing_paths -quiet -from $c -to $c -delay_type max -max_paths 500 -nworst 1]
-  report_timing -of_objects $paths -max_paths 500 -file [file join $out $role-worst500.rpt]
+  report_timing -of_objects $paths -file [file join $out $role-worst500.rpt]
   puts "ROUTED_ROOT_SAMPLE role=$role clock=$c count=[llength $paths] period=$period"
  }
  set rows {}

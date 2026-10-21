@@ -1,0 +1,852 @@
+{
+  "status": "COMPLETE_READ_ONLY",
+  "utc": "2026-10-21T06:33:21.414195+00:00",
+  "source_commit": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68",
+  "query_script_sha256": "9f7c3e579a1a57593c37249787f2980d1bff21f17adbb9201a279cd8faae7835",
+  "query_output": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1\\root-analysis-r2",
+  "new_vivado_launched_by_reviewer": false,
+  "design_changes": false,
+  "query_complete_marker": true,
+  "query_console_critical_warning_count": 0,
+  "query_console_critical_warning_scope": "This fresh routed DCP open/read-only query console only; not a substitute for full implementation DRC/CDC signoff.",
+  "dcp_sha256_expected": "a5567bf8c99bfa09098bc4653d1c9bf7e795be1233f16501237839ec27a95cd1",
+  "dcp_sha256_after_read_query": "a5567bf8c99bfa09098bc4653d1c9bf7e795be1233f16501237839ec27a95cd1",
+  "dcp_unchanged": true,
+  "mig_direct_connectivity_ports": 73,
+  "mig_electrical_reference": "MATCH73",
+  "exact_old_roots": [
+    {
+      "name": "imsic_threshold",
+      "source": "u_soc/cpu/tile/imsic/pending_0_0_reg[38]/C",
+      "destination": "u_soc/cpu/tile/imsic/threshold_0_reg[4]/CE",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 0,
+      "baseline_r11_slack_ns": -2.241,
+      "exception_report_sha256": "45dcf459713f62cbd08e677e98176c0da7545d2214d2ae9a530921e5d7dac504",
+      "exception_report_no_valid_exceptions": true,
+      "conclusion": "Both exact pins remain, zero timed paths and no valid timing exceptions: old priority-to-threshold timing path absent in this candidate; no blanket exception used."
+    },
+    {
+      "name": "fabric_ready",
+      "source": "u_soc/crossing/fifo_2/destinationRelease/release_0_reg[2]/C",
+      "destination": "u_soc/crossing/fifo_4/capturedBinary_reg[3]/CE",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -2.07,
+      "requirement": 4.0,
+      "exception": "",
+      "baseline_r11_slack_ns": -3.125,
+      "slack_improvement_ns": 1.055,
+      "exception_report_sha256": "6408a25089f60b74d756bf2b721c9fdf31e78c09a98c277abeb310ce48aaa4e0",
+      "exception_report_no_valid_exceptions": true
+    },
+    {
+      "name": "dcache_result",
+      "source": "u_soc/cpu/tile/dcache/coherent/cache/hitBank_reg[0]/C",
+      "destination": "u_soc/cpu/tile/dt/result_data_reg[47]/D",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -1.033,
+      "requirement": 3.333,
+      "exception": "",
+      "baseline_r11_slack_ns": -2.231,
+      "slack_improvement_ns": 1.198,
+      "exception_report_sha256": "46653c1733b89d58cf7f64da4a6308493c9779ea11774169481fce69eb9c8551",
+      "exception_report_no_valid_exceptions": true
+    },
+    {
+      "name": "icache_aligner",
+      "source": "u_soc/cpu/tile/icache/coherent/cache/pending_address_reg[17]/C",
+      "destination": "u_soc/cpu/tile/aligner/cuts/word_reg[2]/D",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -0.351,
+      "requirement": 3.333,
+      "exception": "",
+      "baseline_r11_slack_ns": -2.223,
+      "slack_improvement_ns": 1.872,
+      "exception_report_sha256": "bf8ce3cd0a7a0dbb79c359e62dd0e31057d3545756cf9ab69602de98cf0a1dcb",
+      "exception_report_no_valid_exceptions": true
+    }
+  ],
+  "bounded_samples": {
+    "cpu": {
+      "label": "500 worst max-delay paths, nworst1; sampled endpoints only, NOT full-design TNS/root census",
+      "path_count": 500,
+      "unique_destination_count": 500,
+      "wns_ns": -2.231,
+      "sampled_tns_ns": -956.121,
+      "source_root_groups": {
+        "CPU core addrPacket.address": {
+          "sampled_paths": 264,
+          "sampled_tns_ns": -547.483,
+          "sampled_wns_ns": -2.231
+        },
+        "CPU CSR privilege": {
+          "sampled_paths": 125,
+          "sampled_tns_ns": -217.283,
+          "sampled_wns_ns": -1.878
+        },
+        "CPU core": {
+          "sampled_paths": 30,
+          "sampled_tns_ns": -49.822,
+          "sampled_wns_ns": -1.805
+        },
+        "CPU execute arithmetic_1": {
+          "sampled_paths": 23,
+          "sampled_tns_ns": -39.73,
+          "sampled_wns_ns": -1.876
+        },
+        "CPU fetch aligner": {
+          "sampled_paths": 22,
+          "sampled_tns_ns": -37.297,
+          "sampled_wns_ns": -1.936
+        },
+        "CPU IT": {
+          "sampled_paths": 11,
+          "sampled_tns_ns": -19.548,
+          "sampled_wns_ns": -2.134
+        },
+        "CPU IMSIC": {
+          "sampled_paths": 11,
+          "sampled_tns_ns": -19.814,
+          "sampled_wns_ns": -2.014
+        },
+        "CPU DT": {
+          "sampled_paths": 7,
+          "sampled_tns_ns": -13.662,
+          "sampled_wns_ns": -2.104
+        },
+        "CPU I-cache": {
+          "sampled_paths": 5,
+          "sampled_tns_ns": -8.298,
+          "sampled_wns_ns": -1.738
+        },
+        "crossing crossing_1": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -3.184,
+          "sampled_wns_ns": -1.592
+        }
+      },
+      "destination_groups": {
+        "crossing fifo_4": {
+          "sampled_paths": 193,
+          "sampled_tns_ns": -416.698,
+          "sampled_wns_ns": -2.231
+        },
+        "CPU core": {
+          "sampled_paths": 142,
+          "sampled_tns_ns": -245.783,
+          "sampled_wns_ns": -2.014
+        },
+        "CPU D-cache": {
+          "sampled_paths": 51,
+          "sampled_tns_ns": -91.497,
+          "sampled_wns_ns": -2.212
+        },
+        "CPU I-cache": {
+          "sampled_paths": 42,
+          "sampled_tns_ns": -71.808,
+          "sampled_wns_ns": -1.936
+        },
+        "CPU IT": {
+          "sampled_paths": 18,
+          "sampled_tns_ns": -31.222,
+          "sampled_wns_ns": -2.134
+        },
+        "crossing fifo_9": {
+          "sampled_paths": 10,
+          "sampled_tns_ns": -20.062,
+          "sampled_wns_ns": -2.207
+        },
+        "CPU native lanes": {
+          "sampled_paths": 10,
+          "sampled_tns_ns": -18.308,
+          "sampled_wns_ns": -1.997
+        },
+        "CPU DT": {
+          "sampled_paths": 7,
+          "sampled_tns_ns": -13.662,
+          "sampled_wns_ns": -2.104
+        },
+        "CPU CSR": {
+          "sampled_paths": 7,
+          "sampled_tns_ns": -12.889,
+          "sampled_wns_ns": -1.977
+        },
+        "CPU tile arbitration": {
+          "sampled_paths": 6,
+          "sampled_tns_ns": -10.567,
+          "sampled_wns_ns": -1.83
+        },
+        "crossing fifo_2": {
+          "sampled_paths": 4,
+          "sampled_tns_ns": -7.015,
+          "sampled_wns_ns": -1.857
+        },
+        "crossing crossing_1": {
+          "sampled_paths": 3,
+          "sampled_tns_ns": -4.823,
+          "sampled_wns_ns": -1.631
+        },
+        "CPU IMSIC": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -3.255,
+          "sampled_wns_ns": -1.638
+        },
+        "crossing coherent fifo": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -3.184,
+          "sampled_wns_ns": -1.592
+        },
+        "u_soc/crossing/cpuEmptySource_reg/D": {
+          "sampled_paths": 1,
+          "sampled_tns_ns": -2.081,
+          "sampled_wns_ns": -2.081
+        },
+        "crossing fifo_5": {
+          "sampled_paths": 1,
+          "sampled_tns_ns": -1.647,
+          "sampled_wns_ns": -1.647
+        },
+        "u_soc/cpu/sent_reg/D": {
+          "sampled_paths": 1,
+          "sampled_tns_ns": -1.62,
+          "sampled_wns_ns": -1.62
+        }
+      },
+      "worst10": [
+        {
+          "slack_ns": -2.231,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/writeBinary_reg[1]/D",
+          "data_delay_ns": 5.295,
+          "logic_levels": 14.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMA/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMA_D1/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMB/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMB_D1/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMC/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMC_D1/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMD/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAMD_D1/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        },
+        {
+          "slack_ns": -2.226,
+          "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+          "destination": "u_soc/crossing/fifo_4/storage_ext/Memory_reg_0_15_112_125/RAME/WE",
+          "data_delay_ns": 5.116,
+          "logic_levels": 13.0
+        }
+      ]
+    },
+    "fabric": {
+      "label": "500 worst max-delay paths, nworst1; sampled endpoints only, NOT full-design TNS/root census",
+      "path_count": 500,
+      "unique_destination_count": 500,
+      "wns_ns": -2.422,
+      "sampled_tns_ns": -1128.881,
+      "source_root_groups": {
+        "fabric crossing fifo_2.valid": {
+          "sampled_paths": 448,
+          "sampled_tns_ns": -1011.311,
+          "sampled_wns_ns": -2.422
+        },
+        "fabric physicalRequests.head.address": {
+          "sampled_paths": 39,
+          "sampled_tns_ns": -88.394,
+          "sampled_wns_ns": -2.378
+        },
+        "fabric DDR bridge": {
+          "sampled_paths": 9,
+          "sampled_tns_ns": -20.169,
+          "sampled_wns_ns": -2.28
+        },
+        "fabric manager": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -4.557,
+          "sampled_wns_ns": -2.279
+        },
+        "crossing crossing_2": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -4.45,
+          "sampled_wns_ns": -2.225
+        }
+      },
+      "destination_groups": {
+        "fabric packetDma": {
+          "sampled_paths": 225,
+          "sampled_tns_ns": -510.492,
+          "sampled_wns_ns": -2.422
+        },
+        "GMAC CSR/status": {
+          "sampled_paths": 126,
+          "sampled_tns_ns": -283.173,
+          "sampled_wns_ns": -2.365
+        },
+        "crossing fifo_4": {
+          "sampled_paths": 56,
+          "sampled_tns_ns": -125.212,
+          "sampled_wns_ns": -2.391
+        },
+        "u_soc/fabric/home/transfer/writer": {
+          "sampled_paths": 39,
+          "sampled_tns_ns": -88.394,
+          "sampled_wns_ns": -2.378
+        },
+        "crossing fifo_2": {
+          "sampled_paths": 39,
+          "sampled_tns_ns": -87.783,
+          "sampled_wns_ns": -2.315
+        },
+        "fabric atomic": {
+          "sampled_paths": 11,
+          "sampled_tns_ns": -24.82,
+          "sampled_wns_ns": -2.389
+        },
+        "fabric manager": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -4.557,
+          "sampled_wns_ns": -2.279
+        },
+        "u_soc/fabric/home/transfer/reader": {
+          "sampled_paths": 2,
+          "sampled_tns_ns": -4.45,
+          "sampled_wns_ns": -2.225
+        }
+      },
+      "worst10": [
+        {
+          "slack_ns": -2.422,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[6]/CE",
+          "data_delay_ns": 6.114,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.422,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[8]/CE",
+          "data_delay_ns": 6.114,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.42,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[5]/CE",
+          "data_delay_ns": 6.112,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.42,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[7]/CE",
+          "data_delay_ns": 6.112,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.402,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/txReceived_reg[6]/CE",
+          "data_delay_ns": 6.09,
+          "logic_levels": 21.0
+        },
+        {
+          "slack_ns": -2.396,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[0]/CE",
+          "data_delay_ns": 6.091,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.396,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[4]/CE",
+          "data_delay_ns": 6.091,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.394,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[1]/CE",
+          "data_delay_ns": 6.086,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.394,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[2]/CE",
+          "data_delay_ns": 6.086,
+          "logic_levels": 19.0
+        },
+        {
+          "slack_ns": -2.394,
+          "source": "u_soc/crossing/fifo_2/valid_reg/C",
+          "destination": "u_soc/fabric/packetDma/rxIssued_reg[3]/CE",
+          "data_delay_ns": 6.087,
+          "logic_levels": 19.0
+        }
+      ]
+    }
+  },
+  "full_design_current_global": {
+    "WNS": -2.524,
+    "TNS": -38582.219,
+    "setup_failing_endpoints": 49373.0,
+    "setup_total_endpoints": 226181.0,
+    "WHS": 0.002,
+    "THS": 0.0,
+    "hold_failing_endpoints": 0.0,
+    "hold_total_endpoints": 224185.0,
+    "WPWS": 0.081,
+    "TPWS": 0.0,
+    "pulse_failing_endpoints": 0.0,
+    "pulse_total_endpoints": 86222.0
+  },
+  "full_design_current_intra_clock": [
+    {
+      "Clock": "clk_in1_p",
+      "WNS(ns)": 3.929,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 23.0,
+      "WHS(ns)": 0.016,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 23.0,
+      "WPWS(ns)": 0.75,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 20.0
+    },
+    {
+      "Clock": "mmcm_clkout0",
+      "WNS(ns)": -2.422,
+      "TNS(ns)": -26029.627,
+      "TNS Failing Endpoints": 24033.0,
+      "TNS Total Endpoints": 95297.0,
+      "WHS(ns)": 0.002,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 95297.0,
+      "WPWS(ns)": 0.251,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 41458.0
+    },
+    {
+      "Clock": "clk_out1_clk_wiz_common",
+      "WNS(ns)": -2.231,
+      "TNS(ns)": -12507.094,
+      "TNS Failing Endpoints": 25315.0,
+      "TNS Total Endpoints": 95030.0,
+      "WHS(ns)": 0.002,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 95030.0,
+      "WPWS(ns)": 1.125,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 36830.0
+    },
+    {
+      "Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 2.177,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 2056.0,
+      "WHS(ns)": 0.015,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 2051.0,
+      "WPWS(ns)": 9.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 1200.0
+    },
+    {
+      "Clock": "pll_clk[0]",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.081,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 7.0
+    },
+    {
+      "Clock": "pll_clk[0]_DIV",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.8,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 25.0
+    },
+    {
+      "Clock": "pll_clk[1]",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.081,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 9.0
+    },
+    {
+      "Clock": "pll_clk[1]_DIV",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.8,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 40.0
+    },
+    {
+      "Clock": "ref_source",
+      "WNS(ns)": 1.217,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 67.0,
+      "WHS(ns)": 0.024,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 67.0,
+      "WPWS(ns)": 0.437,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 77.0
+    },
+    {
+      "Clock": "valence_tx_quarter_div",
+      "WNS(ns)": 0.53,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 25.0,
+      "WHS(ns)": 0.026,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 25.0,
+      "WPWS(ns)": 1.28,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 19.0
+    },
+    {
+      "Clock": "valence_tx_raw_div",
+      "WNS(ns)": 2.399,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5205.0,
+      "WHS(ns)": 0.01,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5205.0,
+      "WPWS(ns)": 3.458,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 2973.0
+    },
+    {
+      "Clock": "mmcm_clkout5",
+      "WNS(ns)": 14.006,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 827.0,
+      "WHS(ns)": 0.016,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 827.0,
+      "WPWS(ns)": 7.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 570.0
+    },
+    {
+      "Clock": "mmcm_clkout6",
+      "WNS(ns)": 2.659,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5336.0,
+      "WHS(ns)": 0.016,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5028.0,
+      "WPWS(ns)": 1.276,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 1630.0
+    },
+    {
+      "Clock": "phy_rx",
+      "WNS(ns)": 3.843,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1153.0,
+      "WHS(ns)": 0.011,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 1153.0,
+      "WPWS(ns)": 3.12,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 535.0
+    },
+    {
+      "Clock": "valence_bscan_tck",
+      "WNS(ns)": 19.64,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 221.0,
+      "WHS(ns)": 0.011,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 221.0,
+      "WPWS(ns)": 24.725,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 209.0
+    },
+    {
+      "Clock": "valence_bscan_drck",
+      "WNS(ns)": 48.019,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 78.0,
+      "WHS(ns)": 0.016,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 78.0,
+      "WPWS(ns)": 24.725,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 73.0
+    },
+    {
+      "Clock": "valence_bscan_update",
+      "WNS(ns)": 47.713,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 68.0,
+      "WHS(ns)": 0.042,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 68.0,
+      "WPWS(ns)": 19.625,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 68.0
+    },
+    {
+      "Clock": "valence_debug_hub_tck",
+      "WNS(ns)": 14.561,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 992.0,
+      "WHS(ns)": 0.023,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 992.0,
+      "WPWS(ns)": 24.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 479.0
+    }
+  ],
+  "cdc_critical": {
+    "count": 21,
+    "all_reset_PRE_CLR": true,
+    "data_critical_count": 0,
+    "waived": false,
+    "objects": [
+      "  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               u_ddr/inst/div_clk_rst_r1_reg/C                                phy_reset_pipe_reg[0]/PRE",
+      "  2  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "146  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE",
+      "147  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "232  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE",
+      "233  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE",
+      "234  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE",
+      "  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path  network_clock/phase_reset_reg[2]/C  phy_reset_pipe_reg[0]/PRE",
+      "  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path  network_clock/phase_reset_reg[2]/C  ui_reset_pipe_reg[0]/PRE",
+      "  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         rx_reset_pipe_reg[0]/PRE",
+      "  2  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE",
+      "  3  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE",
+      "  5  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE",
+      "  6  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE",
+      "  8  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE",
+      "  9  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE",
+      " 12  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE",
+      "  2  CDC-10  Critical  Combinational logic detected before a synchronizer           2  False Path  u_ddr/inst/div_clk_rst_r1_reg/C  network_clock/phase_reset_reg[0]/PRE",
+      " 36  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/raw_release_reg[0]/CLR",
+      " 37  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/source_release_reg[0]/CLR",
+      " 38  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/update_release_reg[0]/CLR"
+    ]
+  },
+  "drc_summary": {
+    "rules": [
+      {
+        "rule": "DCIRST-1",
+        "severity": "Warning",
+        "checks": 44
+      },
+      {
+        "rule": "DPIP-2",
+        "severity": "Warning",
+        "checks": 1
+      },
+      {
+        "rule": "DPOP-3",
+        "severity": "Warning",
+        "checks": 8
+      },
+      {
+        "rule": "DPOP-4",
+        "severity": "Warning",
+        "checks": 27
+      },
+      {
+        "rule": "PDCN-1569",
+        "severity": "Warning",
+        "checks": 3
+      },
+      {
+        "rule": "REQP-1853",
+        "severity": "Warning",
+        "checks": 2
+      },
+      {
+        "rule": "RTSTAT-10",
+        "severity": "Warning",
+        "checks": 1
+      }
+    ],
+    "errors": 0,
+    "critical": 0
+  },
+  "bitstream_generated": false,
+  "final_signoff": false,
+  "files": {
+    "cpu-worst500.rpt": {
+      "bytes": 7821132,
+      "sha256": "875d4cb3d779e7aa236aa2821dc6658740355b9991635c38628957b20ec4a28b"
+    },
+    "fabric-worst500.rpt": {
+      "bytes": 9049822,
+      "sha256": "82042bc74d253ec1427da0c01a66e004f8819b957e2cc7f85c2ae6bcdac12aeb"
+    },
+    "original-dcache_result-exceptions.rpt": {
+      "bytes": 1694,
+      "sha256": "46653c1733b89d58cf7f64da4a6308493c9779ea11774169481fce69eb9c8551"
+    },
+    "original-dcache_result.rpt": {
+      "bytes": 12755,
+      "sha256": "22a10cda98531df6499f3ca136544b6026bc1026f57c2d5654b46e3d5fbfb06c"
+    },
+    "original-fabric_ready-exceptions.rpt": {
+      "bytes": 1730,
+      "sha256": "6408a25089f60b74d756bf2b721c9fdf31e78c09a98c277abeb310ce48aaa4e0"
+    },
+    "original-fabric_ready.rpt": {
+      "bytes": 15868,
+      "sha256": "bbe9137393644c7de269dbe6365da5495389c140c59ffed0962f4759da3036f7"
+    },
+    "original-icache_aligner-exceptions.rpt": {
+      "bytes": 1730,
+      "sha256": "bf8ce3cd0a7a0dbb79c359e62dd0e31057d3545756cf9ab69602de98cf0a1dcb"
+    },
+    "original-icache_aligner.rpt": {
+      "bytes": 12827,
+      "sha256": "023a15353892e6744ee161f20605f3e1c31853da36863d46f0b00b43c6bb448d"
+    },
+    "original-imsic_threshold-exceptions.rpt": {
+      "bytes": 1676,
+      "sha256": "45dcf459713f62cbd08e677e98176c0da7545d2214d2ae9a530921e5d7dac504"
+    },
+    "original-roots.tcllist": {
+      "bytes": 858,
+      "sha256": "f316d4cd85e51b2930d4dc10648d63b131d0df698bb5803d6728a0b02dac9901"
+    },
+    "query-exit.json": {
+      "bytes": 187,
+      "sha256": "d1bb33043c0fa1d6d3f72841025c2b7c3383b3093159f2112ac2a45e7dfc5be2"
+    },
+    "root-query-console.log": {
+      "bytes": 8489,
+      "sha256": "34866607bf05b3d47bf122d4dcc6354e42ca048b207c27f75080766921d51585"
+    }
+  }
+}

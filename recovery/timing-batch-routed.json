@@ -2934,5 +2934,72 @@
   },
   "rtl_input_count": 237,
   "rtl_input_hash_mismatches": [],
-  "pending": "Final bounded original-root/MIG/XDEF query"
+  "original_root_review": "recovery/timing-batch-root-review.json",
+  "original_critical_paths": [
+    {
+      "name": "imsic_threshold",
+      "source": "u_soc/cpu/tile/imsic/pending_0_0_reg[38]/C",
+      "destination": "u_soc/cpu/tile/imsic/threshold_0_reg[4]/CE",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 0,
+      "baseline_r11_slack_ns": -2.241,
+      "exception_report_sha256": "45dcf459713f62cbd08e677e98176c0da7545d2214d2ae9a530921e5d7dac504",
+      "exception_report_no_valid_exceptions": true,
+      "conclusion": "Both exact pins remain, zero timed paths and no valid timing exceptions: old priority-to-threshold timing path absent in this candidate; no blanket exception used."
+    },
+    {
+      "name": "fabric_ready",
+      "source": "u_soc/crossing/fifo_2/destinationRelease/release_0_reg[2]/C",
+      "destination": "u_soc/crossing/fifo_4/capturedBinary_reg[3]/CE",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -2.07,
+      "requirement": 4.0,
+      "exception": "",
+      "baseline_r11_slack_ns": -3.125,
+      "slack_improvement_ns": 1.055,
+      "exception_report_sha256": "6408a25089f60b74d756bf2b721c9fdf31e78c09a98c277abeb310ce48aaa4e0",
+      "exception_report_no_valid_exceptions": true
+    },
+    {
+      "name": "dcache_result",
+      "source": "u_soc/cpu/tile/dcache/coherent/cache/hitBank_reg[0]/C",
+      "destination": "u_soc/cpu/tile/dt/result_data_reg[47]/D",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -1.033,
+      "requirement": 3.333,
+      "exception": "",
+      "baseline_r11_slack_ns": -2.231,
+      "slack_improvement_ns": 1.198,
+      "exception_report_sha256": "46653c1733b89d58cf7f64da4a6308493c9779ea11774169481fce69eb9c8551",
+      "exception_report_no_valid_exceptions": true
+    },
+    {
+      "name": "icache_aligner",
+      "source": "u_soc/cpu/tile/icache/coherent/cache/pending_address_reg[17]/C",
+      "destination": "u_soc/cpu/tile/aligner/cuts/word_reg[2]/D",
+      "start_count": 1,
+      "end_count": 1,
+      "timed_paths": 1,
+      "slack": -0.351,
+      "requirement": 3.333,
+      "exception": "",
+      "baseline_r11_slack_ns": -2.223,
+      "slack_improvement_ns": 1.872,
+      "exception_report_sha256": "bf8ce3cd0a7a0dbb79c359e62dd0e31057d3545756cf9ab69602de98cf0a1dcb",
+      "exception_report_no_valid_exceptions": true
+    }
+  ],
+  "mig_routed_verification": {
+    "ports": 73,
+    "direct_connectivity": "PASS",
+    "package_pin_iostandard": "PASS",
+    "fresh_checkpoint_open_critical_warning_count": 0,
+    "dcp_preservation": "PASS",
+    "original_warning_classification": "12 stale XDEF restore IO/site/OBUFDS library messages; fresh full place/route completed; final native DRC zeroError/zeroCritical and new routed re-open no Critical"
+  }
 }

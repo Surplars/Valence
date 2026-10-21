@@ -1,0 +1,30 @@
+{
+  "cpu": {
+    "target_mhz": 300,
+    "requirement_ns": 3.333,
+    "WNS_ns": -2.231,
+    "setup_fixed_placement_estimate_mhz": 179.72681524083393,
+    "path_type": "ordinary same-clock rising-edge single-cycle setup",
+    "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+    "destination": "u_soc/crossing/fifo_4/writeBinary_reg[1]/D",
+    "reported_path_type": "Setup (Max at Slow Process Corner)",
+    "reported_requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)"
+  },
+  "fabric": {
+    "target_mhz": 250,
+    "requirement_ns": 4.0,
+    "WNS_ns": -2.422,
+    "setup_fixed_placement_estimate_mhz": 155.71473061351602,
+    "path_type": "ordinary same-clock rising-edge single-cycle setup",
+    "source": "u_soc/crossing/fifo_2/valid_reg/C",
+    "destination": "u_soc/fabric/packetDma/rxIssued_reg[6]/CE",
+    "reported_path_type": "Setup (Max at Slow Process Corner)",
+    "reported_requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)"
+  },
+  "verified_fmax": false,
+  "limits": [
+    "Assumes current data/clock delays and uncertainty stay fixed; changing clock MMCM or routing may change those delays.",
+    "No CPU Fmax inferred from global inactive FIFO Gray crossing.",
+    "Does not qualify cross-domain budgets, IO, reset CDC or board operation."
+  ]
+}
