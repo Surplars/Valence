@@ -2,10 +2,11 @@ package soc.platform
 
 import chisel3._
 import chisel3.util._
-import soc.ip.axi.Axi4MemoryPort
-import soc.ip.bus.CdcResetRelease
+import soc.ip.axi.{Axi4ClockDomainBoundary, Axi4MemoryPort}
+import soc.ip.bus.{CdcLevel, CdcResetRelease}
 import soc.ip.clock.{ClockRateParams, ManagedPeripheralBank}
-import soc.ip.debug.DebugDmiPort
+import soc.ip.debug.{DebugDmiClockBoundary, DebugDmiPort}
+import soc.ip.timer.FixedTimebaseBoundary
 
 class CommonRetireTrace extends Bundle {
     val pc = UInt(64.W)
@@ -18,8 +19,9 @@ class CommonRetireTrace extends Bundle {
 
 /** One public platform, selected CPU-private tile, static independent clocks.
   * DDR AXI belongs to fabricClock; the initial target uses the same 250 MHz UI
-  * clock, avoiding a redundant AXI CDC. Other clock choices require an external
-  * qualified AXI crossing. All raw/CPU/fabric clocks must remain running.
+  * clock by default. independentDdrClock inserts a complete five-channel AXI
+  * crossing to the separately supplied fixed DDR UI clock; board CDC/STA signoff
+  * remains required before enabling that configuration. All raw/CPU/fabric clocks must remain running.
   * This is a native tri-speed RGMII-edge/DMI/AXI assembly, not an FPGA pin/MMCM/MIG wrapper.
   */
 class CommonMachinePlatform(
@@ -27,11 +29,23 @@ class CommonMachinePlatform(
     romFiles: Seq[String] = Seq.empty,
     programmable: Boolean = false,
     hardwareClocks: Boolean = true,
-    vivadoMemories: Boolean = false
+    vivadoMemories: Boolean = false,
+    independentDdrClock: Boolean = false,
+    independentTimebaseClock: Boolean = false,
+    independentDebugClock: Boolean = false
 ) extends RawModule {
+    require(independentDdrClock || profile.fabricHz == profile.ddrUiHz,
+        "a fabric frequency different from fixed DDR UI requires the complete AXI boundary")
+    require(independentTimebaseClock || profile.fabricHz == profile.clocks.timebaseHz,
+        "a fabric frequency different from fixed timebase requires the timer boundary")
+    require(!profile.independentFixedDomains || independentDebugClock,
+        "the fixed-UI debug clock requires the complete DMI boundary")
     val cpuClock = IO(Input(Clock()))
     val fabricClock = IO(Input(Clock()))
     val alwaysOnClock = IO(Input(Clock()))
+    val ddrClock = if (independentDdrClock) Some(IO(Input(Clock()))) else None
+    val timebaseClock = if (independentTimebaseClock) Some(IO(Input(Clock()))) else None
+    val debugClock = if (independentDebugClock) Some(IO(Input(Clock()))) else None
     val rawUartClock = IO(Input(Clock()))
     val rawTxClock = IO(Input(Clock()))
     val rawRxClock = IO(Input(Clock()))
@@ -64,10 +78,17 @@ class CommonMachinePlatform(
     })
     private val fabricRelease = Module(new CdcResetRelease)
     fabricRelease.clockIn := fabricClock; fabricRelease.asyncReset := commonColdReset
+    // Fixed UI readiness is a level, never an unsynchronized fabric enable.
+    private val fabricDdrReady = if (independentDdrClock) {
+        val ddrReadySync = Module(new CdcLevel)
+        ddrReadySync.clockIn := fabricClock; ddrReadySync.resetIn := fabricRelease.resetOut
+        ddrReadySync.levelIn := io.ddrReady
+        ddrReadySync.levelOut
+    } else io.ddrReady
     private val started = withClockAndReset(fabricClock, fabricRelease.resetOut) {
         val admitted = RegInit(false.B)
-        when(io.bootEnable && io.ddrReady) { admitted := true.B }
-        when(admitted) { assert(io.ddrReady, "DDR readiness lost: platform requires a common cold reset") }
+        when(io.bootEnable && fabricDdrReady) { admitted := true.B }
+        when(admitted) { assert(fabricDdrReady, "DDR readiness lost: platform requires a common cold reset") }
         admitted
     }
     // A startup-only extension of reset. 'started' never falls except on common
@@ -83,18 +104,44 @@ class CommonMachinePlatform(
     val fabric = withClockAndReset(fabricClock, fabricRelease.resetOut) {
         Module(new CommonMachineFabric(boundary = profile.boundary, fpga = profile.fpga,
             features = profile.features, ramBytes = profile.fpga.ddrBytes, externalDdr = true,
-            romFiles = romFiles, programmable = programmable, vivadoMemories = vivadoMemories))
+            romFiles = romFiles, programmable = programmable, vivadoMemories = vivadoMemories,
+            externalTimer = independentTimebaseClock))
     }
     fabric.io.tile <> crossing.fabric
     fabric.io.transportCpuEmptySynchronized := crossing.cpuEmptyInFabric
     fabric.io.fabricTransportEmpty := crossing.fabricTransportEmpty
-    fabric.io.ddrReady.get := io.ddrReady
-    io.ddrAxi <> fabric.io.ddrAxi.get
+    fabric.io.ddrReady.get := fabricDdrReady
+    if (independentDdrClock) {
+        val ddrCrossing = Module(new Axi4ClockDomainBoundary(32, profile.fpga.ddr.axiIdWidth))
+        ddrCrossing.fabricClock := fabricClock; ddrCrossing.ddrClock := ddrClock.get
+        ddrCrossing.commonColdReset := commonColdReset
+        ddrCrossing.fabric <> fabric.io.ddrAxi.get
+        io.ddrAxi <> ddrCrossing.ddr
+    } else {
+        io.ddrAxi <> fabric.io.ddrAxi.get
+    }
     fabric.io.timerTick := true.B
+    if (independentTimebaseClock) {
+        val fixedTimer = Module(new FixedTimebaseBoundary)
+        fixedTimer.fabricClock := fabricClock; fixedTimer.timebaseClock := timebaseClock.get
+        fixedTimer.commonColdReset := commonColdReset
+        fixedTimer.registers <> fabric.io.externalTimerRegisters.get
+        fabric.io.externalTimerIrq.get := fixedTimer.irq
+        fabric.io.externalTimeSnapshot.get := fixedTimer.timeSnapshot
+    }
     fabric.io.externalMaintenance <> io.maintenance
     io.maintenanceStatus := fabric.io.externalMaintenanceStatus
-    fabric.io.jtagDmi.get <> io.jtagDmi
-    fabric.io.jtagLinkUp.get := io.jtagLinkUp
+    if (independentDebugClock) {
+        val debugCrossing = Module(new DebugDmiClockBoundary(7))
+        debugCrossing.sourceClock := debugClock.get; debugCrossing.destinationClock := fabricClock
+        debugCrossing.commonColdReset := commonColdReset
+        debugCrossing.source <> io.jtagDmi; fabric.io.jtagDmi.get <> debugCrossing.destination
+        debugCrossing.sourceLinkUp := io.jtagLinkUp
+        fabric.io.jtagLinkUp.get := debugCrossing.destinationLinkUp
+    } else {
+        fabric.io.jtagDmi.get <> io.jtagDmi
+        fabric.io.jtagLinkUp.get := io.jtagLinkUp
+    }
     fabric.io.program.foreach(_ := io.program.get)
     fabric.io.uartRx := true.B // actual UART is the shared managed bank below
     val peripherals = Module(new ManagedPeripheralBank(profile.cmu, profile.cpuHz, profile.uartHz,

@@ -8,8 +8,12 @@ import soc.ip.clock.{ClockResource, CmuParams}
   * never a claim that this integration has routed at those frequencies.
   * Both choices use the same firmware image and fixed fabric/timebase metadata.
   */
-case class CommonCpuProfile(kind: String, clocks: CommonClockConfig) {
+case class CommonCpuProfile(kind: String, clocks: CommonClockConfig, clockProfile: String = "production") {
     require(Set("i1", "a1").contains(kind))
+    require(Set("production", "boot50-static").contains(clockProfile))
+    val independentFixedDomains = clockProfile == "boot50-static"
+    require(!independentFixedDomains || clocks == CommonClockConfig(50000000, 50000000, 250000000),
+        "boot50-static requires CPU50/fabric50/TIME250")
     val fabricHz = clocks.fabricClockHz.toInt
     val cpuHz = clocks.clockFrequencyHz.toInt
     val aonHz = 50000000
@@ -33,7 +37,7 @@ case class CommonCpuProfile(kind: String, clocks: CommonClockConfig) {
         directFastDataIssue = true, coherentLineGrants = true, coherentMissTurnover = true,
         coherentWritebackOverlap = true, coherentReadOverlap = true, dataReplyHandoff = true,
         withAia = true, externalFenceICompletion = true)
-    // Fixed seven-resource CMU ABI. TIME is an independent fabric-derived rate,
+    // Fixed seven-resource CMU ABI. TIME is an independent fixed-domain rate,
     // not a child of CPU; CPU resource 1 is the ROM's runtime frequency source.
     val cmu = CmuParams(aonHz, Seq(
         ClockResource("AON", aonHz), ClockResource("CPU", cpuHz),
@@ -45,9 +49,19 @@ case class CommonCpuProfile(kind: String, clocks: CommonClockConfig) {
 object CommonCpuProfile {
     val I1 = CommonCpuProfile("i1", CommonClockConfig(300000000, 250000000, 250000000))
     val A1 = CommonCpuProfile("a1", CommonClockConfig(100000000, 250000000, 250000000))
-    def named(kind: String): CommonCpuProfile = kind match {
-        case "i1" => I1
-        case "a1" => A1
-        case _ => throw new IllegalArgumentException("explicit i1 or a1 CPU profile required")
+    val I1Boot50 = CommonCpuProfile("i1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
+    val A1Boot50 = CommonCpuProfile("a1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
+    def named(kind: String, clockProfile: String = "production"): CommonCpuProfile = {
+        require(Set("production", "boot50-static").contains(clockProfile), "unreviewed clock profile")
+        if (clockProfile == "boot50-static") return kind match {
+            case "i1" => I1Boot50
+            case "a1" => A1Boot50
+            case _ => throw new IllegalArgumentException("explicit i1 or a1 CPU profile required")
+        }
+        kind match {
+            case "i1" => I1
+            case "a1" => A1
+            case _ => throw new IllegalArgumentException("explicit i1 or a1 CPU profile required")
+        }
     }
 }

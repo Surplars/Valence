@@ -105,7 +105,10 @@ class CommonPlatformAbiSpec extends AnyFunSuite {
         val slower = clocks.copy(clockFrequencyHz = 40000000L)
         assert(slower.timebaseHz == clocks.timebaseHz && slower.legacyFirmwareCpuHz == clocks.legacyFirmwareCpuHz)
         assert(CommonClockConfig(40000000L, 40000000L, 40000000L).legacyFirmwareCpuHz == 40000000L)
-        intercept[IllegalArgumentException] { clocks.copy(timebaseHz = 300000000L) }
+        val independent = CommonClockConfig(50000000L, 100000000L, 250000000L)
+        assert(independent.legacyFirmwareCpuHz == 250000000L)
+        assert(independent.copy(fabricClockHz = 50000000L).timebaseHz == 250000000L)
+        intercept[IllegalArgumentException] { clocks.copy(timebaseHz = 0) }
         intercept[IllegalArgumentException] { clocks.copy(clockFrequencyHz = 0) }
         // Configuration acceptance is not frequency, timing, CDC or board qualification.
     }

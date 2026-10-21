@@ -14,10 +14,11 @@ object CommonMachinePlatformMain extends App {
     require(args.length >= 3, "output, i1|a1, and --compile-receipt=... required")
     val output = Paths.get(args(0)).toAbsolutePath.normalize
     require(!Files.exists(output), "fresh output directory required")
-    val profile = CommonCpuProfile.named(args(1))
     val options = args.drop(2)
+    val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
+    val profile = CommonCpuProfile.named(args(1), clockProfile)
     val legalFlags = Set("--programmable", "--vivado-memories")
-    require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=")))
+    require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") || x.startsWith("--clock-profile=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
@@ -52,7 +53,10 @@ object CommonMachinePlatformMain extends App {
     val lowering = if (profile.kind == "a1") "disallowLocalVariables"
         else "disallowLocalVariables,disallowPackedArrays"
     ChiselStage.emitSystemVerilogFile(new CommonMachinePlatform(profile, programmable = programmable,
-        hardwareClocks = true, vivadoMemories = vivado), Array("--target-dir", output.toString),
+        hardwareClocks = true, vivadoMemories = vivado,
+        independentDdrClock = profile.independentFixedDomains,
+        independentTimebaseClock = profile.independentFixedDomains,
+        independentDebugClock = profile.independentFixedDomains), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
             s"--lowering-options=$lowering",
             "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
@@ -62,6 +66,8 @@ object CommonMachinePlatformMain extends App {
     def objectOf(m: Map[String, String]): ujson.Obj = ujson.Obj.from(m.toSeq.sortBy(_._1).map { case (k, v) => k -> ujson.Str(v) })
     val manifest = ujson.Obj(
         "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
+        "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> false,
+        "independentFixedDomains" -> profile.independentFixedDomains,
         "abi" -> 1, "romBytes" -> CommonPlatformAbi.romBytes,
         "programmableRom" -> programmable, "vivadoMemories" -> vivado,
         "hardwareClocks" -> true, "independentCpuFabricClocks" -> true,

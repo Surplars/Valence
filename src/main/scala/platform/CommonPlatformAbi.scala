@@ -137,13 +137,12 @@ case class CommonBoardMemory(ramBytes: BigInt, externalDdr: Boolean, bootMenu: B
 }
 
 /** Nominal configuration, not measured Fmax or a supported clock-gating/reset policy.
-  * In the version-1 split-domain target, mtime advances once per fabric cycle.
+  * mtime advances once per timebase cycle, independently of CPU/fabric rates.
   * A1's current synchronous board is represented by all three frequencies being equal.
   * Consumers must generate firmware, ROM reporting and DT from the same instance.
   */
 case class CommonClockConfig(clockFrequencyHz: Long, fabricClockHz: Long, timebaseHz: Long) {
     require(clockFrequencyHz > 0 && fabricClockHz > 0 && timebaseHz > 0)
-    require(timebaseHz == fabricClockHz, "version 1 mtime ticks belong to the fixed fabric domain")
     def firmwareDefines: Map[String, Long] = Map(
         "CPU_CLOCK_HZ" -> clockFrequencyHz,
         "FABRIC_CLOCK_HZ" -> fabricClockHz,

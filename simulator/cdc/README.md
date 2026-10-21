@@ -120,3 +120,35 @@ qualification is claimed. Retention/gating additionally requires stopping new
 work, draining all owners while clocks and response/coherence traffic continue,
 and establishing both endpoint transport-empty observations with appropriate
 synchronization.
+
+
+# Native fixed-timebase / debug boundary checks
+
+These fixtures use genuinely independent event-driven clocks (250 MHz fixed
+source, 100 / 50 MHz and a non-integer-ratio destination). GSIM's observed
+independent-edge limitation means its checks cannot substitute for this suite.
+No Verilator is used.
+
+Export RTL, then prepare or run with an explicitly installed Vivado XSIM:
+
+```
+source scripts/cloud/env.sh
+mill -i IonSoC.test.runMain platform.FixedTimebaseNativeMain build/native-fixed/timer
+mill -i IonSoC.test.runMain platform.DebugDmiBoundaryNativeMain build/native-fixed/debug
+python3 simulator/cdc/run_fixed_time_debug_xsim.py --rtl-root build/native-fixed --output build/native-fixed/results
+python3 simulator/cdc/run_fixed_time_debug_xsim.py --rtl-root build/native-fixed --output build/native-fixed/results --run --tool-dir /path/to/Vivado/bin
+```
+
+The default preparation manifest hashes the exact exported sources and is
+PREPARED_NOT_RUN, not acceptance. Executed cases require a pass marker and no
+fatal. Tests cover full MMIO request/response stalls, partial and illegal timer
+accesses, timer IRQ assertion/deassertion, coherent 64-bit rollover snapshots,
+time continuing with fabric stopped, cold reset, DMI payload/response stalls,
+and link-loss cancellation with no queued request/response replay.
+
+The debug link reset affects only DMI mailboxes. The existing JtagRamLoader
+retains accepted RAM transactions across link loss; this helper fixture does
+not prove that integrated ownership behavior. A composed loader/RAM-owner test
+and reset review remain required. Physical CDC constraints, fresh routed STA,
+and actual board boot are separate gates. Runtime rate switching remains
+unimplemented; these are static independent-clock boundary tests.

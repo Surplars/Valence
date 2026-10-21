@@ -1,0 +1,100 @@
+{
+  "scope": "Pinned GSIM capability negative evidence, not DUT PASS",
+  "probe": {
+    "status": "clock-or-reset-not-supported",
+    "gsim_revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+    "independent_edges_verified": false,
+    "cdc_signoff": false,
+    "cpu_rtl_changed": false,
+    "vendor_changed": false,
+    "observation": {
+      "status": "tool-capability-observation",
+      "cases": [
+        {
+          "name": "held-low",
+          "expected_a": 0,
+          "expected_b": 0,
+          "actual_a": 16,
+          "actual_b": 16,
+          "match": false
+        },
+        {
+          "name": "held-high",
+          "expected_a": 1,
+          "expected_b": 1,
+          "actual_a": 16,
+          "actual_b": 16,
+          "match": false
+        },
+        {
+          "name": "a-only",
+          "expected_a": 32,
+          "expected_b": 0,
+          "actual_a": 64,
+          "actual_b": 64,
+          "match": false
+        },
+        {
+          "name": "b-only",
+          "expected_a": 0,
+          "expected_b": 32,
+          "actual_a": 64,
+          "actual_b": 64,
+          "match": false
+        },
+        {
+          "name": "simultaneous",
+          "expected_a": 32,
+          "expected_b": 32,
+          "actual_a": 64,
+          "actual_b": 64,
+          "match": false
+        },
+        {
+          "name": "ratio-5-to-3-phase-offset",
+          "expected_a": 50,
+          "expected_b": 30,
+          "actual_a": 300,
+          "actual_b": 300,
+          "match": false
+        },
+        {
+          "name": "ratio-5-to-7-phase-offset",
+          "expected_a": 23,
+          "expected_b": 32,
+          "actual_a": 315,
+          "actual_b": 315,
+          "match": false
+        }
+      ],
+      "mismatching_cases": 7,
+      "independent_edges_verified": false,
+      "initial_zero_and_disabled_sanity_passed": true,
+      "enabled_progress_sanity_passed": true,
+      "async_reset": {
+        "before_a": 32,
+        "before_b": 32,
+        "after_a": 32,
+        "after_b": 32,
+        "expected_after_a": 0,
+        "expected_after_b": 0,
+        "verified": false
+      }
+    },
+    "async_reset_verified": false,
+    "required_contract_exit_code": 1,
+    "qualification_complete": true,
+    "implication": "Do not use unmodified independently clocked GSIM wrappers as dual-clock acceptance evidence."
+  },
+  "probe_sha256": "06090cbd2909344e97febc590752d5bfa75cda8312c5c605d54ace6a84db3175",
+  "same_clock_actual_boundary": {
+    "status": "BLOCKED_TOOL_CPP_GENERATION",
+    "reason": "Generated C++ references undeclared CdcResetRelease asynchronous-reset aliases; production reset semantics unchanged.",
+    "log_sha256": "f09b41e2988215cb9aaea2fae0b88de73995672503eacb5e86c6aedb28370355",
+    "diagnostic": "error: use of undeclared identifier 'dut$dut$empty_fifo_1$destinationRelease$_resetOut_T'",
+    "channel_oracle_executed": false,
+    "negative_oracle_executed": false
+  },
+  "independent_clock_acceptance": "Native xsim required; prepared, not executed in cloud",
+  "physical_signoff": false
+}

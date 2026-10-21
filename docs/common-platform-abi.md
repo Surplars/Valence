@@ -90,8 +90,12 @@ validation before launch are required; external-image return still requires rese
 when peripheral ownership is unknown.
 
 `CommonClockConfig(clockFrequencyHz, fabricClockHz, timebaseHz)` distinguishes
-CPU nominal frequency from the fixed timer domain. ABI 1 has one mtime tick per
-fabric cycle, so `timebaseHz == fabricClockHz`; no CPU:fabric ratio is assumed.
+CPU nominal frequency from the fixed timer domain. mtime advances once per
+timebase clock cycle, independent of fabric and CPU rates. A platform with
+`timebaseHz != fabricClockHz` must instantiate the complete fixed-timebase
+MMIO/snapshot/IRQ boundary; synchronizing tick pulses is forbidden. No
+CPU:fabric ratio is assumed. The static low-frequency candidate retains TIME250
+while CPU/fabric run at 50 MHz; configuration alone is not CDC or board acceptance.
 Its firmware defines, ROM reporting text and DT properties derive from one object:
 CPU `clock-frequency` differs from `timebase-frequency` when clocks differ.
 The old synchronous A1 board has all three equal. Current `build.py --cpu-hz`

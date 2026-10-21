@@ -1,5 +1,11 @@
 # 机器定时器合同
 
+2026-10-21 公共平台静态低频候选补充：`FixedTimebaseBoundary` 将完整 MMIO 请求/响应跨到固定 UI250
+时钟域，mtime 每个固定域时钟加一；64 位 time 快照用原子 mailbox，IRQ 用电平同步。CPU/fabric50
+不会将 TIME250 降频，也不跨域同步 250 MHz tick 脉冲。公共冷复位同时清除两端；动态切频尚未启用。
+原生独立时钟验证入口见 `simulator/cdc/README.md`，导出/Scala 检查不等于 CDC、布线或上板验收。
+以下40 MHz和初版验收描述为历史平台口径，不适用于此独立时基候选。
+
 当前板级口径（2026-09-30）：BoardSocTop 的 timerTick 恒为1，核心时钟目标40 MHz，
 因此软件 timebase 为40,000,000 Hz。仅 `mtimecmp=0x02004000` 与 `mtime=0x0200bff8`
 及其 +4 的32位高半别名有效；整个64 KiB译码窗口不代表完整CLINT/ACLINT，尤其无MSIP寄存器。

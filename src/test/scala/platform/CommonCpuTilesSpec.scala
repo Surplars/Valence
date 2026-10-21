@@ -14,6 +14,20 @@ class CommonCpuTilesSpec extends AnyFunSuite {
         assert(selected.instructionCacheBytes == 32768 && selected.dataCacheBytes == 32768)
         assert(selected.withAia && selected.externalFenceICompletion && selected.tlbEntries == 16)
     }
+    test("static boot50 lowers CPU and fabric without moving fixed timebase or peripherals") {
+        for (kind <- Seq("i1", "a1")) {
+            val p = CommonCpuProfile.named(kind, "boot50-static")
+            assert(p.cpuHz == 50000000 && p.fabricHz == 50000000)
+            assert(p.independentFixedDomains && p.clocks.timebaseHz == 250000000)
+            assert(p.ddrUiHz == 250000000 && p.aonHz == 50000000 && p.uartHz == 50000000)
+            assert(p.cmu.resources(1).nominalHz == 50000000)
+            assert(p.cmu.resources(2).nominalHz == 250000000)
+            assert(p.i1 == CommonCpuProfile.named(kind).i1)
+        }
+        assert(CommonCpuProfile.named("i1").cpuHz == 300000000)
+        assert(CommonCpuProfile.named("a1").cpuHz == 100000000)
+        intercept[IllegalArgumentException] { CommonCpuProfile.named("i1", "unreviewed") }
+    }
     test("A1 tile contains private CPU and caches without duplicate platform peripherals") {
         val rtl = ChiselStage.emitCHIRRTL(new CommonA1CpuTile())
         assert(rtl.contains("module CommonA1CpuTile"))

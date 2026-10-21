@@ -90,7 +90,8 @@ class CommonMachineFabric(
     peripheralClockHz: Int = 0,
     uartClockHz: Int = 50000000,
     uartReferenceClockHz: Int = 0,
-    uartFastDivisorOne: Boolean = false
+    uartFastDivisorOne: Boolean = false,
+    val externalTimer: Boolean = false
 ) extends Module {
     import CommonFabricObligations._
     private val ramBase = CommonPlatformAbi.ramBase
@@ -132,6 +133,9 @@ class CommonMachineFabric(
         val ddrReady = if (externalDdr) Some(Input(Bool())) else None
         val ready = Output(Bool())
         val timerTick = Input(Bool())
+        val externalTimerRegisters = if (externalTimer) Some(new RegisterPort) else None
+        val externalTimerIrq = if (externalTimer) Some(Input(Bool())) else None
+        val externalTimeSnapshot = if (externalTimer) Some(Input(UInt(64.W))) else None
         val sources = Input(UInt(CommonPlatformAbi.interruptSources.W))
         val uartRx = Input(Bool())
         val uartTx = Output(Bool())
@@ -175,11 +179,11 @@ class CommonMachineFabric(
     scalar.io.stop := false.B
     io.scalarOutstanding := scalar.io.outstanding
 
-    val timer = Module(new MachineTimer())
-    timer.io.tick := io.timerTick
-    io.tile.timerInterrupt := timer.io.irq
+    val timer = if (externalTimer) None else Some(Module(new MachineTimer()))
+    timer.foreach(_.io.tick := io.timerTick)
+    io.tile.timerInterrupt := io.externalTimerIrq.getOrElse(timer.get.io.irq)
     io.tile.softwareInterrupt := false.B // Existing MachineTimer has no software-interrupt register.
-    io.tile.timeSnapshot := timer.io.timeValue
+    io.tile.timeSnapshot := io.externalTimeSnapshot.getOrElse(timer.get.io.timeValue)
     val interrupts = Module(new CommonInterruptFabric())
     io.tile.msi <> interrupts.io.msi
     io.msiError := interrupts.io.msiError
@@ -239,7 +243,7 @@ class CommonMachineFabric(
         capacity = 8, bypassMemoryShift = physical.directMemoryResponse))
     router.io.upstream <> scalar.io.memory
     def registers(name: String): RegisterPort = router.io.registers(regions.indexWhere(_.name == name))
-    registers("timer") <> timer.io.mmio
+    registers("timer") <> io.externalTimerRegisters.getOrElse(timer.get.io.mmio)
     registers("m-aplic") <> interrupts.io.machineRegisters
     registers("s-aplic") <> interrupts.io.supervisorRegisters
     registers("uart") <> uartRegisters
