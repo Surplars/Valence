@@ -10,7 +10,7 @@ set scopes [common_cdc::collect_static u_soc u_soc/fixedTimer u_soc/debugCrossin
 assert {[llength $scopes]==32} {performance boundary scopes changed}
 assert {abs([dict get $::periodChecks u_soc/cpuClock]-1000.0/300)<0.000001} {performance CPU not 300 MHz}
 assert {[dict get $::periodChecks u_soc/fabricClock]==4.0} {performance fabric not 250 MHz}
-foreach pin {ddrClock timebaseClock debugClock} {
+foreach pin {ddrClock fixedTimer/timebaseClock debugCrossing/sourceClock} {
     assert {[dict get $::periodChecks u_soc/$pin]==4.0} {fixed domain not 250 MHz}
     assert {[dict get $::clockChecks u_soc/$pin] eq {fixed}} {fixed domain identity changed}
 }

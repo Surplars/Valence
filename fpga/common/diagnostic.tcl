@@ -23,13 +23,15 @@ proc diagnostic_main {} {
     # check above validates all artifact hashes and board_inputs.emission's exact
     # parent/encoder/pad control-equality proof. Never set this before that check.
     set valence(control_lemma) 1
+    # New runs use their own tool revision; frozen recovery hashes this overlay.
+    set valence(post_opt_constraints) [file join $diagnostic_tools post_opt.tcl]
     if {$valence(phase) eq "synthesis"} {
         source [file join $valence(root) fpga common synthesize.tcl]
     } else {
         open_checkpoint [file join $valence(root) diagnostic-run synthesis synthesized.dcp]
         common_design_step opt_design
         write_checkpoint optimized-unqualified.dcp
-        source $valence(post_opt_constraints)
+        source [file join $diagnostic_tools cached_post_opt.tcl]
         write_checkpoint optimized.dcp
         common_design_step place_design
         write_checkpoint placed.dcp
@@ -53,7 +55,7 @@ proc diagnostic_main {} {
         }
         set valence(dcp_sha256) [string trim [exec $valence(python) -E -c {import hashlib;print(hashlib.sha256(open('routed.dcp','rb').read()).hexdigest())}]]
         set ::common_board_definitions_only 1
-        source [file join $valence(root) fpga common board_audit.tcl]
+        source [file join $diagnostic_tools board_audit.tcl]
         set f [open diagnostic-audit.txt w]
         if {[catch {common_board::run} reason]} {puts $f "BLOCKED $reason"} else {puts $f "STRUCTURAL_CHECKS_ONLY_NOT_QUALIFICATION"}
         puts $f "DIAGNOSTIC_UNQUALIFIED_NO_BITSTREAM missing_integrated_functional_receipt=1"

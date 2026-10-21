@@ -118,6 +118,9 @@ foreach {output expectedHz} $clockOutputs {
 common_log clock-output-checks.txt [join $clockEvidence \n]
 report_clocks -file generated-clocks.rpt
 # Actual mapped hierarchy checks and bounded crossings precede checkpoint export.
+# Default lookup-only cache; no topology/clock/proof results are cached.
+source [file join [file dirname [file normalize [info script]]] exact_object_cache.tcl]
+common_exact_cache::enable
 source $valence(post_synth_constraints)
 write_checkpoint synthesized.dcp
 report_utilization -file utilization.rpt

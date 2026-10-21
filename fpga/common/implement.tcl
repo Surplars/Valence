@@ -2,7 +2,7 @@ source [file join $valence(root) fpga common producer_common.tcl]
 open_checkpoint [file join $valence(root) local-run synthesis synthesized.dcp]
 common_design_step opt_design
 write_checkpoint optimized-unqualified.dcp
-source $valence(post_opt_constraints)
+source [file join [file dirname [file normalize [info script]]] cached_post_opt.tcl]
 common_design_step place_design
 write_checkpoint placed-unqualified.dcp
 common_design_step phys_opt_design

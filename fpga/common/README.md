@@ -313,3 +313,43 @@ has no GenerateBit option and never invokes formal signoff. Per-domain timing
 paths may inform a period-minus-setup-slack estimate, not a certified Fmax or
 cross-domain estimate. Functional acceptance and all final physical gates remain
 mandatory before any future bitstream/board qualification.
+
+
+### Unified cached diagnostic recovery
+
+New tool revisions enable exact-object caching by default for synthesis post-checks,
+formal implementation, diagnostic implementation, and raw-checkpoint recovery.
+The cache indexes cells once, resolves pins only through their exact owners, and
+revalidates names/classes on every lookup. Missing, duplicate, stale or wrong-type
+objects still fail. All original clock, topology, connectivity and timing-budget
+proofs execute; no proof result is cached. Design mutation invalidates the cache.
+
+Use one recovery entry from a separate versioned tooling checkout:
+
+```
+vivado -mode batch -source TOOLING/fpga/common/resume_diagnostic.tcl -tclargs FROZEN/diagnostic-run/config.tcl synthesis
+vivado -mode batch -source TOOLING/fpga/common/resume_diagnostic.tcl -tclargs FROZEN/diagnostic-run/config.tcl post-opt OBSERVED_OPTIMIZED_SHA256
+```
+
+The first command reuses the sealed raw synthesis DCP when present; it does not
+regenerate the three validated IP runs. The second opens only the exact preserved
+optimized-unqualified DCP and reruns post-opt checks in a new output directory.
+Neither runs place/route automatically or produces a bitstream. Original manifest,
+config, source, checked synthesis and IP hashes are validated before recovery.
+The current tool and explicitly selected anchor-overlay hashes are recorded in
+separate provenance. Do not overwrite the frozen package or interrupt an active
+Vivado process. Use the overlay only for a subsequent invocation.
+
+The short-lived resume_cached_post_opt.py/.tcl entry pair was merged into
+resume_diagnostic; historical commands remain recoverable at commit b577b8b.
+The unreferenced inspect_timing_commands.tcl discovery script was removed; prior
+content remains in Git. Baseline-pinned and evidence-referenced recovery scripts
+are retained, not treated as disposable merely because they are old.
+
+Mock evidence: twenty repeated exact 38-pin requests require 20 whole-design
+queries without caching, versus one cell-index query and 38 owner-local pin queries
+with caching, then zero subsequent whole-design queries. This is not measured
+native speedup. Sample the next identical saved-DCP post-check with wall-clock
+start/end logs, identical endpoint census and proof outcomes; report failed and
+successful runs separately. No Fmax or hardware qualification follows from this
+script optimization.

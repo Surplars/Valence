@@ -2,6 +2,7 @@
 """One reviewed failed run only; no IP regeneration or qualification."""
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -69,12 +70,35 @@ def check(root, phase='synthesis'):
                 mode='implementation' if phase=='implementation' else 'post-only' if raw.exists() else 'top-synthesis',
                 original_manifest_sha256=sha(root/'diagnostic.json'),
                 project_sha256=sha(project/'common_board.xpr'), ooc_sha256=dcps,
-                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl')})
+                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl','cached_post_opt.tcl','exact_object_cache.tcl','test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')})
+
+CACHE_TOOLS = ('resume_diagnostic.py', 'resume_diagnostic.tcl', 'exact_object_cache.tcl',
+         'cached_post_opt.tcl', 'test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')
+
+def verify_checkpoint(root, expected):
+    if not re.fullmatch(r'[0-9a-f]{64}', expected):
+        raise ValueError('An explicit observed optimized checkpoint SHA256 is required')
+    checkpoint = root/'diagnostic-run/implementation/optimized-unqualified.dcp'
+    if not checkpoint.is_file() or sha(checkpoint) != expected:
+        raise ValueError('Preserved optimized checkpoint missing or changed')
+    return checkpoint
+
+def prepare_post_opt(root, expected):
+    record = check(root, 'implementation')
+    checkpoint = verify_checkpoint(root, expected)
+    here = Path(__file__).resolve().parent
+    record.update(mode='cached-post-opt-only', optimized_checkpoint=str(checkpoint),
+                  optimized_checkpoint_sha256=expected,
+                  cache_overlay_sha256={n: sha(here/n) for n in CACHE_TOOLS},
+                  qualification=False)
+    return record
+
 
 if __name__=='__main__':
     try:
         root=Path(sys.argv[1]).absolute()
         mode=sys.argv[2] if len(sys.argv)>2 else 'synthesis'
-        if mode not in ('synthesis','implementation','seal-raw'): raise ValueError('Invalid recovery mode')
-        print(json.dumps(seal_raw(root) if mode=='seal-raw' else check(root,mode),indent=2))
+        if mode not in ('synthesis','implementation','seal-raw','post-opt'): raise ValueError('Invalid recovery mode')
+        if mode=='post-opt' and len(sys.argv)!=4: raise ValueError('post-opt requires observed optimized SHA256')
+        print(json.dumps(prepare_post_opt(root,sys.argv[3]) if mode=='post-opt' else seal_raw(root) if mode=='seal-raw' else check(root,mode),indent=2))
     except (ValueError, OSError) as exc: sys.exit(str(exc))

@@ -40,9 +40,9 @@ class BoardInputs(unittest.TestCase):
         self.assertNotIn('read_verilog -sv -define', script)
         self.assertIn('get_property verilog_define [current_fileset]', script)
         for name in ('post_synth.tcl', 'post_opt.tcl'):
-            self.assertIn('set debugPin u_soc/debugClock', (HERE / name).read_text())
+            self.assertIn('set debugPin u_soc/debugCrossing/sourceClock', (HERE / name).read_text())
         audit = (HERE / 'board_audit.tcl').read_text()
-        self.assertIn('u_soc/ddrClock u_soc/timebaseClock u_soc/debugClock', audit)
+        self.assertIn('common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing', audit)
         self.assertIn('u_soc/ddrCrossing', audit)
 
     def test_dci_bootstrap_is_independent_of_mig(self):

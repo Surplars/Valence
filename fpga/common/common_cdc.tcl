@@ -2,7 +2,12 @@
 # then call common_cdc::constrain. This file never applies global clock groups,
 # false paths, reset cuts, or asynchronous payload exceptions.
 namespace eval common_cdc { variable scopes {} }
-source [file join [file dirname [info script]] inactive_zero_state.tcl]
+if {[info exists ::valence(root)]} {
+    # Tool overlays retain the original frozen inactive-state proof dependency.
+    source [file join $::valence(root) fpga common inactive_zero_state.tcl]
+} else {
+    source [file join [file dirname [info script]] inactive_zero_state.tcl]
+}
 proc common_cdc::quote {s} {return [regsub -all {[][{}().+*?^$|\\]} $s {\\&}]}
 proc common_cdc::names {objects} {
     set out {}; foreach o $objects {lappend out [get_property NAME $o]}; return [lsort -unique $out]
@@ -516,12 +521,10 @@ proc common_cdc::collect_static {soc timer debug {profile boot50-static}} {
     if {$profile ni {boot50-static performance300-static}} {error "COMMON_CDC unreviewed static profile $profile"}
     set performance [expr {$profile eq {performance300-static}}]
     set cpu [clock $soc/cpuClock];set fabric [clock $soc/fabricClock]
-    set fixed [clock $soc/ddrClock];set aon [clock $soc/alwaysOnClock]
+    set fixed [static_clock_anchors $soc $timer $debug];set aon [clock $soc/alwaysOnClock]
     expect_clock $soc/cpuClock $cpu [expr {$performance ? 1000.0/300 : 20.0}]
     expect_clock $soc/fabricClock $fabric [expr {$performance ? 4.0 : 20.0}]
     expect_clock $soc/ddrClock $fixed 4.0
-    expect_clock $soc/timebaseClock $fixed 4.0
-    expect_clock $soc/debugClock $fixed 4.0
     expect_clock $soc/alwaysOnClock $aon 20.0
     if {$cpu eq $fabric || $fabric eq $fixed} {
         error "COMMON_CDC static profile clock identities disagree: $profile"
@@ -577,4 +580,53 @@ proc common_cdc::distinct_net {a b} {
     foreach n $aa {
         if {[lsearch -exact $bb $n]>=0} {error "COMMON_CDC physical clock nets collapsed $a $b"}
     }
+}
+
+# Actual live anchors from the native synthesized design. Redundant parent
+# clock aliases may be specialized to GND; never use them to time active logic.
+proc common_cdc::driven_clock {pin source expected period} {
+    expect_clock $pin $expected $period
+    same_net $pin $source
+    if {[drivers $pin] ne [list $source]} {
+        error "COMMON_CDC incorrect active clock driver at $pin expected $source"
+    }
+}
+proc common_cdc::clock_alias {pin active expected} {
+    one get_pins $pin
+    set clocks [get_clocks -quiet -of_objects [one get_pins $pin]]
+    if {[llength $clocks]} {
+        expect_clock $pin $expected 4.0
+        same_net $pin $active
+    } else {
+        # Only the observed exact literal-zero specialization is permitted.
+        # Missing, disconnected, POWER or dynamic unclocked aliases are errors.
+        constant $pin 0
+        puts "COMMON_CDC_REDUNDANT_CLOCK_ALIAS_GND $pin ACTIVE_ANCHOR=$active NO_EXCEPTION"
+    }
+}
+proc common_cdc::static_clock_anchors {soc timer debug} {
+    set fixedSource u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O
+    set fabricSource u_clk_wiz/inst/clkout3_buf/O
+    set fixed [clock $fixedSource]
+    set fabric [clock $fabricSource]
+    expect_clock $fixedSource $fixed 4.0
+    set fabricPeriod [get_property PERIOD [get_clocks $fabric]]
+    if {$fabricPeriod ni {4 4.0 4.000 20 20.0 20.000}} {
+        # Profile-specific numerical check remains in collect_static; accept
+        # tool precision here, never an unrelated frequency.
+        if {![string is double -strict $fabricPeriod] ||
+            (abs($fabricPeriod-4.0)>0.002 && abs($fabricPeriod-20.0)>0.002)} {
+            error "COMMON_CDC unreviewed active fabric period $fabricPeriod"
+        }
+    }
+    distinct_net $fixedSource $fabricSource
+    foreach pin [list $soc/ddrClock $soc/ddrCrossing/ddrClock $timer/timebaseClock $timer/timer/clock $debug/sourceClock $debug/requests/sourceClock u_debug/debug_clk] {
+        driven_clock $pin $fixedSource $fixed 4.0
+    }
+    foreach pin [list $soc/fabricClock $soc/ddrCrossing/fabricClock $timer/fabricClock $debug/destinationClock $debug/requests/destinationClock] {
+        driven_clock $pin $fabricSource $fabric $fabricPeriod
+    }
+    clock_alias $soc/timebaseClock $timer/timebaseClock $fixed
+    clock_alias $soc/debugClock $debug/sourceClock $fixed
+    return $fixed
 }

@@ -53,7 +53,7 @@ assert {[string match {*register payload bypass*} $why]} {wrong bypass diagnosti
 puts BOOT50_REGISTER_ABI_MAPPING_AND_BYPASS_TEST_PASS
 # Dry-run collection verifies all live channel directions and expected 32 scopes.
 # Endpoint proofs above remain separate; this mock is never netlist evidence.
-foreach name {one expect_clock exact_modules gray payload level mailbox_width register_payload new_stage_coverage distinct_net} {
+foreach name {one expect_clock exact_modules gray payload level mailbox_width register_payload new_stage_coverage distinct_net static_clock_anchors} {
     rename common_cdc::$name common_cdc::tested_$name
 }
 proc common_cdc::one args {}
@@ -64,6 +64,11 @@ set ::clockChecks {}
 proc common_cdc::expect_clock {pin expected args} {dict set ::clockChecks $pin $expected}
 proc common_cdc::exact_modules args {}
 proc common_cdc::distinct_net args {}
+proc common_cdc::static_clock_anchors {soc timer debug} {
+    expect_clock $timer/timebaseClock fixed 4.0
+    expect_clock $debug/sourceClock fixed 4.0
+    return fixed
+}
 proc common_cdc::gray {h direction args} {return [list label $h/$direction]}
 proc common_cdc::payload h {return [list label $h/payload]}
 proc common_cdc::level h {return [list label $h]}
@@ -80,8 +85,8 @@ foreach suffix {_2 _4} {
     assert {[dict get $::clockChecks u_soc/ddrCrossing/empty_fifo$suffix/sourceClock] eq {fixed}} {AXI return source changed}
     assert {[dict get $::clockChecks u_soc/ddrCrossing/empty_fifo$suffix/destinationClock] eq {fabric}} {AXI return destination changed}
 }
-assert {[dict get $::clockChecks u_soc/timebaseClock] eq {fixed}} {timebase not fixed}
-assert {[dict get $::clockChecks u_soc/debugClock] eq {fixed}} {debug transport not fixed}
+assert {[dict get $::clockChecks u_soc/fixedTimer/timebaseClock] eq {fixed}} {timebase not fixed}
+assert {[dict get $::clockChecks u_soc/debugCrossing/sourceClock] eq {fixed}} {debug transport not fixed}
 assert {[dict get $::clockChecks u_soc/fabricDdrReady_ddrReadySync/clockIn] eq {fabric}} {actual emitted DDR-ready instance not mapped}
 puts BOOT50_SCOPE_CENSUS_AND_DIRECTIONS_PASS_NOT_NETLIST_QUALIFIED
 # Exact constant output proof permits optimized-away constant mailbox bits only.

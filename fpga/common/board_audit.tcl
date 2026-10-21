@@ -69,11 +69,8 @@ proc common_board::cpu {} {
     set fabricHz [expr {$profile eq "boot50-static" ? 50000000 : 250000000}]
     if {$clk eq $fabric || abs([get_property PERIOD [get_clocks $clk]]-1.0e9/$hz)>0.002 || abs([get_property PERIOD [get_clocks $fabric]]-1.0e9/$fabricHz)>0.002} {error "COMMON_CPU selected CPU/fabric clock mismatch"}
     if {$profile in {boot50-static performance300-static}} {
-        foreach pin {u_soc/ddrClock u_soc/timebaseClock u_soc/debugClock} {
-            common_cdc::same_net $pin u_ddr/c0_ddr4_ui_clk
-            set fixed [common_cdc::clock $pin]
-            if {$fixed eq $fabric || abs([get_property PERIOD [get_clocks $fixed]]-4.0)>0.002} {error "COMMON_CPU fixed UI/time/debug250 topology mismatch"}
-        }
+        set fixed [common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing]
+        if {$fixed eq $fabric || abs([get_property PERIOD [get_clocks $fixed]]-4.0)>0.002} {error "COMMON_CPU fixed UI/time/debug250 topology mismatch"}
         common_cdc::same_net u_soc/fabricClock u_clk_wiz/clk_out3
         common_cdc::one get_cells u_soc/ddrCrossing
     } else {

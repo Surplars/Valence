@@ -107,7 +107,7 @@ proc common_record {args} {}
         self.assertLess(script.index('set evidence [exec'),script.index('set valence(control_lemma) 1'))
         fresh=(HERE/'diagnostic.tcl').read_text()
         self.assertLess(fresh.index('check --manifest'),fresh.index('set valence(control_lemma) 1'))
-        self.assertLess(fresh.index('write_checkpoint optimized-unqualified.dcp'),fresh.index('source $valence(post_opt_constraints)'))
+        self.assertLess(fresh.index('write_checkpoint optimized-unqualified.dcp'),fresh.index('cached_post_opt.tcl'))
         self.assertIn('write_checkpoint physical-optimized-unqualified.dcp',fresh)
         self.assertIn('catch {write_checkpoint failed-resume-unqualified-',script)
 
