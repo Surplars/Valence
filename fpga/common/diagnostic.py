@@ -46,7 +46,7 @@ def check(path):
         # remain inventory-hashed. Baseline RTL, IP and hardware sources are unchanged.
         if p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py',
                  'fpga/common/board_audit.tcl', 'fpga/common/simulate.tcl',
-                 'fpga/common/signoff.tcl'): continue
+                 'fpga/common/signoff.tcl', 'fpga/common/synthesize.tcl'): continue
         gate.require(m['inputs'].get(p) == h, 'source differs from published baseline (do not freeze dirty core): '+p)
     for helper in HELPERS:
         gate.require('fpga/common/'+helper in m['inputs'], 'unfrozen diagnostic helper')

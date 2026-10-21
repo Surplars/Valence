@@ -37,7 +37,8 @@ class BoardInputs(unittest.TestCase):
         self.assertIn('clock-output-checks.txt', script)
         self.assertIn('get_property IS_GENERATED $clocks', script)
         self.assertIn('generated-clocks.rpt', (HERE / 'freeze.py').read_text())
-        self.assertIn('read_verilog -sv -define VALENCE_INDEPENDENT_FIXED_DOMAINS', script)
+        self.assertNotIn('read_verilog -sv -define', script)
+        self.assertIn('get_property verilog_define [current_fileset]', script)
         for name in ('post_synth.tcl', 'post_opt.tcl'):
             self.assertIn('set debugPin u_soc/debugClock', (HERE / name).read_text())
         audit = (HERE / 'board_audit.tcl').read_text()

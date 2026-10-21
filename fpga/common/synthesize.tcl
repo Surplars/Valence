@@ -1,4 +1,5 @@
 source [file join $valence(root) fpga common producer_common.tcl]
+if {![info exists valence(resume_ooc)] || !$valence(resume_ooc)} {
 create_project common_board [file join $valence(out) project] -part $valence(part)
 set_property XPM_LIBRARIES {XPM_MEMORY} [current_project]
 # import_ip copies the actual user-selected XCI into this run's isolated project.
@@ -52,22 +53,36 @@ set runs [get_runs -quiet -filter {IS_SYNTHESIS == 1 && NAME != synth_1}]
 if {[llength $runs]<3} {error "Missing generated clock/ROM/MIG synthesis runs"}
 set_property STEPS.SYNTH_DESIGN.TCL.PRE [file join $valence(root) fpga common ip_threads.tcl] $runs
 launch_runs $runs -jobs 1
+} else {
+    if {![info exists valence(diagnosticOnly)] || $valence(diagnosticOnly)!=1} {error "OOC resume is diagnostic-only"}
+    open_project [file join $valence(out) project common_board.xpr]
+    if {[get_property PART [current_project]] ne $valence(part)} {error "Resume project part differs"}
+    set runs [get_runs -quiet -filter {IS_SYNTHESIS == 1 && NAME != synth_1}]
+    if {[lsort $runs] ne [lsort {blk_mem_gen_0_synth_1 clk_wiz_common_synth_1 ddr4_0_synth_1}]} {error "Unexpected resume OOC run set"}
+}
 set ipEvidence {}
 foreach run $runs {
     wait_on_runs $run
     set status [get_property STATUS [get_runs $run]]
     if {![string match {*synth_design Complete!*} $status]} {error "IP synthesis failed: $run $status"}
+    if {[info exists valence(resume_ooc)] && $valence(resume_ooc)} {
+        set expectedDir [file normalize [file join $valence(out) project common_board.runs $run]]
+        if {[file normalize [get_property DIRECTORY [get_runs $run]]] ne $expectedDir} {error "Resume OOC run directory differs: $run"}
+        if {[get_property NEEDS_REFRESH [get_runs $run]] ni {0 false FALSE}} {error "Resume OOC run needs refresh: $run"}
+    }
     set file [file join [get_property DIRECTORY [get_runs $run]] common-ip-threads.txt]
     if {![file isfile $file]} {error "IP child did not verify its own thread request: $run"}
     set f [open $file]; set evidence [string trim [read $f]]; close $f
     if {![string match "requested=$valence(threads) general_limit=* synth_design_effective_max=4 active_threads=UNMEASURED vivado=*" $evidence]} {error "Wrong IP thread evidence: $run"}
     lappend ipEvidence [format {"%s":{"status":%s,"threads":%s}} $run [common_json $status] [common_json $evidence]]
 }
-common_log ip-synthesis.json "\{[join $ipEvidence ,]\}"
+if {![info exists valence(resume_ooc)] || !$valence(resume_ooc)} {common_log ip-synthesis.json "\{[join $ipEvidence ,]\}"}
+# Project-mode macros belong to sources_1, not per-file read_verilog -define.
+set defines [get_property verilog_define [current_fileset]]
+set independent [expr {$valence(clock_profile) in {boot50-static performance300-static}}]
+if {$independent != ([lsearch -exact $defines VALENCE_INDEPENDENT_FIXED_DOMAINS]>=0)} {error "Independent-domain fileset macro missing or unexpected"}
 foreach source [common_files rtl_filelist] {
-    if {$valence(clock_profile) in {boot50-static performance300-static}} {
-        read_verilog -sv -define VALENCE_INDEPENDENT_FIXED_DOMAINS $source
-    } else {read_verilog -sv $source}
+    read_verilog -sv $source
 }
 foreach xdc $valence(constraints) {read_xdc $xdc}
 common_design_step synth_design -top $valence(top) -part $valence(part) -flatten_hierarchy none
