@@ -46,3 +46,26 @@ and BSCAN gates pass in memory, but commonCDC stops at a GND-driven first-stage
 Gray bit in the I1 instruction lane because the formal inactive proof has not
 passed. That gate is retained. Management/post_opt and full fresh-netlist mapping
 remain prerequisites to implementation. No old r2/r6 result qualifies this repair.
+
+## Synthesis preparation checkpoint
+
+`prepare-synthesis.py` validates the native emission profile, every emitted artifact,
+the board port ABI and the CPU300/fabric250/UART50 configuration. It copies exactly
+three existing IP DCPs into a fresh directory, verifies their hashes and records
+source, constraint, interface-stub and IP hashes in `synthesis-inputs.json`.
+Existing IP stubs remain read-only inputs. No IP is regenerated or upgraded.
+`fpga/common/recovery_synthesize.tcl` synthesizes the new core, saves an explicitly
+partial checkpoint, inserts the three existing IP DCPs and rejects any remaining
+blackboxes. It then saves an unqualified checkpoint and checks actual clocks.
+Implementation and bitstream commands are blocked in this synthesis-only entry.
+
+The first new synthesis is running in Vivado 2025.2; its normal Synthesis/xczu15eg
+license checkout succeeded. Completion, linked IP, mapped constraints and timing
+have not yet passed. The committed helper is a reproducibility checkpoint, not a
+successful synthesis or physical acceptance receipt.
+
+The idle-source collector now distinguishes a completely pruned, unused export
+(no port and no synchronizer state) from a missing synchronizer on a retained
+export, which still fails. Pure Tcl positive/negative controls pass. The standalone
+boundary emitter is preparation for a native FPGA cycle fixture; no cycle-test
+pass is claimed at this checkpoint.

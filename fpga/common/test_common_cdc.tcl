@@ -28,4 +28,12 @@ assert {[string match {*one direct source FF Q*} $message]} {wrong combinational
 proc common_cdc::drivers args {return {source0/Q source1/Q}}
 assert {[catch {common_cdc::registered_level_source idle clk reset} message]} {multiple idle drivers accepted}
 puts COMMON_CDC_IDLE_NEGATIVE_CONTROLS_REJECT_COMBINATIONAL_AND_MULTIPLE_DRIVERS
+proc get_cells args {if {[lindex $args end] in {root {^root$}}} {return root};return {}}
+proc get_property {key objects} {return $objects}
+proc get_pins args {return {}}
+assert {[common_cdc::exported_idle_source root fabricEmptyInCpu clk reset]==0} {fully pruned export incorrectly required}
+proc get_pins args {return retained_export}
+assert {[catch {common_cdc::exported_idle_source root fabricEmptyInCpu clk reset} message]} {retained output without synchronizer accepted}
+assert {[string match {*export/state retained*} $message]} {wrong missing-export diagnostic}
+puts COMMON_CDC_EXPORT_ABSENCE_REQUIRES_NO_PORT_AND_NO_STATE
 puts COMMON_CDC_HELPER_TEST_PASS_NOT_NETLIST_QUALIFIED

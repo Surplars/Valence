@@ -122,6 +122,22 @@ proc common_cdc::registered_level_source {path source_clock source_reset} {
     }
     puts "COMMON_EMPTY_SOURCE_REGISTERED $path launch=$launch clock=$source_clock NO_CDC_WAIVER"
 }
+proc common_cdc::exported_idle_source {root name source_clock source_reset} {
+    set path $root/${name}_crossing
+    set instance [get_cells -quiet $path]
+    if {![llength $instance]} {
+        set children [get_cells -quiet -hier -filter "NAME =~ $path/*"]
+        set port [get_pins -quiet -of_objects [one get_cells $root] -filter "REF_PIN_NAME == $name"]
+        if {[llength $children] || [llength $port]} {
+            error "COMMON_CDC idle synchronizer absent but export/state retained: $path"
+        }
+        puts "COMMON_EMPTY_EXPORT_PRUNED no_port_no_state=$path"
+        return 0
+    }
+    if {[llength $instance]!=1} {error "COMMON_CDC ambiguous idle synchronizer $path"}
+    registered_level_source $path $source_clock $source_reset
+    return 1
+}
 proc common_cdc::mailbox {h} {
     set src [clock $h/sourceClock]; set dst [clock $h/destinationClock]
     set starts {}; set ends {}; set held [bank $h/held_reg 64]; set captured [bank $h/captured_reg 64]
@@ -216,8 +232,8 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     }
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
     foreach h [lsort $levels] {lappend scopes [level $h]}
-    registered_level_source $root/cpuEmptyInFabric_crossing [clock $root/cpuClock] $root/cpuRelease/resetOut
-    registered_level_source $root/fabricEmptyInCpu_crossing [clock $root/fabricClock] $root/fabricRelease/resetOut
+    exported_idle_source $root cpuEmptyInFabric [clock $root/cpuClock] $root/cpuRelease/resetOut
+    exported_idle_source $root fabricEmptyInCpu [clock $root/fabricClock] $root/fabricRelease/resetOut
     lappend scopes [mailbox [lindex $mailboxes 0]]
     # Every retained stage0 bank must be covered, including future new channels.
     set covered {}; foreach s $scopes {foreach p [dict get $s ends] {lappend covered $p}}

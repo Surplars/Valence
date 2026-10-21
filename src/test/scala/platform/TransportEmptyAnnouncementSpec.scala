@@ -102,3 +102,17 @@ class TransportEmptyAnnouncementSpec extends AnyFunSuite {
         }
     }
 }
+
+/** Native FPGA simulation fixture: the actual boundary is the top, so both
+  * exported announcements remain observable even when a production parent does
+  * not consume one direction. No replacement FIFO or DUT timing model is used.
+  */
+object TransportEmptyAnnouncementMain extends App {
+    require(args.length == 1, "fresh output directory required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    ChiselStage.emitSystemVerilogFile(new CommonCpuClockBoundary(),
+        Array("--target-dir", args(0)),
+        Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
+            "--lowering-options=disallowLocalVariables,disallowPackedArrays",
+            "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
+}
