@@ -1,0 +1,50 @@
+{
+  "old_response_and_priority": true,
+  "dut": "generated Imsic identities127 guestFiles2",
+  "result": "PASS",
+  "utc": "2026-10-21T05:41:05.1087626Z",
+  "independent_architectural_bank_oracle": true,
+  "simultaneous_claim_msi": 1,
+  "claims": 101,
+  "seed": "152ac913",
+  "files": 4,
+  "cycles": 6142,
+  "blocked_response_cycles": 5688,
+  "negative_oracle": "REJECTED",
+  "simulator": "native Vivado xsim",
+  "csr_requests": 2958,
+  "mmio_requests": 2859,
+  "threshold_highbits_rejection": true,
+  "physical_signoff": false,
+  "configuration": {
+    "guestFiles": 2,
+    "groups": 2,
+    "identities": 127,
+    "files": 4
+  },
+  "threshold_boundaries": [
+    0,
+    1,
+    64,
+    127,
+    128
+  ],
+  "requests_hold_payload_until_accepted": true,
+  "same_cycle_claim_incoming_msi_precedence": "incoming MSI retained",
+  "simulation_output_directory": "out/timing-batch-imsic-xsim-r4",
+  "emission_directory": "out/timing-batch-imsic-fixture-r2",
+  "sha256": {
+    "src/main/scala/ip/interrupt/Imsic.scala": "78cad418eb167ccccd7ba99d91aac28f84c32a4df8e4ccc37e606b32330849b0",
+    "src/test/scala/ip/ImsicRmwBatch.scala": "01b1a5d11daacc162159307809996372fe92622ba23f358893040e63349c6d35",
+    "recovery/imsic-rmw-tb.sv": "f25d5482668a62f3c0d397a61b141f1ca14a68fecbb7502599e672bb4d60d63b",
+    "recovery/run-imsic-rmw-xsim.ps1": "fb506f06889e882f255f9bb900cbe4e474f8fe3b00fd24a49cf643a2a67c434f",
+    "recovery/timing-batch-imsic-emission-r2.log": "66a475792989480aed1d3d973c0b31af576733d6dc91ed031b2c46600fd910a2",
+    "out/timing-batch-imsic-xsim-r4/positive-console.log": "c34061a3d9ad3a130e49211ad1bf093bde055cf1cc96eb2e86d1856735381cc7",
+    "out/timing-batch-imsic-xsim-r4/negative-console.log": "abc24aaa1f493944310a4844aa51a57e8e9a366666c94714024ff78b97c24091",
+    "out/timing-batch-imsic-xsim-r4/compile.log": "7eb99f394663a6e5077f4912b1f8a3cf6ef74c24fa040dc0606521cc17f3f81f",
+    "out/timing-batch-imsic-xsim-r4/elaborate.log": "320e52f0b9f87652b1742ed5293d719cbf91e4f93176dddd23d4f3ba2a111afb",
+    "out/timing-batch-imsic-fixture-r2/Imsic.sv": "7eaa0ebcd7d92705e671e1349e3d15c9e465c6ae4793c46ff38b86a1bd727c5d",
+    "out/timing-batch-imsic-fixture-r2/Queue2_RegisterResponse.sv": "213bf57109050f2d84c6f5fb8dad334813572e24ac66177fd8988613baf0cd5d",
+    "out/timing-batch-imsic-fixture-r2/ram_2x65.sv": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d"
+  }
+}

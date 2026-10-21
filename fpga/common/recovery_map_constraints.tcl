@@ -7,9 +7,9 @@ set valence(profile_sha256) [lindex $argv 3]
 set valence(control_lemma) 1
 set valence(phase) recovery_r1_post_synth_diagnostic
 set valence(diagnostic_families) [expr {[llength $argv]>4 && [lindex $argv 4] eq {1}}]
-set valence(diagnostic_implementation) [expr {[llength $argv] in {7 8} && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
+set valence(diagnostic_implementation) [expr {[llength $argv] in {7 8 9} && [lindex $argv 6] eq {DIAGNOSTIC_IMPLEMENT_NO_BIT}}]
 set valence(resume_stage) RESTORED
-if {[llength $argv]==8} {set valence(resume_stage) [lindex $argv 7]}
+if {[llength $argv]>=8} {set valence(resume_stage) [lindex $argv 7]}
 if {$valence(resume_stage) ni {RESTORED RAW_OPT POST_OPT PLACED}} {error {Unknown diagnostic checkpoint stage}}
 set ::board_prep_failures {}
 cd $valence(out)
@@ -246,7 +246,7 @@ if {[catch {
  # Already-repaired checkpoints are idempotent; unknown bridges fail closed.
  source [file join $valence(root) fpga common recovery_mig_io_contract.tcl]
  set mig_io_repairs [recovery_mig_io::apply]
- if {[llength $argv] ni {6 7 8}} {error {Required original IP implementation-constraint inventory missing}}
+ if {[llength $argv] ni {6 7 8 9}} {error {Required original IP implementation-constraint inventory missing}}
  if {[lindex $argv 5] eq {REUSE_HASH_VERIFIED_IP_RESTORED_CHECKPOINT}} {
   set expected_name [dict get {RESTORED ip-restored-unqualified.dcp RAW_OPT optimized-unqualified.dcp POST_OPT post-opt-constrained-diagnostic.dcp PLACED placed-diagnostic.dcp} $valence(resume_stage)]
   if {[file tail $target] ne $expected_name} {error {Wrong checkpoint name for declared stage}}
@@ -316,6 +316,10 @@ if {[catch {
  }
  source [file join $valence(root) fpga common debug_hub_clock.tcl]
  common_restore_debug_hub_clock zu15eg-existing-user1-debug-hub-tck50ns
+ if {[llength $argv]==9} {
+  source [file join $valence(root) fpga common recovery_debug_hub_contract.tcl]
+  common_restore_debug_hub_vendor_contract xsdbm-v3_0_4-original-16ns-system-50ns-user1-tck [file normalize [lindex $argv 8]]
+ }
  report_io -file restored-io.rpt
  if {$valence(resume_stage) eq {RESTORED}} {
   board_prep::entry [file join $valence(root) fpga common post_synth.tcl] 1

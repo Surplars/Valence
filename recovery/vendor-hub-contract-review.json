@@ -1,0 +1,467 @@
+{
+  "status": "EXACT_ORIGINAL_VENDOR_CDC_CONTRACT_RECOVERED",
+  "review_date_utc": "2026-10-21",
+  "provenance": "Original routed DCP opened read-only in Vivado2025.2; write_xdc exported constraints without changes; audit script blocks all constraint mutations and implementation commands. Export SHA256 matches previously committed debug-hub-clock-reference.json.",
+  "original_route_dcp": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\batch-fixes-incremental-r6-20261020-r1\\run-normal-r1\\route_design.dcp",
+  "original_route_dcp_sha256": "257c50d509384e7555b2ecc441a63fab8060fbd7d76ae040a799e3578893c674",
+  "source_export": "CURRENT\\r1-board-coverage-2025.2-corrected\\loaded-constraints.xdc",
+  "original_vendor_sections": {
+    "gc_line": 970,
+    "late_line": 884,
+    "gc_empty": true,
+    "early_line": 866
+  },
+  "hashes": {
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\batch-fixes-incremental-r6-20261020-r1\\i1\\local-run\\synthesis\\project\\common_board.cache\\ip\\2025.1\\a\\a\\aa027c6dac6c84a3\\dbg_hub.dcp": "f88a2ef15c36fc04273d93759d5885c436a86a0e33cbc61c75e12fc713d0d342",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\batch-fixes-incremental-r6-20261020-r1\\i1\\local-run\\synthesis\\project\\common_board.cache\\ip\\2025.1\\a\\a\\aa027c6dac6c84a3\\aa027c6dac6c84a3.xci": "6cc1233325991ef0239c55fd2f55d099ebf2ca8cf8decf7ccf7f10f2d5d3b24c",
+    "CURRENT\\r1-board-coverage-2025.2-corrected\\loaded-constraints.xdc": "30a24dc9ce9deecedd74244615ced9c277e90da446da12b941f4eedec3b3a0de",
+    "E:\\Xilinx\\2025.2\\Vivado\\data\\ip\\xilinx\\xsdbm_v3_0\\component.xml": "5b2fc44dd7d0d9ae4b12983aeb96dcb1193c5eaded4667ab83a830c43a26d0d0",
+    "E:\\Xilinx\\2025.2\\Vivado\\data\\ip\\xilinx\\xsdbm_v3_0\\ttcl\\xsdbm_cc_early.xdc.ttcl": "566889401454607674a712f5970491a89c73007c688828b998f944e31e8241a5",
+    "E:\\Xilinx\\2025.2\\Vivado\\data\\ip\\xilinx\\xsdbm_v3_0\\ttcl\\xsdbm_cc_late.xdc.ttcl": "fdd3067692813a2d72620207a2177b2b6fe06deafe827b3ea16da02c3844bd85",
+    "E:\\Xilinx\\2025.2\\Vivado\\data\\ip\\xilinx\\xsdbm_v3_0\\ttcl\\xsdbm_gc_late.xdc.ttcl": "c715106de387a2ee7143b87716f71eda7ad3f9f451b415ab8b4d5549369c0ebc"
+  },
+  "original_xci_parameters": {
+    "BUSIFPARAM_VALUE.SIGNAL_CLOCK.FREQ_HZ": "100000000",
+    "PARAM_VALUE.C_BSCANID": "76546592",
+    "PARAM_VALUE.C_BSCAN_MODE": "false",
+    "PARAM_VALUE.C_BSCAN_MODE_WITH_CORE": "false",
+    "PARAM_VALUE.C_BUILD_REVISION": "0",
+    "PARAM_VALUE.C_CLKFBOUT_MULT_F": "4.000",
+    "PARAM_VALUE.C_CLKOUT0_DIVIDE_F": "12.000",
+    "PARAM_VALUE.C_CLK_INPUT_FREQ_HZ": "300000000",
+    "PARAM_VALUE.C_CORE_MAJOR_VER": "1",
+    "PARAM_VALUE.C_CORE_MINOR_ALPHA_VER": "97",
+    "PARAM_VALUE.C_CORE_MINOR_VER": "0",
+    "PARAM_VALUE.C_CORE_TYPE": "1",
+    "PARAM_VALUE.C_DCLK_HAS_RESET": "0",
+    "PARAM_VALUE.C_DIVCLK_DIVIDE": "1",
+    "PARAM_VALUE.C_ENABLE_CLK_DIVIDER": "false",
+    "PARAM_VALUE.C_EN_BSCANID_VEC": "false",
+    "PARAM_VALUE.C_EN_INT_SIM": "1",
+    "PARAM_VALUE.C_FIFO_STYLE": "SUBCORE",
+    "PARAM_VALUE.C_MAJOR_VERSION": "14",
+    "PARAM_VALUE.C_MINOR_VERSION": "1",
+    "PARAM_VALUE.C_NUM_BSCAN_MASTER_PORTS": "0",
+    "PARAM_VALUE.C_TWO_PRIM_MODE": "false",
+    "PARAM_VALUE.C_USER_SCAN_CHAIN": "1",
+    "PARAM_VALUE.C_USER_SCAN_CHAIN1": "1",
+    "PARAM_VALUE.C_USE_BUFR": "0",
+    "PARAM_VALUE.C_USE_EXT_BSCAN": "false",
+    "PARAM_VALUE.C_USE_STARTUP_CLK": "false",
+    "PARAM_VALUE.C_XSDB_NUM_SLAVES": "1",
+    "PARAM_VALUE.C_XSDB_PERIOD_FRC": "0",
+    "PARAM_VALUE.C_XSDB_PERIOD_INT": "10",
+    "PARAM_VALUE.Component_Name": "dbg_hub",
+    "PROJECT_PARAM.ARCHITECTURE": "zynquplus",
+    "PROJECT_PARAM.DEVICE": "xczu15eg",
+    "PROJECT_PARAM.PACKAGE": "ffvb1156",
+    "PROJECT_PARAM.PREFHDL": "VERILOG",
+    "PROJECT_PARAM.SILICON_REVISION": "",
+    "PROJECT_PARAM.SPEEDGRADE": "-2",
+    "PROJECT_PARAM.STATIC_POWER": "",
+    "PROJECT_PARAM.TEMPERATURE_GRADE": "I",
+    "RUNTIME_PARAM.IPCACHEID": "aa027c6dac6c84a3",
+    "RUNTIME_PARAM.IPCACHESYNTHCL": "$Change: 6131539 $",
+    "RUNTIME_PARAM.IPCACHESYNTHCRC": "685478fe",
+    "RUNTIME_PARAM.IPCACHESYNTHRUNTIME": "53",
+    "RUNTIME_PARAM.IPCONTEXT": "IP_Unknown",
+    "RUNTIME_PARAM.IPREVISION": "4",
+    "RUNTIME_PARAM.MANAGED": "TRUE",
+    "RUNTIME_PARAM.OUTPUTDIR": ".",
+    "RUNTIME_PARAM.SELECTEDSIMMODEL": "",
+    "RUNTIME_PARAM.SHAREDDIR": ".",
+    "RUNTIME_PARAM.SWVERSION": "2025.1",
+    "RUNTIME_PARAM.SYNTHESISFLOW": "GLOBAL"
+  },
+  "installed_package": {
+    "compatibility_with_revision4_proven": false,
+    "core_revision": 5,
+    "vivado": "2025.2",
+    "template_source_probe": "Direct source succeeded but emitted no constraints or new procedures; therefore not a generation substitute.",
+    "template_encrypted": true,
+    "vlnv": "xilinx.com:ip:xsdbm:3.0",
+    "model": "xsdbm_v3_0_5_xsdbm"
+  },
+  "retained_dcp": {
+    "async_reg_cells": 165,
+    "build": 6140274,
+    "ip_revision": 4,
+    "embedded_xdc": "Only OOC clock metadata, no recoverable CDC exceptions",
+    "vivado": "2025.1"
+  },
+  "restoration": {
+    "scope": "dbg_hub/inst",
+    "budgets": {
+      "wrfifo_read_to_write": {
+        "bus_skew_ns": 16,
+        "max_delay_ns": 16
+      },
+      "rdfifo_write_to_read": {
+        "bus_skew_ns": 16,
+        "max_delay_ns": 16
+      },
+      "rdfifo_read_to_write": {
+        "bus_skew_ns": 16,
+        "max_delay_ns": 50
+      },
+      "wrfifo_write_to_read": {
+        "bus_skew_ns": 16,
+        "max_delay_ns": 50
+      }
+    },
+    "profile": "xsdbm-v3_0_4-original-16ns-system-50ns-user1-tck",
+    "counts": {
+      "set_false_path": 27,
+      "set_bus_skew": 4,
+      "set_max_delay": 4
+    },
+    "cdc_waivers": "Original section includes vendor CDC waivers; timing restoration can omit create_waiver and preserve unwaived CDC visibility. All 35 timing commands are supplied verbatim.",
+    "preconditions": [
+      "Same original dbg_hub.dcp SHA256",
+      "Existing private USER1 TCK clock period50ns",
+      "System hub clock period16ns",
+      "Same revision4 hierarchy; resolve every from/to query with exact recorded counts",
+      "Apply after existing common_restore_debug_hub_clock and after read_checkpoint -cell dbg_hub; preserve current_instance before/after"
+    ],
+    "timing_commands": [
+      "set_false_path -from [filter [all_fanout -from [get_pins -filter REF_PIN_NAME=~wr_clk -of_objects [get_cells -hierarchical -filter {NAME =~ \"*SUBCORE_FIFO.*rdfifo_inst\"}]] -flat -endpoints_only] IS_LEAF] -to [get_cells -hierarchical -filter {NAME =~ *U_RD_FIFO*gdm.dm_gen.dm*/gpr1.dout_i_reg*}]",
+      "set_max_delay -datapath_only -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*rd_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].wr_stg_inst/Q_reg_reg[*]\"}] 50.000",
+      "set_bus_skew -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*rd_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].wr_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_max_delay -datapath_only -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*wr_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].rd_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_bus_skew -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*wr_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].rd_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_false_path -from [filter [all_fanout -from [get_pins -filter REF_PIN_NAME=~wr_clk -of_objects [get_cells -hierarchical -filter {NAME =~ \"*SUBCORE_FIFO.*wrfifo_inst\"}]] -flat -endpoints_only] IS_LEAF] -to [get_cells -hierarchical -filter {NAME =~ *U_WR_FIFO*gdm.dm_gen.dm*/gpr1.dout_i_reg*}]",
+      "set_max_delay -datapath_only -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*rd_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].wr_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_bus_skew -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*rd_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].wr_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_max_delay -datapath_only -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*wr_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].rd_stg_inst/Q_reg_reg[*]\"}] 50.000",
+      "set_bus_skew -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*wr_pntr_gc_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/*gsync_stage[1].rd_stg_inst/Q_reg_reg[*]\"}] 16.000",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/icn_cmd_en_reg[5]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/icn_cmd_en_5_temp_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_en_1_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD2/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD2/stat_reg_ld_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD3/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD3/stat_reg_ld_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD4/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD4/ctl_reg_en_1_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD5/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD5/ctl_reg_en_1_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/ctl_reg_en_1_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/shift_reg_in_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/ctl_reg_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/shift_reg_in_reg[0]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_STAT/stat_reg_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_STAT/icn_cmd_en_temp_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_STAT/stat_reg_ld_reg[0]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/wrdata_rst_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.g7serrst.rst_rd_reg1_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/wrdata_rst_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_WR/U_WR_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_wrfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.g7serrst.rst_rd_reg2_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD4/shift_reg_in_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD4/ctl_reg_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/shift_reg_in_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD5/shift_reg_in_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD5/ctl_reg_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_reg[0]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/ma_rst_1_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD2/stat_reg_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD2/stat_reg_1_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD3/stat_reg_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD3/stat_reg_1_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_STAT/stat_reg_reg[*]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_STAT/stat_reg_1_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/rddata_rst_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.g7serrst.rst_rd_reg1_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/rddata_rst_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/U_RD_FIFO/SUBCORE_FIFO.xsdbm_v3_0_4_rdfifo_inst/inst_fifo_gen/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.g7serrst.rst_rd_reg2_reg\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/rddata_rst_reg\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD6_RD/shift_reg_in_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_reg[0]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD4/shift_reg_in_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_reg[0]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD5/shift_reg_in_reg[*]\"}]",
+      "set_false_path -from [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD1/ctl_reg_reg[0]\"}] -to [get_cells -hierarchical -filter {NAME =~ \"*BSCANID.u_xsdbm_id/CORE_XSDB.UUT_MASTER/U_ICON_INTERFACE/U_CMD7_CTL/shift_reg_in_reg[*]\"}]"
+    ]
+  },
+  "validation": {
+    "exit_code": 0,
+    "query_log": "CURRENT/vendor-hub-contract/query-validation.log",
+    "warnings": 0,
+    "query_records": "CURRENT/vendor-hub-contract/query-validation.tcllist",
+    "all_35_queries_nonempty": true,
+    "counts_in_command_order": [
+      {
+        "type": "set_false_path",
+        "from_count": 59,
+        "to_count": 16
+      },
+      {
+        "type": "set_max_delay",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_bus_skew",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_max_delay",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_bus_skew",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 59,
+        "to_count": 16
+      },
+      {
+        "type": "set_max_delay",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_bus_skew",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_max_delay",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_bus_skew",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 3,
+        "to_count": 3
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 28,
+        "to_count": 28
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 2,
+        "to_count": 2
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 18,
+        "to_count": 18
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 4,
+        "to_count": 4
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 3,
+        "to_count": 3
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 3,
+        "to_count": 3
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 1
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 16
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 28
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 18
+      },
+      {
+        "type": "set_false_path",
+        "from_count": 1,
+        "to_count": 3
+      }
+    ],
+    "mode": "Read-only object queries on exact retained DCP in isolated Vivado2025.2, scope inst; all timing commands replaced with inspector before evaluation, no constraints applied"
+  },
+  "remaining_work": [
+    "Parent integrates helper into combined candidate already authorized",
+    "Qualify combined RTL changes with directed tests and single planned physical run",
+    "Retain all genuine CDC/skew/reset/IO contracts; full signoff remains pending"
+  ],
+  "blockers": [],
+  "not_done": [
+    "No IP synth/regenerate/upgrade",
+    "No vendor files edited",
+    "No RTL/main mapper edited",
+    "No implementation/bitstream",
+    "No checkpoint saved or overwritten; helper constraints applied only to isolated in-memory test",
+    "No commit"
+  ],
+  "helper": {
+    "path": "fpga/common/recovery_debug_hub_contract.tcl",
+    "entry": "common_restore_debug_hub_vendor_contract xsdbm-v3_0_4-original-16ns-system-50ns-user1-tck <retained_hub_dcp>",
+    "insert_after": "common_restore_debug_hub_clock, after read_checkpoint -cell dbg_hub",
+    "scope": "dbg_hub/inst; inst accepted only for checkpoint_dbg_hub isolated validation",
+    "guards": "Actual retained DCP SHA256 via Tcllib sha256; exact profile/scope; USER1 BSCANE2; 50ns live INTERNAL_TCK and16ns live U_CMD1/ctl_reg_reg[0]/C clock; all35 query cardinalities before first application",
+    "validation_pending": false,
+    "validation": {
+      "exit_code": 0,
+      "log": "CURRENT/vendor-hub-contract/helper-validation-r3.log",
+      "success_marker": "ORIGINAL_VENDOR_HUB_REV4_CDC_RESTORED_27_FALSE_PATH_4_MAX_DELAY_4_BUS_SKEW_NO_CDC_WAIVERS",
+      "command_text_exactly_matches_original": true,
+      "all_preflight_counts_match": true,
+      "exceptions_report": "CURRENT/vendor-hub-contract/applied-original-exceptions.rpt",
+      "bus_skew_report": "CURRENT/vendor-hub-contract/applied-original-bus-skew.rpt",
+      "limitation": "Standalone DCP in-memory validation with live test clocks16/50ns; HD.CLK_SRC warning expected because OOC clk has no top-level clock buffer location. No physical timing acceptance claimed."
+    }
+  },
+  "full_hierarchy_validation": {
+    "application": "PASS",
+    "baseline_sha256": "99c8880cf540305e6bd3f500214b7d5d964fb585db2d9d0b73d22c21db77d456",
+    "baseline_unchanged_native_after_check_pending": false,
+    "log": "CURRENT/vendor-hub-contract/full-r11-validation-r2.log",
+    "script": "CURRENT/vendor-hub-contract/validate-full-r11.tcl",
+    "output": "CURRENT/vendor-hub-contract/full-r11-validation",
+    "all35_counts_match": true,
+    "live_clock_guards_pass": true,
+    "physical_commands_blocked": true,
+    "checkpoint_writes_blocked": true,
+    "reports_pending": false,
+    "result": {
+      "exit_code": 0,
+      "baseline_unchanged": true,
+      "native_hash_evidence": "CURRENT/vendor-hub-contract/full-r11-validation/native-preservation-check.json",
+      "global": {
+        "THS_ns": 0,
+        "setup_total_endpoints": 226252,
+        "WHS_ns": 0.003,
+        "setup_failing_endpoints": 65410,
+        "hold_total_endpoints": 224256,
+        "hold_failing_endpoints": 0,
+        "WNS_ns": -3.125,
+        "TNS_ns": -67188.742,
+        "TPWS_ns": 0,
+        "WPWS_ns": 0.081
+      },
+      "before_global": {
+        "setup_failing_endpoints": 65598,
+        "hold_failing_endpoints": 0,
+        "WHS_ns": 0.003,
+        "TNS_ns": -68247.391,
+        "WNS_ns": -7.411
+      },
+      "hub_system_to_tck": {
+        "kind": "MaxDelay Path -datapath_only",
+        "failing_endpoints": 0,
+        "total_endpoints": 8,
+        "WNS_ns": 8.943,
+        "requirement_ns": 16
+      },
+      "hub_tck_to_system": {
+        "kind": "MaxDelay Path -datapath_only",
+        "failing_endpoints": 0,
+        "total_endpoints": 8,
+        "WNS_ns": 46.326,
+        "requirement_ns": 50
+      },
+      "synchronous_intra_unchanged": {
+        "cpu_WNS_ns": -2.241,
+        "fabric_WNS_ns": -3.125
+      },
+      "new_global_worst": {
+        "requirement_ns": 4,
+        "clock": "mmcm_clkout0_1",
+        "destination": "u_soc/crossing/fifo_4/capturedBinary_reg[3]/CE",
+        "datapath_ns": 6.955,
+        "levels": 23,
+        "source": "u_soc/crossing/fifo_2/destinationRelease/release_0_reg[2]/C"
+      },
+      "hub_CDC": {
+        "scope": "mmcm_clkout5_1 and valence_debug_hub_tck source/destination clock pairs only",
+        "CDC-9": 2,
+        "CDC-6": 7,
+        "critical": 0,
+        "CDC-3": 9,
+        "CDC-15": 149,
+        "waivers_added": 0
+      },
+      "reports": [
+        "timing-summary.rpt",
+        "setup-worst10.rpt",
+        "hold-worst10.rpt",
+        "hub-system-to-tck-setup.rpt",
+        "hub-tck-to-system-setup.rpt",
+        "hub-cdc.rpt"
+      ],
+      "limitations": [
+        "This is unchanged baseline routing with only exact vendor constraints restored in memory, not the new RTL candidate",
+        "Full-design CDC/reset signoff not repeated; only requested hub clock-pair CDC report",
+        "Full-design bus-skew report not repeated; upcoming combined physical qualification must include four restored hub bounds alongside existing bounds",
+        "No physical implementation/checkpoint write/bitstream performed"
+      ]
+    }
+  }
+}

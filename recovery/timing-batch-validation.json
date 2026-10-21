@@ -1,0 +1,79 @@
+{
+  "status": "DIRECTED_FUNCTIONAL_PASS_PHYSICAL_PENDING",
+  "suites": {
+    "gmac": {
+      "result": {
+        "reply_queue_full_cycles": 1454,
+        "stalled_response_cycles": 1462,
+        "requests": 6961,
+        "utc": "2026-10-21T05:36:50.5533322Z",
+        "dut": "generated GmacReadyBatch / TileLinkGmacControl",
+        "simulator": "native Vivado xsim",
+        "legal_mdio_blocked_cycles": 37,
+        "reply_payload_metadata_order": true,
+        "cycles": 8468,
+        "control_mac_rxstop_irq_restart_side_effects": true,
+        "physical_signoff": false,
+        "replies": 6961,
+        "ports": 4,
+        "denied_accepted_without_mdio_credit": 1826,
+        "independent_original_ready_oracle": true,
+        "mdio_commands": 18,
+        "result": "PASS",
+        "negative_oracle": "REJECTED",
+        "seed": "47ac1234"
+      },
+      "generated_sv_sha256": {
+        "out\\timing-batch-gmac-fixture\\GmacReadyBatch.sv": "25194778b8954bc2584912666805616273e8ed3456401f25808e9694d04b3134",
+        "out\\timing-batch-gmac-fixture\\Queue4_TLBundleD.sv": "d951804746fce6d4a0389fa9d1dda8d5801650020e8ee882c4d22451c11df2f9",
+        "out\\timing-batch-gmac-fixture\\ram_4x80.sv": "c6c89852e69eed7b0356d5d5227f172f185ceeb86a7129778f89d3a73e477c9a",
+        "out\\timing-batch-gmac-fixture\\TileLinkGmacControl.sv": "0a556514ec4bc91f6d740478710c4dc37ab29d9884513b88258e899ff9171fe3"
+      },
+      "positive_log_sha256": "fad679ce72f2b80724073618890bb60b79530ac40058ec9f5eed3d983f500725",
+      "negative_log_sha256": "2942fee549bcde518ef0d5c5eb7355071229afd588077c7606c50495cc3d95b8"
+    },
+    "imsic": {
+      "result": {
+        "mmio_requests": 2859,
+        "physical_signoff": false,
+        "old_response_and_priority": true,
+        "result": "PASS",
+        "utc": "2026-10-21T05:41:05.1087626Z",
+        "seed": "152ac913",
+        "claims": 101,
+        "files": 4,
+        "threshold_highbits_rejection": true,
+        "blocked_response_cycles": 5688,
+        "cycles": 6142,
+        "dut": "generated Imsic identities127 guestFiles2",
+        "independent_architectural_bank_oracle": true,
+        "csr_requests": 2958,
+        "negative_oracle": "REJECTED",
+        "simultaneous_claim_msi": 1,
+        "simulator": "native Vivado xsim"
+      },
+      "generated_sv_sha256": {
+        "out\\timing-batch-imsic-fixture-r2\\Imsic.sv": "7eaa0ebcd7d92705e671e1349e3d15c9e465c6ae4793c46ff38b86a1bd727c5d",
+        "out\\timing-batch-imsic-fixture-r2\\Queue2_RegisterResponse.sv": "213bf57109050f2d84c6f5fb8dad334813572e24ac66177fd8988613baf0cd5d",
+        "out\\timing-batch-imsic-fixture-r2\\ram_2x65.sv": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d"
+      },
+      "positive_log_sha256": "c34061a3d9ad3a130e49211ad1bf093bde055cf1cc96eb2e86d1856735381cc7",
+      "negative_log_sha256": "abc24aaa1f493944310a4844aa51a57e8e9a366666c94714024ff78b97c24091"
+    }
+  },
+  "sources_sha256": {
+    "src/main/scala/ip/interrupt/Imsic.scala": "78cad418eb167ccccd7ba99d91aac28f84c32a4df8e4ccc37e606b32330849b0",
+    "src/main/scala/ip/ethernet/TileLinkGmacControl.scala": "ebe471b60acbb33f341904994d2ac5c0bfd7a3c7587cc84af640250293acaca3",
+    "src/test/scala/ip/ImsicRmwBatch.scala": "01b1a5d11daacc162159307809996372fe92622ba23f358893040e63349c6d35",
+    "src/test/scala/ip/GmacReadyBatch.scala": "4d5653e756a6cbff9c11910f1eb9b34a946db61c14ffffb54deabb30069f3698",
+    "recovery/imsic-rmw-tb.sv": "f25d5482668a62f3c0d397a61b141f1ca14a68fecbb7502599e672bb4d60d63b",
+    "recovery/gmac-ready-tb.sv": "d70ba266bf83ea2718323dc7fc42736e4f1d71d52787ad5e64711b7b838161ae"
+  },
+  "affected_configuration_tests_exit": 0,
+  "configuration_log_sha256": "7f69077f3535adfa33506b5203b35f14a0d0b618196043642f1ac60dcc8db0bd",
+  "additional_pipeline_cycles": 0,
+  "cpuClockHz": 300000000,
+  "fabricClockHz": 250000000,
+  "board_verified": false,
+  "production_source_commit": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68"
+}

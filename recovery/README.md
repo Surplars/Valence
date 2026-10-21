@@ -17,11 +17,23 @@ physical steps. Clocks, IO bindings, formal post_opt mapping and native DRC are
 checked again. Those branches have syntax checks; native execution is pending
 the first matching checkpoint. RESTORED is the default.
 
-Production RTL remains commit `76c7d983c08caca4610b9399b1d446fd262ab2c4`;
-profile SHA256 `8b50a14ebc9028af5180070cf9942edb4aea4c2c1f2e09ac2e0c9fa3d47eec8f`.
-Later commits contain integration, constraints and evidence. This is recovery-r1,
+The immutable r11 routed baseline uses RTL commit `76c7d983c08caca4610b9399b1d446fd262ab2c4`.
+The IMSIC/GMAC timing candidate uses `f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68`,
+profile SHA256 `80e29e6eb99b7e2e65c7b802249dd262ff707cfc8420c9767ab87bb9732d268d`.
+Directed generated-DUT xsim and affected Scala checks passed; see
+`timing-batch-validation.json`. Its physical results are pending. This is recovery-r1,
 not restored r6 or r2-equivalent. Final reset/CDC/IO and physical signoff remain
 pending; historical PASS conclusions do not transfer.
+
+`CURRENT.ps1 -Stage LINKED` also accepts a fresh `synthesized-unqualified.dcp`,
+with explicit `-IpConstraintInventory` and original per-file hash validation.
+`-RetainedDebugHubDcp` restores the exact revision4 vendor CDC timing contract,
+guarded by IP SHA, clock periods and endpoint cardinalities; no CDC waivers.
+`continue-timing-batch.ps1` waits for the one existing synthesis PID/exit receipt,
+then uses this same CURRENT entry to run diagnostic opt/place/route. It never
+restarts synthesis or generates a bitstream. Each completed phase is checkpointed
+before subsequent checks. Restored vendor timing on the unchanged baseline is
+reported separately in `vendor-hub-contract-review.json`.
 
 OOC MIG owns its physical IO. Recovery synthesis/link/map preflight all 73 ports,
 remove only the reviewed 27 output/2 input duplicate buffers, preserve vendor
