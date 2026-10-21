@@ -21,7 +21,8 @@ class CachedPostOptResumeTests(unittest.TestCase):
             self.assertIn(name,resume.CACHE_TOOLS)
         source=Path(__file__).with_name('resume_diagnostic.tcl').read_text()
         for command in ('synth_design','opt_design','place_design','route_design','launch_runs'):
-            self.assertNotIn(command,source)
+            self.assertNotIn('common_design_step '+command,source)
+            self.assertNotIn('\n        '+command+' ',source)
         self.assertLess(source.index('resume_diagnostic.py'),source.index('open_checkpoint'))
         self.assertLess(source.index('open_checkpoint'),source.index('source [file join $recovery_tools cached_post_opt.tcl]'))
 

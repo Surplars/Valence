@@ -108,7 +108,8 @@ proc common_record {args} {}
         fresh=(HERE/'diagnostic.tcl').read_text()
         self.assertLess(fresh.index('check --manifest'),fresh.index('set valence(control_lemma) 1'))
         self.assertLess(fresh.index('write_checkpoint optimized-unqualified.dcp'),fresh.index('cached_post_opt.tcl'))
-        self.assertIn('write_checkpoint physical-optimized-unqualified.dcp',fresh)
+        self.assertIn('placed physical phys_opt_design physical-optimized-unqualified.dcp',fresh)
+        self.assertLess(fresh.index('write_checkpoint $file'),fresh.index('diagnostic_stage_gate $stage'))
         self.assertIn('catch {write_checkpoint failed-resume-unqualified-',script)
 
 if __name__=='__main__':unittest.main()

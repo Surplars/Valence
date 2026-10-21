@@ -353,3 +353,36 @@ native speedup. Sample the next identical saved-DCP post-check with wall-clock
 start/end logs, identical endpoint census and proof outcomes; report failed and
 successful runs separately. No Fmax or hardware qualification follows from this
 script optimization.
+
+
+### Continue a checked checkpoint through placement and routing
+
+The same recovery entry now supports a checked-opt or sealed later-stage DCP:
+
+```
+vivado -mode batch -source TOOLING/fpga/common/resume_diagnostic.tcl -tclargs FROZEN/diagnostic-run/config.tcl place-route CHECKED_DCP_PATH OBSERVED_CHECKED_SHA256
+```
+
+Use forward slashes for native Windows paths. The checked-opt file must be named
+optimized-checked-unqualified.dcp beside its post-opt provenance.json. The running
+adbe39c producer is accepted only with its exact reviewed Python/Tcl hash pair;
+all constraint/cache proof files must match the continuation revision exactly.
+Original manifest/profile/project/OOC/checked synthesis and original raw-opt
+hashes are revalidated. The explicit checked output hash is required; older
+post-opt producers did not write a checked-output seal, so this compatibility
+path does not pretend they did.
+
+The continuation opens that DCP in a fresh place-route-* output directory and
+executes the shared diagnostic tail. synth_design, opt_design, launch_runs,
+project/IP generation and bitstream commands are explicitly forbidden. Entry
+and each stage require no_clock=0, unconstrained_internal_endpoints=0, no Error
+or Critical Warning DRC, and actual CPU300/fabric250 periods. Every completed
+place/phys_opt/route stage writes its DCP and source/tool provenance before those
+checks, preserving expensive work on later failure. These are diagnostic gates,
+not timing closure or a release qualification.
+
+To retry after a later failure, use the same mode with the most recent sealed
+placed.dcp, physical-optimized-unqualified.dcp, or routed.dcp and its observed
+SHA256. Its recursive provenance and unchanged tool hashes are mandatory; only
+remaining stages execute. Missing or altered seals/proof tools block reuse.
+The complete reports remain unqualified and no bitstream can be written.

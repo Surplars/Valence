@@ -94,11 +94,80 @@ def prepare_post_opt(root, expected):
     return record
 
 
+
+# Exact reviewed producer for the already-running adbe39c post-opt job.
+REVIEWED_POST_PRODUCER = {'resume_diagnostic.py': 'f1900f81232ea204b0551156e88526954a9e48c389937e76fe919af63c9c1f81', 'resume_diagnostic.tcl': 'e3eb26d531a3431210eb53f1252f32b15acd36699b91abafd10d3177e1c75487'}
+STAGES = {'optimized-checked-unqualified.dcp':'optimized', 'placed.dcp':'placed',
+          'physical-optimized-unqualified.dcp':'physical', 'routed.dcp':'routed'}
+POST_PROOFS = ('exact_object_cache.tcl','cached_post_opt.tcl','test_exact_object_cache.tcl',
+               'post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')
+
+def continuation_tools():
+    here=Path(__file__).resolve().parent
+    return {n:sha(here/n) for n in (*POST_PROOFS,'resume_diagnostic.py','resume_diagnostic.tcl','diagnostic.tcl')}
+
+def verify_continuation(root, checkpoint, expected, depth=0):
+    if depth>6: raise ValueError('Continuation chain too deep')
+    root=root.resolve(); checkpoint=checkpoint.resolve()
+    if not checkpoint.is_relative_to(root/'diagnostic-run') or checkpoint.name not in STAGES:
+        raise ValueError('Checkpoint outside reviewed diagnostic stage paths')
+    if not re.fullmatch(r'[0-9a-f]{64}',expected) or sha(checkpoint)!=expected:
+        raise ValueError('Continuation checkpoint SHA changed')
+    current=check(root,'implementation')
+    tools=continuation_tools()
+    if checkpoint.name=='optimized-checked-unqualified.dcp':
+        previous=json.loads((checkpoint.parent/'provenance.json').read_text())
+        if previous.get('mode')!='cached-post-opt-only': raise ValueError('Not checked post-opt provenance')
+        for key in ('original_manifest_sha256','profile_sha256','project_sha256','ooc_sha256'):
+            if previous.get(key)!=current[key]: raise ValueError('Post-opt input provenance mismatch: '+key)
+        verify_checkpoint(root,previous.get('optimized_checkpoint_sha256',''))
+        recorded=previous.get('cache_overlay_sha256',{})
+        for name in POST_PROOFS:
+            if recorded.get(name)!=tools[name]: raise ValueError('Post-opt proof tool changed: '+name)
+        producer={n:recorded.get(n) for n in REVIEWED_POST_PRODUCER}
+        if producer not in (REVIEWED_POST_PRODUCER,{n:tools[n] for n in REVIEWED_POST_PRODUCER}):
+            raise ValueError('Unreviewed post-opt producer pair')
+        provenance=checkpoint.parent/'provenance.json'
+    else:
+        provenance=Path(str(checkpoint)+'.provenance.json')
+        previous=json.loads(provenance.read_text())
+        if previous.get('checkpoint_sha256')!=expected or previous.get('stage')!=STAGES[checkpoint.name]:
+            raise ValueError('Stage seal mismatch')
+        if previous.get('tool_sha256')!=tools: raise ValueError('Continuation tool identity changed')
+        origin=Path(previous['input_checkpoint'])
+        verify_continuation(root,origin,previous['input_sha256'],depth+1)
+        if previous.get('input_provenance_sha256')!=sha(origin.parent/'provenance.json' if origin.name=='optimized-checked-unqualified.dcp' else Path(str(origin)+'.provenance.json')):
+            raise ValueError('Continuation source provenance changed')
+    return dict(status=current['status'],mode='place-route',qualification=False,
+                original_manifest_sha256=current['original_manifest_sha256'],profile_sha256=current['profile_sha256'],
+                input_checkpoint=str(checkpoint),input_sha256=expected,input_provenance_sha256=sha(provenance),
+                start_stage=STAGES[checkpoint.name],tool_sha256=tools)
+
+def seal_stage(root, out, stage):
+    out=out.resolve()
+    if not out.is_relative_to(root.resolve()/'diagnostic-run'): raise ValueError('Invalid output location')
+    initial=json.loads((out/'provenance.json').read_text())
+    validated=verify_continuation(root,Path(initial['input_checkpoint']),initial['input_sha256'])
+    if validated!=initial: raise ValueError('Initial continuation provenance changed')
+    names={v:k for k,v in STAGES.items()}
+    if stage not in ('placed','physical','routed'): raise ValueError('Invalid stage to seal')
+    checkpoint=out/names[stage]
+    record=dict(validated,stage=stage,checkpoint_sha256=sha(checkpoint))
+    seal=Path(str(checkpoint)+'.provenance.json')
+    with seal.open('x') as f: json.dump(record,f,indent=2)
+    return record
+
 if __name__=='__main__':
     try:
         root=Path(sys.argv[1]).absolute()
         mode=sys.argv[2] if len(sys.argv)>2 else 'synthesis'
-        if mode not in ('synthesis','implementation','seal-raw','post-opt'): raise ValueError('Invalid recovery mode')
+        if mode not in ('synthesis','implementation','seal-raw','post-opt','place-route','seal-stage'): raise ValueError('Invalid recovery mode')
         if mode=='post-opt' and len(sys.argv)!=4: raise ValueError('post-opt requires observed optimized SHA256')
+        if mode=='place-route':
+            if len(sys.argv)!=5: raise ValueError('place-route requires checkpoint path and SHA256')
+            print(json.dumps(verify_continuation(root,Path(sys.argv[3]),sys.argv[4]),indent=2)); sys.exit(0)
+        if mode=='seal-stage':
+            if len(sys.argv)!=5: raise ValueError('seal-stage requires output and stage')
+            print(json.dumps(seal_stage(root,Path(sys.argv[3]),sys.argv[4]),indent=2)); sys.exit(0)
         print(json.dumps(prepare_post_opt(root,sys.argv[3]) if mode=='post-opt' else seal_raw(root) if mode=='seal-raw' else check(root,mode),indent=2))
     except (ValueError, OSError) as exc: sys.exit(str(exc))
