@@ -1,0 +1,389 @@
+{
+  "status": "COMPLETE_READ_ONLY",
+  "source_commit": "dd814d96c86f81c3e43ca343c85330f7edf038b6",
+  "dcp_sha256_after_query": "69aec185f64dea8931db5fde7d8bab51e9dc544ac8832d318cb13b414ba55da5",
+  "dcp_unchanged": true,
+  "query_exit": 0,
+  "mig_electrical_and_connectivity_ports": 73,
+  "query_critical_warning_count": 0,
+  "exact_original_roots": [
+    {
+      "name": "cpu_store_clear",
+      "source": "u_soc/cpu/tile/core/addrPacket_address_reg[19]/C",
+      "destination": "u_soc/crossing/fifo_4/writeBinary_reg[1]/D",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "0"
+    },
+    {
+      "name": "dma_rx_issued",
+      "source": "u_soc/crossing/fifo_2/valid_reg/C",
+      "destination": "u_soc/fabric/packetDma/rxIssued_reg[6]/CE",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "1",
+      "slack": "-1.552",
+      "requirement": "4.000",
+      "exception": ""
+    },
+    {
+      "name": "imsic_threshold",
+      "source": "u_soc/cpu/tile/imsic/pending_0_0_reg[38]/C",
+      "destination": "u_soc/cpu/tile/imsic/threshold_0_reg[4]/CE",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "0"
+    },
+    {
+      "name": "fabric_ready",
+      "source": "u_soc/crossing/fifo_2/destinationRelease/release_0_reg[2]/C",
+      "destination": "u_soc/crossing/fifo_4/capturedBinary_reg[3]/CE",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "1",
+      "slack": "-1.842",
+      "requirement": "4.000",
+      "exception": ""
+    },
+    {
+      "name": "dcache_result",
+      "source": "u_soc/cpu/tile/dcache/coherent/cache/hitBank_reg[0]/C",
+      "destination": "u_soc/cpu/tile/dt/result_data_reg[47]/D",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "1",
+      "slack": "-0.260",
+      "requirement": "3.333",
+      "exception": ""
+    },
+    {
+      "name": "icache_aligner",
+      "source": "u_soc/cpu/tile/icache/coherent/cache/pending_address_reg[17]/C",
+      "destination": "u_soc/cpu/tile/aligner/cuts/word_reg[2]/D",
+      "start_count": "1",
+      "end_count": "1",
+      "timed_paths": "1",
+      "slack": "-0.172",
+      "requirement": "3.333",
+      "exception": ""
+    }
+  ],
+  "samples": {
+    "cpu": {
+      "path_count": 500,
+      "negative_slack_sum_sample_only_ns": -504.44,
+      "source_families": {
+        "u_soc/cpu/tile/core/addrPacket_nextPc": {
+          "count": 152,
+          "sample_negative_slack_ns": -160.45199999999988
+        },
+        "u_soc/cpu/tile/core/exValid": {
+          "count": 45,
+          "sample_negative_slack_ns": -45.844999999999985
+        },
+        "u_soc/cpu/tile/core/exPacket_control_csrAddress": {
+          "count": 42,
+          "sample_negative_slack_ns": -40.334999999999994
+        },
+        "u_soc/cpu/tile/it/pte": {
+          "count": 41,
+          "sample_negative_slack_ns": -38.81099999999999
+        },
+        "u_soc/cpu/tile/core/offerPc": {
+          "count": 37,
+          "sample_negative_slack_ns": -34.48700000000001
+        },
+        "u_soc/cpu/tile/core/addrPacket_address": {
+          "count": 29,
+          "sample_negative_slack_ns": -31.965000000000003
+        },
+        "u_soc/cpu/tile/core/wbPacket_control_fenceI": {
+          "count": 28,
+          "sample_negative_slack_ns": -26.497999999999998
+        },
+        "u_soc/cpu/tile/core/memPacket_fault": {
+          "count": 17,
+          "sample_negative_slack_ns": -17.37
+        },
+        "u_soc/crossing/fifo_6/output_0": {
+          "count": 17,
+          "sample_negative_slack_ns": -15.95
+        },
+        "u_soc/cpu/tile/imsic/pending_0_0": {
+          "count": 13,
+          "sample_negative_slack_ns": -14.559
+        },
+        "u_soc/cpu/tile/it/saved_address": {
+          "count": 10,
+          "sample_negative_slack_ns": -10.623
+        },
+        "u_soc/cpu/tile/dcache/coherent/cache/pending_address": {
+          "count": 10,
+          "sample_negative_slack_ns": -9.423
+        },
+        "u_soc/cpu/tile/core/rightAluSelect": {
+          "count": 9,
+          "sample_negative_slack_ns": -8.600999999999999
+        },
+        "u_soc/cpu/tile/core/memPacket_address": {
+          "count": 7,
+          "sample_negative_slack_ns": -7.134
+        },
+        "u_soc/cpu/tile/core/addrPacket_result": {
+          "count": 7,
+          "sample_negative_slack_ns": -6.96
+        },
+        "u_soc/cpu/tile/core/wbPacket_control_csrAddress": {
+          "count": 7,
+          "sample_negative_slack_ns": -6.577
+        },
+        "u_soc/crossing/fifo_3/valid": {
+          "count": 6,
+          "sample_negative_slack_ns": -6.345000000000001
+        },
+        "u_soc/cpu/tile/core/leftAluSelect": {
+          "count": 6,
+          "sample_negative_slack_ns": -5.883
+        },
+        "u_soc/cpu/tile/core/wbPacket_csrData": {
+          "count": 5,
+          "sample_negative_slack_ns": -4.744
+        },
+        "u_soc/cpu/tile/core/leftProducer": {
+          "count": 3,
+          "sample_negative_slack_ns": -3.1109999999999998
+        },
+        "u_soc/cpu/tile/imsic/enabled_1_1": {
+          "count": 3,
+          "sample_negative_slack_ns": -2.9
+        },
+        "u_soc/cpu/tile/dt/readPmp/grants_0_chunks_0_1": {
+          "count": 2,
+          "sample_negative_slack_ns": -2.021
+        },
+        "u_soc/cpu/tile/dt/saved_address": {
+          "count": 2,
+          "sample_negative_slack_ns": -1.9729999999999999
+        },
+        "u_soc/crossing/crossing_2/fabricReleasedInCpu/stages": {
+          "count": 1,
+          "sample_negative_slack_ns": -0.963
+        },
+        "u_soc/cpu/tile/dcache/coherent/cache/stateStorage": {
+          "count": 1,
+          "sample_negative_slack_ns": -0.91
+        }
+      },
+      "top_paths": [
+        {
+          "slack_ns": -1.333,
+          "Source": "u_soc/cpu/tile/core/addrPacket_address_reg[18]_replica/C",
+          "Destination": "u_soc/cpu/tile/dcache/coherent/cache/pendingBypass_reg/D",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.485ns  (logic 1.372ns (30.592%)  route 3.113ns (69.408%))",
+          "Logic Levels": "12  (LUT3=2 LUT4=1 LUT6=9)"
+        },
+        {
+          "slack_ns": -1.317,
+          "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+          "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[2]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.287ns  (logic 1.433ns (33.424%)  route 2.854ns (66.576%))",
+          "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+        },
+        {
+          "slack_ns": -1.314,
+          "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+          "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[1]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.285ns  (logic 1.433ns (33.440%)  route 2.852ns (66.560%))",
+          "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+        },
+        {
+          "slack_ns": -1.314,
+          "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+          "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[3]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.285ns  (logic 1.433ns (33.440%)  route 2.852ns (66.560%))",
+          "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+        },
+        {
+          "slack_ns": -1.286,
+          "Source": "u_soc/cpu/tile/core/addrPacket_address_reg[18]_replica/C",
+          "Destination": "u_soc/cpu/tile/dcache/coherent/cache/classifyCacheable_reg/D",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.437ns  (logic 1.272ns (28.671%)  route 3.165ns (71.329%))",
+          "Logic Levels": "11  (LUT3=1 LUT4=1 LUT6=9)"
+        },
+        {
+          "slack_ns": -1.282,
+          "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+          "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[31]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.208ns  (logic 0.648ns (15.401%)  route 3.560ns (84.599%))",
+          "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+        },
+        {
+          "slack_ns": -1.28,
+          "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+          "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[17]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+          "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+        },
+        {
+          "slack_ns": -1.28,
+          "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+          "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[24]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+          "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+        },
+        {
+          "slack_ns": -1.28,
+          "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+          "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[3]/CE",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+          "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+        },
+        {
+          "slack_ns": -1.273,
+          "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+          "Destination": "u_soc/cpu/tile/core/csr/snapshotPending_reg/D",
+          "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+          "Data Path Delay": "4.327ns  (logic 1.507ns (34.825%)  route 2.820ns (65.175%))",
+          "Logic Levels": "16  (CARRY8=1 LUT2=1 LUT5=6 LUT6=8)"
+        }
+      ],
+      "scope": "500 bounded worst endpoint samples, not complete domain TNS"
+    },
+    "fabric": {
+      "path_count": 500,
+      "negative_slack_sum_sample_only_ns": -1046.153,
+      "source_families": {
+        "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address": {
+          "count": 354,
+          "sample_negative_slack_ns": -741.4750000000003
+        },
+        "u_soc/crossing/fifo_4/valid": {
+          "count": 129,
+          "sample_negative_slack_ns": -268.83099999999996
+        },
+        "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0": {
+          "count": 12,
+          "sample_negative_slack_ns": -25.432
+        },
+        "u_soc/fabric/scalar/lockedLane": {
+          "count": 3,
+          "sample_negative_slack_ns": -6.184
+        },
+        "u_soc/fabric/home/owned_563": {
+          "count": 2,
+          "sample_negative_slack_ns": -4.231
+        }
+      },
+      "top_paths": [
+        {
+          "slack_ns": -2.175,
+          "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+          "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_0_0/DP/WE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+          "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.175,
+          "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+          "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_0_0/SP/WE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+          "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.175,
+          "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+          "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_1_1/DP/WE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+          "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.175,
+          "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+          "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_1_1/SP/WE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+          "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.175,
+          "Source": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[7]/C",
+          "Destination": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[6]/D",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "6.040ns  (logic 1.466ns (24.270%)  route 4.574ns (75.730%))",
+          "Logic Levels": "17  (LUT2=1 LUT3=2 LUT4=1 LUT5=3 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.172,
+          "Source": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[7]/C",
+          "Destination": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[9]/D",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "6.030ns  (logic 1.554ns (25.770%)  route 4.476ns (74.230%))",
+          "Logic Levels": "17  (LUT2=1 LUT3=2 LUT4=1 LUT5=3 LUT6=8 MUXF7=1 MUXF8=1)"
+        },
+        {
+          "slack_ns": -2.162,
+          "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+          "Destination": "u_soc/fabric/packetDma/txReceived_reg[1]/CE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+          "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+        },
+        {
+          "slack_ns": -2.162,
+          "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+          "Destination": "u_soc/fabric/packetDma/txReceived_reg[2]/CE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+          "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+        },
+        {
+          "slack_ns": -2.161,
+          "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+          "Destination": "u_soc/fabric/packetDma/txReceived_reg[3]/CE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+          "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+        },
+        {
+          "slack_ns": -2.161,
+          "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+          "Destination": "u_soc/fabric/packetDma/txReceived_reg[5]/CE",
+          "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+          "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+          "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+        }
+      ],
+      "scope": "500 bounded worst endpoint samples, not complete domain TNS"
+    }
+  },
+  "hashes": {
+    "recovery\\query-routed-timing-roots.tcl": "eda3b8b0c9c4ce3d14946484b6a11d2b3fcc59e55ee4b99ad0f9bdd6ab310208",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\cpu-worst500.rpt": "05de1230f233d6005711b64324f91d5541e73011578bc1e637a6c654f56adfef",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\fabric-worst500.rpt": "fafbc722a7ce5a88925a22676668ade880367aa8f39118bbaa1e8a0baade154e",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-cpu_store_clear-exceptions.rpt": "c818af99df3e9a40f171fa04357f26472e18858da16537cd94c8c20963020f32",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-dcache_result-exceptions.rpt": "5c7fa3dc63b509c77e91cdfa8c909fb1113760ab3c8675a058dc4f8b867557cb",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-dcache_result.rpt": "927490b7e82cf2cc0f1d6e0da1b67b756758c8f76902133c63bdad2e57653bcc",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-dma_rx_issued-exceptions.rpt": "fbf7abe418275126382e3b8cbb2a1c037293367e42dffad3420a80c338ee1a04",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-dma_rx_issued.rpt": "1d889e4565a4df00cb60e4870405c0dfbbd7d3629aa9a6fcb8768d1eeed80e20",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-fabric_ready-exceptions.rpt": "a3d4a50c53e1e8367827cf0cbcb34592da512a711278fd395058ec4baec0ede1",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-fabric_ready.rpt": "787080ae4634c0802beb353486779044ac1b4e3050b151b7b4c04b14a416233f",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-icache_aligner-exceptions.rpt": "260e090494686509541b795cf2b534dc4c40cebcab5a6bc7943a59ff3e390bf3",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-icache_aligner.rpt": "680da2a888c93a4f073ce39d494490389d8647e7397d92db49caab4eff4055b1",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-imsic_threshold-exceptions.rpt": "1d2a5b5f806a3bb1dda79c93be95ab753d8b1171e32f5ae841527efb904d887c",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\query-console.log": "f5e6e945df9b84a14fcac6df20d30b04becd1bd99777426d90afcf83a7a7e8bd",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\root-analysis-r1\\original-roots.tcllist": "879c3dfbccc1cd15cd07ac5d18681fe113b593d1fa937604de668b88ba74e8cd"
+  },
+  "bus_skew_na_followup": "Both active observable 1-bit payload lanes; no inactive proof. Two NA entries also existed in baseline. Max-delay applicability and single-path skew interpretation pending bounded follow-up, not signoff PASS."
+}

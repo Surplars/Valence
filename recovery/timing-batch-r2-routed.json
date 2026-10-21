@@ -1,0 +1,3024 @@
+{
+  "global_ns": {
+    "WNS": -2.219,
+    "TNS": -28742.234,
+    "setup_failing_endpoints": 43713.0,
+    "setup_total_endpoints": 226017.0,
+    "WHS": 0.007,
+    "THS": 0.0,
+    "hold_failing_endpoints": 0.0,
+    "hold_total_endpoints": 224021.0,
+    "WPWS": 0.081,
+    "TPWS": 0.0,
+    "pulse_failing_endpoints": 0.0,
+    "pulse_total_endpoints": 86140.0
+  },
+  "intra_clock": [
+    {
+      "Clock": "clk_in1_p",
+      "WNS(ns)": 3.303,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 23.0,
+      "WHS(ns)": 0.049,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 23.0,
+      "WPWS(ns)": 0.75,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 20.0
+    },
+    {
+      "Clock": "mmcm_clkout0",
+      "WNS(ns)": -2.175,
+      "TNS(ns)": -22663.119,
+      "TNS Failing Endpoints": 25509.0,
+      "TNS Total Endpoints": 95075.0,
+      "WHS(ns)": 0.007,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 95075.0,
+      "WPWS(ns)": 0.162,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 41355.0
+    },
+    {
+      "Clock": "clk_out1_clk_wiz_common",
+      "WNS(ns)": -1.333,
+      "TNS(ns)": -6036.505,
+      "TNS Failing Endpoints": 18179.0,
+      "TNS Total Endpoints": 95089.0,
+      "WHS(ns)": 0.01,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 95089.0,
+      "WPWS(ns)": 1.125,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 36851.0
+    },
+    {
+      "Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 2.999,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 2056.0,
+      "WHS(ns)": 0.027,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 2051.0,
+      "WPWS(ns)": 9.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 1200.0
+    },
+    {
+      "Clock": "pll_clk[0]",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.081,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 7.0
+    },
+    {
+      "Clock": "pll_clk[0]_DIV",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.8,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 25.0
+    },
+    {
+      "Clock": "pll_clk[1]",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.081,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 9.0
+    },
+    {
+      "Clock": "pll_clk[1]_DIV",
+      "WNS(ns)": null,
+      "TNS(ns)": null,
+      "TNS Failing Endpoints": null,
+      "TNS Total Endpoints": null,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null,
+      "WPWS(ns)": 0.8,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 40.0
+    },
+    {
+      "Clock": "ref_source",
+      "WNS(ns)": 1.289,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 67.0,
+      "WHS(ns)": 0.033,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 67.0,
+      "WPWS(ns)": 0.437,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 77.0
+    },
+    {
+      "Clock": "valence_tx_quarter_div",
+      "WNS(ns)": 0.098,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 25.0,
+      "WHS(ns)": 0.028,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 25.0,
+      "WPWS(ns)": 1.28,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 19.0
+    },
+    {
+      "Clock": "valence_tx_raw_div",
+      "WNS(ns)": 2.662,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5205.0,
+      "WHS(ns)": 0.021,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5205.0,
+      "WPWS(ns)": 3.458,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 2973.0
+    },
+    {
+      "Clock": "mmcm_clkout5",
+      "WNS(ns)": 13.654,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 827.0,
+      "WHS(ns)": 0.028,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 827.0,
+      "WPWS(ns)": 7.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 570.0
+    },
+    {
+      "Clock": "mmcm_clkout6",
+      "WNS(ns)": 2.959,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5336.0,
+      "WHS(ns)": 0.021,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5028.0,
+      "WPWS(ns)": 1.239,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 1630.0
+    },
+    {
+      "Clock": "phy_rx",
+      "WNS(ns)": 3.892,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1153.0,
+      "WHS(ns)": 0.019,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 1153.0,
+      "WPWS(ns)": 3.12,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 535.0
+    },
+    {
+      "Clock": "valence_bscan_tck",
+      "WNS(ns)": 20.689,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 221.0,
+      "WHS(ns)": 0.039,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 221.0,
+      "WPWS(ns)": 24.725,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 209.0
+    },
+    {
+      "Clock": "valence_bscan_drck",
+      "WNS(ns)": 48.185,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 78.0,
+      "WHS(ns)": 0.014,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 78.0,
+      "WPWS(ns)": 24.725,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 73.0
+    },
+    {
+      "Clock": "valence_bscan_update",
+      "WNS(ns)": 47.686,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 68.0,
+      "WHS(ns)": 0.021,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 68.0,
+      "WPWS(ns)": 19.625,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 68.0
+    },
+    {
+      "Clock": "valence_debug_hub_tck",
+      "WNS(ns)": 15.02,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 992.0,
+      "WHS(ns)": 0.018,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 992.0,
+      "WPWS(ns)": 24.468,
+      "TPWS(ns)": 0.0,
+      "TPWS Failing Endpoints": 0.0,
+      "TPWS Total Endpoints": 479.0
+    }
+  ],
+  "inter_clock": [
+    {
+      "From Clock": "input port clock",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 7.503,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "clk_out1_clk_wiz_common",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": -2.219,
+      "TNS(ns)": -21.548,
+      "TNS Failing Endpoints": 10.0,
+      "TNS Total Endpoints": 739.0,
+      "WHS(ns)": 1.18,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 10.0
+    },
+    {
+      "From Clock": "clk_out2_clk_wiz_common",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 2.818,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 85.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 2.921,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 637.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout5",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 2.458,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 28.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout6",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 2.167,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 113.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "phy_rx",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 2.782,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 100.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 7.337,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 42.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "clk_out1_clk_wiz_common",
+      "WNS(ns)": -1.57,
+      "TNS(ns)": -21.061,
+      "TNS Failing Endpoints": 15.0,
+      "TNS Total Endpoints": 1504.0,
+      "WHS(ns)": 0.024,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 15.0
+    },
+    {
+      "From Clock": "input port clock",
+      "To Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 18.018,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 3.021,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 228.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 7.546,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 2.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "pll_clk[0]_DIV",
+      "WNS(ns)": 1.774,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 216.0,
+      "WHS(ns)": 0.79,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 216.0
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "pll_clk[1]_DIV",
+      "WNS(ns)": 1.361,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 352.0,
+      "WHS(ns)": 0.747,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 352.0
+    },
+    {
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "valence_tx_quarter_div",
+      "WNS(ns)": 0.187,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 11.0,
+      "WHS(ns)": 2.387,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 11.0
+    },
+    {
+      "From Clock": "valence_tx_quarter_div",
+      "To Clock": "phy_tx_capture",
+      "WNS(ns)": 0.064,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5.0,
+      "WHS(ns)": 0.136,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5.0
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "valence_tx_raw_div",
+      "WNS(ns)": 2.965,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 114.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "clk_out2_clk_wiz_common",
+      "To Clock": "valence_tx_raw_div",
+      "WNS(ns)": 6.571,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "phy_rx",
+      "To Clock": "valence_tx_raw_div",
+      "WNS(ns)": 7.228,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 45.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "mmcm_clkout5",
+      "WNS(ns)": 11.447,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 10.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_debug_hub_tck",
+      "To Clock": "mmcm_clkout5",
+      "WNS(ns)": 49.655,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 8.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "mmcm_clkout6",
+      "WNS(ns)": 2.055,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 36.0,
+      "WHS(ns)": 0.372,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 1.0
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "phy_rx",
+      "WNS(ns)": 3.02,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "phy_rx",
+      "WNS(ns)": 7.606,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 7.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "phy_rx_launch",
+      "To Clock": "phy_rx",
+      "WNS(ns)": 0.02,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 5.0,
+      "WHS(ns)": 0.369,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 5.0
+    },
+    {
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "valence_bscan_tck",
+      "WNS(ns)": 7.194,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 35.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "From Clock": "valence_bscan_drck",
+      "To Clock": "valence_bscan_tck",
+      "WNS(ns)": 13.086,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1.0,
+      "WHS(ns)": 27.442,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 1.0
+    },
+    {
+      "From Clock": "valence_bscan_update",
+      "To Clock": "valence_bscan_tck",
+      "WNS(ns)": 18.963,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 67.0,
+      "WHS(ns)": 18.785,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 67.0
+    },
+    {
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "valence_bscan_drck",
+      "WNS(ns)": 5.118,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 143.0,
+      "WHS(ns)": 0.651,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 143.0
+    },
+    {
+      "From Clock": "valence_bscan_update",
+      "To Clock": "valence_bscan_drck",
+      "WNS(ns)": 18.37,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 4.0,
+      "WHS(ns)": 18.921,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 4.0
+    },
+    {
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "valence_bscan_update",
+      "WNS(ns)": 16.601,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 67.0,
+      "WHS(ns)": 19.717,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 67.0
+    },
+    {
+      "From Clock": "valence_bscan_drck",
+      "To Clock": "valence_bscan_update",
+      "WNS(ns)": 17.726,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 65.0,
+      "WHS(ns)": 19.632,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 65.0
+    },
+    {
+      "From Clock": "mmcm_clkout5",
+      "To Clock": "valence_debug_hub_tck",
+      "WNS(ns)": 15.608,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 8.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    }
+  ],
+  "other_groups": [
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "clk_out1_clk_wiz_common",
+      "To Clock": "clk_out1_clk_wiz_common",
+      "WNS(ns)": 0.042,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 6607.0,
+      "WHS(ns)": 0.059,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 6607.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "clk_out2_clk_wiz_common",
+      "To Clock": "clk_out2_clk_wiz_common",
+      "WNS(ns)": 17.546,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 479.0,
+      "WHS(ns)": 0.119,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 479.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "mmcm_clkout0",
+      "WNS(ns)": 0.104,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 7473.0,
+      "WHS(ns)": 0.041,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 7473.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "mmcm_clkout5",
+      "To Clock": "mmcm_clkout5",
+      "WNS(ns)": 14.883,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 105.0,
+      "WHS(ns)": 0.109,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 105.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "phy_rx",
+      "To Clock": "phy_rx",
+      "WNS(ns)": 1.932,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 289.0,
+      "WHS(ns)": 0.037,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 289.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "ref_source",
+      "To Clock": "ref_source",
+      "WNS(ns)": 0.074,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 69.0,
+      "WHS(ns)": 0.122,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 69.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "valence_bscan_drck",
+      "WNS(ns)": 17.66,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 72.0,
+      "WHS(ns)": 18.989,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 72.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "valence_bscan_tck",
+      "WNS(ns)": 23.002,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 196.0,
+      "WHS(ns)": 24.833,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 196.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_bscan_tck",
+      "To Clock": "valence_bscan_update",
+      "WNS(ns)": 17.327,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 67.0,
+      "WHS(ns)": 19.972,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 67.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_debug_hub_tck",
+      "To Clock": "valence_debug_hub_tck",
+      "WNS(ns)": 47.734,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 100.0,
+      "WHS(ns)": 0.117,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 100.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "valence_tx_quarter_div",
+      "WNS(ns)": 0.191,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 13.0,
+      "WHS(ns)": 0.566,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 13.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "valence_tx_raw_div",
+      "WNS(ns)": 1.006,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 3.0,
+      "WHS(ns)": 0.418,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 3.0
+    },
+    {
+      "Path Group": "**async_default**",
+      "From Clock": "valence_tx_raw_div",
+      "To Clock": "valence_tx_raw_div",
+      "WNS(ns)": 5.913,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1834.0,
+      "WHS(ns)": 0.107,
+      "THS(ns)": 0.0,
+      "THS Failing Endpoints": 0.0,
+      "THS Total Endpoints": 1834.0
+    },
+    {
+      "Path Group": "**default**",
+      "From Clock": "clk_out2_clk_wiz_common",
+      "To Clock": "",
+      "WNS(ns)": 17.388,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 1.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    },
+    {
+      "Path Group": "**default**",
+      "From Clock": "mmcm_clkout0",
+      "To Clock": "",
+      "WNS(ns)": 13.033,
+      "TNS(ns)": 0.0,
+      "TNS Failing Endpoints": 0.0,
+      "TNS Total Endpoints": 3.0,
+      "WHS(ns)": null,
+      "THS(ns)": null,
+      "THS Failing Endpoints": null,
+      "THS Total Endpoints": null
+    }
+  ],
+  "detailed_paths": [
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 3.303,
+      "Source": "u_ddr/inst/u_ddr4_infrastructure/input_rst_design_reg/C",
+      "Destination": "u_ddr/inst/u_ddr4_infrastructure/rst_async_mb_reg/D",
+      "Path Group": "clk_in1_p",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "5.000ns  (clk_in1_p rise@5.000ns - clk_in1_p rise@0.000ns)",
+      "Data Path Delay": "1.532ns  (logic 0.239ns (15.598%)  route 1.293ns (84.402%))",
+      "Logic Levels": "1  (LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.049,
+      "Source": "u_ddr/inst/u_ddr4_infrastructure/counter_input_rst_reg[4]/C",
+      "Destination": "u_ddr/inst/u_ddr4_infrastructure/counter_input_rst_reg[1]/D",
+      "Path Group": "clk_in1_p",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (clk_in1_p rise@0.000ns - clk_in1_p rise@0.000ns)",
+      "Data Path Delay": "0.101ns  (logic 0.053ns (52.671%)  route 0.048ns (47.329%))",
+      "Logic Levels": "1  (LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_0_0/DP/WE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+      "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.007,
+      "Source": "u_soc/fabric/home/access_address_reg[7]_rep__1/C",
+      "Destination": "u_soc/fabric/home/owned_36_reg/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.376ns  (logic 0.210ns (55.800%)  route 0.166ns (44.200%))",
+      "Logic Levels": "2  (LUT5=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": -1.333,
+      "Source": "u_soc/cpu/tile/core/addrPacket_address_reg[18]_replica/C",
+      "Destination": "u_soc/cpu/tile/dcache/coherent/cache/pendingBypass_reg/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.485ns  (logic 1.372ns (30.592%)  route 3.113ns (69.408%))",
+      "Logic Levels": "12  (LUT3=2 LUT4=1 LUT6=9)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMA/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.999,
+      "Source": "u_soc/peripherals/uart/uart/txRemaining_reg[1]/C",
+      "Destination": "uart_txd",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Max at Slow Process Corner",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.409ns  (logic 3.147ns (71.372%)  route 1.262ns (28.628%))",
+      "Logic Levels": "3  (LUT4=2 OBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.027,
+      "Source": "u_soc/peripherals/uart/sampledRx_reg/C",
+      "Destination": "u_soc/peripherals/uart/ingress/delayed_r_reg/D",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out2_clk_wiz_common rise@0.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.168ns  (logic 0.060ns (35.629%)  route 0.108ns (64.371%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.289,
+      "Source": "delay_reset_guard_reg[23]/C",
+      "Destination": "delay_reset_guard_reg[24]/D",
+      "Path Group": "ref_source",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (ref_source rise@2.000ns - ref_source rise@0.000ns)",
+      "Data Path Delay": "0.589ns  (logic 0.080ns (13.582%)  route 0.509ns (86.418%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.033,
+      "Source": "delay_reset_guard_reg[26]/C",
+      "Destination": "delay_reset_guard_reg[27]/D",
+      "Path Group": "ref_source",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (ref_source rise@0.000ns - ref_source rise@0.000ns)",
+      "Data Path Delay": "0.105ns  (logic 0.039ns (37.143%)  route 0.066ns (62.857%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.098,
+      "Source": "u_rgmii/high_symbol_reg[0]/C",
+      "Destination": "u_rgmii/transmit[0].data_ddr/D[4]",
+      "Path Group": "valence_tx_quarter_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (valence_tx_quarter_div rise@4.000ns - valence_tx_quarter_div fall@2.000ns)",
+      "Data Path Delay": "1.394ns  (logic 0.225ns (16.142%)  route 1.169ns (83.858%))",
+      "Logic Levels": "1  (LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.028,
+      "Source": "u_rgmii/previous_clock_reg/C",
+      "Destination": "u_rgmii/tx_clock_ddr/D[0]",
+      "Path Group": "valence_tx_quarter_div",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_tx_quarter_div rise@0.000ns - valence_tx_quarter_div rise@0.000ns)",
+      "Data Path Delay": "0.203ns  (logic 0.038ns (18.719%)  route 0.165ns (81.281%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.662,
+      "Source": "u_soc/peripherals/gmac/rxDiagnostics/totals_1_reg[4]/C",
+      "Destination": "u_soc/peripherals/gmac/rxDiagnostics/mailbox/held_reg[148]/CE",
+      "Path Group": "valence_tx_raw_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (valence_tx_raw_div rise@8.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "5.099ns  (logic 0.701ns (13.748%)  route 4.398ns (86.252%))",
+      "Logic Levels": "12  (CARRY8=10 LUT4=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.021,
+      "Source": "u_soc/peripherals/gmac/rxDiagnostics/totals_1_reg[17]/C",
+      "Destination": "u_soc/peripherals/gmac/rxDiagnostics/sent_reg[49]/D",
+      "Path Group": "valence_tx_raw_div",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (valence_tx_raw_div rise@0.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "0.181ns  (logic 0.058ns (31.985%)  route 0.123ns (68.015%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 13.654,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "mmcm_clkout5",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "16.000ns  (mmcm_clkout5 rise@16.000ns - mmcm_clkout5 rise@0.000ns)",
+      "Data Path Delay": "2.155ns  (logic 0.732ns (33.971%)  route 1.423ns (66.029%))",
+      "Logic Levels": "5  (LUT3=1 LUT5=3 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.028,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/U_XSDB_SLAVE/reg_do_reg[8]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/U_XSDB_SLAVE/G_1PIPE_IFACE.s_do_r_reg[8]/D",
+      "Path Group": "mmcm_clkout5",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout5 rise@0.000ns - mmcm_clkout5 rise@0.000ns)",
+      "Data Path Delay": "0.181ns  (logic 0.093ns (51.381%)  route 0.088ns (48.619%))",
+      "Logic Levels": "1  (LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.959,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/mcs0/inst/dlmb_cntlr/U0/No_ECC.Sl_Rdy_reg/C",
+      "Destination": "soc_top_common_ddr/ddr4_0/ddr4_0_ddr4/ddr4_0_ddr4_mem_intfc/ddr4_0_ddr4_cal_riu/ddr4_0_microblaze_mcs/ddr4_0_bd_9054/ddr4_0_bd_9054_lmb_bram_I_0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "mmcm_clkout6",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (mmcm_clkout6 rise@8.000ns - mmcm_clkout6 rise@0.000ns)",
+      "Data Path Delay": "4.457ns  (logic 0.587ns (13.171%)  route 3.870ns (86.829%))",
+      "Logic Levels": "5  (AND2B1L=1 CARRY8=1 LUT2=2 LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.021,
+      "Source": "soc_top_common_ddr/ddr4_0/ddr4_0_ddr4/ddr4_0_ddr4_mem_intfc/ddr4_0_ddr4_cal_riu/ddr4_0_microblaze_mcs/ddr4_0_bd_9054/ddr4_0_bd_9054_microblaze_I_0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/ddr4_0/ddr4_0_ddr4/ddr4_0_ddr4_mem_intfc/ddr4_0_ddr4_cal_riu/ddr4_0_microblaze_mcs/ddr4_0_bd_9054/ddr4_0_bd_9054_microblaze_I_0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "mmcm_clkout6",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout6 rise@0.000ns - mmcm_clkout6 rise@0.000ns)",
+      "Data Path Delay": "0.193ns  (logic 0.058ns (30.063%)  route 0.135ns (69.937%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 3.892,
+      "Source": "u_rgmii/receive[4].input_ddr/CB",
+      "Destination": "u_soc/peripherals/gmac/physicalIngress/pack/endData_reg[25]/R",
+      "Path Group": "phy_rx",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (phy_rx rise@8.000ns - phy_rx rise@0.000ns)",
+      "Data Path Delay": "3.957ns  (logic 1.044ns (26.383%)  route 2.913ns (73.617%))",
+      "Logic Levels": "2  (LUT5=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.019,
+      "Source": "u_soc/peripherals/gmac/rawDiagnostics/totals_2_reg[1]/C",
+      "Destination": "u_soc/peripherals/gmac/rawDiagnostics/totals_2_reg[1]/D",
+      "Path Group": "phy_rx",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (phy_rx rise@0.000ns - phy_rx rise@0.000ns)",
+      "Data Path Delay": "0.171ns  (logic 0.056ns (32.805%)  route 0.115ns (67.195%))",
+      "Logic Levels": "1  (CARRY8=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 20.689,
+      "Source": "u_debug/enabled.user_scan/INTERNAL_TCK",
+      "Destination": "u_debug/enabled.transport/update_selected_reg/D",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Setup (Max at Fast Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_tck rise@50.000ns - valence_bscan_tck fall@25.000ns)",
+      "Data Path Delay": "6.501ns  (logic 5.100ns (78.452%)  route 1.401ns (21.548%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.039,
+      "Source": "u_debug/enabled.transport/update_release_reg[1]/C",
+      "Destination": "u_debug/enabled.transport/update_release_reg[2]/D",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_bscan_tck rise@0.000ns - valence_bscan_tck rise@0.000ns)",
+      "Data Path Delay": "0.192ns  (logic 0.039ns (20.313%)  route 0.153ns (79.688%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 48.185,
+      "Source": "u_debug/enabled.transport/shift_count_reg[6]/C",
+      "Destination": "u_debug/enabled.transport/shift_count_reg[0]/CE",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "50.000ns  (valence_bscan_drck rise@50.000ns - valence_bscan_drck rise@0.000ns)",
+      "Data Path Delay": "1.577ns  (logic 0.279ns (17.691%)  route 1.298ns (82.309%))",
+      "Logic Levels": "2  (LUT4=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.014,
+      "Source": "u_debug/enabled.transport/shift_frame_reg[30]/C",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[29]/D",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_bscan_drck rise@0.000ns - valence_bscan_drck rise@0.000ns)",
+      "Data Path Delay": "0.166ns  (logic 0.090ns (54.321%)  route 0.076ns (45.679%))",
+      "Logic Levels": "1  (LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 47.686,
+      "Source": "u_debug/enabled.transport/update_toggle_reg/C",
+      "Destination": "u_debug/enabled.transport/update_frame_reg[54]/CE",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "50.000ns  (valence_bscan_update rise@75.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "2.063ns  (logic 0.116ns (5.623%)  route 1.947ns (94.377%))",
+      "Logic Levels": "1  (LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.021,
+      "Source": "u_debug/enabled.transport/update_toggle_reg/C",
+      "Destination": "u_debug/enabled.transport/update_toggle_reg/D",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "0.174ns  (logic 0.089ns (51.090%)  route 0.085ns (48.910%))",
+      "Logic Levels": "1  (LUT1=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 15.02,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>",
+      "Path Group": "valence_debug_hub_tck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_debug_hub_tck fall@25.000ns - valence_debug_hub_tck rise@0.000ns)",
+      "Data Path Delay": "2.031ns  (logic 0.266ns (13.099%)  route 1.765ns (86.901%))",
+      "Logic Levels": "2  (LUT3=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.018,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "valence_debug_hub_tck",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (valence_debug_hub_tck rise@0.000ns - valence_debug_hub_tck rise@0.000ns)",
+      "Data Path Delay": "0.188ns  (logic 0.059ns (31.319%)  route 0.129ns (68.681%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.503,
+      "Source": "eth_mdio",
+      "Destination": "u_soc/peripherals/gmac/mdio_io_mdioIn_sync/stages_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "10.000ns  (MaxDelay Path 10.000ns)",
+      "Data Path Delay": "2.522ns  (logic 0.467ns (18.524%)  route 2.055ns (81.476%))",
+      "Logic Levels": "2  (IBUFCTRL=1 INBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": -2.219,
+      "Source": "u_soc/crossing/crossing/empty_fifo_1/capturedGray_reg[1]/C",
+      "Destination": "u_soc/crossing/crossing/empty_fifo_1/capturedGraySync_stage0_reg[1]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "0.667ns  (mmcm_clkout0 rise@4.000ns - clk_out1_clk_wiz_common rise@3.333ns)",
+      "Data Path Delay": "0.321ns  (logic 0.079ns (24.611%)  route 0.242ns (75.389%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.18,
+      "Source": "u_soc/crossing/crossing/empty_fifo_1/capturedGray_reg[0]/C",
+      "Destination": "u_soc/crossing/crossing/empty_fifo_1/capturedGraySync_stage0_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.093ns  (logic 0.038ns (40.860%)  route 0.055ns (59.140%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.818,
+      "Source": "u_soc/peripherals/cmu/cmu/policy/state_reg[1]/C",
+      "Destination": "u_soc/peripherals/uart/proxy_io_isolate_sync/stages_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.207ns  (logic 0.079ns (6.546%)  route 1.128ns (93.454%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.921,
+      "Source": "u_soc/peripherals/gmac/rxConfig/mailbox/ackToggle_reg/C",
+      "Destination": "u_soc/peripherals/gmac/rxConfig/mailbox/ackSync/stages_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.104ns  (logic 0.081ns (7.337%)  route 1.023ns (92.663%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.458,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/u_xsdb_arbiter/slave_addr_r_reg[2]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/u_xsdb_arbiter/u_slave_addr_sync/SYNC[2].sync_reg_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.000ns  (MaxDelay Path 3.000ns)",
+      "Data Path Delay": "0.567ns  (logic 0.079ns (13.933%)  route 0.488ns (86.067%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.167,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/io_address_riuclk_reg[2]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_io_addr_sync/SYNC[2].sync_reg_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.000ns  (MaxDelay Path 3.000ns)",
+      "Data Path Delay": "0.858ns  (logic 0.078ns (9.094%)  route 0.780ns (90.906%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.782,
+      "Source": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/gmac/sourceEpochReady_sync/stages_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.243ns  (logic 0.117ns (9.412%)  route 1.126ns (90.588%))",
+      "Logic Levels": "1  (LUT1=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.337,
+      "Source": "u_debug/enabled.transport/bridge/request_held_reg[0]/C",
+      "Destination": "u_debug/enabled.transport/bridge/dest_request_reg[0]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "0.688ns  (logic 0.080ns (11.628%)  route 0.608ns (88.372%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": -1.57,
+      "Source": "u_soc/crossing/crossing/empty_fifo/capturedGray_reg[3]/C",
+      "Destination": "u_soc/crossing/crossing/empty_fifo/capturedGraySync_stage0_reg[3]/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "0.667ns  (clk_out1_clk_wiz_common rise@16.667ns - mmcm_clkout0 rise@16.000ns)",
+      "Data Path Delay": "4.894ns  (logic 0.078ns (1.594%)  route 4.816ns (98.406%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.024,
+      "Source": "u_soc/crossing/crossing/empty_fifo_4/capturedGray_reg[3]/C",
+      "Destination": "u_soc/crossing/crossing/empty_fifo_4/capturedGraySync_stage0_reg[3]/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "3.024ns  (logic 0.058ns (1.918%)  route 2.966ns (98.082%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.018,
+      "Source": "uart_rxd",
+      "Destination": "u_soc/peripherals/uart/sampledRx_meta_reg/D",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (MaxDelay Path 20.000ns)",
+      "Data Path Delay": "2.007ns  (logic 1.271ns (63.325%)  route 0.736ns (36.675%))",
+      "Logic Levels": "2  (IBUFCTRL=1 INBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 3.021,
+      "Source": "u_soc/peripherals/cmu/bridge/requestHeld_data_reg[55]/C",
+      "Destination": "u_soc/peripherals/cmu/bridge/request_data_reg[55]/D",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.004ns  (logic 0.079ns (7.869%)  route 0.925ns (92.131%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.546,
+      "Source": "u_soc/peripherals/gmac/agent/ack_REG_reg/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/policy_1/ack/stages_reg[0]/D",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "0.479ns  (logic 0.078ns (16.284%)  route 0.401ns (83.716%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.774,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/clb2phy_t_b_addr_reg[1]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[0].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_CONTROL[0].GEN_I_CONTROL.u_xiphy_control/xiphy_control/TBYTE_IN[1]",
+      "Path Group": "pll_clk[0]_DIV",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (pll_clk[0]_DIV rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "1.133ns  (logic 0.079ns (6.971%)  route 1.054ns (93.029%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.79,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/mcal_ADR_dly_reg[0][100]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[2].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_BITSLICE_LOWER[5].GEN_RXTX_BITSLICE_EN.u_xiphy_bitslice_lower/xiphy_rxtx_bitslice/D[3]",
+      "Path Group": "pll_clk[0]_DIV",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (pll_clk[0]_DIV rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.304ns  (logic 0.058ns (19.080%)  route 0.246ns (80.920%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.361,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/rdEn[0].u_ddr_mc_rd_en_upp/rdEn_reg[3]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[7].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_CONTROL[1].GEN_I_CONTROL.u_xiphy_control/xiphy_control/PHY_RDEN[3]",
+      "Path Group": "pll_clk[1]_DIV",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (pll_clk[1]_DIV rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "1.628ns  (logic 0.078ns (4.791%)  route 1.550ns (95.209%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.747,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/rdEn[2].u_ddr_mc_rd_en_low/rdEn_reg[0]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[5].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_CONTROL[0].GEN_I_CONTROL.u_xiphy_control/xiphy_control/PHY_RDEN[0]",
+      "Path Group": "pll_clk[1]_DIV",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (pll_clk[1]_DIV rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.260ns  (logic 0.058ns (22.308%)  route 0.202ns (77.692%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.187,
+      "Source": "u_soc/peripherals/gmac/encode/io_rise_REG_reg[4]/C",
+      "Destination": "u_rgmii/low_symbol_reg[4]/D",
+      "Path Group": "valence_tx_quarter_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (valence_tx_quarter_div fall@2.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "0.808ns  (logic 0.080ns (9.907%)  route 0.728ns (90.093%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.387,
+      "Source": "u_soc/peripherals/gmac/encode/io_fall_REG_reg[2]/C",
+      "Destination": "u_rgmii/high_symbol_reg[2]/D",
+      "Path Group": "valence_tx_quarter_div",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "-2.000ns  (valence_tx_quarter_div fall@6.000ns - valence_tx_raw_div rise@8.000ns)",
+      "Data Path Delay": "0.229ns  (logic 0.039ns (17.031%)  route 0.190ns (82.969%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.064,
+      "Source": "u_rgmii/transmit[2].data_ddr/CLK",
+      "Destination": "eth_txd[2]",
+      "Path Group": "phy_tx_capture",
+      "Path Type": "Max at Slow Process Corner",
+      "Requirement": "2.000ns  (phy_tx_capture fall@6.000ns - valence_tx_quarter_div rise@4.000ns)",
+      "Data Path Delay": "1.413ns  (logic 1.158ns (81.951%)  route 0.255ns (18.049%))",
+      "Logic Levels": "1  (OBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.136,
+      "Source": "u_rgmii/transmit[0].data_ddr/CLK",
+      "Destination": "eth_txd[0]",
+      "Path Group": "phy_tx_capture",
+      "Path Type": "Min at Slow Process Corner",
+      "Requirement": "-2.000ns  (phy_tx_capture fall@6.000ns - valence_tx_quarter_div rise@8.000ns)",
+      "Data Path Delay": "0.929ns  (logic 0.774ns (83.319%)  route 0.155ns (16.681%))",
+      "Logic Levels": "1  (OBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.965,
+      "Source": "u_soc/peripherals/gmac/mediaOpen_reg/C",
+      "Destination": "u_soc/peripherals/gmac/rxLink_sync/stages_reg[0]/D",
+      "Path Group": "valence_tx_raw_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.060ns  (logic 0.079ns (7.454%)  route 0.981ns (92.546%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 6.571,
+      "Source": "u_soc/peripherals/cmu/cmu/policy_2/io_clockEnable_REG_reg/C",
+      "Destination": "u_soc/peripherals/gmac/rxManaged_gate/command/stages_reg[0]/D",
+      "Path Group": "valence_tx_raw_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "1.454ns  (logic 0.078ns (5.365%)  route 1.376ns (94.635%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.228,
+      "Source": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/storage_ext/Memory_reg_0_63_35_37/RAMB/CLK",
+      "Destination": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/output_0_reg[36]/D",
+      "Path Group": "valence_tx_raw_div",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "0.797ns  (logic 0.304ns (38.143%)  route 0.493ns (61.857%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 11.447,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/u_xsdb_arbiter/slave_do_fclk_reg[6]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/u_xsdb_arbiter/u_slave_do_sync/SYNC[6].sync_reg_reg[0]/D",
+      "Path Group": "mmcm_clkout5",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "12.000ns  (MaxDelay Path 12.000ns)",
+      "Data Path Delay": "0.578ns  (logic 0.080ns (13.841%)  route 0.498ns (86.159%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 49.655,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "mmcm_clkout5",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "50.000ns  (MaxDelay Path 50.000ns)",
+      "Data Path Delay": "0.370ns  (logic 0.076ns (20.541%)  route 0.294ns (79.459%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 2.055,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/sample_gts_reg/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/sample_gts_riu_reg/D",
+      "Path Group": "mmcm_clkout6",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout6 rise@8.000ns - mmcm_clkout0 rise@4.000ns)",
+      "Data Path Delay": "1.541ns  (logic 0.078ns (5.062%)  route 1.463ns (94.938%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.372,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/sample_gts_reg/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_riu/sample_gts_riu_reg/D",
+      "Path Group": "mmcm_clkout6",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout6 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.761ns  (logic 0.039ns (5.125%)  route 0.722ns (94.875%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 3.02,
+      "Source": "u_soc/peripherals/gmac/mediaOpen_reg/C",
+      "Destination": "u_soc/peripherals/gmac/rawRxOpen_sync/stages_reg[0]/D",
+      "Path Group": "phy_rx",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (MaxDelay Path 4.000ns)",
+      "Data Path Delay": "1.005ns  (logic 0.079ns (7.862%)  route 0.926ns (92.138%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.606,
+      "Source": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/readGray_reg[0]/C",
+      "Destination": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/readGraySync_stage0_reg[0]/D",
+      "Path Group": "phy_rx",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "0.419ns  (logic 0.079ns (18.841%)  route 0.340ns (81.159%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.02,
+      "Source": "eth_rxd[1]",
+      "Destination": "u_rgmii/receive[1].input_ddr/D",
+      "Path Group": "phy_rx",
+      "Path Type": "Setup (Max at Fast Process Corner)",
+      "Requirement": "2.000ns  (phy_rx fall@4.000ns - phy_rx_launch rise@2.000ns)",
+      "Data Path Delay": "1.663ns  (logic 1.608ns (96.693%)  route 0.055ns (3.307%))",
+      "Logic Levels": "3  (IBUFCTRL=1 IDELAYE3=1 INBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.369,
+      "Source": "eth_rxd[3]",
+      "Destination": "u_rgmii/receive[3].input_ddr/D",
+      "Path Group": "phy_rx",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "-2.000ns  (phy_rx fall@4.000ns - phy_rx_launch fall@6.000ns)",
+      "Data Path Delay": "1.459ns  (logic 1.429ns (97.943%)  route 0.030ns (2.057%))",
+      "Logic Levels": "3  (IBUFCTRL=1 IDELAYE3=1 INBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 7.194,
+      "Source": "u_debug/enabled.transport/bridge/response_held_reg[29]/C",
+      "Destination": "u_debug/enabled.transport/bridge/s_rsp_payload_reg[29]/D",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (MaxDelay Path 8.000ns)",
+      "Data Path Delay": "0.831ns  (logic 0.081ns (9.747%)  route 0.750ns (90.253%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 13.086,
+      "Source": "u_debug/enabled.transport/shift_frame_reg[0]/C",
+      "Destination": "u_debug/enabled.user_scan/TDO",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_tck fall@25.000ns - valence_bscan_drck rise@0.000ns)",
+      "Data Path Delay": "2.111ns  (logic 0.169ns (8.007%)  route 1.942ns (91.993%))",
+      "Logic Levels": "1  (LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 27.442,
+      "Source": "u_debug/enabled.transport/shift_frame_reg[0]/C",
+      "Destination": "u_debug/enabled.user_scan/TDO",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_tck fall@25.000ns - valence_bscan_drck rise@50.000ns)",
+      "Data Path Delay": "1.068ns  (logic 0.075ns (7.024%)  route 0.993ns (92.976%))",
+      "Logic Levels": "1  (LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.963,
+      "Source": "u_debug/enabled.transport/update_overrun_reg/C",
+      "Destination": "u_debug/enabled.transport/qualified_overrun_reg/D",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_tck rise@50.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "0.608ns  (logic 0.079ns (12.988%)  route 0.529ns (87.012%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.785,
+      "Source": "u_debug/enabled.transport/update_frame_reg[30]/C",
+      "Destination": "u_debug/enabled.transport/qualified_frame_reg[30]/D",
+      "Path Group": "valence_bscan_tck",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_tck rise@0.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "0.142ns  (logic 0.058ns (40.845%)  route 0.084ns (59.155%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 5.118,
+      "Source": "u_debug/enabled.user_scan/INTERNAL_TDI",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[63]/D",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Setup (Max at Fast Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_drck rise@50.000ns - valence_bscan_tck fall@25.000ns)",
+      "Data Path Delay": "7.284ns  (logic 6.010ns (82.510%)  route 1.274ns (17.490%))",
+      "Logic Levels": "2  (BSCANE2=1 LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.651,
+      "Source": "u_debug/enabled.transport/bridge/source_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[42]/D",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_bscan_drck rise@0.000ns - valence_bscan_tck rise@0.000ns)",
+      "Data Path Delay": "6.640ns  (logic 0.146ns (2.199%)  route 6.494ns (97.801%))",
+      "Logic Levels": "2  (LUT2=1 LUT5=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.37,
+      "Source": "u_debug/enabled.transport/update_toggle_reg/C",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[1]/D",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_drck rise@50.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "1.219ns  (logic 0.305ns (25.016%)  route 0.914ns (74.984%))",
+      "Logic Levels": "2  (LUT3=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.921,
+      "Source": "u_debug/enabled.transport/update_toggle_reg/C",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[42]/D",
+      "Path Group": "valence_bscan_drck",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_drck rise@0.000ns - valence_bscan_update rise@25.000ns)",
+      "Data Path Delay": "0.266ns  (logic 0.154ns (57.944%)  route 0.112ns (42.057%))",
+      "Logic Levels": "1  (LUT5=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 16.601,
+      "Source": "u_debug/enabled.transport/update_selected_reg/C",
+      "Destination": "u_debug/enabled.transport/update_frame_reg[54]/CE",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_tck rise@0.000ns)",
+      "Data Path Delay": "2.067ns  (logic 0.203ns (9.820%)  route 1.864ns (90.180%))",
+      "Logic Levels": "1  (LUT3=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 19.717,
+      "Source": "u_debug/enabled.transport/update_selected_reg/C",
+      "Destination": "u_debug/enabled.transport/update_overrun_reg/D",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_tck rise@50.000ns)",
+      "Data Path Delay": "0.234ns  (logic 0.125ns (53.327%)  route 0.109ns (46.673%))",
+      "Logic Levels": "1  (LUT4=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 17.726,
+      "Source": "u_debug/enabled.transport/shift_count_reg[0]/C",
+      "Destination": "u_debug/enabled.transport/update_length_ok_reg/D",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_drck rise@0.000ns)",
+      "Data Path Delay": "1.021ns  (logic 0.300ns (29.391%)  route 0.721ns (70.609%))",
+      "Logic Levels": "2  (LUT4=1 LUT5=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 19.632,
+      "Source": "u_debug/enabled.transport/shift_frame_reg[48]/C",
+      "Destination": "u_debug/enabled.transport/update_frame_reg[48]/D",
+      "Path Group": "valence_bscan_update",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_drck rise@50.000ns)",
+      "Data Path Delay": "0.146ns  (logic 0.059ns (40.299%)  route 0.087ns (59.701%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 15.608,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "valence_debug_hub_tck",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "16.000ns  (MaxDelay Path 16.000ns)",
+      "Data Path Delay": "0.417ns  (logic 0.076ns (18.225%)  route 0.341ns (81.775%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.042,
+      "Source": "u_soc/cpuRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/csr/effectiveLower_4_reg[9]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "3.067ns  (logic 0.081ns (2.641%)  route 2.986ns (97.359%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.059,
+      "Source": "u_soc/crossing/crossing/empty_fifo/sourceRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/crossing/crossing/empty_fifo/capturedGraySync_reg[0]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.156ns  (logic 0.060ns (38.388%)  route 0.096ns (61.612%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 17.546,
+      "Source": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/policy/timer_reg[10]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "2.235ns  (logic 0.080ns (3.580%)  route 2.155ns (96.420%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.119,
+      "Source": "u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/uart/agent/ack_REG_reg/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (clk_out2_clk_wiz_common rise@0.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.114ns  (logic 0.040ns (35.088%)  route 0.074ns (64.912%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.104,
+      "Source": "u_debug/enabled.transport/bridge/dest_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/bridge/dest_request_reg[39]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 fall@2.000ns)",
+      "Data Path Delay": "1.368ns  (logic 0.080ns (5.847%)  route 1.288ns (94.153%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.041,
+      "Source": "u_soc/crossing/fifo_8/sourceRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/crossing/fifo_8/capturedGraySync_reg[0]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.488ns  (logic 0.060ns (12.295%)  route 0.428ns (87.705%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 14.883,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "16.000ns  (mmcm_clkout5 rise@16.000ns - mmcm_clkout5 rise@0.000ns)",
+      "Data Path Delay": "0.958ns  (logic 0.079ns (8.247%)  route 0.879ns (91.753%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.109,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout5 rise@0.000ns - mmcm_clkout5 rise@0.000ns)",
+      "Data Path Delay": "0.180ns  (logic 0.039ns (21.644%)  route 0.141ns (78.356%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.932,
+      "Source": "rx_reset_pipe_reg[2]/C",
+      "Destination": "u_rgmii/receive[0].input_ddr/R",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (phy_rx fall@4.000ns - phy_rx rise@0.000ns)",
+      "Data Path Delay": "0.942ns  (logic 0.079ns (8.389%)  route 0.863ns (91.611%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.037,
+      "Source": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/gmac/rawDiagnostics/sent_reg[12]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (phy_rx rise@0.000ns - phy_rx rise@0.000ns)",
+      "Data Path Delay": "0.141ns  (logic 0.040ns (28.314%)  route 0.101ns (71.686%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.074,
+      "Source": "delay_reset_guard_reg[63]/C",
+      "Destination": "u_rgmii/delay_control_REPLICATED_0/RST",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (ref_source rise@2.000ns - ref_source rise@0.000ns)",
+      "Data Path Delay": "1.418ns  (logic 0.080ns (5.641%)  route 1.338ns (94.359%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.122,
+      "Source": "delay_reset_pipe_reg[2]/C",
+      "Destination": "delay_reset_guard_reg[16]/PRE",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (ref_source rise@0.000ns - ref_source rise@0.000ns)",
+      "Data Path Delay": "0.117ns  (logic 0.040ns (34.174%)  route 0.077ns (65.826%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 17.66,
+      "Source": "u_debug/enabled.transport/source_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/shift_frame_reg[1]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_drck rise@50.000ns - valence_bscan_tck fall@25.000ns)",
+      "Data Path Delay": "0.991ns  (logic 0.079ns (7.974%)  route 0.912ns (92.026%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 18.989,
+      "Source": "u_debug/enabled.transport/source_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/shift_count_reg[1]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_drck rise@0.000ns - valence_bscan_tck fall@25.000ns)",
+      "Data Path Delay": "0.232ns  (logic 0.060ns (25.871%)  route 0.172ns (74.128%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 23.002,
+      "Source": "u_debug/enabled.transport/bridge/source_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/bridge/s_rsp_payload_reg[19]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_tck fall@25.000ns - valence_bscan_tck rise@0.000ns)",
+      "Data Path Delay": "1.505ns  (logic 0.079ns (5.248%)  route 1.426ns (94.752%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 24.833,
+      "Source": "u_debug/enabled.transport/bridge/source_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/bridge/request_toggle_reg/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_tck fall@25.000ns - valence_bscan_tck rise@50.000ns)",
+      "Data Path Delay": "0.191ns  (logic 0.040ns (20.971%)  route 0.151ns (79.029%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 17.327,
+      "Source": "u_debug/enabled.transport/update_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/update_frame_reg[19]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_tck rise@0.000ns)",
+      "Data Path Delay": "1.289ns  (logic 0.080ns (6.206%)  route 1.209ns (93.794%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 19.972,
+      "Source": "u_debug/enabled.transport/update_release_reg[2]/C",
+      "Destination": "u_debug/enabled.transport/update_frame_reg[41]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Slow Process Corner)",
+      "Requirement": "-25.000ns  (valence_bscan_update rise@25.000ns - valence_bscan_tck rise@50.000ns)",
+      "Data Path Delay": "0.384ns  (logic 0.060ns (15.623%)  route 0.324ns (84.377%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 47.734,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "50.000ns  (valence_debug_hub_tck rise@50.000ns - valence_debug_hub_tck rise@0.000ns)",
+      "Data Path Delay": "1.911ns  (logic 0.343ns (17.945%)  route 1.568ns (82.055%))",
+      "Logic Levels": "2  (LUT4=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.117,
+      "Source": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Destination": "soc_top_common_ddr/dbg_hub/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_debug_hub_tck rise@0.000ns - valence_debug_hub_tck rise@0.000ns)",
+      "Data Path Delay": "0.112ns  (logic 0.040ns (35.714%)  route 0.072ns (64.286%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.191,
+      "Source": "tx_release/tx_reset_pipe_reg[2]/C",
+      "Destination": "u_rgmii/high_clock_reg/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "2.000ns  (valence_tx_quarter_div fall@2.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "0.699ns  (logic 0.080ns (11.446%)  route 0.619ns (88.555%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.566,
+      "Source": "tx_release/tx_reset_pipe_reg[2]/C",
+      "Destination": "u_rgmii/previous_clock_reg/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_tx_quarter_div rise@0.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "0.326ns  (logic 0.040ns (12.261%)  route 0.286ns (87.739%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 1.006,
+      "Source": "ui_reset_pipe_reg[2]/C",
+      "Destination": "tx_release/tx_reset_pipe_reg[0]/PRE",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (valence_tx_raw_div rise@8.000ns - mmcm_clkout0 rise@4.000ns)",
+      "Data Path Delay": "6.149ns  (logic 0.232ns (3.773%)  route 5.917ns (96.227%))",
+      "Logic Levels": "1  (LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.418,
+      "Source": "ui_reset_pipe_reg[2]/C",
+      "Destination": "tx_release/tx_reset_pipe_reg[0]/PRE",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (valence_tx_raw_div rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "4.157ns  (logic 0.157ns (3.777%)  route 4.000ns (96.223%))",
+      "Logic Levels": "1  (LUT2=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 5.913,
+      "Source": "u_soc/peripherals/gmac/ingress/release_0/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/gmac/ingress/activity_reg[60]/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Recovery (Max at Slow Process Corner)",
+      "Requirement": "8.000ns  (valence_tx_raw_div rise@8.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "1.679ns  (logic 0.080ns (4.765%)  route 1.599ns (95.235%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 0.107,
+      "Source": "u_soc/peripherals/gmac/agent_1/release_0/release_0_reg[2]/C",
+      "Destination": "u_soc/peripherals/gmac/agent_1/ack_REG_reg/CLR",
+      "Path Group": "**async_default**",
+      "Path Type": "Removal (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (valence_tx_raw_div rise@0.000ns - valence_tx_raw_div rise@0.000ns)",
+      "Data Path Delay": "0.144ns  (logic 0.040ns (27.741%)  route 0.104ns (72.259%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 17.388,
+      "Source": "phy_reset_count_reg[6]/C",
+      "Destination": "eth_reset_gate",
+      "Path Group": "**default**",
+      "Path Type": "Max at Slow Process Corner",
+      "Requirement": "20.000ns  (MaxDelay Path 20.000ns)",
+      "Data Path Delay": "2.612ns  (logic 1.171ns (44.838%)  route 1.441ns (55.162%))",
+      "Logic Levels": "3  (LUT4=1 LUT6=1 OBUF=1)"
+    },
+    {
+      "report": "diagnostic-timing.rpt",
+      "slack_ns": 13.033,
+      "Source": "ui_reset_pipe_reg[2]/C",
+      "Destination": "led",
+      "Path Group": "**default**",
+      "Path Type": "Max at Slow Process Corner",
+      "Requirement": "20.000ns  (MaxDelay Path 20.000ns)",
+      "Data Path Delay": "6.967ns  (logic 2.963ns (42.532%)  route 4.004ns (57.468%))",
+      "Logic Levels": "2  (LUT1=1 OBUF=1)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.333,
+      "Source": "u_soc/cpu/tile/core/addrPacket_address_reg[18]_replica/C",
+      "Destination": "u_soc/cpu/tile/dcache/coherent/cache/pendingBypass_reg/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.485ns  (logic 1.372ns (30.592%)  route 3.113ns (69.408%))",
+      "Logic Levels": "12  (LUT3=2 LUT4=1 LUT6=9)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.317,
+      "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+      "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[2]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.287ns  (logic 1.433ns (33.424%)  route 2.854ns (66.576%))",
+      "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.314,
+      "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+      "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[1]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.285ns  (logic 1.433ns (33.440%)  route 2.852ns (66.560%))",
+      "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.314,
+      "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+      "Destination": "u_soc/cpu/tile/core/csr/snapshotCause_reg[3]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.285ns  (logic 1.433ns (33.440%)  route 2.852ns (66.560%))",
+      "Logic Levels": "15  (CARRY8=1 LUT2=1 LUT5=5 LUT6=8)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.286,
+      "Source": "u_soc/cpu/tile/core/addrPacket_address_reg[18]_replica/C",
+      "Destination": "u_soc/cpu/tile/dcache/coherent/cache/classifyCacheable_reg/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.437ns  (logic 1.272ns (28.671%)  route 3.165ns (71.329%))",
+      "Logic Levels": "11  (LUT3=1 LUT4=1 LUT6=9)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.282,
+      "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+      "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[31]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.208ns  (logic 0.648ns (15.401%)  route 3.560ns (84.599%))",
+      "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.28,
+      "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+      "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[17]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+      "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.28,
+      "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+      "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[24]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+      "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.28,
+      "Source": "u_soc/cpu/tile/core/addrPacket_nextPc_reg[12]/C",
+      "Destination": "u_soc/cpu/tile/core/execute/rejection_value_reg[3]/CE",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.206ns  (logic 0.648ns (15.408%)  route 3.558ns (84.592%))",
+      "Logic Levels": "6  (LUT2=1 LUT5=1 LUT6=4)"
+    },
+    {
+      "report": "diagnostic-cpu-setup.rpt",
+      "slack_ns": -1.273,
+      "Source": "u_soc/cpu/tile/imsic/pending_0_0_reg[3]/C",
+      "Destination": "u_soc/cpu/tile/core/csr/snapshotPending_reg/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "3.333ns  (clk_out1_clk_wiz_common rise@3.333ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.327ns  (logic 1.507ns (34.825%)  route 2.820ns (65.175%))",
+      "Logic Levels": "16  (CARRY8=1 LUT2=1 LUT5=6 LUT6=8)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_0_0/DP/WE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+      "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_0_0/SP/WE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+      "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_1_1/DP/WE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+      "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/crossing/crossing_2/empty_fifo/destinationRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/fabric/home/transfer/reader/sendQueue/ram_ext/Memory_reg_0_3_1_1/SP/WE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.754ns  (logic 1.247ns (21.674%)  route 4.507ns (78.326%))",
+      "Logic Levels": "16  (LUT2=2 LUT3=3 LUT5=1 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.175,
+      "Source": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[7]/C",
+      "Destination": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[6]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "6.040ns  (logic 1.466ns (24.270%)  route 4.574ns (75.730%))",
+      "Logic Levels": "17  (LUT2=1 LUT3=2 LUT4=1 LUT5=3 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.172,
+      "Source": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[7]/C",
+      "Destination": "u_soc/fabric/physicalRequests/TwoEntryRegisterQueue/head_request_address_reg[9]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "6.030ns  (logic 1.554ns (25.770%)  route 4.476ns (74.230%))",
+      "Logic Levels": "17  (LUT2=1 LUT3=2 LUT4=1 LUT5=3 LUT6=8 MUXF7=1 MUXF8=1)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.162,
+      "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+      "Destination": "u_soc/fabric/packetDma/txReceived_reg[1]/CE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+      "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.162,
+      "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+      "Destination": "u_soc/fabric/packetDma/txReceived_reg[2]/CE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+      "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.161,
+      "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+      "Destination": "u_soc/fabric/packetDma/txReceived_reg[3]/CE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+      "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+    },
+    {
+      "report": "diagnostic-fabric-setup.rpt",
+      "slack_ns": -2.161,
+      "Source": "u_soc/crossing/fifo_4/valid_reg/C",
+      "Destination": "u_soc/fabric/packetDma/txReceived_reg[5]/CE",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "4.000ns  (mmcm_clkout0 rise@4.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "5.963ns  (logic 1.573ns (26.377%)  route 4.390ns (73.623%))",
+      "Logic Levels": "19  (CARRY8=3 LUT2=3 LUT3=3 LUT4=4 LUT5=3 LUT6=3)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 2.999,
+      "Source": "u_soc/peripherals/uart/uart/txRemaining_reg[1]/C",
+      "Destination": "uart_txd",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Max at Slow Process Corner",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "4.409ns  (logic 3.147ns (71.372%)  route 1.262ns (28.628%))",
+      "Logic Levels": "3  (LUT4=2 OBUF=1)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.544,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/replies/ram_ext/Memory_reg_0_3_0_13/RAMD/I",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "6.256ns  (logic 1.280ns (20.459%)  route 4.976ns (79.541%))",
+      "Logic Levels": "13  (LUT2=1 LUT5=2 LUT6=10)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.603,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/replies/ram_ext/Memory_reg_0_3_0_13/RAMC/I",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "6.200ns  (logic 1.303ns (21.017%)  route 4.897ns (78.983%))",
+      "Logic Levels": "12  (LUT2=1 LUT5=1 LUT6=10)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.632,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/replies/ram_ext/Memory_reg_0_3_0_13/RAMD_D1/I",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "6.146ns  (logic 1.335ns (21.722%)  route 4.811ns (78.278%))",
+      "Logic Levels": "12  (LUT2=1 LUT5=2 LUT6=9)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.706,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/replies/ram_ext/Memory_reg_0_3_0_13/RAMC_D1/I",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "6.072ns  (logic 1.305ns (21.491%)  route 4.767ns (78.509%))",
+      "Logic Levels": "11  (LUT2=1 LUT5=1 LUT6=9)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.775,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/policy_2/stable_reg[0]/CE",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "5.893ns  (logic 1.105ns (18.752%)  route 4.788ns (81.248%))",
+      "Logic Levels": "9  (LUT2=1 LUT3=1 LUT5=1 LUT6=6)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.775,
+      "Source": "u_soc/peripherals/cmu/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/cmu/cmu/policy_2/stable_reg[1]/CE",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "5.893ns  (logic 1.105ns (18.752%)  route 4.788ns (81.248%))",
+      "Logic Levels": "9  (LUT2=1 LUT3=1 LUT5=1 LUT6=6)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.874,
+      "Source": "u_soc/peripherals/uart/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/uart/uart/rxMemory_12_reg[1]/CE",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "5.907ns  (logic 1.182ns (20.009%)  route 4.725ns (79.991%))",
+      "Logic Levels": "11  (CARRY8=4 LUT2=1 LUT5=1 LUT6=5)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.95,
+      "Source": "u_soc/peripherals/uart/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/uart/uart/rxMemory_14_reg[7]/CE",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "5.810ns  (logic 1.153ns (19.845%)  route 4.657ns (80.155%))",
+      "Logic Levels": "11  (CARRY8=4 LUT2=1 LUT5=1 LUT6=5)"
+    },
+    {
+      "report": "diagnostic-uart-setup.rpt",
+      "slack_ns": 13.964,
+      "Source": "u_soc/peripherals/uart/bridge/request_address_reg[2]/C",
+      "Destination": "u_soc/peripherals/uart/uart/rxMemory_12_reg[9]/CE",
+      "Path Group": "clk_out2_clk_wiz_common",
+      "Path Type": "Setup (Max at Slow Process Corner)",
+      "Requirement": "20.000ns  (clk_out2_clk_wiz_common rise@20.000ns - clk_out2_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "5.830ns  (logic 1.182ns (20.276%)  route 4.648ns (79.724%))",
+      "Logic Levels": "11  (CARRY8=4 LUT2=1 LUT5=1 LUT6=5)"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMA/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMA_D1/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMB/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMB_D1/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMC/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMC_D1/WADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMD/ADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.01,
+      "Source": "u_soc/cpu/tile/core/wbPacket_instruction_pc_reg[2]/C",
+      "Destination": "u_soc/cpu/tile/core/predictor/entries_0_ext/Memory_reg_r1_0_31_56_69/RAMD_D1/ADR0",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.349ns  (logic 0.058ns (16.607%)  route 0.291ns (83.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.011,
+      "Source": "u_soc/crossing/fifo_7/sourceRelease/release_0_reg[2]/C",
+      "Destination": "u_soc/crossing/fifo_7/writeBinary_reg[1]/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.238ns  (logic 0.114ns (47.912%)  route 0.124ns (52.088%))",
+      "Logic Levels": "1  (LUT5=1)"
+    },
+    {
+      "report": "diagnostic-cpu-hold.rpt",
+      "slack_ns": 0.012,
+      "Source": "u_soc/cpu/tile/core/execute/I1FloatingPointMiscD/input_operands_1_reg[16]/C",
+      "Destination": "u_soc/cpu/tile/core/execute/I1FloatingPointMiscD/b_reg[16]/D",
+      "Path Group": "clk_out1_clk_wiz_common",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (clk_out1_clk_wiz_common rise@0.000ns - clk_out1_clk_wiz_common rise@0.000ns)",
+      "Data Path Delay": "0.149ns  (logic 0.059ns (39.607%)  route 0.090ns (60.393%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.007,
+      "Source": "u_soc/fabric/home/access_address_reg[7]_rep__1/C",
+      "Destination": "u_soc/fabric/home/owned_36_reg/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.376ns  (logic 0.210ns (55.800%)  route 0.166ns (44.200%))",
+      "Logic Levels": "2  (LUT5=1 LUT6=1)"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.011,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/mcal_clb2phy_fifo_rden_reg[22]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[6].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_BITSLICE_UPPER[3].GEN_RXTX_BITSLICE_EN.u_xiphy_bitslice_upper/xiphy_rxtx_bitslice/FIFO_RD_EN",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.185ns  (logic 0.038ns (20.541%)  route 0.147ns (79.459%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.012,
+      "Source": "u_soc/fabric/home/access_address_reg[6]/C",
+      "Destination": "u_soc/fabric/home/owned_864_reg/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.325ns  (logic 0.080ns (24.623%)  route 0.245ns (75.377%))",
+      "Logic Levels": "1  (LUT6=1)"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.012,
+      "Source": "u_soc/fabric/networkArbiter/owners/enq_ptr_value_reg[0]/C",
+      "Destination": "u_soc/fabric/networkArbiter/owners/ram_ext/Memory_reg_0_3_0_0/DP/WADR0",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.149ns  (logic 0.059ns (39.654%)  route 0.090ns (60.346%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.012,
+      "Source": "u_soc/fabric/networkArbiter/owners/enq_ptr_value_reg[0]/C",
+      "Destination": "u_soc/fabric/networkArbiter/owners/ram_ext/Memory_reg_0_3_0_0/SP/WADR0",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.149ns  (logic 0.059ns (39.654%)  route 0.090ns (60.346%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.014,
+      "Source": "u_ddr/inst/u_ddr_axi/USE_UPSIZER.upsizer_d2/USE_WRITE.write_data_inst/WORD_LANE[3].USE_ALWAYS_PACKER.BYTE_LANE[0].USE_RTL_DATA.USE_REGISTER.M_AXI_WDATA_I_reg[196]/C",
+      "Destination": "u_ddr/inst/u_ddr_axi/axi_w_channel_0/wdf_data_reg[196]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.188ns  (logic 0.058ns (30.851%)  route 0.130ns (69.149%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.015,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/mcal_clb2phy_fifo_rden_reg[23]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[6].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_BITSLICE_UPPER[4].GEN_RXTX_BITSLICE_EN.u_xiphy_bitslice_upper/xiphy_rxtx_bitslice/FIFO_RD_EN",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Fast Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.197ns  (logic 0.039ns (19.797%)  route 0.158ns (80.203%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.015,
+      "Source": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.status_ram_0.status_ram_wr_data_r_reg[1]/C",
+      "Destination": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.status_ram_0.RAM32M0/RAMD_D1/I",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.162ns  (logic 0.058ns (35.736%)  route 0.104ns (64.264%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.016,
+      "Source": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/captured_reg[53]/C",
+      "Destination": "u_soc/peripherals/gmac/rawDiagnostics/previous_1_reg[21]/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.176ns  (logic 0.058ns (32.879%)  route 0.118ns (67.121%))",
+      "Logic Levels": "0"
+    },
+    {
+      "report": "diagnostic-fabric-hold.rpt",
+      "slack_ns": 0.016,
+      "Source": "u_soc/fabric/home/access_address_reg[7]_rep__1/C",
+      "Destination": "u_soc/fabric/home/owned_33_reg/D",
+      "Path Group": "mmcm_clkout0",
+      "Path Type": "Hold (Min at Slow Process Corner)",
+      "Requirement": "0.000ns  (mmcm_clkout0 rise@0.000ns - mmcm_clkout0 rise@0.000ns)",
+      "Data Path Delay": "0.386ns  (logic 0.219ns (56.664%)  route 0.167ns (43.336%))",
+      "Logic Levels": "2  (LUT5=1 LUT6=1)"
+    }
+  ],
+  "files": {
+    "diagnostic-bus-skew.rpt": {
+      "bytes": 1975426,
+      "sha256": "71db30c1fe73ded4f71f26f8df1ebf91822530130665137a54f64ca722906441"
+    },
+    "diagnostic-cdc.rpt": {
+      "bytes": 413319,
+      "sha256": "a4f0ed6d7fa08283a3b2bed472e6737da346058a7e44324157304dd79f656e79"
+    },
+    "diagnostic-coverage.rpt": {
+      "bytes": 3403,
+      "sha256": "e7908c970dc78e294ae96968feda7bd6c5a4b2bf34bc1eef55655d5d9854cdf9"
+    },
+    "diagnostic-cpu-hold.rpt": {
+      "bytes": 86970,
+      "sha256": "9838c487ffa3b8018b46f0a33deb16bf2a80c5c377091fcf71c352a56c871f22"
+    },
+    "diagnostic-cpu-setup.rpt": {
+      "bytes": 120470,
+      "sha256": "e7d295aaa51bd20e3ecc4238cd2d95e3994b5b6b05d19d878c298f48ba7ba2be"
+    },
+    "diagnostic-drc.rpt": {
+      "bytes": 46908,
+      "sha256": "7fb23e8a4d8e962f2811c6c6eecf4497dc4bb3a9b14dde68ee4820cdf1877b6f"
+    },
+    "diagnostic-fabric-hold.rpt": {
+      "bytes": 78286,
+      "sha256": "88b06c890fc9aa228f64e11efa9dd81e94791d5804945e73238f6afb60ba722a"
+    },
+    "diagnostic-fabric-setup.rpt": {
+      "bytes": 130825,
+      "sha256": "a01d84b2d1cb4053301f59048b9fd4d56803c52be98ea934722f075e93042977"
+    },
+    "diagnostic-preopt-drc.rpt": {
+      "bytes": 1378,
+      "sha256": "c67a818696d401c34efed69a61664c783895cc0b2d03a498775ce4a49e9f1b86"
+    },
+    "diagnostic-preplace-drc.rpt": {
+      "bytes": 43605,
+      "sha256": "e0751f2bcc026e211c9443b8d3092700133eef06ebafae15564bf5d62adbc628"
+    },
+    "diagnostic-route.rpt": {
+      "bytes": 651,
+      "sha256": "76da231c55e4c6568d3bb9dcd7a4009075178b0017ffc8506e2be0a1c881642f"
+    },
+    "diagnostic-shared-quiesce-max.rpt": {
+      "bytes": 10636,
+      "sha256": "46bfa0ea036531de41de67c6c15d694f61dd7fa95231a925f49c43b1eb7f8fb3"
+    },
+    "diagnostic-shared-quiesce-min.rpt": {
+      "bytes": 10329,
+      "sha256": "ddaab3a147031159d7d0787578da2e3eaf9cd19bd77522f1f04c8d5d1161873e"
+    },
+    "diagnostic-timing.rpt": {
+      "bytes": 1169115,
+      "sha256": "0549d451838392a1143dc4fcd20316d067eb0d170636dd64c1cbd31bb7b2345f"
+    },
+    "diagnostic-uart-hold.rpt": {
+      "bytes": 86470,
+      "sha256": "291b06c299d4cae58ee07408c5857255bcb71c701eae67ce298747211c6bce7d"
+    },
+    "diagnostic-uart-setup.rpt": {
+      "bytes": 119320,
+      "sha256": "4d602684606ebc1dc0fc5672570788492f19257f9bc387b40688b67b152bac61"
+    },
+    "diagnostic-utilization.rpt": {
+      "bytes": 15041,
+      "sha256": "c03548e9c24cc7f389063f6f26ff2920506e99ceb69e0f317334c473261e6c26"
+    },
+    "implementation-console.log": {
+      "bytes": 203065,
+      "sha256": "7032df7ff9abfe08258a0d432650c53b30fc078cf89c35536885ae07b6b607ae"
+    },
+    "implementation-inputs.json": {
+      "bytes": 19983,
+      "sha256": "930b407e12581b9569db93695644c9850b65426e74e7d49ab1ed29c955c52943"
+    },
+    "ip-restored-unqualified.dcp": {
+      "bytes": 24497871,
+      "sha256": "8c26a57bddd3fc93e3d3c168898907490737b1fc07ca584a7c79e2f6ce90f349"
+    },
+    "optimized-unqualified.dcp": {
+      "bytes": 23984656,
+      "sha256": "a0b05ca3f9b95475e5bba85ed503822c7cc3c13444a23c365b55f7af924c9f87"
+    },
+    "placed-diagnostic.dcp": {
+      "bytes": 54249631,
+      "sha256": "ae5db6bc44a83af52154bb293051107b8be740cd02cbeabad7c4cb4c00bbe325"
+    },
+    "post-opt-cdc.rpt": {
+      "bytes": 413320,
+      "sha256": "ace8e7ea44da8a8a13e2a2dc93d51cdcf002f825a275e236c09c5838ee9f059c"
+    },
+    "post-opt-clocks.rpt": {
+      "bytes": 19830,
+      "sha256": "af94ef1c4d8378a0416d94b21a2a91cc14b1b4194ee293ddce5186e0796002fc"
+    },
+    "post-opt-constrained-diagnostic.dcp": {
+      "bytes": 36613730,
+      "sha256": "db8b45d7b77f7fae6a31ab1c491f302994ae801fff3f4e8b0bed23daf5f5a4c6"
+    },
+    "post-opt-coverage.rpt": {
+      "bytes": 3404,
+      "sha256": "80cb0f6d3fdf1e92b124704eef3ae44ead723301bfa57c2914575fb310055912"
+    },
+    "post-opt-memory-constraints.xdc": {
+      "bytes": 903856,
+      "sha256": "4b4978961dad267740d041e6e13a14b329f97584595d585add6c436593d9811b"
+    },
+    "post-synth-clocks.rpt": {
+      "bytes": 20122,
+      "sha256": "550d645e0246d32f43c9c6d1cdbaf0ae753016fc11976b2cef9c5a3eaccd0cd9"
+    },
+    "post-synth-constrained-diagnostic.dcp": {
+      "bytes": 37560225,
+      "sha256": "6936a82bd39c62b59c75d9cdb8b7987c40f1b452928d65bb7848d284e522d5d9"
+    },
+    "post-synth-coverage.rpt": {
+      "bytes": 3408,
+      "sha256": "d73d3ce46e6b450a382ebdfb1c5b0c7333235e4899980db1872b537f524d4576"
+    },
+    "post-synth-memory-constraints.xdc": {
+      "bytes": 609142,
+      "sha256": "8f7296c252cc8228852a507ffe502b27e10a608d8305901729b7fd3557990494"
+    },
+    "restored-clocks-before-media.rpt": {
+      "bytes": 17902,
+      "sha256": "3a5ae7a5ac0f132d47446bf0195ea51116b57060cedd374ec88b5b962b1df50d"
+    },
+    "restored-io.rpt": {
+      "bytes": 412073,
+      "sha256": "ea1cc7e0f33953e572031be7cb8d2d0f69410c0c6a9e179fef1709a0262e9a4b"
+    },
+    "routed-diagnostic-unqualified.dcp": {
+      "bytes": 74170265,
+      "sha256": "69aec185f64dea8931db5fde7d8bab51e9dc544ac8832d318cb13b414ba55da5"
+    }
+  },
+  "native_exit": {
+    "utc": "2026-10-21T07:49:30.8198988Z",
+    "final_signoff": false,
+    "bitstream_generated": false,
+    "exit_code": 0
+  },
+  "source_commit": "dd814d96c86f81c3e43ca343c85330f7edf038b6",
+  "executed_constraints_commit": "8d70b065560eaae7c0c992160482c42e837bccdf",
+  "recorded_preparation_commit": "8d70b065560eaae7c0c992160482c42e837bccdf",
+  "profile_sha256": "cb1f4f8ecab63b5fda3d1fb28b1d4091f79b0c547b658bd6e2eeb304380dbb99",
+  "route_fully_routed_nets": 181617,
+  "route_errors": 0,
+  "resources": {
+    "CLB LUTs": {
+      "used": 116442.0,
+      "available": 341280.0,
+      "percent": 34.12
+    },
+    "CLB Registers": {
+      "used": 75982.0,
+      "available": 682560.0,
+      "percent": 11.13
+    },
+    "Block RAM Tile": {
+      "used": 91.5,
+      "available": 744.0,
+      "percent": 12.3
+    },
+    "URAM": {
+      "used": 0.0,
+      "available": 112.0,
+      "percent": 0.0
+    },
+    "DSPs": {
+      "used": 31.0,
+      "available": 3528.0,
+      "percent": 0.88
+    },
+    "Bonded IOB": {
+      "used": 93.0,
+      "available": 328.0,
+      "percent": 28.35
+    }
+  },
+  "final_signoff": false,
+  "bitstream_generated": false,
+  "coverage": {
+    "no_clock": 0,
+    "constant_clock": 0,
+    "pulse_width_clock": 0,
+    "unconstrained_internal_endpoints": 0,
+    "no_input_delay": 2,
+    "no_output_delay": 2,
+    "multiple_clock": 0,
+    "generated_clocks": 0,
+    "loops": 0,
+    "partial_input_delay": 2,
+    "partial_output_delay": 0,
+    "latch_loops": 0
+  },
+  "cdc": {
+    "summary": {
+      "CDC-3": {
+        "severity": "Info",
+        "count": 209
+      },
+      "CDC-6": {
+        "severity": "Warning",
+        "count": 11
+      },
+      "CDC-9": {
+        "severity": "Info",
+        "count": 8
+      },
+      "CDC-10": {
+        "severity": "Critical",
+        "count": 10
+      },
+      "CDC-11": {
+        "severity": "Critical",
+        "count": 11
+      },
+      "CDC-15": {
+        "severity": "Warning",
+        "count": 1271
+      }
+    },
+    "critical_paths": [
+      "1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               u_ddr/inst/div_clk_rst_r1_reg/C                                phy_reset_pipe_reg[0]/PRE",
+      "2  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "146  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE",
+      "147  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "232  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE",
+      "233  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE",
+      "234  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE",
+      "1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path  network_clock/phase_reset_reg[2]/C  phy_reset_pipe_reg[0]/PRE",
+      "1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path  network_clock/phase_reset_reg[2]/C  ui_reset_pipe_reg[0]/PRE",
+      "1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         rx_reset_pipe_reg[0]/PRE",
+      "2  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE",
+      "3  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE",
+      "5  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE",
+      "6  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE",
+      "8  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE",
+      "9  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE",
+      "12  CDC-11  Critical  Fan-out from launch flop to destination clock           3  False Path               ui_reset_pipe_reg[2]/C                                         u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE",
+      "2  CDC-10  Critical  Combinational logic detected before a synchronizer           2  False Path  u_ddr/inst/div_clk_rst_r1_reg/C  network_clock/phase_reset_reg[0]/PRE",
+      "36  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/raw_release_reg[0]/CLR",
+      "37  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/source_release_reg[0]/CLR",
+      "38  CDC-10  Critical  Combinational logic detected before a synchronizer      3  False Path               ui_reset_pipe_reg[2]/C                                    u_debug/enabled.transport/update_release_reg[0]/CLR"
+    ],
+    "data_critical": 0,
+    "reset_critical": 21,
+    "reset_signoff": false
+  },
+  "drc": {
+    "rules": {
+      "DCIRST-1": {
+        "severity": "Warning",
+        "count": 44
+      },
+      "DPIP-2": {
+        "severity": "Warning",
+        "count": 1
+      },
+      "DPOP-3": {
+        "severity": "Warning",
+        "count": 8
+      },
+      "DPOP-4": {
+        "severity": "Warning",
+        "count": 27
+      },
+      "PDCN-1569": {
+        "severity": "Warning",
+        "count": 3
+      },
+      "REQP-1853": {
+        "severity": "Warning",
+        "count": 2
+      },
+      "RTSTAT-10": {
+        "severity": "Warning",
+        "count": 1
+      }
+    },
+    "error": 0,
+    "critical": 0,
+    "warning": 86
+  },
+  "bus_skew": {
+    "numeric_rows": 84,
+    "minimum_numeric_slack_ns": 1.56,
+    "numeric_violations": 0,
+    "na_rows": 2,
+    "na_matches_baseline": true,
+    "na_scope": [
+      "crossing_1/empty_fifo_4 RAM CLK to output_0_reg/D",
+      "crossing_2/empty_fifo_4 RAM CLK to output_0_reg/D"
+    ],
+    "na_is_not_a_numeric_pass": true,
+    "na_active_payload": true,
+    "na_maxdelay_proof_pending": true
+  },
+  "comparison": {
+    "baseline_commit": "013396e8fe2b03d92791952514f0e26244f910ff",
+    "baseline_source": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68",
+    "same_common_script_hashes": 100,
+    "changed_common_script_hashes": [],
+    "global": {
+      "before": {
+        "WNS": -2.524,
+        "TNS": -38582.219,
+        "setup_failing_endpoints": 49373.0,
+        "setup_total_endpoints": 226181.0,
+        "WHS": 0.002,
+        "THS": 0.0,
+        "hold_failing_endpoints": 0.0,
+        "hold_total_endpoints": 224185.0,
+        "WPWS": 0.081,
+        "TPWS": 0.0,
+        "pulse_failing_endpoints": 0.0,
+        "pulse_total_endpoints": 86222.0
+      },
+      "after": {
+        "WNS": -2.219,
+        "TNS": -28742.234,
+        "setup_failing_endpoints": 43713.0,
+        "setup_total_endpoints": 226017.0,
+        "WHS": 0.007,
+        "THS": 0.0,
+        "hold_failing_endpoints": 0.0,
+        "hold_total_endpoints": 224021.0,
+        "WPWS": 0.081,
+        "TPWS": 0.0,
+        "pulse_failing_endpoints": 0.0,
+        "pulse_total_endpoints": 86140.0
+      },
+      "tns_reduction_percent": 25.503937448491488
+    },
+    "domains": {
+      "cpu": {
+        "before": {
+          "Clock": "clk_out1_clk_wiz_common",
+          "WNS(ns)": -2.231,
+          "TNS(ns)": -12507.094,
+          "TNS Failing Endpoints": 25315.0,
+          "TNS Total Endpoints": 95030.0,
+          "WHS(ns)": 0.002,
+          "THS(ns)": 0.0,
+          "THS Failing Endpoints": 0.0,
+          "THS Total Endpoints": 95030.0,
+          "WPWS(ns)": 1.125,
+          "TPWS(ns)": 0.0,
+          "TPWS Failing Endpoints": 0.0,
+          "TPWS Total Endpoints": 36830.0
+        },
+        "after": {
+          "Clock": "clk_out1_clk_wiz_common",
+          "WNS(ns)": -1.333,
+          "TNS(ns)": -6036.505,
+          "TNS Failing Endpoints": 18179.0,
+          "TNS Total Endpoints": 95089.0,
+          "WHS(ns)": 0.01,
+          "THS(ns)": 0.0,
+          "THS Failing Endpoints": 0.0,
+          "THS Total Endpoints": 95089.0,
+          "WPWS(ns)": 1.125,
+          "TPWS(ns)": 0.0,
+          "TPWS Failing Endpoints": 0.0,
+          "TPWS Total Endpoints": 36851.0
+        },
+        "tns_reduction_percent": 51.735351153513356,
+        "fixed_layout_setup_frequency_estimate_mhz": 214.3163309044149,
+        "estimate_verified_fmax": false,
+        "estimate_limits": "Ordinary full-cycle same-domain setup only; fixed routed clock/skew assumption; CDC/reset/IO and re-implementation not qualified."
+      },
+      "fabric": {
+        "before": {
+          "Clock": "mmcm_clkout0",
+          "WNS(ns)": -2.422,
+          "TNS(ns)": -26029.627,
+          "TNS Failing Endpoints": 24033.0,
+          "TNS Total Endpoints": 95297.0,
+          "WHS(ns)": 0.002,
+          "THS(ns)": 0.0,
+          "THS Failing Endpoints": 0.0,
+          "THS Total Endpoints": 95297.0,
+          "WPWS(ns)": 0.251,
+          "TPWS(ns)": 0.0,
+          "TPWS Failing Endpoints": 0.0,
+          "TPWS Total Endpoints": 41458.0
+        },
+        "after": {
+          "Clock": "mmcm_clkout0",
+          "WNS(ns)": -2.175,
+          "TNS(ns)": -22663.119,
+          "TNS Failing Endpoints": 25509.0,
+          "TNS Total Endpoints": 95075.0,
+          "WHS(ns)": 0.007,
+          "THS(ns)": 0.0,
+          "THS Failing Endpoints": 0.0,
+          "THS Total Endpoints": 95075.0,
+          "WPWS(ns)": 0.162,
+          "TPWS(ns)": 0.0,
+          "TPWS Failing Endpoints": 0.0,
+          "TPWS Total Endpoints": 41355.0
+        },
+        "tns_reduction_percent": 12.933370117059306,
+        "fixed_layout_setup_frequency_estimate_mhz": 161.94331983805668,
+        "estimate_verified_fmax": false,
+        "estimate_limits": "Ordinary full-cycle same-domain setup only; fixed routed clock/skew assumption; CDC/reset/IO and re-implementation not qualified."
+      }
+    },
+    "resources": {
+      "CLB LUTs": {
+        "before": 117367.0,
+        "after": 116442.0,
+        "delta": -925.0
+      },
+      "CLB Registers": {
+        "before": 76064.0,
+        "after": 75982.0,
+        "delta": -82.0
+      },
+      "Block RAM Tile": {
+        "before": 91.5,
+        "after": 91.5,
+        "delta": 0.0
+      },
+      "URAM": {
+        "before": 0.0,
+        "after": 0.0,
+        "delta": 0.0
+      },
+      "DSPs": {
+        "before": 31.0,
+        "after": 31.0,
+        "delta": 0.0
+      },
+      "Bonded IOB": {
+        "before": 93.0,
+        "after": 93.0,
+        "delta": 0.0
+      }
+    }
+  },
+  "unqualified_items": [
+    "CPU300/fabric250 setup fail",
+    "21 async-reset CDC Critical remain unqualified",
+    "DCIRST-1 44 warnings require board-signoff resolution",
+    "Raw inter-domain Gray STA retained; inactive proof classification separate from active speedup",
+    "Two bus-skew NA rows also present in baseline; not numeric PASS",
+    "No bitstream or hardware verification"
+  ],
+  "immutable_inputs_unchanged": true,
+  "root_review": "timing-batch-r2-root-review.json",
+  "mig_electrical_and_connectivity_ports": 73,
+  "query_dcp_unchanged": true
+}
