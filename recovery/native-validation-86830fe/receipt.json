@@ -1,0 +1,831 @@
+{
+  "source_commit": "86830fe259566c6869b2d2d44b7f8715fbf01388",
+  "utc": "2026-10-21T11:18:41.143006+00:00",
+  "tool": "Vivado2025.2 native xsim",
+  "emission": {
+    "axi": "PASS",
+    "timer": "PASS",
+    "debug": "PASS",
+    "loader-owner": "PASS"
+  },
+  "source_hashes": {
+    "recovery/axi-cdc-channels-tb.sv": "c44fb6716fdadf5c3ab234bc2bfd02b12c60f891aed5cb6befe55c77c37a9f96",
+    "recovery/run-axi-cdc-channels-xsim.ps1": "4664215c7a3b5b1b7dbca189110be2668b489d09569af0d8ff7afe46665abdc5",
+    "simulator/cdc/fixed_timebase_tb.sv": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796",
+    "simulator/cdc/debug_dmi_boundary_tb.sv": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c",
+    "simulator/cdc/jtag_loader_link_owner_tb.sv": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41",
+    "simulator/cdc/run_fixed_time_debug_xsim.py": "ec574345d11b43654d691c717f0392b9faccea8acfb5d918b8c770204f1265c6",
+    "simulator/cdc/run_jtag_loader_link_owner_xsim.py": "6f2b63d88742fce2b3caf2082d0d96da9f171b2518c6cf0d73bac0047054fec4",
+    "simulator/cdc/xsim_invocation.py": "c57b241991cadb27df9cf0a0ee3daa187a6b7c867db917fb2a31eb7c6a820270",
+    "fpga/common/native_dci_startup.sv": "63927effc09820eda79b852251463e3d0ae6cbbbdc7a8e435baee1e18a0e75c3",
+    "fpga/common/dci_startup_tb.sv": "d173a74df00d93bde14f45596f18776ffacd410bfedf05f21d383d18c9ea783b"
+  },
+  "generated_rtl": {
+    "axi": {
+      "Axi4CdcFixture.sv": "3ac05c921340e36b8d386c11d02f220665441ad19211efbaa4a29c42d4e96cca",
+      "Axi4ClockDomainBoundary.sv": "75068417fab63e79581af5b7a04f939ba184d99d44ef56443a031cb4dfd0b798",
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "HeldResponseCdcDataFifo.sv": "1e656751ecd06a8c82dc378f8c682b2c379058677fc8ef249c8f6a189a163af5",
+      "HeldResponseCdcDataFifo_1.sv": "94c704f0ac31c0af9a5165207d1c49d6ffcf82ccff61bdc26c50f4890210c29e",
+      "HeldResponseCdcDataFifo_2.sv": "e9fa34ac28ca5a8c038d7ba3a04cf114b6af0baea646e902c5fd34373a2aee36",
+      "HeldResponseCdcDataFifo_4.sv": "fc912604f7c89d55ade82f118078123a81ca31066f765d6297fbea4aea0253c0",
+      "storage_4x6.sv": "7cf8c8890ee0bdf5a56b0a737d892e9896903a1a63bd41f717ac976cf1291079",
+      "storage_4x61.sv": "a2c33fe0500d4855237ca56a0b0827d5ce31e4b296b1e7269b0800beb4091352",
+      "storage_4x71.sv": "abecee2a52f4ec8aab4a1c9cc2c3510f74fa416c80975237fcea1908ecf2ebea",
+      "storage_4x73.sv": "aadf3153111b275eeb1adfcd0f6903d22a2c49abbc2bbacf56db4032cab08a75"
+    },
+    "timer": {
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcMailbox.sv": "d26379a84d391ee3db37a40452588b30d24dc6034bb9ccf02979ee2c024804e8",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "FixedTimebaseBoundary.sv": "c136d5a6b31dcd1837e0a3967b07de117c3971c00e6665df9ae667bb0b1c0df6",
+      "MachineTimer.sv": "4b69272430910114ce2a7ece422d202698141c9bc61e1d34e73af6a5f1d13fbd",
+      "Queue2_RegisterResponse.sv": "9b40556ab76586f45d0d597d3a120ed91db6ee646907329c6061009b1bd61936",
+      "ram_2x65.sv": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d",
+      "RegisterClockDomainBridge.sv": "c3bf0a6f4c03c6d35f5c462b4e072be2bc8e085afbf363d76fbdeb3c21ef5051"
+    },
+    "debug": {
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcMailbox.sv": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced",
+      "CdcMailbox_1.sv": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "DebugDmiClockBoundary.sv": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+    },
+    "loader-owner": {
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcMailbox.sv": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced",
+      "CdcMailbox_1.sv": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+      "DebugDmiClockBoundary.sv": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b",
+      "JtagLoaderLinkOwnerNative.sv": "05ad0142b244008947d66d623d130ec9dcb5a9453f219c8ad0c4aeaab62a2e76",
+      "JtagRamLoader.sv": "316ed9c3dacde4a61e716b224442d6502a61251abdcb0ba889af684662d0fa9b"
+    }
+  },
+  "axi": {
+    "result": "PASS",
+    "simulator": "native xsim",
+    "dut": "Axi4ClockDomainBoundary",
+    "scope": "synthetic complete channel conservation under independent clock edges, stalls and common reset",
+    "negative_oracle": "REJECTED",
+    "transaction_owner_drain": false,
+    "physical_signoff": false,
+    "utc": "2026-10-21T11:16:01.4859597Z",
+    "beats": 2000,
+    "stalls": 3559,
+    "blocked": 7111,
+    "stopped": 400,
+    "abandoned": 15,
+    "ticks": 16135
+  },
+  "timer_debug": {
+    "runner_sources": [
+      {
+        "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\run_fixed_time_debug_xsim.py",
+        "sha256": "ec574345d11b43654d691c717f0392b9faccea8acfb5d918b8c770204f1265c6"
+      },
+      {
+        "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\xsim_invocation.py",
+        "sha256": "c57b241991cadb27df9cf0a0ee3daa187a6b7c867db917fb2a31eb7c6a820270"
+      }
+    ],
+    "status": "PASS",
+    "scope": "native independent edges only; not physical CDC/STA/board acceptance",
+    "cases": [
+      {
+        "name": "timer_5",
+        "top": "fixed_timebase_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 5,
+        "marker": "PASS FIXED_TIMEBASE",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcMailbox.sv",
+            "sha256": "d26379a84d391ee3db37a40452588b30d24dc6034bb9ccf02979ee2c024804e8"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\FixedTimebaseBoundary.sv",
+            "sha256": "c136d5a6b31dcd1837e0a3967b07de117c3971c00e6665df9ae667bb0b1c0df6"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\MachineTimer.sv",
+            "sha256": "4b69272430910114ce2a7ece422d202698141c9bc61e1d34e73af6a5f1d13fbd"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\Queue2_RegisterResponse.sv",
+            "sha256": "9b40556ab76586f45d0d597d3a120ed91db6ee646907329c6061009b1bd61936"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\ram_2x65.sv",
+            "sha256": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\RegisterClockDomainBridge.sv",
+            "sha256": "c3bf0a6f4c03c6d35f5c462b4e072be2bc8e085afbf363d76fbdeb3c21ef5051"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\fixed_timebase_tb.sv",
+            "sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "timer_10",
+        "top": "fixed_timebase_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 10,
+        "marker": "PASS FIXED_TIMEBASE",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcMailbox.sv",
+            "sha256": "d26379a84d391ee3db37a40452588b30d24dc6034bb9ccf02979ee2c024804e8"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\FixedTimebaseBoundary.sv",
+            "sha256": "c136d5a6b31dcd1837e0a3967b07de117c3971c00e6665df9ae667bb0b1c0df6"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\MachineTimer.sv",
+            "sha256": "4b69272430910114ce2a7ece422d202698141c9bc61e1d34e73af6a5f1d13fbd"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\Queue2_RegisterResponse.sv",
+            "sha256": "9b40556ab76586f45d0d597d3a120ed91db6ee646907329c6061009b1bd61936"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\ram_2x65.sv",
+            "sha256": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\RegisterClockDomainBridge.sv",
+            "sha256": "c3bf0a6f4c03c6d35f5c462b4e072be2bc8e085afbf363d76fbdeb3c21ef5051"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\fixed_timebase_tb.sv",
+            "sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "timer_7",
+        "top": "fixed_timebase_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 7,
+        "marker": "PASS FIXED_TIMEBASE",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcMailbox.sv",
+            "sha256": "d26379a84d391ee3db37a40452588b30d24dc6034bb9ccf02979ee2c024804e8"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\FixedTimebaseBoundary.sv",
+            "sha256": "c136d5a6b31dcd1837e0a3967b07de117c3971c00e6665df9ae667bb0b1c0df6"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\MachineTimer.sv",
+            "sha256": "4b69272430910114ce2a7ece422d202698141c9bc61e1d34e73af6a5f1d13fbd"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\Queue2_RegisterResponse.sv",
+            "sha256": "9b40556ab76586f45d0d597d3a120ed91db6ee646907329c6061009b1bd61936"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\ram_2x65.sv",
+            "sha256": "d938c79b648ec2e166fde76a2e8291d8a4491f40b4c8c911be3f04a3fa0c215d"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\timer\\RegisterClockDomainBridge.sv",
+            "sha256": "c3bf0a6f4c03c6d35f5c462b4e072be2bc8e085afbf363d76fbdeb3c21ef5051"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\fixed_timebase_tb.sv",
+            "sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "debug_5",
+        "top": "debug_dmi_boundary_tb",
+        "parameter": "DEST_HALF",
+        "half": 5,
+        "marker": "PASS DEBUG_DMI_BOUNDARY",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\debug_dmi_boundary_tb.sv",
+            "sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "debug_10",
+        "top": "debug_dmi_boundary_tb",
+        "parameter": "DEST_HALF",
+        "half": 10,
+        "marker": "PASS DEBUG_DMI_BOUNDARY",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\debug_dmi_boundary_tb.sv",
+            "sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "debug_7",
+        "top": "debug_dmi_boundary_tb",
+        "parameter": "DEST_HALF",
+        "half": 7,
+        "marker": "PASS DEBUG_DMI_BOUNDARY",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\debug\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\debug_dmi_boundary_tb.sv",
+            "sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c"
+          }
+        ],
+        "status": "PASS"
+      }
+    ]
+  },
+  "loader_owner": {
+    "runner_sources": [
+      {
+        "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\run_jtag_loader_link_owner_xsim.py",
+        "sha256": "6f2b63d88742fce2b3caf2082d0d96da9f171b2518c6cf0d73bac0047054fec4"
+      },
+      {
+        "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\xsim_invocation.py",
+        "sha256": "c57b241991cadb27df9cf0a0ee3daa187a6b7c867db917fb2a31eb7c6a820270"
+      }
+    ],
+    "status": "PASS",
+    "scope": "native independent edges only; not physical CDC/STA/board acceptance",
+    "cases": [
+      {
+        "name": "loader-owner_5",
+        "top": "jtag_loader_link_owner_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 5,
+        "marker": "PASS JTAG_LOADER_LINK_OWNER",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagLoaderLinkOwnerNative.sv",
+            "sha256": "05ad0142b244008947d66d623d130ec9dcb5a9453f219c8ad0c4aeaab62a2e76"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagRamLoader.sv",
+            "sha256": "316ed9c3dacde4a61e716b224442d6502a61251abdcb0ba889af684662d0fa9b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\jtag_loader_link_owner_tb.sv",
+            "sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "loader-owner_10",
+        "top": "jtag_loader_link_owner_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 10,
+        "marker": "PASS JTAG_LOADER_LINK_OWNER",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagLoaderLinkOwnerNative.sv",
+            "sha256": "05ad0142b244008947d66d623d130ec9dcb5a9453f219c8ad0c4aeaab62a2e76"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagRamLoader.sv",
+            "sha256": "316ed9c3dacde4a61e716b224442d6502a61251abdcb0ba889af684662d0fa9b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\jtag_loader_link_owner_tb.sv",
+            "sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "name": "loader-owner_7",
+        "top": "jtag_loader_link_owner_tb",
+        "parameter": "FABRIC_HALF",
+        "half": 7,
+        "marker": "PASS JTAG_LOADER_LINK_OWNER",
+        "sources": [
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcLevel.sv",
+            "sha256": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox.sv",
+            "sha256": "d4b32c177378740f92c9395aa33446ec3bee3ecf69ace6134168a718e6186ced"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcMailbox_1.sv",
+            "sha256": "d770dfd157ebca7b877a1e28869f11a140e1fd15a086ba6d21499119553edb6b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\CdcResetRelease.sv",
+            "sha256": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\DebugDmiClockBoundary.sv",
+            "sha256": "1f60aaac3692805a0755ac1cbf8e79bdb845be1118413478181b58fc5cefb61b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagLoaderLinkOwnerNative.sv",
+            "sha256": "05ad0142b244008947d66d623d130ec9dcb5a9453f219c8ad0c4aeaab62a2e76"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\out\\native-cdc-86830fe-r1\\loader-owner\\JtagRamLoader.sv",
+            "sha256": "316ed9c3dacde4a61e716b224442d6502a61251abdcb0ba889af684662d0fa9b"
+          },
+          {
+            "path": "C:\\Users\\surplars\\Documents\\Codex\\2026-10-19\\task-3\\recovery-r1\\simulator\\cdc\\jtag_loader_link_owner_tb.sv",
+            "sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41"
+          }
+        ],
+        "status": "PASS"
+      }
+    ]
+  },
+  "negative_oracles": [
+    {
+      "domain": "timer",
+      "half": 5,
+      "status": "REJECTED",
+      "expected_failure": "compare full write/read",
+      "original_bench_sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796",
+      "mutated_bench_sha256": "92f4e466574147ccf895bcddcedce9849c62adae6b6c03ac5a26d997ab62c9bd",
+      "replacement": {
+        "old": "if (result !== 64'h123456789abcdef0)",
+        "new": "if (result !== 64'h123456789abcdef1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "timer",
+      "half": 10,
+      "status": "REJECTED",
+      "expected_failure": "compare full write/read",
+      "original_bench_sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796",
+      "mutated_bench_sha256": "92f4e466574147ccf895bcddcedce9849c62adae6b6c03ac5a26d997ab62c9bd",
+      "replacement": {
+        "old": "if (result !== 64'h123456789abcdef0)",
+        "new": "if (result !== 64'h123456789abcdef1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "timer",
+      "half": 7,
+      "status": "REJECTED",
+      "expected_failure": "compare full write/read",
+      "original_bench_sha256": "25d3a6dec68cc26aadaa2f2e9228bfab8bcff65c0452b8496920a376b2033796",
+      "mutated_bench_sha256": "92f4e466574147ccf895bcddcedce9849c62adae6b6c03ac5a26d997ab62c9bd",
+      "replacement": {
+        "old": "if (result !== 64'h123456789abcdef0)",
+        "new": "if (result !== 64'h123456789abcdef1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "debug",
+      "half": 5,
+      "status": "REJECTED",
+      "expected_failure": "DMI request corruption/stall",
+      "original_bench_sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c",
+      "mutated_bench_sha256": "2b8a3132e108730024ac8873353b8788fbeb3e6c9c198c0d23b2593f6ebc2d44",
+      "replacement": {
+        "old": "destination_request_bits_data !== expected",
+        "new": "destination_request_bits_data !== (expected ^ 32'd1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "debug",
+      "half": 10,
+      "status": "REJECTED",
+      "expected_failure": "DMI request corruption/stall",
+      "original_bench_sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c",
+      "mutated_bench_sha256": "2b8a3132e108730024ac8873353b8788fbeb3e6c9c198c0d23b2593f6ebc2d44",
+      "replacement": {
+        "old": "destination_request_bits_data !== expected",
+        "new": "destination_request_bits_data !== (expected ^ 32'd1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "debug",
+      "half": 7,
+      "status": "REJECTED",
+      "expected_failure": "DMI request corruption/stall",
+      "original_bench_sha256": "0a379435d54a2c12293b15e265057cf519863c9fec7da711290316a009da6a3c",
+      "mutated_bench_sha256": "2b8a3132e108730024ac8873353b8788fbeb3e6c9c198c0d23b2593f6ebc2d44",
+      "replacement": {
+        "old": "destination_request_bits_data !== expected",
+        "new": "destination_request_bits_data !== (expected ^ 32'd1)"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "loader-owner",
+      "half": 5,
+      "status": "REJECTED",
+      "expected_failure": "final owner counts or leak",
+      "original_bench_sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41",
+      "mutated_bench_sha256": "741ee000386ffe7ecfb79777badc00df6357d8f58d3686f5c0f71ec3783bc2d1",
+      "replacement": {
+        "old": "if(accepted != 5 || completed != 5",
+        "new": "if(accepted != 6 || completed != 5"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "loader-owner",
+      "half": 10,
+      "status": "REJECTED",
+      "expected_failure": "final owner counts or leak",
+      "original_bench_sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41",
+      "mutated_bench_sha256": "741ee000386ffe7ecfb79777badc00df6357d8f58d3686f5c0f71ec3783bc2d1",
+      "replacement": {
+        "old": "if(accepted != 5 || completed != 5",
+        "new": "if(accepted != 6 || completed != 5"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "domain": "loader-owner",
+      "half": 7,
+      "status": "REJECTED",
+      "expected_failure": "final owner counts or leak",
+      "original_bench_sha256": "d5a2afc37e3c570baeb28ad7807130709c27fa5802ecfda34d95a8d525829d41",
+      "mutated_bench_sha256": "741ee000386ffe7ecfb79777badc00df6357d8f58d3686f5c0f71ec3783bc2d1",
+      "replacement": {
+        "old": "if(accepted != 5 || completed != 5",
+        "new": "if(accepted != 6 || completed != 5"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "dci": {
+    "positive": "FAIL",
+    "time_ns": 8530,
+    "assertion": "DCI released without reset/LOCKED handshake",
+    "timing_violation_in_positive": false,
+    "short_pulse_negative": "REJECTED_VENDOR_HIGH_AND_LOW_VIOLATIONS",
+    "read_only_failure_state": {
+      "ready": 1,
+      "locked": 0,
+      "reset_dci": 0,
+      "reset_acknowledged": 1,
+      "completed": 1,
+      "inhibit": 0,
+      "phase_binary": "10",
+      "lock_samples_binary": "111",
+      "ready_release_binary": "000"
+    },
+    "interpretation": "Possible TB same-time race: initial waits ready then immediately forces locked0 while posedge-ready checker observes force before combinational inhibit updates. This is an inference, not confirmed RTL repair or acceptance. Cloud must resolve without weakening LOCKED check."
+  },
+  "scope": "Independent edge-driven behavioral tests only; not whole-system CDC/STA/board acceptance",
+  "whole_design_synthesis": "NOT_STARTED_WAITING_PROFILE_FREEZE",
+  "rtl_or_constraints_changed": false,
+  "raw_log_sha256": {
+    "out\\native-cdc-86830fe-r1\\axi-emission.log": "022b1aef7c90c8037a98390ff8f83c58df12f88003ed9fd31881b27e0a61a100",
+    "out\\native-cdc-86830fe-r1\\axi-run\\compile.log": "c6659d7a48f13aa257041be309e8a66130a98546a644c9bf8796219885a7bbe6",
+    "out\\native-cdc-86830fe-r1\\axi-run\\elaborate.log": "a2ec3022b234ca787fd1ec128fd57448c4132c048c1b1966904638c994a3bc10",
+    "out\\native-cdc-86830fe-r1\\axi-run\\negative-console.log": "7ebdf131a73c36857f661eea7a1fcba849dd56df8b796e39b692ad399fd5a52c",
+    "out\\native-cdc-86830fe-r1\\axi-run\\negative-xsim.log": "20397a2eb79206413014aeb96a316895d9f9558e88a5701264b05c421a2f7fe0",
+    "out\\native-cdc-86830fe-r1\\axi-run\\positive-console.log": "c5b96a597cd287551e025ae6e21be04614eb479e51600486cf1b2a358561ca04",
+    "out\\native-cdc-86830fe-r1\\axi-run\\positive-xsim.log": "6aef09df7c1ed440f6d6d6e3557770533a7b4a030da77b4ee8a601a219671115",
+    "out\\native-cdc-86830fe-r1\\axi-run\\xelab.log": "dc43b3c53c7a1fa60e5e61cc59c3fc88280dd7a630a7b1b98265078657bcc4d9",
+    "out\\native-cdc-86830fe-r1\\axi-run\\xsim.dir\\axi_cdc_channels\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\axi-run\\xsim.dir\\axi_cdc_channels\\xsimkernel.log": "7ae497f20a9dc09ae70e1a1f9df8e82c59afb2bff40d33d3981c00883a27bd34",
+    "out\\native-cdc-86830fe-r1\\axi-run\\xvlog.log": "2daafaecea2b7a8c5860189c53c292858c7eb598a309c3afd2ee8856d84384e6",
+    "out\\native-cdc-86830fe-r1\\debug-emission.log": "8a728f4b512c1762db5e2fb0d11fe2c7a5320bb4fea0340bd56c62cf0e927799",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\step0.log": "c2cac37888394cad5f4db2a8267a93c3e092eb4ac893e4a42a133c7e1a08c94f",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\step1.log": "d8b61307bfa586e13ce831ed7052a418c21f71497ea92dd48aa7fc0c449617bd",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\step2.log": "e10abe1246039b577efe320488d3ada0d8c0c77e6e2a0a1bca72d04e0970100b",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\xelab.log": "68782d0b0e29860908e0a3ec00ff6e57e1e50e5c3c29277470c22f0e4fa72f9b",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\xsim.dir\\test_snapshot\\xsimkernel.log": "d0f45e6e53cf021f7d067c8ef123a32e45588b9039c2688611370c4a9783df9e",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\xsim.log": "8646565c61aa6330dfca98f57bb965df67ef24333bd95ef238c3f6c71807ce25",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_10\\xvlog.log": "f7710475ea52406ab2112ef07d77367cac486435778ee2a9310907f63c707cc5",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\step0.log": "c2cac37888394cad5f4db2a8267a93c3e092eb4ac893e4a42a133c7e1a08c94f",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\step1.log": "45fa5680b1b6387c4e25a1f8018aab0b52fb201162c84be29f6cea3de29e479d",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\step2.log": "0d952ad046de130c2812fc1d158dfe404d076a2eb8378bd9cbb85fa0cb2144ca",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\xelab.log": "2fccbc1ba517a89d61a795c8580e2c6202591b8b8a8c8bcbcc777748e2670a15",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\xsim.dir\\test_snapshot\\xsimkernel.log": "f67a37d5b2acf80278b8f66021459b2cb479a2b08eb700ee4e7076a6f7e3636e",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\xsim.log": "213443b6d01c28652b2d9f729011a6b8ded76659872dd5ab9a2915ffba7a3f26",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_5\\xvlog.log": "f7710475ea52406ab2112ef07d77367cac486435778ee2a9310907f63c707cc5",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\step0.log": "c2cac37888394cad5f4db2a8267a93c3e092eb4ac893e4a42a133c7e1a08c94f",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\step1.log": "f324e4029c7b4601835baf950e29b3693e23522879b3d416a2c5f925c68fb0e4",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\step2.log": "bb24a4811092809cb5b0d28e99211702552cc50cb3e37efb8c237301e4c59b98",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\xelab.log": "75ff147963b863d8a97f4ee936cd834ed4024c611c689593b270ec054ed38a14",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\xsim.dir\\test_snapshot\\xsimkernel.log": "3f542db33fad4ffbf8c2a4b719a6a697517432abc59e2433b74046c4a17e8f17",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\xsim.log": "64da97655694006e333b3775e88df9b6773a1d9919ceeaedfe69734c1571366e",
+    "out\\native-cdc-86830fe-r1\\helper-run\\debug_7\\xvlog.log": "f7710475ea52406ab2112ef07d77367cac486435778ee2a9310907f63c707cc5",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\step0.log": "15f4eb7fd91b411444807d6951c0e5cd54030a1f223521d2a1d7a6fa66f359c7",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\step1.log": "c15fc11276f8140684c30a7b458cb715eb9bec386a68352ada651fe6dc11182a",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\step2.log": "beff6ac9a6cd78953bb38d5926eaed37c1762d2bfd2f640eed5e9c9145624a0a",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\xelab.log": "e357f6b35639587215daa888edd3c03f7a1a07ed84e39789ded2ae780eb4a217",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\xsim.dir\\test_snapshot\\xsimkernel.log": "941244092a5efb980b244d16c76d2d68b46cddd60fac82de5669b559f7056239",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\xsim.log": "47af8c25c2cf595007bff65ee19ec2701bba5919aa18c1b9a691c75c878805e3",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_10\\xvlog.log": "845560208553c0f150eab8ff26fdc6d986d03549bc606d0be6ec4547215a2d09",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\step0.log": "15f4eb7fd91b411444807d6951c0e5cd54030a1f223521d2a1d7a6fa66f359c7",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\step1.log": "7b7ec8c1faa6ec08faf9a291ac435ee8c8c49276eba6ca577086374ff00e0480",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\step2.log": "25e51af822a3f4285bd9c3587efb6123c2bee694516e4112824c77633c6a012b",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\xelab.log": "58d55970df7ab7ed1245109c18e22c453afb2e0f8e314cc0cf89d876a489dadf",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\xsim.dir\\test_snapshot\\xsimkernel.log": "3d65e11ff7cde32bf7894c4880f0c69bace0295e85215878658b8b95608d6b75",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\xsim.log": "ec7fde942269fa84dac2d1eb8bbe8f5f120e041e137c8d22076408c04cc13171",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_5\\xvlog.log": "845560208553c0f150eab8ff26fdc6d986d03549bc606d0be6ec4547215a2d09",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\step0.log": "15f4eb7fd91b411444807d6951c0e5cd54030a1f223521d2a1d7a6fa66f359c7",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\step1.log": "d6b4f4e71b0d51a397a800a91f006be5d72076a0c4add3858c45491244ab5c08",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\step2.log": "7f568fb30bea1a6af55bb9a68901839070cc8f75a4926eb024e2d4c627f420c8",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\xelab.log": "6066ea49ab8942f99d44e0cef0158092b8cb8db4d086aa3948a022191fba2ea2",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\xsim.dir\\test_snapshot\\xsimkernel.log": "30273f378a6e4fb34edac9c3302a689f443b6c6ddaf1706c1b0408351ad8676e",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\xsim.log": "c4cc435d93b6f22d343404adf7069aaf6f0ce6fec96e7e0f8f0d852225978cc6",
+    "out\\native-cdc-86830fe-r1\\helper-run\\timer_7\\xvlog.log": "845560208553c0f150eab8ff26fdc6d986d03549bc606d0be6ec4547215a2d09",
+    "out\\native-cdc-86830fe-r1\\loader-owner-emission.log": "7bb2899147c81db396c92f8197f02d25159f22f1029a0f3777dc85f7e50968c4",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\step0.log": "72bff3b776940302edcf6854f6739a17e57d29e261645d01cc352451118570c8",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\step1.log": "6196076cb435ec478fed139bc2d9d59f7b68809a60bb69773a7fe99b38fad289",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\step2.log": "3546811bd704644c429e3ca032cb8822e2b5fbe05d77933936561456991b9153",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\xelab.log": "c6f6f8f98d65cef0d012ce9e14a4ab4900086c30f33180c80907fd10f5a60057",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\xsim.dir\\test_snapshot\\xsimkernel.log": "8d15a0dd7bae4c44c0a71921983ad550f64728ed3b67a4cd5b2c50ec06e5c49f",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\xsim.log": "d2c537cd1d8685777ac2121945e7c912ca9a04ef70aaf1adaeaf44887044365c",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_10\\xvlog.log": "7dae2d7d5542909740f2e2a5f4f9faf43a68ebea7bee897572214d50fd17c36d",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\step0.log": "72bff3b776940302edcf6854f6739a17e57d29e261645d01cc352451118570c8",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\step1.log": "e0f5bbe8a195e47b7f8bd62922b9b80cbe80b97d644cea2601155a1a88c6122a",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\step2.log": "cb12c0bf5184b06a99888b8ddb06a76d3f9573037d797360fae89fe60b0319cd",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\xelab.log": "8bb0903b64673117be716ab5dfc9f2650843d13073719930e9a9bbc95e167145",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\xsim.dir\\test_snapshot\\xsimkernel.log": "7f829f9cfe1a4e6da2e31b778da6ce6a15d5b62f2a56d74b96a573fd34194071",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\xsim.log": "793df58e544ec582ab42c3ddacc1f18260703c51d3419be50b32ccfc1eb7e968",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_5\\xvlog.log": "7dae2d7d5542909740f2e2a5f4f9faf43a68ebea7bee897572214d50fd17c36d",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\step0.log": "72bff3b776940302edcf6854f6739a17e57d29e261645d01cc352451118570c8",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\step1.log": "c4e3dcab4e6280172a48ed77b1fb00967fea2059a5bfad78e076714fee092cac",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\step2.log": "c13d1eee1c77e11fdf205d753898222a6a6d7cc673944b178fa9be4e9b1ab844",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\xelab.log": "be877900ac3ca91c895ca1c04183c40c7318ce2661182edbe6e4423c5a2448c4",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\xsim.dir\\test_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\xsim.dir\\test_snapshot\\xsimkernel.log": "9c2f4f69602a982b3d7fd137f5b12f484edc71fefa3e9e4141737cc4d2d6e833",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\xsim.log": "1ccc39022e4ff1e48e0b7abf3930dbe428edacfa8814577d62ff85c82ac6b7ca",
+    "out\\native-cdc-86830fe-r1\\loader-run\\loader-owner_7\\xvlog.log": "7dae2d7d5542909740f2e2a5f4f9faf43a68ebea7bee897572214d50fd17c36d",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\step0.log": "69519547bfd172dda4d3e85f60ec2298776ef21d9c7df2cf3304f161fab16daf",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\step1.log": "654656c4b63780ae2d2edd9d9ad57bbdff3981a9e592c5a37225112bcccdbc37",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\step2.log": "490026a04a5a0f1f85a6eaa089d9b7851ab1433bea3fecfe9dc2b7f83bdcd6c0",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\xelab.log": "d1764aa4ff55bcff2d694add3ac483c393e73ff1238ea75a339cd6396194c7b2",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\xsim.dir\\negative_snapshot\\xsimkernel.log": "3a3d5d7d5ce879da9bd66c772572750955fef5ba3955c6a10b5a8ebab7c4ad5e",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\xsim.log": "ce5fed617ac10d8c003926f520e359ed3e9b271d9f4100330c6da8f1cf5b1589",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_10\\xvlog.log": "2c6d24d0eb8e57bd7a9a7726d5351e3be28bb250ea8e906098ca529e1ee45d04",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\step0.log": "5eacc7c90d95c36e26c714cf2bb4a7e45448af67e339512ce2506b1117ac4aa1",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\step1.log": "b74d886beb89c94d47a3f6a417b4a75cadb20605b56fffd80cda94123815cb88",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\step2.log": "6343dde8b6dde71277e212c3b3f32f5409421686f0538ddd72f8e8e3d7ffcb1d",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\xelab.log": "374b26609c68169a05f18f0a92d465ed6f69a0fe7f3a3a0ad3aa1a388bd1af7c",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\xsim.dir\\negative_snapshot\\xsimkernel.log": "ddeba5ca9a495364061109c6a908c33f812ec0048030108f210d3b7f40055d11",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\xsim.log": "a3bdfa845eb3cde55655610b18c8f63ace404ee753a9929559fd5ecd9f5df48a",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_5\\xvlog.log": "e1fb0a3bc97133c97b0eacae50754ca389d88868ae26f14640b34c69da01abec",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\step0.log": "a7fa61bbb9b8e6cc8762b8a81bd23a344f6a8a19196eccedbc016a4a2a1f5842",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\step1.log": "bc815b041b419678a1606b08dcd646bb18ed66068200d016a8863080ddce4479",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\step2.log": "dd765b2c03e07f868b242ebc250678dba23b416bc19edddf6d878c13cd7682f5",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\xelab.log": "65f8de25c70545ef19b39205ccd1bde075ad609b3b36c1b8bb194bd3c48c2f86",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\xsim.dir\\negative_snapshot\\xsimkernel.log": "20be1c1839e5fcadc335df4dd5672dbddefa42ae75d6de5c62748974139c4db6",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\xsim.log": "5693c0c686d300aceff4fbd5542f2e624683cbdf46faf0280c439aec7a94fbd6",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\debug_7\\xvlog.log": "060ec670d9aeeecda17bbcfd6d38221ae61400ad09cfa082744d8dac2da19197",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\step0.log": "77708e3359a09965700c30ffe061249e113b2e63d9e5668a82948052ad0bce9c",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\step1.log": "03c4b659d1814ba1c843e4d1922d95725126ed7fe92e01197c38b6169c1081be",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\step2.log": "bf09f17cb31767b139c8cf813ae0d32d98f13c426d3f7e17bd7b46a3cd18ff64",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\xelab.log": "0bdd035f053092f7e7efb5c530ceeb74ed3df5367207f36a462ea241f8436b9e",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\xsim.dir\\negative_snapshot\\xsimkernel.log": "ed13b882692d0a73501e9581ec77caeb5af050640cf28ef659f2fb5edb4dbec4",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\xsim.log": "03b4f467b32298e5246e279ec99347a19859819f58175fc0a1bdbbb6889fd2cc",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_10\\xvlog.log": "755f396e3cafb6c5ffe38176e7ce93e52f3f86eb7cf29fa5bf9d78a26d4d4ab6",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\step0.log": "70dcd0a45c4b5b22d635017f929ce302a41b2195de3baccf5de493b4788ad112",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\step1.log": "ffe9335697199186dc6392f34cf56454314177479815298ae0cadc28ba8f2850",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\step2.log": "376aa1cdf8dab85490772e38266f8787efb50c43bffd78f843176cc82389376a",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\xelab.log": "2bc8787214e943de4639f45ffc820cd81bd23c2b0b5167673c8547899f209262",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\xsim.dir\\negative_snapshot\\xsimkernel.log": "4457736b07b48c4cd8534968149a740698816a1c54764da40e0a61f3395283d3",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\xsim.log": "68fedc9a3af34e42ea19147f1e5d7db49805c6aa4a28180a814e31167f88b808",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_5\\xvlog.log": "67a9b385b1f2c341b512858fceb5a021d2077013b80c80fa024d50ad0a3ee4b5",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\step0.log": "913303c2b60bc26ceabb0802abd44de18c1288c8e866d9d30cd96a3c0ffd142e",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\step1.log": "40668963ba6360d0a2e022c73fd507f715b7e9cf6714f9d9a7708801fd79480d",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\step2.log": "ea3002eafa5274e33832492fd84bd570e09ebeb1fa7f3ca408cf75dee8cef723",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\xelab.log": "eaf1d752daab2a1fd27db59f6838330069d0f5f0922fec2f3df414b8ff26d2f8",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\xsim.dir\\negative_snapshot\\xsimkernel.log": "1f3d64007dd0f41b6aa1b1dc07f688463ef0d9f0fbed3d95c4a24efb036b37e5",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\xsim.log": "1171bbba7f1279f32833aaea54d9504505ea04c3457a09275ba162468e27fbd7",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\loader-owner_7\\xvlog.log": "632197705cc6ea6a719c8d603904a0562882c7b67656e3fbe79703e0a9539c2d",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\step0.log": "d16574555dcdee40506294bac9bf8359cd216791e0c151b91f4f83c4e13e6117",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\step1.log": "122c89a6d89bf08bedcab52c0dc1b38f5bd743df564940b349b5c9cb9fc67b64",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\step2.log": "1301c543c778036e6d1e76d02e7362646b1b1819cbd36017ed6fc043b1f2d3d4",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\xelab.log": "8094b42074d9a3ae7c2639542405e6497d0f9299c03d348d677bc79e5f61f86f",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\xsim.dir\\negative_snapshot\\xsimkernel.log": "e9128f8587f0cbf8a6164ffdd17d1e434c0cd3e6a0595c547b1db40a15b8086e",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\xsim.log": "17bd44f80570ab34bc00cfba4273bab750203968c1dd6646600ac0dff1c119cd",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_10\\xvlog.log": "13a35fc352557d93baafd296ee607b574959df7d68e8b99deb030740e2297378",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\step0.log": "0114b6aaefeed12b0d5f54c2072c357ef959895c637acd072a495ba82da20a6a",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\step1.log": "be67c9a127cb0c95a3c753224f0c14db5c1dfd224b4010485f548ee87275acb6",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\step2.log": "1440c9bb3661904e0b040529785d90f8be997b4500d7df83a8e59db603f30c55",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\xelab.log": "ae225fb63ded7b334c6dbc5fd271a70190ae9183cd5e201279cde311d94af8d0",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\xsim.dir\\negative_snapshot\\xsimkernel.log": "35b88a395f0ea034821420c64636d0d0bd070152681b0bfe9264011742ec5e72",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\xsim.log": "8e1c9c421bcc48d855ff3cb2a97a6ad842545b1c14b753fb373946bab1b42da1",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_5\\xvlog.log": "5b00f74fc23248e6ec2e0653700a1f817ac82b31e2ee98621f64f865145f4b9a",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\step0.log": "598e0208a7079b6e0d45567d888a979ce763d1e804cb95e775281f6b10e9ef86",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\step1.log": "5c05a16a0c7598d64471aadcc5583510085f1a48fe32e0d47821e34f64e12885",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\step2.log": "e669921f6e7a54b1360f4f80dc1c108b4ae51e0e522360a80e6b09c119b1c47a",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\xelab.log": "9a36ab5f7f9ad2961c958c2ed308a8d538c7871b712c684f0eec10739c013475",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\xsim.dir\\negative_snapshot\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\xsim.dir\\negative_snapshot\\xsimkernel.log": "2736566afd57f9cfcff15dd3831c7a1fc810c36816d0aae81cdb8e8777f44999",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\xsim.log": "c0ef76b41fc0753061398d405fd287903a14cb1967d8b2a40e9279fe7c89a698",
+    "out\\native-cdc-86830fe-r1\\negative-oracles\\timer_7\\xvlog.log": "5f2c4a223582a33e1e7e43d5a717656867c4713a4eb595d43be8c1860e5c79a6",
+    "out\\native-cdc-86830fe-r1\\timer-emission.log": "dd376dc14abd55c09e7255025e35ebec0f4b8601128cd9088f4d05ae10c2a9cf",
+    "out\\native-dci-86830fe-r1\\dci-compile.log": "c45995273f284332b3d4df6892b8612566af67765e4c8c5745bd9f40ceaee9ac",
+    "out\\native-dci-86830fe-r1\\dci-elab.log": "dc4a01d31649aa938a218b1f1ded6f3af769c2767e08ab79ebd8af533f6ecf27",
+    "out\\native-dci-86830fe-r1\\dci-inspect.log": "9274dfb8e2744c8ea2b9f5ca6118cb833ea4f0a62e2d01b6532a789603fd6ac5",
+    "out\\native-dci-86830fe-r1\\dci-negative-elab.log": "79cd4e7a4d861d0f41f920c61260a7b2aaecf8fa97c259b32d12abababbc01c4",
+    "out\\native-dci-86830fe-r1\\dci-negative-run.log": "683c49b1a332e7234d53dc79a67074d6f740a10f7fdc09546fb22abe88d47428",
+    "out\\native-dci-86830fe-r1\\dci-run.log": "c578caccabf009eb69575afa45335de501d6967d38e7e3a5871aaeaaa463c38d",
+    "out\\native-dci-86830fe-r1\\xelab.log": "69d15c12a8bfbde621e5183c3961a031f0fa8319475959f0c914d64bd0d338b2",
+    "out\\native-dci-86830fe-r1\\xsim.dir\\dci\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-dci-86830fe-r1\\xsim.dir\\dci\\xsimkernel.log": "a35e7e25e1f1c9e50b47ecd8b480ba7d97bfe1465a1770dd4496a71d9070533e",
+    "out\\native-dci-86830fe-r1\\xsim.dir\\dci-negative\\xsimcrash.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out\\native-dci-86830fe-r1\\xsim.dir\\dci-negative\\xsimkernel.log": "843c123b96b6e254f21872e04faaccaac6baa3489e4088cef3e5e9c730b56bfb",
+    "out\\native-dci-86830fe-r1\\xsim.log": "ebfa449369580551b978e3c52a18397ab509e757e4de3e66aa739dd6cd4377a0",
+    "out\\native-dci-86830fe-r1\\xsim_22656.backup.log": "69747397d49e3e057131da704847bc8efc2802edd685f4bcbb6dbe0807c5c8c6",
+    "out\\native-dci-86830fe-r1\\xsim_44324.backup.log": "7810147ac00cfd6716171f1ec272420e2e80412c7924e074dcaeb3c7ae3b6e1a",
+    "out\\native-dci-86830fe-r1\\xvlog.log": "cbc88f5dcb0ebce44cba5f810c8c70c120ad384a66e84db871db26593d1fbf72"
+  }
+}
