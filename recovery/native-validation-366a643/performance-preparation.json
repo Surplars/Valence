@@ -1,0 +1,40 @@
+{
+  "source_commit": "366a643f93bc598851e16c69aa399529e7c70fdf",
+  "affected_tests": {
+    "command": "IonSoC.test.testOnly platform.CommonCpuTilesSpec platform.CommonPlatformAbiSpec",
+    "suite_counts": [
+      10,
+      8
+    ],
+    "exit": 0,
+    "log_sha256": "43342ae05dbf94d498005ebbb4a5ee3d24fde21e688d38e738576b52201e6f89"
+  },
+  "production_emission": {
+    "exit": 0,
+    "profile": "performance300-static",
+    "sha256": "90b7ef02d8ccd2a4453f31d6c7aca9d6f2b7b9c541266091c072515169e157aa",
+    "artifacts": 249
+  },
+  "package": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\performance300-independent-366a643-r1",
+  "blocker": {
+    "status": "BLOCKED",
+    "reason": "No matching common-platform-affected-short functional PASS receipt available for current production/source closure. Do not reuse historical receipt or fabricate acceptance.",
+    "expected_profile_sha256": "60b02838f312f612157b1ecc80f7f42692537a7bece1637dfb6a58373785193d",
+    "old_receipt_profile_sha256": "41746b608701418b462b471cf611841f2bf829fd4606941f5fd369179cd6f6f7",
+    "old_production_source_files_missing_or_different": 23,
+    "fresh_clock_ip": "NOT_STARTED_OFFICIAL_FREEZE_PRECONDITION",
+    "synthesis": "NOT_STARTED",
+    "source_commit": "366a643f93bc598851e16c69aa399529e7c70fdf"
+  },
+  "firmware_and_mig_sha256": {
+    "firmware\\bootrom-128k.bin": "c37ecf00a4864b537c6d8a804a2207289bbde9226ba247c1ead4dcad733a365f",
+    "firmware\\bootrom-build-contract.json": "d12487dc3342381243f40895744c9054397899d51a28fc8741780249735007fd",
+    "firmware\\bootrom.bin": "9b7b73d044f0c6a457f5ed7c3ae2f332aa3b076d26ddf65bef577fe24278e80d",
+    "firmware\\bootrom.coe": "013c2a59a05cda3110da25a059b334e0aa3341031e649d3cee829c28046c392a",
+    "firmware\\clock-contract.json": "352de7acf0bfce2902da5fd05c9dc994443c3628855aa1f720640fa3365e2513",
+    "ip\\ddr4_0.xci": "278fef82fc53811b462514f4859aa455897f6e362e05f8d992433a9b54ea6330"
+  },
+  "fresh_ip": "NOT_STARTED",
+  "synthesis": "NOT_STARTED",
+  "running_processes": []
+}

@@ -1,0 +1,25 @@
+{
+  "source_commit": "366a643f93bc598851e16c69aa399529e7c70fdf",
+  "dci_positive": "PASS",
+  "actual_vendor": "Vivado2025.2 UNISIM STARTUPE3/DCIRESET",
+  "positive_forbidden_messages_found": false,
+  "short_pulse_negative": "REJECTED_REAL_VENDOR_HIGH_AND_LOW_TIMING_VIOLATIONS",
+  "source_sha256": {
+    "fpga\\common\\native_dci_startup.sv": "63927effc09820eda79b852251463e3d0ae6cbbbdc7a8e435baee1e18a0e75c3",
+    "fpga\\common\\dci_startup_tb.sv": "d9239566c133bd9115d7a6dfed11ba19402c7b19539ba61334f422bcdf519c03"
+  },
+  "logs_sha256": {
+    "dci-compile.log": "c45995273f284332b3d4df6892b8612566af67765e4c8c5745bd9f40ceaee9ac",
+    "dci-elab.log": "dc4a01d31649aa938a218b1f1ded6f3af769c2767e08ab79ebd8af533f6ecf27",
+    "dci-negative-elab.log": "79cd4e7a4d861d0f41f920c61260a7b2aaecf8fa97c259b32d12abababbc01c4",
+    "dci-negative-run.log": "933a3d11835d241dd3765182f0a06067e27507183fe6ee00f8f0e63d0a33755d",
+    "dci-run.log": "7eb1a10508f982e63ed362bfe2e6d4af771693d45ac783b6f4f4754ae562106b",
+    "xelab.log": "69d15c12a8bfbde621e5183c3961a031f0fa8319475959f0c914d64bd0d338b2",
+    "xsim.log": "bad7cf2aafc88b4e2213887efec2d08ea528240480219d2494a0e031be9c4375",
+    "xsim_52988.backup.log": "b9bda05bb35fcd7638228b7c68401ec4f1d0417d2a1b8a86c495ca58d6442054",
+    "xvlog.log": "cbc88f5dcb0ebce44cba5f810c8c70c120ad384a66e84db871db26593d1fbf72"
+  },
+  "reuse": "AXI/timer/DMI/loader boundary modules and fixtures unchanged from86830fe; prior scope reusable, not whole-profile boot acceptance.",
+  "board": false,
+  "physical_signoff": false
+}
