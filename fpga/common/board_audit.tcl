@@ -50,7 +50,7 @@ proc common_board::rom {} {
     foreach key {rom python} {if {![info exists valence($key)]} {error "COMMON_ROM missing frozen $key binding"}}
     set dump [file join $valence(out) rom-netlist.json]
     rom_dump u_soc/fabric/rom/memory $dump
-    set result [exec $valence(python) [file join $valence(root) fpga common rom_audit.py] --netlist $dump --rom $valence(rom) --output [file join $valence(out) rom-mapping.json]]
+    set result [exec $valence(python) -E [file join $valence(root) fpga common rom_audit.py] --netlist $dump --rom $valence(rom) --output [file join $valence(out) rom-mapping.json]]
     if {[string trim $result] ne "COMMON_ROM_CONTENT_MAPPING_PASS"} {error "COMMON_ROM no verified content/mapping result"}
 }
 proc common_board::cpu {} {

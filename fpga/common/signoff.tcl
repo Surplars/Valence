@@ -69,7 +69,7 @@ proc valence_final_main {} {
         $valence(threads) $limit [join $domains ,]]
     close $f
     # Nonzero parser/coverage/stage/hash failure raises Tcl error BEFORE the sole bit write.
-    puts [exec $python [file join $valence(root) fpga common manifest.py] signoff \
+    puts [exec $python -E [file join $valence(root) fpga common manifest.py] signoff \
         --manifest $valence(manifest) --reports $valence(out) --dcp $dcp --dcp-sha256 $valence(dcp_sha256)]
     if {$generate} {
         valence_blocked_write_bitstream [file join $valence(out) qualified.bit]

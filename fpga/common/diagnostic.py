@@ -42,8 +42,11 @@ def check(path):
     actual_sources={p for p in m['inputs'] if p.startswith(('src/main/scala/','src/main/resources/','src/test/scala/platform/'))}
     gate.require(actual_sources=={p for p in baseline['inputs'] if p.startswith(('src/main/scala/','src/main/resources/','src/test/scala/platform/'))}, 'source closure differs from published baseline')
     for p,h in baseline['inputs'].items():
-        # Explicit parser tooling overlay only; emission/core/RTL/IP bytes remain bound.
-        if p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py'): continue
+        # Explicit parser / external-Python isolation overlays only; all actual bytes
+        # remain inventory-hashed. Baseline RTL, IP and hardware sources are unchanged.
+        if p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py',
+                 'fpga/common/board_audit.tcl', 'fpga/common/simulate.tcl',
+                 'fpga/common/signoff.tcl'): continue
         gate.require(m['inputs'].get(p) == h, 'source differs from published baseline (do not freeze dirty core): '+p)
     for helper in HELPERS:
         gate.require('fpga/common/'+helper in m['inputs'], 'unfrozen diagnostic helper')

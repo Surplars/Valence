@@ -17,7 +17,7 @@ proc diagnostic_main {} {
     set ::env(VALENCE_REQUESTED_THREADS) $valence(threads)
     set ::env(VALENCE_PROFILE_SHA256) $valence(profile_sha256)
     source [file join $valence(root) fpga common producer_common.tcl]
-    puts [exec $valence(python) [file join $valence(root) fpga common diagnostic.py] check --manifest $valence(manifest)]
+    puts [exec $valence(python) -E [file join $valence(root) fpga common diagnostic.py] check --manifest $valence(manifest)]
     if {$valence(phase) eq "synthesis"} {
         source [file join $valence(root) fpga common synthesize.tcl]
     } else {
@@ -44,7 +44,7 @@ proc diagnostic_main {} {
             if {[llength $clk]!=1} {error "Missing actual $domain clock"}
             report_timing -from $clk -to $clk -delay_type max -max_paths 20 -file $domain-worst-paths.rpt
         }
-        set valence(dcp_sha256) [string trim [exec $valence(python) -c {import hashlib;print(hashlib.sha256(open('routed.dcp','rb').read()).hexdigest())}]]
+        set valence(dcp_sha256) [string trim [exec $valence(python) -E -c {import hashlib;print(hashlib.sha256(open('routed.dcp','rb').read()).hexdigest())}]]
         set ::common_board_definitions_only 1
         source [file join $valence(root) fpga common board_audit.tcl]
         set f [open diagnostic-audit.txt w]

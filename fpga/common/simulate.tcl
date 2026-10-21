@@ -16,7 +16,7 @@ foreach tool {xvlog xelab xsim} {
 }
 if {!$supports_mt(xelab)} {error "Installed xelab lacks required explicit -mt N support"}
 # Pin the public test's actual FPGA vendor TAP identity; newer model bytes need review.
-puts [exec $valence(python) [file join $valence(root) fpga common simulation_inputs.py] --root $valence(root) --vendor $vendor]
+puts [exec $valence(python) -E [file join $valence(root) fpga common simulation_inputs.py] --root $valence(root) --vendor $vendor]
 set command [list $executable(xvlog) -sv {*}[common_files simulation_filelist] [file join $vendor glbl.v]]
 if {$supports_mt(xvlog)} {lappend command -mt $valence(threads)}
 common_run xvlog-console.log $command
