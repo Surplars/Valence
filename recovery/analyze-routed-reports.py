@@ -5,6 +5,7 @@ import argparse, hashlib, json, re
 p = argparse.ArgumentParser()
 p.add_argument('directory', type=Path)
 p.add_argument('output', type=Path)
+p.add_argument('--executed-constraints-commit', help='Explicit override only for a documented historical receipt mismatch')
 a = p.parse_args()
 root = a.directory
 text = (root/'diagnostic-timing.rpt').read_text(errors='replace')
@@ -59,14 +60,24 @@ inputs = json.loads((root/'implementation-inputs.json').read_text(encoding='utf-
 route_text = (root/'diagnostic-route.rpt').read_text()
 fully_routed = int(re.search(r'# of fully routed nets\.+\s*:\s*(\d+)', route_text)[1])
 route_errors = int(re.search(r'# of nets with routing errors\.+\s*:\s*(\d+)', route_text)[1])
+resources = {}
+for line in (root/'diagnostic-utilization.rpt').read_text().splitlines():
+    fields = [x.strip() for x in line.split('|')[1:-1]]
+    if fields and fields[0] in ('CLB LUTs', 'CLB Registers', 'Block RAM Tile', 'URAM', 'DSPs', 'Bonded IOB'):
+        value = dict(used=float(fields[1]), available=float(fields[-2]), percent=float(fields[-1]))
+        if fields[0] in resources and resources[fields[0]] != value:
+            raise ValueError('Ambiguous utilization row: '+line)
+        resources[fields[0]] = value
+if len(resources) != 6: raise ValueError('Incomplete utilization report')
 result = {'global_ns':global_metrics,'intra_clock':intra,'inter_clock':inter,'other_groups':other,
     'detailed_paths':paths,'files':hashes,
     'native_exit':json.loads((root/'implementation-exit.json').read_text(encoding='utf-8-sig')),
     'source_commit':inputs['rtl_source_commit'],
-    'executed_constraints_commit':'0cbcea4a48b9f23c0d7bf23780de8d692f163104',
+    'executed_constraints_commit':a.executed_constraints_commit or inputs['preparation_commit'],
     'recorded_preparation_commit':inputs['preparation_commit'],
     'profile_sha256':inputs['profile_sha256'],
-    'route_fully_routed_nets':fully_routed,'route_errors':route_errors,'final_signoff':False,'bitstream_generated':False}
+    'route_fully_routed_nets':fully_routed,'route_errors':route_errors,'resources':resources,
+    'final_signoff':False,'bitstream_generated':False}
 a.output.write_text(json.dumps(result,indent=2)+'\n')
 print('GLOBAL',global_metrics)
 print('ROUTED_DCP',hashes['routed-diagnostic-unqualified.dcp'])

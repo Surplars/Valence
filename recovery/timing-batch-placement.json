@@ -1,0 +1,34 @@
+{
+  "phase": "PHYS_OPT_RUNNING_PLACED_CHECKPOINT_SAVED",
+  "source_commit": "f6f04c4f8a66b217e1c4511d3d8038a8f32b1f68",
+  "profile_sha256": "80e29e6eb99b7e2e65c7b802249dd262ff707cfc8420c9767ab87bb9732d268d",
+  "vivado_pid": 47256,
+  "session": 34253,
+  "placed_dcp": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r1\\diagnostic-implementation-r1\\placed-diagnostic.dcp",
+  "placed_sha256": "0ed232ab4b25bd932a051337debc99d4adea88da760dae7faf5b8e05b77fcf7b",
+  "placed_bytes": 54706542,
+  "no_bitstream": true,
+  "physical_signoff": false,
+  "utc": "2026-10-21T06:14:54.008395+00:00",
+  "critical_warning_messages": [
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y26 had a top level port c0_ddr4_ck_t[0] on sitetype net OUTBUF_O which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y26 had a top level port c0_ddr4_ck_t[0] on sitetype net IO which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y26 had a top level port c0_ddr4_ck_t[0] on sitetype net PULL_PAD which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y23 had a top level port clk_in1_p on sitetype net PAD_RES which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y23 had a top level port clk_in1_p on sitetype net OUTBUF_O which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y23 had a top level port clk_in1_p on sitetype net IO which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4866] Site IOB_X1Y23 had a top level port clk_in1_p on sitetype net PULL_PAD which was overwritten!",
+    "CRITICAL WARNING: [Constraints 18-4518] Instance u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS had Lib Cell Type OBUFDS which is different than OBUFDS_DUAL_BUF.",
+    "CRITICAL WARNING: [Constraints 18-4522] Instance u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS had Lib Cell Type OBUFDS which is different than OBUFDS_DUAL_BUF.",
+    "CRITICAL WARNING: [Constraints 18-4522] Instance u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS had Lib Cell Type OBUFDS which is different than OBUFDS_DUAL_BUF.",
+    "CRITICAL WARNING: [Constraints 18-4522] Instance u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].OBUFDS had Lib Cell Type OBUFDS which is different than OBUFDS_DUAL_BUF.",
+    "CRITICAL WARNING: [Designutils 20-2070] During XDEF restore, placement information for 1 sites failed to restore.  Please run placement and routing to complete implementation."
+  ],
+  "critical_warning_classification": "12 messages on opening linked XDEF: seven IOB site overwrite, four OBUFDS/OBUFDS_DUAL_BUF restoration type mismatch, one placement site restore failure; subsequent place succeeded. Final route/DRC and exact routed MIG connectivity/electrical verification pending.",
+  "critical_warning_rule_counts": {
+    "Constraints 18-4866": 7,
+    "Constraints 18-4518": 1,
+    "Constraints 18-4522": 3,
+    "Designutils 20-2070": 1
+  }
+}
