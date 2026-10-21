@@ -107,6 +107,31 @@ class BoardInputs(unittest.TestCase):
         with self.assertRaises(ValueError): board_inputs.emitted_artifacts({'/tmp/a/CommonMachinePlatform.sv':'a','/tmp/b/CommonMachinePlatform.sv':'b'})
         with self.assertRaises(ValueError): board_inputs.emitted_sources({'C:/a/src/main/scala/T.scala':'a','D:/b/src/main/scala/T.scala':'a'})
 
+    def test_performance_parent_complete_control_binding(self):
+        parent = """  output [4:0] rgmiiTxRise, rgmiiTxFall;
+  TriSpeedRgmiiTx encode (
+    .clock           (rawTxClock),
+    .reset           (_rawTxRelease_resetOut),
+    .io_rate_ready   (_encode_io_rate_ready),
+    .io_rate_valid   (_txRate_destination_valid),
+    .io_rate_bits    (_txRate_destination_bits),
+    .io_datapathIdle (~_tx_io_busy & _txFifo_destinationIdle),
+    .io_byteStep     (_encode_io_byteStep),
+    .io_gmiiData     (_tx_io_gmiiData),
+    .io_gmiiEnable   (_tx_io_gmiiEnable),
+    .io_rise         (rgmiiTxRise),
+    .io_fall         (rgmiiTxFall),
+    .io_clockRise    (rgmiiTxClockRise),
+    .io_clockFall    (rgmiiTxClockFall),
+    .io_idle         (_encode_io_idle)
+  );"""
+        board_inputs.performance_mac_control_form(parent)
+        for bad in (parent.replace('(rawTxClock)', '(otherClock)'),
+                    parent.replace('(_rawTxRelease_resetOut)', '(otherReset)'),
+                    parent.replace('(rgmiiTxFall)', '(otherOutput)'),
+                    parent+'\nassign rgmiiTxRise = 0;', parent+parent):
+            with self.assertRaises(ValueError): board_inputs.performance_mac_control_form(bad)
+
     def test_bit_is_blocked_before_scenario_code(self):
         script = (HERE / 'signoff.tcl').read_text()
         self.assertLess(script.index('rename write_bitstream'), script.index('source $valence(media_scenarios)'))

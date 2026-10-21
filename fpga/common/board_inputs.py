@@ -1,5 +1,6 @@
 """Closed public board dependency list and emitted-port checks (no FPGA tools)."""
 import re
+import hashlib
 import manifest as gate
 
 PUBLIC_INPUTS = (
@@ -110,6 +111,18 @@ def emitted_sources(records):
     return result
 
 
+def performance_mac_control_form(parent):
+    # Reviewed complete instance is byte-identical to the prior quiesce proof.
+    instances = re.findall(r'  TriSpeedRgmiiTx encode \(.*?\n  \);', parent, re.S)
+    gate.require(len(instances) == 1 and hashlib.sha256(instances[0].strip().encode()).hexdigest() ==
+                 'e0e1ec735536567a3459a7c2699f145109ff349899fc36c56a8747c7573af1ee',
+                 'performance MAC complete encoder binding changed')
+    for port in ('rgmiiTxRise', 'rgmiiTxFall'):
+        # One output declaration + one direct encoder output; no parent logic.
+        gate.require(len(re.findall(r'\b'+port+r'\b', parent)) == 2,
+                     'performance MAC parent rewrites encoder control output')
+
+
 def emission(root, m):
     path = m['roles'].get('emission_profile')
     gate.require(path in m['inputs'], 'missing frozen production emission profile')
@@ -148,9 +161,12 @@ def emission(root, m):
     # receipt: recovery/quiesce-mac-control-form-review.json. No arbitrary form.
     admitted = {'TriSpeedRgmiiTx.sv': ('80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731',),
                 'TriSpeedManagedGmac.sv': ('6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302',
-                                         '84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691')}
+                                         '84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691',
+                                         '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556')}
     for name, expected in admitted.items():
         gate.require(m['inputs'].get((base / name).as_posix()) in expected, 'unreviewed common MAC control equality form: ' + name)
+    if m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556':
+        performance_mac_control_form(gate.file_at(root, (base / 'TriSpeedManagedGmac.sv').as_posix()).read_text())
     gate.require(m['inputs'].get('fpga/zu15eg/native_rgmii_trispeed_quarter.sv') ==
                  '32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc', 'unreviewed common MAC pad source')
     for reset in (0, 1):

@@ -1,0 +1,40 @@
+{
+  "source_commit": "366a643f93bc598851e16c69aa399529e7c70fdf",
+  "parent_bytes": 51400,
+  "parent_sha256": "1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556",
+  "encoder_sha256": "80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731",
+  "complete_encoder_instance_sha256": "e0e1ec735536567a3459a7c2699f145109ff349899fc36c56a8747c7573af1ee",
+  "prior_review": "recovery/quiesce-mac-control-form-review.json",
+  "complete_instance_identical_to_prior_review": true,
+  "output_symbol_occurrences": {
+    "rgmiiTxRise": 2,
+    "rgmiiTxFall": 2
+  },
+  "proof": "Unchanged encoder sets rise/fall bit4 to the identical enable on each rawTxClock edge and zero on the same reset. Complete clock/reset/input/output instance is byte-identical to prior review. Each parent output occurs only in its declaration and direct encoder connection; no control rewrite exists. Full new parent hash remains required alongside exact encoder/pad hashes.",
+  "rehearsal": {
+    "actual_published_baseline_sources": true,
+    "actual_249_emitted_artifacts": true,
+    "actual_published_dci_receipt": true,
+    "synthetic_only": [
+      "zero ROM fixture",
+      "matching static firmware contract fixture",
+      "non-vendor XCI sentinel",
+      "Windows host-key transformed copy for parser test"
+    ],
+    "posix_freeze_and_check": "PASS",
+    "windows_freeze_and_check": "PASS",
+    "expected_profile_sha256": "60b02838f312f612157b1ecc80f7f42692537a7bece1637dfb6a58373785193d",
+    "formal_gate": "REJECTS diagnostic schema",
+    "native_windows_prepare": "NOT_RUN_CLOUD",
+    "vivado": "NOT_RUN",
+    "functional_or_physical_qualification": false
+  },
+  "remaining_native_guards": [
+    "Windows fixed-disk and installed tools",
+    "real MIG XCI contract and generated IP availability",
+    "actual generated clocks and topology",
+    "mapped CDC/IO/reset shapes and budgets",
+    "native synthesis/place/route/coverage/DRC results"
+  ],
+  "scope": "Exact source control-equality admission and preflight rehearsal only. No formal functional gate relaxation, physical signoff, bitstream or board claim."
+}
