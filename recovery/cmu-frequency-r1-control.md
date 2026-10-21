@@ -1,4 +1,4 @@
-WIP: source compiled and production-lowering RTL emitted. Behavioral tests pending; no production integration or board qualification.
+Component phase verified: source compiled, RTL emitted, Scala2/2 and native xsim positive/negative oracles PASS. Production integration and board qualification remain pending.
 
 ClockRateControl.scala: AON rate transaction, separate rate evidence flags, source-reply receipt before quiesce, four owner/transport/fabric/AXI drain ACK contracts, closed-gate check, exact-Hz/token backend, lock/resume checks, timeout and50MHzfallback/fatal isolation. No DRP constants or production ACK ties. Default qualification table empty.
 
@@ -9,3 +9,5 @@ Per-bank offsets00requestHz,08actualHz,10status,18errorsW1C,20target,28boot,30qu
 ClockRateControlSpec.scala: config/elaboration suite and native fixture emitter with explicitly synthetic evidence flags. Tests have not run; compilation/emission passed after fixing private-helper visibility. Native behavior testbench is next. Real backend/DRP images, gates, real quiesce endpoints, AXI CDC, fixedtimebase, CMU dispatcher and timing/CDC integration remain unconnected.
 
 Automatic approval rejected this stage's commit/push before execution. Files and hash receipt remain local; no new commit or remote publication occurred. Preserve them if moving environments. No synthesis, implementation or bitstream.
+
+Latest validation: native AON687cycles,23MMIOrequests=23replies,15acceptedowners=15completedowners,237AONcycles with targetCPUclock stopped,8stalled source-reply cycles,10CPUbackend commands including4fallbacks,1fabric command. The23cases counter counts MMIOtransactions, not23independent scenarios. Source reply consumption really crosses a separate mailbox; no AON enqueue shortcut. Negative oracle deliberately expects100000001Hz after actual100000000Hz and is rejected. Full coverage, preserved failure logs and hashes: cmu-frequency-r1-component-validation.json. Prior publication rejection was resolved on re-review; WIPsource saved at6134179302f1b524e699f7ab64181f7285bf407f. Only fixture reset was fixed after the first native failures; no controller source or timeout weakening. No production high-frequency enablement is claimed.
