@@ -252,5 +252,56 @@ class ContinuationProvenanceTests(unittest.TestCase):
             resume.verify_continuation(self.root, self.checkpoint, self.digest, depth=7)
 
 
+    def test_only_exact_reviewed_placed_seal_is_compatible(self):
+        placed=self.make_stage(self.checkpoint,'placed','old-placed')
+        seal=Path(str(placed)+'.provenance.json')
+        record=json.loads(seal.read_text())
+        record['tool_sha256']=dict(resume.REVIEWED_PLACED_TOOLS)
+        seal.write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError,'tool identity'):
+            self.verify(placed,resume.sha(placed))
+        with mock.patch.object(resume,'REVIEWED_PLACED_SHA',resume.sha(placed)):
+            self.assertEqual(self.verify(placed,resume.sha(placed))['start_stage'],'placed')
+            record['tool_sha256']['common_cdc.tcl']='0'*64
+            seal.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError,'tool identity'):
+                self.verify(placed,resume.sha(placed))
+
+
 if __name__ == '__main__':
     unittest.main()
+
+@unittest.skipUnless(shutil.which('tclsh'), 'Tcl unavailable')
+class StageApplicabilityTests(unittest.TestCase):
+    def test_only_exact_preroute_rtstat13_is_not_applicable(self):
+        for stage, name, severity, allowed in [
+            ('optimized','RTSTAT-13#1','Critical Warning',True),
+            ('placed','RTSTAT-13#1','Critical Warning',True),
+            ('physical','RTSTAT-13#1','Critical Warning',True),
+            ('routed','RTSTAT-13#1','Critical Warning',False),
+            ('placed','RTSTAT-13#1','Error',False),
+            ('placed','RTSTAT-1#1','Critical Warning',False),
+            ('placed','OTHER-13#1','Critical Warning',False),
+            ('placed','RTSTAT-130#1','Critical Warning',False),
+        ]:
+            with self.subTest(stage=stage,name=name,severity=severity), tempfile.TemporaryDirectory() as d:
+                script='''set ::diagnostic_definitions_only 1
+source {%s}
+proc check_timing {args} {set f [open [lindex $args end] w]; puts $f "checking no_clock (0)\\nchecking unconstrained_internal_endpoints (0)";close $f}
+proc report_drc {args} {}
+proc get_drc_violations {args} {return v}
+proc get_pins {args} {return [lindex $args end]}
+proc get_clocks {args} {return [lindex $args end]}
+proc get_property {key object} {
+ if {$key eq "NAME"} {return {%s}}
+ if {$key eq "SEVERITY"} {return {%s}}
+ if {[string match *cpuClock $object]} {return 3.333333333333}
+ return 4.0
+}
+set failed [catch {diagnostic_stage_gate entry {%s}} reason]
+puts "FAILED=$failed"
+''' % (HERE/'diagnostic.tcl',name,severity,stage)
+                r=subprocess.run(['tclsh'],input=script,text=True,capture_output=True,cwd=d)
+                self.assertEqual(r.stderr,'')
+                self.assertIn('FAILED='+str(int(not allowed)),r.stdout)
+                if allowed:self.assertIn('NO_WAIVER',r.stdout)

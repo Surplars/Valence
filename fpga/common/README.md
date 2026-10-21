@@ -386,3 +386,13 @@ placed.dcp, physical-optimized-unqualified.dcp, or routed.dcp and its observed
 SHA256. Its recursive provenance and unchanged tool hashes are mandatory; only
 remaining stages execute. Missing or altered seals/proof tools block reuse.
 The complete reports remain unqualified and no bitstream can be written.
+
+
+Pre-route applicability: the exact RTSTAT-13 violation (Critical Warning only)
+means routing-status checks are not yet applicable to optimized, placed or
+physically optimized designs. It is recorded separately with NO_WAIVER and its
+original DRC report/severity is retained. Every other Error/Critical Warning
+still blocks, and RTSTAT-13 blocks at routed stage (including routed re-entry).
+The already-sealed a574139 placed checkpoint is reusable only at its exact
+observed SHA256 and full original tool hash set; this narrowly scoped gate fix
+does not admit other historical tool combinations or change clocks/RTL.

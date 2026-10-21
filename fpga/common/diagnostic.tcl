@@ -1,6 +1,7 @@
 set ::diagnostic_tools [file dirname [file normalize [info script]]]
 # Shared tail for fresh implementation and validated checkpoint continuation.
-proc diagnostic_stage_gate {stage} {
+proc diagnostic_stage_gate {stage {routingStage {}}} {
+    if {$routingStage eq {}} {set routingStage $stage}
     check_timing -verbose -file $stage-coverage.rpt
     set f [open $stage-coverage.rpt]; set coverage [read $f]; close $f
     foreach key {no_clock unconstrained_internal_endpoints} {
@@ -10,7 +11,18 @@ proc diagnostic_stage_gate {stage} {
     }
     report_drc -file $stage-drc.rpt
     set critical [get_drc_violations -quiet -filter {SEVERITY == Error || SEVERITY == "Critical Warning"}]
-    if {[llength $critical]} {error "Blocked $stage: Error/Critical Warning DRC $critical"}
+    foreach violation $critical {
+        # RTSTAT-13 means route-status checks cannot run before routing exists.
+        # Preserve original report/severity; this is stage applicability, not waiver.
+        set name [get_property NAME $violation]
+        set severity [get_property SEVERITY $violation]
+        if {$routingStage in {optimized placed physical} && $severity eq "Critical Warning" && [regexp {^RTSTAT-13#[0-9]+$} $name]} {
+            set f [open $stage-drc-applicability.txt a]
+            puts $f "$name PRE_ROUTE_NOT_YET_APPLICABLE stage=$routingStage original_severity=$severity NO_WAIVER"
+            close $f
+            puts "DIAGNOSTIC_PRE_ROUTE_NOT_YET_APPLICABLE $name stage=$routingStage NO_WAIVER"
+        } else {error "Blocked $stage: Error/Critical Warning DRC $violation"}
+    }
     foreach {domain period} {cpu 3.333333333333 fabric 4.0} {
         set clocks [get_clocks -quiet -of_objects [get_pins -quiet u_soc/${domain}Clock]]
         if {[llength $clocks]!=1 || abs([get_property PERIOD $clocks]-$period)>0.002} {error "Actual performance clock changed: $domain"}
@@ -19,7 +31,7 @@ proc diagnostic_stage_gate {stage} {
 proc diagnostic_tail {start} {
     global valence diagnostic_tools
     if {$start ni {optimized placed physical routed}} {error "Invalid continuation stage"}
-    diagnostic_stage_gate entry
+    diagnostic_stage_gate entry $start
     if {$start eq "routed"} {
         write_checkpoint routed.dcp
         if {[info exists valence(continuation)] && $valence(continuation)} {
