@@ -1,0 +1,255 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Date         : Wed Oct 21 18:54:06 2026
+| Host         : DESKTOP-HUJSC9H running 64-bit major release  (build 9200)
+| Command      : report_drc -checks DCIRST-1 -file C:/Users/surplars/Documents/Codex/2026-10-19/task-3/recovery-r1/out/reset-signoff-r2/dcirst-full.rpt -force
+| Design       : soc_top_common_ddr
+| Device       : xczu15eg-ffvb1156-2-i
+| Speed File   : -2
+| Design State : ignored
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Report DRC
+
+Table of Contents
+-----------------
+1. REPORT SUMMARY
+2. REPORT DETAILS
+
+1. REPORT SUMMARY
+-----------------
+            Netlist: netlist
+          Floorplan: checkpoint_routed-diagnostic-unqualified
+      Design limits: <entire design considered>
+
+            Checks: DCIRST-1
+             Max checks: <unlimited>
+             Checks found: 44
++----------+----------+---------------------------------+--------+
+| Rule     | Severity | Description                     | Checks |
++----------+----------+---------------------------------+--------+
+| DCIRST-1 | Warning  | DCIRESET is required for design | 44     |
++----------+----------+---------------------------------+--------+
+
+2. REPORT DETAILS
+-----------------
+DCIRST-1#1 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dm_dbi_n[0] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#2 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dm_dbi_n[1] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#3 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dm_dbi_n[2] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#4 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dm_dbi_n[3] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#5 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[0] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#6 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[10] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#7 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[11] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#8 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[12] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#9 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[13] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#10 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[14] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#11 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[15] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#12 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[16] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#13 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[17] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#14 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[18] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#15 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[19] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#16 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[1] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#17 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[20] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#18 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[21] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#19 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[22] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#20 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[23] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#21 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[24] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#22 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[25] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#23 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[26] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#24 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[27] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#25 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[28] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#26 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[29] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#27 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[2] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#28 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[30] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#29 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[31] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#30 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[3] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#31 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[4] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#32 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[5] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#33 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[6] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#34 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[7] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#35 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[8] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#36 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dq[9] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#37 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_c[0] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#38 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_c[1] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#39 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_c[2] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#40 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_c[3] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#41 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_t[0] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#42 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_t[1] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#43 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_t[2] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>
+
+DCIRST-1#44 Warning
+DCIRESET is required for design
+IO port c0_ddr4_dqs_t[3] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.
+Related violations: <none>

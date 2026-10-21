@@ -1,0 +1,1621 @@
+DCIRESET cells:
+ENDPOINT phy_reset_pipe_reg[0]/PRE
+RESET_NET phy_reset_pipe[2]_i_1_n_0
+STARTPOINTS u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED
+CONE phy_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN phy_reset_pipe_reg[0]/Q NET=phy_reset_pipe[0]
+CONEPIN phy_reset_pipe_reg[0]/C NET=clk_aon
+CONEPIN phy_reset_pipe_reg[0]/CE NET=<const1>
+CONEPIN phy_reset_pipe_reg[0]/D NET=<const0>
+CONEPIN phy_reset_pipe_reg[0]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CONE phy_reset_pipe[2]_i_1 REF=LUT6 ASYNC_REG= INIT=64'hF7FFFFFFFFFFFFFF
+CONEPIN phy_reset_pipe[2]_i_1/O NET=phy_reset_pipe[2]_i_1_n_0
+CONEPIN phy_reset_pipe[2]_i_1/I0 NET=cpu_locked
+CONEPIN phy_reset_pipe[2]_i_1/I1 NET=eth_locked
+CONEPIN phy_reset_pipe[2]_i_1/I2 NET=ui_reset
+CONEPIN phy_reset_pipe[2]_i_1/I3 NET=sys_rst_n_IBUF
+CONEPIN phy_reset_pipe[2]_i_1/I4 NET=button_n_IBUF
+CONEPIN phy_reset_pipe[2]_i_1/I5 NET=delay_ready
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/O NET=u_rgmii/delay_ready
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I0 NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONE u_rgmii/delay_control_REPLICATED_0 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONEPIN u_rgmii/delay_control_REPLICATED_0/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND_1 REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/O NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I0 NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONE u_rgmii/delay_control_REPLICATED_0_1 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/delay_control REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control/RDY NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/delay_control/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control/RST NET=u_rgmii/delay_reset
+CONE button_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/O NET=button_n_IBUF_inst/O
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/I NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE button_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/INBUF_INST/O NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/PAD NET=button_n_IBUF_inst/I
+CONEPIN button_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE sys_rst_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/O NET=sys_rst_n_IBUF_inst/O
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/I NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE sys_rst_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/O NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/PAD NET=sys_rst_n_IBUF_inst/I
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE u_ddr/inst/div_clk_rst_r1_reg REF=FDRE ASYNC_REG= INIT=1'b0
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/Q NET=u_ddr/inst/div_clk_rst_r1
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/C NET=u_ddr/inst/c0_ddr4_ui_clk
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/CE NET=u_ddr/inst/<const1>
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/D NET=u_ddr/inst/c0_div_clk_rst
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/R NET=u_ddr/inst/<const0>
+CONE network_clock/locked_INST_0 REF=LUT2 ASYNC_REG= INIT=4'h2
+CONEPIN network_clock/locked_INST_0/O NET=network_clock/locked
+CONEPIN network_clock/locked_INST_0/I0 NET=network_clock/pll_locked
+CONEPIN network_clock/locked_INST_0/I1 NET=network_clock/phase_reset[2]
+CONE network_clock/phase_reset_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN network_clock/phase_reset_reg[2]/Q NET=network_clock/phase_reset[2]
+CONEPIN network_clock/phase_reset_reg[2]/C NET=network_clock/delay_source
+CONEPIN network_clock/phase_reset_reg[2]/CE NET=network_clock/<const1>
+CONEPIN network_clock/phase_reset_reg[2]/D NET=network_clock/phase_reset[1]
+CONEPIN network_clock/phase_reset_reg[2]/PRE NET=network_clock/phase_inhibit
+CONE network_clock/pll REF=PLLE4_ADV ASYNC_REG= INIT=
+CONEPIN network_clock/pll/CLKFBOUT NET=
+CONEPIN network_clock/pll/CLKOUT0 NET=network_clock/ref_source
+CONEPIN network_clock/pll/CLKOUT0B NET=
+CONEPIN network_clock/pll/CLKOUT1 NET=
+CONEPIN network_clock/pll/CLKOUT1B NET=
+CONEPIN network_clock/pll/CLKOUTPHY NET=
+CONEPIN network_clock/pll/DO[15] NET=
+CONEPIN network_clock/pll/DO[14] NET=
+CONEPIN network_clock/pll/DO[13] NET=
+CONEPIN network_clock/pll/DO[12] NET=
+CONEPIN network_clock/pll/DO[11] NET=
+CONEPIN network_clock/pll/DO[10] NET=
+CONEPIN network_clock/pll/DO[9] NET=
+CONEPIN network_clock/pll/DO[8] NET=
+CONEPIN network_clock/pll/DO[7] NET=
+CONEPIN network_clock/pll/DO[6] NET=
+CONEPIN network_clock/pll/DO[5] NET=
+CONEPIN network_clock/pll/DO[4] NET=
+CONEPIN network_clock/pll/DO[3] NET=
+CONEPIN network_clock/pll/DO[2] NET=
+CONEPIN network_clock/pll/DO[1] NET=
+CONEPIN network_clock/pll/DO[0] NET=
+CONEPIN network_clock/pll/DRDY NET=
+CONEPIN network_clock/pll/LOCKED NET=network_clock/pll_locked
+CONEPIN network_clock/pll/CLKFBIN NET=network_clock/GND_2
+CONEPIN network_clock/pll/CLKIN NET=network_clock/ui_clock
+CONEPIN network_clock/pll/CLKOUTPHYEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DCLK NET=network_clock/<const0>
+CONEPIN network_clock/pll/DEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[15] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[14] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[13] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[12] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[11] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[10] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[9] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[8] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[7] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DWE NET=network_clock/<const0>
+CONEPIN network_clock/pll/PWRDWN NET=network_clock/<const0>
+CONEPIN network_clock/pll/RST NET=network_clock/cold_reset
+CONE u_clk_wiz/inst/mmcme4_adv_inst REF=MMCME4_ADV ASYNC_REG= INIT=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUT NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUTB NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0 NET=u_clk_wiz/inst/clk_out1_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1 NET=u_clk_wiz/inst/clk_out2_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT4 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT5 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT6 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[15] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[14] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[13] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[12] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[11] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[10] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[9] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[8] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[7] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[6] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[5] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[4] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[3] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[2] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[1] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[0] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DRDY NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/LOCKED NET=u_clk_wiz/inst/locked
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCREQ NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBIN NET=u_clk_wiz/inst/GND_2
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN1 NET=u_clk_wiz/inst/clk_in1
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN2 NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSEL NET=u_clk_wiz/inst/<const1>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[15] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[14] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[13] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[12] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[11] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[10] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[9] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[8] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[7] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DWE NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSINCDEC NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PWRDWN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/RST NET=u_clk_wiz/inst/reset
+CHAIN phy_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[0]/Q NET=phy_reset_pipe[0]
+PIN phy_reset_pipe_reg[0]/C NET=clk_aon
+PIN phy_reset_pipe_reg[0]/CE NET=<const1>
+PIN phy_reset_pipe_reg[0]/D NET=<const0>
+PIN phy_reset_pipe_reg[0]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CHAIN phy_reset_pipe_reg[1] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[1]/Q NET=phy_reset_pipe[1]
+PIN phy_reset_pipe_reg[1]/C NET=clk_aon
+PIN phy_reset_pipe_reg[1]/CE NET=<const1>
+PIN phy_reset_pipe_reg[1]/D NET=phy_reset_pipe[0]
+PIN phy_reset_pipe_reg[1]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CHAIN phy_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[2]/Q NET=phy_reset_pipe[2]
+PIN phy_reset_pipe_reg[2]/C NET=clk_aon
+PIN phy_reset_pipe_reg[2]/CE NET=<const1>
+PIN phy_reset_pipe_reg[2]/D NET=phy_reset_pipe[1]
+PIN phy_reset_pipe_reg[2]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+ENDPOINT u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/Q NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[0]
+CONEPIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/C NET=u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn
+CONEPIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/CE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>
+CONEPIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/D NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const0>
+CONEPIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/Q NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[0]
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/C NET=u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/CE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/D NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const0>
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset
+CHAIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]/Q NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[1]
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]/C NET=u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]/CE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]/D NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[0]
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]/PRE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset
+CHAIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/Q NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[2]
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/C NET=u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/CE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/D NET=u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[1]
+PIN u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]/PRE NET=u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset
+ENDPOINT u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/uart/agent/release_0/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/uart/agent/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/agent/release_0/release_0[0]
+CONEPIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/agent/release_0/clockIn
+CONEPIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/agent/release_0/<const1>
+CONEPIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/agent/release_0/<const0>
+CONEPIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/agent/release_0/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/agent/release_0/release_0[0]
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/agent/release_0/clockIn
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/agent/release_0/<const1>
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/agent/release_0/<const0>
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/agent/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1]/Q NET=u_soc/peripherals/uart/agent/release_0/release_0[1]
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1]/C NET=u_soc/peripherals/uart/agent/release_0/clockIn
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1]/CE NET=u_soc/peripherals/uart/agent/release_0/<const1>
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1]/D NET=u_soc/peripherals/uart/agent/release_0/release_0[0]
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[1]/PRE NET=u_soc/peripherals/uart/agent/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/Q NET=u_soc/peripherals/uart/agent/release_0/release_0[2]
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/C NET=u_soc/peripherals/uart/agent/release_0/clockIn
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/CE NET=u_soc/peripherals/uart/agent/release_0/<const1>
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/D NET=u_soc/peripherals/uart/agent/release_0/release_0[1]
+PIN u_soc/peripherals/uart/agent/release_0/release_0_reg[2]/PRE NET=u_soc/peripherals/uart/agent/release_0/asyncReset
+ENDPOINT u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/Q NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[0]
+CONEPIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/C NET=u_soc/peripherals/uart/bridge/destinationResetSync/clockIn
+CONEPIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/CE NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const1>
+CONEPIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/D NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const0>
+CONEPIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/Q NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[0]
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/C NET=u_soc/peripherals/uart/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/CE NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/D NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const0>
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset
+CHAIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]/Q NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[1]
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]/C NET=u_soc/peripherals/uart/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]/CE NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]/D NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[0]
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]/PRE NET=u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset
+CHAIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]/Q NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[2]
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]/C NET=u_soc/peripherals/uart/bridge/destinationResetSync/clockIn
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]/CE NET=u_soc/peripherals/uart/bridge/destinationResetSync/<const1>
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]/D NET=u_soc/peripherals/uart/bridge/destinationResetSync/release_0[1]
+PIN u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]/PRE NET=u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset
+ENDPOINT u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[0]
+CONEPIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn
+CONEPIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>
+CONEPIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const0>
+CONEPIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[0]
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const0>
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]/Q NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[1]
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]/C NET=u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]/CE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]/D NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[0]
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]/PRE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]/Q NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[2]
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]/C NET=u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]/CE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]/D NET=u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[1]
+PIN u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]/PRE NET=u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset
+ENDPOINT u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/uart/ingress/release_0/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/uart/ingress/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/ingress/release_0/release_0[0]
+CONEPIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/ingress/release_0/clockIn
+CONEPIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/ingress/release_0/<const1>
+CONEPIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/ingress/release_0/<const0>
+CONEPIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/ingress/release_0/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/Q NET=u_soc/peripherals/uart/ingress/release_0/release_0[0]
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/C NET=u_soc/peripherals/uart/ingress/release_0/clockIn
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/CE NET=u_soc/peripherals/uart/ingress/release_0/<const1>
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/D NET=u_soc/peripherals/uart/ingress/release_0/<const0>
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/ingress/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]/Q NET=u_soc/peripherals/uart/ingress/release_0/release_0[1]
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]/C NET=u_soc/peripherals/uart/ingress/release_0/clockIn
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]/CE NET=u_soc/peripherals/uart/ingress/release_0/<const1>
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]/D NET=u_soc/peripherals/uart/ingress/release_0/release_0[0]
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]/PRE NET=u_soc/peripherals/uart/ingress/release_0/asyncReset
+CHAIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]/Q NET=u_soc/peripherals/uart/ingress/release_0/release_0[2]
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]/C NET=u_soc/peripherals/uart/ingress/release_0/clockIn
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]/CE NET=u_soc/peripherals/uart/ingress/release_0/<const1>
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]/D NET=u_soc/peripherals/uart/ingress/release_0/release_0[1]
+PIN u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]/PRE NET=u_soc/peripherals/uart/ingress/release_0/asyncReset
+ENDPOINT u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/uart/rawRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/uart/rawRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/Q NET=u_soc/peripherals/uart/rawRelease/release_0[0]
+CONEPIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/C NET=u_soc/peripherals/uart/rawRelease/clockIn
+CONEPIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/CE NET=u_soc/peripherals/uart/rawRelease/<const1>
+CONEPIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/D NET=u_soc/peripherals/uart/rawRelease/<const0>
+CONEPIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/rawRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/uart/rawRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/Q NET=u_soc/peripherals/uart/rawRelease/release_0[0]
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/C NET=u_soc/peripherals/uart/rawRelease/clockIn
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/CE NET=u_soc/peripherals/uart/rawRelease/<const1>
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/D NET=u_soc/peripherals/uart/rawRelease/<const0>
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/uart/rawRelease/asyncReset
+CHAIN u_soc/peripherals/uart/rawRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[1]/Q NET=u_soc/peripherals/uart/rawRelease/release_0[1]
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[1]/C NET=u_soc/peripherals/uart/rawRelease/clockIn
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[1]/CE NET=u_soc/peripherals/uart/rawRelease/<const1>
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[1]/D NET=u_soc/peripherals/uart/rawRelease/release_0[0]
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/uart/rawRelease/asyncReset
+CHAIN u_soc/peripherals/uart/rawRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[2]/Q NET=u_soc/peripherals/uart/rawRelease/release_0[2]
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[2]/C NET=u_soc/peripherals/uart/rawRelease/clockIn
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[2]/CE NET=u_soc/peripherals/uart/rawRelease/<const1>
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[2]/D NET=u_soc/peripherals/uart/rawRelease/release_0[1]
+PIN u_soc/peripherals/uart/rawRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/uart/rawRelease/asyncReset
+ENDPOINT phy_reset_pipe_reg[0]/PRE
+RESET_NET phy_reset_pipe[2]_i_1_n_0
+STARTPOINTS u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED
+CONE phy_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN phy_reset_pipe_reg[0]/Q NET=phy_reset_pipe[0]
+CONEPIN phy_reset_pipe_reg[0]/C NET=clk_aon
+CONEPIN phy_reset_pipe_reg[0]/CE NET=<const1>
+CONEPIN phy_reset_pipe_reg[0]/D NET=<const0>
+CONEPIN phy_reset_pipe_reg[0]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CONE phy_reset_pipe[2]_i_1 REF=LUT6 ASYNC_REG= INIT=64'hF7FFFFFFFFFFFFFF
+CONEPIN phy_reset_pipe[2]_i_1/O NET=phy_reset_pipe[2]_i_1_n_0
+CONEPIN phy_reset_pipe[2]_i_1/I0 NET=cpu_locked
+CONEPIN phy_reset_pipe[2]_i_1/I1 NET=eth_locked
+CONEPIN phy_reset_pipe[2]_i_1/I2 NET=ui_reset
+CONEPIN phy_reset_pipe[2]_i_1/I3 NET=sys_rst_n_IBUF
+CONEPIN phy_reset_pipe[2]_i_1/I4 NET=button_n_IBUF
+CONEPIN phy_reset_pipe[2]_i_1/I5 NET=delay_ready
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/O NET=u_rgmii/delay_ready
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I0 NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONE u_rgmii/delay_control_REPLICATED_0 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONEPIN u_rgmii/delay_control_REPLICATED_0/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND_1 REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/O NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I0 NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONE u_rgmii/delay_control_REPLICATED_0_1 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/delay_control REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control/RDY NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/delay_control/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control/RST NET=u_rgmii/delay_reset
+CONE button_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/O NET=button_n_IBUF_inst/O
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/I NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE button_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/INBUF_INST/O NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/PAD NET=button_n_IBUF_inst/I
+CONEPIN button_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE sys_rst_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/O NET=sys_rst_n_IBUF_inst/O
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/I NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE sys_rst_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/O NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/PAD NET=sys_rst_n_IBUF_inst/I
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE u_ddr/inst/div_clk_rst_r1_reg REF=FDRE ASYNC_REG= INIT=1'b0
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/Q NET=u_ddr/inst/div_clk_rst_r1
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/C NET=u_ddr/inst/c0_ddr4_ui_clk
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/CE NET=u_ddr/inst/<const1>
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/D NET=u_ddr/inst/c0_div_clk_rst
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/R NET=u_ddr/inst/<const0>
+CONE network_clock/locked_INST_0 REF=LUT2 ASYNC_REG= INIT=4'h2
+CONEPIN network_clock/locked_INST_0/O NET=network_clock/locked
+CONEPIN network_clock/locked_INST_0/I0 NET=network_clock/pll_locked
+CONEPIN network_clock/locked_INST_0/I1 NET=network_clock/phase_reset[2]
+CONE network_clock/phase_reset_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN network_clock/phase_reset_reg[2]/Q NET=network_clock/phase_reset[2]
+CONEPIN network_clock/phase_reset_reg[2]/C NET=network_clock/delay_source
+CONEPIN network_clock/phase_reset_reg[2]/CE NET=network_clock/<const1>
+CONEPIN network_clock/phase_reset_reg[2]/D NET=network_clock/phase_reset[1]
+CONEPIN network_clock/phase_reset_reg[2]/PRE NET=network_clock/phase_inhibit
+CONE network_clock/pll REF=PLLE4_ADV ASYNC_REG= INIT=
+CONEPIN network_clock/pll/CLKFBOUT NET=
+CONEPIN network_clock/pll/CLKOUT0 NET=network_clock/ref_source
+CONEPIN network_clock/pll/CLKOUT0B NET=
+CONEPIN network_clock/pll/CLKOUT1 NET=
+CONEPIN network_clock/pll/CLKOUT1B NET=
+CONEPIN network_clock/pll/CLKOUTPHY NET=
+CONEPIN network_clock/pll/DO[15] NET=
+CONEPIN network_clock/pll/DO[14] NET=
+CONEPIN network_clock/pll/DO[13] NET=
+CONEPIN network_clock/pll/DO[12] NET=
+CONEPIN network_clock/pll/DO[11] NET=
+CONEPIN network_clock/pll/DO[10] NET=
+CONEPIN network_clock/pll/DO[9] NET=
+CONEPIN network_clock/pll/DO[8] NET=
+CONEPIN network_clock/pll/DO[7] NET=
+CONEPIN network_clock/pll/DO[6] NET=
+CONEPIN network_clock/pll/DO[5] NET=
+CONEPIN network_clock/pll/DO[4] NET=
+CONEPIN network_clock/pll/DO[3] NET=
+CONEPIN network_clock/pll/DO[2] NET=
+CONEPIN network_clock/pll/DO[1] NET=
+CONEPIN network_clock/pll/DO[0] NET=
+CONEPIN network_clock/pll/DRDY NET=
+CONEPIN network_clock/pll/LOCKED NET=network_clock/pll_locked
+CONEPIN network_clock/pll/CLKFBIN NET=network_clock/GND_2
+CONEPIN network_clock/pll/CLKIN NET=network_clock/ui_clock
+CONEPIN network_clock/pll/CLKOUTPHYEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DCLK NET=network_clock/<const0>
+CONEPIN network_clock/pll/DEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[15] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[14] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[13] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[12] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[11] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[10] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[9] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[8] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[7] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DWE NET=network_clock/<const0>
+CONEPIN network_clock/pll/PWRDWN NET=network_clock/<const0>
+CONEPIN network_clock/pll/RST NET=network_clock/cold_reset
+CONE u_clk_wiz/inst/mmcme4_adv_inst REF=MMCME4_ADV ASYNC_REG= INIT=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUT NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUTB NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0 NET=u_clk_wiz/inst/clk_out1_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1 NET=u_clk_wiz/inst/clk_out2_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT4 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT5 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT6 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[15] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[14] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[13] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[12] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[11] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[10] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[9] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[8] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[7] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[6] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[5] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[4] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[3] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[2] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[1] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[0] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DRDY NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/LOCKED NET=u_clk_wiz/inst/locked
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCREQ NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBIN NET=u_clk_wiz/inst/GND_2
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN1 NET=u_clk_wiz/inst/clk_in1
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN2 NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSEL NET=u_clk_wiz/inst/<const1>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[15] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[14] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[13] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[12] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[11] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[10] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[9] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[8] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[7] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DWE NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSINCDEC NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PWRDWN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/RST NET=u_clk_wiz/inst/reset
+CHAIN phy_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[0]/Q NET=phy_reset_pipe[0]
+PIN phy_reset_pipe_reg[0]/C NET=clk_aon
+PIN phy_reset_pipe_reg[0]/CE NET=<const1>
+PIN phy_reset_pipe_reg[0]/D NET=<const0>
+PIN phy_reset_pipe_reg[0]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CHAIN phy_reset_pipe_reg[1] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[1]/Q NET=phy_reset_pipe[1]
+PIN phy_reset_pipe_reg[1]/C NET=clk_aon
+PIN phy_reset_pipe_reg[1]/CE NET=<const1>
+PIN phy_reset_pipe_reg[1]/D NET=phy_reset_pipe[0]
+PIN phy_reset_pipe_reg[1]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+CHAIN phy_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1
+PIN phy_reset_pipe_reg[2]/Q NET=phy_reset_pipe[2]
+PIN phy_reset_pipe_reg[2]/C NET=clk_aon
+PIN phy_reset_pipe_reg[2]/CE NET=<const1>
+PIN phy_reset_pipe_reg[2]/D NET=phy_reset_pipe[1]
+PIN phy_reset_pipe_reg[2]/PRE NET=phy_reset_pipe[2]_i_1_n_0
+ENDPOINT ui_reset_pipe_reg[0]/PRE
+RESET_NET ui_reset_request
+STARTPOINTS u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED
+CONE ui_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[0]/Q NET=ui_reset_pipe[0]
+CONEPIN ui_reset_pipe_reg[0]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[0]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[0]/D NET=<const0>
+CONEPIN ui_reset_pipe_reg[0]/PRE NET=ui_reset_request
+CONE ui_reset_pipe[2]_i_1 REF=LUT6 ASYNC_REG= INIT=64'hF7FFFFFFFFFFFFFF
+CONEPIN ui_reset_pipe[2]_i_1/O NET=ui_reset_request
+CONEPIN ui_reset_pipe[2]_i_1/I0 NET=cpu_locked
+CONEPIN ui_reset_pipe[2]_i_1/I1 NET=eth_locked
+CONEPIN ui_reset_pipe[2]_i_1/I2 NET=ui_reset
+CONEPIN ui_reset_pipe[2]_i_1/I3 NET=sys_rst_n_IBUF
+CONEPIN ui_reset_pipe[2]_i_1/I4 NET=button_n_IBUF
+CONEPIN ui_reset_pipe[2]_i_1/I5 NET=calib_complete
+CONE u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg REF=FDRE ASYNC_REG= INIT=1'b0
+CONEPIN u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/Q NET=u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg_0
+CONEPIN u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C NET=u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/dReg_reg[13]
+CONEPIN u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/CE NET=u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/<const1>
+CONEPIN u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/D NET=u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_i
+CONEPIN u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/R NET=u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/<const0>
+CONE button_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/O NET=button_n_IBUF_inst/O
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/I NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE button_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/INBUF_INST/O NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/PAD NET=button_n_IBUF_inst/I
+CONEPIN button_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE sys_rst_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/O NET=sys_rst_n_IBUF_inst/O
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/I NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE sys_rst_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/O NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/PAD NET=sys_rst_n_IBUF_inst/I
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE u_ddr/inst/div_clk_rst_r1_reg REF=FDRE ASYNC_REG= INIT=1'b0
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/Q NET=u_ddr/inst/div_clk_rst_r1
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/C NET=u_ddr/inst/c0_ddr4_ui_clk
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/CE NET=u_ddr/inst/<const1>
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/D NET=u_ddr/inst/c0_div_clk_rst
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/R NET=u_ddr/inst/<const0>
+CONE network_clock/locked_INST_0 REF=LUT2 ASYNC_REG= INIT=4'h2
+CONEPIN network_clock/locked_INST_0/O NET=network_clock/locked
+CONEPIN network_clock/locked_INST_0/I0 NET=network_clock/pll_locked
+CONEPIN network_clock/locked_INST_0/I1 NET=network_clock/phase_reset[2]
+CONE network_clock/phase_reset_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN network_clock/phase_reset_reg[2]/Q NET=network_clock/phase_reset[2]
+CONEPIN network_clock/phase_reset_reg[2]/C NET=network_clock/delay_source
+CONEPIN network_clock/phase_reset_reg[2]/CE NET=network_clock/<const1>
+CONEPIN network_clock/phase_reset_reg[2]/D NET=network_clock/phase_reset[1]
+CONEPIN network_clock/phase_reset_reg[2]/PRE NET=network_clock/phase_inhibit
+CONE network_clock/pll REF=PLLE4_ADV ASYNC_REG= INIT=
+CONEPIN network_clock/pll/CLKFBOUT NET=
+CONEPIN network_clock/pll/CLKOUT0 NET=network_clock/ref_source
+CONEPIN network_clock/pll/CLKOUT0B NET=
+CONEPIN network_clock/pll/CLKOUT1 NET=
+CONEPIN network_clock/pll/CLKOUT1B NET=
+CONEPIN network_clock/pll/CLKOUTPHY NET=
+CONEPIN network_clock/pll/DO[15] NET=
+CONEPIN network_clock/pll/DO[14] NET=
+CONEPIN network_clock/pll/DO[13] NET=
+CONEPIN network_clock/pll/DO[12] NET=
+CONEPIN network_clock/pll/DO[11] NET=
+CONEPIN network_clock/pll/DO[10] NET=
+CONEPIN network_clock/pll/DO[9] NET=
+CONEPIN network_clock/pll/DO[8] NET=
+CONEPIN network_clock/pll/DO[7] NET=
+CONEPIN network_clock/pll/DO[6] NET=
+CONEPIN network_clock/pll/DO[5] NET=
+CONEPIN network_clock/pll/DO[4] NET=
+CONEPIN network_clock/pll/DO[3] NET=
+CONEPIN network_clock/pll/DO[2] NET=
+CONEPIN network_clock/pll/DO[1] NET=
+CONEPIN network_clock/pll/DO[0] NET=
+CONEPIN network_clock/pll/DRDY NET=
+CONEPIN network_clock/pll/LOCKED NET=network_clock/pll_locked
+CONEPIN network_clock/pll/CLKFBIN NET=network_clock/GND_2
+CONEPIN network_clock/pll/CLKIN NET=network_clock/ui_clock
+CONEPIN network_clock/pll/CLKOUTPHYEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DCLK NET=network_clock/<const0>
+CONEPIN network_clock/pll/DEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[15] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[14] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[13] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[12] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[11] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[10] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[9] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[8] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[7] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DWE NET=network_clock/<const0>
+CONEPIN network_clock/pll/PWRDWN NET=network_clock/<const0>
+CONEPIN network_clock/pll/RST NET=network_clock/cold_reset
+CONE u_clk_wiz/inst/mmcme4_adv_inst REF=MMCME4_ADV ASYNC_REG= INIT=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUT NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBOUTB NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSTOPPED NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0 NET=u_clk_wiz/inst/clk_out1_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1 NET=u_clk_wiz/inst/clk_out2_clk_wiz_common
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT1B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT2B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT3B NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT4 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT5 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT6 NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[15] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[14] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[13] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[12] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[11] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[10] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[9] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[8] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[7] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[6] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[5] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[4] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[3] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[2] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[1] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DO[0] NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DRDY NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/LOCKED NET=u_clk_wiz/inst/locked
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSDONE NET=
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CDDCREQ NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKFBIN NET=u_clk_wiz/inst/GND_2
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN1 NET=u_clk_wiz/inst/clk_in1
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKIN2 NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/CLKINSEL NET=u_clk_wiz/inst/<const1>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DADDR[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[15] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[14] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[13] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[12] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[11] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[10] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[9] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[8] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[7] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[6] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[5] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[4] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[3] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[2] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[1] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DI[0] NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/DWE NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSCLK NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSEN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PSINCDEC NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/PWRDWN NET=u_clk_wiz/inst/<const0>
+CONEPIN u_clk_wiz/inst/mmcme4_adv_inst/RST NET=u_clk_wiz/inst/reset
+CHAIN ui_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1
+PIN ui_reset_pipe_reg[0]/Q NET=ui_reset_pipe[0]
+PIN ui_reset_pipe_reg[0]/C NET=ui_clk
+PIN ui_reset_pipe_reg[0]/CE NET=<const1>
+PIN ui_reset_pipe_reg[0]/D NET=<const0>
+PIN ui_reset_pipe_reg[0]/PRE NET=ui_reset_request
+CHAIN ui_reset_pipe_reg[1] REF=FDPE ASYNC_REG=1
+PIN ui_reset_pipe_reg[1]/Q NET=ui_reset_pipe[1]
+PIN ui_reset_pipe_reg[1]/C NET=ui_clk
+PIN ui_reset_pipe_reg[1]/CE NET=<const1>
+PIN ui_reset_pipe_reg[1]/D NET=ui_reset_pipe[0]
+PIN ui_reset_pipe_reg[1]/PRE NET=ui_reset_request
+CHAIN ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1
+PIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+PIN ui_reset_pipe_reg[2]/C NET=ui_clk
+PIN ui_reset_pipe_reg[2]/CE NET=<const1>
+PIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+PIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+ENDPOINT rx_reset_pipe_reg[0]/PRE
+RESET_NET tx_release_i_1_n_0
+STARTPOINTS u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY ui_reset_pipe_reg[2]/C
+CONE rx_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN rx_reset_pipe_reg[0]/Q NET=rx_reset_pipe[0]
+CONEPIN rx_reset_pipe_reg[0]/C NET=clk_rx
+CONEPIN rx_reset_pipe_reg[0]/CE NET=<const1>
+CONEPIN rx_reset_pipe_reg[0]/D NET=<const0>
+CONEPIN rx_reset_pipe_reg[0]/PRE NET=tx_release_i_1_n_0
+CONE tx_release_i_1 REF=LUT2 ASYNC_REG= INIT=4'hB
+CONEPIN tx_release_i_1/O NET=tx_release_i_1_n_0
+CONEPIN tx_release_i_1/I0 NET=ui_reset_pipe[2]
+CONEPIN tx_release_i_1/I1 NET=delay_ready
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/O NET=u_rgmii/delay_ready
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I0 NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONE u_rgmii/delay_control_REPLICATED_0 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1
+CONEPIN u_rgmii/delay_control_REPLICATED_0/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/u_rgmii/delay_control_TOP_AND_1 REF=LUT2 ASYNC_REG= INIT=4'h8
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/O NET=u_rgmii/u_rgmii/delay_control_0
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I0 NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/u_rgmii/delay_control_TOP_AND_1/I1 NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONE u_rgmii/delay_control_REPLICATED_0_1 REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RDY NET=u_rgmii/u_rgmii/delay_control_REPLICATED_0_1_3
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control_REPLICATED_0_1/RST NET=u_rgmii/delay_reset
+CONE u_rgmii/delay_control REF=IDELAYCTRL ASYNC_REG= INIT=
+CONEPIN u_rgmii/delay_control/RDY NET=u_rgmii/u_rgmii/delay_control_2
+CONEPIN u_rgmii/delay_control/REFCLK NET=u_rgmii/delay_clock
+CONEPIN u_rgmii/delay_control/RST NET=u_rgmii/delay_reset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN rx_reset_pipe_reg[0] REF=FDPE ASYNC_REG=1
+PIN rx_reset_pipe_reg[0]/Q NET=rx_reset_pipe[0]
+PIN rx_reset_pipe_reg[0]/C NET=clk_rx
+PIN rx_reset_pipe_reg[0]/CE NET=<const1>
+PIN rx_reset_pipe_reg[0]/D NET=<const0>
+PIN rx_reset_pipe_reg[0]/PRE NET=tx_release_i_1_n_0
+CHAIN rx_reset_pipe_reg[1] REF=FDPE ASYNC_REG=1
+PIN rx_reset_pipe_reg[1]/Q NET=rx_reset_pipe[1]
+PIN rx_reset_pipe_reg[1]/C NET=clk_rx
+PIN rx_reset_pipe_reg[1]/CE NET=<const1>
+PIN rx_reset_pipe_reg[1]/D NET=rx_reset_pipe[0]
+PIN rx_reset_pipe_reg[1]/PRE NET=tx_release_i_1_n_0
+CHAIN rx_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1
+PIN rx_reset_pipe_reg[2]/Q NET=rx_reset_pipe[2]
+PIN rx_reset_pipe_reg[2]/C NET=clk_rx
+PIN rx_reset_pipe_reg[2]/CE NET=<const1>
+PIN rx_reset_pipe_reg[2]/D NET=rx_reset_pipe[1]
+PIN rx_reset_pipe_reg[2]/PRE NET=tx_release_i_1_n_0
+ENDPOINT u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset
+STARTPOINTS u_soc/peripherals/gmac/media/ingressResetSource_reg/C ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset
+CONE u_soc/peripherals/gmac/physicalIngress_i_1 REF=LUT2 ASYNC_REG= INIT=4'hE
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/O NET=u_soc/peripherals/gmac/commonReset0
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/I0 NET=u_soc/peripherals/gmac/commonReset
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/I1 NET=u_soc/peripherals/gmac/_media_io_ingressReset
+CONE u_soc/peripherals/gmac/media/ingressResetSource_reg REF=FDPE ASYNC_REG= INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/Q NET=u_soc/peripherals/gmac/media/io_ingressReset
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/C NET=u_soc/peripherals/gmac/media/clock
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/CE NET=u_soc/peripherals/gmac/media/<const1>
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/D NET=u_soc/peripherals/gmac/media/ingressResetSource_i_1_n_0
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/PRE NET=u_soc/peripherals/gmac/media/reset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const0>
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[2]
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset
+STARTPOINTS u_soc/peripherals/gmac/media/ingressResetSource_reg/C ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset
+CONE u_soc/peripherals/gmac/physicalIngress_i_1 REF=LUT2 ASYNC_REG= INIT=4'hE
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/O NET=u_soc/peripherals/gmac/commonReset0
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/I0 NET=u_soc/peripherals/gmac/commonReset
+CONEPIN u_soc/peripherals/gmac/physicalIngress_i_1/I1 NET=u_soc/peripherals/gmac/_media_io_ingressReset
+CONE u_soc/peripherals/gmac/media/ingressResetSource_reg REF=FDPE ASYNC_REG= INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/Q NET=u_soc/peripherals/gmac/media/io_ingressReset
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/C NET=u_soc/peripherals/gmac/media/clock
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/CE NET=u_soc/peripherals/gmac/media/<const1>
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/D NET=u_soc/peripherals/gmac/media/ingressResetSource_i_1_n_0
+CONEPIN u_soc/peripherals/gmac/media/ingressResetSource_reg/PRE NET=u_soc/peripherals/gmac/media/reset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const0>
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[2]
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const0>
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[2]
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const0>
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[2]
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/rawRxRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawRxRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawRxRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawRxRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawRxRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawRxRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rawRxRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rawRxRelease/clockIn
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rawRxRelease/<const1>
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rawRxRelease/<const0>
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rawRxRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/rawRxRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/rawRxRelease/clockIn
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/rawRxRelease/<const1>
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/rawRxRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/rawRxRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/rawRxRelease/release_0[2]
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/rawRxRelease/clockIn
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/rawRxRelease/<const1>
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/rawRxRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/rawRxRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const0>
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[2]
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset
+ENDPOINT u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE
+RESET_NET u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset
+STARTPOINTS ui_reset_pipe_reg[2]/C
+CONE u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[0]
+CONEPIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn
+CONEPIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>
+CONEPIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const0>
+CONEPIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CHAIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/Q NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/C NET=u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/CE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/D NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const0>
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]/Q NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]/C NET=u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]/CE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]/D NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[0]
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]/PRE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset
+CHAIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2] REF=FDPE ASYNC_REG=1
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]/Q NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[2]
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]/C NET=u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]/CE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]/D NET=u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[1]
+PIN u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]/PRE NET=u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset
+ENDPOINT network_clock/phase_reset_reg[0]/PRE
+RESET_NET network_clock/phase_inhibit
+STARTPOINTS network_clock/pll/LOCKED button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C
+CONE network_clock/phase_reset_reg[0] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN network_clock/phase_reset_reg[0]/Q NET=network_clock/phase_reset[0]
+CONEPIN network_clock/phase_reset_reg[0]/C NET=network_clock/delay_source
+CONEPIN network_clock/phase_reset_reg[0]/CE NET=network_clock/<const1>
+CONEPIN network_clock/phase_reset_reg[0]/D NET=network_clock/<const0>
+CONEPIN network_clock/phase_reset_reg[0]/PRE NET=network_clock/phase_inhibit
+CONE network_clock/phase_reset[2]_i_1 REF=LUT2 ASYNC_REG= INIT=4'hB
+CONEPIN network_clock/phase_reset[2]_i_1/O NET=network_clock/phase_inhibit
+CONEPIN network_clock/phase_reset[2]_i_1/I0 NET=network_clock/cold_reset
+CONEPIN network_clock/phase_reset[2]_i_1/I1 NET=network_clock/pll_locked
+CONE network_clock/pll REF=PLLE4_ADV ASYNC_REG= INIT=
+CONEPIN network_clock/pll/CLKFBOUT NET=
+CONEPIN network_clock/pll/CLKOUT0 NET=network_clock/ref_source
+CONEPIN network_clock/pll/CLKOUT0B NET=
+CONEPIN network_clock/pll/CLKOUT1 NET=
+CONEPIN network_clock/pll/CLKOUT1B NET=
+CONEPIN network_clock/pll/CLKOUTPHY NET=
+CONEPIN network_clock/pll/DO[15] NET=
+CONEPIN network_clock/pll/DO[14] NET=
+CONEPIN network_clock/pll/DO[13] NET=
+CONEPIN network_clock/pll/DO[12] NET=
+CONEPIN network_clock/pll/DO[11] NET=
+CONEPIN network_clock/pll/DO[10] NET=
+CONEPIN network_clock/pll/DO[9] NET=
+CONEPIN network_clock/pll/DO[8] NET=
+CONEPIN network_clock/pll/DO[7] NET=
+CONEPIN network_clock/pll/DO[6] NET=
+CONEPIN network_clock/pll/DO[5] NET=
+CONEPIN network_clock/pll/DO[4] NET=
+CONEPIN network_clock/pll/DO[3] NET=
+CONEPIN network_clock/pll/DO[2] NET=
+CONEPIN network_clock/pll/DO[1] NET=
+CONEPIN network_clock/pll/DO[0] NET=
+CONEPIN network_clock/pll/DRDY NET=
+CONEPIN network_clock/pll/LOCKED NET=network_clock/pll_locked
+CONEPIN network_clock/pll/CLKFBIN NET=network_clock/GND_2
+CONEPIN network_clock/pll/CLKIN NET=network_clock/ui_clock
+CONEPIN network_clock/pll/CLKOUTPHYEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DADDR[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DCLK NET=network_clock/<const0>
+CONEPIN network_clock/pll/DEN NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[15] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[14] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[13] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[12] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[11] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[10] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[9] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[8] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[7] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[6] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[5] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[4] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[3] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[2] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[1] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DI[0] NET=network_clock/<const0>
+CONEPIN network_clock/pll/DWE NET=network_clock/<const0>
+CONEPIN network_clock/pll/PWRDWN NET=network_clock/<const0>
+CONEPIN network_clock/pll/RST NET=network_clock/cold_reset
+CONE network_clock_i_1 REF=LUT3 ASYNC_REG= INIT=8'hBF
+CONEPIN network_clock_i_1/O NET=u_clk_wiz0
+CONEPIN network_clock_i_1/I0 NET=ui_reset
+CONEPIN network_clock_i_1/I1 NET=sys_rst_n_IBUF
+CONEPIN network_clock_i_1/I2 NET=button_n_IBUF
+CONE button_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/O NET=button_n_IBUF_inst/O
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/I NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN button_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE button_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN button_n_IBUF_inst/INBUF_INST/O NET=button_n_IBUF_inst/OUT
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN button_n_IBUF_inst/INBUF_INST/PAD NET=button_n_IBUF_inst/I
+CONEPIN button_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE sys_rst_n_IBUF_inst/IBUFCTRL_INST REF=IBUFCTRL ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/O NET=sys_rst_n_IBUF_inst/O
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/I NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/IBUFDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/INTERMDISABLE NET=
+CONEPIN sys_rst_n_IBUF_inst/IBUFCTRL_INST/T NET=
+CONE sys_rst_n_IBUF_inst/INBUF_INST REF=INBUF ASYNC_REG= INIT=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/O NET=sys_rst_n_IBUF_inst/OUT
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[3] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[2] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[1] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC[0] NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/OSC_EN NET=
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/PAD NET=sys_rst_n_IBUF_inst/I
+CONEPIN sys_rst_n_IBUF_inst/INBUF_INST/VREF NET=
+CONE u_ddr/inst/div_clk_rst_r1_reg REF=FDRE ASYNC_REG= INIT=1'b0
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/Q NET=u_ddr/inst/div_clk_rst_r1
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/C NET=u_ddr/inst/c0_ddr4_ui_clk
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/CE NET=u_ddr/inst/<const1>
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/D NET=u_ddr/inst/c0_div_clk_rst
+CONEPIN u_ddr/inst/div_clk_rst_r1_reg/R NET=u_ddr/inst/<const0>
+CHAIN network_clock/phase_reset_reg[0] REF=FDPE ASYNC_REG=1
+PIN network_clock/phase_reset_reg[0]/Q NET=network_clock/phase_reset[0]
+PIN network_clock/phase_reset_reg[0]/C NET=network_clock/delay_source
+PIN network_clock/phase_reset_reg[0]/CE NET=network_clock/<const1>
+PIN network_clock/phase_reset_reg[0]/D NET=network_clock/<const0>
+PIN network_clock/phase_reset_reg[0]/PRE NET=network_clock/phase_inhibit
+CHAIN network_clock/phase_reset_reg[1] REF=FDPE ASYNC_REG=1
+PIN network_clock/phase_reset_reg[1]/Q NET=network_clock/phase_reset[1]
+PIN network_clock/phase_reset_reg[1]/C NET=network_clock/delay_source
+PIN network_clock/phase_reset_reg[1]/CE NET=network_clock/<const1>
+PIN network_clock/phase_reset_reg[1]/D NET=network_clock/phase_reset[0]
+PIN network_clock/phase_reset_reg[1]/PRE NET=network_clock/phase_inhibit
+CHAIN network_clock/phase_reset_reg[2] REF=FDPE ASYNC_REG=1
+PIN network_clock/phase_reset_reg[2]/Q NET=network_clock/phase_reset[2]
+PIN network_clock/phase_reset_reg[2]/C NET=network_clock/delay_source
+PIN network_clock/phase_reset_reg[2]/CE NET=network_clock/<const1>
+PIN network_clock/phase_reset_reg[2]/D NET=network_clock/phase_reset[1]
+PIN network_clock/phase_reset_reg[2]/PRE NET=network_clock/phase_inhibit
+ENDPOINT u_debug/enabled.transport/raw_release_reg[0]/CLR
+RESET_NET u_debug/enabled.transport/raw_release[2]_i_1_n_0
+STARTPOINTS ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK
+CONE u_debug/enabled.transport/raw_release_reg[0] REF=FDCE ASYNC_REG=1 INIT=1'b0
+CONEPIN u_debug/enabled.transport/raw_release_reg[0]/Q NET=u_debug/enabled.transport/raw_release[0]
+CONEPIN u_debug/enabled.transport/raw_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+CONEPIN u_debug/enabled.transport/raw_release_reg[0]/CE NET=u_debug/enabled.transport/<const1>
+CONEPIN u_debug/enabled.transport/raw_release_reg[0]/CLR NET=u_debug/enabled.transport/raw_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/raw_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CONE u_debug/enabled.transport/raw_release[2]_i_1 REF=LUT2 ASYNC_REG= INIT=4'hE
+CONEPIN u_debug/enabled.transport/raw_release[2]_i_1/O NET=u_debug/enabled.transport/raw_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/raw_release[2]_i_1/I0 NET=u_debug/enabled.transport/bscan_reset
+CONEPIN u_debug/enabled.transport/raw_release[2]_i_1/I1 NET=u_debug/enabled.transport/debug_por_n
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CONE u_debug/enabled.user_scan REF=BSCANE2 ASYNC_REG= INIT=
+CONEPIN u_debug/enabled.user_scan/CAPTURE NET=u_debug/enabled.capture
+CONEPIN u_debug/enabled.user_scan/DRCK NET=u_debug/enabled.drck
+CONEPIN u_debug/enabled.user_scan/RESET NET=u_debug/enabled.reset
+CONEPIN u_debug/enabled.user_scan/RUNTEST NET=
+CONEPIN u_debug/enabled.user_scan/SEL NET=u_debug/enabled.sel
+CONEPIN u_debug/enabled.user_scan/SHIFT NET=u_debug/enabled.shift
+CONEPIN u_debug/enabled.user_scan/TCK NET=u_debug/enabled.tck
+CONEPIN u_debug/enabled.user_scan/TDI NET=u_debug/enabled.tdi
+CONEPIN u_debug/enabled.user_scan/TMS NET=
+CONEPIN u_debug/enabled.user_scan/UPDATE NET=u_debug/enabled.update
+CONEPIN u_debug/enabled.user_scan/TDO NET=u_debug/enabled.tdo
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TCK NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDI NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDO NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TMS NET=
+CHAIN u_debug/enabled.transport/raw_release_reg[0] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/raw_release_reg[0]/Q NET=u_debug/enabled.transport/raw_release[0]
+PIN u_debug/enabled.transport/raw_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/raw_release_reg[0]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/raw_release_reg[0]/CLR NET=u_debug/enabled.transport/raw_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/raw_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CHAIN u_debug/enabled.transport/raw_release_reg[1] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/raw_release_reg[1]/Q NET=u_debug/enabled.transport/raw_release[1]
+PIN u_debug/enabled.transport/raw_release_reg[1]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/raw_release_reg[1]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/raw_release_reg[1]/CLR NET=u_debug/enabled.transport/raw_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/raw_release_reg[1]/D NET=u_debug/enabled.transport/raw_release[0]
+CHAIN u_debug/enabled.transport/raw_release_reg[2] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/raw_release_reg[2]/Q NET=u_debug/enabled.transport/raw_release[2]
+PIN u_debug/enabled.transport/raw_release_reg[2]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/raw_release_reg[2]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/raw_release_reg[2]/CLR NET=u_debug/enabled.transport/raw_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/raw_release_reg[2]/D NET=u_debug/enabled.transport/raw_release[1]
+ENDPOINT u_debug/enabled.transport/source_release_reg[0]/CLR
+RESET_NET u_debug/enabled.transport/update_release[2]_i_1_n_0
+STARTPOINTS ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK u_debug/enabled.transport/hard_reset_reg/C
+CONE u_debug/enabled.transport/source_release_reg[0] REF=FDCE ASYNC_REG=1 INIT=1'b0
+CONEPIN u_debug/enabled.transport/source_release_reg[0]/Q NET=u_debug/enabled.transport/source_release[0]
+CONEPIN u_debug/enabled.transport/source_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+CONEPIN u_debug/enabled.transport/source_release_reg[0]/CE NET=u_debug/enabled.transport/VCC_2
+CONEPIN u_debug/enabled.transport/source_release_reg[0]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/source_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CONE u_debug/enabled.transport/update_release[2]_i_1 REF=LUT3 ASYNC_REG= INIT=8'hFE
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/O NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I0 NET=u_debug/enabled.transport/hard_reset
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I1 NET=u_debug/enabled.transport/bscan_reset
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I2 NET=u_debug/enabled.transport/debug_por_n
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CONE u_debug/enabled.user_scan REF=BSCANE2 ASYNC_REG= INIT=
+CONEPIN u_debug/enabled.user_scan/CAPTURE NET=u_debug/enabled.capture
+CONEPIN u_debug/enabled.user_scan/DRCK NET=u_debug/enabled.drck
+CONEPIN u_debug/enabled.user_scan/RESET NET=u_debug/enabled.reset
+CONEPIN u_debug/enabled.user_scan/RUNTEST NET=
+CONEPIN u_debug/enabled.user_scan/SEL NET=u_debug/enabled.sel
+CONEPIN u_debug/enabled.user_scan/SHIFT NET=u_debug/enabled.shift
+CONEPIN u_debug/enabled.user_scan/TCK NET=u_debug/enabled.tck
+CONEPIN u_debug/enabled.user_scan/TDI NET=u_debug/enabled.tdi
+CONEPIN u_debug/enabled.user_scan/TMS NET=
+CONEPIN u_debug/enabled.user_scan/UPDATE NET=u_debug/enabled.update
+CONEPIN u_debug/enabled.user_scan/TDO NET=u_debug/enabled.tdo
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TCK NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDI NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDO NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TMS NET=
+CONE u_debug/enabled.transport/hard_reset_reg REF=FDCE ASYNC_REG= INIT=1'b0
+CONEPIN u_debug/enabled.transport/hard_reset_reg/Q NET=u_debug/enabled.transport/hard_reset
+CONEPIN u_debug/enabled.transport/hard_reset_reg/C NET=u_debug/enabled.transport/bscan_tck
+CONEPIN u_debug/enabled.transport/hard_reset_reg/CE NET=u_debug/enabled.transport/<const1>
+CONEPIN u_debug/enabled.transport/hard_reset_reg/CLR NET=u_debug/enabled.transport/raw_release[2]
+CONEPIN u_debug/enabled.transport/hard_reset_reg/D NET=u_debug/enabled.transport/hard_reset_command
+CHAIN u_debug/enabled.transport/source_release_reg[0] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/source_release_reg[0]/Q NET=u_debug/enabled.transport/source_release[0]
+PIN u_debug/enabled.transport/source_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/source_release_reg[0]/CE NET=u_debug/enabled.transport/VCC_2
+PIN u_debug/enabled.transport/source_release_reg[0]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/source_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CHAIN u_debug/enabled.transport/source_release_reg[1] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/source_release_reg[1]/Q NET=u_debug/enabled.transport/source_release[1]
+PIN u_debug/enabled.transport/source_release_reg[1]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/source_release_reg[1]/CE NET=u_debug/enabled.transport/VCC_2
+PIN u_debug/enabled.transport/source_release_reg[1]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/source_release_reg[1]/D NET=u_debug/enabled.transport/source_release[0]
+CHAIN u_debug/enabled.transport/source_release_reg[2] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/source_release_reg[2]/Q NET=u_debug/enabled.transport/source_release[2]
+PIN u_debug/enabled.transport/source_release_reg[2]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/source_release_reg[2]/CE NET=u_debug/enabled.transport/VCC_2
+PIN u_debug/enabled.transport/source_release_reg[2]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/source_release_reg[2]/D NET=u_debug/enabled.transport/source_release[1]
+ENDPOINT u_debug/enabled.transport/update_release_reg[0]/CLR
+RESET_NET u_debug/enabled.transport/update_release[2]_i_1_n_0
+STARTPOINTS ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK u_debug/enabled.transport/hard_reset_reg/C
+CONE u_debug/enabled.transport/update_release_reg[0] REF=FDCE ASYNC_REG=1 INIT=1'b0
+CONEPIN u_debug/enabled.transport/update_release_reg[0]/Q NET=u_debug/enabled.transport/update_release[0]
+CONEPIN u_debug/enabled.transport/update_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+CONEPIN u_debug/enabled.transport/update_release_reg[0]/CE NET=u_debug/enabled.transport/<const1>
+CONEPIN u_debug/enabled.transport/update_release_reg[0]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/update_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CONE u_debug/enabled.transport/update_release[2]_i_1 REF=LUT3 ASYNC_REG= INIT=8'hFE
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/O NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I0 NET=u_debug/enabled.transport/hard_reset
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I1 NET=u_debug/enabled.transport/bscan_reset
+CONEPIN u_debug/enabled.transport/update_release[2]_i_1/I2 NET=u_debug/enabled.transport/debug_por_n
+CONE ui_reset_pipe_reg[2] REF=FDPE ASYNC_REG=1 INIT=1'b1
+CONEPIN ui_reset_pipe_reg[2]/Q NET=ui_reset_pipe[2]
+CONEPIN ui_reset_pipe_reg[2]/C NET=ui_clk
+CONEPIN ui_reset_pipe_reg[2]/CE NET=<const1>
+CONEPIN ui_reset_pipe_reg[2]/D NET=ui_reset_pipe[1]
+CONEPIN ui_reset_pipe_reg[2]/PRE NET=ui_reset_request
+CONE u_debug/enabled.user_scan REF=BSCANE2 ASYNC_REG= INIT=
+CONEPIN u_debug/enabled.user_scan/CAPTURE NET=u_debug/enabled.capture
+CONEPIN u_debug/enabled.user_scan/DRCK NET=u_debug/enabled.drck
+CONEPIN u_debug/enabled.user_scan/RESET NET=u_debug/enabled.reset
+CONEPIN u_debug/enabled.user_scan/RUNTEST NET=
+CONEPIN u_debug/enabled.user_scan/SEL NET=u_debug/enabled.sel
+CONEPIN u_debug/enabled.user_scan/SHIFT NET=u_debug/enabled.shift
+CONEPIN u_debug/enabled.user_scan/TCK NET=u_debug/enabled.tck
+CONEPIN u_debug/enabled.user_scan/TDI NET=u_debug/enabled.tdi
+CONEPIN u_debug/enabled.user_scan/TMS NET=
+CONEPIN u_debug/enabled.user_scan/UPDATE NET=u_debug/enabled.update
+CONEPIN u_debug/enabled.user_scan/TDO NET=u_debug/enabled.tdo
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TCK NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDI NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TDO NET=
+CONEPIN u_debug/enabled.user_scan/INTERNAL_TMS NET=
+CONE u_debug/enabled.transport/hard_reset_reg REF=FDCE ASYNC_REG= INIT=1'b0
+CONEPIN u_debug/enabled.transport/hard_reset_reg/Q NET=u_debug/enabled.transport/hard_reset
+CONEPIN u_debug/enabled.transport/hard_reset_reg/C NET=u_debug/enabled.transport/bscan_tck
+CONEPIN u_debug/enabled.transport/hard_reset_reg/CE NET=u_debug/enabled.transport/<const1>
+CONEPIN u_debug/enabled.transport/hard_reset_reg/CLR NET=u_debug/enabled.transport/raw_release[2]
+CONEPIN u_debug/enabled.transport/hard_reset_reg/D NET=u_debug/enabled.transport/hard_reset_command
+CHAIN u_debug/enabled.transport/update_release_reg[0] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/update_release_reg[0]/Q NET=u_debug/enabled.transport/update_release[0]
+PIN u_debug/enabled.transport/update_release_reg[0]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/update_release_reg[0]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/update_release_reg[0]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/update_release_reg[0]/D NET=u_debug/enabled.transport/<const1>
+CHAIN u_debug/enabled.transport/update_release_reg[1] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/update_release_reg[1]/Q NET=u_debug/enabled.transport/update_release[1]
+PIN u_debug/enabled.transport/update_release_reg[1]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/update_release_reg[1]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/update_release_reg[1]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/update_release_reg[1]/D NET=u_debug/enabled.transport/update_release[0]
+CHAIN u_debug/enabled.transport/update_release_reg[2] REF=FDCE ASYNC_REG=1
+PIN u_debug/enabled.transport/update_release_reg[2]/Q NET=u_debug/enabled.transport/update_release[2]
+PIN u_debug/enabled.transport/update_release_reg[2]/C NET=u_debug/enabled.transport/bscan_tck
+PIN u_debug/enabled.transport/update_release_reg[2]/CE NET=u_debug/enabled.transport/<const1>
+PIN u_debug/enabled.transport/update_release_reg[2]/CLR NET=u_debug/enabled.transport/update_release[2]_i_1_n_0
+PIN u_debug/enabled.transport/update_release_reg[2]/D NET=u_debug/enabled.transport/update_release[1]
+DCIPORT c0_ddr4_act_n PACKAGE_PIN=AM9 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[0] PACKAGE_PIN=AN9 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[10] PACKAGE_PIN=AM6 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[2].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[11] PACKAGE_PIN=AM8 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[3].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[12] PACKAGE_PIN=AP4 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[13] PACKAGE_PIN=AP8 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[1].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[14] PACKAGE_PIN=AJ9 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[15] PACKAGE_PIN=AP6 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[16] PACKAGE_PIN=AP11 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[1] PACKAGE_PIN=AN6 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[2] PACKAGE_PIN=AN7 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[6].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[3] PACKAGE_PIN=AP5 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[4] PACKAGE_PIN=AK8 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[8].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[5] PACKAGE_PIN=AP7 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[6] PACKAGE_PIN=AM10 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[7] PACKAGE_PIN=AN8 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[0].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[8] PACKAGE_PIN=AK7 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O
+DCIPORT c0_ddr4_adr[9] PACKAGE_PIN=AP10 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[7].genblk1.OBUF/O
+DCIPORT c0_ddr4_ba[0] PACKAGE_PIN=AJ10 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[10].genblk1.OBUF/O
+DCIPORT c0_ddr4_ba[1] PACKAGE_PIN=AP9 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O
+DCIPORT c0_ddr4_bg[0] PACKAGE_PIN=AL10 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[4].genblk1.OBUF/O
+DCIPORT c0_ddr4_ck_c[0] PACKAGE_PIN=AL5 IOSTANDARD=DIFF_SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/N/O
+DCIPORT c0_ddr4_ck_t[0] PACKAGE_PIN=AL6 IOSTANDARD=DIFF_SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[0].OBUFDS/P/O
+DCIPORT c0_ddr4_cke[0] PACKAGE_PIN=AK10 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[0].u_ddr_iob_byte/genBuf[11].genblk1.OBUF/O
+DCIPORT c0_ddr4_cs_n[0] PACKAGE_PIN=AN4 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[2].u_ddr_iob_byte/genBuf[9].genblk1.OBUF/O
+DCIPORT c0_ddr4_dm_dbi_n[0] PACKAGE_PIN=AH2 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dm_dbi_n[1] PACKAGE_PIN=AE5 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dm_dbi_n[2] PACKAGE_PIN=AH7 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dm_dbi_n[3] PACKAGE_PIN=AE10 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[0] PACKAGE_PIN=AE2 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[10] PACKAGE_PIN=AD4 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[11] PACKAGE_PIN=AG4 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[12] PACKAGE_PIN=AE4 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[13] PACKAGE_PIN=AG5 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[14] PACKAGE_PIN=AF3 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[15] PACKAGE_PIN=AJ4 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[16] PACKAGE_PIN=AD6 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[17] PACKAGE_PIN=AG8 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[18] PACKAGE_PIN=AF6 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[19] PACKAGE_PIN=AF7 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[1] PACKAGE_PIN=AG3 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[20] PACKAGE_PIN=AD7 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[21] PACKAGE_PIN=AE7 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[22] PACKAGE_PIN=AH8 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[23] PACKAGE_PIN=AG6 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[24] PACKAGE_PIN=AE12 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[25] PACKAGE_PIN=AG9 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[26] PACKAGE_PIN=AH11 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[27] PACKAGE_PIN=AE9 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[28] PACKAGE_PIN=AH12 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[29] PACKAGE_PIN=AG10 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[2] PACKAGE_PIN=AD1 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[30] PACKAGE_PIN=AF12 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[31] PACKAGE_PIN=AD10 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[3] PACKAGE_PIN=AF2 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[4] PACKAGE_PIN=AD2 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[5] PACKAGE_PIN=AH3 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[6] PACKAGE_PIN=AE1 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[7] PACKAGE_PIN=AF1 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[8] PACKAGE_PIN=AE3 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dq[9] PACKAGE_PIN=AH4 IOSTANDARD=POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD
+DCIPORT c0_ddr4_dqs_c[0] PACKAGE_PIN=AJ1 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O
+DCIPORT c0_ddr4_dqs_c[1] PACKAGE_PIN=AJ5 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O
+DCIPORT c0_ddr4_dqs_c[2] PACKAGE_PIN=AF8 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O
+DCIPORT c0_ddr4_dqs_c[3] PACKAGE_PIN=AG11 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O
+DCIPORT c0_ddr4_dqs_t[0] PACKAGE_PIN=AH1 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O
+DCIPORT c0_ddr4_dqs_t[1] PACKAGE_PIN=AJ6 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O
+DCIPORT c0_ddr4_dqs_t[2] PACKAGE_PIN=AE8 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O
+DCIPORT c0_ddr4_dqs_t[3] PACKAGE_PIN=AF11 IOSTANDARD=DIFF_POD12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O
+DCIPORT c0_ddr4_odt[0] PACKAGE_PIN=AK9 IOSTANDARD=SSTL12_DCI
+DCIPINS u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[1].u_ddr_iob_byte/genBuf[5].genblk1.OBUF/O

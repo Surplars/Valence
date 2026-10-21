@@ -1,0 +1,1658 @@
+{
+  "utc": "2026-10-21T10:56:26.457781+00:00",
+  "checkpoint": {
+    "path": "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\routed-diagnostic-unqualified.dcp",
+    "bytes": 74170265,
+    "sha256": "69aec185f64dea8931db5fde7d8bab51e9dc544ac8832d318cb13b414ba55da5",
+    "source_commit": "dd814d96c86f81c3e43ca343c85330f7edf038b6"
+  },
+  "tool": "Vivado2025.2 build6299465",
+  "read_only": true,
+  "dcireset_cells": [],
+  "dcirst_violations": [
+    {
+      "id": "DCIRST-1#1",
+      "port": "c0_ddr4_dm_dbi_n[0]",
+      "package_pin": "AH2",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#1 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dm_dbi_n[0] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#2",
+      "port": "c0_ddr4_dm_dbi_n[1]",
+      "package_pin": "AE5",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#2 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dm_dbi_n[1] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#3",
+      "port": "c0_ddr4_dm_dbi_n[2]",
+      "package_pin": "AH7",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#3 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dm_dbi_n[2] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#4",
+      "port": "c0_ddr4_dm_dbi_n[3]",
+      "package_pin": "AE10",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[0].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#4 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dm_dbi_n[3] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#5",
+      "port": "c0_ddr4_dq[0]",
+      "package_pin": "AE2",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#5 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[0] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#6",
+      "port": "c0_ddr4_dq[10]",
+      "package_pin": "AD4",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#6 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[10] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#7",
+      "port": "c0_ddr4_dq[11]",
+      "package_pin": "AG4",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#7 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[11] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#8",
+      "port": "c0_ddr4_dq[12]",
+      "package_pin": "AE4",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#8 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[12] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#9",
+      "port": "c0_ddr4_dq[13]",
+      "package_pin": "AG5",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#9 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[13] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#10",
+      "port": "c0_ddr4_dq[14]",
+      "package_pin": "AF3",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#10 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[14] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#11",
+      "port": "c0_ddr4_dq[15]",
+      "package_pin": "AJ4",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#11 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[15] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#12",
+      "port": "c0_ddr4_dq[16]",
+      "package_pin": "AD6",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#12 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[16] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#13",
+      "port": "c0_ddr4_dq[17]",
+      "package_pin": "AG8",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#13 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[17] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#14",
+      "port": "c0_ddr4_dq[18]",
+      "package_pin": "AF6",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#14 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[18] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#15",
+      "port": "c0_ddr4_dq[19]",
+      "package_pin": "AF7",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#15 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[19] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#16",
+      "port": "c0_ddr4_dq[1]",
+      "package_pin": "AG3",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#16 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[1] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#17",
+      "port": "c0_ddr4_dq[20]",
+      "package_pin": "AD7",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#17 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[20] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#18",
+      "port": "c0_ddr4_dq[21]",
+      "package_pin": "AE7",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#18 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[21] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#19",
+      "port": "c0_ddr4_dq[22]",
+      "package_pin": "AH8",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#19 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[22] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#20",
+      "port": "c0_ddr4_dq[23]",
+      "package_pin": "AG6",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#20 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[23] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#21",
+      "port": "c0_ddr4_dq[24]",
+      "package_pin": "AE12",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#21 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[24] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#22",
+      "port": "c0_ddr4_dq[25]",
+      "package_pin": "AG9",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#22 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[25] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#23",
+      "port": "c0_ddr4_dq[26]",
+      "package_pin": "AH11",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#23 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[26] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#24",
+      "port": "c0_ddr4_dq[27]",
+      "package_pin": "AE9",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#24 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[27] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#25",
+      "port": "c0_ddr4_dq[28]",
+      "package_pin": "AH12",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[2].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#25 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[28] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#26",
+      "port": "c0_ddr4_dq[29]",
+      "package_pin": "AG10",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#26 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[29] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#27",
+      "port": "c0_ddr4_dq[2]",
+      "package_pin": "AD1",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[9].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#27 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[2] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#28",
+      "port": "c0_ddr4_dq[30]",
+      "package_pin": "AF12",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#28 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[30] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#29",
+      "port": "c0_ddr4_dq[31]",
+      "package_pin": "AD10",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[10].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#29 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[31] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#30",
+      "port": "c0_ddr4_dq[3]",
+      "package_pin": "AF2",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#30 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[3] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#31",
+      "port": "c0_ddr4_dq[4]",
+      "package_pin": "AD2",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#31 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[4] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#32",
+      "port": "c0_ddr4_dq[5]",
+      "package_pin": "AH3",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[3].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#32 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[5] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#33",
+      "port": "c0_ddr4_dq[6]",
+      "package_pin": "AE1",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[11].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#33 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[6] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#34",
+      "port": "c0_ddr4_dq[7]",
+      "package_pin": "AF1",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[5].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#34 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[7] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#35",
+      "port": "c0_ddr4_dq[8]",
+      "package_pin": "AE3",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[8].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#35 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[8] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#36",
+      "port": "c0_ddr4_dq[9]",
+      "package_pin": "AH4",
+      "iostandard": "POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/OBUFT_INST/O",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[4].genblk1_1.IOBUF/INBUF_INST/PAD"
+      ],
+      "full_message": "DCIRST-1#36 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dq[9] is using DCI IO standard POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#37",
+      "port": "c0_ddr4_dqs_c[0]",
+      "package_pin": "AJ1",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O"
+      ],
+      "full_message": "DCIRST-1#37 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_c[0] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#38",
+      "port": "c0_ddr4_dqs_c[1]",
+      "package_pin": "AJ5",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O"
+      ],
+      "full_message": "DCIRST-1#38 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_c[1] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#39",
+      "port": "c0_ddr4_dqs_c[2]",
+      "package_pin": "AF8",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O"
+      ],
+      "full_message": "DCIRST-1#39 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_c[2] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#40",
+      "port": "c0_ddr4_dqs_c[3]",
+      "package_pin": "AG11",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_N",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/N/O"
+      ],
+      "full_message": "DCIRST-1#40 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_c[3] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#41",
+      "port": "c0_ddr4_dqs_t[0]",
+      "package_pin": "AH1",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[7].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O"
+      ],
+      "full_message": "DCIRST-1#41 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_t[0] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#42",
+      "port": "c0_ddr4_dqs_t[1]",
+      "package_pin": "AJ6",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[6].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O"
+      ],
+      "full_message": "DCIRST-1#42 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_t[1] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#43",
+      "port": "c0_ddr4_dqs_t[2]",
+      "package_pin": "AE8",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[5].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O"
+      ],
+      "full_message": "DCIRST-1#43 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_t[2] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    },
+    {
+      "id": "DCIRST-1#44",
+      "port": "c0_ddr4_dqs_t[3]",
+      "package_pin": "AF11",
+      "iostandard": "DIFF_POD12_DCI",
+      "leaf_pins": [
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/DIFFINBUF_INST/DIFF_IN_P",
+        "u_ddr/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr_iob/genByte[4].u_ddr_iob_byte/genBuf[6].IO_BUFDS/OBUFTDS/P/O"
+      ],
+      "full_message": "DCIRST-1#44 Warning\nDCIRESET is required for design  \nIO port c0_ddr4_dqs_t[3] is using DCI IO standard DIFF_POD12_DCI but no DCIRESET primitive is used in the design. Please add a DCIRESET in the design to ensure the proper functionality of this IO. For more information, please consult AR#000038677.\nRelated violations: <none>"
+    }
+  ],
+  "reset_cdc_critical": [
+    {
+      "rule": "CDC-10",
+      "row": 1,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "u_ddr/inst/div_clk_rst_r1_reg/C",
+      "destination": "phy_reset_pipe_reg[0]/PRE",
+      "classification": "combined_board_reset_requires_qualification",
+      "reason": "Combination of board/UI reset, lock/calibration/IDELAY readiness into asynchronous preset; three-stage release exists. Pulse width/glitch/lock-loss/startup ordering and divider reset release still require qualification, not blanket waiver.",
+      "assertion_startpoints": "u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED",
+      "reset_net": "phy_reset_pipe[2]_i_1_n_0",
+      "chain": [
+        {
+          "cell": "phy_reset_pipe_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[0]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "<const0>",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        },
+        {
+          "cell": "phy_reset_pipe_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[1]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "phy_reset_pipe[0]",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        },
+        {
+          "cell": "phy_reset_pipe_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[2]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "phy_reset_pipe[1]",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 2,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[0]",
+            "C": "u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/cmu/bridge/destinationResetSync/<const0>",
+            "PRE": "u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[1]",
+            "C": "u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[0]",
+            "PRE": "u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[2]",
+            "C": "u_soc/peripherals/cmu/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/cmu/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/cmu/bridge/destinationResetSync/release_0[1]",
+            "PRE": "u_soc/peripherals/cmu/bridge/destinationResetSync/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 146,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/uart/agent/release_0/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/uart/agent/release_0/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/uart/agent/release_0/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/agent/release_0/release_0[0]",
+            "C": "u_soc/peripherals/uart/agent/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/agent/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/agent/release_0/<const0>",
+            "PRE": "u_soc/peripherals/uart/agent/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/agent/release_0/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/agent/release_0/release_0[1]",
+            "C": "u_soc/peripherals/uart/agent/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/agent/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/agent/release_0/release_0[0]",
+            "PRE": "u_soc/peripherals/uart/agent/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/agent/release_0/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/agent/release_0/release_0[2]",
+            "C": "u_soc/peripherals/uart/agent/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/agent/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/agent/release_0/release_0[1]",
+            "PRE": "u_soc/peripherals/uart/agent/release_0/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 147,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0[0]",
+            "C": "u_soc/peripherals/uart/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/uart/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/uart/bridge/destinationResetSync/<const0>",
+            "PRE": "u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0[1]",
+            "C": "u_soc/peripherals/uart/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/uart/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0[0]",
+            "PRE": "u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0[2]",
+            "C": "u_soc/peripherals/uart/bridge/destinationResetSync/clockIn",
+            "CE": "u_soc/peripherals/uart/bridge/destinationResetSync/<const1>",
+            "D": "u_soc/peripherals/uart/bridge/destinationResetSync/release_0[1]",
+            "PRE": "u_soc/peripherals/uart/bridge/destinationResetSync/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 232,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[0]",
+            "C": "u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/gatedClock_gate/release_0/<const0>",
+            "PRE": "u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[1]",
+            "C": "u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[0]",
+            "PRE": "u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[2]",
+            "C": "u_soc/peripherals/uart/gatedClock_gate/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/gatedClock_gate/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/gatedClock_gate/release_0/release_0[1]",
+            "PRE": "u_soc/peripherals/uart/gatedClock_gate/release_0/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 233,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/uart/ingress/release_0/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/uart/ingress/release_0/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/ingress/release_0/release_0[0]",
+            "C": "u_soc/peripherals/uart/ingress/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/ingress/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/ingress/release_0/<const0>",
+            "PRE": "u_soc/peripherals/uart/ingress/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/ingress/release_0/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/ingress/release_0/release_0[1]",
+            "C": "u_soc/peripherals/uart/ingress/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/ingress/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/ingress/release_0/release_0[0]",
+            "PRE": "u_soc/peripherals/uart/ingress/release_0/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/ingress/release_0/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/ingress/release_0/release_0[2]",
+            "C": "u_soc/peripherals/uart/ingress/release_0/clockIn",
+            "CE": "u_soc/peripherals/uart/ingress/release_0/<const1>",
+            "D": "u_soc/peripherals/uart/ingress/release_0/release_0[1]",
+            "PRE": "u_soc/peripherals/uart/ingress/release_0/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 234,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "Safely Timed",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/uart/rawRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/uart/rawRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/uart/rawRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/rawRelease/release_0[0]",
+            "C": "u_soc/peripherals/uart/rawRelease/clockIn",
+            "CE": "u_soc/peripherals/uart/rawRelease/<const1>",
+            "D": "u_soc/peripherals/uart/rawRelease/<const0>",
+            "PRE": "u_soc/peripherals/uart/rawRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/rawRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/rawRelease/release_0[1]",
+            "C": "u_soc/peripherals/uart/rawRelease/clockIn",
+            "CE": "u_soc/peripherals/uart/rawRelease/<const1>",
+            "D": "u_soc/peripherals/uart/rawRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/uart/rawRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/uart/rawRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/uart/rawRelease/release_0[2]",
+            "C": "u_soc/peripherals/uart/rawRelease/clockIn",
+            "CE": "u_soc/peripherals/uart/rawRelease/<const1>",
+            "D": "u_soc/peripherals/uart/rawRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/uart/rawRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 1,
+      "source_clock": "ref_source",
+      "destination_clock": "clk_out2_clk_wiz_common",
+      "cdc_type": "User Ignored",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "network_clock/phase_reset_reg[2]/C",
+      "destination": "phy_reset_pipe_reg[0]/PRE",
+      "classification": "combined_board_reset_requires_qualification",
+      "reason": "Combination of board/UI reset, lock/calibration/IDELAY readiness into asynchronous preset; three-stage release exists. Pulse width/glitch/lock-loss/startup ordering and divider reset release still require qualification, not blanket waiver.",
+      "assertion_startpoints": "u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED",
+      "reset_net": "phy_reset_pipe[2]_i_1_n_0",
+      "chain": [
+        {
+          "cell": "phy_reset_pipe_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[0]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "<const0>",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        },
+        {
+          "cell": "phy_reset_pipe_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[1]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "phy_reset_pipe[0]",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        },
+        {
+          "cell": "phy_reset_pipe_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "phy_reset_pipe[2]",
+            "C": "clk_aon",
+            "CE": "<const1>",
+            "D": "phy_reset_pipe[1]",
+            "PRE": "phy_reset_pipe[2]_i_1_n_0"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 1,
+      "source_clock": "ref_source",
+      "destination_clock": "mmcm_clkout0",
+      "cdc_type": "User Ignored",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "network_clock/phase_reset_reg[2]/C",
+      "destination": "ui_reset_pipe_reg[0]/PRE",
+      "classification": "combined_board_reset_requires_qualification",
+      "reason": "Combination of board/UI reset, lock/calibration/IDELAY readiness into asynchronous preset; three-stage release exists. Pulse width/glitch/lock-loss/startup ordering and divider reset release still require qualification, not blanket waiver.",
+      "assertion_startpoints": "u_ddr/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C network_clock/phase_reset_reg[2]/C network_clock/pll/LOCKED u_clk_wiz/inst/mmcme4_adv_inst/LOCKED",
+      "reset_net": "ui_reset_request",
+      "chain": [
+        {
+          "cell": "ui_reset_pipe_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "ui_reset_pipe[0]",
+            "C": "ui_clk",
+            "CE": "<const1>",
+            "D": "<const0>",
+            "PRE": "ui_reset_request"
+          }
+        },
+        {
+          "cell": "ui_reset_pipe_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "ui_reset_pipe[1]",
+            "C": "ui_clk",
+            "CE": "<const1>",
+            "D": "ui_reset_pipe[0]",
+            "PRE": "ui_reset_request"
+          }
+        },
+        {
+          "cell": "ui_reset_pipe_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "ui_reset_pipe[2]",
+            "C": "ui_clk",
+            "CE": "<const1>",
+            "D": "ui_reset_pipe[1]",
+            "PRE": "ui_reset_request"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 1,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "rx_reset_pipe_reg[0]/PRE",
+      "classification": "combined_board_reset_requires_qualification",
+      "reason": "Combination of board/UI reset, lock/calibration/IDELAY readiness into asynchronous preset; three-stage release exists. Pulse width/glitch/lock-loss/startup ordering and divider reset release still require qualification, not blanket waiver.",
+      "assertion_startpoints": "u_rgmii/delay_control_REPLICATED_0/RDY u_rgmii/delay_control_REPLICATED_0_1/RDY u_rgmii/delay_control/RDY ui_reset_pipe_reg[2]/C",
+      "reset_net": "tx_release_i_1_n_0",
+      "chain": [
+        {
+          "cell": "rx_reset_pipe_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "rx_reset_pipe[0]",
+            "C": "clk_rx",
+            "CE": "<const1>",
+            "D": "<const0>",
+            "PRE": "tx_release_i_1_n_0"
+          }
+        },
+        {
+          "cell": "rx_reset_pipe_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "rx_reset_pipe[1]",
+            "C": "clk_rx",
+            "CE": "<const1>",
+            "D": "rx_reset_pipe[0]",
+            "PRE": "tx_release_i_1_n_0"
+          }
+        },
+        {
+          "cell": "rx_reset_pipe_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "rx_reset_pipe[2]",
+            "C": "clk_rx",
+            "CE": "<const1>",
+            "D": "rx_reset_pipe[1]",
+            "PRE": "tx_release_i_1_n_0"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 2,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]/PRE",
+      "classification": "combined_reset_requires_protocol_qualification",
+      "reason": "OR of common reset and media.ingressResetSource; three-stage local release exists, but FIFO unilateral reset/drain contract and reset pulse/glitch behavior still require directed proof.",
+      "assertion_startpoints": "u_soc/peripherals/gmac/media/ingressResetSource_reg/C ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/crossing/fifo/sourceRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 3,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]/PRE",
+      "classification": "combined_reset_requires_protocol_qualification",
+      "reason": "OR of common reset and media.ingressResetSource; three-stage local release exists, but FIFO unilateral reset/drain contract and reset pulse/glitch behavior still require directed proof.",
+      "assertion_startpoints": "u_soc/peripherals/gmac/media/ingressResetSource_reg/C ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/physicalIngress/sourceRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 5,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/mailbox/sourceRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 6,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/rawDiagnostics/sourceRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 8,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/rawRxRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/rawRxRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawRxRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/rawRxRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawRxRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawRxRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/rawRxRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawRxRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawRxRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/rawRxRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawRxRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawRxRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/rawRxRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rawRxRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rawRxRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/rawRxRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rawRxRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rawRxRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/rawRxRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 9,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/rxClockWatchdog/sourceRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-11",
+      "row": 12,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "phy_rx",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]/PRE",
+      "classification": "explainable_common_reset_fanout",
+      "reason": "One common ui_reset_pipe[2] asserts multiple destination-local reset release chains; each queried chain has three ASYNC_REG stages and same local clock. Not a payload synchronizer fanout.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C",
+      "reset_net": "u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset",
+      "chain": [
+        {
+          "cell": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[0]",
+            "C": "u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxRate/destinationRelease/<const0>",
+            "PRE": "u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[1]",
+            "C": "u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[0]",
+            "PRE": "u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset"
+          }
+        },
+        {
+          "cell": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[2]",
+            "C": "u_soc/peripherals/gmac/rxRate/destinationRelease/clockIn",
+            "CE": "u_soc/peripherals/gmac/rxRate/destinationRelease/<const1>",
+            "D": "u_soc/peripherals/gmac/rxRate/destinationRelease/release_0[1]",
+            "PRE": "u_soc/peripherals/gmac/rxRate/destinationRelease/asyncReset"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 2,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "ref_source",
+      "cdc_type": "User Ignored",
+      "depth_reported": 2,
+      "exception_reported": "False Path",
+      "source": "u_ddr/inst/div_clk_rst_r1_reg/C",
+      "destination": "network_clock/phase_reset_reg[0]/PRE",
+      "classification": "combined_board_reset_requires_qualification",
+      "reason": "Combination of board/UI reset, lock/calibration/IDELAY readiness into asynchronous preset; three-stage release exists. Pulse width/glitch/lock-loss/startup ordering and divider reset release still require qualification, not blanket waiver.",
+      "assertion_startpoints": "network_clock/pll/LOCKED button_n sys_rst_n u_ddr/inst/div_clk_rst_r1_reg/C",
+      "reset_net": "network_clock/phase_inhibit",
+      "chain": [
+        {
+          "cell": "network_clock/phase_reset_reg[0]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "network_clock/phase_reset[0]",
+            "C": "network_clock/delay_source",
+            "CE": "network_clock/<const1>",
+            "D": "network_clock/<const0>",
+            "PRE": "network_clock/phase_inhibit"
+          }
+        },
+        {
+          "cell": "network_clock/phase_reset_reg[1]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "network_clock/phase_reset[1]",
+            "C": "network_clock/delay_source",
+            "CE": "network_clock/<const1>",
+            "D": "network_clock/phase_reset[0]",
+            "PRE": "network_clock/phase_inhibit"
+          }
+        },
+        {
+          "cell": "network_clock/phase_reset_reg[2]",
+          "ref": "FDPE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "network_clock/phase_reset[2]",
+            "C": "network_clock/delay_source",
+            "CE": "network_clock/<const1>",
+            "D": "network_clock/phase_reset[1]",
+            "PRE": "network_clock/phase_inhibit"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 36,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "valence_bscan_tck",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_debug/enabled.transport/raw_release_reg[0]/CLR",
+      "classification": "explainable_bscan_async_assert_sync_release",
+      "reason": "Board reset OR TAP RESET, plus hard_reset for source/update banks; three FDCE stages. Preserve asynchronous assertion with stopped TCK and negative/positive edge release contract; not a payload path.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK",
+      "reset_net": "u_debug/enabled.transport/raw_release[2]_i_1_n_0",
+      "chain": [
+        {
+          "cell": "u_debug/enabled.transport/raw_release_reg[0]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/raw_release[0]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/raw_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/<const1>"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/raw_release_reg[1]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/raw_release[1]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/raw_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/raw_release[0]"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/raw_release_reg[2]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/raw_release[2]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/raw_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/raw_release[1]"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 37,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "valence_bscan_tck",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_debug/enabled.transport/source_release_reg[0]/CLR",
+      "classification": "explainable_bscan_async_assert_sync_release",
+      "reason": "Board reset OR TAP RESET, plus hard_reset for source/update banks; three FDCE stages. Preserve asynchronous assertion with stopped TCK and negative/positive edge release contract; not a payload path.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK u_debug/enabled.transport/hard_reset_reg/C",
+      "reset_net": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+      "chain": [
+        {
+          "cell": "u_debug/enabled.transport/source_release_reg[0]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/source_release[0]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/VCC_2",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/<const1>"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/source_release_reg[1]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/source_release[1]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/VCC_2",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/source_release[0]"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/source_release_reg[2]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/source_release[2]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/VCC_2",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/source_release[1]"
+          }
+        }
+      ],
+      "chain_proven": true
+    },
+    {
+      "rule": "CDC-10",
+      "row": 38,
+      "source_clock": "mmcm_clkout0",
+      "destination_clock": "valence_bscan_tck",
+      "cdc_type": "No Common Primary Clock",
+      "depth_reported": 3,
+      "exception_reported": "False Path",
+      "source": "ui_reset_pipe_reg[2]/C",
+      "destination": "u_debug/enabled.transport/update_release_reg[0]/CLR",
+      "classification": "explainable_bscan_async_assert_sync_release",
+      "reason": "Board reset OR TAP RESET, plus hard_reset for source/update banks; three FDCE stages. Preserve asynchronous assertion with stopped TCK and negative/positive edge release contract; not a payload path.",
+      "assertion_startpoints": "ui_reset_pipe_reg[2]/C u_debug/enabled.user_scan/INTERNAL_TCK u_debug/enabled.transport/hard_reset_reg/C",
+      "reset_net": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+      "chain": [
+        {
+          "cell": "u_debug/enabled.transport/update_release_reg[0]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/update_release[0]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/<const1>"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/update_release_reg[1]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/update_release[1]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/update_release[0]"
+          }
+        },
+        {
+          "cell": "u_debug/enabled.transport/update_release_reg[2]",
+          "ref": "FDCE",
+          "async_reg": "1",
+          "pins": {
+            "Q": "u_debug/enabled.transport/update_release[2]",
+            "C": "u_debug/enabled.transport/bscan_tck",
+            "CE": "u_debug/enabled.transport/<const1>",
+            "CLR": "u_debug/enabled.transport/update_release[2]_i_1_n_0",
+            "D": "u_debug/enabled.transport/update_release[1]"
+          }
+        }
+      ],
+      "chain_proven": true
+    }
+  ],
+  "conclusion": {
+    "definite_missing_hardware": "DCIRESET absent for DCI IO; add legitimate post-configuration DCI reset/LOCKED sequencing in board integration; do not waive or change IO standards to silence it.",
+    "no_missing_release_chain_found": true,
+    "all_21_three_stage_async_reg_chains": true,
+    "cdc_signed_off": false,
+    "remaining_proof": "Combined asynchronous assertion pulse/glitch/clock-loss behavior, common reset/reconvergence and FIFO unilateral reset contract, BSCAN edge semantics, divider CLR release require qualification. No payload CDC repair inferred solely from these 21 reset reports."
+  },
+  "official_sources": [
+    "https://docs.amd.com/r/2025.2-English/ug974-vivado-ultrascale-libraries/DCIRESET",
+    "https://adaptivesupport.amd.com/s/article/000038677"
+  ],
+  "raw_sha256": {
+    "cdc-full.rpt": "2b9190078849b2891dee7906a5b02589bae2a5422c4f7f7e1fe538e6eaf89b2b",
+    "dcirst-full.rpt": "7b1041c0e930d7d591855840cb4702f01b70ba156f6ef7dff5f8fdd1cbf3528c",
+    "read-only-audit.tcl": "e32ee58147ebaeaeae617551a1d922f03c66e62720f264feb30416dcca4f66d8",
+    "reset-cones.txt": "c94b5e933c9e0496c01eacfc9d869fbe6c147898f121ccb7bb56215807c7d216"
+  },
+  "portable_text_lf_sha256": {
+    "cdc-full.rpt": "35b73a66d060e4a9e7ae39ba5d8d5e164cda08d5de87149c78a56d6c96e1e766",
+    "dcirst-full.rpt": "bdfe1ba50376b213eff646e98d9fcc7e8b3387e2f00f3b1e40a4b101386f8dd1",
+    "read-only-audit.tcl": "e32ee58147ebaeaeae617551a1d922f03c66e62720f264feb30416dcca4f66d8",
+    "reset-cones.txt": "99e0fa8c7477170d31cc50b6f4f391797315d73b21387c61cb5aca405e46e2c8"
+  },
+  "raw_sha256_note": "Original local report hashes before portable LF/trailing-space normalization; original bytes retained under out/reset-signoff-r2."
+}
