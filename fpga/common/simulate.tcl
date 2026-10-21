@@ -28,6 +28,7 @@ foreach {name top marker reject parameters} {
     jtag_upstream i1_dual_tap_tb {PASS I1_DUAL_TAP} {} {SYS_HALF_PS=2000 DAP_UPSTREAM=1}
     jtag_downstream i1_dual_tap_tb {PASS I1_DUAL_TAP} {} {SYS_HALF_PS=2000 DAP_UPSTREAM=0}
     jtag_bad64 i1_dual_tap_tb {} CHAIN_CAPABILITY_ORACLE {SYS_HALF_PS=2000 DUT_SCAN_BITS=64}
+    dci common_dci_startup_tb COMMON_DCI_STARTUP_PASS {} {}
     quarter common_trispeed_pad_tb TRISPEED_QUARTER_PAD_BEHAVIOR_PASS {} {}
 } {
     set command [list $executable(xelab) $top glbl -L unisims_ver -L unimacro_ver -debug typical -mt $valence(threads) -s $name]

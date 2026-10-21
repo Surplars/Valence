@@ -1,7 +1,8 @@
 `timescale 1ns/1ps
 `default_nettype none
 // Shared board shell. CPU300 (I1) / CPU100 (A1) is selected at export/IP creation.
-// Fabric, timebase and DDR AXI use the SAME MIG UI250 net, not merely equal rates.
+// Default fabric uses MIG UI250. VALENCE_BOOT50_STATIC selects separate fabric50;
+// DDR, timebase and debug stay on UI250. This is NOT runtime DRP support.
 // MAC125/PAD250/REF500 share the public quarter-clock divider reset epoch.
 // Source candidate only: mapped CDC/ROM, three-speed timing and board are unverified.
 module soc_top_common_ddr (
@@ -24,18 +25,28 @@ module soc_top_common_ddr (
     inout wire [3:0] c0_ddr4_dqs_t, c0_ddr4_dqs_c
 );
     wire board_reset = ~sys_rst_n | ~button_n;
+    wire dci_ready;
+    native_dci_startup dci_startup(.cold_reset(board_reset), .ready(dci_ready));
+    wire mig_reset = board_reset | ~dci_ready;
     wire ui_clk, ui_reset, calib_complete, clk_soc, clk_aon, clk_tx, clk_rx, clk_delay;
     wire cpu_locked, eth_locked, mmcm_locked, clk_tx_forward, clk_tx_pad;
     assign mmcm_locked = cpu_locked & eth_locked;
-    wire ui_reset_request = board_reset | ui_reset | ~calib_complete | ~mmcm_locked;
+    wire ui_reset_request = mig_reset | ui_reset | ~calib_complete | ~mmcm_locked;
     (* ASYNC_REG = "TRUE" *) reg [2:0] ui_reset_pipe;
     always @(posedge ui_clk or posedge ui_reset_request)
         if (ui_reset_request) ui_reset_pipe <= 3'b111;
         else ui_reset_pipe <= {ui_reset_pipe[1:0], 1'b0};
     wire ui_aresetn = ~ui_reset_pipe[2];
 
+    wire clk_fabric;
+`ifndef VALENCE_BOOT50_STATIC
+    assign clk_fabric = ui_clk;
+`endif
     clk_wiz_common u_clk_wiz (
         .clk_in1(ui_clk), .clk_out1(clk_soc), .clk_out2(clk_aon),
+`ifdef VALENCE_BOOT50_STATIC
+        .clk_out3(clk_fabric),
+`endif
         .reset(board_reset | ui_reset), .locked(cpu_locked)
     );
     // Shared REF500 -> phase-related MAC125/PAD250. Forwarded TXC is DATA
@@ -162,7 +173,10 @@ module soc_top_common_ddr (
         .dmi_rsp_valid(dmi_rsp_valid), .dmi_rsp_ready(dmi_rsp_ready),
         .dmi_rsp_status(dmi_rsp_status), .dmi_rsp_data(dmi_rsp_data));
     CommonMachinePlatform u_soc (
-        .cpuClock(clk_soc), .fabricClock(ui_clk), .alwaysOnClock(clk_aon),
+        .cpuClock(clk_soc), .fabricClock(clk_fabric), .alwaysOnClock(clk_aon),
+`ifdef VALENCE_BOOT50_STATIC
+        .ddrClock(ui_clk), .timebaseClock(ui_clk), .debugClock(ui_clk),
+`endif
         .rawUartClock(clk_aon), .rawTxClock(clk_tx), .rawRxClock(clk_rx),
         .commonColdReset(soc_reset), .io_ddrReady(calib_complete & ui_aresetn),
         .io_bootEnable(1'b1), .io_sources(31'b0),
@@ -219,7 +233,7 @@ module soc_top_common_ddr (
         .io_ddrAxi_r_ready(mig_rready)
     );
     ddr4_0 u_ddr (
-        .sys_rst(board_reset), .c0_sys_clk_p(clk_in1_p), .c0_sys_clk_n(clk_in1_n),
+        .sys_rst(mig_reset), .c0_sys_clk_p(clk_in1_p), .c0_sys_clk_n(clk_in1_n),
         .c0_ddr4_ui_clk(ui_clk), .c0_ddr4_ui_clk_sync_rst(ui_reset),
         .c0_init_calib_complete(calib_complete), .c0_ddr4_aresetn(ui_aresetn),
         .c0_ddr4_adr(c0_ddr4_adr),

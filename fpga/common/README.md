@@ -34,6 +34,39 @@ forms; mapped endpoint/transition/pad-only proofs still run after synthesis and
 optimization and again on the final DCP. Changing those source forms requires
 review, rather than toggling a manifest boolean to bypass the proof.
 
+## Explicit static low-clock candidate (not dynamic frequency support)
+
+The default `production` profile is unchanged. Export with
+`--clock-profile=boot50-static` to select CPU50/fabric50, fixed MIG UI250,
+fixed TIME/debug250, AON/UART50 and unchanged network clocks. Both I1 and A1
+retain their full CPU/cache/peripheral geometry. CPU50/fabric250 is not this
+candidate. The profile is a timing target, not routed timing or board evidence.
+
+The exporter enables the DDR AXI, TIME and DMI CDC boundaries. The shell is
+compiled with `VALENCE_BOOT50_STATIC` only for that frozen profile. The producer
+creates a fresh Clocking Wizard 6.0 with three static BUFG outputs (50/50/50 MHz)
+from MIG UI250; it does not reuse a CPU300 clock XCI/DCP. Runtime DRP remains
+unsupported: reconfiguring this shared CPU/fabric/AON source would disturb AON
+and the common reset epoch. Do not run old recovery_link_ip.tcl or its frozen
+CPU300 clock inputs against this candidate.
+
+Local handoff order, after one combined compile and affected functional checks:
+
+1. Emit fresh production-Vivado RTL with the normal CommonMachinePlatformMain
+   invocation, CPU `i1` (or `a1`), `--vivado-memories`, the real
+   `--compile-receipt=...`, and `--clock-profile=boot50-static`.
+2. Populate a new package and freeze with the command below. Firmware contract
+   must honestly bind fabric50/TIME250 and CPU50 (or actual CMU runtime source).
+   Old fabric250 firmware receipts cannot be relabeled. Functional receipt
+   must match the new configuration hash; never manufacture PASS evidence.
+3. In native Windows PowerShell run:
+   `./fpga/common/run-local.ps1 -Manifest C:\PACKAGE\manifest.json -Vivado C:\AMD\Vivado\VERSION\bin\vivado.bat -Python C:\Python\python.exe`
+   using actual installed tool paths. This runs simulation then fresh IP/core
+   synthesis then implementation/signoff, preserving failed-stage evidence.
+4. Only after all fail-closed signoff gates pass may a fresh run request
+   `-GenerateBit`. CDC/reset21 and DCIRST44 remain unresolved until actual
+   mapped/physical evidence closes them. No waiver or cloud board claim.
+
 ## Freeze real inputs
 
 Populate a new package directory with the selected production emitter output,
@@ -195,3 +228,33 @@ pad test uses the actual specialized production encoder (its constant-zero TX
 error/unused speed output ports are removed); its independent public oracle
 checks rate changes, bytes, duplicate nibble behavior, phase and reset. It does
 not claim error injection through an input absent from the production design.
+
+## DCI startup repair, native verification still required
+
+The r2 diagnostic contains 44 DCIRST-1 warnings and zero DCIRESET cells.
+`native_dci_startup.sv` now owns one STARTUPE3 and one DCIRESET. It waits for
+EOS on the independent configuration oscillator, asserts RST, observes LOCKED
+low through three samples, releases RST, then waits for synchronized LOCKED
+high. Those samples implement the acknowledgement synchronizer, not a claimed
+vendor pulse-width minimum. The primitive guide gives no numerical RST width;
+installed UNISIM and actual device checks remain mandatory.
+
+MIG sys_rst stays asserted until DCI ready. No MIG UI clock, UI reset or DDR
+calibration signal enters the DCI sequencer, so DCI-to-MIG startup has no
+calibration wait loop. LOCKED loss asynchronously inhibits ready; release is
+three-stage synchronized. This is not a waiver for other reset CDC findings.
+`dci_constraints.tcl` times CFGMCLK at 57.5 MHz (DS925 50 MHz +15%).
+
+The normal simulation producer now runs `common_dci_startup_tb` against the
+installed UNISIM primitives and requires `dci-run.log`. Before accepting this
+repair locally, require its post-EOS/cold-reset handshake PASS, one mapped
+DCIRESET at `dci_startup/dci`, zero DCIRST-1 on the new DCP, a valid MIG sys_rst
+release, successful DDR calibration, and unchanged full reset/CDC signoff.
+Cloud source tests are not substitute evidence. No fixed delay is used as a
+proxy for LOCKED, and no DRC severity is downgraded.
+
+Official references:
+- https://docs.amd.com/r/2025.2-English/ug974-vivado-ultrascale-libraries/DCIRESET
+- https://docs.amd.com/r/2025.2-English/ug974-vivado-ultrascale-libraries/STARTUPE3
+- https://docs.amd.com/r/en-US/ug570-ultrascale-configuration/Start-up-Sequence-Step-8
+- https://docs.amd.com/r/en-US/ds925-zynq-ultrascale-plus/Configuration-Switching-Characteristics

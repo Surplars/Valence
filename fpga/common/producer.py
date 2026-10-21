@@ -19,9 +19,8 @@ def validate(root, m):
     c = m['configuration']; hz = c['clocks_hz']; roles = m['roles']
     gate.require(c['top'] == 'soc_top_common_ddr' and c['features'] == {'mac': True, 'network_dma': True},
                  'board producer requires shared full-MAC/DMA board wrapper')
-    gate.require(hz == dict(cpu=300000000 if c['cpu'] == 'i1' else 100000000,
-                           fabric=250000000, timebase=250000000, ddr_ui=250000000,
-                           uart=50000000, aon=50000000), 'unreviewed board clock profile')
+    gate.require(hz == gate.reviewed_board_clocks(c['cpu'], c.get('clock_profile', 'production')),
+                 'unreviewed board clock profile')
     for name in ('simulation_filelist', 'post_synth_constraints', 'post_opt_constraints', 'media_scenarios', 'rom_coe'):
         gate.require(roles.get(name) in m['inputs'], 'missing reviewed producer role: ' + name)
     gate.require(len(roles['ip']) == 1 and roles['ip'][0].endswith('.xci'), 'supply exactly one actual MIG XCI')

@@ -96,6 +96,15 @@ def output_at(root, value):
     return p
 
 
+def reviewed_board_clocks(cpu, profile='production'):
+    require(cpu in ('i1', 'a1'), 'unreviewed CPU')
+    require(profile in ('production', 'boot50-static'), 'unreviewed board clock profile')
+    low = profile == 'boot50-static'
+    return dict(cpu=50000000 if low else 300000000 if cpu == 'i1' else 100000000,
+                fabric=50000000 if low else 250000000, timebase=250000000,
+                ddr_ui=250000000, uart=50000000, aon=50000000)
+
+
 def configuration(config):
     require(config.get('cpu') in ('i1', 'a1'), 'select exactly one CPU: i1 or a1')
     require(bool(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_$]*', config.get('top', ''))), 'real top name required')
@@ -106,7 +115,12 @@ def configuration(config):
     clocks = config.get('clocks_hz', {})
     require(set(clocks) == set(CLOCKS) and all(type(v) is int and 0 < v <= 1_000_000_000
                                             for v in clocks.values()), 'explicit positive domain frequencies required')
-    require(clocks['timebase'] == clocks['fabric'], 'ABI 1 timebase must equal fabric clock')
+    profile = config.get('clock_profile', 'production')
+    require(profile in ('production', 'boot50-static'), 'unreviewed board clock profile')
+    if profile == 'boot50-static':
+        require(clocks == reviewed_board_clocks(config['cpu'], profile), 'unreviewed static low-clock topology')
+    else:
+        require(clocks['timebase'] == clocks['fabric'], 'production timebase must equal fabric clock')
     features = config.get('features', {})
     require(set(features) == {'mac', 'network_dma'} and all(type(v) is bool for v in features.values()),
             'explicit MAC/network DMA features required')
@@ -431,6 +445,7 @@ def prepare(manifest):
             pairs[name] = str(root / m['roles'][name])
         pairs['mig_xci'] = str(root / m['roles']['ip'][0])
         pairs['cpu'] = m['configuration']['cpu']
+        pairs['clock_profile'] = m['configuration'].get('clock_profile', 'production')
         pairs['control_lemma'] = 1
         pairs['simulation_suite'] = m['producer']['simulation_suite']
         pairs['rom'] = str(root / m['roles']['rom'])

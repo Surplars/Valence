@@ -20,6 +20,8 @@ def freeze(a):
         gate.file_at(root, value)
     emission = gate.read(root / a.emission)
     gate.require(emission.get('cpu') in ('i1', 'a1'), 'actual selected CPU emission required')
+    profile = emission.get('clockProfile', 'production')
+    clocks = gate.reviewed_board_clocks(emission['cpu'], profile)
     cpu = emission['cpu']; base = gate.relative(a.emission).parent
     artifacts = emission.get('artifacts', {})
     tops = [p for p in artifacts if p.endswith('/CommonMachinePlatform.sv')]
@@ -37,9 +39,9 @@ def freeze(a):
     for path in [*rtl, *sim, *board_inputs.PUBLIC_INPUTS]: gate.file_at(root, path)
     config = dict(cpu=cpu, top='soc_top_common_ddr', part='xczu15eg-ffvb1156-2-i', abi=1,
                   interrupt_abi='aia', rom_base=0x80000000, rom_bytes=131072,
-                  clocks_hz=dict(cpu=300000000 if cpu == 'i1' else 100000000, fabric=250000000,
-                                 timebase=250000000, ddr_ui=250000000, uart=50000000, aon=50000000),
+                  clocks_hz=clocks,
                   features=dict(mac=True, network_dma=True))
+    if profile != 'production': config['clock_profile'] = profile
     roles = dict(rtl_filelist='board-generated/rtl.f', simulation_filelist='board-generated/sim.f',
                  emission_profile=a.emission, firmware_contract=a.firmware_contract,
                  functional_receipt=a.functional_receipt, rom=a.rom, rom_coe=a.coe,
@@ -50,11 +52,11 @@ def freeze(a):
     m = dict(schema=gate.SCHEMA, configuration=config, threads=a.threads, source_roots=list(gate.ROOTS),
              producer=dict(schema='common-board-producer-v1', simulation_suite='common-physical-boundaries-v1', media_rates_mbps=[10, 100, 1000]),
              roles=roles, stages={
-                 'simulation': dict(script='fpga/common/simulate.tcl', outputs=['smoke-result.txt', 'jtag_upstream-run.log', 'jtag_downstream-run.log', 'jtag_bad64-run.log', 'quarter-run.log', 'xelab-invocations.txt', 'xsim-invocations.txt']),
+                 'simulation': dict(script='fpga/common/simulate.tcl', outputs=['smoke-result.txt', 'jtag_upstream-run.log', 'jtag_downstream-run.log', 'jtag_bad64-run.log', 'quarter-run.log', 'dci-run.log', 'xelab-invocations.txt', 'xsim-invocations.txt']),
                  'synthesis': dict(script='fpga/common/synthesize.tcl', outputs=['synthesized.dcp', 'utilization.rpt', 'bus-skew-scope.json', 'ip-synthesis.json']),
                  'implementation': dict(script='fpga/common/implement.tcl', outputs=['routed.dcp', 'utilization.rpt', 'bus-skew-scope.json'])},
              signoff=dict(bus_skew_checks='mapped-scope', clock_pins=dict(cpu='u_soc/cpuClock', fabric='u_soc/fabricClock',
-                 timebase='u_soc/fabricClock', ddr_ui='u_ddr/c0_ddr4_ui_clk', uart='u_soc/rawUartClock', aon='u_soc/alwaysOnClock')))
+                 timebase='u_soc/timebaseClock' if profile == 'boot50-static' else 'u_soc/fabricClock', ddr_ui='u_ddr/c0_ddr4_ui_clk', uart='u_soc/rawUartClock', aon='u_soc/alwaysOnClock')))
     files = set(emitted + rtl + sim + list(board_inputs.PUBLIC_INPUTS))
     for value in roles.values(): files.update(value if isinstance(value, list) else [value])
     files.update(gate.firmware_inputs(root, gate.read(root / a.firmware_contract)))

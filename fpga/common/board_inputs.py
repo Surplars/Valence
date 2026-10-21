@@ -24,8 +24,11 @@ BOARD_RTL = PUBLIC_INPUTS[:3] + (
     'src/main/resources/inorder/ValenceI1BscanDebugPort.sv',
     'src/main/resources/inorder/ValenceI1DmiCdc.sv',
     'fpga/common/soc_top_common_ddr.sv',
+    'fpga/common/native_dci_startup.sv',
 )
 SIM_RTL = (
+    'fpga/common/native_dci_startup.sv',
+    'fpga/common/dci_startup_tb.sv',
     'src/main/resources/inorder/ValenceI1BscanDebugPort.sv',
     'src/main/resources/inorder/ValenceI1DmiCdc.sv',
     'simulator/jtag/i1_dual_tap_tb.sv',
@@ -36,7 +39,14 @@ SIM_RTL = (
 )
 
 
-def port_check(rtl, wrapper, production=True):
+def selected_shell(wrapper, low):
+    # Only this reviewed switch is accepted. Do not ignore arbitrary preprocessor logic.
+    pattern = r'`(ifdef|ifndef) VALENCE_BOOT50_STATIC\n(.*?)`endif'
+    return re.sub(pattern, lambda m: m[2] if (m[1] == 'ifdef') == low else '', wrapper, flags=re.S)
+
+
+def port_check(rtl, wrapper, production=True, low=False):
+    wrapper = selected_shell(wrapper, low)
     header = rtl.split('module CommonMachinePlatform(', 1)[1].split(');', 1)[0]
     ports = {}; direction = None
     for field in header.split(','):
@@ -69,6 +79,10 @@ def emission(root, m):
                            uartHz=clocks['uart'], aonHz=clocks['aon'], physicalTimingVerified=False, boardVerified=False).items():
         gate.require(meta.get(key) == value and type(meta.get(key)) is type(value), 'wrong production emission contract: ' + key)
     gate.require(str(meta.get('timebaseHz')) == str(clocks['timebase']), 'wrong emission timebase')
+    profile = c.get('clock_profile', 'production')
+    if profile == 'boot50-static':
+        gate.require(meta.get('clockProfile') == profile and meta.get('independentFixedDomains') is True
+                     and meta.get('runtimeClockReconfiguration') is False, 'missing static independent-domain emission contract')
     source_hashes = {}
     for absolute, value in meta.get('sources', {}).items():
         for marker in ('src/main/scala/', 'src/test/scala/platform/'):
@@ -108,4 +122,4 @@ def emission(root, m):
                     high = 0 if reset else prior if phase else source
                     gate.require(low == high, 'common control reset/phase induction failed')
     return port_check(gate.file_at(root, (base / 'CommonMachinePlatform.sv').as_posix()).read_text(),
-                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text())
+                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text(), low=profile == 'boot50-static')

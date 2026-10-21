@@ -61,9 +61,26 @@ proc common_board::cpu {} {
     set cpu [common_cdc::one get_cells u_soc/cpu]
     if {![string match $expected* [get_property REF_NAME $cpu]] || [llength [get_cells -quiet -hier -filter "REF_NAME =~ $other"]]} {error "COMMON_CPU selected core hierarchy mismatch"}
     set clk [common_cdc::clock u_soc/cpuClock]; set fabric [common_cdc::clock u_soc/fabricClock]
-    set hz [expr {$valence(cpu) eq "i1" ? 300000000 : 100000000}]
-    if {$clk eq $fabric || abs([get_property PERIOD [get_clocks $clk]]-1.0e9/$hz)>0.002 || abs([get_property PERIOD [get_clocks $fabric]]-4.0)>0.002} {error "COMMON_CPU CPU300/100 versus fabricUI250 clock mismatch"}
-    common_cdc::same_net u_soc/fabricClock u_ddr/c0_ddr4_ui_clk
+    set profile production
+    if {[info exists valence(clock_profile)]} {set profile $valence(clock_profile)}
+    if {$profile ni {production boot50-static}} {error "COMMON_CPU unreviewed clock profile"}
+    set hz [expr {$profile eq "boot50-static" ? 50000000 : $valence(cpu) eq "i1" ? 300000000 : 100000000}]
+    set fabricHz [expr {$profile eq "boot50-static" ? 50000000 : 250000000}]
+    if {$clk eq $fabric || abs([get_property PERIOD [get_clocks $clk]]-1.0e9/$hz)>0.002 || abs([get_property PERIOD [get_clocks $fabric]]-1.0e9/$fabricHz)>0.002} {error "COMMON_CPU selected CPU/fabric clock mismatch"}
+    if {$profile eq "boot50-static"} {
+        foreach pin {u_soc/ddrClock u_soc/timebaseClock u_soc/debugClock} {
+            common_cdc::same_net $pin u_ddr/c0_ddr4_ui_clk
+            set fixed [common_cdc::clock $pin]
+            if {$fixed eq $fabric || abs([get_property PERIOD [get_clocks $fixed]]-4.0)>0.002} {error "COMMON_CPU fixed UI/time/debug250 topology mismatch"}
+        }
+        common_cdc::same_net u_soc/fabricClock u_clk_wiz/clk_out3
+        common_cdc::one get_cells u_soc/ddrCrossing
+    } else {
+        common_cdc::same_net u_soc/fabricClock u_ddr/c0_ddr4_ui_clk
+    }
+    foreach pin {u_soc/alwaysOnClock u_soc/rawUartClock} {
+        if {abs([get_property PERIOD [get_clocks [common_cdc::clock $pin]]]-20.0)>0.002} {error "COMMON_CPU fixed AON/UART50 mismatch"}
+    }
 }
 proc common_board::release {prefix report} {
     set cells [common_cdc::bank $prefix 3]; set clk [common_cdc::clock [lindex $cells 0]/C]

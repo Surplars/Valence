@@ -1,0 +1,46 @@
+{
+  "stage": "cmu-frequency-r3-static-board-producer",
+  "parent_commit": "d1bc53fc372162320f22495ea5bf21fc9a6fcb8c",
+  "source_sha256": {
+    "fpga/common/README.md": "1376935854d69c0adea4c480bc78cc828781a7bce17780a12bfc49be4a35e633",
+    "fpga/common/board_audit.tcl": "c1ed20acaa86a31e1250ed23aded50a78e1c51441cd85c185408a239b0d78bc0",
+    "fpga/common/board_inputs.py": "a7191af8d9fbce79c256ab3b2001d8722d44c8558522ca73fcc5ceefc970aee5",
+    "fpga/common/common_cdc.tcl": "7b1afd99e43f5fa53934b84e0d9043e837ab991a00478ec7d16aba6e14116079",
+    "fpga/common/freeze.py": "cf828618363883c8c6d566f70bff4e5bb3962d9180d4285abe01eb5b03524cd8",
+    "fpga/common/manifest.py": "d0009155a7bb6116f0a38ca22d91a58486391a17ac4fbb01885859584945013b",
+    "fpga/common/post_opt.tcl": "a7995d15be8cd68195a63bfdb13c292e36b1a681888d04fa5233ef9a13526529",
+    "fpga/common/post_synth.tcl": "52ed3c813ea3fb5ddbbbcf6cd1d393874cfc69247c857c97c471e851fb6c5c4e",
+    "fpga/common/producer.py": "8a5e533697509e1eef9d1db2ab087f0054af80d2d1e86b6693459dc77cd863b7",
+    "fpga/common/simulate.tcl": "496d7b0e6f7c5fbab7ca19cd23d1f843ca36b01a7a286319c91f1352c7286f7e",
+    "fpga/common/soc_top_common_ddr.sv": "0d266e8ea4eabe2b5894d8d02c8612f2d8ed4b790d0c9c30ed6aa7e9d5fb0917",
+    "fpga/common/synthesize.tcl": "42a3d48f8806893ddbb1f6db91140bf773eca85b355b464c01499f0c7a7b6a8c",
+    "fpga/common/test_board_inputs.py": "73ee6757576ff71ad626094bba5e1cd8eee13e10a7e0c0e928206fabb0a31ff0",
+    "fpga/common/dci_constraints.tcl": "944117d322db516632b8704a2c392d46747c533720482ad589582f07309d6c39",
+    "fpga/common/dci_startup_tb.sv": "d841a6d92fb91598d90bd99cea322ec54d8e11052bac91d74ccf8388497c6afa",
+    "fpga/common/native_dci_startup.sv": "8cd0b3ed0ba2fb6204bd1843a518b53526952b12d556f688fd0b0ecdf90b223e",
+    "fpga/common/test_boot50_cdc.tcl": "e245a17ef24eacc82e6899d47ae4d7d909f0a8b7a05579ea0fb2301e8ca92e77"
+  },
+  "python_tests": {
+    "passed": 39,
+    "log_sha256": "9cbeef59a37b72d4979f192625c8a0515ac0e37a020c124827da8f6743f35ef9"
+  },
+  "tcl_helper_suites": {
+    "passed": 8,
+    "log_sha256": "76f1e415420de2fefcfd4f4532bb5b789d5c3250a3be697f63239366e3e9cb67",
+    "scope": "mock/positive/negative helper tests, not mapped netlist qualification"
+  },
+  "actual_i1_boot50_port_binding": {
+    "ports": 123,
+    "connections": 80,
+    "status": "PASS",
+    "profile_sha256": "889bb499d152885f28c6b6b1e6a04827cf4e8aa1e28b39d66e9a9ce2363d22d0"
+  },
+  "new_boundary_source_hierarchy_audit": "Exact emitted RTL roots, lane directions, register names/widths and synchronizer attributes checked; final DDR-ready name fabricDdrReady_ddrReadySync",
+  "dci_status": "POST_EOS_OFFICIAL_PRIMITIVE_SEQUENCE_IMPLEMENTED_NATIVE_UNISIM_NOT_RUN",
+  "native_functional_status": "NOT_RUN",
+  "synthesis": "NOT_RUN",
+  "mapped_cdc_rdc": "NOT_RUN",
+  "physical_signoff": false,
+  "bitstream_generated": false,
+  "board_verified": false
+}

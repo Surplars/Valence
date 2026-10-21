@@ -16,13 +16,42 @@ ROOT = HERE.parents[1]
 class BoardInputs(unittest.TestCase):
     def test_actual_shell_connects_shared_clock_and_debug_contract(self):
         text = (HERE / 'soc_top_common_ddr.sv').read_text()
-        self.assertIn('.cpuClock(clk_soc), .fabricClock(ui_clk)', text)
+        self.assertIn('.cpuClock(clk_soc), .fabricClock(clk_fabric)', text)
+        self.assertIn('assign clk_fabric = ui_clk;', board_inputs.selected_shell(text, False))
+        self.assertNotIn('.ddrClock(ui_clk)', board_inputs.selected_shell(text, False))
+        self.assertIn('.ddrClock(ui_clk), .timebaseClock(ui_clk), .debugClock(ui_clk)', board_inputs.selected_shell(text, True))
         self.assertIn('.JTAG_CHAIN(2), .SCAN_BITS(65)', text)
         self.assertIn('.c0_ddr4_ui_clk(ui_clk)', text)
         self.assertNotIn('axi_clock_converter', text)
         self.assertIn('native_rgmii_trispeed_quarter', text)
         self.assertIn('.RX_DATA_DELAY_PS(1100)', text)
         self.assertNotIn('jtag_tck', text)
+
+    def test_low_profile_requires_fresh_static_three_output_ip(self):
+        script = (HERE / 'synthesize.tcl').read_text()
+        self.assertIn('create_ip -name clk_wiz', script)
+        self.assertIn('CONFIG.USE_DYN_RECONFIG false', script)
+        self.assertIn('CONFIG.NUM_OUT_CLKS 3', script)
+        self.assertIn('CONFIG.CLKOUT3_REQUESTED_OUT_FREQ 50.000', script)
+        self.assertIn('read_verilog -sv -define VALENCE_BOOT50_STATIC', script)
+        for name in ('post_synth.tcl', 'post_opt.tcl'):
+            self.assertIn('set debugPin u_soc/debugClock', (HERE / name).read_text())
+        audit = (HERE / 'board_audit.tcl').read_text()
+        self.assertIn('u_soc/ddrClock u_soc/timebaseClock u_soc/debugClock', audit)
+        self.assertIn('u_soc/ddrCrossing', audit)
+
+    def test_dci_bootstrap_is_independent_of_mig(self):
+        helper = (HERE / 'native_dci_startup.sv').read_text()
+        shell = (HERE / 'soc_top_common_ddr.sv').read_text()
+        self.assertIn('DCIRESET dci (.RST(reset_dci), .LOCKED(locked))', helper)
+        self.assertIn('.CFGMCLK(cfg_raw)', helper)
+        self.assertIn('wire restart = cold_reset | ~eos;', helper)
+        self.assertNotIn('input wire ui_', helper)
+        self.assertNotIn('calib_complete', helper)
+        self.assertIn('wire mig_reset = board_reset | ~dci_ready;', shell)
+        self.assertIn('.sys_rst(mig_reset)', shell)
+        self.assertIn('common_dci_startup_tb COMMON_DCI_STARTUP_PASS', (HERE / 'simulate.tcl').read_text())
+        self.assertIn('dci-run.log', (HERE / 'freeze.py').read_text())
 
     def test_bit_is_blocked_before_scenario_code(self):
         script = (HERE / 'signoff.tcl').read_text()
@@ -77,6 +106,14 @@ class BoardInputs(unittest.TestCase):
                 for key in ('cpu','fabric','timebase'):
                     bad=copy.deepcopy(m);bad['configuration']['clocks_hz'][key]=50000000
                     with self.assertRaises(ValueError): producer.validate(root,bad)
+                low=copy.deepcopy(m);low['configuration']['clock_profile']='boot50-static'
+                low['configuration']['clocks_hz']=producer.gate.reviewed_board_clocks('i1','boot50-static')
+                producer.validate(root,low)
+                for key in ('cpu','fabric','timebase','ddr_ui','uart','aon'):
+                    bad=copy.deepcopy(low);bad['configuration']['clocks_hz'][key]+=1000000
+                    with self.assertRaises(ValueError): producer.validate(root,bad)
+                bad=copy.deepcopy(low);bad['configuration'].pop('clock_profile')
+                with self.assertRaises(ValueError): producer.validate(root,bad)
                 bad=copy.deepcopy(m);bad['configuration']['features']['mac']=False
                 with self.assertRaises(ValueError): producer.validate(root,bad)
                 (root/'rom').write_bytes(b'\x01'+bytes(131071))

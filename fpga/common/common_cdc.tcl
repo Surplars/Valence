@@ -1,4 +1,4 @@
-# CommonCpuClockBoundary only. Source after synth_design -flatten_hierarchy none,
+# CommonCpuClockBoundary plus explicitly selected boot50-static boundaries. Source after synth_design -flatten_hierarchy none,
 # then call common_cdc::constrain. This file never applies global clock groups,
 # false paths, reset cuts, or asynchronous payload exceptions.
 namespace eval common_cdc { variable scopes {} }
@@ -349,6 +349,16 @@ proc common_cdc::collect {{root u_soc/crossing}} {
         }
     }
     puts "COMMON_CDC_CONSTANT_STAGE0_PROOF_COVERAGE endpoints=[llength $::common_cdc::constant_stage0_endpoints] NO_TRANSITIONS_NO_EXCEPTION"
+    if {$root eq {u_soc/crossing}} {
+        set profile production
+        if {[info exists ::valence(clock_profile)]} {set profile $::valence(clock_profile)}
+        if {$profile ni {production boot50-static}} {error "COMMON_CDC unreviewed clock profile $profile"}
+        if {$profile eq {boot50-static}} {
+            lappend scopes {*}[collect_boot50 u_soc u_soc/fixedTimer u_soc/debugCrossing]
+        } elseif {[llength [get_pins -quiet u_soc/ddrClock]] || [llength [get_cells -quiet u_soc/ddrCrossing]]} {
+            error "COMMON_CDC independent DDR boundary requires explicit boot50-static profile"
+        }
+    }
     return $scopes
 }
 proc common_cdc::constrain {{root u_soc/crossing}} {
@@ -401,5 +411,152 @@ proc common_cdc::audit_timing {scopes output} {
             }
         }
     } finally {close $f}
-    report_bus_skew -delay_type min_max -cells [get_cells u_soc/crossing] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+    report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) eq {boot50-static} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+}
+
+# Additional opt-in static boot boundary map. This is a fail-closed mapped-netlist
+# contract, not a waiver and not evidence that a native implementation has passed.
+proc common_cdc::expect_clock {pin expected {period {}}} {
+    set actual [clock $pin]
+    if {$actual ne $expected} {error "COMMON_CDC incorrect clock at $pin: $actual expected $expected"}
+    if {$period ne {}} {
+        set p [get_property PERIOD [get_clocks $actual]]
+        if {![string is double -strict $p] || abs($p-$period)>0.002} {
+            error "COMMON_CDC incorrect clock period at $pin: $p expected $period"
+        }
+    }
+}
+proc common_cdc::exact_modules {root ref expected} {
+    set actual {}
+    foreach c [get_cells -quiet -hier -filter "NAME =~ $root/*"] {
+        if {[string match $ref [get_property REF_NAME $c]]} {lappend actual [get_property NAME $c]}
+    }
+    if {[lsort $actual] ne [lsort $expected]} {
+        error "COMMON_CDC exact module census changed under $root ($ref): $actual expected $expected"
+    }
+}
+proc common_cdc::mailbox_width {h width source destination} {
+    expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
+    set starts {};set ends {};set constants {};set captures {}
+    for {set i 0} {$i<$width} {incr i} {
+        # A constant output bit may lose both registers in optimization. Prove
+        # that exact exported bit is literal, never infer it from a missing FF.
+        set output [format {%s/destination_bits[%d]} $h $i]
+        one get_pins $output
+        if {![catch {constant $output 0}] || ![catch {constant $output 1}]} {
+            lappend constants $i;continue
+        }
+        set a [format {%s/held_reg[%d]} $h $i]
+        set b [format {%s/captured_reg[%d]} $h $i]
+        ff $a $source;ff $b $destination
+        if {[drivers $b/D] ne [list $a/Q] || [drivers $output] ne [list $b/Q]} {
+            error "COMMON_CDC mailbox payload mapping changed $a $b"
+        }
+        lappend starts $a/C;lappend ends $b/D;lappend captures $b
+    }
+    if {![llength $ends]} {error "COMMON_CDC mailbox has no proved dynamic payload $h"}
+    # Retained capture state must be accounted for as dynamic or locally literal.
+    foreach c [get_cells -quiet -hier -regexp [format {^%s/captured_reg\[[0-9]+\]$} [quote $h]]] {
+        set name [get_property NAME $c]
+        if {[lsearch -exact $captures $name]>=0} {continue}
+        ff $name $destination
+        if {[catch {constant $name/D 0}] && [catch {constant $name/D 1}]} {
+            error "COMMON_CDC unaccounted mailbox capture $name"
+        }
+    }
+    puts "COMMON_CDC_MAILBOX_ACTUAL_BITS $h dynamic=[llength $ends] literal_output_bits=$constants"
+    return [dict create label $h/held_payload starts $starts ends $ends second {} budget [budget $source $destination] skew 1]
+}
+proc common_cdc::register_payload {h from to fields source destination} {
+    # The timer consumes only a subset of address/size bits. Enumerate the exact
+    # retained capture ABI, not a guessed full bank; all retained dynamic capture
+    # bits must have their matching held source bit, with no combinational bypass.
+    set captures {};set starts {};set ends {}
+    foreach c [get_cells -quiet -hier -filter "NAME =~ $h/${to}_*_reg*"] {
+        set name [get_property NAME $c]
+        set pattern [format {^%s_([a-zA-Z]+)_reg(\[([0-9]+)\])?$} [quote $h/$to]]
+        if {![regexp $pattern $name -> field suffix index]} {
+            error "COMMON_CDC unexpected register payload ABI $name"
+        }
+        if {![dict exists $fields $field]} {error "COMMON_CDC unexpected register payload field $name"}
+        set width [dict get $fields $field]
+        if {($suffix eq {} && $width!=1) || ($suffix ne {} && ($index<0 || $index>=$width))} {
+            error "COMMON_CDC unexpected register payload bit $name"
+        }
+        ff $name $destination;lappend captures $name
+        if {![catch {constant $name/D 0}] || ![catch {constant $name/D 1}]} {continue}
+        set launch $h/${from}_${field}_reg$suffix
+        ff $launch $source
+        if {[drivers $name/D] ne [list $launch/Q]} {error "COMMON_CDC register payload bypass $name"}
+        lappend starts $launch/C;lappend ends $name/D
+    }
+    if {![llength $captures] || ![llength $ends]} {error "COMMON_CDC missing dynamic register payload $h/$to"}
+    return [dict create label $h/$to starts $starts ends $ends second {} budget [budget $source $destination] skew 1]
+}
+proc common_cdc::new_stage_coverage {roots scopes} {
+    set covered {};foreach s $scopes {lappend covered {*}[dict get $s ends]}
+    foreach root $roots {
+        foreach c [get_cells -quiet -hier -filter "IS_PRIMITIVE == TRUE && NAME =~ $root/*"] {
+            set n [get_property NAME $c];set ref [get_property REF_NAME $c]
+            # Check every retained FF clock, including ordinary control/payload and
+            # reset release state. Global check_timing additionally covers RAM/IP.
+            if {[string match FD* $ref]} {clock $n/C}
+            if {[regexp {(Sync_stage0_reg\[[0-9]+\]|stages_reg\[0\])$} $n]} {
+                if {[get_property ASYNC_REG $c] ni {1 TRUE true} || [lsearch -exact $covered $n/D]<0} {
+                    error "COMMON_CDC uncovered new first-stage endpoint $n"
+                }
+            }
+        }
+    }
+}
+proc common_cdc::collect_boot50 {soc timer debug} {
+    set cpu [clock $soc/cpuClock];set fabric [clock $soc/fabricClock]
+    set fixed [clock $soc/ddrClock];set aon [clock $soc/alwaysOnClock]
+    expect_clock $soc/cpuClock $cpu 20.0
+    expect_clock $soc/fabricClock $fabric 20.0
+    expect_clock $soc/ddrClock $fixed 4.0
+    expect_clock $soc/timebaseClock $fixed 4.0
+    expect_clock $soc/debugClock $fixed 4.0
+    expect_clock $soc/alwaysOnClock $aon 20.0
+    if {$cpu eq $fabric || $fabric eq $fixed} {error "COMMON_CDC boot domains unexpectedly collapsed"}
+    set ddr $soc/ddrCrossing
+    foreach root [list $ddr $timer $debug] {one get_cells $root}
+    set lanes {};foreach suffix {{} _1 _2 _3 _4} {lappend lanes $ddr/empty_fifo$suffix}
+    exact_modules $ddr HeldResponseCdcDataFifo* $lanes
+    exact_modules $ddr CdcLevel* [list $ddr/fabricLinkReady_sync $ddr/ddrLinkReady_sync]
+    exact_modules $timer CdcMailbox* [list $timer/snapshots]
+    exact_modules $timer RegisterClockDomainBridge* [list $timer/mmio]
+    exact_modules $timer CdcLevel* [list $timer/interrupt $timer/mmio/requestSync $timer/mmio/responseSync $timer/snapshots/requestSync $timer/snapshots/ackSync]
+    exact_modules $debug CdcMailbox* [list $debug/requests $debug/responses]
+    exact_modules $debug CdcLevel* [list $debug/requests/requestSync $debug/requests/ackSync $debug/responses/requestSync $debug/responses/ackSync]
+    set result {};set i 0
+    foreach lane $lanes {
+        set src $fabric;set dst $fixed
+        if {$i in {2 4}} {set src $fixed;set dst $fabric}
+        expect_clock $lane/sourceClock $src;expect_clock $lane/destinationClock $dst
+        foreach direction {write captured} {lappend result [gray $lane $direction]}
+        # All five AXI lanes are live. No inactive/payload-absent shortcut.
+        lappend result [payload $lane]
+        incr i
+    }
+    foreach h [list $ddr/fabricLinkReady_sync $ddr/ddrLinkReady_sync $timer/interrupt $timer/mmio/requestSync $timer/mmio/responseSync $timer/snapshots/requestSync $timer/snapshots/ackSync $debug/requests/requestSync $debug/requests/ackSync $debug/responses/requestSync $debug/responses/ackSync] {
+        set target $fabric
+        if {$h in [list $ddr/ddrLinkReady_sync $timer/mmio/requestSync $timer/snapshots/ackSync $debug/requests/ackSync $debug/responses/requestSync]} {set target $fixed}
+        expect_clock $h/clockIn $target
+        expect_clock [format {%s/stages_reg[0]/C} $h] $target
+        lappend result [level $h]
+    }
+    lappend result [mailbox_width $timer/snapshots 64 $fixed $fabric]
+    lappend result [mailbox_width $debug/requests 41 $fixed $fabric]
+    lappend result [mailbox_width $debug/responses 34 $fabric $fixed]
+    expect_clock $timer/mmio/sourceClock $fabric;expect_clock $timer/mmio/destinationClock $fixed
+    lappend result [register_payload $timer/mmio requestHeld request {address 64 write 1 size 3 data 64 byteEnable 8} $fabric $fixed]
+    lappend result [register_payload $timer/mmio responseHeld reply {data 64 error 1} $fixed $fabric]
+    one get_cells $soc/fabricDdrReady_ddrReadySync
+    expect_clock $soc/fabricDdrReady_ddrReadySync/clockIn $fabric
+    expect_clock [format {%s/fabricDdrReady_ddrReadySync/stages_reg[0]/C} $soc] $fabric
+    lappend result [level $soc/fabricDdrReady_ddrReadySync]
+    new_stage_coverage [list $ddr $timer $debug $soc/fabricDdrReady_ddrReadySync] $result
+    puts "COMMON_CDC_BOOT50_MAPPED scopes=[llength $result] NATIVE_TIMING_VALIDATION_STILL_REQUIRED"
+    return $result
 }

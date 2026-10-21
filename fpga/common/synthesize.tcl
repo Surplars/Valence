@@ -23,6 +23,13 @@ set_property -dict [list CONFIG.PRIM_SOURCE No_buffer CONFIG.PRIM_IN_FREQ 250.00
     CONFIG.NUM_OUT_CLKS 2 CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $mhz CONFIG.CLKOUT1_DRIVES BUFG \
     CONFIG.CLKOUT2_USED true CONFIG.CLKOUT2_REQUESTED_OUT_FREQ 50.000 CONFIG.CLKOUT2_DRIVES BUFG \
     CONFIG.USE_RESET true CONFIG.USE_LOCKED true CONFIG.USE_DYN_RECONFIG false] [get_ips clk_wiz_common]
+# Never import/reuse the frozen CPU300 clock DCP for the low-clock candidate.
+# A static third output separates fabric50 from the unchanged UI/time/debug250.
+if {$valence(clock_profile) eq "boot50-static"} {
+    set_property -dict [list CONFIG.NUM_OUT_CLKS 3 CONFIG.CLKOUT3_USED true \
+        CONFIG.CLKOUT3_REQUESTED_OUT_FREQ 50.000 CONFIG.CLKOUT3_DRIVES BUFG] [get_ips clk_wiz_common]
+    set_property verilog_define {VALENCE_BOOT50_STATIC} [current_fileset]
+}
 create_ip -name blk_mem_gen -vendor xilinx.com -library ip -version 8.4 -module_name blk_mem_gen_0
 set_property -dict [list \
     CONFIG.Interface_Type Native CONFIG.Memory_Type Dual_Port_ROM \
@@ -57,7 +64,11 @@ foreach run $runs {
     lappend ipEvidence [format {"%s":{"status":%s,"threads":%s}} $run [common_json $status] [common_json $evidence]]
 }
 common_log ip-synthesis.json "\{[join $ipEvidence ,]\}"
-foreach source [common_files rtl_filelist] {read_verilog -sv $source}
+foreach source [common_files rtl_filelist] {
+    if {$valence(clock_profile) eq "boot50-static"} {
+        read_verilog -sv -define VALENCE_BOOT50_STATIC $source
+    } else {read_verilog -sv $source}
+}
 foreach xdc $valence(constraints) {read_xdc $xdc}
 common_design_step synth_design -top $valence(top) -part $valence(part) -flatten_hierarchy none
 # Actual mapped hierarchy checks and bounded crossings precede checkpoint export.
