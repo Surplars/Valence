@@ -1,4 +1,5 @@
 source [file join $valence(root) fpga common producer_common.tcl]
+if {![info exists valence(resume_raw)] || !$valence(resume_raw)} {
 if {![info exists valence(resume_ooc)] || !$valence(resume_ooc)} {
 create_project common_board [file join $valence(out) project] -part $valence(part)
 set_property XPM_LIBRARIES {XPM_MEMORY} [current_project]
@@ -86,6 +87,16 @@ foreach source [common_files rtl_filelist] {
 }
 foreach xdc $valence(constraints) {read_xdc $xdc}
 common_design_step synth_design -top $valence(top) -part $valence(part) -flatten_hierarchy none
+# Preserve expensive synthesis BEFORE any clock/CDC/media post-check can fail.
+write_checkpoint raw-synthesized-unqualified.dcp
+if {[info exists valence(recovery_tools)]} {
+    puts [exec $valence(python) -E [file join $valence(recovery_tools) resume_diagnostic.py] $valence(root) seal-raw]
+}
+} else {
+    open_checkpoint raw-synthesized-unqualified.dcp
+    # Original completed synthesis thread evidence is retained on post-only retry.
+    common_record synth_design {synth_design RECOVERED_RAW_CHECKPOINT} unsupported 4 synth_design-threads.txt "Recovered hash-bound unqualified synthesis; no new synthesis"
+}
 # Verify actual elaborated generated clock objects, never just requested CONFIG.
 set clockOutputs [list clk_out1 $valence(hz_cpu) clk_out2 $valence(hz_aon)]
 if {$valence(clock_profile) in {boot50-static performance300-static}} {

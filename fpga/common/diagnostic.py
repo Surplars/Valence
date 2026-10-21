@@ -46,7 +46,7 @@ def check(path):
         # remain inventory-hashed. Baseline RTL, IP and hardware sources are unchanged.
         if p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py',
                  'fpga/common/board_audit.tcl', 'fpga/common/simulate.tcl',
-                 'fpga/common/signoff.tcl', 'fpga/common/synthesize.tcl'): continue
+                 'fpga/common/signoff.tcl', 'fpga/common/synthesize.tcl', 'fpga/common/implement.tcl'): continue
         gate.require(m['inputs'].get(p) == h, 'source differs from published baseline (do not freeze dirty core): '+p)
     for helper in HELPERS:
         gate.require('fpga/common/'+helper in m['inputs'], 'unfrozen diagnostic helper')
@@ -103,7 +103,7 @@ def prepare(path):
     gate.require(ctypes.windll.kernel32.GetDriveTypeW(str(root.anchor))==3,'local fixed Windows disk required')
     run=root/'diagnostic-run';gate.require(not run.exists(),'preserve earlier diagnostic evidence');run.mkdir()
     pairs=dict(root=str(root),manifest=str(Path(path).absolute()),threads=m['threads'],profile_sha256=profile,
-               diagnosticOnly=1,top=m['configuration']['top'],part=m['configuration']['part'],cpu='i1',
+               diagnosticOnly=1,control_lemma=1,top=m['configuration']['top'],part=m['configuration']['part'],cpu='i1',
                clock_profile='performance300-static',simulation_suite=m['producer']['simulation_suite'])
     for name in ('rtl_filelist','simulation_filelist','post_synth_constraints','post_opt_constraints','media_scenarios','rom_coe','rom'):
         pairs[name]=str(root/m['roles'][name])

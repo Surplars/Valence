@@ -22,25 +22,59 @@ def verify_dcps(project, expected=EXPECTED):
         result[str(p)] = digest
     return result
 
-def check(root):
-    # Use the original frozen checker and original manifest, not a rebuilt inventory.
+def frozen(root):
     sys.path.insert(0, str(root/'fpga/common'))
     import diagnostic
     _, manifest, profile = diagnostic.check(root/'diagnostic.json')
+    return diagnostic, manifest, profile
+
+def raw_binding(root, profile):
+    out=root/'diagnostic-run/synthesis'
+    return dict(status='DIAGNOSTIC_UNQUALIFIED_NO_BITSTREAM',
+                original_manifest_sha256=sha(root/'diagnostic.json'),
+                profile_sha256=profile,
+                raw_sha256=sha(out/'raw-synthesized-unqualified.dcp'))
+
+def seal_raw(root):
+    _, _, profile=frozen(root)
+    record=raw_binding(root,profile)
+    record['synthesis_tool_sha256']=sha(Path(__file__).resolve().parent/'synthesize.tcl')
+    path=root/'diagnostic-run/synthesis/raw-synthesized-unqualified.json'
+    if path.exists(): raise ValueError('Do not replace raw checkpoint provenance')
+    path.write_text(json.dumps(record,indent=2)+'\n')
+    return record
+
+def check(root, phase='synthesis'):
+    diagnostic, manifest, profile=frozen(root)
     out = root/'diagnostic-run/synthesis'
-    if (out/'synthesized.dcp').exists() or (out/'diagnostic-stage.json').exists():
-        raise ValueError('Synthesis already completed; do not overwrite it')
-    if not (out/'diagnostic-failure.txt').is_file() or not (out/'ip-synthesis.json').is_file():
-        raise ValueError('Expected preserved failed stage and successful IP evidence')
+    if phase=='implementation':
+        stage=json.loads((out/'diagnostic-stage.json').read_text())
+        if stage.get('profile_sha256')!=profile or stage.get('outputs_sha256',{}).get('synthesized.dcp')!=sha(out/'synthesized.dcp'):
+            raise ValueError('Missing or changed checked synthesis checkpoint')
+    else:
+        if (out/'synthesized.dcp').exists() or (out/'diagnostic-stage.json').exists():
+            raise ValueError('Synthesis already completed; do not overwrite it')
+        if not (out/'diagnostic-failure.txt').is_file() or not (out/'ip-synthesis.json').is_file():
+            raise ValueError('Expected preserved failed stage and successful IP evidence')
     project=out/'project'
     if not (project/'common_board.xpr').is_file(): raise ValueError('Missing original project')
     dcps=verify_dcps(project)
+    raw=out/'raw-synthesized-unqualified.dcp'
+    if phase=='synthesis' and raw.exists():
+        recorded=json.loads((out/'raw-synthesized-unqualified.json').read_text())
+        for key,value in raw_binding(root,profile).items():
+            if recorded.get(key)!=value: raise ValueError('Raw checkpoint binding changed: '+key)
     here=Path(__file__).resolve().parent
-    return dict(status=diagnostic.STATUS, profile_sha256=profile,
+    return dict(status=diagnostic.STATUS, profile_sha256=profile, control_lemma=1,
+                mode='implementation' if phase=='implementation' else 'post-only' if raw.exists() else 'top-synthesis',
                 original_manifest_sha256=sha(root/'diagnostic.json'),
                 project_sha256=sha(project/'common_board.xpr'), ooc_sha256=dcps,
-                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl')})
+                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl')})
 
 if __name__=='__main__':
-    try: print(json.dumps(check(Path(sys.argv[1]).absolute()), indent=2))
+    try:
+        root=Path(sys.argv[1]).absolute()
+        mode=sys.argv[2] if len(sys.argv)>2 else 'synthesis'
+        if mode not in ('synthesis','implementation','seal-raw'): raise ValueError('Invalid recovery mode')
+        print(json.dumps(seal_raw(root) if mode=='seal-raw' else check(root,mode),indent=2))
     except (ValueError, OSError) as exc: sys.exit(str(exc))

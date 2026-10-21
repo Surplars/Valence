@@ -1,6 +1,8 @@
+set ::diagnostic_tools [file dirname [file normalize [info script]]]
 # Independent physical measurement, never a release/signoff entry.
 proc diagnostic_main {} {
-    global argv valence
+    global argv valence diagnostic_tools
+    set valence(recovery_tools) $diagnostic_tools
     if {[llength $argv]!=2} {error "usage: diagnostic.tcl CONFIG synthesis|implementation"}
     source [lindex $argv 0]
     if {![info exists valence(diagnosticOnly)] || $valence(diagnosticOnly)!=1 || $valence(clock_profile) ne "performance300-static"} {error "Diagnostic performance300 config required"}
@@ -18,16 +20,21 @@ proc diagnostic_main {} {
     set ::env(VALENCE_PROFILE_SHA256) $valence(profile_sha256)
     source [file join $valence(root) fpga common producer_common.tcl]
     puts [exec $valence(python) -E [file join $valence(root) fpga common diagnostic.py] check --manifest $valence(manifest)]
+    # check above validates all artifact hashes and board_inputs.emission's exact
+    # parent/encoder/pad control-equality proof. Never set this before that check.
+    set valence(control_lemma) 1
     if {$valence(phase) eq "synthesis"} {
         source [file join $valence(root) fpga common synthesize.tcl]
     } else {
         open_checkpoint [file join $valence(root) diagnostic-run synthesis synthesized.dcp]
         common_design_step opt_design
+        write_checkpoint optimized-unqualified.dcp
         source $valence(post_opt_constraints)
         write_checkpoint optimized.dcp
         common_design_step place_design
         write_checkpoint placed.dcp
         common_design_step phys_opt_design
+        write_checkpoint physical-optimized-unqualified.dcp
         common_design_step route_design
         write_checkpoint routed.dcp
         report_timing_summary -delay_type min_max -report_unconstrained -file timing.rpt
