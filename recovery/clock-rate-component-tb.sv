@@ -101,9 +101,9 @@ module clock_rate_component_tb;
    end
    if(!enable0)begin
     stoppedCycles=stoppedCycles+1;
-    if(owners0[0]+owners0[1]+owners0[2]+owners0[3]!=0)fail("CPU stopped with unfinished owner/response");
+    if(owners0[0]+owners0[1]+owners0[2]+owners0[3]!==0)fail("CPU stopped with unfinished/unknown owner/response");
    end
-   if(!enable1&&owners1[0]+owners1[1]+owners1[2]+owners1[3]!=0)fail("fabric stopped with unfinished owner");
+   if(!enable1&&owners1[0]+owners1[1]+owners1[2]+owners1[3]!==0)fail("fabric stopped with unfinished/unknown owner");
    if(holdingSourceReply)begin
     stalledReplyCycles=stalledReplyCycles+1;
     if(quiesce0||!enable0)fail("source response stalled but controller began quiesce/stop");
@@ -116,10 +116,10 @@ module clock_rate_component_tb;
  task automatic waitIdle(input integer bank,input integer expectedSequence,input integer hz,input bit good);
   integer timeout;
   begin timeout=0;
-   while((bank==0?(busy0||completed0!=expectedSequence):(busy1||completed1!=expectedSequence)))begin
+   while((bank==0?(busy0!==1'b0||completed0!==expectedSequence):(busy1!==1'b0||completed1!==expectedSequence)))begin
     @(negedge aon);timeout=timeout+1;if(timeout>400)fail("bounded command completion");end
-   if(bank==0)begin if(!valid0||actual0!=hz||success0!==good)fail("CPU applied frequency/completion outcome");end
-   else if(!valid1||actual1!=hz||success1!==good)fail("fabric applied frequency/completion outcome");
+   if(bank==0)begin if(valid0!==1'b1||actual0!==hz||success0!==good)fail("CPU applied frequency/completion outcome");end
+   else if(valid1!==1'b1||actual1!==hz||success1!==good)fail("fabric applied frequency/completion outcome");
   end
  endtask
  task automatic access(input bit wr,input integer bank,input integer offset,input [63:0] data,
@@ -128,9 +128,9 @@ module clock_rate_component_tb;
   begin
    @(negedge sourceClock);reqValid=1;reqWrite=wr;reqAddress=64'h10080800+bank*128+offset;
    reqData=data;reqSize=sizeArg;reqMask=maskArg;respReady=0;timeout=0;
-   do begin @(posedge sourceClock);timeout=timeout+1;if(timeout>80)fail("MMIO request not accepted");end while(!reqReady);
+   do begin @(posedge sourceClock);timeout=timeout+1;if(timeout>80)fail("MMIO request not accepted");end while(reqReady!==1'b1);
    @(negedge sourceClock);reqValid=0;timeout=0;
-   while(!respValid)begin @(negedge sourceClock);timeout=timeout+1;if(timeout>80)fail("MMIO reply missing");end
+   while(respValid!==1'b1)begin @(negedge sourceClock);timeout=timeout+1;if(timeout>80)fail("MMIO reply missing");end
    savedData=respData;savedError=respError;holdingSourceReply=holdCycles>0;
    for(k=0;k<holdCycles;k=k+1)begin
     @(negedge sourceClock);if(!respValid||respData!==savedData||respError!==savedError)fail("stalled response instability");end
@@ -147,8 +147,8 @@ module clock_rate_component_tb;
   // Target clocks start stopped. Give their owner models a real async reset
   // edge, rather than relying on a time-zero declaration initialization event.
   bad=$test$plusargs("BAD_ORACLE");#1;reset=1;repeat(8)@(negedge aon);reset=0;
-  timeout=0;while(busy0||busy1)begin @(negedge aon);timeout=timeout+1;if(timeout>80)fail("cold boot50 progress");end
-  if(actual0!=50000000||actual1!=50000000||!valid0||!valid1)fail("cold default frequency");checking=1;
+  timeout=0;while(busy0!==1'b0||busy1!==1'b0)begin @(negedge aon);timeout=timeout+1;if(timeout>80)fail("cold boot50 progress");end
+  if(actual0!==50000000||actual1!==50000000||valid0!==1'b1||valid1!==1'b1)fail("cold default frequency");checking=1;
   readEqual(0,8,50000000);readEqual(1,8,50000000);
   access(1,0,0,51000000,1,0);access(1,0,0,175000000,1,0);
   access(1,0,8,100000000,1,0);access(1,0,0,100000000,1,0,2,15);

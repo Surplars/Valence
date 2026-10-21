@@ -18,7 +18,7 @@
     "synthetic_qualification_flags": true,
     "production_platform_connected": false,
     "physical_signoff": false,
-    "utc": "2026-10-21T10:23:13.2982480Z",
+    "utc": "2026-10-21T10:26:57.9319844Z",
     "aon_cycles": 687,
     "mmio": 23,
     "replies": 23,
@@ -31,7 +31,7 @@
     "owners": 15,
     "completed_owners": 15
   },
-  "native_session": 10926,
+  "native_session": 34353,
   "native_exit": 0,
   "coverage": [
     "Cold50MHz control state and real source-clock startup",
@@ -66,7 +66,7 @@
     "src\\main\\scala\\ip\\clock\\ClockRateControl.scala": "ec1d38ee9231c1e8eac68fe75d2ff4bcd0a6901dbc9f130088c7a710df00db48",
     "src\\main\\scala\\ip\\clock\\ClockRateManagement.scala": "b4f7de278ef9c5a196a1e31294ac1f2d8a191a15bbb2c9e5f594f81c9e018b35",
     "src\\test\\scala\\ip\\ClockRateControlSpec.scala": "1251b22b3d919f5a67d73d76576f1c4e879a7ecc01bfffee5591f944e15f3cd2",
-    "recovery\\clock-rate-component-tb.sv": "4211a37c0451925b29e19573c0d938069ed4d404830a8d9319a69761334bd19f",
+    "recovery\\clock-rate-component-tb.sv": "c7e0c986f3a77a0357b1c8ae863935023da5c695dcee06778ae4b5a34a7027b1",
     "recovery\\run-clock-rate-component-xsim.ps1": "1b8a37e2e206cd8d2dcd63ae5119e94e288cc8c1d8c51d2fd944e148a7de5f7b",
     "out\\cmu-frequency-r1\\component-fixture-r1\\CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
     "out\\cmu-frequency-r1\\component-fixture-r1\\CdcMailbox.sv": "74cbe6fb60df7bfaa069f93310cf9f5239fe511bc4a2bfee8c8683c2a1413089",
@@ -84,6 +84,13 @@
     "out\\cmu-frequency-r1\\component-xsim-r3\\negative-console.log": "c4696de8ec12fd9bd2e129b1ac86885f1c3765da286541c1a74d7c25bfc60f9e",
     "out\\cmu-frequency-r1\\component-xsim-r3\\cycle-result.json": "98d08dcb9de1a97531b4c9e9fc051c7b4792adc6200cf63ba9922df7fa8b981e",
     "out\\cmu-frequency-r1\\component-xsim-r1\\positive-console.log": "b017129d5e231ab4f211c39fc29d032de0fb0f8e21e14e23f3dbb4867eb7f882",
-    "out\\cmu-frequency-r1\\component-xsim-r2\\positive-console.log": "7c281948b4d4c1e67cc23bbffe5819c13f1e881ba0ef1ec085e7fc0074b14984"
-  }
+    "out\\cmu-frequency-r1\\component-xsim-r2\\positive-console.log": "7c281948b4d4c1e67cc23bbffe5819c13f1e881ba0ef1ec085e7fc0074b14984",
+    "out\\cmu-frequency-r1\\component-xsim-r4\\compile.log": "c8e9c48ce64c9cdc0d5fdbeaa3751c6409d59d2e782d78691e004cb5f42e5f5c",
+    "out\\cmu-frequency-r1\\component-xsim-r4\\elaborate.log": "7d03c6dac1a4f2b96b5ac53170360955a39d89581c072d65cef977b7ff1f4951",
+    "out\\cmu-frequency-r1\\component-xsim-r4\\positive-console.log": "d5748da7ba89f3079daa751fbbdbb6698ddaccdf91a2e2e8809cc97f0422a557",
+    "out\\cmu-frequency-r1\\component-xsim-r4\\negative-console.log": "9b6e24b65ba1e3cd800ac86dec007a38d77caca5927a1bd5d5b8378d41625c8a",
+    "out\\cmu-frequency-r1\\component-xsim-r4\\cycle-result.json": "942eb6207001d7aa9d5ef95d0b01499f724de3463e6a076b2aef8a310ef6d71b"
+  },
+  "previous_pass_receipt_commit": "307c29d4dc1fa43508d745d78de84c298497265e",
+  "oracle_strengthening": "Actual Hz, validity, owner counts and request/reply waits now reject X explicitly; same687cycles and counts as prior PASS; no controller or timeout change"
 }
