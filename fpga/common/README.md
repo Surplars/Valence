@@ -279,3 +279,37 @@ high-frequency-timing-target. Native synthesis checks the actual generated
 clock objects at Clock Wizard output pins against every selected target and
 saves clock-output-checks.txt; matching requested CONFIG values alone cannot
 pass. All existing physical/reset/CDC gates still apply.
+
+## Non-release performance timing diagnostic
+
+`diagnostic.py` and `run-diagnostic.ps1` provide a separate schema and output
+folder to measure the published 366a643 CPU300/fabric250 candidate when the
+integrated `common-platform-affected-short` receipt is missing. This does NOT
+satisfy or change the formal freeze/preflight/signoff gates. The frozen baseline
+inventory was obtained with git show from commit366a643, not the working tree;
+it rejects changed core/resources/emitter and reviewed board/constraint inputs.
+Only the diagnostic tooling/common receipt dispatch and this documentation are
+allowed additions. Use the already prepared immutable E-drive package, not a
+copy of an actively edited checkout. Copy all five new diagnostic files and the
+updated producer_common.tcl into it, plus real native evidence, before freezing.
+
+Example native Windows commands (replace paths with actual prepared inputs):
+
+    python fpga/common/diagnostic.py freeze --root E:/PACKAGE --emission rtl/emission-profile.json --rom firmware/bootrom-128k.bin --coe firmware/bootrom.coe --firmware-contract firmware/clock-contract.json --mig ip/ddr4_0.xci --native-evidence recovery/native-validation-366a643/dci-result.json --native-evidence recovery/native-validation-366a643/dci-run.log.txt --native-evidence recovery/native-validation-366a643/dci-negative-run.log.txt --native-evidence recovery/native-validation-86830fe/receipt.json --threads 8
+    ./fpga/common/run-diagnostic.ps1 -Manifest E:/PACKAGE/diagnostic.json -Vivado C:/AMD/Vivado/2025.2/bin/vivado.bat -Python C:/Python/python.exe
+
+The new producer creates fresh Clock Wizard/MIG/ROM IP in the isolated project,
+checks actual generated clocks, applies unchanged mapped IO/CDC constraints,
+and preserves synthesized/optimized/placed/routed checkpoints. Failure attempts
+to preserve the current unqualified checkpoint and logs, never admitting it to
+a subsequent stage. Full timing/coverage/CDC/DRC/route/skew reports and board
+structural audit results are saved. Negative slack is retained against the
+original300/250 targets; no target is reduced to make the report green.
+
+Only diagnostic-stage.json and diagnostic-result.json are produced. Both carry
+DIAGNOSTIC_UNQUALIFIED_NO_BITSTREAM, missing functional acceptance, no physical
+qualification and no board claim. The entry blocks bit/device-image commands,
+has no GenerateBit option and never invokes formal signoff. Per-domain timing
+paths may inform a period-minus-setup-slack estimate, not a certified Fmax or
+cross-domain estimate. Functional acceptance and all final physical gates remain
+mandatory before any future bitstream/board qualification.

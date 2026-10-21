@@ -41,6 +41,13 @@ proc common_design_step {name args} {
     }
 }
 proc common_receipt {} {
+    if {[info exists ::valence(diagnosticOnly)] && $::valence(diagnosticOnly) == 1} {
+        # Separate schema/output. Formal producer and signoff never accept this.
+        common_log tools.json "\{[join $::common_records ,]\}"
+        puts [exec $::valence(python) [file join $::valence(root) fpga common diagnostic.py] \
+            record --manifest $::valence(manifest) --phase $::valence(phase)]
+        return
+    }
     common_log tools.json "\{[join $::common_records ,]\}"
     puts [exec $::valence(python) [file join $::valence(root) fpga common producer.py] \
         --manifest $::valence(manifest) --phase $::valence(phase) --records [file join $::valence(out) tools.json]]
