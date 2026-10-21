@@ -1,0 +1,427 @@
+{
+  "stage": "CMU_FREQUENCY_R1_PARAMETER_LEGALITY_ONLY",
+  "baseline_commit": "f87870c350221f828039c91d44d452a8bbba9749",
+  "target_part": "xczu15eg-ffvb1156-2-i",
+  "tool": "Vivado2025.2 build6299465 ClockWizard6.0 validate_ip",
+  "input_mhz": 250,
+  "rates": [
+    {
+      "requested_mhz": "50",
+      "actual_mhz": "50.0",
+      "d": "10",
+      "m": "40.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1000.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "55",
+      "actual_mhz": "55.0",
+      "d": "10",
+      "m": "44.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1100.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "60",
+      "actual_mhz": "60.0",
+      "d": "10",
+      "m": "48.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1200.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "65",
+      "actual_mhz": "65.0",
+      "d": "10",
+      "m": "52.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1300.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "70",
+      "actual_mhz": "70.0",
+      "d": "10",
+      "m": "56.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1400.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "75",
+      "actual_mhz": "75.0",
+      "d": "10",
+      "m": "60.000",
+      "o": "20.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1500.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "80",
+      "actual_mhz": "80.0",
+      "d": "10",
+      "m": "32.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "800.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "85",
+      "actual_mhz": "85.0",
+      "d": "10",
+      "m": "34.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "850.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "90",
+      "actual_mhz": "90.0",
+      "d": "10",
+      "m": "36.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "900.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "95",
+      "actual_mhz": "95.0",
+      "d": "10",
+      "m": "38.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "950.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "100",
+      "actual_mhz": "100.0",
+      "d": "10",
+      "m": "40.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1000.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "105",
+      "actual_mhz": "105.0",
+      "d": "10",
+      "m": "42.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1050.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "110",
+      "actual_mhz": "110.0",
+      "d": "10",
+      "m": "44.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1100.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "115",
+      "actual_mhz": "115.0",
+      "d": "10",
+      "m": "46.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1150.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "120",
+      "actual_mhz": "120.0",
+      "d": "10",
+      "m": "48.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1200.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "125",
+      "actual_mhz": "125.0",
+      "d": "10",
+      "m": "50.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1250.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "130",
+      "actual_mhz": "130.0",
+      "d": "10",
+      "m": "52.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1300.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "135",
+      "actual_mhz": "135.0",
+      "d": "10",
+      "m": "54.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1350.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "140",
+      "actual_mhz": "140.0",
+      "d": "10",
+      "m": "56.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1400.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "145",
+      "actual_mhz": "145.0",
+      "d": "10",
+      "m": "58.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1450.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "150",
+      "actual_mhz": "150.0",
+      "d": "10",
+      "m": "60.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1500.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "155",
+      "actual_mhz": "155.0",
+      "d": "10",
+      "m": "62.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1550.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "160",
+      "actual_mhz": "160.0",
+      "d": "10",
+      "m": "64.000",
+      "o": "10.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1600.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "165",
+      "actual_mhz": "165.0",
+      "d": "10",
+      "m": "33.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "825.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "170",
+      "actual_mhz": "170.0",
+      "d": "10",
+      "m": "34.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "850.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "175",
+      "actual_mhz": "175.0",
+      "d": "10",
+      "m": "35.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "875.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "180",
+      "actual_mhz": "180.0",
+      "d": "10",
+      "m": "36.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "900.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "185",
+      "actual_mhz": "185.0",
+      "d": "10",
+      "m": "37.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "925.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "190",
+      "actual_mhz": "190.0",
+      "d": "10",
+      "m": "38.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "950.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "195",
+      "actual_mhz": "195.0",
+      "d": "10",
+      "m": "39.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "975.0",
+      "ip_validated": "1"
+    },
+    {
+      "requested_mhz": "200",
+      "actual_mhz": "200.0",
+      "d": "10",
+      "m": "40.000",
+      "o": "5.000",
+      "pfd_mhz": "25.0",
+      "vco_mhz": "1000.0",
+      "ip_validated": "1"
+    }
+  ],
+  "negative_control": {
+    "vco_mhz": "200",
+    "rejected": "1",
+    "reason": "ERROR: [Common 17-39] 'set_property' failed due to earlier errors.\n"
+  },
+  "negative_control_original_error": "Invalid VCO frequency200MHz; valid range800:1600MHz",
+  "exit": {
+    "exit_code": 0,
+    "utc": "2026-10-21T09:33:59.1606165Z"
+  },
+  "synthesis_run": false,
+  "implementation_run": false,
+  "component_behavior_tested": false,
+  "soc_timing_signed_rates": [],
+  "cpu_candidate_mhz": [
+    50,
+    55,
+    60,
+    65,
+    70,
+    75,
+    80,
+    85,
+    90,
+    95,
+    100,
+    105,
+    110,
+    115,
+    120,
+    125,
+    130,
+    135,
+    140,
+    145,
+    150,
+    155,
+    160,
+    165,
+    170,
+    175,
+    180,
+    185,
+    190,
+    195,
+    200
+  ],
+  "fabric_conservative_candidate_mhz": [
+    50,
+    55,
+    60,
+    65,
+    70,
+    75,
+    80,
+    85,
+    90,
+    95,
+    100,
+    105,
+    110,
+    115,
+    120,
+    125,
+    130,
+    135,
+    140,
+    145,
+    150
+  ],
+  "candidate_ranges_are_not_enabled_whitelists": true,
+  "current_resources": {
+    "MMCM": {
+      "used": 2,
+      "available": 4,
+      "fixed": 1
+    },
+    "PLL": {
+      "used": 3,
+      "available": 8
+    },
+    "BUFGCE": {
+      "used": 18,
+      "available": 116
+    },
+    "BUFGCE_DIV": {
+      "used": 2,
+      "available": 16
+    },
+    "BUFGCTRL": {
+      "used": 0,
+      "available": 32
+    }
+  },
+  "new_clock_placement_qualified": false,
+  "sources": {
+    "limits": "https://docs.amd.com/api/khub/documents/~ZcyAsyaGJJqMRa1u0RCHA/content",
+    "attributes": "https://docs.amd.com/r/en-US/ug572-ultrascale-clocking/MMCM-Attributes",
+    "ip_validation": "https://docs.amd.com/r/en-US/ug835-vivado-tcl-commands/validate_ip"
+  },
+  "sha256": {
+    "recovery\\rate-step-feasibility.tcl": "1b4cbc55aa220c7876c4e37cf84c7951bc734cffc1e7212bd51e54e84a7aaf8b",
+    "out\\cmu-frequency-r1\\parameter-legality-r2\\exact-rates.csv": "5935b59a0eecd324057dffe0e8f74dba251a58e160f53776b4829a306dcd9254",
+    "out\\cmu-frequency-r1\\parameter-legality-r2\\negative-control.tcllist": "f84a7c67d125b63e253e235aedeec1ab7bdabf9ea1013b5a11277d13316d395e",
+    "out\\cmu-frequency-r1\\parameter-legality-r2\\validation-console.log": "392d15fb919be815d77d631485a656a02fb5060aae08a6443150825e2acda77d",
+    "out\\cmu-frequency-r1\\parameter-legality-r2\\validation-exit.json": "1e703b82c2bb418f69f4831fbd7d60a6f115e61989b23ff447a1c38d6a076252",
+    "E:\\VM\\Share\\Valence-rtl\\valence-i1-optional-20261019-r1\\recovery-timing-batch-20261021-r2\\diagnostic-implementation-r1\\diagnostic-utilization.rpt": "c03548e9c24cc7f389063f6f26ff2920506e99ceb69e0f317334c473261e6c26"
+  }
+}
