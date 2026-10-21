@@ -69,3 +69,38 @@ The idle-source collector now distinguishes a completely pruned, unused export
 export, which still fails. Pure Tcl positive/negative controls pass. The standalone
 boundary emitter is preparation for a native FPGA cycle fixture; no cycle-test
 pass is claimed at this checkpoint.
+
+## Native FPGA cycle validation
+
+The standalone, unmodified `CommonCpuClockBoundary` export passes the native
+Vivado 2025.2 xsim fixture. Independent CPU/fabric clocks (3334ps/4000ps, 719ps
+phase) carry 26 complete scalar-request/MSI payloads in each direction. The
+fixture requires sustained backpressure, stable stalled payloads, complete drain,
+and a second first-offer transition after idle. Direct source registers cancel
+idle on both first offers. Results: CPU/fabric stalls 13/8, first-offer checks 2/2.
+The intentional bad scoreboard fails with `ORACLE_NEGATIVE_REJECT`; it never
+prints PASS. See `validation-native-idle.json`. This is targeted FPGA boundary
+behavior, not whole-CPU GSIM acceptance or physical CDC/RDC signoff.
+
+Reproduce by emitting `platform.TransportEmptyAnnouncementMain` into a fresh
+folder, generating the bench with `make-idle-cycle-fixture.py`, and invoking
+`run-idle-xsim.ps1` with explicit installed Vivado bin and fixture directories.
+The generator reads all actual ports and compares every field of both exercised
+payloads. It does not modify generated DUT RTL.
+
+Core synthesis completed successfully (0 errors, 3 critical warnings), but the
+initial link gate stopped on the additional existing `dbg_hub` blackbox. The
+saved core checkpoint permits `recovery_link_ip.tcl` to resume linking without
+resynthesis. Linked output remains unqualified until all IP dependencies and
+complete board constraints pass. The OOC-import warnings also require checking
+that every original IP implementation constraint is represented.
+
+`recovery_map_constraints.tcl` caches exact object names while executing the
+formal board entries. Its post_opt entry rehearsal on a synthesized netlist is
+explicitly diagnostic; it must run again after real optimization. Common gate
+failures remain failures while independent management diagnostics continue.
+`inactive_zero_state.tcl` is a new fail-closed induction proof under review: only
+INIT-zero FDCE functional state, arbitrary external/release inputs, supported
+LUT truth tables, no payload RAM, constant/disconnected data and invariant-zero
+valid qualify. Its LUT controls pass; fresh-netlist acceptance is still pending.
+No added blanket exception or old signoff is used.

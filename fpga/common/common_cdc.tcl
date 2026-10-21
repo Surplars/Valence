@@ -2,6 +2,7 @@
 # then call common_cdc::constrain. This file never applies global clock groups,
 # false paths, reset cuts, or asynchronous payload exceptions.
 namespace eval common_cdc { variable scopes {} }
+source [file join [file dirname [info script]] inactive_zero_state.tcl]
 proc common_cdc::quote {s} {return [regsub -all {[][{}().+*?^$|\\]} $s {\\&}]}
 proc common_cdc::names {objects} {
     set out {}; foreach o $objects {lappend out [get_property NAME $o]}; return [lsort -unique $out]
@@ -226,7 +227,7 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     }
     set ::common_cdc::inactive_scopes {}
     foreach h [lsort $held] {
-        if {[inactive $h]} {lappend ::common_cdc::inactive_scopes $h; puts "COMMON_CDC_PROVEN_INACTIVE $h"; continue}
+        if {[inactive $h] || [common_zero::prove $h]} {lappend ::common_cdc::inactive_scopes $h; puts "COMMON_CDC_PROVEN_INACTIVE $h"; continue}
         foreach d {write captured} {lappend scopes [gray $h $d]}
         lappend scopes [payload $h]
     }
