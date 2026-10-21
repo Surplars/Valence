@@ -103,9 +103,15 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
     // Accepted writes target one bank. Use that bank's old value directly:
     // the shared read/response mux (including TOPEI priority selection) must
     // not feed unrelated banks' write data or threshold legality/enable.
-    def modify(old: UInt): UInt = MuxLookup(csr.operation, old.pad(64))(
-        Seq(1.U -> csr.data, 2.U -> (old.pad(64) | csr.data), 3.U -> (old.pad(64) & ~csr.data))
-    )
+    def modify(old: UInt): UInt = {
+        // Bool.asUInt retains its Bool runtime type; padding it would clone a
+        // Bool at width 64. An explicit UInt wire zero-extends every bank safely.
+        val oldValue = Wire(UInt(64.W))
+        oldValue := old
+        MuxLookup(csr.operation, oldValue)(
+            Seq(1.U -> csr.data, 2.U -> (oldValue | csr.data), 3.U -> (oldValue & ~csr.data))
+        )
+    }
     val csrWrite = io.csrRequest.fire && !csrError && csr.operation =/= 0.U
     for (f <- 0 until p.files) {
         val writing = csrWrite && csr.file === f.U
