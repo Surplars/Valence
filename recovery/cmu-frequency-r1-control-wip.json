@@ -1,0 +1,31 @@
+{
+  "stage": "WIP_COMPONENT_COMPILED_RTL_EMITTED_NOT_BEHAVIORALLY_VALIDATED",
+  "baseline_commit": "4c53d50655874be67b8a87b1823a577a344773dd",
+  "compile_and_emit_exit": 0,
+  "compile_session": 23369,
+  "utc": "2026-10-21T10:15:26.123375+00:00",
+  "native_behavior_tests_run": false,
+  "production_platform_connected": false,
+  "vendor_drp_backend_connected": false,
+  "production_quiesce_endpoints_connected": false,
+  "runtime_high_frequency_whitelist_enabled": false,
+  "synthesis_or_implementation_run": false,
+  "publication_status": "commit/push command rejected before execution by automatic approval review; no retry",
+  "source_sha256": {
+    "src\\main\\scala\\ip\\clock\\ClockRateControl.scala": "ec1d38ee9231c1e8eac68fe75d2ff4bcd0a6901dbc9f130088c7a710df00db48",
+    "src\\main\\scala\\ip\\clock\\ClockRateManagement.scala": "b4f7de278ef9c5a196a1e31294ac1f2d8a191a15bbb2c9e5f594f81c9e018b35",
+    "src\\test\\scala\\ip\\ClockRateControlSpec.scala": "1251b22b3d919f5a67d73d76576f1c4e879a7ecc01bfffee5591f944e15f3cd2"
+  },
+  "emitted_sv_sha256": {
+    "out\\cmu-frequency-r1\\component-fixture-r1\\CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\CdcMailbox.sv": "74cbe6fb60df7bfaa069f93310cf9f5239fe511bc4a2bfee8c8683c2a1413089",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\ClockRateControl.sv": "dfe08ebd2e71331d9416c282466649b200a57bd18e9c0c467df1f8613bba67d5",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\ClockRateControl_1.sv": "584ad2bfed476490ddce5440a70d36260a6e83f5289f4d0e95c4d8e286fdfc9d",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\ClockRateManagement.sv": "d3e993ce3428b1bc3460a760177a5c3ed6a439e711800f069f1383523d650c56",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\ClockRateManagementBoundary.sv": "f6c59fd1eba1694778f0e8b462e0114fe58f8766042db693ecc77ca2ab041fec",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\Queue4_ClockRateReply.sv": "cb768e794fb8d209d24be04b38c1fa2a832000e5c12121070b67a35b1d52c497",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\ram_4x67.sv": "b7e8f76308a4247cbf48e682d524129bd08ef9cb96b380e615b8ced06c8d1329",
+    "out\\cmu-frequency-r1\\component-fixture-r1\\RegisterClockDomainBridge.sv": "35060bf69787ecb8ffdb7c39b03c563cd54ff36e267cfc47c8368033ffd396fa"
+  }
+}
