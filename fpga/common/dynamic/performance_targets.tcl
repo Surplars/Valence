@@ -25,13 +25,19 @@ proc native_fixed_uart_clock_check {{tag DYNAMIC_TARGET}} {
         $uart/rawClock $aon_driver $uart/gatedClock_gate/rawClock $aon_driver \
         $gate/I $aon_driver $uart/sampledRx_meta_reg/C $aon_driver \
         $gate/O $gate/O $uart/uart/clock $gate/O]
-    set registers [get_cells -quiet -hierarchical -regexp {^u_soc/peripherals/uart/uart/.*$} -filter {REF_NAME =~ FD*}]
+    set registers [get_cells -quiet -hier -filter {REF_NAME =~ FD* && NAME =~ u_soc/peripherals/uart/uart/*}]
     if {![llength $registers]} {error "$tag UART missing console FF clock endpoints"}
     # Fetch only the scoped cells' C pins, then retain every pin's association.
     # A collective get_clocks result can hide an unclocked individual FF.
     set register_pins {}
     foreach cell $registers {
-        set pin [get_property NAME $cell]/C
+        set name [get_property NAME $cell]
+        if {[string first "$uart/uart/" $name]!=0 || [string length $name]<=[string length "$uart/uart/"] ||
+            ![string match FD* [get_property REF_NAME $cell]]} {
+            error "$tag UART unexpected console FF cell $name"
+        }
+        set pin $name/C
+        if {[dict exists $register_pins $pin]} {error "$tag UART duplicate console FF clock pin $pin"}
         dict set register_pins $pin {}; lappend anchors $pin $gate/O
     }
     foreach object [get_pins -quiet -of_objects $registers -filter {REF_PIN_NAME == C}] {

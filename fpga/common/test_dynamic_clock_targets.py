@@ -15,12 +15,13 @@ class DynamicClockTargets(unittest.TestCase):
         harness = r'''
 set periods [dict create u_ddr/c0_ddr4_ui_clk 4.0 clk_out1_clk_wiz_common 20.0 mmcm_clkout0 20.0 u_soc/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0 network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0]
 set names {}; set writes {}; set masters {}; set pins {}; set clocks {}; set drivers {}; set inverted {}; set sources {}; set queried {}
-set leaf_queries 0; set segments_override {}; set net_driver_overrides {}
+set leaf_queries 0; set segments_override {}; set net_driver_overrides {}; set ref_overrides {}
 set uart u_soc/peripherals/uart
 set aon clk_out1_clk_wiz_common
 set aon_driver u_clk_wiz/inst/clkout1_buf/O
 set gate $uart/gatedClock_gate/buffer
-set cells [dict create $gate BUFGCE u_soc/cpu CommonI1CpuTile]
+set cells [dict create $gate BUFGCE u_soc/cpu CommonI1CpuTile \
+ u_soc/peripherals/uart/uart/not_a_ff LUT1 u_soc/peripherals/uart/uart_extra/outside_reg FDRE]
 set ce_type SYNC
 foreach pin [dict keys $periods] {dict set pins $pin 1; dict set clocks $pin $pin}
 foreach pin [list u_clk_wiz/clk_out1 u_soc/alwaysOnClock $aon_driver $uart/rawClock $uart/gatedClock_gate/rawClock $gate/I $uart/sampledRx_meta_reg/C] {
@@ -73,17 +74,36 @@ proc get_pins {args} {
 }
 proc get_cells {args} {
  global cells
- set at [lsearch -exact $args -regexp]
+ # Match the actual native selector contract, not a preset list of FF objects.
+ # Native hierarchical regexp full-path selection returned zero on this DCP.
+ set regexp_at [lsearch -exact $args -regexp]
+ if {$regexp_at>=0} {
+  set pattern [lindex $args [expr {$regexp_at+1}]]
+  if {$pattern eq {^u_soc/peripherals/uart/uart/.*$}} {return {}}
+  set result {}
+  foreach cell [dict keys $cells] {if {[regexp $pattern $cell]} {lappend result $cell}}
+  return $result
+ }
  set filter_at [lsearch -exact $args -filter]
  set result {}
- foreach cell [dict keys $cells] {
-  if {$at>=0 && ![regexp [lindex $args [expr {$at+1}]] $cell]} {continue}
-  if {$at<0 && $filter_at<0 && $cell ne [lindex $args end]} {continue}
-  if {$filter_at>=0} {
-   if {![regexp {^REF_NAME =~ (.+)$} [lindex $args [expr {$filter_at+1}]] -> pattern]} {error {unexpected cell filter}}
-   if {![string match $pattern [dict get $cells $cell]]} {continue}
+ if {$filter_at>=0} {
+  set filter [lindex $args [expr {$filter_at+1}]]
+  if {[string first NAME $filter]>=0 && [string first {&&} $filter]>=0 &&
+      $args ne {-quiet -hier -filter {REF_NAME =~ FD* && NAME =~ u_soc/peripherals/uart/uart/*}}} {
+   error {unexpected hierarchical cell selector}
   }
-  lappend result $cell
+  foreach cell [dict keys $cells] {
+   set selected 1
+   foreach term [split $filter &] {
+    set term [string trim $term]; if {$term eq ""} {continue}
+    if {![regexp {^(REF_NAME|NAME) =~ (.+)$} $term -> property pattern]} {error {unexpected cell filter}}
+    set value [expr {$property eq "NAME" ? $cell : [dict get $cells $cell]}]
+    if {![string match $pattern $value]} {set selected 0}
+   }
+   if {$selected} {lappend result $cell}
+  }
+ } else {
+  foreach cell [dict keys $cells] {if {$cell eq [lindex $args end]} {lappend result $cell}}
  }
  return $result
 }
@@ -120,14 +140,14 @@ proc get_clocks {args} {
  return [lsort -unique $result]
 }
 proc get_property {property object} {
- global periods names masters cells ce_type inverted sources
+ global periods names masters cells ce_type inverted sources ref_overrides
  if {[llength $object]==1} {set object [lindex $object 0]}
  if {$property eq "PERIOD"} {return [dict get $periods $object]}
  if {$property eq "NAME"} {if {[dict exists $names $object]} {return [dict get $names $object]}; return $object}
  if {$property eq "MASTER_CLOCK"} {if {[dict exists $masters $object]} {return [dict get $masters $object]}; return u_ddr/c0_ddr4_ui_clk}
  if {$property eq "SOURCE_PINS"} {if {[dict exists $sources $object]} {return [dict get $sources $object]}; return {}}
  if {$property eq "IS_INVERTED"} {if {[dict exists $inverted $object]} {return [dict get $inverted $object]}; return 0}
- if {$property eq "REF_NAME"} {return [dict get $cells $object]}
+ if {$property eq "REF_NAME"} {if {[dict exists $ref_overrides $object]} {return [dict get $ref_overrides $object]}; return [dict get $cells $object]}
  if {$property eq "CE_TYPE"} {return $ce_type}
  error "unexpected property $property"
 }
@@ -260,6 +280,14 @@ puts LEAF_DRIVER_QUERIES=$leaf_queries
 
     def test_empty_console_ff_collection_rejected(self):
         self.assert_rejected('dict for {cell ref} $cells {if {$ref eq "FDRE"} {dict unset cells $cell}}', 'missing console FF')
+
+    def test_selected_console_cell_name_and_type_are_rechecked(self):
+        cell = FF.removesuffix('/C')
+        for name in ('u_soc/peripherals/uart/uart_extra/outside_reg', UART + '/uart/'):
+            with self.subTest(name=name):
+                self.assert_rejected(f'dict set names {{{cell}}} {{{name}}}', 'unexpected console FF cell')
+        self.assert_rejected(f'dict set ref_overrides {{{cell}}} LUT1', 'unexpected console FF cell')
+        self.assert_rejected(f'dict set names {{{cell}}} {{{UART}/uart/state_reg[0]}}', 'duplicate console FF clock pin')
 
     def test_leaf_driver_cache_uses_complete_sorted_net_collection(self):
         result = self.run_contract(f'dict set segments_override {{{FF}}} {{uart_gate_leaf uart_gate_top}}')
