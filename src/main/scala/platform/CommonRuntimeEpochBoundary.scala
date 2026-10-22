@@ -14,13 +14,15 @@ class CommonRuntimeAonResult(p: CommonCpuTilePortParams) extends Bundle {
     val canceled = Bool()
     val timedOut = Bool()
 }
-private class CommonRuntimeBoundaryCommand(p: CommonCpuTilePortParams) extends Bundle {
+private class CommonRuntimeBoundaryCommand(p: CommonCpuTilePortParams, finalCloseCommit: Boolean = false) extends Bundle {
     val operation = UInt(2.W)
     val epoch = UInt(p.maintenanceEpochBits.W)
+    val closeEnable = if (finalCloseCommit) Some(Bool()) else None
 }
-private class CommonRuntimeBoundaryObservation(p: CommonCpuTilePortParams) extends Bundle {
+private class CommonRuntimeBoundaryObservation(p: CommonCpuTilePortParams, finalCloseCommit: Boolean = false) extends Bundle {
     val epoch = UInt(p.maintenanceEpochBits.W)
     val qualified = Bool()
+    val closeBits = if (finalCloseCommit) Some(UInt(3.W)) else None
 }
 
 /** Default-off three-clock runtime-epoch isolation protocol, not a clock manager.
@@ -54,9 +56,12 @@ class CommonRuntimeEpochBoundary(
     p: CommonCpuTilePortParams,
     drainTimeoutCycles: Int = 65536,
     cleanupTimeoutCycles: Int = 65536,
-    externalRetirementBarrier: Boolean = false
+    externalRetirementBarrier: Boolean = false,
+    externalReleaseInterlock: Boolean = false,
+    finalCloseCommit: Boolean = false
 ) extends RawModule {
     require(p.runtimeMaintenance && p.runtimeCancellation && p.runtimeInterruptHold)
+    require(!finalCloseCommit || externalReleaseInterlock)
     require(drainTimeoutCycles >= 2 && cleanupTimeoutCycles >= 2)
     val aonClock = IO(Input(Clock()))
     val cpuClock = IO(Input(Clock()))
@@ -77,6 +82,17 @@ class CommonRuntimeEpochBoundary(
         val drainDeadline = Output(Bool())
         val cleanupFault = Output(Bool())
         val epochExhausted = Output(Bool())
+        // AON-native, actual backend lock + post-enable target edges. It gates
+        // autonomous fault-cancel too, not just the external resume requester.
+        val releasePermit = if (externalReleaseInterlock) Some(Input(Bool())) else None
+        val closeRequest = if (finalCloseCommit) Some(Input(Bool())) else None
+        val closeProof = if (finalCloseCommit) Some(Output(UInt(4.W))) else None
+        val closeFault = if (finalCloseCommit) Some(Output(Bool())) else None
+        val releasePending = if (finalCloseCommit) Some(Output(Bool())) else None
+        val closeUncommitted = if (finalCloseCommit) Some(Output(Bool())) else None
+        val finalReleasePermit = if (finalCloseCommit) Some(Input(Bool())) else None
+        val fabricControlOwnersIdle = if (finalCloseCommit) Some(Input(Bool())) else None
+        val fabricFixedOwnersIdle = if (finalCloseCommit) Some(Input(Bool())) else None
         val cpuHeld = Input(Valid(UInt(p.maintenanceEpochBits.W)))
         val fabricHeld = Input(Valid(UInt(p.maintenanceEpochBits.W)))
         val cpuLinkReady = Input(Bool())
@@ -114,37 +130,77 @@ class CommonRuntimeEpochBoundary(
         m.sourceClock := source; m.destinationClock := destination; m.commonReset := commonColdReset
         m
     }
-    private val commandType = new CommonRuntimeBoundaryCommand(p)
-    private val observationType = new CommonRuntimeBoundaryObservation(p)
+    private val commandType = new CommonRuntimeBoundaryCommand(p, finalCloseCommit)
+    private val observationType = new CommonRuntimeBoundaryObservation(p, finalCloseCommit)
     private val prepareOperation = 0.U(2.W)
     private val cancelOperation = 1.U(2.W)
     private val resumeOperation = 2.U(2.W)
     private val command = mailbox(commandType.getWidth, aonClock, fabricClock)
-    private val cpuArm = mailbox(p.maintenanceEpochBits, aonClock, cpuClock)
+    private val cpuArm = mailbox(p.maintenanceEpochBits + (if (finalCloseCommit) 2 else 0), aonClock, cpuClock)
+    private val closeOperation = 3.U(2.W)
+    private val closeCpuFault = if (finalCloseCommit) Some(Wire(Bool())) else None
+    private val closeFabricFault = if (finalCloseCommit) Some(Wire(Bool())) else None
+    private def faultInAon(f: Bool): Bool = {
+        val sync = Module(new CdcLevel)
+        sync.clockIn := aonClock; sync.resetIn := aonReset; sync.levelIn := f
+        sync.levelOut
+    }
+    private val localCloseFault = if (finalCloseCommit)
+        Some(faultInAon(closeCpuFault.get) || faultInAon(closeFabricFault.get)) else None
     private val cpuObservation = mailbox(observationType.getWidth, cpuClock, aonClock)
     private val fabricObservation = mailbox(observationType.getWidth, fabricClock, aonClock)
     private val terminal = mailbox((new CommonRuntimeCompletion(p)).getWidth, fabricClock, aonClock)
     private val retirement = mailbox(p.maintenanceEpochBits, fabricClock, aonClock)
 
+    private val cpuCloseBits = if (finalCloseCommit) Wire(UInt(3.W)) else 0.U(3.W)
     withClockAndReset(cpuClock, cpuReset) {
         val armed = RegInit(false.B)
         val epoch = RegInit(0.U(p.maintenanceEpochBits.W))
         cpuArm.destination.ready := true.B
-        when(cpuArm.destination.fire) { armed := true.B; epoch := cpuArm.destination.bits }
-        val observation = Wire(new CommonRuntimeBoundaryObservation(p))
+        val cpuArmEpoch = cpuArm.destination.bits(p.maintenanceEpochBits - 1, 0)
+        if (!finalCloseCommit) {
+            when(cpuArm.destination.fire) { armed := true.B; epoch := cpuArmEpoch }
+        } else {
+            val operation = cpuArm.destination.bits(p.maintenanceEpochBits + 1, p.maintenanceEpochBits)
+            val pending = RegInit(false.B)
+            val committed = RegInit(false.B)
+            val fault = RegInit(false.B)
+            val same = armed && cpuArmEpoch === epoch
+            val releaseNow = cpuArm.destination.fire && same && operation === resumeOperation
+            val privateHeld = io.cpuHeld.valid && io.cpuHeld.bits === epoch
+            val transportEmpty = io.cpuLinkReady && io.cpuTransportEmpty && io.fabricEmptyInCpu
+            when(pending && privateHeld && transportEmpty && !fault) { committed := true.B }
+            when(committed && !releaseNow && !(privateHeld && transportEmpty)) { fault := true.B }
+            when(cpuArm.destination.fire) {
+                when(operation === prepareOperation) {
+                    armed := true.B; epoch := cpuArmEpoch; pending := false.B; committed := false.B
+                }.elsewhen(same && operation === closeOperation) {
+                    pending := true.B
+                }.elsewhen(releaseNow) {
+                    // AON proves actual target-clock restoration and consumes
+                    // this acknowledgement BEFORE admitting fabric release.
+                    pending := false.B; committed := false.B
+                }.otherwise { fault := true.B }
+            }
+            closeCpuFault.get := fault
+            // Both bits were checked locally at commit, never copied from AON held.
+            cpuCloseBits := Mux(committed && !fault, 3.U(3.W), 0.U)
+        }
+        val observation = Wire(new CommonRuntimeBoundaryObservation(p, finalCloseCommit))
         observation.epoch := epoch
         observation.qualified := io.cpuHeld.valid && io.cpuHeld.bits === epoch &&
             io.cpuLinkReady && io.cpuTransportEmpty && io.fabricEmptyInCpu
         // Send both true and false observations. CdcMailbox captures the entire
         // source-domain value atomically and keeps it stable until consumption.
         cpuObservation.source.valid := armed
+        observation.closeBits.foreach(_ := cpuCloseBits)
         cpuObservation.source.bits := observation.asUInt
     }
 
     withClockAndReset(fabricClock, fabricReset) {
         val armed = RegInit(false.B)
         val epoch = RegInit(0.U(p.maintenanceEpochBits.W))
-        val c = command.destination.bits.asTypeOf(new CommonRuntimeBoundaryCommand(p))
+        val c = command.destination.bits.asTypeOf(new CommonRuntimeBoundaryCommand(p, finalCloseCommit))
         val preparing = c.operation === prepareOperation && !armed
         val matching = armed && c.epoch === epoch
         io.externalMaintenance.valid := command.destination.valid && preparing
@@ -157,12 +213,34 @@ class CommonRuntimeEpochBoundary(
         io.runtimeResume.bits := c.epoch
         command.destination.ready := Mux(preparing, io.externalMaintenance.ready,
             matching && Mux(c.operation === cancelOperation, io.runtimeCancel.ready,
-                c.operation === resumeOperation && io.runtimeResume.ready))
+                (c.operation === resumeOperation && io.runtimeResume.ready) ||
+                    (if (finalCloseCommit) c.operation === closeOperation else false.B)))
         when(io.externalMaintenance.fire) { armed := true.B; epoch := c.epoch }
-        val observation = Wire(new CommonRuntimeBoundaryObservation(p))
+        val observation = Wire(new CommonRuntimeBoundaryObservation(p, finalCloseCommit))
         observation.epoch := epoch
         observation.qualified := io.fabricHeld.valid && io.fabricHeld.bits === epoch &&
             io.fabricLinkReady && io.fabricTransportEmpty && io.cpuEmptyInFabric && io.fabricAllObligationsIdle
+        if (finalCloseCommit) {
+            val pending = RegInit(false.B)
+            val committed = RegInit(false.B)
+            val fault = RegInit(false.B)
+            val uncommitNow = command.destination.fire && matching &&
+                c.operation === closeOperation && !c.closeEnable.get
+            val releaseNow = uncommitNow || io.runtimeCancel.fire || io.runtimeResume.fire
+            val transportEmpty = io.fabricLinkReady && io.fabricTransportEmpty && io.cpuEmptyInFabric
+            val ownersHeld = io.fabricHeld.valid && io.fabricHeld.bits === epoch &&
+                io.fabricAllObligationsIdle && io.fabricControlOwnersIdle.get
+            val fixedIdle = io.fabricFixedOwnersIdle.get
+            val safe = transportEmpty && ownersHeld && fixedIdle
+            // Consumption cannot wait for proof: timeout/cancel must be able
+            // to pass a close attempt that never reaches qualification.
+            when(command.destination.fire && matching && c.operation === closeOperation && c.closeEnable.get) { pending := true.B }
+            when(pending && safe && !fault) { committed := true.B }
+            when(committed && !releaseNow && !safe) { fault := true.B }
+            when(releaseNow || io.externalMaintenance.fire) { pending := false.B; committed := false.B }
+            closeFabricFault.get := fault
+            observation.closeBits.get := Mux(committed && !fault, 7.U(3.W), 0.U)
+        }
         fabricObservation.source.valid := armed
         fabricObservation.source.bits := observation.asUInt
 
@@ -205,6 +283,12 @@ class CommonRuntimeEpochBoundary(
         val armSent = RegInit(false.B)
         val releaseChosen = RegInit(false.B)
         val releaseSent = RegInit(false.B)
+        val cpuCloseSent = if (finalCloseCommit) Some(RegInit(false.B)) else None
+        val fabricCloseSent = if (finalCloseCommit) Some(RegInit(false.B)) else None
+        val fabricUncommitSent = if (finalCloseCommit) Some(RegInit(false.B)) else None
+        val cpuReleaseSent = if (finalCloseCommit) Some(RegInit(false.B)) else None
+        val cpuClose = if (finalCloseCommit) Some(RegInit(0.U(3.W))) else None
+        val fabricClose = if (finalCloseCommit) Some(RegInit(0.U(3.W))) else None
         val canceled = RegInit(false.B)
         val timedOut = RegInit(false.B)
         val terminalConsumed = RegInit(false.B)
@@ -214,8 +298,8 @@ class CommonRuntimeEpochBoundary(
         val drainTimer = RegInit(0.U(log2Ceil(drainTimeoutCycles + 1).W))
         val cleanupTimer = RegInit(0.U(log2Ceil(cleanupTimeoutCycles + 1).W))
         val cleanupFault = RegInit(false.B)
-        val cpuSnapshot = cpuObservation.destination.bits.asTypeOf(new CommonRuntimeBoundaryObservation(p))
-        val fabricSnapshot = fabricObservation.destination.bits.asTypeOf(new CommonRuntimeBoundaryObservation(p))
+        val cpuSnapshot = cpuObservation.destination.bits.asTypeOf(new CommonRuntimeBoundaryObservation(p, finalCloseCommit))
+        val fabricSnapshot = fabricObservation.destination.bits.asTypeOf(new CommonRuntimeBoundaryObservation(p, finalCloseCommit))
         cpuObservation.destination.ready := true.B
         fabricObservation.destination.ready := true.B
         val cpuUpdate = cpuObservation.destination.fire && owned && cpuSnapshot.epoch === epoch
@@ -225,6 +309,16 @@ class CommonRuntimeEpochBoundary(
         val cpuCurrent = Mux(cpuUpdate, cpuSnapshot.qualified, cpuProved)
         val fabricCurrent = Mux(fabricUpdate, fabricSnapshot.qualified, fabricProved)
         val qualified = prepareAccepted && cpuCurrent && fabricCurrent && !retirementFaultInAon.getOrElse(false.B)
+        if (finalCloseCommit) {
+            when(cpuUpdate) { cpuClose.get := cpuSnapshot.closeBits.get }
+            when(fabricUpdate) { fabricClose.get := fabricSnapshot.closeBits.get }
+            val cpuNow = Mux(cpuUpdate, cpuSnapshot.closeBits.get, cpuClose.get)
+            val fabricNow = Mux(fabricUpdate, fabricSnapshot.closeBits.get, fabricClose.get)
+            val proof = Cat(fabricNow(2), fabricNow(1), cpuNow(1) && fabricNow(0), cpuNow(0))
+            io.closeProof.get := Mux(owned && !releaseChosen && !localCloseFault.get, proof, 0.U)
+            io.closeFault.get := localCloseFault.get
+            io.releasePending.get := owned && releaseChosen
+        }
         val expired = owned && !qualifiedOnce && !releaseChosen && drainTimer === (drainTimeoutCycles - 1).U
         val selectedCancel = (0 until 2).map(i => io.cancel(i).fire).reduce(_ || _)
         val selectedResume = (0 until 2).map(i => io.resume(i).fire).reduce(_ || _)
@@ -241,18 +335,50 @@ class CommonRuntimeEpochBoundary(
             io.held(i).bits.token := token
             io.held(i).bits.epoch := epoch
         }
-        val outgoing = Wire(new CommonRuntimeBoundaryCommand(p))
+        val outgoing = Wire(new CommonRuntimeBoundaryCommand(p, finalCloseCommit))
         outgoing.epoch := epoch
-        outgoing.operation := Mux(!prepareSent, prepareOperation, Mux(canceled, cancelOperation, resumeOperation))
-        command.source.valid := owned && (!prepareSent || (prepareAccepted && releaseChosen && !releaseSent))
-        command.source.bits := outgoing.asUInt
-        when(command.source.fire) {
-            when(!prepareSent) { prepareSent := true.B }.otherwise { releaseSent := true.B }
+        if (!finalCloseCommit) {
+            outgoing.operation := Mux(!prepareSent, prepareOperation, Mux(canceled, cancelOperation, resumeOperation))
+            command.source.valid := owned && (!prepareSent || (prepareAccepted && releaseChosen && !releaseSent &&
+                io.releasePermit.getOrElse(true.B)))
+            when(command.source.fire) {
+                when(!prepareSent) { prepareSent := true.B }.otherwise { releaseSent := true.B }
+            }
+            cpuArm.source.valid := owned && !armSent
+            cpuArm.source.bits := epoch
+            when(cpuArm.source.fire) { armSent := true.B }
+        } else {
+            val wantClose = qualified && io.closeRequest.get && !releaseChosen && !localCloseFault.get
+            val cpuUncommitted = cpuReleaseSent.get && cpuArm.sourceIdle
+            val uncommitted = fabricUncommitSent.get && command.sourceIdle && cpuUncommitted
+            io.closeUncommitted.get := owned && releaseChosen && uncommitted
+            val sendUncommit = releaseChosen && !fabricUncommitSent.get
+            val canRelease = io.releasePermit.get && cpuUncommitted
+            outgoing.closeEnable.get := !releaseChosen
+            outgoing.operation := Mux(!prepareSent, prepareOperation,
+                Mux(releaseChosen && !sendUncommit, Mux(canceled, cancelOperation, resumeOperation), closeOperation))
+            command.source.valid := owned && (!prepareSent || (prepareAccepted &&
+                Mux(releaseChosen, canRelease && (sendUncommit ||
+                    (!releaseSent && io.finalReleasePermit.get && uncommitted)), wantClose && !fabricCloseSent.get)))
+            when(command.source.fire) {
+                when(!prepareSent) { prepareSent := true.B }
+                    .elsewhen(sendUncommit) { fabricUncommitSent.get := true.B }
+                    .elsewhen(releaseChosen) { releaseSent := true.B }
+                    .otherwise { fabricCloseSent.get := true.B }
+            }
+            val cpuOperation = Mux(!armSent, prepareOperation,
+                Mux(releaseChosen, resumeOperation, closeOperation))
+            cpuArm.source.valid := owned && (!armSent ||
+                Mux(releaseChosen, io.releasePermit.get && !cpuReleaseSent.get, wantClose && !cpuCloseSent.get))
+            cpuArm.source.bits := Cat(cpuOperation, epoch)
+            when(cpuArm.source.fire) {
+                when(!armSent) { armSent := true.B }
+                    .elsewhen(releaseChosen) { cpuReleaseSent.get := true.B }
+                    .otherwise { cpuCloseSent.get := true.B }
+            }
         }
+        command.source.bits := outgoing.asUInt
         when(owned && prepareSent && !prepareAccepted && command.sourceIdle) { prepareAccepted := true.B }
-        cpuArm.source.valid := owned && !armSent
-        cpuArm.source.bits := epoch
-        when(cpuArm.source.fire) { armSent := true.B }
 
         // Deadline priority is explicit. A matching proof arriving on this edge
         // cannot reverse the timeout decision or authorize a later normal release.
@@ -294,6 +420,9 @@ class CommonRuntimeEpochBoundary(
             owned := true.B; lane := chosenLane; token := io.requests(chosenLane).bits; epoch := nextEpoch
             prefer := ~chosenLane
             when(nextEpoch.andR) { exhausted := true.B }.otherwise { nextEpoch := nextEpoch + 1.U }
+            cpuCloseSent.foreach(_ := false.B); fabricCloseSent.foreach(_ := false.B)
+            cpuReleaseSent.foreach(_ := false.B); fabricUncommitSent.foreach(_ := false.B)
+            cpuClose.foreach(_ := 0.U); fabricClose.foreach(_ := 0.U)
             prepareSent := false.B; prepareAccepted := false.B; armSent := false.B
             releaseChosen := false.B; releaseSent := false.B; canceled := false.B; timedOut := false.B
             terminalConsumed := false.B; cpuProved := false.B; fabricProved := false.B; qualifiedOnce := false.B

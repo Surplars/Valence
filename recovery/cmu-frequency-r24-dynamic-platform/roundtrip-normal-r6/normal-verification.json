@@ -1,0 +1,87 @@
+{
+  "status": "PASS_NORMAL_BEHAVIORAL_PLATFORM_ONLY",
+  "head_under_test": "99884d8abec9dc74cdde81391b54c7aa13b8daa3",
+  "receipt_sha256": "40f31cd893d8cbae0066539122b1498198293941abef7a40e6e95cbe8954b4c6",
+  "ordinary_success_line": "ROUNDTRIP_PASS CPU50->100->50 FABRIC50->100->50 programs=4 results=4 real_epoch_retirements=4 mmio_writes=4 mmio_requests=31 mmio_replies=31 retired=75 elapsed_ns=5115135.000 ns rawMAC_edges=639342 RXC_edges=639342 fixed250_edges=1278684",
+  "program_events": [
+    [
+      "3242230.000",
+      "0",
+      "100000000",
+      "1"
+    ],
+    [
+      "3864430.000",
+      "0",
+      "50000000",
+      "2"
+    ],
+    [
+      "4486930.000",
+      "1",
+      "100000000",
+      "1"
+    ],
+    [
+      "5109050.000",
+      "1",
+      "50000000",
+      "2"
+    ]
+  ],
+  "completion_events": [
+    [
+      "3245370.000",
+      "0",
+      "1",
+      "100000000",
+      "159"
+    ],
+    [
+      "3867790.000",
+      "0",
+      "2",
+      "50000000",
+      "89"
+    ],
+    [
+      "4489770.000",
+      "1",
+      "1",
+      "100000000",
+      "129"
+    ],
+    [
+      "5112390.000",
+      "1",
+      "2",
+      "50000000",
+      "88"
+    ]
+  ],
+  "main_assertion_sites": 516,
+  "full_geometry": true,
+  "test_only_allowed_hz": [
+    50000000,
+    100000000
+  ],
+  "production_allowed_points": [],
+  "normal_wall_seconds": 786.1912960629998,
+  "host_limit_seconds": 1200,
+  "simulation_observation_cap_ns": 6000000,
+  "frozen_inputs_unchanged": true,
+  "frozen_tools_unchanged": true,
+  "binary_unchanged": true,
+  "actual_platform_epoch_backend_rtl": true,
+  "primitive_model": "behavioral_primitives.sv; not vendor UNISIM",
+  "physical_qualified": false,
+  "sta_qualified": false,
+  "board_qualified": false,
+  "negative_matrix_qualified": false,
+  "scope_exclusions": [
+    "No packet/DDR payload in this ROM/MMIO normal loop",
+    "No fault injection or arbitrary backpressure in this normal case",
+    "50/100 fixture points do not admit production software rates",
+    "No source-clock electrical or board qualification"
+  ]
+}

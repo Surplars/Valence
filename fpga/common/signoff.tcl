@@ -4,6 +4,9 @@ proc valence_final_main {} {
     global argv argc valence
     if {$argc != 4} {error "usage: signoff.tcl CONFIG_TCL WINDOWS_PYTHON DCP_SHA256 GENERATE_BIT_0_OR_1"}
     source [lindex $argv 0]
+    if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-dynamic"} {
+        error "DYNAMIC_SIGNOFF_BLOCKED: native DRP/CDC/RDC and CPU300/fabric250 scenarios are not yet qualified; no bitstream"
+    }
     set python [lindex $argv 1]
     set valence(python) $python
     set valence(dcp_sha256) [lindex $argv 2]

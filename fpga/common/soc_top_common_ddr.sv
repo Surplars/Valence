@@ -2,7 +2,8 @@
 `default_nettype none
 // Shared board shell. CPU300 (I1) / CPU100 (A1) is selected at export/IP creation.
 // Default fabric uses MIG UI250. VALENCE_INDEPENDENT_FIXED_DOMAINS selects a separate fabric output;
-// DDR, timebase and debug stay on UI250. This is NOT runtime DRP support.
+// DDR, timebase and debug stay on UI250. VALENCE_DYNAMIC_CLOCK_DOMAINS is
+// separate explicit opt-in: independent CPU/fabric MMCME4, stable AON50.
 // MAC125/PAD250/REF500 share the public quarter-clock divider reset epoch.
 // Source candidate only: mapped CDC/ROM, three-speed timing and board are unverified.
 module soc_top_common_ddr (
@@ -30,7 +31,13 @@ module soc_top_common_ddr (
     wire mig_reset = board_reset | ~dci_ready;
     wire ui_clk, ui_reset, calib_complete, clk_soc, clk_aon, clk_tx, clk_rx, clk_delay;
     wire cpu_locked, eth_locked, mmcm_locked, clk_tx_forward, clk_tx_pad;
+    `ifdef VALENCE_DYNAMIC_CLOCK_DOMAINS
+    wire aon_locked;
+    // Runtime CPU/fabric unlock MUST NOT reset AON/DDR or retained owners.
+    assign mmcm_locked = aon_locked & eth_locked;
+`else
     assign mmcm_locked = cpu_locked & eth_locked;
+`endif
     wire ui_reset_request = mig_reset | ui_reset | ~calib_complete | ~mmcm_locked;
     (* ASYNC_REG = "TRUE" *) reg [2:0] ui_reset_pipe;
     always @(posedge ui_clk or posedge ui_reset_request)
@@ -42,6 +49,35 @@ module soc_top_common_ddr (
 `ifndef VALENCE_INDEPENDENT_FIXED_DOMAINS
     assign clk_fabric = ui_clk;
 `endif
+`ifdef VALENCE_DYNAMIC_CLOCK_DOMAINS
+    clk_wiz_common u_clk_wiz (
+        .clk_in1(ui_clk), .clk_out1(clk_aon),
+        .reset(board_reset | ui_reset), .locked(aon_locked));
+    wire [1:0] rate_enable, rate_isolate, rate_quiesce, rate_present;
+    wire [1:0] rate_closed, rate_open, rate_locked, rate_resumed, rate_fatal;
+    wire [1:0] rate_program_valid, rate_program_ready, rate_fallback;
+    wire [1:0] rate_result_valid, rate_result_ready, rate_error;
+    wire [31:0] rate_hz[0:1], rate_token[0:1], rate_result_hz[0:1], rate_result_token[0:1];
+    native_dynamic_clock_domain cpu_clock (
+        .aon_clock(clk_aon), .common_cold_reset(soc_reset), .source_clock250(ui_clk),
+        .clock_enable(rate_enable[0]), .isolate(rate_isolate[0]),
+        .program_valid(rate_program_valid[0]), .program_ready(rate_program_ready[0]),
+        .program_hz(rate_hz[0]), .program_token(rate_token[0]), .program_fallback(rate_fallback[0]),
+        .result_valid(rate_result_valid[0]), .result_ready(rate_result_ready[0]),
+        .result_hz(rate_result_hz[0]), .result_token(rate_result_token[0]), .result_error(rate_error[0]),
+        .managed_clock(clk_soc), .present(rate_present[0]), .gate_closed(rate_closed[0]),
+        .gate_open(rate_open[0]), .locked(rate_locked[0]), .resumed(rate_resumed[0]), .fatal(rate_fatal[0]));
+    native_dynamic_clock_domain fabric_clock (
+        .aon_clock(clk_aon), .common_cold_reset(soc_reset), .source_clock250(ui_clk),
+        .clock_enable(rate_enable[1]), .isolate(rate_isolate[1]),
+        .program_valid(rate_program_valid[1]), .program_ready(rate_program_ready[1]),
+        .program_hz(rate_hz[1]), .program_token(rate_token[1]), .program_fallback(rate_fallback[1]),
+        .result_valid(rate_result_valid[1]), .result_ready(rate_result_ready[1]),
+        .result_hz(rate_result_hz[1]), .result_token(rate_result_token[1]), .result_error(rate_error[1]),
+        .managed_clock(clk_fabric), .present(rate_present[1]), .gate_closed(rate_closed[1]),
+        .gate_open(rate_open[1]), .locked(rate_locked[1]), .resumed(rate_resumed[1]), .fatal(rate_fatal[1]));
+    assign cpu_locked = rate_locked[0];
+`else
     clk_wiz_common u_clk_wiz (
         .clk_in1(ui_clk), .clk_out1(clk_soc), .clk_out2(clk_aon),
 `ifdef VALENCE_INDEPENDENT_FIXED_DOMAINS
@@ -49,6 +85,7 @@ module soc_top_common_ddr (
 `endif
         .reset(board_reset | ui_reset), .locked(cpu_locked)
     );
+`endif
     // Shared REF500 -> phase-related MAC125/PAD250. Forwarded TXC is DATA
     // to an ODDR, never an internal fabric-generated or multiplexed clock.
     native_gmac_quarter_clock network_clock (
@@ -66,7 +103,8 @@ module soc_top_common_ddr (
         else delay_reset_guard <= {delay_reset_guard[62:0],1'b0};
     wire delay_reset = delay_reset_guard[63];
     wire delay_ready;
-    // All board/UI/calibration/clock-unlock causes assert common reset.
+    // Board/UI/calibration/fixed-clock unlock causes assert common reset.
+    // Dynamic CPU/fabric unlock is locally fail-closed, not a cold reset cause.
     // There is no raw ready crossing into the CPU domain.
     wire reset_request = ~ui_aresetn;
     // Common assertion reaches every owner; each Chisel domain releases locally.
@@ -174,6 +212,46 @@ module soc_top_common_ddr (
         .dmi_rsp_status(dmi_rsp_status), .dmi_rsp_data(dmi_rsp_data));
     CommonMachinePlatform u_soc (
         .cpuClock(clk_soc), .fabricClock(clk_fabric), .alwaysOnClock(clk_aon),
+`ifdef VALENCE_DYNAMIC_CLOCK_DOMAINS
+        .rateBackend_0_present(rate_present[0]),
+        .rateBackend_0_gateClosed(rate_closed[0]),
+        .rateBackend_0_gateOpen(rate_open[0]),
+        .rateBackend_0_locked(rate_locked[0]),
+        .rateBackend_0_resumed(rate_resumed[0]),
+        .rateBackend_0_fatal(rate_fatal[0]),
+        .rateBackend_0_clockEnable(rate_enable[0]),
+        .rateBackend_0_isolate(rate_isolate[0]),
+        .rateBackend_0_quiesce(rate_quiesce[0]),
+        .rateBackend_0_program_valid(rate_program_valid[0]),
+        .rateBackend_0_program_ready(rate_program_ready[0]),
+        .rateBackend_0_program_bits_hz(rate_hz[0]),
+        .rateBackend_0_program_bits_token(rate_token[0]),
+        .rateBackend_0_program_bits_fallback(rate_fallback[0]),
+        .rateBackend_0_result_valid(rate_result_valid[0]),
+        .rateBackend_0_result_ready(rate_result_ready[0]),
+        .rateBackend_0_result_bits_hz(rate_result_hz[0]),
+        .rateBackend_0_result_bits_token(rate_result_token[0]),
+        .rateBackend_0_result_bits_error(rate_error[0]),
+        .rateBackend_1_present(rate_present[1]),
+        .rateBackend_1_gateClosed(rate_closed[1]),
+        .rateBackend_1_gateOpen(rate_open[1]),
+        .rateBackend_1_locked(rate_locked[1]),
+        .rateBackend_1_resumed(rate_resumed[1]),
+        .rateBackend_1_fatal(rate_fatal[1]),
+        .rateBackend_1_clockEnable(rate_enable[1]),
+        .rateBackend_1_isolate(rate_isolate[1]),
+        .rateBackend_1_quiesce(rate_quiesce[1]),
+        .rateBackend_1_program_valid(rate_program_valid[1]),
+        .rateBackend_1_program_ready(rate_program_ready[1]),
+        .rateBackend_1_program_bits_hz(rate_hz[1]),
+        .rateBackend_1_program_bits_token(rate_token[1]),
+        .rateBackend_1_program_bits_fallback(rate_fallback[1]),
+        .rateBackend_1_result_valid(rate_result_valid[1]),
+        .rateBackend_1_result_ready(rate_result_ready[1]),
+        .rateBackend_1_result_bits_hz(rate_result_hz[1]),
+        .rateBackend_1_result_bits_token(rate_result_token[1]),
+        .rateBackend_1_result_bits_error(rate_error[1]),
+`endif
 `ifdef VALENCE_INDEPENDENT_FIXED_DOMAINS
         .ddrClock(ui_clk), .timebaseClock(ui_clk), .debugClock(ui_clk),
 `endif

@@ -17,6 +17,7 @@ object CommonMachinePlatformMain extends App {
     val options = args.drop(2)
     val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
     val profile = CommonCpuProfile.named(args(1), clockProfile)
+    val dynamic = clockProfile == "boot50-dynamic"
     val legalFlags = Set("--programmable", "--vivado-memories")
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") || x.startsWith("--clock-profile=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
@@ -26,6 +27,7 @@ object CommonMachinePlatformMain extends App {
         "successful compile receipt required before emission")
     val programmable = options.contains("--programmable")
     val vivado = options.contains("--vivado-memories")
+    require(!dynamic || !programmable, "dynamic board profile has no unhandshaked ROM-program source")
     require(programmable != vivado, "select explicit native-programmable or production-Vivado ROM")
     val root = Paths.get(sys.props.getOrElse("chisel.project.root", ".")).toAbsolutePath.normalize
     def walk(directory: Path): Seq[Path] = {
@@ -56,7 +58,10 @@ object CommonMachinePlatformMain extends App {
         hardwareClocks = true, vivadoMemories = vivado,
         independentDdrClock = profile.independentFixedDomains,
         independentTimebaseClock = profile.independentFixedDomains,
-        independentDebugClock = profile.independentFixedDomains), Array("--target-dir", output.toString),
+        independentDebugClock = profile.independentFixedDomains,
+        runtimeDebugAdmission = dynamic, runtimeNetworkAdmission = dynamic,
+        runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
+        runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
             s"--lowering-options=$lowering",
             "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
@@ -66,11 +71,12 @@ object CommonMachinePlatformMain extends App {
     def objectOf(m: Map[String, String]): ujson.Obj = ujson.Obj.from(m.toSeq.sortBy(_._1).map { case (k, v) => k -> ujson.Str(v) })
     val manifest = ujson.Obj(
         "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
-        "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> false,
+        "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> dynamic,
         "independentFixedDomains" -> profile.independentFixedDomains,
         "clockTopology" -> (if (profile.independentFixedDomains) "independent-fixed-v1" else "legacy-ui-fabric"),
         "clockProfilePurpose" -> (if (profile.clockProfile == "performance300-static") "high-frequency-timing-target"
-            else if (profile.clockProfile == "boot50-static") "low-frequency-board-candidate" else "legacy-production"),
+            else if (profile.clockProfile == "boot50-static") "low-frequency-board-candidate"
+            else if (dynamic) "dynamic-clock-integration-candidate-empty-rate-table" else "legacy-production"),
         "abi" -> 1, "romBytes" -> CommonPlatformAbi.romBytes,
         "programmableRom" -> programmable, "vivadoMemories" -> vivado,
         "hardwareClocks" -> true, "independentCpuFabricClocks" -> true,

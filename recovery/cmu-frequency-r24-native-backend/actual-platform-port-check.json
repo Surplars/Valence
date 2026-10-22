@@ -1,0 +1,172 @@
+{
+  "checkedRateBackendPorts": {
+    "rateBackend_0_clockEnable": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_fatal": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_gateClosed": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_gateOpen": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_isolate": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_locked": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_present": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_program_bits_fallback": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_program_bits_hz": {
+      "direction": "output",
+      "width": 32
+    },
+    "rateBackend_0_program_bits_token": {
+      "direction": "output",
+      "width": 32
+    },
+    "rateBackend_0_program_ready": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_program_valid": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_quiesce": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_result_bits_error": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_result_bits_hz": {
+      "direction": "input",
+      "width": 32
+    },
+    "rateBackend_0_result_bits_token": {
+      "direction": "input",
+      "width": 32
+    },
+    "rateBackend_0_result_ready": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_0_result_valid": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_0_resumed": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_clockEnable": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_fatal": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_gateClosed": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_gateOpen": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_isolate": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_locked": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_present": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_program_bits_fallback": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_program_bits_hz": {
+      "direction": "output",
+      "width": 32
+    },
+    "rateBackend_1_program_bits_token": {
+      "direction": "output",
+      "width": 32
+    },
+    "rateBackend_1_program_ready": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_program_valid": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_quiesce": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_result_bits_error": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_result_bits_hz": {
+      "direction": "input",
+      "width": 32
+    },
+    "rateBackend_1_result_bits_token": {
+      "direction": "input",
+      "width": 32
+    },
+    "rateBackend_1_result_ready": {
+      "direction": "output",
+      "width": 1
+    },
+    "rateBackend_1_result_valid": {
+      "direction": "input",
+      "width": 1
+    },
+    "rateBackend_1_resumed": {
+      "direction": "input",
+      "width": 1
+    }
+  },
+  "hardwareClocks": false,
+  "notEstablished": [
+    "combined functional simulation",
+    "production hardwareClocks=true emission",
+    "Vivado elaboration",
+    "physical clock qualification"
+  ],
+  "platformPath": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/platform-r1-rtl/CommonMachinePlatform.sv",
+  "platformSha256": "311299f985a61b1a5fc0358d35f2915edf5116efa6c121ce986bdf7039ec45ed",
+  "portCheck": {
+    "connections": 118,
+    "ports": 162
+  },
+  "productionEmissionValidated": false,
+  "status": "PASS_REAL_GENERATED_FUNCTIONAL_PORT_CONTRACT_ONLY",
+  "wrapperSha256": "b51d4834e9e6d63c91f2b1462692bd59755cb770643188035a23f57461d4df3b"
+}

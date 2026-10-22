@@ -27,6 +27,23 @@ class BoardInputs(unittest.TestCase):
         self.assertIn('.RX_DATA_DELAY_PS(1100)', text)
         self.assertNotIn('jtag_tck', text)
 
+    def test_dynamic_profile_is_explicit_separate_and_not_signed_off(self):
+        text = (HERE / 'soc_top_common_ddr.sv').read_text()
+        static = board_inputs.selected_shell(text, True)
+        dynamic = board_inputs.selected_shell(text, True, True)
+        self.assertNotIn('native_dynamic_clock_domain cpu_clock', static)
+        self.assertIn('native_dynamic_clock_domain cpu_clock', dynamic)
+        self.assertIn('native_dynamic_clock_domain fabric_clock', dynamic)
+        self.assertIn('assign mmcm_locked = aon_locked & eth_locked;', dynamic)
+        self.assertNotIn('assign mmcm_locked = cpu_locked', dynamic)
+        for lane in range(2):
+            for pin in ('fatal', 'gateClosed', 'gateOpen', 'locked', 'resumed', 'program_valid', 'result_valid'):
+                self.assertIn(f'.rateBackend_{lane}_{pin}(', dynamic)
+        with self.assertRaises(ValueError): board_inputs.selected_shell(text, False, True)
+        self.assertIn('boot50-dynamic', (HERE / 'signoff.tcl').read_text())
+        self.assertEqual(producer.gate.reviewed_board_clocks('i1','boot50-dynamic')['cpu'], 50000000)
+        self.assertFalse(any('behavioral_primitives' in str(x) for x in board_inputs.BOARD_RTL))
+
     def test_low_profile_requires_fresh_static_three_output_ip(self):
         script = (HERE / 'synthesize.tcl').read_text()
         self.assertIn('create_ip -name clk_wiz', script)

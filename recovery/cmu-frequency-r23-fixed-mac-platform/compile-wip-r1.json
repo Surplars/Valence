@@ -1,0 +1,15 @@
+{
+  "status": "PASS_SCALA_COMPILE_ONLY",
+  "native_verified": false,
+  "default_rtl_equivalence_verified": false,
+  "command": "source scripts/cloud/env.sh && mill -i IonSoC.test.compile",
+  "base_commit": "951c1bdde13180e091fff2691d3491b4e9bbd15f",
+  "sources": {
+    "src/main/scala/ip/ethernet/FixedSourceManagedGmac.scala": "9c6d54c1af91ab8a11546c3cf52c621529f6acf3dc6bdced6f773f96d2c513a6",
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": "8a3bd71e4fde2e008d0193914545eb30e618f171cdda5ecaa093092c5ce6560f",
+    "src/main/scala/platform/CommonMachinePlatform.scala": "ab4d54c6611d0996a0f2b0528172363224b65713b38adae48867d6f896c84f1d",
+    "src/main/scala/platform/CommonFixedMacRuntimeAdapter.scala": "46184fc95262b536b980c0fd3806bee0d013aac87cb41707484d5544aa9b4102",
+    "src/test/scala/platform/CommonFixedMacEpochMain.scala": "5207f3f319b9f5c5927f04be7b47117f9188ab7fd19d178b4a54b5496936cb5e"
+  },
+  "log_sha256": "3e575deba3880787be4abfed655b4c245916edd23d7b4dc8767056e6749234c8"
+}

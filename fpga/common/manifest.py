@@ -98,9 +98,9 @@ def output_at(root, value):
 
 def reviewed_board_clocks(cpu, profile='production'):
     require(cpu in ('i1', 'a1'), 'unreviewed CPU')
-    require(profile in ('production', 'boot50-static', 'performance300-static'), 'unreviewed board clock profile')
+    require(profile in ('production', 'boot50-static', 'performance300-static', 'boot50-dynamic'), 'unreviewed board clock profile')
     require(profile != 'performance300-static' or cpu == 'i1', 'performance300-static is I1-only')
-    low = profile == 'boot50-static'
+    low = profile in ('boot50-static', 'boot50-dynamic')
     return dict(cpu=50000000 if low else 300000000 if cpu == 'i1' else 100000000,
                 fabric=50000000 if low else 250000000, timebase=250000000,
                 ddr_ui=250000000, uart=50000000, aon=50000000)
@@ -117,8 +117,8 @@ def configuration(config):
     require(set(clocks) == set(CLOCKS) and all(type(v) is int and 0 < v <= 1_000_000_000
                                             for v in clocks.values()), 'explicit positive domain frequencies required')
     profile = config.get('clock_profile', 'production')
-    require(profile in ('production', 'boot50-static', 'performance300-static'), 'unreviewed board clock profile')
-    if profile in ('boot50-static', 'performance300-static'):
+    require(profile in ('production', 'boot50-static', 'performance300-static', 'boot50-dynamic'), 'unreviewed board clock profile')
+    if profile in ('boot50-static', 'performance300-static', 'boot50-dynamic'):
         require(clocks == reviewed_board_clocks(config['cpu'], profile), 'unreviewed static low-clock topology')
     else:
         require(clocks['timebase'] == clocks['fabric'], 'production timebase must equal fabric clock')
@@ -351,6 +351,8 @@ def timing_checks(reports, m):
 
 def signoff(manifest, reports, dcp, expected_dcp_hash):
     root, m, profile = preflight(manifest, windows=True)
+    require(m['configuration'].get('clock_profile') != 'boot50-dynamic',
+            'dynamic native DRP/CDC/RDC and CPU300/fabric250 scenarios are not qualified; no bitstream')
     reports, dcp = Path(reports).absolute(), Path(dcp).absolute()
     no_links(reports); no_links(dcp)
     require(reports == root / 'local-run' / 'signoff' and dcp == root / 'local-run' / 'implementation' / 'routed.dcp',

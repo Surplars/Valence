@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/fpga/common/dynamic/dynamic_clock_tb.sv:46: CPU_EDGE_AFTER_CLOSE_ACK
+       Time: 4300000  Scope: dynamic_clock_tb

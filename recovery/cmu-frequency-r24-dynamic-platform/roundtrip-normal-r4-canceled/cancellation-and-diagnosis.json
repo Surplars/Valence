@@ -1,0 +1,16 @@
+{
+  "status": "CANCELED_FOR_PROVEN_ROM_INITIALIZATION_DEFECT",
+  "tool_session": 47253,
+  "tool_terminal_exit": 130,
+  "runner_final_receipt_available": false,
+  "runner_child_reap_evidence_available": false,
+  "original_receipt_status": "RUNNING",
+  "original_receipt_sha256": "85af894df5ca3ceb26bbf723bc7c4fae5adcd0017468056df0af4a2d0bc7ac87",
+  "root_cause": "ENABLE_INITIAL_MEM_ omitted: actual preprocessed RTL and VVP executable contain no readmemh, no guest bank paths. Guest ROM was not initialized.",
+  "preprocessed_sha256": "233d23158e96a973ec2bea58b8ee85a7f87d13a2ab56ddcaff1858aa6d073916",
+  "binary_sha256": "c95b0d7361a11097d5cd8fd874ae496f67ca50fb261774a393902efc2abf04fd",
+  "source_unchanged_at_cancellation": true,
+  "accepted_frequency_programs": 0,
+  "last_observation": "4.5ms PHY87, guest enabled, 0 retire",
+  "outcome_limit": "Tool session termination returned130; runner did not finalize/reap its child receipt. Do not claim ordinary test failure, natural timeout, or native PASS. Log stopped after cancellation. Use explicit stop-file and runner kill/wait on future runs."
+}

@@ -1,0 +1,98 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=43375 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=43375 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=43375 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=43375 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill __.compile
+340] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+377] OrbitalI1.compile compiling 133 Scala sources to out/OrbitalI1/compile.dest/classes ...
+378] IonSoC.compile compiling 7 Scala sources to out/IonSoC/compile.dest/classes ...
+378] done compiling
+378] compiling 7 Scala sources to out/IonSoC/compile.dest/classes ...
+378] done compiling
+383] IonSoC.test.compile compiling 23 Scala sources to out/IonSoC/test/compile.dest/classes ...
+383] [warn] src/test/scala/ooo/ThreeProofRowNativeActualAudit.scala:138:43
+383]         require(expectedFabric.obj.keySet -- allCommon.keySet == cpuOnlyKeys,
+383]                                           ^^
+383] method -- in trait SetOps is deprecated (since 2.13.0): Consider requiring an immutable Set
+383] 
+383] [warn] one warning found
+383] done compiling
+384] LegacySoC.compile compiling 51 Scala sources to out/LegacySoC/compile.dest/classes ...
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:6:8
+384] import difftest._
+384]        ^^^^^^^^
+384] not found: object difftest
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:221:10
+384]     with HasDiffTestInterfaces {
+384]          ^
+384] not found: type HasDiffTestInterfaces
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:224:29
+384]     private val archEvent = DifftestModule(new DiffArchEvent, dontCare = true)
+384]                             ^^^^^^^^^^^^^^
+384] not found: value DifftestModule
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:224:48
+384]     private val archEvent = DifftestModule(new DiffArchEvent, dontCare = true)
+384]                                                ^^^^^^^^^^^^^
+384] not found: type DiffArchEvent
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:236:26
+384]     private val commit = DifftestModule(new DiffInstrCommit(32), dontCare = true)
+384]                          ^^^^^^^^^^^^^^
+384] not found: value DifftestModule
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:236:45
+384]     private val commit = DifftestModule(new DiffInstrCommit(32), dontCare = true)
+384]                                             ^^^^^^^^^^^^^^^
+384] not found: type DiffInstrCommit
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:279:24
+384]     private val trap = DifftestModule(new DiffTrapEvent, dontCare = true)
+384]                        ^^^^^^^^^^^^^^
+384] not found: value DifftestModule
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:279:43
+384]     private val trap = DifftestModule(new DiffTrapEvent, dontCare = true)
+384]                                           ^^^^^^^^^^^^^
+384] not found: type DiffTrapEvent
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:302:23
+384]     private val csr = DifftestModule(new DiffCSRState, dontCare = true)
+384]                       ^^^^^^^^^^^^^^
+384] not found: value DifftestModule
+384] 
+384] [error] legacy/hardware/src/main/scala/system/IonSoC.scala:302:42
+384]     private val csr = DifftestModule(new DiffCSRState, dontCare = true)
+384]                                          ^^^^^^^^^^^^
+384] not found: type DiffCSRState
+384] 
+384] [error] 13 errors found
+377] [warn] src/main/scala/core/inorder/FiveStageBoot.scala:46:52
+377]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed, "rom_style = \"block\"")))
+377]                                                    ^^^^^^^^^^^^^^^^^^^
+377] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+377] 
+377] [warn] src/main/scala/core/inorder/FiveStageBranchPredictor.scala:61:52
+377]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+377]                                                    ^^^^^^^^^^^^^^^^^^^
+377] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+377] 
+377] [warn] src/main/scala/core/inorder/FiveStageWordCache.scala:176:56
+377]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+377]                                                        ^^^^^^^^^^^^^^^^^^^
+377] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+377] 
+377] [warn] src/main/scala/core/inorder/SynchronousFloatingRegisterFile.scala:14:56
+377]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+377]                                                        ^^^^^^^^^^^^^^^^^^^
+377] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+377] 
+377] [warn] src/main/scala/core/inorder/SynchronousRegisterFile.scala:16:56
+377]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+377]                                                        ^^^^^^^^^^^^^^^^^^^
+377] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+377] 
+377] [warn] 5 warnings found
+377] done compiling
+384/390, 1 FAILED] mill __.compile 55s
+384] [error] LegacySoC.compile Compilation failed

@@ -20,6 +20,14 @@ foreach {key expected} {
     if {[get_property $key $mig] ne $expected} {error "MIG contract mismatch: $key"}
 }
 create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_common
+if {$valence(clock_profile) eq "boot50-dynamic"} {
+    # Only the stable AON/UART source uses Clock Wizard. CPU/fabric are two
+    # independent direct MMCME4_ADV instances with native DRP controllers.
+    set_property -dict [list CONFIG.PRIM_SOURCE No_buffer CONFIG.PRIM_IN_FREQ 250.000 \
+        CONFIG.NUM_OUT_CLKS 1 CONFIG.CLKOUT1_REQUESTED_OUT_FREQ 50.000 CONFIG.CLKOUT1_DRIVES BUFG \
+        CONFIG.USE_RESET true CONFIG.USE_LOCKED true CONFIG.USE_DYN_RECONFIG false] [get_ips clk_wiz_common]
+    set_property verilog_define {VALENCE_INDEPENDENT_FIXED_DOMAINS VALENCE_DYNAMIC_CLOCK_DOMAINS} [current_fileset]
+} else {
 set mhz [expr {$valence(hz_cpu)/1.0e6}]
 set_property -dict [list CONFIG.PRIM_SOURCE No_buffer CONFIG.PRIM_IN_FREQ 250.000 \
     CONFIG.NUM_OUT_CLKS 2 CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $mhz CONFIG.CLKOUT1_DRIVES BUFG \
@@ -31,6 +39,7 @@ if {$valence(clock_profile) in {boot50-static performance300-static}} {
     set_property -dict [list CONFIG.NUM_OUT_CLKS 3 CONFIG.CLKOUT3_USED true \
         CONFIG.CLKOUT3_REQUESTED_OUT_FREQ [expr {$valence(hz_fabric)/1.0e6}] CONFIG.CLKOUT3_DRIVES BUFG] [get_ips clk_wiz_common]
     set_property verilog_define {VALENCE_INDEPENDENT_FIXED_DOMAINS} [current_fileset]
+}
 }
 create_ip -name blk_mem_gen -vendor xilinx.com -library ip -version 8.4 -module_name blk_mem_gen_0
 set_property -dict [list \
@@ -80,12 +89,20 @@ foreach run $runs {
 if {![info exists valence(resume_ooc)] || !$valence(resume_ooc)} {common_log ip-synthesis.json "\{[join $ipEvidence ,]\}"}
 # Project-mode macros belong to sources_1, not per-file read_verilog -define.
 set defines [get_property verilog_define [current_fileset]]
-set independent [expr {$valence(clock_profile) in {boot50-static performance300-static}}]
+set independent [expr {$valence(clock_profile) in {boot50-static performance300-static boot50-dynamic}}]
+set dynamic [expr {$valence(clock_profile) eq "boot50-dynamic"}]
+if {$dynamic != ([lsearch -exact $defines VALENCE_DYNAMIC_CLOCK_DOMAINS]>=0)} {error "Dynamic-domain fileset macro missing or unexpected"}
 if {$independent != ([lsearch -exact $defines VALENCE_INDEPENDENT_FIXED_DOMAINS]>=0)} {error "Independent-domain fileset macro missing or unexpected"}
 foreach source [common_files rtl_filelist] {
     read_verilog -sv $source
 }
 foreach xdc $valence(constraints) {read_xdc $xdc}
+if {$dynamic} {
+    # Apply maximum timing REQUIREMENTS during synthesis, never boot50 timing.
+    set dynamicTargets [file join $valence(root) fpga common dynamic synthesis_targets.xdc]
+    read_xdc $dynamicTargets
+    set_property PROCESSING_ORDER LATE [get_files $dynamicTargets]
+}
 common_design_step synth_design -top $valence(top) -part $valence(part) -flatten_hierarchy none
 # Preserve expensive synthesis BEFORE any clock/CDC/media post-check can fail.
 write_checkpoint raw-synthesized-unqualified.dcp
@@ -97,14 +114,21 @@ if {[info exists valence(recovery_tools)]} {
     # Original completed synthesis thread evidence is retained on post-only retry.
     common_record synth_design {synth_design RECOVERED_RAW_CHECKPOINT} unsupported 4 synth_design-threads.txt "Recovered hash-bound unqualified synthesis; no new synthesis"
 }
-# Verify actual elaborated generated clock objects, never just requested CONFIG.
-set clockOutputs [list clk_out1 $valence(hz_cpu) clk_out2 $valence(hz_aon)]
-if {$valence(clock_profile) in {boot50-static performance300-static}} {
-    lappend clockOutputs clk_out3 $valence(hz_fabric)
+# Verify actual elaborated TIMING clock objects, never just requested CONFIG.
+# Dynamic CPU300/fabric250 are requirements, NOT actual boot output frequencies.
+# Its boot50 evidence comes separately from primitive parameters and UNISIM.
+if {$valence(clock_profile) eq "boot50-dynamic"} {
+    set clockOutputs [list u_clk_wiz/clk_out1 $valence(hz_aon) \
+        cpu_clock/managed_buffer/O 300000000 fabric_clock/managed_buffer/O 250000000]
+} else {
+    set clockOutputs [list u_clk_wiz/clk_out1 $valence(hz_cpu) u_clk_wiz/clk_out2 $valence(hz_aon)]
+    if {$valence(clock_profile) in {boot50-static performance300-static}} {
+        lappend clockOutputs u_clk_wiz/clk_out3 $valence(hz_fabric)
+    }
 }
 set clockEvidence {}
 foreach {output expectedHz} $clockOutputs {
-    set pin [get_pins -quiet u_clk_wiz/$output]
+    set pin [get_pins -quiet $output]
     if {[llength $pin] != 1} {error "Missing actual Clock Wizard output $output"}
     set clocks [get_clocks -quiet -of_objects $pin]
     if {[llength $clocks] != 1} {error "Missing/ambiguous generated output clock $output"}
@@ -117,11 +141,20 @@ foreach {output expectedHz} $clockOutputs {
 }
 common_log clock-output-checks.txt [join $clockEvidence \n]
 report_clocks -file generated-clocks.rpt
+if {$valence(clock_profile) eq "boot50-dynamic"} {
+    source [file join $valence(root) fpga common dynamic dynamic_clock_constraints.tcl]
+    native_dynamic_clock_constraints
+    common_log dynamic-qualification.txt "BOOT50_PRIMITIVE_CONFIGURATION; PRE_SYNTH_CPU300_FABRIC250_TIMING_REQUIREMENTS; NEITHER_IS_RUNTIME_OR_BOARD_QUALIFICATION; software rates unqualified"
+}
 # Actual mapped hierarchy checks and bounded crossings precede checkpoint export.
 # Default lookup-only cache; no topology/clock/proof results are cached.
 source [file join [file dirname [file normalize [info script]]] exact_object_cache.tcl]
 common_exact_cache::enable
 source $valence(post_synth_constraints)
+if {$valence(clock_profile) eq "boot50-dynamic"} {
+    source [file join $valence(root) fpga common dynamic performance_targets.tcl]
+    native_dynamic_performance_targets
+}
 write_checkpoint synthesized.dcp
 report_utilization -file utilization.rpt
 common_receipt

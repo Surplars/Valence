@@ -1,0 +1,1 @@
+RUNNER_LIFECYCLE_ONLY: exercise ordinary stop-file kill/wait while compile child is owned

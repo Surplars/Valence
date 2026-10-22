@@ -1,0 +1,19 @@
+{
+  "status": "PASS_R23_CHECKPOINT_ONLY",
+  "whole_matrix_complete": false,
+  "default_sv_byte_identical": 248,
+  "enabled_platform_sv": 265,
+  "adapter_positive": 6,
+  "adapter_ordinary_negative": 4,
+  "real_i1_normal_fabric50": true,
+  "real_i1_cancel": false,
+  "second_ratio": false,
+  "records": {
+    "out/cmu-frequency-r23/adapter-matrix-r3/receipt.json": "0deea265efbb92c698dcca132999bf5c6b2a279a824b6f4d174723d1f514cad8",
+    "out/cmu-frequency-r23/integrated-smoke-r1/receipt.json": "6081f5e40951dbf26ecccdbedb8224542189f36e342fbae5180178390a2baebb",
+    "out/cmu-frequency-r23/default-r1-comparison.json": "748eef5d7ad30b8dcde58b061ee741c8261f1d19b813c84361532a33bcd0b377",
+    "out/cmu-frequency-r23/platform-r1-emission.json": "0d3e03624d5fa30c5a1b143b9395b46f51d86b32011ff7cf9ed53beaf0088eb3"
+  },
+  "physical_gate_drp_qualified": false,
+  "remote_upload": false
+}

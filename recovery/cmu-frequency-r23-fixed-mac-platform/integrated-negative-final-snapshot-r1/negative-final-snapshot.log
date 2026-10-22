@@ -1,0 +1,25 @@
+FIXED_MAC_PREBOOT continuous_source125=1 source_edges=327668 MDIO_transactions=51 no_clock_rejoin=1
+MANAGED_CONTROL_LINK_READY transactions=51 page=0000 link=1 mediaPending=0
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=1
+MANAGED_CONTROL_CSR_COMPLETED offset=00000018 write=1 requests=1 replies=1 data=0000000000000000
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000010 write=1 requests=2
+MANAGED_CONTROL_CSR_COMPLETED offset=00000010 write=1 requests=2 replies=2 data=0000000000000000
+MANAGED_CONTROL_CONFIG_INITIALIZED real_images_consumed=1
+MANAGED_CONTROL_PHY_READY transactions=51 MDIO_divider_unchanged=1 startup_wait=256 poll_wait=512
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=3
+MANAGED_CONTROL_IDLE_BLOCKERS accepted_before_CPU_start=1 old_TX_image_enabled=1
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+MANAGED_CONTROL_BLOCKERS real_CSR_reply=1 config_images_consumed=1 MDIO_policy_boundary=1
+I1_FIXED_FRESH_PROOF epoch=1 independent_UI_timer=1 retained_snapshot_progress=1 IRQ=1
+MANAGED_CONTROL_HELD epoch=1 live_raw_drops=2 pending=6 MDIO_stopped=1 new_CSR_backpressured=1
+MANAGED_CONTROL_TERMINAL_WAIT_RESULT canceled=0 proof_pause=1 fixed_paused=0/0 timer=54/54 fabric_prepares=1 cancels=0 control_park_edges=25500
+MANAGED_CONTROL_TERMINAL_RESULT canceled=0 proof_pause=1 fixed_paused=0/0 timer=55/55 fabric_prepares=1 cancels=0 control_park_edges=25538
+MANAGED_CONTROL_TERMINAL_NEW_TIMER_REPLY canceled=0 timer=56/55
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+FIXED_MAC_NEGATIVE_OLD_RELEASED_SNAPSHOT
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/fixed_mac_epoch_tb.sv:267: FIXED_MAC_ORACLE_FINAL_SNAPSHOT_OWNER
+       Time: 3253072000  Scope: fixed_mac_epoch_tb

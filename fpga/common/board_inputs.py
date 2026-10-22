@@ -26,6 +26,9 @@ BOARD_RTL = PUBLIC_INPUTS[:3] + (
     'src/main/resources/inorder/ValenceI1DmiCdc.sv',
     'fpga/common/soc_top_common_ddr.sv',
     'fpga/common/native_dci_startup.sv',
+    'fpga/common/dynamic/native_clock_gate.sv',
+    'fpga/common/dynamic/native_clock_drp.sv',
+    'fpga/common/dynamic/native_dynamic_clock_domain.sv',
 )
 SIM_RTL = (
     'fpga/common/native_dci_startup.sv',
@@ -40,14 +43,34 @@ SIM_RTL = (
 )
 
 
-def selected_shell(wrapper, low):
-    # Only this reviewed switch is accepted. Do not ignore arbitrary preprocessor logic.
-    pattern = r'`(ifdef|ifndef) VALENCE_INDEPENDENT_FIXED_DOMAINS\n(.*?)`endif'
-    return re.sub(pattern, lambda m: m[2] if (m[1] == 'ifdef') == low else '', wrapper, flags=re.S)
+def selected_shell(wrapper, low, dynamic=False):
+    # Explicit reviewed macros only; reject unknown/nested malformed directives.
+    enabled = {'VALENCE_INDEPENDENT_FIXED_DOMAINS': low,
+               'VALENCE_DYNAMIC_CLOCK_DOMAINS': dynamic}
+    gate.require(not dynamic or low, 'dynamic clocks require independent fixed peripheral domains')
+    stack = []; active = True; result = []
+    for line in wrapper.splitlines(keepends=True):
+        directive = re.fullmatch(r'\s*`(ifdef|ifndef) (\w+)\s*', line)
+        if directive:
+            kind, name = directive.groups()
+            gate.require(name in enabled, 'unreviewed shell macro: ' + name)
+            condition = enabled[name] == (kind == 'ifdef')
+            stack.append((active, condition, False)); active = active and condition
+        elif re.fullmatch(r'\s*`else\s*', line):
+            gate.require(bool(stack) and not stack[-1][2], 'malformed shell else')
+            parent, condition, _ = stack[-1]
+            stack[-1] = (parent, condition, True); active = parent and not condition
+        elif re.fullmatch(r'\s*`endif\s*', line):
+            gate.require(bool(stack), 'unmatched shell endif')
+            active = stack.pop()[0]
+        elif active:
+            result.append(line)
+    gate.require(not stack, 'unterminated shell conditional')
+    return ''.join(result)
 
 
-def port_check(rtl, wrapper, production=True, low=False):
-    wrapper = selected_shell(wrapper, low)
+def port_check(rtl, wrapper, production=True, low=False, dynamic=False):
+    wrapper = selected_shell(wrapper, low, dynamic)
     header = rtl.split('module CommonMachinePlatform(', 1)[1].split(');', 1)[0]
     ports = {}; direction = None
     for field in header.split(','):
@@ -139,6 +162,9 @@ def emission(root, m):
     if profile in ('boot50-static', 'performance300-static'):
         gate.require(meta.get('clockProfile') == profile and meta.get('independentFixedDomains') is True
                      and meta.get('runtimeClockReconfiguration') is False, 'missing static independent-domain emission contract')
+    if profile == 'boot50-dynamic':
+        gate.require(meta.get('clockProfile') == profile and meta.get('independentFixedDomains') is True
+                     and meta.get('runtimeClockReconfiguration') is True, 'missing explicit dynamic emission contract')
     if profile == 'performance300-static':
         gate.require(meta.get('clockTopology') == 'independent-fixed-v1' and
                      meta.get('clockProfilePurpose') == 'high-frequency-timing-target',
@@ -177,4 +203,5 @@ def emission(root, m):
                     high = 0 if reset else prior if phase else source
                     gate.require(low == high, 'common control reset/phase induction failed')
     return port_check(gate.file_at(root, (base / 'CommonMachinePlatform.sv').as_posix()).read_text(),
-                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text(), low=profile in ('boot50-static', 'performance300-static'))
+                      gate.file_at(root, 'fpga/common/soc_top_common_ddr.sv').read_text(), low=profile in ('boot50-static', 'performance300-static', 'boot50-dynamic'),
+                      dynamic=profile == 'boot50-dynamic')

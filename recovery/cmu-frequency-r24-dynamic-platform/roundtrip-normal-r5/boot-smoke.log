@@ -1,0 +1,25 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+ROUNDTRIP_ROM_INITIALIZED bank0=10081437 bank1=8004041b
+STARTUP_FAULT_TRACE cycle=1 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=2 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=3 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=4 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=5 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=6 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=7 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=8 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=9 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=10 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=11 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=12 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=13 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=14 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=15 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=16 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=17 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=18 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=19 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+ROUNDTRIP_BOOT time_ns=2420.000 ns phy_transactions=0 status_reads=0 rawMAC_edges=252
+BOOT_SMOKE_PASS first_pc=0000000080000000 instruction=10081437 CPU_cycles=26 cpuLink=1 fabricLink=1 no frequency qualification
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:576: $finish called at 3020000 (1ps)

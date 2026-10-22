@@ -1,0 +1,12 @@
+RUNNING iverilog-version pid 12 stop_file /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/runner-stop-r1/STOP
+RUNNING vvp-version pid 17 stop_file /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/runner-stop-r1/STOP
+RUNNING preprocess pid 18 stop_file /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/runner-stop-r1/STOP
+RUNNING compile pid 21 stop_file /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/runner-stop-r1/STOP
+FAIL /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/runner-stop-r1
+Traceback (most recent call last):
+  File "/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_native.py", line 87, in <module>
+    run('compile',[iv,*definitions,'-s','dynamic_roundtrip_tb','-o',binary,*rtl,*back,phy,a.tb.resolve()],180)
+  File "/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_native.py", line 69, in run
+    if timed or canceled or r['exit']!=0:raise RuntimeError(name+' failed: '+log.read_text()[-3500:])
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: compile failed: 

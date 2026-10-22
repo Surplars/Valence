@@ -1,0 +1,2 @@
+DYNAMIC_CLOCK_VENDOR_TB_MODEL_SMOKE_PASS checks=12 VENDOR_PRIMITIVES=0
+/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/dynamic_clock_unisim_tb.sv:93: $finish called at 28960000 (1ps)

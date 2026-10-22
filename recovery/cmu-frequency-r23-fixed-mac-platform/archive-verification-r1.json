@@ -1,0 +1,17 @@
+{
+  "status": "PASS_ARCHIVE_COPY",
+  "manifest_sha256": "c31bae3456bec152c23b02be873a90ddc3d5fc6d73d4cd9ec88488713b5d0ff0",
+  "files_verified": 215,
+  "native_records": {
+    "integrated-cancel-r1": "fd44ef916f4de33a9128f3272def8170c37007a6bf38d15b22ff0ec1654086ce",
+    "integrated-negative-control-csr-drain-r1": "950ae0a1af449f50565da5e7624d1b275bbb4f32c2580d08d62ea12a938eda85",
+    "integrated-negative-final-snapshot-r1": "d6031f9358dd6176c74659821d45864870e84e746283f963e4e0ee14208a561a",
+    "integrated-negative-park-retention-r1": "9108655e372288c142aa97b13562b6ab90111fc9993d91fc945c0aee4d210178",
+    "integrated-negative-retained-statistics-r1": "19eadb40dcece2001f0638c96fe405aac83ce85c9c436aab1569a9c89fe981c3",
+    "integrated-negative-tx-payload-r1": "0cd1a27c46fd0957d999a4a4f62fc0b8cd89b95fb9d412e3e70933525e21d883",
+    "integrated-second-ratio-r1": "c4346a78e57ab1094207be0c095a4cb828c89a2b5186827c21f37b30299d18e1",
+    "integrated-second-ratio-r2": "cc93d02e5055dc52f86bd34ee9432e6d311c1db4939a50440a77f2976b85d628",
+    "integrated-smoke-r1": "6081f5e40951dbf26ecccdbedb8224542189f36e342fbae5180178390a2baebb"
+  },
+  "notes": "Historical checkpoint manifests bind their checkpoint revision; WIP2 SCOPE timing exception is explicitly documented. Generated RTL/preprocess/binaries remain local output, not committed."
+}

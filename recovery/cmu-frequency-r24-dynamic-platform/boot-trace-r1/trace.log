@@ -1,0 +1,48 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+STARTUP_FAULT_TRACE cycle=1 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=2 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=3 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=4 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=5 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=6 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=7 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=8 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=9 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=10 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=11 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=12 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=13 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=14 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=15 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=16 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=17 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=18 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=19 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+BOOT_DIAG t=1000.000 ns started=0 startreset=1 fabreset=1 cpureset=1 ddrsync=0 ccyc=0 fcyc=0 links=00 clken=00 gateopen=00 resume=00 iso=11 held=0 ret=0
+FETCH_DIAG pc=0000000080000000 req=1/1 resp=0/0 cohA=0/0/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=2000.000 ns started=0 startreset=1 fabreset=1 cpureset=1 ddrsync=0 ccyc=0 fcyc=0 links=00 clken=00 gateopen=00 resume=00 iso=11 held=0 ret=0
+FETCH_DIAG pc=0000000080000000 req=1/1 resp=0/0 cohA=0/0/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+ROUNDTRIP_BOOT time_ns=2420.000 ns phy_transactions=0 status_reads=0 rawMAC_edges=252
+BOOT_DIAG t=3000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=25 fcyc=35 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=0/0 resp=0/1 cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=4000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=85 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=5000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=135 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=6000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=185 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=7000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=235 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=8000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=285 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=9000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=335 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=10000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=385 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=11000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=435 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG t=12000.000 ns started=1 startreset=0 fabreset=0 cpureset=0 ddrsync=1 ccyc=x fcyc=485 links=11 clken=11 gateopen=11 resume=11 iso=00 held=0 ret=0
+FETCH_DIAG pc=000000008000000c req=x/x resp=x/x cohA=0/1/xxxxxxxxxxxxxxxx cohD=0/0 ROM=0/1 RSP=0/0
+BOOT_DIAG_OBSERVATION_ONLY_COMPLETE no frequency qualification
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/boot-trace-r1/tb.sv:590: $finish called at 12000000 (1ps)

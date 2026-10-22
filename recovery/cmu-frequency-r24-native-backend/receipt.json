@@ -1,0 +1,381 @@
+{
+  "baseCommit": "9cd5207919a0f8e39d958ac7f910e57460a535ef",
+  "boardValidated": false,
+  "createdUtc": "2026-10-22T02:06:50.486604+00:00",
+  "fullSocValidated": false,
+  "runs": [
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-V"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "iverilog-version",
+      "log": "iverilog-version.log",
+      "logSha256": "f9199cc8658f4afcec3edeb93f29f23bb2aebf66d3eeb217cdc728aaa692f946",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-V"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "vvp-version",
+      "log": "vvp-version.log",
+      "logSha256": "c9010a85df9399c2adb11b59115cdc285ea6f0a399802944367c3813c6772a42",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "dynamic_clock_tb",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_tb.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/behavioral_primitives.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_gate.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_drp.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_dynamic_clock_domain.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/dynamic_clock_tb.sv"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "dynamic_clock_tb-compile",
+      "log": "dynamic_clock_tb-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_tb.vvp"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "dynamic_clock_tb",
+      "log": "dynamic_clock_tb.log",
+      "logSha256": "2097a4d8e0a6ffb46fa3337a85a7ca88e1c3ce9c8acc66730fc1332d07006f12",
+      "marker": "DYNAMIC_CLOCK_BEHAVIORAL_PASS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "gate_witness_tb",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/gate_witness_tb.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/behavioral_primitives.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_gate.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/gate_witness_tb.sv"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "gate_witness_tb-compile",
+      "log": "gate_witness_tb-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/gate_witness_tb.vvp"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "gate_witness_tb",
+      "log": "gate_witness_tb.log",
+      "logSha256": "e0b6b69ee49ab4b9c24e06590b997014e13b6d8468289ed61480af13a3ce4371",
+      "marker": "GATE_WITNESS_BEHAVIORAL_PASS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "drp_reset_tb",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/drp_reset_tb.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_drp.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/drp_reset_tb.sv"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "drp_reset_tb-compile",
+      "log": "drp_reset_tb-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/drp_reset_tb.vvp"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "drp_reset_tb",
+      "log": "drp_reset_tb.log",
+      "logSha256": "95d5b4de17eb1da5ed9b7b63fa2a2b1e6450cd75c399273a1758d30b06d35621",
+      "marker": "DRP_RESET_BEHAVIORAL_PASS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "drp_stuck_ready_tb",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/drp_stuck_ready_tb.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_drp.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/drp_stuck_ready_tb.sv"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "drp_stuck_ready_tb-compile",
+      "log": "drp_stuck_ready_tb-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/drp_stuck_ready_tb.vvp"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "drp_stuck_ready_tb",
+      "log": "drp_stuck_ready_tb.log",
+      "logSha256": "8a437c46896f162ea30c61bb8c68e9352a109a76a9e35c800eae7cb4a9d86393",
+      "marker": "DRP_READY_FAULT_BEHAVIORAL_PASS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "dynamic_clock_unisim_tb",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_unisim_tb.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/behavioral_primitives.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_gate.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_clock_drp.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/native_dynamic_clock_domain.sv",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/dynamic_clock_unisim_tb.sv"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "dynamic_clock_unisim_tb-compile",
+      "log": "dynamic_clock_unisim_tb-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "marker": null,
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_unisim_tb.vvp"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "dynamic_clock_unisim_tb",
+      "log": "dynamic_clock_unisim_tb.log",
+      "logSha256": "6821b84086e776cc0f7072d30832ccd3416b9c29e8bb587f93edc4dd5ae5ba05",
+      "marker": "DYNAMIC_CLOCK_VENDOR_TB_MODEL_SMOKE_PASS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_tb.vvp",
+        "+negative_fake_closed"
+      ],
+      "exitCode": 1,
+      "expectedFailure": true,
+      "label": "negative_fake_closed",
+      "log": "negative_fake_closed.log",
+      "logSha256": "83f73e65e047a0fbff41970cb213433399e1fc991d90d77b73e778976b500ca6",
+      "marker": "CPU_EDGE_AFTER_CLOSE_ACK",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_tb.vvp",
+        "+negative_fake_resumed"
+      ],
+      "exitCode": 1,
+      "expectedFailure": true,
+      "label": "negative_fake_resumed",
+      "log": "negative_fake_resumed.log",
+      "logSha256": "867dc9926b5eb167b6976cf894eb4263f0a205e352ee5fd84badddd075aabd5a",
+      "marker": "STALE_OPEN_EDGE_WITNESS",
+      "passed": true
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence-clock-backend/out/dynamic-clock-r9/dynamic_clock_tb.vvp",
+        "+negative_wrong_rate"
+      ],
+      "exitCode": 1,
+      "expectedFailure": true,
+      "label": "negative_wrong_rate",
+      "log": "negative_wrong_rate.log",
+      "logSha256": "f9658954eb01ffe6c2d2d1a84160d1682b59cea48706218dafd134ba2ec4a2c7",
+      "marker": "CLOCK_RATE_OR_INDEPENDENCE",
+      "passed": true
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "fpga/common",
+        "-p",
+        "test_*.py"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "board-python-tests",
+      "log": "board-python-tests.log",
+      "logSha256": "9218404b6da78081f65aa82945c3427ad54f22cd19aa221f1a132f3224d19e5b",
+      "marker": "OK",
+      "passed": true
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "fpga/common",
+        "-p",
+        "test_dynamic_clock_targets.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "expectedFailure": false,
+      "label": "clock-target-contracts",
+      "log": "clock-target-contracts.log",
+      "logSha256": "30a3d2d76816cc4e550418666447ed2ae93256e966dc3a6b8353f7e2dde979ec",
+      "marker": "OK",
+      "passed": true
+    }
+  ],
+  "schema": 1,
+  "softwareQualifiedPoints": [],
+  "sourceHashes": {
+    "fpga/common/board_audit.tcl": "b531105bc987beda741da1386f9bb9ec97e02bb0528d2dd1673627d561348524",
+    "fpga/common/board_inputs.py": "96be9aaf75bda72b9a64c3f0c435442c178c35dd80fc3a6123658c44e4da84e3",
+    "fpga/common/board_pins.xdc": "1da67e780fe0b5f560c8a45eb90b61c2ac1ba8bb151a2b5a04f6d845db87e3ec",
+    "fpga/common/cached_post_opt.tcl": "024724a00b33df3ee985142b9eb6e26e7c992ba6c3251fac50be6753c83700df",
+    "fpga/common/check_board_interface.py": "1abc67c22d86e0e50e591eca5f56c6198d3338e903ab78406e9113c40a3626b1",
+    "fpga/common/common_cdc.tcl": "5e77b30eedba6ceec7f7d59fcd635982c9f8474d4182ab1bf5127dac669f5931",
+    "fpga/common/dci_constraints.tcl": "944117d322db516632b8704a2c392d46747c533720482ad589582f07309d6c39",
+    "fpga/common/dci_startup_tb.sv": "d9239566c133bd9115d7a6dfed11ba19402c7b19539ba61334f422bcdf519c03",
+    "fpga/common/debug_hub_clock.tcl": "d7ce9be59c8c2737ec28dadfa4194175d10368281368323fc7e61c97e7853105",
+    "fpga/common/diagnostic.py": "7c4df1e8fc86fbbe0e6d3b991a70c04619f8987046e0f834aebd8bac3bbf518b",
+    "fpga/common/diagnostic.tcl": "a9c80179b78cc29d2deead79ebfdaebbb9f827341d37e183fc935bd058f0e6e4",
+    "fpga/common/dynamic/behavioral_primitives.sv": "08ae8dac7427342b80b9db80aa871b619950d4802eb962a318fbb28538cf40db",
+    "fpga/common/dynamic/drp_reset_tb.sv": "30342b4d815896b7fa0201e9e5a18b067066a14d5c96ef720ecd6b51229b8a5e",
+    "fpga/common/dynamic/drp_stuck_ready_tb.sv": "4e3713a431c858d2f6bdd90f9263bceee11afc9787e6f5d5a550d79b3c6fe219",
+    "fpga/common/dynamic/dynamic_clock_constraints.tcl": "17d423b2ecbe266c9533af171f8105a151e787e147a79e9298c0cee7521aceba",
+    "fpga/common/dynamic/dynamic_clock_tb.sv": "15247baee80b03f66c30e7a4a44d9e8c0d1e59192439ca20818a6b02f08a789b",
+    "fpga/common/dynamic/dynamic_clock_unisim_tb.sv": "aeced78f1d400ee543e009e82c0b56e39eeba210365124b1c6d467a56e41af39",
+    "fpga/common/dynamic/gate_witness_tb.sv": "6ae113e3b58f788fba6149254822e454a4878546f20839afb14fff2801f4ea5b",
+    "fpga/common/dynamic/native_clock_drp.sv": "58552fe0b8ef087a70a7d25fba7a3cbf053abcc004dff347740fc33df699e993",
+    "fpga/common/dynamic/native_clock_gate.sv": "c5cf8aa09d1a3f17ceb5473c3d681cfcee72c10e950bfee71f0611d27a69c10e",
+    "fpga/common/dynamic/native_dynamic_clock_domain.sv": "126a1d5693caf6da1ea5281a9a4a041496e92cb095cabef81c9d9867029f3f60",
+    "fpga/common/dynamic/performance_targets.tcl": "dddf77c728ab3d8871fad84d3b8de314e21394457933eb17a9d62016eceff8da",
+    "fpga/common/dynamic/run_behavioral.py": "49d6d72ce7cb5b585fecc852f65c874bc5d475f935988fd88025cc4d2e0f1cf7",
+    "fpga/common/dynamic/synthesis_targets.xdc": "4287420d768016e468969796c57c2c72c919cb52fbcbc2e5ea867cb48bf6af80",
+    "fpga/common/dynamic/validate_native.tcl": "13ae6d75b338fc67e3f0f3c2e37e18e3e2a64220ae48f7dcbb3b506f37f0c4d6",
+    "fpga/common/exact_object_cache.tcl": "3e53d34432151cd74f81c24cfc01ee59df252c0f939d6f20a2da31c3967ca158",
+    "fpga/common/freeze.py": "a159bc4a220478331b3cae0989ea74dc128ccaa1c69a163960f1e345434d2003",
+    "fpga/common/implement.tcl": "e74e1b07a016d7be517175f9be2c316e41a0c5ea7e8798444bbebb3b78941d9f",
+    "fpga/common/inactive_zero_state.tcl": "7660ad503d0f56c435535dda2f3f4c6fb4357d2ce1d952a062993e7e06f2fa28",
+    "fpga/common/ip_threads.tcl": "c86dcebb61380263b8e6adea40791d715f4650989e12ee4b082ba9906a33b618",
+    "fpga/common/management_constraints.tcl": "12904d9c831418cced8aa606c96261a09a99a2cee391f213dab49bf56b5416fe",
+    "fpga/common/manifest.py": "840b269068d8eb78d8b39935599dfc381458d2d424986054afa89c1641776549",
+    "fpga/common/media_constraints.tcl": "26a24f47e4af9dc006ce7e7fb7c1ed00a30b8ae45112ab87d0da67cbff5915bb",
+    "fpga/common/media_scenarios.tcl": "1e859497502674fdb478e3653a22bf7362ae32c3b0c7a8e5b508cf66421c6372",
+    "fpga/common/native_dci_startup.sv": "63927effc09820eda79b852251463e3d0ae6cbbbdc7a8e435baee1e18a0e75c3",
+    "fpga/common/post_opt.tcl": "b6b5cb2ba90e6dfdef9ae782835ac59a0b1122791228459481f07076be9f0326",
+    "fpga/common/post_synth.tcl": "ada3f1b08683bbb086b12c46d313ae2144f40e9cd76b43957cd2c662bd3ef3d3",
+    "fpga/common/producer.py": "8a5e533697509e1eef9d1db2ab087f0054af80d2d1e86b6693459dc77cd863b7",
+    "fpga/common/producer_common.tcl": "244766c61ff890fac95c9cd70fed3d809237188ddac183d36ec8f88d75f7e71e",
+    "fpga/common/recovery_debug_hub_contract.tcl": "53288b580d237f6f3d15877fdade03fa3f23ea4dd24e6ff720640d4c2c0ac7ed",
+    "fpga/common/recovery_link_ip.tcl": "10638899bf0f0e490e14603269ef612fb1e690161406da833d659a75c9cbfbf0",
+    "fpga/common/recovery_map_constraints.tcl": "1d70c0195d61ac31344c2cc695a977eae323c357aee818148132184c3ca53622",
+    "fpga/common/recovery_mig_io_contract.tcl": "02a2d90c09ce3d36f7e9faab241e0bdc3177699cb806bf9be3817321e6d12462",
+    "fpga/common/recovery_synthesize.tcl": "f2c0e85f20389703df708489207b49da72c4dbdd8da4761d6de9dbed1dd26df8",
+    "fpga/common/reset_locality_audit.tcl": "82f8f7f5b9718abaa5ef365d404bb50013bfe734e65d78915f17e83dca9942c5",
+    "fpga/common/resume_diagnostic.py": "07223aa22e8d257caa3e2b7f24b8d625021abdd9a6e4c605c6bd6914457ebe36",
+    "fpga/common/resume_diagnostic.tcl": "5232228d730524235c687b74e619b061d710085261819edd23a7242fca253870",
+    "fpga/common/rom_audit.py": "1a9ffab3947f6f61e653eb81ccbcb6ad3290846e059f312fdaaca7aad2a0ff84",
+    "fpga/common/signoff.tcl": "7963d211df54db3abfbca4d449701fa9bf846a04caead3e86022fb37380513f6",
+    "fpga/common/simulate.tcl": "5ae97223541f9e41fe4b16e963b55c075e42916c6a7013b8fde46ea4fd58fcc1",
+    "fpga/common/simulation_inputs.py": "e47aeb70c7d29aac30a5e174f9f264ac4437403fa3581ee83d6f65fb5a560a18",
+    "fpga/common/skew_scope.tcl": "06d068f209f3733b5364bd6c5c4e524bdeb8ce66d8d3acdfcbda6b1ddae7e908",
+    "fpga/common/soc_top_common_ddr.sv": "b51d4834e9e6d63c91f2b1462692bd59755cb770643188035a23f57461d4df3b",
+    "fpga/common/stage.tcl": "664c446d6e7ade4d345b30ddaf0a8ebaec3643f6a87b6be7bad7defddf3894a5",
+    "fpga/common/synthesize.tcl": "f66d4bbbc1952f8e91d6871b2ea74f4f5eec97b378e8c1934787c5ae2e921a7d",
+    "fpga/common/test_active_clock_anchors.tcl": "915617ab910940ffd43d525757c5fb5329f5547f098766c28854e62aa2e1b143",
+    "fpga/common/test_board_inputs.py": "da2007c4f30bf4dfff4cb36bb9246d6971b606ed367e71f2e125d31e302b348e",
+    "fpga/common/test_boot50_cdc.tcl": "0fc83875f5747266525375cb8bca44e8fa8799d5d230486905c2aaf925230653",
+    "fpga/common/test_cached_post_opt_resume.py": "5a600ac5fb762460bf538094176c07c01daaad4aea5c7c2a1de7908395cec64b",
+    "fpga/common/test_captured_constant.tcl": "371dd44f3f7ee5cc33e9c99092322a44a0ae966e89ca38112f816df5627169c2",
+    "fpga/common/test_cdc_report.tcl": "ea3bf35d72969c89239dabaa30bd416d03df5839edebdcd20862af9298f9d33b",
+    "fpga/common/test_common_cdc.tcl": "743f2899d8fed6f8f6a30636c9d9058b57c0af6ddd5c07213f27545e44571706",
+    "fpga/common/test_common_io.tcl": "3c10cbee0fa078c3bdfab666272085450ddd64bca672a826494329c31774c652",
+    "fpga/common/test_constant_scalar.tcl": "306c409895b82acbbea0497c5475e0af15f5d25819ee52f2aa6be019f92845c5",
+    "fpga/common/test_diagnostic.py": "93cc725fe12af41605606d027c239dc03fbabd9f5c9d8e8f241a65fbc16a9e4e",
+    "fpga/common/test_dynamic_clock_targets.py": "31b3b1bed72656ba0e5a6ca4010c55a271c2a1213fdc191179a523574c79a4f7",
+    "fpga/common/test_exact_object_cache.tcl": "6844b5ba59458c4ca11718b92d95a2affc89c3e3b91809d4ca62ab09cc075043",
+    "fpga/common/test_inactive_gray.tcl": "622d779324656c8cbf45ced9b4b2dcbaed1eeb77c56d2231b3e5532061e2e1cf",
+    "fpga/common/test_inactive_zero_state.tcl": "ea2bc5fb3dd37d76ee13fe525c397dfc832519aeeb1841af0ce93961f11847ce",
+    "fpga/common/test_independent_board_audit.tcl": "9d4a95a4d755f72d1efad220a437f65587fdc1ab6ddeb7d520b45ccf18249ff9",
+    "fpga/common/test_manifest.py": "b5f051ee744675ce76a041228b41115081e33901c415c89d50da42a0bcd582ba",
+    "fpga/common/test_media_signoff.py": "b3db77bd2908d9854caea9ea1c3d514fbc9df5cab63c1a90ea78c561dbf7621d",
+    "fpga/common/test_payload_absence.tcl": "626979b8e254b53004f3cc6f54b4b82ee7a285963fe3b3f6d34dd1cf20260072",
+    "fpga/common/test_performance_cdc.tcl": "fab8b4f7fe1f008c7e1bcf8bcd264670483e1593b42dce2c45c0dc7a4afe1d9f",
+    "fpga/common/test_place_route_resume.py": "cfc9f4edb99940b7ce18fdd80e4bedf0e865f9b86a68932b8df5789d6e9b0864",
+    "fpga/common/test_python_isolation.py": "5047ee291b494b802c43394c5742237dae2d13ce7bcd0eb21662912eec58c62d",
+    "fpga/common/test_reset_locality_audit.tcl": "decaf9b2ae4cbed5c940d10f3f520286db186374ffabc78f359b048843e27a9c",
+    "fpga/common/test_resume_diagnostic.py": "cf05ecd6f499d8ece644582ee5a25de0d65d24c6e4c722cdef1dcac44cebadd0",
+    "fpga/common/test_resume_startup.tcl": "c82acafb5647f9b7844db1c4abdaeadbc5e4785e7e02e88ed7ff7c13cc6541e2",
+    "fpga/common/test_rom_audit.py": "52e452b2a476fd6b8b7da3abf8a7665fe9a102cdffc2a1731b3396ba7c15ca7a",
+    "fpga/common/trispeed_board_pad_tb.sv": "9e91c9a7ac6cee726e20db8f7f6599368faa1b19738fa74673a5c064d46d261b"
+  },
+  "stage": "dynamic-clock-behavioral-only",
+  "status": "PASS_BEHAVIORAL_ONLY_NATIVE_QUALIFICATION_PENDING",
+  "timingValidated": false,
+  "tools": {
+    "iverilog": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+      "sha256": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc"
+    },
+    "vvp": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+      "sha256": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df"
+    }
+  },
+  "vendorPrimitivesValidated": false
+}

@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/dynamic_clock_tb.sv:108: CLOCK_RATE_OR_INDEPENDENCE cpu=        100 fabric=        100 aon=        100
+       Time: 8260000  Scope: dynamic_clock_tb.rates

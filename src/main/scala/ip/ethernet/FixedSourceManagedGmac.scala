@@ -37,6 +37,18 @@ class FixedMacObservation extends Bundle {
     val statisticsPending = UInt(4.W)
 }
 
+/** Fabric-facing control of the fixed MAC boundary. The bank owns no epoch. */
+class FixedMacRuntimePort extends Bundle {
+    val command = Flipped(Decoupled(new FixedMacCommand))
+    val consumed = Decoupled(new FixedMacCommand)
+    val observation = Decoupled(new FixedMacObservation)
+    val txProducersClosed = Input(Bool())
+    val controlProducersClosed = Input(Bool())
+    val fabricCsrIdle = Output(Bool())
+    val fabricTxStorageIdle = Output(Bool())
+    val fabricRxConsumersIdle = Output(Bool())
+}
+
 /** Reusable, opt-in transport around the complete fixed-clock MAC source island.
   * There is deliberately no platform runtime endpoint or epoch allocator here.
   *
@@ -59,7 +71,12 @@ class FixedMacObservation extends Bundle {
   * or physical clock-presence/gate proof is provided by these three mailboxes.
   * Common cold reset discards all owners together; unilateral reset is forbidden.
   */
-class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) extends RawModule {
+/** The optional final receipt is stronger than the legacy consumed-command
+  * receipt: release and its last observation have actually crossed before it.
+  * Later PHY/data activity is new work, not an old-epoch idle qualification.
+  */
+class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false,
+    deferredReleaseReceipt: Boolean = false, emergencyAdmissionStop: Boolean = false) extends RawModule {
     val fabricClock = IO(Input(Clock()))
     val fixedClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
@@ -82,6 +99,8 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) ex
     val fabricRxConsumersIdle = IO(Output(Bool()))
     val fixedTxConsumersIdle = IO(Output(Bool()))
     val fixedRxStorageIdle = IO(Output(Bool()))
+    val emergencyStop = if (emergencyAdmissionStop) Some(IO(Input(Bool()))) else None
+    val fixedCsrIdle = if (emergencyAdmissionStop) Some(IO(Output(Bool()))) else None
 
     private def release(clock: Clock): AsyncReset = {
         val r = Module(new CdcResetRelease)
@@ -104,6 +123,12 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) ex
     csr.commonReset := commonReset
     macRegisters <> csr.destination
     fabricCsrIdle := csr.sourceIdle
+    fixedCsrIdle.foreach(_ := csr.destinationIdle && !macRegisters.request.valid && !macRegisters.response.valid)
+    private val fatalRxStop = if (emergencyAdmissionStop) {
+        val sync = Module(new CdcLevel)
+        sync.clockIn := fixedClock; sync.resetIn := fixedReset; sync.levelIn := emergencyStop.get
+        Some(sync.levelOut)
+    } else None
 
     // Opt-in only for these four outer lanes. Reuse the existing held-response
     // implementation unchanged: pending reads retain RAM ownership until capture,
@@ -201,10 +226,28 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) ex
     }
     withClockAndReset(fixedClock, fixedReset) {
         val current = RegInit(0.U.asTypeOf(new FixedMacCommand))
-        // Reuse mailbox consumption, not a delay or initially-high idle as ACK.
-        commands.destination.ready := receipts.source.ready
-        receipts.source.valid := commands.destination.valid
-        receipts.source.bits := commands.destination.bits
+        // Legacy standalone users retain their immediate consumed receipt.
+        // The platform opt-in instead retires release only after its actual
+        // released snapshot has been consumed. No fourth mailbox/epoch owner.
+        val releasePending = if (deferredReleaseReceipt) Some(RegInit(false.B)) else None
+        val releaseSnapshotSent = if (deferredReleaseReceipt) Some(RegInit(false.B)) else None
+        if (deferredReleaseReceipt) {
+            val incoming = commands.destination.bits.asTypeOf(new FixedMacCommand)
+            val isRelease = !incoming.rxStop && !incoming.txStop && !incoming.park
+            commands.destination.ready := receipts.source.ready && !releasePending.get
+            receipts.source.valid := (commands.destination.valid && !releasePending.get && !isRelease) ||
+                (releasePending.get && releaseSnapshotSent.get && observations.sourceIdle && commands.destinationIdle)
+            receipts.source.bits := Mux(releasePending.get, current.asUInt, commands.destination.bits)
+            when(receipts.source.fire && releasePending.get) { releasePending.get := false.B }
+            when(commands.destination.fire) {
+                releasePending.get := isRelease
+                releaseSnapshotSent.get := false.B
+            }
+        } else {
+            commands.destination.ready := receipts.source.ready
+            receipts.source.valid := commands.destination.valid
+            receipts.source.bits := commands.destination.bits
+        }
         val txApplied = RegInit(false.B)
         val parkApplied = RegInit(false.B)
         when(commands.destination.fire) {
@@ -220,7 +263,9 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) ex
         // Once applied, retain votes until actual fixed consumption of release.
         // New post-release fabric data can outrun the independent command lane;
         // it must not withdraw the OLD vote by making a local idle predicate low.
-        admission.rxStopRequest := current.rxStop
+        // Emergency loss-of-clock isolation only closes NEW RX admission.
+        // Accepted stream/CSR owners and their replies continue unchanged.
+        admission.rxStopRequest := current.rxStop || fatalRxStop.getOrElse(false.B)
         admission.txStopRequest := txApplied
         controlPark.request := parkApplied
         val snapshot = Wire(new FixedMacObservation)
@@ -239,6 +284,16 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false) ex
         snapshot.statisticsPending := controlPark.statisticsPending
         observations.source.valid := current.epoch =/= 0.U
         observations.source.bits := snapshot.asUInt
+        if (deferredReleaseReceipt) {
+            // Do not publish the old command on the edge consuming a new one.
+            // Once final release is sent, stay quiet until another real command;
+            // clearing this on receipt.fire would recreate an old snapshot owner.
+            observations.source.valid := current.epoch =/= 0.U && !commands.destination.valid &&
+                !releaseSnapshotSent.get
+            when(observations.source.fire && releasePending.get && snapshot.released) {
+                releaseSnapshotSent.get := true.B
+            }
+        }
         val launchedIrq = RegNext(macIrq, false.B)
         val sync = Module(new CdcLevel)
         sync.clockIn := fabricClock

@@ -1,0 +1,13 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+STARTUP_FAULT_TRACE cycle=1 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=2 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=3 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=4 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=5 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=6 failed=0 observed=x guard=0 close=x debug=x cleanup=x receipt=0 safe=x armed=0
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:632: ROUNDTRIP_BACKEND_OR_CMU_FAULT lane=1 fatal=0 errors=00000X00
+       Time: 530000  Scope: dynamic_roundtrip_tb.check_1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:632: ROUNDTRIP_BACKEND_OR_CMU_FAULT lane=0 fatal=0 errors=00000X00
+       Time: 530000  Scope: dynamic_roundtrip_tb.check_0
+STARTUP_FAULT_TRACE cycle=7 failed=x observed=x guard=0 close=x debug=x cleanup=x receipt=0 safe=x armed=0

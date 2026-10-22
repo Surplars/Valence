@@ -13,7 +13,7 @@ import soc.ip.clock._
   */
 class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50000000,
     baud: Int = 460800, hardwareClocks: Boolean = true,
-    balancedRawClock: Boolean = false) extends RawModule {
+    balancedRawClock: Boolean = false, runtimeObservation: Boolean = false) extends RawModule {
     require(!balancedRawClock || hardwareClocks)
     val sourceClock = IO(Input(Clock()))
     val rawClock = IO(Input(Clock()))
@@ -25,6 +25,7 @@ class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50
     val irq = IO(Output(Bool()))
     val managedClock = IO(Output(Clock()))
     val localIdle = IO(Output(Bool()))
+    val mmioIdle = if (runtimeObservation) Some(IO(Output(Bool()))) else None
     val cpuRelease = Module(new CdcResetRelease)
     cpuRelease.clockIn := sourceClock
     cpuRelease.asyncReset := commonReset
@@ -48,12 +49,13 @@ class ManagedUart(cpuHz: Int = 100000000, rawHz: Int = 50000000, aonHz: Int = 50
     bridge.sourceClock := sourceClock
     bridge.destinationClock := gatedClock
     bridge.commonReset := commonReset
-    val proxy = withClockAndReset(sourceClock, cpuRelease.resetOut) { Module(new ClockRegisterAdmission) }
+    val proxy = withClockAndReset(sourceClock, cpuRelease.resetOut) { Module(new ClockRegisterAdmission(runtimeObservation = runtimeObservation)) }
     proxy.io.upstream <> registers
     proxy.io.downstream <> bridge.source
     proxy.io.quiesce := ManagedPeripheralSupport.level(control.quiesce, sourceClock, cpuRelease.resetOut)
     proxy.io.isolate := ManagedPeripheralSupport.level(control.isolate, sourceClock, cpuRelease.resetOut)
     proxy.io.downstreamIdle := bridge.sourceIdle
+    mmioIdle.foreach(_ := proxy.io.ownerIdle.get && bridge.sourceIdle)
     val ingress = Module(new PeripheralWakeDelay(1, ManagedPeripheralSupport.wakeDelay(rawHz, cpuHz, aonHz), 1))
     ingress.rawClock := captureClock
     ingress.commonReset := commonReset

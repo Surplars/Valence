@@ -1,0 +1,30 @@
+{
+  "status": "REVIEWED_FROZEN_EMISSION_ONLY_NOT_ADMITTED_OR_QUALIFIED",
+  "artifacts_sha256": {
+    "TriSpeedManagedGmac.sv": "b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41",
+    "TriSpeedRgmiiTx.sv": "80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731",
+    "ManagedPeripheralBank.sv": "74244166a139d6347a33583754a63e6c5bd9b90ef6d42f44a7f88c2c7c46ad24",
+    "FixedMacBoundary.sv": "5e00fdd771b6be398bde60b832665a6e0d5d92c02747fa281be85da99d4c0fe8",
+    "CommonMachinePlatform.sv": "546d051d61915f50a04d6aae30901f583dc01ebe6ecfc7971280fb00ffe80413"
+  },
+  "encoder_instance_sha256": "e0e1ec735536567a3459a7c2699f145109ff349899fc36c56a8747c7573af1ee",
+  "continuousClock_is_rawTxClock_alias": true,
+  "encoder_clock": "rawTxClock",
+  "encoder_reset": "rawTxRelease.resetOut",
+  "fixed_source_chain": "UI250 to PLLE4 REF500 to BUFG to permanently enabled BUFGCE_DIV /4 to clk_tx/rawTxClock",
+  "bank_binding": "gmac.sourceClock <- gmac.continuousClock; FixedMacBoundary.fabricClock <- bank.sourceClock=fabricClock; fixedClock <- gmac.continuousClock",
+  "actual_crossings": [
+    "CSR RegisterClockDomainBridge",
+    "four37bit HeldResponseCdcDataFifo",
+    "epoch command/receipt/observation mailboxes",
+    "level IRQ into fabric",
+    "registered emergency stop into fixed"
+  ],
+  "common_reset": "All boundaries commonReset; dynamic CPU/fabric unlock excluded from shell common cold reset",
+  "software_points": [],
+  "functional_qualified": false,
+  "physical_qualified": false,
+  "board_qualified": false,
+  "source_caveat": "CommonMachinePlatform source subsequently gained a protected test factory hook. Frozen artifacts are reviewed; fresh source-bound production emission is required before admitting current diagnostic build.",
+  "proposed_scope": "Only exact boot50-dynamic diagnostic composition, explicit runtime/hardware/independent flags, empty tables; do not add to unconditional MAC admitted tuple; preserve signoff and bitstream block"
+}

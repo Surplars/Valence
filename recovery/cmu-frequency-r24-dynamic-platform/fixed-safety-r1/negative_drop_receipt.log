@@ -1,0 +1,8 @@
+BEGIN case=arm_exact inject=drop_receipt aon_period=34ns fixed_period=10ns fixed_phase=2ns
+RESET_CANCEL accepted=0 consumed=0 returned=0
+AON_ACCEPT time=493000 epoch=4660 enable=1 guarded_expect=1
+FIXED_CONSUME time=527000 epoch=4660 enable=1 safe=1
+AON_ACCEPT time=731000 epoch=4660 enable=0 guarded_expect=0
+FIXED_CONSUME time=767000 epoch=4660 enable=0 safe=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/fixed_clock_safety_tb.sv:168: FAIL_CONSERVATION accepted=2 consumed=2 returned=0 expected_blocked=0 receipt_valid=0
+       Time: 1190000  Scope: fixed_clock_safety_tb.finish_check

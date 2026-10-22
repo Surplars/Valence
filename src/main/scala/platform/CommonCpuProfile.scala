@@ -10,8 +10,11 @@ import soc.ip.clock.{ClockResource, CmuParams}
   */
 case class CommonCpuProfile(kind: String, clocks: CommonClockConfig, clockProfile: String = "production") {
     require(Set("i1", "a1").contains(kind))
-    require(Set("production", "boot50-static", "performance300-static").contains(clockProfile))
+    require(Set("production", "boot50-static", "performance300-static", "boot50-dynamic").contains(clockProfile))
     val independentFixedDomains = clockProfile != "production"
+    require(clockProfile != "boot50-dynamic" ||
+        (kind == "i1" && clocks == CommonClockConfig(50000000, 50000000, 250000000)),
+        "boot50-dynamic requires I1 CPU50/fabric50/TIME250")
     require(clockProfile != "boot50-static" || clocks == CommonClockConfig(50000000, 50000000, 250000000),
         "boot50-static requires CPU50/fabric50/TIME250")
     require(clockProfile != "performance300-static" ||
@@ -55,9 +58,14 @@ object CommonCpuProfile {
     val I1Performance300 = CommonCpuProfile("i1", CommonClockConfig(300000000, 250000000, 250000000),
         "performance300-static")
     val I1Boot50 = CommonCpuProfile("i1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
+    val I1Boot50Dynamic = CommonCpuProfile("i1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-dynamic")
     val A1Boot50 = CommonCpuProfile("a1", CommonClockConfig(50000000, 50000000, 250000000), "boot50-static")
     def named(kind: String, clockProfile: String = "production"): CommonCpuProfile = {
-        require(Set("production", "boot50-static", "performance300-static").contains(clockProfile), "unreviewed clock profile")
+        require(Set("production", "boot50-static", "performance300-static", "boot50-dynamic").contains(clockProfile), "unreviewed clock profile")
+        if (clockProfile == "boot50-dynamic") {
+            require(kind == "i1", "dynamic epoch integration is qualified only for I1")
+            return I1Boot50Dynamic
+        }
         if (clockProfile == "performance300-static") {
             require(kind == "i1", "performance300-static is reviewed only for I1")
             return I1Performance300

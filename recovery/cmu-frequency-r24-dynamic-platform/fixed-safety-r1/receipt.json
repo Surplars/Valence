@@ -1,0 +1,466 @@
+{
+  "status": "PASS",
+  "scope": "Isolated actual FixedClockSafetyGuard with emitted CDC dependencies; no dynamic-platform, physical-clock, MMCM, timing-closure, or production frequency-whitelist qualification.",
+  "binding": {
+    "emission_receipt": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/platform-r2-emission.json",
+    "emission_sha256": "5d15ac390ed6926367dff3dbc9627198d51e616053e75829ba29865ddabbadb3",
+    "source_sha256": {
+      "src/main/scala/ip/clock/FixedClockSafetyGuard.scala": "9e05fd8cb26095fb5a4bfb1b157ca5ce5537d8aebeb7943f814cc54efbcd492e",
+      "src/main/scala/ip/bus/CdcDataChannels.scala": "9a59fb681537913cf2787a8b0335565d974991a93467e6140a19f4178695c5bd",
+      "src/main/scala/ip/bus/ClockDomainCrossing.scala": "1f4bc2b23bb7bd2111be268ba89c1bf80c4c87e92c3f05724c3669e3279908a2"
+    },
+    "rtl_sha256": {
+      "FixedClockSafetyGuard.sv": "270d0119353b977a4dce5c70e975aefc8ef5bbd984384f09557ba5c5c7320c79",
+      "CdcMailbox_40.sv": "ffb710bc488663f03d90b7a4dbeea191bf6a3f1e34d612e6de1053a1956c8bbb",
+      "CdcMailbox_41.sv": "f46bf95b5c4ad9b6ee5103eaa53b760c89b3f4729dbaf95ae7f656bdc02f0726",
+      "CdcLevel.sv": "78c84c3d5b91a7533dec2366b9cf2225d4e209876018225adfaf5705f4a3744e",
+      "CdcResetRelease.sv": "1aaa94e01279790354ae120f0a24d99c89e1281561bc898e6ebfe4af60f4897c"
+    },
+    "tools_sha256": {
+      "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc",
+      "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/iverilog": "99633b21371b5fc6ddc3156c9402c10e2915a94feb99ddc5eb01ba8f02758462",
+      "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df",
+      "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivl": "57d7449f4b78d204383e8acf5fd35db0c22bfe956260f62ee14bba6fff9aa9fd",
+      "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivlpp": "0a98b3c26a40d3a5c7463934d3e74d96d6fc0bc662c4ea48dd786afa1d44bf44",
+      "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt": "0ce84750ec199087392d966fede9deb18aeca647c6b07a781dbcdaf1a7054312"
+    },
+    "test_sha256": {
+      "fixed_clock_safety_tb.sv": "aa75a8212c6c8d51dc8a11f7962e97b1e9d207f676c646f73ab89bef4ad0c529",
+      "run_fixed_clock_safety.py": "54acb5d9c518a874c468f37789f2d6c25a3db7dfe155608503c6ce4984b0da5d"
+    }
+  },
+  "versions": [
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-V"
+      ],
+      "returncode": 0,
+      "seconds": 0.007995,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/iverilog-version.log",
+      "log_sha256": "f9199cc8658f4afcec3edeb93f29f23bb2aebf66d3eeb217cdc728aaa692f946"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-V"
+      ],
+      "returncode": 0,
+      "seconds": 0.002275,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/vvp-version.log",
+      "log_sha256": "c9010a85df9399c2adb11b59115cdc285ea6f0a399802944367c3813c6772a42"
+    }
+  ],
+  "compile": {
+    "command": [
+      "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+      "-g2012",
+      "-s",
+      "fixed_clock_safety_tb",
+      "-o",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/fixed_clock_safety_tb.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/frozen-rtl/FixedClockSafetyGuard.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/frozen-rtl/CdcMailbox_40.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/frozen-rtl/CdcMailbox_41.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/frozen-rtl/CdcLevel.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/frozen-rtl/CdcResetRelease.sv"
+    ],
+    "returncode": 0,
+    "seconds": 0.010868,
+    "timed_out": false,
+    "reaped": true,
+    "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/compile.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cases": [
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_exact",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007592,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/arm_exact.log",
+      "log_sha256": "cb4712e62224ba878c98af6aad85b6a91145272906a306a70eaff18ae474406d",
+      "name": "arm_exact",
+      "case": "arm_exact",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=backpressure",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007584,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/backpressure.log",
+      "log_sha256": "8b0a66aa96cf8a464a151532cf905938f7810f41e59d9f778e7ab357cb1a9120",
+      "name": "backpressure",
+      "case": "backpressure",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=unsafe_arm",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007878,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/unsafe_arm.log",
+      "log_sha256": "999ee4298e87cb2f4cd400db369e73ef8e6fa672df65488b0883938b728925c5",
+      "name": "unsafe_arm",
+      "case": "unsafe_arm",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_just_raised",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007839,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/arm_just_raised.log",
+      "log_sha256": "5aa6d34c4953360479c2d170d5a6d95732624f0ba567377cb877140b56e2d099",
+      "name": "arm_just_raised",
+      "case": "arm_just_raised",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_just_revoked",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.006847,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/arm_just_revoked.log",
+      "log_sha256": "8f69f88c7cf5d39a602161f1c5b37b9077fe968c414430e8f93e64927064df0b",
+      "name": "arm_just_revoked",
+      "case": "arm_just_revoked",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=brief_revoke",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.00753,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/brief_revoke.log",
+      "log_sha256": "51eb58df26007156686bb1228033492bc97dbe9e71051ff006998bae53eb9e22",
+      "name": "brief_revoke",
+      "case": "brief_revoke",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=disarm_then_change",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.009735,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/disarm_then_change.log",
+      "log_sha256": "6e0821e8b9e7c2335125d346eb80cb980244a84adf3f0a1577af23f95d516383",
+      "name": "disarm_then_change",
+      "case": "disarm_then_change",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=disarm_at_change",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007038,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/disarm_at_change.log",
+      "log_sha256": "e07b20a9f4e5a1c1dc8b70714183017b2188aef08d6073a64724e7a98af8d8d4",
+      "name": "disarm_at_change",
+      "case": "disarm_at_change",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=wrong_epoch",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007328,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/wrong_epoch.log",
+      "log_sha256": "0ed78363b7cf7f290838be7bedd21a2a339ea58a6bb3ff32da2fea34c99e9bf2",
+      "name": "wrong_epoch",
+      "case": "wrong_epoch",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=duplicate_active",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.008155,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/duplicate_active.log",
+      "log_sha256": "72e5f43144adaf03b990467926fcc9b69735f6142c5e08bb35b24b3ea35542a1",
+      "name": "duplicate_active",
+      "case": "duplicate_active",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=duplicate_retired",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007252,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/duplicate_retired.log",
+      "log_sha256": "cd2dfd29e208dfa744654eb5112e4de0bb7c3016dcc78ad307052c62a86252bf",
+      "name": "duplicate_retired",
+      "case": "duplicate_retired",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=zero_epoch",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007298,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/zero_epoch.log",
+      "log_sha256": "4d8cabb4703c781e866329e33bf75fde7ec4ac1aca043c768d01b0c59b30eed6",
+      "name": "zero_epoch",
+      "case": "zero_epoch",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=reset_command",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.006927,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/reset_command.log",
+      "log_sha256": "5b203655dd8aab5d2d9bb6abf2dcbb1355858515cbf869414105a90403bf4028",
+      "name": "reset_command",
+      "case": "reset_command",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=reset_receipt",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.008873,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/reset_receipt.log",
+      "log_sha256": "426e7a82d736eb7ac3bd12c90d98b799db45649b26e43219a3f56577a4d57d66",
+      "name": "reset_receipt",
+      "case": "reset_receipt",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=reset_fault",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.00802,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/reset_fault.log",
+      "log_sha256": "b01390566dae3d63f2e4280ed964e009007bf415f8a37816358ce4bce81cd502",
+      "name": "reset_fault",
+      "case": "reset_fault",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=pause_receipt",
+        "+INJECT=none"
+      ],
+      "returncode": 0,
+      "seconds": 0.007027,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/pause_receipt.log",
+      "log_sha256": "da2e65fb4cf0f3d902ece028f6cd6e321ea75c3f48869f39fa3fcb788e6df182",
+      "name": "pause_receipt",
+      "case": "pause_receipt",
+      "injection": "none",
+      "expected_failure": null,
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_exact",
+        "+INJECT=tag"
+      ],
+      "returncode": 1,
+      "seconds": 0.006736,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/negative_tag.log",
+      "log_sha256": "d8b1aa3d68fc1c518b88935efa0e48e5361c78202dc050e8e7bfce3344aabc4c",
+      "name": "negative_tag",
+      "case": "arm_exact",
+      "injection": "tag",
+      "expected_failure": "FAIL_TAG",
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_exact",
+        "+INJECT=guarded"
+      ],
+      "returncode": 1,
+      "seconds": 0.007295,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/negative_guarded.log",
+      "log_sha256": "4c9468265186e980c98917bb9cc7cbe838eb8999e3370c7ed04c90f61967ad29",
+      "name": "negative_guarded",
+      "case": "arm_exact",
+      "injection": "guarded",
+      "expected_failure": "FAIL_WINDOW guarded",
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=arm_exact",
+        "+INJECT=drop_receipt"
+      ],
+      "returncode": 1,
+      "seconds": 0.00771,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/negative_drop_receipt.log",
+      "log_sha256": "09b4e1698cfd0ee87f010a4138f6b2be62e4fd4e1183d6b7c0fcd1e5762c5335",
+      "name": "negative_drop_receipt",
+      "case": "arm_exact",
+      "injection": "drop_receipt",
+      "expected_failure": "FAIL_CONSERVATION",
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/guard.vvp",
+        "+CASE=brief_revoke",
+        "+INJECT=fault"
+      ],
+      "returncode": 1,
+      "seconds": 0.007685,
+      "timed_out": false,
+      "reaped": true,
+      "log": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/negative_fault.log",
+      "log_sha256": "8280448332bd30b9b737cb0905b51bddd921eff0e3b187b5688fc813617b653c",
+      "name": "negative_fault",
+      "case": "brief_revoke",
+      "injection": "fault",
+      "expected_failure": "FAIL_WINDOW fault",
+      "status": "PASS"
+    }
+  ],
+  "positive_cases": 16,
+  "negative_controls": 4,
+  "timeout_seconds_per_process": 30,
+  "all_processes_reaped": true
+}

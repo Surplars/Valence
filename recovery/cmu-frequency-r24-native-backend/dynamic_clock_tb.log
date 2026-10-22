@@ -1,0 +1,2 @@
+DYNAMIC_CLOCK_BEHAVIORAL_PASS checks=28 cpu_edges=2306 fabric_edges=2942 aon_edges=3398
+/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/dynamic_clock_tb.sv:194: $finish called at 67960000 (1ps)

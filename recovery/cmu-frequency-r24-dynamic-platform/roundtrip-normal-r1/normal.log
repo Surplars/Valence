@@ -1,0 +1,6 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:630: ROUNDTRIP_BACKEND_OR_CMU_FAULT lane=1 fatal=0 errors=00000X00
+       Time: 530000  Scope: dynamic_roundtrip_tb.check_1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:630: ROUNDTRIP_BACKEND_OR_CMU_FAULT lane=0 fatal=0 errors=00000X00
+       Time: 530000  Scope: dynamic_roundtrip_tb.check_0

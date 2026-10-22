@@ -66,18 +66,30 @@ class ClockRateEndpoint extends Bundle {
     val program = Decoupled(new ClockRateProgram)
     val result = Flipped(Decoupled(new ClockRateProgramResult))
 }
+/** Physical backend pins only. Full drain classes stay owned by the platform. */
+class ClockRateBackendPort extends Bundle {
+    val present = Input(Bool())
+    val gateClosed = Input(Bool()); val gateOpen = Input(Bool())
+    val locked = Input(Bool()); val resumed = Input(Bool()); val fatal = Input(Bool())
+    val quiesce = Output(Bool()); val isolate = Output(Bool()); val clockEnable = Output(Bool())
+    val program = Decoupled(new ClockRateProgram)
+    val result = Flipped(Decoupled(new ClockRateProgramResult))
+}
 /** Independent AON transaction, no primitive/DRP magic or production ACK ties.
   * Cold reset covers every retained owner. Backend boot configuration is bootHz;
   * initial lock and domain progress are required before actualValid is exposed.
   * responseCommitted means the source consumed the response, not AON enqueue.
   * An empty/default qualification table permits no runtime rate changes.
   */
-class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) extends Module {
+class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
+    backendFaultInput: Boolean = false) extends Module {
+    require(!backendFaultInput || externalDrainLease)
     val io = IO(new Bundle {
         val submit = Flipped(Valid(UInt(32.W)))
         val responseCommitted = Input(Bool()); val clearErrors = Input(UInt(32.W))
         val endpoint = new ClockRateEndpoint
         val lease = if (externalDrainLease) Some(new ClockRateDrainLease) else None
+        val backendFault = if (backendFaultInput) Some(Input(Bool())) else None
         val requestError = Output(UInt(32.W))
         val requestedHz = Output(UInt(32.W)); val targetHz = Output(UInt(32.W))
         val actualHz = Output(UInt(32.W)); val actualValid = Output(Bool())
@@ -240,7 +252,10 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
         lease.cancel.valid := state === cleanup && qualificationCanceled && !cancelAccepted
         lease.cancel.bits := leaseToken
         when(lease.cancel.fire) { cancelAccepted := true.B }
-        lease.resume.valid := state === resuming && !booting && offered && !resumeSent
+        // Real backend integration must confirm new target-clock edges BEFORE
+        // asking the existing epoch to reopen admission, not only at retirement.
+        lease.resume.valid := state === resuming && !booting && offered && !resumeSent &&
+            (if (backendFaultInput) io.endpoint.resumed && io.endpoint.locked else true.B)
         lease.resume.bits := leaseToken
         when(lease.resume.fire) { resumeSent := true.B }
         val terminalMatches = lease.terminal.bits.token === leaseToken
@@ -286,6 +301,26 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
             assert(!io.endpoint.program.valid, "timeout cleanup issued a rate program")
         }
     }
+    val hardFault = if (backendFaultInput) {
+        val fatal = RegInit(false.B)
+        when(io.backendFault.get) { fatal := true.B }
+        val active = fatal || io.backendFault.get
+        when(active) {
+            events(ClockRateError.Fatal) := true.B
+            io.requestError := (1 << ClockRateError.Fatal).U
+            transactionFailed := true.B; everGated := true.B; next := failed
+            // A hard clock fault never clears retained owners or claims success.
+            // Only coordinated cold reset can discard this isolated state.
+            io.endpoint.clockEnable := false.B
+            io.endpoint.quiesce := true.B
+            io.endpoint.isolate := true.B
+            io.endpoint.program.valid := false.B
+            io.lease.get.prepare.valid := false.B
+            io.lease.get.resume.valid := false.B
+            io.lease.get.retired.ready := false.B
+        }
+        Some(active)
+    } else None
     when(state =/= next || state === idle || state === waitReply || (booting && !io.endpoint.present)) {
         timer := 0.U; stable := 0.U
     }
@@ -293,6 +328,7 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
     io.requestedHz := request; io.targetHz := target; io.actualHz := actual
     io.actualValid := (state === idle || state === waitReply || state === draining ||
         (state === resuming && !everGated)) && io.endpoint.present && io.endpoint.locked && io.endpoint.gateOpen
+    hardFault.foreach(f => when(f) { io.actualValid := false.B })
     io.busy := state =/= idle; io.state := state; io.errors := errors
     io.completed := completed; io.lastSuccess := success
     when(!reset.asBool) {
@@ -301,9 +337,9 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
                 "rate programming without a closed isolated gate")
             assert(drainProved || booting, "rate programming without real transaction drain")
         }
-        when(state === waitReply || state === draining) {
+        when((state === waitReply || state === draining) && !hardFault.getOrElse(false.B)) {
             assert(io.endpoint.clockEnable, "clock stopped before source response/owner drain")
         }
-        when(io.responseCommitted) { assert(state === waitReply, "response lost its reserved rate owner") }
+        when(io.responseCommitted && !hardFault.getOrElse(false.B)) { assert(state === waitReply, "response lost its reserved rate owner") }
     }
 }

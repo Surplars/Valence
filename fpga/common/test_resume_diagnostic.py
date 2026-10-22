@@ -74,7 +74,7 @@ error INJECTED_POST_FAILURE
             run=subprocess.run(['tclsh'],input=commands,text=True,capture_output=True,cwd=t)
             self.assertEqual(run.returncode,0,run.stderr)
             self.assertIn('SAVED_BEFORE_FAILURE',run.stdout)
-        self.assertLess(script.index('write_checkpoint raw-synthesized-unqualified.dcp'),script.index('get_pins -quiet u_clk_wiz'))
+        self.assertLess(script.index('write_checkpoint raw-synthesized-unqualified.dcp'),script.index('foreach {output expectedHz} $clockOutputs'))
         self.assertLess(script.index('write_checkpoint raw-synthesized-unqualified.dcp'),script.index('source $valence(post_synth_constraints)'))
 
     @unittest.skipUnless(shutil.which('tclsh'),'Tcl unavailable')

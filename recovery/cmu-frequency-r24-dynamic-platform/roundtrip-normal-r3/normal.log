@@ -1,0 +1,25 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+STARTUP_FAULT_TRACE cycle=1 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=2 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=3 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=4 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=5 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=6 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=7 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=8 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=9 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=10 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=11 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=12 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=13 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=14 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=15 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=16 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=17 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=18 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=19 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+ROUNDTRIP_PROGRESS time_ns=500390.000 ns boot=0 phy=9 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=1000390.000 ns boot=0 phy=19 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=1500390.000 ns boot=0 phy=29 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=2000390.000 ns boot=0 phy=38 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0

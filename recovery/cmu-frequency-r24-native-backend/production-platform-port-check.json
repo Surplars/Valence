@@ -1,0 +1,40 @@
+{
+  "backendDirectionsAndWidthsMatchFunctional": true,
+  "backendPinCount": 38,
+  "emissionProfileSha256": "cec19dcd5d60a256327522fa9658a42b8be73929ad068fb923207179792636e6",
+  "emissionSourceClosureValidated": false,
+  "macControlFormOracle": "PASS",
+  "macParentAdmitted": false,
+  "macParentSha256": "b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41",
+  "notEstablished": [
+    "full production manifest freeze",
+    "combined functional simulation",
+    "Vivado elaboration",
+    "physical clock qualification"
+  ],
+  "platformPath": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/production-dynamic-r1/CommonMachinePlatform.sv",
+  "platformSha256": "546d051d61915f50a04d6aae30901f583dc01ebe6ecfc7971280fb00ffe80413",
+  "portCheck": {
+    "connections": 118,
+    "ports": 162
+  },
+  "status": "PASS_REAL_PRODUCTION_GENERATED_PORT_CONTRACT_ONLY",
+  "validatedMetadata": {
+    "aonHz": 50000000,
+    "boardVerified": false,
+    "clockProfile": "boot50-dynamic",
+    "cpu": "i1",
+    "cpuClockHz": 50000000,
+    "ddrUiHz": 250000000,
+    "fabricClockHz": 50000000,
+    "hardwareClocks": true,
+    "independentFixedDomains": true,
+    "physicalTimingVerified": false,
+    "programmableRom": false,
+    "runtimeClockReconfiguration": true,
+    "top": "CommonMachinePlatform",
+    "uartHz": 50000000,
+    "vivadoMemories": true
+  },
+  "wrapperSha256": "b51d4834e9e6d63c91f2b1462692bd59755cb770643188035a23f57461d4df3b"
+}

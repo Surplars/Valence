@@ -1,0 +1,4 @@
+FIXED_MAC_UNSENT_PARK_CANCEL csr_owner_retained=1 parked_commands=0 released_before_fresh_reply=1
+FIXED_MAC_EPOCH_FAULT_PASS case=2 failed_closed=1
+FIXED_MAC_EPOCH_ADAPTER_PASS fabric_half=10 commands=5 receipts=5 release_snapshots=2 csr=2/2 held=418 early_cancel=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_epoch_adapter_tb.sv:273: $finish called at 10610000 (1ps)

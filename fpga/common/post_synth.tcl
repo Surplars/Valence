@@ -8,7 +8,7 @@ source [file join $valence(root) fpga inorder bscan_timing_i1.tcl]
 common_media_apply 1000
 common_media_cdc
 set debugPin u_soc/fabricClock
-if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static}} {
+if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static boot50-dynamic}} {
     common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing
     set debugPin u_soc/debugCrossing/sourceClock
 }

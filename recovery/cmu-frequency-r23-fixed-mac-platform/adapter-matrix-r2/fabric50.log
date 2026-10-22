@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_epoch_adapter_tb.sv:228: EPOCH_ORACLE_FINAL_CONSERVATION
+       Time: 9170000  Scope: fixed_mac_epoch_adapter_tb

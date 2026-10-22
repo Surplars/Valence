@@ -1,0 +1,18 @@
+FIXED_MAC_PREBOOT continuous_source125=1 source_edges=327668 MDIO_transactions=51 no_clock_rejoin=1
+MANAGED_CONTROL_LINK_READY transactions=51 page=0000 link=1 mediaPending=0
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=1
+MANAGED_CONTROL_CSR_COMPLETED offset=00000018 write=1 requests=1 replies=1 data=0000000000000000
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000010 write=1 requests=2
+MANAGED_CONTROL_CSR_COMPLETED offset=00000010 write=1 requests=2 replies=2 data=0000000000000000
+MANAGED_CONTROL_CONFIG_INITIALIZED real_images_consumed=1
+MANAGED_CONTROL_PHY_READY transactions=51 MDIO_divider_unchanged=1 startup_wait=256 poll_wait=512
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=3
+MANAGED_CONTROL_IDLE_BLOCKERS accepted_before_CPU_start=1 old_TX_image_enabled=1
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+MANAGED_CONTROL_NEGATIVE_OBSERVATION CSR_DRAIN original=0 observed=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/fixed_mac_epoch_tb.sv:433: MANAGED_CONTROL_ORACLE_CSR_DRAIN accepted reply/config image ownership
+       Time: 2739222000  Scope: fixed_mac_epoch_tb.drainControlBlockers

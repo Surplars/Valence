@@ -1,0 +1,10 @@
+test_accidental_fixed_clock_change_rejected (test_dynamic_clock_targets.DynamicClockTargets.test_accidental_fixed_clock_change_rejected) ... ok
+test_changed_fixed_master_relationship_rejected (test_dynamic_clock_targets.DynamicClockTargets.test_changed_fixed_master_relationship_rejected) ... ok
+test_relaxed_cpu_target_rejected (test_dynamic_clock_targets.DynamicClockTargets.test_relaxed_cpu_target_rejected) ... ok
+test_relaxed_fabric_target_rejected (test_dynamic_clock_targets.DynamicClockTargets.test_relaxed_fabric_target_rejected) ... ok
+test_two_exact_pre_synthesis_targets_and_fixed_clocks (test_dynamic_clock_targets.DynamicClockTargets.test_two_exact_pre_synthesis_targets_and_fixed_clocks) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.019s
+
+OK

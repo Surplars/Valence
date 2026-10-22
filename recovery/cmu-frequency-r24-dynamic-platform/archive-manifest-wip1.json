@@ -1,0 +1,13 @@
+{
+  "SCOPE.md": "01062484cdfaefba9d0b46c819a19d38ff54755a75006ad88b4eb2ed1bf90bdf",
+  "compile-all-unrelated-legacy-failure.log": "66369e566d1c74d6fe5d8b84b00728bee994d37b36171e238a4d06203719e829",
+  "compile-final-receipt.json": "d4f24e865be17bbf48a57e02d11c32f776190e064c313b853a0739fc6a5cad0a",
+  "compile-final.log": "5ef5b8f4bdad68356d23df0ceefb44c2889fe35b2f1539f1c7cb7f423458889d",
+  "compile-plumbing.log": "0db1c78ef9a0507e2f97adc62b2c38a912eec99e9f952ddd5c3363e53364562b",
+  "default-comparison.py": "8615581715ed833537faeff4f88b0c59995fbdbd81e2129051cbecfff066dcbb",
+  "default-r1-comparison.json": "69c5349f164d590d7c21b96feae3f2db84742444bfbd00a63dc411e1905ecea6",
+  "default-r1.log": "334dda18d39e7a0cce8ca08f51fdeff108651532dc1124704b2255edfe2e480a",
+  "emission.py": "465362db4b3e041aab5f4db229ad29e7892187e1ab78682c9b04631c20fbe6bc",
+  "plumbing-r1-emission.json": "9e6f16c878bafb19b34bfaafa91ced246caf29160efea0b2d79b88c52a65360d",
+  "plumbing-r1-emission.log": "41df3797ca4fb0ffbe0e712043dd49cac7e567394f89898f8bedfcdb89285d6b"
+}

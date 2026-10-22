@@ -1,0 +1,7 @@
+BEGIN case=brief_revoke inject=fault aon_period=34ns fixed_period=10ns fixed_phase=2ns
+RESET_CANCEL accepted=0 consumed=0 returned=0
+AON_ACCEPT time=493000 epoch=1 enable=1 guarded_expect=1
+FIXED_CONSUME time=527000 epoch=1 enable=1 safe=1
+AON_RECEIPT time=663000 epoch=1 enable=1 guarded=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/fixed_clock_safety_tb.sv:106: FAIL_WINDOW fault expected_source=1 age=3 actual=0
+       Time: 799000  Scope: fixed_clock_safety_tb

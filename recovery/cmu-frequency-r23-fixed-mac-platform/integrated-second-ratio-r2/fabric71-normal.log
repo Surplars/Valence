@@ -1,0 +1,40 @@
+FIXED_MAC_PREBOOT continuous_source125=1 source_edges=327706 MDIO_transactions=51 no_clock_rejoin=1
+MANAGED_CONTROL_LINK_READY transactions=51 page=0000 link=1 mediaPending=0
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=1
+MANAGED_CONTROL_CSR_COMPLETED offset=00000018 write=1 requests=1 replies=1 data=0000000000000000
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000010 write=1 requests=2
+MANAGED_CONTROL_CSR_COMPLETED offset=00000010 write=1 requests=2 replies=2 data=0000000000000000
+MANAGED_CONTROL_CONFIG_INITIALIZED real_images_consumed=1
+MANAGED_CONTROL_PHY_READY transactions=51 MDIO_divider_unchanged=1 startup_wait=256 poll_wait=512
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=3
+MANAGED_CONTROL_IDLE_BLOCKERS accepted_before_CPU_start=1 old_TX_image_enabled=1
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+MANAGED_CONTROL_PROGRESS fabric_cycles=32768 MDIO_transactions=59 page=0a43 link=1 start=1 park=1
+MANAGED_CONTROL_BLOCKERS real_CSR_reply=1 config_images_consumed=1 MDIO_policy_boundary=1
+I1_FIXED_FRESH_PROOF epoch=1 independent_UI_timer=1 retained_snapshot_progress=1 IRQ=1
+MANAGED_CONTROL_HELD epoch=1 live_raw_drops=2 pending=6 MDIO_stopped=1 new_CSR_backpressured=1
+MANAGED_CONTROL_TERMINAL_WAIT_RESULT canceled=0 proof_pause=1 fixed_paused=0/0 timer=46/46 fabric_prepares=1 cancels=0 control_park_edges=35898
+MANAGED_CONTROL_TERMINAL_RESULT canceled=0 proof_pause=1 fixed_paused=0/0 timer=47/46 fabric_prepares=1 cancels=0 control_park_edges=35935
+MANAGED_CONTROL_TERMINAL_NEW_TIMER_REPLY canceled=0 timer=47/46
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+FIXED_MAC_FINAL_RECEIPT commands=4 receipts=4 released_snapshots=1 held_cycles=40
+I1_FIXED_POST_RESUME_OWNER real_MMIO=47/46 fixed_reply_held=1 old_epoch_retirement=1
+I1_PACKET_JOINED_RETIREMENT epoch=1 AON=1 debug=1 receipt=1 network=1 fabric=1
+I1_PACKET_HOME_MEMORY case=3 request=8 reply=8 RX_probe=0/0 TX_probe=1/8 preserved_guard=55667788
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000050 write=0 requests=5
+MANAGED_CONTROL_CSR_COMPLETED offset=00000050 write=0 requests=5 replies=5 data=0000000000000002
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=0 requests=6
+MANAGED_CONTROL_CSR_COMPLETED offset=00000018 write=0 requests=6 replies=6 data=0000112233445566
+MANAGED_CONTROL_STATISTICS retained_drops=2 recovered_once=1 retained_config=1
+I1_PACKET_CPU_COHERENT_READBACK case=3 checked=1 RX=0 guard=0 TX=1
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+I1_FIXED_AXI_CHANNEL_COVERAGE W_before_AW_beats=7 tails=1 AW_stalls=9 W_stalls=4 AR_stalls=74
+I1_FIXED_FINAL_LEDGER timer=51/51 UI_read=66 source_read=66 UI_B=3 source_B=3 retained_IRQ=1
+MANAGED_CONTROL_RESTORED_TX CPU_restart=1 frames=2 packet_reads=16 replies=16 control_requests=6/6
+I1_FIXED_RESET common_cold=1 fixed_clocks_paused=1 stale_proofs_cleared=1
+FIXED_MAC_PLATFORM_EPOCH_PASS case=3 clocks=11/7/7/3/4/4/13/19 packet=16/16 AXI_R=66 AXI_B=3 cpu_checked=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/fixed_mac_epoch_tb.sv:1718: $finish called at 3267085000 (1ps)

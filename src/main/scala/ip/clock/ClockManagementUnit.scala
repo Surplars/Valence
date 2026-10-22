@@ -47,12 +47,14 @@ class ClockResourceControl extends Bundle {
   * No hot reset, power switch, runtime rate change or frequency measurement.
   * Only resources with proven endpoint/backend wiring may advertise canGate.
   */
-class ClockManagementUnit(config: CmuParams) extends Module {
+class ClockManagementUnit(config: CmuParams, runtimeObservation: Boolean = false) extends Module {
     private val count = config.resources.size
     val io = IO(new Bundle {
         val registers = Flipped(new RegisterPort)
         val resources = Vec(count, new ClockResourceControl)
         val irq = Output(Bool())
+        val stopMask = if (runtimeObservation) Some(Output(UInt(config.resources.size.W))) else None
+        val registerIdle = if (runtimeObservation) Some(Output(Bool())) else None
     })
     val replies = Module(new Queue(new RegisterResponse, 4, pipe = false, flow = false))
     io.registers.response <> replies.io.deq
@@ -83,6 +85,8 @@ class ClockManagementUnit(config: CmuParams) extends Module {
         (!request.write || (writable && reservedLegal))
     val accepted = io.registers.request.fire && legal && request.write
     val stop = RegInit(0.U(count.W))
+    io.stopMask.foreach(_ := stop)
+    io.registerIdle.foreach(_ := replies.io.count === 0.U && !io.registers.request.valid)
     val wakePending = RegInit(0.U(count.W))
     val wakeEnable = RegInit(config.gateableMask.U(count.W))
     val irqEnable = RegInit(0.U(count.W))
@@ -167,21 +171,27 @@ class ClockManagementUnit(config: CmuParams) extends Module {
   * the complete bus request/response crosses; CPU implementation is irrelevant.
   * Both endpoints and the CPU/master must share the coordinated cold reset.
   */
-class ClockManagementBoundary(config: CmuParams) extends RawModule {
+class ClockManagementBoundary(config: CmuParams, runtimeObservation: Boolean = false) extends RawModule {
     val sourceClock = IO(Input(Clock()))
     val alwaysOnClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
     val registers = IO(Flipped(new RegisterPort))
     val resources = IO(Vec(config.resources.size, new ClockResourceControl))
     val irq = IO(Output(Bool()))
+    val sourceIdle = if (runtimeObservation) Some(IO(Output(Bool()))) else None
+    val aonIdle = if (runtimeObservation) Some(IO(Output(Bool()))) else None
+    val stopMask = if (runtimeObservation) Some(IO(Output(UInt(config.resources.size.W)))) else None
     val bridge = Module(new RegisterClockDomainBridge)
     bridge.sourceClock := sourceClock
     bridge.destinationClock := alwaysOnClock
     bridge.commonReset := commonReset
     bridge.source <> registers
-    val cmu = withClockAndReset(alwaysOnClock, bridge.destinationReset) { Module(new ClockManagementUnit(config)) }
+    val cmu = withClockAndReset(alwaysOnClock, bridge.destinationReset) { Module(new ClockManagementUnit(config, runtimeObservation)) }
     cmu.io.registers <> bridge.destination
     resources <> cmu.io.resources
+    sourceIdle.foreach(_ := bridge.sourceIdle && !registers.request.valid && !registers.response.valid)
+    aonIdle.foreach(_ := bridge.destinationIdle && cmu.io.registerIdle.get)
+    stopMask.foreach(_ := cmu.io.stopMask.get)
     val irqSync = Module(new CdcLevel)
     irqSync.clockIn := sourceClock
     irqSync.resetIn := bridge.sourceReset

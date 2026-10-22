@@ -1,0 +1,2 @@
+DRP_RESET_BEHAVIORAL_PASS cases=5
+/workspace/scratch/41e4a649bb60/Valence/fpga/common/dynamic/drp_reset_tb.sv:57: $finish called at 2060000 (1ps)

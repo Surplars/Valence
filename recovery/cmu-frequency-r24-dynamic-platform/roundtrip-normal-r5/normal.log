@@ -1,0 +1,47 @@
+ROUNDTRIP_MODEL native SV behavioral primitives; NOT UNISIM, mapped timing, or board qualification
+ROUNDTRIP_CLOCKS AON=50MHz rawMAC/RXC=125MHz DDR/timer/debug/reference=250MHz CPU/fabric=real managed50->100->50
+ROUNDTRIP_ROM_INITIALIZED bank0=10081437 bank1=8004041b
+STARTUP_FAULT_TRACE cycle=1 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=2 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=3 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=0 armed=0
+STARTUP_FAULT_TRACE cycle=4 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=5 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=6 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=7 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=8 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=9 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=10 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=11 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=12 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=13 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=14 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=15 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=16 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=17 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=18 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+STARTUP_FAULT_TRACE cycle=19 failed=0 observed=0 guard=0 close=0 debug=0 cleanup=0 receipt=0 safe=1 armed=0
+ROUNDTRIP_PROGRESS time_ns=500390.000 ns boot=0 phy=9 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=1000390.000 ns boot=0 phy=19 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=1500390.000 ns boot=0 phy=29 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=2000390.000 ns boot=0 phy=38 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_PROGRESS time_ns=2500390.000 ns boot=0 phy=48 media=0 retired=0 last_pc=0000000000000000 cpu_state=0 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=0
+ROUNDTRIP_BOOT time_ns=2622820.000 ns phy_transactions=51 status_reads=4 rawMAC_edges=327802
+ROUNDTRIP_EPOCH_REQUEST time_ns=2625990.000 ns lane=0 token=1
+ROUNDTRIP_PROGRESS time_ns=3000390.000 ns boot=1 phy=58 media=1 retired=15 last_pc=0000000080000038 cpu_state=2 fabric_state=0 cpu_done=0 fabric_done=0 epoch_busy=1
+ROUNDTRIP_EPOCH_HELD time_ns=3241570.000 ns lane=0 token=1 epoch=1
+ROUNDTRIP_PROGRAM time_ns=3242230.000 ns lane=0 hz=100000000 token=1
+ROUNDTRIP_COMPLETED time_ns=3245370.000 ns lane=0 completed=1 actual_hz=100000000 edges_after_program=159
+ROUNDTRIP_EPOCH_REQUEST time_ns=3247330.000 ns lane=0 token=2
+ROUNDTRIP_PROGRESS time_ns=3500390.000 ns boot=1 phy=67 media=1 retired=28 last_pc=0000000080000054 cpu_state=2 fabric_state=0 cpu_done=1 fabric_done=0 epoch_busy=1
+ROUNDTRIP_EPOCH_HELD time_ns=3863850.000 ns lane=0 token=2 epoch=2
+ROUNDTRIP_PROGRAM time_ns=3864430.000 ns lane=0 hz=50000000 token=2
+ROUNDTRIP_COMPLETED time_ns=3867790.000 ns lane=0 completed=2 actual_hz=50000000 edges_after_program=89
+ROUNDTRIP_EPOCH_REQUEST time_ns=3872710.000 ns lane=1 token=1
+ROUNDTRIP_PROGRESS time_ns=4000390.000 ns boot=1 phy=77 media=1 retired=51 last_pc=0000000080000038 cpu_state=0 fabric_state=2 cpu_done=2 fabric_done=0 epoch_busy=1
+ROUNDTRIP_EPOCH_HELD time_ns=4486250.000 ns lane=1 token=1 epoch=3
+ROUNDTRIP_PROGRAM time_ns=4486930.000 ns lane=1 hz=100000000 token=1
+ROUNDTRIP_COMPLETED time_ns=4489770.000 ns lane=1 completed=1 actual_hz=100000000 edges_after_program=129
+ROUNDTRIP_EPOCH_REQUEST time_ns=4491810.000 ns lane=1 token=2
+ROUNDTRIP_PROGRESS time_ns=4500390.000 ns boot=1 phy=87 media=1 retired=65 last_pc=0000000080000058 cpu_state=0 fabric_state=2 cpu_done=2 fabric_done=1 epoch_busy=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv:605: ROUNDTRIP_SIMULATION_TIMEOUT 5ms boot=1 phy_transactions=96 media_ready=1 cpu_done=2 fabric_done=1 last_pc=0000000080000058
+       Time: 5000000000  Scope: dynamic_roundtrip_tb

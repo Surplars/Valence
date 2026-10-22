@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/fpga/common/dynamic/dynamic_clock_tb.sv:83: STALE_OPEN_EDGE_WITNESS
+       Time: 1841000  Scope: dynamic_clock_tb.open_domain

@@ -9,7 +9,7 @@ source [file join $valence(root) fpga inorder bscan_timing_i1.tcl]
 valence_native_mac_assert_mode u_rgmii
 common_media_cdc
 set debugPin u_soc/fabricClock
-if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static}} {
+if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static boot50-dynamic}} {
     common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing
     set debugPin u_soc/debugCrossing/sourceClock
 }
@@ -21,3 +21,8 @@ source [file join $valence(root) fpga common management_constraints.tcl]
 common_management_constraints
 
 common_skew_end
+
+if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-dynamic"} {
+    source [file join $valence(root) fpga common dynamic performance_targets.tcl]
+    native_dynamic_performance_targets
+}

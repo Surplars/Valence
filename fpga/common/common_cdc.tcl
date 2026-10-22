@@ -398,8 +398,8 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     if {$root eq {u_soc/crossing}} {
         set profile production
         if {[info exists ::valence(clock_profile)]} {set profile $::valence(clock_profile)}
-        if {$profile ni {production boot50-static performance300-static}} {error "COMMON_CDC unreviewed clock profile $profile"}
-        if {$profile in {boot50-static performance300-static}} {
+        if {$profile ni {production boot50-static performance300-static boot50-dynamic}} {error "COMMON_CDC unreviewed clock profile $profile"}
+        if {$profile in {boot50-static performance300-static boot50-dynamic}} {
             lappend scopes {*}[collect_static u_soc u_soc/fixedTimer u_soc/debugCrossing $profile]
         } elseif {[llength [get_pins -quiet u_soc/ddrClock]] || [llength [get_cells -quiet u_soc/ddrCrossing]]} {
             error "COMMON_CDC independent DDR boundary requires explicit static topology profile"
@@ -457,7 +457,7 @@ proc common_cdc::audit_timing {scopes output} {
             }
         }
     } finally {close $f}
-    report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) in {boot50-static performance300-static} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+    report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) in {boot50-static performance300-static boot50-dynamic} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
 }
 
 # Additional opt-in static boot boundary map. This is a fail-closed mapped-netlist
@@ -559,7 +559,7 @@ proc common_cdc::collect_boot50 {soc timer debug} {
     return [collect_static $soc $timer $debug boot50-static]
 }
 proc common_cdc::collect_static {soc timer debug {profile boot50-static}} {
-    if {$profile ni {boot50-static performance300-static}} {error "COMMON_CDC unreviewed static profile $profile"}
+    if {$profile ni {boot50-static performance300-static boot50-dynamic}} {error "COMMON_CDC unreviewed static profile $profile"}
     set performance [expr {$profile eq {performance300-static}}]
     set cpu [clock $soc/cpuClock];set fabric [clock $soc/fabricClock]
     set fixed [static_clock_anchors $soc $timer $debug];set aon [clock $soc/alwaysOnClock]

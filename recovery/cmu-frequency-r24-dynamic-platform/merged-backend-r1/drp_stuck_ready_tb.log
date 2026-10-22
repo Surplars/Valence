@@ -1,0 +1,2 @@
+DRP_READY_FAULT_BEHAVIORAL_PASS stretched_and_stuck cases=2
+/workspace/scratch/41e4a649bb60/Valence/fpga/common/dynamic/drp_stuck_ready_tb.sv:41: $finish called at 1360000 (1ps)

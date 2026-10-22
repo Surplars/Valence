@@ -1,0 +1,3 @@
+FIXED_MAC_EPOCH_FAULT_PASS case=2 failed_closed=1
+FIXED_MAC_EPOCH_ADAPTER_PASS fabric_half=10 commands=5 receipts=5 release_snapshots=2 csr=1/1 held=418 early_cancel=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_epoch_adapter_tb.sv:264: $finish called at 9870000 (1ps)

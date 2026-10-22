@@ -64,7 +64,7 @@ class PeripheralWakeDelay(width: Int, cycles: Int, inactive: BigInt = 0,
   * during drain; there is no request queue, bridge provides its one credit.
   * quiesce/isolate must already be synchronized to this source clock.
   */
-class ClockRegisterAdmission(timeoutCycles: Int = 1024) extends Module {
+class ClockRegisterAdmission(timeoutCycles: Int = 1024, runtimeObservation: Boolean = false) extends Module {
     require(timeoutCycles >= 32)
     val io = IO(new Bundle {
         val upstream = Flipped(new RegisterPort)
@@ -74,6 +74,7 @@ class ClockRegisterAdmission(timeoutCycles: Int = 1024) extends Module {
         val downstreamIdle = Input(Bool())
         val drained = Output(Bool())
         val wake = Output(Bool())
+        val ownerIdle = if (runtimeObservation) Some(Output(Bool())) else None
     })
     val blocked = io.quiesce || io.isolate
     val errorReply = RegInit(false.B)
@@ -91,6 +92,8 @@ class ClockRegisterAdmission(timeoutCycles: Int = 1024) extends Module {
     io.downstream.response.ready := io.upstream.response.ready && !errorReply
     when(io.upstream.request.fire && reject) { errorReply := true.B }
     when(io.upstream.response.fire && errorReply) { errorReply := false.B }
+    io.ownerIdle.foreach(_ := !errorReply && io.downstreamIdle &&
+        !io.upstream.request.valid && !io.upstream.response.valid && !io.downstream.request.valid)
     io.drained := io.quiesce && io.downstreamIdle
     val wake = RegInit(false.B)
     when(io.upstream.request.valid && blocked) { wake := true.B }

@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import soc.ip.axi.{Axi4ClockDomainBoundary, Axi4MemoryPort}
 import soc.ip.bus.{CdcLevel, CdcResetRelease}
-import soc.ip.clock.{ClockRateParams, ManagedPeripheralBank}
+import soc.ip.clock.{ClockRateBackendPort, ClockRateParams, ManagedPeripheralBank}
 import soc.ip.debug.{DebugDmiClockBoundary, DebugDmiPort}
 import soc.ip.timer.FixedTimebaseBoundary
 
@@ -49,7 +49,11 @@ class CommonMachinePlatform(
     runtimeDebugAdmission: Boolean = false,
     runtimeNetworkAdmission: Boolean = false,
     runtimeFixedQualification: Boolean = false,
-    runtimeControlQualification: Boolean = false
+    runtimeControlQualification: Boolean = false,
+    runtimeFixedMac: Boolean = false,
+    runtimeRateControl: Boolean = false,
+    externalIrqsAbsent: Boolean = false,
+    testOnlyRateParams: Option[Seq[ClockRateParams]] = None
 ) extends RawModule {
     require(!runtimeDebugAdmission || (profile.kind == "i1" && independentDebugClock),
         "runtime debug isolation requires I1 and an explicit fixed debug clock; A1 is unsupported")
@@ -60,6 +64,12 @@ class CommonMachinePlatform(
         "fixed-domain runtime proof requires the I1 epoch path and real DDR/timer boundaries")
     require(!runtimeControlQualification || (runtimeFixedQualification && runtimeNetworkAdmission),
         "managed control qualification requires the real network and fixed-domain epoch joins")
+    require(!runtimeFixedMac || runtimeControlQualification,
+        "fixed MAC integration requires the complete existing control/network/fixed epoch path")
+    require(!runtimeRateControl || (runtimeFixedMac && !programmable),
+        "dynamic rate integration needs all real owners and no unhandshaked ROM programming source")
+    require(testOnlyRateParams.isEmpty || runtimeRateControl)
+    require(profile.clockProfile != "boot50-dynamic" || runtimeRateControl)
     private val boundary = if (runtimeDebugAdmission) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
     require(independentDdrClock || profile.fabricHz == profile.ddrUiHz,
@@ -69,6 +79,9 @@ class CommonMachinePlatform(
     require(!profile.independentFixedDomains ||
         (independentDdrClock && independentTimebaseClock && independentDebugClock),
         "the independent fixed-domain profile requires DDR, timer and DMI boundaries even at equal rates")
+    val rateBackend = if (runtimeRateControl) Some(IO(Vec(2, new ClockRateBackendPort))) else None
+    private val rateFatal = if (runtimeRateControl) Some(Wire(Bool())) else None
+    private val fixedDebugFault = if (runtimeRateControl) Some(Wire(Bool())) else None
     val cpuClock = IO(Input(Clock()))
     val fabricClock = IO(Input(Clock()))
     val alwaysOnClock = IO(Input(Clock()))
@@ -93,7 +106,7 @@ class CommonMachinePlatform(
         val mdioOut = Output(Bool()); val mdioOe = Output(Bool())
         val jtagDmi = Flipped(new DebugDmiPort(7)); val jtagLinkUp = Input(Bool())
         val maintenance = Flipped(Decoupled(new CommonTileMaintenanceCommand(boundary)))
-        val runtime = if (runtimeDebugAdmission) Some(new CommonPlatformRuntimePort(boundary)) else None
+        val runtime = if (runtimeDebugAdmission && !runtimeRateControl) Some(new CommonPlatformRuntimePort(boundary)) else None
         val maintenanceStatus = Output(Valid(new CommonTileMaintenanceStatus(boundary)))
         val retire = Output(Vec(2, Valid(new CommonRetireTrace)))
         val trap = Output(Valid(new Bundle { val pc = UInt(64.W); val cause = UInt(64.W) }))
@@ -187,15 +200,18 @@ class CommonMachinePlatform(
         }
     }
     val runtime = if (runtimeDebugAdmission) Some(Module(new CommonRuntimeEpochBoundary(boundary,
-        externalRetirementBarrier = true))) else None
+        externalRetirementBarrier = true, externalReleaseInterlock = runtimeRateControl,
+        finalCloseCommit = runtimeRateControl))) else None
     runtime.foreach { r =>
         r.aonClock := alwaysOnClock; r.cpuClock := cpuClock; r.fabricClock := fabricClock
         r.commonColdReset := commonColdReset
-        r.io.requests <> io.runtime.get.requests; r.io.resume <> io.runtime.get.resume
-        r.io.cancel <> io.runtime.get.cancel; io.runtime.get.held := r.io.held
-        io.runtime.get.result <> r.io.result; io.runtime.get.busy := r.io.busy
-        io.runtime.get.cleanupFault := r.io.cleanupFault
-        io.runtime.get.timeoutSelected := r.io.timeoutSelected
+        io.runtime.foreach { external =>
+            r.io.requests <> external.requests; r.io.resume <> external.resume
+            r.io.cancel <> external.cancel; external.held := r.io.held
+            external.result <> r.io.result; external.busy := r.io.busy
+            external.cleanupFault := r.io.cleanupFault
+            external.timeoutSelected := r.io.timeoutSelected
+        }
         r.io.fabricHeld := fabric.io.runtimeHeld.get
         if (runtimeFixedQualification) {
             r.io.fabricHeld.valid := fabric.io.runtimeHeld.get.valid && fixedFabricIdle.get.asUInt.andR &&
@@ -252,10 +268,33 @@ class CommonMachinePlatform(
         n.io.terminalConsumedAtAon := runtime.get.io.terminalConsumedAtAon.get
         n.io.retired := runtime.get.io.runtimeComplete.fire
     }
+    val fixedMacSequence = if (runtimeFixedMac) Some(withClockAndReset(fabricClock, fabricRelease.resetOut) {
+        Module(new CommonFixedMacRuntimeAdapter(boundary))
+    }) else None
+    fixedMacSequence.foreach { a =>
+        val n = networkSequence.get
+        a.io.owner.valid := n.io.busy
+        a.io.owner.bits := n.io.held.bits
+        a.io.rxStop := n.io.rxStop
+        a.io.txStop := n.io.txStop
+        a.io.park := controlQualification.get.io.parkRequest
+        a.io.txProducersClosed := n.io.dmaPause && fabric.io.networkTxIdle.get &&
+            !fabric.io.ethernetStreams.get.txData.valid && !fabric.io.ethernetStreams.get.txControl.valid
+        a.io.controlProducersClosed := fabric.io.runtimeHeld.get.valid &&
+            fabric.io.runtimeHeld.get.bits === n.io.held.bits && fabric.io.allObligationsIdle &&
+            !fabric.io.ethernetRegisters.get.request.valid
+        a.io.terminalConsumedAtAon := runtime.get.io.terminalConsumedAtAon.get
+        a.io.retired := runtime.get.io.runtimeComplete.fire
+    }
     if (!runtimeDebugAdmission) fabric.io.externalMaintenance <> io.maintenance
     io.maintenanceStatus := fabric.io.externalMaintenanceStatus
     if (runtimeDebugAdmission) {
-        val debugSequence = Module(new CommonDebugRuntimeSequencer(boundary))
+        val debugSequence = Module(new CommonDebugRuntimeSequencer(boundary,
+            emergencyAdmissionStop = runtimeRateControl))
+        if (runtimeRateControl) {
+            debugSequence.emergencyStop.get := rateFatal.get
+            fixedDebugFault.get := debugSequence.fixedFault.get
+        }
         debugSequence.fabricClock := fabricClock; debugSequence.debugClock := debugClock.get
         debugSequence.commonColdReset := commonColdReset
         debugSequence.source <> io.jtagDmi; fabric.io.jtagDmi.get <> debugSequence.destination
@@ -272,16 +311,18 @@ class CommonMachinePlatform(
             networkSequence.map(_.io.retirementPermit).getOrElse(true.B) &&
             (if (runtimeFixedQualification) fixedQualifiers.map(_.retirementPermit).reduce(_ && _) else true.B) &&
             controlQualification.map(_.io.retirementPermit).getOrElse(true.B)
-        networkSequence.foreach(_.io.fault := debugSequence.fault)
+        networkSequence.foreach(_.io.fault := debugSequence.fault ||
+            fixedMacSequence.map(_.io.fault).getOrElse(false.B))
         runtime.get.io.retirementFault.get := debugSequence.fault ||
             (if (runtimeFixedQualification) fixedQualifiers.map(_.fault).reduce(_ || _) else false.B) ||
-            controlQualification.map(_.io.fault).getOrElse(false.B)
+            controlQualification.map(_.io.fault).getOrElse(false.B) ||
+            fixedMacSequence.map(_.io.fault).getOrElse(false.B)
         val debugFault = Module(new CdcLevel)
         val aonRelease = Module(new CdcResetRelease)
         aonRelease.clockIn := alwaysOnClock; aonRelease.asyncReset := commonColdReset
         debugFault.clockIn := alwaysOnClock; debugFault.resetIn := aonRelease.resetOut
         debugFault.levelIn := debugSequence.fault
-        io.runtime.get.debugFault := debugFault.levelOut
+        io.runtime.foreach(_.debugFault := debugFault.levelOut)
     } else if (independentDebugClock) {
         val debugCrossing = Module(new DebugDmiClockBoundary(7))
         debugCrossing.sourceClock := debugClock.get; debugCrossing.destinationClock := fabricClock
@@ -295,12 +336,26 @@ class CommonMachinePlatform(
     }
     fabric.io.program.foreach(_ := io.program.get)
     fabric.io.uartRx := true.B // actual UART is the shared managed bank below
-    val peripherals = Module(new ManagedPeripheralBank(profile.cmu, profile.cpuHz, profile.uartHz,
+    protected def buildPeripheralBank(): ManagedPeripheralBank =
+        new ManagedPeripheralBank(profile.cmu, profile.cpuHz, profile.uartHz,
         profile.uartBaud, hardwareClocks, networkDmaConfig = profile.fpga.network,
         triSpeedEthernet = true, triSpeedTxFrameSlots = 2, runtimeAdmission = runtimeNetworkAdmission,
-        runtimeControlPark = runtimeControlQualification,
-        sourceClockHz = profile.fabricHz, rateDomains = Some(Seq(
-            ClockRateParams(), ClockRateParams(maximumHz = 150000000L)))))
+        runtimeControlPark = runtimeControlQualification, runtimeFixedMac = runtimeFixedMac,
+        runtimeRateControl = runtimeRateControl,
+        sourceClockHz = profile.fabricHz, rateDomains = Some(testOnlyRateParams.getOrElse(
+            if (runtimeRateControl) Seq(ClockRateParams(maximumHz = 300000000L),
+                ClockRateParams(maximumHz = 250000000L))
+            else Seq(ClockRateParams(), ClockRateParams(maximumHz = 150000000L)))))
+    val peripherals = Module(buildPeripheralBank())
+    if (runtimeFixedMac) {
+        val a = fixedMacSequence.get
+        a.io.boundary <> peripherals.fixedMacRuntime.get
+        networkSequence.get.io.macRxDrained := a.io.rxDrained
+        networkSequence.get.io.macTxDrained := a.io.txDrained
+        networkSequence.get.io.macReleased := a.io.released
+        controlQualification.get.io.parked := a.io.parked
+        controlQualification.get.io.parkReleased := a.io.released
+    } else {
     networkSequence.foreach { n =>
         val mac = peripherals.runtimeAdmissionPort.get
         mac.rxStopRequest := n.io.rxStop; mac.txStopRequest := n.io.txStop
@@ -315,20 +370,120 @@ class CommonMachinePlatform(
         // PHY fault keeps qualification low; cancellation must still release
         // this pause so the unchanged PHY retry machinery can make progress.
     }
+    }
     peripherals.sourceClock := fabricClock; peripherals.alwaysOnClock := alwaysOnClock
     peripherals.rawUartClock := rawUartClock; peripherals.rawTxClock := rawTxClock
     peripherals.rawRxClock := rawRxClock; peripherals.commonReset := commonColdReset
-    // Production CMU extension is discoverable, but no clock backend or real
-    // CPU/fabric quiesce endpoint is connected yet. Explicit absence rejects
-    // every rate write; it must not turn a test ACK into a live clock command.
-    peripherals.rateEndpoints.get.foreach { endpoint =>
-        endpoint.present := false.B
-        endpoint.drainAcks := 0.U
-        endpoint.gateClosed := false.B; endpoint.gateOpen := false.B
-        endpoint.locked := false.B; endpoint.resumed := false.B
-        endpoint.program.ready := false.B
-        endpoint.result.valid := false.B
-        endpoint.result.bits := 0.U.asTypeOf(endpoint.result.bits)
+    if (!runtimeRateControl) {
+        // Production CMU extension is discoverable, but no clock backend or real
+        // CPU/fabric quiesce endpoint is connected yet. Explicit absence rejects
+        // every rate write; it must not turn a test ACK into a live clock command.
+        peripherals.rateEndpoints.get.foreach { endpoint =>
+            endpoint.present := false.B
+            endpoint.drainAcks := 0.U
+            endpoint.gateClosed := false.B; endpoint.gateOpen := false.B
+            endpoint.locked := false.B; endpoint.resumed := false.B
+            endpoint.program.ready := false.B
+            endpoint.result.valid := false.B
+            endpoint.result.bits := 0.U.asTypeOf(endpoint.result.bits)
+        }
+    } else {
+        val r = runtime.get
+        r.io.fabricControlOwnersIdle.get := peripherals.runtimeFabricOwnerIdle.get
+        r.io.fabricFixedOwnersIdle.get := fixedFabricIdle.get.asUInt.andR &&
+            fixedQualifiers.map(q => q.qualified.valid &&
+                q.qualified.bits === fabric.io.runtimeHeld.get.bits).reduce(_ && _)
+        val aonRelease = Module(new CdcResetRelease)
+        aonRelease.clockIn := alwaysOnClock; aonRelease.asyncReset := commonColdReset
+        val debugFaultSync = Module(new CdcLevel)
+        debugFaultSync.clockIn := alwaysOnClock; debugFaultSync.resetIn := aonRelease.resetOut
+        debugFaultSync.levelIn := fixedDebugFault.get
+        withClockAndReset(alwaysOnClock, aonRelease.resetOut) {
+            val adapter = Module(new CommonClockRateEpochAdapter(boundary))
+            adapter.io.clients <> peripherals.rateLeases.get
+            r.io.requests <> adapter.io.requests; r.io.resume <> adapter.io.resume
+            r.io.cancel <> adapter.io.cancel
+            adapter.io.held := r.io.held; adapter.io.result <> r.io.result
+            adapter.io.busy := r.io.busy; adapter.io.activeLane := r.io.activeLane
+            adapter.io.activeEpoch := r.io.activeEpoch; adapter.io.activeToken := r.io.activeToken
+            adapter.io.drainDeadline := r.io.drainDeadline; adapter.io.timeoutSelected := r.io.timeoutSelected
+            adapter.io.cleanupFault := r.io.cleanupFault
+
+            val failed = RegInit(false.B)
+            // AON-combinational interlock stops a NEW handshake on the same
+            // observed-fault edge. Only 'failed', a sticky AON register, launches
+            // the independent emergency-stop CDCs into the fixed domains.
+            val observedFault = Wire(Bool())
+            val unsafe = failed || observedFault
+            val safety = peripherals.rateSafety.get
+            val backendFault = rateBackend.get.map(_.fatal).reduce(_ || _)
+            val owned = RegInit(false.B)
+            val epoch = RegInit(0.U(16.W))
+            val armSent = RegInit(false.B); val armAck = RegInit(false.B)
+            val armed = RegInit(false.B)
+            val disarmSent = RegInit(false.B); val disarmAck = RegInit(false.B)
+            when(!owned && r.io.busy) {
+                owned := true.B; epoch := r.io.activeEpoch
+                armSent := false.B; armAck := false.B; armed := false.B
+                disarmSent := false.B; disarmAck := false.B
+            }
+            val sameOwner = owned && r.io.busy && epoch === r.io.activeEpoch
+            val selected = r.io.activeLane
+            val targetBackend = rateBackend.get(selected)
+            val progress = targetBackend.clockEnable && targetBackend.locked &&
+                targetBackend.gateOpen && targetBackend.resumed && !unsafe
+            val fixedAonSafe = peripherals.runtimeAonControlIdle.get && peripherals.runtimeAonUartRunning.get
+            val laneAllowed = selected === 0.U || externalIrqsAbsent.B
+            val wantArm = sameOwner && !armSent && r.io.held(selected).valid && r.io.closeProof.get.andR &&
+                fixedAonSafe && laneAllowed && !r.io.releasePending.get
+            // No new allocator: the sole runtime owner supplies the epoch tag.
+            val wantDisarm = sameOwner && armSent && armAck && !disarmSent &&
+                r.io.closeUncommitted.get && progress
+            safety.command.valid := !unsafe && (wantArm || wantDisarm)
+            safety.command.bits.epoch := epoch
+            safety.command.bits.enable := !wantDisarm
+            when(safety.command.fire) {
+                when(safety.command.bits.enable) { armSent := true.B }
+                    .otherwise { disarmSent := true.B }
+            }
+            safety.receipt.ready := !failed
+            val receipt = safety.receipt.bits
+            val goodArm = sameOwner && receipt.command.epoch === epoch && receipt.command.enable && armSent && !armAck
+            val goodDisarm = sameOwner && receipt.command.epoch === epoch && !receipt.command.enable &&
+                disarmSent && !disarmAck && !receipt.guarded
+            val badReceipt = safety.receipt.valid && !(goodArm || goodDisarm)
+            when(safety.receipt.fire && goodArm) { armAck := true.B; armed := receipt.guarded }
+            when(safety.receipt.fire && goodDisarm) { disarmAck := true.B }
+            val safetyWindow = armed && !disarmAck
+            observedFault := backendFault || safety.fault || r.io.closeFault.get || debugFaultSync.levelOut ||
+                r.io.cleanupFault || badReceipt || (safetyWindow && !fixedAonSafe)
+            when(observedFault) { failed := true.B }
+            when(owned && !r.io.busy) {
+                when(armSent && !disarmAck) { failed := true.B }
+                owned := false.B
+            }
+            rateFatal.get := failed
+            peripherals.rateBackendFault.get := Fill(2, unsafe)
+            peripherals.rateEmergencyStop.get := failed
+            // First consume source-owner close proofs, so an initially idle
+            // AON receipt destination cannot hide an old in-flight MMIO reply.
+            // Actual gate ACK additionally waits fixed safety arm consumption.
+            r.io.closeRequest.get := sameOwner && !disarmSent && fixedAonSafe && laneAllowed && !unsafe
+            r.io.releasePermit.get := progress
+            r.io.finalReleasePermit.get := !unsafe && (!armSent || disarmAck)
+            for (i <- 0 until 2) {
+                val endpoint = peripherals.rateEndpoints.get(i)
+                val backend = rateBackend.get(i)
+                endpoint.present := backend.present
+                endpoint.gateClosed := backend.gateClosed; endpoint.gateOpen := backend.gateOpen
+                endpoint.locked := backend.locked; endpoint.resumed := backend.resumed
+                backend.clockEnable := endpoint.clockEnable
+                backend.quiesce := endpoint.quiesce; backend.isolate := endpoint.isolate
+                backend.program <> endpoint.program; endpoint.result <> backend.result
+                endpoint.drainAcks := Mux(sameOwner && selected === i.U && endpoint.quiesce &&
+                    armed && !disarmSent && !unsafe, r.io.closeProof.get, 0.U)
+            }
+        }
     }
     peripherals.cmuRegisters <> fabric.io.clockManagementRegisters.get
     peripherals.uartRegisters <> fabric.io.externalUartRegisters.get

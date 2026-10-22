@@ -1,0 +1,28 @@
+{
+  "status": "PASS_SOURCE_AND_BINARY_BINDING_OF_FAILED_RUN_ONLY",
+  "normal_status": "FAIL",
+  "receipt_sha256": "f4ccba9795822fd9c7a4b1b178c1309b0e0bbbd382c0927e201b767bec7e4b52",
+  "frozen_inputs_checked": 1246,
+  "frozen_input_match": true,
+  "current_worktree_test_files_replaced_by_exact_archived_run_inputs": {
+    "/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_tb.sv": "recovery/cmu-frequency-r24-dynamic-platform/roundtrip-normal-r5/source-dynamic_roundtrip_tb.sv",
+    "/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/dynamic_roundtrip_native.py": "recovery/cmu-frequency-r24-dynamic-platform/roundtrip-normal-r5/source-dynamic_roundtrip_native.py"
+  },
+  "all_other_frozen_inputs_current_and_unchanged": true,
+  "tool_matches": {
+    "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog": true,
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/iverilog": true,
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp": true,
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivl": true,
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivlpp": true,
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt": true
+  },
+  "vvp_binary_sha256": "f611078b21d2fd903a52bd24c5ba82c6a2d4ea0273ac0b6bc93dc0ebf8fb69db",
+  "normal_exit": 1,
+  "normal_seconds": 839.7153243649955,
+  "normal_timeout": false,
+  "normal_reaped": true,
+  "failure": "TB absolute5ms observation cap, not host timeout; CPU2/2 and fabric1/2, fourth real drain pending",
+  "not_complete_roundtrip": true,
+  "physical_qualified": false
+}

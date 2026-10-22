@@ -1,0 +1,182 @@
+{
+  "status": "PASS_REAL_POSITIVES_CHECKPOINT",
+  "whole_matrix_complete": false,
+  "label": "Dynamic protocol simulation, NOT hardware frequency switching",
+  "verifier_sha256": "355bd183c216f71c0ca363395a8005f381937a9d551bcfca5fca214721848f0b",
+  "production_source_files": 312,
+  "default_sv_byte_identical": 248,
+  "enabled_platform_sv": 265,
+  "adapter_positive": 6,
+  "adapter_ordinary_negative": 4,
+  "real_i1_positive": 4,
+  "real_i1_ordinary_negative": 0,
+  "real_i1": {
+    "fabric50-normal": {
+      "seconds": 175.456630597997,
+      "returncode": 0,
+      "log_sha256": "0af3a3c21547410e0009598e878665d62118bf2231438643ac46daf91b208c44"
+    },
+    "fabric50-cancel": {
+      "seconds": 68.49507999299385,
+      "returncode": 0,
+      "log_sha256": "8b8944a4660e67c1944143b278139682a606b19e54334fd2d1e5f18c2e0c5df1"
+    },
+    "fabric71-normal": {
+      "seconds": 164.33915517300193,
+      "returncode": 0,
+      "log_sha256": "f4a2611de07b7acf3e707b59af04fb5e92900198d2f8ebc96be8a39328e1df1b"
+    },
+    "fabric71-cancel": {
+      "seconds": 68.49416366299556,
+      "returncode": 0,
+      "log_sha256": "077f4f7303cf0e74b40cd79197fd12324fa7c28dc1b434f5a857b78500b4fc51"
+    }
+  },
+  "records": {
+    "integrated-smoke-r1": "6081f5e40951dbf26ecccdbedb8224542189f36e342fbae5180178390a2baebb",
+    "integrated-cancel-r1": "fd44ef916f4de33a9128f3272def8170c37007a6bf38d15b22ff0ec1654086ce",
+    "integrated-second-ratio-r2": "cc93d02e5055dc52f86bd34ee9432e6d311c1db4939a50440a77f2976b85d628"
+  },
+  "exact_historical_source_differences": [
+    {
+      "record": "out/cmu-frequency-r23/integrated-smoke-r1",
+      "path": "simulator/gsim/common/fixed_mac_epoch_native.py",
+      "historical_sha256": "546ca541d34e8e0fad4bc9de11d349424ddfe7682552a27f8d501660cdc7353b",
+      "current_sha256": "ad292461981545c9d9b1be571320b800e4eda0881e33df4e61984e87151fdf26",
+      "exact_diff": [
+        "--- ",
+        "+++ ",
+        "@@ -47,6 +47,8 @@",
+        "     p.add_argument('--single-ratio', choices=RATIOS)",
+        "     p.add_argument('--scenario', choices=old.SCENARIOS)",
+        "     p.add_argument('--negative-only', choices=NEGATIVES)",
+        "+    p.add_argument('--native-wall-seconds', type=int, choices=(180,300), default=180,",
+        "+                   help='Host-only per-native-case ceiling; 300s approved for this bounded r23 matrix')",
+        "     p.add_argument('--cross-prefix', default='riscv64-unknown-elf-')",
+        "     p.add_argument('--iverilog', default=os.environ.get('IVERILOG', 'iverilog'))",
+        "     p.add_argument('--vvp', default=os.environ.get('VVP', 'vvp'))",
+        "@@ -61,7 +63,10 @@",
+        "         rtl_sha256={f.name: base.sha(f) for f in files}, fixed_source_hz=125000000,",
+        "         real_cpu_home_dma=True, actual_aon_terminal_consumption=True, fixture_producer_closed=False,",
+        "         shortened_phy_policy_waits=[256,512], full_ack=False, physical_qualified=False,",
+        "-        unchanged_hardware_default=True, gate_drp_backend=False, maximum_child_seconds=180,",
+        "+        unchanged_hardware_default=True, gate_drp_backend=False, maximum_child_seconds=a.native_wall_seconds, build_child_seconds=180,",
+        "+        approved_case_wall_budgets=({**{r+'-'+s:300 for r in RATIOS for s in old.SCENARIOS},",
+        "+                                    **{'negative-'+n:300 for n in NEGATIVES}} if a.native_wall_seconds==300 else {}),",
+        "+        wall_budget_scope='175.457s measured normal; approved 300s host-only ceiling for bounded r23 cases, no DUT/MDIO/guest timing changes',",
+        "         preboot_scope='continuous raw125 MAC; only empty large domains pause, no source rejoin',",
+        "         exclusions=['RX payload through real DMA', 'fullACK/gate/DRP', 'unilateral reset', 'board/STA', 'arbitrary external IRQ pulse capture'])",
+        "     def check():",
+        "@@ -110,7 +115,7 @@",
+        "             label='negative-'+negative if negative else ratio+'-'+scenario",
+        "             args=[f'+{c}-half={n}' for c,n in zip(CLOCKS,RATIOS[ratio])]+[f'+managed-scenario={old.SCENARIOS[scenario]}']",
+        "             if negative:args += [f'+negative={NEGATIVES[negative][0]}']",
+        "-            rc,log=old.run(command+args,out,label,180,record)",
+        "+            rc,log=old.run(command+args,out,label,a.native_wall_seconds,record)",
+        "             if negative:",
+        "                 _,reject,inject=NEGATIVES[negative]",
+        "                 if rc==0 or reject not in log or inject not in log or PASS in log:raise RuntimeError('negative not rejected '+label)"
+      ]
+    },
+    {
+      "record": "out/cmu-frequency-r23/integrated-smoke-r1",
+      "path": "simulator/gsim/common/fixed_mac_epoch_tb.sv",
+      "historical_sha256": "a15532139d1490ed30e5568216f5ae3235360bd2a096a5aafdb01118e7ac4ba9",
+      "current_sha256": "d2d4b6fcaffe539ea5a0d8eaf20643e4971f9cea59a04b0c82e79bd72ae178ae",
+      "exact_diff": [
+        "--- ",
+        "+++ ",
+        "@@ -1,8 +1,8 @@",
+        " `timescale 1ns/1ps",
+        " // Eight independent clocks, real CPU/Atomic/Home/DDR CDC/timer and real AON results.",
+        "-// Only the external AXI RAM responder is modeled. No terminal receipt is injected.",
+        "-// r20 replaces, rather than supplements, the r19 packet endpoint with the real",
+        "-// managed bank. External test CSR producer owns real arbitrated requests; CPU",
+        "+// External AXI RAM and Clause22 PHY pins are modeled. No terminal receipt is injected.",
+        "+// r23 replaces the r19 packet endpoint with the actual fixed125 managed",
+        "+// bank and tagged boundary. External test CSR producer owns real arbitrated requests; CPU",
+        " // still owns both DMA transmissions, all packet descriptors and cached payload.",
+        " module fixed_mac_epoch_tb;",
+        "   `include \"guest_symbols.svh\""
+      ]
+    },
+    {
+      "record": "out/cmu-frequency-r23/integrated-cancel-r1",
+      "path": "simulator/gsim/common/fixed_mac_epoch_native.py",
+      "historical_sha256": "546ca541d34e8e0fad4bc9de11d349424ddfe7682552a27f8d501660cdc7353b",
+      "current_sha256": "ad292461981545c9d9b1be571320b800e4eda0881e33df4e61984e87151fdf26",
+      "exact_diff": [
+        "--- ",
+        "+++ ",
+        "@@ -47,6 +47,8 @@",
+        "     p.add_argument('--single-ratio', choices=RATIOS)",
+        "     p.add_argument('--scenario', choices=old.SCENARIOS)",
+        "     p.add_argument('--negative-only', choices=NEGATIVES)",
+        "+    p.add_argument('--native-wall-seconds', type=int, choices=(180,300), default=180,",
+        "+                   help='Host-only per-native-case ceiling; 300s approved for this bounded r23 matrix')",
+        "     p.add_argument('--cross-prefix', default='riscv64-unknown-elf-')",
+        "     p.add_argument('--iverilog', default=os.environ.get('IVERILOG', 'iverilog'))",
+        "     p.add_argument('--vvp', default=os.environ.get('VVP', 'vvp'))",
+        "@@ -61,7 +63,10 @@",
+        "         rtl_sha256={f.name: base.sha(f) for f in files}, fixed_source_hz=125000000,",
+        "         real_cpu_home_dma=True, actual_aon_terminal_consumption=True, fixture_producer_closed=False,",
+        "         shortened_phy_policy_waits=[256,512], full_ack=False, physical_qualified=False,",
+        "-        unchanged_hardware_default=True, gate_drp_backend=False, maximum_child_seconds=180,",
+        "+        unchanged_hardware_default=True, gate_drp_backend=False, maximum_child_seconds=a.native_wall_seconds, build_child_seconds=180,",
+        "+        approved_case_wall_budgets=({**{r+'-'+s:300 for r in RATIOS for s in old.SCENARIOS},",
+        "+                                    **{'negative-'+n:300 for n in NEGATIVES}} if a.native_wall_seconds==300 else {}),",
+        "+        wall_budget_scope='175.457s measured normal; approved 300s host-only ceiling for bounded r23 cases, no DUT/MDIO/guest timing changes',",
+        "         preboot_scope='continuous raw125 MAC; only empty large domains pause, no source rejoin',",
+        "         exclusions=['RX payload through real DMA', 'fullACK/gate/DRP', 'unilateral reset', 'board/STA', 'arbitrary external IRQ pulse capture'])",
+        "     def check():",
+        "@@ -110,7 +115,7 @@",
+        "             label='negative-'+negative if negative else ratio+'-'+scenario",
+        "             args=[f'+{c}-half={n}' for c,n in zip(CLOCKS,RATIOS[ratio])]+[f'+managed-scenario={old.SCENARIOS[scenario]}']",
+        "             if negative:args += [f'+negative={NEGATIVES[negative][0]}']",
+        "-            rc,log=old.run(command+args,out,label,180,record)",
+        "+            rc,log=old.run(command+args,out,label,a.native_wall_seconds,record)",
+        "             if negative:",
+        "                 _,reject,inject=NEGATIVES[negative]",
+        "                 if rc==0 or reject not in log or inject not in log or PASS in log:raise RuntimeError('negative not rejected '+label)"
+      ]
+    },
+    {
+      "record": "out/cmu-frequency-r23/integrated-cancel-r1",
+      "path": "simulator/gsim/common/fixed_mac_epoch_tb.sv",
+      "historical_sha256": "a15532139d1490ed30e5568216f5ae3235360bd2a096a5aafdb01118e7ac4ba9",
+      "current_sha256": "d2d4b6fcaffe539ea5a0d8eaf20643e4971f9cea59a04b0c82e79bd72ae178ae",
+      "exact_diff": [
+        "--- ",
+        "+++ ",
+        "@@ -1,8 +1,8 @@",
+        " `timescale 1ns/1ps",
+        " // Eight independent clocks, real CPU/Atomic/Home/DDR CDC/timer and real AON results.",
+        "-// Only the external AXI RAM responder is modeled. No terminal receipt is injected.",
+        "-// r20 replaces, rather than supplements, the r19 packet endpoint with the real",
+        "-// managed bank. External test CSR producer owns real arbitrated requests; CPU",
+        "+// External AXI RAM and Clause22 PHY pins are modeled. No terminal receipt is injected.",
+        "+// r23 replaces the r19 packet endpoint with the actual fixed125 managed",
+        "+// bank and tagged boundary. External test CSR producer owns real arbitrated requests; CPU",
+        " // still owns both DMA transmissions, all packet descriptors and cached payload.",
+        " module fixed_mac_epoch_tb;",
+        "   `include \"guest_symbols.svh\""
+      ]
+    }
+  ],
+  "guest_non_elf_artifact_sha256": {
+    "guest.fixed.S": "1159be21ae852a58df8111bbeca6df43b9956c9a9f8d9d02bc0bafc366d3aa45",
+    "guest.bin": "4a3f43ff4df49c6a38d0d48c912c3f1794667c5bdace10dec1471cca1d6eecef",
+    "guest.hex": "c2141496d3342bcb0e16d9c9ddd12dfa2c230b194ca10df9ea822fb81174526f",
+    "guest_symbols.svh": "94c821d7137e2a2b2904dcb3cd0e461bb53b782013ba9afcbabf25f0d7aa1392",
+    "guest-inputs/i1_runtime_network.S": "53126f3a43c4d6b73194e498067931c52b0ea060114cf54a5d578ce1c9f9f7a5",
+    "guest-inputs/i1_runtime_network.ld": "bdff0d8a0084388d648af7740f2b1c1589804798da6ff4189496b1680be365d7"
+  },
+  "production_assertion_sites": 519,
+  "fixed_source_hz": 125000000,
+  "integrated_rx_payload_dma": false,
+  "late_cancel_after_park": false,
+  "integrated_fixed_mac_paused_reset": false,
+  "physical_gate_drp_qualified": false,
+  "hardware_default_changed": false,
+  "archive_manifest_wip2_note": "SCOPE.md was appended after WIP2 manifest generation; other manifest entries must still hash-match. Immutable historical manifest is preserved."
+}

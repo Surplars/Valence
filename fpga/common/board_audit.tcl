@@ -63,15 +63,21 @@ proc common_board::cpu {} {
     set clk [common_cdc::clock u_soc/cpuClock]; set fabric [common_cdc::clock u_soc/fabricClock]
     set profile production
     if {[info exists valence(clock_profile)]} {set profile $valence(clock_profile)}
-    if {$profile ni {production boot50-static performance300-static}} {error "COMMON_CPU unreviewed clock profile"}
+    if {$profile ni {production boot50-static performance300-static boot50-dynamic}} {error "COMMON_CPU unreviewed clock profile"}
     if {$profile eq "performance300-static" && $valence(cpu) ne "i1"} {error "COMMON_CPU performance300 is I1-only"}
+    # Dynamic physical boot50 is audited as MMCM parameters; STA stays300/250.
     set hz [expr {$profile eq "boot50-static" ? 50000000 : $valence(cpu) eq "i1" ? 300000000 : 100000000}]
     set fabricHz [expr {$profile eq "boot50-static" ? 50000000 : 250000000}]
     if {$clk eq $fabric || abs([get_property PERIOD [get_clocks $clk]]-1.0e9/$hz)>0.002 || abs([get_property PERIOD [get_clocks $fabric]]-1.0e9/$fabricHz)>0.002} {error "COMMON_CPU selected CPU/fabric clock mismatch"}
-    if {$profile in {boot50-static performance300-static}} {
+    if {$profile in {boot50-static performance300-static boot50-dynamic}} {
         set fixed [common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing]
         if {$fixed eq $fabric || abs([get_property PERIOD [get_clocks $fixed]]-4.0)>0.002} {error "COMMON_CPU fixed UI/time/debug250 topology mismatch"}
-        common_cdc::same_net u_soc/fabricClock u_clk_wiz/clk_out3
+        if {$profile eq "boot50-dynamic"} {
+            common_cdc::same_net u_soc/fabricClock fabric_clock/managed_buffer/O
+            common_cdc::same_net u_soc/cpuClock cpu_clock/managed_buffer/O
+        } else {
+            common_cdc::same_net u_soc/fabricClock u_clk_wiz/clk_out3
+        }
         common_cdc::one get_cells u_soc/ddrCrossing
     } else {
         common_cdc::same_net u_soc/fabricClock u_ddr/c0_ddr4_ui_clk

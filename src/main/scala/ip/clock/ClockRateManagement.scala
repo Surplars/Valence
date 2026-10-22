@@ -22,15 +22,23 @@ class ClockRateStatus extends Bundle {
   * exist. Eight-byte aligned accesses only; four ordered reply credits.
   * sourceRetired is the END-TO-END response receipt, not local reply enqueue.
   */
-class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("10080800", 16)) extends Module {
+class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("10080800", 16),
+    externalDrainLease: Boolean = false, backendFaultInput: Boolean = false) extends Module {
+    require(!backendFaultInput || externalDrainLease)
     require(domains.size == 2 && base >= 0 && base % 256 == 0 && base + 256 < (BigInt(1) << 64))
     val io = IO(new Bundle {
         val registers = Flipped(new RegisterPort)
         val endpoints = Vec(2, new ClockRateEndpoint)
         val sourceRetired = Input(UInt(2.W))
         val status = Output(Vec(2, new ClockRateStatus))
+        val leases = if (externalDrainLease) Some(Vec(2, new ClockRateDrainLease)) else None
+        val backendFault = if (backendFaultInput) Some(Input(UInt(2.W))) else None
     })
-    val controls = domains.map(p => Module(new ClockRateControl(p)))
+    val controls = domains.map(p => Module(new ClockRateControl(p, externalDrainLease, backendFaultInput)))
+    controls.zipWithIndex.foreach { case (c, n) =>
+        io.leases.foreach(_(n) <> c.io.lease.get)
+        io.backendFault.foreach(f => c.io.backendFault.get := f(n))
+    }
     private val replies = Module(new Queue(new ClockRateReply, 4, pipe = false, flow = false))
     val delivered = RegInit(VecInit(Seq.fill(2)(false.B)))
     val index = RegInit(VecInit(Seq.fill(2)(0.U(16.W))))
@@ -105,13 +113,18 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
   * If this boundary is placed behind another bus response queue, that outer
   * owner must also drain before clock stop; this is not CPU-retirement proof.
   */
-class ClockRateManagementBoundary(domains: Seq[ClockRateParams], base: BigInt = BigInt("10080800", 16))
+class ClockRateManagementBoundary(domains: Seq[ClockRateParams], base: BigInt = BigInt("10080800", 16),
+    externalDrainLease: Boolean = false, backendFaultInput: Boolean = false)
     extends RawModule {
     val sourceClock = IO(Input(Clock())); val alwaysOnClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
     val registers = IO(Flipped(new RegisterPort))
     val endpoints = IO(Vec(2, new ClockRateEndpoint))
     val status = IO(Output(Vec(2, new ClockRateStatus)))
+    val leases = if (externalDrainLease) Some(IO(Vec(2, new ClockRateDrainLease))) else None
+    val backendFault = if (backendFaultInput) Some(IO(Input(UInt(2.W)))) else None
+    val sourceIdle = if (externalDrainLease) Some(IO(Output(Bool()))) else None
+    val aonIdle = if (externalDrainLease) Some(IO(Output(Bool()))) else None
     val bridge = Module(new RegisterClockDomainBridge)
     bridge.sourceClock := sourceClock; bridge.destinationClock := alwaysOnClock; bridge.commonReset := commonReset
     val receipt = Module(new CdcMailbox(1))
@@ -139,11 +152,17 @@ class ClockRateManagementBoundary(domains: Seq[ClockRateParams], base: BigInt = 
         }
     }
     val rates = withClockAndReset(alwaysOnClock, bridge.destinationReset) {
-        Module(new ClockRateManagement(domains, base))
+        Module(new ClockRateManagement(domains, base, externalDrainLease, backendFaultInput))
     }
     rates.io.registers <> bridge.destination
     receipt.destination.ready := true.B
     rates.io.sourceRetired := Mux(receipt.destination.fire, UIntToOH(receipt.destination.bits, 2), 0.U)
     endpoints <> rates.io.endpoints
     status := rates.io.status
+    leases.foreach(_ <> rates.io.leases.get)
+    backendFault.foreach(f => rates.io.backendFault.get := f)
+    sourceIdle.foreach(_ := bridge.sourceIdle && receipt.sourceIdle && !pending &&
+        !registers.request.valid && !registers.response.valid)
+    aonIdle.foreach(_ := bridge.destinationIdle && receipt.destinationIdle &&
+        !rates.io.registers.request.valid && !rates.io.registers.response.valid)
 }

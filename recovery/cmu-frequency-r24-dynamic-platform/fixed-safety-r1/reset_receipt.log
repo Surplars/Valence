@@ -1,0 +1,13 @@
+BEGIN case=reset_receipt inject=none aon_period=34ns fixed_period=10ns fixed_phase=2ns
+RESET_CANCEL accepted=0 consumed=0 returned=0
+AON_ACCEPT time=493000 epoch=9 enable=1 guarded_expect=1
+FIXED_CONSUME time=527000 epoch=9 enable=1 safe=1
+RESET_CANCEL accepted=1 consumed=1 returned=0
+AON_ACCEPT time=1411000 epoch=1 enable=1 guarded_expect=1
+FIXED_CONSUME time=1442000 epoch=1 enable=1 safe=1
+AON_RECEIPT time=1581000 epoch=1 enable=1 guarded=1
+AON_ACCEPT time=1649000 epoch=1 enable=0 guarded_expect=0
+FIXED_CONSUME time=1682000 epoch=1 enable=0 safe=1
+AON_RECEIPT time=1819000 epoch=1 enable=0 guarded=0
+PASS case=reset_receipt inject=none accepted=2 consumed=2 returned=2 command_stall=0 receipt_stall=9 resets=2 fixed_low=0 aon_low=0 fault=0
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r24/fixed-safety-r1/fixed_clock_safety_tb.sv:170: $finish called at 2108000 (1ps)

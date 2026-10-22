@@ -1,0 +1,2 @@
+GATE_WITNESS_BEHAVIORAL_PASS missing_raw_missing_managed_fresh_tokens
+/workspace/scratch/41e4a649bb60/Valence-clock-backend/fpga/common/dynamic/gate_witness_tb.sv:38: $finish called at 2700000 (1ps)

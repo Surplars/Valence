@@ -26,7 +26,8 @@ import soc.ip.debug.{DebugDmiAdmissionBoundary, DebugDmiAdmissionTerminal, Debug
   * until common cold reset. Link loss never resets a loader or runtime owner.
   * This is an admission protocol, not permission to gate or change a clock.
   */
-class CommonDebugRuntimeSequencer(p: CommonCpuTilePortParams, addressBits: Int = 7) extends RawModule {
+class CommonDebugRuntimeSequencer(p: CommonCpuTilePortParams, addressBits: Int = 7,
+    emergencyAdmissionStop: Boolean = false) extends RawModule {
     require(p.runtimeMaintenance && p.runtimeCancellation && p.runtimeInterruptHold)
     require(addressBits > 0)
 
@@ -47,6 +48,8 @@ class CommonDebugRuntimeSequencer(p: CommonCpuTilePortParams, addressBits: Int =
     val busy = IO(Output(Bool()))
     val fault = IO(Output(Bool()))
     val debugHeld = IO(Valid(UInt(p.maintenanceEpochBits.W)))
+    val emergencyStop = if (emergencyAdmissionStop) Some(IO(Input(Bool()))) else None
+    val fixedFault = if (emergencyAdmissionStop) Some(IO(Output(Bool()))) else None
 
     private def release(clock: Clock, reset: AsyncReset): AsyncReset = {
         val r = Module(new CdcResetRelease)
@@ -56,6 +59,11 @@ class CommonDebugRuntimeSequencer(p: CommonCpuTilePortParams, addressBits: Int =
     }
     private val fabricReset = release(fabricClock, commonColdReset)
     private val debugReset = release(debugClock, commonColdReset)
+    private val fatalStop = if (emergencyAdmissionStop) {
+        val sync = Module(new CdcLevel)
+        sync.clockIn := debugClock; sync.resetIn := debugReset; sync.levelIn := emergencyStop.get
+        Some(sync.levelOut)
+    } else None
     private val linkReset = (commonColdReset.asBool || !sourceLinkUp).asAsyncReset
     private val fabricLinkReset = release(fabricClock, linkReset)
     private val debugLinkReset = release(debugClock, linkReset)
@@ -117,12 +125,13 @@ class CommonDebugRuntimeSequencer(p: CommonCpuTilePortParams, addressBits: Int =
         val healthy = !debugReset.asBool && !debugLinkReset.asBool && !failed && !boundary.fault &&
             !fabricFaultSync.levelOut && !protocolFault
         debugFault := failed || boundary.fault
+        fixedFault.foreach(_ := RegNext(failed || boundary.fault, false.B))
         when((owned && debugLinkReset.asBool) || boundary.fault || fabricFaultSync.levelOut || protocolFault) {
             failed := true.B
         }
         // Responses still retire normally; only new source requests are barred.
-        boundary.source.request.valid := source.request.valid && healthy
-        source.request.ready := boundary.source.request.ready && healthy
+        boundary.source.request.valid := source.request.valid && healthy && !fatalStop.getOrElse(false.B)
+        source.request.ready := boundary.source.request.ready && healthy && !fatalStop.getOrElse(false.B)
 
         boundary.prepare.valid := prepare.destination.valid && !owned && healthy
         boundary.prepare.bits := prepare.destination.bits
