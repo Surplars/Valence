@@ -1,0 +1,6 @@
+EPOCH_ACCEPT lane=0 token=10203040 epoch=1 aon_edge=55
+EPOCH_PREPARE epoch=1 fabric_edge=44
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=73 age=18
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=62
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/runtime_epoch_boundary_tb.sv:243: EPOCH_ORACLE_TOKEN terminal ownership mismatch
+       Time: 925371  Scope: runtime_epoch_boundary_tb

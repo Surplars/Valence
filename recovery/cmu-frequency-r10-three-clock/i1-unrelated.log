@@ -1,0 +1,20 @@
+I1_RUNTIME_CDC_BOOT generation=0 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de0028 epoch=1 canceled=0 timed_out=0 cpu_resumed=1 fabric_terminals=1
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=1 token=babe0029 epoch=2 canceled=1 timed_out=0 cpu_resumed=2 fabric_terminals=2
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=3 replied=3 id11=1 id12=1 id13=1 pending=0000000000003800 stores=11 loads=11 previous_loads=11 loops=11
+I1_RUNTIME_CDC_TIMEOUT generation=0 lane=0 epoch=3 elapsed_aon=4096 release_ack_blocked=1 msi_reply_blocked=0 completion_blocked=0
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de002a epoch=3 canceled=1 timed_out=1 cpu_resumed=3 fabric_terminals=3
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=6 replied=6 id11=2 id12=2 id13=2 pending=0000000000003800 stores=21 loads=21 previous_loads=21 loops=21
+I1_RUNTIME_CDC_TIMEOUT generation=0 lane=1 epoch=4 elapsed_aon=4096 release_ack_blocked=0 msi_reply_blocked=1 completion_blocked=0
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=1 token=babe002b epoch=4 canceled=1 timed_out=1 cpu_resumed=4 fabric_terminals=4
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=9 replied=9 id11=3 id12=3 id13=3 pending=0000000000003800 stores=32 loads=32 previous_loads=32 loops=32
+I1_RUNTIME_CDC_TIMEOUT generation=0 lane=0 epoch=5 elapsed_aon=4096 release_ack_blocked=0 msi_reply_blocked=0 completion_blocked=1
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de0028 epoch=5 canceled=1 timed_out=1 cpu_resumed=5 fabric_terminals=5
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=9 replied=9 id11=3 id12=3 id13=3 pending=0000000000003800 stores=39 loads=39 previous_loads=39 loops=39
+I1_RUNTIME_CDC_RESET generation=0 prepares=6 terminal=5 reset_aborted=1 delivered=10 replied=9 queued_sources=2
+I1_RUNTIME_CDC_BOOT generation=1 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+I1_RUNTIME_CDC_TERMINAL generation=1 lane=1 token=babe002e epoch=1 canceled=0 timed_out=0 cpu_resumed=1 fabric_terminals=1
+I1_RUNTIME_CDC_LEDGER generation=1 delivered=3 replied=3 id11=1 id12=1 id13=1 pending=0000000000003800 stores=10 loads=10 previous_loads=10 loops=10
+I1_RUNTIME_CDC_LEDGER generation=1 delivered=3 replied=3 id11=1 id12=1 id13=1 pending=0000000000003800 stores=20 loads=20 previous_loads=20 loops=20
+I1_RUNTIME_CDC_PASS cpu_half=5 fabric_half=7 aon_half=11 cpu_phase=0 fabric_phase=2 aon_phase=3 normal=2 explicit_cancel=1 actual_aon_timeouts=3 terminal=6 coordinated_reset_aborts=1 cpu_cycles=37747 aon_cycles=17207
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_cdc_tb.sv:474: $finish called at 378565000 (1ps)

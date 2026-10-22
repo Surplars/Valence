@@ -1,0 +1,15 @@
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de0028 epoch=1 canceled=0 timed_out=0 cpu_resumed=1 fabric_terminals=1
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=1 token=babe0029 epoch=2 canceled=1 timed_out=0 cpu_resumed=2 fabric_terminals=2
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=3 replied=3 id11=1 id12=1 id13=1 pending=0000000000003800 stores=11 loads=11 previous_loads=11 loops=11
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de002a epoch=3 canceled=1 timed_out=1 cpu_resumed=3 fabric_terminals=3
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=6 replied=6 id11=2 id12=2 id13=2 pending=0000000000003800 stores=22 loads=22 previous_loads=22 loops=22
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=1 token=babe002b epoch=4 canceled=1 timed_out=1 cpu_resumed=4 fabric_terminals=4
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=9 replied=9 id11=3 id12=3 id13=3 pending=0000000000003800 stores=33 loads=33 previous_loads=33 loops=33
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de0028 epoch=5 canceled=1 timed_out=1 cpu_resumed=5 fabric_terminals=5
+I1_RUNTIME_CDC_LEDGER generation=0 delivered=9 replied=9 id11=3 id12=3 id13=3 pending=0000000000003800 stores=40 loads=40 previous_loads=40 loops=40
+I1_RUNTIME_CDC_RESET generation=0 prepares=6 terminal=5 reset_aborted=1 delivered=10 replied=9 queued_sources=2
+ERROR: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r10/i1-rtl/CommonI1RuntimeCdcFixture.sv:473: Assertion failed: boot enable may fall only during coordinated reset
+
+       Time: 346481000  Scope: i1_runtime_cdc_tb.dut
+FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r10/i1-rtl/CommonI1RuntimeCdcFixture.sv:475: 
+       Time: 346481000  Scope: i1_runtime_cdc_tb.dut

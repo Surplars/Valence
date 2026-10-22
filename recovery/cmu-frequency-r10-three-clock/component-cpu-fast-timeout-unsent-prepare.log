@@ -1,0 +1,11 @@
+EPOCH_ACCEPT lane=0 token=11000001 epoch=1 aon_edge=55
+EPOCH_TIMEOUT epoch=1 aon_edge=119 age=64 simultaneous_proof=0
+EPOCH_PERSISTENT_CLEANUP_FAULT checks=24 aon_edge=271
+EPOCH_PREPARE epoch=1 fabric_edge=202
+EPOCH_DECISION epoch=1 canceled=1 fabric_edge=208
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=295 age=240
+EPOCH_RESULT epoch=1 canceled=1 timedOut=1 aon_edge=297 ns=2965.371
+EPOCH_FABRIC_RECEIPT epoch=1 fabric_edge=215 ns=3004.300
+EPOCH_TIMEOUT_UNSENT checks=8 persistent_fault=1
+RUNTIME_EPOCH_COMPONENT_PASS case=1 requests=1 prepares=1 decisions=1 terminals=1 receipts=1 cpu_half=3 fabric_half=7 aon_half=5
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/runtime_epoch_boundary_tb.sv:565: $finish called at 3160371 (1ps)

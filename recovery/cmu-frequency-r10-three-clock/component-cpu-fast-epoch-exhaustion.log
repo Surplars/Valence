@@ -1,0 +1,1539 @@
+EPOCH_ACCEPT lane=1 token=00000000 epoch=1 aon_edge=55
+EPOCH_PREPARE epoch=1 fabric_edge=44
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=73 age=18
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=57
+EPOCH_RESULT epoch=1 canceled=0 timedOut=0 aon_edge=87 ns=865.371
+EPOCH_FABRIC_RECEIPT epoch=1 fabric_edge=65 ns=904.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=2 aon_edge=96
+EPOCH_PREPARE epoch=2 fabric_edge=73
+EPOCH_PROOF_OBSERVED epoch=2 aon_edge=114 age=18
+EPOCH_DECISION epoch=2 canceled=0 fabric_edge=86
+EPOCH_RESULT epoch=2 canceled=0 timedOut=0 aon_edge=128 ns=1275.371
+EPOCH_FABRIC_RECEIPT epoch=2 fabric_edge=94 ns=1310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=3 aon_edge=137
+EPOCH_PREPARE epoch=3 fabric_edge=102
+EPOCH_PROOF_OBSERVED epoch=3 aon_edge=155 age=18
+EPOCH_DECISION epoch=3 canceled=0 fabric_edge=116
+EPOCH_RESULT epoch=3 canceled=0 timedOut=0 aon_edge=170 ns=1695.371
+EPOCH_FABRIC_RECEIPT epoch=3 fabric_edge=124 ns=1730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=4 aon_edge=179
+EPOCH_PREPARE epoch=4 fabric_edge=132
+EPOCH_PROOF_OBSERVED epoch=4 aon_edge=197 age=18
+EPOCH_DECISION epoch=4 canceled=0 fabric_edge=146
+EPOCH_RESULT epoch=4 canceled=0 timedOut=0 aon_edge=212 ns=2115.371
+EPOCH_FABRIC_RECEIPT epoch=4 fabric_edge=154 ns=2150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=5 aon_edge=221
+EPOCH_PREPARE epoch=5 fabric_edge=162
+EPOCH_PROOF_OBSERVED epoch=5 aon_edge=239 age=18
+EPOCH_DECISION epoch=5 canceled=0 fabric_edge=176
+EPOCH_RESULT epoch=5 canceled=0 timedOut=0 aon_edge=254 ns=2535.371
+EPOCH_FABRIC_RECEIPT epoch=5 fabric_edge=184 ns=2570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=6 aon_edge=263
+EPOCH_PREPARE epoch=6 fabric_edge=192
+EPOCH_PROOF_OBSERVED epoch=6 aon_edge=281 age=18
+EPOCH_DECISION epoch=6 canceled=0 fabric_edge=206
+EPOCH_RESULT epoch=6 canceled=0 timedOut=0 aon_edge=296 ns=2955.371
+EPOCH_FABRIC_RECEIPT epoch=6 fabric_edge=214 ns=2990.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=7 aon_edge=305
+EPOCH_PREPARE epoch=7 fabric_edge=222
+EPOCH_PROOF_OBSERVED epoch=7 aon_edge=323 age=18
+EPOCH_DECISION epoch=7 canceled=0 fabric_edge=236
+EPOCH_RESULT epoch=7 canceled=0 timedOut=0 aon_edge=338 ns=3375.371
+EPOCH_FABRIC_RECEIPT epoch=7 fabric_edge=244 ns=3410.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=8 aon_edge=347
+EPOCH_PREPARE epoch=8 fabric_edge=252
+EPOCH_PROOF_OBSERVED epoch=8 aon_edge=365 age=18
+EPOCH_DECISION epoch=8 canceled=0 fabric_edge=266
+EPOCH_RESULT epoch=8 canceled=0 timedOut=0 aon_edge=380 ns=3795.371
+EPOCH_FABRIC_RECEIPT epoch=8 fabric_edge=274 ns=3830.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=9 aon_edge=389
+EPOCH_PREPARE epoch=9 fabric_edge=282
+EPOCH_PROOF_OBSERVED epoch=9 aon_edge=407 age=18
+EPOCH_DECISION epoch=9 canceled=0 fabric_edge=296
+EPOCH_RESULT epoch=9 canceled=0 timedOut=0 aon_edge=422 ns=4215.371
+EPOCH_FABRIC_RECEIPT epoch=9 fabric_edge=304 ns=4250.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=10 aon_edge=431
+EPOCH_PREPARE epoch=10 fabric_edge=312
+EPOCH_PROOF_OBSERVED epoch=10 aon_edge=449 age=18
+EPOCH_DECISION epoch=10 canceled=0 fabric_edge=326
+EPOCH_RESULT epoch=10 canceled=0 timedOut=0 aon_edge=464 ns=4635.371
+EPOCH_FABRIC_RECEIPT epoch=10 fabric_edge=334 ns=4670.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=11 aon_edge=473
+EPOCH_PREPARE epoch=11 fabric_edge=342
+EPOCH_PROOF_OBSERVED epoch=11 aon_edge=491 age=18
+EPOCH_DECISION epoch=11 canceled=0 fabric_edge=356
+EPOCH_RESULT epoch=11 canceled=0 timedOut=0 aon_edge=506 ns=5055.371
+EPOCH_FABRIC_RECEIPT epoch=11 fabric_edge=364 ns=5090.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=12 aon_edge=515
+EPOCH_PREPARE epoch=12 fabric_edge=372
+EPOCH_PROOF_OBSERVED epoch=12 aon_edge=533 age=18
+EPOCH_DECISION epoch=12 canceled=0 fabric_edge=386
+EPOCH_RESULT epoch=12 canceled=0 timedOut=0 aon_edge=548 ns=5475.371
+EPOCH_FABRIC_RECEIPT epoch=12 fabric_edge=394 ns=5510.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=13 aon_edge=557
+EPOCH_PREPARE epoch=13 fabric_edge=402
+EPOCH_PROOF_OBSERVED epoch=13 aon_edge=575 age=18
+EPOCH_DECISION epoch=13 canceled=0 fabric_edge=416
+EPOCH_RESULT epoch=13 canceled=0 timedOut=0 aon_edge=590 ns=5895.371
+EPOCH_FABRIC_RECEIPT epoch=13 fabric_edge=424 ns=5930.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=14 aon_edge=599
+EPOCH_PREPARE epoch=14 fabric_edge=432
+EPOCH_PROOF_OBSERVED epoch=14 aon_edge=617 age=18
+EPOCH_DECISION epoch=14 canceled=0 fabric_edge=446
+EPOCH_RESULT epoch=14 canceled=0 timedOut=0 aon_edge=632 ns=6315.371
+EPOCH_FABRIC_RECEIPT epoch=14 fabric_edge=454 ns=6350.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=15 aon_edge=641
+EPOCH_PREPARE epoch=15 fabric_edge=462
+EPOCH_PROOF_OBSERVED epoch=15 aon_edge=659 age=18
+EPOCH_DECISION epoch=15 canceled=0 fabric_edge=476
+EPOCH_RESULT epoch=15 canceled=0 timedOut=0 aon_edge=674 ns=6735.371
+EPOCH_FABRIC_RECEIPT epoch=15 fabric_edge=484 ns=6770.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=16 aon_edge=683
+EPOCH_PREPARE epoch=16 fabric_edge=492
+EPOCH_PROOF_OBSERVED epoch=16 aon_edge=701 age=18
+EPOCH_DECISION epoch=16 canceled=0 fabric_edge=506
+EPOCH_RESULT epoch=16 canceled=0 timedOut=0 aon_edge=716 ns=7155.371
+EPOCH_FABRIC_RECEIPT epoch=16 fabric_edge=514 ns=7190.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=17 aon_edge=725
+EPOCH_PREPARE epoch=17 fabric_edge=522
+EPOCH_PROOF_OBSERVED epoch=17 aon_edge=743 age=18
+EPOCH_DECISION epoch=17 canceled=0 fabric_edge=536
+EPOCH_RESULT epoch=17 canceled=0 timedOut=0 aon_edge=758 ns=7575.371
+EPOCH_FABRIC_RECEIPT epoch=17 fabric_edge=544 ns=7610.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=18 aon_edge=767
+EPOCH_PREPARE epoch=18 fabric_edge=552
+EPOCH_PROOF_OBSERVED epoch=18 aon_edge=785 age=18
+EPOCH_DECISION epoch=18 canceled=0 fabric_edge=566
+EPOCH_RESULT epoch=18 canceled=0 timedOut=0 aon_edge=800 ns=7995.371
+EPOCH_FABRIC_RECEIPT epoch=18 fabric_edge=574 ns=8030.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=19 aon_edge=809
+EPOCH_PREPARE epoch=19 fabric_edge=582
+EPOCH_PROOF_OBSERVED epoch=19 aon_edge=827 age=18
+EPOCH_DECISION epoch=19 canceled=0 fabric_edge=596
+EPOCH_RESULT epoch=19 canceled=0 timedOut=0 aon_edge=842 ns=8415.371
+EPOCH_FABRIC_RECEIPT epoch=19 fabric_edge=604 ns=8450.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=20 aon_edge=851
+EPOCH_PREPARE epoch=20 fabric_edge=612
+EPOCH_PROOF_OBSERVED epoch=20 aon_edge=869 age=18
+EPOCH_DECISION epoch=20 canceled=0 fabric_edge=626
+EPOCH_RESULT epoch=20 canceled=0 timedOut=0 aon_edge=884 ns=8835.371
+EPOCH_FABRIC_RECEIPT epoch=20 fabric_edge=634 ns=8870.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=21 aon_edge=893
+EPOCH_PREPARE epoch=21 fabric_edge=642
+EPOCH_PROOF_OBSERVED epoch=21 aon_edge=911 age=18
+EPOCH_DECISION epoch=21 canceled=0 fabric_edge=656
+EPOCH_RESULT epoch=21 canceled=0 timedOut=0 aon_edge=926 ns=9255.371
+EPOCH_FABRIC_RECEIPT epoch=21 fabric_edge=664 ns=9290.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=22 aon_edge=935
+EPOCH_PREPARE epoch=22 fabric_edge=672
+EPOCH_PROOF_OBSERVED epoch=22 aon_edge=953 age=18
+EPOCH_DECISION epoch=22 canceled=0 fabric_edge=686
+EPOCH_RESULT epoch=22 canceled=0 timedOut=0 aon_edge=968 ns=9675.371
+EPOCH_FABRIC_RECEIPT epoch=22 fabric_edge=694 ns=9710.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=23 aon_edge=977
+EPOCH_PREPARE epoch=23 fabric_edge=702
+EPOCH_PROOF_OBSERVED epoch=23 aon_edge=995 age=18
+EPOCH_DECISION epoch=23 canceled=0 fabric_edge=716
+EPOCH_RESULT epoch=23 canceled=0 timedOut=0 aon_edge=1010 ns=10095.371
+EPOCH_FABRIC_RECEIPT epoch=23 fabric_edge=724 ns=10130.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=24 aon_edge=1019
+EPOCH_PREPARE epoch=24 fabric_edge=732
+EPOCH_PROOF_OBSERVED epoch=24 aon_edge=1037 age=18
+EPOCH_DECISION epoch=24 canceled=0 fabric_edge=746
+EPOCH_RESULT epoch=24 canceled=0 timedOut=0 aon_edge=1052 ns=10515.371
+EPOCH_FABRIC_RECEIPT epoch=24 fabric_edge=754 ns=10550.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=25 aon_edge=1061
+EPOCH_PREPARE epoch=25 fabric_edge=762
+EPOCH_PROOF_OBSERVED epoch=25 aon_edge=1079 age=18
+EPOCH_DECISION epoch=25 canceled=0 fabric_edge=776
+EPOCH_RESULT epoch=25 canceled=0 timedOut=0 aon_edge=1094 ns=10935.371
+EPOCH_FABRIC_RECEIPT epoch=25 fabric_edge=784 ns=10970.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=26 aon_edge=1103
+EPOCH_PREPARE epoch=26 fabric_edge=792
+EPOCH_PROOF_OBSERVED epoch=26 aon_edge=1121 age=18
+EPOCH_DECISION epoch=26 canceled=0 fabric_edge=806
+EPOCH_RESULT epoch=26 canceled=0 timedOut=0 aon_edge=1136 ns=11355.371
+EPOCH_FABRIC_RECEIPT epoch=26 fabric_edge=814 ns=11390.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=27 aon_edge=1145
+EPOCH_PREPARE epoch=27 fabric_edge=822
+EPOCH_PROOF_OBSERVED epoch=27 aon_edge=1163 age=18
+EPOCH_DECISION epoch=27 canceled=0 fabric_edge=836
+EPOCH_RESULT epoch=27 canceled=0 timedOut=0 aon_edge=1178 ns=11775.371
+EPOCH_FABRIC_RECEIPT epoch=27 fabric_edge=844 ns=11810.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=28 aon_edge=1187
+EPOCH_PREPARE epoch=28 fabric_edge=852
+EPOCH_PROOF_OBSERVED epoch=28 aon_edge=1205 age=18
+EPOCH_DECISION epoch=28 canceled=0 fabric_edge=866
+EPOCH_RESULT epoch=28 canceled=0 timedOut=0 aon_edge=1220 ns=12195.371
+EPOCH_FABRIC_RECEIPT epoch=28 fabric_edge=874 ns=12230.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=29 aon_edge=1229
+EPOCH_PREPARE epoch=29 fabric_edge=882
+EPOCH_PROOF_OBSERVED epoch=29 aon_edge=1247 age=18
+EPOCH_DECISION epoch=29 canceled=0 fabric_edge=896
+EPOCH_RESULT epoch=29 canceled=0 timedOut=0 aon_edge=1262 ns=12615.371
+EPOCH_FABRIC_RECEIPT epoch=29 fabric_edge=904 ns=12650.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=30 aon_edge=1271
+EPOCH_PREPARE epoch=30 fabric_edge=912
+EPOCH_PROOF_OBSERVED epoch=30 aon_edge=1289 age=18
+EPOCH_DECISION epoch=30 canceled=0 fabric_edge=926
+EPOCH_RESULT epoch=30 canceled=0 timedOut=0 aon_edge=1304 ns=13035.371
+EPOCH_FABRIC_RECEIPT epoch=30 fabric_edge=934 ns=13070.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=31 aon_edge=1313
+EPOCH_PREPARE epoch=31 fabric_edge=942
+EPOCH_PROOF_OBSERVED epoch=31 aon_edge=1331 age=18
+EPOCH_DECISION epoch=31 canceled=0 fabric_edge=956
+EPOCH_RESULT epoch=31 canceled=0 timedOut=0 aon_edge=1346 ns=13455.371
+EPOCH_FABRIC_RECEIPT epoch=31 fabric_edge=964 ns=13490.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=32 aon_edge=1355
+EPOCH_PREPARE epoch=32 fabric_edge=972
+EPOCH_PROOF_OBSERVED epoch=32 aon_edge=1373 age=18
+EPOCH_DECISION epoch=32 canceled=0 fabric_edge=986
+EPOCH_RESULT epoch=32 canceled=0 timedOut=0 aon_edge=1388 ns=13875.371
+EPOCH_FABRIC_RECEIPT epoch=32 fabric_edge=994 ns=13910.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=33 aon_edge=1397
+EPOCH_PREPARE epoch=33 fabric_edge=1002
+EPOCH_PROOF_OBSERVED epoch=33 aon_edge=1415 age=18
+EPOCH_DECISION epoch=33 canceled=0 fabric_edge=1016
+EPOCH_RESULT epoch=33 canceled=0 timedOut=0 aon_edge=1430 ns=14295.371
+EPOCH_FABRIC_RECEIPT epoch=33 fabric_edge=1024 ns=14330.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=34 aon_edge=1439
+EPOCH_PREPARE epoch=34 fabric_edge=1032
+EPOCH_PROOF_OBSERVED epoch=34 aon_edge=1457 age=18
+EPOCH_DECISION epoch=34 canceled=0 fabric_edge=1046
+EPOCH_RESULT epoch=34 canceled=0 timedOut=0 aon_edge=1472 ns=14715.371
+EPOCH_FABRIC_RECEIPT epoch=34 fabric_edge=1054 ns=14750.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=35 aon_edge=1481
+EPOCH_PREPARE epoch=35 fabric_edge=1062
+EPOCH_PROOF_OBSERVED epoch=35 aon_edge=1499 age=18
+EPOCH_DECISION epoch=35 canceled=0 fabric_edge=1076
+EPOCH_RESULT epoch=35 canceled=0 timedOut=0 aon_edge=1514 ns=15135.371
+EPOCH_FABRIC_RECEIPT epoch=35 fabric_edge=1084 ns=15170.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=36 aon_edge=1523
+EPOCH_PREPARE epoch=36 fabric_edge=1092
+EPOCH_PROOF_OBSERVED epoch=36 aon_edge=1541 age=18
+EPOCH_DECISION epoch=36 canceled=0 fabric_edge=1106
+EPOCH_RESULT epoch=36 canceled=0 timedOut=0 aon_edge=1556 ns=15555.371
+EPOCH_FABRIC_RECEIPT epoch=36 fabric_edge=1114 ns=15590.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=37 aon_edge=1565
+EPOCH_PREPARE epoch=37 fabric_edge=1122
+EPOCH_PROOF_OBSERVED epoch=37 aon_edge=1583 age=18
+EPOCH_DECISION epoch=37 canceled=0 fabric_edge=1136
+EPOCH_RESULT epoch=37 canceled=0 timedOut=0 aon_edge=1598 ns=15975.371
+EPOCH_FABRIC_RECEIPT epoch=37 fabric_edge=1144 ns=16010.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=38 aon_edge=1607
+EPOCH_PREPARE epoch=38 fabric_edge=1152
+EPOCH_PROOF_OBSERVED epoch=38 aon_edge=1625 age=18
+EPOCH_DECISION epoch=38 canceled=0 fabric_edge=1166
+EPOCH_RESULT epoch=38 canceled=0 timedOut=0 aon_edge=1640 ns=16395.371
+EPOCH_FABRIC_RECEIPT epoch=38 fabric_edge=1174 ns=16430.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=39 aon_edge=1649
+EPOCH_PREPARE epoch=39 fabric_edge=1182
+EPOCH_PROOF_OBSERVED epoch=39 aon_edge=1667 age=18
+EPOCH_DECISION epoch=39 canceled=0 fabric_edge=1196
+EPOCH_RESULT epoch=39 canceled=0 timedOut=0 aon_edge=1682 ns=16815.371
+EPOCH_FABRIC_RECEIPT epoch=39 fabric_edge=1204 ns=16850.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=40 aon_edge=1691
+EPOCH_PREPARE epoch=40 fabric_edge=1212
+EPOCH_PROOF_OBSERVED epoch=40 aon_edge=1709 age=18
+EPOCH_DECISION epoch=40 canceled=0 fabric_edge=1226
+EPOCH_RESULT epoch=40 canceled=0 timedOut=0 aon_edge=1724 ns=17235.371
+EPOCH_FABRIC_RECEIPT epoch=40 fabric_edge=1234 ns=17270.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=41 aon_edge=1733
+EPOCH_PREPARE epoch=41 fabric_edge=1242
+EPOCH_PROOF_OBSERVED epoch=41 aon_edge=1751 age=18
+EPOCH_DECISION epoch=41 canceled=0 fabric_edge=1256
+EPOCH_RESULT epoch=41 canceled=0 timedOut=0 aon_edge=1766 ns=17655.371
+EPOCH_FABRIC_RECEIPT epoch=41 fabric_edge=1264 ns=17690.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=42 aon_edge=1775
+EPOCH_PREPARE epoch=42 fabric_edge=1272
+EPOCH_PROOF_OBSERVED epoch=42 aon_edge=1793 age=18
+EPOCH_DECISION epoch=42 canceled=0 fabric_edge=1286
+EPOCH_RESULT epoch=42 canceled=0 timedOut=0 aon_edge=1808 ns=18075.371
+EPOCH_FABRIC_RECEIPT epoch=42 fabric_edge=1294 ns=18110.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=43 aon_edge=1817
+EPOCH_PREPARE epoch=43 fabric_edge=1302
+EPOCH_PROOF_OBSERVED epoch=43 aon_edge=1835 age=18
+EPOCH_DECISION epoch=43 canceled=0 fabric_edge=1316
+EPOCH_RESULT epoch=43 canceled=0 timedOut=0 aon_edge=1850 ns=18495.371
+EPOCH_FABRIC_RECEIPT epoch=43 fabric_edge=1324 ns=18530.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=44 aon_edge=1859
+EPOCH_PREPARE epoch=44 fabric_edge=1332
+EPOCH_PROOF_OBSERVED epoch=44 aon_edge=1877 age=18
+EPOCH_DECISION epoch=44 canceled=0 fabric_edge=1346
+EPOCH_RESULT epoch=44 canceled=0 timedOut=0 aon_edge=1892 ns=18915.371
+EPOCH_FABRIC_RECEIPT epoch=44 fabric_edge=1354 ns=18950.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=45 aon_edge=1901
+EPOCH_PREPARE epoch=45 fabric_edge=1362
+EPOCH_PROOF_OBSERVED epoch=45 aon_edge=1919 age=18
+EPOCH_DECISION epoch=45 canceled=0 fabric_edge=1376
+EPOCH_RESULT epoch=45 canceled=0 timedOut=0 aon_edge=1934 ns=19335.371
+EPOCH_FABRIC_RECEIPT epoch=45 fabric_edge=1384 ns=19370.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=46 aon_edge=1943
+EPOCH_PREPARE epoch=46 fabric_edge=1392
+EPOCH_PROOF_OBSERVED epoch=46 aon_edge=1961 age=18
+EPOCH_DECISION epoch=46 canceled=0 fabric_edge=1406
+EPOCH_RESULT epoch=46 canceled=0 timedOut=0 aon_edge=1976 ns=19755.371
+EPOCH_FABRIC_RECEIPT epoch=46 fabric_edge=1414 ns=19790.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=47 aon_edge=1985
+EPOCH_PREPARE epoch=47 fabric_edge=1422
+EPOCH_PROOF_OBSERVED epoch=47 aon_edge=2003 age=18
+EPOCH_DECISION epoch=47 canceled=0 fabric_edge=1436
+EPOCH_RESULT epoch=47 canceled=0 timedOut=0 aon_edge=2018 ns=20175.371
+EPOCH_FABRIC_RECEIPT epoch=47 fabric_edge=1444 ns=20210.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=48 aon_edge=2027
+EPOCH_PREPARE epoch=48 fabric_edge=1452
+EPOCH_PROOF_OBSERVED epoch=48 aon_edge=2045 age=18
+EPOCH_DECISION epoch=48 canceled=0 fabric_edge=1466
+EPOCH_RESULT epoch=48 canceled=0 timedOut=0 aon_edge=2060 ns=20595.371
+EPOCH_FABRIC_RECEIPT epoch=48 fabric_edge=1474 ns=20630.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=49 aon_edge=2069
+EPOCH_PREPARE epoch=49 fabric_edge=1482
+EPOCH_PROOF_OBSERVED epoch=49 aon_edge=2087 age=18
+EPOCH_DECISION epoch=49 canceled=0 fabric_edge=1496
+EPOCH_RESULT epoch=49 canceled=0 timedOut=0 aon_edge=2102 ns=21015.371
+EPOCH_FABRIC_RECEIPT epoch=49 fabric_edge=1504 ns=21050.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=50 aon_edge=2111
+EPOCH_PREPARE epoch=50 fabric_edge=1512
+EPOCH_PROOF_OBSERVED epoch=50 aon_edge=2129 age=18
+EPOCH_DECISION epoch=50 canceled=0 fabric_edge=1526
+EPOCH_RESULT epoch=50 canceled=0 timedOut=0 aon_edge=2144 ns=21435.371
+EPOCH_FABRIC_RECEIPT epoch=50 fabric_edge=1534 ns=21470.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=51 aon_edge=2153
+EPOCH_PREPARE epoch=51 fabric_edge=1542
+EPOCH_PROOF_OBSERVED epoch=51 aon_edge=2171 age=18
+EPOCH_DECISION epoch=51 canceled=0 fabric_edge=1556
+EPOCH_RESULT epoch=51 canceled=0 timedOut=0 aon_edge=2186 ns=21855.371
+EPOCH_FABRIC_RECEIPT epoch=51 fabric_edge=1564 ns=21890.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=52 aon_edge=2195
+EPOCH_PREPARE epoch=52 fabric_edge=1572
+EPOCH_PROOF_OBSERVED epoch=52 aon_edge=2213 age=18
+EPOCH_DECISION epoch=52 canceled=0 fabric_edge=1586
+EPOCH_RESULT epoch=52 canceled=0 timedOut=0 aon_edge=2228 ns=22275.371
+EPOCH_FABRIC_RECEIPT epoch=52 fabric_edge=1594 ns=22310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=53 aon_edge=2237
+EPOCH_PREPARE epoch=53 fabric_edge=1602
+EPOCH_PROOF_OBSERVED epoch=53 aon_edge=2255 age=18
+EPOCH_DECISION epoch=53 canceled=0 fabric_edge=1616
+EPOCH_RESULT epoch=53 canceled=0 timedOut=0 aon_edge=2270 ns=22695.371
+EPOCH_FABRIC_RECEIPT epoch=53 fabric_edge=1624 ns=22730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=54 aon_edge=2279
+EPOCH_PREPARE epoch=54 fabric_edge=1632
+EPOCH_PROOF_OBSERVED epoch=54 aon_edge=2297 age=18
+EPOCH_DECISION epoch=54 canceled=0 fabric_edge=1646
+EPOCH_RESULT epoch=54 canceled=0 timedOut=0 aon_edge=2312 ns=23115.371
+EPOCH_FABRIC_RECEIPT epoch=54 fabric_edge=1654 ns=23150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=55 aon_edge=2321
+EPOCH_PREPARE epoch=55 fabric_edge=1662
+EPOCH_PROOF_OBSERVED epoch=55 aon_edge=2339 age=18
+EPOCH_DECISION epoch=55 canceled=0 fabric_edge=1676
+EPOCH_RESULT epoch=55 canceled=0 timedOut=0 aon_edge=2354 ns=23535.371
+EPOCH_FABRIC_RECEIPT epoch=55 fabric_edge=1684 ns=23570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=56 aon_edge=2363
+EPOCH_PREPARE epoch=56 fabric_edge=1692
+EPOCH_PROOF_OBSERVED epoch=56 aon_edge=2381 age=18
+EPOCH_DECISION epoch=56 canceled=0 fabric_edge=1706
+EPOCH_RESULT epoch=56 canceled=0 timedOut=0 aon_edge=2396 ns=23955.371
+EPOCH_FABRIC_RECEIPT epoch=56 fabric_edge=1714 ns=23990.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=57 aon_edge=2405
+EPOCH_PREPARE epoch=57 fabric_edge=1722
+EPOCH_PROOF_OBSERVED epoch=57 aon_edge=2423 age=18
+EPOCH_DECISION epoch=57 canceled=0 fabric_edge=1736
+EPOCH_RESULT epoch=57 canceled=0 timedOut=0 aon_edge=2438 ns=24375.371
+EPOCH_FABRIC_RECEIPT epoch=57 fabric_edge=1744 ns=24410.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=58 aon_edge=2447
+EPOCH_PREPARE epoch=58 fabric_edge=1752
+EPOCH_PROOF_OBSERVED epoch=58 aon_edge=2465 age=18
+EPOCH_DECISION epoch=58 canceled=0 fabric_edge=1766
+EPOCH_RESULT epoch=58 canceled=0 timedOut=0 aon_edge=2480 ns=24795.371
+EPOCH_FABRIC_RECEIPT epoch=58 fabric_edge=1774 ns=24830.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=59 aon_edge=2489
+EPOCH_PREPARE epoch=59 fabric_edge=1782
+EPOCH_PROOF_OBSERVED epoch=59 aon_edge=2507 age=18
+EPOCH_DECISION epoch=59 canceled=0 fabric_edge=1796
+EPOCH_RESULT epoch=59 canceled=0 timedOut=0 aon_edge=2522 ns=25215.371
+EPOCH_FABRIC_RECEIPT epoch=59 fabric_edge=1804 ns=25250.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=60 aon_edge=2531
+EPOCH_PREPARE epoch=60 fabric_edge=1812
+EPOCH_PROOF_OBSERVED epoch=60 aon_edge=2549 age=18
+EPOCH_DECISION epoch=60 canceled=0 fabric_edge=1826
+EPOCH_RESULT epoch=60 canceled=0 timedOut=0 aon_edge=2564 ns=25635.371
+EPOCH_FABRIC_RECEIPT epoch=60 fabric_edge=1834 ns=25670.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=61 aon_edge=2573
+EPOCH_PREPARE epoch=61 fabric_edge=1842
+EPOCH_PROOF_OBSERVED epoch=61 aon_edge=2591 age=18
+EPOCH_DECISION epoch=61 canceled=0 fabric_edge=1856
+EPOCH_RESULT epoch=61 canceled=0 timedOut=0 aon_edge=2606 ns=26055.371
+EPOCH_FABRIC_RECEIPT epoch=61 fabric_edge=1864 ns=26090.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=62 aon_edge=2615
+EPOCH_PREPARE epoch=62 fabric_edge=1872
+EPOCH_PROOF_OBSERVED epoch=62 aon_edge=2633 age=18
+EPOCH_DECISION epoch=62 canceled=0 fabric_edge=1886
+EPOCH_RESULT epoch=62 canceled=0 timedOut=0 aon_edge=2648 ns=26475.371
+EPOCH_FABRIC_RECEIPT epoch=62 fabric_edge=1894 ns=26510.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=63 aon_edge=2657
+EPOCH_PREPARE epoch=63 fabric_edge=1902
+EPOCH_PROOF_OBSERVED epoch=63 aon_edge=2675 age=18
+EPOCH_DECISION epoch=63 canceled=0 fabric_edge=1916
+EPOCH_RESULT epoch=63 canceled=0 timedOut=0 aon_edge=2690 ns=26895.371
+EPOCH_FABRIC_RECEIPT epoch=63 fabric_edge=1924 ns=26930.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=64 aon_edge=2699
+EPOCH_PREPARE epoch=64 fabric_edge=1932
+EPOCH_PROOF_OBSERVED epoch=64 aon_edge=2717 age=18
+EPOCH_DECISION epoch=64 canceled=0 fabric_edge=1946
+EPOCH_RESULT epoch=64 canceled=0 timedOut=0 aon_edge=2732 ns=27315.371
+EPOCH_FABRIC_RECEIPT epoch=64 fabric_edge=1954 ns=27350.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=65 aon_edge=2741
+EPOCH_PREPARE epoch=65 fabric_edge=1962
+EPOCH_PROOF_OBSERVED epoch=65 aon_edge=2759 age=18
+EPOCH_DECISION epoch=65 canceled=0 fabric_edge=1976
+EPOCH_RESULT epoch=65 canceled=0 timedOut=0 aon_edge=2774 ns=27735.371
+EPOCH_FABRIC_RECEIPT epoch=65 fabric_edge=1984 ns=27770.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=66 aon_edge=2783
+EPOCH_PREPARE epoch=66 fabric_edge=1992
+EPOCH_PROOF_OBSERVED epoch=66 aon_edge=2801 age=18
+EPOCH_DECISION epoch=66 canceled=0 fabric_edge=2006
+EPOCH_RESULT epoch=66 canceled=0 timedOut=0 aon_edge=2816 ns=28155.371
+EPOCH_FABRIC_RECEIPT epoch=66 fabric_edge=2014 ns=28190.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=67 aon_edge=2825
+EPOCH_PREPARE epoch=67 fabric_edge=2022
+EPOCH_PROOF_OBSERVED epoch=67 aon_edge=2843 age=18
+EPOCH_DECISION epoch=67 canceled=0 fabric_edge=2036
+EPOCH_RESULT epoch=67 canceled=0 timedOut=0 aon_edge=2858 ns=28575.371
+EPOCH_FABRIC_RECEIPT epoch=67 fabric_edge=2044 ns=28610.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=68 aon_edge=2867
+EPOCH_PREPARE epoch=68 fabric_edge=2052
+EPOCH_PROOF_OBSERVED epoch=68 aon_edge=2885 age=18
+EPOCH_DECISION epoch=68 canceled=0 fabric_edge=2066
+EPOCH_RESULT epoch=68 canceled=0 timedOut=0 aon_edge=2900 ns=28995.371
+EPOCH_FABRIC_RECEIPT epoch=68 fabric_edge=2074 ns=29030.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=69 aon_edge=2909
+EPOCH_PREPARE epoch=69 fabric_edge=2082
+EPOCH_PROOF_OBSERVED epoch=69 aon_edge=2927 age=18
+EPOCH_DECISION epoch=69 canceled=0 fabric_edge=2096
+EPOCH_RESULT epoch=69 canceled=0 timedOut=0 aon_edge=2942 ns=29415.371
+EPOCH_FABRIC_RECEIPT epoch=69 fabric_edge=2104 ns=29450.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=70 aon_edge=2951
+EPOCH_PREPARE epoch=70 fabric_edge=2112
+EPOCH_PROOF_OBSERVED epoch=70 aon_edge=2969 age=18
+EPOCH_DECISION epoch=70 canceled=0 fabric_edge=2126
+EPOCH_RESULT epoch=70 canceled=0 timedOut=0 aon_edge=2984 ns=29835.371
+EPOCH_FABRIC_RECEIPT epoch=70 fabric_edge=2134 ns=29870.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=71 aon_edge=2993
+EPOCH_PREPARE epoch=71 fabric_edge=2142
+EPOCH_PROOF_OBSERVED epoch=71 aon_edge=3011 age=18
+EPOCH_DECISION epoch=71 canceled=0 fabric_edge=2156
+EPOCH_RESULT epoch=71 canceled=0 timedOut=0 aon_edge=3026 ns=30255.371
+EPOCH_FABRIC_RECEIPT epoch=71 fabric_edge=2164 ns=30290.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=72 aon_edge=3035
+EPOCH_PREPARE epoch=72 fabric_edge=2172
+EPOCH_PROOF_OBSERVED epoch=72 aon_edge=3053 age=18
+EPOCH_DECISION epoch=72 canceled=0 fabric_edge=2186
+EPOCH_RESULT epoch=72 canceled=0 timedOut=0 aon_edge=3068 ns=30675.371
+EPOCH_FABRIC_RECEIPT epoch=72 fabric_edge=2194 ns=30710.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=73 aon_edge=3077
+EPOCH_PREPARE epoch=73 fabric_edge=2202
+EPOCH_PROOF_OBSERVED epoch=73 aon_edge=3095 age=18
+EPOCH_DECISION epoch=73 canceled=0 fabric_edge=2216
+EPOCH_RESULT epoch=73 canceled=0 timedOut=0 aon_edge=3110 ns=31095.371
+EPOCH_FABRIC_RECEIPT epoch=73 fabric_edge=2224 ns=31130.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=74 aon_edge=3119
+EPOCH_PREPARE epoch=74 fabric_edge=2232
+EPOCH_PROOF_OBSERVED epoch=74 aon_edge=3137 age=18
+EPOCH_DECISION epoch=74 canceled=0 fabric_edge=2246
+EPOCH_RESULT epoch=74 canceled=0 timedOut=0 aon_edge=3152 ns=31515.371
+EPOCH_FABRIC_RECEIPT epoch=74 fabric_edge=2254 ns=31550.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=75 aon_edge=3161
+EPOCH_PREPARE epoch=75 fabric_edge=2262
+EPOCH_PROOF_OBSERVED epoch=75 aon_edge=3179 age=18
+EPOCH_DECISION epoch=75 canceled=0 fabric_edge=2276
+EPOCH_RESULT epoch=75 canceled=0 timedOut=0 aon_edge=3194 ns=31935.371
+EPOCH_FABRIC_RECEIPT epoch=75 fabric_edge=2284 ns=31970.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=76 aon_edge=3203
+EPOCH_PREPARE epoch=76 fabric_edge=2292
+EPOCH_PROOF_OBSERVED epoch=76 aon_edge=3221 age=18
+EPOCH_DECISION epoch=76 canceled=0 fabric_edge=2306
+EPOCH_RESULT epoch=76 canceled=0 timedOut=0 aon_edge=3236 ns=32355.371
+EPOCH_FABRIC_RECEIPT epoch=76 fabric_edge=2314 ns=32390.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=77 aon_edge=3245
+EPOCH_PREPARE epoch=77 fabric_edge=2322
+EPOCH_PROOF_OBSERVED epoch=77 aon_edge=3263 age=18
+EPOCH_DECISION epoch=77 canceled=0 fabric_edge=2336
+EPOCH_RESULT epoch=77 canceled=0 timedOut=0 aon_edge=3278 ns=32775.371
+EPOCH_FABRIC_RECEIPT epoch=77 fabric_edge=2344 ns=32810.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=78 aon_edge=3287
+EPOCH_PREPARE epoch=78 fabric_edge=2352
+EPOCH_PROOF_OBSERVED epoch=78 aon_edge=3305 age=18
+EPOCH_DECISION epoch=78 canceled=0 fabric_edge=2366
+EPOCH_RESULT epoch=78 canceled=0 timedOut=0 aon_edge=3320 ns=33195.371
+EPOCH_FABRIC_RECEIPT epoch=78 fabric_edge=2374 ns=33230.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=79 aon_edge=3329
+EPOCH_PREPARE epoch=79 fabric_edge=2382
+EPOCH_PROOF_OBSERVED epoch=79 aon_edge=3347 age=18
+EPOCH_DECISION epoch=79 canceled=0 fabric_edge=2396
+EPOCH_RESULT epoch=79 canceled=0 timedOut=0 aon_edge=3362 ns=33615.371
+EPOCH_FABRIC_RECEIPT epoch=79 fabric_edge=2404 ns=33650.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=80 aon_edge=3371
+EPOCH_PREPARE epoch=80 fabric_edge=2412
+EPOCH_PROOF_OBSERVED epoch=80 aon_edge=3389 age=18
+EPOCH_DECISION epoch=80 canceled=0 fabric_edge=2426
+EPOCH_RESULT epoch=80 canceled=0 timedOut=0 aon_edge=3404 ns=34035.371
+EPOCH_FABRIC_RECEIPT epoch=80 fabric_edge=2434 ns=34070.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=81 aon_edge=3413
+EPOCH_PREPARE epoch=81 fabric_edge=2442
+EPOCH_PROOF_OBSERVED epoch=81 aon_edge=3431 age=18
+EPOCH_DECISION epoch=81 canceled=0 fabric_edge=2456
+EPOCH_RESULT epoch=81 canceled=0 timedOut=0 aon_edge=3446 ns=34455.371
+EPOCH_FABRIC_RECEIPT epoch=81 fabric_edge=2464 ns=34490.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=82 aon_edge=3455
+EPOCH_PREPARE epoch=82 fabric_edge=2472
+EPOCH_PROOF_OBSERVED epoch=82 aon_edge=3473 age=18
+EPOCH_DECISION epoch=82 canceled=0 fabric_edge=2486
+EPOCH_RESULT epoch=82 canceled=0 timedOut=0 aon_edge=3488 ns=34875.371
+EPOCH_FABRIC_RECEIPT epoch=82 fabric_edge=2494 ns=34910.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=83 aon_edge=3497
+EPOCH_PREPARE epoch=83 fabric_edge=2502
+EPOCH_PROOF_OBSERVED epoch=83 aon_edge=3515 age=18
+EPOCH_DECISION epoch=83 canceled=0 fabric_edge=2516
+EPOCH_RESULT epoch=83 canceled=0 timedOut=0 aon_edge=3530 ns=35295.371
+EPOCH_FABRIC_RECEIPT epoch=83 fabric_edge=2524 ns=35330.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=84 aon_edge=3539
+EPOCH_PREPARE epoch=84 fabric_edge=2532
+EPOCH_PROOF_OBSERVED epoch=84 aon_edge=3557 age=18
+EPOCH_DECISION epoch=84 canceled=0 fabric_edge=2546
+EPOCH_RESULT epoch=84 canceled=0 timedOut=0 aon_edge=3572 ns=35715.371
+EPOCH_FABRIC_RECEIPT epoch=84 fabric_edge=2554 ns=35750.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=85 aon_edge=3581
+EPOCH_PREPARE epoch=85 fabric_edge=2562
+EPOCH_PROOF_OBSERVED epoch=85 aon_edge=3599 age=18
+EPOCH_DECISION epoch=85 canceled=0 fabric_edge=2576
+EPOCH_RESULT epoch=85 canceled=0 timedOut=0 aon_edge=3614 ns=36135.371
+EPOCH_FABRIC_RECEIPT epoch=85 fabric_edge=2584 ns=36170.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=86 aon_edge=3623
+EPOCH_PREPARE epoch=86 fabric_edge=2592
+EPOCH_PROOF_OBSERVED epoch=86 aon_edge=3641 age=18
+EPOCH_DECISION epoch=86 canceled=0 fabric_edge=2606
+EPOCH_RESULT epoch=86 canceled=0 timedOut=0 aon_edge=3656 ns=36555.371
+EPOCH_FABRIC_RECEIPT epoch=86 fabric_edge=2614 ns=36590.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=87 aon_edge=3665
+EPOCH_PREPARE epoch=87 fabric_edge=2622
+EPOCH_PROOF_OBSERVED epoch=87 aon_edge=3683 age=18
+EPOCH_DECISION epoch=87 canceled=0 fabric_edge=2636
+EPOCH_RESULT epoch=87 canceled=0 timedOut=0 aon_edge=3698 ns=36975.371
+EPOCH_FABRIC_RECEIPT epoch=87 fabric_edge=2644 ns=37010.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=88 aon_edge=3707
+EPOCH_PREPARE epoch=88 fabric_edge=2652
+EPOCH_PROOF_OBSERVED epoch=88 aon_edge=3725 age=18
+EPOCH_DECISION epoch=88 canceled=0 fabric_edge=2666
+EPOCH_RESULT epoch=88 canceled=0 timedOut=0 aon_edge=3740 ns=37395.371
+EPOCH_FABRIC_RECEIPT epoch=88 fabric_edge=2674 ns=37430.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=89 aon_edge=3749
+EPOCH_PREPARE epoch=89 fabric_edge=2682
+EPOCH_PROOF_OBSERVED epoch=89 aon_edge=3767 age=18
+EPOCH_DECISION epoch=89 canceled=0 fabric_edge=2696
+EPOCH_RESULT epoch=89 canceled=0 timedOut=0 aon_edge=3782 ns=37815.371
+EPOCH_FABRIC_RECEIPT epoch=89 fabric_edge=2704 ns=37850.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=90 aon_edge=3791
+EPOCH_PREPARE epoch=90 fabric_edge=2712
+EPOCH_PROOF_OBSERVED epoch=90 aon_edge=3809 age=18
+EPOCH_DECISION epoch=90 canceled=0 fabric_edge=2726
+EPOCH_RESULT epoch=90 canceled=0 timedOut=0 aon_edge=3824 ns=38235.371
+EPOCH_FABRIC_RECEIPT epoch=90 fabric_edge=2734 ns=38270.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=91 aon_edge=3833
+EPOCH_PREPARE epoch=91 fabric_edge=2742
+EPOCH_PROOF_OBSERVED epoch=91 aon_edge=3851 age=18
+EPOCH_DECISION epoch=91 canceled=0 fabric_edge=2756
+EPOCH_RESULT epoch=91 canceled=0 timedOut=0 aon_edge=3866 ns=38655.371
+EPOCH_FABRIC_RECEIPT epoch=91 fabric_edge=2764 ns=38690.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=92 aon_edge=3875
+EPOCH_PREPARE epoch=92 fabric_edge=2772
+EPOCH_PROOF_OBSERVED epoch=92 aon_edge=3893 age=18
+EPOCH_DECISION epoch=92 canceled=0 fabric_edge=2786
+EPOCH_RESULT epoch=92 canceled=0 timedOut=0 aon_edge=3908 ns=39075.371
+EPOCH_FABRIC_RECEIPT epoch=92 fabric_edge=2794 ns=39110.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=93 aon_edge=3917
+EPOCH_PREPARE epoch=93 fabric_edge=2802
+EPOCH_PROOF_OBSERVED epoch=93 aon_edge=3935 age=18
+EPOCH_DECISION epoch=93 canceled=0 fabric_edge=2816
+EPOCH_RESULT epoch=93 canceled=0 timedOut=0 aon_edge=3950 ns=39495.371
+EPOCH_FABRIC_RECEIPT epoch=93 fabric_edge=2824 ns=39530.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=94 aon_edge=3959
+EPOCH_PREPARE epoch=94 fabric_edge=2832
+EPOCH_PROOF_OBSERVED epoch=94 aon_edge=3977 age=18
+EPOCH_DECISION epoch=94 canceled=0 fabric_edge=2846
+EPOCH_RESULT epoch=94 canceled=0 timedOut=0 aon_edge=3992 ns=39915.371
+EPOCH_FABRIC_RECEIPT epoch=94 fabric_edge=2854 ns=39950.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=95 aon_edge=4001
+EPOCH_PREPARE epoch=95 fabric_edge=2862
+EPOCH_PROOF_OBSERVED epoch=95 aon_edge=4019 age=18
+EPOCH_DECISION epoch=95 canceled=0 fabric_edge=2876
+EPOCH_RESULT epoch=95 canceled=0 timedOut=0 aon_edge=4034 ns=40335.371
+EPOCH_FABRIC_RECEIPT epoch=95 fabric_edge=2884 ns=40370.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=96 aon_edge=4043
+EPOCH_PREPARE epoch=96 fabric_edge=2892
+EPOCH_PROOF_OBSERVED epoch=96 aon_edge=4061 age=18
+EPOCH_DECISION epoch=96 canceled=0 fabric_edge=2906
+EPOCH_RESULT epoch=96 canceled=0 timedOut=0 aon_edge=4076 ns=40755.371
+EPOCH_FABRIC_RECEIPT epoch=96 fabric_edge=2914 ns=40790.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=97 aon_edge=4085
+EPOCH_PREPARE epoch=97 fabric_edge=2922
+EPOCH_PROOF_OBSERVED epoch=97 aon_edge=4103 age=18
+EPOCH_DECISION epoch=97 canceled=0 fabric_edge=2936
+EPOCH_RESULT epoch=97 canceled=0 timedOut=0 aon_edge=4118 ns=41175.371
+EPOCH_FABRIC_RECEIPT epoch=97 fabric_edge=2944 ns=41210.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=98 aon_edge=4127
+EPOCH_PREPARE epoch=98 fabric_edge=2952
+EPOCH_PROOF_OBSERVED epoch=98 aon_edge=4145 age=18
+EPOCH_DECISION epoch=98 canceled=0 fabric_edge=2966
+EPOCH_RESULT epoch=98 canceled=0 timedOut=0 aon_edge=4160 ns=41595.371
+EPOCH_FABRIC_RECEIPT epoch=98 fabric_edge=2974 ns=41630.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=99 aon_edge=4169
+EPOCH_PREPARE epoch=99 fabric_edge=2982
+EPOCH_PROOF_OBSERVED epoch=99 aon_edge=4187 age=18
+EPOCH_DECISION epoch=99 canceled=0 fabric_edge=2996
+EPOCH_RESULT epoch=99 canceled=0 timedOut=0 aon_edge=4202 ns=42015.371
+EPOCH_FABRIC_RECEIPT epoch=99 fabric_edge=3004 ns=42050.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=100 aon_edge=4211
+EPOCH_PREPARE epoch=100 fabric_edge=3012
+EPOCH_PROOF_OBSERVED epoch=100 aon_edge=4229 age=18
+EPOCH_DECISION epoch=100 canceled=0 fabric_edge=3026
+EPOCH_RESULT epoch=100 canceled=0 timedOut=0 aon_edge=4244 ns=42435.371
+EPOCH_FABRIC_RECEIPT epoch=100 fabric_edge=3034 ns=42470.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=101 aon_edge=4253
+EPOCH_PREPARE epoch=101 fabric_edge=3042
+EPOCH_PROOF_OBSERVED epoch=101 aon_edge=4271 age=18
+EPOCH_DECISION epoch=101 canceled=0 fabric_edge=3056
+EPOCH_RESULT epoch=101 canceled=0 timedOut=0 aon_edge=4286 ns=42855.371
+EPOCH_FABRIC_RECEIPT epoch=101 fabric_edge=3064 ns=42890.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=102 aon_edge=4295
+EPOCH_PREPARE epoch=102 fabric_edge=3072
+EPOCH_PROOF_OBSERVED epoch=102 aon_edge=4313 age=18
+EPOCH_DECISION epoch=102 canceled=0 fabric_edge=3086
+EPOCH_RESULT epoch=102 canceled=0 timedOut=0 aon_edge=4328 ns=43275.371
+EPOCH_FABRIC_RECEIPT epoch=102 fabric_edge=3094 ns=43310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=103 aon_edge=4337
+EPOCH_PREPARE epoch=103 fabric_edge=3102
+EPOCH_PROOF_OBSERVED epoch=103 aon_edge=4355 age=18
+EPOCH_DECISION epoch=103 canceled=0 fabric_edge=3116
+EPOCH_RESULT epoch=103 canceled=0 timedOut=0 aon_edge=4370 ns=43695.371
+EPOCH_FABRIC_RECEIPT epoch=103 fabric_edge=3124 ns=43730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=104 aon_edge=4379
+EPOCH_PREPARE epoch=104 fabric_edge=3132
+EPOCH_PROOF_OBSERVED epoch=104 aon_edge=4397 age=18
+EPOCH_DECISION epoch=104 canceled=0 fabric_edge=3146
+EPOCH_RESULT epoch=104 canceled=0 timedOut=0 aon_edge=4412 ns=44115.371
+EPOCH_FABRIC_RECEIPT epoch=104 fabric_edge=3154 ns=44150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=105 aon_edge=4421
+EPOCH_PREPARE epoch=105 fabric_edge=3162
+EPOCH_PROOF_OBSERVED epoch=105 aon_edge=4439 age=18
+EPOCH_DECISION epoch=105 canceled=0 fabric_edge=3176
+EPOCH_RESULT epoch=105 canceled=0 timedOut=0 aon_edge=4454 ns=44535.371
+EPOCH_FABRIC_RECEIPT epoch=105 fabric_edge=3184 ns=44570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=106 aon_edge=4463
+EPOCH_PREPARE epoch=106 fabric_edge=3192
+EPOCH_PROOF_OBSERVED epoch=106 aon_edge=4481 age=18
+EPOCH_DECISION epoch=106 canceled=0 fabric_edge=3206
+EPOCH_RESULT epoch=106 canceled=0 timedOut=0 aon_edge=4496 ns=44955.371
+EPOCH_FABRIC_RECEIPT epoch=106 fabric_edge=3214 ns=44990.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=107 aon_edge=4505
+EPOCH_PREPARE epoch=107 fabric_edge=3222
+EPOCH_PROOF_OBSERVED epoch=107 aon_edge=4523 age=18
+EPOCH_DECISION epoch=107 canceled=0 fabric_edge=3236
+EPOCH_RESULT epoch=107 canceled=0 timedOut=0 aon_edge=4538 ns=45375.371
+EPOCH_FABRIC_RECEIPT epoch=107 fabric_edge=3244 ns=45410.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=108 aon_edge=4547
+EPOCH_PREPARE epoch=108 fabric_edge=3252
+EPOCH_PROOF_OBSERVED epoch=108 aon_edge=4565 age=18
+EPOCH_DECISION epoch=108 canceled=0 fabric_edge=3266
+EPOCH_RESULT epoch=108 canceled=0 timedOut=0 aon_edge=4580 ns=45795.371
+EPOCH_FABRIC_RECEIPT epoch=108 fabric_edge=3274 ns=45830.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=109 aon_edge=4589
+EPOCH_PREPARE epoch=109 fabric_edge=3282
+EPOCH_PROOF_OBSERVED epoch=109 aon_edge=4607 age=18
+EPOCH_DECISION epoch=109 canceled=0 fabric_edge=3296
+EPOCH_RESULT epoch=109 canceled=0 timedOut=0 aon_edge=4622 ns=46215.371
+EPOCH_FABRIC_RECEIPT epoch=109 fabric_edge=3304 ns=46250.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=110 aon_edge=4631
+EPOCH_PREPARE epoch=110 fabric_edge=3312
+EPOCH_PROOF_OBSERVED epoch=110 aon_edge=4649 age=18
+EPOCH_DECISION epoch=110 canceled=0 fabric_edge=3326
+EPOCH_RESULT epoch=110 canceled=0 timedOut=0 aon_edge=4664 ns=46635.371
+EPOCH_FABRIC_RECEIPT epoch=110 fabric_edge=3334 ns=46670.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=111 aon_edge=4673
+EPOCH_PREPARE epoch=111 fabric_edge=3342
+EPOCH_PROOF_OBSERVED epoch=111 aon_edge=4691 age=18
+EPOCH_DECISION epoch=111 canceled=0 fabric_edge=3356
+EPOCH_RESULT epoch=111 canceled=0 timedOut=0 aon_edge=4706 ns=47055.371
+EPOCH_FABRIC_RECEIPT epoch=111 fabric_edge=3364 ns=47090.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=112 aon_edge=4715
+EPOCH_PREPARE epoch=112 fabric_edge=3372
+EPOCH_PROOF_OBSERVED epoch=112 aon_edge=4733 age=18
+EPOCH_DECISION epoch=112 canceled=0 fabric_edge=3386
+EPOCH_RESULT epoch=112 canceled=0 timedOut=0 aon_edge=4748 ns=47475.371
+EPOCH_FABRIC_RECEIPT epoch=112 fabric_edge=3394 ns=47510.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=113 aon_edge=4757
+EPOCH_PREPARE epoch=113 fabric_edge=3402
+EPOCH_PROOF_OBSERVED epoch=113 aon_edge=4775 age=18
+EPOCH_DECISION epoch=113 canceled=0 fabric_edge=3416
+EPOCH_RESULT epoch=113 canceled=0 timedOut=0 aon_edge=4790 ns=47895.371
+EPOCH_FABRIC_RECEIPT epoch=113 fabric_edge=3424 ns=47930.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=114 aon_edge=4799
+EPOCH_PREPARE epoch=114 fabric_edge=3432
+EPOCH_PROOF_OBSERVED epoch=114 aon_edge=4817 age=18
+EPOCH_DECISION epoch=114 canceled=0 fabric_edge=3446
+EPOCH_RESULT epoch=114 canceled=0 timedOut=0 aon_edge=4832 ns=48315.371
+EPOCH_FABRIC_RECEIPT epoch=114 fabric_edge=3454 ns=48350.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=115 aon_edge=4841
+EPOCH_PREPARE epoch=115 fabric_edge=3462
+EPOCH_PROOF_OBSERVED epoch=115 aon_edge=4859 age=18
+EPOCH_DECISION epoch=115 canceled=0 fabric_edge=3476
+EPOCH_RESULT epoch=115 canceled=0 timedOut=0 aon_edge=4874 ns=48735.371
+EPOCH_FABRIC_RECEIPT epoch=115 fabric_edge=3484 ns=48770.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=116 aon_edge=4883
+EPOCH_PREPARE epoch=116 fabric_edge=3492
+EPOCH_PROOF_OBSERVED epoch=116 aon_edge=4901 age=18
+EPOCH_DECISION epoch=116 canceled=0 fabric_edge=3506
+EPOCH_RESULT epoch=116 canceled=0 timedOut=0 aon_edge=4916 ns=49155.371
+EPOCH_FABRIC_RECEIPT epoch=116 fabric_edge=3514 ns=49190.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=117 aon_edge=4925
+EPOCH_PREPARE epoch=117 fabric_edge=3522
+EPOCH_PROOF_OBSERVED epoch=117 aon_edge=4943 age=18
+EPOCH_DECISION epoch=117 canceled=0 fabric_edge=3536
+EPOCH_RESULT epoch=117 canceled=0 timedOut=0 aon_edge=4958 ns=49575.371
+EPOCH_FABRIC_RECEIPT epoch=117 fabric_edge=3544 ns=49610.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=118 aon_edge=4967
+EPOCH_PREPARE epoch=118 fabric_edge=3552
+EPOCH_PROOF_OBSERVED epoch=118 aon_edge=4985 age=18
+EPOCH_DECISION epoch=118 canceled=0 fabric_edge=3566
+EPOCH_RESULT epoch=118 canceled=0 timedOut=0 aon_edge=5000 ns=49995.371
+EPOCH_FABRIC_RECEIPT epoch=118 fabric_edge=3574 ns=50030.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=119 aon_edge=5009
+EPOCH_PREPARE epoch=119 fabric_edge=3582
+EPOCH_PROOF_OBSERVED epoch=119 aon_edge=5027 age=18
+EPOCH_DECISION epoch=119 canceled=0 fabric_edge=3596
+EPOCH_RESULT epoch=119 canceled=0 timedOut=0 aon_edge=5042 ns=50415.371
+EPOCH_FABRIC_RECEIPT epoch=119 fabric_edge=3604 ns=50450.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=120 aon_edge=5051
+EPOCH_PREPARE epoch=120 fabric_edge=3612
+EPOCH_PROOF_OBSERVED epoch=120 aon_edge=5069 age=18
+EPOCH_DECISION epoch=120 canceled=0 fabric_edge=3626
+EPOCH_RESULT epoch=120 canceled=0 timedOut=0 aon_edge=5084 ns=50835.371
+EPOCH_FABRIC_RECEIPT epoch=120 fabric_edge=3634 ns=50870.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=121 aon_edge=5093
+EPOCH_PREPARE epoch=121 fabric_edge=3642
+EPOCH_PROOF_OBSERVED epoch=121 aon_edge=5111 age=18
+EPOCH_DECISION epoch=121 canceled=0 fabric_edge=3656
+EPOCH_RESULT epoch=121 canceled=0 timedOut=0 aon_edge=5126 ns=51255.371
+EPOCH_FABRIC_RECEIPT epoch=121 fabric_edge=3664 ns=51290.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=122 aon_edge=5135
+EPOCH_PREPARE epoch=122 fabric_edge=3672
+EPOCH_PROOF_OBSERVED epoch=122 aon_edge=5153 age=18
+EPOCH_DECISION epoch=122 canceled=0 fabric_edge=3686
+EPOCH_RESULT epoch=122 canceled=0 timedOut=0 aon_edge=5168 ns=51675.371
+EPOCH_FABRIC_RECEIPT epoch=122 fabric_edge=3694 ns=51710.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=123 aon_edge=5177
+EPOCH_PREPARE epoch=123 fabric_edge=3702
+EPOCH_PROOF_OBSERVED epoch=123 aon_edge=5195 age=18
+EPOCH_DECISION epoch=123 canceled=0 fabric_edge=3716
+EPOCH_RESULT epoch=123 canceled=0 timedOut=0 aon_edge=5210 ns=52095.371
+EPOCH_FABRIC_RECEIPT epoch=123 fabric_edge=3724 ns=52130.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=124 aon_edge=5219
+EPOCH_PREPARE epoch=124 fabric_edge=3732
+EPOCH_PROOF_OBSERVED epoch=124 aon_edge=5237 age=18
+EPOCH_DECISION epoch=124 canceled=0 fabric_edge=3746
+EPOCH_RESULT epoch=124 canceled=0 timedOut=0 aon_edge=5252 ns=52515.371
+EPOCH_FABRIC_RECEIPT epoch=124 fabric_edge=3754 ns=52550.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=125 aon_edge=5261
+EPOCH_PREPARE epoch=125 fabric_edge=3762
+EPOCH_PROOF_OBSERVED epoch=125 aon_edge=5279 age=18
+EPOCH_DECISION epoch=125 canceled=0 fabric_edge=3776
+EPOCH_RESULT epoch=125 canceled=0 timedOut=0 aon_edge=5294 ns=52935.371
+EPOCH_FABRIC_RECEIPT epoch=125 fabric_edge=3784 ns=52970.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=126 aon_edge=5303
+EPOCH_PREPARE epoch=126 fabric_edge=3792
+EPOCH_PROOF_OBSERVED epoch=126 aon_edge=5321 age=18
+EPOCH_DECISION epoch=126 canceled=0 fabric_edge=3806
+EPOCH_RESULT epoch=126 canceled=0 timedOut=0 aon_edge=5336 ns=53355.371
+EPOCH_FABRIC_RECEIPT epoch=126 fabric_edge=3814 ns=53390.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=127 aon_edge=5345
+EPOCH_PREPARE epoch=127 fabric_edge=3822
+EPOCH_PROOF_OBSERVED epoch=127 aon_edge=5363 age=18
+EPOCH_DECISION epoch=127 canceled=0 fabric_edge=3836
+EPOCH_RESULT epoch=127 canceled=0 timedOut=0 aon_edge=5378 ns=53775.371
+EPOCH_FABRIC_RECEIPT epoch=127 fabric_edge=3844 ns=53810.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=128 aon_edge=5387
+EPOCH_PREPARE epoch=128 fabric_edge=3852
+EPOCH_PROOF_OBSERVED epoch=128 aon_edge=5405 age=18
+EPOCH_DECISION epoch=128 canceled=0 fabric_edge=3866
+EPOCH_RESULT epoch=128 canceled=0 timedOut=0 aon_edge=5420 ns=54195.371
+EPOCH_FABRIC_RECEIPT epoch=128 fabric_edge=3874 ns=54230.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=129 aon_edge=5429
+EPOCH_PREPARE epoch=129 fabric_edge=3882
+EPOCH_PROOF_OBSERVED epoch=129 aon_edge=5447 age=18
+EPOCH_DECISION epoch=129 canceled=0 fabric_edge=3896
+EPOCH_RESULT epoch=129 canceled=0 timedOut=0 aon_edge=5462 ns=54615.371
+EPOCH_FABRIC_RECEIPT epoch=129 fabric_edge=3904 ns=54650.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=130 aon_edge=5471
+EPOCH_PREPARE epoch=130 fabric_edge=3912
+EPOCH_PROOF_OBSERVED epoch=130 aon_edge=5489 age=18
+EPOCH_DECISION epoch=130 canceled=0 fabric_edge=3926
+EPOCH_RESULT epoch=130 canceled=0 timedOut=0 aon_edge=5504 ns=55035.371
+EPOCH_FABRIC_RECEIPT epoch=130 fabric_edge=3934 ns=55070.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=131 aon_edge=5513
+EPOCH_PREPARE epoch=131 fabric_edge=3942
+EPOCH_PROOF_OBSERVED epoch=131 aon_edge=5531 age=18
+EPOCH_DECISION epoch=131 canceled=0 fabric_edge=3956
+EPOCH_RESULT epoch=131 canceled=0 timedOut=0 aon_edge=5546 ns=55455.371
+EPOCH_FABRIC_RECEIPT epoch=131 fabric_edge=3964 ns=55490.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=132 aon_edge=5555
+EPOCH_PREPARE epoch=132 fabric_edge=3972
+EPOCH_PROOF_OBSERVED epoch=132 aon_edge=5573 age=18
+EPOCH_DECISION epoch=132 canceled=0 fabric_edge=3986
+EPOCH_RESULT epoch=132 canceled=0 timedOut=0 aon_edge=5588 ns=55875.371
+EPOCH_FABRIC_RECEIPT epoch=132 fabric_edge=3994 ns=55910.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=133 aon_edge=5597
+EPOCH_PREPARE epoch=133 fabric_edge=4002
+EPOCH_PROOF_OBSERVED epoch=133 aon_edge=5615 age=18
+EPOCH_DECISION epoch=133 canceled=0 fabric_edge=4016
+EPOCH_RESULT epoch=133 canceled=0 timedOut=0 aon_edge=5630 ns=56295.371
+EPOCH_FABRIC_RECEIPT epoch=133 fabric_edge=4024 ns=56330.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=134 aon_edge=5639
+EPOCH_PREPARE epoch=134 fabric_edge=4032
+EPOCH_PROOF_OBSERVED epoch=134 aon_edge=5657 age=18
+EPOCH_DECISION epoch=134 canceled=0 fabric_edge=4046
+EPOCH_RESULT epoch=134 canceled=0 timedOut=0 aon_edge=5672 ns=56715.371
+EPOCH_FABRIC_RECEIPT epoch=134 fabric_edge=4054 ns=56750.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=135 aon_edge=5681
+EPOCH_PREPARE epoch=135 fabric_edge=4062
+EPOCH_PROOF_OBSERVED epoch=135 aon_edge=5699 age=18
+EPOCH_DECISION epoch=135 canceled=0 fabric_edge=4076
+EPOCH_RESULT epoch=135 canceled=0 timedOut=0 aon_edge=5714 ns=57135.371
+EPOCH_FABRIC_RECEIPT epoch=135 fabric_edge=4084 ns=57170.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=136 aon_edge=5723
+EPOCH_PREPARE epoch=136 fabric_edge=4092
+EPOCH_PROOF_OBSERVED epoch=136 aon_edge=5741 age=18
+EPOCH_DECISION epoch=136 canceled=0 fabric_edge=4106
+EPOCH_RESULT epoch=136 canceled=0 timedOut=0 aon_edge=5756 ns=57555.371
+EPOCH_FABRIC_RECEIPT epoch=136 fabric_edge=4114 ns=57590.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=137 aon_edge=5765
+EPOCH_PREPARE epoch=137 fabric_edge=4122
+EPOCH_PROOF_OBSERVED epoch=137 aon_edge=5783 age=18
+EPOCH_DECISION epoch=137 canceled=0 fabric_edge=4136
+EPOCH_RESULT epoch=137 canceled=0 timedOut=0 aon_edge=5798 ns=57975.371
+EPOCH_FABRIC_RECEIPT epoch=137 fabric_edge=4144 ns=58010.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=138 aon_edge=5807
+EPOCH_PREPARE epoch=138 fabric_edge=4152
+EPOCH_PROOF_OBSERVED epoch=138 aon_edge=5825 age=18
+EPOCH_DECISION epoch=138 canceled=0 fabric_edge=4166
+EPOCH_RESULT epoch=138 canceled=0 timedOut=0 aon_edge=5840 ns=58395.371
+EPOCH_FABRIC_RECEIPT epoch=138 fabric_edge=4174 ns=58430.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=139 aon_edge=5849
+EPOCH_PREPARE epoch=139 fabric_edge=4182
+EPOCH_PROOF_OBSERVED epoch=139 aon_edge=5867 age=18
+EPOCH_DECISION epoch=139 canceled=0 fabric_edge=4196
+EPOCH_RESULT epoch=139 canceled=0 timedOut=0 aon_edge=5882 ns=58815.371
+EPOCH_FABRIC_RECEIPT epoch=139 fabric_edge=4204 ns=58850.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=140 aon_edge=5891
+EPOCH_PREPARE epoch=140 fabric_edge=4212
+EPOCH_PROOF_OBSERVED epoch=140 aon_edge=5909 age=18
+EPOCH_DECISION epoch=140 canceled=0 fabric_edge=4226
+EPOCH_RESULT epoch=140 canceled=0 timedOut=0 aon_edge=5924 ns=59235.371
+EPOCH_FABRIC_RECEIPT epoch=140 fabric_edge=4234 ns=59270.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=141 aon_edge=5933
+EPOCH_PREPARE epoch=141 fabric_edge=4242
+EPOCH_PROOF_OBSERVED epoch=141 aon_edge=5951 age=18
+EPOCH_DECISION epoch=141 canceled=0 fabric_edge=4256
+EPOCH_RESULT epoch=141 canceled=0 timedOut=0 aon_edge=5966 ns=59655.371
+EPOCH_FABRIC_RECEIPT epoch=141 fabric_edge=4264 ns=59690.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=142 aon_edge=5975
+EPOCH_PREPARE epoch=142 fabric_edge=4272
+EPOCH_PROOF_OBSERVED epoch=142 aon_edge=5993 age=18
+EPOCH_DECISION epoch=142 canceled=0 fabric_edge=4286
+EPOCH_RESULT epoch=142 canceled=0 timedOut=0 aon_edge=6008 ns=60075.371
+EPOCH_FABRIC_RECEIPT epoch=142 fabric_edge=4294 ns=60110.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=143 aon_edge=6017
+EPOCH_PREPARE epoch=143 fabric_edge=4302
+EPOCH_PROOF_OBSERVED epoch=143 aon_edge=6035 age=18
+EPOCH_DECISION epoch=143 canceled=0 fabric_edge=4316
+EPOCH_RESULT epoch=143 canceled=0 timedOut=0 aon_edge=6050 ns=60495.371
+EPOCH_FABRIC_RECEIPT epoch=143 fabric_edge=4324 ns=60530.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=144 aon_edge=6059
+EPOCH_PREPARE epoch=144 fabric_edge=4332
+EPOCH_PROOF_OBSERVED epoch=144 aon_edge=6077 age=18
+EPOCH_DECISION epoch=144 canceled=0 fabric_edge=4346
+EPOCH_RESULT epoch=144 canceled=0 timedOut=0 aon_edge=6092 ns=60915.371
+EPOCH_FABRIC_RECEIPT epoch=144 fabric_edge=4354 ns=60950.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=145 aon_edge=6101
+EPOCH_PREPARE epoch=145 fabric_edge=4362
+EPOCH_PROOF_OBSERVED epoch=145 aon_edge=6119 age=18
+EPOCH_DECISION epoch=145 canceled=0 fabric_edge=4376
+EPOCH_RESULT epoch=145 canceled=0 timedOut=0 aon_edge=6134 ns=61335.371
+EPOCH_FABRIC_RECEIPT epoch=145 fabric_edge=4384 ns=61370.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=146 aon_edge=6143
+EPOCH_PREPARE epoch=146 fabric_edge=4392
+EPOCH_PROOF_OBSERVED epoch=146 aon_edge=6161 age=18
+EPOCH_DECISION epoch=146 canceled=0 fabric_edge=4406
+EPOCH_RESULT epoch=146 canceled=0 timedOut=0 aon_edge=6176 ns=61755.371
+EPOCH_FABRIC_RECEIPT epoch=146 fabric_edge=4414 ns=61790.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=147 aon_edge=6185
+EPOCH_PREPARE epoch=147 fabric_edge=4422
+EPOCH_PROOF_OBSERVED epoch=147 aon_edge=6203 age=18
+EPOCH_DECISION epoch=147 canceled=0 fabric_edge=4436
+EPOCH_RESULT epoch=147 canceled=0 timedOut=0 aon_edge=6218 ns=62175.371
+EPOCH_FABRIC_RECEIPT epoch=147 fabric_edge=4444 ns=62210.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=148 aon_edge=6227
+EPOCH_PREPARE epoch=148 fabric_edge=4452
+EPOCH_PROOF_OBSERVED epoch=148 aon_edge=6245 age=18
+EPOCH_DECISION epoch=148 canceled=0 fabric_edge=4466
+EPOCH_RESULT epoch=148 canceled=0 timedOut=0 aon_edge=6260 ns=62595.371
+EPOCH_FABRIC_RECEIPT epoch=148 fabric_edge=4474 ns=62630.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=149 aon_edge=6269
+EPOCH_PREPARE epoch=149 fabric_edge=4482
+EPOCH_PROOF_OBSERVED epoch=149 aon_edge=6287 age=18
+EPOCH_DECISION epoch=149 canceled=0 fabric_edge=4496
+EPOCH_RESULT epoch=149 canceled=0 timedOut=0 aon_edge=6302 ns=63015.371
+EPOCH_FABRIC_RECEIPT epoch=149 fabric_edge=4504 ns=63050.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=150 aon_edge=6311
+EPOCH_PREPARE epoch=150 fabric_edge=4512
+EPOCH_PROOF_OBSERVED epoch=150 aon_edge=6329 age=18
+EPOCH_DECISION epoch=150 canceled=0 fabric_edge=4526
+EPOCH_RESULT epoch=150 canceled=0 timedOut=0 aon_edge=6344 ns=63435.371
+EPOCH_FABRIC_RECEIPT epoch=150 fabric_edge=4534 ns=63470.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=151 aon_edge=6353
+EPOCH_PREPARE epoch=151 fabric_edge=4542
+EPOCH_PROOF_OBSERVED epoch=151 aon_edge=6371 age=18
+EPOCH_DECISION epoch=151 canceled=0 fabric_edge=4556
+EPOCH_RESULT epoch=151 canceled=0 timedOut=0 aon_edge=6386 ns=63855.371
+EPOCH_FABRIC_RECEIPT epoch=151 fabric_edge=4564 ns=63890.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=152 aon_edge=6395
+EPOCH_PREPARE epoch=152 fabric_edge=4572
+EPOCH_PROOF_OBSERVED epoch=152 aon_edge=6413 age=18
+EPOCH_DECISION epoch=152 canceled=0 fabric_edge=4586
+EPOCH_RESULT epoch=152 canceled=0 timedOut=0 aon_edge=6428 ns=64275.371
+EPOCH_FABRIC_RECEIPT epoch=152 fabric_edge=4594 ns=64310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=153 aon_edge=6437
+EPOCH_PREPARE epoch=153 fabric_edge=4602
+EPOCH_PROOF_OBSERVED epoch=153 aon_edge=6455 age=18
+EPOCH_DECISION epoch=153 canceled=0 fabric_edge=4616
+EPOCH_RESULT epoch=153 canceled=0 timedOut=0 aon_edge=6470 ns=64695.371
+EPOCH_FABRIC_RECEIPT epoch=153 fabric_edge=4624 ns=64730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=154 aon_edge=6479
+EPOCH_PREPARE epoch=154 fabric_edge=4632
+EPOCH_PROOF_OBSERVED epoch=154 aon_edge=6497 age=18
+EPOCH_DECISION epoch=154 canceled=0 fabric_edge=4646
+EPOCH_RESULT epoch=154 canceled=0 timedOut=0 aon_edge=6512 ns=65115.371
+EPOCH_FABRIC_RECEIPT epoch=154 fabric_edge=4654 ns=65150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=155 aon_edge=6521
+EPOCH_PREPARE epoch=155 fabric_edge=4662
+EPOCH_PROOF_OBSERVED epoch=155 aon_edge=6539 age=18
+EPOCH_DECISION epoch=155 canceled=0 fabric_edge=4676
+EPOCH_RESULT epoch=155 canceled=0 timedOut=0 aon_edge=6554 ns=65535.371
+EPOCH_FABRIC_RECEIPT epoch=155 fabric_edge=4684 ns=65570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=156 aon_edge=6563
+EPOCH_PREPARE epoch=156 fabric_edge=4692
+EPOCH_PROOF_OBSERVED epoch=156 aon_edge=6581 age=18
+EPOCH_DECISION epoch=156 canceled=0 fabric_edge=4706
+EPOCH_RESULT epoch=156 canceled=0 timedOut=0 aon_edge=6596 ns=65955.371
+EPOCH_FABRIC_RECEIPT epoch=156 fabric_edge=4714 ns=65990.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=157 aon_edge=6605
+EPOCH_PREPARE epoch=157 fabric_edge=4722
+EPOCH_PROOF_OBSERVED epoch=157 aon_edge=6623 age=18
+EPOCH_DECISION epoch=157 canceled=0 fabric_edge=4736
+EPOCH_RESULT epoch=157 canceled=0 timedOut=0 aon_edge=6638 ns=66375.371
+EPOCH_FABRIC_RECEIPT epoch=157 fabric_edge=4744 ns=66410.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=158 aon_edge=6647
+EPOCH_PREPARE epoch=158 fabric_edge=4752
+EPOCH_PROOF_OBSERVED epoch=158 aon_edge=6665 age=18
+EPOCH_DECISION epoch=158 canceled=0 fabric_edge=4766
+EPOCH_RESULT epoch=158 canceled=0 timedOut=0 aon_edge=6680 ns=66795.371
+EPOCH_FABRIC_RECEIPT epoch=158 fabric_edge=4774 ns=66830.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=159 aon_edge=6689
+EPOCH_PREPARE epoch=159 fabric_edge=4782
+EPOCH_PROOF_OBSERVED epoch=159 aon_edge=6707 age=18
+EPOCH_DECISION epoch=159 canceled=0 fabric_edge=4796
+EPOCH_RESULT epoch=159 canceled=0 timedOut=0 aon_edge=6722 ns=67215.371
+EPOCH_FABRIC_RECEIPT epoch=159 fabric_edge=4804 ns=67250.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=160 aon_edge=6731
+EPOCH_PREPARE epoch=160 fabric_edge=4812
+EPOCH_PROOF_OBSERVED epoch=160 aon_edge=6749 age=18
+EPOCH_DECISION epoch=160 canceled=0 fabric_edge=4826
+EPOCH_RESULT epoch=160 canceled=0 timedOut=0 aon_edge=6764 ns=67635.371
+EPOCH_FABRIC_RECEIPT epoch=160 fabric_edge=4834 ns=67670.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=161 aon_edge=6773
+EPOCH_PREPARE epoch=161 fabric_edge=4842
+EPOCH_PROOF_OBSERVED epoch=161 aon_edge=6791 age=18
+EPOCH_DECISION epoch=161 canceled=0 fabric_edge=4856
+EPOCH_RESULT epoch=161 canceled=0 timedOut=0 aon_edge=6806 ns=68055.371
+EPOCH_FABRIC_RECEIPT epoch=161 fabric_edge=4864 ns=68090.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=162 aon_edge=6815
+EPOCH_PREPARE epoch=162 fabric_edge=4872
+EPOCH_PROOF_OBSERVED epoch=162 aon_edge=6833 age=18
+EPOCH_DECISION epoch=162 canceled=0 fabric_edge=4886
+EPOCH_RESULT epoch=162 canceled=0 timedOut=0 aon_edge=6848 ns=68475.371
+EPOCH_FABRIC_RECEIPT epoch=162 fabric_edge=4894 ns=68510.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=163 aon_edge=6857
+EPOCH_PREPARE epoch=163 fabric_edge=4902
+EPOCH_PROOF_OBSERVED epoch=163 aon_edge=6875 age=18
+EPOCH_DECISION epoch=163 canceled=0 fabric_edge=4916
+EPOCH_RESULT epoch=163 canceled=0 timedOut=0 aon_edge=6890 ns=68895.371
+EPOCH_FABRIC_RECEIPT epoch=163 fabric_edge=4924 ns=68930.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=164 aon_edge=6899
+EPOCH_PREPARE epoch=164 fabric_edge=4932
+EPOCH_PROOF_OBSERVED epoch=164 aon_edge=6917 age=18
+EPOCH_DECISION epoch=164 canceled=0 fabric_edge=4946
+EPOCH_RESULT epoch=164 canceled=0 timedOut=0 aon_edge=6932 ns=69315.371
+EPOCH_FABRIC_RECEIPT epoch=164 fabric_edge=4954 ns=69350.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=165 aon_edge=6941
+EPOCH_PREPARE epoch=165 fabric_edge=4962
+EPOCH_PROOF_OBSERVED epoch=165 aon_edge=6959 age=18
+EPOCH_DECISION epoch=165 canceled=0 fabric_edge=4976
+EPOCH_RESULT epoch=165 canceled=0 timedOut=0 aon_edge=6974 ns=69735.371
+EPOCH_FABRIC_RECEIPT epoch=165 fabric_edge=4984 ns=69770.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=166 aon_edge=6983
+EPOCH_PREPARE epoch=166 fabric_edge=4992
+EPOCH_PROOF_OBSERVED epoch=166 aon_edge=7001 age=18
+EPOCH_DECISION epoch=166 canceled=0 fabric_edge=5006
+EPOCH_RESULT epoch=166 canceled=0 timedOut=0 aon_edge=7016 ns=70155.371
+EPOCH_FABRIC_RECEIPT epoch=166 fabric_edge=5014 ns=70190.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=167 aon_edge=7025
+EPOCH_PREPARE epoch=167 fabric_edge=5022
+EPOCH_PROOF_OBSERVED epoch=167 aon_edge=7043 age=18
+EPOCH_DECISION epoch=167 canceled=0 fabric_edge=5036
+EPOCH_RESULT epoch=167 canceled=0 timedOut=0 aon_edge=7058 ns=70575.371
+EPOCH_FABRIC_RECEIPT epoch=167 fabric_edge=5044 ns=70610.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=168 aon_edge=7067
+EPOCH_PREPARE epoch=168 fabric_edge=5052
+EPOCH_PROOF_OBSERVED epoch=168 aon_edge=7085 age=18
+EPOCH_DECISION epoch=168 canceled=0 fabric_edge=5066
+EPOCH_RESULT epoch=168 canceled=0 timedOut=0 aon_edge=7100 ns=70995.371
+EPOCH_FABRIC_RECEIPT epoch=168 fabric_edge=5074 ns=71030.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=169 aon_edge=7109
+EPOCH_PREPARE epoch=169 fabric_edge=5082
+EPOCH_PROOF_OBSERVED epoch=169 aon_edge=7127 age=18
+EPOCH_DECISION epoch=169 canceled=0 fabric_edge=5096
+EPOCH_RESULT epoch=169 canceled=0 timedOut=0 aon_edge=7142 ns=71415.371
+EPOCH_FABRIC_RECEIPT epoch=169 fabric_edge=5104 ns=71450.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=170 aon_edge=7151
+EPOCH_PREPARE epoch=170 fabric_edge=5112
+EPOCH_PROOF_OBSERVED epoch=170 aon_edge=7169 age=18
+EPOCH_DECISION epoch=170 canceled=0 fabric_edge=5126
+EPOCH_RESULT epoch=170 canceled=0 timedOut=0 aon_edge=7184 ns=71835.371
+EPOCH_FABRIC_RECEIPT epoch=170 fabric_edge=5134 ns=71870.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=171 aon_edge=7193
+EPOCH_PREPARE epoch=171 fabric_edge=5142
+EPOCH_PROOF_OBSERVED epoch=171 aon_edge=7211 age=18
+EPOCH_DECISION epoch=171 canceled=0 fabric_edge=5156
+EPOCH_RESULT epoch=171 canceled=0 timedOut=0 aon_edge=7226 ns=72255.371
+EPOCH_FABRIC_RECEIPT epoch=171 fabric_edge=5164 ns=72290.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=172 aon_edge=7235
+EPOCH_PREPARE epoch=172 fabric_edge=5172
+EPOCH_PROOF_OBSERVED epoch=172 aon_edge=7253 age=18
+EPOCH_DECISION epoch=172 canceled=0 fabric_edge=5186
+EPOCH_RESULT epoch=172 canceled=0 timedOut=0 aon_edge=7268 ns=72675.371
+EPOCH_FABRIC_RECEIPT epoch=172 fabric_edge=5194 ns=72710.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=173 aon_edge=7277
+EPOCH_PREPARE epoch=173 fabric_edge=5202
+EPOCH_PROOF_OBSERVED epoch=173 aon_edge=7295 age=18
+EPOCH_DECISION epoch=173 canceled=0 fabric_edge=5216
+EPOCH_RESULT epoch=173 canceled=0 timedOut=0 aon_edge=7310 ns=73095.371
+EPOCH_FABRIC_RECEIPT epoch=173 fabric_edge=5224 ns=73130.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=174 aon_edge=7319
+EPOCH_PREPARE epoch=174 fabric_edge=5232
+EPOCH_PROOF_OBSERVED epoch=174 aon_edge=7337 age=18
+EPOCH_DECISION epoch=174 canceled=0 fabric_edge=5246
+EPOCH_RESULT epoch=174 canceled=0 timedOut=0 aon_edge=7352 ns=73515.371
+EPOCH_FABRIC_RECEIPT epoch=174 fabric_edge=5254 ns=73550.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=175 aon_edge=7361
+EPOCH_PREPARE epoch=175 fabric_edge=5262
+EPOCH_PROOF_OBSERVED epoch=175 aon_edge=7379 age=18
+EPOCH_DECISION epoch=175 canceled=0 fabric_edge=5276
+EPOCH_RESULT epoch=175 canceled=0 timedOut=0 aon_edge=7394 ns=73935.371
+EPOCH_FABRIC_RECEIPT epoch=175 fabric_edge=5284 ns=73970.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=176 aon_edge=7403
+EPOCH_PREPARE epoch=176 fabric_edge=5292
+EPOCH_PROOF_OBSERVED epoch=176 aon_edge=7421 age=18
+EPOCH_DECISION epoch=176 canceled=0 fabric_edge=5306
+EPOCH_RESULT epoch=176 canceled=0 timedOut=0 aon_edge=7436 ns=74355.371
+EPOCH_FABRIC_RECEIPT epoch=176 fabric_edge=5314 ns=74390.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=177 aon_edge=7445
+EPOCH_PREPARE epoch=177 fabric_edge=5322
+EPOCH_PROOF_OBSERVED epoch=177 aon_edge=7463 age=18
+EPOCH_DECISION epoch=177 canceled=0 fabric_edge=5336
+EPOCH_RESULT epoch=177 canceled=0 timedOut=0 aon_edge=7478 ns=74775.371
+EPOCH_FABRIC_RECEIPT epoch=177 fabric_edge=5344 ns=74810.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=178 aon_edge=7487
+EPOCH_PREPARE epoch=178 fabric_edge=5352
+EPOCH_PROOF_OBSERVED epoch=178 aon_edge=7505 age=18
+EPOCH_DECISION epoch=178 canceled=0 fabric_edge=5366
+EPOCH_RESULT epoch=178 canceled=0 timedOut=0 aon_edge=7520 ns=75195.371
+EPOCH_FABRIC_RECEIPT epoch=178 fabric_edge=5374 ns=75230.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=179 aon_edge=7529
+EPOCH_PREPARE epoch=179 fabric_edge=5382
+EPOCH_PROOF_OBSERVED epoch=179 aon_edge=7547 age=18
+EPOCH_DECISION epoch=179 canceled=0 fabric_edge=5396
+EPOCH_RESULT epoch=179 canceled=0 timedOut=0 aon_edge=7562 ns=75615.371
+EPOCH_FABRIC_RECEIPT epoch=179 fabric_edge=5404 ns=75650.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=180 aon_edge=7571
+EPOCH_PREPARE epoch=180 fabric_edge=5412
+EPOCH_PROOF_OBSERVED epoch=180 aon_edge=7589 age=18
+EPOCH_DECISION epoch=180 canceled=0 fabric_edge=5426
+EPOCH_RESULT epoch=180 canceled=0 timedOut=0 aon_edge=7604 ns=76035.371
+EPOCH_FABRIC_RECEIPT epoch=180 fabric_edge=5434 ns=76070.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=181 aon_edge=7613
+EPOCH_PREPARE epoch=181 fabric_edge=5442
+EPOCH_PROOF_OBSERVED epoch=181 aon_edge=7631 age=18
+EPOCH_DECISION epoch=181 canceled=0 fabric_edge=5456
+EPOCH_RESULT epoch=181 canceled=0 timedOut=0 aon_edge=7646 ns=76455.371
+EPOCH_FABRIC_RECEIPT epoch=181 fabric_edge=5464 ns=76490.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=182 aon_edge=7655
+EPOCH_PREPARE epoch=182 fabric_edge=5472
+EPOCH_PROOF_OBSERVED epoch=182 aon_edge=7673 age=18
+EPOCH_DECISION epoch=182 canceled=0 fabric_edge=5486
+EPOCH_RESULT epoch=182 canceled=0 timedOut=0 aon_edge=7688 ns=76875.371
+EPOCH_FABRIC_RECEIPT epoch=182 fabric_edge=5494 ns=76910.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=183 aon_edge=7697
+EPOCH_PREPARE epoch=183 fabric_edge=5502
+EPOCH_PROOF_OBSERVED epoch=183 aon_edge=7715 age=18
+EPOCH_DECISION epoch=183 canceled=0 fabric_edge=5516
+EPOCH_RESULT epoch=183 canceled=0 timedOut=0 aon_edge=7730 ns=77295.371
+EPOCH_FABRIC_RECEIPT epoch=183 fabric_edge=5524 ns=77330.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=184 aon_edge=7739
+EPOCH_PREPARE epoch=184 fabric_edge=5532
+EPOCH_PROOF_OBSERVED epoch=184 aon_edge=7757 age=18
+EPOCH_DECISION epoch=184 canceled=0 fabric_edge=5546
+EPOCH_RESULT epoch=184 canceled=0 timedOut=0 aon_edge=7772 ns=77715.371
+EPOCH_FABRIC_RECEIPT epoch=184 fabric_edge=5554 ns=77750.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=185 aon_edge=7781
+EPOCH_PREPARE epoch=185 fabric_edge=5562
+EPOCH_PROOF_OBSERVED epoch=185 aon_edge=7799 age=18
+EPOCH_DECISION epoch=185 canceled=0 fabric_edge=5576
+EPOCH_RESULT epoch=185 canceled=0 timedOut=0 aon_edge=7814 ns=78135.371
+EPOCH_FABRIC_RECEIPT epoch=185 fabric_edge=5584 ns=78170.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=186 aon_edge=7823
+EPOCH_PREPARE epoch=186 fabric_edge=5592
+EPOCH_PROOF_OBSERVED epoch=186 aon_edge=7841 age=18
+EPOCH_DECISION epoch=186 canceled=0 fabric_edge=5606
+EPOCH_RESULT epoch=186 canceled=0 timedOut=0 aon_edge=7856 ns=78555.371
+EPOCH_FABRIC_RECEIPT epoch=186 fabric_edge=5614 ns=78590.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=187 aon_edge=7865
+EPOCH_PREPARE epoch=187 fabric_edge=5622
+EPOCH_PROOF_OBSERVED epoch=187 aon_edge=7883 age=18
+EPOCH_DECISION epoch=187 canceled=0 fabric_edge=5636
+EPOCH_RESULT epoch=187 canceled=0 timedOut=0 aon_edge=7898 ns=78975.371
+EPOCH_FABRIC_RECEIPT epoch=187 fabric_edge=5644 ns=79010.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=188 aon_edge=7907
+EPOCH_PREPARE epoch=188 fabric_edge=5652
+EPOCH_PROOF_OBSERVED epoch=188 aon_edge=7925 age=18
+EPOCH_DECISION epoch=188 canceled=0 fabric_edge=5666
+EPOCH_RESULT epoch=188 canceled=0 timedOut=0 aon_edge=7940 ns=79395.371
+EPOCH_FABRIC_RECEIPT epoch=188 fabric_edge=5674 ns=79430.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=189 aon_edge=7949
+EPOCH_PREPARE epoch=189 fabric_edge=5682
+EPOCH_PROOF_OBSERVED epoch=189 aon_edge=7967 age=18
+EPOCH_DECISION epoch=189 canceled=0 fabric_edge=5696
+EPOCH_RESULT epoch=189 canceled=0 timedOut=0 aon_edge=7982 ns=79815.371
+EPOCH_FABRIC_RECEIPT epoch=189 fabric_edge=5704 ns=79850.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=190 aon_edge=7991
+EPOCH_PREPARE epoch=190 fabric_edge=5712
+EPOCH_PROOF_OBSERVED epoch=190 aon_edge=8009 age=18
+EPOCH_DECISION epoch=190 canceled=0 fabric_edge=5726
+EPOCH_RESULT epoch=190 canceled=0 timedOut=0 aon_edge=8024 ns=80235.371
+EPOCH_FABRIC_RECEIPT epoch=190 fabric_edge=5734 ns=80270.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=191 aon_edge=8033
+EPOCH_PREPARE epoch=191 fabric_edge=5742
+EPOCH_PROOF_OBSERVED epoch=191 aon_edge=8051 age=18
+EPOCH_DECISION epoch=191 canceled=0 fabric_edge=5756
+EPOCH_RESULT epoch=191 canceled=0 timedOut=0 aon_edge=8066 ns=80655.371
+EPOCH_FABRIC_RECEIPT epoch=191 fabric_edge=5764 ns=80690.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=192 aon_edge=8075
+EPOCH_PREPARE epoch=192 fabric_edge=5772
+EPOCH_PROOF_OBSERVED epoch=192 aon_edge=8093 age=18
+EPOCH_DECISION epoch=192 canceled=0 fabric_edge=5786
+EPOCH_RESULT epoch=192 canceled=0 timedOut=0 aon_edge=8108 ns=81075.371
+EPOCH_FABRIC_RECEIPT epoch=192 fabric_edge=5794 ns=81110.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=193 aon_edge=8117
+EPOCH_PREPARE epoch=193 fabric_edge=5802
+EPOCH_PROOF_OBSERVED epoch=193 aon_edge=8135 age=18
+EPOCH_DECISION epoch=193 canceled=0 fabric_edge=5816
+EPOCH_RESULT epoch=193 canceled=0 timedOut=0 aon_edge=8150 ns=81495.371
+EPOCH_FABRIC_RECEIPT epoch=193 fabric_edge=5824 ns=81530.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=194 aon_edge=8159
+EPOCH_PREPARE epoch=194 fabric_edge=5832
+EPOCH_PROOF_OBSERVED epoch=194 aon_edge=8177 age=18
+EPOCH_DECISION epoch=194 canceled=0 fabric_edge=5846
+EPOCH_RESULT epoch=194 canceled=0 timedOut=0 aon_edge=8192 ns=81915.371
+EPOCH_FABRIC_RECEIPT epoch=194 fabric_edge=5854 ns=81950.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=195 aon_edge=8201
+EPOCH_PREPARE epoch=195 fabric_edge=5862
+EPOCH_PROOF_OBSERVED epoch=195 aon_edge=8219 age=18
+EPOCH_DECISION epoch=195 canceled=0 fabric_edge=5876
+EPOCH_RESULT epoch=195 canceled=0 timedOut=0 aon_edge=8234 ns=82335.371
+EPOCH_FABRIC_RECEIPT epoch=195 fabric_edge=5884 ns=82370.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=196 aon_edge=8243
+EPOCH_PREPARE epoch=196 fabric_edge=5892
+EPOCH_PROOF_OBSERVED epoch=196 aon_edge=8261 age=18
+EPOCH_DECISION epoch=196 canceled=0 fabric_edge=5906
+EPOCH_RESULT epoch=196 canceled=0 timedOut=0 aon_edge=8276 ns=82755.371
+EPOCH_FABRIC_RECEIPT epoch=196 fabric_edge=5914 ns=82790.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=197 aon_edge=8285
+EPOCH_PREPARE epoch=197 fabric_edge=5922
+EPOCH_PROOF_OBSERVED epoch=197 aon_edge=8303 age=18
+EPOCH_DECISION epoch=197 canceled=0 fabric_edge=5936
+EPOCH_RESULT epoch=197 canceled=0 timedOut=0 aon_edge=8318 ns=83175.371
+EPOCH_FABRIC_RECEIPT epoch=197 fabric_edge=5944 ns=83210.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=198 aon_edge=8327
+EPOCH_PREPARE epoch=198 fabric_edge=5952
+EPOCH_PROOF_OBSERVED epoch=198 aon_edge=8345 age=18
+EPOCH_DECISION epoch=198 canceled=0 fabric_edge=5966
+EPOCH_RESULT epoch=198 canceled=0 timedOut=0 aon_edge=8360 ns=83595.371
+EPOCH_FABRIC_RECEIPT epoch=198 fabric_edge=5974 ns=83630.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=199 aon_edge=8369
+EPOCH_PREPARE epoch=199 fabric_edge=5982
+EPOCH_PROOF_OBSERVED epoch=199 aon_edge=8387 age=18
+EPOCH_DECISION epoch=199 canceled=0 fabric_edge=5996
+EPOCH_RESULT epoch=199 canceled=0 timedOut=0 aon_edge=8402 ns=84015.371
+EPOCH_FABRIC_RECEIPT epoch=199 fabric_edge=6004 ns=84050.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=200 aon_edge=8411
+EPOCH_PREPARE epoch=200 fabric_edge=6012
+EPOCH_PROOF_OBSERVED epoch=200 aon_edge=8429 age=18
+EPOCH_DECISION epoch=200 canceled=0 fabric_edge=6026
+EPOCH_RESULT epoch=200 canceled=0 timedOut=0 aon_edge=8444 ns=84435.371
+EPOCH_FABRIC_RECEIPT epoch=200 fabric_edge=6034 ns=84470.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=201 aon_edge=8453
+EPOCH_PREPARE epoch=201 fabric_edge=6042
+EPOCH_PROOF_OBSERVED epoch=201 aon_edge=8471 age=18
+EPOCH_DECISION epoch=201 canceled=0 fabric_edge=6056
+EPOCH_RESULT epoch=201 canceled=0 timedOut=0 aon_edge=8486 ns=84855.371
+EPOCH_FABRIC_RECEIPT epoch=201 fabric_edge=6064 ns=84890.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=202 aon_edge=8495
+EPOCH_PREPARE epoch=202 fabric_edge=6072
+EPOCH_PROOF_OBSERVED epoch=202 aon_edge=8513 age=18
+EPOCH_DECISION epoch=202 canceled=0 fabric_edge=6086
+EPOCH_RESULT epoch=202 canceled=0 timedOut=0 aon_edge=8528 ns=85275.371
+EPOCH_FABRIC_RECEIPT epoch=202 fabric_edge=6094 ns=85310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=203 aon_edge=8537
+EPOCH_PREPARE epoch=203 fabric_edge=6102
+EPOCH_PROOF_OBSERVED epoch=203 aon_edge=8555 age=18
+EPOCH_DECISION epoch=203 canceled=0 fabric_edge=6116
+EPOCH_RESULT epoch=203 canceled=0 timedOut=0 aon_edge=8570 ns=85695.371
+EPOCH_FABRIC_RECEIPT epoch=203 fabric_edge=6124 ns=85730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=204 aon_edge=8579
+EPOCH_PREPARE epoch=204 fabric_edge=6132
+EPOCH_PROOF_OBSERVED epoch=204 aon_edge=8597 age=18
+EPOCH_DECISION epoch=204 canceled=0 fabric_edge=6146
+EPOCH_RESULT epoch=204 canceled=0 timedOut=0 aon_edge=8612 ns=86115.371
+EPOCH_FABRIC_RECEIPT epoch=204 fabric_edge=6154 ns=86150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=205 aon_edge=8621
+EPOCH_PREPARE epoch=205 fabric_edge=6162
+EPOCH_PROOF_OBSERVED epoch=205 aon_edge=8639 age=18
+EPOCH_DECISION epoch=205 canceled=0 fabric_edge=6176
+EPOCH_RESULT epoch=205 canceled=0 timedOut=0 aon_edge=8654 ns=86535.371
+EPOCH_FABRIC_RECEIPT epoch=205 fabric_edge=6184 ns=86570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=206 aon_edge=8663
+EPOCH_PREPARE epoch=206 fabric_edge=6192
+EPOCH_PROOF_OBSERVED epoch=206 aon_edge=8681 age=18
+EPOCH_DECISION epoch=206 canceled=0 fabric_edge=6206
+EPOCH_RESULT epoch=206 canceled=0 timedOut=0 aon_edge=8696 ns=86955.371
+EPOCH_FABRIC_RECEIPT epoch=206 fabric_edge=6214 ns=86990.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=207 aon_edge=8705
+EPOCH_PREPARE epoch=207 fabric_edge=6222
+EPOCH_PROOF_OBSERVED epoch=207 aon_edge=8723 age=18
+EPOCH_DECISION epoch=207 canceled=0 fabric_edge=6236
+EPOCH_RESULT epoch=207 canceled=0 timedOut=0 aon_edge=8738 ns=87375.371
+EPOCH_FABRIC_RECEIPT epoch=207 fabric_edge=6244 ns=87410.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=208 aon_edge=8747
+EPOCH_PREPARE epoch=208 fabric_edge=6252
+EPOCH_PROOF_OBSERVED epoch=208 aon_edge=8765 age=18
+EPOCH_DECISION epoch=208 canceled=0 fabric_edge=6266
+EPOCH_RESULT epoch=208 canceled=0 timedOut=0 aon_edge=8780 ns=87795.371
+EPOCH_FABRIC_RECEIPT epoch=208 fabric_edge=6274 ns=87830.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=209 aon_edge=8789
+EPOCH_PREPARE epoch=209 fabric_edge=6282
+EPOCH_PROOF_OBSERVED epoch=209 aon_edge=8807 age=18
+EPOCH_DECISION epoch=209 canceled=0 fabric_edge=6296
+EPOCH_RESULT epoch=209 canceled=0 timedOut=0 aon_edge=8822 ns=88215.371
+EPOCH_FABRIC_RECEIPT epoch=209 fabric_edge=6304 ns=88250.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=210 aon_edge=8831
+EPOCH_PREPARE epoch=210 fabric_edge=6312
+EPOCH_PROOF_OBSERVED epoch=210 aon_edge=8849 age=18
+EPOCH_DECISION epoch=210 canceled=0 fabric_edge=6326
+EPOCH_RESULT epoch=210 canceled=0 timedOut=0 aon_edge=8864 ns=88635.371
+EPOCH_FABRIC_RECEIPT epoch=210 fabric_edge=6334 ns=88670.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=211 aon_edge=8873
+EPOCH_PREPARE epoch=211 fabric_edge=6342
+EPOCH_PROOF_OBSERVED epoch=211 aon_edge=8891 age=18
+EPOCH_DECISION epoch=211 canceled=0 fabric_edge=6356
+EPOCH_RESULT epoch=211 canceled=0 timedOut=0 aon_edge=8906 ns=89055.371
+EPOCH_FABRIC_RECEIPT epoch=211 fabric_edge=6364 ns=89090.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=212 aon_edge=8915
+EPOCH_PREPARE epoch=212 fabric_edge=6372
+EPOCH_PROOF_OBSERVED epoch=212 aon_edge=8933 age=18
+EPOCH_DECISION epoch=212 canceled=0 fabric_edge=6386
+EPOCH_RESULT epoch=212 canceled=0 timedOut=0 aon_edge=8948 ns=89475.371
+EPOCH_FABRIC_RECEIPT epoch=212 fabric_edge=6394 ns=89510.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=213 aon_edge=8957
+EPOCH_PREPARE epoch=213 fabric_edge=6402
+EPOCH_PROOF_OBSERVED epoch=213 aon_edge=8975 age=18
+EPOCH_DECISION epoch=213 canceled=0 fabric_edge=6416
+EPOCH_RESULT epoch=213 canceled=0 timedOut=0 aon_edge=8990 ns=89895.371
+EPOCH_FABRIC_RECEIPT epoch=213 fabric_edge=6424 ns=89930.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=214 aon_edge=8999
+EPOCH_PREPARE epoch=214 fabric_edge=6432
+EPOCH_PROOF_OBSERVED epoch=214 aon_edge=9017 age=18
+EPOCH_DECISION epoch=214 canceled=0 fabric_edge=6446
+EPOCH_RESULT epoch=214 canceled=0 timedOut=0 aon_edge=9032 ns=90315.371
+EPOCH_FABRIC_RECEIPT epoch=214 fabric_edge=6454 ns=90350.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=215 aon_edge=9041
+EPOCH_PREPARE epoch=215 fabric_edge=6462
+EPOCH_PROOF_OBSERVED epoch=215 aon_edge=9059 age=18
+EPOCH_DECISION epoch=215 canceled=0 fabric_edge=6476
+EPOCH_RESULT epoch=215 canceled=0 timedOut=0 aon_edge=9074 ns=90735.371
+EPOCH_FABRIC_RECEIPT epoch=215 fabric_edge=6484 ns=90770.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=216 aon_edge=9083
+EPOCH_PREPARE epoch=216 fabric_edge=6492
+EPOCH_PROOF_OBSERVED epoch=216 aon_edge=9101 age=18
+EPOCH_DECISION epoch=216 canceled=0 fabric_edge=6506
+EPOCH_RESULT epoch=216 canceled=0 timedOut=0 aon_edge=9116 ns=91155.371
+EPOCH_FABRIC_RECEIPT epoch=216 fabric_edge=6514 ns=91190.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=217 aon_edge=9125
+EPOCH_PREPARE epoch=217 fabric_edge=6522
+EPOCH_PROOF_OBSERVED epoch=217 aon_edge=9143 age=18
+EPOCH_DECISION epoch=217 canceled=0 fabric_edge=6536
+EPOCH_RESULT epoch=217 canceled=0 timedOut=0 aon_edge=9158 ns=91575.371
+EPOCH_FABRIC_RECEIPT epoch=217 fabric_edge=6544 ns=91610.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=218 aon_edge=9167
+EPOCH_PREPARE epoch=218 fabric_edge=6552
+EPOCH_PROOF_OBSERVED epoch=218 aon_edge=9185 age=18
+EPOCH_DECISION epoch=218 canceled=0 fabric_edge=6566
+EPOCH_RESULT epoch=218 canceled=0 timedOut=0 aon_edge=9200 ns=91995.371
+EPOCH_FABRIC_RECEIPT epoch=218 fabric_edge=6574 ns=92030.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=219 aon_edge=9209
+EPOCH_PREPARE epoch=219 fabric_edge=6582
+EPOCH_PROOF_OBSERVED epoch=219 aon_edge=9227 age=18
+EPOCH_DECISION epoch=219 canceled=0 fabric_edge=6596
+EPOCH_RESULT epoch=219 canceled=0 timedOut=0 aon_edge=9242 ns=92415.371
+EPOCH_FABRIC_RECEIPT epoch=219 fabric_edge=6604 ns=92450.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=220 aon_edge=9251
+EPOCH_PREPARE epoch=220 fabric_edge=6612
+EPOCH_PROOF_OBSERVED epoch=220 aon_edge=9269 age=18
+EPOCH_DECISION epoch=220 canceled=0 fabric_edge=6626
+EPOCH_RESULT epoch=220 canceled=0 timedOut=0 aon_edge=9284 ns=92835.371
+EPOCH_FABRIC_RECEIPT epoch=220 fabric_edge=6634 ns=92870.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=221 aon_edge=9293
+EPOCH_PREPARE epoch=221 fabric_edge=6642
+EPOCH_PROOF_OBSERVED epoch=221 aon_edge=9311 age=18
+EPOCH_DECISION epoch=221 canceled=0 fabric_edge=6656
+EPOCH_RESULT epoch=221 canceled=0 timedOut=0 aon_edge=9326 ns=93255.371
+EPOCH_FABRIC_RECEIPT epoch=221 fabric_edge=6664 ns=93290.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=222 aon_edge=9335
+EPOCH_PREPARE epoch=222 fabric_edge=6672
+EPOCH_PROOF_OBSERVED epoch=222 aon_edge=9353 age=18
+EPOCH_DECISION epoch=222 canceled=0 fabric_edge=6686
+EPOCH_RESULT epoch=222 canceled=0 timedOut=0 aon_edge=9368 ns=93675.371
+EPOCH_FABRIC_RECEIPT epoch=222 fabric_edge=6694 ns=93710.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=223 aon_edge=9377
+EPOCH_PREPARE epoch=223 fabric_edge=6702
+EPOCH_PROOF_OBSERVED epoch=223 aon_edge=9395 age=18
+EPOCH_DECISION epoch=223 canceled=0 fabric_edge=6716
+EPOCH_RESULT epoch=223 canceled=0 timedOut=0 aon_edge=9410 ns=94095.371
+EPOCH_FABRIC_RECEIPT epoch=223 fabric_edge=6724 ns=94130.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=224 aon_edge=9419
+EPOCH_PREPARE epoch=224 fabric_edge=6732
+EPOCH_PROOF_OBSERVED epoch=224 aon_edge=9437 age=18
+EPOCH_DECISION epoch=224 canceled=0 fabric_edge=6746
+EPOCH_RESULT epoch=224 canceled=0 timedOut=0 aon_edge=9452 ns=94515.371
+EPOCH_FABRIC_RECEIPT epoch=224 fabric_edge=6754 ns=94550.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=225 aon_edge=9461
+EPOCH_PREPARE epoch=225 fabric_edge=6762
+EPOCH_PROOF_OBSERVED epoch=225 aon_edge=9479 age=18
+EPOCH_DECISION epoch=225 canceled=0 fabric_edge=6776
+EPOCH_RESULT epoch=225 canceled=0 timedOut=0 aon_edge=9494 ns=94935.371
+EPOCH_FABRIC_RECEIPT epoch=225 fabric_edge=6784 ns=94970.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=226 aon_edge=9503
+EPOCH_PREPARE epoch=226 fabric_edge=6792
+EPOCH_PROOF_OBSERVED epoch=226 aon_edge=9521 age=18
+EPOCH_DECISION epoch=226 canceled=0 fabric_edge=6806
+EPOCH_RESULT epoch=226 canceled=0 timedOut=0 aon_edge=9536 ns=95355.371
+EPOCH_FABRIC_RECEIPT epoch=226 fabric_edge=6814 ns=95390.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=227 aon_edge=9545
+EPOCH_PREPARE epoch=227 fabric_edge=6822
+EPOCH_PROOF_OBSERVED epoch=227 aon_edge=9563 age=18
+EPOCH_DECISION epoch=227 canceled=0 fabric_edge=6836
+EPOCH_RESULT epoch=227 canceled=0 timedOut=0 aon_edge=9578 ns=95775.371
+EPOCH_FABRIC_RECEIPT epoch=227 fabric_edge=6844 ns=95810.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=228 aon_edge=9587
+EPOCH_PREPARE epoch=228 fabric_edge=6852
+EPOCH_PROOF_OBSERVED epoch=228 aon_edge=9605 age=18
+EPOCH_DECISION epoch=228 canceled=0 fabric_edge=6866
+EPOCH_RESULT epoch=228 canceled=0 timedOut=0 aon_edge=9620 ns=96195.371
+EPOCH_FABRIC_RECEIPT epoch=228 fabric_edge=6874 ns=96230.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=229 aon_edge=9629
+EPOCH_PREPARE epoch=229 fabric_edge=6882
+EPOCH_PROOF_OBSERVED epoch=229 aon_edge=9647 age=18
+EPOCH_DECISION epoch=229 canceled=0 fabric_edge=6896
+EPOCH_RESULT epoch=229 canceled=0 timedOut=0 aon_edge=9662 ns=96615.371
+EPOCH_FABRIC_RECEIPT epoch=229 fabric_edge=6904 ns=96650.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=230 aon_edge=9671
+EPOCH_PREPARE epoch=230 fabric_edge=6912
+EPOCH_PROOF_OBSERVED epoch=230 aon_edge=9689 age=18
+EPOCH_DECISION epoch=230 canceled=0 fabric_edge=6926
+EPOCH_RESULT epoch=230 canceled=0 timedOut=0 aon_edge=9704 ns=97035.371
+EPOCH_FABRIC_RECEIPT epoch=230 fabric_edge=6934 ns=97070.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=231 aon_edge=9713
+EPOCH_PREPARE epoch=231 fabric_edge=6942
+EPOCH_PROOF_OBSERVED epoch=231 aon_edge=9731 age=18
+EPOCH_DECISION epoch=231 canceled=0 fabric_edge=6956
+EPOCH_RESULT epoch=231 canceled=0 timedOut=0 aon_edge=9746 ns=97455.371
+EPOCH_FABRIC_RECEIPT epoch=231 fabric_edge=6964 ns=97490.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=232 aon_edge=9755
+EPOCH_PREPARE epoch=232 fabric_edge=6972
+EPOCH_PROOF_OBSERVED epoch=232 aon_edge=9773 age=18
+EPOCH_DECISION epoch=232 canceled=0 fabric_edge=6986
+EPOCH_RESULT epoch=232 canceled=0 timedOut=0 aon_edge=9788 ns=97875.371
+EPOCH_FABRIC_RECEIPT epoch=232 fabric_edge=6994 ns=97910.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=233 aon_edge=9797
+EPOCH_PREPARE epoch=233 fabric_edge=7002
+EPOCH_PROOF_OBSERVED epoch=233 aon_edge=9815 age=18
+EPOCH_DECISION epoch=233 canceled=0 fabric_edge=7016
+EPOCH_RESULT epoch=233 canceled=0 timedOut=0 aon_edge=9830 ns=98295.371
+EPOCH_FABRIC_RECEIPT epoch=233 fabric_edge=7024 ns=98330.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=234 aon_edge=9839
+EPOCH_PREPARE epoch=234 fabric_edge=7032
+EPOCH_PROOF_OBSERVED epoch=234 aon_edge=9857 age=18
+EPOCH_DECISION epoch=234 canceled=0 fabric_edge=7046
+EPOCH_RESULT epoch=234 canceled=0 timedOut=0 aon_edge=9872 ns=98715.371
+EPOCH_FABRIC_RECEIPT epoch=234 fabric_edge=7054 ns=98750.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=235 aon_edge=9881
+EPOCH_PREPARE epoch=235 fabric_edge=7062
+EPOCH_PROOF_OBSERVED epoch=235 aon_edge=9899 age=18
+EPOCH_DECISION epoch=235 canceled=0 fabric_edge=7076
+EPOCH_RESULT epoch=235 canceled=0 timedOut=0 aon_edge=9914 ns=99135.371
+EPOCH_FABRIC_RECEIPT epoch=235 fabric_edge=7084 ns=99170.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=236 aon_edge=9923
+EPOCH_PREPARE epoch=236 fabric_edge=7092
+EPOCH_PROOF_OBSERVED epoch=236 aon_edge=9941 age=18
+EPOCH_DECISION epoch=236 canceled=0 fabric_edge=7106
+EPOCH_RESULT epoch=236 canceled=0 timedOut=0 aon_edge=9956 ns=99555.371
+EPOCH_FABRIC_RECEIPT epoch=236 fabric_edge=7114 ns=99590.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=237 aon_edge=9965
+EPOCH_PREPARE epoch=237 fabric_edge=7122
+EPOCH_PROOF_OBSERVED epoch=237 aon_edge=9983 age=18
+EPOCH_DECISION epoch=237 canceled=0 fabric_edge=7136
+EPOCH_RESULT epoch=237 canceled=0 timedOut=0 aon_edge=9998 ns=99975.371
+EPOCH_FABRIC_RECEIPT epoch=237 fabric_edge=7144 ns=100010.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=238 aon_edge=10007
+EPOCH_PREPARE epoch=238 fabric_edge=7152
+EPOCH_PROOF_OBSERVED epoch=238 aon_edge=10025 age=18
+EPOCH_DECISION epoch=238 canceled=0 fabric_edge=7166
+EPOCH_RESULT epoch=238 canceled=0 timedOut=0 aon_edge=10040 ns=100395.371
+EPOCH_FABRIC_RECEIPT epoch=238 fabric_edge=7174 ns=100430.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=239 aon_edge=10049
+EPOCH_PREPARE epoch=239 fabric_edge=7182
+EPOCH_PROOF_OBSERVED epoch=239 aon_edge=10067 age=18
+EPOCH_DECISION epoch=239 canceled=0 fabric_edge=7196
+EPOCH_RESULT epoch=239 canceled=0 timedOut=0 aon_edge=10082 ns=100815.371
+EPOCH_FABRIC_RECEIPT epoch=239 fabric_edge=7204 ns=100850.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=240 aon_edge=10091
+EPOCH_PREPARE epoch=240 fabric_edge=7212
+EPOCH_PROOF_OBSERVED epoch=240 aon_edge=10109 age=18
+EPOCH_DECISION epoch=240 canceled=0 fabric_edge=7226
+EPOCH_RESULT epoch=240 canceled=0 timedOut=0 aon_edge=10124 ns=101235.371
+EPOCH_FABRIC_RECEIPT epoch=240 fabric_edge=7234 ns=101270.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=241 aon_edge=10133
+EPOCH_PREPARE epoch=241 fabric_edge=7242
+EPOCH_PROOF_OBSERVED epoch=241 aon_edge=10151 age=18
+EPOCH_DECISION epoch=241 canceled=0 fabric_edge=7256
+EPOCH_RESULT epoch=241 canceled=0 timedOut=0 aon_edge=10166 ns=101655.371
+EPOCH_FABRIC_RECEIPT epoch=241 fabric_edge=7264 ns=101690.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=242 aon_edge=10175
+EPOCH_PREPARE epoch=242 fabric_edge=7272
+EPOCH_PROOF_OBSERVED epoch=242 aon_edge=10193 age=18
+EPOCH_DECISION epoch=242 canceled=0 fabric_edge=7286
+EPOCH_RESULT epoch=242 canceled=0 timedOut=0 aon_edge=10208 ns=102075.371
+EPOCH_FABRIC_RECEIPT epoch=242 fabric_edge=7294 ns=102110.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=243 aon_edge=10217
+EPOCH_PREPARE epoch=243 fabric_edge=7302
+EPOCH_PROOF_OBSERVED epoch=243 aon_edge=10235 age=18
+EPOCH_DECISION epoch=243 canceled=0 fabric_edge=7316
+EPOCH_RESULT epoch=243 canceled=0 timedOut=0 aon_edge=10250 ns=102495.371
+EPOCH_FABRIC_RECEIPT epoch=243 fabric_edge=7324 ns=102530.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=244 aon_edge=10259
+EPOCH_PREPARE epoch=244 fabric_edge=7332
+EPOCH_PROOF_OBSERVED epoch=244 aon_edge=10277 age=18
+EPOCH_DECISION epoch=244 canceled=0 fabric_edge=7346
+EPOCH_RESULT epoch=244 canceled=0 timedOut=0 aon_edge=10292 ns=102915.371
+EPOCH_FABRIC_RECEIPT epoch=244 fabric_edge=7354 ns=102950.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=245 aon_edge=10301
+EPOCH_PREPARE epoch=245 fabric_edge=7362
+EPOCH_PROOF_OBSERVED epoch=245 aon_edge=10319 age=18
+EPOCH_DECISION epoch=245 canceled=0 fabric_edge=7376
+EPOCH_RESULT epoch=245 canceled=0 timedOut=0 aon_edge=10334 ns=103335.371
+EPOCH_FABRIC_RECEIPT epoch=245 fabric_edge=7384 ns=103370.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=246 aon_edge=10343
+EPOCH_PREPARE epoch=246 fabric_edge=7392
+EPOCH_PROOF_OBSERVED epoch=246 aon_edge=10361 age=18
+EPOCH_DECISION epoch=246 canceled=0 fabric_edge=7406
+EPOCH_RESULT epoch=246 canceled=0 timedOut=0 aon_edge=10376 ns=103755.371
+EPOCH_FABRIC_RECEIPT epoch=246 fabric_edge=7414 ns=103790.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=247 aon_edge=10385
+EPOCH_PREPARE epoch=247 fabric_edge=7422
+EPOCH_PROOF_OBSERVED epoch=247 aon_edge=10403 age=18
+EPOCH_DECISION epoch=247 canceled=0 fabric_edge=7436
+EPOCH_RESULT epoch=247 canceled=0 timedOut=0 aon_edge=10418 ns=104175.371
+EPOCH_FABRIC_RECEIPT epoch=247 fabric_edge=7444 ns=104210.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=248 aon_edge=10427
+EPOCH_PREPARE epoch=248 fabric_edge=7452
+EPOCH_PROOF_OBSERVED epoch=248 aon_edge=10445 age=18
+EPOCH_DECISION epoch=248 canceled=0 fabric_edge=7466
+EPOCH_RESULT epoch=248 canceled=0 timedOut=0 aon_edge=10460 ns=104595.371
+EPOCH_FABRIC_RECEIPT epoch=248 fabric_edge=7474 ns=104630.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=249 aon_edge=10469
+EPOCH_PREPARE epoch=249 fabric_edge=7482
+EPOCH_PROOF_OBSERVED epoch=249 aon_edge=10487 age=18
+EPOCH_DECISION epoch=249 canceled=0 fabric_edge=7496
+EPOCH_RESULT epoch=249 canceled=0 timedOut=0 aon_edge=10502 ns=105015.371
+EPOCH_FABRIC_RECEIPT epoch=249 fabric_edge=7504 ns=105050.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=250 aon_edge=10511
+EPOCH_PREPARE epoch=250 fabric_edge=7512
+EPOCH_PROOF_OBSERVED epoch=250 aon_edge=10529 age=18
+EPOCH_DECISION epoch=250 canceled=0 fabric_edge=7526
+EPOCH_RESULT epoch=250 canceled=0 timedOut=0 aon_edge=10544 ns=105435.371
+EPOCH_FABRIC_RECEIPT epoch=250 fabric_edge=7534 ns=105470.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=251 aon_edge=10553
+EPOCH_PREPARE epoch=251 fabric_edge=7542
+EPOCH_PROOF_OBSERVED epoch=251 aon_edge=10571 age=18
+EPOCH_DECISION epoch=251 canceled=0 fabric_edge=7556
+EPOCH_RESULT epoch=251 canceled=0 timedOut=0 aon_edge=10586 ns=105855.371
+EPOCH_FABRIC_RECEIPT epoch=251 fabric_edge=7564 ns=105890.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=252 aon_edge=10595
+EPOCH_PREPARE epoch=252 fabric_edge=7572
+EPOCH_PROOF_OBSERVED epoch=252 aon_edge=10613 age=18
+EPOCH_DECISION epoch=252 canceled=0 fabric_edge=7586
+EPOCH_RESULT epoch=252 canceled=0 timedOut=0 aon_edge=10628 ns=106275.371
+EPOCH_FABRIC_RECEIPT epoch=252 fabric_edge=7594 ns=106310.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=253 aon_edge=10637
+EPOCH_PREPARE epoch=253 fabric_edge=7602
+EPOCH_PROOF_OBSERVED epoch=253 aon_edge=10655 age=18
+EPOCH_DECISION epoch=253 canceled=0 fabric_edge=7616
+EPOCH_RESULT epoch=253 canceled=0 timedOut=0 aon_edge=10670 ns=106695.371
+EPOCH_FABRIC_RECEIPT epoch=253 fabric_edge=7624 ns=106730.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=254 aon_edge=10679
+EPOCH_PREPARE epoch=254 fabric_edge=7632
+EPOCH_PROOF_OBSERVED epoch=254 aon_edge=10697 age=18
+EPOCH_DECISION epoch=254 canceled=0 fabric_edge=7646
+EPOCH_RESULT epoch=254 canceled=0 timedOut=0 aon_edge=10712 ns=107115.371
+EPOCH_FABRIC_RECEIPT epoch=254 fabric_edge=7654 ns=107150.300
+EPOCH_ACCEPT lane=1 token=00000000 epoch=255 aon_edge=10721
+EPOCH_PREPARE epoch=255 fabric_edge=7662
+EPOCH_PROOF_OBSERVED epoch=255 aon_edge=10739 age=18
+EPOCH_DECISION epoch=255 canceled=0 fabric_edge=7676
+EPOCH_RESULT epoch=255 canceled=0 timedOut=0 aon_edge=10754 ns=107535.371
+EPOCH_FABRIC_RECEIPT epoch=255 fabric_edge=7684 ns=107570.300
+EPOCH_ACCEPT lane=0 token=00000000 epoch=1 aon_edge=10841
+EPOCH_PREPARE epoch=1 fabric_edge=7748
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=10859 age=18
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=7761
+EPOCH_RESULT epoch=1 canceled=0 timedOut=0 aon_edge=10873 ns=108725.371
+EPOCH_FABRIC_RECEIPT epoch=1 fabric_edge=7769 ns=108760.300
+EPOCH_EXHAUSTION_NO_WRAP transactions=255 blocked_edges=24 coordinated_reset=2
+RUNTIME_EPOCH_COMPONENT_PASS case=7 requests=1 prepares=1 decisions=1 terminals=1 receipts=1 cpu_half=3 fabric_half=7 aon_half=5
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/runtime_epoch_boundary_tb.sv:565: $finish called at 108920371 (1ps)

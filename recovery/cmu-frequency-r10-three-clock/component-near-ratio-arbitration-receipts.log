@@ -1,0 +1,21 @@
+EPOCH_ACCEPT lane=0 token=10203040 epoch=1 aon_edge=42
+EPOCH_PREPARE epoch=1 fabric_edge=71
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=55 age=13
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=104
+EPOCH_RESULT epoch=1 canceled=0 timedOut=0 aon_edge=224 ns=4917.371
+EPOCH_FABRIC_RECEIPT epoch=1 fabric_edge=354 ns=4950.700
+EPOCH_ACCEPT lane=1 token=89abcdef epoch=2 aon_edge=230
+EPOCH_PREPARE epoch=2 fabric_edge=366
+EPOCH_PROOF_OBSERVED epoch=2 aon_edge=242 age=12
+EPOCH_DECISION epoch=2 canceled=1 fabric_edge=398
+EPOCH_RESULT epoch=2 canceled=1 timedOut=0 aon_edge=260 ns=5709.371
+EPOCH_FABRIC_RECEIPT epoch=2 fabric_edge=411 ns=5748.700
+EPOCH_ACCEPT lane=0 token=10203040 epoch=3 aon_edge=267
+EPOCH_PREPARE epoch=3 fabric_edge=424
+EPOCH_PROOF_OBSERVED epoch=3 aon_edge=279 age=12
+EPOCH_DECISION epoch=3 canceled=0 fabric_edge=459
+EPOCH_RESULT epoch=3 canceled=0 timedOut=0 aon_edge=298 ns=6545.371
+EPOCH_FABRIC_RECEIPT epoch=3 fabric_edge=470 ns=6574.700
+EPOCH_ARBITRATION_RECEIPTS owners=3 rejected_decision_edges=26 stalls=155
+RUNTIME_EPOCH_COMPONENT_PASS case=0 requests=3 prepares=3 decisions=3 terminals=3 receipts=3 cpu_half=5 fabric_half=7 aon_half=11
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/runtime_epoch_boundary_tb.sv:565: $finish called at 6930371 (1ps)

@@ -1,0 +1,5 @@
+I1_RUNTIME_CDC_BOOT generation=0 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=0 token=c0de0028 epoch=1 canceled=0 timed_out=0 cpu_resumed=1 fabric_terminals=1
+I1_RUNTIME_CDC_TERMINAL generation=0 lane=1 token=babe0029 epoch=2 canceled=1 timed_out=0 cpu_resumed=2 fabric_terminals=2
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_cdc_tb.sv:337: independent IMSIC pending oracle: eventual CSR bitmap mismatch
+       Time: 33635000  Scope: i1_runtime_cdc_tb.exactLedger
