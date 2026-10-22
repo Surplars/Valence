@@ -100,7 +100,7 @@ class TailTests(unittest.TestCase):
         self.assertNotIn('file copy',branch)
     def test_native_tail_control_flow_never_promotes_a_failed_gate(self):
         code=Path(r.__file__).with_suffix('.tcl').read_text()
-        for failure in ['none','target','retained','version','mutation']:
+        for failure in ['none','target','retained','version','mutation','top_wrong','top_empty']:
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
                 base=Path(temp);(base/'diagnostic-run/synthesis').mkdir(parents=True)
                 pre=r"""
@@ -135,8 +135,20 @@ proc source {path} {
 proc set_param {args} {}
 proc get_param {args} {return 8}
 proc version {args} {if {$::failure eq "version"} {return 2025.1};return 2025.2}
-proc current_design {} {return design}
-proc get_property {name object} {if {$name eq "PART"} {return xczu15eg-ffvb1156-2-i};if {$name eq "NAME"} {return soc_top_common_ddr};error PROP}
+proc current_design {} {return checkpoint_failed-resume-unqualified-1603981302391}
+proc current_fileset {} {return sources_1}
+proc get_property {name object} {
+ if {$object eq "sources_1" && $name eq "TOP"} {return {}}
+ if {$object ne [current_design]} {error WRONG_DESIGN_OBJECT}
+ if {$name eq "PART"} {return xczu15eg-ffvb1156-2-i}
+ if {$name eq "NAME"} {return checkpoint_failed-resume-unqualified-1603981302391}
+ if {$name eq "TOP"} {
+  if {$::failure eq "top_wrong"} {return unrelated_top}
+  if {$::failure eq "top_empty"} {return {}}
+  return soc_top_common_ddr
+ }
+ error PROP
+}
 proc open_checkpoint {path} {if {[file tail $path] ne "failed-resume-unqualified-1603981302391.dcp"} {error WRONG_DCP};puts OPENED_EXACT}
 proc write_checkpoint {path} {if {$path eq "synthesized.dcp"} {puts CHECKED_WRITE}}
 proc report_utilization {args} {puts UTIL}
@@ -161,5 +173,8 @@ proc exec {args} {
                     self.assertNotEqual(result.returncode,0)
                     self.assertNotIn('CHECKED_WRITE',result.stdout)
                     self.assertNotIn('RECEIPT',result.stdout)
+                    if failure in ('top_wrong','top_empty'):
+                        self.assertIn('TAIL wrong reopened part/top',result.stderr)
+                        self.assertNotIn('TARGET_DONE',result.stdout)
 
 if __name__=='__main__':unittest.main()

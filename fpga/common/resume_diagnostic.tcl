@@ -36,7 +36,7 @@ proc resume_diagnostic {} {
         }
         set f [open post-synth-tail-start.json {WRONLY CREAT EXCL}]; puts $f $evidence; close $f
         open_checkpoint [file join $valence(out) failed-resume-unqualified-1603981302391.dcp]
-        if {[get_property PART [current_design]] ne "xczu15eg-ffvb1156-2-i" || [get_property NAME [current_design]] ne "soc_top_common_ddr"} {error "TAIL wrong reopened part/top"}
+        if {[get_property PART [current_design]] ne "xczu15eg-ffvb1156-2-i" || [get_property TOP [current_design]] ne "soc_top_common_ddr"} {error "TAIL wrong reopened part/top"}
         foreach command {synth_design opt_design place_design phys_opt_design route_design launch_runs create_project create_ip generate_target import_ip read_xdc create_clock create_generated_clock set_max_delay set_min_delay set_bus_skew set_false_path set_clock_groups set_multicycle_path} {
             if {[llength [info commands $command]]} {rename $command tail_forbidden_$command}
             proc ::$command {args} {error "TAIL_FORBIDS_SYNTH_IP_IMPLEMENTATION_AND_CONSTRAINT_MUTATION"}
