@@ -78,10 +78,16 @@ proc common_collect_session::property {args} {
         }
     }
     if {[llength $missing]} {
-        set values [native get_property $key $missing]
-        if {[llength $missing]==1} {set values [list $values]}
-        if {[llength $values]!=[llength $missing]} {reject "malformed bulk property $key: objects=[llength $missing] values=[llength $values]"}
-        foreach object $missing value $values {dict set properties $key $object $value}
+        # Vivado collections can carry opaque native handles (including design
+        # objects). A reconstructed missing-object list loses that identity.
+        # Query the original argument unchanged, then cache the full response.
+        set raw [native get_property {*}$args]
+        set values $raw
+        if {[llength $objects]==1} {set values [list $values]}
+        if {[llength $values]!=[llength $objects]} {reject "malformed bulk property $key: objects=[llength $objects] values=[llength $values]"}
+        foreach object $objects value $values {dict set properties $key $object $value}
+        dict incr counters property.values [llength $objects]
+        return $raw
     }
     set values {}
     foreach object $objects {

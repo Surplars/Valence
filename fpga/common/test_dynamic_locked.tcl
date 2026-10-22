@@ -37,6 +37,11 @@ proc get_property {key objects} {
     if {[llength $values] == 1} {return [lindex $values 0]}
     return $values
 }
+proc set_property {key value objects} {
+    assert {$key eq "CLOCK_DEDICATED_ROUTE" && $value eq "SAME_CMT_COLUMN" && $objects eq "ui_net"} {Unexpected routing mutation}
+    lappend ::mock::routing [list $key $value $objects]
+    if {!$::mock::drop_route_write} {mock::put $objects $key $value}
+}
 proc get_cells args {
     if {[lsearch -exact $args -regexp] < 0} {
         set name [lindex $args end]; return [expr {[dict exists $::mock::cells $name] ? [list $name] : {}}]
@@ -110,8 +115,12 @@ proc get_timing_paths args {
 proc mock::setup {} {
     set ::mock::props {}; set ::mock::cells {}; set ::mock::pins {}; set ::mock::cuts {}; set ::mock::bounds {}; set ::mock::queries {}
     set ::mock::timing_mutation {}
+    set ::mock::routing {}; set ::mock::drop_route_write 0
     net VCC POWER; net GND GROUND; net aon_net SIGNAL aon; net ui_net SIGNAL ui
     put aon PERIOD 20.0; put ui PERIOD 4.0
+    set uiBuffer u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk
+    cell $uiBuffer BUFGCE; pin $uiBuffer O OUT ui_net
+    put ui_net CLOCK_DEDICATED_ROUTE {}
     pin u_clk_wiz clk_out1 OUT aon_net; pin u_ddr c0_ddr4_ui_clk OUT ui_net
     foreach root {cpu_clock fabric_clock} {
         cell $root/mmcm MMCME4_ADV
@@ -157,6 +166,7 @@ try {
     file delete -force -- $temporary_directory
 }
 assert {$::mock::cuts eq [list $::first/D {fabric_clock/lock_sync_reg[0]/D}]} {False path is not exactly the two first-stage D pins}
+assert {$::mock::routing eq {{CLOCK_DEDICATED_ROUTE SAME_CMT_COLUMN ui_net}}} {UI dedicated routing not applied exactly once}
 assert {[llength $::mock::bounds] == 12} {FF-source CDC bounds changed}
 foreach bound $::mock::bounds {
     assert {[lrange $bound 0 1] eq {-datapath_only 3.333}} {FF-source bound relaxed}
@@ -210,3 +220,28 @@ mock::setup; set ::mock::timing_mutation negative
 native_dynamic_lock::constrain cpu_clock
 assert {$::mock::cuts eq [list $::first/D]} {Negative measured slack broadened exception}
 puts "DYNAMIC_LOCKED_CONTRACT_PASS negatives=$::negatives MOCK_ONLY_NOT_NATIVE_QUALIFICATION"
+set route_negatives 0
+set uiBuffer u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk
+foreach {mutation pattern writes} [list \
+    [list dict unset ::mock::cells $uiBuffer] {*missing exact MIG*} 0 \
+    [list mock::put $uiBuffer REF_NAME LUT1] {*missing exact MIG*} 0 \
+    [list mock::put $uiBuffer NAME wrong] {*missing exact MIG*} 0 \
+    [list dict unset ::mock::pins $uiBuffer/O] {*missing exact MIG*} 0 \
+    [list mock::put $uiBuffer/O NAME wrong/O] {*missing exact MIG*} 0 \
+    [list mock::put $uiBuffer/O DIRECTION IN] {*missing exact MIG*} 0 \
+    [list mock::connect $uiBuffer/O {}] {*missing unique MIG*} 0 \
+    {mock::put ui_net CLOCK_DEDICATED_ROUTE FALSE} {*unexpected UI routing policy*} 0 \
+    {mock::put ui_net CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN} {*unexpected UI routing policy*} 0 \
+    {set ::mock::drop_route_write 1} {*property not retained*} 1] {
+    mock::setup; eval $mutation
+    set rejected [catch {native_dynamic_ui_route} reason]
+    assert {$rejected && [string match $pattern $reason]} "Wrong routing rejection: $reason"
+    assert {[llength $::mock::routing]==$writes} {Unexpected routing write count}
+    incr route_negatives
+}
+foreach prior {{} TRUE SAME_CMT_COLUMN} {
+    mock::setup; mock::put ui_net CLOCK_DEDICATED_ROUTE $prior
+    native_dynamic_ui_route
+    assert {$::mock::routing eq {{CLOCK_DEDICATED_ROUTE SAME_CMT_COLUMN ui_net}}} {UI routing changed scope}
+}
+puts "DYNAMIC_UI_ROUTE_PASS positives=3 negatives=$route_negatives MOCK_ONLY_NOT_NATIVE_QUALIFICATION"

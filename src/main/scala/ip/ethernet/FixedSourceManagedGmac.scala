@@ -190,7 +190,14 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false,
         val current = RegInit(0.U.asTypeOf(new FixedMacCommand))
         val pendingReceipt = RegInit(false.B)
         val closingTx = current.txStop || (command.valid && command.bits.txStop)
-        val closingCsr = current.park || (command.valid && command.bits.park)
+        // PARK may be offered only after upstream CSR producers are closed,
+        // with no unaccepted CSR offer; csrFence also waits for the final reply.
+        // Thus its accepting edge cannot accept a CSR request. The accepted
+        // command closes admission through current.park on the following cycle.
+        // Do not feed command.valid (which may depend on command.ready and the
+        // fabric drain witness) back into ordinary CSR ready. That creates a
+        // fabric request -> drain -> PARK -> request-ready combinational chain.
+        val closingCsr = current.park
         connectWord(streams.txData, txData.source, !closingTx)
         connectWord(streams.txControl, txControl.source, !closingTx)
         csr.source.request.valid := registers.request.valid && !closingCsr

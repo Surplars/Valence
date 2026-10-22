@@ -129,12 +129,35 @@ proc native_dynamic_lock::constrain {root} {
     return $evidence
 }
 
+# The UI buffer feeds independent CPU/fabric/AON MMCMs and the network PLL.
+# UltraScale+ SAME_CMT_COLUMN keeps dedicated global routing while permitting
+# non-adjacent CMT rows. Never substitute FALSE or import the legacy board XDC.
+# Native placed/routed evidence used this exact MIG buffer output successfully.
+proc native_dynamic_ui_route {} {
+    set name u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk
+    set buffer [get_cells -quiet $name]
+    set pin [get_pins -quiet $name/O]
+    if {[llength $buffer]!=1 || [get_property NAME $buffer] ne $name ||
+        [get_property REF_NAME $buffer] ne "BUFGCE" || [llength $pin]!=1 ||
+        [get_property NAME $pin] ne "$name/O" || [get_property DIRECTION $pin] ne "OUT"} {
+        error "DYNAMIC_CLOCK missing exact MIG UI BUFGCE output"
+    }
+    set net [get_nets -quiet -of_objects $pin]
+    if {[llength $net]!=1} {error "DYNAMIC_CLOCK missing unique MIG UI buffer output net"}
+    set prior [get_property CLOCK_DEDICATED_ROUTE $net]
+    if {$prior ni {{} TRUE SAME_CMT_COLUMN}} {error "DYNAMIC_CLOCK unexpected UI routing policy $prior"}
+    set_property CLOCK_DEDICATED_ROUTE SAME_CMT_COLUMN $net
+    if {[get_property CLOCK_DEDICATED_ROUTE $net] ne "SAME_CMT_COLUMN"} {error "DYNAMIC_CLOCK UI dedicated routing property not retained"}
+    puts "DYNAMIC_CLOCK_UI_SAME_CMT_COLUMN net=[get_property NAME $net] source=$name/O DEDICATED_ONLY NOT_TIMING_SIGNOFF"
+}
+
 proc native_dynamic_clock_constraints {} {
     set bootEvidence {}
     set uiClock [get_clocks -quiet -of_objects [get_pins -quiet u_ddr/c0_ddr4_ui_clk]]
     if {[llength $uiClock]!=1 || abs([get_property PERIOD $uiClock]-4.0)>0.002} {
         error "DYNAMIC_CLOCK missing boot configuration UI250 reference"
     }
+    native_dynamic_ui_route
     foreach root {cpu_clock fabric_clock} {
         set mmcm [get_cells -quiet $root/mmcm]
         if {[llength $mmcm]!=1 || [get_property REF_NAME $mmcm] ne "MMCME4_ADV"} {
