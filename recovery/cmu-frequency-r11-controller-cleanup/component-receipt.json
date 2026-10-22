@@ -295,7 +295,7 @@
     "src/main/scala/isa/Compressed.scala": "6bc803cdb4494288e5552e816097ad1246ee02c30a28de09930dc5f18309c822",
     "src/main/scala/isa/Instruction.scala": "f5825d517527f77e4d7f4ba26a46d868cba7232dc9ffad830607dda0766edf84",
     "src/main/scala/platform/CommonA1CpuTile.scala": "a597b62ce30f13f769db3616cb057d7464422d145bec703238abe05dcb5d8574",
-    "src/main/scala/platform/CommonClockRateEpochAdapter.scala": "7812d3522c818eb74bdcab506a2803a1d8be2027e2c318de0ec4ac5d0d410e9c",
+    "src/main/scala/platform/CommonClockRateEpochAdapter.scala": "fac4de00d22b384c4c64d47befb913b2cbde20aea4a0d0750cb687af6d2aefec",
     "src/main/scala/platform/CommonCpuClockBoundary.scala": "ed0dc9db3ea54df39f26e0eecb482228aaf0ebe6b10c227cae2ca513ad9813d4",
     "src/main/scala/platform/CommonCpuNativeAdapter.scala": "36b10989e2ceb113a80de22d7fbf9da305b615e023b103406f5413284e536c9a",
     "src/main/scala/platform/CommonCpuProfile.scala": "0e0ad0834bc9d11fe04d3454cd937696f3b64724e0c810add1b0b90840f42c63",
@@ -314,7 +314,7 @@
     "src/main/resources/inorder/ValenceI1DmiCdc.sv": "9d472e28c8775adda8de05c5f6469051c5bebc08e1d16c8cf3b318947877d86f",
     "build.mill": "153c3e0f2e4a2151ea30bc3ae0b777288c2e4a6d62f66661d868c2aa5010c75e",
     "src/test/scala/platform/ClockRateCleanupComponentMain.scala": "e8c9a1cee51f9e9a428cc4fb6289aeeaa93a943cda49b400f1c1b4207a0a66ef",
-    "simulator/cdc/clock_rate_cleanup_tb.sv": "a0d941606c332ce3a3d5357523a797f222d76312d6eff14d66afbd67afb278af",
+    "simulator/cdc/clock_rate_cleanup_tb.sv": "441a02e3bb9c511ed4bb0c4ae05f7e502e4a5597ca6197eb4664956cb9316045",
     "simulator/cdc/test_runtime_epoch_boundary.py": "a83e3beae8f14d21e1b54f2a27fdd98645457d3b33ce911e0210fdcf51dfae31",
     "simulator/cdc/test_clock_rate_cleanup.py": "d1b62a1288ec1e22ecb39699fa293a728ca319c1ff585d0ee4be5804e7367492",
     "scripts/cloud/env.sh": "5ab1c36a0ebbefc4c1d7e33235778db4523e01d8f0a909259e6b14303203d6f7"
@@ -322,7 +322,7 @@
   "rtl_sha256": {
     "ClockRateCleanupComponent.sv": "2938250d9adb38db2e48dd819095403bef4539ac559b4835c2106d348553a236",
     "ClockRateControl.sv": "fbceeacf16c82f285a994ddc6d8c8627bb646bde49c287be34c498cb5a6593d0",
-    "CommonClockRateEpochAdapter.sv": "ee1d7485a5431674ca85a6d764c7b260e1a8b68a5d2afa910cb173d23741038f"
+    "CommonClockRateEpochAdapter.sv": "015fd1e497f12e46dc0edc32b1089a91d51ac7b3f31ec99ece0237f972ea8d3a"
   },
   "tools": {
     "iverilog": "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
@@ -343,8 +343,8 @@
     "vvp.conf": "6013ffb100e35d3a4656d3a24836be36bb782957c174e527c1c570ffe7aa5b41"
   },
   "emission_receipt": {
-    "path": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v2-emission.json",
-    "sha256": "b06379b435f48b14f0983851554579641a08cf89aa792283203663df3d904b9e"
+    "path": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-emission.json",
+    "sha256": "a57efd512e615ab2f4e3f8506c58cde016d092d5a483ea71edcb22db759b670f"
   },
   "cases": [
     {
@@ -355,16 +355,16 @@
         "-s",
         "clock_rate_cleanup_tb",
         "-o",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-native-final/sim.vvp",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v2-rtl/ClockRateCleanupComponent.sv",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v2-rtl/ClockRateControl.sv",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v2-rtl/CommonClockRateEpochAdapter.sv",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-native/sim.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-rtl/ClockRateCleanupComponent.sv",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-rtl/ClockRateControl.sv",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-rtl/CommonClockRateEpochAdapter.sv",
         "/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/clock_rate_cleanup_tb.sv"
       ],
       "returncode": 0,
-      "seconds": 0.04228076399886049,
+      "seconds": 0.04221465499722399,
       "maxrss_kib": 8536,
-      "minimum_free_bytes": 29396271104,
+      "minimum_free_bytes": 29290373120,
       "timed_out": false,
       "disk_floor_breached": false,
       "process_group_killed": false
@@ -373,14 +373,14 @@
       "name": "contract",
       "command": [
         "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-native-final/sim.vvp"
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-native/sim.vvp"
       ],
       "expected_negative": false,
       "accepted": true,
       "returncode": 0,
-      "seconds": 0.04244744998868555,
+      "seconds": 0.04198026898666285,
       "maxrss_kib": 8124,
-      "minimum_free_bytes": 29396267008,
+      "minimum_free_bytes": 29290369024,
       "timed_out": false,
       "disk_floor_breached": false,
       "process_group_killed": false
@@ -389,15 +389,15 @@
       "name": "negative-completion",
       "command": [
         "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-native-final/sim.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-native/sim.vvp",
         "+wrong-completion"
       ],
       "expected_negative": true,
       "accepted": true,
       "returncode": 1,
-      "seconds": 0.02173558199137915,
+      "seconds": 0.021920222992775962,
       "maxrss_kib": 8124,
-      "minimum_free_bytes": 29396262912,
+      "minimum_free_bytes": 29290364928,
       "timed_out": false,
       "disk_floor_breached": false,
       "process_group_killed": false
@@ -406,25 +406,25 @@
       "name": "negative-quiesce",
       "command": [
         "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
-        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-native-final/sim.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r11/component-v3-native/sim.vvp",
         "+wrong-quiesce"
       ],
       "expected_negative": true,
       "accepted": true,
       "returncode": 1,
-      "seconds": 0.021841688998392783,
+      "seconds": 0.02338484198844526,
       "maxrss_kib": 8124,
-      "minimum_free_bytes": 29396258816,
+      "minimum_free_bytes": 29290360832,
       "timed_out": false,
       "disk_floor_breached": false,
       "process_group_killed": false
     }
   ],
-  "compiled_sha256": "9ac9efb0f0dc01f6be58c8486b6ba1f2015ef932f1a6d83dcac41fe11921be16",
+  "compiled_sha256": "e02b56099e3814a936b2e2e52b426462cd44cb68ff988e1955d18aa38949c543",
   "drift_free": true,
   "logs_sha256": {
     "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "contract.log": "1d6e4ef914929d3b62acd662bf3b22afe087ccfff58987c13176e633cc5abac3",
+    "contract.log": "eaadd805d615ed299c4720bb602d30265c2aec3d65cfe6e305a43e6ae6bdadbc",
     "negative-quiesce.log": "e25ea76559a59b8d619ccc9d8754295ce92d9c9ccfa4570d0a1243d83bfc3d88",
     "negative-completion.log": "ae678b16561948faeb225f149c65c6e8b58afddb3ddd159bb3fd67fd8854b04d"
   }

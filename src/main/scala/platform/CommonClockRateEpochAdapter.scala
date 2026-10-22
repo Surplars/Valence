@@ -59,7 +59,7 @@ class CommonClockRateEpochAdapter(p: CommonCpuTilePortParams) extends Module {
         client.held.bits := token
         client.abort.valid := selected && io.busy && (io.drainDeadline || io.timeoutSelected)
         client.abort.bits := token
-        client.cleanupFault.valid := selected && io.busy && io.cleanupFault
+        client.cleanupFault.valid := selected && io.cleanupFault
         client.cleanupFault.bits := token
         val resumeMatches = client.resume.bits === token
         io.resume(i).valid := selected && io.busy && client.resume.valid && resumeMatches

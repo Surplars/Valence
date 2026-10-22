@@ -1,0 +1,7 @@
+BOOT
+FIRST_TERMINAL
+SECOND_TERMINAL
+NORMAL_TERMINAL
+NORMAL_TERMINAL
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/clock_rate_cleanup_tb.sv:221: retirement-edge fault lost or normal bookkeeping failed case=1 success=1 fatal=0
+       Time: 4046000  Scope: clock_rate_cleanup_tb

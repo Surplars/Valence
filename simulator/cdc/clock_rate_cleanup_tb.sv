@@ -18,7 +18,7 @@ module clock_rate_cleanup_tb;
  reg boundaryBusy=0,activeLane=0,drainDeadline=0,timeoutSelected=0,cleanupFault=0;
  reg [7:0] activeEpoch=0; reg [31:0] activeToken=0;
  reg monitorNoGate=0,wrongCompletion=0,wrongQuiesce=0;
- integer i,cycles=0; reg [31:0] token0,token1;
+ integer i,cycles=0,normalCase; reg [31:0] token0,token1;
  ClockRateCleanupComponent dut(.clock(clock),.reset(reset),
  .io_submit_0_valid(submit_valid[0]),
  .io_submit_0_bits(32'd100000000),
@@ -188,6 +188,8 @@ module clock_rate_cleanup_tb;
    if(completed[0]!=0 || completed[1]!=0) $fatal(1,"reset did not clear controller ledger");
    // Model-only normal branch regression: synthetic ACKs/program response are
    // NOT real clock permission. Ensure retiring does not reassert quiesce.
+   for(normalCase=0;normalCase<3;normalCase=normalCase+1) begin
+   @(negedge clock);cleanupFault=0;locked=3;gateOpen=3;idle_boot();
    monitorNoGate=0;
    @(negedge clock);submit_valid=1;tick();@(negedge clock);submit_valid=0;responseCommitted=1;
    tick();@(negedge clock);responseCommitted=0;requests_ready=1;token0=requests_bits[0];tick();
@@ -203,7 +205,22 @@ module clock_rate_cleanup_tb;
    while(!resume_valid[0]) tick();tick();@(negedge clock);resume_ready[0]=0;
     $display("NORMAL_TERMINAL"); terminal(0,0);step(10);
    if(quiesce[0] || completed[0]!=0 || !busy[0]) $fatal(1,"normal retiring reasserted quiesce or completed early");
-   retire();if(completed[0]!=1 || busy[0] || !lastSuccess[0] || quiesce[0]) $fatal(1,"model-only normal retirement failed");
+   if(normalCase==0) retire();
+   else begin
+     @(negedge clock);boundaryBusy=0;held_valid=0;cleanupFault=1;
+     if(normalCase==2) begin locked[0]=0;gateOpen[0]=0;end
+     step(3);
+     if(normalCase==2) begin
+       step(8);if(!busy[0] || completed[0]!=0 || !errors[0][9] || requests_valid!=0)
+         $fatal(1,"fault lost across retired backpressure");
+       @(negedge clock);locked[0]=1;gateOpen[0]=1;step(3);
+     end
+   end
+   if(completed[0]!=1 || busy[0] || lastSuccess[0]!=(normalCase==0) || quiesce[0] ||
+       (normalCase!=0 && !errors[0][9]))
+     $fatal(1,"retirement-edge fault lost or normal bookkeeping failed case=%0d success=%b fatal=%b",normalCase,lastSuccess[0],errors[0][9]);
+   end
+
    $display("CLOCK_RATE_CLEANUP_COMPONENT_PASS cycles=%0d two_lanes deadline_priority terminal_retirement wrong_tags sticky_fault reset",cycles);
    $finish;
  end

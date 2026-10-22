@@ -5,10 +5,10 @@
     "--no-server",
     "IonSoC.test.runMain",
     "platform.ClockRateCleanupComponentMain",
-    "out/cmu-frequency-r11/component-v2-rtl"
+    "out/cmu-frequency-r11/component-v3-rtl"
   ],
   "returncode": 0,
-  "seconds": 24.735713301008218,
+  "seconds": 17.38543336899602,
   "source_sha256": {
     "src/main/scala/bus/tilelink/TileLink.scala": "22d024123aae4bbbfe42142a653f73e23335211d2535f0041880388b3ab93a18",
     "src/main/scala/core/inorder/FiveStageAddressTranslation.scala": "5081845ec283ee0c5c8c113a3d4d8b2ed2bfa5f874ef00a0186ba80e57b63c10",
@@ -303,7 +303,7 @@
     "src/main/scala/isa/Compressed.scala": "6bc803cdb4494288e5552e816097ad1246ee02c30a28de09930dc5f18309c822",
     "src/main/scala/isa/Instruction.scala": "f5825d517527f77e4d7f4ba26a46d868cba7232dc9ffad830607dda0766edf84",
     "src/main/scala/platform/CommonA1CpuTile.scala": "a597b62ce30f13f769db3616cb057d7464422d145bec703238abe05dcb5d8574",
-    "src/main/scala/platform/CommonClockRateEpochAdapter.scala": "7812d3522c818eb74bdcab506a2803a1d8be2027e2c318de0ec4ac5d0d410e9c",
+    "src/main/scala/platform/CommonClockRateEpochAdapter.scala": "fac4de00d22b384c4c64d47befb913b2cbde20aea4a0d0750cb687af6d2aefec",
     "src/main/scala/platform/CommonCpuClockBoundary.scala": "ed0dc9db3ea54df39f26e0eecb482228aaf0ebe6b10c227cae2ca513ad9813d4",
     "src/main/scala/platform/CommonCpuNativeAdapter.scala": "36b10989e2ceb113a80de22d7fbf9da305b615e023b103406f5413284e536c9a",
     "src/main/scala/platform/CommonCpuProfile.scala": "0e0ad0834bc9d11fe04d3454cd937696f3b64724e0c810add1b0b90840f42c63",
@@ -326,6 +326,6 @@
   "rtl_sha256": {
     "ClockRateCleanupComponent.sv": "2938250d9adb38db2e48dd819095403bef4539ac559b4835c2106d348553a236",
     "ClockRateControl.sv": "fbceeacf16c82f285a994ddc6d8c8627bb646bde49c287be34c498cb5a6593d0",
-    "CommonClockRateEpochAdapter.sv": "ee1d7485a5431674ca85a6d764c7b260e1a8b68a5d2afa910cb173d23741038f"
+    "CommonClockRateEpochAdapter.sv": "015fd1e497f12e46dc0edc32b1089a91d51ac7b3f31ec99ece0237f972ea8d3a"
   }
 }

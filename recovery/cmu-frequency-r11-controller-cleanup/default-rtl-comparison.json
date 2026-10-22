@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "baseline": "out/cmu-frequency-r10/default-performance",
-  "candidate": "out/cmu-frequency-r11/default-performance-final",
+  "candidate": "out/cmu-frequency-r11/default-performance-v3",
   "baseline_count": 248,
   "candidate_count": 248,
   "differences": [],

@@ -345,9 +345,13 @@ module clock_rate_cleanup_tb;
     while (msiAccepted != 4 || !msiReplyBlocked) tick();
     oldCompleted = 1; submitRates(2'b01);
     while (requests[0] != 2) tick();
+    $display("CLOCK_RATE_CLEANUP_DIAGNOSTIC aon_request_accepted=2 fabric_prepares=%0d accepted=%0d replied=%0d blocked=%0d",fabricPrepares,msiAccepted,msiReplied,msiReplyBlocked); $fflush();
+    // AON mailbox acceptance is not the fabric admission boundary. Raise new
+    // sources only after the real third prepare has closed externalOwned.
+    while (fabricPrepares != 3) tick();
     setSources(3'b111); waitTimeout(0);
     if (msiAccepted != 4 || msiReplied != 3 || !msiReplyBlocked)
-      $fatal(1, "controller timeout lost accepted MSI owner");
+      $fatal(1, "controller timeout lost accepted MSI owner: accepted=%0d replied=%0d blocked=%0d fabric_prepares=%0d",msiAccepted,msiReplied,msiReplyBlocked,fabricPrepares);
     @(negedge fabricClock); holdMsiReply = 0;
     finishCleanup(0); exactLedger(2,2,2,64'h3800);
     if (fabricPrepares != 3 || fabricCancels != 3 || fabricResumes != 0 || fabricTerminals != 3 ||
