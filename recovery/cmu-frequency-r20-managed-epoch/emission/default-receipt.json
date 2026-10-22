@@ -1,0 +1,15 @@
+{
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.runMain",
+    "platform.CommonMachinePlatformMain",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/default-r1/default-performance",
+    "i1",
+    "--clock-profile=performance300-static",
+    "--vivado-memories",
+    "--compile-receipt=/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/default-r1/compile-receipt.json"
+  ],
+  "exit": 0,
+  "seconds": 22.404548816004535
+}

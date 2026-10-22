@@ -1,0 +1,3 @@
+NEGATIVE_ORACLE_REJECTED premature drain proof
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/debug_admission_tb.sv:58: external ownership/payload oracle: premature drain proof
+       Time: 1264000  Scope: debug_admission_tb.reject

@@ -1,0 +1,5 @@
+I1_PACKET_BOOT case=3 retires=330 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+FATAL: /workspace/scratch/41e4a649bb60/Valence/recovery/cmu-r17-monitor-correction/corrected_tb.source.sv:736: NETWORK_ORACLE_PAYLOAD TX byte=23 got=2e expected=2f
+       Time: 57755000  Scope: i1_runtime_network_tb

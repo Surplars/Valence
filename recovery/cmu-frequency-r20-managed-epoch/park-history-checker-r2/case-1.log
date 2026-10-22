@@ -1,0 +1,2 @@
+PARK_HISTORY_CHECKER_PASS scenario=1 raw=1 qualified=1
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:56: $finish called at 40000 (1ps)

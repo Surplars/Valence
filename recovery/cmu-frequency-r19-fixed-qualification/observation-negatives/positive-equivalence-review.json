@@ -1,0 +1,35 @@
+{
+  "status": "PASS_STATIC_POSITIVE_MODE_REVIEW",
+  "scope": "Static exact-text specialization at the three changed negative hooks plus same-width blocking-alias elimination; not a formal proof and not a rerun of the positive matrix.",
+  "prior_receipt": {
+    "path": "out/cmu-frequency-r19/fixed-native-final-v2/receipt.json",
+    "sha256": "d3b5d33156b61399e6ee9dd86f15a215f046951fd2def3a000f385af82ccf397"
+  },
+  "old_tb_sha256": "65c4710ae45c1c75d6ff20a346a9b5df28b31896d4c4c94a31ac8ee7bd46b183",
+  "new_tb_sha256": "6c324fde1479d7193831505d43983bf1f154ae19b52a85abf9b96a536935ef60",
+  "old_runner_sha256": "00efcaca7aaaf52bcdbc349a2c1712e0762c5ec81c03bed071d3334d0091c665",
+  "new_runner_sha256": "c6e140b859ddcea933f55f78814730620e6b6ca9f73755b80d57ee14387d5b26",
+  "checks": {
+    "complete_tb_at_negative_zero_after_identity_alias_elimination_byte_identical": true,
+    "positive_tb_normalized_sha256": "df53ac465099d7c886dd1be66eb4817333f27740914c9303631d9e434e3c7d3e",
+    "guest_generation_function_ast_identical": true,
+    "native_process_runner_function_ast_identical": true,
+    "positive_case_command_construction_loop_and_success_checks_byte_identical": true,
+    "positive_clock_ratios_and_scenarios_unchanged_without_negative_only": true,
+    "dut_and_fixture_sources_unchanged": true
+  },
+  "old_evidence_scope": "The prior final-v2 receipt retains 8 passing positive cases. Its negative-1 and negative-3 mutated reference values and do not establish observed-data corruption rejection. Its TX negative hook was not executed by that default negative matrix.",
+  "new_evidence_scope": "This new subset runs RX packet observation bit flip, RX guard readback-copy bit flip, and TX GMII observed-byte bit flip. Expected packet bytes, expected CRC, GUARD_DATA, DUT, and backing RAM are not modified.",
+  "positive_cases_rerun": 0,
+  "old_positive_logs_sha256": {
+    "unrelated-case-0.log": "b2e078e552ed3b6d9d4bc88d77c0b8a8a7caa52eedd1b52bb79c68835f37d718",
+    "unrelated-case-1.log": "cdf8268a196bf1b5cfe567f64489b970de8340030e00d1716245a133defc2da6",
+    "unrelated-case-2.log": "3bc517b202eb883bf9c25610dbb92e73ddd17619a6f6a7bebfea42e52558244a",
+    "unrelated-case-3.log": "5ec70c870947e4b1047262c9ebd5c8667162db70618fe13d7b2fb2e296b9acec",
+    "reversed-case-0.log": "c96389abe0ae333281bf7fa170eb0afc7d1e3e5c0dae96196e73a2e0bd1ed7b4",
+    "reversed-case-1.log": "1e1a62637f133b9e642e77860f3d1dbb6ed755702d03986f9405efe23dc8541e",
+    "reversed-case-2.log": "ab462471eca9fc7cfd82731107706043ada29522af1fa2cb892e696e402bd087",
+    "reversed-case-3.log": "c44d86693c77b5b8ff2ab59bc3e5ab7a54b1614bf6ab2dee357ec9e87c16e35c"
+  },
+  "review_script_sha256": "29517f7f72d527a81222d812c4ea66beb4d0e1c28d69131283fe96c6925833b1"
+}

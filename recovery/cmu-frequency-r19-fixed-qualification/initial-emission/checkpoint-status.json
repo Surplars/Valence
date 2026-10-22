@@ -1,0 +1,11 @@
+{
+  "status": "WIP_EMISSION_ONLY_NATIVE_PENDING",
+  "default_identical_modules": 248,
+  "default_total_modules": 248,
+  "helper_modules": 5,
+  "fixture_modules": 214,
+  "opt_in_platform_modules": 259,
+  "known_fixture_alignment_pending": "Remove independent test-only AXI owner counters from qualification predicates; retain as oracle only. Current fixture is stronger than production and not final integration evidence.",
+  "physical_signoff": false,
+  "remote_published": false
+}

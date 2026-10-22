@@ -1,0 +1,10 @@
+{
+  "status": "PASS_EXACT_TOKEN_EQUALITY_AFTER_NEGATIVE0_SPECIALIZATION_AND_MONITOR_COPY_FOLDING",
+  "baseline_tb_sha256": "b1a2d8eed6689c5333bbaa1ba78d0beb0ad9fb8deef802ab856f95374c2b8903",
+  "corrected_tb_sha256": "ae58516f80bd100c0bf0bb7da294650f0d1041219339712d4ed65856cd7e7959",
+  "baseline_projected_sha256": "bad8e38fc4e7e4c913c803596ce4492d52b04e96e74c9ecda4286f1d4356af20",
+  "corrected_projected_sha256": "bad8e38fc4e7e4c913c803596ce4492d52b04e96e74c9ecda4286f1d4356af20",
+  "projection": "replay.py positive_projection: remove negative-only assignments; specialize baseline guard ternary; fold immediate blocking observer copies; remove comments and normalize whitespace outside strings; compare every remaining token including diagnostic strings",
+  "simulation_claim": false,
+  "positive_simulations_requested_or_run": 0
+}

@@ -91,7 +91,9 @@ class CommonMachineFabric(
     uartClockHz: Int = 50000000,
     uartReferenceClockHz: Int = 0,
     uartFastDivisorOne: Boolean = false,
-    val externalTimer: Boolean = false
+    val externalTimer: Boolean = false,
+    val runtimeDebugAdmission: Boolean = false,
+    val runtimeNetworkAdmission: Boolean = false
 ) extends Module {
     import CommonFabricObligations._
     private val ramBase = CommonPlatformAbi.ramBase
@@ -107,6 +109,8 @@ class CommonMachineFabric(
     require(!vivadoMemories || (!programmable && romWords == CommonPlatformAbi.romWords))
     require(!features.jtagDownload || ramBytes >= 1024 * 1024)
     require(peripheralClockHz == 0 || peripheralClockHz >= 6000000)
+    require(!runtimeDebugAdmission || (features.jtagDownload && boundary.runtimeCancellation))
+    require(!runtimeNetworkAdmission || (features.networkDma && boundary.runtimeCancellation))
     if (externalDdr) ddr.validateSoc()
 
     val io = IO(new Bundle {
@@ -132,6 +136,12 @@ class CommonMachineFabric(
         val externalUartIrq = if (externalUart) Some(Input(Bool())) else None
         val jtagDmi = if (features.jtagDownload) Some(Flipped(new soc.ip.debug.DebugDmiPort(7))) else None
         val jtagLinkUp = if (features.jtagDownload) Some(Input(Bool())) else None
+        val debugDmiOwnersIdle = if (runtimeDebugAdmission) Some(Output(Bool())) else None
+        val debugControlOwnersIdle = if (runtimeDebugAdmission) Some(Output(Bool())) else None
+        val networkPause = if (runtimeNetworkAdmission) Some(Input(Bool())) else None
+        val networkTxIdle = if (runtimeNetworkAdmission) Some(Output(Bool())) else None
+        val networkOwnersIdle = if (runtimeNetworkAdmission) Some(Output(Bool())) else None
+        val networkAdmissionHeld = if (runtimeNetworkAdmission) Some(Flipped(Valid(UInt(boundary.maintenanceEpochBits.W)))) else None
         val ethernetStreams = if (features.networkDma) Some(new Bundle {
             val txData = Decoupled(new EthernetAxisWord)
             val txControl = Decoupled(new EthernetAxisWord)
@@ -272,16 +282,28 @@ class CommonMachineFabric(
     val packetDma = if (features.networkDma) Some(Module(new EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = fpga.network.maxFrameBytes,
         postedRxSlots = fpga.network.postedRxSlots, memoryCredits = fpga.network.memoryCredits,
-        postedTxSlots = fpga.network.postedTxSlots))) else None
+        postedTxSlots = fpga.network.postedTxSlots, runtimeAdmission = runtimeNetworkAdmission))) else None
     packetDma.foreach { network =>
+        if (runtimeNetworkAdmission) {
+            network.io.runtimePause.get := io.networkPause.get
+            io.networkTxIdle.get := network.io.runtimeTxIdle.get
+            io.networkOwnersIdle.get := network.io.runtimeOwnersIdle.get
+        }
         io.ethernetStreams.get.txData <> network.io.txData
         io.ethernetStreams.get.txControl <> network.io.txControl
         network.io.rxData <> io.ethernetStreams.get.rxData
         network.io.rxStatus <> io.ethernetStreams.get.rxStatus
     }
     val jtagLoader = if (features.jtagDownload) Some(Module(new soc.ip.debug.JtagRamLoader(
-        ramBase, (ramBase + ramBytes - 0x4000).min(BigInt("ffff8000", 16)) - 0x80000))) else None
-    jtagLoader.foreach { loader => loader.io.dmi <> io.jtagDmi.get; loader.io.linkUp := io.jtagLinkUp.get }
+        ramBase, (ramBase + ramBytes - 0x4000).min(BigInt("ffff8000", 16)) - 0x80000,
+        exposeDmiIdle = runtimeDebugAdmission, exposeControlIdle = runtimeDebugAdmission))) else None
+    jtagLoader.foreach { loader =>
+        loader.io.dmi <> io.jtagDmi.get; loader.io.linkUp := io.jtagLinkUp.get
+        if (runtimeDebugAdmission) {
+            io.debugDmiOwnersIdle.get := loader.io.dmiOwnersIdle.get
+            io.debugControlOwnersIdle.get := loader.io.controlOwnersIdle.get
+        }
+    }
     interrupts.io.sources := io.sources | (uartIrq.asUInt << CommonPlatformAbi.interruptBit(3)) |
         (dma.io.irq.asUInt << CommonPlatformAbi.interruptBit(4)) |
         (packetDma.map(_.io.irq).getOrElse(false.B).asUInt << CommonPlatformAbi.interruptBit(6))
@@ -451,7 +473,12 @@ class CommonMachineFabric(
     val msiOwners = count(io.tile.msi.request.fire, io.tile.msi.response.fire, "msiOwners")
     val streamIdle = io.ethernetStreams.map(s =>
         !s.txData.valid && !s.txControl.valid && !s.rxData.valid && !s.rxStatus.valid).getOrElse(true.B)
-    val dmaIdle = !dma.io.active && !packetDma.map(_.io.active).getOrElse(false.B) &&
+    val packetIdle = if (runtimeNetworkAdmission) Mux(io.networkPause.get,
+        io.networkOwnersIdle.get, !packetDma.get.io.active) else !packetDma.map(_.io.active).getOrElse(false.B)
+    val networkHeld = if (runtimeNetworkAdmission) !externalOwned.get ||
+        (io.networkAdmissionHeld.get.valid && io.networkAdmissionHeld.get.bits === externalEpoch.get &&
+            io.networkOwnersIdle.get) else true.B
+    val dmaIdle = !dma.io.active && packetIdle &&
         dmaOwners === 0.U && !dmaMemory.request.valid && !dmaMemory.response.valid && streamIdle &&
         !io.jtagDmi.map(_.request.valid).getOrElse(false.B)
     val nativeIdle = scalar.io.idle && physicalRequests.io.idle && !atomicActive &&
@@ -461,7 +488,7 @@ class CommonMachineFabric(
     val interruptIdle = msiOwners === 0.U && !io.tile.msi.request.valid && !io.tile.msi.response.valid &&
         msiAdmissionIdle
     val transportsIdle = io.transportCpuEmptySynchronized && io.fabricTransportEmpty
-    val producersDrained = nativeIdle && coherentIdleAll && fetchIdle && dmaIdle && transportsIdle
+    val producersDrained = nativeIdle && coherentIdleAll && fetchIdle && dmaIdle && transportsIdle && networkHeld
     // Register the transition: Home request-valid is itself admission-gated,
     // so its combinational emptiness must never feed drainRequest directly.
     // The captured producer-empty observation separates older accepted work
@@ -475,7 +502,8 @@ class CommonMachineFabric(
         bridgeOwners === 0.U && dmaOwners === 0.U && coherentIdleAll && fetchIdle && transportsIdle
     val producerEpochIdle = Mux(pending, drainStarted && acceptedOwnersIdle, producersDrained)
     io.allObligationsIdle := producerEpochIdle && home.io.drainDone && romIdle && ramIdle &&
-        managerExtraIdle && interruptIdle
+        managerExtraIdle && interruptIdle && networkHeld && (if (runtimeDebugAdmission)
+            io.debugDmiOwnersIdle.get && io.debugControlOwnersIdle.get else true.B)
     when(pending && io.allObligationsIdle && !completionHeld && !completionConsumed.getOrElse(false.B)) { completionHeld := true.B }
     io.tile.fabricDrainedEpoch.valid := completionHeld
     io.tile.fabricDrainedEpoch.bits := epoch

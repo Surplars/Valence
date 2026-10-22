@@ -1,0 +1,30 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46697 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=46697 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46697 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=46697 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.runMain platform.CommonI1Runtim...9bb60/Valence/out/cmu-frequency-r17/network-rtl
+152] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+179] IonSoC.test.compile compiling 3 Scala sources to out/IonSoC/test/compile.dest/classes ...
+179] done compiling
+185] IonSoC.test.runMain
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46697 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=46697 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: network DMA requires the Ethernet control/stream endpoint
+	at ... ()
+	at soc.platform.CommonPlatformFeatures.<init>(CommonPlatformAbi.scala:122)
+	at platform.RuntimeDebugTestFabric.<init>(CommonI1RuntimeDebugMain.scala:41)
+	at platform.RuntimeNetworkTestFabric.<init>(CommonI1RuntimeNetworkMain.scala:42)
+	at platform.CommonI1RuntimeNetworkFixture.makeFabric(CommonI1RuntimeNetworkMain.scala:129)
+	at platform.CommonI1RuntimeCdcFixture.$anonfun$fabric$3(CommonI1RuntimeCdcMain.scala:103)
+	at chisel3.Module$Intf.do_apply(ModuleIntf.scala:22)
+	at chisel3.Module$Intf.do_apply$(ModuleIntf.scala:22)
+	at chisel3.Module$.do_apply(Module.scala:32)
+	at platform.CommonI1RuntimeCdcFixture.$anonfun$fabric$2(CommonI1RuntimeCdcMain.scala:103)
+	at chisel3.withClockAndReset$.apply(MultiClock.scala:33)
+	at platform.CommonI1RuntimeCdcFixture.$anonfun$fabric$1(CommonI1RuntimeCdcMain.scala:103)
+	at chisel3.package$.withName(package.scala:493)
+	at platform.CommonI1RuntimeCdcFixture.<init>(CommonI1RuntimeCdcMain.scala:102)
+	at platform.CommonI1RuntimeDebugFixture.<init>(CommonI1RuntimeDebugMain.scala:76)
+	at platform.CommonI1RuntimeNetworkFixture.<init>(CommonI1RuntimeNetworkMain.scala:128)
+	at platform.CommonI1RuntimeNetworkNativeMain$.$anonfun$new$150(CommonI1RuntimeNetworkMain.scala:305)
+	at ... ()
+	at ... (Stack trace trimmed to user code only. Rerun with --full-stacktrace to see the full stack trace)
+185/185, 1 FAILED] mill IonSoC.test.runMain platform.Co...ce/out/cmu-frequency-r17/network-rtl 22s
+185] [error] IonSoC.test.runMain Subprocess failed

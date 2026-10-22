@@ -1,0 +1,5 @@
+MANAGED_CONTROL_PROGRESS fabric_cycles=32768 MDIO_transactions=6 page=0d08 link=0 start=0 park=0
+MANAGED_CONTROL_PROGRESS fabric_cycles=65536 MDIO_transactions=12 page=0d08 link=0 start=0 park=0
+MANAGED_CONTROL_PROGRESS fabric_cycles=98304 MDIO_transactions=19 page=0000 link=0 start=0 park=0
+MANAGED_CONTROL_PROGRESS fabric_cycles=131072 MDIO_transactions=25 page=0000 link=0 start=0 park=0
+MANAGED_CONTROL_PROGRESS fabric_cycles=163840 MDIO_transactions=31 page=0000 link=0 start=0 park=0

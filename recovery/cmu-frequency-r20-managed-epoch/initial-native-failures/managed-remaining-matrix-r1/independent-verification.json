@@ -1,0 +1,7 @@
+{
+  "status": "PASS_REHASH_OF_PRESERVED_FAILURE_NOT_CASE_PASS",
+  "receipt_sha256": "34160f1a057fb0b73addc1883bb30c60936e848a3953270a0095fa3c7f950643",
+  "checked": 616,
+  "failed": [],
+  "verified_at_utc": "2026-10-21T23:20:30.485356+00:00"
+}

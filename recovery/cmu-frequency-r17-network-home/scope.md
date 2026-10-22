@@ -1,0 +1,29 @@
+# R17: real I1/Home/network epoch composition (validated native stage)
+
+The test-only fixture connects the real r16 network sequencer before the r15 debug sequencer and the actual r10 AON/CPU/fabric epoch protocol. There is one actual packet DMA inside CommonMachineFabric. Its requests traverse the existing arbiter, AtomicDataMemory, Home and TileLink-to-AXI manager. A testbench RAM services the AXI endpoint; this is not a MIG, DDR PHY, or independent DDR-UI CDC qualification.
+
+CPU, fabric, AON, debug, RX and TX have independent clocks, all continuously running. Network and debug terminal release is driven by the real AON consumer receipt and actual fabric retirement, never an injected test ACK. Real AXI R/B responses can be held at a symmetric valid/ready test gate after request acceptance. No production RTL changes are intended in this stage; existing fixture constructor extensions default to their former behavior.
+
+The assembled I1 guest performs actual scalar MMIO to arm the loader and packet DMA. It creates a dirty CPU cache line containing the RX destination at 0x80203000 and a 32-bit guard at offset60. The 60-byte received frame must preserve that guard through real byte enables and coherence. It also writes the TX packet at0x80204000 through CPU stores. A real DMI command later requests architectural CPU readback and comparison. Separate CPU-side probes/ProbeAckData counters observe RX and TX lines.
+
+The GMII parser, stream adapter, frame FIFOs, RX admission-stop protocol and transmitter are real. PHY negotiation, RGMII encoder/calibration, MAC register/configuration/statistics traffic and external IRQ pulse capture while clocks stop are not qualified. The omitted MAC CSR window has a registered error response and an assertion rejecting any guest access, rather than invented successful MAC state. Real fabric packet geometry is retained (2048-byte maximum, four RX/TX descriptor slots and four memory credits).
+
+Initial emission failed the feature guard because the fixture enabled packet DMA without its required Ethernet endpoint. The test-only factory now enables the endpoint and explicitly rejects unsupported CSR accesses. This was not a production hardware failure; its failure receipt/log remain preserved. Compilation alone is not a simulation pass.
+
+Native results, exact source/RTL hashes and limitations will be added after validation. Default rate endpoints remain absent, whitelist empty, A1 unsupported, no gate/DRP connection, and physical CPU300/fabric250 constraints are untouched. Earlier r16 scoped component results remain separate and are not relabeled as this combined proof.
+
+## Review corrections before final qualification
+
+The intermediate native-r2 run completed eight positive scenarios and three requested negative invocations, but its second negative directly forced a failure predicate. That negative invocation proves only the fatal path was active, not the early-prepare oracle's sensitivity; it is not accepted as the final negative-control evidence. The genuine positive packet/coherence/timeout results are not invalidated by that monitor limitation.
+
+The final test revision instead corrupts only an independently observed prepare count and feeds it to the same ordinary early-prepare checker. It also requires exact CPU RX/guard/TX readback retirement counts, and checks/logs the address of the blocked AXI owner. RX's first B can be the dirty-line writeback required by the packet operation; it is called a packet-dependency B, not necessarily the DMA payload's own write response. Detailed packet/timeout/retirement events are now retained in the runner receipt as well as hashed logs.
+
+This matrix is one packet and one epoch per process. It does not claim a new packet after epoch release, simultaneous AON request contention, retained posted descriptors in the combined Home fixture, or an older DMI RAM owner draining concurrently with packet work. Those remain separate focused follow-ups. The guest programs DMA descriptors and verifies data architecturally; DMA status-register reads are not covered.
+
+## Final result
+
+Final native-r3 passed all eight positives (four scenarios under two unrelated/reversed six-clock sets) and three observation/expected-value oracle negatives. RX cases used eight packet requests/eight replies, 50 AXI read beats and 11 B completions; TX used eight/eight, 58 read beats and three B completions. RX and TX dirty-line tests each observed one probe and eight ProbeAckData beats on the corresponding line. The blocked response addresses were explicitly 0x3000 (RX-line dependency B) and0x4000 (TX R). Each expected CPU verification load retired exactly once with checked destination/data. Actual timeout selected at4096 AON edges; normal, explicit-cancel and timeout outcomes each retired the true AON/debug/network/fabric owners once.
+
+Final native receipt SHA256: f72c3ef0c0ad8207c1ac5ceda6bece8ce16ff44f059736dae78d2b1a97703634. The integration owner independently rehashed323 source files,204 RTL files,11 tool-chain files,17 logs, guest artifacts, compiled simulator and assertion-preprocessed RTL. No production source differs from r16. Re-emitting the old default r15 debug fixture produced188/188 byte-identical SV files, demonstrating the optional test-factory changes do not alter that default fixture.
+
+The initial native-r1 compile failed solely on a duplicate testbench integer declaration and is preserved. The intermediate native-r2 logs/receipt and exact earlier TB/runner snapshots remain archived with the negative-control caveat above. Final stronger evidence is native-final only. Native simulation is not physical timing/CDC qualification, does not exercise real MIG/PHY, and does not enable any runtime clock backend. All commits/evidence remain local pending the existing exact-receipt upload permission.

@@ -1,0 +1,59 @@
+--- baseline_tb.source.sv
++++ corrected_tb.source.sv
+@@ -133,6 +133,7 @@
+   integer debugTerminalsAtResult=0, fabricTerminalsAtResult=0, readResponsesAccepted=0, writeResponsesAccepted=0;
+   reg [31:0] wireCrc=32'hffffffff, expectedStatus;
+   reg [7:0] expectedWireByte;
++  reg [7:0] observedWireByte;
+   reg previousTxEnable=0;
+   localparam [31:0] RX_ADDRESS=32'h80203000, TX_ADDRESS=32'h80204000;
+   localparam [31:0] SELECTOR_ADDRESS=32'h80205000;
+@@ -579,6 +580,7 @@
+     end
+   end
+   reg [63:0] expectedPacketWord;
++  reg [63:0] observedPacketWord;
+   reg [7:0] expectedPacketMask;
+   integer packetWordIndex;
+   always @(posedge fabricClock) if(!reset) begin
+@@ -616,10 +618,12 @@
+           packetMemoryRequestWrite!==(testCase!=3))
+         $fatal(1,"I1_PACKET_MEMORY_REQUEST_ADDRESS_OR_COUNT index=%0d addr=%h",packetRequests,packetMemoryRequestAddress);
+       if(testCase!=3) begin
+-        if(negative==1 && packetWordIndex==0) expectedPacketWord=expectedPacketWord^1;
++        // Corrupt only the sampled observation; keep the packet oracle unchanged.
++        observedPacketWord=packetMemoryRequestData;
++        if(negative==1 && packetWordIndex==0) observedPacketWord=observedPacketWord^64'h1;
+         if(packetMemoryRequestByteEnable!==expectedPacketMask)
+           $fatal(1,"I1_PACKET_RX_BYTE_ENABLE index=%0d got=%h",packetWordIndex,packetMemoryRequestByteEnable);
+-        for(integer j=0;j<8;j=j+1) if(expectedPacketMask[j] && packetMemoryRequestData[j*8+:8]!==expectedPacketWord[j*8+:8])
++        for(integer j=0;j<8;j=j+1) if(expectedPacketMask[j] && observedPacketWord[j*8+:8]!==expectedPacketWord[j*8+:8])
+           $fatal(1,"NETWORK_ORACLE_PAYLOAD RX word=%0d byte=%0d",packetWordIndex,j);
+         packetWrites=packetWrites+1;
+       end else packetReads=packetReads+1;
+@@ -725,9 +729,11 @@
+       end else begin
+         wireFcs=~wireCrc; expectedWireByte=(wireFcs>>((wirePosition-8-BODY_BYTES)*8))&255;
+       end
+-      if(negative==1 && wirePosition==23) expectedWireByte=expectedWireByte^1;
+-      if(gmiiTxData!==expectedWireByte)
+-        $fatal(1,"NETWORK_ORACLE_PAYLOAD TX byte=%0d got=%h expected=%h",wirePosition,gmiiTxData,expectedWireByte);
++      // The transmitted byte sample, not the expected byte/CRC, is corrupted.
++      observedWireByte=gmiiTxData;
++      if(negative==1 && wirePosition==23) observedWireByte=observedWireByte^8'h1;
++      if(observedWireByte!==expectedWireByte)
++        $fatal(1,"NETWORK_ORACLE_PAYLOAD TX byte=%0d got=%h expected=%h",wirePosition,observedWireByte,expectedWireByte);
+       wirePosition=wirePosition+1;
+     end else if(previousTxEnable) begin
+       if(wirePosition!=BODY_BYTES+12) $fatal(1,"I1_PACKET_TX_WIRE_LENGTH got=%0d",wirePosition);
+@@ -915,7 +921,9 @@
+           $fatal(1,"NETWORK_ORACLE_PAYLOAD backing RAM byte=%0d got=%h",j,data[(j%8)*8+:8]);
+       end
+       data=memory_read(32'h3038);
+-      if(data[63:32]!== (negative==3 ? GUARD_DATA^32'h1 : GUARD_DATA))
++      // Corrupt the sampled RAM guard, never the expected guard constant.
++      if(negative==3) data[63:32]=data[63:32]^32'h1;
++      if(data[63:32]!== GUARD_DATA)
+         $fatal(1,"NETWORK_ORACLE_GUARD dirty same-line neighbor got=%h expected=%h",data[63:32],GUARD_DATA);
+       if(testCase!=3 && (packetLineProbes<1 || packetLineProbeDataBeats!=8))
+         $fatal(1,"I1_PACKET_RX_DIRTY_PROBE_DATA_ORACLE probes=%0d beats=%0d",packetLineProbes,packetLineProbeDataBeats);

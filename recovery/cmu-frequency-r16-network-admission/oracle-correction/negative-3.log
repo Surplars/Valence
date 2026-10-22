@@ -1,0 +1,3 @@
+PACKET_RX_STATUS6_HELD accepted=1 status=5
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:128: PACKET_ORACLE_PAYLOAD RX addr=0000000080200100 byte=0 got=02 expected=03
+       Time: 1485100  Scope: network_packet_runtime_tb

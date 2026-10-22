@@ -1,0 +1,4 @@
+BOOT
+NEGATIVE_ORACLE_REJECTED corrupted observed cleanup ledger
+FATAL: /workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/corrected_tb.source.sv:138: controller prematurely completed/released cleanup
+       Time: 816000  Scope: clock_rate_cleanup_tb.check_pending

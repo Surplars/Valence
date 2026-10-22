@@ -1,0 +1,4 @@
+I1_PACKET_BOOT case=0 retires=331 CPU_network_control=3/3
+I1_PACKET_RX_STATUS_HELD status=5 accepted=1 AON_epoch=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:623: NETWORK_ORACLE_PAYLOAD RX word=0 byte=0
+       Time: 53153000  Scope: i1_runtime_network_tb.$ivl_for_loop2

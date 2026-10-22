@@ -11,7 +11,8 @@ import soc.ip.bus.{CdcLevel, CdcResetRelease}
   * There is no fabricated drain proof, clock-gate acknowledgement or backend.
   * Stalls affect actual protocol replies without manufacturing or dropping them.
   */
-class CommonI1RuntimeCdcFixture extends RawModule {
+class CommonI1RuntimeCdcFixture(val testRomWords: Int = 64) extends RawModule {
+    require(testRomWords >= 64 && isPow2(testRomWords))
     val boundary = CommonCpuTilePortParams(runtimeMaintenance = true,
         runtimeCancellation = true, runtimeInterruptHold = true)
     val p = CommonCpuProfile.I1.i1
@@ -22,7 +23,7 @@ class CommonI1RuntimeCdcFixture extends RawModule {
     val io = IO(new Bundle {
         // Test programming, physical interrupt sources and stalls are fabric-domain.
         val start = Input(Bool())
-        val program = Input(Valid(new Bundle { val index = UInt(6.W); val data = UInt(32.W) }))
+        val program = Input(Valid(new Bundle { val index = UInt(log2Ceil(testRomWords).W); val data = UInt(32.W) }))
         val sources = Input(UInt(64.W))
         val holdMsiReply = Input(Bool())
         val holdReleaseAck = Input(Bool())
@@ -91,12 +92,15 @@ class CommonI1RuntimeCdcFixture extends RawModule {
         Module(new CommonI1CpuTile(p, boundary, externalQuiesce = true))
     }
     tile.io.quiesceRequest.get := io.externalStop
+    // Test-only factory keeps the original default fixture unchanged while a
+    // dedicated architectural fixture can interpose real protocol backpressure.
+    def makeFabric(): CommonMachineFabric = new CommonMachineFabric(boundary = boundary,
+        features = CommonPlatformFeatures(ethernetControl = false, networkDma = false,
+            jtagDownload = false, clockManagement = false), ramBytes = 65536,
+        externalDdr = false, romWords = testRomWords, programmable = true,
+        externalUart = false, ramResponseDelay = 7)
     val fabric = withClockAndReset(fabricClock, fabricRelease.resetOut) {
-        Module(new CommonMachineFabric(boundary = boundary,
-            features = CommonPlatformFeatures(ethernetControl = false, networkDma = false,
-                jtagDownload = false, clockManagement = false), ramBytes = 65536,
-            externalDdr = false, romWords = 64, programmable = true,
-            externalUart = false, ramResponseDelay = 7))
+        Module(makeFabric())
     }
     val crossing = Module(new CommonCpuClockBoundary(boundary, depth = 16))
     crossing.cpuClock := cpuClock; crossing.fabricClock := fabricClock
@@ -111,8 +115,11 @@ class CommonI1RuntimeCdcFixture extends RawModule {
     fabric.io.transportCpuEmptySynchronized := crossing.cpuEmptyInFabric
     fabric.io.fabricTransportEmpty := crossing.fabricTransportEmpty
     fabric.io.program.get := io.program
-    fabric.io.ramProgram.get.valid := false.B
-    fabric.io.ramProgram.get.bits := 0.U.asTypeOf(fabric.io.ramProgram.get.bits)
+    fabric.io.ramProgram.foreach { program =>
+        program.valid := false.B
+        program.bits := 0.U.asTypeOf(program.bits)
+    }
+    fabric.io.ddrReady.foreach(_ := true.B)
     fabric.io.sources := io.sources(CommonPlatformAbi.interruptSources - 1, 0)
     fabric.io.timerTick := false.B
     fabric.io.uartRx := true.B
@@ -134,8 +141,9 @@ class CommonI1RuntimeCdcFixture extends RawModule {
     fabric.io.tile.fabricDrainedEpoch.ready := crossing.fabric.fabricDrainedEpoch.ready && !io.holdCompletion
     io.completionBlocked := fabric.io.tile.fabricDrainedEpoch.valid && io.holdCompletion
 
-    val runtime = Module(new CommonRuntimeEpochBoundary(boundary,
-        drainTimeoutCycles = 4096, cleanupTimeoutCycles = 16384))
+    def makeRuntime(): CommonRuntimeEpochBoundary = new CommonRuntimeEpochBoundary(boundary,
+        drainTimeoutCycles = 4096, cleanupTimeoutCycles = 16384)
+    val runtime = Module(makeRuntime())
     runtime.aonClock := alwaysOnClock; runtime.cpuClock := cpuClock
     runtime.fabricClock := fabricClock; runtime.commonColdReset := commonColdReset
     runtime.io.requests <> io.requests; runtime.io.resume <> io.resume

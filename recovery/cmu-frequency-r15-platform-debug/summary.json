@@ -1,0 +1,68 @@
+{
+  "stage": "r15",
+  "status": "PASS_NATIVE_ORDERED_DEBUG_PLATFORM_COMPOSITION_ONLY",
+  "parent_commit": "c24920d0cbc58f451accc56d036bc898ec1978b4",
+  "production_default_enabled": false,
+  "runtime_backend_present": false,
+  "runtime_whitelist_open": false,
+  "physical_gate_or_drp": false,
+  "a1_supported": false,
+  "native_receipt_sha256": "b31f2101daa3c06b383be5549dd143da8f64b7588fd0532da394b3e32b7714b2",
+  "source_hashes_verified": 321,
+  "rtl_hashes_verified": 188,
+  "tool_hashes_verified": 11,
+  "native_clock_half_periods_ns": [
+    [
+      5,
+      7,
+      11,
+      13
+    ],
+    [
+      11,
+      5,
+      7,
+      3
+    ]
+  ],
+  "clock_order": [
+    "cpu",
+    "fabric",
+    "aon",
+    "debug"
+  ],
+  "real_dirty_debug_line": {
+    "probes": 1,
+    "probe_ack_data_beats": 8,
+    "preserved_guard": "0x55667788"
+  },
+  "actual_aon_timeout_edges": 4096,
+  "negative_controls": [
+    "wrong-data: independent debug readback data oracle",
+    "wrong-drain: independent debug drain oracle"
+  ],
+  "retirement_order": [
+    "AON result copy consumed",
+    "original debug terminal consumed",
+    "debug retirement receipt",
+    "original fabric terminal consumed",
+    "AON epoch owner released"
+  ],
+  "late_link_fault": "retained terminal copy may be consumed; actual debug/fabric retirement blocked; sticky fault and busy until common cold reset",
+  "default_equivalence": "PASS_BYTE_IDENTICAL",
+  "default_sv_files": 248,
+  "opt_in_full_platform_emitted_sv_files": 257,
+  "scala_tests": {
+    "JtagRamLoaderSpec": 2,
+    "ClockRateControlSpec": 3
+  },
+  "initial_failure": "native-r1 reversed final testbench reset scheduling race; exact FAIL receipt/logs/source snapshots retained; no production change for correction",
+  "limitations": [
+    "Full platform with DDR/network/fixed peripherals is elaborated, not dynamically simulated as a whole.",
+    "Native fixture uses real I1/loader/Atomic/Home and internal 1 MiB RAM.",
+    "No complete-system drain ACK or physical CDC/timing/gating/DRP qualification.",
+    "Short external IRQ during stopped fabric still needs fixed/source-domain capture or held-request contract.",
+    "Permanent owner nonresponse or active link loss may safely block forever; common reset required.",
+    "Remote publication remains blocked pending exact receipt approval; this stage is local only."
+  ]
+}

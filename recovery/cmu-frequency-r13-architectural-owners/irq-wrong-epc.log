@@ -1,0 +1,3 @@
+I1_RUNTIME_CDC_BOOT generation=0 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_irq_epoch_tb.sv:134: independent IRQ EPC oracle
+       Time: 12315000  Scope: i1_irq_epoch_tb

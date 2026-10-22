@@ -1,0 +1,7 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=35167 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=35167 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=35167 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=35167 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.compile
+136] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+148] IonSoC.compile compiling 1 Scala source to out/IonSoC/compile.dest/classes ...
+148] done compiling
+151/151, SUCCESS] mill IonSoC.test.compile 15s

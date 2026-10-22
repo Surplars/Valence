@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "managed_source_count": 317,
+  "managed_rtl_count": 58,
+  "default_source_count": 333,
+  "default_artifact_count": 249,
+  "default_comparison": "248/248 byte-identical SV to r16 default-performance",
+  "compiled_classpath_note": "Exporter verified classpath stability during its run; later fixture recompile changes current classes, not preserved emitted RTL."
+}

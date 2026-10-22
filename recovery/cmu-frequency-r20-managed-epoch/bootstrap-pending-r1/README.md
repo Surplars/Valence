@@ -1,0 +1,7 @@
+# Preboot acceleration pending checkpoint
+
+This checkpoint preserves a test-only pre-owner source-scheduling experiment, not production clock-domain or gate qualification. No production source changes. The original same-clock normal/unrelated r6 PASS remains authoritative. The accelerated fixture has been emitted; its r1 normal run failed on an unsettled-delta clock-identity observation, and r2 failed its 180-second wall bound after real PHY initialization, permanent fabric rejoin and the first packet. Both original FAIL receipts and logs are preserved unchanged. Both child outcomes are known reaped in their own receipts.
+
+The current testbench samples fabric/source identity after combinational settling while keeping handshake sampling and the no-runt check unchanged. A separately approved one-case 300-second wall-only normal/unrelated retry is pending. Recovery found no output, log or active journal for that retry; the saved runner did not yet accept the 300-second selection. No completed result or historical process absence is inferred. The earlier r5 interrupted-child outcome remains unknown.
+
+All frozen source snapshots, 257 emitted SV hashes, tool-chain files, guest artifacts, logs, assertion expansion and native binaries were rehashed against each original receipt during recovery. Generated binary/RTL artifacts remain under out and are not committed. Preservation does not convert failure into qualification. Remote upload remains blocked pending exact-manifest authorization; these changes are local only.

@@ -1,0 +1,2 @@
+FATAL: simulator/cdc/rtl8211f_pin_model_tb.sv:46: PIN_MODEL readback reg=2 write=0 got=001c/0 expected=001d/0
+       Time: 153696000  Scope: rtl8211f_pin_model_tb.transfer

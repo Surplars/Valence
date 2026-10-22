@@ -1,0 +1,24 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41971 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41971 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41971 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41971 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.runMain platform.CommonMachineP...profile=performance300-static --vivado-memories
+185] IonSoC.test.runMain
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41971 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41971 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Exception in thread "main" java.util.NoSuchElementException: None.get
+	at scala.None$.get(Option.scala:627)
+	at scala.None$.get(Option.scala:626)
+	at platform.CommonMachinePlatformMain$.delayedEndpoint$platform$CommonMachinePlatformMain$1(CommonMachinePlatformMain.scala:23)
+	at platform.CommonMachinePlatformMain$delayedInit$body.apply(CommonMachinePlatformMain.scala:13)
+	at scala.Function0.apply$mcV$sp(Function0.scala:42)
+	at scala.Function0.apply$mcV$sp$(Function0.scala:42)
+	at scala.runtime.AbstractFunction0.apply$mcV$sp(AbstractFunction0.scala:17)
+	at scala.App.$anonfun$main$1(App.scala:98)
+	at scala.App.$anonfun$main$1$adapted(App.scala:98)
+	at scala.collection.IterableOnceOps.foreach(IterableOnce.scala:630)
+	at scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:628)
+	at scala.collection.AbstractIterable.foreach(Iterable.scala:936)
+	at scala.App.main(App.scala:98)
+	at scala.App.main$(App.scala:96)
+	at platform.CommonMachinePlatformMain$.main(CommonMachinePlatformMain.scala:13)
+	at platform.CommonMachinePlatformMain.main(CommonMachinePlatformMain.scala)
+185/185, 1 FAILED] mill IonSoC.test.runMain platform.Com...formance300-static --vivado-memories 2s
+185] [error] IonSoC.test.runMain Subprocess failed

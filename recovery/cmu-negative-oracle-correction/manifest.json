@@ -1,0 +1,29 @@
+{
+  "r10": {
+    "baseline_receipt": "recovery/cmu-frequency-r10-three-clock/component-receipt.json",
+    "baseline_receipt_sha256": "fe745e10e18cd5d7226f8b46f1cf0fc585bb7fffa197a8d4b3fa3cb950ef03f5",
+    "baseline_tb_path": "simulator/cdc/runtime_epoch_boundary_tb.sv",
+    "baseline_tb_origin": "pre-correction working file, exact historical receipt SHA256 match: simulator/cdc/runtime_epoch_boundary_tb.sv",
+    "baseline_tb_sha256": "68b696260dd9e09b6cf20d606ba72c65934c076006e63c9c8e8ab62d17863ad1",
+    "corrected_tb_sha256": "e04728e3334a46b872a6fced2032eeabe180249f871c971611ae0a20f6dd49e2",
+    "mode": "historical emitted RTL replay; not current production source qualification"
+  },
+  "r11": {
+    "baseline_receipt": "recovery/cmu-frequency-r11-controller-cleanup/component-receipt.json",
+    "baseline_receipt_sha256": "7f1f93f6d58cfec683cff737141f06ad8c798f787f030ae3c3693f8df398e1ed",
+    "baseline_tb_path": "simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_origin": "git 3c50e88:simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_sha256": "441a02e3bb9c511ed4bb0c4ae05f7e502e4a5597ca6197eb4664956cb9316045",
+    "corrected_tb_sha256": "8a04bc42396d53692f15532370ddd48863f7c65078c034781d3932c8316ed4c8",
+    "mode": "historical emitted RTL replay; not current production source qualification"
+  },
+  "r12": {
+    "baseline_receipt": "recovery/cmu-frequency-r12-qualification-timeout/component-receipt.json",
+    "baseline_receipt_sha256": "0ec3e3b76ff63a88e0782da88b6b54d1ca800c4c36f5e50f9c9311e6f43bab04",
+    "baseline_tb_path": "simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_origin": "pre-correction working file, exact historical receipt SHA256 match: simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_sha256": "3a70638a33c2583c1c8be87cb477445a1eaa640e5f9b601559680ffb7f32ce31",
+    "corrected_tb_sha256": "ec7062d9ef3cfc8a7173e7b066c2e5e4448a780e6825935d21eb7dd83db9d766",
+    "mode": "historical emitted RTL replay; not current production source qualification"
+  }
+}

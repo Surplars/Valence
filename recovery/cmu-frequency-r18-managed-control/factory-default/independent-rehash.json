@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "source_count": 333,
+  "artifact_count": 249,
+  "byte_identical_modules": 248,
+  "total_modules": 248
+}

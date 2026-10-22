@@ -1,0 +1,6 @@
+BOOT
+FIRST_TERMINAL
+SECOND_TERMINAL
+CLOCK_RATE_QUALIFICATION_COMPONENT exact_deadline=32 cancel_backpressure=40 canceled=1 boundary_timedout=0
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/clock_rate_cleanup_tb.sv:244: reset fixture missed pending cancel
+       Time: 5656000  Scope: clock_rate_cleanup_tb

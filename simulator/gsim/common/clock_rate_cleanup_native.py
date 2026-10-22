@@ -57,7 +57,7 @@ def main():
     out.mkdir()
     frozen = sources(args.prepare_only)
     record = dict(status='RUNNING', source_sha256=frozen, tools={}, cases=[],
-        scope='actual opt-in ClockRateControl and shared epoch adapter plus real I1/Home/APLIC/IMSIC; r10 owns actual AON watchdog, controller draining watchdog disabled; synthetic boot gate/lock model only, full drainAcks zero, no runtime gate or rate-program action; terminal plus fabric retirement required; no physical qualification',
+        scope='actual opt-in ClockRateControl and shared epoch adapter plus real I1/Home/APLIC/IMSIC; r10 initial drain watchdog plus controller first-held full-qualification watchdog; synthetic boot gate/lock model only, full drainAcks zero, no runtime gate or rate-program action; terminal plus fabric retirement required; no physical qualification',
         ledger_boundary='MSI delivery counted at CPU IMSIC request.fire; reply counted at fabric APLIC response.fire; independent guest retirement PCs and physical source transitions; asynchronous counters compared only at stable checkpoints')
     try:
         base.guest(out, args.cross_prefix, record)
@@ -113,6 +113,8 @@ def main():
         command = [tools['vvp'], binary, '+rom=' + str(out / 'guest.hex')]
         record['clock_cases'] = [dict(name='unrelated', half_period_ns=[5, 7, 11], phase_ns=[0, 2, 3]),
                                  dict(name='reversed', half_period_ns=[11, 5, 7], phase_ns=[0, 2, 3])]
+        record['clock_cases'] += [dict(name='qualification-' + name, half_period_ns=periods, phase_ns=[0, 2, 3], qualification_timeout_aon_edges=64)
+                                  for name, periods in [('unrelated', [5, 7, 11]), ('reversed', [11, 5, 7])]]
         record['ledgers'] = []
         for name, periods in [('unrelated', (5, 7, 11)), ('reversed', (11, 5, 7))]:
             case = command + [f'+cpu-half={periods[0]}', f'+fabric-half={periods[1]}', f'+aon-half={periods[2]}']
@@ -121,6 +123,13 @@ def main():
                 raise RuntimeError('real three-clock positive failed: ' + name)
             record['ledgers'] += [dict(case=name, line=line) for line in log.splitlines()
                                   if line.startswith('CLOCK_RATE_CLEANUP_')]
+        for name, periods in [('qualification-unrelated', (5, 7, 11)), ('qualification-reversed', (11, 5, 7))]:
+            case = command + ['+qualification', f'+cpu-half={periods[0]}', f'+fabric-half={periods[1]}', f'+aon-half={periods[2]}']
+            rc, log = base.run(case, out, name, 300, record)
+            if rc or 'CLOCK_RATE_QUALIFICATION_PASS' not in log:
+                raise RuntimeError('real held-to-qualification cancellation failed: ' + name)
+            record['ledgers'] += [dict(case=name, line=line) for line in log.splitlines()
+                                  if line.startswith(('CLOCK_RATE_CLEANUP_', 'CLOCK_RATE_QUALIFICATION_'))]
         for negative, marker in [('wrong-data', 'independent load data oracle'),
                                  ('wrong-store', 'independent previous-store persistence oracle'),
                                  ('wrong-irq', 'independent IMSIC pending oracle')]:

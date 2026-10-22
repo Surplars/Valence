@@ -44,6 +44,7 @@ class ClockRateDrainTerminal extends Bundle {
 class ClockRateDrainLease extends Bundle {
     val prepare = Decoupled(UInt(32.W))
     val resume = Decoupled(UInt(32.W))
+    val cancel = Decoupled(UInt(32.W))
     val held = Flipped(Valid(UInt(32.W)))
     val abort = Flipped(Valid(UInt(32.W)))
     val terminal = Flipped(Decoupled(new ClockRateDrainTerminal))
@@ -190,9 +191,15 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
         val leaseToken = RegInit(0.U(32.W))
         val offered = RegInit(false.B)
         val resumeSent = RegInit(false.B)
+        val qualificationStarted = RegInit(false.B)
+        val qualificationTimer = RegInit(0.U(log2Ceil(p.timeoutCycles + 1).W))
+        val qualificationCanceled = RegInit(false.B)
+        val cancelAccepted = RegInit(false.B)
         when(io.submit.valid && io.requestError === 0.U) {
             leaseToken := leaseToken + 1.U
             offered := false.B; resumeSent := false.B
+            qualificationStarted := false.B; qualificationTimer := 0.U
+            qualificationCanceled := false.B; cancelAccepted := false.B
         }
         lease.prepare.valid := state === draining && !offered
         lease.prepare.bits := leaseToken
@@ -200,14 +207,28 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
         val held = offered && lease.held.valid && lease.held.bits === leaseToken
         val abort = offered && lease.abort.valid && lease.abort.bits === leaseToken
         val cleanupFault = offered && lease.cleanupFault.valid && lease.cleanupFault.bits === leaseToken
-        // R10 owns the first-qualified drain and cleanup timers. Arbitration
-        // before prepare.fire is not counted. A later revoked proof does not
-        // restart that watchdog; full-system ACK timeout remains separate work.
+        // R10 owns initial epoch drain and endpoint cleanup. This independent
+        // phase starts on the first matching held observation, then expires N
+        // AON edges later even if held is revoked or partial ACKs fluctuate.
+        // Queue waiting before prepare.fire does not start either local phase.
+        val qualificationExpired = qualificationStarted &&
+            qualificationTimer === (p.timeoutCycles - 1).U
         when(state === draining) {
+            when(held && !qualificationStarted) {
+                qualificationStarted := true.B; qualificationTimer := 0.U
+            }.elsewhen(qualificationStarted && qualificationTimer < p.timeoutCycles.U) {
+                qualificationTimer := qualificationTimer + 1.U
+            }
             stable := Mux(held && io.endpoint.drainAcks.andR, stable + 1.U, 0.U)
+            // Initial-drain abort has priority and already selected R10 cancel;
+            // never send a duplicate local cancellation for that transaction.
             when(abort) {
                 events(ClockRateError.DrainTimeout) := true.B
                 transactionFailed := true.B; next := cleanup
+            }.elsewhen(qualificationExpired) {
+                events(ClockRateError.DrainTimeout) := true.B
+                transactionFailed := true.B; qualificationCanceled := true.B
+                next := cleanup
             }.elsewhen(held && !cleanupFault && io.endpoint.drainAcks.andR && stable === (p.stableCycles - 1).U) {
                 drainProved := true.B; everGated := true.B; next := closing
             }
@@ -216,12 +237,22 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) 
             events(ClockRateError.Fatal) := true.B
             transactionFailed := true.B
         }
+        lease.cancel.valid := state === cleanup && qualificationCanceled && !cancelAccepted
+        lease.cancel.bits := leaseToken
+        when(lease.cancel.fire) { cancelAccepted := true.B }
         lease.resume.valid := state === resuming && !booting && offered && !resumeSent
         lease.resume.bits := leaseToken
         when(lease.resume.fire) { resumeSent := true.B }
         val terminalMatches = lease.terminal.bits.token === leaseToken
+        // Local qualification expiry is a requester cancel at R10, not an R10
+        // initial-drain timeout. Preserve that distinction in the terminal.
+        val cleanupFlagsMatch = lease.terminal.bits.canceled &&
+            lease.terminal.bits.timedOut === !qualificationCanceled
+        val normalFlagsMatch = !lease.terminal.bits.canceled && !lease.terminal.bits.timedOut
+        val cleanupAccepted = !qualificationCanceled || cancelAccepted
         lease.terminal.ready := offered && terminalMatches &&
-            (state === cleanup || (state === resuming && !booting && resumeSent))
+            ((state === cleanup && cleanupAccepted && cleanupFlagsMatch) ||
+                (state === resuming && !booting && resumeSent && normalFlagsMatch))
         when(lease.terminal.fire) {
             when(lease.terminal.bits.canceled || lease.terminal.bits.timedOut) {
                 transactionFailed := true.B

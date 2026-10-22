@@ -1,0 +1,3 @@
+FIXED_PHY_READY mdio=51 actual_source_hz=125000000 fabric_half=10
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_source_mac_tb.sv:195: FIXED_ORACLE_RX_OWNER stalled status output omitted
+       Time: 2633320000  Scope: fixed_source_mac_tb

@@ -11,7 +11,8 @@ import soc.ip.bus.{RegisterPort, RegisterRequest}
   * obligation even before ready: abort/timeout/link reset never drops its owner.
   */
 class JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
-    controlBase: BigInt = BigInt("10003000", 16), timeoutCycles: Int = 1000000) extends Module {
+    controlBase: BigInt = BigInt("10003000", 16), timeoutCycles: Int = 1000000,
+    exposeDmiIdle: Boolean = false, exposeControlIdle: Boolean = false) extends Module {
     require(ramBase >= 0 && ramBase % 4 == 0 && ramEnd % 4 == 0 && ramEnd > ramBase && ramEnd < (BigInt(1) << 32))
     require(timeoutCycles >= 4)
     val io = IO(new Bundle {
@@ -20,6 +21,9 @@ class JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
         val linkUp = Input(Bool())
         val control = Flipped(new RegisterPort)
         val memory = new RegisterPort
+        // Only DMI/RAM work owners; excludes CPU-control response ownership.
+        val dmiOwnersIdle = if (exposeDmiIdle) Some(Output(Bool())) else None
+        val controlOwnersIdle = if (exposeControlIdle) Some(Output(Bool())) else None
     })
     val armed = RegInit(false.B)
     val committed = RegInit(false.B)
@@ -91,6 +95,7 @@ class JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
     }
 
     val controlValid = RegInit(false.B)
+    io.controlOwnersIdle.foreach(_ := !controlValid)
     val controlData = RegInit(0.U(64.W))
     val controlError = RegInit(false.B)
     io.control.request.ready := !controlValid
@@ -117,6 +122,7 @@ class JtagRamLoader(ramBase: BigInt, ramEnd: BigInt,
 
     val responseValid = RegInit(false.B)
     val response = Reg(new DmiResponse)
+    io.dmiOwnersIdle.foreach(_ := !offered && !awaiting && !responseValid)
     io.dmi.request.ready := io.linkUp && !responseValid && !(io.control.request.fire && c.write)
     io.dmi.response.valid := responseValid && io.linkUp
     io.dmi.response.bits := response

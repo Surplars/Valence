@@ -1,0 +1,13 @@
+CLOCK_RATE_CLEANUP_BOOT generation=0 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+CLOCK_RATE_CLEANUP_TIMEOUT lane=0 epoch=1 actual_aon_age=4096
+CLOCK_RATE_CLEANUP_FAULT retained_release_ack=1 queued_lane_age=20512
+CLOCK_RATE_CLEANUP_TERMINAL lane=0 completed=1 fabric_terminals=1
+CLOCK_RATE_CLEANUP_TIMEOUT lane=1 epoch=2 actual_aon_age=4096
+CLOCK_RATE_CLEANUP_TERMINAL lane=1 completed=1 fabric_terminals=2
+CLOCK_RATE_CLEANUP_LEDGER generation=0 delivered=3 replied=3 id11=1 id12=1 id13=1 pending=0000000000003800 stores=11 loads=11 previous_loads=11 loops=11
+CLOCK_RATE_CLEANUP_DIAGNOSTIC aon_request_accepted=2 fabric_prepares=2 accepted=4 replied=3 blocked=1
+CLOCK_RATE_CLEANUP_TIMEOUT lane=0 epoch=3 actual_aon_age=4096
+CLOCK_RATE_CLEANUP_TERMINAL lane=0 completed=2 fabric_terminals=3
+CLOCK_RATE_CLEANUP_LEDGER generation=0 delivered=6 replied=6 id11=2 id12=2 id13=2 pending=0000000000003800 stores=22 loads=22 previous_loads=22 loops=22
+CLOCK_RATE_CLEANUP_PASS actual_aon_timeouts=3 real_cleanup_fault=1 terminal=3 controller0=2 controller1=1 cpu_cycles=66505 aon_cycles=30278
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/clock_rate_cleanup_tb.sv:361: $finish called at 666120000 (1ps)

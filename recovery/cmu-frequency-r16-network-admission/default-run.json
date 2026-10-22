@@ -1,0 +1,15 @@
+{
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.runMain",
+    "platform.CommonMachinePlatformMain",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r16/default-performance",
+    "i1",
+    "--clock-profile=performance300-static",
+    "--vivado-memories",
+    "--compile-receipt=/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r16/compile-receipt.json"
+  ],
+  "returncode": 0,
+  "seconds": 20.712610873990343
+}

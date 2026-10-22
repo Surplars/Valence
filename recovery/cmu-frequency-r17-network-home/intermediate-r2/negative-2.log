@@ -1,0 +1,3 @@
+I1_PACKET_BOOT case=0 retires=331 CPU_network_control=3/3
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:637: NETWORK_ORACLE_DRAIN retained sixth status word
+       Time: 52103000  Scope: i1_runtime_network_tb

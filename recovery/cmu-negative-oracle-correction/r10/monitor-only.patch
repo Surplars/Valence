@@ -1,0 +1,20 @@
+--- r10/baseline_tb.source.sv
++++ r10/corrected_tb.source.sv
+@@ -100,6 +100,8 @@
+     integer ledger_lane=0, ledger_epoch=0, accepted_edge=0;
+     reg [31:0] ledger_token=0;
+     reg ledger_owned=0, ledger_result_seen=0, ledger_timeout=0, ledger_decided=0;
++    // Corrupt only the monitor observation; the normal receipt checker is unchanged.
++    wire observed_result_seen = negative==2 ? 1'b0 : ledger_result_seen;
+     reg ledger_canceled=0, saw_timeout=0, saw_held=0;
+     integer timeout_edge=-1, proof_edge=-1, exact_edge_witnesses=0;
+     realtime result_fire_time=0, complete_fire_time=0;
+@@ -186,7 +188,7 @@
+             complete_was_stalled<=complete_valid&&!complete_ready;
+             complete_hold<=complete_epoch; complete_canceled_hold<=complete_canceled;
+             if(complete_valid&&complete_ready) begin
+-                if(!ledger_result_seen||negative==2||$realtime<=result_fire_time)
++                if(!observed_result_seen||$realtime<=result_fire_time)
+                     $fatal(1,"EPOCH_ORACLE_RECEIPT fabric terminal consumed before end consumer receipt");
+                 if(!endpoint_decided||cpu_resumed_serial!=prepare_serial||dirty_issued!=dirty_retired)
+                     $fatal(1,"EPOCH_ORACLE_FAKE_TERMINAL");

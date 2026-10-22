@@ -44,6 +44,9 @@ class CommonClockRateCleanupFixture extends RawModule {
         val requestFire = Output(UInt(2.W))
         val terminalFire = Output(UInt(2.W))
         val retired = Output(UInt(2.W))
+        val leaseHeld = Output(UInt(2.W))
+        val cancelValid = Output(UInt(2.W))
+        val cancelFire = Output(UInt(2.W))
         val deadline = Output(Bool())
         val proofObserved = Output(Bool())
     })
@@ -104,6 +107,9 @@ class CommonClockRateCleanupFixture extends RawModule {
         control.requestFire := VecInit(adapter.io.requests.map(_.fire)).asUInt
         control.terminalFire := VecInit(controls.map(_.io.lease.get.terminal.fire)).asUInt
         control.retired := VecInit(controls.map(_.io.lease.get.retired.fire)).asUInt
+        control.leaseHeld := VecInit(controls.map(_.io.lease.get.held.valid)).asUInt
+        control.cancelValid := VecInit(controls.map(_.io.lease.get.cancel.valid)).asUInt
+        control.cancelFire := VecInit(controls.map(_.io.lease.get.cancel.fire)).asUInt
     }
 }
 object CommonClockRateCleanupNativeMain extends App {

@@ -1,0 +1,7 @@
+EPOCH_ACCEPT lane=0 token=10203040 epoch=1 aon_edge=55
+EPOCH_PREPARE epoch=1 fabric_edge=44
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=73 age=18
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=62
+EPOCH_RESULT epoch=1 canceled=0 timedOut=0 aon_edge=246 ns=2455.371
+FATAL: /workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r10/corrected_tb.source.sv:192: EPOCH_ORACLE_RECEIPT fabric terminal consumed before end consumer receipt
+       Time: 2486300  Scope: runtime_epoch_boundary_tb

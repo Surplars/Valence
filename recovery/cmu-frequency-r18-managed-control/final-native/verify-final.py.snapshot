@@ -1,0 +1,20 @@
+import hashlib,json,pathlib
+root=pathlib.Path.cwd(); d=root/'out/cmu-frequency-r18/managed-final-r3'; r=json.loads((d/'receipt.json').read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+assert r['status']=='PASS_NATIVE_MANAGED_CONTROL_TAIL_SCOPED'
+assert len(r['positive_cases'])==5 and len(r['negative_oracle_checks'])==4
+counts={}
+for kind in ('source','input','tool'):
+ a=r[kind+'_sha256']; assert a==r[kind+'_sha256_after']; counts[kind]=len(a)
+ for key,val in a.items():
+  p=pathlib.Path(r['tools'][key]) if kind=='tool' else pathlib.Path(key)
+  if not p.is_absolute():p=root/p
+  assert sha(p)==val,(kind,key)
+assert sha(d/'managed-runtime-control.vvp')==r['compiled_sha256']==r['compiled_sha256_after']
+assert sha(d/'production-preprocessed.sv')==r['production_assertions']['preprocessed_sha256']
+for kind in ('positive_cases','negative_oracle_checks'):
+ for label,case in r[kind].items():assert sha(d/(label+'.log'))==case['log_sha256']
+assert r['production_inventory_unchanged'] and r['rtl_inventory_unchanged']
+for flag in ('full_system_ack','clock_gating_qualified','drp_qualified','board_qualified'):assert r[flag] is False
+out={'status':'PASS_INDEPENDENT_SOURCE_INPUT_TOOL_AND_LOG_REHASH','receipt_sha256':sha(d/'receipt.json'),'counts':counts,'positive_cases':5,'negative_checks':4,'compiled_sha256':r['compiled_sha256']}
+(d/'independent-rehash.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps(out))

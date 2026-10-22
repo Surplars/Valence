@@ -1,0 +1,9 @@
+{
+  "status": "PASS_INDEPENDENT_CASE_REHASH",
+  "case": "negative-tx-payload",
+  "case_status": "PASS_NEGATIVE_CONTROL",
+  "checked": 622,
+  "case_receipt_sha256": "dce4c0ce2df05eb313ce753c52fc7414cf9c0bcf4d4f4b677fd12ee5575ae8fd",
+  "verified_at_utc": "2026-10-21T23:44:20.556305+00:00",
+  "failed": []
+}

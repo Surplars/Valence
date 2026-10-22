@@ -1,0 +1,214 @@
+`timescale 1ns/1ps
+// Actual managed bank/control plane; all clocks run. PHY pins are modeled.
+// No CPU/DMA/DDR, stopped clocks, full-system ACK or timing claim.
+module managed_runtime_control_tb;
+  reg source=0,aon=0,uart=0,tx=0,rx=0,reset=1;
+  integer source_half=5,rx_half=4,tx_half=4,negative=0,test_case=0;
+  initial begin
+    if($value$plusargs("source_half=%d",source_half))begin end
+    if($value$plusargs("rx_half=%d",rx_half))begin end
+    if($value$plusargs("tx_half=%d",tx_half))begin end
+    if($value$plusargs("negative=%d",negative))begin end
+    if($value$plusargs("case=%d",test_case))begin end
+    forever #(source_half) source=~source;
+  end
+  initial begin #1.3;forever #10 aon=~aon;end
+  initial begin #2.1;forever #10 uart=~uart;end
+  initial begin #0.7;forever #(tx_half)tx=~tx;end
+  initial begin #2.7;forever #(rx_half)rx=~rx;end
+  reg req_valid=0,req_write=0,resp_ready=1;
+  reg [63:0] req_address=0,req_data=0;
+  wire req_ready,resp_valid,resp_error;
+  wire [63:0] resp_data;
+  reg rxstop=0,txstop=0,park=0;
+  wire rxdrained,txdrained,released,parked,csrdrained,configdrained,mdiodrained,phyparked,settled;
+  wire [3:0] pending,phyfault;
+  wire observed_csr_drained = csrdrained ^ (negative==2 && park && resp_valid && !resp_ready);
+  reg [4:0] rise=0,fall=0;
+  wire mdc,mdio_out,mdio_oe,mdio_in,link;
+  wire [1:0] speed;
+  wire media_pending;
+  wire rdvalid,rdlast,rsvalid,rslast;
+  wire [31:0] rddata,rsdata;
+  wire [3:0] rdkeep,rskeep;
+  reg hold_status=0;
+  wire rsready=!hold_status||!rslast;
+  reg tdvalid=0,tclvalid=0,tdlast=0,tcllast=0;
+  reg [31:0] tddata=0,tcldata=0;
+  wire tdready,tclready;
+  ManagedRuntimeControlFixture dut(
+    .sourceClock(source),.alwaysOnClock(aon),.rawUartClock(uart),.rawTxClock(tx),.rawRxClock(rx),.commonReset(reset),
+    .cmuRegisters_request_valid(1'b0),.cmuRegisters_request_bits_address(64'b0),.cmuRegisters_request_bits_write(1'b0),
+    .cmuRegisters_request_bits_size(3'd3),.cmuRegisters_request_bits_data(64'b0),.cmuRegisters_request_bits_byteEnable(8'hff),.cmuRegisters_response_ready(1'b1),
+    .uartRegisters_request_valid(1'b0),.uartRegisters_request_bits_address(64'b0),.uartRegisters_request_bits_write(1'b0),
+    .uartRegisters_request_bits_size(3'd3),.uartRegisters_request_bits_data(64'b0),.uartRegisters_request_bits_byteEnable(8'hff),.uartRegisters_response_ready(1'b1),
+    .gmacRegisters_request_valid(req_valid),.gmacRegisters_request_ready(req_ready),.gmacRegisters_request_bits_address(req_address),
+    .gmacRegisters_request_bits_write(req_write),.gmacRegisters_request_bits_size(3'd3),.gmacRegisters_request_bits_data(req_data),
+    .gmacRegisters_request_bits_byteEnable(8'hff),.gmacRegisters_response_ready(resp_ready),.gmacRegisters_response_valid(resp_valid),
+    .gmacRegisters_response_bits_data(resp_data),.gmacRegisters_response_bits_error(resp_error),
+    .streams_txData_valid(tdvalid),.streams_txData_ready(tdready),.streams_txData_bits_data(tddata),.streams_txData_bits_keep(4'hf),.streams_txData_bits_last(tdlast),
+    .streams_txControl_valid(tclvalid),.streams_txControl_ready(tclready),.streams_txControl_bits_data(tcldata),.streams_txControl_bits_keep(4'hf),.streams_txControl_bits_last(tcllast),
+    .streams_rxData_ready(1'b1),.streams_rxData_valid(rdvalid),.streams_rxData_bits_data(rddata),.streams_rxData_bits_keep(rdkeep),.streams_rxData_bits_last(rdlast),
+    .streams_rxStatus_ready(rsready),.streams_rxStatus_valid(rsvalid),.streams_rxStatus_bits_data(rsdata),.streams_rxStatus_bits_keep(rskeep),.streams_rxStatus_bits_last(rslast),
+    .runtimeAdmission_rxStopRequest(rxstop),.runtimeAdmission_txStopRequest(txstop),.runtimeAdmission_rxDrained(rxdrained),.runtimeAdmission_txDrained(txdrained),.runtimeAdmission_released(released),
+    .controlPark_request(park),.controlPark_csrDrained(csrdrained),.controlPark_configDrained(configdrained),.controlPark_mdioDrained(mdiodrained),
+    .controlPark_phyParked(phyparked),.controlPark_mediaSettled(settled),.controlPark_statisticsPending(pending),.controlPark_phyFault(phyfault),.controlPark_parked(parked),
+    .rawRgmiiRxRise(rise),.rawRgmiiRxFall(fall),.mdioIn(mdio_in),.mdc(mdc),.mdioOut(mdio_out),.mdioOe(mdio_oe),.uartRx(1'b1),
+    .linkUp(link),.appliedSpeed(speed),.mediaPending(media_pending));
+  reg inject_no_ack=0;
+  wire [15:0] page;
+  wire [31:0] transactions,reads,writes,status_count,bmsr_count,noacks;
+  wire phy_busy,configured;
+  rtl8211f_pin_model phy(.clk(source),.reset(reset),.mdc(mdc),.mdio_out(mdio_out),.mdio_oe(mdio_oe),.mdio_in(mdio_in),
+    .wire_link(1'b1),.wire_speed(2'd2),.full_duplex(1'b1),.an_complete(1'b1),.remote_fault(1'b0),.inject_no_ack(inject_no_ack),
+    .in_transaction(phy_busy),.page(page),.transaction_count(transactions),.read_count(reads),.write_count(writes),
+    .status_count(status_count),.bmsr_count(bmsr_count),.no_ack_count(noacks),.configuration_complete(configured));
+  function automatic [31:0] crc_byte(input [31:0] old,input [7:0] b);
+    reg [31:0] c;begin c=old;for(integer j=0;j<8;j=j+1)c=(c>>1)^((c[0]^b[j])?32'hedb88320:0);crc_byte=c;end
+  endfunction
+  function automatic [7:0] body(input integer gen,input integer i);
+    begin body=(i<6)?8'hff:((gen*17+i*13)&255);end
+  endfunction
+  integer received=0,statuses=0,byte_index=0,status_index=0,accepted_requests=0,consumed_replies=0;
+  integer raw_rx_accept=0,raw_rx_drop=0;
+  reg [31:0] observed_word;
+  always @(posedge source) if(!reset)begin
+    if(req_valid&&req_ready)accepted_requests=accepted_requests+1;
+    if(resp_valid&&resp_ready)consumed_replies=consumed_replies+1;
+    if(rdvalid)begin
+      observed_word=rddata ^ ((negative==1&&received==1)?32'h1:0);
+      if(rdkeep!==4'hf)$fatal(1,"CONTROL_ORACLE_PAYLOAD keep");
+      for(integer k=0;k<4;k=k+1)
+        if(observed_word[k*8+:8]!==body(received==0?11:22,byte_index+k))$fatal(1,"CONTROL_ORACLE_PAYLOAD frame=%0d byte=%0d",received,byte_index+k);
+      byte_index=byte_index+4;
+      if(rdlast)begin if(byte_index!=64)$fatal(1,"CONTROL_ORACLE_PAYLOAD length");received=received+1;byte_index=0;end
+    end
+    if(rsvalid&&rsready)begin
+      if(rskeep!==4'hf||rslast!==(status_index==5))$fatal(1,"CONTROL_ORACLE_STATUS shape");
+      if(rsdata!==((status_index==0)?32'h50000000:((status_index==3||status_index==5)?32'd64:0)))$fatal(1,"CONTROL_ORACLE_STATUS value");
+      if(rslast)begin statuses=statuses+1;status_index=0;end else status_index=status_index+1;
+    end
+  end
+  always @(posedge tx)if(!reset)begin
+    raw_rx_accept=raw_rx_accept+dut.bank.gmac.rx.io_accepted;
+    raw_rx_drop=raw_rx_drop+dut.bank.gmac.rx.io_dropped;
+  end
+  task automatic cycles(input integer n);begin repeat(n)@(negedge source);end endtask
+  task automatic offer(input integer offset,input reg wr,input [63:0] data);
+    begin @(negedge source);req_address=64'h10040000+offset;req_write=wr;req_data=data;req_valid=1;
+      @(posedge source);while(!req_ready)@(posedge source);@(negedge source);req_valid=0;end
+  endtask
+  task automatic mmio(input integer offset,input reg wr,input [63:0] data,output reg [63:0] result);
+    begin offer(offset,wr,data);@(posedge source);while(!resp_valid)@(posedge source);
+      if(resp_error)$fatal(1,"CONTROL_ORACLE_CSR error offset=%h",offset);result=resp_data;@(negedge source);end
+  endtask
+  task automatic rxbyte(input [7:0] b);begin @(negedge rx);rise={1'b1,b[3:0]};fall={1'b1,b[7:4]};end endtask
+  task automatic packet(input integer gen);reg [31:0] crc;begin
+    for(integer i=0;i<7;i=i+1)rxbyte(8'h55);rxbyte(8'hd5);crc=32'hffffffff;
+    for(integer i=0;i<64;i=i+1)begin rxbyte(body(gen,i));crc=crc_byte(crc,body(gen,i));end
+    crc=~crc;for(integer i=0;i<4;i=i+1)rxbyte(crc[i*8+:8]);
+    @(negedge rx);rise=0;fall=0;repeat(20)@(negedge rx);
+  end endtask
+  task automatic txpacket(input integer gen);reg [31:0] word;begin
+    for(integer i=0;i<6;i=i+1)begin
+      @(negedge source);tclvalid=1;tcldata=i==0?32'ha0000000:0;tcllast=i==5;
+      @(posedge source);while(!tclready)@(posedge source);
+    end
+    @(negedge source);tclvalid=0;tcllast=0;
+    for(integer i=0;i<16;i=i+1)begin
+      word=0;for(integer k=0;k<4;k=k+1)word[k*8+:8]=body(gen,i*4+k);
+      @(negedge source);tdvalid=1;tddata=word;tdlast=i==15;
+      @(posedge source);while(!tdready)@(posedge source);
+    end
+    @(negedge source);tdvalid=0;tdlast=0;
+  end endtask
+  integer source_cycles=0;
+  always @(posedge source) if(!reset)begin
+    source_cycles=source_cycles+1;
+    if(source_cycles%100000==0)$display("CONTROL_PROGRESS cycles=%0d mdio=%0d page=%h link=%b park=%b",source_cycles,transactions,page,link,park);
+  end
+  reg [63:0] result,held;
+  integer before_transactions,before_drops;
+  initial begin
+    #127;reset=0;wait(link&&!media_pending);cycles(50);
+    if(!configured||page!=0||status_count<4||bmsr_count<4)$fatal(1,"CONTROL_ORACLE_PHY initialization");
+    $display("CONTROL_PHY_READY transactions=%0d time=%0t",transactions,$time);
+    // Accepted configuration owns both consumed-image acknowledgements even
+    // while its ordinary CSR reply is held and a park request arrives.
+    resp_ready=0;offer('h18,1,64'h665544332211);
+    park=1;wait(resp_valid);held=resp_data;
+    if(configdrained)$fatal(1,"CONTROL_ORACLE_CONFIG missing dirty/mailbox ownership");
+    wait(configdrained);cycles(10);
+    if(parked||csrdrained||!resp_valid||resp_error||resp_data!==held)$fatal(1,"CONTROL_ORACLE_CONFIG held config reply");
+    resp_ready=1;cycles(3);wait(parked);park=0;cycles(10);
+    mmio('h10,1,64'hb,result);wait(configdrained);cycles(300);
+    hold_status=1;packet(11);wait(rsvalid&&rslast);txpacket(31);cycles(200);
+    mmio('h90,1,1,result); // Independent software stop, accepted before runtime park.
+    resp_ready=0;offer('h00,0,0);wait(resp_valid);held=resp_data;
+    @(negedge source);rxstop=1;txstop=1;park=1;
+    repeat(60)begin @(negedge source);
+      if(!resp_valid||resp_data!==held||resp_error)$fatal(1,"CONTROL_ORACLE_CSR held reply");
+      if(observed_csr_drained||parked)$fatal(1,"CONTROL_ORACLE_DRAIN accepted CSR response");
+      if(rxdrained)$fatal(1,"CONTROL_ORACLE_DRAIN terminal status");
+    end
+    resp_ready=1;cycles(3);wait(parked);cycles(10);
+    if(!configdrained||!mdiodrained||!phyparked||page!=0||phy_busy)$fatal(1,"CONTROL_ORACLE_PHY park boundary");
+    before_transactions=transactions;
+    hold_status=0;wait(rxdrained&&txdrained);cycles(20);
+    before_drops=raw_rx_drop;
+    repeat(3)begin packet(77);cycles(400);end
+    if(raw_rx_drop!=before_drops+3||received!=1||statuses!=1)$fatal(1,"CONTROL_ORACLE_STATISTICS closed admission");
+    if(!parked||pending==0||transactions!=before_transactions)$fatal(1,"CONTROL_ORACLE_RETENTION busy statistics must not block park");
+    // A new CSR request is retained upstream, not accepted during park.
+    @(negedge source);req_address=64'h10040090;req_write=0;req_data=0;req_valid=1;
+    repeat(30)begin @(negedge source);if(req_ready)$fatal(1,"CONTROL_ORACLE_CSR new admission while parked");end
+    park=0;rxstop=0;txstop=0;
+    @(posedge source);while(!req_ready)@(posedge source);@(negedge source);req_valid=0;
+    @(posedge source);while(!resp_valid)@(posedge source);
+    if(resp_error||resp_data!=3)$fatal(1,"CONTROL_ORACLE_SOFTWARE_STOP runtime cancellation erased software vote");
+    @(negedge source);wait(released);packet(88);cycles(500);
+    if(received!=1||raw_rx_drop!=before_drops+4)$fatal(1,"CONTROL_ORACLE_SOFTWARE_STOP packet escaped");
+    mmio('h90,1,0,result);cycles(300);packet(22);txpacket(32);wait(statuses==2);cycles(1000);
+    mmio('h48,0,0,result);if(result!=2)$fatal(1,"CONTROL_ORACLE_STATISTICS RX accepted total=%0d",result);
+    mmio('h50,0,0,result);if((result^(negative==3?64'd1:0))!=4)$fatal(1,"CONTROL_ORACLE_STATISTICS drop total=%0d",result);
+    mmio('h68,0,0,result);if(result!=128)$fatal(1,"CONTROL_ORACLE_STATISTICS RX bytes");
+    mmio('h40,0,0,result);if(result!=2)$fatal(1,"CONTROL_ORACLE_STATISTICS TX frames=%0d",result);
+    mmio('h60,0,0,result);if(result!=128)$fatal(1,"CONTROL_ORACLE_STATISTICS TX bytes");
+    mmio('h18,0,0,result);if(result!=64'h665544332211)$fatal(1,"CONTROL_ORACLE_CONFIG retained CSR");
+    if(test_case==1)begin
+      // Restart drives the actual policy into a page sequence. Offer a software
+      // MDIO read before park while policy owns the engine, then retain that
+      // irrevocable offer until the complete policy sequence releases its lock.
+      mmio('h118,1,1,result);wait(page==16'h0d08);cycles(5);
+      @(negedge source);resp_ready=0;req_address=64'h10040078;req_write=1;
+      req_data=(64'd2<<23)|(64'd1<<18)|(64'd1<<17);req_valid=1;
+      cycles(3);if(req_ready)$fatal(1,"CONTROL_ORACLE_OFFER missing policy backpressure");
+      park=1;
+      @(posedge source);while(!req_ready)begin
+        if(parked)$fatal(1,"CONTROL_ORACLE_OFFER park discarded old offer");@(posedge source);
+      end
+      @(negedge source);req_valid=0;wait(resp_valid);held=resp_data;
+      repeat(30)begin @(negedge source);
+        if(!resp_valid||resp_data!==held||csrdrained||parked)$fatal(1,"CONTROL_ORACLE_OFFER reply retention");
+      end
+      resp_ready=1;cycles(3);wait(parked);
+      if(page!=0||phy_busy)$fatal(1,"CONTROL_ORACLE_PHY old policy page ownership");
+      park=0;cycles(3);mmio('h80,0,0,result);
+      if(result!=2)$fatal(1,"CONTROL_ORACLE_MDIO operation completion");
+      mmio('h88,0,0,result);if(result!=16'h001c)$fatal(1,"CONTROL_ORACLE_MDIO old result");
+      // A policy read fault at a nonzero page must not look page-restored.
+      mmio('h118,1,1,result);wait(page==16'h0d08);
+      @(negedge source);inject_no_ack=1;cycles(2);inject_no_ack=0;
+      wait(noacks!=0);@(negedge source);park=1;wait(phyfault!=0);cycles(100);
+      if(parked||phyparked||phyfault!=1)$fatal(1,"CONTROL_ORACLE_PHY false park on failed policy");
+      if(page==0)$fatal(1,"CONTROL_ORACLE_PHY fault scenario failed to retain nonzero page");
+      park=0;wait(link&&!media_pending&&phyfault==0);cycles(100);
+      if(!configured||page!=0)$fatal(1,"CONTROL_ORACLE_PHY recovery did not reinitialize");
+      $display("CONTROL_EXTENDED_PASS offered_mdio=1 nonzero_page_fault=1 retry_without_reset=1");
+    end
+    if(accepted_requests!=consumed_replies)$fatal(1,"CONTROL_ORACLE_CSR conservation");
+    $display("MANAGED_RUNTIME_CONTROL_PASS case=%0d rx=%0d status=%0d drops=%0d mdio=%0d requests=%0d clocks_running=1 full_system_ack=0",test_case,received,statuses,raw_rx_drop,transactions,accepted_requests);
+    $finish;
+  end
+  initial begin #1500000000;$fatal(1,"CONTROL_TIMEOUT link=%b parked=%b phyFault=%h page=%h transactions=%0d",link,parked,phyfault,page,transactions);end
+endmodule

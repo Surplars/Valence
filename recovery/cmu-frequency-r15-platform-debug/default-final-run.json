@@ -1,0 +1,15 @@
+{
+  "exit": 0,
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.runMain",
+    "platform.CommonMachinePlatformMain",
+    "out/cmu-frequency-r15/default-performance-final",
+    "i1",
+    "--clock-profile=performance300-static",
+    "--vivado-memories",
+    "--compile-receipt=out/cmu-frequency-r15/compile-r2-receipt.json"
+  ],
+  "seconds": 22.37793906799925
+}

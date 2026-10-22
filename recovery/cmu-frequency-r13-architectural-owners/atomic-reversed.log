@@ -1,0 +1,6 @@
+I1_ATOMIC_EPOCH_CASE scenario=0 atomics=4 responses=4 reads=3 writes=2 clears=4 terminals=2
+I1_ATOMIC_EPOCH_CASE scenario=1 atomics=4 responses=4 reads=3 writes=2 clears=4 terminals=2
+I1_ATOMIC_EPOCH_CASE scenario=2 atomics=4 responses=4 reads=3 writes=2 clears=4 terminals=2
+I1_ATOMIC_EPOCH_CASE scenario=3 atomics=4 responses=4 reads=3 writes=2 clears=4 terminals=2
+I1_ATOMIC_EPOCH_PASS
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_atomic_epoch_tb.sv:291: $finish called at 158735000 (1ps)

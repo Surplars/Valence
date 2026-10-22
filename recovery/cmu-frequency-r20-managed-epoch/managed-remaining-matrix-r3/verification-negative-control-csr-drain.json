@@ -1,0 +1,9 @@
+{
+  "status": "PASS_INDEPENDENT_CASE_REHASH",
+  "case": "negative-control-csr-drain",
+  "case_status": "PASS_NEGATIVE_CONTROL",
+  "checked": 623,
+  "case_receipt_sha256": "34674b506388527de282c6163ef9427ddca3aea293e399feffb4225e03ea0a7d",
+  "verified_at_utc": "2026-10-21T23:44:20.676079+00:00",
+  "failed": []
+}

@@ -1,0 +1,9 @@
+PACKET_TX_WIRE frame=0 id=4 bytes=73 crc=ad92356a
+PACKET_EPOCH_HELD epoch=1 prepares=1 modeled_terminal=backpressured
+PACKET_EPOCH_RELEASED epoch=1 receipts=1
+PACKET_TX_WIRE frame=1 id=5 bytes=77 crc=c0cd53f6
+PACKET_EPOCH_HELD epoch=2 prepares=2 modeled_terminal=backpressured
+PACKET_TX_LEDGER frames=2 reads=17 control_words=12
+PACKET_EPOCH_RELEASED epoch=2 receipts=2
+NETWORK_PACKET_RUNTIME_PASS case=1 clocks=5/3/7 memory=17/17
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:481: $finish called at 8035100 (1ps)

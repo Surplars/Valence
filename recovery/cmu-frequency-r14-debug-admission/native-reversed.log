@@ -1,0 +1,2 @@
+DEBUG_ADMISSION_PASS source_half=11 fabric_half=5 phase=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/debug_admission_tb.sv:366: $finish called at 21824000 (1ps)

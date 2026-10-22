@@ -1,0 +1,12 @@
+{
+  "status": "PASS_INDEPENDENT_REHASH",
+  "receipt_sha256": "9bf2d0df06bbaf2ff9248dfe535e9bc3cb139386558ee519dff5924e44059acf",
+  "counts": {
+    "source": 951,
+    "input": 8,
+    "tool": 7
+  },
+  "emission_source_count": 949,
+  "positive_cases": 44,
+  "negative_controls": 2
+}

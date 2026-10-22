@@ -1,0 +1,6 @@
+I1_PACKET_BOOT case=0 retires=332 CPU_network_control=3/3
+I1_FIXED_TIMER_LEDGER source=3/3 fixed=3/3 CPU_reads=2 CPU_writes=1 old_owner_drained_during_epoch=1
+I1_PACKET_RX_STATUS_HELD status=5 accepted=1 AON_epoch=1
+FIXED_NEGATIVE_OBSERVATION RX word=0 original=8786858483828180 observed=8786858483828181 expected=8786858483828180
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_fixed_tb.sv:744: NETWORK_ORACLE_PAYLOAD RX word=0 byte=0
+       Time: 58781000  Scope: i1_runtime_fixed_tb.$ivl_for_loop2

@@ -31,4 +31,13 @@ class EthernetPacketDmaSpec extends AnyFunSuite {
         assert(crossings == 4, s"four distinct stream CDC instances required: $crossings")
         assert(rtl.contains("cpuRelease"))
     }
+    test("runtime packet admission is explicit and leaves default ports absent") {
+        val legacy = ChiselStage.emitCHIRRTL(new EthernetPacketDma(ramBytes = 8192))
+        assert(!legacy.contains("runtimePause") && !legacy.contains("runtimeTxOffered"))
+        val runtime = ChiselStage.emitCHIRRTL(new EthernetPacketDma(ramBytes = 8192,
+            postedTxSlots = 4, runtimeAdmission = true))
+        Seq("runtimePause", "runtimeTxIdle", "runtimeOwnersIdle", "runtimeTxOffered", "memoryOfferHeld")
+            .foreach(name => assert(runtime.contains(name), name))
+    }
+
 }

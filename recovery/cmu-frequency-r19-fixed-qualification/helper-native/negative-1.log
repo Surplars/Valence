@@ -1,0 +1,4 @@
+FIXED_PREPARE epoch=1
+FIXED_PROOF epoch=1 fixed_edges=99
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_epoch_qualifier_tb.sv:54: FIXED_ORACLE_EPOCH observed=0 expected=1
+       Time: 1389000  Scope: fixed_epoch_qualifier_tb

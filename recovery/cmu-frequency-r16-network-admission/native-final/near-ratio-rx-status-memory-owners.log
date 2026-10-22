@@ -1,0 +1,9 @@
+PACKET_RX_STATUS6_HELD accepted=1 status=5
+PACKET_EPOCH_HELD epoch=1 prepares=1 modeled_terminal=backpressured
+PACKET_CLOSED_WIRE_ACTIVE_DRAIN epoch=1
+PACKET_EPOCH_RELEASED epoch=1 receipts=1
+PACKET_EPOCH_HELD epoch=2 prepares=2 modeled_terminal=backpressured
+PACKET_RX_LEDGER accepted=2 closed_drops=4 bad_fcs=1 status_words=12 writes=17
+PACKET_EPOCH_RELEASED epoch=2 receipts=2
+NETWORK_PACKET_RUNTIME_PASS case=0 clocks=7/11/5 memory=17/17
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:478: $finish called at 25501100 (1ps)

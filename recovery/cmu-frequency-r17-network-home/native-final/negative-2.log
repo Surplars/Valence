@@ -1,0 +1,3 @@
+I1_PACKET_BOOT case=0 retires=331 CPU_network_control=3/3
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:841: NETWORK_ORACLE_DRAIN early prepare/result with old packet/AXI owner
+       Time: 52231000  Scope: i1_runtime_network_tb.noPrepareWhileOld

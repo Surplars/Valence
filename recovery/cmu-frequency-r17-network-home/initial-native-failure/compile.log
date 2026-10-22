@@ -1,0 +1,2 @@
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:910: error: 'n' has already been declared in this scope.
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:358:      : It was declared here as a variable.

@@ -1,0 +1,19 @@
+I1_RUNTIME_DEBUG_BOOT cpu_control_writes=1 reads=4 loops=2
+I1_RUNTIME_DEBUG_DEADLINE elapsed_aon_edges=4096
+I1_RUNTIME_DEBUG_TERMINAL epoch=1 aon=1 debug=1 receipt=1 fabric=1 busy=0
+I1_RUNTIME_DEBUG_DIRTY_LINE probes=1 dirty_data_beats=8 preserved_guard=55667788
+I1_RUNTIME_DEBUG_TIMEOUT source=8/8 memory=3/3 actual_aon_timeout=4096 fabric_cancels=1
+I1_RUNTIME_DEBUG_TERMINAL epoch=2 aon=2 debug=2 receipt=2 fabric=2 busy=0
+I1_RUNTIME_DEBUG_NORMAL lane=1 exact_terminal=1 new_dmi_once=1
+I1_RUNTIME_DEBUG_TERMINAL epoch=3 aon=3 debug=3 receipt=3 fabric=3 busy=0
+I1_RUNTIME_DEBUG_CANCEL source=15/15 memory=5/5
+I1_RUNTIME_DEBUG_TERMINAL epoch=4 aon=4 debug=4 receipt=4 fabric=4 busy=0
+I1_RUNTIME_DEBUG_CPU_CONTROL request=26 response=26 actual_scalar_retire_reads=23
+I1_RUNTIME_DEBUG_LINK_FAULT old_memory_completed=6 terminal_absent=1
+I1_RUNTIME_DEBUG_BOOT cpu_control_writes=1 reads=4 loops=2
+I1_RUNTIME_DEBUG_TERMINAL epoch=1 aon=1 debug=1 receipt=1 fabric=1 busy=0
+I1_RUNTIME_DEBUG_LATE_FAULT offered_result_stable=1 consumed_copy=1 actual_retirement=0
+I1_RUNTIME_DEBUG_BOOT cpu_control_writes=1 reads=4 loops=2
+I1_RUNTIME_DEBUG_TERMINAL epoch=1 aon=1 debug=1 receipt=1 fabric=1 busy=0
+I1_RUNTIME_DEBUG_PASS ratios=5/7/11/13 loops=6 control=9/9
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_debug_tb.sv:575: $finish called at 201180000 (1ps)

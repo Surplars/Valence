@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:208: PACKET_ORACLE_PAYLOAD TX frame=0 byte=23 got=e0 expected=e1
+       Time: 2402065  Scope: network_packet_runtime_tb

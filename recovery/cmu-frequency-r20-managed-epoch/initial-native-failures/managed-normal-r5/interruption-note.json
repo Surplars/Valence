@@ -1,0 +1,18 @@
+{
+  "status": "INTERRUPTED_KNOWN_TEST_STIMULUS_ERRORS",
+  "time_utc": "2026-10-21T22:24:32.485312+00:00",
+  "session_id": 82446,
+  "tool_exit_code": 130,
+  "runner_final_receipt_present": false,
+  "runner_process_group_kill_and_reap_verified": false,
+  "reason": [
+    "initial configuration writes do not wait for first image consumption",
+    "configuration blocker write issued while actual TX owner is busy",
+    "second CPU TX launch omits required done acknowledgement"
+  ],
+  "scope": "test-stimulus errors established by independent static review; no DUT failure or PASS inferred",
+  "last_log_sha256": "9e0dcd74e8d5237199ef65e5943d2fbd9c8081126b060d08d0cb375f672d3424",
+  "last_log_bytes": 491,
+  "last_progress": "MANAGED_CONTROL_PROGRESS fabric_cycles=163840 MDIO_transactions=31 page=0000 link=0 start=0 park=0",
+  "followup_session_poll": "write_stdin: Unknown process id 82446"
+}

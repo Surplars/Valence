@@ -1,0 +1,9 @@
+{
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.compile"
+  ],
+  "exit": 0,
+  "seconds": 23.9451732999878
+}

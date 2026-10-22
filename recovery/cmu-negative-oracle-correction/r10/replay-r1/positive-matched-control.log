@@ -1,0 +1,21 @@
+EPOCH_ACCEPT lane=0 token=10203040 epoch=1 aon_edge=55
+EPOCH_PREPARE epoch=1 fabric_edge=44
+EPOCH_PROOF_OBSERVED epoch=1 aon_edge=73 age=18
+EPOCH_DECISION epoch=1 canceled=0 fabric_edge=62
+EPOCH_RESULT epoch=1 canceled=0 timedOut=0 aon_edge=246 ns=2455.371
+EPOCH_FABRIC_RECEIPT epoch=1 fabric_edge=178 ns=2486.300
+EPOCH_ACCEPT lane=1 token=89abcdef epoch=2 aon_edge=254
+EPOCH_PREPARE epoch=2 fabric_edge=186
+EPOCH_PROOF_OBSERVED epoch=2 aon_edge=272 age=18
+EPOCH_DECISION epoch=2 canceled=1 fabric_edge=204
+EPOCH_RESULT epoch=2 canceled=1 timedOut=0 aon_edge=293 ns=2925.371
+EPOCH_FABRIC_RECEIPT epoch=2 fabric_edge=212 ns=2962.300
+EPOCH_ACCEPT lane=0 token=10203040 epoch=3 aon_edge=302
+EPOCH_PREPARE epoch=3 fabric_edge=220
+EPOCH_PROOF_OBSERVED epoch=3 aon_edge=320 age=18
+EPOCH_DECISION epoch=3 canceled=0 fabric_edge=240
+EPOCH_RESULT epoch=3 canceled=0 timedOut=0 aon_edge=343 ns=3425.371
+EPOCH_FABRIC_RECEIPT epoch=3 fabric_edge=248 ns=3466.300
+EPOCH_ARBITRATION_RECEIPTS owners=3 rejected_decision_edges=26 stalls=155
+RUNTIME_EPOCH_COMPONENT_PASS case=0 requests=3 prepares=3 decisions=3 terminals=3 receipts=3 cpu_half=3 fabric_half=7 aon_half=5
+/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r10/corrected_tb.source.sv:567: $finish called at 3630371 (1ps)

@@ -1,0 +1,4 @@
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r18/managed-r2-rtl/UartConsole.sv:35: sorry: I do not know how to elaborate assignment patterns using old method.
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r18/managed-r2-rtl/UartConsole.sv:35:      : Expression is: '{5'd14, 5'd8, 5'd4, 5'd1}
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r18/managed-r2-rtl/UartConsole.sv:35: assert: elab_expr.cc:264: failed assertion 0
+Aborted

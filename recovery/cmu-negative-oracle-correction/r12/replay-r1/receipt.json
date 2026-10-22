@@ -1,0 +1,207 @@
+{
+  "status": "PASS_HISTORICAL_RTL_CORRECTED_MONITOR_REPLAY",
+  "mode": "HISTORICAL_RTL_CORRECTED_MONITOR_REPLAY",
+  "scope": "Only monitor sensitivity and one matched positive control; no current-source or broader regression claim",
+  "baseline": {
+    "baseline_receipt": "recovery/cmu-frequency-r12-qualification-timeout/component-receipt.json",
+    "baseline_receipt_sha256": "0ec3e3b76ff63a88e0782da88b6b54d1ca800c4c36f5e50f9c9311e6f43bab04",
+    "baseline_tb_path": "simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_origin": "pre-correction working file, exact historical receipt SHA256 match: simulator/cdc/clock_rate_cleanup_tb.sv",
+    "baseline_tb_sha256": "3a70638a33c2583c1c8be87cb477445a1eaa640e5f9b601559680ffb7f32ce31",
+    "corrected_tb_sha256": "ec7062d9ef3cfc8a7173e7b066c2e5e4448a780e6825935d21eb7dd83db9d766",
+    "mode": "historical emitted RTL replay; not current production source qualification"
+  },
+  "original_emission_receipt": {
+    "path": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-emission.json",
+    "sha256": "f134cda3194d6bb67a34a4d2bf2a1f554bfc7764d8ef5656af57affd65498cf7"
+  },
+  "original_emission_command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.runMain",
+    "platform.ClockRateCleanupComponentMain",
+    "out/cmu-frequency-r12/component-rtl"
+  ],
+  "original_rtl_directory": "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl",
+  "complete_original_rtl_inventory_sha256": {
+    "ClockRateCleanupComponent.sv": "d857654a0ed77c2a838a225c8441b5890f3ca6350f1fc3ca92da311e034928ff",
+    "ClockRateControl.sv": "75379167a8bd354a01f12d0a2b0bad93605daa2031c807ee77bbaa135065637a",
+    "CommonClockRateEpochAdapter.sv": "acd5db99c27bf725e4cc06e80ccf69594e7e2cd72b7c297035de319ed84f487e"
+  },
+  "complete_rtl_inventory_verified": true,
+  "current_production_source_qualified": false,
+  "current_source_differences": {
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": {
+      "historical_sha256": "e0e34d0aa8faabd81153576b214ef083da0c4b9ff2226fab7b1db9d1c639b2c3",
+      "current_sha256": "8f836bac083238257ebd77840c8186a93dde7c43831ec73e0dfb9d648835ab60"
+    },
+    "src/main/scala/ip/debug/DebugDmiClockBoundary.scala": {
+      "historical_sha256": "8478051846ffe16f09a99ef3289c9aedae757978acb8732491deb7ab21be666e",
+      "current_sha256": "5f6430858f7a0178fa68153192dc4fc319c51833561df6c35ee86018041595e9"
+    },
+    "src/main/scala/ip/debug/JtagRamLoader.scala": {
+      "historical_sha256": "d698ba1db6f636fb8356671ed327c75cf279cbe38bc094bdc01b3fa69f50df85",
+      "current_sha256": "2b72ef3a506d6f7fe41516a605e9ec9aba03e7d433003f23ba2610bec290fc77"
+    },
+    "src/main/scala/ip/dma/EthernetPacketDma.scala": {
+      "historical_sha256": "8650b71d1382632ad18a30840285d9827175cab26e2b865d9e300826b10d21b6",
+      "current_sha256": "dc24a0dbbaf73a263e6aedc6c333035dede1424923711f0befa85488efa04585"
+    },
+    "src/main/scala/ip/dma/EthernetTxDescriptorQueue.scala": {
+      "historical_sha256": "d012a4e9c4c90ee5f82bb9342e54ed4b1e00c67e9f562073f42a53eaee595c17",
+      "current_sha256": "8e7f5f1c7a72aa2057918ac7be3cfd7e12a62e023b91e72289330a9e20320194"
+    },
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": {
+      "historical_sha256": "db365377d092fa1329d9a0cae7193dde8a3a37e79d06b45fc7dfe3d412a21e86",
+      "current_sha256": "eae92a3c4f3da9c9e3ca09954c794a30eb2e3c51fa187bdd51f81adb23513751"
+    },
+    "src/main/scala/platform/CommonMachineFabric.scala": {
+      "historical_sha256": "38b53b288e0f1cc430912f25e890e009feaac35c08420a45c774fabbb5c819b9",
+      "current_sha256": "f2bcd4126f8e42fd9826b262404921998a5e2bb8e2cd047912a71d5b35e8a016"
+    },
+    "src/main/scala/platform/CommonMachinePlatform.scala": {
+      "historical_sha256": "a2f8ed4e8d7b3e16bb2733314ac804976566519652418902029a63a139cf43ff",
+      "current_sha256": "df0b993fb7e9b6aed6b080dcd1d269a42fcebdca08ec202a0211a8cd41574e69"
+    },
+    "src/main/scala/platform/CommonRuntimeEpochBoundary.scala": {
+      "historical_sha256": "ba267f7d152fcb9880ae62a46d537045baa83f39797bae143d739ddab20aa60d",
+      "current_sha256": "d35d870e2b13a6ee8878e6d61b75413bb08df5c409121ccab008b48e39e39327"
+    },
+    "src/test/scala/platform/CommonI1RuntimeCdcMain.scala": {
+      "historical_sha256": "b3f797b8c930d589c194ac86fe7bd24e4898c481d25c151816964a8a8cd96099",
+      "current_sha256": "c83a6454bd98ac0d9307654305b4bcd375a5c5a88028da9599dad37c82f2a977"
+    }
+  },
+  "historical_tools": {
+    "iverilog": "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+    "vvp": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+    "iverilog_engine": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/iverilog",
+    "ivl": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivl",
+    "ivlpp": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivlpp",
+    "vvp.tgt": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt",
+    "vvp.conf": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.conf"
+  },
+  "historical_tool_sha256": {
+    "iverilog": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc",
+    "vvp": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df",
+    "iverilog_engine": "99633b21371b5fc6ddc3156c9402c10e2915a94feb99ddc5eb01ba8f02758462",
+    "ivl": "57d7449f4b78d204383e8acf5fd35db0c22bfe956260f62ee14bba6fff9aa9fd",
+    "ivlpp": "0a98b3c26a40d3a5c7463934d3e74d96d6fc0bc662c4ea48dd786afa1d44bf44",
+    "vvp.tgt": "0ce84750ec199087392d966fede9deb18aeca647c6b07a781dbcdaf1a7054312",
+    "vvp.conf": "6013ffb100e35d3a4656d3a24836be36bb782957c174e527c1c570ffe7aa5b41"
+  },
+  "corrupted_observations": {
+    "negative-completion": "observedCompleted is incremented before the ordinary check_pending predicate",
+    "negative-quiesce": "observedQuiesce is cleared before the same ordinary check_pending predicate"
+  },
+  "input_sha256": {
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-frequency-r12-qualification-timeout/component-receipt.json": "0ec3e3b76ff63a88e0782da88b6b54d1ca800c4c36f5e50f9c9311e6f43bab04",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-emission.json": "f134cda3194d6bb67a34a4d2bf2a1f554bfc7764d8ef5656af57affd65498cf7",
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/baseline_tb.source.sv": "3a70638a33c2583c1c8be87cb477445a1eaa640e5f9b601559680ffb7f32ce31",
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/corrected_tb.source.sv": "ec7062d9ef3cfc8a7173e7b066c2e5e4448a780e6825935d21eb7dd83db9d766",
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/manifest.json": "4d4a4dee8509b74e125d61b80908091c602503a748424fcecd0dea097d1c8456",
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/replay.py": "393bf21a227cbd6690d97863b0e7bb26127df9b412cdf361bc26a25f6d0eaa5d",
+    "/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/test_runtime_epoch_boundary.py": "a83e3beae8f14d21e1b54f2a27fdd98645457d3b33ce911e0210fdcf51dfae31",
+    "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/monitor-only.patch": "8248e0663be4505f81def7af4ea268a13210ee68bdb4a9bfb0a53882ec4584ef",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/ClockRateCleanupComponent.sv": "d857654a0ed77c2a838a225c8441b5890f3ca6350f1fc3ca92da311e034928ff",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/ClockRateControl.sv": "75379167a8bd354a01f12d0a2b0bad93605daa2031c807ee77bbaa135065637a",
+    "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/CommonClockRateEpochAdapter.sv": "acd5db99c27bf725e4cc06e80ccf69594e7e2cd72b7c297035de319ed84f487e",
+    "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/iverilog": "99633b21371b5fc6ddc3156c9402c10e2915a94feb99ddc5eb01ba8f02758462",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivl": "57d7449f4b78d204383e8acf5fd35db0c22bfe956260f62ee14bba6fff9aa9fd",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivlpp": "0a98b3c26a40d3a5c7463934d3e74d96d6fc0bc662c4ea48dd786afa1d44bf44",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt": "0ce84750ec199087392d966fede9deb18aeca647c6b07a781dbcdaf1a7054312",
+    "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.conf": "6013ffb100e35d3a4656d3a24836be36bb782957c174e527c1c570ffe7aa5b41"
+  },
+  "cases": [
+    {
+      "label": "positive-matched-control",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-negative-oracle-correction/replay-r1/r12/corrected-monitor.vvp"
+      ],
+      "expected_negative": false,
+      "required_ordinary_checker_marker": "CLOCK_RATE_CLEANUP_COMPONENT_PASS",
+      "accepted": true,
+      "log_sha256": "fde7bcfc9265af40cfc276ffea8e074b0ea41f8a658174f5a7f968da4b164aa6",
+      "returncode": 0,
+      "seconds": 0.042031406992464326,
+      "maxrss_kib": 9380,
+      "minimum_free_bytes": 28812337152,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false
+    },
+    {
+      "label": "negative-completion",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-negative-oracle-correction/replay-r1/r12/corrected-monitor.vvp",
+        "+wrong-completion"
+      ],
+      "expected_negative": true,
+      "required_ordinary_checker_marker": "controller prematurely completed/released cleanup",
+      "accepted": true,
+      "log_sha256": "c8db56e7e69d7e91187f97d88bec6825b0b2663a6ba01826235022065a2e9284",
+      "returncode": 1,
+      "seconds": 0.02238467700954061,
+      "maxrss_kib": 9380,
+      "minimum_free_bytes": 28812333056,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false
+    },
+    {
+      "label": "negative-quiesce",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-negative-oracle-correction/replay-r1/r12/corrected-monitor.vvp",
+        "+wrong-quiesce"
+      ],
+      "expected_negative": true,
+      "required_ordinary_checker_marker": "controller prematurely completed/released cleanup",
+      "accepted": true,
+      "log_sha256": "c8db56e7e69d7e91187f97d88bec6825b0b2663a6ba01826235022065a2e9284",
+      "returncode": 1,
+      "seconds": 0.02200288300809916,
+      "maxrss_kib": 9380,
+      "minimum_free_bytes": 28812328960,
+      "timed_out": false,
+      "disk_floor_breached": false,
+      "process_group_killed": false
+    }
+  ],
+  "compile": {
+    "command": [
+      "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+      "-g2012",
+      "-s",
+      "clock_rate_cleanup_tb",
+      "-o",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-negative-oracle-correction/replay-r1/r12/corrected-monitor.vvp",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/ClockRateCleanupComponent.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/ClockRateControl.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/component-rtl/CommonClockRateEpochAdapter.sv",
+      "/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/corrected_tb.source.sv"
+    ],
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "returncode": 0,
+    "seconds": 0.04226980000385083,
+    "maxrss_kib": 9256,
+    "minimum_free_bytes": 28812341248,
+    "timed_out": false,
+    "disk_floor_breached": false,
+    "process_group_killed": false
+  },
+  "compiled_sha256": "747f4a1a48170212daad9003a5c41d48804c23913c86bb468c288be44e7a632d",
+  "all_bound_inputs_unchanged": true,
+  "original_receipt_unchanged": true,
+  "original_rtl_unchanged": true,
+  "logs_sha256": {
+    "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive-matched-control.log": "fde7bcfc9265af40cfc276ffea8e074b0ea41f8a658174f5a7f968da4b164aa6",
+    "negative-quiesce.log": "c8db56e7e69d7e91187f97d88bec6825b0b2663a6ba01826235022065a2e9284",
+    "negative-completion.log": "c8db56e7e69d7e91187f97d88bec6825b0b2663a6ba01826235022065a2e9284"
+  }
+}

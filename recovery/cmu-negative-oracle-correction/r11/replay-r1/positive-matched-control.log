@@ -1,0 +1,8 @@
+BOOT
+FIRST_TERMINAL
+SECOND_TERMINAL
+NORMAL_TERMINAL
+NORMAL_TERMINAL
+NORMAL_TERMINAL
+CLOCK_RATE_CLEANUP_COMPONENT_PASS cycles=457 two_lanes deadline_priority terminal_retirement wrong_tags sticky_fault reset
+/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r11/corrected_tb.source.sv:233: $finish called at 4566000 (1ps)

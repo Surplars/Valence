@@ -1,0 +1,17 @@
+{
+  "status": "PASS_INDEPENDENT_DEFAULT_AND_THREE_EMISSIONS_REHASH",
+  "default_counts": {
+    "sources": 336,
+    "compiledClasspath": 4518,
+    "artifacts": 249
+  },
+  "receipts": {
+    "default-r3/default-performance/emission-profile.json": "e7bdf373e604fcaf26e945f8bc27fcef63a145cb5e5542d6ddec049144821ab3",
+    "qualifier-r3-emission.json": "c6f2b0459177f7d6c885d806fa40d19d60e08c91388edec6d10e2c31698e909a",
+    "fixed-r3-emission.json": "50d3f8ba1751b6dea04d0d0d5555a1586c6ed9405bddd2c1fcd89d004353d489",
+    "platform-r3-emission.json": "40ea7d0e78fc6a4abc064a196bbbabe3c6b3bf75f3f1e266266a65378a80edc2"
+  },
+  "default_byte_identical": 248,
+  "default_total": 248,
+  "physical_signoff": false
+}

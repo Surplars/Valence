@@ -1,0 +1,4 @@
+BURST_PHY_READY mdio=51 fixed_hz=125000000 fabric_half=10
+BURST_MEASURE offered_body_bytes=96896 wire_body_bytes=96896 wire_span_ns=787360.000 offered_body_bytes_per_second=123064417.801 fabric_valid_bytes=96896 fabric_span_ns=784220.000 fabric_body_bytes_per_second=123557165.081
+FIXED_MAC_RX_BURST_PASS reference=0 random_sink=0 offered_frames=64 delivered=64 bank_full_drops=0 body_bytes=96896 data_words=24256 status_words=384 ifg_slots=12 checked_gaps=63 csr=15 held_data=0 held_status=0 ids=ffffffffffffffff
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_rx_burst_tb.sv:244: $finish called at 3426240000 (1ps)

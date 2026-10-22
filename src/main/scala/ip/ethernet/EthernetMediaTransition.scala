@@ -116,8 +116,9 @@ class EthernetMediaTransition(timeoutCycles: Int = 50000000) extends Module {
   * with noAck. Autonomous policy must remain the sole configuration writer.
   * This avoids phylib/page transactions racing the hardware manager silently.
   */
-class ManagedMdioArbiter(phyAddress: Int = 1) extends Module {
+class ManagedMdioArbiter(phyAddress: Int = 1, runtimeObservation: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val runtimeIdle = if (runtimeObservation) Some(Output(Bool())) else None
         val policyCommand = Flipped(Decoupled(new MdioCommand))
         val policyResponse = Decoupled(new MdioResponse)
         val policyLock = Input(Bool())
@@ -132,6 +133,7 @@ class ManagedMdioArbiter(phyAddress: Int = 1) extends Module {
     val active = RegInit(false.B)
     val policyOwner = RegInit(false.B)
     val deniedReply = RegInit(false.B)
+    io.runtimeIdle.foreach(_ := !active && !deniedReply)
     val softwareAllowed = io.initialized && !io.softwareCommand.bits.write &&
         io.softwareCommand.bits.phy === phyAddress.U && io.softwareCommand.bits.register < 16.U
     io.engineCommand.valid := !active && Mux(io.policyLock, io.policyCommand.valid,

@@ -1,0 +1,7 @@
+BOUNDARY_PRELOADED capacity=17,17,17,17 contiguous_words=16,16,16,16 held_response=1
+BOUNDARY_THROUGHPUT channel=0 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=1 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=2 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=3 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_pipelined_tb.sv:230: BOUNDARY_ORACLE_RECEIPT exact payload
+       Time: 45690000  Scope: fixed_mac_pipelined_tb

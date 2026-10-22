@@ -1,0 +1,11 @@
+{
+  "exit": 0,
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.testOnly",
+    "debug.JtagRamLoaderSpec",
+    "ip.ClockRateControlSpec"
+  ],
+  "seconds": 14.20055651399889
+}

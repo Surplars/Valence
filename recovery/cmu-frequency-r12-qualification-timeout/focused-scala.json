@@ -1,0 +1,10 @@
+{
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.testOnly",
+    "ip.ClockRateControlSpec"
+  ],
+  "returncode": 0,
+  "seconds": 15.133602131012594
+}

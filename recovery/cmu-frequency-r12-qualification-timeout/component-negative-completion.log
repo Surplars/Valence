@@ -1,0 +1,3 @@
+BOOT
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/clock_rate_cleanup_tb.sv:131: NEGATIVE_ORACLE_REJECTED wrong completion ledger
+       Time: 816000  Scope: clock_rate_cleanup_tb.check_pending

@@ -1,0 +1,5 @@
+I1_RUNTIME_DEBUG_BOOT cpu_control_writes=1 reads=4 loops=2
+I1_RUNTIME_DEBUG_DEADLINE elapsed_aon_edges=4096
+I1_RUNTIME_DEBUG_TERMINAL epoch=1 aon=1 debug=1 receipt=1 fabric=1 busy=0
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_debug_tb.sv:252: independent debug readback data oracle
+       Time: 108437000  Scope: i1_runtime_debug_tb

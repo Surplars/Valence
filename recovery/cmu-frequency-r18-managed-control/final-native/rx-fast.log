@@ -1,0 +1,6 @@
+CONTROL_PROGRESS cycles=100000 mdio=19 page=0000 link=0 park=0
+CONTROL_PROGRESS cycles=200000 mdio=38 page=0000 link=0 park=0
+CONTROL_PHY_READY transactions=51 time=2625850000
+CONTROL_PROGRESS cycles=300000 mdio=58 page=0a43 link=1 park=1
+MANAGED_RUNTIME_CONTROL_PASS case=0 rx=2 status=2 drops=8 mdio=63 requests=14 txwire=2 rawOverflow=8 rawSkip=4 pendingEofSofs=4 clocks_running=1 full_system_ack=0
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/managed_runtime_control_tb.sv:281: $finish called at 3320750000 (1ps)

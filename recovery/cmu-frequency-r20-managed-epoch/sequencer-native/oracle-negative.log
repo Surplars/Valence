@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/control_park_epoch_sequencer_tb.sv:43: CONTROL_PARK_ORACLE phase=oracle-negative: independent retired-epoch count
+       Time: 2446000  Scope: control_park_epoch_sequencer_tb.check

@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/clock_rate_cleanup_tb.sv:142: independent previous-store persistence oracle
+       Time: 4745000  Scope: clock_rate_cleanup_tb

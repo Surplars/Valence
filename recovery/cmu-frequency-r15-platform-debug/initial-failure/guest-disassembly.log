@@ -1,0 +1,50 @@
+
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r15/native-r1/guest.elf:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+0000000080000000 <_start>:
+    80000000:	4010041b          	addiw	s0,zero,1025
+    80000004:	01541413          	slli	s0,s0,0x15
+    80000008:	100034b7          	lui	s1,0x10003
+    8000000c:	00100293          	li	t0,1
+
+0000000080000010 <control_open>:
+    80000010:	0054b423          	sd	t0,8(s1) # 10003008 <_start-0x6fffcff8>
+
+0000000080000014 <control_read>:
+    80000014:	0004b903          	ld	s2,0(s1)
+
+0000000080000018 <control_generation>:
+    80000018:	0284b983          	ld	s3,40(s1)
+    8000001c:	00000a13          	li	s4,0
+    80000020:	01443023          	sd	s4,0(s0)
+
+0000000080000024 <configured>:
+    80000024:	00043b83          	ld	s7,0(s0)
+
+0000000080000028 <loop_previous_compare>:
+    80000028:	017a1e63          	bne	s4,s7,80000044 <guest_fail>
+
+000000008000002c <loop_increment>:
+    8000002c:	001a0a13          	addi	s4,s4,1
+
+0000000080000030 <loop_store>:
+    80000030:	01443023          	sd	s4,0(s0)
+
+0000000080000034 <loop_load>:
+    80000034:	00043a83          	ld	s5,0(s0)
+
+0000000080000038 <loop_compare>:
+    80000038:	015a1663          	bne	s4,s5,80000044 <guest_fail>
+
+000000008000003c <loop_control>:
+    8000003c:	0004bb03          	ld	s6,0(s1)
+
+0000000080000040 <loop_jump>:
+    80000040:	fe5ff06f          	j	80000024 <configured>
+
+0000000080000044 <guest_fail>:
+    80000044:	00100073          	ebreak
+    80000048:	ffdff06f          	j	80000044 <guest_fail>

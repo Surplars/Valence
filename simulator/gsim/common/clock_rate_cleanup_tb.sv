@@ -40,7 +40,7 @@ module clock_rate_cleanup_tb;
   wire [63:0] retire_pc, retire_data;
   wire [4:0] retire_rd; wire retire_writesRd;
   reg [31:0] rom [0:63]; reg [4095:0] rom_path;
-  reg wrongData = 0, wrongStore = 0, wrongIrq = 0;
+  reg wrongData = 0, wrongStore = 0, wrongIrq = 0, qualificationMode = 0;
   integer cycles = 0, aonCycles = 0, resetGeneration = 0;
   integer retires = 0, stores = 0, loads = 0, previousLoads = 0, loops = 0, pendingReads = 0, loopPhase = 0;
   integer requests [0:1], resumes [0:1], cancels [0:1], results [0:1], acceptedCycle [0:1];
@@ -50,7 +50,8 @@ module clock_rate_cleanup_tb;
 
   reg [1:0] controlSubmit = 0, controlCommitted = 0, holdTerminal = 3;
   wire [1:0] controlBusy, controlQuiesce, controlClockEnable, controlSuccess;
-  wire [1:0] requestFire, terminalFire, retired;
+  wire [1:0] requestFire, terminalFire, retired, leaseHeld, leaseCancelValid, leaseCancelFire;
+  integer firstHeldCycle [0:1], localCancels [0:1];
   wire [3:0] controlState [0:1];
   wire [31:0] controlCompleted [0:1], controlErrors [0:1], controlRequestError [0:1];
   wire deadline, proofObserved;
@@ -98,6 +99,7 @@ module clock_rate_cleanup_tb;
     .control_errors_0(controlErrors[0]), .control_errors_1(controlErrors[1]),
     .control_requestError_0(controlRequestError[0]), .control_requestError_1(controlRequestError[1]),
     .control_requestFire(requestFire), .control_terminalFire(terminalFire), .control_retired(retired),
+    .control_leaseHeld(leaseHeld), .control_cancelValid(leaseCancelValid), .control_cancelFire(leaseCancelFire),
     .control_deadline(deadline), .control_proofObserved(proofObserved));
 
   always @(posedge alwaysOnClock) begin
@@ -105,13 +107,20 @@ module clock_rate_cleanup_tb;
     if (aonCycles > 180000) $fatal(1, "cleanup AON watchdog");
     if (reset) begin
       for (integer j = 0; j < 2; j = j + 1) begin
-        requests[j] = 0; terminalsConsumed[j] = 0; retirements[j] = 0; acceptedCycle[j] = 0;
+        requests[j] = 0; terminalsConsumed[j] = 0; retirements[j] = 0; acceptedCycle[j] = 0; firstHeldCycle[j] = 0; localCancels[j] = 0;
       end
     end else begin
       if (requestFire == 3) $fatal(1, "two controller leases accepted together");
       if (epochExhausted) $fatal(1, "unexpected epoch exhaustion");
       for (integer j = 0; j < 2; j = j + 1) begin
-        if (requestFire[j]) begin requests[j] = requests[j] + 1; acceptedCycle[j] = aonCycles; end
+        if (requestFire[j]) begin requests[j] = requests[j] + 1; acceptedCycle[j] = aonCycles; firstHeldCycle[j] = 0; end
+        if (leaseHeld[j] && firstHeldCycle[j] == 0) firstHeldCycle[j] = aonCycles;
+        if (leaseCancelFire[j]) begin
+          if (firstHeldCycle[j] == 0 || aonCycles - firstHeldCycle[j] < 65)
+            $fatal(1, "local cancel accepted before registered deadline request");
+          localCancels[j] = localCancels[j] + 1;
+          $display("CLOCK_RATE_QUALIFICATION_CANCEL lane=%0d age=%0d", j, aonCycles-firstHeldCycle[j]);
+        end
         if (terminalFire[j]) terminalsConsumed[j] = terminalsConsumed[j] + 1;
         if (retired[j]) retirements[j] = retirements[j] + 1;
         if (controlCompleted[j] > retirements[j]) $fatal(1, "controller completed before actual fabric retirement");
@@ -224,6 +233,18 @@ module clock_rate_cleanup_tb;
       $display("CLOCK_RATE_CLEANUP_TIMEOUT lane=%0d epoch=%0d actual_aon_age=4096",which,activeEpoch); $fflush();
     end
   endtask
+  task waitQualification(input integer which);
+    begin
+      while (!leaseCancelValid[which]) tick();
+      if (firstHeldCycle[which] == 0 || aonCycles - firstHeldCycle[which] != 64)
+        $fatal(1, "qualification deadline age mismatch first=%0d now=%0d",firstHeldCycle[which],aonCycles);
+      if (timeoutSelected || deadline || !controlBusy[which] || !controlQuiesce[which] ||
+          !controlClockEnable[which] || !(controlErrors[which] & 32'h10))
+        $fatal(1, "local qualification timeout confused with initial boundary timeout");
+      $display("CLOCK_RATE_QUALIFICATION_TIMEOUT lane=%0d epoch=%0d first_held_age=64 boundary_timed_out=0",which,activeEpoch); $fflush();
+      while (localCancels[which] == 0) tick();
+    end
+  endtask
   task finishCleanup(input integer which);
     integer beforeConsumed, beforeRetired, beforeCompleted, beforeFabric;
     begin
@@ -231,7 +252,7 @@ module clock_rate_cleanup_tb;
       beforeCompleted = controlCompleted[which]; beforeFabric = fabricTerminals;
       while (!result_valid[which]) tick();
       for (integer k = 0; k < 32; k = k + 1) begin
-        if (!result_canceled[which] || !result_timedOut[which] || !busy ||
+        if (!result_canceled[which] || result_timedOut[which] != !qualificationMode || !busy ||
             !controlBusy[which] || !controlQuiesce[which] || !controlClockEnable[which] ||
             fabricTerminalReady || fabricTerminals != beforeFabric || controlCompleted[which] != beforeCompleted)
           $fatal(1, "terminal backpressure prematurely released controller or fabric owner");
@@ -293,12 +314,36 @@ module clock_rate_cleanup_tb;
   endtask
 
   initial begin
+    qualificationMode = $test$plusargs("qualification");
     wrongData = $test$plusargs("wrong-data"); wrongStore = $test$plusargs("wrong-store"); wrongIrq = $test$plusargs("wrong-irq");
     if (!$value$plusargs("rom=%s", rom_path)) $fatal(1, "missing independently compiled guest image");
     $readmemh(rom_path, rom);
     for (i = 0; i < 2; i = i + 1) begin request_bits[i] = 0; resume_bits[i] = 0; cancel_bits[i] = 0; resume_epoch[i] = 0; cancel_epoch[i] = 0; allocatedEpoch[i] = 0; end
     boot();
     while (controlBusy != 0) tick();
+    if (qualificationMode) begin
+      submitRates(2'b11);
+      while (firstHeldCycle[0] == 0) tick();
+      if (fabricPrepares != 1 || !tileHeld_valid || !fabricHeld_valid || requests[1] != 0)
+        $fatal(1, "qualification timer did not follow actual I1/fabric held proof");
+      // Only now is the real fabric admission barrier installed. New IRQs
+      // remain pending until the actual canceled epoch resumes and retires.
+      setSources(3'b111);
+      waitQualification(0);
+      while (!result_valid[0]) tick();
+      if (msiAccepted != 0 || msiReplied != 0 || requests[1] != 0)
+        $fatal(1, "qualification-held MSI admission or shared owner leaked");
+      finishCleanup(0);
+      while (firstHeldCycle[1] == 0) tick();
+      waitQualification(1); finishCleanup(1);
+      exactLedger(1,1,1,64'h3800);
+      if (fabricPrepares != 2 || fabricCancels != 2 || fabricResumes != 0 || fabricTerminals != 2 ||
+          controlCompleted[0] != 1 || controlCompleted[1] != 1 || cpuResumed != 2 ||
+          localCancels[0] != 1 || localCancels[1] != 1 || timeoutSelected || cleanupFault)
+        $fatal(1, "exact qualification cancellation/retirement ledger mismatch");
+      $display("CLOCK_RATE_QUALIFICATION_PASS real_first_held=2 full_ack_absent=1 local_timeouts=2 boundary_timed_out=0 terminal=2 cpu_cycles=%0d aon_cycles=%0d",cycles,aonCycles); $fflush();
+      $finish;
+    end
     // Both real controllers submit; only the selected lease starts the AON timer.
     @(negedge fabricClock); holdReleaseAck = 1;
     submitRates(2'b11);

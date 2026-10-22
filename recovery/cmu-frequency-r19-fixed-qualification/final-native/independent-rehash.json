@@ -1,0 +1,12 @@
+{
+  "status": "PASS_INDEPENDENT_FULL_NATIVE_REHASH",
+  "receipt_sha256": "d3b5d33156b61399e6ee9dd86f15a215f046951fd2def3a000f385af82ccf397",
+  "sources": 325,
+  "emission_sources": 949,
+  "tools": 11,
+  "rtl": 214,
+  "positive_cases": 8,
+  "negative_controls": 4,
+  "compiled_sha256": "3818e8f0dedcbdcea0cda083263f234a771fb1aacf13fdc4c071a945c362cef3",
+  "physical_signoff": false
+}

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "mill",
+    "--no-server",
+    "IonSoC.test.testOnly",
+    "debug.JtagRamLoaderSpec"
+  ],
+  "returncode": 0,
+  "seconds": 15.099502632001531
+}

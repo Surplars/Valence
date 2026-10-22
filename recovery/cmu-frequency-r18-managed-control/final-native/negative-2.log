@@ -1,0 +1,5 @@
+CONTROL_PROGRESS cycles=100000 mdio=19 page=0000 link=0 park=0
+CONTROL_PROGRESS cycles=200000 mdio=38 page=0000 link=0 park=0
+CONTROL_PHY_READY transactions=51 time=2625810000
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/managed_runtime_control_tb.sv:184: CONTROL_ORACLE_DRAIN accepted CSR response
+       Time: 2633640000  Scope: managed_runtime_control_tb

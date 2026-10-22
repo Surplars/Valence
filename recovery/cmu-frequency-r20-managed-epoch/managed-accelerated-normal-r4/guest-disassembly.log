@@ -1,0 +1,157 @@
+
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/managed-accelerated-normal-r4/guest.elf:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+0000000080000000 <_start>:
+    80000000:	10002437          	lui	s0,0x10002
+    80000004:	100034b7          	lui	s1,0x10003
+    80000008:	00100293          	li	t0,1
+
+000000008000000c <control_open>:
+    8000000c:	0054b423          	sd	t0,8(s1) # 10003008 <_start-0x6fffcff8>
+    80000010:	00080337          	lui	t1,0x80
+    80000014:	2053031b          	addiw	t1,t1,517 # 80205 <_start-0x7ff7fdfb>
+    80000018:	00c31313          	slli	t1,t1,0xc
+
+000000008000001c <selector_load>:
+    8000001c:	00033903          	ld	s2,0(t1)
+    80000020:	00080337          	lui	t1,0x80
+    80000024:	2033031b          	addiw	t1,t1,515 # 80203 <_start-0x7ff7fdfd>
+    80000028:	00c31313          	slli	t1,t1,0xc
+    8000002c:	03c30313          	addi	t1,t1,60
+    80000030:	556673b7          	lui	t2,0x55667
+    80000034:	7883839b          	addiw	t2,t2,1928 # 55667788 <_start-0x2a998878>
+
+0000000080000038 <guard_store>:
+    80000038:	00732023          	sw	t2,0(t1)
+    8000003c:	00020337          	lui	t1,0x20
+    80000040:	0813031b          	addiw	t1,t1,129 # 20081 <_start-0x7ffdff7f>
+    80000044:	00e31313          	slli	t1,t1,0xe
+    80000048:	00000393          	li	t2,0
+    8000004c:	03c00e13          	li	t3,60
+    80000050:	02038e93          	addi	t4,t2,32
+
+0000000080000054 <tx_init_store>:
+    80000054:	01d30023          	sb	t4,0(t1)
+    80000058:	00130313          	addi	t1,t1,1
+    8000005c:	00138393          	addi	t2,t2,1
+    80000060:	ffc3c8e3          	blt	t2,t3,80000050 <guard_store+0x18>
+    80000064:	00090463          	beqz	s2,8000006c <tx_init_store+0x18>
+    80000068:	120000ef          	jal	80000188 <timer_setup>
+    8000006c:	02091463          	bnez	s2,80000094 <rx_arm+0x8>
+    80000070:	00080337          	lui	t1,0x80
+    80000074:	2033031b          	addiw	t1,t1,515 # 80203 <_start-0x7ff7fdfd>
+    80000078:	00c31313          	slli	t1,t1,0xc
+    8000007c:	02643823          	sd	t1,48(s0) # 10002030 <_start-0x6fffdfd0>
+    80000080:	10000313          	li	t1,256
+    80000084:	02643c23          	sd	t1,56(s0)
+    80000088:	00100313          	li	t1,1
+
+000000008000008c <rx_arm>:
+    8000008c:	04643023          	sd	t1,64(s0)
+    80000090:	0240006f          	j	800000b4 <configured>
+    80000094:	00020337          	lui	t1,0x20
+    80000098:	0813031b          	addiw	t1,t1,129 # 20081 <_start-0x7ffdff7f>
+    8000009c:	00e31313          	slli	t1,t1,0xe
+    800000a0:	00643823          	sd	t1,16(s0)
+    800000a4:	03c00313          	li	t1,60
+    800000a8:	00643c23          	sd	t1,24(s0)
+    800000ac:	00100313          	li	t1,1
+
+00000000800000b0 <tx_start>:
+    800000b0:	02643023          	sd	t1,32(s0)
+
+00000000800000b4 <configured>:
+    800000b4:	00000993          	li	s3,0
+    800000b8:	00091463          	bnez	s2,800000c0 <configured+0xc>
+    800000bc:	0cc000ef          	jal	80000188 <timer_setup>
+    800000c0:	00080a37          	lui	s4,0x80
+    800000c4:	205a0a1b          	addiw	s4,s4,517 # 80205 <_start-0x7ff7fdfb>
+    800000c8:	00ca1a13          	slli	s4,s4,0xc
+    800000cc:	008a0a13          	addi	s4,s4,8
+
+00000000800000d0 <heartbeat>:
+    800000d0:	00198993          	addi	s3,s3,1
+
+00000000800000d4 <timer_heartbeat_read>:
+    800000d4:	000b3f83          	ld	t6,0(s6)
+
+00000000800000d8 <check_command>:
+    800000d8:	000a3283          	ld	t0,0(s4)
+    800000dc:	fe028ae3          	beqz	t0,800000d0 <heartbeat>
+    800000e0:	04091e63          	bnez	s2,8000013c <guard_check_load+0x14>
+    800000e4:	00080337          	lui	t1,0x80
+    800000e8:	2033031b          	addiw	t1,t1,515 # 80203 <_start-0x7ff7fdfd>
+    800000ec:	00c31313          	slli	t1,t1,0xc
+
+00000000800000f0 <rx_check_load>:
+    800000f0:	00033383          	ld	t2,0(t1)
+    800000f4:	fff0fe37          	lui	t3,0xfff0f
+    800000f8:	0d1e0e1b          	addiw	t3,t3,209 # fffffffffff0f0d1 <timer_compare_load+0xffffffff7ff0ef2d>
+    800000fc:	00ce1e13          	slli	t3,t3,0xc
+    80000100:	b09e0e13          	addi	t3,t3,-1271
+    80000104:	010e1e13          	slli	t3,t3,0x10
+    80000108:	705e0e13          	addi	t3,t3,1797
+    8000010c:	00fe1e13          	slli	t3,t3,0xf
+    80000110:	180e0e13          	addi	t3,t3,384
+    80000114:	07c39663          	bne	t2,t3,80000180 <guest_fail>
+    80000118:	00080337          	lui	t1,0x80
+    8000011c:	2033031b          	addiw	t1,t1,515 # 80203 <_start-0x7ff7fdfd>
+    80000120:	00c31313          	slli	t1,t1,0xc
+    80000124:	03c30313          	addi	t1,t1,60
+
+0000000080000128 <guard_check_load>:
+    80000128:	00036383          	lwu	t2,0(t1)
+    8000012c:	55667e37          	lui	t3,0x55667
+    80000130:	788e0e1b          	addiw	t3,t3,1928 # 55667788 <_start-0x2a998878>
+    80000134:	05c39663          	bne	t2,t3,80000180 <guest_fail>
+    80000138:	0380006f          	j	80000170 <net_checked>
+    8000013c:	00020337          	lui	t1,0x20
+    80000140:	0813031b          	addiw	t1,t1,129 # 20081 <_start-0x7ffdff7f>
+    80000144:	00e31313          	slli	t1,t1,0xe
+
+0000000080000148 <tx_check_load>:
+    80000148:	00033383          	ld	t2,0(t1)
+    8000014c:	009cae37          	lui	t3,0x9ca
+    80000150:	895e0e1b          	addiw	t3,t3,-1899 # 9c9895 <_start-0x7f63676b>
+    80000154:	00ce1e13          	slli	t3,t3,0xc
+    80000158:	909e0e13          	addi	t3,t3,-1783
+    8000015c:	00de1e13          	slli	t3,t3,0xd
+    80000160:	911e0e13          	addi	t3,t3,-1775
+    80000164:	00de1e13          	slli	t3,t3,0xd
+    80000168:	120e0e13          	addi	t3,t3,288
+    8000016c:	01c39a63          	bne	t2,t3,80000180 <guest_fail>
+
+0000000080000170 <net_checked>:
+    80000170:	00100a93          	li	s5,1
+    80000174:	00300313          	li	t1,3
+
+0000000080000178 <managed_tx_restart>:
+    80000178:	02643023          	sd	t1,32(s0)
+    8000017c:	0000006f          	j	8000017c <managed_tx_restart+0x4>
+
+0000000080000180 <guest_fail>:
+    80000180:	00100073          	ebreak
+    80000184:	ffdff06f          	j	80000180 <guest_fail>
+
+0000000080000188 <timer_setup>:
+    80000188:	0200c337          	lui	t1,0x200c
+    8000018c:	ff83031b          	addiw	t1,t1,-8 # 200bff8 <_start-0x7dff4008>
+
+0000000080000190 <timer_read>:
+    80000190:	00033e83          	ld	t4,0(t1)
+    80000194:	fe0e86e3          	beqz	t4,80000180 <guest_fail>
+    80000198:	02004337          	lui	t1,0x2004
+    8000019c:	00000e93          	li	t4,0
+
+00000000800001a0 <timer_compare_store>:
+    800001a0:	01d33023          	sd	t4,0(t1) # 2004000 <_start-0x7dffc000>
+
+00000000800001a4 <timer_compare_load>:
+    800001a4:	00033f03          	ld	t5,0(t1)
+    800001a8:	fc0f1ce3          	bnez	t5,80000180 <guest_fail>
+    800001ac:	0200cb37          	lui	s6,0x200c
+    800001b0:	ff8b0b1b          	addiw	s6,s6,-8 # 200bff8 <_start-0x7dff4008>
+    800001b4:	00008067          	ret

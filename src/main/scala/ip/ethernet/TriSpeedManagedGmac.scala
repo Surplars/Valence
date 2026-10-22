@@ -7,6 +7,40 @@ import soc.ip.bus._
 import soc.ip.clock._
 import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
 
+/** Source-clock-domain payload admission barrier for runtime fabric transitions.
+  * RX drain proves that admitted payload owners have retired, even if unrelated
+  * physical frames keep arriving and are discarded with admission-closed counts.
+  * TX stop may be requested only after previously admitted DMA TX work finishes;
+  * TX drain then covers the adapter, FIFO, transmitter and physical encoder tail.
+  * These are not full clock-gating ACKs: background statistics, configuration and
+  * physical ingress remain governed by the existing CMU/media lifecycle proofs.
+  */
+class EthernetRuntimeAdmissionPort extends Bundle {
+    val rxStopRequest = Input(Bool())
+    val txStopRequest = Input(Bool())
+    val rxDrained = Output(Bool())
+    val txDrained = Output(Bool())
+    val released = Output(Bool())
+}
+
+/** Optional fabric-control park, not a clock-gating or whole-system ACK.
+  * Counters and their acknowledged snapshots remain owned while consumption
+  * pauses. Fewer than 2^32 increments per field between snapshots is required.
+  */
+class EthernetRuntimeControlParkPort extends Bundle {
+    val request = Input(Bool())
+    // Same-source-clock consumption of request=false, NOT cross-domain gate ACK.
+    val released = Output(Bool())
+    val csrDrained = Output(Bool())
+    val configDrained = Output(Bool())
+    val mdioDrained = Output(Bool())
+    val phyParked = Output(Bool())
+    val phyFault = Output(UInt(4.W))
+    val mediaSettled = Output(Bool())
+    val statisticsPending = Output(UInt(4.W))
+    val parked = Output(Bool())
+}
+
 /** Opt-in tri-speed/full-duplex endpoint with explicit byte-rate adaptation.
   * CPU control stays on. TX/RX stop independently only after frame/FIFO/config/
   * statistics/adapter tails AND CPU admission handshake have completely drained.
@@ -18,7 +52,9 @@ import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
 class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     mediaHz: Int = 125000000, hardwareClocks: Boolean = true,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default, txFrameSlots: Int = 1,
-    val rawClockHandoff: Boolean = false, balancedRawClock: Boolean = false) extends RawModule {
+    val rawClockHandoff: Boolean = false, balancedRawClock: Boolean = false,
+    runtimeAdmission: Boolean = false, runtimeControlPark: Boolean = false,
+    exportContinuousClock: Boolean = false) extends RawModule {
     require(!balancedRawClock || hardwareClocks)
     require(!(rawClockHandoff && balancedRawClock),
         "RAW MAC handoff with balanced raw clocks needs dedicated MAC lifecycle/CDC qualification")
@@ -30,6 +66,8 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     val commonReset = IO(Input(AsyncReset()))
     val registers = IO(Flipped(new RegisterPort))
     val streams = IO(new ManagedGmacStreams)
+    val runtimeAdmissionPort = if (runtimeAdmission) Some(IO(new EthernetRuntimeAdmissionPort)) else None
+    val controlPark = if (runtimeControlPark) Some(IO(new EthernetRuntimeControlParkPort)) else None
     val control = IO(Flipped(Vec(2, new ClockResourceControl)))
     val txClock = IO(Output(Clock()))
     val rxClock = IO(Output(Clock()))
@@ -64,9 +102,20 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         keepRunning.rawClock := rawTxClock
         keepRunning.runningClock
     } else rawTxClock
+    // Optional standalone fixed-source composition reuses this exact leaf.
+    // Absent by default: no new production-default port or clock buffer.
+    val continuousClock = if (exportContinuousClock) Some(IO(Output(Clock()))) else None
+    continuousClock.foreach(_ := continuousTxClock)
+    // Test subclasses may shorten only policy scheduling delays. Production
+    // construction and MDIO serializer timing remain unchanged.
+    protected def buildPhyManager(): Rtl8211fPhyManager =
+        new Rtl8211fPhyManager(cpuHz, startupCycles = cpuHz / 20, pollCycles = cpuHz / 10,
+            runtimePark = runtimeControlPark)
     val phy = withClockAndReset(sourceClock, cpuRelease.resetOut) {
-        Module(new Rtl8211fPhyManager(cpuHz, startupCycles = cpuHz / 20, pollCycles = cpuHz / 10))
+        Module(buildPhyManager())
     }
+    val parkControl = controlPark.map(_.request).getOrElse(false.B)
+    phy.io.parkRequest.foreach(_ := parkControl)
     val media = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         Module(new EthernetMediaTransition(cpuHz / 2))
     }
@@ -166,7 +215,9 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     adapter.io.txControl <> streams.txControl
     streams.rxData <> adapter.io.rxData
     streams.rxStatus <> adapter.io.rxStatus
-    adapter.io.stopNewTx.get := txQ || txIso || media.io.stopNewTraffic
+    val runtimeRxStop = runtimeAdmissionPort.map(_.rxStopRequest).getOrElse(false.B)
+    val runtimeTxStop = runtimeAdmissionPort.map(_.txStopRequest).getOrElse(false.B)
+    adapter.io.stopNewTx.get := txQ || txIso || media.io.stopNewTraffic || runtimeTxStop
     val txFifo = Module(new EthernetFrameClockBridge(16))
     txFifo.sourceClock := sourceClock
     txFifo.destinationClock := txManaged
@@ -229,14 +280,14 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rxStats.increment(2) := rx.io.badFcs
     rxStats.increment(3) := Mux(rx.io.accepted, rx.io.bytes, 0.U)
     rxStats.increment(4) := rxFifo.source.valid && !rxFifo.source.ready
-    txStats.delta.ready := true.B
-    rxStats.delta.ready := true.B
+    txStats.delta.ready := (if (runtimeControlPark) !parkControl else true.B)
+    rxStats.delta.ready := (if (runtimeControlPark) !parkControl else true.B)
     val rxDiagnostics = Module(new CdcCounterBank(8))
     rxDiagnostics.sourceClock := rxManaged
     rxDiagnostics.destinationClock := sourceClock
     rxDiagnostics.commonReset := commonReset
     for (n <- 0 until 8) rxDiagnostics.increment(n) := rx.io.dropReasons.get(n)
-    rxDiagnostics.delta.ready := true.B
+    rxDiagnostics.delta.ready := (if (runtimeControlPark) !parkControl else true.B)
     val rawDiagnostics = Module(new CdcCounterBank(3))
     rawDiagnostics.sourceClock := rawRxClock
     rawDiagnostics.destinationClock := sourceClock
@@ -244,24 +295,47 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rawDiagnostics.increment(0) := decode.io.oddNibble
     rawDiagnostics.increment(1) := physicalIngress.wholeFrameSkipped
     rawDiagnostics.increment(2) := physicalIngress.overflow
-    rawDiagnostics.delta.ready := true.B
+    rawDiagnostics.delta.ready := (if (runtimeControlPark) !parkControl else true.B)
     val tlParams = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 4)
     val config = GmacParams(controlClockHz = cpuHz, mdcHz = 1250000, aggregateStats = true, rxAdmissionStop = true,
         maxFrameBytes = networkDmaConfig.maxFrameBytes, rxFrameSlots = networkDmaConfig.macRxSlots,
         triSpeedExtensions = true, externalMdio = true)
     val frontend = withClockAndReset(sourceClock, cpuRelease.resetOut) {
-        Module(new RegisterGmacControl(config.base, tlParams))
+        Module(new RegisterGmacControl(config.base, tlParams, runtimeObservation = runtimeControlPark))
     }
     val csr = withClockAndReset(sourceClock, cpuRelease.resetOut) {
         Module(new TileLinkGmacControl(config, tlParams))
     }
-    frontend.io.registers <> registers
+    if (runtimeControlPark) {
+        // An offer visible before park remains irrevocable until accepted.
+        // New requests on the park edge stay upstream; accepted replies drain.
+        val offered = withClockAndReset(sourceClock, cpuRelease.resetOut) { RegInit(false.B) }
+        val offeredBits = withClockAndReset(sourceClock, cpuRelease.resetOut) {
+            Reg(chiselTypeOf(registers.request.bits))
+        }
+        val allowed = !parkControl || offered
+        frontend.io.registers.request.valid := registers.request.valid && allowed
+        frontend.io.registers.request.bits := registers.request.bits
+        registers.request.ready := frontend.io.registers.request.ready && allowed
+        registers.response <> frontend.io.registers.response
+        withClockAndReset(sourceClock, cpuRelease.resetOut) {
+            when(frontend.io.registers.request.valid) {
+                offered := !frontend.io.registers.request.ready
+                when(!frontend.io.registers.request.ready) { offeredBits := registers.request.bits }
+            }
+            assert(!offered || (registers.request.valid && registers.request.bits.asUInt === offeredBits.asUInt),
+                "park upstream changed a previously offered CSR request")
+        }
+        controlPark.get.csrDrained := !offered && frontend.io.runtimeIdle.get && !frontend.io.registers.request.fire
+    } else {
+        frontend.io.registers <> registers
+    }
     csr.io.tl <> frontend.io.tl
     val port = csr.io.ports.head
     // Conservative 400 ns read half-cycle includes the two-FF pad synchronizer
     // and RTL8211F MDIO response delay. mdioIn is the raw IOBUF input here.
     val mdio = withClockAndReset(sourceClock, cpuRelease.resetOut) { Module(new MdioClause22(cpuHz, 1250000)) }
-    val mdioOwner = withClockAndReset(sourceClock, cpuRelease.resetOut) { Module(new ManagedMdioArbiter) }
+    val mdioOwner = withClockAndReset(sourceClock, cpuRelease.resetOut) { Module(new ManagedMdioArbiter(runtimeObservation = runtimeControlPark)) }
     mdioOwner.io.policyCommand <> phy.io.command
     phy.io.response <> mdioOwner.io.policyResponse
     mdioOwner.io.policyLock := phy.io.lock
@@ -279,7 +353,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     rxStop.sourceClock := sourceClock
     rxStop.destinationClock := rxManaged
     rxStop.commonReset := commonReset
-    rxStop.requested := port.rxStopRequest.get || media.io.stopNewTraffic
+    rxStop.requested := port.rxStopRequest.get || media.io.stopNewTraffic || runtimeRxStop
     rxStop.sourceDrained := adapter.io.rxIdle && rxFifo.destinationIdle
     rxStop.destinationFrameIdle := !rx.io.ownedBusy.get
     rxStop.destinationFifoIdle := rxFifo.sourceIdle
@@ -360,6 +434,15 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     media.io.rxDrained := rxStop.drained && ingressEmpty
     txIdle := media.io.txDrained
     rxDrained := media.io.rxDrained
+    runtimeAdmissionPort.foreach { admission =>
+        // Physical traffic can continue to drain/drop after admitted owners retire.
+        // Do not couple fabric admission to the stronger media/clock-gating ACK.
+        admission.rxDrained := rxStop.drained
+        admission.txDrained := media.io.txDrained
+        // Releasing the runtime votes never overrides an independent software or
+        // media stop; settled proves the resulting shared RX command has retired.
+        admission.released := !runtimeRxStop && !runtimeTxStop && rxStop.settled
+    }
     gmiiTxData := tx.io.gmiiData
     gmiiTxEnable := tx.io.gmiiEnable
     gmiiTxError := tx.io.gmiiError
@@ -400,9 +483,9 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         !adapter.io.txIdle || !txFifo.sourceIdle || configPending
     port.rxBusy := ManagedPeripheralSupport.level(rxBusyLevel, sourceClock, cpuRelease.resetOut) || configPending ||
         !rxStop.settled || (port.rxStopRequest.get && !rxStop.drained)
-    val txDelta = Mux(txStats.delta.valid, txStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(5, UInt(32.W)))
-    val rxDelta = Mux(rxStats.delta.valid, rxStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(5, UInt(32.W)))
-    val rawDelta = Mux(rawDiagnostics.delta.valid, rawDiagnostics.delta.bits.asUInt, 0.U)
+    val txDelta = Mux((if (runtimeControlPark) txStats.delta.fire else txStats.delta.valid), txStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(5, UInt(32.W)))
+    val rxDelta = Mux((if (runtimeControlPark) rxStats.delta.fire else rxStats.delta.valid), rxStats.delta.bits.asUInt, 0.U).asTypeOf(Vec(5, UInt(32.W)))
+    val rawDelta = Mux((if (runtimeControlPark) rawDiagnostics.delta.fire else rawDiagnostics.delta.valid), rawDiagnostics.delta.bits.asUInt, 0.U)
         .asTypeOf(Vec(3, UInt(32.W)))
     val totalDrops = rxDelta(1) + rawDelta(1)
     port.deltas.get := VecInit(Seq(txDelta(0), rxDelta(0), totalDrops, rxDelta(2), txDelta(2), rxDelta(3)))
@@ -410,7 +493,7 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
         totalDrops.orR, rxDelta(0).orR, txDelta(0).orR)
     port.txBytes := 0.U
     port.rxBytes := 0.U
-    val diagnosticDelta = Mux(rxDiagnostics.delta.valid, rxDiagnostics.delta.bits.asUInt, 0.U)
+    val diagnosticDelta = Mux((if (runtimeControlPark) rxDiagnostics.delta.fire else rxDiagnostics.delta.valid), rxDiagnostics.delta.bits.asUInt, 0.U)
         .asTypeOf(Vec(8, UInt(32.W)))
     port.diagnosticDeltas.get := VecInit(diagnosticDelta.toSeq ++ Seq(txDelta(3), rxDelta(4), txDelta(4),
         rawDelta(0), rawDelta(2), rawDelta(1)))
@@ -425,5 +508,17 @@ class TriSpeedManagedGmac(cpuHz: Int = 100000000, aonHz: Int = 50000000,
     port.phyCounters.get(1) := Cat(phy.io.pollCount, phy.io.linkChangeCount)
     port.phyCounters.get(2) := Cat(media.io.timeoutCount, phy.io.unsupportedCount)
     port.mdioIn := true.B
+    controlPark.foreach { p =>
+        p.released := withClockAndReset(sourceClock, cpuRelease.resetOut) { RegNext(!p.request, false.B) }
+        p.configDrained := !configPending
+        p.mdioDrained := !mdio.io.busy && mdioOwner.io.runtimeIdle.get
+        p.phyParked := phy.io.parked.get
+        p.phyFault := phy.io.fault
+        p.mediaSettled := !media.io.pending
+        p.statisticsPending := Cat(!rawDiagnostics.destinationIdle, !rxDiagnostics.destinationIdle,
+            !rxStats.destinationIdle, !txStats.destinationIdle)
+        p.parked := p.request && p.csrDrained && p.configDrained && p.mdioDrained &&
+            p.phyParked && p.mediaSettled
+    }
     irq := csr.io.irq.orR
 }

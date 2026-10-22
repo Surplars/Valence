@@ -1,0 +1,9 @@
+{
+  "status": "PASS_INDEPENDENT_CASE_REHASH",
+  "case": "reversed-tx-cancel",
+  "case_status": "PASS_POSITIVE_CASE",
+  "checked": 621,
+  "case_receipt_sha256": "eb5597ec0959e3face4680c5abed263fa45130e742bebf01345a1f3255d08283",
+  "verified_at_utc": "2026-10-21T23:41:29.348105+00:00",
+  "failed": []
+}

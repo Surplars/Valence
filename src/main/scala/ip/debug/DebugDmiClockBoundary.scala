@@ -9,7 +9,7 @@ import soc.ip.bus.{CdcMailbox, CdcResetRelease}
   * synchronous release prevents stale requests/responses replaying on reconnect.
   * Never use the link reset to reset the fabric or a memory transaction owner.
   */
-class DebugDmiClockBoundary(addressBits: Int = 7) extends RawModule {
+class DebugDmiClockBoundary(addressBits: Int = 7, exposeIdle: Boolean = false) extends RawModule {
     val sourceClock = IO(Input(Clock()))
     val destinationClock = IO(Input(Clock()))
     val commonColdReset = IO(Input(AsyncReset()))
@@ -17,6 +17,8 @@ class DebugDmiClockBoundary(addressBits: Int = 7) extends RawModule {
     val destination = IO(new DebugDmiPort(addressBits))
     val sourceLinkUp = IO(Input(Bool()))
     val destinationLinkUp = IO(Output(Bool()))
+    val sourceIdle = if (exposeIdle) Some(IO(Output(Bool()))) else None
+    val destinationIdle = if (exposeIdle) Some(IO(Output(Bool()))) else None
     private val transportReset = (commonColdReset.asBool || !sourceLinkUp).asAsyncReset
     val release = Module(new CdcResetRelease)
     release.clockIn := destinationClock
@@ -42,4 +44,6 @@ class DebugDmiClockBoundary(addressBits: Int = 7) extends RawModule {
     source.response.valid := responses.destination.valid
     source.response.bits := responses.destination.bits.asTypeOf(source.response.bits)
     responses.destination.ready := source.response.ready
+    sourceIdle.foreach(_ := requests.sourceIdle && responses.destinationIdle)
+    destinationIdle.foreach(_ := requests.destinationIdle && responses.sourceIdle)
 }

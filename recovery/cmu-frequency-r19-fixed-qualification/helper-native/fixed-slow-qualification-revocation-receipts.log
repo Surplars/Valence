@@ -1,0 +1,10 @@
+FIXED_PREPARE epoch=1
+FIXED_PROOF epoch=1 fixed_edges=38
+FIXED_PROOF epoch=1 fixed_edges=50
+FIXED_PROOF epoch=1 fixed_edges=62
+FIXED_RECEIPT epoch=1 canceled=0
+FIXED_PREPARE epoch=2
+FIXED_PROOF epoch=2 fixed_edges=93
+FIXED_RECEIPT epoch=2 canceled=0
+FIXED_EPOCH_QUALIFIER_PASS case=0 prepares=2 retired=2 proof_checks=106 retirement_checks=62 blocked_checks=325 resets=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_epoch_qualifier_tb.sv:268: $finish called at 3576000 (1ps)

@@ -1,0 +1,29 @@
+--- r11/baseline_tb.source.sv
++++ r11/corrected_tb.source.sv
+@@ -120,12 +120,20 @@
+    reset=1; monitorNoGate=0; step(4); @(negedge clock); reset=0;
+    while(busy) tick();
+  end endtask
+- task check_pending(input integer lane,input integer count); begin
+-   if(completed[lane]!==count || !busy[lane] || !clockEnable[lane] || !quiesce[lane])
+-     $fatal(1,"controller prematurely completed/released cleanup");
+-   if(wrongCompletion && completed[lane]!==count+1) $fatal(1,"NEGATIVE_ORACLE_REJECTED wrong completion ledger");
+-   if(wrongQuiesce && quiesce[lane]!==0) $fatal(1,"NEGATIVE_ORACLE_REJECTED wrong release oracle");
+- end endtask
++ task check_pending(input integer lane,input integer count);
++   integer observedCompleted; reg observedQuiesce;
++   begin
++     // Mutate observations before the shared positive/negative ownership checker.
++     observedCompleted=completed[lane]; observedQuiesce=quiesce[lane];
++     if(wrongCompletion) observedCompleted=observedCompleted+1;
++     if(wrongQuiesce) observedQuiesce=0;
++     if(observedCompleted!==count || !busy[lane] || !clockEnable[lane] || !observedQuiesce) begin
++       if(wrongCompletion || wrongQuiesce)
++         $display("NEGATIVE_ORACLE_REJECTED corrupted observed cleanup ledger");
++       $fatal(1,"controller prematurely completed/released cleanup");
++     end
++   end
++ endtask
+  task terminal(input integer lane,input reg canceled); begin
+    @(negedge clock); result_token[lane]=activeToken; result_epoch[lane]=activeEpoch;
+    result_canceled[lane]=canceled; result_timedOut[lane]=canceled; result_valid[lane]=1; #1;

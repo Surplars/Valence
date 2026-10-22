@@ -1,0 +1,7 @@
+PACKET_RESET_DISCARDED epoch=1 accepted_reads=4 unreplied_reads=4 tx_frames=0
+PACKET_TX_WIRE frame=0 id=17 bytes=72 crc=a82bc0db
+PACKET_EPOCH_HELD epoch=1 prepares=1 modeled_terminal=backpressured
+PACKET_RESET_FRESH_LEDGER txframes=1 accepted=8 replied=8
+PACKET_EPOCH_RELEASED epoch=1 receipts=1
+NETWORK_PACKET_RUNTIME_PASS case=3 clocks=11/7/2 memory=8/8
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:481: $finish called at 7425100 (1ps)

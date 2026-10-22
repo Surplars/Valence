@@ -15,7 +15,8 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     networkDmaConfig: NetworkDmaConfig = NetworkDmaConfig.Default,
     triSpeedEthernet: Boolean = false, triSpeedTxFrameSlots: Int = 1,
     val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false,
-    sourceClockHz: Int = 0, rateDomains: Option[Seq[ClockRateParams]] = None) extends RawModule {
+    sourceClockHz: Int = 0, rateDomains: Option[Seq[ClockRateParams]] = None,
+    runtimeAdmission: Boolean = false, runtimeControlPark: Boolean = false) extends RawModule {
     // CPU metadata and the actual MMIO/control source domain are independent.
     require(sourceClockHz >= 0)
     require(rateDomains.forall(_.size == 2))
@@ -25,8 +26,11 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
         "RAW MAC handoff with balanced raw clocks needs dedicated MAC lifecycle/CDC qualification")
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
     require(!triSpeedRawClockHandoff || triSpeedEthernet)
+    require(!runtimeAdmission || triSpeedEthernet, "runtime network admission requires the tri-speed MAC")
     require(config.resources.size == 7 && config.gateableMask == 0x68)
     require(config.resources(1).nominalHz == cpuHz && config.resources(3).nominalHz == uartHz)
+    require(!runtimeControlPark || triSpeedEthernet, "control park requires the tri-speed MAC")
+    val controlPark = if (runtimeControlPark) Some(IO(new EthernetRuntimeControlParkPort)) else None
     val sourceClock = IO(Input(Clock()))
     val alwaysOnClock = IO(Input(Clock()))
     val rawUartClock = IO(Input(Clock()))
@@ -37,6 +41,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     val uartRegisters = IO(Flipped(new RegisterPort))
     val gmacRegisters = IO(Flipped(new RegisterPort))
     val streams = IO(new ManagedGmacStreams)
+    val runtimeAdmissionPort = if (runtimeAdmission) Some(IO(new EthernetRuntimeAdmissionPort)) else None
     val uartRx = IO(Input(Bool()))
     val uartTx = IO(Output(Bool()))
     val uartIrq = IO(Output(Bool()))
@@ -99,17 +104,29 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     // Scala-only constructed-instance witness; no RTL port, state or name change.
     private var builtTriSpeedMac: Option[TriSpeedManagedGmac] = None
     def instantiatedTriSpeedMac: Option[TriSpeedManagedGmac] = builtTriSpeedMac
-    if (triSpeedEthernet) {
-        val gmac = Module(new TriSpeedManagedGmac(busHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
+    protected def buildTriSpeedMac(): TriSpeedManagedGmac =
+        new TriSpeedManagedGmac(busHz, config.alwaysOnHz, hardwareClocks = hardwareClocks,
             networkDmaConfig = networkDmaConfig, txFrameSlots = triSpeedTxFrameSlots,
-            rawClockHandoff = triSpeedRawClockHandoff, balancedRawClock = balancedRawClocks))
+            rawClockHandoff = triSpeedRawClockHandoff, balancedRawClock = balancedRawClocks,
+            runtimeAdmission = runtimeAdmission, runtimeControlPark = runtimeControlPark)
+    if (triSpeedEthernet) {
+        val gmac = Module(buildTriSpeedMac())
         builtTriSpeedMac = Some(gmac)
+        controlPark.foreach(_ <> gmac.controlPark.get)
         gmac.sourceClock := sourceClock
         gmac.rawTxClock := rawTxClock
         gmac.rawRxClock := rawRxClock
         gmac.commonReset := commonReset
         gmac.registers <> gmacRegisters
         gmac.streams <> streams
+        runtimeAdmissionPort.foreach { admission =>
+            val macAdmission = gmac.runtimeAdmissionPort.get
+            macAdmission.rxStopRequest := admission.rxStopRequest
+            macAdmission.txStopRequest := admission.txStopRequest
+            admission.rxDrained := macAdmission.rxDrained
+            admission.txDrained := macAdmission.txDrained
+            admission.released := macAdmission.released
+        }
         for (n <- 0 until 2) gmac.control(n) <> cmu.resources(n + 5)
         gmac.rawRgmiiRxRise := triSpeedRgmii.get.rxRise
         gmac.rawRgmiiRxFall := triSpeedRgmii.get.rxFall

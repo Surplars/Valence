@@ -11,12 +11,14 @@ import soc.ip.dma.{EthernetAxisWord, NetworkDmaConfig}
   * No atomics/bursts; preserve held lane until D consumes the ordered reply.
   * CPU/MMIO need not share either managed media clock.
   */
-class RegisterGmacControl(base: BigInt, tlParams: TLParams) extends Module {
+class RegisterGmacControl(base: BigInt, tlParams: TLParams, runtimeObservation: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val runtimeIdle = if (runtimeObservation) Some(Output(Bool())) else None
         val registers = Flipped(new RegisterPort)
         val tl = new TLBundle(tlParams)
     })
     val busy = RegInit(false.B)
+    io.runtimeIdle.foreach(_ := !busy)
     val lane = Reg(UInt(3.W))
     val request = io.registers.request.bits
     io.tl.a.valid := io.registers.request.valid && !busy

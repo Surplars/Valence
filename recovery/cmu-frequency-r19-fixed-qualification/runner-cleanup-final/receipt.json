@@ -1,0 +1,24 @@
+{
+  "status": "PASS_EXPECTED_TIMEOUT_AND_REAP",
+  "source_sha256": "00efcaca7aaaf52bcdbc349a2c1712e0762c5ec81c03bed071d3334d0091c665",
+  "cases": [
+    {
+      "name": "deadline",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-c",
+        "import os,time;print(os.getpid(),flush=True);time.sleep(10)"
+      ],
+      "returncode": -9,
+      "elapsed_seconds": 0.25229083599697333,
+      "minimum_free_bytes": 28392275968,
+      "timed_out": true,
+      "process_group_killed": true,
+      "interrupted": false,
+      "child_reaped": true
+    }
+  ],
+  "expected_failure": "wall-clock or disk resource bound: deadline",
+  "child_pid": 10,
+  "child_pid_absent_after_reap": true
+}

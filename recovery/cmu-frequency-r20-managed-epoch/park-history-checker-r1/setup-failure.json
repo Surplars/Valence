@@ -1,0 +1,4 @@
+{
+  "status": "FAIL_CHECKER_SETUP_NO_COMPILER_STARTED",
+  "error": "tool_hashes was given str instead of Path; AttributeError read_bytes before compile"
+}

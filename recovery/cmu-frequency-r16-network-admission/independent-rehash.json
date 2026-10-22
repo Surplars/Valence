@@ -1,0 +1,11 @@
+{
+  "status": "PASS_INDEPENDENT_REHASH",
+  "receipt_sha256": "f3c5f22209ce190c4d9d2a2deeca78b58680e22b2857548dc1a80f66baefa91e",
+  "source_count": 319,
+  "input_count": 24,
+  "tools_count": 7,
+  "positive_count": 16,
+  "negative_count": 3,
+  "source_input_tool_binary_logs_verified": true,
+  "packet_and_platform_emission_source_rtl_verified": true
+}

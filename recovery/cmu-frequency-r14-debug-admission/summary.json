@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SCOPED_NATIVE",
+  "native_receipt_sha256": "112912e8fe6f28ea753792f983862a78af4e02eacc9a874ff1ed68282391f43e",
+  "source_files": 317,
+  "rtl_files": 9,
+  "tools": 7,
+  "default_sv_byte_identical": 248,
+  "production_instantiated": false,
+  "full_ack_connected": false,
+  "prior_commit": "e3f6c2899c7ff03bd03e0a3d39ea43aa73a80427",
+  "remote_publication": "BLOCKED_PENDING_PRIOR_RECEIPT_APPROVAL"
+}

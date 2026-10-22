@@ -1,0 +1,3 @@
+I1_RUNTIME_DEBUG_BOOT cpu_control_writes=1 reads=4 loops=2
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_debug_tb.sv:435: independent debug drain oracle: early source reply is not RAM completion
+       Time: 9001000  Scope: i1_runtime_debug_tb.noFabricWhileOld

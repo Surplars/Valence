@@ -1,0 +1,74 @@
+{
+  "status": "PASS_NARROW_HISTORICAL_MONITOR_CORRECTION",
+  "current_source_qualified": false,
+  "original_receipts_edited": false,
+  "production_rtl_edited": false,
+  "mill_invoked": false,
+  "scope": "Three historical component baselines only; five affected negatives and three matching positive controls. r16 correction is separately owned.",
+  "replays": {
+    "r10": {
+      "receipt": "recovery/cmu-negative-oracle-correction/r10/replay-r1/receipt.json",
+      "status": "PASS_HISTORICAL_RTL_CORRECTED_MONITOR_REPLAY",
+      "original_rtl_files_verified": 6,
+      "cases": [
+        {
+          "label": "positive-matched-control",
+          "returncode": 0,
+          "accepted": true
+        },
+        {
+          "label": "negative-2",
+          "returncode": 1,
+          "accepted": true
+        }
+      ],
+      "current_source_difference_count": 10
+    },
+    "r11": {
+      "receipt": "recovery/cmu-negative-oracle-correction/r11/replay-r1/receipt.json",
+      "status": "PASS_HISTORICAL_RTL_CORRECTED_MONITOR_REPLAY",
+      "original_rtl_files_verified": 3,
+      "cases": [
+        {
+          "label": "positive-matched-control",
+          "returncode": 0,
+          "accepted": true
+        },
+        {
+          "label": "negative-completion",
+          "returncode": 1,
+          "accepted": true
+        },
+        {
+          "label": "negative-quiesce",
+          "returncode": 1,
+          "accepted": true
+        }
+      ],
+      "current_source_difference_count": 11
+    },
+    "r12": {
+      "receipt": "recovery/cmu-negative-oracle-correction/r12/replay-r1/receipt.json",
+      "status": "PASS_HISTORICAL_RTL_CORRECTED_MONITOR_REPLAY",
+      "original_rtl_files_verified": 3,
+      "cases": [
+        {
+          "label": "positive-matched-control",
+          "returncode": 0,
+          "accepted": true
+        },
+        {
+          "label": "negative-completion",
+          "returncode": 1,
+          "accepted": true
+        },
+        {
+          "label": "negative-quiesce",
+          "returncode": 1,
+          "accepted": true
+        }
+      ],
+      "current_source_difference_count": 10
+    }
+  }
+}

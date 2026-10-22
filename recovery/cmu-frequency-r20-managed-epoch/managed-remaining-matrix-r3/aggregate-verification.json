@@ -1,0 +1,135 @@
+{
+  "status": "PASS_BOUNDED_MANAGED_CONTROL_EPOCH_MATRIX",
+  "verified_at_utc": "2026-10-21T23:53:30.016078+00:00",
+  "normal_receipt_sha256": "48cdb66fec29897340139d90abe10788c5e4d9970d35cb7bed5f134ce3e17dcb",
+  "remaining_matrix_receipt_sha256": "c38fcad711d080d070efa5594e2c4b3c680fbab404f092804ecb61d56a8e3a63",
+  "source_count": 332,
+  "unchanged_production_sources": 315,
+  "rtl_count": 257,
+  "tool_count": 11,
+  "default_rtl_byte_identical": 248,
+  "positive": [
+    {
+      "case": "unrelated-tx-normal",
+      "elapsed_seconds": 229.0827950929961,
+      "wall_budget": 300,
+      "timer": "42/42",
+      "packet": "16/16",
+      "frames": 2,
+      "wire_bytes_each": 72,
+      "crc_each": "449789ae",
+      "axi_r": "66/66",
+      "axi_b": "3/3",
+      "csr": "6/6",
+      "cancel_observations": {},
+      "log_sha256": "573181461765e05875c6670fa3836d8589c96176daccbd8d5003f1075d0e02a2"
+    },
+    {
+      "case": "unrelated-tx-cancel",
+      "elapsed_seconds": 72.7125150260108,
+      "wall_budget": 180,
+      "timer": "17/17",
+      "packet": "16/16",
+      "frames": 2,
+      "wire_bytes_each": 72,
+      "crc_each": "449789ae",
+      "axi_r": "66/66",
+      "axi_b": "3/3",
+      "csr": "2/2",
+      "cancel_observations": {
+        "cancel_accepted_before_held": "1",
+        "real_terminal_join": "1",
+        "raw_held_samples": "1",
+        "matched_held_idle_samples": "0",
+        "runtime_park_edges": "0",
+        "released": "1"
+      },
+      "log_sha256": "21262910b5c531b02426809333f661d5d95a370b7a7f81f61fa0671bc0b60862"
+    },
+    {
+      "case": "reversed-tx-normal",
+      "elapsed_seconds": 180.18173335300526,
+      "wall_budget": 300,
+      "timer": "80/80",
+      "packet": "16/16",
+      "frames": 2,
+      "wire_bytes_each": 72,
+      "crc_each": "449789ae",
+      "axi_r": "66/66",
+      "axi_b": "3/3",
+      "csr": "6/6",
+      "cancel_observations": {},
+      "log_sha256": "53584a9b7a7d0cca7b4d6fdce70d45ab47102fcde9fb95a1611d29c8d95ff778"
+    },
+    {
+      "case": "reversed-tx-cancel",
+      "elapsed_seconds": 78.1704983899981,
+      "wall_budget": 180,
+      "timer": "12/12",
+      "packet": "16/16",
+      "frames": 2,
+      "wire_bytes_each": 72,
+      "crc_each": "449789ae",
+      "axi_r": "66/66",
+      "axi_b": "3/3",
+      "csr": "2/2",
+      "cancel_observations": {
+        "cancel_accepted_before_held": "1",
+        "real_terminal_join": "1",
+        "raw_held_samples": "1",
+        "matched_held_idle_samples": "0",
+        "runtime_park_edges": "0",
+        "released": "1"
+      },
+      "log_sha256": "89bdd3649e711223052a27512dd45daacedcc9d46d19d416ea28033fc6fb8fc6"
+    }
+  ],
+  "negative_controls": [
+    {
+      "case": "negative-tx-payload",
+      "elapsed_seconds": 72.35945939400699,
+      "wall_budget": 180,
+      "injection": "FIXED_NEGATIVE_OBSERVATION TX",
+      "rejection": "NETWORK_ORACLE_PAYLOAD",
+      "log_sha256": "ce22e7ebc0628c5c78a10abf138409b07a6467ae2f656cb25844e551e500ef6b"
+    },
+    {
+      "case": "negative-control-csr-drain",
+      "elapsed_seconds": 74.99909985499107,
+      "wall_budget": 180,
+      "injection": "MANAGED_CONTROL_NEGATIVE_OBSERVATION CSR_DRAIN",
+      "rejection": "MANAGED_CONTROL_ORACLE_CSR_DRAIN",
+      "log_sha256": "b2aa22865fe70a873ebc945d14f7d6c75265879ae5733ff14ddc31f663ce6558"
+    },
+    {
+      "case": "negative-retained-statistics",
+      "elapsed_seconds": 234.96810098399874,
+      "wall_budget": 300,
+      "injection": "MANAGED_CONTROL_NEGATIVE_OBSERVATION STATISTICS",
+      "rejection": "MANAGED_CONTROL_ORACLE_STATISTICS",
+      "log_sha256": "4c5eda96dad6f53ac4af47d09f994ee73b3d9a1fcae80bba360e40841229cd7b"
+    },
+    {
+      "case": "negative-park-retention",
+      "elapsed_seconds": 237.18639349199657,
+      "wall_budget": 300,
+      "injection": "MANAGED_CONTROL_NEGATIVE_OBSERVATION PARK_RETENTION",
+      "rejection": "MANAGED_CONTROL_ORACLE_PARK_RETENTION",
+      "log_sha256": "a2dd89368559c45868a0798983546bbb038863f3a97973788165a9d512c23eec"
+    }
+  ],
+  "scope": "four real combined TX positives across two clock ratios and normal/early-cancel; four unrelated normal observation negatives; preboot-only acceleration, all runtime source/fabric edges identical",
+  "exclusions": [
+    "production fixed-clock island",
+    "full-system drain ACK",
+    "clock gate or stopped-clock feedback",
+    "DRP/backend or runtime frequency whitelist",
+    "physical PHY/MIG/board/routed timing",
+    "RX payload and timeout scenarios",
+    "late cancellation after actual park",
+    "concurrent eight-clock PHY initialization"
+  ],
+  "old_r5_interrupted_child_reaping": "Unknown and unchanged; no retrospective inference",
+  "upload_status": "This task performed no upload; parent reported denied uploads pending exact-manifest authorization",
+  "verification_script_sha256": "e6802d58c8e21913a0c6e0fccf069b781a3df48426c8b1015188628d45507931"
+}

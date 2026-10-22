@@ -1,0 +1,3 @@
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_rx_burst_tb.sv:194: syntax error
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_rx_burst_tb.sv:195: error: Malformed statement
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_rx_burst_tb.sv:194: error: Malformed conditional expression.

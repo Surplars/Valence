@@ -1,0 +1,247 @@
+`timescale 1ns/1ps
+// Whole real MAC at fixed125, independent fabric, and independent PHY RXC.
+// Producer-closed witnesses are this fixture's stimulus contract, not CPU/DMA.
+module fixed_mac_rx_burst_tb;
+  reg fabric=0,fixed125=0,rx=0,reset=1;
+  localparam FRAME_BYTES=1514,FRAME_COUNT=64;
+  integer fabric_half=10,negative=0,reference_mode=0,random_sink=0;
+  initial begin
+    if($value$plusargs("fabric_half=%d",fabric_half))begin end
+    if($value$plusargs("negative=%d",negative))begin end
+    if($value$plusargs("reference=%d",reference_mode))begin end
+    if($value$plusargs("random_sink=%d",random_sink))begin end
+    forever #(fabric_half) fabric=~fabric;
+  end
+  initial begin #0.7;forever #4 fixed125=~fixed125;end
+  initial begin #2.7;forever #4 rx=~rx;end
+  reg req_valid=0,req_write=0,resp_ready=1;
+  reg [63:0] req_address=0,req_data=0;
+  wire req_ready,resp_valid,resp_error;
+  wire [63:0] resp_data;
+  reg [4:0] rise=0,fall=0;
+  wire mdc,mdio_out,mdio_oe,mdio_in,link,media_pending,irq;
+  wire [1:0] speed;
+  wire [7:0] gmii_tx_data;
+  wire gmii_tx_enable,gmii_tx_error;
+  wire rdvalid,rdlast,rsvalid,rslast;
+  wire [31:0] rddata,rsdata;
+  wire [3:0] rdkeep,rskeep;
+  reg hold_status=0;
+  reg [31:0] sink_lfsr=32'h712a534d;
+  always @(negedge fabric)sink_lfsr={sink_lfsr[30:0],sink_lfsr[31]^sink_lfsr[21]^sink_lfsr[1]^sink_lfsr[0]};
+  wire rdready=!random_sink||sink_lfsr[0]||sink_lfsr[3];
+  wire rsready=!random_sink||sink_lfsr[2]||sink_lfsr[5];
+  reg tdvalid=0,tclvalid=0,tdlast=0,tcllast=0;
+  reg [31:0] tddata=0,tcldata=0;
+  wire tdready,tclready;
+  reg cmdvalid=0,cmdrx=0,cmdtx=0,cmdpark=0,ackready=1,obsready=1;
+  reg [15:0] epoch=1,serial=0;
+  reg txclosed=0,csrclosed=0;
+  wire cmdready,ackvalid,obsvalid;
+  wire [15:0] ackepoch,ackserial,obsepoch,obsserial;
+  wire ackrx,acktx,ackpark,obsrx,obstx,obspark;
+  wire txdrained,rxdrained,released,parked,csrdrained;
+  wire csr_idle,tx_storage_idle,rx_consumers_idle;
+  wire [3:0] phyfault;
+  FixedSourceTestGmac dut(
+    .fabricClock(fabric),.rawTxClock(fixed125),.rawRxClock(rx),.commonReset(reset),
+    .registers_request_valid(req_valid),.registers_request_ready(req_ready),.registers_request_bits_address(req_address),
+    .registers_request_bits_write(req_write),.registers_request_bits_size(3'd3),.registers_request_bits_data(req_data),
+    .registers_request_bits_byteEnable(8'hff),.registers_response_ready(resp_ready),.registers_response_valid(resp_valid),
+    .registers_response_bits_data(resp_data),.registers_response_bits_error(resp_error),
+    .streams_txData_valid(tdvalid),.streams_txData_ready(tdready),.streams_txData_bits_data(tddata),.streams_txData_bits_keep(4'hf),.streams_txData_bits_last(tdlast),
+    .streams_txControl_valid(tclvalid),.streams_txControl_ready(tclready),.streams_txControl_bits_data(tcldata),.streams_txControl_bits_keep(4'hf),.streams_txControl_bits_last(tcllast),
+    .streams_rxData_ready(rdready),.streams_rxData_valid(rdvalid),.streams_rxData_bits_data(rddata),.streams_rxData_bits_keep(rdkeep),.streams_rxData_bits_last(rdlast),
+    .streams_rxStatus_ready(rsready),.streams_rxStatus_valid(rsvalid),.streams_rxStatus_bits_data(rsdata),.streams_rxStatus_bits_keep(rskeep),.streams_rxStatus_bits_last(rslast),
+    .command_valid(cmdvalid),.command_ready(cmdready),.command_bits_epoch(epoch),.command_bits_serial(serial),
+    .command_bits_rxStop(cmdrx),.command_bits_txStop(cmdtx),.command_bits_park(cmdpark),
+    .consumed_valid(ackvalid),.consumed_ready(ackready),.consumed_bits_epoch(ackepoch),.consumed_bits_serial(ackserial),
+    .consumed_bits_rxStop(ackrx),.consumed_bits_txStop(acktx),.consumed_bits_park(ackpark),
+    .observation_valid(obsvalid),.observation_ready(obsready),.observation_bits_command_epoch(obsepoch),.observation_bits_command_serial(obsserial),
+    .observation_bits_command_rxStop(obsrx),.observation_bits_command_txStop(obstx),.observation_bits_command_park(obspark),
+    .observation_bits_txDrained(txdrained),.observation_bits_rxDrained(rxdrained),.observation_bits_released(released),
+    .observation_bits_parked(parked),.observation_bits_csrDrained(csrdrained),.observation_bits_phyFault(phyfault),
+    .txProducersClosed(txclosed),.controlProducersClosed(csrclosed),
+    .fabricCsrIdle(csr_idle),.fabricTxStorageIdle(tx_storage_idle),.fabricRxConsumersIdle(rx_consumers_idle),
+    .control_0_clockEnable(1'b1),.control_0_quiesce(1'b0),.control_0_isolate(1'b0),.control_0_allowAdmission(1'b1),
+    .control_1_clockEnable(1'b1),.control_1_quiesce(1'b0),.control_1_isolate(1'b0),.control_1_allowAdmission(1'b1),
+    .rawRgmiiRxRise(rise),.rawRgmiiRxFall(fall),.mdioIn(mdio_in),.mdc(mdc),.mdioOut(mdio_out),.mdioOe(mdio_oe),
+    .gmiiTxData(gmii_tx_data),.gmiiTxEnable(gmii_tx_enable),.gmiiTxError(gmii_tx_error),.irq(irq),
+    .linkUp(link),.appliedSpeed(speed),.mediaPending(media_pending));
+  wire [15:0] page;
+  wire [31:0] transactions,status_count,bmsr_count;
+  wire configured;
+  rtl8211f_pin_model phy(.clk(fixed125),.reset(reset),.mdc(mdc),.mdio_out(mdio_out),.mdio_oe(mdio_oe),.mdio_in(mdio_in),
+    .wire_link(1'b1),.wire_speed(2'd2),.full_duplex(1'b1),.an_complete(1'b1),.remote_fault(1'b0),.inject_no_ack(1'b0),
+    .page(page),.transaction_count(transactions),.status_count(status_count),.bmsr_count(bmsr_count),.configuration_complete(configured));
+
+  function automatic [31:0] crc_byte(input [31:0] old,input [7:0] b);
+    reg [31:0] c;begin c=old;for(integer j=0;j<8;j=j+1)c=(c>>1)^((c[0]^b[j])?32'hedb88320:0);crc_byte=c;end
+  endfunction
+  function automatic [7:0] body(input integer id,input integer i);
+    begin
+      if(i<6)body=8'hff;
+      else if(i==12)body=8'h88;
+      else if(i==13)body=8'hb5;
+      else if(i==14)body=id&255;
+      else if(i==15)body=(id>>8)&255;
+      else body=(id*17+i*13+(i>>3))&255;
+    end
+  endfunction
+  integer wire_frames=0,wire_position=0,idle_slots=0,checked_gaps=0,wire_body_bytes=0;
+  reg wire_previous=0;
+  reg [31:0] wire_crc=32'hffffffff;
+  reg [7:0] observed_wire,expected_wire;
+  real first_wire=0,last_wire=0,first_data=0,last_data=0;
+  always @(posedge rx)if(!reset)begin
+    if(rise[4])begin
+      if(!wire_previous)begin
+        if(wire_frames>0)begin
+          if(idle_slots!=12)$fatal(1,"BURST_ORACLE_WIRE_IFG got=%0d",idle_slots);
+          checked_gaps=checked_gaps+1;
+        end else first_wire=$realtime;
+        idle_slots=0;
+      end
+      observed_wire={fall[3:0],rise[3:0]};
+      if(wire_position<7)expected_wire=8'h55;
+      else if(wire_position==7)expected_wire=8'hd5;
+      else if(wire_position<FRAME_BYTES+8)expected_wire=body(wire_frames,wire_position-8);
+      else if(wire_position<FRAME_BYTES+12)expected_wire=(~wire_crc)>>((wire_position-FRAME_BYTES-8)*8);
+      else $fatal(1,"BURST_ORACLE_WIRE long frame");
+      if(observed_wire!==expected_wire||!fall[4])$fatal(1,"BURST_ORACLE_WIRE payload/FCS");
+      if(wire_position>=8&&wire_position<FRAME_BYTES+8)begin
+        wire_crc=crc_byte(wire_crc,observed_wire);wire_body_bytes=wire_body_bytes+1;
+      end
+      wire_position=wire_position+1;
+    end else begin
+      idle_slots=idle_slots+1;
+      if(wire_previous)begin
+        if(wire_position!=FRAME_BYTES+12)$fatal(1,"BURST_ORACLE_WIRE length");
+        wire_frames=wire_frames+1;wire_position=0;wire_crc=32'hffffffff;last_wire=$realtime;
+      end
+    end
+    wire_previous=rise[4];
+  end
+  integer delivered=0,statuses=0,byte_index=0,status_index=0,last_id=-1;
+  integer accepted=0,drops=0,bad_fcs=0,accepted_bytes=0;
+  integer reasons[0:7];
+  integer source_data_words=0,source_data_bytes=0,source_status_words=0;
+  integer sink_data_words=0,sink_data_bytes=0,sink_status_words=0;
+  // External accepted-word ledgers do not use DUT pointers or FIFO memory.
+  // They bind the reference's delivered subset to every exact outer-source beat.
+  reg [36:0] accepted_data[0:32767],accepted_status[0:1023];
+  integer csr_accept=0,csr_reply=0,mac_csr_accept=0,mac_csr_reply=0,stall_data=0,stall_status=0;
+  reg [63:0] delivered_ids=0;
+  reg [7:0] packet_bytes[0:2047];
+  reg [36:0] data_held,status_held;
+  reg data_was_held=0,status_was_held=0;
+  reg [31:0] observed_data,observed_status;
+  integer packet_id,valid_bytes;
+  always @(posedge fixed125)if(!reset)begin
+    if(dut.mac.registers_request_valid&&dut.mac.registers_request_ready)mac_csr_accept=mac_csr_accept+1;
+    if(dut.mac.registers_response_valid&&dut.mac.registers_response_ready)mac_csr_reply=mac_csr_reply+1;
+    if(dut.mac.rx.io_accepted)begin accepted=accepted+1;accepted_bytes=accepted_bytes+dut.mac.rx.io_bytes;end
+    if(dut.mac.rx.io_dropped)drops=drops+1;
+    if(dut.mac.rx.io_badFcs)bad_fcs=bad_fcs+1;
+    for(integer r=0;r<8;r=r+1)if(dut.mac.rx.io_dropReasons[r])reasons[r]=reasons[r]+1;
+    if(dut.mac.streams_rxData_valid&&dut.mac.streams_rxData_ready)begin
+      if(source_data_words>=32768)$fatal(1,"BURST_ORACLE_SOURCE ledger capacity");
+      accepted_data[source_data_words]={dut.mac.streams_rxData_bits_data,dut.mac.streams_rxData_bits_keep,dut.mac.streams_rxData_bits_last};
+      source_data_words=source_data_words+1;
+      for(integer k=0;k<4;k=k+1)if(dut.mac.streams_rxData_bits_keep[k])source_data_bytes=source_data_bytes+1;
+    end
+    if(dut.mac.streams_rxStatus_valid&&dut.mac.streams_rxStatus_ready)begin
+      if(source_status_words>=1024)$fatal(1,"BURST_ORACLE_SOURCE status ledger capacity");
+      accepted_status[source_status_words]={dut.mac.streams_rxStatus_bits_data,dut.mac.streams_rxStatus_bits_keep,dut.mac.streams_rxStatus_bits_last};
+      source_status_words=source_status_words+1;
+    end
+  end
+  always @(posedge fabric)if(!reset)begin
+    if(req_valid&&req_ready)csr_accept=csr_accept+1;
+    if(resp_valid&&resp_ready)csr_reply=csr_reply+1;
+    if(data_was_held&&(!rdvalid||{rddata,rdkeep,rdlast}!==data_held))$fatal(1,"BURST_ORACLE_HELD data");
+    if(status_was_held&&(!rsvalid||{rsdata,rskeep,rslast}!==status_held))$fatal(1,"BURST_ORACLE_HELD status");
+    data_was_held=rdvalid&&!rdready;status_was_held=rsvalid&&!rsready;
+    if(data_was_held)begin data_held={rddata,rdkeep,rdlast};stall_data=stall_data+1;end
+    if(status_was_held)begin status_held={rsdata,rskeep,rslast};stall_status=stall_status+1;end
+    if(rdvalid&&rdready)begin
+      if(sink_data_words>=source_data_words||
+         ({rddata,rdkeep,rdlast}^((negative==4&&sink_data_words==400)?37'd1:37'd0))!==accepted_data[sink_data_words])
+        $fatal(1,"BURST_ORACLE_TRANSPORT_DATA exact accepted word");
+      if(sink_data_words==0)first_data=$realtime;last_data=$realtime;
+      observed_data=rddata^((negative==1&&delivered==1&&byte_index==20)?32'h1:0);
+      if(rdlast!==(byte_index==FRAME_BYTES-2)||rdkeep!==(rdlast?4'h3:4'hf))$fatal(1,"BURST_ORACLE_RX shape");
+      valid_bytes=0;
+      for(integer k=0;k<4;k=k+1)if(rdkeep[k])begin
+        packet_bytes[byte_index+valid_bytes]=observed_data[k*8+:8];valid_bytes=valid_bytes+1;
+      end
+      byte_index=byte_index+valid_bytes;sink_data_words=sink_data_words+1;sink_data_bytes=sink_data_bytes+valid_bytes;
+      if(rdlast)begin
+        packet_id=packet_bytes[14]+256*packet_bytes[15];
+        if(byte_index!=FRAME_BYTES||packet_id<0||packet_id>=wire_frames||packet_id<=last_id||delivered_ids[packet_id]||(!reference_mode&&packet_id!=delivered))
+          $fatal(1,"BURST_ORACLE_RX frame identity/length id=%0d delivered=%0d wire=%0d",packet_id,delivered,wire_frames);
+        for(integer b=0;b<FRAME_BYTES;b=b+1)if(packet_bytes[b]!==body(packet_id,b))$fatal(1,"BURST_ORACLE_RX payload id=%0d byte=%0d",packet_id,b);
+        delivered_ids[packet_id]=1;last_id=packet_id;delivered=delivered+1;byte_index=0;
+      end
+    end
+    if(rsvalid&&rsready)begin
+      if(sink_status_words>=source_status_words||{rsdata,rskeep,rslast}!==accepted_status[sink_status_words])
+        $fatal(1,"BURST_ORACLE_TRANSPORT_STATUS exact accepted word");
+      observed_status=rsdata^((negative==2&&statuses==1&&status_index==3)?32'h1:0);
+      if(rskeep!==4'hf||rslast!==(status_index==5)||observed_status!==((status_index==0)?32'h50000000:((status_index==3)?32'd64:((status_index==5)?FRAME_BYTES:0))))
+        $fatal(1,"BURST_ORACLE_STATUS payload/shape");
+      sink_status_words=sink_status_words+1;
+      if(rslast)begin statuses=statuses+1;status_index=0;end else status_index=status_index+1;
+    end
+  end
+  task automatic cycles(input integer n);begin repeat(n)@(negedge fabric);end endtask
+  task automatic mmio(input integer offset,input reg wr,input [63:0] data,output reg [63:0] result);
+    begin @(negedge fabric);req_address=64'h10040000+offset;req_write=wr;req_data=data;req_valid=1;
+      @(posedge fabric);while(!req_ready)@(posedge fabric);@(negedge fabric);req_valid=0;
+      @(posedge fabric);while(!resp_valid)@(posedge fabric);
+      if(resp_error)$fatal(1,"BURST_ORACLE_CSR error offset=%h",offset);result=resp_data;@(negedge fabric);end
+  endtask
+  task automatic counter(input integer offset,input integer expected);
+    reg [63:0] value;integer attempt;begin
+      value=64'hffffffffffffffff;attempt=0;
+      while(value!=expected&&attempt<200)begin mmio(offset,0,0,value);attempt=attempt+1;end
+      if((value^(negative==3&&offset == 'h68 ?64'd1:64'd0))!=expected)
+        $fatal(1,"BURST_ORACLE_COUNTER offset=%h got=%0d expected=%0d",offset,value,expected);
+    end
+  endtask
+  task automatic rxbyte(input [7:0] b);begin @(negedge rx);rise={1'b1,b[3:0]};fall={1'b1,b[7:4]};end endtask
+  task automatic packet(input integer id);reg [31:0] crc;begin
+    for(integer i=0;i<7;i=i+1)rxbyte(8'h55);rxbyte(8'hd5);crc=32'hffffffff;
+    for(integer i=0;i<FRAME_BYTES;i=i+1)begin rxbyte(body(id,i));crc=crc_byte(crc,body(id,i));end
+    crc=~crc;for(integer i=0;i<4;i=i+1)rxbyte(crc[i*8+:8]);
+    @(negedge rx);rise=0;fall=0;repeat(11)@(negedge rx);
+  end endtask
+  reg [63:0] value;
+  initial begin
+    for(integer r=0;r<8;r=r+1)reasons[r]=0;
+    #127;reset=0;wait(link&&!media_pending);cycles(50);
+    if(!configured||page!=0||status_count<4||bmsr_count<4)$fatal(1,"BURST_ORACLE_PHY initialization");
+    $display("BURST_PHY_READY mdio=%0d fixed_hz=125000000 fabric_half=%0d",transactions,fabric_half);
+    mmio('h10,1,64'hb,value);wait(dut.mac.controlPark_configDrained);repeat(100)@(negedge fixed125);
+    for(integer id=0;id<FRAME_COUNT;id=id+1)packet(id);
+    wait(wire_frames==FRAME_COUNT&&accepted+drops==FRAME_COUNT);
+    wait(delivered==accepted&&statuses==accepted&&rx_consumers_idle);
+    cycles(100);
+    if(wire_body_bytes!=FRAME_COUNT*FRAME_BYTES||checked_gaps!=FRAME_COUNT-1||accepted!=delivered||statuses!=delivered||bad_fcs||drops!=reasons[0]||delivered+drops!=FRAME_COUNT)
+      $fatal(1,"BURST_ORACLE_LEDGER wire=%0d accepted=%0d delivered=%0d statuses=%0d drops=%0d",wire_frames,accepted,delivered,statuses,drops);
+    for(integer r=1;r<8;r=r+1)if(reasons[r])$fatal(1,"BURST_ORACLE_DROP unexpected cause=%0d count=%0d",r,reasons[r]);
+    if((!reference_mode&&(drops||delivered!=FRAME_COUNT))||(reference_mode&&drops==0))$fatal(1,"BURST_ORACLE_EXPECTED_LOSS reference=%0d delivered=%0d drops=%0d",reference_mode,delivered,drops);
+    if(source_data_words!=sink_data_words||source_data_bytes!=sink_data_bytes||source_status_words!=sink_status_words||
+       sink_data_words!=delivered*((FRAME_BYTES+3)/4)||sink_data_bytes!=delivered*FRAME_BYTES||sink_status_words!=delivered*6||accepted_bytes!=sink_data_bytes)
+      $fatal(1,"BURST_ORACLE_CONSERVATION accepted transport");
+    counter('h48,delivered);counter('h50,drops);counter('h58,0);counter('h68,delivered*FRAME_BYTES);
+    for(integer r=0;r<8;r=r+1)counter('hb0+r*8,reasons[r]);
+    counter('h120,0);counter('h128,0);
+    if(csr_accept!=csr_reply||csr_accept!=mac_csr_accept||csr_accept!=mac_csr_reply||!csr_idle)$fatal(1,"BURST_ORACLE_CSR conservation");
+    if(random_sink&&(stall_data<100||stall_status<10))$fatal(1,"BURST_ORACLE_RANDOM missing backpressure");
+    $display("BURST_MEASURE offered_body_bytes=%0d wire_body_bytes=%0d wire_span_ns=%0.3f offered_body_bytes_per_second=%0.3f fabric_valid_bytes=%0d fabric_span_ns=%0.3f fabric_body_bytes_per_second=%0.3f",FRAME_COUNT*FRAME_BYTES,wire_body_bytes,last_wire-first_wire,wire_body_bytes*1000000000.0/(last_wire-first_wire),sink_data_bytes,last_data-first_data,sink_data_bytes*1000000000.0/(last_data-first_data));
+    $display("FIXED_MAC_RX_BURST_PASS reference=%0d random_sink=%0d offered_frames=%0d delivered=%0d bank_full_drops=%0d body_bytes=%0d data_words=%0d status_words=%0d ifg_slots=12 checked_gaps=%0d csr=%0d held_data=%0d held_status=%0d ids=%h",reference_mode,random_sink,FRAME_COUNT,delivered,drops,sink_data_bytes,sink_data_words,sink_status_words,checked_gaps,csr_accept,stall_data,stall_status,delivered_ids);
+    $finish;
+  end
+  initial begin #10000000;$fatal(1,"BURST_TIMEOUT link=%b mdio=%0d wire=%0d accepted=%0d delivered=%0d drops=%0d status=%0d",link,transactions,wire_frames,accepted,delivered,drops,statuses);end
+endmodule

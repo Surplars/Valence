@@ -1,0 +1,28 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41335 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41335 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41335 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41335 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly ip.EthernetPacketDmaSpec ip.ClockRateControlSpec
+190-1]
+190-1] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41335 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41335 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190-0]
+190-0] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=41335 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=41335 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190-0] Running Test Class ip.ClockRateControlSpec
+190-1] Running Test Class ip.EthernetPacketDmaSpec
+190-0] [32mClockRateControlSpec:[39m
+190-1] [32mEthernetPacketDmaSpec:[39m
+190-0] [32m- legality, component tests and SoC qualification are separate[39m
+190-1] [32m- frame DMA rejects bad regions/capacities and has independent TX/RX staging RAMs[39m
+190-0] [32m- MMIO and actual complete-response CDC elaborate independently of CPU and MMCM[39m
+190-0] [32m- real managed bank routes legacy and rate pages without changing legacy resource ownership[39m
+190-0] [36mRun completed in 4 seconds, 300 milliseconds.[39m
+190-0] [36mTotal number of tests run: 3[39m
+190-0] [36mSuites: completed 1, aborted 0[39m
+190-0] [36mTests: succeeded 3, failed 0, canceled 0, ignored 0, pending 0[39m
+190-0] [32mAll tests passed.[39m
+190-1] [32m- network DMA is opt-in and actual MAC integration crosses all four streams[39m
+190-1] [32m- runtime packet admission is explicit and leaves default ports absent[39m
+190-1] [36mRun completed in 8 seconds, 702 milliseconds.[39m
+190-1] [36mTotal number of tests run: 3[39m
+190-1] [36mSuites: completed 1, aborted 0[39m
+190-1] [36mTests: succeeded 3, failed 0, canceled 0, ignored 0, pending 0[39m
+190-1] [32mAll tests passed.[39m
+190/190, SUCCESS] mill IonSoC.test.testOnly ip.EthernetPacketDmaSpec ip.ClockRateControlSpec 16s

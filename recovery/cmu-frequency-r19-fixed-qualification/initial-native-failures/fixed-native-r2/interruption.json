@@ -1,0 +1,22 @@
+{
+  "status": "INTERRUPTED",
+  "session_id": 18944,
+  "exit_code": 130,
+  "reason": "Parent requested bounded diagnostic restart after case2 made no flushed progress; no full matrix PASS claimed.",
+  "completed_cases": [
+    "unrelated-case-0",
+    "unrelated-case-1"
+  ],
+  "interrupted_case": "unrelated-case-2",
+  "logs_sha256": {
+    "unrelated-case-2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unrelated-case-1.log": "86653bcf8d481ce53ffbc2eba0f39ba917b8b84c29612eb6046ad283af1363c7",
+    "guest-disassembly.log": "4679bfcb0c05bb9d78a65529e7dd81e5d3d5093a9d23c06852bf8f6b83ecbb22",
+    "compile.log": "8d0b628440e589074c33777b6592ccdabba9f1449a886f85e4712b3212aabe7b",
+    "guest-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "guest-binary.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preprocess.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unrelated-case-0.log": "ba8ccea33a4d0a4df8dcb6cc8a376202321be208d8ee96070898b7f8d57fe21e",
+    "guest-symbols.log": "05eb8f8206dba669ba3bc64b0d4c4acc7b5f04bffb3c4c1303bb0adbac0799a0"
+  }
+}

@@ -1,0 +1,3 @@
+BURST_PHY_READY mdio=51 fixed_hz=125000000 fabric_half=10
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_rx_burst_tb.sv:183: BURST_ORACLE_RX payload id=1 byte=20
+       Time: 2659330000  Scope: fixed_mac_rx_burst_tb.$ivl_for_loop4

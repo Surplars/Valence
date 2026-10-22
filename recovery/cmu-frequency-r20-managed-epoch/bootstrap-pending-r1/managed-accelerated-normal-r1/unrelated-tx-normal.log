@@ -1,0 +1,13 @@
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=32768 transactions=6 page=0d08
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=65536 transactions=12 page=0d08
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=98304 transactions=19 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=131072 transactions=25 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=163840 transactions=31 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=196608 transactions=38 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=229376 transactions=44 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=262144 transactions=50 page=0000
+MANAGED_CONTROL_BOOTSTRAP_LINK transactions=51 page=0000 source_edges=262530
+MANAGED_CONTROL_BOOTSTRAP_REJOIN source_edges=262532 preboot_park_edges=84 transactions=51 frozen_fabric_edges=74 released=1 exact_fabric_clock=1
+MANAGED_CONTROL_LINK_READY transactions=51 page=0000 link=1 mediaPending=0
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/managed_control_epoch_tb.sv:291: MANAGED_BOOTSTRAP_RUNTIME_ACCEPTANCE_BEFORE_REJOIN
+       Time: 3684753000  Scope: managed_control_epoch_tb

@@ -7,7 +7,8 @@ import chisel3.util._
   * An owner survives POST through completion POP. STOP finishes an active frame
   * and cancels only descriptors that have not launched, in posting order.
   */
-class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, maxFrameBytes: Int)
+class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, maxFrameBytes: Int,
+    runtimeAdmission: Boolean = false)
     extends Module {
     require(slots >= 1 && slots <= 16 && isPow2(slots))
     private val slotBits = log2Ceil(slots).max(1)
@@ -23,6 +24,8 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
         val allowed = Output(Bool())
         val readData = Output(UInt(64.W))
         val engineIdle = Input(Bool())
+        // Keep launch admission separate from engine emptiness / MMIO legality.
+        val launchAllowed = if (runtimeAdmission) Some(Input(Bool())) else None
         val engineDone = Input(Bool())
         val engineFailed = Input(Bool())
         val engineBytes = Input(UInt(16.W))
@@ -109,7 +112,12 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
         at(results, activeIndex) := io.engineBytes | (io.engineFailed.asUInt << 16)
         active := false.B; complete := true.B
     }
-    when(enabled && !active && io.engineIdle && pending =/= 0.U) {
+    // Runtime pause retains pending descriptors. An explicit software STOP is
+    // still destructive and may cancel them even while fresh launches are paused.
+    val launchIdle = if (runtimeAdmission) io.engineIdle &&
+        (io.launchAllowed.get || stopped || (io.write && io.offset === 240.U && io.data === 16.U))
+        else io.engineIdle
+    when(enabled && !active && launchIdle && pending =/= 0.U) {
         consume := true.B; launchIndex := next(launchIndex)
         // A STOP accepted in this cycle already prevents a fresh launch.
         when(stopped || (io.write && io.offset === 240.U && io.data === 16.U)) {

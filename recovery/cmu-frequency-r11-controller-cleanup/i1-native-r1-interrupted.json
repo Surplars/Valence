@@ -1,0 +1,20 @@
+{
+  "status": "INTERRUPTED_NOT_PASS",
+  "reason": "Parent requested source-bound re-emission after read-only audit found optional retiring failure bypass also reachable post-gate; no-gate native was stopped, not failed by its monitor.",
+  "tool_session_exit_code": 130,
+  "completed_checkpoints": [
+    "boot",
+    "real AON timeout at4096",
+    "real cleanupFault while dirty ReleaseAck retained at20512 AON age",
+    "lane0 terminal consumed and real fabric retirement completed exactly once"
+  ],
+  "emission_receipt_sha256": "335f42e272f2f8099f3a48f69ae35077fd1f239e2f648559b98a8ad36cc7336d",
+  "logs_sha256": {
+    "guest-disassembly.log": "d1f2e81ce768263f15703cd9b20fc7dffd43cd1ed35969f2f91a35ca88adc2a4",
+    "compile.log": "ecce0e952fa3190cb19ad9a715b835f8f144c32871c5811558ebc7c602144474",
+    "guest-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unrelated.log": "4418a81e80c051dfab17851c5bcd265c294edb5f2b80ba6ba3a650cd41e3fbe6",
+    "guest-binary.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "guest-symbols.log": "171891c61c5ce2d858fd808d1852eca57207b7177fc97b4449bd6689458248f3"
+  }
+}

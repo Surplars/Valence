@@ -1,0 +1,62 @@
+
+/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r12/i1-native-r1/guest.elf:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+0000000080000000 <_start>:
+    80000000:	4010041b          	addiw	s0,zero,1025
+    80000004:	01541413          	slli	s0,s0,0x15
+    80000008:	0c0004b7          	lui	s1,0xc000
+    8000000c:	00600293          	li	t0,6
+    80000010:	0054a223          	sw	t0,4(s1) # c000004 <_start-0x73fffffc>
+    80000014:	0054a423          	sw	t0,8(s1)
+    80000018:	0054a623          	sw	t0,12(s1)
+    8000001c:	0c003937          	lui	s2,0xc003
+    80000020:	00b00293          	li	t0,11
+    80000024:	00592223          	sw	t0,4(s2) # c003004 <_start-0x73ffcffc>
+    80000028:	00c00293          	li	t0,12
+    8000002c:	00592423          	sw	t0,8(s2)
+    80000030:	00d00293          	li	t0,13
+    80000034:	00592623          	sw	t0,12(s2)
+    80000038:	0c0029b7          	lui	s3,0xc002
+    8000003c:	00100293          	li	t0,1
+    80000040:	ec59ae23          	sw	t0,-292(s3) # c001edc <_start-0x73ffe124>
+    80000044:	00200293          	li	t0,2
+    80000048:	ec59ae23          	sw	t0,-292(s3)
+    8000004c:	00300293          	li	t0,3
+    80000050:	ec59ae23          	sw	t0,-292(s3)
+    80000054:	10000293          	li	t0,256
+    80000058:	0054a023          	sw	t0,0(s1)
+    8000005c:	08000293          	li	t0,128
+    80000060:	35029073          	csrw	miselect,t0
+    80000064:	00000a13          	li	s4,0
+    80000068:	01443023          	sd	s4,0(s0)
+
+000000008000006c <configured>:
+    8000006c:	00043b83          	ld	s7,0(s0)
+
+0000000080000070 <loop_previous_compare>:
+    80000070:	017a1e63          	bne	s4,s7,8000008c <guest_fail>
+
+0000000080000074 <loop_increment>:
+    80000074:	001a0a13          	addi	s4,s4,1
+
+0000000080000078 <loop_store>:
+    80000078:	01443023          	sd	s4,0(s0)
+
+000000008000007c <loop_load>:
+    8000007c:	00043a83          	ld	s5,0(s0)
+
+0000000080000080 <loop_compare>:
+    80000080:	015a1663          	bne	s4,s5,8000008c <guest_fail>
+
+0000000080000084 <loop_pending>:
+    80000084:	35102b73          	csrr	s6,mireg
+
+0000000080000088 <loop_jump>:
+    80000088:	fe5ff06f          	j	8000006c <configured>
+
+000000008000008c <guest_fail>:
+    8000008c:	00100073          	ebreak
+    80000090:	ffdff06f          	j	8000008c <guest_fail>

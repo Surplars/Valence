@@ -17,10 +17,12 @@ import chisel3.util._
   * outer MDIO implementation has a fixed transaction bound, not an external ACK.
   */
 class Rtl8211fPhyManager(clockHz: Int = 100000000, phyAddress: Int = 1,
-    startupCycles: Int = 2000000, pollCycles: Int = 10000000, debouncePolls: Int = 2) extends Module {
+    startupCycles: Int = 2000000, pollCycles: Int = 10000000, debouncePolls: Int = 2, runtimePark: Boolean = false) extends Module {
     require(clockHz > 0 && phyAddress >= 0 && phyAddress < 32)
     require(startupCycles > 0 && pollCycles > 0 && debouncePolls >= 2 && debouncePolls <= 15)
     val io = IO(new Bundle {
+        val parkRequest = if (runtimePark) Some(Input(Bool())) else None
+        val parked = if (runtimePark) Some(Output(Bool())) else None
         val command = Decoupled(new MdioCommand)
         val response = Flipped(Decoupled(new MdioResponse))
         val restart = Input(Bool())
@@ -173,7 +175,11 @@ class Rtl8211fPhyManager(clockHz: Int = 100000000, phyAddress: Int = 1,
         is(bmcrCheck) { badVerify := (response & "h1c00".U) =/= "h1000".U; faultCode := 8.U }
         is(statusPageCheck) { badVerify := response =/= "h0a43".U }
     }
-    when(state === waitStartup) {
+    val park = io.parkRequest.getOrElse(false.B)
+    // A failed page transaction may leave a non-default page selected. Do not
+    // call that drained: expose the existing fault and retry after park releases.
+    io.parked.foreach(_ := park && fault === 0.U && (state === waitStartup || state === idle))
+    when(state === waitStartup && !park) {
         when(timer === (startupCycles - 1).U) { timer := 0.U; state := issue }
             .otherwise { timer := timer + 1.U }
     }
@@ -249,7 +255,7 @@ class Rtl8211fPhyManager(clockHz: Int = 100000000, phyAddress: Int = 1,
             }
         }
     }
-    when(state === idle) {
+    when(state === idle && !park) {
         when(timer === (pollCycles - 1).U || restartPending) {
             timer := 0.U
             state := issue

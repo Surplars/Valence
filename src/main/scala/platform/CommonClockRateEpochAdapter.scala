@@ -8,6 +8,8 @@ import soc.ip.clock.ClockRateDrainLease
   * runtime boundary. The boundary, not either controller, owns epoch allocation
   * and the first-qualified drain/cleanup watchdogs. Arbitration waiting before
   * requests.fire is unbounded; proof revocation does not restart that watchdog.
+  * The controller separately times full qualification after first held, sending
+  * a matching cancel here rather than restarting R10's initial-drain timer.
   * No held observation is converted into full drain ACKs or gate confirmation.
   * R10 cleanupFault is a sticky boundary-wide fault, not a per-epoch cleared
   * event. Conservatively report it for every later owned lease until coordinated
@@ -61,14 +63,18 @@ class CommonClockRateEpochAdapter(p: CommonCpuTilePortParams) extends Module {
         client.abort.bits := token
         client.cleanupFault.valid := selected && io.cleanupFault
         client.cleanupFault.bits := token
-        val resumeMatches = client.resume.bits === token
-        io.resume(i).valid := selected && io.busy && client.resume.valid && resumeMatches
-        io.resume(i).bits.token := token; io.resume(i).bits.epoch := epoch
-        client.resume.ready := selected && io.busy && resumeMatches && io.resume(i).ready
-        // R10 makes the timeout decision. There is no invented/injected cancel
-        // on this path and no early withdrawal of an accepted prepare.
-        io.cancel(i).valid := false.B
+        val cancelMatches = client.cancel.bits === token
+        val cancelOffered = client.cancel.valid && cancelMatches
+        // The controller retains a qualification-timeout cancel until R10's
+        // actual acceptance. A matching cancel offer wins over resume even
+        // while backpressured; wrong-token offers cannot block valid resume.
+        io.cancel(i).valid := selected && io.busy && cancelOffered
         io.cancel(i).bits.token := token; io.cancel(i).bits.epoch := epoch
+        client.cancel.ready := selected && io.busy && cancelMatches && io.cancel(i).ready
+        val resumeMatches = client.resume.bits === token
+        io.resume(i).valid := selected && io.busy && client.resume.valid && resumeMatches && !cancelOffered
+        io.resume(i).bits.token := token; io.resume(i).bits.epoch := epoch
+        client.resume.ready := selected && io.busy && resumeMatches && io.resume(i).ready && !cancelOffered
         val resultMatches = io.result(i).bits.token === token && io.result(i).bits.epoch === epoch
         client.terminal.valid := selected && io.busy && !consumed && io.result(i).valid && resultMatches
         client.terminal.bits.token := token

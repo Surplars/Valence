@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_atomic_epoch_tb.sv:185: independent post-epoch SC oracle
+       Time: 23775000  Scope: i1_atomic_epoch_tb

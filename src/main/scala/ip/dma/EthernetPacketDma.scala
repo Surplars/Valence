@@ -21,7 +21,7 @@ class EthernetAxisWord extends Bundle {
 class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     ramBase: BigInt = BigInt("80200000", 16), ramBytes: BigInt = BigInt(512) * 1024 * 1024,
     maxFrameBytes: Int = 2048, postedRxSlots: Int = 4, memoryCredits: Int = 4, postedTxSlots: Int = 0,
-    boundedDescriptorChecks: Boolean = false) extends Module {
+    boundedDescriptorChecks: Boolean = false, runtimeAdmission: Boolean = false) extends Module {
     require(base >= 0 && base % 256 == 0 && base + 256 <= (BigInt(1) << 64))
     require(ramBase >= 0 && ramBase % 8 == 0 && ramBytes >= maxFrameBytes && ramBytes % 8 == 0 &&
         ramBase + ramBytes <= (BigInt(1) << 64))
@@ -38,7 +38,13 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         val rxStatus = Flipped(Decoupled(new EthernetAxisWord))
         val irq = Output(Bool())
         val active = Output(Bool())
+        // Runtime epoch admission is reversible and independent of the destructive
+        // software STOP commands. The default profile has no additional ports.
+        val runtimePause = if (runtimeAdmission) Some(Input(Bool())) else None
+        val runtimeTxIdle = if (runtimeAdmission) Some(Output(Bool())) else None
+        val runtimeOwnersIdle = if (runtimeAdmission) Some(Output(Bool())) else None
     })
+    private val runtimePaused = io.runtimePause.getOrElse(false.B)
     private val words = maxFrameBytes / 8
     private val indexBits = log2Ceil(words)
     private val countBits = indexBits + 1
@@ -101,7 +107,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val rxIdle :: rxCollect :: rxLoad :: rxWait :: rxOffer :: rxDrain :: Nil = Enum(6)
     val rxState = RegInit(rxIdle)
     val txQueue = if (postedTxSlots > 0) Some(Module(new EthernetTxDescriptorQueue(
-        postedTxSlots, ramBase, ramBytes, maxFrameBytes))) else None
+        postedTxSlots, ramBase, ramBytes, maxFrameBytes, runtimeAdmission = runtimeAdmission))) else None
     val txQueueEnabled = txQueue.map(_.io.enabled).getOrElse(false.B)
     val txBusy = txState =/= txIdle
     val rxBusy = rxState =/= rxIdle
@@ -112,11 +118,20 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val txSent = RegInit(0.U(countBits.W))
     val txReceived = RegInit(0.U(countBits.W))
     val txLocked = RegInit(false.B)
+    // Register admission BEFORE exposing the first TX read. Gating its valid
+    // directly with pause would withdraw a previously offered, stalled request
+    // when pause changes before txLocked captures it. Once admitted, all reads
+    // and MAC control/data tails belong to the old packet and must finish.
+    val runtimeTxOffered = if (runtimeAdmission) Some(RegInit(false.B)) else None
+    runtimeTxOffered.foreach { offered =>
+        when(txState === txFill && !runtimePaused) { offered := true.B }
+        when(txState === txIdle) { offered := false.B }
+    }
     // Both descriptor launch paths validate length before the first read.
-    // Capture the bounded count on that same edge; no request stage is added.
+    // Capture the bounded count on that same edge; the default profile adds no stage.
     val txWordCount = RegInit(0.U(countBits.W))
     def roundedTxWords(length: UInt): UInt = ((length +& 7.U) >> 3)(countBits - 1, 0)
-    tx.request.valid := txState === txFill && (txLocked || !txFailed) &&
+    tx.request.valid := txState === txFill && runtimeTxOffered.getOrElse(true.B) && (txLocked || !txFailed) &&
         txSent < txWordCount && txSent - txReceived < memoryCredits.U
     tx.request.bits.address := txAddress + (txSent << 3)
     tx.request.bits.write := false.B
@@ -300,6 +315,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
         q.io.offset := offset(7, 0); q.io.data := r.data; q.io.accessWrite := r.write
         q.io.write := io.control.request.fire && legal && r.write && q.io.known
         q.io.engineIdle := !txBusy && !txDone
+        q.io.launchAllowed.foreach(_ := !runtimePaused)
         q.io.engineDone := txDone && !txBusy
         q.io.engineFailed := txFailed; q.io.engineBytes := Mux(txFailed, 0.U, txLength(15, 0))
         when(q.io.consumeDone) { txDone := false.B; txFailed := false.B }
@@ -308,6 +324,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
             txWordCount := roundedTxWords(q.io.launch.bits.length)
             txState := txFill; txDone := false.B; txFailed := false.B
             txSent := 0.U; txReceived := 0.U; txLocked := false.B; txBytes := 0.U
+            runtimeTxOffered.foreach(_ := false.B)
         }
     }
 
@@ -390,6 +407,7 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
                     when(valid) { txWordCount := roundedTxWords(txLength) }
                     txState := Mux(valid, txFill, txIdle); txDone := !valid; txFailed := !valid
                     txSent := 0.U; txReceived := 0.U; txLocked := false.B
+                    runtimeTxOffered.foreach(_ := false.B)
                 }
             }
             is(64.U) {
@@ -440,6 +458,35 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
             rxIssued := 0.U; rxReplied := 0.U; rxStoreIndex := 0.U
             statusWords.foreach(_ := 0.U)
         }
+    }
+    if (runtimeAdmission) {
+        // Pending/completed descriptors are retained software ownership, not
+        // in-flight packet work. In particular, legacy START during pause may
+        // park here without changing the accepted control transaction's result.
+        val parkedTx = runtimePaused && txState === txFill && txSent === 0.U &&
+            txReceived === 0.U && !txLocked && !runtimeTxOffered.get && !txFailed
+        val txQuiescent = txState === txIdle || parkedTx
+        io.runtimeTxIdle.get := txQuiescent
+
+        // Keep RX ready and automatic descriptor arming live: an old MAC frame
+        // may still need a posted descriptor. Empty armed capture can be parked
+        // only when the wrapper ALSO proves the real MAC's rxStop.drained.
+        // rxFailed excludes malformed zero-keep traffic with no counted bytes.
+        val emptyArmedRx = rxState === rxCollect && rxBytes === 0.U && rxStatusIndex === 0.U &&
+            !rxDataDone && !rxStatusDone && !rxFailed && !io.rxData.valid && !io.rxStatus.valid
+        val rxQuiescent = rxState === rxIdle || emptyArmedRx
+
+        // These counters are actual arbiter client handshakes: every accepted
+        // client request/response is the corresponding memory handshake. Also
+        // retain proof of a stalled memory offer independently of packet state.
+        val memoryOfferHeld = RegInit(false.B)
+        when(io.memory.request.valid && !io.memory.request.ready) { memoryOfferHeld := true.B }
+        when(io.memory.request.fire) { memoryOfferHeld := false.B }
+        val memoryIdle = txSent === txReceived && rxIssued === rxReplied && !memoryOfferHeld &&
+            !tx.request.valid && !rx.request.valid && !io.memory.request.valid && !io.memory.response.valid
+        io.runtimeOwnersIdle.get := txQuiescent && rxQuiescent && memoryIdle
+        // MMIO control requests/replies are intentionally outside this packet /
+        // memory proof. The final fabric owner ledger must prove their retirement.
     }
     assert(ownedCount === PopCount(slotOwned))
     assert(ownedCount <= rxSlots.U)

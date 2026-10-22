@@ -1,0 +1,3 @@
+FIXED_PHY_READY mdio=51 actual_source_hz=125000000 fabric_half=7
+FIXED_SOURCE_MAC_PASS csr=7 txdata=32 txcontrol=12 rxdata=32 rxstatus=12 commands=3 observations=8924 frames=2 drops=1 fixed_hz=125000000 fabric_half=7
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_source_mac_tb.sv:222: $finish called at 3255182000 (1ps)

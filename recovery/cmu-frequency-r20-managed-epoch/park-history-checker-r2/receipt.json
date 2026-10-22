@@ -1,0 +1,232 @@
+{
+  "status": "PASS_EXTRACTED_CHECKER_UNIT",
+  "cases": [
+    {
+      "name": "compile",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+        "-g2012",
+        "-s",
+        "park_history_checker",
+        "-o",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv"
+      ],
+      "pid": 10,
+      "process_group": 10,
+      "returncode": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 0.051011741990805604,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680636928,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    },
+    {
+      "name": "case-0",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "+scenario=0"
+      ],
+      "pid": 14,
+      "process_group": 14,
+      "returncode": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 0.051055074989562854,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680624640,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    },
+    {
+      "name": "case-1",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "+scenario=1"
+      ],
+      "pid": 15,
+      "process_group": 15,
+      "returncode": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 0.051005821995204315,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680616448,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    },
+    {
+      "name": "case-2",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "+scenario=2"
+      ],
+      "pid": 16,
+      "process_group": 16,
+      "returncode": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 0.05106912199698854,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680612352,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    },
+    {
+      "name": "case-3",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "+scenario=3"
+      ],
+      "pid": 17,
+      "process_group": 17,
+      "returncode": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 0.051006478010094725,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680608256,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    },
+    {
+      "name": "case-4",
+      "command": [
+        "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+        "-i",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.vvp",
+        "+scenario=4"
+      ],
+      "pid": 18,
+      "process_group": 18,
+      "returncode": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 0.0510573239880614,
+      "timeout_seconds": 10,
+      "minimum_free_bytes": 27680604160,
+      "timed_out": false,
+      "disk_bound": false,
+      "process_group_killed": false,
+      "interrupted": false,
+      "stop_requested": false,
+      "child_reaped": true
+    }
+  ],
+  "source_sha256": {
+    "simulator/gsim/common/managed_control_epoch_native.py": "e66cf03c833889bf1feaf7903a1e2b4d3f6a5e23d17d31c2629a4410cdd8972c",
+    "simulator/gsim/common/managed_control_epoch_tb.sv": "f44630f7f2f7ac733fe9a836b94fa4e5cf6da56bd4db938ba94c05c05cd30fa0"
+  },
+  "extraction_sha256": {
+    "history": "db2251424f0c8b18e8ef144e4fab994fb309a1d4b75a741034b432994f221229",
+    "cancel_final_assertion": "01ff4cc8fcec24bb04b006122301db43fe6928dc970374999fb161061c636132"
+  },
+  "scope": "exact extracted testbench checker logic only; no DUT/native epoch coverage",
+  "tools": {
+    "iverilog": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/bin/iverilog",
+      "sha256": "3de33d8aa21a33e931a36e873d9810224947be7d06af926b4a4a48e857b6d7dc"
+    },
+    "vvp": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/vvp",
+      "sha256": "dc287630d71c187dcf258a9d3c7d4aa77d2c3c2c4c7515debe91d000ea40c1df"
+    },
+    "iverilog_engine": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/bin/iverilog",
+      "sha256": "99633b21371b5fc6ddc3156c9402c10e2915a94feb99ddc5eb01ba8f02758462"
+    },
+    "ivl": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivl",
+      "sha256": "57d7449f4b78d204383e8acf5fd35db0c22bfe956260f62ee14bba6fff9aa9fd"
+    },
+    "ivlpp": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/ivlpp",
+      "sha256": "0a98b3c26a40d3a5c7463934d3e74d96d6fc0bc662c4ea48dd786afa1d44bf44"
+    },
+    "vvp.tgt": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt",
+      "sha256": "0ce84750ec199087392d966fede9deb18aeca647c6b07a781dbcdaf1a7054312"
+    },
+    "vvp.conf": {
+      "path": "/workspace/scratch/41e4a649bb60/native-tools/root/usr/lib/x86_64-linux-gnu/ivl/vvp.conf",
+      "sha256": "6013ffb100e35d3a4656d3a24836be36bb782957c174e527c1c570ffe7aa5b41"
+    }
+  },
+  "checks": [
+    {
+      "scenario": 0,
+      "result": "PASS",
+      "lines": [
+        "PARK_HISTORY_CHECKER_PASS scenario=0 raw=1 qualified=0",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:56: $finish called at 30000 (1ps)"
+      ]
+    },
+    {
+      "scenario": 1,
+      "result": "PASS",
+      "lines": [
+        "PARK_HISTORY_CHECKER_PASS scenario=1 raw=1 qualified=1",
+        "/workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:56: $finish called at 40000 (1ps)"
+      ]
+    },
+    {
+      "scenario": 2,
+      "result": "PASS_EXPECTED_REJECTION",
+      "lines": [
+        "FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:21: MANAGED_CONTROL_PARK_WITHOUT_PRIOR_MATCHED_RAW_HELD",
+        "       Time: 15000  Scope: park_history_checker"
+      ]
+    },
+    {
+      "scenario": 3,
+      "result": "PASS_EXPECTED_REJECTION",
+      "lines": [
+        "FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:21: MANAGED_CONTROL_PARK_WITHOUT_PRIOR_MATCHED_RAW_HELD",
+        "       Time: 15000  Scope: park_history_checker"
+      ]
+    },
+    {
+      "scenario": 4,
+      "result": "PASS_EXPECTED_REJECTION",
+      "lines": [
+        "FATAL: /workspace/scratch/41e4a649bb60/Valence/out/cmu-frequency-r20/park-history-checker-r2/checker.sv:21: MANAGED_CONTROL_PARK_WITHOUT_PRIOR_MATCHED_RAW_HELD",
+        "       Time: 25000  Scope: park_history_checker"
+      ]
+    }
+  ],
+  "artifacts_sha256": {
+    "checker.vvp": "ba5561accc9898d96f8553391538cd296e775863b7932d77c7153be8b7bca080",
+    "check.py": "99cdf3b15a7271426aa3c18072456618ad4eaa76465a76a32c84c54efa55c535",
+    "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "case-1.log": "ca57cce4476af56de91baeb1089678d69edd133f6b094e43d4b3ca915bae0060",
+    "case-0.log": "3f51854e9dfb7bd1100785b36f69e1a8e23179d468778bcdc53574bbca9296dd",
+    "case-4.log": "cc54557a9f8318d114089b794838a09eba2ec62a3448fe5b2b441d9587f9400f",
+    "case-3.log": "5ac265a7ee4bd93a6bb52fd841482d6b0662c2e6ec5f648ec061633fc1577936",
+    "checker.sv": "6d4c55d01edb0fb5cc75e92bb820c0b405957cded8c324b5a460c47d8e34f62d",
+    "case-2.log": "5ac265a7ee4bd93a6bb52fd841482d6b0662c2e6ec5f648ec061633fc1577936"
+  }
+}

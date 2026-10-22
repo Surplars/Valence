@@ -1,0 +1,67 @@
+{
+  "stable_exact_markers": [
+    "MANAGED_CONTROL_LINK_READY",
+    "MANAGED_CONTROL_CONFIG_INITIALIZED",
+    "MANAGED_CONTROL_PHY_READY",
+    "MANAGED_CONTROL_IDLE_BLOCKERS",
+    "MANAGED_CONTROL_BLOCKERS",
+    "I1_PACKET_TX_TAIL_HELD",
+    "I1_PACKET_TX_WIRE",
+    "I1_PACKET_HOME_MEMORY",
+    "I1_PACKET_JOINED_RETIREMENT",
+    "I1_PACKET_CPU_COHERENT_READBACK",
+    "MANAGED_CONTROL_STATISTICS",
+    "MANAGED_CONTROL_RESTORED_TX",
+    "I1_FIXED_FRESH_PROOF",
+    "I1_FIXED_RESET",
+    "I1_PACKET_TERMINAL_BACKPRESSURE",
+    "MANAGED_CONTROL_CSR_ACCEPTED",
+    "MANAGED_CONTROL_CSR_COMPLETED"
+  ],
+  "partial_markers": {
+    "I1_PACKET_BOOT": [
+      "retires"
+    ],
+    "MANAGED_CONTROL_HELD": [
+      "pending"
+    ],
+    "I1_FIXED_POST_RESUME_OWNER": [
+      "real_MMIO"
+    ],
+    "I1_FIXED_TX_TIMER_OWNER": [
+      "source"
+    ],
+    "MANAGED_CONTROL_EPOCH_PASS": [
+      "AXI_B",
+      "AXI_R"
+    ]
+  },
+  "unchanged_production_sources": 315,
+  "matched_guest_artifacts": [
+    "guest.bin",
+    "guest.hex",
+    "guest_symbols.svh"
+  ],
+  "status": "PASS_ARCHITECTURAL_LEDGER_COMPARISON",
+  "baseline_receipt_sha256": "5c53ed38a1a4193e2000b866b1266ff0324381ba2f08f508d2275bca74b1108a",
+  "candidate_receipt_sha256": "bda00bb4c572024a04033cdae08794040fc2293cfd78b9dbb1970db802b6760f",
+  "script_sha256": "40947cd4d1381712cdbfdd541a8617b9c9c161cf310e37bd77043f20313e90b2",
+  "selftests": [
+    {
+      "name": "lost_second_packet",
+      "result": "PASS_EXPECTED_COMPARISON_REJECTION",
+      "reason": "stable ordered ledger mismatch: I1_PACKET_TX_WIRE"
+    },
+    {
+      "name": "wrong_retained_statistics",
+      "result": "PASS_EXPECTED_COMPARISON_REJECTION",
+      "reason": "stable ordered ledger mismatch: MANAGED_CONTROL_STATISTICS"
+    },
+    {
+      "name": "broken_timer_conservation",
+      "result": "PASS_EXPECTED_COMPARISON_REJECTION",
+      "reason": "final timer conservation"
+    }
+  ],
+  "scope": "normal/unrelated only; not full matrix, production clock separation, gate, DRP, physical timing, or board proof"
+}

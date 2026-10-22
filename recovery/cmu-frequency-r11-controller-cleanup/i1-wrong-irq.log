@@ -1,0 +1,8 @@
+CLOCK_RATE_CLEANUP_BOOT generation=0 cpu_half=5 fabric_half=7 aon_half=11 phase_ns=0,2,3
+CLOCK_RATE_CLEANUP_TIMEOUT lane=0 epoch=1 actual_aon_age=4096
+CLOCK_RATE_CLEANUP_FAULT retained_release_ack=1 queued_lane_age=20512
+CLOCK_RATE_CLEANUP_TERMINAL lane=0 completed=1 fabric_terminals=1
+CLOCK_RATE_CLEANUP_TIMEOUT lane=1 epoch=2 actual_aon_age=4096
+CLOCK_RATE_CLEANUP_TERMINAL lane=1 completed=1 fabric_terminals=2
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/clock_rate_cleanup_tb.sv:262: independent IMSIC pending oracle: eventual CSR bitmap mismatch
+       Time: 564200000  Scope: clock_rate_cleanup_tb.exactLedger

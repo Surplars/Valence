@@ -1,0 +1,35 @@
+{
+  "status": "PASS_EXACT_WAIT_ONLY_DIFFERENCES",
+  "modules_byte_identical": 57,
+  "total": 58,
+  "changed": "Rtl8211fPhyManager.sv",
+  "exact_substitutions": [
+    {
+      "original": "reg  [23:0] timer;",
+      "test": "reg  [9:0]  timer;",
+      "count": 1
+    },
+    {
+      "original": "24'h4C4B3F",
+      "test": "10'hFF",
+      "count": 1
+    },
+    {
+      "original": "24'h98967F",
+      "test": "10'h1FF",
+      "count": 1
+    },
+    {
+      "original": "24'h0",
+      "test": "10'h0",
+      "count": 5
+    },
+    {
+      "original": "24'h1",
+      "test": "10'h1",
+      "count": 2
+    }
+  ],
+  "mdio_serializer_byte_identical": true,
+  "protocol_logic_other_than_policy_wait_counter_byte_identical": true
+}

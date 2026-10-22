@@ -1,0 +1,2 @@
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/network_packet_runtime_tb.sv:141: PACKET_ORACLE_DRAIN retained status owner forbids idle
+       Time: 1285100  Scope: network_packet_runtime_tb

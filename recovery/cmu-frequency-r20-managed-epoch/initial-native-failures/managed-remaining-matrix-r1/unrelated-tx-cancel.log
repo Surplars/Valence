@@ -1,0 +1,23 @@
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=32768 transactions=6 page=0d08
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=65536 transactions=12 page=0d08
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=98304 transactions=19 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=131072 transactions=25 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=163840 transactions=31 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=196608 transactions=38 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=229376 transactions=44 page=0000
+MANAGED_CONTROL_BOOTSTRAP_PROGRESS source_edges=262144 transactions=50 page=0000
+MANAGED_CONTROL_BOOTSTRAP_LINK transactions=51 page=0000 source_edges=262530
+MANAGED_CONTROL_BOOTSTRAP_REJOIN source_edges=262532 preboot_park_edges=84 transactions=51 frozen_fabric_edges=74 released=1 exact_fabric_clock=1
+MANAGED_CONTROL_LINK_READY transactions=51 page=0000 link=1 mediaPending=0
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000018 write=1 requests=1
+MANAGED_CONTROL_CSR_COMPLETED offset=00000018 write=1 requests=1 replies=1 data=0000000000000000
+MANAGED_CONTROL_CSR_ACCEPTED offset=00000010 write=1 requests=2
+MANAGED_CONTROL_CSR_COMPLETED offset=00000010 write=1 requests=2 replies=2 data=0000000000000000
+MANAGED_CONTROL_CONFIG_INITIALIZED real_images_consumed=1
+MANAGED_CONTROL_PHY_READY transactions=51 MDIO_divider_unchanged=1 startup_wait=256 poll_wait=512
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+MANAGED_CONTROL_PROGRESS fabric_cycles=32768 MDIO_transactions=57 page=0000 link=1 start=1 park=0

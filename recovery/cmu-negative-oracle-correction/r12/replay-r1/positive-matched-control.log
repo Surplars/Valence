@@ -1,0 +1,10 @@
+BOOT
+FIRST_TERMINAL
+SECOND_TERMINAL
+CLOCK_RATE_QUALIFICATION_COMPONENT exact_deadline=32 cancel_backpressure=40 canceled=1 boundary_timedout=0
+CLOCK_RATE_QUALIFICATION_RACES abort_wins_same_deadline pending_cancel_reset_clear
+NORMAL_TERMINAL
+NORMAL_TERMINAL
+NORMAL_TERMINAL
+CLOCK_RATE_CLEANUP_COMPONENT_PASS cycles=723 two_lanes deadline_priority terminal_retirement wrong_tags sticky_fault reset
+/workspace/scratch/41e4a649bb60/Valence/recovery/cmu-negative-oracle-correction/r12/corrected_tb.source.sv:295: $finish called at 7226000 (1ps)

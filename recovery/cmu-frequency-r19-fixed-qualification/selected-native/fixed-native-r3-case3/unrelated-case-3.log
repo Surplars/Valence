@@ -1,0 +1,16 @@
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+I1_FIXED_FRESH_PROOF epoch=1 independent_UI_timer=1 retained_snapshot_progress=1 IRQ=1
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+I1_FIXED_POST_RESUME_OWNER real_MMIO=19/18 fixed_reply_held=1 old_epoch_retirement=1
+I1_PACKET_JOINED_RETIREMENT epoch=1 AON=1 debug=1 receipt=1 network=1 fabric=1
+I1_PACKET_HOME_MEMORY case=3 request=8 reply=8 RX_probe=0/0 TX_probe=1/8 preserved_guard=55667788
+I1_PACKET_CPU_COHERENT_READBACK case=3 checked=1 RX=0 guard=0 TX=1
+I1_FIXED_AXI_CHANNEL_COVERAGE W_before_AW_beats=7 tails=1 AW_stalls=9 W_stalls=4 AR_stalls=43
+I1_FIXED_FINAL_LEDGER timer=24/24 UI_read=58 source_read=58 UI_B=3 source_B=3 retained_IRQ=1
+I1_FIXED_RESET common_cold=1 fixed_clocks_paused=1 stale_proofs_cleared=1
+I1_RUNTIME_FIXED_PASS case=3 clocks=5/7/11/13/3/17/19/23 packet=8/8 AXI_R=58 AXI_B=3 cpu_checked=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_fixed_tb.sv:1314: $finish called at 97221000 (1ps)

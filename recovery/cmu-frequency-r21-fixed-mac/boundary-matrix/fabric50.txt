@@ -1,0 +1,6 @@
+BOUNDARY_THROUGHPUT channel=0 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=1 bytes_per_second=200000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=2 bytes_per_second=100000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+BOUNDARY_THROUGHPUT channel=3 bytes_per_second=100000000 measured_words=1920 keep_counted_bytes=7680 fabric_half=10 fixed_half=4
+FIXED_MAC_BOUNDARY_PASS reset_discard=17,17,17,17 postreset=64,64,64,64 stalled_samples=644 observation_stalls=26 early_release=1 false_snapshot=1 fixed_hz=125000000 fabric_half=10
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_mac_boundary_tb.sv:270: $finish called at 89490000 (1ps)

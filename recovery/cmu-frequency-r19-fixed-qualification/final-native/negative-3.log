@@ -1,0 +1,10 @@
+I1_PACKET_BOOT case=0 retires=332 CPU_network_control=3/3
+I1_FIXED_TIMER_LEDGER source=3/3 fixed=3/3 CPU_reads=2 CPU_writes=1 old_owner_drained_during_epoch=1
+I1_PACKET_RX_STATUS_HELD status=5 accepted=1 AON_epoch=1
+I1_PACKET_RX_B_HELD requests=3 replies=0 packet_dependency_B_owners=1 addr=00003000
+I1_FIXED_FRESH_PROOF epoch=1 independent_UI_timer=1 retained_snapshot_progress=1 IRQ=1
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+I1_FIXED_POST_RESUME_OWNER real_MMIO=7/6 fixed_reply_held=1 old_epoch_retirement=1
+I1_PACKET_JOINED_RETIREMENT epoch=1 AON=1 debug=1 receipt=1 network=1 fabric=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_fixed_tb.sv:1151: NETWORK_ORACLE_GUARD dirty same-line neighbor got=55667788 expected=55667788
+       Time: 97375000  Scope: i1_runtime_fixed_tb.checkRam

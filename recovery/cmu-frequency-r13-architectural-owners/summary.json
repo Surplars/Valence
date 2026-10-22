@@ -1,0 +1,17 @@
+{
+  "status": "PASS_SCOPED_NATIVE",
+  "scope": "IRQ trap/claim/service/mret and AMO/LRSC failure owners during three-clock epochs; no gate/DRP or complete system ACK",
+  "production_changes": false,
+  "old_fixture_sv_byte_identical": 181,
+  "irq_receipt_sha256": "8ef46f77db56a9b1d625f335a4cb04532beabb1b3e94e70b52e463231442e089",
+  "atomic_receipt_sha256": "51c749e8cc7f35547fdd858ae1e1a5060b5fde3bcdd1f568eb91c091f06bdeb1",
+  "source_commit_parent": "67260b23db58b2b4c2978d12316b8b8ad51adb64",
+  "remote_publication": "BLOCKED_PENDING_PRIOR_RECEIPT_APPROVAL",
+  "limitations": [
+    "No forced CSR-response stall",
+    "No uninterrupted LR/SC success proof",
+    "No stopped-clock short IRQ capture",
+    "No actual clock gate or DRP",
+    "No physical timing/board signoff"
+  ]
+}

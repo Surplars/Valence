@@ -12,13 +12,14 @@ module clock_rate_cleanup_tb;
  reg [31:0] program_result_token[0:1];
  wire [1:0] requests_valid,resume_valid,cancel_valid,result_ready;
  wire [31:0] requests_bits[0:1];
+ reg [1:0] cancel_ready=0; wire [31:0] cancel_token[0:1]; wire [7:0] cancel_epoch[0:1];
  reg [1:0] requests_ready=0,resume_ready=0,held_valid=0,result_valid=0,result_canceled=0,result_timedOut=0;
  reg [31:0] held_token[0:1],result_token[0:1];
  reg [7:0] held_epoch[0:1],result_epoch[0:1];
  reg boundaryBusy=0,activeLane=0,drainDeadline=0,timeoutSelected=0,cleanupFault=0;
  reg [7:0] activeEpoch=0; reg [31:0] activeToken=0;
- reg monitorNoGate=0,wrongCompletion=0,wrongQuiesce=0;
- integer i,cycles=0,normalCase; reg [31:0] token0,token1;
+ reg monitorNoGate=0,wrongCompletion=0,wrongQuiesce=0,allowQualificationCancel=0;
+ integer i,cycles=0,normalCase,firstHeldCycle; reg [31:0] token0,token1;
  ClockRateCleanupComponent dut(.clock(clock),.reset(reset),
  .io_submit_0_valid(submit_valid[0]),
  .io_submit_0_bits(32'd100000000),
@@ -53,7 +54,9 @@ module clock_rate_cleanup_tb;
  .io_resume_0_valid(resume_valid[0]),
  .io_resume_0_ready(resume_ready[0]),
  .io_cancel_0_valid(cancel_valid[0]),
- .io_cancel_0_ready(1'b0),
+ .io_cancel_0_ready(cancel_ready[0]),
+ .io_cancel_0_bits_token(cancel_token[0]),
+ .io_cancel_0_bits_epoch(cancel_epoch[0]),
  .io_held_0_valid(held_valid[0]),
  .io_held_0_bits_token(held_token[0]),
  .io_held_0_bits_epoch(held_epoch[0]),
@@ -96,7 +99,9 @@ module clock_rate_cleanup_tb;
  .io_resume_1_valid(resume_valid[1]),
  .io_resume_1_ready(resume_ready[1]),
  .io_cancel_1_valid(cancel_valid[1]),
- .io_cancel_1_ready(1'b0),
+ .io_cancel_1_ready(cancel_ready[1]),
+ .io_cancel_1_bits_token(cancel_token[1]),
+ .io_cancel_1_bits_epoch(cancel_epoch[1]),
  .io_held_1_valid(held_valid[1]),
  .io_held_1_bits_token(held_token[1]),
  .io_held_1_bits_epoch(held_epoch[1]),
@@ -120,15 +125,23 @@ module clock_rate_cleanup_tb;
    reset=1; monitorNoGate=0; step(4); @(negedge clock); reset=0;
    while(busy) tick();
  end endtask
- task check_pending(input integer lane,input integer count); begin
-   if(completed[lane]!==count || !busy[lane] || !clockEnable[lane] || !quiesce[lane])
-     $fatal(1,"controller prematurely completed/released cleanup");
-   if(wrongCompletion && completed[lane]!==count+1) $fatal(1,"NEGATIVE_ORACLE_REJECTED wrong completion ledger");
-   if(wrongQuiesce && quiesce[lane]!==0) $fatal(1,"NEGATIVE_ORACLE_REJECTED wrong release oracle");
- end endtask
- task terminal(input integer lane,input reg canceled); begin
+ task check_pending(input integer lane,input integer count);
+   integer observedCompleted; reg observedQuiesce;
+   begin
+     // Mutate observations before the shared positive/negative ownership checker.
+     observedCompleted=completed[lane]; observedQuiesce=quiesce[lane];
+     if(wrongCompletion) observedCompleted=observedCompleted+1;
+     if(wrongQuiesce) observedQuiesce=0;
+     if(observedCompleted!==count || !busy[lane] || !clockEnable[lane] || !observedQuiesce) begin
+       if(wrongCompletion || wrongQuiesce)
+         $display("NEGATIVE_ORACLE_REJECTED corrupted observed cleanup ledger");
+       $fatal(1,"controller prematurely completed/released cleanup");
+     end
+   end
+ endtask
+ task terminal(input integer lane,input reg canceled,input reg timedOut); begin
    @(negedge clock); result_token[lane]=activeToken; result_epoch[lane]=activeEpoch;
-   result_canceled[lane]=canceled; result_timedOut[lane]=canceled; result_valid[lane]=1; #1;
+   result_canceled[lane]=canceled; result_timedOut[lane]=timedOut; result_valid[lane]=1; #1;
    while(!result_ready[lane]) begin @(negedge clock); #1; end
    tick(); @(negedge clock); result_valid[lane]=0;
  end endtask
@@ -141,7 +154,7 @@ module clock_rate_cleanup_tb;
    if(cycles>3000) $fatal(1,"component watchdog state=%0d/%0d busy=%b result=%b ready=%b",state[0],state[1],busy,result_valid,result_ready);
    if(!reset && monitorNoGate && (program_valid!=0 || clockEnable!=3))
      $fatal(1,"timeout path attempted physical clock transition");
-   if(!reset && cancel_valid!=0) $fatal(1,"adapter injected cancellation instead of real boundary timeout");
+   if(!reset && !allowQualificationCancel && cancel_valid!=0) $fatal(1,"adapter injected cancellation instead of real boundary timeout");
  end
  initial begin
    wrongCompletion=$test$plusargs("wrong-completion"); wrongQuiesce=$test$plusargs("wrong-quiesce");
@@ -166,7 +179,7 @@ module clock_rate_cleanup_tb;
    @(negedge clock);result_token[0]=token0;result_epoch[0]=0;
    step(3);if(result_ready[0]) $fatal(1,"wrong epoch accepted");
    @(negedge clock);result_valid=0;
-    $display("FIRST_TERMINAL"); terminal(0,1);step(50);check_pending(0,0);
+    $display("FIRST_TERMINAL"); terminal(0,1,1);step(50);check_pending(0,0);
    if(requests_valid!=0) $fatal(1,"queued contender accepted before retirement");
    @(negedge clock);locked[0]=0;gateOpen[0]=0;
    retire();step(20);check_pending(0,0);
@@ -181,11 +194,68 @@ module clock_rate_cleanup_tb;
    step(4);@(negedge clock);timeoutSelected=1;cleanupFault=1;
    step(90);check_pending(1,0);
    if(!errors[1][9] || !errors[1][4]) $fatal(1,"cleanup fault failed to remain reported");
-    $display("SECOND_TERMINAL"); terminal(1,1);step(20);check_pending(1,0);retire();
+    $display("SECOND_TERMINAL"); terminal(1,1,1);step(20);check_pending(1,0);retire();
    if(completed[1]!=1 || busy[1] || lastSuccess[1]) $fatal(1,"second cleanup retired incorrectly");
    // Reset is the only way to clear the boundary's sticky cleanup-fault condition.
    @(negedge clock);cleanupFault=0;idle_boot();
    if(completed[0]!=0 || completed[1]!=0) $fatal(1,"reset did not clear controller ledger");
+   // Full-qualification timer starts ONLY with a matching first held.
+   monitorNoGate=1;allowQualificationCancel=1;
+   @(negedge clock);submit_valid=1;tick();@(negedge clock);submit_valid=0;responseCommitted=1;
+   tick();@(negedge clock);responseCommitted=0;requests_ready=1;token0=requests_bits[0];tick();
+   @(negedge clock);requests_ready=0;boundaryBusy=1;activeLane=0;activeEpoch=1;activeToken=token0;
+   step(3);@(negedge clock);held_valid=1;held_token[0]=token0+1;held_epoch[0]=1;
+   step(40);if(state[0]!=2 || cancel_valid!=0 || errors[0]!=0) $fatal(1,"old held token started qualification timer");
+   @(negedge clock);held_token[0]=token0;tick();firstHeldCycle=cycles;
+   @(negedge clock);held_valid=0;drainAcks[0]=5;
+   step(29);if(state[0]!=2 || cancel_valid!=0) $fatal(1,"qualification timer expired early");
+   @(negedge clock);held_valid=1;drainAcks[0]=15;
+   step(2);if(state[0]!=2 || cancel_valid!=0) $fatal(1,"fullACK or early timer escaped draining");
+   tick();
+   if(cycles-firstHeldCycle!=32 || state[0]!=9 || !cancel_valid[0] || !errors[0][4] || !clockEnable[0])
+     $fatal(1,"qualification deadline lost to fullACK/restarted by proof revocation age=%0d",cycles-firstHeldCycle);
+   @(negedge clock);drainAcks[0]=0;result_valid=1;result_token[0]=token0;result_epoch[0]=1;
+   result_canceled[0]=1;result_timedOut[0]=0;
+   repeat(40) begin
+     tick();if(!cancel_valid[0] || cancel_token[0]!=token0 || cancel_epoch[0]!=1 || result_ready[0] || resume_valid!=0 || completed[0]!=0)
+       $fatal(1,"local cancel changed or terminal preceded real acceptance");
+   end
+   @(negedge clock);result_valid=0;cancel_ready=1;tick();@(negedge clock);cancel_ready=0;
+   step(3);if(cancel_valid!=0) $fatal(1,"local cancel repeated after handshake");
+   // Wrong terminal reason flags cannot complete this locally canceled epoch.
+   @(negedge clock);result_valid=1;result_timedOut[0]=1;step(3);
+   if(result_ready[0] || completed[0]!=0) $fatal(1,"local qualification timeout accepted initial-timeout flags");
+   @(negedge clock);result_valid=0;tick();@(negedge clock);result_valid=1;result_canceled[0]=0;result_timedOut[0]=0;step(3);
+   if(result_ready[0] || completed[0]!=0) $fatal(1,"local cancellation accepted normal terminal flags");
+   @(negedge clock);result_valid=0;terminal(0,1,0);step(12);check_pending(0,0);retire();
+   if(completed[0]!=1 || busy[0] || lastSuccess[0] || !errors[0][4] || errors[0][9]) $fatal(1,"local qualification cancellation completion mismatch");
+   $display("CLOCK_RATE_QUALIFICATION_COMPONENT exact_deadline=32 cancel_backpressure=40 canceled=1 boundary_timedout=0");
+   allowQualificationCancel=0;
+   // Initial boundary abort wins even on the local qualification deadline.
+   @(negedge clock);held_valid=0;drainAcks[0]=0;idle_boot();monitorNoGate=1;
+   @(negedge clock);submit_valid=1;tick();@(negedge clock);submit_valid=0;responseCommitted=1;
+   tick();@(negedge clock);responseCommitted=0;requests_ready=1;token0=requests_bits[0];tick();
+   @(negedge clock);requests_ready=0;boundaryBusy=1;activeLane=0;activeEpoch=1;activeToken=token0;step(3);@(negedge clock);
+   held_valid=1;held_token[0]=token0;held_epoch[0]=1;tick();firstHeldCycle=cycles;
+   step(31);@(negedge clock);drainDeadline=1;tick();
+   if(cycles-firstHeldCycle!=32 || state[0]!=9 || cancel_valid!=0 || !errors[0][4])
+     $fatal(1,"initial abort did not win local qualification deadline");
+   @(negedge clock);drainDeadline=0;timeoutSelected=1;
+   terminal(0,1,1);retire();
+   if(completed[0]!=1 || lastSuccess[0]) $fatal(1,"initial abort race lost completion");
+   // Coordinated reset cancels the test's whole boundary epoch, not just one end.
+   @(negedge clock);held_valid=0;idle_boot();monitorNoGate=1;allowQualificationCancel=1;
+   @(negedge clock);submit_valid=1;tick();@(negedge clock);submit_valid=0;responseCommitted=1;
+   tick();@(negedge clock);responseCommitted=0;requests_ready=1;token0=requests_bits[0];tick();
+   @(negedge clock);requests_ready=0;boundaryBusy=1;activeEpoch=1;activeToken=token0;step(3);@(negedge clock);
+   held_valid=1;held_token[0]=token0;held_epoch[0]=1;tick();step(32);
+   if(!cancel_valid[0] || completed[0]!=0) $fatal(1,"reset fixture missed pending cancel state=%0d completed=%0d cancel=%b errors=%x held=%b timeout=%b",state[0],completed[0],cancel_valid,errors[0],held_valid,timeoutSelected);
+   @(negedge clock);boundaryBusy=0;held_valid=0;result_valid=0;timeoutSelected=0;drainDeadline=0;
+   idle_boot();step(8);
+   if(cancel_valid!=0 || busy!=0 || completed[0]!=0 || completed[1]!=0 || errors[0]!=0)
+     $fatal(1,"coordinated reset retained obsolete cancellation");
+   allowQualificationCancel=0;
+   $display("CLOCK_RATE_QUALIFICATION_RACES abort_wins_same_deadline pending_cancel_reset_clear");
    // Model-only normal branch regression: synthetic ACKs/program response are
    // NOT real clock permission. Ensure retiring does not reassert quiesce.
    for(normalCase=0;normalCase<3;normalCase=normalCase+1) begin
@@ -203,7 +273,7 @@ module clock_rate_cleanup_tb;
    while(state[0]!=6) tick();
    @(negedge clock);gateClosed[0]=0;gateOpen[0]=1;drainAcks[0]=0;resume_ready[0]=1;
    while(!resume_valid[0]) tick();tick();@(negedge clock);resume_ready[0]=0;
-    $display("NORMAL_TERMINAL"); terminal(0,0);step(10);
+    $display("NORMAL_TERMINAL"); terminal(0,0,0);step(10);
    if(quiesce[0] || completed[0]!=0 || !busy[0]) $fatal(1,"normal retiring reasserted quiesce or completed early");
    if(normalCase==0) retire();
    else begin

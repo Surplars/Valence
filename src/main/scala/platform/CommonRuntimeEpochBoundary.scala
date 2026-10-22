@@ -2,7 +2,7 @@ package soc.platform
 
 import chisel3._
 import chisel3.util._
-import soc.ip.bus.{CdcMailbox, CdcResetRelease}
+import soc.ip.bus.{CdcLevel, CdcMailbox, CdcResetRelease}
 
 class CommonRuntimeAonStatus(p: CommonCpuTilePortParams) extends Bundle {
     val token = UInt(32.W)
@@ -53,7 +53,8 @@ private class CommonRuntimeBoundaryObservation(p: CommonCpuTilePortParams) exten
 class CommonRuntimeEpochBoundary(
     p: CommonCpuTilePortParams,
     drainTimeoutCycles: Int = 65536,
-    cleanupTimeoutCycles: Int = 65536
+    cleanupTimeoutCycles: Int = 65536,
+    externalRetirementBarrier: Boolean = false
 ) extends RawModule {
     require(p.runtimeMaintenance && p.runtimeCancellation && p.runtimeInterruptHold)
     require(drainTimeoutCycles >= 2 && cleanupTimeoutCycles >= 2)
@@ -89,6 +90,10 @@ class CommonRuntimeEpochBoundary(
         val runtimeResume = Decoupled(UInt(p.maintenanceEpochBits.W))
         val runtimeCancel = Decoupled(UInt(p.maintenanceEpochBits.W))
         val runtimeComplete = Flipped(Decoupled(new CommonRuntimeCompletion(p)))
+        // Fabric-domain composition hook: consumer receipt is not owner retirement.
+        val terminalConsumedAtAon = if (externalRetirementBarrier) Some(Output(Bool())) else None
+        val retirementPermit = if (externalRetirementBarrier) Some(Input(Bool())) else None
+        val retirementFault = if (externalRetirementBarrier) Some(Input(Bool())) else None
     })
     private def release(clock: Clock): AsyncReset = {
         val r = Module(new CdcResetRelease)
@@ -98,6 +103,12 @@ class CommonRuntimeEpochBoundary(
     private val aonReset = release(aonClock)
     private val cpuReset = release(cpuClock)
     private val fabricReset = release(fabricClock)
+    private val retirementFaultInAon = if (externalRetirementBarrier) {
+        val sync = Module(new CdcLevel)
+        sync.clockIn := aonClock; sync.resetIn := aonReset
+        sync.levelIn := io.retirementFault.get
+        Some(sync.levelOut)
+    } else None
     private def mailbox(width: Int, source: Clock, destination: Clock): CdcMailbox = {
         val m = Module(new CdcMailbox(width))
         m.sourceClock := source; m.destinationClock := destination; m.commonReset := commonColdReset
@@ -165,11 +176,13 @@ class CommonRuntimeEpochBoundary(
         when(terminal.source.fire) { sent := true.B; copied := io.runtimeComplete.bits }
         val consumedAtAon = sent && terminal.sourceIdle
         val matchingCopy = io.runtimeComplete.bits.asUInt === copied.asUInt
+        io.terminalConsumedAtAon.foreach(_ := consumedAtAon)
+        val retirementAllowed = io.retirementPermit.getOrElse(true.B) && !io.retirementFault.getOrElse(false.B)
         // Reserve receipt capacity before releasing the fabric owner. A faster
         // next transaction must not overwrite the prior retirement handshake.
-        retirement.source.valid := consumedAtAon && io.runtimeComplete.valid && terminalMatches && matchingCopy
+        retirement.source.valid := consumedAtAon && io.runtimeComplete.valid && terminalMatches && matchingCopy && retirementAllowed
         retirement.source.bits := epoch
-        io.runtimeComplete.ready := consumedAtAon && terminalMatches && matchingCopy && retirement.source.ready
+        io.runtimeComplete.ready := consumedAtAon && terminalMatches && matchingCopy && retirement.source.ready && retirementAllowed
         when(io.runtimeComplete.fire) { sent := false.B; armed := false.B }
         when(sent) {
             assert(io.runtimeComplete.valid && terminalMatches && matchingCopy,
@@ -211,7 +224,7 @@ class CommonRuntimeEpochBoundary(
         when(fabricUpdate) { fabricProved := fabricSnapshot.qualified }
         val cpuCurrent = Mux(cpuUpdate, cpuSnapshot.qualified, cpuProved)
         val fabricCurrent = Mux(fabricUpdate, fabricSnapshot.qualified, fabricProved)
-        val qualified = prepareAccepted && cpuCurrent && fabricCurrent
+        val qualified = prepareAccepted && cpuCurrent && fabricCurrent && !retirementFaultInAon.getOrElse(false.B)
         val expired = owned && !qualifiedOnce && !releaseChosen && drainTimer === (drainTimeoutCycles - 1).U
         val selectedCancel = (0 until 2).map(i => io.cancel(i).fire).reduce(_ || _)
         val selectedResume = (0 until 2).map(i => io.resume(i).fire).reduce(_ || _)
@@ -244,7 +257,7 @@ class CommonRuntimeEpochBoundary(
         // Deadline priority is explicit. A matching proof arriving on this edge
         // cannot reverse the timeout decision or authorize a later normal release.
         when(owned && !releaseChosen) {
-            when(expired || selectedCancel) {
+            when(expired || selectedCancel || retirementFaultInAon.getOrElse(false.B)) {
                 releaseChosen := true.B; canceled := true.B
                 when(expired) { timedOut := true.B }
             }.elsewhen(selectedResume) { releaseChosen := true.B }
@@ -288,7 +301,9 @@ class CommonRuntimeEpochBoundary(
         }
         io.busy := owned
         io.activeLane := lane; io.activeEpoch := epoch; io.activeToken := token
-        io.timeoutSelected := timedOut; io.cleanupFault := cleanupFault; io.epochExhausted := exhausted
+        io.timeoutSelected := timedOut
+        io.cleanupFault := cleanupFault || retirementFaultInAon.getOrElse(false.B)
+        io.epochExhausted := exhausted
         io.proofObserved := owned && qualified
         io.drainDeadline := expired
         assert(!(io.requests(0).fire && io.requests(1).fire), "two rate requesters acquired one runtime owner")

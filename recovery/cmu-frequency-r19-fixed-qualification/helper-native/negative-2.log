@@ -1,0 +1,7 @@
+FIXED_PREPARE epoch=1
+FIXED_PROOF epoch=1 fixed_edges=99
+FIXED_PROOF epoch=1 fixed_edges=127
+FIXED_PROOF epoch=1 fixed_edges=155
+FIXED_RECEIPT epoch=1 canceled=0
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/fixed_epoch_qualifier_tb.sv:65: FIXED_ORACLE_RECEIPT
+       Time: 2637000  Scope: fixed_epoch_qualifier_tb

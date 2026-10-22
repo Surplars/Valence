@@ -1,0 +1,14 @@
+{
+  "status": "INTERRUPTED_NOT_PASS",
+  "reason": "Parent audit found adapter cleanupFault must remain visible after boundary busy falls while controller retirement receipt pending; source-bound fresh emission required. No test assertion failure observed before interruption.",
+  "tool_session_exit_code": 130,
+  "emission_receipt_sha256": "766adcbcf9149ebb0bfd355fe8bcaedf056da4db942a2a217c51d67a9593507d",
+  "logs_sha256": {
+    "guest-disassembly.log": "eccbd5272a355fda40713481b90369a119b11358b7ee8dfa7cb95612c5de3914",
+    "compile.log": "ff7bc239d5861d7eedb797cfdfe6eeaf85ed937c2ad545020a8900c6981462a7",
+    "guest-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unrelated.log": "9b9a1f16495cce054c70a130934d162b96aaf253fe136fdc1c3b4e06363ea79e",
+    "guest-binary.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "guest-symbols.log": "171891c61c5ce2d858fd808d1852eca57207b7177fc97b4449bd6689458248f3"
+  }
+}

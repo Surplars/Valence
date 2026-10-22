@@ -1,0 +1,2 @@
+RTL8211F_PIN_MODEL_PASS startup_readbacks=1 status_rates=4 bmsr_latched_low=1 software_reads=1 no_ack_once=1 reset_cancel=1
+simulator/cdc/rtl8211f_pin_model_tb.sv:97: $finish called at 2971720000 (1ps)

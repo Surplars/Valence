@@ -1,0 +1,12 @@
+{
+  "status": "PASS_INDEPENDENT_SOURCE_INPUT_TOOL_AND_LOG_REHASH",
+  "receipt_sha256": "9dda5663d7dd92cb65f4a5ad0f58ff7420b8ab7bb134128e59409f14ae490118",
+  "counts": {
+    "source": 321,
+    "input": 61,
+    "tool": 7
+  },
+  "positive_cases": 5,
+  "negative_checks": 4,
+  "compiled_sha256": "b11fac50dc1665f23ed98b196853c4d87d999a5fb1d3871f9c2f5a78fb31222d"
+}

@@ -1,0 +1,3 @@
+NEGATIVE_ORACLE_REJECTED DMI response payload mismatch
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/cdc/debug_admission_tb.sv:58: external ownership/payload oracle: DMI response payload mismatch
+       Time: 2038000  Scope: debug_admission_tb.reject

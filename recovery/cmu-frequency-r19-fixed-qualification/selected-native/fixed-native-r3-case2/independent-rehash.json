@@ -1,0 +1,7 @@
+{
+  "status": "PASS_INDEPENDENT_SELECTED_CASE_REHASH",
+  "receipt_sha256": "0ffb1cba5384dca047c3191464bbeb451e04fe6844096000d5fe4d7a54413be7",
+  "full_matrix": false,
+  "sources": 325,
+  "rtl_modules": 214
+}

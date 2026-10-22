@@ -1,0 +1,7 @@
+I1_PACKET_BOOT case=0 retires=331 CPU_network_control=3/3
+I1_PACKET_RX_STATUS_HELD status=5 accepted=1 AON_epoch=1
+I1_PACKET_RX_B_HELD requests=2 replies=0 real_B_owners=1
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+I1_PACKET_JOINED_RETIREMENT epoch=1 AON=1 debug=1 receipt=1 network=1 fabric=1
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:910: NETWORK_ORACLE_GUARD dirty same-line neighbor got=55667788 expected=55667788
+       Time: 71899000  Scope: i1_runtime_network_tb.checkRam

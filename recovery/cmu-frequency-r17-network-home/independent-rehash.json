@@ -1,0 +1,12 @@
+{
+  "status": "PASS_INDEPENDENT_SOURCE_RTL_TOOL_LOG_GUEST_REHASH",
+  "source_count": 323,
+  "rtl_count": 204,
+  "tools_count": 11,
+  "logs_count": 17,
+  "native_receipt_sha256": "f72c3ef0c0ad8207c1ac5ceda6bece8ce16ff44f059736dae78d2b1a97703634",
+  "native_case_count": 8,
+  "negative_count": 3,
+  "default_debug_fixture_byte_identical": 188,
+  "production_diff": ""
+}

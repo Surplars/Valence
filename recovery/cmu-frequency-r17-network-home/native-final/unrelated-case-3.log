@@ -1,0 +1,10 @@
+I1_PACKET_BOOT case=3 retires=330 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+I1_PACKET_TX_WIRE bytes=72 crc=449789ae
+I1_PACKET_TERMINAL_BACKPRESSURE epoch=1 actual_AON_copy=held debug=held network=held
+I1_PACKET_JOINED_RETIREMENT epoch=1 AON=1 debug=1 receipt=1 network=1 fabric=1
+I1_PACKET_HOME_MEMORY case=3 request=8 reply=8 RX_probe=0/0 TX_probe=1/8 preserved_guard=55667788
+I1_PACKET_CPU_COHERENT_READBACK case=3 checked=1 RX=0 guard=0 TX=1
+I1_RUNTIME_NETWORK_PASS case=3 clocks=5/7/11/13/3/17 packet=8/8 AXI_R=58 AXI_B=3 cpu_checked=1
+/workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_network_tb.sv:1036: $finish called at 77047000 (1ps)

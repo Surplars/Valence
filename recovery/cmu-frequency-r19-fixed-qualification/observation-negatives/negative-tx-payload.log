@@ -1,0 +1,7 @@
+I1_PACKET_BOOT case=3 retires=344 CPU_network_control=3/3
+I1_PACKET_TX_PREFETCH_HELD requests=3 replies=0 real_R_id=0 addr=00004000
+I1_FIXED_TX_TIMER_OWNER active_epoch=1 source_reply_consumed_while_paused=1 next_request_retained=1 source=5/5
+I1_PACKET_TX_TAIL_HELD controls=6 memory=8/8
+FIXED_NEGATIVE_OBSERVATION TX byte=23 original=2f observed=2e expected=2f
+FATAL: /workspace/scratch/41e4a649bb60/Valence/simulator/gsim/common/i1_runtime_fixed_tb.sv:857: NETWORK_ORACLE_PAYLOAD TX byte=23 got=2e expected=2f
+       Time: 67003000  Scope: i1_runtime_fixed_tb

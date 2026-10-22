@@ -1,0 +1,27 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45627 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=45627 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45627 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=45627 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly debug.JtagRamLoaderSpec ip.ClockRateControlSpec
+190-1]
+190-1] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45627 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=45627 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190-0]
+190-0] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45627 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=45627 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190-0] Running Test Class debug.JtagRamLoaderSpec
+190-1] Running Test Class ip.ClockRateControlSpec
+190-1] [32mClockRateControlSpec:[39m
+190-1] [32m- legality, component tests and SoC qualification are separate[39m
+190-0] [32mJtagRamLoaderSpec:[39m
+190-0] [32m- RAM loader elaborates a bounded single-clock DMA and truthful absent DM[39m
+190-0] [32m- invalid address windows are rejected[39m
+190-0] [36mRun completed in 3 seconds, 157 milliseconds.[39m
+190-0] [36mTotal number of tests run: 2[39m
+190-0] [36mSuites: completed 1, aborted 0[39m
+190-0] [36mTests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0[39m
+190-0] [32mAll tests passed.[39m
+190-1] [32m- MMIO and actual complete-response CDC elaborate independently of CPU and MMCM[39m
+190-1] [32m- real managed bank routes legacy and rate pages without changing legacy resource ownership[39m
+190-1] [36mRun completed in 4 seconds, 661 milliseconds.[39m
+190-1] [36mTotal number of tests run: 3[39m
+190-1] [36mSuites: completed 1, aborted 0[39m
+190-1] [36mTests: succeeded 3, failed 0, canceled 0, ignored 0, pending 0[39m
+190-1] [32mAll tests passed.[39m
+190/190, SUCCESS] mill IonSoC.test.testOnly debug.JtagRamLoaderSpec ip.ClockRateControlSpec 13s

@@ -1,0 +1,16 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=44745 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=44745 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=44745 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=44745 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly ip.ClockRateControlSpec
+190] IonSoC.test.testOnly
+190] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=44745 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=44745 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190] Running Test Class ip.ClockRateControlSpec
+190] [32mClockRateControlSpec:[39m
+190] [32m- legality, component tests and SoC qualification are separate[39m
+190] [32m- MMIO and actual complete-response CDC elaborate independently of CPU and MMCM[39m
+190] [32m- real managed bank routes legacy and rate pages without changing legacy resource ownership[39m
+190] [36mRun completed in 4 seconds, 729 milliseconds.[39m
+190] [36mTotal number of tests run: 3[39m
+190] [36mSuites: completed 1, aborted 0[39m
+190] [36mTests: succeeded 3, failed 0, canceled 0, ignored 0, pending 0[39m
+190] [32mAll tests passed.[39m
+190/190, SUCCESS] mill IonSoC.test.testOnly ip.ClockRateControlSpec 13s

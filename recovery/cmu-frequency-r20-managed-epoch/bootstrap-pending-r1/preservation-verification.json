@@ -1,0 +1,30 @@
+{
+  "status": "PASS_PRESERVATION_ONLY_NOT_NATIVE_QUALIFICATION",
+  "verified_at_utc": "2026-10-21T23:08:37.230868+00:00",
+  "records": [
+    {
+      "name": "managed-accelerated-emission-r1",
+      "status": "PASS_EMIT_ONLY",
+      "receipt_sha256": "f2854ae67b13ad41b8898ff8b30a9c8dbc96b13f36b55c42406e958b5428fae2",
+      "checked": 612,
+      "failed": []
+    },
+    {
+      "name": "managed-accelerated-normal-r1",
+      "status": "FAIL",
+      "receipt_sha256": "6542747faf5c686e4dfce4b9e30577c2df5e99f1d69a54ccead4da902f752d62",
+      "checked": 615,
+      "failed": []
+    },
+    {
+      "name": "managed-accelerated-normal-r2",
+      "status": "FAIL",
+      "receipt_sha256": "dfbcba8c570d366db48ad39b437ac96f396572365610783966a7b3500371a0c1",
+      "checked": 615,
+      "failed": []
+    }
+  ],
+  "pending": "Accelerated normal/unrelated 300-second case has no discovered output or journal and is not claimed started or passed.",
+  "old_r5_reap": "Unknown; no retrospective claim from current process namespace.",
+  "unchanged_baseline_receipt_sha256": "5c53ed38a1a4193e2000b866b1266ff0324381ba2f08f508d2275bca74b1108a"
+}

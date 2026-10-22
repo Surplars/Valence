@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33525 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33525 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33525 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33525 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.testOnly ip.ManagedRuntimeControlSpec
+158] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+177] IonSoC.compile compiling 2 Scala sources to out/IonSoC/compile.dest/classes ...
+177] done compiling
+177] compiling 3 Scala sources to out/IonSoC/compile.dest/classes ...
+177] done compiling
+181] IonSoC.test.compile compiling 4 Scala sources to out/IonSoC/test/compile.dest/classes ...
+181] done compiling
+190] IonSoC.test.testOnly
+190] Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/Valence/simulator/build/cloud-env/home -Xmx4g -XX:ActiveProcessorCount=2 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=33525 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=33525 -Dhttp.nonProxyHosts=localhost|127.* -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+190] Running Test Class ip.ManagedRuntimeControlSpec
+190] [32mManagedRuntimeControlSpec:[39m
+190] [32m- PHY policy scheduling waits accept the positive boundary without changing MDIO timing[39m
+190] [32m- PHY policy scheduling rejects zero and negative waits[39m
+190] [36mRun completed in 2 seconds, 447 milliseconds.[39m
+190] [36mTotal number of tests run: 2[39m
+190] [36mSuites: completed 1, aborted 0[39m
+190] [36mTests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0[39m
+190] [32mAll tests passed.[39m
+190/190, SUCCESS] mill IonSoC.test.testOnly ip.ManagedRuntimeControlSpec 29s

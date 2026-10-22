@@ -1,0 +1,9 @@
+{
+  "status": "PASS_INDEPENDENT_CASE_REHASH",
+  "case": "negative-retained-statistics",
+  "case_status": "PASS_NEGATIVE_CONTROL",
+  "checked": 624,
+  "case_receipt_sha256": "df1e7b68716932d90ed32790675954c76cce944479d1a20733b713a69002e5a2",
+  "verified_at_utc": "2026-10-21T23:48:26.502610+00:00",
+  "failed": []
+}

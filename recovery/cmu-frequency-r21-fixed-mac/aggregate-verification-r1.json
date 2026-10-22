@@ -1,0 +1,101 @@
+{
+  "status": "PASS_SCOPED_FIXED_MAC_BOUNDARY",
+  "verifier_sha256": "d39efa072e345cb7da17e9c9033fcd944ee71ef8dc3eea60fd514c1c5b4e8ba2",
+  "real": {
+    "receipt_sha256": "9d396e891c11eb2321fe75086011286266a538de424fb6900521f2a5e305412c",
+    "sources": 958,
+    "inputs": 51,
+    "tools": 7,
+    "positive": 3,
+    "ordinary_oracle_negatives": 4,
+    "seconds": {
+      "compile": 0.123524027003441,
+      "fabric50": 46.58105756400619,
+      "fabric250": 54.2136156810011,
+      "fabric71": 45.565136243996676,
+      "negative1": 46.63483741400705,
+      "negative2": 43.57378871300898,
+      "negative3": 35.72541774800629,
+      "negative4": 37.125963881000644
+    }
+  },
+  "boundary": {
+    "receipt_sha256": "513d5f49057d193cf60a92b6849854c0a19a850679b968440bbebd6dd3d6f46b",
+    "sources": 958,
+    "inputs": 9,
+    "tools": 7,
+    "positive": 3,
+    "ordinary_oracle_negatives": 4,
+    "seconds": {
+      "compile": 0.02159848000155762,
+      "fabric50": 0.3454543389962055,
+      "fabric250": 0.3053646589978598,
+      "fabric71": 0.305361154009006,
+      "negative1": 0.042344280998804606,
+      "negative2": 0.32559772199601866,
+      "negative3": 0.3660183500032872,
+      "negative4": 0.34546377800870687
+    }
+  },
+  "emissions": {
+    "test-r2": {
+      "receipt_sha256": "c589446ced1badaaebec6ba8511809040a7a79279a84cb2292d980dbfd99ecf3",
+      "modules": 50
+    },
+    "boundary-r2": {
+      "receipt_sha256": "2402db3d499cbcf8612f3f05d4794f4aab23c8613d471a588607b5db13ed7a6a",
+      "modules": 8
+    },
+    "production-r2": {
+      "receipt_sha256": "a8f0de2e45ac3f82f1c8924006ac6f86400a309ee89b2628e49e2f5bc8b0642d",
+      "modules": 51
+    },
+    "balanced-r2": {
+      "receipt_sha256": "774ffe685d6d00322cf1108df2973a7802d2ced5a27f42ad876ea934ffa0ee2e",
+      "modules": 52
+    }
+  },
+  "default_off": {
+    "byte_identical": 248,
+    "normalized": false,
+    "comparison_sha256": "94077c4ae287912ff62bc49504a728e19d152f40deb5eb14c7048ae3a1706715"
+  },
+  "static_topology": {
+    "production-r2": {
+      "existing_continuous_buffers": 0,
+      "existing_managed_buffers": 2,
+      "new_mmcm": 0,
+      "stream_fifos": 4,
+      "stream_payload_bits": 37,
+      "command_mailboxes": 3,
+      "csr_bridges": 1,
+      "fixed_source_hz": 125000000,
+      "mdio_half_period_fixed_cycles": 50
+    },
+    "balanced-r2": {
+      "existing_continuous_buffers": 1,
+      "existing_managed_buffers": 2,
+      "new_mmcm": 0,
+      "stream_fifos": 4,
+      "stream_payload_bits": 37,
+      "command_mailboxes": 3,
+      "csr_bridges": 1,
+      "fixed_source_hz": 125000000,
+      "mdio_half_period_fixed_cycles": 50
+    }
+  },
+  "scope": {
+    "real_cpu_dma_home": false,
+    "complete_aon_epoch_retirement": false,
+    "runtime_platform_selected": false,
+    "full_system_ack": false,
+    "clock_gating": false,
+    "physical_cdc": false,
+    "drp": false,
+    "board": false,
+    "line_rate": false,
+    "short_external_irq_capture": false,
+    "fixture_producer_closed": true,
+    "fifo_only_rx_fabric50_measured_bytes_per_second": 100000000
+  }
+}
