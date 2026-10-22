@@ -153,7 +153,7 @@ source [file join [file dirname [file normalize [info script]]] exact_object_cac
 common_exact_cache::enable
 source $valence(post_synth_constraints)
 if {$valence(clock_profile) eq "boot50-dynamic"} {
-    source [file join $valence(root) fpga common dynamic performance_targets.tcl]
+    source [file join [file dirname [file normalize [info script]]] dynamic performance_targets.tcl]
     native_dynamic_performance_targets
 }
 write_checkpoint synthesized.dcp

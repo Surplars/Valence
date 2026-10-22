@@ -2,12 +2,12 @@
 set recovery_tools [file dirname [file normalize [info script]]]
 proc resume_diagnostic {} {
     global argv valence recovery_tools
-    if {[llength $argv] ni {1 2 3 4}} {error "usage: resume_diagnostic.tcl ORIGINAL_CONFIG ?synthesis|implementation|post-opt|place-route? ?CHECKPOINT? ?OBSERVED_SHA256?"}
+    if {[llength $argv] ni {1 2 3 4}} {error "usage: resume_diagnostic.tcl ORIGINAL_CONFIG ?synthesis|implementation|post-opt|place-route|post-synth-tail? ?CHECKPOINT? ?OBSERVED_SHA256?"}
     source [lindex $argv 0]
     if {$valence(diagnosticOnly)!=1 || $valence(clock_profile) ni {performance300-static boot50-dynamic}} {error "Only reviewed diagnostic profile may resume"}
     set phase [expr {[llength $argv]>=2 ? [lindex $argv 1] : "synthesis"}]
-    if {$phase ni {synthesis implementation post-opt place-route}} {error "Invalid recovery phase"}
-    if {($phase eq "post-opt" && [llength $argv]!=3) || ($phase eq "place-route" && [llength $argv]!=4) || ($phase in {synthesis implementation} && [llength $argv]>2)} {error "Invalid checkpoint arguments for mode"}
+    if {$phase ni {synthesis implementation post-opt place-route post-synth-tail}} {error "Invalid recovery phase"}
+    if {($phase in {post-opt post-synth-tail} && [llength $argv]!=3) || ($phase eq "place-route" && [llength $argv]!=4) || ($phase in {synthesis implementation} && [llength $argv]>2)} {error "Invalid checkpoint arguments for mode"}
     set valence(phase) $phase
     set valence(out) [file join $valence(root) diagnostic-run synthesis]
     cd $valence(out)
@@ -20,7 +20,7 @@ proc resume_diagnostic {} {
     set ::env(VALENCE_REQUESTED_THREADS) $valence(threads)
     set ::env(VALENCE_PROFILE_SHA256) $valence(profile_sha256)
     source [file join $valence(root) fpga common producer_common.tcl]
-    set extra {}; if {$phase eq "post-opt"} {set extra [list [lindex $argv 2]]}; if {$phase eq "place-route"} {set extra [lrange $argv 2 3]}
+    set extra {}; if {$phase in {post-opt post-synth-tail}} {set extra [list [lindex $argv 2]]}; if {$phase eq "place-route"} {set extra [lrange $argv 2 3]}
     set evidence [exec $valence(python) -E [file join $recovery_tools resume_diagnostic.py] $valence(root) $phase {*}$extra]
     set f [open resume-ooc-evidence-[clock clicks].json {WRONLY CREAT EXCL}]; puts $f $evidence; close $f
     # Only successful frozen check grants this source-bound lemma.
@@ -29,7 +29,35 @@ proc resume_diagnostic {} {
     # Versioned anchor overlay is separately hashed in recovery evidence above.
     set valence(post_synth_constraints) [file join $recovery_tools post_synth.tcl]
     set valence(post_opt_constraints) [file join $recovery_tools post_opt.tcl]
-    if {$phase eq "place-route"} {
+    if {$phase eq "post-synth-tail"} {
+        if {$valence(clock_profile) ne "boot50-dynamic" || [version -short] ne "2025.2"} {error "TAIL requires reviewed dynamic profile and Vivado 2025.2"}
+        foreach name {post-synth-tail-start.json post-synth-tail-native.json post-synth-tail-provenance.json tail-retained.xdc tail-retained-constraints.json dynamic-performance-target-clocks.rpt} {
+            if {[file exists $name]} {error "Preserve previous tail output $name"}
+        }
+        set f [open post-synth-tail-start.json {WRONLY CREAT EXCL}]; puts $f $evidence; close $f
+        open_checkpoint [file join $valence(out) failed-resume-unqualified-1603981302391.dcp]
+        if {[get_property PART [current_design]] ne "xczu15eg-ffvb1156-2-i" || [get_property NAME [current_design]] ne "soc_top_common_ddr"} {error "TAIL wrong reopened part/top"}
+        foreach command {synth_design opt_design place_design phys_opt_design route_design launch_runs create_project create_ip generate_target import_ip read_xdc create_clock create_generated_clock set_max_delay set_min_delay set_bus_skew set_false_path set_clock_groups set_multicycle_path} {
+            if {[llength [info commands $command]]} {rename $command tail_forbidden_$command}
+            proc ::$command {args} {error "TAIL_FORBIDS_SYNTH_IP_IMPLEMENTATION_AND_CONSTRAINT_MUTATION"}
+        }
+        source [file join $recovery_tools dynamic performance_targets.tcl]
+        native_dynamic_performance_targets
+        source [file join $recovery_tools post_synth_tail_constraints.tcl]
+        post_synth_tail_retained_constraints
+        puts [exec $valence(python) -E [file join $recovery_tools resume_diagnostic.py] $valence(root) retained-tail]
+        set f [open post-synth-tail-native.json {WRONLY CREAT EXCL}]
+        puts $f {{"status":"TARGET_CHECKS_RETURNED","version":"2025.2","part":"xczu15eg-ffvb1156-2-i","top":"soc_top_common_ddr"}}
+        close $f
+        write_checkpoint synthesized.dcp
+        report_utilization -file utilization.rpt
+        puts [exec $valence(python) -E [file join $recovery_tools resume_diagnostic.py] $valence(root) seal-tail [lindex $argv 2]]
+        set valence(phase) synthesis
+        common_record post_synth_tail [list open_checkpoint failed-resume-unqualified-1603981302391.dcp] configured [get_param general.maxThreads] post-synth-tail-provenance.json
+        common_receipt
+        puts [exec $valence(python) -E [file join $recovery_tools resume_diagnostic.py] $valence(root) implementation]
+        close_project
+    } elseif {$phase eq "place-route"} {
         foreach command {synth_design opt_design launch_runs create_project create_ip generate_target import_ip write_bitstream write_device_image} {
             if {[llength [info commands $command]]} {rename $command continuation_forbidden_$command}
             proc ::$command {args} {error "CONTINUATION_FORBIDS_SYNTH_OPT_IP_AND_BIT"}

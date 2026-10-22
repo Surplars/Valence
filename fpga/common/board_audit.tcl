@@ -75,6 +75,7 @@ proc common_board::rom {} {
 }
 proc common_board::cpu {} {
     global valence
+    variable script_dir
     if {![info exists valence(cpu)] || $valence(cpu) ni {i1 a1}} {error "COMMON_CPU missing selected CPU"}
     set expected [expr {$valence(cpu) eq "i1" ? "CommonI1CpuTile" : "CommonA1CpuTile"}]
     set other [expr {$valence(cpu) eq "i1" ? "CommonA1CpuTile*" : "CommonI1CpuTile*"}]
@@ -102,9 +103,10 @@ proc common_board::cpu {} {
     } else {
         common_cdc::same_net u_soc/fabricClock u_ddr/c0_ddr4_ui_clk
     }
-    foreach pin {u_soc/alwaysOnClock u_soc/rawUartClock} {
-        if {abs([get_property PERIOD [get_clocks [common_cdc::clock $pin]]]-20.0)>0.002} {error "COMMON_CPU fixed AON/UART50 mismatch"}
-    }
+    # Use the same functional raw/gated UART proof as synth/opt; do not depend
+    # on redundant top-level raw clock aliases surviving optimization.
+    source [file join $script_dir dynamic performance_targets.tcl]
+    native_fixed_uart_clock_check COMMON_CPU
 }
 proc common_board::release {prefix report} {
     set cells [common_cdc::bank $prefix 3]; set clk [common_cdc::clock [lindex $cells 0]/C]
