@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import unittest
+import tempfile
 import board_inputs as board
 import diagnostic
 import manifest as gate
@@ -11,6 +12,39 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = Path('delivery/boot50-dynamic-r25/rtl')
 
 class DynamicDiagnostic(unittest.TestCase):
+    def test_native_mig_replacement_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root/'native.txt'; report.write_text('synthetic parser fixture, not native evidence')
+            r = dict(schema='common-native-mig2025p2-replacement-v1', status='PASS',
+                     original_xci_sha256=diagnostic.OLD_DYNAMIC_MIG, xci_sha256=diagnostic.NEW_DYNAMIC_MIG,
+                     xci_size=54491, component_dcp_sha256=diagnostic.NEW_DYNAMIC_MIG_DCP,
+                     component_dcp_size=5049818, vivado='2025.2', ip_version='2.2',
+                     ip_revision=28, part='xczu15eg-ffvb1156-2-i', ip_locked=False,
+                     common_config_differences={}, port_count=871, port_differences=[],
+                     ui_clock_period_ns=4.0, ooc_exit_code=0, ooc_errors=0,
+                     ooc_critical_warnings=0, requested_threads=8, general_thread_limit=8,
+                     board_tested=False, physical_qualified=False,
+                     evidence_sha256={'native.txt':gate.sha(report)})
+            m = dict(roles=dict(ip=['new.xci'],native_mig_replacement='mig.json'),
+                     native_evidence=['mig.json'], inputs={'new.xci':diagnostic.NEW_DYNAMIC_MIG,
+                                                         'native.txt':gate.sha(report)})
+            receipt = root/'mig.json'
+            receipt.write_text(json.dumps(r)); diagnostic.dynamic_mig(root,m)
+            for key,value in (('vivado','2025.1'),('ip_revision',27),('ip_locked',True),
+                              ('common_config_differences',{'width':'changed'}),('port_count',870),
+                              ('port_differences',['direction']),('ui_clock_period_ns',5),
+                              ('component_dcp_sha256','0'*64),('ooc_exit_code',1),
+                              ('ooc_critical_warnings',1),('board_tested',True),('evidence_sha256',{})):
+                changed=copy.deepcopy(r); changed[key]=value; receipt.write_text(json.dumps(changed))
+                with self.subTest(key=key),self.assertRaises(ValueError): diagnostic.dynamic_mig(root,m)
+            receipt.write_text(json.dumps(r))
+            for digest in (diagnostic.OLD_DYNAMIC_MIG,'0'*64):
+                changed=copy.deepcopy(m); changed['inputs']['new.xci']=digest
+                with self.subTest(digest=digest),self.assertRaises(ValueError): diagnostic.dynamic_mig(root,changed)
+            report.write_text('mutated native report')
+            with self.assertRaises(ValueError): diagnostic.dynamic_mig(root,m)
+
     def fixture(self):
         meta = gate.read(ROOT / BASE / 'emission-profile.json')
         review_name = 'fpga/common/dynamic/mac_diagnostic_review.json'

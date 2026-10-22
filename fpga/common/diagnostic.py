@@ -22,6 +22,41 @@ DYNAMIC_OVERLAYS = {
         'test_dynamic_clock_targets.py', 'test_dynamic_diagnostic.py')
 }
 HELPERS = ('diagnostic.py', 'diagnostic.tcl', 'run-diagnostic.ps1', 'diagnostic-baseline.json')
+OLD_DYNAMIC_MIG = '278fef82fc53811b462514f4859aa455897f6e362e05f8d992433a9b54ea6330'
+# Actual native 2025.2 upgrade, reviewed independently of this input parser.
+# This is a diagnostic input identity, not DDR calibration or board approval.
+NEW_DYNAMIC_MIG = '445bf6243f84bad8fdb2d86565b6f5f6f0b70281db88e4e743870583d02ce870'
+NEW_DYNAMIC_MIG_DCP = 'a66a81a57f8f8ddb03ad70d26b8cef21ed4402c6136841ede9803fa1bf877c50'
+
+
+def dynamic_mig(root, m):
+    gate.require(len(m['roles'].get('ip', [])) == 1, 'one actual DDR4 XCI required')
+    digest = m['inputs'].get(m['roles']['ip'][0])
+    receipt = m['roles'].get('native_mig_replacement')
+    if digest == OLD_DYNAMIC_MIG:
+        gate.require(receipt is None, 'replacement may not silently use old MIG')
+        return
+    gate.require(digest == NEW_DYNAMIC_MIG and receipt in m.get('native_evidence', []),
+                 'new MIG requires exact reviewed identity and native replacement evidence')
+    r = gate.read(gate.file_at(root, receipt))
+    expected = dict(schema='common-native-mig2025p2-replacement-v1', status='PASS',
+                    original_xci_sha256=OLD_DYNAMIC_MIG, xci_sha256=NEW_DYNAMIC_MIG,
+                    xci_size=54491, component_dcp_sha256=NEW_DYNAMIC_MIG_DCP,
+                    component_dcp_size=5049818, vivado='2025.2', ip_version='2.2',
+                    ip_revision=28, part='xczu15eg-ffvb1156-2-i', ip_locked=False,
+                    common_config_differences={}, port_count=871, port_differences=[],
+                    ui_clock_period_ns=4.0, ooc_exit_code=0, ooc_errors=0,
+                    ooc_critical_warnings=0, requested_threads=8, general_thread_limit=8,
+                    board_tested=False, physical_qualified=False)
+    for key, value in expected.items():
+        gate.require(key in r and r[key] == value, 'native MIG replacement mismatch: '+key)
+    # Bind actual native reports, not just an asserted summary. These stay local;
+    # no vendor IP, DCP, raw run logs or fabricated old receipt is published.
+    reports = r.get('evidence_sha256', {})
+    gate.require(isinstance(reports, dict) and reports, 'native MIG report bindings required')
+    for path, digest in reports.items():
+        gate.require(m['inputs'].get(path) == digest and gate.sha(gate.file_at(root, path)) == digest,
+                     'native MIG report changed or omitted: '+path)
 
 
 def dynamic_delivery(root, m):
@@ -59,7 +94,7 @@ def check(path):
     gate.require(c['cpu'] == 'i1' and c.get('clock_profile') in ('performance300-static', 'boot50-dynamic'), 'only reviewed I1 diagnostic profiles')
     if dynamic:
         gate.require(m.get('sta_targets_hz') == dict(cpu=300000000, fabric=250000000), 'CPU300/fabric250 stress requirements cannot be relaxed')
-        gate.require(len(m['roles'].get('ip', [])) == 1 and m['inputs'].get(m['roles']['ip'][0]) == '278fef82fc53811b462514f4859aa455897f6e362e05f8d992433a9b54ea6330', 'dynamic diagnostic requires the reviewed existing DDR4 XCI, not an old SoC checkpoint')
+        dynamic_mig(root, m)
         for name, digest in {'fpga/common/board_pins.xdc':'1da67e780fe0b5f560c8a45eb90b61c2ac1ba8bb151a2b5a04f6d845db87e3ec', 'fpga/zu15eg/pl_ddr4_pins.xdc':'3c699e25cfcb6d12831ceb2f9846ef22b9ac16e7a3a2a6f6a3b813731b21afbf'}.items():
             gate.require(m['inputs'].get(name) == digest, 'dynamic board pin source changed: '+name)
     profile = gate.configuration(c)
@@ -128,6 +163,11 @@ def freeze(a):
                post_opt_constraints='fpga/common/post_opt.tcl',media_scenarios='fpga/common/media_scenarios.tcl',
                constraints=['fpga/common/board_pins.xdc','fpga/zu15eg/pl_ddr4_pins.xdc'],ip=[a.mig])
     files=set(emitted+rtl+sim+list(board_inputs.PUBLIC_INPUTS)+a.native_evidence)
+    replacement = getattr(a, 'mig_replacement_evidence', None)
+    if replacement:
+        gate.require(dynamic and replacement in a.native_evidence, 'freeze actual dynamic MIG receipt with --native-evidence')
+        roles['native_mig_replacement'] = replacement
+        files.update(gate.read(gate.file_at(root, replacement)).get('evidence_sha256', {}))
     if dynamic:
         roles['source_inventory'] = 'delivery/boot50-dynamic-r25/source-inputs.json'
         files.update(gate.read(gate.file_at(root, roles['source_inventory']))['files_sha256'])
@@ -189,6 +229,7 @@ if __name__=='__main__':
     f=sub.add_parser('freeze');f.add_argument('--root',type=Path,required=True)
     for k in ('emission','rom','coe','firmware-contract','mig'):f.add_argument('--'+k,required=True)
     f.add_argument('--native-evidence',action='append',required=True);f.add_argument('--threads',type=int,default=8);f.add_argument('--delivery-commit')
+    f.add_argument('--mig-replacement-evidence', help='Actual local 2025.2 MIG replacement receipt; fresh diagnostic package only')
     for name in ('check','prepare','record'):
         q=sub.add_parser(name);q.add_argument('--manifest',type=Path,required=True)
         if name=='record':q.add_argument('--phase',required=True)
