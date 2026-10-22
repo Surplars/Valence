@@ -69,11 +69,17 @@ set ::visited {};set ::modules {root/time_0 root/scalar}
 for {set i 0} {$i<26} {incr i} {lappend ::modules root/fifo$i}
 proc common_cdc::one {kind name} {return $name}
 proc get_cells args {if {[lsearch -exact $args -filter]>=0} {return {}};return $::modules}
-proc get_property {key object} {
-    if {$key eq {NAME}} {return $object}
-    if {[string match root/fifo* $object]} {return HeldResponseCdcDataFifo}
-    if {$object eq {root/time_0}} {return CdcMailbox}
-    return CdcLevel
+proc get_property {key objects} {
+    set values {}
+    foreach object $objects {
+        if {$key eq {NAME}} {lappend values $object
+        } elseif {$key eq {CLASS}} {lappend values cell
+        } elseif {[string match root/fifo* $object]} {lappend values HeldResponseCdcDataFifo
+        } elseif {$object eq {root/time_0}} {lappend values CdcMailbox
+        } else {lappend values CdcLevel}
+    }
+    if {[llength $objects]==1} {return [lindex $values 0]}
+    return $values
 }
 proc common_cdc::inactive h {return 1}
 proc common_cdc::inactive_gray {h direction} {

@@ -139,6 +139,17 @@ class ContinuationProvenanceTests(unittest.TestCase):
 
     def write_record(self):
         self.provenance.write_text(json.dumps(self.record))
+        native = dict(status='POST_OPT_RETURNED', started_unix_ms=1000000,
+                      completed_unix_ms=1001000, deadline_unix_ms=1600000, budget_ms=600000)
+        native_path=self.checkpoint.parent/'post-opt-native.json'
+        native_path.write_text(json.dumps(native))
+        seal=dict(status='COMPLETE_WITHIN_600S',qualification=False,budget_ms=600000,
+                  started_unix_ms=1000000,completed_unix_ms=1002000,elapsed_ms=2000,
+                  checkpoint_sha256=self.digest,provenance_sha256=resume.sha(self.provenance),
+                  native_sha256=resume.sha(native_path),
+                  optimized_checkpoint_sha256=self.record['optimized_checkpoint_sha256'],
+                  tool_sha256=self.record['cache_overlay_sha256'])
+        (self.checkpoint.parent/'post-opt-complete.json').write_text(json.dumps(seal))
 
     def verify(self, checkpoint=None, digest=None):
         return resume.verify_continuation(self.root, checkpoint or self.checkpoint,
@@ -240,7 +251,7 @@ class ContinuationProvenanceTests(unittest.TestCase):
             resume.seal_stage(self.root, checkpoint.parent, 'placed')
         # Semantically equivalent JSON still must match the exact parent seal.
         self.provenance.write_text(self.provenance.read_text() + '\n')
-        with self.assertRaisesRegex(ValueError, 'source provenance changed'):
+        with self.assertRaisesRegex(ValueError, 'source.*changed'):
             self.verify(checkpoint, resume.sha(checkpoint))
 
     def test_unreviewed_path_and_excessive_depth_rejected(self):

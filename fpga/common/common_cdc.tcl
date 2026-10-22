@@ -2,6 +2,7 @@
 # then call common_cdc::constrain. This file never applies global clock groups,
 # false paths, reset cuts, or asynchronous payload exceptions.
 namespace eval common_cdc { variable scopes {} }
+source [file join [file dirname [info script]] common_collect_session.tcl]
 if {[info exists ::valence(root)]} {
     # Tool overlays retain the original frozen inactive-state proof dependency.
     source [file join $::valence(root) fpga common inactive_zero_state.tcl]
@@ -10,6 +11,12 @@ if {[info exists ::valence(root)]} {
 }
 proc common_cdc::quote {s} {return [regsub -all {[][{}().+*?^$|\\]} $s {\\&}]}
 proc common_cdc::names {objects} {
+    if {$::common_collect_session::active && $::common_collect_session::enabled} {
+        if {![llength $objects]} {return {}}
+        set values [get_property NAME $objects]
+        if {[llength $objects]==1} {set values [list $values]}
+        return [lsort -unique $values]
+    }
     set out {}; foreach o $objects {lappend out [get_property NAME $o]}; return [lsort -unique $out]
 }
 proc common_cdc::one {command name} {
@@ -353,6 +360,9 @@ proc common_cdc::inactive {fifo} {
     return 1
 }
 proc common_cdc::collect {{root u_soc/crossing}} {
+    return [::common_collect_session::run [list ::common_cdc::collect_impl $root]]
+}
+proc common_cdc::collect_impl {{root u_soc/crossing}} {
     variable scopes; set scopes {}; one get_cells $root
     set held {}; set levels {}; set mailboxes {}; set unknown {}
     foreach c [get_cells -quiet -hier] {
@@ -383,6 +393,7 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     set ::common_cdc::constant_stage0_endpoints {}
     set failures {}
     foreach h [lsort $held] {
+        progress primary_fifo BEGIN $h
         if {[catch {
             if {$root eq {u_soc/crossing} && [info exists ::valence(clock_profile)] &&
                 $::valence(clock_profile) eq {boot50-dynamic} && $h in [list $root/fifo_11 $root/fifo_12]} {
@@ -402,10 +413,14 @@ proc common_cdc::collect {{root u_soc/crossing}} {
                 foreach d {write captured} {lappend scopes [gray $h $d]}
                 if {![payload_absent $h]} {lappend scopes [payload $h]}
             }
-        } reason]} {lappend failures [list lane $h reason $reason];puts "COMMON_CDC_LANE_BLOCKED $h $reason"}
+        } reason]} {
+            lappend failures [list lane $h reason $reason];puts "COMMON_CDC_LANE_BLOCKED $h $reason"
+            progress primary_fifo FAILED $h
+        } else {progress primary_fifo COMPLETE $h}
     }
     if {![llength $levels]} {error "COMMON_CDC missing scalar synchronizers"}
     foreach h [lsort $levels] {
+        progress primary_level BEGIN $h
         if {[catch {level $h} result]} {
             set original $result
             if {[catch {constant_zero_level $h} inactive_result]} {
@@ -413,11 +428,13 @@ proc common_cdc::collect {{root u_soc/crossing}} {
             } elseif {$inactive_result} {
                 lappend ::common_cdc::inactive_scopes $h
                 lappend ::common_cdc::constant_stage0_endpoints [format {%s/stages_reg[0]/D} $h]
+                progress primary_level COMPLETE $h
                 continue
             }
             lappend failures [list scalar $h reason $result]
             puts "COMMON_CDC_SCALAR_BLOCKED $h $result"
-        } else {lappend scopes $result}
+            progress primary_level FAILED $h
+        } else {lappend scopes $result; progress primary_level COMPLETE $h}
     }
     if {[llength $failures]} {error "COMMON_CDC incomplete lane/scalar mappings: $failures"}
     exported_idle_source $root cpuEmptyInFabric [clock $root/cpuClock] $root/cpuRelease/resetOut
@@ -445,8 +462,17 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     }
     return $scopes
 }
+# Diagnostic markers only: no query, scope, constraint or qualification change.
+proc common_cdc::progress {stage event detail} {
+    ::common_collect_session::phase $stage $event $detail
+    puts [list COMMON_CDC_PROGRESS time_ms=[::clock milliseconds] stage=$stage event=$event detail=$detail]
+    flush stdout
+}
 proc common_cdc::constrain {{root u_soc/crossing}} {
+    progress collect BEGIN $root
     set scopes [collect $root]
+    progress collect COMPLETE [llength $scopes]
+    progress budgets BEGIN [llength $scopes]
     foreach scope $scopes {
         set starts [objects get_pins [dict get $scope starts]]; set ends [objects get_pins [dict get $scope ends]]
         set b [dict get $scope budget]
@@ -455,6 +481,7 @@ proc common_cdc::constrain {{root u_soc/crossing}} {
         if {[dict get $scope skew]} {set_bus_skew $b -from $starts -to $ends}
         puts "COMMON_CDC_BOUNDED [dict get $scope label] budget=$b"
     }
+    progress budgets COMPLETE [llength $scopes]
     return $scopes
 }
 proc common_cdc::audit_timing {scopes output} {
@@ -479,8 +506,12 @@ proc common_cdc::audit_timing {scopes output} {
                     }
                 }
             }
+            # Resolve this scope's invariant starts lazily once. Empty end lists
+            # and any earlier by_end failure keep the original query ordering.
+            set resolved_starts {}
             foreach end [dict get $scope ends] {
-                set p [get_timing_paths -quiet -from [objects get_pins [dict get $scope starts]] -to [one get_pins $end] -delay_type max -max_paths 1 -nworst 1]
+                if {![llength $resolved_starts]} {set resolved_starts [objects get_pins [dict get $scope starts]]}
+                set p [get_timing_paths -quiet -from $resolved_starts -to [one get_pins $end] -delay_type max -max_paths 1 -nworst 1]
                 if {[llength $p]!=1 || [get_property ENDPOINT_PIN $p] ne $end} {error "COMMON_CDC cut/missing exact max-delay path $end"}
                 set req [get_property REQUIREMENT $p]; set slack [get_property SLACK $p]
                 set exception [string tolower [string map {_ {} - {} { } {}} [get_property EXCEPTION $p]]]
@@ -523,6 +554,29 @@ proc common_cdc::exact_modules {root ref expected} {
     }
     if {[lsort $actual] ne [lsort $expected]} {
         error "COMMON_CDC exact module census changed under $root ($ref): $actual expected $expected"
+    }
+}
+# Reuse only this call's root cell/ref enumeration across the exact census
+# groups. No proof verdict or metadata survives this function or a design step.
+proc common_cdc::exact_module_groups {root groups} {
+    set cells [get_cells -quiet -hier -filter "NAME =~ $root/*"]
+    set references {}
+    if {[llength $cells]} {
+        # Vivado get_property preserves collection order. Pair the same native
+        # collection with its returned list; never sort either side separately.
+        set references [get_property REF_NAME $cells]
+        if {[llength $references]!=[llength $cells]} {
+            error "COMMON_CDC exact module REF_NAME collection cardinality changed under $root"
+        }
+    }
+    foreach {ref expected} $groups {
+        set actual {}
+        foreach c $cells actual_ref $references {
+            if {[string match $ref $actual_ref]} {lappend actual [get_property NAME $c]}
+        }
+        if {[lsort $actual] ne [lsort $expected]} {
+            error "COMMON_CDC exact module census changed under $root ($ref): $actual expected $expected"
+        }
     }
 }
 # The source hold enable can also be folded. Only the reported source-local
@@ -787,6 +841,7 @@ proc common_cdc::register_payload {h from to fields source destination} {
 proc common_cdc::new_stage_coverage {roots scopes} {
     set covered {};foreach s $scopes {lappend covered {*}[dict get $s ends]}
     foreach root $roots {
+        progress coverage BEGIN $root
         foreach c [get_cells -quiet -hier -filter "IS_PRIMITIVE == TRUE && NAME =~ $root/*"] {
             set n [get_property NAME $c];set ref [get_property REF_NAME $c]
             # Check every retained FF clock, including ordinary control/payload and
@@ -798,6 +853,7 @@ proc common_cdc::new_stage_coverage {roots scopes} {
                 }
             }
         }
+        progress coverage COMPLETE $root
     }
 }
 proc common_cdc::collect_boot50 {soc timer debug} {
@@ -1071,26 +1127,36 @@ proc common_cdc::collect_dynamic {soc timer} {
         [list $d/boundary/release_0 8 $fixed $fabric] [list $d/boundary/releaseAck 8 $fabric $fixed]
     lappend levels [list $d/fatalStop_sync $fixed] [list $d/debugFaultSync $fabric] [list $d/fabricFaultSync $fixed]
     set result {}; set fifoNames {}; set mailboxNames {}; set registerNames {}; set levelNames {}
+    progress dynamic_fifos BEGIN [llength $fifos]
     foreach row $fifos {
         lassign $row h source destination
+        progress dynamic_fifo BEGIN $h
         lappend fifoNames $h
         expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
         same_net $h/commonReset $soc/commonColdReset
         foreach direction {write captured} {lappend result [gray $h $direction]}
         # No payload_absent/inactive shortcut on any new outer or DDR lane.
         lappend result [payload $h]
+        progress dynamic_fifo COMPLETE $h
     }
+    progress dynamic_fifos COMPLETE [llength $fifos]
+    progress dynamic_registers BEGIN [llength $registers]
     foreach row $registers {
         lassign $row h source destination
+        progress dynamic_register BEGIN $h
         lappend registerNames $h
         expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
         same_net $h/commonReset $soc/commonColdReset
         lappend result [register_payload $h requestHeld request {address 64 write 1 size 3 data 64 byteEnable 8} $source $destination]
         lappend result [register_payload $h responseHeld reply {data 64 error 1} $destination $source]
         lappend levels [list $h/requestSync $destination] [list $h/responseSync $source]
+        progress dynamic_register COMPLETE $h
     }
+    progress dynamic_registers COMPLETE [llength $registers]
+    progress dynamic_mailboxes BEGIN [llength $mailboxes]
     foreach row $mailboxes {
         lassign $row h width source destination
+        progress dynamic_mailbox BEGIN $h
         lappend mailboxNames $h
         if {$h in [list $debug/requests $debug/responses]} {
             # Only DMI transport has link-loss reset. Runtime/admission owners
@@ -1099,25 +1165,35 @@ proc common_cdc::collect_dynamic {soc timer} {
         } else {same_net $h/commonReset $soc/commonColdReset}
         lappend result [mailbox_width $h $width $source $destination]
         lappend levels [list $h/requestSync $destination] [list $h/ackSync $source]
+        progress dynamic_mailbox COMPLETE $h
     }
+    progress dynamic_mailboxes COMPLETE [llength $mailboxes]
+    progress dynamic_levels BEGIN [llength $levels]
     foreach row $levels {
         lassign $row h target
         lappend levelNames $h
+        progress level BEGIN $h
         one get_cells $h
         expect_clock $h/clockIn $target
         expect_clock [format {%s/stages_reg[0]/C} $h] $target
         lappend result [level $h]
+        progress level COMPLETE $h
     }
+    progress dynamic_levels COMPLETE [llength $levels]
     # Exact census includes each mailbox/CSR's internal synchronizers. Never
     # accept a missing source-known module just because its rate table is empty.
     foreach root $dynamic_roots {
+        progress census BEGIN $root
+        set groups {}
         foreach {ref names} [list HeldResponseCdcDataFifo* $fifoNames CdcMailbox* $mailboxNames \
             RegisterClockDomainBridge* $registerNames CdcLevel* $levelNames] {
             set expected {}
             foreach h $names {if {[string first "$root/" $h]==0} {lappend expected $h}}
-            exact_modules $root $ref $expected
+            lappend groups $ref $expected
         }
-        exact_modules $root CdcDataFifo* {}
+        lappend groups CdcDataFifo* {}
+        exact_module_groups $root $groups
+        progress census COMPLETE $root
     }
     new_stage_coverage $dynamic_roots $result
     puts "COMMON_CDC_DYNAMIC_SOURCE_SCOPES scopes=[llength $result] STRICT_MAPPED_PROOF_REQUIRED NO_RATE_OR_SIGNOFF_ADMISSION"

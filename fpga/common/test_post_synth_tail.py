@@ -87,6 +87,17 @@ class TailTests(unittest.TestCase):
         record=r.seal_tail(self.root,self.request);self.assertEqual(record['retained_bus_scopes'],1)
         stage=dict(profile_sha256='profile',outputs_sha256={'post-synth-tail-provenance.json':r.sha(self.out/'post-synth-tail-provenance.json')})
         r.verify_tail(self.root,stage)
+        # A later checker may consume this exact reviewed r6 producer, never an
+        # arbitrary historical tool dictionary or rewritten original evidence.
+        provenance=self.out/'post-synth-tail-provenance.json'
+        record['recovery_tool_sha256']=dict(r.REVIEWED_R6_TAIL_TOOLS)
+        provenance.write_text(json.dumps(record))
+        stage['outputs_sha256'][provenance.name]=r.sha(provenance)
+        r.verify_tail(self.root,stage)
+        record['recovery_tool_sha256']['common_cdc.tcl']='0'*64
+        provenance.write_text(json.dumps(record))
+        stage['outputs_sha256'][provenance.name]=r.sha(provenance)
+        with self.assertRaisesRegex(ValueError,'producer identity'): r.verify_tail(self.root,stage)
         stage['outputs_sha256']['post-synth-tail-provenance.json']='forged'
         with self.assertRaisesRegex(ValueError,'sealed'):r.verify_tail(self.root,stage)
         with self.assertRaises(FileExistsError):r.seal_tail(self.root,self.request)

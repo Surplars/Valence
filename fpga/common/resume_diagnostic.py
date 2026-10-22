@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 import sys
+import time
 
 EXPECTED = {
  'blk_mem_gen_0': ('fdf865e38ea41769b3fbd906965e9c455f328b3ee9e79ec625c1e860be623364', 260014),
@@ -91,10 +92,10 @@ def check(root, phase='synthesis'):
                 mode='implementation' if phase=='implementation' else 'post-only' if raw.exists() else 'top-synthesis',
                 original_manifest_sha256=sha(root/'diagnostic.json'),
                 project_sha256=sha(project/'common_board.xpr'), ooc_sha256=dcps,
-                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl','cached_post_opt.tcl','exact_object_cache.tcl','test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl','dynamic/performance_targets.tcl')})
+                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl','cached_post_opt.tcl','exact_object_cache.tcl','test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','common_collect_session.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl','dynamic/performance_targets.tcl')})
 
 CACHE_TOOLS = ('resume_diagnostic.py', 'resume_diagnostic.tcl', 'exact_object_cache.tcl',
-         'cached_post_opt.tcl', 'test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl')
+         'cached_post_opt.tcl', 'test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','common_collect_session.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl','dynamic/performance_targets.tcl')
 
 def verify_checkpoint(root, expected):
     if not re.fullmatch(r'[0-9a-f]{64}', expected):
@@ -116,12 +117,71 @@ def prepare_post_opt(root, expected):
 
 
 
+def post_opt_native(path):
+    data=json.loads(path.read_text())
+    if set(data)!={'status','started_unix_ms','completed_unix_ms','deadline_unix_ms','budget_ms'} or data['status']!='POST_OPT_RETURNED':
+        raise ValueError('Post-opt native completion missing')
+    for key in ('started_unix_ms','completed_unix_ms','deadline_unix_ms','budget_ms'):
+        if type(data[key]) is not int: raise ValueError('Invalid post-opt clock record')
+    if data['budget_ms']!=600000 or data['deadline_unix_ms']-data['started_unix_ms']!=600000 or not data['started_unix_ms']<=data['completed_unix_ms']<=data['deadline_unix_ms']:
+        raise ValueError('PERF_FAIL_INCOMPLETE post-opt exceeded 600 seconds')
+    return data
+
+
+def seal_post_opt(root, out):
+    out=out.resolve()
+    if out.parent!=(root.resolve()/'diagnostic-run') or not out.name.startswith('cached-post-opt-'):
+        raise ValueError('Invalid post-opt output directory')
+    checked=out/'optimized-checked-unqualified.dcp'
+    seal=out/'post-opt-complete.json'
+    if checked.exists() or seal.exists(): raise ValueError('Preserve previous checked post-opt output')
+    initial=json.loads((out/'provenance.json').read_text())
+    current=prepare_post_opt(root,initial.get('optimized_checkpoint_sha256',''))
+    if initial!=current: raise ValueError('Post-opt source/tools changed during native work')
+    native=post_opt_native(out/'post-opt-native.json')
+    candidate=out/'optimized-candidate-unqualified.dcp'
+    if not candidate.is_file() or not candidate.stat().st_size: raise ValueError('Missing candidate post-opt checkpoint')
+    record=dict(status='COMPLETE_WITHIN_600S',qualification=False,
+                checkpoint_sha256=sha(candidate),provenance_sha256=sha(out/'provenance.json'),
+                native_sha256=sha(out/'post-opt-native.json'),
+                optimized_checkpoint_sha256=initial['optimized_checkpoint_sha256'],
+                tool_sha256=initial['cache_overlay_sha256'],budget_ms=600000,
+                started_unix_ms=native['started_unix_ms'])
+    finished=time.time_ns()//1000000
+    if finished<native['completed_unix_ms'] or finished>native['deadline_unix_ms']:
+        failure=out/'post-opt-performance.json'
+        with failure.open('x') as f: json.dump(dict(status='PERF_FAIL_INCOMPLETE',elapsed_ms=finished-native['started_unix_ms'],budget_ms=600000),f)
+        raise ValueError('PERF_FAIL_INCOMPLETE post-opt seal exceeded 600 seconds')
+    record.update(completed_unix_ms=finished,elapsed_ms=finished-native['started_unix_ms'])
+    text=json.dumps(record,indent=2)+'\n'
+    if time.time_ns()//1000000>native['deadline_unix_ms']: raise ValueError('PERF_FAIL_INCOMPLETE post-opt serialization exceeded deadline')
+    candidate.rename(checked)
+    with seal.open('x') as f: f.write(text)
+    return record
+
+
+def verify_post_opt_seal(root, checkpoint, expected):
+    out=checkpoint.parent
+    record=json.loads((out/'post-opt-complete.json').read_text())
+    native=post_opt_native(out/'post-opt-native.json')
+    provenance=json.loads((out/'provenance.json').read_text())
+    if record.get('status')!='COMPLETE_WITHIN_600S' or record.get('qualification') is not False or record.get('budget_ms')!=600000:
+        raise ValueError('Post-opt completion/performance not admitted')
+    if record.get('checkpoint_sha256')!=expected or record.get('provenance_sha256')!=sha(out/'provenance.json') or record.get('native_sha256')!=sha(out/'post-opt-native.json'):
+        raise ValueError('Post-opt completion output/source changed')
+    if record.get('tool_sha256')!=provenance.get('cache_overlay_sha256') or record.get('optimized_checkpoint_sha256')!=provenance.get('optimized_checkpoint_sha256'):
+        raise ValueError('Post-opt completion tool/input changed')
+    start=record.get('started_unix_ms'); finish=record.get('completed_unix_ms'); elapsed=record.get('elapsed_ms')
+    if any(type(x) is not int for x in (start,finish,elapsed)) or start!=native['started_unix_ms'] or not native['completed_unix_ms']<=finish<=native['deadline_unix_ms'] or elapsed!=finish-start or not 0<=elapsed<=600000:
+        raise ValueError('PERF_FAIL_INCOMPLETE invalid full post-opt elapsed time')
+    return record
+
 # Exact reviewed producer for the already-running adbe39c post-opt job.
 REVIEWED_POST_PRODUCER = {'resume_diagnostic.py': 'f1900f81232ea204b0551156e88526954a9e48c389937e76fe919af63c9c1f81', 'resume_diagnostic.tcl': 'e3eb26d531a3431210eb53f1252f32b15acd36699b91abafd10d3177e1c75487'}
 STAGES = {'optimized-checked-unqualified.dcp':'optimized', 'placed.dcp':'placed',
           'physical-optimized-unqualified.dcp':'physical', 'routed.dcp':'routed'}
 POST_PROOFS = ('exact_object_cache.tcl','cached_post_opt.tcl','test_exact_object_cache.tcl',
-               'post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl')
+               'post_synth.tcl','post_opt.tcl','common_cdc.tcl','common_collect_session.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl','dynamic/performance_targets.tcl')
 
 REVIEWED_PLACED_SHA = "2ad8c0d79f096627ee8e0c794f5cd4addb97b209f8aad1c286df06a789f5f35a"
 REVIEWED_PLACED_TOOLS = {'exact_object_cache.tcl': '3e53d34432151cd74f81c24cfc01ee59df252c0f939d6f20a2da31c3967ca158', 'cached_post_opt.tcl': '024724a00b33df3ee985142b9eb6e26e7c992ba6c3251fac50be6753c83700df', 'test_exact_object_cache.tcl': '6844b5ba59458c4ca11718b92d95a2affc89c3e3b91809d4ca62ab09cc075043', 'post_synth.tcl': 'e26c26e3b59cc13aacbc0447c87947c6a6e787d16a55c6832730d78c8cb89e5d', 'post_opt.tcl': '58e4a82a92509e1c99ea7d1b1686484dde658e2261418c3fb1836a3c941f678c', 'common_cdc.tcl': '3e7e9689f355afa803aa623080a9880dac3ab77470085eaf58284c1313b82095', 'board_audit.tcl': '8d910a801831ef449003cebf00bf4bdb375ebf1bb1d059a3bb9af073fd1fd070', 'resume_diagnostic.py': 'bcaa3926681346d8c34f4fb926bd7280beaf3a63f3d1a623c3ba4698f676c7cc', 'resume_diagnostic.tcl': '5232228d730524235c687b74e619b061d710085261819edd23a7242fca253870', 'diagnostic.tcl': 'e159f6c199c11eba3c235627ac23b245392186ab4cd7832e64d117b4faa25af8'}
@@ -151,6 +211,7 @@ def verify_continuation(root, checkpoint, expected, depth=0):
         producer={n:recorded.get(n) for n in REVIEWED_POST_PRODUCER}
         if producer not in (REVIEWED_POST_PRODUCER,{n:tools[n] for n in REVIEWED_POST_PRODUCER}):
             raise ValueError('Unreviewed post-opt producer pair')
+        verify_post_opt_seal(root,checkpoint,expected)
         provenance=checkpoint.parent/'provenance.json'
     else:
         provenance=Path(str(checkpoint)+'.provenance.json')
@@ -199,6 +260,8 @@ TAIL_BOUND = {
  'bus_skew_scope': ('3eb4e18943dbc0436b5bad66347e66e6114acaf066b84dd65e398a07570ac8c0', 603346),
 }
 TAIL_EXTRA_TOOLS = ('dynamic/performance_targets.tcl','post_synth_tail_constraints.tcl')
+
+REVIEWED_R6_TAIL_TOOLS = {'board_audit.tcl': '2fafd9def1d57104de27d17dbd02f9115880ed74cca2b870400778610ccd8bd4', 'cached_post_opt.tcl': '024724a00b33df3ee985142b9eb6e26e7c992ba6c3251fac50be6753c83700df', 'common_cdc.tcl': '75cb49a48404ede21d46f9714427efcafbe129d66208e776e843274970fc7edc', 'diagnostic.tcl': '647487bb2472031aacf79c4cc6c34c8178a1bd9555aff6b21feecf16eeafd638', 'dynamic/dynamic_clock_constraints.tcl': 'f76cf4e56fb79025ead6bd83b1dc917c248ee99b0ecd1a557e6faa28c9b2ffa6', 'dynamic/performance_targets.tcl': '34893649b2104d5ccd8eac3c9794eb4aba28fc14d30496ce861ec60520c7386a', 'exact_object_cache.tcl': '3e53d34432151cd74f81c24cfc01ee59df252c0f939d6f20a2da31c3967ca158', 'post_opt.tcl': 'c63ce795842f131a36533deaa08fee76064b24e044b8874aff181659d0c64af5', 'post_synth.tcl': 'e0ed7121068c400e7c8b013db33588731be0581ca1f0e6e97ce6a0281015c68f', 'post_synth_tail_constraints.tcl': '7f7db0a147042b03f11fc315b27b7ccba8123cf0e6f3a933f7973455bd35fae5', 'resume_diagnostic.py': '0231e1b09fbfa072dc5de8edd9aae18fb4533a5d2f9460863045e93443e0174a', 'resume_diagnostic.tcl': '18b82e21059e0516fb2f720cd74ce99d94d2a150bee23af622be744d17e785a1', 'rom_audit.py': '6e7b503ec00a4ea5f049e44a3459225dc2aa43958371e8842787ca97adcc0ed7', 'synthesize.tcl': '0da802ced93a7b831fde4d5e1f724e603cca77f5406830004a9acbd65b2cf501', 'test_exact_object_cache.tcl': '6844b5ba59458c4ca11718b92d95a2affc89c3e3b91809d4ca62ab09cc075043'}
 
 def tail_tools():
     here=Path(__file__).resolve().parent
@@ -327,7 +390,7 @@ def verify_tail(root, stage):
     path=out/'post-synth-tail-provenance.json'
     record=json.loads(path.read_text())
     if stage.get('outputs_sha256',{}).get(path.name)!=sha(path): raise ValueError('Tail provenance not sealed by diagnostic stage')
-    if record.get('profile_sha256')!=stage.get('profile_sha256') or record.get('mode')!='post-synth-tail-only' or record.get('qualification') is not False or record.get('recovery_tool_sha256')!=tail_tools():
+    if record.get('profile_sha256')!=stage.get('profile_sha256') or record.get('mode')!='post-synth-tail-only' or record.get('qualification') is not False or record.get('recovery_tool_sha256') not in (tail_tools(), REVIEWED_R6_TAIL_TOOLS):
         raise ValueError('Tail producer identity changed')
     current={key:record[key] for key in ('status','original_manifest_sha256','profile_sha256','project_sha256','ooc_sha256')}
     if record.get('tail_origin')!=tail_inputs(root,Path(record['tail_origin']['request']),current):
@@ -340,7 +403,7 @@ if __name__=='__main__':
     try:
         root=Path(sys.argv[1]).absolute()
         mode=sys.argv[2] if len(sys.argv)>2 else 'synthesis'
-        if mode not in ('synthesis','implementation','seal-raw','post-opt','place-route','seal-stage','post-synth-tail','seal-tail','retained-tail','retained-text'): raise ValueError('Invalid recovery mode')
+        if mode not in ('synthesis','implementation','seal-raw','post-opt','place-route','seal-stage','post-synth-tail','seal-tail','retained-tail','retained-text','seal-post-opt'): raise ValueError('Invalid recovery mode')
         if mode=='retained-text':
             if len(sys.argv)!=6: raise ValueError('retained-text requires XDC, fresh output JSON, observed XDC SHA256')
             print(json.dumps(retained_text_check(root,Path(sys.argv[3]),Path(sys.argv[4]),sys.argv[5]),indent=2)); sys.exit(0)
@@ -350,6 +413,9 @@ if __name__=='__main__':
         if mode in ('post-synth-tail','seal-tail'):
             if len(sys.argv)!=4: raise ValueError('Tail requires exact request JSON')
             print(json.dumps(prepare_tail(root,Path(sys.argv[3])) if mode=='post-synth-tail' else seal_tail(root,Path(sys.argv[3])),indent=2)); sys.exit(0)
+        if mode=='seal-post-opt':
+            if len(sys.argv)!=4: raise ValueError('seal-post-opt requires fresh output directory')
+            print(json.dumps(seal_post_opt(root,Path(sys.argv[3])),indent=2)); sys.exit(0)
         if mode=='post-opt' and len(sys.argv)!=4: raise ValueError('post-opt requires observed optimized SHA256')
         if mode=='place-route':
             if len(sys.argv)!=5: raise ValueError('place-route requires checkpoint path and SHA256')

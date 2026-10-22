@@ -8,6 +8,15 @@ proc resume_diagnostic {} {
     set phase [expr {[llength $argv]>=2 ? [lindex $argv 1] : "synthesis"}]
     if {$phase ni {synthesis implementation post-opt place-route post-synth-tail}} {error "Invalid recovery phase"}
     if {($phase in {post-opt post-synth-tail} && [llength $argv]!=3) || ($phase eq "place-route" && [llength $argv]!=4) || ($phase in {synthesis implementation} && [llength $argv]>2)} {error "Invalid checkpoint arguments for mode"}
+    if {$phase eq "post-opt"} {
+        if {[file normalize [lindex $argv 0]] ne [file normalize [file join $valence(root) diagnostic-run config.tcl]] || [version -short] ne "2025.2"} {error "POST_OPT requires canonical frozen config and Vivado 2025.2"}
+        if {![info exists ::env(VALENCE_POST_OPT_DEADLINE_MS)] || ![string is entier -strict $::env(VALENCE_POST_OPT_DEADLINE_MS)]} {error "POST_OPT requires wrapper start + 600000 ms deadline"}
+        set ::post_opt_deadline $::env(VALENCE_POST_OPT_DEADLINE_MS)
+        set now [clock milliseconds]
+        if {$::post_opt_deadline<=$now || $::post_opt_deadline-$now>600000} {error "Invalid post-opt 600 second deadline"}
+        puts "POST_OPT_BUDGET_BEGIN deadline_ms=$::post_opt_deadline budget_ms=600000"
+        flush stdout
+    }
     set valence(phase) $phase
     set valence(out) [file join $valence(root) diagnostic-run synthesis]
     cd $valence(out)
@@ -81,8 +90,27 @@ proc resume_diagnostic {} {
         file mkdir $valence(out); cd $valence(out)
         set f [open provenance.json {WRONLY CREAT EXCL}]; puts $f $evidence; close $f
         open_checkpoint [file join $valence(root) diagnostic-run implementation optimized-unqualified.dcp]
+        foreach command {synth_design opt_design place_design phys_opt_design route_design launch_runs create_project create_ip generate_target import_ip} {
+            if {[llength [info commands $command]]} {rename $command post_opt_forbidden_$command}
+            proc ::$command {args} {error "POST_OPT_FORBIDS_SYNTH_OPT_IP_AND_PHYSICAL_STEPS"}
+        }
+        if {[get_property PART [current_design]] ne "xczu15eg-ffvb1156-2-i" || [get_property TOP [current_design]] ne "soc_top_common_ddr"} {error "POST_OPT wrong reopened part/top"}
         source [file join $recovery_tools cached_post_opt.tcl]
-        write_checkpoint optimized-checked-unqualified.dcp
+        if {$::common_collect_session::active || [dict get $::common_collect_session::last outcome] ne "COMPLETE" || [llength [dict get $::common_collect_session::last incomplete_phases]]} {error "POST_OPT incomplete collect lifecycle"}
+        foreach name {properties kinds ambiguous queries guarded} {
+            if {[set ::common_collect_session::$name] ne {}} {error "POST_OPT retained collect state: $name"}
+        }
+        set now [clock milliseconds]
+        if {$now>$::post_opt_deadline} {error "PERF_FAIL_INCOMPLETE post-opt exceeded 600 seconds"}
+        write_checkpoint optimized-candidate-unqualified.dcp
+        set now [clock milliseconds]
+        if {$now>$::post_opt_deadline} {error "PERF_FAIL_INCOMPLETE post-opt checkpoint exceeded 600 seconds"}
+        set f [open post-opt-native.json {WRONLY CREAT EXCL}]
+        puts $f [format {{"status":"POST_OPT_RETURNED","started_unix_ms":%s,"completed_unix_ms":%s,"deadline_unix_ms":%s,"budget_ms":600000}} [expr {$::post_opt_deadline-600000}] $now $::post_opt_deadline]
+        close $f
+        puts [exec $valence(python) -E [file join $recovery_tools resume_diagnostic.py] $valence(root) seal-post-opt $valence(out)]
+        puts "POST_OPT_COMPLETE_WITHIN_600S elapsed_ms=[expr {[clock milliseconds]-($::post_opt_deadline-600000)}]"
+        flush stdout
     } elseif {$phase eq "implementation"} {
         if {[file exists [file join $valence(root) diagnostic-run implementation]]} {error "Preserve previous implementation attempt"}
         file mkdir [file join $valence(root) diagnostic-run implementation]
