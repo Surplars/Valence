@@ -245,6 +245,171 @@ set_bus_skew -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8
         self.export('current_instance nested\n' + PAIR_A + PAIR_B)
         self.assertTrue(fixture_matches(self.export(PAIR_A + PAIR_B)))
 
+    def native_export(self, xdc, *, mutation='', failure=False):
+        harness = r'''
+set queries {}; set native_scope {}; set classes {}; set names {}
+set cells {u/held0_reg u/held1_reg u/captured0_reg u/captured1_reg}
+set pins {u/held0_reg/C u/held1_reg/C u/captured0_reg/D u/captured1_reg/D}
+proc current_instance args {
+ if {$args ne {.}} {error {MUTATING_SCOPE_CALL}}
+ return $::native_scope
+}
+proc get_cells args {
+ lappend ::queries [list get_cells {*}$args]
+ set result {}; set at [lsearch -exact $args -regexp]
+ if {$at>=0} {
+  foreach c $::cells {if {[regexp [lindex $args [expr {$at+1}]] $c]} {lappend result $c}}
+ } else {
+  set patterns [lindex $args end]
+  foreach c $::cells {
+   foreach pattern $patterns {if {$c eq $pattern || [string match $pattern $c]} {lappend result $c; break}}
+  }
+ }
+ return $result
+}
+proc get_pins args {
+ lappend ::queries [list get_pins {*}$args]
+ set at [lsearch -exact $args -of_objects]; set result {}
+ if {$at>=0} {
+  set stem [expr {[string match {* == C} [lindex $args end]] ? {C} : {D}}]
+  foreach c [lindex $args [expr {$at+1}]] {if {"$c/$stem" in $::pins} {lappend result $c/$stem}}
+ } else {
+  foreach p $::pins {if {$p eq [lindex $args end] || [string match [lindex $args end] $p]} {lappend result $p}}
+ }
+ return $result
+}
+proc all_fanin args {
+ lappend ::queries [list all_fanin {*}$args]
+ if {$args ne {-flat -startpoints_only -to u/captured0_reg/D}} {error {UNEXPECTED_FANIN}}
+ return {u/held0_reg/C input_port}
+}
+proc filter args {
+ lappend ::queries [list filter {*}$args]
+ if {[llength $args]!=2 || [lindex $args 1] ne {REF_PIN_NAME == C || REF_PIN_NAME == CLK}} {error {UNEXPECTED_FILTER}}
+ set result {}; foreach p [lindex $args 0] {if {[string match */C $p]} {lappend result $p}}; return $result
+}
+proc get_property {property objects} {
+ set result {}
+ foreach object $objects {
+  if {$property eq {NAME}} {
+   lappend result [expr {[dict exists $::names $object] ? [dict get $::names $object] : $object}]
+  } elseif {$property eq {CLASS}} {
+   if {[dict exists $::classes $object]} {lappend result [dict get $::classes $object]
+   } elseif {$object in $::pins} {lappend result pin
+   } elseif {$object in $::cells} {lappend result cell
+   } elseif {$object eq {input_port}} {lappend result port
+   } else {error {UNKNOWN_OBJECT}}
+  } else {error {UNKNOWN_PROPERTY}}
+ }
+ return $result
+}
+foreach cmd {set_max_delay set_bus_skew set_false_path set_property read_xdc} {
+ proc $cmd args {error {FORBIDDEN_NATIVE_WRITE}}
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture = root/'input.xdc'; fixture.write_text(xdc)
+            output = root/'parsed.json'
+            script = root/'run.tcl'
+            script.write_text(harness + '\n' + mutation + '\n' +
+                f'source {{{HERE / "post_synth_tail_constraints.tcl"}}}\n' +
+                f'if {{[catch {{set rows [post_synth_tail_constraints::read_rows {{{fixture}}} 1 1]; post_synth_tail_constraints::write_rows {{{output}}} $rows}} reason]}} {{puts stderr $reason; exit 2}}\n' +
+                'puts [format {NATIVE_QUERY_COUNT=%d} [llength $queries]]\n')
+            result = subprocess.run(['tclsh',str(script)],capture_output=True,text=True,timeout=15)
+            if failure:
+                self.assertEqual(result.returncode,2,result.stdout+result.stderr)
+                self.assertFalse(output.exists())
+                return result.stderr
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            return json.loads(output.read_text())
+
+    def test_native_readonly_bridge_resolves_shared_and_nested_collections(self):
+        shared = '''
+set _xlnx_shared_i0 [get_pins -of_objects [get_cells -quiet u/held*_reg*] -filter {REF_PIN_NAME == C}]
+set _xlnx_shared_i1 [get_pins -of_objects [get_cells -quiet u/captured*_reg*] -filter {REF_PIN_NAME == D}]
+set_max_delay -datapath_only -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8
+set_bus_skew -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8
+'''
+        nested = '''
+set_max_delay -datapath_only -from [filter [all_fanin -flat -startpoints_only -to [get_pins -quiet u/captured0_reg/D]] {REF_PIN_NAME == C || REF_PIN_NAME == CLK}] -to [get_pins -quiet u/captured0_reg/D] 3.333
+set_bus_skew -from [filter [all_fanin -flat -startpoints_only -to [get_pins -quiet u/captured0_reg/D]] {REF_PIN_NAME == C || REF_PIN_NAME == CLK}] -to [get_pins -quiet u/captured0_reg/D] 3.333
+'''
+        result = self.native_export(shared+nested)
+        self.assertEqual(result['unsupported'],[])
+        self.assertEqual(len(result['rows']),4)
+        self.assertEqual(result['rows'][0]['from'],['u/held0_reg/C','u/held1_reg/C'])
+        self.assertEqual(result['rows'][2]['from'],['u/held0_reg/C'])
+        self.assertEqual(result['rows'][2]['from_type'],'pin')
+        self.assertEqual(result['native_query_calls'],7)
+        # Valid shared handles persist between constraints, never between reads.
+        again = self.native_export('set_bus_skew -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8\n'+PAIR_B)
+        self.assertEqual(len(again['unsupported']),1)
+        # A non-root redefinition invalidates the old handle before returning ROOT.
+        changed = shared.split('set_max_delay')[0] + 'current_instance vendor\nset _xlnx_shared_i0 [get_cells *]\ncurrent_instance -quiet\n' + shared[shared.index('set_max_delay'):]
+        self.assertIn('no selected constraints',self.native_export(changed,failure=True))
+
+    def test_native_debug_request_response_positional_cell_collections(self):
+        root = 'u_debug/enabled.transport/bridge'
+        mutation = []
+        xdc = []
+        expected = []
+        for source, target, count in (('request_held', 'dest_request', 41),
+                                      ('response_held', 's_rsp_payload', 34)):
+            for stem, pin in ((source, 'C'), (target, 'D')):
+                for bit in range(count):
+                    cell = f'{root}/{stem}_reg[{bit}]'
+                    mutation.append(f'lappend cells {{{cell}}}; lappend pins {{{cell}/{pin}}}')
+            def selector(stem, pin):
+                regex = (r'^u_debug/enabled\.transport/bridge/' + stem +
+                         r'_reg(\[[0-9]+\])?$')
+                return ('[get_pins -quiet -of_objects [get_cells -quiet '
+                        '[get_cells -quiet -hierarchical -regexp {' + regex + '}]] '
+                        '-filter {REF_PIN_NAME == ' + pin + '}]')
+            for command, flag in (('set_max_delay', '-datapath_only '), ('set_bus_skew', '')):
+                xdc.append(f'{command} {flag}-from {selector(source, "C")} -to {selector(target, "D")} 8.000')
+                expected.append((source, target, count))
+        data = self.native_export('\n'.join(xdc), mutation='\n'.join(mutation))
+        self.assertEqual(data['unsupported'], [])
+        self.assertEqual(len(data['rows']), 4)
+        for row, (source, target, count) in zip(data['rows'], expected):
+            self.assertEqual(row['from'], sorted(f'{root}/{source}_reg[{i}]/C' for i in range(count)))
+            self.assertEqual(row['to'], sorted(f'{root}/{target}_reg[{i}]/D' for i in range(count)))
+            self.assertEqual((row['from_type'], row['to_type'], row['budget_ns']), ('pin', 'pin', 8))
+
+    def test_positional_collection_is_only_exact_get_cells_and_cell_typed(self):
+        selectors = (
+            '[get_cells -quiet [get_pins -of_objects [get_cells -quiet u/held*_reg*] -filter {REF_PIN_NAME == C}]]',
+            '[get_cells -quiet [all_fanin -flat -startpoints_only -to [get_pins -quiet u/captured0_reg/D]]]',
+            '[get_pins -quiet [get_cells -quiet u/held*_reg*]]',
+            '[get_cells -hier [get_cells -quiet u/held*_reg*]]',
+            '[get_cells -quiet [get_cells -quiet u/held*_reg*] extra]',
+        )
+        for selector in selectors:
+            with self.subTest(selector=selector):
+                data = self.native_export(f'set_bus_skew -from {selector} -to [get_pins u/captured0_reg/D] 8\n'+PAIR_B)
+                self.assertEqual(len(data['unsupported']), 1)
+                self.assertIn('non-object argument', data['unsupported'][0]['reason'])
+                self.assertEqual(len(data['rows']), 2)
+
+    def test_native_bridge_does_not_expose_commands_or_raw_object_arguments(self):
+        for selector in ('[all_fanin -flat -startpoints_only -to u/captured0_reg/D]',
+                         '[get_pins -of_objects u/held0_reg]',
+                         '[filter u/held0_reg/C {REF_PIN_NAME == C || REF_PIN_NAME == CLK}]',
+                         '[get_pins [exec forbidden_external_program]]',
+                         '[get_pins [source secret.tcl]]',
+                         '[get_pins [eval secret]]',
+                         '[get_pins [set_property NAME bad object]]',
+                         '[get_pins [set arbitrary_var bad]]'):
+            with self.subTest(selector=selector):
+                data=self.native_export(f'set_bus_skew -from {selector} -to [get_pins u/captured0_reg/D] 8\n'+PAIR_B)
+                self.assertEqual(len(data['unsupported']),1)
+                self.assertEqual(len(data['rows']),2)
+        self.assertIn('requires ROOT',self.native_export(PAIR_B,mutation='set native_scope nested',failure=True))
+        data=self.native_export('current_instance vendor\nset_max_delay -from [get_pins *] -to [get_pins *] 8\ncurrent_instance -quiet\n'+PAIR_B)
+        self.assertEqual(data['native_query_calls'],0)
+        self.assertEqual(data['unsupported'][0]['scope'],'vendor')
+
 
 if __name__ == "__main__":
     unittest.main()

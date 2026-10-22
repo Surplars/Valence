@@ -25,7 +25,7 @@ source [file join $here post_synth_tail_constraints.tcl]
 if {$::exports || $::live_calls || [file exists tail-retained-constraints.json]} {
     error "Sourcing the helper performed work"
 }
-set result [post_synth_tail_retained_constraints]
+set result [post_synth_tail_retained_constraints 0]
 if {$::exports != 1 || $::live_calls || ![file exists $result]} {
     error "Read-only export contract violated"
 }
@@ -35,7 +35,7 @@ set first_rows $::post_synth_tail_constraints::rows
 if {[post_synth_tail_constraints::read_rows tail-retained.xdc 1] ne $first_rows} {
     error "Scope context leaked across read_rows invocations"
 }
-if {![catch {post_synth_tail_retained_constraints} message] ||
+if {![catch {post_synth_tail_retained_constraints 0} message] ||
     ![string match {*outputs already exist*} $message] || $::exports != 1} {
     error "Existing evidence was not refused"
 }

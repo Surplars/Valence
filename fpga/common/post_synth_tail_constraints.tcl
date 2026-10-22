@@ -13,6 +13,13 @@ namespace eval post_synth_tail_constraints {
     variable scope_changes 0
     variable unsupported {}
     variable selected_counts {}
+    variable native_enabled 0
+    variable native_phase 0
+    variable native_objects {}
+    variable native_cache {}
+    variable native_calls 0
+    variable shared_assignments 0
+    variable shared_name {}
 }
 
 # UG835 current_instance paths are relative to the current instance. An omitted
@@ -43,11 +50,74 @@ proc post_synth_tail_constraints::instance {args} {
     return $scope
 }
 
+# Only this bridge reaches Vivado, and only for read-only queries in ROOT.
+# Returned collections are opaque tokens; XDC cannot inject a native command or
+# fabricate a collection. No native constraint setter is exposed to the child.
+proc post_synth_tail_constraints::native_query {command args} {
+    variable native_phase; variable scope; variable mode
+    variable native_objects; variable native_cache; variable native_calls
+    if {!$native_phase || $scope ne {} || $mode ni {constraint shared} ||
+        $command ni {get_pins get_cells get_nets get_ports get_clocks filter all_fanin}} {
+        error "TAIL_RETAINED forbidden native selector context/command"
+    }
+    set decoded {}
+    set previous {}; set index 0
+    foreach arg $args {
+        if {[dict exists $native_objects $arg]} {
+            # Native write_xdc also emits get_cells -quiet CELL_COLLECTION.
+            # Admit only that exact positional form and actual cell objects.
+            set positional_cells [expr {$command eq {get_cells} && [llength $args]==2 &&
+                $index==1 && [lindex $args 0] eq {-quiet} && [dict get $native_objects $arg type] eq {cell}}]
+            if {$previous ni {-of_objects -to} && !($command eq {filter} && $index==0) && !$positional_cells} {
+                error "TAIL_RETAINED native collection in non-object argument"
+            }
+            lappend decoded [dict get $native_objects $arg objects]
+        } elseif {[string match __tail_* $arg] || $previous in {-of_objects -to} || ($command eq {filter} && $index==0)} {
+            error "TAIL_RETAINED unknown native collection token"
+        } else {lappend decoded $arg}
+        set previous $arg; incr index
+    }
+    set key [list $command {*}$decoded]
+    if {[dict exists $native_cache $key]} {return [dict get $native_cache $key]}
+    set collection [::$command {*}$decoded]
+    incr native_calls
+    if {![llength $collection]} {error "TAIL_RETAINED empty native $command result"}
+    set names [get_property NAME $collection]; set classes [get_property CLASS $collection]
+    set type [lindex $classes 0]
+    if {[llength $names] != [llength $collection] || [llength $classes] != [llength $collection] ||
+        $type ni {pin cell net port clock} ||
+        [llength [lsort -unique $names]] != [llength $names] || [lsearch -exact $names {}]>=0} {
+        error "TAIL_RETAINED ambiguous native $command object names/types"
+    }
+    foreach class $classes {if {$class ni {pin cell net port clock}} {error "TAIL_RETAINED unknown native object class"}}
+    if {[llength [lsort -unique $classes]]!=1} {set type mixed}
+    set token __tail_native_[dict size $native_objects]
+    dict set native_objects $token [dict create objects $collection type $type names [lsort $names]]
+    dict set native_cache $key $token
+    return $token
+}
+
+proc post_synth_tail_constraints::shared {child args} {
+    variable mode; variable scope; variable native_phase; variable native_objects; variable shared_assignments; variable shared_name
+    if {$mode ne {shared} || !$native_phase || $scope ne {} || [llength $args]!=2 ||
+        ![regexp {^_xlnx_shared_i[0-9]+$} [lindex $args 0]] || [lindex $args 0] ne $shared_name ||
+        ![dict exists $native_objects [lindex $args 1]]} {
+        error "TAIL_RETAINED forbidden shared collection assignment"
+    }
+    incr shared_assignments
+    # Invoke the hidden Tcl data-variable setter, not an exposed/general set.
+    return [interp invokehidden $child set {*}$args]
+}
+
 # These are literal names emitted by native write_xdc, not a live object query.
 # Only explicit object lists are supported. Never broaden an unfamiliar selector
 # into a glob, hierarchy/filter query, or custom netlist traversal.
 proc post_synth_tail_constraints::objects {type args} {
-    variable selectors; variable scope; variable mode
+    variable selectors; variable scope; variable mode; variable native_phase
+    if {$native_phase} {
+        set command [dict get {pin get_pins cell get_cells net get_nets port get_ports clock get_clocks} $type]
+        return [native_query $command {*}$args]
+    }
     if {$mode ne {constraint}} {error "TAIL_RETAINED selector inside scope statement"}
     if {[llength $args] == 2 && [lindex $args 0] eq {-quiet}} {
         set args [lrange $args 1 end]
@@ -82,7 +152,7 @@ proc post_synth_tail_constraints::objects {type args} {
 
 # This alias only records data. It never calls a live set_* command.
 proc post_synth_tail_constraints::capture {kind args} {
-    variable selectors; variable rows; variable mode
+    variable selectors; variable rows; variable mode; variable native_objects
     if {$mode ne {constraint}} {error "TAIL_RETAINED constraint inside scope statement"}
     set options {}; set budget {}; set datapath 0
     for {set i 0} {$i < [llength $args]} {incr i} {
@@ -103,23 +173,36 @@ proc post_synth_tail_constraints::capture {kind args} {
             error "TAIL_RETAINED unsupported $kind argument: $word"
         }
     }
-    if {$budget eq {} || [dict size $options] != 2 || [dict size $selectors] != 2} {
+    if {$budget eq {} || [dict size $options] != 2} {
         error "TAIL_RETAINED incomplete $kind row"
     }
     set from [dict get $options -from]; set to [dict get $options -to]
-    if {$from eq $to || ![dict exists $selectors $from] || ![dict exists $selectors $to]} {
-        error "TAIL_RETAINED endpoints must be two explicit object selectors"
+    set endpoints {}
+    foreach token [list $from $to] {
+        if {[dict exists $selectors $token]} {
+            lappend endpoints [dict get $selectors $token]
+        } elseif {[dict exists $native_objects $token]} {
+            lappend endpoints [dict get $native_objects $token]
+        } else {error "TAIL_RETAINED endpoints must be explicit object selectors"}
+    }
+    if {$from eq $to} {error "TAIL_RETAINED identical endpoint tokens"}
+    lassign $endpoints start end
+    if {[dict get $start type] eq {mixed} || [dict get $end type] eq {mixed}} {
+        error "TAIL_RETAINED mixed-class endpoint collection"
     }
     lappend rows [dict create kind $kind budget_ns $budget \
-        from [dict get $selectors $from names] to [dict get $selectors $to names] \
-        from_type [dict get $selectors $from type] to_type [dict get $selectors $to type] \
-        datapath_only $datapath]
+        from [dict get $start names] to [dict get $end names] \
+        from_type [dict get $start type] to_type [dict get $end type] datapath_only $datapath]
     return {}
 }
 
-proc post_synth_tail_constraints::read_rows {path {record_unsupported 0}} {
+proc post_synth_tail_constraints::read_rows {path {record_unsupported 0} {resolve_native 0}} {
     variable selectors; variable rows; variable scope; variable mode; variable scope_changes
     variable unsupported; variable selected_counts
+    variable native_enabled; variable native_phase; variable native_objects; variable native_cache; variable native_calls; variable shared_assignments; variable shared_name
+    set native_enabled $resolve_native; set native_phase 0; set native_objects {}; set native_cache {}; set native_calls 0; set shared_assignments 0
+    # Explicit dot is the UG835 read-only current-instance query, NOT reset.
+    if {$resolve_native && [current_instance .] ne {}} {error "TAIL_RETAINED native resolver requires ROOT current instance"}
     set rows {}; set selectors {}; set scope {}; set mode {}; set scope_changes 0
     set unsupported {}; set selected_counts [dict create max_delay 0 bus_skew 0]
     set child [interp create -safe]
@@ -131,6 +214,10 @@ proc post_synth_tail_constraints::read_rows {path {record_unsupported 0}} {
     }
     foreach {command type} {get_pins pin get_ports port get_clocks clock get_cells cell get_nets net} {
         interp alias $child $command {} post_synth_tail_constraints::objects $type
+    }
+    if {$resolve_native} {
+        foreach command {filter all_fanin} {interp alias $child $command {} post_synth_tail_constraints::native_query $command}
+        interp alias $child set {} post_synth_tail_constraints::shared $child
     }
     interp alias $child current_instance {} post_synth_tail_constraints::instance
     interp alias $child set_bus_skew {} post_synth_tail_constraints::capture bus_skew
@@ -152,10 +239,24 @@ proc post_synth_tail_constraints::read_rows {path {record_unsupported 0}} {
                 if {[catch {interp eval $child $statement} detail] || $scope_changes != $before + 1} {
                     error "TAIL_RETAINED unsupported scope statement at line $start: $detail"
                 }
+            } elseif {$resolve_native && [regexp {^(?:::)?set\s+(_xlnx_shared_i[0-9]+)(?:\s|$)} $statement -> shared_name]} {
+                interp invokehidden $child unset -nocomplain $shared_name
+                set mode shared; set native_phase 1; set before $shared_assignments
+                set failed [catch {interp eval $child $statement} detail]
+                set native_phase 0
+                if {$failed || $shared_assignments != $before+1} {
+                    interp invokehidden $child unset -nocomplain $shared_name
+                    lappend unsupported [dict create line $start scope $scope kind shared reason $detail]
+                }
             } elseif {[regexp {^(?:::)?set_(bus_skew|max_delay)(?:\s|$)} $statement -> kind]} {
                 dict incr selected_counts $kind
                 set mode constraint; set selectors {}; set before [llength $rows]
                 set failed [catch {interp eval $child $statement} detail]
+                if {$failed && $resolve_native && $scope eq {}} {
+                    set rows [lrange $rows 0 [expr {$before-1}]]; set selectors {}; set native_phase 1
+                    set failed [catch {interp eval $child $statement} detail]
+                    set native_phase 0
+                }
                 if {$failed || [llength $rows] != $before + 1} {
                     if {!$failed} {set detail {expected one selected command}}
                     set rows [lrange $rows 0 [expr {$before-1}]]
@@ -184,7 +285,7 @@ proc post_synth_tail_constraints::json_string {value} {
 }
 
 proc post_synth_tail_constraints::write_rows {path data} {
-    variable unsupported; variable selected_counts
+    variable unsupported; variable selected_counts; variable native_calls
     set encoded {}; set rejected {}
     foreach item $unsupported {
         lappend rejected [format {{"line":%d,"scope":%s,"kind":%s,"reason":%s}} \
@@ -201,21 +302,21 @@ proc post_synth_tail_constraints::write_rows {path data} {
     }
     set handle [open $path {WRONLY CREAT EXCL}]
     try {
-        puts $handle [format {{"schema_version":1,"coverage":"original_literal_scope_presence_only","rows":[%s],"unsupported":[%s],"selected_counts":{"max_delay":%d,"bus_skew":%d}}} \
-            [join $encoded ,] [join $rejected ,] [dict get $selected_counts max_delay] [dict get $selected_counts bus_skew]]
+        puts $handle [format {{"schema_version":1,"coverage":"original_scope_presence_only","rows":[%s],"unsupported":[%s],"selected_counts":{"max_delay":%d,"bus_skew":%d},"native_query_calls":%d}} \
+            [join $encoded ,] [join $rejected ,] [dict get $selected_counts max_delay] [dict get $selected_counts bus_skew] $native_calls]
     } finally {close $handle}
 }
 
 # Source defines this entry point but performs no export or design operation.
 # Fresh output paths prevent accidentally accepting stale or partial evidence.
-proc post_synth_tail_retained_constraints {} {
+proc post_synth_tail_retained_constraints {{resolve_native 1}} {
     set xdc [file join [pwd] tail-retained.xdc]
     set json [file join [pwd] tail-retained-constraints.json]
     if {[file exists $xdc] || [file exists $json]} {
         error "TAIL_RETAINED outputs already exist; use a fresh stage directory"
     }
     write_xdc -constraints valid -type timing $xdc
-    set rows [post_synth_tail_constraints::read_rows $xdc 1]
+    set rows [post_synth_tail_constraints::read_rows $xdc 1 $resolve_native]
     post_synth_tail_constraints::write_rows $json $rows
     return $json
 }
