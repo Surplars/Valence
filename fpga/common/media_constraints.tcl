@@ -23,10 +23,18 @@ source [file join $valence(root) fpga zu15eg trispeed_board_constraints.tcl]
 # clock witness to the actual common fabric source domain (not CPU300/100).
 set body [info body valence_trispeed_clock_reset_audit]
 if {[regexp -all {u_soc/clock 10.0} $body] != 1} {error "Public media clock audit changed"}
-proc valence_trispeed_clock_reset_audit {bank mbps} [string map {{u_soc/clock 10.0} {u_soc/fabricClock 4.0}} $body]
+if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-dynamic"} {
+    proc valence_trispeed_clock_reset_audit {bank mbps} [string map {{u_soc/clock 10.0} {u_soc/peripherals/gmac/phy/clock 8.0}} $body]
+} else {
+    proc valence_trispeed_clock_reset_audit {bank mbps} [string map {{u_soc/clock 10.0} {u_soc/fabricClock 4.0}} $body]
+}
 proc common_media_apply {rate} {
     valence_trispeed_rx_constraints $rate
     valence_trispeed_clock_reset_audit u_soc/peripherals/gmac $rate
+    if {[info exists ::valence(clock_profile)] && $::valence(clock_profile) eq "boot50-dynamic"} {
+        # Prove physical PLL/divider and live MAC control leaves, not fabric metadata.
+        common_cdc::dynamic_clock_anchors u_soc u_soc/fixedTimer
+    }
     valence_trispeed_quarter_tx_constraints u_rgmii $rate 0
 }
 proc common_media_cdc {} {valence_trispeed_packet_cdc_constraints u_soc/peripherals/gmac}

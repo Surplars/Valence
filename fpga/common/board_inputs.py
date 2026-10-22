@@ -146,6 +146,62 @@ def performance_mac_control_form(parent):
                      'performance MAC parent rewrites encoder control output')
 
 
+def dynamic_mac_control_form(root, m, meta, base):
+    """Exact reviewed source composition, not a timing/operating whitelist."""
+    gate.require(m.get('diagnosticOnly') is True and m['configuration']['cpu'] == 'i1'
+                 and m['configuration'].get('clock_profile') == 'boot50-dynamic',
+                 'fixed-source MAC is diagnostic-only')
+    expected = dict(clockProfile='boot50-dynamic', clockTopology='independent-fixed-v1',
+        clockProfilePurpose='dynamic-clock-integration-candidate-empty-rate-table',
+        independentFixedDomains=True, independentCpuFabricClocks=True, hardwareClocks=True,
+        runtimeClockReconfiguration=True, programmableRom=False, vivadoMemories=True,
+        cpuClockHz=50000000, fabricClockHz=50000000, ddrUiHz=250000000, aonHz=50000000,
+        uartHz=50000000, instructionCacheBytes=32768, dataCacheBytes=32768, cacheWays=2,
+        homeClients=2, homeLines=1024, homeWays=4, fifoDepth=16, triSpeedTxFrameSlots=2,
+        externalHotMaintenanceSupported=False, oneSidedResetSupported=False,
+        physicalTimingVerified=False, boardVerified=False)
+    for k, v in expected.items():
+        gate.require(meta.get(k) == v and type(meta.get(k)) is type(v), 'dynamic MAC contract: ' + k)
+    gate.require(str(meta.get('timebaseHz')) == '250000000', 'dynamic fixed TIME250 required')
+    name = 'fpga/common/dynamic/mac_diagnostic_review.json'
+    gate.require(m['inputs'].get(name) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426' and gate.sha(gate.file_at(root, name)) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426',
+                 'unreviewed fixed-MAC composition record')
+    review = gate.read(gate.file_at(root, name))
+    for name, digest in review['sources_sha256'].items():
+        gate.require(m['inputs'].get(name) == digest and gate.sha(gate.file_at(root, name)) == digest,
+                     'dynamic MAC source/empty-rate-table changed: ' + name)
+    for name, digest in review['artifacts_sha256'].items():
+        name = (base / name).as_posix()
+        gate.require(m['inputs'].get(name) == digest and gate.sha(gate.file_at(root, name)) == digest,
+                     'dynamic MAC boundary artifact changed: ' + name)
+    bodies = {}
+    for item in review['instances']:
+        parent = gate.file_at(root, (base / item['file']).as_posix()).read_text()
+        matches = re.findall(r'  ' + item['module'] + ' ' + item['instance'] + r' \(.*?\n  \);', parent, re.S)
+        gate.require(len(matches) == 1 and hashlib.sha256(matches[0].strip().encode()).hexdigest() == item['sha256'],
+                     'dynamic MAC complete parent instance changed: ' + item['instance'])
+        bodies[item['instance']] = matches[0]
+    def bound(body, port, signal):
+        gate.require(re.search(r'\.' + port + r'\s*\(\s*' + re.escape(signal) + r'\s*\)', body),
+                     'dynamic MAC fixed-source binding changed: ' + port)
+    bound(bodies['gmac'], 'sourceClock', '_gmac_continuousClock')
+    bound(bodies['crossing'], 'fixedClock', '_gmac_continuousClock')
+    bound(bodies['crossing'], 'fabricClock', 'sourceClock')
+    for name in ('gmac', 'crossing'):
+        bound(bodies[name], 'commonReset', 'commonReset')
+    parent = gate.file_at(root, (base / 'TriSpeedManagedGmac.sv').as_posix()).read_text()
+    gate.require('assign continuousClock = rawTxClock;' in parent, 'fixed raw125 export lost')
+    performance_mac_control_form(parent)
+    boundary = gate.file_at(root, (base / 'FixedMacBoundary.sv').as_posix()).read_text()
+    for lane in ('txData', 'txControl', 'rxData', 'rxStatus'):
+        body = re.findall(r'  HeldResponseCdcDataFifo_33 ' + lane + r' \(.*?\n  \);', boundary, re.S)
+        gate.require(len(body) == 1, 'dynamic outer37 HeldResponse lane missing: ' + lane)
+        tx = lane.startswith('tx')
+        bound(body[0], 'sourceClock', 'fabricClock' if tx else 'fixedClock')
+        bound(body[0], 'destinationClock', 'fixedClock' if tx else 'fabricClock')
+        bound(body[0], 'commonReset', 'commonReset')
+
+
 def emission(root, m):
     path = m['roles'].get('emission_profile')
     gate.require(path in m['inputs'], 'missing frozen production emission profile')
@@ -189,7 +245,12 @@ def emission(root, m):
                 'TriSpeedManagedGmac.sv': ('6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302',
                                          '84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691',
                                          '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556')}
+    dynamic_mac = m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == 'b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41'
+    if dynamic_mac:
+        dynamic_mac_control_form(root, m, meta, base)
     for name, expected in admitted.items():
+        if dynamic_mac and name == 'TriSpeedManagedGmac.sv':
+            continue  # Exact diagnostic composition above, never unconditional admission.
         gate.require(m['inputs'].get((base / name).as_posix()) in expected, 'unreviewed common MAC control equality form: ' + name)
     if m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556':
         performance_mac_control_form(gate.file_at(root, (base / 'TriSpeedManagedGmac.sv').as_posix()).read_text())

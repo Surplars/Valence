@@ -1,0 +1,67 @@
+{
+  "schema": "common-fixed-mac-diagnostic-composition-v1",
+  "source_baseline": "52ca7058224dc3e9b84f4cdd382a3f8d3bbb8765",
+  "scope": "Exact boot50-dynamic diagnostic composition only. No operating-rate admission, physical signoff, bitstream, or board qualification.",
+  "sources_sha256": {
+    "src/test/scala/platform/CommonMachinePlatformMain.scala": "df4fb14cb48aed5e78a5850d94bb22eab73e8a90466f4049e492ec08bef7abf6",
+    "src/main/scala/platform/CommonMachinePlatform.scala": "a2b6bf6c01be78f9e3deffc0e0be1367c47ec4a1b68bca33ed888abeeaefb489",
+    "src/main/scala/ip/clock/ManagedPeripheralBank.scala": "fd0205d8b23fbb09285208bc35ca2af9448a7b846cb1301b2054cee532a5a6d8",
+    "src/main/scala/ip/ethernet/FixedSourceManagedGmac.scala": "820b7e9d248ce08e8616d4d4802f62af76c6fa9ccd101f02b17110559fb44581",
+    "src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": "dea702a9c14d4ac288f6a4de5dc77886f4331497e10beba4ce26f848057aa003",
+    "src/main/scala/ip/bus/HeldResponseCdcDataFifo.scala": "2302decf7392cfd64fdec49a4c2b76470f45c98f736644c2ddb64d0cef21d126",
+    "src/main/scala/platform/CommonFixedMacRuntimeAdapter.scala": "46184fc95262b536b980c0fd3806bee0d013aac87cb41707484d5544aa9b4102",
+    "src/main/scala/platform/CommonNetworkRuntimeSequencer.scala": "dad2537ed2cbaf00a2937a326c1f5e3af5372e2779a81833cbf3203eadd873fe",
+    "src/main/scala/ip/clock/ClockRateControl.scala": "f0f245ad6df06a2ebfe1b1a1e6048d6f2e0495a227a50483502bc2413552f5cc",
+    "src/main/scala/ip/clock/ClockRateManagement.scala": "37865ab1c55a6558913207023695b2a36e92bc0594ece69676b2e2a9abab4e21",
+    "fpga/zu15eg/native_gmac_divided_clock.sv": "babab83514e73dbb88407ecb0ce8f8e209ce13deb90d9f2fe9a7661c40bd7769",
+    "fpga/common/soc_top_common_ddr.sv": "b51d4834e9e6d63c91f2b1462692bd59755cb770643188035a23f57461d4df3b"
+  },
+  "artifacts_sha256": {
+    "TriSpeedManagedGmac.sv": "b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41",
+    "TriSpeedRgmiiTx.sv": "80899ec1aad90965193a63a39def578fdd9465028a28c230fc3adec6bf15e731",
+    "ManagedPeripheralBank.sv": "74244166a139d6347a33583754a63e6c5bd9b90ef6d42f44a7f88c2c7c46ad24",
+    "FixedMacBoundary.sv": "5e00fdd771b6be398bde60b832665a6e0d5d92c02747fa281be85da99d4c0fe8",
+    "CommonMachinePlatform.sv": "546d051d61915f50a04d6aae30901f583dc01ebe6ecfc7971280fb00ffe80413",
+    "CommonFixedMacRuntimeAdapter.sv": "45f8640814c6f0036ac16931d89957b63baf977f441ebd319c5e74c56a544a3a",
+    "CommonNetworkRuntimeSequencer.sv": "d006ea5420d4f0e85fe7ddb0ca8b25547a8811bdb689aedbfd30aa8cf72b70ef",
+    "HeldResponseCdcDataFifo_33.sv": "f9ec337d35d53d3d6749d63fc7f5db6ae7eecd85dcb47eb58673f37a1afa6b4a",
+    "ClockRateControl.sv": "6bb782d9cedc9fea42de35de42ea18274452654794eef3616b36f0802bf34f39",
+    "ClockRateManagement.sv": "a43c4b4a84848966e36e5df538cb694c14be2e36bcb49af12b6fa5f7e379f363"
+  },
+  "instances": [
+    {
+      "file": "TriSpeedManagedGmac.sv",
+      "module": "TriSpeedRgmiiTx",
+      "instance": "encode",
+      "sha256": "e0e1ec735536567a3459a7c2699f145109ff349899fc36c56a8747c7573af1ee"
+    },
+    {
+      "file": "ManagedPeripheralBank.sv",
+      "module": "TriSpeedManagedGmac",
+      "instance": "gmac",
+      "sha256": "e182c91c9aba86c3f042949fd192ae4d290099c5f7c72f5ce59961db09b1a8fd"
+    },
+    {
+      "file": "ManagedPeripheralBank.sv",
+      "module": "FixedMacBoundary",
+      "instance": "crossing",
+      "sha256": "9be7ad785524a030b140caf2f219185c465acf8f1125d9801134dd0343790272"
+    },
+    {
+      "file": "CommonMachinePlatform.sv",
+      "module": "ManagedPeripheralBank",
+      "instance": "peripherals",
+      "sha256": "26e0d2e71d50ac26f713a3a7e5c404cc3898e1d3ccab8519e9d8afc54a2f4eb6"
+    }
+  ],
+  "fixed_source_chain": "UI250 to PLLE4 REF500 to BUFG to permanently enabled BUFGCE_DIV /4 to clk_tx/rawTxClock",
+  "owner_contract": [
+    "TX pause DMA, producer witness and source-idle before command; apply stop only after both destination-idle including RAM pending and held output.",
+    "RX native admitted owners plus outer source storage, fabric destinations and separate DMA owner drain; unadmitted wire frames explicitly dropped/counted.",
+    "Release receipt follows consumed matching released observation, epoch and serial.",
+    "Cold reset only across all owner boundaries; MMCM unlock never clears owners."
+  ],
+  "software_points": [],
+  "software_points_proof": "Exporter and platform/control source identities above select production constructors with empty points; purpose text is not the proof.",
+  "mapped_proof": "Source review only. Live fixed125 leaves and all new CDC endpoints must be established from actual mapped DCP. Missing/pruned state fails closed."
+}

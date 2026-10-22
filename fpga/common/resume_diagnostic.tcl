@@ -4,7 +4,7 @@ proc resume_diagnostic {} {
     global argv valence recovery_tools
     if {[llength $argv] ni {1 2 3 4}} {error "usage: resume_diagnostic.tcl ORIGINAL_CONFIG ?synthesis|implementation|post-opt|place-route? ?CHECKPOINT? ?OBSERVED_SHA256?"}
     source [lindex $argv 0]
-    if {$valence(diagnosticOnly)!=1 || $valence(clock_profile) ne "performance300-static"} {error "Only reviewed diagnostic profile may resume"}
+    if {$valence(diagnosticOnly)!=1 || $valence(clock_profile) ni {performance300-static boot50-dynamic}} {error "Only reviewed diagnostic profile may resume"}
     set phase [expr {[llength $argv]>=2 ? [lindex $argv 1] : "synthesis"}]
     if {$phase ni {synthesis implementation post-opt place-route}} {error "Invalid recovery phase"}
     if {($phase eq "post-opt" && [llength $argv]!=3) || ($phase eq "place-route" && [llength $argv]!=4) || ($phase in {synthesis implementation} && [llength $argv]>2)} {error "Invalid checkpoint arguments for mode"}

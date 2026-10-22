@@ -346,7 +346,18 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     }
     # Logical source has 3x5 TL + 2 LineGrant + 4 scalar + 2 MSI + 3 maintenance.
     # Missing optimized lanes need explicit tied-off proof, never silent omission.
-    if {[llength $held]!=26 || [llength $mailboxes]!=1 || [lindex $mailboxes 0] ne "$root/time_0" || [llength $unknown]} {
+    if {$root eq {u_soc/crossing} && [info exists ::valence(clock_profile)] &&
+        $::valence(clock_profile) eq {boot50-dynamic}} {
+        # Exact dynamic source adds maintenanceResume (fifo_11) and
+        # maintenanceResumed (fifo_12), both 8-bit HeldResponse lanes.
+        # Missing/pruned modules still fail; inspect the saved raw DCP first.
+        if {[llength $held]!=28 || [llength $mailboxes]!=1 || [lindex $mailboxes 0] ne "$root/time_0" || [llength $unknown]} {
+            error "COMMON_CDC dynamic census changed/optimized: Held=[llength $held]/28 mailbox=$mailboxes legacy=$unknown; inspect same raw DCP"
+        }
+        foreach name {fifo_11 fifo_12} {
+            if {[lsearch -exact $held $root/$name]<0} {error "COMMON_CDC missing dynamic maintenance lane $root/$name"}
+        }
+    } elseif {[llength $held]!=26 || [llength $mailboxes]!=1 || [lindex $mailboxes 0] ne "$root/time_0" || [llength $unknown]} {
         error "COMMON_CDC logical census changed/optimized: Held=[llength $held]/26 mailbox=$mailboxes legacy=$unknown; require reviewed constant-lane proof"
     }
     set ::common_cdc::inactive_scopes {}
@@ -354,7 +365,15 @@ proc common_cdc::collect {{root u_soc/crossing}} {
     set failures {}
     foreach h [lsort $held] {
         if {[catch {
-            if {[inactive $h] || [common_zero::prove $h]} {
+            if {$root eq {u_soc/crossing} && [info exists ::valence(clock_profile)] &&
+                $::valence(clock_profile) eq {boot50-dynamic} && $h in [list $root/fifo_11 $root/fifo_12]} {
+                set source [clock $root/fabricClock]; set destination [clock $root/cpuClock]
+                if {$h eq "$root/fifo_12"} {set swap $source; set source $destination; set destination $swap}
+                expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
+                same_net $h/commonReset $root/commonColdReset
+                foreach d {write captured} {lappend scopes [gray $h $d]}
+                lappend scopes [payload $h]
+            } elseif {[inactive $h] || [common_zero::prove $h]} {
                 lappend ::common_cdc::inactive_scopes $h;puts "COMMON_CDC_PROVEN_INACTIVE_PAYLOAD $h"
                 foreach d {write captured} {
                     set scope [inactive_gray $h $d]
@@ -457,7 +476,13 @@ proc common_cdc::audit_timing {scopes output} {
             }
         }
     } finally {close $f}
+    if {[info exists ::valence(clock_profile)] && $::valence(clock_profile) eq {boot50-dynamic}} {
+        variable dynamic_roots
+        if {![info exists dynamic_roots] || ![llength $dynamic_roots]} {error "COMMON_CDC dynamic scopes were not collected"}
+        report_bus_skew -delay_type min_max -cells [objects get_cells [concat u_soc/crossing $dynamic_roots]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+    } else {
     report_bus_skew -delay_type min_max -cells [get_cells [expr {[info exists ::valence(clock_profile)] && $::valence(clock_profile) in {boot50-static performance300-static boot50-dynamic} ? {u_soc/crossing u_soc/ddrCrossing u_soc/fixedTimer u_soc/debugCrossing} : {u_soc/crossing}}]] -max_paths 1 -nworst 1 -input_pins -warn_on_violation -file [file join $output common-bus-skew.rpt]
+    }
 }
 
 # Additional opt-in static boot boundary map. This is a fail-closed mapped-netlist
@@ -482,6 +507,23 @@ proc common_cdc::exact_modules {root ref expected} {
     }
 }
 proc common_cdc::mailbox_width {h width source destination} {
+    if {$width==1} {
+        # Emitted CdcMailbox(1) has scalar ports and scalar held/captured FFs.
+        # Do not reinterpret a missing vector bank or a pruned payload as safe.
+        expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
+        one get_pins $h/source_bits; one get_pins $h/destination_bits
+        set held [names [get_cells -quiet -hier -regexp [format {^%s/held_reg(\[[0-9]+\])?$} [quote $h]]]]
+        set captured [names [get_cells -quiet -hier -regexp [format {^%s/captured_reg(\[[0-9]+\])?$} [quote $h]]]]
+        if {$held ne [list $h/held_reg] || $captured ne [list $h/captured_reg]} {
+            error "COMMON_CDC scalar mailbox exact bank changed/pruned $h; inspect same raw DCP"
+        }
+        ff $h/held_reg $source; ff $h/captured_reg $destination
+        if {[drivers $h/captured_reg/D] ne [list $h/held_reg/Q] ||
+            [drivers $h/destination_bits] ne [list $h/captured_reg/Q]} {
+            error "COMMON_CDC scalar mailbox payload bypass $h"
+        }
+        return [dict create label $h/held_payload starts [list $h/held_reg/C] ends [list $h/captured_reg/D] second {} budget [budget $source $destination] skew 0]
+    }
     expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
     set starts {};set ends {};set constants {};set captures {}
     for {set i 0} {$i<$width} {incr i} {
@@ -559,6 +601,7 @@ proc common_cdc::collect_boot50 {soc timer debug} {
     return [collect_static $soc $timer $debug boot50-static]
 }
 proc common_cdc::collect_static {soc timer debug {profile boot50-static}} {
+    if {$profile eq {boot50-dynamic}} {return [collect_dynamic $soc $timer]}
     if {$profile ni {boot50-static performance300-static boot50-dynamic}} {error "COMMON_CDC unreviewed static profile $profile"}
     set performance [expr {$profile eq {performance300-static}}]
     set cpu [clock $soc/cpuClock];set fabric [clock $soc/fabricClock]
@@ -662,6 +705,9 @@ proc common_cdc::clock_alias {pin active expected} {
     }
 }
 proc common_cdc::static_clock_anchors {soc timer debug} {
+    if {[info exists ::valence(clock_profile)] && $::valence(clock_profile) eq {boot50-dynamic}} {
+        return [dynamic_clock_anchors $soc $timer]
+    }
     set fixedSource u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O
     set fabricSource u_clk_wiz/inst/clkout3_buf/O
     set fixed [clock $fixedSource]
@@ -686,4 +732,191 @@ proc common_cdc::static_clock_anchors {soc timer debug} {
     clock_alias $soc/timebaseClock $timer/timebaseClock $fixed
     clock_alias $soc/debugClock $debug/sourceClock $fixed
     return $fixed
+}
+
+# Diagnostic dynamic composition only. These are source-derived exact scopes,
+# not mapped evidence. Missing/pruned banks fail for inspection in the SAME raw
+# checkpoint. No global clock groups, functional reset cuts or absent-bank waiver.
+proc common_cdc::dynamic_clock_anchors {soc timer} {
+    if {$soc ne {u_soc} || $timer ne {u_soc/fixedTimer} ||
+        ![info exists ::valence(clock_profile)] || $::valence(clock_profile) ne {boot50-dynamic}} {
+        error "COMMON_CDC dynamic anchors require the exact diagnostic composition"
+    }
+    set fixedSource u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O
+    set cpuSource cpu_clock/managed_buffer/O
+    set fabricSource fabric_clock/managed_buffer/O
+    set macSource network_clock/raw_div/O
+    set fixed [clock $fixedSource]; set cpu [clock $cpuSource]
+    set fabric [clock $fabricSource]; set mac [clock $macSource]
+    expect_clock $fixedSource $fixed 4.0
+    expect_clock $cpuSource $cpu [expr {1000.0/300}]
+    expect_clock $fabricSource $fabric 4.0
+    expect_clock $macSource $mac 8.0
+    if {$cpu ne {cpu_target300} || $fabric ne {fabric_target250} ||
+        [llength [lsort -unique [list $fixed $cpu $fabric $mac]]]!=4} {
+        error "COMMON_CDC dynamic target/fixed clock identities changed"
+    }
+    # Public setup must already have named both real clocks. With these exact
+    # names, the existing proof only verifies /4 and /2, CE, REF500 and CLR;
+    # it does not enter its create_generated_clock branch.
+    if {$mac ne {valence_tx_raw_div} || [clock network_clock/quarter_div/O] ne {valence_tx_quarter_div}} {
+        error "COMMON_CDC missing existing physical MAC clock names"
+    }
+    valence_quarter_tx_clocks network_clock
+    same_net network_clock/pll/CLKIN $fixedSource
+    same_net network_clock/raw_div/I network_clock/delay_buffer/O
+    same_net network_clock/delay_buffer/I network_clock/pll/CLKOUT0
+    foreach {attribute expected} {CLKFBOUT_MULT 4 DIVCLK_DIVIDE 1 CLKOUT0_DIVIDE 2} {
+        set actual [get_property $attribute [one get_cells network_clock/pll]]
+        if {![string is double -strict $actual] || abs($actual-$expected)>0.0001} {
+            error "COMMON_CDC fixed MAC PLL parameter changed: $attribute=$actual"
+        }
+    }
+    if {[get_property REF_NAME [one get_cells network_clock/pll]] ne {PLLE4_ADV}} {
+        error "COMMON_CDC fixed MAC source is not the reviewed PLLE4_ADV"
+    }
+    foreach pair [list [list $fixedSource $fabricSource] [list $cpuSource $fabricSource] [list $macSource $fabricSource]] {
+        distinct_net {*}$pair
+    }
+    set debug $soc/debugSequence/boundary/crossing
+    foreach pin [list $soc/ddrClock $soc/ddrCrossing/ddrClock $timer/timebaseClock $timer/timer/clock \
+        $soc/ddrQualification/fixedClock $soc/timerQualification/fixedClock \
+        $soc/debugSequence/debugClock $soc/debugSequence/boundary/sourceClock \
+        $debug/sourceClock $debug/requests/sourceClock u_debug/debug_clk] {
+        driven_clock $pin $fixedSource $fixed 4.0
+    }
+    foreach pin [list $soc/fabricClock $soc/ddrCrossing/fabricClock $timer/fabricClock \
+        $soc/peripherals/sourceClock $soc/peripherals/crossing/fabricClock \
+        $soc/debugSequence/fabricClock $soc/debugSequence/boundary/destinationClock \
+        $debug/destinationClock $debug/requests/destinationClock] {
+        driven_clock $pin $fabricSource $fabric 4.0
+    }
+    driven_clock $soc/cpuClock $cpuSource $cpu [expr {1000.0/300}]
+    # Live fixed MAC loads prove the source island, not a potentially dead alias
+    # such as continuousClock or a top-level metadata clock name.
+    foreach pin [list $soc/peripherals/gmac/encode/clock $soc/peripherals/gmac/cpuRelease/clockIn \
+        $soc/peripherals/gmac/rawTxRelease/clockIn $soc/peripherals/gmac/phy/clock \
+        $soc/peripherals/gmac/mdio/clock $soc/peripherals/gmac/media/clock \
+        $soc/peripherals/gmac/frontend/clock $soc/peripherals/gmac/csr/clock \
+        $soc/peripherals/gmac/adapter/clock $soc/peripherals/gmac/rxClockWatchdog/monitorClock \
+        $soc/peripherals/crossing/csr/destinationClock $soc/peripherals/guard/fixedClock] {
+        driven_clock $pin $macSource $mac 8.0
+    }
+    same_net $soc/peripherals/gmac/commonReset $soc/commonColdReset
+    same_net $soc/peripherals/crossing/commonReset $soc/commonColdReset
+    same_net $soc/peripherals/guard/commonColdReset $soc/commonColdReset
+    expect_clock $soc/alwaysOnClock [clock $soc/alwaysOnClock] 20.0
+    # Dynamic aliases are not granted the static dead-alias exceptions. If a
+    # named anchor was pruned, query the same raw DCP before narrowing the proof.
+    puts "COMMON_CDC_DYNAMIC_ANCHORS CPU300_FABRIC250_STRESS FIXED_MAC125_UI250_AON50 NO_RUNTIME_RATE_QUALIFICATION"
+    return $fixed
+}
+
+proc common_cdc::collect_dynamic {soc timer} {
+    variable dynamic_roots
+    set fixed [dynamic_clock_anchors $soc $timer]
+    set cpu [clock cpu_clock/managed_buffer/O]
+    set fabric [clock fabric_clock/managed_buffer/O]
+    set mac [clock network_clock/raw_div/O]
+    set aon [clock $soc/alwaysOnClock]
+    if {[llength [lsort -unique [list $cpu $fabric $fixed $mac $aon]]]!=5} {
+        error "COMMON_CDC dynamic independent clock identities collapsed"
+    }
+    set ddr $soc/ddrCrossing
+    set debug $soc/debugSequence/boundary/crossing
+    set outer $soc/peripherals/crossing
+    set guard $soc/peripherals/guard
+    set rates $soc/peripherals/rateCmu
+    set dynamic_roots [list $ddr $timer $soc/ddrQualification $soc/timerQualification \
+        $soc/runtime $soc/debugSequence $rates $outer $guard \
+        $soc/fabricDdrReady_ddrReadySync $soc/debugFaultSync]
+    foreach root $dynamic_roots {one get_cells $root}
+    set fifos [list [list $ddr/empty_fifo $fabric $fixed] \
+        [list $ddr/empty_fifo_1 $fabric $fixed] [list $ddr/empty_fifo_2 $fixed $fabric] \
+        [list $ddr/empty_fifo_3 $fabric $fixed] [list $ddr/empty_fifo_4 $fixed $fabric] \
+        [list $outer/txData $fabric $mac] [list $outer/txControl $fabric $mac] \
+        [list $outer/rxData $mac $fabric] [list $outer/rxStatus $mac $fabric]]
+    set registers [list [list $timer/mmio $fabric $fixed] [list $rates/bridge $fabric $aon] \
+        [list $outer/csr $fabric $mac]]
+    set mailboxes [list [list $timer/snapshots 64 $fixed $fabric] \
+        [list $debug/requests 41 $fixed $fabric] [list $debug/responses 34 $fabric $fixed] \
+        [list $rates/receipt 1 $fabric $aon] \
+        [list $outer/commands 35 $fabric $mac] [list $outer/receipts 35 $mac $fabric] \
+        [list $outer/observations 52 $mac $fabric] \
+        [list $guard/requests 17 $aon $mac] [list $guard/replies 18 $mac $aon]]
+    set levels [list [list $ddr/fabricLinkReady_sync $fabric] [list $ddr/ddrLinkReady_sync $fixed] \
+        [list $timer/interrupt $fabric] [list $soc/fabricDdrReady_ddrReadySync $fabric] \
+        [list $soc/debugFaultSync $aon] [list $outer/fatalRxStop_sync $mac] \
+        [list $outer/sync $fabric] [list $guard/faultSync $aon]]
+    foreach root [list $soc/ddrQualification $soc/timerQualification] {
+        lappend mailboxes [list $root/command 10 $fabric $fixed]
+        foreach name {observation terminal retirement} {lappend mailboxes [list $root/$name 9 $fixed $fabric]}
+        lappend levels [list $root/fixedFaultSync $fabric] [list $root/fabricFaultSync $fixed]
+    }
+    set r $soc/runtime
+    lappend mailboxes [list $r/command 11 $aon $fabric] [list $r/cpuArm 10 $aon $cpu] \
+        [list $r/cpuObservation 12 $cpu $aon] [list $r/fabricObservation 12 $fabric $aon] \
+        [list $r/terminal 9 $fabric $aon] [list $r/retirement 8 $fabric $aon]
+    foreach name {retirementFaultInAon_sync localCloseFault_sync localCloseFault_sync_1} {
+        lappend levels [list $r/$name $aon]
+    }
+    set d $soc/debugSequence
+    lappend mailboxes [list $d/prepare 8 $fabric $fixed] [list $d/proof 8 $fixed $fabric] \
+        [list $d/decision 9 $fabric $fixed] [list $d/terminal 9 $fixed $fabric] \
+        [list $d/retirement 8 $fixed $fabric] \
+        [list $d/boundary/probe 8 $fixed $fabric] [list $d/boundary/proof 8 $fabric $fixed] \
+        [list $d/boundary/release_0 8 $fixed $fabric] [list $d/boundary/releaseAck 8 $fabric $fixed]
+    lappend levels [list $d/fatalStop_sync $fixed] [list $d/debugFaultSync $fabric] [list $d/fabricFaultSync $fixed]
+    set result {}; set fifoNames {}; set mailboxNames {}; set registerNames {}; set levelNames {}
+    foreach row $fifos {
+        lassign $row h source destination
+        lappend fifoNames $h
+        expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
+        same_net $h/commonReset $soc/commonColdReset
+        foreach direction {write captured} {lappend result [gray $h $direction]}
+        # No payload_absent/inactive shortcut on any new outer or DDR lane.
+        lappend result [payload $h]
+    }
+    foreach row $registers {
+        lassign $row h source destination
+        lappend registerNames $h
+        expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
+        same_net $h/commonReset $soc/commonColdReset
+        lappend result [register_payload $h requestHeld request {address 64 write 1 size 3 data 64 byteEnable 8} $source $destination]
+        lappend result [register_payload $h responseHeld reply {data 64 error 1} $destination $source]
+        lappend levels [list $h/requestSync $destination] [list $h/responseSync $source]
+    }
+    foreach row $mailboxes {
+        lassign $row h width source destination
+        lappend mailboxNames $h
+        if {$h in [list $debug/requests $debug/responses]} {
+            # Only DMI transport has link-loss reset. Runtime/admission owners
+            # retain common cold reset, even when the transport resets.
+            same_net $h/commonReset $debug/release_0/asyncReset
+        } else {same_net $h/commonReset $soc/commonColdReset}
+        lappend result [mailbox_width $h $width $source $destination]
+        lappend levels [list $h/requestSync $destination] [list $h/ackSync $source]
+    }
+    foreach row $levels {
+        lassign $row h target
+        lappend levelNames $h
+        one get_cells $h
+        expect_clock $h/clockIn $target
+        expect_clock [format {%s/stages_reg[0]/C} $h] $target
+        lappend result [level $h]
+    }
+    # Exact census includes each mailbox/CSR's internal synchronizers. Never
+    # accept a missing source-known module just because its rate table is empty.
+    foreach root $dynamic_roots {
+        foreach {ref names} [list HeldResponseCdcDataFifo* $fifoNames CdcMailbox* $mailboxNames \
+            RegisterClockDomainBridge* $registerNames CdcLevel* $levelNames] {
+            set expected {}
+            foreach h $names {if {[string first "$root/" $h]==0} {lappend expected $h}}
+            exact_modules $root $ref $expected
+        }
+        exact_modules $root CdcDataFifo* {}
+    }
+    new_stage_coverage $dynamic_roots $result
+    puts "COMMON_CDC_DYNAMIC_SOURCE_SCOPES scopes=[llength $result] STRICT_MAPPED_PROOF_REQUIRED NO_RATE_OR_SIGNOFF_ADMISSION"
+    return $result
 }

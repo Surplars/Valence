@@ -13,6 +13,7 @@ class ClockConfig:
     fabric_hz: int
     ddr_ui_hz: int
     cmu: bool = False
+    common_clock_profile: str = 'production'
 
     def flags(self):
         # A CMU-enabled image has no baked-in CPU rate. Both CPU profiles use
@@ -24,12 +25,16 @@ class ClockConfig:
                 f'-DBOARD_CMU_CLOCKS={int(self.cmu)}']
 
     def metadata(self):
-        return dict(cpu_hz=None if self.cmu else self.cpu_hz,
+        result = dict(cpu_hz=None if self.cmu else self.cpu_hz,
                     cpu_clock_source='CMU resource 1 nominalHz' if self.cmu else 'build contract',
                     cpu_identity='runtime unspecified; select core in hardware/payload manifest',
                     timebase_hz=self.timebase_hz, fabric_hz=self.fabric_hz,
                     ddr_ui_hz=self.ddr_ui_hz, cmu_clock_metadata=self.cmu,
                     clock_frequencies_measured=False, physical_timing_verified=False)
+        if self.common_clock_profile != 'production':
+            result['common_clock_profile'] = self.common_clock_profile
+            result['fabric_clock_source'] = 'build-time nominal; not applied-rate status'
+        return result
 
 
 def add_clock_arguments(parser, default_cpu_hz, cpu_option='--cpu-hz'):
@@ -40,20 +45,31 @@ def add_clock_arguments(parser, default_cpu_hz, cpu_option='--cpu-hz'):
     parser.add_argument('--ddr-ui-hz', type=int, help='DDR UI nominal Hz (default: fabric Hz)')
     parser.add_argument('--common-platform', action='store_true',
                         help='same I1/A1 ROM: CMU CPU metadata, fabric/timebase/DDR UI fixed at 250 MHz')
+    parser.add_argument('--common-clock-profile', choices=('production', 'boot50-dynamic'),
+                        default='production',
+                        help='explicit common-platform boot contract; dynamic keeps TIME/DDR UI at 250 MHz')
 
 
 def resolve_clocks(args):
     if not MIN_HZ <= args.cpu_hz <= MAX_HZ:
         raise ValueError('CPU clock must be in 6..500 MHz')
     values = [args.timebase_hz, args.fabric_hz, args.ddr_ui_hz]
+    profile = getattr(args, 'common_clock_profile', 'production')
+    if profile != 'production' and not args.common_platform:
+        raise ValueError('common clock profile requires --common-platform')
     if args.common_platform:
-        if any(v is not None and v != COMMON_HZ for v in values):
-            raise ValueError('common platform requires timebase/fabric/DDR UI = 250000000 Hz')
-        values = [COMMON_HZ] * 3
+        expected = [COMMON_HZ] * 3
+        if profile == 'boot50-dynamic':
+            if args.cpu_hz != 50000000:
+                raise ValueError('boot50-dynamic requires nominal boot CPU = 50000000 Hz')
+            expected[1] = 50000000
+        if any(v is not None and v != e for v, e in zip(values, expected)):
+            raise ValueError('common platform requires timebase/fabric/DDR UI = ' + '/'.join(map(str, expected)) + ' Hz')
+        values = expected
     else:
         values[0] = args.cpu_hz if values[0] is None else values[0]
         values[1] = values[0] if values[1] is None else values[1]
         values[2] = values[1] if values[2] is None else values[2]
     if any(not MIN_HZ <= value <= MAX_HZ for value in values):
         raise ValueError('timebase/fabric/DDR UI clocks must be in 6..500 MHz')
-    return ClockConfig(args.cpu_hz, *values, args.common_platform)
+    return ClockConfig(args.cpu_hz, *values, args.common_platform, profile)

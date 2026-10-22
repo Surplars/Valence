@@ -31,6 +31,20 @@ class FirmwareClocksTests(unittest.TestCase):
         self.assertEqual((cfg.cpu_hz, cfg.timebase_hz, cfg.ddr_ui_hz), (300000000, 250000000, 250000000))
         self.assertIn('-DBOARD_CPU_CLOCK_HZ=300000000ULL', cfg.flags())
 
+    def test_common_dynamic_boot_preserves_cmu_and_fixed_time(self):
+        cfg = clocks('--common-platform', '--common-clock-profile', 'boot50-dynamic', '--cpu-hz', '50000000')
+        self.assertEqual((cfg.timebase_hz, cfg.fabric_hz, cfg.ddr_ui_hz), (250000000, 50000000, 250000000))
+        self.assertEqual(cfg.flags(), ['-DBOARD_CPU_CLOCK_HZ=0ULL', '-DTIMEBASE_HZ=250000000ULL',
+            '-DFABRIC_CLOCK_HZ=50000000ULL', '-DDDR_UI_CLOCK_HZ=250000000ULL', '-DBOARD_CMU_CLOCKS=1'])
+        self.assertEqual(cfg.metadata()['cpu_clock_source'], 'CMU resource 1 nominalHz')
+        self.assertIsNone(cfg.metadata()['cpu_hz'])
+        self.assertFalse(cfg.metadata()['clock_frequencies_measured'])
+        for args in (('--cpu-hz', '50000000'), ('--common-platform', '--cpu-hz', '100000000'),
+                     ('--common-platform', '--cpu-hz', '50000000', '--fabric-hz', '250000000'),
+                     ('--common-platform', '--cpu-hz', '50000000', '--timebase-hz', '50000000')):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                clocks('--common-clock-profile', 'boot50-dynamic', *args)
+
     def test_bad_domains(self):
         for args in (('--cpu-hz', '0'), ('--cpu-hz', '500000001'), ('--timebase-hz', '-1'),
                      ('--fabric-hz', '1'), ('--ddr-ui-hz', '0'),

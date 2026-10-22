@@ -83,7 +83,7 @@ proc diagnostic_main {} {
     set valence(recovery_tools) $diagnostic_tools
     if {[llength $argv]!=2} {error "usage: diagnostic.tcl CONFIG synthesis|implementation"}
     source [lindex $argv 0]
-    if {![info exists valence(diagnosticOnly)] || $valence(diagnosticOnly)!=1 || $valence(clock_profile) ne "performance300-static"} {error "Diagnostic performance300 config required"}
+    if {![info exists valence(diagnosticOnly)] || $valence(diagnosticOnly)!=1 || $valence(clock_profile) ni {performance300-static boot50-dynamic}} {error "Diagnostic performance300 config required"}
     set valence(phase) [lindex $argv 1]
     if {$valence(phase) ni {synthesis implementation}} {error "No release/signoff phase exists here"}
     set valence(out) [file join $valence(root) diagnostic-run $valence(phase)]

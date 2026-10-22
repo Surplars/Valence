@@ -9,7 +9,7 @@ HERE = Path(__file__).resolve().parent
 class DynamicClockTargets(unittest.TestCase):
     def run_contract(self, mutation=''):
         harness = r'''
-set periods [dict create u_ddr/c0_ddr4_ui_clk 4.0 u_clk_wiz/clk_out1 20.0 u_soc/alwaysOnClock 20.0 u_soc/rawUartClock 20.0 u_soc/ddrClock 4.0 u_soc/timebaseClock 4.0 u_soc/debugClock 4.0 network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0]
+set periods [dict create u_ddr/c0_ddr4_ui_clk 4.0 u_clk_wiz/clk_out1 20.0 u_soc/alwaysOnClock 20.0 u_soc/rawUartClock 20.0 u_soc/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0 network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0]
 set names {};set writes {};set masters {}
 proc get_pins {args} {return [lindex $args end]}
 proc get_clocks {args} {return [lindex $args end]}

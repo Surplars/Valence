@@ -12,6 +12,9 @@ set debugPin u_soc/fabricClock
 if {[info exists valence(clock_profile)] && $valence(clock_profile) in {boot50-static performance300-static boot50-dynamic}} {
     common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing
     set debugPin u_soc/debugCrossing/sourceClock
+    if {$valence(clock_profile) eq "boot50-dynamic"} {
+        set debugPin u_soc/debugSequence/boundary/crossing/requests/sourceClock
+    }
 }
 set fabric [get_clocks -quiet -of_objects [get_pins -quiet $debugPin]]
 if {[llength $fabric] != 1} {error "Missing actual debug transport clock"}

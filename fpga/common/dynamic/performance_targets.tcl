@@ -22,7 +22,7 @@ proc native_dynamic_performance_targets {} {
     foreach {pin period} {
         u_ddr/c0_ddr4_ui_clk 4.0 u_clk_wiz/clk_out1 20.0
         u_soc/alwaysOnClock 20.0 u_soc/rawUartClock 20.0
-        u_soc/ddrClock 4.0 u_soc/timebaseClock 4.0 u_soc/debugClock 4.0
+        u_soc/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0
         network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0
     } {
         set clocks [get_clocks -quiet -of_objects [get_pins -quiet $pin]]

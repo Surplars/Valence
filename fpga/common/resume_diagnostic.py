@@ -37,8 +37,18 @@ def raw_binding(root, profile):
                 raw_sha256=sha(out/'raw-synthesized-unqualified.dcp'))
 
 def seal_raw(root):
-    _, _, profile=frozen(root)
+    _, manifest, profile=frozen(root)
     record=raw_binding(root,profile)
+    if manifest['configuration']['clock_profile'] == 'boot50-dynamic':
+        project=root/'diagnostic-run/synthesis/project'
+        actual={}
+        for name in EXPECTED:
+            file=project/'common_board.runs'/(name+'_synth_1')/(name+'.dcp')
+            if not file.is_file(): raise ValueError('Missing freshly synthesized dynamic OOC: '+name)
+            actual[name]=(sha(file), file.stat().st_size)
+        record['dynamic_ooc']=actual
+        record['ip_synthesis_sha256']=sha(root/'diagnostic-run/synthesis/ip-synthesis.json')
+        record['project_sha256']=sha(project/'common_board.xpr')
     record['synthesis_tool_sha256']=sha(Path(__file__).resolve().parent/'synthesize.tcl')
     path=root/'diagnostic-run/synthesis/raw-synthesized-unqualified.json'
     if path.exists(): raise ValueError('Do not replace raw checkpoint provenance')
@@ -59,7 +69,16 @@ def check(root, phase='synthesis'):
             raise ValueError('Expected preserved failed stage and successful IP evidence')
     project=out/'project'
     if not (project/'common_board.xpr').is_file(): raise ValueError('Missing original project')
-    dcps=verify_dcps(project)
+    if manifest['configuration']['clock_profile'] == 'boot50-dynamic':
+        recorded=json.loads((out/'raw-synthesized-unqualified.json').read_text())
+        for key,value in raw_binding(root,profile).items():
+            if recorded.get(key)!=value: raise ValueError('Dynamic raw binding changed: '+key)
+        if recorded.get('ip_synthesis_sha256')!=sha(out/'ip-synthesis.json') or recorded.get('project_sha256')!=sha(project/'common_board.xpr'):
+            raise ValueError('Dynamic original IP/project evidence changed')
+        if set(recorded.get('dynamic_ooc',{}))!=set(EXPECTED): raise ValueError('Dynamic OOC census changed')
+        dcps=verify_dcps(project,recorded['dynamic_ooc'])
+    else:
+        dcps=verify_dcps(project)
     raw=out/'raw-synthesized-unqualified.dcp'
     if phase=='synthesis' and raw.exists():
         recorded=json.loads((out/'raw-synthesized-unqualified.json').read_text())
