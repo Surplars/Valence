@@ -142,7 +142,8 @@ foreach {output expectedHz} $clockOutputs {
 common_log clock-output-checks.txt [join $clockEvidence \n]
 report_clocks -file generated-clocks.rpt
 if {$valence(clock_profile) eq "boot50-dynamic"} {
-    source [file join $valence(root) fpga common dynamic dynamic_clock_constraints.tcl]
+    # A recovery overlay must load its hash-bound checker, not frozen old rules.
+    source [file join [file dirname [file normalize [info script]]] dynamic dynamic_clock_constraints.tcl]
     native_dynamic_clock_constraints
     common_log dynamic-qualification.txt "BOOT50_PRIMITIVE_CONFIGURATION; PRE_SYNTH_CPU300_FABRIC250_TIMING_REQUIREMENTS; NEITHER_IS_RUNTIME_OR_BOARD_QUALIFICATION; software rates unqualified"
 }

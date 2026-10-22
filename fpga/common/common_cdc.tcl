@@ -506,6 +506,125 @@ proc common_cdc::exact_modules {root ref expected} {
         error "COMMON_CDC exact module census changed under $root ($ref): $actual expected $expected"
     }
 }
+# The source hold enable can also be folded. Only the reported source-local
+# LUT6 feedback is allowed in addition to the one payload capture load. Prove
+# its source.fire equation and source-clock inputs, not arbitrary extra fanout.
+proc common_cdc::scalar_mailbox_held_fanout {h capture_load source {legacy_direct 0}} {
+    set held $h/held_reg
+    set driver [drivers $held/D]
+    # Preserve the original all-direct mapping contract only in its old path.
+    # Newly admitted folded captures require the complete source-folded proof.
+    if {$legacy_direct && [loads $held/Q] eq [list $capture_load] && [llength $driver]==1 &&
+        $driver eq [drivers $h/source_bits]} {return}
+    if {[llength $driver]!=1 || ![regexp {^(.*)/O$} [lindex $driver 0] -> lut] ||
+        [string first "$h/" $lut]!=0 || [get_property REF_NAME [one get_cells $lut]] ne "LUT6"} {
+        error "COMMON_CDC scalar held fanout changed without exact source feedback $h"
+    }
+    if {[loads $lut/O] ne [list $held/D]} {error "COMMON_CDC scalar held LUT fanout changed $h"}
+    if {[get_property REF_NAME [one get_cells $held]] ne "FDRE"} {
+        error "COMMON_CDC scalar folded held requires FDRE $h"
+    }
+    foreach pin {D CE R} {
+        if {[get_property IS_INVERTED [one get_pins $held/$pin]] ni {0 false FALSE}} {
+            error "COMMON_CDC scalar folded held inverted/unknown $pin $h"
+        }
+    }
+    constant $held/CE 1; constant $held/R 0
+    set data [drivers $h/source_bits]; set valid [drivers $h/source_valid]
+    set reset [format {%s/sourceRelease/release_0_reg[2]/Q} $h]
+    set ack [format {%s/ackSync/stages_reg[1]/Q} $h]
+    set request $h/requestToggle_reg/Q
+    foreach input [list $data $reset $ack $request $valid] {
+        if {[llength $input]!=1 || ![regexp {^(.*)/Q$} [lindex $input 0] -> launch]} {
+            error "COMMON_CDC scalar held input must be one source FF Q $h: $input"
+        }
+        ff $launch $source
+    }
+    set expected [list [lindex $data 0] $reset $ack $request [lindex $valid 0] $held/Q]
+    set actual {}; set positions {}
+    for {set i 0} {$i<6} {incr i} {
+        set input [drivers $lut/I$i]
+        if {[llength $input]!=1 || [lsearch -exact $expected [lindex $input 0]]<0} {
+            error "COMMON_CDC scalar held unknown input $lut/I$i: $input"
+        }
+        lappend actual [lindex $input 0]; dict set positions [lindex $input 0] $i
+    }
+    if {[llength [lsort -unique $expected]]!=6 || [lsort $actual] ne [lsort $expected]} {
+        error "COMMON_CDC scalar held input census changed $h"
+    }
+    if {[loads $held/Q] ne [lsort [list $capture_load $lut/I[dict get $positions $held/Q]]]} {
+        error "COMMON_CDC scalar held fanout changed $h"
+    }
+    set init [get_property INIT [one get_cells $lut]]
+    if {![regexp -nocase {^64'h([0-9a-f]{16})$} $init -> hex]} {
+        error "COMMON_CDC scalar held unknown LUT INIT $h: $init"
+    }
+    # expr keeps the complete unsigned 64-bit INIT as a Tcl bignum.
+    set truth [expr 0x$hex]
+    for {set row 0} {$row<64} {incr row} {
+        lassign [lmap pin $expected {expr {($row >> [dict get $positions $pin]) & 1}}] data reset acknowledged req valid previous
+        set result [expr {!$reset && ($acknowledged == $req) && $valid ? $data : $previous}]
+        if {(($truth >> $row) & 1) != $result} {
+            error "COMMON_CDC scalar held truth table changed $h row=$row"
+        }
+    }
+    puts "COMMON_CDC_SCALAR_HELD_MUX $h LUT6=$lut EXACT_64_ROWS SOURCE_CONTROLS LOCAL_FEEDBACK_ONLY"
+}
+# Vivado may fold a scalar capture's destination-only enable into a LUT5
+# feedback mux. Accept only the complete source-equivalent truth table and
+# exact five FF-Q inputs; retain the held/C -> captured/D timed path through
+# that LUT. This is not permission for an arbitrary combinational CDC launch.
+proc common_cdc::scalar_mailbox_capture {h source destination} {
+    set held $h/held_reg; set captured $h/captured_reg
+    if {[drivers $h/destination_bits] ne [list $captured/Q]} {
+        error "COMMON_CDC scalar mailbox output is not captured Q $h"
+    }
+    set driver [drivers $captured/D]
+    if {$driver eq [list $held/Q]} {
+        scalar_mailbox_held_fanout $h $captured/D $source 1
+        return
+    }
+    if {[llength $driver]!=1 || ![regexp {^(.*)/O$} [lindex $driver 0] -> lut] ||
+        [string first "$h/" $lut]!=0 || [get_property REF_NAME [one get_cells $lut]] ne "LUT5"} {
+        error "COMMON_CDC scalar mailbox capture is not direct or exact LUT5 $h"
+    }
+    if {[loads $lut/O] ne [list $captured/D]} {error "COMMON_CDC scalar capture LUT fanout changed $h"}
+    if {[get_property REF_NAME [one get_cells $captured]] ne "FDRE"} {
+        error "COMMON_CDC scalar folded capture requires FDRE $h"
+    }
+    foreach pin {D CE R} {
+        if {[get_property IS_INVERTED [one get_pins $captured/$pin]] ni {0 false FALSE}} {
+            error "COMMON_CDC scalar folded capture inverted/unknown $pin $h"
+        }
+    }
+    constant $captured/CE 1; constant $captured/R 0
+    set valid $h/valid_reg; set request [format {%s/requestSync/stages_reg[1]} $h]; set ack $h/ackToggle_reg
+    foreach control [list $valid $request $ack] {ff $control $destination}
+    set expected [list $held/Q $valid/Q $request/Q $ack/Q $captured/Q]
+    set actual {}; set positions {}
+    for {set i 0} {$i<5} {incr i} {
+        set input [drivers $lut/I$i]
+        if {[llength $input]!=1 || [lsearch -exact $expected [lindex $input 0]]<0} {
+            error "COMMON_CDC scalar capture unknown input $lut/I$i: $input"
+        }
+        lappend actual [lindex $input 0]; dict set positions [lindex $input 0] $i
+    }
+    if {[lsort $actual] ne [lsort $expected]} {error "COMMON_CDC scalar capture input census changed $h"}
+    scalar_mailbox_held_fanout $h $lut/I[dict get $positions $held/Q] $source
+    set init [get_property INIT [one get_cells $lut]]
+    if {![regexp -nocase {^32'h([0-9a-f]{8})$} $init -> hex]} {
+        error "COMMON_CDC scalar capture unknown LUT INIT $h: $init"
+    }
+    scan $hex %x truth
+    for {set row 0} {$row<32} {incr row} {
+        lassign [lmap pin $expected {expr {($row >> [dict get $positions $pin]) & 1}}] data busy req acknowledged previous
+        set result [expr {!$busy && ($req != $acknowledged) ? $data : $previous}]
+        if {(($truth >> $row) & 1) != $result} {
+            error "COMMON_CDC scalar capture truth table changed $h row=$row"
+        }
+    }
+    puts "COMMON_CDC_SCALAR_CAPTURE_MUX $h LUT5=$lut EXACT_32_ROWS DESTINATION_CONTROLS HELD_TO_CAPTURE_PATH_RETAINED"
+}
 proc common_cdc::mailbox_width {h width source destination} {
     if {$width==1} {
         # Emitted CdcMailbox(1) has scalar ports and scalar held/captured FFs.
@@ -518,10 +637,7 @@ proc common_cdc::mailbox_width {h width source destination} {
             error "COMMON_CDC scalar mailbox exact bank changed/pruned $h; inspect same raw DCP"
         }
         ff $h/held_reg $source; ff $h/captured_reg $destination
-        if {[drivers $h/captured_reg/D] ne [list $h/held_reg/Q] ||
-            [drivers $h/destination_bits] ne [list $h/captured_reg/Q]} {
-            error "COMMON_CDC scalar mailbox payload bypass $h"
-        }
+        scalar_mailbox_capture $h $source $destination
         return [dict create label $h/held_payload starts [list $h/held_reg/C] ends [list $h/captured_reg/D] second {} budget [budget $source $destination] skew 0]
     }
     expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination

@@ -1,15 +1,29 @@
 # Read-only final-checkpoint audit. Unknown mapping/format/coverage is BLOCKED.
 # common_cdc.tcl contains definitions only: no mutation occurs when sourced here.
 source [file join [file dirname [info script]] common_cdc.tcl]
-namespace eval common_board {variable constants {}; variable critical null}
+namespace eval common_board {
+    variable constants {}; variable critical null
+    variable script_dir [file dirname [file normalize [info script]]]
+}
 proc common_board::json {s} {return "\"[string map [list \\ \\\\ \" \\\" \n \\n \r \\r \t \\t] $s]\""}
 proc common_board::object {dictionary} {
     set rows {}; dict for {k v} $dictionary {lappend rows "[json $k]:[json $v]"}; return "\{[join $rows ,]\}"
 }
-proc common_board::net {pin} {
+proc common_board::net_object {dictionary} {
+    # An empty result from net is explicit disconnection, never ground or an
+    # invented shared net. Only the ROM primitive-output path permits it.
+    set rows {}; dict for {k v} $dictionary {
+        set value [expr {$v eq "" ? "null" : [json $v]}]
+        lappend rows "[json $k]:$value"
+    }; return "\{[join $rows ,]\}"
+}
+proc common_board::net {pin {allow_unused_output 0}} {
     variable constants
     set nets [get_nets -quiet -segments -of_objects $pin]
-    if {![llength $nets]} {error "COMMON_BOARD disconnected net [get_property NAME $pin]"}
+    if {![llength $nets]} {
+        if {$allow_unused_output && [get_property DIRECTION $pin] eq "OUT"} {return {}}
+        error "COMMON_BOARD disconnected net [get_property NAME $pin]"
+    }
     set name [lindex [common_cdc::names $nets] 0]
     foreach n $nets {
         set type [get_property TYPE $n]
@@ -27,18 +41,21 @@ proc common_board::rom_dump {root output} {
         if {[string first $root/ $name]!=0} {continue}
         set ref [get_property REF_NAME $c]; set pins {}; set outputs {}; set props {}; set inverted {}
         foreach p [get_pins -of_objects $c] {
-            set pn [get_property REF_PIN_NAME $p]; dict set pins $pn [net $p]
+            set pn [get_property REF_PIN_NAME $p]
+            # A truly netless output cannot reach any boundary/primitive. Keep
+            # it visible as null. Disconnected inputs and boundary pins fail.
+            dict set pins $pn [net $p 1]
             if {[get_property DIRECTION $p] eq "OUT"} {lappend outputs [json $pn]}
             if {$pn in {C CLKARDCLK CLKBWRCLK ENARDEN ENBWREN RSTRAMARSTRAM RSTRAMB RSTREGARSTREG RSTREGB}} {
                 if {[get_property IS_INVERTED $p] ni {0 FALSE false}} {lappend inverted [json $pn]}
             }
         }
         if {$ref eq "RAMB36E2"} {
-            foreach key {READ_WIDTH_A READ_WIDTH_B WRITE_WIDTH_A WRITE_WIDTH_B DOA_REG DOB_REG EN_ECC_READ EN_ECC_WRITE} {dict set props $key [get_property $key $c]}
+            foreach key {READ_WIDTH_A READ_WIDTH_B WRITE_WIDTH_A WRITE_WIDTH_B DOA_REG DOB_REG EN_ECC_READ EN_ECC_WRITE EN_ECC_PIPE CASCADE_ORDER_A CASCADE_ORDER_B ENADDRENA ENADDRENB RDADDRCHANGEA RDADDRCHANGEB} {dict set props $key [get_property $key $c]}
             for {set i 0} {$i<128} {incr i} {set key [format INIT_%02X $i]; dict set props $key [get_property $key $c]}
             for {set i 0} {$i<16} {incr i} {set key [format INITP_%02X $i]; dict set props $key [get_property $key $c]}
         } elseif {[string match LUT* $ref] || [string match FD* $ref]} {dict set props INIT [get_property INIT $c]}
-        lappend rows [format {{"name":%s,"ref":%s,"pins":%s,"outputs":[%s],"properties":%s,"inverted_pins":[%s]}} [json $name] [json $ref] [object $pins] [join $outputs ,] [object $props] [join $inverted ,]]
+        lappend rows [format {{"name":%s,"ref":%s,"pins":%s,"outputs":[%s],"properties":%s,"inverted_pins":[%s]}} [json $name] [json $ref] [net_object $pins] [join $outputs ,] [object $props] [join $inverted ,]]
     }
     if {![llength $rows]} {error "COMMON_ROM no mapped primitives under $root"}
     set f [open $output w]
@@ -47,10 +64,13 @@ proc common_board::rom_dump {root output} {
 }
 proc common_board::rom {} {
     global valence
+    variable script_dir
     foreach key {rom python} {if {![info exists valence($key)]} {error "COMMON_ROM missing frozen $key binding"}}
     set dump [file join $valence(out) rom-netlist.json]
     rom_dump u_soc/fabric/rom/memory $dump
-    set result [exec $valence(python) -E [file join $valence(root) fpga common rom_audit.py] --netlist $dump --rom $valence(rom) --output [file join $valence(out) rom-mapping.json]]
+    # The exporter and decoder must be the same hashed audit-tool overlay;
+    # valence(root) may deliberately refer to immutable hardware inputs.
+    set result [exec $valence(python) -E [file join $script_dir rom_audit.py] --netlist $dump --rom $valence(rom) --output [file join $valence(out) rom-mapping.json]]
     if {[string trim $result] ne "COMMON_ROM_CONTENT_MAPPING_PASS"} {error "COMMON_ROM no verified content/mapping result"}
 }
 proc common_board::cpu {} {

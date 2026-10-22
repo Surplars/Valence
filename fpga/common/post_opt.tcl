@@ -26,6 +26,9 @@ common_management_constraints
 common_skew_end
 
 if {[info exists valence(clock_profile)] && $valence(clock_profile) eq "boot50-dynamic"} {
+    # Re-prove the narrow LOCKED topology and normal interstage timing after opt.
+    source [file join [file dirname [file normalize [info script]]] dynamic dynamic_clock_constraints.tcl]
+    native_dynamic_clock_constraints
     source [file join $valence(root) fpga common dynamic performance_targets.tcl]
     native_dynamic_performance_targets
 }

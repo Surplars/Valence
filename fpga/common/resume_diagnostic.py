@@ -89,10 +89,10 @@ def check(root, phase='synthesis'):
                 mode='implementation' if phase=='implementation' else 'post-only' if raw.exists() else 'top-synthesis',
                 original_manifest_sha256=sha(root/'diagnostic.json'),
                 project_sha256=sha(project/'common_board.xpr'), ooc_sha256=dcps,
-                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl','cached_post_opt.tcl','exact_object_cache.tcl','test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')})
+                recovery_tool_sha256={n:sha(here/n) for n in ('resume_diagnostic.py','resume_diagnostic.tcl','synthesize.tcl','diagnostic.tcl','cached_post_opt.tcl','exact_object_cache.tcl','test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl')})
 
 CACHE_TOOLS = ('resume_diagnostic.py', 'resume_diagnostic.tcl', 'exact_object_cache.tcl',
-         'cached_post_opt.tcl', 'test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')
+         'cached_post_opt.tcl', 'test_exact_object_cache.tcl','post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl')
 
 def verify_checkpoint(root, expected):
     if not re.fullmatch(r'[0-9a-f]{64}', expected):
@@ -119,7 +119,7 @@ REVIEWED_POST_PRODUCER = {'resume_diagnostic.py': 'f1900f81232ea204b0551156e8852
 STAGES = {'optimized-checked-unqualified.dcp':'optimized', 'placed.dcp':'placed',
           'physical-optimized-unqualified.dcp':'physical', 'routed.dcp':'routed'}
 POST_PROOFS = ('exact_object_cache.tcl','cached_post_opt.tcl','test_exact_object_cache.tcl',
-               'post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl')
+               'post_synth.tcl','post_opt.tcl','common_cdc.tcl','board_audit.tcl','rom_audit.py','dynamic/dynamic_clock_constraints.tcl')
 
 REVIEWED_PLACED_SHA = "2ad8c0d79f096627ee8e0c794f5cd4addb97b209f8aad1c286df06a789f5f35a"
 REVIEWED_PLACED_TOOLS = {'exact_object_cache.tcl': '3e53d34432151cd74f81c24cfc01ee59df252c0f939d6f20a2da31c3967ca158', 'cached_post_opt.tcl': '024724a00b33df3ee985142b9eb6e26e7c992ba6c3251fac50be6753c83700df', 'test_exact_object_cache.tcl': '6844b5ba59458c4ca11718b92d95a2affc89c3e3b91809d4ca62ab09cc075043', 'post_synth.tcl': 'e26c26e3b59cc13aacbc0447c87947c6a6e787d16a55c6832730d78c8cb89e5d', 'post_opt.tcl': '58e4a82a92509e1c99ea7d1b1686484dde658e2261418c3fb1836a3c941f678c', 'common_cdc.tcl': '3e7e9689f355afa803aa623080a9880dac3ab77470085eaf58284c1313b82095', 'board_audit.tcl': '8d910a801831ef449003cebf00bf4bdb375ebf1bb1d059a3bb9af073fd1fd070', 'resume_diagnostic.py': 'bcaa3926681346d8c34f4fb926bd7280beaf3a63f3d1a623c3ba4698f676c7cc', 'resume_diagnostic.tcl': '5232228d730524235c687b74e619b061d710085261819edd23a7242fca253870', 'diagnostic.tcl': 'e159f6c199c11eba3c235627ac23b245392186ab4cd7832e64d117b4faa25af8'}

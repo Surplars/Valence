@@ -2,16 +2,24 @@
 """Prove a dumped dual-port 128-KiB ROM against bytes; fail on unknown mapping.
 
 Input is a read-only Vivado primitive/net/INIT dump, never source RTL or a cell
-count certificate. Supported shape: RAMB36E2 1024x36 TDP, synchronous read with
+count certificate. Supported shape: RAMB36E2 x1/x9/x36 TDP, synchronous read with
 no BRAM output register; LUT/MUXF combinational selection and at most one FF
 stage on address selection. Every logical bit must select one real physical
 INIT bit, independent of its value. No physical bit may alias another address.
+All 32768 words must be reachable through the exported boundary: either both
+full-address ports, or complementary constant-bit slices (e.g. even/odd words).
 """
 import argparse
 import hashlib
 import json
 import re
 from pathlib import Path
+
+# AMD UG573: Address Bus (RAMB36E2 TDP table), Block RAM Address Mapping,
+# Content Initialization INIT_xx/INITP_xx. Width includes the separate parity bus.
+# https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/Address-Bus-ADDRARDADDR-and-ADDRBWRADDR
+# https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/Block-RAM-Address-Mapping
+PACKING = {1: (0, 1, 0), 9: (3, 8, 1), 36: (5, 32, 4)}
 
 
 def require(ok, message):
@@ -32,25 +40,43 @@ class Model:
         self.ports = document['ports']
         self.constants = {k: int(v) for k, v in document['constants'].items()}
         self.cells = {c['name']: c for c in document['cells']}
+        require(len(self.cells) == len(document['cells']), 'duplicate primitive name')
+        require(all(v in (0, 1) for v in self.constants.values()), 'invalid net constant')
         self.drivers = {}
         self.rams = {}
         for c in self.cells.values():
             ref = c['ref']
             require(not c.get('inverted_pins', []), 'inverted primitive control requires review: ' + c['name'])
             for p, net in c['pins'].items():
+                if net is None:
+                    # Only explicitly disconnected outputs are accepted. They
+                    # do not get a driver or a fabricated zero-valued net.
+                    require(p in c['outputs'], 'disconnected primitive input: ' + c['name'] + '/' + p)
+                    continue
+                require(isinstance(net, str) and net, 'invalid primitive net: ' + c['name'] + '/' + p)
                 if p in c['outputs']:
                     require(net not in self.drivers, 'multiple primitive drivers: ' + net)
                     self.drivers[net] = (c, p)
             if ref == 'RAMB36E2':
                 prop = c['properties']
                 for key in ('READ_WIDTH_A', 'READ_WIDTH_B'):
-                    require(integer(prop[key]) == 36, 'unsupported ROM packing: ' + c['name'] + '/' + key)
+                    require(integer(prop[key]) in PACKING, 'unsupported ROM packing: ' + c['name'] + '/' + key)
+                for side in 'AB':
+                    require(integer(prop['WRITE_WIDTH_' + side]) == integer(prop['READ_WIDTH_' + side]),
+                            'unsupported ROM write/read packing: ' + c['name'])
+                    require(prop['CASCADE_ORDER_' + side] == 'NONE', 'unsupported ROM cascade: ' + c['name'])
+                    for key in ('ENADDREN' + side, 'RDADDRCHANGE' + side):
+                        require(str(prop[key]).upper() in ('FALSE', '0'), 'unsupported ROM address mode: ' + key)
                 for key in ('DOA_REG', 'DOB_REG'):
                     require(integer(prop[key]) == 0, 'extra ROM read pipeline: ' + c['name'])
-                for key in ('EN_ECC_READ', 'EN_ECC_WRITE'):
+                for key in ('EN_ECC_READ', 'EN_ECC_WRITE', 'EN_ECC_PIPE'):
                     require(str(prop.get(key, '')).upper() in ('FALSE', '0'), 'ECC mode not proven disabled')
-                data = sum(integer(prop[f'INIT_{i:02X}']) << (i * 256) for i in range(128))
-                parity = sum(integer(prop[f'INITP_{i:02X}']) << (i * 256) for i in range(16))
+                def contents(prefix, count):
+                    blocks = [integer(prop[f'{prefix}_{i:02X}']) for i in range(count)]
+                    require(all(0 <= b < (1 << 256) for b in blocks), 'invalid ROM INIT block')
+                    return sum(b << (i * 256) for i, b in enumerate(blocks))
+                data = contents('INIT', 128)
+                parity = contents('INITP', 16)
                 self.rams[c['name']] = (data, parity)
         require(self.rams, 'no physical ROM RAMB36E2s')
         for p in ('clka', 'clkb', 'ena', 'enb'):
@@ -60,24 +86,48 @@ class Model:
                 require(f'addr{port}[{i}]' in self.ports, 'missing 15-bit address')
             for i in range(32):
                 require(f'dout{port}[{i}]' in self.ports, 'missing 32-bit data')
+        require(all(isinstance(n, str) and n for n in self.ports.values()),
+                'missing/disconnected ROM boundary net')
+
+    def reachable(self, address, port):
+        # Synthesis may expose A[0]=0 / B[0]=1 with shared upper address nets.
+        # Do not override these physical constants to manufacture full ports.
+        # Repeated address nets impose equality too; coverage below must still
+        # account for every word through at least one real port.
+        bindings = dict(self.constants)
+        for p, value in [('ena', 1), ('enb', 1)] + [
+                (f'addr{port}[{i}]', (address >> i) & 1) for i in range(15)]:
+            n = self.ports[p]
+            if n in bindings and bindings[n] != value:
+                return False
+            bindings[n] = value
+        return True
 
     def read(self, address, port):
         # Opposite-port addresses are deliberately left unbound. Any dependency
         # on them fails even when both ports happen to return identical zeros.
-        inputs = {self.ports['ena']: 1, self.ports['enb']: 1}
+        inputs = {}
+
+        def bind(n, value):
+            require(isinstance(n, str) and n, 'missing/disconnected ROM boundary net')
+            require(n not in self.constants or self.constants[n] == value,
+                    'constant contradicts ROM boundary input')
+            require(n not in inputs or inputs[n] == value, 'aliased address/control boundary')
+            inputs[n] = value
+
+        for p in ('ena', 'enb'):
+            bind(self.ports[p], 1)
         for i in range(15):
-            net = self.ports[f'addr{port}[{i}]']
-            bit = (address >> i) & 1
-            require(net not in inputs or inputs[net] == bit, 'aliased address/control boundary')
-            inputs[net] = bit
+            bind(self.ports[f'addr{port}[{i}]'], (address >> i) & 1)
         cache, visiting = {}, set()
 
         def const(v):
-            require(isinstance(v, int), 'data-dependent ROM address/control')
+            require(isinstance(v, int) and v in (0, 1), 'data-dependent ROM address/control')
             return v
 
         def pin(c, p, epoch):
             require(p in c['pins'], 'missing primitive pin ' + c['name'] + '/' + p)
+            require(c['pins'][p] is not None, 'disconnected primitive pin ' + c['name'] + '/' + p)
             return net(c['pins'][p], epoch)
 
         def ram(c, p, epoch):
@@ -86,28 +136,37 @@ class Model:
             require(m is not None, 'unsupported BRAM output: ' + p)
             side = 'A' if m[1] in ('DOUTADOUT', 'DOUTPADOUTP') else 'B'
             expected = 'a' if side == 'A' else 'b'
+            shift, data_width, parity_width = PACKING[integer(c['properties']['READ_WIDTH_' + side])]
+            is_parity = m[1].startswith('DOUTP')
+            bit = int(m[2])
+            require(bit < (parity_width if is_parity else data_width), 'invalid BRAM output bit for width')
             row_key = ('RAM_ROW', c['name'], side)
             if row_key not in cache:
                 clock = 'CLKARDCLK' if side == 'A' else 'CLKBWRCLK'
                 require(c['pins'][clock] == self.ports['clk' + expected], 'ROM clock mapping differs')
                 for name, count in (('WEA', 4), ('WEBWE', 8)):
-                    for bit in range(count):
-                        require(const(pin(c, f'{name}[{bit}]', 0)) == 0, 'ROM write enable is not disabled')
+                    for we_bit in range(count):
+                        require(const(pin(c, f'{name}[{we_bit}]', 0)) == 0, 'ROM write enable is not disabled')
                 for name in ('RSTRAMARSTRAM', 'RSTRAMB', 'RSTREGARSTREG', 'RSTREGB', 'SLEEP'):
                     require(const(pin(c, name, 0)) == 0, 'ROM reset/sleep not inactive')
                 en = 'ENARDEN' if side == 'A' else 'ENBWREN'
                 require(const(pin(c, en, 0)) == 1, 'selected ROM bank not enabled')
                 addrpin = 'ADDRARDADDR' if side == 'A' else 'ADDRBWRADDR'
                 raw = sum(const(pin(c, f'{addrpin}[{i}]', 0)) << i for i in range(15))
-                require(raw & 31 == 0, 'unqualified BRAM low address mapping')
-                row = raw >> 5
+                # Low bits are unused by this aspect ratio. Require real,
+                # evaluable pins above, but do not mistake tied-high unused
+                # bits for address bits. UG573 TDP table: x9 uses [14:3].
+                row = raw >> shift
                 cache[row_key] = row
             row = cache[row_key]
-            bit = int(m[2]) + (32 if m[1].startswith('DOUTP') else 0)
-            require(bit < 36, 'invalid BRAM output bit')
-            return (c['name'], row, bit)
+            # Canonical physical identity, independent of port aspect ratio:
+            # one 32-data/4-parity-bit row. INITP is NOT interleaved into INIT.
+            offset = row * (parity_width if is_parity else data_width) + bit
+            return (c['name'], offset // (4 if is_parity else 32),
+                    offset % (4 if is_parity else 32) + (32 if is_parity else 0))
 
         def net(n, epoch):
+            require(isinstance(n, str) and n, 'missing/disconnected ROM boundary net')
             key = (n, epoch)
             if key in cache:
                 return cache[key]
@@ -178,17 +237,24 @@ class Model:
 def audit(document, golden):
     require(len(golden) == 131072, 'ROM golden must be exactly 131072 bytes')
     model = Model(document)
-    seen = set()
+    seen = set(); port_words = dict(a=0, b=0)
     for address in range(32768):
-        a = model.read(address, 'a'); b = model.read(address, 'b')
-        require(a == b, f'port A/B physical address/data mapping differs at word {address}')
+        mappings = []
+        for port in ('a', 'b'):
+            if model.reachable(address, port):
+                mappings.append(model.read(address, port)); port_words[port] += 1
+        require(mappings, f'ROM boundary has no accessible port at word {address}')
+        a = mappings[0]
+        require(all(a == b for b in mappings[1:]),
+                f'port A/B physical address/data mapping differs at word {address}')
         require(len(set(a)) == 32 and not seen.intersection(a), f'physical bit alias at word {address}')
         seen.update(a)
         actual = sum(model.value(s) << i for i, s in enumerate(a))
         expected = int.from_bytes(golden[address*4:address*4+4], 'little')
         require(actual == expected, f'ROM INIT mismatch word={address} expected={expected:08x} actual={actual:08x}')
     return dict(status='PASS', bytes=131072, words=32768, physical_bits=len(seen),
-                ram_primitives=len(model.rams), ports=['a', 'b'], rom_sha256=hashlib.sha256(golden).hexdigest())
+                ram_primitives=len(model.rams), ports=['a', 'b'], port_words=port_words,
+                rom_sha256=hashlib.sha256(golden).hexdigest())
 
 
 def main():
