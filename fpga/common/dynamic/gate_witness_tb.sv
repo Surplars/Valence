@@ -9,6 +9,18 @@ module gate_witness_tb;
     assign managed=buffered && delivery;
     native_clock_gate dut(.aon_clock(aon),.cold_reset(cold),.raw_clock(raw),.managed_clock(managed),
         .enable(enable),.gate_ce(ce),.gate_closed(closed),.gate_open(opened),.resumed(resumed));
+    time last_raw_rise=0;
+    integer closed_falls=0;
+    always @(posedge raw) last_raw_rise=$time;
+    always @(ce)
+        if(!cold && dut.raw_reset===1'b0 && $time!=last_raw_rise)
+            $fatal(1,"CE_NOT_REGISTERED_ON_RAW_RISING_EDGE");
+    always @(negedge raw or posedge cold)
+        if(cold || ce!==1'b0)closed_falls=0;
+        else closed_falls=closed_falls+1;
+    always @(posedge closed)
+        if(!cold && (closed_falls<4 || ce!==1'b0 || buffered!==1'b0))
+            $fatal(1,"CLOSE_WITHOUT_FOUR_COMPLETED_FALLING_EDGES");
     integer fresh_edges=0;
     always @(posedge managed or negedge enable or posedge cold)
         if(cold || !enable)fresh_edges<=0;else fresh_edges<=fresh_edges+1;
@@ -47,7 +59,7 @@ module gate_witness_tb;
         enable=0;#1;if(closed!==1'b0)$fatal(1,"STALE_CLOSE_TOKEN");
         repeat(15)@(negedge aon);
         if(closed!==1'b1)$fatal(1,"FRESH_CLOSE_TOKEN_NOT_PROVEN");
-        $display("GATE_WITNESS_BEHAVIORAL_PASS missing_raw_missing_managed_fresh_tokens_registered_launch");$finish;
+        $display("GATE_WITNESS_BEHAVIORAL_PASS missing_raw_missing_managed_fresh_tokens_registered_launch_posedge_ce_four_falling_tail");$finish;
     end
     initial begin #100000;$fatal(1,"GATE_WITNESS_TIMEOUT");end
 endmodule

@@ -49,10 +49,18 @@ module native_clock_gate (
             enable_sync <= {enable_sync[1:0],enable_seen};
             token_sync <= {token_sync[1:0],close_token};
         end
+    // Launch CE on a rising raw edge. The SYNC buffer's next rising-edge
+    // setup check then has a full cycle rather than half a cycle. This is a
+    // real FF-edge change, not a timing exception; both setup and hold remain
+    // timed against the actual observer/managed clock-tree insertion delays.
+    always @(posedge raw_clock or posedge raw_reset)
+        if (raw_reset) ce<=0;
+        else ce<=enable_sync[2];
+    // Keep the close proof on falling edges: it must include completion of
+    // the final full managed pulse, not merely observe CE deassertion.
     always @(negedge raw_clock or posedge raw_reset) begin
-        if (raw_reset) begin ce<=0; closed_edges<=0; raw_token<=0; closed_token<=0; end
+        if (raw_reset) begin closed_edges<=0; raw_token<=0; closed_token<=0; end
         else begin
-            ce <= enable_sync[2];
             raw_token <= token_sync[2];
             if (ce || enable_sync[2] || raw_token != token_sync[2]) closed_edges <= 0;
             else begin

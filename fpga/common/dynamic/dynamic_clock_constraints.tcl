@@ -198,7 +198,7 @@ proc native_dynamic_clock_constraints {} {
             # Conservative fastest retained CPU300 period, not relaxed boot50.
             set_max_delay -datapath_only 3.333 -from $starts -to $endpoint
         }
-        # Real half-cycle source-FF -> BUFGCE CE path must exist and remain timed.
+        # Real rising-edge source-FF -> BUFGCE CE path must remain timed.
         set ce [get_pins -quiet $root/managed_buffer/CE]
         set ce_source [get_pins -quiet $root/gate/ce_reg/Q]
         if {[llength $ce]!=1 || [llength $ce_source]!=1} {error "DYNAMIC_CLOCK missing actual CE path"}
