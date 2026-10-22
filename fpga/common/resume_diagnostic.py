@@ -256,10 +256,10 @@ def prepare_tail(root, request):
     return dict(current,mode='post-synth-tail-only',qualification=False,tail_origin=origin,
                 recovery_tool_sha256=tail_tools())
 
-def retained_scope_check(root):
+def retained_scope_check(root, exported_path=None):
     out=root/'diagnostic-run/synthesis'
     original=json.loads((out/'bus-skew-scope.json').read_text())['scopes']
-    exported=json.loads((out/'tail-retained-constraints.json').read_text())
+    exported=json.loads((exported_path or out/'tail-retained-constraints.json').read_text())
     if exported.get('schema_version')!=1: raise ValueError('Wrong retained constraints schema')
     actual=exported.get('rows')
     if not isinstance(actual,list) or not actual: raise ValueError('Empty native retained constraints')
@@ -272,6 +272,34 @@ def retained_scope_check(root):
         if key(row) not in skew or key(row) not in maximum:
             raise ValueError('Original bus-skew/max-delay scope not retained')
     return len(original)
+
+def retained_text_check(root, xdc, output, expected_sha):
+    """Text-only preview; no Vivado, checkpoint open, receipt, or qualification."""
+    scope=root/'diagnostic-run/synthesis/bus-skew-scope.json'
+    if (sha(scope),scope.stat().st_size)!=TAIL_BOUND['bus_skew_scope']:
+        raise ValueError('Original scope file changed')
+    if not re.fullmatch(r'[0-9a-f]{64}',expected_sha) or sha(xdc)!=expected_sha:
+        raise ValueError('Observed exported XDC SHA256 mismatch')
+    if output.exists(): raise ValueError('Preserve existing text-preview output')
+    try:
+        import tkinter
+    except ImportError as exc:
+        raise ValueError('Text preview needs Python standard tkinter Tcl; no Vivado was started') from exc
+    tcl=tkinter.Tcl()
+    helper=Path(__file__).resolve().parent/'post_synth_tail_constraints.tcl'
+    try:
+        tcl.call('source',str(helper))
+        rows=tcl.call('post_synth_tail_constraints::read_rows',str(xdc),1)
+        tcl.call('post_synth_tail_constraints::write_rows',str(output),rows)
+    except tkinter.TclError as exc:
+        raise ValueError(str(exc)) from exc
+    count=retained_scope_check(root,output)
+    data=json.loads(output.read_text())
+    return dict(status='TEXT_SCOPE_PRESENCE_ONLY_NOT_NATIVE_QUALIFICATION',
+                retained_bus_scopes=count,selected_counts=data['selected_counts'],
+                parsed_rows=len(data['rows']),unsupported_rows=len(data['unsupported']),
+                xdc_sha256=expected_sha,scope_sha256=sha(scope),output_sha256=sha(output),
+                parser_sha256=sha(helper),falsepath_or_exception_dominance_proven=False)
 
 def seal_tail(root, request):
     out=root/'diagnostic-run/synthesis'
@@ -312,7 +340,10 @@ if __name__=='__main__':
     try:
         root=Path(sys.argv[1]).absolute()
         mode=sys.argv[2] if len(sys.argv)>2 else 'synthesis'
-        if mode not in ('synthesis','implementation','seal-raw','post-opt','place-route','seal-stage','post-synth-tail','seal-tail','retained-tail'): raise ValueError('Invalid recovery mode')
+        if mode not in ('synthesis','implementation','seal-raw','post-opt','place-route','seal-stage','post-synth-tail','seal-tail','retained-tail','retained-text'): raise ValueError('Invalid recovery mode')
+        if mode=='retained-text':
+            if len(sys.argv)!=6: raise ValueError('retained-text requires XDC, fresh output JSON, observed XDC SHA256')
+            print(json.dumps(retained_text_check(root,Path(sys.argv[3]),Path(sys.argv[4]),sys.argv[5]),indent=2)); sys.exit(0)
         if mode=='retained-tail':
             if len(sys.argv)!=3: raise ValueError('Retained check accepts only root')
             print(json.dumps({'retained_bus_scopes':retained_scope_check(root)})); sys.exit(0)

@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
+import resume_diagnostic
 
 
 HERE = Path(__file__).resolve().parent
@@ -49,7 +51,7 @@ def fixture_matches(rows):
 
 @unittest.skipUnless(shutil.which("tclsh"), "Tcl unavailable")
 class PostSynthTailConstraintsTests(unittest.TestCase):
-    def export(self, xdc, *, failure=False):
+    def export(self, xdc, *, failure=False, with_details=False):
         with tempfile.TemporaryDirectory(prefix="tail-retention-") as temp:
             root = Path(temp)
             fixture = root / "input.xdc"
@@ -72,7 +74,7 @@ class PostSynthTailConstraintsTests(unittest.TestCase):
             self.assertEqual((output / "tail-retained.xdc").read_text(), xdc)
             data = json.loads(evidence.read_text())
             self.assertEqual(data["schema_version"], 1)
-            return data["rows"]
+            return data if with_details else data["rows"]
 
     def test_complete_rows_preserve_association_budget_and_read_only_contract(self):
         rows = self.export(PAIR_A + PAIR_B)
@@ -167,11 +169,81 @@ set_bus_skew 8 -from [get_pins {
         changed = (PAIR_A + PAIR_B).replace("[get_pins {u/c/Q}]", "[get_cells {u/c/Q}]")
         self.assertFalse(fixture_matches(self.export(changed)))
 
-    def test_scope_context_cannot_relabel_relative_names_as_global(self):
-        for context in ("current_instance u/nested", "::current_scope u/nested"):
+    def test_native_scope_resets_and_relative_pin_names_are_preserved(self):
+        scoped = "current_instance u_ddr/inst/microblaze_I/U0\n"
+        scoped += "set_false_path -through [get_ports -scoped_to_current_instance Reset]\n"
+        scoped += "current_instance -quiet\n"
+        self.assertTrue(fixture_matches(self.export(scoped + PAIR_A + PAIR_B)))
+        relative = (PAIR_A + PAIR_B).replace('u/', '')
+        self.assertTrue(fixture_matches(self.export('current_instance u\n' + relative)))
+        rows = self.export('current_instance u/nested\n' + PAIR_A + PAIR_B)
+        self.assertFalse(fixture_matches(rows))
+        self.assertEqual(rows[0]['from'][0], 'u/nested/u/a_reg[0]/Q')
+
+    def test_relative_scope_changes_and_root_reset_are_not_global_aliases(self):
+        prefix = 'current_instance u\ncurrent_instance child\ncurrent_instance ..\ncurrent_instance .\n'
+        self.assertTrue(fixture_matches(self.export(prefix + (PAIR_A + PAIR_B).replace('u/', ''))))
+        self.assertTrue(fixture_matches(self.export('current_instance u/child\ncurrent_instance\n' + PAIR_A + PAIR_B)))
+        rows = self.export('current_instance u\ncurrent_instance child\n' + PAIR_B)
+        self.assertEqual(rows[0]['from'], ['u/child/u/c/Q'])
+
+    def test_unknown_or_executable_scope_forms_fail_closed(self):
+        for context in ('::current_scope u/nested', 'current_instance -unknown u',
+                        'current_instance ..', 'current_instance /u',
+                        'current_instance u//child', 'current_instance {u/*}',
+                        'current_instance [get_cells u]',
+                        'current_instance [exec forbidden_external_program]',
+                        'current_instance u; current_instance -quiet',
+                        'current_instance u; set ::outside_mutation 1'):
             with self.subTest(context=context):
-                self.assertIn("unsupported scope context", self.export(
-                    context + "\n" + PAIR_A + PAIR_B, failure=True))
+                self.assertIn('TAIL_RETAINED', self.export(context + '\n' + PAIR_A + PAIR_B, failure=True))
+        selected = PAIR_B.replace('[get_pins {u/c/Q}]', '[get_pins [current_instance u]]')
+        self.assertIn('TAIL_RETAINED', self.export(selected, failure=True))
+
+    def test_unsupported_native_rows_are_recorded_without_hiding_required_scopes(self):
+        other = """
+current_instance u_ddr/inst
+set_max_delay -from [get_pins */vendor/C] -to [get_pins */sync/D] 5
+current_instance -quiet
+set_max_delay -from [filter [all_fanin -to [get_pins x/D]] {REF_PIN_NAME == C}] -to [get_pins x/D] 3.333
+set_max_delay -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8
+set_bus_skew -from $_xlnx_shared_i0 -to $_xlnx_shared_i1 8
+"""
+        data = self.export(other + PAIR_A + PAIR_B, with_details=True)
+        self.assertTrue(fixture_matches(data['rows']))
+        self.assertEqual(data['selected_counts'], {'max_delay': 5, 'bus_skew': 3})
+        self.assertEqual(len(data['unsupported']), 4)
+        self.assertEqual(data['unsupported'][0]['scope'], 'u_ddr/inst')
+        self.assertTrue(all(item['line'] > 0 and item['reason'] for item in data['unsupported']))
+        self.assertFalse(fixture_matches(self.export(other + PAIR_A)))
+
+    def test_text_preview_uses_same_parser_and_exact_original_scope_coverage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            out = root / 'diagnostic-run/synthesis'
+            out.mkdir(parents=True)
+            scope = out / 'bus-skew-scope.json'
+            scope.write_text(json.dumps({'scopes': EXPECTED_SCOPES}))
+            xdc = root / 'saved-native.xdc'
+            xdc.write_text('current_instance u_ddr/inst\ncurrent_instance -quiet\n' + PAIR_A + PAIR_B)
+            bound = (resume_diagnostic.sha(scope), scope.stat().st_size)
+            with patch.dict(resume_diagnostic.TAIL_BOUND, bus_skew_scope=bound):
+                result = resume_diagnostic.retained_text_check(root, xdc, root/'preview.json', resume_diagnostic.sha(xdc))
+                self.assertEqual(result['retained_bus_scopes'], 2)
+                self.assertFalse(result['falsepath_or_exception_dominance_proven'])
+                with self.assertRaisesRegex(ValueError, 'Preserve existing'):
+                    resume_diagnostic.retained_text_check(root, xdc, root/'preview.json', resume_diagnostic.sha(xdc))
+                with self.assertRaisesRegex(ValueError, 'SHA256 mismatch'):
+                    resume_diagnostic.retained_text_check(root, xdc, root/'bad-hash.json', '0'*64)
+                xdc.write_text(PAIR_A + PAIR_B.replace('3.333', '3.334'))
+                with self.assertRaisesRegex(ValueError, 'not retained'):
+                    resume_diagnostic.retained_text_check(root, xdc, root/'missing.json', resume_diagnostic.sha(xdc))
+            self.assertFalse((out/'synthesized.dcp').exists())
+            self.assertFalse((out/'diagnostic-stage.json').exists())
+
+    def test_scope_state_does_not_leak_between_reads(self):
+        self.export('current_instance nested\n' + PAIR_A + PAIR_B)
+        self.assertTrue(fixture_matches(self.export(PAIR_A + PAIR_B)))
 
 
 if __name__ == "__main__":
