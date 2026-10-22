@@ -1,0 +1,6 @@
+BOOT
+FIRST_TERMINAL
+SECOND_TERMINAL
+NORMAL_TERMINAL
+CLOCK_RATE_CLEANUP_COMPONENT_PASS cycles=355 two_lanes deadline_priority terminal_retirement wrong_tags sticky_fault reset
+/workspace/scratch/41e4a649bb60/Valence/simulator/cdc/clock_rate_cleanup_tb.sv:208: $finish called at 3546000 (1ps)

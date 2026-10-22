@@ -32,6 +32,24 @@ class ClockRateProgram extends Bundle {
 class ClockRateProgramResult extends Bundle {
     val hz = UInt(32.W); val token = UInt(32.W); val error = Bool()
 }
+/** Optional AON lease protocol. Tokens identify controller transactions, not Hz.
+  * The platform adapter owns the maintenance epoch and never equates terminal
+  * enqueue/consumption with the later fabric-retirement acknowledgement.
+  */
+class ClockRateDrainTerminal extends Bundle {
+    val token = UInt(32.W)
+    val canceled = Bool()
+    val timedOut = Bool()
+}
+class ClockRateDrainLease extends Bundle {
+    val prepare = Decoupled(UInt(32.W))
+    val resume = Decoupled(UInt(32.W))
+    val held = Flipped(Valid(UInt(32.W)))
+    val abort = Flipped(Valid(UInt(32.W)))
+    val terminal = Flipped(Decoupled(new ClockRateDrainTerminal))
+    val retired = Flipped(Decoupled(UInt(32.W)))
+    val cleanupFault = Flipped(Valid(UInt(32.W)))
+}
 /** Inputs belong to AON: the integration must register/synchronize them there.
   * ACKs are request-scoped private-owner, transport, fabric and AXI drain ACKs,
   * not FIFO-empty shortcuts. They remain asserted until quiesce is released.
@@ -53,11 +71,12 @@ class ClockRateEndpoint extends Bundle {
   * responseCommitted means the source consumed the response, not AON enqueue.
   * An empty/default qualification table permits no runtime rate changes.
   */
-class ClockRateControl(p: ClockRateParams) extends Module {
+class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val submit = Flipped(Valid(UInt(32.W)))
         val responseCommitted = Input(Bool()); val clearErrors = Input(UInt(32.W))
         val endpoint = new ClockRateEndpoint
+        val lease = if (externalDrainLease) Some(new ClockRateDrainLease) else None
         val requestError = Output(UInt(32.W))
         val requestedHz = Output(UInt(32.W)); val targetHz = Output(UInt(32.W))
         val actualHz = Output(UInt(32.W)); val actualValid = Output(Bool())
@@ -65,6 +84,9 @@ class ClockRateControl(p: ClockRateParams) extends Module {
         val completed = Output(UInt(32.W)); val lastSuccess = Output(Bool())
     })
     val idle :: waitReply :: draining :: closing :: programming :: locking :: opening :: resuming :: failed :: Nil = Enum(9)
+    // Keep the original Enum and every default elaboration path unchanged.
+    val cleanup = 9.U(4.W)
+    val retiring = 10.U(4.W)
     val state = RegInit(locking); val next = WireDefault(state); state := next
     val booting = RegInit(true.B); val recovering = RegInit(false.B)
     val everGated = RegInit(true.B); val drainProved = RegInit(false.B)
@@ -99,26 +121,31 @@ class ClockRateControl(p: ClockRateParams) extends Module {
         when(recovering) { events(ClockRateError.Fatal) := true.B; next := failed }
             .otherwise { recovering := true.B; target := p.bootHz.U; issued := false.B; next := closing }
     }
+    val leaseKeepingClock = if (externalDrainLease) next === cleanup || next === retiring else false.B
+    val leaseKeepingQuiesce = if (externalDrainLease)
+        next === cleanup || (next === retiring && transactionFailed && !everGated) else false.B
     val onNext = next === idle || next === waitReply || next === draining || next === opening ||
         next === resuming || (next === failed && !everGated)
     val quiesceNext = next === draining || next === closing || next === programming ||
         next === locking || next === opening || (next === failed && everGated)
     val isolateNext = (everGated || next === closing) && next =/= idle && next =/= waitReply && next =/= draining
-    io.endpoint.clockEnable := RegNext(onNext, false.B)
-    io.endpoint.quiesce := RegNext(quiesceNext, true.B)
+    io.endpoint.clockEnable := RegNext(if (externalDrainLease) onNext || leaseKeepingClock else onNext, false.B)
+    io.endpoint.quiesce := RegNext(if (externalDrainLease) quiesceNext || leaseKeepingQuiesce else quiesceNext, true.B)
     io.endpoint.isolate := RegNext(isolateNext, true.B)
     io.endpoint.program.valid := state === programming && !issued && io.endpoint.present
     io.endpoint.program.bits.hz := target; io.endpoint.program.bits.token := token
     io.endpoint.program.bits.fallback := recovering
     io.endpoint.result.ready := true.B // Consume stale tokens without completing a newer command.
     when(state === waitReply && io.responseCommitted) { next := draining }
-    when(state === draining) {
-        stable := Mux(io.endpoint.drainAcks.andR, stable + 1.U, 0.U)
-        when(io.endpoint.drainAcks.andR && stable === (p.stableCycles - 1).U) {
-            drainProved := true.B; everGated := true.B; next := closing
-        }.elsewhen(expired) {
-            events(ClockRateError.DrainTimeout) := true.B
-            transactionFailed := true.B; next := resuming // The old clock never stopped.
+    if (!externalDrainLease) {
+        when(state === draining) {
+            stable := Mux(io.endpoint.drainAcks.andR, stable + 1.U, 0.U)
+            when(io.endpoint.drainAcks.andR && stable === (p.stableCycles - 1).U) {
+                drainProved := true.B; everGated := true.B; next := closing
+            }.elsewhen(expired) {
+                events(ClockRateError.DrainTimeout) := true.B
+                transactionFailed := true.B; next := resuming // The old clock never stopped.
+            }
         }
     }
     when(state === closing) {
@@ -148,13 +175,84 @@ class ClockRateControl(p: ClockRateParams) extends Module {
         when(io.endpoint.gateOpen && io.endpoint.locked) { next := resuming }
             .elsewhen(expired) { recover(ClockRateError.GateTimeout) }
     }
-    when(state === resuming) {
-        when(io.endpoint.resumed && !io.endpoint.drainAcks.orR && io.endpoint.locked) {
-            when(!booting) { completed := completed + 1.U; success := !transactionFailed }
-            booting := false.B; everGated := false.B; next := idle
-        }.elsewhen(expired) {
-            events(ClockRateError.ResumeTimeout) := true.B; events(ClockRateError.Fatal) := true.B
-            transactionFailed := true.B; next := failed
+    if (!externalDrainLease) {
+        when(state === resuming) {
+            when(io.endpoint.resumed && !io.endpoint.drainAcks.orR && io.endpoint.locked) {
+                when(!booting) { completed := completed + 1.U; success := !transactionFailed }
+                booting := false.B; everGated := false.B; next := idle
+            }.elsewhen(expired) {
+                events(ClockRateError.ResumeTimeout) := true.B; events(ClockRateError.Fatal) := true.B
+                transactionFailed := true.B; next := failed
+            }
+        }
+    } else {
+        val lease = io.lease.get
+        val leaseToken = RegInit(0.U(32.W))
+        val offered = RegInit(false.B)
+        val resumeSent = RegInit(false.B)
+        when(io.submit.valid && io.requestError === 0.U) {
+            leaseToken := leaseToken + 1.U
+            offered := false.B; resumeSent := false.B
+        }
+        lease.prepare.valid := state === draining && !offered
+        lease.prepare.bits := leaseToken
+        when(lease.prepare.fire) { offered := true.B }
+        val held = offered && lease.held.valid && lease.held.bits === leaseToken
+        val abort = offered && lease.abort.valid && lease.abort.bits === leaseToken
+        val cleanupFault = offered && lease.cleanupFault.valid && lease.cleanupFault.bits === leaseToken
+        // R10 owns the first-qualified drain and cleanup timers. Arbitration
+        // before prepare.fire is not counted. A later revoked proof does not
+        // restart that watchdog; full-system ACK timeout remains separate work.
+        when(state === draining) {
+            stable := Mux(held && io.endpoint.drainAcks.andR, stable + 1.U, 0.U)
+            when(abort) {
+                events(ClockRateError.DrainTimeout) := true.B
+                transactionFailed := true.B; next := cleanup
+            }.elsewhen(held && !cleanupFault && io.endpoint.drainAcks.andR && stable === (p.stableCycles - 1).U) {
+                drainProved := true.B; everGated := true.B; next := closing
+            }
+        }
+        when(cleanupFault && (state === draining || state === cleanup || state === retiring)) {
+            events(ClockRateError.Fatal) := true.B
+            transactionFailed := true.B
+        }
+        lease.resume.valid := state === resuming && !booting && offered && !resumeSent
+        lease.resume.bits := leaseToken
+        when(lease.resume.fire) { resumeSent := true.B }
+        val terminalMatches = lease.terminal.bits.token === leaseToken
+        lease.terminal.ready := offered && terminalMatches &&
+            (state === cleanup || (state === resuming && !booting && resumeSent))
+        when(lease.terminal.fire) {
+            when(lease.terminal.bits.canceled || lease.terminal.bits.timedOut) {
+                transactionFailed := true.B
+            }
+            when(lease.terminal.bits.timedOut) { events(ClockRateError.DrainTimeout) := true.B }
+            next := retiring
+        }
+        // A returned runtime retirement is retained by the adapter until this
+        // controller also proves its old/open clock is safe. Do not release the
+        // shared rate owner merely because the CPU/fabric epoch itself retired.
+        val preGateFailure = !everGated && (transactionFailed || cleanupFault)
+        val progressQualified = preGateFailure || (io.endpoint.resumed && !io.endpoint.drainAcks.orR)
+        lease.retired.ready := state === retiring && offered && lease.retired.bits === leaseToken &&
+            io.endpoint.locked && io.endpoint.gateOpen && progressQualified
+        when(lease.retired.fire) {
+            completed := completed + 1.U; success := !(transactionFailed || cleanupFault)
+            everGated := false.B; offered := false.B; next := idle
+        }
+        // Boot does not own a runtime epoch. Keep the existing startup proof.
+        when(state === resuming && booting) {
+            when(io.endpoint.resumed && !io.endpoint.drainAcks.orR && io.endpoint.locked) {
+                booting := false.B; everGated := false.B; next := idle
+            }.elsewhen(expired) {
+                events(ClockRateError.ResumeTimeout) := true.B; events(ClockRateError.Fatal) := true.B
+                transactionFailed := true.B; next := failed
+            }
+        }
+        when(state === cleanup) {
+            assert(io.endpoint.clockEnable && !everGated,
+                "timeout cleanup stopped the original clock or followed a gated operation")
+            assert(!io.endpoint.program.valid, "timeout cleanup issued a rate program")
         }
     }
     when(state =/= next || state === idle || state === waitReply || (booting && !io.endpoint.present)) {
