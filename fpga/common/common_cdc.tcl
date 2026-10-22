@@ -625,6 +625,72 @@ proc common_cdc::scalar_mailbox_capture {h source destination} {
     }
     puts "COMMON_CDC_SCALAR_CAPTURE_MUX $h LUT5=$lut EXACT_32_ROWS DESTINATION_CONTROLS HELD_TO_CAPTURE_PATH_RETAINED"
 }
+# A pruned hierarchical output can retain an internal constant driver while
+# exposing no external net. Prove that case structurally, never from a missing FF.
+proc common_cdc::mailbox_unconsumed_constant {output} {
+    set p [one get_pins $output]
+    if {[llength [get_nets -boundary_type upper -of_objects $p]] ||
+        [llength [get_nets -boundary_type upper -segments -of_objects $p]]} {return {}}
+    foreach {property expected} {CLASS pin DIRECTION OUT} {
+        if {[get_property $property $p] ne $expected} {error "COMMON_CDC invalid internal-constant output $output $property"}
+    }
+    if {[get_property IS_LEAF $p] ni {0 false FALSE} ||
+        [get_property IS_INVERTED $p] ni {0 false FALSE}} {
+        error "COMMON_CDC internal-constant output is not a noninverted boundary $output"
+    }
+    if {[llength [get_clocks -of_objects $p]] ||
+        [llength [all_fanout -flat -trace_arcs all -endpoints_only -from $p]]} {
+        error "COMMON_CDC internal-constant output has clock/consumer $output"
+    }
+    # The upper boundary may be empty while the lower net is tied off. Vivado
+    # all_fanin -trace_arcs all on the hierarchical PIN can return only itself;
+    # traverse the actual lower NET instead, never accept that empty pin cone.
+    set lower [get_nets -boundary_type lower -of_objects $p]
+    set segments [get_nets -boundary_type lower -segments -of_objects $p]
+    if {[llength $lower]!=1 || [get_property CLASS $lower] ne {net} ||
+        [get_property NAME $lower] eq {} || [llength $segments]!=1 ||
+        [get_property CLASS $segments] ne {net} ||
+        [get_property NAME $segments] ne [get_property NAME $lower]} {
+        error "COMMON_CDC ambiguous internal constant lower net $output"
+    }
+    set type [get_property TYPE $lower]
+    if {$type ni {GROUND POWER}} {error "COMMON_CDC nonliteral internal lower net $output"}
+    set direct [get_pins -leaf -of_objects $lower -filter {DIRECTION == OUT}]
+    # Direct driver and complete all-arcs cone must identify the same ONE pin.
+    # No -quiet or startpoints_only: errors and hidden logic must not disappear.
+    set cone [all_fanin -flat -trace_arcs all -to $lower]
+    if {[llength $direct]!=1 || [llength $cone]!=1 ||
+        [get_property CLASS $direct] ne {pin} || [get_property CLASS $cone] ne {pin} ||
+        [get_property NAME $direct] ne [get_property NAME $cone]} {
+        error "COMMON_CDC internal lower-net driver/cone mismatch $output"
+    }
+    set value {}; set count 0
+    foreach driver $cone {
+        if {[get_property CLASS $driver] ne {pin}} {error "COMMON_CDC non-pin internal constant cone $output"}
+        set name [get_property NAME $driver]
+        if {$name eq {}} {error "COMMON_CDC unnamed internal constant cone object $output"}
+        if {[get_property DIRECTION $driver] ne {OUT} ||
+            [get_property IS_LEAF $driver] ni {1 true TRUE} ||
+            [get_property IS_INVERTED $driver] ni {0 false FALSE} ||
+            [llength [get_clocks -of_objects $driver]]} {
+            error "COMMON_CDC nonliteral internal constant cone $output"
+        }
+        set owner [get_cells -of_objects $driver]
+        if {[llength $owner]!=1 || [get_property CLASS $owner] ne {cell} ||
+            [get_property IS_PRIMITIVE $owner] ni {1 true TRUE}} {
+            error "COMMON_CDC invalid internal constant owner $output"
+        }
+        set ref [get_property REF_NAME $owner]; set pin [get_property REF_PIN_NAME $driver]
+        if {$ref eq {GND} && $pin eq {G}} {set bit 0
+        } elseif {$ref eq {VCC} && $pin eq {P}} {set bit 1
+        } else {error "COMMON_CDC unreviewed internal constant driver $output $ref/$pin"}
+        if {$value ne {} && $value!=$bit} {error "COMMON_CDC mixed internal constants $output"}
+        set value $bit; incr count
+    }
+    if {!$count} {error "COMMON_CDC empty internal constant proof $output"}
+    if {$value!=($type eq {POWER})} {error "COMMON_CDC lower-net type/driver literal mismatch $output"}
+    return $value
+}
 proc common_cdc::mailbox_width {h width source destination} {
     if {$width==1} {
         # Emitted CdcMailbox(1) has scalar ports and scalar held/captured FFs.
@@ -641,7 +707,7 @@ proc common_cdc::mailbox_width {h width source destination} {
         return [dict create label $h/held_payload starts [list $h/held_reg/C] ends [list $h/captured_reg/D] second {} budget [budget $source $destination] skew 0]
     }
     expect_clock $h/sourceClock $source; expect_clock $h/destinationClock $destination
-    set starts {};set ends {};set constants {};set captures {}
+    set starts {};set ends {};set constants {};set captures {};set internalConstants {}
     for {set i 0} {$i<$width} {incr i} {
         # A constant output bit may lose both registers in optimization. Prove
         # that exact exported bit is literal, never infer it from a missing FF.
@@ -650,6 +716,8 @@ proc common_cdc::mailbox_width {h width source destination} {
         if {![catch {constant $output 0}] || ![catch {constant $output 1}]} {
             lappend constants $i;continue
         }
+        set internal [mailbox_unconsumed_constant $output]
+        if {$internal ne {}} {lappend internalConstants [list $i $internal];continue}
         set a [format {%s/held_reg[%d]} $h $i]
         set b [format {%s/captured_reg[%d]} $h $i]
         ff $a $source;ff $b $destination
@@ -668,8 +736,8 @@ proc common_cdc::mailbox_width {h width source destination} {
             error "COMMON_CDC unaccounted mailbox capture $name"
         }
     }
-    puts "COMMON_CDC_MAILBOX_ACTUAL_BITS $h dynamic=[llength $ends] literal_output_bits=$constants"
-    return [dict create label $h/held_payload starts $starts ends $ends second {} budget [budget $source $destination] skew 1]
+    puts "COMMON_CDC_MAILBOX_ACTUAL_BITS $h dynamic=[llength $ends] literal_output_bits=$constants internal_literal_unconsumed=$internalConstants"
+    return [dict create label $h/held_payload starts $starts ends $ends second {} budget [budget $source $destination] skew 1 unconsumed_internal_literals $internalConstants]
 }
 proc common_cdc::register_payload {h from to fields source destination} {
     # The timer consumes only a subset of address/size bits. Enumerate the exact

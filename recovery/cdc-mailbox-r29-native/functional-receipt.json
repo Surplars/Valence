@@ -1,0 +1,36 @@
+{
+  "scope": "Vivado 2025.2 targeted dynamic mailbox structure only. No timing exception applied; not full post-synthesis, route, rate or board qualification.",
+  "source_baseline_commit": "1abc05cfa18902e5d35d88e5be70837f56fefb42",
+  "checker_sha256": "7da9f0426195377447a5918af7432ffd4e32f45be04e0c2a8677ad65b31d89a7",
+  "raw_dcp_sha256": "a425a8e2833df7366b00e82bdd874cffb5eb12dd5dcd6ec71946882382aaa6fe",
+  "native_targeted_result": {
+    "status": "PASS",
+    "passed": 32,
+    "failed": 0,
+    "exit_code": 0,
+    "reported_completion_local": "2026-10-22T16:51:58+08:00",
+    "report_bytes": 54438,
+    "report_sha256": "245ac0ffc65d4235a8f70455dad07955b6f16c8ffa2d0a0033de316790973eb0",
+    "log_bytes": 163752,
+    "log_sha256": "4179237aadc95d301fd809b89818b875a9e4956c5a7a85ca0407b2e7ff39c54d",
+    "evidence_location": "Native local run, raw records retained there; these identities were returned by the controlling parent task."
+  },
+  "prior_r1_result": {
+    "status": "FAIL",
+    "passed": 25,
+    "failed": 7,
+    "report_sha256": "91f4ef6ce48180f905691dd556870c69e003346b6fcbceef6f816e952eb6dc95"
+  },
+  "probe_sha256": "5c192b1a520192b2c1addcc4379f34f118d15950bf28236859e24fc76aca375c",
+  "observed_shapes": {
+    "commands_and_receipts": "27 dynamic bits, bits27..34 internal GND/unconsumed",
+    "observations": "31 dynamic bits, bits0..12 and44..51 internal GND/unconsumed",
+    "cmu_scalar": "64/32-row exact held/capture truth proofs PASS"
+  },
+  "mock_validation": {
+    "structural_cases": 94,
+    "rejected_mutants": 13,
+    "existing_tcl_suites_passed": 18,
+    "native_replacement": "none"
+  }
+}

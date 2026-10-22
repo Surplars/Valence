@@ -90,6 +90,8 @@ assert {[dict get $::clockChecks u_soc/debugCrossing/sourceClock] eq {fixed}} {d
 assert {[dict get $::clockChecks u_soc/fabricDdrReady_ddrReadySync/clockIn] eq {fabric}} {actual emitted DDR-ready instance not mapped}
 puts BOOT50_SCOPE_CENSUS_AND_DIRECTIONS_PASS_NOT_NETLIST_QUALIFIED
 # Exact constant output proof permits optimized-away constant mailbox bits only.
+# The two dynamic bits have real external nets; the literal bit exits earlier.
+proc get_nets args {return dynamic_external_net}
 proc common_cdc::one {kind name} {return $name}
 proc get_cells args {return {}}
 proc common_cdc::constant {pin value} {
