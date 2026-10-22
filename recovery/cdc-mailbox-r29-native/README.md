@@ -42,3 +42,26 @@ stage entry. Do not use the failed post-stage DCP as the input.
 4. Continue only after the complete post flow passes and its output is bound by
    the normal diagnostic record. A 32-mailbox PASS is not this full acceptance.
    No signoff admission, frequency whitelist, bitstream or board test is granted.
+
+## Combined query-reuse stage
+
+`query-reuse-receipt.json` binds the final checker and focused test results.
+The functional checker was first committed separately as `ff06eeb76cd8bdf5f9d2e303d1266d35257c728b`.
+The combined change modifies only `common_cdc::payload`; the other 42 procedures,
+including the native-passed lower-net helper and mailbox width proof, have
+identical arguments, defaults and bodies. Native 32-mailbox evidence belongs to
+the functional checker; the combined full post-only run is still pending.
+
+Reproduce the new mock suites from a Git checkout with:
+`python3 -m unittest fpga.common.test_mailbox_internal_constant fpga.common.test_payload_query_reuse`.
+The payload wrapper retrieves the immutable functional Git blob
+`5a1a0ba012cae678d0562101251d53d4907ab529` and verifies SHA256 `7da9f0426195377447a5918af7432ffd4e32f45be04e0c2a8677ad65b31d89a7`.
+Preserve that functional content as an earlier delivery commit before the final
+payload commit. Aggregated delivery commit IDs may differ; Git blob and SHA256
+identities must not. The oracle is never regenerated from the candidate.
+
+The wide-520 mock retains all 520 endpoint fanin traversals. Segmented-net
+queries drop from 2608 to 528, owner queries 5374 to 11, property queries 37146
+to 17084 and clock queries 5902 to 539. These are modeled API call counts,
+not a measured Vivado runtime improvement. No endpoint proof or budget is
+removed and no result is cached across calls or stages.

@@ -272,27 +272,46 @@ proc common_cdc::payload {h} {
     set bits [get_pins -of_objects [one get_cells $h] -filter {REF_PIN_NAME =~ destination_bits*}]
     if {![llength $bits]} {error "COMMON_PAYLOAD missing destination port $h"}
     set starts {}; set ends {}; set by_end {}; set ordinary_by_end {}; set constant_bits {};set unused_bits {};set local_constants {}
+    # Call-local metadata only: no design/constraint mutation occurs in this
+    # proof. Keep every endpoint's fanin and re-evaluate all eligibility checks.
+    set launchOwners {}; set launchClocks {}; set ramPins {}
     foreach bit $bits {
         set bn [get_property REF_PIN_NAME $bit]
         if {$bn eq {destination_bits} && [llength $bits]==1} {set i 0
         } elseif {![regexp {^destination_bits\[([0-9]+)\]$} $bn -> i]} {error "COMMON_PAYLOAD unsupported bit name $bn"}
         set pn [get_property NAME $bit]
-        if {![llength [get_nets -quiet -segments -of_objects $bit]]} {lappend unused_bits $i;continue}
-        if {![catch {constant $pn 0}] || ![catch {constant $pn 1}]} {lappend constant_bits $i; continue}
-        set driver [drivers $pn]
+        set segments [get_nets -quiet -segments -of_objects [one get_pins $pn]]
+        if {![llength $segments]} {lappend unused_bits $i;continue}
+        set types {}; foreach n $segments {lappend types [get_property TYPE $n]}
+        set types [lsort -unique $types]
+        if {$types eq {GROUND} || $types eq {POWER}} {lappend constant_bits $i; continue}
+        set driver [names [get_pins -quiet -leaf -of_objects $segments -filter {DIRECTION == OUT}]]
         if {[llength $driver]!=1 || ![regexp {^(.*)/Q$} [lindex $driver 0] -> capture] || [string first $h/output_0_reg $capture]!=0} {error "COMMON_PAYLOAD missing owned output FF driver $pn: $driver"}
         ff $capture $dst
-        if {[drivers $pn] ne [list $capture/Q]} {error "COMMON_PAYLOAD output is not held matching bit $pn"}
+        if {$driver ne [list $capture/Q]} {error "COMMON_PAYLOAD output is not held matching bit $pn"}
         set end $capture/D; set ramStarts {}; set ordinary {}
         foreach launch [all_fanin -flat -startpoints_only -to [one get_pins $end]] {
-            set owner [get_cells -quiet -of_objects $launch]
-            if {[llength $owner]!=1} {error "COMMON_PAYLOAD non-cell launch $launch"}
-            set ln [get_property NAME $launch]; set cn [get_property NAME $owner]; set ref [get_property REF_NAME $owner]
+            if {[get_property CLASS $launch] ne {pin}} {error "COMMON_PAYLOAD non-cell launch $launch"}
+            set ln [get_property NAME $launch]
+            if {![dict exists $launchOwners $ln]} {
+                set owner [get_cells -quiet -of_objects $launch]
+                if {[llength $owner]!=1} {error "COMMON_PAYLOAD non-cell launch $launch"}
+                dict set launchOwners $ln [list [get_property NAME $owner] [get_property REF_NAME $owner]]
+            }
+            lassign [dict get $launchOwners $ln] cn ref
             if {$ref in {FDRE FDSE FDCE FDPE}} {
-                if {$ln ne "$cn/C" || [clock $ln] ne $dst} {error "COMMON_PAYLOAD asynchronous FF/data bypass $ln"}
+                if {$ln ne "$cn/C"} {error "COMMON_PAYLOAD asynchronous FF/data bypass $ln"}
+                if {![dict exists $launchClocks $ln]} {dict set launchClocks $ln [clock $ln]}
+                if {[dict get $launchClocks $ln] ne $dst} {error "COMMON_PAYLOAD asynchronous FF/data bypass $ln"}
                 lappend ordinary $ln
             } elseif {$ref in {RAMD32 RAMS32 RAMD64E RAMS64E}} {
-                if {[string first $h/storage_ext/ $ln]!=0 || [get_property REF_PIN_NAME $launch] ni {CLK WCLK} || [clock $ln] ne $src || [get_property IS_LEAF $launch] ni {1 TRUE true}} {error "COMMON_PAYLOAD unreviewed RAM launch $ln"}
+                if {![dict exists $ramPins $ln]} {
+                    dict set ramPins $ln [list [get_property REF_PIN_NAME $launch] [get_property IS_LEAF $launch]]
+                }
+                lassign [dict get $ramPins $ln] refPin isLeaf
+                if {[string first $h/storage_ext/ $ln]!=0 || $refPin ni {CLK WCLK}} {error "COMMON_PAYLOAD unreviewed RAM launch $ln"}
+                if {![dict exists $launchClocks $ln]} {dict set launchClocks $ln [clock $ln]}
+                if {[dict get $launchClocks $ln] ne $src || $isLeaf ni {1 TRUE true}} {error "COMMON_PAYLOAD unreviewed RAM launch $ln"}
                 lappend ramStarts $ln; lappend starts $ln
             } else {error "COMMON_PAYLOAD unsupported mapped RAM/launch $ln ($ref)"}
         }

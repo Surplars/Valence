@@ -1,0 +1,105 @@
+{
+  "scope": "Function-local payload query reuse only. Structural mocks and immutable-source equivalence, not native full post or measured native runtime qualification.",
+  "functional_commit": "ff06eeb76cd8bdf5f9d2e303d1266d35257c728b",
+  "functional_checker_blob": "5a1a0ba012cae678d0562101251d53d4907ab529",
+  "functional_checker_sha256": "7da9f0426195377447a5918af7432ffd4e32f45be04e0c2a8677ad65b31d89a7",
+  "combined_checker_sha256": "75cb49a48404ede21d46f9714427efcafbe129d66208e776e843274970fc7edc",
+  "procedure_identity": {
+    "total": 43,
+    "identical_args_defaults_bodies": 42,
+    "changed_bodies": [
+      "::common_cdc::payload"
+    ],
+    "mailbox_helper_unchanged": true
+  },
+  "tests": {
+    "existing_and_new_tcl_suites": {
+      "passed": 20,
+      "failed": 0,
+      "names": [
+        "test_active_clock_anchors.tcl",
+        "test_boot50_cdc.tcl",
+        "test_captured_constant.tcl",
+        "test_cdc_report.tcl",
+        "test_common_cdc.tcl",
+        "test_common_io.tcl",
+        "test_constant_scalar.tcl",
+        "test_dynamic_locked.tcl",
+        "test_exact_object_cache.tcl",
+        "test_inactive_gray.tcl",
+        "test_inactive_zero_state.tcl",
+        "test_independent_board_audit.tcl",
+        "test_mailbox_internal_constant.tcl",
+        "test_payload_absence.tcl",
+        "test_payload_query_reuse.tcl",
+        "test_performance_cdc.tcl",
+        "test_reset_locality_audit.tcl",
+        "test_resume_startup.tcl",
+        "test_rom_export.tcl",
+        "test_scalar_mailbox.tcl"
+      ]
+    },
+    "python_unittest_methods_passed": 3,
+    "mailbox_cases": 94,
+    "rejected_mailbox_mutants": 13,
+    "payload_graph_cases": 50,
+    "successful_payload_scope_comparison": "exact bytes against immutable functional baseline"
+  },
+  "mock_query_counts": {
+    "unique16": {
+      "get_nets_segments": {
+        "baseline": 88,
+        "candidate": 24
+      },
+      "get_cells_owner": {
+        "baseline": 176,
+        "candidate": 41
+      },
+      "get_property": {
+        "baseline": 1232,
+        "candidate": 788
+      },
+      "get_clocks": {
+        "baseline": 200,
+        "candidate": 65
+      },
+      "all_fanin": {
+        "baseline": 16,
+        "candidate": 16
+      }
+    },
+    "wide520": {
+      "get_nets_segments": {
+        "baseline": 2608,
+        "candidate": 528
+      },
+      "get_cells_owner": {
+        "baseline": 5374,
+        "candidate": 11
+      },
+      "get_property": {
+        "baseline": 37146,
+        "candidate": 17084
+      },
+      "get_clocks": {
+        "baseline": 5902,
+        "candidate": 539
+      },
+      "all_fanin": {
+        "baseline": 520,
+        "candidate": 520
+      }
+    }
+  },
+  "limits": [
+    "No design mutation during one payload call; all metadata reuse is call-local.",
+    "Each endpoint still runs its own all_fanin and ordinary_by_end/by_end classification.",
+    "No saved verdict, constraint, endpoint or cross-stage cache.",
+    "Malformed/missing metadata remains rejected; error detection order is not asserted identical.",
+    "No native runtime multiplier is claimed. Full native post-only remains pending."
+  ],
+  "test_sources": {
+    "fpga/common/test_payload_query_reuse.tcl": "fef8227e9af5aa26a32c1e4a80614d3ea6ee8aacf34ec58084a3fbc1e8e6489c",
+    "fpga/common/test_payload_query_reuse.py": "297b04a64496bbbf7f5ee92133bdbddf0f259375cef507f99e7b01de82d7b968"
+  }
+}
