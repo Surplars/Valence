@@ -9,10 +9,22 @@ module gate_witness_tb;
     assign managed=buffered && delivery;
     native_clock_gate dut(.aon_clock(aon),.cold_reset(cold),.raw_clock(raw),.managed_clock(managed),
         .enable(enable),.gate_ce(ce),.gate_closed(closed),.gate_open(opened),.resumed(resumed));
+    integer fresh_edges=0;
+    always @(posedge managed or negedge enable or posedge cold)
+        if(cold || !enable)fresh_edges<=0;else fresh_edges<=fresh_edges+1;
+    always @(posedge aon)begin
+        if(opened===1'b1 && fresh_edges<2)$fatal(1,"OPEN_BEFORE_TWO_REAL_EDGES");
+        if(resumed===1'b1 && fresh_edges<4)$fatal(1,"RESUME_BEFORE_FOUR_REAL_EDGES");
+    end
     initial begin
         #101;cold=0;repeat(15)@(negedge aon);
         if(closed!==1'b1)$fatal(1,"INITIAL_CLOSE_NOT_PROVEN");
-        enable=1;repeat(15)@(negedge aon);
+        // An unclocked qualification glitch must not reach raw D or reset.
+        @(negedge aon);enable=1;#1;
+        if(dut.enable_seen!==1'b0 || dut.evidence_clear!==1'b1 || ce!==1'b0)
+            $fatal(1,"COMBINATIONAL_GLITCH_CROSSED_AON_LAUNCH");
+        #1;enable=0;
+        @(negedge aon);enable=1;repeat(15)@(negedge aon);
         if(resumed!==1'b1)$fatal(1,"INITIAL_RESUME_NOT_PROVEN");
         // Stop raw while already low. Merely requesting close is insufficient.
         @(negedge raw);raw_running=0;@(negedge aon);enable=0;
@@ -35,7 +47,7 @@ module gate_witness_tb;
         enable=0;#1;if(closed!==1'b0)$fatal(1,"STALE_CLOSE_TOKEN");
         repeat(15)@(negedge aon);
         if(closed!==1'b1)$fatal(1,"FRESH_CLOSE_TOKEN_NOT_PROVEN");
-        $display("GATE_WITNESS_BEHAVIORAL_PASS missing_raw_missing_managed_fresh_tokens");$finish;
+        $display("GATE_WITNESS_BEHAVIORAL_PASS missing_raw_missing_managed_fresh_tokens_registered_launch");$finish;
     end
     initial begin #100000;$fatal(1,"GATE_WITNESS_TIMEOUT");end
 endmodule
