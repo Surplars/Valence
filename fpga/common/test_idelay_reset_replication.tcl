@@ -5,9 +5,15 @@ set reports 0
 set calls 0
 set mode good
 set replicated 0
+set belowners [dict create]
 proc get_cells {args} {
     if {[lsearch -exact $args -of_objects] >= 0} {
-        return [file dirname [lindex $args end]]
+        set object [lindex $args end]
+        if {[dict exists $::belowners $object]} {
+            if {$::mode eq "wrong-occupant"} {return wrong_cell}
+            return [dict get $::belowners $object]
+        }
+        return [file dirname $object]
     }
     regexp {NAME == "(.*)"} [lindex $args end] -> name
     if {$::mode eq "missing" && $name eq "u_rgmii/delay_control_REPLICATED_0"} {return {}}
@@ -46,7 +52,21 @@ proc get_nets {args} {
     error "unexpected net $p"
 }
 proc get_clocks {args} {return ref500}
+proc get_sites {args} {
+    if {$::mode in {unplaced missing-site}} {return {}}
+    set c [lindex $args end]
+    if {$::mode eq "wrong-site"} {return WRONG_SITE}
+    return SITE_$c
+}
+proc get_bels {args} {
+    if {$::mode eq "missing-bel"} {return {}}
+    set c [lindex $args end]
+    if {$::mode eq "wrong-bel"} {return WRONG_BEL}
+    dict set ::belowners SITE_$c/TERM $c
+    return SITE_$c/TERM
+}
 proc get_property {property object} {
+    if {$::mode eq "empty-$property"} {return ""}
     switch -- $property {
         NAME {return $object}
         REF_NAME {
@@ -56,12 +76,17 @@ proc get_property {property object} {
             return FDPE
         }
         REF_PIN_NAME {return [file tail $object]}
-        IS_PLACED {return [expr {$::mode ne "unplaced"}]}
+        IS_PLACED {error "IS_PLACED must never be queried"}
         INIT {return 1}
-        IS_C_INVERTED {return 0}
+        IS_C_INVERTED {error "cell.IS_C_INVERTED must never be queried"}
+        IS_INVERTED {return 0}
         PERIOD {if {$::mode eq "wrong-clock"} {return 4.0}; return 2.0}
         LOC {if {$::mode eq "post-move" && $::replicated} {return DIFFERENT}; return SITE_$object}
-        BEL {return BEL_$object}
+        BEL {
+            if {$::mode eq "bad-bel-prefix"} {return UNKNOWN.TERM}
+            if {$::mode eq "qualified-bel"} {return SLICEM.TERM}
+            return TERM
+        }
         DELAY_VALUE {if {$::mode eq "wrong-delay"} {return 550}; return 475}
         DELAY_FORMAT {return TIME}
         DELAY_TYPE {return FIXED}
@@ -83,16 +108,18 @@ proc reset_case {mode} {
     set ::idelay_reset_replication::attempted 0
     unset -nocomplain ::idelay_reset_replication::baseline
 }
-foreach mode {missing extra-load wrong-D unplaced wrong-clock wrong-delay wrong-root} {
+foreach mode {missing extra-load wrong-D unplaced wrong-clock wrong-delay wrong-root missing-site missing-bel wrong-site wrong-bel empty-LOC empty-BEL empty-INIT empty-IS_INVERTED empty-PERIOD empty-REFCLK_FREQUENCY empty-IODELAY_GROUP wrong-occupant bad-bel-prefix} {
     reset_case $mode
     if {![catch {idelay_reset_replication::apply unused-test-directory} message]} {error "accepted $mode"}
     if {$calls != 0} {error "mutated invalid baseline $mode"}
 }
-reset_case good
+foreach positive {good qualified-bel} {
+reset_case $positive
 set result [idelay_reset_replication::apply unused-test-directory]
 if {$calls != 1 || [dict get $result status] ne "REQUIRES_ROUTE_AND_TIMING_VALIDATION"} {error "good case failed"}
 if {![catch {idelay_reset_replication::apply unused-test-directory}]} {error "repeated mutation accepted"}
 if {$calls != 1} {error "second mutation"}
+}
 foreach mode {post-move tool-error} {
     reset_case $mode
     if {![catch {idelay_reset_replication::apply unused-test-directory}]} {error "accepted $mode"}
@@ -100,4 +127,4 @@ foreach mode {post-move tool-error} {
     if {![catch {idelay_reset_replication::apply unused-test-directory}]} {error "retry after uncertain failure"}
     if {$calls != 1} {error "retried after uncertain failure"}
 }
-puts "IDELAY_RESET_REPLICATION_PASS baseline_negative=7 post_negative=2 one_shot=1"
+puts "IDELAY_RESET_REPLICATION_PASS baseline_negative=20 post_negative=2 one_shot_positive=2"

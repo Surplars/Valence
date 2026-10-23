@@ -14,7 +14,7 @@ proc idelay_reset_replication::one {command args} {
 }
 proc idelay_reset_replication::cell {name} {
     set c [one get_cells -hier -quiet -filter "NAME == \"$name\""]
-    require [expr {[get_property NAME $c] eq $name}] "cell identity mismatch $name"
+    require [expr {[property NAME $c] eq $name}] "cell identity mismatch $name"
     return $c
 }
 proc idelay_reset_replication::pin {c ref} {
@@ -23,15 +23,43 @@ proc idelay_reset_replication::pin {c ref} {
 proc idelay_reset_replication::drivers {p} {
     set ns [get_nets -segments -of_objects $p]
     require [expr {[llength $ns] > 0}] "unconnected pin $p"
-    return [lsort -unique [get_property NAME [get_pins -leaf -of_objects $ns -filter {DIRECTION == OUT}]]]
+    return [lsort -unique [property NAME [get_pins -leaf -of_objects $ns -filter {DIRECTION == OUT}]]]
+}
+# IS_PLACED is not a portable mapped-cell property in Vivado 2025.2.
+# Assigned LOC alone is insufficient: require actual cell-to-site/BEL binding.
+proc idelay_reset_replication::property {name object} {
+    set value [get_property $name $object]
+    require [expr {[string trim $value] ne ""}] "empty required property $name on $object"
+    return $value
+}
+proc idelay_reset_replication::placement {c} {
+    set loc [property LOC $c]
+    set bel [property BEL $c]
+    set site [one get_sites -quiet -of_objects $c]
+    set bound_bel [one get_bels -quiet -of_objects $c]
+    require [expr {[property NAME $site] eq $loc}] "cell/site binding mismatch $c"
+    # Vivado cell BEL may be type-qualified (e.g. SLICEM.CFF2), whereas
+    # get_bels NAME is site-qualified (SLICE_X116Y157/CFF2).
+    set parts [split $bel .]
+    require [expr {[llength $parts] in {1 2}}] "malformed BEL property $c"
+    set terminal [lindex $parts end]
+    require [expr {$terminal ne ""}] "empty BEL terminal $c"
+    if {[llength $parts] == 2 && [property REF_NAME $c] eq "FDPE"} {
+        require [expr {[lindex $parts 0] in {SLICEL SLICEM}}] "unexpected FDPE BEL type $c"
+    }
+    require [expr {[property NAME $bound_bel] eq "$loc/$terminal"}] "cell/BEL binding mismatch $c"
+    set occupant [one get_cells -quiet -of_objects $bound_bel]
+    require [expr {[property NAME $occupant] eq [property NAME $c]}] "BEL occupant mismatch $c"
+    return [list $loc $bel]
 }
 proc idelay_reset_replication::signature {c} {
-    require [expr {[get_property REF_NAME $c] eq "FDPE"}] "reset driver is not FDPE"
-    require [expr {[get_property IS_PLACED $c]}] "driver not placed"
+    require [expr {[property REF_NAME $c] eq "FDPE"}] "reset driver is not FDPE"
+    placement $c
     set result [dict create]
-    foreach prop {INIT IS_C_INVERTED} {
-        dict set result $prop [get_property $prop $c]
-    }
+    dict set result INIT [property INIT $c]
+    set inversion [property IS_INVERTED [pin $c C]]
+    require [expr {$inversion in {0 1 false true FALSE TRUE}}] "invalid clock pin inversion"
+    dict set result C_INVERTED $inversion
     foreach ref {C D PRE CE} {
         set p [pin $c $ref]
         set ds [drivers $p]
@@ -39,8 +67,8 @@ proc idelay_reset_replication::signature {c} {
         dict set result $ref $ds
     }
     set clock [one get_clocks -of_objects [pin $c C]]
-    require [expr {abs([get_property PERIOD $clock] - 2.0) < 0.001}] "not REF500"
-    dict set result clock [get_property NAME $clock]
+    require [expr {abs([property PERIOD $clock] - 2.0) < 0.001}] "not REF500"
+    dict set result clock [property NAME $clock]
     return $result
 }
 proc idelay_reset_replication::expected {} {
@@ -58,26 +86,26 @@ proc idelay_reset_replication::inspect {expected_driver_signature} {
     set sink_pins {}; set driver_cells {}; set identity [dict create]
     dict for {name primitive} [expected] {
         set c [cell $name]
-        require [expr {[get_property REF_NAME $c] eq $primitive}] "wrong sink primitive $name"
-        require [expr {[get_property IS_PLACED $c]}] "sink not placed $name"
+        require [expr {[property REF_NAME $c] eq $primitive}] "wrong sink primitive $name"
+        set placed [placement $c]
         set rst [pin $c RST]
-        lappend sink_pins [get_property NAME $rst]
-        dict set identity $name [list [get_property LOC $c] [get_property BEL $c]]
+        lappend sink_pins [property NAME $rst]
+        dict set identity $name $placed
         if {$primitive ne "IDELAYCTRL"} {
             foreach {prop want} {DELAY_VALUE 475 DELAY_FORMAT TIME DELAY_TYPE FIXED IODELAY_GROUP VALENCE_RGMII} {
-                require [expr {[get_property $prop $c] eq $want}] "changed $prop on $name"
+                require [expr {[property $prop $c] eq $want}] "changed $prop on $name"
             }
-            require [expr {abs([get_property REFCLK_FREQUENCY $c]-500.0)<0.001}] "changed delay reference"
+            require [expr {abs([property REFCLK_FREQUENCY $c]-500.0)<0.001}] "changed delay reference"
             set cascade [expr {$primitive eq "IDELAYE3" ? "MASTER" : "SLAVE_END"}]
-            require [expr {[get_property CASCADE $c] eq $cascade}] "changed cascade $name"
+            require [expr {[property CASCADE $c] eq $cascade}] "changed cascade $name"
         }
         set ds [drivers $rst]
         require [expr {[llength $ds] == 1}] "ambiguous reset source $rst"
         set q [one get_pins -hier -quiet -filter "NAME == \"[lindex $ds 0]\""]
-        require [expr {[get_property REF_PIN_NAME $q] eq "Q"}] "reset not direct Q"
+        require [expr {[property REF_PIN_NAME $q] eq "Q"}] "reset not direct Q"
         set d [one get_cells -of_objects $q]
         require [expr {[signature $d] eq $expected_driver_signature}] "driver logic/reset/clock changed"
-        lappend driver_cells [get_property NAME $d]
+        lappend driver_cells [property NAME $d]
     }
     set driver_cells [lsort -unique $driver_cells]
     set all_loads {}
@@ -85,12 +113,12 @@ proc idelay_reset_replication::inspect {expected_driver_signature} {
         set q [pin [cell $name] Q]
         set ns [get_nets -segments -of_objects $q]
         foreach p [get_pins -leaf -of_objects $ns -filter {DIRECTION == IN}] {
-            lappend all_loads [get_property NAME $p]
+            lappend all_loads [property NAME $p]
         }
     }
     require [expr {[lsort -unique $all_loads] eq [lsort $sink_pins]}] "reset load set is not exactly 13 reviewed RST pins"
     set rxnet [one get_nets -of_objects [pin [cell rx_clock_buffer] O]]
-    set roots [list [get_property CLOCK_ROOT $rxnet] [get_property USER_CLOCK_ROOT $rxnet]]
+    set roots [list [property CLOCK_ROOT $rxnet] [property USER_CLOCK_ROOT $rxnet]]
     require [expr {$roots eq {X3Y2 X3Y2}}] "RX root changed"
     return [dict create sinks $sink_pins drivers $driver_cells identity $identity roots $roots]
 }
