@@ -104,6 +104,17 @@ proc r38_tx_place::apply {directory} {
     file mkdir $directory
     set f [open [file join $directory before.tcllist] {WRONLY CREAT EXCL}]; puts $f $before; close $f
     set attempted 1
+    # Explicitly release the three old placements before assigning new BELs.
+    # UG835 unplace_cell accepts an exact cell list. Do not clear unrelated
+    # properties, ASYNC_REG, other cells, or shared clock/constant routing.
+    set moving {}; foreach {n location} $mapping {lappend moving $n}
+    puts [list R38_TX_UNPLACE_EXACT $moving]
+    unplace_cell $moving
+    foreach n $moving {
+        set c [cell $n]; set loc [get_property LOC $c]; set bel [get_property BEL $c]
+        puts [list R38_TX_UNPLACED $n LOC $loc BEL $bel]
+        need {$loc eq "" && $bel eq ""} "unplace retained LOC/BEL $n"
+    }
     # Vendor legality is authoritative (shared clock/reset/LUT control sets).
     # No -quiet, no unprotect/force, no alternate location retry.
     place_cell $mapping

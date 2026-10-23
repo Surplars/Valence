@@ -75,9 +75,19 @@ proc get_clocks {args} {
     return [expr {$net eq "raw" ? "valence_tx_raw_div" : "valence_tx_quarter_div"}]
 }
 proc get_bels {args} {return [lindex $args end]}
+proc unplace_cell {cells} {
+    incr ::m::calls
+    if {$cells ne $::m::cells} {error "unplace scope changed"}
+    foreach n $cells {
+        dict set ::m::db $n LOC {}; dict set ::m::db $n BEL {}
+        if {$::m::fault eq "unplace_partial"} {error "native partial unplace"}
+    }
+    if {$::m::fault eq "unplace_residual"} {dict set ::m::db [lindex $cells 1] BEL SLICEM.EFF2}
+}
 proc place_cell {mapping} {
     incr ::m::calls
     foreach {n place} $mapping {
+        if {[dict get $::m::db $n LOC] ne "" || [dict get $::m::db $n BEL] ne ""} {error "place before exact unplace"}
         dict set ::m::db $n LOC [file dirname $place]; dict set ::m::db $n BEL SLICEM.[file tail $place]
         if {$::m::fault eq "partial"} {error "native place legality failed"}
     }
@@ -88,7 +98,7 @@ proc test {name mutation expected {during {}}} {
     m::init; uplevel #0 $mutation; set ::m::fault $during
     set dir /tmp/r38-tx-[pid]-$name
     set code [catch {r38_tx_place::apply $dir} result opts]
-    if {$expected eq "PASS"} {if {$code} {return -options $opts $result}; if {$::m::calls!=1} {error "wrong call count"}} else {
+    if {$expected eq "PASS"} {if {$code} {return -options $opts $result}; if {$::m::calls!=2} {error "wrong call count"}} else {
         if {!$code || ![string match *$expected* $result]} {error "$name wrong result: $result"}
         if {$during eq "" && $::m::calls!=0} {error "premature mutation"}
     }
@@ -116,9 +126,11 @@ test bad_constant {dict set ::m::db gnd TYPE SIGNAL} constant
 test busy {dict set ::m::belcells SLICE_X106Y229/FFF2 existing_cell} occupied
 test bad_divide {dict set ::m::db network_clock/raw_div BUFGCE_DIVIDE 2} geometry
 test partial {} {native place legality} partial
+test unplace_partial {} {native partial unplace} unplace_partial
+test unplace_residual {} {unplace retained} unplace_residual
 test moved_root {} {altered logic} root
 test moved_sink {} {altered logic} sink
-puts {PASS finite placement guard suite: 1 positive + 17 negative; not native legality/STA}
+puts {PASS finite placement guard suite: 1 positive + 19 negative; not native legality/STA}
 
 set f [open [file join [file dirname [info script]] dynamic route_tx_reset_placement.tcl]]; set source [read $f]; close $f
 set first [string first {proc tx_oserdes_status} $source]

@@ -57,3 +57,18 @@ was unsupported on the actual2025.2 BEL object and caused a second pre-mutation
 stop. Tests now make every IS_OCCUPIED access throw. All other preflight
 properties were already reached successfully in that native attempt. The
 only mutable operation remains the one vendor place_cell call.
+
+The r4 sequence first calls `unplace_cell` on exactly the three reviewed FFs,
+logs their actual LOC/BEL, requires both empty, then performs the same single
+`place_cell` mapping. No property reset, force, alternate site, or broad unroute
+is used. This addresses the native r3 LOC/BEL-disagreement failure with a
+materially different documented sequence, not a repeated identical command.
+The r3 process exited without routing or a new checkpoint; partial in-memory
+placement was unknown, so r4 must reopen the immutable input. The one-shot
+guard covers unplace as well as place. A failure is never automatically retried.
+
+Official command references: [UG835 2025.2 unplace_cell](https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/unplace_cell?contentId=aLJcWhQiVJu4Yn0pYiuHHg),
+[UG835 2025.2 place_cell](https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/place_cell?contentId=fJ9GyepDaZaBVVdOXauxZw).
+They document the operations, not this candidate's physical legality or timing.
+Finite tests additionally reject partial unplace and residual BEL, and enforce
+unplace-before-place. Native outcome remains required.
