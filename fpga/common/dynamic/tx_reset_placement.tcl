@@ -96,7 +96,7 @@ proc r38_tx_place::apply {directory} {
     set mapping {}; set i 0
     foreach bel {EFF2 FFF2 GFF2} {
         set b [one [get_bels -quiet SLICE_X106Y229/$bel] "missing target BEL"]
-        need {[get_property IS_OCCUPIED $b] in {0 FALSE false}} "occupied target BEL $bel"
+        need {[llength [get_cells -quiet -of_objects $b]]==0} "occupied target BEL $bel"
         lappend mapping [get_property NAME [cell [format {tx_release/tx_reset_pipe_reg[%d]} $i]]] SLICE_X106Y229/$bel
         incr i
     }

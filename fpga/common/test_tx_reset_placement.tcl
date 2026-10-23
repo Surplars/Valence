@@ -9,7 +9,7 @@ proc m::link {p net dir {ref {}}} {
 }
 proc m::init {} {
     set ::r38_tx_place::attempted 0
-    set ::m::db {}; set ::m::pn {}; set ::m::np {}; set ::m::cells {}; set ::m::calls 0; set ::m::fault {}
+    set ::m::db {}; set ::m::pn {}; set ::m::np {}; set ::m::cells {}; set ::m::calls 0; set ::m::fault {}; set ::m::belcells {}
     m::obj design PART xczu15eg-ffvb1156-2-i
     m::obj cpu_target300 PERIOD 3.333333333333; m::obj fabric_target250 PERIOD 4.0
     foreach {n type driver primitive} {
@@ -43,13 +43,17 @@ proc m::init {} {
         m::link $p q2 IN
         m::link $n/[expr {$r eq "RST" ? "CLK" : "C"}] pad IN
     }
-    foreach b {EFF2 FFF2 GFF2} {m::obj SLICE_X106Y229/$b IS_OCCUPIED 0}
+    foreach b {EFF2 FFF2 GFF2} {m::obj SLICE_X106Y229/$b; dict set ::m::belcells SLICE_X106Y229/$b {}}
 }
 proc m::arg {xs k} {return [lindex $xs [expr {[lsearch -exact $xs $k]+1}]]}
 proc current_design {} {return design}
-proc get_property {k xs} {set v {}; foreach x $xs {lappend v [dict get $::m::db $x $k]}; if {[llength $v]==1} {return [lindex $v 0]}; return $v}
+proc get_property {k xs} {if {$k eq "IS_OCCUPIED"} {error "unsupported native BEL property IS_OCCUPIED"}; set v {}; foreach x $xs {lappend v [dict get $::m::db $x $k]}; if {[llength $v]==1} {return [lindex $v 0]}; return $v}
 proc get_cells {args} {
-    if {[lsearch -exact $args -of_objects]>=0} {return [file dirname [m::arg $args -of_objects]]}
+    if {[lsearch -exact $args -of_objects]>=0} {
+        set o [lindex [m::arg $args -of_objects] 0]
+        if {[dict exists $::m::belcells $o]} {return [dict get $::m::belcells $o]}
+        return [file dirname $o]
+    }
     set f [m::arg $args -filter]
     if {[string match {* =~ *} $f]} {return $::m::cells}
     regexp {^NAME == "(.*)"$} $f -> n
@@ -109,7 +113,7 @@ test wrong_sink {dict set ::m::db u_rgmii/high_clock_reg REF_NAME LUT1} primitiv
 test wrong_location {dict set ::m::db $s LOC SLICE_X0Y0} placement
 test wrong_target {dict set ::m::db cpu_target300 PERIOD 20} target
 test bad_constant {dict set ::m::db gnd TYPE SIGNAL} constant
-test busy {dict set ::m::db SLICE_X106Y229/FFF2 IS_OCCUPIED 1} occupied
+test busy {dict set ::m::belcells SLICE_X106Y229/FFF2 existing_cell} occupied
 test bad_divide {dict set ::m::db network_clock/raw_div BUFGCE_DIVIDE 2} geometry
 test partial {} {native place legality} partial
 test moved_root {} {altered logic} root

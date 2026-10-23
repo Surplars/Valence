@@ -50,3 +50,10 @@ incorrectly equated a no-slack report with zero path objects. The r2 runtime
 removes only that diagnostic-count assertion; the13 functional FF and2 chain
 paths retain all strict clock/endpoint/finite/exception checks. OSERDES records
 remain unqualified and require native interpretation, not a blanket waiver.
+
+The r3 guard uses the native cell collection associated with each exact BEL
+(`get_cells -quiet -of_objects [get_bels ...]`), not IS_OCCUPIED: that property
+was unsupported on the actual2025.2 BEL object and caused a second pre-mutation
+stop. Tests now make every IS_OCCUPIED access throw. All other preflight
+properties were already reached successfully in that native attempt. The
+only mutable operation remains the one vendor place_cell call.
