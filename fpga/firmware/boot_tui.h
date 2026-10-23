@@ -51,7 +51,7 @@ static void show_menu(void) {
     if(!menu_ansi){
         puts_uart("\r\nValence monitor | verified downloads auto-boot\r\n");
         for(unsigned i=0;i<MENU_COUNT;++i){puts_uart(menu_items[i].label);puts_uart("\r\n");}
-        puts_uart("a ANSI TUI | h menu | g/r/4 retired (no manual launch)\r\n");
+        puts_uart("a ANSI TUI | h menu | f CMU clocks/perf (if present)\r\n");
         puts_uart(menu_result);puts_uart("\r\n");
         if(external_state_untrusted)external_state_message();
         return;
@@ -74,7 +74,7 @@ static void show_menu(void) {
     }
     tui_at(15);puts_uart(border);
     tui_at(16);tui_line(" Up/Down: select   Enter: open   Esc/h: menu   shortcuts work directly");
-    tui_at(17);tui_line(" a: plain terminal / ANSI   k: color on/off   Esc/Ctrl-C: cancel TFTP/JTAG");
+    tui_at(17);tui_line(" a: plain / ANSI   k: color   f: CMU clocks/perf   Esc/Ctrl-C: cancel");
     tui_at(18);puts_uart(border);
     tui_at(19);tui_line(" Last result:");
     tui_at(20);tui_line(menu_result);

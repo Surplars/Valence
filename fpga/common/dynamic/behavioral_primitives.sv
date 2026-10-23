@@ -37,6 +37,8 @@ module MMCME4_ADV #(
     initial begin
         for(n=0;n<128;n=n+1)registers[n]=0;
         registers[7'h08]=16'h128a; registers[7'h09]=16'h8000;
+        registers[7'h14]=16'h1514; registers[7'h15]=16'h8000;
+        registers[7'h16]=16'hc145;
     end
     assign CLKFBOUT=CLKIN1;
     always @(posedge CLKIN1 or posedge RST) begin
@@ -46,10 +48,17 @@ module MMCME4_ADV #(
         else lock_cycles<=lock_cycles+1;
     end
     real half_period;
+    integer m,d,o;
+    function integer decoded_count(input [5:0] bits6);
+        decoded_count = bits6==0 ? 64 : bits6;
+    endfunction
     always begin
         // Derive the modeled clock from actual DRP register contents, never
         // from the software target or testbench expectation.
-        half_period=(registers[7'h08][11:6]+registers[7'h08][5:0])*0.5;
+        m=decoded_count(registers[7'h14][11:6])+decoded_count(registers[7'h14][5:0]);
+        d=decoded_count(registers[7'h16][11:6])+decoded_count(registers[7'h16][5:0]);
+        o=decoded_count(registers[7'h08][11:6])+decoded_count(registers[7'h08][5:0]);
+        half_period=CLKIN1_PERIOD*d*o/(2.0*m);
         if($test$plusargs("negative_wrong_rate"))half_period=10.0;
         if(half_period<1.0)half_period=10.0;
         #(half_period);

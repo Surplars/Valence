@@ -33,7 +33,7 @@ class BoardInputs(unittest.TestCase):
         dynamic = board_inputs.selected_shell(text, True, True)
         self.assertNotIn('native_dynamic_clock_domain cpu_clock', static)
         self.assertIn('native_dynamic_clock_domain cpu_clock', dynamic)
-        self.assertIn('native_dynamic_clock_domain fabric_clock', dynamic)
+        self.assertIn('native_dynamic_clock_domain #(.MAX_PROGRAM_HZ(250000000)) fabric_clock', dynamic)
         self.assertIn('assign mmcm_locked = aon_locked & eth_locked;', dynamic)
         self.assertNotIn('assign mmcm_locked = cpu_locked', dynamic)
         for lane in range(2):

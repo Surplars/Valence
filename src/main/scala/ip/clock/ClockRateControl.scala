@@ -3,21 +3,52 @@ package soc.ip.clock
 import chisel3._
 import chisel3.util._
 
+/** Admission is not qualification. Diagnostic points are explicit build-time
+  * candidates, never evidence of physical or SoC timing signoff.
+  */
+sealed trait ClockRateAdmission
+object ClockRateAdmission {
+    case object QualifiedOnly extends ClockRateAdmission
+    case object Diagnostic extends ClockRateAdmission
+}
 case class ClockRatePoint(hz: Long, physicalLegal: Boolean = false,
-    componentTested: Boolean = false, socSignedOff: Boolean = false) {
+    componentTested: Boolean = false, socSignedOff: Boolean = false, diagnosticCandidate: Boolean = false) {
     require(hz > 0 && hz <= 0xffffffffL)
     def allowed: Boolean = physicalLegal && componentTested && socSignedOff
     def flags: Int = (if (physicalLegal) 1 else 0) | (if (componentTested) 2 else 0) |
-        (if (socSignedOff) 4 else 0) | (if (allowed) 8 else 0)
+        (if (socSignedOff) 4 else 0) | (if (allowed) 8 else 0) | (if (diagnosticCandidate) 16 else 0)
+}
+/** Legacy immutable tables still need a complete native tuple. This is
+  * elaboration-time encoding only, not a hardware search or firmware whitelist.
+  */
+object ClockRateNativeProfile {
+    def encode(hz: Long): Option[BigInt] = {
+        val preferred = if (hz == 50000000L) Seq(20) else if (hz == 100000000L) Seq(10) else Seq.empty[Int]
+        (preferred ++ (3 to 128)).distinct.iterator.flatMap { o =>
+            val product = BigInt(hz) * o
+            val m = product / 25000000
+            if (product % 25000000 == 0 && m >= 32 && m <= 62)
+                Some((BigInt(o) << 16) | (m << 8) | 10) else None
+        }.take(1).toSeq.headOption
+    }
 }
 case class ClockRateParams(bootHz: Long = 50000000L, minimumHz: Long = 50000000L,
     maximumHz: Long = 200000000L, stepHz: Long = 5000000L,
-    points: Seq[ClockRatePoint] = Seq.empty, timeoutCycles: Int = 65536, stableCycles: Int = 3) {
+    points: Seq[ClockRatePoint] = Seq.empty, timeoutCycles: Int = 65536, stableCycles: Int = 3,
+    admission: ClockRateAdmission = ClockRateAdmission.QualifiedOnly, softwareParameters: Boolean = false) {
+    def admitted(point: ClockRatePoint): Boolean = point.allowed ||
+        (admission == ClockRateAdmission.Diagnostic && point.diagnosticCandidate)
+    // Existing low four qualification bits keep their exact meaning. Bit 4
+    // identifies a diagnostic candidate; bit 5 advertises diagnostic admission.
+    def pointFlags(point: ClockRatePoint): Int = point.flags |
+        (if (admission == ClockRateAdmission.Diagnostic && point.diagnosticCandidate) 32 else 0)
     require(minimumHz > 0 && maximumHz >= minimumHz && maximumHz <= 0xffffffffL && stepHz > 0)
     require(bootHz >= minimumHz && bootHz <= maximumHz && bootHz % stepHz == 0)
     require(points.map(_.hz).distinct.size == points.size)
     require(points.forall(x => x.hz >= minimumHz && x.hz <= maximumHz && x.hz % stepHz == 0))
     require(timeoutCycles >= 8 && stableCycles >= 2 && stableCycles < timeoutCycles)
+    require(softwareParameters || points.filter(admitted).forall(p => ClockRateNativeProfile.encode(p.hz).nonEmpty),
+        "admitted legacy points require an exact supported native parameter tuple")
 }
 object ClockRateError {
     val Unsupported = 0; val Unverified = 1; val Busy = 2; val BackendAbsent = 3
@@ -28,6 +59,7 @@ object ClockRateError {
 }
 class ClockRateProgram extends Bundle {
     val hz = UInt(32.W); val token = UInt(32.W); val fallback = Bool()
+    val parameters = UInt(24.W) // integer D[7:0], M[15:8], O[23:16]
 }
 class ClockRateProgramResult extends Bundle {
     val hz = UInt(32.W); val token = UInt(32.W); val error = Bool()
@@ -86,6 +118,7 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
     require(!backendFaultInput || externalDrainLease)
     val io = IO(new Bundle {
         val submit = Flipped(Valid(UInt(32.W)))
+        val submitParameters = if (p.softwareParameters) Some(Input(UInt(24.W))) else None
         val responseCommitted = Input(Bool()); val clearErrors = Input(UInt(32.W))
         val endpoint = new ClockRateEndpoint
         val lease = if (externalDrainLease) Some(new ClockRateDrainLease) else None
@@ -105,6 +138,7 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
     val everGated = RegInit(true.B); val drainProved = RegInit(false.B)
     val request = RegInit(p.bootHz.U(32.W)); val target = RegInit(p.bootHz.U(32.W))
     val actual = RegInit(p.bootHz.U(32.W)); val token = RegInit(0.U(32.W))
+    val targetParameters = RegInit("h14280a".U(24.W)) // immutable fallback50: D10/M40/O20
     val issued = RegInit(false.B); val completed = RegInit(0.U(32.W))
     val success = RegInit(false.B); val transactionFailed = RegInit(false.B)
     val timer = RegInit(0.U(log2Ceil(p.timeoutCycles + 1).W))
@@ -113,8 +147,22 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
     val events = WireDefault(VecInit(Seq.fill(ClockRateError.Count)(false.B)))
     val errors = RegInit(0.U(32.W))
     errors := (errors & ~io.clearErrors) | events.asUInt.pad(32)
-    val exists = p.points.map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
-    val allowed = p.points.filter(_.allowed).map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
+    val tableExists = p.points.map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
+    val tableAllowed = p.points.filter(p.admitted).map(x => io.submit.bits === x.hz.U).foldLeft(false.B)(_ || _)
+    val parameterLegal = if (p.softwareParameters) {
+        val packed = io.submitParameters.get
+        val d = packed(7, 0); val m = packed(15, 8); val o = packed(23, 16)
+        // Exact integer equation, no rounded/truncated frequency acceptance.
+        // Limits are checked again by the autonomous physical backend.
+        val numerator = 25000000.U(32.W) * m
+        val requestedNumerator = io.submit.bits * o
+        d === 10.U && m >= 32.U && m <= 62.U && o >= 3.U && o <= 128.U &&
+            io.submit.bits >= p.minimumHz.U && io.submit.bits <= p.maximumHz.U &&
+            requestedNumerator === numerator
+    } else false.B
+    val exists = if (p.softwareParameters) parameterLegal else tableExists
+    val allowed = if (p.softwareParameters) parameterLegal &&
+        ((p.admission == ClockRateAdmission.Diagnostic).B || tableAllowed) else tableAllowed
     io.requestError := Mux(!io.endpoint.present, (1 << ClockRateError.BackendAbsent).U,
         Mux(state =/= idle, (1 << ClockRateError.Busy).U,
         Mux(!exists, (1 << ClockRateError.Unsupported).U,
@@ -125,7 +173,11 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
             when(io.requestError(bit)) { events(bit) := true.B }
         }
         when(io.requestError === 0.U) {
-            target := io.submit.bits; recovering := false.B; transactionFailed := false.B
+            target := io.submit.bits
+            targetParameters := io.submitParameters.getOrElse(MuxLookup(io.submit.bits, 0.U(24.W))(
+                p.points.flatMap(point => ClockRateNativeProfile.encode(point.hz).map(parameters =>
+                    point.hz.U -> parameters.U(24.W)))))
+            recovering := false.B; transactionFailed := false.B
             everGated := false.B; drainProved := false.B; success := false.B; next := waitReply
         }
     }
@@ -148,6 +200,7 @@ class ClockRateControl(p: ClockRateParams, externalDrainLease: Boolean = false,
     io.endpoint.program.valid := state === programming && !issued && io.endpoint.present
     io.endpoint.program.bits.hz := target; io.endpoint.program.bits.token := token
     io.endpoint.program.bits.fallback := recovering
+    io.endpoint.program.bits.parameters := Mux(recovering, "h14280a".U, targetParameters)
     io.endpoint.result.ready := true.B // Consume stale tokens without completing a newer command.
     when(state === waitReply && io.responseCommitted) { next := draining }
     if (!externalDrainLease) {

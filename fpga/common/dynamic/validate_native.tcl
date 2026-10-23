@@ -28,7 +28,7 @@ if {$mode eq "simulation"} {
     set failed [catch {exec $exe(xsim) dynamic_native -runall -onerror quit > xsim.log 2>@1} why]
     set f [open xsim.log];set log [read $f];close $f
     if {$failed || [string first DYNAMIC_CLOCK_UNISIM_PASS $log]<0 ||
-        [regexp -nocase {Timing[[:space:]]+Violation|(^|[[:space:]])(FATAL|ERROR)(:|[[:space:]])} $log]} {
+        [regexp -nocase {Timing[[:space:]]+Violation|Unisim MMCME4_ADV-40|Illegal cp, res, and/or lock DRP|(^|[[:space:]])(FATAL|ERROR)(:|[[:space:]])} $log]} {
         error "Native dynamic clock test failed: $why; inspect xsim.log"
     }
     set f [open RESULT.txt w];puts $f "PASS_NATIVE_DYNAMIC_COMPONENT_UNISIM; WHOLE_SOC=UNTESTED; STA=UNTESTED; BOARD=UNTESTED";close $f

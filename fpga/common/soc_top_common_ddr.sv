@@ -6,7 +6,10 @@
 // separate explicit opt-in: independent CPU/fabric MMCME4, stable AON50.
 // MAC125/PAD250/REF500 share the public quarter-clock divider reset epoch.
 // Source candidate only: mapped CDC/ROM, three-speed timing and board are unverified.
-module soc_top_common_ddr (
+module soc_top_common_ddr #(
+    // Explicit diagnostic override only; production/default keeps single1100.
+    parameter integer RX_CASCADE_STAGE_DELAY_PS = -1
+) (
     input wire clk_in1_p, clk_in1_n,
     input wire sys_rst_n, button_n, uart_rxd,
     output wire uart_txd, led,
@@ -57,21 +60,22 @@ module soc_top_common_ddr (
     wire [1:0] rate_closed, rate_open, rate_locked, rate_resumed, rate_fatal;
     wire [1:0] rate_program_valid, rate_program_ready, rate_fallback;
     wire [1:0] rate_result_valid, rate_result_ready, rate_error;
+    wire [23:0] rate_parameters[0:1];
     wire [31:0] rate_hz[0:1], rate_token[0:1], rate_result_hz[0:1], rate_result_token[0:1];
     native_dynamic_clock_domain cpu_clock (
         .aon_clock(clk_aon), .common_cold_reset(soc_reset), .source_clock250(ui_clk),
         .clock_enable(rate_enable[0]), .isolate(rate_isolate[0]),
         .program_valid(rate_program_valid[0]), .program_ready(rate_program_ready[0]),
-        .program_hz(rate_hz[0]), .program_token(rate_token[0]), .program_fallback(rate_fallback[0]),
+        .program_parameters(rate_parameters[0]), .program_hz(rate_hz[0]), .program_token(rate_token[0]), .program_fallback(rate_fallback[0]),
         .result_valid(rate_result_valid[0]), .result_ready(rate_result_ready[0]),
         .result_hz(rate_result_hz[0]), .result_token(rate_result_token[0]), .result_error(rate_error[0]),
         .managed_clock(clk_soc), .present(rate_present[0]), .gate_closed(rate_closed[0]),
         .gate_open(rate_open[0]), .locked(rate_locked[0]), .resumed(rate_resumed[0]), .fatal(rate_fatal[0]));
-    native_dynamic_clock_domain fabric_clock (
+    native_dynamic_clock_domain #(.MAX_PROGRAM_HZ(250000000)) fabric_clock (
         .aon_clock(clk_aon), .common_cold_reset(soc_reset), .source_clock250(ui_clk),
         .clock_enable(rate_enable[1]), .isolate(rate_isolate[1]),
         .program_valid(rate_program_valid[1]), .program_ready(rate_program_ready[1]),
-        .program_hz(rate_hz[1]), .program_token(rate_token[1]), .program_fallback(rate_fallback[1]),
+        .program_parameters(rate_parameters[1]), .program_hz(rate_hz[1]), .program_token(rate_token[1]), .program_fallback(rate_fallback[1]),
         .result_valid(rate_result_valid[1]), .result_ready(rate_result_ready[1]),
         .result_hz(rate_result_hz[1]), .result_token(rate_result_token[1]), .result_error(rate_error[1]),
         .managed_clock(clk_fabric), .present(rate_present[1]), .gate_closed(rate_closed[1]),
@@ -143,6 +147,7 @@ module soc_top_common_ddr (
     wire [4:0] rgmii_rx_rise, rgmii_rx_fall, rgmii_tx_rise, rgmii_tx_fall;
     wire rgmii_txc_rise, rgmii_txc_fall;
     native_rgmii_trispeed_quarter #(.RX_DATA_DELAY_PS(1100),
+        .RX_CASCADE_STAGE_DELAY_PS(RX_CASCADE_STAGE_DELAY_PS),
         .LOCAL_PAD_RESET_RELEASE(0),
         .REGISTER_SELECTED_HALF(0)) u_rgmii (
         .delay_clock(clk_delay), .delay_reset(delay_reset), .delay_ready(delay_ready),
@@ -224,6 +229,7 @@ module soc_top_common_ddr (
         .rateBackend_0_quiesce(rate_quiesce[0]),
         .rateBackend_0_program_valid(rate_program_valid[0]),
         .rateBackend_0_program_ready(rate_program_ready[0]),
+        .rateBackend_0_program_bits_parameters(rate_parameters[0]),
         .rateBackend_0_program_bits_hz(rate_hz[0]),
         .rateBackend_0_program_bits_token(rate_token[0]),
         .rateBackend_0_program_bits_fallback(rate_fallback[0]),
@@ -243,6 +249,7 @@ module soc_top_common_ddr (
         .rateBackend_1_quiesce(rate_quiesce[1]),
         .rateBackend_1_program_valid(rate_program_valid[1]),
         .rateBackend_1_program_ready(rate_program_ready[1]),
+        .rateBackend_1_program_bits_parameters(rate_parameters[1]),
         .rateBackend_1_program_bits_hz(rate_hz[1]),
         .rateBackend_1_program_bits_token(rate_token[1]),
         .rateBackend_1_program_bits_fallback(rate_fallback[1]),

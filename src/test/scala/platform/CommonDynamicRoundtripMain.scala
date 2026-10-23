@@ -7,11 +7,11 @@ import soc.ip.ethernet._
 import soc.ip.dma.NetworkDmaConfig
 import soc.platform._
 
-/** TEST ONLY table. These flags exercise the real controller, not physical qualification. */
+/** The same diagnostic software-parameter policy as the board candidate.
+  * Only PHY startup timing/model are fixture-specific, never qualification flags.
+  */
 object DynamicRoundtripTestParams {
-    val rates = Seq(300000000L, 250000000L).map(max => ClockRateParams(maximumHz = max,
-        points = Seq(50000000L, 100000000L).map(hz => ClockRatePoint(hz,
-            physicalLegal = true, componentTested = true, socSignedOff = true))))
+    val rates = CommonDiagnosticRateProfile.domains
 }
 class DynamicRoundtripTestMac(config: NetworkDmaConfig)
     extends TriSpeedManagedGmac(cpuHz = 125000000, hardwareClocks = false,
@@ -28,7 +28,7 @@ class DynamicRoundtripTestBank
         hardwareClocks = false, networkDmaConfig = CommonCpuProfile.I1Boot50Dynamic.fpga.network,
         triSpeedEthernet = true, triSpeedTxFrameSlots = 2, sourceClockHz = 50000000,
         rateDomains = Some(DynamicRoundtripTestParams.rates), runtimeAdmission = true,
-        runtimeControlPark = true, runtimeFixedMac = true, runtimeRateControl = true) {
+        runtimeControlPark = true, runtimeFixedMac = true, runtimeRateControl = true, performanceTelemetry = true) {
     override def desiredName: String = "ManagedPeripheralBank"
     override protected def buildTriSpeedMac(): TriSpeedManagedGmac =
         new DynamicRoundtripTestMac(CommonCpuProfile.I1Boot50Dynamic.fpga.network)
@@ -41,7 +41,8 @@ class CommonDynamicRoundtripFixture(files: Seq[String])
         independentDebugClock = true, runtimeDebugAdmission = true, runtimeNetworkAdmission = true,
         runtimeFixedQualification = true, runtimeControlQualification = true, runtimeFixedMac = true,
         runtimeRateControl = true, externalIrqsAbsent = true,
-        testOnlyRateParams = Some(DynamicRoundtripTestParams.rates)) {
+        testOnlyRateParams = Some(DynamicRoundtripTestParams.rates), performanceTelemetry = true,
+        telemetryWindowCycles = 1024) {
     override protected def buildPeripheralBank(): ManagedPeripheralBank = new DynamicRoundtripTestBank
 }
 object CommonDynamicRoundtripMain extends App {

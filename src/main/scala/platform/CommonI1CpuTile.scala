@@ -159,8 +159,28 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
             runtimeAcknowledged := true.B
         }
         val resume = io.bus.maintenanceResume.get
-        resume.ready := privateDrained && runtimeAcknowledged && resume.bits === runtimeEpoch
-        when(resume.fire) {
+        // Cancellation-capable fabric keeps Home closed until maintenanceResumed,
+        // not merely until this transport beat is consumed. Retain one matching
+        // resume token locally so live cache/translation drain cannot feed back
+        // through FIFO ready. Only actual release below may lower runtimeStop.
+        // This adds one CPU edge to management release, not to normal requests.
+        val applyResume = if (boundary.runtimeCancellation) {
+            val resumePending = RegInit(false.B)
+            resume.ready := runtimeActive && runtimeAcknowledged && !resumePending &&
+                resume.bits === runtimeEpoch
+            when(resume.fire) { resumePending := true.B }
+            val apply = resumePending && privateDrained && runtimeAcknowledged
+            when(apply) { resumePending := false.B }
+            when(resumePending) {
+                assert(runtimeActive && runtimeAcknowledged,
+                    "pending runtime resume lost its active acknowledged epoch")
+            }
+            apply
+        } else {
+            resume.ready := privateDrained && runtimeAcknowledged && resume.bits === runtimeEpoch
+            resume.fire
+        }
+        when(applyResume) {
             runtimeActive := false.B
             runtimeFlushIssued := false.B; runtimeFlushDone := 0.U
             runtimeOffer := false.B; runtimeSent := false.B; runtimeAcknowledged := false.B
@@ -171,7 +191,7 @@ class CommonI1CpuTile(p: FiveStageConfig = CommonCpuProfile.I1.i1,
             val response = io.bus.maintenanceResumed.get
             response.valid := releasePending.get && released
             response.bits := runtimeEpoch
-            when(resume.fire) {
+            when(applyResume) {
                 releasePending.get := true.B
                 releaseEdges := 0.U
                 released := false.B

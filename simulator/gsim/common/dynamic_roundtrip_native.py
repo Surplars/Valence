@@ -2,7 +2,7 @@
 """Actual platform/CMU/epoch with production SV backend and test-only MMCM primitives.
 Not vendor primitive, STA, board, or production software-frequency qualification.
 """
-import argparse, hashlib, json, os, re, signal, subprocess, time
+import argparse, hashlib, json, os, re, signal, subprocess, time, shutil
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 p = argparse.ArgumentParser(description=__doc__)
@@ -11,11 +11,11 @@ p.add_argument('--emission', type=Path, required=True)
 p.add_argument('--guest', type=Path, required=True)
 p.add_argument('--out', type=Path, required=True)
 p.add_argument('--tb', type=Path, required=True)
-p.add_argument('--native-wall-seconds', type=int, choices=(300,900,1200), default=300)
+p.add_argument('--native-wall-seconds', type=int, choices=(300,600,900,1200), default=300)
 p.add_argument('--boot-smoke', action='store_true', help='Early fixture boot/first-retire diagnostic ONLY; not a frequency result')
 a=p.parse_args(); a.out=a.out.resolve(); a.out.mkdir(parents=True,exist_ok=False)
 sha=lambda x: hashlib.sha256(Path(x).read_bytes()).hexdigest()
-native=ROOT.parent/'native-tools'; iv=native/'bin/iverilog'; vvp=native/'root/usr/bin/vvp'
+iv=Path(shutil.which('iverilog') or 'iverilog'); vvp=Path(shutil.which('vvp') or 'vvp')
 rtl=sorted(a.rtl.resolve().glob('*.sv')); backend=ROOT/'fpga/common/dynamic'
 back=[backend/(n+'.sv')for n in ['behavioral_primitives','native_clock_gate','native_clock_drp','native_dynamic_clock_domain']]
 phy=ROOT/'simulator/cdc/rtl8211f_pin_model.sv'
@@ -28,10 +28,10 @@ extra=back+[phy,a.tb.resolve(),Path(__file__).resolve(),ROOT/'simulator/gsim/com
 frozen={str(f):sha(f)for f in source_paths+extra+rtl+list(a.guest.resolve().iterdir())if f.is_file()}
 record=dict(status='RUNNING',scope=__doc__,boot_smoke_only=a.boot_smoke,stop_file=str(a.out/'STOP'),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
     emission=dict(path=str(a.emission.resolve()),sha256=sha(a.emission)),source_and_rtl_sha256=frozen,
-    cases=[],tools={},test_only_allowed_hz=[50000000,100000000],production_allowed_points=[],
+    cases=[],tools={},software_parameter_policy=True, tested_hz=[50000000,100000000], qualified_points=[],
     phy_policy_wait_cycles=[256,512],fixed_mdio_source_hz=125000000,physical_qualified=False,
     native_case_wall_seconds=a.native_wall_seconds,
-    wall_scope='Root-approved sole r24 normal loop: 1200s ceiling after r5 used839.715s for5ms simulated; 6ms extrapolates1007.658s. Previous300s/900s remain selectable. No DUT/MDIO/guest/protocol timeout change')
+    wall_scope='Current candidate uses explicit requested wall cap; 600 seconds maximum without renewed approval. No DUT/MDIO/guest/protocol timeout change')
 for artifact in extra:
     (a.out/('source-'+artifact.name)).write_bytes(artifact.read_bytes())
 active=None
@@ -74,7 +74,7 @@ def check():
     assert all(sha(f)==h for f,h in frozen.items()),'Source, guest or emitted RTL drift'
     assert all(sha(f)==h for f,h in record['tools'].items()),'Tool drift'
 try:
-    for tool in [iv,native/'root/usr/bin/iverilog',vvp,native/'root/usr/lib/x86_64-linux-gnu/ivl/ivl',native/'root/usr/lib/x86_64-linux-gnu/ivl/ivlpp',native/'root/usr/lib/x86_64-linux-gnu/ivl/vvp.tgt']:record['tools'][str(tool)]=sha(tool)
+    for tool in [iv, vvp, vvp.parent/'iverilog', *[(vvp.parent.parent/'lib/x86_64-linux-gnu/ivl'/n) for n in ['ivl','ivlpp','vvp.tgt']]]:record['tools'][str(tool)]=sha(tool)
     run('iverilog-version',[iv,'-V'],30);run('vvp-version',[vvp,'-V'],30)
     definitions=['-g2012','-DSTOP_COND=1','-DASSERT_VERBOSE_COND=1','-DENABLE_INITIAL_MEM_=1']
     pre=a.out/'preprocessed.sv';run('preprocess',[iv,*definitions,'-E','-o',pre,*rtl],180)
@@ -100,6 +100,9 @@ try:
     assert 'BOOT_SMOKE_PASS'in smoke,'Missing first-retire prerequisite oracle'
     check();assert sha(binary)==record['binary_sha256']
     if not a.boot_smoke:
+        telemetry=run('telemetry-smoke',command+['+telemetry_smoke'],60)
+        assert 'TELEMETRY_SMOKE_PASS' in telemetry,'Missing actual guest meter/refill prerequisite'
+        check();assert sha(binary)==record['binary_sha256']
         text=run('normal',command,a.native_wall_seconds)
         assert 'ROUNDTRIP_PASS'in text,'Missing ordinary completion oracle'
     assert sha(binary)==record['binary_sha256'];check()

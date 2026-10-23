@@ -17,10 +17,12 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     val triSpeedRawClockHandoff: Boolean = false, balancedRawClocks: Boolean = false,
     sourceClockHz: Int = 0, rateDomains: Option[Seq[ClockRateParams]] = None,
     runtimeAdmission: Boolean = false, runtimeControlPark: Boolean = false,
-    runtimeFixedMac: Boolean = false, runtimeRateControl: Boolean = false) extends RawModule {
+    runtimeFixedMac: Boolean = false, runtimeRateControl: Boolean = false,
+    performanceTelemetry: Boolean = false) extends RawModule {
     // CPU metadata and the actual MMIO/control source domain are independent.
     require(sourceClockHz >= 0)
     require(rateDomains.forall(_.size == 2))
+    require(!performanceTelemetry || rateDomains.nonEmpty)
     require(!runtimeRateControl || (rateDomains.nonEmpty && runtimeFixedMac))
     private val busHz = if (sourceClockHz > 0) sourceClockHz else cpuHz
     require(!balancedRawClocks || (hardwareClocks && triSpeedEthernet))
@@ -43,6 +45,9 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
     val rawRxClock = IO(Input(Clock()))
     val commonReset = IO(Input(AsyncReset()))
     val cmuRegisters = IO(Flipped(new RegisterPort))
+    val telemetryRegisters = if (performanceTelemetry) Some(IO(new RegisterPort)) else None
+    val telemetrySourceIdle = if (performanceTelemetry) Some(IO(Input(Bool()))) else None
+    val telemetryAonIdle = if (performanceTelemetry) Some(IO(Input(Bool()))) else None
     val uartRegisters = IO(Flipped(new RegisterPort))
     val gmacRegisters = IO(Flipped(new RegisterPort))
     val streams = IO(new ManagedGmacStreams)
@@ -91,7 +96,7 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
             val release = Module(new CdcResetRelease)
             release.clockIn := sourceClock; release.asyncReset := commonReset
             val router = withClockAndReset(sourceClock, release.resetOut) {
-                Module(new ClockRateRegisterRouter(config.base + 0x800))
+                Module(new ClockRateRegisterRouter(config.base + 0x800, telemetry = performanceTelemetry))
             }
             val rateCmu = Module(new ClockRateManagementBoundary(params, config.base + 0x800,
                 externalDrainLease = runtimeRateControl, backendFaultInput = runtimeRateControl))
@@ -100,12 +105,13 @@ class ManagedPeripheralBank(config: CmuParams, cpuHz: Int = 100000000,
             router.io.upstream <> cmuRegisters
             cmu.registers <> router.io.legacy
             rateCmu.registers <> router.io.rates
+            telemetryRegisters.foreach(_ <> router.io.telemetryRegisters.get)
             rateEndpoints.get <> rateCmu.endpoints
             rateStatus.get := rateCmu.status
             rateLeases.foreach(_ <> rateCmu.leases.get)
             rateBackendFault.foreach(f => rateCmu.backendFault.get := f)
-            rateSourceIdle.foreach(_ := router.io.idle && rateCmu.sourceIdle.get)
-            rateAonIdle.foreach(_ := rateCmu.aonIdle.get)
+            rateSourceIdle.foreach(_ := router.io.idle && rateCmu.sourceIdle.get && telemetrySourceIdle.getOrElse(true.B))
+            rateAonIdle.foreach(_ := rateCmu.aonIdle.get && telemetryAonIdle.getOrElse(true.B))
     }
     cmuIrq := cmu.irq
     for (n <- Seq(0, 1, 2, 4)) { cmu.resources(n).ack := false.B; cmu.resources(n).wake := false.B }

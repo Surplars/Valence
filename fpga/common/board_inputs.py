@@ -13,6 +13,7 @@ PUBLIC_INPUTS = (
     'fpga/zu15eg/native_quarter_clock_constraints.tcl',
     'fpga/zu15eg/native-gmac-cdc-constraints.tcl',
     'fpga/zu15eg/cdc_constraints.tcl',
+    'fpga/zu15eg/performance-telemetry-constraints.tcl',
     'fpga/next/native_mac_roles.tcl',
     'fpga/next/check_jtag_chain.tcl',
     'fpga/inorder/bscan_timing_i1.tcl',
@@ -146,13 +147,104 @@ def performance_mac_control_form(parent):
                      'performance MAC parent rewrites encoder control output')
 
 
+SOFTWARE_PARAMETER_PROFILE = 'boot50-dynamic-software-parameter-diagnostic'
+
+
+def software_parameter_selection(configuration, meta):
+    selected = configuration.get('functional_profile') == SOFTWARE_PARAMETER_PROFILE
+    emitted = meta.get('functionalProfile') == SOFTWARE_PARAMETER_PROFILE
+    gate.require(selected == emitted, 'software-parameter configuration/emission selector mismatch')
+    gate.require(not selected or (configuration.get('performance_telemetry') is True and
+                                 meta.get('performanceTelemetry') is True),
+                 'software-parameter candidate requires telemetry in configuration and emission')
+    return selected
+
+
+def software_parameter_review(root, m, meta, base):
+    """A separately frozen structural review, never a timing qualification.
+
+    The publisher binds this receipt's digest in the candidate manifest after
+    independent review. This function cannot generate or self-approve it.
+    """
+    expected = dict(functionalProfile=SOFTWARE_PARAMETER_PROFILE,
+        softwareParameterMode=True, hardwareRateWhitelist=False,
+        clockRateAbi=2, performanceTelemetryAbi=1, performanceTelemetry=True,
+        rateAdmission='explicit-diagnostic-not-qualified', diagnosticPointFlags=0x30,
+        qualifiedRatePointsHz=[], rateParameterLimits=dict(D=10, minM=32, maxM=62, minO=3, maxO=128,
+            referenceHz=250000000, minimumHz=10000000, maximumCpuHz=300000000, maximumFabricHz=250000000),
+        frequencyMeasurement='managed-edge-count-over-aon-window',
+        telemetryBase='0x10080900', cpuClockHz=50000000, fabricClockHz=50000000,
+        physicalTimingVerified=False, boardVerified=False)
+    for key, value in expected.items():
+        gate.require(meta.get(key) == value and type(meta.get(key)) is type(value),
+                     'software-parameter feature mismatch: ' + key)
+    gate.require(m['configuration'].get('performance_telemetry') is True and
+                 m['configuration'].get('functional_profile') == SOFTWARE_PARAMETER_PROFILE,
+                 'software-parameter candidate must be explicitly selected')
+    path = m['roles'].get('software_parameter_review')
+    gate.require(path in m['inputs'], 'missing independently reviewed software-parameter receipt')
+    gate.require(gate.sha(gate.file_at(root, path)) == m['inputs'][path], 'software-parameter receipt digest mismatch')
+    review = gate.read(gate.file_at(root, path))
+    gate.require(review.get('schema') == 'common-software-parameter-feature-review-v1' and
+                 review.get('status') == 'REVIEWED_STRUCTURAL_ONLY' and
+                 review.get('physical_qualified') is False and review.get('board_qualified') is False and
+                 re.fullmatch('[0-9a-f]{40}', review.get('source_commit', '')) and
+                 review.get('source_commit') == m.get('source_commit'),
+                 'invalid software-parameter structural review')
+    gate.require(review.get('features') == expected, 'reviewed feature contract differs from selected candidate')
+    required_sources = set(emitted_sources(meta.get('sources', {}))) | set(BOARD_RTL) | {
+        'fpga/firmware/valence_clock.h', 'fpga/firmware/valence_cmu.h',
+        'fpga/firmware/boot_clock_console.h', 'fpga/firmware/bootrom.c',
+        'fpga/zu15eg/performance-telemetry-constraints.tcl',
+        'fpga/common/performance_telemetry_constraints.tcl'}
+    gate.require(set(review.get('sources_sha256', {})) == required_sources,
+                 'software-parameter reviewed source closure incomplete')
+    artifacts = emitted_artifacts(meta.get('artifacts', {}))
+    gate.require(review.get('artifacts_sha256') == artifacts, 'software-parameter reviewed RTL closure differs')
+    for role in ('rom', 'rom_coe', 'firmware_contract'):
+        name = m['roles'].get(role)
+        gate.require(name in m['inputs'] and review.get('firmware_sha256', {}).get(name) == m['inputs'][name]
+                     and gate.sha(gate.file_at(root, name)) == m['inputs'][name],
+                     'software-parameter fresh firmware binding missing: ' + role)
+    firmware = gate.read(gate.file_at(root, m['roles']['firmware_contract']))
+    build_record = firmware.get('build_contract', {})
+    build_path = build_record.get('path')
+    gate.require(build_path in m['inputs'] and build_record.get('sha256') == m['inputs'][build_path]
+                 and review.get('firmware_sha256', {}).get(build_path) == m['inputs'][build_path]
+                 and gate.sha(gate.file_at(root, build_path)) == m['inputs'][build_path],
+                 'software-parameter firmware build contract not frozen')
+    build = gate.read(gate.file_at(root, build_path))
+    for key, value in dict(clock_console=True, clock_console_rate_abi=2,
+                           clock_console_telemetry_abi=1, boot_menu=True,
+                           clock_console_auto_change=False,
+                           clock_console_initial_candidates_mhz=list(range(50,151,5))).items():
+        gate.require(build.get(key) == value and type(build.get(key)) is type(value),
+                     'software-parameter BootROM feature missing: ' + key)
+    identities = {(x.get('file'), x.get('module'), x.get('instance')) for x in review.get('instances', [])}
+    gate.require({('ManagedPeripheralBank.sv', 'TriSpeedManagedGmac', 'gmac'),
+                  ('ManagedPeripheralBank.sv', 'FixedMacBoundary', 'crossing'),
+                  ('CommonMachinePlatform.sv', 'ManagedPeripheralBank', 'peripherals'),
+                  ('CommonMachinePlatform.sv', 'ClockPerformanceTelemetry', 'monitor')} <= identities,
+                 'software-parameter complete reviewed parent instances missing')
+    for module in ('ClockPerformanceTelemetry', 'ClockPerformanceTelemetryRegisters',
+                   'ClockRateManagement', 'ClockRateManagementBoundary'):
+        gate.require(module + '.sv' in artifacts, 'software-parameter emitted module missing: ' + module)
+    top = gate.file_at(root, (base / 'CommonMachinePlatform.sv').as_posix()).read_text()
+    for domain in (0, 1):
+        gate.require(re.search(r'output\s+\[23:0\]\s+rateBackend_' + str(domain) +
+                               r'_program_bits_parameters\b', top), 'software parameter port absent')
+    return review
+
+
 def dynamic_mac_control_form(root, m, meta, base):
     """Exact reviewed source composition, not a timing/operating whitelist."""
     gate.require(m.get('diagnosticOnly') is True and m['configuration']['cpu'] == 'i1'
                  and m['configuration'].get('clock_profile') == 'boot50-dynamic',
                  'fixed-source MAC is diagnostic-only')
     expected = dict(clockProfile='boot50-dynamic', clockTopology='independent-fixed-v1',
-        clockProfilePurpose='dynamic-clock-integration-candidate-empty-rate-table',
+        clockProfilePurpose=('dynamic-clock-functional-diagnostic-candidate-not-timing-qualified'
+            if meta.get('functionalProfile') == SOFTWARE_PARAMETER_PROFILE else
+            'dynamic-clock-integration-candidate-empty-rate-table'),
         independentFixedDomains=True, independentCpuFabricClocks=True, hardwareClocks=True,
         runtimeClockReconfiguration=True, programmableRom=False, vivadoMemories=True,
         cpuClockHz=50000000, fabricClockHz=50000000, ddrUiHz=250000000, aonHz=50000000,
@@ -163,13 +255,16 @@ def dynamic_mac_control_form(root, m, meta, base):
     for k, v in expected.items():
         gate.require(meta.get(k) == v and type(meta.get(k)) is type(v), 'dynamic MAC contract: ' + k)
     gate.require(str(meta.get('timebaseHz')) == '250000000', 'dynamic fixed TIME250 required')
-    name = 'fpga/common/dynamic/mac_diagnostic_review.json'
-    gate.require(m['inputs'].get(name) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426' and gate.sha(gate.file_at(root, name)) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426',
-                 'unreviewed fixed-MAC composition record')
-    review = gate.read(gate.file_at(root, name))
+    if meta.get('functionalProfile') == SOFTWARE_PARAMETER_PROFILE:
+        review = software_parameter_review(root, m, meta, base)
+    else:
+        name = 'fpga/common/dynamic/mac_diagnostic_review.json'
+        gate.require(m['inputs'].get(name) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426' and gate.sha(gate.file_at(root, name)) == '895c8b471643344567cc5e91a95746050292e1882798eb280cb374f1d7441426',
+                     'unreviewed fixed-MAC composition record')
+        review = gate.read(gate.file_at(root, name))
     for name, digest in review['sources_sha256'].items():
         gate.require(m['inputs'].get(name) == digest and gate.sha(gate.file_at(root, name)) == digest,
-                     'dynamic MAC source/empty-rate-table changed: ' + name)
+                     'dynamic MAC reviewed source changed: ' + name)
     for name, digest in review['artifacts_sha256'].items():
         name = (base / name).as_posix()
         gate.require(m['inputs'].get(name) == digest and gate.sha(gate.file_at(root, name)) == digest,
@@ -206,6 +301,7 @@ def emission(root, m):
     path = m['roles'].get('emission_profile')
     gate.require(path in m['inputs'], 'missing frozen production emission profile')
     meta = gate.read(gate.file_at(root, path)); c = m['configuration']; clocks = c['clocks_hz']
+    software_parameter_selection(c, meta)
     for key, value in dict(top='CommonMachinePlatform', cpu=c['cpu'], abi=1, romBytes=131072,
                            programmableRom=False, vivadoMemories=True, hardwareClocks=True,
                            independentCpuFabricClocks=True, triSpeedEthernet=True, triSpeedTxFrameSlots=2,
@@ -215,6 +311,12 @@ def emission(root, m):
         gate.require(meta.get(key) == value and type(meta.get(key)) is type(value), 'wrong production emission contract: ' + key)
     gate.require(str(meta.get('timebaseHz')) == str(clocks['timebase']), 'wrong emission timebase')
     profile = c.get('clock_profile', 'production')
+    telemetry = c.get('performance_telemetry', False)
+    gate.require(type(telemetry) is bool and meta.get('performanceTelemetry', False) is telemetry,
+                 'telemetry emission/configuration mismatch')
+    if telemetry:
+        gate.require(meta.get('frequencyMeasurement') == 'managed-edge-count-over-aon-window' and
+                     meta.get('telemetryBase') == '0x10080900', 'telemetry ABI mismatch')
     if profile in ('boot50-static', 'performance300-static'):
         gate.require(meta.get('clockProfile') == profile and meta.get('independentFixedDomains') is True
                      and meta.get('runtimeClockReconfiguration') is False, 'missing static independent-domain emission contract')
@@ -245,7 +347,9 @@ def emission(root, m):
                 'TriSpeedManagedGmac.sv': ('6ddda588873a1ce37b2b131cdbf354065a3a67f3e4e26c835f7afaf783a2a302',
                                          '84524a8872a1cb859919fe5d24b34320b78e79ffb3cbb3ada5842e81a3653691',
                                          '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556')}
-    dynamic_mac = m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == 'b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41'
+    software_parameters = meta.get('functionalProfile') == SOFTWARE_PARAMETER_PROFILE
+    gate.require(not meta.get('softwareParameterMode') or software_parameters, 'unrecognized software-parameter functional profile')
+    dynamic_mac = software_parameters or m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == 'b86bcabfc0d113f651b36f023a8a8728090288530cc6b649136b30bb580c8d41'
     if dynamic_mac:
         dynamic_mac_control_form(root, m, meta, base)
     for name, expected in admitted.items():
@@ -255,7 +359,7 @@ def emission(root, m):
     if m['inputs'].get((base / 'TriSpeedManagedGmac.sv').as_posix()) == '1fe02f7d145c17c9147eb0d350d48005c0b24a4501e298ea1407f983f6193556':
         performance_mac_control_form(gate.file_at(root, (base / 'TriSpeedManagedGmac.sv').as_posix()).read_text())
     gate.require(m['inputs'].get('fpga/zu15eg/native_rgmii_trispeed_quarter.sv') ==
-                 '32b96761f2019806b6e03d9d885595449d2b057a30b6bb9ca204a34162ce96fc', 'unreviewed common MAC pad source')
+                 '9db8e97150a2eab5670ac1ebd0512c608ee5d390f680235d95661d7e9bb99f78', 'unreviewed common MAC pad source')
     for reset in (0, 1):
         for phase in (0, 1):
             for source in (0, 1):

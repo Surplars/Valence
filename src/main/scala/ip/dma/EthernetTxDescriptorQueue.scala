@@ -8,18 +8,24 @@ import chisel3.util._
   * and cancels only descriptors that have not launched, in posting order.
   */
 class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, maxFrameBytes: Int,
-    runtimeAdmission: Boolean = false)
+    runtimeAdmission: Boolean = false, separateStopAcceptance: Boolean = false)
     extends Module {
     require(slots >= 1 && slots <= 16 && isPow2(slots))
+    require(ramBase >= 0 && ramBytes > 0 && ramBase + ramBytes <= (BigInt(1) << 64))
+    require(maxFrameBytes > 0)
     private val slotBits = log2Ceil(slots).max(1)
     private val countBits = log2Ceil(slots + 1)
-    private val addressBits = (ramBase + ramBytes - 1).bitLength
-    private val lengthBits = log2Ceil(maxFrameBytes + 1)
+    private val addressBits = (ramBase + ramBytes - 1).bitLength.max(4)
+    private val lengthBits = log2Ceil(BigInt(maxFrameBytes) + 1)
+    private val wordCountBits = log2Ceil((BigInt(maxFrameBytes) + 7) / 8 + 1)
     val io = IO(new Bundle {
         val offset = Input(UInt(8.W))
         val data = Input(UInt(64.W))
         val accessWrite = Input(Bool())
         val write = Input(Bool())
+        // Transport acceptance plus address/size/mask/write checks ONLY. STOP
+        // legality needs enabled, not a different command's descriptor proof.
+        val acceptedWrite = if (separateStopAcceptance) Some(Input(Bool())) else None
         val known = Output(Bool())
         val allowed = Output(Bool())
         val readData = Output(UInt(64.W))
@@ -39,6 +45,10 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
     val stopped = RegInit(false.B)
     val stageAddress = RegInit(0.U(64.W))
     val stageLength = RegInit(0.U(64.W))
+    // Derive the narrow word count on the same accepted field write, not on
+    // POST's combinational admission path. Invalid full64 lengths remain illegal.
+    val stageLengthValid = RegInit(false.B)
+    val stageWords = RegInit(0.U(wordCountBits.W))
     val owned = RegInit(VecInit(Seq.fill(slots)(false.B)))
     val addressWords = Reg(Vec(slots, UInt((addressBits - 3).W)))
     val lengths = Reg(Vec(slots, UInt(lengthBits.W)))
@@ -54,13 +64,20 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
     def at[T <: Data](vec: Vec[T], index: UInt): T = if (slots == 1) vec(0) else vec(index)
     def address(index: UInt): UInt = Cat(at(addressWords, index), 0.U(3.W))
     def next(index: UInt): UInt = if (slots == 1) 0.U else index + 1.U
-    val rounded = (stageLength +& 7.U) & ~7.U(65.W)
-    val descriptorValid = stageAddress(2, 0) === 0.U && stageAddress >= ramBase.U(65.W) &&
-        stageLength =/= 0.U && stageLength <= maxFrameBytes.U &&
-        (stageAddress +& rounded) <= (ramBase + ramBytes).U(66.W)
+    val addressHighClear = if (addressBits == 64) true.B else !stageAddress(63, addressBits).orR
+    val endWord = stageAddress(addressBits - 1, 3) +& stageWords
+    // The rounded endpoint is word-aligned, so flooring the aperture endpoint
+    // is exact even for an unaligned aperture. +& retains a possible 2^64 end.
+    val descriptorValid = addressHighClear && stageAddress(2, 0) === 0.U &&
+        stageAddress >= ramBase.U(65.W) && stageLengthValid &&
+        endWord <= ((ramBase + ramBytes) >> 3).U
+    val postStart = stageAddress(addressBits - 1, 0)
+    val postLength = stageLength(lengthBits - 1, 0)
     val overlaps = (0 until slots).map { i =>
         val start = Cat(addressWords(i), 0.U(3.W))
-        owned(i) && stageAddress < (start +& lengths(i)) && start < (stageAddress +& stageLength)
+        // Full-width legality independently gates POST. Owned fields have
+        // already passed that proof, so only bounded bits affect overlap.
+        owned(i) && postStart < (start +& lengths(i)) && start < (postStart +& postLength)
     }.reduce(_ || _)
     val empty = owners === 0.U && !active && io.engineIdle
     val commandValid = MuxLookup(io.data, false.B)(Seq(
@@ -76,6 +93,14 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
         240.U -> (enabled.asUInt | (stopped.asUInt << 1)),
         248.U -> (pending | (completed << 8) | (active.asUInt << 16) |
             (stopped.asUInt << 17) | (enabled.asUInt << 18))))
+    val stopCommand = io.offset === 240.U && io.data === 16.U
+    val acceptedStop = if (separateStopAcceptance)
+        io.acceptedWrite.get && stopCommand && enabled
+        else io.write && stopCommand
+    if (separateStopAcceptance) {
+        assert(acceptedStop === (io.write && stopCommand),
+            "independent STOP acceptance disagrees with accepted legal MMIO write")
+    }
     val post = io.write && io.offset === 240.U && io.data === 4.U
     val pop = io.write && io.offset === 240.U && io.data === 8.U
     val consume = WireDefault(false.B)
@@ -87,7 +112,12 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
         assert(io.allowed)
         switch(io.offset) {
             is(224.U) { stageAddress := io.data }
-            is(232.U) { stageLength := io.data }
+            is(232.U) {
+                stageLength := io.data
+                stageLengthValid := io.data =/= 0.U && io.data <= maxFrameBytes.U
+                // pad also supports constructor lengths smaller than one word.
+                stageWords := (io.data(lengthBits - 1, 0).pad(4) >> 3) +& io.data(2, 0).orR.asUInt
+            }
             is(240.U) {
                 when(io.data === 1.U || io.data === 2.U) {
                     enabled := io.data === 1.U; stopped := false.B
@@ -115,12 +145,12 @@ class EthernetTxDescriptorQueue(slots: Int, ramBase: BigInt, ramBytes: BigInt, m
     // Runtime pause retains pending descriptors. An explicit software STOP is
     // still destructive and may cancel them even while fresh launches are paused.
     val launchIdle = if (runtimeAdmission) io.engineIdle &&
-        (io.launchAllowed.get || stopped || (io.write && io.offset === 240.U && io.data === 16.U))
+        (io.launchAllowed.get || stopped || acceptedStop)
         else io.engineIdle
     when(enabled && !active && launchIdle && pending =/= 0.U) {
         consume := true.B; launchIndex := next(launchIndex)
         // A STOP accepted in this cycle already prevents a fresh launch.
-        when(stopped || (io.write && io.offset === 240.U && io.data === 16.U)) {
+        when(stopped || acceptedStop) {
             at(results, launchIndex) := (1 << 16).U; complete := true.B
         }.otherwise {
             active := true.B; activeIndex := launchIndex; io.launch.valid := true.B

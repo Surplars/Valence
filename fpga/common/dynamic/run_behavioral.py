@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--iverilog', type=Path, required=True)
     parser.add_argument('--vvp', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--clock-only', action='store_true', help='Focused clock RTL tests; omit unrelated board Python suite')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[3]
     out = args.out.resolve()
@@ -24,6 +25,7 @@ def main():
     source_dir = root/'fpga/common/dynamic'
     sources = sorted(p for p in (root/'fpga/common').rglob('*')
                      if p.is_file() and p.suffix in ('.sv', '.tcl', '.py', '.xdc') and '__pycache__' not in p.parts)
+    sources.append(source_dir/'software-parameters.json')
     frozen = {p.relative_to(root).as_posix(): sha(p) for p in sources}
     receipt = dict(schema=1, stage='dynamic-clock-behavioral-only', vendorPrimitivesValidated=False,
                    fullSocValidated=False, timingValidated=False, boardValidated=False,
@@ -48,11 +50,17 @@ def main():
     try:
         for tool in ('iverilog', 'vvp'):
             run(tool+'-version', [getattr(args, tool), '-V'])
+        table = json.loads((source_dir/'software-parameters.json').read_text())
+        assert [r['m'] for r in table['lowBandwidthCharacterization']] == list(range(32, 65))
+        assert [r['hz'] for r in table['initialFirmwareCandidates']] == list(range(50000000, 150000001, 5000000))
+        golden = out/'independent-low-characterization.mem'
+        golden.write_text(''.join(''.join(f'{r[k]:04x}' for k in ('FilterReg1','FilterReg2','LockReg1','LockReg2','LockReg3'))+'\n' for r in table['lowBandwidthCharacterization']))
         base = ['behavioral_primitives', 'native_clock_gate', 'native_clock_drp', 'native_dynamic_clock_domain']
         tests = [
             ('dynamic_clock_tb', base, 'DYNAMIC_CLOCK_BEHAVIORAL_PASS'),
             ('gate_witness_tb', ['behavioral_primitives', 'native_clock_gate'], 'GATE_WITNESS_BEHAVIORAL_PASS'),
             ('drp_reset_tb', ['native_clock_drp'], 'DRP_RESET_BEHAVIORAL_PASS'),
+            ('drp_parameters_tb', ['native_clock_drp'], 'DRP_PARAMETERS_PASS'),
             ('drp_stuck_ready_tb', ['native_clock_drp'], 'DRP_READY_FAULT_BEHAVIORAL_PASS'),
             ('dynamic_clock_unisim_tb', base, 'DYNAMIC_CLOCK_VENDOR_TB_MODEL_SMOKE_PASS'),
         ]
@@ -60,13 +68,15 @@ def main():
             exe = out/(top+'.vvp')
             run(top+'-compile', [args.iverilog, '-g2012', '-s', top, '-o', exe,
                                 *[source_dir/(p+'.sv') for p in rtl+[top]]])
-            run(top, [args.vvp, exe], marker)
+            run(top, [args.vvp, exe, *(['+golden='+str(golden)] if top=='drp_parameters_tb' else [])], marker)
         for mode, marker in [('negative_fake_closed', 'CPU_EDGE_AFTER_CLOSE_ACK'),
                              ('negative_fake_resumed', 'STALE_OPEN_EDGE_WITNESS'),
                              ('negative_wrong_rate', 'CLOCK_RATE_OR_INDEPENDENCE')]:
             run(mode, [args.vvp, out/'dynamic_clock_tb.vvp', '+'+mode], marker, negative=True)
-        run('board-python-tests', ['python3', '-m', 'unittest', 'discover', '-s', 'fpga/common', '-p', 'test_*.py'], 'OK')
-        run('clock-target-contracts', ['python3', '-m', 'unittest', 'discover', '-s', 'fpga/common', '-p', 'test_dynamic_clock_targets.py', '-v'], 'OK')
+        run('negative_oracle_table', [args.vvp, out/'drp_parameters_tb.vvp', '+golden='+str(golden), '+negative_oracle_table'], 'PROFILE_IMAGE_MISMATCH', negative=True)
+        if not args.clock_only:
+            run('board-python-tests', ['python3', '-m', 'unittest', 'discover', '-s', 'fpga/common', '-p', 'test_*.py'], 'OK')
+            run('clock-target-contracts', ['python3', '-m', 'unittest', 'discover', '-s', 'fpga/common', '-p', 'test_dynamic_clock_targets.py', '-v'], 'OK')
         after = {p.relative_to(root).as_posix(): sha(p) for p in sources}
         if frozen != after:
             raise RuntimeError('Source drift during tests')

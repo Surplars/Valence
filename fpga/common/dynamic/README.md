@@ -1,7 +1,8 @@
 # Experimental independent native dynamic clocks
 
-**Opt-in only: `boot50-dynamic`. Not board-qualified; no admitted software points;
-no bitstream. Existing static profiles are unchanged.** This is a synthesizable
+**Opt-in only: `boot50-dynamic`. Not board-qualified; no production-qualified
+software points; no bitstream. Explicit software-parameter diagnostic admission
+is separate from qualification. Existing static profiles are unchanged.** This is a synthesizable
 MMCME4_ADV/BUFGCE backend, not a change to a simulator-only clock-rate field.
 The Cloud Icarus tests validate the transaction/state/evidence protocol against
 an explicitly approximate model. They do not validate vendor primitives,
@@ -13,12 +14,13 @@ physical clock quality, CDC/RDC, routed timing, or an integrated SoC.
   instances use DDR UI250. Network, UART50, timer250, DDR250 and debug250 remain
   fixed. `cpu_locked`/`fabric_locked` do not drive common cold reset.
 * Each domain boots with D=10, M=40, O=20 (50 MHz). Cold reset explicitly writes
-  O20 again because primitive RST does not restore the DRP registers.
+  M40/D10/O20 and LOW lock/filter again because primitive RST does not restore
+  the DRP registers.
 * Program/reset affects only that domain's MMCM. It never resets architectural,
   FIFO, drain, epoch, timer or transaction-owner state. Top-level genuine cold
   reset still has its existing system semantics.
 * Two lanes map to `rateBackend_0_*` (CPU) and `rateBackend_1_*` (fabric).
-  The backend consumes `clockEnable`, `isolate`, program(valid/hz/token/fallback),
+  The backend consumes `clockEnable`, `isolate`, program(valid/hz/token/parameters/fallback),
   result.ready. It produces present, gateClosed, gateOpen, locked, resumed,
   fatal, program.ready and result(valid/hz/token/error). `quiesce` is owned by
   platform drain logic, not a primitive reset signal. Four real drain ACKs stay
@@ -44,28 +46,22 @@ physical clock quality, CDC/RDC, routed timing, or an integrated SoC.
   controller must preserve isolation and unresolved owner state. It must not
   translate fatal into an automatic common cold reset or successful retirement.
 
-## Deliberately narrow register program
+## Bounded software parameter program
 
-Only 50 and100 MHz are encoded. These are implementation/test candidates, **not
-production-supported rates**. Other points, including55 MHz, return an error
-without DRP. The 31 CPU/21 fabric candidates in the earlier parameter-feasibility
-receipt are not a register-program whitelist or board qualification.
+The former50/100-only output-divider program is superseded by the bounded
+software M/D/O interface described in [SOFTWARE-PARAMETERS.md](SOFTWARE-PARAMETERS.md).
+D10/M32..62/O3..128, an exact Hz equation, and per-lane CPU300/fabric250 caps
+are checked before any DRP access. Eleven allowed addresses update integer
+counters, LOW lock/filter and power; every reserved-bit RMW is read back.
+M63/64 are explicitly rejected because the official driver and native model
+characterization disagree there; no analog correction is guessed.
 
-Input250 / D10 = PFD25 MHz, M40 gives VCO1000 MHz. Fixed M/D means dependent
-lock/filter configuration stays unchanged. Each operation is read/modify/write/
-readback at power0x27, CLKOUT0 Reg1=0x08, Reg2=0x09:
-
-| Address | Preserve mask | New bits | Meaning |
-| --- | --- | --- | --- |
-| 0x27 | 0x0000 | 0xffff | UltraScale/UltraScale+ power bits |
-| 0x08 | 0x1000 | 0x028a (50) / 0x0145 (100) | high/low counts10/10 or5/5; phase0 |
-| 0x09 | 0x8000 | 0x0000 | no fractional/phase/odd-divide fields |
-
-The independent test monitor rejects any other address (including the incorrect
-7-series power0x28), validates all outgoing fields and reserved masks, and
-therefore protects unchanged M/D/filter/lock words. The model's frequency comes
-from register0x08 rather than the requested frequency. It does **not** accurately
-model MMCM analog behavior, power fields, fractional timing or BUFGCE silicon.
+Initial diagnostic firmware profiles50..150MHz step5 are software tuples, not
+an immutable hardware frequency table or timing qualification. All59 step5
+points10..300MHz have an exact solution in the bounded hardware envelope.
+The independent table/image oracle and register-derived behavioral clock model
+are functional tests, not analog/hardware validation. Raw table rows63/64 remain
+in `software-parameters.json` as exclusion evidence, not accepted profiles.
 
 Official references:
 * [AMD XAPP888 v1.8](https://docs.amd.com/api/khub/documents/ZY272QvKAP3T95qOg6QhDg/content), tables1/2/14/15 and reset/reconfiguration flow.
@@ -105,7 +101,8 @@ checkout with native Vivado2025.2, set `VALENCE_VIVADO_HOME` to its install root
 
 The first compiles **only production RTL plus the vendor testbench and glbl**,
 links unisims_ver, and must emit DYNAMIC_CLOCK_UNISIM_PASS with no error/timing
-violation. It measures both actual vendor primitive outputs at50/100, pulse
+violation or illegal cp/res/lock warning. It measures all21 initial profiles on
+both lanes with independent roundtrips50, bounded parameter edge cases, pulse
 width, close/reopen, independence, and reboot50. No behavioral primitive may be
 present. This does not exercise model-only injected faults or the entire SoC.
 The second uses exact xczu15eg-ffvb1156-2-i, checks actual50 MHz generated clock
@@ -125,11 +122,12 @@ records the actual initial MMCM D10/M40/O20 configuration corresponding to50
 MHz. The constrained300/250 clock report is **not** actual runtime-frequency
 proof and does not replace native measurement. Additional operating-point
 scenarios remain necessary for CDC/hold/phase and physical qualification.
-CPU300/fabric250 are unchanged requirements, not claims that the fixed-M
-register sequence generates those rates. Never use boot50 timing as their
+CPU300/fabric250 are unchanged performance requirements, not a qualification
+of any software-selected runtime operating point. Never use boot50 timing as their
 replacement. Do not false-path CE, owner resets, payload or all inter-domain
 paths to make reports pass. Validate fixed peripheral clocks remain unchanged,
 DRP/DCLK limits, all CE setup/hold and pulse widths, lock/reset recovery and
 source/destination owner CDC/RDC at every admitted operating point. Until those
 proofs and integrated fault/epoch tests pass, board manifest/signoff rejects
-boot50-dynamic and all software point lists remain empty.
+boot50-dynamic. Production-qualified point lists remain empty; explicitly
+selected diagnostic software parameters never acquire qualification flags.

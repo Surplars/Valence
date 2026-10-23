@@ -8,7 +8,7 @@ module drp_stuck_ready_tb;
     native_clock_drp #(.TIMEOUT_CYCLES(12),.DRAIN_CYCLES(24)) dut(
         .aon_clock(aon),.cold_reset(cold),.gate_closed(1'b1),.isolated(1'b1),.clock_enable(1'b0),
         .program_valid(valid),.program_ready(ready),.program_hz(32'd50000000),.program_token(32'd77),
-        .program_fallback(1'b1),.result_valid(rvalid),.result_ready(1'b1),
+        .program_parameters(24'h0a280a),.program_fallback(1'b1),.result_valid(rvalid),.result_ready(1'b1),
         .result_hz(rhz),.result_token(rtoken),.result_error(error),.mmcm_reset(reset_mmcm),.fatal(fatal),
         .drp_address(address),.drp_data(data),.drp_enable(den),.drp_write(dwe),
         .drp_read_data(16'h0000),.drp_ready(drdy),.busy(busy),.drp_outstanding(outstanding));

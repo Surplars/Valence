@@ -18,7 +18,10 @@ object CommonMachinePlatformMain extends App {
     val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
     val profile = CommonCpuProfile.named(args(1), clockProfile)
     val dynamic = clockProfile == "boot50-dynamic"
-    val legalFlags = Set("--programmable", "--vivado-memories")
+    val diagnosticOption = "--diagnostic-rates=" + CommonDiagnosticRateProfile.option
+    val diagnostic = options.contains(diagnosticOption)
+    require(!diagnostic || dynamic, "diagnostic rates require boot50-dynamic")
+    val legalFlags = Set("--programmable", "--vivado-memories", diagnosticOption)
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") || x.startsWith("--clock-profile=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
@@ -61,7 +64,8 @@ object CommonMachinePlatformMain extends App {
         independentDebugClock = profile.independentFixedDomains,
         runtimeDebugAdmission = dynamic, runtimeNetworkAdmission = dynamic,
         runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
-        runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic), Array("--target-dir", output.toString),
+        runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic,
+        diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
             s"--lowering-options=$lowering",
             "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
@@ -72,10 +76,27 @@ object CommonMachinePlatformMain extends App {
     val manifest = ujson.Obj(
         "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
         "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> dynamic,
+        "functionalProfile" -> (if (diagnostic) "boot50-dynamic-software-parameter-diagnostic" else profile.clockProfile),
+        "rateAdmission" -> (if (diagnostic) "explicit-diagnostic-not-qualified" else "qualified-only"),
+        "softwareParameterMode" -> diagnostic,
+        "clockRateAbi" -> (if (diagnostic) 2 else 1),
+        "performanceTelemetryAbi" -> (if (diagnostic) 1 else 0),
+        "hardwareRateWhitelist" -> false,
+        "rateParameterEncoding" -> (if (diagnostic) "D[7:0],M[15:8],O[23:16]; upper bits zero" else "absent"),
+        "rateParameterLimits" -> (if (diagnostic) ujson.Obj("D" -> 10, "minM" -> 32, "maxM" -> 62,
+            "minO" -> 3, "maxO" -> 128, "referenceHz" -> 250000000,
+            "minimumHz" -> 10000000, "maximumCpuHz" -> 300000000, "maximumFabricHz" -> 250000000)
+            else ujson.Obj()),
+        "qualifiedRatePointsHz" -> ujson.Arr(),
+        "diagnosticPointFlags" -> (if (diagnostic) 48 else 0),
+        "performanceTelemetry" -> diagnostic,
+        "frequencyMeasurement" -> (if (diagnostic) "managed-edge-count-over-aon-window" else "absent"),
+        "telemetryBase" -> (if (diagnostic) "0x10080900" else "absent"),
         "independentFixedDomains" -> profile.independentFixedDomains,
         "clockTopology" -> (if (profile.independentFixedDomains) "independent-fixed-v1" else "legacy-ui-fabric"),
         "clockProfilePurpose" -> (if (profile.clockProfile == "performance300-static") "high-frequency-timing-target"
             else if (profile.clockProfile == "boot50-static") "low-frequency-board-candidate"
+            else if (diagnostic) "dynamic-clock-functional-diagnostic-candidate-not-timing-qualified"
             else if (dynamic) "dynamic-clock-integration-candidate-empty-rate-table" else "legacy-production"),
         "abi" -> 1, "romBytes" -> CommonPlatformAbi.romBytes,
         "programmableRom" -> programmable, "vivadoMemories" -> vivado,

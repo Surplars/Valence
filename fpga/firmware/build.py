@@ -144,6 +144,12 @@ def main():
     (output / "bootrom-contract.json").write_text(json.dumps(dict(
         schema=1, external_return_policy="reset_required_unknown_peripheral_ownership", hardware_mcycle_minstret_available=False, ram_verify_cache_capacity_max=32768, ram_verify_cache_ways=[1,2], ram_verify_line_bytes=64, ram_verify_sweep_bytes=65536, ram_verify_sweep_passes=2, ram_verify_two_stage_flush=True, boot_menu=args.boot_menu, image_limit=layout.image_limit-(0x80000 if args.boot_menu else 0),
         diagnostic_boot_scratch_bytes=0x80000 if args.boot_menu else 0, **clocks.metadata(),
+        clock_console=bool(args.boot_menu and clocks.cmu),
+        clock_console_rate_abi=2 if args.boot_menu and clocks.cmu else None,
+        clock_console_telemetry_abi=1 if args.boot_menu and clocks.cmu else None,
+        clock_console_initial_candidates_mhz=list(range(50,151,5)) if args.boot_menu and clocks.cmu else [],
+        clock_console_auto_change=False,
+        clock_console_requires_matching_hardware=True,
         jtag_download=args.jtag_download,
         jtag_download_mmio_base=0x10003000 if args.jtag_download else None,
         jtag_download_autostart=args.jtag_download,

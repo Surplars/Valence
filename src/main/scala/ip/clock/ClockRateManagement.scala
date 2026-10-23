@@ -42,6 +42,8 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
     private val replies = Module(new Queue(new ClockRateReply, 4, pipe = false, flow = false))
     val delivered = RegInit(VecInit(Seq.fill(2)(false.B)))
     val index = RegInit(VecInit(Seq.fill(2)(0.U(16.W))))
+    val stagedParameters = RegInit(VecInit(Seq.fill(2)("h14280a".U(24.W))))
+    val softwareMode = VecInit(domains.map(_.softwareParameters.B))
     io.registers.request.ready := replies.io.enq.ready
     io.registers.response.valid := replies.io.deq.valid
     io.registers.response.bits := replies.io.deq.bits.response
@@ -54,7 +56,8 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
     val writeAllowed = offset === 0.U || offset === 3.U || offset === 6.U
     val narrow = !req.data(63, 32).orR
     val selectedError = Mux(bank, controls(1).io.requestError, controls.head.io.requestError)
-    val indexLegal = Mux(bank, req.data < domains(1).points.size.U, req.data < domains.head.points.size.U)
+    val indexLegal = Mux(softwareMode(bank), !req.data(63, 24).orR,
+        Mux(bank, req.data < domains(1).points.size.U, req.data < domains.head.points.size.U))
     val writeValueLegal = MuxLookup(offset, true.B)(Seq(
         0.U -> narrow, 3.U -> ((req.data & ~ClockRateError.mask.U(64.W)) === 0.U), 6.U -> indexLegal))
     val basicLegal = inRange && aligned && (!req.write || (writeAllowed && writeValueLegal))
@@ -70,6 +73,7 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
         io.status(n).lastSuccess := c.io.lastSuccess
         c.io.endpoint <> io.endpoints(n)
         c.io.submit.bits := req.data(31, 0)
+        c.io.submitParameters.foreach(_ := stagedParameters(n))
         c.io.submit.valid := io.registers.request.fire && bank === n.U && basicLegal && rateWrite
         val localDelivered = replies.io.deq.fire && replies.io.deq.bits.begins && replies.io.deq.bits.domain === n.U
         c.io.responseCommitted := io.sourceRetired(n) && (delivered(n) || localDelivered)
@@ -81,24 +85,34 @@ class ClockRateManagement(domains: Seq[ClockRateParams], base: BigInt = BigInt("
         c.io.clearErrors := Mux(io.registers.request.fire && bank === n.U && basicLegal &&
             req.write && offset === 3.U, req.data(31, 0), 0.U)
         when(io.registers.request.fire && bank === n.U && basicLegal && req.write && offset === 6.U) {
-            index(n) := req.data(15, 0)
+            if (domains(n).softwareParameters) stagedParameters(n) := req.data(23, 0)
+            else index(n) := req.data(15, 0)
         }
         val pointHz = MuxLookup(index(n), 0.U(64.W))(domains(n).points.zipWithIndex.map {
             case (p, i) => i.U -> p.hz.U(64.W)
         })
         val pointFlags = MuxLookup(index(n), 0.U(64.W))(domains(n).points.zipWithIndex.map {
-            case (p, i) => i.U -> p.flags.U(64.W)
+            case (p, i) => i.U -> domains(n).pointFlags(p).U(64.W)
         })
+        val parameterMode = domains(n).softwareParameters
+        val profileData = if (parameterMode) stagedParameters(n).pad(64) else index(n).pad(64)
+        val profileCapability = if (parameterMode) "h000080033e200a0a".U(64.W) else pointHz
+        val profileFlags = if (parameterMode)
+            (if (domains(n).admission == ClockRateAdmission.Diagnostic) 48.U(64.W) else 0.U(64.W)) else pointFlags
+        val descriptor = if (parameterMode)
+            ((BigInt("4352", 16) << 48) | (BigInt(if (domains(n).admission == ClockRateAdmission.Diagnostic) 3 else 1) << 32) | 2).U(64.W)
+            else ((BigInt("4352", 16) << 48) | (BigInt(domains(n).points.size) << 32) | 1).U(64.W)
         val status = Cat(c.io.endpoint.present, c.io.state === 8.U, c.io.lastSuccess,
             c.io.endpoint.gateOpen, c.io.endpoint.gateClosed, c.io.endpoint.locked,
             c.io.endpoint.isolate, c.io.endpoint.quiesce, c.io.endpoint.clockEnable, c.io.actualValid, c.io.busy)
         readData(n) := MuxLookup(offset, 0.U(64.W))(Seq(
             0.U -> c.io.requestedHz.pad(64), 1.U -> Mux(c.io.actualValid, c.io.actualHz.pad(64), 0.U), 2.U -> status.pad(64),
             3.U -> c.io.errors.pad(64), 4.U -> c.io.targetHz.pad(64), 5.U -> domains(n).bootHz.U(64.W),
-            6.U -> index(n).pad(64), 7.U -> pointHz, 8.U -> pointFlags, 9.U -> domains(n).timeoutCycles.U(64.W),
+            6.U -> profileData, 7.U -> profileCapability, 8.U -> profileFlags, 9.U -> domains(n).timeoutCycles.U(64.W),
             10.U -> c.io.completed.pad(64), 11.U -> c.io.state.pad(64), 12.U -> domains(n).maximumHz.U(64.W),
-            13.U -> domains(n).minimumHz.U(64.W), 14.U -> domains(n).stepHz.U(64.W),
-            15.U -> ((BigInt("4352", 16) << 48) | (BigInt(domains(n).points.size) << 32) | 1).U(64.W)))
+            13.U -> domains(n).minimumHz.U(64.W),
+            14.U -> (if (parameterMode) 250000000.U(64.W) else domains(n).stepHz.U(64.W)),
+            15.U -> descriptor))
     }
     replies.io.enq.valid := io.registers.request.fire
     replies.io.enq.bits.response.error := error

@@ -1,7 +1,8 @@
 #ifndef VALENCE_CMU_H
 #define VALENCE_CMU_H
 #include <stdint.h>
-/* Optional CMU V1; do not probe unless the platform advertises its presence.
+/* Rate-control ABI v2 and coherent performance helpers: see valence_clock.h.
+ * Optional CMU V1; do not probe unless the platform advertises its presence.
  * Offsets are 64-bit words; naturally aligned 8/16/32/64-bit accesses are legal.
  * Existing board CPU/TIME/UART/DDR/GMAC resources are protected in this release.
  * CLOCK_ENABLE reports a command, never a measured frequency/physical gate ACK.

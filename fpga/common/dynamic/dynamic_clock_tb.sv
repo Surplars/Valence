@@ -11,25 +11,32 @@ module dynamic_clock_tb;
     native_dynamic_clock_domain #(.DRP_TIMEOUT_CYCLES(32),.DRP_DRAIN_CYCLES(128)) cpu(
         .aon_clock(aon),.common_cold_reset(cold),.source_clock250(source),
         .clock_enable(enable[0]),.isolate(isolated[0]),.program_valid(valid[0]),.program_ready(pready[0]),
-        .program_hz(hz[0]),.program_token(token[0]),.program_fallback(fallback[0]),
+        .program_hz(hz[0]),.program_token(token[0]),.program_parameters(hz[0]==100000000 ? 24'h0a280a : 24'h14280a),.program_fallback(fallback[0]),
         .result_valid(rvalid[0]),.result_ready(ready[0]),.result_hz(rhz[0]),.result_token(rtoken[0]),
         .result_error(rerror[0]),.managed_clock(clk[0]),.present(present[0]),
         .gate_closed(closed[0]),.gate_open(opened[0]),.locked(locked[0]),.resumed(resumed[0]),.fatal(fatal[0]));
     native_dynamic_clock_domain #(.DRP_TIMEOUT_CYCLES(32),.DRP_DRAIN_CYCLES(128)) fabric(
         .aon_clock(aon),.common_cold_reset(cold),.source_clock250(source),
         .clock_enable(enable[1]),.isolate(isolated[1]),.program_valid(valid[1]),.program_ready(pready[1]),
-        .program_hz(hz[1]),.program_token(token[1]),.program_fallback(fallback[1]),
+        .program_hz(hz[1]),.program_token(token[1]),.program_parameters(hz[1]==100000000 ? 24'h0a280a : 24'h14280a),.program_fallback(fallback[1]),
         .result_valid(rvalid[1]),.result_ready(ready[1]),.result_hz(rhz[1]),.result_token(rtoken[1]),
         .result_error(rerror[1]),.managed_clock(clk[1]),.present(present[1]),
         .gate_closed(closed[1]),.gate_open(opened[1]),.locked(locked[1]),.resumed(resumed[1]),.fatal(fatal[1]));
     task check_drp(input [6:0] address,input write,input [15:0] data);
         begin
-            if(address!==7'h27 && address!==7'h08 && address!==7'h09)
-                $fatal(1,"DRP_ADDRESS_CHANGED_M_D_FILTER_LOCK_OR_WRONG_POWER");
-            if(write && ((address==7'h27 && data!==16'hffff) ||
-                (address==7'h08 && data!==16'h128a && data!==16'h1145) ||
-                (address==7'h09 && data!==16'h8000)))
-                $fatal(1,"DRP_EXPECTED_WORD_OR_RESERVED_MASK_MISMATCH");
+            case(address)
+              7'h27: if(write && data!==16'hffff) $fatal(1,"DRP_POWER_MISMATCH");
+              7'h08: if(write && data!==16'h128a && data!==16'h1145) $fatal(1,"DRP_OUTPUT_MISMATCH");
+              7'h09,7'h15: if(write && data!==16'h8000) $fatal(1,"DRP_INTEGER_STATE_MISMATCH");
+              7'h14: if(write && data!==16'h1514) $fatal(1,"DRP_FEEDBACK_MISMATCH");
+              7'h16: if(write && data!==16'hc145) $fatal(1,"DRP_INPUT_MISMATCH");
+              7'h18: if(write && data!==16'h00fa) $fatal(1,"DRP_LOCK1_MISMATCH");
+              7'h19: if(write && data!==16'h7c01) $fatal(1,"DRP_LOCK2_MISMATCH");
+              7'h1a: if(write && data!==16'h7fe9) $fatal(1,"DRP_LOCK3_MISMATCH");
+              7'h4e: if(write && data!==16'h9800) $fatal(1,"DRP_FILTER1_MISMATCH");
+              7'h4f: if(write && data!==16'h0890) $fatal(1,"DRP_FILTER2_MISMATCH");
+              default: $fatal(1,"DRP_ADDRESS_NOT_ALLOWLISTED");
+            endcase
         end
     endtask
     always @(posedge aon)begin
@@ -128,10 +135,10 @@ module dynamic_clock_tb;
         close_domain(1);command(1,100000000,2,0,0);wait_locks();open_domain(1);rates(200,200);
         close_domain(0);command(0,50000000,3,1,0);wait_locks();open_domain(0);rates(100,200);
         close_domain(1);command(1,50000000,4,1,0);wait_locks();open_domain(1);rates(100,100);
-        // Unsupported 5MHz point must not cause even one DRP access.
+        // Hz/parameter mismatch must not cause even one DRP access.
         close_domain(0);old_transactions=cpu.mmcm.transactions;
         command(0,55000000,5,0,1);
-        if(cpu.mmcm.transactions!=old_transactions)$fatal(1,"UNSUPPORTED_RATE_PROGRAMMED");
+        if(cpu.mmcm.transactions!=old_transactions)$fatal(1,"MISMATCHED_RATE_PROGRAMMED");
         open_domain(0);
         // Readback mismatch: accepted operation completed; fallback is safe.
         close_domain(0);cpu.mmcm.corrupt_next_write=1;command(0,100000000,6,0,1);

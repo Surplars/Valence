@@ -8,29 +8,35 @@ import soc.ip.bus._
   * the same upstream owner consumes it. This preserves the rate boundary's
   * end-to-end receipt; it never acknowledges a reply into an intermediate FIFO.
   */
-class ClockRateRegisterRouter(rateBase: BigInt = BigInt("10080800", 16)) extends Module {
-    require(rateBase >= 0 && rateBase % 256 == 0 && rateBase + 256 < (BigInt(1) << 64))
+class ClockRateRegisterRouter(rateBase: BigInt = BigInt("10080800", 16), telemetry: Boolean = false) extends Module {
+    require(rateBase >= 0 && rateBase % 256 == 0 && rateBase + 768 < (BigInt(1) << 64))
     val io = IO(new Bundle {
         val upstream = Flipped(new RegisterPort)
         val legacy = new RegisterPort
         val rates = new RegisterPort
+        val telemetryRegisters = if (telemetry) Some(new RegisterPort) else None
         val idle = Output(Bool())
     })
-    val owners = Module(new Queue(Bool(), 4, pipe = false, flow = false))
+    val owners = Module(new Queue(UInt(2.W), 4, pipe = false, flow = false))
     val request = io.upstream.request
     val selectedRate = request.bits.address >= rateBase.U && request.bits.address < (rateBase + 256).U(65.W)
-    io.legacy.request.bits := request.bits
-    io.rates.request.bits := request.bits
-    io.legacy.request.valid := request.valid && owners.io.enq.ready && !selectedRate
-    io.rates.request.valid := request.valid && owners.io.enq.ready && selectedRate
-    request.ready := owners.io.enq.ready && Mux(selectedRate, io.rates.request.ready, io.legacy.request.ready)
+    val selectedTelemetry = if (telemetry) request.bits.address >= (rateBase + 256).U &&
+        request.bits.address < (rateBase + 768).U(65.W) else false.B
+    val selected = Mux(selectedTelemetry, 2.U, Mux(selectedRate, 1.U, 0.U))
+    val ports = Seq(io.legacy, io.rates) ++ io.telemetryRegisters.toSeq
+    for ((port, n) <- ports.zipWithIndex) {
+        port.request.bits := request.bits
+        port.request.valid := request.valid && owners.io.enq.ready && selected === n.U
+        port.response.ready := owners.io.deq.valid && owners.io.deq.bits === n.U && io.upstream.response.ready
+    }
+    request.ready := owners.io.enq.ready && MuxLookup(selected, false.B)(
+        ports.zipWithIndex.map { case (port, n) => n.U -> port.request.ready })
     owners.io.enq.valid := request.fire
-    owners.io.enq.bits := selectedRate
-    val rateOwner = owners.io.deq.bits
-    io.upstream.response.valid := owners.io.deq.valid && Mux(rateOwner, io.rates.response.valid, io.legacy.response.valid)
-    io.upstream.response.bits := Mux(rateOwner, io.rates.response.bits, io.legacy.response.bits)
-    io.rates.response.ready := owners.io.deq.valid && rateOwner && io.upstream.response.ready
-    io.legacy.response.ready := owners.io.deq.valid && !rateOwner && io.upstream.response.ready
+    owners.io.enq.bits := selected
+    io.upstream.response.valid := owners.io.deq.valid && MuxLookup(owners.io.deq.bits, false.B)(
+        ports.zipWithIndex.map { case (port, n) => n.U -> port.response.valid })
+    io.upstream.response.bits := MuxLookup(owners.io.deq.bits, io.legacy.response.bits)(
+        ports.zipWithIndex.map { case (port, n) => n.U -> port.response.bits })
     owners.io.deq.ready := io.upstream.response.fire
     io.idle := owners.io.count === 0.U && !request.valid
 }

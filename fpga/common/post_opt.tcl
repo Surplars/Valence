@@ -22,6 +22,8 @@ valence_reapply_bscan_cdc u_debug/enabled.user_scan u_debug/enabled.transport [g
 common_cdc::constrain
 source [file join $valence(root) fpga common management_constraints.tcl]
 common_management_constraints
+source [file join [file dirname [info script]] performance_telemetry_constraints.tcl]
+common_performance_telemetry_constraints
 
 common_skew_end
 

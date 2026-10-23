@@ -15,6 +15,7 @@ module dynamic_roundtrip_tb;
   wire  rateBackend_0_program_ready;
   wire  rateBackend_0_program_valid;
   wire [31:0] rateBackend_0_program_bits_hz;
+  wire [23:0] rateBackend_0_program_bits_parameters;
   wire [31:0] rateBackend_0_program_bits_token;
   wire  rateBackend_0_program_bits_fallback;
   wire  rateBackend_0_result_ready;
@@ -34,6 +35,7 @@ module dynamic_roundtrip_tb;
   wire  rateBackend_1_program_ready;
   wire  rateBackend_1_program_valid;
   wire [31:0] rateBackend_1_program_bits_hz;
+  wire [23:0] rateBackend_1_program_bits_parameters;
   wire [31:0] rateBackend_1_program_bits_token;
   wire  rateBackend_1_program_bits_fallback;
   wire  rateBackend_1_result_ready;
@@ -187,6 +189,7 @@ module dynamic_roundtrip_tb;
     .rateBackend_0_program_ready(rateBackend_0_program_ready),
     .rateBackend_0_program_valid(rateBackend_0_program_valid),
     .rateBackend_0_program_bits_hz(rateBackend_0_program_bits_hz),
+    .rateBackend_0_program_bits_parameters(rateBackend_0_program_bits_parameters),
     .rateBackend_0_program_bits_token(rateBackend_0_program_bits_token),
     .rateBackend_0_program_bits_fallback(rateBackend_0_program_bits_fallback),
     .rateBackend_0_result_ready(rateBackend_0_result_ready),
@@ -206,6 +209,7 @@ module dynamic_roundtrip_tb;
     .rateBackend_1_program_ready(rateBackend_1_program_ready),
     .rateBackend_1_program_valid(rateBackend_1_program_valid),
     .rateBackend_1_program_bits_hz(rateBackend_1_program_bits_hz),
+    .rateBackend_1_program_bits_parameters(rateBackend_1_program_bits_parameters),
     .rateBackend_1_program_bits_token(rateBackend_1_program_bits_token),
     .rateBackend_1_program_bits_fallback(rateBackend_1_program_bits_fallback),
     .rateBackend_1_result_ready(rateBackend_1_result_ready),
@@ -348,6 +352,7 @@ module dynamic_roundtrip_tb;
     .program_valid(rateBackend_0_program_valid),
     .program_ready(rateBackend_0_program_ready),
     .program_hz(rateBackend_0_program_bits_hz),
+    .program_parameters(rateBackend_0_program_bits_parameters),
     .program_token(rateBackend_0_program_bits_token),
     .program_fallback(rateBackend_0_program_bits_fallback),
     .result_valid(rateBackend_0_result_valid),
@@ -370,6 +375,7 @@ module dynamic_roundtrip_tb;
     .program_valid(rateBackend_0_program_valid),
     .program_ready(rateBackend_0_program_ready),
     .program_hz(rateBackend_0_program_bits_hz),
+    .program_parameters(rateBackend_0_program_bits_parameters),
     .program_token(rateBackend_0_program_bits_token),
     .program_fallback(rateBackend_0_program_bits_fallback),
     .result_valid(rateBackend_0_result_valid),
@@ -409,7 +415,7 @@ module dynamic_roundtrip_tb;
     .cmu_actual_valid(dut.peripherals.rateCmu.rates.controls_0.io_actualValid),
     .cmu_success(dut.peripherals.rateCmu.rates.controls_0.io_lastSuccess)
   );
-  native_dynamic_clock_domain backend_1 (
+  native_dynamic_clock_domain #(.MAX_PROGRAM_HZ(250000000)) backend_1 (
     .aon_clock(alwaysOnClock),
     .common_cold_reset(commonColdReset),
     .source_clock250(sourceClock250),
@@ -419,6 +425,7 @@ module dynamic_roundtrip_tb;
     .program_valid(rateBackend_1_program_valid),
     .program_ready(rateBackend_1_program_ready),
     .program_hz(rateBackend_1_program_bits_hz),
+    .program_parameters(rateBackend_1_program_bits_parameters),
     .program_token(rateBackend_1_program_bits_token),
     .program_fallback(rateBackend_1_program_bits_fallback),
     .result_valid(rateBackend_1_result_valid),
@@ -441,6 +448,7 @@ module dynamic_roundtrip_tb;
     .program_valid(rateBackend_1_program_valid),
     .program_ready(rateBackend_1_program_ready),
     .program_hz(rateBackend_1_program_bits_hz),
+    .program_parameters(rateBackend_1_program_bits_parameters),
     .program_token(rateBackend_1_program_bits_token),
     .program_fallback(rateBackend_1_program_bits_fallback),
     .result_valid(rateBackend_1_result_valid),
@@ -496,13 +504,15 @@ module dynamic_roundtrip_tb;
   wire [31:0] completed0=dut.peripherals.rateCmu.rates.controls_0.io_completed;
   wire [31:0] completed1=dut.peripherals.rateCmu.rates.controls_1.io_completed;
   reg [63:0] done_pc=0, fail_pc=0, last_retired_pc=0;
-  integer cycles=0, retired_instructions=0, mmioWrites=0, mmioRequests=0, mmioReplies=0;
+  integer cycles=0, retired_instructions=0, stagedWrites=0, mmioWrites=0, mmioRequests=0, mmioReplies=0;
   integer rawTxEdges=0, rawRxEdges=0, fixed250Edges=0, bootCycle=0;
   reg finished=0;
   reg boot_smoke=0;
+  reg telemetry_smoke=0;
   reg [31:0] rom0_first=0,rom1_first=0;
   initial begin
     boot_smoke=$test$plusargs("boot_smoke");
+    telemetry_smoke=$test$plusargs("telemetry_smoke");
     if(!$value$plusargs("rom0_first=%h",rom0_first) || !$value$plusargs("rom1_first=%h",rom1_first))
       $fatal(1,"ROUNDTRIP_REQUIRED_ROM_WORDS");
     #0.001;
@@ -520,7 +530,7 @@ module dynamic_roundtrip_tb;
     repeat(20) @(negedge alwaysOnClock);
     commonColdReset=0;
     // Cold-start boot hold only. All real managed and fixed clocks keep running.
-    if(boot_smoke) repeat(100) @(negedge alwaysOnClock);
+    if(boot_smoke || telemetry_smoke) repeat(100) @(negedge alwaysOnClock);
     else wait(phyConfigured && mediaReady);
     @(negedge alwaysOnClock);
     io_bootEnable=1; bootCycle=cycles;
@@ -529,21 +539,61 @@ module dynamic_roundtrip_tb;
   always @(posedge rawTxClock) if(!commonColdReset) rawTxEdges=rawTxEdges+1;
   always @(posedge rawRxClock) if(!commonColdReset) rawRxEdges=rawRxEdges+1;
   always @(posedge sourceClock250) if(!commonColdReset) fixed250Edges=fixed250Edges+1;
-  // ROM-only guest: accept address/data pins but make unexpected DDR traffic fatal.
-  // No fake DDR completion is supplied, and no normal packet is injected.
-  always @(posedge ddrClock) if(!commonColdReset) begin
-    if(io_ddrAxi_aw_valid || io_ddrAxi_ar_valid || io_ddrAxi_w_valid)
-      $fatal(1,"ROUNDTRIP_UNEXPECTED_DDR_TRAFFIC aw=%b ar=%b w=%b awaddr=%h araddr=%h",io_ddrAxi_aw_valid,io_ddrAxi_ar_valid,io_ddrAxi_w_valid,io_ddrAxi_aw_bits_addr,io_ddrAxi_ar_bits_addr);
+  // Independent, bounded read-only AXI memory for six unique guest cache lines.
+  // It responds only to actual accepted AR owners, preserves ID/len/last, and
+  // holds every R beat under backpressure. No monitor or CPU event is injected.
+  integer ddrReads=0, ddrBeats=0, ddrBeat=0, ddrWait=0;
+  reg ddrReadBusy=0;
+  reg [3:0] ddrReadId=0;
+  reg [7:0] ddrReadLen=0;
+  always @(posedge ddrClock) begin
+    if(commonColdReset) begin
+      ddrReadBusy<=0; io_ddrAxi_ar_ready<=1; io_ddrAxi_r_valid<=0;
+      ddrReads=0; ddrBeats=0; ddrWait<=0;
+    end else begin
+      if(io_ddrAxi_aw_valid || io_ddrAxi_w_valid)
+        $fatal(1,"ROUNDTRIP_UNEXPECTED_DDR_WRITE");
+      if(io_ddrAxi_ar_valid && io_ddrAxi_ar_ready) begin
+        if(ddrReadBusy || ddrReads>=6 || io_ddrAxi_ar_bits_addr!==ddrReads*64 ||
+           io_ddrAxi_ar_bits_len!==7 || io_ddrAxi_ar_bits_size!==3 || io_ddrAxi_ar_bits_burst!==1)
+          $fatal(1,"ROUNDTRIP_DDR_READ_OWNER address=%h count=%0d len=%0d",io_ddrAxi_ar_bits_addr,ddrReads,io_ddrAxi_ar_bits_len);
+        ddrReadBusy<=1; io_ddrAxi_ar_ready<=0;
+        ddrReadId<=io_ddrAxi_ar_bits_id; ddrReadLen<=io_ddrAxi_ar_bits_len;
+        ddrBeat<=0; ddrWait<=9; ddrReads=ddrReads+1;
+      end
+      if(ddrReadBusy && !io_ddrAxi_r_valid) begin
+        if(ddrWait>0) ddrWait<=ddrWait-1;
+        else begin
+          io_ddrAxi_r_valid<=1; io_ddrAxi_r_bits_id<=ddrReadId;
+          io_ddrAxi_r_bits_data<=64'h13579bdf2468ace0;
+          io_ddrAxi_r_bits_resp<=0; io_ddrAxi_r_bits_last<=(ddrBeat==ddrReadLen);
+        end
+      end
+      if(io_ddrAxi_r_valid && io_ddrAxi_r_ready) begin
+        ddrBeats=ddrBeats+1; io_ddrAxi_r_valid<=0;
+        if(ddrBeat==ddrReadLen) begin ddrReadBusy<=0; io_ddrAxi_ar_ready<=1; end
+        else begin ddrBeat<=ddrBeat+1; ddrWait<=2; end
+      end
+    end
   end
+  integer telemetryChecks=0;
   always @(posedge fabricClock) if(!commonColdReset) begin
     if(dut.peripherals.rateCmu.registers_request_valid && dut.peripherals.rateCmu.registers_request_ready) begin
       mmioRequests=mmioRequests+1;
       if(dut.peripherals.rateCmu.registers_request_bits_write) begin
-        if(mmioWrites>=4 || dut.peripherals.rateCmu.registers_request_bits_address!==((mmioWrites<2)?64'h10080800:64'h10080880) ||
+        if(dut.peripherals.rateCmu.registers_request_bits_address[6:0]==7'h30) begin
+          if(stagedWrites!=mmioWrites || stagedWrites>=4 ||
+             dut.peripherals.rateCmu.registers_request_bits_address!==((stagedWrites<2)?64'h10080830:64'h100808b0) ||
+             dut.peripherals.rateCmu.registers_request_bits_data!==((stagedWrites%2==0)?64'h0a280a:64'h14280a))
+            $fatal(1,"ROUNDTRIP_STAGED_PARAMETER_ORACLE");
+          stagedWrites=stagedWrites+1;
+        end else begin
+        if(stagedWrites!=mmioWrites+1 || mmioWrites>=4 || dut.peripherals.rateCmu.registers_request_bits_address!==((mmioWrites<2)?64'h10080800:64'h10080880) ||
            dut.peripherals.rateCmu.registers_request_bits_data!==((mmioWrites%2==0)?64'd100000000:64'd50000000) ||
            dut.peripherals.rateCmu.registers_request_bits_size!==3 || dut.peripherals.rateCmu.registers_request_bits_byteEnable!==8'hff)
           $fatal(1,"ROUNDTRIP_GUEST_MMIO_WRITE_ORACLE index=%0d address=%h data=%h",mmioWrites,dut.peripherals.rateCmu.registers_request_bits_address,dut.peripherals.rateCmu.registers_request_bits_data);
         mmioWrites=mmioWrites+1;
+        end
       end
     end
     if(dut.peripherals.rateCmu.registers_response_valid && dut.peripherals.rateCmu.registers_response_ready) begin
@@ -565,6 +615,8 @@ module dynamic_roundtrip_tb;
       $fatal(1,"ROUNDTRIP_FIRST_RETIRE_DEADLINE cpuReset=%b cpuLink=%b fabricLink=%b cpuCycles=%h",dut._cpuRelease_resetOut,io_cpuLinkReady,io_fabricLinkReady,io_cpuCycles);
     if(cycles%25000==0)
       $display("ROUNDTRIP_PROGRESS time_ns=%0t boot=%b phy=%0d media=%b retired=%0d last_pc=%h cpu_state=%0d fabric_state=%0d cpu_done=%0d fabric_done=%0d epoch_busy=%b",$time,io_bootEnable,phyTransactions,mediaReady,retired_instructions,last_retired_pc,dut.peripherals.rateCmu.rates.controls_0.io_state,dut.peripherals.rateCmu.rates.controls_1.io_state,completed0,completed1,dut.runtime.io_busy);
+    if(cycles%25000==0 && io_bootEnable)
+      $display("ROUNDTRIP_TELEMETRY_DIAGNOSTIC seq=%0d valid=%b retire=%0d scalar=%0d data_A=%0d refill_lines=%0d DDR_AR=%0d DDR_R=%0d",dut.monitor.bank.sequence_0,dut.monitor.bank.valid_0,dut.monitor.bank.snapshot_0_1,dut.monitor.bank.snapshot_0_2,dut.monitor.bank.snapshot_0_3,dut.monitor.bank.snapshot_0_5,dut.monitor.bank.snapshot_1_1,dut.monitor.bank.snapshot_1_5);
     if(cycles%5000==0 && dut.runtime.io_busy)
       $display("ROUNDTRIP_DRAIN_PROGRESS time_ns=%0t cpu_held=%b fabric_held=%b fabric_idle=%b control_idle=%b fixed_idle=%b close_proof=%h mac_park_request=%b mac_mdio_drained=%b mac_phy_parked=%b phy_state=%0d phy_operation=%0d",$time,dut.runtime.io_cpuHeld_valid,dut.runtime.io_fabricHeld_valid,dut.runtime.io_fabricAllObligationsIdle,dut.runtime.io_fabricControlOwnersIdle,dut.runtime.io_fabricFixedOwnersIdle,dut.runtime.io_closeProof,dut.peripherals.gmac.controlPark_request,dut.peripherals.gmac.controlPark_mdioDrained,dut.peripherals.gmac.controlPark_phyParked,dut.peripherals.gmac.phy.state,dut.peripherals.gmac.phy.operation);
   end
@@ -577,16 +629,29 @@ module dynamic_roundtrip_tb;
         $display("BOOT_SMOKE_PASS first_pc=%h instruction=%h CPU_cycles=%0d cpuLink=%b fabricLink=%b no frequency qualification",pc,io_retire_0_bits_instruction,io_cpuCycles,io_cpuLinkReady,io_fabricLinkReady);
         $finish;
       end
+      if(io_retire_0_bits_instruction===32'h5a100013) begin
+        telemetryChecks=telemetryChecks+1;
+        $display("ROUNDTRIP_GUEST_TELEMETRY_CHECK index=%0d actual_ddr_reads=%0d actual_ddr_beats=%0d",telemetryChecks,ddrReads,ddrBeats);
+        if(telemetry_smoke) begin
+          if(telemetryChecks!=1 || ddrReads!=1 || ddrBeats!=8 || mmioWrites!=0 ||
+             check_0.programs!=0 || check_1.programs!=0)
+            $fatal(1,"TELEMETRY_SMOKE_WRONG_SCOPE");
+          $display("TELEMETRY_SMOKE_PASS ordinary_guest_MMIO=1 DDR_lines=1 DDR_beats=8 actual_refill_counter_positive=1 no_rate_transition=1 no_PHY_or_drain_qualification=1");
+          $finish;
+        end
+      end
       if(pc===fail_pc) $fatal(1,"ROUNDTRIP_GUEST_FAIL_PC pc=%h",pc);
       if(pc===done_pc && !finished) begin
         finished=1;
-        if(completed0!==2 || completed1!==2 || mmioWrites!=4 || mmioReplies!=mmioRequests ||
+        if(telemetryChecks!=6 || ddrReads!=6 || ddrBeats!=48 || ddrReadBusy ||
+           completed0!==2 || completed1!==2 || mmioWrites!=4 || stagedWrites!=4 || mmioReplies!=mmioRequests ||
            check_0.programs!=2 || check_1.programs!=2 || check_0.results!=2 || check_1.results!=2 ||
            check_0.retirements!=2 || check_1.retirements!=2 || check_0.checked_periods<8 || check_1.checked_periods<8 ||
            !phyConfigured || phyNoAcks!=0 || !mediaReady || dut.runtime.io_busy ||
            dut.peripherals.rateCmu.rates.controls_0.io_actualHz!==32'd50000000 ||
            dut.peripherals.rateCmu.rates.controls_1.io_actualHz!==32'd50000000)
           $fatal(1,"ROUNDTRIP_INCOMPLETE_SUCCESS_LEDGER");
+        $display("ROUNDTRIP_TELEMETRY_PASS snapshots=6 guest_MMIO=1 actual_DDR_reads=6 actual_DDR_beats=48 real_retire_cache_and_memory_events=1");
         $display("ROUNDTRIP_PASS CPU50->100->50 FABRIC50->100->50 programs=4 results=4 real_epoch_retirements=4 mmio_writes=%0d mmio_requests=%0d mmio_replies=%0d retired=%0d elapsed_ns=%0t rawMAC_edges=%0d RXC_edges=%0d fixed250_edges=%0d",mmioWrites,mmioRequests,mmioReplies,retired_instructions,$time,rawTxEdges,rawRxEdges,fixed250Edges);
         $finish;
       end
@@ -618,6 +683,7 @@ module dynamic_roundtrip_lane_checker #(parameter integer LANE=0) (
   input wire clock_enable, isolate, gate_closed, gate_open, locked, resumed, fatal,
   input wire program_valid, program_ready, program_fallback,
   input wire [31:0] program_hz, program_token,
+  input wire [23:0] program_parameters,
   input wire result_valid, result_ready, result_error,
   input wire [31:0] result_hz, result_token,
   input wire request_valid, request_ready,
@@ -683,7 +749,8 @@ module dynamic_roundtrip_lane_checker #(parameter integer LANE=0) (
         $fatal(1,"ROUNDTRIP_UNOWNED_PROGRAM lane=%0d",LANE);
       if(!gate_closed || clock_enable || !isolate || program_fallback)
         $fatal(1,"ROUNDTRIP_PROGRAM_WITHOUT_NORMAL_CLOSED_ISOLATED_GATE lane=%0d",LANE);
-      if(program_hz!==((programs==0)?32'd100000000:32'd50000000))
+      if(program_hz!==((programs==0)?32'd100000000:32'd50000000) ||
+         program_parameters!==((programs==0)?24'h0a280a:24'h14280a))
         $fatal(1,"ROUNDTRIP_WRONG_PROGRAM_ORDER lane=%0d count=%0d hz=%0d",LANE,programs,program_hz);
       pending_hz=program_hz; pending_program_token=program_token;
       programs=programs+1; program_pending=1; edges_after_program=0; previous_edge=0.0;

@@ -8,6 +8,8 @@
 // This new logic is NOT physically qualified merely because its1G ancestor was.
 module native_rgmii_trispeed_quarter #(
     parameter RX_DATA_DELAY_PS = 1100,
+    // -1 retains the original single delay. Other values opt into equal-stage TIME cascade.
+    parameter integer RX_CASCADE_STAGE_DELAY_PS = -1,
     parameter LOCAL_PAD_RESET_RELEASE = 0,
     parameter REGISTER_SELECTED_HALF = 0
 )(
@@ -23,6 +25,8 @@ module native_rgmii_trispeed_quarter #(
     output wire delay_ready
 );
     initial begin
+        if(RX_CASCADE_STAGE_DELAY_PS < -1 || RX_CASCADE_STAGE_DELAY_PS > 1100)
+            $fatal(1,"RGMII cascade stage delay outside supported UltraScale+ range");
         if(RX_DATA_DELAY_PS<0 || RX_DATA_DELAY_PS>1100)
             $fatal(1,"RGMII fixed input delay outside supported UltraScale+ range");
     end
@@ -87,13 +91,29 @@ module native_rgmii_trispeed_quarter #(
     wire [4:0] pad={rgmii_rx_control,rgmii_rx_data};
     wire [4:0] delayed;
     for(genvar n=0;n<5;n=n+1) begin: receive
+        wire cascade, returned;
+        // Preserve input_delay and input_ddr names for exact physical/timing queries.
+        // This same-IOB ODELAY has been checked free on all five native RX sites.
+        if (RX_CASCADE_STAGE_DELAY_PS >= 0) begin: extra_delay
+            (* IODELAY_GROUP="VALENCE_RGMII" *)
+            ODELAYE3 #(.CASCADE("SLAVE_END"), .DELAY_FORMAT("TIME"),
+                .DELAY_TYPE("FIXED"), .DELAY_VALUE(RX_CASCADE_STAGE_DELAY_PS),
+                .REFCLK_FREQUENCY(500.0), .SIM_DEVICE("ULTRASCALE_PLUS")) output_delay (
+                .ODATAIN(1'b0), .DATAOUT(returned), .CASC_IN(cascade),
+                .CASC_OUT(), .CASC_RETURN(1'b0), .CLK(1'b0), .CE(1'b0),
+                .INC(1'b0), .LOAD(1'b0), .CNTVALUEIN(9'b0), .CNTVALUEOUT(),
+                .RST(delay_reset), .EN_VTC(1'b1));
+        end else begin: single_delay
+            assign returned = 1'b0;
+        end
         (* IODELAY_GROUP="VALENCE_RGMII" *)
-        IDELAYE3 #(.DELAY_FORMAT("TIME"), .DELAY_TYPE("FIXED"), .DELAY_SRC("IDATAIN"),
-            .DELAY_VALUE(RX_DATA_DELAY_PS), .REFCLK_FREQUENCY(500.0),
+        IDELAYE3 #(.CASCADE(RX_CASCADE_STAGE_DELAY_PS < 0 ? "NONE" : "MASTER"),
+            .DELAY_FORMAT("TIME"), .DELAY_TYPE("FIXED"), .DELAY_SRC("IDATAIN"),
+            .DELAY_VALUE(RX_CASCADE_STAGE_DELAY_PS < 0 ? RX_DATA_DELAY_PS : RX_CASCADE_STAGE_DELAY_PS), .REFCLK_FREQUENCY(500.0),
             .SIM_DEVICE("ULTRASCALE_PLUS")) input_delay (
             .IDATAIN(pad[n]), .DATAIN(1'b0), .DATAOUT(delayed[n]), .CLK(1'b0),
             .CE(1'b0), .INC(1'b0), .LOAD(1'b0), .CNTVALUEIN(9'b0), .CNTVALUEOUT(),
-            .RST(delay_reset), .EN_VTC(1'b1), .CASC_IN(1'b0), .CASC_RETURN(1'b0), .CASC_OUT());
+            .RST(delay_reset), .EN_VTC(1'b1), .CASC_IN(1'b0), .CASC_RETURN(returned), .CASC_OUT(cascade));
         IDDRE1 #(.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), .IS_CB_INVERTED(1'b1)) input_ddr (
             .C(rx_clock), .CB(rx_clock), .D(delayed[n]), .R(rx_reset),
             .Q1(rx_rise[n]), .Q2(rx_fall[n]));

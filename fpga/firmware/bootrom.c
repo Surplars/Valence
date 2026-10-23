@@ -628,6 +628,8 @@ static void launch_downloaded_image(void) {
     uart_init();tui_result("External image returned; board reset required.");
     puts_uart("\r\nAPP RETURN\r\n");
 }
+#include "boot_clock_console.h"
+
 static void boot_loop(void) {
     for (;;) {
 #ifdef BOOT_MENU
@@ -663,6 +665,9 @@ static void boot_loop(void) {
             if(c=='k'){menu_color^=1;show_menu();continue;}
             if(c=='h'){show_menu();continue;}
             if(c=='v'||c=='c'||c=='C'||c=='b'||c=='m'||c=='t'||c=='u'||c=='i')break;
+#if BOARD_CMU_CLOCKS
+            if(c=='f')break;
+#endif
 #endif
             if(c=='g'||c=='r'||c=='4'){
                 tui_result("Manual launch removed. Download a fresh image to boot.");
@@ -693,6 +698,9 @@ static void boot_loop(void) {
         if(c=='j'){tui_result("JTAG download failed or cancelled; see transcript.");jtag_download();continue;}
 #endif
 #ifdef BOOT_MENU
+        #if BOARD_CMU_CLOCKS
+        if(c=='f'){clock_console();tui_result("Clock console closed; see transcript.");continue;}
+#endif
         if(c=='i'){monitor_info();tui_result("Information printed above; no image launched.");continue;}
         if(c=='v'){
             tui_result(verify_image()?"RAM image verified; no manual launch available.":"No trusted image, or verification failed/cancelled.");continue;

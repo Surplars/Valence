@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import soc.ip.axi.{Axi4ClockDomainBoundary, Axi4MemoryPort}
 import soc.ip.bus.{CdcLevel, CdcResetRelease}
-import soc.ip.clock.{ClockRateBackendPort, ClockRateParams, ManagedPeripheralBank}
+import soc.ip.clock.{ClockRateAdmission, ClockRateBackendPort, ClockRateParams, ClockRatePoint, ClockPerformanceTelemetry, ManagedPeripheralBank}
 import soc.ip.debug.{DebugDmiClockBoundary, DebugDmiPort}
 import soc.ip.timer.FixedTimebaseBoundary
 
@@ -53,7 +53,10 @@ class CommonMachinePlatform(
     runtimeFixedMac: Boolean = false,
     runtimeRateControl: Boolean = false,
     externalIrqsAbsent: Boolean = false,
-    testOnlyRateParams: Option[Seq[ClockRateParams]] = None
+    testOnlyRateParams: Option[Seq[ClockRateParams]] = None,
+    diagnosticRateAdmission: Boolean = false,
+    performanceTelemetry: Boolean = false,
+    telemetryWindowCycles: Int = 50000
 ) extends RawModule {
     require(!runtimeDebugAdmission || (profile.kind == "i1" && independentDebugClock),
         "runtime debug isolation requires I1 and an explicit fixed debug clock; A1 is unsupported")
@@ -68,7 +71,15 @@ class CommonMachinePlatform(
         "fixed MAC integration requires the complete existing control/network/fixed epoch path")
     require(!runtimeRateControl || (runtimeFixedMac && !programmable),
         "dynamic rate integration needs all real owners and no unhandshaked ROM programming source")
+    require(!performanceTelemetry || runtimeRateControl)
     require(testOnlyRateParams.isEmpty || runtimeRateControl)
+    require(!diagnosticRateAdmission || (runtimeRateControl && testOnlyRateParams.isEmpty &&
+        profile.clockProfile == "boot50-dynamic"), "diagnostic rates require the explicit real dynamic platform")
+    val configuredRateDomains: Seq[ClockRateParams] = testOnlyRateParams.getOrElse(
+        if (diagnosticRateAdmission) CommonDiagnosticRateProfile.domains
+        else if (runtimeRateControl) Seq(ClockRateParams(maximumHz = 300000000L),
+            ClockRateParams(maximumHz = 250000000L))
+        else Seq(ClockRateParams(), ClockRateParams(maximumHz = 150000000L)))
     require(profile.clockProfile != "boot50-dynamic" || runtimeRateControl)
     private val boundary = if (runtimeDebugAdmission) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
@@ -341,11 +352,8 @@ class CommonMachinePlatform(
         profile.uartBaud, hardwareClocks, networkDmaConfig = profile.fpga.network,
         triSpeedEthernet = true, triSpeedTxFrameSlots = 2, runtimeAdmission = runtimeNetworkAdmission,
         runtimeControlPark = runtimeControlQualification, runtimeFixedMac = runtimeFixedMac,
-        runtimeRateControl = runtimeRateControl,
-        sourceClockHz = profile.fabricHz, rateDomains = Some(testOnlyRateParams.getOrElse(
-            if (runtimeRateControl) Seq(ClockRateParams(maximumHz = 300000000L),
-                ClockRateParams(maximumHz = 250000000L))
-            else Seq(ClockRateParams(), ClockRateParams(maximumHz = 150000000L)))))
+        runtimeRateControl = runtimeRateControl, performanceTelemetry = performanceTelemetry,
+        sourceClockHz = profile.fabricHz, rateDomains = Some(configuredRateDomains))
     val peripherals = Module(buildPeripheralBank())
     if (runtimeFixedMac) {
         val a = fixedMacSequence.get
@@ -545,8 +553,44 @@ class CommonMachinePlatform(
     io.fabricCycles := withClockAndReset(fabricClock, fabricRelease.resetOut) {
         val cycles = RegInit(0.U(64.W)); cycles := cycles + 1.U; cycles
     }
+    if (performanceTelemetry) {
+        val monitor = Module(new ClockPerformanceTelemetry(windowCycles = telemetryWindowCycles))
+        monitor.sourceClock := fabricClock; monitor.alwaysOnClock := alwaysOnClock
+        monitor.managedClocks(0) := cpuClock; monitor.managedClocks(1) := fabricClock
+        monitor.commonReset := commonColdReset
+        monitor.registers <> peripherals.telemetryRegisters.get
+        peripherals.telemetrySourceIdle.get := monitor.sourceIdle
+        peripherals.telemetryAonIdle.get := monitor.aonIdle
+        for (n <- 0 until 2) {
+            // A busy transition invalidates its complete measurement window.
+            // Status ownership is AON; no asynchronous control enters the meter.
+            monitor.invalidate(n) := peripherals.rateStatus.get(n).busy || rateFatal.get
+        }
+        val data = crossing.cpu.coherent(1)
+        val scalar = crossing.cpu.scalar(1)
+        val refill = crossing.cpu.lineGrant(1)
+        // I1 and A1 receive cache-line data here, not on D (which carries ReleaseAck).
+        // Count one actual 64-byte refill per edge; never OR/sum concurrent D acknowledgements.
+        monitor.events(0) := VecInit(Seq(io.retire(0).valid, scalar.request.fire,
+            data.a.fire, data.a.valid && !data.a.ready, refill.fire,
+            refill.valid && !refill.ready, !io.retire(0).valid)).asUInt
+        val memory = fabric.io.ddrAxi.get
+        monitor.events(1) := VecInit(Seq(memory.ar.fire, memory.ar.valid && !memory.ar.ready,
+            memory.aw.fire, memory.aw.valid && !memory.aw.ready, memory.r.fire,
+            memory.w.fire, memory.r.valid && !memory.r.ready)).asUInt
+    }
     io.timeSnapshot := crossing.cpu.timeSnapshot
     io.cpuLinkReady := crossing.cpuLinkReady; io.fabricLinkReady := crossing.fabricLinkReady
     io.cpuTransportEmpty := crossing.cpuTransportEmpty; io.fabricTransportEmpty := crossing.fabricTransportEmpty
     io.maintenancePending := fabric.io.maintenancePending; io.homeDrained := fabric.io.homeDrained
+}
+
+/** Firmware owns profiles; hardware validates each submitted integer tuple.
+  * This policy never asserts physical or SoC timing qualification.
+  */
+object CommonDiagnosticRateProfile {
+    val option = "software-parameters"
+    val domains: Seq[ClockRateParams] = Seq(300000000L, 250000000L).map(max =>
+        ClockRateParams(minimumHz = 10000000L, maximumHz = max, stepHz = 1L,
+            admission = ClockRateAdmission.Diagnostic, softwareParameters = true))
 }

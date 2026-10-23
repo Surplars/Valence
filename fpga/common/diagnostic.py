@@ -19,7 +19,8 @@ DYNAMIC_OVERLAYS = {
         'diagnostic.py', 'diagnostic.tcl', 'test_diagnostic.py', 'board_inputs.py', 'test_board_inputs.py',
         'common_cdc.tcl', 'post_synth.tcl', 'post_opt.tcl', 'media_constraints.tcl', 'board_audit.tcl',
         'resume_diagnostic.py', 'resume_diagnostic.tcl', 'dynamic/performance_targets.tcl',
-        'test_dynamic_clock_targets.py', 'test_dynamic_diagnostic.py')
+        'test_dynamic_clock_targets.py', 'test_dynamic_diagnostic.py',
+        'performance_telemetry_constraints.tcl', 'test_performance_telemetry_constraints.py')
 }
 HELPERS = ('diagnostic.py', 'diagnostic.tcl', 'run-diagnostic.ps1', 'diagnostic-baseline.json')
 OLD_DYNAMIC_MIG = '278fef82fc53811b462514f4859aa455897f6e362e05f8d992433a9b54ea6330'
@@ -59,12 +60,39 @@ def dynamic_mig(root, m):
                      'native MIG report changed or omitted: '+path)
 
 
+def software_parameter_delivery(root, m):
+    """Fresh reviewed source inventory. No old-baseline overlays or hash relabeling."""
+    name = m['roles'].get('source_inventory')
+    gate.require(name == 'delivery/software-parameters/source-inputs.json' and name in m['inputs'],
+                 'missing explicit software-parameter source inventory')
+    gate.require(m['inputs'][name] == gate.sha(gate.file_at(root, name)), 'new source inventory digest mismatch')
+    inventory = gate.read(gate.file_at(root, name))
+    commit = m.get('source_commit', '')
+    gate.require(re.fullmatch('[0-9a-f]{40}', commit) and
+                 inventory.get('schema') == 'common-software-parameter-source-inventory-v1' and
+                 inventory.get('source_commit') == commit and m.get('production_source_baseline') == commit and
+                 inventory.get('status') == 'REVIEWED_STRUCTURAL_ONLY' and
+                 inventory.get('physical_qualified') is False and inventory.get('board_qualified') is False,
+                 'new source inventory must identify the actual reviewed unqualified candidate')
+    files = inventory.get('files_sha256', {})
+    required = {p for p in m['inputs'] if any(p.startswith(prefix + '/') for prefix in gate.ROOTS)}
+    required |= set(board_inputs.PUBLIC_INPUTS) | set(board_inputs.BOARD_RTL)
+    required |= {p for p in m['inputs'] if p.startswith('fpga/firmware/')}
+    gate.require(files and set(files) == required, 'new reviewed source inventory closure mismatch')
+    for path, digest in files.items():
+        gate.require(m['inputs'].get(path) == digest and gate.sha(gate.file_at(root, path)) == digest,
+                     'new reviewed source input mismatch: ' + path)
+    return dict(commit=commit, inputs=files)
+
+
 def dynamic_delivery(root, m):
     # The actual published commit and the immutable production baseline are
     # distinct. A fresh export may have a different aggregate Git history;
     # every delivered source/input byte must still match the reviewed inventory.
     gate.require(re.fullmatch(r'[0-9a-f]{40}', m.get('source_commit', '')) is not None,
                  'actual published delivery commit required')
+    if m.get('configuration', {}).get('functional_profile') == board_inputs.SOFTWARE_PARAMETER_PROFILE:
+        return software_parameter_delivery(root, m)
     name = m['roles'].get('source_inventory')
     gate.require(name == 'delivery/boot50-dynamic-r25/source-inputs.json', 'missing reviewed delivery inventory')
     gate.require(m['inputs'].get(name) == gate.sha(gate.file_at(root, name)), 'delivery inventory changed')
@@ -85,10 +113,13 @@ def check(path):
                  'diagnostic cannot claim integrated functional qualification')
     c = m['configuration']
     dynamic = c.get('clock_profile') == 'boot50-dynamic'
-    baseline_commit = DYNAMIC_BASELINE if dynamic else BASELINE
+    software_parameters = c.get('functional_profile') == board_inputs.SOFTWARE_PARAMETER_PROFILE
+    gate.require(not software_parameters or dynamic, 'software parameters require dynamic physical profile')
+    baseline_commit = m.get('source_commit') if software_parameters else DYNAMIC_BASELINE if dynamic else BASELINE
+    reviewed_candidate = None
     if dynamic:
         gate.require(m.get('production_source_baseline') == baseline_commit, 'unreviewed production source baseline')
-        dynamic_delivery(root, m)
+        reviewed_candidate = dynamic_delivery(root, m)
     else:
         gate.require(m.get('source_commit') == baseline_commit, 'unreviewed diagnostic source baseline')
     gate.require(c['cpu'] == 'i1' and c.get('clock_profile') in ('performance300-static', 'boot50-dynamic'), 'only reviewed I1 diagnostic profiles')
@@ -109,15 +140,15 @@ def check(path):
             gate.no_links(p)
             if p.is_file() and '__pycache__' not in p.parts:
                 gate.require(p.relative_to(root).as_posix() in m['inputs'], 'unfrozen source: '+str(p))
-    baseline = gate.read(gate.file_at(root, 'fpga/common/dynamic/diagnostic-baseline.json' if dynamic else 'fpga/common/diagnostic-baseline.json'))
+    baseline = reviewed_candidate if software_parameters else gate.read(gate.file_at(root, 'fpga/common/dynamic/diagnostic-baseline.json' if dynamic else 'fpga/common/diagnostic-baseline.json'))
     gate.require(baseline['commit'] == baseline_commit, 'wrong baseline inventory')
     actual_sources={p for p in m['inputs'] if p.startswith(('src/main/scala/','src/main/resources/','src/test/scala/platform/'))}
     gate.require(actual_sources=={p for p in baseline['inputs'] if p.startswith(('src/main/scala/','src/main/resources/','src/test/scala/platform/'))}, 'source closure differs from published baseline')
     for p,h in baseline['inputs'].items():
-        if dynamic and p in DYNAMIC_OVERLAYS: continue
+        if not software_parameters and dynamic and p in DYNAMIC_OVERLAYS: continue
         # Explicit parser / external-Python isolation overlays only; all actual bytes
         # remain inventory-hashed. Baseline RTL, IP and hardware sources are unchanged.
-        if p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py',
+        if not software_parameters and p in ('fpga/common/board_inputs.py', 'fpga/common/test_board_inputs.py',
                  'fpga/common/board_audit.tcl', 'fpga/common/simulate.tcl',
                  'fpga/common/signoff.tcl', 'fpga/common/synthesize.tcl', 'fpga/common/implement.tcl'): continue
         gate.require(m['inputs'].get(p) == h, 'source differs from published baseline (do not freeze dirty core): '+p)
@@ -146,6 +177,8 @@ def freeze(a):
     root=a.root.absolute(); gate.no_links(root)
     gate.require(not (root/'diagnostic.json').exists() and not (root/'diagnostic-generated').exists(), 'fresh diagnostic inputs required')
     e=gate.read(gate.file_at(root,a.emission)); base=gate.relative(a.emission).parent
+    gate.require(e.get('functionalProfile') != board_inputs.SOFTWARE_PARAMETER_PROFILE,
+                 'legacy freeze cannot create software-parameter candidate: supply independently reviewed new inventory and feature receipt')
     emitted=[(base/p).as_posix() for p in board_inputs.emitted_artifacts(e['artifacts'])]
     rtl=[p for p in emitted if p.endswith(('.v','.sv')) and '/verification/' not in p]+list(board_inputs.BOARD_RTL)
     sim=[(base/'TriSpeedRgmiiTx.sv').as_posix(),*board_inputs.SIM_RTL]
@@ -156,7 +189,8 @@ def freeze(a):
         gate.require(re.fullmatch(r'[0-9a-f]{40}', a.delivery_commit or '') is not None, 'pass the actual published Git --delivery-commit')
     c=dict(cpu='i1',clock_profile=clock_profile,top='soc_top_common_ddr',part='xczu15eg-ffvb1156-2-i',abi=1,
            interrupt_abi='aia',rom_base=0x80000000,rom_bytes=131072,
-           clocks_hz=gate.reviewed_board_clocks('i1',clock_profile),features=dict(mac=True,network_dma=True))
+           clocks_hz=gate.reviewed_board_clocks('i1',clock_profile),features=dict(mac=True,network_dma=True),
+           performance_telemetry=e.get('performanceTelemetry', False))
     roles=dict(rtl_filelist='diagnostic-generated/rtl.f',simulation_filelist='diagnostic-generated/sim.f',
                emission_profile=a.emission,firmware_contract=a.firmware_contract,rom=a.rom,rom_coe=a.coe,
                board_audit_script='fpga/common/board_audit.tcl',post_synth_constraints='fpga/common/post_synth.tcl',
@@ -199,7 +233,8 @@ def prepare(path):
     run=root/'diagnostic-run';gate.require(not run.exists(),'preserve earlier diagnostic evidence');run.mkdir()
     pairs=dict(root=str(root),manifest=str(Path(path).absolute()),threads=m['threads'],profile_sha256=profile,
                diagnosticOnly=1,control_lemma=1,top=m['configuration']['top'],part=m['configuration']['part'],cpu='i1',
-               clock_profile=m['configuration']['clock_profile'],simulation_suite=m['producer']['simulation_suite'])
+               clock_profile=m['configuration']['clock_profile'],simulation_suite=m['producer']['simulation_suite'],
+               performance_telemetry=int(m['configuration'].get('performance_telemetry', False)))
     for name in ('rtl_filelist','simulation_filelist','post_synth_constraints','post_opt_constraints','media_scenarios','rom_coe','rom'):
         pairs[name]=str(root/m['roles'][name])
     pairs['mig_xci']=str(root/m['roles']['ip'][0]);pairs['constraints']=' '.join(gate.tcl(str(root/p)) for p in m['roles']['constraints'])

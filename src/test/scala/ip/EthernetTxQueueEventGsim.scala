@@ -8,7 +8,7 @@ import soc.ip.dma.EthernetTxDescriptorQueue
   * witnesses deterministic; full DMA/GMAC wrappers separately test the payload.
   */
 class EthernetTxQueueEventGsim extends EthernetTxDescriptorQueue(
-    4, BigInt("80200000", 16), BigInt(2147483648L), 2048) {
+    4, BigInt("80200000", 16), BigInt(2147483648L), 2048, separateStopAcceptance = true) {
     val postLaunchCount = IO(Output(UInt(32.W)))
     val completePopCount = IO(Output(UInt(32.W)))
     val postLaunch = RegInit(0.U(32.W))

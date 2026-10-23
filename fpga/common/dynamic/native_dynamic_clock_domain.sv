@@ -5,12 +5,14 @@
 module native_dynamic_clock_domain #(
     parameter integer DRP_TIMEOUT_CYCLES=1024,
     parameter integer DRP_DRAIN_CYCLES=1024,
-    parameter integer LOCK_STABLE_CYCLES=8
+    parameter integer LOCK_STABLE_CYCLES=8,
+    parameter integer MAX_PROGRAM_HZ=300000000
 ) (
     input wire aon_clock, common_cold_reset, source_clock250,
     input wire clock_enable, isolate,
     input wire program_valid, output wire program_ready,
     input wire [31:0] program_hz, program_token,
+    input wire [23:0] program_parameters,
     input wire program_fallback,
     output wire result_valid, input wire result_ready,
     output wire [31:0] result_hz, result_token,
@@ -32,7 +34,7 @@ module native_dynamic_clock_domain #(
     wire internal_ready, internal_result_valid, internal_result_error;
     wire [31:0] internal_result_hz, internal_result_token;
     // MMCM RST does not restore DRP values. Every cold start explicitly writes
-    // O20 before advertising boot50, including a cold reset after running100.
+    // M40/D10/O20 and LOW lock/filter before advertising boot50.
     always @(posedge aon_clock or posedge aon_reset) begin
         if (aon_reset) begin boot_configured<=0; boot_sent<=0; boot_failed<=0; end
         else if (!boot_configured && !boot_failed) begin
@@ -52,7 +54,7 @@ module native_dynamic_clock_domain #(
     // The local feasibility receipt validated D10/M40/O20 and O10 on the exact
     // xczu15eg-ffvb1156-2-i part. It did NOT validate this DRP implementation.
     MMCME4_ADV #(
-        .BANDWIDTH("OPTIMIZED"), .CLKIN1_PERIOD(4.000),
+        .BANDWIDTH("LOW"), .CLKIN1_PERIOD(4.000),
         .DIVCLK_DIVIDE(10), .CLKFBOUT_MULT_F(40.000),
         .CLKOUT0_DIVIDE_F(20.000), .CLKOUT0_DUTY_CYCLE(0.500),
         .CLKOUT0_PHASE(0.000), .CLKOUT0_USE_FINE_PS("FALSE"),
@@ -97,7 +99,8 @@ module native_dynamic_clock_domain #(
         .aon_clock(aon_clock), .cold_reset(aon_reset),
         .raw_clock(raw_clock), .managed_clock(managed_clock), .enable(permitted_enable),
         .gate_ce(ce), .gate_closed(gate_closed), .gate_open(gate_open), .resumed(resumed));
-    native_clock_drp #(.TIMEOUT_CYCLES(DRP_TIMEOUT_CYCLES), .DRAIN_CYCLES(DRP_DRAIN_CYCLES)) programmer (
+    native_clock_drp #(.TIMEOUT_CYCLES(DRP_TIMEOUT_CYCLES), .DRAIN_CYCLES(DRP_DRAIN_CYCLES),
+        .MAX_PROGRAM_HZ(MAX_PROGRAM_HZ)) programmer (
         .aon_clock(aon_clock), .cold_reset(aon_reset),
         .gate_closed(gate_closed), .isolated(!boot_configured || isolate),
         .clock_enable((boot_configured && clock_enable) | unexpected_unlock | boot_failed),
@@ -105,6 +108,7 @@ module native_dynamic_clock_domain #(
         .program_ready(internal_ready),
         .program_hz(boot_configured ? program_hz : 32'd50000000),
         .program_token(boot_configured ? program_token : 32'd0),
+        .program_parameters(boot_configured ? program_parameters : 24'h14280a),
         .program_fallback(boot_configured ? program_fallback : 1'b1),
         .result_valid(internal_result_valid), .result_ready(!boot_configured || result_ready),
         .result_hz(internal_result_hz), .result_token(internal_result_token),

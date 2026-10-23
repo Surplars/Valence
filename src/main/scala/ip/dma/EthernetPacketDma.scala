@@ -107,7 +107,8 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     val rxIdle :: rxCollect :: rxLoad :: rxWait :: rxOffer :: rxDrain :: Nil = Enum(6)
     val rxState = RegInit(rxIdle)
     val txQueue = if (postedTxSlots > 0) Some(Module(new EthernetTxDescriptorQueue(
-        postedTxSlots, ramBase, ramBytes, maxFrameBytes, runtimeAdmission = runtimeAdmission))) else None
+        postedTxSlots, ramBase, ramBytes, maxFrameBytes, runtimeAdmission = runtimeAdmission,
+        separateStopAcceptance = true))) else None
     val txQueueEnabled = txQueue.map(_.io.enabled).getOrElse(false.B)
     val txBusy = txState =/= txIdle
     val rxBusy = rxState =/= rxIdle
@@ -314,6 +315,10 @@ class EthernetPacketDma(base: BigInt = BigInt("10002000", 16),
     txQueue.foreach { q =>
         q.io.offset := offset(7, 0); q.io.data := r.data; q.io.accessWrite := r.write
         q.io.write := io.control.request.fire && legal && r.write && q.io.known
+        // STOP is legal exactly when enabled. Do not route unrelated POST range /
+        // overlap proofs through same-edge STOP priority into every TX launch CE.
+        // This is not a second acceptance point: the original bus fire is shared.
+        q.io.acceptedWrite.get := io.control.request.fire && basicLegal && r.write
         q.io.engineIdle := !txBusy && !txDone
         q.io.launchAllowed.foreach(_ := !runtimePaused)
         q.io.engineDone := txDone && !txBusy

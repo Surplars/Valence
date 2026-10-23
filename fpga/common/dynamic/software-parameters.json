@@ -1,0 +1,476 @@
+{
+  "schema": 1,
+  "architecture": "software integer parameters; hardware bounded validation and autonomous safe DRP",
+  "inputHz": 250000000,
+  "pfdHz": 25000000,
+  "bandwidth": "LOW",
+  "coldAndFallback": {
+    "d": 10,
+    "m": 40,
+    "o": 20,
+    "hz": 50000000,
+    "parameters": 1320970
+  },
+  "envelope": {
+    "d": [
+      10
+    ],
+    "m": [
+      32,
+      62
+    ],
+    "o": [
+      3,
+      128
+    ],
+    "minHz": 10000000,
+    "cpuMaxHz": 300000000,
+    "fabricMaxHz": 250000000,
+    "equality": "25000000 * M == requestedHz * O",
+    "vcoHz": [
+      800000000,
+      1550000000
+    ]
+  },
+  "characterizationSource": {
+    "url": "https://github.com/Xilinx/embeddedsw/blob/acf980174aada76637ac02c1e01088f3cc7b04dd/XilinxProcessorIPLib/drivers/vphy/src/xvphy_mmcme4.c",
+    "sha256": "c6a22352a0a47052fb4c3563cb9a5a2044532df67782fb16cf8f886152d3f048",
+    "extraction": "Compile the five unmodified u16 characterization functions and print M32..64; raw rows63/64 retained as conflict evidence, NOT admitted"
+  },
+  "lowBandwidthCharacterization": [
+    {
+      "m": 32,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 300,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 33,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 300,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 34,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 275,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 35,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 275,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 36,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 275,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 37,
+      "FilterReg1": 39168,
+      "FilterReg2": 37008,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 38,
+      "FilterReg1": 38912,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 39,
+      "FilterReg1": 38912,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 40,
+      "FilterReg1": 38912,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 41,
+      "FilterReg1": 38912,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 42,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 43,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 44,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 45,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 46,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 47,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 48,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 49,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 50,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 51,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 52,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 53,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 54,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 55,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 56,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 57,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 58,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 59,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 60,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 61,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 62,
+      "FilterReg1": 39168,
+      "FilterReg2": 2192,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 63,
+      "FilterReg1": 39168,
+      "FilterReg2": 4240,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    },
+    {
+      "m": 64,
+      "FilterReg1": 39168,
+      "FilterReg2": 4240,
+      "LockReg1": 250,
+      "LockReg2": 31745,
+      "LockReg3": 32745
+    }
+  ],
+  "initialFirmwareCandidates": [
+    {
+      "hz": 50000000,
+      "d": 10,
+      "m": 40,
+      "o": 20,
+      "parameters": 1320970
+    },
+    {
+      "hz": 55000000,
+      "d": 10,
+      "m": 44,
+      "o": 20,
+      "parameters": 1321994
+    },
+    {
+      "hz": 60000000,
+      "d": 10,
+      "m": 48,
+      "o": 20,
+      "parameters": 1323018
+    },
+    {
+      "hz": 65000000,
+      "d": 10,
+      "m": 52,
+      "o": 20,
+      "parameters": 1324042
+    },
+    {
+      "hz": 70000000,
+      "d": 10,
+      "m": 56,
+      "o": 20,
+      "parameters": 1325066
+    },
+    {
+      "hz": 75000000,
+      "d": 10,
+      "m": 60,
+      "o": 20,
+      "parameters": 1326090
+    },
+    {
+      "hz": 80000000,
+      "d": 10,
+      "m": 32,
+      "o": 10,
+      "parameters": 663562
+    },
+    {
+      "hz": 85000000,
+      "d": 10,
+      "m": 34,
+      "o": 10,
+      "parameters": 664074
+    },
+    {
+      "hz": 90000000,
+      "d": 10,
+      "m": 36,
+      "o": 10,
+      "parameters": 664586
+    },
+    {
+      "hz": 95000000,
+      "d": 10,
+      "m": 38,
+      "o": 10,
+      "parameters": 665098
+    },
+    {
+      "hz": 100000000,
+      "d": 10,
+      "m": 40,
+      "o": 10,
+      "parameters": 665610
+    },
+    {
+      "hz": 105000000,
+      "d": 10,
+      "m": 42,
+      "o": 10,
+      "parameters": 666122
+    },
+    {
+      "hz": 110000000,
+      "d": 10,
+      "m": 44,
+      "o": 10,
+      "parameters": 666634
+    },
+    {
+      "hz": 115000000,
+      "d": 10,
+      "m": 46,
+      "o": 10,
+      "parameters": 667146
+    },
+    {
+      "hz": 120000000,
+      "d": 10,
+      "m": 48,
+      "o": 10,
+      "parameters": 667658
+    },
+    {
+      "hz": 125000000,
+      "d": 10,
+      "m": 50,
+      "o": 10,
+      "parameters": 668170
+    },
+    {
+      "hz": 130000000,
+      "d": 10,
+      "m": 52,
+      "o": 10,
+      "parameters": 668682
+    },
+    {
+      "hz": 135000000,
+      "d": 10,
+      "m": 54,
+      "o": 10,
+      "parameters": 669194
+    },
+    {
+      "hz": 140000000,
+      "d": 10,
+      "m": 56,
+      "o": 10,
+      "parameters": 669706
+    },
+    {
+      "hz": 145000000,
+      "d": 10,
+      "m": 58,
+      "o": 10,
+      "parameters": 670218
+    },
+    {
+      "hz": 150000000,
+      "d": 10,
+      "m": 60,
+      "o": 10,
+      "parameters": 670730
+    }
+  ],
+  "qualification": {
+    "vendorPrimitiveTested": false,
+    "timingQualified": false,
+    "boardQualified": false
+  },
+  "analogChange": "Explicit LOW; admitted VCO800..1550MHz. M63/64 rejected due driver/model conflict. Native and timing qualification remain separate.",
+  "excludedMultipliers": [
+    63,
+    64
+  ],
+  "characterizationConflict": {
+    "multipliers": [
+      63,
+      64
+    ],
+    "driverFilter1": "0x9900",
+    "driverCp": 15,
+    "vivado2025p2ExpectedCp": 12,
+    "decision": "Reject before DRP; no analog values inferred from simulation model. M32..62 retains all59 five-MHz points10..300MHz.",
+    "actualNativeTrace": "CPU token902 M64 D10 O128 12500000Hz: start1251300000ps, illegal CP/RES/lock warning1259850000ps, done1268780000ps; run rejected."
+  }
+}
