@@ -63,3 +63,40 @@ including recovery/removal and all hold paths, remains required.
 No ECO has been applied or qualified by this source change. Native object
 evidence, an independently reviewed bounded mutation and post-route results
 are prerequisites; an unsupported topology stops the ECO instead of guessing.
+
+## Finite mapped candidate (native execution pending)
+
+The actual R37 census has 41 FDPE copies (original plus 40 replicas), not 242.
+Every D is the complete local release Q, every PRE is the raw startup LUT,
+all clocks are the managed CPU output, and the copies have 5987 leaf output
+loads. The original three-stage chain is still present. The census package
+SHA256 is `00eeab324589e8f0e093a71c54e45f70d04e1055a53e2c3969408b6cf9894d42`.
+
+`fpga/common/dynamic/reset_distribution_eco.tcl` verifies this exact finite
+structure before four native connect/disconnect calls change 41 D and 41 PRE
+connections. It compares every FF's identity and output consumers afterwards,
+and proves the complete leaf-load difference on the original startup, local
+release and ground networks. An interrupted/failed mutation cannot be retried
+in the same design, even after re-sourcing. No attributes or timing constraints
+are written. One positive and 23 negative Tcl model cases pass, including
+re-source after partial-mutation rejection; an independent review also passes.
+These are checker/guard tests, not native physical qualification.
+
+`route_reset_distribution_eco.tcl` is an explicit diagnostic entry, not part
+of the default flow. It accepts only a fresh output directory and the reviewed
+RX450 input size. The caller must first check input SHA256
+`126b300ed91b1aa9d5343104bfbc6bcd4a2fffea483d1b68b2cac04f0958acf2`
+(79603054 bytes). It re-proves all 41 copies, runs `route_design -preserve`,
+verifies all 41 local PRE max/min paths remain timed, and saves an explicitly
+unqualified checkpoint plus global timing, route and DRC reports. The ten
+RX450 delay cells' attributes are also retained. Complete RX timing must be
+rechecked on this new candidate, not inferred from the prior routed result.
+The changed PRE control set may require physical legalization; a native
+placement/routing conflict must not be bypassed. No such conflict or successful
+native ECO is yet claimed.
+
+Native net-edit commands and hierarchical connections are documented in
+[AMD UG835 2025.2 connect_net](https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/connect_net?contentId=IACbh4e6_iIeMUAyockKog)
+and [disconnect_net](https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/disconnect_net).
+This ECO remains a recorded transformation of R37 plus RX450. It must not be
+relabeled as a fresh synthesized result of the source correction alone.
