@@ -1,0 +1,23 @@
+#!/bin/sh
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+status=0
+show() { printf '\n== %s ==\n' "$1"; shift; "$@" || status=1; }
+show 'kernel and CPU' uname -a
+show 'CPU capabilities' cat /proc/cpuinfo
+show 'init status' cat /run/valence-init.status
+show 'module status' cat /run/valence-modules.status
+show 'module integrity' cat /run/module-integrity.log
+show 'loaded modules' cat /proc/modules
+show 'interrupts' cat /proc/interrupts
+show 'network' ip -s link
+show 'routes' ip route
+show 'memory' cat /proc/meminfo
+for attribute in irqchip_status clock_status rate_status snapshot dvfs_policy dma_status napi_status; do
+    found=0
+    for path in /sys/bus/platform/devices/*/"$attribute" /sys/class/net/*/"$attribute"; do
+        if [ -r "$path" ]; then found=1; show "$path" cat "$path"; fi
+    done
+    [ "$found" = 1 ] || printf 'UNAVAILABLE %s (inspect live DT and module status)\n' "$attribute"
+done
+show 'recent kernel log' dmesg
+exit "$status"

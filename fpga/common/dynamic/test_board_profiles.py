@@ -1,5 +1,7 @@
 """Runner guards only: mocks do not qualify native DRP or measure runtime."""
 import contextlib
+import hashlib
+import re
 import importlib.util
 import io
 import json
@@ -14,7 +16,7 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class RunnerGuards(unittest.TestCase):
-    def run_case(self, corrupt=None):
+    def run_case(self, corrupt=None, profile='195155'):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             binary = root/'vendor/bin'
@@ -25,7 +27,7 @@ class RunnerGuards(unittest.TestCase):
             glbl.parent.mkdir(parents=True)
             glbl.write_text('mock vendor source, never compiled')
             logs = ['', 'Vivado Simulator v2025.2\n',
-                    RUNNER.PASS+'\n'+'BOARD_DRP_VERIFIED lane=0\n'*4,
+                    RUNNER.PASS_MARKERS[profile]+'\n'+'BOARD_DRP_VERIFIED lane=0\n'*4,
                     'Fatal: BOARD_DRP_WRITE_IMAGE\n',
                     'Fatal: UNISIM_FREQUENCY_OR_INDEPENDENCE\n']
             if corrupt is not None:
@@ -42,13 +44,27 @@ class RunnerGuards(unittest.TestCase):
                     return 0
 
             with patch.object(RUNNER.subprocess, 'Popen', Process), patch('sys.argv',
-                       ['run_board_profiles.py', str(root/'out'), '--vivado-bin', str(binary)]), contextlib.redirect_stdout(io.StringIO()):
+                       ['run_board_profiles.py', str(root/'out'), '--vivado-bin', str(binary), '--profile', profile]), contextlib.redirect_stdout(io.StringIO()):
                 try:
                     RUNNER.main()
                 except SystemExit:
                     pass
             receipt = json.loads((root/'out/receipt.json').read_text())
             return receipt, calls
+
+    def test_no_load_output_mapping_only(self):
+        domain = Path(__file__).with_name('native_dynamic_clock_domain.sv').read_text()
+        mappings = re.findall(r'\.(\w+)\(unused_mmcm_outputs\[(\d+)\]\)', domain)
+        self.assertEqual([name for name, _ in mappings], [
+            'CDDCDONE', 'CLKFBOUTB', 'CLKFBSTOPPED', 'CLKINSTOPPED', 'CLKOUT0B',
+            'CLKOUT1', 'CLKOUT1B', 'CLKOUT2', 'CLKOUT2B', 'CLKOUT3', 'CLKOUT3B',
+            'CLKOUT4', 'CLKOUT5', 'CLKOUT6', 'PSDONE'])
+        self.assertEqual([int(index) for _, index in mappings], list(range(15)))
+        self.assertEqual(domain.count('unused_mmcm_outputs'), 16)  # Declaration plus15 outputs, no load.
+        original = domain.replace('    // Explicit no-load sinks for unused primitive outputs; no control/clock fanout.\n    wire [14:0] unused_mmcm_outputs;\n', '')
+        original = re.sub(r",\n        \.CDDCDONE\(unused_mmcm_outputs\[0\]\).*?\.PSDONE\(unused_mmcm_outputs\[14\]\)", '', original, flags=re.S)
+        self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
+                         'e9bc1466fdfc3cceefb5af66fb1873a88c267643b7650a74c8f81a5bba64c5c4')
 
     def test_full_guard_success(self):
         receipt, calls = self.run_case()
@@ -58,6 +74,13 @@ class RunnerGuards(unittest.TestCase):
         self.assertIn('VALENCE_USE_UNISIM', calls[0])
         self.assertIn('unisims_ver', calls[1])
         self.assertTrue(all('board195155' in c for c in calls[2:]))
+
+    def test_exact125_profile(self):
+        receipt, calls = self.run_case(profile='125125')
+        self.assertEqual(receipt['status'], 'PASS_NATIVE_EXACT_125_125_ROUNDTRIP')
+        self.assertEqual(receipt['profiles']['cpu125'], '0x08280a')
+        self.assertEqual(receipt['profiles']['fabric125'], '0x08280a')
+        self.assertTrue(all('board125125' in c for c in calls[2:]))
 
     def test_each_stage_warning_rejected(self):
         for index in range(5):

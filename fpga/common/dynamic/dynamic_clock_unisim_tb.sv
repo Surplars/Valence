@@ -24,7 +24,7 @@ module dynamic_clock_unisim_tb;
     integer transactions[0:1];
     // Focused board target mode uses literal register images, independently
     // checked against the pinned AMD LOW table and integer counter equations.
-    reg board_mode=0;
+    reg board_mode=0, board125=0;
     reg [1:0] audit_enable=0, audit_pending=0;
     integer audit_step[0:1],audit_completed[0:1],pending_step[0:1];
     reg [23:0] audit_parameters[0:1];
@@ -52,7 +52,7 @@ module dynamic_clock_unisim_tb;
               1:audit_image=cfg==24'h05270a ? 16'h04d4 : cfg==24'h0a3e0a ? 16'h07df : 16'h0514;
               2:audit_image=cfg==24'h05270a ? 16'h0080 : 16'h0000;
               3:audit_image=16'h0145;
-              4:audit_image=cfg==24'h05270a ? 16'h0083 : cfg==24'h0a3e0a ? 16'h0145 : 16'h028a;
+              4:audit_image=cfg==24'h05270a ? 16'h0083 : cfg==24'h0a3e0a ? 16'h0145 : cfg==24'h08280a ? 16'h0104 : 16'h028a;
               5:audit_image=cfg==24'h05270a ? 16'h0080 : 16'h0000;
               6:audit_image=16'h00fa;7:audit_image=16'h7c01;8:audit_image=16'h7fe9;
               9:audit_image=cfg==24'h0a3e0a ? 16'h9900 : 16'h9800;
@@ -130,7 +130,7 @@ module dynamic_clock_unisim_tb;
             hz[d]=frequency;token[d]=id;fallback[d]=fallback_mode;valid[d]=1;
             previous_transactions=transactions[d];
             if(board_mode)begin
-                if(configuration!=24'h05270a && configuration!=24'h0a3e0a && configuration!=24'h14280a)
+                if(configuration!=24'h05270a && configuration!=24'h0a3e0a && configuration!=24'h14280a && configuration!=24'h08280a)
                     $fatal(1,"BOARD_PROFILE_NOT_IN_FOCUSED_ORACLE");
                 audit_parameters[d]=configuration;audit_step[d]=0;audit_completed[d]=0;
                 audit_pending[d]=0;audit_enable[d]=1;
@@ -175,19 +175,24 @@ module dynamic_clock_unisim_tb;
     initial begin
         parameters[0]=0;parameters[1]=0;transactions[0]=0;transactions[1]=0;
         hz[0]=0;hz[1]=0;token[0]=0;token[1]=0;
-        board_mode=$test$plusargs("board195155");
+        board125=$test$plusargs("board125125");
+        board_mode=$test$plusargs("board195155") || board125;
+        if(board125 && $test$plusargs("board195155"))$fatal(1,"BOARD_PROFILE_AMBIGUOUS");
         #1001;cold=0;wait_locks();open_domain(0);open_domain(1);monitor=1;rates(100,100);
         if(board_mode)begin
             // Exact firmware tuples. Normal software return50, not fallback mode.
-            switch_profile(0,195000000,195,24'h05270a,0,0);
-            rates($test$plusargs("bad_board_rate") ? 400 : 390,100);
-            switch_profile(1,155000000,155,24'h0a3e0a,0,0);rates(390,310);
-            switch_profile(1,50000000,501,24'h14280a,0,0);rates(390,100);
+            switch_profile(0,board125 ? 125000000 : 195000000,195,board125 ? 24'h08280a : 24'h05270a,0,0);
+            rates((board125 ? 250 : 390)+($test$plusargs("bad_board_rate") ? 10 : 0),100);
+            switch_profile(1,board125 ? 125000000 : 155000000,155,board125 ? 24'h08280a : 24'h0a3e0a,0,0);
+            rates(board125 ? 250 : 390,board125 ? 250 : 310);
+            switch_profile(1,50000000,501,24'h14280a,0,0);rates(board125 ? 250 : 390,100);
             switch_profile(0,50000000,502,24'h14280a,0,0);rates(100,100);
 `ifdef VALENCE_USE_UNISIM
-            $display("DYNAMIC_BOARD_195_155_UNISIM_PASS checks=%0d exact_words=44 drp_commands=132 VENDOR_PRIMITIVES=1 SOC=0 STA=0 BOARD=0",checks);
+            if(board125)$display("DYNAMIC_BOARD_125_125_UNISIM_PASS checks=%0d exact_words=44 drp_commands=132 VENDOR_PRIMITIVES=1 SOC=0 STA=0 BOARD=0",checks);
+            else $display("DYNAMIC_BOARD_195_155_UNISIM_PASS checks=%0d exact_words=44 drp_commands=132 VENDOR_PRIMITIVES=1 SOC=0 STA=0 BOARD=0",checks);
 `else
-            $display("DYNAMIC_BOARD_195_155_MODEL_SMOKE_PASS checks=%0d VENDOR_PRIMITIVES=0",checks);
+            if(board125)$display("DYNAMIC_BOARD_125_125_MODEL_SMOKE_PASS checks=%0d VENDOR_PRIMITIVES=0",checks);
+            else $display("DYNAMIC_BOARD_195_155_MODEL_SMOKE_PASS checks=%0d VENDOR_PRIMITIVES=0",checks);
 `endif
             $finish;
         end

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Explicit operator diagnostics only; init never requests a DHCP lease.
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+set -eu
+case "${1:-status}" in
+    status) ip -s link; ip addr; ip route; exit 0 ;;
+    up|dhcp) ;;
+    *) echo 'Usage: valence-net status|up|dhcp' >&2; exit 2 ;;
+esac
+[ -d /sys/class/net/eth0 ] || { echo 'No actual eth0 device' >&2; exit 1; }
+grep -qx 'valence_gmac LOADED' /run/valence-modules.status || {
+    echo 'GMAC probe not ready; inspect valence-diagnose' >&2; exit 1;
+}
+ip link set eth0 up
+[ "$1" != dhcp ] || exec udhcpc -f -q -n -t 5 -T 3 -i eth0 -s /usr/sbin/valence-udhcpc

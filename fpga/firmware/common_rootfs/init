@@ -1,0 +1,132 @@
+#!/bin/sh
+# Single SBI console owner. No serial getty, frequency request, or MMIO poke.
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export HOME=/root TERM=vt100 LC_ALL=C
+failed=0
+irq_ok=0
+cmu_ok=0
+clockmon_expected=0
+clockmon_ok=0
+log() { printf 'valence-common: %s\n' "$*"; }
+fail() { failed=1; log "FAIL $*"; printf '%s\n' "$*" >> /run/valence-init.failures; }
+irq_ready() {
+    for path in /sys/bus/platform/devices/*/irqchip_status; do
+        if [ -r "$path" ] && grep -q 'ready=1 faulted=0' "$path"; then return 0; fi
+    done
+    return 1
+}
+attribute_present() {
+    for path in /sys/bus/platform/devices/*/"$1"; do
+        if [ -r "$path" ]; then return 0; fi
+    done
+    return 1
+}
+compatible_enabled() {
+    # DT carries the capability: do not infer peripherals from a CPU name.
+    [ -d /sys/firmware/devicetree/base ] || return 2
+    for path in $(find /sys/firmware/devicetree/base -name compatible -type f); do
+        if tr '\000' '\n' < "$path" | grep -Fxq "$1"; then
+            node=${path%/compatible}
+            status=okay
+            [ ! -f "$node/status" ] || status=$(tr -d '\000' < "$node/status")
+            case "$status" in okay|ok) return 0 ;; esac
+        fi
+    done
+    return 1
+}
+load_modules() {
+    release=$(cat /etc/valence/kernel-release) || { fail 'kernel release missing'; return 1; }
+    [ "$(uname -r)" = "$release" ] || { fail 'kernel/module release mismatch'; return 1; }
+    sha256sum -c /etc/valence/modules.sha256 > /run/module-integrity.log 2>&1 || {
+        fail 'module hash mismatch; no driver loaded'; return 1;
+    }
+    [ -d /sys/firmware/devicetree/base ] || { fail 'live DT unavailable; no driver loaded'; return 1; }
+    compatible_enabled openion,valence-clock-monitor-v1 && clockmon_expected=1
+    : > /run/valence-modules.status
+    while IFS= read -r module; do
+        case "$module" in ''|*[!a-zA-Z0-9_]*) fail 'invalid module list'; return 1 ;; esac
+        if [ "$module" = valence_clockmon ]; then
+            if ! compatible_enabled openion,valence-clock-monitor-v1; then
+                log 'SKIP_UNSUPPORTED valence_clockmon: no enabled live DT device; no MMIO access'
+                printf '%s\n' 'valence_clockmon SKIP_UNSUPPORTED_DT' >> /run/valence-modules.status
+                continue
+            fi
+        fi
+        case "$module" in
+            valence_cmu)
+                if [ "$clockmon_expected" = 1 ] && [ "$clockmon_ok" != 1 ]; then
+                    fail 'valence_cmu blocked by required clock monitor provider'
+                    printf '%s BLOCKED\n' "$module" >> /run/valence-modules.status
+                    continue
+                fi ;;
+            valence_dma|valence_gmac)
+                if [ "$irq_ok" != 1 ] || [ "$cmu_ok" != 1 ]; then
+                    fail "$module blocked by IRQ/clock provider failure"
+                    printf '%s BLOCKED\n' "$module" >> /run/valence-modules.status
+                    continue
+                fi ;;
+        esac
+        if ! insmod "/lib/modules/$release/extra/$module.ko"; then
+            fail "insmod $module; inspect dmesg"
+            printf '%s FAILED\n' "$module" >> /run/valence-modules.status
+            continue
+        fi
+        ready=1
+        case "$module" in
+            valence_soc) [ -d /sys/devices/soc0 ] || ready=0 ;;
+            valence_aia) irq_ready && irq_ok=1 || ready=0 ;;
+            valence_clockmon)
+                attribute_present rate_status && attribute_present snapshot &&
+                    attribute_present dvfs_policy && clockmon_ok=1 || ready=0 ;;
+            valence_cmu) attribute_present clock_status && cmu_ok=1 || ready=0 ;;
+            valence_dma) attribute_present dma_status || ready=0 ;;
+            valence_gmac) [ -d /sys/class/net/eth0 ] || ready=0 ;;
+            *) ready=0 ;;
+        esac
+        if [ "$ready" = 1 ]; then
+            log "LOADED $module (probe visible; not hardware qualification)"
+            printf '%s LOADED\n' "$module" >> /run/valence-modules.status
+        else
+            fail "$module loaded but required device/probe evidence absent"
+            printf '%s PROBE_FAILED\n' "$module" >> /run/valence-modules.status
+        fi
+    done < /etc/valence/modules.load
+}
+main() {
+    exec </dev/console >/dev/console 2>&1
+    mount -t proc proc /proc || fail 'mount proc'
+    mount -t sysfs sysfs /sys || fail 'mount sysfs'
+    mount -t devtmpfs devtmpfs /dev || fail 'mount devtmpfs'
+    mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run || fail 'mount run'
+    # Preserve pre-mount failures in the final status even if /run was covered.
+    mkdir -p /dev/pts /tmp /run /var/log || fail 'runtime directories'
+    mount -t devpts -o mode=0620 devpts /dev/pts || fail 'mount devpts'
+    mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp || fail 'mount tmp'
+    hostname valence-common || fail 'hostname'
+    log 'Common I1/A1 Linux; static BusyBox LP64; boot50; one SBI console owner'
+    if [ "$(cat /etc/valence/console-profile)" != sbi ]; then
+        fail 'unexpected console ownership profile'
+    fi
+    if [ "$failed" = 0 ]; then load_modules || failed=1; fi
+    if [ "$failed" = 0 ]; then
+        if [ "$(cat /etc/valence/network-auto-enable)" = 1 ]; then
+            ip link set eth0 up || fail 'eth0 link enable'
+        fi
+    fi
+    if [ "$failed" = 0 ]; then
+        echo READY_DRIVERS_ONLY > /run/valence-init.status
+        log 'VALENCE_COMMON_INIT_READY_DRIVERS_ONLY'
+    else
+        echo FAILED_RESCUE_SHELL > /run/valence-init.status
+        log 'VALENCE_COMMON_INIT_FAILED; recovery shell retained, inspect valence-diagnose'
+    fi
+    log 'No automatic DHCP, runtime DVFS or storage mount. RAM-root changes disappear on reset.'
+    log 'Use valence-diagnose; ip -s link; valence-net up|dhcp|status. No GPIO/SD/USB hardware is claimed.'
+    while true; do
+        setsid cttyhack /bin/sh -l
+        log 'Shell exited; restarting the same console owner.'
+        sleep 1
+    done
+}
+# Invoke only at PID1; tests source the definitions above this marker.
+main

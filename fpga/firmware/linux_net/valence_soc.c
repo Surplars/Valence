@@ -25,7 +25,7 @@ static int __init valence_soc_init(void)
 	soc = soc_device_register(&valence_identity);
 	if (IS_ERR_OR_NULL(soc))
 		return soc ? PTR_ERR(soc) : -ENODEV;
-	pr_info("OpenIon VL100 / Orbital-A1; identity from DT, no silicon revision register\n");
+	pr_info("OpenIon VL100; CPU identity from DT, no silicon revision register\n");
 	return 0;
 }
 module_init(valence_soc_init);

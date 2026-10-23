@@ -14,12 +14,26 @@ static uint64_t backup[DVFS_SCRATCH_BYTES/8] __attribute__((aligned(64)));
 static volatile uint64_t sweep[65536/8] __attribute__((aligned(64),section(".scratch")));
 static uint64_t last_seq[2],last_edges[2];
 static unsigned have_sample[2],saved;
+#ifdef DVFS_PAYLOAD_TEST
+extern uint64_t dvfs_test_now(void);
+extern uint64_t dvfs_test_read(void *,uint64_t);
+extern void dvfs_test_write(void *,uint64_t,uint64_t);
+extern void dvfs_test_out(char);
+extern int dvfs_test_input(void);
+extern void dvfs_test_cold(void);
+#define now dvfs_test_now
+#define mmread dvfs_test_read
+#define mmwrite dvfs_test_write
+#define out dvfs_test_out
+static const struct valence_clock_io io={0,mmread,mmwrite};
+#else
 static uint64_t now(void){uint64_t n;__asm__ volatile("rdtime %0":"=r"(n)::"memory");return n;}
 static void fence(void){__asm__ volatile("fence iorw,iorw":::"memory");}
 static uint64_t mmread(void *c,uint64_t a){(void)c;fence();uint64_t v=*(volatile uint64_t *)(uintptr_t)a;fence();return v;}
 static void mmwrite(void *c,uint64_t a,uint64_t v){(void)c;fence();*(volatile uint64_t *)(uintptr_t)a=v;fence();}
 static const struct valence_clock_io io={0,mmread,mmwrite};
 static void out(char c){volatile uint8_t *u=(volatile uint8_t *)0x10000000UL;for(unsigned i=0;i<POLLS;++i)if(u[5]&0x20){u[0]=(uint8_t)c;return;}}
+#endif
 static void text(const char *s){while(*s)out(*s++);}
 static void hex(uint64_t n){for(int i=60;i>=0;i-=4){unsigned x=(unsigned)(n>>i)&15;out((char)(x<10?'0'+x:'a'+x-10));}}
 static void field(const char *s,uint64_t v){text(s);hex(v);}
@@ -29,9 +43,13 @@ static void status(unsigned d){uint64_t b=d?VALENCE_RATE_FABRIC:VALENCE_RATE_CPU
 /* Platform-specific documented cache maintenance: fence.i writes dirty lines
  * back; a disjoint64KiB read-only sweep evicts clean lines on current <=32KiB
  * one/two-way caches. This is not a portable RISC-V fence.i guarantee. */
+#ifdef DVFS_PAYLOAD_TEST
+#define cold dvfs_test_cold
+#else
 static void cold(void){uint64_t consume=0;__asm__ volatile("fence rw,rw\nfence.i\nfence rw,rw":::"memory");
     for(unsigned p=0;p<2;++p)for(unsigned i=0;i<sizeof(sweep)/8;i+=8)consume^=sweep[i];
     __asm__ volatile(""::"r"(consume):"memory");fence();}
+#endif
 static uint64_t pattern(unsigned i){return UINT64_C(0x9e3779b97f4a7c15)*(i+1)^UINT64_C(0xa55a1234deadbeef);}
 static int memory_check(void){cold();uint64_t checksum=0;for(unsigned i=0;i<DVFS_SCRATCH_BYTES/8;++i){uint64_t v=scratch[i];
     if(v!=pattern(i)){field("DDR_MISMATCH address=0x",(uintptr_t)&scratch[i]);field(" value=0x",v);text("\r\n");return -1;}checksum^=v;}
@@ -66,12 +84,22 @@ static int observe(void *ctx,uint32_t cpu,uint32_t fabric){(void)ctx;
     if(!read_beats){text("NO_DDR_READ_TRAFFIC_OBSERVED\r\n");return -1;}
     return 0;
 }
+struct staged_profile { uint64_t base;uint32_t packed; };
+/* Retain the shared API's admission/error/timeout transaction. Only its staging
+ * write is substituted, with a tuple independently validated for this request. */
+static void profile_write(void *ctx,uint64_t address,uint64_t value){
+    const struct staged_profile *p=ctx;
+    mmwrite(0,address,address==p->base+RATE_PARAMETERS?p->packed:value);
+}
 static int set_rate(void *ctx,unsigned d,uint32_t hz){(void)ctx;uint64_t b=d?VALENCE_RATE_FABRIC:VALENCE_RATE_CPU;
-    text(d?"SET_FABRIC":"SET_CPU");field(" Hz=0x",hz);field(" MDO=0x",valence_clock_parameters(hz));text("\r\n");
-    int rc=valence_rate_set(&io,b,hz,POLLS);field("SET_RESULT signed=0x",(uint64_t)(int64_t)rc);text("\r\n");status(d);return rc;
+    text(d?"SET_FABRIC":"SET_CPU");field(" Hz=0x",hz);field(" MDO=0x",dvfs_parameters(d,hz));text("\r\n");
+    struct staged_profile profile={b,dvfs_parameters(d,hz)};
+    if(!profile.packed)return RATE_BAD_FREQUENCY;
+    const struct valence_clock_io selected_io={&profile,mmread,profile_write};
+    int rc=valence_rate_set(&selected_io,b,hz,POLLS);field("SET_RESULT signed=0x",(uint64_t)(int64_t)rc);text("\r\n");status(d);return rc;
 }
 static int preflight(void){
-    if(valence_clock_parameters(195000000)!=0x05270a || valence_clock_parameters(155000000)!=0x0a3e0a ||
+    if(!dvfs_parameters(0,DVFS_CPU_HZ) || !dvfs_parameters(1,DVFS_FABRIC_HZ) ||
        valence_clock_parameters(50000000)!=0x14280a)return -1;
     for(unsigned d=0;d<2;++d){uint64_t b=d?VALENCE_RATE_FABRIC:VALENCE_RATE_CPU;
         if(!valence_rate_v2(&io,b))return -1;
@@ -80,7 +108,7 @@ static int preflight(void){
            mmread(0,b+RATE_CONFIGURED)!=50000000 || mmread(0,b+RATE_ERRORS) ||
            mmread(0,b+RATE_CAPS)!=UINT64_C(0x000080033e200a0a) ||
            mmread(0,b+RATE_REFERENCE)!=250000000 || !(mmread(0,b+RATE_ADMISSION)&32) ||
-           mmread(0,b+RATE_MIN)>50000000 || mmread(0,b+RATE_MAX)<(d?155000000:195000000))return -1;
+           mmread(0,b+RATE_MIN)>50000000 || mmread(0,b+RATE_MIN)>(d?DVFS_FABRIC_HZ:DVFS_CPU_HZ) || mmread(0,b+RATE_MAX)<(d?DVFS_FABRIC_HZ:DVFS_CPU_HZ))return -1;
     }
     return 0;
 }
@@ -96,9 +124,18 @@ static void restore_low(void){/* Best effort only, never issue into busy/fatal s
 int main(void){text("RAM DVFS diagnostic; no automatic overclock. Reset after completion.\r\n");
     field("scratch_begin=0x",(uintptr_t)scratch);field(" scratch_bytes=0x",sizeof(scratch));field(" sweep_begin=0x",(uintptr_t)sweep);text("\r\n");
     text("Dedicated boot only; no Linux/kernel/other live payload may own this linked RAM allocation.\r\n");
-    text("Type r within60s: 50/50 ->195/50 ->195/155 ->195/50 ->50/50; q exits.\r\n");
-    volatile uint8_t *u=(volatile uint8_t *)0x10000000UL;uint64_t start=now();int run=0;
-    while(now()-start<60*TIME_HZ){if(u[5]&1){int c=u[0];if(c=='r'){run=1;break;}if(c=='q')break;}}
+    field("target_CPU_Hz=0x",DVFS_CPU_HZ);field(" target_FABRIC_Hz=0x",DVFS_FABRIC_HZ);text("\r\n");
+    field("target_CPU_MDO=0x",dvfs_parameters(0,DVFS_CPU_HZ));field(" target_FABRIC_MDO=0x",dvfs_parameters(1,DVFS_FABRIC_HZ));text("\r\n");
+    text("Type r within60s: boot50 -> CPU target -> fabric target -> fabric50 -> CPU50; q exits.\r\n");
+    uint64_t start=now();int run=0;
+    while(now()-start<60*TIME_HZ){
+#ifdef DVFS_PAYLOAD_TEST
+        int c=dvfs_test_input();
+#else
+        volatile uint8_t *u=(volatile uint8_t *)0x10000000UL;int c=(u[5]&1)?u[0]:-1;
+#endif
+        if(c=='r'){run=1;break;}if(c=='q')break;
+    }
     if(!run){text("CANCELLED_NO_CLOCK_CHANGE\r\n");return 0;}
     if(preflight()){text("PREFLIGHT_FAIL_REQUIRE_IDLE_ERRORFREE_50_50_AND_COMPATIBLE_PROFILES_NO_CHANGE\r\n");return 1;}
     if(mmread(0,0x10001020)&1){text("DMA_BUSY_NO_CHANGE\r\n");return 1;}

@@ -1,6 +1,7 @@
 # R40 exact board-target clock profiles
 
-This changes tests only, not the frozen DRP/domain/gate hardware. Native validation
+R1 changed tests only. R2 additionally connects15 unused primitive outputs to
+no-load local wires; all functional hardware is unchanged. Native validation
 is pending until a matching `run_board_profiles.py` receipt says PASS. Profile
 legality, primitive simulation, routed STA and board qualification are separate.
 
@@ -99,3 +100,43 @@ Official command/model references:
 - https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/create_generated_clock
 - https://docs.amd.com/r/2025.2-English/ug906-vivado-design-analysis/Timing-Path-Summary
 - https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/config_timing_corners
+
+## R2 native elaboration correction
+
+R1 native elaboration failed before all simulations on VRFC10-3645: CDDCDONE
+was omitted from the production primitive instance. No profile passed in R1.
+R2 explicitly connects all15 unused MMCME4_ADV outputs to separate no-load wire
+bits. No input, active output, primitive parameter or functional logic changes.
+The Icarus-only model gains these unused output declarations, never native use.
+A focused source test removes exactly these declarations/connections and requires
+byte-identical original domain SHA e9bc1466fdfc3cceefb5af66fb1873a88c267643b7650a74c8f81a5bba64c5c4.
+This is a documented source delta from the routed/bitstream source, not a claim
+that new hashes equal old ones. It changes no used logical connection and does
+not require rewriting the existing bit for this native elaboration correction.
+All warning gates remain strict. Official output directions/names:
+https://docs.amd.com/r/2025.2-English/ug974-vivado-ultrascale-libraries/MMCME4_ADV
+
+## Exact125/125 follow-on (native pending)
+
+The prior204 native suite's125 point is **D10/M50/O10**, packed0x0a320a,
+VCO1250MHz (`switch_rate`: O10 then M=125*10/25=50). It does not establish
+D10/M40/O8, even though output frequency is also125MHz. The new bounded mode
+matches the current actual-mode STA and explicit diagnostic firmware override:
+**D10/M40/O8, packed0x08280a, LOW, PFD25MHz, VCO1000MHz, ratio1/2**.
+The global canonical firmware solver and bootROM are not changed by this test.
+
+    python fpga/common/dynamic/run_board_profiles.py native-result-125 --vivado-bin E:/Xilinx/2025.2/Vivado/bin --profile 125125
+
+This uses the same native runner, exact44-word/132-command audit, finite waits,
+zero-warning policy and two ordinary-oracle negatives. Sequence50/50→125/50→
+125/125→125/50→50/50 returns fabric first. The only new literal image is O8:
+high4/low4, counter0104, edge0000. M40 and all LOW lock/filter settings equal
+boot50. Hardware files are unchanged from the no-load-output R2 correction.
+The previous195/155 branch is retained as default; its native R2 result was
+reported PASS9checks44words132commands plus2negatives, zero warnings,20.153s.
+That primitive pass does not overturn its independently failing routed STA.
+
+For125 operating STA, keep M40/D10 and change O8 with generated ratio1/2;
+50 usesO20 and ratio1/5. Preserve all native-model/constraint/reset/CDC checks
+above and original performance300/250 reports. A125 mode may not borrow the
+M50/O10 characterization or be represented only by editing its clock period.

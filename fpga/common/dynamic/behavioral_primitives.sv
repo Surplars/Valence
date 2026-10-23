@@ -25,7 +25,11 @@ module MMCME4_ADV #(
     input wire RST, PWRDWN, output reg LOCKED=0,
     input wire DCLK, input wire [6:0] DADDR, input wire [15:0] DI,
     input wire DEN,DWE, output reg [15:0] DO=0, output reg DRDY=0,
-    input wire PSCLK,PSEN,PSINCDEC,CDDCREQ
+    input wire PSCLK,PSEN,PSINCDEC,CDDCREQ,
+    // Unused output interface only; this model does not implement these signals.
+    output wire CDDCDONE,CLKFBOUTB,CLKFBSTOPPED,CLKINSTOPPED,
+    output wire CLKOUT0B,CLKOUT1,CLKOUT1B,CLKOUT2,CLKOUT2B,CLKOUT3,CLKOUT3B,
+    output wire CLKOUT4,CLKOUT5,CLKOUT6,PSDONE
 );
     reg [15:0] registers[0:127];
     integer n, lock_cycles=0, latency=2, pending_count=0, transactions=0;

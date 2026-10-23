@@ -4,6 +4,7 @@
  */
 #define pr_fmt(fmt) "valence-cmu: " fmt
 #include <linux/clk-provider.h>
+#include <linux/clk.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/module.h>
@@ -34,6 +35,7 @@ struct vcmu {
 	void __iomem *regs;
 	struct mutex lock;
 	struct clk_hw_onecell_data *data;
+	struct clk *cpu_rate;
 	u64 present, gateable;
 };
 
@@ -44,7 +46,8 @@ static struct vclock *vclock_of(struct clk_hw *hw)
 
 static unsigned long vc_rate(struct clk_hw *hw, unsigned long parent_rate)
 {
-	return vclock_of(hw)->rate;
+	struct vclock *clock = vclock_of(hw);
+	return clock->rate;
 }
 
 static int vc_prepare(struct clk_hw *hw)
@@ -108,9 +111,10 @@ static ssize_t clock_status_show(struct device *dev, struct device_attribute *at
 {
 	struct vcmu *p = dev_get_drvdata(dev);
 
-	return sysfs_emit(buf, "present=%#llx gateable=%#llx enabled=%#llx stopped=%#llx admission=%#llx isolated=%#llx faults=%#llx fixed_rate=1\n",
+	return sysfs_emit(buf, "present=%#llx gateable=%#llx enabled=%#llx stopped=%#llx admission=%#llx isolated=%#llx faults=%#llx fixed_rate=%u cpu_live_rate=%u\n",
 		p->present, p->gateable, readq(p->regs + 0x28), readq(p->regs + VC_STOPPED),
-		readq(p->regs + VC_ADMISSION), readq(p->regs + VC_ISOLATED), readq(p->regs + VC_FAULT));
+		readq(p->regs + VC_ADMISSION), readq(p->regs + VC_ISOLATED), readq(p->regs + VC_FAULT),
+		!p->cpu_rate, !!p->cpu_rate);
 }
 static DEVICE_ATTR_RO(clock_status);
 static struct attribute *vc_attrs[] = { &dev_attr_clock_status.attr, NULL };
@@ -133,6 +137,11 @@ static int vc_probe(struct platform_device *pdev)
 		return PTR_ERR(p->regs);
 	if (readq(p->regs) != VC_ID)
 		return -ENODEV;
+	/* Optional only on an actual ABI2/perf-enabled DT. A1 static keeps its
+	 * original fixed provider and never probes absent extension registers. */
+	p->cpu_rate = devm_clk_get_optional(dev, "cpu-rate");
+	if (IS_ERR(p->cpu_rate))
+		return PTR_ERR(p->cpu_rate);
 	count = (readq(p->regs + 8) >> 16) & 0xffff;
 	p->present = readq(p->regs + 0x10);
 	p->gateable = readq(p->regs + 0x18);
@@ -159,6 +168,14 @@ static int vc_probe(struct platform_device *pdev)
 		if (readq(p->regs + 0x100 + i * 0x40) != i ||
 		    (parent != U64_MAX && (parent >= i || !(p->present & BIT_ULL(parent)))))
 			return -EINVAL;
+		/* Alias the live provider rather than a child: CCF child recalc
+		 * receives a cached parent_rate even when both use NOCACHE. */
+		if (i == 1 && p->cpu_rate) {
+			if (parent != U64_MAX || (p->gateable & BIT_ULL(i)))
+				return -EINVAL;
+			p->data->hws[i] = __clk_get_hw(p->cpu_rate);
+			continue;
+		}
 		clock = devm_kzalloc(dev, sizeof(*clock), GFP_KERNEL);
 		if (!clock)
 			return -ENOMEM;
@@ -192,7 +209,7 @@ static int vc_probe(struct platform_device *pdev)
 	ret = devm_device_add_group(dev, &vc_group);
 	if (ret)
 		return ret;
-	dev_info(dev, "%u fixed-rate resources, gateable=%#llx; UART critical\n", count, p->gateable);
+	dev_info(dev, "%u resources, gateable=%#llx; UART critical\n", count, p->gateable);
 	return 0;
 }
 

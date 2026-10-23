@@ -1,0 +1,16 @@
+#!/bin/sh
+# BusyBox calls this only after the operator explicitly runs valence-net dhcp.
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+set -eu
+[ "${interface:-}" = eth0 ] || exit 1
+case "${1:-}" in
+    deconfig) ip addr flush dev eth0 ;;
+    bound|renew)
+        [ -n "${ip:-}" ] && [ -n "${subnet:-}" ] || exit 1
+        ifconfig eth0 "$ip" netmask "$subnet" up
+        ip route flush dev eth0
+        for gateway in ${router:-}; do ip route add default via "$gateway" dev eth0; break; done
+        : > /etc/resolv.conf
+        for server in ${dns:-}; do printf 'nameserver %s\n' "$server" >> /etc/resolv.conf; done ;;
+    *) echo "Unexpected DHCP event: ${1:-empty}" >&2; exit 1 ;;
+esac

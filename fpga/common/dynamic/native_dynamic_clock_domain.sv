@@ -27,6 +27,8 @@ module native_dynamic_clock_domain #(
     wire aon_reset=aon_reset_pipe[2];
     wire raw_mmcm, raw_clock, feedback, feedback_buffered;
     wire primitive_locked, program_reset, drp_fatal, busy;
+    // Explicit no-load sinks for unused primitive outputs; no control/clock fanout.
+    wire [14:0] unused_mmcm_outputs;
     wire [6:0] address;
     wire [15:0] write_data, read_data;
     wire den,dwe,drdy,ce,drp_outstanding;
@@ -67,7 +69,15 @@ module native_dynamic_clock_domain #(
         .DCLK(aon_clock), .DADDR(address), .DI(write_data), .DEN(den), .DWE(dwe),
         .DO(read_data), .DRDY(drdy),
         .PSCLK(1'b0), .PSEN(1'b0), .PSINCDEC(1'b0),
-        .CDDCREQ(1'b0)
+        .CDDCREQ(1'b0),
+        .CDDCDONE(unused_mmcm_outputs[0]), .CLKFBOUTB(unused_mmcm_outputs[1]),
+        .CLKFBSTOPPED(unused_mmcm_outputs[2]), .CLKINSTOPPED(unused_mmcm_outputs[3]),
+        .CLKOUT0B(unused_mmcm_outputs[4]), .CLKOUT1(unused_mmcm_outputs[5]),
+        .CLKOUT1B(unused_mmcm_outputs[6]), .CLKOUT2(unused_mmcm_outputs[7]),
+        .CLKOUT2B(unused_mmcm_outputs[8]), .CLKOUT3(unused_mmcm_outputs[9]),
+        .CLKOUT3B(unused_mmcm_outputs[10]), .CLKOUT4(unused_mmcm_outputs[11]),
+        .CLKOUT5(unused_mmcm_outputs[12]), .CLKOUT6(unused_mmcm_outputs[13]),
+        .PSDONE(unused_mmcm_outputs[14])
     );
     BUFG feedback_buffer(.I(feedback), .O(feedback_buffered));
     BUFG observer_buffer(.I(raw_mmcm), .O(raw_clock));

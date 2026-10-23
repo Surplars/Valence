@@ -1,0 +1,4 @@
+NAME="Valence Common Linux"
+ID=valence
+PRETTY_NAME="Valence I1/A1 BusyBox diagnostic initramfs"
+VERSION_ID="1"

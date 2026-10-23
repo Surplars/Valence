@@ -8,3 +8,5 @@ ifeq ($(CONFIG_VALENCE_DMA),y)
 obj-m += valence_dma.o
 endif
 ccflags-y += -I$(srctree)/drivers/dma
+
+obj-$(CONFIG_VALENCE_CLOCKMON) += valence_clockmon.o
