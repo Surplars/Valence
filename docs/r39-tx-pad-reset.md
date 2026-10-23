@@ -106,3 +106,27 @@ TX common/local resets, cold/RDY inhibit stimuli and every oracle are unchanged.
 RX calibration/reset is deliberately outside this TX-only test. No production
 RTL, warning filter or primitive substitute changes. This is not an RX or whole
 board native qualification.
+
+## r3 native result and common-shell opt-in
+
+Actual Vivado 2025.2 UNISIM r3 completed in 26.137 seconds, exit0. Compile,
+elaboration and all runtime logs had zero warnings. The positive run checked
+8 frames /73 bytes /3 aborts /3 paired pauses /5 releases /11036 pin comparisons
+/2743 pair captures; all four ordinary negatives were correctly rejected. This
+establishes the TX-only primitive/pin scope above, not RX or STA qualification.
+
+The common shell now exposes `TX_LOCAL_PAD_RESET_RELEASE=0` and passes it to the
+existing boundary option. Default behavior is unchanged. The next diagnostic
+synthesis must explicitly select both generics:
+
+```
+RX_CASCADE_STAGE_DELAY_PS=450 TX_LOCAL_PAD_RESET_RELEASE=1
+```
+
+`test_tx_pad_reset_integration.py` reverses only this exact parameter/connection
+delta and compares all remaining shell bytes with pre-change commit c1457f6.
+Default-on, bypassed-hook and unrelated RX/clock mutations are rejected. The
+existing TX RTL bytes are pinned unchanged. No old frozen input inventory or
+receipt is rewritten. A new production emission is necessary because the last
+R37 emission predates the already-reviewed CPU reset distribution source fix;
+this is one incremental emit, not another functional redesign.

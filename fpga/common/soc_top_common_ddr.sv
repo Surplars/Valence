@@ -8,7 +8,9 @@
 // Source candidate only: mapped CDC/ROM, three-speed timing and board are unverified.
 module soc_top_common_ddr #(
     // Explicit diagnostic override only; production/default keeps single1100.
-    parameter integer RX_CASCADE_STAGE_DELAY_PS = -1
+    parameter integer RX_CASCADE_STAGE_DELAY_PS = -1,
+    // Explicit TX diagnostic candidate; one falling-PAD release driver.
+    parameter integer TX_LOCAL_PAD_RESET_RELEASE = 0
 ) (
     input wire clk_in1_p, clk_in1_n,
     input wire sys_rst_n, button_n, uart_rxd,
@@ -148,7 +150,7 @@ module soc_top_common_ddr #(
     wire rgmii_txc_rise, rgmii_txc_fall;
     native_rgmii_trispeed_quarter #(.RX_DATA_DELAY_PS(1100),
         .RX_CASCADE_STAGE_DELAY_PS(RX_CASCADE_STAGE_DELAY_PS),
-        .LOCAL_PAD_RESET_RELEASE(0),
+        .LOCAL_PAD_RESET_RELEASE(TX_LOCAL_PAD_RESET_RELEASE),
         .REGISTER_SELECTED_HALF(0)) u_rgmii (
         .delay_clock(clk_delay), .delay_reset(delay_reset), .delay_ready(delay_ready),
         .tx_clock(clk_tx), .tx_pad_clock(clk_tx_pad), .tx_pad_reset(tx_reset_pad),
