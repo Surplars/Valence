@@ -2,6 +2,22 @@
 # a4c0da88d92de9762051d0a0abf69965a5ae4163cfb0645080c0587e6b0ae55a
 # 79990654 bytes; R38 RX450 + CPU-reset ECO, performance targets 300/250.
 # Physical diagnostic only; no bitstream, exception or mode-constraint changes.
+# Native OSERDES RST queries may return an unconstrained/nonfinite object even
+# when report_timing prints no ordinary slack. Inspect, never infer from count.
+proc tx_oserdes_status {paths} {
+    set records {}; set index 0
+    foreach p $paths {
+        set attrs {}; set available [list_property $p]
+        foreach k {SLACK REQUIREMENT STARTPOINT_PIN ENDPOINT_PIN STARTPOINT_CLOCK ENDPOINT_CLOCK EXCEPTION} {
+            if {[lsearch -exact $available $k]>=0} {dict set attrs $k [get_property $k $p]} else {dict set attrs $k <absent>}
+        }
+        set slack [dict get $attrs SLACK]; set req [dict get $attrs REQUIREMENT]
+        set finite [expr {[string is double -strict $slack] && $slack>-Inf && $slack<Inf && [string is double -strict $req] && $req>-Inf && $req<Inf}]
+        lappend records [dict create index $index properties $attrs finite $finite finite_violation [expr {$finite && $slack<0}] qualified 0]
+        incr index
+    }
+    return [dict create count [llength $paths] records $records qualified 0]
+}
 if {$argc!=3} {error {Usage: route_tx_reset_placement.tcl input.dcp fresh_output_dir helper.tcl}}
 set input [file normalize [lindex $argv 0]]
 set out [file normalize [lindex $argv 1]]
@@ -36,13 +52,13 @@ proc tx_timing {state prefix} {
             }
         }
     }
-    # Mapped ODDRE1 is OSERDESE3. These six RST pins have no native STA path
-    # in this exact input. Preserve/log that limitation; never call it a PASS.
+    # Preserve and record the actual six OSERDESE3 RST query results. A returned
+    # object may be nonfinite/unconstrained. Finite violations remain visible
+    # for separate review; none of these diagnostic records grants coverage.
     foreach to [dict get $state oserdes] {
         foreach kind {max min} {
             set p [get_timing_paths -quiet -from [dict get [lindex $stages 2] C] -to $to -delay_type $kind -max_paths 1]
-            puts $f [list OSERDES_RST [get_property NAME $to] KIND $kind NATIVE_PATH_COUNT [llength $p] QUALIFIED 0]
-            r38_tx_place::need {[llength $p]==0} "OSERDES arc scope changed; review required"
+            puts $f [list OSERDES_RST [get_property NAME $to] KIND $kind QUERY [tx_oserdes_status $p]]
         }
     }
     puts $f [list TIMED_PATHS $count FUNCTIONAL_WORST $worst NO_SIGNOFF 1]; close $f

@@ -25,9 +25,11 @@ The script checks exact three-stage topology and all 19 original final loads,
 keeps all input connections/consumer locations and RAW125/PAD250 clock geometry
 and roots, moves the three cells once, then `route_design -preserve`.
 Both timing corners, max/min are checked on two chain paths and all 13 final
-FF reset paths before and after. Six mapped OSERDESE3 RST pins have no native
-STA path in the input; their structure remains unchanged and that limitation
-is explicitly recorded, not called a timing pass. The three asynchronous entry
+FF reset paths before and after. Six mapped OSERDESE3 RST pins did not produce normal slack reports in the
+original probe. Native get_timing_paths nevertheless can return an object.
+The runtime records its actual properties, finite/nonfinite status and any
+finite violation, without asserting an empty collection or claiming coverage.
+Their reset connectivity, input drivers and mapped attributes stay unchanged. The three asynchronous entry
 PREs remain timed, with no exception in this candidate.
 
 Outputs are explicitly UNQUALIFIED. Even if all 13 final FF paths pass, the
@@ -42,3 +44,9 @@ Result: 1 positive and17 negatives pass (including wrong clock, early stage,
 extra load, constant type, occupied BEL, partial place error then re-source,
 and altered root/sink). Mock proves guards only, not placement legality/STA.
 Independent read-only review of both runtime Tcl files completed without blocker.
+
+Native first placement attempt stopped before mutation because the old runtime
+incorrectly equated a no-slack report with zero path objects. The r2 runtime
+removes only that diagnostic-count assertion; the13 functional FF and2 chain
+paths retain all strict clock/endpoint/finite/exception checks. OSERDES records
+remain unqualified and require native interpretation, not a blanket waiver.

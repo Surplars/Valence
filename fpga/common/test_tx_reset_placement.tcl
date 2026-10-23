@@ -115,3 +115,20 @@ test partial {} {native place legality} partial
 test moved_root {} {altered logic} root
 test moved_sink {} {altered logic} sink
 puts {PASS finite placement guard suite: 1 positive + 17 negative; not native legality/STA}
+
+set f [open [file join [file dirname [info script]] dynamic route_tx_reset_placement.tcl]]; set source [read $f]; close $f
+set first [string first {proc tx_oserdes_status} $source]
+set last [string first {if {$argc!=3}} $source]
+eval [string range $source $first [expr {$last-1}]]
+proc list_property {p} {return [dict keys [dict get $::m::db $p]]}
+set ::m::db {}
+foreach {name slack req expected violation} {positive 0.2 4.0 1 0 negative -0.1 4.0 1 1 inf Inf 4.0 0 0 neginf -Inf 4.0 0 0 empty {} {} 0 0 unknown <absent> 4 0 0 badreq 1 Inf 0 0 nan NaN 4 0 0} {
+ dict set ::m::db $name [dict create SLACK $slack REQUIREMENT $req STARTPOINT_PIN launch/C ENDPOINT_PIN oserdes/RST STARTPOINT_CLOCK raw ENDPOINT_CLOCK pad EXCEPTION {}]
+ set r [lindex [dict get [tx_oserdes_status [list $name]] records] 0]
+ if {[dict get $r finite]!=$expected || [dict get $r finite_violation]!=$violation || [dict get $r qualified]} {error "bad $name"}
+ puts "PASS OSERDES $name"
+}
+dict set ::m::db missing [dict create SLACK Inf]
+if {[dict get [lindex [dict get [tx_oserdes_status missing] records] 0] finite]} {error missing}
+if {[dict get [tx_oserdes_status {}] count]!=0} {error empty_collection}
+puts {PASS OSERDES missing-property and empty-collection; all remain unqualified}
