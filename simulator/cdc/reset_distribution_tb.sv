@@ -56,6 +56,20 @@ module reset_distribution_tb;
       tick(10); tick(5); tick(10);
       check(observedOwner === 1'b1, "rate-change edges lost accepted owner");
       check(observedReset === 1'b0, "rate-change edges asserted reset");
+      // An accepted owner is retained by DFS, but a real common cold reset
+      // must still clear it asynchronously, even with the CPU clock stopped.
+      startupReset = 1; #1;
+      check(synchronizedReset === 1'b1 && observedReset === 1'b1,
+            "running cold reset did not assert through complete release chain");
+      check(owner === 1'b0, "running cold reset did not clear retained owner");
+      #13; startupReset = 0; #11;
+      check(observedReset === 1'b1, "running cold reset released without a clock");
+      for (edgeIndex = 1; edgeIndex <= 4; edgeIndex = edgeIndex + 1) begin
+        tick(3);
+        check(observedReset === (edgeIndex < 4), "running cold release changed four-edge contract");
+      end
+      acquire = 1; tick(3); acquire = 0;
+      check(owner === 1'b1, "owner not reacquired after common cold reset");
       retire = 1; tick(4); retire = 0;
       check(owner === 1'b0, "owner did not retire explicitly");
     end

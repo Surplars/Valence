@@ -155,7 +155,6 @@ class CommonMachinePlatform(
     private val cpuFunctionalReset = if (runtimeRateControl && profile.kind == "i1") {
         val cpuResetDistribution = Module(new ResetDistributionDriver)
         cpuResetDistribution.clockIn := cpuClock
-        cpuResetDistribution.asyncReset := startupReset
         cpuResetDistribution.synchronizedReset := cpuRelease.resetOut
         cpuResetDistribution.resetOut
     } else cpuRelease.resetOut

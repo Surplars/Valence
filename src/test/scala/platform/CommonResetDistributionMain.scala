@@ -18,7 +18,6 @@ class CommonResetDistributionFixture extends RawModule {
     release.asyncReset := startupReset
     private val distribution = Module(new ResetDistributionDriver)
     distribution.clockIn := cpuClock
-    distribution.asyncReset := startupReset
     distribution.synchronizedReset := release.resetOut
     synchronizedReset := release.resetOut.asBool
     functionalReset := distribution.resetOut.asBool
