@@ -38,7 +38,7 @@ proc common_cdc::drivers pin {
     return [list $::fabricSource]
 }
 proc common_cdc::constant {pin value} {
-    if {$::fault eq {dynamic_alias} || $pin ni {u_soc/timebaseClock u_soc/debugClock} || $value!=0} {error {alias not literal GND}}
+    if {$::fault eq {dynamic_alias} || $pin ni {u_soc/timebaseClock u_soc/debugClock u_soc/ddrClock} || $value!=0} {error {alias not literal GND}}
 }
 assert {[common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing] eq {fixed}} {GND aliases rejected despite proved active anchors}
 foreach ::fault {wrong_clock wrong_driver dynamic_alias wrong_direction} {
@@ -54,3 +54,17 @@ assert {[catch {common_cdc::clock_alias u_soc/otherClock u_soc/debugCrossing/sou
 dict set ::domains u_soc/debugCrossing/requests/sourceClock fabric
 assert {[catch {common_cdc::static_clock_anchors u_soc u_soc/fixedTimer u_soc/debugCrossing} why]} {mailbox source miswire accepted}
 puts ACTIVE_CLOCK_ANCHOR_GND_AND_DISCONNECTED_ALIAS_POSITIVES_ACTIVE_FLOATING_RESIDUAL_LOAD_DIRECTION_DRIVER_AND_MAILBOX_NEGATIVES_PASS
+
+# Exact r36 native DDR alias: live child remains UI250, parent is inert GND.
+set ::fault {}; set ::aliasState GROUND
+common_cdc::clock_alias u_soc/ddrClock u_soc/ddrCrossing/ddrClock fixed
+foreach ::fault {dynamic_alias wrong_direction residual_load} {
+    assert {[catch {common_cdc::clock_alias u_soc/ddrClock u_soc/ddrCrossing/ddrClock fixed} why]} "DDR alias mutation accepted: $::fault"
+}
+set ::fault {}; set ::aliasState DISCONNECTED
+common_cdc::clock_alias u_soc/ddrClock u_soc/ddrCrossing/ddrClock fixed
+set ::fault residual_load
+assert {[catch {common_cdc::clock_alias u_soc/ddrClock u_soc/ddrCrossing/ddrClock fixed} why]} {DDR disconnected residual load accepted}
+set ::fault {}; dict set ::domains u_soc/ddrCrossing/ddrClock fabric
+assert {[catch {common_cdc::clock_alias u_soc/ddrClock u_soc/ddrCrossing/ddrClock fixed} why]} {DDR active child wrong clock accepted}
+puts DDR_EXACT_ALIAS_ACTIVE_CHILD_AND_INERT_PARENT_PROOF_PASS

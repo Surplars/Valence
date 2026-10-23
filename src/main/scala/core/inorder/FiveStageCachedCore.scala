@@ -142,6 +142,10 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     // The read-only coherent cache uses occupancy-only admission when control
     // cuts are selected. No extra fetch stage: READY never depends on the new
     // physical address/tag, and the final old response can turn over in-place.
+    // Quiescence sees a conservative pre-authorization request bound. No
+    // ordinary cache admission, response, probe or owner handshake is altered.
+    icache.io.quiescenceRequestPending.foreach(_ := fetchRequest.valid)
+    dcache.io.quiescenceRequestPending.foreach(_ := core.io.dataRequest.valid)
     icache.io.request <> instructionPhysicalRequest
     instructionPhysicalResponse <> icache.io.response
     if (p.coherentCaches) {
@@ -179,11 +183,16 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         it.io.candidateSecond.foreach(_ := fetchCandidateSecond)
         // Three logical users, ONE physical D-cache owner. The offer is sticky under READY stalls.
         // PTW does not instantiate a new cache, AXI master, MSHR or unbounded request queue.
+        val instructionPending = fetchRequest.valid || it.io.registeredOwner
+        val dataPending = core.io.dataRequest.valid || dt.io.registeredOwner || instructionPending
+        icache.io.quiescenceRequestPending.foreach(_ := instructionPending)
+        dcache.io.quiescenceRequestPending.foreach(_ := dataPending)
         val ports = Seq(dt.io.physical, dt.io.walk, it.io.walk)
         val active = RegInit(false.B); val owner = Reg(UInt(2.W))
         val offered = RegInit(false.B); val heldGrant = Reg(UInt(2.W))
+        dcache.io.quiescenceRequestPending.foreach(_ := dataPending || active || offered)
         privateArbitrationIdle.foreach(_ := !active && !offered &&
-            !ports.map(_.request.valid).reduce(_ || _) && !ports.map(_.response.valid).reduce(_ || _))
+            !dataPending && !ports.map(_.response.valid).reduce(_ || _))
         val roundRobin = RegInit(0.U(2.W))
         val available = ports.map(_.request.valid)
         val choice = if (p.fpgaTimingCuts && p.coherentBandwidth) {

@@ -13,7 +13,7 @@ FF = UART + '/uart/state_reg[1]/C'
 class DynamicClockTargets(unittest.TestCase):
     def run_contract(self, mutation='', board=False, after_first=''):
         harness = r'''
-set periods [dict create u_ddr/c0_ddr4_ui_clk 4.0 clk_out1_clk_wiz_common 20.0 mmcm_clkout0 20.0 u_soc/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0 network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0]
+set periods [dict create u_ddr/c0_ddr4_ui_clk 4.0 clk_out1_clk_wiz_common 20.0 mmcm_clkout0 20.0 u_soc/ddrCrossing/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0 network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0]
 set names {}; set writes {}; set masters {}; set pins {}; set clocks {}; set drivers {}; set inverted {}; set sources {}; set queried {}
 set leaf_queries 0; set segments_override {}; set net_driver_overrides {}; set ref_overrides {}
 set uart u_soc/peripherals/uart
@@ -36,6 +36,11 @@ foreach bit {0 1} {
 }
 # These aliases exist but are unclocked/grounded: neither may be consulted.
 foreach pin {u_soc/rawUartClock u_soc/peripherals/rawUartClock} {dict set pins $pin 1; dict set clocks $pin {}; dict set drivers $pin GND/G}
+set ddr_driver u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O
+foreach pin [list $ddr_driver u_soc/ddrCrossing/ddrClock {u_soc/ddrCrossing/empty_fifo/capturedBinary_reg[0]/C} {u_soc/ddrCrossing/ddrRelease/release_0_reg[0]/C}] {
+ dict set pins $pin 1; dict set clocks $pin u_ddr/c0_ddr4_ui_clk; dict set drivers $pin $ddr_driver
+}
+dict set pins u_soc/ddrClock 1; dict set clocks u_soc/ddrClock {}; dict set drivers u_soc/ddrClock GND/G
 dict set masters $aon mmcm_clkout0
 dict set sources $aon u_clk_wiz/inst/mmcme4_adv_inst/CLKOUT0
 proc get_pins {args} {
@@ -214,12 +219,19 @@ puts LEAF_DRIVER_QUERIES=$leaf_queries
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('CONTRACT_PASS', result.stdout)
         self.assertIn('CONSOLE_FF_CLOCK_PINS=2 INDIVIDUAL_CLOCK_AND_DRIVER_CHECKS', result.stdout)
-        self.assertIn('LEAF_DRIVER_QUERIES=2', result.stdout)
+        self.assertIn('LEAF_DRIVER_QUERIES=5', result.stdout)
         source = (HERE / 'synthesize.tcl').read_text()
         self.assertLess(source.index('read_xdc $dynamicTargets'), source.index('common_design_step synth_design -top'))
         self.assertLess(source.index('native_dynamic_performance_targets'), source.index('write_checkpoint synthesized.dcp'))
         proof = (HERE / 'dynamic/dynamic_clock_constraints.tcl').read_text()
         self.assertIn('NOT_A_RUNTIME_MEASUREMENT NOT_THE_STA_TARGET', proof)
+
+    def test_ddr_live_leaf_clock_and_driver_fail_closed(self):
+        pin = 'u_soc/ddrCrossing/empty_fifo/capturedBinary_reg[0]/C'
+        self.assert_rejected(f'dict set clocks {{{pin}}} {{}}', 'DDR functional clock changed')
+        self.assert_rejected(f'dict set drivers {{{pin}}} unrelated/O', 'DDR physical driver changed')
+        self.assert_rejected(f'dict unset pins {{{pin}}}', 'missing exact DDR functional pin')
+        self.assert_rejected('dict set clocks $ddr_driver {}', 'missing physical DDR UI250')
 
     def test_relaxed_cpu_and_fabric_targets_rejected_with_actual_period(self):
         for root in ('cpu_clock', 'fabric_clock'):
@@ -292,7 +304,7 @@ puts LEAF_DRIVER_QUERIES=$leaf_queries
     def test_leaf_driver_cache_uses_complete_sorted_net_collection(self):
         result = self.run_contract(f'dict set segments_override {{{FF}}} {{uart_gate_leaf uart_gate_top}}')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('LEAF_DRIVER_QUERIES=2', result.stdout)
+        self.assertIn('LEAF_DRIVER_QUERIES=5', result.stdout)
         # A shared first segment alone must not reuse another collection's proof.
         mutation = (f'dict set segments_override {{{FF}}} {{uart_gate_leaf z_changed_leaf}}; '
                     'dict set net_driver_overrides z_changed_leaf wrong/O')

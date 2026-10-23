@@ -159,6 +159,26 @@ static void run(bool negative) {
             b.access(Csr{f,selector,3,UINT64_MAX});b.access(Csr{f,selector,0});
         }
     }
+    // Every identity straddles its strict threshold boundary. This checks the
+    // IRQ existence network independently against the oracle's linear search,
+    // including all 64-bit group boundaries and each implemented guest file.
+    for(unsigned f=0;f<files;++f) {
+        for(unsigned g=0;g<(count+1)/64;++g) {
+            b.access(Csr{f,0x80+2*g,1,0});
+            b.access(Csr{f,0xc0+2*g,1,UINT64_MAX});
+        }
+        b.access(Csr{f,0x70,1,1});
+        for(unsigned id=1;id<=count;++id) {
+            b.access(Csr{f,0x80+2*(id/64),1,UINT64_C(1)<<(id%64)});
+            b.access(Csr{f,0x72,1,id});b.drain();
+            check(!(b.model.interrupts()&(UINT64_C(1)<<f)),"identity equal to threshold must not interrupt");
+            b.access(Csr{f,0x72,1,id==count?0:id+1});b.drain();
+            check(b.model.interrupts()&(UINT64_C(1)<<f),"identity below threshold must interrupt");
+            b.access(Csr{f,0,0,0,true});
+            b.access(Csr{f,0x80+2*(id/64),1,0});
+        }
+        b.access(Csr{f,0x72,1,0});
+    }
     b.access(Csr{255,0x70,1,1});b.access(Csr{0,0xff0,1,1});
     for(unsigned page=0;page<pages();++page)for(unsigned offset=0;offset<4096;offset+=4) {
         Bus r{supervisorBase+4096*page+offset,17,2,15,true};b.access(r);r.write=false;b.access(r);

@@ -56,7 +56,22 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
         val first = PriorityMux(candidates)
         top(f) := Mux(any && (threshold(f) === 0.U || first < threshold(f)), first, 0.U)
     }
-    io.interrupts := VecInit((0 until p.files).map(f => delivery(f) && top(f) =/= 0.U)).asUInt
+    // IRQ needs existence, not the encoded winning identity. Compare the
+    // threshold against static bit/group positions in parallel so pending does
+    // not traverse TOPEI's priority encoder and then a numeric comparison.
+    // The lowest active identity is below threshold iff any active identity is.
+    val belowThreshold = VecInit((0 until p.files).map { f =>
+        val localMask = VecInit((0 until 64).map(i => i.U(6.W) < threshold(f)(5, 0))).asUInt
+        val groups = (0 until p.groups).map { g =>
+            val validMask = (if (g == 0) (BigInt(1) << 64) - 2 else (BigInt(1) << 64) - 1).U(64.W)
+            val active = pending(f)(g) & enabled(f)(g) & validMask
+            val wholeGroup = threshold(f) === 0.U || g.U(5.W) < threshold(f)(10, 6)
+            (wholeGroup && active.orR) ||
+                (g.U(5.W) === threshold(f)(10, 6) && (active & localMask).orR)
+        }
+        delivery(f) && VecInit(groups).asUInt.orR
+    })
+    io.interrupts := belowThreshold.asUInt
     // Registered response storage decouples ready in each direction, with independent credits per port.
     val mmioResponses = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))
     val csrResponses  = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))

@@ -72,6 +72,20 @@ full payload bytes. No hidden or fabricated hit/miss metrics are exposed.
 
 ## Measurement and CDC
 
+Each event is a single Boolean event per source edge. Event inputs are sampled
+in one local source-clock register before incrementing counters1..7. Thus an
+event captured on edgeN updates its count/registered Gray value on edgeN+1;
+this adds exactly one source-edge observation latency, not functional latency.
+Counter0 is NOT staged and still counts every real managed edge, including the
+last edge before stopping. A final event captured immediately before a stopped
+clock remains pending until its next real edge; it is neither duplicated nor
+lost across a stop/resume. Common cold reset intentionally clears that pending
+event together with all counters. Event totals are lifetime cumulative, not
+per-epoch counters. Existing switch invalidation rejects the transition window
+and following settling window, covering this additional source-edge latency
+when managed clocks resume. This pipeline must not be independently reset on a
+warm frequency change or clear counters using an asynchronous AON level.
+
 Each event is a single Boolean event per source edge. The eight32-bit binary
 counters increment by zero or one only, with registered Gray encodings, then
 cross independent two-stage ASYNC_REG synchronizers. Both synchronizer banks

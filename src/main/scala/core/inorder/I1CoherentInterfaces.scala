@@ -43,6 +43,7 @@ abstract class I1CoherentLineCacheModule(params: TLParams,
             Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
         val flushRequest = Input(Bool()); val flushDone = Output(Bool())
         val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
+        val quiescenceRequestPending = if (reportQuiescence) Some(Input(Bool())) else None
         val prefetchBusy = Output(Bool()); val prefetch = Output(new I1PrefetchEvents)
         val hit = Output(Bool()); val miss = Output(Bool()); val profile = Output(new I1CoherentCacheProfile)
         val readCacheable = if (trustedReadOnlyCacheability) Some(Input(Bool())) else None
@@ -113,6 +114,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
         val invalidate = Input(Bool()); val hit = Output(Bool()); val miss = Output(Bool())
         val invalidateDone = if (reportMaintenance) Some(Output(Bool())) else None
         val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
+        val quiescenceRequestPending = if (reportQuiescence) Some(Input(Bool())) else None
         val tl = new TLBundle(params); val uncached = new I1DataPort
         val lineGrant = if (p.coherentLineGrants)
             Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
@@ -128,6 +130,7 @@ class I1CoherentWordCache(p: FiveStageConfig, bytes: Int, readOnly: Boolean = fa
         internalLineGrant = p.coherentLineGrants,
         missTurnover = !readOnly && p.coherentMissTurnover,
         writebackOverlap = p.coherentWritebackOverlap, reportQuiescence = reportQuiescence))
+    cache.io.quiescenceRequestPending.foreach(_ := io.quiescenceRequestPending.get)
     cache.io.lineGrant.foreach(_ <> io.lineGrant.get)
     cache.io.readCacheable.foreach(_ := io.readCacheable.get)
     val maintenance = RegInit(false.B)

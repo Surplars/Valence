@@ -17,11 +17,16 @@ def main():
     rtl = sorted(a.rtl.glob('*.sv'))
     assert rtl, 'No emitted RTL supplied'
     tb = ROOT / 'simulator/cdc/clock_performance_telemetry_tb.sv'
+    pulse_tb = ROOT / 'simulator/cdc/telemetry_event_pipeline_tb.sv'
     binary = a.out / 'telemetry.vvp'
+    pulse_binary = a.out / 'telemetry-events.vvp'
     commands = [['iverilog', '-g2012', '-s', 'clock_performance_telemetry_tb', '-o', str(binary),
-                 *map(str, rtl), str(tb)], ['vvp', str(binary)]]
+                 *map(str, rtl), str(tb)], ['vvp', str(binary)],
+                ['iverilog', '-g2012', '-s', 'telemetry_event_pipeline_tb', '-o', str(pulse_binary),
+                 *map(str, rtl), str(pulse_tb)], ['vvp', str(pulse_binary)]]
     receipt = {'status': 'RUNNING', 'rtl_sha256': {f.name: hashlib.sha256(f.read_bytes()).hexdigest() for f in rtl},
-               'testbench_sha256': hashlib.sha256(tb.read_bytes()).hexdigest(), 'cases': []}
+               'testbench_sha256': hashlib.sha256(tb.read_bytes()).hexdigest(),
+               'event_testbench_sha256': hashlib.sha256(pulse_tb.read_bytes()).hexdigest(), 'cases': []}
     try:
         for index, cmd in enumerate(commands):
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -29,7 +34,8 @@ def main():
             (a.out / f'{index}.log').write_text(output)
             receipt['cases'].append({'command': cmd, 'exit_code': r.returncode})
             assert r.returncode == 0, output[-6000:]
-            if index: assert 'CLOCK_PERFORMANCE_TELEMETRY_PASS' in output
+            if index == 1: assert 'CLOCK_PERFORMANCE_TELEMETRY_PASS' in output
+            if index == 3: assert 'TELEMETRY_EVENT_PIPELINE_PASS' in output
         receipt['status'] = 'PASS'
         print('CLOCK_PERFORMANCE_TELEMETRY_PASS')
     except BaseException as error:

@@ -53,6 +53,7 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         val invalidate = Input(Bool())
         val invalidateDone = if (reportMaintenance) Some(Output(Bool())) else None
         val quiescent = if (reportQuiescence) Some(Output(Bool())) else None
+        val quiescenceRequestPending = if (reportQuiescence) Some(Input(Bool())) else None
         // Private IF authorization boundary, not a software/TileLink hint.
         val readCacheable = if (trustedReadOnlyCacheability) Some(Input(Bool())) else None
         val hit = Output(Bool())
@@ -75,6 +76,7 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         coherent.io.invalidate := io.invalidate
         io.invalidateDone.foreach(_ := coherent.io.invalidateDone.get)
         io.quiescent.foreach(_ := coherent.io.quiescent.get)
+        coherent.io.quiescenceRequestPending.foreach(_ := io.quiescenceRequestPending.get)
         coherent.io.readCacheable.foreach(_ := io.readCacheable.get)
         io.coherence.get <> coherent.io.tl
         coherent.io.lineGrant.foreach(_ <> io.lineGrant.get)

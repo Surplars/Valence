@@ -10,7 +10,8 @@ import soc.bus.tilelink.{TLBundle, TLParams}
   */
 class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagBits: Int = 8,
     rawResponseMetadata: Boolean = false, dispatchFlow: Boolean = false,
-    lineReadChannel: Boolean = false, isolatedWriteLaunch: Boolean = false, serializedWrites: Boolean = false)
+    lineReadChannel: Boolean = false, isolatedWriteLaunch: Boolean = false, serializedWrites: Boolean = false,
+    isolatedWriteA: Boolean = false)
     extends Module {
     require(params.sourceBits <= 6)
     require(!lineReadChannel || tagBits <= 8)
@@ -24,6 +25,19 @@ class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagB
     })
     val writer = if (serializedWrites) Module(new TileLinkSerializedLineWriteEngine(params, tagBits))
         else Module(new TileLinkLineWriteEngine(params, entries, tagBits, dispatchFlow, isolatedWriteLaunch))
+    // Optional two-beat owner boundary: writer READY is local queue capacity,
+    // not ordinary-access directory lookup plus downstream arbitration. The
+    // queue preserves all A fields, full burst order and II=1 at steady state.
+    // Accepting into this queue is NOT memory completion; real D remains the
+    // sole line completion authority, after all eight external A handshakes.
+    val writeBus = Wire(new TLBundle(params))
+    writeBus <> writer.io.tl
+    if (isolatedWriteA) {
+        val writeBeats = Module(new Queue(chiselTypeOf(writer.io.tl.a.bits), 2,
+            pipe = false, flow = false))
+        writeBeats.io.enq <> writer.io.tl.a
+        writeBus.a <> writeBeats.io.deq
+    }
     writer.io.request <> io.writeRequest
     io.writeResponse <> writer.io.response
     if (lineReadChannel) {
@@ -43,23 +57,23 @@ class TileLinkLineTransfer(params: TLParams = TLParams(), entries: Int = 4, tagB
             assert(line.response.bits.tag < (BigInt(1) << tagBits).U,
                 "whole-line response truncated its caller tag")
         }
-        io.tl.a <> writer.io.tl.a
-        io.tl.a.bits.source := Cat(1.U(1.W), writer.io.tl.a.bits.source)
-        writer.io.tl.d <> io.tl.d
-        writer.io.tl.d.bits.source := io.tl.d.bits.source(params.sourceBits - 1, 0)
+        io.tl.a <> writeBus.a
+        io.tl.a.bits.source := Cat(1.U(1.W), writeBus.a.bits.source)
+        writeBus.d <> io.tl.d
+        writeBus.d.bits.source := io.tl.d.bits.source(params.sourceBits - 1, 0)
         when(io.tl.d.valid) {
             assert(io.tl.d.bits.source(params.sourceBits), "write-only line port returned a read source")
         }
-        writer.io.tl.b <> io.tl.b
-        io.tl.c <> writer.io.tl.c
-        io.tl.e <> writer.io.tl.e
+        writeBus.b <> io.tl.b
+        io.tl.c <> writeBus.c
+        io.tl.e <> writeBus.e
     } else {
         val reader = Module(new TileLinkLineFillEngine(params, entries, tagBits, dispatchFlow))
         val arbiter = Module(new TwoMasterTileLinkArbiter(params, rawResponseMetadata))
         reader.io.request <> io.readRequest
         io.readResponse <> reader.io.response
         reader.io.tl <> arbiter.io.masters(0)
-        writer.io.tl <> arbiter.io.masters(1)
+        writeBus <> arbiter.io.masters(1)
         io.tl <> arbiter.io.manager
     }
 }

@@ -3,7 +3,7 @@ package soc.platform
 import chisel3._
 import chisel3.util._
 import soc.ip.axi.{Axi4ClockDomainBoundary, Axi4MemoryPort}
-import soc.ip.bus.{CdcLevel, CdcResetRelease}
+import soc.ip.bus.{CdcLevel, CdcResetRelease, ResetDistributionDriver}
 import soc.ip.clock.{ClockRateAdmission, ClockRateBackendPort, ClockRateParams, ClockRatePoint, ClockPerformanceTelemetry, ManagedPeripheralBank}
 import soc.ip.debug.{DebugDmiClockBoundary, DebugDmiPort}
 import soc.ip.timer.FixedTimebaseBoundary
@@ -150,6 +150,15 @@ class CommonMachinePlatform(
     private val startupReset = (commonColdReset.asBool || !started).asAsyncReset
     private val cpuRelease = Module(new CdcResetRelease)
     cpuRelease.clockIn := cpuClock; cpuRelease.asyncReset := startupReset
+    // Dynamic I1 only: retain the complete three-stage synchronizer, then add a
+    // physically replicable functional-reset driver. Normal DFS never resets it.
+    private val cpuFunctionalReset = if (runtimeRateControl && profile.kind == "i1") {
+        val cpuResetDistribution = Module(new ResetDistributionDriver)
+        cpuResetDistribution.clockIn := cpuClock
+        cpuResetDistribution.asyncReset := startupReset
+        cpuResetDistribution.synchronizedReset := cpuRelease.resetOut
+        cpuResetDistribution.resetOut
+    } else cpuRelease.resetOut
     val crossing = Module(new CommonCpuClockBoundary(boundary, depth = 16))
     crossing.cpuClock := cpuClock; crossing.fabricClock := fabricClock
     crossing.commonColdReset := startupReset
@@ -511,7 +520,7 @@ class CommonMachinePlatform(
     io.retire := 0.U.asTypeOf(io.retire)
     io.trap := 0.U.asTypeOf(io.trap)
     if (profile.kind == "i1") {
-        val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
+        val cpu = withClockAndReset(cpuClock, cpuFunctionalReset) {
             Module(new CommonI1CpuTile(profile.i1, boundary))
         }
         crossing.cpu <> cpu.io.bus

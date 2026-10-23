@@ -302,6 +302,15 @@ module tb;
         // Independent correctness oracles with request/response backpressure.
         stallMode=1;tables(4,1);
         transactionD(DVA,0,0);transactionI(IVA);
+        // Real 2 MiB / 1 GiB leaves: entry-zero dominance must preserve both
+        // physical assembly and dynamically selected permission on another slice.
+        tables(4,1); pageMemory[L1>>3]=pte(DPA,8'hcf); invalidate();
+        transactionD(DVA,0,0); transactionD(DVA+4096,0,0);
+        transactionD(DVA+4096,1,64'habc); transactionD(DVA+4096,0,0);
+        tables(4,1); pageMemory[(ROOT+8)>>3]=pte(DPA,8'hcf); invalidate();
+        transactionD(DVA,0,0); transactionD(DVA+4096,0,0);
+        tables(4,1); pageMemory[L1>>3]=pte(DPA,8'hdf); invalidate();
+        io_sum=1; transactionD(DVA,0,0); io_sum=0; transactionD(DVA+4096,0,0);
         // Permissions: R/W/X/U/A/D, SUM/MXR and non-canonical addresses.
         for(which=0;which<8;which=which+1)begin
             tables(4,1);

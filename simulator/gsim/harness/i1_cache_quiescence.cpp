@@ -28,6 +28,7 @@ struct Test{
     unsigned cycle=0,accepted=0,returned=0,readCollisions=0,probeCollisions=0,bypassCollisions=0;
     unsigned dirtyBeats=0,releaseBeats=0,flushes=0,probes=0,acquires=0;
     bool valid=false,ready=true,flush=false,holdC=false,wrong=false,mutated=false;
+    bool earlyPending=false;
     bool holdE=false,holdD=false,holdRelease=false,holdNative=false;
     unsigned grantBeats=0;
     bool lastAcceptedWrite=false,fired=false,bfired=false,rfired=false;
@@ -54,7 +55,7 @@ struct Test{
         S(request$$bits$$mask,request.mask);S(request$$bits$$size,3);
         S(request$$bits$$atomic,0);S(request$$bits$$atomicOp,0);
         S(request$$bits$$virtualized,0);S(request$$bits$$uncached,request.bypass);
-        S(response$$ready,ready);S(flush,flush);
+        S(response$$ready,ready);S(flush,flush);S(earlyPending,earlyPending);
         S(tl$$a$$ready,1);S(tl$$c$$ready,!holdC);S(tl$$e$$ready,!holdE);
         const bool dv=!replies.empty()&&replies.front().due<=cycle && !holdD &&
             !(holdRelease && replies.front().opcode==6);
@@ -161,6 +162,10 @@ int main(int argc,char**argv){
             check(condition(),why);
         };
         until([&]{return t.G(quiescent);},"initial idle missing");
+        t.earlyPending=true; t.tick();
+        check(!t.G(quiescent),"early owner without late physical offer was omitted");
+        t.earlyPending=false; t.tick();
+        until([&]{return t.G(quiescent);},"early-only owner failed to drain");
         // Cold miss: partial D, held E, then held native CPU response.
         t.request={base};t.valid=true;t.ready=false;t.holdE=true;
         until([&]{return t.fired;},"cold request acceptance");t.valid=false;

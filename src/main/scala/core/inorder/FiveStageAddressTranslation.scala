@@ -32,6 +32,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         val context = Input(new FiveStageTranslationContext(p))
         val entries = Input(Vec(p.pmpEntries, new FiveStagePmpEntry(p)))
         val invalidate = Input(Bool())
+        val registeredOwner = Output(Bool())
         val hit = Output(Bool()); val miss = Output(Bool())
         val physicalCacheable = if (instruction && p.fpgaTimingCuts) Some(Output(Bool())) else None
         val addressCandidates = if (parallelInstructionCandidates) Some(Input(Vec(2, UInt(p.xlen.W)))) else None
@@ -74,6 +75,13 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
     // saved/PA own the physical operation; result owns a separately registered
     // reply. Both payload banks already exist. Only their validity is split.
     val resultPending = if (p.dataReplyHandoff && !instruction) Some(RegInit(false.B)) else None
+    // Management-only conservative owner proof, independent of TLB/PMP lookups.
+    io.registeredOwner := !phaseIs(stateStorage, idle) || resultPending.getOrElse(false.B)
+    when(!reset.asBool) {
+        assert(!(io.physical.request.valid || io.walk.request.valid) ||
+            io.request.valid || io.registeredOwner,
+            "translation request escaped its original offer or registered owner")
+    }
     // The cold fault decision must not reset every payload bit. Its existing
     // response owner carries one zero marker; bus-error payloads stay intact.
     val localFaultZero = if (p.fpgaTimingCuts) Some(RegInit(false.B)) else None
@@ -468,8 +476,12 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         // Entry zero can cover a REAL 2MiB/1GiB mapping. No added entry or 4-way XLEN CAM:
         // one short 9/18-bit prefix check, or the existing direct-mapped 4KiB tag lookup.
         val superPageHit = superHit(vpn)
-        val index = Mux(superPageHit, 0.U, smallIndex(vpn))
-        val tlbHit = (superPageHit || (valid(index) && equal(tags(index), vpn))) && !stale
+        val leafIndex = smallIndex(vpn)
+        val index = Mux(superPageHit, 0.U, leafIndex)
+        // Resolve the ordinary leaf independently of the dominant superpage.
+        // Superpage hit must not select a wide tag/permission mux before the
+        // lookup phase can decide miss/fault. Entry-zero precedence is retained.
+        val tlbHit = (superPageHit || (valid(leafIndex) && equal(tags(leafIndex), vpn))) && !stale
         val level = Reg(UInt(2.W))
         val table = Reg(UInt(p.xlen.W))
         val pte = Reg(UInt(64.W))
@@ -484,6 +496,12 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                 !flags(4) || (!instruction.B && context.sum))
             rwx && user && flags(6) && (!saved.write || flags(7))
         }
+        val lookupPermitted = if (p.fpgaTimingCuts) {
+            val grants = (0 until p.tlbEntries).map(i => permitted(permissions(i)))
+            val leafGrant = if (p.bankedTlbProofs) bankSelect(leafIndex, grants.map(_.asUInt)).asBool
+                else Mux1H((0 until p.tlbEntries).map(i => (leafIndex === i.U) -> grants(i)))
+            Mux(superPageHit, grants.head, leafGrant)
+        } else permitted(permissions(index))
         def physical(ppn: UInt, lev: UInt): UInt = Cat(ppn, saved.address(11, 0)) |
             Mux(lev === 2.U, saved.address(29, 12) << 12,
                 Mux(lev === 1.U, saved.address(20, 12) << 12, 0.U))
@@ -746,7 +764,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                 .elsewhen(!canonical) { fail(true.B) }
                 .elsewhen(tlbHit) {
                     io.hit := true.B
-                    when(!permitted(permissions(index))) { fail(true.B) }.otherwise {
+                    when(!lookupPermitted) { fail(true.B) }.otherwise {
                         if (!p.fpgaTimingCuts) { pa := physical(ppns(index), levels(index)) }
                         nextState := authorize
                     }

@@ -199,7 +199,7 @@ class MixedCoherentLineHome(
     private val fillQueue = Module(new Queue(UInt(entryBits.W), acquireEntries, pipe = false, flow = false))
     private val transfer = Module(new TileLinkLineTransfer(params.copy(sourceBits = params.sourceBits - 1),
         entries = 4, tagBits = writeTagBits, rawResponseMetadata = rawResponseMetadata,
-        dispatchFlow = lineTransferDispatchFlow, lineReadChannel = lineReadChannel))
+        dispatchFlow = lineTransferDispatchFlow, lineReadChannel = lineReadChannel, isolatedWriteA = true))
     io.line <> transfer.io.tl
     io.lineRead.foreach(_ <> transfer.io.lineRead.get)
     private val sendEntry = Mux(fillQueue.io.deq.valid, fillQueue.io.deq.bits, 0.U)

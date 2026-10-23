@@ -189,7 +189,13 @@ class FixedMacBoundary(depth: Int = 16, heldResponseStorage: Boolean = false,
     withClockAndReset(fabricClock, fabricReset) {
         val current = RegInit(0.U.asTypeOf(new FixedMacCommand))
         val pendingReceipt = RegInit(false.B)
-        val closingTx = current.txStop || (command.valid && command.bits.txStop)
+        // txFence requires both real producers closed and both source VALIDs
+        // absent before accepting TX stop. Therefore no beat can be accepted
+        // on that edge; current owns admission from the following edge onward.
+        // Do not feed atomic PARK's command.ready-dependent VALID back through
+        // network/fabric drain into these FIFO write enables. The live fence
+        // and offered-command assertions below remain the acceptance authority.
+        val closingTx = current.txStop
         // PARK may be offered only after upstream CSR producers are closed,
         // with no unaccepted CSR offer; csrFence also waits for the final reply.
         // Thus its accepting edge cannot accept a CSR request. The accepted

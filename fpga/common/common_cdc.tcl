@@ -935,7 +935,7 @@ proc common_cdc::driven_clock {pin source expected period} {
     }
 }
 proc common_cdc::clock_alias {pin active expected} {
-    set aliases {u_soc/timebaseClock u_soc/fixedTimer/timebaseClock u_soc/debugClock u_soc/debugCrossing/sourceClock}
+    set aliases {u_soc/ddrClock u_soc/ddrCrossing/ddrClock u_soc/timebaseClock u_soc/fixedTimer/timebaseClock u_soc/debugClock u_soc/debugCrossing/sourceClock}
     if {![dict exists $aliases $pin] || [dict get $aliases $pin] ne $active} {
         error "COMMON_CDC unreviewed redundant clock alias $pin -> $active"
     }
@@ -953,9 +953,12 @@ proc common_cdc::clock_alias {pin active expected} {
         if {[llength $nets]} {
             # Synthesized redundant aliases are literal GND, never dynamic or POWER.
             constant $pin 0
+            if {$pin eq "u_soc/ddrClock" && [llength [all_fanout -quiet -flat -endpoints_only -from $object]]} {
+                error "COMMON_CDC redundant DDR alias retains functional sinks"
+            }
             puts "COMMON_CDC_REDUNDANT_CLOCK_ALIAS_GND $pin ACTIVE_ANCHOR=$active NO_EXCEPTION"
         } else {
-            # opt_design can remove that GND connection. Only these two exact
+            # opt_design can remove that GND connection. Only explicitly listed
             # input aliases may be disconnected; there must be no residual sink.
             set endpoints [all_fanout -quiet -flat -endpoints_only -from $object]
             if {[llength $endpoints]} {error "COMMON_CDC disconnected alias retains fanout $pin: $endpoints"}
@@ -1038,7 +1041,7 @@ proc common_cdc::dynamic_clock_anchors {soc timer} {
         distinct_net {*}$pair
     }
     set debug $soc/debugSequence/boundary/crossing
-    foreach pin [list $soc/ddrClock $soc/ddrCrossing/ddrClock $timer/timebaseClock $timer/timer/clock \
+    foreach pin [list $soc/ddrCrossing/ddrClock $timer/timebaseClock $timer/timer/clock \
         $soc/ddrQualification/fixedClock $soc/timerQualification/fixedClock \
         $soc/debugSequence/debugClock $soc/debugSequence/boundary/sourceClock \
         $debug/sourceClock $debug/requests/sourceClock u_debug/debug_clk] {
@@ -1065,8 +1068,9 @@ proc common_cdc::dynamic_clock_anchors {soc timer} {
     same_net $soc/peripherals/crossing/commonReset $soc/commonColdReset
     same_net $soc/peripherals/guard/commonColdReset $soc/commonColdReset
     expect_clock $soc/alwaysOnClock [clock $soc/alwaysOnClock] 20.0
-    # Dynamic aliases are not granted the static dead-alias exceptions. If a
-    # named anchor was pruned, query the same raw DCP before narrowing the proof.
+    # Native r36 proved this exact parent alias GND while live DDR children
+    # retain the unique physical UI250 driver. No other new alias is permitted.
+    clock_alias $soc/ddrClock $soc/ddrCrossing/ddrClock $fixed
     puts "COMMON_CDC_DYNAMIC_ANCHORS CPU300_FABRIC250_STRESS FIXED_MAC125_UI250_AON50 NO_RUNTIME_RATE_QUALIFICATION"
     return $fixed
 }

@@ -20,10 +20,15 @@ class TelemetryGrayCounterBank(width: Int = 32) extends RawModule {
     val destinationRelease = Module(new CdcResetRelease)
     destinationRelease.clockIn := destinationClock; destinationRelease.asyncReset := commonReset
     val gray = withClockAndReset(sourceClock, sourceRelease.resetOut) {
+        // Isolate late functional READY/retirement cones from the counter carry
+        // and Gray encoder. Every accepted event is retained for exactly one
+        // source edge; no functional control path depends on this staging.
+        // Counter0 remains unstaged: it counts every actual managed edge.
+        val sampledEvents = RegNext(events, 0.U(7.W))
         val binary = RegInit(VecInit(Seq.fill(8)(0.U(width.W))))
         val encoded = RegInit(VecInit(Seq.fill(8)(0.U(width.W))))
         for (n <- 0 until 8) {
-            val increment = if (n == 0) true.B else events(n - 1)
+            val increment = if (n == 0) true.B else sampledEvents(n - 1)
             val next = (binary(n) + increment)(width - 1, 0)
             binary(n) := next
             encoded(n) := next ^ (next >> 1)

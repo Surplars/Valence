@@ -17,6 +17,23 @@ class CdcResetRelease extends RawModule {
     resetOut := release(2).asAsyncReset
 }
 
+/** Distribution stage AFTER a complete reset synchronizer, in the same clock domain.
+  * This is deliberately not ASYNC_REG: physical optimization may replicate this
+  * ordinary driver without cloning the metastability-resolution chain. Assertion
+  * is still asynchronous; cold release takes one additional destination edge.
+  * It is not an independent reset source or a warm-reset/clock-switch mechanism.
+  */
+class ResetDistributionDriver extends RawModule {
+    val clockIn = IO(Input(Clock()))
+    val asyncReset = IO(Input(AsyncReset()))
+    val synchronizedReset = IO(Input(AsyncReset()))
+    val resetOut = IO(Output(AsyncReset()))
+    private val distributed = withClockAndReset(clockIn, asyncReset) {
+        RegNext(synchronizedReset.asBool, true.B)
+    }
+    resetOut := distributed.asAsyncReset
+}
+
 /** Only for persistent levels (e.g. IRQ); never use this to cross a pulse or a bus. */
 class CdcLevel extends RawModule {
     val clockIn = IO(Input(Clock()))

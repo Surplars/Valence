@@ -16,6 +16,7 @@ class I1CacheQuiescenceFixture(bytes: Int, missTurnover: Boolean = false) extend
         val request = Flipped(Decoupled(new I1DataRequest))
         val response = Decoupled(new I1DataResponse)
         val flush = Input(Bool())
+        val earlyPending = Input(Bool())
         val flushDone = Output(Bool())
         val quiescent = Output(Bool())
         val tl = new TLBundle(params)
@@ -26,6 +27,7 @@ class I1CacheQuiescenceFixture(bytes: Int, missTurnover: Boolean = false) extend
         controlTimingCuts = true, orderedDataAdmission = true, missTurnover = missTurnover, reportQuiescence = true))
     cache.io.upstream.request <> io.request; io.response <> cache.io.upstream.response
     cache.io.flushRequest := io.flush; io.flushDone := cache.io.flushDone
+    cache.io.quiescenceRequestPending.get := io.request.valid || io.earlyPending
     io.quiescent := cache.io.quiescent.get
     io.tl <> cache.io.tl; io.native <> cache.io.downstream
 }

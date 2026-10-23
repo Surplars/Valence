@@ -111,6 +111,36 @@ proc native_fixed_uart_clock_check {{tag DYNAMIC_TARGET}} {
     puts "$tag UART50_FUNCTIONAL_CLOCKS_PASS CLOCK=$reference_name PERIOD_NS=20 CONSOLE_FF_CLOCK_PINS=[llength $registers] INDIVIDUAL_CLOCK_AND_DRIVER_CHECKS"
 }
 
+# Native r36 RAW evidence: u_soc/ddrClock is a redundant GND alias.
+# Prove the live DDR island instead; never create a clock on that alias.
+proc native_fixed_ddr_clock_check {} {
+    set driver u_ddr/inst/u_ddr4_infrastructure/u_bufg_divClk/O
+    set reference [get_clocks -quiet -of_objects [get_pins -quiet $driver]]
+    if {[llength $reference]!=1 || ![string is double -strict [get_property PERIOD $reference]] ||
+        abs([get_property PERIOD $reference]-4.0)>0.002} {
+        error "DYNAMIC_TARGET missing physical DDR UI250 clock"
+    }
+    foreach pin {u_soc/ddrCrossing/ddrClock u_soc/ddrCrossing/empty_fifo/capturedBinary_reg[0]/C u_soc/ddrCrossing/ddrRelease/release_0_reg[0]/C} {
+        set pattern [regsub -all {[][{}().+*?^$|\\]} $pin {\\&}]
+        set object [get_pins -quiet -hierarchical -regexp "^${pattern}$"]
+        if {[llength $object]!=1 || [get_property NAME $object] ne $pin} {
+            error "DYNAMIC_TARGET missing exact DDR functional pin $pin"
+        }
+        set clocks [get_clocks -quiet -of_objects $object]
+        if {[llength $clocks]!=1 || [get_property NAME $clocks] ne [get_property NAME $reference] ||
+            ![string is double -strict [get_property PERIOD $clocks]] || abs([get_property PERIOD $clocks]-4.0)>0.002} {
+            error "DYNAMIC_TARGET DDR functional clock changed $pin"
+        }
+        set nets [get_nets -quiet -segments -of_objects $object]
+        set drivers {}
+        if {[llength $nets]} {
+            set drivers [lsort -unique [get_property NAME [get_pins -quiet -leaf -of_objects $nets -filter {DIRECTION == OUT}]]]
+        }
+        if {$drivers ne [list $driver]} {error "DYNAMIC_TARGET DDR physical driver changed $pin actual=$drivers"}
+    }
+    puts "DYNAMIC_TARGET_DDR250_FUNCTIONAL_PINS_PASS NO_CLOCK_EDITS"
+}
+
 proc native_dynamic_performance_targets {} {
     set source [get_pins -quiet u_ddr/c0_ddr4_ui_clk]
     set masters [get_clocks -quiet -of_objects $source]
@@ -132,7 +162,7 @@ proc native_dynamic_performance_targets {} {
     foreach {pin period} {
         u_ddr/c0_ddr4_ui_clk 4.0 u_clk_wiz/clk_out1 20.0
         u_soc/alwaysOnClock 20.0
-        u_soc/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0
+        u_soc/ddrCrossing/ddrClock 4.0 u_soc/fixedTimer/timer/clock 4.0 u_soc/debugSequence/boundary/crossing/requests/sourceClock 4.0
         network_clock/tx_source 8.0 network_clock/tx_pad_source 4.0 network_clock/delay_source 2.0
     } {
         set clocks [get_clocks -quiet -of_objects [get_pins -quiet $pin]]
@@ -150,6 +180,7 @@ proc native_dynamic_performance_targets {} {
             if {[llength $ancestor]!=1} {error "DYNAMIC_TARGET missing fixed master $pin; actual=[native_dynamic_clock_summary $clocks] master=$parent"}
         }
     }
+    native_fixed_ddr_clock_check
     native_fixed_uart_clock_check
     report_clocks -file dynamic-performance-target-clocks.rpt
     puts "DYNAMIC_TARGET_CPU300_FABRIC250 PRE_SYNTH_REQUIREMENTS NOT_ACTUAL_RUNTIME_RATES NO_BITSTREAM"

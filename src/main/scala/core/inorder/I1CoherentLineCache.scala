@@ -1022,12 +1022,18 @@ class I1CoherentLineCache(
     // The sole acquire owner stays in acquire/fill (or probeResume thereof)
     // until the engine's response, which follows the actual E handshake.
     // The forwarding shadow still commits dirty metadata and must also drain.
+    io.quiescenceRequestPending.foreach { pending =>
+        when(!reset.asBool) {
+            assert(!io.upstream.request.valid || pending,
+                "cache quiescence request bound omitted a live upstream offer")
+        }
+    }
     io.quiescent.foreach(_ := phaseIs(stateStorage, idle) && in(idle) &&
         !classifyPending.getOrElse(false.B) && !readPending && !storePending &&
         !forwardValid.getOrElse(false.B) && readResponses.io.count === 0.U &&
         !flushActive && !(io.flushRequest && !flushFinished) &&
         !overlapIssued.getOrElse(false.B) && !engine.io.response.valid &&
-        !io.upstream.request.valid && !io.upstream.response.valid &&
+        !io.quiescenceRequestPending.get && !io.upstream.response.valid &&
         !io.downstream.request.valid && !io.downstream.response.valid &&
         !io.tl.a.valid && !io.tl.b.valid && !io.tl.c.valid && !io.tl.d.valid && !io.tl.e.valid &&
         !io.lineGrant.map(_.valid).getOrElse(false.B))
