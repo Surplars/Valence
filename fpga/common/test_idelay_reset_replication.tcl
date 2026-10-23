@@ -87,7 +87,7 @@ proc get_property {property object} {
             if {$::mode eq "qualified-bel"} {return SLICEM.TERM}
             return TERM
         }
-        DELAY_VALUE {if {$::mode eq "wrong-delay"} {return 550}; return 475}
+        DELAY_VALUE {if {$::mode eq "wrong-delay"} {return 550}; return $::actual_delay}
         DELAY_FORMAT {return TIME}
         DELAY_TYPE {return FIXED}
         IODELAY_GROUP {return VALENCE_RGMII}
@@ -104,7 +104,7 @@ proc phys_opt_design {args} {
     if {$::mode eq "tool-error"} {error "uncertain native failure"}
 }
 proc reset_case {mode} {
-    set ::mode $mode; set ::calls 0; set ::replicated 0
+    set ::mode $mode; set ::calls 0; set ::replicated 0; set ::actual_delay 475
     set ::idelay_reset_replication::attempted 0
     unset -nocomplain ::idelay_reset_replication::baseline
 }
@@ -127,4 +127,31 @@ foreach mode {post-move tool-error} {
     if {![catch {idelay_reset_replication::apply unused-test-directory}]} {error "retry after uncertain failure"}
     if {$calls != 1} {error "retried after uncertain failure"}
 }
-puts "IDELAY_RESET_REPLICATION_PASS baseline_negative=20 post_negative=2 one_shot_positive=2"
+
+# Explicit candidate selection is exact, not a range or inferred from the design.
+foreach {actual expected} {450 475 475 450 450 451 475 {} 475 550} {
+    reset_case good
+    set actual_delay $actual
+    if {![catch {idelay_reset_replication::apply unused-test-directory $expected}]} {
+        error "accepted actual=$actual expected=$expected"
+    }
+    if {$calls != 0} {error "mutated delay mismatch"}
+}
+reset_case good
+set actual_delay 450
+set result [idelay_reset_replication::apply unused-test-directory 450]
+if {$calls != 1 || [dict get $idelay_reset_replication::baseline expected_delay] ne "450"} {
+    error "450 candidate did not bind baseline"
+}
+idelay_reset_replication::postroute_reports unused-test-directory
+# The stored expectation must survive both re-source and postroute checks.
+source [file join [file dirname [info script]] idelay_reset_replication.tcl]
+# Restore reporter stub only (source restores the native reporter).
+rename idelay_reset_replication::reports {}
+proc idelay_reset_replication::reports {post directory} {incr ::reports}
+set actual_delay 475
+if {![catch {idelay_reset_replication::postroute_reports unused-test-directory}]} {
+    error "postroute accepted delay drift from 450 to 475"
+}
+if {$calls != 1} {error "postroute mutated"}
+puts "IDELAY_RESET_REPLICATION_PASS baseline_negative=25 post_negative=3 one_shot_positive=3"

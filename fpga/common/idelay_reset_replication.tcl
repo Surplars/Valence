@@ -82,7 +82,8 @@ proc idelay_reset_replication::expected {} {
     }
     return $result
 }
-proc idelay_reset_replication::inspect {expected_driver_signature} {
+proc idelay_reset_replication::inspect {expected_driver_signature expected_delay} {
+    require [expr {$expected_delay in {450 475}}] "unsupported expected delay; select exactly 450 or 475"
     set sink_pins {}; set driver_cells {}; set identity [dict create]
     dict for {name primitive} [expected] {
         set c [cell $name]
@@ -92,7 +93,7 @@ proc idelay_reset_replication::inspect {expected_driver_signature} {
         lappend sink_pins [property NAME $rst]
         dict set identity $name $placed
         if {$primitive ne "IDELAYCTRL"} {
-            foreach {prop want} {DELAY_VALUE 475 DELAY_FORMAT TIME DELAY_TYPE FIXED IODELAY_GROUP VALENCE_RGMII} {
+            foreach {prop want} [list DELAY_VALUE $expected_delay DELAY_FORMAT TIME DELAY_TYPE FIXED IODELAY_GROUP VALENCE_RGMII] {
                 require [expr {[property $prop $c] eq $want}] "changed $prop on $name"
             }
             require [expr {abs([property REFCLK_FREQUENCY $c]-500.0)<0.001}] "changed delay reference"
@@ -122,14 +123,15 @@ proc idelay_reset_replication::inspect {expected_driver_signature} {
     require [expr {$roots eq {X3Y2 X3Y2}}] "RX root changed"
     return [dict create sinks $sink_pins drivers $driver_cells identity $identity roots $roots]
 }
-proc idelay_reset_replication::apply {fresh_baseline_directory} {
+proc idelay_reset_replication::apply {fresh_baseline_directory {expected_delay 475}} {
     variable attempted; variable baseline
     require [expr {!$attempted}] "already attempted; do not repeat or retry uncertain physical optimization"
     set guard [cell {delay_reset_guard_reg[63]}]
     set sig [signature $guard]
     require [expr {[dict get $sig D] eq {{delay_reset_guard_reg[62]/Q}}}] "guard predecessor changed"
     require [expr {[dict get $sig PRE] eq {{delay_reset_pipe_reg[2]/Q}}}] "guard reset changed"
-    set baseline [inspect $sig]
+    set baseline [inspect $sig $expected_delay]
+    dict set baseline expected_delay $expected_delay
     require [expr {[dict get $baseline drivers] eq {{delay_reset_guard_reg[63]}}}] "baseline already replicated/unexpected source"
     dict set baseline signature $sig
     reports $baseline $fresh_baseline_directory
@@ -137,7 +139,7 @@ proc idelay_reset_replication::apply {fresh_baseline_directory} {
     # Set BEFORE the mutating call: errors/uncertain outcomes cannot be retried.
     set attempted 1
     phys_opt_design -force_replication_on_nets $net
-    set post [inspect $sig]
+    set post [inspect $sig [dict get $baseline expected_delay]]
     require [expr {[dict get $post identity] eq [dict get $baseline identity]}] "sink LOC/BEL changed"
     dict set post status REQUIRES_ROUTE_AND_TIMING_VALIDATION
     return $post
@@ -146,7 +148,7 @@ proc idelay_reset_replication::postroute_reports {fresh_directory} {
     variable attempted; variable baseline
     require [expr {$attempted && [info exists baseline]}] "no same-session baseline"
     require [expr {![file exists $fresh_directory]}] "output directory already exists"
-    set post [inspect [dict get $baseline signature]]
+    set post [inspect [dict get $baseline signature] [dict get $baseline expected_delay]]
     require [expr {[dict get $post identity] eq [dict get $baseline identity]}] "sink LOC/BEL changed"
     reports $post $fresh_directory
     dict set post status REPORTS_ONLY_NOT_SIGNOFF
