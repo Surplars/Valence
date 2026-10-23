@@ -9,12 +9,12 @@ proc mock::net {name {type SIGNAL} {clock {}}} {
 }
 proc mock::pin {cell tail direction net} {
     set name $cell/$tail
-    put $name NAME $name; put $name REF_PIN_NAME $tail; put $name DIRECTION $direction; put $name IS_INVERTED 0
+    put $name NAME $name; put $name CLASS pin; put $name REF_PIN_NAME $tail; put $name DIRECTION $direction; put $name IS_INVERTED 0
     dict set ::mock::pins $name $net
 }
 proc mock::connect {pin net} {dict set ::mock::pins $pin $net}
 proc mock::cell {name ref} {
-    dict set ::mock::cells $name 1; put $name NAME $name; put $name REF_NAME $ref
+    dict set ::mock::cells $name 1; put $name NAME $name; put $name CLASS cell; put $name REF_NAME $ref
 }
 proc mock::ff {name {ref FDCE}} {
     cell $name $ref; put $name ASYNC_REG TRUE
@@ -43,6 +43,14 @@ proc set_property {key value objects} {
     if {!$::mock::drop_route_write} {mock::put $objects $key $value}
 }
 proc get_cells args {
+    if {[lsearch -exact $args -filter] >= 0} {
+        assert {[mock::option $args -filter] eq {NAME =~ cpu_clock/* || NAME =~ fabric_clock/*}} {Wrong backend census selector}
+        set result {}
+        foreach cell [dict keys $::mock::cells] {
+            if {[string match cpu_clock/* $cell] || [string match fabric_clock/* $cell]} {lappend result $cell}
+        }
+        return $result
+    }
     if {[lsearch -exact $args -regexp] < 0} {
         set name [lindex $args end]; return [expr {[dict exists $::mock::cells $name] ? [list $name] : {}}]
     }
@@ -54,7 +62,12 @@ proc get_cells args {
 proc get_pins args {
     set result {}
     if {[lsearch -exact $args -of_objects] >= 0} {
-        set nets [mock::option $args -of_objects]; set condition [mock::option $args -filter]
+        set nets [mock::option $args -of_objects]
+        if {[lsearch -exact $args -filter] < 0} {
+            foreach pin [dict keys $::mock::pins] {if {[file dirname $pin] in $nets} {lappend result $pin}}
+            return $result
+        }
+        set condition [mock::option $args -filter]
         assert {$condition in {{DIRECTION == IN} {DIRECTION == OUT}}} "Unexpected filter $condition"
         dict for {pin net} $::mock::pins {
             if {$net in $nets && [get_property DIRECTION $pin] eq [lindex $condition 2]} {lappend result $pin}
@@ -144,7 +157,13 @@ proc mock::setup {} {
 set ::first {cpu_clock/lock_sync_reg[0]}; set ::second {cpu_clock/lock_sync_reg[1]}; set ::third {cpu_clock/lock_sync_reg[2]}
 proc reject {mutation pattern {cuts 0}} {
     mock::setup; uplevel 1 $mutation
-    assert {[catch {native_dynamic_lock::constrain cpu_clock} reason]} "Mutation accepted: $mutation"
+    set rejected [catch {
+        try {
+            native_dynamic_lookup::begin
+            native_dynamic_lock::constrain cpu_clock
+        } finally {native_dynamic_lookup::clear}
+    } reason]
+    assert {$rejected} "Mutation accepted: $mutation"
     assert {[string match $pattern $reason]} "Wrong rejection for $mutation: $reason"
     assert {[llength $::mock::cuts] == $cuts} "Exception emitted before proof for $mutation"
     assert {![llength $::mock::bounds]} "LOCKED received a max-delay bound"

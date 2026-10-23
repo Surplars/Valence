@@ -1,7 +1,71 @@
 # Exact additional dynamic-backend CDC endpoints only. No blanket asynchronous
 # clock group and no false-path to CE, DRP, owner resets or architectural state.
 # The default50 generated clocks do not establish the unchanged300/250 targets.
+# Lookup-only, one invocation lifetime. The two small backend hierarchies are
+# enumerated once; pins are collected only from their exact owning cell. No
+# clocks, connectivity, timing paths or proof results are retained here.
+namespace eval native_dynamic_lookup {variable active 0; variable cells {}; variable owners {}}
+proc native_dynamic_lookup::clear {} {
+    variable active; variable cells; variable owners
+    set active 0; set cells {}; set owners {}
+}
+proc native_dynamic_lookup::index {objects class {owner {}}} {
+    set names [get_property NAME $objects]
+    set classes [get_property CLASS $objects]
+    if {[llength $objects] != [llength $names] || [llength $objects] != [llength $classes]} {
+        error "DYNAMIC_LOOKUP property cardinality changed"
+    }
+    set result {}
+    foreach object $objects name $names type $classes {
+        if {$type ne $class || ![regexp {^(cpu_clock|fabric_clock)/} $name] ||
+            ($owner ne {} && [file dirname $name] ne $owner) || [dict exists $result $name]} {
+            error "DYNAMIC_LOOKUP wrong/duplicate $class identity $name"
+        }
+        dict set result $name $object
+    }
+    return $result
+}
+proc native_dynamic_lookup::begin {} {
+    variable active; variable cells
+    if {$active} {error "DYNAMIC_LOOKUP nested invocation"}
+    clear
+    # NAME filtering retains full hierarchical names, including vector bits.
+    set objects [get_cells -quiet -hierarchical -filter {NAME =~ cpu_clock/* || NAME =~ fabric_clock/*}]
+    if {![llength $objects]} {error "DYNAMIC_LOOKUP no dynamic backend cells"}
+    set cells [index $objects cell]
+    set active 1
+}
+proc native_dynamic_lookup::one {command name} {
+    variable cells; variable owners
+    if {$command eq "get_cells"} {
+        if {![dict exists $cells $name]} {error "DYNAMIC_CLOCK missing exact object $name"}
+        return [dict get $cells $name]
+    }
+    if {$command ne "get_pins"} {error "DYNAMIC_LOOKUP unsupported command $command"}
+    set owner [file dirname $name]
+    if {![dict exists $cells $owner]} {error "DYNAMIC_CLOCK missing exact pin owner $owner"}
+    if {![dict exists $owners $owner]} {
+        set pins [get_pins -quiet -of_objects [dict get $cells $owner]]
+        dict set owners $owner [index $pins pin $owner]
+    }
+    if {![dict exists $owners $owner $name]} {error "DYNAMIC_CLOCK missing exact object $name"}
+    return [dict get $owners $owner $name]
+}
+proc native_dynamic_lookup::matching {pattern} {
+    variable active; variable cells
+    if {!$active} {return [get_cells -quiet -hierarchical -regexp $pattern]}
+    set result {}
+    dict for {name object} $cells {if {[regexp $pattern $name]} {lappend result $object}}
+    return $result
+}
 proc native_dynamic_exact {command name} {
+    if {$::native_dynamic_lookup::active && [regexp {^(cpu_clock|fabric_clock)/} $name]} {
+        set result [native_dynamic_lookup::one $command $name]
+        if {[llength $result]!=1 || [get_property NAME $result] ne $name} {
+            error "DYNAMIC_CLOCK missing/stale exact object $name"
+        }
+        return $result
+    }
     set quoted [regsub -all {[][{}().+*?^$|\\]} $name {\\&}]
     set result [$command -quiet -hierarchical -regexp "^${quoted}$"]
     if {[llength $result]!=1 || [get_property NAME $result] ne $name} {
@@ -89,7 +153,7 @@ proc native_dynamic_lock::constrain {root} {
     set stages {}
     for {set i 0} {$i < 3} {incr i} {lappend stages [format {%s/lock_sync_reg[%d]} $root $i]}
     set pattern [format {^%s/lock_sync_reg\[[0-9]+\]$} $root]
-    require {[names [get_cells -quiet -hierarchical -regexp $pattern]] eq [lsort $stages]} "lock_sync stage census changed $root"
+    require {[names [native_dynamic_lookup::matching $pattern]] eq [lsort $stages]} "lock_sync stage census changed $root"
     set reset [format {%s/aon_reset_pipe_reg[2]} $root]
     set reset_cell [native_dynamic_exact get_cells $reset]
     require {[get_property REF_NAME $reset_cell] eq "FDPE" &&
@@ -152,6 +216,17 @@ proc native_dynamic_ui_route {} {
 }
 
 proc native_dynamic_clock_constraints {} {
+    set started [clock milliseconds]
+    try {
+        native_dynamic_lookup::begin
+        puts "DYNAMIC_CLOCK_LOOKUPS_READY elapsed_ms=[expr {[clock milliseconds]-$started}]"
+        native_dynamic_clock_constraints_impl
+    } finally {
+        native_dynamic_lookup::clear
+        puts "DYNAMIC_CLOCK_CONSTRAINTS_RETURN elapsed_ms=[expr {[clock milliseconds]-$started}] LOOKUPS_DISCARDED"
+    }
+}
+proc native_dynamic_clock_constraints_impl {} {
     set bootEvidence {}
     set uiClock [get_clocks -quiet -of_objects [get_pins -quiet u_ddr/c0_ddr4_ui_clk]]
     if {[llength $uiClock]!=1 || abs([get_property PERIOD $uiClock]-4.0)>0.002} {
@@ -188,7 +263,11 @@ proc native_dynamic_clock_constraints {} {
                 }
                 lappend stages $cell
             }
-            set endpoint [native_dynamic_exact get_pins [lindex $stages 0]/D]
+            # Native cell objects need not stringify to their hierarchical NAME.
+            # Use the property only to form the lookup key; keep returned pin
+            # objects intact for all native connectivity/timing commands.
+            set firstName [get_property NAME [lindex $stages 0]]
+            set endpoint [native_dynamic_exact get_pins $firstName/D]
             if {$chain eq "lock_sync"} {
                 lappend bootEvidence [native_dynamic_lock::constrain $root]
                 continue
