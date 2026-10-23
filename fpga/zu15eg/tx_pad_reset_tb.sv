@@ -29,16 +29,19 @@ module tx_pad_reset_tb;
         .io_appliedSpeed(applied),.io_byteStep(byte_step),.io_gmiiData(gmii_data),
         .io_gmiiEnable(gmii_enable),.io_gmiiError(gmii_error),.io_rise(rise),.io_fall(fall),
         .io_clockRise(clock_rise),.io_clockFall(clock_fall),.io_idle(codec_idle));
+    // TX-only proof: unused RX calibration/reset is not stimulated or qualified.
+    // Actual 2025.2 IDELAYE3 prints a generic TIME-mode notice on every reset.
+    // TX common/local reset, injected RDY inhibit and all pin oracles stay active.
     wire [5:0] old_pins,new_pins;
     native_rgmii_trispeed_quarter #(.LOCAL_PAD_RESET_RELEASE(0)) baseline(
         .tx_clock(raw),.tx_pad_clock(pad),.tx_pad_reset(reset_pad),.rx_clock(raw),
-        .tx_reset(reset_raw),.rx_reset(1'b1),.delay_clock(reference),.delay_reset(cold),
+        .tx_reset(reset_raw),.rx_reset(1'b1),.delay_clock(reference),.delay_reset(1'b0),
         .tx_rise(rise),.tx_fall(fall),.txc_rise(clock_rise),.txc_fall(clock_fall),
         .rgmii_rx_data(4'b0),.rgmii_rx_control(1'b0),.rx_rise(),.rx_fall(),
         .rgmii_tx_data(old_pins[3:0]),.rgmii_tx_control(old_pins[4]),.rgmii_tx_clock(old_pins[5]),.delay_ready());
     native_rgmii_trispeed_quarter #(.LOCAL_PAD_RESET_RELEASE(1)) candidate(
         .tx_clock(raw),.tx_pad_clock(pad),.tx_pad_reset(reset_pad),.rx_clock(raw),
-        .tx_reset(reset_raw),.rx_reset(1'b1),.delay_clock(reference),.delay_reset(cold),
+        .tx_reset(reset_raw),.rx_reset(1'b1),.delay_clock(reference),.delay_reset(1'b0),
         .tx_rise(rise),.tx_fall(fall),.txc_rise(clock_rise),.txc_fall(clock_fall),
         .rgmii_rx_data(4'b0),.rgmii_rx_control(1'b0),.rx_rise(),.rx_fall(),
         .rgmii_tx_data(new_pins[3:0]),.rgmii_tx_control(new_pins[4]),.rgmii_tx_clock(new_pins[5]),.delay_ready());

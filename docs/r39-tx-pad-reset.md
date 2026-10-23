@@ -94,3 +94,15 @@ Native attempt r1 compiled successfully but stopped at xelab `XSIM 43-4099`
 because the emitted codec has no timescale directive. No simulation ran. The
 r2 runner supplies xelab `--timescale 1ns/1ps`; it does not alter emitted RTL,
 primitive models, warning severity or the preserved failed receipt.
+
+Native r2 compiled/elaborated and its positive pin oracle passed with the same
+8-frame counters. The runner correctly stopped before negatives because unused
+RX IDELAYE3 cells printed twenty generic TIME-mode reset notices. The actual
+Vivado 2025.2 IDELAYE3.v lines 441–443 print that notice on every asserted RST in
+TIME mode, without checking a reset-sequence violation. Therefore the old
+stimulus is not classified as an invalid sequence from this notice alone.
+For r3, only the two unused RX `delay_reset` testbench inputs are held at 0;
+TX common/local resets, cold/RDY inhibit stimuli and every oracle are unchanged.
+RX calibration/reset is deliberately outside this TX-only test. No production
+RTL, warning filter or primitive substitute changes. This is not an RX or whole
+board native qualification.
