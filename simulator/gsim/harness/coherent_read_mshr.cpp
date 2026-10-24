@@ -1,4 +1,7 @@
-#include "CoherentReadMshrGsim.h"
+#ifndef COHERENT_READ_MSHR_HEADER
+#define COHERENT_READ_MSHR_HEADER "CoherentReadMshrGsim.h"
+#endif
+#include COHERENT_READ_MSHR_HEADER
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -25,6 +28,9 @@
 #endif
 #ifndef CACHE_BASE
 #define CACHE_BASE 0x80010000ULL
+#endif
+#ifndef WRITEBACK_ENTRIES
+#define WRITEBACK_ENTRIES 1
 #endif
 static constexpr uint64_t base = CACHE_BASE;
 static constexpr unsigned releaseSource = READ_MSHRS == 1 ? 0 : READ_MSHRS;
@@ -221,7 +227,8 @@ struct Test {
             }
             if (op == 4 || op == 6 || cBeat == 7) {
                 if (op >= 6) {
-                    check(source == releaseSource, "release source overlapped acquire owner");
+                    check(source >= releaseSource && source < releaseSource + WRITEBACK_ENTRIES,
+                        "release source overlapped acquire owner or exceeded writeback credits");
 #ifdef COHERENT_READ_MSHR_EMBED
                     releaseAcks.push_back({cycles + releaseAckDelay, source});
 #else

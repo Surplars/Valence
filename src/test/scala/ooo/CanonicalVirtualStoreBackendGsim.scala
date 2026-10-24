@@ -38,9 +38,12 @@ object CanonicalVirtualStoreBackendFixture {
 }
 
 /** Dev-only matched OFF/ON assembly; no production preset option or cache contract changes. */
-class CanonicalVirtualStoreBackendGsim(overlap: Boolean, memoryEntries: Int = 4) extends Module {
+class CanonicalVirtualStoreBackendGsim(overlap: Boolean, memoryEntries: Int = 4,
+    actualConfig: Option[FpgaNextConfig] = None) extends Module {
     private val enabled = true
-    val p = CanonicalVirtualStoreBackendFixture.params(overlap, memoryEntries)
+    val p = actualConfig.map(_.coreParams).getOrElse(CanonicalVirtualStoreBackendFixture.params(overlap, memoryEntries))
+    require(p.memoryEntries == memoryEntries && p.canonicalVirtualStoreOverlap == overlap &&
+        p.virtualRamLoadPrecheck && p.dataReturnHandleBits == 0)
     val io = IO(new Bundle {
         val allocate0 = Input(Valid(new IntegerRequest))
         val allocate1 = Input(Valid(new IntegerRequest))
@@ -91,9 +94,16 @@ class CanonicalVirtualStoreBackendGsim(overlap: Boolean, memoryEntries: Int = 4)
         val canonicalOrigin = Output(Valid(new CanonicalStoreOrigin(p)))
         val canonicalChecked = Output(Valid(new CanonicalStoreCertificate(p)))
     })
-    val backend = Module(new IntegerBackend(p))
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
-    val translation = Module(new SvTranslationService(3, 8, 16, loadPeek = enabled))
+    val backend = Module(new IntegerBackend(p,
+        canonicalHandoff = actualConfig.exists(_.cache.independentDemandAdmission)))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
+        translationHitFlow = actualConfig.exists(_.translationHitFlow)))
+    val responses = actualConfig.map(_ => Module(new DataResponseBuffer(
+        registerPayload = p.registeredTranslatedResponses, registerHead = p.registeredTranslationHeads,
+        emptyFlow = p.translatedResponseEmptyFlow, returnConfig = p.cpuReturnConfig)))
+    val translation = Module(new SvTranslationService(3,
+        actualConfig.map(_.dataTranslationEntries).getOrElse(8), 16, loadPeek = enabled,
+        writeReadReuse = actualConfig.exists(_.dataTlbWriteReadReuse)))
     backend.io.rawDestinations.foreach { ports =>
         ports(0) := io.allocate0.bits.rename.rd
         ports(1) := io.allocate1.bits.rename.rd
@@ -119,13 +129,19 @@ class CanonicalVirtualStoreBackendGsim(overlap: Boolean, memoryEntries: Int = 4)
     backend.io.emptyPc.get := 0.U
     backend.io.fetchQuiescent.get := true.B
     backend.io.fenceIFlushReady.get := true.B
-    val flush = backend.io.vmFlush.get && adapter.io.idle && translation.io.idle
-    backend.io.vmFlushReady.get := adapter.io.idle && translation.io.idle
+    val responseIdle = responses.map(_.io.idle).getOrElse(true.B)
+    val flush = backend.io.vmFlush.get && adapter.io.idle && translation.io.idle && responseIdle
+    backend.io.vmFlushReady.get := adapter.io.idle && translation.io.idle && responseIdle
     translation.io.flush := flush
     adapter.io.vmState := backend.io.vmState.get
     adapter.io.pmpState := backend.io.pmpState.get
     translation.io.pmpState := backend.io.pmpState.get
-    adapter.io.virtual <> backend.io.memory
+    responses match {
+        case Some(buffer) =>
+            buffer.io.upstream <> backend.io.memory
+            adapter.io.virtual <> buffer.io.downstream
+        case None => adapter.io.virtual <> backend.io.memory
+    }
     translation.io.client <> adapter.io.translation
     io.canonicalOrigin := 0.U.asTypeOf(io.canonicalOrigin)
     io.canonicalChecked := 0.U.asTypeOf(io.canonicalChecked)
@@ -199,7 +215,8 @@ class CanonicalVirtualStoreBackendGsim(overlap: Boolean, memoryEntries: Int = 4)
     io.translationHit := translation.io.tlbHit
     io.translationWalk := translation.io.walkStart
     io.vm := backend.io.vmState.get
-    io.idle := adapter.io.idle && translation.io.idle && !backend.io.memoryBusy && backend.io.occupancy === 0.U
+    io.idle := adapter.io.idle && translation.io.idle && responseIdle &&
+        !backend.io.memoryBusy && backend.io.occupancy === 0.U
 }
 
 object CanonicalVirtualStoreBackendGsimMain extends App {

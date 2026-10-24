@@ -144,8 +144,12 @@ class ParallelLoadStoreUnit(
         )
     )
 
-    // Prefer replacing the completing owner to preserve completion/start overlap and store forwarding.
-    // Selection uses only registered slot state, not ready or same-cycle cancellation.
+    // Legacy arbitration preserves its registered-valid reservation contract. In
+    // dual-owner mode READY is an early credit from registered completion owners,
+    // independent of issue/recovery; only a real fire permits slot replacement.
+    // A held result must not hide a genuinely empty slot or advertise capacity.
+    val completionReclaimable = if (p.completionTopology == "dual-owner") completion.io.out.fire
+        else completion.io.out.valid
     val empty         = VecInit(slots.map(s => !s.io.busy))
     val ordinaryPrechecked = io.start.bits.precheckedLoad && io.start.bits.virtualized &&
         !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid
@@ -160,7 +164,7 @@ class ParallelLoadStoreUnit(
     // A certified store may be waiting for completion arbitration while another
     // physical slot is empty. Its exact registered authorization already permits
     // this prechecked load; do not force it to replace the blocked completion.
-    // Never feed completion READY or cancellation into the reservation selector.
+    // No same-cycle cancellation participates in either reservation selector.
     val handoffOffer = if (canonicalHandoff) empty.asUInt.orR && exemptSerial.reduce(_ || _) else false.B
     val boundHeadStoreOverlapCommon = io.boundHeadStoreOverlapQualified.map { qualified =>
         qualified && empty.asUInt.orR && io.busy &&
@@ -170,13 +174,13 @@ class ParallelLoadStoreUnit(
     val boundHeadStoreOverlapOffer = boundHeadStoreOverlapCommon && !io.parallel
     val emptyChoice = PriorityEncoder(empty)
     val baseChosen = Mux(handoffOffer, emptyChoice,
-        Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+        Mux(completionReclaimable, completion.io.chosen, emptyChoice))
     val chosen = Mux(boundHeadStoreOverlapOffer, emptyChoice, baseChosen)
-    val available = completion.io.out.valid || empty.asUInt.orR
+    val available = completionReclaimable || empty.asUInt.orR
     val othersIdle = (0 until p.memoryEntries).map(i => baseChosen === i.U || !slots(i).io.busy).reduce(_ && _)
     val observationCanonicalHandoff = WireDefault(io.start.fire && handoffOffer)
     val noOtherSerial = (0 until p.memoryEntries)
-        .map(i => !slots(i).io.busy || parallel(i) || (completion.io.out.valid && baseChosen === i.U) || exemptSerial(i))
+        .map(i => !slots(i).io.busy || parallel(i) || (completionReclaimable && baseChosen === i.U) || exemptSerial(i))
         .reduce(_ && _)
     // The bound-store offer already proves an empty slot and that every live
     // co-owner is parallel. It therefore implies available and noOtherSerial.
@@ -196,12 +200,12 @@ class ParallelLoadStoreUnit(
         val exempt = exemptOwner.map(_ && ordinary && candidate.parallel)
         val handoff = if (canonicalHandoff) empty.asUInt.orR && exempt.reduce(_ || _) else false.B
         val base = Mux(handoff, emptyChoice,
-            Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+            Mux(completionReclaimable, completion.io.chosen, emptyChoice))
         val boundOffer = boundHeadStoreOverlapCommon && !candidate.parallel
         val selected = Mux(boundOffer, emptyChoice, base)
         val others = (0 until p.memoryEntries).map(i => base === i.U || !slots(i).io.busy).reduce(_ && _)
         val noSerial = (0 until p.memoryEntries).map(i => !slots(i).io.busy || parallel(i) ||
-            (completion.io.out.valid && base === i.U) || exempt(i)).reduce(_ && _)
+            (completionReclaimable && base === i.U) || exempt(i)).reduce(_ && _)
         val capacity = (available && noSerial && (candidate.parallel || others)) || boundOffer
         io.candidateIssueAvailable.get := capacity
         when(io.start.valid) {
@@ -216,9 +220,9 @@ class ParallelLoadStoreUnit(
         // Constants: parallel=true, ordinaryPrechecked=true, bound-store-offer=false.
         val handoff = if (canonicalHandoff) empty.asUInt.orR && exemptOwner.reduce(_ || _) else false.B
         val selected = Mux(handoff, emptyChoice,
-            Mux(completion.io.out.valid, completion.io.chosen, emptyChoice))
+            Mux(completionReclaimable, completion.io.chosen, emptyChoice))
         val noSerial = (0 until p.memoryEntries).map(i => !slots(i).io.busy || parallel(i) ||
-            (completion.io.out.valid && selected === i.U) || exemptOwner(i)).reduce(_ && _)
+            (completionReclaimable && selected === i.U) || exemptOwner(i)).reduce(_ && _)
         out.available := available && noSerial
         out.slot := selected
         out.actualSlot := chosen
@@ -249,6 +253,12 @@ class ParallelLoadStoreUnit(
     io.acceptedStartSlot.foreach { accepted =>
         accepted.valid := io.start.fire
         accepted.bits := chosen
+    }
+    if (p.completionTopology == "dual-owner") {
+        when(io.start.fire && !empty(chosen)) {
+            assert(completion.io.out.fire && completion.io.chosen === chosen,
+                "only the actually consumed completion can release a live LSU owner")
+        }
     }
     for ((slot, i) <- slots.zipWithIndex) {
         slot.io.start.valid := io.start.valid && admissionAvailable && admissionChosen === i.U

@@ -206,8 +206,21 @@ case class OooParams(
     // Bound virtual stores retain final checked authorization while skipping an empty FIFO.
     frozenStoreCheckedFlow: Boolean = false,
     // Optional query policy only; no additional proof or accepted-owner capacity.
-    pendingReadyStoreQuery: Boolean = false
+    pendingReadyStoreQuery: Boolean = false,
+    // Explicit backend architecture, not a frequency claim. Legacy presets stay frozen.
+    completionTopology: String = "legacy"
 ) {
+    require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
+    require(completionTopology != "dual-owner" || (renameWidth == 2 && completionWidth == 2 &&
+        commitWidth == 2 && robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
+        Set(2, 4).contains(memoryEntries) && registeredIssueExecute && precompleteMispredictedBranch &&
+        parallelIssueRanks && parallelRecoveryAdmission && lvtPhysicalRegisterFile &&
+        parallelIssuePayload && parallelPrfReadyUpdates && ownerLocalOperandReady &&
+        parallelMulDivDispatch && registeredRobRetirement && !sharedLane1OwnerMatch &&
+        !retirementIntent && !retirementSlotIdentity && !registeredLoadResultReady &&
+        !fastHeadLoadRetire && !fastBufferedStoreRetire && !loadCompletionBypass &&
+        !mulWordPreviewBypass && !moveAlias && !memoryProofFrontier),
+        "dual-owner completion requires the two-wide registered A1 backend, excluding lane-fixed experiments")
     require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
         registeredPendingStoreQuery && memoryPreparationHeadMask &&
         Set(2, 3).contains(pendingVirtualStoreProofSlots) && pendingStoreEarlyLoadCredits == 2),

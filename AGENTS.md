@@ -39,6 +39,7 @@ Use Scalafmt-compatible formatting before submitting changes. `.scalafmt.conf` s
 
 ### Important user-directed optimization workflow (2026-10-01)
 
+- Latest explicit refinement (2026-10-24, A1 rebuild): separate modules with explicit latency, initiation interval, capacity, credit and backpressure contracts. After each added pipeline stage, compare end-to-end throughput and cycle cost under continuous supply, then dependencies, misses, recovery and congestion. Do not substitute local timing improvement or component throughput for total performance. These are stage-level focused comparisons, not a full regression after every edit.
 - Keep the two-issue FPGA baseline. Batch related structural changes into one coherent candidate; do not run GSIM or Vivado after each small edit.
 - Latest explicit user refinement (2026-10-05): larger batches may address ten or more related structural changes/paths before one short verification and one implementation. The earlier 2–3-path target is no longer a limit. Prioritize measured long chains and preserve independent proof coverage; do not pad the batch with unrelated risky changes.
 - Latest explicit user refinement (2026-10-11): prioritize bandwidth and effective accepted request/transfer duty. Continue coherent structural batches when scheduling remains restrictive; do not insert frequent STA runs. Use necessary short affected checks and retain matched traffic/service laws; defer combined physical qualification until the bandwidth candidate is ready or the user requests it.

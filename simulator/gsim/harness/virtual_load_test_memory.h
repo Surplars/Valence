@@ -7,7 +7,14 @@
 // RISC-V Sv39 software page tables. This oracle does not import hardware
 // permission/range helpers or decode DUT-private TLB/certificate state.
 namespace virtual_load_test {
-constexpr uint64_t ram = 0x80010000ULL, ramBytes = 65536;
+#ifndef VIRTUAL_LOAD_TEST_RAM_BASE
+#define VIRTUAL_LOAD_TEST_RAM_BASE 0x80010000ULL
+#endif
+#ifndef VIRTUAL_LOAD_TEST_RAM_BYTES
+#define VIRTUAL_LOAD_TEST_RAM_BYTES 65536ULL
+#endif
+// Fixture-supplied physical aperture, not discovered from DUT-private state.
+constexpr uint64_t ram = VIRTUAL_LOAD_TEST_RAM_BASE, ramBytes = VIRTUAL_LOAD_TEST_RAM_BYTES;
 constexpr uint64_t va = 0x40000000ULL, root = 0x81000000ULL;
 constexpr uint64_t satp = (8ULL << 60) | (7ULL << 44) | (root >> 12);
 constexpr uint64_t allPmp = (1ULL << 54) - 1;

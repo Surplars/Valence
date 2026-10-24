@@ -128,6 +128,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.precompleteMispredictedBranch && p.registeredRobRetirement && !p.fastBufferedStoreRetire &&
         !p.fastHeadLoadRetire && !p.moveAlias),
         "operand execution stages require the two-slot, non-aliased, registered redirect/retirement contract")
+    private val dualOwnerCompletion = p.completionTopology == "dual-owner"
+    require(!dualOwnerCompletion || !shadowEarlyProofBind,
+        "dual-owner writeback excludes the always-ready LSU shadow experiment")
     val io = IO(new Bundle {
         val ownersIdle = Output(Bool())
         val rawDestinations = if (p.parallelArchitecturalDestinations)
@@ -586,6 +589,27 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
 
     // Recovery removes tails, so the head advances only on commit. Slot age needs robBits, not a full tag compare.
     val head = RegInit(0.U(p.robBits.W))
+    // Existing execution/LSU/M/SYS registers retain their own results. Only
+    // registered owner presence participates in this narrow two-port arbitration.
+    // Producer order: LSU, DIV, MUL, SYS, physical ALU0, physical ALU1.
+    val completionSelector = if (dualOwnerCompletion) Some(Module(new DualCompletionSelector(p))) else None
+    val completionProducers = if (dualOwnerCompletion)
+        Some(Wire(Vec(6, Valid(new BackendCompletion(p))))) else None
+    val completionRetireClass = if (dualOwnerCompletion) Some(Wire(Vec(6, Bool()))) else None
+    completionSelector.foreach { selector =>
+        selector.io.head := head
+        for (port <- 0 until 2) {
+            val owners = selector.io.owners(port)
+            ledger.io.complete(port).bits := CircularIssueSelector.selectPayload(owners,
+                completionProducers.get.map(_.bits.asUInt).toSeq).asTypeOf(new BackendCompletion(p))
+            ledger.io.complete(port).valid := (owners & VecInit(completionProducers.get.map(_.valid)).asUInt).orR
+            ledger.io.sameCycleRetire(port) := (owners & completionRetireClass.get.asUInt).orR
+            ledger.io.sameCycleFault.foreach(_(port) := ledger.io.complete(port).bits.exception)
+        }
+    }
+    def producerAccepted(producer: Int): Bool = completionSelector.map(selector =>
+        (0 until 2).map(port => selector.io.owners(port)(producer) && ledger.io.completionAccepted(port))
+            .reduce(_ || _)).getOrElse(ledger.io.completionAccepted(0))
     val acceptedCommits = PopCount(ledger.io.commit.map(_.valid))
     head := head + acceptedCommits
     val issueHeadMask = if (p.registeredIssueHeadMask) {
@@ -2062,7 +2086,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             }
         }
     }
-    lsu.io.complete.ready := true.B
+    lsu.io.complete.ready := completionSelector.map(_.io.selected(0)).getOrElse(true.B)
     mulDiv.io.cancel      := mulDiv.io.busy && killed(Mux(mulDiv.io.busy, mulDiv.io.owner.index, 0.U))
     for (i <- 0 until multiplier.capacity) {
         multiplier.io.cancel(i) := multiplier.io.live(i) && killed(
@@ -2138,7 +2162,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             mulDivGrants(kind) := mulDivChoice.valid && entry.request.mulDivOp(2) === (kind == 1).B
         }
     }
-    val reserveMulDiv = mulDivChoice.valid && !reserveSystem && !reserveMemory &&
+    // Independent FU admission may consume the second dispatch ticket even
+    // when memory consumed the first. Payloads remain class-local and early.
+    val reserveMulDiv = mulDivChoice.valid && !reserveSystem && (dualOwnerCompletion.B || !reserveMemory) &&
         ((p.issueWidth > 1).B || !directStoreReserve) && !ledger.io.recovering
     val mStart        = reserveMulDiv && !ledger.io.recoveryAccepted && !ledger.io.headException.valid
     mulDiv.io.start.valid          := mStart && mulDivGrants(1)
@@ -2146,10 +2172,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     mulDiv.io.start.bits           := mulDivRequests(1)
     multiplier.io.start.bits      := mulDivRequests(0)
     when(mulDiv.io.start.fire || multiplier.io.start.fire) { pending(mulDivChoice.index) := false.B }
-    mulDiv.io.complete.ready     := !lsu.io.complete.valid && ledger.io.completionAccepted(0)
-    multiplier.io.complete.ready := !lsu.io.complete.valid && !mulDiv.io.complete.valid && ledger.io.completionAccepted(
-        0
-    )
+    mulDiv.io.complete.ready := (if (dualOwnerCompletion) producerAccepted(1)
+        else !lsu.io.complete.valid && ledger.io.completionAccepted(0))
+    multiplier.io.complete.ready := (if (dualOwnerCompletion) producerAccepted(2)
+        else !lsu.io.complete.valid && !mulDiv.io.complete.valid && ledger.io.completionAccepted(0))
 
     if (p.shareProtectedHeadPayload) {
         // System/FP starts only at the current head. Its protected lifetime ends
@@ -2314,6 +2340,50 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         Module(new IssueExecuteStage((new IntegerExecutionOperands(p)).getWidth))
     } else Seq.empty
     val executingOperands = executionStages.map(_.io.deq.bits.asTypeOf(new IntegerExecutionOperands(p)))
+    val executionIncoming = if (dualOwnerCompletion)
+        Some(Wire(Vec(2, Valid(new IntegerExecutionOperands(p))))) else None
+    val exchangeExecutionInputs = WireDefault(false.B)
+    val executionCaptureReady = executionStages.indices.map { rank =>
+        if (dualOwnerCompletion) Mux(exchangeExecutionInputs,
+            executionStages(1 - rank).io.enq.ready, executionStages(rank).io.enq.ready)
+        else executionStages(rank).io.enq.ready
+    }
+    if (dualOwnerCompletion) {
+        for (lane <- 0 until 2) {
+            // Cross only the two already-read operand packets at the local
+            // execution boundary. FU credit does not select PRF addresses.
+            executionStages(lane).io.enq.valid := Mux(exchangeExecutionInputs,
+                executionIncoming.get(1 - lane).valid, executionIncoming.get(lane).valid)
+            executionStages(lane).io.enq.bits := Mux(exchangeExecutionInputs,
+                executionIncoming.get(1 - lane).bits, executionIncoming.get(lane).bits).asUInt
+        }
+        val sources = Seq(lsu.io.complete, mulDiv.io.complete, multiplier.io.complete, systemComplete)
+        for ((source, producer) <- sources.zipWithIndex) {
+            completionSelector.get.io.index(producer) := source.bits.token.index
+            completionProducers.get(producer).valid := source.valid
+            completionProducers.get(producer).bits := source.bits
+            completionRetireClass.get(producer) := true.B
+        }
+        completionSelector.get.io.present := VecInit(sources.map(_.valid) ++
+            executionStages.indices.map(lane => executionStages(lane).io.occupied &&
+                (!branchRedirectValid || executingOperands(lane).entry.request.controlFlow === ControlFlow.none))).asUInt
+        for (lane <- 0 until 2) {
+            completionSelector.get.io.index(4 + lane) := executingOperands(lane).entry.renamed.token.index
+        }
+        for (producer <- 0 until 6) {
+            val present = completionSelector.get.io.present(producer)
+            val token = completionProducers.get(producer).bits.token
+            val safeIndex = Mux(present, token.index, 0.U)
+            when(present) {
+                // Independent full-generation witness, deliberately OUTSIDE
+                // rank selection. Recovery suppresses/clears these local held
+                // owners before rollback can release/reuse the ROB slot.
+                assert(issueEntries(safeIndex).renamed.token.asUInt === token.asUInt &&
+                    ((safeIndex - head)(p.robBits - 1, 0) < ledger.io.occupancy),
+                    "every raw completion offer retains its full live ROB generation")
+            }
+        }
+    }
     for (lane <- executionStages.indices) {
         val stage = executionStages(lane)
         val entry = executingOperands(lane).entry
@@ -2335,7 +2405,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             }
         }
         stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)
-        stage.io.deq.ready := (if (lane == 0) branchResultPortFree else true.B) &&
+        stage.io.deq.ready := (if (dualOwnerCompletion) completionSelector.get.io.selected(4 + lane)
+            else if (lane == 0) branchResultPortFree else true.B) &&
             (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none)
         executionRetirementOffer.foreach(_(lane) := stage.io.occupied && ownerMatches && stage.io.deq.ready)
         when(stage.io.occupied) {
@@ -2515,8 +2586,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         .orElse(redirectTokens.map(_.io.matches(1))).getOrElse(
         io.redirect.valid && io.redirect.bits.token.asUInt === branchRedirect.token.asUInt)
     io.invalidateFetch := systemInvalidate && systemRedirectMatches
-    systemComplete.ready := !lsu.io.complete.valid && !mCompleteValid && ledger.io.completionAccepted(0)
-    for (lane <- 0 until p.completionWidth) {
+    systemComplete.ready := (if (dualOwnerCompletion) producerAccepted(3)
+        else !lsu.io.complete.valid && !mCompleteValid && ledger.io.completionAccepted(0))
+    if (dualOwnerCompletion) {
+        completionProducers.get(3).valid := systemComplete.valid && (!systemRedirect || systemRedirectMatches)
+    }
+    for (lane <- 0 until p.completionWidth if !dualOwnerCompletion) {
         val selectedBranch = if (p.retirementIntent)
             executionRetirementOffer.get(lane) &&
                 executingOperands(lane).entry.request.controlFlow =/= ControlFlow.none
@@ -2652,6 +2727,14 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         candidate.age := ages(i)
         candidate
     })
+    val sideDispatchTickets = PopCount(Seq(reserveSystem, reserveMemory, reserveMulDiv, directStoreReserve))
+    if (dualOwnerCompletion) {
+        val firstIsPreparation = (issueSelector.get.io.first & VecInit(issueEntries.map(e =>
+            e.request.memory && e.request.store)).asUInt).orR
+        exchangeExecutionInputs := !firstIsPreparation && !executionStages(1).io.enq.ready &&
+            executionStages(0).io.enq.ready
+        assert(sideDispatchTickets <= 2.U, "side functional units exceeded the two dispatch tickets")
+    }
     for (lane <- 0 until p.completionWidth) {
         val usedIssues = PopCount(dispatched.take(lane).map(_.valid)) +& reserveSystem +&
             reserveMemory +& reserveMulDiv +& directStoreReserve
@@ -2694,18 +2777,18 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     val rank = if (lane == 0) rankedSecond else rankedFirst
                     issueEntries(rank.index).request.memory && issueEntries(rank.index).request.store
                 }
-                executionStages(lane).io.enq.ready || preparationOnly
+                executionCaptureReady(lane) || preparationOnly
             } else true.B
             if (lane == 0) {
                 rankedChoice := rankedSecond
-                issueOpportunity := rankedSecond.valid && !branchRedirectValid &&
-                    !(reserveSystem || reserveMemory || reserveMulDiv)
+                issueOpportunity := rankedSecond.valid && (if (dualOwnerCompletion) sideDispatchTickets === 0.U
+                    else !branchRedirectValid && !(reserveSystem || reserveMemory || reserveMulDiv))
                 rankedChoice.valid := issueOpportunity &&
                     (if (p.registeredIssueExecute) executionCredit
                         else !(lsu.io.complete.valid || mCompleteValid || systemComplete.valid))
             } else {
                 rankedChoice := rankedFirst
-                issueOpportunity := rankedFirst.valid
+                issueOpportunity := rankedFirst.valid && (if (dualOwnerCompletion) sideDispatchTickets < 2.U else true.B)
                 rankedChoice.valid := issueOpportunity && executionCredit
             }
             rankedChoice
@@ -2809,17 +2892,28 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             incoming.forwardable := dispatchEntry.renamed.writesRd &&
                 dispatchEntry.request.controlFlow === ControlFlow.none &&
                 !dispatchEntry.request.fetchFault && !dispatchEntry.request.fetchPageFault && forwardLegality.io.legal
-            stage.io.enq.valid := issueOpportunity && !dispatchStore &&
+            val incomingValid = issueOpportunity && !dispatchStore &&
                 !killed(dispatchChoice.index) && !ledger.io.pendingException.valid
-            stage.io.enq.bits := incoming.asUInt
+            val dispatchFire = incomingValid && executionCaptureReady(lane)
+            if (dualOwnerCompletion) {
+                executionIncoming.get(lane).valid := incomingValid
+                executionIncoming.get(lane).bits := incoming
+            } else {
+                stage.io.enq.valid := incomingValid
+                stage.io.enq.bits := incoming.asUInt
+            }
             io.loadIssueForwarded.foreach { witness =>
                 val needsLeft = !dispatchEntry.request.usePc && loadIssueHit(source1)
                 val needsRight = !dispatchEntry.request.useImmediate && loadIssueHit(source2)
-                witness(lane) := Cat(stage.io.enq.fire && needsRight && !ready(source2),
-                    stage.io.enq.fire && needsLeft && !ready(source1))
-                when(stage.io.enq.fire && (needsLeft || needsRight)) {
-                    assert(ledger.io.completionAccepted(0),
-                        "captured load data requires accepted producer completion")
+                witness(lane) := Cat(dispatchFire && needsRight && !ready(source2),
+                    dispatchFire && needsLeft && !ready(source1))
+                when(dispatchFire && (needsLeft || needsRight)) {
+                    // A dual-owner LSU may retain a successful result under
+                    // writeback contention. Its stable holder supplies data until
+                    // the selected port atomically publishes the PRF value.
+                    assert((if (dualOwnerCompletion) !lsu.io.complete.fire || producerAccepted(0)
+                        else ledger.io.completionAccepted(0)),
+                        "a consumed forwarded load must publish its exact result")
                     assert(!killed(Mux(loadIssueWake.valid, lsu.io.complete.bits.token.index, 0.U)),
                         "a surviving captured consumer cannot depend on a cancelled load producer")
                 }
@@ -2829,7 +2923,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     (source1, !dispatchEntry.request.usePc, incoming.left),
                     (source2, !dispatchEntry.request.useImmediate, incoming.right))) {
                     val hits = lsu.io.heldLoadValue.get.map(h => h.valid && h.bits.destination === source)
-                    when(stage.io.enq.fire && used && hits.reduce(_ || _)) {
+                    when(dispatchFire && used && hits.reduce(_ || _)) {
                         assert(PopCount(hits) === 1.U,
                             "a captured source must name one successful held load")
                         for (slot <- 0 until p.memoryEntries) {
@@ -2850,8 +2944,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     }
                 }
             }
-            executionEnqueued(lane) := stage.io.enq.fire
-            when(stage.io.enq.fire) { pending(dispatchChoice.index) := false.B }
+            executionEnqueued(lane) := dispatchFire
+            when(dispatchFire) { pending(dispatchChoice.index) := false.B }
             entry := executingOperands(lane).entry
             leftValue := executingOperands(lane).left
             rightValue := executingOperands(lane).right
@@ -2869,7 +2963,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 val cancelledPromise = executionWake(producer).valid && executionStages(producer).io.cancel
                 val needsLeft = !dispatchEntry.request.usePc && source1 === executionWake(producer).bits
                 val needsRight = !dispatchEntry.request.useImmediate && source2 === executionWake(producer).bits
-                when(stage.io.enq.fire) {
+                when(dispatchFire) {
                     assert(!(cancelledPromise && (needsLeft || needsRight)),
                         "a captured operand owner cannot depend on a same-cycle cancelled producer")
                 }
@@ -2898,7 +2992,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             // including a writeback-port stall. It never consumes/replaces that owner
             // or authorizes ROB/PRF effects. Current consumer kill remains at enq.
             // Lane 1 and the default-OFF expression remain the original contract.
-            executionWake(lane).valid := (if (p.heldAluIssueForwarding && lane == 0)
+            executionWake(lane).valid := (if (dualOwnerCompletion || (p.heldAluIssueForwarding && lane == 0))
                 stage.io.occupied && executingOperands(lane).forwardable
             else stage.io.occupied && stage.io.deq.ready && executingOperands(lane).forwardable)
             executionWake(lane).bits := entry.renamed.destination
@@ -2932,7 +3026,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // Do not put their taken/alignment comparison on the non-control bypass.
         // Preserve the full exception for ROB state, PRF wake/data and trap logic.
         val retireFault = WireDefault(entry.request.fetchFault || entry.request.fetchPageFault || !legal)
-        ledger.io.sameCycleFault.foreach(_(lane) := retireFault)
+        if (!dualOwnerCompletion) ledger.io.sameCycleFault.foreach(_(lane) := retireFault)
         completion(lane).cause     := Mux(entry.request.fetchPageFault, MCause.InstrPageFault,
             Mux(entry.request.fetchFault, MCause.InstrAccessFault,
                 Mux(!legal, MCause.IllegalInstr, MCause.InstrAddrMisaligned)))
@@ -2951,69 +3045,75 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // The optional precompletion mode writes the mispredicted branch into the ROB now,
         // but registered retirement and branchRetirementHold keep it architectural only
         // after the redirect. The ordinary registered mode waits to complete it instead.
-        ledger.io.complete(lane).valid := (if (p.precompleteMispredictedBranch)
-            choice.valid && !prepareStore
-        else if (p.registeredBranchRedirect)
-            choice.valid && !prepareStore && !newResolutions(lane).valid
-        else choice.valid && !prepareStore && (!newResolutions(lane).valid ||
-            (io.redirect.valid && io.redirect.bits.token.asUInt === entry.renamed.token.asUInt)))
-        ledger.io.complete(lane).bits := completion(lane)
-        // This is an offer, not permission to retire: branch and fault offers
-        // still suppress duplicate lanes. Existing class/fault inputs qualify
-        // retirement independently. No completion or writeback uses this bit.
-        ledger.io.retirementIntentValid.foreach(_(lane) := executionRetirementOffer.get(lane) && !prepareStore)
-        if (lane == 0) {
-            if (p.registeredBranchRedirect && !p.precompleteMispredictedBranch) {
-                when(branchRedirectReady) {
-                    ledger.io.complete(lane).valid :=
-                        branchRedirectMatches
-                    ledger.io.retirementIntentValid.foreach(_(lane) := branchRedirectMatches)
-                    if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := branchResult }
-                    retireFault := branchResult.exception
+        if (dualOwnerCompletion) {
+            completionProducers.get(4 + lane).valid := choice.valid && !prepareStore
+            completionProducers.get(4 + lane).bits := completion(lane)
+            completionRetireClass.get(4 + lane) := !isControl
+        } else {
+            ledger.io.complete(lane).valid := (if (p.precompleteMispredictedBranch)
+                choice.valid && !prepareStore
+            else if (p.registeredBranchRedirect)
+                choice.valid && !prepareStore && !newResolutions(lane).valid
+            else choice.valid && !prepareStore && (!newResolutions(lane).valid ||
+                (io.redirect.valid && io.redirect.bits.token.asUInt === entry.renamed.token.asUInt)))
+            ledger.io.complete(lane).bits := completion(lane)
+            // This is an offer, not permission to retire: branch and fault offers
+            // still suppress duplicate lanes. Existing class/fault inputs qualify
+            // retirement independently. No completion or writeback uses this bit.
+            ledger.io.retirementIntentValid.foreach(_(lane) := executionRetirementOffer.get(lane) && !prepareStore)
+            if (lane == 0) {
+                if (p.registeredBranchRedirect && !p.precompleteMispredictedBranch) {
+                    when(branchRedirectReady) {
+                        ledger.io.complete(lane).valid :=
+                            branchRedirectMatches
+                        ledger.io.retirementIntentValid.foreach(_(lane) := branchRedirectMatches)
+                        if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := branchResult }
+                        retireFault := branchResult.exception
+                    }
                 }
-            }
-            when(systemComplete.valid) {
-                ledger.io.complete(lane).valid := !systemRedirect || systemRedirectMatches
-                ledger.io.retirementIntentValid.foreach(_(lane) := !systemRedirect || systemRedirectMatches)
-                if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := systemComplete.bits }
-                retireFault := systemComplete.bits.exception
-            }
-            when(multiplier.io.complete.valid) {
-                ledger.io.complete(lane).valid := true.B
-                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
-                if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := multiplier.io.complete.bits }
-                retireFault := multiplier.io.complete.bits.exception
-            }
-            when(mulDiv.io.complete.valid) {
-                ledger.io.complete(lane).valid := true.B
-                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
-                if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := mulDiv.io.complete.bits }
-                retireFault := mulDiv.io.complete.bits.exception
-            }
-            when(lsu.io.complete.valid) {
-                ledger.io.complete(lane).valid := true.B
-                ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
-                if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := lsu.io.complete.bits }
-                retireFault := lsu.io.complete.bits.exception
-            }
-            if (p.parallelCompletionPayload) {
-                val payload = Module(new ParallelCompletionPayload(p))
-                val heldBranchPresent = if (p.registeredBranchRedirect && !p.precompleteMispredictedBranch)
-                    branchRedirectReady else false.B
-                payload.io.present := VecInit(Seq(lsu.io.complete.valid, mulDiv.io.complete.valid,
-                    multiplier.io.complete.valid, systemComplete.valid, heldBranchPresent)).asUInt
-                payload.io.candidates := VecInit(Seq(lsu.io.complete.bits, mulDiv.io.complete.bits,
-                    multiplier.io.complete.bits, systemComplete.bits, branchResult))
-                payload.io.fallback := completion(lane)
-                ledger.io.complete(lane).bits := payload.io.selected
+                when(systemComplete.valid) {
+                    ledger.io.complete(lane).valid := !systemRedirect || systemRedirectMatches
+                    ledger.io.retirementIntentValid.foreach(_(lane) := !systemRedirect || systemRedirectMatches)
+                    if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := systemComplete.bits }
+                    retireFault := systemComplete.bits.exception
+                }
+                when(multiplier.io.complete.valid) {
+                    ledger.io.complete(lane).valid := true.B
+                    ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
+                    if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := multiplier.io.complete.bits }
+                    retireFault := multiplier.io.complete.bits.exception
+                }
+                when(mulDiv.io.complete.valid) {
+                    ledger.io.complete(lane).valid := true.B
+                    ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
+                    if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := mulDiv.io.complete.bits }
+                    retireFault := mulDiv.io.complete.bits.exception
+                }
+                when(lsu.io.complete.valid) {
+                    ledger.io.complete(lane).valid := true.B
+                    ledger.io.retirementIntentValid.foreach(_(lane) := true.B)
+                    if (!p.parallelCompletionPayload) { ledger.io.complete(lane).bits := lsu.io.complete.bits }
+                    retireFault := lsu.io.complete.bits.exception
+                }
+                if (p.parallelCompletionPayload) {
+                    val payload = Module(new ParallelCompletionPayload(p))
+                    val heldBranchPresent = if (p.registeredBranchRedirect && !p.precompleteMispredictedBranch)
+                        branchRedirectReady else false.B
+                    payload.io.present := VecInit(Seq(lsu.io.complete.valid, mulDiv.io.complete.valid,
+                        multiplier.io.complete.valid, systemComplete.valid, heldBranchPresent)).asUInt
+                    payload.io.candidates := VecInit(Seq(lsu.io.complete.bits, mulDiv.io.complete.bits,
+                        multiplier.io.complete.bits, systemComplete.bits, branchResult))
+                    payload.io.fallback := completion(lane)
+                    ledger.io.complete(lane).bits := payload.io.selected
+                }
             }
         }
         io.issued(lane)       := ledger.io.complete(lane)
         io.issued(lane).valid := ledger.io.completionAccepted(lane)
         if (p.registeredIssueExecute) {
             when(executionStages(lane).io.deq.fire) {
-                assert(ledger.io.completionAccepted(lane),
-                    "a live execution operand owner may drain only into an accepted ROB completion")
+                assert((if (dualOwnerCompletion) producerAccepted(4 + lane) else ledger.io.completionAccepted(lane)),
+                    "a live execution operand owner may drain only into its accepted ROB completion")
             }
         }
         val completedIndex = ledger.io.complete(lane).bits.token.index
@@ -3185,7 +3285,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         update.io.wake(p.completionWidth).bits := headRenamed.destination
     }
     val aluIssues = (0 until p.completionWidth).map(lane =>
-        ledger.io.completionAccepted(lane) &&
+        if (dualOwnerCompletion) producerAccepted(4 + lane)
+        else ledger.io.completionAccepted(lane) &&
             !(if (lane == 0) lsu.io.complete.valid || mCompleteValid || systemComplete.valid else false.B)
     )
     io.mulDivOverlap := (mulDiv.io.busy || multiplier.io.busy) && aluIssues.reduce(_ || _)
@@ -3193,6 +3294,26 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         prepared
     ) + systemStart + lsu.io.start.fire + mulDiv.io.start.fire + multiplier.io.start.fire +
         directStoreFire
+    if (dualOwnerCompletion) {
+        // An actual dispatch is one owner entering exactly one execution class.
+        // Store preparation is a distinct scheduler operation, with its own
+        // ticket; later ordered memory launch deliberately consumes another.
+        val tickets = (0 until 2).map(rank =>
+            (executionEnqueued(rank) || prepared(rank), dispatched(rank).bits)) ++ Seq(
+            (systemStart, head),
+            (lsu.io.start.fire, lsu.io.start.bits.token.index),
+            (mulDiv.io.start.fire, mulDiv.io.start.bits.token.index),
+            (multiplier.io.start.fire, multiplier.io.start.bits.token.index))
+        assert(PopCount(tickets.map(_._1)) <= 2.U, "at most two actual dispatch tickets per cycle")
+        for (i <- tickets.indices; j <- 0 until i) {
+            assert(!(tickets(i)._1 && tickets(j)._1 && tickets(i)._2 === tickets(j)._2),
+                "one live ROB owner cannot dispatch to two execution classes")
+        }
+        when(ledger.io.completionAccepted(0) && ledger.io.completionAccepted(1)) {
+            assert(ledger.io.complete(0).bits.token.index =/= ledger.io.complete(1).bits.token.index,
+                "dual writeback ports must publish distinct live ROB owners")
+        }
+    }
     assert(PopCount(dispatched.map(_.valid)) +& reserveSystem +& reserveMemory +& reserveMulDiv +&
         directStoreReserve <= p.issueWidth.U)
     // Allocation takes priority over ready writes. Same-packet RAW reads the newly allocated, unready ID.

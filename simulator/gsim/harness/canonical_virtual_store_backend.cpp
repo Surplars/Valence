@@ -432,6 +432,17 @@ public:
 int main(int argc, char **argv) { try {
     const bool inject = argc > 1 && std::string(argv[1]) == "--inject-result";
     const bool injectCancelledRetirement = argc > 1 && std::string(argv[1]) == "--inject-cancel-retirement";
+#ifdef A1_MEMORY_PARALLEL
+    {
+      Bench b; b.inject = inject; b.configure(); b.warm(); b.divideOperands(); b.clearCounters();
+      b.holdReplyUntil = b.cycle + 180;
+      b.submit({divide(), load(3, va + 8), load(4, va + 4096 + 16),
+          load(5, va + 24), load(6, va + 4096 + 32)}); b.drain();
+      b.check(b.physicalRequests == 4 && b.physicalResponses == 4 && b.peak == 4 && b.precheckedStarts == 4,
+          "actual A1 checked backend did not expose four independent ordered physical owners");
+      b.report("a1_four_warm_owners");
+    }
+#endif
     { Bench b; b.inject = inject; b.configure(); b.warm(); b.divideOperands(); b.clearCounters();
       b.holdReplyUntil = b.cycle + 100; b.submit({divide(), load(3, va + 8), load(4, va + 4096 + 16)}); b.drain();
       b.check(b.physicalRequests == 2 && b.peak == (PRECHECK_ENABLED ? 2U : 1U), "two warm virtual RAM loads did not establish expected physical overlap");

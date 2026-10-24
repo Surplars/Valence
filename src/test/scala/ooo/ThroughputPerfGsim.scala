@@ -41,8 +41,12 @@ class ThroughputPerfGsim(p: OooParams) extends IntegerCoreGsim(p) {
     loadStart.bits.token := BoringUtils.bore(observedLsu.io.start.bits.token)
     loadStart.bits.pc := BoringUtils.bore(observedLsu.io.start.bits.pc)
     loadStart.bits.address := BoringUtils.bore(observedLsu.io.start.bits.address)
-    loadResult.valid := BoringUtils.bore(observedLsu.io.complete.valid) &&
-        BoringUtils.bore(core.backend.ledger.io.completionAccepted(0)) &&
+    val acceptedLoad = (0 until p.completionWidth).map { port =>
+        BoringUtils.bore(core.backend.ledger.io.completionAccepted(port)) &&
+            BoringUtils.bore(core.backend.ledger.io.complete(port).bits.token).asUInt ===
+                BoringUtils.bore(observedLsu.io.complete.bits.token).asUInt
+    }.reduce(_ || _)
+    loadResult.valid := BoringUtils.bore(observedLsu.io.complete.valid) && acceptedLoad &&
         !BoringUtils.bore(observedLsu.io.complete.bits.exception)
     loadResult.bits := BoringUtils.bore(observedLsu.io.complete.bits.token)
     // GSIM applies registered state at the beginning of step(). The external
@@ -162,6 +166,7 @@ object ThroughputPerfGsimMain extends App {
         lvtPhysicalRegisterFile = args.drop(2).contains("lvt-prf"),
         bankedIssuePayload = args.drop(2).contains("banked-issue-payload"),
         bankedFetchHints = args.drop(2).contains("banked-fetch-hints"),
-        ownerLocalIssueReady = args.drop(2).contains("owner-local-issue-ready"))),
+        ownerLocalIssueReady = args.drop(2).contains("owner-local-issue-ready"),
+        completionTopology = if (args.drop(2).contains("dual-owner")) "dual-owner" else "legacy")),
         Array("--target-dir", args.head))
 }

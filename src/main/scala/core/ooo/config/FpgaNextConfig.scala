@@ -104,8 +104,11 @@ final case class FpgaNextConfig(
     registeredLoadResultReady: Boolean = false,
     frozenStoreCheckedFlow: Boolean = false,
     pendingReadyStoreQuery: Boolean = false,
-    registeredHomeRequestBoundary: Boolean = false
+    registeredHomeRequestBoundary: Boolean = false,
+    // Explicit Common-A1 rebuild topology; legacy board factories must not silently ignore it.
+    completionTopology: String = "legacy"
 ) {
+    require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
     require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
         registeredPendingStoreQuery && memoryPreparationHeadMask &&
         Set(2, 3).contains(pendingVirtualStoreProofSlots) && pendingStoreEarlyLoadCredits == 2),
@@ -191,6 +194,7 @@ final case class FpgaNextConfig(
         sharedFetchPmpRelations && shareProtectedHeadPayload && bankedInstructionData
     val name = (if (selectedTopology) "fpga-next-selected-v2" else if (optimized)
         "fpga-next-storage-v1" else "fpga-next-reference-topology-v1") +
+        (if (completionTopology != "legacy") s"-completion-$completionTopology" else "") +
         (if (!selectedTopology && independentFetchPayloadCapture) "-fetch-capture" else "") +
         (if (!selectedTopology && ownerLocalIssueReady) "-owner-ready" else "") +
         (if (!selectedTopology && sharedFetchPmpRelations) "-shared-pmp" else "") +
@@ -374,9 +378,12 @@ final case class FpgaNextConfig(
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
-        backendCapacity = backendCapacity)
+        backendCapacity = backendCapacity).copy(completionTopology = completionTopology)
 
-    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = new BoardSocTop(
+    def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
+        require(completionTopology == "legacy",
+            "dual-owner completion is currently integrated through CommonA1CpuTile, not the legacy board factory")
+        new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,
         instructionPrefetch = instructionPrefetch, isaProfile = isaProfile,
@@ -445,6 +452,7 @@ final case class FpgaNextConfig(
         registerNextLineDecision = registerNextLineDecision,
         sharedTwoWordFetchPmp = sharedTwoWordFetchPmp,
         disjointEvictionStoreOverlap = disjointEvictionStoreOverlap)
+    }
 }
 
 object FpgaNextConfig {

@@ -14,8 +14,12 @@ import soc.bus.tilelink._
   */
 class CommonA1CpuTile(
     config: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true),
-    boundary: CommonCpuTilePortParams = CommonCpuTilePortParams()
+    boundary: CommonCpuTilePortParams = CommonCpuTilePortParams(),
+    memoryProfile: Option[CommonA1MemoryProfile] = None
 ) extends Module {
+    // Validate the actual final configuration. A profile is not a second set
+    // of overrides: contradictory config/profile inputs must fail elaboration.
+    memoryProfile.foreach(_.validate(config, boundary))
     require(!boundary.runtimeMaintenance || boundary.runtimeCancellation,
         "A1 runtime parking requires acknowledged release")
     private val p = config.coreParams
@@ -25,7 +29,7 @@ class CommonA1CpuTile(
     require(cacheConfig.readMshrs == 2 && cacheConfig.responseEntries == 2 && cacheConfig.writebackEntries == 2)
     require(config.internalLineGrant && boundary.coherent.sinkBits == cacheConfig.sinkBits)
     require(p.dataReturnHandleBits == 0 && p.postedProofConfig.isEmpty,
-        "first extraction accepts public Selected, not unpublished tagged/posted CPU candidates")
+        "common A1 native transport requires ordered replies, not tagged/posted CPU candidates")
     private val staged = BoardSocConfig.usesStagedMemoryFabric(config.timingProfile, p)
     require(staged, "common A1 extraction keeps the checked registered physical boundary")
     val io = IO(new Bundle {
@@ -201,6 +205,10 @@ class CommonA1CpuTile(
         when(owner.io.stopped) {
             assert(!core.io.commit.map(_.valid).reduce(_ || _) && !core.io.trap.valid,
                 "A1 parked epoch performed architectural work")
+        }
+        when(owner.io.held.valid) {
+            assert(core.io.ownersIdle.get && !core.io.memoryBusy && privateIdle && fetchIdle && cache.io.quiescent,
+                "A1 held epoch must retain every LSU, translation, response, cache and native owner drain")
         }
     } else io.bus.maintenance.ready := false.B
 

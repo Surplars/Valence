@@ -7,6 +7,10 @@
 #include <vector>
 using namespace canonical_store_test;
 
+#ifndef A1_MEMORY_OWNER_SLOTS
+#define A1_MEMORY_OWNER_SLOTS 4
+#endif
+
 struct Operation {
     Token token;
     uint64_t address = va, physical = ram, data = 0x123456789abcdef0ULL;
@@ -36,7 +40,7 @@ public:
     std::optional<Token> lastResponse;
     unsigned starts = 0, requests = 0, responses = 0, completions = 0, discarded = 0, holds = 0;
     unsigned blockedBeforeAcceptance = 0, overlapStarts = 0;
-    bool inject = false;
+    bool inject = false, completionOffered = false;
     Bench() {
         drive({}); d.set_reset(1); d.step(); d.step(); d.set_reset(0); tick();
     }
@@ -136,7 +140,8 @@ public:
             require(o.request && !o.response, "response lost original FIFO ownership");
             o.response = true; ++responses; lastResponse = reply.token;
         }
-        if (d.get_io$$complete$$valid() && completeReady) {
+        completionOffered = d.get_io$$complete$$valid();
+        if (completionOffered && completeReady) {
             const Token token{unsigned(d.get_io$$complete$$bits$$token$$index()),
                 uint64_t(d.get_io$$complete$$bits$$token$$tag())};
             auto &o = owner(token); const auto &op = o.operation;
@@ -182,6 +187,66 @@ static Operation load(Token token) {
 
 int main(int argc, char **argv) { try {
     unsigned totalOverlaps = 0, totalCancelled = 0;
+#ifdef A1_MEMORY_PARALLEL
+    {
+        constexpr unsigned slots = A1_MEMORY_OWNER_SLOTS;
+        static_assert(slots == 2 || slots == 4);
+        Bench b; b.completeReady = false; b.allowReplies = true;
+        b.accept(load({1, 0x400000000ULL}));
+        for (unsigned n = 0; n < 20; ++n) b.tick();
+        require(b.responses == 1 && b.completions == 0 && b.completionOffered,
+            "held completion/empty slot setup did not reach a real completed owner");
+        auto mmio = load({9, 0x500000000ULL});
+        mmio.address = 0x10000000ULL; mmio.virt = mmio.prechecked = mmio.parallel = false;
+        b.reject(mmio, 3);
+        auto atomic = mmio; atomic.atomic = true; b.reject(atomic, 3);
+        const auto startCycle = b.cycle;
+        for (unsigned n = 1; n < slots; ++n) {
+            auto op = load({n + 1, 0x400000000ULL + n});
+            op.address = va + 8 * (n + 1); op.physical = ram + 8 * (n + 1);
+            require(b.tick(op), "held completion hid an independently empty LSU slot");
+        }
+        require(b.cycle - startCycle == slots - 1 && b.starts == slots && b.completions == 0,
+            "empty-slot acceptance duty changed or a held completion was falsely consumed");
+        b.reject(load({8, 0x600000000ULL}), 4);
+        for (unsigned n = 0; n < 20; ++n) b.tick();
+        require(b.requests == slots && b.responses == slots && b.completions == 0,
+            "backpressured completed owners lost their ordered physical responses");
+        b.drain();
+        require(b.completions == slots, "held completion was overwritten by an independent new start");
+        std::cout << "A1_MEMORY_LSU_HELD_COMPLETION_PASS slots=" << slots
+            << " accepted=" << slots - 1 << " cycles=" << slots - 1
+            << " stalled_completion_consumed=0 serial_blocked=1\n";
+    }
+#if A1_MEMORY_OWNER_SLOTS == 4
+    {
+        Bench b;
+        std::vector<Operation> loads;
+        for (unsigned n = 0; n < 4; ++n) {
+            auto op = load({n + 1, 0x100000000ULL + n});
+            op.address = va + 8 * n; op.physical = ram + 8 * n;
+            loads.push_back(op); b.accept(op);
+        }
+        for (unsigned n = 0; n < 8; ++n) b.tick();
+        require(b.starts == 4 && b.requests == 4 && b.responses == 0,
+            "four real LSU reservations failed to accept independent requests before any reply");
+        b.reject(load({8, 0x200000000ULL}), 4);
+        auto mmio = load({9, 0x300000000ULL});
+        mmio.address = 0x10000000ULL; mmio.virt = mmio.prechecked = mmio.parallel = false;
+        b.reject(mmio, 4);
+        auto atomic = mmio; atomic.atomic = true; b.reject(atomic, 4);
+        b.cancel = loads[1].token; b.tick(); b.cancel = loads[3].token; b.tick(); b.cancel.reset();
+        b.drain();
+        require(b.requests == 4 && b.responses == 4 && b.completions == 2 && b.discarded == 2,
+            "four-owner cancellation lost real replies or published a killed full token");
+        // Serial peripheral ownership is admitted only after the four owners drain.
+        b.accept(mmio); b.drain();
+        require(b.requests == 5 && b.responses == 5 && b.completions == 3,
+            "serial MMIO did not retain its ordered request/response owner after drain");
+        std::cout << "A1_MEMORY_LSU_FOUR_OWNER_PASS requests=5 replies=5 killed=2 serial_after_drain=1\n";
+    }
+#endif
+#endif
 #ifdef CANONICAL_HANDOFF
     {
         Bench b; const auto s = store({1, 90}), l = load({2, 91});

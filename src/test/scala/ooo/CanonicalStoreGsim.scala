@@ -118,8 +118,10 @@ class CanonicalStoreAdapterGsim(translationHitFlow: Boolean = false, hintTimingP
 /** Exact-slot serial-owner exception without a backend oracle or synthetic certificate generator.
   * The driver supplies the already registered owner authorization and independently records all fires.
   */
-class CanonicalStoreLsuGsim(entries: Int = 2, canonicalHandoff: Boolean = false) extends Module {
-    val p = CanonicalStoreFixture.params(entries)
+class CanonicalStoreLsuGsim(entries: Int = 2, canonicalHandoff: Boolean = false,
+    actualParams: Option[OooParams] = None) extends Module {
+    val p = actualParams.getOrElse(CanonicalStoreFixture.params(entries))
+    require(p.memoryEntries == entries && p.canonicalVirtualStoreOverlap && p.dataReturnHandleBits == 0)
     val io = IO(new Bundle {
         val startValid = Input(Bool())
         val startReady = Output(Bool())

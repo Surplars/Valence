@@ -7,7 +7,10 @@
 // Standalone software truth. No hardware helpers, private DUT fields, certificates,
 // translation hit bits or cache phase enter the expected permission calculation.
 namespace canonical_store_test {
-constexpr uint64_t ram = 0x80010000ULL, ramBytes = 65536, va = 0x40000000ULL;
+#ifndef CANONICAL_TEST_RAM_BASE
+#define CANONICAL_TEST_RAM_BASE 0x80010000ULL
+#endif
+constexpr uint64_t ram = CANONICAL_TEST_RAM_BASE, ramBytes = 65536, va = 0x40000000ULL;
 inline void require(bool ok, const std::string &message) {
     if (!ok) throw std::runtime_error(message);
 }
