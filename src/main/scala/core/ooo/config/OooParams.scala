@@ -210,8 +210,18 @@ case class OooParams(
     // Explicit backend architecture, not a frequency claim. Legacy presets stay frozen.
     completionTopology: String = "legacy",
     // Resolution transport is independent of the two architectural writeback ports.
-    branchResolutionTopology: String = "writeback-coupled"
+    branchResolutionTopology: String = "writeback-coupled",
+    // Explicit M2/R1 experiments; neither changes the Selected/FullCandidate defaults.
+    registeredDataTranslation: Boolean = false,
+    circularFetchPayload: Boolean = false
 ) {
+    require(!circularFetchPayload || (renameWidth == 2 && registeredFetchPacket && !alignedFetchPermissionStage),
+        "circular fetch payload requires the two-wide registered non-frontier reservoir")
+    require(!registeredDataTranslation || (virtualMemoryLevels > 0 && registeredTranslationHeads &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && !precheckedDataRequestFlow &&
+        !physicalLoadIngressFlow && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !postedStoreMerge && !taggedStoreReturns),
+        "registered data translation requires the ordered canonical A1 path, excluding proof/posted shortcuts")
     require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
     require(Set("writeback-coupled", "execution-mailbox").contains(branchResolutionTopology),
         "unknown branch resolution topology")

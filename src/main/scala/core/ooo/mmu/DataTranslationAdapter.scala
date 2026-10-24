@@ -12,20 +12,6 @@ private[ooo] class VirtualDataRequest(p: OooParams) extends Bundle {
     val context = new VmCsrState
 }
 
-private[ooo] class TranslatedDataRequest(p: OooParams) extends Bundle {
-    val request = new DataRequest(p.dataReturnHandleBits)
-    val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
-    val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap) Some(Valid(new CanonicalStoreOrigin(p))) else None
-    // Accepted bindings are already represented by originalVirtualAddress and request PA/size/mask.
-    // Invalid ingress bindings retain accessFault, so only frozen provenance needs separate storage.
-    val frozenStorePresent = if (p.frozenStoreProofEnabled) Some(Bool()) else None
-    val originalVirtualAddress = if (p.canonicalVirtualStoreOverlap) Some(UInt(64.W)) else None
-    val privilege = UInt(2.W)
-    val checkPhysical = Bool()
-    val pageFault = Bool()
-    val accessFault = Bool()
-}
-
 private[ooo] class TranslationResponseOwner extends Bundle {
     val fault = Bool()
     val pageFault = Bool()
@@ -49,6 +35,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
     val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false,
     val registerNextLineDecision: Boolean = false) extends Module {
+    require(!p.registeredDataTranslation || (registerCheckedRequests && !translationHitFlow && !queuedHeadSelection),
+        "M2 requires a real registered result boundary, not a simultaneous hit/late-head shortcut")
     require(!registerNextLineDecision || (registerCheckedRequests && p.dataNextLinePrefetch && alignedNextLinePmp),
         "next-line classification requires the existing checked register and aligned line permission")
     require(!p.frozenStoreCheckedFlow || registerCheckedRequests,
@@ -180,7 +168,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     }
 
     // Registered queue boundaries keep the TLB CAM/PMP/TileLink arbitration off one FPGA combinational path.
-    val translated = Module(new Queue(new TranslatedDataRequest(p), entries, pipe = false, flow = false))
+    val translated = new DataTranslationResultStorage(if (p.registeredDataTranslation)
+        Module(new DataTranslationResultBuffer(p, entries)).suggestName("translated").io
+    else Module(new Queue(new TranslatedDataRequest(p), entries, pipe = false, flow = false))
+        .suggestName("translated").io)
     val owners = CpuReturnTransport.ownerView(new TranslationResponseOwner, entries)
     val waiting = RegInit(false.B)
     val savedRequest = Reg(new DataRequest(p.dataReturnHandleBits))
@@ -368,6 +359,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         savedPrivilege := context.dataPrivilege
     }
     when(waiting && io.translation.response.fire) { waiting := false.B }
+    if (p.registeredDataTranslation) {
+        when(io.translation.response.fire) {
+            assert(translated.io.enq.fire,
+                "M2 accepted translation response must enter its registered result owner exactly once")
+        }
+    }
 
     // The optional hit source ends at the same checked register as queued work.
     // It never bypasses authorization or an older translated request.
@@ -381,15 +378,36 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else Mux(precheckedOffer || translationHitOffer || frozenCheckedOffer, translated.io.enq.bits, translated.io.deq.bits)
     } else translated.io.deq.bits
     val request = head.request
-    val pmp = Module(new PmpChecker(p.pmpEntries))
-    pmp.io.state := io.pmpState
-    pmp.io.address := request.address
-    pmp.io.size := request.size
-    pmp.io.privilege := head.privilege
-    pmp.io.access := Mux(request.atomic,
-        Mux(request.atomicOp === 2.U, PmpAccess.read,
-            Mux(request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
-        Mux(request.write, PmpAccess.write, PmpAccess.read))
+    val permission = if (p.registeredDataTranslation)
+        Some(Module(new DataPhysicalPermissionEvaluator(p, alignedNextLinePmp,
+            factorCheckedNextAllowed, registerNextLineDecision))) else None
+    permission.foreach { evaluator =>
+        evaluator.io.result := head
+        evaluator.io.pmpState := io.pmpState
+        evaluator.io.authorization.epoch := authorizationEpoch.get
+        evaluator.io.authorization.stable := io.loadPrecheck.get.stable
+        evaluator.io.authorization.changing := authorizationChanged
+        evaluator.io.authorization.flush := io.precheckFlush.get
+        CpuReturnTransport.requestPayload(evaluator.io.hintRequest,
+            Mux(physicalIngressOffer, io.virtual.request.bits, Mux(identityOffer, incoming.bits, request)))
+        evaluator.io.hintPrivilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
+            Mux(identityOffer, context.dataPrivilege, head.privilege))
+        evaluator.io.hintBypassFault := identityOffer || physicalIngressOffer
+    }
+    val legacyPmp = if (!p.registeredDataTranslation) {
+        val pmp = Module(new PmpChecker(p.pmpEntries))
+        pmp.io.state := io.pmpState
+        pmp.io.address := request.address
+        pmp.io.size := request.size
+        pmp.io.privilege := head.privilege
+        pmp.io.access := Mux(request.atomic,
+            Mux(request.atomicOp === 2.U, PmpAccess.read,
+                Mux(request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
+            Mux(request.write, PmpAccess.write, PmpAccess.read))
+        Some(pmp)
+    } else None
+    val pmpDenied = permission.map(_.io.pmpDenied).getOrElse(legacyPmp.get.io.denied)
+    val pmpAccess = permission.map(_.io.access).getOrElse(legacyPmp.get.io.access)
     val atomicOutside = request.atomic && head.checkPhysical &&
         !SpeculativeRamRange.contains(p, request.address, request.size)
     val precheckedShapeFault = if (p.precheckedDataRequestFlow) {
@@ -414,9 +432,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             !head.postedProof.map(_.valid).getOrElse(false.B)
     } else false.B
     val frozenFault = head.frozenStorePresent.map(present => present && !frozenCheckedAllowed).getOrElse(false.B)
-    val fault = head.pageFault || head.accessFault || precheckedShapeFault || frozenFault ||
-        (head.checkPhysical && pmp.io.denied) || atomicOutside || staleAuthorization(request) ||
-        (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size))
+    val fault = permission.map(_.io.fault).getOrElse(
+        head.pageFault || head.accessFault || precheckedShapeFault || frozenFault ||
+            (head.checkPhysical && pmpDenied) || atomicOutside || staleAuthorization(request) ||
+            (request.precheckedLoad && !SpeculativeRamRange.contains(p, request.address, request.size)))
     // Snapshot the request and fault decision before downstream grants.
     // Fault placeholders remain ordered but never issue physical requests.
     // Both checked implementations are non-flow: hint permission and fault always
@@ -491,7 +510,12 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // hint bit; that same record already carries the fault used at dequeue.
     private var constructedNextLineAuthorization: Option[NextLineAuthorization] = None
     def nextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
-    val nextAllowed = if (p.dataNextLinePrefetch) {
+    val nextAllowed = if (permission.nonEmpty) {
+        val evaluator = permission.get
+        constructedNextLineAuthorization = evaluator.nextLineAuthorization
+        if (registerNextLineDecision) checked.get.enq.bits.nextLineDecision.get := evaluator.io.nextDecision.get
+        evaluator.io.nextAllowed
+    } else if (p.dataNextLinePrefetch) {
         val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp,
             exportDecision = registerNextLineDecision))
         constructedNextLineAuthorization = Some(authorize)
@@ -539,33 +563,37 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val certificate = Wire(Valid(new CanonicalStoreCertificate(p)))
         val fromTranslated = (translated.io.deq.valid || translationHitOffer || frozenCheckedPass) &&
             !identityOffer && !precheckedOffer && !physicalIngressOffer
-        val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
-            !request.precheckedLoad && !request.uncached && head.checkPhysical
-        val shape = request.size <= 3.U && AlignedMemoryDisjoint.aligned(virtualAddress, request.size) &&
-            AlignedMemoryDisjoint.aligned(request.address, request.size) &&
-            virtualAddress(11, 0) === request.address(11, 0) &&
-            request.mask === AlignedMemoryDisjoint.lanes(request.address, request.size)
-        // Check the entire half-open interval at XLEN+1. Never truncate high PA
-        // bits, certify only a starting byte, or wrap an access at the RAM end.
-        val physicalStart = Cat(0.U(1.W), request.address)
-        val bytes = MuxLookup(request.size, 8.U(65.W))(
-            Seq(0.U -> 1.U(65.W), 1.U -> 2.U(65.W), 2.U -> 4.U(65.W)))
-        val physicalEnd = physicalStart + bytes
-        val inRam = physicalStart >= p.speculativeRamBase.U(65.W) &&
-            physicalEnd <= (p.speculativeRamBase + p.speculativeRamBytes).U(65.W) &&
-            physicalEnd > physicalStart
-        val fresh = io.loadPrecheck.get.stable && !authorizationChanged && !io.precheckFlush.get &&
-            origin.bits.epoch === authorizationEpoch.get
-        // The optional event stage captures the full qualified tuple at checked
-        // acceptance. The default preserves same-edge backend capture. Neither
-        // form owns request or response credit or changes the store's outcome.
-        certificate.valid := stage.enq.fire && fromTranslated && origin.valid && ordinaryStore &&
-            shape && inRam && fresh && !stage.enq.bits.fault && !pmp.io.denied
-        certificate.bits.origin := origin.bits
-        certificate.bits.virtualAddress := virtualAddress
-        certificate.bits.physicalAddress := request.address
-        certificate.bits.size := request.size
-        certificate.bits.mask := request.mask
+        val qualified = permission.map(_.io.canonical.valid).getOrElse {
+            val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
+                !request.precheckedLoad && !request.uncached && head.checkPhysical
+            val shape = request.size <= 3.U && AlignedMemoryDisjoint.aligned(virtualAddress, request.size) &&
+                AlignedMemoryDisjoint.aligned(request.address, request.size) &&
+                virtualAddress(11, 0) === request.address(11, 0) &&
+                request.mask === AlignedMemoryDisjoint.lanes(request.address, request.size)
+            // Check the entire half-open interval at XLEN+1. Never truncate high PA
+            // bits, certify only a starting byte, or wrap an access at the RAM end.
+            val physicalStart = Cat(0.U(1.W), request.address)
+            val bytes = MuxLookup(request.size, 8.U(65.W))(
+                Seq(0.U -> 1.U(65.W), 1.U -> 2.U(65.W), 2.U -> 4.U(65.W)))
+            val physicalEnd = physicalStart + bytes
+            val inRam = physicalStart >= p.speculativeRamBase.U(65.W) &&
+                physicalEnd <= (p.speculativeRamBase + p.speculativeRamBytes).U(65.W) &&
+                physicalEnd > physicalStart
+            val fresh = io.loadPrecheck.get.stable && !authorizationChanged && !io.precheckFlush.get &&
+                origin.bits.epoch === authorizationEpoch.get
+            origin.valid && ordinaryStore && shape && inRam && fresh && !pmpDenied
+        }
+        // Qualification never creates an event without the exact accepted owner.
+        certificate.valid := stage.enq.fire && fromTranslated && qualified && !stage.enq.bits.fault
+        permission match {
+            case Some(evaluator) => certificate.bits := evaluator.io.canonical.bits
+            case None =>
+                certificate.bits.origin := origin.bits
+                certificate.bits.virtualAddress := virtualAddress
+                certificate.bits.physicalAddress := request.address
+                certificate.bits.size := request.size
+                certificate.bits.mask := request.mask
+        }
         if (registerCanonicalStoreEvent) {
             val certificateValid = RegNext(certificate.valid, false.B)
             val certificateBits = RegEnable(certificate.bits, certificate.valid)
@@ -582,15 +610,15 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
                 stage.enq.bits.request.asUInt === expectedCheckedRequest.asUInt,
                 "canonical store certificate belongs to the exact checked request acceptance")
             assert(!head.pageFault && !head.accessFault && !stage.enq.bits.pageFault &&
-                pmp.io.access === PmpAccess.write,
+                pmpAccess === PmpAccess.write,
                 "canonical store certificate requires checked demand or frozen translation and physical write permission")
             head.postedProof.foreach(proof => assert(!proof.valid,
                 "canonical virtual-store certificate cannot reuse physical posted-store proof"))
         }
         head.frozenStorePresent.foreach { present =>
             when(stage.enq.fire && fromTranslated && present && !stage.enq.bits.fault) {
-                assert(frozenCheckedAllowed && certificate.valid && !pmp.io.denied &&
-                    pmp.io.access === PmpAccess.write,
+                assert(frozenCheckedAllowed && certificate.valid && !pmpDenied &&
+                    pmpAccess === PmpAccess.write,
                     "successful frozen stores retain fresh origin and final checked physical write authority")
             }
         }

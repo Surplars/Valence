@@ -14,9 +14,11 @@ import soc.core.ooo._
   * No bypass, prefetch, larger request window or synthetic instruction source
   * is introduced between the real production modules.
   */
-class A1FetchSupplyGsim(transactionSlots: Int = 1, alignedSinglePage: Boolean = false) extends Module {
+class A1FetchSupplyGsim(transactionSlots: Int = 1, alignedSinglePage: Boolean = false,
+    circularFetchPayload: Boolean = false) extends Module {
     private val config = FpgaNextConfig.Selected
-    private val p = config.coreParams.copy(alignedFetchSinglePage = alignedSinglePage)
+    private val p = config.coreParams.copy(alignedFetchSinglePage = alignedSinglePage,
+        circularFetchPayload = circularFetchPayload)
     private val tlp = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     require(p.renameWidth == 2 && p.frontendCacheSets == 16 && p.registeredFetchPacket)
     require(!p.alignedFetchPermissionStage && !p.fetchAddressBeforePmp && !p.fetchPreviousPacket)
@@ -112,7 +114,7 @@ class A1FetchSupplyGsim(transactionSlots: Int = 1, alignedSinglePage: Boolean = 
     }
 
     val packet = Module(new RegisteredFetchPacket(2, p.compressedInstructions, BigInt("80000000", 16),
-        p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints))
+        p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints, circularPayload = p.circularFetchPayload))
     val permission = Module(new FetchPacketPermission(16, 2, p.wordSpanPacketPmp,
         p.balancedPacketPmp, p.sharedFetchPmpRelations))
     permission.io.base := packet.io.fetchPc
@@ -198,6 +200,10 @@ object A1FetchSupplyGsimMain extends App {
 }
 
 object A2FetchSupplyGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new A1FetchSupplyGsim(args(1).toInt, args(2).toBoolean),
+    require(args.length >= 3 && args.drop(3).forall(_ == "--circular-fetch-payload") &&
+        args.drop(3).distinct.length == args.drop(3).length,
+        "output-directory slots aligned [--circular-fetch-payload]")
+    ChiselStage.emitCHIRRTLFile(new A1FetchSupplyGsim(args(1).toInt, args(2).toBoolean,
+        circularFetchPayload = args.drop(3).contains("--circular-fetch-payload")),
         Array("--target-dir", args.head))
 }

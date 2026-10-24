@@ -108,8 +108,13 @@ final case class FpgaNextConfig(
     // Explicit Common-A1 rebuild topology; legacy board factories must not silently ignore it.
     completionTopology: String = "legacy",
     branchResolutionTopology: String = "writeback-coupled",
-    fetchTransactionSlots: Int = 1
+    fetchTransactionSlots: Int = 1,
+    registeredDataTranslation: Boolean = false,
+    circularFetchPayload: Boolean = false
 ) {
+    require(!registeredDataTranslation || (!translationHitFlow && !queuedHeadSelection &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
+        "registered translation must explicitly replace hit flow, not silently override it")
     require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
     require(Set(1, 2).contains(fetchTransactionSlots), "common A1 fetch supports one or two explicit owners")
     require(fetchTransactionSlots == 1 || (alignedFetchSinglePage && !alignedFetchPermissionStage &&
@@ -243,6 +248,8 @@ final case class FpgaNextConfig(
         (if (alignedFetchPermissionStage) "-aligned-fetch-permission-stage" else "") +
         (if (fetchAddressBeforePmp) "-fetch-address-before-pmp" else "") +
         (if (queuedHeadSelection) "-queued-head-selection" else "") +
+        (if (registeredDataTranslation) "-registered-data-translation" else "") +
+        (if (circularFetchPayload) "-circular-fetch-payload" else "") +
         (if (alignedNextLinePmp) "-aligned-next-line-pmp" else "") +
         (if (registerProbeLookup) "-register-probe-lookup" else "") +
         (if (localAddressRanges) "-local-address-ranges" else "") +
@@ -391,11 +398,12 @@ final case class FpgaNextConfig(
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity).copy(completionTopology = completionTopology,
-            branchResolutionTopology = branchResolutionTopology)
+            branchResolutionTopology = branchResolutionTopology,
+            registeredDataTranslation = registeredDataTranslation, circularFetchPayload = circularFetchPayload)
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
         require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
-            fetchTransactionSlots == 1,
+            fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,

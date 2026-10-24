@@ -56,8 +56,9 @@ class FetchPhaseStatus(width: Int) extends Bundle {
   * Capacity is two rename packets; minimum latency is one cycle, and both ports
   * sustain renameWidth instructions per cycle. Input credits use registered
   * occupancy only: neither decode acceptance nor a prediction can feed through
-  * to the raw fetch payload. Dedicated head slots avoid a pointer-indexed RAM.
-  * A partial dequeue compacts the surviving instructions, allowing two-wide
+  * to raw fetch admission. Default dedicated head slots avoid a pointer-indexed
+  * read; optional circularPayload leaves payload static and adds bank-read muxes.
+  * A partial dequeue retains the surviving instructions, allowing two-wide
   * admission to join the tail of one fetched packet to the next packet. Each
   * slot records its real PC and supply prediction. Raw JAL/C.J and a small
   * accepted-successor cache steer supply before full decode; taken supply
@@ -72,7 +73,8 @@ class FetchPhaseStatus(width: Int) extends Bundle {
 class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
     bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false,
-    val eagerPrefixSelect: Boolean = false, val acceptedPrefixValidation: Boolean = false) extends Module {
+    val eagerPrefixSelect: Boolean = false, val acceptedPrefixValidation: Boolean = false,
+    val circularPayload: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
     require(!alignedPermissionStage || (width == 2 && compressed && splitCursor),
         "aligned permission phase requires two compressed lanes and split cursor")
@@ -80,6 +82,8 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         "direct eager prefix selection requires the aligned permission phase")
     require(!acceptedPrefixValidation || (parallelValidation && width == 2),
         "accepted-prefix validation requires the qualified two-lane parallel-validation caller")
+    require(!circularPayload || (width == 2 && !alignedPermissionStage),
+        "circular fetch payload currently supports two lanes without the optional permission phase")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64))
     require(Set(8, 16, 32).contains(hintEntries))
     private val capacity = 2 * width
@@ -104,8 +108,10 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         val nextFetchPc = Output(UInt(64.W))
         val occupancy = Output(UInt(countBits.W))
     })
-    val slots = Reg(Vec(capacity, new RawFetchInstruction))
-    val count = RegInit(0.U(countBits.W))
+    val circular = if (circularPayload) Some(Module(new CircularFetchInstructionStorage)) else None
+    val slots = if (circularPayload) None else Some(Reg(Vec(capacity, new RawFetchInstruction)))
+    val count = circular.map(_.io.occupancy).getOrElse(RegInit(0.U(countBits.W)))
+    def queuedPc(slot: Int): UInt = circular.map(_.io.lookaheadPc(slot)).getOrElse(slots.get(slot).pc)
     val rawCursor = RegInit(resetPc.U(64.W))
     // A correction is captured without a late conditional write-enable. The
     // registered selector overrides speculative raw progress on the next cycle,
@@ -231,7 +237,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     byteOffsets(0) := 0.U
     for (lane <- 0 until width) {
         io.instructions(lane).valid := count > lane.U
-        io.instructions(lane).bits := slots(lane)
+        io.instructions(lane).bits := circular.map(_.io.instructions(lane).bits).getOrElse(slots.get(lane))
         capturePrefix(lane + 1) := capturePrefix(lane) && resolutionSupply(lane).valid &&
             count <= (capacity - lane - 1).U &&
             (if (lane == 0) true.B else !rawTaken(lane - 1))
@@ -319,22 +325,32 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     // priority, so they cannot occupy a slot or advance the next supply PC.
     val captured = PopCount(capturePrefix.drop(1))
     val remaining = count - consumed
-    for (slot <- 0 until capacity) {
-        when(consumed =/= 0.U && slot.U < remaining) {
-            slots(slot) := MuxLookup(consumed, slots(slot))(
-                (1 to width).filter(slot + _ < capacity).map { shift =>
-                    shift.U -> slots(slot + shift)
-                })
-        }
+    if (circularPayload) {
+        circular.get.io.consume := io.consume
         for (lane <- 0 until width) {
-            when(capturePrefix(lane + 1) && remaining + lane.U === slot.U) {
-                slots(slot) := resolutionSupply(lane).bits
-                slots(slot).pc := rawPcs(lane)
-                slots(slot).nextPc := rawNextPcs(lane)
+            circular.get.io.capture(lane).valid := capturePrefix(lane + 1)
+            circular.get.io.capture(lane).bits := resolutionSupply(lane).bits
+            circular.get.io.capture(lane).bits.pc := rawPcs(lane)
+            circular.get.io.capture(lane).bits.nextPc := rawNextPcs(lane)
+        }
+    } else {
+        for (slot <- 0 until capacity) {
+            when(consumed =/= 0.U && slot.U < remaining) {
+                slots.get(slot) := MuxLookup(consumed, slots.get(slot))(
+                    (1 to width).filter(slot + _ < capacity).map { shift =>
+                        shift.U -> slots.get(slot + shift)
+                    })
+            }
+            for (lane <- 0 until width) {
+                when(capturePrefix(lane + 1) && remaining + lane.U === slot.U) {
+                    slots.get(slot) := resolutionSupply(lane).bits
+                    slots.get(slot).pc := rawPcs(lane)
+                    slots.get(slot).nextPc := rawNextPcs(lane)
+                }
             }
         }
+        count := remaining + captured
     }
-    count := remaining + captured
     // Captures form a contiguous prefix. Select its last lane directly, keeping
     // the occupancy PopCount out of the successor control path. No capture
     // holds the supply PC; a captured lane retains its fault-qualified next PC.
@@ -346,8 +362,8 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     // Compare the first surviving instruction, not the cursor several words
     // ahead. If no instruction survives, a matching offer or cursor is enough.
     // This keeps an already-correct taken path and discards a stale early hint.
-    val queuedSuccessor = MuxLookup(consumed, slots(0).pc)(
-        (1 to width).filter(_ < capacity).map(lanes => lanes.U -> slots(lanes).pc))
+    val queuedSuccessor = MuxLookup(consumed, queuedPc(0))(
+        (1 to width).filter(_ < capacity).map(lanes => lanes.U -> queuedPc(lanes)))
     // An unresolved token is older than the eager scanner even when it is
     // blocked from transfer. Both validation forms must inspect that token.
     val unqueuedSuccessor = Mux(tokenValid, resolutionPc, supplyPc)
@@ -357,7 +373,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         // before PMP/rename selects a prefix. Late admission selects one BIT,
         // rather than a 64-bit successor mux followed by a 64-bit comparator.
         val candidates = (1 to width).map { lanes =>
-            val observed = Mux(count > lanes.U, slots(lanes).pc, unqueuedSuccessor)
+            val observed = Mux(count > lanes.U, queuedPc(lanes), unqueuedSuccessor)
             val validation = io.validation.get(lanes - 1)
             consumed === lanes.U && Mux(validation.predicts,
                 observed =/= validation.predictedPc, observed =/= validation.sequentialPc)
@@ -370,6 +386,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     // invalidate retains its historical hint-only meaning here. Real core
     // context changes also assert flush with the exact architectural restart PC.
     val cancel = io.flush.valid || wrongPath
+    circular.foreach(_.io.cancel := cancel)
     for (lane <- 0 until width) {
         io.captured(lane) := capturePrefix(lane + 1) && !cancel
     }
@@ -456,7 +473,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
             correctionPending.get := cancel
         } else rawCursor := io.nextFetchPc
     }
-    when(cancel) {
+    if (!circularPayload) when(cancel) {
         count := 0.U
     }
     if (acceptedPrefixValidation) {
