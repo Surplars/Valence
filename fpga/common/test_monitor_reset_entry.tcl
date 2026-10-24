@@ -119,10 +119,11 @@ foreach case {missing_path duplicate_path short_properties nonfinite exception c
 # Re-source must not clear the one-shot guard following a partial mutation.
 source $helper
 rejected {monitor_reset_entry::apply $plan} resource_after_partial;incr negatives
-foreach case {bad_ref bad_init bad_async bad_inversion bad_ce bad_ground early_fanout missing_load foreign_clock wrong_buffer wrong_pre extra_stage} {
+foreach case {bad_ref bad_init bad_async bad_inversion bad_ce bad_ground early_fanout missing_load foreign_clock wrong_buffer wrong_pre extra_stage a1_unreviewed} {
     reset_fixture
     set first {u_soc/monitor/domain0/sourceRelease/release_0_reg[0]}
     switch $case {
+        a1_unreviewed {ff {u_soc/monitor/cpuRetireLane1/sourceRelease/release_0_reg[0]} FDPE cpu_target300}
         bad_ref {dict set ::props $first REF_NAME FDCE}
         bad_init {dict set ::props $first INIT 0}
         bad_async {dict set ::props $first ASYNC_REG 0}

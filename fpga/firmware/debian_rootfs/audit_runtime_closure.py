@@ -147,12 +147,17 @@ def audit(blob):
             dependencies[needed] = found
             deps += 1
         closure[name] = dict(interpreter=row['interpreter'], dependencies=dependencies)
-    helper = entries['usr/local/libexec/valence-uart-irq-init'][1]
+    helper_path = 'usr/local/libexec/valence-uart-irq-init'
+    init_body = content(resolve(entries, '/init'))
+    if helper_path.encode() in init_body:
+        helper = content(resolve(entries, '/' + helper_path))
+    else:
+        helper = None
     return dict(status='packed_link_and_rv64_runtime_closure_passed_not_board_verified',
         archive_sha256=hashlib.sha256(blob).hexdigest(), archive_entries=len(entries),
         symlinks_audited=links, runtime_elfs_audited=len(closure), dynamic_dependencies_resolved=deps,
         all_file_uids=uid, file_gids=sorted({f[3] for f, _ in entries.values()}),
-        dev_console='character 5:1', bootstrap_sha256=hashlib.sha256(helper).hexdigest(),
+        dev_console='character 5:1', bootstrap_sha256=hashlib.sha256(helper).hexdigest() if helper is not None else None,
         critical_paths_resolved=list(CRITICAL), runtime_api_links=RUNTIME_LINKS,
         runtime_elf_closure=closure, board_verified=False)
 

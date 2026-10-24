@@ -19,7 +19,7 @@ struct vcm_rate { u64 word[16]; };
 struct vcm_meter {
 	u64 sequence, flags, reference_hz, window, timestamp;
 	u32 delta[8], total[8];
-	unsigned int width;
+	unsigned int width, retirement_lanes;
 };
 struct vcm_snapshot { struct vcm_meter domain[2]; };
 
@@ -28,15 +28,20 @@ static inline int vcm_rate_descriptor(u64 id)
 	return id == 0x4352000100000002ULL || id == 0x4352000300000002ULL;
 }
 
-static inline int vcm_meter_width(u64 id)
+static inline int vcm_meter_width_profile(u64 id, unsigned int lanes)
 {
 	unsigned int width = (id >> 32) & 0xffff;
-	if ((id >> 48) != 0x544d || (id & 0xffffffffULL) != 1 || width < 4 || width > 32)
+	if ((id >> 48) != 0x544d || (lanes != 1 && lanes != 2) || (id & 0xffffffffULL) != lanes || width < 4 || width > 32)
 		return -EPROTO;
 	return (int)width;
 }
 
-static inline int vcm_validate(vcm_read_fn read, void *ctx)
+static inline int vcm_meter_width(u64 id)
+{
+	return vcm_meter_width_profile(id, 1);
+}
+
+static inline int vcm_validate_profile(vcm_read_fn read, void *ctx, unsigned int cpu_lanes)
 {
 	unsigned int d;
 	for (d = 0; d < 2; d++) {
@@ -47,11 +52,16 @@ static inline int vcm_validate(vcm_read_fn read, void *ctx)
 		    read(ctx, r + 0x70) != 250000000 ||
 		    read(ctx, r + 0x68) != 10000000 ||
 		    read(ctx, r + 0x60) != (d ? 250000000 : 300000000) ||
-		    vcm_meter_width(read(ctx, p + 0x28)) < 0 ||
+		    vcm_meter_width_profile(read(ctx, p + 0x28), d ? 1 : cpu_lanes) < 0 ||
 		    read(ctx, p + 0x10) != 50000000)
 			return -EPROTO;
 	}
 	return 0;
+}
+
+static inline int vcm_validate(vcm_read_fn read, void *ctx)
+{
+	return vcm_validate_profile(read, ctx, 1);
 }
 
 /* Rate pages are live, not a hardware snapshot. Reject observed transitions;
@@ -101,8 +111,8 @@ static inline u64 vcm_current_rate(vcm_read_fn read, void *ctx, unsigned int d)
  * sides of the ENTIRE two-bank read, not only each individual bank. Invalid but
  * coherent windows are returned with their raw flags; never label them measured.
  */
-static inline int vcm_read_snapshot(vcm_read_fn read, void *ctx,
-				  struct vcm_snapshot *out, unsigned int retries)
+static inline int vcm_read_snapshot_profile(vcm_read_fn read, void *ctx,
+				  struct vcm_snapshot *out, unsigned int retries, unsigned int cpu_lanes)
 {
 	unsigned int attempt, d, i;
 	for (attempt = 0; attempt < retries; attempt++) {
@@ -115,10 +125,12 @@ static inline int vcm_read_snapshot(vcm_read_fn read, void *ctx,
 		for (d = 0; d < 2; d++) {
 			unsigned int b = 0x100 + d * 0x100;
 			struct vcm_meter *s = &out->domain[d];
-			int width = vcm_meter_width(read(ctx, b + 0x28));
+			unsigned int lanes = d ? 1 : cpu_lanes;
+			int width = vcm_meter_width_profile(read(ctx, b + 0x28), lanes);
 			u64 mask;
 			if (width < 0)
 				return width;
+			s->retirement_lanes = lanes;
 			s->width = (unsigned int)width; mask = (1ULL << width) - 1;
 			s->sequence = seq[d]; s->flags = flags[d];
 			s->reference_hz = read(ctx, b + 0x10);
@@ -127,7 +139,7 @@ static inline int vcm_read_snapshot(vcm_read_fn read, void *ctx,
 				return -EPROTO;
 			/* A delta is modulo counter width. Reject a window that could
 			 * wrap more than once at this domain's maximum admitted rate. */
-			if (s->window * (d ? 5ULL : 6ULL) > mask)
+			if (s->window * (d ? 5ULL : 6ULL * lanes) > mask)
 				return -EPROTO;
 			for (i = 0; i < 8; i++) {
 				u64 delta = read(ctx, b + 0x40 + i * 8);
@@ -148,6 +160,14 @@ static inline int vcm_read_snapshot(vcm_read_fn read, void *ctx,
 			return 0;
 	}
 	return -EAGAIN;
+}
+
+/* Legacy callers remain strictly ABI1; only an explicit platform profile may
+ * select CPU ABI2. Fabric is always ABI1. */
+static inline int vcm_read_snapshot(vcm_read_fn read, void *ctx,
+		struct vcm_snapshot *out, unsigned int retries)
+{
+	return vcm_read_snapshot_profile(read, ctx, out, retries, 1);
 }
 
 static inline int vcm_meter_valid(const struct vcm_meter *s)

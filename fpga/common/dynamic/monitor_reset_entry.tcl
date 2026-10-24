@@ -33,9 +33,15 @@ proc monitor_reset_entry::index {objects class} {
 proc monitor_reset_entry::begin {} {
     variable cells; variable pins; variable links; variable refs; variable pininfo
     set cells {}; set pins {}; set links {}; set refs {}; set pininfo {}
-    set objects [get_cells -quiet -hierarchical -filter {REF_NAME =~ FD* && (NAME =~ u_soc/monitor/domain0/* || NAME =~ u_soc/monitor/domain1/* || NAME =~ ui_reset_pipe_reg*)}]
+    set objects [get_cells -quiet -hierarchical -filter {REF_NAME =~ FD* && (NAME =~ u_soc/monitor/domain0/* || NAME =~ u_soc/monitor/domain1/* || NAME =~ u_soc/monitor/cpuRetireLane1/* || NAME =~ ui_reset_pipe_reg*)}]
     require {[llength $objects]>0} "monitor cells absent"
     set cells [index $objects cell]
+    # This evidence-bound helper covers I1 only. The A1 third sourceRelease
+    # has synthesis-pruned final loads: require a separate mapped census before
+    # adding any entry exception. Never reuse the I1 6-PRE proof on A1.
+    foreach name [dict keys $cells] {
+        require {![string match "u_soc/monitor/cpuRetireLane1/*" $name]} "monitor A1 reset census not yet reviewed; no exceptions applied"
+    }
     set values [get_property REF_NAME $objects]
     require {[llength $values]==[dict size $cells]} "monitor REF_NAME cardinality"
     foreach name [dict keys $cells] value $values {dict set refs $name $value}

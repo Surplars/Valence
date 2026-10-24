@@ -707,6 +707,44 @@ class Tests(unittest.TestCase):
             self.assertIn("TFTP STATS bytes_acked=40 data_packets=1 acked_blocks=1", output.getvalue())
             self.assertEqual(output.getvalue().count("TFTP STATS"), 1)
 
+    def test_stager_two_files_one_listener_and_exact_allowlist(self):
+        class ContextSocket(FakeSocket):
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def bind(self, address): pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "app.bin"
+            first, second = root / "valence.vld", root / "linux.vld"
+            source.write_bytes(b"stage")
+            host.pack(source, first)
+            source.write_bytes(b"linux-image")
+            host.pack(source, second)
+            listener, one, two = ContextSocket(), ContextSocket(), ContextSocket()
+            peer = ("192.168.137.30", 49152)
+            listener.replies = [(b"\0\1../linux.vld\0octet\0", peer),
+                                (b"\0\1valence.vld\0octet\0", peer),
+                                (b"\0\1linux.vld\0octet\0", peer)]
+            output = io.StringIO()
+            with patch.object(host.socket, "socket", side_effect=[listener, one, two]), \
+                    patch.object(host.sys, "stdout", output):
+                host.serve(first, "192.168.137.1", once=True, show_progress=False,
+                           second_image=second)
+            self.assertEqual(output.getvalue().count("TFTP STATS"), 2)
+            self.assertEqual(output.getvalue().count("REQUEST_REJECTED"), 1)
+            self.assertIn(b"stage", one.sent[0])
+            self.assertIn(b"linux-image", two.sent[0])
+            with patch.object(host.socket, "socket") as sock:
+                with self.assertRaises(ValueError):
+                    host.serve(first, "192.168.137.1", second_image=first)
+                sock.assert_not_called()
+            # Reject the high-loader overlap before opening any socket.
+            with patch.object(host, "validate", side_effect=[5, 0x7fc00001]), \
+                    patch.object(host.socket, "socket") as sock:
+                with self.assertRaisesRegex(ValueError, "overlaps"):
+                    host.serve(first, "192.168.137.1", second_image=second)
+                sock.assert_not_called()
+
     def test_serve_negotiates_requested_options_with_configured_caps(self):
         class ContextSocket(FakeSocket):
             def __enter__(self):

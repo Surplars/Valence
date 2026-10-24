@@ -121,7 +121,7 @@ main() {
         log 'VALENCE_COMMON_INIT_FAILED; recovery shell retained, inspect valence-diagnose'
     fi
     log 'No automatic DHCP, runtime DVFS or storage mount. RAM-root changes disappear on reset.'
-    log 'Use valence-diagnose; ip -s link; valence-net up|dhcp|status. No GPIO/SD/USB hardware is claimed.'
+    log 'Use valence-diagnose; ip link show; valence-net up|dhcp|status. No GPIO/SD/USB hardware is claimed.'
     while true; do
         setsid cttyhack /bin/sh -l
         log 'Shell exited; restarting the same console owner.'

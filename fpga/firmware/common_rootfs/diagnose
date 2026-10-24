@@ -9,7 +9,8 @@ show 'module status' cat /run/valence-modules.status
 show 'module integrity' cat /run/module-integrity.log
 show 'loaded modules' cat /proc/modules
 show 'interrupts' cat /proc/interrupts
-show 'network' ip -s link
+show 'network links' ip link show
+show 'network counters' cat /proc/net/dev
 show 'routes' ip route
 show 'memory' cat /proc/meminfo
 for attribute in irqchip_status clock_status rate_status snapshot dvfs_policy dma_status napi_status; do

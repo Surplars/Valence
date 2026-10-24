@@ -54,6 +54,14 @@ static inline unsigned int vgq_cap_slots(vgq_u64 cap)
 	return (cap & 3) == 3 && slots && slots <= VGQ_MAX_SLOTS &&
 	       !(slots & (slots - 1)) ? slots : 0;
 }
+/* Internal ring indices satisfy index < slots, with 1 <= slots <= 16.
+ * Unlike modulo, this handles all admitted depths without a runtime divide.
+ * Do not use a power-of-two mask: vgq_init also admits non-power-of-two depths.
+ */
+static inline unsigned int vgq_next(unsigned int index, unsigned int slots)
+{
+	return index + 1 == slots ? 0 : index + 1;
+}
 static inline unsigned int vgq_count(vgq_u32 mask)
 {
 	unsigned int n = 0;
@@ -94,7 +102,7 @@ static inline int vgq_post(struct vgq_ring *q, unsigned int slot)
 	q->ops.write(q->ops.context, VGQ_POST_ADDRESS, q->address[slot]);
 	q->ops.write(q->ops.context, VGQ_POST, 1);
 	q->owned |= 1U << slot;
-	q->order[q->tail] = slot; q->tail = (q->tail + 1) % q->slots; ++q->posted;
+	q->order[q->tail] = slot; q->tail = vgq_next(q->tail, q->slots); ++q->posted;
 	return 0;
 }
 static inline int vgq_start(struct vgq_ring *q)
@@ -139,7 +147,7 @@ static inline int vgq_release(struct vgq_ring *q, unsigned int slot, bool repost
 	    !(q->owned & (1U << slot))) return -1;
 	q->ops.write(q->ops.context, VGQ_POP, 1);
 	q->owned &= ~(1U << slot); q->completion_seen = false;
-	q->head = (q->head + 1) % q->slots; --q->posted;
+	q->head = vgq_next(q->head, q->slots); --q->posted;
 	return repost ? vgq_post(q, slot) : 0;
 }
 /* Shared bound: budget zero is TX-only; never complete NAPI from that call. */

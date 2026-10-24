@@ -15,6 +15,16 @@ proc common_performance_telemetry_constraints {} {
         return
     }
     if {[llength $monitor] != 1} {error "Expected telemetry monitor missing: u_soc/monitor"}
-    valence_performance_telemetry_constraints u_soc/monitor 3.0
-    puts "COMMON_TELEMETRY_BOUNDED gray_banks=16 width=32 register_bridge=1 budget_ns=3.0"
+    set profile i1
+    if {[info exists valence(telemetry_physical_profile)]} {
+        set profile $valence(telemetry_physical_profile)
+    }
+    if {$profile ni {i1 a1-experimental}} {error "Invalid explicit telemetry physical profile"}
+    if {$profile eq "i1"} {
+        valence_performance_telemetry_constraints u_soc/monitor 3.0
+    } else {
+        valence_performance_telemetry_constraints u_soc/monitor 3.0 $profile
+    }
+    set banks [expr {$profile eq "i1" ? 16 : 17}]
+    puts "COMMON_TELEMETRY_BOUNDED gray_banks=$banks width=32 register_bridge=1 budget_ns=3.0 profile=$profile"
 }

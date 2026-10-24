@@ -344,4 +344,7 @@ class CoherentLineCache(
         }
             .otherwise { probeBeat := probeBeat + 1.U }
     }
+    io.quiescent := state === idle && noReadOutstanding && !storePending && !flushActive &&
+        !io.tl.a.valid && !io.tl.c.valid && !io.tl.e.valid && !io.tl.b.valid && !io.tl.d.valid
+
 }

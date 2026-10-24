@@ -56,15 +56,21 @@ class CommonMachinePlatform(
     testOnlyRateParams: Option[Seq[ClockRateParams]] = None,
     diagnosticRateAdmission: Boolean = false,
     performanceTelemetry: Boolean = false,
-    telemetryWindowCycles: Int = 50000
+    telemetryWindowCycles: Int = 50000,
+    experimentalA1Runtime: Boolean = false
 ) extends RawModule {
-    require(!runtimeDebugAdmission || (profile.kind == "i1" && independentDebugClock),
-        "runtime debug isolation requires I1 and an explicit fixed debug clock; A1 is unsupported")
+    require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
+        runtimeRateControl && performanceTelemetry && independentDebugClock && independentDdrClock &&
+        independentTimebaseClock && runtimeNetworkAdmission && runtimeFixedQualification &&
+        runtimeControlQualification && runtimeFixedMac),
+        "experimental A1 runtime requires boot50 and the complete fixed/debug/network/rate/telemetry chain")
+    require(!runtimeDebugAdmission || ((profile.kind == "i1" || experimentalA1Runtime) && independentDebugClock),
+        "runtime debug isolation requires a qualified I1 or explicitly experimental complete A1 endpoint")
     require(!runtimeNetworkAdmission || runtimeDebugAdmission,
-        "network runtime ordering requires the opt-in debug and I1 epoch path")
+        "network runtime ordering requires the opt-in debug and real tile epoch path")
     require(!runtimeFixedQualification ||
         (runtimeDebugAdmission && independentDdrClock && independentTimebaseClock),
-        "fixed-domain runtime proof requires the I1 epoch path and real DDR/timer boundaries")
+        "fixed-domain runtime proof requires the real tile epoch path and real DDR/timer boundaries")
     require(!runtimeControlQualification || (runtimeFixedQualification && runtimeNetworkAdmission),
         "managed control qualification requires the real network and fixed-domain epoch joins")
     require(!runtimeFixedMac || runtimeControlQualification,
@@ -539,6 +545,7 @@ class CommonMachinePlatform(
             Module(new CommonA1CpuTile(profile.fpga, boundary))
         }
         crossing.cpu <> cpu.io.bus
+        runtime.foreach(_.io.cpuHeld := cpu.io.runtimeHeld.get)
         cpu.io.hold := false.B; cpu.io.inspectRegister := 0.U
         for (i <- 0 until 2) {
             io.retire(i).valid := cpu.io.commit(i).valid
@@ -562,7 +569,9 @@ class CommonMachinePlatform(
         val cycles = RegInit(0.U(64.W)); cycles := cycles + 1.U; cycles
     }
     if (performanceTelemetry) {
-        val monitor = Module(new ClockPerformanceTelemetry(windowCycles = telemetryWindowCycles))
+        val monitor = Module(new ClockPerformanceTelemetry(windowCycles = telemetryWindowCycles,
+            retirementLanes = if (profile.kind == "a1") 2 else 1))
+        monitor.secondRetire.foreach(_ := io.retire(1).valid)
         monitor.sourceClock := fabricClock; monitor.alwaysOnClock := alwaysOnClock
         monitor.managedClocks(0) := cpuClock; monitor.managedClocks(1) := fabricClock
         monitor.commonReset := commonColdReset
@@ -575,13 +584,15 @@ class CommonMachinePlatform(
             monitor.invalidate(n) := peripherals.rateStatus.get(n).busy || rateFatal.get
         }
         val data = crossing.cpu.coherent(1)
-        val scalar = crossing.cpu.scalar(1)
+        // ABI2 follows A1's actual uncached/MMIO adapter (lane0); ABI1
+        // retains I1 lane1. Do not label A1 PTW/cache fallback as MMIO traffic.
+        val scalar = crossing.cpu.scalar(if (profile.kind == "a1") 0 else 1)
         val refill = crossing.cpu.lineGrant(1)
         // I1 and A1 receive cache-line data here, not on D (which carries ReleaseAck).
         // Count one actual 64-byte refill per edge; never OR/sum concurrent D acknowledgements.
         monitor.events(0) := VecInit(Seq(io.retire(0).valid, scalar.request.fire,
             data.a.fire, data.a.valid && !data.a.ready, refill.fire,
-            refill.valid && !refill.ready, !io.retire(0).valid)).asUInt
+            refill.valid && !refill.ready, !io.retire.map(_.valid).reduce(_ || _))).asUInt
         val memory = fabric.io.ddrAxi.get
         monitor.events(1) := VecInit(Seq(memory.ar.fire, memory.ar.valid && !memory.ar.ready,
             memory.aw.fire, memory.aw.valid && !memory.aw.ready, memory.r.fire,

@@ -9,14 +9,15 @@ import soc.bus.tilelink._
   * MMU/PMP, register/retirement state and L1s remain here. No ROM, timer, APLIC,
   * DMA, Home or DDR manager is instantiated in this tile. The first common
   * profile explicitly adds the existing whole-line return capability only.
-  * External download maintenance remains unaccepted until its halt/flush owner
-  * is connected; CPU-issued FENCE.I already uses a real fabric drain epoch.
+  * Optional runtime parking drains architectural/execution/private owners before
+  * the shared fabric epoch; default static profiles retain no runtime endpoint.
   */
 class CommonA1CpuTile(
     config: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true),
     boundary: CommonCpuTilePortParams = CommonCpuTilePortParams()
 ) extends Module {
-    require(!boundary.runtimeMaintenance, "A1 runtime clock-maintenance endpoint is not implemented")
+    require(!boundary.runtimeMaintenance || boundary.runtimeCancellation,
+        "A1 runtime parking requires acknowledged release")
     private val p = config.coreParams
     private val cacheConfig = config.cache
     require(config.issueWidth == 2 && config.isaProfile == "rv64gc")
@@ -29,6 +30,7 @@ class CommonA1CpuTile(
     require(staged, "common A1 extraction keeps the checked registered physical boundary")
     val io = IO(new Bundle {
         val bus = new CommonCpuTilePort(boundary)
+        val runtimeHeld = if (boundary.runtimeMaintenance) Some(Valid(UInt(boundary.maintenanceEpochBits.W))) else None
         val hold = Input(Bool())
         val inspectRegister = Input(UInt(5.W))
         val committedValue = Output(UInt(64.W))
@@ -42,7 +44,9 @@ class CommonA1CpuTile(
     val core = Module(new MappedMachineCore(p, dataTranslation = true, stagedMemoryFabric = true,
         bufferTranslatedResponses = true, translationHitFlow = config.translationHitFlow,
         canonicalHandoff = cacheConfig.independentDemandAdmission && p.canonicalVirtualStoreOverlap,
-        externalInterruptFabric = true))
+        externalInterruptFabric = true, runtimeQuiesce = boundary.runtimeMaintenance))
+    val park = if (boundary.runtimeMaintenance) Some(Module(new CommonA1RuntimePark(boundary))) else None
+    core.io.quiesce.foreach(_ := park.get.io.stopAdmission)
     val compactFetchKeys = p.frontendCacheSets == 16 && p.renameWidth == 2 && p.pmpEntries == 16 &&
         p.compressedInstructions && p.stableFetchFaultMetadata && p.alignedFetchPmp && p.rawFetchPresence &&
         p.parallelFetchTagLookup && p.parallelFetchAlignment && p.registeredFetchWindow &&
@@ -159,7 +163,7 @@ class CommonA1CpuTile(
     val fabricDone = RegInit(false.B)
     when(core.io.fenceIFlush && !fenceSeen) { epoch := epoch + 1.U; fenceSeen := true.B }
     when(!core.io.fenceIFlush) { fenceSeen := false.B; requestSent := false.B; fabricDone := false.B }
-    cache.io.flushRequest := core.io.fenceIFlush
+    cache.io.flushRequest := core.io.fenceIFlush || park.map(_.io.flush).getOrElse(false.B)
     val fetchIdle = frontend.io.quiescent && fetchAdapter.io.idle && fetchCache.io.idle
     val privateIdle = selection.io.idle && direct.io.idle && physical.io.idle && requests.io.idle && walkIdle
     io.bus.maintenanceStatus.valid := core.io.fenceIFlush && fenceSeen && cache.io.flushDone &&
@@ -169,14 +173,36 @@ class CommonA1CpuTile(
     io.bus.maintenanceStatus.bits.dirtyWritebackCompleted := cache.io.flushDone
     io.bus.maintenanceStatus.bits.fetchQuiescent := fetchIdle
     io.bus.maintenanceStatus.bits.invalidationsCompleted := false.B
-    when(io.bus.maintenanceStatus.fire) { requestSent := true.B }
+    when(io.bus.maintenanceStatus.fire && core.io.fenceIFlush) { requestSent := true.B }
     io.bus.fabricDrainedEpoch.ready := requestSent && !fabricDone
-    when(io.bus.fabricDrainedEpoch.fire) {
+    when(io.bus.fabricDrainedEpoch.fire && core.io.fenceIFlush) {
         assert(io.bus.fabricDrainedEpoch.bits === epoch, "A1 accepted a stale fabric drain epoch")
         fabricDone := true.B
     }
     core.io.fenceIFlushReady := cache.io.flushDone && fabricDone
-    io.bus.maintenance.ready := false.B // no early or fabricated external-download acknowledgement
+    io.bus.maintenanceStatus.bits.holdUntilResume.foreach(_ := false.B)
+    if (boundary.runtimeMaintenance) {
+        val owner = park.get
+        owner.io.command <> io.bus.maintenance
+        owner.io.fenceBusy := core.io.fenceIFlush || fenceSeen
+        owner.io.architecturalIdle := core.io.ownersIdle.get && fetchIdle && privateIdle && !core.io.trap.valid
+        owner.io.privateIdle := privateIdle && fetchIdle && cache.io.quiescent
+        owner.io.flushDone := cache.io.flushDone
+        owner.io.status.ready := false.B
+        owner.io.fabricDone.valid := false.B
+        owner.io.fabricDone.bits := io.bus.fabricDrainedEpoch.bits
+        when(owner.io.stopped) {
+            io.bus.maintenanceStatus <> owner.io.status
+            owner.io.fabricDone <> io.bus.fabricDrainedEpoch
+        }
+        owner.io.resume <> io.bus.maintenanceResume.get
+        io.bus.maintenanceResumed.get <> owner.io.resumed
+        io.runtimeHeld.get := owner.io.held
+        when(owner.io.stopped) {
+            assert(!core.io.commit.map(_.valid).reduce(_ || _) && !core.io.trap.valid,
+                "A1 parked epoch performed architectural work")
+        }
+    } else io.bus.maintenance.ready := false.B
 
     frontend.io.pc := core.io.fetchPc
     if (p.alignedFetchPermissionStage) {
@@ -186,7 +212,7 @@ class CommonA1CpuTile(
     }
     frontend.io.enable := !io.hold
     frontend.io.invalidate := core.io.invalidateFetch
-    frontend.io.pause := core.io.pauseFetch.get
+    frontend.io.pause := core.io.pauseFetch.get || park.map(_.io.stopAdmission).getOrElse(false.B)
     frontend.io.pmpState := core.io.pmpState.get
     frontend.io.privilege := core.io.fetchPrivilege.get
     frontend.io.virtualized := core.io.vmState.get.satp(63, 60) =/= 0.U && core.io.fetchPrivilege.get =/= 3.U
@@ -195,7 +221,7 @@ class CommonA1CpuTile(
     core.io.instructionFaults := frontend.io.instructionFaults
     core.io.instructionPageFaults := frontend.io.instructionPageFaults
     core.io.instructionFaultAddresses.foreach(_ := frontend.io.instructionFaultAddresses)
-    core.io.commitEnable := !io.hold
+    core.io.commitEnable := !io.hold && !park.map(_.io.stopped).getOrElse(false.B)
     core.io.sources := 0.U
     core.io.externalMsi.get <> io.bus.msi
     core.io.timerInterrupt := io.bus.timerInterrupt

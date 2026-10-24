@@ -52,7 +52,8 @@ class TelemetryGrayCounterBank(width: Int = 32) extends RawModule {
   * simultaneity. Sequence-before/after protects a multi-register software read.
   */
 class ClockPerformanceTelemetryRegisters(windowCycles: Int = 50000, referenceHz: Long = 50000000L,
-    width: Int = 32, base: BigInt = BigInt("10080900", 16)) extends Module {
+    width: Int = 32, base: BigInt = BigInt("10080900", 16), retirementLanes: Int = 1) extends Module {
+    require(Set(1, 2).contains(retirementLanes))
     require(windowCycles >= 8 && referenceHz > 0 && width >= 4 && width <= 32)
     require(base % 256 == 0)
     val io = IO(new Bundle {
@@ -101,7 +102,7 @@ class ClockPerformanceTelemetryRegisters(windowCycles: Int = 50000, referenceHz:
         readData(d) := MuxLookup(offset, 0.U(64.W))(Seq(
             0.U -> sequence, 1.U -> flags.pad(64), 2.U -> referenceHz.U(64.W),
             3.U -> windowCycles.U(64.W), 4.U -> stamp,
-            5.U -> ((BigInt("544d", 16) << 48) | (BigInt(width) << 32) | 1).U(64.W)) ++
+            5.U -> ((BigInt("544d", 16) << 48) | (BigInt(width) << 32) | (if (d == 0) retirementLanes else 1)).U(64.W)) ++
             (0 until 8).map(n => (8 + n).U -> delta(d)(n).pad(64)) ++
             (0 until 8).map(n => (16 + n).U -> snapshot(d)(n).pad(64)))
     }
@@ -114,12 +115,14 @@ class ClockPerformanceTelemetryRegisters(windowCycles: Int = 50000, referenceHz:
   * commonReset is cold-reset ONLY; do not clear live counters at a frequency change.
   */
 class ClockPerformanceTelemetry(windowCycles: Int = 50000, referenceHz: Long = 50000000L,
-    width: Int = 32, base: BigInt = BigInt("10080900", 16)) extends RawModule {
+    width: Int = 32, base: BigInt = BigInt("10080900", 16), retirementLanes: Int = 1) extends RawModule {
+    require(Set(1, 2).contains(retirementLanes))
     val sourceClock = IO(Input(Clock())); val alwaysOnClock = IO(Input(Clock()))
     val managedClocks = IO(Input(Vec(2, Clock())))
     val commonReset = IO(Input(AsyncReset()))
     val registers = IO(Flipped(new RegisterPort))
     val events = IO(Input(Vec(2, UInt(7.W))))
+    val secondRetire = if (retirementLanes == 2) Some(IO(Input(Bool()))) else None
     val invalidate = IO(Input(Vec(2, Bool())))
     val sourceIdle = IO(Output(Bool())); val aonIdle = IO(Output(Bool()))
     val bridge = Module(new RegisterClockDomainBridge)
@@ -127,7 +130,7 @@ class ClockPerformanceTelemetry(windowCycles: Int = 50000, referenceHz: Long = 5
     bridge.source <> registers
     sourceIdle := bridge.sourceIdle; aonIdle := bridge.destinationIdle
     val bank = withClockAndReset(alwaysOnClock, bridge.destinationReset) {
-        Module(new ClockPerformanceTelemetryRegisters(windowCycles, referenceHz, width, base))
+        Module(new ClockPerformanceTelemetryRegisters(windowCycles, referenceHz, width, base, retirementLanes))
     }
     bank.io.registers <> bridge.destination; bank.io.invalidate := invalidate
     for (d <- 0 until 2) {
@@ -136,5 +139,17 @@ class ClockPerformanceTelemetry(windowCycles: Int = 50000, referenceHz: Long = 5
         counters.sourceClock := managedClocks(d); counters.destinationClock := alwaysOnClock
         counters.commonReset := commonReset; counters.events := events(d)
         bank.io.totals(d) := counters.totals
+        if (d == 0 && retirementLanes == 2) {
+            // Each lane advances by at most ONE per source edge. A single
+            // source Gray counter incremented by PopCount(2) is NOT CDC safe.
+            // Sum only after independent synchronization, modulo counter width.
+            // CPU descriptor ABI2 identifies this two-lane retirement total;
+            // all other counters and the fabric ABI1 bank remain unchanged.
+            val second = Module(new TelemetryGrayCounterBank(width))
+            second.suggestName("cpuRetireLane1")
+            second.sourceClock := managedClocks(0); second.destinationClock := alwaysOnClock
+            second.commonReset := commonReset; second.events := secondRetire.get.asUInt
+            bank.io.totals(0)(1) := counters.totals(1) + second.totals(1)
+        }
     }
 }

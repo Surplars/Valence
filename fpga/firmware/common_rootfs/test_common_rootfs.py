@@ -194,6 +194,58 @@ class CommonRootfsTests(unittest.TestCase):
         self.assertNotIn('getty ', init); self.assertNotIn('console_mode=', init)
         self.assertNotIn('udhcpc -', init); self.assertNotIn('devmem ', init)
 
+    def test_network_commands_use_busybox_supported_syntax(self):
+        for name in ('init', 'diagnose', 'net'):
+            source = (HERE / name).read_text()
+            self.assertNotIn('ip -s', source)
+            self.assertIn('ip link show', source)
+        for name in ('diagnose', 'net'):
+            self.assertIn('cat /proc/net/dev', (HERE / name).read_text())
+
+    @unittest.skipUnless(os.environ.get('VALENCE_TEST_BUSYBOX'),
+                         'Set VALENCE_TEST_BUSYBOX to an actual host BusyBox 1.37.0 build')
+    def test_real_busybox_137_ip_argument_syntax(self):
+        """Execute real argument parsing; host netlink access is separate."""
+        busybox = Path(os.environ['VALENCE_TEST_BUSYBOX']).resolve()
+        help_result = subprocess.run([busybox, 'ip', '--help'], text=True, capture_output=True)
+        self.assertIn('BusyBox v1.37.0', help_result.stdout + help_result.stderr)
+        old = subprocess.run([busybox, 'ip', '-s', 'link'], text=True, capture_output=True)
+        self.assertNotEqual(old.returncode, 0, 'Old unsupported syntax must fail')
+        self.assertIn('Usage: ip', old.stdout + old.stderr)
+        for args in (['link', 'show'], ['addr'], ['route']):
+            actual = subprocess.run([busybox, 'ip', *args], text=True, capture_output=True)
+            if actual.returncode:
+                # Some cloud sandboxes deny netlink sockets. This still proves
+                # the actual argument parser accepted the supported syntax;
+                # it must not be reported as successful network execution.
+                self.assertIn('socket: Operation not permitted', actual.stderr)
+                self.assertNotIn('Usage:', actual.stderr)
+
+    @unittest.skipUnless(os.environ.get('VALENCE_TEST_BUSYBOX'),
+                         'Set VALENCE_TEST_BUSYBOX to an actual host BusyBox 1.37.0 build')
+    def test_real_busybox_137_status_execution(self):
+        busybox = Path(os.environ['VALENCE_TEST_BUSYBOX']).resolve()
+        probe = subprocess.run([busybox, 'ip', 'link', 'show'], text=True, capture_output=True)
+        if probe.returncode and 'socket: Operation not permitted' in probe.stderr:
+            self.skipTest('Host sandbox denies netlink: argument parser tested separately')
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d)
+            (path / 'ip').symlink_to(busybox)
+            source = (HERE / 'net').read_text().replace(
+                'export PATH=/sbin:/bin:/usr/sbin:/usr/bin',
+                'export PATH=' + str(path) + ':/usr/bin:/bin')
+            fixed = subprocess.run(['/bin/sh', '-s', 'status'], input=source,
+                                   text=True, capture_output=True, timeout=5)
+            self.assertEqual(fixed.returncode, 0, fixed.stderr)
+            self.assertIn('Receive', fixed.stdout)
+            self.assertIn('lo', fixed.stdout)
+            prior = source.replace('ip link show; cat /proc/net/dev;', 'ip -s link;')
+            negative = subprocess.run(['/bin/sh', '-s', 'status'], input=prior,
+                                      text=True, capture_output=True, timeout=5)
+            self.assertNotEqual(negative.returncode, 0)
+            self.assertNotIn('Receive', negative.stdout)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -18,7 +18,7 @@ class MappedMachineCore(
 ,
     preselectRedirectTokenMatches: Boolean = false,
     proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false,
-    externalInterruptFabric: Boolean = false) extends Module {
+    externalInterruptFabric: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
@@ -39,6 +39,8 @@ class MappedMachineCore(
     require(!p.registeredTranslatedResponses || bufferTranslatedResponses)
     require(!p.directMemoryResponse || stagedMemoryFabric)
     val io = IO(new Bundle {
+        val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
+        val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
         val instructions    = Input(Vec(p.renameWidth, Valid(UInt(32.W))))
@@ -99,7 +101,7 @@ class MappedMachineCore(
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         virtualStoreOperandLookahead = virtualStoreOperandLookahead,
-        bankedStoreData = bankedStoreData))
+        bankedStoreData = bankedStoreData, runtimeQuiesce = runtimeQuiesce))
     val interrupts = if (!externalInterruptFabric) Some(Module(new CommonInterruptFabric(aplicParams, imsicParams))) else None
     val supervisorParams = aplicParams.copy(base = aplicParams.base + 16384,
         msiBase = imsicParams.supervisorBase)
@@ -218,6 +220,10 @@ class MappedMachineCore(
         io.vmFlush.get := core.io.vmFlush.get
         core.io.vmFlushReady.get := io.vmFlushReady.get
     }
+    io.quiesce.foreach(q => core.io.quiesce.get := q)
+    io.ownersIdle.foreach(_ := core.io.ownersIdle.get &&
+        observationTranslation.map(_.io.idle).getOrElse(true.B) &&
+        observationResponses.map(_.io.idle).getOrElse(true.B))
     core.io.commitEnable    := io.commitEnable
     core.io.inspectRegister := io.inspectRegister
     io.accepted             := core.io.accepted

@@ -31,7 +31,7 @@ import common_linux_profile as common
 from kernel_proc_contract import validate as validate_uart_proc
 
 MODULE_SOURCES = ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_soc.c', 'valence_cmu.c', 'valence_dma.c',
-                  'valence_irq_policy.h', 'valence_driver_names.h', 'valence_rx_queue.h', 'valence_tx_queue.h', 'valence_media_policy.h', 'valence_clockmon.c', 'valence_clockmon_abi.h')
+                  'valence_irq_policy.h', 'valence_driver_names.h', 'valence_rx_queue.h', 'valence_tx_queue.h', 'valence_media_policy.h', 'valence_clockmon.c', 'valence_clockmon_abi.h', 'valence_cpu_rate_transaction.h')
 MODULES = ('valence_aia.ko', 'valence_gmac.ko', 'valence_soc.ko', 'valence_cmu.ko', 'valence_dma.ko', 'valence_clockmon.ko')
 DEBIAN_CONFIG = ('SOC_BUS', 'SYSVIPC', 'SIGNALFD', 'TIMERFD', 'EVENTFD',
                  'INOTIFY_USER', 'AIO', 'FILE_LOCKING', 'ADVISE_SYSCALLS',
@@ -79,8 +79,8 @@ def prepare(args):
     if console_profile == 'uart-irq' and args.init_system != 'dinit':
         raise RuntimeError('IRQ UART bootstrap is qualified only for the Dinit profile')
     common_mode = getattr(args, 'platform', 'legacy') == common.PROFILE
-    if common_mode and (args.init_system != 'busybox' or console_profile != 'sbi'):
-        raise RuntimeError('Common profile currently requires complete BusyBox rootfs and SBI console')
+    if common_mode and (args.init_system not in ('busybox', 'dinit') or console_profile != 'sbi'):
+        raise RuntimeError('Common profile requires matched BusyBox or Debian Dinit rootfs and SBI console')
     if common_mode and args.memory_bytes != 0x80000000:
         raise RuntimeError('CommonMachinePlatform requires2GiB')
     out = output_path(args.out)
@@ -140,6 +140,11 @@ def prepare(args):
         edit += [v for name in net.DISABLED for v in ('--disable', name)]
         edit += ['--module', 'VALENCE_SOC']
     edit += net.uart_console.config_flags(console_profile)
+    optimization = getattr(args, 'kernel_optimization', 'size')
+    if args.resume_kernel and ('CONFIG_CC_OPTIMIZE_FOR_' + optimization.upper() + '=y') not in (kernel/'.config').read_text().splitlines():
+        raise RuntimeError('Resume must retain the existing compiler policy; use a fresh output to change it')
+    edit += ['--enable', 'CC_OPTIMIZE_FOR_' + optimization.upper(),
+             '--disable', 'CC_OPTIMIZE_FOR_' + ('SIZE' if optimization == 'performance' else 'PERFORMANCE')]
     edit += ['--set-str', 'CMDLINE', profile_bootargs(args.init_system, console_profile)]
     if args.init_system in ('systemd', 'dinit'):
         edit += ['--set-val', 'LOG_BUF_SHIFT', '20']
@@ -148,6 +153,8 @@ def prepare(args):
     run(edit, log=out / 'config-edit.log')
     run([*make, 'olddefconfig'], cwd=source, log=out / 'config-final.log')
     validate_kernel_config((kernel / '.config').read_text(), args.init_system, console_profile)
+    if 'CONFIG_CC_OPTIMIZE_FOR_' + optimization.upper() + '=y' not in (kernel/'.config').read_text().splitlines():
+        raise RuntimeError('Kernel compiler optimization selection was not honored')
     if common_mode:
         selected_modules = {line.split('=')[0] for line in (kernel / '.config').read_text().splitlines() if line.endswith('=m')}
         if selected_modules - {'CONFIG_VALENCE_SOC'}:
@@ -157,8 +164,8 @@ def prepare(args):
         log=out / 'kernel-build.log', timeout=2400)
     module = out / 'module'
     module.mkdir(exist_ok=args.resume_kernel)
-    module_sources = MODULE_SOURCES if common_mode else tuple(n for n in MODULE_SOURCES if 'clockmon' not in n)
-    modules = MODULES if common_mode else tuple(n for n in MODULES if 'clockmon' not in n)
+    module_sources = MODULE_SOURCES if common_mode else tuple(n for n in MODULE_SOURCES if 'clockmon' not in n and 'cpu_rate_transaction' not in n)
+    modules = MODULES if common_mode else tuple(n for n in MODULES if 'clockmon' not in n and 'cpu_rate_transaction' not in n)
     for name in module_sources:
         shutil.copyfile(NET / name, module / name)
     run([*make, 'M=' + str(module), 'CONFIG_VALENCE_CLOCKMON=' + ('m' if common_mode else 'n'), 'W=1', '-j' + str(args.jobs), 'modules'],
@@ -177,6 +184,7 @@ def prepare(args):
             raise RuntimeError('Kernel/module version mismatch: ' + name)
     record = dict(stage='kernel_and_modules_ready', vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
         linux_revision=revision, linux_version=version, cpu_hz=100000000, uart_baud=460800,
+        kernel_optimization=optimization, compiler_optimization_flag='-O2' if optimization == 'performance' else '-Os',
         memory_bytes=args.memory_bytes, monitor_base=hex(MemoryLayout(args.memory_bytes).monitor),
         abi='lp64d', isa='rv64gc', smp=False, driver_version='0.3',
         config_sha256=sha(kernel / '.config'), kconfig_overlay_sha256=sha(NET / 'Kconfig.valence'),
@@ -196,7 +204,7 @@ def prepare(args):
         record.update(cpu='CommonMachinePlatform I1/A1', cpu_hz=50000000,
                       timebase_hz=250000000, fabric_hz=50000000, common_platform=common.CONTRACT,
                       common_profile_source_sha256=sha(HERE / 'common_linux_profile.py'),
-                      runtime_clock_monitor_profiles={'i1': True, 'a1': False})
+                      runtime_clock_monitor_profiles={'i1': True, 'a1': False, common.EXPERIMENTAL_A1: common.A1_MONITOR in (module/'valence_clockmon.c').read_text()})
     (out / 'kernel-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('VL100_DEBIAN_KERNEL_MODULES_READY ' + str(out), flush=True)
 
@@ -240,7 +248,7 @@ def refresh_modules(args):
                   module_vermagic=vermagic,module_dependencies=dependencies,
                   module_refresh_previous_receipt=str(archive/'kernel-build.json'),
                   common_profile_source_sha256=sha(HERE/'common_linux_profile.py'),
-                  runtime_clock_monitor_profiles={'i1': True, 'a1': False})
+                  runtime_clock_monitor_profiles={'i1': True, 'a1': False, common.EXPERIMENTAL_A1: common.A1_MONITOR in (module/'valence_clockmon.c').read_text()})
     path.write_text(json.dumps(record,indent=2)+'\n')
     print('COMMON_EXTERNAL_MODULES_REFRESHED ' + str(path),flush=True)
 
@@ -265,10 +273,26 @@ def image(args):
     common_mode = record.get('common_platform') is not None
     if common_mode:
         common.check_record(record)
-        if record.get('init_system') != 'busybox' or record.get('console_profile') != 'sbi':
-            raise RuntimeError('Common image requires BusyBox/SBI profile')
+        if record.get('init_system') not in ('busybox', 'dinit') or record.get('console_profile') != 'sbi':
+            raise RuntimeError('Common image requires matched BusyBox/Dinit SBI profile')
     if (getattr(args, 'platform', 'legacy') == common.PROFILE) != common_mode:
         raise RuntimeError('Image platform must match prepared kernel profile')
+    if getattr(args, 'i1_boot_cpu_hz', 50000000) != 50000000:
+        if not common_mode or record.get('init_system') != 'dinit' or 'valence_cpu_rate_transaction.h' not in record['module_sources']:
+            raise RuntimeError('Boot125 requires the new common Debian Dinit/control-driver candidate')
+    if getattr(args, 'i1_boot_fabric_hz', 50000000) != 50000000:
+        if getattr(args, 'i1_boot_cpu_hz', 50000000) != 125000000 or 'openion,i1-boot-pair-125' not in (out/'module/valence_clockmon.c').read_text():
+            raise RuntimeError('Boot fabric125 requires the exact paired-control driver candidate')
+    experimental_a1 = getattr(args, 'experimental_a1_runtime', False)
+    hardware_contract = getattr(args, 'a1_runtime_hardware_contract', None)
+    if experimental_a1 != bool(hardware_contract):
+        raise RuntimeError('Experimental A1 requires both explicit flag and hardware contract')
+    if experimental_a1:
+        if not common_mode or record.get('init_system') != 'dinit' or args.i1_boot_cpu_hz != 50000000 or args.i1_boot_fabric_hz != 50000000:
+            raise RuntimeError('Experimental A1 is separate common Debian read-only boot50')
+        common.validate_a1_hardware_contract(json.loads(hardware_contract.read_text()))
+        if common.A1_MONITOR not in (out/'module/valence_clockmon.c').read_text():
+            raise RuntimeError('Experimental A1 requires matching frozen ABI2 read-only driver')
     source = ROOT / 'simulator/build/linux'
     if clean_revision(source) != record['linux_revision']:
         raise RuntimeError('Kernel source revision drift')
@@ -278,6 +302,10 @@ def image(args):
     root_record = json.loads((root / args.rootfs_record).read_text())
     if root_record.get('stage') != 'packed' or root_record.get('kernel_build') != str(out):
         raise RuntimeError('Rootfs must contain these exact kernel modules')
+    if experimental_a1:
+        tools_cap = root_record.get('performance_tools', {}).get('clockmon_snapshot_profiles', {})
+        if tools_cap.get('a1-runtime') != dict(cpu_abi=2, retirement_lanes=2, scalar_request_lane=0) or tools_cap.get('fabric_abi') != 1:
+            raise RuntimeError('Experimental A1 requires matching ABI2/two-lane monitor tool receipt')
     init_system = record.get('init_system', 'busybox')
     if root_record.get('init_system', 'busybox') != init_system:
         raise RuntimeError('Kernel and rootfs init profiles differ')
@@ -350,7 +378,7 @@ def image(args):
         subprocess.check_output(['lz4', '-d', '-c'], input=embedded))
     if unpacked != cpio.read_bytes():
         raise RuntimeError('Embedded rootfs differs from signed/packed rootfs')
-    profiles = common.CPUS if common_mode else (None,)
+    profiles = ((common.EXPERIMENTAL_A1,) if experimental_a1 else common.CPUS) if common_mode else (None,)
     for cpu_profile in profiles:
         target = delivery / cpu_profile if cpu_profile else delivery
         if cpu_profile:
@@ -379,13 +407,15 @@ def publish_profile(args, out, delivery, record, root_record, linux_image,
     bootargs = record.get('bootargs', net.BOOTARGS)
     compression = record.get('initramfs_compression', 'gzip')
     dts, dtb = delivery / 'valence-vl100.dts', delivery / 'valence-vl100.dtb'
-    dts.write_text(common.device_tree(net, cpu_profile, bootargs, console_profile) if cpu_profile else
+    boot_cpu_hz = getattr(args, 'i1_boot_cpu_hz', 50000000) if cpu_profile == 'i1' else 50000000
+    boot_fabric_hz = getattr(args, 'i1_boot_fabric_hz', 50000000) if cpu_profile == 'i1' else 50000000
+    dts.write_text(common.device_tree(net, cpu_profile, bootargs, console_profile, boot_cpu_hz, boot_fabric_hz) if cpu_profile else
         net.network_dts(layout.ram_bytes, platform_drivers=True, bootargs=bootargs, console_profile=console_profile))
     dtc = kernel / 'scripts/dtc/dtc'
     run([dtc, '-q', '-I', 'dts', '-O', 'dtb', '-o', dtb, dts])
     if cpu_profile:
         decoded = subprocess.check_output([dtc, '-q', '-I', 'dtb', '-O', 'dts', dtb], text=True)
-        common.validate(decoded, cpu_profile)
+        common.validate(decoded, cpu_profile, boot_cpu_hz, boot_fabric_hz)
     else:
         net.validate_dtb(dtc, dtb, bootargs=bootargs, console_profile=console_profile)
     if dtb.stat().st_size + 8192 > 0x10000:
@@ -412,6 +442,10 @@ def publish_profile(args, out, delivery, record, root_record, linux_image,
     suffix = '_systemd' if init_system == 'systemd' else ('_dinit_' + compression if init_system == 'dinit' else '')
     if console_profile == 'uart-irq':
         suffix += '_uart_irq'
+    if boot_cpu_hz != 50000000:
+        suffix += '_linuxcpu' + str(boot_cpu_hz // 1000000)
+    if boot_fabric_hz != 50000000:
+        suffix += '_fabric' + str(boot_fabric_hz // 1000000)
     stem = ('opensbi_common_' + cpu_profile + '_boot50_u460800' if cpu_profile else
             'opensbi_debian13_riscv64_vl100_cpu100_u460800')
     result = delivery / (stem + suffix + '.bin')
@@ -453,9 +487,22 @@ def publish_profile(args, out, delivery, record, root_record, linux_image,
              delivery / 'uart_load.py', delivery / 'net_bench_peer.py')})
     if cpu_profile:
         manifest.update(cpu_profile=cpu_profile, common_platform=common.CONTRACT,
+                        linux_start_cpu_target_hz=boot_cpu_hz, linux_start_fabric_target_hz=boot_fabric_hz,
+                        linux_start_fabric_parameters='0x08280a' if boot_fabric_hz == 125000000 else None,
+                        linux_start_cpu_parameters='0x08280a' if boot_cpu_hz == 125000000 else None,
+                        automatic_frequency_change=boot_cpu_hz != 50000000,
+                        frequency_policy="exact boot CPU125 then fabric125; no runtime fabric writes" if boot_fabric_hz == 125000000 else ("exact CPU125 / fabric untouched" if boot_cpu_hz != 50000000 else "read-only boot50"),
                         shared_kernel_sha256=sha(linux_image), shared_rootfs_sha256=sha(cpio),
-                        runtime_clock_monitor_present=cpu_profile == 'i1',
-                        active_platform_modules=6 if cpu_profile == 'i1' else 5)
+                        runtime_clock_monitor_present=cpu_profile in ('i1', common.EXPERIMENTAL_A1),
+                        active_platform_modules=6 if cpu_profile in ('i1', common.EXPERIMENTAL_A1) else 5)
+        if cpu_profile == common.EXPERIMENTAL_A1:
+            contract_path = args.a1_runtime_hardware_contract
+            contract = common.validate_a1_hardware_contract(json.loads(contract_path.read_text()))
+            (delivery/'a1-runtime-hardware-contract.json').write_bytes(contract_path.read_bytes())
+            manifest.update(experimental_hardware_required=True, compatible_with_old_a1=False,
+                            hardware_contract=contract, hardware_contract_sha256=sha(contract_path),
+                            cpu_telemetry_abi=2, fabric_telemetry_abi=1, cpu_retirement_lanes=2,
+                            frequency_write_enabled=False, physical_timing_qualified=False)
     (delivery / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     print('VL100_DEBIAN_FIRMWARE_READY_NOT_BOARD_VERIFIED ' + str(result), flush=True)
 
@@ -468,6 +515,12 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--rootfs-out', type=Path)
     parser.add_argument('--rootfs-record', default='rootfs-build.json')
+    parser.add_argument('--i1-boot-cpu-hz', type=int, choices=(50000000,125000000), default=50000000,
+                        help='explicit new I1 candidate only: driver-controlled CPU125 after Linux module load; A1 stays50')
+    parser.add_argument('--i1-boot-fabric-hz', type=int, choices=(50000000,125000000), default=50000000,
+                        help='explicit separate I1 candidate: one-shot boot fabric125 after CPU125; no runtime fabric sysfs')
+    parser.add_argument('--experimental-a1-runtime', action='store_true', help='separate experimental A1 runtime-only profile, read-only boot50; never for old A1 bit')
+    parser.add_argument('--a1-runtime-hardware-contract', type=Path, help='exact experimental hardware contract required with runtime flag')
     parser.add_argument('--delivery-out', type=Path, help='separate new release directory while reusing own kernel objects')
     parser.add_argument('--baseline', type=Path, help='optional exact baseline config/cache; common builds support fresh tinyconfig')
     parser.add_argument('--jobs', type=int, default=min(os.cpu_count() or 8, 16))
@@ -475,6 +528,8 @@ if __name__ == '__main__':
                         choices=(0x20000000, 0x40000000, 0x80000000))
     parser.add_argument('--resume-kernel', action='store_true', help='retry an incomplete software build; retain failed logs')
     parser.add_argument('--reuse-kernel', type=Path, help='seed a fresh independent output with a matching completed kernel cache')
+    parser.add_argument('--kernel-optimization', choices=('size','performance'), default='size',
+                        help='kernel stage compiler policy; performance is O2, not a board speed guarantee')
     parser.add_argument('--initramfs-compression', choices=('gzip', 'lz4'),
                         help='dinit defaults to LZ4; legacy profiles default to gzip')
     parser.add_argument('--console', choices=net.uart_console.PROFILES, default='sbi',
@@ -482,6 +537,10 @@ if __name__ == '__main__':
     parser.add_argument('--init-system', choices=('dinit', 'systemd', 'busybox'), default='busybox',
                         help='small common image defaults to BusyBox; Debian init systems remain explicit')
     args = parser.parse_args()
+    if args.stage != 'image' and (args.experimental_a1_runtime or args.a1_runtime_hardware_contract):
+        parser.error('experimental hardware selection applies only at image/DT stage')
+    if args.stage != 'image' and (args.i1_boot_cpu_hz != 50000000 or args.i1_boot_fabric_hz != 50000000):
+        parser.error('boot frequency targets apply explicitly at the final image/DT stage only')
     if args.jobs < 1 or (args.stage == 'image' and args.rootfs_out is None):
         parser.error('positive --jobs required; --stage image requires --rootfs-out')
     {'kernel': prepare, 'modules': refresh_modules, 'image': image}[args.stage](args)

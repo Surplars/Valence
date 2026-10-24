@@ -129,6 +129,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         !p.fastHeadLoadRetire && !p.moveAlias),
         "operand execution stages require the two-slot, non-aliased, registered redirect/retirement contract")
     val io = IO(new Bundle {
+        val ownersIdle = Output(Bool())
         val rawDestinations = if (p.parallelArchitecturalDestinations)
             Some(Input(Vec(p.renameWidth, UInt(5.W)))) else None
         val rawRequests = if (p.tentativeRenameSources)
@@ -3303,5 +3304,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             data := physicalFile.io.data(port)
         }
     }
+
+    // Clock parking is stronger than ROB empty: killed operations and buffered
+    // stores may still own execution or response state after architectural drain.
+    io.ownersIdle := ledger.io.occupancy === 0.U && !ledger.io.recovering &&
+        !ledger.io.recoveryAccepted && !io.memoryBusy && !systemProtected && !memoryProtected &&
+        !mulDiv.io.busy && !multiplier.io.busy && !branchRedirectValid &&
+        !systemComplete.valid && !automaticTrap &&
+        executionStages.map(s => !s.io.occupied).foldLeft(true.B)(_ && _)
 
 }

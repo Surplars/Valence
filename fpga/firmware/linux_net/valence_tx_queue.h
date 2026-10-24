@@ -61,7 +61,7 @@ static inline int vgt_post(struct vgt_ring *q, unsigned int slot, unsigned int b
 	q->ops.write(q->ops.context, VGT_RESULT, bytes);
 	q->ops.write(q->ops.context, VGT_COMMAND, VGT_POST);
 	q->owned |= 1U << slot; q->length[slot] = bytes;
-	q->order[q->tail] = slot; q->tail = (q->tail + 1) % q->slots; ++q->posted;
+	q->order[q->tail] = slot; q->tail = vgq_next(q->tail, q->slots); ++q->posted;
 	return 0;
 }
 static inline int vgt_peek(struct vgt_ring *q, struct vgq_completion *c)
@@ -91,7 +91,7 @@ static inline int vgt_release(struct vgt_ring *q, unsigned int slot)
 	    !q->posted || q->order[q->head] != slot || !(q->owned & (1U << slot))) return -1;
 	q->ops.write(q->ops.context, VGT_COMMAND, VGT_POP);
 	q->owned &= ~(1U << slot); q->completion_seen = false;
-	q->head = (q->head + 1) % q->slots; --q->posted;
+	q->head = vgq_next(q->head, q->slots); --q->posted;
 	return 0;
 }
 #endif

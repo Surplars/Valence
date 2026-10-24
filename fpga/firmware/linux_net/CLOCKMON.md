@@ -1,3 +1,8 @@
+> Follow-on source notice: immutable r2 remains read-only. This current source
+> adds explicit I1 CPU-only control/boot opt-in, documented in
+> [CPUFREQ-CANDIDATE.md](CPUFREQ-CANDIDATE.md). Without that opt-in, the original
+> read-only behavior below remains. This is not cpufreq or fabric DVFS.
+
 # Linux CMU rate / telemetry driver
 
 `valence_clockmon.ko` provides actual read-only support for CMU rate ABI2 and
@@ -133,3 +138,43 @@ acceptance steps; host mocks do not prove them.
    exact externalIrqsAbsent compile contract must be verified first. The
    current hardware does not categorically reject fabric changes; missing
    Linux coordination/validation is the blocker, not an invented absent lane.
+
+The separate boot-only I1 pair candidate is documented in `BOOT-PAIR-CANDIDATE.md`.
+It does not alter the immutable CPU-only Debian delivery and does not expose
+runtime fabric writes. CMUv1 index2 remains fixed TIME250.
+
+## Explicit A1 runtime read-only candidate
+
+This later source candidate does not modify the frozen I1 boot-pair or earlier
+Debian packages. It is not enabled for the existing static A1 hardware.
+
+Before mapping any extension MMIO, the driver requires all three identities:
+root `openion,valence-a1-runtime-v2`, CPU `openion,orbital-a1`, and monitor
+`openion,valence-a1-runtime-clock-monitor-v2`. Rate/performance resources remain
+exactly `0x10080800/0x100` and `0x10080900/0x200`. CPU meter descriptor must be
+ABI2 (`0x544d002000000002` at width32); fabric remains ABI1. An I1 profile still
+strictly rejects ABI2. A matching DT is a deployment assertion, not bitstream
+authentication; using it on old hardware is unsupported.
+
+The A1 profile rejects the presence of any CPU control/observer-policy, CPU boot,
+fabric boot, or I1 pair property before MMIO mapping. No CPU control initialization
+or transaction is called. CPU arm/target sysfs writes remain disabled, and no
+fabric write interface exists. Default boot targets are50/50MHz; observed actual
+rates are read from hardware, not inferred from these targets. It does not inherit
+I1's125MHz qualification or enable A1 automatic scaling.
+
+CPU snapshot output now explicitly includes `retirement_lanes` and
+`scalar_request_lane`. I1 uses1/1: event1 counts retirement lane0, event2 counts
+scalar lane1 request fires. A1 uses2/0: event1 is the modulo-width sum of two
+independently Gray-synchronized retirement lanes, event2 counts scalar lane0
+request fires (the A1 uncached/MMIO lane). Event7 is a cycle with neither lane
+retiring. Fabric fields are unchanged. The A1 window-wrap safety bound accounts
+for up to12 retirements per50MHz reference cycle at the300MHz architectural cap,
+not the single-lane6 bound. This cap is a parser bound, not physical qualification.
+
+Host ABI tests cover strict profile mismatch, independent CPU/fabric ABI checks,
+32-bit deltas, modulo totals, dual-lane narrow-width wrap limits and live window
+invalidation. The production profile/probe extraction test verifies triple identity,
+legacy rejection, every forbidden write property and zero writes. Kernel module
+compilation, full hardware acceptance, physical implementation and Linux board
+validation are separate evidence; host tests alone do not establish them.

@@ -11,8 +11,10 @@ import soc.ip.interrupt.{Imsic, ImsicParams}
 class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams(),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
+        val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
         val instructions    = Input(Vec(p.renameWidth, Valid(UInt(32.W))))
@@ -63,7 +65,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         virtualStoreOperandLookahead = virtualStoreOperandLookahead,
-        bankedStoreData = bankedStoreData))
+        bankedStoreData = bankedStoreData, runtimeQuiesce = runtimeQuiesce))
     val imsic = Module(new Imsic(imsicParams))
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse
@@ -100,6 +102,8 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         io.vmFlush.get := core.io.vmFlush.get
         core.io.vmFlushReady.get := io.vmFlushReady.get
     }
+    io.quiesce.foreach(q => core.io.quiesce.get := q)
+    io.ownersIdle.foreach(_ := core.io.ownersIdle.get)
     core.io.commitEnable                    := io.commitEnable
     core.io.inspectRegister                 := io.inspectRegister
     io.loadPrecheck.foreach(_ <> core.io.loadPrecheck.get)

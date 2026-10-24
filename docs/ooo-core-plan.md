@@ -2071,3 +2071,11 @@ frozen C0 arms byte-for-byte. Actual configuration and the affected 16 backend
 cases were rerun; no cycle/traffic change in those traces. See
 docs/c1-proof-control-qualification.json and docs/c0-c1-remaining-paths.txt.
 No C1 mapped timing/area, route, CDC/RDC or board qualification is claimed.
+
+## Experimental A1 runtime adaptation
+
+The default-off A1 runtime park, independent two-lane telemetry ABI2 and focused
+real CPU/fabric/IRQ/AMO/FP/DMA-probe checks are documented in
+[`a1-runtime-candidate.md`](a1-runtime-candidate.md).
+Production A1 defaults and the programmed baseline remain unchanged. Full-chain
+rate roundtrip is wall-budget incomplete, not a clock-transition or physical pass.

@@ -1744,4 +1744,10 @@ class NonBlockingCoherentLineCache(
     observationStorePrefetch.dDenied := io.tl.d.bits.denied
     observationStorePrefetch.dCorrupt := io.tl.d.bits.corrupt
 
+    io.quiescent := responseEmpty && mshrEmpty && wbEmpty && !postedBusy && !hitPending &&
+        evictionState === eIdle && bypassState === bIdle && probeState === pIdle &&
+        !flushActive && !io.prefetchBusy && !prefetchRefillPending && !queuedEvictWanted &&
+        !engine.io.response.valid && !engine.io.a.valid && !engine.io.e.valid &&
+        !io.tl.a.valid && !io.tl.c.valid && !io.tl.e.valid && !io.tl.b.valid && !io.tl.d.valid
+
 }

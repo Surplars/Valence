@@ -55,6 +55,34 @@ if {$queries!=1 || $delays!=16 || $skews!=16 || $bridges!=1} {error "wrong bound
 ''')
         self.tcl(stub+helper+'set cells [lrange $cells 1 end]\nvalence_performance_telemetry_constraints u_soc/monitor 3.0', False)
         self.tcl(stub+helper+'set cells {}\nvalence_performance_telemetry_constraints u_soc/monitor 3.0', False)
+        a1 = 'for {set b 0} {$b<32} {incr b} {lappend cells [format {u_soc/monitor/cpuRetireLane1/graySync0_1_reg[%d]} $b]}\n'
+        self.tcl(stub+helper+a1+'''
+valence_performance_telemetry_constraints u_soc/monitor 3.0 a1-experimental
+if {$queries!=1 || $delays!=17 || $skews!=17 || $bridges!=1} {error "wrong A1 coverage"}
+''')
+        for setup, profile in ((a1, 'i1'), ('', 'a1-experimental'),
+                               (a1+'set cells [lrange $cells 1 end]\n', 'a1-experimental'),
+                               (a1+'lset cells end [lindex $cells 0]\n', 'a1-experimental'),
+                               (a1+'lset cells end {u_soc/monitor/cpuRetireLane1/graySync0_2_reg[31]}\n', 'a1-experimental'),
+                               (a1+'lset cells end {u_soc/monitor/cpuRetireLane1/graySync0_1_reg[32]}\n', 'a1-experimental'),
+                               (a1, 'unknown')):
+            self.tcl(stub+helper+setup+f'''
+if {{![catch {{valence_performance_telemetry_constraints u_soc/monitor 3.0 {profile}}}]}} {{error "negative accepted"}}
+if {{$delays || $skews || $bridges}} {{error "failed preflight mutated constraints"}}
+''')
+
+
+        for bad in ('{}', '[lrange $objects 1 end]', '[lreplace $objects end end [lindex $objects 0]]'):
+            self.tcl(stub+helper+a1+f'''
+rename get_pins old_get_pins
+proc get_pins {{args}} {{
+ set objects [old_get_pins {{*}}$args]
+ if {{[lindex $args end] eq "REF_PIN_NAME == D"}} {{return {bad}}}
+ return $objects
+}}
+if {{![catch {{valence_performance_telemetry_constraints u_soc/monitor 3.0 a1-experimental}}]}} {{error "missing D pins accepted"}}
+if {{$delays || $skews || $bridges}} {{error "pin preflight mutated constraints"}}
+''')
 
     def test_feature_fail_closed(self):
         body = (HERE/'performance_telemetry_constraints.tcl').read_text()
@@ -62,11 +90,26 @@ if {$queries!=1 || $delays!=16 || $skews!=16 || $bridges!=1} {error "wrong bound
         body = '\n'.join(x for x in body.splitlines() if not x.startswith('source '))
         stub = '''
 set calls 0
-proc valence_performance_telemetry_constraints {hier budget} {global calls; incr calls}
+proc valence_performance_telemetry_constraints {hier budget {profile i1}} {global calls selected; incr calls; set selected $profile}
 proc get_cells {args} {global present; return $present}
 '''
         for enabled, present, good in ((1,'u_soc/monitor',True),(1,'',False),(0,'',True),(0,'u_soc/monitor',False)):
             self.tcl(stub+body+f'\nset valence(performance_telemetry) {enabled}\nset present {{{present}}}\ncommon_performance_telemetry_constraints\n', good)
+        self.tcl(stub+body+'''
+set valence(performance_telemetry) 1
+set valence(telemetry_physical_profile) a1-experimental
+set present u_soc/monitor
+common_performance_telemetry_constraints
+if {$calls!=1 || $selected ne "a1-experimental"} {error "A1 profile not forwarded"}
+''')
+        self.tcl(stub+body+'''
+set valence(performance_telemetry) 1
+set valence(telemetry_physical_profile) unknown
+set present u_soc/monitor
+if {![catch {common_performance_telemetry_constraints}]} {error "unknown profile accepted"}
+if {$calls} {error "invalid profile mutated"}
+''')
+
 
 if __name__ == '__main__':
     unittest.main()

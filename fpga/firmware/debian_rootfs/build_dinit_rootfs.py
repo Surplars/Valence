@@ -19,6 +19,7 @@ from build_rootfs import sha, validate_output, copy, archive_paths, rootless_run
 from build_systemd_rootfs import archive_names
 from run import run
 from rootfs_link_paths import normalize_build_links
+from common_tools_install import install_tools
 
 BINARIES = ('dinit', 'dinitctl', 'dinitcheck', 'dinit-shutdown')
 SERVICES = ('boot', 'platform', 'network', 'ready', 'login-ready', 'serial-console')
@@ -100,26 +101,31 @@ def configure_console(root, profile):
 def rootfs(args):
     validated_runner = rootless_runner(args)
     if os.geteuid() != 0:
-        raise RuntimeError('Use WSL root for restoring device nodes into the private rootfs')
+        raise RuntimeError('Use the approved fakeroot metadata context for restoring this private rootfs')
     out, seed = validate_output(args.out), validate_output(args.seed)
     if Path(args.seed_record).name != args.seed_record:
         raise RuntimeError('Seed record must be a basename')
     marker = seed / args.seed_record
     seed_record = json.loads(marker.read_text())
-    if (seed_record.get('stage') != 'packed' or seed_record.get('architecture') != 'riscv64'
+    common_base = getattr(args, 'common_base', False)
+    if (seed_record.get('stage') not in (('bootstrapped',) if common_base else ('packed',)) or seed_record.get('architecture') != 'riscv64'
             or seed_record.get('suite') != 'trixie' or seed_record.get('init_system') == 'systemd'):
         raise RuntimeError('Use the verified small pre-systemd Debian 13 archive')
     archive = seed / seed_record['archive']['path']
     if archive.parent.resolve() != seed or sha(archive) != seed_record['archive']['sha256']:
         raise RuntimeError('Seed archive path or digest changed')
     names = archive_names(archive.read_bytes())
-    if 'etc/os-release' not in names or 'init' not in names:
-        raise RuntimeError('Seed is not a complete rootfs')
+    required = ('etc/os-release', 'var/lib/dpkg/status', 'usr/bin/dpkg', 'usr/bin/apt') if common_base else ('etc/os-release','init')
+    if any(name not in names for name in required):
+        raise RuntimeError('Seed is not a complete Debian rootfs')
     kernel = validate_output(args.kernel_build)
     kr = json.loads((kernel / 'kernel-build.json').read_text())
     if (kr.get('stage') != 'kernel_and_modules_ready' or kr.get('init_system') != 'dinit'
             or kr.get('initramfs_compression') != 'lz4'):
         raise RuntimeError('Expected the matched Dinit/LZ4 kernel stage')
+    is_common = kr.get('common_platform') is not None
+    if common_base != is_common:
+        raise RuntimeError('Common Debian base must bind a common kernel profile')
     console_profile = kr.get('console_profile', 'sbi')
     if console_profile not in ('sbi', 'uart-irq'):
         raise RuntimeError('Unknown kernel console profile')
@@ -135,7 +141,10 @@ def rootfs(args):
         console_profile=console_profile,
         seed_record_sha256=sha(marker), seed_archive_sha256=sha(archive),
         seed_signature_provenance={key: seed_record.get(key) for key in
-            ('key_package_sha256', 'keyring_sha256', 'packages_sha256', 'source_bootstrap_record_sha256')},
+            ('key_package_sha256', 'keyring_sha256', 'packages_sha256', 'source_bootstrap_record_sha256',
+             'release_sha256', 'packages_index_sha256', 'signature_status_sha256', 'package_lock_sha256',
+             'archive_metadata_sha256', 'all_packages_configured', 'dpkg_audit', 'package_count',
+             'required_package_versions')},
         dinit=tr, kernel_build=str(kernel), host_qemu_used_only_for_static_userland_checks=True)
     (out / 'rootfs-build.json').write_text(json.dumps(record, indent=2) + '\n')
     with archive.open('rb') as stream, (out / 'restore.log').open('wb') as log:
@@ -157,6 +166,11 @@ def rootfs(args):
            ('systemd', 'systemd-sysv', 'libpam-systemd', 'udev', 'dbus') for line in package_list.splitlines()):
         raise RuntimeError('Seed contains the unwanted systemd service stack')
     (out / 'packages.tsv').write_text(package_list)
+    states = subprocess.check_output([target_runner, str(root), '/usr/bin/dpkg-query', '-W',
+        '-f=${binary:Package}\t${db:Status-Abbrev}\n'], text=True)
+    (out / 'package-states.tsv').write_text(states)
+    if any(len(line.split('\t')) != 2 or not line.split('\t')[1].startswith('ii ') for line in states.splitlines()):
+        raise RuntimeError('Debian contains an unconfigured or non-installed package')
     for name in BINARIES:
         source = tool_out / 'riscv64/src' / name
         if sha(source) != tr['binaries'][name]:
@@ -172,15 +186,32 @@ def rootfs(args):
                         ('network-control', 'usr/local/libexec/valence-network-control'),
                         ('ready', 'usr/local/libexec/valence-dinit-ready'),
                         ('boot-diagnose', 'usr/local/sbin/boot-diagnose')):
-        copy(ASSETS / name, root / target, 0o755)
-        run(['/bin/sh', '-n', ASSETS / name], log=out / (name + '-syntax.log'))
+        source = ASSETS / ('common-' + name if is_common and name in ('init','platform-init') else name)
+        copy(source, root / target, 0o755)
+        run(['/bin/sh', '-n', source], log=out / (name + '-syntax.log'))
     copy(ASSETS / 'environment', root / 'etc/dinit/environment', 0o644)
     for name in SERVICES:
         copy(ASSETS / 'services' / name, root / 'etc/dinit.d' / name, 0o644)
     configure_console(root, console_profile)
     copy(HERE / 'interfaces', root / 'etc/network/interfaces', 0o644)
+    if is_common:
+        # A plain Debian base does not inherit the old board-specific overlay.
+        for name in ('net-status', 'boot-time'):
+            copy(HERE.parent / 'linux_net' / name, root / 'usr/local/sbin' / name, 0o755)
+        copy(HERE / 'dma-bench', root / 'usr/local/sbin/dma-bench', 0o755)
+        copy(HERE / 'profile', root / 'etc/profile.d/valence.sh', 0o644)
+        copy(HERE / 'resolv.conf', root / 'etc/resolv.conf', 0o644)
+        (root / 'etc/hostname').write_text('valence\n')
+        (root / 'etc/hosts').write_text('127.0.0.1 localhost\n127.0.1.1 valence\n')
+
     copy(HERE / 'valence-driver-order.conf', root / 'etc/modprobe.d/valence-order.conf', 0o644)
+    if is_common:
+        with (root / 'etc/modprobe.d/valence-order.conf').open('a') as stream:
+            stream.write('blacklist valence_clockmon\n')
     copy(tool_out / 'riscv64/LICENSE', root / 'usr/share/doc/valence/dinit/LICENSE', 0o644)
+    if getattr(args, 'performance_tools', None):
+        installed = {line.split('\t')[0].split(':')[0] for line in package_list.splitlines()}
+        record['performance_tools'] = install_tools(args.performance_tools, root, installed)
     version = kr['linux_version']
     if not version or '/' in version or '..' in version:
         raise RuntimeError('Invalid kernel release')
@@ -199,6 +230,7 @@ def rootfs(args):
     run(['riscv64-linux-gnu-gcc', '-O2', '-march=rv64gc_zicsr_zifencei', '-mabi=lp64d',
         '-mstrict-align', '-Wall', '-Wextra', '-Werror', HERE / 'mem-bench.c',
         '-o', root / 'usr/local/bin/mem-bench'], log=out / 'mem-bench-build.log')
+    (root / 'etc/valence').mkdir(parents=True, exist_ok=True)
     (root / 'etc/valence/build-time').write_text(datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S') + '\n')
     run([target_runner, root, '/usr/sbin/dinit', '--version'], log=out / 'target-version.log')
     run([target_runner, root, '/usr/sbin/dinitcheck', '--services-dir', '/etc/dinit.d', 'boot'],
@@ -224,7 +256,8 @@ def rootfs(args):
                                                'usr/share/doc/valence/busybox'))
     payload_bytes = sum((root / p).stat().st_size for p in paths
         if not (root / p).is_symlink() and (root / p).is_file())
-    if payload_bytes > 240 * 1024 * 1024:
+    budget = 512 if is_common else 240
+    if payload_bytes > budget * 1024 * 1024:
         raise RuntimeError('Dinit rootfs exceeds the pre-systemd memory budget')
     result = out / 'debian13-riscv64-dinit-vl100.cpio'
     with result.open('wb') as stream:
@@ -245,9 +278,12 @@ def rootfs(args):
         no_systemd_services=True, no_udev_or_dbus_daemons=True, network_auto_enable=True,
         driver_failure_keeps_serial=console_profile == 'sbi', network_failure_keeps_serial=True,
         irq_controller_failure_requires_sbi_recovery=console_profile == 'uart-irq',
-        persistent_storage=False, require_repaired_bit=True, vendor='OpenIon', soc='VL100', cpu='Orbital-A1',
+        persistent_storage=False, require_repaired_bit=True, vendor='OpenIon', soc='VL100', cpu='CommonMachinePlatform I1/A1' if is_common else 'Orbital-A1',
+        common_platform=kr.get('common_platform'), userland_isa='rv64gc', userland_abi='lp64d',
+        automatic_frequency_change='explicit per-DT policy; rootfs does not issue MMIO writes' if is_common else False, runtime_clock_monitor_profiles=kr.get('runtime_clock_monitor_profiles',{}) if is_common else {},
         sources={str(p.relative_to(HERE)): sha(p) for p in
-            [Path(__file__), HERE / 'build_rootfs.py', HERE / 'rootfs_link_paths.py', HERE / 'mem-bench.c', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
+            [Path(__file__), HERE / 'build_rootfs.py', HERE / 'rootfs_link_paths.py', HERE / 'common_tools_install.py', HERE / 'mem-bench.c', HERE / 'interfaces', HERE / 'profile', HERE / 'resolv.conf', HERE / 'dma-bench', HERE / 'valence-driver-order.conf', *sorted(p for p in ASSETS.rglob('*') if p.is_file())]},
+        helper_sources={str(p.relative_to(ROOT)): sha(p) for p in [HERE.parent/'linux_net/net-status', HERE.parent/'linux_net/boot-time']},
         checks='target dinitcheck/module dry-run/package audit/LZ4 round-trip; not board execution')
     (out / 'rootfs-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print('DINIT_LZ4_ROOTFS_PACKED_NOT_BOARD_VERIFIED ' + str(result), flush=True)
@@ -259,8 +295,10 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--source', type=Path)
     parser.add_argument('--seed', type=Path)
+    parser.add_argument('--common-base', action='store_true', help='Use a signed, configured Debian base newc archive, without legacy Valence init')
     parser.add_argument('--seed-record', default='rootfs-build-netboot-drain-r1.json')
     parser.add_argument('--tools-build', type=Path)
+    parser.add_argument('--performance-tools', type=Path, help='exact private tools-build.json bundle to validate and install')
     parser.add_argument('--kernel-build', type=Path)
     parser.add_argument('--rootless-chroot', type=Path, help='explicit userspace runner with caller-owned fakeroot metadata')
     parser.add_argument('--rootless-origin-root', type=Path, action='append', default=[],

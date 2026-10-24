@@ -90,6 +90,7 @@ class CoherentLineCachePort(params: TLParams, postedConfig: Option[PostedStoreMe
     val lineGrant = if (internalLineGrant) Some(Flipped(Decoupled(new soc.ip.tilelink.LineGrant(params)))) else None
     val flushRequest = Input(Bool())
     val flushDone = Output(Bool())
+    val quiescent = Output(Bool())
     val prefetchBusy = Output(Bool())
     val prefetch = Output(new DataPrefetchEvents)
     val hit = Output(Bool())

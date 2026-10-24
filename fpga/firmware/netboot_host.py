@@ -422,11 +422,21 @@ def _transfer(sock, peer, source, retry_seconds, retries, progress, stats, clock
 
 def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progress=True, limit=LIMIT,
           max_blksize=MAX_BLKSIZE, max_windowsize=DEFAULT_WINDOWSIZE,
-          packet_delay_us=DEFAULT_PACKET_DELAY_US):
+          packet_delay_us=DEFAULT_PACKET_DELAY_US, second_image=None):
     image = Path(image).resolve()
     if not math.isfinite(packet_delay_us) or packet_delay_us < 0:
         raise ValueError("TFTP packet delay must be finite and nonnegative")
     size = validate(image, limit)
+    images = {image.name: image}
+    if second_image is not None:
+        second = Path(second_image).resolve()
+        if image.name != "valence.vld" or second.name != "linux.vld":
+            raise ValueError("stager requires exact valence.vld and linux.vld names")
+        second_size = validate(second, limit)
+        if second_size > 0xffe00000 - BASE:
+            raise ValueError("second image overlaps live stager at FFE00000")
+        images[second.name] = second
+    completed = set()
     ipaddress.IPv4Address(bind)
     ipaddress.IPv4Address(board)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener:
@@ -441,7 +451,7 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
             if peer[0] != board:
                 continue
             requested = parse_request(packet, max_blksize, max_windowsize)
-            if requested is None or requested.name != image.name:
+            if requested is None or requested.name not in images:
                 # Bounded repr prevents terminal-control/log injection. Do not dump
                 # raw packets, option values, local paths, or image contents.
                 name = packet[2:].split(b"\0", 1)[0][:128] if packet.startswith(b"\0\1") else b""
@@ -450,6 +460,7 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
                       "ERROR 1 file unavailable", flush=True)
                 listener.sendto(b"\x00\x05\x00\x01file unavailable\x00", peer)
                 continue
+            image = images[requested.name]
             started = time.monotonic()
             display = TransferProgress(image.stat().st_size) if show_progress else None
             stats = TransferStats()
@@ -467,7 +478,8 @@ def serve(image, bind, port=69, board="192.168.137.30", once=False, show_progres
                       "final EOF ACK received; RAM verification and RUN/boot are not confirmed. "
                       "Check board UART status.", flush=True)
                 print(stats.summary(), flush=True)
-                if once:
+                completed.add(requested.name)
+                if once and completed == set(images):
                     return
             except (TimeoutError, RuntimeError, OSError) as error:
                 if display:
@@ -491,7 +503,8 @@ def main():
     p.add_argument("--bind", default="192.168.137.1")
     p.add_argument("--board", default="192.168.137.30")
     p.add_argument("--port", type=int, default=69)
-    p.add_argument("--once", action="store_true")
+    p.add_argument("--once", action="store_true", help="exit after each configured image is EOF-ACKed")
+    p.add_argument("--second-image", type=Path, help="RAM stager only: prevalidated linux.vld served on the same listener")
     p.add_argument("--no-progress", action="store_true", help="disable ACKed-byte progress display")
     p.add_argument("--max-blksize", type=int, choices=(512, 1024), default=MAX_BLKSIZE,
                    help="maximum negotiated DATA bytes (default: 1024); legacy uses 512")
@@ -505,7 +518,7 @@ def main():
         pack(args.image, args.out, args.entry, LIMITS[args.memory])
     else:
         serve(args.image, args.bind, args.port, args.board, args.once, not args.no_progress,
-              LIMITS[args.memory], args.max_blksize, args.max_windowsize, args.packet_delay_us)
+              LIMITS[args.memory], args.max_blksize, args.max_windowsize, args.packet_delay_us, args.second_image)
 
 if __name__ == "__main__":
     try:

@@ -3,7 +3,7 @@
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 set -eu
 case "${1:-status}" in
-    status) ip -s link; ip addr; ip route; exit 0 ;;
+    status) ip link show; cat /proc/net/dev; ip addr; ip route; exit 0 ;;
     up|dhcp) ;;
     *) echo 'Usage: valence-net status|up|dhcp' >&2; exit 2 ;;
 esac

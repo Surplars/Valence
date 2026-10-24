@@ -2873,3 +2873,11 @@ The separate `common_home_compatibility.py` gate reuses the existing single-clie
 512-line oracle and exact optimized frozen-shadow protocol test. Both require explicitly
 selected installed GSIM/compiler tools and their qualification receipt; neither runs a
 CPU/board model or claims physical performance. See `docs/common-coherence-home.md`.
+
+## Experimental A1 runtime adaptation
+
+The default-off A1 runtime park, independent two-lane telemetry ABI2 and focused
+real CPU/fabric/IRQ/AMO/FP/DMA-probe checks are documented in
+[`docs/a1-runtime-candidate.md`](../../docs/a1-runtime-candidate.md).
+Production A1 defaults and the programmed baseline remain unchanged. Full-chain
+rate roundtrip is wall-budget incomplete, not a clock-transition or physical pass.

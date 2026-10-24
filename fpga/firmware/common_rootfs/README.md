@@ -77,6 +77,20 @@ is no SSH/telnet listener or automatic storage mount. All rootfs changes are
 RAM-only. The local serial diagnostic shell is privileged and intended for a
 trusted, physically controlled development setup, not a multiuser production OS.
 
+BusyBox 1.37.0 `ip` is not the full iproute2 implementation: `ip -s link` is
+unsupported. The helpers use `ip link show` and `/proc/net/dev` counters instead.
+The original r2 delivery remains immutable; its two helper scripts can be fixed
+in the running RAM rootfs without restarting Linux:
+
+    sed -i 's/ip -s link/ip link show/g' /usr/sbin/valence-diagnose /usr/sbin/valence-net
+
+Read `cat /proc/net/dev` separately on that temporary r2 patch. A later package
+includes counters in both helpers. This repair does not change drivers, kernel,
+BusyBox bytes, network settings or hardware. The regression can execute a real
+host build of the pinned applet, including the old-command negative control:
+
+    VALENCE_TEST_BUSYBOX=/absolute/path/to/host/busybox python3 fpga/firmware/common_rootfs/test_common_rootfs.py
+
 ## Acceptance boundary
 
 The deterministic newc writer encodes root-owned console/null/tty device nodes

@@ -17,9 +17,11 @@ import soc.isa.Compressed
 class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("80000000", 16),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
     val io = IO(new Bundle {
+        val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
+        val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val imsic                       = if (p.machineSystem) Some(new MachineCsrPort) else None
         val externalInterrupt           = if (p.machineSystem) Some(Input(Bool())) else None
         val supervisorExternalInterrupt = if (p.machineSystem) Some(Input(Bool())) else None
@@ -114,6 +116,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     io.memory <> backend.io.memory
     io.posted.foreach(_ <> backend.io.posted.get)
     if (p.dataNextLinePrefetch) backend.io.externalPrefetchBusy.get := io.externalPrefetchBusy.get
+    io.ownersIdle.foreach(_ := backend.io.ownersIdle)
     io.memoryBusy        := backend.io.memoryBusy
     io.issueCount        := backend.io.issueCount
     io.memoryDiscarded   := backend.io.memoryDiscarded
@@ -169,7 +172,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             io.fetchRequestFrontier.get := packet.io.requestFrontier.get
             io.suppressFetchRequest.get := packet.io.suppressRequest.get
         }
-        packet.io.pause := io.exception.valid || io.recovering ||
+        packet.io.pause := io.quiesce.getOrElse(false.B) || io.exception.valid || io.recovering ||
             backend.io.pauseFetch.map(identity).getOrElse(false.B)
         packet.io.consume := io.accepted
         packet.io.flush := fetchPacketFlush
@@ -434,7 +437,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         faultRequest.fetchTval := Mux(pmpDenied && !virtualizedFetch &&
             !instructionFaults(lane) && !instructionPageFaults(lane),
             Mux(firstPmpDenied, lanePc, packetPc(laneOffsets(lane) + 2.U)), suppliedFetchTval)
-        backend.io.allocate(lane).valid := instructions(lane).valid && !io.exception.valid && !earlierPrediction
+        backend.io.allocate(lane).valid := !io.quiesce.getOrElse(false.B) && instructions(lane).valid && !io.exception.valid && !earlierPrediction
         backend.io.allocate(lane).bits  := Mux(fetchFault, faultRequest, decode.io.decoded)
         backend.io.rawRequests.foreach { raw =>
             raw(lane) := decode.io.decoded.rename
