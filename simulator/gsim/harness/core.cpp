@@ -28,6 +28,10 @@
 #ifndef REGISTERED_BRANCH_REDIRECT
 #define REGISTERED_BRANCH_REDIRECT 0
 #endif
+// Explicit resolution topology, not a waiver for any ISA or memory oracle.
+#ifndef BRANCH_RESOLUTION_MAILBOX
+#define BRANCH_RESOLUTION_MAILBOX 0
+#endif
 #ifndef BRANCH_ENTRIES
 #define BRANCH_ENTRIES 64
 #endif
@@ -967,9 +971,14 @@ static void pipelineRecoveryTests(Reference &ref, Stats &stats) {
     unsigned contentionPrograms = 0;
     // Sweep the returning-load phase, not internal DUT state, so both owners
     // must arise from ordinary decoded machine instructions and actual grants.
-    // Stop only after the hard coverage witnesses have all occurred.
-    for (unsigned latency = 1; latency <= 24; ++latency) {
-        for (unsigned padding = 0; padding < 16; ++padding) {
+    // Legacy topology stops after both physical-WB witnesses. B2 resolves
+    // independently of WB, so that old simultaneous-lane conflict may disappear.
+    // Its matched set is exactly the original measured latency=1, padding=0..7
+    // prefix, not a fresh search whose stopping condition changes the workload.
+    const unsigned maxLatency = BRANCH_RESOLUTION_MAILBOX ? 1 : 24;
+    const unsigned maxPadding = BRANCH_RESOLUTION_MAILBOX ? 8 : 16;
+    for (unsigned latency = 1; latency <= maxLatency; ++latency) {
+        for (unsigned padding = 0; padding < maxPadding; ++padding) {
             std::vector<uint32_t> code{0x00010097U, loadCode(2, 1, 3, 128)};
             for (unsigned i = 0; i < padding; ++i) code.push_back(addiCode(8 + i % 8, 0, i));
             code.push_back(addiCode(6, 0, 1));
@@ -980,14 +989,21 @@ static void pipelineRecoveryTests(Reference &ref, Stats &stats) {
             code.push_back(addiCode(5, 0, 42));
             programTest(ref, code, 0x682 + padding, false, false, false, stats, latency);
             ++contentionPrograms;
-            if (stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
+            if (!BRANCH_RESOLUTION_MAILBOX && stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
         }
-        if (stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
+        if (!BRANCH_RESOLUTION_MAILBOX && stats.slot0HoldAndLane1Progress && stats.olderLane0BranchResolution) break;
     }
     check(stats.slot0HoldAndLane1Progress > 0,
           "LSU writeback never held slot 0 while independent lane 1 made progress");
+#if BRANCH_RESOLUTION_MAILBOX
+    check(contentionPrograms == 8, "mailbox recovery must retain the exact original eight contention programs");
+    std::cout << "B2_RECOVERY_COVERAGE legacy_older_lane0_required=0 legacy_older_lane0_observed="
+              << stats.olderLane0BranchResolution
+              << " reason=resolution-independent-of-WB separate_mailbox_owner_oracle_required=1\n";
+#else
     check(stats.olderLane0BranchResolution > 0,
           "simultaneous branch resolutions never selected an actual older lane-0 owner");
+#endif
 
     // Preserve load/branch cancellation, completion contention and retirement
     // backpressure in a bounded program that can revisit fresh ROB owners.

@@ -167,6 +167,8 @@ object ThroughputPerfGsimMain extends App {
         bankedIssuePayload = args.drop(2).contains("banked-issue-payload"),
         bankedFetchHints = args.drop(2).contains("banked-fetch-hints"),
         ownerLocalIssueReady = args.drop(2).contains("owner-local-issue-ready"),
-        completionTopology = if (args.drop(2).contains("dual-owner")) "dual-owner" else "legacy")),
+        completionTopology = if (args.drop(2).contains("dual-owner")) "dual-owner" else "legacy",
+        branchResolutionTopology = if (args.drop(2).contains("execution-mailbox"))
+            "execution-mailbox" else "writeback-coupled")),
         Array("--target-dir", args.head))
 }

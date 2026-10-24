@@ -25,6 +25,12 @@
 #ifndef A1_DUAL_OWNER
 #define A1_DUAL_OWNER 0
 #endif
+#ifndef A1_BRANCH_MAILBOX
+#define A1_BRANCH_MAILBOX 0
+#endif
+#ifndef A1_BRANCH_FIXTURE
+#define A1_BRANCH_FIXTURE 0
+#endif
 #ifndef A1_DUAL_INSPECT_VALUE
 #define A1_DUAL_INSPECT_VALUE 1
 #endif
@@ -126,6 +132,13 @@ struct Program {
     // Zero preserves the original ten fixtures and their exact service law.
     // Contention fixtures use a fixed public-cycle rendezvous, not DUT probes.
     unsigned contention = 0, responsePhase = 8;
+    unsigned mailboxCase = 0;
+    unsigned gatedIndex = std::numeric_limits<unsigned>::max(), releaseCycle = 0;
+    unsigned fetchFaultIndex = std::numeric_limits<unsigned>::max();
+    bool fetchPageFault = false;
+    // Optional external memory contract, used only by the separate adversarial
+    // fault/drop case. A read of this address fails without writing a GPR.
+    std::optional<uint64_t> loadAccessFaultAddress;
     void put(uint32_t word) { words.push_back(word); }
     uint32_t at(uint64_t pc) const {
         require(pc >= codeBase && !(pc & 3) && (pc - codeBase) / 4 < words.size(),
@@ -158,6 +171,9 @@ struct Oracle {
         uint64_t pc = codeBase;
         for (unsigned steps = 0; steps < 8192; ++steps) {
             const uint32_t word = program.at(pc);
+            if ((pc - codeBase) / 4 == program.fetchFaultIndex) {
+                trapPc = pc; trapCause = program.fetchPageFault ? 12 : 1; trapTval = pc; return;
+            }
             if (word == ebreak) {
                 trapPc = pc; trapCause = 3; trapTval = pc; return;
             }
@@ -197,6 +213,9 @@ struct Oracle {
                 const uint64_t immediate = signExtend(writing ? ((word >> 25) << 5 | rd) : word >> 20, 12);
                 const uint64_t address = a + immediate;
                 require(!(address & (bytes - 1)), "oracle fixture has misaligned memory access");
+                if (!writing && program.loadAccessFaultAddress == address) {
+                    trapPc = pc; trapCause = 5; trapTval = address; return;
+                }
                 if (writing) {
                     out.rd = 0;
                     memory.write(address, b, bytes);
@@ -419,7 +438,84 @@ std::vector<Program> programs() {
     return all;
 }
 
-struct Reply { uint64_t due = 0, data = 0, sequence = 0; };
+// B2 is an explicitly selected, separately receipted subset. The original 13
+// programs, their defaults, and their service schedules above remain unchanged.
+std::vector<Program> branchPrograms() {
+    std::vector<Program> all;
+    {
+        Program p{"mailbox_writeback_pressure"}; p.mailboxCase = 1; p.recovery = true;
+        p.put(auipc(1, 0x1000)); p.put(addi(2, 0, 7));
+        p.put(load(4, 1, 16)); p.put(regOp(5, 4, 2, 0, true));
+        p.put(load(6, 1, 24)); p.put(addi(7, 4, 1));
+        for (unsigned i = 0; i < 6; ++i) p.put(addi(7, 7, int(i + 1)));
+        p.put(branch(7, 7, 16));
+        p.put(load(15, 1, 32)); p.put(regOp(16, 4, 2, 0, true)); p.put(addi(17, 0, 999));
+        p.put(regOp(8, 7, 5)); p.put(regOp(9, 8, 6));
+        p.put(ebreak); all.push_back(p);
+    }
+    {
+        Program p{"mailbox_protected_store"}; p.mailboxCase = 2; p.recovery = true;
+        p.gatedIndex = 3; p.releaseCycle = 20; p.commitPressure = false;
+        p.put(auipc(1, 0x1000)); p.put(addi(2, 0, 23)); p.put(store(1, 2, 0));
+        p.put(branch(2, 2, 16));
+        p.put(regOp(10, 2, 2, 0, true)); p.put(load(11, 1, 8)); p.put(store(1, 2, 16));
+        p.put(load(3, 1, 0)); p.put(addi(4, 3, 1)); p.put(ebreak); all.push_back(p);
+    }
+    {
+        Program p{"mailbox_protected_system"}; p.mailboxCase = 3; p.recovery = true;
+        p.commitPressure = false;
+        p.put(addi(1, 0, 17)); p.put(addi(3, 0, 1));
+        for (unsigned group = 0; group < 4; ++group) {
+            p.put(csr(4, 1, 1)); p.put(branch(3, 3, 12));
+            p.put(addi(10, 0, 999)); p.put(addi(11, 0, 888));
+            p.put(addi(3, 3, 1)); p.put(addi(3, 3, 2));
+        }
+        p.put(csr(5, 0, 2)); p.put(regOp(6, 3, 5)); p.put(ebreak); all.push_back(p);
+    }
+    {
+        Program p{"mailbox_physical_branch_ages"}; p.mailboxCase = 4; p.recovery = true;
+        p.commitPressure = false;
+        p.put(auipc(1, 0x1000)); p.put(addi(2, 0, 7)); p.put(load(4, 1, 0));
+        // Store preparation takes the oldest issue rank without occupying an
+        // ALU holder. This attempts a real older branch in physical slot zero.
+        p.put(store(1, 4, 64)); p.put(branch(4, 4, 16));
+        p.put(branch(4, 4, 16)); p.put(regOp(12, 4, 2, 0, true)); p.put(addi(13, 0, 999));
+        p.put(addi(8, 4, 1)); p.put(load(5, 1, 8));
+        // A second, ordinary pair stresses simultaneous unresolved controls.
+        p.put(branch(5, 5, 16)); p.put(branch(5, 5, 16));
+        p.put(addi(14, 0, 777)); p.put(addi(15, 0, 666));
+        p.put(regOp(9, 8, 5)); p.put(ebreak); all.push_back(p);
+    }
+    {
+        Program p{"mailbox_faulted_branch"}; p.mailboxCase = 5;
+        p.put(addi(1, 0, 7));
+        for (unsigned i = 2; i <= 6; ++i) p.put(addi(i, i - 1, 1));
+        p.fetchFaultIndex = unsigned(p.words.size());
+        p.put(branch(6, 6, 12)); // Legal BEQ encoding, but fetch access fault wins.
+        p.put(addi(7, 0, 999)); p.put(regOp(8, 6, 6, 0, true));
+        p.put(ebreak); all.push_back(p);
+        Program page = p; page.name = "mailbox_page_faulted_branch"; page.fetchPageFault = true;
+        all.push_back(page);
+    }
+    return all;
+}
+
+// This is deliberately NOT part of either existing subset or a matched-cycle
+// experiment. Its external responder releases a legal load access error after
+// observing the independently younger branch's rename acceptance.
+std::vector<Program> branchFaultDropPrograms() {
+    Program p{"mailbox_older_load_fault_drop"}; p.mailboxCase = 6;
+    p.commitPressure = false; p.gatedIndex = 3;
+    p.loadAccessFaultAddress = dataBase;
+    p.put(auipc(1, 0x1000)); p.put(addi(2, 0, 7));
+    p.put(load(4, 1, 0)); // Architecturally terminal: cause 5, tval dataBase.
+    p.put(branch(2, 2, 12));
+    p.put(store(1, 2, 8)); p.put(addi(5, 0, 999));
+    p.put(store(1, 2, 16)); p.put(addi(6, 0, 888)); p.put(ebreak);
+    return {p};
+}
+
+struct Reply { uint64_t due = 0, data = 0, sequence = 0; bool error = false; };
 struct BusRequest {
     uint64_t address = 0, data = 0;
     unsigned size = 0, mask = 0;
@@ -438,6 +534,32 @@ struct Counters {
     uint64_t systemOtherComplete = 0, mulDivCancelled = 0, mulDivMultiCancel = 0;
 };
 
+struct BranchCounters {
+    uint64_t captures=0, published=0, drops=0, turnover=0, stalls=0;
+    uint64_t resolveBeforeWb=0, redirectBeforeWb=0, pendingOwnWb=0, youngerUncapturedWb=0;
+    uint64_t twoOffersOlder0=0, twoOffersOlder1=0, physicalOlder0=0, physicalOlder1=0;
+    uint64_t resolvedReplaced=0, killEnq=0, killReplaceReset=0;
+    uint64_t pendingMemory=0, pendingSystem=0, protectedMemoryResponse=0, uncapturedDiscarded=0;
+};
+#if A1_BRANCH_MAILBOX
+using BranchToken = std::pair<unsigned,uint64_t>;
+struct BranchResolution {
+    BranchToken token{};
+    uint64_t pc=0, target=0, captured=0;
+    bool samePayload(const BranchResolution &other) const {
+        return token==other.token && pc==other.pc && target==other.target;
+    }
+};
+struct BranchSource {
+    bool occupied=false;
+    BranchToken token{};
+    uint64_t pc=0;
+    bool control=false, resolved=false, cancel=false, wb=false, enq=false;
+    BranchToken incoming{};
+    bool incomingControl=false;
+};
+#endif
+
 class Test {
     std::unique_ptr<GsimModelStorage<SA1DualBackendGsim>> storage;
     SA1DualBackendGsim &dut;
@@ -451,13 +573,207 @@ class Test {
     uint64_t feedPc = codeBase, cycle = 0;
     size_t retired = 0, storeIndex = 0;
     bool terminal = false, previousRedirect = false;
-    bool inject = false, injected = false;
+    bool inject = false, injected = false, injectBranch = false, branchInjected = false;
     std::set<uint64_t> architecturalPcs;
     Counters counts;
+    BranchCounters branchCounts;
+    std::optional<uint64_t> faultRequestCycle, faultBranchRenameCycle, faultResponseCycle, faultTrapCycle;
+    unsigned faultResponses = 0;
+#if A1_BRANCH_MAILBOX
+    std::optional<BranchResolution> branchHeld;
+    std::array<std::optional<BranchToken>,2> branchSlots{};
+    std::array<bool,2> branchResolved{}, branchKillReplacement{};
+    std::map<BranchToken,BranchResolution> branchCaptures;
+    std::set<BranchToken> branchPublished, branchWb, branchForbiddenRetire;
+    std::map<BranchToken,BranchToken> branchUncapturedOwner;
+#endif
 
     void check(bool ok, const std::string &why) const {
         require(ok, program.name + " cycle=" + std::to_string(cycle) + " " + why);
     }
+#if A1_BRANCH_MAILBOX
+    void observeBranches() {
+        std::array<BranchSource, 2> sources{};
+        std::array<std::optional<BranchResolution>, 2> offers{};
+#define BRANCH_SOURCE(N) \
+        sources[N] = {bool(dut.get_io$$branchSource##N##$$occupied()), \
+            {unsigned(dut.get_io$$branchSource##N##$$token$$index()), dut.get_io$$branchSource##N##$$token$$tag()}, \
+            dut.get_io$$branchSource##N##$$pc(), bool(dut.get_io$$branchSource##N##$$control()), \
+            bool(dut.get_io$$branchSource##N##$$resolved()), bool(dut.get_io$$branchSource##N##$$cancel()), \
+            bool(dut.get_io$$branchSource##N##$$wbAccepted()), bool(dut.get_io$$branchSource##N##$$enq()), \
+            {unsigned(dut.get_io$$branchSource##N##$$incomingToken$$index()), dut.get_io$$branchSource##N##$$incomingToken$$tag()}, \
+            bool(dut.get_io$$branchSource##N##$$incomingControl())}; \
+        if (dut.get_io$$branchOffer##N##$$valid()) offers[N] = BranchResolution{ \
+            {unsigned(dut.get_io$$branchOffer##N##$$bits$$token$$index()), dut.get_io$$branchOffer##N##$$bits$$token$$tag()}, \
+            dut.get_io$$branchOffer##N##$$bits$$pc(), dut.get_io$$branchOffer##N##$$bits$$target(), cycle}
+        BRANCH_SOURCE(0); BRANCH_SOURCE(1);
+#undef BRANCH_SOURCE
+        const bool occupied = dut.get_io$$branchMailboxOccupied();
+        const bool valid = dut.get_io$$branchMailboxValid(), ready = dut.get_io$$branchMailboxReady();
+        const bool drop = dut.get_io$$branchMailboxDrop();
+        unsigned capture = dut.get_io$$branchMailboxCapture();
+        if (injectBranch && !branchInjected && capture) {
+            std::cerr << "A1_BRANCH_NEGATIVE_REACHED program=" << program.name << " cycle=" << cycle
+                << " mutation=sampled_capture\n";
+            capture ^= 1; branchInjected = true;
+        }
+        const unsigned head = dut.get_io$$branchHead(), occupancy = dut.get_io$$occupancy();
+        const BranchResolution observed{{unsigned(dut.get_io$$branchMailboxToken$$index()),
+            dut.get_io$$branchMailboxToken$$tag()}, dut.get_io$$branchMailboxPc(), dut.get_io$$branchMailboxTarget(), 0};
+        check(occupied == branchHeld.has_value(), "mailbox registered occupancy differs from independent queue");
+        check(valid == occupied, "mailbox validity changed without its documented dequeue/drop");
+        if (branchHeld) check(observed.samePayload(*branchHeld), "mailbox held full-token/payload changed or bypassed its register");
+        // Classify the terminal event from the accepted common recovery, never
+        // from the DUT mailbox's own drop annotation. In this fixture a branch
+        // token cannot alias a same-token load replay. An inclusive same-owner
+        // trap is distinct from publishing that owner's ordinary redirect.
+        bool expectedDrop = false, expectedPublish = false;
+        BranchToken commonRedirect{};
+        if (occupied && dut.get_io$$redirect$$valid()) {
+            commonRedirect = {unsigned(dut.get_io$$redirect$$bits$$token$$index()),
+                dut.get_io$$redirect$$bits$$token$$tag()};
+            const unsigned redirectAge = (commonRedirect.first + 16 - head) % 16;
+            const unsigned heldAge = (branchHeld->token.first + 16 - head) % 16;
+            const bool sameOwner = commonRedirect == branchHeld->token;
+            expectedDrop = redirectAge < heldAge || (sameOwner && dut.get_io$$trap$$valid());
+            expectedPublish = sameOwner && !dut.get_io$$trap$$valid();
+            check(expectedDrop || expectedPublish, "accepted younger/unrelated redirect bypassed pending mailbox owner");
+            if (expectedPublish) check(dut.get_io$$redirect$$bits$$pc() == branchHeld->pc &&
+                dut.get_io$$redirect$$bits$$target() == branchHeld->target,
+                "self-owner publication PC/target differs from independently held resolution");
+        }
+        check(drop == expectedDrop, "mailbox drop classification differs from accepted recovery/trap oracle");
+        check(ready == (expectedDrop || expectedPublish), "mailbox terminal credit differs from accepted recovery/trap oracle");
+        std::array<bool, 2> eligible{};
+        for (unsigned lane = 0; lane < 2; ++lane) {
+            const auto &source = sources[lane];
+            check(source.occupied == branchSlots[lane].has_value(), "execution-holder occupancy lifecycle mismatch");
+            if (source.occupied) {
+                check(source.token == *branchSlots[lane], "execution-holder full token changed without accepted replacement");
+                check(source.resolved == branchResolved[lane], "execution-holder resolved-once lifecycle mismatch");
+                if (branchKillReplacement[lane]) {
+                    check(!source.resolved, "same-edge killed old owner contaminated replacement resolved bit");
+                    ++branchCounts.killReplaceReset;
+                }
+            }
+            if (offers[lane]) {
+                const auto &offer = *offers[lane];
+                check(source.occupied && source.control && source.token == offer.token && source.pc == offer.pc,
+                    "branch offer does not belong to its physical control holder");
+                check(((offer.token.first + 16 - head) % 16) < occupancy, "branch offer outside live ROB window");
+                check((offer.pc - codeBase) / 4 != program.fetchFaultIndex,
+                    "faulted branch encoding illegally offered a redirect");
+                const uint32_t word = program.at(offer.pc);
+                check((word & 127) == 0x63, "fixture offered unsupported control-flow kind");
+                const unsigned a = (word >> 15) & 31, b = (word >> 20) & 31, function = (word >> 12) & 7;
+                if (function == 0 && a == b) {
+                    const uint64_t offset = signExtend(((word >> 31) << 12) | (((word >> 7) & 1) << 11) |
+                        (((word >> 25) & 63) << 5) | (((word >> 8) & 15) << 1), 13);
+                    check(offer.target == offer.pc + offset, "BEQ-self resolution differs from independent encoding");
+                } else check(oracle.legalRedirects.count(offer.pc) && oracle.legalRedirects.at(offer.pc).count(offer.target),
+                    "resolution target not in independently executed architectural path");
+                eligible[lane] = !source.resolved && (!branchHeld || branchHeld->token != offer.token);
+            }
+        }
+        // Circular queue walk, not the DUT's pairwise age comparator.
+        int chosen = -1;
+        for (unsigned age = 0; age < occupancy && chosen < 0; ++age) {
+            const unsigned index = (head + age) % 16;
+            for (unsigned lane = 0; lane < 2; ++lane)
+                if (eligible[lane] && offers[lane]->token.first == index) { chosen = int(lane); break; }
+        }
+        const unsigned expectedCapture = chosen >= 0 && (!occupied || expectedDrop || expectedPublish) && !sources[chosen].cancel
+            ? 1u << chosen : 0;
+        check(capture == expectedCapture, "independent mailbox capture oracle mismatch");
+        check(bool(dut.get_io$$branchCapture$$valid()) == bool(capture), "capture trace validity disagrees with actual capture");
+        if (eligible[0] && eligible[1]) {
+            if (chosen == 0) ++branchCounts.twoOffersOlder0; else ++branchCounts.twoOffersOlder1;
+        }
+        if (sources[0].occupied && sources[1].occupied && sources[0].control && sources[1].control) {
+            const unsigned age0 = (sources[0].token.first + 16 - head) % 16;
+            const unsigned age1 = (sources[1].token.first + 16 - head) % 16;
+            if (age0 < age1) ++branchCounts.physicalOlder0; else ++branchCounts.physicalOlder1;
+        }
+        branchCounts.stalls += occupied && !ready;
+        branchCounts.pendingMemory += occupied && dut.get_io$$branchMemoryProtected();
+        branchCounts.pendingSystem += occupied && dut.get_io$$branchSystemProtected();
+        if (occupied && dut.get_io$$branchMemoryProtected() && dut.get_io$$memory$$response$$ready() &&
+            !replies.empty() && replies.front().due <= cycle) ++branchCounts.protectedMemoryResponse;
+        for (unsigned lane = 0; lane < 2; ++lane) {
+            const auto &source = sources[lane];
+            if (source.wb && source.control) {
+                branchWb.insert(source.token);
+                if (occupied && source.resolved) ++branchCounts.pendingOwnWb;
+                if (offers[lane] && capture && !(capture & (1u << lane)) && !source.resolved) {
+                    check(chosen >= 0 && offers[chosen]->token != source.token,
+                        "uncaptured branch WB lacks a distinct older resolution owner");
+                    branchForbiddenRetire.insert(source.token);
+                    branchUncapturedOwner.emplace(source.token, offers[chosen]->token);
+                    ++branchCounts.youngerUncapturedWb;
+                }
+            }
+        }
+        if (occupied && ready) {
+            check(dut.get_io$$redirect$$valid(), "mailbox dequeue/drop lacks accepted common redirect");
+            const BranchToken redirect = commonRedirect;
+            if (expectedDrop) {
+                ++branchCounts.drops;
+            } else {
+                check(redirect == branchHeld->token && dut.get_io$$redirect$$bits$$pc() == branchHeld->pc &&
+                    dut.get_io$$redirect$$bits$$target() == branchHeld->target,
+                    "published redirect differs from independent held resolution");
+                check(cycle > branchHeld->captured, "mailbox bypassed minimum one-cycle latency");
+                branchPublished.insert(redirect);
+                ++branchCounts.published;
+                if (!branchWb.count(redirect)) ++branchCounts.redirectBeforeWb;
+            }
+            for (auto pending = branchUncapturedOwner.begin(); pending != branchUncapturedOwner.end();) {
+                if (pending->second != branchHeld->token) { ++pending; continue; }
+                // Actual accepted recovery, not an assumed next-cycle event,
+                // must include this younger uncaptured WB in its age suffix.
+                check((pending->first.first + 16 - head) % 16 > (redirect.first + 16 - head) % 16,
+                    "accepted resolution/drop failed to discard its younger uncaptured branch WB");
+                pending = branchUncapturedOwner.erase(pending);
+                ++branchCounts.uncapturedDiscarded;
+            }
+            branchHeld.reset();
+        }
+        if (capture) {
+            const unsigned lane = capture == 1 ? 0 : 1;
+            const auto captured = *offers[lane];
+            check(branchCaptures.emplace(captured.token, captured).second,
+                "one full-token execution lifetime captured more than once");
+            check(unsigned(dut.get_io$$branchCaptureLane()) == lane, "capture physical-lane trace mismatch");
+            check(dut.get_io$$branchCapture$$bits$$token$$index() == captured.token.first &&
+                dut.get_io$$branchCapture$$bits$$token$$tag() == captured.token.second &&
+                dut.get_io$$branchCapture$$bits$$pc() == captured.pc && dut.get_io$$branchCapture$$bits$$target() == captured.target,
+                "capture full-payload trace mismatch");
+            branchHeld = captured;
+            ++branchCounts.captures;
+            branchCounts.turnover += occupied && ready;
+            branchCounts.resolveBeforeWb += !sources[lane].wb;
+        }
+        for (unsigned lane = 0; lane < 2; ++lane) {
+            const auto &source = sources[lane];
+            branchKillReplacement[lane] = source.cancel && source.enq;
+            if (source.enq) {
+                if (source.resolved && source.occupied) ++branchCounts.resolvedReplaced;
+                if (source.cancel) ++branchCounts.killEnq;
+                check(!source.occupied || source.incoming != source.token, "execution replacement reused the same full token");
+                branchSlots[lane] = source.incoming; branchResolved[lane] = false;
+            } else if (source.cancel || source.wb) {
+                branchSlots[lane].reset(); branchResolved[lane] = false;
+            } else if (capture & (1u << lane)) branchResolved[lane] = true;
+        }
+        if (program.mailboxCase && (capture || (occupied && ready)))
+            std::cout << "A1_BRANCH_TRACE name=" << program.name << " cycle=" << cycle
+                << " capture=" << capture << " occupied=" << occupied << " ready=" << ready << " drop=" << drop
+                << " token=" << observed.token.first << ':' << observed.token.second
+                << " pc=" << hex(observed.pc) << " source0=" << sources[0].token.first << ':' << sources[0].token.second
+                << " source1=" << sources[1].token.first << ':' << sources[1].token.second
+                << " wb0=" << sources[0].wb << " wb1=" << sources[1].wb << '\n';
+    }
+#endif
     void driveIdle() {
         dut.set_io$$valid0(false); dut.set_io$$valid1(false);
         dut.set_io$$instruction0(0x13); dut.set_io$$instruction1(0x13);
@@ -468,11 +784,19 @@ class Test {
         dut.set_io$$memory$$response$$bits$$data(0);
         dut.set_io$$memory$$response$$bits$$error(false);
         dut.set_io$$memory$$response$$bits$$pageFault(false);
+#if A1_BRANCH_FIXTURE
+        dut.set_io$$faultMask(0); dut.set_io$$pageFaultMask(0);
+#endif
     }
     void commit(Retire actual, unsigned index, uint64_t tag) {
         check(!terminal, "retirement after terminal trap");
         check(retired < oracle.retirements.size(), "unexpected extra retirement");
         check(index < 16, "commit token exceeds A1 ROB16");
+#if A1_BRANCH_MAILBOX
+        check(!branchForbiddenRetire.count({index, tag}), "uncaptured younger branch escaped its older redirect kill");
+        if ((actual.word & 127) == 0x63 && actual.nextPc != actual.pc + 4)
+            check(branchPublished.count({index, tag}), "mispredicted branch retired before its accepted mailbox redirect");
+#endif
         check(committedTokens.insert({index, tag}).second, "duplicate full-token retirement");
         if (previousTag.count(index)) {
             check(previousTag.at(index) != tag, "ROB slot reuse retained old ticket");
@@ -499,12 +823,20 @@ class Test {
         ++retired; ++counts.retired;
     }
     bool tick(bool offer = true, unsigned inspect = 0) {
-        const bool valid0 = offer && !terminal && program.contains(feedPc);
-        const bool valid1 = valid0 && program.contains(feedPc + 4);
-        const bool commitEnable = program.contention == 1 || program.contention == 2
+        const auto offerAllowed = [&](uint64_t pc) {
+            // First wait for an actually accepted older request, then offer the
+            // independent branch. This event-driven service is functional-only.
+            if (program.loadAccessFaultAddress && pc >= codeBase + uint64_t(program.gatedIndex) * 4)
+                return faultRequestCycle.has_value();
+            return !program.mailboxCase || cycle >= program.releaseCycle ||
+                pc < codeBase + uint64_t(program.gatedIndex) * 4;
+        };
+        const bool valid0 = offer && !terminal && program.contains(feedPc) && offerAllowed(feedPc);
+        const bool valid1 = valid0 && program.contains(feedPc + 4) && offerAllowed(feedPc + 4);
+        const bool commitEnable = program.contention == 1 || program.contention == 2 || program.mailboxCase == 1
             ? !(cycle >= 24 && cycle < 30)
             : !program.commitPressure || cycle % 23 >= 5;
-        const bool ready = program.contention == 1 || program.contention == 2
+        const bool ready = program.contention == 1 || program.contention == 2 || program.mailboxCase == 1
             ? cycle % 13 != 4
             : cycle % 11 != 2 && cycle % 11 != 3 && cycle % 17 != 8;
         const bool response = !replies.empty() && replies.front().due <= cycle;
@@ -513,20 +845,39 @@ class Test {
         dut.set_io$$instruction1(valid1 ? program.at(feedPc + 4) : 0x13);
         dut.set_io$$pc0(feedPc); dut.set_io$$pc1(feedPc + 4);
         dut.set_io$$commitEnable(commitEnable); dut.set_io$$inspectRegister(inspect);
+#if A1_BRANCH_FIXTURE
+        const uint64_t faultPc = codeBase + uint64_t(program.fetchFaultIndex) * 4;
+        const unsigned faultMask = unsigned(valid0 && feedPc == faultPc) |
+            (unsigned(valid1 && feedPc + 4 == faultPc) << 1);
+        dut.set_io$$faultMask(program.fetchPageFault ? 0 : faultMask);
+        dut.set_io$$pageFaultMask(program.fetchPageFault ? faultMask : 0);
+#endif
         dut.set_io$$memory$$request$$ready(ready);
         dut.set_io$$memory$$response$$valid(response);
         dut.set_io$$memory$$response$$bits$$data(response ? replies.front().data : 0);
-        dut.set_io$$memory$$response$$bits$$error(false);
+        dut.set_io$$memory$$response$$bits$$error(response && replies.front().error);
         dut.set_io$$memory$$response$$bits$$pageFault(false);
         dut.step();
 
         const bool redirect = dut.get_io$$redirect$$valid();
         const bool trap = dut.get_io$$trap$$valid();
+#if A1_BRANCH_MAILBOX
+        observeBranches();
+#endif
         const bool renamed0 = dut.get_io$$renamed0(), renamed1 = dut.get_io$$renamed1();
         check(!renamed0 || valid0, "renamed absent lane 0");
         check(!renamed1 || (valid1 && renamed0), "rename broke offered prefix");
         for (unsigned lane = 0; lane < unsigned(renamed0) + unsigned(renamed1); ++lane) {
             ++counts.renamed;
+            if (program.loadAccessFaultAddress && feedPc + lane * 4 == codeBase + uint64_t(program.gatedIndex) * 4 &&
+                !faultBranchRenameCycle) {
+                check(faultRequestCycle && replies.size() == 1 && replies.front().error,
+                    "adversarial branch rename lacks its accepted older fault reply obligation");
+                faultBranchRenameCycle = cycle;
+                replies.front().due = cycle + 1;
+                std::cout << "A1_BRANCH_FAULT_EVENT branch_renamed=" << cycle
+                    << " accepted_request=" << *faultRequestCycle << " error_release=" << cycle + 1 << '\n';
+            }
             if (!architecturalPcs.count(feedPc + lane * 4) && feedPc + lane * 4 != oracle.trapPc)
                 ++counts.wrongPathRenamed;
         }
@@ -565,12 +916,25 @@ class Test {
                 "terminal trap cause expected=" + std::to_string(oracle.trapCause));
             check(dut.get_io$$trap$$bits$$tval() == oracle.trapTval, "terminal trap tval mismatch");
             terminal = true;
+            if (program.loadAccessFaultAddress) faultTrapCycle = cycle;
         }
         if (redirect) {
             const uint64_t pc = dut.get_io$$redirect$$bits$$pc(), target = dut.get_io$$redirect$$bits$$target();
             if (trap) check(pc == oracle.trapPc && target == 0, "reset-M-mode terminal trap redirect mismatch");
             else {
-                check(oracle.legalRedirects.count(pc) && oracle.legalRedirects.at(pc).count(target),
+                // A younger BEQ-self may legally redirect speculatively before
+                // its older load's fault is known. That is not architectural
+                // retirement; an early publish is reported as missing drop
+                // coverage, rather than changing the precise fault oracle.
+                bool faultCaseSpeculation = false;
+                if (program.loadAccessFaultAddress && pc == codeBase + uint64_t(program.gatedIndex) * 4) {
+                    const uint32_t word = program.at(pc);
+                    const uint64_t offset = signExtend(((word >> 31) << 12) | (((word >> 7) & 1) << 11) |
+                        (((word >> 25) & 63) << 5) | (((word >> 8) & 15) << 1), 13);
+                    faultCaseSpeculation = (word & 0x707f) == 0x63 &&
+                        ((word >> 15) & 31) == ((word >> 20) & 31) && target == pc + offset;
+                }
+                check(faultCaseSpeculation || (oracle.legalRedirects.count(pc) && oracle.legalRedirects.at(pc).count(target)),
                     "redirect not justified by independent control flow pc=" + hex(pc) + " target=" + hex(target));
                 check(program.contains(target), "redirect leaves bounded program");
                 ++counts.redirects;
@@ -582,6 +946,11 @@ class Test {
         }
         if (response && dut.get_io$$memory$$response$$ready()) {
             check(replies.front().sequence == counts.responses, "ordered response obligation mismatch");
+            if (replies.front().error) {
+                check(program.loadAccessFaultAddress && !faultResponses, "unexpected or duplicate access-error response");
+                faultResponseCycle = cycle; ++faultResponses;
+                std::cout << "A1_BRANCH_FAULT_EVENT error_accepted=" << cycle << '\n';
+            }
             replies.pop_front(); ++counts.responses;
         } else if (response) ++counts.responseHeld;
 
@@ -615,9 +984,17 @@ class Test {
                 // Every accepted request owns exactly one delayed ordered reply.
                 // The delay depends only on public cycle/request ordinals.
                 const uint64_t delay = program.delay + (counts.requests % 4) * 3 + (cycle % 3);
-                const uint64_t scheduled = program.contention == 1 ? 40 :
+                const uint64_t scheduled = program.mailboxCase == 1 ? 40 + counts.requests * 8 :
+                    program.mailboxCase == 2 && counts.requests == 0 ? 64 :
+                    program.mailboxCase == 4 && counts.requests == 0 ? 40 :
+                    program.contention == 1 ? 40 :
                     program.contention == 2 ? 40 + counts.requests * program.responsePhase : cycle + delay;
-                replies.push_back({std::max(cycle + 1, scheduled), data, counts.requests});
+                const bool accessError = !bus.write && program.loadAccessFaultAddress == bus.address;
+                if (accessError) {
+                    check(!faultRequestCycle && counts.requests == 0, "fault/drop fixture accepted an unexpected repeated load");
+                    faultRequestCycle = cycle;
+                }
+                replies.push_back({accessError ? UINT64_MAX : std::max(cycle + 1, scheduled), data, counts.requests, accessError});
                 ++counts.requests;
                 counts.maxReplies = std::max(counts.maxReplies, uint64_t(replies.size()));
                 heldRequest.reset();
@@ -633,9 +1010,9 @@ class Test {
     }
 
 public:
-    explicit Test(const Program &p, bool negative)
+    explicit Test(const Program &p, bool negative, bool branchNegative = false)
         : storage(std::make_unique<GsimModelStorage<SA1DualBackendGsim>>()), dut(storage->get()),
-          program(p), oracle(p), inject(negative) {
+          program(p), oracle(p), inject(negative), injectBranch(branchNegative) {
         for (const auto &expected : oracle.retirements) architecturalPcs.insert(expected.pc);
         dut.LOG_START = 1;
         dut.activateAll();
@@ -651,8 +1028,19 @@ public:
         check(counts.requests == counts.responses && replies.empty(), "request/response conservation failed");
         check(storeIndex == oracle.stores.size(), "architectural store never reached memory");
         check(deviceMemory.data == oracle.memory.data, "final independent byte-memory mismatch");
+        if (program.loadAccessFaultAddress) {
+            check(faultRequestCycle && faultBranchRenameCycle && faultResponseCycle && faultTrapCycle && faultResponses == 1,
+                "fault/drop fixture did not complete its legal request/rename/error/trap sequence");
+            check(counts.requests == 1 && counts.stores == 0 && counts.retired == 2,
+                "older access fault allowed a younger retirement or external memory side effect");
+        }
+#if A1_BRANCH_MAILBOX
+        check(!branchHeld, "terminal drain retained a mailbox owner");
+        check(branchUncapturedOwner.empty(), "terminal drain retained an uncaptured younger-branch kill obligation");
+#endif
         check(!inject || injected, "negative mutation never reached a sampled retirement");
-        check(counts.issue2 > 0 || program.name == "signed_divide_fs_off", "no two-issue witness in directed program");
+        check(!injectBranch || branchInjected, "branch negative mutation never reached an actual capture");
+        check(counts.issue2 > 0 || program.mailboxCase || program.name == "signed_divide_fs_off", "no two-issue witness in directed program");
         if (program.recovery) check(counts.redirects > 0, "directed recovery program never redirected");
 #if A1_DUAL_OWNER
         // Fixed schedules above have demonstrated these accepted-capture
@@ -668,6 +1056,7 @@ public:
         // Timing ends once the terminal trap and all service/owner obligations
         // are drained. Register inspection is correctness-only, not execution.
         const Counters execution = counts;
+        const BranchCounters branchExecution = branchCounts;
 #if A1_DUAL_INSPECT_VALUE
         for (unsigned reg = 0; reg < 32; ++reg) {
             tick(false, reg);
@@ -676,6 +1065,7 @@ public:
 #endif
         const uint64_t inspectionCycles = counts.cycles - execution.cycles;
         counts = execution;
+        branchCounts = branchExecution;
         counts.inspectionCycles = inspectionCycles;
         std::cout << "A1_DUAL_PROGRAM_PASS topology=" << (A1_DUAL_OWNER ? "dual-owner" : "legacy")
             << " program=" << program.name << " contention=" << program.contention
@@ -708,6 +1098,36 @@ public:
             << ",\"load_held_forward\":" << counts.loadForward << ",\"muldiv_cancelled\":" << counts.mulDivCancelled
             << ",\"redirect_pending_reply\":" << counts.redirectWithReply
             << ",\"trap_cause\":" << oracle.trapCause << "}\n";
+        if (program.mailboxCase) {
+            std::cout << "A1_BRANCH_METRIC {\"name\":\"" << program.name << "\",\"mailbox_enabled\":" << A1_BRANCH_MAILBOX
+                << ",\"cycles\":" << counts.cycles << ",\"retired\":" << counts.retired
+                << ",\"captures\":" << branchCounts.captures << ",\"published\":" << branchCounts.published
+                << ",\"drops\":" << branchCounts.drops << ",\"turnover\":" << branchCounts.turnover
+                << ",\"stall_cycles\":" << branchCounts.stalls << ",\"resolve_before_wb\":" << branchCounts.resolveBeforeWb
+                << ",\"redirect_before_wb\":" << branchCounts.redirectBeforeWb << ",\"pending_own_wb\":" << branchCounts.pendingOwnWb
+                << ",\"younger_uncaptured_wb\":" << branchCounts.youngerUncapturedWb
+                << ",\"uncaptured_discarded\":" << branchCounts.uncapturedDiscarded
+                << ",\"two_offers_older_lane0\":" << branchCounts.twoOffersOlder0
+                << ",\"two_offers_older_lane1\":" << branchCounts.twoOffersOlder1
+                << ",\"physical_branches_older_lane0\":" << branchCounts.physicalOlder0
+                << ",\"physical_branches_older_lane1\":" << branchCounts.physicalOlder1
+                << ",\"resolved_owner_replaced\":" << branchCounts.resolvedReplaced
+                << ",\"kill_enq\":" << branchCounts.killEnq << ",\"kill_replacement_reset\":" << branchCounts.killReplaceReset
+                << ",\"pending_protected_memory_cycles\":" << branchCounts.pendingMemory
+                << ",\"pending_protected_system_cycles\":" << branchCounts.pendingSystem
+                << ",\"protected_memory_response\":" << branchCounts.protectedMemoryResponse
+                << ",\"trap_cause\":" << oracle.trapCause << "}\n";
+        }
+        if (program.loadAccessFaultAddress)
+            std::cout << "A1_BRANCH_FAULT_DROP_METRIC {\"name\":\"" << program.name
+                << "\",\"schedule\":\"adversarial_branch_rename_then_next_tick_error\",\"matched_cycles\":false"
+                << ",\"request_cycle\":" << *faultRequestCycle << ",\"branch_rename_cycle\":" << *faultBranchRenameCycle
+                << ",\"error_response_cycle\":" << *faultResponseCycle << ",\"trap_cycle\":" << *faultTrapCycle
+                << ",\"requests\":" << counts.requests << ",\"responses\":" << counts.responses
+                << ",\"error_responses\":" << faultResponses << ",\"stores\":" << counts.stores
+                << ",\"captures\":" << branchCounts.captures << ",\"published\":" << branchCounts.published
+                << ",\"drops\":" << branchCounts.drops << ",\"retired\":" << counts.retired
+                << ",\"trap_cause\":" << oracle.trapCause << ",\"trap_tval\":" << oracle.trapTval << "}\n";
         return counts;
     }
 };
@@ -715,24 +1135,36 @@ public:
 
 int main(int argc, char **argv) {
     try {
-        bool inject = false;
+        bool inject = false, branchOnly = false, branchNegative = false, branchFaultDropOnly = false;
         std::string selected;
         std::optional<unsigned> contentionPhase;
         for (int i = 1; i < argc; ++i) {
             const std::string option = argv[i];
             if (option == "--inject-mismatch") inject = true;
+            else if (option == "--branch-mailbox-only") branchOnly = true;
+            else if (option == "--branch-fault-drop-only") branchFaultDropOnly = true;
+            else if (option == "--inject-branch-mismatch") { branchNegative = true; branchOnly = true; }
             else if (option == "--program" && i + 1 < argc) selected = argv[++i];
             else if (option == "--contention-phase" && i + 1 < argc) {
                 contentionPhase = unsigned(std::stoul(argv[++i]));
                 require(*contentionPhase <= 32, "contention phase must be <=32");
-            } else throw std::runtime_error("usage: a1_dual_backend [--inject-mismatch] [--program NAME] [--contention-phase 0..32]");
+            } else throw std::runtime_error("usage: a1_dual_backend [--inject-mismatch] [--program NAME] [--contention-phase 0..32] [--branch-mailbox-only] [--inject-branch-mismatch] [--branch-fault-drop-only]");
         }
+        require(!branchNegative || A1_BRANCH_MAILBOX, "branch observer negative requires execution-mailbox model");
+        require(!(branchNegative && inject), "select one independent negative control at a time");
+        require(!branchFaultDropOnly || (!branchOnly && !inject && !branchNegative && !contentionPhase),
+            "fault/drop case is a separate functional-only subset without phase search or negative mutation");
+        require(!branchFaultDropOnly || A1_BRANCH_MAILBOX, "fault/drop observation requires execution-mailbox model");
         unsigned completed = 0;
         Counters total;
-        for (auto program : programs()) {
+        for (auto program : (branchFaultDropOnly ? branchFaultDropPrograms() : branchOnly ? branchPrograms() : programs())) {
             if (!selected.empty() && program.name != selected) continue;
             if (contentionPhase && program.contention == 2) program.responsePhase = *contentionPhase;
-            Test test(program, inject);
+#if !A1_BRANCH_FIXTURE
+            if (program.fetchFaultIndex != std::numeric_limits<unsigned>::max())
+                throw std::runtime_error("faulted-branch case requires the B2 fault-input fixture");
+#endif
+            Test test(program, inject, branchNegative);
             const auto result = test.run();
             total.cycles += result.cycles; total.retired += result.retired;
             total.inspectionCycles += result.inspectionCycles;
@@ -745,6 +1177,7 @@ int main(int argc, char **argv) {
         }
         require(completed != 0, "unknown or empty program selection");
         require(!inject, "negative mode unexpectedly passed");
+        require(!branchNegative, "branch negative mode unexpectedly passed");
         std::cout << "A1_DUAL_BACKEND_PASS topology=" << (A1_DUAL_OWNER ? "dual-owner" : "legacy")
             << " programs=" << completed << " cycles=" << total.cycles
             << " inspection_cycles=" << total.inspectionCycles << " retired=" << total.retired

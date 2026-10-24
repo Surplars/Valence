@@ -1,8 +1,10 @@
 # Independent branch-resolution mailbox
 
-This module follows the first dual-owner checkpoint `aaa2af4`. It is **not
-connected to IntegerBackend**. Existing A1 execution, clocks, completion order,
-and the measured `compiled_sum` 1,458/1,462-cycle comparison are unchanged.
+This document records the standalone S1 module following dual-owner checkpoint
+`aaa2af4`. At S1 checkpoint `4e8e7ca`, it was **not connected to IntegerBackend**;
+the 1,458/1,462-cycle comparison was unchanged. The separately opt-in B2 backend
+integration is documented in [a1-branch-mailbox-integration.md](a1-branch-mailbox-integration.md).
+The standalone results below are historical module-only evidence, not B2 CPU performance.
 
 ## Contract
 

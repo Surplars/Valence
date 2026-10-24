@@ -3,7 +3,7 @@ package soc.core.ooo
 import chisel3._
 import chisel3.util._
 
-/** Independent registered redirect mailbox; deliberately not connected to the backend yet.
+/** Registered redirect mailbox, standalone-testable and used by the explicit execution-mailbox backend.
   *
   * Capacity 1, minimum latency 1, no empty bypass, sustained II 1 with turnover.
   * Two physical execution holders offer full-token resolutions. Registered owner

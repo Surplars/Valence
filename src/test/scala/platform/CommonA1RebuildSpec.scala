@@ -11,7 +11,7 @@ class CommonA1RebuildSpec extends AnyFunSuite {
         assert(CommonCpuProfile.A1.fpga.coreParams.completionTopology == "legacy")
     }
 
-    test("four explicit controls separate completion and memory changes") {
+    test("explicit controls separate completion, memory and branch changes") {
         for (profile <- CommonA1RebuildProfile.all) {
             val config = profile.config
             val p = config.coreParams
@@ -19,6 +19,8 @@ class CommonA1RebuildSpec extends AnyFunSuite {
             assert(p.robEntries == 16 && p.physicalRegs == 48 && p.storeBufferEntries == 2)
             assert(p.memoryEntries == (if (profile.parallelMemory) 4 else 2))
             assert(p.completionTopology == (if (profile.dualCompletion) "dual-owner" else "legacy"))
+            assert(p.branchResolutionTopology ==
+                (if (profile.independentBranch) "execution-mailbox" else "writeback-coupled"))
             assert(config.cache.readMshrs == 2 && config.ddrOutstanding == 4)
             assert(p.dataReturnHandleBits == 0 && p.postedProofConfig.isEmpty)
             assert(config.cpuHz == CommonCpuProfile.A1.fpga.cpuHz)
@@ -34,7 +36,7 @@ class CommonA1RebuildSpec extends AnyFunSuite {
 
 /** Explicit CPU tile export; not a replacement whole-SoC bitstream entry point. */
 object CommonA1RebuildTileMain extends App {
-    require(args.length == 2, "usage: CommonA1RebuildTileMain <baseline|backend|memory|combined> <output-dir>")
+    require(args.length == 2, "usage: CommonA1RebuildTileMain <baseline|backend|memory|combined|backend-branch|combined-branch> <output-dir>")
     val profile = CommonA1RebuildProfile.named(args(0))
     ChiselStage.emitSystemVerilogFile(profile.buildTile(), Array("--target-dir", args(1)),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",

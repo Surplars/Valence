@@ -106,9 +106,14 @@ final case class FpgaNextConfig(
     pendingReadyStoreQuery: Boolean = false,
     registeredHomeRequestBoundary: Boolean = false,
     // Explicit Common-A1 rebuild topology; legacy board factories must not silently ignore it.
-    completionTopology: String = "legacy"
+    completionTopology: String = "legacy",
+    branchResolutionTopology: String = "writeback-coupled"
 ) {
     require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
+    require(Set("writeback-coupled", "execution-mailbox").contains(branchResolutionTopology),
+        "unknown branch resolution topology")
+    require(branchResolutionTopology == "writeback-coupled" || completionTopology == "dual-owner",
+        "execution-mailbox branch resolution requires explicit dual-owner completion")
     require(!pendingReadyStoreQuery || (pendingReadyStoreBypass && pendingVirtualStoreProof &&
         registeredPendingStoreQuery && memoryPreparationHeadMask &&
         Set(2, 3).contains(pendingVirtualStoreProofSlots) && pendingStoreEarlyLoadCredits == 2),
@@ -195,6 +200,7 @@ final case class FpgaNextConfig(
     val name = (if (selectedTopology) "fpga-next-selected-v2" else if (optimized)
         "fpga-next-storage-v1" else "fpga-next-reference-topology-v1") +
         (if (completionTopology != "legacy") s"-completion-$completionTopology" else "") +
+        (if (branchResolutionTopology != "writeback-coupled") s"-branch-$branchResolutionTopology" else "") +
         (if (!selectedTopology && independentFetchPayloadCapture) "-fetch-capture" else "") +
         (if (!selectedTopology && ownerLocalIssueReady) "-owner-ready" else "") +
         (if (!selectedTopology && sharedFetchPmpRelations) "-shared-pmp" else "") +
@@ -378,7 +384,8 @@ final case class FpgaNextConfig(
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
-        backendCapacity = backendCapacity).copy(completionTopology = completionTopology)
+        backendCapacity = backendCapacity).copy(completionTopology = completionTopology,
+            branchResolutionTopology = branchResolutionTopology)
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
         require(completionTopology == "legacy",

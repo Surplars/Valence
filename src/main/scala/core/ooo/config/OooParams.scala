@@ -208,9 +208,17 @@ case class OooParams(
     // Optional query policy only; no additional proof or accepted-owner capacity.
     pendingReadyStoreQuery: Boolean = false,
     // Explicit backend architecture, not a frequency claim. Legacy presets stay frozen.
-    completionTopology: String = "legacy"
+    completionTopology: String = "legacy",
+    // Resolution transport is independent of the two architectural writeback ports.
+    branchResolutionTopology: String = "writeback-coupled"
 ) {
     require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
+    require(Set("writeback-coupled", "execution-mailbox").contains(branchResolutionTopology),
+        "unknown branch resolution topology")
+    require(branchResolutionTopology != "execution-mailbox" || (completionTopology == "dual-owner" &&
+        registeredIssueExecute && registeredBranchRedirect && precompleteMispredictedBranch &&
+        fastHeadTrapRecovery && fastHeadSystemRecovery && registeredLoadReplay),
+        "execution mailbox resolution requires the bounded dual-owner A1 registered recovery contract")
     require(completionTopology != "dual-owner" || (renameWidth == 2 && completionWidth == 2 &&
         commitWidth == 2 && robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
         Set(2, 4).contains(memoryEntries) && registeredIssueExecute && precompleteMispredictedBranch &&

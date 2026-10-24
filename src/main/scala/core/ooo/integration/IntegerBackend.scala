@@ -129,6 +129,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         !p.fastHeadLoadRetire && !p.moveAlias),
         "operand execution stages require the two-slot, non-aliased, registered redirect/retirement contract")
     private val dualOwnerCompletion = p.completionTopology == "dual-owner"
+    private val executionBranchMailbox = p.branchResolutionTopology == "execution-mailbox"
     require(!dualOwnerCompletion || !shadowEarlyProofBind,
         "dual-owner writeback excludes the always-ready LSU shadow experiment")
     val io = IO(new Bundle {
@@ -2329,15 +2330,21 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val newResolutions  = Wire(Vec(p.completionWidth, Valid(new FrontendRedirect(p))))
     val completion      = Wire(Vec(p.completionWidth, new BackendCompletion(p)))
     val branchCandidate = Wire(Valid(new FrontendRedirect(p)))
-    val branchRedirectValid = RegInit(false.B)
-    val branchRedirect      = Reg(new FrontendRedirect(p))
+    val branchMailbox = if (executionBranchMailbox) Some(Module(new BranchResolutionMailbox(p))) else None
+    // Exactly one registered resolution boundary: the mailbox REPLACES these
+    // legacy registers. It does not precede or follow a second redirect stage.
+    val branchRedirectValid = branchMailbox.map(_.io.occupied).getOrElse(RegInit(false.B))
+    val branchRedirect = branchMailbox.map(_.io.out.bits).getOrElse(Reg(new FrontendRedirect(p)))
+    val branchMailboxPublished = WireDefault(false.B)
+    val branchMailboxDropped = WireDefault(false.B)
     val branchResult        = Reg(new BackendCompletion(p))
     val branchResultPortFree = !lsu.io.complete.valid && !mCompleteValid &&
         !systemComplete.valid
     val branchRedirectReady = branchRedirectValid &&
         (if (p.precompleteMispredictedBranch) true.B else branchResultPortFree)
     val executionStages = if (p.registeredIssueExecute) Seq.fill(p.completionWidth) {
-        Module(new IssueExecuteStage((new IntegerExecutionOperands(p)).getWidth))
+        Module(new IssueExecuteStage((new IntegerExecutionOperands(p)).getWidth,
+            trackResolution = executionBranchMailbox))
     } else Seq.empty
     val executingOperands = executionStages.map(_.io.deq.bits.asTypeOf(new IntegerExecutionOperands(p)))
     val executionIncoming = if (dualOwnerCompletion)
@@ -2366,7 +2373,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
         completionSelector.get.io.present := VecInit(sources.map(_.valid) ++
             executionStages.indices.map(lane => executionStages(lane).io.occupied &&
-                (!branchRedirectValid || executingOperands(lane).entry.request.controlFlow === ControlFlow.none))).asUInt
+                (!branchRedirectValid || executingOperands(lane).entry.request.controlFlow === ControlFlow.none ||
+                    executionStages(lane).io.resolved.getOrElse(false.B)))).asUInt
         for (lane <- 0 until 2) {
             completionSelector.get.io.index(4 + lane) := executingOperands(lane).entry.renamed.token.index
         }
@@ -2407,7 +2415,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         stage.io.cancel := stage.io.occupied && (killed(ownerIndex) || stale)
         stage.io.deq.ready := (if (dualOwnerCompletion) completionSelector.get.io.selected(4 + lane)
             else if (lane == 0) branchResultPortFree else true.B) &&
-            (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none)
+            (!branchRedirectValid || entry.request.controlFlow === ControlFlow.none ||
+                stage.io.resolved.getOrElse(false.B))
         executionRetirementOffer.foreach(_(lane) := stage.io.occupied && ownerMatches && stage.io.deq.ready)
         when(stage.io.occupied) {
             assert(!stale,
@@ -3033,7 +3042,14 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         completion(lane).tval      := Mux(entry.request.fetchFault || entry.request.fetchPageFault,
             entry.request.fetchTval,
             Mux(!legal, entry.request.rename.instruction, branch.io.target))
-        newResolutions(lane).valid := choice.valid && isControl && legal && !misaligned &&
+        // Resolution reads the stable OLD physical holder independently of WB
+        // selection. Late cancellation terminates only mailbox capture, never
+        // the offer/winner path. Faulting instruction bytes cannot redirect.
+        val resolutionOffer = if (executionBranchMailbox)
+            executionStages(lane).io.occupied && !executionStages(lane).io.resolved.get &&
+                !entry.request.fetchFault && !entry.request.fetchPageFault
+        else choice.valid
+        newResolutions(lane).valid := resolutionOffer && isControl && legal && !misaligned &&
             branch.io.nextPc =/= Mux(
                 entry.request.predictedNextPc.valid,
                 entry.request.predictedNextPc.bits,
@@ -3217,7 +3233,80 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             }
         }
     }
-    if (p.registeredBranchRedirect) {
+    if (executionBranchMailbox) {
+        val mailbox = branchMailbox.get
+        assert(!io.recover.valid, "registered branch redirects require no external recovery producer")
+        mailbox.io.head := head
+        mailbox.io.offer := newResolutions
+        mailbox.io.sourceResolved := VecInit(executionStages.map(_.io.resolved.get)).asUInt
+        mailbox.io.killed := VecInit(executionStages.map(_.io.cancel)).asUInt
+        // IMPORTANT: combined suffix kill must NEVER gate mailbox out.valid.
+        // The old record is consumed at exactly one of two terminal events:
+        // its accepted local redirect, or an accepted external older/inclusive
+        // recovery that discards it. This ready -> capture path ends at D; it
+        // cannot reach offer/winner or current physical completion selection.
+        mailbox.io.flush := false.B
+        mailbox.io.cancelHeld := false.B
+        val heldIndex = Mux(mailbox.io.occupied, mailbox.io.out.bits.token.index, 0.U)
+        branchMailboxPublished := mailbox.io.occupied && ordinaryLocalRedirectAccepted && !localInclusive &&
+            localCandidate.bits.token.asUInt === mailbox.io.out.bits.token.asUInt
+        branchMailboxDropped := mailbox.io.occupied && killed(heldIndex)
+        mailbox.io.out.ready := branchMailboxPublished || branchMailboxDropped
+        when(mailbox.io.occupied) {
+            assert(issueEntries(heldIndex).renamed.token.asUInt === mailbox.io.out.bits.token.asUInt &&
+                ((heldIndex - head)(p.robBits - 1, 0) < ledger.io.occupancy),
+                "a pending resolution owns its full live ROB generation until redirect or discard")
+        }
+        assert(!(branchMailboxPublished && branchMailboxDropped),
+            "an accepted branch redirect cannot kill its own noninclusive owner")
+        when(branchMailboxDropped) {
+            val sameInclusiveOwner = ledger.io.recover.bits.inclusive &&
+                ledger.io.recover.bits.token.asUInt === mailbox.io.out.bits.token.asUInt
+            assert(ledger.io.recoveryAccepted && (sameInclusiveOwner ||
+                (ledger.io.recover.bits.token.index - head)(p.robBits - 1, 0) <
+                    (heldIndex - head)(p.robBits - 1, 0)),
+                "only an accepted older recovery or inclusive same-owner trap may discard a resolution")
+        }
+        for (lane <- 0 until 2) {
+            val stage = executionStages(lane)
+            stage.io.resolutionCapture.get := mailbox.io.capture(lane)
+            when(mailbox.io.capture(lane)) {
+                assert(newResolutions(lane).valid && !completion(lane).exception,
+                    "mailbox capture is a legal nonfaulting branch resolution from its physical owner")
+            }
+            // With an empty mailbox, both branches may write back while only
+            // the oldest resolution is captured. The younger completion has
+            // no architectural future: the older redirect will kill it before
+            // the occupied-mailbox retirement hold can be released.
+            // This witness avoids a branch-compare -> WB-ready feedback path.
+            val youngerWb = stage.io.deq.fire && newResolutions(lane).valid && !mailbox.io.capture(lane)
+            when(youngerWb) {
+                assert(mailbox.io.capture(1 - lane) &&
+                    (newResolutions(1 - lane).bits.token.index - head)(p.robBits - 1, 0) <
+                        (newResolutions(lane).bits.token.index - head)(p.robBits - 1, 0),
+                    "an uncaptured mispredicted WB must be younger than this cycle's captured redirect")
+            }
+            val youngerPendingKill = RegInit(false.B)
+            val youngerToken = Reg(new RobToken(p))
+            when(youngerPendingKill) {
+                assert(!ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === youngerToken.asUInt).reduce(_ || _),
+                    "a younger uncaptured branch completion cannot retire while awaiting cancellation")
+                assert(mailbox.io.occupied,
+                    "a younger uncaptured completion retains an older mailbox cancellation obligation")
+                when(mailbox.io.out.fire) {
+                    assert(killed(youngerToken.index),
+                        "publishing or discarding the older mailbox must cancel its younger uncaptured completion")
+                    youngerPendingKill := false.B
+                }
+            }
+            when(youngerWb) {
+                assert(!youngerPendingKill || mailbox.io.out.fire,
+                    "a physical lane cannot overwrite an outstanding younger-branch cancellation obligation")
+                youngerPendingKill := true.B
+                youngerToken := newResolutions(lane).bits.token
+            }
+        }
+    } else if (p.registeredBranchRedirect) {
         assert(!io.recover.valid, "registered branch redirects require no external recovery producer")
         // Elastic execution lanes may hold owners from DIFFERENT dispatch
         // cycles. Rank actual registered owners, not the old lane-1-is-oldest
