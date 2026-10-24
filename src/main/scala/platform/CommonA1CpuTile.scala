@@ -62,8 +62,10 @@ class CommonA1CpuTile(
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
         boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
-        compactCacheKeys = compactFetchKeys))
-    val fetchAdapter = Module(new InstructionTranslationAdapter(p))
+        compactCacheKeys = compactFetchKeys, transactionSlots = config.fetchTransactionSlots))
+    val fetchAdapter = Module(new InstructionTranslationAdapter(p, transactionSlots = config.fetchTransactionSlots))
+    require(frontend.transactionSlots == fetchAdapter.transactionSlots,
+        "Common A1 frontend and translation ownership capacities must agree")
     fetchAdapter.io.virtual <> frontend.io.memory
     fetchAdapter.io.vmState := core.io.vmState.get
     fetchAdapter.io.privilege := core.io.fetchPrivilege.get

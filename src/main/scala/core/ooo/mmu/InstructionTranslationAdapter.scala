@@ -6,8 +6,10 @@ import chisel3.util._
 /** Translates a fetch packet before the physical instruction port. Four-word packets are 16-byte aligned and fit
   * in one translation page; the two-word path retains precise handling of a packet crossing a page boundary.
   */
-class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
+class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp: Boolean = false,
+    val transactionSlots: Int = 1) extends Module {
     require(p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
+    require(Set(1, 2).contains(transactionSlots))
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val virtual = Flipped(new InstructionPort(packetWords))
@@ -18,7 +20,16 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
-    if (p.registeredTranslationHeads) {
+    if (transactionSlots == 2) {
+        val pipeline = Module(new PipelinedAlignedInstructionTranslation(p, sharedTwoWordFetchPmp))
+        pipeline.io.virtual <> io.virtual
+        pipeline.io.vmState := io.vmState
+        pipeline.io.privilege := io.privilege
+        pipeline.io.pmpState := io.pmpState
+        io.physical <> pipeline.io.physical
+        io.translation <> pipeline.io.translation
+        io.idle := pipeline.io.idle
+    } else if (p.registeredTranslationHeads) {
         if (p.alignedFetchSinglePage) {
             // Preserve the original public-offer assertion, even while a
             // younger offer is hidden from the engine by occupied credit.

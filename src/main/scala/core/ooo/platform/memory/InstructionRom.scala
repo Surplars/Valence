@@ -99,7 +99,8 @@ class InstructionRom(words: Int, base: BigInt, files: Seq[String] = Seq.empty, p
 
 /** Packet-granular instruction cache with sequential lookahead. Compressed configurations use two ways and
   * cacheSets sets of 8-byte packets; the non-compressed FPGA baseline retains two packet slots. At most one
-  * response remains outstanding after each edge. The response bypass reaches decode, but request addressing
+  * response remains outstanding after each edge in the default profile; the explicit aligned profile owns two.
+  * The response bypass reaches decode, but request addressing
   * never depends on same-cycle instruction acceptance.
   */
 class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSets: Int = 64,
@@ -108,7 +109,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     parallelAlignment: Boolean = false, registeredWindow: Boolean = false,
     independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
     val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false,
-    val compactCacheKeys: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false) extends Module {
+    val compactCacheKeys: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false,
+    val transactionSlots: Int = 1) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -125,6 +127,10 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         "fetch address preparation requires the bounded two-wide compressed aligned-PMP frontend")
     require(!compactCacheKeys || (compressed && fetchWidth == 2 && parallelFetchTagLookup && cacheSets >= 4),
         "compact cache keys require the two-wide compressed parallel-lookup domain with at least four sets")
+    require(Set(1, 2).contains(transactionSlots))
+    require(transactionSlots == 1 || (compressed && fetchWidth == 2 && registeredWindow && alignedFetchPmp &&
+        !fetchAddressBeforePmp && !boundedRequestFrontier && !compactCacheKeys && !fetchPreviousPacket),
+        "two fetch owners require the two-lane aligned window without prepared/frontier/compact/history modes")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
@@ -168,12 +174,19 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val pageFaults = Reg(Vec(cacheSets, Vec(2, UInt(2.W))))
         val replace = RegInit(VecInit(Seq.fill(cacheSets)(false.B)))
         val context = Cat(io.virtualized, io.privilege)
-        val pending = RegInit(false.B)
-        val pendingBase = Reg(UInt(64.W))
-        val pendingBasePlusEight = Reg(UInt(64.W))
-        val pendingBaseMinus = (1 to maxPacketOffset).map(_ => Reg(UInt(64.W)))
-        val pendingContext = Reg(UInt(3.W))
-        val pendingStale = RegInit(false.B)
+        val demandOwners = if (transactionSlots == 2) Some(Module(new FetchDemandOwners(maxPacketOffset))) else None
+        demandOwners.foreach { owners =>
+            owners.io.invalidate := io.invalidate
+            owners.io.response := io.memory.response.fire
+            owners.io.queryContext := context
+        }
+        val pending = demandOwners.map(_.io.headValid).getOrElse(RegInit(false.B))
+        val pendingBase = demandOwners.map(_.io.head.base).getOrElse(Reg(UInt(64.W)))
+        val pendingBasePlusEight = demandOwners.map(_.io.head.plusEight).getOrElse(Reg(UInt(64.W)))
+        val pendingBaseMinus = (0 until maxPacketOffset).map(key =>
+            demandOwners.map(_.io.head.minus(key)).getOrElse(Reg(UInt(64.W))))
+        val pendingContext = demandOwners.map(_.io.head.context).getOrElse(Reg(UInt(3.W)))
+        val pendingStale = demandOwners.map(_.io.head.stale).getOrElse(RegInit(false.B))
         val locked = RegInit(false.B)
         val lockedBase = Reg(UInt(64.W))
         val lockedContext = Reg(UInt(3.W))
@@ -251,6 +264,10 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val currentBase = Cat(io.pc(63, 3), 0.U(3.W))
         val nextBase = currentBase + 8.U
         val nextTwoBase = currentBase + 16.U
+        demandOwners.foreach { owners =>
+            owners.io.queryBase(0) := currentBase
+            owners.io.queryBase(1) := nextBase
+        }
         val queryCapacity = if (registeredWindow && fetchWidth == 4) 5 else 3
         val queriedPackets = (0 until queryCapacity).map(offset => packetAt(currentBase, offset))
         val suppliedPackets = if (registeredWindow) {
@@ -373,18 +390,19 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             Mux(!currentCached, currentBase,
                 Mux(!nextCached, nextBase,
                     Mux(!nextTwoCached, nextTwoBase, nextTwoBase + 8.U)))
-        } else Mux(currentCached, nextBase, currentBase)
+        } else Mux(currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B), nextBase, currentBase)
         val wantedPacket = if (fetchWidth == 4)
             Mux(!currentCached, 0.U(2.W),
                 Mux(!nextCached, 1.U(2.W), Mux(!nextTwoCached, 2.U(2.W), 3.U(2.W))))
-        else Mux(currentCached, 1.U(2.W), 0.U(2.W))
+        else Mux(currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B), 1.U(2.W), 0.U(2.W))
         val fourthPresent = if (fetchWidth == 4) {
             val (hit0, hit1) = cacheHits(currentBase, 3)
             (if (rawFetchPresence) true.B else !io.invalidate) && (hit0 || hit1)
         } else false.B
         val cachedTarget = if (fetchWidth == 4)
             currentCached && nextCached && nextTwoCached && fourthPresent
-        else currentCached && nextCached
+        else (currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B)) &&
+            (nextCached || demandOwners.map(_.io.owned(1)).getOrElse(false.B))
         // Equality is modulo-XLEN: base+8*k == pendingBase (+8 for the
         // response high half) iff base equals its request-time shifted key.
         // Keep returning/context/stale authorization unchanged.
@@ -402,7 +420,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             val base = Cat(io.requestFrontier.get(63, 3), 0.U(3.W))
             (wanted === base || wanted === (base + 8.U)(63, 0)) && !io.suppressRequest.get
         } else true.B
-        val newRequest = io.enable && !io.pause && !io.invalidate && (!pending || reply) &&
+        val available = demandOwners.map(_.io.credit).getOrElse(!pending || reply)
+        val newRequest = io.enable && !io.pause && !io.invalidate && available &&
             !cachedTarget && !returningTarget && frontierAllows
         val fetchBase = if (fetchWords == 4) Cat(wanted(63, 4), 0.U(4.W)) else wanted
         val cancelPrepared = if (fetchAddressBeforePmp)
@@ -432,6 +451,14 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                 maskCaptured.get := true.B
             }
             assert(!(locked && pending), "prepared fetch and accepted fetch cannot own the slot together")
+        } else if (transactionSlots == 2) {
+            val owners = demandOwners.get
+            owners.io.candidate.valid := newRequest
+            owners.io.candidate.bits.base := fetchBase
+            owners.io.candidate.bits.context := context
+            io.memory.request.valid := owners.io.request.valid
+            io.memory.request.bits := owners.io.request.bits.base
+            owners.io.request.ready := io.memory.request.ready
         } else {
             io.memory.request.valid := !reset.asBool && (locked || newRequest)
             io.memory.request.bits := Mux(locked, lockedBase, fetchBase)
@@ -460,11 +487,16 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             checker.io.access := PmpAccess.execute
             allowed(lane) := !checker.io.denied
         }
-        io.memory.requestMask := Mux(maskCaptured.getOrElse(locked), lockedMask,
-            Mux(permissionContext(2), ((1 << fetchWords) - 1).U, allowed.asUInt))
+        if (transactionSlots == 2) {
+            demandOwners.get.io.candidate.bits.mask := Mux(context(2), 3.U, allowed.asUInt)
+            io.memory.requestMask := demandOwners.get.io.request.bits.mask
+        } else {
+            io.memory.requestMask := Mux(maskCaptured.getOrElse(locked), lockedMask,
+                Mux(permissionContext(2), ((1 << fetchWords) - 1).U, allowed.asUInt))
+        }
         io.memory.response.ready := true.B
-        io.quiescent := !pending && !locked
-        if (!fetchAddressBeforePmp) {
+        io.quiescent := demandOwners.map(_.io.quiescent).getOrElse(!pending && !locked)
+        if (!fetchAddressBeforePmp && transactionSlots == 1) {
             when(io.memory.request.valid && !io.memory.request.ready &&
                 (if (boundedRequestFrontier) !locked else true.B)) {
                 locked := true.B
@@ -475,13 +507,17 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         }
         when(io.invalidate) {
             for (set <- 0 until cacheSets; way <- 0 until 2) valid(set)(way) := false.B
-            when(pending) { pendingStale := true.B }
-            when(locked) { lockedStale := true.B }
+            if (transactionSlots == 1) {
+                when(pending) { pendingStale := true.B }
+                when(locked) { lockedStale := true.B }
+            }
         }
         when(io.memory.response.fire) {
             assert(pending, "compressed fetch response must follow a request")
-            pending := false.B
-            pendingStale := false.B
+            if (transactionSlots == 1) {
+                pending := false.B
+                pendingStale := false.B
+            }
             for (packet <- 0 until fetchWords / 2) {
                 val packetBase = if (packet == 0) pendingBase else pendingBasePlusEight
                 val index = packetBase(indexHigh, 3)
@@ -525,7 +561,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                 }
             }
         }
-        when(io.memory.request.fire) {
+        if (transactionSlots == 1) when(io.memory.request.fire) {
             assert(!pending || reply, "compressed fetch permits one outstanding packet")
             locked := false.B
             lockedStale := false.B

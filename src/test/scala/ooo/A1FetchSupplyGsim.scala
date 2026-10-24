@@ -14,9 +14,9 @@ import soc.core.ooo._
   * No bypass, prefetch, larger request window or synthetic instruction source
   * is introduced between the real production modules.
   */
-class A1FetchSupplyGsim extends Module {
+class A1FetchSupplyGsim(transactionSlots: Int = 1, alignedSinglePage: Boolean = false) extends Module {
     private val config = FpgaNextConfig.Selected
-    private val p = config.coreParams
+    private val p = config.coreParams.copy(alignedFetchSinglePage = alignedSinglePage)
     private val tlp = TLParams(addrWidth = 64, dataWidth = 64, sourceBits = 3)
     require(p.renameWidth == 2 && p.frontendCacheSets == 16 && p.registeredFetchPacket)
     require(!p.alignedFetchPermissionStage && !p.fetchAddressBeforePmp && !p.fetchPreviousPacket)
@@ -81,8 +81,9 @@ class A1FetchSupplyGsim extends Module {
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
-        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket))
-    val adapter = Module(new InstructionTranslationAdapter(p))
+        independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
+        transactionSlots = transactionSlots))
+    val adapter = Module(new InstructionTranslationAdapter(p, transactionSlots = transactionSlots))
     adapter.io.virtual <> frontend.io.memory
     adapter.io.vmState := vm
     adapter.io.privilege := io.privilege
@@ -192,4 +193,9 @@ class A1FetchSupplyGsim extends Module {
 
 object A1FetchSupplyGsimMain extends App {
     ChiselStage.emitCHIRRTLFile(new A1FetchSupplyGsim, Array("--target-dir", args.head))
+}
+
+object A2FetchSupplyGsimMain extends App {
+    ChiselStage.emitCHIRRTLFile(new A1FetchSupplyGsim(args(1).toInt, args(2).toBoolean),
+        Array("--target-dir", args.head))
 }

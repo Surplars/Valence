@@ -21,6 +21,8 @@ class CommonA1RebuildSpec extends AnyFunSuite {
             assert(p.completionTopology == (if (profile.dualCompletion) "dual-owner" else "legacy"))
             assert(p.branchResolutionTopology ==
                 (if (profile.independentBranch) "execution-mailbox" else "writeback-coupled"))
+            assert(config.fetchTransactionSlots == profile.fetchSlots)
+            if (profile.fetchSlots == 2) assert(p.alignedFetchSinglePage)
             assert(config.cache.readMshrs == 2 && config.ddrOutstanding == 4)
             assert(p.dataReturnHandleBits == 0 && p.postedProofConfig.isEmpty)
             assert(config.cpuHz == CommonCpuProfile.A1.fpga.cpuHz)
@@ -36,7 +38,7 @@ class CommonA1RebuildSpec extends AnyFunSuite {
 
 /** Explicit CPU tile export; not a replacement whole-SoC bitstream entry point. */
 object CommonA1RebuildTileMain extends App {
-    require(args.length == 2, "usage: CommonA1RebuildTileMain <baseline|backend|memory|combined|backend-branch|combined-branch> <output-dir>")
+    require(args.length == 2, "usage: CommonA1RebuildTileMain <profile-name> <output-dir>")
     val profile = CommonA1RebuildProfile.named(args(0))
     ChiselStage.emitSystemVerilogFile(profile.buildTile(), Array("--target-dir", args(1)),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",

@@ -107,9 +107,14 @@ final case class FpgaNextConfig(
     registeredHomeRequestBoundary: Boolean = false,
     // Explicit Common-A1 rebuild topology; legacy board factories must not silently ignore it.
     completionTopology: String = "legacy",
-    branchResolutionTopology: String = "writeback-coupled"
+    branchResolutionTopology: String = "writeback-coupled",
+    fetchTransactionSlots: Int = 1
 ) {
     require(Set("legacy", "dual-owner").contains(completionTopology), "unknown completion topology")
+    require(Set(1, 2).contains(fetchTransactionSlots), "common A1 fetch supports one or two explicit owners")
+    require(fetchTransactionSlots == 1 || (alignedFetchSinglePage && !alignedFetchPermissionStage &&
+        !fetchAddressBeforePmp && !fetchPreviousPacket),
+        "two-owner fetch requires the aligned single-page path without prepared/frontier/previous-packet experiments")
     require(Set("writeback-coupled", "execution-mailbox").contains(branchResolutionTopology),
         "unknown branch resolution topology")
     require(branchResolutionTopology == "writeback-coupled" || completionTopology == "dual-owner",
@@ -199,6 +204,7 @@ final case class FpgaNextConfig(
         sharedFetchPmpRelations && shareProtectedHeadPayload && bankedInstructionData
     val name = (if (selectedTopology) "fpga-next-selected-v2" else if (optimized)
         "fpga-next-storage-v1" else "fpga-next-reference-topology-v1") +
+        (if (fetchTransactionSlots != 1) s"-fetch-owners$fetchTransactionSlots" else "") +
         (if (completionTopology != "legacy") s"-completion-$completionTopology" else "") +
         (if (branchResolutionTopology != "writeback-coupled") s"-branch-$branchResolutionTopology" else "") +
         (if (!selectedTopology && independentFetchPayloadCapture) "-fetch-capture" else "") +
@@ -388,8 +394,9 @@ final case class FpgaNextConfig(
             branchResolutionTopology = branchResolutionTopology)
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
-        require(completionTopology == "legacy",
-            "dual-owner completion is currently integrated through CommonA1CpuTile, not the legacy board factory")
+        require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
+            fetchTransactionSlots == 1,
+            "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,
         uartBaud = uartBaud, dataCacheWays = cacheWays, issueWidth = issueWidth,

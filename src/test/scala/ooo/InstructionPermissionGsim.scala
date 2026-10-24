@@ -10,7 +10,8 @@ import soc.core.ooo._
   */
 class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
     turnover: Boolean = false, identity: Boolean = false, compareReadyClear: Boolean = false,
-    exactParams: Option[OooParams] = None, compareSharedTwoWord: Boolean = false) extends Module {
+    exactParams: Option[OooParams] = None, compareSharedTwoWord: Boolean = false,
+    transactionSlots: Int = 1) extends Module {
     require(Set(2, 4).contains(words))
     val io = IO(new Bundle {
         val virtualValid = Input(Bool())
@@ -69,7 +70,7 @@ class InstructionPermissionGsim(words: Int, retimed: Boolean, aligned: Boolean,
         registeredTranslationHeads = retimed, fetchReplyTurnover = turnover,
         fetchIdentityTranslation = identity))
     require(p.renameWidth == words)
-    val adapter = Module(new InstructionTranslationAdapter(p))
+    val adapter = Module(new InstructionTranslationAdapter(p, transactionSlots = transactionSlots))
     adapter.io.virtual.request.valid := io.virtualValid
     adapter.io.virtual.request.bits := io.virtualPc
     adapter.io.virtual.requestMask := io.virtualMask(words - 1, 0)
@@ -130,4 +131,11 @@ object InstructionPermissionGsimMain extends App {
         args.drop(2).contains("retimed"), args.drop(2).contains("aligned"),
         args.drop(2).contains("turnover"), args.drop(2).contains("identity"),
         args.drop(2).contains("compare-ready-clear")), Array("--target-dir", args.head))
+}
+
+object PipelinedInstructionTranslationGsimMain extends App {
+    ChiselStage.emitCHIRRTLFile(new InstructionPermissionGsim(2, retimed = true, aligned = true,
+        turnover = true, identity = true,
+        exactParams = Some(FpgaNextConfig.Selected.coreParams.copy(alignedFetchSinglePage = true)),
+        transactionSlots = 2), Array("--target-dir", args.head))
 }
