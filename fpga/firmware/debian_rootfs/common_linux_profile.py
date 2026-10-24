@@ -100,6 +100,11 @@ def device_tree(net, cpu, bootargs, console='sbi', boot_cpu_hz=50000000, boot_fa
         text = text.replace('reg-names = "rate", "perf";', 'reg-names = "rate", "perf";\n            openion,cpu-rate-control;\n            openion,cpu-clock-observer-only;\n            openion,cpu-boot-hz = <125000000>;')
     if boot_fabric_hz == 125000000:
         text = text.replace('openion,cpu-boot-hz = <125000000>;', 'openion,cpu-boot-hz = <125000000>;\n            openion,fabric-boot-hz = <125000000>;\n            openion,i1-boot-pair-125;')
+    if console == 'sbi':
+        marker = '            reg-io-width = <1>;'
+        if text.count(marker) != 1:
+            raise RuntimeError('Exclusive SBI UART marker drift')
+        text = text.replace(marker, marker + '\n            openion,sbi-console-exclusive;')
     validate(text, cpu, boot_cpu_hz, boot_fabric_hz)
     return text
 

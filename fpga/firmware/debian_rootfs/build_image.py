@@ -28,6 +28,7 @@ from build_linux import clean_revision, image_header, validate_payload, validate
 from run import run, opensbi_setup, OPENSBI_LOCK
 from memory_layout import MemoryLayout
 import common_linux_profile as common
+import sbi_console_handoff
 from kernel_proc_contract import validate as validate_uart_proc
 
 MODULE_SOURCES = ('Makefile', 'valence_gmac.c', 'valence_aia.c', 'valence_soc.c', 'valence_cmu.c', 'valence_dma.c',
@@ -421,6 +422,11 @@ def publish_profile(args, out, delivery, record, root_record, linux_image,
     if dtb.stat().st_size + 8192 > 0x10000:
         raise RuntimeError('DTB exceeds reserved slot')
     opensbi = opensbi_setup(False)
+    handoff_fixup = None
+    if cpu_profile and console_profile == 'sbi':
+        patched = out / 'opensbi-sbi-console-source'
+        handoff_fixup = sbi_console_handoff.prepare(opensbi, patched)
+        opensbi = patched
     sbi_out = out / ('opensbi-' + cpu_profile if cpu_profile else 'opensbi')
     run(['make', '-j' + str(args.jobs), 'PLATFORM=generic', 'CROSS_COMPILE=riscv64-linux-gnu-',
          'PLATFORM_RISCV_ISA=rv64imac_zicsr_zifencei', 'PLATFORM_RISCV_ABI=lp64',
@@ -468,7 +474,7 @@ def publish_profile(args, out, delivery, record, root_record, linux_image,
         userland_abi=root_record.get('userland_abi', 'lp64d'),
         userland_isa=root_record.get('userland_isa', 'rv64gc'), kernel_prepare_config_sha256=record['config_sha256'],
         config_sha256=sha(kernel / '.config'),
-        kernel_runtime_bytes=runtime, bootargs=bootargs, opensbi_revision=OPENSBI_LOCK['revision'],
+        kernel_runtime_bytes=runtime, bootargs=bootargs, opensbi_revision=OPENSBI_LOCK['revision'], opensbi_console_handoff_fixup=handoff_fixup,
         entry=hex(LOAD), kernel_entry=hex(KERNEL), payload_alignment_padding_bytes=padding,
         payload_alignment_padding_hex=content[KERNEL - LOAD + linux_image.stat().st_size:].hex(),
         payload_elf_binding=elf_binding,
