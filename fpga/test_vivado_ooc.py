@@ -13,7 +13,7 @@ PERIOD = "3.333333333333"
 HARNESS = r'''
 lassign $argv script rtl part period top mutation
 set events {}; set design_exists 0; set synth_loading 0; set clock_created 0
-set clock_period {}; set xdc {}; set stage initial
+set clock_period {}; set xdc {}; set stage initial; set synth_args {}
 proc event {name} {lappend ::events $name}
 proc require_design {} {if {!$::design_exists} {error "MOCK: design query before elaboration"}}
 proc get_parts {args} {
@@ -44,11 +44,15 @@ proc read_xdc {args} {
 }
 proc synth_design {args} {
     event synth
+    set ::synth_args $args
     if {$::xdc eq ""} {error "MOCK: synthesis has no registered timing XDC"}
     if {[lindex $args [expr {[lsearch -exact $args -mode]+1}]] ne "out_of_context"} {
         error "MOCK: not OOC synthesis"
     }
     if {$::mutation eq "synth-error"} {error "MOCK: synthesis failed"}
+    if {$::mutation eq "directive-error" && [lsearch -exact $args -directive] >= 0} {
+        error "MOCK: directive spelling rejected"
+    }
     set ::design_exists 1; set ::synth_loading 1
     if {$::mutation ne "missing-clock"} {source $::xdc}
     set ::synth_loading 0; set ::stage synthesized
@@ -100,6 +104,10 @@ proc get_property {key object} {
 }
 proc write_checkpoint {path} {
     require_design; event checkpoint:[file tail $path]
+    if {[file tail $path] eq "post_synth.dcp"} {
+        if {$::mutation eq "checkpoint-missing"} {return}
+        if {$::mutation eq "checkpoint-empty"} {close [open $path w]; return}
+    }
     set f [open $path {WRONLY CREAT EXCL}]; puts $f MOCK_NOT_A_DCP; close $f
 }
 proc opt_design {} {
@@ -114,6 +122,9 @@ proc route_design {} {
 }
 proc mock_report {command args} {
     require_design; event $command
+    if {$::mutation eq "synth-report-error" && $::stage eq "synthesized" && $command eq "report_timing_summary"} {
+        error "MOCK: post-synth report failed"
+    }
     if {$::mutation eq "report-error" && $::stage eq "routed" && $command eq "report_utilization"} {
         error "MOCK: post-route report failed"
     }
@@ -141,6 +152,7 @@ if {$top ne ""} {lappend argv $top} else {set top FpgaRomTop}
 set argc [llength $argv]
 set code [catch {source $script} reason]
 puts "TRACE=$events"
+puts "SYNTH_ARGS=$synth_args"
 if {$code} {puts stderr $reason; exit 1}
 '''
 
@@ -148,7 +160,8 @@ if {$code} {puts stderr $reason; exit 1}
 @unittest.skipUnless(shutil.which("tclsh"), "tclsh required; no native Vivado is used")
 class VivadoOocContract(unittest.TestCase):
     def run_flow(self, top="CommonA1CpuTile", period=PERIOD, mutation="", images=True,
-                 no_rtl=False, existing_reports=False, place_only=False, script_change=None):
+                 no_rtl=False, existing_reports=False, place_only=False, script_change=None,
+                 synth_directive=None, synth_only=None):
         with tempfile.TemporaryDirectory(prefix="valence-ooc-mock-") as temp:
             root = Path(temp)
             rtl = root / "rtl with spaces"
@@ -171,9 +184,14 @@ class VivadoOocContract(unittest.TestCase):
                 script = root / "mutated-script.tcl"
                 script.write_text(script_change(SCRIPT.read_text()))
             env = dict(os.environ)
-            env.pop("VALENCE_PLACE_ONLY", None)
+            for name in ("VALENCE_PLACE_ONLY", "VALENCE_SYNTH_DIRECTIVE", "VALENCE_SYNTH_ONLY"):
+                env.pop(name, None)
             if place_only:
                 env["VALENCE_PLACE_ONLY"] = "1"
+            if synth_directive is not None:
+                env["VALENCE_SYNTH_DIRECTIVE"] = synth_directive
+            if synth_only is not None:
+                env["VALENCE_SYNTH_ONLY"] = str(synth_only)
             result = subprocess.run(["tclsh", str(harness), str(script), str(rtl), PART, period,
                                      top, mutation], capture_output=True, text=True, env=env)
             reports = {p.name: p.read_text() for p in (rtl / "reports").glob("*") if p.is_file()}
@@ -184,6 +202,87 @@ class VivadoOocContract(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(expected, result.stderr)
         return result, reports
+
+    @staticmethod
+    def synth_args(result):
+        return next(line.removeprefix("SYNTH_ARGS=") for line in result.stdout.splitlines()
+                    if line.startswith("SYNTH_ARGS="))
+
+    def test_default_synthesis_arguments_and_full_stages_do_not_drift(self):
+        expected = ("-top CommonA1CpuTile -part " + PART + " -mode out_of_context "
+                    "-flatten_hierarchy rebuilt -verilog_define ENABLE_INITIAL_MEM_")
+        for directive in (None, "default"):
+            with self.subTest(directive=directive):
+                result, reports = self.run_flow(synth_directive=directive, synth_only=0)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.synth_args(result), expected)
+                self.assertIn("synth_command=synth_design " + expected, reports["inputs.txt"])
+                self.assertIn("synth_directive=default synth_only=0", reports["inputs.txt"])
+                self.assertIn("stage=OOC_COMMANDS_COMPLETED_NOT_TIMING_SIGNOFF", reports["inputs.txt"])
+                self.assertIn("routed.dcp", reports)
+
+    def test_runtime_directive_changes_only_synthesis_directive(self):
+        baseline, baseline_reports = self.run_flow()
+        result, reports = self.run_flow(synth_directive="RuntimeOptimized")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.synth_args(result), self.synth_args(baseline) + " -directive RuntimeOptimized")
+        self.assertEqual(reports["ooc-clock.xdc"], baseline_reports["ooc-clock.xdc"])
+        self.assertEqual(reports["boundary-scope.txt"], baseline_reports["boundary-scope.txt"])
+        self.assertIn("register_xdc synth apply_clock_in_synth", result.stdout)
+        self.assertIn("synth_directive=RuntimeOptimized synth_only=0", reports["inputs.txt"])
+        self.assertIn("synth_command=synth_design " + self.synth_args(result), reports["inputs.txt"])
+        self.assertIn("DIAGNOSTIC_RUNTIMEOPTIMIZED_NOT_PPA_COMPARABLE_WITH_DEFAULT", result.stdout)
+        self.assertIn("ppa_guarantee=NONE", reports["inputs.txt"])
+        self.assertIn("routed.dcp", reports)
+
+    def test_invalid_diagnostic_environment_values_fail_before_output(self):
+        for directive in ("", "Default", "runtimeoptimized", "RunTimeOptimized", "PerformanceOptimized",
+                          "RuntimeOptimized -no_timing_driven", "RuntimeOptimized;error injected"):
+            with self.subTest(directive=directive):
+                result, reports = self.assert_failure("VALENCE_SYNTH_DIRECTIVE must be", synth_directive=directive)
+                self.assertEqual(reports, {})
+                self.assertEqual(self.synth_args(result), "")
+        for stop in ("", "true", "01", "2", "1;error injected"):
+            with self.subTest(synth_only=stop):
+                _, reports = self.assert_failure("VALENCE_SYNTH_ONLY must be", synth_only=stop)
+                self.assertEqual(reports, {})
+
+    def test_synth_only_retains_checked_checkpoint_and_reports_not_implementation(self):
+        for directive in (None, "RuntimeOptimized"):
+            with self.subTest(directive=directive):
+                result, reports = self.run_flow(synth_directive=directive, synth_only=1, place_only=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                for name in ("post_synth.dcp", "post_synth_utilization.rpt",
+                             "post_synth_hierarchical_utilization.rpt", "post_synth_timing.rpt", "clocks.rpt"):
+                    self.assertTrue(reports[name])
+                for name in ("post_opt.dcp", "placed.dcp", "routed.dcp"):
+                    self.assertNotIn(name, reports)
+                self.assertIn("SYNTH_ONLY_COMPLETED_NOT_FULL_OOC_NOT_TIMING_SIGNOFF", reports["inputs.txt"])
+                self.assertIn("post_synth_identity_clock_checked_checkpoint_written", reports["inputs.txt"])
+                self.assertIn("synth_only=1", reports["inputs.txt"])
+                self.assertNotIn("OOC_COMMANDS_COMPLETED", result.stdout)
+                self.assertNotIn("optimization_started", result.stdout)
+
+    def test_synth_only_cannot_skip_clock_or_checkpoint_checks(self):
+        for mutation, error in (("wrong-part", "part/top mismatch"), ("slower-clock", "clock period mismatch"),
+                                ("checkpoint-missing", "Missing or empty post_synth checkpoint"),
+                                ("checkpoint-empty", "Missing or empty post_synth checkpoint")):
+            with self.subTest(mutation=mutation):
+                result, _ = self.assert_failure(error, mutation=mutation, synth_only=1)
+                self.assertNotIn("SYNTH_ONLY_COMPLETED", result.stdout)
+
+    def test_synth_only_report_failure_preserves_dcp_without_completion(self):
+        result, reports = self.assert_failure("post-synth report failed", mutation="synth-report-error", synth_only=1)
+        self.assertTrue(reports["post_synth.dcp"])
+        self.assertNotIn("SYNTH_ONLY_COMPLETED", result.stdout)
+        self.assertNotIn("post_synth_reports_completed", reports["inputs.txt"])
+
+    def test_native_directive_rejection_is_not_retried_or_hidden(self):
+        result, reports = self.assert_failure("directive spelling rejected", mutation="directive-error",
+                                              synth_directive="RuntimeOptimized")
+        trace = next(line for line in result.stdout.splitlines() if line.startswith("TRACE="))
+        self.assertEqual(trace.split().count("synth"), 1)
+        self.assertNotIn("post_synth.dcp", reports)
 
     def test_a1_without_rom_uses_deferred_xdc_and_preserves_stages(self):
         result, reports = self.run_flow(images=False)

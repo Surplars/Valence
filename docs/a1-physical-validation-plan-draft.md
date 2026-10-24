@@ -1,6 +1,9 @@
-# A1 ≥300 MHz 下一次物理验证计划（草案，native 未执行）
+# A1 ≥300 MHz 物理验证计划（草案；诊断扩展 native 未验证）
 
-2026-10-24 源码核查、原 OOC 入口小扩展与控制流程短测。该计划不是 native 运行 receipt、
+2026-10-24 初版源码核查、原 OOC 入口小扩展与控制流程短测；同日独立增加第 8 节诊断选项。
+第 1–6 节的 HEAD、候选与入口现状是初版快照，不代表后续 M3/SoC 集成后的当前源码身份，
+下一次执行必须重新冻结实际候选。早前 default 综合已启动后停止，尚无完成的物理结果；
+本次新诊断选项未在 native Vivado 验证。该计划不是 native 运行 receipt、
 300 MHz 结果、板级资格或启动 Vivado 的授权。本次不改 Scala/emitter、不安装工具、不运行本地 Vivado、
 不提交/发布、不生成 bitstream。
 
@@ -186,13 +189,55 @@ vivado -mode batch -source fpga/vivado-ooc.tcl \
 ## 7. 本次短测试结果及限制
 
 `PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s fpga -p test_vivado_ooc.py -v`
-通过 15 项 Python/Tcl mock 测试：新 A1 无 ROM、旧四顶层/默认顶层、旧 ROM/RAM guard、
+通过 22 项 Python/Tcl mock 测试：新 A1 无 ROM、旧四顶层/默认顶层、旧 ROM/RAM guard、
 非法 top/period/part、综合后 identity/clock/period、XDC 注册失败、缺时钟/opt 后时钟丢失、
 fresh reports 防覆盖、route 失败保留 placed、报告失败保留 routed、place-only 明确部分完成。
 `general.maxThreads=8` 的请求和实际读回写入 `reports/inputs.txt`；读回低于 8 或失败即停止，
 实际活跃 worker 数明确为未测量，不把配置上限当 CPU 利用率。
 mock 明确禁止设计产生前的 `get_ports/create_clock`；把延迟 XDC 改为立即 `source` 的负例确实失败。
 测试禁止 I/O delay、false path、导入设计 DCP 和 bitstream 操作。
+新增覆盖默认/显式 default 的综合实参及完整阶段不变、仅追加 RuntimeOptimized directive、
+非法环境变量 fail-closed、synth-only 保留非空 DCP 与报告、不能跳过 clock/part/DCP 校验、
+报告失败不写完成标记，以及 directive 被拒绝时不隐藏错误/不自动换拼写重跑。
 
 这些结果只验证 Tcl 分支、顺序和错误传播，不验证 Vivado 的实际 XDC 解析/对象 API、映射结构、时序或资源。
 本次没有 Scala compile/export、硬件 simulation、synthesis/place/route/STA 新结果。
+
+## 8. 可选快速综合诊断，不替代 default 物理比较
+
+仅为下一次明确许可后的独立诊断准备，不自动启动 Vivado。当前默认调用、XDC 注册顺序、
+`3.333333333333 ns`、exact part、`out_of_context`、`rebuilt`、defines 和其余综合选项保持原样。
+
+- `VALENCE_SYNTH_DIRECTIVE` 未设置或为 `default`：不向原综合命令追加任何 directive 参数。
+  显式设为 `RuntimeOptimized` 才追加 `-directive RuntimeOptimized`；其它值（包括空值、其它大小写
+  和夹带额外参数）立即拒绝。它减少部分时序/RTL 优化，不移除时钟、不降低 STA 精度，也不禁用必要逻辑。
+- **不要改用整套 `Flow_RuntimeOptimized` strategy**：官方预设还改变 hierarchy 和 FSM extraction。
+  本入口只改变一个 directive；不使用 `-no_timing_driven`，不放宽约束、不加无依据例外。
+- `VALENCE_SYNTH_ONLY` 未设置或为 `0`：仍继续原 `opt_design/place_design/route_design`。
+  显式设为 `1`：先综合并核 part/top/clock/period，成功写 `post_synth.dcp` 且确认文件非空，
+  再完成 post-synth utilization、hierarchical utilization、min/max 与 unconstrained timing summary、clocks
+  报告后停止。输出 `SYNTH_ONLY_COMPLETED_NOT_FULL_OOC_NOT_TIMING_SIGNOFF`，不生成 placed/routed DCP。
+  非空检查不是另一次 native DCP 重开证明；失败不写完成标记。其它值拒绝。
+  若同时有 `VALENCE_PLACE_ONLY=1`，显式 synth-only 在更早阶段停止，绝不算 placement 完成。
+- `reports/inputs.txt` 记录实际构造并执行的完整 `synth_command`、directive、synth-only 和阶段；
+  stdout 同样打印命令/阶段。RuntimeOptimized 单独标记
+  `DIAGNOSTIC_RUNTIMEOPTIMIZED_NOT_PPA_COMPARABLE_WITH_DEFAULT`；所有模式均写 `ppa_guarantee=NONE`。
+  这不是工具内部有效参数的额外 readback；安装版接受情况由 native 日志佐证，错误直接传播、不自动 fallback。
+  原冻结要求仍适用：源/配置/XDC/Tcl/tool/part/线程读回与输出 DCP/report 的 SHA 必须绑定。
+- 该诊断旨在尝试较早取得首份综合网表和路径线索，**没有 native 耗时测量，不能保证更快、
+  一定结束或修复先前长时间优化问题**。减少优化可能损失时序/面积 QoR，这是待实测的工程风险，
+  不保证影响方向。报告的关键路径属于该 directive 的综合网表，不假定等同 default；
+  与 default 或不同候选混用不能证明 PPA 改善。候选对比必须双方使用相同完整设置；
+  post-synth slack 和功能 cycles 改善均不能替代 routed 300 MHz/整机资格。
+
+参数与限制的 AMD 2025.2 官方来源：
+
+- [synth_design 参数表](https://docs.amd.com/r/2025.2-English/ug835-vivado-tcl-commands/synth_design)
+  列 `RuntimeOptimized`，但同页正文写 `runtimeoptimized` 并称大小写敏感。
+  [UG901 设置说明](https://docs.amd.com/r/2025.2-English/ug901-vivado-synthesis/Using-Synthesis-Settings)
+  也列 `RuntimeOptimized`。本实现采用参数表/UG901 的拼写；**首次获准 native 运行前，保存安装版
+  `synth_design -help` 确认该精确值，当前 mock 不证明拼写已被 Vivado 接受**。
+- [完整预设的其它选项](https://docs.amd.com/r/2025.2-English/ug901-vivado-synthesis/Vivado-Preconfigured-Strategies)
+  说明为何只追加 directive、不切换整个 strategy。
+- [增量综合限制](https://docs.amd.com/r/2025.2-English/ug901-vivado-synthesis/Incremental-Synthesis)：
+  OOC 不支持 incremental synthesis；本诊断仍为 fresh RTL synthesis，不读旧 DCP 替代。
