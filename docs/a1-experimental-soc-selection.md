@@ -65,20 +65,44 @@ It also accepts explicit `--emit-chirrtl-only` for real-platform structure
 inspection. Such output is labelled `rtlFormat=CHIRRTL` and is rejected by board
 admission. Normal output remains SystemVerilog.
 
-Example invocation shape (the concrete validated paths are below):
+From the checkout root, these are the two executable steps for a new candidate
+export. Both output directories must be unused. The first command invokes Mill
+once for `IonSoC.test.compile` (normal Mill caching is allowed), then retrieves
+the resulting runtime classpath; it does not emit or simulate hardware.
 
 ```
-platform.CommonMachinePlatformMain FRESH_OUTPUT a1 --vivado-memories \
-  --compile-receipt=SUCCESSFUL_COMPILE.json --emit-chirrtl-only \
-  --experimental-a1-profile=full-r1-m3
+python3 fpga/common/scala_compile_receipt.py --out build/a1-compile-new
+mill -i IonSoC.test.runMain platform.CommonMachinePlatformMain build/a1-full-r1-m3-new a1 --vivado-memories --compile-receipt=build/a1-compile-new/compile-receipt.json --experimental-a1-profile=full-r1-m3
 ```
+
+Add `--emit-chirrtl-only` to the second command for structural output instead of
+SystemVerilog. Neither format authorizes an experimental board run. Omitting
+the experimental selector still selects the public A1.
+
+The public producer `fpga/common/scala_compile_receipt.py` locates its own
+checkout root and accepts an optional `--mill /path/to/mill`. A failed compile,
+classpath retrieval or source-drift check retains `attempt.json` and logs with
+a nonzero outcome; it does not publish a successful `compile-receipt.json`.
+The receipt binds complete Scala/resource/build inputs, HEAD, the source
+manifest, ordered classpath entries and every expanded class/resource/JAR hash.
+For a non-compiling check, use
+`python3 fpga/common/scala_compile_receipt.py --verify build/a1-compile-new/compile-receipt.json`.
+
+Paths are generated natively on the executing host, not copied from the cloud.
+On Windows use the installed Python/native Mill launcher and quote paths with
+spaces; the one-line commands need no POSIX line continuation. Mill PathRef
+parsing preserves drive-letter colons. Optional `--java-classpath` verification
+uses `os.pathsep` (`;` on Windows, `:` on POSIX), matching the Scala consumer's
+`java.io.File.pathSeparator`. Receipts bind one checkout and machine: after a
+move, different OS, HEAD or input/class change, generate a fresh receipt rather
+than rewriting paths or hashes. Native Windows execution is not qualified by
+the Linux cloud check; only its path-parser cases are covered synthetically.
 
 The runtime fixture exporter retains its original three arguments. An explicit
 candidate additionally requires its selector and bound compile receipt:
 
 ```
-platform.CommonA1DynamicMain FRESH_OUTPUT BANK0_HEX BANK1_HEX \
-  --experimental-a1-profile=full-r1-m3 --compile-receipt=SUCCESSFUL_COMPILE.json
+mill -i IonSoC.test.runMain platform.CommonA1DynamicMain FRESH_OUTPUT BANK0_HEX BANK1_HEX --experimental-a1-profile=full-r1-m3 --compile-receipt=build/a1-compile-new/compile-receipt.json
 ```
 
 Both emit `microarchitecture-identity.json`. Production emission embeds the
@@ -166,3 +190,26 @@ or board startup. Existing M3 CPU-level evidence remains separately scoped.
 There is no matched-cycle SoC performance comparison here; the positive run's
 75.52 microseconds of simulated time is not a speedup or frequency result.
 Public defaults remain unchanged, and candidate board admission remains closed.
+
+## Public compile-receipt producer check
+
+The follow-on reproducibility batch publishes the previously build-local compile
+producer without changing hardware or the validated native runner. Twelve
+synthetic tests pass, including compile/classpath failure, source mutation,
+stale source/class/manifest/commit/order, legacy receipt rejection and preserved
+existing output. Evidence: `build/a1-compile-receipt-cli-r1/python-tests.json`.
+
+Exactly one real `IonSoC.test.compile` invocation then succeeded through the
+public CLI using the normal compile cache. The resulting receipt binds 1038
+source/resource/build files and 4895 classpath files, byte-identical to the
+earlier integration check. The public `--verify` command also passed when
+invoked from `/tmp`, and the unchanged native runner's pure receipt consumer
+accepted the same record. No hardware was re-emitted or simulated, and no old
+Scala suite was rerun in this follow-on batch.
+
+Evidence: `build/a1-compile-receipt-cli-r1/cross-consumer-receipt.json`, SHA256
+`a9dd1f439304fa4b1afbdd9f585d54d76b5db2cd9cb7340c2122cae2f8c08272`.
+The generated `actual/compile-receipt.json` in that directory has SHA256
+`7ed577368cd02bb4d95ccf60882d08b5bca12db413563dec544c935db145d20e`.
+Historical receipts are retained unchanged; new checkouts must generate their
+own receipt using the documented first step.
