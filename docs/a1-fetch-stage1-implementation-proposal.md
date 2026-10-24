@@ -1,7 +1,8 @@
 # A1 fetch 第一边界实施提案：真实 context / response 通道
 
-状态：**S1范围已获root批准，等待首批checkpoint commit通知后编码**。2026-10-24。
-当前checkpoint的Scala和已测fixture保持冻结。
+状态：**S1已接入生产，r2增量编译、九场景全字段等价与新增短测全部通过**。2026-10-24。
+完整结果与边界见 `a1-fetch-stage1-results.md`。
+首批基线为 `aaa2af4fee09abc42e0b80c9baa1cc5e00897f6c`；其供给fixture/driver/oracle保持原字节。
 本文承接 `a1-fetch-pipeline-contract-draft.md` 的S1/S2，不宣称多owner供给已完成。
 
 ## 1. 唯一选择：现有 translation-adapter 接受边沿
@@ -56,13 +57,15 @@ accepted request、正常物理返回、translation fault、zero-mask fault-only
 
 - `token`：首次采用64-bit generation identity；每次真实command acceptance前分配一个值。
   当前只有一个slot，不额外传一个恒零slot字段。后续N-owner时再规范slot+generation编码。
-- `virtualBase: UInt(64)`
-- `requestedWords: UInt(packetWords)`
+- `virtualAddress: UInt(64)`
+- `requestMask: UInt(packetWords)`
 - `satp: UInt(64)`，包括mode、rootPPN、ASID。
 - `sum, mxr, privilege`：与原接受边沿完全相同的捕获值。
 
 命令通道为Decoupled。合法上游trace必须维持held offer的VA/mask/context稳定；
-command的ready/valid与旧virtual request的ready/valid在合法trace中一一对应。
+command的acceptance与旧virtual request的acceptance在合法trace中一一对应。
+这是caller前提，不是本boundary提前快照live VM的能力；尤其关闭turnover时，旧result释放拍
+command可以valid而engine尚未ready，caller必须把VA/mask/context保持到下一拍真实acceptance。
 不得额外提前接受一个旧adapter原本尚未接收的请求，否则会改变context采样、idle和流量。
 
 ### 3.2 FetchTransactionResult
@@ -116,7 +119,9 @@ engine的旧result data在该边沿之前有效，新的request初始化只影�
 ### Idle与wrap
 
 `adapter.idle = boundary.empty && engine.idle`，在所有合法trace下必须与旧adapter.idle同拍一致。
-nextToken允许在没有相同编码外部义务时回绕；当前一个owner必须完全终结后才能复用。
+nextToken按模2^64增加。64位是首步保守诊断选择，不是源自ROB tag宽度，也不是单owner正确性所需的最小宽度。
+当前一个owner必须完全终结后才能复用slot；对相同编码的回绕复用还要求旧token已无外部义务。
+独立fixture另用2-bit参数检查256个合法事务/64次drained回绕，不声称它能区分回绕后任意迟到重复包。
 64-bit不是对任意恶意无限迟到重复包的永久唯一性保证；外部TL/PTW所有权规则仍不可省。
 
 ## 5. Engine机械抽取规则
@@ -157,7 +162,14 @@ nextToken允许在没有相同编码外部义务时回绕；当前一个owner必
 第一步若580/332变成任何其它值，或者Get trace改变，视为unexpected regression/change，
 先定位而非用“这是重构正常代价”放过。下一步真正新增一级时才按BDP补owner/返回信用并测吞吐。
 
-## 7. 精确文件scope（批准后才编码）
+### 物理成本尚未证明
+
+虽然没有新增cycle，boundary新增occupied、nextToken、两侧保存的activeToken及64-bit equality。
+`matches → response.valid/result.ready → releasing → credit → command.valid/request.ready` 是新增组合路径。
+综合可能合并两侧同事件保存的token，但尚未验证；不得将零cycle写成零面积/零Fmax代价或300MHz保证。
+未来缩短tag必须建立有限owner、terminal/drain和复用合同后独立验证，不为缩短路径删除身份核验。
+
+## 7. 精确文件scope（已经批准）
 
 ### 生产源码
 
@@ -193,6 +205,7 @@ FpgaNextConfig、OooParams或公共Selected容量/ISA/prefetch配置。
 
 - 一项command接受后分别延迟1/2/7/17拍完成；upstream和engine两边独立ready节奏。
 - old result与new command同拍：旧payload/旧token返回，新context/新token捕获。
+- old result释放但engine commandReady=false：offer保留，下一拍原context/token接受，不先快照live VM。
 - result停顿时试图送新command，必须保持credit不足，不覆盖activeToken。
 - mask=0、仅word0/word1、正常mask；正常data/access/page fault都通过相同终结协议。
 - 在合法context发布边界切换SATP/ASID/privilege，并检查command捕获值与后续held结果。
@@ -209,7 +222,11 @@ FpgaNextConfig、OooParams或公共Selected容量/ISA/prefetch配置。
 
 - 旧/新virtual/physical/translation valid/ready、idle及所有有效payload逐拍一致。
 - 同拍translation request/response（hit），长PTW wait，page/access fault，PMP zero/partial mask。
-- identity路径、ordinary Sv39 hit、generic cross-page路径分别核，不因Selected不走某路径而删掉它。
+- exact Selected two-word stream、generic two-word cross-page stream以及four-word isolated分别核。
+  Selected stream包含identity与turnover；generic stream保留identity但关闭turnover，
+  实际持续offer下覆盖old reply释放、新offer需held到下拍的窗口；four-word保持
+  turnover=false/identity=false，并含同拍translation请求/返回。
+  独立host沿用已有byte-range PMP oracle，不因Selected不走generic路径而删掉它。
 - physical request/result背压下payload/permission mask稳定；new request与old reply turnover。
 - 独立parcel/byte oracle仍检查指令与fault，避免old/new复制同一个错误后互相“证明”。
 
