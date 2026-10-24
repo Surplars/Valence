@@ -88,14 +88,20 @@ host 在旧 S/U offer held 时切换 live M/Bare，实际 TLB 字段仍必须归
 这是独立证明的正确性修复，不用“新旧同错”作为等价论据。PMP/SATP/SFENCE 正常写入继续要求 drain；
 idle 包括 held、translation、permission、physical route 与全部 result 义务，不只看 send stage。
 
-**未关闭的全链 trap/PMP 边界：**未修改的 `InstructionLineCache` 整 64B lineAllowed 检查仍使用
-live `io.privilege`，Common 将其直连当前 core privilege。自动 trap 不等待 fetchQuiescent，也不等同
-systemInvalidate。因此旧 S/U 的已允许 8B physical demand 若在升 M-mode 后进入 I-cache，仍可能按新 M
-权限扩大成旧权限本不允许的整 line Get。adapter 的旧 8B PA/mask/privilege 证明并不覆盖这个扩大范围。
-S1 的 accepted 请求跨 request buffer 也可具有同类窗口，未发现另一个 caller drain 保证；这是既有
-所有权边界的残留，不宣称已证明错误退休或泄漏。当前单元 trap/context witness 不含真实 I-cache，
-全链九场景与 bare-M CPU guest 也不覆盖该权限切换。后续需要携带 physical owner 权限上下文，或明确
-保守的整线许可/完整 drain 合同与独立定向验证；不得把当前 PASS 表述为全链 trap/PMP 切换已经闭合。
+**2026-10-24 后续审计更正：**原报告把 I-cache 使用 live privilege 推断为旧 S/U demand 可能在 trap
+升 M 后越权扩大 64B，这是过强推断，现撤回。接口事实不变：Common live privilege 可先于旧 fetch drain
+改变，physical request 尚未显式携带原权限；但 `PhysicalMemoryProtection.scala` 的 checker 对 M/unlocked
+也始终要求 first-overlap 项完整 covers 请求，M 只绕过 RWX，不绕过整体范围覆盖。
+
+在 Common 当前的稳定 PMP、同 16 项 checker、aligned 8B、全 mask 且已获 S/U 执行许可的前提下：
+若 M 允许包含该 packet 的整 line，则第一项必须 covers 整 line，且无更早项与 line 交叠；它也必然
+是 packet 的首匹配项。packet 获 S/U 许可意味着该项 X 为真，因此 S/U 同样允许整 line。
+M 无匹配直接允许的情况与 packet 已获 S/U 许可矛盾；partial/zero mask 又不会走 linefill。
+所以拟议的“窄 TOR 只许 8B，切 live M 即扩大 64B”负例在当前实现不可达，不能伪造此负例或称已复现漏洞。
+
+这是一项源码级组合证明并经独立复核，不是新增动态测试；也不泛化到可变 PMP、不同 checker、非对齐桥或
+预取拓扑。typed owner context 可作为后续显式接口合同加固，但不能把它描述成修复已证实的此项越权漏洞。
+原九场景与 bare-M CPU guest 的实际测试范围没有因这项更正而扩大。
 
 允许首个 physical.request.fire 同拍出现合法 response **offer**；ready 仍等 route 注册后才拉高，
 响应必须保持到实际 fire。没有加入 response bypass 或额外时序边沿。route-empty 且无新 request.fire
@@ -163,5 +169,5 @@ work+drain 不含随后 32 拍 GPR inspection。六项从开始到完整 quiesce
   并完成三个配置；失败记录保留，不把 r1 描述成干净通过。A2 生产/前端 fixture/host 的 14 项冻结输入未变。
 
 CPU guest 只覆盖 M-mode/Bare 整数/branch，不资格化 VM/PMP protection/FPU 语义、完整 ISA、数据内存、
-真实 ROM/DDR 时序、Common fabric、CDC、Linux 或板级运行；尤其没有关闭第 4 节指出的 trap/PMP 整线边界。
+真实 ROM/DDR 时序、Common fabric、CDC、Linux 或板级运行；没有直接动态覆盖第 4 节的 trap/PMP 组合合同。
 仿真硬件 cycles 改善不保证在真实器件有相同 MHz、面积或能耗，最终仍需统一物理资格检查。
