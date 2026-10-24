@@ -12,6 +12,15 @@ post-route setup, hold, recovery/removal and clock-domain checks. Neither changi
 clock metadata, weakening constraints, simulation, nor a synthesis estimate meets
 that requirement. Shared-fabric clocks and capacity must be reported separately.
 
+The existing routed board evidence identifies the device as
+**`xczu15eg-ffvb1156-2-i`**, speed grade **-2**, with Vivado **2025.2**. This was
+verified from the archived exact-125 MHz DRC report and its binding to the R39
+boot bit (`6ef3931799c7a746dd14e71162456d9759a264f548e7a13fb209b85db83ecf73`).
+It is an existing I1/platform reference, **not an A1 timing result**. Do not use
+historical Artix/Kintex assumptions or NaxRiscv results on another device as this
+candidate's frequency qualification. The new CPU period target is approximately
+3.333 ns; the actual implementation must use the exact device/package/speed grade.
+
 The first candidate remains two-wide: rename, dispatch budget, completion and
 retirement must each have explicit capacity contracts. A faster clock obtained by
 unnecessarily serializing work is not a successful performance result.

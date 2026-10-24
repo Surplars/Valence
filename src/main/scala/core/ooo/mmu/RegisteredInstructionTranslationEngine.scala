@@ -62,13 +62,14 @@ class InstructionFetchTransactionBoundary(packetWords: Int = 2, tokenBits: Int =
   * barrier. One engine owner remains; this extraction does not claim II=1.
   */
 class RegisteredInstructionTranslationEngine(val p: OooParams,
-    val sharedTwoWordFetchPmp: Boolean = false, tokenBits: Int = 64) extends Module {
+    val sharedTwoWordFetchPmp: Boolean = false, tokenBits: Int = 64,
+    withRequestContext: Boolean = false) extends Module {
     require(p.registeredTranslationHeads && p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val command = Flipped(Decoupled(new FetchTransactionCommand(packetWords, tokenBits)))
         val result = Decoupled(new FetchTransactionResult(packetWords, tokenBits))
-        val physical = new InstructionPort(packetWords)
+        val physical = new InstructionPort(packetWords, withRequestContext)
         val translation = new SvTranslationPort
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
@@ -94,6 +95,7 @@ class RegisteredInstructionTranslationEngine(val p: OooParams,
     val sum = Reg(Bool())
     val mxr = Reg(Bool())
     val privilege = Reg(UInt(2.W))
+    io.physical.requestContext.foreach(_.privilege := privilege)
     val firstPhysical = Reg(UInt(64.W))
     val secondPhysical = if (p.alignedFetchSinglePage) None else Some(Reg(UInt(64.W)))
     val secondPageFault = if (p.alignedFetchSinglePage) None else Some(RegInit(false.B))

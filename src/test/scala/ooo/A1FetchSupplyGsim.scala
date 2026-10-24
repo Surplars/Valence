@@ -83,17 +83,19 @@ class A1FetchSupplyGsim(transactionSlots: Int = 1, alignedSinglePage: Boolean = 
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
         transactionSlots = transactionSlots))
-    val adapter = Module(new InstructionTranslationAdapter(p, transactionSlots = transactionSlots))
+    val adapter = Module(new InstructionTranslationAdapter(p, transactionSlots = transactionSlots,
+        withRequestContext = true))
     adapter.io.virtual <> frontend.io.memory
     adapter.io.vmState := vm
     adapter.io.privilege := io.privilege
     adapter.io.pmpState := pmp
-    val requests = Module(new InstructionRequestBuffer(2, p.flowThroughFetchRequests, p.independentFetchCapture))
+    val requests = Module(new InstructionRequestBuffer(2, p.flowThroughFetchRequests, p.independentFetchCapture,
+        withRequestContext = true))
     requests.io.upstream <> adapter.io.physical
     val cache = Module(new InstructionLineCache(tlp, ramBase = config.ramBase, ramBytes = config.ddrBytes,
         romBytes = 128 * 1024, lines = 8, packetWords = 2, prefetchEnabled = false,
         bankedData = config.bankedInstructionData, parallelFallbackAddresses = p.parallelFetchAddresses,
-        tagConfig = config.tags))
+        tagConfig = config.tags, withRequestContext = true))
     cache.io.fetch <> requests.io.downstream
     cache.io.pmpState := pmp
     cache.io.privilege := io.privilege

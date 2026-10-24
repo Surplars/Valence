@@ -92,6 +92,7 @@ class FetchPhysicalCommand extends Bundle {
     val address = UInt(64.W)
     val mask = UInt(2.W)
     val accessFaults = UInt(2.W)
+    val context = new PhysicalFetchRequestContext
 }
 
 /** Existing first-offer PMP edge, now independent of the physical return owner.
@@ -137,6 +138,7 @@ class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = fals
     io.physical.bits.address := owner.address
     io.physical.bits.mask := mask
     io.physical.bits.accessFaults := errors
+    io.physical.bits.context.privilege := owner.privilege
     io.fault.valid := valid && !mask.orR
     io.fault.bits.slot := owner.slot
     io.fault.bits.token := owner.token
@@ -165,10 +167,10 @@ class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = fals
   * is a required lower-level contract, independently checked at TL source level.
   * A FIFO alone cannot diagnose a duplicate masquerading as another live reply.
   */
-class OrderedFetchPhysicalReturns extends Module {
+class OrderedFetchPhysicalReturns(withRequestContext: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val command = Flipped(Decoupled(new FetchPhysicalCommand))
-        val physical = new InstructionPort
+        val physical = new InstructionPort(withRequestContext = withRequestContext)
         val completion = Decoupled(new FetchOwnedCompletion)
         val idle = Output(Bool())
     })
@@ -176,6 +178,7 @@ class OrderedFetchPhysicalReturns extends Module {
     io.physical.request.valid := io.command.valid && routes.io.enq.ready
     io.physical.request.bits := io.command.bits.address
     io.physical.requestMask := io.command.bits.mask
+    io.physical.requestContext.foreach(_ := io.command.bits.context)
     io.command.ready := io.physical.request.ready && routes.io.enq.ready
     routes.io.enq.valid := io.physical.request.fire
     routes.io.enq.bits := io.command.bits
@@ -203,7 +206,8 @@ class OrderedFetchPhysicalReturns extends Module {
   * a miss keeps this translation context until its actual response handshake.
   * Bare acceptance reaches PMP at the old edge; no extra admission bubble.
   */
-class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false) extends Module {
+class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false,
+    withRequestContext: Boolean = false) extends Module {
     require(p.renameWidth == 2 && p.compressedInstructions && p.registeredTranslationHeads &&
         p.alignedFetchSinglePage && p.alignedFetchPmp && p.fetchReplyTurnover && p.fetchIdentityTranslation &&
         p.virtualMemoryLevels > 0 && p.pmpEntries > 0 && !p.fetchAddressBeforePmp &&
@@ -212,14 +216,14 @@ class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false) 
     val io = IO(new Bundle {
         val command = Flipped(Decoupled(new FetchTransactionCommand))
         val result = Decoupled(new FetchTransactionResult)
-        val physical = new InstructionPort
+        val physical = new InstructionPort(withRequestContext = withRequestContext)
         val translation = new SvTranslationPort
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
     val ledger = Module(new FetchCompletionLedger)
     val permission = Module(new AlignedFetchPermissionStage(p.pmpEntries, sharedTwoWord))
-    val returns = Module(new OrderedFetchPhysicalReturns)
+    val returns = Module(new OrderedFetchPhysicalReturns(withRequestContext))
     val completions = Module(new Arbiter(new FetchOwnedCompletion, 3))
     permission.io.pmpState := io.pmpState
     returns.io.command <> permission.io.physical
@@ -300,17 +304,18 @@ class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false) 
   * Context is captured on public fire, or frozen on its first stalled offer
   * so automatic trap privilege changes cannot reinterpret an older request.
   */
-class PipelinedAlignedInstructionTranslation(p: OooParams, sharedTwoWord: Boolean = false) extends Module {
+class PipelinedAlignedInstructionTranslation(p: OooParams, sharedTwoWord: Boolean = false,
+    withRequestContext: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val virtual = Flipped(new InstructionPort)
-        val physical = new InstructionPort
+        val physical = new InstructionPort(withRequestContext = withRequestContext)
         val translation = new SvTranslationPort
         val vmState = Input(new VmCsrState)
         val privilege = Input(UInt(2.W))
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
-    val engine = Module(new PipelinedAlignedFetchEngine(p, sharedTwoWord))
+    val engine = Module(new PipelinedAlignedFetchEngine(p, sharedTwoWord, withRequestContext))
     val nextToken = RegInit(0.U(64.W))
     val nextResult = RegInit(0.U(64.W))
     val liveCommand = Wire(new FetchTransactionCommand)

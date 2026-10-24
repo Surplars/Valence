@@ -63,7 +63,8 @@ class CommonA1CpuTile(
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
         boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
         compactCacheKeys = compactFetchKeys, transactionSlots = config.fetchTransactionSlots))
-    val fetchAdapter = Module(new InstructionTranslationAdapter(p, transactionSlots = config.fetchTransactionSlots))
+    val fetchAdapter = Module(new InstructionTranslationAdapter(p, transactionSlots = config.fetchTransactionSlots,
+        withRequestContext = true))
     require(frontend.transactionSlots == fetchAdapter.transactionSlots,
         "Common A1 frontend and translation ownership capacities must agree")
     fetchAdapter.io.virtual <> frontend.io.memory
@@ -75,7 +76,7 @@ class CommonA1CpuTile(
     }
     val physicalFetch = if (p.bufferedFetchRequests) {
         val requests = Module(new InstructionRequestBuffer(fetchAdapter.io.physical.packetWords,
-            p.flowThroughFetchRequests, p.independentFetchCapture))
+            p.flowThroughFetchRequests, p.independentFetchCapture, withRequestContext = true))
         requests.io.upstream <> fetchAdapter.io.physical
         requests.io.downstream
     } else fetchAdapter.io.physical
@@ -84,7 +85,9 @@ class CommonA1CpuTile(
         lines = config.instructionCacheLines, packetWords = 2,
         prefetchEnabled = false, // public two-word frontend already owns its fetch window
         bankedData = config.bankedInstructionData,
-        parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = config.tags))
+        parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = config.tags, withRequestContext = true))
+    require(physicalFetch.withRequestContext && fetchCache.io.fetch.withRequestContext,
+        "Common A1 physical fetch must retain its owner permission context")
     fetchCache.io.fetch <> physicalFetch
     fetchCache.io.pmpState := core.io.pmpState.get
     fetchCache.io.privilege := core.io.fetchPrivilege.get

@@ -19,20 +19,23 @@ class InstructionLineCache(
     prefetchEnabled: Boolean = false,
     parallelFallbackAddresses: Boolean = false,
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
-    bankedData: Boolean = false
+    bankedData: Boolean = false,
+    withRequestContext: Boolean = false
 ) extends Module {
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(ramBase >= 0 && ramBase % 64 == 0 && ramBytes >= 64 && ramBytes % 64 == 0)
     require(ramBase + ramBytes <= (BigInt(1) << 64))
     require(params.addrWidth == 64 && params.dataWidth == 64 && params.sourceBits >= 3)
     require(Set(2, 4).contains(packetWords))
+    require(!withRequestContext || !prefetchEnabled,
+        "owner-context instruction cache requires context-owned prefetch before enabling prefetch")
     private val sets = lines / 2
     private val prefetchSlots = 2
     private val indexBits = log2Ceil(sets)
     private val tagGeometry = tagConfig.geometry(ramBase, ramBytes, 6 + indexBits)
     private val tagBits = tagGeometry.tagBits
     val io = IO(new Bundle {
-        val fetch = Flipped(new InstructionPort(packetWords))
+        val fetch = Flipped(new InstructionPort(packetWords, withRequestContext))
         val tl = new TLBundle(params)
         val pmpState = Input(new PmpState)
         val privilege = Input(UInt(2.W))
@@ -85,8 +88,17 @@ class InstructionLineCache(
     pmp.io.state := io.pmpState
     pmp.io.address := requestLine
     pmp.io.size := 6.U
-    pmp.io.privilege := io.privilege
+    pmp.io.privilege := io.fetch.requestContext.map(_.privilege).getOrElse(io.privilege)
     pmp.io.access := PmpAccess.execute
+    if (withRequestContext) {
+        val offer = Cat(io.fetch.request.bits, io.fetch.requestMask, io.fetch.requestContext.get.asUInt)
+        val held = RegNext(io.fetch.request.valid && !io.fetch.request.ready, false.B)
+        val previous = RegEnable(offer, io.fetch.request.valid && !io.fetch.request.ready)
+        when(held && !reset.asBool) {
+            assert(io.fetch.request.valid && offer === previous,
+                "instruction cache held demand changed its address/mask/context")
+        }
+    }
     // This physical cache can serve sixteen-byte packets at eight-byte granularity.
     // Every offset 0..48 fits in one 64-byte line; only offset 56 needs precise fallback.
     // savedOffset already selects either hit SRAM data or the filled line at eight-byte granularity.

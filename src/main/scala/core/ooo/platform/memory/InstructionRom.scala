@@ -4,11 +4,13 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.loadMemoryFromFileInline
 
-class InstructionPort(val packetWords: Int = 2) extends Bundle {
+class InstructionPort(val packetWords: Int = 2, val withRequestContext: Boolean = false) extends Bundle {
     require(Set(2, 4).contains(packetWords))
     val request  = Decoupled(UInt(64.W))
     // Bit i authorizes the 32-bit word at request.bits + 4*i. Zero yields a fault-only packet.
     val requestMask = Output(UInt(packetWords.W))
+    // Shares request.valid/ready and the address/mask lifetime, never live CSR state.
+    val requestContext = if (withRequestContext) Some(Output(new PhysicalFetchRequestContext)) else None
     val response = Flipped(Decoupled(UInt((packetWords * 32).W)))
     // One error bit per 32-bit word, aligned with the response data while valid is asserted.
     val responseError = Input(UInt(packetWords.W))

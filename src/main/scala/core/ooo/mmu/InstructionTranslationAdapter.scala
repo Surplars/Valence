@@ -7,13 +7,13 @@ import chisel3.util._
   * in one translation page; the two-word path retains precise handling of a packet crossing a page boundary.
   */
 class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp: Boolean = false,
-    val transactionSlots: Int = 1) extends Module {
+    val transactionSlots: Int = 1, val withRequestContext: Boolean = false) extends Module {
     require(p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     require(Set(1, 2).contains(transactionSlots))
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val virtual = Flipped(new InstructionPort(packetWords))
-        val physical = new InstructionPort(packetWords)
+        val physical = new InstructionPort(packetWords, withRequestContext)
         val translation = new SvTranslationPort
         val vmState = Input(new VmCsrState)
         val privilege = Input(UInt(2.W))
@@ -21,7 +21,8 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
         val idle = Output(Bool())
     })
     if (transactionSlots == 2) {
-        val pipeline = Module(new PipelinedAlignedInstructionTranslation(p, sharedTwoWordFetchPmp))
+        val pipeline = Module(new PipelinedAlignedInstructionTranslation(p, sharedTwoWordFetchPmp,
+            withRequestContext))
         pipeline.io.virtual <> io.virtual
         pipeline.io.vmState := io.vmState
         pipeline.io.privilege := io.privilege
@@ -39,7 +40,8 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
             }
         }
         val boundary = Module(new InstructionFetchTransactionBoundary(packetWords))
-        val engine = Module(new RegisteredInstructionTranslationEngine(p, sharedTwoWordFetchPmp))
+        val engine = Module(new RegisteredInstructionTranslationEngine(p, sharedTwoWordFetchPmp,
+            withRequestContext = withRequestContext))
         boundary.io.upstream <> io.virtual
         boundary.io.vmState := io.vmState
         boundary.io.privilege := io.privilege
@@ -61,6 +63,7 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
         val sum = Reg(Bool())
         val mxr = Reg(Bool())
         val privilege = Reg(UInt(2.W))
+        io.physical.requestContext.foreach(_.privilege := privilege)
         val physicalPc = Reg(UInt(64.W))
         val physicalMask = Reg(UInt(4.W))
         val errors = Reg(UInt(4.W))
@@ -153,6 +156,7 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
     val sum = Reg(Bool())
     val mxr = Reg(Bool())
     val privilege = Reg(UInt(2.W))
+    io.physical.requestContext.foreach(_.privilege := privilege)
     val firstPhysical = Reg(UInt(64.W))
     val secondPhysical = Reg(UInt(64.W))
     val allowed = Reg(UInt(2.W))
