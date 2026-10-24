@@ -40,6 +40,9 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val physicalAddress = UInt(64.W)
     val translationEpoch = UInt(32.W)
     val postedProof = p.postedProofConfig.map(c => Valid(new PostedStoreProof(c)))
+    // No independent handshake or retained credit: authority belongs to this accepted load.
+    val canonicalForward = if (p.completedCanonicalStoreForwarding)
+        Some(Valid(new CanonicalStoreCertificate(p))) else None
     val canonicalStoreEpoch = if (p.canonicalVirtualStoreOverlap) Some(Valid(UInt(32.W))) else None
     val frozenStoreProof = if (p.frozenStoreProofEnabled) Some(Valid(new FrozenStoreProof)) else None
 }
@@ -244,9 +247,16 @@ class LoadStoreUnit(
     // New ownership wins over freeing the result accepted in the same cycle.
     when(io.start.fire) {
         when(io.start.bits.precheckedLoad) {
-            assert(p.virtualRamLoadPrecheck.B && io.start.bits.virtualized &&
-                !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid,
-                "prechecked physical authorization belongs only to an ordinary virtual RAM load")
+            if (p.completedCanonicalStoreForwarding) {
+                assert(p.virtualRamLoadPrecheck.B && io.start.bits.virtualized &&
+                    !io.start.bits.store && !io.start.bits.atomic &&
+                    (!io.start.bits.forward.valid || io.start.bits.canonicalForward.get.valid),
+                    "prechecked physical authorization requires an ordinary virtual load or exact completed-store forwarding")
+            } else {
+                assert(p.virtualRamLoadPrecheck.B && io.start.bits.virtualized &&
+                    !io.start.bits.store && !io.start.bits.atomic && !io.start.bits.forward.valid,
+                    "prechecked physical authorization belongs only to an ordinary virtual RAM load")
+            }
             assert(io.start.bits.address(11, 0) === io.start.bits.physicalAddress(11, 0),
                 "translation preserves the page offset used for lane extraction and precise tval")
             if (p.boundHeadStoreOverlap) {
@@ -254,6 +264,33 @@ class LoadStoreUnit(
                     AlignedMemoryDisjoint.aligned(io.start.bits.physicalAddress, io.start.bits.size) &&
                     SpeculativeRamRange.contains(p, io.start.bits.physicalAddress, io.start.bits.size),
                     "a saved successful precheck retains an aligned complete RAM byte interval")
+            }
+        }
+        io.start.bits.canonicalForward.foreach { proof =>
+            when(io.start.bits.precheckedLoad && io.start.bits.forward.valid) {
+                assert(proof.valid, "virtual forwarding requires a checked canonical source certificate")
+            }
+            when(proof.valid) {
+                val store = proof.bits
+                assert(io.start.bits.precheckedLoad && io.start.bits.forward.valid &&
+                    io.start.bits.virtualized && !io.start.bits.store && !io.start.bits.atomic &&
+                    !io.start.bits.accessDenied &&
+                    AlignedMemoryDisjoint.aligned(io.start.bits.address, io.start.bits.size) &&
+                    AlignedMemoryDisjoint.aligned(io.start.bits.physicalAddress, io.start.bits.size) &&
+                    SpeculativeRamRange.contains(p, io.start.bits.physicalAddress, io.start.bits.size),
+                    "canonical forwarding consumes an aligned read-authorized ordinary RAM load")
+                assert(state === done && operation.store && !operation.atomic && operation.virtualized &&
+                    !result.exception && !discard && io.complete.fire &&
+                    store.origin.token.asUInt === operation.token.asUInt &&
+                    store.virtualAddress === operation.address && store.size === operation.size &&
+                    operation.canonicalStoreEpoch.get.valid &&
+                    store.origin.epoch === operation.canonicalStoreEpoch.get.bits &&
+                    store.origin.epoch === io.start.bits.translationEpoch &&
+                    store.origin.token.asUInt =/= io.start.bits.token.asUInt &&
+                    io.start.bits.forward.bits === io.forwardStore.bits.data &&
+                    CompletedCanonicalStoreForwarding.storeShape(p, store) &&
+                    CompletedCanonicalStoreForwarding.covers(store, io.start.bits.physicalAddress, io.start.bits.size),
+                    "canonical forwarding replaces the same successful completed store with exact owner epoch and bytes")
             }
         }
         cancelled        := false.B

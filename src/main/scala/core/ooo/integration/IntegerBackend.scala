@@ -1481,7 +1481,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val loadAligned = AlignedMemoryDisjoint.aligned(canonicalAddress, memorySize)
     val storeMask = byteLanes(sourceStore.bits.size, sourceStore.bits.address)
     val sourceRam = SpeculativeRamRange.contains(p, sourceStore.bits.address, sourceStore.bits.size)
-    val forwarding =
+    val forwarding = if (p.completedCanonicalStoreForwarding) Wire(Bool()) else
         sourceStore.valid && sourceRam && bareOrdinaryRam && !memoryEntry.request.store && !memoryEntry.request.atomic &&
             sourceStore.bits.address(63, 3) === canonicalAddress(63, 3) && (storeMask & loadMask) === loadMask &&
             memoryLive(sourceStore.bits.token.index) &&
@@ -1548,6 +1548,31 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     }
     val pendingStoreOlder = VecInit((0 until p.robEntries).map(i => memoryLive(i) && pending(i) &&
         issueEntries(i).request.store && ages(i) < memoryChoice.age)).asUInt
+    val canonicalStoreForward = if (p.completedCanonicalStoreForwarding) {
+        val join = Module(new CompletedCanonicalStoreForwarding(p))
+        join.io.source := sourceStore
+        join.io.store := canonicalStoreTracker.get.io.certificate
+        join.io.load := originalLoadPrepared.get
+        // Strict prepared.valid includes read PMP, PBMT, full-range, stable/current
+        // epoch and flush. Match its complete owner/payload to this staged candidate.
+        join.io.load.valid := precheckedLoad
+        join.io.ordinaryVirtualLoad := memoryChoice.valid && virtualized &&
+            memoryEntry.request.memory && !memoryEntry.request.store && !memoryEntry.request.atomic &&
+            !memoryEntry.request.system
+        join.io.sourceOlder := memoryLive(sourceStore.bits.token.index) &&
+            (sourceStore.bits.token.index - head) < memoryChoice.age
+        join.io.pendingOlderStore := pendingStoreOlder.orR
+        join.io.stable := io.loadPrecheck.get.stable && !contextMemoryEpoch
+        join.io.epoch := io.loadPrecheck.get.epoch
+        join.io.qualified
+    } else false.B
+    if (p.completedCanonicalStoreForwarding) {
+        val bareStoreForwarding = sourceStore.valid && sourceRam && bareOrdinaryRam &&
+            !memoryEntry.request.store && !memoryEntry.request.atomic &&
+            sourceStore.bits.address(63, 3) === canonicalAddress(63, 3) && (storeMask & loadMask) === loadMask &&
+            memoryLive(sourceStore.bits.token.index) && (sourceStore.bits.token.index - head) < memoryChoice.age
+        forwarding := bareStoreForwarding || canonicalStoreForward
+    }
     val pendingStoreBypass = p.pendingVirtualStoreProof.B && precheckedLoad && memoryChoice.index =/= head &&
         pendingStoreOlder.orR
     val pendingStoreOfferAllowedFor = if (p.pendingReadyStoreBypass) Some((0 until p.robEntries).map { i =>
@@ -1787,6 +1812,21 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     lsu.io.parallel                 := speculative || frontierChoice
     lsu.io.start.bits.forward.valid := forwarding
     lsu.io.start.bits.forward.bits  := sourceStore.bits.data
+    lsu.io.start.bits.canonicalForward.foreach { proof =>
+        proof.valid := canonicalStoreForward
+        proof.bits := canonicalStoreTracker.get.io.certificate.bits
+        when(lsu.io.start.fire && proof.valid) {
+            assert(precheckedLoad && io.loadPrecheck.get.stable && !pendingStoreOlder.orR &&
+                selectedTranslationEpoch === io.loadPrecheck.get.epoch &&
+                proof.bits.origin.epoch === selectedTranslationEpoch &&
+                lsu.io.complete.fire && !lsu.io.complete.bits.exception &&
+                lsu.io.complete.bits.token.asUInt === sourceStore.bits.token.asUInt &&
+                memoryProtected && memoryOwner.asUInt === sourceStore.bits.token.asUInt &&
+                !interruptDrain && !reserveSystem && !olderSystem && !contextMemoryEpoch &&
+                !ledger.io.recovering && !ledger.io.recoveryAccepted,
+                "completed canonical forwarding retains read permission drain and actual source completion")
+        }
+    }
     lsu.io.issueDestination.foreach { destination =>
         destination.valid := memoryEntry.renamed.writesRd
         destination.bits := memoryEntry.renamed.destination
@@ -1920,13 +1960,21 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         when(lsu.io.start.fire && precheckedLoad && !frontierChoice && memoryChoice.index =/= head) {
             for (i <- 0 until p.robEntries) {
                 when(memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age) {
-                    assert((certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
-                        tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask)) ||
-                        (if (p.pendingReadyStoreBypass)
-                            pendingStoreBypass && pendingStoreOfferAllowedFor.get(i) && pendingStoreDisjointFor(i)
-                         else pendingStoreBypass && pendingStoreProofFor(i) && pendingStoreDisjointFor(i) &&
-                            !pendingStoreDataReady(i)),
-                        "every older store needs exact checked ownership or a retained pending write proof and disjoint PA bytes")
+                    if (p.completedCanonicalStoreForwarding) {
+                        assert((canonicalStoreForward && certFor(i) &&
+                            issueEntries(i).renamed.token.asUInt === sourceStore.bits.token.asUInt) ||
+                            (certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
+                                tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask)),
+                            "every older store needs disjoint checked bytes or the exact successful canonical forwarding source")
+                    } else {
+                        assert((certFor(i) && AlignedMemoryDisjoint.withLanes(canonicalAddress, loadAligned, loadMask,
+                            tracker.io.certificate.bits.physicalAddress(63, 3), tracker.io.certificate.bits.mask)) ||
+                            (if (p.pendingReadyStoreBypass)
+                                pendingStoreBypass && pendingStoreOfferAllowedFor.get(i) && pendingStoreDisjointFor(i)
+                             else pendingStoreBypass && pendingStoreProofFor(i) && pendingStoreDisjointFor(i) &&
+                                !pendingStoreDataReady(i)),
+                            "every older store needs exact checked ownership or a retained pending write proof and disjoint PA bytes")
+                    }
                 }
             }
         }

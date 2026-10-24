@@ -110,8 +110,13 @@ final case class FpgaNextConfig(
     branchResolutionTopology: String = "writeback-coupled",
     fetchTransactionSlots: Int = 1,
     registeredDataTranslation: Boolean = false,
-    circularFetchPayload: Boolean = false
+    circularFetchPayload: Boolean = false,
+    completedCanonicalStoreForwarding: Boolean = false
 ) {
+    require(!completedCanonicalStoreForwarding || (completionTopology == "dual-owner" &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && !registeredCanonicalStoreEvent &&
+        !pendingVirtualStoreProof && !taggedStoreReturns && !postedStoreMerge),
+        "completed canonical forwarding requires the explicit ordered dual-owner memory profile")
     require(!registeredDataTranslation || (!translationHitFlow && !queuedHeadSelection &&
         virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
         "registered translation must explicitly replace hit flow, not silently override it")
@@ -250,6 +255,7 @@ final case class FpgaNextConfig(
         (if (queuedHeadSelection) "-queued-head-selection" else "") +
         (if (registeredDataTranslation) "-registered-data-translation" else "") +
         (if (circularFetchPayload) "-circular-fetch-payload" else "") +
+        (if (completedCanonicalStoreForwarding) "-completed-canonical-forward" else "") +
         (if (alignedNextLinePmp) "-aligned-next-line-pmp" else "") +
         (if (registerProbeLookup) "-register-probe-lookup" else "") +
         (if (localAddressRanges) "-local-address-ranges" else "") +
@@ -399,11 +405,13 @@ final case class FpgaNextConfig(
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity).copy(completionTopology = completionTopology,
             branchResolutionTopology = branchResolutionTopology,
-            registeredDataTranslation = registeredDataTranslation, circularFetchPayload = circularFetchPayload)
+            registeredDataTranslation = registeredDataTranslation, circularFetchPayload = circularFetchPayload,
+            completedCanonicalStoreForwarding = completedCanonicalStoreForwarding)
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
         require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
-            fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload,
+            fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload &&
+            !completedCanonicalStoreForwarding,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,

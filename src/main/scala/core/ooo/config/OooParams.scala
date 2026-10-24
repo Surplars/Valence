@@ -213,8 +213,15 @@ case class OooParams(
     branchResolutionTopology: String = "writeback-coupled",
     // Explicit M2/R1 experiments; neither changes the Selected/FullCandidate defaults.
     registeredDataTranslation: Boolean = false,
-    circularFetchPayload: Boolean = false
+    circularFetchPayload: Boolean = false,
+    completedCanonicalStoreForwarding: Boolean = false
 ) {
+    require(!completedCanonicalStoreForwarding || (completionTopology == "dual-owner" &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && virtualMemoryLevels > 0 &&
+        registeredMemoryAddress && registeredLoadReplay && !registeredCanonicalStoreEvent &&
+        !pendingVirtualStoreProof && !memoryProofFrontier && !frozenStoreProofTransport &&
+        !postedStoreMerge && !taggedStoreReturns),
+        "completed canonical forwarding requires the ordered dual-owner checked-head-store path")
     require(!circularFetchPayload || (renameWidth == 2 && registeredFetchPacket && !alignedFetchPermissionStage),
         "circular fetch payload requires the two-wide registered non-frontier reservoir")
     require(!registeredDataTranslation || (virtualMemoryLevels > 0 && registeredTranslationHeads &&

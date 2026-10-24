@@ -13,7 +13,8 @@ sealed abstract class CommonA1RebuildProfile(
     val independentBranch: Boolean = false,
     val fetchSlots: Int = 1,
     val registeredTranslation: Boolean = false,
-    val circularPayload: Boolean = false
+    val circularPayload: Boolean = false,
+    val completedStoreForward: Boolean = false
 ) {
     final def config: FpgaNextConfig = {
         val baseline = CommonCpuProfile.A1.fpga
@@ -22,6 +23,7 @@ sealed abstract class CommonA1RebuildProfile(
         val translation = if (registeredTranslation)
             CommonA1MemoryProfile.experimentalRegisteredTranslation(memory) else memory
         val backend = translation.copy(circularFetchPayload = circularPayload,
+            completedCanonicalStoreForwarding = completedStoreForward,
             completionTopology = if (dualCompletion) "dual-owner" else "legacy",
             branchResolutionTopology = if (independentBranch) "execution-mailbox" else "writeback-coupled")
         if (fetchSlots == 2) backend.copy(fetchTransactionSlots = 2, alignedFetchSinglePage = true) else backend
@@ -51,8 +53,10 @@ object CommonA1RebuildProfile {
     case object FullR1 extends CommonA1RebuildProfile("full-r1", true, true, true, 2, false, true)
     case object FullM2R1 extends CommonA1RebuildProfile("full-m2-r1", true, true, true, 2, true, true)
 
+    case object FullR1M3 extends CommonA1RebuildProfile("full-r1-m3", true, true, true, 2, false, true, true)
+
     lazy val all: Seq[CommonA1RebuildProfile] = Seq(Baseline, Backend, Memory, Combined, BackendBranch, CombinedBranch,
-        Frontend, CombinedFrontend, FullCandidate, FullM2, FullR1, FullM2R1)
+        Frontend, CombinedFrontend, FullCandidate, FullM2, FullR1, FullM2R1, FullR1M3)
 
     def named(name: String): CommonA1RebuildProfile = {
         require(all.exists(_.name == name), s"unknown explicit A1 rebuild profile: $name")
