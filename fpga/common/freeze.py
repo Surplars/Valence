@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import sys
 import board_inputs
+import cpu_identity
 import manifest as gate
 
 
@@ -20,6 +21,7 @@ def freeze(a):
         gate.file_at(root, value)
     emission = gate.read(root / a.emission)
     gate.require(emission.get('cpu') in ('i1', 'a1'), 'actual selected CPU emission required')
+    cpu_identity.validate_emission(emission)
     profile = emission.get('clockProfile', 'production')
     clocks = gate.reviewed_board_clocks(emission['cpu'], profile)
     cpu = emission['cpu']; base = gate.relative(a.emission).parent
@@ -42,6 +44,8 @@ def freeze(a):
                   clocks_hz=clocks,
                   features=dict(mac=True, network_dma=True))
     if profile != 'production': config['clock_profile'] = profile
+    config = cpu_identity.bind_board_configuration(config, emission)
+    cpu_identity.reject_experimental_board(config, emission)
     roles = dict(rtl_filelist='board-generated/rtl.f', simulation_filelist='board-generated/sim.f',
                  emission_profile=a.emission, firmware_contract=a.firmware_contract,
                  functional_receipt=a.functional_receipt, rom=a.rom, rom_coe=a.coe,

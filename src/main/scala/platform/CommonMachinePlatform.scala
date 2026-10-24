@@ -57,7 +57,8 @@ class CommonMachinePlatform(
     diagnosticRateAdmission: Boolean = false,
     performanceTelemetry: Boolean = false,
     telemetryWindowCycles: Int = 50000,
-    experimentalA1Runtime: Boolean = false
+    experimentalA1Runtime: Boolean = false,
+    val a1Experimental: Option[CommonA1ExperimentalSelection] = None
 ) extends RawModule {
     require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
         runtimeRateControl && performanceTelemetry && independentDebugClock && independentDdrClock &&
@@ -89,6 +90,9 @@ class CommonMachinePlatform(
     require(profile.clockProfile != "boot50-dynamic" || runtimeRateControl)
     private val boundary = if (runtimeDebugAdmission) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
+    CommonA1ExperimentalSelection.validate(profile, a1Experimental, boundary, experimentalA1Runtime)
+    val a1CpuConfig = CommonA1ExperimentalSelection.config(profile, a1Experimental)
+    val a1MemoryProfile = CommonA1ExperimentalSelection.memoryProfile(a1Experimental)
     require(independentDdrClock || profile.fabricHz == profile.ddrUiHz,
         "a fabric frequency different from fixed DDR UI requires the complete AXI boundary")
     require(independentTimebaseClock || profile.fabricHz == profile.clocks.timebaseHz,
@@ -542,7 +546,7 @@ class CommonMachinePlatform(
         io.cpuCycles := cpu.io.cycles; io.instructions := cpu.io.instructions
     } else {
         val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
-            Module(new CommonA1CpuTile(profile.fpga, boundary))
+            Module(new CommonA1CpuTile(a1CpuConfig, boundary, a1MemoryProfile))
         }
         crossing.cpu <> cpu.io.bus
         runtime.foreach(_.io.cpuHeld := cpu.io.runtimeHeld.get)

@@ -1,6 +1,7 @@
 """Closed public board dependency list and emitted-port checks (no FPGA tools)."""
 import re
 import hashlib
+import cpu_identity
 import manifest as gate
 
 PUBLIC_INPUTS = (
@@ -301,6 +302,7 @@ def emission(root, m):
     path = m['roles'].get('emission_profile')
     gate.require(path in m['inputs'], 'missing frozen production emission profile')
     meta = gate.read(gate.file_at(root, path)); c = m['configuration']; clocks = c['clocks_hz']
+    cpu_identity.reject_experimental_board(c, meta)
     software_parameter_selection(c, meta)
     for key, value in dict(top='CommonMachinePlatform', cpu=c['cpu'], abi=1, romBytes=131072,
                            programmableRom=False, vivadoMemories=True, hardwareClocks=True,

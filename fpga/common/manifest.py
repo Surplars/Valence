@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import stat
 import sys
+import cpu_identity
 
 SCHEMA = 'valence-common-local-v1'
 CLOCKS = ('cpu', 'fabric', 'timebase', 'ddr_ui', 'uart', 'aon')
@@ -108,6 +109,7 @@ def reviewed_board_clocks(cpu, profile='production'):
 
 def configuration(config):
     require(config.get('cpu') in ('i1', 'a1'), 'select exactly one CPU: i1 or a1')
+    cpu_identity.validate_board_configuration(config)
     require(bool(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_$]*', config.get('top', ''))), 'real top name required')
     require(config.get('part') == 'xczu15eg-ffvb1156-2-i', 'unreviewed FPGA part')
     require(config.get('abi') == 1 and config.get('interrupt_abi') == 'aia', 'common ABI 1/AIA required')
@@ -217,6 +219,7 @@ def preflight(manifest, windows=False):
     m = read(manifest)
     require(m.get('schema') == SCHEMA, 'wrong/incomplete manifest schema')
     profile = configuration(m.get('configuration', {}))
+    cpu_identity.reject_experimental_board(m['configuration'])
     require(type(m.get('threads')) is int and m['threads'] >= 8, 'request at least eight threads')
     inputs = m.get('inputs', {})
     require(isinstance(inputs, dict) and inputs, 'frozen input SHA256 inventory required')
@@ -236,6 +239,10 @@ def preflight(manifest, windows=False):
             if p.is_file() and '__pycache__' not in p.parts:
                 require(p.relative_to(root).as_posix() in inputs, 'unmanifested source: ' + str(p))
     roles = m.get('roles', {})
+    emission_path = roles.get('emission_profile')
+    if emission_path is not None or any(key in m['configuration'] for key in cpu_identity.BOARD_KEYS):
+        require(emission_path in inputs, 'missing frozen CPU identity emission profile')
+        cpu_identity.reject_experimental_board(m['configuration'], read(file_at(root, emission_path)))
     for name in ('rtl_filelist', 'firmware_contract', 'functional_receipt', 'rom', 'board_audit_script'):
         require(roles.get(name) in inputs, 'missing frozen input role: ' + name)
     for name in ('constraints', 'ip'):

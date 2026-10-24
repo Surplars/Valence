@@ -17,12 +17,16 @@ object CommonMachinePlatformMain extends App {
     val options = args.drop(2)
     val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
     val profile = CommonCpuProfile.named(args(1), clockProfile)
+    val selected = options.find(_.startsWith("--experimental-a1-profile=")).map(option =>
+        CommonA1ExperimentalSelection.named(option.stripPrefix("--experimental-a1-profile=")))
+    val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
     val diagnosticOption = "--diagnostic-rates=" + CommonDiagnosticRateProfile.option
     val diagnostic = options.contains(diagnosticOption)
     require(!diagnostic || dynamic, "diagnostic rates require boot50-dynamic")
-    val legalFlags = Set("--programmable", "--vivado-memories", diagnosticOption)
-    require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") || x.startsWith("--clock-profile=")))
+    val legalFlags = Set("--programmable", "--vivado-memories", "--emit-chirrtl-only", diagnosticOption)
+    require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") ||
+        x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
@@ -32,7 +36,12 @@ object CommonMachinePlatformMain extends App {
     val vivado = options.contains("--vivado-memories")
     require(!dynamic || !programmable, "dynamic board profile has no unhandshaked ROM-program source")
     require(programmable != vivado, "select explicit native-programmable or production-Vivado ROM")
+    val boundary = if (dynamic) profile.boundary.copy(
+        runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
+    val identity = CommonCpuMicroarchitectureIdentity.build(profile, selected, boundary)
+    val actualCpuConfig = CommonA1ExperimentalSelection.config(profile, selected)
     val root = Paths.get(sys.props.getOrElse("chisel.project.root", ".")).toAbsolutePath.normalize
+    val compileBinding = selected.map(_ => CommonCpuMicroarchitectureIdentity.verifyCompileReceipt(compileReceipt, root))
     def walk(directory: Path): Seq[Path] = {
         val stream = Files.walk(directory)
         try stream.iterator.asScala.filter(Files.isRegularFile(_)).toSeq finally stream.close()
@@ -57,7 +66,7 @@ object CommonMachinePlatformMain extends App {
     // output for A1 (Icarus supports it); no DUT architecture is changed.
     val lowering = if (profile.kind == "a1") "disallowLocalVariables"
         else "disallowLocalVariables,disallowPackedArrays"
-    ChiselStage.emitSystemVerilogFile(new CommonMachinePlatform(profile, programmable = programmable,
+    def platform() = new CommonMachinePlatform(profile, programmable = programmable,
         hardwareClocks = true, vivadoMemories = vivado,
         independentDdrClock = profile.independentFixedDomains,
         independentTimebaseClock = profile.independentFixedDomains,
@@ -65,16 +74,25 @@ object CommonMachinePlatformMain extends App {
         runtimeDebugAdmission = dynamic, runtimeNetworkAdmission = dynamic,
         runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
         runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic,
-        diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic), Array("--target-dir", output.toString),
+        diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic, a1Experimental = selected)
+    if (chirrtlOnly) ChiselStage.emitCHIRRTLFile(platform(), Array("--target-dir", output.toString))
+    else ChiselStage.emitSystemVerilogFile(platform(), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
             s"--lowering-options=$lowering",
             "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
     require(hashes(sourcePaths) == sources, "source changed during emission")
     require(hashes(classPaths) == classes, "compiled classes changed during emission")
+    compileBinding.foreach(binding => require(
+        CommonCpuMicroarchitectureIdentity.verifyCompileReceipt(compileReceipt, root) == binding,
+        "bound compile receipt changed during candidate emission"))
+    CommonCpuMicroarchitectureIdentity.write(output.resolve("microarchitecture-identity.json"), identity)
     val artifacts = hashes(walk(output))
     def objectOf(m: Map[String, String]): ujson.Obj = ujson.Obj.from(m.toSeq.sortBy(_._1).map { case (k, v) => k -> ujson.Str(v) })
     val manifest = ujson.Obj(
         "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
+        "cpuMicroarchitectureProfile" -> identity("microarchitectureProfile"),
+        "cpuQualification" -> identity("qualification"), "cpuMicroarchitecture" -> identity,
+        "rtlFormat" -> (if (chirrtlOnly) "CHIRRTL" else "SystemVerilog"),
         "clockProfile" -> profile.clockProfile, "runtimeClockReconfiguration" -> dynamic,
         "functionalProfile" -> (if (diagnostic) "boot50-dynamic-software-parameter-diagnostic" else profile.clockProfile),
         "rateAdmission" -> (if (diagnostic) "explicit-diagnostic-not-qualified" else "qualified-only"),
@@ -106,7 +124,7 @@ object CommonMachinePlatformMain extends App {
         "timebaseHz" -> profile.clocks.timebaseHz, "ddrUiHz" -> profile.ddrUiHz,
         "aonHz" -> profile.aonHz, "uartHz" -> profile.uartHz, "uartBaud" -> profile.uartBaud,
         "instructionCacheBytes" -> 32768, "dataCacheBytes" -> 32768, "cacheWays" -> 2,
-        "tlbEntries" -> (if (profile.kind == "i1") profile.i1.tlbEntries else profile.fpga.dataTranslationEntries),
+        "tlbEntries" -> (if (profile.kind == "i1") profile.i1.tlbEntries else actualCpuConfig.dataTranslationEntries),
         "issueWidth" -> (if (profile.kind == "i1") 1 else 2),
         "homeClients" -> 2, "homeLines" -> 1024, "homeWays" -> 4,
         "homeAcquireEntries" -> 2, "homeWritebackEntries" -> 2,
