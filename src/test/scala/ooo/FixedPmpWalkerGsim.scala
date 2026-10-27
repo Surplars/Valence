@@ -5,7 +5,7 @@ import chisel3.util.experimental.BoringUtils
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
-class FixedPmpWalkerGsim(maxLevels: Int) extends Module {
+class FixedPmpWalkerGsim(maxLevels: Int, decodedPmp: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val startValid     = Input(Bool())
         val startReady     = Output(Bool())
@@ -38,7 +38,7 @@ class FixedPmpWalkerGsim(maxLevels: Int) extends Module {
         val rawPteAddress = Output(UInt(64.W))
         val rawPmpDenied = Output(Bool())
     })
-    val walker = Module(new SvPageTableWalker(maxLevels))
+    val walker = Module(new SvPageTableWalker(maxLevels, decodedNaturalPmp = decodedPmp))
     walker.io.start.valid := io.startValid
     walker.io.start.bits.virtualAddress := io.virtualAddress
     walker.io.start.bits.rootPpn := io.rootPpn
@@ -92,7 +92,7 @@ class FixedPmpWalkerGsim(maxLevels: Int) extends Module {
             "fixed PMP walker peer valid PTE request mismatch")
     }
     io.rawPteAddress := BoringUtils.bore(walker.pteAddress)
-    io.rawPmpDenied := BoringUtils.bore(walker.pmp.io.denied)
+    io.rawPmpDenied := BoringUtils.bore(walker.pmpDenied)
     val referenceAddress = BoringUtils.bore(previous.pteAddress)
     val referenceDenied = BoringUtils.bore(previous.pmp.io.denied)
     assert(io.rawPteAddress === referenceAddress && io.rawPmpDenied === referenceDenied,

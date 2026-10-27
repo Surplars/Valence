@@ -46,7 +46,8 @@ object SvTranslationService {
   * from data access. Superpage hits reconstruct the new VA offset. I/D walkers can miss concurrently.
   */
 class SvTranslationService(val maxLevels: Int = 4, val entries: Int = 8, pmpEntries: Int = 16,
-    val loadPeek: Boolean = false, val writeReadReuse: Boolean = false, val missCacheEntries: Int = 0) extends Module {
+    val loadPeek: Boolean = false, val writeReadReuse: Boolean = false, val missCacheEntries: Int = 0,
+    val decodedNaturalPmp: Boolean = false) extends Module {
     require(Set(0, 32, 64, 128).contains(missCacheEntries),
         "miss cache entries must be 0, 32, 64 or 128 (two ways)")
     private val enableLoadPeek = loadPeek
@@ -63,7 +64,7 @@ class SvTranslationService(val maxLevels: Int = 4, val entries: Int = 8, pmpEntr
         val walkStart = Output(Bool())
         val pteRead   = Output(Bool())
     })
-    val walker = Module(new SvPageTableWalker(maxLevels, pmpEntries))
+    val walker = Module(new SvPageTableWalker(maxLevels, pmpEntries, decodedNaturalPmp))
     walker.io.pmpState := io.pmpState
     io.memory <> walker.io.memory
     val tlb  = RegInit(VecInit(Seq.fill(entries)(0.U.asTypeOf(new SvTlbEntry))))

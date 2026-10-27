@@ -23,16 +23,17 @@ class FetchDemandOwner(keyCount: Int) extends Bundle {
   * never exceeds two after an edge. Invalidate marks obligations, never drops
   * them. Physical responses are required to be ordered and exactly once.
   */
-class FetchDemandOwners(keyCount: Int = 3) extends Module {
+class FetchDemandOwners(keyCount: Int = 3, queryCount: Int = 2) extends Module {
     require(keyCount >= 1)
+    require(queryCount >= 1)
     val io = IO(new Bundle {
         val candidate = Input(Valid(new FetchDemandOffer))
         val request = Decoupled(new FetchDemandOffer)
         val response = Input(Bool())
         val invalidate = Input(Bool())
-        val queryBase = Input(Vec(2, UInt(64.W)))
+        val queryBase = Input(Vec(queryCount, UInt(64.W)))
         val queryContext = Input(UInt(3.W))
-        val owned = Output(Vec(2, Bool()))
+        val owned = Output(Vec(queryCount, Bool()))
         val head = Output(new FetchDemandOwner(keyCount))
         val headValid = Output(Bool())
         val credit = Output(Bool())
@@ -52,7 +53,7 @@ class FetchDemandOwners(keyCount: Int = 3) extends Module {
     io.credit := count < 2.U || io.response
     io.held := held
     io.quiescent := count === 0.U && !held
-    for (query <- 0 until 2) {
+    for (query <- 0 until queryCount) {
         io.owned(query) := (0 until 2).map(slot => valid(slot) && !entries(slot).stale &&
             entries(slot).base === io.queryBase(query) && entries(slot).context === io.queryContext).reduce(_ || _)
     }

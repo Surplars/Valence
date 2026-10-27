@@ -13,6 +13,25 @@ object ProofControlContract {
     }
 }
 
+/** Pure source selection for the optional prepared Bare head-store path.
+  *
+  * No ready, commit, recovery, permission-result or accepted-request signal enters
+  * either function. Numerical preparation is not permission: the selected query
+  * still crosses the existing generic PMP checker with the current privilege and
+  * state, and ordinary LSU admission remains independently authoritative.
+  */
+object PreparedBareHeadStorePolicy {
+    def eligible(p: OooParams, valid: Bool, ownerLive: Bool, atHead: Bool, headDone: Bool,
+        ordinaryHead: Bool, virtualized: Bool, address: UInt, size: UInt): Bool =
+        valid && ownerLive && atHead && !headDone && ordinaryHead && !virtualized &&
+            AlignedMemoryDisjoint.aligned(address, size) && SpeculativeRamRange.contains(p, address, size)
+
+    def pmpQuery(choice: Bool, heldAddress: UInt, heldSize: UInt,
+        normalAddress: UInt, normalSize: UInt, normalAccess: UInt): (UInt, UInt, UInt) =
+        (Mux(choice, heldAddress, normalAddress), Mux(choice, heldSize, normalSize),
+            Mux(choice, PmpAccess.write, normalAccess))
+}
+
 /** Decoded operation input, not an instruction decoder. Immediate is already extended to XLEN. */
 class IntegerRequest extends Bundle {
     val predictedNextPc = Valid(UInt(64.W))
@@ -84,6 +103,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val factorPreparedStorePool: Boolean = false, val projectedRequestHead: Boolean = false,
     val registeredMemoryPreparationDescriptor: Boolean = false,
     val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    require(!p.preparedBareHeadStoreOperands || !backendNaturalAlignedPmp,
+        "prepared Bare head stores retain the exact generic current-owner PMP checker")
+    require(!p.elasticLoadProofSupply || (!registeredMemoryPreparationDescriptor && !earlyLoadPreparationDescriptor &&
+        !virtualStoreOperandLookahead && !factorPreparedStorePool && !projectedRequestHead),
+        "elastic load proof supply uses only the unchanged two-rank registered memory planner")
     require(!earlyLoadPreparationDescriptor || (registeredMemoryPreparationDescriptor &&
         p.ownerLocalOperandReady && p.parallelPrfReadyUpdates && p.lvtPhysicalRegisterFile),
         "early load descriptor requires the existing registered descriptor and owner-ready PRF contract")
@@ -194,6 +218,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.renameWidth == 2 && p.completionWidth == 2 && p.commitWidth == 2 && p.physicalRegs == 48 &&
         p.retirementSlotIdentity && p.retirementIntent && p.registeredRobRetirement &&
         p.parallelRecoveryAdmission && p.fastHeadTrapRecovery && p.fastHeadSystemRecovery
+    require(!p.bankedRobCompletionData || !qualifiedBankedCompletionPayload,
+        "dual-owner completion-data storage does not enable the historical retirement-intent experiment")
     val ledger = Module(new RenameRob(p, retirementSlotIdentity = retirementSlotIdentity,
         bankedCompletionPayload = qualifiedBankedCompletionPayload))
     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
@@ -678,6 +704,61 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             Mux(loadHits.reduce(_ || _), Mux1H(loadHits.zip(held.map(_.bits.data))), nonLoad)
         } else Mux(loadIssueHit(index), lsu.io.complete.bits.data, nonLoad)
     }
+    // Numerical preparation is distinct from PRF publication and permission.
+    // A promise/rank reads only registered LSU result metadata; full ownership
+    // and same-edge kill authorize the destination capture, never the rank cone.
+    def numericalMemoryReady(index: UInt, registered: Bool): Bool =
+        if (p.registeredMemoryOperandCapture)
+            RegisteredMemoryOperandAuthority.ready(index, registered, loadIssueWake)
+        else registered
+    def numericalMemoryValue(index: UInt, stored: UInt): UInt =
+        if (p.registeredMemoryOperandCapture)
+            RegisteredMemoryOperandAuthority.value(index, ready(index), stored, loadIssueWake, lsu.io.complete.bits.data)
+        else stored
+    def registeredMemorySourceReady(index: UInt, second: Boolean): Bool = {
+        val entry = issueEntries(index)
+        val source = Mux(pending(index), if (second) entry.renamed.source2 else entry.renamed.source1, 0.U)
+        ownerReady.map(o => if (second) o.io.ready2(index) else o.io.ready1(index)).getOrElse(ready(source))
+    }
+    def registeredMemoryOperandsReady(index: UInt): Bool =
+        registeredMemorySourceReady(index, false) &&
+            (!(issueEntries(index).request.store || issueEntries(index).request.atomic) ||
+                registeredMemorySourceReady(index, true))
+    val numericalLoadAuthority = if (p.registeredMemoryOperandCapture) Some(
+        RegisteredMemoryOperandAuthority.producerAuthority(loadIssueWake, lsu.io.complete.valid,
+            lsu.io.complete.bits.exception, memoryLive(completedLoadIndex),
+            completedLoadEntry.renamed.token.asUInt, lsu.io.complete.bits.token.asUInt,
+            completedLoadEntry.request.memory && !completedLoadEntry.request.store && !completedLoadEntry.request.atomic,
+            completedLoadEntry.renamed.writesRd, completedLoadEntry.renamed.destination)
+    ) else None
+    // Call only after killed is defined. OLD completion/token/data are consumed
+    // before any same-edge LSU replacement; captured values then belong solely
+    // to the consumer token. No completion.ready signal is part of this cone.
+    def numericalMemoryCaptureAllowed(source1: UInt, source2: UInt, useSecond: Bool): Bool =
+        if (p.registeredMemoryOperandCapture) {
+            val forwarded = (!ready(source1) && loadIssueHit(source1)) ||
+                (useSecond && !ready(source2) && loadIssueHit(source2))
+            RegisteredMemoryOperandAuthority.allowed(forwarded, numericalLoadAuthority.get, killed(completedLoadIndex))
+        } else true.B
+    def assertNumericalMemoryCapture(active: Bool, token: RobToken, source: UInt, value: UInt): Unit = {
+        if (p.registeredMemoryOperandCapture) {
+            when(active && !ready(source) && loadIssueHit(source)) {
+                val consumer = issueEntries(token.index)
+                assert(numericalLoadAuthority.get && !killed(completedLoadIndex) && !killed(token.index) &&
+                    pending(token.index) && consumer.renamed.token.asUInt === token.asUInt &&
+                    (completedLoadIndex - head) < (token.index - head) && value === lsu.io.complete.bits.data,
+                    "numerical memory capture must copy an older live full-token successful load into its exact consumer")
+                for (reserve <- readyUpdate.get.io.reserve) {
+                    assert(!reserve.valid || reserve.bits =/= source,
+                        "a numerical memory source cannot be physically rebound on its capture edge")
+                }
+            }
+            when(active && ready(source) && loadIssueHit(source)) {
+                assert(value === lsu.io.complete.bits.data,
+                    "registered PRF and same-owner load result must agree when both are available")
+            }
+        }
+    }
     if (p.registeredLoadIssueForwarding) {
         // Invalid completion payload is unspecified (including its index). A when
         // does not prevent combinational assertion expressions being evaluated.
@@ -757,10 +838,16 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // Store preparation still computes its address in this cycle. Do not
         // concatenate the producer's ALU and that address adder through bypass.
         val source1Ready = entry.request.usePc || Mux(entry.request.memory,
-            ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)),
+            (if (p.registeredMemoryOperandCapture) Mux(entry.request.atomic,
+                ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)),
+                numericalMemoryReady(source1, ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1))))
+                else ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1))),
             issueOperandReady(source1, if (p.ownerLocalIssueReady) ownerReady.map(_.io.ready1(i)) else None))
         val source2Ready = entry.request.useImmediate || Mux(entry.request.memory,
-            ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)),
+            (if (p.registeredMemoryOperandCapture) Mux(entry.request.atomic,
+                ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)),
+                numericalMemoryReady(source2, ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))))
+                else ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))),
             issueOperandReady(source2, if (p.ownerLocalIssueReady) ownerReady.map(_.io.ready2(i)) else None))
         val readyToExecute = pending(i) && !entry.request.system && !entry.request.mulDiv &&
             (!entry.request.memory || prepareStore) && source1Ready &&
@@ -865,6 +952,46 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val preparationDescriptor = if (registeredMemoryPreparationDescriptor)
         Some(Reg(new MemoryPreparationDescriptor(p))) else None
     val memoryIssued = WireDefault(false.B)
+    val preparedHeadStore = if (p.preparedHeadStoreOperands) Some(Module(new PreparedHeadStoreOperands(p))) else None
+    val preparedStoreChoice = if (p.preparedHeadStoreOperands) Some(WireDefault(false.B)) else None
+    val preparedBareStoreChoice = if (p.preparedBareHeadStoreOperands) Some(WireDefault(false.B)) else None
+    val preparedStoreEligible = if (p.preparedHeadStoreOperands) Some(WireDefault(false.B)) else None
+    val normalMemoryIssued = if (p.preparedHeadStoreOperands) memoryIssued && !preparedStoreChoice.get else memoryIssued
+    val normalStoreIssue = if (p.preparedHeadStoreOperands) Some(Wire(new PreparedStoreIssue(p))) else None
+    val normalMemoryOperation = normalStoreIssue.map(_.operation).getOrElse(lsu.io.start.bits)
+    def elasticOrdinaryLoad(request: IntegerRequest): Bool = request.memory && !request.store &&
+        !request.atomic && !request.system && !request.mulDiv && !request.fetchFault && !request.fetchPageFault &&
+        request.operation === IntegerOp.add && request.controlFlow === ControlFlow.none
+    val elasticLoadLookahead = if (p.elasticLoadProofSupply)
+        Some(WireDefault(0.U.asTypeOf(Valid(new VirtualRamLoadCandidate(p))))) else None
+    val registeredAdvisoryExclusionMask = if (p.registeredAdvisoryExclusion)
+        Some(Wire(UInt(p.robEntries.W))) else None
+    val bufferedThirdRankLookahead = if (p.bufferedThirdRankLoadProof)
+        Some(WireDefault(0.U.asTypeOf(Valid(new VirtualRamLoadCandidate(p))))) else None
+    // Verification consumes existing accepted events and local immutable metadata,
+    // never readPhysical/readIssue. Allocation is the sole source/immediate writer;
+    // a different full token on row reuse makes this old reservation dead.
+    def assertBufferedReadySource(candidate: ValidIO[VirtualRamLoadCandidate]): Unit = {
+        val index = candidate.bits.token.index
+        val entry = issueEntries(index)
+        val surviving = candidate.valid && pending(index) && memoryLive(index) &&
+            entry.renamed.token.asUInt === candidate.bits.token.asUInt &&
+            elasticOrdinaryLoad(entry.request) && !killed(index) && !reset.asBool
+        val source = entry.renamed.source1
+        val safeSource = Mux(surviving && source < p.physicalRegs.U, source, 0.U)
+        when(surviving) {
+            assert(source < p.physicalRegs.U && ready(safeSource),
+                "buffered proof source must remain an in-range registered-ready physical owner")
+            for (reserve <- readyUpdate.get.io.reserve) {
+                assert(!reserve.valid || source === 0.U || reserve.bits =/= source,
+                    "a surviving buffered proof source cannot be reallocated")
+            }
+            for (write <- physicalWrites.get) {
+                assert(!write.valid || source === 0.U || write.bits.address =/= source,
+                    "a surviving registered-ready buffered proof source cannot receive another accepted write")
+            }
+        }
+    }
     val residentMemoryStartAllowed = if (p.residentMemoryPayloadReuse) Some(WireDefault(false.B)) else None
     val proofFrontier = if (p.memoryProofFrontier) Some(Module(new MemoryProofFrontier(p))) else None
     val pendingStoreProof = if (p.pendingVirtualStoreProof) Some(Module(new PendingVirtualStoreProof(p,
@@ -916,7 +1043,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             else entry.renamed.source1
         val source2 = if (p.parallelMemoryPreparation) Mux(pending(i), entry.renamed.source2, 0.U)
             else entry.renamed.source2
-        val sourcesReady = ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
+        val sourcesReady = if (p.registeredMemoryOperandCapture) {
+            val registered1 = ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1))
+            val registered2 = ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))
+            Mux(entry.request.atomic, registered1, numericalMemoryReady(source1, registered1)) &&
+                (!(entry.request.store || entry.request.atomic) ||
+                    Mux(entry.request.atomic, registered2, numericalMemoryReady(source2, registered2)))
+        } else ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
             (!(entry.request.store || entry.request.atomic) ||
                 ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2)))
         c.valid := pending(i) && entry.request.memory && (!entry.request.store || memoryPreparationAtHead(i)) &&
@@ -1249,7 +1382,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 planner.io.head := head
                 planner.io.headMask.foreach(_ := issueHeadMask.get)
                 planner.io.issued := memoryIssued
-                planner.io.issuedIndex := (if (p.memoryProofFrontier) lsu.io.start.bits.token.index else stagedMemoryIndex.get)
+                planner.io.issuedIndex := (if (p.memoryProofFrontier || p.preparedHeadStoreOperands) lsu.io.start.bits.token.index else stagedMemoryIndex.get)
                 // Only LSU preparation uses the compact binary source selection.
                 // Rank owners choose two small source IDs, not 48 x 16 match masks;
                 // store/M-D/ALU ports and late grant exclusion remain independent.
@@ -1284,13 +1417,34 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     val source2 = MemoryPreparationLocality.sourceId(entry.renamed.source2, valid, directSourceIds)
                     val savedAddress = if (p.parallelMemoryPayload) selected(storeAddress.toSeq) else storeAddress(index)
                     val savedData = if (p.parallelMemoryPayload) selected(storeData.toSeq) else storeData(index)
-                    val left = memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
+                    val left = if (p.registeredMemoryOperandCapture)
+                        numericalMemoryValue(source1, memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1)))
+                        else memoryOperands.map(_.io.left(rank)).getOrElse(operandValue(source1))
                     val right = if (queryRank) 0.U(64.W)
+                        else if (p.registeredMemoryOperandCapture)
+                            numericalMemoryValue(source2, memoryOperands.map(_.io.right(rank)).getOrElse(operandValue(source2)))
                         else memoryOperands.map(_.io.right(rank)).getOrElse(operandValue(source2))
                     val summed = if (p.parallelMemoryAddressSum)
                         TimingArithmetic.add64(left, entry.request.immediate) else left + entry.request.immediate
                     val address = Mux(saved, savedAddress, summed)
                     val data = Mux(saved, savedData, right)
+                    if (p.registeredMemoryOperandCapture) {
+                        val capture = valid && !saved && !killed(index) &&
+                            numericalMemoryCaptureAllowed(source1, source2, entry.request.store || entry.request.atomic)
+                        assertNumericalMemoryCapture(capture, entry.renamed.token, source1, left)
+                        assertNumericalMemoryCapture(capture && (entry.request.store || entry.request.atomic),
+                            entry.renamed.token, source2, right)
+                    }
+                    if (p.elasticLoadProofSupply && rank == 1) {
+                        // Reuse the already computed early second-rank payload, never late useSecond.
+                        // This adds no PRF/readIssue port or address adder and does not change the planner.
+                        elasticLoadLookahead.get.valid := (if (p.registeredMemoryOperandCapture)
+                            valid && virtualized && elasticOrdinaryLoad(entry.request) && registeredMemorySourceReady(index, false)
+                            else valid && virtualized && elasticOrdinaryLoad(entry.request))
+                        elasticLoadLookahead.get.bits.token := entry.renamed.token
+                        elasticLoadLookahead.get.bits.address := address
+                        elasticLoadLookahead.get.bits.size := entry.request.memorySize
+                    }
                     if (queryRank) {
                         proofFrontier.get.io.query.token := entry.renamed.token
                         proofFrontier.get.io.query.address := address
@@ -1300,6 +1454,53 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     if (p.memoryProofFrontier && rank == 0) { stagedMemoryMetadata.get := entry }
                     (entry.renamed.token, address, data, entry.request.memorySize)
                 }
+                if (p.bufferedThirdRankLoadProof) {
+                    val (thirdValid, thirdIndex, thirdOwner) = if (p.registeredAdvisoryExclusion) {
+                        val uncovered = Module(new OldestUncoveredMemoryPreparation(p,
+                            predecodedHead = p.registeredIssueHeadMask))
+                        // Filter registered issue metadata only; the raw planner owners remain
+                        // excluded even if masked/nonordinary. No issued/useSecond/VA feedback.
+                        val ordinary = VecInit((0 until p.robEntries).map { i =>
+                            pending(i) && memoryLive(i) && virtualized &&
+                                elasticOrdinaryLoad(issueEntries(i).request)
+                        }).asUInt
+                        uncovered.io.eligible := (if (p.registeredMemoryOperandCapture)
+                            preparationMask & ordinary & VecInit((0 until p.robEntries).map(i =>
+                                registeredMemorySourceReady(i.U, false))).asUInt
+                            else preparationMask & ordinary)
+                        uncovered.io.head := head
+                        uncovered.io.headMask.foreach(_ := issueHeadMask.get)
+                        uncovered.io.firstOwner := planner.io.firstOwner
+                        uncovered.io.secondOwner := planner.io.secondOwner
+                        uncovered.io.exclusionMask := registeredAdvisoryExclusionMask.get
+                        (uncovered.io.valid, uncovered.io.index, uncovered.io.owner)
+                    } else {
+                        // Preserve the original raw third-rank selector exactly when disabled.
+                        val third = Module(new ThirdMemoryPreparationRank(p,
+                            predecodedHead = p.registeredIssueHeadMask))
+                        third.io.eligible := (if (p.registeredMemoryOperandCapture)
+                            preparationMask & VecInit((0 until p.robEntries).map(i =>
+                                registeredMemorySourceReady(i.U, false))).asUInt else preparationMask)
+                        third.io.head := head
+                        third.io.headMask.foreach(_ := issueHeadMask.get)
+                        (third.io.valid, third.io.index, third.io.owner)
+                    }
+                    val entry = readIssue(thirdIndex, "bufferedThirdMemoryPreparation", Set("immediate"),
+                        Some(thirdOwner))
+                    val source1 = Mux(thirdValid, entry.renamed.source1, 0.U)
+                    // Dedicated source1-only read: no late grant, proof snapshot,
+                    // store-data operand, or old execution port is borrowed.
+                    val left = operandValue(source1)
+                    val summed = if (p.parallelMemoryAddressSum)
+                        TimingArithmetic.add64(left, entry.request.immediate) else left + entry.request.immediate
+                    bufferedThirdRankLookahead.get.valid := thirdValid && virtualized &&
+                        elasticOrdinaryLoad(entry.request)
+                    bufferedThirdRankLookahead.get.bits.token := entry.renamed.token
+                    bufferedThirdRankLookahead.get.bits.address := summed
+                    bufferedThirdRankLookahead.get.bits.size := entry.request.memorySize
+                    assertBufferedReadySource(elasticLoadLookahead.get)
+                    assertBufferedReadySource(bufferedThirdRankLookahead.get)
+                }
                 // The late start.fire only selects fully computed payloads. It must
                 // not choose a PRF port or enter the 64-bit effective-address adder.
                 val preparedValid = if (p.memoryProofFrontier) planner.io.firstValid &&
@@ -1307,8 +1508,26 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     !proofOwnerClear(planner.io.firstIndex) else planner.io.selectedValid
                 val preparedIndex = if (p.memoryProofFrontier) planner.io.firstIndex else planner.io.selectedIndex
                 val useSecond = if (p.memoryProofFrontier) false.B else planner.io.useSecond
-                stagedMemoryValid.get := preparedValid
+                val numericalCaptureAllowed = if (p.registeredMemoryOperandCapture) {
+                    val e = issueEntries(preparedIndex)
+                    val saved = e.request.store && storePrepared(preparedIndex)
+                    !killed(preparedIndex) && (saved || numericalMemoryCaptureAllowed(
+                        Mux(preparedValid, e.renamed.source1, 0.U),
+                        Mux(preparedValid, e.renamed.source2, 0.U), e.request.store || e.request.atomic))
+                } else true.B
+                stagedMemoryValid.get := (if (p.registeredMemoryOperandCapture)
+                    preparedValid && numericalCaptureAllowed else preparedValid)
                 when(preparedValid) { stagedMemoryIndex.get := preparedIndex }
+                if (p.registeredMemoryOperandCapture) {
+                    val e = issueEntries(preparedIndex)
+                    val saved = e.request.store && storePrepared(preparedIndex)
+                    val captured = preparedValid && numericalCaptureAllowed && !saved
+                    val token = Mux(useSecond, candidates(1)._1, candidates(0)._1)
+                    val selectedData = Mux(useSecond, candidates(1)._3, candidates(0)._3)
+                    when(captured) { assert(token.asUInt === e.renamed.token.asUInt) }
+                    assertNumericalMemoryCapture(captured && (e.request.store || e.request.atomic),
+                        token, e.renamed.source2, selectedData)
+                }
                 // Invalid payloads cannot authorize a request: valid, owner token,
                 // and pending still gate every use. Avoid a late 64-bit clock enable.
                 when(preparedValid || p.unconditionalMemoryPayloadCapture.B) {
@@ -1350,14 +1569,17 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val savedStore    = memoryChoice.valid && memoryEntry.request.store && storePrepared(memoryChoice.index)
     val address       = if (p.registeredMemoryAddress) stagedMemoryAddress.get else
         Mux(savedStore, storeAddress(memoryChoice.index), operandValue(memorySource1) + memoryEntry.request.immediate)
-    val actualMemoryIndex = proofFrontier.map(f => Mux(frontierChoice, f.io.frontier.bits.token.index, memoryChoice.index))
-        .getOrElse(memoryChoice.index)
+    val actualMemoryIndex = if (p.preparedHeadStoreOperands)
+        Mux(preparedStoreChoice.get, preparedHeadStore.get.io.prepared.bits.token.index, memoryChoice.index)
+        else proofFrontier.map(f => Mux(frontierChoice, f.io.frontier.bits.token.index, memoryChoice.index))
+            .getOrElse(memoryChoice.index)
     val actualMemoryEntry = if (p.memoryProofFrontier) readIssue(actualMemoryIndex, "memoryIssue", Set("pc")) else memoryEntry
     proofFrontier.foreach { f =>
         f.io.selected.valid := memoryChoice.valid
         f.io.selected.bits := memoryEntry.renamed.token
     }
-    val loadPreparation = if (p.virtualRamLoadPrecheck && !p.memoryProofFrontier && !p.pendingVirtualStoreProof)
+    val loadPreparation = if (p.virtualRamLoadPrecheck && !p.memoryProofFrontier && !p.pendingVirtualStoreProof &&
+        !p.elasticLoadProofSupply)
         Some(Module(new VirtualRamLoadPreparation(p))) else None
     loadPreparation.foreach { preparation =>
         preparation.io.precheck <> io.loadPrecheck.get
@@ -1370,6 +1592,83 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         preparation.io.privilege := dataPrivilege
         // Do not feed same-cycle branch resolution into reservation selection. Full token/pending checks
         // and the existing LSU launch recovery gate reject same-edge kills; rollback clears the proof.
+        preparation.io.flush := ledger.io.recovering || contextMemoryEpoch || interruptDrain || reserveSystem
+    }
+    val elasticLoadPreparation = if (p.elasticLoadProofSupply && !p.bufferedThirdRankLoadProof)
+        Some(Module(new ElasticVirtualRamLoadPreparation(p))) else None
+    elasticLoadPreparation.foreach { preparation =>
+        preparation.io.precheck <> io.loadPrecheck.get
+        preparation.io.current.valid := (if (p.registeredMemoryOperandCapture)
+            memoryChoice.valid && virtualized && elasticOrdinaryLoad(memoryEntry.request) &&
+                registeredMemorySourceReady(memoryChoice.index, false)
+            else memoryChoice.valid && virtualized && elasticOrdinaryLoad(memoryEntry.request))
+        preparation.io.current.bits.token := memoryEntry.renamed.token
+        preparation.io.current.bits.address := address
+        preparation.io.current.bits.size := memorySize
+        preparation.io.lookahead := elasticLoadLookahead.get
+        preparation.io.issued.valid := lsu.io.start.fire
+        preparation.io.issued.bits := lsu.io.start.bits.token
+        // The module exports raw register owners. These local metadata reads do not
+        // add issue-payload/PRF ports or feed late accepted/kill/issue into query credit.
+        def ownerLive(owner: ValidIO[ElasticVirtualRamLoadOwner]): Bool = {
+            val index = owner.bits.token.index
+            val entry = issueEntries(index)
+            pending(index) && memoryLive(index) &&
+                entry.renamed.token.asUInt === owner.bits.token.asUInt &&
+                elasticOrdinaryLoad(entry.request) &&
+                entry.request.memorySize === owner.bits.size
+        }
+        preparation.io.descriptorOwnerLive := ownerLive(preparation.io.descriptorOwner)
+        preparation.io.translatedOwnerLive := ownerLive(preparation.io.translatedOwner)
+        preparation.io.preparedOwnerLive := ownerLive(preparation.io.preparedOwner)
+        preparation.io.pmpState := pmpState
+        preparation.io.privilege := dataPrivilege
+        // Same early flush boundary as the legacy class. Same-edge recovery still
+        // vetoes actual LSU launch below; disposable proofs never participate in drain.
+        preparation.io.flush := ledger.io.recovering || contextMemoryEpoch || interruptDrain || reserveSystem
+    }
+    val bufferedLoadPreparation = if (p.bufferedThirdRankLoadProof)
+        Some(Module(new BufferedVirtualRamLoadPreparation(p))) else None
+    bufferedLoadPreparation.foreach { preparation =>
+        registeredAdvisoryExclusionMask.foreach(_ := preparation.io.registeredExclusionMask.get)
+        preparation.io.precheck <> io.loadPrecheck.get
+        preparation.io.current.valid := (if (p.registeredMemoryOperandCapture)
+            memoryChoice.valid && virtualized && elasticOrdinaryLoad(memoryEntry.request) &&
+                registeredMemorySourceReady(memoryChoice.index, false)
+            else memoryChoice.valid && virtualized && elasticOrdinaryLoad(memoryEntry.request))
+        preparation.io.current.bits.token := memoryEntry.renamed.token
+        preparation.io.current.bits.address := address
+        preparation.io.current.bits.size := memorySize
+        assertBufferedReadySource(preparation.io.current)
+        preparation.io.lookahead(0) := elasticLoadLookahead.get
+        preparation.io.lookahead(1) := bufferedThirdRankLookahead.get
+        preparation.io.issued.valid := lsu.io.start.fire
+        preparation.io.issued.bits := lsu.io.start.bits.token
+        def ownerLive(owner: ValidIO[ElasticVirtualRamLoadOwner]): Bool = {
+            val index = owner.bits.token.index
+            val entry = issueEntries(index)
+            pending(index) && memoryLive(index) &&
+                entry.renamed.token.asUInt === owner.bits.token.asUInt &&
+                elasticOrdinaryLoad(entry.request) && entry.request.memorySize === owner.bits.size
+        }
+        def checkSource(owner: ValidIO[ElasticVirtualRamLoadOwner]): Unit = {
+            val candidate = Wire(Valid(new VirtualRamLoadCandidate(p)))
+            candidate.valid := owner.valid
+            candidate.bits.token := owner.bits.token
+            candidate.bits.address := owner.bits.address
+            candidate.bits.size := owner.bits.size
+            assertBufferedReadySource(candidate)
+        }
+        for (i <- 0 until 2) {
+            preparation.io.descriptorOwnerLive(i) := ownerLive(preparation.io.descriptorOwner(i))
+            preparation.io.preparedOwnerLive(i) := ownerLive(preparation.io.preparedOwner(i))
+            checkSource(preparation.io.descriptorOwner(i))
+            checkSource(preparation.io.preparedOwner(i))
+        }
+        preparation.io.translatedOwnerLive := ownerLive(preparation.io.translatedOwner)
+        checkSource(preparation.io.translatedOwner)
+        preparation.io.pmpState := pmpState
+        preparation.io.privilege := dataPrivilege
         preparation.io.flush := ledger.io.recovering || contextMemoryEpoch || interruptDrain || reserveSystem
     }
     val pendingStoreDataReady = (0 until p.robEntries).map { i =>
@@ -1422,6 +1721,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }).asUInt
     }
     val originalLoadPrepared = loadPreparation.map(_.io.prepared)
+        .orElse(elasticLoadPreparation.map(_.io.prepared))
+        .orElse(bufferedLoadPreparation.map(_.io.prepared))
         .orElse(pendingStoreProof.map(_.io.loadPrepared))
     val bankProof = proofFrontier.map(_.io.selectedProof)
     val bankProofMatches = bankProof.map(r => r.valid && memoryChoice.valid &&
@@ -1461,14 +1762,32 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val pmpCheck = Module(new PmpChecker(p.pmpEntries,
         naturalAlignedAccess = backendNaturalAlignedPmp))
     pmpCheck.io.state     := pmpState
-    pmpCheck.io.address   := (if (backendNaturalAlignedPmp)
-        BackendPmpAlignment.checkerAddress(address, memorySize) else address)
-    pmpCheck.io.size      := memorySize
     pmpCheck.io.privilege := dataPrivilege
-    pmpCheck.io.access    := Mux(memoryEntry.request.atomic,
-        Mux(memoryEntry.request.atomicOp === 2.U, PmpAccess.read,
-            Mux(memoryEntry.request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
-        Mux(memoryEntry.request.store, PmpAccess.write, PmpAccess.read))
+    if (p.preparedBareHeadStoreOperands) {
+        // The early registered-owner source choice below is independent of this
+        // check's result and all late admission controls. Never use the normal
+        // staged candidate's permission for a different prepared-store owner.
+        // In this scoped profile all other generic-checker consumers (posted
+        // stores and fast retirement) are statically forbidden by OooParams.
+        val held = preparedHeadStore.get.io.prepared.bits
+        val normalAccess = Mux(memoryEntry.request.atomic,
+            Mux(memoryEntry.request.atomicOp === 2.U, PmpAccess.read,
+                Mux(memoryEntry.request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
+            Mux(memoryEntry.request.store, PmpAccess.write, PmpAccess.read))
+        val query = PreparedBareHeadStorePolicy.pmpQuery(preparedBareStoreChoice.get,
+            held.address, held.size, address, memorySize, normalAccess)
+        pmpCheck.io.address := query._1
+        pmpCheck.io.size := query._2
+        pmpCheck.io.access := query._3
+    } else {
+        pmpCheck.io.address := (if (backendNaturalAlignedPmp)
+            BackendPmpAlignment.checkerAddress(address, memorySize) else address)
+        pmpCheck.io.size := memorySize
+        pmpCheck.io.access := Mux(memoryEntry.request.atomic,
+            Mux(memoryEntry.request.atomicOp === 2.U, PmpAccess.read,
+                Mux(memoryEntry.request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
+            Mux(memoryEntry.request.store, PmpAccess.write, PmpAccess.read))
+    }
     val bareOrdinaryRam = !virtualized && SpeculativeRamRange.contains(p, address, memorySize)
     val ordinaryRam = bareOrdinaryRam || precheckedLoad
     val candidateOrdinaryRam = if (splitLoadPreparedAdmission) bareOrdinaryRam || candidatePrecheckedLoad else ordinaryRam
@@ -1729,7 +2048,14 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             !blockPostedStart && !directStoreReserve && !ledger.io.recovering && io.commitEnable
         frontierReserve := frontierChoice && lsu.io.issueAvailable
     }
-    val reserveMemory = (originalMemoryEligible && candidateMemoryAvailable) || frontierReserve
+    val reserveMemory = if (p.registeredMemoryOperandCapture) {
+        val original = if (p.preparedHeadStoreOperands)
+            Mux(preparedStoreChoice.get, preparedStoreEligible.get, originalMemoryEligible) && candidateMemoryAvailable
+            else (originalMemoryEligible && candidateMemoryAvailable) || frontierReserve
+        original && registeredMemoryOperandsReady(actualMemoryIndex)
+    } else if (p.preparedHeadStoreOperands)
+        Mux(preparedStoreChoice.get, preparedStoreEligible.get, originalMemoryEligible) && candidateMemoryAvailable
+        else (originalMemoryEligible && candidateMemoryAvailable) || frontierReserve
     val youngerLoadCouldIssue = !interruptDrain && !reserveSystem && !olderSystem && !fpMemoryEpoch && !contextMemoryEpoch && memoryChoice.valid &&
         !memoryEntry.request.store && !memoryEntry.request.atomic && memoryChoice.index =/= head &&
         speculative && lsu.io.issueAvailable && io.commitEnable && !ledger.io.recovering &&
@@ -1794,6 +2120,12 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     lsu.io.start.valid := reserveMemory && actualOwnerMatches &&
         !(if (p.earlyRecoveryIssueBlock) earlyRecoveryIssueBlock else ledger.io.recoveryAccepted) &&
         !(if (p.earlyRecoveryIssueBlock) ledger.io.pendingException.valid else ledger.io.headException.valid)
+    if (p.registeredMemoryOperandCapture) {
+        when(lsu.io.start.valid) {
+            assert(registeredMemoryOperandsReady(actualMemoryIndex),
+                "numerical preparation never permits physical start before registered source publication")
+        }
+    }
     if (p.residentMemoryPayloadReuse) {
         // Independent of the new guard: it must never suppress a start that
         // the original non-frontier admission law would offer.
@@ -1809,13 +2141,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     io.headProfile.storePrepared := ledger.io.headValid && headRequest.store && storePrepared(head)
     io.headProfile.memoryStarting := directStoreFire || (lsu.io.start.fire && actualMemoryIndex === head)
     io.headProfile.memorySlotAvailable := lsu.io.issueAvailable
-    lsu.io.parallel                 := speculative || frontierChoice
-    lsu.io.start.bits.forward.valid := forwarding
-    lsu.io.start.bits.forward.bits  := sourceStore.bits.data
-    lsu.io.start.bits.canonicalForward.foreach { proof =>
+    normalStoreIssue.map(_.parallel).getOrElse(lsu.io.parallel) := speculative || frontierChoice
+    normalMemoryOperation.forward.valid := forwarding
+    normalMemoryOperation.forward.bits  := sourceStore.bits.data
+    normalMemoryOperation.canonicalForward.foreach { proof =>
         proof.valid := canonicalStoreForward
         proof.bits := canonicalStoreTracker.get.io.certificate.bits
-        when(lsu.io.start.fire && proof.valid) {
+        when((if (p.preparedHeadStoreOperands) normalMemoryIssued else lsu.io.start.fire) && proof.valid) {
             assert(precheckedLoad && io.loadPrecheck.get.stable && !pendingStoreOlder.orR &&
                 selectedTranslationEpoch === io.loadPrecheck.get.epoch &&
                 proof.bits.origin.epoch === selectedTranslationEpoch &&
@@ -1827,26 +2159,26 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 "completed canonical forwarding retains read permission drain and actual source completion")
         }
     }
-    lsu.io.issueDestination.foreach { destination =>
+    normalStoreIssue.map(_.destination).orElse(lsu.io.issueDestination).foreach { destination =>
         destination.valid := memoryEntry.renamed.writesRd
         destination.bits := memoryEntry.renamed.destination
     }
-    lsu.io.start.bits.token         := memoryEntry.renamed.token
-    lsu.io.start.bits.pc            := actualMemoryEntry.request.rename.pc
-    lsu.io.start.bits.address       := address
-    lsu.io.start.bits.precheckedLoad := precheckedLoad
-    lsu.io.start.bits.physicalAddress := selectedPhysicalAddress
-    lsu.io.start.bits.translationEpoch := selectedTranslationEpoch
-    lsu.io.start.bits.data          := (if (p.registeredMemoryAddress) stagedMemoryData.get else
+    normalMemoryOperation.token         := memoryEntry.renamed.token
+    normalMemoryOperation.pc            := actualMemoryEntry.request.rename.pc
+    normalMemoryOperation.address       := address
+    normalMemoryOperation.precheckedLoad := precheckedLoad
+    normalMemoryOperation.physicalAddress := selectedPhysicalAddress
+    normalMemoryOperation.translationEpoch := selectedTranslationEpoch
+    normalMemoryOperation.data          := (if (p.registeredMemoryAddress) stagedMemoryData.get else
         Mux(savedStore, storeData(memoryChoice.index), operandValue(memorySource2)))
-    lsu.io.start.bits.atomic        := memoryEntry.request.atomic
-    lsu.io.start.bits.atomicOp      := memoryEntry.request.atomicOp
-    lsu.io.start.bits.store         := memoryEntry.request.store
-    lsu.io.start.bits.size          := memorySize
-    lsu.io.start.bits.unsigned      := memoryEntry.request.memoryUnsigned
-    lsu.io.start.bits.accessDenied  := pmpCheck.io.denied && !virtualized
-    lsu.io.start.bits.virtualized   := virtualized
-    lsu.io.start.bits.frozenStoreProof.foreach { frozen =>
+    normalMemoryOperation.atomic        := memoryEntry.request.atomic
+    normalMemoryOperation.atomicOp      := memoryEntry.request.atomicOp
+    normalMemoryOperation.store         := memoryEntry.request.store
+    normalMemoryOperation.size          := memorySize
+    normalMemoryOperation.unsigned      := memoryEntry.request.memoryUnsigned
+    normalMemoryOperation.accessDenied  := pmpCheck.io.denied && !virtualized
+    normalMemoryOperation.virtualized   := virtualized
+    normalMemoryOperation.frozenStoreProof.foreach { frozen =>
         frozen := 0.U.asTypeOf(frozen)
         if (p.memoryProofFrontier) {
             val proof = bankProof.get.bits
@@ -1869,15 +2201,15 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             frozen.bits.size := pendingStoreSelected.payload.size
             frozen.bits.mask := pendingStoreSelected.payload.mask
             when(lsu.io.start.fire && pendingStoreBoundMatches) {
-                assert(frozen.valid && lsu.io.start.bits.canonicalStoreEpoch.get.valid &&
-                    pendingStoreSelected.epoch === lsu.io.start.bits.canonicalStoreEpoch.get.bits,
+                assert(frozen.valid && normalMemoryOperation.canonicalStoreEpoch.get.valid &&
+                    pendingStoreSelected.epoch === normalMemoryOperation.canonicalStoreEpoch.get.bits,
                     "bound pending-store PA transfers only to the exact protected head-store owner")
             }
         }
     }
     lsu.io.boundHeadStoreOverlapQualified.foreach { qualified =>
-        val frozen = lsu.io.start.bits.frozenStoreProof.get
-        val epoch = lsu.io.start.bits.canonicalStoreEpoch.get
+        val frozen = normalMemoryOperation.frozenStoreProof.get
+        val epoch = normalMemoryOperation.canonicalStoreEpoch.get
         // This permit uses only the staged candidate, saved bound proof, head
         // ownership and stable epoch. Original eligibility and the final
         // recovery/exception gate still authorize the actual start.
@@ -1939,7 +2271,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
     }
     canonicalStoreTracker.foreach { tracker =>
-        val epoch = lsu.io.start.bits.canonicalStoreEpoch.get
+        val epoch = normalMemoryOperation.canonicalStoreEpoch.get
         epoch.valid := memoryChoice.valid && ledger.io.headValid && !ledger.io.headDone && pending(head) &&
             memoryChoice.index === head && memoryEntry.renamed.token.asUInt === headRenamed.token.asUInt &&
             virtualized && memoryEntry.request.memory && memoryEntry.request.store && !memoryEntry.request.atomic &&
@@ -1947,17 +2279,20 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             AlignedMemoryDisjoint.aligned(address, memorySize) && io.loadPrecheck.get.stable &&
             !contextMemoryEpoch && !reserveSystem && !interruptDrain && !ledger.io.recovering
         epoch.bits := io.loadPrecheck.get.epoch
-        tracker.io.start.valid := lsu.io.start.fire && epoch.valid
+        tracker.io.start.valid := lsu.io.start.fire && (if (p.preparedHeadStoreOperands)
+            lsu.io.start.bits.canonicalStoreEpoch.get.valid else epoch.valid)
         tracker.io.start.bits.origin.token := lsu.io.start.bits.token
-        tracker.io.start.bits.origin.epoch := epoch.bits
-        tracker.io.start.bits.virtualAddress := address
-        tracker.io.start.bits.size := memorySize
-        tracker.io.start.bits.mask := byteLanes(memorySize, address)
+        tracker.io.start.bits.origin.epoch := (if (p.preparedHeadStoreOperands)
+            lsu.io.start.bits.canonicalStoreEpoch.get.bits else epoch.bits)
+        tracker.io.start.bits.virtualAddress := (if (p.preparedHeadStoreOperands) lsu.io.start.bits.address else address)
+        tracker.io.start.bits.size := (if (p.preparedHeadStoreOperands) lsu.io.start.bits.size else memorySize)
+        tracker.io.start.bits.mask := (if (p.preparedHeadStoreOperands)
+            byteLanes(lsu.io.start.bits.size, lsu.io.start.bits.address) else byteLanes(memorySize, address))
         when(tracker.io.start.valid) {
-            assert(!ledger.io.recoveryAccepted && !memoryProtected && !speculative && !postedBusy,
+            assert(!ledger.io.recoveryAccepted && !memoryProtected && !(if (p.preparedHeadStoreOperands) lsu.io.parallel else speculative) && !postedBusy,
                 "canonical tracking starts only for an accepted unprotected ordinary virtual head store")
         }
-        when(lsu.io.start.fire && precheckedLoad && !frontierChoice && memoryChoice.index =/= head) {
+        when((if (p.preparedHeadStoreOperands) normalMemoryIssued else lsu.io.start.fire) && precheckedLoad && !frontierChoice && memoryChoice.index =/= head) {
             for (i <- 0 until p.robEntries) {
                 when(memoryLive(i) && issueEntries(i).request.store && ages(i) < memoryChoice.age) {
                     if (p.completedCanonicalStoreForwarding) {
@@ -1979,7 +2314,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             }
         }
     }
-    lsu.io.start.bits.postedProof.foreach { proof =>
+    normalMemoryOperation.postedProof.foreach { proof =>
         proof := 0.U.asTypeOf(proof)
         proof.valid := postedEligible
         proof.bits.token.index := lsu.io.start.bits.token.index
@@ -2047,18 +2382,23 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     for (slot <- 0 until p.memoryEntries) {
         lsu.io.cancel(slot) := lsu.io.live(slot) && killed(Mux(lsu.io.live(slot), lsu.io.owner(slot).index, 0.U))
     }
-    val actualCanonicalAddress = proofFrontier.map(f => Mux(frontierChoice,
-        f.io.frontier.bits.payload.physicalAddress, canonicalAddress)).getOrElse(canonicalAddress)
-    val actualLanes = proofFrontier.map(f => Mux(frontierChoice,
-        f.io.frontier.bits.payload.mask, selectedLanes)).getOrElse(selectedLanes)
-    orderCheckValid := lsu.io.start.fire && (speculative || frontierChoice)
+    val actualCanonicalAddress = if (p.preparedHeadStoreOperands)
+        Mux(preparedStoreChoice.get, preparedHeadStore.get.io.prepared.bits.address, canonicalAddress)
+        else proofFrontier.map(f => Mux(frontierChoice,
+            f.io.frontier.bits.payload.physicalAddress, canonicalAddress)).getOrElse(canonicalAddress)
+    val actualLanes = if (p.preparedHeadStoreOperands)
+        byteLanes(lsu.io.start.bits.size, actualCanonicalAddress)
+        else proofFrontier.map(f => Mux(frontierChoice,
+            f.io.frontier.bits.payload.mask, selectedLanes)).getOrElse(selectedLanes)
+    orderCheckValid := lsu.io.start.fire && (if (p.preparedHeadStoreOperands) lsu.io.parallel else speculative || frontierChoice)
     when(lsu.io.start.fire) {
-        when(precheckedLoad && !frontierChoice) {
+        when((if (p.preparedHeadStoreOperands) lsu.io.start.bits.precheckedLoad else precheckedLoad) && !frontierChoice) {
             assert(preparedLoadMatches && (memoryChoice.index === head || !olderUncanonicalMemory),
                 "a prechecked start requires its unchanged full-token certificate and canonical older memory")
         }
         pending(actualMemoryIndex) := false.B
-        memoryCanonical.foreach(_(actualMemoryIndex) := !virtualized || precheckedLoad || frontierChoice)
+        memoryCanonical.foreach(_(actualMemoryIndex) := !virtualized ||
+            (if (p.preparedHeadStoreOperands) lsu.io.start.bits.precheckedLoad else precheckedLoad) || frontierChoice)
         if (p.sharedMemoryAddressState) {
             // The old load-only bank was written on EVERY LSU start. Its values
             // for stores/atomics were never eligible for replay. Do not let those
@@ -2077,7 +2417,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         orderCheckBeat := actualCanonicalAddress(63, 3)
         orderCheckLanes := actualLanes
         // An overlapping RAM start must not release the previous irrevocable owner's protection.
-        when(!speculative && !frontierChoice) {
+        when(!(if (p.preparedHeadStoreOperands) lsu.io.parallel else speculative) && !frontierChoice) {
             memoryProtected := true.B
             memoryOwner := lsu.io.start.bits.token
         }
@@ -2150,7 +2490,47 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val mulDivChoice = Wire(new Candidate)
     val mulDivRequests = Wire(Vec(2, new MultiplyDivideRequest(p)))
     val mulDivGrants = Wire(Vec(2, Bool()))
-    if (p.parallelMulDivDispatch) {
+    if (p.sharedMulDivOperandReads) {
+        val selector = Module(new SplitMulDivSelector(p, predecodedHead = p.registeredIssueHeadMask))
+        selector.io.head := head
+        selector.io.headMask.foreach(_ := issueHeadMask.get)
+        selector.io.available := VecInit(Seq(multiplier.io.start.ready, mulDiv.io.start.ready))
+        for (kind <- 0 until 2) {
+            selector.io.eligible(kind) := VecInit((0 until p.robEntries).map { i =>
+                val source1 = Mux(pending(i), issueEntries(i).renamed.source1, 0.U)
+                val source2 = Mux(pending(i), issueEntries(i).renamed.source2, 0.U)
+                pending(i) && issueEntries(i).request.mulDiv && issueEntries(i).request.mulDivOp(2) === (kind == 1).B &&
+                    ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
+                    ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))
+            }).asUInt
+        }
+        val selectedOwner = Mux1H(selector.io.grant.zip(selector.io.owner))
+        val entry = readIssue(selector.io.selectedIndex, "sharedMulDiv", Set("pc"), Some(selectedOwner))
+        // No added stage: registered FU capacity chooses the same old winning
+        // class before two shared reads. It never sees a new operand's legality.
+        val source1 = Mux(selector.io.selectedValid, entry.renamed.source1, 0.U)
+        val source2 = Mux(selector.io.selectedValid, entry.renamed.source2, 0.U)
+        val left = operandValue(source1)
+        val right = operandValue(source2)
+        for (kind <- 0 until 2) {
+            mulDivRequests(kind).token := entry.renamed.token
+            mulDivRequests(kind).pc := entry.request.rename.pc
+            mulDivRequests(kind).operation := entry.request.mulDivOp
+            mulDivRequests(kind).word := entry.request.word
+            mulDivRequests(kind).left := left
+            mulDivRequests(kind).right := right
+            mulDivGrants(kind) := selector.io.grant(kind)
+        }
+        when(selector.io.selectedValid) {
+            assert(entry.renamed.token.index === selector.io.selectedIndex && PopCount(selectedOwner) === 1.U,
+                "shared M reads must belong to the same unique full-token class winner")
+            assert(ready(source1) && ready(source2),
+                "shared M reads retain registered operand readiness")
+        }
+        mulDivChoice.valid := selector.io.selectedValid
+        mulDivChoice.index := selector.io.selectedIndex
+        mulDivChoice.age := selector.io.selectedIndex - head
+    } else if (p.parallelMulDivDispatch) {
         // Each class owns an early payload port. Availability/cross-class age
         // selects only a grant, never a queue index, source ID, or DSP operand.
         val selector = Module(new SplitMulDivSelector(p, predecodedHead = p.registeredIssueHeadMask))
@@ -2881,25 +3261,44 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             else Mux(operandValid, dispatchEntry.renamed.source2, 0.U)
         val storedLeft = physicalOperands.map(_.io.left(lane)).getOrElse(operandValue(source1))
         val storedRight = physicalOperands.map(_.io.right(lane)).getOrElse(operandValue(source2))
-        val dispatchLeft = Mux(dispatchEntry.request.memory, storedLeft, issueOperandValue(source1, storedLeft))
-        val dispatchRight = Mux(dispatchEntry.request.memory, storedRight, issueOperandValue(source2, storedRight))
+        val memoryLeft = if (p.registeredMemoryOperandCapture)
+            Mux(dispatchEntry.request.atomic, storedLeft, numericalMemoryValue(source1, storedLeft))
+            else storedLeft
+        val memoryRight = if (p.registeredMemoryOperandCapture)
+            Mux(dispatchEntry.request.atomic, storedRight, numericalMemoryValue(source2, storedRight))
+            else storedRight
+        val dispatchLeft = Mux(dispatchEntry.request.memory, memoryLeft, issueOperandValue(source1, storedLeft))
+        val dispatchRight = Mux(dispatchEntry.request.memory, memoryRight, issueOperandValue(source2, storedRight))
         if (p.sharedStoreOperandReads) {
             val (owners, payloads) = earlyStorePayloads.get
             val owner = if (lane == 0) issueSelector.get.io.second else issueSelector.get.io.first
             owners(lane) := owner
             payloads(lane).token := dispatchEntry.renamed.token
-            payloads(lane).base := storedLeft
+            payloads(lane).base := memoryLeft
             payloads(lane).immediate := dispatchEntry.request.immediate
             payloads(lane).size := dispatchEntry.request.memorySize
-            payloads(lane).data := storedRight
-            val dataReady = VecInit((0 until p.robEntries).map(i => ownerReady.map(_.io.ready2(i)).getOrElse(
+            payloads(lane).data := memoryRight
+            val dataReady = if (p.registeredMemoryOperandCapture) VecInit((0 until p.robEntries).map { i =>
+                val source = Mux(pending(i), issueEntries(i).renamed.source2, 0.U)
+                Mux(issueEntries(i).request.atomic,
+                    ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source)),
+                    numericalMemoryReady(source, ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source))))
+            }).asUInt else VecInit((0 until p.robEntries).map(i => ownerReady.map(_.io.ready2(i)).getOrElse(
                 operandReady(Mux(pending(i), issueEntries(i).renamed.source2, 0.U))))).asUInt
             payloads(lane).dataReady := (owner & dataReady).orR
         }
         val dispatchStore = dispatchEntry.request.memory && dispatchEntry.request.store
         val preparationGrant = if (p.registeredIssueExecute) issueOpportunity else dispatchChoice.valid
-        prepared(lane) := preparationGrant && dispatchStore && !killed(dispatchChoice.index) &&
-            !ledger.io.headException.valid
+        prepared(lane) := (if (p.registeredMemoryOperandCapture)
+            preparationGrant && dispatchStore && !killed(dispatchChoice.index) &&
+                !ledger.io.headException.valid && (dispatchEntry.request.atomic || numericalMemoryCaptureAllowed(source1, source2,
+                    numericalMemoryReady(source2, ready(source2))))
+            else preparationGrant && dispatchStore && !killed(dispatchChoice.index) && !ledger.io.headException.valid)
+        if (p.registeredMemoryOperandCapture) {
+            assertNumericalMemoryCapture(prepared(lane) && !dispatchEntry.request.atomic, dispatchEntry.renamed.token, source1, memoryLeft)
+            assertNumericalMemoryCapture(prepared(lane) && !dispatchEntry.request.atomic && numericalMemoryReady(source2, ready(source2)),
+                dispatchEntry.renamed.token, source2, memoryRight)
+        }
         preparedOwners(lane) := Mux(prepared(lane), UIntToOH(dispatchChoice.index, p.robEntries), 0.U)
         if (!p.earlyStorePreparation) {
             when(prepared(lane)) {
@@ -3452,7 +3851,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
     }
     assert(PopCount(dispatched.map(_.valid)) +& reserveSystem +& reserveMemory +& reserveMulDiv +&
-        directStoreReserve <= p.issueWidth.U)
+        directStoreReserve <= p.issueWidth.U, "dispatch reservations must not exceed issue width")
     // Allocation takes priority over ready writes. Same-packet RAW reads the newly allocated, unready ID.
     for (lane <- 0 until p.renameWidth) {
         val renamed = ledger.io.renamed(lane)
@@ -3570,5 +3969,122 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         !mulDiv.io.busy && !multiplier.io.busy && !branchRedirectValid &&
         !systemComplete.valid && !automaticTrap &&
         executionStages.map(s => !s.io.occupied).foldLeft(true.B)(_ && _)
+
+    preparedHeadStore.foreach { row =>
+        require(!registeredMemoryPreparationDescriptor && !earlyLoadPreparationDescriptor &&
+            !virtualStoreOperandLookahead && !bankedStoreData && !shadowEarlyProofBind && !backendNaturalAlignedPmp,
+            "prepared head-store row excludes the historical resident/proof descriptor experiments")
+        // No commit, ready, PRF read, address adder, translation query or permission
+        // proof feeds this capture. It copies the existing registered numerical row.
+        val nextIndex = (head + 1.U)(p.robBits - 1, 0)
+        val nextEntry = issueEntries(nextIndex)
+        def ordinaryStore(request: IntegerRequest): Bool = request.memory && request.store &&
+            !request.atomic && !request.system && !request.mulDiv && !request.fetchFault &&
+            !request.fetchPageFault && request.controlFlow === ControlFlow.none && request.operation === IntegerOp.add
+        row.io.candidate.valid := ledger.io.headValid &&
+            (if (p.preparedBareHeadStoreOperands) true.B else virtualized) && pending(nextIndex) && memoryLive(nextIndex) &&
+            storeAddressKnown(nextIndex) && storePrepared(nextIndex) && ordinaryStore(nextEntry.request) &&
+            nextEntry.renamed.token.index === nextIndex
+        row.io.candidate.bits.token := nextEntry.renamed.token
+        row.io.candidate.bits.address := storeAddress(nextIndex)
+        row.io.candidate.bits.data := storeData(nextIndex)
+        row.io.candidate.bits.size := nextEntry.request.memorySize
+        val held = row.io.prepared
+        val heldIndex = Mux(held.valid, held.bits.token.index, 0.U)
+        row.io.ownerLive := held.valid && pending(heldIndex) && memoryLive(heldIndex) &&
+            issueEntries(heldIndex).renamed.token.asUInt === held.bits.token.asUInt
+        row.io.atHead := ledger.io.headValid && held.bits.token.asUInt === headRenamed.token.asUInt
+        row.io.flush := ledger.io.recovering || ledger.io.recoveryAccepted || contextMemoryEpoch ||
+            interruptDrain || reserveSystem || fpMemoryEpoch ||
+            (held.valid && killed(heldIndex))
+        row.io.consume.valid := lsu.io.start.fire && preparedStoreChoice.get
+        row.io.consume.bits := lsu.io.start.bits.token
+        // This early selection is independent of issue credit and late recovery.
+        // Those affect valid only. No stale numerical row is permission authority.
+        if (p.preparedBareHeadStoreOperands) {
+            // Only numerical payload and current owner/class/mode select the
+            // source. In particular denied MUST NOT feed this selection: doing
+            // so would make the shared PMP input mux depend on its own output.
+            preparedBareStoreChoice.get := PreparedBareHeadStorePolicy.eligible(p,
+                held.valid, row.io.ownerLive, row.io.atHead, ledger.io.headDone,
+                ordinaryStore(headRequest), virtualized, held.bits.address, held.bits.size)
+            preparedStoreChoice.get := (held.valid && row.io.ownerLive && row.io.atHead &&
+                !ledger.io.headDone && virtualized && ordinaryStore(headRequest)) || preparedBareStoreChoice.get
+        } else {
+            preparedStoreChoice.get := held.valid && row.io.ownerLive && row.io.atHead &&
+                !ledger.io.headDone && virtualized && ordinaryStore(headRequest)
+        }
+        preparedStoreEligible.get := preparedStoreChoice.get && io.commitEnable &&
+            !interruptDrain && !reserveSystem && !fpMemoryEpoch && !contextMemoryEpoch &&
+            !ledger.io.recovering && !memoryProtected && !systemProtected
+        val storeIssue = Wire(new PreparedStoreIssue(p))
+        storeIssue := 0.U.asTypeOf(storeIssue)
+        storeIssue.operation.token := held.bits.token
+        storeIssue.operation.pc := headRequest.rename.pc
+        storeIssue.operation.address := held.bits.address
+        storeIssue.operation.data := held.bits.data
+        storeIssue.operation.size := held.bits.size
+        storeIssue.operation.store := true.B
+        storeIssue.operation.virtualized := (if (p.preparedBareHeadStoreOperands) virtualized else true.B)
+        if (p.preparedBareHeadStoreOperands) {
+            // A denied selected Bare store stays selected and faults through
+            // the ordinary LSU. It cannot fall back to another owner's query.
+            storeIssue.operation.accessDenied := preparedBareStoreChoice.get && pmpCheck.io.denied
+        }
+        storeIssue.operation.canonicalStoreEpoch.get.valid := preparedStoreChoice.get &&
+            (if (p.preparedBareHeadStoreOperands) virtualized else true.B) &&
+            AlignedMemoryDisjoint.aligned(held.bits.address, held.bits.size) && io.loadPrecheck.get.stable &&
+            !contextMemoryEpoch && !reserveSystem && !interruptDrain && !ledger.io.recovering
+        storeIssue.operation.canonicalStoreEpoch.get.bits := io.loadPrecheck.get.epoch
+        // The only payload join. A store cannot inherit the normal load's proof,
+        // destination, forwarding or parallel credit. Virtual permissions stay
+        // in DTA; selected Bare permissions come from its exact current query.
+        val actualStoreIssue = Mux(preparedStoreChoice.get, storeIssue, normalStoreIssue.get)
+        lsu.io.start.bits := actualStoreIssue.operation
+        lsu.io.parallel := actualStoreIssue.parallel
+        lsu.io.issueDestination.foreach(_ := actualStoreIssue.destination)
+        if (p.preparedBareHeadStoreOperands) {
+            when(preparedBareStoreChoice.get) {
+                assert(preparedStoreChoice.get && !virtualized &&
+                    AlignedMemoryDisjoint.aligned(held.bits.address, held.bits.size) &&
+                    SpeculativeRamRange.contains(p, held.bits.address, held.bits.size),
+                    "prepared Bare source is only an aligned actual-head ordinary RAM store")
+                assert(pmpCheck.io.address === held.bits.address && pmpCheck.io.size === held.bits.size &&
+                    pmpCheck.io.access === PmpAccess.write && pmpCheck.io.privilege === dataPrivilege,
+                    "prepared Bare permission query names the exact held store and current privilege")
+                assert(actualStoreIssue.operation.token.asUInt === held.bits.token.asUInt &&
+                    !actualStoreIssue.operation.virtualized &&
+                    actualStoreIssue.operation.accessDenied === pmpCheck.io.denied &&
+                    !actualStoreIssue.operation.canonicalStoreEpoch.get.valid,
+                    "prepared Bare payload retains its selected permission result without virtual authority")
+            }
+        }
+        when(row.io.consume.valid) {
+            assert(ledger.io.headValid && !ledger.io.headDone && pending(head) && memoryLive(head) &&
+                lsu.io.start.bits.token.asUInt === headRenamed.token.asUInt &&
+                !lsu.io.parallel && lsu.io.start.bits.store && !lsu.io.start.bits.atomic &&
+                !lsu.io.start.bits.forward.valid && !lsu.io.start.bits.precheckedLoad &&
+                !lsu.io.issueDestination.get.valid && !ledger.io.recoveryAccepted &&
+                !earlyRecoveryIssueBlock && !ledger.io.pendingException.valid &&
+                !interruptDrain && !reserveSystem && !contextMemoryEpoch && !fpMemoryEpoch,
+                "prepared store consumes only its exact ordinary actual-head issue authority")
+            assert(lsu.io.start.bits.address === held.bits.address && lsu.io.start.bits.data === held.bits.data &&
+                lsu.io.start.bits.size === held.bits.size && actualMemoryIndex === held.bits.token.index,
+                "prepared store issue payload and bookkeeping share one full owner")
+            assert(storeAddressKnown(head) && storePrepared(head) && held.bits.address === storeAddress(head) &&
+                held.bits.data === storeData(head) && held.bits.size === headRequest.memorySize,
+                "prepared store retains the exact live saved numerical operands")
+        }
+        when(normalMemoryIssued) {
+            assert(lsu.io.start.bits.token.asUInt === memoryEntry.renamed.token.asUInt &&
+                lsu.io.start.bits.address === address && lsu.io.start.bits.precheckedLoad === precheckedLoad,
+                "prepared-store selection preserves the independently staged normal load owner")
+            if (p.preparedBareHeadStoreOperands) {
+                assert(!preparedBareStoreChoice.get && pmpCheck.io.address === address &&
+                    pmpCheck.io.size === memorySize,
+                    "normal memory issue retains its own staged permission query")
+            }
+        }
+    }
 
 }

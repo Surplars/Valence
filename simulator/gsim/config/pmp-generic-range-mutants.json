@@ -1,0 +1,47 @@
+[
+  {
+    "name": "drop-carry",
+    "index": 0,
+    "old": "val carry = lowSum(7)",
+    "new": "val carry = false.B",
+    "count": 1,
+    "path": "src/test/scala/ooo/PmpGenericRangeMutant0.scala",
+    "sha256": "6b848af8c5c54d8795451d609c87e075174b4a615e19022a6bfd474469140284"
+  },
+  {
+    "name": "drop-address63",
+    "index": 1,
+    "old": "Cat(0.U(1.W), io.address(63, 7))",
+    "new": "Cat(0.U(2.W), io.address(62, 7))",
+    "count": 1,
+    "path": "src/test/scala/ooo/PmpGenericRangeMutant1.scala",
+    "sha256": "59548f647e05fccd826d95ce97544e4079b4e57fb2aadb94d4955db1754d4615"
+  },
+  {
+    "name": "drop-bound64",
+    "index": 2,
+    "old": "io.regionLow(i)(64, 7)",
+    "new": "Cat(0.U(1.W), io.regionLow(i)(63, 7))",
+    "count": 1,
+    "path": "src/test/scala/ooo/PmpGenericRangeMutant2.scala",
+    "sha256": "866f7afa44056f68e2b99860c0b7d7085f3f4365d533b381643c21ba83baae3a"
+  },
+  {
+    "name": "strict-upper",
+    "index": 3,
+    "old": "lastLow <= upperLow",
+    "new": "lastLow < upperLow",
+    "count": 2,
+    "path": "src/test/scala/ooo/PmpGenericRangeMutant3.scala",
+    "sha256": "da8a361d8f701f2484261683fac25995c43b02995a545ed40596048fd4196974"
+  },
+  {
+    "name": "drop-cover",
+    "index": 4,
+    "old": "io.covers(i) := startAtOrAboveLower && endAtOrBelowUpper",
+    "new": "io.covers(i) := true.B",
+    "count": 1,
+    "path": "src/test/scala/ooo/PmpGenericRangeMutant4.scala",
+    "sha256": "d325fa967f0931005835ced80d0f2973ba5d3e607ae16494b43e6f0f65402b5e"
+  }
+]

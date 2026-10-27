@@ -5,6 +5,8 @@ import chisel3.util._
 
 /** FPGA-oriented synchronous instruction memory boundary; data memory remains an external ordered port. */
 class FpgaIntegerCore(p: OooParams = OooParams(), val sharedTwoWordFetchPmp: Boolean = false) extends Module {
+    require(!p.fetchThirdPacketLookahead,
+        "identity fetch horizon requires the explicitly ranged Common-A1 two-owner integration")
     require(Set(2, 4).contains(p.renameWidth))
     require(p.virtualMemoryLevels == 0, "FPGA standalone wrapper has no translation service")
     private val fetchWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2

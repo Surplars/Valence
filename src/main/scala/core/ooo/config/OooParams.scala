@@ -214,8 +214,153 @@ case class OooParams(
     // Explicit M2/R1 experiments; neither changes the Selected/FullCandidate defaults.
     registeredDataTranslation: Boolean = false,
     circularFetchPayload: Boolean = false,
-    completedCanonicalStoreForwarding: Boolean = false
+    completedCanonicalStoreForwarding: Boolean = false,
+    combinedCheckedDataFlow: Boolean = false,
+    preparedHeadStoreOperands: Boolean = false,
+    // One disposable lookahead descriptor and retained lookup/permission stages; no new demand credit.
+    elasticLoadProofSupply: Boolean = false,
+    // Registered raw demand results coexist with the registered-PA checked shortcut.
+    registeredRawCertifiedFlow: Boolean = false,
+    factoredDataPmpRange: Boolean = false,
+    guardedNaturalDataPmp: Boolean = false,
+    // Combinational counted tag advance only; no new stage, state or allocation credit.
+    splitLowTagAdvance: Boolean = false,
+    // Independent third-rank address supply with two disposable D/R rows.
+    bufferedThirdRankLoadProof: Boolean = false,
+    // Named two-slot empty-return flow plus slot-derived issue token identity experiment.
+    bufferedReturnFlow: Boolean = false,
+    // Integer ordered-owner readiness only; generic/tagged/FP LSU semantics stay unchanged.
+    orderedLsuResponseReady: Boolean = false,
+    // Registered advisory exclusion changes only the third source1 preparation supplier.
+    registeredAdvisoryExclusion: Boolean = false,
+    // Explicit final-port certified PA ingress; all existing profiles keep the registered ingress edge.
+    certifiedLoadIngress: Boolean = false,
+    // Explicit Common-A1 identity-only safe-RAM third-packet scheduling.
+    fetchThirdPacketLookahead: Boolean = false,
+    // Explicit efficiency-refactor capabilities; old/public profiles keep all disabled.
+    canonicalFetchCacheKeys: Boolean = false,
+    registeredMemoryOperandCapture: Boolean = false,
+    sharedMulDivOperandReads: Boolean = false,
+    sourceLocalLoadProofCancellation: Boolean = false,
+    sharedLoadProofPmpBounds: Boolean = false,
+    decodedNaturalPmp: Boolean = false,
+    preparedBareHeadStoreOperands: Boolean = false,
+    // Payload storage only; full-owner admission and retirement bypass stay in RenameRob.
+    bankedRobCompletionData: Boolean = false,
+    // Final registered ordinary load ingress, explicitly coexisting with certified ingress.
+    coexistingPhysicalLoadIngress: Boolean = false
 ) {
+    require(!coexistingPhysicalLoadIngress || (bankedRobCompletionData && certifiedLoadIngress &&
+        identityDataRequestFlow && bufferedRamStores && registeredMemoryRequests && registeredTranslationHeads &&
+        !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow),
+        "coexisting physical ingress requires the complete third-efficiency registered producer topology")
+    require(!bankedRobCompletionData || (robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 && recoveryWidth == 4 &&
+        completionTopology == "dual-owner" && registeredRobRetirement && parallelRecoveryAdmission &&
+        fastHeadTrapRecovery && fastHeadSystemRecovery && decodedNaturalPmp && preparedBareHeadStoreOperands &&
+        !retirementSlotIdentity && !retirementIntent),
+        "banked ROB completion data requires the exact second-efficiency dual-owner descendant")
+    require(!registeredMemoryOperandCapture || (bufferedThirdRankLoadProof && registeredLoadIssueForwarding &&
+        ownerLocalOperandReady && parallelPrfReadyUpdates && registeredMemoryAddress && parallelMemoryPreparation && parallelMemoryPayload &&
+        earlyStorePreparation && sharedStoreOperandReads && completionTopology == "dual-owner" &&
+        !loadCompletionBypass && !registeredLoadResultReady && !residentMemoryPayloadReuse && !memoryProofFrontier),
+        "numerical memory capture requires the qualified registered-result and prepared-memory topology")
+    require(!sharedMulDivOperandReads || (parallelMulDivDispatch && lvtPhysicalRegisterFile && ownerLocalOperandReady && renameWidth == 2),
+        "shared M operands require the existing split-selector two-issue LVT topology")
+    require(!sourceLocalLoadProofCancellation || bufferedThirdRankLoadProof,
+        "source-local proof cancellation requires D2/T1/R2 buffered preparation")
+    require(!sharedLoadProofPmpBounds || bufferedThirdRankLoadProof,
+        "shared proof PMP bounds require buffered ordinary-load preparation")
+    require(!decodedNaturalPmp || (guardedNaturalDataPmp && bufferedThirdRankLoadProof &&
+        sharedLoadProofPmpBounds && sourceLocalLoadProofCancellation && machineSystem &&
+        pmpEntries == 16 && !registeredDataTranslation),
+        "typed natural PMP requires the decoded-region guarded buffered A1 authority topology")
+    // issueWidth is defined below as completionWidth; avoid a forward reference here.
+    require(!preparedBareHeadStoreOperands || (preparedHeadStoreOperands && registeredMemoryAddress &&
+        parallelMemoryPreparation && registeredMemoryOperandCapture && earlyStorePreparation &&
+        bankedIssuePayload && earlyRecoveryIssueBlock && canonicalVirtualStoreOverlap &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 &&
+        robEntries == 16 && physicalRegs == 48 && tagBits == 64 && memoryEntries == 4 && pmpEntries == 16 &&
+        machineSystem && virtualMemoryLevels == 3 && completionTopology == "dual-owner" &&
+        !postedStoreMerge && !postedPrefetchHeadOffer && !fastBufferedStoreRetire && !fastHeadLoadRetire &&
+        !memoryProofFrontier && !residentMemoryPayloadReuse && !pendingVirtualStoreProof && !preparedStoreLookahead),
+        "prepared bare head-store operands require the exact two-wide ordinary four-owner A1 topology")
+    require(!fetchThirdPacketLookahead || (certifiedLoadIngress && renameWidth == 2 &&
+        compressedInstructions && registeredFetchWindow && alignedFetchPmp && alignedFetchSinglePage &&
+        registeredTranslationHeads && fetchReplyTurnover && fetchIdentityTranslation &&
+        !fetchAddressBeforePmp && !alignedFetchPermissionStage && !fetchPreviousPacket),
+        "identity fetch horizon requires the complete certified-ingress aligned two-lane window")
+    require(!certifiedLoadIngress || (registeredAdvisoryExclusion && orderedLsuResponseReady &&
+        bufferedReturnFlow && bufferedThirdRankLoadProof && splitLowTagAdvance && guardedNaturalDataPmp &&
+        virtualMemoryLevels == 3 && pmpEntries == 16 && virtualRamLoadPrecheck && precheckedDataRequestFlow &&
+        combinedCheckedDataFlow && canonicalVirtualStoreOverlap && registeredMemoryRequests &&
+        registeredTranslationHeads && registeredTranslatedResponses &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 &&
+        robEntries == 16 && physicalRegs == 48 && memoryEntries == 4 && storeBufferEntries == 2 && tagBits == 64 &&
+        completionTopology == "dual-owner" && branchResolutionTopology == "execution-mailbox" && circularFetchPayload &&
+        !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow && !factoredDataPmpRange),
+        "certified load ingress requires the complete guarded-natural advisory-owner VM control")
+    require(!registeredAdvisoryExclusion || (orderedLsuResponseReady && bufferedThirdRankLoadProof),
+        "registered advisory exclusion requires the named ordered-owner buffered preparation topology")
+    require(!orderedLsuResponseReady || (bufferedReturnFlow && bufferedRamStores &&
+        registeredMemoryRequests && registeredStoreResponseOwners && !registeredLocalStoreResponses &&
+        robEntries == 16 && physicalRegs == 48 && memoryEntries == 4 && storeBufferEntries == 2 && tagBits == 64 &&
+        !taggedStoreReturns && !localTaggedResponseReady && !loadCompletionBypass &&
+        !registeredLoadResultReady && !fastHeadLoadRetire && !fastBufferedStoreRetire),
+        "ordered LSU readiness requires its fixed FIFO-before-StoreBuffer topology and retained result boundaries")
+    require(!bufferedReturnFlow || (guardedNaturalDataPmp && splitLowTagAdvance && bufferedThirdRankLoadProof &&
+        translatedResponseEmptyFlow && reconstructIssueTokenIndex &&
+        registeredMemoryRequests && registeredTranslationHeads && registeredTranslatedResponses &&
+        registeredStoreResponseOwners && !registeredLocalStoreResponses &&
+        !loadCompletionBypass && !registeredLoadResultReady && !fastHeadLoadRetire && !fastBufferedStoreRetire),
+        "buffered return flow requires its named guarded split-tag proof topology and retained result/owner boundaries")
+    require(!bufferedThirdRankLoadProof || (guardedNaturalDataPmp && splitLowTagAdvance &&
+        robEntries == 16 && physicalRegs == 48 && memoryEntries == 4 &&
+        lvtPhysicalRegisterFile && bankedIssuePayload && parallelPrfReadyUpdates && ownerLocalIssueReady &&
+        compactMemoryOperandSelect && parallelMemoryPayload && registeredIssueHeadMask &&
+        !moveAlias && !loadCompletionBypass && !mulWordPreviewBypass && !registeredLoadResultReady &&
+        !fastHeadLoadRetire),
+        "buffered third-rank proof requires its explicit registered-ready guarded split-tag profile")
+    require(!splitLowTagAdvance || (renameWidth == 2 && tagBits == 64),
+        "split-low tag advance currently supports only two rename lanes and full 64-bit tags")
+    require(!guardedNaturalDataPmp || (elasticLoadProofSupply && combinedCheckedDataFlow &&
+        !registeredDataTranslation && !registeredRawCertifiedFlow && !factoredDataPmpRange &&
+        !physicalLoadIngressFlow && (!translatedResponseEmptyFlow || bufferedReturnFlow) && !queuedHeadSelection &&
+        !postedStoreMerge && !taggedStoreReturns && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "guarded natural data PMP retains the explicit elastic topology and rejects malformed raw requests")
+    require(!factoredDataPmpRange || (elasticLoadProofSupply && combinedCheckedDataFlow &&
+        !registeredDataTranslation && !registeredRawCertifiedFlow),
+        "factored data PMP ranges use only the explicit elastic demand-hit profile")
+    require(!registeredRawCertifiedFlow || (registeredDataTranslation && precheckedDataRequestFlow &&
+        !combinedCheckedDataFlow && virtualMemoryLevels > 0 && virtualRamLoadPrecheck &&
+        canonicalVirtualStoreOverlap && registeredMemoryRequests && registeredTranslationHeads &&
+        !queuedHeadSelection && !physicalLoadIngressFlow && !translatedResponseEmptyFlow &&
+        !postedStoreMerge && !taggedStoreReturns && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "registered raw/certified flow requires its explicit ordered registered-result and checked policy")
+    require(!elasticLoadProofSupply || (preparedHeadStoreOperands && virtualRamLoadPrecheck &&
+        virtualMemoryLevels > 0 && memoryEntries == 4 && registeredMemoryAddress &&
+        parallelMemoryPreparation && parallelMemoryPayload && !residentMemoryPayloadReuse &&
+        !preparedStoreLookahead && !memoryProofFrontier && !pendingVirtualStoreProof &&
+        !postedStoreMerge && !taggedStoreReturns),
+        "elastic load proof supply requires the explicit ordered four-owner staged preparation candidate")
+    require(!preparedHeadStoreOperands || ((combinedCheckedDataFlow || registeredRawCertifiedFlow) &&
+        completedCanonicalStoreForwarding &&
+        renameWidth == 2 && completionWidth == 2 && commitWidth == 2 &&
+        registeredMemoryAddress && parallelMemoryPreparation && parallelMemoryPayload && earlyStorePreparation &&
+        registeredLoadIssueForwarding && earlyRecoveryIssueBlock &&
+        !residentMemoryPayloadReuse && !preparedStoreLookahead && !memoryProofFrontier &&
+        !pendingVirtualStoreProof && !postedStoreMerge && !taggedStoreReturns &&
+        !fastBufferedStoreRetire && !fastHeadLoadRetire),
+        "prepared head-store operands require the ordered checked-flow staged preparation experiment")
+    require(!combinedCheckedDataFlow || (virtualMemoryLevels > 0 && virtualRamLoadPrecheck &&
+        canonicalVirtualStoreOverlap && precheckedDataRequestFlow && registeredMemoryRequests &&
+        registeredTranslationHeads && !registeredDataTranslation && !queuedHeadSelection &&
+        !physicalLoadIngressFlow && (!translatedResponseEmptyFlow || bufferedReturnFlow) && !postedStoreMerge &&
+        !taggedStoreReturns && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "combined checked flow requires explicit ordered canonical registered-PA authorization")
     require(!completedCanonicalStoreForwarding || (completionTopology == "dual-owner" &&
         virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && virtualMemoryLevels > 0 &&
         registeredMemoryAddress && registeredLoadReplay && !registeredCanonicalStoreEvent &&
@@ -225,7 +370,8 @@ case class OooParams(
     require(!circularFetchPayload || (renameWidth == 2 && registeredFetchPacket && !alignedFetchPermissionStage),
         "circular fetch payload requires the two-wide registered non-frontier reservoir")
     require(!registeredDataTranslation || (virtualMemoryLevels > 0 && registeredTranslationHeads &&
-        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && !precheckedDataRequestFlow &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap &&
+        (!precheckedDataRequestFlow || registeredRawCertifiedFlow) &&
         !physicalLoadIngressFlow && !pendingVirtualStoreProof && !memoryProofFrontier &&
         !frozenStoreProofTransport && !frozenStoreCheckedFlow && !postedStoreMerge && !taggedStoreReturns),
         "registered data translation requires the ordered canonical A1 path, excluding proof/posted shortcuts")
@@ -601,6 +747,9 @@ case class OooParams(
     val frontendCacheSets: Int = if (instructionCacheSets == 0) {
         if (renameWidth >= 4) 128 else 64
     } else instructionCacheSets
+    require(!canonicalFetchCacheKeys || (fetchThirdPacketLookahead && frontendCacheSets == 16 &&
+        parallelFetchTagLookup && registeredFetchWindow && alignedFetchPmp),
+        "canonical fetch keys require the strict ranged two-owner frontend")
     require(frontendCacheSets >= 2 && frontendCacheSets <= 256 && isPow2(frontendCacheSets),
         "instruction cache sets must be automatic or a power of two between 2 and 256")
     require(returnStackEntries >= 2 && returnStackEntries <= 32 && isPow2(returnStackEntries),

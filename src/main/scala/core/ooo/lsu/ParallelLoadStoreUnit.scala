@@ -73,7 +73,8 @@ class ParallelLoadStoreUnit(
         val forwarded      = Output(Bool())
         val forwardStore   = Output(Valid(new StoreForward(p)))
     })
-    val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p, responseStateOnly = localTaggedResponseReady)))
+    val slots      = Seq.fill(p.memoryEntries)(Module(new LoadStoreUnit(p, responseStateOnly = localTaggedResponseReady,
+        orderedResponseReady = p.orderedLsuResponseReady)))
     val parallel   = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
     val requestAccepted = if (p.canonicalVirtualStoreOverlap)
         Some(RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))) else None
@@ -300,7 +301,8 @@ class ParallelLoadStoreUnit(
     // A slot is never reused until its response and completion have both been consumed.
     val owners = CpuReturnTransport.ownerView(UInt(indexBits.W), p.memoryEntries)
     p.cpuReturnConfig match {
-        case None => CpuReturnTransport.orderedOwners(owners, UInt(indexBits.W), p.memoryEntries, flow = true)
+        case None => CpuReturnTransport.orderedOwners(owners, UInt(indexBits.W), p.memoryEntries,
+            flow = !p.orderedLsuResponseReady)
         case Some(config) =>
             val pending = RegInit(VecInit(Seq.fill(p.memoryEntries)(false.B)))
             val handle = io.memory.response.bits.returnHandle.get

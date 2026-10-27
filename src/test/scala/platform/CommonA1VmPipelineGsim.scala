@@ -13,7 +13,7 @@ import soc.platform._
   * MPRV ordinary stores exercise demand translation, not prechecked load bypass.
   * Only passive observation is added; no production counter or datapath edit.
   */
-class CommonA1VmPipelineGsim(profile: String) extends Module {
+class CommonA1VmPipelineGsim(profile: String, sideEffectFreeFetchRanges: Seq[SideEffectFreeFetchRange] = Seq.empty) extends Module {
     private val selected = CommonA1RebuildProfile.named(profile)
     private val config = selected.config
     private val p = config.coreParams
@@ -85,7 +85,7 @@ class CommonA1VmPipelineGsim(profile: String) extends Module {
         val acceptedPrefixEnabled = Output(Bool())
     })
     val tile = Module(new CommonA1CpuTile(config, boundary,
-        selected.memoryProfile))
+        selected.memoryProfile, sideEffectFreeFetchRanges))
     tile.io.hold := io.hold
     tile.io.inspectRegister := io.inspectRegister
     io.committedValue := tile.io.committedValue

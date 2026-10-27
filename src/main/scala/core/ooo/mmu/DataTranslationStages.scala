@@ -49,7 +49,9 @@ class DataAuthorizationContext extends Bundle {
 }
 
 /** Pure permission evaluator: no state, owner, request credit, or response credit.
-  * M2 feeds it only the registered result head. The existing checked queue is
+  * M2 feeds the registered result head. The explicit raw/certified mode may
+  * instead select a descriptor built solely from registered certified ingress.
+  * The existing checked queue is
   * still the one-cycle capture of the request, fault and prefetch permission.
   * canonical.valid is a qualification preview, NOT a completion/event: the
   * adapter must additionally require exact checked enqueue FIRE and origin route.
@@ -57,7 +59,8 @@ class DataAuthorizationContext extends Bundle {
 class DataPhysicalPermissionEvaluator(p: OooParams, alignedNextLinePmp: Boolean = false,
     factorCheckedNextAllowed: Boolean = false, registerNextLineDecision: Boolean = false) extends Module {
     require(p.registeredDataTranslation && p.virtualRamLoadPrecheck && p.canonicalVirtualStoreOverlap)
-    require(!p.precheckedDataRequestFlow && !p.frozenStoreProofEnabled && p.postedProofConfig.isEmpty)
+    require((!p.precheckedDataRequestFlow || p.registeredRawCertifiedFlow) &&
+        !p.frozenStoreProofEnabled && p.postedProofConfig.isEmpty)
     val io = IO(new Bundle {
         val result = Input(new TranslatedDataRequest(p))
         val authorization = Input(new DataAuthorizationContext)
@@ -89,10 +92,24 @@ class DataPhysicalPermissionEvaluator(p: OooParams, alignedNextLinePmp: Boolean 
     val inRam = SpeculativeRamRange.contains(p, request.address, request.size)
     val stale = request.precheckedLoad && (request.translationEpoch =/= io.authorization.epoch ||
         io.authorization.changing || io.authorization.flush)
-    io.fault := io.result.pageFault || io.result.accessFault ||
-        (io.result.checkPhysical && pmp.io.denied) ||
-        (request.atomic && io.result.checkPhysical && !inRam) || stale ||
-        (request.precheckedLoad && !inRam)
+    // Match the existing certified-flow policy, including its hint fault input.
+    // Old M2 deliberately retains its original malformed-sideband behavior.
+    val certifiedShapeFault = if (p.registeredRawCertifiedFlow) {
+        val mask = MuxLookup(request.size, 255.U(8.W))(Seq(0.U -> 1.U, 1.U -> 3.U, 2.U -> 15.U))
+        Some(request.precheckedLoad && (!AlignedMemoryDisjoint.aligned(request.address, request.size) ||
+            request.mask =/= (mask << request.address(2, 0))(7, 0)))
+    } else None
+    if (p.registeredRawCertifiedFlow) {
+        io.fault := io.result.pageFault || io.result.accessFault ||
+            (io.result.checkPhysical && pmp.io.denied) ||
+            (request.atomic && io.result.checkPhysical && !inRam) || stale ||
+            (request.precheckedLoad && !inRam) || certifiedShapeFault.get
+    } else {
+        io.fault := io.result.pageFault || io.result.accessFault ||
+            (io.result.checkPhysical && pmp.io.denied) ||
+            (request.atomic && io.result.checkPhysical && !inRam) || stale ||
+            (request.precheckedLoad && !inRam)
+    }
 
     val nextLineAuthorization = if (p.dataNextLinePrefetch) {
         val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp,

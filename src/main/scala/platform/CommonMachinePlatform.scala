@@ -546,7 +546,9 @@ class CommonMachinePlatform(
         io.cpuCycles := cpu.io.cycles; io.instructions := cpu.io.instructions
     } else {
         val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
-            Module(new CommonA1CpuTile(a1CpuConfig, boundary, a1MemoryProfile))
+            Module(new CommonA1CpuTile(a1CpuConfig, boundary, a1MemoryProfile,
+                sideEffectFreeFetchRanges = Seq(soc.core.ooo.SideEffectFreeFetchRange(
+                    CommonPlatformAbi.ramBase, fabric.ramBytes))))
         }
         crossing.cpu <> cpu.io.bus
         runtime.foreach(_.io.cpuHeld := cpu.io.runtimeHeld.get)

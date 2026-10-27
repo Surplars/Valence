@@ -1,0 +1,17 @@
+// Interface-only test doubles transcribed from UG974 2025.2 port tables.
+// NO primitive behavior, timing, calibration, placement or routing model.
+module IDELAYE3 #(
+ parameter CASCADE="NONE", DELAY_FORMAT="TIME", DELAY_SRC="IDATAIN",
+ DELAY_TYPE="FIXED", DELAY_VALUE=0, REFCLK_FREQUENCY=300.0,
+ SIM_DEVICE="ULTRASCALE")(
+ output CASC_OUT, output [8:0] CNTVALUEOUT, output DATAOUT,
+ input CASC_IN,CASC_RETURN,CE,CLK, input [8:0] CNTVALUEIN,
+ input DATAIN,EN_VTC,IDATAIN,INC,LOAD,RST);
+endmodule
+module ODELAYE3 #(
+ parameter CASCADE="NONE", DELAY_FORMAT="TIME", DELAY_TYPE="FIXED",
+ DELAY_VALUE=0, REFCLK_FREQUENCY=300.0, SIM_DEVICE="ULTRASCALE")(
+ output CASC_OUT, output [8:0] CNTVALUEOUT, output DATAOUT,
+ input CASC_IN,CASC_RETURN,CE,CLK, input [8:0] CNTVALUEIN,
+ input EN_VTC,INC,LOAD,ODATAIN,RST);
+endmodule

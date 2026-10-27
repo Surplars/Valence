@@ -1,0 +1,15 @@
+--- a/src/cppEmitter.cpp
++++ b/src/cppEmitter.cpp
+@@ -884,10 +884,10 @@
+   fprintf(header, "uint32_t _var_end;\n");
+ 
+   emitBodyLock(0, "// initialize registers with reset value 0 to overwrite the rand() results\n" );
+-  emitBodyLock(1, "memset(&_var_start, 0, &_var_end - &_var_start);\n");
++  emitBodyLock(1, "memset(&_var_start, 0, reinterpret_cast<uintptr_t>(&_var_end) - reinterpret_cast<uintptr_t>(&_var_start));\n");
+ 
+   emitBodyLock(0, "#else\n" // RANDOMIZE_INIT
+-               "  memset(&_var_start, 0, &_var_end - &_var_start);\n"
++               "  memset(&_var_start, 0, reinterpret_cast<uintptr_t>(&_var_end) - reinterpret_cast<uintptr_t>(&_var_start));\n"
+                "#endif\n");
+ 
+   fprintf(header, "S%s();\n", name.c_str());

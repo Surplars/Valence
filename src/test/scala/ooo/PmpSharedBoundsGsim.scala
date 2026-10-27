@@ -27,6 +27,7 @@ class PmpSharedBoundsGsim extends Module {
   val natural0 = Output(Bool()); val line0 = Output(Bool())
   val natural8 = Output(Bool()); val line8 = Output(Bool())
   val natural16 = Output(Bool()); val line16 = Output(Bool())
+  val naturalOff0 = Output(Bool()); val naturalOff8 = Output(Bool()); val naturalOff16 = Output(Bool())
   val generic = Output(Bool())
  })
  val state = Wire(new PmpState)
@@ -59,6 +60,7 @@ class PmpSharedBoundsGsim extends Module {
  assert(natural0_candidate.io.denied === natural0_reference.io.denied,"shared bounds differs from frozen bytes")
  assert(natural0_off.io.denied === natural0_reference.io.denied,"OFF mode differs from frozen bytes")
  io.natural0 := natural0_candidate.io.denied
+ io.naturalOff0 := natural0_off.io.denied
  val natural8_candidate = Module(new PmpChecker(8,naturalAlignedAccess=true,sharedAlignedBounds=true))
  natural8_candidate.io.state := state; natural8_candidate.io.address := io.address; natural8_candidate.io.size := io.size
  natural8_candidate.io.privilege := io.privilege; natural8_candidate.io.access := io.access
@@ -71,6 +73,7 @@ class PmpSharedBoundsGsim extends Module {
  assert(natural8_candidate.io.denied === natural8_reference.io.denied,"shared bounds differs from frozen bytes")
  assert(natural8_off.io.denied === natural8_reference.io.denied,"OFF mode differs from frozen bytes")
  io.natural8 := natural8_candidate.io.denied
+ io.naturalOff8 := natural8_off.io.denied
  val natural16_candidate = Module(new PmpChecker(16,naturalAlignedAccess=true,sharedAlignedBounds=true))
  natural16_candidate.io.state := state; natural16_candidate.io.address := io.address; natural16_candidate.io.size := io.size
  natural16_candidate.io.privilege := io.privilege; natural16_candidate.io.access := io.access
@@ -83,6 +86,7 @@ class PmpSharedBoundsGsim extends Module {
  assert(natural16_candidate.io.denied === natural16_reference.io.denied,"shared bounds differs from frozen bytes")
  assert(natural16_off.io.denied === natural16_reference.io.denied,"OFF mode differs from frozen bytes")
  io.natural16 := natural16_candidate.io.denied
+ io.naturalOff16 := natural16_off.io.denied
  val naturalMutant1 = Module(new PmpSharedBoundMutant1(16,naturalAlignedAccess=true,sharedAlignedBounds=true))
  naturalMutant1.io.state := state; naturalMutant1.io.address := io.address; naturalMutant1.io.size := io.size
  naturalMutant1.io.privilege := io.privilege; naturalMutant1.io.access := io.access

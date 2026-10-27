@@ -15,11 +15,24 @@ import soc.bus.tilelink._
 class CommonA1CpuTile(
     config: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true),
     boundary: CommonCpuTilePortParams = CommonCpuTilePortParams(),
-    memoryProfile: Option[CommonA1MemoryProfile] = None
+    memoryProfile: Option[CommonA1MemoryProfile] = None,
+    sideEffectFreeFetchRanges: Seq[SideEffectFreeFetchRange] = Seq.empty
 ) extends Module {
     // Validate the actual final configuration. A profile is not a second set
     // of overrides: contradictory config/profile inputs must fail elaboration.
     memoryProfile.foreach(_.validate(config, boundary))
+    require(!config.fetchThirdPacketLookahead ||
+        (memoryProfile.contains(CommonA1MemoryProfile.ExperimentalIdentityFetchHorizon) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor2) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor3) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4)),
+        "identity fetch horizon requires its explicit final-configuration policy")
+    require(!config.fetchThirdPacketLookahead || sideEffectFreeFetchRanges.nonEmpty,
+        "identity fetch horizon requires explicitly supplied physical RAM ranges from the connected fabric")
+    require(!config.fetchThirdPacketLookahead || sideEffectFreeFetchRanges.forall(range =>
+        range.base >= CommonPlatformAbi.ramBase && range.endExclusive <= config.ramEndExclusive),
+        "Common A1 safe fetch ranges must stay within its physical RAM aperture, excluding ROM and MMIO")
     require(!boundary.runtimeMaintenance || boundary.runtimeCancellation,
         "A1 runtime parking requires acknowledged release")
     private val p = config.coreParams
@@ -56,15 +69,28 @@ class CommonA1CpuTile(
         p.parallelFetchTagLookup && p.parallelFetchAlignment && p.registeredFetchWindow &&
         p.independentFetchPayloadCapture && p.fetchPreviousPacket && p.alignedFetchPermissionStage &&
         p.fetchAddressBeforePmp
+    require(!config.fetchThirdPacketLookahead || (p.fetchThirdPacketLookahead && config.fetchTransactionSlots == 2 &&
+        p.renameWidth == 2 && p.compressedInstructions && p.registeredFetchWindow && p.alignedFetchPmp &&
+        p.alignedFetchSinglePage && p.registeredTranslationHeads && p.fetchReplyTurnover &&
+        p.fetchIdentityTranslation && !p.fetchAddressBeforePmp && !p.alignedFetchPermissionStage &&
+        !p.fetchPreviousPacket && !compactFetchKeys),
+        "identity fetch horizon must use the actual strict two-owner aligned frontend and two-result adapter")
     val frontend = Module(new SynchronousFetch(16, p.compressedInstructions, p.frontendCacheSets,
         p.renameWidth, stableFaultMetadata = p.stableFetchFaultMetadata, alignedFetchPmp = p.alignedFetchPmp,
         rawFetchPresence = p.rawFetchPresence, parallelFetchTagLookup = p.parallelFetchTagLookup,
         parallelAlignment = p.parallelFetchAlignment, registeredWindow = p.registeredFetchWindow,
         independentPayloadCapture = p.independentFetchPayloadCapture, fetchPreviousPacket = p.fetchPreviousPacket,
         boundedRequestFrontier = p.alignedFetchPermissionStage, fetchAddressBeforePmp = p.fetchAddressBeforePmp,
-        compactCacheKeys = compactFetchKeys, transactionSlots = config.fetchTransactionSlots))
+        compactCacheKeys = compactFetchKeys, transactionSlots = config.fetchTransactionSlots,
+        fetchThirdPacketLookahead = config.fetchThirdPacketLookahead,
+        sideEffectFreeFetchRanges = sideEffectFreeFetchRanges, canonicalFetchCacheKeys = config.canonicalFetchCacheKeys))
     val fetchAdapter = Module(new InstructionTranslationAdapter(p, transactionSlots = config.fetchTransactionSlots,
         withRequestContext = true))
+    // transactionSlots == 2 selects PipelinedAlignedInstructionTranslation and its fixed two-slot
+    // FetchCompletionLedger; the third query does not add an accepted owner or a result slot.
+    require(!config.fetchThirdPacketLookahead ||
+        (frontend.transactionSlots == 2 && fetchAdapter.transactionSlots == 2),
+        "identity fetch horizon cannot change accepted-owner or result capacity")
     require(frontend.transactionSlots == fetchAdapter.transactionSlots,
         "Common A1 frontend and translation ownership capacities must agree")
     fetchAdapter.io.virtual <> frontend.io.memory
@@ -126,7 +152,7 @@ class CommonA1CpuTile(
     val walkers = (0 until 2).map(i => Module(new SvTranslationService(3,
         entries = if (i == 1) config.dataTranslationEntries else 8,
         loadPeek = p.virtualRamLoadPrecheck && i == 1,
-        writeReadReuse = config.dataTlbWriteReadReuse && i == 1)))
+        writeReadReuse = config.dataTlbWriteReadReuse && i == 1, decodedNaturalPmp = p.decodedNaturalPmp)))
     val pte = Seq.fill(2)(Module(new SvPteDataBridge(4)))
     val walkArbiter = Module(new SharedDataArbiter)
     val memoryArbiter = Module(new SharedDataArbiter(registerResponseOwners = true))

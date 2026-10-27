@@ -112,7 +112,9 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
     independentPayloadCapture: Boolean = false, fetchPreviousPacket: Boolean = false,
     val boundedRequestFrontier: Boolean = false, val fetchAddressBeforePmp: Boolean = false,
     val compactCacheKeys: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false,
-    val transactionSlots: Int = 1) extends Module {
+    val transactionSlots: Int = 1, val fetchThirdPacketLookahead: Boolean = false,
+    sideEffectFreeFetchRanges: Seq[SideEffectFreeFetchRange] = Seq.empty,
+    val canonicalFetchCacheKeys: Boolean = false) extends Module {
     require(cacheSets >= 2 && isPow2(cacheSets))
     require(Set(2, 4).contains(fetchWidth), "fetch supports two or four instruction lanes")
     require(!alignedFetchPmp || compressed, "aligned PMP requires packet-aligned compressed requests")
@@ -129,10 +131,18 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         "fetch address preparation requires the bounded two-wide compressed aligned-PMP frontend")
     require(!compactCacheKeys || (compressed && fetchWidth == 2 && parallelFetchTagLookup && cacheSets >= 4),
         "compact cache keys require the two-wide compressed parallel-lookup domain with at least four sets")
+    require(!canonicalFetchCacheKeys || (cacheSets == 16 && compressed && fetchWidth == 2 &&
+        parallelFetchTagLookup && transactionSlots == 2 && registeredWindow && alignedFetchPmp && !compactCacheKeys),
+        "canonical fetch keys require the qualified sixteen-set two-owner parallel aligned window")
     require(Set(1, 2).contains(transactionSlots))
     require(transactionSlots == 1 || (compressed && fetchWidth == 2 && registeredWindow && alignedFetchPmp &&
         !fetchAddressBeforePmp && !boundedRequestFrontier && !compactCacheKeys && !fetchPreviousPacket),
         "two fetch owners require the two-lane aligned window without prepared/frontier/compact/history modes")
+    require(!fetchThirdPacketLookahead || (transactionSlots == 2 && fetchWidth == 2 && compressed &&
+        registeredWindow && alignedFetchPmp),
+        "third-packet lookahead requires two owners and the two-lane compressed aligned-PMP registered window")
+    require(!fetchThirdPacketLookahead || sideEffectFreeFetchRanges.nonEmpty,
+        "third-packet lookahead requires explicit side-effect-free physical RAM ranges")
     private val fetchWords = if (compressed && fetchWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val pc           = Input(UInt(64.W))
@@ -162,13 +172,16 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val valid = RegInit(VecInit(Seq.fill(cacheSets)(VecInit(Seq.fill(2)(false.B)))))
         val compactKeys = if (compactCacheKeys) Some(Module(new CompactFetchCacheKeys(cacheSets))) else None
         compactKeys.foreach { keys => keys.io.write := 0.U.asTypeOf(keys.io.write) }
-        val bases = compactKeys.map(keys => VecInit((0 until cacheSets).map(set =>
-            VecInit((0 until 2).map(way => keys.io.keys(0)(set * 2 + way))))))
+        val canonicalKeys = if (canonicalFetchCacheKeys) Some(Module(new CanonicalFetchCacheKeys)) else None
+        canonicalKeys.foreach { keys => keys.io.write := 0.U.asTypeOf(keys.io.write) }
+        val reconstructedKeys = canonicalKeys.map(_.io.keys).orElse(compactKeys.map(_.io.keys))
+        val bases = reconstructedKeys.map(keys => VecInit((0 until cacheSets).map(set =>
+            VecInit((0 until 2).map(way => keys(0)(set * 2 + way))))))
             .getOrElse(Reg(Vec(cacheSets, Vec(2, UInt(64.W)))))
         // Fill-time keys for queries at currentBase + 8/16/24. These retain all
         // 64 address bits; only the short set index advances on the read path.
         val maxPacketOffset = if (registeredWindow && fetchWidth == 4) 4 else 3
-        val shiftedBases = if (compactCacheKeys) Seq.empty else
+        val shiftedBases = if (compactCacheKeys || canonicalFetchCacheKeys) Seq.empty else
             (1 to maxPacketOffset).map(_ => Reg(Vec(cacheSets, Vec(2, UInt(64.W)))))
         val contexts = Reg(Vec(cacheSets, Vec(2, UInt(3.W))))
         val words = Reg(Vec(cacheSets, Vec(2, UInt(64.W))))
@@ -176,7 +189,8 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val pageFaults = Reg(Vec(cacheSets, Vec(2, UInt(2.W))))
         val replace = RegInit(VecInit(Seq.fill(cacheSets)(false.B)))
         val context = Cat(io.virtualized, io.privilege)
-        val demandOwners = if (transactionSlots == 2) Some(Module(new FetchDemandOwners(maxPacketOffset))) else None
+        val demandOwners = if (transactionSlots == 2) Some(Module(new FetchDemandOwners(maxPacketOffset,
+            queryCount = if (fetchThirdPacketLookahead) 3 else 2))) else None
         demandOwners.foreach { owners =>
             owners.io.invalidate := io.invalidate
             owners.io.response := io.memory.response.fire
@@ -203,10 +217,10 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         def packetIndex(base: UInt, packetOffset: Int): UInt =
             if (packetOffset == 0) base(indexHigh, 3)
             else (base(indexHigh, 3) + packetOffset.U)(log2Ceil(cacheSets) - 1, 0)
-        def cacheKeys(packetOffset: Int) = compactKeys.map { keys =>
+        def cacheKeys(packetOffset: Int) = reconstructedKeys.map { keys =>
             require(packetOffset <= 2, "compact fetch keys retain exactly the three live two-wide queries")
             VecInit((0 until cacheSets).map(set =>
-                VecInit((0 until 2).map(way => keys.io.keys(packetOffset)(set * 2 + way)))))
+                VecInit((0 until 2).map(way => keys(packetOffset)(set * 2 + way)))))
         }.getOrElse(if (packetOffset == 0) bases else shiftedBases(packetOffset - 1))
         def cacheHits(base: UInt, packetOffset: Int = 0): (Bool, Bool) = if (parallelFetchTagLookup) {
             val lookup = Module(new ParallelFetchTagLookup(cacheSets, packetOffset))
@@ -269,6 +283,7 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         demandOwners.foreach { owners =>
             owners.io.queryBase(0) := currentBase
             owners.io.queryBase(1) := nextBase
+            if (fetchThirdPacketLookahead) owners.io.queryBase(2) := nextTwoBase
         }
         val queryCapacity = if (registeredWindow && fetchWidth == 4) 5 else 3
         val queriedPackets = (0 until queryCapacity).map(offset => packetAt(currentBase, offset))
@@ -388,12 +403,30 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
         val currentCached = queriedPackets(0)._1
         val nextCached = queriedPackets(1)._1
         val nextTwoCached = queriedPackets(2)._1
-        val wanted = if (fetchWidth == 4) {
+        // This is admission for an extra identity demand, never execute permission.
+        // Preserve the full XLEN carry until both the candidate and last byte are proved.
+        // No guard/coverage hardware is elaborated in the default-OFF profile.
+        val thirdEligible = if (fetchThirdPacketLookahead) Some({
+            val candidateWide = Cat(0.U(1.W), currentBase) + 16.U(65.W)
+            val lastWide = candidateWide + 7.U(65.W)
+            val wholePacketInRam = sideEffectFreeFetchRanges.map(range =>
+                candidateWide >= range.base.U(65.W) && lastWide < range.endExclusive.U(65.W)).reduce(_ || _)
+            !io.virtualized && !candidateWide(64) && !lastWide(64) && wholePacketInRam
+        }) else None
+        val horizonCovered = if (fetchThirdPacketLookahead) Some((0 until 3).map(offset =>
+            queriedPackets(offset)._1 || demandOwners.get.io.owned(offset))) else None
+        val wanted = if (fetchThirdPacketLookahead) {
+            val covered = horizonCovered.get
+            Mux(!covered(0), currentBase, Mux(covered(1) && thirdEligible.get, nextTwoBase, nextBase))
+        } else if (fetchWidth == 4) {
             Mux(!currentCached, currentBase,
                 Mux(!nextCached, nextBase,
                     Mux(!nextTwoCached, nextTwoBase, nextTwoBase + 8.U)))
         } else Mux(currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B), nextBase, currentBase)
-        val wantedPacket = if (fetchWidth == 4)
+        val wantedPacket = if (fetchThirdPacketLookahead) {
+            val covered = horizonCovered.get
+            Mux(!covered(0), 0.U(2.W), Mux(covered(1) && thirdEligible.get, 2.U(2.W), 1.U(2.W)))
+        } else if (fetchWidth == 4)
             Mux(!currentCached, 0.U(2.W),
                 Mux(!nextCached, 1.U(2.W), Mux(!nextTwoCached, 2.U(2.W), 3.U(2.W))))
         else Mux(currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B), 1.U(2.W), 0.U(2.W))
@@ -401,14 +434,17 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
             val (hit0, hit1) = cacheHits(currentBase, 3)
             (if (rawFetchPresence) true.B else !io.invalidate) && (hit0 || hit1)
         } else false.B
-        val cachedTarget = if (fetchWidth == 4)
+        val cachedTarget = if (fetchThirdPacketLookahead) {
+            val covered = horizonCovered.get
+            covered(0) && covered(1) && (!thirdEligible.get || covered(2))
+        } else if (fetchWidth == 4)
             currentCached && nextCached && nextTwoCached && fourthPresent
         else (currentCached || demandOwners.map(_.io.owned(0)).getOrElse(false.B)) &&
             (nextCached || demandOwners.map(_.io.owned(1)).getOrElse(false.B))
         // Equality is modulo-XLEN: base+8*k == pendingBase (+8 for the
         // response high half) iff base equals its request-time shifted key.
         // Keep returning/context/stale authorization unchanged.
-        val returningMatches = (0 to (if (fetchWidth == 4) 3 else 1)).map { offset =>
+        val returningMatches = (0 to (if (fetchWidth == 4) 3 else if (fetchThirdPacketLookahead) 2 else 1)).map { offset =>
             val (low, high) = pendingMatches(currentBase, offset)
             offset.U -> (low || high)
         }
@@ -530,7 +566,14 @@ class SynchronousFetch(pmpEntries: Int = 0, compressed: Boolean = false, cacheSe
                 val victim = Mux(protect0, true.B, Mux(protect1, false.B,
                     Mux(!valid(index)(0), false.B, Mux(!valid(index)(1), true.B, replace(index)))))
                 def capturePayload(): Unit = {
-                    if (compactCacheKeys) {
+                    if (canonicalFetchCacheKeys) {
+                        canonicalKeys.get.io.write.valid := true.B
+                        canonicalKeys.get.io.write.bits.address := packetBase
+                        canonicalKeys.get.io.write.bits.way := victim
+                        // OLD accepted owner supplies both base and borrowed high.
+                        // Qualified two-wide responses contain exactly one packet.
+                        canonicalKeys.get.io.write.bits.minusTwoHigh := pendingKeys(2)(63, indexHigh + 1)
+                    } else if (compactCacheKeys) {
                         compactKeys.get.io.write.valid := true.B
                         compactKeys.get.io.write.bits.address := packetBase
                         compactKeys.get.io.write.bits.way := victim

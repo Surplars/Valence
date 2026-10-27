@@ -23,6 +23,8 @@ class HeadSystemRecoveryPort(p: OooParams) extends Bundle {
   */
 class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Boolean = false,
     val bankedCompletionPayload: Boolean = false) extends Module {
+    require(!(p.bankedRobCompletionData && bankedCompletionPayload),
+        "full completion-data banking and the historical nextPc/tval topology are distinct")
     require(!bankedCompletionPayload || (p.completionWidth == 2 && p.commitWidth == 2 &&
         p.robEntries >= 4 && isPow2(p.robEntries)),
         "banked completion payload requires two writers, two consecutive readers and a power-of-two ROB")
@@ -111,6 +113,21 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         for (lane <- 0 until 2) {
             payload.io.write(lane).valid := io.completionAccepted(lane)
             payload.io.write(lane).bits.index := io.complete(lane).bits.token.index
+            payload.io.write(lane).bits.nextPc := io.complete(lane).bits.nextPc
+            payload.io.write(lane).bits.tval := io.complete(lane).bits.tval
+        }
+    }
+
+    // Storage routing only. The unchanged ledger admission below is the sole
+    // authority for every writer, including stale/duplicate/recovery decisions.
+    val completionData = if (p.bankedRobCompletionData)
+        Some(Module(new DualWriterRobCompletionData(p.robEntries))) else None
+    completionData.foreach { payload =>
+        payload.io.head := head
+        for (lane <- 0 until 2) {
+            payload.io.write(lane).valid := io.completionAccepted(lane)
+            payload.io.write(lane).bits.index := io.complete(lane).bits.token.index
+            payload.io.write(lane).bits.data := io.complete(lane).bits.data
             payload.io.write(lane).bits.nextPc := io.complete(lane).bits.nextPc
             payload.io.write(lane).bits.tval := io.complete(lane).bits.tval
         }
@@ -268,11 +285,13 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         }
         when(accepted) {
             entries(completion.bits.token.index).done      := true.B
-            entries(completion.bits.token.index).data      := completion.bits.data
-            if (!bankedCompletionPayload) entries(completion.bits.token.index).nextPc := completion.bits.nextPc
+            if (!p.bankedRobCompletionData) entries(completion.bits.token.index).data := completion.bits.data
+            if (!bankedCompletionPayload && !p.bankedRobCompletionData)
+                entries(completion.bits.token.index).nextPc := completion.bits.nextPc
             entries(completion.bits.token.index).exception := completion.bits.exception
             entries(completion.bits.token.index).cause     := completion.bits.cause
-            if (!bankedCompletionPayload) entries(completion.bits.token.index).tval := completion.bits.tval
+            if (!bankedCompletionPayload && !p.bankedRobCompletionData)
+                entries(completion.bits.token.index).tval := completion.bits.tval
         }
     }
 
@@ -335,11 +354,13 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         io.commit(lane).bits.rd          := entry.rd
         io.commit(lane).bits.destination := entry.destination
         io.commit(lane).bits.writesRd    := entry.writesRd
-        io.commit(lane).bits.data        := Mux(entry.done, entry.data,
+        val storedData = completionData.map(payload => payload.io.data(lane)).getOrElse(entry.data)
+        io.commit(lane).bits.data        := Mux(entry.done, storedData,
             Mux(fastHeadNow, io.fastHeadRetire.bits.data,
                 Mux1H(retiringNow.zip(io.complete.map(_.bits.data)))))
-        val storedNextPc = completionPayload.map(payload =>
-            Mux(entry.done, payload.io.nextPc(lane), 0.U(64.W))).getOrElse(entry.nextPc)
+        val storedNextPc = completionData.map(payload =>
+            Mux(entry.done, payload.io.nextPc(lane), 0.U(64.W))).orElse(completionPayload.map(payload =>
+            Mux(entry.done, payload.io.nextPc(lane), 0.U(64.W)))).getOrElse(entry.nextPc)
         io.commit(lane).bits.nextPc      := Mux(entry.done, storedNextPc,
             Mux(fastHeadNow, io.fastHeadRetire.bits.nextPc,
                 Mux1H(retiringNow.zip(io.complete.map(_.bits.nextPc)))))
@@ -361,8 +382,11 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
     io.headException.bits.token.tag   := entries(head).tag
     io.headException.bits.pc          := headPc
     io.headException.bits.cause       := entries(head).cause
-    io.headException.bits.tval        := completionPayload.map(payload =>
-        Mux(entries(head).done, payload.io.headTval, 0.U(64.W))).getOrElse(entries(head).tval)
+    // done, not output.valid: allocation clears the original field to zero,
+    // while retired/rolled-back done rows retain their raw stored payload.
+    io.headException.bits.tval        := completionData.map(payload =>
+        Mux(entries(head).done, payload.io.headTval, 0.U(64.W))).orElse(completionPayload.map(payload =>
+        Mux(entries(head).done, payload.io.headTval, 0.U(64.W)))).getOrElse(entries(head).tval)
 
     // Combinational mapping/free-list stages provide same-packet RAW and WAW forwarding.
     // Explicit element connections avoid GSIM splitArray's bulk-connect/dynamic-write limitation.
@@ -505,6 +529,12 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         io.renamed(lane).bits.moveAlias      := alias
 
         when(accepted) {
+            if (p.bankedRobCompletionData) {
+                for (writer <- 0 until p.completionWidth) {
+                    assert(!io.completionAccepted(writer) || io.complete(writer).bits.token.index =/= index,
+                        "accepted allocation cannot overwrite an accepted completion row")
+                }
+            }
             entries(index)                := 0.U.asTypeOf(new RobEntry(p))
             entries(index).tag            := tag
             entries(index).pc.foreach(_ := request.bits.pc)
@@ -516,7 +546,8 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         }
     }
     val allocatedCount = PopCount(io.renamed.map(_.valid))
-    val advancedTag    = nextTag +& allocatedCount
+    val advancedTag    = if (p.splitLowTagAdvance) SplitLowTagAdvance(nextTag, allocatedCount)
+        else nextTag +& allocatedCount
 
     when(acceptHeadTrap) {
         assert(activeKeep === 0.U && count =/= 0.U,

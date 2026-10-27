@@ -4,41 +4,41 @@
     "name": "high_address",
     "old": "val word = Cat(0.U(1.W), io.address(63, 2))",
     "new": "val word = Cat(0.U(32.W), io.address(32, 2))",
-    "source_sha256": "4b2942c84bc68cc4a5212cac5e6da8809baf58ecc9b7384127ae9704c46a4932"
+    "source_sha256": "3a8bbb53c863373b19120bf6c12adac021334f7401f1329a7f609a3f68f2bf93"
   },
   {
     "mode": 2,
     "name": "priority",
     "old": "val earlier = if (i == 0) false.B else VecInit(overlap.take(i)).asUInt.orR",
     "new": "val earlier = if (i == entries - 1) false.B else VecInit(overlap.drop(i + 1)).asUInt.orR",
-    "source_sha256": "f1fbe5bbd069c3c732a908cb73115080b6dbf1d103b9dd7318ad6ffaa4ad76eb"
+    "source_sha256": "13e5995212ddbabdeeee4854eb46f60ec4a9d97e6e8abadb8c43ee69a1f9712b"
   },
   {
     "mode": 3,
     "name": "lock",
     "old": "io.privilege === 3.U && !cfg(7) || permission",
     "new": "io.privilege === 3.U || permission",
-    "source_sha256": "36781aa7f3b3284f0f0e88f1a474bb8a68000017901cde9c1792c3a30c30c0b0"
+    "source_sha256": "8b6374c56650d45d33f2b420b943964c99cf32fce65d12f16727edb3185279b7"
   },
   {
     "mode": 4,
     "name": "write_permission",
     "old": "PmpAccess.write     -> cfg(1)",
     "new": "PmpAccess.write     -> cfg(0)",
-    "source_sha256": "40efe090f3917fa95b34bbc42957b1a0c4fab16a1b3f86b647ce353e3e74f123"
+    "source_sha256": "2e5e22ace0c4584903ab2b7b8efa9cbd70e14425b47efd0728e1b964a7dfccdc"
   },
   {
     "mode": 5,
     "name": "inactive",
     "old": "overlap(i) := io.state.regionActive(i) && word >=",
     "new": "overlap(i) := true.B && word >=",
-    "source_sha256": "ccbf2bf480431ee28d7afae31a8af565bc54bf5d69cc9f9e4563309585953d1a"
+    "source_sha256": "7ffc6f6f146583fedfab30935361bc849fa453d5cc0eb24a3eb42483f1105327"
   },
   {
     "mode": 6,
     "name": "high_region",
     "old": "io.state.regionLow(i)(64, 2)",
     "new": "io.state.regionLow(i)(32, 2)",
-    "source_sha256": "bd36c340fb8e3cefabb76d9d061f2eb46572b282f830189fcb750f53a64f227a"
+    "source_sha256": "afe39ccbe8fadc58582274947ff572663ada9b96b4728e3c75161c3fa0965786"
   }
 ]

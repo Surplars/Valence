@@ -111,8 +111,114 @@ final case class FpgaNextConfig(
     fetchTransactionSlots: Int = 1,
     registeredDataTranslation: Boolean = false,
     circularFetchPayload: Boolean = false,
-    completedCanonicalStoreForwarding: Boolean = false
+    completedCanonicalStoreForwarding: Boolean = false,
+    combinedCheckedDataFlow: Boolean = false,
+    preparedHeadStoreOperands: Boolean = false,
+    elasticLoadProofSupply: Boolean = false,
+    registeredRawCertifiedFlow: Boolean = false,
+    factoredDataPmpRange: Boolean = false,
+    guardedNaturalDataPmp: Boolean = false,
+    // Combinational counted tag advance only; no new stage, state or allocation credit.
+    splitLowTagAdvance: Boolean = false,
+    bufferedThirdRankLoadProof: Boolean = false,
+    // Named two-slot empty-return flow plus slot-derived issue token identity experiment.
+    bufferedReturnFlow: Boolean = false,
+    // Integer ordered-owner readiness only; generic/tagged/FP LSU semantics stay unchanged.
+    orderedLsuResponseReady: Boolean = false,
+    // Registered advisory exclusion changes only the third source1 preparation supplier.
+    registeredAdvisoryExclusion: Boolean = false,
+    // Explicit candidate only; never infer ingress flow from a certified request flag.
+    certifiedLoadIngress: Boolean = false,
+    // Default-off, explicitly selected Common-A1 frontend experiment.
+    fetchThirdPacketLookahead: Boolean = false,
+    // Explicit efficiency-refactor capabilities; old/public profiles keep all disabled.
+    canonicalFetchCacheKeys: Boolean = false,
+    registeredMemoryOperandCapture: Boolean = false,
+    sharedMulDivOperandReads: Boolean = false,
+    sourceLocalLoadProofCancellation: Boolean = false,
+    sharedLoadProofPmpBounds: Boolean = false,
+    decodedNaturalPmp: Boolean = false,
+    preparedBareHeadStoreOperands: Boolean = false,
+    bankedRobCompletionData: Boolean = false,
+    coexistingPhysicalLoadIngress: Boolean = false,
+    // None preserves the exact selected topology; this is not a new public default.
+    branchPredictorEntriesOverride: Option[Int] = None
 ) {
+    require(!coexistingPhysicalLoadIngress || (bankedRobCompletionData && certifiedLoadIngress &&
+        !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow),
+        "coexisting physical ingress belongs only to the explicit third-efficiency descendant")
+    require(!bankedRobCompletionData || (decodedNaturalPmp && preparedBareHeadStoreOperands &&
+        completionTopology == "dual-owner" &&
+        robEntries.forall(_ == 16) && physicalRegs.forall(_ == 48)),
+        "banked ROB completion data belongs only to the explicit second-efficiency descendant")
+    require(branchPredictorEntriesOverride.forall(n => n >= 2 && n <= 256 && (n & (n - 1)) == 0),
+        "branch predictor override must be a power of two in [2, 256]")
+    require(branchPredictorEntriesOverride.isEmpty || fetchThirdPacketLookahead,
+        "branch predictor overrides belong to explicit Common-A1 experiments")
+    require(!canonicalFetchCacheKeys || fetchThirdPacketLookahead,
+        "canonical fetch keys require the explicit identity-horizon frontend")
+    require(!registeredMemoryOperandCapture || bufferedThirdRankLoadProof,
+        "numerical memory capture requires the buffered proof profile")
+    require(!sharedMulDivOperandReads || fetchThirdPacketLookahead,
+        "shared M operand reads are an explicit Common-A1 efficiency candidate")
+    require(!sourceLocalLoadProofCancellation || bufferedThirdRankLoadProof,
+        "source-local proof cancellation requires the buffered proof profile")
+    require(!sharedLoadProofPmpBounds || bufferedThirdRankLoadProof,
+        "shared proof PMP bounds require the buffered proof profile")
+    require(!decodedNaturalPmp || (guardedNaturalDataPmp && bufferedThirdRankLoadProof &&
+        sharedLoadProofPmpBounds && sourceLocalLoadProofCancellation && fetchThirdPacketLookahead),
+        "typed natural PMP belongs to the explicit first-batch descendant")
+    require(!preparedBareHeadStoreOperands || (preparedHeadStoreOperands && registeredMemoryOperandCapture &&
+        canonicalVirtualStoreOverlap && lsuEntries == 4 && robEntries.forall(_ == 16) &&
+        physicalRegs.forall(_ == 48) && completionTopology == "dual-owner" &&
+        !postedStoreMerge && !postedPrefetchHeadOffer && !postedPrefetchCoexistence &&
+        !memoryProofFrontier && !residentMemoryPayloadReuse && !pendingVirtualStoreProof && !preparedStoreLookahead),
+        "prepared bare head-store operands belong to the explicit ordinary four-owner A1 experiment")
+    require(!fetchThirdPacketLookahead || (certifiedLoadIngress && fetchTransactionSlots == 2 &&
+        alignedFetchSinglePage && !alignedFetchPermissionStage && !fetchAddressBeforePmp && !fetchPreviousPacket),
+        "identity fetch horizon requires the complete certified-ingress two-owner frontend")
+    require(!registeredAdvisoryExclusion || (orderedLsuResponseReady && bufferedThirdRankLoadProof),
+        "registered advisory exclusion requires the named ordered-owner buffered preparation topology")
+    require(!orderedLsuResponseReady || (bufferedReturnFlow && lsuEntries == 4 &&
+        robEntries.forall(_ == 16) && physicalRegs.forall(_ == 48) && !taggedStoreReturns &&
+        !registeredLoadResultReady),
+        "ordered LSU readiness requires the explicit four-owner buffered-return descendant")
+    require(!bufferedReturnFlow || (guardedNaturalDataPmp && splitLowTagAdvance && bufferedThirdRankLoadProof &&
+        translatedResponseEmptyFlow && reconstructIssueTokenIndex && !registeredLoadResultReady),
+        "buffered return flow requires the explicit buffered proof, empty-return and slot-index combination")
+    require(!bufferedThirdRankLoadProof || (guardedNaturalDataPmp && splitLowTagAdvance &&
+        !registeredLoadResultReady),
+        "buffered third-rank proof is a distinct guarded split-tag descendant")
+    require(!guardedNaturalDataPmp || (elasticLoadProofSupply && combinedCheckedDataFlow &&
+        !registeredDataTranslation && !registeredRawCertifiedFlow && !factoredDataPmpRange &&
+        !physicalLoadIngressFlow && (!translatedResponseEmptyFlow || bufferedReturnFlow) && !queuedHeadSelection &&
+        !postedStoreMerge && !taggedStoreReturns && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "guarded natural data PMP retains the explicit elastic topology and rejects malformed raw requests")
+    require(!factoredDataPmpRange || (elasticLoadProofSupply && combinedCheckedDataFlow &&
+        !registeredDataTranslation && !registeredRawCertifiedFlow),
+        "factored data PMP ranges use only the explicit elastic demand-hit profile")
+    require(!registeredRawCertifiedFlow || (registeredDataTranslation && precheckedDataRequestFlow &&
+        !translationHitFlow && !combinedCheckedDataFlow && virtualRamLoadPrecheck &&
+        canonicalVirtualStoreOverlap && !queuedHeadSelection && !physicalLoadIngressFlow &&
+        !translatedResponseEmptyFlow && !postedStoreMerge && !taggedStoreReturns &&
+        !pendingVirtualStoreProof && !memoryProofFrontier && !frozenStoreProofTransport &&
+        !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "registered raw/certified flow explicitly separates demand lookup from checked PA authorization")
+    require(!elasticLoadProofSupply || (preparedHeadStoreOperands && virtualRamLoadPrecheck &&
+        lsuEntries == 4 && !residentMemoryPayloadReuse && !preparedStoreLookahead &&
+        !memoryProofFrontier && !pendingVirtualStoreProof && !postedStoreMerge && !taggedStoreReturns),
+        "elastic load proof supply requires the explicit ordered head-store preparation candidate")
+    require(!preparedHeadStoreOperands || ((combinedCheckedDataFlow || registeredRawCertifiedFlow) &&
+        completedCanonicalStoreForwarding &&
+        !residentMemoryPayloadReuse && !preparedStoreLookahead),
+        "prepared head-store operands require the explicit checked-flow candidate without resident shortcuts")
+    require(!combinedCheckedDataFlow || (translationHitFlow && precheckedDataRequestFlow &&
+        virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && !registeredDataTranslation &&
+        !queuedHeadSelection && !physicalLoadIngressFlow && (!translatedResponseEmptyFlow || bufferedReturnFlow) &&
+        !postedStoreMerge && !taggedStoreReturns && !pendingVirtualStoreProof && !memoryProofFrontier &&
+        !frozenStoreProofTransport && !frozenStoreCheckedFlow && !registeredCanonicalStoreEvent),
+        "combined checked flow explicitly retains demand-hit and certified-PA paths without other shortcuts")
     require(!completedCanonicalStoreForwarding || (completionTopology == "dual-owner" &&
         virtualRamLoadPrecheck && canonicalVirtualStoreOverlap && !registeredCanonicalStoreEvent &&
         !pendingVirtualStoreProof && !taggedStoreReturns && !postedStoreMerge),
@@ -140,8 +246,9 @@ final case class FpgaNextConfig(
         "younger-load seal deferral requires posted store merging without a proof frontier")
     require(!independentDemandAdmission || (virtualRamLoadPrecheck && canonicalVirtualStoreOverlap),
         "the CPU admission batch requires exact canonical virtual-store authorization")
-    require(!translationHitFlow || (virtualRamLoadPrecheck && !precheckedDataRequestFlow),
-        "translation hit flow requires virtual precheck and excludes the separate prechecked flow experiment")
+    require(!translationHitFlow || (virtualRamLoadPrecheck &&
+        (!precheckedDataRequestFlow || combinedCheckedDataFlow)),
+        "simultaneous demand-hit and prechecked flow requires the explicit combined checked policy")
     SvTranslationService.indexBits(dataTranslationEntries)
     require(Set(4, 8).contains(ddrOutstanding), "FPGA-next DDR pool must be four or eight slots")
     require(Set(1, 2, 4).contains(ddrWriteCredits) && ddrWriteCredits <= ddrOutstanding,
@@ -227,6 +334,29 @@ final case class FpgaNextConfig(
         (if (virtualRamLoadPrecheck) "-virtual-precheck" else "") +
         (if (dataTranslationEntries != 8) s"-dtlb$dataTranslationEntries" else "") +
         (if (precheckedDataRequestFlow) "-prechecked-flow" else "") +
+        (if (combinedCheckedDataFlow) "-combined-checked-flow" else "") +
+        (if (preparedHeadStoreOperands) "-prepared-head-store" else "") +
+        (if (elasticLoadProofSupply) "-elastic-load-proof" else "") +
+        (if (registeredRawCertifiedFlow) "-registered-raw-certified-flow" else "") +
+        (if (factoredDataPmpRange) "-factored-data-pmp-range" else "") +
+        (if (guardedNaturalDataPmp) "-guarded-natural-data-pmp" else "") +
+        (if (splitLowTagAdvance) "-split-low-tag-advance" else "") +
+        (if (bufferedThirdRankLoadProof) "-buffered-third-rank-proof" else "") +
+        (if (bufferedReturnFlow) "-buffered-return-flow" else "") +
+        (if (orderedLsuResponseReady) "-ordered-owner-ready" else "") +
+        (if (registeredAdvisoryExclusion) "-registered-advisory-exclusion" else "") +
+        (if (certifiedLoadIngress) "-certified-load-ingress" else "") +
+        (if (fetchThirdPacketLookahead) "-identity-fetch-horizon" else "") +
+        branchPredictorEntriesOverride.map(n => s"-bht$n").getOrElse("") +
+        (if (canonicalFetchCacheKeys) "-canonical-fetch-cache-keys" else "") +
+        (if (registeredMemoryOperandCapture) "-registered-memory-operand-capture" else "") +
+        (if (sharedMulDivOperandReads) "-shared-mul-div-operand-reads" else "") +
+        (if (sourceLocalLoadProofCancellation) "-source-local-load-proof-cancellation" else "") +
+        (if (sharedLoadProofPmpBounds) "-shared-load-proof-pmp-bounds" else "") +
+        (if (decodedNaturalPmp) "-decoded-natural-pmp" else "") +
+        (if (preparedBareHeadStoreOperands) "-prepared-bare-head-store" else "") +
+        (if (bankedRobCompletionData) "-banked-rob-completion-data" else "") +
+        (if (coexistingPhysicalLoadIngress) "-coexisting-physical-load-ingress" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (translatedResponseEmptyFlow) "-translated-response-empty-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
@@ -316,6 +446,16 @@ final case class FpgaNextConfig(
     val timingProfile = if (lsuEntries == 4) BoardSocConfig.memoryCapacityProfile else "staged-fetch-turnover"
     val isaProfile = "rv64gc"
     val issueWidth = 2
+    // Validate only after the derived width has been initialized.
+    require(!certifiedLoadIngress || (registeredAdvisoryExclusion && orderedLsuResponseReady &&
+        bufferedReturnFlow && bufferedThirdRankLoadProof && splitLowTagAdvance && guardedNaturalDataPmp &&
+        virtualRamLoadPrecheck && precheckedDataRequestFlow && combinedCheckedDataFlow && translationHitFlow &&
+        canonicalVirtualStoreOverlap && issueWidth == 2 && lsuEntries == 4 && dataTranslationEntries == 16 &&
+        robEntries.forall(_ == 16) && physicalRegs.forall(_ == 48) &&
+        completionTopology == "dual-owner" && branchResolutionTopology == "execution-mailbox" &&
+        circularFetchPayload && fetchTransactionSlots == 2 && alignedFetchSinglePage &&
+        !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow && !factoredDataPmpRange),
+        "certified load ingress requires the complete guarded-natural advisory-owner VM control")
     val cpuHz = 100000000
     val uartBaud = 460800
     val aonHz = 50000000
@@ -358,7 +498,8 @@ final case class FpgaNextConfig(
     // InstructionLineCache suppresses line prefetch in that profile.
     val instructionPrefetch = true
 
-    def coreParams: OooParams = BoardSocConfig.boardParams(timingProfile, issueWidth,
+    def coreParams: OooParams = {
+        val base = BoardSocConfig.boardParams(timingProfile, issueWidth,
         externalDdr = true, isa = isaProfile, ddrMemoryBytes = ddrBytes,
         loadIssueForwarding = loadIssueForwarding, identityDataFlow = identityDataFlow,
         fpgaStorage = storage, dataNextLinePrefetch = cache.nextLinePrefetch,
@@ -403,15 +544,49 @@ final case class FpgaNextConfig(
         pendingVirtualStoreProofSlots = pendingVirtualStoreProofSlots,
         pendingStoreEarlyLoadCredits = pendingStoreEarlyLoadCredits, boundHeadStoreOverlap = boundHeadStoreOverlap,
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
-        backendCapacity = backendCapacity).copy(completionTopology = completionTopology,
+        backendCapacity = backendCapacity)
+        base.copy(
+            branchPredictorEntries = branchPredictorEntriesOverride.getOrElse(base.branchPredictorEntries),
+            completionTopology = completionTopology,
             branchResolutionTopology = branchResolutionTopology,
             registeredDataTranslation = registeredDataTranslation, circularFetchPayload = circularFetchPayload,
-            completedCanonicalStoreForwarding = completedCanonicalStoreForwarding)
+            completedCanonicalStoreForwarding = completedCanonicalStoreForwarding,
+            combinedCheckedDataFlow = combinedCheckedDataFlow,
+            preparedHeadStoreOperands = preparedHeadStoreOperands,
+            elasticLoadProofSupply = elasticLoadProofSupply,
+            registeredRawCertifiedFlow = registeredRawCertifiedFlow,
+            factoredDataPmpRange = factoredDataPmpRange,
+            guardedNaturalDataPmp = guardedNaturalDataPmp,
+            splitLowTagAdvance = splitLowTagAdvance,
+            bufferedThirdRankLoadProof = bufferedThirdRankLoadProof,
+            bufferedReturnFlow = bufferedReturnFlow,
+            orderedLsuResponseReady = orderedLsuResponseReady,
+            registeredAdvisoryExclusion = registeredAdvisoryExclusion,
+            certifiedLoadIngress = certifiedLoadIngress,
+            fetchThirdPacketLookahead = fetchThirdPacketLookahead,
+            canonicalFetchCacheKeys = canonicalFetchCacheKeys,
+            registeredMemoryOperandCapture = registeredMemoryOperandCapture,
+            sharedMulDivOperandReads = sharedMulDivOperandReads,
+            sourceLocalLoadProofCancellation = sourceLocalLoadProofCancellation,
+            sharedLoadProofPmpBounds = sharedLoadProofPmpBounds,
+            decodedNaturalPmp = decodedNaturalPmp,
+            preparedBareHeadStoreOperands = preparedBareHeadStoreOperands,
+            bankedRobCompletionData = bankedRobCompletionData,
+            coexistingPhysicalLoadIngress = coexistingPhysicalLoadIngress)
+    }
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
         require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
             fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload &&
-            !completedCanonicalStoreForwarding,
+            !completedCanonicalStoreForwarding && !combinedCheckedDataFlow && !preparedHeadStoreOperands &&
+            !elasticLoadProofSupply && !registeredRawCertifiedFlow && !factoredDataPmpRange && !guardedNaturalDataPmp &&
+            !splitLowTagAdvance && !bufferedThirdRankLoadProof && !bufferedReturnFlow &&
+            !orderedLsuResponseReady && !registeredAdvisoryExclusion && !certifiedLoadIngress &&
+            !fetchThirdPacketLookahead && !canonicalFetchCacheKeys && !registeredMemoryOperandCapture &&
+            !sharedMulDivOperandReads && !sourceLocalLoadProofCancellation && !sharedLoadProofPmpBounds &&
+            !decodedNaturalPmp && !preparedBareHeadStoreOperands && !bankedRobCompletionData &&
+            !coexistingPhysicalLoadIngress &&
+            branchPredictorEntriesOverride.isEmpty,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(
         socClockHz = cpuHz, externalDdr = true, timingProfile = timingProfile,

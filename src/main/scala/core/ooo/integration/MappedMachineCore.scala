@@ -21,6 +21,16 @@ class MappedMachineCore(
     externalInterruptFabric: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     require(aplicParams.msiBase == imsicParams.machineBase && aplicParams.identities == imsicParams.identities)
     require(!dataTranslation || p.virtualMemoryLevels > 0)
+    // The ordinary final-port shortcut relies on both real upstream producer chains:
+    // integer LSU -> RegisteredRequestQueue -> StoreBuffer, and FP live PMP ->
+    // LoadStoreUnit(registerStart=true). It cannot be inferred from an arbitrary
+    // standalone DataPort or enabled without the existing checked/return stages.
+    require(!p.coexistingPhysicalLoadIngress || (p.certifiedLoadIngress && p.bufferedRamStores &&
+        p.registeredMemoryRequests && dataTranslation && stagedMemoryFabric && bufferTranslatedResponses),
+        "coexisting physical ingress preserves registered producers and the existing checked/return boundaries")
+    require(!p.certifiedLoadIngress || (dataTranslation && stagedMemoryFabric &&
+        bufferTranslatedResponses && translationHitFlow),
+        "certified load ingress requires the actual checked adapter and retained response boundary")
     require(!p.queuedHeadSelection || (dataTranslation && stagedMemoryFabric &&
         (p.precheckedDataRequestFlow || translationHitFlow)),
         "queued head selection requires a real checked translation-flow source")
@@ -123,7 +133,7 @@ class MappedMachineCore(
             registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
             queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
             factorCheckedNextAllowed = p.factorCheckedNextAllowed,
-            registerNextLineDecision = registerNextLineDecision))
+            registerNextLineDecision = registerNextLineDecision, certifiedLoadIngress = p.certifiedLoadIngress))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {
             // The platform's existing two response credits are relocated here,

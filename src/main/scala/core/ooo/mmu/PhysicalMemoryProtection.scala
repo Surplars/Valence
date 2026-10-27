@@ -64,13 +64,17 @@ object PmpDecisionSummary {
 class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
     naturalAlignedAccess: Boolean = false, val alignedLineAccess: Boolean = false,
     val decodedWordGranularity: Boolean = false,
-    val sharedAlignedBounds: Boolean = false, val exportDecision: Boolean = false) extends Module {
-    // Preserve the original constructor for existing compiled/default callers.
+    val sharedAlignedBounds: Boolean = false, val exportDecision: Boolean = false,
+    val factoredGenericRanges: Boolean = false) extends Module {
+    // Preserve existing source-call forms; this experiment rebuilds all Scala classes.
     def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean, alignedLineAccess: Boolean) =
         this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, false, false)
     def this(entries: Int, alignedWordAccess: Boolean, naturalAlignedAccess: Boolean,
         alignedLineAccess: Boolean, decodedWordGranularity: Boolean) =
         this(entries, alignedWordAccess, naturalAlignedAccess, alignedLineAccess, decodedWordGranularity, false)
+    require(!factoredGenericRanges || (!alignedWordAccess && !naturalAlignedAccess && !alignedLineAccess &&
+        !decodedWordGranularity && !sharedAlignedBounds),
+        "factored generic PMP ranges retain the unrestricted size/alignment domain")
     require(!sharedAlignedBounds || naturalAlignedAccess || alignedLineAccess,
         "shared PMP bounds require a naturally aligned access or aligned line")
     require(!decodedWordGranularity || alignedWordAccess,
@@ -113,7 +117,8 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         // A four-byte aligned word cannot carry out of XLEN: its final byte is
         // simply the same upper address bits with low bits 11. Keep ALL 65 bits
         // and the exact first-overlap/whole-range/locked-M permission algorithm.
-        val end = if (alignedWordAccess) Cat(0.U(1.W), io.address(63, 2), 3.U(2.W))
+        val end = if (factoredGenericRanges) 0.U(65.W)
+            else if (alignedWordAccess) Cat(0.U(1.W), io.address(63, 2), 3.U(2.W))
             // This fixed domain cannot carry out of XLEN, including the last
             // aligned line. Preserve all 65 bits and the generic permission rules.
             else if (alignedLineAccess) Cat(0.U(1.W), io.address(63, 6), 63.U(6.W))
@@ -126,9 +131,23 @@ class PmpChecker(entries: Int = 16, alignedWordAccess: Boolean = false,
         val overlap = Wire(Vec(entries, Bool()))
         val covers  = Wire(Vec(entries, Bool()))
         val allowed = Wire(Vec(entries, Bool()))
+        val factoredRanges = if (factoredGenericRanges) {
+            val ranges = Module(new PmpGenericRangeComparisons(entries))
+            ranges.io.address := io.address
+            ranges.io.size := io.size
+            for (i <- 0 until entries) {
+                ranges.io.regionLow(i) := io.state.regionLow(i)
+                ranges.io.regionEnd(i) := io.state.regionEnd(i)
+                ranges.io.regionActive(i) := io.state.regionActive(i)
+            }
+            Some(ranges)
+        } else None
         for (i <- 0 until entries) {
             val cfg  = io.state.cfg(i)
-            if (decodedWordGranularity) {
+            if (factoredGenericRanges) {
+                overlap(i) := factoredRanges.get.io.overlap(i)
+                covers(i) := factoredRanges.get.io.covers(i)
+            } else if (decodedWordGranularity) {
                 // PmpState.decodeRegions (including the registered producer) defines
                 // every active region in complete four-byte granules. An aligned
                 // four-byte request overlaps iff the entire request is covered.

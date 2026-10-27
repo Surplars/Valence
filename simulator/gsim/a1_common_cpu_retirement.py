@@ -155,24 +155,17 @@ def tool_binding(hardware):
     result = {"compiler": {**executable_binding(cxx), "version": version}}
     if not hardware:
         return result
-    gsim = common.SOURCE / "build/gsim/gsim"
-    if not gsim.is_file():
-        raise RuntimeError("prebuilt GSIM missing; prepare the toolchain separately: " + str(gsim))
-    revision = git(common.SOURCE, "rev-parse", "HEAD").strip()
-    if revision != common.LOCK["revision"]:
-        raise RuntimeError("prepared GSIM revision differs from the repository toolchain pin")
-    # Prepared/qualified local patches are allowed, but never hidden by a clean
-    # upstream revision label. Bind every tracked and nonignored untracked file.
-    source_hashes = tool_sources(common.SOURCE)
-    result.update(
-        mill=executable_binding("mill"), java=executable_binding("java"),
-        gsim={"path": str(gsim.resolve()), "sha256": sha(gsim), "source": str(common.SOURCE),
-              "revision": revision, "pinned_revision": common.LOCK["revision"],
-              "working_tree_status": git(common.SOURCE, "status", "--porcelain", "--untracked-files=all"),
-              "source_sha256": source_hashes, "source_manifest_sha256": digest_json(source_hashes),
-              "patch_policy": "record prepared local changes exactly; no installation or implicit tool qualification"},
-    )
-    return result
+    # Binding is read-only: ordinary hardware runs cannot select the known-broken
+    # pristine epoch or implicitly install/rebuild a tool.
+    import gsim_initialization_epoch as epoch
+    import gsim_initialization_setup as initialization_setup
+    explicit = os.environ.get("VALENCE_GSIM_INIT_RECEIPT")
+    receipt = (Path(explicit).expanduser().resolve() if explicit else
+               initialization_setup.canonical_output(common) / "receipt.json")
+    if not explicit and not receipt.is_file():
+        raise RuntimeError("verified repaired GSIM epoch missing; run make gsim-setup "
+                           "or set VALENCE_GSIM_INIT_RECEIPT to a qualified receipt")
+    return epoch.tool_binding(receipt)
 
 
 def unique_object(pairs):

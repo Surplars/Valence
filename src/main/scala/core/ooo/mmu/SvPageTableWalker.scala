@@ -38,7 +38,7 @@ class SvPteReadPort extends Bundle {
   * Instantiate independent I/D walkers for concurrent misses; arbitration is outside this block.
   * Svade is used: missing A/D raises a page fault and never writes the PTE.
   */
-class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module {
+class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16, decodedNaturalPmp: Boolean = false) extends Module {
     require(Set(3, 4, 5).contains(maxLevels))
     require(Set(0, 8, 16).contains(pmpEntries))
     val io = IO(new Bundle {
@@ -57,12 +57,9 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
     val vpn     = Wire(Vec(maxLevels, UInt(9.W)))
     for (i <- 0 until maxLevels) { vpn(i) := walk.virtualAddress(12 + 9 * i + 8, 12 + 9 * i) }
     val pteAddress = Cat(table, 0.U(12.W)) + (vpn(level(log2Ceil(maxLevels) - 1, 0)) << 3)
-    val pmp = Module(new PmpChecker(pmpEntries, naturalAlignedAccess = true, sharedAlignedBounds = true))
-    pmp.io.state     := io.pmpState
-    pmp.io.address   := pteAddress
-    pmp.io.size      := 3.U
-    pmp.io.privilege := 1.U // Implicit page-table reads use S-mode physical permissions.
-    pmp.io.access    := PmpAccess.read
+    // Implicit page-table reads retain S-mode physical permissions and their own gate.
+    val pmpDenied = NaturalPmpEvaluation.denied(pmpEntries, decodedNaturalPmp, true, io.pmpState,
+        pteAddress, 3.U, 1.U, PmpAccess.read)
 
     io.start.ready          := state === idle
     io.complete.valid       := state === finish
@@ -71,7 +68,7 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
     // It breaks the walker-to-shared-memory combinational path and adds one cycle
     // per PTE read, without changing the common TLB-hit path.
     val pendingRead = Module(new Queue(UInt(64.W), 1, pipe = false, flow = false))
-    pendingRead.io.enq.valid := state === issue && !pmp.io.denied
+    pendingRead.io.enq.valid := state === issue && !pmpDenied
     pendingRead.io.enq.bits  := pteAddress
     io.memory.request.valid := pendingRead.io.deq.valid
     io.memory.request.bits  := pendingRead.io.deq.bits
@@ -107,7 +104,7 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16) extends Module
             state := issue
         }
     }
-    when(state === issue && pmp.io.denied) {
+    when(state === issue && pmpDenied) {
         result.accessFault := true.B
         state := finish
     }

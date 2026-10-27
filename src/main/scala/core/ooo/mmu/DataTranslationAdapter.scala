@@ -34,9 +34,25 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
     val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false,
-    val registerNextLineDecision: Boolean = false) extends Module {
+    val registerNextLineDecision: Boolean = false, val certifiedLoadIngress: Boolean = false) extends Module {
+    require(!p.coexistingPhysicalLoadIngress || (certifiedLoadIngress && p.bankedRobCompletionData &&
+        p.identityDataRequestFlow && p.bufferedRamStores && p.registeredMemoryRequests &&
+        p.registeredTranslationHeads && registerCheckedRequests && !p.physicalLoadIngressFlow),
+        "coexisting ordinary ingress requires the exact registered integer/FP production contract")
+    require(!certifiedLoadIngress || (p.guardedNaturalDataPmp && p.combinedCheckedDataFlow &&
+        p.precheckedDataRequestFlow && p.registeredTranslationHeads && registerCheckedRequests &&
+        p.registeredMemoryRequests && !p.physicalLoadIngressFlow && !p.registeredDataTranslation),
+        "certified ingress requires the guarded combined profile and retains the non-flow checked boundary")
+    require(!p.guardedNaturalDataPmp || (registerCheckedRequests && p.registeredTranslationHeads &&
+        translationHitFlow && p.combinedCheckedDataFlow && !p.registeredDataTranslation &&
+        !p.factoredDataPmpRange && !queuedHeadSelection && !registerCanonicalStoreEvent),
+        "guarded natural data PMP requires the old elastic checked boundary and demand-hit route")
     require(!p.registeredDataTranslation || (registerCheckedRequests && !translationHitFlow && !queuedHeadSelection),
         "M2 requires a real registered result boundary, not a simultaneous hit/late-head shortcut")
+    require(!p.registeredRawCertifiedFlow || (p.registeredDataTranslation && p.precheckedDataRequestFlow &&
+        !p.combinedCheckedDataFlow && !translationHitFlow && registerCheckedRequests &&
+        p.registeredTranslationHeads && !queuedHeadSelection && !registerCanonicalStoreEvent),
+        "registered raw/certified flow requires its separate registered ingress/result authorization policy")
     require(!registerNextLineDecision || (registerCheckedRequests && p.dataNextLinePrefetch && alignedNextLinePmp),
         "next-line classification requires the existing checked register and aligned line permission")
     require(!p.frozenStoreCheckedFlow || registerCheckedRequests,
@@ -50,8 +66,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
         "published PMP changes require the integrated same-clock CSR producer contract")
     require(!translationHitFlow || (registerCheckedRequests && p.registeredTranslationHeads &&
-        p.virtualRamLoadPrecheck && !p.precheckedDataRequestFlow),
-        "translation hit flow requires registered ingress/checked authorization and the stable VM epoch")
+        p.virtualRamLoadPrecheck && (!p.precheckedDataRequestFlow || p.combinedCheckedDataFlow)),
+        "translation hit flow requires registered permission and explicit combined-mode authorization")
     require(p.virtualMemoryLevels > 0 && Set(4, 8, 16).contains(entries))
     require(!p.postedStoreMerge || registerCheckedRequests,
         "posted proof needs the common registered checked boundary before every MMIO router")
@@ -185,10 +201,13 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // at the existing physical authorization boundary. CPU fences drain accepted
     // memory, and idle includes this queue for all integrating clients.
     val physicalIngressPass = WireDefault(false.B)
+    val certifiedIngressPass = if (certifiedLoadIngress) WireDefault(false.B) else false.B
     val virtualRequests = if (p.registeredTranslationHeads)
         Some(Module(new TwoEntryRegisterQueue(new VirtualDataRequest(p)))) else None
     virtualRequests.foreach { stage =>
-        stage.io.enq.valid := io.virtual.request.valid && !physicalIngressPass
+        stage.io.enq.valid := (if (certifiedLoadIngress)
+            io.virtual.request.valid && !physicalIngressPass && !certifiedIngressPass
+        else io.virtual.request.valid && !physicalIngressPass)
         stage.io.enq.bits.request := io.virtual.request.bits
         stage.io.enq.bits.context := io.vmState
         stage.io.enq.bits.postedProof.foreach(_ := io.posted.get.upstreamProof)
@@ -255,7 +274,30 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // the physical port without that register, and a blocked checked queue spills
     // the accepted request into virtualRequests rather than losing/reoffering it.
     // Stores, atomics, MMIO, uncached and virtual/certified accesses stay staged.
-    val physicalIngressOffer = if (p.physicalLoadIngressFlow) {
+    // Coexistence is a new opt-in route, not relaxation of the old profile guard.
+    // The final producer has already authorized the ordinary physical request:
+    // integer LSU -> non-flow FIFO -> StoreBuffer, or FP LSU(registerStart=true).
+    // Classification does not create PMP/ROB authority. No permission/fire/physical
+    // READY feeds this nominal selection; both capture credits are old occupancy.
+    val coexistingPhysicalIngressNominal = if (p.coexistingPhysicalLoadIngress) {
+        val offered = io.virtual.request.bits
+        val privilege = io.vmState.dataPrivilege
+        val bareContext = (privilege === 0.U || privilege === 1.U || privilege === 3.U) &&
+            (privilege === 3.U || io.vmState.satp(63, 60) === 0.U)
+        val noSidecars = !io.posted.map(_.upstreamProof.valid).getOrElse(false.B) &&
+            !io.canonicalStoreOrigin.map(_.valid).getOrElse(false.B) &&
+            !io.frozenStoreProof.map(_.valid).getOrElse(false.B)
+        io.virtual.request.valid && virtualRequests.get.io.enq.ready &&
+            !virtualRequests.get.io.deq.valid && !translated.io.deq.valid && !waiting &&
+            !offered.virtualized && !offered.precheckedLoad && !offered.write && !offered.atomic &&
+            !offered.uncached && noSidecars && bareContext &&
+            AlignedMemoryDisjoint.aligned(offered.address, offered.size) &&
+            offered.mask === AlignedMemoryDisjoint.lanes(offered.address, offered.size) &&
+            SpeculativeRamRange.contains(p, offered.address, offered.size) &&
+            io.loadPrecheck.get.stable && !authorizationChanged && !io.precheckFlush.get
+    } else false.B
+    val physicalIngressOffer = if (p.coexistingPhysicalLoadIngress) coexistingPhysicalIngressNominal
+    else if (p.physicalLoadIngressFlow) {
         val offered = io.virtual.request.bits
         io.virtual.request.valid && virtualRequests.get.io.enq.ready &&
             !virtualRequests.get.io.deq.valid && !translated.io.deq.valid && !waiting &&
@@ -263,6 +305,31 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             !io.frozenStoreProof.map(_.valid).getOrElse(false.B) &&
             !offered.uncached && AlignedMemoryDisjoint.aligned(offered.address, offered.size) &&
             SpeculativeRamRange.contains(p, offered.address, offered.size)
+    } else false.B
+
+    // This source is built at the FINAL adapter port, after StoreBuffer and FP
+    // arbitration. The original request and every fallback sidecar stay intact.
+    val certifiedIngressDescriptor = if (certifiedLoadIngress) {
+        val builder = Module(new CertifiedIngressDescriptorBuilder(p))
+        builder.io.request := io.virtual.request.bits
+        builder.io.context := io.vmState
+        builder.io.authorization.epoch := authorizationEpoch.get
+        builder.io.authorization.stable := io.loadPrecheck.get.stable
+        builder.io.authorization.changing := authorizationChanged
+        builder.io.authorization.flush := io.precheckFlush.get
+        builder.io.postedPresent := io.posted.map(_.upstreamProof.valid).getOrElse(false.B)
+        builder.io.canonicalPresent := io.canonicalStoreOrigin.map(_.valid).getOrElse(false.B)
+        builder.io.frozenPresent := io.frozenStoreProof.map(_.valid).getOrElse(false.B)
+        Some(builder.io.descriptor)
+    } else None
+    // Nominal selection MUST NOT depend on permission, checked credit/fire, or
+    // ingress enqueue fire. Even a denied descriptor remains selected this cycle.
+    val certifiedIngressNominal = if (certifiedLoadIngress) {
+        val offered = io.virtual.request.bits
+        io.virtual.request.valid && virtualRequests.get.io.enq.ready &&
+            !virtualRequests.get.io.deq.valid && !translated.io.deq.valid && !waiting &&
+            offered.precheckedLoad && !offered.virtualized && !offered.write && !offered.atomic &&
+            !offered.uncached && certifiedIngressDescriptor.get.sidecarsAbsent
     } else false.B
 
     io.translation.request.valid := incoming.valid && active && canAccept
@@ -368,7 +435,48 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
 
     // The optional hit source ends at the same checked register as queued work.
     // It never bypasses authorization or an older translated request.
-    val head = if (p.precheckedDataRequestFlow || translationHitFlow || p.frozenStoreCheckedFlow) {
+    // Do not reuse translated.enq.bits here: it contains live demand-response
+    // PA/PBMT/fault mux inputs even when a mutually exclusive certified offer
+    // logically selects another arm. This separate descriptor gives the new
+    // mode a structural, rather than merely functional, CAM-to-PMP boundary.
+    val certifiedHead = if (p.registeredRawCertifiedFlow) {
+        val certified = Wire(new TranslatedDataRequest(p))
+        certified := 0.U.asTypeOf(new TranslatedDataRequest(p))
+        certified.request := incoming.bits
+        certified.request.virtualized := false.B
+        certified.privilege := context.dataPrivilege
+        certified.checkPhysical := true.B
+        certified.pageFault := false.B
+        certified.accessFault := staleAuthorization(incoming.bits) || !incoming.bits.precheckedLoad ||
+            incoming.bits.virtualized || incoming.bits.write || incoming.bits.atomic || incoming.bits.uncached ||
+            context.dataPrivilege === 3.U || context.satp(63, 60) === 0.U
+        certified.originalVirtualAddress.foreach(_ := incoming.bits.address)
+        // The zero origin is intentional: a certified load is never store authority.
+        Some(certified)
+    } else None
+    // New-source selection is elaborated only for the opt-in profile. Keep the
+    // disabled head expression and name identical to the established boundary.
+    val head = if (certifiedLoadIngress) {
+        val legacyHead = if (p.registeredRawCertifiedFlow) {
+            // Selection depends only on registered FIFO occupancy. The checked
+            // valid/enable uses registered ingress offer/credit, never raw reply.
+            Mux(translated.io.deq.valid, translated.io.deq.bits, certifiedHead.get)
+        } else if (p.precheckedDataRequestFlow || translationHitFlow || p.frozenStoreCheckedFlow) {
+            // These offers require an empty translated queue. When occupied, its
+            // registered valid bit selects the older record before hit/PBMT/fault
+            // qualification. When empty, only an authorized offer may consume this
+            // raw ingress record; identity/physical ingress use their own payloads.
+            // Valid/fire and every authorization gate remain unchanged below.
+            if (queuedHeadSelection) Mux(translated.io.deq.valid, translated.io.deq.bits, translated.io.enq.bits)
+            else Mux(precheckedOffer || translationHitOffer || frozenCheckedOffer, translated.io.enq.bits, translated.io.deq.bits)
+        } else translated.io.deq.bits
+        // Permission never feeds this nominal payload/context/fault/hint mux.
+        Mux(certifiedIngressNominal, certifiedIngressDescriptor.get.result, legacyHead)
+    } else if (p.registeredRawCertifiedFlow) {
+        // Selection depends only on registered FIFO occupancy. The checked
+        // valid/enable uses registered ingress offer/credit, never raw reply.
+        Mux(translated.io.deq.valid, translated.io.deq.bits, certifiedHead.get)
+    } else if (p.precheckedDataRequestFlow || translationHitFlow || p.frozenStoreCheckedFlow) {
         // These offers require an empty translated queue. When occupied, its
         // registered valid bit selects the older record before hit/PBMT/fault
         // qualification. When empty, only an authorized offer may consume this
@@ -395,19 +503,35 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         evaluator.io.hintBypassFault := identityOffer || physicalIngressOffer
     }
     val legacyPmp = if (!p.registeredDataTranslation) {
-        val pmp = Module(new PmpChecker(p.pmpEntries))
-        pmp.io.state := io.pmpState
-        pmp.io.address := request.address
-        pmp.io.size := request.size
-        pmp.io.privilege := head.privilege
-        pmp.io.access := Mux(request.atomic,
+        val access = Mux(request.atomic,
             Mux(request.atomicOp === 2.U, PmpAccess.read,
                 Mux(request.atomicOp === 3.U, PmpAccess.write, PmpAccess.readWrite)),
             Mux(request.write, PmpAccess.write, PmpAccess.read))
-        Some(pmp)
+        // Only the checker sees normalization. The original request remains untouched,
+        // including during faults, for exact payload, owner, address and tval reporting.
+        // Two-bit DataRequest.size makes the natural checker's <= 8-byte domain structural.
+        val checkerAddress = if (p.guardedNaturalDataPmp) {
+            val alignmentMask = MuxLookup(request.size, 7.U(3.W))(
+                Seq(0.U -> 0.U, 1.U -> 1.U, 2.U -> 3.U))
+            Cat(request.address(63, 3), request.address(2, 0) & ~alignmentMask)
+        } else request.address
+        val denied = if (p.decodedNaturalPmp) {
+            NaturalPmpEvaluation.denied(p.pmpEntries, true, false, io.pmpState,
+                checkerAddress, request.size, head.privilege, access)
+        } else {
+            val pmp = Module(new PmpChecker(p.pmpEntries, factoredGenericRanges = p.factoredDataPmpRange,
+                naturalAlignedAccess = p.guardedNaturalDataPmp))
+            pmp.io.state := io.pmpState
+            pmp.io.address := checkerAddress
+            pmp.io.size := request.size
+            pmp.io.privilege := head.privilege
+            pmp.io.access := access
+            pmp.io.denied
+        }
+        Some((denied, access))
     } else None
-    val pmpDenied = permission.map(_.io.pmpDenied).getOrElse(legacyPmp.get.io.denied)
-    val pmpAccess = permission.map(_.io.access).getOrElse(legacyPmp.get.io.access)
+    val pmpDenied = permission.map(_.io.pmpDenied).getOrElse(legacyPmp.get._1)
+    val pmpAccess = permission.map(_.io.access).getOrElse(legacyPmp.get._2)
     val atomicOutside = request.atomic && head.checkPhysical &&
         !SpeculativeRamRange.contains(p, request.address, request.size)
     val precheckedShapeFault = if (p.precheckedDataRequestFlow) {
@@ -440,6 +564,13 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // Fault placeholders remain ordered but never issue physical requests.
     // Both checked implementations are non-flow: hint permission and fault always
     // cross the same register edge before optional reconstruction at dequeue.
+    // This guard is driven from the actual selected original checked payload below,
+    // not from a normalized PMP address or an unrelated empty translated head.
+    val guardedCheckedAlignmentFault = if (p.guardedNaturalDataPmp) Some(Wire(Bool())) else None
+    val certifiedIngressOffer = if (certifiedLoadIngress)
+        certifiedIngressNominal && certifiedIngressDescriptor.get.routeQualified &&
+            !fault && !guardedCheckedAlignmentFault.get
+    else false.B
     val checked: Option[QueueIO[CheckedDataRequest]] = if (registerCheckedRequests)
         Some(if (p.registeredTranslationHeads)
             Module(new TwoEntryRegisterQueue(new CheckedDataRequest(p, registerNextLineDecision))).suggestName("checked").io
@@ -447,13 +578,16 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     else None
     checked.foreach { stage =>
         if (p.identityDataRequestFlow || p.precheckedDataRequestFlow || p.physicalLoadIngressFlow ||
-            translationHitFlow || p.frozenStoreCheckedFlow) {
+            translationHitFlow || p.frozenStoreCheckedFlow || certifiedLoadIngress) {
             // Empty-FIFO pass-through retains the same final checked authorization.
             // If checked stalls, the identical offer spills into translated,
             // preserving held payload and capacity without a ready path from
             // the external physical port. Older translated work always wins.
-            stage.enq.valid := translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
-                translationHitOffer || frozenCheckedOffer
+            stage.enq.valid := (if (certifiedLoadIngress)
+                translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
+                    translationHitOffer || frozenCheckedOffer || certifiedIngressOffer
+            else translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
+                translationHitOffer || frozenCheckedOffer)
             stage.enq.bits.request := Mux(physicalIngressOffer, io.virtual.request.bits,
                 Mux(identityOffer, incoming.bits, request))
             stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
@@ -461,6 +595,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             identityPass := identityOffer && stage.enq.ready
             precheckedPass := precheckedOffer && stage.enq.ready
             physicalIngressPass := physicalIngressOffer && stage.enq.ready
+            if (certifiedLoadIngress) certifiedIngressPass := certifiedIngressOffer && stage.enq.ready
             translationHitPass := translationHitOffer && stage.enq.ready
             frozenCheckedPass := frozenCheckedOffer && stage.enq.ready
             when(frozenCheckedPass) {
@@ -502,6 +637,13 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             stage.enq.bits.fault := fault
             stage.enq.bits.pageFault := head.pageFault
         }
+        if (p.guardedNaturalDataPmp) {
+            val malformed = !AlignedMemoryDisjoint.aligned(stage.enq.bits.request.address, stage.enq.bits.request.size)
+            guardedCheckedAlignmentFault.get := malformed
+            // Place the guard AFTER identity/physical-ingress bypass selection. Those
+            // shortcuts cannot clear a malformed standalone request's access error.
+            stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault) || malformed
+        }
         translated.io.deq.ready := stage.enq.ready
     }
     // Authorization is captured with the checked request, including the identity
@@ -524,14 +666,20 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
             Mux(identityOffer, context.dataPrivilege, head.privilege))
         authorize.io.pmpState := io.pmpState
-        authorize.io.fault := (if (factorCheckedNextAllowed) false.B
+        if (p.guardedNaturalDataPmp) {
+            authorize.io.fault := (if (factorCheckedNextAllowed) false.B
+                else Mux(identityOffer || physicalIngressOffer, false.B, fault)) || guardedCheckedAlignmentFault.get
+        } else authorize.io.fault := (if (factorCheckedNextAllowed) false.B
             else Mux(identityOffer || physicalIngressOffer, false.B, fault))
         if (registerNextLineDecision) {
             checked.get.enq.bits.nextLineDecision.get := authorize.decision.get
             authorize.eligible.get
         } else authorize.io.allowed
     } else false.B
-    checked.foreach(_.enq.bits.request.prefetchNextAllowed := nextAllowed)
+    checked.foreach { stage =>
+        stage.enq.bits.request.prefetchNextAllowed := (if (p.guardedNaturalDataPmp)
+            nextAllowed && !guardedCheckedAlignmentFault.get else nextAllowed)
+    }
     p.postedProofConfig.foreach { _ =>
         val stage = checked.get
         val selected = Mux(physicalIngressOffer, io.posted.get.upstreamProof,
@@ -561,7 +709,10 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val origin = head.canonicalStoreOrigin.get
         val virtualAddress = head.originalVirtualAddress.get
         val certificate = Wire(Valid(new CanonicalStoreCertificate(p)))
-        val fromTranslated = (translated.io.deq.valid || translationHitOffer || frozenCheckedPass) &&
+        val fromTranslated = if (certifiedLoadIngress)
+            (translated.io.deq.valid || translationHitOffer || frozenCheckedPass) &&
+                !identityOffer && !precheckedOffer && !physicalIngressOffer && !certifiedIngressNominal
+        else (translated.io.deq.valid || translationHitOffer || frozenCheckedPass) &&
             !identityOffer && !precheckedOffer && !physicalIngressOffer
         val qualified = permission.map(_.io.canonical.valid).getOrElse {
             val ordinaryStore = request.write && !request.atomic && !request.virtualized &&
@@ -740,4 +891,159 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
                 "VM/PMP/SFENCE changes must drain accepted canonical stores and overlapping adapter work")
         }
     }
+    // Candidate-only assertions follow the legacy implementation so the disabled
+    // topology also preserves existing assertion diagnostic source positions.
+    require(!p.combinedCheckedDataFlow || (translationHitFlow && p.precheckedDataRequestFlow &&
+        registerCheckedRequests && p.registeredTranslationHeads && !queuedHeadSelection && !registerCanonicalStoreEvent),
+        "combined checked flow retains both sources and the non-flow checked register")
+    if (p.combinedCheckedDataFlow || p.registeredRawCertifiedFlow) {
+        val stage = checked.get
+        val offers = if (certifiedLoadIngress) VecInit(Seq(identityOffer, precheckedOffer, physicalIngressOffer,
+            translationHitOffer, frozenCheckedOffer, certifiedIngressOffer))
+        else VecInit(Seq(identityOffer, precheckedOffer, physicalIngressOffer,
+            translationHitOffer, frozenCheckedOffer))
+        assert(PopCount(offers) <= 1.U,
+            "combined checked sources are mutually exclusive for one ingress owner")
+        when(incoming.fire) {
+            // A delayed demand walk accepts ownership but has no translated result yet.
+            // Every immediately available result goes to exactly one registered boundary.
+            when(!active || io.translation.response.fire) {
+                val direct = identityPass || precheckedPass || translationHitPass || frozenCheckedPass
+                assert(translated.io.enq.fire ^ direct,
+                    "combined immediate ingress transfers exactly once to checked or translated storage")
+                when(direct) {
+                    assert(stage.enq.fire && !translated.io.deq.valid,
+                        "combined direct ingress cannot bypass an older translated owner")
+                }
+            }.otherwise {
+                assert(!translated.io.enq.fire && !precheckedPass && !translationHitPass &&
+                    !identityPass && !frozenCheckedPass,
+                    "combined delayed translation retains demand ownership without an immediate transfer")
+            }
+        }
+        when(precheckedOffer && !stage.enq.ready) {
+            assert(incoming.fire && translated.io.enq.fire && !precheckedPass &&
+                !io.translation.request.fire,
+                "combined blocked certified PA spills exactly once without demand retranslation")
+        }
+        when(precheckedPass) {
+            assert(incoming.fire && stage.enq.fire && !translationHitPass && !identityPass &&
+                !io.translation.request.fire && !translated.io.enq.fire &&
+                stage.enq.bits.request.precheckedLoad && stage.enq.bits.request.address === incoming.bits.address,
+                "combined certified PA retains its exact registered ingress and checked authorization")
+        }
+        when(precheckedPass) {
+            assert(!io.canonicalStoreCertificate.get.valid,
+                "combined certified load cannot create a canonical store event")
+        }
+        when(io.canonicalStoreCertificate.get.valid) {
+            assert(stage.enq.fire && !precheckedOffer && !precheckedPass &&
+                request.write && !request.atomic && !request.precheckedLoad &&
+                head.canonicalStoreOrigin.get.valid && !frozenCheckedPass &&
+                (translated.io.deq.fire || translationHitPass),
+                "combined canonical event belongs only to an accepted raw ordinary store result")
+        }
+    }
+    if (p.registeredRawCertifiedFlow) {
+        val stage = checked.get
+        assert(!translationHitOffer && !translationHitPass,
+            "registered raw demand never bypasses its translation-result register")
+        when(precheckedPass) {
+            assert(!translated.io.deq.valid && head.asUInt === certifiedHead.get.asUInt &&
+                !head.canonicalStoreOrigin.get.valid && !io.translation.request.fire,
+                "certified checked transfer uses only its registered ingress descriptor")
+        }
+        when(io.canonicalStoreCertificate.get.valid) {
+            assert(translated.io.deq.fire && stage.enq.fire && !precheckedPass,
+                "registered raw canonical event belongs only to the accepted FIFO head")
+        }
+    }
+    if (certifiedLoadIngress) {
+        val ingress = virtualRequests.get.io
+        val stage = checked.get
+        val oldOffers = identityOffer || precheckedOffer || physicalIngressOffer ||
+            translationHitOffer || frozenCheckedOffer || translated.io.deq.valid
+        when(certifiedIngressNominal) {
+            assert(!oldOffers && !incoming.valid && !waiting &&
+                head.asUInt === certifiedIngressDescriptor.get.result.asUInt,
+                "nominal certified ingress owns the selected descriptor independently of authorization")
+        }
+        when(io.virtual.request.fire) {
+            if (p.coexistingPhysicalLoadIngress) {
+                assert(PopCount(VecInit(Seq(ingress.enq.fire, physicalIngressPass, certifiedIngressPass))) === 1.U,
+                    "upstream acceptance has exactly one ingress, ordinary checked or certified checked sink")
+            } else {
+                assert(ingress.enq.fire ^ certifiedIngressPass,
+                    "upstream acceptance has exactly one registered ingress or certified checked sink")
+            }
+        }
+        when(certifiedIngressPass) {
+            val expected = WireDefault(io.virtual.request.bits)
+            expected.prefetchNextAllowed := stage.enq.bits.request.prefetchNextAllowed
+            assert(io.virtual.request.fire && stage.enq.fire && !stage.enq.bits.fault &&
+                !stage.enq.bits.pageFault && !ingress.enq.fire && !incoming.fire &&
+                !translated.io.enq.fire && !translated.io.deq.fire &&
+                !io.translation.request.fire && !io.translation.response.fire &&
+                stage.enq.bits.request.asUInt === expected.asUInt &&
+                head.privilege === io.vmState.dataPrivilege,
+                "certified ingress transfers the exact final-port load once through full checked authorization")
+            io.canonicalStoreCertificate.foreach(event => assert(!event.valid,
+                "certified ingress cannot create a store certificate"))
+            stage.enq.bits.postedProof.foreach(proof => assert(!proof.valid,
+                "certified ingress carries no posted store authority"))
+        }
+        when(certifiedIngressNominal && !certifiedIngressPass) {
+            assert(io.virtual.request.fire && ingress.enq.fire && !stage.enq.fire &&
+                !incoming.fire && !translated.io.enq.fire,
+                "denied or blocked nominal ingress falls back intact, without a checked capture")
+        }
+        assert(io.virtual.request.ready === ingress.enq.ready,
+            "certified ingress preserves occupancy-only upstream credit")
+    }
+    if (p.guardedNaturalDataPmp) {
+        val stage = checked.get
+        when(stage.enq.fire && guardedCheckedAlignmentFault.get) {
+            assert(stage.enq.bits.fault && !stage.enq.bits.request.prefetchNextAllowed,
+                "guarded natural data PMP rejects malformed checked requests without hint authority")
+            assert(!io.canonicalStoreCertificate.get.valid,
+                "guarded natural data PMP never certifies a malformed request")
+        }
+        when(io.physical.request.valid) {
+            assert(AlignedMemoryDisjoint.aligned(io.physical.request.bits.address, io.physical.request.bits.size),
+                "guarded natural data PMP preserves original aligned physical requests")
+        }
+    }
+
+    if (p.coexistingPhysicalLoadIngress) {
+        val ingress = virtualRequests.get.io
+        val stage = checked.get
+        val offered = io.virtual.request.bits
+        assert(!(physicalIngressOffer && certifiedIngressNominal),
+            "ordinary physical and certified ingress cannot select the same final-port owner")
+        assert(io.virtual.request.ready === ingress.enq.ready,
+            "ordinary ingress retains old-occupancy credit without physical-ready borrowing")
+        when(physicalIngressPass) {
+            val expected = WireDefault(offered)
+            expected.prefetchNextAllowed := stage.enq.bits.request.prefetchNextAllowed
+            assert(io.virtual.request.fire && stage.enq.fire && !stage.enq.bits.fault &&
+                !stage.enq.bits.pageFault && !ingress.enq.fire && !incoming.fire &&
+                !translated.io.enq.fire && !translated.io.deq.fire && !waiting &&
+                !io.translation.request.fire && !io.translation.response.fire && !certifiedIngressPass &&
+                stage.enq.bits.request.asUInt === expected.asUInt,
+                "ordinary registered ingress transfers one exact request through checked, never a new authority")
+            io.canonicalStoreCertificate.foreach(event => assert(!event.valid,
+                "ordinary physical read ingress cannot create canonical store authority"))
+            stage.enq.bits.postedProof.foreach(proof => assert(!proof.valid,
+                "ordinary physical read ingress cannot carry posted store authority"))
+        }
+        when(coexistingPhysicalIngressNominal && !physicalIngressPass) {
+            assert(io.virtual.request.fire && ingress.enq.fire && !stage.enq.fire &&
+                !incoming.fire && !translated.io.enq.fire && !certifiedIngressPass,
+                "blocked ordinary ingress spills once into the original registered fallback")
+            assert(ingress.enq.bits.request.asUInt === offered.asUInt &&
+                ingress.enq.bits.context.asUInt === io.vmState.asUInt,
+                "ordinary ingress spill retains the exact original request and accepted context")
+        }
+    }
+
 }

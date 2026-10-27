@@ -53,10 +53,14 @@ class MemoryOperation(p: OooParams) extends Bundle {
 class LoadStoreUnit(
     p: OooParams,
     registerStart: Boolean = false,
-    val responseStateOnly: Boolean = false
+    val responseStateOnly: Boolean = false,
+    val orderedResponseReady: Boolean = false
 ) extends Module {
     require(!responseStateOnly || (p.taggedStoreReturns && p.localTaggedResponseReady && !registerStart),
         "response-state-only LSU requires its registered tagged Parallel owner")
+    require(!orderedResponseReady || (p.orderedLsuResponseReady && !registerStart &&
+        !responseStateOnly && !p.taggedStoreReturns && p.registeredMemoryRequests && p.bufferedRamStores),
+        "ordered readiness specialization is only for integer slots behind registered ordered owners")
     val io = IO(new Bundle {
         // State-only reservation hint; start.ready additionally authorizes replacement of the old result.
         val issueAvailable = Output(Bool())
@@ -195,7 +199,9 @@ class LoadStoreUnit(
     // The tagged parent delivers VALID only for an existing registered pending
     // owner. Request acceptance creates that reservation at the clock edge, so
     // neither a new start nor request-state issue can receive an immediate reply.
-    io.memory.response.ready := (if (responseStateOnly) state === response else
+    // The ordered specialization changes only readiness, not capture/start/result/publication.
+    // Its non-flow owner and upstream registered request FIFO preclude a same-cycle new-owner reply.
+    io.memory.response.ready := (if (responseStateOnly || orderedResponseReady) state === response else
         state === response || (state === request && io.memory.request.ready) || startRequest)
     if (responseStateOnly) {
         when(io.memory.response.valid) {

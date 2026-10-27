@@ -70,6 +70,8 @@ class MachinePlatform(
 ,
     preselectRedirectTokenMatches: Boolean = false,
     proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    require(!p.fetchThirdPacketLookahead,
+        "identity fetch horizon requires the explicitly ranged Common-A1 two-owner integration")
     require(Set(0, 32, 64, 128).contains(dataTlbMissCacheEntries),
         "data TLB miss cache entries must be 0, 32, 64, or 128")
     require(dataTlbMissCacheEntries == 0 || translationService,

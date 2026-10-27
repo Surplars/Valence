@@ -1,5 +1,37 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-10-27：[第四批 A1 普通物理 load 入口优化](../../docs/a1-efficiency-refactor-4.md)：默认 OFF，保留双发射、原注册/授权链和完整 owner。
+同条件 CoreMark 全工作量速度提升 5.4125%/5.4815%，ROI 提升 5.5797%/5.6574%；依赖 load 间隔 6→5 拍。
+独立持续供给 ROI 和请求跨度不变，不能宣传为持续带宽提升。44 项纯检查、11 个组件和 30 个 CPU 执行均通过。
+正常映射逻辑 LUT 增加 2.4853%、MUXF 增加 21.0641%，FF/RAM/DSP 不变；保持默认 OFF 实验选项，物理 Fmax 未验证。
+
+2026-10-27：[第三批 A1 ROB completion payload重构](../../docs/a1-efficiency-refactor-3.md)：一个默认OFF开关，保留双发射/双写回及完整64位owner。
+正常同流映射logic LUT再减4.1078%、FF再减5.5521%，代价为新增50个RAM32M16；BRAM36/DSP不变。
+历史短GSIM报告CoreMark与依赖load周期不变；恢复后39项纯Scala检查通过，历史日志缺失与本次映射证据分开记录。
+不是新IPC/带宽增益、物理Fmax或完整ISA签核。
+
+2026-10-26：[第二批 A1 efficiency refactor](../../docs/a1-efficiency-refactor-2.md)：新增两个默认OFF开关，保留完整功能与二发射/二写回。
+CoreMark同频吞吐在首批基础上再增+1.7630%/+1.8029%；正常同流映射logic LUT再减0.9965%、FF不变。
+30个CPU与82个组件用例及独审通过；依赖load仍6拍，零收益、局部尾延迟与失败恢复历史保留。
+不是完整ISA/Linux或物理Fmax签核。
+
+2026-10-26：[首批 A1 efficiency refactor](../../docs/a1-efficiency-refactor.md)。五开关默认OFF，显式256-entry bimodal候选；
+CoreMark同频吞吐+8.264%/+8.163%，正常同工具映射logic LUT −5.869%、FF −7.330%。
+短GSIM/实际held-WB证据与未覆盖窗口分开记录；保留零收益及失败历史，无物理Fmax/完整ISA签核。
+
+2026-10-25：[A1 identity-only fetch horizon](../../docs/a1-identity-fetch-horizon.md)。默认OFF，安全RAM第三包调度，
+两owner/两result不扩容；热含drain1068→883、冷907→909（退化）。1新CPU+4组件DUT、两项host-only补证及独审通过。
+分阶段runner、严格OFF比较、证据hash和未覆盖范围见文档；无本候选物理资格。
+
+2026-10-25：[A1 certified load ingress](../../docs/a1-certified-load-ingress.md)。default OFF，
+VM dependency含drain876→823，热1069→1068；固定容量/服务律、短组件/CPU/独立结构及host-only补证完成。
+runner、receipt、失败恢复与有限覆盖见文档；未测PPA，不晋升默认。
+
+2026-10-25：[A1 advisory exclusion / ordered owner readiness](../../docs/a1-advisory-ordered-owner.md)。
+两个新开关默认OFF，D2/T1/R2、4 LSU和15 logical PRF reads不扩容。热load ROI359→338拍，
+计入drain总成本1085→1069（省16拍，1.475%）；stream/dependency/cold/Bare端到端不变。
+短CPU/组件/结构门通过，保留失败恢复和OFF诊断定位例外；无本批综合、PPA或300MHz声明。
+
 2026-10-15 C0 默认关闭的 raw redirect-token 比较前移：
 python3 -B simulator/gsim/preselected_redirect.py --output build/gsim/preselected-redirect-UNIQUE_TAG --gsim $GSIM --cxx clang++-19 --jobs 2。
 core178/profile95 与三行/两信用配置不变；50186比较例及同配置后端12场景通过，周期变化0%。

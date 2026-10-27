@@ -44,10 +44,13 @@ static void drive(SPmpSharedBoundsGsim &d,const Regions &r){
 static void one(SPmpSharedBoundsGsim &d,const Regions &r,uint64_t a,unsigned size,uint64_t line,unsigned priv,unsigned access,unsigned mutation=0,unsigned rawSize=7){
  drive(d,r);d.set_io$$address(a);d.set_io$$size(size);d.set_io$$lineAddress(line);d.set_io$$rawAddress(a^3);d.set_io$$rawSize(rawSize);d.set_io$$privilege(priv);d.set_io$$access(access);d.set_io$$mutation(mutation);d.step();
  {const bool want=oracle(r,0,a,size,priv,access);check(bool(d.get_io$$natural0())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
+ {const bool want=oracle(r,0,a,size,priv,access);check(bool(d.get_io$$naturalOff0())==want,"NATURAL_OFF_BYTE_ORACLE");}
  {const bool want=oracle(r,0,line,6,priv,access);check(bool(d.get_io$$line0())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
  {const bool want=oracle(r,8,a,size,priv,access);check(bool(d.get_io$$natural8())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
+ {const bool want=oracle(r,8,a,size,priv,access);check(bool(d.get_io$$naturalOff8())==want,"NATURAL_OFF_BYTE_ORACLE");}
  {const bool want=oracle(r,8,line,6,priv,access);check(bool(d.get_io$$line8())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
  {const bool want=oracle(r,16,a,size,priv,access);check(bool(d.get_io$$natural16())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
+ {const bool want=oracle(r,16,a,size,priv,access);check(bool(d.get_io$$naturalOff16())==want,"NATURAL_OFF_BYTE_ORACLE");}
  {const bool want=oracle(r,16,line,6,priv,access);check(bool(d.get_io$$line16())==want,"SHARED_BOUND_BYTE_ORACLE");allows+=!want;denies+=want;}
  {const bool want=oracle(r,16,a^3,rawSize,priv,access);check(bool(d.get_io$$generic())==want,"GENERIC_BYTE_ORACLE");allows+=!want;denies+=want;}
  for(auto x:r)if(x.active && ((x.low&3)!=0 || (x.end&3)!=3)){++irregular;break;}
@@ -78,6 +81,18 @@ int main(int argc,char **argv){try{
  for(unsigned priv=0;priv<4;priv++)for(unsigned access=0;access<4;access++)for(unsigned lock=0;lock<2;lock++){
   r={};r[0]={0x1004,0x1007,7U+128U*lock,true};r[1]={0x1000,0x103f,7,true};one(d,r,0x1000,3,0x1000,priv,access);
  }
+ // Explicit full-XLEN endpoint and bit64 regions: natural alignment cannot wrap,
+ // while the paired unrestricted generic access may cross 2^64. Never truncate bounds.
+ for(unsigned size=0;size<4;size++)for(unsigned mode=0;mode<4;mode++)
+ for(unsigned priv=0;priv<4;priv++)for(unsigned lock=0;lock<2;lock++){
+  const uint64_t a=~0ULL&~((1ULL<<size)-1);const unsigned cfg=(mode<<3)|(lock<<7)|7;
+  r={};r[0]={U128(a),U128(~0ULL),cfg,true};one(d,r,a,size,a&~63ULL,priv,0,0,7);
+  r[0]={(U128(1)<<64)+a,(U128(1)<<64)+U128(~0ULL),cfg,true};
+  r[1]={0,U128(~0ULL),7,true};one(d,r,a,size,a&~63ULL,priv,0,0,7);
+  // Reversed/irregular decoded intervals remain legal fixture inputs, independent
+  // of raw cfg mode: overlap/coverage and lowest-numbered match remain exact.
+  r[0]={U128(a)+1,U128(a),cfg,true};one(d,r,a,size,a&~63ULL,priv,3,0,7);
+ }
  const uint64_t edges[]={0,1,3,4,7,8,0xfffffffcULL,0x100000000ULL,(1ULL<<56)-1,1ULL<<56,(1ULL<<63)-1,1ULL<<63,~0ULL};
  std::mt19937_64 rng(0x736861726564626f);
  for(unsigned cycle=0;cycle<16000;cycle++){
@@ -87,5 +102,5 @@ int main(int argc,char **argv){try{
   one(d,r,a,size,line,rng()%4,rng()%4,0,rng()%8);
  }
  check(trials>60000 && allows>1000 && denies>1000 && partialFirst>1000 && irregular>1000,"COVERAGE_LOW");
- std::cout<<"PMP_SHARED_BOUNDS_PASS entries=0,8,16 natural_sizes=0,1,2,3 line_size=6 trials="<<trials<<" oracle_checks="<<trials*7<<" partial_first="<<partialFirst<<" irregular_regions="<<irregular<<" allows="<<allows<<" denies="<<denies<<"\n";return 0;
+ std::cout<<"PMP_SHARED_BOUNDS_PASS entries=0,8,16 natural_sizes=0,1,2,3 line_size=6 trials="<<trials<<" oracle_checks="<<trials*10<<" partial_first="<<partialFirst<<" irregular_regions="<<irregular<<" allows="<<allows<<" denies="<<denies<<"\n";return 0;
  }catch(const std::exception &e){std::cerr<<"PMP shared-bound oracle rejection: "<<e.what()<<"\n";return 1;}}

@@ -46,35 +46,9 @@ def compiler():
 
 
 def setup(fetch):
-    BUILD.mkdir(parents=True, exist_ok=True)
-    if not (SOURCE / ".git").exists():
-        if not fetch:
-            raise RuntimeError("GSIM source missing; run make gsim-setup first (requires network)")
-        if SOURCE.exists() and any(SOURCE.iterdir()):
-            raise RuntimeError(f"refusing to overwrite nonempty source directory: {SOURCE}")
-        SOURCE.mkdir(parents=True, exist_ok=True)
-        run(["git", "init", SOURCE])
-        run(["git", "remote", "add", "origin", LOCK["repository"]], cwd=SOURCE)
-    try:
-        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=SOURCE,
-                                           text=True, stderr=subprocess.DEVNULL).strip()
-    except subprocess.CalledProcessError:
-        revision = ""
-    if not revision and fetch:
-        run(["git", "fetch", "--depth=1", "origin", LOCK["revision"]], cwd=SOURCE)
-        run(["git", "checkout", "--detach", "FETCH_HEAD"], cwd=SOURCE)
-        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=SOURCE, text=True).strip()
-    if revision != LOCK["revision"]:
-        raise RuntimeError(f"GSIM revision mismatch: {revision}; expected {LOCK['revision']}")
-    changes = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"],
-                                      cwd=SOURCE, text=True)
-    if changes:
-        raise RuntimeError("GSIM checkout has tracked modifications; pinned tests require clean sources")
-    cxx, version = compiler()
-    run(["make", "-j" + os.environ.get("GSIM_BUILD_JOBS", "4"), f"CXX={cxx}", "build-gsim"],
-        cwd=SOURCE, log=BUILD / "toolchain-build.log")
-    (BUILD / "toolchain-used.json").write_text(json.dumps({**LOCK, "compiler": version}, indent=2) + "\n")
-    return SOURCE / "build/gsim/gsim", cxx
+    # Repaired deterministic epoch only; pristine binary is diagnostic-only.
+    import gsim_initialization_setup
+    return gsim_initialization_setup.setup(fetch, sys.modules[__name__])
 
 
 def opensbi_setup(fetch):
