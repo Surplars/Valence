@@ -14,7 +14,8 @@ class DecodedNaturalPmpSpec extends AnyFunSuite {
         assert(candidate.config.coreParams == control.config.coreParams.copy(decodedNaturalPmp = true, preparedBareHeadStoreOperands = true))
         for (profile <- CommonA1RebuildProfile.all) {
             val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
-                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4
+                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
+                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5
             assert(profile.config.decodedNaturalPmp == enabled)
             assert(profile.config.coreParams.decodedNaturalPmp == enabled)
             assert(profile.config.preparedBareHeadStoreOperands == enabled)

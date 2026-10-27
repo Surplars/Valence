@@ -25,6 +25,8 @@ class MappedMachineCore(
     // integer LSU -> RegisteredRequestQueue -> StoreBuffer, and FP live PMP ->
     // LoadStoreUnit(registerStart=true). It cannot be inferred from an arbitrary
     // standalone DataPort or enabled without the existing checked/return stages.
+    require(!p.loadPayloadNomination || (p.coexistingPhysicalLoadIngress && p.certifiedLoadIngress),
+        "load payload nomination preserves both existing final-port ingress owners")
     require(!p.coexistingPhysicalLoadIngress || (p.certifiedLoadIngress && p.bufferedRamStores &&
         p.registeredMemoryRequests && dataTranslation && stagedMemoryFabric && bufferTranslatedResponses),
         "coexisting physical ingress preserves registered producers and the existing checked/return boundaries")

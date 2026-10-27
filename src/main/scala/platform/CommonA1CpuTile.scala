@@ -26,7 +26,8 @@ class CommonA1CpuTile(
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor2) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor3) ||
-            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4)),
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor5)),
         "identity fetch horizon requires its explicit final-configuration policy")
     require(!config.fetchThirdPacketLookahead || sideEffectFreeFetchRanges.nonEmpty,
         "identity fetch horizon requires explicitly supplied physical RAM ranges from the connected fabric")

@@ -35,6 +35,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
     val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false,
     val registerNextLineDecision: Boolean = false, val certifiedLoadIngress: Boolean = false) extends Module {
+    require(!p.loadPayloadNomination || (p.coexistingPhysicalLoadIngress && certifiedLoadIngress),
+        "load payload nomination requires the unchanged coexisting ordinary/certified ingress contract")
     require(!p.coexistingPhysicalLoadIngress || (certifiedLoadIngress && p.bankedRobCompletionData &&
         p.identityDataRequestFlow && p.bufferedRamStores && p.registeredMemoryRequests &&
         p.registeredTranslationHeads && registerCheckedRequests && !p.physicalLoadIngressFlow),
@@ -332,6 +334,21 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             !offered.uncached && certifiedIngressDescriptor.get.sidecarsAbsent
     } else false.B
 
+    // Fifth-batch payload selection only: no shape/range/context/authorization or
+    // downstream credit feeds this wide-data nomination. The original complete
+    // physicalIngressOffer above remains the ONLY ordinary authorization gate.
+    // With older work absent, an ineligible nominal record changes invalid bits
+    // only and still falls back through the original ingress queue unchanged.
+    val ordinaryPayloadNominal = if (p.loadPayloadNomination) {
+        val offered = io.virtual.request.bits
+        io.virtual.request.valid && virtualRequests.get.io.enq.ready &&
+            !virtualRequests.get.io.deq.valid && !translated.io.deq.valid && !waiting &&
+            !offered.precheckedLoad && !offered.virtualized && !offered.write &&
+            !offered.atomic && !offered.uncached && certifiedIngressDescriptor.get.sidecarsAbsent
+    } else false.B
+    val rawPayloadNominal = if (p.loadPayloadNomination)
+        ordinaryPayloadNominal || certifiedIngressNominal else false.B
+
     io.translation.request.valid := incoming.valid && active && canAccept
     io.translation.request.bits.virtualAddress := incoming.bits.address
     io.translation.request.bits.rootPpn := context.satp(43, 0)
@@ -456,6 +473,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     } else None
     // New-source selection is elaborated only for the opt-in profile. Keep the
     // disabled head expression and name identical to the established boundary.
+    // Keep the complete certified head for fault/PMP/context/store-lineage.
+    // Only its legacy request payload is separately available to the new mux.
+    val legacyPayloadHead = if (p.loadPayloadNomination) Some(Wire(new TranslatedDataRequest(p))) else None
     val head = if (certifiedLoadIngress) {
         val legacyHead = if (p.registeredRawCertifiedFlow) {
             // Selection depends only on registered FIFO occupancy. The checked
@@ -470,6 +490,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             if (queuedHeadSelection) Mux(translated.io.deq.valid, translated.io.deq.bits, translated.io.enq.bits)
             else Mux(precheckedOffer || translationHitOffer || frozenCheckedOffer, translated.io.enq.bits, translated.io.deq.bits)
         } else translated.io.deq.bits
+        legacyPayloadHead.foreach(_ := legacyHead)
         // Permission never feeds this nominal payload/context/fault/hint mux.
         Mux(certifiedIngressNominal, certifiedIngressDescriptor.get.result, legacyHead)
     } else if (p.registeredRawCertifiedFlow) {
@@ -486,6 +507,13 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         else Mux(precheckedOffer || translationHitOffer || frozenCheckedOffer, translated.io.enq.bits, translated.io.deq.bits)
     } else translated.io.deq.bits
     val request = head.request
+    // Ordinary and certified ingress carry exactly the same final-port request
+    // bundle. Their authority, fault, privilege and sidecars are NOT combined.
+    // Feature OFF retains each established expression at its original use site.
+    val nominatedCheckedPayload = if (p.loadPayloadNomination) Some(Mux(rawPayloadNominal,
+        io.virtual.request.bits, Mux(identityOffer, incoming.bits, legacyPayloadHead.get.request))) else None
+    val previousCheckedPayload = if (p.loadPayloadNomination) Some(Mux(physicalIngressOffer,
+        io.virtual.request.bits, Mux(identityOffer, incoming.bits, request))) else None
     val permission = if (p.registeredDataTranslation)
         Some(Module(new DataPhysicalPermissionEvaluator(p, alignedNextLinePmp,
             factorCheckedNextAllowed, registerNextLineDecision))) else None
@@ -588,8 +616,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
                     translationHitOffer || frozenCheckedOffer || certifiedIngressOffer
             else translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
                 translationHitOffer || frozenCheckedOffer)
-            stage.enq.bits.request := Mux(physicalIngressOffer, io.virtual.request.bits,
-                Mux(identityOffer, incoming.bits, request))
+            stage.enq.bits.request := (if (p.loadPayloadNomination) nominatedCheckedPayload.get
+                else Mux(physicalIngressOffer, io.virtual.request.bits, Mux(identityOffer, incoming.bits, request)))
             stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)
             stage.enq.bits.pageFault := Mux(identityOffer || physicalIngressOffer, false.B, head.pageFault)
             identityPass := identityOffer && stage.enq.ready
@@ -646,6 +674,36 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         }
         translated.io.deq.ready := stage.enq.ready
     }
+    if (p.loadPayloadNomination) {
+        val stage = checked.get
+        when(rawPayloadNominal) {
+            assert(!incoming.valid && !translated.io.deq.valid && !waiting &&
+                !identityOffer && !precheckedOffer && !translationHitOffer && !frozenCheckedOffer,
+                "raw payload nomination cannot displace older registered or translated work")
+            assert(!(ordinaryPayloadNominal && certifiedIngressNominal),
+                "ordinary and certified payload nominations are disjoint request types")
+        }
+        when(ordinaryPayloadNominal && stage.enq.valid) {
+            assert(physicalIngressOffer,
+                "ordinary nomination never creates checked validity without the original full offer")
+        }
+        when(physicalIngressOffer) {
+            assert(ordinaryPayloadNominal, "every authorized ordinary offer retains its final-port payload")
+        }
+        when(certifiedIngressNominal) {
+            assert(certifiedIngressDescriptor.get.result.request.asUInt === io.virtual.request.bits.asUInt,
+                "common raw payload selection never rewrites certified request metadata")
+        }
+        when(stage.enq.valid) {
+            // Includes every request field, even input hint, before the common
+            // overwrite below; next-line privilege/fault/PMP inputs stay original.
+            assert(nominatedCheckedPayload.get.asUInt === previousCheckedPayload.get.asUInt,
+                "every valid checked payload equals the fourth-batch selection bit for bit")
+            assert(guardedCheckedAlignmentFault.get ===
+                !AlignedMemoryDisjoint.aligned(previousCheckedPayload.get.address, previousCheckedPayload.get.size),
+                "payload nomination preserves the checked alignment fault")
+        }
+    }
     // Authorization is captured with the checked request, including the identity
     // queue bypass. The incoming hint is always overwritten, even when disabled.
     // Factoring stores permission before the current-request fault in the existing
@@ -661,8 +719,9 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp,
             exportDecision = registerNextLineDecision))
         constructedNextLineAuthorization = Some(authorize)
-        CpuReturnTransport.requestPayload(authorize.io.request, Mux(physicalIngressOffer, io.virtual.request.bits,
-            Mux(identityOffer, incoming.bits, request)))
+        CpuReturnTransport.requestPayload(authorize.io.request, (if (p.loadPayloadNomination)
+            nominatedCheckedPayload.get else Mux(physicalIngressOffer, io.virtual.request.bits,
+                Mux(identityOffer, incoming.bits, request))))
         authorize.io.privilege := Mux(physicalIngressOffer, io.vmState.dataPrivilege,
             Mux(identityOffer, context.dataPrivilege, head.privilege))
         authorize.io.pmpState := io.pmpState

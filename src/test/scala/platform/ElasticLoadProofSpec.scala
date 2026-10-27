@@ -55,7 +55,8 @@ class ElasticLoadProofSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4)
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5)
         for (old <- CommonA1RebuildProfile.all.filterNot(descendants.contains)) {
             assert(!old.config.elasticLoadProofSupply)
             old.memoryProfile.foreach { policy =>

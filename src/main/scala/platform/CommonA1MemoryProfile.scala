@@ -142,6 +142,16 @@ object CommonA1MemoryProfile {
                 preparedBareHeadStore = true, bankedRobCompletionData = true, coexistingPhysicalLoadIngress = true)
     }
 
+    case object ExperimentalEfficiencyRefactor5 extends CommonA1MemoryProfile("experimental-efficiency-refactor-5") {
+        override def validate(config: FpgaNextConfig, boundary: CommonCpuTilePortParams): Unit =
+            validateMemory(config, boundary, registered = false, combined = true, preparedStore = true,
+                elasticProof = true, guardedNaturalPmp = true, bufferedThirdRank = true, bufferedReturnFlow = true,
+                orderedOwnerReady = true, advisoryExclusion = true, certifiedIngress = true,
+                identityFetchHorizon = true, efficiencyRefactor = true, decodedNaturalPmp = true,
+                preparedBareHeadStore = true, bankedRobCompletionData = true, coexistingPhysicalLoadIngress = true,
+                loadPayloadNomination = true)
+    }
+
     private def validateMemory(config: FpgaNextConfig, boundary: CommonCpuTilePortParams,
         registered: Boolean, combined: Boolean = false, preparedStore: Boolean = false,
         elasticProof: Boolean = false, registeredRawCertified: Boolean = false, factoredPmp: Boolean = false,
@@ -150,8 +160,12 @@ object CommonA1MemoryProfile {
         advisoryExclusion: Boolean = false, certifiedIngress: Boolean = false,
         identityFetchHorizon: Boolean = false, efficiencyRefactor: Boolean = false,
         decodedNaturalPmp: Boolean = false, preparedBareHeadStore: Boolean = false,
-        bankedRobCompletionData: Boolean = false, coexistingPhysicalLoadIngress: Boolean = false): Unit = {
+        bankedRobCompletionData: Boolean = false, coexistingPhysicalLoadIngress: Boolean = false,
+        loadPayloadNomination: Boolean = false): Unit = {
         val p = config.coreParams
+        require(config.loadPayloadNomination == loadPayloadNomination &&
+            p.loadPayloadNomination == loadPayloadNomination,
+            "A1 policy must explicitly name load payload nomination")
         require(config.coexistingPhysicalLoadIngress == coexistingPhysicalLoadIngress &&
             p.coexistingPhysicalLoadIngress == coexistingPhysicalLoadIngress,
             "A1 policy must explicitly name coexisting physical load ingress")
@@ -382,6 +396,13 @@ object CommonA1MemoryProfile {
         ExperimentalEfficiencyRefactor3.validate(base, CommonCpuTilePortParams())
         val result = base.copy(coexistingPhysicalLoadIngress = true)
         ExperimentalEfficiencyRefactor4.validate(result, CommonCpuTilePortParams())
+        result
+    }
+
+    def experimentalEfficiencyRefactor5(base: FpgaNextConfig): FpgaNextConfig = {
+        ExperimentalEfficiencyRefactor4.validate(base, CommonCpuTilePortParams())
+        val result = base.copy(loadPayloadNomination = true)
+        ExperimentalEfficiencyRefactor5.validate(result, CommonCpuTilePortParams())
         result
     }
 

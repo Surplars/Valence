@@ -248,8 +248,12 @@ case class OooParams(
     // Payload storage only; full-owner admission and retirement bypass stay in RenameRob.
     bankedRobCompletionData: Boolean = false,
     // Final registered ordinary load ingress, explicitly coexisting with certified ingress.
-    coexistingPhysicalLoadIngress: Boolean = false
+    coexistingPhysicalLoadIngress: Boolean = false,
+    // Payload nomination only; checked enqueue authorization and credits are unchanged.
+    loadPayloadNomination: Boolean = false
 ) {
+    require(!loadPayloadNomination || (coexistingPhysicalLoadIngress && certifiedLoadIngress),
+        "load payload nomination requires the complete fourth-efficiency ingress topology")
     require(!coexistingPhysicalLoadIngress || (bankedRobCompletionData && certifiedLoadIngress &&
         identityDataRequestFlow && bufferedRamStores && registeredMemoryRequests && registeredTranslationHeads &&
         !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow),

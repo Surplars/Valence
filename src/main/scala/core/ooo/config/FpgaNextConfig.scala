@@ -141,9 +141,13 @@ final case class FpgaNextConfig(
     preparedBareHeadStoreOperands: Boolean = false,
     bankedRobCompletionData: Boolean = false,
     coexistingPhysicalLoadIngress: Boolean = false,
+    loadPayloadNomination: Boolean = false,
     // None preserves the exact selected topology; this is not a new public default.
     branchPredictorEntriesOverride: Option[Int] = None
 ) {
+    // Constructor parameters only: issueWidth is initialized later.
+    require(!loadPayloadNomination || (coexistingPhysicalLoadIngress && certifiedLoadIngress),
+        "load payload nomination requires the complete fourth-efficiency ingress topology")
     require(!coexistingPhysicalLoadIngress || (bankedRobCompletionData && certifiedLoadIngress &&
         !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow),
         "coexisting physical ingress belongs only to the explicit third-efficiency descendant")
@@ -357,6 +361,7 @@ final case class FpgaNextConfig(
         (if (preparedBareHeadStoreOperands) "-prepared-bare-head-store" else "") +
         (if (bankedRobCompletionData) "-banked-rob-completion-data" else "") +
         (if (coexistingPhysicalLoadIngress) "-coexisting-physical-load-ingress" else "") +
+        (if (loadPayloadNomination) "-load-payload-nomination" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (translatedResponseEmptyFlow) "-translated-response-empty-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
@@ -572,7 +577,8 @@ final case class FpgaNextConfig(
             decodedNaturalPmp = decodedNaturalPmp,
             preparedBareHeadStoreOperands = preparedBareHeadStoreOperands,
             bankedRobCompletionData = bankedRobCompletionData,
-            coexistingPhysicalLoadIngress = coexistingPhysicalLoadIngress)
+            coexistingPhysicalLoadIngress = coexistingPhysicalLoadIngress,
+            loadPayloadNomination = loadPayloadNomination)
     }
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
@@ -585,7 +591,7 @@ final case class FpgaNextConfig(
             !fetchThirdPacketLookahead && !canonicalFetchCacheKeys && !registeredMemoryOperandCapture &&
             !sharedMulDivOperandReads && !sourceLocalLoadProofCancellation && !sharedLoadProofPmpBounds &&
             !decodedNaturalPmp && !preparedBareHeadStoreOperands && !bankedRobCompletionData &&
-            !coexistingPhysicalLoadIngress &&
+            !coexistingPhysicalLoadIngress && !loadPayloadNomination &&
             branchPredictorEntriesOverride.isEmpty,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(

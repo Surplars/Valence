@@ -25,7 +25,8 @@ class RobCompletionDataSpec extends AnyFunSuite {
         assert(!OooParams().bankedRobCompletionData && !FpgaNextConfig.Selected.bankedRobCompletionData)
         assert(!CommonCpuProfile.A1.fpga.bankedRobCompletionData)
         for (profile <- CommonA1RebuildProfile.all) {
-            val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4
+            val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
+                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5
             assert(profile.config.bankedRobCompletionData == enabled)
             assert(profile.config.coreParams.bankedRobCompletionData == enabled)
         }

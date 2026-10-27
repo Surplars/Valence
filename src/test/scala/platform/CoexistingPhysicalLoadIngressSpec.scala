@@ -19,8 +19,9 @@ class CoexistingPhysicalLoadIngressSpec extends AnyFunSuite {
         assert(!OooParams().coexistingPhysicalLoadIngress && !FpgaNextConfig.Selected.coexistingPhysicalLoadIngress)
         assert(!CommonCpuProfile.A1.fpga.coexistingPhysicalLoadIngress)
         for (profile <- CommonA1RebuildProfile.all) {
-            assert(profile.config.coexistingPhysicalLoadIngress == (profile == candidate))
-            assert(profile.config.coreParams.coexistingPhysicalLoadIngress == (profile == candidate))
+            val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5
+            assert(profile.config.coexistingPhysicalLoadIngress == enabled)
+            assert(profile.config.coreParams.coexistingPhysicalLoadIngress == enabled)
         }
         val p = candidate.config.coreParams
         assert(!p.physicalLoadIngressFlow && p.certifiedLoadIngress && p.bankedRobCompletionData)

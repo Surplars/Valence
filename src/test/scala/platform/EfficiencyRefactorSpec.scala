@@ -21,7 +21,8 @@ class EfficiencyRefactorSpec extends AnyFunSuite {
         for (profile <- CommonA1RebuildProfile.all) {
             val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2 ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
-                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4
+                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
+                profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5
             val c = profile.config
             val p = c.coreParams
             assert(c.canonicalFetchCacheKeys == enabled && p.canonicalFetchCacheKeys == enabled)

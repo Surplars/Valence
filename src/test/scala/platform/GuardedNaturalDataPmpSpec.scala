@@ -41,7 +41,8 @@ class GuardedNaturalDataPmpSpec extends AnyFunSuite {
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor ||
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2 ||
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
-            p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4)) {
+            p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
+            p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5)) {
             assert(!old.config.guardedNaturalDataPmp)
             old.memoryProfile.foreach { policy =>
                 intercept[IllegalArgumentException] { policy.validate(candidate.config, CommonCpuTilePortParams()) }
