@@ -5,7 +5,7 @@ import chisel3._
 import chisel3.util._
 import soc.bus.tilelink._
 import soc.core.ooo.{InstructionRom, TileLinkInstructionRomAdapter}
-import soc.platform.{CommonMachineFabric, CommonPlatformFeatures, CommonCpuTilePortParams}
+import soc.platform.{CommonMachineFabric, CommonPeripheralConfig, CommonPlatformFeatures, CommonCpuTilePortParams}
 
 /** Fabric-only native/MMIO/DDR test: real 128 KiB ROM and production 1024x4
   * Home/4-slot/2-write DDR. External managed peripherals are test endpoints.
@@ -91,11 +91,11 @@ class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
         name -> leaf
     }: _*)
 }
-class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false) extends Module {
+class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false,
+    jtagDownload: Boolean = true) extends Module {
     val fabric = Module(new CommonMachineFabric(
         boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime, runtimeCancellation = cancellation),
-        features = CommonPlatformFeatures(ethernetControl = true, networkDma = true,
-            jtagDownload = true, clockManagement = true), programmable = true))
+        features = CommonPeripheralConfig(jtagDownload = jtagDownload).features, programmable = true))
     private def leaves(data: Data, prefix: String): Seq[(String, Data)] = data match {
         case record: Record => record.elements.toSeq.flatMap { case (name, value) =>
             leaves(value, if (prefix.isEmpty) name else prefix + "__" + name)
@@ -114,4 +114,13 @@ object CommonMachineFabricFlatGsimMain extends App {
     require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
     ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(args(1).toBoolean, args.length == 3 && args(2).toBoolean),
         Array("--target-dir", args(0)))
+}
+
+/** Matched static fabric pair; no CPU, platform CDC or board qualification. */
+object CommonMachineFabricJtagOptionGsimMain extends App {
+    require(args.length == 2, "fresh output directory and on|off JTAG selection required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    val peripherals = CommonPeripheralConfig.jtagOption(args(1))
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(runtime = false,
+        jtagDownload = peripherals.jtagDownload), Array("--target-dir", args(0)))
 }

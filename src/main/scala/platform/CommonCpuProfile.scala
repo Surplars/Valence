@@ -27,7 +27,6 @@ case class CommonCpuProfile(kind: String, clocks: CommonClockConfig, clockProfil
     val ddrUiHz = 250000000
     val uartBaud = 460800
     val fpga: FpgaNextConfig = FpgaNextConfig.Selected.copy(internalLineGrant = true, experimentalTriSpeedEthernet = true)
-    val features = CommonPlatformFeatures(true, true, true, true)
     val boundary = CommonCpuTilePortParams()
     val i1: FiveStageConfig = FiveStageConfig(
         resetVector = CommonPlatformAbi.romBase, trapVector = CommonPlatformAbi.romBase + 0x100,

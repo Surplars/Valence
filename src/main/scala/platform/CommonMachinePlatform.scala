@@ -58,8 +58,10 @@ class CommonMachinePlatform(
     performanceTelemetry: Boolean = false,
     telemetryWindowCycles: Int = 50000,
     experimentalA1Runtime: Boolean = false,
-    val a1Experimental: Option[CommonA1ExperimentalSelection] = None
+    val a1Experimental: Option[CommonA1ExperimentalSelection] = None,
+    val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig()
 ) extends RawModule {
+    peripheralConfig.validateRuntime(runtimeDebugAdmission)
     require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
         runtimeRateControl && performanceTelemetry && independentDebugClock && independentDdrClock &&
         independentTimebaseClock && runtimeNetworkAdmission && runtimeFixedQualification &&
@@ -125,7 +127,8 @@ class CommonMachinePlatform(
         val linkUp = Input(Bool()); val mdc = Output(Bool()); val mdioIn = Input(Bool())
         val triSpeedRgmii = new soc.ip.ethernet.TriSpeedRgmiiPortV1
         val mdioOut = Output(Bool()); val mdioOe = Output(Bool())
-        val jtagDmi = Flipped(new DebugDmiPort(7)); val jtagLinkUp = Input(Bool())
+        val jtagDmi = if (peripheralConfig.jtagDownload) Some(Flipped(new DebugDmiPort(7))) else None
+        val jtagLinkUp = if (peripheralConfig.jtagDownload) Some(Input(Bool())) else None
         val maintenance = Flipped(Decoupled(new CommonTileMaintenanceCommand(boundary)))
         val runtime = if (runtimeDebugAdmission && !runtimeRateControl) Some(new CommonPlatformRuntimePort(boundary)) else None
         val maintenanceStatus = Output(Valid(new CommonTileMaintenanceStatus(boundary)))
@@ -175,7 +178,7 @@ class CommonMachinePlatform(
     // Exactly one fabric and one managed peripheral bank, OUTSIDE the CPU choice.
     val fabric = withClockAndReset(fabricClock, fabricRelease.resetOut) {
         Module(new CommonMachineFabric(boundary = boundary, fpga = profile.fpga,
-            features = profile.features, ramBytes = profile.fpga.ddrBytes, externalDdr = true,
+            features = peripheralConfig.features, ramBytes = profile.fpga.ddrBytes, externalDdr = true,
             romFiles = romFiles, programmable = programmable, vivadoMemories = vivadoMemories,
             externalTimer = independentTimebaseClock, runtimeDebugAdmission = runtimeDebugAdmission,
             runtimeNetworkAdmission = runtimeNetworkAdmission))
@@ -326,8 +329,8 @@ class CommonMachinePlatform(
         }
         debugSequence.fabricClock := fabricClock; debugSequence.debugClock := debugClock.get
         debugSequence.commonColdReset := commonColdReset
-        debugSequence.source <> io.jtagDmi; fabric.io.jtagDmi.get <> debugSequence.destination
-        debugSequence.sourceLinkUp := io.jtagLinkUp
+        debugSequence.source <> io.jtagDmi.get; fabric.io.jtagDmi.get <> debugSequence.destination
+        debugSequence.sourceLinkUp := io.jtagLinkUp.get
         fabric.io.jtagLinkUp.get := debugSequence.destinationLinkUp
         debugSequence.destinationOwnersIdle := fabric.io.debugDmiOwnersIdle.get
         if (runtimeNetworkAdmission) debugSequence.upstreamPrepare <> networkSequence.get.io.downstreamPrepare
@@ -352,16 +355,16 @@ class CommonMachinePlatform(
         debugFault.clockIn := alwaysOnClock; debugFault.resetIn := aonRelease.resetOut
         debugFault.levelIn := debugSequence.fault
         io.runtime.foreach(_.debugFault := debugFault.levelOut)
-    } else if (independentDebugClock) {
+    } else if (peripheralConfig.jtagDownload && independentDebugClock) {
         val debugCrossing = Module(new DebugDmiClockBoundary(7))
         debugCrossing.sourceClock := debugClock.get; debugCrossing.destinationClock := fabricClock
         debugCrossing.commonColdReset := commonColdReset
-        debugCrossing.source <> io.jtagDmi; fabric.io.jtagDmi.get <> debugCrossing.destination
-        debugCrossing.sourceLinkUp := io.jtagLinkUp
+        debugCrossing.source <> io.jtagDmi.get; fabric.io.jtagDmi.get <> debugCrossing.destination
+        debugCrossing.sourceLinkUp := io.jtagLinkUp.get
         fabric.io.jtagLinkUp.get := debugCrossing.destinationLinkUp
-    } else {
-        fabric.io.jtagDmi.get <> io.jtagDmi
-        fabric.io.jtagLinkUp.get := io.jtagLinkUp
+    } else if (peripheralConfig.jtagDownload) {
+        fabric.io.jtagDmi.get <> io.jtagDmi.get
+        fabric.io.jtagLinkUp.get := io.jtagLinkUp.get
     }
     fabric.io.program.foreach(_ := io.program.get)
     fabric.io.uartRx := true.B // actual UART is the shared managed bank below

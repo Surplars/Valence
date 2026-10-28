@@ -8,7 +8,7 @@ import soc.platform._
 
 /** Explicit production geometry exporter. Programmable ROM is for native
   * verification only; the same emitted model can load the guest and full TUI
-  * image. No reduced CPU/cache/owner or replacement peripheral profile exists.
+  * image. CPU/cache/owner geometry is unchanged; JTAG RAM download can be omitted.
   */
 object CommonMachinePlatformMain extends App {
     require(args.length >= 3, "output, i1|a1, and --compile-receipt=... required")
@@ -17,16 +17,20 @@ object CommonMachinePlatformMain extends App {
     val options = args.drop(2)
     val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
     val profile = CommonCpuProfile.named(args(1), clockProfile)
+    val peripheralConfig = CommonPeripheralConfig.jtagOption(
+        options.find(_.startsWith("--jtag-download=")).map(_.stripPrefix("--jtag-download=")).getOrElse("on"))
     val selected = options.find(_.startsWith("--experimental-a1-profile=")).map(option =>
         CommonA1ExperimentalSelection.named(option.stripPrefix("--experimental-a1-profile=")))
     val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
+    peripheralConfig.validateRuntime(dynamic)
     val diagnosticOption = "--diagnostic-rates=" + CommonDiagnosticRateProfile.option
     val diagnostic = options.contains(diagnosticOption)
     require(!diagnostic || dynamic, "diagnostic rates require boot50-dynamic")
     val legalFlags = Set("--programmable", "--vivado-memories", "--emit-chirrtl-only", diagnosticOption)
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") ||
-        x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=")))
+        x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=") ||
+        x.startsWith("--jtag-download=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
@@ -74,7 +78,8 @@ object CommonMachinePlatformMain extends App {
         runtimeDebugAdmission = dynamic, runtimeNetworkAdmission = dynamic,
         runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
         runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic,
-        diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic, a1Experimental = selected)
+        diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic, a1Experimental = selected,
+        peripheralConfig = peripheralConfig)
     if (chirrtlOnly) ChiselStage.emitCHIRRTLFile(platform(), Array("--target-dir", output.toString))
     else ChiselStage.emitSystemVerilogFile(platform(), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
@@ -130,7 +135,12 @@ object CommonMachinePlatformMain extends App {
         "homeAcquireEntries" -> 2, "homeWritebackEntries" -> 2,
         "ddrSlots" -> profile.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> profile.fpga.ddr.maxOutstandingWrites,
         "heldFifo" -> "HeldResponseCdcDataFifo", "fifoDepth" -> 16,
-        "triSpeedEthernet" -> true, "triSpeedTxFrameSlots" -> 2, "jtagDmiAddressBits" -> 7,
+        "triSpeedEthernet" -> true, "triSpeedTxFrameSlots" -> 2,
+        "jtagDownload" -> peripheralConfig.jtagDownload,
+        "jtagDmiAddressBits" -> (if (peripheralConfig.jtagDownload) ujson.Num(7) else ujson.Null),
+        "peripheralQualification" -> "configuration-only-not-new-behavior-or-timing-qualification",
+        "cpuMmioRegions" -> ujson.Arr.from(peripheralConfig.mmioRegions.map(r => ujson.Obj(
+            "name" -> r.name, "base" -> ("0x" + r.base.toString(16)), "bytes" -> r.bytes.toString))),
         "externalHotMaintenanceSupported" -> false, "oneSidedResetSupported" -> false,
         "physicalTimingVerified" -> false, "boardVerified" -> false,
         "sources" -> objectOf(sources), "compiledClasspath" -> objectOf(classes),

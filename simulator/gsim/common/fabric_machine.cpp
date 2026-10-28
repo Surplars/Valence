@@ -1,4 +1,7 @@
 #include "fabric_machine_vec_api.h"
+#ifndef ENABLE_JTAG
+#define ENABLE_JTAG 1
+#endif
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -60,9 +63,11 @@ struct Driver {
         dut.set_io$$ddrReady(1); dut.set_io$$timerTick(0); dut.set_io$$sources(0);
         dut.set_io$$uartRx(1); dut.set_io$$externalUartIrq(0);
         dut.set_io$$program$$valid(0); dut.set_io$$program$$bits$$index(0); dut.set_io$$program$$bits$$data(0);
+#if ENABLE_JTAG
         dut.set_io$$jtagLinkUp(1); dut.set_io$$jtagDmi$$request$$valid(0);
         dut.set_io$$jtagDmi$$request$$bits$$address(0); dut.set_io$$jtagDmi$$request$$bits$$data(0);
         dut.set_io$$jtagDmi$$request$$bits$$op(0); dut.set_io$$jtagDmi$$response$$ready(1);
+#endif
 #define STREAM(name) dut.set_io$$ethernetStreams##name##$$valid(0); \
     dut.set_io$$ethernetStreams##name##$$bits$$data(0); \
     dut.set_io$$ethernetStreams##name##$$bits$$keep(0); \
@@ -231,7 +236,7 @@ struct Driver {
     }
     void idle(unsigned count) { while(count--) tick(); }
     uint64_t access(unsigned lane,uint64_t address,bool write=false,uint64_t data=0,unsigned size=3,
-                    bool atomic=false,unsigned op=0,bool clear=false,bool lookup=true) {
+                    bool atomic=false,unsigned op=0,bool clear=false,bool lookup=true,bool expectedError=false) {
 #define SET(field,value) do { if(lane==0) dut.set_io$$tile$$scalar_0##field(value); \
                              else dut.set_io$$tile$$scalar_1##field(value); } while(0)
 #define GET(field) (lane==0?dut.get_io$$tile$$scalar_0##field():dut.get_io$$tile$$scalar_1##field())
@@ -241,7 +246,8 @@ struct Driver {
         do {tick();} while(!GET($$response$$valid));
         check(GET($$response$$bits$$owner)==nextOwner[lane] && bool(GET($$response$$bits$$clearReservation))==clear,
             "fabric scalar owner/kind mismatch");
-        check(!GET($$response$$bits$$memory$$error) && !GET($$response$$bits$$memory$$pageFault),"fabric scalar access error");
+        check(bool(GET($$response$$bits$$memory$$error))==expectedError &&
+            !GET($$response$$bits$$memory$$pageFault),"fabric scalar access error");
         uint64_t answer=GET($$response$$bits$$memory$$data); SET($$response$$ready,0);
         nextOwner[lane]=(nextOwner[lane]+1)&15; ++scalarReplies; if(clear) ++clearReplies;
         return answer;
@@ -251,6 +257,48 @@ struct Driver {
     void expect(unsigned lane,uint64_t address,uint64_t value,unsigned size=3) {
         uint64_t actual=access(lane,address,false,0,size); if(inject) { actual^=1; inject=false; }
         check(actual==value,"FABRIC memory/MMIO independent oracle mismatch");
+    }
+    // Fixed external ABI oracles, not values derived from DUT configuration.
+    void jtagOptionRun() {
+#if ENABLE_JTAG
+        dut.set_io$$jtagDmi$$response$$ready(0);
+        dut.set_io$$jtagDmi$$request$$bits$$op(1);
+        dut.set_io$$jtagDmi$$request$$bits$$address(0x40);
+        dut.set_io$$jtagDmi$$request$$bits$$data(0);
+        dut.set_io$$jtagDmi$$request$$valid(1);
+        unsigned wait=0;
+        do { check(++wait<=100,"JTAG option DMI request timeout"); tick(); }
+        while(!dut.get_io$$jtagDmi$$request$$ready());
+        dut.set_io$$jtagDmi$$request$$valid(0);
+        wait=0;
+        do { check(++wait<=100,"JTAG option DMI response timeout"); tick(); }
+        while(!dut.get_io$$jtagDmi$$response$$valid());
+        for(unsigned held=0;held<8;++held) {
+            check(dut.get_io$$jtagDmi$$response$$valid() &&
+                dut.get_io$$jtagDmi$$response$$bits$$status()==0 &&
+                dut.get_io$$jtagDmi$$response$$bits$$data()==0x564c0101,
+                "JTAG option held capability oracle mismatch");
+            tick();
+        }
+        dut.set_io$$jtagDmi$$response$$ready(1); tick(); idle(2);
+        check(!dut.get_io$$jtagDmi$$response$$valid(),"JTAG option duplicated DMI response");
+        expect(0,0x10003030ULL,0x80200000ULL);
+        expect(1,0x10003030ULL,0x80200000ULL);
+#else
+        // Absent device leaves a hole; it must not alias another peripheral or DDR.
+        // Negative mode expects success and must reject the real error.
+        const bool expectedError=!inject;
+        access(0,0x10003000ULL,false,0,3,false,0,false,true,expectedError);
+        access(1,0x10003008ULL,true,1,3,false,0,false,true,expectedError);
+        check(registerRequests==0 && axiReads==0 && axiWrites==0,
+            "disabled JTAG window reached another device");
+#endif
+        idle(8);
+        check(!dut.get_io$$tile$$scalar_0$$response$$valid() &&
+            !dut.get_io$$tile$$scalar_1$$response$$valid(),"JTAG option duplicated scalar response");
+        check(dut.get_io$$allObligationsIdle(),"JTAG option retained accepted obligation");
+        std::cout<<"COMMON_JTAG_OPTION_PASS enabled="<<ENABLE_JTAG<<" scalar="<<scalarReplies
+                 <<" cycles="<<cycles<<"\n";
     }
     void program(unsigned index,uint32_t value) {
         dut.set_io$$program$$valid(1); dut.set_io$$program$$bits$$index(index); dut.set_io$$program$$bits$$data(value);
@@ -598,6 +646,16 @@ struct Driver {
     }
 };
 int main(int argc,char**argv) {
-    try { auto d=std::make_unique<Driver>(); d->inject=argc>1 && std::string(argv[1])=="--inject-mismatch"; d->runtimeNegative=argc>1 ? argv[1] : ""; d->run(); }
+    try {
+        auto d=std::make_unique<Driver>();
+        if(argc>1 && std::string(argv[1])=="--jtag-option-only") {
+            check(argc==2 || (argc==3 && std::string(argv[2])=="--inject-mismatch"),
+                "unexpected JTAG option test arguments");
+            d->inject=argc==3; d->jtagOptionRun();
+        } else {
+            d->inject=argc>1 && std::string(argv[1])=="--inject-mismatch";
+            d->runtimeNegative=argc>1 ? argv[1] : ""; d->run();
+        }
+    }
     catch(const std::exception& e) { std::cerr<<e.what()<<"\n"; return 1; }
 }
