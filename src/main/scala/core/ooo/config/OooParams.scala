@@ -251,8 +251,18 @@ case class OooParams(
     coexistingPhysicalLoadIngress: Boolean = false,
     contextOwnedInstructionPrefetch: Boolean = false,
     // Payload nomination only; checked enqueue authorization and credits are unchanged.
-    loadPayloadNomination: Boolean = false
+    loadPayloadNomination: Boolean = false,
+    // Default-off numerical capture into the existing MUL operand register; DIV is unchanged.
+    registeredMulLoadOperandCapture: Boolean = false
 ) {
+    require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
+        sharedMulDivOperandReads && registeredMulDivOperands && registeredLoadIssueForwarding &&
+        registeredMemoryOperandCapture && ownerLocalOperandReady && parallelPrfReadyUpdates &&
+        completionTopology == "dual-owner" && renameWidth == 2 && completionWidth == 2 &&
+        robEntries == 16 && physicalRegs == 48 && tagBits == 64 &&
+        !loadCompletionBypass && !registeredLoadResultReady && !mulWordPreviewBypass &&
+        !fastHeadLoadRetire && !contextOwnedInstructionPrefetch && !loadPayloadNomination),
+        "MUL load capture requires the isolated fourth-profile registered-result/shared-M topology")
     require(!loadPayloadNomination || (coexistingPhysicalLoadIngress && certifiedLoadIngress),
         "load payload nomination requires the complete fourth-efficiency ingress topology")
     require(!contextOwnedInstructionPrefetch || (coexistingPhysicalLoadIngress && fetchThirdPacketLookahead &&

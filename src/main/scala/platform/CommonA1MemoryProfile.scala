@@ -152,6 +152,17 @@ object CommonA1MemoryProfile {
                 contextOwnedInstructionPrefetch = true)
     }
 
+    /** Isolated numerical MUL capture; all memory/permission policy remains fourth-profile. */
+    case object ExperimentalMulLoadOperandCapture extends CommonA1MemoryProfile("experimental-mul-load-operand-capture") {
+        override def validate(config: FpgaNextConfig, boundary: CommonCpuTilePortParams): Unit =
+            validateMemory(config, boundary, registered = false, combined = true, preparedStore = true,
+                elasticProof = true, guardedNaturalPmp = true, bufferedThirdRank = true, bufferedReturnFlow = true,
+                orderedOwnerReady = true, advisoryExclusion = true, certifiedIngress = true,
+                identityFetchHorizon = true, efficiencyRefactor = true, decodedNaturalPmp = true,
+                preparedBareHeadStore = true, bankedRobCompletionData = true, coexistingPhysicalLoadIngress = true,
+                registeredMulLoadOperandCapture = true)
+    }
+
     case object ExperimentalEfficiencyRefactor5 extends CommonA1MemoryProfile("experimental-efficiency-refactor-5") {
         override def validate(config: FpgaNextConfig, boundary: CommonCpuTilePortParams): Unit =
             validateMemory(config, boundary, registered = false, combined = true, preparedStore = true,
@@ -171,8 +182,12 @@ object CommonA1MemoryProfile {
         identityFetchHorizon: Boolean = false, efficiencyRefactor: Boolean = false,
         decodedNaturalPmp: Boolean = false, preparedBareHeadStore: Boolean = false,
         bankedRobCompletionData: Boolean = false, coexistingPhysicalLoadIngress: Boolean = false,
-        contextOwnedInstructionPrefetch: Boolean = false, loadPayloadNomination: Boolean = false): Unit = {
+        contextOwnedInstructionPrefetch: Boolean = false, loadPayloadNomination: Boolean = false,
+        registeredMulLoadOperandCapture: Boolean = false): Unit = {
         val p = config.coreParams
+        require(config.registeredMulLoadOperandCapture == registeredMulLoadOperandCapture &&
+            p.registeredMulLoadOperandCapture == registeredMulLoadOperandCapture,
+            "A1 policy must explicitly name MUL registered-load operand capture")
         require(config.loadPayloadNomination == loadPayloadNomination &&
             p.loadPayloadNomination == loadPayloadNomination,
             "A1 policy must explicitly name load payload nomination")
@@ -416,6 +431,13 @@ object CommonA1MemoryProfile {
         ExperimentalEfficiencyRefactor4.validate(base, CommonCpuTilePortParams())
         val result = base.copy(contextOwnedInstructionPrefetch = true)
         ExperimentalContextFetchPrefetch.validate(result, CommonCpuTilePortParams())
+        result
+    }
+
+    def experimentalMulLoadOperandCapture(base: FpgaNextConfig): FpgaNextConfig = {
+        ExperimentalEfficiencyRefactor4.validate(base, CommonCpuTilePortParams())
+        val result = base.copy(registeredMulLoadOperandCapture = true)
+        ExperimentalMulLoadOperandCapture.validate(result, CommonCpuTilePortParams())
         result
     }
 

@@ -23,6 +23,7 @@ class EfficiencyRefactorSpec extends AnyFunSuite {
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5 ||
+                profile == CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment ||
                 profile == CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment
             val c = profile.config
             val p = c.coreParams

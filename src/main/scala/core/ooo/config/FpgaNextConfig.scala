@@ -143,9 +143,14 @@ final case class FpgaNextConfig(
     coexistingPhysicalLoadIngress: Boolean = false,
     contextOwnedInstructionPrefetch: Boolean = false,
     loadPayloadNomination: Boolean = false,
+    registeredMulLoadOperandCapture: Boolean = false,
     // None preserves the exact selected topology; this is not a new public default.
     branchPredictorEntriesOverride: Option[Int] = None
 ) {
+    require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
+        registeredMemoryOperandCapture && sharedMulDivOperandReads &&
+        !contextOwnedInstructionPrefetch && !loadPayloadNomination),
+        "MUL load capture is an isolated fourth-profile experiment, not a prefetch/nomination descendant")
     require(!loadPayloadNomination || (coexistingPhysicalLoadIngress && certifiedLoadIngress),
         "load payload nomination requires the complete fourth-efficiency ingress topology")
     require(!contextOwnedInstructionPrefetch || (coexistingPhysicalLoadIngress && fetchThirdPacketLookahead &&
@@ -357,6 +362,7 @@ final case class FpgaNextConfig(
         (if (canonicalFetchCacheKeys) "-canonical-fetch-cache-keys" else "") +
         (if (registeredMemoryOperandCapture) "-registered-memory-operand-capture" else "") +
         (if (sharedMulDivOperandReads) "-shared-mul-div-operand-reads" else "") +
+        (if (registeredMulLoadOperandCapture) "-registered-mul-load-operand-capture" else "") +
         (if (sourceLocalLoadProofCancellation) "-source-local-load-proof-cancellation" else "") +
         (if (sharedLoadProofPmpBounds) "-shared-load-proof-pmp-bounds" else "") +
         (if (decodedNaturalPmp) "-decoded-natural-pmp" else "") +
@@ -582,7 +588,8 @@ final case class FpgaNextConfig(
             bankedRobCompletionData = bankedRobCompletionData,
             coexistingPhysicalLoadIngress = coexistingPhysicalLoadIngress,
             contextOwnedInstructionPrefetch = contextOwnedInstructionPrefetch,
-            loadPayloadNomination = loadPayloadNomination)
+            loadPayloadNomination = loadPayloadNomination,
+            registeredMulLoadOperandCapture = registeredMulLoadOperandCapture)
     }
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
@@ -596,6 +603,7 @@ final case class FpgaNextConfig(
             !sharedMulDivOperandReads && !sourceLocalLoadProofCancellation && !sharedLoadProofPmpBounds &&
             !decodedNaturalPmp && !preparedBareHeadStoreOperands && !bankedRobCompletionData &&
             !coexistingPhysicalLoadIngress && !contextOwnedInstructionPrefetch && !loadPayloadNomination &&
+            !registeredMulLoadOperandCapture &&
             branchPredictorEntriesOverride.isEmpty,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(

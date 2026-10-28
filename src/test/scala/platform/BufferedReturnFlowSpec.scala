@@ -30,6 +30,7 @@ class BufferedReturnFlowSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment,
                 CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment)
         for (profile <- CommonA1RebuildProfile.all) {
             assert(profile.config.bufferedReturnFlow == descendants.contains(profile))

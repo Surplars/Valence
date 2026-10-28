@@ -21,9 +21,11 @@ class CoexistingPhysicalLoadIngressSpec extends AnyFunSuite {
         for (profile <- CommonA1RebuildProfile.all) {
             assert(profile.config.coexistingPhysicalLoadIngress == (profile == candidate ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5 ||
+                profile == CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment ||
                 profile == CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment))
             assert(profile.config.coreParams.coexistingPhysicalLoadIngress == (profile == candidate ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5 ||
+                profile == CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment ||
                 profile == CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment))
         }
         val p = candidate.config.coreParams

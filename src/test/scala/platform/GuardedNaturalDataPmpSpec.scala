@@ -43,6 +43,7 @@ class GuardedNaturalDataPmpSpec extends AnyFunSuite {
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
             p == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5 ||
+            p == CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment ||
             p == CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment)) {
             assert(!old.config.guardedNaturalDataPmp)
             old.memoryProfile.foreach { policy =>

@@ -16,6 +16,7 @@ class DecodedNaturalPmpSpec extends AnyFunSuite {
             val enabled = profile == candidate || profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3 ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4 ||
                 profile == CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5 ||
+                profile == CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment ||
                 profile == CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment
             assert(profile.config.decodedNaturalPmp == enabled)
             assert(profile.config.coreParams.decodedNaturalPmp == enabled)

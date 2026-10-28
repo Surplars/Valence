@@ -2490,19 +2490,41 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val mulDivChoice = Wire(new Candidate)
     val mulDivRequests = Wire(Vec(2, new MultiplyDivideRequest(p)))
     val mulDivGrants = Wire(Vec(2, Bool()))
+    val mulLoadCaptureAllowed = if (p.registeredMulLoadOperandCapture) Some(Wire(Bool())) else None
     if (p.sharedMulDivOperandReads) {
         val selector = Module(new SplitMulDivSelector(p, predecodedHead = p.registeredIssueHeadMask))
         selector.io.head := head
         selector.io.headMask.foreach(_ := issueHeadMask.get)
         selector.io.available := VecInit(Seq(multiplier.io.start.ready, mulDiv.io.start.ready))
-        for (kind <- 0 until 2) {
-            selector.io.eligible(kind) := VecInit((0 until p.robEntries).map { i =>
+        def registeredMulDivEligible(kind: Int): UInt =
+            VecInit((0 until p.robEntries).map { i =>
                 val source1 = Mux(pending(i), issueEntries(i).renamed.source1, 0.U)
                 val source2 = Mux(pending(i), issueEntries(i).renamed.source2, 0.U)
                 pending(i) && issueEntries(i).request.mulDiv && issueEntries(i).request.mulDivOp(2) === (kind == 1).B &&
                     ownerReady.map(_.io.ready1(i)).getOrElse(operandReady(source1)) &&
                     ownerReady.map(_.io.ready2(i)).getOrElse(operandReady(source2))
             }).asUInt
+        val originalPortFree = if (p.registeredMulLoadOperandCapture) {
+            // Independently reconstruct OLD availability. Never feed the expanded
+            // selector (or capture authorization) back into its own eligibility.
+            val oldMultiply = registeredMulDivEligible(0)
+            val oldDivide = registeredMulDivEligible(1)
+            val free = !(oldMultiply.orR && multiplier.io.start.ready) &&
+                !(oldDivide.orR && mulDiv.io.start.ready)
+            val promisedMultiply = VecInit((0 until p.robEntries).map { i =>
+                val entry = issueEntries(i)
+                val source1 = Mux(pending(i), entry.renamed.source1, 0.U)
+                val source2 = Mux(pending(i), entry.renamed.source2, 0.U)
+                pending(i) && entry.request.mulDiv && !entry.request.mulDivOp(2) && free &&
+                    RegisteredMemoryOperandAuthority.ready(source1, ownerReady.get.io.ready1(i), loadIssueWake) &&
+                    RegisteredMemoryOperandAuthority.ready(source2, ownerReady.get.io.ready2(i), loadIssueWake)
+            }).asUInt
+            selector.io.eligible(0) := oldMultiply | promisedMultiply
+            selector.io.eligible(1) := oldDivide
+            Some(free)
+        } else {
+            for (kind <- 0 until 2) selector.io.eligible(kind) := registeredMulDivEligible(kind)
+            None
         }
         val selectedOwner = Mux1H(selector.io.grant.zip(selector.io.owner))
         val entry = readIssue(selector.io.selectedIndex, "sharedMulDiv", Set("pc"), Some(selectedOwner))
@@ -2510,8 +2532,50 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // class before two shared reads. It never sees a new operand's legality.
         val source1 = Mux(selector.io.selectedValid, entry.renamed.source1, 0.U)
         val source2 = Mux(selector.io.selectedValid, entry.renamed.source2, 0.U)
-        val left = operandValue(source1)
-        val right = operandValue(source2)
+        val left = if (p.registeredMulLoadOperandCapture)
+            Mux(selector.io.grant(0) && !ready(source1) && loadIssueHit(source1),
+                lsu.io.complete.bits.data, operandValue(source1))
+        else operandValue(source1)
+        val right = if (p.registeredMulLoadOperandCapture)
+            Mux(selector.io.grant(0) && !ready(source2) && loadIssueHit(source2),
+                lsu.io.complete.bits.data, operandValue(source2))
+        else operandValue(source2)
+        if (p.registeredMulLoadOperandCapture) {
+            val forwarded1 = !ready(source1) && RegisteredMemoryOperandAuthority.hit(source1, loadIssueWake)
+            val forwarded2 = !ready(source2) && RegisteredMemoryOperandAuthority.hit(source2, loadIssueWake)
+            val forwarded = selector.io.grant(0) && (forwarded1 || forwarded2)
+            val expanded = selector.io.grant(0) && originalPortFree.get
+            val consumer = issueEntries(entry.renamed.token.index)
+            val producerAge = completedLoadIndex - head
+            val consumerAge = entry.renamed.token.index - head
+            val consumerLive = pending(entry.renamed.token.index) &&
+                consumer.renamed.token.asUInt === entry.renamed.token.asUInt &&
+                consumerAge < ledger.io.occupancy
+            val producerLive = producerAge < ledger.io.occupancy
+            val sourceUnreserved = readyUpdate.get.io.reserve.map { reserve =>
+                !reserve.valid || !((forwarded1 && reserve.bits === source1) ||
+                    (forwarded2 && reserve.bits === source2))
+            }.reduce(_ && _)
+            val ownerReadyExact = ownerReady.get.io.ready1(selector.io.selectedIndex) === ready(source1) &&
+                ownerReady.get.io.ready2(selector.io.selectedIndex) === ready(source2)
+            // Old result/token/data are consumed before any same-edge replacement.
+            // These late checks authorize only a new numerical capture, not rank,
+            // permissions, PRF publication, retirement or result-slot credit.
+            val authority = originalPortFree.get && numericalLoadAuthority.get && producerLive && consumerLive &&
+                producerAge < consumerAge && !killed(completedLoadIndex) && !killed(entry.renamed.token.index) &&
+                (ready(source1) || forwarded1) && (ready(source2) || forwarded2) && sourceUnreserved && ownerReadyExact
+            mulLoadCaptureAllowed.get := !expanded || (forwarded && authority)
+            when(multiplier.io.start.fire && forwarded) {
+                assert(authority && selector.io.grant(0) && !entry.request.mulDivOp(2),
+                    "MUL numerical capture requires an older successful full-token load and a live exact consumer")
+                assertNumericalMemoryCapture(true.B, entry.renamed.token, source1, left)
+                assertNumericalMemoryCapture(true.B, entry.renamed.token, source2, right)
+                assert((ready(source1) || forwarded1) && (ready(source2) || forwarded2),
+                    "every captured MUL source must be registered-ready or the authorized stable load value")
+                when(forwarded1) { assert(left === lsu.io.complete.bits.data) }
+                when(forwarded2) { assert(right === lsu.io.complete.bits.data) }
+            }
+        }
         for (kind <- 0 until 2) {
             mulDivRequests(kind).token := entry.renamed.token
             mulDivRequests(kind).pc := entry.request.rename.pc
@@ -2524,8 +2588,15 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         when(selector.io.selectedValid) {
             assert(entry.renamed.token.index === selector.io.selectedIndex && PopCount(selectedOwner) === 1.U,
                 "shared M reads must belong to the same unique full-token class winner")
-            assert(ready(source1) && ready(source2),
-                "shared M reads retain registered operand readiness")
+            if (p.registeredMulLoadOperandCapture) {
+                when(!selector.io.grant(0) || !originalPortFree.get) {
+                    assert(ready(source1) && ready(source2),
+                        "all original M winners and every DIV retain registered operand readiness")
+                }
+            } else {
+                assert(ready(source1) && ready(source2),
+                    "shared M reads retain registered operand readiness")
+            }
         }
         mulDivChoice.valid := selector.io.selectedValid
         mulDivChoice.index := selector.io.selectedIndex
@@ -2597,7 +2668,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         ((p.issueWidth > 1).B || !directStoreReserve) && !ledger.io.recovering
     val mStart        = reserveMulDiv && !ledger.io.recoveryAccepted && !ledger.io.headException.valid
     mulDiv.io.start.valid          := mStart && mulDivGrants(1)
-    multiplier.io.start.valid      := mStart && mulDivGrants(0)
+    multiplier.io.start.valid      := (if (p.registeredMulLoadOperandCapture)
+        mStart && mulDivGrants(0) && mulLoadCaptureAllowed.get else mStart && mulDivGrants(0))
     mulDiv.io.start.bits           := mulDivRequests(1)
     multiplier.io.start.bits      := mulDivRequests(0)
     when(mulDiv.io.start.fire || multiplier.io.start.fire) { pending(mulDivChoice.index) := false.B }

@@ -1,0 +1,670 @@
+{
+  "status": "PORTABLE_SOURCE_CHECKPOINT_NOT_A_NEW_RUNTIME_QUALIFICATION",
+  "top": "MulLoadOperandCaptureBackendGsim",
+  "emitter_main": "ooo.MulLoadOperandCaptureBackendGsimMain",
+  "variants": {
+    "off": {
+      "emitter_args": [
+        "<fresh-variant-output>",
+        "off"
+      ],
+      "profile": "FullR1M3EfficiencyRefactor4"
+    },
+    "on": {
+      "emitter_args": [
+        "<fresh-variant-output>",
+        "on"
+      ],
+      "profile": "FullR1M3MulLoadOperandCaptureExperiment"
+    }
+  },
+  "host": "backend_host.cpp",
+  "oracle": "pending_store_proof_reference.h",
+  "counts": {
+    "positive": 26,
+    "observer_negative": 2,
+    "rtl_mutant": 0,
+    "total": 28
+  },
+  "positive_cases": [
+    {
+      "name": "ready-variants",
+      "variants": {
+        "off": {
+          "id": "off-ready-variants",
+          "model": "off",
+          "args": [
+            "ready-variants",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=ready-variants profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-ready-variants",
+          "model": "on",
+          "args": [
+            "ready-variants",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=ready-variants profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "source1",
+      "variants": {
+        "off": {
+          "id": "off-source1",
+          "model": "off",
+          "args": [
+            "source1",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=source1 profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-source1",
+          "model": "on",
+          "args": [
+            "source1",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=source1 profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "source2",
+      "variants": {
+        "off": {
+          "id": "off-source2",
+          "model": "off",
+          "args": [
+            "source2",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=source2 profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-source2",
+          "model": "on",
+          "args": [
+            "source2",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=source2 profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "same-producer",
+      "variants": {
+        "off": {
+          "id": "off-same-producer",
+          "model": "off",
+          "args": [
+            "same-producer",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=same-producer profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-same-producer",
+          "model": "on",
+          "args": [
+            "same-producer",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=same-producer profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "two-producers",
+      "variants": {
+        "off": {
+          "id": "off-two-producers",
+          "model": "off",
+          "args": [
+            "two-producers",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=two-producers profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-two-producers",
+          "model": "on",
+          "args": [
+            "two-producers",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=two-producers profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "waw",
+      "variants": {
+        "off": {
+          "id": "off-waw",
+          "model": "off",
+          "args": [
+            "waw",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=waw profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-waw",
+          "model": "on",
+          "args": [
+            "waw",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=waw profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "head-wrap",
+      "variants": {
+        "off": {
+          "id": "off-head-wrap",
+          "model": "off",
+          "args": [
+            "head-wrap",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=head-wrap profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-head-wrap",
+          "model": "on",
+          "args": [
+            "head-wrap",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=head-wrap profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "kill-consumer",
+      "variants": {
+        "off": {
+          "id": "off-kill-consumer",
+          "model": "off",
+          "args": [
+            "kill-consumer",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=kill-consumer profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-kill-consumer",
+          "model": "on",
+          "args": [
+            "kill-consumer",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=kill-consumer profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "kill-both",
+      "variants": {
+        "off": {
+          "id": "off-kill-both",
+          "model": "off",
+          "args": [
+            "kill-both",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=kill-both profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-kill-both",
+          "model": "on",
+          "args": [
+            "kill-both",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=kill-both profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "load-error",
+      "variants": {
+        "off": {
+          "id": "off-load-error",
+          "model": "off",
+          "args": [
+            "load-error",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=load-error profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-load-error",
+          "model": "on",
+          "args": [
+            "load-error",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=load-error profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "page-fault",
+      "variants": {
+        "off": {
+          "id": "off-page-fault",
+          "model": "off",
+          "args": [
+            "page-fault",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=page-fault profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-page-fault",
+          "model": "on",
+          "args": [
+            "page-fault",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=page-fault profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "old-mul-contention",
+      "variants": {
+        "off": {
+          "id": "off-old-mul-contention",
+          "model": "off",
+          "args": [
+            "old-mul-contention",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=old-mul-contention profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-old-mul-contention",
+          "model": "on",
+          "args": [
+            "old-mul-contention",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=old-mul-contention profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    },
+    {
+      "name": "old-div-contention",
+      "variants": {
+        "off": {
+          "id": "off-old-div-contention",
+          "model": "off",
+          "args": [
+            "old-div-contention",
+            "--profile=off"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=old-div-contention profile=off"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        },
+        "on": {
+          "id": "on-old-div-contention",
+          "model": "on",
+          "args": [
+            "old-div-contention",
+            "--profile=on"
+          ],
+          "kind": "positive",
+          "expected_exit": 0,
+          "required": [
+            "MUL_LOAD_BACKEND_PASS case=old-div-contention profile=on"
+          ],
+          "stderr_exact": [],
+          "forbidden": [
+            "MUL_LOAD_BACKEND_FAIL",
+            "COVERAGE_NOT_REACHED",
+            "MUL_OBSERVER_MUTANT_REACHED"
+          ],
+          "timeout_s": 120
+        }
+      }
+    }
+  ],
+  "observer_cases": [
+    {
+      "id": "observer-high-tag",
+      "model": "on",
+      "args": [
+        "source1",
+        "--profile=on",
+        "--observer-high-tag"
+      ],
+      "kind": "observer_negative_not_rtl_mutant",
+      "expected_exit": 1,
+      "required": [
+        "MUL_OBSERVER_MUTANT_REACHED mode=high-tag",
+        "MUL_FULL_OWNER_UNKNOWN"
+      ],
+      "stderr_fullmatch": "MUL_OBSERVER_MUTANT_REACHED mode=high-tag\\nMUL_LOAD_BACKEND_FAIL cycle=[0-9]+ MUL_FULL_OWNER_UNKNOWN\\n",
+      "forbidden": [
+        "MUL_LOAD_BACKEND_PASS",
+        "COVERAGE_NOT_REACHED"
+      ],
+      "timeout_s": 120
+    },
+    {
+      "id": "observer-value",
+      "model": "on",
+      "args": [
+        "source1",
+        "--profile=on",
+        "--observer-value"
+      ],
+      "kind": "observer_negative_not_rtl_mutant",
+      "expected_exit": 1,
+      "required": [
+        "MUL_OBSERVER_MUTANT_REACHED mode=value",
+        "MUL_OPERAND_VALUE_MISMATCH"
+      ],
+      "stderr_fullmatch": "MUL_OBSERVER_MUTANT_REACHED mode=value\\nMUL_LOAD_BACKEND_FAIL cycle=[0-9]+ MUL_OPERAND_VALUE_MISMATCH\\n",
+      "forbidden": [
+        "MUL_LOAD_BACKEND_PASS",
+        "COVERAGE_NOT_REACHED"
+      ],
+      "timeout_s": 120
+    }
+  ],
+  "source_sha256": {
+    "backend_host.cpp": "62bbf0b0159765c7a6f1df9e2751dcc3e61dcb481d819c12faa6b7e9713cb48b",
+    "pending_store_proof_reference.h": "9b78eb81a52d505c2b94f83062a07f2be9645859097ed6c795e3c2b0a913c4be"
+  },
+  "qualification_limits": [
+    "Exact descriptors from the accepted 26-positive/2-observer component set; this relocation itself has not been run.",
+    "Original acceptance used 10 initial-host cases and 18 corrected-host cases, preserving one original page-fault host-contract failure.",
+    "Observer negatives mutate host snapshots, not RTL guards.",
+    "Full8 credit-pop, CDB-held LSU result and late-rejection witnesses were zero; dedicated replacement/retry/ALU-cost witnesses were not measured."
+  ]
+}

@@ -34,7 +34,8 @@ sealed abstract class CommonA1RebuildProfile(
     val efficiencyRefactor3: Boolean = false,
     val efficiencyRefactor4: Boolean = false,
     val efficiencyRefactor5: Boolean = false,
-    val contextOwnedInstructionPrefetch: Boolean = false
+    val contextOwnedInstructionPrefetch: Boolean = false,
+    val registeredMulLoadOperandCapture: Boolean = false
 ) {
     final def config: FpgaNextConfig = {
         val baseline = CommonCpuProfile.A1.fpga
@@ -103,12 +104,17 @@ sealed abstract class CommonA1RebuildProfile(
         require(!efficiencyRefactor5 || efficiencyRefactor4, "fifth efficiency candidate retains the entire fourth batch")
         require(!(efficiencyRefactor5 && contextOwnedInstructionPrefetch),
             "context prefetch is a fourth-baseline experiment, not a fifth nomination descendant")
-        if (contextOwnedInstructionPrefetch) CommonA1MemoryProfile.experimentalContextFetchPrefetch(fourth)
+        require(!registeredMulLoadOperandCapture || (efficiencyRefactor4 &&
+            !efficiencyRefactor5 && !contextOwnedInstructionPrefetch),
+            "MUL load capture is an isolated fourth-baseline experiment")
+        if (registeredMulLoadOperandCapture) CommonA1MemoryProfile.experimentalMulLoadOperandCapture(fourth)
+        else if (contextOwnedInstructionPrefetch) CommonA1MemoryProfile.experimentalContextFetchPrefetch(fourth)
         else if (efficiencyRefactor5) CommonA1MemoryProfile.experimentalEfficiencyRefactor5(fourth) else fourth
     }
 
     final def memoryProfile: Option[CommonA1MemoryProfile] =
-        if (contextOwnedInstructionPrefetch) Some(CommonA1MemoryProfile.ExperimentalContextFetchPrefetch)
+        if (registeredMulLoadOperandCapture) Some(CommonA1MemoryProfile.ExperimentalMulLoadOperandCapture)
+        else if (contextOwnedInstructionPrefetch) Some(CommonA1MemoryProfile.ExperimentalContextFetchPrefetch)
         else if (efficiencyRefactor5) Some(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor5)
         else if (efficiencyRefactor4) Some(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4)
         else if (efficiencyRefactor3) Some(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor3)
@@ -238,6 +244,13 @@ object CommonA1RebuildProfile {
         fetchThirdPacketLookahead = true, efficiencyRefactor = true, efficiencyRefactor2 = true,
         efficiencyRefactor3 = true, efficiencyRefactor4 = true, contextOwnedInstructionPrefetch = true)
 
+    case object FullR1M3MulLoadOperandCaptureExperiment extends CommonA1RebuildProfile(
+        "full-r1-m3-mul-load-operand-capture-experiment",
+        true, true, true, 2, false, true, true, true, true, true, false, false, true, true, true, true,
+        orderedLsuResponseReady = true, registeredAdvisoryExclusion = true, certifiedLoadIngress = true,
+        fetchThirdPacketLookahead = true, efficiencyRefactor = true, efficiencyRefactor2 = true,
+        efficiencyRefactor3 = true, efficiencyRefactor4 = true, registeredMulLoadOperandCapture = true)
+
     case object FullR1M3EfficiencyRefactor5 extends CommonA1RebuildProfile(
         "full-r1-m3-efficiency-refactor-5",
         true, true, true, 2, false, true, true, true, true, true, false, false, true, true, true, true,
@@ -253,7 +266,8 @@ object CommonA1RebuildProfile {
         FullR1M3CheckedFlowStoreRowElasticProofGuardedNaturalPmpSplitTag, FullR1M3BufferedThirdRankProof,
         FullR1M3BufferedReturnFlow, FullR1M3OrderedOwnerReady, FullR1M3AdvisoryOwner, FullR1M3CertifiedIngress,
         FullR1M3IdentityFetchHorizon, FullR1M3EfficiencyRefactor, FullR1M3EfficiencyRefactor2,
-        FullR1M3EfficiencyRefactor3, FullR1M3EfficiencyRefactor4, FullR1M3EfficiencyRefactor5, FullR1M3ContextFetchPrefetchExperiment)
+        FullR1M3EfficiencyRefactor3, FullR1M3EfficiencyRefactor4, FullR1M3EfficiencyRefactor5, FullR1M3ContextFetchPrefetchExperiment,
+        FullR1M3MulLoadOperandCaptureExperiment)
 
     def named(name: String): CommonA1RebuildProfile = {
         require(all.exists(_.name == name), s"unknown explicit A1 rebuild profile: $name")

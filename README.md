@@ -7,6 +7,11 @@ RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
 ## A1 云端候选（2026-10-27）
 
+[MUL registered-load operand capture（2026-10-28）](docs/a1-mul-registered-load-capture.md)：默认 OFF，仅原共享 M 端口空闲时使用稳定 LSU 结果。
+同源两模型 30 CPU role-case（24 正例 + 6 observer 负控）通过；CoreMark 等频 ROI 吞吐 +0.8306%/+0.8310%，I/D 流量不变，其余 10 个正例配对业务输出相同。
+正常同流 map 的 logic LUT +0.59524%、MUXF −5.55806%，FF/RAM/DSP 不变；是小幅性能收益伴随 LUT 成本，不提升基线，无物理 Fmax/面积/功耗结论。
+44 项纯检查的原 epoch、26+2 组件的恢复来源与 9 个 portable 短例范围见报告，不冒称全 checkout 重建。
+
 [Context-owned instruction prefetch + last-stale 抑制](docs/a1-context-owned-instruction-prefetch.md)：默认 OFF，不提升为基线。
 55 项纯检查、62 个 cache 正例及新 candidate 18 项（12 正例 + 6 observer 负控）独审通过；12 个历史 control 仅复用、未重跑。
 独立 load ROI 保持 90→65 拍，依赖链不变；CoreMark ROI 仅省约 0.05%，I 流量仍多约 48–52%，smoke 相对旧预取回退 6 拍。

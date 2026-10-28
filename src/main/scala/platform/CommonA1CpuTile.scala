@@ -28,6 +28,7 @@ class CommonA1CpuTile(
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor3) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor5) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalMulLoadOperandCapture) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalContextFetchPrefetch)),
         "identity fetch horizon requires its explicit final-configuration policy")
     require(!config.contextOwnedInstructionPrefetch ||
